@@ -1,6 +1,8 @@
-[![GitHub Repository](https://img.shields.io/badge/GitHub-TVLavin%20Chess%20Game%202-blue?logo=github)](https://github.com/elcriollito/TVLavin-Chess-Game2)
+[![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen?logo=githubpages)](https://elcriollito.github.io/TVLavin-Chess-Game2/)
 
-[TVLavin Chess Game 2](https://github.com/elcriollito/TVLavin-Chess-Game2)
+
+[🎮 Play TVLavin Chess Game 2](https://elcriollito.github.io/TVLavin-Chess-Game2/)
+
 
 # TVLavin Chess - Professional Chess Application
 
