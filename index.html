@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TVLavin Chess - Fritz Classic Style</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Main Container -->
+    <div id="app" class="app-container">
+        
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="app-title">
+                    <i class="fas fa-chess-knight"></i>
+                    TVLavin Chess
+                </h1>
+                <div class="header-controls">
+                    <button id="newGameBtn" class="btn btn-primary" aria-label="Start New Game">
+                        <i class="fas fa-plus"></i> New Game
+                    </button>
+                    <button id="menuBtn" class="btn btn-secondary" aria-label="Open Menu">
+                        <i class="fas fa-bars"></i> Menu
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            
+            <!-- Left Sidebar - Game Info -->
+            <aside class="left-sidebar">
+                <!-- Game Status -->
+                <div class="panel game-status-panel">
+                    <h3 class="panel-title">Game Status</h3>
+                    <div class="status-content">
+                        <div class="turn-indicator">
+                            <span id="turnIndicator">White to move</span>
+                        </div>
+                        <div class="timer-display">
+                            <div class="timer white-timer">
+                                <i class="fas fa-chess-king"></i>
+                                <span id="whiteTime">--:--</span>
+                            </div>
+                            <div class="timer black-timer">
+                                <i class="fas fa-chess-king"></i>
+                                <span id="blackTime">--:--</span>
+                            </div>
+                        </div>
+                        <div class="game-result" id="gameResult"></div>
+                    </div>
+                </div>
+
+                <!-- Move History -->
+                <div class="panel move-history-panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Move History</h3>
+                        <div class="history-controls">
+                            <button id="exportPGN" class="icon-btn" title="Export PGN" aria-label="Export game as PGN">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="moveHistory" class="move-history-content"></div>
+                    
+                    <!-- Navigation Controls -->
+                    <div class="navigation-controls">
+                        <button id="navFirst" class="nav-btn" title="Jump to start" aria-label="Jump to start">
+                            <i class="fas fa-fast-backward"></i>
+                        </button>
+                        <button id="navPrev" class="nav-btn" title="Previous move" aria-label="Previous move">
+                            <i class="fas fa-step-backward"></i>
+                        </button>
+                        <button id="navNext" class="nav-btn" title="Next move" aria-label="Next move">
+                            <i class="fas fa-step-forward"></i>
+                        </button>
+                        <button id="navLast" class="nav-btn" title="Jump to end" aria-label="Jump to end">
+                            <i class="fas fa-fast-forward"></i>
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Center - Chess Board -->
+            <main class="board-container">
+                <div id="chessboard" class="chessboard"></div>
+                
+                <!-- Analysis Panel (below board) -->
+                <div class="panel analysis-panel" id="analysisPanel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Engine Analysis</h3>
+                        <button id="toggleAnalysis" class="btn btn-small" aria-label="Toggle analysis">
+                            <i class="fas fa-brain"></i> Analyze
+                        </button>
+                    </div>
+                    <div class="analysis-content">
+                        <div class="analysis-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Evaluation:</span>
+                                <span id="evaluation" class="stat-value">0.0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Depth:</span>
+                                <span id="depth" class="stat-value">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Nodes:</span>
+                                <span id="nodes" class="stat-value">0</span>
+                            </div>
+                        </div>
+                        <div class="best-line">
+                            <span class="stat-label">Best Line:</span>
+                            <div id="bestLine" class="best-line-moves">--</div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Right Sidebar - Engine Settings -->
+            <aside class="right-sidebar">
+                <!-- Engine Settings -->
+                <div class="panel engine-panel">
+                    <h3 class="panel-title">Engine Settings</h3>
+                    <div class="engine-content">
+                        <div class="form-group">
+                            <label for="engineLevel">Engine Strength:</label>
+                            <select id="engineLevel" class="form-control" aria-label="Select engine strength">
+                                <option value="1">Level 1 - Beginner</option>
+                                <option value="3">Level 3 - Easy</option>
+                                <option value="5" selected>Level 5 - Medium</option>
+                                <option value="8">Level 8 - Hard</option>
+                                <option value="10">Level 10 - Expert</option>
+                                <option value="15">Level 15 - Master</option>
+                                <option value="20">Level 20 - Grandmaster</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="playerColor">Play as:</label>
+                            <select id="playerColor" class="form-control" aria-label="Select player color">
+                                <option value="white" selected>White</option>
+                                <option value="black">Black</option>
+                            </select>
+                        </div>
+
+                        <div class="engine-status">
+                            <div class="status-indicator">
+                                <span class="status-dot" id="engineStatus"></span>
+                                <span id="engineStatusText">Engine Ready</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="panel actions-panel">
+                    <h3 class="panel-title">Quick Actions</h3>
+                    <div class="actions-content">
+                        <button id="flipBoard" class="btn btn-block" aria-label="Flip board">
+                            <i class="fas fa-exchange-alt"></i> Flip Board
+                        </button>
+                        <button id="pasteFEN" class="btn btn-block" aria-label="Paste FEN">
+                            <i class="fas fa-file-import"></i> Paste FEN
+                        </button>
+                        <button id="editBoard" class="btn btn-block" aria-label="Edit board">
+                            <i class="fas fa-edit"></i> Edit Board
+                        </button>
+                        <button id="analyzeGame" class="btn btn-block btn-highlight" aria-label="Analyze game">
+                            <i class="fas fa-chart-line"></i> Analyze Game
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Credits -->
+                <div class="panel credits-panel">
+                    <h3 class="panel-title">Credits</h3>
+                    <div class="credits-content">
+                        <p><strong>Design collaboration:</strong> TVLAVIN</p>
+                        <p><strong>Engine:</strong> Stockfish 16 NNUE</p>
+                        <p><strong>Libraries:</strong> chess.js, chessground</p>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    
+    <!-- New Game Modal -->
+    <div id="newGameModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>New Game</h2>
+                <button class="modal-close" data-modal="newGameModal" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Game Mode:</label>
+                    <select id="gameMode" class="form-control" aria-label="Select game mode">
+                        <option value="engine">Play vs Engine</option>
+                        <option value="analysis">Analysis Mode</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Time Control:</label>
+                    <div class="time-options">
+                        <button class="time-btn" data-time="180">3 min</button>
+                        <button class="time-btn" data-time="300">5 min</button>
+                        <button class="time-btn" data-time="600">10 min</button>
+                        <button class="time-btn active" data-time="0">No limit</button>
+                    </div>
+                </div>
+
+                <div class="form-group" id="colorSelection">
+                    <label>Play as:</label>
+                    <div class="color-options">
+                        <button class="color-btn active" data-color="white">
+                            <i class="fas fa-chess-king"></i> White
+                        </button>
+                        <button class="color-btn" data-color="black">
+                            <i class="fas fa-chess-king"></i> Black
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group" id="engineLevelSelection">
+                    <label>Engine Level:</label>
+                    <select id="newGameEngineLevel" class="form-control" aria-label="Select engine level">
+                        <option value="1">Level 1 - Beginner</option>
+                        <option value="3">Level 3 - Easy</option>
+                        <option value="5" selected>Level 5 - Medium</option>
+                        <option value="8">Level 8 - Hard</option>
+                        <option value="10">Level 10 - Expert</option>
+                        <option value="15">Level 15 - Master</option>
+                        <option value="20">Level 20 - Grandmaster</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-modal="newGameModal">Cancel</button>
+                <button id="startNewGame" class="btn btn-primary">Start Game</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FEN Paste Modal -->
+    <div id="fenModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Paste FEN</h2>
+                <button class="modal-close" data-modal="fenModal" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="fenInput">FEN String:</label>
+                    <input type="text" id="fenInput" class="form-control" 
+                           placeholder="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+                           aria-label="Enter FEN string">
+                    <small class="form-text">Enter a valid FEN string to load a position</small>
+                </div>
+                <div id="fenError" class="error-message"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-modal="fenModal">Cancel</button>
+                <button id="loadFEN" class="btn btn-primary">Load Position</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu Modal -->
+    <div id="menuModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Menu</h2>
+                <button class="modal-close" data-modal="menuModal" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="menu-section">
+                    <h3>Game Options</h3>
+                    <button class="btn btn-block" id="menuNewGame">
+                        <i class="fas fa-plus"></i> New Game
+                    </button>
+                    <button class="btn btn-block" id="menuFlipBoard">
+                        <i class="fas fa-exchange-alt"></i> Flip Board
+                    </button>
+                    <button class="btn btn-block" id="menuPasteFEN">
+                        <i class="fas fa-file-import"></i> Paste FEN
+                    </button>
+                    <button class="btn btn-block" id="menuEditBoard">
+                        <i class="fas fa-edit"></i> Edit Board
+                    </button>
+                    <button class="btn btn-block" id="menuAnalyzeGame">
+                        <i class="fas fa-chart-line"></i> Analyze Game
+                    </button>
+                </div>
+                
+                <div class="menu-section">
+                    <h3>Advanced</h3>
+                    <button class="btn btn-block" id="menuEmbed">
+                        <i class="fas fa-code"></i> Get Embed Code
+                    </button>
+                    <button class="btn btn-block" id="menuExportPGN">
+                        <i class="fas fa-download"></i> Export PGN
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Embed Modal -->
+    <div id="embedModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Embed Code</h2>
+                <button class="modal-close" data-modal="embedModal" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Copy this code to embed the chess board on your website:</p>
+                <textarea id="embedCode" class="embed-code" readonly aria-label="Embed code"></textarea>
+                <button id="copyEmbed" class="btn btn-primary">
+                    <i class="fas fa-copy"></i> Copy to Clipboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+    <script src="stockfish-worker.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
