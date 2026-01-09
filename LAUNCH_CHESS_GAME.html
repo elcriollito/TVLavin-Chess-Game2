@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Lanzar TVLavin Chess Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 60px 40px;
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+            animation: fadeIn 0.6s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 40px;
+        }
+
+        .launch-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 25px 50px;
+            font-size: 24px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .launch-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
+        }
+
+        .launch-button:active {
+            transform: translateY(-2px);
+        }
+
+        .launch-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .launch-button:hover::before {
+            left: 100%;
+        }
+
+        .icon {
+            font-size: 28px;
+        }
+
+        .instruction {
+            margin-top: 30px;
+            color: #888;
+            font-size: 14px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .instruction strong {
+            color: #667eea;
+        }
+
+        .features {
+            margin-top: 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            text-align: left;
+        }
+
+        .feature {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-icon {
+            font-size: 24px;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 40px 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .launch-button {
+                padding: 20px 40px;
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">♟️</div>
+        <h1>TVLavin Chess Game</h1>
+        <p class="subtitle">Juega ajedrez profesional con IA Stockfish</p>
+
+        <button class="launch-button" id="launchBtn" ondblclick="launchGame()">
+            <span class="icon">🚀</span>
+            <span>DOBLE CLIC PARA JUGAR</span>
+        </button>
+
+        <div class="instruction">
+            <strong>💡 Instrucciones:</strong> Haz <strong>doble clic</strong> en el botón para abrir el juego de ajedrez
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <div class="features">
+            <div class="feature">
+                <span class="feature-icon">🎮</span>
+                <span>Juega vs IA</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">📊</span>
+                <span>Análisis en vivo</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">⏱️</span>
+                <span>Control de tiempo</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">🌐</span>
+                <span>Sin servidor</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function launchGame() {
+            const statusDiv = document.getElementById('status');
+
+            try {
+                // Obtener la ruta del archivo actual
+                const currentPath = window.location.href;
+                const basePath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+
+                // Abrir index.html en una nueva ventana
+                const gameWindow = window.open(basePath + '/index.html', 'TVLavinChess', 'width=1400,height=900,resizable=yes,scrollbars=yes');
+
+                if (gameWindow) {
+                    statusDiv.className = 'status success';
+                    statusDiv.innerHTML = '✅ ¡Juego abierto! Si no ves la ventana, verifica que tu navegador permita ventanas emergentes.';
+
+                    // Intentar enfocar la ventana
+                    gameWindow.focus();
+                } else {
+                    throw new Error('No se pudo abrir la ventana');
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = '❌ Error al abrir el juego. Por favor, permite ventanas emergentes en tu navegador o abre directamente el archivo <strong>index.html</strong>';
+                console.error('Error:', error);
+            }
+        }
+
+        // También permitir un solo clic después de un tiempo
+        let clickTimeout = null;
+        document.getElementById('launchBtn').addEventListener('click', function(e) {
+            if (e.detail === 1) {
+                clickTimeout = setTimeout(() => {
+                    const btn = document.getElementById('launchBtn');
+                    btn.style.animation = 'shake 0.5s';
+                    setTimeout(() => {
+                        btn.style.animation = '';
+                    }, 500);
+                }, 200);
+            }
+        });
+
+        // Agregar animación de shake para recordar que es doble clic
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-10px); }
+                75% { transform: translateX(10px); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Mensaje de bienvenida
+        console.log('%c♟️ TVLavin Chess Game', 'font-size: 20px; color: #667eea; font-weight: bold;');
+        console.log('%c🚀 Haz doble clic en el botón para jugar', 'font-size: 14px; color: #666;');
+    </script>
+</body>
+</html>

@@ -1,15 +1,57 @@
 [![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen?logo=githubpages)](https://elcriollito.github.io/TVLavin-Chess-Game2/)
 
-
 [🎮 Play TVLavin Chess Game 2](https://elcriollito.github.io/TVLavin-Chess-Game2/)
-
 
 # TVLavin Chess - Professional Chess Application
 
 A feature-rich, professional chess application with Fritz-classic 2D design, Stockfish engine integration, and comprehensive analysis tools.
 
+## 🚀 INICIO RÁPIDO - SIN SERVIDOR
+
+### Método 1: Doble Clic (Más Fácil) ⚡
+
+1. **Haz doble clic** en `JUGAR_AJEDREZ.bat` (Windows)
+2. Se abrirá una página con un botón grande
+3. **Haz doble clic** en el botón "DOBLE CLIC PARA JUGAR"
+4. ¡Listo! El juego se abre en una nueva ventana
+
+### Método 2: Abrir HTML Directamente 🌐
+
+1. Abre `LAUNCH_CHESS_GAME.html` con tu navegador (doble clic)
+2. Haz doble clic en el botón para lanzar el juego
+
+### Método 3: Juego Directo 🎯
+
+1. Abre `index.html` directamente con tu navegador
+2. Empieza a jugar inmediatamente
+
+**✨ NO SE REQUIERE SERVIDOR - 100% Independiente**
+
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
+
+## ⚠️ NOTA IMPORTANTE
+
+### ✅ FUNCIONA SIN SERVIDOR
+
+Esta aplicación ahora funciona **completamente sin servidor**:
+
+- ✅ Doble clic en archivos HTML - Funciona
+- ✅ Abrir directamente en navegador - Funciona
+- ✅ Sin necesidad de Python/Node.js - Funciona
+- ✅ Sin dependencias externas de servidores - Funciona
+
+### Opciones de Ejecución:
+
+1. **Super Fácil**: Doble clic en `JUGAR_AJEDREZ.bat`
+2. **Fácil**: Doble clic en `LAUNCH_CHESS_GAME.html`
+3. **Directo**: Doble clic en `index.html`
+
+**⚠️ Si prefieres usar servidor (opcional):**
+```bash
+python -m http.server 8000
+```
+O doble clic en `START_SERVER.bat`
 
 ## 🎯 Features
 

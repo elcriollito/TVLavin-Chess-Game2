@@ -1,0 +1,91 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║                    ♟️  TVLavin Chess Game  ♟️                              ║
+║                                                                            ║
+║                     INICIO RÁPIDO - SOLO 3 PASOS                          ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+
+🎮 FORMA MÁS FÁCIL DE JUGAR (Recomendada):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   1️⃣  Haz DOBLE CLIC en:  JUGAR_AJEDREZ.bat
+
+   2️⃣  Se abre una página → Haz DOBLE CLIC en el botón grande morado
+
+   3️⃣  ¡Listo! Ya estás jugando ajedrez 🎉
+
+
+📁 ARCHIVOS PRINCIPALES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   ⭐ JUGAR_AJEDREZ.bat           ← Doble clic aquí (Windows)
+   ⭐ LAUNCH_CHESS_GAME.html      ← O doble clic aquí
+   ⭐ index.html                  ← O directamente el juego
+
+   📖 INSTRUCCIONES.md            ← Guía completa en español
+   📖 README.md                   ← Documentación técnica
+
+
+✨ CARACTERÍSTICAS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   ✅ Funciona SIN servidor
+   ✅ Juega contra IA Stockfish (7 niveles)
+   ✅ Análisis en tiempo real
+   ✅ Control de tiempo (3, 5, 10 min o sin límite)
+   ✅ Navega por tu partida
+   ✅ Exporta tus partidas (PGN)
+   ✅ Modo análisis profesional
+   ✅ 100% gratis y de código abierto
+
+
+❓ ¿TIENES PROBLEMAS?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   1. Asegúrate de tener internet (primera vez)
+   2. Usa un navegador moderno (Chrome, Firefox, Edge)
+   3. Permite ventanas emergentes si te lo pide
+   4. Lee INSTRUCCIONES.md para más ayuda
+
+
+📋 REQUISITOS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   ✅ Windows 7 o superior
+   ✅ Navegador web moderno
+   ✅ Conexión a internet (solo primera vez)
+   ✅ ¡Ganas de jugar ajedrez! ♟️
+
+
+🌐 SIN DEPENDENCIAS DE SERVIDORES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   ❌ NO necesita REPLY AI
+   ❌ NO necesita Python
+   ❌ NO necesita Node.js
+   ❌ NO necesita servidor local
+
+   ✅ TODO funciona desde archivos locales
+   ✅ Stockfish se carga desde CDN público
+   ✅ 100% independiente
+
+
+📞 SOPORTE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   GitHub: https://github.com/elcriollito/TVLAVIN-CHESS
+   Issues: Reporta problemas en GitHub
+
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║                   🎉 ¡DISFRUTA JUGANDO AJEDREZ! 🎉                         ║
+║                                                                            ║
+║              Desarrollado con ❤️ para la comunidad TVLAVIN                ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+
+Versión: 1.0.0 | Última actualización: Enero 2026
