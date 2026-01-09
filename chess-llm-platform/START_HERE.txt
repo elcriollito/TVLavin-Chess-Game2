@@ -1,0 +1,158 @@
+╔════════════════════════════════════════════════════════════╗
+║                                                            ║
+║   ♟️  CHESS-LLM PLATFORM - GETTING STARTED  ♟️             ║
+║                                                            ║
+╚════════════════════════════════════════════════════════════╝
+
+
+🪟 WINDOWS USERS (EASIEST!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  👆 FIRST TIME:
+     Double-click:  INSTALL_AND_RUN.bat
+     (Installs everything + starts server + opens browser)
+
+  ⚡ EVERY OTHER TIME:
+     Double-click:  RUN.bat
+     (Just starts server + opens browser)
+
+  📖 Read: WINDOWS_LAUNCHER.md for troubleshooting
+
+
+💻 MAC/LINUX USERS (OR MANUAL SETUP)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. Install Node.js from: https://nodejs.org/
+
+  2. Open terminal in this folder
+
+  3. Run: npm install
+
+  4. Run: npm run dev
+
+  5. Open browser: http://localhost:3000
+
+  📖 Read: QUICKSTART.md for full instructions
+
+
+📚 DOCUMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  📖 SETUP_COMPLETE.md    - Overview & features
+  📖 QUICKSTART.md        - 5-minute setup guide
+  📖 WINDOWS_LAUNCHER.md  - Windows batch file guide
+  📖 README.md            - Full documentation
+  📖 KNOWN_ISSUES.md      - Bug tracker & fixes
+
+
+🎮 WHAT IS THIS?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  A modern chess web app with TWO AI engines:
+
+  🐟 Stockfish - Classic chess engine (fast, strong)
+  🤖 LLM - AI that explains its thinking (Claude/GPT)
+
+  Play against AI, watch AI vs AI, and learn from
+  the LLM's reasoning!
+
+
+🎯 QUICK TOUR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Once the app opens at http://localhost:3000:
+
+  ✅ Board appears with pieces
+  ✅ Left panel = Stockfish analysis
+  ✅ Right panel = LLM controls
+  ✅ Bottom = Game mode selector
+
+  Click "Human vs LLM" and start playing!
+
+
+⚙️ REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✅ Node.js 18 or higher
+  ✅ npm (comes with Node.js)
+  ✅ Modern web browser
+  ⭕ API key (optional - works without for testing)
+
+
+💰 API KEY (OPTIONAL)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  The app works WITHOUT an API key (mock mode).
+
+  To get real LLM responses:
+
+  🔹 Claude (Recommended):
+     https://console.anthropic.com/
+     ~$0.01-0.03 per game
+
+  🔹 OpenAI:
+     https://platform.openai.com/
+     ~$0.05-0.08 per game
+
+
+🆘 TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ❌ Node.js not found?
+     → Install from https://nodejs.org/
+
+  ❌ npm install fails?
+     → Check internet connection
+     → Run as administrator
+
+  ❌ Port 3000 in use?
+     → Edit vite.config.ts, change port
+
+  ❌ Board doesn't load?
+     → Clear browser cache (Ctrl+Shift+R)
+
+  📖 See KNOWN_ISSUES.md for more fixes
+
+
+✨ FEATURES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✅ 7 game modes (Human vs AI, AI vs AI, etc.)
+  ✅ 5 LLM playing styles (Aggressive, Positional, etc.)
+  ✅ Real-time Stockfish analysis
+  ✅ LLM reasoning display
+  ✅ Dark professional UI
+  ✅ Adjustable difficulty (0-20)
+  ✅ Temperature control (creativity)
+  ✅ Mock mode (no API costs)
+
+
+📂 PROJECT STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  chess-llm-platform/
+  ├── INSTALL_AND_RUN.bat  ← Double-click (first time)
+  ├── RUN.bat              ← Double-click (every time)
+  ├── START_HERE.txt       ← You are here!
+  ├── SETUP_COMPLETE.md
+  ├── QUICKSTART.md
+  ├── WINDOWS_LAUNCHER.md
+  └── README.md
+
+
+🚀 LET'S GO!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Windows:    Double-click INSTALL_AND_RUN.bat
+  Mac/Linux:  npm install && npm run dev
+
+  Then play chess at: http://localhost:3000
+
+
+════════════════════════════════════════════════════════════
+
+  Built with ♟️ by the community
+  Version 1.0.0 - Phase 1 Complete
+  License: MIT
+
+════════════════════════════════════════════════════════════

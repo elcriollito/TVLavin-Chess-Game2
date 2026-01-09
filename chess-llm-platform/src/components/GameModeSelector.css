@@ -1,0 +1,80 @@
+.game-mode-selector {
+  padding: 1rem;
+  background: #2a2a2a;
+  border-radius: 8px;
+}
+
+.game-mode-selector h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: #4a9eff;
+}
+
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.mode-button {
+  background: #1a1a1a;
+  border: 2px solid #3a3a3a;
+  padding: 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.mode-button:hover {
+  border-color: #4a9eff;
+  background: #2a2a2a;
+  transform: translateY(-2px);
+}
+
+.mode-button.active {
+  border-color: #4a9eff;
+  background: #2a3a4a;
+}
+
+.mode-players {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+}
+
+.player-icon {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+  text-align: center;
+  border-radius: 50%;
+}
+
+.player-white {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.player-black {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.vs {
+  font-size: 0.8rem;
+  color: #707070;
+  font-weight: 600;
+}
+
+.mode-name {
+  font-size: 0.9rem;
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+.mode-button.active .mode-name {
+  color: #4a9eff;
+}
