@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chessboard.js Diagnostic</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #2c5f9e;
+        }
+
+        #myBoard {
+            width: 600px;
+            height: 600px;
+            margin: 20px auto;
+            border: 3px solid #8b7355;
+        }
+
+        .diagnostic {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .diagnostic h3 {
+            margin-top: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .info {
+            background: #e3f2fd;
+            padding: 10px;
+            border-left: 4px solid #2196f3;
+            margin: 10px 0;
+        }
+
+        .error {
+            background: #ffebee;
+            padding: 10px;
+            border-left: 4px solid #f44336;
+            margin: 10px 0;
+        }
+
+        .success {
+            background: #e8f5e9;
+            padding: 10px;
+            border-left: 4px solid #4caf50;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Chessboard.js Diagnostic Tool</h1>
+
+        <div class="info">
+            <strong>Purpose:</strong> This page tests if chessboard.js is rendering correctly with the piece images.
+        </div>
+
+        <div id="myBoard"></div>
+
+        <div class="diagnostic">
+            <h3>Diagnostic Output:</h3>
+            <div id="output"></div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+    <script>
+        const output = document.getElementById('output');
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            output.appendChild(div);
+            console.log(message);
+        }
+
+        log('Starting chessboard.js diagnostic...', 'info');
+        log('jQuery version: ' + $.fn.jquery, 'info');
+
+        try {
+            const config = {
+                draggable: true,
+                position: 'start',
+                pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
+                showNotation: true,
+                sparePieces: false,
+                onDragStart: function() { return true; },
+                onDrop: function() { return 'snapback'; },
+                onSnapEnd: function() { log('Snap end triggered', 'info'); }
+            };
+
+            log('Creating board with config: ' + JSON.stringify(config, null, 2), 'info');
+
+            const board = Chessboard('myBoard', config);
+
+            log('✅ Board created successfully', 'success');
+
+            setTimeout(() => {
+                const boardElement = document.getElementById('myBoard');
+                const boardInner = boardElement.querySelector('.board-b72b1');
+                const squares = boardElement.querySelectorAll('.square-55d63');
+                const pieces = boardElement.querySelectorAll('.piece-417db');
+
+                log('--- Board Structure Analysis ---', 'info');
+                log('Board container found: ' + (boardElement !== null), boardElement ? 'success' : 'error');
+                log('Board inner (.board-b72b1) found: ' + (boardInner !== null), boardInner ? 'success' : 'error');
+                log('Number of squares: ' + squares.length + ' (expected: 64)', squares.length === 64 ? 'success' : 'error');
+                log('Number of pieces: ' + pieces.length + ' (expected: 32)', pieces.length === 32 ? 'success' : 'error');
+
+                if (boardInner) {
+                    const computedStyle = window.getComputedStyle(boardInner);
+                    log('Board display mode: ' + computedStyle.display, 'info');
+                    log('Board grid-template-columns: ' + computedStyle.gridTemplateColumns, 'info');
+                    log('Board grid-template-rows: ' + computedStyle.gridTemplateRows, 'info');
+                }
+
+                if (squares.length > 0) {
+                    log('First square classes: ' + squares[0].className, 'info');
+                    const squareStyle = window.getComputedStyle(squares[0]);
+                    log('Square width: ' + squareStyle.width, 'info');
+                    log('Square height: ' + squareStyle.height, 'info');
+                    log('Square display: ' + squareStyle.display, 'info');
+                    log('Square float: ' + squareStyle.float, 'info');
+                }
+
+                if (pieces.length > 0) {
+                    log('First piece classes: ' + pieces[0].className, 'info');
+                    const pieceStyle = window.getComputedStyle(pieces[0]);
+                    log('Piece background-image: ' + pieceStyle.backgroundImage.substring(0, 100) + '...', 'info');
+                }
+
+                // List all squares with their positions
+                log('--- Square Grid Positions ---', 'info');
+                squares.forEach((square, index) => {
+                    const row = Math.floor(index / 8);
+                    const col = index % 8;
+                    log(`Square ${index}: data-square="${square.getAttribute('data-square')}" (expected row: ${row}, col: ${col})`, 'info');
+                });
+
+                if (squares.length !== 64) {
+                    log('❌ ERROR: Expected 64 squares but found ' + squares.length, 'error');
+                    log('This indicates chessboard.js is not rendering all squares!', 'error');
+                } else {
+                    log('✅ All 64 squares rendered correctly!', 'success');
+                }
+
+                // Check board dimensions
+                const boardRect = boardElement.getBoundingClientRect();
+                log('Board dimensions: ' + boardRect.width + 'x' + boardRect.height, boardRect.width === boardRect.height ? 'success' : 'error');
+            }, 500);
+
+        } catch (error) {
+            log('❌ ERROR: ' + error.message, 'error');
+            log('Stack: ' + error.stack, 'error');
+        }
+    </script>
+</body>
+</html>

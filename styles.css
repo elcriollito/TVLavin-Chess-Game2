@@ -151,62 +151,86 @@ html, body {
     min-width: 0; /* Prevents flex items from overflowing */
 }
 
-/* ===== CHESSBOARD STYLES - FIX FOR VISIBILITY ===== */
-.chessboard {
-    /* CRITICAL: Explicit dimensions for board visibility */
-    width: var(--board-size) !important;
-    height: var(--board-size) !important;
-    min-width: var(--board-size) !important;
-    min-height: var(--board-size) !important;
-    max-width: 100%;
-    
+/* ===== CHESSBOARD STYLES - FORCE PROPER FLOAT LAYOUT ===== */
+#chessboard {
+    /* CRITICAL: Must have explicit pixel dimensions for float layout to work */
+    width: 600px !important;
+    height: 600px !important;
+
     /* Visual styling */
     border: 3px solid var(--board-border);
     box-shadow: var(--shadow-lg);
     border-radius: 4px;
-    background: var(--light-square);
-    
-    /* Ensure proper display */
-    display: block !important;
-    position: relative;
+
+    /* Center the board */
     margin: 0 auto;
 }
 
-/* Board square styling - Fritz classic 2D look */
-.chessboard .square-55d63 {
-    /* Force square sizing */
-    width: 12.5% !important;
-    height: 12.5% !important;
+/* CRITICAL: The board wrapper must respect the container width */
+.board-b72b1 {
+    width: 100% !important;
+    height: 100% !important;
+    position: relative !important;
 }
 
-.chessboard .white-1e1d7 {
+/* CRITICAL: Squares must be exactly 12.5% with float:left to create 8x8 grid */
+.square-55d63 {
+    width: 12.5% !important;
+    /* CRITICAL: Use aspect-ratio to maintain square shape even when empty */
+    aspect-ratio: 1 / 1 !important;
+    float: left !important;
+    position: relative !important;
+    box-sizing: border-box !important;
+}
+
+/* Fallback for older browsers: explicit height in pixels */
+@supports not (aspect-ratio: 1 / 1) {
+    .square-55d63 {
+        height: 75px !important; /* 600px / 8 = 75px */
+    }
+}
+
+/* CRITICAL: Ensure pieces and notation don't break the square dimensions */
+.piece-417db {
+    max-width: 100% !important;
+    max-height: 100% !important;
+}
+
+.notation-322f9 {
+    position: absolute !important;
+}
+
+/* Clear floats after all 64 squares */
+.board-b72b1::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+/* Fritz classic color scheme - customize chessboard.js colors */
+.white-1e1d7 {
     background-color: var(--light-square) !important;
 }
 
-.chessboard .black-3c85d {
+.black-3c85d {
     background-color: var(--dark-square) !important;
 }
 
-/* Piece styling - Clean 2D look */
-.chessboard .piece-417db {
-    cursor: pointer;
-    user-select: none;
-}
-
 /* Highlight styles */
-.chessboard .highlight-white {
+.highlight-white {
     box-shadow: inset 0 0 3px 3px rgba(255, 255, 0, 0.5);
 }
 
-.chessboard .highlight-black {
+.highlight-black {
     box-shadow: inset 0 0 3px 3px rgba(255, 255, 0, 0.5);
 }
 
 /* Notation styles */
-.chessboard .notation-322f9 {
-    color: var(--text-secondary);
-    font-size: 12px;
-    font-weight: 600;
+.notation-322f9 {
+    color: var(--text-secondary) !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    pointer-events: none !important;
 }
 
 /* ===== PANELS ===== */
@@ -493,6 +517,17 @@ html, body {
     50% { opacity: 0.5; }
 }
 
+@keyframes slideInRight {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
 .status-dot.busy {
     background: var(--accent-color);
 }
@@ -699,6 +734,43 @@ html, body {
     gap: var(--spacing-sm);
 }
 
+.promotion-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+}
+
+.promotion-btn {
+    padding: var(--spacing-lg);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.promotion-btn i {
+    font-size: 48px;
+    color: var(--primary-color);
+}
+
+.promotion-btn:hover {
+    border-color: var(--primary-color);
+    background: var(--bg-primary);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+
+.promotion-btn:active {
+    transform: translateY(-2px);
+}
+
 .time-btn,
 .color-btn {
     padding: var(--spacing-md);
@@ -881,9 +953,10 @@ button:focus,
     .analysis-panel {
         display: none;
     }
-    
+
     .board-container {
         width: 100%;
         max-width: 100%;
     }
 }
+

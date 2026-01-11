@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net blob:; script-src-elem 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net;">
     <title>TVLavin Chess - Fritz Classic Style</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <!-- Main Container -->
@@ -38,7 +40,7 @@
                 <div class="panel game-status-panel">
                     <h3 class="panel-title">Game Status</h3>
                     <div class="status-content">
-                        <div class="turn-indicator">
+                        <div class="turn-indicator" aria-live="polite" aria-atomic="true">
                             <span id="turnIndicator">White to move</span>
                         </div>
                         <div class="timer-display">
@@ -51,7 +53,7 @@
                                 <span id="blackTime">--:--</span>
                             </div>
                         </div>
-                        <div class="game-result" id="gameResult"></div>
+                        <div class="game-result" id="gameResult" aria-live="assertive" aria-atomic="true"></div>
                     </div>
                 </div>
 
@@ -181,7 +183,7 @@
                     <div class="credits-content">
                         <p><strong>Design collaboration:</strong> TVLAVIN</p>
                         <p><strong>Engine:</strong> Stockfish 16 NNUE</p>
-                        <p><strong>Libraries:</strong> chess.js, chessground</p>
+                        <p><strong>Libraries:</strong> chess.js, chessboard.js</p>
                     </div>
                 </div>
             </aside>
@@ -329,9 +331,40 @@
         </div>
     </div>
 
+    <!-- Promotion Modal -->
+    <div id="promotionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Choose Promotion</h2>
+            </div>
+            <div class="modal-body">
+                <p>Promote your pawn to:</p>
+                <div class="promotion-options">
+                    <button class="promotion-btn" data-piece="q" aria-label="Promote to Queen">
+                        <i class="fas fa-chess-queen"></i>
+                        <span>Queen</span>
+                    </button>
+                    <button class="promotion-btn" data-piece="r" aria-label="Promote to Rook">
+                        <i class="fas fa-chess-rook"></i>
+                        <span>Rook</span>
+                    </button>
+                    <button class="promotion-btn" data-piece="b" aria-label="Promote to Bishop">
+                        <i class="fas fa-chess-bishop"></i>
+                        <span>Bishop</span>
+                    </button>
+                    <button class="promotion-btn" data-piece="n" aria-label="Promote to Knight">
+                        <i class="fas fa-chess-knight"></i>
+                        <span>Knight</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="stockfish-worker.js"></script>
     <script src="app.js"></script>
 </body>

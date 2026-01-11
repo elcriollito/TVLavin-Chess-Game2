@@ -9,59 +9,89 @@ const App = {
     game: new Chess(),
     board: null,
     engine: null,
-    
+
     // Settings
     playerColor: 'white',
     engineLevel: 5,
     gameMode: 'engine', // 'engine' or 'analysis'
     timeControl: 0, // seconds, 0 = no limit
-    
+
     // Game state
     isPlayerTurn: true,
     gameActive: false,
     analyzing: false,
     editMode: false,
-    
+
     // History navigation
     moveHistory: [],
     currentMoveIndex: -1,
-    
+
     // Timers
     whiteTime: 0,
     blackTime: 0,
     timerInterval: null,
     lastMoveTime: null,
-    
+
+    // Pending promotion
+    pendingPromotion: null,
+
+    // Debug mode
+    debug: false,
+
     // UI elements
     elements: {}
 };
 
+// ===== UTILITY FUNCTIONS =====
+function debugLog(...args) {
+    if (App.debug) {
+        console.log(...args);
+    }
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Initializing TVLavin Chess...');
-    
+    debugLog('Initializing TVLavin Chess...');
+
     // Check for embed mode
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('embed') === '1') {
         document.querySelector('.app-container').classList.add('embed-mode');
     }
-    
+
+    // Check for debug mode
+    if (urlParams.get('debug') === '1') {
+        App.debug = true;
+    }
+
     // Cache DOM elements
     cacheElements();
-    
+
     // Initialize board
     initializeBoard();
-    
+
     // Initialize engine
     initializeEngine();
-    
+
     // Setup event listeners
     setupEventListeners();
-    
+
     // Update UI
     updateUI();
-    
-    console.log('Application initialized');
+
+    debugLog('Application initialized');
 });
 
 // ===== CACHE DOM ELEMENTS =====
@@ -107,7 +137,8 @@ function cacheElements() {
         newGameModal: document.getElementById('newGameModal'),
         fenModal: document.getElementById('fenModal'),
         menuModal: document.getElementById('menuModal'),
-        embedModal: document.getElementById('embedModal')
+        embedModal: document.getElementById('embedModal'),
+        promotionModal: document.getElementById('promotionModal')
     };
 }
 
@@ -119,46 +150,119 @@ function initializeBoard() {
         onDragStart: onDragStart,
         onDrop: onDrop,
         onSnapEnd: onSnapEnd,
-        pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
-        showNotation: true
+        // Use local piece images (required for file:// and better reliability)
+        pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
+        showNotation: true,
+        // CRITICAL: Disable spare pieces to prevent layout issues
+        sparePieces: false,
+        // CRITICAL: Ensure all squares are rendered
+        appearSpeed: 'fast',
+        moveSpeed: 'fast',
+        snapbackSpeed: 'fast',
+        snapSpeed: 'fast',
+        trashSpeed: 'fast'
     };
-    
-    App.board = Chessboard('chessboard', config);
-    
-    // Force board visibility - CRITICAL FIX
-    setTimeout(() => {
-        if (App.board) {
-            App.board.resize();
+
+    // Wait for board container to be ready with proper dimensions
+    initBoardWhenReady(config);
+}
+
+function initBoardWhenReady(config) {
+    const boardContainer = document.getElementById('chessboard');
+
+    if (!boardContainer) {
+        console.error('Board container #chessboard not found');
+        return;
+    }
+
+    // Check if container has proper dimensions
+    const checkAndInit = () => {
+        const rect = boardContainer.getBoundingClientRect();
+
+        if (rect.width >= 300 && rect.height >= 300) {
+            // Container is ready, create the board
+            App.board = Chessboard('chessboard', config);
+
+            // Ensure game state is initialized to starting position
+            App.game.reset();
+
+            // Log dimensions for debugging
+            console.log('Board initialized with container rect:', {
+                width: rect.width,
+                height: rect.height,
+                isSquare: rect.width === rect.height
+            });
+
+            // Multiple resize calls to ensure proper rendering
+            setTimeout(() => {
+                if (App.board) {
+                    App.board.resize();
+                    console.log('First resize completed');
+                }
+            }, 50);
+
+            setTimeout(() => {
+                if (App.board) {
+                    App.board.resize();
+                    const finalRect = boardContainer.getBoundingClientRect();
+                    console.log('Board after second resize:', {
+                        width: finalRect.width,
+                        height: finalRect.height,
+                        isSquare: finalRect.width === finalRect.height
+                    });
+
+                    // Force refresh the position
+                    App.board.position('start', false);
+
+                    // One final resize to ensure everything is correct
+                    setTimeout(() => {
+                        if (App.board) {
+                            App.board.resize();
+                            console.log('Final resize completed - board should be fully rendered');
+                        }
+                    }, 100);
+                }
+            }, 150);
+
+            // Handle window resize with debouncing
+            const debouncedResize = debounce(() => {
+                if (App.board) {
+                    App.board.resize();
+                }
+            }, 250);
+
+            window.addEventListener('resize', debouncedResize);
+        } else {
+            // Container not ready, wait and try again
+            console.log('Board container not ready, retrying... (current width:', rect.width, 'height:', rect.height, ')');
+            setTimeout(checkAndInit, 50);
         }
-    }, 100);
-    
-    // Handle window resize
-    window.addEventListener('resize', () => {
-        if (App.board) {
-            App.board.resize();
-        }
-    });
+    };
+
+    // Start checking
+    checkAndInit();
 }
 
 // ===== ENGINE INITIALIZATION =====
 function initializeEngine() {
     App.engine = new StockfishEngine();
-    
+
     App.engine.onReady = () => {
-        console.log('Stockfish ready');
+        debugLog('Stockfish ready');
         updateEngineStatus('ready', 'Engine Ready');
         App.engine.setSkillLevel(App.engineLevel);
     };
-    
+
     App.engine.onInfo = (info) => {
         if (App.analyzing) {
             updateAnalysis(info);
         }
     };
-    
+
     App.engine.onError = (error) => {
         console.error('Engine error:', error);
         updateEngineStatus('error', 'Engine Error');
+        showErrorNotification('Engine error. Please refresh the page.');
     };
 }
 
@@ -203,30 +307,23 @@ function onDrop(source, target) {
     // Check if it's a promotion move
     const moves = App.game.moves({ verbose: true });
     const move = moves.find(m => m.from === source && m.to === target);
-    
+
     if (move && move.flags.includes('p')) {
-        // Promotion - always promote to queen for simplicity
-        const result = App.game.move({
-            from: source,
-            to: target,
-            promotion: 'q'
-        });
-        
-        if (result === null) return 'snapback';
-        
-        onMoveMade(result);
+        // Promotion - show promotion dialog
+        App.pendingPromotion = { from: source, to: target };
+        showPromotionDialog();
         return;
     }
-    
+
     // Try to make the move
     const result = App.game.move({
         from: source,
         to: target
     });
-    
+
     // Illegal move
     if (result === null) return 'snapback';
-    
+
     onMoveMade(result);
 }
 
@@ -269,35 +366,55 @@ function onMoveMade(move) {
 }
 
 function makeEngineMove() {
-    if (!App.gameActive || App.game.game_over()) return;
-    
+    // Verify game is still active and at current position
+    if (!App.gameActive || App.game.game_over()) {
+        updateEngineStatus('ready', 'Engine Ready');
+        return;
+    }
+
+    // Don't make engine move if not at the end of history
+    if (App.currentMoveIndex !== App.moveHistory.length - 1 && App.moveHistory.length > 0) {
+        debugLog('Not at end of history, skipping engine move');
+        updateEngineStatus('ready', 'Engine Ready');
+        return;
+    }
+
     updateEngineStatus('busy', 'Engine thinking...');
-    
-    App.engine.getBestMove(App.game.fen(), (bestMove) => {
+
+    const currentFen = App.game.fen();
+
+    App.engine.getBestMove(currentFen, (bestMove) => {
+        // Verify game state hasn't changed
+        if (!App.gameActive || App.game.fen() !== currentFen) {
+            debugLog('Game state changed, canceling engine move');
+            updateEngineStatus('ready', 'Engine Ready');
+            return;
+        }
+
         // Parse move
         const from = bestMove.substring(0, 2);
         const to = bestMove.substring(2, 4);
         const promotion = bestMove.length > 4 ? bestMove.substring(4, 5) : undefined;
-        
+
         // Make move
         const move = App.game.move({
             from: from,
             to: to,
             promotion: promotion
         });
-        
+
         if (move) {
             App.board.position(App.game.fen());
-            
+
             // Add to history
             App.moveHistory.push(move);
             App.currentMoveIndex = App.moveHistory.length - 1;
-            
+
             // Update UI
             updateMoveHistory();
             updateStatus();
             updateTimers();
-            
+
             // Check game status
             if (App.game.game_over()) {
                 handleGameOver();
@@ -306,7 +423,7 @@ function makeEngineMove() {
                 updateStatus();
             }
         }
-        
+
         updateEngineStatus('ready', 'Engine Ready');
     });
 }
@@ -508,22 +625,29 @@ function updateTimers() {
 
 function startTimer() {
     if (App.timeControl === 0) return;
-    
-    clearInterval(App.timerInterval);
+
+    // Clear any existing timer to prevent memory leaks
+    if (App.timerInterval) {
+        clearInterval(App.timerInterval);
+    }
+
     App.lastMoveTime = Date.now();
-    
+
     App.timerInterval = setInterval(() => {
-        const now = Date.now();
-        const elapsed = Math.floor((now - App.lastMoveTime) / 1000);
-        
+        // Only decrement by 1 second per interval
         if (App.game.turn() === 'w') {
-            App.whiteTime = Math.max(0, App.whiteTime - elapsed);
+            App.whiteTime = Math.max(0, App.whiteTime - 1);
         } else {
-            App.blackTime = Math.max(0, App.blackTime - elapsed);
+            App.blackTime = Math.max(0, App.blackTime - 1);
         }
-        
-        App.lastMoveTime = now;
+
         updateTimers();
+
+        // Check for timeout
+        if (App.whiteTime <= 0 || App.blackTime <= 0) {
+            clearInterval(App.timerInterval);
+            App.timerInterval = null;
+        }
     }, 1000);
 }
 
@@ -670,24 +794,32 @@ function newGame(options = {}) {
 }
 
 // ===== FEN OPERATIONS =====
-function loadFEN(fen) {
+function loadFEN(fen, setAnalysisMode = true) {
     try {
+        // Sanitize FEN input
+        fen = fen.trim().replace(/[^\w\s\-\/]/g, '');
+
         const valid = App.game.load(fen);
         if (!valid) {
             throw new Error('Invalid FEN');
         }
-        
+
         App.board.position(fen);
         App.moveHistory = [];
         App.currentMoveIndex = -1;
-        App.gameActive = false; // Analysis mode
-        App.gameMode = 'analysis';
-        
+
+        // Optionally set to analysis mode
+        if (setAnalysisMode) {
+            App.gameActive = false;
+            App.gameMode = 'analysis';
+        }
+
         updateMoveHistory();
         updateStatus();
-        
+
         return true;
     } catch (error) {
+        debugLog('FEN load error:', error);
         return false;
     }
 }
@@ -750,7 +882,11 @@ function setupEventListeners() {
     App.elements.pasteFEN.addEventListener('click', () => {
         showModal('fenModal');
     });
-    
+
+    App.elements.editBoard.addEventListener('click', () => {
+        toggleEditMode();
+    });
+
     App.elements.analyzeGame.addEventListener('click', () => {
         if (!App.gameActive || App.moveHistory.length === 0) {
             alert('No game to analyze. Play some moves first!');
@@ -928,7 +1064,12 @@ function setupMenuModal() {
         hideModal('menuModal');
         showModal('fenModal');
     });
-    
+
+    document.getElementById('menuEditBoard').addEventListener('click', () => {
+        hideModal('menuModal');
+        toggleEditMode();
+    });
+
     document.getElementById('menuAnalyzeGame').addEventListener('click', () => {
         hideModal('menuModal');
         if (!App.gameActive || App.moveHistory.length === 0) {
@@ -955,18 +1096,36 @@ function setupMenuModal() {
 // ===== EMBED MODAL =====
 function setupEmbedModal() {
     const copyButton = document.getElementById('copyEmbed');
-    
-    copyButton.addEventListener('click', () => {
+
+    copyButton.addEventListener('click', async () => {
         const embedCode = document.getElementById('embedCode');
-        embedCode.select();
-        document.execCommand('copy');
-        
-        // Visual feedback
-        const originalText = copyButton.innerHTML;
-        copyButton.innerHTML = '<i class="fas fa-check"></i> Copied!';
-        setTimeout(() => {
-            copyButton.innerHTML = originalText;
-        }, 2000);
+
+        try {
+            // Use modern Clipboard API
+            await navigator.clipboard.writeText(embedCode.value);
+
+            // Visual feedback
+            const originalText = copyButton.innerHTML;
+            copyButton.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(() => {
+                copyButton.innerHTML = originalText;
+            }, 2000);
+        } catch (error) {
+            // Fallback for older browsers
+            try {
+                embedCode.select();
+                document.execCommand('copy');
+
+                const originalText = copyButton.innerHTML;
+                copyButton.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => {
+                    copyButton.innerHTML = originalText;
+                }, 2000);
+            } catch (fallbackError) {
+                showErrorNotification('Failed to copy to clipboard. Please copy manually.');
+                debugLog('Clipboard error:', fallbackError);
+            }
+        }
     });
 }
 
@@ -976,6 +1135,125 @@ function generateEmbedCode() {
     const embedCode = `<iframe src="${embedUrl}" width="700" height="700" frameborder="0" allowfullscreen></iframe>`;
     
     document.getElementById('embedCode').value = embedCode;
+}
+
+// ===== PROMOTION DIALOG =====
+function showPromotionDialog() {
+    showModal('promotionModal');
+
+    // Setup promotion piece selection (only once)
+    const promotionButtons = document.querySelectorAll('.promotion-btn');
+    promotionButtons.forEach(btn => {
+        btn.replaceWith(btn.cloneNode(true)); // Remove old listeners
+    });
+
+    // Add new listeners
+    document.querySelectorAll('.promotion-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const piece = btn.dataset.piece;
+            handlePromotion(piece);
+        });
+    });
+}
+
+function handlePromotion(piece) {
+    if (!App.pendingPromotion) return;
+
+    const { from, to } = App.pendingPromotion;
+
+    // Make the promotion move
+    const result = App.game.move({
+        from: from,
+        to: to,
+        promotion: piece
+    });
+
+    if (result === null) {
+        App.board.position(App.game.fen());
+    } else {
+        onMoveMade(result);
+    }
+
+    // Clear pending promotion
+    App.pendingPromotion = null;
+    hideModal('promotionModal');
+}
+
+// ===== EDIT BOARD FUNCTIONALITY =====
+function toggleEditMode() {
+    App.editMode = !App.editMode;
+
+    if (App.editMode) {
+        // Stop any active game
+        App.gameActive = false;
+        stopAnalysis();
+
+        // Enable piece placement/removal
+        App.board.draggable = true;
+        showNotification('Edit mode enabled. Drag pieces to edit position.');
+    } else {
+        // Exit edit mode
+        showNotification('Edit mode disabled.');
+    }
+}
+
+// ===== NOTIFICATION SYSTEM =====
+function showNotification(message, duration = 3000) {
+    // Create notification element if it doesn't exist
+    let notification = document.getElementById('notification');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'notification';
+        notification.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--primary-color);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 2000;
+            animation: slideInRight 0.3s ease;
+        `;
+        document.body.appendChild(notification);
+    }
+
+    notification.textContent = message;
+    notification.style.display = 'block';
+
+    setTimeout(() => {
+        notification.style.display = 'none';
+    }, duration);
+}
+
+function showErrorNotification(message) {
+    let notification = document.getElementById('notification');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'notification';
+        document.body.appendChild(notification);
+    }
+
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: var(--danger-color);
+        color: white;
+        padding: 16px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        z-index: 2000;
+        animation: slideInRight 0.3s ease;
+    `;
+
+    notification.textContent = message;
+    notification.style.display = 'block';
+
+    setTimeout(() => {
+        notification.style.display = 'none';
+    }, 4000);
 }
 
 // ===== UTILITY FUNCTIONS =====
@@ -1024,6 +1302,14 @@ document.addEventListener('keydown', (e) => {
 // ===== ERROR HANDLING =====
 window.addEventListener('error', (e) => {
     console.error('Application error:', e.error);
+    showErrorNotification('An unexpected error occurred. The application may need to be refreshed.');
+    return false;
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+    console.error('Unhandled promise rejection:', e.reason);
+    showErrorNotification('An error occurred while processing your request.');
+    return false;
 });
 
 // ===== PERFORMANCE MONITORING =====
