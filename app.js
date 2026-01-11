@@ -692,20 +692,61 @@ function updateAnalysis(info) {
     } else if (info.score !== null) {
         const score = info.score.toFixed(2);
         App.elements.evaluation.textContent = score > 0 ? `+${score}` : score;
-        App.elements.evaluation.style.color = score > 0 ? '#4caf50' : 
+        App.elements.evaluation.style.color = score > 0 ? '#4caf50' :
                                                score < 0 ? '#f44336' : '#2c5f9e';
     }
-    
+
     // Update depth
     App.elements.depth.textContent = info.depth;
-    
+
     // Update nodes
     App.elements.nodes.textContent = formatNumber(info.nodes);
-    
-    // Update best line
+
+    // Update best line - convert UCI moves to SAN notation
     if (info.pv && info.pv.length > 0) {
-        App.elements.bestLine.textContent = info.pv.join(' ');
+        const sanMoves = convertPVtoSAN(info.pv);
+        App.elements.bestLine.textContent = sanMoves;
     }
+}
+
+// Convert UCI PV (principal variation) to readable SAN notation
+function convertPVtoSAN(pvMoves) {
+    // Create a temporary game to convert moves
+    const tempGame = new Chess(App.game.fen());
+    const sanMoves = [];
+
+    // Convert up to first 10 moves (to avoid clutter)
+    const maxMoves = Math.min(pvMoves.length, 10);
+
+    for (let i = 0; i < maxMoves; i++) {
+        const uciMove = pvMoves[i];
+
+        // Parse UCI move (e.g., "e2e4" or "e7e8q")
+        const from = uciMove.substring(0, 2);
+        const to = uciMove.substring(2, 4);
+        const promotion = uciMove.length > 4 ? uciMove.substring(4, 5) : undefined;
+
+        // Make move and get SAN
+        const move = tempGame.move({
+            from: from,
+            to: to,
+            promotion: promotion
+        });
+
+        if (move) {
+            sanMoves.push(move.san);
+        } else {
+            // If move fails, stop processing
+            break;
+        }
+    }
+
+    // Add ellipsis if there are more moves
+    if (pvMoves.length > maxMoves) {
+        sanMoves.push('...');
+    }
+
+    return sanMoves.join(' ');
 }
 
 function formatNumber(num) {

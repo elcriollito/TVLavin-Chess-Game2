@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stockfish Engine Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .log {
+            background: #2d2d2d;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 3px solid #4caf50;
+        }
+        .error {
+            border-left-color: #f44336;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #4caf50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #output {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔬 Stockfish Engine Test</h1>
+    <p>This page tests the Stockfish engine integration.</p>
+
+    <div>
+        <button onclick="testInit()">1. Test Initialization</button>
+        <button onclick="testGetBestMove()">2. Test Get Best Move</button>
+        <button onclick="testAnalysis()">3. Test Analysis</button>
+        <button onclick="clearOutput()">Clear Output</button>
+    </div>
+
+    <div id="output"></div>
+
+    <!-- Load chess.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+
+    <!-- Load our Stockfish wrapper -->
+    <script src="stockfish-worker.js"></script>
+
+    <script>
+        const output = document.getElementById('output');
+        let engine = null;
+
+        function log(message, isError = false) {
+            const div = document.createElement('div');
+            div.className = 'log' + (isError ? ' error' : '');
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            output.insertBefore(div, output.firstChild);
+        }
+
+        function clearOutput() {
+            output.innerHTML = '';
+        }
+
+        function testInit() {
+            log('🚀 Initializing Stockfish engine...');
+
+            engine = new StockfishEngine();
+
+            engine.onReady = () => {
+                log('✅ Engine ready! Skill level: ' + engine.getSkillLevel());
+            };
+
+            engine.onError = (error) => {
+                log('❌ Engine error: ' + error.message, true);
+            };
+
+            engine.onInfo = (info) => {
+                if (info.depth > 0) {
+                    log(`📊 Analysis: Depth ${info.depth}, Nodes ${info.nodes}, Score ${info.score || 'N/A'}`);
+                }
+            };
+        }
+
+        function testGetBestMove() {
+            if (!engine || !engine.ready) {
+                log('❌ Engine not initialized! Click "Test Initialization" first.', true);
+                return;
+            }
+
+            log('🎯 Getting best move for starting position...');
+
+            const startFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+            engine.getBestMove(startFen, (bestMove, ponder) => {
+                log(`✅ Best move: <strong>${bestMove}</strong>${ponder ? ', Ponder: ' + ponder : ''}`);
+            }, { movetime: 1000 });
+        }
+
+        function testAnalysis() {
+            if (!engine || !engine.ready) {
+                log('❌ Engine not initialized! Click "Test Initialization" first.', true);
+                return;
+            }
+
+            log('🔍 Starting analysis (depth 15)...');
+
+            const testFen = 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4';
+
+            engine.startAnalysis(testFen, (info) => {
+                if (info.depth >= 10) {
+                    log(`📈 Depth ${info.depth}: ${info.score ? info.score.toFixed(2) : 'M' + info.mate}, PV: ${info.pv.slice(0, 5).join(' ')}`);
+                }
+            }, 15);
+
+            // Stop after 5 seconds
+            setTimeout(() => {
+                engine.stopAnalysis();
+                log('⏹️ Analysis stopped');
+            }, 5000);
+        }
+
+        // Auto-initialize on page load
+        window.addEventListener('load', () => {
+            log('📄 Page loaded. Click "Test Initialization" to start.');
+        });
+    </script>
+</body>
+</html>

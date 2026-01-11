@@ -2,6 +2,7 @@
  * Stockfish Worker Interface
  * Manages communication with Stockfish chess engine
  * Enhanced version with WASM support and improved error handling
+ * NO BLOB URLS - Uses direct worker file for GitHub Pages compatibility
  */
 
 class StockfishEngine {
@@ -23,36 +24,39 @@ class StockfishEngine {
         // Message queue for commands sent before engine is ready
         this.commandQueue = [];
 
+        // Calculate base path for GitHub Pages
+        this.basePath = this.getBasePath();
+
         this.initializeEngine();
+    }
+
+    getBasePath() {
+        // Get the base path for loading resources (handles GitHub Pages)
+        const path = window.location.pathname;
+
+        // If we're in a subdirectory (like GitHub Pages), include it
+        if (path.includes('/')) {
+            const parts = path.split('/');
+            // Remove the last part if it's a file (has extension)
+            if (parts[parts.length - 1].includes('.')) {
+                parts.pop();
+            }
+            // Ensure trailing slash
+            const basePath = parts.join('/');
+            return basePath.endsWith('/') ? basePath : basePath + '/';
+        }
+
+        return './';
     }
 
     initializeEngine() {
         try {
-            // Try to load Stockfish with WASM support if available
-            let workerCode;
+            // Load worker from engine directory (NO blob URLs)
+            const workerPath = this.basePath + 'engine/stockfish.worker.js';
 
-            if (this.wasmSupported) {
-                // Modern browsers with WASM support
-                workerCode = `
-                    // Try loading WASM version first, fallback to JS version
-                    try {
-                        importScripts('https://cdn.jsdelivr.net/npm/stockfish@16.0.0/stockfish-16.0-lite.js');
-                    } catch (e) {
-                        // Fallback to older JS-only version
-                        importScripts('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js');
-                    }
-                `;
-            } else {
-                // Older browsers without WASM support
-                workerCode = `
-                    importScripts('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js');
-                `;
-            }
+            console.log('Loading Stockfish worker from:', workerPath);
 
-            const blob = new Blob([workerCode], { type: 'application/javascript' });
-            const workerUrl = URL.createObjectURL(blob);
-
-            this.engine = new Worker(workerUrl);
+            this.engine = new Worker(workerPath);
 
             this.engine.onmessage = (event) => {
                 this.handleMessage(event.data);
@@ -60,14 +64,10 @@ class StockfishEngine {
 
             this.engine.onerror = (error) => {
                 console.error('Stockfish worker error:', error);
-                URL.revokeObjectURL(workerUrl);
 
                 if (this.onError) {
                     this.onError(error);
                 }
-
-                // Try fallback initialization
-                this.tryFallbackInit();
             };
 
             // Initialize UCI protocol
@@ -81,35 +81,15 @@ class StockfishEngine {
         }
     }
 
-    tryFallbackInit() {
-        console.warn('Attempting fallback Stockfish initialization...');
-
-        try {
-            // Try simpler worker without WASM
-            const workerCode = `
-                importScripts('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js');
-            `;
-
-            const blob = new Blob([workerCode], { type: 'application/javascript' });
-            const workerUrl = URL.createObjectURL(blob);
-
-            this.engine = new Worker(workerUrl);
-            this.engine.onmessage = (event) => this.handleMessage(event.data);
-            this.send('uci');
-
-        } catch (error) {
-            console.error('Fallback initialization failed:', error);
-        }
-    }
-
     handleMessage(message) {
-        // Only log in debug mode
+        // Only log in debug mode (except for important handshake messages)
         if (window.App && window.App.debug) {
             console.log('Engine:', message);
         }
 
-        // Engine ready
+        // Engine ready - ALWAYS log this
         if (message.includes('uciok')) {
+            console.log('✅ Stockfish UCI handshake complete - uciok received');
             this.ready = true;
             this.configureEngine();
 
@@ -121,11 +101,9 @@ class StockfishEngine {
             }
         }
 
-        // Ready for new position
+        // Ready for new position - ALWAYS log this
         if (message.includes('readyok')) {
-            if (window.App && window.App.debug) {
-                console.log('Engine ready for new position');
-            }
+            console.log('✅ Stockfish ready for commands - readyok received');
         }
 
         // Best move found
