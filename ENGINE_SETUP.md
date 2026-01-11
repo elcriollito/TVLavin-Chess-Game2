@@ -21,11 +21,11 @@
    - Provides callbacks: onReady, onBestMove, onInfo, onError
 
 2. **Web Worker** (`engine/stockfish.worker.js`)
-   - Loads Stockfish from CDN (no blob URLs)
-   - Tries WASM version first, falls back to JS version
-   - Acts as message bridge between main thread and Stockfish
-   - Forwards UCI commands to Stockfish
-   - Sends Stockfish responses to main thread
+   - Loads Stockfish.js directly from CDN (no blob URLs)
+   - Uses cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js
+   - Stockfish.js handles all UCI communication internally
+   - The worker IS the Stockfish engine (not a proxy)
+   - Automatically responds to UCI commands sent via postMessage
 
 3. **UCI Protocol Flow**
    ```
