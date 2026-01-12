@@ -1,17 +1,12 @@
 /**
  * Stockfish Web Worker
  *
- * This is a MINIMAL worker that just loads stockfish.js from CDN.
- * stockfish.js is designed to work standalone as a worker.
- *
- * When stockfish.js loads in a worker context, it automatically:
- * - Sets up onmessage to receive UCI commands
- * - Sends responses via postMessage
+ * Loads stockfish.js from npm package stockfish.js v10
+ * This version is known to work correctly with UCI protocol
  */
 
-// Load stockfish.js from CDN version (downloaded locally)
-// This is stockfish.js v10 from cdnjs
-importScripts('stockfish.js');
+// Load the working stockfish.js from npm package
+importScripts('stockfish-working.js');
 
-// stockfish.js automatically configures itself when loaded in a worker context.
-// It sets up onmessage to receive UCI commands and uses postMessage to send responses.
+// The npm version auto-configures when loaded in a worker
+// No additional setup needed - it handles onmessage automatically
