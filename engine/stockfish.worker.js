@@ -1,16 +1,17 @@
 /**
  * Stockfish Web Worker
  *
- * stockfish.js automatically sets up UCI communication when loaded in a worker.
- * When importScripts loads stockfish.js in a worker context, it:
- * 1. Detects it's running in a worker (not main thread)
- * 2. Sets up onmessage handler to receive UCI commands
- * 3. Posts UCI responses back via postMessage
+ * This is a MINIMAL worker that just loads stockfish.js from CDN.
+ * stockfish.js is designed to work standalone as a worker.
  *
- * We don't need to instantiate anything or route messages manually.
- * The script handles everything automatically.
+ * When stockfish.js loads in a worker context, it automatically:
+ * - Sets up onmessage to receive UCI commands
+ * - Sends responses via postMessage
  */
 
-importScripts('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js');
+// Load stockfish.js from local file (downloaded from CDN for offline use)
+// This avoids CORS issues and ensures consistent behavior
+importScripts('stockfish.js');
 
-// That's it! stockfish.js handles all the UCI communication automatically.
+// stockfish.js automatically configures itself when loaded in a worker context.
+// It sets up onmessage to receive UCI commands and uses postMessage to send responses.

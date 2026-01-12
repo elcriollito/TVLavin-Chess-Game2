@@ -53,7 +53,6 @@ class StockfishEngine {
         try {
             // Load worker from engine directory (NO blob URLs)
             const workerPath = this.basePath + 'engine/stockfish.worker.js';
-
             console.log('Loading Stockfish worker from:', workerPath);
 
             this.engine = new Worker(workerPath);
