@@ -9,9 +9,9 @@
  * - Sends responses via postMessage
  */
 
-// Load stockfish.js from local file (downloaded from CDN for offline use)
-// This avoids CORS issues and ensures consistent behavior
-importScripts('stockfish.js');
+// Load stockfish.js from nmrugg's repository (known working version)
+// The cdnjs version had issues responding to commands after uciok
+importScripts('stockfish-nmrugg.js');
 
 // stockfish.js automatically configures itself when loaded in a worker context.
 // It sets up onmessage to receive UCI commands and uses postMessage to send responses.
