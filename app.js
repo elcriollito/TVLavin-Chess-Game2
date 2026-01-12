@@ -680,6 +680,7 @@ function startAnalysis() {
 
 function stopAnalysis() {
     console.log('⏹️ stopAnalysis called');
+    console.trace('Stack trace:');
     if (App.engine) {
         App.engine.stopAnalysis();
     }
@@ -689,6 +690,18 @@ function stopAnalysis() {
 
 function toggleAnalysis() {
     console.log('🔘 toggleAnalysis clicked - currently analyzing:', App.analyzing);
+
+    // Prevent rapid double-clicks
+    if (App._toggleAnalysisLock) {
+        console.log('  - ⚠️ Button locked, ignoring duplicate click');
+        return;
+    }
+
+    App._toggleAnalysisLock = true;
+    setTimeout(() => {
+        App._toggleAnalysisLock = false;
+    }, 300); // 300ms debounce
+
     if (App.analyzing) {
         stopAnalysis();
         App.elements.toggleAnalysis.innerHTML = '<i class="fas fa-brain"></i> Analyze';
