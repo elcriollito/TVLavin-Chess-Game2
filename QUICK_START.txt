@@ -1,0 +1,73 @@
+========================================
+  TVLavin Chess - QUICK START GUIDE
+========================================
+
+STEP 1: Check if you have Node.js
+----------------------------------
+Open Command Prompt and type:
+  node --version
+
+If you see a version number (like v18.x.x), you're good to go!
+
+If you see "node is not recognized", you need to install it:
+  Download from: https://nodejs.org/
+  Install the LTS (Long Term Support) version
+  Make sure "Add to PATH" is checked during installation
+
+
+STEP 2: Start the Server
+----------------------------------
+Option A: Double-click START_SERVER.bat
+  - The batch file will automatically use Node.js (or Python if you have it)
+  - A console window will open showing the server is running
+
+Option B: Manual command (if batch file doesn't work)
+  Open Command Prompt in the project folder and type:
+    node server.js
+
+
+STEP 3: Open in Browser
+----------------------------------
+Once the server is running, open your web browser and go to:
+  http://localhost:8000
+
+You should see:
+  ✅ Chess board with pieces
+  ✅ "Engine Ready" status
+  ✅ All controls working
+
+
+STEP 4: Play Chess!
+----------------------------------
+- Click "New Game" to start
+- Choose your color (White or Black)
+- Select difficulty level
+- Start playing!
+
+
+TROUBLESHOOTING:
+----------------------------------
+Problem: "node is not recognized"
+Solution: Install Node.js from https://nodejs.org/
+
+Problem: "Port 8000 already in use"
+Solution: Edit server.js and change PORT = 8000 to PORT = 8080
+          Then visit http://localhost:8080
+
+Problem: Pieces not showing
+Solution: Make sure you're using http://localhost:8000
+          NOT file:/// in the browser address bar
+
+Problem: Server won't start
+Solution: Check that you're in the correct folder
+          The folder should contain: index.html, app.js, server.js
+
+
+Need more help?
+----------------------------------
+See HOW_TO_RUN.md for detailed instructions and alternative methods.
+
+
+========================================
+Enjoy your chess game! ♟️
+========================================

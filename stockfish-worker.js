@@ -51,8 +51,9 @@ class StockfishEngine {
 
     initializeEngine() {
         try {
-            // Load worker from engine directory (NO blob URLs)
-            const workerPath = this.basePath + 'engine/stockfish.worker.js';
+            // Load Stockfish directly as the worker (Emscripten expects to control onmessage)
+            // Don't use a wrapper - stockfish.js IS the worker
+            const workerPath = this.basePath + 'engine/stockfish-working.js';
             console.log('Loading Stockfish worker from:', workerPath);
 
             this.engine = new Worker(workerPath);

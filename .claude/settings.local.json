@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(tar:*)",
+      "Bash(del TVLavin-Chess-Game2.zip)",
+      "Bash(curl:*)",
+      "Bash(ls:*)",
+      "Bash(del \"c:\\\\Users\\\\ALEXANDER\\\\Alexander Projects\\\\TVLavin-Chess-Game2\\\\TVLavin-Chess-Game2.zip\")",
+      "Bash(cat:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Bash(git push:*)",
+      "Bash(start \"\" \"TEST_ENGINE.html\")"
+    ]
+  }
+}
