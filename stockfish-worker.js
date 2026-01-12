@@ -9,6 +9,7 @@ class StockfishEngine {
     constructor() {
         this.engine = null;
         this.ready = false;
+        this.configured = false;  // CRITICAL: Prevent configureEngine from running multiple times
         this.analyzing = false;
         this.skillLevel = 5;
         this.searchDepth = 12;
@@ -254,6 +255,14 @@ class StockfishEngine {
     }
 
     configureEngine() {
+        // CRITICAL: Only configure once to avoid command spam
+        if (this.configured) {
+            console.log('⚠️ Engine already configured, skipping duplicate configuration');
+            return;
+        }
+
+        console.log('⚙️ Configuring engine options (ONE TIME ONLY)');
+
         // Set skill level (0-20)
         this.send(`setoption name Skill Level value ${this.skillLevel}`);
 
@@ -276,6 +285,7 @@ class StockfishEngine {
         }
 
         this.send('isready');
+        this.configured = true;  // Mark as configured
     }
 
     send(command) {
@@ -349,14 +359,17 @@ class StockfishEngine {
 
         let command = 'go';
 
-        if (options.depth) {
+        // CRITICAL: UCI protocol - use ONLY ONE of: movetime, depth, or time controls
+        // Never mix depth + movetime - Stockfish ignores or behaves unexpectedly
+        if (options.movetime) {
+            // Movetime takes priority (best for quick play)
+            command += ` movetime ${options.movetime}`;
+        } else if (options.depth) {
+            // Depth (best for analysis)
             command += ` depth ${options.depth}`;
         } else if (!options.infinite) {
+            // Default depth if nothing specified
             command += ` depth ${this.searchDepth}`;
-        }
-
-        if (options.movetime) {
-            command += ` movetime ${options.movetime}`;
         }
 
         if (options.wtime !== undefined) {
