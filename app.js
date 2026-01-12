@@ -436,7 +436,15 @@ function makeEngineMove() {
 
     const currentFen = App.game.fen();
 
-    // DEBUG: Use movetime instead of depth for faster testing
+    // Calculate movetime based on engine level
+    // Level 20 (Grandmaster) gets more thinking time for stronger play
+    const moveTime = App.engineLevel >= 18 ? 2000 :  // Levels 18-20: 2 seconds
+                     App.engineLevel >= 15 ? 1000 :   // Levels 15-17: 1 second
+                     App.engineLevel >= 10 ? 700 :    // Levels 10-14: 700ms
+                     500;                              // Levels 1-9: 500ms
+
+    console.log(`🎯 Engine Level ${App.engineLevel} using movetime: ${moveTime}ms`);
+
     App.engine.getBestMove(currentFen, (bestMove) => {
         console.log('[BESTMOVE EVENT]', bestMove);
         // Verify game state hasn't changed
@@ -480,7 +488,7 @@ function makeEngineMove() {
         }
 
         updateEngineStatus('ready', 'Engine Ready');
-    }, { movetime: 500 });  // DEBUG: Use movetime 500ms for faster response
+    }, { movetime: moveTime });
 }
 
 // ===== GAME STATUS =====
