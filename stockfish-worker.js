@@ -82,9 +82,16 @@ class StockfishEngine {
     }
 
     handleMessage(message) {
-        // Only log in debug mode (except for important handshake messages)
+        // ALWAYS log info and bestmove messages for debugging
+        if (message.startsWith('info') || message.startsWith('bestmove')) {
+            console.log('🔧 Engine message:', message.substring(0, 100) + (message.length > 100 ? '...' : ''));
+        }
+
+        // Only log other messages in debug mode
         if (window.App && window.App.debug) {
-            console.log('Engine:', message);
+            if (!message.startsWith('info') && !message.startsWith('bestmove')) {
+                console.log('Engine:', message);
+            }
         }
 
         // Engine ready - ALWAYS log this
@@ -108,17 +115,20 @@ class StockfishEngine {
 
         // Best move found
         if (message.startsWith('bestmove')) {
+            console.log('🎯 Best move found');
             this.analyzing = false;
             const match = message.match(/bestmove ([a-h][1-8][a-h][1-8][qrbnQRBN]?)/);
             if (match && this.onBestMove) {
                 const move = match[1];
                 const ponder = message.match(/ponder ([a-h][1-8][a-h][1-8][qrbnQRBN]?)/);
+                console.log('  - Calling onBestMove callback with:', move);
                 this.onBestMove(move, ponder ? ponder[1] : null);
             }
         }
 
         // Analysis info
         if (message.startsWith('info') && this.onInfo) {
+            console.log('📊 Info message - calling parseInfo');
             this.parseInfo(message);
         }
 
@@ -212,8 +222,18 @@ class StockfishEngine {
             info.pv = pvMatch[1].split(' ');
         }
 
+        console.log('  - Parsed info:', {
+            depth: info.depth,
+            score: info.score,
+            nodes: info.nodes,
+            pvLength: info.pv.length
+        });
+
         if (this.onInfo) {
+            console.log('  - Calling onInfo callback');
             this.onInfo(info);
+        } else {
+            console.log('  - ⚠️ onInfo callback is not set!');
         }
     }
 
@@ -386,21 +406,31 @@ class StockfishEngine {
     }
 
     startAnalysis(fen, infoCallback, depth = null) {
+        console.log('🔬 StockfishEngine.startAnalysis called');
+        console.log('  - FEN:', fen);
+        console.log('  - Depth:', depth);
+        console.log('  - Callback provided:', !!infoCallback);
+
         if (!this.ready) {
-            console.error('Engine not ready');
+            console.error('❌ Engine not ready');
             if (this.onError) {
                 this.onError(new Error('Engine not ready'));
             }
             return;
         }
 
+        console.log('  - Setting onInfo callback');
         this.onInfo = infoCallback;
+        console.log('  - Sending position command');
         this.setPosition(fen);
         const options = depth ? { depth } : { infinite: true };
+        console.log('  - Sending go command with options:', options);
         this.go(options);
+        console.log('  - startAnalysis complete, engine should now be analyzing');
     }
 
     stopAnalysis() {
+        console.log('⏹️ StockfishEngine.stopAnalysis called');
         this.stop();
         this.onInfo = null;
     }

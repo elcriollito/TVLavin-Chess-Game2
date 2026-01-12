@@ -248,19 +248,23 @@ function initializeEngine() {
     App.engine = new StockfishEngine();
 
     App.engine.onReady = () => {
+        console.log('✅ App.engine.onReady - Stockfish ready');
         debugLog('Stockfish ready');
         updateEngineStatus('ready', 'Engine Ready');
         App.engine.setSkillLevel(App.engineLevel);
     };
 
     App.engine.onInfo = (info) => {
+        console.log('📊 App.engine.onInfo called - analyzing:', App.analyzing, 'info:', info);
         if (App.analyzing) {
             updateAnalysis(info);
+        } else {
+            console.log('⚠️ Received info but App.analyzing is false - ignoring');
         }
     };
 
     App.engine.onError = (error) => {
-        console.error('Engine error:', error);
+        console.error('❌ Engine error:', error);
         updateEngineStatus('error', 'Engine Error');
         showErrorNotification('Engine error. Please refresh the page.');
     };
@@ -653,20 +657,29 @@ function startTimer() {
 
 // ===== ANALYSIS =====
 function startAnalysis() {
+    console.log('🔍 startAnalysis called');
+    console.log('  - Engine ready:', App.engine?.ready);
+    console.log('  - Current FEN:', App.game.fen());
+
     if (!App.engine || !App.engine.ready) {
-        console.error('Engine not ready for analysis');
+        console.error('❌ Engine not ready for analysis');
         return;
     }
-    
+
     App.analyzing = true;
+    console.log('  - Set App.analyzing = true');
     updateEngineStatus('busy', 'Analyzing...');
-    
+
+    console.log('  - Calling App.engine.startAnalysis...');
     App.engine.startAnalysis(App.game.fen(), (info) => {
+        console.log('🔄 Analysis callback received:', info);
         updateAnalysis(info);
     });
+    console.log('  - startAnalysis() called on engine');
 }
 
 function stopAnalysis() {
+    console.log('⏹️ stopAnalysis called');
     if (App.engine) {
         App.engine.stopAnalysis();
     }
@@ -675,6 +688,7 @@ function stopAnalysis() {
 }
 
 function toggleAnalysis() {
+    console.log('🔘 toggleAnalysis clicked - currently analyzing:', App.analyzing);
     if (App.analyzing) {
         stopAnalysis();
         App.elements.toggleAnalysis.innerHTML = '<i class="fas fa-brain"></i> Analyze';
@@ -685,27 +699,40 @@ function toggleAnalysis() {
 }
 
 function updateAnalysis(info) {
+    console.log('📈 updateAnalysis called with:', {
+        depth: info.depth,
+        score: info.score,
+        mate: info.mate,
+        nodes: info.nodes,
+        pvLength: info.pv?.length
+    });
+
     // Update evaluation
     if (info.mate !== null) {
         App.elements.evaluation.textContent = `M${info.mate}`;
         App.elements.evaluation.style.color = info.mate > 0 ? '#4caf50' : '#f44336';
+        console.log('  - Updated evaluation (mate):', `M${info.mate}`);
     } else if (info.score !== null) {
         const score = info.score.toFixed(2);
         App.elements.evaluation.textContent = score > 0 ? `+${score}` : score;
         App.elements.evaluation.style.color = score > 0 ? '#4caf50' :
                                                score < 0 ? '#f44336' : '#2c5f9e';
+        console.log('  - Updated evaluation (score):', score);
     }
 
     // Update depth
     App.elements.depth.textContent = info.depth;
+    console.log('  - Updated depth:', info.depth);
 
     // Update nodes
     App.elements.nodes.textContent = formatNumber(info.nodes);
+    console.log('  - Updated nodes:', formatNumber(info.nodes));
 
     // Update best line - convert UCI moves to SAN notation
     if (info.pv && info.pv.length > 0) {
         const sanMoves = convertPVtoSAN(info.pv);
         App.elements.bestLine.textContent = sanMoves;
+        console.log('  - Updated best line:', sanMoves);
     }
 }
 
