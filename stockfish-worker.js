@@ -421,6 +421,11 @@ class StockfishEngine {
             return;
         }
 
+        // CRITICAL: Stop any ongoing engine computation before starting analysis
+        // This ensures the engine is not busy with a previous go command
+        console.log('  - Stopping any previous engine computation');
+        this.stop();
+
         console.log('  - Setting onInfo callback');
         this.onInfo = infoCallback;
         console.log('  - Sending position command');
