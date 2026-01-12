@@ -263,26 +263,18 @@ class StockfishEngine {
 
         console.log('⚙️ Configuring engine options (ONE TIME ONLY)');
 
-        // Set skill level (0-20)
+        // CRITICAL: Only use options that stockfish.js Multi-Variant actually supports
+        // This version has limited option support (Hash max 16, no UCI_LimitStrength)
+
+        // Set skill level (0-20) - SUPPORTED
         this.send(`setoption name Skill Level value ${this.skillLevel}`);
 
-        // Enable multi-PV for analysis
+        // Enable multi-PV for analysis - SUPPORTED
         this.send(`setoption name MultiPV value ${this.multipv}`);
 
-        // Configure hash table size (in MB)
-        this.send('setoption name Hash value 128');
-
-        // Set number of threads (use 1 for web workers)
-        this.send('setoption name Threads value 1');
-
-        // Limit strength for lower levels
-        if (this.skillLevel < 20) {
-            this.send('setoption name UCI_LimitStrength value true');
-            const elo = 1000 + (this.skillLevel * 100);
-            this.send(`setoption name UCI_Elo value ${elo}`);
-        } else {
-            this.send('setoption name UCI_LimitStrength value false');
-        }
+        // NOTE: NOT setting Hash or UCI_LimitStrength/UCI_Elo
+        // This engine version doesn't support those options properly
+        // Skill Level is enough to control difficulty
 
         this.send('isready');
         this.configured = true;  // Mark as configured
