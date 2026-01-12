@@ -263,10 +263,12 @@ class StockfishEngine {
     }
 
     send(command) {
+        console.log('📤 Sending UCI command:', command);
         if (this.engine) {
             this.engine.postMessage(command);
         } else if (!this.ready) {
             // Queue command if engine not ready
+            console.log('  - Engine not ready, queuing command');
             this.commandQueue.push(command);
         }
     }
