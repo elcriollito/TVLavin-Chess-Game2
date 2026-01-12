@@ -21,6 +21,20 @@ const App = {
     gameActive: false,
     analyzing: false,
     editMode: false,
+    selectedEditorPiece: 'erase', // Piece to place in editor mode
+
+    // Engine vs Engine
+    eveMode: false,
+    evePaused: false,
+    eveRunning: false,
+    engineWhite: null,
+    engineBlack: null,
+    eveMoveCount: 0,
+    eveMoveDelay: 1000,
+
+    // MultiPV analysis
+    multiPvEnabled: false,
+    pvLines: {}, // Store up to 3 PV lines { 1: info, 2: info, 3: info }
 
     // History navigation
     moveHistory: [],
@@ -117,12 +131,11 @@ function cacheElements() {
         whiteTime: document.getElementById('whiteTime'),
         blackTime: document.getElementById('blackTime'),
         gameResult: document.getElementById('gameResult'),
+        resignBtn: document.getElementById('resignBtn'),
         
         // Analysis
-        evaluation: document.getElementById('evaluation'),
         depth: document.getElementById('depth'),
         nodes: document.getElementById('nodes'),
-        bestLine: document.getElementById('bestLine'),
         engineStatusText: document.getElementById('engineStatusText'),
         engineStatus: document.getElementById('engineStatus'),
         
@@ -138,7 +151,37 @@ function cacheElements() {
         fenModal: document.getElementById('fenModal'),
         menuModal: document.getElementById('menuModal'),
         embedModal: document.getElementById('embedModal'),
-        promotionModal: document.getElementById('promotionModal')
+        promotionModal: document.getElementById('promotionModal'),
+
+        // Board Editor
+        editBoardBtn: document.getElementById('editBoardBtn'),
+        editorPanel: document.getElementById('editorPanel'),
+        exitEditor: document.getElementById('exitEditor'),
+        clearBoard: document.getElementById('clearBoard'),
+        resetToStart: document.getElementById('resetToStart'),
+        applyPosition: document.getElementById('applyPosition'),
+
+        // Engine vs Engine
+        engineVsEngineBtn: document.getElementById('engineVsEngineBtn'),
+        evePanel: document.getElementById('evePanel'),
+        whiteEngineLevel: document.getElementById('whiteEngineLevel'),
+        blackEngineLevel: document.getElementById('blackEngineLevel'),
+        eveMoveDelay: document.getElementById('eveMoveDelay'),
+        eveStatus: document.getElementById('eveStatus'),
+        eveStatusText: document.getElementById('eveStatusText'),
+        eveMoveCount: document.getElementById('eveMoveCount'),
+        startEve: document.getElementById('startEve'),
+        pauseEve: document.getElementById('pauseEve'),
+        resumeEve: document.getElementById('resumeEve'),
+        stopEve: document.getElementById('stopEve'),
+
+        // PGN Library
+        pgnSelector: document.getElementById('pgnSelector'),
+        loadPgnBtn: document.getElementById('loadPgnBtn'),
+        pgnInfo: document.getElementById('pgnInfo'),
+        pgnEvent: document.getElementById('pgnEvent'),
+        pgnPlayers: document.getElementById('pgnPlayers'),
+        pgnResult: document.getElementById('pgnResult')
     };
 }
 
@@ -299,8 +342,8 @@ function onDragStart(source, piece, position, orientation) {
         }
     }
     
-    // In analysis mode, only allow moving side to move pieces
-    if (App.gameMode === 'analysis') {
+    // In analysis and human vs human mode, only allow moving side to move pieces
+    if (App.gameMode === 'analysis' || App.gameMode === 'human') {
         if ((App.game.turn() === 'w' && piece.search(/^b/) !== -1) ||
             (App.game.turn() === 'b' && piece.search(/^w/) !== -1)) {
             return false;
@@ -686,6 +729,32 @@ function startAnalysis() {
     console.log('  - startAnalysis() called on engine');
 }
 
+function toggleMultiPV(enabled) {
+    console.log('🔀 toggleMultiPV:', enabled);
+    App.multiPvEnabled = enabled;
+
+    // Show/hide additional PV lines
+    document.getElementById('pvLine2').style.display = enabled ? 'block' : 'none';
+    document.getElementById('pvLine3').style.display = enabled ? 'block' : 'none';
+
+    // Update engine MultiPV setting
+    if (App.engine) {
+        App.engine.setMultiPV(enabled ? 3 : 1);
+    }
+
+    // Clear stored PV lines when disabling
+    if (!enabled) {
+        App.pvLines = {};
+    }
+
+    // Restart analysis if currently analyzing
+    if (App.analyzing) {
+        console.log('  - Restarting analysis with new MultiPV setting');
+        stopAnalysis();
+        setTimeout(() => startAnalysis(), 100);
+    }
+}
+
 function stopAnalysis() {
     console.log('⏹️ stopAnalysis called');
     console.trace('Stack trace:');
@@ -725,36 +794,47 @@ function updateAnalysis(info) {
         score: info.score,
         mate: info.mate,
         nodes: info.nodes,
+        multipv: info.multipv,
         pvLength: info.pv?.length
     });
 
-    // Update evaluation
-    if (info.mate !== null) {
-        App.elements.evaluation.textContent = `M${info.mate}`;
-        App.elements.evaluation.style.color = info.mate > 0 ? '#4caf50' : '#f44336';
-        console.log('  - Updated evaluation (mate):', `M${info.mate}`);
-    } else if (info.score !== null) {
-        const score = info.score.toFixed(2);
-        App.elements.evaluation.textContent = score > 0 ? `+${score}` : score;
-        App.elements.evaluation.style.color = score > 0 ? '#4caf50' :
-                                               score < 0 ? '#f44336' : '#2c5f9e';
-        console.log('  - Updated evaluation (score):', score);
-    }
+    // Store PV line by multipv number (1, 2, or 3)
+    const pvNum = info.multipv || 1;
+    App.pvLines[pvNum] = info;
 
-    // Update depth
+    // Update depth and nodes (same for all lines)
     App.elements.depth.textContent = info.depth;
-    console.log('  - Updated depth:', info.depth);
-
-    // Update nodes
     App.elements.nodes.textContent = formatNumber(info.nodes);
-    console.log('  - Updated nodes:', formatNumber(info.nodes));
 
-    // Update best line - convert UCI moves to SAN notation
-    if (info.pv && info.pv.length > 0) {
-        const sanMoves = convertPVtoSAN(info.pv);
-        App.elements.bestLine.textContent = sanMoves;
-        console.log('  - Updated best line:', sanMoves);
+    // Update each PV line
+    for (let i = 1; i <= 3; i++) {
+        const lineInfo = App.pvLines[i];
+        if (!lineInfo) continue;
+
+        const evalElem = document.getElementById(`evaluation${i}`);
+        const lineElem = document.getElementById(`bestLine${i}`);
+
+        if (!evalElem || !lineElem) continue;
+
+        // Update evaluation
+        if (lineInfo.mate !== null) {
+            evalElem.textContent = `M${lineInfo.mate}`;
+            evalElem.style.color = lineInfo.mate > 0 ? '#4caf50' : '#f44336';
+        } else if (lineInfo.score !== null) {
+            const score = lineInfo.score.toFixed(2);
+            evalElem.textContent = score > 0 ? `+${score}` : score;
+            evalElem.style.color = score > 0 ? '#4caf50' :
+                                   score < 0 ? '#f44336' : '#2c5f9e';
+        }
+
+        // Update best line - convert UCI moves to SAN notation
+        if (lineInfo.pv && lineInfo.pv.length > 0) {
+            const sanMoves = convertPVtoSAN(lineInfo.pv);
+            lineElem.textContent = sanMoves;
+        }
     }
+
+    console.log('  - Updated PV line', pvNum);
 }
 
 // Convert UCI PV (principal variation) to readable SAN notation
@@ -819,13 +899,19 @@ function updateEngineStatus(status, text) {
 
 // ===== NEW GAME =====
 function newGame(options = {}) {
+    // Exit Engine vs Engine mode if active
+    if (App.eveMode) {
+        exitEngineVsEngineMode();
+        App.eveMode = false;
+    }
+
     // Stop any ongoing operations
     // ONLY stop analysis if it's actually running
     if (App.analyzing) {
         stopAnalysis();
     }
     clearInterval(App.timerInterval);
-    
+
     // Reset game
     App.game.reset();
     App.board.position('start');
@@ -873,16 +959,63 @@ function newGame(options = {}) {
         }, 500);
     }
     
-    // Clear analysis panel
-    App.elements.evaluation.textContent = '0.0';
+    // Clear analysis panel - reset all PV lines
     App.elements.depth.textContent = '0';
     App.elements.nodes.textContent = '0';
-    App.elements.bestLine.textContent = '--';
+    App.pvLines = {}; // Clear stored PV lines
+
+    // Reset all 3 PV lines
+    for (let i = 1; i <= 3; i++) {
+        const evalElem = document.getElementById(`evaluation${i}`);
+        const lineElem = document.getElementById(`bestLine${i}`);
+        if (evalElem) evalElem.textContent = '0.0';
+        if (lineElem) lineElem.textContent = '--';
+    }
     
     // Notify engine of new game
     if (App.engine) {
         App.engine.newGame();
     }
+
+    // Show resign button in engine mode
+    if (App.gameMode === 'engine') {
+        App.elements.resignBtn.style.display = 'block';
+    } else {
+        App.elements.resignBtn.style.display = 'none';
+    }
+}
+
+function resignGame() {
+    if (!App.gameActive) {
+        showNotification('No active game to resign.');
+        return;
+    }
+
+    // Confirm resignation
+    if (!confirm('Are you sure you want to resign?')) {
+        return;
+    }
+
+    console.log('🏳️ Player resigned');
+
+    // Determine winner based on player color
+    const winner = App.playerColor === 'white' ? 'Black' : 'White';
+
+    // Stop game
+    App.gameActive = false;
+    stopAnalysis();
+    clearInterval(App.timerInterval);
+
+    // Hide resign button
+    App.elements.resignBtn.style.display = 'none';
+
+    // Show game result
+    App.elements.gameResult.textContent = `${winner} wins by resignation`;
+    App.elements.gameResult.classList.add('show');
+    App.elements.gameResult.style.background = winner === 'White' ? '#4caf50' : '#333';
+    App.elements.gameResult.style.color = 'white';
+
+    showNotification(`${winner} wins by resignation`);
 }
 
 // ===== FEN OPERATIONS =====
@@ -980,17 +1113,38 @@ function setupEventListeners() {
     });
 
     App.elements.analyzeGame.addEventListener('click', () => {
-        if (!App.gameActive || App.moveHistory.length === 0) {
+        // Check if there's a game history to analyze
+        if (App.moveHistory.length === 0) {
             alert('No game to analyze. Play some moves first!');
             return;
         }
+
+        // Enter analysis mode
         App.gameMode = 'analysis';
         App.gameActive = false;
+
+        // Navigate to the start of the game
+        navigateToStart();
+
+        // Start analysis from current position
         startAnalysis();
+
+        showNotification('Analysis mode: Use navigation buttons to explore the game');
     });
     
     App.elements.toggleAnalysis.addEventListener('click', toggleAnalysis);
-    
+
+    // MultiPV toggle
+    document.getElementById('multiPvToggle').addEventListener('change', (e) => {
+        toggleMultiPV(e.target.checked);
+    });
+
+    // Resign button
+    App.elements.resignBtn.addEventListener('click', resignGame);
+
+    // PGN Library
+    App.elements.loadPgnBtn.addEventListener('click', loadSelectedPGN);
+
     // Navigation
     App.elements.navFirst.addEventListener('click', navigateToStart);
     App.elements.navPrev.addEventListener('click', navigateToPrevious);
@@ -1029,7 +1183,13 @@ function setupEventListeners() {
     
     // Embed Modal
     setupEmbedModal();
-    
+
+    // Board Editor
+    setupBoardEditor();
+
+    // Engine vs Engine
+    setupEngineVsEngine();
+
     // Modal close buttons
     document.querySelectorAll('.modal-close, .btn-secondary[data-modal]').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -1064,7 +1224,10 @@ function setupNewGameModal() {
     
     // Game mode change
     gameModeSelect.addEventListener('change', (e) => {
-        const isEngine = e.target.value === 'engine';
+        const mode = e.target.value;
+        const isEngine = mode === 'engine';
+
+        // Show color/level selection only for engine mode
         colorSelection.style.display = isEngine ? 'block' : 'none';
         engineLevelSelection.style.display = isEngine ? 'block' : 'none';
     });
@@ -1164,13 +1327,24 @@ function setupMenuModal() {
 
     document.getElementById('menuAnalyzeGame').addEventListener('click', () => {
         hideModal('menuModal');
-        if (!App.gameActive || App.moveHistory.length === 0) {
+
+        // Check if there's a game history to analyze
+        if (App.moveHistory.length === 0) {
             alert('No game to analyze. Play some moves first!');
             return;
         }
+
+        // Enter analysis mode
         App.gameMode = 'analysis';
         App.gameActive = false;
+
+        // Navigate to the start of the game
+        navigateToStart();
+
+        // Start analysis from current position
         startAnalysis();
+
+        showNotification('Analysis mode: Use navigation buttons to explore the game');
     });
     
     document.getElementById('menuEmbed').addEventListener('click', () => {
@@ -1225,8 +1399,70 @@ function generateEmbedCode() {
     const baseUrl = window.location.origin + window.location.pathname;
     const embedUrl = `${baseUrl}?embed=1`;
     const embedCode = `<iframe src="${embedUrl}" width="700" height="700" frameborder="0" allowfullscreen></iframe>`;
-    
+
     document.getElementById('embedCode').value = embedCode;
+}
+
+// ===== BOARD EDITOR SETUP =====
+function setupBoardEditor() {
+    // Edit Board button in header
+    App.elements.editBoardBtn.addEventListener('click', () => {
+        toggleEditMode();
+    });
+
+    // Exit Editor button
+    App.elements.exitEditor.addEventListener('click', () => {
+        exitEditMode();
+    });
+
+    // Piece palette buttons
+    document.querySelectorAll('.piece-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const piece = btn.dataset.piece;
+            selectEditorPiece(piece);
+        });
+    });
+
+    // Clear board button
+    App.elements.clearBoard.addEventListener('click', () => {
+        clearBoardEditor();
+    });
+
+    // Reset to start button
+    App.elements.resetToStart.addEventListener('click', () => {
+        resetBoardEditor();
+    });
+
+    // Apply position button
+    App.elements.applyPosition.addEventListener('click', () => {
+        applyEditorPosition();
+    });
+
+    // Board square click handler for piece placement
+    // We'll attach this to the board div and delegate to square clicks
+    document.getElementById('chessboard').addEventListener('click', (e) => {
+        if (!App.editMode) return;
+
+        // Find the clicked square
+        let target = e.target;
+
+        // Traverse up to find the square element
+        while (target && !target.classList.contains('square-55d63')) {
+            target = target.parentElement;
+            if (target === document.getElementById('chessboard')) {
+                return; // Clicked outside a square
+            }
+        }
+
+        if (target && target.classList.contains('square-55d63')) {
+            // Extract square notation from class (e.g., 'square-a1')
+            const squareClass = Array.from(target.classList).find(cls => cls.match(/square-[a-h][1-8]/));
+            if (squareClass) {
+                const square = squareClass.replace('square-', '');
+                placeEditorPiece(square);
+            }
+        }
+    });
 }
 
 // ===== PROMOTION DIALOG =====
@@ -1276,17 +1512,535 @@ function toggleEditMode() {
     App.editMode = !App.editMode;
 
     if (App.editMode) {
-        // Stop any active game
-        App.gameActive = false;
-        stopAnalysis();
-
-        // Enable piece placement/removal
-        App.board.draggable = true;
-        showNotification('Edit mode enabled. Drag pieces to edit position.');
+        enterEditMode();
     } else {
-        // Exit edit mode
-        showNotification('Edit mode disabled.');
+        exitEditMode();
     }
+}
+
+function enterEditMode() {
+    console.log('🎨 Entering Board Editor mode');
+
+    // Stop any active game
+    App.gameActive = false;
+    if (App.analyzing) {
+        stopAnalysis();
+    }
+
+    // Show editor panel, hide analysis panel
+    App.elements.editorPanel.style.display = 'block';
+    document.getElementById('analysisPanel').style.display = 'none';
+
+    // Add edit-mode class to board container
+    document.querySelector('.board-container').classList.add('edit-mode');
+
+    // Disable normal game logic
+    App.board.draggable = false; // Disable drag-and-drop, use click instead
+
+    // Store current position for cancellation
+    App.editorStartPosition = App.game.fen();
+
+    showNotification('Edit Mode: Select a piece and click on the board to place it.');
+}
+
+function exitEditMode() {
+    console.log('🎨 Exiting Board Editor mode');
+
+    // Hide editor panel, show analysis panel
+    App.elements.editorPanel.style.display = 'none';
+    document.getElementById('analysisPanel').style.display = 'block';
+
+    // Remove edit-mode class
+    document.querySelector('.board-container').classList.remove('edit-mode');
+
+    // Re-enable normal game logic
+    App.board.draggable = true;
+
+    showNotification('Edit mode disabled.');
+}
+
+// Board Editor: Select piece from palette
+function selectEditorPiece(piece) {
+    console.log('🎨 Selected piece:', piece);
+    App.selectedEditorPiece = piece;
+
+    // Update active button
+    document.querySelectorAll('.piece-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`.piece-btn[data-piece="${piece}"]`).classList.add('active');
+}
+
+// Board Editor: Place piece on square (click handler)
+function placeEditorPiece(square) {
+    if (!App.editMode) return;
+
+    console.log('🎨 Placing piece on square:', square, 'piece:', App.selectedEditorPiece);
+
+    const position = App.board.position();
+
+    if (App.selectedEditorPiece === 'erase') {
+        // Remove piece from square
+        delete position[square];
+    } else {
+        // Place selected piece on square
+        position[square] = App.selectedEditorPiece;
+    }
+
+    App.board.position(position);
+}
+
+// Board Editor: Clear all pieces
+function clearBoardEditor() {
+    console.log('🎨 Clearing board');
+    App.board.position({});
+}
+
+// Board Editor: Reset to starting position
+function resetBoardEditor() {
+    console.log('🎨 Resetting to start position');
+    App.board.start();
+}
+
+// Board Editor: Apply position and generate FEN
+function applyEditorPosition() {
+    console.log('🎨 Applying editor position');
+
+    try {
+        // Get current board position
+        const position = App.board.position();
+
+        // Get side to move
+        const sideToMove = document.querySelector('input[name="sideToMove"]:checked').value;
+
+        // Get castling rights
+        let castling = '';
+        if (document.getElementById('castleWK').checked) castling += 'K';
+        if (document.getElementById('castleWQ').checked) castling += 'Q';
+        if (document.getElementById('castleBK').checked) castling += 'k';
+        if (document.getElementById('castleBQ').checked) castling += 'q';
+        if (castling === '') castling = '-';
+
+        // Generate FEN (simplified - no en passant, halfmove, fullmove)
+        const fenPosition = generateFENFromPosition(position);
+        const fen = `${fenPosition} ${sideToMove} ${castling} - 0 1`;
+
+        console.log('🎨 Generated FEN:', fen);
+
+        // Load position into game
+        const success = App.game.load(fen);
+
+        if (success) {
+            App.board.position(App.game.fen());
+            updateStatus();
+            exitEditMode();
+            showNotification('Position loaded successfully!');
+        } else {
+            throw new Error('Invalid position');
+        }
+    } catch (error) {
+        console.error('Failed to apply position:', error);
+        showErrorNotification('Invalid position. Make sure both kings are on the board.');
+    }
+}
+
+// Generate FEN position string from board position object
+function generateFENFromPosition(position) {
+    const rows = [];
+
+    for (let rank = 8; rank >= 1; rank--) {
+        let rowStr = '';
+        let emptyCount = 0;
+
+        for (let file = 'a'.charCodeAt(0); file <= 'h'.charCodeAt(0); file++) {
+            const square = String.fromCharCode(file) + rank;
+            const piece = position[square];
+
+            if (piece) {
+                if (emptyCount > 0) {
+                    rowStr += emptyCount;
+                    emptyCount = 0;
+                }
+                // Convert piece notation (e.g., 'wP' -> 'P', 'bP' -> 'p')
+                const pieceChar = piece[0] === 'w' ? piece[1].toUpperCase() : piece[1].toLowerCase();
+                rowStr += pieceChar;
+            } else {
+                emptyCount++;
+            }
+        }
+
+        if (emptyCount > 0) {
+            rowStr += emptyCount;
+        }
+
+        rows.push(rowStr);
+    }
+
+    return rows.join('/');
+}
+
+// ===== ENGINE VS ENGINE MODE =====
+function toggleEngineVsEngineMode() {
+    App.eveMode = !App.eveMode;
+
+    if (App.eveMode) {
+        enterEngineVsEngineMode();
+    } else {
+        exitEngineVsEngineMode();
+    }
+}
+
+function enterEngineVsEngineMode() {
+    console.log('🤖 Entering Engine vs Engine mode');
+
+    // Stop analysis if running
+    if (App.analyzing) {
+        stopAnalysis();
+    }
+
+    // Show EvE panel, hide other panels
+    App.elements.evePanel.style.display = 'block';
+    document.querySelector('.engine-panel').style.display = 'none';
+    document.querySelector('.actions-panel').style.display = 'none';
+
+    // Automatically start engines to continue from current position
+    showNotification('Engine vs Engine mode: Click Start to continue from current position');
+}
+
+function exitEngineVsEngineMode() {
+    console.log('🤖 Exiting Engine vs Engine mode');
+
+    // Stop any running game
+    if (App.eveRunning) {
+        stopEngineVsEngine();
+    }
+
+    // Hide EvE panel, show other panels
+    App.elements.evePanel.style.display = 'none';
+    document.querySelector('.engine-panel').style.display = 'block';
+    document.querySelector('.actions-panel').style.display = 'block';
+
+    showNotification('Engine vs Engine mode disabled.');
+}
+
+async function startEngineVsEngine() {
+    console.log('🤖 Starting Engine vs Engine game');
+
+    try {
+        // Get configuration
+        const whiteLevel = parseInt(App.elements.whiteEngineLevel.value);
+        const blackLevel = parseInt(App.elements.blackEngineLevel.value);
+        App.eveMoveDelay = parseInt(App.elements.eveMoveDelay.value);
+
+        // Create two engine instances
+        console.log('Creating White engine (level', whiteLevel, ')');
+        App.engineWhite = new StockfishEngine();
+        App.engineWhite.setSkillLevel(whiteLevel);
+
+        console.log('Creating Black engine (level', blackLevel, ')');
+        App.engineBlack = new StockfishEngine();
+        App.engineBlack.setSkillLevel(blackLevel);
+
+        // Wait for both engines to be ready
+        await Promise.all([
+            new Promise(resolve => {
+                if (App.engineWhite.isReady()) {
+                    resolve();
+                } else {
+                    App.engineWhite.onReady = resolve;
+                }
+            }),
+            new Promise(resolve => {
+                if (App.engineBlack.isReady()) {
+                    resolve();
+                } else {
+                    App.engineBlack.onReady = resolve;
+                }
+            })
+        ]);
+
+        console.log('Both engines ready!');
+
+        // Continue from current position (don't reset the board)
+        App.gameMode = 'eve';
+        App.gameActive = true;
+
+        // Update UI
+        App.eveRunning = true;
+        App.evePaused = false;
+        App.eveMoveCount = App.moveHistory.length;
+        App.elements.startEve.style.display = 'none';
+        App.elements.pauseEve.style.display = 'block';
+        App.elements.stopEve.style.display = 'block';
+        App.elements.eveStatus.style.display = 'block';
+        App.elements.eveStatusText.textContent = 'Running';
+        App.elements.eveMoveCount.textContent = '0';
+
+        // Disable configuration while running
+        App.elements.whiteEngineLevel.disabled = true;
+        App.elements.blackEngineLevel.disabled = true;
+        App.elements.eveMoveDelay.disabled = true;
+
+        showNotification('Engine vs Engine game started!');
+
+        // Start the game loop
+        engineVsEngineLoop();
+
+    } catch (error) {
+        console.error('Failed to start Engine vs Engine:', error);
+        showErrorNotification('Failed to start Engine vs Engine mode.');
+    }
+}
+
+async function engineVsEngineLoop() {
+    // Check if game is over or stopped
+    if (!App.eveRunning || App.game.game_over()) {
+        if (App.game.game_over()) {
+            console.log('🤖 Game over!');
+            App.elements.eveStatusText.textContent = 'Game Over';
+
+            if (App.game.in_checkmate()) {
+                const winner = App.game.turn() === 'w' ? 'Black' : 'White';
+                showNotification(`Game Over: ${winner} wins by checkmate!`);
+            } else if (App.game.in_draw()) {
+                showNotification('Game Over: Draw!');
+            } else if (App.game.in_stalemate()) {
+                showNotification('Game Over: Stalemate!');
+            }
+        }
+        return;
+    }
+
+    // Check if paused
+    if (App.evePaused) {
+        console.log('🤖 Game paused');
+        return;
+    }
+
+    // Determine which engine to use
+    const currentTurn = App.game.turn(); // 'w' or 'b'
+    const currentEngine = currentTurn === 'w' ? App.engineWhite : App.engineBlack;
+    const engineName = currentTurn === 'w' ? 'White' : 'Black';
+
+    console.log(`🤖 ${engineName} engine thinking...`);
+    App.elements.eveStatusText.textContent = `${engineName} thinking...`;
+
+    // Get current position
+    const currentFen = App.game.fen();
+
+    // Request best move from engine
+    currentEngine.getBestMove(currentFen, async (bestMove) => {
+        if (!App.eveRunning || App.evePaused) {
+            return; // Game was stopped or paused during thinking
+        }
+
+        console.log(`🤖 ${engineName} engine selected move:`, bestMove);
+
+        // Parse and make the move
+        const from = bestMove.substring(0, 2);
+        const to = bestMove.substring(2, 4);
+        const promotion = bestMove.length > 4 ? bestMove[4] : undefined;
+
+        const move = App.game.move({ from, to, promotion });
+
+        if (move) {
+            // Update board
+            App.board.position(App.game.fen());
+
+            // Update UI
+            App.eveMoveCount++;
+            App.elements.eveMoveCount.textContent = App.eveMoveCount;
+            onMoveMade(move);
+
+            // Wait for configured delay before next move
+            await new Promise(resolve => setTimeout(resolve, App.eveMoveDelay));
+
+            // Continue loop
+            engineVsEngineLoop();
+        } else {
+            console.error('Invalid move from engine:', bestMove);
+            showErrorNotification('Engine returned invalid move. Stopping game.');
+            stopEngineVsEngine();
+        }
+    }, { movetime: 1000 }); // 1 second thinking time per move
+}
+
+function pauseEngineVsEngine() {
+    console.log('🤖 Pausing Engine vs Engine');
+    App.evePaused = true;
+    App.elements.eveStatusText.textContent = 'Paused';
+    App.elements.pauseEve.style.display = 'none';
+    App.elements.resumeEve.style.display = 'block';
+    showNotification('Game paused.');
+}
+
+function resumeEngineVsEngine() {
+    console.log('🤖 Resuming Engine vs Engine');
+    App.evePaused = false;
+    App.elements.eveStatusText.textContent = 'Running';
+    App.elements.pauseEve.style.display = 'block';
+    App.elements.resumeEve.style.display = 'none';
+    showNotification('Game resumed.');
+
+    // Continue the loop
+    engineVsEngineLoop();
+}
+
+function stopEngineVsEngine() {
+    console.log('🤖 Stopping Engine vs Engine');
+
+    // Stop the game
+    App.eveRunning = false;
+    App.evePaused = false;
+
+    // Terminate engines
+    if (App.engineWhite) {
+        App.engineWhite.terminate();
+        App.engineWhite = null;
+    }
+    if (App.engineBlack) {
+        App.engineBlack.terminate();
+        App.engineBlack = null;
+    }
+
+    // Update UI
+    App.elements.startEve.style.display = 'block';
+    App.elements.pauseEve.style.display = 'none';
+    App.elements.resumeEve.style.display = 'none';
+    App.elements.stopEve.style.display = 'none';
+    App.elements.eveStatusText.textContent = 'Stopped';
+
+    // Re-enable configuration
+    App.elements.whiteEngineLevel.disabled = false;
+    App.elements.blackEngineLevel.disabled = false;
+    App.elements.eveMoveDelay.disabled = false;
+
+    showNotification('Engine vs Engine game stopped.');
+}
+
+// ===== PGN LIBRARY =====
+async function loadSelectedPGN() {
+    const selectedGame = App.elements.pgnSelector.value;
+
+    if (!selectedGame) {
+        showNotification('Please select a game first.');
+        return;
+    }
+
+    console.log('📖 Loading PGN:', selectedGame);
+
+    try {
+        // Fetch PGN file
+        const response = await fetch(`pgn/${selectedGame}.pgn`);
+
+        if (!response.ok) {
+            throw new Error(`Failed to load PGN: ${response.statusText}`);
+        }
+
+        const pgnText = await response.text();
+        console.log('📖 PGN loaded successfully');
+
+        // Parse PGN
+        const pgnData = parsePGN(pgnText);
+
+        // Load the game
+        const success = App.game.load_pgn(pgnText);
+
+        if (!success) {
+            throw new Error('Invalid PGN format');
+        }
+
+        // Reset board to starting position
+        App.board.position('start');
+        App.game.reset();
+        App.game.load_pgn(pgnText);
+
+        // Set game mode to analysis (allows free navigation)
+        App.gameMode = 'analysis';
+        App.gameActive = false;
+
+        // Update move history from PGN
+        const history = App.game.history({ verbose: true });
+        App.moveHistory = history;
+        App.currentMoveIndex = -1; // Start at beginning
+
+        // Update UI
+        updateMoveHistory();
+        updateStatus();
+
+        // Show PGN info
+        App.elements.pgnInfo.style.display = 'block';
+        App.elements.pgnEvent.textContent = pgnData.event || '-';
+        App.elements.pgnPlayers.textContent = `${pgnData.white || '?'} vs ${pgnData.black || '?'}`;
+        App.elements.pgnResult.textContent = pgnData.result || '-';
+
+        showNotification(`Loaded: ${pgnData.white} vs ${pgnData.black}`);
+
+        // Navigate to start position
+        navigateToStart();
+
+    } catch (error) {
+        console.error('Failed to load PGN:', error);
+        showErrorNotification(`Failed to load game: ${error.message}`);
+    }
+}
+
+function parsePGN(pgnText) {
+    const lines = pgnText.split('\n');
+    const data = {
+        event: '',
+        site: '',
+        date: '',
+        white: '',
+        black: '',
+        result: ''
+    };
+
+    for (const line of lines) {
+        const eventMatch = line.match(/\[Event\s+"([^"]+)"\]/);
+        const siteMatch = line.match(/\[Site\s+"([^"]+)"\]/);
+        const dateMatch = line.match(/\[Date\s+"([^"]+)"\]/);
+        const whiteMatch = line.match(/\[White\s+"([^"]+)"\]/);
+        const blackMatch = line.match(/\[Black\s+"([^"]+)"\]/);
+        const resultMatch = line.match(/\[Result\s+"([^"]+)"\]/);
+
+        if (eventMatch) data.event = eventMatch[1];
+        if (siteMatch) data.site = siteMatch[1];
+        if (dateMatch) data.date = dateMatch[1];
+        if (whiteMatch) data.white = whiteMatch[1];
+        if (blackMatch) data.black = blackMatch[1];
+        if (resultMatch) data.result = resultMatch[1];
+    }
+
+    return data;
+}
+
+// Setup Engine vs Engine event listeners
+function setupEngineVsEngine() {
+    // Engine vs Engine button in header
+    App.elements.engineVsEngineBtn.addEventListener('click', () => {
+        toggleEngineVsEngineMode();
+    });
+
+    // Start button
+    App.elements.startEve.addEventListener('click', () => {
+        startEngineVsEngine();
+    });
+
+    // Pause button
+    App.elements.pauseEve.addEventListener('click', () => {
+        pauseEngineVsEngine();
+    });
+
+    // Resume button
+    App.elements.resumeEve.addEventListener('click', () => {
+        resumeEngineVsEngine();
+    });
+
+    // Stop button
+    App.elements.stopEve.addEventListener('click', () => {
+        stopEngineVsEngine();
+    });
 }
 
 // ===== NOTIFICATION SYSTEM =====
