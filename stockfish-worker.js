@@ -425,7 +425,10 @@ class StockfishEngine {
         this.onInfo = infoCallback;
         console.log('  - Sending position command');
         this.setPosition(fen);
-        const options = depth ? { depth } : { infinite: true };
+
+        // Use depth 20 instead of infinite for better compatibility with stockfish.js
+        // infinite mode doesn't work well with older stockfish.js versions
+        const options = depth ? { depth } : { depth: 20 };
         console.log('  - Sending go command with options:', options);
         this.go(options);
         console.log('  - startAnalysis complete, engine should now be analyzing');
