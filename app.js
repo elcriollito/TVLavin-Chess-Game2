@@ -263,6 +263,12 @@ function initializeEngine() {
         }
     };
 
+    App.engine.onBestMove = (bestMove, ponder) => {
+        console.log('🎯 App.engine.onBestMove called - move:', bestMove);
+        // The onBestMove callback is already set by getBestMove()
+        // This global handler just logs for debugging
+    };
+
     App.engine.onError = (error) => {
         console.error('❌ Engine error:', error);
         updateEngineStatus('error', 'Engine Error');
@@ -812,7 +818,10 @@ function updateEngineStatus(status, text) {
 // ===== NEW GAME =====
 function newGame(options = {}) {
     // Stop any ongoing operations
-    stopAnalysis();
+    // ONLY stop analysis if it's actually running
+    if (App.analyzing) {
+        stopAnalysis();
+    }
     clearInterval(App.timerInterval);
     
     // Reset game

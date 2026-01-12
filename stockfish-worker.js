@@ -97,14 +97,20 @@ class StockfishEngine {
         if (message.includes('uciok')) {
             console.log('✅ Stockfish UCI handshake complete - uciok received');
             this.ready = true;
-            this.configureEngine();
 
-            // Process any queued commands
-            this.processCommandQueue();
+            // CRITICAL: Give the engine time to fully initialize after uciok
+            // The worker may not be ready to process commands immediately
+            setTimeout(() => {
+                console.log('⏰ Configuring engine after uciok delay');
+                this.configureEngine();
 
-            if (this.onReady) {
-                this.onReady();
-            }
+                // Process any queued commands
+                this.processCommandQueue();
+
+                if (this.onReady) {
+                    this.onReady();
+                }
+            }, 100); // 100ms delay to let worker fully initialize
         }
 
         // Ready for new position - ALWAYS log this

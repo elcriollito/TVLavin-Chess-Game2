@@ -9,9 +9,9 @@
  * - Sends responses via postMessage
  */
 
-// Load stockfish.js from nmrugg's repository (known working version)
-// The cdnjs version had issues responding to commands after uciok
-importScripts('stockfish-nmrugg.js');
+// Load stockfish.js from CDN version (downloaded locally)
+// This is stockfish.js v10 from cdnjs
+importScripts('stockfish.js');
 
 // stockfish.js automatically configures itself when loaded in a worker context.
 // It sets up onmessage to receive UCI commands and uses postMessage to send responses.
