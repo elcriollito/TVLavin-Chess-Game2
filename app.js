@@ -393,7 +393,9 @@ function makeEngineMove() {
 
     const currentFen = App.game.fen();
 
+    // DEBUG: Use movetime instead of depth for faster testing
     App.engine.getBestMove(currentFen, (bestMove) => {
+        console.log('[BESTMOVE EVENT]', bestMove);
         // Verify game state hasn't changed
         if (!App.gameActive || App.game.fen() !== currentFen) {
             debugLog('Game state changed, canceling engine move');
@@ -435,7 +437,7 @@ function makeEngineMove() {
         }
 
         updateEngineStatus('ready', 'Engine Ready');
-    });
+    }, { movetime: 500 });  // DEBUG: Use movetime 500ms for faster response
 }
 
 // ===== GAME STATUS =====

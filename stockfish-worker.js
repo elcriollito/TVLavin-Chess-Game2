@@ -58,16 +58,26 @@ class StockfishEngine {
 
             this.engine = new Worker(workerPath);
 
+            // CRITICAL DEBUG: Log ALL messages from worker
             this.engine.onmessage = (event) => {
-                this.handleMessage(event.data);
+                // Normalize e.data - Emscripten workers can send objects or strings
+                const message = typeof event.data === 'string'
+                    ? event.data
+                    : (event.data?.data ?? String(event.data));
+
+                console.log('[FROM WORKER]', message);
+                this.handleMessage(message);
             };
 
             this.engine.onerror = (error) => {
-                console.error('Stockfish worker error:', error);
-
+                console.error('[WORKER ERROR]', error);
                 if (this.onError) {
                     this.onError(error);
                 }
+            };
+
+            this.engine.onmessageerror = (error) => {
+                console.error('[WORKER MESSAGE ERROR]', error);
             };
 
             // Initialize UCI protocol
