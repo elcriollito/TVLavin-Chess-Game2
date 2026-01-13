@@ -106,27 +106,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Game Status -->
-                <div class="panel game-status-panel">
-                    <h3 class="panel-title">Game Status</h3>
-                    <div class="status-content">
-                        <div class="turn-indicator" aria-live="polite" aria-atomic="true">
-                            <span id="turnIndicator">White to move</span>
-                        </div>
-                        <div class="timer-display">
-                            <div class="timer white-timer">
-                                <i class="fas fa-chess-king"></i>
-                                <span id="whiteTime">--:--</span>
-                            </div>
-                            <div class="timer black-timer">
-                                <i class="fas fa-chess-king"></i>
-                                <span id="blackTime">--:--</span>
-                            </div>
-                        </div>
-                        <div class="game-result" id="gameResult" aria-live="assertive" aria-atomic="true"></div>
-                    </div>
-                </div>
             </aside>
 
             <!-- Center - Chess Board -->
@@ -286,25 +265,44 @@
                 </div>
             </main>
 
-            <!-- Right Sidebar - Engine Settings -->
+            <!-- Right Sidebar - Game Status & Engine Settings -->
             <aside class="right-sidebar">
+                <!-- Game Status -->
+                <div class="panel game-status-panel">
+                    <h3 class="panel-title">Game Status</h3>
+                    <div class="status-content">
+                        <div class="turn-indicator" aria-live="polite" aria-atomic="true">
+                            <span id="turnIndicator">White to move</span>
+                        </div>
+                        <div class="timer-display">
+                            <div class="timer white-timer">
+                                <i class="fas fa-chess-king"></i>
+                                <span id="whiteTime">--:--</span>
+                            </div>
+                            <div class="timer black-timer">
+                                <i class="fas fa-chess-king"></i>
+                                <span id="blackTime">--:--</span>
+                            </div>
+                        </div>
+                        <div class="game-result" id="gameResult" aria-live="assertive" aria-atomic="true"></div>
+                    </div>
+                </div>
+
                 <!-- Engine Settings -->
                 <div class="panel engine-panel">
                     <h3 class="panel-title">Engine Settings</h3>
                     <div class="engine-content">
                         <div class="form-group">
-                            <label for="engineLevel">Engine Strength:</label>
-                            <select id="engineLevel" class="form-control" aria-label="Select engine strength">
-                                <option value="1">Level 1 - Beginner</option>
-                                <option value="3">Level 3 - Easy</option>
-                                <option value="5" selected>Level 5 - Medium</option>
-                                <option value="8">Level 8 - Hard</option>
-                                <option value="10">Level 10 - Expert</option>
-                                <option value="15">Level 15 - Master</option>
-                                <option value="20">Level 20 - Grandmaster</option>
-                            </select>
+                            <label>Engine Strength:</label>
+                            <div class="engine-strength-display">
+                                <i class="fas fa-bolt"></i>
+                                <span>FULL POWER</span>
+                            </div>
+                            <p class="engine-strength-note">
+                                Stockfish running at maximum strength
+                            </p>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="playerColor">Play as:</label>
                             <select id="playerColor" class="form-control" aria-label="Select player color">

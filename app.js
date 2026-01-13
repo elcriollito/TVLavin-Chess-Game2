@@ -12,7 +12,6 @@ const App = {
 
     // Settings
     playerColor: 'white',
-    engineLevel: 5,
     gameMode: 'engine', // 'engine' or 'analysis'
     timeControl: 0, // seconds, 0 = no limit
 
@@ -145,9 +144,8 @@ function cacheElements() {
         
         // Move history
         moveHistory: document.getElementById('moveHistory'),
-        
+
         // Settings
-        engineLevel: document.getElementById('engineLevel'),
         playerColor: document.getElementById('playerColor'),
         
         // Modals
@@ -297,10 +295,10 @@ function initializeEngine() {
     App.engine = new StockfishEngine();
 
     App.engine.onReady = () => {
-        console.log('✅ App.engine.onReady - Stockfish ready');
-        debugLog('Stockfish ready');
-        updateEngineStatus('ready', 'Engine Ready');
-        App.engine.setSkillLevel(App.engineLevel);
+        console.log('✅ App.engine.onReady - Stockfish ready at FULL POWER');
+        debugLog('Stockfish ready at FULL POWER');
+        updateEngineStatus('ready', 'Engine Ready - Full Power');
+        // NO skill level limitation - full power
     };
 
     App.engine.onInfo = (info) => {
@@ -438,18 +436,14 @@ function makeEngineMove() {
         return;
     }
 
-    updateEngineStatus('busy', 'Engine thinking...');
+    updateEngineStatus('busy', 'Engine thinking at FULL POWER...');
 
     const currentFen = App.game.fen();
 
-    // Calculate movetime based on engine level
-    // Level 20 (Grandmaster) gets more thinking time for stronger play
-    const moveTime = App.engineLevel >= 18 ? 2000 :  // Levels 18-20: 2 seconds
-                     App.engineLevel >= 15 ? 1000 :   // Levels 15-17: 1 second
-                     App.engineLevel >= 10 ? 700 :    // Levels 10-14: 700ms
-                     500;                              // Levels 1-9: 500ms
+    // Full power - use optimal thinking time
+    const moveTime = 2000; // 2 seconds for full strength
 
-    console.log(`🎯 Engine Level ${App.engineLevel} using movetime: ${moveTime}ms`);
+    console.log(`🎯 Engine at FULL POWER using movetime: ${moveTime}ms`);
 
     App.engine.getBestMove(currentFen, (bestMove) => {
         console.log('[BESTMOVE EVENT]', bestMove);
@@ -914,10 +908,7 @@ function newGame(options = {}) {
     // Apply options
     if (options.mode) App.gameMode = options.mode;
     if (options.color) App.playerColor = options.color;
-    if (options.level) {
-        App.engineLevel = options.level;
-        App.engine.setSkillLevel(options.level);
-    }
+    // No level setting - always full power
     if (options.timeControl !== undefined) {
         App.timeControl = options.timeControl;
         App.whiteTime = options.timeControl;
@@ -1007,16 +998,45 @@ function resignGame() {
 // ===== FEN OPERATIONS =====
 function loadFEN(fen, setAnalysisMode = true) {
     try {
-        // Sanitize FEN input - remove extra whitespace, keep FEN-valid characters
-        fen = fen.trim().replace(/\s+/g, ' ');
+        console.log('📝 Loading FEN - raw input:', fen);
 
-        // FEN can have 4 or 6 fields. If 4 fields, add "0 1" for halfmove/fullmove
+        // Sanitize FEN input - trim and collapse multiple spaces
+        fen = fen.trim().replace(/\s+/g, ' ');
+        console.log('📝 After sanitization:', fen);
+
+        // Check if this looks like PGN instead of FEN
+        if (fen.includes('[Event') || fen.includes('1.') || fen.includes('1..')) {
+            console.error('❌ This looks like PGN, not FEN');
+            throw new Error('This is not FEN. Paste a FEN string.');
+        }
+
+        // Split into parts
         const fenParts = fen.split(' ');
-        if (fenParts.length === 4) {
-            fen = fen + ' 0 1';
-            console.log('📝 FEN had 4 fields, added halfmove/fullmove: ', fen);
-        } else if (fenParts.length !== 6) {
-            throw new Error('FEN must have 4 or 6 fields');
+        console.log('📝 FEN parts:', fenParts.length, fenParts);
+
+        // FEN needs at least: position + side to move
+        if (fenParts.length < 2) {
+            console.error('❌ FEN needs at least position and side to move');
+            throw new Error('Invalid FEN: needs at least position and side to move');
+        }
+
+        // Complete missing fields with defaults
+        if (fenParts.length === 2) {
+            // Add castling, en passant, halfmove, fullmove
+            fen = `${fenParts[0]} ${fenParts[1]} - - 0 1`;
+            console.log('📝 FEN had 2 fields, completed to:', fen);
+        } else if (fenParts.length === 3) {
+            // Add en passant, halfmove, fullmove
+            fen = `${fenParts[0]} ${fenParts[1]} ${fenParts[2]} - 0 1`;
+            console.log('📝 FEN had 3 fields, completed to:', fen);
+        } else if (fenParts.length === 4) {
+            // Add halfmove, fullmove
+            fen = `${fenParts[0]} ${fenParts[1]} ${fenParts[2]} ${fenParts[3]} 0 1`;
+            console.log('📝 FEN had 4 fields, completed to:', fen);
+        } else if (fenParts.length === 5) {
+            // Add fullmove
+            fen = `${fenParts[0]} ${fenParts[1]} ${fenParts[2]} ${fenParts[3]} ${fenParts[4]} 1`;
+            console.log('📝 FEN had 5 fields, completed to:', fen);
         }
 
         // Exit edit mode if active
@@ -1024,10 +1044,18 @@ function loadFEN(fen, setAnalysisMode = true) {
             exitEditMode();
         }
 
+        // Try to load the FEN
+        console.log('📝 Attempting to load FEN into chess.js:', fen);
         const valid = App.game.load(fen);
+
         if (!valid) {
-            throw new Error('Invalid FEN');
+            console.error('❌ chess.js rejected FEN:', fen);
+            console.error('❌ Game state after failed load:', App.game.fen());
+            throw new Error('Invalid FEN - chess.js validation failed');
         }
+
+        console.log('✅ FEN loaded successfully!');
+        console.log('📝 Resulting position:', App.game.fen());
 
         App.board.position(App.game.fen());
         App.moveHistory = [];
@@ -1041,10 +1069,13 @@ function loadFEN(fen, setAnalysisMode = true) {
 
         updateMoveHistory();
         updateStatus();
+        showNotification('Position loaded from FEN');
 
         return true;
     } catch (error) {
-        debugLog('FEN load error:', error);
+        console.error('❌ FEN load error:', error.message);
+        console.error('❌ Failed FEN string:', fen);
+        showErrorNotification(error.message || 'Invalid FEN string');
         return false;
     }
 }
@@ -1157,11 +1188,6 @@ function setupEventListeners() {
     });
     
     // Settings changes
-    App.elements.engineLevel.addEventListener('change', (e) => {
-        App.engineLevel = parseInt(e.target.value);
-        App.engine.setSkillLevel(App.engineLevel);
-    });
-    
     App.elements.playerColor.addEventListener('change', (e) => {
         App.playerColor = e.target.value;
     });
@@ -1779,18 +1805,16 @@ async function startEngineVsEngine() {
 
     try {
         // Get configuration
-        const whiteLevel = parseInt(App.elements.whiteEngineLevel.value);
-        const blackLevel = parseInt(App.elements.blackEngineLevel.value);
         App.eveMoveDelay = parseInt(App.elements.eveMoveDelay.value);
 
-        // Create two engine instances
-        console.log('Creating White engine (level', whiteLevel, ')');
+        // Create two engine instances at FULL POWER
+        console.log('Creating White engine at FULL POWER');
         App.engineWhite = new StockfishEngine();
-        App.engineWhite.setSkillLevel(whiteLevel);
+        // No skill level - full power
 
-        console.log('Creating Black engine (level', blackLevel, ')');
+        console.log('Creating Black engine at FULL POWER');
         App.engineBlack = new StockfishEngine();
-        App.engineBlack.setSkillLevel(blackLevel);
+        // No skill level - full power
 
         // Wait for both engines to be ready
         await Promise.all([
@@ -2066,33 +2090,55 @@ async function loadSelectedPGN() {
     }
 
     const selectedOption = App.elements.fileSelector.options[App.elements.fileSelector.selectedIndex];
-    console.log('📖 Loading PGN:', selectedFile);
+    console.log('📖 Loading PGN from path:', selectedFile);
 
     try {
         // Fetch PGN file (file path already includes 'pgn/' prefix from library.json)
         const response = await fetch(selectedFile);
 
         if (!response.ok) {
+            console.error('❌ Failed to fetch PGN file:', response.status, response.statusText);
             throw new Error(`Failed to load PGN: ${response.statusText}`);
         }
 
         const pgnText = await response.text();
-        console.log('📖 PGN loaded successfully');
+        console.log('📖 PGN file fetched successfully');
+        console.log('📖 First 200 chars:', pgnText.substring(0, 200));
 
-        // Parse PGN
+        // Parse PGN for metadata
         const pgnData = parsePGN(pgnText);
+        console.log('📖 Parsed PGN metadata:', pgnData);
 
-        // Load the game
-        const success = App.game.load_pgn(pgnText);
+        // Reset game first
+        App.game.reset();
 
-        if (!success) {
-            throw new Error('Invalid PGN format');
+        // Try to load the PGN
+        // Chess.js uses loadPgn() (camelCase), not load_pgn()
+        console.log('📖 Attempting to load PGN into chess.js...');
+        let success = false;
+
+        // Try modern method first (loadPgn)
+        if (typeof App.game.loadPgn === 'function') {
+            success = App.game.loadPgn(pgnText);
+            console.log('📖 loadPgn() result:', success);
+        }
+        // Fallback to older method (load_pgn)
+        else if (typeof App.game.load_pgn === 'function') {
+            success = App.game.load_pgn(pgnText);
+            console.log('📖 load_pgn() result:', success);
+        }
+        else {
+            console.error('❌ No PGN loading method found on chess.js instance');
+            throw new Error('Chess.js PGN loader not found');
         }
 
-        // Reset board to starting position
-        App.board.position('start');
-        App.game.reset();
-        App.game.load_pgn(pgnText);
+        if (!success) {
+            console.error('❌ chess.js rejected PGN');
+            console.error('❌ PGN text:', pgnText);
+            throw new Error('Invalid PGN format - chess.js validation failed');
+        }
+
+        console.log('✅ PGN loaded successfully into chess.js');
 
         // Set game mode to analysis (allows free navigation)
         App.gameMode = 'analysis';
@@ -2101,7 +2147,12 @@ async function loadSelectedPGN() {
         // Update move history from PGN
         const history = App.game.history({ verbose: true });
         App.moveHistory = history;
-        App.currentMoveIndex = -1; // Start at beginning
+        App.currentMoveIndex = history.length - 1; // Start at end position
+
+        console.log('📖 Move history populated:', App.moveHistory.length, 'moves');
+
+        // Update board to final position
+        App.board.position(App.game.fen());
 
         // Update UI
         updateMoveHistory();
@@ -2118,13 +2169,13 @@ async function loadSelectedPGN() {
         App.elements.pgnPlayers.textContent = `${white} vs ${black}`;
         App.elements.pgnResult.textContent = result;
 
-        showNotification(`Loaded: ${white} vs ${black}`);
+        showNotification(`Loaded: ${white} vs ${black} (${App.moveHistory.length} moves)`);
 
-        // Navigate to start position
-        navigateToStart();
+        console.log('✅ PGN load complete');
 
     } catch (error) {
-        console.error('Failed to load PGN:', error);
+        console.error('❌ Failed to load PGN:', error);
+        console.error('❌ Error stack:', error.stack);
         showErrorNotification(`Failed to load game: ${error.message}`);
     }
 }

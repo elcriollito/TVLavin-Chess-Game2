@@ -261,20 +261,16 @@ class StockfishEngine {
             return;
         }
 
-        console.log('⚙️ Configuring engine options (ONE TIME ONLY)');
+        console.log('⚙️ Configuring engine options - FULL POWER MODE');
 
-        // CRITICAL: Only use options that stockfish.js Multi-Variant actually supports
-        // This version has limited option support (Hash max 16, no UCI_LimitStrength)
-
-        // Set skill level (0-20) - SUPPORTED
-        this.send(`setoption name Skill Level value ${this.skillLevel}`);
+        // FULL POWER: No skill level limitation
+        // Do NOT set Skill Level - let engine run at maximum strength (20)
 
         // Enable multi-PV for analysis - SUPPORTED
         this.send(`setoption name MultiPV value ${this.multipv}`);
 
-        // NOTE: NOT setting Hash or UCI_LimitStrength/UCI_Elo
-        // This engine version doesn't support those options properly
-        // Skill Level is enough to control difficulty
+        // NOTE: NOT setting Skill Level, UCI_LimitStrength, or UCI_Elo
+        // Engine will run at FULL POWER (default strength)
 
         this.send('isready');
         this.configured = true;  // Mark as configured
@@ -299,22 +295,10 @@ class StockfishEngine {
     }
 
     setSkillLevel(level) {
-        this.skillLevel = Math.max(0, Math.min(20, parseInt(level)));
-
-        // Adjust search depth based on skill level
-        if (this.skillLevel <= 3) {
-            this.searchDepth = 8;
-        } else if (this.skillLevel <= 8) {
-            this.searchDepth = 12;
-        } else if (this.skillLevel <= 15) {
-            this.searchDepth = 16;
-        } else {
-            this.searchDepth = 20;
-        }
-
-        if (this.ready) {
-            this.configureEngine();
-        }
+        // DEPRECATED: No longer used - engine always runs at full power
+        console.log('⚠️ setSkillLevel() called but ignored - engine running at FULL POWER');
+        // Keep search depth at maximum
+        this.searchDepth = 20;
     }
 
     setMultiPV(lines) {
