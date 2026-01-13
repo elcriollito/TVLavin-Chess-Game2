@@ -1245,8 +1245,7 @@ function setupNewGameModal() {
     
     let selectedTime = 0;
     let selectedColor = 'white';
-    let selectedLevel = 5;
-    
+
     // Game mode change
     gameModeSelect.addEventListener('change', (e) => {
         const mode = e.target.value;
@@ -1256,7 +1255,7 @@ function setupNewGameModal() {
         colorSelection.style.display = isEngine ? 'block' : 'none';
         engineLevelSelection.style.display = isEngine ? 'block' : 'none';
     });
-    
+
     // Time control selection
     timeButtons.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1265,7 +1264,7 @@ function setupNewGameModal() {
             selectedTime = parseInt(btn.dataset.time);
         });
     });
-    
+
     // Color selection
     colorButtons.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1274,23 +1273,20 @@ function setupNewGameModal() {
             selectedColor = btn.dataset.color;
         });
     });
-    
-    // Engine level selection
-    document.getElementById('newGameEngineLevel').addEventListener('change', (e) => {
-        selectedLevel = parseInt(e.target.value);
-    });
-    
+
+    // No engine level selection - always full power
+
     // Start game button
     startButton.addEventListener('click', () => {
         const mode = gameModeSelect.value;
-        
+
         newGame({
             mode: mode,
             color: mode === 'engine' ? selectedColor : 'white',
-            level: mode === 'engine' ? selectedLevel : 5,
+            // No level - always full power
             timeControl: selectedTime
         });
-        
+
         hideModal('newGameModal');
     });
 }
