@@ -1,0 +1,42 @@
+{
+  "World Champions": [],
+  "Grandmasters": [],
+  "Demo / Mixed": [
+    {
+      "name": "Anderssen, Adolf vs Dufresne, Jean (1852)",
+      "file": "pgn/demo/evergreen-game.pgn",
+      "white": "Anderssen, Adolf",
+      "black": "Dufresne, Jean",
+      "year": "1852",
+      "event": "Berlin",
+      "result": "1-0"
+    },
+    {
+      "name": "Anderssen, Adolf vs Kieseritzky, Lionel (1851)",
+      "file": "pgn/demo/immortal-game.pgn",
+      "white": "Anderssen, Adolf",
+      "black": "Kieseritzky, Lionel",
+      "year": "1851",
+      "event": "London",
+      "result": "1-0"
+    },
+    {
+      "name": "Fischer, Robert James vs Spassky, Boris V (1972)",
+      "file": "pgn/demo/fischer-spassky-1972-g6.pgn",
+      "white": "Fischer, Robert James",
+      "black": "Spassky, Boris V",
+      "year": "1972",
+      "event": "World Championship 28th",
+      "result": "1-0"
+    },
+    {
+      "name": "Morphy, Paul vs Duke Karl / Count Isouard (1858)",
+      "file": "pgn/demo/morphy-allies-1858.pgn",
+      "white": "Morphy, Paul",
+      "black": "Duke Karl / Count Isouard",
+      "year": "1858",
+      "event": "Opera Game",
+      "result": "1-0"
+    }
+  ]
+}

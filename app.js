@@ -105,6 +105,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update UI
     updateUI();
 
+    // Load PGN library
+    loadPGNLibrary();
+
     debugLog('Application initialized');
 });
 
@@ -1895,19 +1898,63 @@ function stopEngineVsEngine() {
 }
 
 // ===== PGN LIBRARY =====
-async function loadSelectedPGN() {
-    const selectedGame = App.elements.pgnSelector.value;
+async function loadPGNLibrary() {
+    try {
+        console.log('📚 Loading PGN library.json...');
+        const response = await fetch('pgn/library.json');
 
-    if (!selectedGame) {
+        if (!response.ok) {
+            console.warn('⚠️  library.json not found, using default games');
+            return;
+        }
+
+        const library = await response.json();
+        console.log('📚 Library loaded:', library);
+
+        // Populate dropdown with categories
+        const selector = App.elements.pgnSelector;
+        selector.innerHTML = '<option value="">-- Select a game --</option>';
+
+        for (const [category, games] of Object.entries(library)) {
+            if (games.length === 0) continue;
+
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = category;
+
+            games.forEach(game => {
+                const option = document.createElement('option');
+                option.value = game.file;
+                option.textContent = game.name;
+                option.dataset.white = game.white;
+                option.dataset.black = game.black;
+                option.dataset.event = game.event;
+                option.dataset.result = game.result;
+                optgroup.appendChild(option);
+            });
+
+            selector.appendChild(optgroup);
+        }
+
+        console.log('✅ PGN Library dropdown populated');
+    } catch (error) {
+        console.error('❌ Failed to load PGN library:', error);
+    }
+}
+
+async function loadSelectedPGN() {
+    const selectedFile = App.elements.pgnSelector.value;
+
+    if (!selectedFile) {
         showNotification('Please select a game first.');
         return;
     }
 
-    console.log('📖 Loading PGN:', selectedGame);
+    const selectedOption = App.elements.pgnSelector.options[App.elements.pgnSelector.selectedIndex];
+    console.log('📖 Loading PGN:', selectedFile);
 
     try {
-        // Fetch PGN file
-        const response = await fetch(`pgn/${selectedGame}.pgn`);
+        // Fetch PGN file (file path already includes 'pgn/' prefix from library.json)
+        const response = await fetch(selectedFile);
 
         if (!response.ok) {
             throw new Error(`Failed to load PGN: ${response.statusText}`);
@@ -1944,13 +1991,18 @@ async function loadSelectedPGN() {
         updateMoveHistory();
         updateStatus();
 
-        // Show PGN info
+        // Show PGN info (use dataset from option if available, fallback to parsed data)
         App.elements.pgnInfo.style.display = 'block';
-        App.elements.pgnEvent.textContent = pgnData.event || '-';
-        App.elements.pgnPlayers.textContent = `${pgnData.white || '?'} vs ${pgnData.black || '?'}`;
-        App.elements.pgnResult.textContent = pgnData.result || '-';
+        const white = selectedOption.dataset.white || pgnData.white || '?';
+        const black = selectedOption.dataset.black || pgnData.black || '?';
+        const event = selectedOption.dataset.event || pgnData.event || '-';
+        const result = selectedOption.dataset.result || pgnData.result || '-';
 
-        showNotification(`Loaded: ${pgnData.white} vs ${pgnData.black}`);
+        App.elements.pgnEvent.textContent = event;
+        App.elements.pgnPlayers.textContent = `${white} vs ${black}`;
+        App.elements.pgnResult.textContent = result;
+
+        showNotification(`Loaded: ${white} vs ${black}`);
 
         // Navigate to start position
         navigateToStart();

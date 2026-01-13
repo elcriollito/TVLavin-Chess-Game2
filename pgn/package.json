@@ -1,0 +1,14 @@
+{
+  "name": "tvlavin-chess-pgn-library",
+  "version": "1.0.0",
+  "description": "PGN Library Management Scripts for TVLavin Chess",
+  "scripts": {
+    "download": "node download-pgn.js",
+    "generate": "node generate-library.js"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.10"
+  },
+  "author": "TVLavin",
+  "license": "MIT"
+}
