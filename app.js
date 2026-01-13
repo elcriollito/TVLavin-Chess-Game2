@@ -801,7 +801,14 @@ function updateAnalysis(info) {
 
     // Update best line - convert UCI moves to SAN notation (show up to 5 moves / 10 ply)
     if (info.pv && info.pv.length > 0) {
-        const sanMoves = convertPVtoSAN(info.pv.slice(0, 10)); // Limit to 10 ply (5 moves)
+        console.log('📊 Best Line - info.pv type:', typeof info.pv, 'length:', info.pv.length);
+        console.log('📊 Best Line - info.pv content:', info.pv);
+
+        // Ensure info.pv is an array, not a string
+        let pvArray = Array.isArray(info.pv) ? info.pv : info.pv.split(' ');
+        console.log('📊 Best Line - pvArray:', pvArray);
+
+        const sanMoves = convertPVtoSAN(pvArray.slice(0, 10)); // Limit to 10 ply (5 moves)
         if (sanMoves && sanMoves !== '') {
             lineElem.textContent = sanMoves;
         } else {
@@ -2137,9 +2144,26 @@ async function loadSelectedPGN() {
         }
 
         if (!success) {
-            console.error('❌ chess.js rejected PGN');
-            console.error('❌ PGN text:', pgnText);
-            throw new Error('Invalid PGN format - chess.js validation failed');
+            console.error('❌ chess.js rejected PGN - trying to clean it');
+            console.error('❌ Original PGN (first 500 chars):', pgnText.substring(0, 500));
+
+            // Try to clean the PGN and load again
+            const cleanedPgn = cleanPGN(pgnText);
+            console.log('📖 Trying cleaned PGN (first 500 chars):', cleanedPgn.substring(0, 500));
+
+            App.game.reset();
+            if (typeof App.game.loadPgn === 'function') {
+                success = App.game.loadPgn(cleanedPgn);
+            } else if (typeof App.game.load_pgn === 'function') {
+                success = App.game.load_pgn(cleanedPgn);
+            }
+
+            if (!success) {
+                console.error('❌ chess.js rejected cleaned PGN too');
+                throw new Error('Invalid PGN format - even after cleaning');
+            }
+
+            console.log('✅ Cleaned PGN loaded successfully');
         }
 
         console.log('✅ PGN loaded successfully into chess.js');
@@ -2182,6 +2206,46 @@ async function loadSelectedPGN() {
         console.error('❌ Error stack:', error.stack);
         showErrorNotification(`Failed to load game: ${error.message}`);
     }
+}
+
+function cleanPGN(pgnText) {
+    console.log('🧹 Cleaning PGN...');
+
+    // Remove comments between { }
+    let cleaned = pgnText.replace(/\{[^}]*\}/g, '');
+
+    // Remove variations between ( )
+    // This is tricky because variations can be nested, but we'll do a simple pass
+    cleaned = cleaned.replace(/\([^)]*\)/g, '');
+
+    // Remove NAG (Numeric Annotation Glyphs) like $1, $2, etc.
+    cleaned = cleaned.replace(/\$\d+/g, '');
+
+    // Remove excessive whitespace
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+    // Split into headers and moves
+    const headerSection = [];
+    const movesSection = [];
+    let inHeaders = true;
+
+    const lines = cleaned.split(/\r?\n/);
+    for (const line of lines) {
+        const trimmed = line.trim();
+
+        if (trimmed.startsWith('[')) {
+            headerSection.push(trimmed);
+        } else if (trimmed.length > 0 && !trimmed.startsWith('[')) {
+            inHeaders = false;
+            movesSection.push(trimmed);
+        }
+    }
+
+    // Rebuild PGN with clean formatting
+    const result = headerSection.join('\n') + '\n\n' + movesSection.join(' ');
+
+    console.log('✅ PGN cleaned');
+    return result;
 }
 
 function parsePGN(pgnText) {
