@@ -1,5 +1,5 @@
 /**
- * TVLavin Chess Application
+ * CAISSA Chess Application
  * Main application logic and game management
  */
 
@@ -77,7 +77,7 @@ function debounce(func, wait) {
 
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
-    debugLog('Initializing TVLavin Chess...');
+    debugLog('Initializing CAISSA Chess...');
 
     // Check for embed mode
     const urlParams = new URLSearchParams(window.location.search);
@@ -1916,8 +1916,26 @@ async function engineVsEngineLoop() {
     // Get current position
     const currentFen = App.game.fen();
 
+    // Start analysis to show evaluation during thinking
+    if (App.engine && App.engine.ready) {
+        console.log(`🔍 Starting analysis for ${engineName}'s position`);
+        App.analyzing = true;
+        App.engine.startAnalysis(currentFen, (info) => {
+            if (App.eveRunning) {
+                updateAnalysis(info);
+            }
+        });
+    }
+
     // Request best move from engine
     currentEngine.getBestMove(currentFen, async (bestMove) => {
+        // Stop analysis when move is found
+        if (App.analyzing && App.engine) {
+            console.log('⏹️ Stopping analysis - move found');
+            App.engine.stopAnalysis();
+            App.analyzing = false;
+        }
+
         if (!App.eveRunning || App.evePaused) {
             return; // Game was stopped or paused during thinking
         }
@@ -1980,6 +1998,13 @@ function stopEngineVsEngine() {
     // Stop the game
     App.eveRunning = false;
     App.evePaused = false;
+
+    // Stop analysis if running
+    if (App.analyzing && App.engine) {
+        console.log('⏹️ Stopping analysis');
+        App.engine.stopAnalysis();
+        App.analyzing = false;
+    }
 
     // Terminate engines
     if (App.engineWhite) {
@@ -2454,7 +2479,7 @@ window.addEventListener('unhandledrejection', (e) => {
 });
 
 // ===== PERFORMANCE MONITORING =====
-console.log('TVLavin Chess loaded successfully');
+console.log('CAISSA Chess loaded successfully');
 
 // Export for debugging
 window.App = App;
