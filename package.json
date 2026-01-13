@@ -1,0 +1,17 @@
+{
+  "name": "tvlavin-chess",
+  "version": "1.0.0",
+  "description": "TVLavin Chess - Full-featured chess application",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "download-pgn": "node tools/fetch-pgnmentor.mjs",
+    "download-pgn-test": "node tools/fetch-pgnmentor.mjs --test",
+    "download-pgn-force": "node tools/fetch-pgnmentor.mjs --force"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.10"
+  },
+  "author": "TVLavin",
+  "license": "MIT"
+}

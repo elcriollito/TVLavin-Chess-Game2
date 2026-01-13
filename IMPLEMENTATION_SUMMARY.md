@@ -315,3 +315,210 @@ https://elcriollito.github.io/TVLavin-Chess-Game2/
 
 **Last Updated:** 2026-01-11
 **Status:** ✅ All objectives completed and tested
+
+---
+
+## 🆕 Latest Update: PGN Game Library with Automatic Downloader (2026-01-12)
+
+### Overview
+Implemented a comprehensive PGN Game Library system with automatic downloads from PGNMentor.com, organized categorization, and seamless UI integration.
+
+### Features Implemented
+
+#### 1. Automatic PGN Downloader (`tools/fetch-pgnmentor.mjs`)
+- Downloads chess games from PGNMentor.com automatically
+- Configures 36 players: 18 World Champions + 18 Great Grandmasters
+- Automatic ZIP extraction and PGN organization
+- Idempotent downloads (skips existing files unless --force)
+- Generates library.json manifest with game metadata
+- Smart error handling and progress logging
+
+**Configured Players:**
+
+**World Champions (18):**
+Steinitz, Lasker, Capablanca, Alekhine, Euwe, Botvinnik, Smyslov, Tal, Petrosian, Spassky, Fischer, Karpov, Kasparov, Kramnik, Anand, Carlsen, Ding Liren, Gukesh Dommaraju
+
+**Great GMs (18):**
+Morphy, Anderssen, Rubinstein, Nimzowitsch, Tarrasch, Bronstein, Korchnoi, Larsen, Najdorf, Reshevsky, Shirov, Ivanchuk, Kamsky, Polgar, Aronian, Nakamura, Caruana, Nepomniachtchi
+
+#### 2. Library Structure
+```
+pgn/
+├── world-champions/          # 18 world champions
+│   ├── Steinitz_Wilhelm/
+│   ├── Lasker_Emanuel/
+│   ├── Kasparov_Garry/
+│   └── ...
+├── great-gms/               # 18 notable grandmasters
+│   ├── Morphy_Paul/
+│   ├── Anderssen_Adolf/
+│   └── ...
+├── demo/                    # 4 classic games
+│   ├── immortal-game.pgn
+│   ├── evergreen-game.pgn
+│   ├── morphy-allies-1858.pgn
+│   └── fischer-spassky-1972-g6.pgn
+├── library.json            # Generated manifest
+├── generate-library.js     # Standalone regenerator
+└── package.json           # PGN library dependencies
+```
+
+#### 3. UI Integration with Optgroups
+
+**Dropdown Structure:**
+```html
+<select id="pgnSelector">
+  <option value="">-- Select a game --</option>
+  <optgroup label="World Champions">
+    <option value="pgn/world-champions/...">Kasparov vs Topalov (1999)</option>
+  </optgroup>
+  <optgroup label="Great GMs">
+    <option value="pgn/great-gms/...">Morphy vs Duke & Count (1858)</option>
+  </optgroup>
+  <optgroup label="Misc / Demo">
+    <option value="pgn/demo/...">Anderssen vs Kieseritzky (1851)</option>
+  </optgroup>
+</select>
+```
+
+**Implementation ([app.js:1901-1942](app.js)):**
+- `loadPGNLibrary()`: Fetches library.json on page load
+- Dynamic population with `<optgroup>` categories
+- Game metadata stored in option.dataset (white, black, event, result)
+- Updated `loadSelectedPGN()` to use library file paths
+
+#### 4. library.json Format
+```json
+{
+  "World Champions": [
+    {
+      "name": "Kasparov vs Topalov (1999)",
+      "file": "pgn/world-champions/Kasparov_Garry/game.pgn",
+      "white": "Kasparov, Garry",
+      "black": "Topalov, Veselin",
+      "year": "1999",
+      "event": "Hoogovens",
+      "result": "1-0"
+    }
+  ],
+  "Great GMs": [...],
+  "Misc / Demo": [...]
+}
+```
+
+### Usage
+
+#### Automatic Download
+```bash
+# Install dependencies
+npm install
+
+# Test with 3 players (recommended first)
+npm run download-pgn-test
+
+# Download all 36 players
+npm run download-pgn
+
+# Force re-download existing files
+npm run download-pgn-force
+```
+
+#### Manual Download (Fallback)
+If automatic download fails (HTTP errors, CORS):
+1. See [pgn/DOWNLOAD_INSTRUCTIONS.md](pgn/DOWNLOAD_INSTRUCTIONS.md)
+2. Download ZIP files manually from PGNMentor.com
+3. Extract into player folders
+4. Run `node pgn/generate-library.js` to regenerate manifest
+
+#### Regenerate Library Manifest
+```bash
+cd pgn
+node generate-library.js
+```
+
+### Technical Details
+
+**Load Game Flow:**
+1. User selects game from categorized dropdown
+2. `loadSelectedPGN()` fetches PGN file via relative path
+3. `chess.js` parses PGN with game metadata
+4. Board resets to starting position
+5. Game mode switches to 'analysis'
+6. Move history populated for navigation
+7. PGN info displayed (event, players, result)
+
+**PGN Parsing:**
+- Extracts headers: Event, White, Black, Date, Result
+- Parses first 50 games per file (performance optimization)
+- Limits to 10 games per player in dropdown (UI/UX)
+- Full PGN files preserved for future expansion
+
+### Documentation
+
+- [pgn/README.md](pgn/README.md): Complete usage guide
+- [pgn/STRUCTURE.md](pgn/STRUCTURE.md): Folder organization
+- [pgn/PLAYERS.md](pgn/PLAYERS.md): Player lists with PGNMentor mappings
+- [pgn/DOWNLOAD_INSTRUCTIONS.md](pgn/DOWNLOAD_INSTRUCTIONS.md): Manual download steps
+
+### GitHub Pages Compatibility
+
+✅ All requirements met:
+- PGN files served as static assets
+- Relative paths (`pgn/...`) used throughout
+- No server-side processing required
+- library.json committed to repo
+- Downloads execute locally (build-time)
+- Files committed after download
+
+### Known Issues & Workarounds
+
+**Issue:** PGNMentor downloads may fail with HTTP 465 errors
+- **Cause:** Non-standard HTTP code, possible site restrictions
+- **Workaround:** Use manual download instructions
+
+**Issue:** Large PGN files (>1MB) slow to parse
+- **Solution:** Limit to 10 games per player in manifest
+- **Future:** Implement lazy loading
+
+### Files Modified/Added
+
+**New Files:**
+- `tools/fetch-pgnmentor.mjs` - Automatic downloader (410 lines)
+- `pgn/DOWNLOAD_INSTRUCTIONS.md` - Manual download guide
+- `package.json` - Root package with npm scripts
+- 4 demo PGN files in `pgn/demo/`
+
+**Modified Files:**
+- `app.js` - loadPGNLibrary() function
+- `index.html` - Updated dropdown (removed hardcoded options)
+- `pgn/library.json` - Regenerated with 4 demo games
+- `pgn/README.md` - Updated with downloader usage
+- `pgn/generate-library.js` - Enhanced PGN parsing
+
+**Total Changes:** ~1500 lines across 10 files
+
+### Testing
+
+**Verified Working:**
+- ✅ library.json loads on page load
+- ✅ Dropdown populates with optgroups
+- ✅ 4 demo games load correctly
+- ✅ Move navigation works in analysis mode
+- ✅ PGN metadata displays properly
+- ✅ Works on localhost and GitHub Pages
+- ✅ Downloader script structure validated
+
+**Not Yet Tested:**
+- ⏳ Full download of 36 players (HTTP 465 errors)
+- ⏳ Performance with 100+ games in dropdown
+
+### Future Enhancements
+
+1. **Search & Filter** - Add search box for game/player filtering
+2. **Random Game** - Button to load random game for exploration
+3. **PGN Preview** - Show first few moves before loading
+4. **Advanced Filters** - By year, opening, result, event
+5. **Lazy Loading** - Load games on-demand for performance
+6. **Download Progress** - Real-time UI feedback during downloads
+7. **Alternative Sources** - Support Chess.com, Lichess exports
+
