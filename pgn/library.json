@@ -1,7 +1,7 @@
 {
   "World Champions": [],
-  "Grandmasters": [],
-  "Demo / Mixed": [
+  "Great GMs": [],
+  "Misc / Demo": [
     {
       "name": "Anderssen, Adolf vs Dufresne, Jean (1852)",
       "file": "pgn/demo/evergreen-game.pgn",
