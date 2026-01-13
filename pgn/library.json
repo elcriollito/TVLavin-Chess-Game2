@@ -1,134 +1,156 @@
 {
-  "World Champions": [
-    {
-      "name": "Byrne, Robert E vs Fischer, Robert James (1963)",
-      "file": "pgn/world-champions/Fischer_Bobby/fischer-byrne-1963.pgn",
-      "white": "Byrne, Robert E",
-      "black": "Fischer, Robert James",
-      "year": "1963",
-      "event": "USA-ch",
-      "result": "0-1"
-    },
-    {
-      "name": "Capablanca, Jose Raul vs Alekhine, Alexander (1927)",
-      "file": "pgn/world-champions/Capablanca_JoseRaul/capablanca-alekhine-1927.pgn",
-      "white": "Capablanca, Jose Raul",
-      "black": "Alekhine, Alexander",
-      "year": "1927",
-      "event": "World Championship",
-      "result": "1/2-1/2"
-    },
-    {
-      "name": "Caruana, Fabiano vs Carlsen, Magnus (2018)",
-      "file": "pgn/world-champions/Carlsen_Magnus/carlsen-caruana-2018.pgn",
-      "white": "Caruana, Fabiano",
-      "black": "Carlsen, Magnus",
-      "year": "2018",
-      "event": "World Championship",
-      "result": "1/2-1/2"
-    },
-    {
-      "name": "Karpov, Anatoly vs Kasparov, Garry (1985)",
-      "file": "pgn/world-champions/Karpov_Anatoly/karpov-kasparov-1985.pgn",
-      "white": "Karpov, Anatoly",
-      "black": "Kasparov, Garry",
-      "year": "1985",
-      "event": "World Championship",
-      "result": "1-0"
-    },
-    {
-      "name": "Kasparov, Garry vs Topalov, Veselin (1999)",
-      "file": "pgn/world-champions/Kasparov_Garry/kasparov-topalov-1999.pgn",
-      "white": "Kasparov, Garry",
-      "black": "Topalov, Veselin",
-      "year": "1999",
-      "event": "Hoogovens A",
-      "result": "1-0"
-    },
-    {
-      "name": "Tal, Mikhail vs Smyslov, Vasily (1959)",
-      "file": "pgn/world-champions/Tal_Mikhail/tal-smyslov-1959.pgn",
-      "white": "Tal, Mikhail",
-      "black": "Smyslov, Vasily",
-      "year": "1959",
-      "event": "Candidates Tournament",
-      "result": "1-0"
-    }
-  ],
-  "Great GMs": [
-    {
-      "name": "Bronstein, David vs Botvinnik, Mikhail (1951)",
-      "file": "pgn/great-gms/Bronstein_David/bronstein-botvinnik-1951.pgn",
-      "white": "Bronstein, David",
-      "black": "Botvinnik, Mikhail",
-      "year": "1951",
-      "event": "World Championship",
-      "result": "1-0"
-    },
-    {
-      "name": "Keres, Paul vs Botvinnik, Mikhail (1948)",
-      "file": "pgn/great-gms/Keres_Paul/keres-botvinnik-1948.pgn",
-      "white": "Keres, Paul",
-      "black": "Botvinnik, Mikhail",
-      "year": "1948",
-      "event": "World Championship Tournament",
-      "result": "0-1"
-    },
-    {
-      "name": "Morphy, Paul vs Paulsen, Louis (1857)",
-      "file": "pgn/great-gms/Morphy_Paul/morphy-paulsen-1857.pgn",
-      "white": "Morphy, Paul",
-      "black": "Paulsen, Louis",
-      "year": "1857",
-      "event": "First American Chess Congress",
-      "result": "1-0"
-    },
-    {
-      "name": "Polgar, Judit vs Kasparov, Garry (2002)",
-      "file": "pgn/great-gms/Polgar_Judit/polgar-kasparov-2002.pgn",
-      "white": "Polgar, Judit",
-      "black": "Kasparov, Garry",
-      "year": "2002",
-      "event": "Russia vs Rest of World",
-      "result": "1-0"
-    }
-  ],
-  "Misc / Demo": [
-    {
-      "name": "Anderssen, Adolf vs Dufresne, Jean (1852)",
-      "file": "pgn/demo/evergreen-game.pgn",
-      "white": "Anderssen, Adolf",
-      "black": "Dufresne, Jean",
-      "year": "1852",
-      "event": "Berlin",
-      "result": "1-0"
-    },
-    {
-      "name": "Anderssen, Adolf vs Kieseritzky, Lionel (1851)",
-      "file": "pgn/demo/immortal-game.pgn",
-      "white": "Anderssen, Adolf",
-      "black": "Kieseritzky, Lionel",
-      "year": "1851",
-      "event": "London",
-      "result": "1-0"
-    },
-    {
-      "name": "Fischer, Robert James vs Spassky, Boris V (1972)",
-      "file": "pgn/demo/fischer-spassky-1972-g6.pgn",
-      "white": "Fischer, Robert James",
-      "black": "Spassky, Boris V",
-      "year": "1972",
-      "event": "World Championship 28th",
-      "result": "1-0"
-    },
-    {
-      "name": "Morphy, Paul vs Duke Karl / Count Isouard (1858)",
-      "file": "pgn/demo/morphy-allies-1858.pgn",
-      "white": "Morphy, Paul",
-      "black": "Duke Karl / Count Isouard",
-      "year": "1858",
-      "event": "Opera Game",
-      "result": "1-0"
-    }
-  ]
+  "World Champions": {
+    "Fischer, Bobby": [
+      {
+        "label": "Byrne, Robert E vs Fischer, Robert James (1963)",
+        "file": "pgn/world-champions/Fischer_Bobby/fischer-byrne-1963.pgn",
+        "white": "Byrne, Robert E",
+        "black": "Fischer, Robert James",
+        "year": "1963",
+        "event": "USA-ch",
+        "result": "0-1"
+      }
+    ],
+    "Capablanca, JoseRaul": [
+      {
+        "label": "Capablanca, Jose Raul vs Alekhine, Alexander (1927)",
+        "file": "pgn/world-champions/Capablanca_JoseRaul/capablanca-alekhine-1927.pgn",
+        "white": "Capablanca, Jose Raul",
+        "black": "Alekhine, Alexander",
+        "year": "1927",
+        "event": "World Championship",
+        "result": "1/2-1/2"
+      }
+    ],
+    "Carlsen, Magnus": [
+      {
+        "label": "Caruana, Fabiano vs Carlsen, Magnus (2018)",
+        "file": "pgn/world-champions/Carlsen_Magnus/carlsen-caruana-2018.pgn",
+        "white": "Caruana, Fabiano",
+        "black": "Carlsen, Magnus",
+        "year": "2018",
+        "event": "World Championship",
+        "result": "1/2-1/2"
+      }
+    ],
+    "Karpov, Anatoly": [
+      {
+        "label": "Karpov, Anatoly vs Kasparov, Garry (1985)",
+        "file": "pgn/world-champions/Karpov_Anatoly/karpov-kasparov-1985.pgn",
+        "white": "Karpov, Anatoly",
+        "black": "Kasparov, Garry",
+        "year": "1985",
+        "event": "World Championship",
+        "result": "1-0"
+      }
+    ],
+    "Kasparov, Garry": [
+      {
+        "label": "Kasparov, Garry vs Topalov, Veselin (1999)",
+        "file": "pgn/world-champions/Kasparov_Garry/kasparov-topalov-1999.pgn",
+        "white": "Kasparov, Garry",
+        "black": "Topalov, Veselin",
+        "year": "1999",
+        "event": "Hoogovens A",
+        "result": "1-0"
+      }
+    ],
+    "Tal, Mikhail": [
+      {
+        "label": "Tal, Mikhail vs Smyslov, Vasily (1959)",
+        "file": "pgn/world-champions/Tal_Mikhail/tal-smyslov-1959.pgn",
+        "white": "Tal, Mikhail",
+        "black": "Smyslov, Vasily",
+        "year": "1959",
+        "event": "Candidates Tournament",
+        "result": "1-0"
+      }
+    ]
+  },
+  "Great GMs": {
+    "Bronstein, David": [
+      {
+        "label": "Bronstein, David vs Botvinnik, Mikhail (1951)",
+        "file": "pgn/great-gms/Bronstein_David/bronstein-botvinnik-1951.pgn",
+        "white": "Bronstein, David",
+        "black": "Botvinnik, Mikhail",
+        "year": "1951",
+        "event": "World Championship",
+        "result": "1-0"
+      }
+    ],
+    "Keres, Paul": [
+      {
+        "label": "Keres, Paul vs Botvinnik, Mikhail (1948)",
+        "file": "pgn/great-gms/Keres_Paul/keres-botvinnik-1948.pgn",
+        "white": "Keres, Paul",
+        "black": "Botvinnik, Mikhail",
+        "year": "1948",
+        "event": "World Championship Tournament",
+        "result": "0-1"
+      }
+    ],
+    "Morphy, Paul": [
+      {
+        "label": "Morphy, Paul vs Paulsen, Louis (1857)",
+        "file": "pgn/great-gms/Morphy_Paul/morphy-paulsen-1857.pgn",
+        "white": "Morphy, Paul",
+        "black": "Paulsen, Louis",
+        "year": "1857",
+        "event": "First American Chess Congress",
+        "result": "1-0"
+      }
+    ],
+    "Polgar, Judit": [
+      {
+        "label": "Polgar, Judit vs Kasparov, Garry (2002)",
+        "file": "pgn/great-gms/Polgar_Judit/polgar-kasparov-2002.pgn",
+        "white": "Polgar, Judit",
+        "black": "Kasparov, Garry",
+        "year": "2002",
+        "event": "Russia vs Rest of World",
+        "result": "1-0"
+      }
+    ]
+  },
+  "Misc / Demo": {
+    "Classic Games": [
+      {
+        "label": "Anderssen vs Dufresne (1852) - Evergreen",
+        "file": "pgn/demo/evergreen-game.pgn",
+        "white": "Anderssen, Adolf",
+        "black": "Dufresne, Jean",
+        "year": "1852",
+        "event": "Berlin",
+        "result": "1-0"
+      },
+      {
+        "label": "Anderssen vs Kieseritzky (1851) - Immortal",
+        "file": "pgn/demo/immortal-game.pgn",
+        "white": "Anderssen, Adolf",
+        "black": "Kieseritzky, Lionel",
+        "year": "1851",
+        "event": "London",
+        "result": "1-0"
+      },
+      {
+        "label": "Fischer vs Spassky (1972) - Game 6",
+        "file": "pgn/demo/fischer-spassky-1972-g6.pgn",
+        "white": "Fischer, Robert James",
+        "black": "Spassky, Boris V",
+        "year": "1972",
+        "event": "World Championship 28th",
+        "result": "1-0"
+      },
+      {
+        "label": "Morphy Opera Game (1858)",
+        "file": "pgn/demo/morphy-allies-1858.pgn",
+        "white": "Morphy, Paul",
+        "black": "Duke Karl / Count Isouard",
+        "year": "1858",
+        "event": "Opera Game",
+        "result": "1-0"
+      }
+    ]
+  }
 }

@@ -179,7 +179,9 @@ function cacheElements() {
         stopEve: document.getElementById('stopEve'),
 
         // PGN Library
-        pgnSelector: document.getElementById('pgnSelector'),
+        categorySelector: document.getElementById('categorySelector'),
+        playerSelector: document.getElementById('playerSelector'),
+        fileSelector: document.getElementById('fileSelector'),
         loadPgnBtn: document.getElementById('loadPgnBtn'),
         pgnInfo: document.getElementById('pgnInfo'),
         pgnEvent: document.getElementById('pgnEvent'),
@@ -875,6 +877,11 @@ function updateEngineStatus(status, text) {
 
 // ===== NEW GAME =====
 function newGame(options = {}) {
+    // Exit edit mode if active (MUST be first to clean up state)
+    if (App.editMode) {
+        exitEditMode();
+    }
+
     // Exit Engine vs Engine mode if active
     if (App.eveMode) {
         exitEngineVsEngineMode();
@@ -934,11 +941,6 @@ function newGame(options = {}) {
             makeEngineMove();
         }, 500);
     }
-    
-    // Exit edit mode if active (FIX: prevents edit mode bug)
-    if (App.editMode) {
-        exitEditMode();
-    }
 
     // Clear analysis panel
     App.elements.depth.textContent = '0';
@@ -997,15 +999,29 @@ function resignGame() {
 // ===== FEN OPERATIONS =====
 function loadFEN(fen, setAnalysisMode = true) {
     try {
-        // Sanitize FEN input
-        fen = fen.trim().replace(/[^\w\s\-\/]/g, '');
+        // Sanitize FEN input - remove extra whitespace, keep FEN-valid characters
+        fen = fen.trim().replace(/\s+/g, ' ');
+
+        // FEN can have 4 or 6 fields. If 4 fields, add "0 1" for halfmove/fullmove
+        const fenParts = fen.split(' ');
+        if (fenParts.length === 4) {
+            fen = fen + ' 0 1';
+            console.log('📝 FEN had 4 fields, added halfmove/fullmove: ', fen);
+        } else if (fenParts.length !== 6) {
+            throw new Error('FEN must have 4 or 6 fields');
+        }
+
+        // Exit edit mode if active
+        if (App.editMode) {
+            exitEditMode();
+        }
 
         const valid = App.game.load(fen);
         if (!valid) {
             throw new Error('Invalid FEN');
         }
 
-        App.board.position(fen);
+        App.board.position(App.game.fen());
         App.moveHistory = [];
         App.currentMoveIndex = -1;
 
@@ -1114,6 +1130,8 @@ function setupEventListeners() {
     App.elements.resignBtn.addEventListener('click', resignGame);
 
     // PGN Library
+    App.elements.categorySelector.addEventListener('change', onCategoryChange);
+    App.elements.playerSelector.addEventListener('change', onPlayerChange);
     App.elements.loadPgnBtn.addEventListener('click', loadSelectedPGN);
 
     // Navigation
@@ -1327,6 +1345,16 @@ function setupMenuModal() {
     document.getElementById('menuExportPGN').addEventListener('click', () => {
         exportPGN();
         hideModal('menuModal');
+    });
+
+    document.getElementById('menuAbout').addEventListener('click', () => {
+        hideModal('menuModal');
+        showModal('aboutModal');
+    });
+
+    document.getElementById('menuCredits').addEventListener('click', () => {
+        hideModal('menuModal');
+        showModal('creditsModal');
     });
 }
 
@@ -1898,58 +1926,102 @@ function stopEngineVsEngine() {
 }
 
 // ===== PGN LIBRARY =====
+let libraryData = null; // Store library data globally
+
 async function loadPGNLibrary() {
     try {
         console.log('📚 Loading PGN library.json...');
         const response = await fetch('pgn/library.json');
 
         if (!response.ok) {
-            console.warn('⚠️  library.json not found, using default games');
+            console.warn('⚠️  library.json not found');
             return;
         }
 
-        const library = await response.json();
-        console.log('📚 Library loaded:', library);
+        libraryData = await response.json();
+        console.log('📚 Library loaded:', libraryData);
 
-        // Populate dropdown with categories
-        const selector = App.elements.pgnSelector;
-        selector.innerHTML = '<option value="">-- Select a game --</option>';
+        // Populate category dropdown
+        const categorySelector = App.elements.categorySelector;
+        categorySelector.innerHTML = '<option value="">-- Select category --</option>';
 
-        for (const [category, games] of Object.entries(library)) {
-            if (games.length === 0) continue;
-
-            const optgroup = document.createElement('optgroup');
-            optgroup.label = category;
-
-            games.forEach(game => {
-                const option = document.createElement('option');
-                option.value = game.file;
-                option.textContent = game.name;
-                option.dataset.white = game.white;
-                option.dataset.black = game.black;
-                option.dataset.event = game.event;
-                option.dataset.result = game.result;
-                optgroup.appendChild(option);
-            });
-
-            selector.appendChild(optgroup);
+        for (const category of Object.keys(libraryData)) {
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            categorySelector.appendChild(option);
         }
 
-        console.log('✅ PGN Library dropdown populated');
+        console.log('✅ PGN Library loaded');
     } catch (error) {
         console.error('❌ Failed to load PGN library:', error);
     }
 }
 
+function onCategoryChange() {
+    const category = App.elements.categorySelector.value;
+    const playerSelector = App.elements.playerSelector;
+    const fileSelector = App.elements.fileSelector;
+
+    // Reset player and file dropdowns
+    playerSelector.innerHTML = '<option value="">-- Select player --</option>';
+    fileSelector.innerHTML = '<option value="">-- Select game --</option>';
+    fileSelector.disabled = true;
+
+    if (!category || !libraryData || !libraryData[category]) {
+        playerSelector.disabled = true;
+        return;
+    }
+
+    // Populate player dropdown
+    playerSelector.disabled = false;
+    const players = libraryData[category];
+
+    for (const player of Object.keys(players)) {
+        const option = document.createElement('option');
+        option.value = player;
+        option.textContent = player;
+        playerSelector.appendChild(option);
+    }
+}
+
+function onPlayerChange() {
+    const category = App.elements.categorySelector.value;
+    const player = App.elements.playerSelector.value;
+    const fileSelector = App.elements.fileSelector;
+
+    fileSelector.innerHTML = '<option value="">-- Select game --</option>';
+
+    if (!category || !player || !libraryData || !libraryData[category] || !libraryData[category][player]) {
+        fileSelector.disabled = true;
+        return;
+    }
+
+    // Populate file dropdown
+    fileSelector.disabled = false;
+    const files = libraryData[category][player];
+
+    files.forEach(game => {
+        const option = document.createElement('option');
+        option.value = game.file;
+        option.textContent = game.label;
+        option.dataset.white = game.white || '';
+        option.dataset.black = game.black || '';
+        option.dataset.event = game.event || '';
+        option.dataset.result = game.result || '';
+        fileSelector.appendChild(option);
+    });
+}
+
 async function loadSelectedPGN() {
-    const selectedFile = App.elements.pgnSelector.value;
+    const selectedFile = App.elements.fileSelector.value;
 
     if (!selectedFile) {
         showNotification('Please select a game first.');
         return;
     }
 
-    const selectedOption = App.elements.pgnSelector.options[App.elements.pgnSelector.selectedIndex];
+    const selectedOption = App.elements.fileSelector.options[App.elements.fileSelector.selectedIndex];
     console.log('📖 Loading PGN:', selectedFile);
 
     try {

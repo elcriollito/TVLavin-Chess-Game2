@@ -100,9 +100,21 @@
                     <h3 class="panel-title">Game Library</h3>
                     <div class="pgn-library-content">
                         <div class="form-group">
-                            <label for="pgnSelector">Load Famous Game:</label>
-                            <select id="pgnSelector" class="form-control" aria-label="Select game">
-                                <option value="">-- Loading library... --</option>
+                            <label for="categorySelector">Category:</label>
+                            <select id="categorySelector" class="form-control" aria-label="Select category">
+                                <option value="">-- Loading... --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="playerSelector">Player:</label>
+                            <select id="playerSelector" class="form-control" aria-label="Select player" disabled>
+                                <option value="">-- Select category first --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="fileSelector">Game Collection:</label>
+                            <select id="fileSelector" class="form-control" aria-label="Select game file" disabled>
+                                <option value="">-- Select player first --</option>
                             </select>
                         </div>
                         <button id="loadPgnBtn" class="btn btn-block btn-primary" aria-label="Load selected game">
@@ -384,15 +396,6 @@
                     </div>
                 </div>
 
-                <!-- Credits -->
-                <div class="panel credits-panel">
-                    <h3 class="panel-title">Credits</h3>
-                    <div class="credits-content">
-                        <p><strong>Design collaboration:</strong> TVLAVIN</p>
-                        <p><strong>Engine:</strong> Stockfish 16 NNUE</p>
-                        <p><strong>Libraries:</strong> chess.js, chessboard.js</p>
-                    </div>
-                </div>
             </aside>
         </div>
     </div>
@@ -518,6 +521,16 @@
                         <i class="fas fa-download"></i> Export PGN
                     </button>
                 </div>
+
+                <div class="menu-section">
+                    <h3>Info</h3>
+                    <button class="btn btn-block" id="menuAbout">
+                        <i class="fas fa-info-circle"></i> About
+                    </button>
+                    <button class="btn btn-block" id="menuCredits">
+                        <i class="fas fa-award"></i> Credits
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -535,6 +548,70 @@
                 <button id="copyEmbed" class="btn btn-primary">
                     <i class="fas fa-copy"></i> Copy to Clipboard
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Credits Modal -->
+    <div id="creditsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Credits</h2>
+                <button class="modal-close" data-modal="creditsModal" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="credits-section">
+                    <h3><i class="fas fa-user"></i> Design & Development</h3>
+                    <p><strong>Design collaboration:</strong> TVLAVIN</p>
+                    <p><strong>Implementation:</strong> Claude Sonnet 4.5</p>
+                </div>
+                <div class="credits-section">
+                    <h3><i class="fas fa-chess"></i> Chess Engine</h3>
+                    <p><strong>Engine:</strong> Stockfish 16 NNUE</p>
+                    <p><strong>Website:</strong> <a href="https://stockfishchess.org/" target="_blank" rel="noopener">stockfishchess.org</a></p>
+                </div>
+                <div class="credits-section">
+                    <h3><i class="fas fa-code"></i> Libraries</h3>
+                    <p><strong>chess.js</strong> - Chess logic and validation</p>
+                    <p><strong>chessboard.js</strong> - Interactive board UI</p>
+                </div>
+                <div class="credits-section">
+                    <h3><i class="fas fa-database"></i> Game Database</h3>
+                    <p><strong>PGNMentor.com</strong> - Historical chess games</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" data-modal="creditsModal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- About Modal -->
+    <div id="aboutModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>About TVLavin Chess</h2>
+                <button class="modal-close" data-modal="aboutModal" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p><strong>TVLavin Chess</strong> is a full-featured online chess application with multiple game modes and analysis tools.</p>
+
+                <h3>Features</h3>
+                <ul>
+                    <li><strong>Human vs Engine:</strong> Play against Stockfish with adjustable difficulty (20 levels)</li>
+                    <li><strong>Human vs Human:</strong> Play with a friend on the same device</li>
+                    <li><strong>Engine vs Engine:</strong> Watch two AI engines battle it out</li>
+                    <li><strong>Analysis Mode:</strong> Analyze positions with engine evaluation</li>
+                    <li><strong>Board Editor:</strong> Set up custom positions</li>
+                    <li><strong>Game Library:</strong> Study games from World Champions and Grandmasters</li>
+                    <li><strong>Move Navigation:</strong> Review games move-by-move</li>
+                </ul>
+
+                <h3>Version</h3>
+                <p>1.0.0 (January 2026)</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" data-modal="aboutModal">Close</button>
             </div>
         </div>
     </div>
