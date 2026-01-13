@@ -94,22 +94,22 @@ function generateLibrary() {
 
     const library = {
         'World Champions': [],
-        'Grandmasters': [],
-        'Demo / Mixed': []
+        'Great GMs': [],
+        'Misc / Demo': []
     };
 
     // Extract games from each category
     const championsDir = path.join(OUTPUT_DIR, 'world-champions');
-    const grandmastersDir = path.join(OUTPUT_DIR, 'grandmasters');
+    const greatGmsDir = path.join(OUTPUT_DIR, 'great-gms');
     const demoDir = path.join(OUTPUT_DIR, 'demo');
 
     console.log('📂 Scanning world-champions/...');
     library['World Champions'] = extractGamesFromDirectory(championsDir);
     console.log(`   Found ${library['World Champions'].length} games\n`);
 
-    console.log('📂 Scanning grandmasters/...');
-    library['Grandmasters'] = extractGamesFromDirectory(grandmastersDir);
-    console.log(`   Found ${library['Grandmasters'].length} games\n`);
+    console.log('📂 Scanning great-gms/...');
+    library['Great GMs'] = extractGamesFromDirectory(greatGmsDir);
+    console.log(`   Found ${library['Great GMs'].length} games\n`);
 
     console.log('📂 Scanning demo/...');
     library['Demo / Mixed'] = extractGamesFromDirectory(demoDir);
@@ -125,14 +125,14 @@ function generateLibrary() {
 
     const totalGames =
         library['World Champions'].length +
-        library['Grandmasters'].length +
-        library['Demo / Mixed'].length;
+        library['Great GMs'].length +
+        library['Misc / Demo'].length;
 
     console.log(`✅ Generated library.json`);
     console.log(`\nSummary:`);
     console.log(`  World Champions: ${library['World Champions'].length} games`);
-    console.log(`  Grandmasters: ${library['Grandmasters'].length} games`);
-    console.log(`  Demo / Mixed: ${library['Demo / Mixed'].length} games`);
+    console.log(`  Great GMs: ${library['Great GMs'].length} games`);
+    console.log(`  Misc / Demo: ${library['Misc / Demo'].length} games`);
     console.log(`  Total: ${totalGames} games`);
     console.log(`\nFile saved to: ${LIBRARY_JSON}`);
 

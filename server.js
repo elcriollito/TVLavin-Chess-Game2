@@ -1,9 +1,13 @@
 // Simple HTTP Server for TVLavin Chess Game
 // Usage: node server.js
 
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
+import http from 'http';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const PORT = 8000;
 
@@ -20,7 +24,8 @@ const MIME_TYPES = {
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
   '.ttf': 'font/ttf',
-  '.eot': 'application/vnd.ms-fontobject'
+  '.eot': 'application/vnd.ms-fontobject',
+  '.pgn': 'application/x-chess-pgn'
 };
 
 const server = http.createServer((req, res) => {
