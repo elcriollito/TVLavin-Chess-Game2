@@ -1055,22 +1055,24 @@ button:focus,
 /* ===== BOARD EDITOR PANEL ===== */
 .editor-panel {
     margin-top: var(--spacing-md);
+    max-height: 80vh;
+    overflow-y: auto;
 }
 
 .editor-content {
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm);
 }
 
 /* Piece Palette */
 .piece-palette {
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: var(--spacing-sm);
 }
 
 .palette-title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: 4px;
 }
 
 .palette-row {
@@ -1097,14 +1099,16 @@ button:focus,
 .piece-btn {
     background: var(--bg-primary);
     border: 2px solid var(--border-color);
-    border-radius: 6px;
-    padding: var(--spacing-sm);
+    border-radius: 4px;
+    padding: 6px;
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
     aspect-ratio: 1;
+    width: 40px;
+    height: 40px;
 }
 
 .piece-btn img {
@@ -1114,7 +1118,7 @@ button:focus,
 }
 
 .piece-btn i {
-    font-size: 20px;
+    font-size: 18px;
     color: var(--text-secondary);
 }
 

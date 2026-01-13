@@ -22,6 +22,7 @@ const App = {
     analyzing: false,
     editMode: false,
     selectedEditorPiece: 'erase', // Piece to place in editor mode
+    editorMoveSource: null, // Source square for move/adjust tool
 
     // Engine vs Engine
     eveMode: false,
@@ -809,7 +810,14 @@ function updateAnalysis(info) {
     // Update best line - convert UCI moves to SAN notation (show up to 5 moves / 10 ply)
     if (info.pv && info.pv.length > 0) {
         const sanMoves = convertPVtoSAN(info.pv.slice(0, 10)); // Limit to 10 ply (5 moves)
-        lineElem.textContent = sanMoves;
+        if (sanMoves && sanMoves !== '') {
+            lineElem.textContent = sanMoves;
+        } else {
+            lineElem.textContent = 'Calculating...';
+        }
+    } else if (info.depth > 0) {
+        // Show something even if PV is not available yet
+        lineElem.textContent = 'Analyzing...';
     }
 
     console.log('  - Analysis updated');
@@ -1555,6 +1563,11 @@ function enterEditMode() {
 function exitEditMode() {
     console.log('🎨 Exiting Board Editor mode');
 
+    // Reset edit mode state
+    App.editMode = false;
+    App.selectedEditorPiece = 'erase';
+    App.editorMoveSource = null;
+
     // Hide editor panel, show analysis panel
     App.elements.editorPanel.style.display = 'none';
     document.getElementById('analysisPanel').style.display = 'block';
@@ -1565,6 +1578,13 @@ function exitEditMode() {
     // Re-enable normal game logic
     App.board.draggable = true;
 
+    // Reset piece button selections
+    document.querySelectorAll('.piece-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const eraseBtn = document.querySelector('.piece-btn[data-piece="erase"]');
+    if (eraseBtn) eraseBtn.classList.add('active');
+
     showNotification('Edit mode disabled.');
 }
 
@@ -1572,6 +1592,7 @@ function exitEditMode() {
 function selectEditorPiece(piece) {
     console.log('🎨 Selected piece:', piece);
     App.selectedEditorPiece = piece;
+    App.editorMoveSource = null; // Reset move source when changing tool
 
     // Update active button
     document.querySelectorAll('.piece-btn').forEach(btn => {
@@ -1588,15 +1609,36 @@ function placeEditorPiece(square) {
 
     const position = App.board.position();
 
-    if (App.selectedEditorPiece === 'erase') {
+    if (App.selectedEditorPiece === 'move') {
+        // Move/Adjust mode: select source, then destination
+        if (!App.editorMoveSource) {
+            // First click: select piece to move
+            if (position[square]) {
+                App.editorMoveSource = square;
+                console.log('🎨 Selected piece at', square, 'to move');
+                showNotification(`Selected ${position[square]} at ${square}. Click destination square.`);
+            } else {
+                showNotification('No piece on that square. Select a piece to move.');
+            }
+        } else {
+            // Second click: move piece to destination
+            const piece = position[App.editorMoveSource];
+            delete position[App.editorMoveSource];
+            position[square] = piece;
+            App.board.position(position);
+            console.log('🎨 Moved piece from', App.editorMoveSource, 'to', square);
+            showNotification(`Moved ${piece} from ${App.editorMoveSource} to ${square}`);
+            App.editorMoveSource = null; // Reset for next move
+        }
+    } else if (App.selectedEditorPiece === 'erase') {
         // Remove piece from square
         delete position[square];
+        App.board.position(position);
     } else {
         // Place selected piece on square
         position[square] = App.selectedEditorPiece;
+        App.board.position(position);
     }
-
-    App.board.position(position);
 }
 
 // Board Editor: Clear all pieces
@@ -2242,6 +2284,13 @@ document.addEventListener('keydown', (e) => {
             if (e.ctrlKey || e.metaKey) {
                 e.preventDefault();
                 showModal('newGameModal');
+            }
+            break;
+        case 'Escape':
+            // Close any open modal
+            const openModal = document.querySelector('.modal.show');
+            if (openModal) {
+                hideModal(openModal.id);
             }
             break;
     }
