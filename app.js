@@ -1180,10 +1180,12 @@ function setupEventListeners() {
     setupEngineVsEngine();
 
     // Modal close buttons
-    document.querySelectorAll('.modal-close, .btn-secondary[data-modal]').forEach(btn => {
+    document.querySelectorAll('.modal-close, [data-modal]').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const modalId = e.target.dataset.modal || e.target.closest('[data-modal]').dataset.modal;
-            hideModal(modalId);
+            if (modalId) {
+                hideModal(modalId);
+            }
         });
     });
     

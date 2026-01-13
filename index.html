@@ -45,27 +45,6 @@
             
             <!-- Left Sidebar - Game Info -->
             <aside class="left-sidebar">
-                <!-- Game Status -->
-                <div class="panel game-status-panel">
-                    <h3 class="panel-title">Game Status</h3>
-                    <div class="status-content">
-                        <div class="turn-indicator" aria-live="polite" aria-atomic="true">
-                            <span id="turnIndicator">White to move</span>
-                        </div>
-                        <div class="timer-display">
-                            <div class="timer white-timer">
-                                <i class="fas fa-chess-king"></i>
-                                <span id="whiteTime">--:--</span>
-                            </div>
-                            <div class="timer black-timer">
-                                <i class="fas fa-chess-king"></i>
-                                <span id="blackTime">--:--</span>
-                            </div>
-                        </div>
-                        <div class="game-result" id="gameResult" aria-live="assertive" aria-atomic="true"></div>
-                    </div>
-                </div>
-
                 <!-- Move History -->
                 <div class="panel move-history-panel">
                     <div class="panel-header">
@@ -125,6 +104,27 @@
                             <p><strong>Players:</strong> <span id="pgnPlayers">-</span></p>
                             <p><strong>Result:</strong> <span id="pgnResult">-</span></p>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Game Status -->
+                <div class="panel game-status-panel">
+                    <h3 class="panel-title">Game Status</h3>
+                    <div class="status-content">
+                        <div class="turn-indicator" aria-live="polite" aria-atomic="true">
+                            <span id="turnIndicator">White to move</span>
+                        </div>
+                        <div class="timer-display">
+                            <div class="timer white-timer">
+                                <i class="fas fa-chess-king"></i>
+                                <span id="whiteTime">--:--</span>
+                            </div>
+                            <div class="timer black-timer">
+                                <i class="fas fa-chess-king"></i>
+                                <span id="blackTime">--:--</span>
+                            </div>
+                        </div>
+                        <div class="game-result" id="gameResult" aria-live="assertive" aria-atomic="true"></div>
                     </div>
                 </div>
             </aside>
