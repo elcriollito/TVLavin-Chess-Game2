@@ -144,38 +144,16 @@
                                 <span class="stat-label">Nodes:</span>
                                 <span id="nodes" class="stat-value">0</span>
                             </div>
-                        </div>
-
-                        <!-- MultiPV Lines -->
-                        <div class="pv-lines">
-                            <div class="pv-line" id="pvLine1">
-                                <div class="pv-header">
-                                    <span class="pv-number">1</span>
-                                    <span class="pv-eval" id="evaluation1">0.0</span>
-                                </div>
-                                <div class="pv-moves" id="bestLine1">--</div>
-                            </div>
-                            <div class="pv-line" id="pvLine2" style="display: none;">
-                                <div class="pv-header">
-                                    <span class="pv-number">2</span>
-                                    <span class="pv-eval" id="evaluation2">0.0</span>
-                                </div>
-                                <div class="pv-moves" id="bestLine2">--</div>
-                            </div>
-                            <div class="pv-line" id="pvLine3" style="display: none;">
-                                <div class="pv-header">
-                                    <span class="pv-number">3</span>
-                                    <span class="pv-eval" id="evaluation3">0.0</span>
-                                </div>
-                                <div class="pv-moves" id="bestLine3">--</div>
+                            <div class="stat-item stat-item-eval">
+                                <span class="stat-label">Eval:</span>
+                                <span id="evaluation" class="stat-value">0.0</span>
                             </div>
                         </div>
 
-                        <div class="analysis-controls">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="multiPvToggle">
-                                Show Top 3 Lines
-                            </label>
+                        <!-- Best Line (PV) -->
+                        <div class="best-line-container">
+                            <div class="best-line-label">Best Line:</div>
+                            <div class="best-line-moves" id="bestLine">--</div>
                         </div>
                     </div>
                 </div>
@@ -192,7 +170,9 @@
                         <!-- Piece Palette -->
                         <div class="piece-palette">
                             <h4 class="palette-title">Select Piece:</h4>
-                            <div class="palette-pieces">
+                            <!-- White Pieces Row -->
+                            <div class="palette-row">
+                                <span class="palette-row-label">White:</span>
                                 <button class="piece-btn" data-piece="wP" title="White Pawn">
                                     <img src="img/chesspieces/wikipedia/wP.png" alt="White Pawn">
                                 </button>
@@ -211,6 +191,10 @@
                                 <button class="piece-btn" data-piece="wK" title="White King">
                                     <img src="img/chesspieces/wikipedia/wK.png" alt="White King">
                                 </button>
+                            </div>
+                            <!-- Black Pieces Row -->
+                            <div class="palette-row">
+                                <span class="palette-row-label">Black:</span>
                                 <button class="piece-btn" data-piece="bP" title="Black Pawn">
                                     <img src="img/chesspieces/wikipedia/bP.png" alt="Black Pawn">
                                 </button>
@@ -229,8 +213,14 @@
                                 <button class="piece-btn" data-piece="bK" title="Black King">
                                     <img src="img/chesspieces/wikipedia/bK.png" alt="Black King">
                                 </button>
-                                <button class="piece-btn active" data-piece="erase" title="Erase (remove piece)">
+                            </div>
+                            <!-- Tools Row -->
+                            <div class="palette-row palette-tools">
+                                <button class="piece-btn piece-btn-tool active" data-piece="erase" title="Eraser">
                                     <i class="fas fa-eraser"></i>
+                                </button>
+                                <button class="piece-btn piece-btn-tool" id="clearAllBtn" title="Clear All">
+                                    <i class="fas fa-trash-alt"></i>
                                 </button>
                             </div>
                         </div>

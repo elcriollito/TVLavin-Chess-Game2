@@ -737,31 +737,7 @@ function startAnalysis() {
     console.log('  - startAnalysis() called on engine');
 }
 
-function toggleMultiPV(enabled) {
-    console.log('🔀 toggleMultiPV:', enabled);
-    App.multiPvEnabled = enabled;
-
-    // Show/hide additional PV lines
-    document.getElementById('pvLine2').style.display = enabled ? 'block' : 'none';
-    document.getElementById('pvLine3').style.display = enabled ? 'block' : 'none';
-
-    // Update engine MultiPV setting
-    if (App.engine) {
-        App.engine.setMultiPV(enabled ? 3 : 1);
-    }
-
-    // Clear stored PV lines when disabling
-    if (!enabled) {
-        App.pvLines = {};
-    }
-
-    // Restart analysis if currently analyzing
-    if (App.analyzing) {
-        console.log('  - Restarting analysis with new MultiPV setting');
-        stopAnalysis();
-        setTimeout(() => startAnalysis(), 100);
-    }
-}
+// toggleMultiPV removed - now using simple 1-line analysis
 
 function stopAnalysis() {
     console.log('⏹️ stopAnalysis called');
@@ -802,47 +778,36 @@ function updateAnalysis(info) {
         score: info.score,
         mate: info.mate,
         nodes: info.nodes,
-        multipv: info.multipv,
         pvLength: info.pv?.length
     });
 
-    // Store PV line by multipv number (1, 2, or 3)
-    const pvNum = info.multipv || 1;
-    App.pvLines[pvNum] = info;
-
-    // Update depth and nodes (same for all lines)
+    // Update depth and nodes
     App.elements.depth.textContent = info.depth;
     App.elements.nodes.textContent = formatNumber(info.nodes);
 
-    // Update each PV line
-    for (let i = 1; i <= 3; i++) {
-        const lineInfo = App.pvLines[i];
-        if (!lineInfo) continue;
+    const evalElem = document.getElementById('evaluation');
+    const lineElem = document.getElementById('bestLine');
 
-        const evalElem = document.getElementById(`evaluation${i}`);
-        const lineElem = document.getElementById(`bestLine${i}`);
+    if (!evalElem || !lineElem) return;
 
-        if (!evalElem || !lineElem) continue;
-
-        // Update evaluation
-        if (lineInfo.mate !== null) {
-            evalElem.textContent = `M${lineInfo.mate}`;
-            evalElem.style.color = lineInfo.mate > 0 ? '#4caf50' : '#f44336';
-        } else if (lineInfo.score !== null) {
-            const score = lineInfo.score.toFixed(2);
-            evalElem.textContent = score > 0 ? `+${score}` : score;
-            evalElem.style.color = score > 0 ? '#4caf50' :
-                                   score < 0 ? '#f44336' : '#2c5f9e';
-        }
-
-        // Update best line - convert UCI moves to SAN notation
-        if (lineInfo.pv && lineInfo.pv.length > 0) {
-            const sanMoves = convertPVtoSAN(lineInfo.pv);
-            lineElem.textContent = sanMoves;
-        }
+    // Update evaluation
+    if (info.mate !== null) {
+        evalElem.textContent = `M${info.mate}`;
+        evalElem.style.color = info.mate > 0 ? '#4caf50' : '#f44336';
+    } else if (info.score !== null) {
+        const score = info.score.toFixed(2);
+        evalElem.textContent = score > 0 ? `+${score}` : score;
+        evalElem.style.color = score > 0 ? '#4caf50' :
+                               score < 0 ? '#f44336' : '#2c5f9e';
     }
 
-    console.log('  - Updated PV line', pvNum);
+    // Update best line - convert UCI moves to SAN notation (show up to 5 moves / 10 ply)
+    if (info.pv && info.pv.length > 0) {
+        const sanMoves = convertPVtoSAN(info.pv.slice(0, 10)); // Limit to 10 ply (5 moves)
+        lineElem.textContent = sanMoves;
+    }
+
+    console.log('  - Analysis updated');
 }
 
 // Convert UCI PV (principal variation) to readable SAN notation
@@ -967,19 +932,19 @@ function newGame(options = {}) {
         }, 500);
     }
     
-    // Clear analysis panel - reset all PV lines
+    // Exit edit mode if active (FIX: prevents edit mode bug)
+    if (App.editMode) {
+        exitEditMode();
+    }
+
+    // Clear analysis panel
     App.elements.depth.textContent = '0';
     App.elements.nodes.textContent = '0';
-    App.pvLines = {}; // Clear stored PV lines
+    const evalElem = document.getElementById('evaluation');
+    const lineElem = document.getElementById('bestLine');
+    if (evalElem) evalElem.textContent = '0.0';
+    if (lineElem) lineElem.textContent = '--';
 
-    // Reset all 3 PV lines
-    for (let i = 1; i <= 3; i++) {
-        const evalElem = document.getElementById(`evaluation${i}`);
-        const lineElem = document.getElementById(`bestLine${i}`);
-        if (evalElem) evalElem.textContent = '0.0';
-        if (lineElem) lineElem.textContent = '--';
-    }
-    
     // Notify engine of new game
     if (App.engine) {
         App.engine.newGame();
@@ -1141,11 +1106,6 @@ function setupEventListeners() {
     });
     
     App.elements.toggleAnalysis.addEventListener('click', toggleAnalysis);
-
-    // MultiPV toggle
-    document.getElementById('multiPvToggle').addEventListener('change', (e) => {
-        toggleMultiPV(e.target.checked);
-    });
 
     // Resign button
     App.elements.resignBtn.addEventListener('click', resignGame);
@@ -1444,6 +1404,14 @@ function setupBoardEditor() {
     // Apply position button
     App.elements.applyPosition.addEventListener('click', () => {
         applyEditorPosition();
+    });
+
+    // Clear All button (completely empty board)
+    document.getElementById('clearAllBtn').addEventListener('click', () => {
+        if (confirm('Clear all pieces from the board?')) {
+            App.board.position({});
+            showNotification('Board cleared');
+        }
     });
 
     // Board square click handler for piece placement
