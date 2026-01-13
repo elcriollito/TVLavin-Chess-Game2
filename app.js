@@ -166,8 +166,6 @@ function cacheElements() {
         // Engine vs Engine
         engineVsEngineBtn: document.getElementById('engineVsEngineBtn'),
         evePanel: document.getElementById('evePanel'),
-        whiteEngineLevel: document.getElementById('whiteEngineLevel'),
-        blackEngineLevel: document.getElementById('blackEngineLevel'),
         eveMoveDelay: document.getElementById('eveMoveDelay'),
         eveStatus: document.getElementById('eveStatus'),
         eveStatusText: document.getElementById('eveStatusText'),
@@ -819,42 +817,56 @@ function updateAnalysis(info) {
 
 // Convert UCI PV (principal variation) to readable SAN notation
 function convertPVtoSAN(pvMoves) {
-    // Create a temporary game to convert moves
-    const tempGame = new Chess(App.game.fen());
-    const sanMoves = [];
+    try {
+        console.log('🔄 Converting PV to SAN:', pvMoves);
 
-    // Convert up to first 10 moves (to avoid clutter)
-    const maxMoves = Math.min(pvMoves.length, 10);
+        // Create a temporary game to convert moves
+        const tempGame = new Chess(App.game.fen());
+        const sanMoves = [];
 
-    for (let i = 0; i < maxMoves; i++) {
-        const uciMove = pvMoves[i];
+        // Convert up to first 10 moves (to avoid clutter)
+        const maxMoves = Math.min(pvMoves.length, 10);
 
-        // Parse UCI move (e.g., "e2e4" or "e7e8q")
-        const from = uciMove.substring(0, 2);
-        const to = uciMove.substring(2, 4);
-        const promotion = uciMove.length > 4 ? uciMove.substring(4, 5) : undefined;
+        for (let i = 0; i < maxMoves; i++) {
+            const uciMove = pvMoves[i];
 
-        // Make move and get SAN
-        const move = tempGame.move({
-            from: from,
-            to: to,
-            promotion: promotion
-        });
+            // Parse UCI move (e.g., "e2e4" or "e7e8q")
+            const from = uciMove.substring(0, 2);
+            const to = uciMove.substring(2, 4);
+            const promotion = uciMove.length > 4 ? uciMove.substring(4, 5) : undefined;
 
-        if (move) {
-            sanMoves.push(move.san);
-        } else {
-            // If move fails, stop processing
-            break;
+            // Make move and get SAN
+            const move = tempGame.move({
+                from: from,
+                to: to,
+                promotion: promotion
+            });
+
+            if (move) {
+                sanMoves.push(move.san);
+            } else {
+                console.warn(`⚠️ Failed to convert UCI move: ${uciMove} at position ${tempGame.fen()}`);
+                // If move fails, use UCI notation as fallback for this move
+                sanMoves.push(uciMove);
+            }
         }
-    }
 
-    // Add ellipsis if there are more moves
-    if (pvMoves.length > maxMoves) {
-        sanMoves.push('...');
-    }
+        // Add ellipsis if there are more moves
+        if (pvMoves.length > maxMoves) {
+            sanMoves.push('...');
+        }
 
-    return sanMoves.join(' ');
+        const result = sanMoves.join(' ');
+        console.log('✅ PV converted to SAN:', result);
+        return result;
+
+    } catch (error) {
+        console.error('❌ Error converting PV to SAN:', error);
+        // Fallback: return UCI moves as-is
+        const fallback = pvMoves.slice(0, 10).join(' ');
+        console.log('⚠️ Using UCI fallback:', fallback);
+        return fallback;
+    }
 }
 
 function formatNumber(num) {
@@ -1848,8 +1860,6 @@ async function startEngineVsEngine() {
         App.elements.eveMoveCount.textContent = '0';
 
         // Disable configuration while running
-        App.elements.whiteEngineLevel.disabled = true;
-        App.elements.blackEngineLevel.disabled = true;
         App.elements.eveMoveDelay.disabled = true;
 
         showNotification('Engine vs Engine game started!');
@@ -1982,8 +1992,6 @@ function stopEngineVsEngine() {
     App.elements.eveStatusText.textContent = 'Stopped';
 
     // Re-enable configuration
-    App.elements.whiteEngineLevel.disabled = false;
-    App.elements.blackEngineLevel.disabled = false;
     App.elements.eveMoveDelay.disabled = false;
 
     showNotification('Engine vs Engine game stopped.');
