@@ -2221,13 +2221,12 @@ function cleanPGN(pgnText) {
     // Remove NAG (Numeric Annotation Glyphs) like $1, $2, etc.
     cleaned = cleaned.replace(/\$\d+/g, '');
 
-    // Remove excessive whitespace
-    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    // Remove excessive whitespace but keep line breaks initially
+    cleaned = cleaned.replace(/[ \t]+/g, ' ').trim();
 
     // Split into headers and moves
     const headerSection = [];
-    const movesSection = [];
-    let inHeaders = true;
+    let movesText = '';
 
     const lines = cleaned.split(/\r?\n/);
     for (const line of lines) {
@@ -2236,13 +2235,39 @@ function cleanPGN(pgnText) {
         if (trimmed.startsWith('[')) {
             headerSection.push(trimmed);
         } else if (trimmed.length > 0 && !trimmed.startsWith('[')) {
-            inHeaders = false;
-            movesSection.push(trimmed);
+            movesText += ' ' + trimmed;
+        }
+    }
+
+    // Clean up moves text
+    movesText = movesText.trim();
+
+    // Ensure game result is present at the end
+    // Check if moves end with a game termination marker
+    const gameResults = ['1-0', '0-1', '1/2-1/2', '*'];
+    let hasResult = false;
+
+    for (const result of gameResults) {
+        if (movesText.endsWith(result)) {
+            hasResult = true;
+            break;
+        }
+    }
+
+    // If no result found at end, try to extract it from Result header
+    if (!hasResult) {
+        const resultHeader = headerSection.find(h => h.includes('[Result'));
+        if (resultHeader) {
+            const match = resultHeader.match(/\[Result "(.+)"\]/);
+            if (match && match[1]) {
+                movesText += ' ' + match[1];
+                console.log('📌 Added game result from header:', match[1]);
+            }
         }
     }
 
     // Rebuild PGN with clean formatting
-    const result = headerSection.join('\n') + '\n\n' + movesSection.join(' ');
+    const result = headerSection.join('\n') + '\n\n' + movesText;
 
     console.log('✅ PGN cleaned');
     return result;
