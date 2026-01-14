@@ -31,7 +31,6 @@ const App = {
     eveRunning: false,
     engineWhite: null,
     engineBlack: null,
-    eveMoveCount: 0,
     eveMoveDelay: 1000,
 
     // MultiPV analysis
@@ -173,9 +172,6 @@ function cacheElements() {
         engineVsEngineBtn: document.getElementById('engineVsEngineBtn'),
         evePanel: document.getElementById('evePanel'),
         eveMoveDelay: document.getElementById('eveMoveDelay'),
-        eveStatus: document.getElementById('eveStatus'),
-        eveStatusText: document.getElementById('eveStatusText'),
-        eveMoveCount: document.getElementById('eveMoveCount'),
         startEve: document.getElementById('startEve'),
         pauseEve: document.getElementById('pauseEve'),
         resumeEve: document.getElementById('resumeEve'),
@@ -1955,15 +1951,9 @@ async function startEngineVsEngine() {
         // Update UI
         App.eveRunning = true;
         App.evePaused = false;
-        App.eveMoveCount = App.moveHistory.length;
         App.elements.startEve.style.display = 'none';
         App.elements.pauseEve.style.display = 'block';
         App.elements.stopEve.style.display = 'block';
-        App.elements.eveStatus.style.display = 'block';
-        App.elements.eveStatusText.textContent = 'Running';
-        // Calculate full moves (white + black = 1 move)
-        const fullMoves = Math.ceil(App.moveHistory.length / 2);
-        App.elements.eveMoveCount.textContent = fullMoves.toString();
 
         // Disable configuration while running
         App.elements.eveMoveDelay.disabled = true;
@@ -1984,7 +1974,6 @@ async function engineVsEngineLoop() {
     if (!App.eveRunning || App.game.game_over()) {
         if (App.game.game_over()) {
             console.log('🤖 Game over!');
-            App.elements.eveStatusText.textContent = 'Game Over';
 
             if (App.game.in_checkmate()) {
                 const winner = App.game.turn() === 'w' ? 'Black' : 'White';
@@ -2010,7 +1999,6 @@ async function engineVsEngineLoop() {
     const engineName = currentTurn === 'w' ? 'White' : 'Black';
 
     console.log(`🤖 ${engineName} engine thinking...`);
-    App.elements.eveStatusText.textContent = `${engineName} thinking...`;
 
     // Get current position
     const currentFen = App.game.fen();
@@ -2101,10 +2089,6 @@ async function engineVsEngineLoop() {
             App.board.position(App.game.fen());
 
             // Update UI
-            App.eveMoveCount++;
-            // Calculate full moves (white + black = 1 move)
-            const fullMoves = Math.ceil(App.eveMoveCount / 2);
-            App.elements.eveMoveCount.textContent = fullMoves.toString();
             onMoveMade(move);
 
             // Wait for configured delay before next move
@@ -2124,7 +2108,6 @@ async function engineVsEngineLoop() {
 function pauseEngineVsEngine() {
     console.log('🤖 Pausing Engine vs Engine');
     App.evePaused = true;
-    App.elements.eveStatusText.textContent = 'Paused';
     App.elements.pauseEve.style.display = 'none';
     App.elements.resumeEve.style.display = 'block';
     showNotification('Game paused.');
@@ -2133,7 +2116,6 @@ function pauseEngineVsEngine() {
 function resumeEngineVsEngine() {
     console.log('🤖 Resuming Engine vs Engine');
     App.evePaused = false;
-    App.elements.eveStatusText.textContent = 'Running';
     App.elements.pauseEve.style.display = 'block';
     App.elements.resumeEve.style.display = 'none';
     showNotification('Game resumed.');
@@ -2171,7 +2153,6 @@ function stopEngineVsEngine() {
     App.elements.pauseEve.style.display = 'none';
     App.elements.resumeEve.style.display = 'none';
     App.elements.stopEve.style.display = 'none';
-    App.elements.eveStatusText.textContent = 'Stopped';
 
     // Re-enable configuration
     App.elements.eveMoveDelay.disabled = false;
