@@ -143,10 +143,13 @@ class StockfishEngine {
             }
         }
 
-        // Analysis info
+        // Analysis info - only process if it contains PV or important data
         if (message.startsWith('info') && this.onInfo) {
-            console.log('📊 Info message - calling parseInfo');
-            this.parseInfo(message);
+            // Only parse and callback if line contains PV or is a depth update with score
+            if (message.includes(' pv ') || (message.includes('depth') && message.includes('score'))) {
+                console.log('📊 Info message with PV/score - calling parseInfo');
+                this.parseInfo(message);
+            }
         }
 
         // Handle errors from engine
@@ -234,23 +237,28 @@ class StockfishEngine {
         }
 
         // Parse PV (principal variation)
-        const pvMatch = message.match(/pv (.+)$/);
+        const pvMatch = message.match(/\s+pv\s+(.+)$/);
         if (pvMatch) {
-            info.pv = pvMatch[1].split(' ');
+            // Split PV moves and filter out empty strings
+            info.pv = pvMatch[1].trim().split(/\s+/).filter(m => m.length > 0);
+            console.log('  - Parsed PV moves:', info.pv);
         }
 
         console.log('  - Parsed info:', {
             depth: info.depth,
             score: info.score,
+            mate: info.mate,
             nodes: info.nodes,
+            nps: info.nps,
             pvLength: info.pv.length
         });
 
-        if (this.onInfo) {
-            console.log('  - Calling onInfo callback');
+        // Only callback if we have meaningful data (PV is present)
+        if (this.onInfo && info.pv.length > 0) {
+            console.log('  - Calling onInfo callback with PV');
             this.onInfo(info);
-        } else {
-            console.log('  - ⚠️ onInfo callback is not set!');
+        } else if (info.pv.length === 0) {
+            console.log('  - No PV in this info line, skipping callback');
         }
     }
 

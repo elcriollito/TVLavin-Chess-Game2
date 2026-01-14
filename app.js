@@ -139,6 +139,7 @@ function cacheElements() {
         // Analysis
         depth: document.getElementById('depth'),
         nodes: document.getElementById('nodes'),
+        nps: document.getElementById('nps'),
         engineStatusText: document.getElementById('engineStatusText'),
         engineStatus: document.getElementById('engineStatus'),
         
@@ -776,50 +777,66 @@ function updateAnalysis(info) {
         score: info.score,
         mate: info.mate,
         nodes: info.nodes,
+        nps: info.nps,
         pvLength: info.pv?.length
     });
 
-    // Update depth and nodes
-    App.elements.depth.textContent = info.depth;
-    App.elements.nodes.textContent = formatNumber(info.nodes);
+    // Update depth, nodes, and NPS (WinBoard style)
+    App.elements.depth.textContent = info.depth || '0';
+    App.elements.nodes.textContent = formatNumber(info.nodes || 0);
+    App.elements.nps.textContent = formatNumber(info.nps || 0);
 
     const evalElem = document.getElementById('evaluation');
     const lineElem = document.getElementById('bestLine');
 
     if (!evalElem || !lineElem) return;
 
-    // Update evaluation
-    if (info.mate !== null) {
-        evalElem.textContent = `M${info.mate}`;
+    // Update evaluation (Score column in WinBoard style)
+    if (info.mate !== null && info.mate !== undefined) {
+        // Mate score - display as "M3" or "M-5" for mate in X moves
+        const mateText = info.mate > 0 ? `M${info.mate}` : `M${info.mate}`;
+        evalElem.textContent = mateText;
         evalElem.style.color = info.mate > 0 ? '#4caf50' : '#f44336';
-    } else if (info.score !== null) {
+    } else if (info.score !== null && info.score !== undefined) {
+        // Centipawn score - display as +1.25 or -0.50 (from White's perspective)
         const score = info.score.toFixed(2);
-        evalElem.textContent = score > 0 ? `+${score}` : score;
+        evalElem.textContent = score >= 0 ? `+${score}` : score;
         evalElem.style.color = score > 0 ? '#4caf50' :
                                score < 0 ? '#f44336' : '#2c5f9e';
     }
 
-    // Update best line - convert UCI moves to SAN notation (show up to 5 moves / 10 ply)
+    // Update PV (Principal Variation) - the most important part!
     if (info.pv && info.pv.length > 0) {
-        console.log('📊 Best Line - info.pv type:', typeof info.pv, 'length:', info.pv.length);
-        console.log('📊 Best Line - info.pv content:', info.pv);
+        console.log('📊 PV Display - Raw PV array:', info.pv);
 
-        // Ensure info.pv is an array, not a string
-        let pvArray = Array.isArray(info.pv) ? info.pv : info.pv.split(' ');
-        console.log('📊 Best Line - pvArray:', pvArray);
+        // Ensure info.pv is an array
+        let pvArray = Array.isArray(info.pv) ? info.pv : info.pv.split(/\s+/).filter(m => m.length > 0);
 
-        const sanMoves = convertPVtoSAN(pvArray.slice(0, 10)); // Limit to 10 ply (5 moves)
-        if (sanMoves && sanMoves !== '') {
+        // Show first 12-14 plies (6-7 full moves) as requested
+        const displayPlies = Math.min(pvArray.length, 14);
+        const pvToConvert = pvArray.slice(0, displayPlies);
+
+        console.log('📊 PV Display - Converting to SAN:', pvToConvert);
+
+        // Convert UCI to SAN for readability
+        const sanMoves = convertPVtoSAN(pvToConvert);
+
+        if (sanMoves && sanMoves.trim() !== '') {
             lineElem.textContent = sanMoves;
+            console.log('✅ PV Display - Showing:', sanMoves);
         } else {
-            lineElem.textContent = 'Calculating...';
+            // Fallback: show UCI if SAN conversion fails
+            lineElem.textContent = pvToConvert.join(' ');
+            console.log('⚠️ PV Display - SAN failed, showing UCI:', pvToConvert.join(' '));
         }
-    } else if (info.depth > 0) {
-        // Show something even if PV is not available yet
-        lineElem.textContent = 'Analyzing...';
+    } else {
+        // No PV available yet
+        if (info.depth > 0) {
+            lineElem.textContent = 'Analyzing...';
+        }
     }
 
-    console.log('  - Analysis updated');
+    console.log('  - Analysis display updated');
 }
 
 // Convert UCI PV (principal variation) to readable SAN notation
@@ -963,6 +980,7 @@ function newGame(options = {}) {
     // Clear analysis panel
     App.elements.depth.textContent = '0';
     App.elements.nodes.textContent = '0';
+    App.elements.nps.textContent = '0';
     const evalElem = document.getElementById('evaluation');
     const lineElem = document.getElementById('bestLine');
     if (evalElem) evalElem.textContent = '0.0';
