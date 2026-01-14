@@ -16,6 +16,13 @@ class StockfishEngine {
         this.multipv = 1;
         this.wasmSupported = typeof WebAssembly === 'object';
 
+        // Search ID tracking - prevent stale updates
+        this.searchId = 0;
+        this.activeSearchId = 0;
+
+        // FEN tracking for score normalization
+        this.currentFen = null;
+
         // Callbacks
         this.onReady = null;
         this.onBestMove = null;
@@ -173,7 +180,8 @@ class StockfishEngine {
             time: 0,
             multipv: 1,
             currmove: null,
-            hashfull: 0
+            hashfull: 0,
+            tbhits: 0
         };
 
         // Parse depth
@@ -224,16 +232,26 @@ class StockfishEngine {
             info.hashfull = parseInt(hashfullMatch[1]);
         }
 
-        // Parse score (centipawns)
-        const scoreMatch = message.match(/score cp (-?\d+)/);
-        if (scoreMatch) {
-            info.score = parseInt(scoreMatch[1]) / 100; // Convert centipawns to pawns
+        // Parse tablebase hits
+        const tbhitsMatch = message.match(/tbhits (\d+)/);
+        if (tbhitsMatch) {
+            info.tbhits = parseInt(tbhitsMatch[1]);
         }
 
-        // Parse mate score
+        // Parse score (centipawns) - RAW value from engine (side-to-move perspective)
+        const scoreMatch = message.match(/score cp (-?\d+)/);
+        if (scoreMatch) {
+            const rawCp = parseInt(scoreMatch[1]);
+            // Normalize to White's perspective
+            info.score = this.normalizeScore(rawCp);
+        }
+
+        // Parse mate score - RAW value from engine
         const mateMatch = message.match(/score mate (-?\d+)/);
         if (mateMatch) {
-            info.mate = parseInt(mateMatch[1]);
+            const rawMate = parseInt(mateMatch[1]);
+            // Normalize to White's perspective
+            info.mate = this.normalizeMate(rawMate);
         }
 
         // Parse PV (principal variation)
@@ -241,25 +259,57 @@ class StockfishEngine {
         if (pvMatch) {
             // Split PV moves and filter out empty strings
             info.pv = pvMatch[1].trim().split(/\s+/).filter(m => m.length > 0);
-            console.log('  - Parsed PV moves:', info.pv);
         }
-
-        console.log('  - Parsed info:', {
-            depth: info.depth,
-            score: info.score,
-            mate: info.mate,
-            nodes: info.nodes,
-            nps: info.nps,
-            pvLength: info.pv.length
-        });
 
         // Only callback if we have meaningful data (PV is present)
         if (this.onInfo && info.pv.length > 0) {
-            console.log('  - Calling onInfo callback with PV');
+            console.log('📊 UCI Info:', {
+                depth: info.depth,
+                score: info.score,
+                mate: info.mate,
+                nodes: info.nodes,
+                nps: info.nps,
+                pvLength: info.pv.length,
+                multipv: info.multipv
+            });
             this.onInfo(info);
-        } else if (info.pv.length === 0) {
-            console.log('  - No PV in this info line, skipping callback');
         }
+    }
+
+    /**
+     * Normalize centipawn score to White's perspective
+     * Stockfish reports from side-to-move perspective
+     */
+    normalizeScore(rawCp) {
+        if (!this.currentFen) {
+            // No FEN available, return as-is (assume white to move)
+            return rawCp / 100;
+        }
+
+        // Extract side to move from FEN (field 2)
+        const fenParts = this.currentFen.split(' ');
+        const sideToMove = fenParts[1]; // 'w' or 'b'
+
+        // If Black to move, flip the score
+        const normalizedCp = (sideToMove === 'b') ? -rawCp : rawCp;
+
+        // Convert to pawns
+        return normalizedCp / 100;
+    }
+
+    /**
+     * Normalize mate score to White's perspective
+     */
+    normalizeMate(rawMate) {
+        if (!this.currentFen) {
+            return rawMate;
+        }
+
+        const fenParts = this.currentFen.split(' ');
+        const sideToMove = fenParts[1];
+
+        // If Black to move, flip the mate sign
+        return (sideToMove === 'b') ? -rawMate : rawMate;
     }
 
     configureEngine() {
@@ -415,6 +465,13 @@ class StockfishEngine {
             return;
         }
 
+        // Increment search ID to invalidate old results
+        this.searchId++;
+        this.activeSearchId = this.searchId;
+        this.currentFen = fen;
+
+        console.log(`🎯 getBestMove - searchId: ${this.searchId}`);
+
         this.onBestMove = callback;
         this.setPosition(fen);
         this.go(options);
@@ -422,9 +479,6 @@ class StockfishEngine {
 
     startAnalysis(fen, infoCallback, depth = null) {
         console.log('🔬 StockfishEngine.startAnalysis called');
-        console.log('  - FEN:', fen);
-        console.log('  - Depth:', depth);
-        console.log('  - Callback provided:', !!infoCallback);
 
         if (!this.ready) {
             console.error('❌ Engine not ready');
@@ -434,22 +488,22 @@ class StockfishEngine {
             return;
         }
 
-        // CRITICAL: Stop any ongoing engine computation before starting analysis
-        // This ensures the engine is not busy with a previous go command
-        console.log('  - Stopping any previous engine computation');
+        // Increment search ID to invalidate old results
+        this.searchId++;
+        this.activeSearchId = this.searchId;
+        this.currentFen = fen;
+
+        console.log(`🔍 startAnalysis - searchId: ${this.searchId}, FEN: ${fen}`);
+
+        // Stop any ongoing engine computation
         this.stop();
 
-        console.log('  - Setting onInfo callback');
         this.onInfo = infoCallback;
-        console.log('  - Sending position command');
         this.setPosition(fen);
 
-        // Use depth 20 instead of infinite for better compatibility with stockfish.js
-        // infinite mode doesn't work well with older stockfish.js versions
+        // Use depth 20 for compatibility
         const options = depth ? { depth } : { depth: 20 };
-        console.log('  - Sending go command with options:', options);
         this.go(options);
-        console.log('  - startAnalysis complete, engine should now be analyzing');
     }
 
     stopAnalysis() {
