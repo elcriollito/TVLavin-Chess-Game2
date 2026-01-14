@@ -288,6 +288,17 @@ function initBoardWhenReady(config) {
             }, 250);
 
             window.addEventListener('resize', debouncedResize);
+
+            // Handle orientation change (mobile devices)
+            window.addEventListener('orientationchange', () => {
+                if (App.board) {
+                    // Small delay to ensure viewport has updated
+                    setTimeout(() => {
+                        App.board.resize();
+                        console.log('Board resized after orientation change');
+                    }, 100);
+                }
+            });
         } else {
             // Container not ready, wait and try again
             console.log('Board container not ready, retrying... (current width:', rect.width, 'height:', rect.height, ')');
