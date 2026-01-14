@@ -76,6 +76,15 @@ function debounce(func, wait) {
     };
 }
 
+/**
+ * Sleep utility for async delays
+ * @param {number} ms - Milliseconds to sleep
+ * @returns {Promise} Promise that resolves after delay
+ */
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
     debugLog('Initializing CAISSA Chess...');
