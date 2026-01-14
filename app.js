@@ -9,11 +9,13 @@ const App = {
     game: new Chess(),
     board: null,
     engine: null,
+    openingBook: null, // Polyglot opening book
 
     // Settings
     playerColor: 'white',
     gameMode: 'engine', // 'engine' or 'analysis'
     timeControl: 0, // seconds, 0 = no limit
+    useOpeningBook: true, // Enable book moves
 
     // Game state
     isPlayerTurn: true,
@@ -98,6 +100,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize engine
     initializeEngine();
+
+    // Initialize opening book
+    initializeOpeningBook();
 
     // Setup event listeners
     setupEventListeners();
@@ -322,6 +327,31 @@ function initializeEngine() {
     };
 }
 
+/**
+ * Initialize opening book (Polyglot format)
+ */
+async function initializeOpeningBook() {
+    console.log('📚 Initializing opening book...');
+
+    if (typeof PolyglotBook === 'undefined') {
+        console.warn('⚠️ PolyglotBook class not loaded');
+        return;
+    }
+
+    App.openingBook = new PolyglotBook();
+
+    // Try to load book.bin
+    const bookLoaded = await App.openingBook.loadBook('book.bin');
+
+    if (bookLoaded) {
+        console.log('✅ Opening book ready');
+        showNotification('Opening book loaded');
+    } else {
+        console.log('ℹ️ No opening book found, using engine only');
+        App.openingBook = null;
+    }
+}
+
 // ===== BOARD EVENT HANDLERS =====
 function onDragStart(source, piece, position, orientation) {
     // Don't allow moves if in edit mode
@@ -439,7 +469,56 @@ function makeEngineMove() {
 
     const currentFen = App.game.fen();
 
-    // Full power - use optimal thinking time
+    // CHECK OPENING BOOK FIRST
+    if (App.useOpeningBook && App.openingBook && App.openingBook.loaded) {
+        const fenParts = currentFen.split(' ');
+        const fullmove = parseInt(fenParts[5]);
+
+        // Only use book in opening (first 12 full moves)
+        if (fullmove <= 12) {
+            const bookMove = App.openingBook.selectBookMove(App.game);
+            if (bookMove) {
+                console.log('📖 Using opening book move:', bookMove);
+
+                // Parse UCI move
+                const from = bookMove.substring(0, 2);
+                const to = bookMove.substring(2, 4);
+                const promotion = bookMove.length > 4 ? bookMove[4] : undefined;
+
+                const move = App.game.move({ from, to, promotion });
+
+                if (move) {
+                    // Update board and history
+                    App.board.position(App.game.fen());
+                    App.moveHistory.push(move);
+                    App.currentMoveIndex = App.moveHistory.length - 1;
+
+                    // Update UI
+                    updateMoveHistory();
+                    updateStatus();
+                    updateTimers();
+
+                    // Check game status
+                    if (App.game.game_over()) {
+                        handleGameOver();
+                    } else {
+                        App.isPlayerTurn = true;
+                        updateEngineStatus('ready', 'Engine Ready');
+                    }
+
+                    return; // Book move played, exit early
+                } else {
+                    console.warn('⚠️ Book move invalid, falling back to engine');
+                }
+            } else {
+                console.log('📚 Position not in book, using engine');
+            }
+        } else {
+            console.log('📚 Out of opening phase, using engine');
+        }
+    }
+
+    // No book move available, use engine at full power
     const moveTime = 2000; // 2 seconds for full strength
 
     console.log(`🎯 Engine at FULL POWER using movetime: ${moveTime}ms`);
@@ -1882,7 +1961,9 @@ async function startEngineVsEngine() {
         App.elements.stopEve.style.display = 'block';
         App.elements.eveStatus.style.display = 'block';
         App.elements.eveStatusText.textContent = 'Running';
-        App.elements.eveMoveCount.textContent = '0';
+        // Calculate full moves (white + black = 1 move)
+        const fullMoves = Math.ceil(App.moveHistory.length / 2);
+        App.elements.eveMoveCount.textContent = fullMoves.toString();
 
         // Disable configuration while running
         App.elements.eveMoveDelay.disabled = true;
@@ -1934,19 +2015,67 @@ async function engineVsEngineLoop() {
     // Get current position
     const currentFen = App.game.fen();
 
-    // Start analysis to show evaluation during thinking
-    if (App.engine && App.engine.ready) {
-        console.log(`🔍 Starting analysis for ${engineName}'s position`);
-        App.analyzing = true;
-        App.engine.startAnalysis(currentFen, (info) => {
-            if (App.eveRunning) {
-                updateAnalysis(info);
+    // CHECK OPENING BOOK FIRST
+    let bookMoveUsed = false;
+    if (App.useOpeningBook && App.openingBook && App.openingBook.loaded) {
+        const fenParts = currentFen.split(' ');
+        const fullmove = parseInt(fenParts[5]);
+
+        // Only use book in opening (first 12 full moves)
+        if (fullmove <= 12) {
+            const bookMove = App.openingBook.selectBookMove(App.game);
+            if (bookMove) {
+                console.log(`📖 ${engineName} using opening book move:`, bookMove);
+                bookMoveUsed = true;
+
+                // Parse UCI move
+                const from = bookMove.substring(0, 2);
+                const to = bookMove.substring(2, 4);
+                const promotion = bookMove.length > 4 ? bookMove[4] : undefined;
+
+                const move = App.game.move({ from, to, promotion });
+
+                if (move) {
+                    // Update board and history
+                    App.board.position(App.game.fen());
+                    App.moveHistory.push(move);
+                    App.currentMoveIndex = App.moveHistory.length - 1;
+
+                    // Update UI
+                    updateMoveHistory();
+                    updateStatus();
+
+                    console.log(`📖 ${engineName} played book move:`, move.san);
+
+                    // Wait before next move
+                    await sleep(500);
+
+                    // Continue the loop
+                    engineVsEngineLoop();
+                    return;
+                } else {
+                    console.warn(`⚠️ ${engineName} book move invalid, falling back to engine`);
+                    bookMoveUsed = false;
+                }
             }
-        });
+        }
     }
 
-    // Request best move from engine
-    currentEngine.getBestMove(currentFen, async (bestMove) => {
+    // If book move wasn't used, proceed with engine
+    if (!bookMoveUsed) {
+        // Start analysis to show evaluation during thinking
+        if (App.engine && App.engine.ready) {
+            console.log(`🔍 Starting analysis for ${engineName}'s position`);
+            App.analyzing = true;
+            App.engine.startAnalysis(currentFen, (info) => {
+                if (App.eveRunning) {
+                    updateAnalysis(info);
+                }
+            });
+        }
+
+        // Request best move from engine
+        currentEngine.getBestMove(currentFen, async (bestMove) => {
         // Stop analysis when move is found
         if (App.analyzing && App.engine) {
             console.log('⏹️ Stopping analysis - move found');
@@ -1973,7 +2102,9 @@ async function engineVsEngineLoop() {
 
             // Update UI
             App.eveMoveCount++;
-            App.elements.eveMoveCount.textContent = App.eveMoveCount;
+            // Calculate full moves (white + black = 1 move)
+            const fullMoves = Math.ceil(App.eveMoveCount / 2);
+            App.elements.eveMoveCount.textContent = fullMoves.toString();
             onMoveMade(move);
 
             // Wait for configured delay before next move
@@ -1986,7 +2117,8 @@ async function engineVsEngineLoop() {
             showErrorNotification('Engine returned invalid move. Stopping game.');
             stopEngineVsEngine();
         }
-    }, { movetime: 1000 }); // 1 second thinking time per move
+        }, { movetime: 1000 }); // 1 second thinking time per move
+    } // End if (!bookMoveUsed)
 }
 
 function pauseEngineVsEngine() {
