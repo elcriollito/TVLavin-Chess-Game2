@@ -196,8 +196,7 @@ function cacheElements() {
         resetToStart: document.getElementById('resetToStart'),
         applyPosition: document.getElementById('applyPosition'),
 
-        // Engine vs Engine
-        engineVsEngineBtn: document.getElementById('engineVsEngineBtn'),
+        // Engine vs Engine (accessed via New Game → Game Mode)
         evePanel: document.getElementById('evePanel'),
         eveMoveDelay: document.getElementById('eveMoveDelay'),
         startEve: document.getElementById('startEve'),
@@ -1105,6 +1104,15 @@ function newGame(options = {}) {
         startTimer();
     }
     
+    // Handle Engine vs Engine mode
+    if (App.gameMode === 'eve') {
+        // Start Engine vs Engine mode
+        setTimeout(() => {
+            startEngineVsEngine();
+        }, 100);
+        return; // Exit early, Eve mode handles its own UI
+    }
+
     // In engine mode, if player is black, make engine move
     if (App.gameMode === 'engine' && App.playerColor === 'black') {
         App.isPlayerTurn = false;
@@ -1425,6 +1433,7 @@ function setupNewGameModal() {
         const isEngine = mode === 'engine';
 
         // Show color/level selection only for engine mode
+        // Hide for human, eve, and analysis modes
         colorSelection.style.display = isEngine ? 'block' : 'none';
         engineLevelSelection.style.display = isEngine ? 'block' : 'none';
     });
@@ -2522,10 +2531,8 @@ function parsePGN(pgnText) {
 
 // Setup Engine vs Engine event listeners
 function setupEngineVsEngine() {
-    // Engine vs Engine button in header
-    App.elements.engineVsEngineBtn.addEventListener('click', () => {
-        toggleEngineVsEngineMode();
-    });
+    // Engine vs Engine is now accessed via New Game → Game Mode → Engine vs Engine
+    // The panel and controls remain for pause/stop during active games
 
     // Start button
     App.elements.startEve.addEventListener('click', () => {
