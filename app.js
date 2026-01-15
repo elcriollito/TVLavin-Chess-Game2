@@ -149,6 +149,7 @@ function cacheElements() {
         // Buttons
         newGameBtn: document.getElementById('newGameBtn'),
         menuBtn: document.getElementById('menuBtn'),
+        menuBtnHeader: document.getElementById('menuBtnHeader'),
         flipBoard: document.getElementById('flipBoard'),
         pasteFEN: document.getElementById('pasteFEN'),
         editBoard: document.getElementById('editBoard'),
@@ -1104,9 +1105,10 @@ function newGame(options = {}) {
         startTimer();
     }
     
-    // Handle Engine vs Engine mode
+    // Handle Engine vs Engine mode (from "New Game" modal)
+    // This starts a NEW game from starting position
     if (App.gameMode === 'eve') {
-        // Start Engine vs Engine mode
+        // Start Engine vs Engine mode from starting position
         setTimeout(() => {
             startEngineVsEngine();
         }, 100);
@@ -1309,9 +1311,17 @@ function setupEventListeners() {
         showModal('newGameModal');
     });
     
+    // Menu button in analysis panel (mobile + desktop)
     App.elements.menuBtn.addEventListener('click', () => {
         showModal('menuModal');
     });
+
+    // Menu button in header (desktop only, hidden on mobile)
+    if (App.elements.menuBtnHeader) {
+        App.elements.menuBtnHeader.addEventListener('click', () => {
+            showModal('menuModal');
+        });
+    }
     
     // Quick actions
     App.elements.flipBoard.addEventListener('click', flipBoard);
@@ -1935,18 +1945,19 @@ function generateFENFromPosition(position) {
 }
 
 // ===== ENGINE VS ENGINE MODE =====
-function toggleEngineVsEngineMode() {
+async function toggleEngineVsEngineMode() {
     App.eveMode = !App.eveMode;
 
     if (App.eveMode) {
-        enterEngineVsEngineMode();
+        await enterEngineVsEngineMode();
     } else {
         exitEngineVsEngineMode();
     }
 }
 
 async function enterEngineVsEngineMode() {
-    console.log('🤖 Entering Engine vs Engine mode');
+    console.log('🤖 Entering Engine vs Engine mode (external quick button)');
+    console.log('🤖 Current position:', App.game.fen());
 
     // Stop analysis if running
     if (App.analyzing) {
@@ -1958,10 +1969,11 @@ async function enterEngineVsEngineMode() {
     document.querySelector('.engine-panel').style.display = 'none';
     document.querySelector('.actions-panel').style.display = 'none';
 
-    // Automatically start engines from current position
-    showNotification('Engine vs Engine: Starting game...');
+    // Automatically start engines from current position (QUICK START)
+    // This is different from "New Game → Engine vs Engine" which resets to startpos
+    showNotification('Engine vs Engine: Starting from current position...');
 
-    // Auto-start the engines
+    // Auto-start the engines from current board position
     await startEngineVsEngine();
 }
 
@@ -1982,11 +1994,23 @@ function exitEngineVsEngineMode() {
 }
 
 async function startEngineVsEngine() {
-    console.log('🤖 Starting Engine vs Engine game');
+    console.log('🤖 Starting Engine vs Engine game from position:', App.game.fen());
 
     try {
         // Get configuration
         App.eveMoveDelay = parseInt(App.elements.eveMoveDelay.value);
+
+        // Clean up existing engines if they exist
+        if (App.engineWhite) {
+            console.log('Cleaning up existing White engine');
+            App.engineWhite.terminate?.();
+            App.engineWhite = null;
+        }
+        if (App.engineBlack) {
+            console.log('Cleaning up existing Black engine');
+            App.engineBlack.terminate?.();
+            App.engineBlack = null;
+        }
 
         // Create two engine instances at FULL POWER
         console.log('Creating White engine at FULL POWER');
@@ -2018,6 +2042,11 @@ async function startEngineVsEngine() {
         console.log('Both engines ready!');
 
         // Continue from current position (don't reset the board)
+        const currentPosition = App.game.fen();
+        const currentTurn = App.game.turn() === 'w' ? 'White' : 'Black';
+        console.log(`🤖 Starting Engine vs Engine from position: ${currentPosition}`);
+        console.log(`🤖 Current turn: ${currentTurn}`);
+
         App.gameMode = 'eve';
         App.gameActive = true;
 
@@ -2030,7 +2059,7 @@ async function startEngineVsEngine() {
         // Disable configuration while running
         App.elements.eveMoveDelay.disabled = true;
 
-        showNotification('Engine vs Engine game started!');
+        showNotification(`Engine vs Engine started! ${currentTurn} to move.`);
 
         // Start the game loop
         engineVsEngineLoop();
