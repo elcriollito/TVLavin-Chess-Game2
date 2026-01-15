@@ -85,6 +85,25 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/**
+ * Lock page scrolling (for mobile drag stability)
+ * Prevents page from scrolling while dragging chess pieces
+ */
+function lockScroll() {
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+}
+
+/**
+ * Unlock page scrolling (restore after drag)
+ */
+function unlockScroll() {
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
+}
+
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
     debugLog('Initializing CAISSA Chess...');
@@ -299,6 +318,18 @@ function initBoardWhenReady(config) {
                     }, 100);
                 }
             });
+
+            // Prevent page scroll during touch drag on mobile (fallback)
+            const boardElement = document.getElementById('chessboard');
+            if (boardElement) {
+                boardElement.addEventListener('touchmove', (e) => {
+                    // Only prevent default if we're dragging a piece
+                    // Check if target is a piece or part of the board
+                    if (e.target.closest('.piece-417db') || e.target.closest('.square-55d63')) {
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+            }
         } else {
             // Container not ready, wait and try again
             console.log('Board container not ready, retrying... (current width:', rect.width, 'height:', rect.height, ')');
@@ -372,25 +403,25 @@ async function initializeOpeningBook() {
 function onDragStart(source, piece, position, orientation) {
     // Don't allow moves if in edit mode
     if (App.editMode) return false;
-    
+
     // Don't allow moves if game is not active
     if (!App.gameActive) return false;
-    
+
     // Don't allow moves if not navigated to end
     if (App.currentMoveIndex !== App.moveHistory.length - 1 && App.moveHistory.length > 0) {
         return false;
     }
-    
+
     // In engine mode, only allow player's pieces
     if (App.gameMode === 'engine') {
         if (!App.isPlayerTurn) return false;
-        
+
         if ((App.playerColor === 'white' && piece.search(/^b/) !== -1) ||
             (App.playerColor === 'black' && piece.search(/^w/) !== -1)) {
             return false;
         }
     }
-    
+
     // In analysis and human vs human mode, only allow moving side to move pieces
     if (App.gameMode === 'analysis' || App.gameMode === 'human') {
         if ((App.game.turn() === 'w' && piece.search(/^b/) !== -1) ||
@@ -398,10 +429,13 @@ function onDragStart(source, piece, position, orientation) {
             return false;
         }
     }
-    
+
     // Don't allow moves if game is over
     if (App.game.game_over()) return false;
-    
+
+    // Lock page scrolling on mobile during drag
+    lockScroll();
+
     return true;
 }
 
@@ -414,6 +448,8 @@ function onDrop(source, target) {
         // Promotion - show promotion dialog
         App.pendingPromotion = { from: source, to: target };
         showPromotionDialog();
+        // Unlock scroll after drop
+        unlockScroll();
         return;
     }
 
@@ -423,6 +459,9 @@ function onDrop(source, target) {
         to: target
     });
 
+    // Unlock scroll after drop
+    unlockScroll();
+
     // Illegal move
     if (result === null) return 'snapback';
 
@@ -431,6 +470,8 @@ function onDrop(source, target) {
 
 function onSnapEnd() {
     App.board.position(App.game.fen());
+    // Unlock scroll after snap animation completes
+    unlockScroll();
 }
 
 // ===== MOVE HANDLING =====

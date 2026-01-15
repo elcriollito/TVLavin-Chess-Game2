@@ -158,6 +158,13 @@ html, body {
     align-items: center;
     gap: var(--spacing-md);
     min-width: 0; /* Prevents flex items from overflowing */
+
+    /* Mobile drag stability - prevent scroll during piece drag */
+    touch-action: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 /* ===== CHESSBOARD STYLES - FORCE PROPER FLOAT LAYOUT ===== */
