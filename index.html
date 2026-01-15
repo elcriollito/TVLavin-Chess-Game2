@@ -121,31 +121,27 @@
                         </button>
                     </div>
                     <div class="analysis-content">
-                        <!-- Primary Stats - Score and Depth -->
-                        <div class="analysis-primary-stats">
-                            <div class="stat-item stat-item-eval">
-                                <span class="stat-label">Score:</span>
-                                <span id="evaluation" class="stat-value">0.0</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Depth:</span>
-                                <span id="depth" class="stat-value">0</span>
-                            </div>
-                        </div>
-
-                        <!-- Best Line (PV) - MOST IMPORTANT -->
+                        <!-- Principal Variation - FIRST AND DOMINANT -->
                         <div class="best-line-container">
                             <div class="best-line-label">Principal Variation:</div>
                             <div class="best-line-moves" id="bestLine">--</div>
                         </div>
 
-                        <!-- Secondary Stats - Less Important -->
-                        <div class="analysis-secondary-stats">
-                            <div class="stat-item stat-item-secondary">
+                        <!-- Compact Info Row - All stats in one line -->
+                        <div class="analysis-info-row">
+                            <div class="stat-item stat-item-compact stat-item-eval">
+                                <span class="stat-label">Score:</span>
+                                <span id="evaluation" class="stat-value">0.0</span>
+                            </div>
+                            <div class="stat-item stat-item-compact">
+                                <span class="stat-label">Depth:</span>
+                                <span id="depth" class="stat-value">0</span>
+                            </div>
+                            <div class="stat-item stat-item-compact stat-item-secondary">
                                 <span class="stat-label">Nodes:</span>
                                 <span id="nodes" class="stat-value">0</span>
                             </div>
-                            <div class="stat-item stat-item-secondary">
+                            <div class="stat-item stat-item-compact stat-item-secondary">
                                 <span class="stat-label">NPS:</span>
                                 <span id="nps" class="stat-value">0</span>
                             </div>
