@@ -196,7 +196,8 @@ function cacheElements() {
         resetToStart: document.getElementById('resetToStart'),
         applyPosition: document.getElementById('applyPosition'),
 
-        // Engine vs Engine (accessed via New Game → Game Mode)
+        // Engine vs Engine (accessible via button + New Game menu)
+        engineVsEngineBtn: document.getElementById('engineVsEngineBtn'),
         evePanel: document.getElementById('evePanel'),
         eveMoveDelay: document.getElementById('eveMoveDelay'),
         startEve: document.getElementById('startEve'),
@@ -2531,8 +2532,10 @@ function parsePGN(pgnText) {
 
 // Setup Engine vs Engine event listeners
 function setupEngineVsEngine() {
-    // Engine vs Engine is now accessed via New Game → Game Mode → Engine vs Engine
-    // The panel and controls remain for pause/stop during active games
+    // Engine vs Engine button in header (kept for quick access)
+    App.elements.engineVsEngineBtn.addEventListener('click', () => {
+        toggleEngineVsEngineMode();
+    });
 
     // Start button
     App.elements.startEve.addEventListener('click', () => {
