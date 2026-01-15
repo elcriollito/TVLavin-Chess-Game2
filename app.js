@@ -200,7 +200,6 @@ function cacheElements() {
         engineVsEngineBtn: document.getElementById('engineVsEngineBtn'),
         evePanel: document.getElementById('evePanel'),
         eveMoveDelay: document.getElementById('eveMoveDelay'),
-        startEve: document.getElementById('startEve'),
         pauseEve: document.getElementById('pauseEve'),
         resumeEve: document.getElementById('resumeEve'),
         stopEve: document.getElementById('stopEve'),
@@ -1946,7 +1945,7 @@ function toggleEngineVsEngineMode() {
     }
 }
 
-function enterEngineVsEngineMode() {
+async function enterEngineVsEngineMode() {
     console.log('🤖 Entering Engine vs Engine mode');
 
     // Stop analysis if running
@@ -1959,8 +1958,11 @@ function enterEngineVsEngineMode() {
     document.querySelector('.engine-panel').style.display = 'none';
     document.querySelector('.actions-panel').style.display = 'none';
 
-    // Automatically start engines to continue from current position
-    showNotification('Engine vs Engine mode: Click Start to continue from current position');
+    // Automatically start engines from current position
+    showNotification('Engine vs Engine: Starting game...');
+
+    // Auto-start the engines
+    await startEngineVsEngine();
 }
 
 function exitEngineVsEngineMode() {
@@ -2022,7 +2024,6 @@ async function startEngineVsEngine() {
         // Update UI
         App.eveRunning = true;
         App.evePaused = false;
-        App.elements.startEve.style.display = 'none';
         App.elements.pauseEve.style.display = 'block';
         App.elements.stopEve.style.display = 'block';
 
@@ -2220,7 +2221,6 @@ function stopEngineVsEngine() {
     }
 
     // Update UI
-    App.elements.startEve.style.display = 'block';
     App.elements.pauseEve.style.display = 'none';
     App.elements.resumeEve.style.display = 'none';
     App.elements.stopEve.style.display = 'none';
@@ -2535,11 +2535,6 @@ function setupEngineVsEngine() {
     // Engine vs Engine button in header (kept for quick access)
     App.elements.engineVsEngineBtn.addEventListener('click', () => {
         toggleEngineVsEngineMode();
-    });
-
-    // Start button
-    App.elements.startEve.addEventListener('click', () => {
-        startEngineVsEngine();
     });
 
     // Pause button
