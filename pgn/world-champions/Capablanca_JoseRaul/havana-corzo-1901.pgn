@@ -1,0 +1,155 @@
+[Event "Havana m"]
+[Site "Havana"]
+[Date "1901.??.??"]
+[Round "1"]
+[White "Capablanca, Jose Raul"]
+[Black "Corzo y Principe, Juan"]
+[Result "0-1"]
+[ECO "C65"]
+[PlyCount "86"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. Qe2 Be7 5. d4 exd4 6. e5 Ne4 7. O-O Nc5 8. Nxd4 O-O 9. Nxc6 dxc6 10. Bc4 Qd4 11. Nc3 Bg4 12. Qe1 Rad8 13. h3 Bh5 14. Be2 Bg6 15. Bf3 Rfe8 16. Qe2 Bc5 17. Ne4 Nxe4 18. Bxe4 Bxe4 19. Qxe4 Qxe4 20. Rxe4 Rxe5 21. Rxe5 Bd4 22. Re4 Bxb2 23. Bxb2 Rxd1+ 24. Kh2 Rd2 25. Bc3 Rxc2 26. Re8+ Kf7 27. Ra8 a5 28. Bb2 Ke6 29. Kg3 Kd5 30. Kf3 c5 31. g4 c4 32. h4 c5 33. g5 b5 34. Ke3 Rc1 35. f4 c3 36. Bc1 b4 37. Kd3 Kc5 38. Ra6 h6 39. gxh6 gxh6 40. Rxh6 Rxc1 41. Rxc6+ Kb5 42. Rf6 c2 43. Rxf7 Rd1+ 0-1
+
+[Event "Havana m"]
+[Site "Havana"]
+[Date "1901.??.??"]
+[Round "2"]
+[White "Corzo y Principe, Juan"]
+[Black "Capablanca, Jose Raul"]
+[Result "1/2-1/2"]
+[ECO "C42"]
+[PlyCount "108"]
+
+1. e4 e5 2. Nf3 Nf6 3. Nxe5 d6 4. Nf3 Nxe4 5. d4 Be7 6. Bd3 Nc6 7. O-O Bg4 8. c3 f5 9. Qb3 Qd7 10. Nbd2 Nxd2 11. Bxd2 O-O 12. Rfe1 Bf6 13. Qc2 Rae8 14. Bc4+ Kh8 15. h3 Bh5 16. Rxe8 Qxe8 17. Re1 Qd7 18. g4 fxg4 19. hxg4 Bg6 20. Qb3 Ne7 21. Nh4 Bf7 22. Nf5 Nxf5 23. gxf5 c6 24. Re6 Bxe6 25. fxe6 Qxe6 26. Qxe6 Rxe6 27. a4 Kg8 28. Kf1 Kf7 29. Ke2 Bg5 30. f4 Bxf4 31. Bxf4 Rxe2+ 32. Kxe2 Ke6 33. Kd3 b6 34. Be3 a6 35. Bd2 Kd5 36. Be3 g5 37. Bxg5 h6 38. Bf4 d5 39. Bb3 Kc5 40. Bxh6 Kb4 41. Bf4 Kxa4 42. Bxd5 cxd5 43. Kc2 Kb5 44. Kb3 a5 45. Ka3 a4 46. Bd2 Kc4 47. Kxa4 Kxd4 48. c4 dxc4 49. Kb4 Kd3 50. Bc1 c3 51. bxc3 Kxc3 52. Kb5 Kd3 53. Kxb6 c4 54. Kb5 Kc2 1/2-1/2
+
+[Event "Havana m"]
+[Site "Havana"]
+[Date "1901.??.??"]
+[Round "3"]
+[White "Capablanca, Jose Raul"]
+[Black "Corzo y Principe, Juan"]
+[Result "0-1"]
+[ECO "C65"]
+[PlyCount "124"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. Qe2 d6 5. d4 Bd7 6. Bxc6 Bxc6 7. Nc3 exd4 8. Nxd4 Be7 9. Bg5 O-O 10. O-O-O Qd7 11. f4 Rae8 12. Rhe1 Nd5 13. exd5 Bxg5 14. Nxc6 Qxc6 15. fxg5 Rxe2 16. Rxe2 Qxd5 17. Rd3 Qxg5+ 18. Kb1 Re8 19. Rxe8+ Qxe8 20. Rf3 Qe1+ 21. Nd1 f6 22. Rf1 Qe4 23. Rf5 Kf7 24. Nf2 Qe1+ 25. Nd1 Qe4 26. Nf2 Qe1+ 27. Nd1 c6 28. Rf2 Qe4 29. Re2 Qf5 30. Re7+ Kg8 31. Rxb7 Qd5 32. Rxa7 h5 33. a4 h4 34. a5 h3 35. gxh3 Qd3 36. Rd7 Qxd1+ 37. Ka2 Qd5+ 38. Kb1 Qf5 39. Rxd6 Qxh3 40. Rxc6 Qd3 41. Rc2 Qd5 42. a6 Qd7 43. Rc7 Qd4 44. Rc8+ Kf7 45. Rc7+ Kg6 46. a7 Qd1+ 47. Ka2 Qd5+ 48. Kb1 Qf3 49. Rc3 Qf1+ 50. Ka2 Qf5 51. Rc8 Kh7 52. b4 Kg6 53. c4 Qa5+ 54. Kb3 Qb6 55. Kc3 Qa6 56. Kb3 Qe2 57. c5 Qd1+ 58. Ka2 Qd5+ 59. Kb2 Qd4+ 60. Ka3 Qd7 61. Rc7 Qxa7+ 62. Kb3 Qa1 0-1
+
+[Event "Havana m"]
+[Site "Havana"]
+[Date "1901.??.??"]
+[Round "4"]
+[White "Corzo y Principe, Juan"]
+[Black "Capablanca, Jose Raul"]
+[Result "1-0"]
+[ECO "C67"]
+[PlyCount "82"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. O-O Nxe4 5. Re1 Nd6 6. Nxe5 Be7 7. Bf1 Nxe5 8. Rxe5 O-O 9. d4 Bf6 10. Re1 Re8 11. c3 Rxe1 12. Qxe1 Ne8 13. Bf4 d5 14. Nd2 g6 15. Bd3 Ng7 16. Qe2 Bf5 17. Re1 Qd7 18. Bxf5 Nxf5 19. g4 Nh4 20. Qd3 Re8 21. Rxe8+ Qxe8 22. Nf3 Qe4 23. Qxe4 dxe4 24. Nxh4 Bxh4 25. Kg2 f6 26. Kf1 Kf7 27. Ke2 Ke6 28. Ke3 Kd5 29. f3 exf3 30. Kxf3 c6 31. h3 a5 32. Kg2 b5 33. a3 Bf2 34. Kf3 Bd4 35. cxd4 Kxd4 36. Bc7 a4 37. Kf4 Kd5 38. Kf3 c5 39. dxc5 Kxc5 40. Kf4 Kd5 41. Kf3 Ke5 1-0
+
+[Event "Havana m"]
+[Site "Havana"]
+[Date "1901.??.??"]
+[Round "5"]
+[White "Capablanca, Jose Raul"]
+[Black "Corzo y Principe, Juan"]
+[Result "1/2-1/2"]
+[ECO "C65"]
+[PlyCount "76"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. Qe2 Be7 5. d4 exd4 6. e5 Ne4 7. O-O O-O 8. Nxd4 Nxd4 9. Qxe4 Nxb5 10. Qxb5 d6 11. Re1 Be6 12. Nc3 Qd7 13. Qxd7 Bxd7 14. Bf4 Bc6 15. exd6 Bxd6 16. Bxd6 cxd6 17. Re7 Rab8 18. Rae1 Rfc8 19. Nd5 Bxd5 20. R1e5 Bc6 21. Rc5 Rxc5 22. Rxc5 Kf8 23. Kf1 Ke7 24. Ke2 Kd7 25. Kd3 Kc7 26. Kd4 Kb6 27. Rc3 d5 28. b4 a5 29. a3 axb4 30. axb4 Rd8 31. f3 Rd7 32. Kc5 Bb5 33. Rc1 Bc6 34. Rd1 Bb5 35. Rd4 Bc6 36. Rd1 Bb5 37. Rd4 Bc6 38. Rd1 Bb5 1/2-1/2
+
+[Event "Havana m"]
+[Site "Havana"]
+[Date "1901.??.??"]
+[Round "6"]
+[White "Corzo y Principe, Juan"]
+[Black "Capablanca, Jose Raul"]
+[Result "1-0"]
+[ECO "C67"]
+[PlyCount "78"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. O-O Nxe4 5. Re1 Nd6 6. Nxe5 Be7 7. Bf1 Nxe5 8. Rxe5 O-O 9. d4 Bf6 10. Re1 Re8 11. c3 Rxe1 12. Qxe1 Ne8 13. Bf4 d5 14. Nd2 g6 15. Bd3 Ng7 16. Qe2 Bf5 17. Re1 Qd7 18. Bxf5 Nxf5 19. g4 Nh4 20. Qd3 Re8 21. Rxe8+ Qxe8 22. Nf3 Qe4 23. Qxe4 dxe4 24. Nxh4 Bxh4 25. Kg2 f6 26. Kf1 Kf7 27. Ke2 Ke6 28. Ke3 Kd5 29. f3 exf3 30. Kxf3 c6 31. h3 a5 32. Kg2 b5 33. a3 Bf2 34. Kf3 Bd4 35. cxd4 Kxd4 36. Bc7 a4 37. Kf4 Kd5 38. Kf3 c5 39. dxc5 Kxc5 1-0
+
+[Event "Havana m"]
+[Site "Havana"]
+[Date "1901.??.??"]
+[Round "7"]
+[White "Capablanca, Jose Raul"]
+[Black "Corzo y Principe, Juan"]
+[Result "0-1"]
+[ECO "C65"]
+[PlyCount "96"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. Qe2 Be7 5. d4 exd4 6. e5 Ne4 7. O-O O-O 8. Nxd4 Nxd4 9. Qxe4 Nxb5 10. Qxb5 d6 11. Re1 Be6 12. Nc3 Qd7 13. Qxd7 Bxd7 14. Bf4 Bc6 15. exd6 Bxd6 16. Bxd6 cxd6 17. Re7 Rab8 18. Rae1 Rfc8 19. Nd5 Bxd5 20. R1e5 Bc6 21. Rc5 Rxc5 22. Rxc5 Kf8 23. Kf1 Ke7 24. Ke2 Kd7 25. Kd3 Kc7 26. Kd4 Kb6 27. Rc3 d5 28. b4 a5 29. a3 axb4 30. axb4 Rd8 31. f3 Rd7 32. Kc5 Bb5 33. Rc1 Bc6 34. Rd1 Bb5 35. Rd4 Bc6 36. Rd1 h6 37. h4 g5 38. hxg5 hxg5 39. Kb5 Bb7 40. Rd4 f6 41. Rf4 Rf7 42. c4 Bd5 43. cxd5 Kb7 44. Rf5 Rh7 45. d6 Rh1 46. Rxg5 Rd1 47. Rxd5 Rxd5+ 48. Kxd5 Kxd6 0-1
+
+[Event "Havana m"]
+[Site "Havana"]
+[Date "1901.??.??"]
+[Round "8"]
+[White "Corzo y Principe, Juan"]
+[Black "Capablanca, Jose Raul"]
+[Result "1/2-1/2"]
+[ECO "C67"]
+[PlyCount "128"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. O-O Nxe4 5. Re1 Nd6 6. Nxe5 Be7 7. Bf1 Nxe5 8. Rxe5 O-O 9. d4 Bf6 10. Re1 Re8 11. c3 Rxe1 12. Qxe1 Ne8 13. Bf4 d5 14. Nd2 g6 15. Bd3 Ng7 16. Qe2 Bf5 17. Re1 Qd7 18. Bxf5 Nxf5 19. g4 Nh4 20. Qd3 Re8 21. Rxe8+ Qxe8 22. Nf3 Qe4 23. Qxe4 dxe4 24. Nxh4 Bxh4 25. Kg2 f6 26. Kf1 Kf7 27. Ke2 Ke6 28. Ke3 Kd5 29. f3 exf3 30. Kxf3 c6 31. h3 a5 32. Kg2 b5 33. a3 Bf2 34. Kf3 Bd4 35. cxd4 Kxd4 36. Bc7 a4 37. Kf4 Kd5 38. Kf3 c5 39. dxc5 Kxc5 40. Kf4 Kd5 41. Kf3 Ke5 42. Bd8 Kf5 43. Bc7 h6 44. Bd8 Ke5 45. Bc7+ Kd4 46. Kf4 Kc3 47. Kf5 Kxb2 48. Kxg6 b4 49. axb4 a3 50. Bxa3+ Kxa3 51. Kxf6 Kxb4 52. g5 hxg5 53. Kxg5 Kc4 54. h4 Kd4 55. h5 Ke4 56. h6 Kf3 57. h7 Kg3 58. h8=Q Kg4 59. Qc3 Kf4 60. Qd4+ Kf3 61. Qf6+ Kg3 62. Kf5 Kh4 63. Qf4+ Kh5 64. Qg3 Kh6 1/2-1/2
+
+[Event "Havana m"]
+[Site "Havana"]
+[Date "1901.??.??"]
+[Round "9"]
+[White "Capablanca, Jose Raul"]
+[Black "Corzo y Principe, Juan"]
+[Result "1-0"]
+[ECO "C65"]
+[PlyCount "93"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. Qe2 Be7 5. d4 exd4 6. e5 Ne4 7. O-O O-O 8. Nxd4 Nxd4 9. Qxe4 Nxb5 10. Qxb5 d6 11. Re1 Be6 12. Nc3 Qd7 13. Qxd7 Bxd7 14. Bf4 Bc6 15. exd6 Bxd6 16. Bxd6 cxd6 17. Re7 Rab8 18. Rae1 Rfc8 19. Nd5 Bxd5 20. R1e5 Bc6 21. Rc5 Rxc5 22. Rxc5 Kf8 23. Kf1 Ke7 24. Ke2 Kd7 25. Kd3 b6 26. Rc3 Kc7 27. Ke3 Re8+ 28. Kf3 Re5 29. c4 h5 30. h4 Re7 31. b4 Re5 32. Kg3 Re7 33. Kf3 Re5 34. a4 a5 35. bxa5 bxa5 36. Ke3 Re7+ 37. Kd4 Re2 38. Rf3 Rxf2 39. Rxf2 f6 40. Rxf6 Kd7 41. Rxg7+ Ke6 42. Rg5 Kf6 43. Rxa5 Kg6 44. Ra6 Kf5 45. Rxc6 Kg4 46. Rxd6 Kxh4 47. Rd5 1-0
+
+[Event "Havana m"]
+[Site "Havana"]
+[Date "1901.??.??"]
+[Round "10"]
+[White "Corzo y Principe, Juan"]
+[Black "Capablanca, Jose Raul"]
+[Result "1-0"]
+[ECO "C67"]
+[PlyCount "94"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. O-O Nxe4 5. Re1 Nd6 6. Nxe5 Be7 7. Bf1 Nxe5 8. Rxe5 O-O 9. d4 Bf6 10. Re1 Re8 11. c3 Rxe1 12. Qxe1 Ne8 13. Bf4 d5 14. Nd2 g6 15. Bd3 Ng7 16. Qe2 Bf5 17. Re1 Qd7 18. Bxf5 Nxf5 19. g4 Nh4 20. Qd3 Re8 21. Rxe8+ Qxe8 22. Nf3 Qe4 23. Qxe4 dxe4 24. Nxh4 Bxh4 25. Kg2 f6 26. Kf1 Kf7 27. Ke2 Ke6 28. Ke3 Kd5 29. f3 exf3 30. Kxf3 c6 31. h3 a5 32. Kg2 b5 33. a3 Bf2 34. Kf3 Bd4 35. cxd4 Kxd4 36. Bc7 a4 37. Kf4 Kd5 38. Kf3 c5 39. dxc5 Kxc5 40. Kf4 Kd5 41. Kf3 Ke5 42. Bd8 Kf5 43. Bc7 h6 44. Bd8 Ke5 45. Bc7+ Kd4 46. Kf4 Kc3 47. Kf5 Kxb2 1-0
+
+[Event "Havana m"]
+[Site "Havana"]
+[Date "1901.??.??"]
+[Round "11"]
+[White "Capablanca, Jose Raul"]
+[Black "Corzo y Principe, Juan"]
+[Result "1-0"]
+[ECO "C65"]
+[PlyCount "83"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. Qe2 Be7 5. d4 exd4 6. e5 Ne4 7. O-O O-O 8. Nxd4 Nxd4 9. Qxe4 Nxb5 10. Qxb5 d6 11. Re1 Be6 12. Nc3 Qd7 13. Qxd7 Bxd7 14. Bf4 Bc6 15. exd6 Bxd6 16. Bxd6 cxd6 17. Re7 Rab8 18. Rae1 Rfc8 19. Nd5 Bxd5 20. R1e5 Bc6 21. Rc5 Rxc5 22. Rxc5 Kf8 23. Kf1 Ke7 24. Ke2 Kd7 25. Kd3 b6 26. Rc3 Kc7 27. Ke3 Re8+ 28. Kf3 Re5 29. c4 h5 30. h4 Re7 31. b4 Re5 32. Kg3 Re7 33. Kf3 Re5 34. a4 Re7 35. Ke3 a5 36. bxa5 bxa5 37. Kd4 Kb6 38. c5+ Kb7 39. cxd6 Rd7 40. Rc5 Rxd6+ 41. Kc4 Rd1 42. Rxa5 1-0
+
+[Event "Havana m"]
+[Site "Havana"]
+[Date "1901.??.??"]
+[Round "12"]
+[White "Corzo y Principe, Juan"]
+[Black "Capablanca, Jose Raul"]
+[Result "1/2-1/2"]
+[ECO "C67"]
+[PlyCount "88"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. O-O Nxe4 5. Re1 Nd6 6. Nxe5 Be7 7. Bf1 Nxe5 8. Rxe5 O-O 9. d4 Bf6 10. Re1 Re8 11. c3 Rxe1 12. Qxe1 Ne8 13. Bf4 d5 14. Nd2 g6 15. Bd3 Ng7 16. Qe2 Bf5 17. Re1 Qd7 18. Bxf5 Nxf5 19. g4 Nh4 20. Qd3 Re8 21. Rxe8+ Qxe8 22. Nf3 Qe4 23. Qxe4 dxe4 24. Nxh4 Bxh4 25. Kg2 f6 26. Kf1 Kf7 27. Ke2 Ke6 28. Ke3 Kd5 29. f3 exf3 30. Kxf3 c6 31. h3 a5 32. Kg2 b5 33. a3 Bf2 34. Kf3 Bd4 35. cxd4 Kxd4 36. Bc7 a4 37. Kf4 Kd5 38. Kf3 c5 39. dxc5 Kxc5 40. Kf4 Kd5 41. Kf3 Ke5 42. Bd8 Kf5 43. Bc7 h6 44. Bd8 Ke5 1/2-1/2
+
+[Event "Havana m"]
+[Site "Havana"]
+[Date "1901.??.??"]
+[Round "13"]
+[White "Capablanca, Jose Raul"]
+[Black "Corzo y Principe, Juan"]
+[Result "1-0"]
+[ECO "C65"]
+[PlyCount "119"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. Qe2 Be7 5. d4 exd4 6. e5 Ne4 7. O-O O-O 8. Nxd4 Nxd4 9. Qxe4 Nxb5 10. Qxb5 d6 11. Re1 Be6 12. Nc3 Qd7 13. Qxd7 Bxd7 14. Bf4 Bc6 15. exd6 Bxd6 16. Bxd6 cxd6 17. Re7 Rab8 18. Rae1 Rfc8 19. Nd5 Bxd5 20. R1e5 Bc6 21. Rc5 Rxc5 22. Rxc5 Kf8 23. Kf1 Ke7 24. Ke2 Kd7 25. Kd3 b6 26. Rc3 Kc7 27. Ke3 Re8+ 28. Kf3 Re5 29. c4 h5 30. h4 Re7 31. b4 Re5 32. Kg3 Re7 33. Kf3 Re5 34. a4 Re7 35. Ke3 a5 36. bxa5 bxa5 37. Kd4 Kb6 38. c5+ Kb7 39. cxd6 Rd7 40. Rc5 Rxd6+ 41. Kc4 Rd1 42. Rxa5 Rc1+ 43. Kd5 Rd1+ 44. Ke6 Re1+ 45. Kxf7 Rxa1 46. Rxh5 Rxa4 47. Kg6 Rxh4 48. Rxh4 Kc6 49. Kxg7 Kd5 50. Rh5+ Ke4 51. f3+ Kd4 52. Kf6 Kd3 53. g4 Ke3 54. Ke5 Kxf3 55. Kf5 Kg3 56. g5 Kg2 57. g6 Kf2 58. Kf6 Kf3 59. Kf7 Kg4 60. Rh1 1-0
