@@ -2905,7 +2905,15 @@ function loadInsightProfile() {
         if (saved) {
             insightProfile = JSON.parse(saved);
             console.log('✅ Profile loaded:', insightProfile);
-            // TODO: Display saved profile in modal
+
+            // Display saved profile in modal
+            displayInsightResults(insightProfile);
+
+            // Also populate the textarea with the raw PGN for potential refresh
+            const pgnInput = document.getElementById('insightPgnInput');
+            if (pgnInput && insightProfile.rawText) {
+                pgnInput.value = insightProfile.rawText;
+            }
         } else {
             console.log('ℹ️ No saved profile found');
         }
@@ -3358,9 +3366,30 @@ function setupInsightModal() {
                 showErrorNotification('No PGN content to analyze');
                 return;
             }
+
             console.log('🔄 Recalculating profile...');
-            // TODO: Recalculate profile
-            showNotification('Recalculating... (Phase 2 implementation pending)');
+
+            try {
+                // Re-parse PGN
+                const parsedData = parseMultiGamePGN(pgnText);
+
+                if (parsedData.stats.total === 0) {
+                    showErrorNotification('No valid games found in PGN');
+                    return;
+                }
+
+                // Save updated profile
+                insightProfile = parsedData;
+                saveInsightProfile(parsedData);
+
+                // Re-display results (this will recalculate metrics, radar, and narrative)
+                displayInsightResults(parsedData);
+                showNotification(`Profile refreshed! Analyzed ${parsedData.stats.total} games.`);
+
+            } catch (error) {
+                console.error('❌ Failed to refresh profile:', error);
+                showErrorNotification('Failed to refresh. Please check the PGN format.');
+            }
         });
     }
 
@@ -3371,9 +3400,44 @@ function setupInsightModal() {
                 showErrorNotification('No profile to export');
                 return;
             }
+
             console.log('📥 Exporting profile...');
-            // TODO: Export as JSON/PDF (Phase 5)
-            showNotification('Export feature coming soon...');
+
+            try {
+                // Create export data (exclude rawText to reduce size)
+                const exportData = {
+                    timestamp: new Date().toISOString(),
+                    stats: insightProfile.stats,
+                    gamesAnalyzed: insightProfile.stats.total,
+                    metrics: calculateRadarMetrics(insightProfile),
+                    openings: insightProfile.stats.openings
+                };
+
+                // Create JSON blob
+                const json = JSON.stringify(exportData, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+
+                // Create download link
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+
+                // Generate filename with date
+                const date = new Date().toISOString().split('T')[0];
+                link.download = `caissa-insight-${date}.json`;
+
+                // Trigger download
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                showNotification('Profile exported successfully!');
+
+            } catch (error) {
+                console.error('❌ Failed to export profile:', error);
+                showErrorNotification('Failed to export profile.');
+            }
         });
     }
 
