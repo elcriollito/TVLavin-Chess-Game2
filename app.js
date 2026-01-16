@@ -1409,6 +1409,9 @@ function setupEventListeners() {
     // Embed Modal
     setupEmbedModal();
 
+    // Caissa Insight Modal
+    setupInsightModal();
+
     // Board Editor
     setupBoardEditor();
 
@@ -1590,12 +1593,18 @@ function setupMenuModal() {
         showNotification('Analysis mode: Use navigation buttons to explore the game');
     });
     
+    document.getElementById('menuCaissaInsight').addEventListener('click', () => {
+        hideModal('menuModal');
+        showModal('insightModal');
+        loadInsightProfile(); // Load saved profile if exists
+    });
+
     document.getElementById('menuEmbed').addEventListener('click', () => {
         hideModal('menuModal');
         showModal('embedModal');
         generateEmbedCode();
     });
-    
+
     document.getElementById('menuExportPGN').addEventListener('click', () => {
         exportPGN();
         hideModal('menuModal');
@@ -2780,6 +2789,112 @@ window.addEventListener('unhandledrejection', (e) => {
     showErrorNotification('An error occurred while processing your request.');
     return false;
 });
+
+// ===== CAISSA INSIGHT MODULE =====
+
+// Insight state
+let insightProfile = null;
+
+// Load saved insight profile from localStorage
+function loadInsightProfile() {
+    console.log('📊 Loading Caissa Insight profile...');
+    try {
+        const saved = localStorage.getItem('caissa_insight_profile');
+        if (saved) {
+            insightProfile = JSON.parse(saved);
+            console.log('✅ Profile loaded:', insightProfile);
+            // TODO: Display saved profile in modal
+        } else {
+            console.log('ℹ️ No saved profile found');
+        }
+    } catch (error) {
+        console.error('❌ Failed to load insight profile:', error);
+    }
+}
+
+// Save insight profile to localStorage
+function saveInsightProfile(profile) {
+    console.log('💾 Saving Caissa Insight profile...');
+    try {
+        localStorage.setItem('caissa_insight_profile', JSON.stringify(profile));
+        insightProfile = profile;
+        console.log('✅ Profile saved successfully');
+    } catch (error) {
+        console.error('❌ Failed to save insight profile:', error);
+        showErrorNotification('Failed to save your profile');
+    }
+}
+
+// Setup Caissa Insight modal event listeners
+function setupInsightModal() {
+    const analyzeBtn = document.getElementById('insightAnalyzeBtn');
+    const pgnInput = document.getElementById('insightPgnInput');
+    const pgnFile = document.getElementById('insightPgnFile');
+    const fileNameDisplay = document.getElementById('insightFileName');
+    const refreshBtn = document.getElementById('insightRefreshBtn');
+    const exportBtn = document.getElementById('insightExportBtn');
+
+    if (!analyzeBtn) {
+        console.warn('⚠️ Insight modal elements not found');
+        return;
+    }
+
+    // File upload handler
+    pgnFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                pgnInput.value = event.target.result;
+                fileNameDisplay.textContent = file.name;
+                console.log('📁 PGN file loaded:', file.name);
+            };
+            reader.readAsText(file);
+        }
+    });
+
+    // Analyze button handler
+    analyzeBtn.addEventListener('click', () => {
+        const pgnText = pgnInput.value.trim();
+        if (!pgnText) {
+            showErrorNotification('Please paste PGN content or load a file');
+            return;
+        }
+
+        console.log('🧠 Analyzing PGN...');
+        // TODO: Parse and analyze PGN (Phase 2)
+        showNotification('Analysis starting... (Phase 2 implementation pending)');
+    });
+
+    // Refresh button handler
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            const pgnText = pgnInput.value.trim();
+            if (!pgnText) {
+                showErrorNotification('No PGN content to analyze');
+                return;
+            }
+            console.log('🔄 Recalculating profile...');
+            // TODO: Recalculate profile
+            showNotification('Recalculating... (Phase 2 implementation pending)');
+        });
+    }
+
+    // Export button handler
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            if (!insightProfile) {
+                showErrorNotification('No profile to export');
+                return;
+            }
+            console.log('📥 Exporting profile...');
+            // TODO: Export as JSON/PDF (Phase 5)
+            showNotification('Export feature coming soon...');
+        });
+    }
+
+    console.log('✅ Caissa Insight modal setup complete');
+}
 
 // ===== PERFORMANCE MONITORING =====
 console.log('CAISSA Chess loaded successfully');

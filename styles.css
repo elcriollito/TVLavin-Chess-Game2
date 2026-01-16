@@ -1542,3 +1542,212 @@ button:focus,
 .pgn-info strong {
     color: var(--primary-color);
 }
+
+/* ===== CAISSA INSIGHT MODULE ===== */
+
+/* Larger modal for Insight */
+.modal-large {
+    max-width: 900px;
+    width: 90%;
+}
+
+/* Insight intro section */
+.insight-intro {
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(33, 150, 243, 0.1));
+    border-left: 4px solid var(--primary-color);
+    border-radius: 4px;
+}
+
+.insight-description {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.insight-description i {
+    color: var(--primary-color);
+    margin-right: 8px;
+}
+
+/* Insight sections */
+.insight-section {
+    margin-bottom: var(--spacing-lg);
+}
+
+.insight-section h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.insight-section h3 i {
+    color: var(--primary-color);
+}
+
+/* PGN textarea */
+.insight-textarea {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 150px;
+}
+
+/* File input styling */
+.insight-file-input {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.file-name-display {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Insight actions */
+.insight-actions {
+    margin-top: var(--spacing-lg);
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.insight-actions .btn {
+    flex: 1;
+    min-width: 150px;
+}
+
+/* Stats grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.stat-card {
+    background: var(--bg-primary);
+    padding: var(--spacing-md);
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.stat-card .stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary-color);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.stat-card .stat-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Radar chart container */
+.insight-radar-container {
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background: var(--bg-primary);
+    border-radius: 4px;
+    text-align: center;
+}
+
+.insight-radar-container canvas {
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+}
+
+/* Narrative section */
+.insight-narrative {
+    margin-top: var(--spacing-lg);
+}
+
+.narrative-content {
+    background: var(--bg-primary);
+    padding: var(--spacing-lg);
+    border-radius: 4px;
+    border-left: 4px solid var(--primary-color);
+    line-height: 1.8;
+    font-size: 14px;
+}
+
+.narrative-content h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-top: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.narrative-content h4:first-child {
+    margin-top: 0;
+}
+
+.narrative-content ul {
+    margin: var(--spacing-sm) 0;
+    padding-left: var(--spacing-lg);
+}
+
+.narrative-content li {
+    margin: var(--spacing-xs) 0;
+}
+
+/* Responsive design for Insight modal */
+@media (max-width: 768px) {
+    .modal-large {
+        width: 95%;
+        max-width: none;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .insight-actions {
+        flex-direction: column;
+    }
+
+    .insight-actions .btn {
+        width: 100%;
+    }
+
+    .insight-radar-container canvas {
+        width: 100%;
+        height: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .insight-intro {
+        padding: var(--spacing-sm);
+    }
+
+    .insight-description {
+        font-size: 14px;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-card .stat-value {
+        font-size: 20px;
+    }
+}

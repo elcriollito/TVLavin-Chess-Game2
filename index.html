@@ -500,6 +500,9 @@
                 
                 <div class="menu-section">
                     <h3>Advanced</h3>
+                    <button class="btn btn-block" id="menuCaissaInsight">
+                        <i class="fas fa-chart-radar"></i> Caissa Insight
+                    </button>
                     <button class="btn btn-block" id="menuEmbed">
                         <i class="fas fa-code"></i> Get Embed Code
                     </button>
@@ -628,6 +631,105 @@
                         <span>Knight</span>
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Caissa Insight Modal -->
+    <div id="insightModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2><i class="fas fa-chess-knight"></i> Caissa Insight</h2>
+                <button class="modal-close" data-modal="insightModal" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="insight-intro">
+                    <p class="insight-description">
+                        <i class="fas fa-magic"></i>
+                        Descubre tu perfil de juego analizando tus partidas.
+                        Caissa te revelará tus fortalezas, debilidades y caminos de mejora.
+                    </p>
+                </div>
+
+                <!-- Import PGN Section -->
+                <div class="insight-section" id="insightImportSection">
+                    <h3><i class="fas fa-file-import"></i> Importar Partidas</h3>
+                    <div class="form-group">
+                        <label for="insightPgnInput">
+                            Pega aquí el contenido PGN (una o múltiples partidas):
+                        </label>
+                        <textarea
+                            id="insightPgnInput"
+                            class="form-control insight-textarea"
+                            placeholder="[Event &quot;Casual Game&quot;]
+[Site &quot;?&quot;]
+[Date &quot;2024.01.15&quot;]
+[White &quot;Player1&quot;]
+[Black &quot;Player2&quot;]
+[Result &quot;1-0&quot;]
+
+1. e4 e5 2. Nf3 Nc6..."
+                            rows="8"
+                            aria-label="PGN text input"
+                        ></textarea>
+                        <small class="form-text">
+                            También puedes cargar un archivo .pgn desde tu disco
+                        </small>
+                    </div>
+
+                    <div class="insight-file-input">
+                        <label for="insightPgnFile" class="btn btn-secondary">
+                            <i class="fas fa-folder-open"></i> Cargar archivo .pgn
+                        </label>
+                        <input
+                            type="file"
+                            id="insightPgnFile"
+                            accept=".pgn"
+                            style="display: none;"
+                            aria-label="Upload PGN file"
+                        />
+                        <span id="insightFileName" class="file-name-display"></span>
+                    </div>
+
+                    <div class="insight-actions">
+                        <button id="insightAnalyzeBtn" class="btn btn-primary btn-block">
+                            <i class="fas fa-brain"></i> Analizar Perfil
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Results Section (hidden initially) -->
+                <div class="insight-section insight-results" id="insightResultsSection" style="display: none;">
+                    <div class="insight-stats-summary">
+                        <h3><i class="fas fa-chart-bar"></i> Resumen de Partidas</h3>
+                        <div id="insightStatsSummary" class="stats-grid">
+                            <!-- Stats will be inserted here via JS -->
+                        </div>
+                    </div>
+
+                    <div class="insight-radar-container">
+                        <h3><i class="fas fa-radar"></i> Tu Perfil de Juego</h3>
+                        <canvas id="insightRadarChart" width="400" height="400"></canvas>
+                    </div>
+
+                    <div class="insight-narrative">
+                        <h3><i class="fas fa-scroll"></i> Análisis de Caissa</h3>
+                        <div id="insightNarrative" class="narrative-content">
+                            <!-- Narrative will be inserted here -->
+                        </div>
+                    </div>
+
+                    <div class="insight-actions">
+                        <button id="insightRefreshBtn" class="btn btn-secondary">
+                            <i class="fas fa-sync-alt"></i> Recalcular
+                        </button>
+                        <button id="insightExportBtn" class="btn btn-secondary">
+                            <i class="fas fa-download"></i> Exportar Reporte
+                        </button>
+                    </div>
+                </div>
+
+                <div id="insightError" class="error-message" style="display: none;"></div>
             </div>
         </div>
     </div>
