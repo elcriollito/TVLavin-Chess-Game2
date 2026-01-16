@@ -1404,8 +1404,8 @@ function setupEventListeners() {
     // Engine vs Engine
     setupEngineVsEngine();
 
-    // Modal close buttons
-    document.querySelectorAll('.modal-close').forEach(btn => {
+    // Modal close buttons (X buttons and "Close" buttons)
+    document.querySelectorAll('.modal-close, button[data-modal]').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
