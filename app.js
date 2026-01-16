@@ -2596,8 +2596,13 @@ function setupEngineVsEngine() {
     }
 
     console.log('✅ Setting up Engine vs Engine button');
-    App.elements.engineVsEngineBtn.addEventListener('click', async (e) => {
-        console.log('🤖 Engine vs Engine button clicked');
+    console.log('📍 Button element:', App.elements.engineVsEngineBtn);
+    console.log('📍 Button visible:', App.elements.engineVsEngineBtn.offsetParent !== null);
+    console.log('📍 Button computed style:', window.getComputedStyle(App.elements.engineVsEngineBtn).display);
+
+    // Add both click and touchend for better mobile support
+    const handleEveClick = async (e) => {
+        console.log('🤖 Engine vs Engine button clicked/touched');
         e.preventDefault();
         e.stopPropagation();
         try {
@@ -2606,7 +2611,10 @@ function setupEngineVsEngine() {
             console.error('❌ Error toggling Engine vs Engine mode:', error);
             showErrorNotification('Failed to start Engine vs Engine mode');
         }
-    });
+    };
+
+    App.elements.engineVsEngineBtn.addEventListener('click', handleEveClick);
+    App.elements.engineVsEngineBtn.addEventListener('touchend', handleEveClick, { passive: false });
 
     // Pause button
     App.elements.pauseEve.addEventListener('click', () => {
