@@ -2927,6 +2927,184 @@ function saveInsightProfile(profile) {
     }
 }
 
+// Calculate 8-dimensional radar metrics (0-100 scale)
+function calculateRadarMetrics(data) {
+    console.log('🧮 Calculating radar metrics...');
+
+    if (!data.games || data.games.length === 0) {
+        return Array(8).fill(0);
+    }
+
+    const games = data.games;
+    const total = games.length;
+
+    // 1. TACTICS - Based on short decisive games (<40 moves with wins)
+    const shortWins = games.filter(g =>
+        g.plyCount < 80 && (g.outcome === 'white-win' || g.outcome === 'black-win')
+    ).length;
+    const tacticsScore = Math.min(100, (shortWins / total) * 200);
+
+    // 2. STRATEGY - Based on long games (>60 moves)
+    const longGames = games.filter(g => g.plyCount > 120).length;
+    const strategyScore = Math.min(100, (longGames / total) * 150);
+
+    // 3. OPENING - ECO diversity + games with ECO defined
+    const ecoCount = Object.keys(data.stats.openings).length;
+    const gamesWithEco = games.filter(g => g.headers.eco).length;
+    const openingScore = Math.min(100, (ecoCount * 15) + ((gamesWithEco / total) * 40));
+
+    // 4. ENDGAME - Games reaching >40 moves
+    const endgames = games.filter(g => g.plyCount > 80).length;
+    const endgameScore = Math.min(100, (endgames / total) * 120);
+
+    // 5. PRECISION - Win rate in decisive games
+    const decisiveGames = games.filter(g =>
+        g.outcome === 'white-win' || g.outcome === 'black-win'
+    ).length;
+    const draws = games.filter(g => g.outcome === 'draw').length;
+    const precisionScore = decisiveGames > 0
+        ? Math.min(100, ((decisiveGames - draws) / total) * 100 + 30)
+        : 30;
+
+    // 6. AGGRESSION - Inverse of average ply count (shorter = more aggressive)
+    const avgPly = data.stats.avgPlyCount || 80;
+    const aggressionScore = Math.max(0, Math.min(100, 150 - avgPly * 0.8));
+
+    // 7. DEFENSE - Draw percentage
+    const defenseScore = Math.min(100, (draws / total) * 200);
+
+    // 8. CONSISTENCY - Inverse of standard deviation (lower stddev = more consistent)
+    const plyCounts = games.map(g => g.plyCount);
+    const mean = plyCounts.reduce((a, b) => a + b, 0) / plyCounts.length;
+    const variance = plyCounts.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / plyCounts.length;
+    const stdDev = Math.sqrt(variance);
+    const consistencyScore = Math.max(0, Math.min(100, 100 - stdDev * 0.5));
+
+    const metrics = [
+        tacticsScore,
+        strategyScore,
+        openingScore,
+        endgameScore,
+        precisionScore,
+        aggressionScore,
+        defenseScore,
+        consistencyScore
+    ];
+
+    console.log('📊 Radar metrics calculated:', metrics);
+    return metrics;
+}
+
+// Render radar chart on canvas
+function renderRadarChart(canvasId, metrics) {
+    console.log('🎨 Rendering radar chart...');
+
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) {
+        console.error('❌ Canvas not found:', canvasId);
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = Math.min(width, height) * 0.35;
+
+    const labels = [
+        'Tactics',
+        'Strategy',
+        'Opening',
+        'Endgame',
+        'Precision',
+        'Aggression',
+        'Defense',
+        'Consistency'
+    ];
+
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+
+    // Draw grid circles (background)
+    ctx.strokeStyle = '#dfe6e9';
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 5; i++) {
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, (radius * i) / 5, 0, 2 * Math.PI);
+        ctx.stroke();
+    }
+
+    // Draw axes
+    ctx.strokeStyle = '#b2bec3';
+    ctx.lineWidth = 1;
+    const angleStep = (2 * Math.PI) / 8;
+
+    for (let i = 0; i < 8; i++) {
+        const angle = angleStep * i - Math.PI / 2;
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+    }
+
+    // Draw labels
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = 'bold 13px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for (let i = 0; i < 8; i++) {
+        const angle = angleStep * i - Math.PI / 2;
+        const labelRadius = radius + 30;
+        const x = centerX + labelRadius * Math.cos(angle);
+        const y = centerY + labelRadius * Math.sin(angle);
+
+        ctx.fillText(labels[i], x, y);
+    }
+
+    // Draw data polygon
+    ctx.beginPath();
+    ctx.strokeStyle = '#2c5f9e';
+    ctx.fillStyle = 'rgba(44, 95, 158, 0.2)';
+    ctx.lineWidth = 3;
+
+    for (let i = 0; i < 8; i++) {
+        const angle = angleStep * i - Math.PI / 2;
+        const value = metrics[i] / 100; // Normalize to 0-1
+        const x = centerX + radius * value * Math.cos(angle);
+        const y = centerY + radius * value * Math.sin(angle);
+
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Draw data points
+    ctx.fillStyle = '#2c5f9e';
+    for (let i = 0; i < 8; i++) {
+        const angle = angleStep * i - Math.PI / 2;
+        const value = metrics[i] / 100;
+        const x = centerX + radius * value * Math.cos(angle);
+        const y = centerY + radius * value * Math.sin(angle);
+
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, 2 * Math.PI);
+        ctx.fill();
+    }
+
+    console.log('✅ Radar chart rendered');
+}
+
 // Display insight analysis results in the modal
 function displayInsightResults(data) {
     console.log('📊 Displaying insight results...');
@@ -2979,6 +3157,10 @@ function displayInsightResults(data) {
             <div class="stat-value">${Object.keys(data.stats.openings).length}</div>
         </div>
     `;
+
+    // Calculate and render radar chart
+    const metrics = calculateRadarMetrics(data);
+    renderRadarChart('insightRadarChart', metrics);
 
     console.log('✅ Results displayed');
 }
