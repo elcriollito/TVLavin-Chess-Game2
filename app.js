@@ -2623,6 +2623,108 @@ function parsePGN(pgnText) {
     return data;
 }
 
+// Parse multi-game PGN and extract aggregate statistics
+function parseMultiGamePGN(pgnText) {
+    console.log('🔍 Parsing multi-game PGN...');
+
+    // Split by [Event header to detect multiple games
+    const gameSections = pgnText.split(/(?=\[Event\s+")/);
+    const games = [];
+    const stats = {
+        total: 0,
+        wins: 0,
+        losses: 0,
+        draws: 0,
+        avgPlyCount: 0,
+        openings: {} // ECO code counts
+    };
+
+    let totalPlies = 0;
+
+    for (const section of gameSections) {
+        const trimmed = section.trim();
+        if (!trimmed || !trimmed.startsWith('[Event')) continue;
+
+        // Extract headers
+        const headers = {};
+        const headerMatches = {
+            event: /\[Event\s+"([^"]+)"\]/,
+            site: /\[Site\s+"([^"]+)"\]/,
+            date: /\[Date\s+"([^"]+)"\]/,
+            white: /\[White\s+"([^"]+)"\]/,
+            black: /\[Black\s+"([^"]+)"\]/,
+            result: /\[Result\s+"([^"]+)"\]/,
+            eco: /\[ECO\s+"([^"]+)"\]/,
+            timeControl: /\[TimeControl\s+"([^"]+)"\]/
+        };
+
+        for (const [key, regex] of Object.entries(headerMatches)) {
+            const match = trimmed.match(regex);
+            if (match) headers[key] = match[1];
+        }
+
+        // Parse moves using Chess.js
+        let moves = [];
+        let plyCount = 0;
+        try {
+            const chess = new Chess();
+            const loaded = chess.load_pgn(trimmed);
+            if (loaded) {
+                moves = chess.history();
+                plyCount = moves.length;
+            }
+        } catch (error) {
+            console.warn('⚠️ Failed to parse moves for game:', headers.event, error);
+        }
+
+        // Determine outcome
+        let outcome = 'unknown';
+        let userColor = 'unknown';
+
+        if (headers.result) {
+            if (headers.result === '1-0') {
+                outcome = 'white-win';
+            } else if (headers.result === '0-1') {
+                outcome = 'black-win';
+            } else if (headers.result === '1/2-1/2') {
+                outcome = 'draw';
+            }
+        }
+
+        // Store game data
+        games.push({
+            headers,
+            moves,
+            plyCount,
+            outcome,
+            userColor
+        });
+
+        // Update stats
+        stats.total++;
+        totalPlies += plyCount;
+
+        // Count openings
+        if (headers.eco) {
+            stats.openings[headers.eco] = (stats.openings[headers.eco] || 0) + 1;
+        }
+    }
+
+    // Calculate average ply count
+    if (stats.total > 0) {
+        stats.avgPlyCount = Math.round(totalPlies / stats.total);
+    }
+
+    console.log(`✅ Parsed ${stats.total} games`);
+    console.log('📊 Stats:', stats);
+
+    return {
+        games,
+        stats,
+        rawText: pgnText
+    };
+}
+
 // Setup Engine vs Engine event listeners
 function setupEngineVsEngine() {
     // Engine vs Engine button in header (kept for quick access)
@@ -2825,6 +2927,62 @@ function saveInsightProfile(profile) {
     }
 }
 
+// Display insight analysis results in the modal
+function displayInsightResults(data) {
+    console.log('📊 Displaying insight results...');
+
+    const importSection = document.getElementById('insightImportSection');
+    const resultsSection = document.getElementById('insightResultsSection');
+    const statsSummary = document.getElementById('insightStatsSummary');
+
+    if (!resultsSection || !statsSummary) {
+        console.error('❌ Results elements not found');
+        return;
+    }
+
+    // Hide import section, show results
+    if (importSection) importSection.style.display = 'none';
+    resultsSection.style.display = 'block';
+
+    // Calculate wins/losses/draws
+    let wins = 0, losses = 0, draws = 0;
+    data.games.forEach(game => {
+        if (game.outcome === 'draw') {
+            draws++;
+        } else if (game.outcome === 'white-win' || game.outcome === 'black-win') {
+            // For now, count all decisive games (Phase 3+ will determine user color)
+            if (game.outcome === 'white-win') wins++;
+            else losses++;
+        }
+    });
+
+    // Display basic statistics
+    statsSummary.innerHTML = `
+        <div class="stat-card">
+            <div class="stat-label">Total Games</div>
+            <div class="stat-value">${data.stats.total}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Avg Game Length</div>
+            <div class="stat-value">${data.stats.avgPlyCount} moves</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Decisive Games</div>
+            <div class="stat-value">${wins + losses}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Draws</div>
+            <div class="stat-value">${draws}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Openings Found</div>
+            <div class="stat-value">${Object.keys(data.stats.openings).length}</div>
+        </div>
+    `;
+
+    console.log('✅ Results displayed');
+}
+
 // Setup Caissa Insight modal event listeners
 function setupInsightModal() {
     const analyzeBtn = document.getElementById('insightAnalyzeBtn');
@@ -2862,8 +3020,28 @@ function setupInsightModal() {
         }
 
         console.log('🧠 Analyzing PGN...');
-        // TODO: Parse and analyze PGN (Phase 2)
-        showNotification('Analysis starting... (Phase 2 implementation pending)');
+
+        try {
+            // Parse multi-game PGN
+            const parsedData = parseMultiGamePGN(pgnText);
+
+            if (parsedData.stats.total === 0) {
+                showErrorNotification('No valid games found in PGN');
+                return;
+            }
+
+            // Save to profile
+            insightProfile = parsedData;
+            saveInsightProfile(parsedData);
+
+            // Display results
+            displayInsightResults(parsedData);
+            showNotification(`Analysis complete! Parsed ${parsedData.stats.total} games.`);
+
+        } catch (error) {
+            console.error('❌ Failed to parse PGN:', error);
+            showErrorNotification('Failed to parse PGN. Please check the format.');
+        }
     });
 
     // Refresh button handler
