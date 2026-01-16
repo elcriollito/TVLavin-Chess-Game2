@@ -1405,9 +1405,12 @@ function setupEventListeners() {
     setupEngineVsEngine();
 
     // Modal close buttons
-    document.querySelectorAll('.modal-close, [data-modal]').forEach(btn => {
+    document.querySelectorAll('.modal-close').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const modalId = e.target.dataset.modal || e.target.closest('[data-modal]').dataset.modal;
+            e.preventDefault();
+            e.stopPropagation();
+            const modalId = btn.dataset.modal || btn.getAttribute('data-modal');
+            console.log('Close button clicked, modal:', modalId);
             if (modalId) {
                 hideModal(modalId);
             }
@@ -1946,35 +1949,51 @@ function generateFENFromPosition(position) {
 
 // ===== ENGINE VS ENGINE MODE =====
 async function toggleEngineVsEngineMode() {
+    console.log('🔄 Toggling Engine vs Engine mode. Current state:', App.eveMode);
     App.eveMode = !App.eveMode;
+    console.log('🔄 New state:', App.eveMode);
 
     if (App.eveMode) {
+        console.log('✅ Entering Engine vs Engine mode...');
         await enterEngineVsEngineMode();
     } else {
+        console.log('❌ Exiting Engine vs Engine mode...');
         exitEngineVsEngineMode();
     }
 }
 
 async function enterEngineVsEngineMode() {
-    console.log('🤖 Entering Engine vs Engine mode (external quick button)');
-    console.log('🤖 Current position:', App.game.fen());
+    try {
+        console.log('🤖 Entering Engine vs Engine mode (external quick button)');
+        console.log('🤖 Current position:', App.game.fen());
 
-    // Stop analysis if running
-    if (App.analyzing) {
-        stopAnalysis();
+        // Stop analysis if running
+        if (App.analyzing) {
+            console.log('🛑 Stopping analysis first...');
+            stopAnalysis();
+        }
+
+        // Show EvE panel, hide other panels
+        console.log('🎨 Updating UI panels...');
+        App.elements.evePanel.style.display = 'block';
+        document.querySelector('.engine-panel').style.display = 'none';
+        document.querySelector('.actions-panel').style.display = 'none';
+
+        // Automatically start engines from current position (QUICK START)
+        // This is different from "New Game → Engine vs Engine" which resets to startpos
+        showNotification('Engine vs Engine: Starting from current position...');
+
+        // Auto-start the engines from current board position
+        console.log('🚀 Starting engines...');
+        await startEngineVsEngine();
+        console.log('✅ Engines started successfully');
+    } catch (error) {
+        console.error('❌ Error in enterEngineVsEngineMode:', error);
+        showErrorNotification('Failed to enter Engine vs Engine mode');
+        // Revert state
+        App.eveMode = false;
+        throw error;
     }
-
-    // Show EvE panel, hide other panels
-    App.elements.evePanel.style.display = 'block';
-    document.querySelector('.engine-panel').style.display = 'none';
-    document.querySelector('.actions-panel').style.display = 'none';
-
-    // Automatically start engines from current position (QUICK START)
-    // This is different from "New Game → Engine vs Engine" which resets to startpos
-    showNotification('Engine vs Engine: Starting from current position...');
-
-    // Auto-start the engines from current board position
-    await startEngineVsEngine();
 }
 
 function exitEngineVsEngineMode() {
@@ -2562,8 +2581,22 @@ function parsePGN(pgnText) {
 // Setup Engine vs Engine event listeners
 function setupEngineVsEngine() {
     // Engine vs Engine button in header (kept for quick access)
-    App.elements.engineVsEngineBtn.addEventListener('click', () => {
-        toggleEngineVsEngineMode();
+    if (!App.elements.engineVsEngineBtn) {
+        console.error('❌ Engine vs Engine button not found in DOM!');
+        return;
+    }
+
+    console.log('✅ Setting up Engine vs Engine button');
+    App.elements.engineVsEngineBtn.addEventListener('click', async (e) => {
+        console.log('🤖 Engine vs Engine button clicked');
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+            await toggleEngineVsEngineMode();
+        } catch (error) {
+            console.error('❌ Error toggling Engine vs Engine mode:', error);
+            showErrorNotification('Failed to start Engine vs Engine mode');
+        }
     });
 
     // Pause button
