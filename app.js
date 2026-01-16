@@ -190,7 +190,7 @@ function cacheElements() {
         promotionModal: document.getElementById('promotionModal'),
 
         // Board Editor
-        editBoardBtn: document.getElementById('editBoardBtn'),
+        // editBoardBtn removed - now only accessible via Menu → Edit Board
         editorPanel: document.getElementById('editorPanel'),
         exitEditor: document.getElementById('exitEditor'),
         clearBoard: document.getElementById('clearBoard'),
@@ -1631,15 +1631,15 @@ function generateEmbedCode() {
 
 // ===== BOARD EDITOR SETUP =====
 function setupBoardEditor() {
-    // Edit Board button in header
-    App.elements.editBoardBtn.addEventListener('click', () => {
-        toggleEditMode();
-    });
+    // Edit Board button removed from header - now only in Menu
+    // Event listener for Menu → Edit Board is set up in setupEventListeners()
 
     // Exit Editor button
-    App.elements.exitEditor.addEventListener('click', () => {
-        exitEditMode();
-    });
+    if (App.elements.exitEditor) {
+        App.elements.exitEditor.addEventListener('click', () => {
+            exitEditMode();
+        });
+    }
 
     // Piece palette buttons
     document.querySelectorAll('.piece-btn').forEach(btn => {
@@ -1650,27 +1650,36 @@ function setupBoardEditor() {
     });
 
     // Clear board button
-    App.elements.clearBoard.addEventListener('click', () => {
-        clearBoardEditor();
-    });
+    if (App.elements.clearBoard) {
+        App.elements.clearBoard.addEventListener('click', () => {
+            clearBoardEditor();
+        });
+    }
 
     // Reset to start button
-    App.elements.resetToStart.addEventListener('click', () => {
-        resetBoardEditor();
-    });
+    if (App.elements.resetToStart) {
+        App.elements.resetToStart.addEventListener('click', () => {
+            resetBoardEditor();
+        });
+    }
 
     // Apply position button
-    App.elements.applyPosition.addEventListener('click', () => {
-        applyEditorPosition();
-    });
+    if (App.elements.applyPosition) {
+        App.elements.applyPosition.addEventListener('click', () => {
+            applyEditorPosition();
+        });
+    }
 
     // Clear All button (completely empty board)
-    document.getElementById('clearAllBtn').addEventListener('click', () => {
-        if (confirm('Clear all pieces from the board?')) {
-            App.board.position({});
-            showNotification('Board cleared');
-        }
-    });
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', () => {
+            if (confirm('Clear all pieces from the board?')) {
+                App.board.position({});
+                showNotification('Board cleared');
+            }
+        });
+    }
 
     // Board square click handler for piece placement
     // We'll attach this to the board div and delegate to square clicks
