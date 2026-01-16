@@ -158,113 +158,112 @@
                         </button>
                     </div>
                     <div class="editor-content">
-                        <!-- Piece Palette -->
-                        <div class="piece-palette">
-                            <h4 class="palette-title">Select Piece:</h4>
-                            <!-- White Pieces Row -->
-                            <div class="palette-row">
-                                <span class="palette-row-label">White:</span>
-                                <button class="piece-btn" data-piece="wP" title="White Pawn">
-                                    <img src="img/chesspieces/wikipedia/wP.png" alt="White Pawn">
-                                </button>
-                                <button class="piece-btn" data-piece="wN" title="White Knight">
-                                    <img src="img/chesspieces/wikipedia/wN.png" alt="White Knight">
-                                </button>
-                                <button class="piece-btn" data-piece="wB" title="White Bishop">
-                                    <img src="img/chesspieces/wikipedia/wB.png" alt="White Bishop">
-                                </button>
-                                <button class="piece-btn" data-piece="wR" title="White Rook">
-                                    <img src="img/chesspieces/wikipedia/wR.png" alt="White Rook">
-                                </button>
-                                <button class="piece-btn" data-piece="wQ" title="White Queen">
-                                    <img src="img/chesspieces/wikipedia/wQ.png" alt="White Queen">
-                                </button>
-                                <button class="piece-btn" data-piece="wK" title="White King">
-                                    <img src="img/chesspieces/wikipedia/wK.png" alt="White King">
-                                </button>
-                            </div>
-                            <!-- Black Pieces Row -->
-                            <div class="palette-row">
-                                <span class="palette-row-label">Black:</span>
-                                <button class="piece-btn" data-piece="bP" title="Black Pawn">
-                                    <img src="img/chesspieces/wikipedia/bP.png" alt="Black Pawn">
-                                </button>
-                                <button class="piece-btn" data-piece="bN" title="Black Knight">
-                                    <img src="img/chesspieces/wikipedia/bN.png" alt="Black Knight">
-                                </button>
-                                <button class="piece-btn" data-piece="bB" title="Black Bishop">
-                                    <img src="img/chesspieces/wikipedia/bB.png" alt="Black Bishop">
-                                </button>
-                                <button class="piece-btn" data-piece="bR" title="Black Rook">
-                                    <img src="img/chesspieces/wikipedia/bR.png" alt="Black Rook">
-                                </button>
-                                <button class="piece-btn" data-piece="bQ" title="Black Queen">
-                                    <img src="img/chesspieces/wikipedia/bQ.png" alt="Black Queen">
-                                </button>
-                                <button class="piece-btn" data-piece="bK" title="Black King">
-                                    <img src="img/chesspieces/wikipedia/bK.png" alt="Black King">
-                                </button>
-                            </div>
-                            <!-- Tools Row -->
-                            <div class="palette-row palette-tools">
-                                <button class="piece-btn piece-btn-tool" data-piece="move" title="Move/Adjust Piece">
-                                    <i class="fas fa-hand-pointer"></i>
-                                </button>
-                                <button class="piece-btn piece-btn-tool active" data-piece="erase" title="Eraser">
-                                    <i class="fas fa-eraser"></i>
-                                </button>
-                                <button class="piece-btn piece-btn-tool" id="clearAllBtn" title="Clear All">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Position Controls -->
-                        <div class="position-controls">
-                            <div class="form-group">
-                                <label>Side to Move:</label>
-                                <div class="radio-group">
-                                    <label class="radio-label">
-                                        <input type="radio" name="sideToMove" value="w" checked>
-                                        <i class="fas fa-chess-king"></i> White
-                                    </label>
-                                    <label class="radio-label">
-                                        <input type="radio" name="sideToMove" value="b">
-                                        <i class="fas fa-chess-king"></i> Black
-                                    </label>
+                        <!-- LEFT COLUMN: Piece Palette -->
+                        <div class="editor-left">
+                            <div class="piece-palette">
+                                <!-- White Pieces Row -->
+                                <div class="palette-row">
+                                    <span class="palette-row-label">W:</span>
+                                    <button class="piece-btn" data-piece="wP" title="White Pawn">
+                                        <img src="img/chesspieces/wikipedia/wP.png" alt="White Pawn">
+                                    </button>
+                                    <button class="piece-btn" data-piece="wN" title="White Knight">
+                                        <img src="img/chesspieces/wikipedia/wN.png" alt="White Knight">
+                                    </button>
+                                    <button class="piece-btn" data-piece="wB" title="White Bishop">
+                                        <img src="img/chesspieces/wikipedia/wB.png" alt="White Bishop">
+                                    </button>
+                                    <button class="piece-btn" data-piece="wR" title="White Rook">
+                                        <img src="img/chesspieces/wikipedia/wR.png" alt="White Rook">
+                                    </button>
+                                    <button class="piece-btn" data-piece="wQ" title="White Queen">
+                                        <img src="img/chesspieces/wikipedia/wQ.png" alt="White Queen">
+                                    </button>
+                                    <button class="piece-btn" data-piece="wK" title="White King">
+                                        <img src="img/chesspieces/wikipedia/wK.png" alt="White King">
+                                    </button>
                                 </div>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Castling Rights:</label>
-                                <div class="checkbox-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="castleWK" checked> White K-side
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="castleWQ" checked> White Q-side
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="castleBK" checked> Black K-side
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="castleBQ" checked> Black Q-side
-                                    </label>
+                                <!-- Black Pieces Row -->
+                                <div class="palette-row">
+                                    <span class="palette-row-label">B:</span>
+                                    <button class="piece-btn" data-piece="bP" title="Black Pawn">
+                                        <img src="img/chesspieces/wikipedia/bP.png" alt="Black Pawn">
+                                    </button>
+                                    <button class="piece-btn" data-piece="bN" title="Black Knight">
+                                        <img src="img/chesspieces/wikipedia/bN.png" alt="Black Knight">
+                                    </button>
+                                    <button class="piece-btn" data-piece="bB" title="Black Bishop">
+                                        <img src="img/chesspieces/wikipedia/bB.png" alt="Black Bishop">
+                                    </button>
+                                    <button class="piece-btn" data-piece="bR" title="Black Rook">
+                                        <img src="img/chesspieces/wikipedia/bR.png" alt="Black Rook">
+                                    </button>
+                                    <button class="piece-btn" data-piece="bQ" title="Black Queen">
+                                        <img src="img/chesspieces/wikipedia/bQ.png" alt="Black Queen">
+                                    </button>
+                                    <button class="piece-btn" data-piece="bK" title="Black King">
+                                        <img src="img/chesspieces/wikipedia/bK.png" alt="Black King">
+                                    </button>
+                                </div>
+                                <!-- Tools Row -->
+                                <div class="palette-row palette-tools">
+                                    <button class="piece-btn piece-btn-tool" data-piece="move" title="Move/Adjust Piece">
+                                        <i class="fas fa-hand-pointer"></i>
+                                    </button>
+                                    <button class="piece-btn piece-btn-tool active" data-piece="erase" title="Eraser">
+                                        <i class="fas fa-eraser"></i>
+                                    </button>
+                                    <button class="piece-btn piece-btn-tool" id="clearAllBtn" title="Clear All">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Editor Actions -->
-                        <div class="editor-actions">
-                            <button id="clearBoard" class="btn btn-block btn-secondary" aria-label="Clear board">
-                                <i class="fas fa-trash"></i> Clear Board
-                            </button>
-                            <button id="resetToStart" class="btn btn-block btn-secondary" aria-label="Reset to start position">
-                                <i class="fas fa-undo"></i> Reset to Start
-                            </button>
-                            <button id="applyPosition" class="btn btn-block btn-primary" aria-label="Apply position">
-                                <i class="fas fa-check"></i> Apply Position
-                            </button>
+                        <!-- RIGHT COLUMN: Controls -->
+                        <div class="editor-right">
+                            <!-- Editor Actions (Top) -->
+                            <div class="editor-actions-compact">
+                                <button id="clearBoard" class="btn btn-secondary" title="Clear board">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <button id="resetToStart" class="btn btn-secondary" title="Reset to start position">
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                                <button id="applyPosition" class="btn btn-primary" title="Apply position">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </div>
+
+                            <!-- Side to Move (Inline) -->
+                            <div class="side-to-move-compact">
+                                <span class="control-label">Turn:</span>
+                                <label class="radio-inline">
+                                    <input type="radio" name="sideToMove" value="w" checked> White
+                                </label>
+                                <label class="radio-inline">
+                                    <input type="radio" name="sideToMove" value="b"> Black
+                                </label>
+                            </div>
+
+                            <!-- Castling Rights (Compact Grid) -->
+                            <div class="castling-compact">
+                                <span class="control-label">Castling:</span>
+                                <div class="castling-grid">
+                                    <label class="checkbox-inline">
+                                        <input type="checkbox" id="castleWK" checked> W-K
+                                    </label>
+                                    <label class="checkbox-inline">
+                                        <input type="checkbox" id="castleWQ" checked> W-Q
+                                    </label>
+                                    <label class="checkbox-inline">
+                                        <input type="checkbox" id="castleBK" checked> B-K
+                                    </label>
+                                    <label class="checkbox-inline">
+                                        <input type="checkbox" id="castleBQ" checked> B-Q
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

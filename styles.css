@@ -1098,6 +1098,27 @@ html, body {
     .panel-title {
         font-size: 14px;
     }
+
+    /* Board Editor Mobile: Stack to 1 column */
+    .editor-content {
+        grid-template-columns: 1fr; /* Single column on mobile */
+        max-height: 400px; /* Taller on mobile */
+        gap: var(--spacing-sm);
+    }
+
+    .editor-left {
+        order: 1;
+    }
+
+    .editor-right {
+        order: 2;
+    }
+
+    /* Slightly larger piece buttons on mobile for touch */
+    .piece-btn {
+        width: 38px;
+        height: 38px;
+    }
 }
 
 /* Extra compact mobile - improve touch targets */
@@ -1201,6 +1222,31 @@ html, body {
         padding: var(--spacing-xs);
     }
 
+    /* Board Editor Extra Compact on Small Phones */
+    .editor-content {
+        max-height: 440px; /* Even taller on very small screens */
+        padding: var(--spacing-sm);
+    }
+
+    .piece-btn {
+        width: 36px; /* Touch-friendly size */
+        height: 36px;
+    }
+
+    .editor-actions-compact .btn {
+        font-size: 10px;
+        padding: 6px 2px;
+    }
+
+    .control-label {
+        font-size: 10px;
+    }
+
+    .radio-inline,
+    .checkbox-inline {
+        font-size: 11px;
+    }
+
     /* Make move history more compact */
     .move-history {
         max-height: 200px;
@@ -1254,60 +1300,66 @@ button:focus,
 /* ===== BOARD EDITOR PANEL ===== */
 .editor-panel {
     margin-top: var(--spacing-md);
-    max-height: 80vh;
-    overflow-y: auto;
+    overflow: hidden; /* No scrolling */
 }
 
+/* 2-Column Grid: Left = Piece Palette, Right = Controls */
 .editor-content {
-    padding: var(--spacing-sm);
+    padding: var(--spacing-md);
+    display: grid;
+    grid-template-columns: 1fr 240px; /* Left: flexible, Right: fixed width */
+    gap: var(--spacing-md);
+    overflow: hidden;
+    max-height: 280px; /* Compact rectangle on desktop */
 }
 
-/* Piece Palette */
+/* Left Column: Piece Palette */
+.editor-left {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
 .piece-palette {
-    margin-bottom: var(--spacing-sm);
-}
-
-.palette-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
 }
 
 .palette-row {
     display: flex;
     align-items: center;
-    gap: var(--spacing-xs);
-    margin-bottom: var(--spacing-sm);
+    gap: 6px; /* Tighter spacing */
 }
 
 .palette-row-label {
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
     color: var(--text-secondary);
-    min-width: 50px;
+    min-width: 20px; /* Shortened from 50px */
 }
 
 .palette-tools {
-    justify-content: center;
-    margin-top: var(--spacing-sm);
-    padding-top: var(--spacing-sm);
+    justify-content: flex-start;
+    margin-top: var(--spacing-xs);
+    padding-top: var(--spacing-xs);
     border-top: 1px solid var(--border-color);
 }
 
+/* Compact Piece Buttons */
 .piece-btn {
     background: var(--bg-primary);
     border: 2px solid var(--border-color);
     border-radius: 4px;
-    padding: 6px;
+    padding: 4px; /* Reduced from 6px */
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
     aspect-ratio: 1;
-    width: 40px;
-    height: 40px;
+    width: 34px; /* Reduced from 40px */
+    height: 34px;
 }
 
 .piece-btn img {
@@ -1317,15 +1369,15 @@ button:focus,
 }
 
 .piece-btn i {
-    font-size: 18px;
+    font-size: 16px; /* Reduced from 18px */
     color: var(--text-secondary);
 }
 
 .piece-btn:hover {
     background: var(--bg-secondary);
     border-color: var(--primary-color);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-1px); /* Reduced from -2px */
+    box-shadow: var(--shadow-sm);
 }
 
 .piece-btn.active {
@@ -1337,46 +1389,87 @@ button:focus,
     color: white;
 }
 
-/* Position Controls */
-.position-controls {
-    margin-bottom: var(--spacing-lg);
-}
-
-.radio-group,
-.checkbox-group {
+/* Right Column: Controls */
+.editor-right {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
-    margin-top: var(--spacing-xs);
+    overflow: hidden;
 }
 
-.radio-label,
-.checkbox-label {
+/* Compact Action Buttons (Horizontal Row) */
+.editor-actions-compact {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
+
+.editor-actions-compact .btn {
+    padding: 8px 4px;
+    font-size: 11px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.editor-actions-compact .btn i {
+    font-size: 16px;
+}
+
+/* Inline Side to Move */
+.side-to-move-compact {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm);
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs);
     background: var(--bg-primary);
     border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.2s;
 }
 
-.radio-label:hover,
-.checkbox-label:hover {
-    background: var(--bg-secondary);
+.control-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    min-width: 50px;
 }
 
-.radio-label input[type="radio"],
-.checkbox-label input[type="checkbox"] {
-    cursor: pointer;
-}
-
-/* Editor Actions */
-.editor-actions {
+.radio-inline {
     display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.radio-inline input[type="radio"] {
+    cursor: pointer;
+}
+
+/* Compact Castling Grid */
+.castling-compact {
+    padding: var(--spacing-xs);
+    background: var(--bg-primary);
+    border-radius: 4px;
+}
+
+.castling-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.checkbox-inline {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.checkbox-inline input[type="checkbox"] {
+    cursor: pointer;
 }
 
 /* Board in editor mode */
