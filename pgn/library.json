@@ -13,7 +13,43 @@
     ],
     "Capablanca, JoseRaul": [
       {
-        "label": "Capablanca, Jose Raul vs Alekhine, Alexander (1927)",
+        "label": "Havana Match vs Corzo (1901)",
+        "file": "pgn/world-champions/Capablanca_JoseRaul/havana-corzo-1901.pgn",
+        "white": "Multiple",
+        "black": "Multiple",
+        "year": "1901",
+        "event": "Havana Match",
+        "result": "*"
+      },
+      {
+        "label": "USA Championship vs Marshall (1909)",
+        "file": "pgn/world-champions/Capablanca_JoseRaul/usa-marshall-1909.pgn",
+        "white": "Multiple",
+        "black": "Multiple",
+        "year": "1909",
+        "event": "USA Championship",
+        "result": "*"
+      },
+      {
+        "label": "San Sebastian Tournament (1911)",
+        "file": "pgn/world-champions/Capablanca_JoseRaul/san-sebastian-1911.pgn",
+        "white": "Multiple",
+        "black": "Multiple",
+        "year": "1911",
+        "event": "San Sebastian",
+        "result": "*"
+      },
+      {
+        "label": "Other Games (1906-1913)",
+        "file": "pgn/world-champions/Capablanca_JoseRaul/other-games-1906-1913.pgn",
+        "white": "Capablanca, Jose Raul",
+        "black": "Various",
+        "year": "1906-1913",
+        "event": "Various",
+        "result": "*"
+      },
+      {
+        "label": "World Championship vs Alekhine (1927)",
         "file": "pgn/world-champions/Capablanca_JoseRaul/capablanca-alekhine-1927.pgn",
         "white": "Capablanca, Jose Raul",
         "black": "Alekhine, Alexander",
