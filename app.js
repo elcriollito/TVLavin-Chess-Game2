@@ -3105,6 +3105,123 @@ function renderRadarChart(canvasId, metrics) {
     console.log('✅ Radar chart rendered');
 }
 
+// Generate Caissa narrative based on metrics
+function generateCaissaNarrative(data, metrics) {
+    console.log('📝 Generating Caissa narrative...');
+
+    const [tactics, strategy, opening, endgame, precision, aggression, defense, consistency] = metrics;
+    const total = data.stats.total;
+    const avgPly = data.stats.avgPlyCount;
+
+    // Identify strengths (>70) and weaknesses (<40)
+    const dimensions = [
+        { name: 'táctica', value: tactics, threshold: 70 },
+        { name: 'estrategia', value: strategy, threshold: 70 },
+        { name: 'apertura', value: opening, threshold: 70 },
+        { name: 'final', value: endgame, threshold: 70 },
+        { name: 'precisión', value: precision, threshold: 70 },
+        { name: 'agresividad', value: aggression, threshold: 70 },
+        { name: 'defensa', value: defense, threshold: 70 },
+        { name: 'consistencia', value: consistency, threshold: 70 }
+    ];
+
+    const strengths = dimensions.filter(d => d.value >= 70);
+    const weaknesses = dimensions.filter(d => d.value < 40);
+    const balanced = dimensions.filter(d => d.value >= 40 && d.value < 70);
+
+    // Build narrative paragraphs
+    let narrative = '';
+
+    // Introduction
+    narrative += `<p><strong>Caissa, la diosa del ajedrez, ha examinado tus ${total} partidas</strong> y revela un perfil único. `;
+    narrative += `Tus juegos promedian ${avgPly} movimientos, `;
+    if (avgPly < 60) {
+        narrative += 'mostrando una tendencia hacia batallas rápidas y decisivas.';
+    } else if (avgPly < 90) {
+        narrative += 'reflejando un equilibrio entre el juego táctico y estratégico.';
+    } else {
+        narrative += 'evidenciando una preferencia por la guerra de trincheras y finales prolongados.';
+    }
+    narrative += '</p>';
+
+    // Strengths
+    if (strengths.length > 0) {
+        narrative += '<p><strong>Fortalezas manifiestas:</strong> ';
+        if (tactics >= 70) {
+            narrative += 'Tu visión táctica es aguda como el filo de una espada, capaz de detectar combinaciones ocultas en el tablero. ';
+        }
+        if (strategy >= 70) {
+            narrative += 'Dominas el arte de la planificación a largo plazo, tejiendo redes estratégicas que atrapan a tus rivales. ';
+        }
+        if (opening >= 70) {
+            narrative += 'Tu repertorio de aperturas es diverso y sólido, demostrando conocimiento profundo de la teoría. ';
+        }
+        if (endgame >= 70) {
+            narrative += 'En el final, cuando el tablero se despeja, tu técnica brilla con maestría. ';
+        }
+        if (precision >= 70) {
+            narrative += 'Tus decisiones son precisas y calculadas, minimizando errores en momentos críticos. ';
+        }
+        if (aggression >= 70) {
+            narrative += 'Juegas con fuego en las venas, atacando con valentía y determinación. ';
+        }
+        if (defense >= 70) {
+            narrative += 'Eres un baluarte inquebrantable, capaz de defender posiciones aparentemente perdidas. ';
+        }
+        if (consistency >= 70) {
+            narrative += 'Tu juego es consistente y confiable, manteniendo un nivel estable partida tras partida. ';
+        }
+        narrative += '</p>';
+    }
+
+    // Weaknesses and recommendations
+    if (weaknesses.length > 0) {
+        narrative += '<p><strong>Áreas que Caissa te invita a cultivar:</strong> ';
+        if (tactics < 40) {
+            narrative += 'Fortalece tu visión táctica con ejercicios de combinaciones. Los sacrificios y motivos tácticos básicos te esperan. ';
+        }
+        if (strategy < 40) {
+            narrative += 'Dedica tiempo a estudiar partidas de Capablanca y Karpov para mejorar tu comprensión estratégica. ';
+        }
+        if (opening < 40) {
+            narrative += 'Amplía tu repertorio de aperturas. Estudia los principios fundamentales: desarrollo, control del centro, seguridad del rey. ';
+        }
+        if (endgame < 40) {
+            narrative += 'Los finales son el cimiento de la maestría. Practica finales básicos de peones y torres. ';
+        }
+        if (precision < 40) {
+            narrative += 'Tómate más tiempo para calcular. La precisión se construye con paciencia y verificación de variantes. ';
+        }
+        if (aggression < 40) {
+            narrative += 'No temas el riesgo calculado. Estudia las partidas de Tal y Kasparov para aprender el arte del ataque. ';
+        }
+        if (defense < 40) {
+            narrative += 'Desarrolla tu resiliencia defensiva. Aprende a crear contrajuego cuando estés bajo presión. ';
+        }
+        if (consistency < 40) {
+            narrative += 'Trabaja en mantener un nivel estable. Analiza tus errores para evitar altibajos en tu juego. ';
+        }
+        narrative += '</p>';
+    }
+
+    // Balanced areas
+    if (balanced.length > 0 && strengths.length > 0 && weaknesses.length > 0) {
+        narrative += '<p>Tus habilidades en ';
+        const balancedNames = balanced.map(d => d.name).slice(0, 3);
+        narrative += balancedNames.join(', ');
+        narrative += ' muestran fundamentos sólidos con margen para crecer. ';
+        narrative += 'Estos aspectos pueden convertirse en fortalezas con práctica dedicada.</p>';
+    }
+
+    // Closing wisdom
+    narrative += '<p><em>Caissa te recuerda: el ajedrez es un viaje infinito de aprendizaje. ';
+    narrative += 'Cada partida es una lección, cada error una oportunidad. ';
+    narrative += 'Que tus piezas dancen con gracia y tus planes florezcan en victoria.</em></p>';
+
+    console.log('✅ Narrative generated');
+    return narrative;
+}
+
 // Display insight analysis results in the modal
 function displayInsightResults(data) {
     console.log('📊 Displaying insight results...');
@@ -3161,6 +3278,13 @@ function displayInsightResults(data) {
     // Calculate and render radar chart
     const metrics = calculateRadarMetrics(data);
     renderRadarChart('insightRadarChart', metrics);
+
+    // Generate and display narrative
+    const narrative = generateCaissaNarrative(data, metrics);
+    const narrativeElement = document.getElementById('insightNarrative');
+    if (narrativeElement) {
+        narrativeElement.innerHTML = narrative;
+    }
 
     console.log('✅ Results displayed');
 }
