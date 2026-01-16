@@ -1294,6 +1294,17 @@ function showModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.add('show');
+
+        // Auto-focus FEN input when opening FEN modal
+        if (modalId === 'fenModal') {
+            setTimeout(() => {
+                const fenInput = document.getElementById('fenInput');
+                if (fenInput) {
+                    fenInput.focus();
+                    fenInput.select(); // Select any existing text
+                }
+            }, 100); // Small delay to ensure modal is visible
+        }
     }
 }
 
@@ -1491,28 +1502,44 @@ function setupFENModal() {
     const loadButton = document.getElementById('loadFEN');
     const fenInput = document.getElementById('fenInput');
     const fenError = document.getElementById('fenError');
-    
+
     loadButton.addEventListener('click', () => {
+        console.log('🔘 Load FEN button clicked');
         const fen = fenInput.value.trim();
-        
-        if (!fen) {
+        console.log('📝 FEN input value:', fen);
+        console.log('📝 FEN input length:', fen.length);
+
+        if (!fen || fen.length === 0) {
+            console.log('❌ FEN input is empty');
             fenError.textContent = 'Please enter a FEN string';
             fenError.classList.add('show');
             return;
         }
-        
+
+        console.log('✅ FEN input has content, attempting to load...');
         const success = loadFEN(fen);
-        
+        console.log('📝 loadFEN returned:', success);
+
         if (success) {
+            console.log('✅ FEN loaded successfully, closing modal');
             hideModal('fenModal');
             fenInput.value = '';
             fenError.classList.remove('show');
         } else {
+            console.log('❌ FEN load failed');
             fenError.textContent = 'Invalid FEN string. Please check and try again.';
             fenError.classList.add('show');
         }
     });
-    
+
+    // Also allow Enter key to submit
+    fenInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            console.log('⌨️ Enter key pressed in FEN input');
+            loadButton.click();
+        }
+    });
+
     // Clear error on input
     fenInput.addEventListener('input', () => {
         fenError.classList.remove('show');
