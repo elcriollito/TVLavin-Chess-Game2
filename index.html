@@ -107,8 +107,10 @@
 
             <!-- Center - Chess Board -->
             <main class="board-container">
-                <div id="chessboard" class="chessboard"></div>
-                
+                <!-- Wrapper for board and editor alignment -->
+                <div class="board-editor-wrapper">
+                    <div id="chessboard" class="chessboard"></div>
+
                 <!-- Analysis Panel (below board) -->
                 <div class="panel analysis-panel" id="analysisPanel">
                     <div class="panel-header">
@@ -267,6 +269,8 @@
                         </div>
                     </div>
                 </div>
+
+                </div><!-- End board-editor-wrapper -->
             </main>
 
             <!-- Right Sidebar - Game Status & Engine Settings -->
