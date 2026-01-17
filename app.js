@@ -1182,10 +1182,23 @@ function resignGame() {
 function loadFEN(fen, setAnalysisMode = true) {
     try {
         console.log('📝 Loading FEN - raw input:', fen);
+        console.log('📝 Raw input length:', fen.length);
 
-        // Sanitize FEN input - trim and collapse multiple spaces
-        fen = fen.trim().replace(/\s+/g, ' ');
+        // Sanitize FEN input:
+        // 1. Trim whitespace
+        fen = fen.trim();
+
+        // 2. Remove BOM (Byte Order Mark)
+        fen = fen.replace(/^\uFEFF/, '');
+
+        // 3. Replace NBSP (non-breaking space) with normal space
+        fen = fen.replace(/\u00A0/g, ' ');
+
+        // 4. Collapse multiple spaces into one
+        fen = fen.replace(/\s+/g, ' ');
+
         console.log('📝 After sanitization:', fen);
+        console.log('📝 Sanitized length:', fen.length);
 
         // Check if this looks like PGN instead of FEN
         if (fen.includes('[Event') || fen.includes('1.') || fen.includes('1..')) {
@@ -1193,56 +1206,34 @@ function loadFEN(fen, setAnalysisMode = true) {
             throw new Error('This is not FEN. Paste a FEN string.');
         }
 
-        // Split into parts
-        const fenParts = fen.split(' ');
-        console.log('📝 FEN parts:', fenParts.length, fenParts);
-
-        // FEN needs at least: position + side to move
-        if (fenParts.length < 2) {
-            console.error('❌ FEN needs at least position and side to move');
-            throw new Error('Invalid FEN: needs at least position and side to move');
-        }
-
-        // Complete missing fields with defaults
-        if (fenParts.length === 2) {
-            // Add castling, en passant, halfmove, fullmove
-            fen = `${fenParts[0]} ${fenParts[1]} - - 0 1`;
-            console.log('📝 FEN had 2 fields, completed to:', fen);
-        } else if (fenParts.length === 3) {
-            // Add en passant, halfmove, fullmove
-            fen = `${fenParts[0]} ${fenParts[1]} ${fenParts[2]} - 0 1`;
-            console.log('📝 FEN had 3 fields, completed to:', fen);
-        } else if (fenParts.length === 4) {
-            // Add halfmove, fullmove
-            fen = `${fenParts[0]} ${fenParts[1]} ${fenParts[2]} ${fenParts[3]} 0 1`;
-            console.log('📝 FEN had 4 fields, completed to:', fen);
-        } else if (fenParts.length === 5) {
-            // Add fullmove
-            fen = `${fenParts[0]} ${fenParts[1]} ${fenParts[2]} ${fenParts[3]} ${fenParts[4]} 1`;
-            console.log('📝 FEN had 5 fields, completed to:', fen);
-        }
-
         // Exit edit mode if active
         if (App.editMode) {
             exitEditMode();
         }
 
-        // Try to load the FEN
-        console.log('📝 Attempting to load FEN into chess.js:', fen);
+        // Validate with chess.js ONLY - let chess.js be the source of truth
+        console.log('📝 Validating FEN with chess.js:', fen);
         const valid = App.game.load(fen);
 
         if (!valid) {
             console.error('❌ chess.js rejected FEN:', fen);
-            console.error('❌ Game state after failed load:', App.game.fen());
-            throw new Error('Invalid FEN - chess.js validation failed');
+            throw new Error('Invalid FEN');
         }
 
         console.log('✅ FEN loaded successfully!');
         console.log('📝 Resulting position:', App.game.fen());
 
+        // Update board to match chess.js state
         App.board.position(App.game.fen());
+
+        // Reset move history
         App.moveHistory = [];
         App.currentMoveIndex = -1;
+
+        // Stop engine analysis if running
+        if (App.engine) {
+            stopAnalysis();
+        }
 
         // Optionally set to analysis mode
         if (setAnalysisMode) {
@@ -1250,6 +1241,7 @@ function loadFEN(fen, setAnalysisMode = true) {
             App.gameMode = 'analysis';
         }
 
+        // Update UI
         updateMoveHistory();
         updateStatus();
         showNotification('Position loaded from FEN');
@@ -2427,39 +2419,60 @@ async function loadSelectedPGN() {
     console.log('📖 Loading PGN from path:', selectedFile);
 
     try {
-        // Fetch PGN file (file path already includes 'pgn/' prefix from library.json)
+        // Fetch PGN file
         const response = await fetch(selectedFile);
+
+        // Log fetch details
+        console.log('📖 Fetch URL:', response.url);
+        console.log('📖 Response status:', response.status, response.statusText);
 
         if (!response.ok) {
             console.error('❌ Failed to fetch PGN file:', response.status, response.statusText);
             throw new Error(`Failed to load PGN: ${response.statusText}`);
         }
 
-        const pgnText = await response.text();
+        let pgnText = await response.text();
         console.log('📖 PGN file fetched successfully');
+        console.log('📖 Response text length:', pgnText.length);
         console.log('📖 First 200 chars:', pgnText.substring(0, 200));
 
-        // Parse PGN for metadata
-        const pgnData = parsePGN(pgnText);
-        console.log('📖 Parsed PGN metadata:', pgnData);
+        // Sanitize PGN:
+        // 1. Remove BOM
+        pgnText = pgnText.replace(/^\uFEFF/, '');
+
+        // 2. Normalize line endings (CRLF -> LF)
+        pgnText = pgnText.replace(/\r\n/g, '\n');
+
+        // 3. Ensure blank line between headers and movetext
+        pgnText = pgnText.replace(/(\[.*\])\n([^[\n])/g, '$1\n\n$2');
+
+        console.log('📖 After sanitization - length:', pgnText.length);
+
+        // Handle multi-game PGN: split by Event header
+        const games = pgnText.split(/\n\s*\n(?=\[Event\s)/);
+        console.log('📖 Found', games.length, 'game(s) in PGN file');
+
+        // For now, use first game (or implement game selection later)
+        let selectedGamePgn = games.length > 1 ? games[0] : pgnText;
+
+        console.log('📖 Selected game PGN (first 200 chars):', selectedGamePgn.substring(0, 200));
 
         // Reset game first
         App.game.reset();
 
-        // Try to load the PGN
-        // Chess.js uses loadPgn() (camelCase), not load_pgn()
-        console.log('📖 Attempting to load PGN into chess.js...');
+        // Load with chess.js using sloppy mode
+        console.log('📖 Attempting to load PGN into chess.js with sloppy mode...');
         let success = false;
 
-        // Try modern method first (loadPgn)
-        if (typeof App.game.loadPgn === 'function') {
-            success = App.game.loadPgn(pgnText);
-            console.log('📖 loadPgn() result:', success);
-        }
-        // Fallback to older method (load_pgn)
-        else if (typeof App.game.load_pgn === 'function') {
-            success = App.game.load_pgn(pgnText);
+        // Try load_pgn with sloppy (chess.js v0.10.3 uses underscores)
+        if (typeof App.game.load_pgn === 'function') {
+            success = App.game.load_pgn(selectedGamePgn, { sloppy: true });
             console.log('📖 load_pgn() result:', success);
+        }
+        // Fallback to loadPgn (newer versions)
+        else if (typeof App.game.loadPgn === 'function') {
+            success = App.game.loadPgn(selectedGamePgn, { sloppy: true });
+            console.log('📖 loadPgn() result:', success);
         }
         else {
             console.error('❌ No PGN loading method found on chess.js instance');
@@ -2467,26 +2480,9 @@ async function loadSelectedPGN() {
         }
 
         if (!success) {
-            console.error('❌ chess.js rejected PGN - trying to clean it');
-            console.error('❌ Original PGN (first 500 chars):', pgnText.substring(0, 500));
-
-            // Try to clean the PGN and load again
-            const cleanedPgn = cleanPGN(pgnText);
-            console.log('📖 Trying cleaned PGN (first 500 chars):', cleanedPgn.substring(0, 500));
-
-            App.game.reset();
-            if (typeof App.game.loadPgn === 'function') {
-                success = App.game.loadPgn(cleanedPgn);
-            } else if (typeof App.game.load_pgn === 'function') {
-                success = App.game.load_pgn(cleanedPgn);
-            }
-
-            if (!success) {
-                console.error('❌ chess.js rejected cleaned PGN too');
-                throw new Error('Invalid PGN format - even after cleaning');
-            }
-
-            console.log('✅ Cleaned PGN loaded successfully');
+            console.error('❌ chess.js rejected PGN');
+            console.error('❌ First 200 chars of rejected PGN:', selectedGamePgn.substring(0, 200));
+            throw new Error('Invalid PGN format');
         }
 
         console.log('✅ PGN loaded successfully into chess.js');
@@ -2495,19 +2491,27 @@ async function loadSelectedPGN() {
         App.gameMode = 'analysis';
         App.gameActive = false;
 
-        // Update move history from PGN
+        // Stop engine if running
+        if (App.engine) {
+            stopAnalysis();
+        }
+
+        // Rebuild move history from chess.js
         const history = App.game.history({ verbose: true });
         App.moveHistory = history;
         App.currentMoveIndex = history.length - 1; // Start at end position
 
         console.log('📖 Move history populated:', App.moveHistory.length, 'moves');
 
-        // Update board to final position
+        // Update board to match chess.js state (final position)
         App.board.position(App.game.fen());
 
         // Update UI
         updateMoveHistory();
         updateStatus();
+
+        // Parse PGN for metadata display
+        const pgnData = parsePGN(selectedGamePgn);
 
         // Show PGN info (use dataset from option if available, fallback to parsed data)
         App.elements.pgnInfo.style.display = 'block';
@@ -3662,7 +3666,7 @@ async function generateCoachReport(gameCount, colorFilter) {
     console.log('✅ Coach report generated:', coachReportData);
 }
 
-// Analyze single game for critical moments (simplified MVP version)
+// Analyze single game for critical moments using Stockfish engine
 async function analyzeGameForMoments(game, gameIndex) {
     const moments = [];
 
@@ -3676,51 +3680,403 @@ async function analyzeGameForMoments(game, gameIndex) {
         return moments;
     }
 
-    const moves = chess.history({ verbose: true });
-    let prevEval = 0;
+    const history = chess.history({ verbose: true });
 
-    // Simplified analysis - detect material changes
+    // Reset to start position for incremental analysis
+    chess.reset();
+
+    let prevEval = 0; // Evaluation in pawns (White's perspective)
+    let prevBestMove = null;
+
+    // Ensure engine is ready
+    if (!App.engine || !App.engine.isReady()) {
+        console.warn(`⚠️ Engine not ready for game ${gameIndex}, using fallback`);
+        return await analyzeGameForMomentsFallback(game, gameIndex);
+    }
+
+    // Set engine to use MultiPV=3 for critical moment detection
+    App.engine.setMultiPV(COACH_CONFIG.MULTI_PV);
+
+    // Analyze each position incrementally
+    for (let ply = 0; ply < history.length; ply++) {
+        const move = history[ply];
+        const fenBefore = chess.fen();
+
+        // Get engine evaluation BEFORE the move
+        const evalInfo = await getEngineEvaluation(fenBefore, COACH_CONFIG.ANALYSIS_DEPTH);
+
+        if (!evalInfo) {
+            // Engine failed, skip this position
+            chess.move(move.san);
+            continue;
+        }
+
+        const evalBefore = evalInfo.score !== null ? evalInfo.score : 0;
+        const bestMove = evalInfo.bestMove || null;
+
+        // Make the move
+        chess.move(move.san);
+        const fenAfter = chess.fen();
+
+        // Get engine evaluation AFTER the move
+        const evalAfterInfo = await getEngineEvaluation(fenAfter, COACH_CONFIG.ANALYSIS_DEPTH);
+        const evalAfter = evalAfterInfo && evalAfterInfo.score !== null ? evalAfterInfo.score : evalBefore;
+
+        // Calculate evaluation swing (from perspective of side that just moved)
+        const playerColor = move.color; // 'w' or 'b'
+        const evalSwing = Math.abs(evalAfter - evalBefore);
+
+        // Calculate move loss (how much worse than best move)
+        let moveLoss = 0;
+        if (bestMove) {
+            // If player didn't play the best move, calculate loss
+            const playedMove = move.from + move.to + (move.promotion || '');
+            if (playedMove !== bestMove) {
+                moveLoss = Math.abs(evalAfter - evalBefore);
+            }
+        }
+
+        // Detect critical moments based on thresholds
+        const isCritical = (
+            evalSwing >= COACH_CONFIG.SWING_THRESHOLD ||
+            moveLoss >= COACH_CONFIG.BLUNDER_THRESHOLD
+        );
+
+        if (isCritical) {
+            // Classify the error and assign tags
+            const tags = classifyError(fenBefore, fenAfter, move, evalBefore, evalAfter, bestMove);
+
+            const moment = {
+                gameId: gameIndex,
+                ply,
+                moveSAN: move.san,
+                playedMove: move.from + move.to + (move.promotion || ''),
+                fen: fenBefore,
+                fenAfter: fenAfter,
+                evalBefore: evalBefore,
+                evalAfter: evalAfter,
+                evalSwing: evalSwing,
+                moveLoss: moveLoss,
+                bestMove: bestMove,
+                tags: tags,
+                phase: getGamePhase(ply, countPieces(fenBefore)),
+                playerColor: playerColor
+            };
+
+            moments.push(moment);
+        }
+
+        // Update previous evaluation
+        prevEval = evalAfter;
+        prevBestMove = bestMove;
+    }
+
+    // Restore MultiPV to default
+    App.engine.setMultiPV(1);
+
+    return moments;
+}
+
+// Get engine evaluation for a position (returns { score, bestMove, mate, pv })
+async function getEngineEvaluation(fen, depth) {
+    return new Promise((resolve, reject) => {
+        let evalResult = null;
+        let timeout = null;
+
+        // Set up info callback to capture evaluation
+        const infoCallback = (info) => {
+            if (info.depth >= depth) {
+                evalResult = {
+                    score: info.score,
+                    mate: info.mate,
+                    bestMove: info.pv && info.pv.length > 0 ? info.pv[0] : null,
+                    pv: info.pv || [],
+                    depth: info.depth
+                };
+            }
+        };
+
+        // Set up bestmove callback to finish analysis
+        const bestMoveCallback = (move) => {
+            clearTimeout(timeout);
+            App.engine.onBestMove = null;
+            App.engine.onInfo = null;
+
+            if (!evalResult) {
+                evalResult = { score: 0, mate: null, bestMove: move, pv: [move], depth: 0 };
+            } else if (!evalResult.bestMove) {
+                evalResult.bestMove = move;
+            }
+
+            resolve(evalResult);
+        };
+
+        // Set callbacks
+        App.engine.onInfo = infoCallback;
+        App.engine.onBestMove = bestMoveCallback;
+
+        // Start analysis
+        App.engine.currentFen = fen; // For score normalization
+        App.engine.setPosition(fen);
+        App.engine.go({ depth: depth });
+
+        // Timeout after 5 seconds per position
+        timeout = setTimeout(() => {
+            App.engine.stop();
+            App.engine.onBestMove = null;
+            App.engine.onInfo = null;
+            resolve(evalResult || { score: 0, mate: null, bestMove: null, pv: [], depth: 0 });
+        }, 5000);
+    });
+}
+
+// Fallback analysis when engine is not available
+async function analyzeGameForMomentsFallback(game, gameIndex) {
+    const moments = [];
+    const chess = new Chess();
+
+    try {
+        chess.load_pgn(game.headers.pgn || '');
+    } catch (e) {
+        return moments;
+    }
+
+    const moves = chess.history({ verbose: true });
+
+    // Use simplified material-based detection
     for (let ply = 0; ply < moves.length; ply++) {
         const move = moves[ply];
 
-        // Detect material drops (simplified blunder detection)
         if (move.captured) {
             const capturedValue = getPieceValue(move.captured);
             const movedValue = getPieceValue(move.piece);
 
-            // Bad trade detection
-            if (capturedValue < movedValue) {
-                const moment = {
+            if (capturedValue < movedValue - 2) {
+                moments.push({
                     gameId: gameIndex,
                     ply,
                     moveSAN: move.san,
                     fen: move.before,
-                    evalBefore: prevEval,
-                    evalAfter: prevEval - (movedValue - capturedValue),
+                    evalBefore: 0,
+                    evalAfter: -(movedValue - capturedValue),
                     tags: [ERROR_TAGS.BAD_TRADE],
                     phase: getGamePhase(ply, countPieces(move.before))
-                };
-                moments.push(moment);
+                });
             }
-        }
-
-        // Detect hanging pieces (simplified - check if piece moved to attacked square)
-        // This is a basic heuristic for MVP
-        if (ply > 0 && Math.random() < 0.1) { // Simulate tactical errors for demo
-            moments.push({
-                gameId: gameIndex,
-                ply,
-                moveSAN: move.san,
-                fen: move.before,
-                evalBefore: 0,
-                evalAfter: -1.5,
-                tags: [ERROR_TAGS.TACTICAL_MISS],
-                phase: getGamePhase(ply, countPieces(move.before))
-            });
         }
     }
 
     return moments;
+}
+
+// Classify error type based on position analysis and evaluation change
+function classifyError(fenBefore, fenAfter, move, evalBefore, evalAfter, bestMove) {
+    const tags = [];
+    const chess = new Chess(fenBefore);
+
+    // Material change detection
+    const materialDrop = hasMaterialDrop(fenBefore, fenAfter);
+    if (materialDrop) {
+        // Check if piece was captured without compensation
+        if (move.captured && !move.promotion) {
+            const capturedValue = getPieceValue(move.captured);
+            const movedValue = getPieceValue(move.piece);
+
+            if (capturedValue < movedValue - 1) {
+                tags.push(ERROR_TAGS.BAD_TRADE);
+            }
+        } else if (!move.captured) {
+            // Piece hung without capture
+            tags.push(ERROR_TAGS.HANGING_PIECE);
+        }
+    }
+
+    // Back rank weakness detection
+    if (isBackRankPattern(fenAfter, move.color)) {
+        tags.push(ERROR_TAGS.BACK_RANK);
+    }
+
+    // King safety issues
+    if (isKingSafetyIssue(fenBefore, fenAfter, move)) {
+        tags.push(ERROR_TAGS.KING_SAFETY);
+    }
+
+    // Tactical pattern detection (fork, pin, skewer)
+    const tacticalPattern = detectTacticalPattern(fenAfter, move);
+    if (tacticalPattern) {
+        tags.push(tacticalPattern);
+    }
+
+    // Endgame error classification
+    const phase = getGamePhase(chess.history().length, countPieces(fenAfter));
+    if (phase === 'endgame') {
+        const endgameTag = classifyEndgameError(fenAfter, move);
+        if (endgameTag) {
+            tags.push(endgameTag);
+        }
+    }
+
+    // If no specific pattern detected but eval dropped significantly, mark as tactical miss
+    if (tags.length === 0 && Math.abs(evalAfter - evalBefore) >= COACH_CONFIG.BLUNDER_THRESHOLD) {
+        tags.push(ERROR_TAGS.TACTICAL_MISS);
+    }
+
+    // If still no tags, default to positional error for smaller mistakes
+    if (tags.length === 0) {
+        tags.push(ERROR_TAGS.POSITIONAL_ERROR);
+    }
+
+    return tags;
+}
+
+// Detect if material was lost
+function hasMaterialDrop(fenBefore, fenAfter) {
+    const materialBefore = calculateMaterial(fenBefore);
+    const materialAfter = calculateMaterial(fenAfter);
+
+    // Material imbalance suggests piece was lost
+    return Math.abs(materialBefore.white - materialBefore.black) !==
+           Math.abs(materialAfter.white - materialAfter.black);
+}
+
+// Calculate material balance from FEN
+function calculateMaterial(fen) {
+    const board = fen.split(' ')[0];
+    const material = { white: 0, black: 0 };
+
+    for (const char of board) {
+        if (/[PNBRQ]/.test(char)) {
+            material.white += getPieceValue(char);
+        } else if (/[pnbrq]/.test(char)) {
+            material.black += getPieceValue(char);
+        }
+    }
+
+    return material;
+}
+
+// Detect back rank weakness pattern
+function isBackRankPattern(fen, playerColor) {
+    const chess = new Chess(fen);
+    const rank = playerColor === 'w' ? '1' : '8';
+
+    // Check if king is on back rank and boxed in by own pieces/pawns
+    const kingSquare = findKingSquare(fen, playerColor);
+    if (!kingSquare || !kingSquare.includes(rank)) {
+        return false;
+    }
+
+    // Check if opponent has rook or queen on same rank/file
+    const opponentPieces = playerColor === 'w' ? ['r', 'q'] : ['R', 'Q'];
+    const board = fen.split(' ')[0];
+
+    return opponentPieces.some(piece => board.includes(piece));
+}
+
+// Find king square in FEN
+function findKingSquare(fen, color) {
+    const board = fen.split(' ')[0];
+    const king = color === 'w' ? 'K' : 'k';
+    const rows = board.split('/');
+
+    for (let rank = 0; rank < 8; rank++) {
+        let file = 0;
+        for (const char of rows[rank]) {
+            if (char === king) {
+                return String.fromCharCode(97 + file) + (8 - rank);
+            } else if (/\d/.test(char)) {
+                file += parseInt(char);
+            } else {
+                file++;
+            }
+        }
+    }
+
+    return null;
+}
+
+// Detect king safety issues
+function isKingSafetyIssue(fenBefore, fenAfter, move) {
+    // Check if king moved or castling rights changed
+    if (move.piece === 'k') {
+        return true;
+    }
+
+    // Check if pawn shield was weakened
+    const chess = new Chess(fenAfter);
+    const kingSquare = findKingSquare(fenAfter, move.color);
+
+    if (!kingSquare) return false;
+
+    // Simplified: check if move exposed king to checks
+    return chess.in_check();
+}
+
+// Detect tactical patterns (fork, pin, skewer)
+function detectTacticalPattern(fen, move) {
+    const chess = new Chess(fen);
+
+    // Check for knight forks (knight attacking multiple pieces)
+    if (move.piece === 'n') {
+        const attacks = getAttackedSquares(fen, move.to, move.color);
+        if (attacks.length >= 2) {
+            return ERROR_TAGS.FORK;
+        }
+    }
+
+    // Check for pins and skewers (simplified heuristic)
+    if (move.piece === 'b' || move.piece === 'r' || move.piece === 'q') {
+        const opponentColor = move.color === 'w' ? 'b' : 'w';
+        const kingSquare = findKingSquare(fen, opponentColor);
+
+        if (kingSquare && isOnSameLine(move.to, kingSquare)) {
+            return ERROR_TAGS.PIN;
+        }
+    }
+
+    return null;
+}
+
+// Check if two squares are on same rank/file/diagonal
+function isOnSameLine(sq1, sq2) {
+    const file1 = sq1.charCodeAt(0);
+    const rank1 = parseInt(sq1[1]);
+    const file2 = sq2.charCodeAt(0);
+    const rank2 = parseInt(sq2[1]);
+
+    return file1 === file2 || rank1 === rank2 ||
+           Math.abs(file1 - file2) === Math.abs(rank1 - rank2);
+}
+
+// Get squares attacked by a piece (simplified)
+function getAttackedSquares(fen, square, color) {
+    const chess = new Chess(fen);
+    const moves = chess.moves({ square: square, verbose: true });
+
+    return moves
+        .filter(m => m.captured)
+        .map(m => m.to);
+}
+
+// Classify endgame error types
+function classifyEndgameError(fen, move) {
+    const board = fen.split(' ')[0];
+
+    // Count remaining pieces
+    const hasQueens = /[Qq]/.test(board);
+    const hasRooks = /[Rr]/.test(board);
+    const hasBishops = /[Bb]/.test(board);
+    const hasKnights = /[Nn]/.test(board);
+
+    if (hasQueens) {
+        return ERROR_TAGS.QUEEN_ENDGAME;
+    } else if (hasRooks) {
+        return ERROR_TAGS.ROOK_ENDGAME;
+    } else if (!hasBishops && !hasKnights && !hasQueens && !hasRooks) {
+        return ERROR_TAGS.PAWN_ENDGAME;
+    }
+
+    return null;
 }
 
 // Get piece value for material calculation
