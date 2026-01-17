@@ -658,14 +658,95 @@
                 <!-- Import PGN Section -->
                 <div class="insight-section" id="insightImportSection">
                     <h3><i class="fas fa-file-import"></i> Import Games</h3>
-                    <div class="form-group">
-                        <label for="insightPgnInput">
-                            Paste PGN content here (one or multiple games):
-                        </label>
-                        <textarea
-                            id="insightPgnInput"
-                            class="form-control insight-textarea"
-                            placeholder="[Event &quot;Casual Game&quot;]
+
+                    <!-- Import Source Tabs -->
+                    <div class="import-tabs">
+                        <button class="import-tab active" data-tab="online" aria-label="Import from online platforms">
+                            <i class="fas fa-cloud"></i> Chess.com / Lichess
+                        </button>
+                        <button class="import-tab" data-tab="local" aria-label="Import from local PGN">
+                            <i class="fas fa-file-alt"></i> Local PGN
+                        </button>
+                    </div>
+
+                    <!-- Online Import (Chess.com / Lichess) -->
+                    <div class="import-panel active" id="importOnlinePanel">
+                        <div class="coach-config-grid" style="margin-bottom: var(--spacing-md);">
+                            <div class="form-group">
+                                <label for="importProvider">Platform:</label>
+                                <select id="importProvider" class="form-control" aria-label="Select chess platform">
+                                    <option value="lichess">Lichess</option>
+                                    <option value="chess.com">Chess.com</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="importUsername">Username:</label>
+                                <input type="text" id="importUsername" class="form-control" placeholder="e.g. Magnus_Carlsen" aria-label="Enter username" />
+                            </div>
+                        </div>
+
+                        <div class="coach-config-grid">
+                            <div class="form-group">
+                                <label for="importGameCount">Games to Import:</label>
+                                <select id="importGameCount" class="form-control" aria-label="Select number of games">
+                                    <option value="10">Last 10 games</option>
+                                    <option value="20" selected>Last 20 games</option>
+                                    <option value="30">Last 30 games</option>
+                                    <option value="50">Last 50 games</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="importTimeControl">Time Control:</label>
+                                <select id="importTimeControl" class="form-control" aria-label="Filter by time control">
+                                    <option value="all" selected>All</option>
+                                    <option value="bullet">Bullet</option>
+                                    <option value="blitz">Blitz</option>
+                                    <option value="rapid">Rapid</option>
+                                    <option value="classical">Classical</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Progress Section -->
+                        <div id="importProgressSection" style="display: none; margin-top: var(--spacing-md);">
+                            <div class="coach-progress">
+                                <div class="progress-bar-container">
+                                    <div id="importProgressBar" class="progress-bar"></div>
+                                </div>
+                                <p id="importProgressText" class="progress-text">Fetching games...</p>
+                            </div>
+                        </div>
+
+                        <!-- CORS Fallback Message -->
+                        <div id="importCorsMessage" class="form-text" style="display: none; margin-top: var(--spacing-md); padding: var(--spacing-md); background: var(--bg-secondary); border-radius: 6px; border-left: 4px solid var(--accent-color);">
+                            <strong><i class="fas fa-exclamation-circle"></i> CORS Blocked</strong>
+                            <p style="margin: 8px 0 0 0; font-size: 13px;">
+                                Direct fetching is blocked by browser security. Please:
+                                <br>1. Visit <span id="corsProviderLink"></span>
+                                <br>2. Download your games as PGN
+                                <br>3. Switch to "Local PGN" tab and paste the content
+                            </p>
+                        </div>
+
+                        <div class="insight-actions">
+                            <button id="importFetchBtn" class="btn btn-primary btn-block">
+                                <i class="fas fa-download"></i> Fetch & Analyze Games
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Local PGN Import -->
+                    <div class="import-panel" id="importLocalPanel" style="display: none;">
+                        <div class="form-group">
+                            <label for="insightPgnInput">
+                                Paste PGN content here (one or multiple games):
+                            </label>
+                            <textarea
+                                id="insightPgnInput"
+                                class="form-control insight-textarea"
+                                placeholder="[Event &quot;Casual Game&quot;]
 [Site &quot;?&quot;]
 [Date &quot;2024.01.15&quot;]
 [White &quot;Player1&quot;]
@@ -673,32 +754,33 @@
 [Result &quot;1-0&quot;]
 
 1. e4 e5 2. Nf3 Nc6..."
-                            rows="8"
-                            aria-label="PGN text input"
-                        ></textarea>
-                        <small class="form-text">
-                            You can also load a .pgn file from your disk
-                        </small>
-                    </div>
+                                rows="8"
+                                aria-label="PGN text input"
+                            ></textarea>
+                            <small class="form-text">
+                                You can also load a .pgn file from your disk
+                            </small>
+                        </div>
 
-                    <div class="insight-file-input">
-                        <label for="insightPgnFile" class="btn btn-secondary">
-                            <i class="fas fa-folder-open"></i> Load .pgn file
-                        </label>
-                        <input
-                            type="file"
-                            id="insightPgnFile"
-                            accept=".pgn"
-                            style="display: none;"
-                            aria-label="Upload PGN file"
-                        />
-                        <span id="insightFileName" class="file-name-display"></span>
-                    </div>
+                        <div class="insight-file-input">
+                            <label for="insightPgnFile" class="btn btn-secondary">
+                                <i class="fas fa-folder-open"></i> Load .pgn file
+                            </label>
+                            <input
+                                type="file"
+                                id="insightPgnFile"
+                                accept=".pgn"
+                                style="display: none;"
+                                aria-label="Upload PGN file"
+                            />
+                            <span id="insightFileName" class="file-name-display"></span>
+                        </div>
 
-                    <div class="insight-actions">
-                        <button id="insightAnalyzeBtn" class="btn btn-primary btn-block">
-                            <i class="fas fa-brain"></i> Analyze Profile
-                        </button>
+                        <div class="insight-actions">
+                            <button id="insightAnalyzeBtn" class="btn btn-primary btn-block">
+                                <i class="fas fa-brain"></i> Analyze Profile
+                            </button>
+                        </div>
                     </div>
                 </div>
 

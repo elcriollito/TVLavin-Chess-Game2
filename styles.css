@@ -1775,6 +1775,46 @@ button:focus,
     }
 }
 
+/* ===== GAME IMPORT TABS ===== */
+
+.import-tabs {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.import-tab {
+    flex: 1;
+    padding: var(--spacing-md);
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-secondary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: -2px;
+}
+
+.import-tab:hover {
+    color: var(--primary-color);
+    background: var(--bg-secondary);
+}
+
+.import-tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+.import-panel {
+    display: none;
+}
+
+.import-panel.active {
+    display: block;
+}
+
 /* ===== COACH REPORT MODULE ===== */
 
 /* Configuration grid */

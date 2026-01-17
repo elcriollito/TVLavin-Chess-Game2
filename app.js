@@ -3316,9 +3316,156 @@ function setupInsightModal() {
     const refreshBtn = document.getElementById('insightRefreshBtn');
     const exportBtn = document.getElementById('insightExportBtn');
 
+    // Import tab elements
+    const importTabs = document.querySelectorAll('.import-tab');
+    const importFetchBtn = document.getElementById('importFetchBtn');
+    const importProvider = document.getElementById('importProvider');
+    const importUsername = document.getElementById('importUsername');
+    const importGameCount = document.getElementById('importGameCount');
+    const importTimeControl = document.getElementById('importTimeControl');
+    const importProgressSection = document.getElementById('importProgressSection');
+    const importProgressBar = document.getElementById('importProgressBar');
+    const importProgressText = document.getElementById('importProgressText');
+    const importCorsMessage = document.getElementById('importCorsMessage');
+    const corsProviderLink = document.getElementById('corsProviderLink');
+
     if (!analyzeBtn) {
         console.warn('⚠️ Insight modal elements not found');
         return;
+    }
+
+    // Setup import tab switching
+    importTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabName = tab.dataset.tab;
+
+            // Update active tab
+            importTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            // Show corresponding panel
+            const panels = {
+                'online': document.getElementById('importOnlinePanel'),
+                'local': document.getElementById('importLocalPanel')
+            };
+
+            Object.values(panels).forEach(panel => panel.classList.remove('active'));
+            if (panels[tabName]) {
+                panels[tabName].classList.add('active');
+            }
+
+            // Hide CORS message when switching tabs
+            if (importCorsMessage) {
+                importCorsMessage.style.display = 'none';
+            }
+        });
+    });
+
+    // Import fetch button handler
+    if (importFetchBtn) {
+        importFetchBtn.addEventListener('click', async () => {
+            const provider = importProvider.value;
+            const username = importUsername.value.trim();
+            const count = parseInt(importGameCount.value);
+            const timeControl = importTimeControl.value;
+
+            if (!username) {
+                showErrorNotification('Please enter a username');
+                return;
+            }
+
+            console.log(`🎮 Fetching ${count} games from ${provider} for user: ${username}`);
+
+            // Show progress
+            importProgressSection.style.display = 'block';
+            importCorsMessage.style.display = 'none';
+            importProgressBar.style.width = '10%';
+            importProgressText.textContent = `Connecting to ${provider}...`;
+            importFetchBtn.disabled = true;
+
+            try {
+                let importedGames;
+
+                // Fetch from provider
+                if (provider === 'chess.com') {
+                    importProgressText.textContent = 'Fetching from Chess.com...';
+                    importProgressBar.style.width = '30%';
+                    importedGames = await GameSourceService.fetchFromChessCom(username, count, { timeControl });
+                } else if (provider === 'lichess') {
+                    importProgressText.textContent = 'Fetching from Lichess...';
+                    importProgressBar.style.width = '30%';
+                    importedGames = await GameSourceService.fetchFromLichess(username, count, { timeControl });
+                }
+
+                if (!importedGames || importedGames.length === 0) {
+                    throw new Error('No games found with the specified filters');
+                }
+
+                importProgressText.textContent = `Processing ${importedGames.length} games...`;
+                importProgressBar.style.width = '60%';
+
+                // Convert to PGN text
+                const pgnText = importedGames.map(g => g.pgn).join('\n\n');
+
+                // Parse and analyze
+                importProgressText.textContent = 'Analyzing games...';
+                importProgressBar.style.width = '80%';
+
+                const parsedData = parseMultiGamePGN(pgnText);
+
+                if (parsedData.stats.total === 0) {
+                    throw new Error('Failed to parse imported games');
+                }
+
+                // Save to profile
+                insightProfile = parsedData;
+                saveInsightProfile(parsedData);
+
+                // Store import metadata
+                localStorage.setItem('lastGameImport', JSON.stringify({
+                    provider,
+                    username,
+                    count: importedGames.length,
+                    timeControl,
+                    timestamp: new Date().toISOString()
+                }));
+
+                importProgressBar.style.width = '100%';
+                importProgressText.textContent = 'Complete!';
+
+                // Display results
+                displayInsightResults(parsedData);
+
+                // Hide progress after short delay
+                setTimeout(() => {
+                    importProgressSection.style.display = 'none';
+                }, 1000);
+
+                showNotification(`Successfully imported ${importedGames.length} games from ${provider}!`);
+
+            } catch (error) {
+                console.error('❌ Import error:', error);
+
+                importProgressSection.style.display = 'none';
+
+                if (error.message === 'CORS_BLOCKED') {
+                    // Show CORS fallback message
+                    const providerLinks = {
+                        'chess.com': `<a href="https://www.chess.com/member/${username}" target="_blank">Chess.com</a>`,
+                        'lichess': `<a href="https://lichess.org/@/${username}/export" target="_blank">Lichess Export Page</a>`
+                    };
+
+                    corsProviderLink.innerHTML = providerLinks[provider] || provider;
+                    importCorsMessage.style.display = 'block';
+
+                    showErrorNotification('Direct fetching blocked by CORS. Please use the fallback method shown below.');
+                } else {
+                    showErrorNotification(error.message || 'Failed to import games');
+                }
+            } finally {
+                importFetchBtn.disabled = false;
+            }
+        });
     }
 
     // File upload handler
@@ -3456,6 +3603,286 @@ function setupInsightModal() {
 
 // ===== PERFORMANCE MONITORING =====
 console.log('CAISSA Chess loaded successfully');
+
+// ===== GAME IMPORT SERVICE =====
+
+/**
+ * GameSourceService - Unified service for importing games from multiple sources
+ * Supports: Chess.com, Lichess, and local PGN
+ */
+const GameSourceService = {
+    /**
+     * Fetch recent games from Chess.com
+     * @param {string} username - Chess.com username
+     * @param {number} count - Number of games to fetch (max 50)
+     * @param {object} filters - {timeControl: 'bullet'|'blitz'|'rapid'|'classical'|'all'}
+     * @returns {Promise<ImportedGame[]>}
+     */
+    async fetchFromChessCom(username, count = 20, filters = {}) {
+        console.log(`🌐 Fetching ${count} games from Chess.com for user: ${username}`);
+
+        try {
+            // Fetch archives list
+            const archivesUrl = `https://api.chess.com/pub/player/${username}/games/archives`;
+            console.log('📡 Fetching archives:', archivesUrl);
+
+            const archivesResponse = await fetch(archivesUrl);
+
+            if (!archivesResponse.ok) {
+                if (archivesResponse.status === 404) {
+                    throw new Error(`User "${username}" not found on Chess.com`);
+                }
+                throw new Error(`Chess.com API error: ${archivesResponse.status}`);
+            }
+
+            const archivesData = await archivesResponse.json();
+
+            if (!archivesData.archives || archivesData.archives.length === 0) {
+                throw new Error(`No game archives found for user "${username}"`);
+            }
+
+            console.log(`📚 Found ${archivesData.archives.length} archive(s)`);
+
+            // Fetch games from most recent archives
+            const importedGames = [];
+            const archives = archivesData.archives.reverse(); // Most recent first
+
+            for (const archiveUrl of archives) {
+                if (importedGames.length >= count) break;
+
+                console.log('📥 Fetching archive:', archiveUrl);
+
+                const gamesResponse = await fetch(archiveUrl);
+                if (!gamesResponse.ok) continue;
+
+                const gamesData = await gamesResponse.json();
+                const games = gamesData.games || [];
+
+                console.log(`  ✓ Got ${games.length} games from archive`);
+
+                for (const game of games) {
+                    if (importedGames.length >= count) break;
+
+                    // Extract PGN
+                    const pgn = game.pgn;
+                    if (!pgn) continue;
+
+                    // Infer time control from game
+                    const timeControl = this._inferTimeControlChessCom(game);
+
+                    // Apply filter
+                    if (filters.timeControl && filters.timeControl !== 'all' && timeControl !== filters.timeControl) {
+                        continue;
+                    }
+
+                    importedGames.push({
+                        id: game.url || `chessdotcom-${game.end_time}`,
+                        source: 'chess.com',
+                        username: username,
+                        playedAt: new Date(game.end_time * 1000).toISOString(),
+                        timeControl: timeControl,
+                        pgn: pgn
+                    });
+                }
+            }
+
+            console.log(`✅ Successfully imported ${importedGames.length} games from Chess.com`);
+            return importedGames;
+
+        } catch (error) {
+            console.error('❌ Chess.com fetch error:', error);
+
+            // Check for CORS error
+            if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+                throw new Error('CORS_BLOCKED');
+            }
+
+            throw error;
+        }
+    },
+
+    /**
+     * Fetch recent games from Lichess
+     * @param {string} username - Lichess username
+     * @param {number} count - Number of games to fetch (max 50)
+     * @param {object} filters - {timeControl: 'bullet'|'blitz'|'rapid'|'classical'|'all'}
+     * @returns {Promise<ImportedGame[]>}
+     */
+    async fetchFromLichess(username, count = 20, filters = {}) {
+        console.log(`♔ Fetching ${count} games from Lichess for user: ${username}`);
+
+        try {
+            // Build Lichess API URL
+            let url = `https://lichess.org/api/games/user/${username}?max=${count}&pgnInJson=true&clocks=false&evals=false&opening=false`;
+
+            // Add perf filter if specified
+            if (filters.timeControl && filters.timeControl !== 'all') {
+                const perfMap = {
+                    'bullet': 'bullet',
+                    'blitz': 'blitz',
+                    'rapid': 'rapid',
+                    'classical': 'classical'
+                };
+                const perf = perfMap[filters.timeControl];
+                if (perf) {
+                    url += `&perfType=${perf}`;
+                }
+            }
+
+            console.log('📡 Fetching games:', url);
+
+            const response = await fetch(url, {
+                headers: {
+                    'Accept': 'application/x-ndjson'
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error(`User "${username}" not found on Lichess`);
+                }
+                if (response.status === 429) {
+                    throw new Error('Rate limit exceeded. Please try again later.');
+                }
+                throw new Error(`Lichess API error: ${response.status}`);
+            }
+
+            const text = await response.text();
+
+            // Parse NDJSON (newline-delimited JSON)
+            const lines = text.trim().split('\n');
+            const importedGames = [];
+
+            for (const line of lines) {
+                if (!line.trim()) continue;
+
+                try {
+                    const game = JSON.parse(line);
+
+                    // Extract PGN
+                    const pgn = game.pgn;
+                    if (!pgn) continue;
+
+                    // Get time control from perf field
+                    const timeControl = game.perf || 'unknown';
+
+                    importedGames.push({
+                        id: game.id || `lichess-${game.createdAt}`,
+                        source: 'lichess',
+                        username: username,
+                        playedAt: new Date(game.createdAt).toISOString(),
+                        timeControl: timeControl,
+                        pgn: pgn
+                    });
+
+                } catch (parseError) {
+                    console.warn('⚠️ Failed to parse game line:', parseError);
+                    continue;
+                }
+            }
+
+            console.log(`✅ Successfully imported ${importedGames.length} games from Lichess`);
+            return importedGames;
+
+        } catch (error) {
+            console.error('❌ Lichess fetch error:', error);
+
+            // Check for CORS error
+            if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+                throw new Error('CORS_BLOCKED');
+            }
+
+            throw error;
+        }
+    },
+
+    /**
+     * Parse local PGN into ImportedGame format
+     * @param {string} pgnText - PGN text content
+     * @returns {ImportedGame[]}
+     */
+    parseLocalPGN(pgnText) {
+        console.log('📄 Parsing local PGN...');
+
+        const importedGames = [];
+        const gameSections = pgnText.split(/\n\s*\n(?=\[Event\s)/);
+
+        for (const section of gameSections) {
+            const trimmed = section.trim();
+            if (!trimmed || !trimmed.startsWith('[Event')) continue;
+
+            // Extract date if available
+            let playedAt = new Date().toISOString();
+            const dateMatch = trimmed.match(/\[Date\s+"([^"]+)"\]/);
+            if (dateMatch) {
+                try {
+                    const dateStr = dateMatch[1].replace(/\./g, '-');
+                    playedAt = new Date(dateStr).toISOString();
+                } catch (e) {
+                    // Keep default if parse fails
+                }
+            }
+
+            // Infer time control if available
+            let timeControl = 'unknown';
+            const timeControlMatch = trimmed.match(/\[TimeControl\s+"([^"]+)"\]/);
+            if (timeControlMatch) {
+                timeControl = this._inferTimeControlFromHeader(timeControlMatch[1]);
+            }
+
+            importedGames.push({
+                id: `local-${Date.now()}-${Math.random()}`,
+                source: 'local',
+                username: 'local',
+                playedAt: playedAt,
+                timeControl: timeControl,
+                pgn: trimmed
+            });
+        }
+
+        console.log(`✅ Parsed ${importedGames.length} games from local PGN`);
+        return importedGames;
+    },
+
+    /**
+     * Infer time control from Chess.com game object
+     */
+    _inferTimeControlChessCom(game) {
+        const timeClass = game.time_class;
+        if (timeClass) {
+            return timeClass; // bullet, blitz, rapid, daily
+        }
+
+        const timeControl = game.time_control;
+        if (typeof timeControl === 'string') {
+            return this._inferTimeControlFromHeader(timeControl);
+        }
+
+        return 'unknown';
+    },
+
+    /**
+     * Infer time control category from TimeControl header
+     */
+    _inferTimeControlFromHeader(timeControl) {
+        if (!timeControl || timeControl === '-') return 'unknown';
+
+        // Parse time control format: "baseTime+increment"
+        const match = timeControl.match(/^(\d+)\+?(\d+)?$/);
+        if (!match) return 'unknown';
+
+        const baseTime = parseInt(match[1]);
+        const increment = parseInt(match[2] || '0');
+
+        // Total time in seconds
+        const totalTime = baseTime + (40 * increment); // Assume 40 moves average
+
+        if (totalTime < 180) return 'bullet';
+        if (totalTime < 600) return 'blitz';
+        if (totalTime < 1500) return 'rapid';
+        return 'classical';
+    }
+};
 
 // ===== COACH REPORT MODULE =====
 
