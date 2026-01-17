@@ -650,17 +650,17 @@
                 <div class="insight-intro">
                     <p class="insight-description">
                         <i class="fas fa-magic"></i>
-                        Descubre tu perfil de juego analizando tus partidas.
-                        Caissa te revelará tus fortalezas, debilidades y caminos de mejora.
+                        Discover your playing profile by analyzing your games.
+                        Caissa will reveal your strengths, weaknesses, and paths for improvement.
                     </p>
                 </div>
 
                 <!-- Import PGN Section -->
                 <div class="insight-section" id="insightImportSection">
-                    <h3><i class="fas fa-file-import"></i> Importar Partidas</h3>
+                    <h3><i class="fas fa-file-import"></i> Import Games</h3>
                     <div class="form-group">
                         <label for="insightPgnInput">
-                            Pega aquí el contenido PGN (una o múltiples partidas):
+                            Paste PGN content here (one or multiple games):
                         </label>
                         <textarea
                             id="insightPgnInput"
@@ -677,13 +677,13 @@
                             aria-label="PGN text input"
                         ></textarea>
                         <small class="form-text">
-                            También puedes cargar un archivo .pgn desde tu disco
+                            You can also load a .pgn file from your disk
                         </small>
                     </div>
 
                     <div class="insight-file-input">
                         <label for="insightPgnFile" class="btn btn-secondary">
-                            <i class="fas fa-folder-open"></i> Cargar archivo .pgn
+                            <i class="fas fa-folder-open"></i> Load .pgn file
                         </label>
                         <input
                             type="file"
@@ -697,7 +697,7 @@
 
                     <div class="insight-actions">
                         <button id="insightAnalyzeBtn" class="btn btn-primary btn-block">
-                            <i class="fas fa-brain"></i> Analizar Perfil
+                            <i class="fas fa-brain"></i> Analyze Profile
                         </button>
                     </div>
                 </div>
@@ -705,19 +705,19 @@
                 <!-- Results Section (hidden initially) -->
                 <div class="insight-section insight-results" id="insightResultsSection" style="display: none;">
                     <div class="insight-stats-summary">
-                        <h3><i class="fas fa-chart-bar"></i> Resumen de Partidas</h3>
+                        <h3><i class="fas fa-chart-bar"></i> Games Summary</h3>
                         <div id="insightStatsSummary" class="stats-grid">
                             <!-- Stats will be inserted here via JS -->
                         </div>
                     </div>
 
                     <div class="insight-radar-container">
-                        <h3><i class="fas fa-radar"></i> Tu Perfil de Juego</h3>
+                        <h3><i class="fas fa-radar"></i> Your Playing Profile</h3>
                         <canvas id="insightRadarChart" width="400" height="400"></canvas>
                     </div>
 
                     <div class="insight-narrative">
-                        <h3><i class="fas fa-scroll"></i> Análisis de Caissa</h3>
+                        <h3><i class="fas fa-scroll"></i> Caissa's Analysis</h3>
                         <div id="insightNarrative" class="narrative-content">
                             <!-- Narrative will be inserted here -->
                         </div>
@@ -725,10 +725,10 @@
 
                     <div class="insight-actions">
                         <button id="insightRefreshBtn" class="btn btn-secondary">
-                            <i class="fas fa-sync-alt"></i> Recalcular
+                            <i class="fas fa-sync-alt"></i> Recalculate
                         </button>
                         <button id="insightExportBtn" class="btn btn-secondary">
-                            <i class="fas fa-download"></i> Exportar Reporte
+                            <i class="fas fa-download"></i> Export Report
                         </button>
                     </div>
                 </div>

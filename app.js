@@ -3123,14 +3123,14 @@ function generateCaissaNarrative(data, metrics) {
 
     // Identify strengths (>70) and weaknesses (<40)
     const dimensions = [
-        { name: 'táctica', value: tactics, threshold: 70 },
-        { name: 'estrategia', value: strategy, threshold: 70 },
-        { name: 'apertura', value: opening, threshold: 70 },
-        { name: 'final', value: endgame, threshold: 70 },
-        { name: 'precisión', value: precision, threshold: 70 },
-        { name: 'agresividad', value: aggression, threshold: 70 },
-        { name: 'defensa', value: defense, threshold: 70 },
-        { name: 'consistencia', value: consistency, threshold: 70 }
+        { name: 'tactics', value: tactics, threshold: 70 },
+        { name: 'strategy', value: strategy, threshold: 70 },
+        { name: 'opening', value: opening, threshold: 70 },
+        { name: 'endgame', value: endgame, threshold: 70 },
+        { name: 'precision', value: precision, threshold: 70 },
+        { name: 'aggression', value: aggression, threshold: 70 },
+        { name: 'defense', value: defense, threshold: 70 },
+        { name: 'consistency', value: consistency, threshold: 70 }
     ];
 
     const strengths = dimensions.filter(d => d.value >= 70);
@@ -3141,90 +3141,90 @@ function generateCaissaNarrative(data, metrics) {
     let narrative = '';
 
     // Introduction
-    narrative += `<p><strong>Caissa, la diosa del ajedrez, ha examinado tus ${total} partidas</strong> y revela un perfil único. `;
-    narrative += `Tus juegos promedian ${avgPly} movimientos, `;
+    narrative += `<p><strong>Caissa, the goddess of chess, has examined your ${total} games</strong> and reveals a unique profile. `;
+    narrative += `Your games average ${avgPly} moves, `;
     if (avgPly < 60) {
-        narrative += 'mostrando una tendencia hacia batallas rápidas y decisivas.';
+        narrative += 'showing a tendency toward quick and decisive battles.';
     } else if (avgPly < 90) {
-        narrative += 'reflejando un equilibrio entre el juego táctico y estratégico.';
+        narrative += 'reflecting a balance between tactical and strategic play.';
     } else {
-        narrative += 'evidenciando una preferencia por la guerra de trincheras y finales prolongados.';
+        narrative += 'demonstrating a preference for positional warfare and long endgames.';
     }
     narrative += '</p>';
 
     // Strengths
     if (strengths.length > 0) {
-        narrative += '<p><strong>Fortalezas manifiestas:</strong> ';
+        narrative += '<p><strong>Manifest Strengths:</strong> ';
         if (tactics >= 70) {
-            narrative += 'Tu visión táctica es aguda como el filo de una espada, capaz de detectar combinaciones ocultas en el tablero. ';
+            narrative += 'Your tactical vision is sharp as a blade, capable of detecting hidden combinations on the board. ';
         }
         if (strategy >= 70) {
-            narrative += 'Dominas el arte de la planificación a largo plazo, tejiendo redes estratégicas que atrapan a tus rivales. ';
+            narrative += 'You master the art of long-term planning, weaving strategic nets that trap your opponents. ';
         }
         if (opening >= 70) {
-            narrative += 'Tu repertorio de aperturas es diverso y sólido, demostrando conocimiento profundo de la teoría. ';
+            narrative += 'Your opening repertoire is diverse and solid, demonstrating deep theoretical knowledge. ';
         }
         if (endgame >= 70) {
-            narrative += 'En el final, cuando el tablero se despeja, tu técnica brilla con maestría. ';
+            narrative += 'In the endgame, when the board clears, your technique shines with mastery. ';
         }
         if (precision >= 70) {
-            narrative += 'Tus decisiones son precisas y calculadas, minimizando errores en momentos críticos. ';
+            narrative += 'Your decisions are precise and calculated, minimizing errors in critical moments. ';
         }
         if (aggression >= 70) {
-            narrative += 'Juegas con fuego en las venas, atacando con valentía y determinación. ';
+            narrative += 'You play with fire in your veins, attacking with courage and determination. ';
         }
         if (defense >= 70) {
-            narrative += 'Eres un baluarte inquebrantable, capaz de defender posiciones aparentemente perdidas. ';
+            narrative += 'You are an unbreakable fortress, capable of defending seemingly lost positions. ';
         }
         if (consistency >= 70) {
-            narrative += 'Tu juego es consistente y confiable, manteniendo un nivel estable partida tras partida. ';
+            narrative += 'Your play is consistent and reliable, maintaining a stable level game after game. ';
         }
         narrative += '</p>';
     }
 
     // Weaknesses and recommendations
     if (weaknesses.length > 0) {
-        narrative += '<p><strong>Áreas que Caissa te invita a cultivar:</strong> ';
+        narrative += '<p><strong>Areas Caissa Invites You to Cultivate:</strong> ';
         if (tactics < 40) {
-            narrative += 'Fortalece tu visión táctica con ejercicios de combinaciones. Los sacrificios y motivos tácticos básicos te esperan. ';
+            narrative += 'Strengthen your tactical vision with combination exercises. Sacrifices and basic tactical motifs await you. ';
         }
         if (strategy < 40) {
-            narrative += 'Dedica tiempo a estudiar partidas de Capablanca y Karpov para mejorar tu comprensión estratégica. ';
+            narrative += 'Dedicate time to studying games by Capablanca and Karpov to improve your strategic understanding. ';
         }
         if (opening < 40) {
-            narrative += 'Amplía tu repertorio de aperturas. Estudia los principios fundamentales: desarrollo, control del centro, seguridad del rey. ';
+            narrative += 'Expand your opening repertoire. Study fundamental principles: development, center control, king safety. ';
         }
         if (endgame < 40) {
-            narrative += 'Los finales son el cimiento de la maestría. Practica finales básicos de peones y torres. ';
+            narrative += 'Endgames are the foundation of mastery. Practice basic pawn and rook endings. ';
         }
         if (precision < 40) {
-            narrative += 'Tómate más tiempo para calcular. La precisión se construye con paciencia y verificación de variantes. ';
+            narrative += 'Take more time to calculate. Precision is built through patience and variation checking. ';
         }
         if (aggression < 40) {
-            narrative += 'No temas el riesgo calculado. Estudia las partidas de Tal y Kasparov para aprender el arte del ataque. ';
+            narrative += 'Do not fear calculated risk. Study games by Tal and Kasparov to learn the art of attack. ';
         }
         if (defense < 40) {
-            narrative += 'Desarrolla tu resiliencia defensiva. Aprende a crear contrajuego cuando estés bajo presión. ';
+            narrative += 'Develop your defensive resilience. Learn to create counterplay when under pressure. ';
         }
         if (consistency < 40) {
-            narrative += 'Trabaja en mantener un nivel estable. Analiza tus errores para evitar altibajos en tu juego. ';
+            narrative += 'Work on maintaining a stable level. Analyze your errors to avoid ups and downs in your play. ';
         }
         narrative += '</p>';
     }
 
     // Balanced areas
     if (balanced.length > 0 && strengths.length > 0 && weaknesses.length > 0) {
-        narrative += '<p>Tus habilidades en ';
+        narrative += '<p>Your skills in ';
         const balancedNames = balanced.map(d => d.name).slice(0, 3);
         narrative += balancedNames.join(', ');
-        narrative += ' muestran fundamentos sólidos con margen para crecer. ';
-        narrative += 'Estos aspectos pueden convertirse en fortalezas con práctica dedicada.</p>';
+        narrative += ' show solid fundamentals with room to grow. ';
+        narrative += 'These aspects can become strengths with dedicated practice.</p>';
     }
 
     // Closing wisdom
-    narrative += '<p><em>Caissa te recuerda: el ajedrez es un viaje infinito de aprendizaje. ';
-    narrative += 'Cada partida es una lección, cada error una oportunidad. ';
-    narrative += 'Que tus piezas dancen con gracia y tus planes florezcan en victoria.</em></p>';
+    narrative += '<p><em>Caissa reminds you: chess is an infinite journey of learning. ';
+    narrative += 'Each game is a lesson, each mistake an opportunity. ';
+    narrative += 'May your pieces dance with grace and your plans flourish in victory.</em></p>';
 
     console.log('✅ Narrative generated');
     return narrative;
