@@ -730,10 +730,130 @@
                         <button id="insightExportBtn" class="btn btn-secondary">
                             <i class="fas fa-download"></i> Export Report
                         </button>
+                        <button id="insightCoachBtn" class="btn btn-highlight">
+                            <i class="fas fa-graduation-cap"></i> Generate Coach Report
+                        </button>
                     </div>
                 </div>
 
                 <div id="insightError" class="error-message" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Coach Report Modal -->
+    <div id="coachModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2><i class="fas fa-graduation-cap"></i> Caissa Coach Report</h2>
+                <button class="modal-close" data-modal="coachModal" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Configuration Section -->
+                <div class="insight-section" id="coachConfigSection">
+                    <h3><i class="fas fa-cog"></i> Report Configuration</h3>
+
+                    <div class="coach-config-grid">
+                        <div class="form-group">
+                            <label for="coachGameCount">Number of Games:</label>
+                            <select id="coachGameCount" class="form-control" aria-label="Select number of games">
+                                <option value="10">Last 10 games</option>
+                                <option value="20" selected>Last 20 games</option>
+                                <option value="30">Last 30 games</option>
+                                <option value="50">Last 50 games</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="coachColorFilter">Color:</label>
+                            <select id="coachColorFilter" class="form-control" aria-label="Select color filter">
+                                <option value="both" selected>Both Colors</option>
+                                <option value="white">White Only</option>
+                                <option value="black">Black Only</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="insight-actions">
+                        <button id="coachGenerateBtn" class="btn btn-primary btn-block">
+                            <i class="fas fa-brain"></i> Generate Coach Report
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Progress Section -->
+                <div class="insight-section" id="coachProgressSection" style="display: none;">
+                    <h3><i class="fas fa-spinner fa-spin"></i> Analyzing Games...</h3>
+                    <div class="coach-progress">
+                        <div class="progress-bar-container">
+                            <div id="coachProgressBar" class="progress-bar"></div>
+                        </div>
+                        <p id="coachProgressText" class="progress-text">Preparing analysis...</p>
+                    </div>
+                </div>
+
+                <!-- Report Section -->
+                <div class="insight-section" id="coachReportSection" style="display: none;">
+                    <!-- Summary Header -->
+                    <div class="coach-summary">
+                        <h3><i class="fas fa-chart-line"></i> Analysis Summary</h3>
+                        <div id="coachSummaryStats" class="stats-grid">
+                            <!-- Will be populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- What's Working -->
+                    <div class="coach-section coach-working">
+                        <h3><i class="fas fa-check-circle"></i> What's Working</h3>
+                        <div id="coachWorkingContent" class="narrative-content">
+                            <!-- Will be populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- What's Not Working -->
+                    <div class="coach-section coach-not-working">
+                        <h3><i class="fas fa-exclamation-triangle"></i> What's Not Working</h3>
+                        <div id="coachNotWorkingContent" class="narrative-content">
+                            <!-- Will be populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Recurring Patterns -->
+                    <div class="coach-section coach-patterns">
+                        <h3><i class="fas fa-th-list"></i> Recurring Error Patterns</h3>
+                        <div id="coachPatternsContent" class="coach-patterns-grid">
+                            <!-- Will be populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Mindset & Habits -->
+                    <div class="coach-section coach-habits">
+                        <h3><i class="fas fa-brain"></i> Key Habits to Build</h3>
+                        <div id="coachHabitsContent" class="narrative-content">
+                            <!-- Will be populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- 7-Day Training Plan -->
+                    <div class="coach-section coach-plan">
+                        <h3><i class="fas fa-calendar-alt"></i> Your 7-Day Training Plan</h3>
+                        <div id="coachPlanContent" class="coach-training-plan">
+                            <!-- Will be populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="insight-actions">
+                        <button id="coachBackBtn" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Settings
+                        </button>
+                        <button id="coachExportBtn" class="btn btn-secondary">
+                            <i class="fas fa-download"></i> Export Report
+                        </button>
+                    </div>
+                </div>
+
+                <div id="coachError" class="error-message" style="display: none;"></div>
             </div>
         </div>
     </div>

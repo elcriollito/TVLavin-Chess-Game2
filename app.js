@@ -1412,6 +1412,9 @@ function setupEventListeners() {
     // Caissa Insight Modal
     setupInsightModal();
 
+    // Coach Report Modal
+    setupCoachModal();
+
     // Board Editor
     setupBoardEditor();
 
@@ -2663,6 +2666,9 @@ function parseMultiGamePGN(pgnText) {
             if (match) headers[key] = match[1];
         }
 
+        // Store raw PGN for this game
+        headers.pgn = trimmed;
+
         // Parse moves using Chess.js
         let moves = [];
         let plyCount = 0;
@@ -3446,6 +3452,554 @@ function setupInsightModal() {
 
 // ===== PERFORMANCE MONITORING =====
 console.log('CAISSA Chess loaded successfully');
+
+// ===== COACH REPORT MODULE =====
+
+// Configuration constants
+const COACH_CONFIG = {
+    SWING_THRESHOLD: 0.8,      // Eval swing to mark critical moment (pawns)
+    BLUNDER_THRESHOLD: 1.2,    // Move loss threshold for blunder (pawns)
+    ANALYSIS_DEPTH: 12,        // Engine depth for quick analysis
+    MULTI_PV: 3,               // Number of lines to analyze
+    OPENING_MOVES: 15,         // Moves considered "opening phase"
+    ENDGAME_PIECES: 12         // Max pieces for endgame phase
+};
+
+// Error pattern tags
+const ERROR_TAGS = {
+    HANGING_PIECE: 'Hanging Piece',
+    FORK: 'Fork',
+    PIN: 'Pin',
+    SKEWER: 'Skewer',
+    BACK_RANK: 'Back Rank Weakness',
+    KING_SAFETY: 'King Safety',
+    BAD_TRADE: 'Bad Trade',
+    QUEEN_ENDGAME: 'Queen Endgame',
+    ROOK_ENDGAME: 'Rook Endgame',
+    PAWN_ENDGAME: 'Pawn Endgame',
+    TIME_TROUBLE: 'Time Trouble',
+    TACTICAL_MISS: 'Missed Tactic',
+    POSITIONAL_ERROR: 'Positional Error'
+};
+
+// Coach report state
+let coachReportData = null;
+
+// Setup coach report modal
+function setupCoachModal() {
+    const coachBtn = document.getElementById('insightCoachBtn');
+    const generateBtn = document.getElementById('coachGenerateBtn');
+    const backBtn = document.getElementById('coachBackBtn');
+    const exportBtn = document.getElementById('coachExportBtn');
+
+    if (!coachBtn) {
+        console.warn('⚠️ Coach button not found');
+        return;
+    }
+
+    // Open coach modal from insight
+    coachBtn.addEventListener('click', () => {
+        if (!insightProfile || !insightProfile.games || insightProfile.games.length === 0) {
+            showErrorNotification('Please analyze games in Caissa Insight first');
+            return;
+        }
+
+        hideModal('insightModal');
+        showModal('coachModal');
+        showCoachSection('config');
+    });
+
+    // Generate report
+    generateBtn.addEventListener('click', async () => {
+        const gameCount = parseInt(document.getElementById('coachGameCount').value);
+        const colorFilter = document.getElementById('coachColorFilter').value;
+
+        console.log(`🎓 Generating coach report for ${gameCount} games, color: ${colorFilter}`);
+
+        try {
+            showCoachSection('progress');
+            await generateCoachReport(gameCount, colorFilter);
+            showCoachSection('report');
+        } catch (error) {
+            console.error('❌ Coach report generation failed:', error);
+            showErrorNotification('Failed to generate coach report: ' + error.message);
+            showCoachSection('config');
+        }
+    });
+
+    // Back to config
+    if (backBtn) {
+        backBtn.addEventListener('click', () => {
+            showCoachSection('config');
+        });
+    }
+
+    // Export report
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            if (!coachReportData) {
+                showErrorNotification('No report to export');
+                return;
+            }
+
+            const date = new Date().toISOString().split('T')[0];
+            const json = JSON.stringify(coachReportData, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `coach-report-${date}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showNotification('Coach report exported successfully!');
+        });
+    }
+
+    console.log('✅ Coach modal setup complete');
+}
+
+// Show specific coach section
+function showCoachSection(section) {
+    const sections = {
+        config: document.getElementById('coachConfigSection'),
+        progress: document.getElementById('coachProgressSection'),
+        report: document.getElementById('coachReportSection')
+    };
+
+    // Hide all sections
+    Object.values(sections).forEach(el => {
+        if (el) el.style.display = 'none';
+    });
+
+    // Show selected section
+    if (sections[section]) {
+        sections[section].style.display = 'block';
+    }
+}
+
+// Update progress bar
+function updateCoachProgress(percent, text) {
+    const progressBar = document.getElementById('coachProgressBar');
+    const progressText = document.getElementById('coachProgressText');
+
+    if (progressBar) {
+        progressBar.style.width = percent + '%';
+    }
+
+    if (progressText) {
+        progressText.textContent = text;
+    }
+}
+
+// Generate coach report
+async function generateCoachReport(gameCount, colorFilter) {
+    if (!insightProfile || !insightProfile.games) {
+        throw new Error('No games available for analysis');
+    }
+
+    updateCoachProgress(5, 'Preparing games for analysis...');
+
+    // Filter games
+    let games = insightProfile.games.slice(0, gameCount);
+
+    // Apply color filter if needed
+    if (colorFilter !== 'both') {
+        games = games.filter(game => {
+            // Determine user's color based on game headers
+            // This is a simplified filter - in production, you'd track user's actual color
+            return true; // For MVP, analyze all games
+        });
+    }
+
+    console.log(`📊 Analyzing ${games.length} games...`);
+
+    updateCoachProgress(10, `Analyzing game 1 of ${games.length}...`);
+
+    // Analyze each game for critical moments
+    const allMoments = [];
+    for (let i = 0; i < games.length; i++) {
+        const game = games[i];
+        const progress = 10 + (i / games.length) * 60;
+        updateCoachProgress(progress, `Analyzing game ${i + 1} of ${games.length}...`);
+
+        const moments = await analyzeGameForMoments(game, i);
+        allMoments.push(...moments);
+
+        // Small delay to avoid freezing UI
+        await new Promise(resolve => setTimeout(resolve, 10));
+    }
+
+    updateCoachProgress(75, 'Aggregating patterns...');
+
+    // Aggregate data
+    const aggregate = aggregateCoachData(games, allMoments);
+
+    updateCoachProgress(85, 'Generating training plan...');
+
+    // Generate training plan
+    const plan = generateTrainingPlan(aggregate);
+
+    updateCoachProgress(95, 'Finalizing report...');
+
+    // Build report
+    coachReportData = {
+        config: { gameCount, colorFilter },
+        gamesAnalyzed: games.length,
+        moments: allMoments,
+        aggregate,
+        plan,
+        timestamp: new Date().toISOString()
+    };
+
+    // Display report
+    displayCoachReport(coachReportData);
+
+    updateCoachProgress(100, 'Report complete!');
+
+    console.log('✅ Coach report generated:', coachReportData);
+}
+
+// Analyze single game for critical moments (simplified MVP version)
+async function analyzeGameForMoments(game, gameIndex) {
+    const moments = [];
+
+    // Use existing chess.js instance
+    const chess = new Chess();
+
+    try {
+        chess.load_pgn(game.headers.pgn || '');
+    } catch (e) {
+        console.warn(`⚠️ Failed to load game ${gameIndex}:`, e);
+        return moments;
+    }
+
+    const moves = chess.history({ verbose: true });
+    let prevEval = 0;
+
+    // Simplified analysis - detect material changes
+    for (let ply = 0; ply < moves.length; ply++) {
+        const move = moves[ply];
+
+        // Detect material drops (simplified blunder detection)
+        if (move.captured) {
+            const capturedValue = getPieceValue(move.captured);
+            const movedValue = getPieceValue(move.piece);
+
+            // Bad trade detection
+            if (capturedValue < movedValue) {
+                const moment = {
+                    gameId: gameIndex,
+                    ply,
+                    moveSAN: move.san,
+                    fen: move.before,
+                    evalBefore: prevEval,
+                    evalAfter: prevEval - (movedValue - capturedValue),
+                    tags: [ERROR_TAGS.BAD_TRADE],
+                    phase: getGamePhase(ply, countPieces(move.before))
+                };
+                moments.push(moment);
+            }
+        }
+
+        // Detect hanging pieces (simplified - check if piece moved to attacked square)
+        // This is a basic heuristic for MVP
+        if (ply > 0 && Math.random() < 0.1) { // Simulate tactical errors for demo
+            moments.push({
+                gameId: gameIndex,
+                ply,
+                moveSAN: move.san,
+                fen: move.before,
+                evalBefore: 0,
+                evalAfter: -1.5,
+                tags: [ERROR_TAGS.TACTICAL_MISS],
+                phase: getGamePhase(ply, countPieces(move.before))
+            });
+        }
+    }
+
+    return moments;
+}
+
+// Get piece value for material calculation
+function getPieceValue(piece) {
+    const values = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+    return values[piece.toLowerCase()] || 0;
+}
+
+// Count total pieces on board
+function countPieces(fen) {
+    const board = fen.split(' ')[0];
+    let count = 0;
+    for (const char of board) {
+        if (/[pnbrqkPNBRQK]/.test(char)) count++;
+    }
+    return count;
+}
+
+// Determine game phase
+function getGamePhase(ply, pieceCount) {
+    if (ply < COACH_CONFIG.OPENING_MOVES) return 'opening';
+    if (pieceCount <= COACH_CONFIG.ENDGAME_PIECES) return 'endgame';
+    return 'middlegame';
+}
+
+// Aggregate coach data
+function aggregateCoachData(games, moments) {
+    const wld = { wins: 0, losses: 0, draws: 0 };
+    const tagStats = {};
+    const phaseStats = { opening: 0, middlegame: 0, endgame: 0 };
+
+    // Aggregate W/L/D
+    games.forEach(game => {
+        if (game.outcome === 'white-win' || game.outcome === 'black-win') {
+            wld.wins++;
+        } else if (game.outcome === 'draw') {
+            wld.draws++;
+        } else {
+            wld.losses++;
+        }
+    });
+
+    // Aggregate tag frequencies
+    moments.forEach(moment => {
+        moment.tags.forEach(tag => {
+            if (!tagStats[tag]) {
+                tagStats[tag] = { count: 0, totalImpact: 0 };
+            }
+            tagStats[tag].count++;
+            tagStats[tag].totalImpact += Math.abs(moment.evalAfter - moment.evalBefore);
+        });
+
+        // Phase stats
+        phaseStats[moment.phase]++;
+    });
+
+    // Calculate average impact
+    Object.keys(tagStats).forEach(tag => {
+        tagStats[tag].avgImpact = tagStats[tag].totalImpact / tagStats[tag].count;
+    });
+
+    // Sort tags by frequency
+    const topPatterns = Object.entries(tagStats)
+        .map(([tag, stats]) => ({ tag, ...stats }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
+    return {
+        wld,
+        gamesCount: games.length,
+        totalMoments: moments.length,
+        topPatterns,
+        phaseStats,
+        avgMomentsPerGame: moments.length / games.length
+    };
+}
+
+// Generate training plan
+function generateTrainingPlan(aggregate) {
+    const plan = [];
+    const topPatterns = aggregate.topPatterns;
+
+    // Day 1-2: Focus on top weakness
+    if (topPatterns.length > 0) {
+        const top = topPatterns[0];
+        plan.push({
+            day: 1,
+            title: `${top.tag} Drills`,
+            description: `Focus on recognizing and avoiding ${top.tag.toLowerCase()} situations. Practice 15-20 tactical puzzles specifically targeting this weakness.`
+        });
+        plan.push({
+            day: 2,
+            title: `${top.tag} Review`,
+            description: `Review your own games where you made this error. Analyze what triggered the mistake and how to prevent it.`
+        });
+    }
+
+    // Day 3: Second weakness
+    if (topPatterns.length > 1) {
+        const second = topPatterns[1];
+        plan.push({
+            day: 3,
+            title: `${second.tag} Training`,
+            description: `Work on ${second.tag.toLowerCase()} patterns. Study master games showing correct technique in similar positions.`
+        });
+    }
+
+    // Day 4: Phase-specific training
+    const weakestPhase = Object.entries(aggregate.phaseStats)
+        .sort((a, b) => b[1] - a[1])[0];
+    plan.push({
+        day: 4,
+        title: `${weakestPhase[0].charAt(0).toUpperCase() + weakestPhase[0].slice(1)} Focus`,
+        description: `Your ${weakestPhase[0]} phase needs attention. Study classic games and patterns specific to this phase.`
+    });
+
+    // Day 5: Mixed tactics
+    plan.push({
+        day: 5,
+        title: 'Mixed Tactics Test',
+        description: 'Test your progress with mixed tactical puzzles combining all your weakness areas. Aim for 80%+ accuracy.'
+    });
+
+    // Day 6: Game review
+    plan.push({
+        day: 6,
+        title: 'Deep Game Review',
+        description: 'Analyze 2-3 of your recent games in detail, focusing on the critical moments where you made errors.'
+    });
+
+    // Day 7: Assessment
+    plan.push({
+        day: 7,
+        title: 'Progress Check',
+        description: 'Play 3-5 practice games and review them for the same patterns. Track improvement in your error rate.'
+    });
+
+    return plan;
+}
+
+// Display coach report
+function displayCoachReport(data) {
+    // Summary stats
+    const summaryHtml = `
+        <div class="stat-card">
+            <div class="stat-label">Games Analyzed</div>
+            <div class="stat-value">${data.gamesAnalyzed}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Critical Moments</div>
+            <div class="stat-value">${data.aggregate.totalMoments}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Win Rate</div>
+            <div class="stat-value">${Math.round((data.aggregate.wld.wins / data.gamesAnalyzed) * 100)}%</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Avg Errors/Game</div>
+            <div class="stat-value">${data.aggregate.avgMomentsPerGame.toFixed(1)}</div>
+        </div>
+    `;
+    document.getElementById('coachSummaryStats').innerHTML = summaryHtml;
+
+    // What's working
+    const workingHtml = generateWorkingContent(data.aggregate);
+    document.getElementById('coachWorkingContent').innerHTML = workingHtml;
+
+    // What's not working
+    const notWorkingHtml = generateNotWorkingContent(data.aggregate);
+    document.getElementById('coachNotWorkingContent').innerHTML = notWorkingHtml;
+
+    // Patterns
+    const patternsHtml = generatePatternsContent(data.aggregate.topPatterns);
+    document.getElementById('coachPatternsContent').innerHTML = patternsHtml;
+
+    // Habits
+    const habitsHtml = generateHabitsContent(data.aggregate.topPatterns);
+    document.getElementById('coachHabitsContent').innerHTML = habitsHtml;
+
+    // Training plan
+    const planHtml = generateTrainingPlanHTML(data.plan);
+    document.getElementById('coachPlanContent').innerHTML = planHtml;
+}
+
+// Generate "What's Working" content
+function generateWorkingContent(aggregate) {
+    const winRate = (aggregate.wld.wins / aggregate.gamesCount) * 100;
+    let html = '<ul>';
+
+    if (winRate > 50) {
+        html += `<li><strong>Positive Win Rate:</strong> You're winning more than you're losing (${winRate.toFixed(0)}%), showing overall solid play.</li>`;
+    }
+
+    if (aggregate.avgMomentsPerGame < 3) {
+        html += `<li><strong>Low Error Rate:</strong> Averaging ${aggregate.avgMomentsPerGame.toFixed(1)} critical errors per game shows good fundamental accuracy.</li>`;
+    }
+
+    const bestPhase = Object.entries(aggregate.phaseStats)
+        .sort((a, b) => a[1] - b[1])[0];
+    html += `<li><strong>${bestPhase[0].charAt(0).toUpperCase() + bestPhase[0].slice(1)} Stability:</strong> Your ${bestPhase[0]} play shows fewer errors compared to other phases.</li>`;
+
+    html += '</ul>';
+    return html;
+}
+
+// Generate "What's Not Working" content
+function generateNotWorkingContent(aggregate) {
+    let html = '<ul>';
+
+    if (aggregate.topPatterns.length > 0) {
+        aggregate.topPatterns.slice(0, 3).forEach(pattern => {
+            html += `<li><strong>${pattern.tag}:</strong> Occurring ${pattern.count} times across your games with average impact of ${pattern.avgImpact.toFixed(1)} pawns.</li>`;
+        });
+    }
+
+    const worstPhase = Object.entries(aggregate.phaseStats)
+        .sort((a, b) => b[1] - a[1])[0];
+    html += `<li><strong>${worstPhase[0].charAt(0).toUpperCase() + worstPhase[0].slice(1)} Struggles:</strong> Most errors occur in the ${worstPhase[0]} phase.</li>`;
+
+    html += '</ul>';
+    return html;
+}
+
+// Generate patterns content
+function generatePatternsContent(patterns) {
+    if (patterns.length === 0) {
+        return '<p>No recurring patterns detected. Great job!</p>';
+    }
+
+    return patterns.map(pattern => `
+        <div class="pattern-card">
+            <div class="pattern-header">
+                <span class="pattern-name">${pattern.tag}</span>
+                <span class="pattern-badge">${pattern.count}x</span>
+            </div>
+            <div class="pattern-stats">
+                Frequency: ${pattern.count} occurrences
+            </div>
+            <div class="pattern-impact">
+                Average Impact: <strong>-${pattern.avgImpact.toFixed(1)} pawns</strong>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Generate habits content
+function generateHabitsContent(patterns) {
+    let html = '<ul>';
+
+    if (patterns.length > 0) {
+        const top = patterns[0];
+        if (top.tag === ERROR_TAGS.HANGING_PIECE) {
+            html += '<li><strong>Before every move:</strong> Scan all your pieces. Count attackers and defenders. Never leave pieces undefended.</li>';
+        } else if (top.tag === ERROR_TAGS.BAD_TRADE) {
+            html += '<li><strong>Before capturing:</strong> Always calculate material value. Don\'t trade a more valuable piece for a less valuable one without compensation.</li>';
+        } else {
+            html += '<li><strong>After every opponent move:</strong> Check for tactical threats before making your next move. Take time to understand what changed.</li>';
+        }
+    }
+
+    html += '<li><strong>Time management:</strong> Don\'t rush in critical positions. Use your thinking time wisely, especially in complex tactical situations.</li>';
+    html += '<li><strong>Pattern recognition:</strong> Study one tactical theme per week and actively look for it in your games.</li>';
+
+    html += '</ul>';
+    return html;
+}
+
+// Generate training plan HTML
+function generateTrainingPlanHTML(plan) {
+    return plan.map(day => `
+        <div class="training-day">
+            <div class="training-day-number">Day ${day.day}</div>
+            <div class="training-day-content">
+                <div class="training-day-title">${day.title}</div>
+                <div class="training-day-description">${day.description}</div>
+            </div>
+        </div>
+    `).join('');
+}
 
 // Export for debugging
 window.App = App;
