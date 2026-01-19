@@ -1,0 +1,22 @@
+{
+  "name": "caissa-game-fetcher-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for fetching Chess.com and Lichess games",
+  "main": "worker.js",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "tail": "wrangler tail",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "cloudflare",
+    "worker",
+    "chess",
+    "chesscom",
+    "lichess",
+    "cors"
+  ],
+  "author": "CAISSA Chess",
+  "license": "MIT"
+}

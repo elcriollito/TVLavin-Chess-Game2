@@ -1,0 +1,21 @@
+name = "caissa-game-fetcher"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Use Workers free tier
+workers_dev = true
+
+# Routes (configure after deployment)
+# routes = [
+#   { pattern = "api.caissa-chess.org/*", zone_name = "caissa-chess.org" }
+# ]
+
+# Environment variables (none required for now)
+# [env.production]
+# vars = { }
+
+# Configure custom domain after deployment via Cloudflare dashboard:
+# 1. Go to Workers & Pages
+# 2. Select your worker
+# 3. Settings > Triggers > Custom Domains
+# 4. Add: api.caissa-chess.org
