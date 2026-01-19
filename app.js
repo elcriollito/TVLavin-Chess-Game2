@@ -1313,7 +1313,17 @@ function setupEventListeners() {
     App.elements.newGameBtn.addEventListener('click', () => {
         showModal('newGameModal');
     });
-    
+
+    // Caissa Insight button in header
+    const caissaInsightBtn = document.getElementById('caissaInsightBtn');
+    if (caissaInsightBtn) {
+        caissaInsightBtn.addEventListener('click', () => {
+            showModal('insightModal');
+            loadInsightProfile(); // Load saved profile if exists
+            updateInsightIndicator(); // Update indicator visibility
+        });
+    }
+
     // Menu button in analysis panel (mobile + desktop)
     App.elements.menuBtn.addEventListener('click', () => {
         showModal('menuModal');
@@ -1406,6 +1416,9 @@ function setupEventListeners() {
 
     // Coach Report Modal
     setupCoachModal();
+
+    // Clear Insight Session Modal
+    setupClearInsightHandlers();
 
     // Board Editor
     setupBoardEditor();
@@ -3031,6 +3044,7 @@ function saveInsightProfile(profile) {
         localStorage.setItem('caissa_insight_profile', JSON.stringify(profile));
         insightProfile = profile;
         console.log('✅ Profile saved successfully');
+        updateInsightIndicator(); // Update indicator when data is saved
     } catch (error) {
         console.error('❌ Failed to save insight profile:', error);
         showErrorNotification('Failed to save your profile');
@@ -3642,6 +3656,15 @@ function setupInsightModal() {
         });
     }
 
+    // Clear session button handler
+    const clearBtn = document.getElementById('insightClearBtn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            console.log('🗑️ Clear session button clicked');
+            showModal('clearInsightModal');
+        });
+    }
+
     // Export button handler
     if (exportBtn) {
         exportBtn.addEventListener('click', () => {
@@ -4004,6 +4027,115 @@ const ERROR_TAGS = {
     TACTICAL_MISS: 'Missed Tactic',
     POSITIONAL_ERROR: 'Positional Error'
 };
+
+// ===== CLEAR INSIGHT SESSION HANDLERS =====
+
+// Setup clear insight session modal handlers
+function setupClearInsightHandlers() {
+    const keepHistoryBtn = document.getElementById('clearKeepHistoryBtn');
+    const deleteHistoryBtn = document.getElementById('clearDeleteHistoryBtn');
+    const cancelBtn = document.getElementById('clearCancelBtn');
+
+    if (keepHistoryBtn) {
+        keepHistoryBtn.addEventListener('click', () => {
+            clearInsightSession(false); // Keep history
+            hideModal('clearInsightModal');
+            hideModal('insightModal');
+        });
+    }
+
+    if (deleteHistoryBtn) {
+        deleteHistoryBtn.addEventListener('click', () => {
+            clearInsightSession(true); // Delete history
+            hideModal('clearInsightModal');
+            hideModal('insightModal');
+        });
+    }
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            hideModal('clearInsightModal');
+        });
+    }
+}
+
+// Clear Insight session (and optionally delete history)
+function clearInsightSession(deleteHistory = false) {
+    console.log('🗑️ Clearing Insight session, deleteHistory:', deleteHistory);
+
+    // Clear current session data
+    insightProfile = null;
+
+    if (deleteHistory) {
+        // Delete all stored data
+        console.log('🗑️ Deleting all Insight history...');
+        localStorage.removeItem('caissa_insight_profile');
+        localStorage.removeItem('caissa_coach_report');
+        localStorage.removeItem('caissa_insight_sessions'); // Future: session history
+        coachReportData = null;
+        showNotification('All Insight data cleared successfully!');
+    } else {
+        // Keep history, just clear current session
+        console.log('🗑️ Clearing current session only...');
+        localStorage.removeItem('caissa_insight_profile');
+        localStorage.removeItem('caissa_coach_report');
+        coachReportData = null;
+        showNotification('Current session cleared! Historical data preserved.');
+    }
+
+    // Reset UI to empty state
+    resetInsightUI();
+    updateInsightIndicator();
+}
+
+// Reset Insight UI to empty state
+function resetInsightUI() {
+    console.log('🔄 Resetting Insight UI...');
+
+    // Hide results section
+    const resultsSection = document.getElementById('insightResultsSection');
+    if (resultsSection) {
+        resultsSection.style.display = 'none';
+    }
+
+    // Clear input
+    const pgnInput = document.getElementById('insightPgnInput');
+    if (pgnInput) {
+        pgnInput.value = '';
+    }
+
+    // Clear file name display
+    const fileNameDisplay = document.getElementById('insightFileName');
+    if (fileNameDisplay) {
+        fileNameDisplay.textContent = '';
+    }
+
+    // Reset import progress
+    const importProgressSection = document.getElementById('importProgressSection');
+    if (importProgressSection) {
+        importProgressSection.style.display = 'none';
+    }
+
+    // Clear any errors
+    const insightError = document.getElementById('insightError');
+    if (insightError) {
+        insightError.style.display = 'none';
+    }
+
+    console.log('✅ Insight UI reset complete');
+}
+
+// Update the insight indicator visibility based on data presence
+function updateInsightIndicator() {
+    const indicator = document.getElementById('insightIndicator');
+    if (!indicator) return;
+
+    // Show indicator if there's saved insight data
+    const hasInsightData = insightProfile !== null || localStorage.getItem('caissa_insight_profile') !== null;
+    indicator.style.display = hasInsightData ? 'block' : 'none';
+
+    console.log('🔔 Insight indicator:', hasInsightData ? 'shown' : 'hidden');
+}
 
 // Coach report state
 let coachReportData = null;

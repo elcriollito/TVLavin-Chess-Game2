@@ -2018,3 +2018,125 @@ button:focus,
         grid-template-columns: 1fr;
     }
 }
+
+/* ===== CAISSA INSIGHT INDICATOR ===== */
+
+.insight-indicator {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 12px;
+    height: 12px;
+    background: var(--success-color);
+    border-radius: 50%;
+    border: 2px solid var(--bg-primary);
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.1);
+    }
+}
+
+#caissaInsightBtn {
+    position: relative;
+}
+
+/* ===== CLEAR INSIGHT SESSION MODAL ===== */
+
+.clear-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.clear-option-btn {
+    width: 100%;
+    display: flex;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.clear-option-btn:hover {
+    border-color: var(--primary-color);
+    background: var(--bg-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.clear-option-danger {
+    border-color: var(--danger-color);
+}
+
+.clear-option-danger:hover {
+    border-color: var(--danger-color);
+    background: rgba(239, 83, 80, 0.05);
+}
+
+.option-icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.clear-option-danger .option-icon {
+    background: var(--danger-color);
+}
+
+.clear-option-btn:last-child .option-icon {
+    background: var(--text-secondary);
+}
+
+.option-content {
+    flex: 1;
+}
+
+.option-content h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 8px 0;
+}
+
+.option-content p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 4px 0;
+    line-height: 1.4;
+}
+
+.option-content p strong {
+    color: var(--text-primary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .clear-option-btn {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .option-icon {
+        margin-bottom: var(--spacing-sm);
+    }
+}

@@ -24,6 +24,10 @@
                     <button id="newGameBtn" class="btn btn-primary" aria-label="Start New Game">
                         <i class="fas fa-plus"></i> New Game
                     </button>
+                    <button id="caissaInsightBtn" class="btn btn-highlight" aria-label="Open Caissa Insight">
+                        <i class="fas fa-brain"></i> Caissa Insight
+                        <span id="insightIndicator" class="insight-indicator" style="display: none;"></span>
+                    </button>
                     <button id="resignBtn" class="btn btn-danger" style="display: none;" aria-label="Resign">
                         <i class="fas fa-flag"></i> Resign
                     </button>
@@ -806,6 +810,9 @@
                     </div>
 
                     <div class="insight-actions">
+                        <button id="insightClearBtn" class="btn btn-danger">
+                            <i class="fas fa-trash-alt"></i> Clear Session
+                        </button>
                         <button id="insightRefreshBtn" class="btn btn-secondary">
                             <i class="fas fa-sync-alt"></i> Recalculate
                         </button>
@@ -936,6 +943,56 @@
                 </div>
 
                 <div id="coachError" class="error-message" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clear Insight Session Confirmation Modal -->
+    <div id="clearInsightModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-exclamation-triangle"></i> Start a New Insight Session?</h2>
+                <button class="modal-close" data-modal="clearInsightModal" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: var(--spacing-lg); color: var(--text-secondary);">
+                    You're about to reset the current CAISSA Insight and Coach Report.
+                    Choose how you want to proceed:
+                </p>
+
+                <div class="clear-options">
+                    <button id="clearKeepHistoryBtn" class="clear-option-btn">
+                        <div class="option-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="option-content">
+                            <h3>Start Fresh (Keep History)</h3>
+                            <p><strong>Clears:</strong> Current Insight results, Coach Report, aggregated stats</p>
+                            <p><strong>Preserves:</strong> Historical Insight sessions, imported games history</p>
+                        </div>
+                    </button>
+
+                    <button id="clearDeleteHistoryBtn" class="clear-option-btn clear-option-danger">
+                        <div class="option-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="option-content">
+                            <h3>Start Fresh (Delete History)</h3>
+                            <p><strong>Clears:</strong> Current Insight + Coach Report, all stored sessions, all imported game datasets</p>
+                            <p><strong>Leaves:</strong> App settings, UI preferences, engine configuration untouched</p>
+                        </div>
+                    </button>
+
+                    <button id="clearCancelBtn" class="clear-option-btn">
+                        <div class="option-icon">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        <div class="option-content">
+                            <h3>Cancel</h3>
+                            <p>No action taken. Return to your current session.</p>
+                        </div>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
