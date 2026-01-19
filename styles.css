@@ -2205,6 +2205,30 @@ button:focus,
     margin-right: 8px;
 }
 
+.cheater-value-proposition {
+    padding: var(--spacing-lg);
+    background: linear-gradient(135deg, #fff9e6 0%, #fff4d6 100%);
+    border-left: 4px solid #f0ad4e;
+    border-radius: 8px;
+    margin-bottom: var(--spacing-lg);
+    box-shadow: 0 2px 8px rgba(240, 173, 78, 0.1);
+}
+
+.cheater-value-proposition .value-main {
+    margin: 0 0 var(--spacing-sm) 0;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--text-primary);
+}
+
+.cheater-value-proposition .value-sub {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
 .cheater-summary {
     margin-bottom: var(--spacing-lg);
 }
@@ -2360,6 +2384,18 @@ button:focus,
 
 /* Responsive */
 @media (max-width: 768px) {
+    .cheater-value-proposition {
+        padding: var(--spacing-md);
+    }
+
+    .cheater-value-proposition .value-main {
+        font-size: 15px;
+    }
+
+    .cheater-value-proposition .value-sub {
+        font-size: 12px;
+    }
+
     .opponent-header {
         flex-direction: column;
         align-items: flex-start;
