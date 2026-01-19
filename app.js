@@ -1607,6 +1607,12 @@ function setupMenuModal() {
         loadInsightProfile(); // Load saved profile if exists
     });
 
+    document.getElementById('menuCheaterInsight').addEventListener('click', () => {
+        hideModal('menuModal');
+        showModal('cheaterInsightModal');
+        initializeCheaterInsight();
+    });
+
     document.getElementById('menuEmbed').addEventListener('click', () => {
         hideModal('menuModal');
         showModal('embedModal');
@@ -2500,6 +2506,70 @@ function splitGamesFromPGN(text) {
     return games;
 }
 
+/**
+ * Load PGN programmatically by extracting and playing moves one by one.
+ * This bypasses chess.js v0.10.3's character length limit in load_pgn().
+ *
+ * @param {string} pgnText - The PGN text to load
+ * @returns {boolean} - True if successful, false otherwise
+ */
+function loadPGNProgrammatically(pgnText) {
+    console.log('🔧 Loading PGN programmatically...');
+
+    try {
+        // Extract movetext (everything after headers)
+        const headerEndIndex = pgnText.lastIndexOf(']');
+        if (headerEndIndex === -1) {
+            console.error('❌ No headers found in PGN');
+            return false;
+        }
+
+        let movetext = pgnText.substring(headerEndIndex + 1).trim();
+        console.log('🔧 Movetext length:', movetext.length, 'chars');
+        console.log('🔧 First 100 chars of movetext:', movetext.substring(0, 100));
+
+        // Remove comments in braces { }
+        movetext = movetext.replace(/\{[^}]*\}/g, '');
+
+        // Remove variations in parentheses ( ) - simple approach
+        while (movetext.includes('(')) {
+            movetext = movetext.replace(/\([^()]*\)/g, '');
+        }
+
+        // Remove result tokens (1-0, 0-1, 1/2-1/2, *)
+        movetext = movetext.replace(/\s*(1-0|0-1|1\/2-1\/2|\*)\s*$/g, '');
+
+        // Remove move numbers (e.g., "1.", "2.", "15...")
+        movetext = movetext.replace(/\d+\.\s*/g, '');
+
+        // Remove extra whitespace and split into individual moves
+        const moves = movetext.trim().split(/\s+/).filter(m => m.length > 0);
+
+        console.log('🔧 Extracted', moves.length, 'moves:', moves.slice(0, 10).join(' '), '...');
+
+        // Play each move on the chess.js board
+        let moveCount = 0;
+        for (const move of moves) {
+            const result = App.game.move(move, { sloppy: true });
+            if (!result) {
+                console.error('❌ Failed to play move:', move, 'at position', moveCount);
+                console.error('❌ FEN at failure:', App.game.fen());
+                console.error('❌ Legal moves:', App.game.moves().join(', '));
+                return false;
+            }
+            moveCount++;
+        }
+
+        console.log('✅ Successfully loaded', moveCount, 'moves programmatically');
+        return true;
+
+    } catch (error) {
+        console.error('❌ Error in programmatic PGN loading:', error);
+        console.error('❌ Error stack:', error.stack);
+        return false;
+    }
+}
+
 async function loadSelectedPGN() {
     const selectedFile = App.elements.fileSelector.value;
 
@@ -2571,19 +2641,28 @@ async function loadSelectedPGN() {
         console.log('📖 Attempting to load PGN into chess.js with sloppy mode...');
         let success = false;
 
-        // Try load_pgn with sloppy (chess.js v0.10.3 uses underscores)
-        if (typeof App.game.load_pgn === 'function') {
-            success = App.game.load_pgn(selectedGamePgn, { sloppy: true });
-            console.log('📖 load_pgn() result:', success);
-        }
-        // Fallback to loadPgn (newer versions)
-        else if (typeof App.game.loadPgn === 'function') {
-            success = App.game.loadPgn(selectedGamePgn, { sloppy: true });
-            console.log('📖 loadPgn() result:', success);
-        }
-        else {
-            console.error('❌ No PGN loading method found on chess.js instance');
-            throw new Error('Chess.js PGN loader not found');
+        // WORKAROUND: chess.js v0.10.3 has a character length limit (~400-500 chars)
+        // For long PGN files, we need to load moves programmatically instead of using load_pgn()
+        console.log('🔧 PGN length:', selectedGamePgn.length, 'chars');
+
+        if (selectedGamePgn.length > 450) {
+            console.log('🔧 PGN exceeds 450 chars - using programmatic move loading to bypass chess.js limit');
+            success = loadPGNProgrammatically(selectedGamePgn);
+        } else {
+            // Try load_pgn with sloppy (chess.js v0.10.3 uses underscores)
+            if (typeof App.game.load_pgn === 'function') {
+                success = App.game.load_pgn(selectedGamePgn, { sloppy: true });
+                console.log('📖 load_pgn() result:', success);
+            }
+            // Fallback to loadPgn (newer versions)
+            else if (typeof App.game.loadPgn === 'function') {
+                success = App.game.loadPgn(selectedGamePgn, { sloppy: true });
+                console.log('📖 loadPgn() result:', success);
+            }
+            else {
+                console.error('❌ No PGN loading method found on chess.js instance');
+                throw new Error('Chess.js PGN loader not found');
+            }
         }
 
         if (!success) {
@@ -5012,6 +5091,178 @@ function generateTrainingPlanHTML(plan) {
         </div>
     `).join('');
 }
+
+// ===== CHEATER INSIGHT (Chess.com) =====
+
+let cheaterInsightResults = null;
+
+function initializeCheaterInsight() {
+    // Set default month to current month
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    document.getElementById('cheaterMonth').value = `${year}-${month}`;
+
+    // Reset UI
+    document.getElementById('cheaterProgressSection').style.display = 'none';
+    document.getElementById('cheaterResultsSection').style.display = 'none';
+    document.getElementById('cheaterError').style.display = 'none';
+}
+
+document.getElementById('cheaterSearchBtn').addEventListener('click', async () => {
+    const username = document.getElementById('cheaterUsername').value.trim();
+    const monthInput = document.getElementById('cheaterMonth').value;
+    const timeControl = document.getElementById('cheaterTimeControl').value;
+
+    // Validate inputs
+    if (!username) {
+        showCheaterError('Please enter a Chess.com username');
+        return;
+    }
+
+    if (!monthInput) {
+        showCheaterError('Please select a month');
+        return;
+    }
+
+    // Parse month input (YYYY-MM)
+    const [year, month] = monthInput.split('-').map(Number);
+
+    // Reset UI
+    document.getElementById('cheaterProgressSection').style.display = 'block';
+    document.getElementById('cheaterResultsSection').style.display = 'none';
+    document.getElementById('cheaterError').style.display = 'none';
+
+    try {
+        // Run analysis
+        cheaterInsightResults = await CheaterAnalyzer.analyze({
+            username,
+            year,
+            month,
+            timeControl,
+            onProgress: updateCheaterProgress
+        });
+
+        // Hide progress, show results
+        document.getElementById('cheaterProgressSection').style.display = 'none';
+        document.getElementById('cheaterResultsSection').style.display = 'block';
+
+        // Render results
+        renderCheaterResults(cheaterInsightResults);
+
+    } catch (error) {
+        console.error('❌ Cheater Insight error:', error);
+        document.getElementById('cheaterProgressSection').style.display = 'none';
+        showCheaterError(error.message);
+    }
+});
+
+function updateCheaterProgress(progress) {
+    const progressBar = document.getElementById('cheaterProgressBar');
+    const progressText = document.getElementById('cheaterProgressText');
+
+    if (progress.progress) {
+        progressBar.style.width = `${progress.progress}%`;
+    }
+
+    if (progress.message) {
+        progressText.textContent = progress.message;
+    }
+}
+
+function renderCheaterResults(results) {
+    // Render summary stats
+    const summaryHTML = `
+        <div class="stat-card">
+            <div class="stat-label">Games Scanned</div>
+            <div class="stat-value">${results.totalGames}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Unique Opponents</div>
+            <div class="stat-value">${results.totalOpponents}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Closed: Fair Play</div>
+            <div class="stat-value ${results.flaggedOpponents > 0 ? 'stat-danger' : ''}">${results.flaggedOpponents}</div>
+        </div>
+    `;
+    document.getElementById('cheaterSummaryStats').innerHTML = summaryHTML;
+
+    // Render flagged opponents list
+    const listHTML = results.flaggedGames.length > 0
+        ? results.flaggedGames.map((game, index) => `
+            <div class="cheater-opponent-card">
+                <div class="opponent-header">
+                    <h4>
+                        ${index + 1}.
+                        <a href="${game.opponentUrl}" target="_blank" rel="noopener">
+                            ${game.opponent}
+                        </a>
+                    </h4>
+                    <span class="opponent-status-badge">${game.opponentStatus}</span>
+                </div>
+                <div class="opponent-details">
+                    <div class="detail-item">
+                        <i class="fas fa-trophy"></i>
+                        <strong>Your Result:</strong>
+                        <span class="result-${game.yourResult.toLowerCase()}">${game.yourResult}</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-calendar"></i>
+                        <strong>Date:</strong> ${game.date}
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-clock"></i>
+                        <strong>Time Control:</strong> ${game.timeControl}
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-link"></i>
+                        <strong>Game:</strong>
+                        <a href="${game.gameUrl}" target="_blank" rel="noopener">View on Chess.com</a>
+                    </div>
+                </div>
+            </div>
+        `).join('')
+        : '<div class="cheater-no-results"><i class="fas fa-check-circle"></i> No opponents with fair play closures found in this period.</div>';
+
+    document.getElementById('cheaterOpponentsList').innerHTML = listHTML;
+}
+
+function showCheaterError(message) {
+    const errorDiv = document.getElementById('cheaterError');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+}
+
+// Export JSON
+document.getElementById('cheaterExportJsonBtn').addEventListener('click', () => {
+    if (!cheaterInsightResults) return;
+
+    const json = CheaterAnalyzer.exportAsJSON(cheaterInsightResults);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cheater-insight-${cheaterInsightResults.username}-${cheaterInsightResults.year}-${cheaterInsightResults.month}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showNotification('Results exported as JSON');
+});
+
+// Copy list
+document.getElementById('cheaterCopyListBtn').addEventListener('click', () => {
+    if (!cheaterInsightResults) return;
+
+    const text = CheaterAnalyzer.exportAsText(cheaterInsightResults);
+
+    navigator.clipboard.writeText(text).then(() => {
+        showNotification('Results copied to clipboard');
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        showErrorNotification('Failed to copy to clipboard');
+    });
+});
 
 // Export for debugging
 window.App = App;

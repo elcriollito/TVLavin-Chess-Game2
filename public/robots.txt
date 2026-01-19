@@ -1,0 +1,9 @@
+# robots.txt for www.caissa-chess.org
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://www.caissa-chess.org/sitemap.xml
+
+# IndexNow key file
+# https://www.caissa-chess.org/caissa-indexnow-2026.txt

@@ -7,7 +7,8 @@
     "start": "node server.js",
     "download-pgn": "node tools/fetch-pgnmentor.mjs",
     "download-pgn-test": "node tools/fetch-pgnmentor.mjs --test",
-    "download-pgn-force": "node tools/fetch-pgnmentor.mjs --force"
+    "download-pgn-force": "node tools/fetch-pgnmentor.mjs --force",
+    "indexnow-ping": "node tools/indexnow-ping.mjs"
   },
   "dependencies": {
     "adm-zip": "^0.5.10"

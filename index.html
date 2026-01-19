@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net blob:; script-src-elem 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net;">
-    <title>CAISSA Chess - Fritz Classic Style</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net blob:; script-src-elem 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://api.chess.com;">
+    <title>CAISSA Chess - Play Chess Online with Stockfish Engine & AI Analysis</title>
+    <meta name="description" content="Play chess online with powerful Stockfish engine analysis, opening book, PGN library, and AI insights. Free chess platform with Fritz-style interface.">
+    <link rel="canonical" href="https://www.caissa-chess.org/" />
     <link rel="stylesheet" href="./assets/css/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="styles.css?v=2.0.1">
@@ -511,6 +513,9 @@
                     <button class="btn btn-block" id="menuCaissaInsight">
                         <i class="fas fa-chart-radar"></i> Caissa Insight
                     </button>
+                    <button class="btn btn-block" id="menuCheaterInsight">
+                        <i class="fas fa-user-shield"></i> Cheater Insight (Chess.com)
+                    </button>
                     <button class="btn btn-block" id="menuEmbed">
                         <i class="fas fa-code"></i> Get Embed Code
                     </button>
@@ -997,12 +1002,116 @@
         </div>
     </div>
 
+    <!-- Cheater Insight Modal -->
+    <div id="cheaterInsightModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-shield"></i> Cheater Insight (Chess.com)</h2>
+                <button class="modal-close" data-modal="cheaterInsightModal" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Disclaimer -->
+                <div class="cheater-insight-disclaimer">
+                    <p><i class="fas fa-info-circle"></i> <strong>Important:</strong> This tool checks opponents' public Chess.com account status. An account marked "Closed: Fair Play" indicates Chess.com closed it for fair play violations. This is account-level information, not proof that individual games involved cheating.</p>
+                </div>
+
+                <!-- Search Form -->
+                <div class="insight-section">
+                    <h3><i class="fas fa-search"></i> Search Configuration</h3>
+
+                    <div class="coach-config-grid">
+                        <div class="form-group">
+                            <label for="cheaterUsername">Your Chess.com Username:</label>
+                            <input type="text" id="cheaterUsername" class="form-control" placeholder="e.g. Magnus_Carlsen" required aria-label="Enter Chess.com username" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="cheaterMonth">Month (YYYY-MM):</label>
+                            <input type="month" id="cheaterMonth" class="form-control" required aria-label="Select month" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="cheaterTimeControl">Time Control:</label>
+                            <select id="cheaterTimeControl" class="form-control" aria-label="Select time control">
+                                <option value="all" selected>All</option>
+                                <option value="bullet">Bullet</option>
+                                <option value="blitz">Blitz</option>
+                                <option value="rapid">Rapid</option>
+                                <option value="daily">Daily</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="insight-actions">
+                        <button id="cheaterSearchBtn" class="btn btn-primary btn-block">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Progress Section -->
+                <div class="insight-section" id="cheaterProgressSection" style="display: none;">
+                    <h3><i class="fas fa-spinner fa-spin"></i> Analyzing Games...</h3>
+                    <div class="coach-progress">
+                        <div class="progress-bar-container">
+                            <div id="cheaterProgressBar" class="progress-bar"></div>
+                        </div>
+                        <p id="cheaterProgressText" class="progress-text">Preparing analysis...</p>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div class="insight-section" id="cheaterResultsSection" style="display: none;">
+                    <h3><i class="fas fa-flag"></i> Results</h3>
+
+                    <!-- Summary Stats -->
+                    <div class="cheater-summary">
+                        <div class="stats-grid" id="cheaterSummaryStats">
+                            <!-- Will be populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Flagged Opponents List -->
+                    <div id="cheaterOpponentsList" class="cheater-opponents-list">
+                        <!-- Will be populated by JS -->
+                    </div>
+
+                    <!-- Export Actions -->
+                    <div class="insight-actions">
+                        <button id="cheaterExportJsonBtn" class="btn btn-secondary">
+                            <i class="fas fa-file-export"></i> Export JSON
+                        </button>
+                        <button id="cheaterCopyListBtn" class="btn btn-secondary">
+                            <i class="fas fa-copy"></i> Copy List
+                        </button>
+                    </div>
+                </div>
+
+                <!-- How It Works -->
+                <div class="insight-section cheater-how-it-works">
+                    <h3><i class="fas fa-question-circle"></i> How It Works</h3>
+                    <ul>
+                        <li>We scan your Chess.com games for the selected month</li>
+                        <li>We check each opponent's public Chess.com account status</li>
+                        <li>If Chess.com marks them "Closed: Fair Play", we list them here</li>
+                        <li>This uses only public Chess.com API endpoints - no scraping or private data</li>
+                        <li>Results are informational only and respect Chess.com's fair play decisions</li>
+                    </ul>
+                </div>
+
+                <div id="cheaterError" class="error-message" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="polyglot-book.js?v=2.0.1"></script>
     <script src="stockfish-worker.js?v=2.0.1"></script>
+    <script src="chesscom-api.js?v=2.0.1"></script>
+    <script src="cheater-analyzer.js?v=2.0.1"></script>
     <script src="app.js?v=2.0.1"></script>
 </body>
 </html>
