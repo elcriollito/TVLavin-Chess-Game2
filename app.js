@@ -2407,6 +2407,81 @@ function onPlayerChange() {
     });
 }
 
+/**
+ * Normalize PGN text by removing problematic characters and standardizing format
+ * @param {string} text - Raw PGN text
+ * @returns {string} - Normalized PGN text
+ */
+function normalizePGN(text) {
+    if (!text) return '';
+
+    // 1. Remove BOM (Byte Order Mark)
+    text = text.replace(/^\uFEFF/, '');
+
+    // 2. Normalize line endings: CRLF -> LF
+    text = text.replace(/\r\n/g, '\n');
+
+    // 3. Remove NBSP (non-breaking space) -> regular space
+    text = text.replace(/\u00A0/g, ' ');
+
+    // 4. Remove null bytes
+    text = text.replace(/\0/g, '');
+
+    // 5. Trim leading/trailing whitespace
+    text = text.trim();
+
+    return text;
+}
+
+/**
+ * Split multi-game PGN text into individual games using [Event header as delimiter
+ * @param {string} text - Normalized PGN text containing one or more games
+ * @returns {string[]} - Array of individual game PGN strings
+ */
+function splitGamesFromPGN(text) {
+    if (!text) return [];
+
+    const games = [];
+    const eventIndices = [];
+
+    // Find all occurrences of [Event at start of file or after newline
+    // Pattern: start-of-string OR newline, followed by [Event
+    const eventPattern = /^(?:\n)?(\[Event\s)/gm;
+    let match;
+
+    // Special case: if file starts with [Event (no preceding newline)
+    if (text.startsWith('[Event')) {
+        eventIndices.push(0);
+    }
+
+    // Find all other [Event headers (preceded by newline)
+    while ((match = eventPattern.exec(text)) !== null) {
+        const index = match.index;
+        // Skip if we already recorded index 0
+        if (index === 0 && eventIndices.includes(0)) continue;
+        // Record the position where [Event starts (after the newline if present)
+        const eventStart = text[index] === '\n' ? index + 1 : index;
+        eventIndices.push(eventStart);
+    }
+
+    // If no [Event headers found, treat entire text as single game
+    if (eventIndices.length === 0) {
+        return [text.trim()];
+    }
+
+    // Slice games between [Event positions
+    for (let i = 0; i < eventIndices.length; i++) {
+        const start = eventIndices[i];
+        const end = i < eventIndices.length - 1 ? eventIndices[i + 1] : text.length;
+        const game = text.slice(start, end).trim();
+        if (game) {
+            games.push(game);
+        }
+    }
+
+    return games;
+}
+
 async function loadSelectedPGN() {
     const selectedFile = App.elements.fileSelector.value;
 
@@ -2436,26 +2511,40 @@ async function loadSelectedPGN() {
         console.log('📖 Response text length:', pgnText.length);
         console.log('📖 First 200 chars:', pgnText.substring(0, 200));
 
-        // Sanitize PGN:
-        // 1. Remove BOM
-        pgnText = pgnText.replace(/^\uFEFF/, '');
+        // Normalize PGN using robust normalization function
+        pgnText = normalizePGN(pgnText);
+        console.log('📖 After normalization - length:', pgnText.length);
 
-        // 2. Normalize line endings (CRLF -> LF)
-        pgnText = pgnText.replace(/\r\n/g, '\n');
-
-        // 3. Ensure blank line between headers and movetext
-        pgnText = pgnText.replace(/(\[.*\])\n([^[\n])/g, '$1\n\n$2');
-
-        console.log('📖 After sanitization - length:', pgnText.length);
-
-        // Handle multi-game PGN: split by Event header
-        const games = pgnText.split(/\n\s*\n(?=\[Event\s)/);
+        // Split multi-game PGN using robust [Event-based delimiter
+        const games = splitGamesFromPGN(pgnText);
         console.log('📖 Found', games.length, 'game(s) in PGN file');
 
         // For now, use first game (or implement game selection later)
-        let selectedGamePgn = games.length > 1 ? games[0] : pgnText;
+        let selectedGamePgn = games.length > 0 ? games[0] : pgnText;
 
         console.log('📖 Selected game PGN (first 200 chars):', selectedGamePgn.substring(0, 200));
+
+        // ===== CRITICAL DEBUG LOGS BEFORE CHESS.JS LOADING =====
+        console.log('🔍 Selected PGN length:', selectedGamePgn.length);
+
+        // Count [Event headers - must be exactly 1 for a single game
+        const eventCount = (selectedGamePgn.match(/\[Event\s/g) || []).length;
+        console.log('🔍 [Event header count:', eventCount, '(must be 1)');
+
+        // Show last 300 characters to verify completeness
+        const last300 = selectedGamePgn.slice(-300);
+        console.log('🔍 Last 300 chars:', last300);
+
+        // Check if ends with result token (1-0, 0-1, 1/2-1/2, or *)
+        const hasResultToken = /\s*(1-0|0-1|1\/2-1\/2|\*)\s*$/.test(selectedGamePgn.trim());
+        console.log('🔍 Ends with result token:', hasResultToken);
+
+        // If no result token, append " *" to make it valid
+        if (!hasResultToken) {
+            selectedGamePgn = selectedGamePgn.trim() + ' *';
+            console.log('🔧 Appended result token: *');
+        }
+        // ===== END DEBUG LOGS =====
 
         // Reset game first
         App.game.reset();
@@ -2634,8 +2723,11 @@ function parsePGN(pgnText) {
 function parseMultiGamePGN(pgnText) {
     console.log('🔍 Parsing multi-game PGN...');
 
-    // Split by [Event header to detect multiple games
-    const gameSections = pgnText.split(/(?=\[Event\s+")/);
+    // Normalize PGN text first
+    pgnText = normalizePGN(pgnText);
+
+    // Split by [Event header using robust splitting function
+    const gameSections = splitGamesFromPGN(pgnText);
     const games = [];
     const stats = {
         total: 0,
