@@ -2457,28 +2457,25 @@ function splitGamesFromPGN(text) {
     const games = [];
     const eventIndices = [];
 
-    // Find all occurrences of [Event at start of file or after newline
-    // Pattern: start-of-string OR newline, followed by [Event
-    const eventPattern = /^(?:\n)?(\[Event\s)/gm;
-    let match;
-
-    // Special case: if file starts with [Event (no preceding newline)
-    if (text.startsWith('[Event')) {
-        eventIndices.push(0);
+    // Find all occurrences of [Event header
+    // We need to find the actual position of [Event, not the newline before it
+    let index = 0;
+    while (index < text.length) {
+        // Look for [Event at current position
+        if (text.substring(index, index + 6) === '[Event') {
+            eventIndices.push(index);
+            // Move past this [Event to find the next one
+            index += 6;
+        } else {
+            index++;
+        }
     }
 
-    // Find all other [Event headers (preceded by newline)
-    while ((match = eventPattern.exec(text)) !== null) {
-        const index = match.index;
-        // Skip if we already recorded index 0
-        if (index === 0 && eventIndices.includes(0)) continue;
-        // Record the position where [Event starts (after the newline if present)
-        const eventStart = text[index] === '\n' ? index + 1 : index;
-        eventIndices.push(eventStart);
-    }
+    console.log('🔍 Found [Event headers at indices:', eventIndices);
 
     // If no [Event headers found, treat entire text as single game
     if (eventIndices.length === 0) {
+        console.log('⚠️ No [Event headers found, returning entire text as single game');
         return [text.trim()];
     }
 
@@ -2486,12 +2483,20 @@ function splitGamesFromPGN(text) {
     for (let i = 0; i < eventIndices.length; i++) {
         const start = eventIndices[i];
         const end = i < eventIndices.length - 1 ? eventIndices[i + 1] : text.length;
-        const game = text.slice(start, end).trim();
+
+        // Get the game text
+        let game = text.slice(start, end);
+
+        // Trim leading/trailing whitespace but preserve internal structure
+        game = game.trim();
+
         if (game) {
+            console.log(`📄 Game ${i + 1}: ${game.length} chars, starts: "${game.substring(0, 50)}..."`);
             games.push(game);
         }
     }
 
+    console.log(`✅ Split into ${games.length} game(s)`);
     return games;
 }
 
