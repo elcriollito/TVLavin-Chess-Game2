@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PGN Load Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+</head>
+<body>
+    <h1>Chess.js v0.10.3 PGN Load Test</h1>
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+
+        function testPGN(name, pgn) {
+            const chess = new Chess();
+            const success = chess.load_pgn(pgn, { sloppy: true });
+
+            const div = document.createElement('div');
+            div.style.marginBottom = '20px';
+            div.style.padding = '10px';
+            div.style.border = success ? '2px solid green' : '2px solid red';
+
+            div.innerHTML = `
+                <h3>${name}</h3>
+                <p><strong>Result:</strong> ${success ? '✅ SUCCESS' : '❌ FAILED'}</p>
+                <p><strong>PGN Length:</strong> ${pgn.length} chars</p>
+                <pre style="max-height: 200px; overflow: auto; background: #f0f0f0; padding: 10px;">${pgn}</pre>
+            `;
+
+            results.appendChild(div);
+        }
+
+        // Test 1: Evergreen Game (SHOULD WORK)
+        const evergreenPGN = `[Event "Berlin"]
+[Site "Berlin GER"]
+[Date "1852.??.??"]
+[Round "?"]
+[White "Anderssen, Adolf"]
+[Black "Dufresne, Jean"]
+[Result "1-0"]
+[ECO "C52"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. b4 Bxb4 5. c3 Ba5 6. d4 exd4 7. O-O d3 8. Qb3 Qf6 9. e5 Qg6 10. Re1 Nge7 11. Ba3 b5 12. Qxb5 Rb8 13. Qa4 Bb6 14. Nbd2 Bb7 15. Ne4 Qf5 16. Bxd3 Qh5 17. Nf6+ gxf6 18. exf6 Rg8 19. Rad1 Qxf3 20. Rxe7+ Nxe7 21. Qxd7+ Kxd7 22. Bf5+ Ke8 23. Bd7+ Kf8 24. Bxe7# 1-0`;
+
+        testPGN('Evergreen Game (Working)', evergreenPGN);
+
+        // Test 2: Capablanca Game 1 - WITH PlyCount
+        const capablancaWithPlyCount = `[Event "Havana m"]
+[Site "Havana"]
+[Date "1901.??.??"]
+[Round "1"]
+[White "Capablanca, Jose Raul"]
+[Black "Corzo y Principe, Juan"]
+[Result "0-1"]
+[ECO "C65"]
+[PlyCount "86"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. Qe2 Be7 5. d4 exd4 6. e5 Ne4 7. O-O Nc5 8. Nxd4 O-O 9. Nxc6 dxc6 10. Bc4 Qd4 11. Nc3 Bg4 12. Qe1 Rad8 13. h3 Bh5 14. Be2 Bg6 15. Bf3 Rfe8 16. Qe2 Bc5 17. Ne4 Nxe4 18. Bxe4 Bxe4 19. Qxe4 Qxe4 20. Rxe4 Rxe5 21. Rxe5 Bd4 22. Re4 Bxb2 23. Bxb2 Rxd1+ 24. Kh2 Rd2 25. Bc3 Rxc2 26. Re8+ Kf7 27. Ra8 a5 28. Bb2 Ke6 29. Kg3 Kd5 30. Kf3 c6 31. g4 c4 32. h4 c5 33. g5 b5 34. Ke3 Rc1 35. f4 c3 36. Bc1 b4 37. Kd3 Kc5 38. Ra6 h6 39. gxh6 gxh6 40. Rxh6 Rxc1 41. Rxc6+ Kb5 42. Rf6 c2 43. Rxf7 Rd1+ 0-1`;
+
+        testPGN('Capablanca vs Corzo - WITH PlyCount (Failing?)', capablancaWithPlyCount);
+
+        // Test 3: Capablanca Game 1 - WITHOUT PlyCount
+        const capablancaWithoutPlyCount = `[Event "Havana m"]
+[Site "Havana"]
+[Date "1901.??.??"]
+[Round "1"]
+[White "Capablanca, Jose Raul"]
+[Black "Corzo y Principe, Juan"]
+[Result "0-1"]
+[ECO "C65"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. Qe2 Be7 5. d4 exd4 6. e5 Ne4 7. O-O Nc5 8. Nxd4 O-O 9. Nxc6 dxc6 10. Bc4 Qd4 11. Nc3 Bg4 12. Qe1 Rad8 13. h3 Bh5 14. Be2 Bg6 15. Bf3 Rfe8 16. Qe2 Bc5 17. Ne4 Nxe4 18. Bxe4 Bxe4 19. Qxe4 Qxe4 20. Rxe4 Rxe5 21. Rxe5 Bd4 22. Re4 Bxb2 23. Bxb2 Rxd1+ 24. Kh2 Rd2 25. Bc3 Rxc2 26. Re8+ Kf7 27. Ra8 a5 28. Bb2 Ke6 29. Kg3 Kd5 30. Kf3 c6 31. g4 c4 32. h4 c5 33. g5 b5 34. Ke3 Rc1 35. f4 c3 36. Bc1 b4 37. Kd3 Kc5 38. Ra6 h6 39. gxh6 gxh6 40. Rxh6 Rxc1 41. Rxc6+ Kb5 42. Rf6 c2 43. Rxf7 Rd1+ 0-1`;
+
+        testPGN('Capablanca vs Corzo - WITHOUT PlyCount (Test)', capablancaWithoutPlyCount);
+
+        // Test 4: Just the movetext from Capablanca game
+        const capablancaMovesOnly = `1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. Qe2 Be7 5. d4 exd4 6. e5 Ne4 7. O-O Nc5 8. Nxd4 O-O 9. Nxc6 dxc6 10. Bc4 Qd4 11. Nc3 Bg4 12. Qe1 Rad8 13. h3 Bh5 14. Be2 Bg6 15. Bf3 Rfe8 16. Qe2 Bc5 17. Ne4 Nxe4 18. Bxe4 Bxe4 19. Qxe4 Qxe4 20. Rxe4 Rxe5 21. Rxe5 Bd4 22. Re4 Bxb2 23. Bxb2 Rxd1+ 24. Kh2 Rd2 25. Bc3 Rxc2 26. Re8+ Kf7 27. Ra8 a5 28. Bb2 Ke6 29. Kg3 Kd5 30. Kf3 c6 31. g4 c4 32. h4 c5 33. g5 b5 34. Ke3 Rc1 35. f4 c3 36. Bc1 b4 37. Kd3 Kc5 38. Ra6 h6 39. gxh6 gxh6 40. Rxh6 Rxc1 41. Rxc6+ Kb5 42. Rf6 c2 43. Rxf7 Rd1+ 0-1`;
+
+        testPGN('Capablanca Moves Only (No Headers)', capablancaMovesOnly);
+
+        // Test 5: Binary search to find where it breaks - Try first 20 moves
+        const capablancaFirst20 = `[Event "Havana m"]
+[Site "Havana"]
+[Date "1901.??.??"]
+[Round "1"]
+[White "Capablanca, Jose Raul"]
+[Black "Corzo y Principe, Juan"]
+[Result "*"]
+[ECO "C65"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. Qe2 Be7 5. d4 exd4 6. e5 Ne4 7. O-O Nc5 8. Nxd4 O-O 9. Nxc6 dxc6 10. Bc4 Qd4 11. Nc3 Bg4 12. Qe1 Rad8 13. h3 Bh5 14. Be2 Bg6 15. Bf3 Rfe8 16. Qe2 Bc5 17. Ne4 Nxe4 18. Bxe4 Bxe4 19. Qxe4 Qxe4 20. Rxe4 *`;
+
+        testPGN('Capablanca First 20 Moves', capablancaFirst20);
+
+        // Test 6: Try the exact game with proper checkmate notation
+        const capablancaFixed = `[Event "Havana m"]
+[Site "Havana"]
+[Date "1901.??.??"]
+[Round "1"]
+[White "Capablanca, Jose Raul"]
+[Black "Corzo y Principe, Juan"]
+[Result "0-1"]
+[ECO "C65"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. Qe2 Be7 5. d4 exd4 6. e5 Ne4 7. O-O Nc5 8. Nxd4 O-O 9. Nxc6 dxc6 10. Bc4 Qd4 11. Nc3 Bg4 12. Qe1 Rad8 13. h3 Bh5 14. Be2 Bg6 15. Bf3 Rfe8 16. Qe2 Bc5 17. Ne4 Nxe4 18. Bxe4 Bxe4 19. Qxe4 Qxe4 20. Rxe4 Rxe5 21. Rxe5 Bd4 22. Re4 Bxb2 23. Bxb2 Rxd1+ 24. Kh2 Rd2 25. Bc3 Rxc2 26. Re8+ Kf7 27. Ra8 a5 28. Bb2 Ke6 29. Kg3 Kd5 30. Kf3 c6 31. g4 c4 32. h4 c5 33. g5 b5 34. Ke3 Rc1 35. f4 c3 36. Bc1 b4 37. Kd3 Kc5 38. Ra6 h6 39. gxh6 gxh6 40. Rxh6 Rxc1 41. Rxc6+ Kb5 42. Rf6 c2 43. Rxf7 Rd1# 0-1`;
+
+        testPGN('Capablanca with Rd1# (Checkmate)', capablancaFixed);
+
+        // Test 7: Binary search - Try just first 10 moves
+        const capablancaFirst10 = `[Event "Test"]
+[White "Capablanca"]
+[Black "Corzo"]
+[Result "*"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. Qe2 Be7 5. d4 exd4 6. e5 Ne4 7. O-O Nc5 8. Nxd4 O-O 9. Nxc6 dxc6 10. Bc4 *`;
+
+        testPGN('First 10 Moves', capablancaFirst10);
+
+        // Test 8: Try moves 1-11 to see if move 11 is the problem
+        const capablancaFirst11 = `[Event "Test"]
+[White "Capablanca"]
+[Black "Corzo"]
+[Result "*"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. Qe2 Be7 5. d4 exd4 6. e5 Ne4 7. O-O Nc5 8. Nxd4 O-O 9. Nxc6 dxc6 10. Bc4 Qd4 *`;
+
+        testPGN('First 11 Moves (includes Qd4)', capablancaFirst11);
+
+        // Test 9: Manually verify the position after move 10 by playing move by move
+        const chess = new Chess();
+        const moves = [
+            'e4', 'e5', 'Nf3', 'Nc6', 'Bb5', 'Nf6', 'Qe2', 'Be7',
+            'd4', 'exd4', 'e5', 'Ne4', 'O-O', 'Nc5', 'Nxd4', 'O-O',
+            'Nxc6', 'dxc6', 'Bc4'
+        ];
+
+        let manualTest = true;
+        let failedAtMove = -1;
+        for (let i = 0; i < moves.length; i++) {
+            const result = chess.move(moves[i]);
+            if (!result) {
+                manualTest = false;
+                failedAtMove = i;
+                break;
+            }
+        }
+
+        // Now try Qd4
+        const qd4Result = chess.move('Qd4');
+
+        const div = document.createElement('div');
+        div.style.marginBottom = '20px';
+        div.style.padding = '10px';
+        div.style.border = qd4Result ? '2px solid green' : '2px solid red';
+
+        div.innerHTML = `
+            <h3>Manual Move-by-Move Test</h3>
+            <p><strong>Moves 1-10:</strong> ${manualTest ? '✅ SUCCESS' : `❌ FAILED at move ${failedAtMove + 1}`}</p>
+            <p><strong>Move 11 (Qd4):</strong> ${qd4Result ? '✅ SUCCESS' : '❌ FAILED (Illegal move!)'}</p>
+            <p><strong>FEN after move 10:</strong> ${chess.fen()}</p>
+            <p><strong>Legal moves for Black:</strong> ${chess.moves().join(', ')}</p>
+        `;
+
+        results.appendChild(div);
+
+        // Test 10: Try with valid date format (no ??)
+        const capablancaValidDate = `[Event "Havana m"]
+[Site "Havana"]
+[Date "1901.01.01"]
+[Round "1"]
+[White "Capablanca, Jose Raul"]
+[Black "Corzo y Principe, Juan"]
+[Result "0-1"]
+[ECO "C65"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. Qe2 Be7 5. d4 exd4 6. e5 Ne4 7. O-O Nc5 8. Nxd4 O-O 9. Nxc6 dxc6 10. Bc4 Qd4 11. Nc3 Bg4 12. Qe1 Rad8 13. h3 Bh5 14. Be2 Bg6 15. Bf3 Rfe8 16. Qe2 Bc5 17. Ne4 Nxe4 18. Bxe4 Bxe4 19. Qxe4 Qxe4 20. Rxe4 Rxe5 21. Rxe5 Bd4 22. Re4 Bxb2 23. Bxb2 Rxd1+ 24. Kh2 Rd2 25. Bc3 Rxc2 26. Re8+ Kf7 27. Ra8 a5 28. Bb2 Ke6 29. Kg3 Kd5 30. Kf3 c6 31. g4 c4 32. h4 c5 33. g5 b5 34. Ke3 Rc1 35. f4 c3 36. Bc1 b4 37. Kd3 Kc5 38. Ra6 h6 39. gxh6 gxh6 40. Rxh6 Rxc1 41. Rxc6+ Kb5 42. Rf6 c2 43. Rxf7 Rd1+ 0-1`;
+
+        testPGN('Capablanca with VALID DATE (1901.01.01)', capablancaValidDate);
+
+        // Test 11: Try with ONLY required headers (Event, Result, moves)
+        const capablancaMinimalHeaders = `[Event "Havana m"]
+[Result "0-1"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. Qe2 Be7 5. d4 exd4 6. e5 Ne4 7. O-O Nc5 8. Nxd4 O-O 9. Nxc6 dxc6 10. Bc4 Qd4 11. Nc3 Bg4 12. Qe1 Rad8 13. h3 Bh5 14. Be2 Bg6 15. Bf3 Rfe8 16. Qe2 Bc5 17. Ne4 Nxe4 18. Bxe4 Bxe4 19. Qxe4 Qxe4 20. Rxe4 Rxe5 21. Rxe5 Bd4 22. Re4 Bxb2 23. Bxb2 Rxd1+ 24. Kh2 Rd2 25. Bc3 Rxc2 26. Re8+ Kf7 27. Ra8 a5 28. Bb2 Ke6 29. Kg3 Kd5 30. Kf3 c6 31. g4 c4 32. h4 c5 33. g5 b5 34. Ke3 Rc1 35. f4 c3 36. Bc1 b4 37. Kd3 Kc5 38. Ra6 h6 39. gxh6 gxh6 40. Rxh6 Rxc1 41. Rxc6+ Kb5 42. Rf6 c2 43. Rxf7 Rd1+ 0-1`;
+
+        testPGN('Capablanca with MINIMAL Headers (Event + Result only)', capablancaMinimalHeaders);
+
+        // Test 12: Try with NO whitespace/newlines in movetext
+        const capablancaCompact = `[Event "Havana m"]
+[Result "0-1"]
+
+1.e4 e5 2.Nf3 Nc6 3.Bb5 Nf6 4.Qe2 Be7 5.d4 exd4 6.e5 Ne4 7.O-O Nc5 8.Nxd4 O-O 9.Nxc6 dxc6 10.Bc4 Qd4 11.Nc3 Bg4 12.Qe1 Rad8 13.h3 Bh5 14.Be2 Bg6 15.Bf3 Rfe8 16.Qe2 Bc5 17.Ne4 Nxe4 18.Bxe4 Bxe4 19.Qxe4 Qxe4 20.Rxe4 Rxe5 21.Rxe5 Bd4 22.Re4 Bxb2 23.Bxb2 Rxd1+ 24.Kh2 Rd2 25.Bc3 Rxc2 26.Re8+ Kf7 27.Ra8 a5 28.Bb2 Ke6 29.Kg3 Kd5 30.Kf3 c6 31.g4 c4 32.h4 c5 33.g5 b5 34.Ke3 Rc1 35.f4 c3 36.Bc1 b4 37.Kd3 Kc5 38.Ra6 h6 39.gxh6 gxh6 40.Rxh6 Rxc1 41.Rxc6+ Kb5 42.Rf6 c2 43.Rxf7 Rd1+ 0-1`;
+
+        testPGN('Capablanca COMPACT (no spaces in moves)', capablancaCompact);
+    </script>
+</body>
+</html>

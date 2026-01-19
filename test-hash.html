@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Hash</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <script src="polyglot-book.js"></script>
+</head>
+<body>
+    <h1>Opening Book Hash Test</h1>
+    <pre id="output"></pre>
+
+    <script>
+        const output = document.getElementById('output');
+
+        // Create starting position
+        const game = new Chess();
+        const book = new PolyglotBook();
+
+        // Calculate hash
+        const hash = book.hashPosition(game);
+
+        output.textContent = `Starting position hash: ${hash.toString(16)}\n\n`;
+        output.textContent += `Board structure from chess.js:\n`;
+
+        const board = game.board();
+        for (let rank = 0; rank < 8; rank++) {
+            let line = `Rank ${rank}: `;
+            for (let file = 0; file < 8; file++) {
+                const square = board[rank][file];
+                if (square) {
+                    line += square.color + square.type + ' ';
+                } else {
+                    line += '-- ';
+                }
+            }
+            output.textContent += line + '\n';
+        }
+
+        output.textContent += `\nFEN: ${game.fen()}\n`;
+    </script>
+</body>
+</html>
