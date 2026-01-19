@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAISSA - OG Image Generator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        h1 {
+            color: #2c5f9e;
+        }
+        .container {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        .preview-section {
+            flex: 1;
+            min-width: 600px;
+        }
+        .controls-section {
+            flex: 0 0 300px;
+        }
+        #canvas {
+            border: 2px solid #ddd;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            cursor: crosshair;
+            max-width: 100%;
+            height: auto;
+        }
+        .control-group {
+            margin-bottom: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        input[type="text"],
+        input[type="color"],
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #2c5f9e;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #1f4578;
+        }
+        .info {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2c5f9e;
+        }
+        .info p {
+            margin: 5px 0;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 CAISSA Chess - OG Image Generator</h1>
+
+    <div class="info">
+        <p><strong>Purpose:</strong> Generate a 1200×630 social media preview image</p>
+        <p><strong>Usage:</strong> Customize text and colors, then download as PNG</p>
+        <p><strong>Save as:</strong> public/og-image.png</p>
+    </div>
+
+    <div class="container">
+        <div class="preview-section">
+            <h2>Preview (1200×630)</h2>
+            <canvas id="canvas" width="1200" height="630"></canvas>
+        </div>
+
+        <div class="controls-section">
+            <h2>Customize</h2>
+
+            <div class="control-group">
+                <label for="title">Title Text</label>
+                <input type="text" id="title" value="CAISSA Chess AI">
+            </div>
+
+            <div class="control-group">
+                <label for="subtitle">Subtitle Text</label>
+                <input type="text" id="subtitle" value="Fritz-Style Board + Stockfish">
+            </div>
+
+            <div class="control-group">
+                <label for="footer">Footer Text</label>
+                <input type="text" id="footer" value="www.caissa-chess.org">
+            </div>
+
+            <div class="control-group">
+                <label for="bgColor">Background Color</label>
+                <input type="color" id="bgColor" value="#2c5f9e">
+            </div>
+
+            <div class="control-group">
+                <label for="textColor">Text Color</label>
+                <input type="color" id="textColor" value="#ffffff">
+            </div>
+
+            <div class="control-group">
+                <label for="style">Style</label>
+                <select id="style">
+                    <option value="gradient">Gradient Background</option>
+                    <option value="solid">Solid Background</option>
+                    <option value="pattern">Chess Pattern</option>
+                </select>
+            </div>
+
+            <button onclick="updateCanvas()">🔄 Update Preview</button>
+            <button onclick="downloadImage()">💾 Download PNG</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        function drawChessPattern() {
+            const squareSize = 60;
+            const lightSquare = '#f0d9b5';
+            const darkSquare = '#b58863';
+
+            for (let row = 0; row < Math.ceil(630 / squareSize); row++) {
+                for (let col = 0; col < Math.ceil(1200 / squareSize); col++) {
+                    const isLight = (row + col) % 2 === 0;
+                    ctx.fillStyle = isLight ? lightSquare : darkSquare;
+                    ctx.globalAlpha = 0.15;
+                    ctx.fillRect(col * squareSize, row * squareSize, squareSize, squareSize);
+                }
+            }
+            ctx.globalAlpha = 1.0;
+        }
+
+        function updateCanvas() {
+            const title = document.getElementById('title').value;
+            const subtitle = document.getElementById('subtitle').value;
+            const footer = document.getElementById('footer').value;
+            const bgColor = document.getElementById('bgColor').value;
+            const textColor = document.getElementById('textColor').value;
+            const style = document.getElementById('style').value;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, 1200, 630);
+
+            // Background
+            if (style === 'gradient') {
+                const gradient = ctx.createLinearGradient(0, 0, 1200, 630);
+                gradient.addColorStop(0, bgColor);
+                gradient.addColorStop(1, adjustBrightness(bgColor, -30));
+                ctx.fillStyle = gradient;
+            } else {
+                ctx.fillStyle = bgColor;
+            }
+            ctx.fillRect(0, 0, 1200, 630);
+
+            // Chess pattern overlay
+            if (style === 'pattern') {
+                drawChessPattern();
+            }
+
+            // Title
+            ctx.fillStyle = textColor;
+            ctx.font = 'bold 84px "Segoe UI", Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(title, 600, 220);
+
+            // Subtitle
+            ctx.font = '42px "Segoe UI", Arial, sans-serif';
+            ctx.fillText(subtitle, 600, 320);
+
+            // Chess piece emoji (if browser supports)
+            ctx.font = '120px Arial';
+            ctx.fillText('♞', 600, 460);
+
+            // Footer
+            ctx.font = 'bold 32px "Segoe UI", Arial, sans-serif';
+            ctx.fillText(footer, 600, 570);
+        }
+
+        function adjustBrightness(hex, percent) {
+            const num = parseInt(hex.replace('#', ''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                (B < 255 ? B < 1 ? 0 : B : 255))
+                .toString(16).slice(1);
+        }
+
+        function downloadImage() {
+            const link = document.createElement('a');
+            link.download = 'og-image.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Auto-update on input change
+        document.querySelectorAll('input, select').forEach(element => {
+            element.addEventListener('input', updateCanvas);
+            element.addEventListener('change', updateCanvas);
+        });
+
+        // Initial render
+        updateCanvas();
+    </script>
+</body>
+</html>
