@@ -85,6 +85,43 @@ async function testCORS() {
   if (!corsHeader.includes('caissa-chess.org')) throw new Error('Wrong CORS origin');
 }
 
+async function testGameEndpointValid() {
+  const pgn = '[Event "Test Game"]\n[Site "?"]\n[Date "2024.01.19"]\n[White "Player1"]\n[Black "Player2"]\n[Result "1-0"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bb5 1-0';
+  const url = `${WORKER_URL}/api/game?pgn=${encodeURIComponent(pgn)}`;
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || `Status ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (!data.success) throw new Error('Expected success: true');
+  if (data.game.result !== '1-0') throw new Error(`Wrong result: ${data.game.result}`);
+  if (data.game.moveCount !== 3) throw new Error(`Wrong move count: ${data.game.moveCount}`);
+  if (data.game.white !== 'Player1') throw new Error('Wrong white player');
+  if (data.game.black !== 'Player2') throw new Error('Wrong black player');
+}
+
+async function testGameEndpointMissingPGN() {
+  const url = `${WORKER_URL}/api/game`;
+  const response = await fetch(url);
+
+  if (response.ok) throw new Error('Should return error for missing PGN');
+  if (response.status !== 400) throw new Error(`Expected 400, got ${response.status}`);
+
+  const data = await response.json();
+  if (!data.error) throw new Error('Expected error field');
+}
+
+async function testGameEndpointInvalidPGN() {
+  const url = `${WORKER_URL}/api/game?pgn=invalid`;
+  const response = await fetch(url);
+
+  if (response.ok) throw new Error('Should return error for invalid PGN');
+  if (response.status !== 400) throw new Error(`Expected 400, got ${response.status}`);
+}
+
 async function runTests() {
   console.log('\n🧪 CAISSA Worker API Tests\n');
   console.log(`Testing: ${WORKER_URL}\n`);
@@ -97,6 +134,9 @@ async function runTests() {
   results.push(await test('Invalid Username', testInvalidUsername));
   results.push(await test('Missing Username', testMissingUsername));
   results.push(await test('CORS Headers', testCORS));
+  results.push(await test('Game Endpoint (Valid PGN)', testGameEndpointValid));
+  results.push(await test('Game Endpoint (Missing PGN)', testGameEndpointMissingPGN));
+  results.push(await test('Game Endpoint (Invalid PGN)', testGameEndpointInvalidPGN));
 
   const passed = results.filter(r => r).length;
   const total = results.length;

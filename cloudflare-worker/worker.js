@@ -20,6 +20,7 @@ const ALLOWED_ORIGINS = [
 
 const CACHE_TTL = 60; // Cache results for 60 seconds
 const MAX_GAMES_LIMIT = 50;
+const MAX_PGN_SIZE = 100000; // Max 100KB PGN size
 const RATE_LIMIT_MAX = 10; // Max 10 requests per minute per IP
 const RATE_LIMIT_WINDOW = 60000; // 1 minute in milliseconds
 
@@ -239,6 +240,115 @@ async function fetchLichessGames(username, maxGames = 20, timeControl = 'all') {
 }
 
 // ============================================================================
+// PGN VALIDATION & PARSING
+// ============================================================================
+
+/**
+ * Validate PGN format and size
+ * @param {string} pgn - PGN text to validate
+ * @returns {object} - { valid: boolean, error?: string }
+ */
+function validatePGN(pgn) {
+  // Check if PGN is provided
+  if (!pgn || typeof pgn !== 'string') {
+    return { valid: false, error: 'PGN is required' };
+  }
+
+  // Check size limit
+  if (pgn.length > MAX_PGN_SIZE) {
+    return {
+      valid: false,
+      error: `PGN too large (max ${MAX_PGN_SIZE} characters, got ${pgn.length})`
+    };
+  }
+
+  // Check minimum length
+  if (pgn.trim().length < 10) {
+    return { valid: false, error: 'PGN too short or empty' };
+  }
+
+  // Check for basic PGN structure (at least one bracket tag)
+  if (!pgn.includes('[') || !pgn.includes(']')) {
+    return { valid: false, error: 'Invalid PGN format - missing header tags' };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Extract game metadata from PGN
+ * @param {string} pgn - PGN text
+ * @returns {object} - Game metadata
+ */
+function extractPGNMetadata(pgn) {
+  const metadata = {
+    moveCount: 0,
+    result: '*',
+    white: null,
+    black: null,
+    event: null,
+    site: null,
+    date: null,
+  };
+
+  try {
+    // Extract result from [Result "..."] tag
+    const resultMatch = pgn.match(/\[Result\s+"([^"]+)"\]/i);
+    if (resultMatch) {
+      metadata.result = resultMatch[1];
+    }
+
+    // Extract white player
+    const whiteMatch = pgn.match(/\[White\s+"([^"]+)"\]/i);
+    if (whiteMatch) {
+      metadata.white = whiteMatch[1];
+    }
+
+    // Extract black player
+    const blackMatch = pgn.match(/\[Black\s+"([^"]+)"\]/i);
+    if (blackMatch) {
+      metadata.black = blackMatch[1];
+    }
+
+    // Extract event
+    const eventMatch = pgn.match(/\[Event\s+"([^"]+)"\]/i);
+    if (eventMatch) {
+      metadata.event = eventMatch[1];
+    }
+
+    // Extract site
+    const siteMatch = pgn.match(/\[Site\s+"([^"]+)"\]/i);
+    if (siteMatch) {
+      metadata.site = siteMatch[1];
+    }
+
+    // Extract date
+    const dateMatch = pgn.match(/\[Date\s+"([^"]+)"\]/i);
+    if (dateMatch) {
+      metadata.date = dateMatch[1];
+    }
+
+    // Count moves (count move numbers like "1.", "2.", etc.)
+    // Split by newlines and filter lines that don't start with [
+    const moveText = pgn.split('\n')
+      .filter(line => !line.trim().startsWith('['))
+      .join(' ');
+
+    // Count move numbers (e.g., "1.", "2.", "3.")
+    const moveMatches = moveText.match(/\b\d+\./g);
+    if (moveMatches) {
+      metadata.moveCount = moveMatches.length;
+    }
+
+  } catch (error) {
+    // If parsing fails, return partial metadata
+    console.error('PGN metadata extraction error:', error);
+  }
+
+  return metadata;
+}
+
+// ============================================================================
 // MAIN HANDLER
 // ============================================================================
 
@@ -350,11 +460,62 @@ async function handleRequest(request) {
     }
   }
 
+  // Game endpoint - PGN validation and metadata extraction
+  if (path === '/api/game' || path === '/game') {
+    // Rate limiting
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    if (!checkRateLimit(ip)) {
+      return corsResponse({
+        error: 'Rate limit exceeded',
+        message: 'Too many requests. Please wait a minute and try again.',
+      }, 429, origin);
+    }
+
+    // Get PGN from query parameter
+    const pgn = url.searchParams.get('pgn');
+
+    // Validate PGN
+    const validation = validatePGN(pgn);
+    if (!validation.valid) {
+      return corsResponse({
+        error: 'Invalid PGN',
+        message: validation.error,
+      }, 400, origin);
+    }
+
+    try {
+      // Extract metadata from PGN
+      const metadata = extractPGNMetadata(pgn);
+
+      // Return clean response
+      return corsResponse({
+        success: true,
+        game: {
+          moveCount: metadata.moveCount,
+          result: metadata.result,
+          white: metadata.white,
+          black: metadata.black,
+          event: metadata.event,
+          site: metadata.site,
+          date: metadata.date,
+        },
+        pgnSize: pgn.length,
+        timestamp: new Date().toISOString(),
+      }, 200, origin);
+
+    } catch (error) {
+      return corsResponse({
+        error: 'Parsing failed',
+        message: error.message,
+      }, 500, origin);
+    }
+  }
+
   // 404 for unknown routes
   return corsResponse({
     error: 'Not found',
     message: 'Endpoint not found',
-    availableEndpoints: ['/api/health', '/api/games'],
+    availableEndpoints: ['/api/health', '/api/games', '/api/game'],
   }, 404, origin);
 }
 
