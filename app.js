@@ -3810,8 +3810,13 @@ console.log('CAISSA Chess loaded successfully');
  * Supports: Chess.com, Lichess, and local PGN
  */
 
-// Worker API URL for CORS-free fetching (Lichess requires proxy due to CORS)
-const WORKER_API_URL = 'https://caissa-game-fetcher.elcriollito.workers.dev';
+// API URL for Lichess proxy (uses local server endpoint to bypass CORS)
+// In production, this could point to a Cloudflare Worker
+function getLichessProxyUrl() {
+    // Use local server proxy for Lichess
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/api/lichess/games`;
+}
 
 const GameSourceService = {
     /**
@@ -3905,7 +3910,7 @@ const GameSourceService = {
     },
 
     /**
-     * Fetch recent games from Lichess (uses Worker API to bypass CORS)
+     * Fetch recent games from Lichess (uses server proxy to bypass CORS)
      * @param {string} username - Lichess username
      * @param {number} count - Number of games to fetch (max 50)
      * @param {object} filters - {timeControl: 'bullet'|'blitz'|'rapid'|'classical'|'all'}
@@ -3913,35 +3918,38 @@ const GameSourceService = {
      */
     async fetchFromLichess(username, count = 20, filters = {}) {
         console.log(`♔ Fetching ${count} games from Lichess for user: ${username}`);
-        console.log('📡 Using Worker API to bypass CORS...');
+        console.log('📡 Using server proxy to bypass CORS...');
 
         try {
-            // Build Worker API URL (always use proxy for Lichess to avoid CORS)
+            // Build proxy URL (server-side fetch to avoid CORS)
             const timeControl = filters.timeControl || 'all';
-            const workerUrl = `${WORKER_API_URL}/api/games?platform=lichess&username=${encodeURIComponent(username)}&max=${count}&timeControl=${timeControl}`;
+            const proxyUrl = `${getLichessProxyUrl()}?username=${encodeURIComponent(username)}&max=${count}&timeControl=${timeControl}`;
 
-            console.log('📡 Fetching via Worker:', workerUrl);
+            console.log('📡 Fetching via proxy:', proxyUrl);
 
-            const response = await fetch(workerUrl);
+            const response = await fetch(proxyUrl);
+            console.log('📥 Proxy response status:', response.status);
+
+            // Try to parse response as JSON
+            let data;
+            try {
+                data = await response.json();
+            } catch (parseError) {
+                console.error('❌ Failed to parse response as JSON:', parseError);
+                throw new Error('Server returned invalid response. Please try again.');
+            }
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                if (response.status === 404) {
-                    throw new Error(`User "${username}" not found on Lichess`);
-                }
-                if (response.status === 429) {
-                    throw new Error('Rate limit exceeded. Please try again later.');
-                }
-                throw new Error(errorData.message || `Worker API error: ${response.status}`);
+                const errorMsg = data.error || `Server error: ${response.status}`;
+                console.error('❌ Proxy error response:', data);
+                throw new Error(errorMsg);
             }
-
-            const data = await response.json();
 
             if (!data.success) {
-                throw new Error(data.message || 'Failed to fetch games from Lichess');
+                throw new Error(data.error || 'Failed to fetch games from Lichess');
             }
 
-            // Convert Worker response to ImportedGame format
+            // Convert proxy response to ImportedGame format
             const importedGames = [];
             const games = data.games || [];
 
@@ -3958,11 +3966,17 @@ const GameSourceService = {
                 });
             }
 
-            console.log(`✅ Successfully imported ${importedGames.length} games from Lichess via Worker`);
+            console.log(`✅ Successfully imported ${importedGames.length} games from Lichess`);
             return importedGames;
 
         } catch (error) {
             console.error('❌ Lichess fetch error:', error);
+
+            // Provide user-friendly error message
+            if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+                throw new Error('Could not reach Lichess proxy server. Please check your connection and try again.');
+            }
+
             throw error;
         }
     },

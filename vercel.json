@@ -6,9 +6,19 @@
     { "source": "/apple-touch-icon.png", "destination": "/public/apple-touch-icon.png" },
     { "source": "/icon-192.png", "destination": "/public/icon-192.png" },
     { "source": "/icon-512.png", "destination": "/public/icon-512.png" },
+    { "source": "/icon-master.svg", "destination": "/public/icon-master.svg" },
     { "source": "/manifest.json", "destination": "/public/manifest.json" },
     { "source": "/robots.txt", "destination": "/public/robots.txt" },
     { "source": "/sitemap.xml", "destination": "/public/sitemap.xml" },
-    { "source": "/og-image.png", "destination": "/public/og-image.png" }
+    { "source": "/og-image.png", "destination": "/public/og-image.png" },
+    { "source": "/favicon-test.html", "destination": "/public/favicon-test.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(favicon.*|apple-touch-icon.*|icon-.*|manifest.json)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400" }
+      ]
+    }
   ]
 }
