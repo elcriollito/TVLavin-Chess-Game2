@@ -3319,7 +3319,8 @@ function generateCaissaNarrative(data, metrics) {
 
     const [tactics, strategy, opening, endgame, precision, aggression, defense, consistency] = metrics;
     const total = data.stats.total;
-    const avgPly = data.stats.avgPlyCount;
+    // Use full moves (not plies) - same calculation as the stat card
+    const avgFullMoves = Math.round(data.stats.avgPlyCount / 2);
 
     // Identify strengths (>70) and weaknesses (<40)
     const dimensions = [
@@ -3340,12 +3341,12 @@ function generateCaissaNarrative(data, metrics) {
     // Build narrative paragraphs
     let narrative = '';
 
-    // Introduction
+    // Introduction - use avgFullMoves (full moves, not plies)
     narrative += `<p><strong>Caissa, the goddess of chess, has examined your ${total} games</strong> and reveals a unique profile. `;
-    narrative += `Your games average ${avgPly} moves, `;
-    if (avgPly < 60) {
+    narrative += `Your games average ${avgFullMoves} moves, `;
+    if (avgFullMoves < 30) {
         narrative += 'showing a tendency toward quick and decisive battles.';
-    } else if (avgPly < 90) {
+    } else if (avgFullMoves < 45) {
         narrative += 'reflecting a balance between tactical and strategic play.';
     } else {
         narrative += 'demonstrating a preference for positional warfare and long endgames.';
@@ -3437,6 +3438,7 @@ function displayInsightResults(data) {
     const importSection = document.getElementById('insightImportSection');
     const resultsSection = document.getElementById('insightResultsSection');
     const statsSummary = document.getElementById('insightStatsSummary');
+    const sourceBadge = document.getElementById('insightSourceBadge');
 
     if (!resultsSection || !statsSummary) {
         console.error('❌ Results elements not found');
@@ -3446,6 +3448,27 @@ function displayInsightResults(data) {
     // Hide import section, show results
     if (importSection) importSection.style.display = 'none';
     resultsSection.style.display = 'block';
+
+    // Detect and display source platform
+    if (sourceBadge && data.games && data.games.length > 0) {
+        const firstGame = data.games[0];
+        const source = firstGame.source || 'local';
+
+        // Set badge text and class
+        if (source === 'lichess') {
+            sourceBadge.textContent = 'Source: Lichess';
+            sourceBadge.className = 'source-badge lichess';
+        } else if (source === 'chess.com') {
+            sourceBadge.textContent = 'Source: Chess.com';
+            sourceBadge.className = 'source-badge chesscom';
+        } else {
+            sourceBadge.textContent = 'Source: Local PGN';
+            sourceBadge.className = 'source-badge local';
+        }
+        sourceBadge.style.display = 'inline-block';
+    } else if (sourceBadge) {
+        sourceBadge.style.display = 'none';
+    }
 
     // Calculate wins/losses/draws
     let wins = 0, losses = 0, draws = 0;
