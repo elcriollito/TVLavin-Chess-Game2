@@ -1,0 +1,14 @@
+{
+  "rewrites": [
+    { "source": "/favicon.ico", "destination": "/public/favicon.ico" },
+    { "source": "/favicon-16.png", "destination": "/public/favicon-16.png" },
+    { "source": "/favicon-32.png", "destination": "/public/favicon-32.png" },
+    { "source": "/apple-touch-icon.png", "destination": "/public/apple-touch-icon.png" },
+    { "source": "/icon-192.png", "destination": "/public/icon-192.png" },
+    { "source": "/icon-512.png", "destination": "/public/icon-512.png" },
+    { "source": "/manifest.json", "destination": "/public/manifest.json" },
+    { "source": "/robots.txt", "destination": "/public/robots.txt" },
+    { "source": "/sitemap.xml", "destination": "/public/sitemap.xml" },
+    { "source": "/og-image.png", "destination": "/public/og-image.png" }
+  ]
+}

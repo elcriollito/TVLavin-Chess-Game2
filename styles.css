@@ -1111,6 +1111,11 @@ html, body {
         display: none !important;
     }
 
+    /* Hide Caissa Insight button on mobile - only show New Game and Engine vs Engine */
+    #caissaInsightBtn {
+        display: none !important;
+    }
+
     .main-content {
         flex-direction: column;
         padding: var(--spacing-sm);

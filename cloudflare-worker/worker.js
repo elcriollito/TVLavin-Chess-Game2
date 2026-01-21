@@ -34,8 +34,8 @@ const rateLimitMap = new Map();
 function getCorsHeaders(origin) {
   const isAllowed = ALLOWED_ORIGINS.includes(origin) ||
                     origin?.endsWith('.vercel.app') ||
-                    origin === 'http://localhost:8080' ||
-                    origin === 'http://127.0.0.1:8080';
+                    origin?.startsWith('http://localhost:') ||
+                    origin?.startsWith('http://127.0.0.1:');
 
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],

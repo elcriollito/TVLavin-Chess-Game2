@@ -3467,7 +3467,7 @@ function displayInsightResults(data) {
         </div>
         <div class="stat-card">
             <div class="stat-label">Avg Game Length</div>
-            <div class="stat-value">${data.stats.avgPlyCount} moves</div>
+            <div class="stat-value">${Math.round(data.stats.avgPlyCount / 2)} moves</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Decisive Games</div>
@@ -3809,6 +3809,10 @@ console.log('CAISSA Chess loaded successfully');
  * GameSourceService - Unified service for importing games from multiple sources
  * Supports: Chess.com, Lichess, and local PGN
  */
+
+// Worker API URL for CORS-free fetching (Lichess requires proxy due to CORS)
+const WORKER_API_URL = 'https://caissa-game-fetcher.elcriollito.workers.dev';
+
 const GameSourceService = {
     /**
      * Fetch recent games from Chess.com
@@ -3901,7 +3905,7 @@ const GameSourceService = {
     },
 
     /**
-     * Fetch recent games from Lichess
+     * Fetch recent games from Lichess (uses Worker API to bypass CORS)
      * @param {string} username - Lichess username
      * @param {number} count - Number of games to fetch (max 50)
      * @param {object} filters - {timeControl: 'bullet'|'blitz'|'rapid'|'classical'|'all'}
@@ -3909,88 +3913,56 @@ const GameSourceService = {
      */
     async fetchFromLichess(username, count = 20, filters = {}) {
         console.log(`♔ Fetching ${count} games from Lichess for user: ${username}`);
+        console.log('📡 Using Worker API to bypass CORS...');
 
         try {
-            // Build Lichess API URL
-            let url = `https://lichess.org/api/games/user/${username}?max=${count}&pgnInJson=true&clocks=false&evals=false&opening=false`;
+            // Build Worker API URL (always use proxy for Lichess to avoid CORS)
+            const timeControl = filters.timeControl || 'all';
+            const workerUrl = `${WORKER_API_URL}/api/games?platform=lichess&username=${encodeURIComponent(username)}&max=${count}&timeControl=${timeControl}`;
 
-            // Add perf filter if specified
-            if (filters.timeControl && filters.timeControl !== 'all') {
-                const perfMap = {
-                    'bullet': 'bullet',
-                    'blitz': 'blitz',
-                    'rapid': 'rapid',
-                    'classical': 'classical'
-                };
-                const perf = perfMap[filters.timeControl];
-                if (perf) {
-                    url += `&perfType=${perf}`;
-                }
-            }
+            console.log('📡 Fetching via Worker:', workerUrl);
 
-            console.log('📡 Fetching games:', url);
-
-            const response = await fetch(url, {
-                headers: {
-                    'Accept': 'application/x-ndjson'
-                }
-            });
+            const response = await fetch(workerUrl);
 
             if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
                 if (response.status === 404) {
                     throw new Error(`User "${username}" not found on Lichess`);
                 }
                 if (response.status === 429) {
                     throw new Error('Rate limit exceeded. Please try again later.');
                 }
-                throw new Error(`Lichess API error: ${response.status}`);
+                throw new Error(errorData.message || `Worker API error: ${response.status}`);
             }
 
-            const text = await response.text();
+            const data = await response.json();
 
-            // Parse NDJSON (newline-delimited JSON)
-            const lines = text.trim().split('\n');
+            if (!data.success) {
+                throw new Error(data.message || 'Failed to fetch games from Lichess');
+            }
+
+            // Convert Worker response to ImportedGame format
             const importedGames = [];
+            const games = data.games || [];
 
-            for (const line of lines) {
-                if (!line.trim()) continue;
+            for (const game of games) {
+                if (!game.pgn) continue;
 
-                try {
-                    const game = JSON.parse(line);
-
-                    // Extract PGN
-                    const pgn = game.pgn;
-                    if (!pgn) continue;
-
-                    // Get time control from perf field
-                    const timeControl = game.perf || 'unknown';
-
-                    importedGames.push({
-                        id: game.id || `lichess-${game.createdAt}`,
-                        source: 'lichess',
-                        username: username,
-                        playedAt: new Date(game.createdAt).toISOString(),
-                        timeControl: timeControl,
-                        pgn: pgn
-                    });
-
-                } catch (parseError) {
-                    console.warn('⚠️ Failed to parse game line:', parseError);
-                    continue;
-                }
+                importedGames.push({
+                    id: game.id || `lichess-${Date.now()}-${importedGames.length}`,
+                    source: 'lichess',
+                    username: username,
+                    playedAt: game.playedAt || new Date().toISOString(),
+                    timeControl: game.timeControl || 'unknown',
+                    pgn: game.pgn
+                });
             }
 
-            console.log(`✅ Successfully imported ${importedGames.length} games from Lichess`);
+            console.log(`✅ Successfully imported ${importedGames.length} games from Lichess via Worker`);
             return importedGames;
 
         } catch (error) {
             console.error('❌ Lichess fetch error:', error);
-
-            // Check for CORS error
-            if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
-                throw new Error('CORS_BLOCKED');
-            }
-
             throw error;
         }
     },
