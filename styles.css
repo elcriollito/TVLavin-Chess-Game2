@@ -2859,6 +2859,25 @@ button:focus,
     font-size: 11px;
     color: var(--text-secondary);
     margin-top: 4px;
+    line-height: 1.5;
+}
+
+.mentor-settings-content .form-text a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.mentor-settings-content .form-text a:hover {
+    text-decoration: underline;
+}
+
+.mentor-settings-content .form-text .fa-check-circle {
+    color: var(--success-color);
+}
+
+.mentor-settings-content .form-control:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* Error message in mentor */

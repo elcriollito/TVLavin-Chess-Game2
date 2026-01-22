@@ -1255,10 +1255,16 @@
                         </optgroup>
                     </select>
                 </div>
-                <div class="form-group">
+                <div class="form-group" id="mentorApiKeyGroup">
                     <label for="mentorApiKey">API Key:</label>
                     <input type="password" id="mentorApiKey" class="form-control" placeholder="Enter your API key">
-                    <small class="form-text">Session only - not stored permanently</small>
+                    <small class="form-text" id="mentorApiKeyHelp">
+                        <span id="mentorKeyHelpOpenai"><strong>Note:</strong> ChatGPT Plus subscription is NOT an API key.<br>
+                        <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">Get OpenAI API key →</a></span>
+                        <span id="mentorKeyHelpAnthropic" style="display:none;"><a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Get Anthropic API key →</a></span>
+                        <span id="mentorKeyHelpLocal" style="display:none;"><i class="fas fa-check-circle"></i> No API key needed! Run <a href="https://lmstudio.ai/" target="_blank" rel="noopener">LM Studio</a> on localhost:1234</span>
+                        <br>Session only - not stored permanently
+                    </small>
                 </div>
                 <button id="mentorSaveSettings" class="btn btn-small btn-primary">Save Settings</button>
             </div>

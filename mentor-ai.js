@@ -240,6 +240,52 @@ const MentorAI = {
                 modelSelect.value = firstOption.value;
             }
         }
+
+        // Update API key help text based on provider
+        this.updateApiKeyHelp(provider);
+    },
+
+    /**
+     * Update API key help text and input state based on provider
+     */
+    updateApiKeyHelp(provider) {
+        const openaiHelp = document.getElementById('mentorKeyHelpOpenai');
+        const anthropicHelp = document.getElementById('mentorKeyHelpAnthropic');
+        const localHelp = document.getElementById('mentorKeyHelpLocal');
+        const apiKeyInput = this.elements.apiKeyInput;
+        const apiKeyGroup = document.getElementById('mentorApiKeyGroup');
+
+        // Hide all help texts
+        if (openaiHelp) openaiHelp.style.display = 'none';
+        if (anthropicHelp) anthropicHelp.style.display = 'none';
+        if (localHelp) localHelp.style.display = 'none';
+
+        // Show relevant help and configure input
+        switch (provider) {
+            case 'anthropic':
+                if (anthropicHelp) anthropicHelp.style.display = '';
+                if (apiKeyInput) {
+                    apiKeyInput.placeholder = 'Enter your Anthropic API key';
+                    apiKeyInput.disabled = false;
+                }
+                break;
+            case 'local':
+                if (localHelp) localHelp.style.display = '';
+                if (apiKeyInput) {
+                    apiKeyInput.placeholder = 'Not required for local models';
+                    apiKeyInput.disabled = true;
+                    apiKeyInput.value = '';
+                }
+                break;
+            case 'openai':
+            default:
+                if (openaiHelp) openaiHelp.style.display = '';
+                if (apiKeyInput) {
+                    apiKeyInput.placeholder = 'Enter your OpenAI API key';
+                    apiKeyInput.disabled = false;
+                }
+                break;
+        }
     },
 
     /**
@@ -340,8 +386,9 @@ const MentorAI = {
             return;
         }
 
-        // Check API key (session-only)
-        if (!this._sessionApiKey) {
+        // Check API key (session-only) - not required for local provider
+        const provider = this.elements.providerSelect?.value || 'openai';
+        if (provider !== 'local' && !this._sessionApiKey) {
             this.showError('Please enter your API key in Settings (required each session for security).');
             this.toggleSettings();
             return;
