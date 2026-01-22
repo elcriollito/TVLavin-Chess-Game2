@@ -120,6 +120,16 @@ function handleHealthCheck(res) {
 // MENTOR AI CHAT PROXY (for LLM API calls)
 // ============================================================================
 
+// Allowed providers for validation
+const ALLOWED_PROVIDERS = ['llama', 'openai', 'anthropic', 'local', 'custom'];
+
+// Input validation limits
+const MAX_MESSAGES = 50;
+const MAX_CONTENT_LENGTH = 100000; // 100KB per message
+
+// Llama API base URL (can be overridden via env var)
+const LLAMA_API_BASE_URL = process.env.LLAMA_API_BASE_URL || 'https://api.llama.com';
+
 async function handleMentorChat(req, res) {
   // Only accept POST requests
   if (req.method !== 'POST') {
@@ -138,7 +148,15 @@ async function handleMentorChat(req, res) {
     const data = JSON.parse(body);
     const { provider, apiKey, messages, model, maxTokens, temperature } = data;
 
-    if (!apiKey) {
+    // Validate provider
+    if (!ALLOWED_PROVIDERS.includes(provider)) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: `Unknown provider: ${provider}. Allowed: ${ALLOWED_PROVIDERS.join(', ')}` }));
+      return;
+    }
+
+    // API key required for non-local providers
+    if (provider !== 'local' && !apiKey) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'API key is required' }));
       return;
@@ -150,12 +168,43 @@ async function handleMentorChat(req, res) {
       return;
     }
 
+    // Validate message count
+    if (messages.length > MAX_MESSAGES) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: `Too many messages. Maximum: ${MAX_MESSAGES}` }));
+      return;
+    }
+
+    // Validate message content length
+    for (const msg of messages) {
+      if (msg.content && msg.content.length > MAX_CONTENT_LENGTH) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: `Message content too long. Maximum: ${MAX_CONTENT_LENGTH} characters` }));
+        return;
+      }
+    }
+
     console.log(`🤖 Mentor Chat: provider=${provider}, model=${model}, messages=${messages.length}`);
 
     let apiUrl, headers, requestBody;
 
     // Configure request based on provider
     switch (provider) {
+      case 'llama':
+        // Meta Llama API - OpenAI-compatible chat completions format
+        apiUrl = `${LLAMA_API_BASE_URL}/v1/chat/completions`;
+        headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        };
+        requestBody = JSON.stringify({
+          model: model || 'llama-4-scout-17b-16e-instruct',
+          messages,
+          max_completion_tokens: maxTokens || 1024,
+          temperature: temperature || 0.7
+        });
+        break;
+
       case 'anthropic':
         apiUrl = 'https://api.anthropic.com/v1/messages';
         headers = {
@@ -186,7 +235,6 @@ async function handleMentorChat(req, res) {
         break;
 
       case 'openai':
-      default:
         apiUrl = 'https://api.openai.com/v1/chat/completions';
         headers = {
           'Content-Type': 'application/json',
@@ -194,6 +242,22 @@ async function handleMentorChat(req, res) {
         };
         requestBody = JSON.stringify({
           model: model || 'gpt-4o-mini',
+          messages,
+          max_tokens: maxTokens || 1024,
+          temperature: temperature || 0.7
+        });
+        break;
+
+      case 'custom':
+      default:
+        // Custom endpoint - use OpenAI-compatible format
+        apiUrl = data.endpoint || 'https://api.openai.com/v1/chat/completions';
+        headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        };
+        requestBody = JSON.stringify({
+          model: model || 'default',
           messages,
           max_tokens: maxTokens || 1024,
           temperature: temperature || 0.7
@@ -214,7 +278,7 @@ async function handleMentorChat(req, res) {
       console.error('❌ LLM API error:', responseData);
       res.writeHead(apiResponse.status, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
-        error: responseData.error?.message || 'LLM API request failed',
+        error: responseData.error?.message || responseData.detail || 'LLM API request failed',
         details: responseData
       }));
       return;
@@ -230,6 +294,7 @@ async function handleMentorChat(req, res) {
         total_tokens: (responseData.usage?.input_tokens || 0) + (responseData.usage?.output_tokens || 0)
       };
     } else {
+      // OpenAI-compatible format (llama, openai, local, custom)
       content = responseData.choices?.[0]?.message?.content || '';
       usage = responseData.usage;
     }
@@ -237,7 +302,7 @@ async function handleMentorChat(req, res) {
     console.log(`✅ Mentor response: ${content.length} chars`);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ content, usage }));
+    res.end(JSON.stringify({ content, usage, provider, model }));
 
   } catch (error) {
     console.error('❌ Mentor chat error:', error);

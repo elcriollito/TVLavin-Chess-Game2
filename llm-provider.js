@@ -2,14 +2,14 @@
  * CAISSA Mentor AI - LLM Provider Abstraction Layer
  *
  * This module provides a unified interface for different LLM providers.
- * Supports: OpenAI, Anthropic Claude, Local models, Custom endpoints
+ * Supports: Meta Llama, OpenAI, Anthropic Claude, Local models, Custom endpoints
  */
 
 const LLMProvider = {
 
     // Current provider configuration
     config: {
-        provider: 'openai', // 'openai', 'anthropic', 'local', 'custom'
+        provider: 'llama', // 'llama', 'openai', 'anthropic', 'local', 'custom'
         apiKey: null,
         model: null, // Will use provider default if not set
         endpoint: null, // For custom endpoints
@@ -19,6 +19,28 @@ const LLMProvider = {
 
     // Provider-specific configurations
     PROVIDERS: {
+        // Meta Llama API - recommended default
+        llama: {
+            name: 'Meta Llama',
+            endpoint: 'https://api.llama.com/v1/chat/completions', // Meta's official API
+            models: ['llama-4-scout-17b-16e-instruct', 'llama-4-maverick-17b-128e-instruct', 'llama-3.3-70b-instruct'],
+            defaultModel: 'llama-4-scout-17b-16e-instruct',
+            formatRequest: (messages, config) => ({
+                model: config.model,
+                messages: messages,
+                max_tokens: config.maxTokens,
+                temperature: config.temperature
+            }),
+            parseResponse: (response) => ({
+                content: response.choices[0].message.content,
+                usage: response.usage
+            }),
+            headers: (apiKey) => ({
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            })
+        },
+
         openai: {
             name: 'OpenAI',
             endpoint: 'https://api.openai.com/v1/chat/completions',
@@ -125,8 +147,8 @@ const LLMProvider = {
 
         // Validate provider
         if (!this.PROVIDERS[this.config.provider]) {
-            console.warn(`Unknown provider: ${this.config.provider}, falling back to openai`);
-            this.config.provider = 'openai';
+            console.warn(`Unknown provider: ${this.config.provider}, falling back to llama`);
+            this.config.provider = 'llama';
         }
 
         // Set default model for provider if not specified

@@ -202,15 +202,17 @@ const MentorAI = {
      * Update model dropdown based on selected provider
      */
     updateModelOptions() {
-        const provider = this.elements.providerSelect?.value || 'openai';
+        const provider = this.elements.providerSelect?.value || 'llama';
         const modelSelect = this.elements.modelSelect;
         if (!modelSelect) return;
 
         // Hide all optgroups
+        const llamaGroup = document.getElementById('mentorModelLlama');
         const openaiGroup = document.getElementById('mentorModelOpenai');
         const anthropicGroup = document.getElementById('mentorModelAnthropic');
         const localGroup = document.getElementById('mentorModelLocal');
 
+        if (llamaGroup) llamaGroup.style.display = 'none';
         if (openaiGroup) openaiGroup.style.display = 'none';
         if (anthropicGroup) anthropicGroup.style.display = 'none';
         if (localGroup) localGroup.style.display = 'none';
@@ -218,6 +220,14 @@ const MentorAI = {
         // Show selected provider's optgroup
         let activeGroup;
         switch (provider) {
+            case 'llama':
+                if (llamaGroup) llamaGroup.style.display = '';
+                activeGroup = llamaGroup;
+                break;
+            case 'openai':
+                if (openaiGroup) openaiGroup.style.display = '';
+                activeGroup = openaiGroup;
+                break;
             case 'anthropic':
                 if (anthropicGroup) anthropicGroup.style.display = '';
                 activeGroup = anthropicGroup;
@@ -226,10 +236,8 @@ const MentorAI = {
                 if (localGroup) localGroup.style.display = '';
                 activeGroup = localGroup;
                 break;
-            case 'openai':
             default:
-                if (openaiGroup) openaiGroup.style.display = '';
-                activeGroup = openaiGroup;
+                // For custom or unknown, show nothing specific
                 break;
         }
 
@@ -249,19 +257,27 @@ const MentorAI = {
      * Update API key help text and input state based on provider
      */
     updateApiKeyHelp(provider) {
+        const llamaHelp = document.getElementById('mentorKeyHelpLlama');
         const openaiHelp = document.getElementById('mentorKeyHelpOpenai');
         const anthropicHelp = document.getElementById('mentorKeyHelpAnthropic');
         const localHelp = document.getElementById('mentorKeyHelpLocal');
         const apiKeyInput = this.elements.apiKeyInput;
-        const apiKeyGroup = document.getElementById('mentorApiKeyGroup');
 
         // Hide all help texts
+        if (llamaHelp) llamaHelp.style.display = 'none';
         if (openaiHelp) openaiHelp.style.display = 'none';
         if (anthropicHelp) anthropicHelp.style.display = 'none';
         if (localHelp) localHelp.style.display = 'none';
 
         // Show relevant help and configure input
         switch (provider) {
+            case 'llama':
+                if (llamaHelp) llamaHelp.style.display = '';
+                if (apiKeyInput) {
+                    apiKeyInput.placeholder = 'Enter your Llama API key';
+                    apiKeyInput.disabled = false;
+                }
+                break;
             case 'anthropic':
                 if (anthropicHelp) anthropicHelp.style.display = '';
                 if (apiKeyInput) {
@@ -278,10 +294,16 @@ const MentorAI = {
                 }
                 break;
             case 'openai':
-            default:
                 if (openaiHelp) openaiHelp.style.display = '';
                 if (apiKeyInput) {
                     apiKeyInput.placeholder = 'Enter your OpenAI API key';
+                    apiKeyInput.disabled = false;
+                }
+                break;
+            default:
+                // Custom or unknown provider
+                if (apiKeyInput) {
+                    apiKeyInput.placeholder = 'Enter your API key';
                     apiKeyInput.disabled = false;
                 }
                 break;

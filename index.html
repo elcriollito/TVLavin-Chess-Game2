@@ -1232,6 +1232,7 @@
                 <div class="form-group">
                     <label for="mentorProvider">AI Provider:</label>
                     <select id="mentorProvider" class="form-control">
+                        <option value="llama" selected>Meta Llama (Recommended)</option>
                         <option value="openai">OpenAI</option>
                         <option value="anthropic">Anthropic</option>
                         <option value="local">Local LLM</option>
@@ -1240,7 +1241,12 @@
                 <div class="form-group">
                     <label for="mentorModel">Model:</label>
                     <select id="mentorModel" class="form-control">
-                        <optgroup label="OpenAI" id="mentorModelOpenai">
+                        <optgroup label="Meta Llama" id="mentorModelLlama">
+                            <option value="llama-4-scout-17b-16e-instruct">Llama 4 Scout (Recommended)</option>
+                            <option value="llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
+                            <option value="llama-3.3-70b-instruct">Llama 3.3 70B</option>
+                        </optgroup>
+                        <optgroup label="OpenAI" id="mentorModelOpenai" style="display:none;">
                             <option value="gpt-4o-mini">GPT-4o Mini (Recommended)</option>
                             <option value="gpt-4o">GPT-4o</option>
                             <option value="gpt-4-turbo">GPT-4 Turbo</option>
@@ -1257,9 +1263,10 @@
                 </div>
                 <div class="form-group" id="mentorApiKeyGroup">
                     <label for="mentorApiKey">API Key:</label>
-                    <input type="password" id="mentorApiKey" class="form-control" placeholder="Enter your API key">
+                    <input type="password" id="mentorApiKey" class="form-control" placeholder="Enter your Llama API key">
                     <small class="form-text" id="mentorApiKeyHelp">
-                        <span id="mentorKeyHelpOpenai"><strong>Note:</strong> ChatGPT Plus subscription is NOT an API key.<br>
+                        <span id="mentorKeyHelpLlama"><a href="https://llama.com/" target="_blank" rel="noopener">Get Llama API key →</a></span>
+                        <span id="mentorKeyHelpOpenai" style="display:none;"><strong>Note:</strong> ChatGPT Plus subscription is NOT an API key.<br>
                         <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">Get OpenAI API key →</a></span>
                         <span id="mentorKeyHelpAnthropic" style="display:none;"><a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Get Anthropic API key →</a></span>
                         <span id="mentorKeyHelpLocal" style="display:none;"><i class="fas fa-check-circle"></i> No API key needed! Run <a href="https://lmstudio.ai/" target="_blank" rel="noopener">LM Studio</a> on localhost:1234</span>
