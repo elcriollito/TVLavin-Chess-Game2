@@ -1111,8 +1111,9 @@ html, body {
         display: none !important;
     }
 
-    /* Hide Caissa Insight button on mobile - only show New Game and Engine vs Engine */
-    #caissaInsightBtn {
+    /* Hide Caissa Insight and Mentor buttons on mobile - only show New Game and Engine vs Engine */
+    #caissaInsightBtn,
+    #mentorBtn {
         display: none !important;
     }
 

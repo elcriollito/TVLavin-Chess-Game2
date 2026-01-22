@@ -1326,6 +1326,20 @@ function hideModal(modalId) {
     }
 }
 
+// ===== MENTOR PANEL HELPER =====
+/**
+ * Opens the CAISSA Mentor panel with safety guards.
+ * Used by header button, menu item, and floating toggle.
+ */
+function openMentorPanel() {
+    if (typeof MentorAI !== 'undefined' && MentorAI.open) {
+        MentorAI.open();
+    } else {
+        console.warn('CAISSA Mentor AI is not available yet. Please wait for the page to fully load.');
+        showNotification('Mentor is loading, please try again...');
+    }
+}
+
 // ===== EVENT LISTENERS =====
 function setupEventListeners() {
     // Header buttons
@@ -1340,6 +1354,14 @@ function setupEventListeners() {
             showModal('insightModal');
             loadInsightProfile(); // Load saved profile if exists
             updateInsightIndicator(); // Update indicator visibility
+        });
+    }
+
+    // CAISSA Mentor button in header
+    const mentorBtn = document.getElementById('mentorBtn');
+    if (mentorBtn) {
+        mentorBtn.addEventListener('click', () => {
+            openMentorPanel();
         });
     }
 
@@ -1624,6 +1646,11 @@ function setupMenuModal() {
         hideModal('menuModal');
         showModal('insightModal');
         loadInsightProfile(); // Load saved profile if exists
+    });
+
+    document.getElementById('menuMentor')?.addEventListener('click', () => {
+        hideModal('menuModal');
+        openMentorPanel();
     });
 
     document.getElementById('menuCheaterInsight').addEventListener('click', () => {
