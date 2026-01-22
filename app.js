@@ -479,11 +479,16 @@ function onMoveMade(move) {
     // Add move to history
     App.moveHistory.push(move);
     App.currentMoveIndex = App.moveHistory.length - 1;
-    
+
     // Update UI
     updateMoveHistory();
     updateStatus();
     updateTimers();
+
+    // Notify CAISSA Mentor AI of the move (for hooks)
+    if (typeof MentorAI !== 'undefined' && MentorAI.onMoveMade) {
+        MentorAI.onMoveMade(move, App.game.fen());
+    }
     
     // Check game status
     if (App.game.game_over()) {
@@ -916,6 +921,20 @@ function updateAnalysis(info) {
         nps: info.nps,
         pvLength: info.pv?.length
     });
+
+    // Store current evaluation for CAISSA Mentor AI
+    App.currentEvaluation = {
+        score: info.score,
+        depth: info.depth,
+        mate: info.mate,
+        bestMove: info.pv?.[0] || null,
+        pv: info.pv?.slice(0, 10)?.join(' ') || null
+    };
+
+    // Notify CAISSA Mentor AI of evaluation update
+    if (typeof MentorAI !== 'undefined' && MentorAI.onEvaluationUpdate) {
+        MentorAI.onEvaluationUpdate(App.currentEvaluation);
+    }
 
     // Update depth, nodes, and NPS (WinBoard style)
     App.elements.depth.textContent = info.depth || '0';
@@ -3434,6 +3453,11 @@ function generateCaissaNarrative(data, metrics) {
 // Display insight analysis results in the modal
 function displayInsightResults(data) {
     console.log('📊 Displaying insight results...');
+
+    // Notify CAISSA Mentor AI that insight data is available (for personalized advice)
+    if (typeof MentorAI !== 'undefined' && MentorAI.onInsightDataAvailable) {
+        MentorAI.onInsightDataAvailable(data);
+    }
 
     const importSection = document.getElementById('insightImportSection');
     const resultsSection = document.getElementById('insightResultsSection');

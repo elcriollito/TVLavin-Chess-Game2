@@ -1153,6 +1153,118 @@
         </div>
     </div>
 
+    <!-- CAISSA Mentor AI Panel (Slide-out) -->
+    <div id="mentorPanel" class="mentor-panel">
+        <div class="mentor-header">
+            <div class="mentor-title">
+                <i class="fas fa-graduation-cap"></i>
+                <span>CAISSA Mentor</span>
+            </div>
+            <button id="mentorCloseBtn" class="mentor-close" aria-label="Close mentor panel">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Mode Selector -->
+        <div class="mentor-mode-selector">
+            <label for="mentorMode">Explanation Mode:</label>
+            <select id="mentorMode" class="form-control">
+                <option value="human" selected>🧠 Human (Plans & Ideas)</option>
+                <option value="engine">🔬 Engine (Evaluations & Lines)</option>
+                <option value="classical">♔ Classical (Master Style)</option>
+                <option value="beginner">🌱 Beginner (Simple Language)</option>
+            </select>
+        </div>
+
+        <!-- Chat Messages -->
+        <div id="mentorMessages" class="mentor-messages">
+            <div class="mentor-welcome">
+                <div class="mentor-avatar">
+                    <i class="fas fa-chess-queen"></i>
+                </div>
+                <p>Hello! I'm CAISSA Mentor, your chess learning companion.</p>
+                <p>Send me the current position and ask any question about:</p>
+                <ul>
+                    <li>Position analysis & plans</li>
+                    <li>Move explanations</li>
+                    <li>Strategic concepts</li>
+                    <li>Tactical patterns</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Context Indicator -->
+        <div class="mentor-context" id="mentorContext">
+            <span class="context-label"><i class="fas fa-chess-board"></i> Position:</span>
+            <span id="mentorFenPreview" class="context-fen">Ready to receive position</span>
+        </div>
+
+        <!-- Input Area -->
+        <div class="mentor-input-area">
+            <div class="mentor-quick-actions">
+                <button id="mentorSendPosition" class="btn btn-small" title="Send current position">
+                    <i class="fas fa-chess-board"></i> Send Position
+                </button>
+                <button id="mentorAnalyze" class="btn btn-small" title="Analyze position">
+                    <i class="fas fa-search"></i> Quick Analyze
+                </button>
+            </div>
+            <div class="mentor-input-row">
+                <textarea id="mentorInput" class="mentor-textarea" placeholder="Ask about the position..." rows="2"></textarea>
+                <button id="mentorSendBtn" class="btn btn-primary mentor-send" aria-label="Send message">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- API Key Setup (collapsed by default) -->
+        <div class="mentor-settings" id="mentorSettings">
+            <button id="mentorSettingsToggle" class="mentor-settings-toggle">
+                <i class="fas fa-cog"></i> Settings
+            </button>
+            <div id="mentorSettingsContent" class="mentor-settings-content" style="display: none;">
+                <div class="form-group">
+                    <label for="mentorProvider">AI Provider:</label>
+                    <select id="mentorProvider" class="form-control">
+                        <option value="openai">OpenAI</option>
+                        <option value="anthropic">Anthropic</option>
+                        <option value="local">Local LLM</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="mentorModel">Model:</label>
+                    <select id="mentorModel" class="form-control">
+                        <optgroup label="OpenAI" id="mentorModelOpenai">
+                            <option value="gpt-4o-mini">GPT-4o Mini (Recommended)</option>
+                            <option value="gpt-4o">GPT-4o</option>
+                            <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                        </optgroup>
+                        <optgroup label="Anthropic" id="mentorModelAnthropic" style="display:none;">
+                            <option value="claude-sonnet-4-20250514">Claude Sonnet 4 (Recommended)</option>
+                            <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+                            <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
+                        </optgroup>
+                        <optgroup label="Local" id="mentorModelLocal" style="display:none;">
+                            <option value="local-model">Local Model</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="mentorApiKey">API Key:</label>
+                    <input type="password" id="mentorApiKey" class="form-control" placeholder="Enter your API key">
+                    <small class="form-text">Session only - not stored permanently</small>
+                </div>
+                <button id="mentorSaveSettings" class="btn btn-small btn-primary">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mentor Toggle Button (Fixed position) -->
+    <button id="mentorToggleBtn" class="mentor-toggle-btn" aria-label="Open CAISSA Mentor">
+        <i class="fas fa-graduation-cap"></i>
+        <span class="mentor-toggle-text">Mentor</span>
+    </button>
+
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -1161,6 +1273,9 @@
     <script src="stockfish-worker.js?v=2.0.1"></script>
     <script src="chesscom-api.js?v=2.0.1"></script>
     <script src="cheater-analyzer.js?v=2.0.1"></script>
+    <script src="mentor-prompts.js?v=1.0.0"></script>
+    <script src="llm-provider.js?v=1.0.0"></script>
+    <script src="mentor-ai.js?v=1.0.0"></script>
     <script src="app.js?v=2.0.1"></script>
 </body>
 </html>

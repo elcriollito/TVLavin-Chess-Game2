@@ -112,8 +112,138 @@ function handleHealthCheck(res) {
   res.end(JSON.stringify({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    endpoints: ['/api/health', '/api/lichess/games']
+    endpoints: ['/api/health', '/api/lichess/games', '/api/mentor/chat']
   }));
+}
+
+// ============================================================================
+// MENTOR AI CHAT PROXY (for LLM API calls)
+// ============================================================================
+
+async function handleMentorChat(req, res) {
+  // Only accept POST requests
+  if (req.method !== 'POST') {
+    res.writeHead(405, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Method not allowed' }));
+    return;
+  }
+
+  // Read request body
+  let body = '';
+  for await (const chunk of req) {
+    body += chunk;
+  }
+
+  try {
+    const data = JSON.parse(body);
+    const { provider, apiKey, messages, model, maxTokens, temperature } = data;
+
+    if (!apiKey) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'API key is required' }));
+      return;
+    }
+
+    if (!messages || !Array.isArray(messages)) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Messages array is required' }));
+      return;
+    }
+
+    console.log(`🤖 Mentor Chat: provider=${provider}, model=${model}, messages=${messages.length}`);
+
+    let apiUrl, headers, requestBody;
+
+    // Configure request based on provider
+    switch (provider) {
+      case 'anthropic':
+        apiUrl = 'https://api.anthropic.com/v1/messages';
+        headers = {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        };
+        // Convert OpenAI format to Anthropic format
+        const systemMsg = messages.find(m => m.role === 'system');
+        const otherMsgs = messages.filter(m => m.role !== 'system');
+        requestBody = JSON.stringify({
+          model: model || 'claude-sonnet-4-20250514',
+          max_tokens: maxTokens || 1024,
+          system: systemMsg ? systemMsg.content : '',
+          messages: otherMsgs
+        });
+        break;
+
+      case 'local':
+        apiUrl = 'http://localhost:1234/v1/chat/completions';
+        headers = { 'Content-Type': 'application/json' };
+        requestBody = JSON.stringify({
+          model: model || 'local-model',
+          messages,
+          max_tokens: maxTokens || 1024,
+          temperature: temperature || 0.7
+        });
+        break;
+
+      case 'openai':
+      default:
+        apiUrl = 'https://api.openai.com/v1/chat/completions';
+        headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        };
+        requestBody = JSON.stringify({
+          model: model || 'gpt-4o-mini',
+          messages,
+          max_tokens: maxTokens || 1024,
+          temperature: temperature || 0.7
+        });
+        break;
+    }
+
+    // Make API request
+    const apiResponse = await fetch(apiUrl, {
+      method: 'POST',
+      headers,
+      body: requestBody
+    });
+
+    const responseData = await apiResponse.json();
+
+    if (!apiResponse.ok) {
+      console.error('❌ LLM API error:', responseData);
+      res.writeHead(apiResponse.status, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        error: responseData.error?.message || 'LLM API request failed',
+        details: responseData
+      }));
+      return;
+    }
+
+    // Parse response based on provider
+    let content, usage;
+    if (provider === 'anthropic') {
+      content = responseData.content?.[0]?.text || '';
+      usage = {
+        prompt_tokens: responseData.usage?.input_tokens,
+        completion_tokens: responseData.usage?.output_tokens,
+        total_tokens: (responseData.usage?.input_tokens || 0) + (responseData.usage?.output_tokens || 0)
+      };
+    } else {
+      content = responseData.choices?.[0]?.message?.content || '';
+      usage = responseData.usage;
+    }
+
+    console.log(`✅ Mentor response: ${content.length} chars`);
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ content, usage }));
+
+  } catch (error) {
+    console.error('❌ Mentor chat error:', error);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: error.message }));
+  }
 }
 
 // ============================================================================
@@ -134,6 +264,11 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === '/api/lichess/games') {
     await handleLichessProxy(req, res, url);
+    return;
+  }
+
+  if (pathname === '/api/mentor/chat') {
+    await handleMentorChat(req, res);
     return;
   }
 
