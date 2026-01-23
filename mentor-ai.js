@@ -202,16 +202,18 @@ const MentorAI = {
      * Update model dropdown based on selected provider
      */
     updateModelOptions() {
-        const provider = this.elements.providerSelect?.value || 'llama';
+        const provider = this.elements.providerSelect?.value || 'together';
         const modelSelect = this.elements.modelSelect;
         if (!modelSelect) return;
 
         // Hide all optgroups
+        const togetherGroup = document.getElementById('mentorModelTogether');
         const llamaGroup = document.getElementById('mentorModelLlama');
         const openaiGroup = document.getElementById('mentorModelOpenai');
         const anthropicGroup = document.getElementById('mentorModelAnthropic');
         const localGroup = document.getElementById('mentorModelLocal');
 
+        if (togetherGroup) togetherGroup.style.display = 'none';
         if (llamaGroup) llamaGroup.style.display = 'none';
         if (openaiGroup) openaiGroup.style.display = 'none';
         if (anthropicGroup) anthropicGroup.style.display = 'none';
@@ -220,6 +222,10 @@ const MentorAI = {
         // Show selected provider's optgroup
         let activeGroup;
         switch (provider) {
+            case 'together':
+                if (togetherGroup) togetherGroup.style.display = '';
+                activeGroup = togetherGroup;
+                break;
             case 'llama':
                 if (llamaGroup) llamaGroup.style.display = '';
                 activeGroup = llamaGroup;
@@ -257,6 +263,7 @@ const MentorAI = {
      * Update API key help text and input state based on provider
      */
     updateApiKeyHelp(provider) {
+        const togetherHelp = document.getElementById('mentorKeyHelpTogether');
         const llamaHelp = document.getElementById('mentorKeyHelpLlama');
         const openaiHelp = document.getElementById('mentorKeyHelpOpenai');
         const anthropicHelp = document.getElementById('mentorKeyHelpAnthropic');
@@ -264,6 +271,7 @@ const MentorAI = {
         const apiKeyInput = this.elements.apiKeyInput;
 
         // Hide all help texts
+        if (togetherHelp) togetherHelp.style.display = 'none';
         if (llamaHelp) llamaHelp.style.display = 'none';
         if (openaiHelp) openaiHelp.style.display = 'none';
         if (anthropicHelp) anthropicHelp.style.display = 'none';
@@ -271,6 +279,13 @@ const MentorAI = {
 
         // Show relevant help and configure input
         switch (provider) {
+            case 'together':
+                if (togetherHelp) togetherHelp.style.display = '';
+                if (apiKeyInput) {
+                    apiKeyInput.placeholder = 'Enter your Together.ai API key';
+                    apiKeyInput.disabled = false;
+                }
+                break;
             case 'llama':
                 if (llamaHelp) llamaHelp.style.display = '';
                 if (apiKeyInput) {

@@ -1232,7 +1232,8 @@
                 <div class="form-group">
                     <label for="mentorProvider">AI Provider:</label>
                     <select id="mentorProvider" class="form-control">
-                        <option value="llama" selected>Meta Llama (Recommended)</option>
+                        <option value="together" selected>Together.ai (Low Cost)</option>
+                        <option value="llama">Meta Llama (Direct)</option>
                         <option value="openai">OpenAI</option>
                         <option value="anthropic">Anthropic</option>
                         <option value="local">Local LLM</option>
@@ -1241,7 +1242,12 @@
                 <div class="form-group">
                     <label for="mentorModel">Model:</label>
                     <select id="mentorModel" class="form-control">
-                        <optgroup label="Meta Llama" id="mentorModelLlama">
+                        <optgroup label="Together.ai" id="mentorModelTogether">
+                            <option value="meta-llama/Llama-3.3-70B-Instruct-Turbo">Llama 3.3 70B Turbo (Recommended)</option>
+                            <option value="meta-llama/Llama-4-Scout-17B-16E-Instruct">Llama 4 Scout</option>
+                            <option value="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8">Llama 4 Maverick</option>
+                        </optgroup>
+                        <optgroup label="Meta Llama" id="mentorModelLlama" style="display:none;">
                             <option value="llama-4-scout-17b-16e-instruct">Llama 4 Scout (Recommended)</option>
                             <option value="llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
                             <option value="llama-3.3-70b-instruct">Llama 3.3 70B</option>
@@ -1263,9 +1269,10 @@
                 </div>
                 <div class="form-group" id="mentorApiKeyGroup">
                     <label for="mentorApiKey">API Key:</label>
-                    <input type="password" id="mentorApiKey" class="form-control" placeholder="Enter your Llama API key">
+                    <input type="password" id="mentorApiKey" class="form-control" placeholder="Enter your Together.ai API key">
                     <small class="form-text" id="mentorApiKeyHelp">
-                        <span id="mentorKeyHelpLlama"><a href="https://llama.com/" target="_blank" rel="noopener">Get Llama API key →</a></span>
+                        <span id="mentorKeyHelpTogether"><a href="https://api.together.xyz/settings/api-keys" target="_blank" rel="noopener">Get Together.ai API key →</a> <a href="https://www.together.ai/pricing" target="_blank" rel="noopener">(Pricing)</a></span>
+                        <span id="mentorKeyHelpLlama" style="display:none;"><a href="https://llama.com/" target="_blank" rel="noopener">Get Llama API key →</a></span>
                         <span id="mentorKeyHelpOpenai" style="display:none;"><strong>Note:</strong> ChatGPT Plus subscription is NOT an API key.<br>
                         <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">Get OpenAI API key →</a></span>
                         <span id="mentorKeyHelpAnthropic" style="display:none;"><a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Get Anthropic API key →</a></span>

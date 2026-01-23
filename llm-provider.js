@@ -2,14 +2,14 @@
  * CAISSA Mentor AI - LLM Provider Abstraction Layer
  *
  * This module provides a unified interface for different LLM providers.
- * Supports: Meta Llama, OpenAI, Anthropic Claude, Local models, Custom endpoints
+ * Supports: Together.ai, Meta Llama, OpenAI, Anthropic Claude, Local models, Custom endpoints
  */
 
 const LLMProvider = {
 
     // Current provider configuration
     config: {
-        provider: 'llama', // 'llama', 'openai', 'anthropic', 'local', 'custom'
+        provider: 'together', // 'together', 'llama', 'openai', 'anthropic', 'local', 'custom'
         apiKey: null,
         model: null, // Will use provider default if not set
         endpoint: null, // For custom endpoints
@@ -19,7 +19,29 @@ const LLMProvider = {
 
     // Provider-specific configurations
     PROVIDERS: {
-        // Meta Llama API - recommended default
+        // Together.ai - cost-efficient LLaMA hosting (recommended)
+        together: {
+            name: 'Together.ai',
+            endpoint: 'https://api.together.xyz/v1/chat/completions',
+            models: ['meta-llama/Llama-3.3-70B-Instruct-Turbo', 'meta-llama/Llama-4-Scout-17B-16E-Instruct', 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8'],
+            defaultModel: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+            formatRequest: (messages, config) => ({
+                model: config.model,
+                messages: messages,
+                max_tokens: config.maxTokens,
+                temperature: config.temperature
+            }),
+            parseResponse: (response) => ({
+                content: response.choices[0].message.content,
+                usage: response.usage
+            }),
+            headers: (apiKey) => ({
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            })
+        },
+
+        // Meta Llama API - direct access
         llama: {
             name: 'Meta Llama',
             endpoint: 'https://api.llama.com/v1/chat/completions', // Meta's official API
@@ -147,8 +169,8 @@ const LLMProvider = {
 
         // Validate provider
         if (!this.PROVIDERS[this.config.provider]) {
-            console.warn(`Unknown provider: ${this.config.provider}, falling back to llama`);
-            this.config.provider = 'llama';
+            console.warn(`Unknown provider: ${this.config.provider}, falling back to together`);
+            this.config.provider = 'together';
         }
 
         // Set default model for provider if not specified

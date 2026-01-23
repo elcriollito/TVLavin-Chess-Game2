@@ -121,14 +121,15 @@ function handleHealthCheck(res) {
 // ============================================================================
 
 // Allowed providers for validation
-const ALLOWED_PROVIDERS = ['llama', 'openai', 'anthropic', 'local', 'custom'];
+const ALLOWED_PROVIDERS = ['together', 'llama', 'openai', 'anthropic', 'local', 'custom'];
 
 // Input validation limits
 const MAX_MESSAGES = 50;
 const MAX_CONTENT_LENGTH = 100000; // 100KB per message
 
-// Llama API base URL (can be overridden via env var)
+// API base URLs (can be overridden via env vars)
 const LLAMA_API_BASE_URL = process.env.LLAMA_API_BASE_URL || 'https://api.llama.com';
+const TOGETHER_API_BASE_URL = process.env.TOGETHER_API_BASE_URL || 'https://api.together.xyz';
 
 async function handleMentorChat(req, res) {
   // Only accept POST requests
@@ -190,6 +191,21 @@ async function handleMentorChat(req, res) {
 
     // Configure request based on provider
     switch (provider) {
+      case 'together':
+        // Together.ai - cost-efficient LLaMA hosting
+        apiUrl = `${TOGETHER_API_BASE_URL}/v1/chat/completions`;
+        headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        };
+        requestBody = JSON.stringify({
+          model: model || 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+          messages,
+          max_tokens: maxTokens || 1024,
+          temperature: temperature || 0.7
+        });
+        break;
+
       case 'llama':
         // Meta Llama API - OpenAI-compatible chat completions format
         apiUrl = `${LLAMA_API_BASE_URL}/v1/chat/completions`;
