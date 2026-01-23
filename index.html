@@ -1165,6 +1165,7 @@
             <div class="mentor-title">
                 <i class="fas fa-graduation-cap"></i>
                 <span>CAISSA Mentor</span>
+                <span id="mentorEngineBadge" class="mentor-engine-badge" style="display: none;">Engine-backed</span>
             </div>
             <button id="mentorCloseBtn" class="mentor-close" aria-label="Close mentor panel">
                 <i class="fas fa-times"></i>
@@ -1279,6 +1280,13 @@
                         <span id="mentorKeyHelpLocal" style="display:none;"><i class="fas fa-check-circle"></i> No API key needed! Run <a href="https://lmstudio.ai/" target="_blank" rel="noopener">LM Studio</a> on localhost:1234</span>
                         <br>Session only - not stored permanently
                     </small>
+                </div>
+                <div class="form-group">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="mentorStockfishToggle" checked>
+                        <span class="toggle-text">Use Stockfish Guidance</span>
+                    </label>
+                    <small class="form-hint">Analyzes position with engine before each response for precise evaluations and move comparisons.</small>
                 </div>
                 <button id="mentorSaveSettings" class="btn btn-small btn-primary">Save Settings</button>
             </div>

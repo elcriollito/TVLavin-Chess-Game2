@@ -204,9 +204,10 @@ const LLMProvider = {
      * Send a chat request to the LLM
      * Uses server proxy to avoid CORS issues in browser
      * @param {Array} messages - Array of message objects
+     * @param {Object} options - Optional overrides (temperature, engineReport)
      * @returns {Promise<Object>} - Response with content and usage
      */
-    async chat(messages) {
+    async chat(messages, options = {}) {
         const provider = this.PROVIDERS[this.config.provider];
 
         if (!provider) {
@@ -221,6 +222,9 @@ const LLMProvider = {
         // Use server proxy to avoid CORS issues
         const proxyEndpoint = `${window.location.origin}/api/mentor/chat`;
 
+        // Allow temperature override (lower for engine-guided responses)
+        const temperature = options.temperature ?? this.config.temperature;
+
         try {
             const response = await fetch(proxyEndpoint, {
                 method: 'POST',
@@ -231,7 +235,8 @@ const LLMProvider = {
                     messages: messages,
                     model: this.config.model,
                     maxTokens: this.config.maxTokens,
-                    temperature: this.config.temperature
+                    temperature: temperature,
+                    engineReport: options.engineReport || null  // Pass for logging/future use
                 })
             });
 

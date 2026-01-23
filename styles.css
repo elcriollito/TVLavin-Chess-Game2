@@ -2546,6 +2546,59 @@ button:focus,
     font-size: 20px;
 }
 
+/* Engine Badge in Header */
+.mentor-engine-badge {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 10px;
+    background: rgba(76, 175, 80, 0.3);
+    color: #a5d6a7;
+    margin-left: 8px;
+    animation: badge-pulse 2s infinite;
+}
+
+.mentor-engine-badge.analyzing {
+    background: rgba(255, 193, 7, 0.3);
+    color: #ffe082;
+    animation: badge-blink 0.8s infinite;
+}
+
+.mentor-engine-badge.active {
+    background: rgba(76, 175, 80, 0.3);
+    color: #a5d6a7;
+}
+
+@keyframes badge-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+@keyframes badge-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* Engine Badge on Message */
+.message-engine-badge {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.message-engine-badge i {
+    color: #4caf50;
+}
+
+.mentor-message.engine-backed {
+    border-left: 2px solid #4caf50;
+}
+
 .mentor-close {
     background: rgba(255, 255, 255, 0.1);
     border: none;
@@ -2878,6 +2931,35 @@ button:focus,
 .mentor-settings-content .form-control:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* Toggle checkbox style */
+.mentor-settings-content .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.mentor-settings-content .toggle-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary-color);
+    cursor: pointer;
+}
+
+.mentor-settings-content .toggle-text {
+    font-weight: 500;
+}
+
+.mentor-settings-content .form-hint {
+    display: block;
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    line-height: 1.4;
 }
 
 /* Error message in mentor */

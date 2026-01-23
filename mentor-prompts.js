@@ -3,9 +3,25 @@
  *
  * This module constructs contextual prompts for the chess mentor AI.
  * It adapts tone and focus based on the selected explanation mode.
+ * Supports Stockfish engine-backed guidance for precise evaluations.
  */
 
 const MentorPrompts = {
+
+    // Engine-backed system prompt addition (injected when engineReport is available)
+    ENGINE_GUIDANCE_PROMPT: `
+You have access to Stockfish engine analysis. Use this data to ground your explanations:
+
+IMPORTANT ENGINE GUIDANCE RULES:
+1. Always state the current evaluation as a decimal (e.g., "+0.18" not "18 centipawns")
+2. When comparing moves, reference the eval difference (e.g., "Nf3 is +0.35, while e5 drops to -0.12")
+3. If a move loses eval significantly (>0.3), explain WHY it's suboptimal using concrete threats
+4. Typical opening mistakes like early queen moves should be justified with specific eval drops
+5. Keep your tone human and coach-like, but be SPECIFIC - no vague statements like "this is good"
+6. Reference the principal variation when explaining tactical sequences
+7. When the user asks about a candidate move, compare it to the engine's top choice
+
+FORMAT: Be concise. Lead with the key insight. Avoid filler phrases.`,
 
     // Explanation modes with their characteristics
     MODES: {
@@ -21,7 +37,7 @@ Focus on:
 - Key squares and pawn structures
 - Practical advice a club player can use
 
-Avoid dumping raw engine lines. Instead, explain WHY moves are good.
+Explain WHY moves are good using concrete reasoning.
 Use analogies and memorable concepts when helpful.`
         },
 
@@ -37,7 +53,7 @@ Focus on:
 - Calculation trees for forcing lines
 - Computer-style accuracy
 
-Present analysis systematically. Use notation like: 1.e4 e5 2.Nf3 (±0.3)
+Present analysis systematically. Use notation like: 1.e4 e5 2.Nf3 (+0.35)
 Be precise about move orders and why alternatives fail.`
         },
 
@@ -79,12 +95,14 @@ Explain chess terms when you use them.`
      * @param {string} context.userQuestion - The user's question
      * @param {string} context.fen - Current position FEN
      * @param {string} context.pgn - Game PGN (optional)
-     * @param {Object} context.evaluation - Engine evaluation (optional)
+     * @param {Object} context.evaluation - Engine evaluation (optional, legacy)
+     * @param {Object} context.engineReport - Full engine report with topMoves (preferred)
      * @param {string} context.explanationMode - One of: human, engine, classical, beginner
      * @param {string} context.gameMode - Current game mode: analysis, engine, human, eve
      * @param {Array} context.chatHistory - Previous messages (optional)
      * @param {Array} context.legalMoves - Legal moves in SAN notation (optional)
-     * @returns {Object} - { systemPrompt, userPrompt, metadata }
+     * @param {boolean} context.useStockfishGuidance - Whether to inject engine guidance
+     * @returns {Object} - { systemPrompt, userPrompt, messages, engineReport, metadata }
      */
     buildPrompt(context) {
         const {
@@ -92,17 +110,22 @@ Explain chess terms when you use them.`
             fen,
             pgn = null,
             evaluation = null,
+            engineReport = null,
             explanationMode = 'human',
             gameMode = 'analysis',
             chatHistory = [],
-            legalMoves = []
+            legalMoves = [],
+            useStockfishGuidance = true
         } = context;
 
         // Get mode configuration
         const mode = this.MODES[explanationMode] || this.MODES.human;
 
-        // Build system prompt
-        const systemPrompt = this._buildSystemPrompt(mode, gameMode);
+        // Determine if we have valid engine data
+        const hasEngineData = engineReport && (engineReport.evalCp !== undefined || engineReport.mateIn !== undefined);
+
+        // Build system prompt (with engine guidance if available)
+        const systemPrompt = this._buildSystemPrompt(mode, gameMode, hasEngineData && useStockfishGuidance);
 
         // Build user prompt with context
         const userPrompt = this._buildUserPrompt({
@@ -110,8 +133,10 @@ Explain chess terms when you use them.`
             fen,
             pgn,
             evaluation,
+            engineReport: hasEngineData ? engineReport : null,
             gameMode,
-            legalMoves
+            legalMoves,
+            useStockfishGuidance
         });
 
         // Build messages array for chat API
@@ -121,11 +146,14 @@ Explain chess terms when you use them.`
             systemPrompt,
             userPrompt,
             messages,
+            engineReport: hasEngineData ? engineReport : null,
             metadata: {
                 mode: explanationMode,
                 gameMode,
                 hasPGN: !!pgn,
                 hasEval: !!evaluation,
+                hasEngineReport: hasEngineData,
+                useStockfishGuidance: hasEngineData && useStockfishGuidance,
                 historyLength: chatHistory.length
             }
         };
@@ -133,9 +161,17 @@ Explain chess terms when you use them.`
 
     /**
      * Build the system prompt with mode-specific instructions
+     * @param {Object} mode - The explanation mode config
+     * @param {string} gameMode - Current game mode
+     * @param {boolean} includeEngineGuidance - Whether to add engine guidance rules
      */
-    _buildSystemPrompt(mode, gameMode) {
+    _buildSystemPrompt(mode, gameMode, includeEngineGuidance = false) {
         let prompt = mode.systemPrompt;
+
+        // Add engine guidance if available
+        if (includeEngineGuidance) {
+            prompt += this.ENGINE_GUIDANCE_PROMPT;
+        }
 
         // Add game mode context
         const gameModeContext = {
@@ -153,7 +189,6 @@ Explain chess terms when you use them.`
 GUIDELINES:
 - Always reference the actual position when explaining
 - If asked about a move, explain both WHY it's good AND potential alternatives
-- Ask reflective questions to deepen understanding when appropriate
 - Be concise but complete - respect the user's time
 - If the position has a critical tactical theme, mention it
 - Never make up moves that aren't legal in the position`;
@@ -164,7 +199,7 @@ GUIDELINES:
     /**
      * Build the user message with board context
      */
-    _buildUserPrompt({ userQuestion, fen, pgn, evaluation, gameMode, legalMoves }) {
+    _buildUserPrompt({ userQuestion, fen, pgn, evaluation, engineReport, gameMode, legalMoves, useStockfishGuidance }) {
         let prompt = '';
 
         // Position context (always included)
@@ -189,13 +224,51 @@ GUIDELINES:
             prompt += `GAME MOVES:\n${truncatedPGN}\n\n`;
         }
 
-        // Engine evaluation if available
-        if (evaluation) {
+        // Engine report (new format with topMoves) - preferred over legacy evaluation
+        if (engineReport && useStockfishGuidance) {
+            prompt += `STOCKFISH ENGINE ANALYSIS (depth ${engineReport.depth || '?'}):\n`;
+
+            // Format main evaluation
+            if (engineReport.mateIn !== undefined && engineReport.mateIn !== null) {
+                const mateStr = engineReport.mateIn > 0 ? `+M${engineReport.mateIn}` : `M${engineReport.mateIn}`;
+                prompt += `Position evaluation: ${mateStr} (forced mate)\n`;
+            } else if (engineReport.evalCp !== undefined) {
+                const evalPawns = (engineReport.evalCp / 100).toFixed(2);
+                const evalStr = engineReport.evalCp >= 0 ? `+${evalPawns}` : evalPawns;
+                prompt += `Position evaluation: ${evalStr} (from White's perspective)\n`;
+            }
+
+            prompt += `Side to move: ${engineReport.sideToMove || 'unknown'}\n\n`;
+
+            // Format top candidate moves
+            if (engineReport.topMoves && engineReport.topMoves.length > 0) {
+                prompt += `TOP CANDIDATE MOVES:\n`;
+                engineReport.topMoves.forEach((move, idx) => {
+                    const evalPawns = move.mateIn !== undefined
+                        ? (move.mateIn > 0 ? `+M${move.mateIn}` : `M${move.mateIn}`)
+                        : ((move.evalCp / 100).toFixed(2));
+                    const evalStr = (typeof move.evalCp === 'number' && move.evalCp >= 0 && move.mateIn === undefined)
+                        ? `+${evalPawns}` : evalPawns;
+
+                    prompt += `${idx + 1}. ${move.san || move.uci} (${evalStr})`;
+                    if (move.pv) {
+                        prompt += ` - Line: ${move.pv}`;
+                    }
+                    if (move.note) {
+                        prompt += ` [${move.note}]`;
+                    }
+                    prompt += '\n';
+                });
+                prompt += '\n';
+            }
+        }
+        // Legacy evaluation format (fallback)
+        else if (evaluation) {
             prompt += `ENGINE EVALUATION:\n`;
             if (evaluation.score !== undefined) {
                 const scoreStr = evaluation.mate
                     ? `Mate in ${evaluation.mate}`
-                    : `${evaluation.score > 0 ? '+' : ''}${(evaluation.score / 100).toFixed(2)}`;
+                    : `${evaluation.score > 0 ? '+' : ''}${evaluation.score.toFixed(2)}`;
                 prompt += `- Score: ${scoreStr}\n`;
             }
             if (evaluation.depth) {

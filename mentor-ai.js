@@ -15,13 +15,19 @@ const MentorAI = {
     currentPgn: null,
     currentEvaluation: null,
 
+    // MultiPV analysis results (for engineReport)
+    multiPvResults: [],  // Array of { multipv, evalCp, mateIn, pv, uci }
+    lastAnalysisDepth: 0,
+
     // DOM Elements (cached after init)
     elements: {},
 
     // Configuration
     config: {
         maxHistoryLength: 20,
-        storageKey: 'caissa_mentor_settings'
+        storageKey: 'caissa_mentor_settings',
+        useStockfishGuidance: true,  // Default: ON
+        multiPvCount: 3  // Number of candidate moves to collect
         // NOTE: API keys are stored in memory only (session-based) for security
     },
 
@@ -61,7 +67,9 @@ const MentorAI = {
             providerSelect: document.getElementById('mentorProvider'),
             modelSelect: document.getElementById('mentorModel'),
             apiKeyInput: document.getElementById('mentorApiKey'),
-            saveSettingsBtn: document.getElementById('mentorSaveSettings')
+            saveSettingsBtn: document.getElementById('mentorSaveSettings'),
+            stockfishToggle: document.getElementById('mentorStockfishToggle'),
+            engineBadge: document.getElementById('mentorEngineBadge')
         };
     },
 
@@ -129,6 +137,15 @@ const MentorAI = {
                 if (this.elements.modelSelect && parsed.model) {
                     this.elements.modelSelect.value = parsed.model;
                 }
+                // Load Stockfish guidance preference
+                if (parsed.useStockfishGuidance !== undefined) {
+                    this.config.useStockfishGuidance = parsed.useStockfishGuidance;
+                }
+            }
+
+            // Update Stockfish toggle UI
+            if (this.elements.stockfishToggle) {
+                this.elements.stockfishToggle.checked = this.config.useStockfishGuidance;
             }
 
             // Initialize provider with saved settings (no API key yet)
@@ -147,9 +164,17 @@ const MentorAI = {
             const provider = this.elements.providerSelect?.value || 'openai';
             const model = this.elements.modelSelect?.value || '';
             const apiKey = this.elements.apiKeyInput?.value?.trim();
+            const useStockfishGuidance = this.elements.stockfishToggle?.checked ?? true;
 
-            // Save provider/model settings (NOT API key - that stays in memory only)
-            localStorage.setItem(this.config.storageKey, JSON.stringify({ provider, model }));
+            // Update config
+            this.config.useStockfishGuidance = useStockfishGuidance;
+
+            // Save provider/model/stockfish settings (NOT API key - that stays in memory only)
+            localStorage.setItem(this.config.storageKey, JSON.stringify({
+                provider,
+                model,
+                useStockfishGuidance
+            }));
 
             // Store API key in memory only (session-based, not persisted)
             if (apiKey) {
@@ -388,6 +413,184 @@ const MentorAI = {
     },
 
     /**
+     * Build engineReport from current analysis data
+     * @returns {Object|null} engineReport for LLM prompt
+     */
+    buildEngineReport() {
+        if (!this.currentFen) return null;
+
+        // Extract side to move from FEN
+        const fenParts = this.currentFen.split(' ');
+        const sideToMove = fenParts[1] === 'w' ? 'White' : 'Black';
+
+        // If we don't have any evaluation data, return null
+        if (!this.currentEvaluation && this.multiPvResults.length === 0) {
+            return null;
+        }
+
+        // Build the report
+        const report = {
+            fen: this.currentFen,
+            sideToMove: sideToMove,
+            depth: this.lastAnalysisDepth || this.currentEvaluation?.depth || 0,
+            evalCp: null,
+            mateIn: null,
+            topMoves: []
+        };
+
+        // Use MultiPV results if available
+        if (this.multiPvResults.length > 0) {
+            // Main eval from PV 1
+            const mainLine = this.multiPvResults.find(r => r.multipv === 1);
+            if (mainLine) {
+                if (mainLine.mateIn !== undefined && mainLine.mateIn !== null) {
+                    report.mateIn = mainLine.mateIn;
+                } else {
+                    report.evalCp = mainLine.evalCp;
+                }
+            }
+
+            // Build topMoves array
+            report.topMoves = this.multiPvResults
+                .sort((a, b) => a.multipv - b.multipv)
+                .slice(0, 3)
+                .map(r => ({
+                    uci: r.uci,
+                    san: r.san || null,
+                    evalCp: r.evalCp,
+                    mateIn: r.mateIn,
+                    pv: r.pv
+                }));
+        }
+        // Fallback to basic evaluation
+        else if (this.currentEvaluation) {
+            if (this.currentEvaluation.mate !== undefined && this.currentEvaluation.mate !== null) {
+                report.mateIn = this.currentEvaluation.mate;
+            } else if (this.currentEvaluation.score !== undefined) {
+                // score is already in pawns (e.g., 0.35), convert to centipawns
+                report.evalCp = Math.round(this.currentEvaluation.score * 100);
+            }
+
+            // Create single topMove from bestMove
+            if (this.currentEvaluation.bestMove) {
+                report.topMoves = [{
+                    uci: this.currentEvaluation.bestMove,
+                    san: null,
+                    evalCp: report.evalCp,
+                    mateIn: report.mateIn,
+                    pv: this.currentEvaluation.pv || null
+                }];
+            }
+        }
+
+        // Only return if we have some useful data
+        if (report.evalCp !== null || report.mateIn !== null || report.topMoves.length > 0) {
+            return report;
+        }
+
+        return null;
+    },
+
+    /**
+     * Request MultiPV analysis from the engine (if available)
+     * Call this before sending to get fresh top moves
+     */
+    async requestMultiPvAnalysis() {
+        return new Promise((resolve) => {
+            // Check if engine is available
+            if (typeof App === 'undefined' || !App.engine || !App.engine.ready) {
+                console.log('Engine not available for MultiPV analysis');
+                resolve(false);
+                return;
+            }
+
+            const fen = this.currentFen;
+            if (!fen) {
+                resolve(false);
+                return;
+            }
+
+            // Clear previous results
+            this.multiPvResults = [];
+            this.lastAnalysisDepth = 0;
+
+            // Set MultiPV to 3
+            App.engine.setMultiPV(this.config.multiPvCount);
+
+            // Set up analysis with timeout
+            const timeout = setTimeout(() => {
+                console.log('MultiPV analysis timeout - using partial results');
+                App.engine.stop();
+                resolve(true);
+            }, 1500); // 1.5 second timeout for quick analysis
+
+            let lastDepth = 0;
+
+            // Store original onInfo callback
+            const originalOnInfo = App.engine.onInfo;
+
+            App.engine.onInfo = (info) => {
+                // Track depth
+                if (info.depth > lastDepth) {
+                    lastDepth = info.depth;
+                    this.lastAnalysisDepth = info.depth;
+                }
+
+                // Store MultiPV result
+                if (info.pv && info.pv.length > 0) {
+                    const multipv = info.multipv || 1;
+                    const uciMove = info.pv[0];
+
+                    // Convert UCI to SAN if possible
+                    let sanMove = null;
+                    if (typeof App !== 'undefined' && App.game) {
+                        try {
+                            const tempGame = new Chess(fen);
+                            const moveObj = tempGame.move({
+                                from: uciMove.slice(0, 2),
+                                to: uciMove.slice(2, 4),
+                                promotion: uciMove.length > 4 ? uciMove[4] : undefined
+                            });
+                            if (moveObj) sanMove = moveObj.san;
+                        } catch (e) {
+                            // SAN conversion failed, use UCI
+                        }
+                    }
+
+                    // Update or add result for this multipv
+                    const existingIdx = this.multiPvResults.findIndex(r => r.multipv === multipv);
+                    const result = {
+                        multipv: multipv,
+                        evalCp: info.score !== undefined ? Math.round(info.score * 100) : null,
+                        mateIn: info.mate,
+                        uci: uciMove,
+                        san: sanMove,
+                        pv: info.pv.slice(0, 8).join(' ') // First 8 moves of PV
+                    };
+
+                    if (existingIdx >= 0) {
+                        this.multiPvResults[existingIdx] = result;
+                    } else {
+                        this.multiPvResults.push(result);
+                    }
+                }
+
+                // Check if we have enough data (depth 12+ with all PVs)
+                if (lastDepth >= 12 && this.multiPvResults.length >= this.config.multiPvCount) {
+                    clearTimeout(timeout);
+                    App.engine.stop();
+                    App.engine.onInfo = originalOnInfo;
+                    resolve(true);
+                }
+            };
+
+            // Start analysis at depth 14
+            App.engine.setPosition(fen);
+            App.engine.go({ depth: 14 });
+        });
+    },
+
+    /**
      * Update the context display in the UI
      */
     updateContextDisplay() {
@@ -441,6 +644,22 @@ const MentorAI = {
         this.setLoading(true);
 
         try {
+            // Request fresh MultiPV analysis if Stockfish guidance is enabled
+            let engineReport = null;
+            if (this.config.useStockfishGuidance) {
+                // Show "analyzing" status
+                this.updateEngineBadge('analyzing');
+
+                // Request quick MultiPV analysis
+                await this.requestMultiPvAnalysis();
+
+                // Build engine report from results
+                engineReport = this.buildEngineReport();
+
+                // Update badge
+                this.updateEngineBadge(engineReport ? 'active' : 'none');
+            }
+
             // Build prompt with context
             const mode = this.elements.modeSelect?.value || 'human';
             const gameMode = typeof App !== 'undefined' ? App.gameMode : 'analysis';
@@ -456,17 +675,22 @@ const MentorAI = {
                 fen: this.currentFen,
                 pgn: this.currentPgn,
                 evaluation: this.currentEvaluation,
+                engineReport: engineReport,
                 explanationMode: mode,
                 gameMode: gameMode,
                 chatHistory: this.chatHistory.slice(-10),
-                legalMoves: legalMoves
+                legalMoves: legalMoves,
+                useStockfishGuidance: this.config.useStockfishGuidance
             });
 
-            // Send to LLM
-            const response = await LLMProvider.chat(promptData.messages);
+            // Send to LLM (with engineReport for server-side injection)
+            const response = await LLMProvider.chat(promptData.messages, {
+                engineReport: engineReport,
+                temperature: engineReport ? 0.3 : 0.7  // Lower temperature when engine-guided
+            });
 
             // Add response to chat
-            this.addMessage('assistant', response.content);
+            this.addMessage('assistant', response.content, engineReport !== null);
 
             // Store in history
             this.chatHistory.push(
@@ -482,8 +706,36 @@ const MentorAI = {
         } catch (error) {
             console.error('Mentor AI error:', error);
             this.showError(error.message || 'Failed to get response from AI');
+            this.updateEngineBadge('none');
         } finally {
             this.setLoading(false);
+        }
+    },
+
+    /**
+     * Update the engine badge display
+     */
+    updateEngineBadge(state) {
+        const badge = this.elements.engineBadge;
+        if (!badge) return;
+
+        badge.classList.remove('analyzing', 'active', 'hidden');
+
+        switch (state) {
+            case 'analyzing':
+                badge.textContent = 'Analyzing...';
+                badge.classList.add('analyzing');
+                badge.style.display = '';
+                break;
+            case 'active':
+                badge.textContent = 'Engine-backed';
+                badge.classList.add('active');
+                badge.style.display = '';
+                break;
+            case 'none':
+            default:
+                badge.style.display = 'none';
+                break;
         }
     },
 
@@ -536,8 +788,11 @@ const MentorAI = {
 
     /**
      * Add a message to the chat display
+     * @param {string} role - 'user' or 'assistant'
+     * @param {string} content - Message content
+     * @param {boolean} engineBacked - Whether this response used engine analysis
      */
-    addMessage(role, content) {
+    addMessage(role, content, engineBacked = false) {
         const messagesContainer = this.elements.messages;
         if (!messagesContainer) return;
 
@@ -550,6 +805,9 @@ const MentorAI = {
         // Create message element
         const messageDiv = document.createElement('div');
         messageDiv.className = `mentor-message ${role}`;
+        if (engineBacked && role === 'assistant') {
+            messageDiv.classList.add('engine-backed');
+        }
 
         // Format content (handle markdown-like formatting)
         const formattedContent = this.formatMessageContent(content);
@@ -559,6 +817,15 @@ const MentorAI = {
         contentDiv.innerHTML = formattedContent;
 
         messageDiv.appendChild(contentDiv);
+
+        // Add engine badge for engine-backed responses
+        if (engineBacked && role === 'assistant') {
+            const badgeDiv = document.createElement('div');
+            badgeDiv.className = 'message-engine-badge';
+            badgeDiv.innerHTML = '<i class="fas fa-microchip"></i> Engine-backed';
+            messageDiv.appendChild(badgeDiv);
+        }
+
         messagesContainer.appendChild(messageDiv);
 
         // Scroll to bottom

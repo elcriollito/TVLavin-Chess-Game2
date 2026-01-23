@@ -65,7 +65,11 @@ export default async function handler(req, res) {
       }
     }
 
-    console.log(`🤖 Mentor Chat: provider=${provider}, model=${model}, messages=${messages.length}`);
+    // Extract engineReport for logging (client includes it in prompt already)
+    const { engineReport } = req.body;
+    const hasEngine = engineReport && (engineReport.evalCp !== undefined || engineReport.mateIn !== undefined);
+
+    console.log(`🤖 Mentor Chat: provider=${provider}, model=${model}, messages=${messages.length}, engineBacked=${hasEngine}, temp=${temperature || 0.7}`);
 
     let apiUrl, headers, requestBody;
 
