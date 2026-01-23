@@ -5,8 +5,8 @@
                             http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
   <!--
     CAISSA Chess Official Sitemap
-    Domain: https://www.caissa-chess.org
-    Generated: 2026-01-22
+    Domain: https://caissa-chess.org
+    Generated: 2026-01-23
 
     Note: CAISSA Chess is a Single Page Application (SPA).
     All features (Analysis, Engine vs Engine, Insight, Mentor, etc.)
@@ -15,8 +15,8 @@
 
   <!-- Main Application Page -->
   <url>
-    <loc>https://www.caissa-chess.org/</loc>
-    <lastmod>2026-01-22</lastmod>
+    <loc>https://caissa-chess.org/</loc>
+    <lastmod>2026-01-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
