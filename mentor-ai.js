@@ -3,6 +3,12 @@
  *
  * Handles the chat interface, context collection, and communication
  * between the chess app and the LLM provider.
+ *
+ * Features:
+ * - Engine-backed analysis with Stockfish WASM
+ * - Engine lock to prevent analysis collisions
+ * - FEN-based cache for performance
+ * - Shared API support (no key required for casual users)
  */
 
 const MentorAI = {
@@ -19,6 +25,19 @@ const MentorAI = {
     multiPvResults: [],  // Array of { multipv, evalCp, mateIn, pv, uci }
     lastAnalysisDepth: 0,
 
+    // Engine lock state
+    engineLock: {
+        isLocked: false,
+        lockOwner: null,
+        previousMultiPV: 1,
+        wasAnalyzing: false
+    },
+
+    // FEN-based cache for engine analysis
+    analysisCache: new Map(),
+    CACHE_TTL_MS: 30000, // 30 seconds
+    CACHE_MAX_ENTRIES: 50,
+
     // DOM Elements (cached after init)
     elements: {},
 
@@ -27,8 +46,9 @@ const MentorAI = {
         maxHistoryLength: 20,
         storageKey: 'caissa_mentor_settings',
         useStockfishGuidance: true,  // Default: ON
-        multiPvCount: 3  // Number of candidate moves to collect
-        // NOTE: API keys are stored in memory only (session-based) for security
+        multiPvCount: 3,  // Number of candidate moves to collect
+        analysisDepth: 14,
+        analysisTimeout: 1500  // 1.5 seconds
     },
 
     // Session-only API key (not persisted)
@@ -69,7 +89,8 @@ const MentorAI = {
             apiKeyInput: document.getElementById('mentorApiKey'),
             saveSettingsBtn: document.getElementById('mentorSaveSettings'),
             stockfishToggle: document.getElementById('mentorStockfishToggle'),
-            engineBadge: document.getElementById('mentorEngineBadge')
+            engineBadge: document.getElementById('mentorEngineBadge'),
+            rateLimitInfo: document.getElementById('mentorRateLimitInfo')
         };
     },
 
@@ -161,7 +182,7 @@ const MentorAI = {
      */
     saveSettings() {
         try {
-            const provider = this.elements.providerSelect?.value || 'openai';
+            const provider = this.elements.providerSelect?.value || 'together';
             const model = this.elements.modelSelect?.value || '';
             const apiKey = this.elements.apiKeyInput?.value?.trim();
             const useStockfishGuidance = this.elements.stockfishToggle?.checked ?? true;
@@ -184,7 +205,15 @@ const MentorAI = {
             // Initialize provider with new settings
             this.initializeProvider();
 
-            this.showNotification('Settings saved! (API key stored for this session only)');
+            // Show appropriate message based on API key status
+            if (apiKey) {
+                this.showNotification('Settings saved! API key stored for this session.');
+            } else if (provider === 'together') {
+                this.showNotification('Settings saved! Using shared API (rate limited).');
+            } else {
+                this.showNotification('Settings saved! Add an API key to use this provider.');
+            }
+
             this.toggleSettings(); // Close settings panel
         } catch (e) {
             console.error('Failed to save settings:', e);
@@ -196,7 +225,7 @@ const MentorAI = {
      * Initialize the LLM provider with current settings
      */
     initializeProvider() {
-        const provider = this.elements.providerSelect?.value || 'openai';
+        const provider = this.elements.providerSelect?.value || 'together';
         const model = this.elements.modelSelect?.value || '';
         const apiKey = this.elements.apiKeyInput?.value?.trim() || this._sessionApiKey;
 
@@ -206,6 +235,9 @@ const MentorAI = {
                 LLMProvider.setApiKey(apiKey);
                 this._sessionApiKey = apiKey; // Keep in memory
             }
+
+            // Update UI to show if shared API is available
+            this.updateApiKeyHelp(provider);
         }
     },
 
@@ -293,6 +325,7 @@ const MentorAI = {
         const openaiHelp = document.getElementById('mentorKeyHelpOpenai');
         const anthropicHelp = document.getElementById('mentorKeyHelpAnthropic');
         const localHelp = document.getElementById('mentorKeyHelpLocal');
+        const sharedApiNote = document.getElementById('mentorSharedApiNote');
         const apiKeyInput = this.elements.apiKeyInput;
 
         // Hide all help texts
@@ -301,13 +334,15 @@ const MentorAI = {
         if (openaiHelp) openaiHelp.style.display = 'none';
         if (anthropicHelp) anthropicHelp.style.display = 'none';
         if (localHelp) localHelp.style.display = 'none';
+        if (sharedApiNote) sharedApiNote.style.display = 'none';
 
         // Show relevant help and configure input
         switch (provider) {
             case 'together':
                 if (togetherHelp) togetherHelp.style.display = '';
+                if (sharedApiNote) sharedApiNote.style.display = ''; // Show shared API option
                 if (apiKeyInput) {
-                    apiKeyInput.placeholder = 'Enter your Together.ai API key';
+                    apiKeyInput.placeholder = 'Optional - leave empty for shared API';
                     apiKeyInput.disabled = false;
                 }
                 break;
@@ -412,8 +447,125 @@ const MentorAI = {
         this.updateContextDisplay();
     },
 
+    // ============================================
+    // ENGINE LOCK SYSTEM
+    // ============================================
+
+    /**
+     * Acquire engine lock for exclusive access
+     * @param {string} owner - Identifier for the lock owner
+     * @returns {boolean} - True if lock acquired
+     */
+    acquireEngineLock(owner) {
+        if (this.engineLock.isLocked && this.engineLock.lockOwner !== owner) {
+            console.log(`Engine lock denied to ${owner} - owned by ${this.engineLock.lockOwner}`);
+            return false;
+        }
+
+        if (typeof App !== 'undefined' && App.engine) {
+            // Store current state
+            this.engineLock.previousMultiPV = App.engine.multiPV || 1;
+            this.engineLock.wasAnalyzing = App.engine.isAnalyzing || false;
+
+            // Stop any ongoing analysis
+            if (this.engineLock.wasAnalyzing) {
+                App.engine.stop();
+            }
+        }
+
+        this.engineLock.isLocked = true;
+        this.engineLock.lockOwner = owner;
+        console.log(`Engine lock acquired by ${owner}`);
+        return true;
+    },
+
+    /**
+     * Release engine lock and restore previous state
+     * @param {string} owner - Must match the lock owner
+     */
+    releaseEngineLock(owner) {
+        if (this.engineLock.lockOwner !== owner) {
+            console.warn(`Cannot release engine lock - not owned by ${owner}`);
+            return;
+        }
+
+        if (typeof App !== 'undefined' && App.engine) {
+            // Restore previous MultiPV setting
+            App.engine.setMultiPV(this.engineLock.previousMultiPV);
+
+            // Optionally resume analysis if it was running before
+            // (Usually the main app handles this via its own triggers)
+        }
+
+        this.engineLock.isLocked = false;
+        this.engineLock.lockOwner = null;
+        console.log(`Engine lock released by ${owner}`);
+    },
+
+    // ============================================
+    // ANALYSIS CACHE SYSTEM
+    // ============================================
+
+    /**
+     * Generate cache key from FEN and analysis parameters
+     */
+    getCacheKey(fen, depth, multiPv) {
+        return `${fen}|d${depth}|pv${multiPv}`;
+    },
+
+    /**
+     * Get cached analysis result if valid
+     * @returns {Object|null} - Cached engineReport or null
+     */
+    getCachedAnalysis(fen) {
+        const key = this.getCacheKey(fen, this.config.analysisDepth, this.config.multiPvCount);
+        const cached = this.analysisCache.get(key);
+
+        if (!cached) return null;
+
+        // Check if cache is still valid
+        if (Date.now() - cached.timestamp > this.CACHE_TTL_MS) {
+            this.analysisCache.delete(key);
+            return null;
+        }
+
+        console.log('Using cached analysis for FEN');
+        return cached.report;
+    },
+
+    /**
+     * Store analysis result in cache
+     */
+    setCachedAnalysis(fen, report) {
+        const key = this.getCacheKey(fen, this.config.analysisDepth, this.config.multiPvCount);
+
+        // Enforce cache size limit
+        if (this.analysisCache.size >= this.CACHE_MAX_ENTRIES) {
+            // Remove oldest entry
+            const oldestKey = this.analysisCache.keys().next().value;
+            this.analysisCache.delete(oldestKey);
+        }
+
+        this.analysisCache.set(key, {
+            report,
+            timestamp: Date.now()
+        });
+    },
+
+    /**
+     * Clear analysis cache
+     */
+    clearCache() {
+        this.analysisCache.clear();
+    },
+
+    // ============================================
+    // ENGINE REPORT BUILDING
+    // ============================================
+
     /**
      * Build engineReport from current analysis data
+     * Normalizes evaluations to decimal format
      * @returns {Object|null} engineReport for LLM prompt
      */
     buildEngineReport() {
@@ -434,8 +586,10 @@ const MentorAI = {
             sideToMove: sideToMove,
             depth: this.lastAnalysisDepth || this.currentEvaluation?.depth || 0,
             evalCp: null,
+            evalPawns: null, // Normalized decimal format
             mateIn: null,
-            topMoves: []
+            topMoves: [],
+            moveComparison: null // Will note if moves are roughly equal
         };
 
         // Use MultiPV results if available
@@ -447,10 +601,11 @@ const MentorAI = {
                     report.mateIn = mainLine.mateIn;
                 } else {
                     report.evalCp = mainLine.evalCp;
+                    report.evalPawns = (mainLine.evalCp / 100).toFixed(2);
                 }
             }
 
-            // Build topMoves array
+            // Build topMoves array with normalized evals
             report.topMoves = this.multiPvResults
                 .sort((a, b) => a.multipv - b.multipv)
                 .slice(0, 3)
@@ -458,9 +613,28 @@ const MentorAI = {
                     uci: r.uci,
                     san: r.san || null,
                     evalCp: r.evalCp,
+                    evalPawns: r.evalCp !== null ? (r.evalCp / 100).toFixed(2) : null,
                     mateIn: r.mateIn,
                     pv: r.pv
                 }));
+
+            // Check if top moves are roughly equal (within 0.10 pawns)
+            if (report.topMoves.length >= 2) {
+                const move1Eval = report.topMoves[0].evalCp;
+                const move2Eval = report.topMoves[1].evalCp;
+                if (move1Eval !== null && move2Eval !== null) {
+                    const diff = Math.abs(move1Eval - move2Eval) / 100;
+                    if (diff < 0.10) {
+                        report.moveComparison = 'roughly_equal';
+                        report.topMoves[0].note = 'best';
+                        report.topMoves[1].note = 'equally good';
+                    } else if (diff < 0.30) {
+                        report.moveComparison = 'slight_difference';
+                    } else {
+                        report.moveComparison = 'significant_difference';
+                    }
+                }
+            }
         }
         // Fallback to basic evaluation
         else if (this.currentEvaluation) {
@@ -469,6 +643,7 @@ const MentorAI = {
             } else if (this.currentEvaluation.score !== undefined) {
                 // score is already in pawns (e.g., 0.35), convert to centipawns
                 report.evalCp = Math.round(this.currentEvaluation.score * 100);
+                report.evalPawns = this.currentEvaluation.score.toFixed(2);
             }
 
             // Create single topMove from bestMove
@@ -477,6 +652,7 @@ const MentorAI = {
                     uci: this.currentEvaluation.bestMove,
                     san: null,
                     evalCp: report.evalCp,
+                    evalPawns: report.evalPawns,
                     mateIn: report.mateIn,
                     pv: this.currentEvaluation.pv || null
                 }];
@@ -493,6 +669,7 @@ const MentorAI = {
 
     /**
      * Request MultiPV analysis from the engine (if available)
+     * Uses engine lock to prevent collisions
      * Call this before sending to get fresh top moves
      */
     async requestMultiPvAnalysis() {
@@ -510,6 +687,30 @@ const MentorAI = {
                 return;
             }
 
+            // Check cache first
+            const cached = this.getCachedAnalysis(fen);
+            if (cached) {
+                // Restore from cache
+                this.multiPvResults = cached.topMoves.map((m, idx) => ({
+                    multipv: idx + 1,
+                    evalCp: m.evalCp,
+                    mateIn: m.mateIn,
+                    uci: m.uci,
+                    san: m.san,
+                    pv: m.pv
+                }));
+                this.lastAnalysisDepth = cached.depth;
+                resolve(true);
+                return;
+            }
+
+            // Try to acquire engine lock
+            if (!this.acquireEngineLock('mentor')) {
+                console.log('Could not acquire engine lock - using existing data');
+                resolve(false);
+                return;
+            }
+
             // Clear previous results
             this.multiPvResults = [];
             this.lastAnalysisDepth = 0;
@@ -521,8 +722,17 @@ const MentorAI = {
             const timeout = setTimeout(() => {
                 console.log('MultiPV analysis timeout - using partial results');
                 App.engine.stop();
+                App.engine.onInfo = originalOnInfo;
+                this.releaseEngineLock('mentor');
+
+                // Cache partial results
+                const report = this.buildEngineReport();
+                if (report) {
+                    this.setCachedAnalysis(fen, report);
+                }
+
                 resolve(true);
-            }, 1500); // 1.5 second timeout for quick analysis
+            }, this.config.analysisTimeout);
 
             let lastDepth = 0;
 
@@ -580,13 +790,21 @@ const MentorAI = {
                     clearTimeout(timeout);
                     App.engine.stop();
                     App.engine.onInfo = originalOnInfo;
+                    this.releaseEngineLock('mentor');
+
+                    // Cache the results
+                    const report = this.buildEngineReport();
+                    if (report) {
+                        this.setCachedAnalysis(fen, report);
+                    }
+
                     resolve(true);
                 }
             };
 
             // Start analysis at depth 14
             App.engine.setPosition(fen);
-            App.engine.go({ depth: 14 });
+            App.engine.go({ depth: this.config.analysisDepth });
         });
     },
 
@@ -626,10 +844,10 @@ const MentorAI = {
             return;
         }
 
-        // Check API key (session-only) - not required for local provider
-        const provider = this.elements.providerSelect?.value || 'openai';
-        if (provider !== 'local' && !this._sessionApiKey) {
-            this.showError('Please enter your API key in Settings (required each session for security).');
+        // Check if LLM provider is ready (has API key or supports shared API)
+        const provider = this.elements.providerSelect?.value || 'together';
+        if (typeof LLMProvider !== 'undefined' && !LLMProvider.isReady()) {
+            this.showError('Please configure your API key in Settings, or use Together.ai with shared API.');
             this.toggleSettings();
             return;
         }
@@ -690,7 +908,7 @@ const MentorAI = {
             });
 
             // Add response to chat
-            this.addMessage('assistant', response.content, engineReport !== null);
+            this.addMessage('assistant', response.content, engineReport !== null, response.isSharedApi);
 
             // Store in history
             this.chatHistory.push(
@@ -701,6 +919,11 @@ const MentorAI = {
             // Trim history if too long
             if (this.chatHistory.length > this.config.maxHistoryLength * 2) {
                 this.chatHistory = this.chatHistory.slice(-this.config.maxHistoryLength * 2);
+            }
+
+            // Update rate limit display if using shared API
+            if (response.isSharedApi) {
+                this.updateRateLimitDisplay();
             }
 
         } catch (error) {
@@ -719,7 +942,7 @@ const MentorAI = {
         const badge = this.elements.engineBadge;
         if (!badge) return;
 
-        badge.classList.remove('analyzing', 'active', 'hidden');
+        badge.classList.remove('analyzing', 'active', 'hidden', 'error');
 
         switch (state) {
             case 'analyzing':
@@ -732,10 +955,33 @@ const MentorAI = {
                 badge.classList.add('active');
                 badge.style.display = '';
                 break;
+            case 'error':
+                badge.textContent = 'Engine unavailable';
+                badge.classList.add('error');
+                badge.style.display = '';
+                break;
             case 'none':
             default:
                 badge.style.display = 'none';
                 break;
+        }
+    },
+
+    /**
+     * Update rate limit display for shared API users
+     */
+    updateRateLimitDisplay() {
+        const rateLimitInfo = this.elements.rateLimitInfo;
+        if (!rateLimitInfo) return;
+
+        if (typeof LLMProvider !== 'undefined') {
+            const status = LLMProvider.getRateLimitStatus();
+            if (status && status.isSharedApi) {
+                rateLimitInfo.textContent = `Shared API: ${status.remainingDaily ?? '?'} requests remaining today`;
+                rateLimitInfo.style.display = '';
+            } else {
+                rateLimitInfo.style.display = 'none';
+            }
         }
     },
 
@@ -791,8 +1037,9 @@ const MentorAI = {
      * @param {string} role - 'user' or 'assistant'
      * @param {string} content - Message content
      * @param {boolean} engineBacked - Whether this response used engine analysis
+     * @param {boolean} isSharedApi - Whether using shared API
      */
-    addMessage(role, content, engineBacked = false) {
+    addMessage(role, content, engineBacked = false, isSharedApi = false) {
         const messagesContainer = this.elements.messages;
         if (!messagesContainer) return;
 
@@ -818,12 +1065,28 @@ const MentorAI = {
 
         messageDiv.appendChild(contentDiv);
 
-        // Add engine badge for engine-backed responses
-        if (engineBacked && role === 'assistant') {
-            const badgeDiv = document.createElement('div');
-            badgeDiv.className = 'message-engine-badge';
-            badgeDiv.innerHTML = '<i class="fas fa-microchip"></i> Engine-backed';
-            messageDiv.appendChild(badgeDiv);
+        // Add badges for assistant messages
+        if (role === 'assistant') {
+            const badgesDiv = document.createElement('div');
+            badgesDiv.className = 'message-badges';
+
+            if (engineBacked) {
+                const engineBadge = document.createElement('span');
+                engineBadge.className = 'message-engine-badge';
+                engineBadge.innerHTML = '<i class="fas fa-microchip"></i> Engine-backed';
+                badgesDiv.appendChild(engineBadge);
+            }
+
+            if (isSharedApi) {
+                const sharedBadge = document.createElement('span');
+                sharedBadge.className = 'message-shared-badge';
+                sharedBadge.innerHTML = '<i class="fas fa-users"></i> Shared API';
+                badgesDiv.appendChild(sharedBadge);
+            }
+
+            if (badgesDiv.children.length > 0) {
+                messageDiv.appendChild(badgesDiv);
+            }
         }
 
         messagesContainer.appendChild(messageDiv);
@@ -961,6 +1224,10 @@ const MentorAI = {
      */
     onMoveMade(move, fen) {
         this.currentFen = fen;
+
+        // Invalidate cache for this FEN since position changed
+        // (Analysis might be different after the move was made)
+
         if (this.isOpen) {
             this.updateContextDisplay();
         }

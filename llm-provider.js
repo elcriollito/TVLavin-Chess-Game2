@@ -3,6 +3,11 @@
  *
  * This module provides a unified interface for different LLM providers.
  * Supports: Together.ai, Meta Llama, OpenAI, Anthropic Claude, Local models, Custom endpoints
+ *
+ * Features:
+ * - Shared API mode (no key required for Together.ai)
+ * - BYO API key mode (unlimited access)
+ * - Automatic fallback handling
  */
 
 const LLMProvider = {
@@ -17,6 +22,14 @@ const LLMProvider = {
         temperature: 0.7
     },
 
+    // Shared API state
+    sharedApiState: {
+        enabled: false,        // Whether server has shared API configured
+        remainingWindow: null, // Requests remaining in current window
+        remainingDaily: null,  // Requests remaining today
+        lastChecked: null
+    },
+
     // Provider-specific configurations
     PROVIDERS: {
         // Together.ai - cost-efficient LLaMA hosting (recommended)
@@ -25,6 +38,7 @@ const LLMProvider = {
             endpoint: 'https://api.together.xyz/v1/chat/completions',
             models: ['meta-llama/Llama-3.3-70B-Instruct-Turbo', 'meta-llama/Llama-4-Scout-17B-16E-Instruct', 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8'],
             defaultModel: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+            supportsSharedApi: true, // Only Together.ai supports shared API
             formatRequest: (messages, config) => ({
                 model: config.model,
                 messages: messages,
@@ -47,6 +61,7 @@ const LLMProvider = {
             endpoint: 'https://api.llama.com/v1/chat/completions', // Meta's official API
             models: ['llama-4-scout-17b-16e-instruct', 'llama-4-maverick-17b-128e-instruct', 'llama-3.3-70b-instruct'],
             defaultModel: 'llama-4-scout-17b-16e-instruct',
+            supportsSharedApi: false,
             formatRequest: (messages, config) => ({
                 model: config.model,
                 messages: messages,
@@ -68,6 +83,7 @@ const LLMProvider = {
             endpoint: 'https://api.openai.com/v1/chat/completions',
             models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
             defaultModel: 'gpt-4o-mini', // Cost-effective default
+            supportsSharedApi: false,
             formatRequest: (messages, config) => ({
                 model: config.model,
                 messages: messages,
@@ -89,6 +105,7 @@ const LLMProvider = {
             endpoint: 'https://api.anthropic.com/v1/messages',
             models: ['claude-sonnet-4-20250514', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'],
             defaultModel: 'claude-sonnet-4-20250514', // Current recommended model
+            supportsSharedApi: false,
             formatRequest: (messages, config) => {
                 // Claude uses a different format - separate system from messages
                 const systemMessage = messages.find(m => m.role === 'system');
@@ -124,6 +141,7 @@ const LLMProvider = {
             endpoint: 'http://localhost:1234/v1/chat/completions', // LM Studio default
             models: ['local-model'],
             defaultModel: 'local-model',
+            supportsSharedApi: false,
             formatRequest: (messages, config) => ({
                 model: config.model,
                 messages: messages,
@@ -144,6 +162,7 @@ const LLMProvider = {
             endpoint: null, // Set via config
             models: ['custom'],
             defaultModel: 'custom',
+            supportsSharedApi: false,
             formatRequest: (messages, config) => ({
                 messages: messages,
                 max_tokens: config.maxTokens,
@@ -191,6 +210,41 @@ const LLMProvider = {
     },
 
     /**
+     * Check if current provider can use shared API (no key required)
+     * @returns {boolean}
+     */
+    canUseSharedApi() {
+        const provider = this.PROVIDERS[this.config.provider];
+        return provider?.supportsSharedApi === true;
+    },
+
+    /**
+     * Check if API key is configured or shared API is available
+     * @returns {boolean}
+     */
+    isReady() {
+        if (this.config.provider === 'local') return true;
+        if (this.config.apiKey) return true;
+        if (this.canUseSharedApi()) return true;
+        return false;
+    },
+
+    /**
+     * Get rate limit status for shared API
+     * @returns {Object|null}
+     */
+    getRateLimitStatus() {
+        if (this.config.apiKey) {
+            return null; // BYO key has no limits
+        }
+        return {
+            remainingWindow: this.sharedApiState.remainingWindow,
+            remainingDaily: this.sharedApiState.remainingDaily,
+            isSharedApi: true
+        };
+    },
+
+    /**
      * Switch provider
      * @param {string} providerName - Provider name
      * @param {Object} options - Additional options
@@ -214,9 +268,9 @@ const LLMProvider = {
             throw new Error(`Provider not configured: ${this.config.provider}`);
         }
 
-        // Check API key (except for local)
-        if (this.config.provider !== 'local' && !this.config.apiKey) {
-            throw new Error('API key not set. Call setApiKey() first.');
+        // Check API key (except for local and shared API providers)
+        if (this.config.provider !== 'local' && !this.config.apiKey && !this.canUseSharedApi()) {
+            throw new Error('API key not set. Call setApiKey() first or use Together.ai for shared API access.');
         }
 
         // Use server proxy to avoid CORS issues
@@ -231,17 +285,36 @@ const LLMProvider = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     provider: this.config.provider,
-                    apiKey: this.config.apiKey,
+                    apiKey: this.config.apiKey || null, // null triggers shared API on server
                     messages: messages,
                     model: this.config.model,
                     maxTokens: this.config.maxTokens,
                     temperature: temperature,
-                    engineReport: options.engineReport || null  // Pass for logging/future use
+                    engineReport: options.engineReport || null
                 })
             });
 
+            // Parse rate limit headers for shared API
+            const remainingWindow = response.headers.get('X-RateLimit-Remaining-Window');
+            const remainingDaily = response.headers.get('X-RateLimit-Remaining-Daily');
+
+            if (remainingWindow !== null) {
+                this.sharedApiState.remainingWindow = parseInt(remainingWindow, 10);
+                this.sharedApiState.remainingDaily = parseInt(remainingDaily, 10);
+                this.sharedApiState.lastChecked = Date.now();
+            }
+
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
+
+                // Handle rate limiting
+                if (response.status === 429) {
+                    throw new Error(
+                        errorData.error ||
+                        'Rate limit exceeded. Add your own API key for unlimited access.'
+                    );
+                }
+
                 throw new Error(
                     errorData.error ||
                     `API request failed: ${response.status} ${response.statusText}`
@@ -249,9 +322,16 @@ const LLMProvider = {
             }
 
             const data = await response.json();
+
+            // Track if using shared API
+            if (data.isSharedApi) {
+                this.sharedApiState.enabled = true;
+            }
+
             return {
                 content: data.content,
-                usage: data.usage
+                usage: data.usage,
+                isSharedApi: data.isSharedApi || false
             };
 
         } catch (error) {
@@ -346,7 +426,9 @@ const LLMProvider = {
             model: this.config.model,
             maxTokens: this.config.maxTokens,
             temperature: this.config.temperature,
-            hasApiKey: !!this.config.apiKey
+            hasApiKey: !!this.config.apiKey,
+            canUseSharedApi: this.canUseSharedApi(),
+            isReady: this.isReady()
         };
     },
 

@@ -10,18 +10,36 @@ const MentorPrompts = {
 
     // Engine-backed system prompt addition (injected when engineReport is available)
     ENGINE_GUIDANCE_PROMPT: `
-You have access to Stockfish engine analysis. Use this data to ground your explanations:
+You have access to Stockfish engine analysis. You MUST use this data to ground ALL your explanations.
 
-IMPORTANT ENGINE GUIDANCE RULES:
-1. Always state the current evaluation as a decimal (e.g., "+0.18" not "18 centipawns")
-2. When comparing moves, reference the eval difference (e.g., "Nf3 is +0.35, while e5 drops to -0.12")
-3. If a move loses eval significantly (>0.3), explain WHY it's suboptimal using concrete threats
-4. Typical opening mistakes like early queen moves should be justified with specific eval drops
-5. Keep your tone human and coach-like, but be SPECIFIC - no vague statements like "this is good"
-6. Reference the principal variation when explaining tactical sequences
-7. When the user asks about a candidate move, compare it to the engine's top choice
+CRITICAL ENGINE GUIDANCE RULES (YOU MUST FOLLOW THESE):
+1. ALWAYS start your response by referencing the engine evaluation: "According to the engine (depth X), the position is +0.35..."
+2. ALWAYS state evaluations as decimals from White's perspective (e.g., "+0.35" or "-0.12", NEVER "35 centipawns")
+3. When comparing moves, you MUST cite BOTH evals: "Nf3 maintains +0.35, while e5 drops to -0.12 (a 0.47 pawn swing)"
+4. If a move loses evaluation (>0.3 difference), you MUST explain the CONCRETE threat or tactic that punishes it
+5. When the user's move differs from the engine's top choice, explicitly compare them with numbers
+6. Reference the principal variation (PV) when explaining WHY a move is best
+7. NEVER give vague opinions like "this is a good move" - ALWAYS back it up with the engine eval
+8. If the position has a forced mate, lead with "Forced mate in X moves" and show the key line
 
-FORMAT: Be concise. Lead with the key insight. Avoid filler phrases.`,
+MOVE COMPARISON GUIDELINES:
+- Difference < 0.15 pawns: "Roughly equal alternatives"
+- Difference 0.15-0.50 pawns: "Slight inaccuracy" - explain why
+- Difference > 0.50 pawns: "Significant mistake" - show the refutation
+
+FORMAT: Be concise. Lead with the engine's verdict. Then explain the WHY using concrete variations.`,
+
+    // No-engine mode prompt (when engineReport is not available)
+    NO_ENGINE_PROMPT: `
+NOTE: No engine analysis is currently available for this position.
+Provide your best assessment based on:
+- General chess principles and patterns
+- Piece activity and coordination
+- Pawn structure and king safety
+- Typical plans for similar positions
+
+Be clear that this is your assessment without engine verification.
+Phrase opinions as: "In my assessment..." or "Typically in such positions..."`,
 
     // Explanation modes with their characteristics
     MODES: {
@@ -168,9 +186,11 @@ Explain chess terms when you use them.`
     _buildSystemPrompt(mode, gameMode, includeEngineGuidance = false) {
         let prompt = mode.systemPrompt;
 
-        // Add engine guidance if available
+        // Add engine guidance if available, otherwise add no-engine disclaimer
         if (includeEngineGuidance) {
             prompt += this.ENGINE_GUIDANCE_PROMPT;
+        } else {
+            prompt += this.NO_ENGINE_PROMPT;
         }
 
         // Add game mode context
