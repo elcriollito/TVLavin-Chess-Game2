@@ -1,14 +1,17 @@
 /**
  * Vercel Serverless Function: /api/mentor/chat
  *
- * Proxies LLM API calls to avoid CORS issues in the browser.
- * Supports: Together.ai, Meta Llama, OpenAI, Anthropic, Local, Custom
- *
+ * Together AI-powered chess mentor with credit system.
  * Features:
- * - Shared API mode (uses server-side Together.ai key when user doesn't provide one)
- * - Rate limiting for shared API users (protects costs)
- * - BYO API key mode (no rate limits)
+ * - Default: Together.ai with server-side API key (moonshotai/Kimi-K2.5)
+ * - Credit system: 1 credit per message for free users, bypass for premium
+ * - Optional BYO API key mode (behind feature flag)
  */
+
+import { checkRateLimit, getClientIP } from '../_lib/rate-limit.js';
+import { logAction, logError } from '../_lib/logger.js';
+import { authenticateRequest } from '../_lib/auth.js';
+import { createClient } from '@supabase/supabase-js';
 
 // Allowed providers for validation
 const ALLOWED_PROVIDERS = ['together', 'llama', 'openai', 'anthropic', 'local', 'custom'];
@@ -19,130 +22,22 @@ const MAX_CONTENT_LENGTH = 100000; // 100KB per message
 
 // API base URLs (can be overridden via env vars)
 const LLAMA_API_BASE_URL = process.env.LLAMA_API_BASE_URL || 'https://api.llama.com';
-const TOGETHER_API_BASE_URL = process.env.TOGETHER_API_BASE_URL || 'https://api.together.xyz';
+const TOGETHER_API_BASE_URL = process.env.TOGETHER_BASE_URL || process.env.TOGETHER_API_BASE_URL || 'https://api.together.xyz';
 
-// Shared API configuration
-const SHARED_API_KEY = process.env.TOGETHER_API_KEY; // Server-side only, never sent to client
-const SHARED_API_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo';
-const SHARED_API_ENABLED = !!SHARED_API_KEY;
+// Default Together AI configuration (credit-based for free users)
+const TOGETHER_API_KEY = process.env.TOGETHER_API_KEY; // Server-side only, never sent to client
+const TOGETHER_MODEL = process.env.TOGETHER_MODEL || 'moonshotai/Kimi-K2.5';
+const TOGETHER_API_ENABLED = !!TOGETHER_API_KEY;
 
-// Rate limiting configuration for shared API users
-const RATE_LIMIT = {
-  windowMs: 10 * 60 * 1000,    // 10 minutes
-  maxRequestsPerWindow: 10,    // 10 requests per 10 minutes per IP
-  dailyMaxRequests: 30,        // 30 requests per day per session
-  dailyWindowMs: 24 * 60 * 60 * 1000
-};
+// Supabase client for credit management
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = supabaseUrl && supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey)
+  : null;
 
-// In-memory rate limit store (resets on cold start - acceptable for serverless)
-// For production at scale, use Vercel KV or Upstash Redis
-const rateLimitStore = new Map();
-
-/**
- * Get client IP from request (handles proxies)
- */
-function getClientIP(req) {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (forwarded) {
-    return forwarded.split(',')[0].trim();
-  }
-  return req.headers['x-real-ip'] || req.socket?.remoteAddress || 'unknown';
-}
-
-/**
- * Get or create session ID from cookie
- */
-function getSessionId(req, res) {
-  const cookies = req.headers.cookie || '';
-  const sessionMatch = cookies.match(/caissa_session=([^;]+)/);
-
-  if (sessionMatch) {
-    return sessionMatch[1];
-  }
-
-  // Generate new session ID
-  const newSessionId = `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-  // Set cookie (httpOnly, secure in production)
-  res.setHeader('Set-Cookie', `caissa_session=${newSessionId}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${60 * 60 * 24 * 30}`);
-
-  return newSessionId;
-}
-
-/**
- * Check rate limit for shared API users
- * Returns { allowed: boolean, reason?: string, remaining?: number }
- */
-function checkRateLimit(ip, sessionId) {
-  const now = Date.now();
-  const ipKey = `ip:${ip}`;
-  const sessionKey = `session:${sessionId}`;
-
-  // Clean up old entries periodically
-  if (Math.random() < 0.1) { // 10% chance to clean
-    cleanupRateLimitStore(now);
-  }
-
-  // Check IP-based rate limit (10 requests per 10 minutes)
-  const ipData = rateLimitStore.get(ipKey) || { requests: [], dailyRequests: [] };
-  const recentIpRequests = ipData.requests.filter(t => now - t < RATE_LIMIT.windowMs);
-
-  if (recentIpRequests.length >= RATE_LIMIT.maxRequestsPerWindow) {
-    const oldestRequest = Math.min(...recentIpRequests);
-    const resetIn = Math.ceil((oldestRequest + RATE_LIMIT.windowMs - now) / 1000 / 60);
-    return {
-      allowed: false,
-      reason: `Rate limit exceeded. Try again in ${resetIn} minutes, or add your own API key for unlimited access.`,
-      retryAfter: resetIn * 60
-    };
-  }
-
-  // Check session-based daily limit (30 requests per day)
-  const sessionData = rateLimitStore.get(sessionKey) || { dailyRequests: [] };
-  const todaySessionRequests = sessionData.dailyRequests.filter(t => now - t < RATE_LIMIT.dailyWindowMs);
-
-  if (todaySessionRequests.length >= RATE_LIMIT.dailyMaxRequests) {
-    return {
-      allowed: false,
-      reason: `Daily limit reached (${RATE_LIMIT.dailyMaxRequests} requests). Add your own API key for unlimited access.`,
-      retryAfter: 86400 // 24 hours
-    };
-  }
-
-  // Update rate limit data
-  ipData.requests = [...recentIpRequests, now];
-  sessionData.dailyRequests = [...todaySessionRequests, now];
-
-  rateLimitStore.set(ipKey, ipData);
-  rateLimitStore.set(sessionKey, sessionData);
-
-  return {
-    allowed: true,
-    remaining: {
-      window: RATE_LIMIT.maxRequestsPerWindow - ipData.requests.length,
-      daily: RATE_LIMIT.dailyMaxRequests - sessionData.dailyRequests.length
-    }
-  };
-}
-
-/**
- * Clean up old rate limit entries
- */
-function cleanupRateLimitStore(now) {
-  for (const [key, data] of rateLimitStore.entries()) {
-    if (key.startsWith('ip:')) {
-      data.requests = data.requests.filter(t => now - t < RATE_LIMIT.windowMs);
-      if (data.requests.length === 0) {
-        rateLimitStore.delete(key);
-      }
-    } else if (key.startsWith('session:')) {
-      data.dailyRequests = data.dailyRequests.filter(t => now - t < RATE_LIMIT.dailyWindowMs);
-      if (data.dailyRequests.length === 0) {
-        rateLimitStore.delete(key);
-      }
-    }
-  }
-}
+// Credit cost for mentor messages
+const MENTOR_CREDIT_COST = 1;
 
 export default async function handler(req, res) {
   // Only accept POST requests
@@ -150,10 +45,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Enable CORS for local development
+  // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   // Handle preflight
   if (req.method === 'OPTIONS') {
@@ -163,35 +58,127 @@ export default async function handler(req, res) {
   try {
     const { provider, apiKey, messages, model, maxTokens, temperature, endpoint } = req.body;
 
-    // Determine if using shared API or BYO key
-    const isUsingSharedApi = !apiKey && provider === 'together' && SHARED_API_ENABLED;
-    const isByoKey = !!apiKey;
+    // Check if Together AI is configured
+    if (!TOGETHER_API_ENABLED) {
+      logError('mentor_chat', 'Together AI not configured', { detail: 'TOGETHER_API_KEY missing' });
+      return res.status(503).json({
+        error: 'AI service temporarily unavailable. Please try again later.',
+        code: 'SERVICE_UNAVAILABLE'
+      });
+    }
 
-    // Validate provider
+    // Determine mode: default Together AI or BYO key
+    const isByoKey = !!apiKey;
+    const isDefaultMode = !isByoKey;
+
+    // Default mode: Together AI with credits (requires auth)
+    if (isDefaultMode) {
+      // Authenticate user
+      const auth = await authenticateRequest(req);
+      if (!auth.authenticated) {
+        return res.status(401).json({
+          error: 'Sign in required to use AI Mentor.',
+          code: 'AUTH_REQUIRED'
+        });
+      }
+
+      // Check if Supabase is available
+      if (!supabase) {
+        logError('mentor_chat', 'Supabase not configured');
+        return res.status(503).json({
+          error: 'Service temporarily unavailable.',
+          code: 'SERVICE_UNAVAILABLE'
+        });
+      }
+
+      // Get user from database
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('id, is_premium, credits')
+        .eq('clerk_id', auth.userId)
+        .single();
+
+      if (userError || !user) {
+        logError('mentor_chat', 'User not found', { detail: { userId: auth.userId } });
+        return res.status(404).json({
+          error: 'User not found. Please refresh and try again.',
+          code: 'USER_NOT_FOUND'
+        });
+      }
+
+      // Check if premium (bypass credits) or has enough credits
+      if (!user.is_premium && user.credits < MENTOR_CREDIT_COST) {
+        logAction('mentor_blocked', { detail: { userId: auth.userId, credits: user.credits } });
+        return res.status(402).json({
+          error: 'Insufficient credits. Purchase more credits or upgrade to Premium for unlimited AI access.',
+          code: 'INSUFFICIENT_CREDITS',
+          credits: user.credits,
+          required: MENTOR_CREDIT_COST
+        });
+      }
+
+      // Input validation BEFORE consuming credits
+      if (!messages || !Array.isArray(messages)) {
+        return res.status(400).json({ error: 'Messages array is required' });
+      }
+
+      if (messages.length > MAX_MESSAGES) {
+        return res.status(400).json({ error: `Too many messages. Maximum: ${MAX_MESSAGES}` });
+      }
+
+      for (const msg of messages) {
+        if (msg.content && msg.content.length > MAX_CONTENT_LENGTH) {
+          return res.status(400).json({
+            error: `Message content too long. Maximum: ${MAX_CONTENT_LENGTH} characters`
+          });
+        }
+      }
+
+      // Consume credit for free users
+      if (!user.is_premium) {
+        const { error: consumeError } = await supabase
+          .from('users')
+          .update({ credits: user.credits - MENTOR_CREDIT_COST })
+          .eq('id', user.id);
+
+        if (consumeError) {
+          logError('mentor_chat', 'Failed to consume credit', { detail: { userId: auth.userId } });
+          return res.status(500).json({
+            error: 'Failed to process request. Please try again.'
+          });
+        }
+
+        logAction('mentor_credit_consumed', { userId: auth.userId, detail: { remaining: user.credits - MENTOR_CREDIT_COST } });
+      }
+
+      logAction('mentor_request', { userId: auth.userId, detail: { provider: 'together', model: TOGETHER_MODEL, messages: messages.length, premium: user.is_premium } });
+
+      // Use Together AI
+      return await callTogetherAI(req, res, messages, TOGETHER_API_KEY, TOGETHER_MODEL, maxTokens, temperature);
+    }
+
+    // BYO key mode - validate and proceed
     if (!ALLOWED_PROVIDERS.includes(provider)) {
       return res.status(400).json({
         error: `Unknown provider: ${provider}. Allowed: ${ALLOWED_PROVIDERS.join(', ')}`
       });
     }
 
-    // API key required for non-local providers (unless using shared API)
-    if (provider !== 'local' && !apiKey && !isUsingSharedApi) {
+    if (provider !== 'local' && !apiKey) {
       return res.status(400).json({
-        error: 'API key is required. Add your own key or use Together.ai with the shared API.',
-        sharedApiAvailable: SHARED_API_ENABLED
+        error: 'API key is required for this provider.'
       });
     }
 
+    // BYO key mode: validate input
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: 'Messages array is required' });
     }
 
-    // Validate message count
     if (messages.length > MAX_MESSAGES) {
       return res.status(400).json({ error: `Too many messages. Maximum: ${MAX_MESSAGES}` });
     }
 
-    // Validate message content length
     for (const msg of messages) {
       if (msg.content && msg.content.length > MAX_CONTENT_LENGTH) {
         return res.status(400).json({
@@ -200,49 +187,20 @@ export default async function handler(req, res) {
       }
     }
 
-    // Rate limiting for shared API users only
-    if (isUsingSharedApi) {
-      const clientIP = getClientIP(req);
-      const sessionId = getSessionId(req, res);
-      const rateLimitResult = checkRateLimit(clientIP, sessionId);
-
-      if (!rateLimitResult.allowed) {
-        return res.status(429).json({
-          error: rateLimitResult.reason,
-          retryAfter: rateLimitResult.retryAfter,
-          code: 'RATE_LIMITED'
-        });
-      }
-
-      // Add rate limit headers
-      res.setHeader('X-RateLimit-Remaining-Window', rateLimitResult.remaining.window);
-      res.setHeader('X-RateLimit-Remaining-Daily', rateLimitResult.remaining.daily);
-    }
-
-    // Extract engineReport for logging (client includes it in prompt already)
-    const { engineReport } = req.body;
-    const hasEngine = engineReport && (engineReport.evalCp !== undefined || engineReport.mateIn !== undefined);
-
-    // Determine which API key to use (NEVER log the actual key)
-    const effectiveApiKey = isUsingSharedApi ? SHARED_API_KEY : apiKey;
-    const effectiveModel = isUsingSharedApi ? SHARED_API_MODEL : model;
-
-    // Log request (without sensitive data)
-    console.log(`🤖 Mentor Chat: provider=${provider}, model=${effectiveModel}, messages=${messages.length}, engineBacked=${hasEngine}, shared=${isUsingSharedApi}, temp=${temperature || 0.7}`);
+    logAction('mentor_request_byo', { detail: { provider, model, messages: messages.length } });
 
     let apiUrl, headers, requestBody;
 
-    // Configure request based on provider
+    // Configure request based on provider (BYO key mode)
     switch (provider) {
       case 'together':
-        // Together.ai - cost-efficient LLaMA hosting
         apiUrl = `${TOGETHER_API_BASE_URL}/v1/chat/completions`;
         headers = {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${effectiveApiKey}`
+          'Authorization': `Bearer ${apiKey}`
         };
         requestBody = JSON.stringify({
-          model: effectiveModel || 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+          model: model || 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
           messages,
           max_tokens: maxTokens || 1024,
           temperature: temperature || 0.7
@@ -250,14 +208,13 @@ export default async function handler(req, res) {
         break;
 
       case 'llama':
-        // Meta Llama API - OpenAI-compatible chat completions format
         apiUrl = `${LLAMA_API_BASE_URL}/v1/chat/completions`;
         headers = {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${effectiveApiKey}`
+          'Authorization': `Bearer ${apiKey}`
         };
         requestBody = JSON.stringify({
-          model: effectiveModel || 'llama-4-scout-17b-16e-instruct',
+          model: model || 'llama-4-scout-17b-16e-instruct',
           messages,
           max_completion_tokens: maxTokens || 1024,
           temperature: temperature || 0.7
@@ -268,14 +225,13 @@ export default async function handler(req, res) {
         apiUrl = 'https://api.anthropic.com/v1/messages';
         headers = {
           'Content-Type': 'application/json',
-          'x-api-key': effectiveApiKey,
+          'x-api-key': apiKey,
           'anthropic-version': '2023-06-01'
         };
-        // Convert OpenAI format to Anthropic format
         const systemMsg = messages.find(m => m.role === 'system');
         const otherMsgs = messages.filter(m => m.role !== 'system');
         requestBody = JSON.stringify({
-          model: effectiveModel || 'claude-sonnet-4-20250514',
+          model: model || 'claude-sonnet-4-20250514',
           max_tokens: maxTokens || 1024,
           system: systemMsg ? systemMsg.content : '',
           messages: otherMsgs
@@ -286,7 +242,7 @@ export default async function handler(req, res) {
         apiUrl = 'http://localhost:1234/v1/chat/completions';
         headers = { 'Content-Type': 'application/json' };
         requestBody = JSON.stringify({
-          model: effectiveModel || 'local-model',
+          model: model || 'local-model',
           messages,
           max_tokens: maxTokens || 1024,
           temperature: temperature || 0.7
@@ -297,10 +253,10 @@ export default async function handler(req, res) {
         apiUrl = 'https://api.openai.com/v1/chat/completions';
         headers = {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${effectiveApiKey}`
+          'Authorization': `Bearer ${apiKey}`
         };
         requestBody = JSON.stringify({
-          model: effectiveModel || 'gpt-4o-mini',
+          model: model || 'gpt-4o-mini',
           messages,
           max_tokens: maxTokens || 1024,
           temperature: temperature || 0.7
@@ -309,14 +265,13 @@ export default async function handler(req, res) {
 
       case 'custom':
       default:
-        // Custom endpoint - use OpenAI-compatible format
         apiUrl = endpoint || 'https://api.openai.com/v1/chat/completions';
         headers = {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${effectiveApiKey}`
+          'Authorization': `Bearer ${apiKey}`
         };
         requestBody = JSON.stringify({
-          model: effectiveModel || 'default',
+          model: model || 'default',
           messages,
           max_tokens: maxTokens || 1024,
           temperature: temperature || 0.7
@@ -324,7 +279,7 @@ export default async function handler(req, res) {
         break;
     }
 
-    // Make API request
+    // Make API request (BYO key mode)
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
       headers,
@@ -334,10 +289,9 @@ export default async function handler(req, res) {
     const responseData = await apiResponse.json();
 
     if (!apiResponse.ok) {
-      console.error('❌ LLM API error:', responseData);
+      logError('mentor_llm_byo', responseData.error?.message || 'LLM API error', { detail: { provider, status: apiResponse.status } });
       return res.status(apiResponse.status).json({
-        error: responseData.error?.message || responseData.detail || 'LLM API request failed',
-        details: responseData
+        error: responseData.error?.message || responseData.detail || 'LLM API request failed'
       });
     }
 
@@ -351,23 +305,85 @@ export default async function handler(req, res) {
         total_tokens: (responseData.usage?.input_tokens || 0) + (responseData.usage?.output_tokens || 0)
       };
     } else {
-      // OpenAI-compatible format (together, llama, openai, local, custom)
       content = responseData.choices?.[0]?.message?.content || '';
       usage = responseData.usage;
     }
 
-    console.log(`✅ Mentor response: ${content.length} chars, shared=${isUsingSharedApi}`);
+    logAction('mentor_response_byo', { detail: { chars: content.length, provider } });
 
     return res.status(200).json({
       content,
       usage,
       provider,
-      model: effectiveModel,
-      isSharedApi: isUsingSharedApi
+      model,
+      isSharedApi: false
     });
 
   } catch (error) {
-    console.error('❌ Mentor chat error:', error);
-    return res.status(500).json({ error: error.message });
+    logError('mentor_chat', error);
+    return res.status(500).json({ error: 'An error occurred processing your request.' });
+  }
+}
+
+/**
+ * Call Together AI with server-side API key
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {Array} messages - Chat messages
+ * @param {string} apiKey - Together AI API key
+ * @param {string} model - Model to use
+ * @param {number} maxTokens - Max tokens
+ * @param {number} temperature - Temperature
+ * @returns {Promise<Response>}
+ */
+async function callTogetherAI(req, res, messages, apiKey, model, maxTokens, temperature) {
+  try {
+    const apiUrl = `${TOGETHER_API_BASE_URL}/v1/chat/completions`;
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    };
+    const requestBody = JSON.stringify({
+      model,
+      messages,
+      max_tokens: maxTokens || 1024,
+      temperature: temperature || 0.7
+    });
+
+    const apiResponse = await fetch(apiUrl, {
+      method: 'POST',
+      headers,
+      body: requestBody
+    });
+
+    const responseData = await apiResponse.json();
+
+    if (!apiResponse.ok) {
+      logError('mentor_together_ai', responseData.error?.message || 'Together AI error', { detail: { status: apiResponse.status } });
+      return res.status(apiResponse.status >= 500 ? 503 : apiResponse.status).json({
+        error: 'AI service error. Please try again.',
+        code: 'AI_ERROR'
+      });
+    }
+
+    const content = responseData.choices?.[0]?.message?.content || '';
+    const usage = responseData.usage;
+
+    logAction('mentor_response', { detail: { chars: content.length } });
+
+    return res.status(200).json({
+      content,
+      usage,
+      provider: 'together',
+      model,
+      isSharedApi: true
+    });
+
+  } catch (error) {
+    logError('mentor_together_ai', error);
+    return res.status(503).json({
+      error: 'AI service temporarily unavailable. Please try again.',
+      code: 'AI_ERROR'
+    });
   }
 }

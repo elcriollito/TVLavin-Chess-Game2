@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net blob:; script-src-elem 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://api.chess.com https://caissa-game-fetcher.elcriollito.workers.dev;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; script-src-elem 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https://img.clerk.com https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://api.chess.com https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://api.stripe.com; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://checkout.stripe.com https://js.stripe.com;">
 
     <!-- Primary Meta Tags -->
     <title>CAISSA Chess – AI Chess Platform with Stockfish & LLM</title>
@@ -53,6 +53,12 @@
     <link rel="stylesheet" href="./assets/css/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="styles.css?v=2.0.1">
+    <link rel="stylesheet" href="caissa-library.css?v=1.1.0">
+    <link rel="stylesheet" href="query-engine.css?v=1.0.0">
+    <link rel="stylesheet" href="position-forge.css?v=1.0.0">
+    <link rel="stylesheet" href="css/caissa-auth.css?v=1.0.0">
+    <link rel="stylesheet" href="css/caissa-sync.css?v=1.0.0">
+    <link rel="stylesheet" href="css/caissa-onboarding.css?v=1.0.0">
 </head>
 <body>
     <!-- Main Container -->
@@ -64,6 +70,7 @@
                 <h1 class="app-title">
                     <i class="fas fa-chess-knight"></i>
                     CAISSA Chess
+                    <span class="beta-badge">BETA</span>
                 </h1>
                 <div class="header-controls">
                     <button id="newGameBtn" class="btn btn-primary" aria-label="Start New Game">
@@ -82,6 +89,12 @@
                     <button id="engineVsEngineBtn" class="btn btn-secondary" aria-label="Engine vs Engine">
                         <i class="fas fa-robot"></i> Engine vs Engine
                     </button>
+                    <a href="/library" class="btn btn-secondary" aria-label="Chess Library">
+                        <i class="fas fa-book-open"></i> Library
+                    </a>
+                    <a href="/premium" class="btn btn-premium" aria-label="Premium & Credits">
+                        <i class="fas fa-crown"></i> Premium
+                    </a>
                     <button id="menuBtnHeader" class="btn btn-secondary menu-desktop-only" aria-label="Open Menu">
                         <i class="fas fa-bars"></i> Menu
                     </button>
@@ -167,6 +180,14 @@
                 <div class="panel analysis-panel" id="analysisPanel">
                     <div class="panel-header">
                         <h3 class="panel-title">Engine Analysis</h3>
+                        <div class="analysis-header-actions">
+                            <button id="saveToLibraryBtn" class="save-to-library-btn" aria-label="Save to Library" title="Save position to Library">
+                                <i class="fas fa-bookmark"></i> Save
+                            </button>
+                            <button id="saveGameBtn" class="save-to-library-btn" aria-label="Save Game" title="Load a PGN game first to save it" disabled>
+                                <i class="fas fa-chess"></i> Game
+                            </button>
+                        </div>
                         <button id="menuBtn" class="btn btn-small btn-secondary" aria-label="Open Menu">
                             <i class="fas fa-bars"></i> Menu
                         </button>
@@ -556,6 +577,15 @@
                 
                 <div class="menu-section">
                     <h3>Advanced</h3>
+                    <a href="/library" class="btn btn-block" id="menuBlogLibrary">
+                        <i class="fas fa-book-open"></i> Chess Library
+                    </a>
+                    <a href="/premium" class="btn btn-block btn-premium-menu" id="menuPremium">
+                        <i class="fas fa-crown"></i> Premium & Credits
+                    </a>
+                    <button class="btn btn-block" id="menuLibrary">
+                        <i class="fas fa-book"></i> Position Library
+                    </button>
                     <button class="btn btn-block" id="menuCaissaInsight">
                         <i class="fas fa-chart-radar"></i> Caissa Insight
                     </button>
@@ -1299,6 +1329,106 @@
         <span class="mentor-toggle-text">Mentor</span>
     </button>
 
+    <!-- CAISSA Library Panel (Slide-out from left) -->
+    <div id="libraryPanel" class="library-panel">
+        <div class="library-header">
+            <div class="library-title">
+                <i class="fas fa-book"></i>
+                <span>Library</span>
+                <span id="libraryStats" class="library-stats"></span>
+            </div>
+            <div class="library-header-actions">
+                <div id="librarySyncIndicator" class="library-sync-indicator" style="display: none;">
+                    <i class="fas fa-cloud-check"></i>
+                    <span>Synced</span>
+                </div>
+                <button id="librarySyncNow" class="btn btn-small" style="display: none;" aria-label="Sync now">
+                    <i class="fas fa-sync"></i> Sync
+                </button>
+            </div>
+            <button id="libraryCloseBtn" class="library-close" aria-label="Close library">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="library-tabs">
+            <button id="libraryTabPositions" class="library-tab active" data-tab="positions">
+                <i class="fas fa-chess-board"></i> Positions
+            </button>
+            <button id="libraryTabGames" class="library-tab" data-tab="games">
+                <i class="fas fa-chess"></i> Games
+            </button>
+        </div>
+
+        <!-- Collection Detail Header (hidden by default) -->
+        <div id="libraryCollectionDetail" class="library-collection-detail-header" style="display: none;">
+            <button id="libraryBackBtn" class="library-back-btn" aria-label="Back to list">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <span id="libraryCollectionDetailTitle" class="library-collection-detail-title"></span>
+            <span id="libraryCollectionDetailCount" class="library-collection-detail-count"></span>
+        </div>
+
+        <!-- Search & Filter (for positions tab) -->
+        <div id="librarySearchSection" class="library-search-section">
+            <input type="text" id="librarySearch" class="library-search-input"
+                   placeholder="Search positions..." aria-label="Search positions">
+            <div id="libraryTagFilter" class="library-tag-filter"></div>
+        </div>
+
+        <!-- Position List -->
+        <div id="libraryPositionList" class="library-position-list"></div>
+
+        <!-- Collection List (for games tab) -->
+        <div id="libraryCollectionList" class="library-collection-list" style="display: none;"></div>
+
+        <!-- Empty State -->
+        <div id="libraryEmptyState" class="library-empty-state" style="display: none;">
+            <i class="fas fa-chess-board"></i>
+            <h3>No positions saved</h3>
+            <p>Save positions from analysis to build your library.</p>
+        </div>
+
+        <!-- Empty State for Games -->
+        <div id="libraryEmptyGames" class="library-empty-state" style="display: none;">
+            <i class="fas fa-chess"></i>
+            <h3>No games saved</h3>
+            <p>Load a PGN game from the Game Library, then click the "Game" button in the Analysis panel to save it.</p>
+        </div>
+
+        <!-- Pagination -->
+        <div id="libraryPagination" class="library-pagination" style="display: none;">
+            <button id="libraryPrevPage" class="btn btn-small btn-secondary">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <span id="libraryPageInfo" class="library-page-info">Page 1 of 1</span>
+            <button id="libraryNextPage" class="btn btn-small btn-secondary">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+
+        <!-- Actions Bar -->
+        <div class="library-actions-bar">
+            <button id="libraryExportJson" class="btn btn-secondary" title="Export as JSON backup">
+                <i class="fas fa-download"></i> Backup
+            </button>
+            <button id="libraryImportBtn" class="btn btn-secondary" title="Import from backup">
+                <i class="fas fa-upload"></i> Import
+            </button>
+            <input type="file" id="libraryImportInput" class="library-import-input" accept=".json">
+        </div>
+        <div class="library-fen-hint">
+            <i class="fas fa-info-circle"></i>
+            <span>Downloaded .fen files open in external chess apps (WinBoard, Arena, etc.)</span>
+        </div>
+    </div>
+
+    <!-- Library Toggle Button (Fixed position, left side) -->
+    <button id="libraryToggleBtn" class="library-toggle-btn" aria-label="Open Library">
+        <i class="fas fa-book"></i>
+    </button>
+
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -1310,6 +1440,65 @@
     <script src="mentor-prompts.js?v=1.0.0"></script>
     <script src="llm-provider.js?v=1.0.0"></script>
     <script src="mentor-ai.js?v=1.0.0"></script>
+    <script src="caissa-library-db.js?v=1.0.0"></script>
+    <script src="caissa-library.js?v=1.1.0"></script>
+    <script src="js/caissa-sync.js?v=1.0.0"></script>
+    <script src="caissa-library-ui.js?v=1.1.0"></script>
+    <script src="query-engine.js?v=1.0.0"></script>
+    <script src="query-engine-ui.js?v=1.0.0"></script>
+    <script src="position-forge.js?v=1.0.0"></script>
+    <script src="position-forge-ui.js?v=1.0.0"></script>
     <script src="app.js?v=2.0.1"></script>
+
+    <!-- Auth Scripts -->
+    <script src="js/auth-config.js?v=1.0.0"></script>
+    <script
+        async
+        crossorigin="anonymous"
+        src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+        type="text/javascript"
+    ></script>
+    <script src="js/caissa-logger.js?v=1.0.0" defer></script>
+    <script src="js/caissa-notifications.js?v=1.0.0" defer></script>
+    <script src="js/caissa-feature-flags.js?v=1.0.0" defer></script>
+    <script src="js/caissa-auth.js?v=1.0.0" defer></script>
+    <script src="js/caissa-access.js?v=1.0.0" defer></script>
+    <script src="js/caissa-ui-auth.js?v=1.0.0" defer></script>
+    <script src="js/caissa-onboarding.js?v=1.0.0" defer></script>
+
+    <style>
+        /* Beta Badge */
+        .beta-badge {
+            display: inline-block;
+            font-size: 0.5em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #ffffff;
+            padding: 0.25em 0.6em;
+            border-radius: 4px;
+            margin-left: 0.5em;
+            vertical-align: middle;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+            animation: beta-badge-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes beta-badge-pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.8;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .beta-badge {
+                font-size: 0.45em;
+                padding: 0.2em 0.5em;
+            }
+        }
+    </style>
 </body>
 </html>

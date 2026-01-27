@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(copy \"public\\\\favicon.ico\" \".\")",
+      "Bash(copy \"public\\\\favicon-16.png\" \".\")",
+      "Bash(copy \"public\\\\favicon-32.png\" \".\")",
+      "Bash(copy \"public\\\\apple-touch-icon.png\" \".\")",
+      "Bash(copy \"public\\\\icon-192.png\" \".\")",
+      "Bash(copy \"public\\\\icon-512.png\" \".\")"
+    ]
+  }
+}

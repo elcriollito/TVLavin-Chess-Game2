@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; script-src-elem 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https://img.clerk.com https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://api.chess.com https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://clerk.caissa-chess.org; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com;">
+
+    <!-- Primary Meta Tags -->
+    <title>Sign In – CAISSA Chess</title>
+    <meta name="title" content="Sign In – CAISSA Chess">
+    <meta name="description" content="Sign in to your CAISSA Chess account to access premium features and saved positions.">
+    <link rel="canonical" href="https://www.caissa-chess.org/signin" />
+
+    <!-- Additional Meta Tags -->
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#0b0f1a">
+
+    <!-- Favicon and App Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=4">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=4">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=4">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4">
+    <link rel="manifest" href="/manifest.json?v=4">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="styles.css?v=2.0.1">
+    <link rel="stylesheet" href="css/caissa-auth.css?v=1.0.0">
+</head>
+<body class="auth-page-body">
+    <div class="auth-page-container">
+        <!-- Logo -->
+        <a href="/" class="auth-page-logo">
+            <i class="fas fa-chess-knight"></i>
+            <span>CAISSA Chess</span>
+        </a>
+
+        <!-- Auth Card -->
+        <div class="auth-page-card">
+            <h1 class="auth-page-title">Welcome Back</h1>
+            <p class="auth-page-subtitle">Sign in to continue to CAISSA Chess</p>
+
+            <!-- Clerk Sign In Component -->
+            <div id="clerk-sign-in" class="auth-clerk-container"></div>
+
+            <div class="auth-page-footer">
+                <p>Don't have an account? <a href="/signup">Sign up</a></p>
+                <p><a href="/">Back to CAISSA Chess</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/auth-config.js?v=1.0.0" defer></script>
+    <script
+        async
+        crossorigin="anonymous"
+        data-clerk-publishable-key=""
+        src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+        type="text/javascript"
+    ></script>
+    <script src="js/signin-page.js?v=1.0.0" defer></script>
+</body>
+</html>

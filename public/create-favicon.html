@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAISSA - Favicon Generator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        h1 {
+            color: #2c5f9e;
+        }
+        .container {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        .preview-section {
+            flex: 1;
+            min-width: 400px;
+        }
+        .controls-section {
+            flex: 0 0 300px;
+        }
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .preview-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .preview-card h3 {
+            margin: 0 0 15px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        canvas {
+            border: 2px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+        .control-group {
+            margin-bottom: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        input[type="text"],
+        input[type="color"],
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #2c5f9e;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #1f4578;
+        }
+        button.download-btn {
+            background: #27ae60;
+        }
+        button.download-btn:hover {
+            background: #229954;
+        }
+        .info {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2c5f9e;
+        }
+        .info p {
+            margin: 5px 0;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+        .download-all {
+            background: #8e44ad;
+        }
+        .download-all:hover {
+            background: #7d3c98;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 CAISSA Chess - Favicon Generator</h1>
+
+    <div class="info">
+        <p><strong>Purpose:</strong> Generate favicon icons for CAISSA Chess AI</p>
+        <p><strong>Icon:</strong> Chess knight (♞) with clean, minimal design</p>
+        <p><strong>Usage:</strong> Customize colors and style, then download all sizes</p>
+    </div>
+
+    <div class="container">
+        <div class="preview-section">
+            <h2>Icon Previews</h2>
+            <div class="preview-grid">
+                <div class="preview-card">
+                    <h3>16×16 (Browser Tab)</h3>
+                    <canvas id="canvas-16" width="16" height="16"></canvas>
+                    <button class="download-btn" onclick="downloadIcon(16)">💾 Download</button>
+                </div>
+                <div class="preview-card">
+                    <h3>32×32 (Retina)</h3>
+                    <canvas id="canvas-32" width="32" height="32"></canvas>
+                    <button class="download-btn" onclick="downloadIcon(32)">💾 Download</button>
+                </div>
+                <div class="preview-card">
+                    <h3>180×180 (Apple)</h3>
+                    <canvas id="canvas-180" width="180" height="180"></canvas>
+                    <button class="download-btn" onclick="downloadIcon(180)">💾 Download</button>
+                </div>
+                <div class="preview-card">
+                    <h3>192×192 (Android)</h3>
+                    <canvas id="canvas-192" width="192" height="192"></canvas>
+                    <button class="download-btn" onclick="downloadIcon(192)">💾 Download</button>
+                </div>
+                <div class="preview-card">
+                    <h3>512×512 (High-Res PWA)</h3>
+                    <canvas id="canvas-512" width="512" height="512"></canvas>
+                    <button class="download-btn" onclick="downloadIcon(512)">💾 Download</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <h2>Customize</h2>
+
+            <div class="control-group">
+                <label for="icon">Icon Symbol</label>
+                <select id="icon">
+                    <option value="♞">♞ Knight (Horse)</option>
+                    <option value="♔">♔ King</option>
+                    <option value="♕">♕ Queen</option>
+                    <option value="♖">♖ Rook</option>
+                    <option value="♗">♗ Bishop</option>
+                    <option value="♙">♙ Pawn</option>
+                    <option value="C">C (Letter)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="bgColor">Background Color</label>
+                <input type="color" id="bgColor" value="#2c5f9e">
+            </div>
+
+            <div class="control-group">
+                <label for="iconColor">Icon Color</label>
+                <input type="color" id="iconColor" value="#ffffff">
+            </div>
+
+            <div class="control-group">
+                <label for="style">Style</label>
+                <select id="style">
+                    <option value="solid">Solid Background</option>
+                    <option value="gradient">Gradient Background</option>
+                    <option value="circle">Circular Icon</option>
+                </select>
+            </div>
+
+            <button onclick="updateAllCanvases()">🔄 Update Preview</button>
+            <button class="download-all" onclick="downloadAllIcons()">💾 Download All Icons</button>
+        </div>
+    </div>
+
+    <script>
+        const sizes = [16, 32, 180, 192, 512];
+
+        function drawIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            const icon = document.getElementById('icon').value;
+            const bgColor = document.getElementById('bgColor').value;
+            const iconColor = document.getElementById('iconColor').value;
+            const style = document.getElementById('style').value;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, size, size);
+
+            // Background
+            if (style === 'gradient') {
+                const gradient = ctx.createLinearGradient(0, 0, size, size);
+                gradient.addColorStop(0, bgColor);
+                gradient.addColorStop(1, adjustBrightness(bgColor, -30));
+                ctx.fillStyle = gradient;
+            } else if (style === 'circle') {
+                ctx.fillStyle = bgColor;
+                ctx.beginPath();
+                ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                ctx.fillStyle = bgColor;
+            }
+
+            if (style !== 'circle') {
+                ctx.fillRect(0, 0, size, size);
+            }
+
+            // Icon
+            ctx.fillStyle = iconColor;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Scale font size based on canvas size
+            const fontSize = Math.floor(size * 0.65);
+            ctx.font = `${fontSize}px Arial`;
+
+            // Draw icon centered
+            ctx.fillText(icon, size / 2, size / 2);
+        }
+
+        function adjustBrightness(hex, percent) {
+            const num = parseInt(hex.replace('#', ''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                (B < 255 ? B < 1 ? 0 : B : 255))
+                .toString(16).slice(1);
+        }
+
+        function updateAllCanvases() {
+            sizes.forEach(size => {
+                const canvas = document.getElementById(`canvas-${size}`);
+                drawIcon(canvas, size);
+            });
+        }
+
+        function downloadIcon(size) {
+            const canvas = document.getElementById(`canvas-${size}`);
+            const link = document.createElement('a');
+
+            let filename;
+            if (size === 16) filename = 'favicon-16.png';
+            else if (size === 32) filename = 'favicon-32.png';
+            else if (size === 180) filename = 'apple-touch-icon.png';
+            else if (size === 192) filename = 'icon-192.png';
+            else if (size === 512) filename = 'icon-512.png';
+
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        async function downloadAllIcons() {
+            for (const size of sizes) {
+                await new Promise(resolve => {
+                    downloadIcon(size);
+                    setTimeout(resolve, 100);
+                });
+            }
+            alert('✅ All icons downloaded!\n\nNext steps:\n1. Move all PNG files to public/ folder\n2. Generate favicon.ico from 16×16 and 32×32 PNGs\n3. Commit and push to GitHub\n4. Test on live site');
+        }
+
+        // Auto-update on input change
+        document.querySelectorAll('input, select').forEach(element => {
+            element.addEventListener('input', updateAllCanvases);
+            element.addEventListener('change', updateAllCanvases);
+        });
+
+        // Initial render
+        updateAllCanvases();
+    </script>
+</body>
+</html>

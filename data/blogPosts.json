@@ -1,0 +1,92 @@
+[
+  {
+    "id": "post-egtb-2026-01",
+    "title": "¿Qué son los EGTB? (Endgame Tablebases)",
+    "url": "https://tvlavin.blogspot.com/2026/01/que-son-los-egtb.html",
+    "snippet": "Explicación clara de qué son las tablebases (EGTB), para qué sirven en finales, y cómo se usan en análisis de ajedrez y motores.",
+    "tags": ["ajedrez", "endgame", "analysis", "chess-engine", "tutorial"],
+    "lang": "es",
+    "date": "2026-01-01",
+    "featured": true
+  },
+  {
+    "id": "post-fritz-openingbook-2025-12",
+    "title": "How to Expand Opening Book in Fritz",
+    "url": "https://tvlavin.blogspot.com/2025/12/how-to-expand-opening-book-in-fritz.html",
+    "snippet": "Step-by-step guide to expanding your opening book in Fritz and improving prep with better move coverage and structure.",
+    "tags": ["chess", "openings", "tutorial", "tools"],
+    "lang": "en",
+    "date": "2025-12-01",
+    "featured": false
+  },
+  {
+    "id": "post-32-engines-2025-12",
+    "title": "Los 32 mejores motores de ajedrez (ranking y enfoque práctico)",
+    "url": "https://tvlavin.blogspot.com/2025/12/los-32-mejores-motores-de-ajedrez-de.html",
+    "snippet": "Selección y panorama de motores top, con enfoque en rendimiento, uso real y qué elegir según tu objetivo (análisis, torneos, estudio).",
+    "tags": ["ajedrez", "chess-engine", "chess-ai", "analysis", "news"],
+    "lang": "es",
+    "date": "2025-12-01",
+    "featured": true
+  },
+  {
+    "id": "post-agregar-libro-fritz-2025-12",
+    "title": "Cómo agregar un nuevo libro de aperturas en Fritz",
+    "url": "https://tvlavin.blogspot.com/2025/12/como-agregar-un-nuevo-libro-de.html",
+    "snippet": "Guía rápida para instalar y activar nuevos opening books en Fritz, ideal para preparar repertorios y explorar variantes.",
+    "tags": ["ajedrez", "openings", "tutorial", "tools"],
+    "lang": "es",
+    "date": "2025-12-01",
+    "featured": false
+  },
+  {
+    "id": "post-tcec-2025-12",
+    "title": "Top Chess Engine Championship (TCEC) — qué es y por qué importa",
+    "url": "https://tvlavin.blogspot.com/2025/12/top-chess-engine-championship-tcecthe.html",
+    "snippet": "Resumen del TCEC y su impacto: por qué es referencia mundial en engine vs engine, formatos, y qué mirar como fan de motores.",
+    "tags": ["chess", "chess-engine", "engine-vs-engine", "news", "analysis"],
+    "lang": "en",
+    "date": "2025-12-01",
+    "featured": true
+  },
+  {
+    "id": "post-4-estilos-2025-11",
+    "title": "Los cuatro estilos del ajedrez y cómo identificarlos",
+    "url": "https://tvlavin.blogspot.com/2025/11/los-cuatro-estilos-del-ajedrez-y-como.html",
+    "snippet": "Una manera práctica de entender estilos de juego (posicional, táctico, etc.) y cómo adaptar tu plan según el tipo de rival.",
+    "tags": ["ajedrez", "strategy", "tutorial", "training"],
+    "lang": "es",
+    "date": "2025-11-01",
+    "featured": false
+  },
+  {
+    "id": "post-intermediate-guide-2025-10",
+    "title": "Comprehensive Guide for Intermediate Chess Improvement",
+    "url": "https://tvlavin.blogspot.com/2025/10/comprehensive-guide-for-intermediate.html",
+    "snippet": "A structured roadmap for intermediate players: study priorities, training habits, analysis methods, and how to level up efficiently.",
+    "tags": ["chess", "training", "strategy", "analysis", "tutorial"],
+    "lang": "en",
+    "date": "2025-10-01",
+    "featured": true
+  },
+  {
+    "id": "post-nimzo-vs-bogo-2025-03",
+    "title": "Nimzo-Indian Defense vs Bogo-Indian Defense",
+    "url": "https://tvlavin.blogspot.com/2025/03/nimzo-indian-defense-vs-bogo-indian.html",
+    "snippet": "Comparación práctica de Nimzo vs Bogo: ideas típicas, planes, estructuras, y cuándo elegir cada una según tu estilo.",
+    "tags": ["chess", "openings", "analysis", "tutorial"],
+    "lang": "en",
+    "date": "2025-03-01",
+    "featured": false
+  },
+  {
+    "id": "post-yahoo-chess-2025-03",
+    "title": "The Rise and Fall of Yahoo Chess",
+    "url": "https://tvlavin.blogspot.com/2025/03/the-rise-and-fall-of-yahoo-chess.html",
+    "snippet": "Historia nostálgica y útil sobre Yahoo Chess: cómo creció, por qué cayó, y qué dejó como legado en la cultura del ajedrez online.",
+    "tags": ["chess", "history", "news"],
+    "lang": "en",
+    "date": "2025-03-01",
+    "featured": false
+  }
+]

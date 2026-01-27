@@ -11,8 +11,14 @@
     "indexnow-ping": "node tools/indexnow-ping.mjs"
   },
   "dependencies": {
-    "adm-zip": "^0.5.10"
+    "@clerk/backend": "^2.29.5",
+    "@supabase/supabase-js": "^2.93.1",
+    "adm-zip": "^0.5.10",
+    "stripe": "^20.2.0"
   },
   "author": "TVLavin",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "sharp": "^0.34.5"
+  }
 }

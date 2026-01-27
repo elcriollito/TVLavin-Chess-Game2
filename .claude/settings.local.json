@@ -12,7 +12,29 @@
       "Bash(git commit:*)",
       "Bash(git config:*)",
       "Bash(git push:*)",
-      "Bash(start \"\" \"TEST_ENGINE.html\")"
+      "Bash(start \"\" \"TEST_ENGINE.html\")",
+      "Bash(if not exist \"demo\" mkdir demo)",
+      "Bash(if not exist \"world-champions\" mkdir world-champions)",
+      "Bash(if not exist \"grandmasters\" mkdir grandmasters)",
+      "Bash(node generate-library.js:*)",
+      "Bash(npm install)",
+      "Bash(npm run download-pgn-test:*)",
+      "Bash(python -m json.tool:*)",
+      "Bash(node convert-library.js:*)",
+      "Bash(move:*)",
+      "Bash(npx http-server -p 8080)",
+      "Bash(git checkout:*)",
+      "Bash(start:*)",
+      "Bash(magick:*)",
+      "Bash(convert:*)",
+      "Bash(inkscape:*)",
+      "Bash(npm install:*)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\ALEXANDER\\\\Alexander Projects\\\\TVLavin-Chess-Game2\" -Directory)",
+      "Bash(Select-Object -ExpandProperty Name)",
+      "Bash(cd:*)",
+      "Bash(xmllint:*)",
+      "Bash(powershell -Command:*)"
     ]
   }
 }

@@ -1,5 +1,17 @@
 {
+  "functions": {
+    "api/stripe/webhook.js": {
+      "maxDuration": 10
+    }
+  },
   "rewrites": [
+    { "source": "/library", "destination": "/library.html" },
+    { "source": "/premium", "destination": "/premium.html" },
+    { "source": "/about", "destination": "/about.html" },
+    { "source": "/roadmap", "destination": "/roadmap.html" },
+    { "source": "/signin", "destination": "/signin.html" },
+    { "source": "/signup", "destination": "/signup.html" },
+    { "source": "/data/:path*", "destination": "/public/data/:path*" },
     { "source": "/favicon.ico", "destination": "/public/favicon.ico" },
     { "source": "/favicon-16.png", "destination": "/public/favicon-16.png" },
     { "source": "/favicon-32.png", "destination": "/public/favicon-32.png" },

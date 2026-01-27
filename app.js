@@ -41,6 +41,9 @@ const App = {
     moveHistory: [],
     currentMoveIndex: -1,
 
+    // Loaded game metadata (from PGN)
+    loadedGameInfo: null, // { white, black, date, result, event, ... }
+
     // Timers
     whiteTime: 0,
     blackTime: 0,
@@ -139,6 +142,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load PGN library
     loadPGNLibrary();
+
+    // Check for FEN parameter in URL (for shared positions)
+    const fenParam = urlParams.get('fen');
+    if (fenParam) {
+        try {
+            const decodedFen = decodeURIComponent(fenParam);
+            debugLog('Loading FEN from URL parameter:', decodedFen);
+            // Small delay to ensure board is ready
+            setTimeout(() => {
+                if (loadFEN(decodedFen, true)) {
+                    showNotification('Position loaded from shared link');
+                    // Clean URL without reloading (remove fen param)
+                    const cleanUrl = window.location.pathname;
+                    window.history.replaceState({}, '', cleanUrl);
+                }
+            }, 100);
+        } catch (error) {
+            console.error('Failed to load FEN from URL:', error);
+        }
+    }
 
     debugLog('Application initialized');
 });
@@ -1095,6 +1118,12 @@ function newGame(options = {}) {
     App.currentMoveIndex = -1;
     App.isPlayerTurn = true;
     App.gameActive = true;
+
+    // Clear loaded game info
+    App.loadedGameInfo = null;
+    if (typeof LibraryUI !== 'undefined') {
+        LibraryUI.onGameLoaded(null);
+    }
     
     // Apply options
     if (options.mode) App.gameMode = options.mode;
@@ -2756,6 +2785,21 @@ async function loadSelectedPGN() {
         App.elements.pgnPlayers.textContent = `${white} vs ${black}`;
         App.elements.pgnResult.textContent = result;
 
+        // Store loaded game info for Library integration
+        App.loadedGameInfo = {
+            white: white,
+            black: black,
+            date: pgnData.date || new Date().toISOString().split('T')[0],
+            result: result,
+            event: event,
+            site: pgnData.site || null
+        };
+
+        // Notify Library UI that a game is loaded
+        if (typeof LibraryUI !== 'undefined') {
+            LibraryUI.onGameLoaded(App.loadedGameInfo);
+        }
+
         showNotification(`Loaded: ${white} vs ${black} (${App.moveHistory.length} moves)`);
 
         console.log('✅ PGN load complete');
@@ -3748,10 +3792,27 @@ function setupInsightModal() {
 
     // Analyze button handler
     analyzeBtn.addEventListener('click', () => {
+        // --- Credit check for CAISSA Insight ---
+        if (typeof CAISSA_ACCESS !== 'undefined') {
+            if (!CAISSA_ACCESS.requireSignIn('insight')) return;
+            if (!CAISSA_ACCESS.canUse('insight')) {
+                CAISSA_ACCESS.showLockedMessage('insight');
+                return;
+            }
+        }
+
         const pgnText = pgnInput.value.trim();
         if (!pgnText) {
             showErrorNotification('Please paste PGN content or load a file');
             return;
+        }
+
+        // Consume credits after validation but before analysis
+        if (typeof CAISSA_ACCESS !== 'undefined') {
+            if (!CAISSA_ACCESS.consumeCredits('insight')) {
+                CAISSA_ACCESS.showLockedMessage('insight', 'credits');
+                return;
+            }
         }
 
         console.log('🧠 Analyzing PGN...');

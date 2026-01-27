@@ -148,6 +148,43 @@ const MentorAI = {
      */
     loadSettings() {
         try {
+            // Check BYO_AI_KEY feature flag
+            const byoKeyEnabled = window.CaissaFeatureFlags?.isEnabled('BYO_AI_KEY');
+
+            // Hide API key UI unless feature flag is enabled
+            if (!byoKeyEnabled) {
+                // Hide provider selection
+                const providerGroup = this.elements.providerSelect?.closest('.settings-group');
+                if (providerGroup) {
+                    providerGroup.style.display = 'none';
+                }
+
+                // Hide model selection
+                const modelGroup = this.elements.modelSelect?.closest('.settings-group');
+                if (modelGroup) {
+                    modelGroup.style.display = 'none';
+                }
+
+                // Hide API key input
+                const apiKeyGroup = document.getElementById('mentorApiKeyGroup');
+                if (apiKeyGroup) {
+                    apiKeyGroup.style.display = 'none';
+                }
+
+                // Show default provider message
+                const settingsContent = this.elements.settingsContent;
+                if (settingsContent) {
+                    const existingMessage = settingsContent.querySelector('.default-provider-message');
+                    if (!existingMessage) {
+                        const message = document.createElement('div');
+                        message.className = 'default-provider-message';
+                        message.style.cssText = 'padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 6px; color: #93c5fd; font-size: 0.9rem; margin-bottom: 16px;';
+                        message.innerHTML = '<i class="fas fa-info-circle"></i> Using default AI provider (Together AI). Sign in for free credits.';
+                        settingsContent.insertBefore(message, settingsContent.firstChild);
+                    }
+                }
+            }
+
             // Load provider/model settings (NOT API key)
             const settings = localStorage.getItem(this.config.storageKey);
             if (settings) {
@@ -844,10 +881,10 @@ const MentorAI = {
             return;
         }
 
-        // Check if LLM provider is ready (has API key or supports shared API)
+        // Check if LLM provider is ready
         const provider = this.elements.providerSelect?.value || 'together';
         if (typeof LLMProvider !== 'undefined' && !LLMProvider.isReady()) {
-            this.showError('Please configure your API key in Settings, or use Together.ai with shared API.');
+            this.showError('Please configure your API key in Settings.');
             this.toggleSettings();
             return;
         }
@@ -928,7 +965,22 @@ const MentorAI = {
 
         } catch (error) {
             console.error('Mentor AI error:', error);
-            this.showError(error.message || 'Failed to get response from AI');
+
+            // Show user-friendly error with CaissaNotify if available
+            const errorMessage = error.message || 'Failed to get response from AI';
+            this.showError(errorMessage);
+
+            // Also show notification for specific errors
+            if (window.CaissaNotify) {
+                if (errorMessage.includes('Sign in required')) {
+                    window.CaissaNotify.warn('Sign in to use AI Mentor');
+                } else if (errorMessage.includes('Insufficient credits')) {
+                    window.CaissaNotify.error('Insufficient credits. Purchase more or upgrade to Premium.');
+                } else if (errorMessage.includes('temporarily unavailable')) {
+                    window.CaissaNotify.error('AI service temporarily unavailable. Please try again.');
+                }
+            }
+
             this.updateEngineBadge('none');
         } finally {
             this.setLoading(false);

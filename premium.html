@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; script-src-elem 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https://img.clerk.com https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://api.chess.com https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://api.stripe.com; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://checkout.stripe.com https://js.stripe.com;">
+
+    <!-- Primary Meta Tags -->
+    <title>Premium & Credits – CAISSA Chess</title>
+    <meta name="title" content="Premium & Credits – CAISSA Chess">
+    <meta name="description" content="Unlock CAISSA Core subscription and purchase Insight credits for AI-powered chess analysis.">
+    <link rel="canonical" href="https://www.caissa-chess.org/premium" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.caissa-chess.org/premium">
+    <meta property="og:title" content="Premium & Credits – CAISSA Chess">
+    <meta property="og:description" content="Unlock CAISSA Core subscription and purchase Insight credits for AI-powered chess analysis.">
+    <meta property="og:image" content="https://www.caissa-chess.org/og-image.png">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://www.caissa-chess.org/premium">
+    <meta name="twitter:title" content="Premium & Credits – CAISSA Chess">
+    <meta name="twitter:description" content="Unlock CAISSA Core subscription and purchase Insight credits for AI-powered chess analysis.">
+
+    <!-- Additional Meta Tags -->
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#0b0f1a">
+
+    <!-- Favicon and App Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=4">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=4">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=4">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4">
+    <link rel="manifest" href="/manifest.json?v=4">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="styles.css?v=2.0.1">
+    <link rel="stylesheet" href="caissa-premium.css?v=1.0.0">
+    <link rel="stylesheet" href="css/caissa-auth.css?v=1.0.0">
+</head>
+<body class="premium-page-body">
+    <!-- Navigation Header -->
+    <header class="premium-nav-header">
+        <div class="premium-nav-content">
+            <a href="/" class="premium-nav-brand">
+                <i class="fas fa-chess-knight"></i>
+                <span>CAISSA Chess</span>
+            </a>
+            <nav class="premium-nav-links">
+                <a href="/" class="premium-nav-link">
+                    <i class="fas fa-chess-board"></i> Play
+                </a>
+                <a href="/library" class="premium-nav-link">
+                    <i class="fas fa-book-open"></i> Library
+                </a>
+                <a href="/premium" class="premium-nav-link active">
+                    <i class="fas fa-crown"></i> Premium
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="premium-main">
+        <!-- Page Header -->
+        <section class="premium-hero">
+            <div class="premium-hero-icon">
+                <i class="fas fa-crown"></i>
+            </div>
+            <h1 class="premium-hero-title">Unlock CAISSA Core</h1>
+            <p class="premium-hero-subtitle">
+                Enhance your chess experience with premium features and AI-powered analysis
+            </p>
+        </section>
+
+        <!-- Wallet Status Banner (populated by JS) -->
+        <section id="walletStatusBanner" class="premium-wallet-banner hidden"></section>
+
+        <!-- Billing Toggle -->
+        <section class="premium-billing-toggle">
+            <span class="billing-label" data-period="monthly">Monthly</span>
+            <button type="button" class="billing-switch" id="billingToggle" aria-label="Toggle billing period">
+                <span class="billing-switch-thumb"></span>
+            </button>
+            <span class="billing-label" data-period="annual">
+                Annual
+                <span class="billing-save-badge">Save 17%</span>
+            </span>
+        </section>
+
+        <!-- Subscription Card -->
+        <section class="premium-subscription-section">
+            <div class="premium-card subscription-card">
+                <div class="subscription-header">
+                    <div class="subscription-icon">
+                        <i class="fas fa-chess-knight"></i>
+                    </div>
+                    <h2 class="subscription-title">CAISSA Core</h2>
+                    <p class="subscription-tagline">Full access to premium features</p>
+                </div>
+
+                <div class="subscription-pricing">
+                    <div class="price-display" data-period="monthly">
+                        <span class="price-currency">$</span>
+                        <span class="price-amount">9</span>
+                        <span class="price-period">/month</span>
+                    </div>
+                    <div class="price-display" data-period="annual" style="display: none;">
+                        <span class="price-currency">$</span>
+                        <span class="price-amount">89</span>
+                        <span class="price-period">/year</span>
+                        <span class="price-savings">($7.42/mo)</span>
+                    </div>
+                </div>
+
+                <ul class="subscription-features">
+                    <li>
+                        <i class="fas fa-check"></i>
+                        <span>Unlimited game analysis</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-check"></i>
+                        <span>Advanced Stockfish depth (40+)</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-check"></i>
+                        <span>Cloud position library sync</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-check"></i>
+                        <span>Priority engine processing</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-check"></i>
+                        <span>50 Insight credits/month included</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-check"></i>
+                        <span>Ad-free experience</span>
+                    </li>
+                </ul>
+
+                <button type="button" class="subscription-cta" id="subscribeBtn">
+                    <i class="fas fa-unlock"></i>
+                    Subscribe Now
+                </button>
+
+                <p class="subscription-note">
+                    Cancel anytime. No commitment required.
+                </p>
+            </div>
+        </section>
+
+        <!-- Credits Section -->
+        <section class="premium-credits-section">
+            <div class="credits-header">
+                <div class="credits-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <h2 class="credits-title">CAISSA Insight Credits</h2>
+                <p class="credits-subtitle">
+                    Power AI-driven analysis with Claude for deeper game understanding
+                </p>
+            </div>
+
+            <div class="credits-packages">
+                <!-- Starter Pack -->
+                <div class="premium-card credit-card">
+                    <div class="credit-card-header">
+                        <span class="credit-card-name">Starter</span>
+                        <span class="credit-card-amount">25 credits</span>
+                    </div>
+                    <div class="credit-card-price">
+                        <span class="credit-price">$5</span>
+                        <span class="credit-per-unit">$0.20/credit</span>
+                    </div>
+                    <button type="button" class="credit-buy-btn" data-package="starter">
+                        Buy Now
+                    </button>
+                </div>
+
+                <!-- Standard Pack -->
+                <div class="premium-card credit-card popular">
+                    <div class="credit-popular-badge">Most Popular</div>
+                    <div class="credit-card-header">
+                        <span class="credit-card-name">Standard</span>
+                        <span class="credit-card-amount">75 credits</span>
+                    </div>
+                    <div class="credit-card-price">
+                        <span class="credit-price">$12</span>
+                        <span class="credit-per-unit">$0.16/credit</span>
+                    </div>
+                    <button type="button" class="credit-buy-btn" data-package="standard">
+                        Buy Now
+                    </button>
+                </div>
+
+                <!-- Pro Pack -->
+                <div class="premium-card credit-card">
+                    <div class="credit-card-header">
+                        <span class="credit-card-name">Pro</span>
+                        <span class="credit-card-amount">200 credits</span>
+                    </div>
+                    <div class="credit-card-price">
+                        <span class="credit-price">$25</span>
+                        <span class="credit-per-unit">$0.125/credit</span>
+                    </div>
+                    <button type="button" class="credit-buy-btn" data-package="pro">
+                        Buy Now
+                    </button>
+                </div>
+            </div>
+
+            <!-- Credits Info Box -->
+            <div class="credits-info-box">
+                <div class="credits-info-icon">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <div class="credits-info-content">
+                    <h4>What are Insight Credits?</h4>
+                    <p>
+                        Insight credits power CAISSA's AI mentor features. Each credit enables one AI-powered
+                        analysis query using Claude, providing personalized coaching, game reviews, and
+                        strategic recommendations tailored to your playing style.
+                    </p>
+                    <ul class="credits-usage-list">
+                        <li><i class="fas fa-comment-dots"></i> Mentor chat responses</li>
+                        <li><i class="fas fa-chart-line"></i> Full game narrative analysis</li>
+                        <li><i class="fas fa-lightbulb"></i> Position-specific advice</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Referrals Section -->
+        <section class="premium-referrals-section">
+            <div class="premium-card referrals-card">
+                <div class="referrals-header">
+                    <i class="fas fa-gift"></i>
+                    <h3>Invite Friends, Earn Credits</h3>
+                </div>
+                <p class="referrals-description">
+                    Share CAISSA with friends and earn <strong>10 free Insight credits</strong> for each
+                    friend who subscribes to CAISSA Core. They'll get 10 bonus credits too!
+                </p>
+                <div class="referrals-code-box">
+                    <span class="referral-label">Your referral link:</span>
+                    <div class="referral-code-wrapper">
+                        <input type="text" class="referral-code-input" id="referralCode"
+                               value="https://caissa-chess.org/r/XXXXXX" readonly>
+                        <button type="button" class="referral-copy-btn" id="copyReferralBtn">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                <p class="referrals-note">
+                    <i class="fas fa-lock"></i> Sign in to get your personal referral code
+                </p>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="premium-faq-section">
+            <h2 class="faq-title">Frequently Asked Questions</h2>
+
+            <div class="faq-list">
+                <div class="faq-item">
+                    <button type="button" class="faq-question" aria-expanded="false">
+                        <span>What payment methods do you accept?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and Apple Pay. All payments are processed securely through Stripe.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button type="button" class="faq-question" aria-expanded="false">
+                        <span>Can I cancel my subscription anytime?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes! You can cancel your CAISSA Core subscription at any time. You'll continue to have access until the end of your billing period. No questions asked.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button type="button" class="faq-question" aria-expanded="false">
+                        <span>Do Insight credits expire?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Purchased credits never expire. The 50 monthly credits included with CAISSA Core reset each billing cycle and don't roll over, but any credits you purchase separately are yours to keep forever.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button type="button" class="faq-question" aria-expanded="false">
+                        <span>What's the difference between Stockfish analysis and Insight?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Stockfish provides engine evaluation (numeric scores and best moves). CAISSA Insight uses Claude AI to explain <em>why</em> moves are good or bad, provide strategic advice, and offer personalized coaching in natural language.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button type="button" class="faq-question" aria-expanded="false">
+                        <span>Is there a free trial?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>New users get 5 free Insight credits to try out AI-powered analysis. The core CAISSA features (playing against Stockfish, basic analysis, position library) are always free.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="premium-footer">
+        <div class="premium-footer-content">
+            <p>&copy; 2026 CAISSA Chess. All rights reserved.</p>
+            <p>
+                <a href="/">Back to CAISSA Chess</a>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="caissa-premium.js?v=1.0.0"></script>
+
+    <!-- Auth Scripts -->
+    <script src="js/auth-config.js?v=1.0.0"></script>
+    <script
+        async
+        crossorigin="anonymous"
+        src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+        type="text/javascript"
+    ></script>
+    <script src="js/caissa-logger.js?v=1.0.0" defer></script>
+    <script src="js/caissa-notifications.js?v=1.0.0" defer></script>
+    <script src="js/caissa-auth.js?v=1.0.0" defer></script>
+    <script src="js/caissa-access.js?v=1.0.0" defer></script>
+    <script src="js/caissa-ui-auth.js?v=1.0.0" defer></script>
+</body>
+</html>

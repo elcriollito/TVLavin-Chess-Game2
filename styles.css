@@ -814,6 +814,40 @@ html, body {
     background: #d32f2f;
 }
 
+/* Premium button - gold accent */
+.btn-premium {
+    background: linear-gradient(135deg, #ffc107, #ff8c00);
+    color: #0b0f1a;
+    font-weight: 600;
+    border: none;
+}
+
+.btn-premium:hover {
+    background: linear-gradient(135deg, #ffca28, #ffa000);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+}
+
+.btn-premium i {
+    color: #0b0f1a;
+}
+
+/* Premium button in menu */
+.btn-premium-menu {
+    background: rgba(255, 193, 7, 0.15);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    color: #ffc107;
+}
+
+.btn-premium-menu:hover {
+    background: rgba(255, 193, 7, 0.25);
+    border-color: #ffc107;
+}
+
+.btn-premium-menu i {
+    color: #ffc107;
+}
+
 .icon-btn {
     padding: var(--spacing-xs);
     background: transparent;

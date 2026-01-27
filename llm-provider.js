@@ -219,14 +219,23 @@ const LLMProvider = {
     },
 
     /**
-     * Check if API key is configured or shared API is available
+     * Check if API key is configured or default AI is available
      * @returns {boolean}
      */
     isReady() {
-        if (this.config.provider === 'local') return true;
-        if (this.config.apiKey) return true;
-        if (this.canUseSharedApi()) return true;
-        return false;
+        // Check feature flag for BYO key mode
+        const byoKeyEnabled = window.CaissaFeatureFlags?.isEnabled('BYO_AI_KEY');
+
+        // BYO key mode: require API key or local provider
+        if (byoKeyEnabled) {
+            if (this.config.provider === 'local') return true;
+            if (this.config.apiKey) return true;
+            if (this.canUseSharedApi()) return true;
+            return false;
+        }
+
+        // Default mode: Together AI backend always available (auth happens on backend)
+        return true;
     },
 
     /**
@@ -268,24 +277,35 @@ const LLMProvider = {
             throw new Error(`Provider not configured: ${this.config.provider}`);
         }
 
-        // Check API key (except for local and shared API providers)
-        if (this.config.provider !== 'local' && !this.config.apiKey && !this.canUseSharedApi()) {
-            throw new Error('API key not set. Call setApiKey() first or use Together.ai for shared API access.');
+        // Check feature flag for BYO key mode
+        const byoKeyEnabled = window.CaissaFeatureFlags?.isEnabled('BYO_AI_KEY');
+
+        // BYO key mode: require API key (except for local)
+        if (byoKeyEnabled && this.config.provider !== 'local' && !this.config.apiKey && !this.canUseSharedApi()) {
+            throw new Error('API key not set. Configure your API key in Settings.');
         }
 
-        // Use server proxy to avoid CORS issues
+        // Use server proxy
         const proxyEndpoint = `${window.location.origin}/api/mentor/chat`;
 
         // Allow temperature override (lower for engine-guided responses)
         const temperature = options.temperature ?? this.config.temperature;
 
+        // Get auth token if user is signed in
+        const authToken = window.CaissaAuth?.getToken?.() || null;
+
         try {
+            const headers = { 'Content-Type': 'application/json' };
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+
             const response = await fetch(proxyEndpoint, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({
                     provider: this.config.provider,
-                    apiKey: this.config.apiKey || null, // null triggers shared API on server
+                    apiKey: this.config.apiKey || null,
                     messages: messages,
                     model: this.config.model,
                     maxTokens: this.config.maxTokens,
@@ -294,7 +314,7 @@ const LLMProvider = {
                 })
             });
 
-            // Parse rate limit headers for shared API
+            // Parse rate limit headers
             const remainingWindow = response.headers.get('X-RateLimit-Remaining-Window');
             const remainingDaily = response.headers.get('X-RateLimit-Remaining-Daily');
 
@@ -307,17 +327,27 @@ const LLMProvider = {
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
 
-                // Handle rate limiting
-                if (response.status === 429) {
-                    throw new Error(
-                        errorData.error ||
-                        'Rate limit exceeded. Add your own API key for unlimited access.'
-                    );
+                // Handle specific error codes
+                if (response.status === 401 && errorData.code === 'AUTH_REQUIRED') {
+                    throw new Error('Sign in required to use AI Mentor. Click the sign-in button to continue.');
                 }
 
+                if (response.status === 402 && errorData.code === 'INSUFFICIENT_CREDITS') {
+                    throw new Error('Insufficient credits. Purchase more credits or upgrade to Premium for unlimited AI access.');
+                }
+
+                if (response.status === 503 && errorData.code === 'SERVICE_UNAVAILABLE') {
+                    throw new Error('AI service temporarily unavailable. Please try again in a moment.');
+                }
+
+                if (response.status === 429 && errorData.code === 'RATE_LIMITED') {
+                    throw new Error(errorData.error || 'Rate limit exceeded. Please try again later.');
+                }
+
+                // Generic error
                 throw new Error(
                     errorData.error ||
-                    `API request failed: ${response.status} ${response.statusText}`
+                    `AI request failed: ${response.status} ${response.statusText}`
                 );
             }
 

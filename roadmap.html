@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; script-src-elem 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https://img.clerk.com https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://api.chess.com https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://api.stripe.com; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://checkout.stripe.com https://js.stripe.com;">
+
+    <!-- Primary Meta Tags -->
+    <title>Roadmap – CAISSA Chess</title>
+    <meta name="title" content="Roadmap – CAISSA Chess">
+    <meta name="description" content="See what's next for CAISSA Chess. Our public roadmap shows completed features, current work, and future plans.">
+    <link rel="canonical" href="https://www.caissa-chess.org/roadmap" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.caissa-chess.org/roadmap">
+    <meta property="og:title" content="Roadmap – CAISSA Chess">
+    <meta property="og:description" content="See what's next for CAISSA Chess. Our public roadmap shows completed features, current work, and future plans.">
+    <meta property="og:image" content="https://www.caissa-chess.org/og-image.png">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://www.caissa-chess.org/roadmap">
+    <meta name="twitter:title" content="Roadmap – CAISSA Chess">
+    <meta name="twitter:description" content="See what's next for CAISSA Chess.">
+
+    <!-- Additional Meta Tags -->
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#0b0f1a">
+
+    <!-- Favicon and App Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=4">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=4">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=4">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4">
+    <link rel="manifest" href="/manifest.json?v=4">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="styles.css?v=2.0.1">
+    <link rel="stylesheet" href="library-page.css?v=1.0.0">
+    <link rel="stylesheet" href="css/caissa-auth.css?v=1.0.0">
+</head>
+<body class="library-page-body">
+    <!-- Navigation Header -->
+    <header class="library-nav-header">
+        <div class="library-nav-content">
+            <a href="/" class="library-nav-brand">
+                <i class="fas fa-chess-knight"></i>
+                <span>CAISSA Chess</span>
+            </a>
+            <nav class="library-nav-links">
+                <a href="/" class="library-nav-link">
+                    <i class="fas fa-chess-board"></i> Play
+                </a>
+                <a href="/library" class="library-nav-link">
+                    <i class="fas fa-book-open"></i> Library
+                </a>
+                <a href="/about" class="library-nav-link">
+                    <i class="fas fa-info-circle"></i> About
+                </a>
+                <a href="/roadmap" class="library-nav-link active">
+                    <i class="fas fa-map"></i> Roadmap
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="library-main">
+        <!-- Page Header -->
+        <section class="library-hero">
+            <h1 class="library-hero-title">
+                <i class="fas fa-map"></i>
+                Product Roadmap
+            </h1>
+            <p class="library-hero-subtitle">
+                Our journey to build the best chess analysis platform
+            </p>
+        </section>
+
+        <!-- Roadmap Timeline -->
+        <section class="roadmap-section">
+            <div class="roadmap-container">
+                <!-- Loading State -->
+                <div id="roadmapLoading" class="roadmap-loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Loading roadmap...</span>
+                </div>
+
+                <!-- Error State -->
+                <div id="roadmapError" class="roadmap-error" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Failed to load roadmap</h3>
+                    <p>Please try refreshing the page</p>
+                </div>
+
+                <!-- Roadmap Content -->
+                <div id="roadmapContent" style="display: none;">
+                    <!-- Completed -->
+                    <div class="roadmap-phase">
+                        <h2 class="roadmap-phase-title">
+                            <i class="fas fa-check-circle"></i>
+                            Completed
+                        </h2>
+                        <div id="roadmapCompleted" class="roadmap-items"></div>
+                    </div>
+
+                    <!-- In Progress -->
+                    <div class="roadmap-phase">
+                        <h2 class="roadmap-phase-title">
+                            <i class="fas fa-spinner"></i>
+                            In Progress
+                        </h2>
+                        <div id="roadmapInProgress" class="roadmap-items"></div>
+                    </div>
+
+                    <!-- Planned -->
+                    <div class="roadmap-phase">
+                        <h2 class="roadmap-phase-title">
+                            <i class="fas fa-lightbulb"></i>
+                            Planned
+                        </h2>
+                        <div id="roadmapPlanned" class="roadmap-items"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Feedback Section -->
+        <section class="roadmap-feedback">
+            <div class="roadmap-feedback-content">
+                <h2><i class="fas fa-comments"></i> Have Ideas?</h2>
+                <p>We'd love to hear your feature requests and feedback. Help us shape the future of CAISSA Chess.</p>
+                <a href="https://github.com/anthropics/caissa-chess/discussions" target="_blank" rel="noopener" class="btn btn-primary">
+                    <i class="fab fa-github"></i> Share Feedback
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="library-footer">
+        <div class="library-footer-content">
+            <p>&copy; 2026 CAISSA Chess. All rights reserved.</p>
+            <p>
+                <a href="/">Back to CAISSA Chess</a> |
+                <a href="/library">Library</a> |
+                <a href="/about">About</a>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Auth Scripts -->
+    <script src="js/auth-config.js?v=1.0.0"></script>
+    <script
+        async
+        crossorigin="anonymous"
+        src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+        type="text/javascript"
+    ></script>
+    <script src="js/caissa-logger.js?v=1.0.0" defer></script>
+    <script src="js/caissa-notifications.js?v=1.0.0" defer></script>
+    <script src="js/caissa-auth.js?v=1.0.0" defer></script>
+    <script src="js/caissa-access.js?v=1.0.0" defer></script>
+    <script src="js/caissa-ui-auth.js?v=1.0.0" defer></script>
+
+    <!-- Roadmap Script -->
+    <script>
+        // Roadmap Data Loader
+        (async function() {
+            const loadingEl = document.getElementById('roadmapLoading');
+            const errorEl = document.getElementById('roadmapError');
+            const contentEl = document.getElementById('roadmapContent');
+            const completedEl = document.getElementById('roadmapCompleted');
+            const inProgressEl = document.getElementById('roadmapInProgress');
+            const plannedEl = document.getElementById('roadmapPlanned');
+
+            try {
+                const response = await fetch('/data/roadmap.json');
+                if (!response.ok) throw new Error('Failed to fetch roadmap');
+
+                const data = await response.json();
+
+                // Render items
+                completedEl.innerHTML = data.completed.map(renderItem).join('');
+                inProgressEl.innerHTML = data.inProgress.map(renderItem).join('');
+                plannedEl.innerHTML = data.planned.map(renderItem).join('');
+
+                // Show content
+                loadingEl.style.display = 'none';
+                contentEl.style.display = 'block';
+            } catch (error) {
+                console.error('Roadmap load error:', error);
+                loadingEl.style.display = 'none';
+                errorEl.style.display = 'block';
+            }
+        })();
+
+        function renderItem(item) {
+            const dateDisplay = item.completedDate
+                ? `<span class="roadmap-item-date"><i class="fas fa-calendar-check"></i> ${item.completedDate}</span>`
+                : item.targetDate
+                ? `<span class="roadmap-item-date"><i class="fas fa-calendar-alt"></i> Target: ${item.targetDate}</span>`
+                : '';
+
+            return `
+                <div class="roadmap-item">
+                    <div class="roadmap-item-header">
+                        <h3 class="roadmap-item-title">${escapeHtml(item.title)}</h3>
+                        ${dateDisplay}
+                    </div>
+                    <p class="roadmap-item-description">${escapeHtml(item.description)}</p>
+                    ${item.features ? `
+                        <ul class="roadmap-item-features">
+                            ${item.features.map(f => `<li>${escapeHtml(f)}</li>`).join('')}
+                        </ul>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+
+    <style>
+        /* Roadmap Page Specific Styles */
+        .roadmap-section {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        .roadmap-container {
+            min-height: 400px;
+        }
+
+        .roadmap-loading,
+        .roadmap-error {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .roadmap-loading i,
+        .roadmap-error i {
+            font-size: 3rem;
+            color: var(--primary-color, #4a9eff);
+            margin-bottom: 1rem;
+        }
+
+        .roadmap-error i {
+            color: var(--danger-color, #ef4444);
+        }
+
+        .roadmap-phase {
+            margin-bottom: 3rem;
+        }
+
+        .roadmap-phase-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary-color, #4a9eff);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid rgba(74, 158, 255, 0.3);
+        }
+
+        .roadmap-items {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .roadmap-item {
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .roadmap-item:hover {
+            transform: translateX(4px);
+            border-color: var(--primary-color, #4a9eff);
+        }
+
+        .roadmap-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .roadmap-item-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary, #ffffff);
+            margin: 0;
+        }
+
+        .roadmap-item-date {
+            font-size: 0.875rem;
+            color: var(--text-secondary, #b0b8c5);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .roadmap-item-description {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--text-secondary, #b0b8c5);
+            margin-bottom: 1rem;
+        }
+
+        .roadmap-item-features {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .roadmap-item-features li {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--text-secondary, #b0b8c5);
+            padding-left: 1.5rem;
+            position: relative;
+            margin-bottom: 0.5rem;
+        }
+
+        .roadmap-item-features li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--success-color, #22c55e);
+            font-weight: bold;
+        }
+
+        .roadmap-feedback {
+            max-width: 900px;
+            margin: 3rem auto;
+            padding: 2rem 1.5rem;
+            background-color: rgba(74, 158, 255, 0.05);
+            border: 1px solid rgba(74, 158, 255, 0.2);
+            border-radius: 12px;
+        }
+
+        .roadmap-feedback-content {
+            text-align: center;
+        }
+
+        .roadmap-feedback-content h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary-color, #4a9eff);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .roadmap-feedback-content p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: var(--text-secondary, #b0b8c5);
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .roadmap-section {
+                padding: 1.5rem 1rem;
+            }
+
+            .roadmap-phase-title {
+                font-size: 1.5rem;
+            }
+
+            .roadmap-item-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .roadmap-item-title {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; script-src-elem 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https://img.clerk.com https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://api.chess.com https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://api.stripe.com; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://checkout.stripe.com https://js.stripe.com;">
+
+    <!-- Primary Meta Tags -->
+    <title>Library – CAISSA Chess Resources</title>
+    <meta name="title" content="Library – CAISSA Chess Resources">
+    <meta name="description" content="Curated chess articles, tutorials, and guides from the CAISSA Chess team. Learn about engines, openings, strategy, and more.">
+    <link rel="canonical" href="https://www.caissa-chess.org/library" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.caissa-chess.org/library">
+    <meta property="og:title" content="Library – CAISSA Chess Resources">
+    <meta property="og:description" content="Curated chess articles, tutorials, and guides from the CAISSA Chess team.">
+    <meta property="og:image" content="https://www.caissa-chess.org/og-image.png">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://www.caissa-chess.org/library">
+    <meta name="twitter:title" content="Library – CAISSA Chess Resources">
+    <meta name="twitter:description" content="Curated chess articles, tutorials, and guides from the CAISSA Chess team.">
+
+    <!-- Additional Meta Tags -->
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#0b0f1a">
+
+    <!-- Favicon and App Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=4">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=4">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=4">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4">
+    <link rel="manifest" href="/manifest.json?v=4">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="styles.css?v=2.0.1">
+    <link rel="stylesheet" href="library-page.css?v=1.0.0">
+    <link rel="stylesheet" href="css/caissa-auth.css?v=1.0.0">
+</head>
+<body class="library-page-body">
+    <!-- Navigation Header -->
+    <header class="library-nav-header">
+        <div class="library-nav-content">
+            <a href="/" class="library-nav-brand">
+                <i class="fas fa-chess-knight"></i>
+                <span>CAISSA Chess</span>
+            </a>
+            <nav class="library-nav-links">
+                <a href="/" class="library-nav-link">
+                    <i class="fas fa-chess-board"></i> Play
+                </a>
+                <a href="/library" class="library-nav-link active">
+                    <i class="fas fa-book-open"></i> Library
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="library-main">
+        <!-- Page Header -->
+        <section class="library-hero">
+            <div class="library-hero-header">
+                <h1 class="library-hero-title">
+                    <i class="fas fa-book-open"></i>
+                    Chess Library
+                </h1>
+                <button type="button" id="addPostBtn" class="library-add-post-btn" aria-label="How to add a post">
+                    <i class="fas fa-plus"></i> Add Post
+                </button>
+            </div>
+            <p class="library-hero-subtitle">
+                Curated articles, tutorials, and guides to improve your chess
+            </p>
+        </section>
+
+        <!-- Tag Filter -->
+        <section class="library-filters">
+            <div class="library-filter-label">Filter by topic:</div>
+            <div id="tagFilters" class="library-tag-filters">
+                <!-- Tags will be dynamically inserted here -->
+            </div>
+        </section>
+
+        <!-- Posts Grid -->
+        <section class="library-posts-section">
+            <div id="postsGrid" class="library-posts-grid">
+                <!-- Post cards will be dynamically inserted here -->
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="library-loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Loading articles...</span>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="library-empty" style="display: none;">
+                <i class="fas fa-search"></i>
+                <h3>No articles found</h3>
+                <p>Try selecting a different tag filter</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorState" class="library-error" style="display: none;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Failed to load articles</h3>
+                <p>Please try refreshing the page</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="library-footer">
+        <div class="library-footer-content">
+            <p>&copy; 2026 CAISSA Chess. All rights reserved.</p>
+            <p>
+                <a href="/">Back to CAISSA Chess</a>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Add Post Modal -->
+    <div id="addPostModal" class="library-modal" role="dialog" aria-labelledby="addPostModalTitle" aria-modal="true">
+        <div class="library-modal-backdrop"></div>
+        <div class="library-modal-content">
+            <div class="library-modal-header">
+                <h2 id="addPostModalTitle"><i class="fas fa-plus-circle"></i> How to Add a Post</h2>
+                <button type="button" class="library-modal-close" aria-label="Close modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="library-modal-body">
+                <section class="library-modal-section">
+                    <h3>Steps to add a new post:</h3>
+                    <ol class="library-modal-steps">
+                        <li>Open <code>/public/data/blogPosts.json</code></li>
+                        <li>Add a new object to the array using the same keys</li>
+                        <li>Use ISO date format: <code>YYYY-MM-DD</code></li>
+                        <li>Add tags as an array of strings</li>
+                        <li>Set <code>featured</code> to <code>true</code> or <code>false</code></li>
+                        <li>Commit and deploy (Vercel will auto-deploy)</li>
+                    </ol>
+                </section>
+
+                <section class="library-modal-section">
+                    <h3>Template:</h3>
+                    <pre class="library-modal-code"><code>{
+  "id": "post-unique-id",
+  "title": "Your Post Title",
+  "url": "https://example.com/your-post",
+  "snippet": "A short description of the post (1-2 sentences).",
+  "tags": ["chess", "tutorial"],
+  "lang": "en",
+  "date": "2026-01-01",
+  "featured": false
+}</code></pre>
+                </section>
+
+                <section class="library-modal-section library-modal-featured">
+                    <h3><i class="fas fa-star"></i> What does "Featured" do?</h3>
+                    <p>Posts with <code>"featured": true</code> appear at the top of the list and get a highlighted gold border, making them stand out from regular posts.</p>
+                </section>
+            </div>
+            <div class="library-modal-footer">
+                <button type="button" class="library-modal-btn" id="closeAddPostModal">Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="library-page.js?v=1.0.1"></script>
+
+    <!-- Auth Scripts -->
+    <script src="js/auth-config.js?v=1.0.0"></script>
+    <script
+        async
+        crossorigin="anonymous"
+        src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+        type="text/javascript"
+    ></script>
+    <script src="js/caissa-logger.js?v=1.0.0" defer></script>
+    <script src="js/caissa-notifications.js?v=1.0.0" defer></script>
+    <script src="js/caissa-auth.js?v=1.0.0" defer></script>
+    <script src="js/caissa-access.js?v=1.0.0" defer></script>
+    <script src="js/caissa-ui-auth.js?v=1.0.0" defer></script>
+</body>
+</html>

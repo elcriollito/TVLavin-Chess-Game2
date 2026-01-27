@@ -1,0 +1,306 @@
+/**
+ * CAISSA Onboarding - UI Styles
+ *
+ * First-time user onboarding modal
+ */
+
+/* Modal Container */
+.onboarding-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.onboarding-modal--visible {
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* Backdrop */
+.onboarding-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+}
+
+/* Content */
+.onboarding-content {
+    position: relative;
+    max-width: 600px;
+    width: 90%;
+    max-height: 85vh;
+    background-color: var(--panel-bg, #1a1f2e);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    padding: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+.onboarding-modal--visible .onboarding-content {
+    transform: scale(1);
+}
+
+/* Skip Button */
+.onboarding-skip {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    color: var(--text-secondary, #b0b8c5);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.onboarding-skip:hover {
+    color: var(--text-primary, #ffffff);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Step Indicator */
+.onboarding-step-indicator {
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--text-secondary, #b0b8c5);
+    font-weight: 500;
+}
+
+/* Step Content */
+.onboarding-step-content {
+    flex: 1;
+    text-align: center;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+/* Icon */
+.onboarding-icon {
+    font-size: 4rem;
+    color: var(--primary-color, #4a9eff);
+    margin-bottom: 1.5rem;
+    animation: onboarding-icon-bounce 0.6s ease;
+}
+
+@keyframes onboarding-icon-bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Title */
+.onboarding-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary, #ffffff);
+    margin-bottom: 1rem;
+}
+
+/* Body */
+.onboarding-body {
+    text-align: left;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.onboarding-body p {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: var(--text-secondary, #b0b8c5);
+    margin-bottom: 1rem;
+}
+
+.onboarding-body strong {
+    color: var(--text-primary, #ffffff);
+    font-weight: 600;
+}
+
+.onboarding-body em {
+    color: var(--text-tertiary, #8892a6);
+    font-style: italic;
+    font-size: 0.95rem;
+}
+
+.onboarding-body a {
+    color: var(--primary-color, #4a9eff);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;
+}
+
+.onboarding-body a:hover {
+    border-bottom-color: var(--primary-color, #4a9eff);
+}
+
+/* Tips List */
+.onboarding-tips-list {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+    text-align: left;
+}
+
+.onboarding-tips-list li {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--text-secondary, #b0b8c5);
+    padding-left: 1.75rem;
+    position: relative;
+    margin-bottom: 0.75rem;
+}
+
+.onboarding-tips-list li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--success-color, #22c55e);
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+/* Footer */
+.onboarding-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.onboarding-footer .btn {
+    flex: 1;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.onboarding-footer .btn-secondary {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary, #b0b8c5);
+}
+
+.onboarding-footer .btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.onboarding-footer .btn-primary {
+    background-color: var(--primary-color, #4a9eff);
+    border: 1px solid var(--primary-color, #4a9eff);
+    color: #ffffff;
+}
+
+.onboarding-footer .btn-primary:hover {
+    background-color: var(--primary-hover, #3a8eef);
+    border-color: var(--primary-hover, #3a8eef);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .onboarding-content {
+        width: 95%;
+        padding: 2rem 1.5rem;
+        max-height: 90vh;
+    }
+
+    .onboarding-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+
+    .onboarding-title {
+        font-size: 1.5rem;
+    }
+
+    .onboarding-body p {
+        font-size: 1rem;
+    }
+
+    .onboarding-footer {
+        flex-direction: column-reverse;
+    }
+
+    .onboarding-footer .btn {
+        width: 100%;
+    }
+
+    .onboarding-skip {
+        top: 0.5rem;
+        right: 0.5rem;
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+    }
+}
+
+/* Dark Mode Support (already using dark colors, but adding explicit support) */
+@media (prefers-color-scheme: dark) {
+    .onboarding-content {
+        background-color: var(--panel-bg, #1a1f2e);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+}
+
+/* Accessibility */
+.onboarding-modal:focus-within .onboarding-skip {
+    outline: 2px solid var(--primary-color, #4a9eff);
+    outline-offset: 2px;
+}
+
+/* Smooth Scrolling for Step Content */
+.onboarding-step-content {
+    scroll-behavior: smooth;
+}
+
+.onboarding-step-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.onboarding-step-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.onboarding-step-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.onboarding-step-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
