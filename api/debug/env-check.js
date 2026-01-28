@@ -4,10 +4,10 @@
  */
 
 export default async function handler(req, res) {
-  // Only allow in development/preview
-  if (process.env.VERCEL_ENV === 'production') {
-    return res.status(404).json({ error: 'Not found' });
-  }
+  // Temporarily allow in production for debugging
+  // if (process.env.VERCEL_ENV === 'production') {
+  //   return res.status(404).json({ error: 'Not found' });
+  // }
 
   const checks = {
     together_api_key: !!process.env.TOGETHER_API_KEY,
