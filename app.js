@@ -1468,7 +1468,26 @@ function setupEventListeners() {
     
     // Export PGN
     document.getElementById('exportPGN').addEventListener('click', exportPGN);
-    
+
+    // Copy FEN to clipboard
+    document.getElementById('copyFEN')?.addEventListener('click', () => {
+        const fen = App.game.fen();
+        navigator.clipboard.writeText(fen).then(() => {
+            // Show brief feedback
+            const btn = document.getElementById('copyFEN');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            btn.classList.add('btn-success');
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.remove('btn-success');
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy FEN:', err);
+            alert('Failed to copy FEN to clipboard');
+        });
+    });
+
     // New Game Modal
     setupNewGameModal();
     

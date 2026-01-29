@@ -64,45 +64,128 @@
     <!-- Main Container -->
     <div id="app" class="app-container">
         
-        <!-- Header -->
-        <header class="header">
+        <!-- Minimal Header (auth only - navigation lives in left sidebar) -->
+        <header class="header header-minimal">
             <div class="header-content">
-                <h1 class="app-title">
-                    <i class="fas fa-chess-knight"></i>
-                    CAISSA Chess
-                    <span class="beta-badge">BETA</span>
-                </h1>
-                <div class="header-controls">
-                    <button id="newGameBtn" class="btn btn-primary" aria-label="Start New Game">
-                        <i class="fas fa-plus"></i> New Game
-                    </button>
-                    <button id="caissaInsightBtn" class="btn btn-highlight" aria-label="Open Caissa Insight">
-                        <i class="fas fa-brain"></i> Caissa Insight
-                        <span id="insightIndicator" class="insight-indicator" style="display: none;"></span>
-                    </button>
-                    <button id="mentorBtn" class="btn btn-secondary" aria-label="Open CAISSA Mentor">
-                        <i class="fas fa-graduation-cap"></i> Mentor
-                    </button>
-                    <button id="resignBtn" class="btn btn-danger" style="display: none;" aria-label="Resign">
-                        <i class="fas fa-flag"></i> Resign
-                    </button>
-                    <button id="engineVsEngineBtn" class="btn btn-secondary" aria-label="Engine vs Engine">
-                        <i class="fas fa-robot"></i> Engine vs Engine
-                    </button>
-                    <a href="/library" class="btn btn-secondary" aria-label="Chess Library">
-                        <i class="fas fa-book-open"></i> Library
-                    </a>
-                    <a href="/premium" class="btn btn-premium" aria-label="Premium & Credits">
-                        <i class="fas fa-crown"></i> Premium
-                    </a>
-                    <button id="menuBtnHeader" class="btn btn-secondary menu-desktop-only" aria-label="Open Menu">
-                        <i class="fas fa-bars"></i> Menu
-                    </button>
+                <!-- Empty left spacer for grid alignment -->
+                <div class="header-spacer"></div>
+
+                <!-- Center: Page context (optional, shown on mobile) -->
+                <div class="header-center">
+                    <span class="header-section-name" id="headerSectionName">Play</span>
+                </div>
+
+                <!-- Right: Auth area -->
+                <div class="header-auth" id="headerAuthArea">
+                    <!-- Auth UI injected by caissa-ui-auth.js -->
                 </div>
             </div>
         </header>
 
-        <!-- Main Content Area -->
+        <!-- Hidden buttons for JS compatibility (keep IDs for existing app.js references) -->
+        <div style="display: none;">
+            <button id="newGameBtn"></button>
+            <button id="caissaInsightBtn"></button>
+            <button id="mentorBtn"></button>
+            <button id="resignBtn"></button>
+            <button id="engineVsEngineBtn"></button>
+            <button id="menuBtnHeader"></button>
+        </div>
+
+        <!-- Mobile Navigation Toggle (visible only on mobile) -->
+        <button id="mobileNavToggle" class="mobile-nav-toggle" aria-label="Open navigation menu">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Vertical Navigation Menu -->
+        <nav id="mainNav" class="main-navigation">
+            <div class="nav-header">
+                <div class="nav-logo">
+                    <i class="fas fa-chess-knight"></i>
+                    <span class="nav-logo-text">CAISSA</span>
+                </div>
+                <button id="navCollapseBtn" class="nav-collapse-btn" aria-label="Collapse navigation">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            </div>
+
+            <!-- Primary Action -->
+            <div class="nav-action">
+                <button id="navNewGameBtn" class="nav-action-btn" aria-label="Start New Game">
+                    <i class="fas fa-plus"></i>
+                    <span class="nav-label">New Game</span>
+                </button>
+            </div>
+
+            <div class="nav-items">
+                <button class="nav-item active" data-section="play" aria-label="Play section">
+                    <i class="fas fa-play-circle"></i>
+                    <span class="nav-label">Play</span>
+                </button>
+
+                <button class="nav-item" data-section="analyze" aria-label="Analyze section">
+                    <i class="fas fa-chart-line"></i>
+                    <span class="nav-label">Analyze</span>
+                </button>
+
+                <button class="nav-item" data-section="insights" aria-label="Insights section">
+                    <i class="fas fa-brain"></i>
+                    <span class="nav-label">Insights</span>
+                </button>
+
+                <button class="nav-item" data-section="history" aria-label="History section">
+                    <i class="fas fa-history"></i>
+                    <span class="nav-label">History</span>
+                </button>
+
+                <button class="nav-item" data-section="arena" aria-label="Arena section">
+                    <i class="fas fa-robot"></i>
+                    <span class="nav-label">Arena</span>
+                </button>
+
+                <div class="nav-divider"></div>
+
+                <button class="nav-item nav-item-tool" data-section="mentor" aria-label="Open Mentor AI">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span class="nav-label">Mentor</span>
+                </button>
+
+                <button class="nav-item nav-item-tool" data-section="library" aria-label="Open Game Library">
+                    <i class="fas fa-database"></i>
+                    <span class="nav-label">Game Library</span>
+                </button>
+
+                <a href="https://caissa.blog" target="_blank" class="nav-item nav-item-external" aria-label="Visit CAISSA Blog">
+                    <i class="fas fa-rss"></i>
+                    <span class="nav-label">Blog</span>
+                    <i class="fas fa-external-link-alt nav-external-icon"></i>
+                </a>
+
+                <button class="nav-item nav-item-premium" data-section="premium" aria-label="Premium section">
+                    <i class="fas fa-crown"></i>
+                    <span class="nav-label">Premium</span>
+                </button>
+            </div>
+
+            <div class="nav-footer">
+                <button class="nav-item" data-section="help" aria-label="Help and FAQ">
+                    <i class="fas fa-question-circle"></i>
+                    <span class="nav-label">Help</span>
+                </button>
+                <button class="nav-item" data-section="settings" aria-label="Settings section">
+                    <i class="fas fa-cog"></i>
+                    <span class="nav-label">Settings</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Content Area (replaces main-content) -->
+        <main id="mainContent" class="content-area">
+
+            <!-- SECTION: PLAY (Active by default - wraps existing content) -->
+            <section id="playSection" class="content-section active">
+
+        <!-- Main Content Area (Legacy - now inside playSection) -->
         <div class="main-content">
             
             <!-- Left Sidebar - Game Info -->
@@ -408,14 +491,28 @@
                         <button id="flipBoard" class="btn btn-block" aria-label="Flip board">
                             <i class="fas fa-exchange-alt"></i> Flip Board
                         </button>
-                        <button id="pasteFEN" class="btn btn-block" aria-label="Paste FEN">
-                            <i class="fas fa-file-import"></i> Paste FEN
-                        </button>
-                        <button id="editBoard" class="btn btn-block" aria-label="Edit board">
-                            <i class="fas fa-edit"></i> Edit Board
-                        </button>
                         <button id="analyzeGame" class="btn btn-block btn-highlight" aria-label="Analyze game">
                             <i class="fas fa-chart-line"></i> Analyze Game
+                        </button>
+
+                        <!-- Export Section -->
+                        <div class="quick-actions-divider"></div>
+                        <div class="export-actions">
+                            <button id="copyFEN" class="btn btn-small" aria-label="Copy FEN to clipboard" title="Copy current position FEN">
+                                <i class="fas fa-copy"></i> Copy FEN
+                            </button>
+                            <button id="exportPGN" class="btn btn-small" aria-label="Export PGN" title="Download game as PGN">
+                                <i class="fas fa-download"></i> Export PGN
+                            </button>
+                        </div>
+
+                        <!-- Board Tools -->
+                        <div class="quick-actions-divider"></div>
+                        <button id="pasteFEN" class="btn btn-block btn-secondary" aria-label="Paste FEN">
+                            <i class="fas fa-file-import"></i> Paste FEN
+                        </button>
+                        <button id="editBoard" class="btn btn-block btn-secondary" aria-label="Edit board">
+                            <i class="fas fa-edit"></i> Edit Board
                         </button>
                     </div>
                 </div>
@@ -462,7 +559,378 @@
 
             </aside>
         </div>
+        <!-- End legacy main-content -->
+
+            </section>
+            <!-- End PLAY Section -->
+
+            <!-- SECTION: ANALYZE (Game Analysis) -->
+            <section id="analyzeSection" class="content-section">
+                <div class="analyze-layout">
+                    <!-- Left: Import & Board -->
+                    <div class="analyze-main">
+                        <div class="analyze-header">
+                            <h2><i class="fas fa-chart-line"></i> Analyze Games</h2>
+                            <p>Import games and analyze with Stockfish engine</p>
+                        </div>
+
+                        <!-- Source Selection Tabs -->
+                        <div class="analyze-tabs">
+                            <button class="analyze-tab active" data-source="online">
+                                <i class="fas fa-cloud"></i>
+                                <span>Chess.com / Lichess</span>
+                            </button>
+                            <button class="analyze-tab" data-source="pgn">
+                                <i class="fas fa-file-alt"></i>
+                                <span>PGN Upload</span>
+                            </button>
+                            <button class="analyze-tab" data-source="caissa">
+                                <i class="fas fa-chess-knight"></i>
+                                <span>My Games</span>
+                            </button>
+                        </div>
+
+                        <!-- Online Import Panel -->
+                        <div class="analyze-panel active" id="analyzePanelOnline">
+                            <div class="analyze-form-grid">
+                                <div class="form-group">
+                                    <label for="analyzeProvider">Platform:</label>
+                                    <select id="analyzeProvider" class="form-control">
+                                        <option value="lichess">Lichess</option>
+                                        <option value="chess.com">Chess.com</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="analyzeUsername">Username:</label>
+                                    <input type="text" id="analyzeUsername" class="form-control" placeholder="e.g. Magnus_Carlsen">
+                                </div>
+                                <div class="form-group">
+                                    <label for="analyzeGameCount">Games:</label>
+                                    <select id="analyzeGameCount" class="form-control">
+                                        <option value="5">Last 5</option>
+                                        <option value="10" selected>Last 10</option>
+                                        <option value="20">Last 20</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button id="analyzeFetchBtn" class="btn btn-primary btn-block">
+                                <i class="fas fa-download"></i> Fetch Games
+                            </button>
+                        </div>
+
+                        <!-- PGN Upload Panel -->
+                        <div class="analyze-panel" id="analyzePanelPgn">
+                            <div class="form-group">
+                                <label for="analyzePgnInput">Paste PGN:</label>
+                                <textarea id="analyzePgnInput" class="form-control" rows="6" placeholder="[Event &quot;...&quot;]&#10;[White &quot;...&quot;]&#10;&#10;1. e4 e5..."></textarea>
+                            </div>
+                            <div class="analyze-file-row">
+                                <label for="analyzePgnFile" class="btn btn-secondary">
+                                    <i class="fas fa-folder-open"></i> Load .pgn file
+                                </label>
+                                <input type="file" id="analyzePgnFile" accept=".pgn" style="display: none;">
+                                <span id="analyzePgnFileName" class="file-name"></span>
+                            </div>
+                            <button id="analyzeLoadPgnBtn" class="btn btn-primary btn-block">
+                                <i class="fas fa-upload"></i> Load PGN
+                            </button>
+                        </div>
+
+                        <!-- CAISSA Games Panel -->
+                        <div class="analyze-panel" id="analyzePanelCaissa">
+                            <div class="caissa-games-info">
+                                <i class="fas fa-info-circle"></i>
+                                <p>Select a game from your Library to analyze it with Stockfish.</p>
+                            </div>
+                            <button id="analyzeOpenLibrary" class="btn btn-primary btn-block">
+                                <i class="fas fa-book"></i> Open Library
+                            </button>
+                        </div>
+
+                        <!-- Board Zone -->
+                        <div class="board-zone analyze-board-zone">
+                            <!-- Board moves here when section is active -->
+                        </div>
+                    </div>
+
+                    <!-- Right: Analysis Panel -->
+                    <aside class="context-panel">
+                        <!-- Game Metadata -->
+                        <div class="panel">
+                            <h3 class="panel-title">Game Info</h3>
+                            <div class="analyze-metadata">
+                                <div class="metadata-row">
+                                    <span class="metadata-label">Source:</span>
+                                    <span id="analyzeGameSource" class="metadata-value badge">-</span>
+                                </div>
+                                <div class="metadata-row">
+                                    <span class="metadata-label">White:</span>
+                                    <span id="analyzeWhitePlayer" class="metadata-value">-</span>
+                                </div>
+                                <div class="metadata-row">
+                                    <span class="metadata-label">Black:</span>
+                                    <span id="analyzeBlackPlayer" class="metadata-value">-</span>
+                                </div>
+                                <div class="metadata-row">
+                                    <span class="metadata-label">Result:</span>
+                                    <span id="analyzeGameResult" class="metadata-value">-</span>
+                                </div>
+                                <div class="metadata-row">
+                                    <span class="metadata-label">Engine:</span>
+                                    <span class="metadata-value">Stockfish 16</span>
+                                </div>
+                                <div class="metadata-row">
+                                    <span class="metadata-label">Status:</span>
+                                    <span id="analyzeStatus" class="metadata-value badge badge-ready">Ready</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Analysis Controls -->
+                        <div class="panel">
+                            <h3 class="panel-title">Analysis</h3>
+                            <div class="analyze-controls">
+                                <button id="analyzeStartBtn" class="btn btn-highlight btn-block">
+                                    <i class="fas fa-brain"></i> Analyze Game
+                                </button>
+                                <button id="analyzeStopBtn" class="btn btn-secondary btn-block" style="display: none;">
+                                    <i class="fas fa-stop"></i> Stop Analysis
+                                </button>
+                                <div id="analyzeProgressBar" class="analyze-progress" style="display: none;">
+                                    <div class="progress-bar-container">
+                                        <div id="analyzeProgressFill" class="progress-bar" style="width: 0%;"></div>
+                                    </div>
+                                    <span id="analyzeProgressText">0%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Move List -->
+                        <div class="panel">
+                            <h3 class="panel-title">Moves</h3>
+                            <div id="analyzeMoveList" class="analyze-move-list">
+                                <p class="empty-state">Load a game to see moves</p>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+
+            <!-- SECTION: INSIGHTS (Performance Analysis) -->
+            <section id="insightsSection" class="content-section">
+                <div class="insights-container">
+                    <div class="insights-hero">
+                        <div class="insights-hero-content">
+                            <h1><i class="fas fa-brain"></i> Caissa Insight</h1>
+                            <p class="insights-tagline">
+                                Discover your playing profile by analyzing your games.
+                                CAISSA will reveal your strengths, weaknesses, and paths for improvement.
+                            </p>
+                            <button id="openInsightModal" class="btn btn-primary btn-large">
+                                <i class="fas fa-chart-line"></i> Start Profile Analysis
+                            </button>
+                        </div>
+                        <div class="insights-features">
+                            <div class="insight-feature-card">
+                                <i class="fas fa-chess-board"></i>
+                                <h3>Import Games</h3>
+                                <p>From Chess.com, Lichess, or PGN files</p>
+                            </div>
+                            <div class="insight-feature-card">
+                                <i class="fas fa-chart-bar"></i>
+                                <h3>Deep Analysis</h3>
+                                <p>Stockfish-powered position evaluation</p>
+                            </div>
+                            <div class="insight-feature-card">
+                                <i class="fas fa-graduation-cap"></i>
+                                <h3>AI Coach Report</h3>
+                                <p>Personalized recommendations</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="insights-info">
+                        <h2>What You'll Discover</h2>
+                        <div class="insights-info-grid">
+                            <div class="info-item">
+                                <i class="fas fa-crosshairs"></i>
+                                <h4>Accuracy by Phase</h4>
+                                <p>See how you perform in opening, middlegame, and endgame</p>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <h4>Common Mistakes</h4>
+                                <p>Identify patterns in blunders, mistakes, and inaccuracies</p>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-clock"></i>
+                                <h4>Time Management</h4>
+                                <p>Analyze how time control affects your play</p>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-trophy"></i>
+                                <h4>Win Conditions</h4>
+                                <p>Learn what positions lead to your victories</p>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-chess-knight"></i>
+                                <h4>Playing Style</h4>
+                                <p>Tactical vs Positional, Aggressive vs Solid</p>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-book-open"></i>
+                                <h4>Opening Repertoire</h4>
+                                <p>Most played openings and their success rates</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="insights-cta">
+                        <h2>Ready to improve your game?</h2>
+                        <p>Start analyzing your games now and get personalized coaching insights</p>
+                        <button id="openInsightModal2" class="btn btn-highlight btn-large">
+                            <i class="fas fa-brain"></i> Launch Caissa Insight
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: HISTORY (Game Management) -->
+            <section id="historySection" class="content-section">
+                <div class="history-container">
+                    <div class="history-hero">
+                        <i class="fas fa-history" style="font-size: 64px; color: var(--primary-color); margin-bottom: 20px;"></i>
+                        <h1>Game History</h1>
+                        <p class="history-description">
+                            Browse, filter, and manage all your games in one place
+                        </p>
+                    </div>
+
+                    <div class="history-features">
+                        <div class="history-feature-card">
+                            <i class="fas fa-search"></i>
+                            <h3>Quick Search</h3>
+                            <p>Find games by player name, opening, or result</p>
+                        </div>
+                        <div class="history-feature-card">
+                            <i class="fas fa-filter"></i>
+                            <h3>Smart Filters</h3>
+                            <p>Filter by source, time control, or date range</p>
+                        </div>
+                        <div class="history-feature-card">
+                            <i class="fas fa-chart-line"></i>
+                            <h3>Quick Actions</h3>
+                            <p>Resume, Share, or Analyze any game with one click</p>
+                        </div>
+                    </div>
+
+                    <div class="history-placeholder">
+                        <div class="placeholder-content">
+                            <i class="fas fa-hammer" style="font-size: 48px; color: var(--text-secondary); margin-bottom: 16px;"></i>
+                            <h2>Under Construction</h2>
+                            <p>
+                                The full game history browser is coming soon!
+                                <br>
+                                For now, you can access your saved games through the <strong>Library</strong> panel.
+                            </p>
+                            <button id="openLibraryFromHistory" class="btn btn-primary" style="margin-top: 20px;">
+                                <i class="fas fa-book"></i> Open Library
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: ARENA (Engine vs Engine) -->
+            <section id="arenaSection" class="content-section">
+                <div class="arena-layout">
+                    <!-- Left: Board Zone -->
+                    <div class="board-zone">
+                        <!-- Board will move here when section is active -->
+                    </div>
+
+                    <!-- Right: Engine Controls -->
+                    <aside class="context-panel">
+                        <div class="panel">
+                            <h3 class="panel-title">Engine vs Engine</h3>
+                            <div class="eve-content">
+                                <div class="form-group">
+                                    <label>White Engine:</label>
+                                    <div class="engine-strength-display">
+                                        <i class="fas fa-bolt"></i>
+                                        <span>FULL POWER</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Black Engine:</label>
+                                    <div class="engine-strength-display">
+                                        <i class="fas fa-bolt"></i>
+                                        <span>FULL POWER</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="eveMoveDelayArena">Move Delay (ms):</label>
+                                    <input type="number" id="eveMoveDelayArena" class="form-control" value="1000" min="100" max="5000" step="100" aria-label="Move delay in milliseconds">
+                                    <small class="form-text">Time between moves (100-5000ms)</small>
+                                </div>
+
+                                <div class="eve-controls">
+                                    <button id="startEveArena" class="btn btn-block btn-primary" aria-label="Start match">
+                                        <i class="fas fa-play"></i> Start Match
+                                    </button>
+                                    <button id="pauseEveArena" class="btn btn-block btn-secondary" style="display: none;" aria-label="Pause">
+                                        <i class="fas fa-pause"></i> Pause
+                                    </button>
+                                    <button id="resumeEveArena" class="btn btn-block btn-primary" style="display: none;" aria-label="Resume">
+                                        <i class="fas fa-play"></i> Resume
+                                    </button>
+                                    <button id="stopEveArena" class="btn btn-block btn-secondary" style="display: none;" aria-label="Stop">
+                                        <i class="fas fa-stop"></i> Stop
+                                    </button>
+                                </div>
+
+                                <div class="arena-stats" style="margin-top: 20px; padding: 12px; background: rgba(0,0,0,0.05); border-radius: 8px;">
+                                    <h4 style="margin: 0 0 8px 0; font-size: 14px;">Match Stats</h4>
+                                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                                        <span>Moves: <strong id="arenaMoveCount">0</strong></span>
+                                        <span>Status: <strong id="arenaStatus">Ready</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Game Status Panel -->
+                        <div class="panel">
+                            <h3 class="panel-title">Game Status</h3>
+                            <div class="game-status-content">
+                                <div class="status-item">
+                                    <span class="status-label">Turn:</span>
+                                    <span id="arenaTurn" class="status-value">White</span>
+                                </div>
+                                <div class="timer-display">
+                                    <div class="timer white-timer">
+                                        <i class="fas fa-chess-king"></i>
+                                        <span id="arenaWhiteTime">--:--</span>
+                                    </div>
+                                    <div class="timer black-timer">
+                                        <i class="fas fa-chess-king"></i>
+                                        <span id="arenaBlackTime">--:--</span>
+                                    </div>
+                                </div>
+                                <div class="game-result" id="arenaResult" aria-live="assertive"></div>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+
+        </main>
+        <!-- End content-area -->
+
     </div>
+    <!-- End app-container -->
 
     <!-- Modals -->
     
@@ -592,8 +1060,9 @@
                     <button class="btn btn-block" id="menuMentor">
                         <i class="fas fa-graduation-cap"></i> CAISSA Mentor
                     </button>
-                    <button class="btn btn-block" id="menuCheaterInsight">
-                        <i class="fas fa-user-shield"></i> Cheater Insight (Chess.com)
+                    <button class="btn btn-block btn-premium-feature" id="menuCheaterInsight">
+                        <i class="fas fa-user-shield"></i> Cheater Insight
+                        <span class="premium-badge"><i class="fas fa-crown"></i> Premium</span>
                     </button>
                     <button class="btn btn-block" id="menuEmbed">
                         <i class="fas fa-code"></i> Get Embed Code
@@ -1189,6 +1658,129 @@
         </div>
     </div>
 
+    <!-- Help / FAQ Modal -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2><i class="fas fa-question-circle"></i> Help & Quick Start</h2>
+                <button class="modal-close" data-modal="helpModal" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body help-modal-body">
+                <!-- Quick Start -->
+                <div class="help-section help-quickstart">
+                    <h3><i class="fas fa-rocket"></i> Quick Start Guide</h3>
+                    <div class="help-steps">
+                        <div class="help-step">
+                            <span class="step-number">1</span>
+                            <div class="step-content">
+                                <strong>Start a Game</strong>
+                                <p>Click "New Game" to play against Stockfish or watch Engine vs Engine.</p>
+                            </div>
+                        </div>
+                        <div class="help-step">
+                            <span class="step-number">2</span>
+                            <div class="step-content">
+                                <strong>Analyze Your Games</strong>
+                                <p>Go to Analyze to import games from Chess.com/Lichess or paste PGN.</p>
+                            </div>
+                        </div>
+                        <div class="help-step">
+                            <span class="step-number">3</span>
+                            <div class="step-content">
+                                <strong>Get AI Coaching</strong>
+                                <p>Open Mentor for personalized explanations and learning tips.</p>
+                            </div>
+                        </div>
+                        <div class="help-step">
+                            <span class="step-number">4</span>
+                            <div class="step-content">
+                                <strong>Save & Review</strong>
+                                <p>Use Game Library to save positions and review later.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Guide -->
+                <div class="help-section">
+                    <h3><i class="fas fa-compass"></i> Navigation Guide</h3>
+                    <div class="help-grid">
+                        <div class="help-item">
+                            <i class="fas fa-play-circle"></i>
+                            <strong>Play</strong>
+                            <p>Play against Stockfish engine at any difficulty level.</p>
+                        </div>
+                        <div class="help-item">
+                            <i class="fas fa-chart-line"></i>
+                            <strong>Analyze</strong>
+                            <p>Import and analyze games with move-by-move engine evaluation.</p>
+                        </div>
+                        <div class="help-item">
+                            <i class="fas fa-brain"></i>
+                            <strong>Insights</strong>
+                            <p>Get AI-powered game reports and improvement suggestions.</p>
+                        </div>
+                        <div class="help-item">
+                            <i class="fas fa-robot"></i>
+                            <strong>Arena</strong>
+                            <p>Watch engine vs engine matches for learning.</p>
+                        </div>
+                        <div class="help-item">
+                            <i class="fas fa-graduation-cap"></i>
+                            <strong>Mentor</strong>
+                            <p>AI chess coach for explanations and advice.</p>
+                        </div>
+                        <div class="help-item">
+                            <i class="fas fa-database"></i>
+                            <strong>Game Library</strong>
+                            <p>Save and organize your positions and games.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ -->
+                <div class="help-section">
+                    <h3><i class="fas fa-comments"></i> Frequently Asked Questions</h3>
+                    <div class="help-faq">
+                        <details class="faq-item">
+                            <summary>How do I change engine difficulty?</summary>
+                            <p>In the Play section, use "Engine Settings" panel on the right to adjust Stockfish strength from beginner to maximum.</p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>Can I import my Chess.com/Lichess games?</summary>
+                            <p>Yes! Go to Analyze section, enter your username, and CAISSA will fetch your recent games for analysis.</p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>What is Caissa Insight?</summary>
+                            <p>Caissa Insight analyzes your games and generates a personalized coaching report with strengths, weaknesses, and improvement tips.</p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>Is my data stored?</summary>
+                            <p>CAISSA stores data locally in your browser. Game Library uses IndexedDB. No data is sent to external servers except when using AI features.</p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>How do I use Mentor AI?</summary>
+                            <p>Click Mentor in the sidebar, send the current position, then ask questions about plans, moves, or concepts.</p>
+                        </details>
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                <div class="help-actions">
+                    <button class="btn btn-primary" onclick="document.getElementById('helpModal').classList.remove('show'); CaissaNavigation.navigateToSection('play');">
+                        <i class="fas fa-play"></i> Start Playing
+                    </button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('helpModal').classList.remove('show'); CaissaNavigation.navigateToSection('analyze');">
+                        <i class="fas fa-chart-line"></i> Analyze Games
+                    </button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('helpModal').classList.remove('show'); CaissaNavigation.openMentorPanel();">
+                        <i class="fas fa-graduation-cap"></i> Open Mentor
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- CAISSA Mentor AI Panel (Slide-out) -->
     <div id="mentorPanel" class="mentor-panel">
         <div class="mentor-header">
@@ -1448,6 +2040,13 @@
     <script src="query-engine-ui.js?v=1.0.0"></script>
     <script src="position-forge.js?v=1.0.0"></script>
     <script src="position-forge-ui.js?v=1.0.0"></script>
+    <!-- Navigation Module (Phase 1: UX Redesign) -->
+    <script src="js/caissa-navigation.js?v=1.0.0"></script>
+    <!-- Section Modules (Phase 2) -->
+    <script src="js/arena-section.js?v=1.0.0"></script>
+    <script src="js/insights-section.js?v=1.0.0"></script>
+    <script src="js/history-section.js?v=1.0.0"></script>
+    <script src="js/analyze-section.js?v=1.0.0"></script>
     <script src="app.js?v=2.0.1"></script>
 
     <!-- Auth Scripts -->
