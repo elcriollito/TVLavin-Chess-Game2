@@ -3,30 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; script-src-elem 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https://img.clerk.com https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://api.chess.com https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://api.stripe.com; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://checkout.stripe.com https://js.stripe.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; script-src-elem 'self' 'unsafe-inline' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https://img.clerk.com https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://api.chess.com https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://api.stripe.com; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://checkout.stripe.com https://js.stripe.com;">
 
     <!-- Primary Meta Tags -->
-    <title>Premium & Credits – CAISSA Chess</title>
-    <meta name="title" content="Premium & Credits – CAISSA Chess">
-    <meta name="description" content="Unlock CAISSA Core subscription and purchase Insight credits for AI-powered chess analysis.">
+    <title>Premium Plans – CAISSA Chess</title>
+    <meta name="title" content="Premium Plans – CAISSA Chess">
+    <meta name="description" content="Choose your plan. Unlock Mentor, deeper insights, and premium tools to improve your game.">
     <link rel="canonical" href="https://www.caissa-chess.org/premium" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.caissa-chess.org/premium">
-    <meta property="og:title" content="Premium & Credits – CAISSA Chess">
-    <meta property="og:description" content="Unlock CAISSA Core subscription and purchase Insight credits for AI-powered chess analysis.">
+    <meta property="og:title" content="Premium Plans – CAISSA Chess">
+    <meta property="og:description" content="Choose your plan. Unlock Mentor, deeper insights, and premium tools.">
     <meta property="og:image" content="https://www.caissa-chess.org/og-image.png">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://www.caissa-chess.org/premium">
-    <meta name="twitter:title" content="Premium & Credits – CAISSA Chess">
-    <meta name="twitter:description" content="Unlock CAISSA Core subscription and purchase Insight credits for AI-powered chess analysis.">
+    <meta name="twitter:title" content="Premium Plans – CAISSA Chess">
+    <meta name="twitter:description" content="Choose your plan. Unlock Mentor, deeper insights, and premium tools.">
 
     <!-- Additional Meta Tags -->
     <meta name="robots" content="index, follow">
-    <meta name="theme-color" content="#0b0f1a">
+    <meta name="theme-color" content="#f7f8fb">
 
     <!-- Favicon and App Icons -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico?v=4">
@@ -35,11 +35,14 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4">
     <link rel="manifest" href="/manifest.json?v=4">
 
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <!-- Stylesheets -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="styles.css?v=2.0.1">
-    <link rel="stylesheet" href="caissa-premium.css?v=1.0.0">
-    <link rel="stylesheet" href="css/caissa-auth.css?v=1.0.0">
+    <link rel="stylesheet" href="caissa-premium.css?v=2.0.0">
 </head>
 <body class="premium-page-body">
     <!-- Navigation Header -->
@@ -51,13 +54,12 @@
             </a>
             <nav class="premium-nav-links">
                 <a href="/" class="premium-nav-link">
-                    <i class="fas fa-chess-board"></i> Play
-                </a>
-                <a href="/library" class="premium-nav-link">
-                    <i class="fas fa-book-open"></i> Library
+                    <i class="fas fa-chess-board"></i>
+                    <span>Play</span>
                 </a>
                 <a href="/premium" class="premium-nav-link active">
-                    <i class="fas fa-crown"></i> Premium
+                    <i class="fas fa-crown"></i>
+                    <span>Premium</span>
                 </a>
             </nav>
         </div>
@@ -65,200 +67,347 @@
 
     <!-- Main Content -->
     <main class="premium-main">
-        <!-- Page Header -->
+        <!-- Hero Section -->
         <section class="premium-hero">
-            <div class="premium-hero-icon">
-                <i class="fas fa-crown"></i>
-            </div>
-            <h1 class="premium-hero-title">Unlock CAISSA Core</h1>
+            <h1 class="premium-hero-title">Choose your plan.</h1>
             <p class="premium-hero-subtitle">
-                Enhance your chess experience with premium features and AI-powered analysis
+                Unlock Mentor, deeper insights, and premium tools to improve your game.
             </p>
+            <div class="premium-hero-cta">
+                <a href="#comparison" class="btn-primary-hero">
+                    <i class="fas fa-crown"></i> Try Platinum
+                </a>
+                <a href="#comparison" class="btn-secondary-hero">
+                    Compare plans
+                </a>
+            </div>
+            <p class="premium-hero-note">Cancel anytime. No commitment required.</p>
         </section>
-
-        <!-- Wallet Status Banner (populated by JS) -->
-        <section id="walletStatusBanner" class="premium-wallet-banner hidden"></section>
 
         <!-- Billing Toggle -->
         <section class="premium-billing-toggle">
-            <span class="billing-label" data-period="monthly">Monthly</span>
+            <span class="billing-label active" data-period="monthly">Monthly</span>
             <button type="button" class="billing-switch" id="billingToggle" aria-label="Toggle billing period">
                 <span class="billing-switch-thumb"></span>
             </button>
             <span class="billing-label" data-period="annual">
-                Annual
-                <span class="billing-save-badge">Save 17%</span>
+                Yearly
+                <span class="billing-save-badge">Save 35%</span>
             </span>
         </section>
 
-        <!-- Subscription Card -->
-        <section class="premium-subscription-section">
-            <div class="premium-card subscription-card">
-                <div class="subscription-header">
-                    <div class="subscription-icon">
-                        <i class="fas fa-chess-knight"></i>
-                    </div>
-                    <h2 class="subscription-title">CAISSA Core</h2>
-                    <p class="subscription-tagline">Full access to premium features</p>
-                </div>
+        <!-- Comparison Table Section -->
+        <section class="premium-comparison-section" id="comparison">
+            <!-- Desktop Table -->
+            <div class="comparison-table-wrapper">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Features</th>
+                            <th class="plan-header">
+                                <div class="plan-name">Free</div>
+                                <div class="plan-price" data-monthly="$0" data-yearly="$0">$0</div>
+                                <div class="plan-price-period">forever</div>
+                                <a href="/" class="plan-cta plan-cta-free">Current plan</a>
+                            </th>
+                            <th class="plan-header">
+                                <div class="plan-name">Silver</div>
+                                <div class="plan-price" data-monthly="$5" data-yearly="$39">$5</div>
+                                <div class="plan-price-period">/month</div>
+                                <button type="button" class="plan-cta plan-cta-upgrade">Upgrade</button>
+                            </th>
+                            <th class="plan-header">
+                                <div class="plan-name">Gold</div>
+                                <div class="plan-price" data-monthly="$12" data-yearly="$89">$12</div>
+                                <div class="plan-price-period">/month</div>
+                                <button type="button" class="plan-cta plan-cta-upgrade">Upgrade</button>
+                            </th>
+                            <th class="plan-header plan-platinum">
+                                <span class="plan-popular-badge">Most Popular</span>
+                                <div class="plan-name">Platinum</div>
+                                <div class="plan-price" data-monthly="$19" data-yearly="$149">$19</div>
+                                <div class="plan-price-period">/month</div>
+                                <button type="button" class="plan-cta plan-cta-popular">Try Platinum</button>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- CORE -->
+                        <tr class="category-row">
+                            <td><i class="fas fa-chess-board"></i> Core</td>
+                            <td></td><td></td><td></td><td class="plan-platinum"></td>
+                        </tr>
+                        <tr>
+                            <td>Play vs engine</td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td class="plan-platinum"><i class="fas fa-check feature-check"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Analyze board</td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td class="plan-platinum"><i class="fas fa-check feature-check"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Paste FEN</td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td class="plan-platinum"><i class="fas fa-check feature-check"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Copy FEN</td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td class="plan-platinum"><i class="fas fa-check feature-check"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Export PGN</td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td class="plan-platinum"><i class="fas fa-check feature-check"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Edit Board</td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td class="plan-platinum"><i class="fas fa-check feature-check"></i></td>
+                        </tr>
 
-                <div class="subscription-pricing">
-                    <div class="price-display" data-period="monthly">
-                        <span class="price-currency">$</span>
-                        <span class="price-amount">9</span>
-                        <span class="price-period">/month</span>
-                    </div>
-                    <div class="price-display" data-period="annual" style="display: none;">
-                        <span class="price-currency">$</span>
-                        <span class="price-amount">89</span>
-                        <span class="price-period">/year</span>
-                        <span class="price-savings">($7.42/mo)</span>
-                    </div>
-                </div>
+                        <!-- AI / MENTOR -->
+                        <tr class="category-row">
+                            <td><i class="fas fa-brain"></i> AI / Mentor</td>
+                            <td></td><td></td><td></td><td class="plan-platinum"></td>
+                        </tr>
+                        <tr>
+                            <td>CAISSA Mentor</td>
+                            <td><span class="feature-coming"><i class="fas fa-clock"></i> 5/day</span></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td class="plan-platinum"><i class="fas fa-check feature-check"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Explanation modes</td>
+                            <td><i class="fas fa-lock feature-locked"></i></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td class="plan-platinum"><i class="fas fa-check feature-check"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Advanced mentor modes</td>
+                            <td><i class="fas fa-lock feature-locked"></i></td>
+                            <td><i class="fas fa-lock feature-locked"></i></td>
+                            <td><span class="feature-coming"><i class="fas fa-tools"></i> Coming Soon</span></td>
+                            <td class="plan-platinum"><span class="feature-coming"><i class="fas fa-tools"></i> Coming Soon</span></td>
+                        </tr>
 
-                <ul class="subscription-features">
-                    <li>
-                        <i class="fas fa-check"></i>
-                        <span>Unlimited game analysis</span>
-                    </li>
-                    <li>
-                        <i class="fas fa-check"></i>
-                        <span>Advanced Stockfish depth (40+)</span>
-                    </li>
-                    <li>
-                        <i class="fas fa-check"></i>
-                        <span>Cloud position library sync</span>
-                    </li>
-                    <li>
-                        <i class="fas fa-check"></i>
-                        <span>Priority engine processing</span>
-                    </li>
-                    <li>
-                        <i class="fas fa-check"></i>
-                        <span>50 Insight credits/month included</span>
-                    </li>
-                    <li>
-                        <i class="fas fa-check"></i>
-                        <span>Ad-free experience</span>
-                    </li>
-                </ul>
+                        <!-- INSIGHTS -->
+                        <tr class="category-row">
+                            <td><i class="fas fa-chart-line"></i> Insights</td>
+                            <td></td><td></td><td></td><td class="plan-platinum"></td>
+                        </tr>
+                        <tr>
+                            <td>CAISSA Insight (profile)</td>
+                            <td><span class="feature-coming"><i class="fas fa-clock"></i> 3/month</span></td>
+                            <td><span class="feature-coming"><i class="fas fa-clock"></i> 10/month</span></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td class="plan-platinum"><i class="fas fa-check feature-check"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Deep pattern recognition</td>
+                            <td><i class="fas fa-lock feature-locked"></i></td>
+                            <td><i class="fas fa-lock feature-locked"></i></td>
+                            <td><span class="feature-coming"><i class="fas fa-tools"></i> Coming Soon</span></td>
+                            <td class="plan-platinum"><span class="feature-coming"><i class="fas fa-tools"></i> Coming Soon</span></td>
+                        </tr>
+                        <tr>
+                            <td>Multi-account insights</td>
+                            <td><i class="fas fa-lock feature-locked"></i></td>
+                            <td><i class="fas fa-lock feature-locked"></i></td>
+                            <td><i class="fas fa-lock feature-locked"></i></td>
+                            <td class="plan-platinum"><span class="feature-coming"><i class="fas fa-tools"></i> Coming Soon</span></td>
+                        </tr>
 
-                <button type="button" class="subscription-cta" id="subscribeBtn">
-                    <i class="fas fa-unlock"></i>
-                    Subscribe Now
-                </button>
+                        <!-- ANTI-CHEAT -->
+                        <tr class="category-row">
+                            <td><i class="fas fa-shield-alt"></i> Anti-cheat</td>
+                            <td></td><td></td><td></td><td class="plan-platinum"></td>
+                        </tr>
+                        <tr>
+                            <td>Cheater Insight (Chess.com)</td>
+                            <td><i class="fas fa-lock feature-locked"></i></td>
+                            <td><i class="fas fa-lock feature-locked"></i></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td class="plan-platinum"><i class="fas fa-check feature-check"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Export cheater report</td>
+                            <td><i class="fas fa-lock feature-locked"></i></td>
+                            <td><i class="fas fa-lock feature-locked"></i></td>
+                            <td><span class="feature-coming"><i class="fas fa-tools"></i> Coming Soon</span></td>
+                            <td class="plan-platinum"><span class="feature-coming"><i class="fas fa-tools"></i> Coming Soon</span></td>
+                        </tr>
 
-                <p class="subscription-note">
-                    Cancel anytime. No commitment required.
-                </p>
+                        <!-- LIBRARY -->
+                        <tr class="category-row">
+                            <td><i class="fas fa-database"></i> Library</td>
+                            <td></td><td></td><td></td><td class="plan-platinum"></td>
+                        </tr>
+                        <tr>
+                            <td>Game Library</td>
+                            <td><span class="feature-coming"><i class="fas fa-clock"></i> 50 games</span></td>
+                            <td><span class="feature-coming"><i class="fas fa-clock"></i> 500 games</span></td>
+                            <td><i class="fas fa-check feature-check"></i> Unlimited</td>
+                            <td class="plan-platinum"><i class="fas fa-check feature-check"></i> Unlimited</td>
+                        </tr>
+                        <tr>
+                            <td>Tags & Collections</td>
+                            <td><i class="fas fa-lock feature-locked"></i></td>
+                            <td><span class="feature-coming"><i class="fas fa-tools"></i> Coming Soon</span></td>
+                            <td><span class="feature-coming"><i class="fas fa-tools"></i> Coming Soon</span></td>
+                            <td class="plan-platinum"><span class="feature-coming"><i class="fas fa-tools"></i> Coming Soon</span></td>
+                        </tr>
+                        <tr>
+                            <td>Cloud sync</td>
+                            <td><i class="fas fa-lock feature-locked"></i></td>
+                            <td><i class="fas fa-lock feature-locked"></i></td>
+                            <td><span class="feature-coming"><i class="fas fa-tools"></i> Coming Soon</span></td>
+                            <td class="plan-platinum"><span class="feature-coming"><i class="fas fa-tools"></i> Coming Soon</span></td>
+                        </tr>
+
+                        <!-- ARENA -->
+                        <tr class="category-row">
+                            <td><i class="fas fa-robot"></i> Arena</td>
+                            <td></td><td></td><td></td><td class="plan-platinum"></td>
+                        </tr>
+                        <tr>
+                            <td>Engine vs Engine</td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td><i class="fas fa-check feature-check"></i></td>
+                            <td class="plan-platinum"><i class="fas fa-check feature-check"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Tournament presets</td>
+                            <td><i class="fas fa-lock feature-locked"></i></td>
+                            <td><i class="fas fa-lock feature-locked"></i></td>
+                            <td><span class="feature-coming"><i class="fas fa-tools"></i> Coming Soon</span></td>
+                            <td class="plan-platinum"><span class="feature-coming"><i class="fas fa-tools"></i> Coming Soon</span></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-        </section>
 
-        <!-- Credits Section -->
-        <section class="premium-credits-section">
-            <div class="credits-header">
-                <div class="credits-icon">
-                    <i class="fas fa-bolt"></i>
-                </div>
-                <h2 class="credits-title">CAISSA Insight Credits</h2>
-                <p class="credits-subtitle">
-                    Power AI-driven analysis with Claude for deeper game understanding
-                </p>
-            </div>
-
-            <div class="credits-packages">
-                <!-- Starter Pack -->
-                <div class="premium-card credit-card">
-                    <div class="credit-card-header">
-                        <span class="credit-card-name">Starter</span>
-                        <span class="credit-card-amount">25 credits</span>
+            <!-- Mobile Plan Cards -->
+            <div class="mobile-plan-cards">
+                <!-- Free -->
+                <div class="mobile-plan-card">
+                    <div class="mobile-plan-header">
+                        <div class="plan-name">Free</div>
+                        <div class="plan-price">$0</div>
+                        <div class="plan-price-period">forever</div>
+                        <a href="/" class="plan-cta plan-cta-free">Current plan</a>
                     </div>
-                    <div class="credit-card-price">
-                        <span class="credit-price">$5</span>
-                        <span class="credit-per-unit">$0.20/credit</span>
-                    </div>
-                    <button type="button" class="credit-buy-btn" data-package="starter">
-                        Buy Now
-                    </button>
+                    <ul class="mobile-plan-features">
+                        <li><i class="fas fa-check feature-check"></i> Play vs engine</li>
+                        <li><i class="fas fa-check feature-check"></i> Analyze board</li>
+                        <li><i class="fas fa-check feature-check"></i> Copy FEN / Export PGN</li>
+                        <li><i class="fas fa-clock feature-limited"></i> Mentor: 5/day</li>
+                        <li><i class="fas fa-clock feature-limited"></i> Library: 50 games</li>
+                        <li><i class="fas fa-check feature-check"></i> Engine vs Engine</li>
+                    </ul>
                 </div>
 
-                <!-- Standard Pack -->
-                <div class="premium-card credit-card popular">
-                    <div class="credit-popular-badge">Most Popular</div>
-                    <div class="credit-card-header">
-                        <span class="credit-card-name">Standard</span>
-                        <span class="credit-card-amount">75 credits</span>
+                <!-- Silver -->
+                <div class="mobile-plan-card">
+                    <div class="mobile-plan-header">
+                        <div class="plan-name">Silver</div>
+                        <div class="plan-price" data-monthly="$5" data-yearly="$39">$5</div>
+                        <div class="plan-price-period">/month</div>
+                        <button type="button" class="plan-cta plan-cta-upgrade">Upgrade</button>
                     </div>
-                    <div class="credit-card-price">
-                        <span class="credit-price">$12</span>
-                        <span class="credit-per-unit">$0.16/credit</span>
-                    </div>
-                    <button type="button" class="credit-buy-btn" data-package="standard">
-                        Buy Now
-                    </button>
+                    <ul class="mobile-plan-features">
+                        <li><i class="fas fa-check feature-check"></i> Everything in Free</li>
+                        <li><i class="fas fa-check feature-check"></i> Unlimited Mentor</li>
+                        <li><i class="fas fa-check feature-check"></i> Explanation modes</li>
+                        <li><i class="fas fa-clock feature-limited"></i> Insight: 10/month</li>
+                        <li><i class="fas fa-clock feature-limited"></i> Library: 500 games</li>
+                    </ul>
                 </div>
 
-                <!-- Pro Pack -->
-                <div class="premium-card credit-card">
-                    <div class="credit-card-header">
-                        <span class="credit-card-name">Pro</span>
-                        <span class="credit-card-amount">200 credits</span>
+                <!-- Gold -->
+                <div class="mobile-plan-card">
+                    <div class="mobile-plan-header">
+                        <div class="plan-name">Gold</div>
+                        <div class="plan-price" data-monthly="$12" data-yearly="$89">$12</div>
+                        <div class="plan-price-period">/month</div>
+                        <button type="button" class="plan-cta plan-cta-upgrade">Upgrade</button>
                     </div>
-                    <div class="credit-card-price">
-                        <span class="credit-price">$25</span>
-                        <span class="credit-per-unit">$0.125/credit</span>
-                    </div>
-                    <button type="button" class="credit-buy-btn" data-package="pro">
-                        Buy Now
-                    </button>
+                    <ul class="mobile-plan-features">
+                        <li><i class="fas fa-check feature-check"></i> Everything in Silver</li>
+                        <li><i class="fas fa-check feature-check"></i> Unlimited Insight</li>
+                        <li><i class="fas fa-check feature-check"></i> Cheater Insight</li>
+                        <li><i class="fas fa-check feature-check"></i> Unlimited Library</li>
+                        <li><i class="fas fa-tools feature-limited"></i> Advanced modes (Coming Soon)</li>
+                    </ul>
                 </div>
-            </div>
 
-            <!-- Credits Info Box -->
-            <div class="credits-info-box">
-                <div class="credits-info-icon">
-                    <i class="fas fa-info-circle"></i>
-                </div>
-                <div class="credits-info-content">
-                    <h4>What are Insight Credits?</h4>
-                    <p>
-                        Insight credits power CAISSA's AI mentor features. Each credit enables one AI-powered
-                        analysis query using Claude, providing personalized coaching, game reviews, and
-                        strategic recommendations tailored to your playing style.
-                    </p>
-                    <ul class="credits-usage-list">
-                        <li><i class="fas fa-comment-dots"></i> Mentor chat responses</li>
-                        <li><i class="fas fa-chart-line"></i> Full game narrative analysis</li>
-                        <li><i class="fas fa-lightbulb"></i> Position-specific advice</li>
+                <!-- Platinum -->
+                <div class="mobile-plan-card popular">
+                    <div class="mobile-plan-header">
+                        <span class="plan-popular-badge">Most Popular</span>
+                        <div class="plan-name">Platinum</div>
+                        <div class="plan-price" data-monthly="$19" data-yearly="$149">$19</div>
+                        <div class="plan-price-period">/month</div>
+                        <button type="button" class="plan-cta plan-cta-popular">Try Platinum</button>
+                    </div>
+                    <ul class="mobile-plan-features">
+                        <li><i class="fas fa-check feature-check"></i> Everything in Gold</li>
+                        <li><i class="fas fa-check feature-check"></i> Multi-account insights</li>
+                        <li><i class="fas fa-check feature-check"></i> Priority support</li>
+                        <li><i class="fas fa-tools feature-limited"></i> Cloud sync (Coming Soon)</li>
+                        <li><i class="fas fa-tools feature-limited"></i> Tournament presets (Coming Soon)</li>
                     </ul>
                 </div>
             </div>
         </section>
 
-        <!-- Referrals Section -->
-        <section class="premium-referrals-section">
-            <div class="premium-card referrals-card">
-                <div class="referrals-header">
-                    <i class="fas fa-gift"></i>
-                    <h3>Invite Friends, Earn Credits</h3>
-                </div>
-                <p class="referrals-description">
-                    Share CAISSA with friends and earn <strong>10 free Insight credits</strong> for each
-                    friend who subscribes to CAISSA Core. They'll get 10 bonus credits too!
-                </p>
-                <div class="referrals-code-box">
-                    <span class="referral-label">Your referral link:</span>
-                    <div class="referral-code-wrapper">
-                        <input type="text" class="referral-code-input" id="referralCode"
-                               value="https://caissa-chess.org/r/XXXXXX" readonly>
-                        <button type="button" class="referral-copy-btn" id="copyReferralBtn">
-                            <i class="fas fa-copy"></i>
-                        </button>
+        <!-- Trust Badges Section -->
+        <section class="premium-trust-section">
+            <div class="trust-badges">
+                <div class="trust-badge">
+                    <div class="trust-badge-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="trust-badge-text">
+                        <h4>Privacy assured</h4>
+                        <p>Your data stays yours. No tracking, no selling.</p>
                     </div>
                 </div>
-                <p class="referrals-note">
-                    <i class="fas fa-lock"></i> Sign in to get your personal referral code
-                </p>
+                <div class="trust-badge">
+                    <div class="trust-badge-icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <div class="trust-badge-text">
+                        <h4>Secure transactions</h4>
+                        <p>All payments processed securely via Stripe.</p>
+                    </div>
+                </div>
+                <div class="trust-badge">
+                    <div class="trust-badge-icon">
+                        <i class="fas fa-undo"></i>
+                    </div>
+                    <div class="trust-badge-text">
+                        <h4>Cancel anytime</h4>
+                        <p>No long-term commitment. Cancel with one click.</p>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -269,53 +418,77 @@
             <div class="faq-list">
                 <div class="faq-item">
                     <button type="button" class="faq-question" aria-expanded="false">
+                        <span>What do I get with Premium?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Premium unlocks unlimited access to CAISSA Mentor for AI-powered coaching, deeper game insights with CAISSA Insight, Cheater Insight for detecting suspicious play, unlimited game storage, and priority access to new features as they launch.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button type="button" class="faq-question" aria-expanded="false">
+                        <span>What is Cheater Insight?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Cheater Insight analyzes Chess.com game histories to detect statistical anomalies that may indicate engine assistance. It provides engine correlation scores, time usage patterns, and centipawn loss analysis to help identify suspicious play.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button type="button" class="faq-question" aria-expanded="false">
+                        <span>Can I cancel anytime?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes! You can cancel your subscription at any time with one click. You'll continue to have access to premium features until the end of your billing period. No questions asked, no hidden fees.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button type="button" class="faq-question" aria-expanded="false">
+                        <span>Do I need an account?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Free features work without an account. To access premium features, you'll need to create a free account and add a payment method. Your account also enables cloud sync and cross-device access (coming soon).</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button type="button" class="faq-question" aria-expanded="false">
+                        <span>What is "Coming Soon"?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Features marked "Coming Soon" are actively in development and will be available to premium members at no extra cost. We're building CAISSA iteratively and premium members get early access to all new features.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button type="button" class="faq-question" aria-expanded="false">
                         <span>What payment methods do you accept?</span>
                         <i class="fas fa-chevron-down"></i>
                     </button>
                     <div class="faq-answer">
-                        <p>We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and Apple Pay. All payments are processed securely through Stripe.</p>
+                        <p>We accept all major credit cards (Visa, Mastercard, American Express), as well as Apple Pay and Google Pay. All payments are processed securely through Stripe.</p>
                     </div>
                 </div>
+            </div>
+        </section>
 
-                <div class="faq-item">
-                    <button type="button" class="faq-question" aria-expanded="false">
-                        <span>Can I cancel my subscription anytime?</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
-                    <div class="faq-answer">
-                        <p>Yes! You can cancel your CAISSA Core subscription at any time. You'll continue to have access until the end of your billing period. No questions asked.</p>
-                    </div>
-                </div>
-
-                <div class="faq-item">
-                    <button type="button" class="faq-question" aria-expanded="false">
-                        <span>Do Insight credits expire?</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
-                    <div class="faq-answer">
-                        <p>Purchased credits never expire. The 50 monthly credits included with CAISSA Core reset each billing cycle and don't roll over, but any credits you purchase separately are yours to keep forever.</p>
-                    </div>
-                </div>
-
-                <div class="faq-item">
-                    <button type="button" class="faq-question" aria-expanded="false">
-                        <span>What's the difference between Stockfish analysis and Insight?</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
-                    <div class="faq-answer">
-                        <p>Stockfish provides engine evaluation (numeric scores and best moves). CAISSA Insight uses Claude AI to explain <em>why</em> moves are good or bad, provide strategic advice, and offer personalized coaching in natural language.</p>
-                    </div>
-                </div>
-
-                <div class="faq-item">
-                    <button type="button" class="faq-question" aria-expanded="false">
-                        <span>Is there a free trial?</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
-                    <div class="faq-answer">
-                        <p>New users get 5 free Insight credits to try out AI-powered analysis. The core CAISSA features (playing against Stockfish, basic analysis, position library) are always free.</p>
-                    </div>
-                </div>
+        <!-- Final CTA Section -->
+        <section class="premium-final-cta">
+            <h2 class="final-cta-title">Ready to improve your game?</h2>
+            <p class="final-cta-subtitle">Join thousands of chess players using CAISSA to analyze and improve.</p>
+            <div class="final-cta-buttons">
+                <button type="button" class="btn-primary-hero">
+                    <i class="fas fa-crown"></i> Upgrade to Platinum
+                </button>
+                <a href="#comparison" class="btn-secondary-hero">
+                    See what's included
+                </a>
             </div>
         </section>
     </main>
@@ -331,20 +504,62 @@
     </footer>
 
     <!-- Scripts -->
-    <script src="caissa-premium.js?v=1.0.0"></script>
+    <script>
+        // FAQ Toggle
+        document.querySelectorAll('.faq-question').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const item = btn.closest('.faq-item');
+                const wasOpen = item.classList.contains('open');
 
-    <!-- Auth Scripts -->
-    <script src="js/auth-config.js?v=1.0.0"></script>
-    <script
-        async
-        crossorigin="anonymous"
-        src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
-        type="text/javascript"
-    ></script>
-    <script src="js/caissa-logger.js?v=1.0.0" defer></script>
-    <script src="js/caissa-notifications.js?v=1.0.0" defer></script>
-    <script src="js/caissa-auth.js?v=1.0.0" defer></script>
-    <script src="js/caissa-access.js?v=1.0.0" defer></script>
-    <script src="js/caissa-ui-auth.js?v=1.0.0" defer></script>
+                // Close all other items
+                document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+
+                // Toggle current item
+                if (!wasOpen) {
+                    item.classList.add('open');
+                }
+            });
+        });
+
+        // Billing Toggle
+        const billingToggle = document.getElementById('billingToggle');
+        const monthlyLabel = document.querySelector('[data-period="monthly"]');
+        const annualLabel = document.querySelector('[data-period="annual"]');
+        const prices = document.querySelectorAll('.plan-price[data-monthly]');
+
+        let isAnnual = false;
+
+        billingToggle?.addEventListener('click', () => {
+            isAnnual = !isAnnual;
+            billingToggle.classList.toggle('annual', isAnnual);
+            monthlyLabel.classList.toggle('active', !isAnnual);
+            annualLabel.classList.toggle('active', isAnnual);
+
+            // Update prices
+            prices.forEach(price => {
+                const monthly = price.dataset.monthly;
+                const yearly = price.dataset.yearly;
+                price.textContent = isAnnual ? yearly : monthly;
+            });
+
+            // Update period text
+            document.querySelectorAll('.plan-price-period').forEach(period => {
+                if (period.textContent !== 'forever') {
+                    period.textContent = isAnnual ? '/year' : '/month';
+                }
+            });
+        });
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
 </body>
 </html>
