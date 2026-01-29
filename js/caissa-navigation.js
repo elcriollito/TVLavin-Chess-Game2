@@ -106,6 +106,23 @@ const CaissaNavigation = {
             }
         });
 
+        // Mobile Quick Actions
+        document.getElementById('mobileNewGame')?.addEventListener('click', () => {
+            this.openNewGameModal();
+        });
+
+        document.getElementById('mobileArena')?.addEventListener('click', () => {
+            this.navigateToSection('arena');
+        });
+
+        document.getElementById('mobileAnalysisToggle')?.addEventListener('click', () => {
+            this.toggleMobileAnalysis();
+        });
+
+        document.getElementById('closeAnalysisSheet')?.addEventListener('click', () => {
+            this.closeMobileAnalysis();
+        });
+
         console.log('[CAISSA Nav] Event listeners bound');
     },
 
@@ -144,6 +161,12 @@ const CaissaNavigation = {
         if (sectionId === 'premium') {
             // Redirect to premium page
             window.location.href = '/premium';
+            return;
+        }
+
+        if (sectionId === 'cheater-insight') {
+            // Cheater Insight - premium gated feature
+            this.openCheaterInsight();
             return;
         }
 
@@ -317,6 +340,68 @@ const CaissaNavigation = {
     },
 
     /**
+     * Toggle mobile analysis bottom sheet
+     */
+    toggleMobileAnalysis() {
+        const sheet = document.getElementById('mobileAnalysisSheet');
+        if (sheet) {
+            sheet.classList.toggle('open');
+            if (sheet.classList.contains('open')) {
+                this.updateMobileAnalysis();
+            }
+        }
+    },
+
+    /**
+     * Close mobile analysis bottom sheet
+     */
+    closeMobileAnalysis() {
+        const sheet = document.getElementById('mobileAnalysisSheet');
+        if (sheet) {
+            sheet.classList.remove('open');
+        }
+    },
+
+    /**
+     * Update mobile analysis display with current engine data
+     */
+    updateMobileAnalysis() {
+        // Get current evaluation from App if available
+        if (window.App && App.currentEval !== undefined) {
+            const evalScore = App.currentEval;
+            const evalDisplay = document.getElementById('mobileEvalScore');
+            const evalBar = document.getElementById('mobileEvalBar');
+            const pvMoves = document.getElementById('mobilePVMoves');
+
+            if (evalDisplay) {
+                // Format evaluation
+                let evalText;
+                if (typeof evalScore === 'number') {
+                    evalText = evalScore > 0 ? `+${evalScore.toFixed(1)}` : evalScore.toFixed(1);
+                    evalDisplay.className = 'mobile-eval-score ' +
+                        (evalScore > 0.3 ? 'white-advantage' : evalScore < -0.3 ? 'black-advantage' : 'equal');
+                } else {
+                    evalText = evalScore;
+                    evalDisplay.className = 'mobile-eval-score equal';
+                }
+                evalDisplay.textContent = evalText;
+            }
+
+            if (evalBar && typeof evalScore === 'number') {
+                // Convert eval to percentage (clamped between -5 and +5)
+                const clampedEval = Math.max(-5, Math.min(5, evalScore));
+                const percentage = ((clampedEval + 5) / 10) * 100;
+                evalBar.style.width = `${percentage}%`;
+            }
+
+            // Get PV if available
+            if (pvMoves && App.currentPV) {
+                pvMoves.textContent = App.currentPV || 'Analyzing...';
+            }
+        }
+    },
+
+    /**
      * Open New Game modal
      */
     openNewGameModal() {
@@ -386,6 +471,94 @@ const CaissaNavigation = {
         if (window.innerWidth <= 768) {
             this.closeNav();
         }
+    },
+
+    /**
+     * Open Cheater Insight (premium gated)
+     */
+    openCheaterInsight() {
+        console.log('[CAISSA Nav] Opening Cheater Insight...');
+
+        // Check if user is premium (via CaissaAccess or app-container class)
+        const isPremium = document.querySelector('.app-container')?.classList.contains('user-premium') ||
+                         (window.CaissaAccess && CaissaAccess.hasFeature && CaissaAccess.hasFeature('cheater_insight'));
+
+        if (isPremium) {
+            // Premium user - open the actual cheater insight modal
+            const cheaterModal = document.getElementById('cheaterInsightModal');
+            if (cheaterModal) {
+                cheaterModal.classList.add('show');
+            } else {
+                // Fallback to menu modal cheater insight button
+                const menuCheaterBtn = document.getElementById('menuCheaterInsight');
+                if (menuCheaterBtn) {
+                    menuCheaterBtn.click();
+                }
+            }
+        } else {
+            // Not premium - show upgrade modal
+            this.showPremiumFeatureModal('Cheater Insight', 'Detect suspicious play patterns with AI-powered analysis. Analyze Chess.com games for engine correlation and statistical anomalies.');
+        }
+
+        // Close mobile nav if open
+        if (window.innerWidth <= 768) {
+            this.closeNav();
+        }
+    },
+
+    /**
+     * Show premium feature modal for locked features
+     */
+    showPremiumFeatureModal(featureName, featureDescription) {
+        // Check if modal already exists
+        let modal = document.getElementById('premiumFeatureModal');
+
+        if (!modal) {
+            // Create the modal
+            modal = document.createElement('div');
+            modal.id = 'premiumFeatureModal';
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content modal-small">
+                    <div class="modal-header">
+                        <h2 class="modal-title"><i class="fas fa-crown" style="color: var(--accent-color);"></i> Premium Feature</h2>
+                        <button class="modal-close" id="closePremiumFeatureModal">&times;</button>
+                    </div>
+                    <div class="modal-body" style="text-align: center; padding: var(--spacing-lg);">
+                        <div style="font-size: 48px; margin-bottom: var(--spacing-md); color: var(--accent-color);">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <h3 id="premiumFeatureName" style="margin-bottom: var(--spacing-sm);"></h3>
+                        <p id="premiumFeatureDesc" style="color: var(--text-secondary); margin-bottom: var(--spacing-lg);"></p>
+                        <div style="display: flex; gap: var(--spacing-sm); justify-content: center;">
+                            <a href="/premium" class="btn btn-premium" style="text-decoration: none;">
+                                <i class="fas fa-crown"></i> Upgrade Now
+                            </a>
+                            <button class="btn btn-secondary" id="premiumFeatureLater">Maybe Later</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            // Bind close events
+            modal.querySelector('#closePremiumFeatureModal').addEventListener('click', () => {
+                modal.classList.remove('show');
+            });
+            modal.querySelector('#premiumFeatureLater').addEventListener('click', () => {
+                modal.classList.remove('show');
+            });
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('show');
+                }
+            });
+        }
+
+        // Update content and show
+        modal.querySelector('#premiumFeatureName').textContent = featureName;
+        modal.querySelector('#premiumFeatureDesc').textContent = featureDescription;
+        modal.classList.add('show');
     },
 
     /**

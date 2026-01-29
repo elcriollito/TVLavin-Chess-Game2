@@ -3484,6 +3484,41 @@ button:focus,
     background: rgba(255, 152, 0, 0.08);
 }
 
+/* Premium-gated feature in sidebar (locked state) */
+.nav-item-premium-feature {
+    opacity: 0.7;
+    position: relative;
+}
+
+.nav-item-premium-feature .nav-premium-lock {
+    font-size: 10px;
+    color: var(--accent-color);
+    margin-left: auto;
+    opacity: 0.8;
+}
+
+.nav-item-premium-feature:hover {
+    opacity: 1;
+    background: rgba(255, 152, 0, 0.06);
+}
+
+.nav-item-premium-feature:hover .nav-premium-lock {
+    opacity: 1;
+}
+
+/* When user is premium, hide lock and style normally */
+.user-premium .nav-item-premium-feature {
+    opacity: 1;
+}
+
+.user-premium .nav-item-premium-feature .nav-premium-lock {
+    display: none;
+}
+
+.nav-collapsed .nav-premium-lock {
+    display: none;
+}
+
 /* Key tool nav items (Mentor, Game Library) */
 .nav-item-tool {
     color: var(--text-primary);
@@ -4322,6 +4357,253 @@ button:focus,
         background: rgba(0, 0, 0, 0.5);
         z-index: 1000;
     }
+
+    /* ===== MOBILE BOARD-FIRST LAYOUT ===== */
+
+    /* Header adjustments for mobile */
+    .header-minimal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        padding: 8px 16px 8px 70px; /* Leave room for hamburger */
+    }
+
+    /* Content area padding to account for fixed header */
+    .content-area {
+        padding-top: 56px;
+        padding-bottom: 70px; /* Room for mobile quick actions */
+    }
+
+    /* Board should take priority */
+    #playSection .board-container {
+        margin: 0 auto;
+        padding: var(--spacing-sm);
+    }
+
+    /* Hide sidebars by default on mobile - content goes in bottom sheet */
+    #playSection .left-sidebar,
+    #playSection .right-sidebar {
+        display: none;
+    }
+
+    /* Show analysis toggle in place of sidebar */
+    .mobile-analysis-toggle {
+        display: flex !important;
+    }
+}
+
+/* ===== MOBILE QUICK ACTIONS BAR ===== */
+.mobile-quick-actions {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    z-index: 100;
+    padding: 8px 16px;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .mobile-quick-actions {
+        display: flex;
+    }
+}
+
+.mobile-quick-btn {
+    flex: 1;
+    max-width: 140px;
+    height: 48px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.mobile-quick-btn i {
+    font-size: 16px;
+}
+
+.mobile-quick-btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.mobile-quick-btn-primary:hover {
+    background: var(--primary-hover);
+}
+
+.mobile-quick-btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.mobile-quick-btn-secondary:hover {
+    background: var(--bg-panel);
+}
+
+.mobile-quick-btn-analysis {
+    background: rgba(255, 152, 0, 0.15);
+    color: var(--accent-color);
+    border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+.mobile-quick-btn-analysis:hover {
+    background: rgba(255, 152, 0, 0.25);
+}
+
+/* ===== MOBILE ANALYSIS BOTTOM SHEET ===== */
+.mobile-analysis-sheet {
+    display: none;
+    position: fixed;
+    bottom: 64px; /* Above quick actions bar */
+    left: 0;
+    right: 0;
+    max-height: 60vh;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    border-radius: 16px 16px 0 0;
+    z-index: 99;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    .mobile-analysis-sheet {
+        display: block;
+    }
+}
+
+.mobile-analysis-sheet.open {
+    transform: translateY(0);
+}
+
+.analysis-sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+}
+
+.analysis-sheet-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.analysis-sheet-title i {
+    color: var(--accent-color);
+}
+
+.analysis-sheet-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.analysis-sheet-close:hover {
+    background: var(--bg-panel);
+    color: var(--text-primary);
+}
+
+.analysis-sheet-content {
+    padding: 16px;
+    overflow-y: auto;
+    max-height: calc(60vh - 56px);
+}
+
+/* Mobile evaluation bar */
+.mobile-eval-display {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg-panel);
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.mobile-eval-score {
+    font-size: 24px;
+    font-weight: 700;
+    min-width: 60px;
+    text-align: center;
+}
+
+.mobile-eval-score.white-advantage {
+    color: var(--success-color);
+}
+
+.mobile-eval-score.black-advantage {
+    color: var(--danger-color);
+}
+
+.mobile-eval-score.equal {
+    color: var(--text-secondary);
+}
+
+.mobile-eval-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.mobile-eval-bar-fill {
+    height: 100%;
+    background: var(--text-primary);
+    transition: width 0.3s ease;
+}
+
+/* Mobile PV display */
+.mobile-pv-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.mobile-pv-item {
+    padding: 10px 12px;
+    background: var(--bg-panel);
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--text-secondary);
+    word-break: break-all;
+}
+
+.mobile-pv-item .pv-label {
+    color: var(--accent-color);
+    font-weight: 600;
+    margin-right: 8px;
 }
 
 /* ===== DARK THEME SCROLLBARS ===== */

@@ -155,7 +155,13 @@
                     <span class="nav-label">Game Library</span>
                 </button>
 
-                <a href="https://caissa.blog" target="_blank" class="nav-item nav-item-external" aria-label="Visit CAISSA Blog">
+                <button class="nav-item nav-item-premium-feature" data-section="cheater-insight" aria-label="Cheater Insight (Premium)">
+                    <i class="fas fa-user-shield"></i>
+                    <span class="nav-label">Cheater Insight</span>
+                    <i class="fas fa-lock nav-premium-lock"></i>
+                </button>
+
+                <a href="https://tvlavin.blogspot.com/" target="_blank" rel="noopener noreferrer" class="nav-item nav-item-external" aria-label="Visit CAISSA Blog">
                     <i class="fas fa-rss"></i>
                     <span class="nav-label">Blog</span>
                     <i class="fas fa-external-link-alt nav-external-icon"></i>
@@ -2020,6 +2026,49 @@
     <button id="libraryToggleBtn" class="library-toggle-btn" aria-label="Open Library">
         <i class="fas fa-book"></i>
     </button>
+
+    <!-- Mobile Quick Actions Bar (visible only on mobile) -->
+    <div class="mobile-quick-actions">
+        <button class="mobile-quick-btn mobile-quick-btn-primary" id="mobileNewGame" aria-label="New Game">
+            <i class="fas fa-plus"></i>
+            <span>New Game</span>
+        </button>
+        <button class="mobile-quick-btn mobile-quick-btn-secondary" id="mobileArena" aria-label="Arena">
+            <i class="fas fa-robot"></i>
+            <span>Arena</span>
+        </button>
+        <button class="mobile-quick-btn mobile-quick-btn-analysis" id="mobileAnalysisToggle" aria-label="Analysis">
+            <i class="fas fa-chart-line"></i>
+            <span>Analysis</span>
+        </button>
+    </div>
+
+    <!-- Mobile Analysis Bottom Sheet -->
+    <div class="mobile-analysis-sheet" id="mobileAnalysisSheet">
+        <div class="analysis-sheet-header">
+            <div class="analysis-sheet-title">
+                <i class="fas fa-chart-line"></i>
+                Engine Analysis
+            </div>
+            <button class="analysis-sheet-close" id="closeAnalysisSheet" aria-label="Close analysis">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="analysis-sheet-content">
+            <div class="mobile-eval-display">
+                <div class="mobile-eval-score equal" id="mobileEvalScore">0.0</div>
+                <div class="mobile-eval-bar">
+                    <div class="mobile-eval-bar-fill" id="mobileEvalBar" style="width: 50%;"></div>
+                </div>
+            </div>
+            <div class="mobile-pv-list" id="mobilePVList">
+                <div class="mobile-pv-item">
+                    <span class="pv-label">PV:</span>
+                    <span id="mobilePVMoves">Start a game to see analysis</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
