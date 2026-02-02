@@ -883,84 +883,154 @@
 
             <!-- SECTION: ARENA (Engine vs Engine) -->
             <section id="arenaSection" class="content-section">
-                <div class="arena-layout">
-                    <!-- Left: Board Zone -->
-                    <div class="board-zone">
-                        <!-- Board will move here when section is active -->
-                    </div>
+                <div class="arena-layout-v2">
+                    <!-- Left Sidebar: Controls -->
+                    <aside class="arena-sidebar">
+                        <!-- Arena Tabs -->
+                        <div class="arena-tabs">
+                            <button id="arenaTabMatch" class="arena-tab active" aria-label="Create Match">
+                                <i class="fas fa-chess"></i>
+                                <span>Match</span>
+                            </button>
+                            <button id="arenaTabTournament" class="arena-tab" aria-label="Create Tournament">
+                                <i class="fas fa-trophy"></i>
+                                <span>Tournament</span>
+                            </button>
+                        </div>
 
-                    <!-- Right: Engine Controls -->
-                    <aside class="context-panel">
-                        <div class="panel">
-                            <h3 class="panel-title">Engine vs Engine</h3>
-                            <div class="eve-content">
-                                <div class="form-group">
-                                    <label>White Engine:</label>
-                                    <div class="engine-strength-display">
-                                        <i class="fas fa-bolt"></i>
-                                        <span>FULL POWER</span>
+                        <!-- Match Panel -->
+                        <div id="arenaPanelMatch" class="arena-panel">
+                            <div class="arena-section">
+                                <h4 class="arena-section-title">
+                                    <span class="engine-color-dot white"></span> White Engine
+                                </h4>
+                                <select id="arenaWhiteEngine" class="form-control arena-engine-select" aria-label="Select White Engine"></select>
+                            </div>
+
+                            <div class="arena-section">
+                                <h4 class="arena-section-title">
+                                    <span class="engine-color-dot black"></span> Black Engine
+                                </h4>
+                                <select id="arenaBlackEngine" class="form-control arena-engine-select" aria-label="Select Black Engine"></select>
+                            </div>
+
+                            <button id="arenaSwapEngines" class="btn btn-block btn-secondary arena-swap-btn" aria-label="Swap engines">
+                                <i class="fas fa-exchange-alt"></i> Swap Colors
+                            </button>
+
+                            <div class="arena-section">
+                                <h4 class="arena-section-title">Settings</h4>
+                                <div class="arena-setting-row">
+                                    <label>Move Delay:</label>
+                                    <div class="arena-input-group">
+                                        <input type="number" id="arenaMoveDelay" class="form-control form-control-sm" value="1000" min="100" max="5000" step="100">
+                                        <span class="arena-input-suffix">ms</span>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div class="form-group">
-                                    <label>Black Engine:</label>
-                                    <div class="engine-strength-display">
-                                        <i class="fas fa-bolt"></i>
-                                        <span>FULL POWER</span>
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="eveMoveDelayArena">Move Delay (ms):</label>
-                                    <input type="number" id="eveMoveDelayArena" class="form-control" value="1000" min="100" max="5000" step="100" aria-label="Move delay in milliseconds">
-                                    <small class="form-text">Time between moves (100-5000ms)</small>
-                                </div>
-
-                                <div class="eve-controls">
-                                    <button id="startEveArena" class="btn btn-block btn-primary" aria-label="Start match">
-                                        <i class="fas fa-play"></i> Start Match
-                                    </button>
-                                    <button id="pauseEveArena" class="btn btn-block btn-secondary" style="display: none;" aria-label="Pause">
-                                        <i class="fas fa-pause"></i> Pause
-                                    </button>
-                                    <button id="resumeEveArena" class="btn btn-block btn-primary" style="display: none;" aria-label="Resume">
-                                        <i class="fas fa-play"></i> Resume
-                                    </button>
-                                    <button id="stopEveArena" class="btn btn-block btn-secondary" style="display: none;" aria-label="Stop">
-                                        <i class="fas fa-stop"></i> Stop
-                                    </button>
-                                </div>
-
-                                <div class="arena-stats" style="margin-top: 20px; padding: 12px; background: rgba(0,0,0,0.05); border-radius: 8px;">
-                                    <h4 style="margin: 0 0 8px 0; font-size: 14px;">Match Stats</h4>
-                                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                                        <span>Moves: <strong id="arenaMoveCount">0</strong></span>
-                                        <span>Status: <strong id="arenaStatus">Ready</strong></span>
-                                    </div>
-                                </div>
+                            <div class="arena-controls">
+                                <button id="arenaStartMatch" class="btn btn-block btn-primary btn-lg" aria-label="Start Match">
+                                    <i class="fas fa-play"></i> Start Match
+                                </button>
+                                <button id="arenaPauseMatch" class="btn btn-block btn-secondary" style="display: none;">
+                                    <i class="fas fa-pause"></i> Pause
+                                </button>
+                                <button id="arenaStopMatch" class="btn btn-block btn-danger" style="display: none;">
+                                    <i class="fas fa-stop"></i> Stop
+                                </button>
                             </div>
                         </div>
 
-                        <!-- Game Status Panel -->
-                        <div class="panel">
-                            <h3 class="panel-title">Game Status</h3>
-                            <div class="game-status-content">
-                                <div class="status-item">
-                                    <span class="status-label">Turn:</span>
-                                    <span id="arenaTurn" class="status-value">White</span>
-                                </div>
-                                <div class="timer-display">
-                                    <div class="timer white-timer">
-                                        <i class="fas fa-chess-king"></i>
-                                        <span id="arenaWhiteTime">--:--</span>
-                                    </div>
-                                    <div class="timer black-timer">
-                                        <i class="fas fa-chess-king"></i>
-                                        <span id="arenaBlackTime">--:--</span>
-                                    </div>
-                                </div>
-                                <div class="game-result" id="arenaResult" aria-live="assertive"></div>
+                        <!-- Tournament Panel -->
+                        <div id="arenaPanelTournament" class="arena-panel" style="display: none;">
+                            <div class="arena-section">
+                                <h4 class="arena-section-title">Engines (min 3)</h4>
+                                <div id="arenaTournamentEngines" class="tournament-engine-list"></div>
                             </div>
+
+                            <div class="arena-section">
+                                <h4 class="arena-section-title">Settings</h4>
+                                <div class="arena-setting-row">
+                                    <label>Rounds:</label>
+                                    <select id="arenaTournamentRounds" class="form-control form-control-sm">
+                                        <option value="3">3</option>
+                                        <option value="5">5</option>
+                                        <option value="7">7</option>
+                                    </select>
+                                </div>
+                                <div class="arena-setting-row">
+                                    <label>Opening:</label>
+                                    <select id="arenaTournamentOpening" class="form-control form-control-sm">
+                                        <option value="free">Free</option>
+                                        <option value="e4">1.e4</option>
+                                        <option value="d4">1.d4</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button id="arenaStartTournament" class="btn btn-block btn-primary btn-lg">
+                                <i class="fas fa-trophy"></i> Start Tournament
+                            </button>
+
+                            <div id="arenaTournamentProgress" class="tournament-progress"></div>
+                            <div id="arenaTournamentStandings" class="tournament-standings"></div>
+                        </div>
+                    </aside>
+
+                    <!-- Center: Board Zone -->
+                    <div class="arena-board-zone">
+                        <div class="arena-game-status">
+                            <div class="arena-player arena-player-white">
+                                <span class="arena-player-color white"></span>
+                                <span id="arenaStatusWhite" class="arena-player-name">Stockfish 16</span>
+                            </div>
+                            <div class="arena-status-center">
+                                <span id="arenaStatusTurn" class="arena-turn-badge">White</span>
+                                <span class="arena-move-counter">Move <span id="arenaStatusMoves">0</span></span>
+                            </div>
+                            <div class="arena-player arena-player-black">
+                                <span id="arenaStatusBlack" class="arena-player-name">Stockfish Lite</span>
+                                <span class="arena-player-color black"></span>
+                            </div>
+                        </div>
+
+                        <div class="arena-board-container">
+                            <div id="arenaBoardMount" class="arena-board-mount"></div>
+                        </div>
+
+                        <div id="arenaStatusResult" class="arena-result" style="display: none;"></div>
+                    </div>
+
+                    <!-- Right Sidebar: Evaluation -->
+                    <aside class="arena-eval-sidebar">
+                        <div class="panel arena-eval-panel">
+                            <div class="arena-eval-header">
+                                <h4 class="panel-title-sm">Evaluation</h4>
+                                <span id="arenaEvalEngine" class="arena-eval-engine-name">Stockfish</span>
+                            </div>
+                            <div class="arena-eval-score-row">
+                                <span id="arenaEvalScore" class="arena-eval-score">+0.00</span>
+                                <span class="arena-eval-meta">d<span id="arenaEvalDepth">0</span> | <span id="arenaEvalNodes">0</span></span>
+                            </div>
+                            <div class="arena-eval-pv">
+                                <span class="pv-label">PV:</span>
+                                <span id="arenaEvalPV" class="pv-moves">--</span>
+                            </div>
+                        </div>
+
+                        <div class="panel arena-graph-panel">
+                            <h4 class="panel-title-sm">Eval Graph</h4>
+                            <canvas id="arenaEvalGraph" class="arena-eval-canvas" width="260" height="120"></canvas>
+                            <div class="arena-graph-legend">
+                                <span><span class="dot white"></span>White</span>
+                                <span><span class="dot black"></span>Black</span>
+                            </div>
+                        </div>
+
+                        <div class="panel arena-moves-panel">
+                            <h4 class="panel-title-sm">Moves</h4>
+                            <div id="arenaMoveHistory" class="arena-move-list"></div>
                         </div>
                     </aside>
                 </div>
@@ -2126,6 +2196,7 @@
     <!-- Navigation Module (Phase 1: UX Redesign) -->
     <script src="js/caissa-navigation.js?v=1.0.0"></script>
     <script src="js/caissa-ui-refactor.js?v=1.0.0"></script>
+    <script src="js/caissa-arena.js?v=1.0.0"></script>
     <!-- Section Modules (Phase 2) -->
     <script src="js/arena-section.js?v=1.0.0"></script>
     <script src="js/insights-section.js?v=1.0.0"></script>
