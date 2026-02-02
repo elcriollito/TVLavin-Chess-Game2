@@ -401,6 +401,14 @@ const CaissaArena = {
 
         console.log('[Arena] Starting match:', this.state.whiteEngine.name, 'vs', this.state.blackEngine.name);
 
+        // Ensure board is mounted
+        if (!this.board || !this.state.boardMounted) {
+            console.log('[Arena] Board not mounted, mounting now...');
+            this.mountBoard();
+            // Wait for board to mount
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
         // Initialize engines if not ready
         if (!this.enginesReady) {
             console.log('[Arena] Engines not ready, initializing...');
@@ -725,7 +733,13 @@ const CaissaArena = {
             console.log(`[Arena] Move played: ${moveResult.san}`);
 
             // Update board display
-            this.board.position(this.game.fen());
+            if (this.board) {
+                this.board.position(this.game.fen());
+            } else {
+                console.error('[Arena] Board is null, cannot update position');
+                this.handleError('Board not mounted');
+                return;
+            }
 
             // Record move
             if (this.state.currentGame) {
