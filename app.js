@@ -657,30 +657,49 @@ function makeEngineMove() {
 // ===== GAME STATUS =====
 function updateStatus() {
     const turn = App.game.turn() === 'w' ? 'White' : 'Black';
-    
+    const indicator = App.elements.turnIndicator;
+
+    let statusText = '';
+    let statusColor = '#2c5f9e';
+
     if (App.game.in_checkmate()) {
         const winner = App.game.turn() === 'w' ? 'Black' : 'White';
-        App.elements.turnIndicator.textContent = `Checkmate! ${winner} wins!`;
-        App.elements.turnIndicator.style.color = '#f44336';
+        statusText = `Checkmate! ${winner} wins!`;
+        statusColor = '#f44336';
     } else if (App.game.in_draw()) {
-        App.elements.turnIndicator.textContent = 'Game drawn';
-        App.elements.turnIndicator.style.color = '#ff9800';
+        statusText = 'Game drawn';
+        statusColor = '#ff9800';
     } else if (App.game.in_stalemate()) {
-        App.elements.turnIndicator.textContent = 'Stalemate!';
-        App.elements.turnIndicator.style.color = '#ff9800';
+        statusText = 'Stalemate!';
+        statusColor = '#ff9800';
     } else if (App.game.in_check()) {
-        App.elements.turnIndicator.textContent = `${turn} in check!`;
-        App.elements.turnIndicator.style.color = '#f44336';
+        statusText = `${turn} in check!`;
+        statusColor = '#f44336';
     } else {
-        App.elements.turnIndicator.textContent = `${turn} to move`;
-        App.elements.turnIndicator.style.color = '#2c5f9e';
+        statusText = `${turn} to move`;
+        statusColor = '#2c5f9e';
     }
+
+    // Update text indicator if it exists
+    if (indicator) {
+        indicator.textContent = statusText;
+        indicator.style.color = statusColor;
+    }
+
+    // Dispatch turn change event for LED indicator (caissa-ui-refactor.js)
+    window.dispatchEvent(new CustomEvent('caissa-turn-change', {
+        detail: {
+            turn: App.game.turn() === 'w' ? 'white' : 'black',
+            inCheck: App.game.in_check(),
+            statusText: statusText
+        }
+    }));
 }
 
 function handleGameOver() {
     App.gameActive = false;
     clearInterval(App.timerInterval);
-    
+
     let message = '';
     if (App.game.in_checkmate()) {
         const winner = App.game.turn() === 'w' ? 'Black' : 'White';
@@ -694,10 +713,18 @@ function handleGameOver() {
     } else if (App.game.insufficient_material()) {
         message = 'Draw by insufficient material';
     }
-    
-    App.elements.gameResult.textContent = message;
-    App.elements.gameResult.classList.add('show');
-    
+
+    // Update game result display if element exists
+    if (App.elements.gameResult) {
+        App.elements.gameResult.textContent = message;
+        App.elements.gameResult.classList.add('show');
+    }
+
+    // Dispatch game end event for UI components
+    window.dispatchEvent(new CustomEvent('caissa-game-end', {
+        detail: { result: message }
+    }));
+
     // Stop analysis if running
     if (App.analyzing) {
         stopAnalysis();

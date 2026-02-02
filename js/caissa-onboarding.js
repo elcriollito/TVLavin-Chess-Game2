@@ -54,7 +54,7 @@ const CaissaOnboarding = {
             buttonText: 'Next'
         },
         {
-            title: 'You're All Set!',
+            title: "You're All Set!",
             icon: 'check-circle',
             content: `
                 <p>You're ready to start analyzing. Here are some quick tips:</p>
