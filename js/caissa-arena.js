@@ -246,11 +246,14 @@ const CaissaArena = {
                     }
                 }, 100);
 
-                // Another resize for safety
+                // Another resize for safety and enable controls
                 setTimeout(() => {
                     if (this.board) {
                         this.board.resize();
                         console.log('[Arena] Board resize complete');
+
+                        // Enable Start Match button now that board is ready
+                        this.enableMatchControls();
                     }
                 }, 300);
 
@@ -557,6 +560,28 @@ const CaissaArena = {
         }
         if (stopMatchBtn) {
             stopMatchBtn.style.display = matchState !== 'idle' ? 'block' : 'none';
+        }
+    },
+
+    /**
+     * Enable match controls after board is mounted
+     */
+    enableMatchControls() {
+        const { startMatchBtn } = this.elements;
+        if (startMatchBtn) {
+            startMatchBtn.disabled = false;
+            console.log('[Arena] Match controls enabled - board ready');
+        }
+    },
+
+    /**
+     * Disable match controls while board is mounting
+     */
+    disableMatchControls() {
+        const { startMatchBtn } = this.elements;
+        if (startMatchBtn) {
+            startMatchBtn.disabled = true;
+            console.log('[Arena] Match controls disabled - waiting for board');
         }
     },
 
@@ -1377,7 +1402,10 @@ const CaissaArena = {
             this.renderTournamentEngineList();
         }
 
-        // Mount the board
+        // Disable controls while board mounts
+        this.disableMatchControls();
+
+        // Mount the board (will enable controls when ready)
         this.mountBoard();
 
         // Initialize eval graph
