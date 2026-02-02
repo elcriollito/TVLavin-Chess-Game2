@@ -63,7 +63,9 @@ const CaissaArena = {
     // Actual Stockfish engine workers for Arena
     whiteEngineInstance: null,
     blackEngineInstance: null,
+    evaluatorEngine: null, // Dedicated evaluation engine
     enginesReady: false,
+    evaluatorReady: false,
 
     // ===== STATE =====
     state: {
@@ -178,11 +180,18 @@ const CaissaArena = {
             return;
         }
 
-        // Check if board is already mounted
+        // Check if board is already mounted and valid
         if (this.board && this.state.boardMounted) {
             console.log('[Arena] Board already mounted, resizing...');
             this.board.resize();
             return;
+        }
+
+        // If board exists but not mounted properly, destroy it first
+        if (this.board) {
+            console.log('[Arena] Cleaning up incomplete board...');
+            this.board.destroy();
+            this.board = null;
         }
 
         // Ensure Chess.js is available
@@ -196,8 +205,12 @@ const CaissaArena = {
             return;
         }
 
-        // Clear container and create board element
-        container.innerHTML = '<div id="arenaBoardElement" class="arena-board"></div>';
+        // Clear container completely and create fresh board element
+        container.innerHTML = '';
+        const boardElement = document.createElement('div');
+        boardElement.id = 'arenaBoardElement';
+        boardElement.className = 'arena-board';
+        container.appendChild(boardElement);
 
         // Wait for container to have dimensions
         const checkAndMount = () => {
@@ -251,7 +264,7 @@ const CaissaArena = {
     },
 
     /**
-     * Set up ResizeObserver for dynamic board sizing
+     * Set up ResizeObserver for dynamic board sizing (chess.com style)
      */
     setupResizeObserver() {
         // Clean up existing observer
@@ -260,7 +273,9 @@ const CaissaArena = {
         }
 
         const boardContainer = document.querySelector('.arena-board-container');
-        if (!boardContainer || typeof ResizeObserver === 'undefined') return;
+        const boardMount = this.elements.boardMount;
+
+        if (!boardContainer || !boardMount || typeof ResizeObserver === 'undefined') return;
 
         let resizeTimeout = null;
 
@@ -269,15 +284,37 @@ const CaissaArena = {
             if (resizeTimeout) clearTimeout(resizeTimeout);
 
             resizeTimeout = setTimeout(() => {
-                if (this.board && this.state.boardMounted) {
-                    console.log('[Arena] Container resized, updating board...');
-                    this.board.resize();
-                }
-            }, 100);
+                if (!this.board || !this.state.boardMounted) return;
+
+                // Get container dimensions
+                const containerRect = boardContainer.getBoundingClientRect();
+                const containerWidth = containerRect.width - 32; // padding
+                const containerHeight = containerRect.height - 32;
+
+                // Calculate ideal board size (use smaller dimension for square board)
+                let idealSize = Math.min(containerWidth, containerHeight);
+
+                // Clamp to reasonable bounds (chess.com style)
+                // Desktop: 480-700px, Mobile: 300-420px
+                const isMobile = window.innerWidth < 768;
+                const minSize = isMobile ? 300 : 480;
+                const maxSize = isMobile ? 420 : 700;
+
+                const boardSize = Math.max(minSize, Math.min(maxSize, idealSize));
+
+                // Apply size to board mount container
+                boardMount.style.width = `${boardSize}px`;
+                boardMount.style.height = `${boardSize}px`;
+
+                console.log(`[Arena] Resizing board: ${boardSize}px (container: ${containerWidth}x${containerHeight})`);
+
+                // Trigger chessboard.js resize
+                this.board.resize();
+            }, 150);
         });
 
         this.resizeObserver.observe(boardContainer);
-        console.log('[Arena] ResizeObserver set up');
+        console.log('[Arena] ResizeObserver set up with auto-sizing');
     },
 
     bindEvents() {
@@ -401,12 +438,11 @@ const CaissaArena = {
 
         console.log('[Arena] Starting match:', this.state.whiteEngine.name, 'vs', this.state.blackEngine.name);
 
-        // Ensure board is mounted
+        // Verify board is mounted (should already be mounted by onEnter)
         if (!this.board || !this.state.boardMounted) {
-            console.log('[Arena] Board not mounted, mounting now...');
-            this.mountBoard();
-            // Wait for board to mount
-            await new Promise(resolve => setTimeout(resolve, 500));
+            console.error('[Arena] Board not mounted! Cannot start match.');
+            alert('Board not ready. Please try again.');
+            return;
         }
 
         // Initialize engines if not ready
@@ -572,7 +608,7 @@ const CaissaArena = {
     // ===== ARENA ENGINE MANAGEMENT =====
     /**
      * Initialize Stockfish engine instances for Arena
-     * Creates two independent engine workers
+     * Creates three independent engine workers (white, black, evaluator)
      */
     async initEngines() {
         console.log('[Arena] Initializing engine instances...');
@@ -590,11 +626,15 @@ const CaissaArena = {
             // Create black engine
             this.blackEngineInstance = new StockfishEngine();
 
-            // Wait for both engines to be ready
+            // Create evaluator engine
+            this.evaluatorEngine = new StockfishEngine();
+
+            // Wait for all engines to be ready
             await this.waitForEngines();
 
             this.enginesReady = true;
-            console.log('[Arena] Both engines ready!');
+            this.evaluatorReady = true;
+            console.log('[Arena] All engines ready (white, black, evaluator)!');
             return true;
 
         } catch (error) {
@@ -604,16 +644,17 @@ const CaissaArena = {
     },
 
     /**
-     * Wait for both engines to report ready
+     * Wait for all engines to report ready
      */
     waitForEngines() {
         return new Promise((resolve, reject) => {
             let whiteReady = false;
             let blackReady = false;
+            let evaluatorReady = false;
             let timeout = null;
 
-            const checkBoth = () => {
-                if (whiteReady && blackReady) {
+            const checkAll = () => {
+                if (whiteReady && blackReady && evaluatorReady) {
                     clearTimeout(timeout);
                     resolve();
                 }
@@ -623,13 +664,19 @@ const CaissaArena = {
             this.whiteEngineInstance.onReady = () => {
                 console.log('[Arena] White engine ready');
                 whiteReady = true;
-                checkBoth();
+                checkAll();
             };
 
             this.blackEngineInstance.onReady = () => {
                 console.log('[Arena] Black engine ready');
                 blackReady = true;
-                checkBoth();
+                checkAll();
+            };
+
+            this.evaluatorEngine.onReady = () => {
+                console.log('[Arena] Evaluator engine ready');
+                evaluatorReady = true;
+                checkAll();
             };
 
             // Check if already ready (might have initialized before callbacks set)
@@ -639,13 +686,16 @@ const CaissaArena = {
             if (this.blackEngineInstance.isReady()) {
                 blackReady = true;
             }
-            checkBoth();
+            if (this.evaluatorEngine.isReady()) {
+                evaluatorReady = true;
+            }
+            checkAll();
 
-            // Timeout after 10 seconds
+            // Timeout after 15 seconds (3 engines now)
             timeout = setTimeout(() => {
                 console.error('[Arena] Engine initialization timeout');
                 reject(new Error('Engine initialization timeout'));
-            }, 10000);
+            }, 15000);
         });
     },
 
@@ -661,8 +711,13 @@ const CaissaArena = {
             this.blackEngineInstance.terminate();
             this.blackEngineInstance = null;
         }
+        if (this.evaluatorEngine) {
+            this.evaluatorEngine.terminate();
+            this.evaluatorEngine = null;
+        }
         this.enginesReady = false;
-        console.log('[Arena] Engines destroyed');
+        this.evaluatorReady = false;
+        console.log('[Arena] All engines destroyed');
     },
 
     /**
@@ -760,6 +815,9 @@ const CaissaArena = {
                 moveCount: this.game.history().length
             });
 
+            // Request evaluation for current position
+            this.evaluatePosition(this.game.fen());
+
             // Check if game is still running
             if (this.state.matchState !== 'running' || !this.state.loopActive) {
                 console.log('[Arena] Loop stopped after move');
@@ -798,6 +856,92 @@ const CaissaArena = {
                 reject(new Error('Engine move timeout'));
             }, 30000);
         });
+    },
+
+    /**
+     * Evaluate current position and update eval panel + graph
+     */
+    evaluatePosition(fen) {
+        if (!this.evaluatorEngine || !this.evaluatorReady) {
+            return;
+        }
+
+        // Set up info callback to capture evaluation data
+        this.evaluatorEngine.onInfo = (info) => {
+            if (info.depth >= 12 && info.pv && info.pv.length > 0) {
+                // Calculate evaluation score (white perspective)
+                let evalScore = 0;
+                if (info.mate !== null) {
+                    evalScore = info.mate > 0 ? 99 : -99; // Mate in X moves
+                } else if (info.score !== null) {
+                    evalScore = info.score; // Already in pawns (white perspective)
+                }
+
+                // Update eval panel
+                this.updateEvalPanelWithInfo({
+                    score: evalScore,
+                    mate: info.mate,
+                    depth: info.depth,
+                    nodes: info.nodes,
+                    pv: info.pv,
+                    turn: this.game.turn() === 'w' ? 'white' : 'black'
+                });
+
+                // Add to eval history for graph
+                this.state.evalHistory.push({
+                    move: this.game.history().length,
+                    eval: evalScore
+                });
+
+                // Update graph
+                this.updateEvalGraph();
+            }
+        };
+
+        // Start analysis with short movetime
+        this.evaluatorEngine.setPosition(fen);
+        this.evaluatorEngine.go({ movetime: 250 }); // 250ms quick eval
+    },
+
+    /**
+     * Update eval panel with parsed info
+     */
+    updateEvalPanelWithInfo(data) {
+        const { evalScore, evalDepth, evalNodes, evalPV } = this.elements;
+
+        if (evalScore) {
+            let scoreText = '';
+            if (data.mate !== null && data.mate !== undefined) {
+                scoreText = data.mate > 0 ? `M${data.mate}` : `M${data.mate}`;
+            } else {
+                const score = data.score || 0;
+                scoreText = score >= 0 ? `+${score.toFixed(2)}` : score.toFixed(2);
+            }
+            evalScore.textContent = scoreText;
+
+            // Color code the score
+            if (data.score > 1.5 || (data.mate && data.mate > 0)) {
+                evalScore.className = 'arena-eval-score white-advantage';
+            } else if (data.score < -1.5 || (data.mate && data.mate < 0)) {
+                evalScore.className = 'arena-eval-score black-advantage';
+            } else {
+                evalScore.className = 'arena-eval-score';
+            }
+        }
+
+        if (evalDepth && data.depth) {
+            evalDepth.textContent = data.depth;
+        }
+
+        if (evalNodes && data.nodes) {
+            evalNodes.textContent = this.formatNodes(data.nodes);
+        }
+
+        if (evalPV && data.pv) {
+            // Show first 5 moves of PV
+            const pvMoves = data.pv.slice(0, 5).join(' ');
+            evalPV.textContent = pvMoves;
+        }
     },
 
     /**

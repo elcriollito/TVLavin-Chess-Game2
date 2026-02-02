@@ -4582,6 +4582,8 @@ button:focus,
     flex-direction: column;
     gap: 8px;
     min-width: 0;
+    min-height: 0; /* Allow flex shrinking */
+    flex: 1; /* Take available space */
 }
 
 /* Game Status Bar */
@@ -4592,6 +4594,7 @@ button:focus,
     padding: 10px 16px;
     background: var(--bg-secondary);
     border-radius: 8px;
+    flex-shrink: 0; /* Don't shrink status bar */
 }
 
 .arena-player {
@@ -4641,7 +4644,7 @@ button:focus,
     color: var(--text-tertiary);
 }
 
-/* Arena Board Container */
+/* Arena Board Container - chess.com style responsive sizing */
 .arena-board-container {
     flex: 1;
     display: flex;
@@ -4650,15 +4653,16 @@ button:focus,
     background: var(--bg-secondary);
     border-radius: 8px;
     padding: 16px;
-    min-height: 450px;
+    min-height: 0; /* Allow flex shrinking */
+    overflow: hidden;
 }
 
 .arena-board-mount {
-    width: 100%;
-    /* Dynamic sizing: use available space up to viewport constraints */
-    max-width: min(calc(100vh - 200px), 700px);
-    aspect-ratio: 1;
+    /* Size will be set dynamically by JS ResizeObserver */
+    width: 600px; /* Initial size */
+    height: 600px;
     margin: 0 auto;
+    position: relative;
 }
 
 /* Arena board element (created by JS) */
@@ -4666,8 +4670,6 @@ button:focus,
 #arenaBoardElement {
     width: 100% !important;
     height: 100% !important;
-    min-width: 350px;
-    min-height: 350px;
 }
 
 /* Arena Result Overlay */
