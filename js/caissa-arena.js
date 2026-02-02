@@ -432,8 +432,61 @@ const CaissaArena = {
         return this.engines.find(e => e.id === id);
     },
 
+    /**
+     * Wait for board to be fully mounted with real dimensions
+     * @param {Object} options - { timeoutMs: 2000, pollMs: 50 }
+     * @returns {Promise<void>} - Resolves when board ready, rejects on timeout
+     */
+    async waitForBoardMounted(options = {}) {
+        const { timeoutMs = 2000, pollMs = 50 } = options;
+        const startTime = Date.now();
+
+        return new Promise((resolve, reject) => {
+            const checkBoard = () => {
+                // Check if board instance exists
+                if (!this.board || !this.state.boardMounted) {
+                    if (Date.now() - startTime > timeoutMs) {
+                        reject(new Error('Board mount timeout - board instance not created'));
+                        return;
+                    }
+                    setTimeout(checkBoard, pollMs);
+                    return;
+                }
+
+                // Check if board container has real dimensions
+                const container = this.elements.boardMount;
+                if (!container) {
+                    reject(new Error('Board container element not found'));
+                    return;
+                }
+
+                const rect = container.getBoundingClientRect();
+                if (rect.width <= 0 || rect.height <= 0) {
+                    if (Date.now() - startTime > timeoutMs) {
+                        reject(new Error(`Board mount timeout - container has no dimensions (${rect.width}x${rect.height})`));
+                        return;
+                    }
+                    setTimeout(checkBoard, pollMs);
+                    return;
+                }
+
+                // Board is ready!
+                console.log('[Arena] Board ready:', rect.width, 'x', rect.height);
+                resolve();
+            };
+
+            checkBoard();
+        });
+    }
+
     // ===== MATCH CONTROLS =====
     async startMatch() {
+        // Prevent double-start
+        if (this.state.matchState === 'running') {
+            console.warn('[Arena] Match already running');
+            return;
+        }
+
         if (!this.state.whiteEngine || !this.state.blackEngine) {
             alert('Please select both engines');
             return;
@@ -441,11 +494,17 @@ const CaissaArena = {
 
         console.log('[Arena] Starting match:', this.state.whiteEngine.name, 'vs', this.state.blackEngine.name);
 
-        // Verify board is mounted (should already be mounted by onEnter)
+        // Wait for board to be mounted if not ready yet
         if (!this.board || !this.state.boardMounted) {
-            console.error('[Arena] Board not mounted! Cannot start match.');
-            alert('Board not ready. Please try again.');
-            return;
+            console.log('[Arena] Waiting for board mount...');
+            try {
+                await this.waitForBoardMounted({ timeoutMs: 3000, pollMs: 50 });
+                console.log('[Arena] Board ready, starting match');
+            } catch (error) {
+                console.error('[Arena] Board mount failed:', error.message);
+                alert('Board failed to mount. Please refresh and try again.');
+                return;
+            }
         }
 
         // Initialize engines if not ready
