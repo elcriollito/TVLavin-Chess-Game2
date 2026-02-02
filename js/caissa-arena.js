@@ -1451,15 +1451,19 @@ const CaissaArena = {
         console.log('[Arena] Section entered');
 
         // Re-cache elements (in case they weren't ready on init)
-        if (!this.elements.boardMount) {
-            this.cacheElements();
-        }
+        // CRITICAL: Always re-cache on enter to ensure fresh DOM references
+        this.cacheElements();
 
-        // Initialize engine selectors if needed
-        if (!this.elements.whiteEngineSelect?.options?.length) {
-            this.renderEngineSelectors();
-            this.renderTournamentEngineList();
-        }
+        // CRITICAL FIX: Always render engine selectors on enter
+        // The previous check `!this.elements.whiteEngineSelect?.options?.length`
+        // was unreliable because:
+        // 1. Element might be null (not found)
+        // 2. Element might exist but options were cleared by DOM manipulation
+        // 3. Timing issues with section switching
+        // Solution: Force render engines EVERY time we enter Arena section
+        console.log('[Arena] Rendering engine selectors...');
+        this.renderEngineSelectors();
+        this.renderTournamentEngineList();
 
         // Disable controls while board mounts
         this.disableMatchControls();

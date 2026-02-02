@@ -636,6 +636,12 @@ const CaissaNavigation = {
         // (navigateToSection has early return if already on section)
         const targetSection = this.currentSection;
 
+        // CRITICAL FIX: Remove 'active' from ALL sections first
+        // This prevents multiple sections being visible simultaneously
+        this.elements.sections.forEach(section => {
+            section.classList.remove('active');
+        });
+
         // Activate the section directly
         const sectionEl = document.getElementById(`${targetSection}Section`);
         if (sectionEl) {
