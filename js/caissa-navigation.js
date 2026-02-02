@@ -632,8 +632,27 @@ const CaissaNavigation = {
      * Update UI state
      */
     updateUI() {
-        // Ensure correct section is active
-        this.navigateToSection(this.currentSection);
+        // Force activation of current section on initial load
+        // (navigateToSection has early return if already on section)
+        const targetSection = this.currentSection;
+
+        // Activate the section directly
+        const sectionEl = document.getElementById(`${targetSection}Section`);
+        if (sectionEl) {
+            sectionEl.classList.add('active');
+
+            // Activate nav item
+            this.elements.navItems.forEach(item => {
+                if (item.dataset.section === targetSection) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+
+            // Call section enter hook
+            this.onSectionEnter(targetSection);
+        }
     }
 };
 
