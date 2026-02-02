@@ -262,7 +262,7 @@ const CaissaNavigation = {
         }
 
         // Find target container in new section
-        const targetContainer = document.querySelector(`#${sectionId}Section .board-zone, #${sectionId}Section .board-container`);
+        const targetContainer = document.querySelector(`#${sectionId}Section .board-zone, #${sectionId}Section .board-container, #${sectionId}Section .arena-board-container`);
         if (targetContainer && !targetContainer.contains(boardEl)) {
             console.log('[CAISSA Nav] Moving board to section:', sectionId);
 
@@ -281,6 +281,21 @@ const CaissaNavigation = {
                     console.log('[CAISSA Nav] Board resized');
                 }, 100);
             }
+        }
+    },
+
+    /**
+     * Register a section handler module
+     * @param {string} sectionId - The section ID (e.g., 'arena', 'analyze')
+     * @param {object} handler - The handler module with onEnter/onExit methods
+     */
+    registerSection(sectionId, handler) {
+        this.sections[sectionId] = handler;
+        console.log(`[CAISSA Nav] Registered section handler: ${sectionId}`);
+
+        // If this section is currently active, call onEnter
+        if (this.currentSection === sectionId && typeof handler.onEnter === 'function') {
+            handler.onEnter();
         }
     },
 

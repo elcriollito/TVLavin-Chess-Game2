@@ -4659,6 +4659,15 @@ button:focus,
     aspect-ratio: 1;
 }
 
+/* Arena board element (created by JS) */
+.arena-board,
+#arenaBoardElement {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 300px;
+    min-height: 300px;
+}
+
 /* Arena Result Overlay */
 .arena-result {
     text-align: center;

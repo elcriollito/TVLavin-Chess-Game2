@@ -55,6 +55,10 @@ const CaissaArena = {
         }
     ],
 
+    // ===== BOARD INSTANCE =====
+    board: null,
+    game: null,
+
     // ===== STATE =====
     state: {
         mode: 'match', // 'match' or 'tournament'
@@ -64,6 +68,7 @@ const CaissaArena = {
         moveDelay: 1000,
         currentGame: null,
         evalHistory: [], // For graph: [{move: 1, eval: 0.3}, ...]
+        boardMounted: false,
         tournament: {
             engines: [],
             format: 'swiss',
@@ -86,7 +91,21 @@ const CaissaArena = {
         this.renderEngineSelectors();
         this.renderTournamentEngineList();
         this.initEvalGraph();
+        this.initGame();
         console.log('[Arena] Ready with', this.engines.length, 'engines');
+    },
+
+    /**
+     * Initialize chess.js game instance for Arena
+     */
+    initGame() {
+        // Create a new chess.js instance for Arena
+        if (typeof Chess !== 'undefined') {
+            this.game = new Chess();
+            console.log('[Arena] Game instance created');
+        } else {
+            console.warn('[Arena] Chess.js not loaded yet');
+        }
     },
 
     cacheElements() {
@@ -131,8 +150,91 @@ const CaissaArena = {
             tournamentOpening: document.getElementById('arenaTournamentOpening'),
             startTournamentBtn: document.getElementById('arenaStartTournament'),
             tournamentStandings: document.getElementById('arenaTournamentStandings'),
-            tournamentProgress: document.getElementById('arenaTournamentProgress')
+            tournamentProgress: document.getElementById('arenaTournamentProgress'),
+
+            // Board mount
+            boardMount: document.getElementById('arenaBoardMount'),
+            moveHistory: document.getElementById('arenaMoveHistory')
         };
+    },
+
+    /**
+     * Mount the chessboard in Arena
+     */
+    mountBoard() {
+        const container = this.elements.boardMount;
+        if (!container) {
+            console.error('[Arena] Board mount container not found');
+            return;
+        }
+
+        // Check if board is already mounted
+        if (this.board && this.state.boardMounted) {
+            console.log('[Arena] Board already mounted, resizing...');
+            this.board.resize();
+            return;
+        }
+
+        // Ensure Chess.js is available
+        if (!this.game && typeof Chess !== 'undefined') {
+            this.game = new Chess();
+        }
+
+        // Check if Chessboard is available
+        if (typeof Chessboard === 'undefined') {
+            console.error('[Arena] Chessboard.js not loaded');
+            return;
+        }
+
+        // Clear container and create board element
+        container.innerHTML = '<div id="arenaBoardElement" class="arena-board"></div>';
+
+        // Wait for container to have dimensions
+        const checkAndMount = () => {
+            const rect = container.getBoundingClientRect();
+
+            if (rect.width < 100) {
+                // Container not ready, retry
+                setTimeout(checkAndMount, 50);
+                return;
+            }
+
+            // Board configuration
+            const config = {
+                draggable: false, // Arena boards are view-only (engine plays)
+                position: 'start',
+                pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
+                showNotation: true,
+                orientation: 'white'
+            };
+
+            try {
+                this.board = Chessboard('arenaBoardElement', config);
+                this.state.boardMounted = true;
+                console.log('[Arena] Board mounted successfully, container:', rect.width, 'x', rect.height);
+
+                // Resize after short delay to ensure proper rendering
+                setTimeout(() => {
+                    if (this.board) {
+                        this.board.resize();
+                    }
+                }, 100);
+
+                // Another resize for safety
+                setTimeout(() => {
+                    if (this.board) {
+                        this.board.resize();
+                        console.log('[Arena] Board resize complete');
+                    }
+                }, 300);
+
+            } catch (err) {
+                console.error('[Arena] Failed to mount board:', err);
+            }
+        };
+
+        // Start mounting process
+        setTimeout(checkAndMount, 50);
     },
 
     bindEvents() {
@@ -703,20 +805,67 @@ const CaissaArena = {
     // ===== SECTION LIFECYCLE =====
     onEnter() {
         console.log('[Arena] Section entered');
-        // Initialize if needed
-        if (!this.elements.whiteEngineSelect) {
+
+        // Re-cache elements (in case they weren't ready on init)
+        if (!this.elements.boardMount) {
             this.cacheElements();
+        }
+
+        // Initialize engine selectors if needed
+        if (!this.elements.whiteEngineSelect?.options?.length) {
             this.renderEngineSelectors();
             this.renderTournamentEngineList();
         }
+
+        // Mount the board
+        this.mountBoard();
+
+        // Initialize eval graph
+        this.initEvalGraph();
     },
 
     onExit() {
         console.log('[Arena] Section exited');
-        // Stop any running match
+        // Don't destroy the board, just leave it
+        // Stop any running match if needed
         if (this.state.matchState === 'running') {
-            this.stopMatch();
+            // Optionally stop - for now we let it run
+            // this.stopMatch();
         }
+    },
+
+    /**
+     * Update board position
+     */
+    updateBoardPosition(fen) {
+        if (this.board && fen) {
+            this.board.position(fen, false);
+        }
+    },
+
+    /**
+     * Reset board to starting position
+     */
+    resetBoard() {
+        if (this.game) {
+            this.game.reset();
+        }
+        if (this.board) {
+            this.board.position('start', false);
+        }
+        this.state.evalHistory = [];
+        this.clearEvalGraph();
+
+        // Clear move history display
+        if (this.elements.moveHistory) {
+            this.elements.moveHistory.innerHTML = '';
+        }
+
+        // Reset status
+        this.updateGameStatus({
+            turn: 'white',
+            moveCount: 0
+        });
     }
 };
 
@@ -725,6 +874,18 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => CaissaArena.init());
 } else {
     CaissaArena.init();
+}
+
+// Register with navigation system
+if (window.CaissaNavigation) {
+    CaissaNavigation.registerSection('arena', CaissaArena);
+} else {
+    // Wait for navigation to be ready
+    window.addEventListener('caissa-navigation-ready', () => {
+        if (window.CaissaNavigation) {
+            CaissaNavigation.registerSection('arena', CaissaArena);
+        }
+    });
 }
 
 // Expose globally
