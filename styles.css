@@ -4650,13 +4650,15 @@ button:focus,
     background: var(--bg-secondary);
     border-radius: 8px;
     padding: 16px;
-    min-height: 400px;
+    min-height: 450px;
 }
 
 .arena-board-mount {
     width: 100%;
-    max-width: 560px;
+    /* Dynamic sizing: use available space up to viewport constraints */
+    max-width: min(calc(100vh - 200px), 700px);
     aspect-ratio: 1;
+    margin: 0 auto;
 }
 
 /* Arena board element (created by JS) */
@@ -4664,8 +4666,8 @@ button:focus,
 #arenaBoardElement {
     width: 100% !important;
     height: 100% !important;
-    min-width: 300px;
-    min-height: 300px;
+    min-width: 350px;
+    min-height: 350px;
 }
 
 /* Arena Result Overlay */
@@ -4796,10 +4798,41 @@ button:focus,
 }
 
 .arena-move-list {
-    max-height: 150px;
+    max-height: 200px;
     overflow-y: auto;
     font-size: 12px;
     font-family: 'Roboto Mono', monospace;
+}
+
+.arena-move-row {
+    display: flex;
+    gap: 8px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.arena-move-row:last-child {
+    border-bottom: none;
+}
+
+.arena-move-row .move-num {
+    width: 28px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+}
+
+.arena-move-row .move-white,
+.arena-move-row .move-black {
+    width: 50px;
+    flex-shrink: 0;
+}
+
+.arena-move-row .move-white {
+    color: var(--text-primary);
+}
+
+.arena-move-row .move-black {
+    color: var(--text-secondary);
 }
 
 /* Arena Mobile Responsive */

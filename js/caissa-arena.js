@@ -59,16 +59,23 @@ const CaissaArena = {
     board: null,
     game: null,
 
+    // ===== ENGINE INSTANCES =====
+    // Actual Stockfish engine workers for Arena
+    whiteEngineInstance: null,
+    blackEngineInstance: null,
+    enginesReady: false,
+
     // ===== STATE =====
     state: {
         mode: 'match', // 'match' or 'tournament'
         matchState: 'idle', // 'idle', 'running', 'paused', 'finished'
-        whiteEngine: null,
-        blackEngine: null,
+        whiteEngine: null, // Engine config (from registry)
+        blackEngine: null, // Engine config (from registry)
         moveDelay: 1000,
         currentGame: null,
         evalHistory: [], // For graph: [{move: 1, eval: 0.3}, ...]
         boardMounted: false,
+        loopActive: false, // Is engine loop running
         tournament: {
             engines: [],
             format: 'swiss',
@@ -158,6 +165,9 @@ const CaissaArena = {
         };
     },
 
+    // ResizeObserver for dynamic board sizing
+    resizeObserver: null,
+
     /**
      * Mount the chessboard in Arena
      */
@@ -213,6 +223,9 @@ const CaissaArena = {
                 this.state.boardMounted = true;
                 console.log('[Arena] Board mounted successfully, container:', rect.width, 'x', rect.height);
 
+                // Set up ResizeObserver for dynamic sizing
+                this.setupResizeObserver();
+
                 // Resize after short delay to ensure proper rendering
                 setTimeout(() => {
                     if (this.board) {
@@ -235,6 +248,36 @@ const CaissaArena = {
 
         // Start mounting process
         setTimeout(checkAndMount, 50);
+    },
+
+    /**
+     * Set up ResizeObserver for dynamic board sizing
+     */
+    setupResizeObserver() {
+        // Clean up existing observer
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+        }
+
+        const boardContainer = document.querySelector('.arena-board-container');
+        if (!boardContainer || typeof ResizeObserver === 'undefined') return;
+
+        let resizeTimeout = null;
+
+        this.resizeObserver = new ResizeObserver((entries) => {
+            // Debounce resize events
+            if (resizeTimeout) clearTimeout(resizeTimeout);
+
+            resizeTimeout = setTimeout(() => {
+                if (this.board && this.state.boardMounted) {
+                    console.log('[Arena] Container resized, updating board...');
+                    this.board.resize();
+                }
+            }, 100);
+        });
+
+        this.resizeObserver.observe(boardContainer);
+        console.log('[Arena] ResizeObserver set up');
     },
 
     bindEvents() {
@@ -350,7 +393,7 @@ const CaissaArena = {
     },
 
     // ===== MATCH CONTROLS =====
-    startMatch() {
+    async startMatch() {
         if (!this.state.whiteEngine || !this.state.blackEngine) {
             alert('Please select both engines');
             return;
@@ -358,7 +401,22 @@ const CaissaArena = {
 
         console.log('[Arena] Starting match:', this.state.whiteEngine.name, 'vs', this.state.blackEngine.name);
 
+        // Initialize engines if not ready
+        if (!this.enginesReady) {
+            console.log('[Arena] Engines not ready, initializing...');
+            const success = await this.initEngines();
+            if (!success) {
+                alert('Failed to initialize engines. Please try again.');
+                return;
+            }
+        }
+
+        // Reset game state
+        this.resetBoard();
+
+        // Set match state
         this.state.matchState = 'running';
+        this.state.loopActive = true;
         this.state.evalHistory = [];
         this.state.currentGame = {
             white: this.state.whiteEngine,
@@ -367,12 +425,20 @@ const CaissaArena = {
             startTime: Date.now()
         };
 
+        // Hide result from previous game
+        if (this.elements.statusResult) {
+            this.elements.statusResult.style.display = 'none';
+        }
+
         // Update UI
         this.updateMatchControls();
-        this.updateGameStatus();
+        this.updateGameStatus({
+            turn: 'white',
+            moveCount: 0
+        });
         this.clearEvalGraph();
 
-        // Dispatch event to start engine battle
+        // Dispatch event for external listeners
         window.dispatchEvent(new CustomEvent('caissa-arena-start', {
             detail: {
                 white: this.state.whiteEngine,
@@ -381,36 +447,55 @@ const CaissaArena = {
             }
         }));
 
-        // If using existing EVE system, trigger it
-        if (window.App && window.App.startEngineVsEngine) {
-            window.App.startEngineVsEngine();
-        }
+        // Start the engine loop
+        console.log('[Arena] Starting engine loop...');
+        setTimeout(() => {
+            this.runEngineLoop();
+        }, 500); // Small delay to ensure UI is updated
     },
 
     togglePause() {
         if (this.state.matchState === 'running') {
+            // Pause the match
             this.state.matchState = 'paused';
+            this.state.loopActive = false;
+            console.log('[Arena] Match paused');
             window.dispatchEvent(new CustomEvent('caissa-arena-pause'));
-            if (window.App && window.App.pauseEngineVsEngine) {
-                window.App.pauseEngineVsEngine();
-            }
         } else if (this.state.matchState === 'paused') {
+            // Resume the match
             this.state.matchState = 'running';
+            this.state.loopActive = true;
+            console.log('[Arena] Match resumed');
             window.dispatchEvent(new CustomEvent('caissa-arena-resume'));
-            if (window.App && window.App.resumeEngineVsEngine) {
-                window.App.resumeEngineVsEngine();
-            }
+            // Resume the loop
+            setTimeout(() => {
+                this.runEngineLoop();
+            }, 100);
         }
         this.updateMatchControls();
     },
 
     stopMatch() {
+        console.log('[Arena] Stopping match');
         this.state.matchState = 'idle';
-        window.dispatchEvent(new CustomEvent('caissa-arena-stop'));
-        if (window.App && window.App.stopEngineVsEngine) {
-            window.App.stopEngineVsEngine();
+        this.state.loopActive = false;
+
+        // Stop any ongoing engine calculations
+        if (this.whiteEngineInstance) {
+            this.whiteEngineInstance.stop();
         }
+        if (this.blackEngineInstance) {
+            this.blackEngineInstance.stop();
+        }
+
+        window.dispatchEvent(new CustomEvent('caissa-arena-stop'));
         this.updateMatchControls();
+
+        // Show stopped message
+        if (this.elements.statusResult) {
+            this.elements.statusResult.textContent = 'Match stopped';
+            this.elements.statusResult.style.display = 'block';
+        }
     },
 
     updateMatchControls() {
@@ -474,6 +559,323 @@ const CaissaArena = {
             });
             this.updateEvalGraph();
         }
+    },
+
+    // ===== ARENA ENGINE MANAGEMENT =====
+    /**
+     * Initialize Stockfish engine instances for Arena
+     * Creates two independent engine workers
+     */
+    async initEngines() {
+        console.log('[Arena] Initializing engine instances...');
+
+        // Check if StockfishEngine class is available
+        if (typeof StockfishEngine === 'undefined') {
+            console.error('[Arena] StockfishEngine class not found!');
+            return false;
+        }
+
+        try {
+            // Create white engine
+            this.whiteEngineInstance = new StockfishEngine();
+
+            // Create black engine
+            this.blackEngineInstance = new StockfishEngine();
+
+            // Wait for both engines to be ready
+            await this.waitForEngines();
+
+            this.enginesReady = true;
+            console.log('[Arena] Both engines ready!');
+            return true;
+
+        } catch (error) {
+            console.error('[Arena] Failed to initialize engines:', error);
+            return false;
+        }
+    },
+
+    /**
+     * Wait for both engines to report ready
+     */
+    waitForEngines() {
+        return new Promise((resolve, reject) => {
+            let whiteReady = false;
+            let blackReady = false;
+            let timeout = null;
+
+            const checkBoth = () => {
+                if (whiteReady && blackReady) {
+                    clearTimeout(timeout);
+                    resolve();
+                }
+            };
+
+            // Set up ready callbacks
+            this.whiteEngineInstance.onReady = () => {
+                console.log('[Arena] White engine ready');
+                whiteReady = true;
+                checkBoth();
+            };
+
+            this.blackEngineInstance.onReady = () => {
+                console.log('[Arena] Black engine ready');
+                blackReady = true;
+                checkBoth();
+            };
+
+            // Check if already ready (might have initialized before callbacks set)
+            if (this.whiteEngineInstance.isReady()) {
+                whiteReady = true;
+            }
+            if (this.blackEngineInstance.isReady()) {
+                blackReady = true;
+            }
+            checkBoth();
+
+            // Timeout after 10 seconds
+            timeout = setTimeout(() => {
+                console.error('[Arena] Engine initialization timeout');
+                reject(new Error('Engine initialization timeout'));
+            }, 10000);
+        });
+    },
+
+    /**
+     * Destroy engine instances to free resources
+     */
+    destroyEngines() {
+        if (this.whiteEngineInstance) {
+            this.whiteEngineInstance.terminate();
+            this.whiteEngineInstance = null;
+        }
+        if (this.blackEngineInstance) {
+            this.blackEngineInstance.terminate();
+            this.blackEngineInstance = null;
+        }
+        this.enginesReady = false;
+        console.log('[Arena] Engines destroyed');
+    },
+
+    /**
+     * Main engine loop for Arena matches
+     * Self-contained - doesn't depend on app.js EVE system
+     */
+    async runEngineLoop() {
+        // Safety check
+        if (this.state.matchState !== 'running' || !this.state.loopActive) {
+            console.log('[Arena] Loop stopped - match not running');
+            return;
+        }
+
+        // Check game over
+        if (this.game.game_over()) {
+            console.log('[Arena] Game over detected');
+            this.handleGameOver();
+            return;
+        }
+
+        // Determine which engine should move
+        const isWhiteTurn = this.game.turn() === 'w';
+        const currentEngine = isWhiteTurn ? this.whiteEngineInstance : this.blackEngineInstance;
+        const engineConfig = isWhiteTurn ? this.state.whiteEngine : this.state.blackEngine;
+
+        console.log(`[Arena] ${isWhiteTurn ? 'White' : 'Black'} (${engineConfig?.name || 'Engine'}) to move`);
+
+        // Update turn display
+        this.updateGameStatus({
+            turn: isWhiteTurn ? 'white' : 'black',
+            moveCount: this.game.history().length
+        });
+
+        // Get FEN for current position
+        const fen = this.game.fen();
+
+        // Get depth from engine config
+        const depth = engineConfig?.options?.depth || 15;
+
+        try {
+            // Request best move from engine
+            const bestMove = await this.getEngineMove(currentEngine, fen, depth);
+
+            if (!bestMove) {
+                console.error('[Arena] Engine returned no move');
+                this.handleError('Engine returned no move');
+                return;
+            }
+
+            // Parse UCI move format (e.g., "e2e4" -> {from: "e2", to: "e4"})
+            const from = bestMove.substring(0, 2);
+            const to = bestMove.substring(2, 4);
+            const promotion = bestMove.length > 4 ? bestMove.substring(4, 5) : undefined;
+
+            // Attempt the move
+            const moveResult = this.game.move({
+                from: from,
+                to: to,
+                promotion: promotion
+            });
+
+            if (!moveResult) {
+                console.error('[Arena] Invalid move from engine:', bestMove);
+                this.handleError(`Invalid move: ${bestMove}`);
+                return;
+            }
+
+            console.log(`[Arena] Move played: ${moveResult.san}`);
+
+            // Update board display
+            this.board.position(this.game.fen());
+
+            // Record move
+            if (this.state.currentGame) {
+                this.state.currentGame.moves.push({
+                    move: moveResult.san,
+                    uci: bestMove,
+                    fen: this.game.fen(),
+                    turn: isWhiteTurn ? 'white' : 'black'
+                });
+            }
+
+            // Update move history display
+            this.updateMoveHistory(moveResult);
+
+            // Update status
+            this.updateGameStatus({
+                turn: this.game.turn() === 'w' ? 'white' : 'black',
+                moveCount: this.game.history().length
+            });
+
+            // Check if game is still running
+            if (this.state.matchState !== 'running' || !this.state.loopActive) {
+                console.log('[Arena] Loop stopped after move');
+                return;
+            }
+
+            // Wait for configured delay, then continue loop
+            setTimeout(() => {
+                this.runEngineLoop();
+            }, this.state.moveDelay);
+
+        } catch (error) {
+            console.error('[Arena] Engine loop error:', error);
+            this.handleError(error.message);
+        }
+    },
+
+    /**
+     * Get move from engine (Promise wrapper)
+     */
+    getEngineMove(engine, fen, depth) {
+        return new Promise((resolve, reject) => {
+            if (!engine || !engine.isReady()) {
+                reject(new Error('Engine not ready'));
+                return;
+            }
+
+            // Set up callback for best move
+            engine.getBestMove(fen, (bestMove) => {
+                console.log(`[Arena] Engine returned: ${bestMove}`);
+                resolve(bestMove);
+            }, { depth: depth });
+
+            // Timeout after 30 seconds
+            setTimeout(() => {
+                reject(new Error('Engine move timeout'));
+            }, 30000);
+        });
+    },
+
+    /**
+     * Handle game over condition
+     */
+    handleGameOver() {
+        this.state.matchState = 'finished';
+        this.state.loopActive = false;
+
+        let result = '';
+        let resultCode = '1/2-1/2';
+
+        if (this.game.in_checkmate()) {
+            const winner = this.game.turn() === 'w' ? 'Black' : 'White';
+            const winnerEngine = winner === 'White' ? this.state.whiteEngine : this.state.blackEngine;
+            result = `${winner} wins by checkmate (${winnerEngine?.name || 'Engine'})`;
+            resultCode = winner === 'White' ? '1-0' : '0-1';
+        } else if (this.game.in_stalemate()) {
+            result = 'Draw by stalemate';
+        } else if (this.game.in_threefold_repetition()) {
+            result = 'Draw by threefold repetition';
+        } else if (this.game.insufficient_material()) {
+            result = 'Draw - insufficient material';
+        } else if (this.game.in_draw()) {
+            result = 'Draw';
+        } else {
+            result = 'Game over';
+        }
+
+        console.log('[Arena] Game ended:', result);
+
+        // Update UI
+        this.updateMatchControls();
+        if (this.elements.statusResult) {
+            this.elements.statusResult.textContent = result;
+            this.elements.statusResult.style.display = 'block';
+        }
+
+        // Record tournament result if in tournament mode
+        if (this.state.mode === 'tournament') {
+            this.recordTournamentResult(resultCode);
+            // Play next game after delay
+            setTimeout(() => {
+                this.playNextTournamentGame();
+            }, 2000);
+        }
+    },
+
+    /**
+     * Handle errors during match
+     */
+    handleError(message) {
+        this.state.matchState = 'idle';
+        this.state.loopActive = false;
+        this.updateMatchControls();
+
+        if (this.elements.statusResult) {
+            this.elements.statusResult.textContent = `Error: ${message}`;
+            this.elements.statusResult.style.display = 'block';
+        }
+    },
+
+    /**
+     * Update move history display
+     */
+    updateMoveHistory(move) {
+        if (!this.elements.moveHistory) return;
+
+        const moveNum = Math.ceil(this.game.history().length / 2);
+        const isWhite = move.color === 'w';
+
+        if (isWhite) {
+            // Start new row for white move
+            const row = document.createElement('div');
+            row.className = 'arena-move-row';
+            row.innerHTML = `<span class="move-num">${moveNum}.</span>
+                            <span class="move-white">${move.san}</span>
+                            <span class="move-black">-</span>`;
+            this.elements.moveHistory.appendChild(row);
+        } else {
+            // Fill in black move in last row
+            const lastRow = this.elements.moveHistory.querySelector('.arena-move-row:last-child');
+            if (lastRow) {
+                const blackSpan = lastRow.querySelector('.move-black');
+                if (blackSpan) {
+                    blackSpan.textContent = move.san;
+                }
+            }
+        }
+
+        // Scroll to bottom
+        this.elements.moveHistory.scrollTop = this.elements.moveHistory.scrollHeight;
     },
 
     // ===== EVALUATION PANEL =====
