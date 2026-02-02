@@ -28,16 +28,27 @@
      */
     async function initializeAuth() {
         const config = window.CAISSA_AUTH_CONFIG;
+
+        // Check for valid config
         if (!config || !config.CLERK_PUBLISHABLE_KEY) {
-            console.error('CAISSA Auth: Missing auth config');
+            console.warn('CAISSA Auth: Missing auth config - running without authentication');
             window.CAISSA_AUTH.isLoaded = true;
             _notifyListeners();
             return;
         }
 
-        // Check if Clerk is loaded
+        // Check if publishableKey is the placeholder (not configured)
+        if (config.CLERK_PUBLISHABLE_KEY === 'pk_test_REPLACE_WITH_YOUR_KEY' ||
+            config.CLERK_PUBLISHABLE_KEY.includes('REPLACE')) {
+            console.warn('CAISSA Auth: Clerk key not configured - running without authentication');
+            window.CAISSA_AUTH.isLoaded = true;
+            _notifyListeners();
+            return;
+        }
+
+        // Check if Clerk SDK is loaded
         if (typeof window.Clerk === 'undefined') {
-            console.error('CAISSA Auth: Clerk SDK not loaded');
+            console.warn('CAISSA Auth: Clerk SDK not loaded - running without authentication');
             window.CAISSA_AUTH.isLoaded = true;
             _notifyListeners();
             return;
@@ -64,7 +75,7 @@
             console.log('CAISSA Auth: Initialized successfully');
 
         } catch (error) {
-            console.error('CAISSA Auth: Initialization failed', error);
+            console.warn('CAISSA Auth: Initialization failed - running without authentication', error);
             window.CAISSA_AUTH.isLoaded = true;
         }
 
@@ -366,15 +377,15 @@
                 }
             }, 100);
 
-            // Timeout after 10 seconds
+            // Timeout after 3 seconds (fast failover)
             setTimeout(() => {
                 clearInterval(checkInterval);
                 if (!window.CAISSA_AUTH.isLoaded) {
-                    console.warn('CAISSA Auth: Clerk SDK load timeout');
+                    console.warn('CAISSA Auth: Clerk SDK load timeout - continuing without auth');
                     window.CAISSA_AUTH.isLoaded = true;
                     _notifyListeners();
                 }
-            }, 10000);
+            }, 3000);
         }
     }
 

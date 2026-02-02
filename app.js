@@ -3216,12 +3216,26 @@ document.addEventListener('keydown', (e) => {
 
 // ===== ERROR HANDLING =====
 window.addEventListener('error', (e) => {
+    // Ignore Clerk errors if auth is not configured (we handle this gracefully)
+    const errorMsg = e.error?.message || '';
+    if (errorMsg.includes('clerk') || errorMsg.includes('publishableKey')) {
+        console.warn('Application error (auth related):', e.error);
+        return true; // Prevent error propagation
+    }
+
     console.error('Application error:', e.error);
     showErrorNotification('An unexpected error occurred. The application may need to be refreshed.');
     return false;
 });
 
 window.addEventListener('unhandledrejection', (e) => {
+    // Ignore Clerk promise rejections
+    const reason = e.reason?.message || String(e.reason || '');
+    if (reason.includes('clerk') || reason.includes('publishableKey')) {
+        console.warn('Unhandled promise rejection (auth related):', e.reason);
+        return true;
+    }
+
     console.error('Unhandled promise rejection:', e.reason);
     showErrorNotification('An error occurred while processing your request.');
     return false;
