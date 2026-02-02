@@ -685,13 +685,9 @@
         max-width: 100%;
     }
 
+    /* Hide Library FAB on mobile - access via drawer menu only */
     .library-toggle-btn {
-        display: flex; /* Show on mobile */
-        left: 16px;
-        bottom: 140px;
-        width: 44px;
-        height: 44px;
-        font-size: 18px;
+        display: none !important;
     }
 
     .library-position-actions {

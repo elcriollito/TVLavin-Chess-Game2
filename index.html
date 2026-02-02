@@ -109,6 +109,33 @@
                 </button>
             </div>
 
+            <!-- Auth Area in Sidebar -->
+            <div class="nav-auth-area" id="sidebarAuthArea">
+                <!-- Will be populated by JS based on auth state -->
+                <a href="/signin" class="nav-auth-btn nav-auth-signin" id="sidebarSignIn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span class="nav-label">Sign In</span>
+                </a>
+                <div class="nav-auth-user nav-auth-signed-in" id="sidebarUserInfo" style="display: none;">
+                    <div class="nav-auth-avatar" id="sidebarUserAvatar">
+                        <span class="nav-auth-initials">U</span>
+                    </div>
+                    <div class="nav-auth-details">
+                        <span class="nav-auth-name" id="sidebarUserName">User</span>
+                        <span class="nav-auth-tier" id="sidebarUserTier">Free</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Premium CTA - High visibility -->
+            <div class="nav-premium-cta">
+                <a href="/premium" class="nav-premium-btn" aria-label="Upgrade to Premium">
+                    <i class="fas fa-crown"></i>
+                    <span class="nav-label">Premium</span>
+                    <span class="nav-premium-badge">Upgrade</span>
+                </a>
+            </div>
+
             <!-- Primary Action -->
             <div class="nav-action">
                 <button id="navNewGameBtn" class="nav-action-btn" aria-label="Start New Game">
@@ -166,11 +193,6 @@
                     <span class="nav-label">Blog</span>
                     <i class="fas fa-external-link-alt nav-external-icon"></i>
                 </a>
-
-                <button class="nav-item nav-item-premium" data-section="premium" aria-label="Premium section">
-                    <i class="fas fa-crown"></i>
-                    <span class="nav-label">Premium</span>
-                </button>
             </div>
 
             <div class="nav-footer">
@@ -194,79 +216,108 @@
         <!-- Main Content Area (Legacy - now inside playSection) -->
         <div class="main-content">
             
-            <!-- Left Sidebar - Game Info -->
+            <!-- Left Sidebar - Game Menu (Global reusable component) -->
             <aside class="left-sidebar">
-                <!-- Move History -->
-                <div class="panel move-history-panel">
-                    <div class="panel-header">
-                        <h3 class="panel-title">Move History</h3>
-                        <div class="history-controls">
-                            <button id="exportPGN" class="icon-btn" title="Export PGN" aria-label="Export game as PGN">
+                <!-- Game Menu - Core actions for all board views -->
+                <div class="panel game-menu-panel">
+                    <h3 class="panel-title">Game Menu</h3>
+                    <div class="game-menu-content">
+                        <div class="game-menu-grid">
+                            <button id="flipBoard" class="game-menu-btn" aria-label="Flip board" title="Flip Board">
+                                <i class="fas fa-exchange-alt"></i>
+                                <span>Flip</span>
+                            </button>
+                            <button id="analyzeGame" class="game-menu-btn game-menu-btn-highlight" aria-label="Analyze game" title="Analyze Game">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Analyze</span>
+                            </button>
+                            <button id="copyFEN" class="game-menu-btn" aria-label="Copy FEN" title="Copy FEN">
+                                <i class="fas fa-copy"></i>
+                                <span>Copy FEN</span>
+                            </button>
+                            <button id="exportPGN" class="game-menu-btn" aria-label="Export PGN" title="Export PGN">
                                 <i class="fas fa-download"></i>
+                                <span>Export</span>
+                            </button>
+                            <button id="pasteFEN" class="game-menu-btn" aria-label="Paste FEN" title="Paste FEN">
+                                <i class="fas fa-file-import"></i>
+                                <span>Paste FEN</span>
+                            </button>
+                            <button id="editBoard" class="game-menu-btn" aria-label="Edit board" title="Edit Board">
+                                <i class="fas fa-edit"></i>
+                                <span>Edit</span>
                             </button>
                         </div>
                     </div>
-                    <div id="moveHistory" class="move-history-content"></div>
-                    
-                    <!-- Navigation Controls -->
-                    <div class="navigation-controls">
-                        <button id="navFirst" class="nav-btn" title="Jump to start" aria-label="Jump to start">
-                            <i class="fas fa-fast-backward"></i>
-                        </button>
-                        <button id="navPrev" class="nav-btn" title="Previous move" aria-label="Previous move">
-                            <i class="fas fa-step-backward"></i>
-                        </button>
-                        <button id="navNext" class="nav-btn" title="Next move" aria-label="Next move">
-                            <i class="fas fa-step-forward"></i>
-                        </button>
-                        <button id="navLast" class="nav-btn" title="Jump to end" aria-label="Jump to end">
-                            <i class="fas fa-fast-forward"></i>
-                        </button>
-                    </div>
                 </div>
 
-                <!-- PGN Library -->
-                <div class="panel pgn-library-panel">
-                    <h3 class="panel-title">Game Library</h3>
-                    <div class="pgn-library-content">
-                        <div class="form-group">
-                            <label for="categorySelector">Category:</label>
-                            <select id="categorySelector" class="form-control" aria-label="Select category">
-                                <option value="">-- Loading... --</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="playerSelector">Player:</label>
-                            <select id="playerSelector" class="form-control" aria-label="Select player" disabled>
-                                <option value="">-- Select category first --</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="fileSelector">Game Collection:</label>
-                            <select id="fileSelector" class="form-control" aria-label="Select game file" disabled>
-                                <option value="">-- Select player first --</option>
-                            </select>
-                        </div>
-                        <button id="loadPgnBtn" class="btn btn-block btn-primary" aria-label="Load selected game">
-                            <i class="fas fa-chess-board"></i> Load Game
+                <!-- Compact Game Library -->
+                <div class="panel pgn-library-panel pgn-library-compact">
+                    <div class="panel-header-compact">
+                        <h3 class="panel-title">Game Library</h3>
+                        <button class="panel-toggle-btn" id="toggleLibraryPanel" aria-label="Toggle library">
+                            <i class="fas fa-chevron-down"></i>
                         </button>
-                        <div id="pgnInfo" class="pgn-info" style="display: none;">
-                            <p><strong>Event:</strong> <span id="pgnEvent">-</span></p>
-                            <p><strong>Players:</strong> <span id="pgnPlayers">-</span></p>
-                            <p><strong>Result:</strong> <span id="pgnResult">-</span></p>
+                    </div>
+                    <div class="pgn-library-content" id="libraryPanelContent">
+                        <div class="form-group form-group-compact">
+                            <select id="categorySelector" class="form-control form-control-sm" aria-label="Select category">
+                                <option value="">-- Category --</option>
+                            </select>
                         </div>
+                        <div class="form-group form-group-compact">
+                            <select id="playerSelector" class="form-control form-control-sm" aria-label="Select player" disabled>
+                                <option value="">-- Player --</option>
+                            </select>
+                        </div>
+                        <div class="form-group form-group-compact">
+                            <select id="fileSelector" class="form-control form-control-sm" aria-label="Select game" disabled>
+                                <option value="">-- Game --</option>
+                            </select>
+                        </div>
+                        <button id="loadPgnBtn" class="btn btn-block btn-primary btn-sm" aria-label="Load game">
+                            <i class="fas fa-chess-board"></i> Load
+                        </button>
                     </div>
                 </div>
             </aside>
 
-            <!-- Center - Chess Board -->
-            <main class="board-container">
-                <!-- Wrapper for board and editor alignment -->
-                <div class="board-editor-wrapper">
-                    <div id="chessboard" class="chessboard"></div>
+            <!-- Center - Chess Board (Expanded) -->
+            <main class="board-container board-container-expanded">
+                <!-- Board Zone with external indicators -->
+                <div class="board-zone">
+                    <!-- Vertical Clocks + Turn Indicator (Right of board) -->
+                    <div class="board-indicators">
+                        <!-- Black Clock (top when playing as white) -->
+                        <div class="clock-vertical clock-black" id="clockBlack">
+                            <div class="clock-color-bar"></div>
+                            <span class="clock-time" id="blackTime">--:--</span>
+                        </div>
 
-                <!-- Analysis Panel (below board) -->
-                <div class="panel analysis-panel" id="analysisPanel">
+                        <!-- Turn LED Indicator -->
+                        <div class="turn-led-indicator" id="turnLedIndicator" aria-live="polite">
+                            <div class="led led-white active" id="ledWhite" title="White to move"></div>
+                            <div class="led led-black" id="ledBlack" title="Black to move"></div>
+                        </div>
+
+                        <!-- White Clock (bottom when playing as white) -->
+                        <div class="clock-vertical clock-white" id="clockWhite">
+                            <div class="clock-color-bar"></div>
+                            <span class="clock-time" id="whiteTime">--:--</span>
+                        </div>
+                    </div>
+
+                    <!-- Chessboard -->
+                    <div class="board-wrapper">
+                        <div id="chessboard" class="chessboard"></div>
+                    </div>
+                </div>
+
+                <!-- Wrapper for panels below board -->
+                <div class="board-editor-wrapper">
+
+                <!-- Analysis Panel (below board - compact) -->
+                <div class="panel analysis-panel analysis-panel-compact" id="analysisPanel">
                     <div class="panel-header">
                         <h3 class="panel-title">Engine Analysis</h3>
                         <div class="analysis-header-actions">
@@ -435,96 +486,79 @@
                 </div><!-- End board-editor-wrapper -->
             </main>
 
-            <!-- Right Sidebar - Game Status & Engine Settings -->
-            <aside class="right-sidebar">
-                <!-- Game Status -->
-                <div class="panel game-status-panel">
-                    <h3 class="panel-title">Game Status</h3>
-                    <div class="status-content">
-                        <div class="turn-indicator" aria-live="polite" aria-atomic="true">
-                            <span id="turnIndicator">White to move</span>
+            <!-- Right Sidebar - Compact panels -->
+            <aside class="right-sidebar right-sidebar-compact">
+                <!-- Compact Engine Settings -->
+                <div class="panel engine-panel engine-panel-compact">
+                    <div class="panel-header-inline">
+                        <h3 class="panel-title-sm">Engine</h3>
+                        <div class="engine-status-inline">
+                            <span class="status-dot status-dot-sm" id="engineStatus"></span>
+                            <span id="engineStatusText" class="status-text-sm">Ready</span>
                         </div>
-                        <div class="timer-display">
-                            <div class="timer white-timer">
-                                <i class="fas fa-chess-king"></i>
-                                <span id="whiteTime">--:--</span>
-                            </div>
-                            <div class="timer black-timer">
-                                <i class="fas fa-chess-king"></i>
-                                <span id="blackTime">--:--</span>
-                            </div>
-                        </div>
-                        <div class="game-result" id="gameResult" aria-live="assertive" aria-atomic="true"></div>
                     </div>
-                </div>
-
-                <!-- Engine Settings -->
-                <div class="panel engine-panel">
-                    <h3 class="panel-title">Engine Settings</h3>
-                    <div class="engine-content">
-                        <div class="form-group">
-                            <label>Engine Strength:</label>
-                            <div class="engine-strength-display">
-                                <i class="fas fa-bolt"></i>
-                                <span>FULL POWER</span>
-                            </div>
-                            <p class="engine-strength-note">
-                                Stockfish running at maximum strength
-                            </p>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="playerColor">Play as:</label>
-                            <select id="playerColor" class="form-control" aria-label="Select player color">
+                    <div class="engine-content-compact">
+                        <div class="engine-row">
+                            <span class="engine-label">Play as:</span>
+                            <select id="playerColor" class="form-control form-control-xs" aria-label="Select color">
                                 <option value="white" selected>White</option>
                                 <option value="black">Black</option>
                             </select>
                         </div>
-
-                        <div class="engine-status">
-                            <div class="status-indicator">
-                                <span class="status-dot" id="engineStatus"></span>
-                                <span id="engineStatusText">Engine Ready</span>
-                            </div>
+                        <div class="engine-row">
+                            <span class="engine-label">Strength:</span>
+                            <span class="engine-value"><i class="fas fa-bolt"></i> Full</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Quick Actions -->
-                <div class="panel actions-panel">
-                    <h3 class="panel-title">Quick Actions</h3>
-                    <div class="actions-content">
-                        <button id="flipBoard" class="btn btn-block" aria-label="Flip board">
-                            <i class="fas fa-exchange-alt"></i> Flip Board
-                        </button>
-                        <button id="analyzeGame" class="btn btn-block btn-highlight" aria-label="Analyze game">
-                            <i class="fas fa-chart-line"></i> Analyze Game
-                        </button>
-
-                        <!-- Export Section -->
-                        <div class="quick-actions-divider"></div>
-                        <div class="export-actions">
-                            <button id="copyFEN" class="btn btn-small" aria-label="Copy FEN to clipboard" title="Copy current position FEN">
-                                <i class="fas fa-copy"></i> Copy FEN
+                <!-- Move History (moved from left) -->
+                <div class="panel move-history-panel move-history-compact">
+                    <div class="panel-header-inline">
+                        <h3 class="panel-title-sm">Moves</h3>
+                        <div class="navigation-controls-inline">
+                            <button id="navFirst" class="nav-btn-sm" title="Start" aria-label="Jump to start">
+                                <i class="fas fa-fast-backward"></i>
                             </button>
-                            <button id="exportPGN" class="btn btn-small" aria-label="Export PGN" title="Download game as PGN">
-                                <i class="fas fa-download"></i> Export PGN
+                            <button id="navPrev" class="nav-btn-sm" title="Prev" aria-label="Previous move">
+                                <i class="fas fa-step-backward"></i>
+                            </button>
+                            <button id="navNext" class="nav-btn-sm" title="Next" aria-label="Next move">
+                                <i class="fas fa-step-forward"></i>
+                            </button>
+                            <button id="navLast" class="nav-btn-sm" title="End" aria-label="Jump to end">
+                                <i class="fas fa-fast-forward"></i>
                             </button>
                         </div>
+                    </div>
+                    <div id="moveHistory" class="move-history-content move-history-scroll"></div>
+                </div>
 
-                        <!-- Board Tools -->
-                        <div class="quick-actions-divider"></div>
-                        <button id="pasteFEN" class="btn btn-block btn-secondary" aria-label="Paste FEN">
-                            <i class="fas fa-file-import"></i> Paste FEN
-                        </button>
-                        <button id="editBoard" class="btn btn-block btn-secondary" aria-label="Edit board">
-                            <i class="fas fa-edit"></i> Edit Board
+                <!-- Engine Analysis (moved from center) -->
+                <div class="panel analysis-sidebar-panel">
+                    <div class="panel-header-inline">
+                        <h3 class="panel-title-sm">Analysis</h3>
+                        <button id="toggleAnalysis" class="btn btn-xs" aria-label="Toggle analysis">
+                            <i class="fas fa-brain"></i>
                         </button>
                     </div>
+                    <div class="analysis-sidebar-content">
+                        <div class="analysis-eval-row">
+                            <span class="eval-label">Eval:</span>
+                            <span id="evaluationSidebar" class="eval-value">0.0</span>
+                            <span class="eval-depth">d<span id="depthSidebar">0</span></span>
+                        </div>
+                        <div class="analysis-pv" id="bestLineSidebar">--</div>
+                    </div>
+                </div>
+
+                <!-- Game Result (compact) -->
+                <div class="panel game-result-panel" id="gameResultPanel" style="display: none;">
+                    <div class="game-result-content" id="gameResult" aria-live="assertive"></div>
                 </div>
 
                 <!-- Engine vs Engine Panel -->
-                <div class="panel eve-panel" id="evePanel" style="display: none;">
+                <div class="panel eve-panel eve-panel-compact" id="evePanel" style="display: none;">
                     <h3 class="panel-title">Engine vs Engine</h3>
                     <div class="eve-content">
                         <div class="form-group">
@@ -2091,6 +2125,7 @@
     <script src="position-forge-ui.js?v=1.0.0"></script>
     <!-- Navigation Module (Phase 1: UX Redesign) -->
     <script src="js/caissa-navigation.js?v=1.0.0"></script>
+    <script src="js/caissa-ui-refactor.js?v=1.0.0"></script>
     <!-- Section Modules (Phase 2) -->
     <script src="js/arena-section.js?v=1.0.0"></script>
     <script src="js/insights-section.js?v=1.0.0"></script>

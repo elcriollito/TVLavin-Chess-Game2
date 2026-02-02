@@ -61,6 +61,10 @@
                     <i class="fas fa-crown"></i>
                     <span>Premium</span>
                 </a>
+                <!-- Auth container - will be populated by caissa-ui-auth.js -->
+                <div class="header-controls">
+                    <div id="premiumAuthArea" class="caissa-auth-container"></div>
+                </div>
             </nav>
         </div>
     </header>
@@ -71,7 +75,7 @@
         <section class="premium-hero">
             <h1 class="premium-hero-title">Choose your plan.</h1>
             <p class="premium-hero-subtitle">
-                Unlock Mentor, deeper insights, and premium tools to improve your game.
+                Unlock Mentor, deeper insights, and premium tools to see the truth in your positions.
             </p>
             <div class="premium-hero-cta">
                 <a href="#comparison" class="btn-primary-hero">
@@ -475,6 +479,26 @@
                         <p>We accept all major credit cards (Visa, Mastercard, American Express), as well as Apple Pay and Google Pay. All payments are processed securely through Stripe.</p>
                     </div>
                 </div>
+
+                <div class="faq-item">
+                    <button type="button" class="faq-question" aria-expanded="false">
+                        <span>Is CAISSA Mentor like a coach?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes. CAISSA Mentor is an AI-powered chess coach that explains positions, suggests moves, and teaches you why certain ideas work. Unlike static analysis, Mentor adapts to your questions and helps you understand the "why" behind every position.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button type="button" class="faq-question" aria-expanded="false">
+                        <span>How does Cheater Insight work?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Cheater Insight analyzes your Chess.com game history and identifies opponents whose accounts were later closed for fair play violations. This helps you understand which losses may have been against unfair opponents, giving you peace of mind and a clearer picture of your true performance.</p>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -503,63 +527,600 @@
         </div>
     </footer>
 
-    <!-- Scripts -->
+    <!-- Auth Scripts -->
+    <script src="js/auth-config.js?v=1.0.0"></script>
+    <script
+        data-clerk-publishable-key=""
+        src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+        crossorigin="anonymous"
+        async
+    ></script>
+    <script src="js/caissa-auth.js?v=1.0.0" defer></script>
+    <link rel="stylesheet" href="css/caissa-auth.css?v=1.0.0">
+    <script src="js/caissa-ui-auth.js?v=1.0.0" defer></script>
+
+    <!-- Premium Page Scripts -->
     <script>
-        // FAQ Toggle
-        document.querySelectorAll('.faq-question').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const item = btn.closest('.faq-item');
-                const wasOpen = item.classList.contains('open');
+        /**
+         * CAISSA Premium Page Controller
+         * Handles auth-aware upgrade flows, feature tooltips, and pricing interactions
+         */
+        const CaissaPremium = {
+            // Auth state (will be updated by auth events)
+            authState: {
+                isLoaded: false,
+                isSignedIn: false,
+                isPremium: false,
+                tier: 'free'
+            },
 
-                // Close all other items
-                document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+            // Current billing period
+            isAnnual: false,
 
-                // Toggle current item
-                if (!wasOpen) {
-                    item.classList.add('open');
+            /**
+             * Initialize the premium page
+             */
+            init() {
+                this.bindFAQ();
+                this.bindBillingToggle();
+                this.bindSmoothScroll();
+                this.bindUpgradeButtons();
+                this.bindFeatureTooltips();
+                this.listenForAuthChanges();
+                console.log('[Premium] Page initialized');
+            },
+
+            /**
+             * Listen for auth state changes
+             */
+            listenForAuthChanges() {
+                window.addEventListener('caissa-auth-change', (e) => {
+                    this.authState = {
+                        isLoaded: true,
+                        isSignedIn: e.detail.isSignedIn,
+                        isPremium: e.detail.isPremium || false,
+                        tier: e.detail.tier || 'free'
+                    };
+                    this.updateUIForAuth();
+                });
+
+                // Check if auth is already loaded
+                if (window.CAISSA_AUTH && window.CAISSA_AUTH.isLoaded) {
+                    this.authState = {
+                        isLoaded: true,
+                        isSignedIn: window.CAISSA_AUTH.isSignedIn,
+                        isPremium: window.CAISSA_AUTH.isPremium || false,
+                        tier: window.CAISSA_AUTH.tier || 'free'
+                    };
+                    this.updateUIForAuth();
                 }
-            });
-        });
+            },
 
-        // Billing Toggle
-        const billingToggle = document.getElementById('billingToggle');
-        const monthlyLabel = document.querySelector('[data-period="monthly"]');
-        const annualLabel = document.querySelector('[data-period="annual"]');
-        const prices = document.querySelectorAll('.plan-price[data-monthly]');
+            /**
+             * Update UI based on auth state
+             */
+            updateUIForAuth() {
+                const { isSignedIn, isPremium, tier } = this.authState;
 
-        let isAnnual = false;
-
-        billingToggle?.addEventListener('click', () => {
-            isAnnual = !isAnnual;
-            billingToggle.classList.toggle('annual', isAnnual);
-            monthlyLabel.classList.toggle('active', !isAnnual);
-            annualLabel.classList.toggle('active', isAnnual);
-
-            // Update prices
-            prices.forEach(price => {
-                const monthly = price.dataset.monthly;
-                const yearly = price.dataset.yearly;
-                price.textContent = isAnnual ? yearly : monthly;
-            });
-
-            // Update period text
-            document.querySelectorAll('.plan-price-period').forEach(period => {
-                if (period.textContent !== 'forever') {
-                    period.textContent = isAnnual ? '/year' : '/month';
+                // Update "Current plan" button for Free tier
+                const freeButton = document.querySelector('.plan-cta-free');
+                if (freeButton) {
+                    if (!isSignedIn || tier === 'free') {
+                        freeButton.textContent = 'Current plan';
+                        freeButton.classList.add('disabled');
+                    } else {
+                        freeButton.textContent = 'Downgrade';
+                        freeButton.classList.remove('disabled');
+                    }
                 }
-            });
-        });
 
-        // Smooth scroll for anchor links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Update upgrade buttons based on current tier
+                document.querySelectorAll('.plan-cta-upgrade, .plan-cta-popular').forEach(btn => {
+                    const planHeader = btn.closest('.plan-header, .mobile-plan-header');
+                    const planName = planHeader?.querySelector('.plan-name')?.textContent?.toLowerCase();
+
+                    if (isPremium && planName === tier?.toLowerCase()) {
+                        btn.textContent = 'Current plan';
+                        btn.classList.add('current');
+                        btn.disabled = true;
+                    } else if (isPremium && this.getTierRank(planName) < this.getTierRank(tier)) {
+                        btn.textContent = 'Downgrade';
+                        btn.classList.remove('current');
+                        btn.disabled = false;
+                    } else {
+                        btn.textContent = planName === 'platinum' ? 'Try Platinum' : 'Upgrade';
+                        btn.classList.remove('current');
+                        btn.disabled = false;
+                    }
+                });
+            },
+
+            /**
+             * Get tier rank for comparison
+             */
+            getTierRank(tier) {
+                const ranks = { free: 0, silver: 1, gold: 2, platinum: 3 };
+                return ranks[tier?.toLowerCase()] || 0;
+            },
+
+            /**
+             * Bind FAQ toggle functionality
+             */
+            bindFAQ() {
+                document.querySelectorAll('.faq-question').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const item = btn.closest('.faq-item');
+                        const wasOpen = item.classList.contains('open');
+                        document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+                        if (!wasOpen) item.classList.add('open');
+                    });
+                });
+            },
+
+            /**
+             * Bind billing toggle functionality
+             */
+            bindBillingToggle() {
+                const billingToggle = document.getElementById('billingToggle');
+                const monthlyLabel = document.querySelector('[data-period="monthly"]');
+                const annualLabel = document.querySelector('[data-period="annual"]');
+                const prices = document.querySelectorAll('.plan-price[data-monthly]');
+
+                billingToggle?.addEventListener('click', () => {
+                    this.isAnnual = !this.isAnnual;
+                    billingToggle.classList.toggle('annual', this.isAnnual);
+                    monthlyLabel?.classList.toggle('active', !this.isAnnual);
+                    annualLabel?.classList.toggle('active', this.isAnnual);
+
+                    prices.forEach(price => {
+                        const monthly = price.dataset.monthly;
+                        const yearly = price.dataset.yearly;
+                        price.textContent = this.isAnnual ? yearly : monthly;
+                    });
+
+                    document.querySelectorAll('.plan-price-period').forEach(period => {
+                        if (period.textContent !== 'forever') {
+                            period.textContent = this.isAnnual ? '/year' : '/month';
+                        }
+                    });
+                });
+            },
+
+            /**
+             * Bind smooth scroll for anchor links
+             */
+            bindSmoothScroll() {
+                document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                    anchor.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const target = document.querySelector(this.getAttribute('href'));
+                        if (target) {
+                            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    });
+                });
+            },
+
+            /**
+             * Bind upgrade button click handlers
+             */
+            bindUpgradeButtons() {
+                // All upgrade/try buttons
+                document.querySelectorAll('.plan-cta-upgrade, .plan-cta-popular, .btn-primary-hero').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.handleUpgradeClick(btn);
+                    });
+                });
+            },
+
+            /**
+             * Handle upgrade button click
+             */
+            handleUpgradeClick(btn) {
+                const { isSignedIn, isPremium, tier } = this.authState;
+
+                // Determine target plan
+                const planHeader = btn.closest('.plan-header, .mobile-plan-header');
+                let targetPlan = planHeader?.querySelector('.plan-name')?.textContent?.toLowerCase() || 'platinum';
+
+                // Hero button always targets platinum
+                if (btn.classList.contains('btn-primary-hero')) {
+                    targetPlan = 'platinum';
                 }
-            });
-        });
+
+                // If already on this plan, do nothing
+                if (isPremium && targetPlan === tier?.toLowerCase()) {
+                    this.showToast('You are already on this plan', 'info');
+                    return;
+                }
+
+                // Not signed in - show sign in modal
+                if (!isSignedIn) {
+                    this.showAuthRequiredModal(targetPlan);
+                    return;
+                }
+
+                // Signed in but not premium or upgrading
+                this.showUpgradeModal(targetPlan);
+            },
+
+            /**
+             * Show auth required modal
+             */
+            showAuthRequiredModal(targetPlan) {
+                this.showModal({
+                    icon: 'fa-sign-in-alt',
+                    iconColor: 'var(--primary-color)',
+                    title: 'Sign in required',
+                    message: `Create a free account to upgrade to ${this.capitalize(targetPlan)} and unlock premium features.`,
+                    primaryAction: {
+                        text: 'Sign In',
+                        href: '/signin',
+                        class: 'btn-primary'
+                    },
+                    secondaryAction: {
+                        text: 'Maybe Later',
+                        action: 'close'
+                    }
+                });
+            },
+
+            /**
+             * Show upgrade modal
+             */
+            showUpgradeModal(targetPlan) {
+                const prices = {
+                    silver: this.isAnnual ? '$39/year' : '$5/month',
+                    gold: this.isAnnual ? '$89/year' : '$12/month',
+                    platinum: this.isAnnual ? '$149/year' : '$19/month'
+                };
+
+                this.showModal({
+                    icon: 'fa-crown',
+                    iconColor: 'var(--accent-color)',
+                    title: `Upgrade to ${this.capitalize(targetPlan)}`,
+                    message: `You'll be charged ${prices[targetPlan]}. Cancel anytime.`,
+                    primaryAction: {
+                        text: 'Continue to Checkout',
+                        action: () => this.redirectToCheckout(targetPlan),
+                        class: 'btn-premium'
+                    },
+                    secondaryAction: {
+                        text: 'Cancel',
+                        action: 'close'
+                    }
+                });
+            },
+
+            /**
+             * Redirect to Stripe checkout (placeholder)
+             */
+            redirectToCheckout(plan) {
+                // For now, show a placeholder message
+                // In production, this would redirect to Stripe checkout
+                this.showToast(`Checkout for ${this.capitalize(plan)} coming soon!`, 'info');
+                this.closeModal();
+
+                // TODO: Integrate with Stripe
+                // window.location.href = `/api/checkout?plan=${plan}&period=${this.isAnnual ? 'annual' : 'monthly'}`;
+            },
+
+            /**
+             * Bind feature tooltips for locked features
+             */
+            bindFeatureTooltips() {
+                // Add click handlers to locked feature icons
+                document.querySelectorAll('.feature-locked').forEach(icon => {
+                    icon.style.cursor = 'pointer';
+                    icon.setAttribute('title', 'Premium feature - Click for details');
+
+                    icon.addEventListener('click', (e) => {
+                        const row = icon.closest('tr');
+                        const featureName = row?.querySelector('td:first-child')?.textContent?.trim();
+
+                        // Determine which plan unlocks this
+                        const cells = row?.querySelectorAll('td');
+                        let unlockedAt = 'Platinum';
+
+                        cells?.forEach((cell, index) => {
+                            if (index > 0 && cell.querySelector('.feature-check')) {
+                                const plans = ['Free', 'Silver', 'Gold', 'Platinum'];
+                                unlockedAt = plans[index - 1] || 'Platinum';
+                            }
+                        });
+
+                        this.showFeatureModal(featureName, unlockedAt);
+                    });
+                });
+            },
+
+            /**
+             * Show feature info modal
+             */
+            showFeatureModal(featureName, unlockedAt) {
+                this.showModal({
+                    icon: 'fa-lock',
+                    iconColor: 'var(--text-tertiary)',
+                    title: 'Premium Feature',
+                    message: `"${featureName}" is available on ${unlockedAt} and higher plans.`,
+                    primaryAction: {
+                        text: `Upgrade to ${unlockedAt}`,
+                        action: () => {
+                            this.closeModal();
+                            this.handleUpgradeClick({ closest: () => null });
+                        },
+                        class: 'btn-premium'
+                    },
+                    secondaryAction: {
+                        text: 'Close',
+                        action: 'close'
+                    }
+                });
+            },
+
+            /**
+             * Generic modal display function
+             */
+            showModal(options) {
+                // Remove existing modal
+                this.closeModal();
+
+                const modal = document.createElement('div');
+                modal.className = 'premium-modal';
+                modal.id = 'premiumActionModal';
+                modal.innerHTML = `
+                    <div class="premium-modal-backdrop"></div>
+                    <div class="premium-modal-content">
+                        <button type="button" class="premium-modal-close" aria-label="Close">&times;</button>
+                        <div class="premium-modal-icon" style="color: ${options.iconColor}">
+                            <i class="fas ${options.icon}"></i>
+                        </div>
+                        <h3 class="premium-modal-title">${options.title}</h3>
+                        <p class="premium-modal-message">${options.message}</p>
+                        <div class="premium-modal-actions">
+                            ${options.primaryAction.href
+                                ? `<a href="${options.primaryAction.href}" class="btn ${options.primaryAction.class}">${options.primaryAction.text}</a>`
+                                : `<button type="button" class="btn ${options.primaryAction.class}" id="modalPrimaryBtn">${options.primaryAction.text}</button>`
+                            }
+                            <button type="button" class="btn btn-secondary" id="modalSecondaryBtn">${options.secondaryAction.text}</button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+
+                // Bind events
+                modal.querySelector('.premium-modal-close').addEventListener('click', () => this.closeModal());
+                modal.querySelector('.premium-modal-backdrop').addEventListener('click', () => this.closeModal());
+                modal.querySelector('#modalSecondaryBtn').addEventListener('click', () => {
+                    if (options.secondaryAction.action === 'close') {
+                        this.closeModal();
+                    } else if (typeof options.secondaryAction.action === 'function') {
+                        options.secondaryAction.action();
+                    }
+                });
+
+                const primaryBtn = modal.querySelector('#modalPrimaryBtn');
+                if (primaryBtn && typeof options.primaryAction.action === 'function') {
+                    primaryBtn.addEventListener('click', options.primaryAction.action);
+                }
+
+                // Show with animation
+                requestAnimationFrame(() => modal.classList.add('show'));
+
+                // Close on Escape
+                const handleEscape = (e) => {
+                    if (e.key === 'Escape') {
+                        this.closeModal();
+                        document.removeEventListener('keydown', handleEscape);
+                    }
+                };
+                document.addEventListener('keydown', handleEscape);
+            },
+
+            /**
+             * Close modal
+             */
+            closeModal() {
+                const modal = document.getElementById('premiumActionModal');
+                if (modal) {
+                    modal.classList.remove('show');
+                    setTimeout(() => modal.remove(), 200);
+                }
+            },
+
+            /**
+             * Show toast notification
+             */
+            showToast(message, type = 'info') {
+                const toast = document.createElement('div');
+                toast.className = `premium-toast premium-toast-${type}`;
+                toast.innerHTML = `
+                    <i class="fas fa-${type === 'info' ? 'info-circle' : type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                    <span>${message}</span>
+                `;
+                document.body.appendChild(toast);
+
+                requestAnimationFrame(() => toast.classList.add('show'));
+
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            },
+
+            /**
+             * Capitalize first letter
+             */
+            capitalize(str) {
+                return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+            }
+        };
+
+        // Initialize on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => CaissaPremium.init());
+        } else {
+            CaissaPremium.init();
+        }
     </script>
+
+    <style>
+        /* Premium Modal Styles */
+        .premium-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+        }
+        .premium-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .premium-modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+        }
+        .premium-modal-content {
+            position: relative;
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            transform: scale(0.95);
+            transition: transform 0.2s;
+        }
+        .premium-modal.show .premium-modal-content {
+            transform: scale(1);
+        }
+        .premium-modal-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        .premium-modal-close:hover {
+            background: #f0f0f0;
+        }
+        .premium-modal-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .premium-modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0 0 8px;
+            color: #1a1a2e;
+        }
+        .premium-modal-message {
+            font-size: 14px;
+            color: #666;
+            margin: 0 0 24px;
+            line-height: 1.5;
+        }
+        .premium-modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .premium-modal-actions .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .premium-modal-actions .btn-primary {
+            background: #2c5f9e;
+            color: white;
+            border: none;
+        }
+        .premium-modal-actions .btn-primary:hover {
+            background: #1e4a7a;
+        }
+        .premium-modal-actions .btn-premium {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            color: white;
+            border: none;
+        }
+        .premium-modal-actions .btn-premium:hover {
+            background: linear-gradient(135deg, #f57c00, #e65100);
+        }
+        .premium-modal-actions .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: none;
+        }
+        .premium-modal-actions .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        /* Toast Notifications */
+        .premium-toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1a1a2e;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            z-index: 10001;
+            opacity: 0;
+            transition: all 0.3s;
+        }
+        .premium-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        .premium-toast-info { background: #2c5f9e; }
+        .premium-toast-success { background: #2e7d32; }
+        .premium-toast-error { background: #c62828; }
+
+        /* Locked feature cursor */
+        .feature-locked {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .feature-locked:hover {
+            color: #ff9800 !important;
+        }
+
+        /* Current plan button state */
+        .plan-cta.current {
+            background: #e0e0e0 !important;
+            color: #666 !important;
+            cursor: default !important;
+        }
+
+        /* Auth container in nav */
+        .premium-nav-links .header-controls {
+            margin-left: auto;
+        }
+    </style>
 </body>
 </html>

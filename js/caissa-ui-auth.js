@@ -50,6 +50,9 @@
             // Initial render if auth is already loaded
             if (window.CAISSA_AUTH && window.CAISSA_AUTH.isLoaded) {
                 this.render(window.CAISSA_AUTH);
+            } else {
+                // Set initial sidebar state to signed out
+                this._updateSidebarAuth({ isSignedIn: false });
             }
         },
 
@@ -89,6 +92,62 @@
                 this._renderSignedIn(authState);
             } else {
                 this._renderSignedOut();
+            }
+
+            // Also update sidebar auth area
+            this._updateSidebarAuth(authState);
+        },
+
+        /**
+         * Update sidebar auth area
+         */
+        _updateSidebarAuth: function(authState) {
+            const signInBtn = document.getElementById('sidebarSignIn');
+            const userInfo = document.getElementById('sidebarUserInfo');
+            const userName = document.getElementById('sidebarUserName');
+            const userTier = document.getElementById('sidebarUserTier');
+            const userAvatar = document.getElementById('sidebarUserAvatar');
+
+            if (!signInBtn || !userInfo) return;
+
+            if (authState.isSignedIn) {
+                // Hide sign in button, show user info
+                signInBtn.style.display = 'none';
+                userInfo.style.display = 'flex';
+
+                // Update user details
+                if (userName) {
+                    userName.textContent = authState.fullName || authState.email?.split('@')[0] || 'User';
+                }
+
+                // Determine tier from CAISSA_ACCESS or auth state
+                const hasAccess = typeof window.CAISSA_ACCESS !== 'undefined';
+                const isPremium = hasAccess ? window.CAISSA_ACCESS.isPremium() : false;
+                const tier = isPremium ? 'Premium' : 'Free';
+
+                if (userTier) {
+                    userTier.textContent = tier;
+                    userTier.classList.toggle('premium', isPremium);
+                }
+
+                // Update avatar
+                if (userAvatar) {
+                    if (authState.imageUrl) {
+                        userAvatar.innerHTML = `<img src="${this._escapeHtml(authState.imageUrl)}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                    } else {
+                        const initials = this._getInitials(authState.fullName || authState.email || 'U');
+                        userAvatar.innerHTML = `<span class="nav-auth-initials">${initials}</span>`;
+                    }
+                }
+
+                // Make user info clickable to show dropdown
+                userInfo.onclick = () => {
+                    this.toggleDropdown();
+                };
+            } else {
+                // Show sign in button, hide user info
+                signInBtn.style.display = 'flex';
+                userInfo.style.display = 'none';
             }
         },
 
