@@ -58,7 +58,7 @@
     --board-gutter: 32px; /* Reduced gutter for more board space */
     --sidebar-width: 220px;
     --sidebar-width-left: 0px; /* Left sidebar removed - moved to nav */
-    --sidebar-width-right: 400px; /* 3-COLUMN: Right panel for moves + actions */
+    --sidebar-width-right: 320px; /* HOTFIX 3: Reduced from 400px for better balance */
     --left-wiki-width: 340px; /* 3-COLUMN: Left panel for opening narrative */
     
     /* Shadows - Dark Theme */
@@ -150,7 +150,7 @@ html, body {
     display: grid;
     grid-template-columns: var(--left-wiki-width) auto var(--sidebar-width-right);
     gap: 18px;
-    align-items: start;
+    align-items: stretch; /* HOTFIX 3: Stretch columns for visual balance */
     justify-content: center;
     padding: var(--spacing-md);
     max-width: none; /* 3-COLUMN: Allow full width for 3 panels */
@@ -196,7 +196,12 @@ html, body {
     border: 1px solid rgba(255, 255, 255, 0.08);
     height: calc(100vh - 80px);
     overflow-y: auto;
+    /* HOTFIX 3: Force left column to occupy full width like Lichess */
     width: var(--left-wiki-width);
+    min-width: var(--left-wiki-width);
+    max-width: var(--left-wiki-width);
+    display: flex;
+    flex-direction: column;
 }
 
 .opening-panel.hidden {
@@ -241,7 +246,7 @@ html, body {
 .board-center {
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: center; /* HOTFIX 3: Optical centering for balanced layout */
     align-items: center;
     min-width: 0; /* HOTFIX: Allow shrinking if needed */
 }
@@ -261,6 +266,7 @@ html, body {
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     padding: 12px 14px;
+    margin-bottom: 6px; /* HOTFIX 3: Visual separation from moves panel */
 }
 
 .opening-title-right {
@@ -288,7 +294,7 @@ html, body {
     min-height: 320px; /* HOTFIX 2: Ensure panel is visible */
     overflow-y: auto;
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.025); /* HOTFIX 3: Subtler background */
     border: 1px solid rgba(255, 255, 255, 0.08);
     padding: 8px 10px; /* HOTFIX 2: Match user spec */
 }
@@ -420,7 +426,7 @@ html, body {
 .board-with-eval {
     display: flex;
     align-items: stretch;
-    gap: 12px;
+    gap: 14px; /* HOTFIX 3: Breathing space between eval bar and board */
     justify-content: center;
     max-width: none; /* PATCH A: No limits on board container */
 }
@@ -428,12 +434,13 @@ html, body {
 .eval-bar {
     width: 14px;
     min-width: 14px;
-    border-radius: 10px;
+    border-radius: 6px; /* HOTFIX 3: Softer corners for independent indicator feel */
     overflow: hidden;
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.08);
     position: relative;
     box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4);
+    margin-left: 6px; /* HOTFIX 3: Extra breathing space from left edge */
 }
 
 .eval-fill {
