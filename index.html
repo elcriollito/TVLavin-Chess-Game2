@@ -215,101 +215,35 @@
 
         <!-- Main Content Area (Legacy - now inside playSection) -->
         <div class="main-content">
-            
-            <!-- Left Sidebar - Game Menu (Global reusable component) -->
-            <aside class="left-sidebar">
-                <!-- Game Menu - Core actions for all board views -->
-                <div class="panel game-menu-panel">
-                    <h3 class="panel-title">Game Menu</h3>
-                    <div class="game-menu-content">
-                        <div class="game-menu-grid">
-                            <button id="flipBoard" class="game-menu-btn" aria-label="Flip board" title="Flip Board">
-                                <i class="fas fa-exchange-alt"></i>
-                                <span>Flip</span>
-                            </button>
-                            <button id="analyzeGame" class="game-menu-btn game-menu-btn-highlight" aria-label="Analyze game" title="Analyze Game">
-                                <i class="fas fa-chart-line"></i>
-                                <span>Analyze</span>
-                            </button>
-                            <button id="copyFEN" class="game-menu-btn" aria-label="Copy FEN" title="Copy FEN">
-                                <i class="fas fa-copy"></i>
-                                <span>Copy FEN</span>
-                            </button>
-                            <button id="exportPGN" class="game-menu-btn" aria-label="Export PGN" title="Export PGN">
-                                <i class="fas fa-download"></i>
-                                <span>Export</span>
-                            </button>
-                            <button id="pasteFEN" class="game-menu-btn" aria-label="Paste FEN" title="Paste FEN">
-                                <i class="fas fa-file-import"></i>
-                                <span>Paste FEN</span>
-                            </button>
-                            <button id="editBoard" class="game-menu-btn" aria-label="Edit board" title="Edit Board">
-                                <i class="fas fa-edit"></i>
-                                <span>Edit</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Compact Game Library -->
-                <div class="panel pgn-library-panel pgn-library-compact">
-                    <div class="panel-header-compact">
-                        <h3 class="panel-title">Game Library</h3>
-                        <button class="panel-toggle-btn" id="toggleLibraryPanel" aria-label="Toggle library">
-                            <i class="fas fa-chevron-down"></i>
-                        </button>
-                    </div>
-                    <div class="pgn-library-content" id="libraryPanelContent">
-                        <div class="form-group form-group-compact">
-                            <select id="categorySelector" class="form-control form-control-sm" aria-label="Select category">
-                                <option value="">-- Category --</option>
-                            </select>
-                        </div>
-                        <div class="form-group form-group-compact">
-                            <select id="playerSelector" class="form-control form-control-sm" aria-label="Select player" disabled>
-                                <option value="">-- Player --</option>
-                            </select>
-                        </div>
-                        <div class="form-group form-group-compact">
-                            <select id="fileSelector" class="form-control form-control-sm" aria-label="Select game" disabled>
-                                <option value="">-- Game --</option>
-                            </select>
-                        </div>
-                        <button id="loadPgnBtn" class="btn btn-block btn-primary btn-sm" aria-label="Load game">
-                            <i class="fas fa-chess-board"></i> Load
-                        </button>
-                    </div>
+            <!-- 3-COLUMN LEFT: Opening Wiki Panel (Lichess-style, shown only in Analyze mode) -->
+            <aside id="openingPanel" class="opening-panel hidden">
+                <div class="opening-header">
+                    <h3 id="openingName">Opening</h3>
+                    <div id="openingEco" class="opening-eco">ECO</div>
+                </div>
+                <div id="openingText" class="opening-text">
+                    <p>No opening detected yet. Start playing or analyzing a game to see opening information.</p>
                 </div>
             </aside>
 
-            <!-- Center - Chess Board (Expanded) -->
-            <main class="board-container board-container-expanded">
-                <!-- Board Zone with external indicators -->
+            <!-- 3-COLUMN CENTER: Chess Board (wrapped in grid child) -->
+            <div class="board-center">
+                <main class="board-container board-container-expanded">
+                <!-- Board Zone - TASK 4: Clocks moved to right sidebar -->
                 <div class="board-zone">
-                    <!-- Vertical Clocks + Turn Indicator (Right of board) -->
-                    <div class="board-indicators">
-                        <!-- Black Clock (top when playing as white) -->
-                        <div class="clock-vertical clock-black" id="clockBlack">
-                            <div class="clock-color-bar"></div>
-                            <span class="clock-time" id="blackTime">--:--</span>
+                    <!-- REFINEMENT 2: Board + Eval Bar Container (Lichess style) -->
+                    <div class="board-with-eval">
+                        <!-- Engine Eval Bar (vertical, left of board) -->
+                        <div id="evalBar" class="eval-bar" title="Engine evaluation">
+                            <div id="evalFill" class="eval-fill"></div>
+                            <span id="evalScore" class="eval-score-badge">0.0</span>
                         </div>
 
-                        <!-- Turn LED Indicator -->
-                        <div class="turn-led-indicator" id="turnLedIndicator" aria-live="polite">
-                            <div class="led led-white active" id="ledWhite" title="White to move"></div>
-                            <div class="led led-black" id="ledBlack" title="Black to move"></div>
+                        <!-- Chessboard -->
+                        <div class="board-wrapper">
+                            <div id="chessboard" class="chessboard"></div>
                         </div>
-
-                        <!-- White Clock (bottom when playing as white) -->
-                        <div class="clock-vertical clock-white" id="clockWhite">
-                            <div class="clock-color-bar"></div>
-                            <span class="clock-time" id="whiteTime">--:--</span>
-                        </div>
-                    </div>
-
-                    <!-- Chessboard -->
-                    <div class="board-wrapper">
-                        <div id="chessboard" class="chessboard"></div>
                     </div>
                 </div>
 
@@ -485,9 +419,64 @@
 
                 </div><!-- End board-editor-wrapper -->
             </main>
+            </div><!-- End board-center -->
 
             <!-- Right Sidebar - Compact panels -->
-            <aside class="right-sidebar right-sidebar-compact">
+            <!-- 3-COLUMN RIGHT: Moves + Actions Panel (Chess.com style) -->
+            <aside class="right-panel">
+                <!-- Header: Opening Name + Eval Numeric -->
+                <div class="moves-header">
+                    <div id="openingTitleRight" class="opening-title-right">Start Position</div>
+                    <div id="evalNumeric" class="eval-numeric">+0.0</div>
+                    <div id="evalEngineInfo" class="eval-engine-info">Stockfish 16 · Depth 0 · NNUE</div>
+                </div>
+
+                <!-- Moves Panel (tall scrollable list) -->
+                <div id="movesPanel" class="moves-panel">
+                    <div id="moveHistory" class="move-history-content"></div>
+                </div>
+
+                <!-- Action Bar (Chess.com style: Resign/Hint/Undo/Download/Settings) -->
+                <div class="action-bar">
+                    <button id="btnResign" aria-label="Resign" title="Resign Game">
+                        <i class="fas fa-flag"></i> Resign
+                    </button>
+                    <button id="btnHint" aria-label="Hint" title="Show Best Move">
+                        <i class="fas fa-lightbulb"></i> Hint
+                    </button>
+                    <button id="btnUndo" aria-label="Undo" title="Undo Move">
+                        <i class="fas fa-undo"></i> Undo
+                    </button>
+                    <button id="btnDownload" aria-label="Download" title="Download PGN">
+                        <i class="fas fa-download"></i> PGN
+                    </button>
+                    <button id="btnSettings" aria-label="Settings" title="Game Settings">
+                        <i class="fas fa-cog"></i> Settings
+                    </button>
+                </div>
+
+                <!-- OLD PANELS HIDDEN FOR NOW - will be moved/removed later -->
+                <div style="display: none;">
+                <div class="board-indicators board-indicators-sidebar">
+                    <!-- Black Clock (top when playing as white) -->
+                    <div class="clock-vertical clock-black" id="clockBlack">
+                        <div class="clock-color-bar"></div>
+                        <span class="clock-time" id="blackTime">--:--</span>
+                    </div>
+
+                    <!-- Turn LED Indicator -->
+                    <div class="turn-led-indicator" id="turnLedIndicator" aria-live="polite">
+                        <div class="led led-white active" id="ledWhite" title="White to move"></div>
+                        <div class="led led-black" id="ledBlack" title="Black to move"></div>
+                    </div>
+
+                    <!-- White Clock (bottom when playing as white) -->
+                    <div class="clock-vertical clock-white" id="clockWhite">
+                        <div class="clock-color-bar"></div>
+                        <span class="clock-time" id="whiteTime">--:--</span>
+                    </div>
+                </div>
+
                 <!-- Compact Engine Settings -->
                 <div class="panel engine-panel engine-panel-compact">
                     <div class="panel-header-inline">
@@ -508,6 +497,39 @@
                         <div class="engine-row">
                             <span class="engine-label">Strength:</span>
                             <span class="engine-value"><i class="fas fa-bolt"></i> Full</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TASK 5: Game Menu moved from left sidebar -->
+                <div class="panel game-menu-panel game-menu-compact">
+                    <h3 class="panel-title-sm">Game Menu</h3>
+                    <div class="game-menu-content">
+                        <div class="game-menu-grid game-menu-grid-compact">
+                            <button id="flipBoard" class="game-menu-btn game-menu-btn-sm" aria-label="Flip board" title="Flip Board">
+                                <i class="fas fa-exchange-alt"></i>
+                                <span>Flip</span>
+                            </button>
+                            <button id="analyzeGame" class="game-menu-btn game-menu-btn-sm game-menu-btn-highlight" aria-label="Analyze game" title="Analyze Game">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Analyze</span>
+                            </button>
+                            <button id="copyFEN" class="game-menu-btn game-menu-btn-sm" aria-label="Copy FEN" title="Copy FEN">
+                                <i class="fas fa-copy"></i>
+                                <span>Copy FEN</span>
+                            </button>
+                            <button id="exportPGN" class="game-menu-btn game-menu-btn-sm" aria-label="Export PGN" title="Export PGN">
+                                <i class="fas fa-download"></i>
+                                <span>Export</span>
+                            </button>
+                            <button id="pasteFEN" class="game-menu-btn game-menu-btn-sm" aria-label="Paste FEN" title="Paste FEN">
+                                <i class="fas fa-file-import"></i>
+                                <span>Paste FEN</span>
+                            </button>
+                            <button id="editBoard" class="game-menu-btn game-menu-btn-sm" aria-label="Edit board" title="Edit Board">
+                                <i class="fas fa-edit"></i>
+                                <span>Edit</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -596,6 +618,8 @@
                         </div>
                     </div>
                 </div>
+                </div>
+                <!-- END OLD PANELS HIDDEN -->
 
             </aside>
         </div>

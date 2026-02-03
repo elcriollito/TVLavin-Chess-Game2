@@ -22,6 +22,7 @@ const App = {
     gameActive: false,
     analyzing: false,
     editMode: false,
+    isFlipped: false, // MINI PATCH: Track board flip state for eval bar orientation
     selectedEditorPiece: 'erase', // Piece to place in editor mode
     editorMoveSource: null, // Source square for move/adjust tool
 
@@ -139,6 +140,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update UI
     updateUI();
+
+    // HOTFIX: Initialize eval bar orientation (white at bottom by default)
+    syncEvalOrientation();
 
     // Load PGN library
     loadPGNLibrary();
@@ -377,10 +381,17 @@ function initializeEngine() {
 
     App.engine.onInfo = (info) => {
         console.log('📊 App.engine.onInfo called - analyzing:', App.analyzing, 'info:', info);
+
+        // PATCH B: Update eval bar ALWAYS (Play mode + Analysis mode)
+        if (info.mate !== null && info.mate !== undefined) {
+            updateEvalBar(info.mate > 0 ? 1400 : -1400, info.mate);
+        } else if (info.score !== null && info.score !== undefined) {
+            updateEvalBar(info.score * 100, null);
+        }
+
+        // Full analysis panel update only when in analysis mode
         if (App.analyzing) {
             updateAnalysis(info);
-        } else {
-            console.log('⚠️ Received info but App.analyzing is false - ignoring');
         }
     };
 
@@ -1002,12 +1013,37 @@ function updateAnalysis(info) {
         const mateText = info.mate > 0 ? `M${info.mate}` : `M${info.mate}`;
         evalElem.textContent = mateText;
         evalElem.style.color = info.mate > 0 ? '#4caf50' : '#f44336';
+
+        // REFINEMENT 2: Update eval bar (mate = extreme position)
+        updateEvalBar(info.mate > 0 ? 1400 : -1400, info.mate);
+
+        // 3-COLUMN: Update eval numeric header
+        const evalNumeric = document.getElementById('evalNumeric');
+        if (evalNumeric) {
+            evalNumeric.textContent = mateText;
+        }
     } else if (info.score !== null && info.score !== undefined) {
         // Centipawn score - display as +1.25 or -0.50 (from White's perspective)
         const score = info.score.toFixed(2);
         evalElem.textContent = score >= 0 ? `+${score}` : score;
         evalElem.style.color = score > 0 ? '#4caf50' :
                                score < 0 ? '#f44336' : '#2c5f9e';
+
+        // REFINEMENT 2: Update eval bar (convert pawns to centipawns)
+        updateEvalBar(info.score * 100, null);
+
+        // 3-COLUMN: Update eval numeric header (1 decimal for readability)
+        const evalNumeric = document.getElementById('evalNumeric');
+        if (evalNumeric) {
+            const scoreNum = parseFloat(score);
+            evalNumeric.textContent = scoreNum >= 0 ? `+${scoreNum.toFixed(1)}` : scoreNum.toFixed(1);
+        }
+    }
+
+    // 3-COLUMN: Update engine info header
+    const evalEngineInfo = document.getElementById('evalEngineInfo');
+    if (evalEngineInfo && info.depth) {
+        evalEngineInfo.textContent = `Stockfish 16 · Depth ${info.depth} · NNUE`;
     }
 
     // Update PV (Principal Variation) - the most important part!
@@ -1107,6 +1143,61 @@ function formatNumber(num) {
     return num.toString();
 }
 
+// ===== REFINEMENT 2: ENGINE EVAL BAR FUNCTIONS =====
+/**
+ * Convert centipawns to ratio (0..1) for eval bar visualization
+ * Uses sigmoid function for smooth scaling
+ * @param {number} cp - Centipawns (-1500 to +1500)
+ * @returns {number} - Ratio 0 (black winning) to 1 (white winning)
+ */
+function cpToRatio(cp) {
+    const x = Math.max(-1500, Math.min(1500, cp)); // Clamp to reasonable bounds
+    const t = 1 / (1 + Math.exp(-x / 200)); // Sigmoid function
+    return t; // 0..1
+}
+
+/**
+ * Update the engine evaluation bar (Lichess style)
+ * @param {number} cp - Centipawns (-1500 to +1500)
+ * @param {number|null} mate - Mate in X moves (null if not mate)
+ */
+function updateEvalBar(cp, mate) {
+    const fill = document.getElementById("evalFill");
+    const badge = document.getElementById("evalScore");
+
+    if (!fill || !badge) return; // Elements not found (eval bar not rendered)
+
+    // Calculate white's advantage percentage
+    const t = cpToRatio(cp);
+    const whitePct = t * 100;
+
+    // Update bar fill (white area from top)
+    fill.style.height = `${whitePct}%`;
+    fill.style.marginTop = `${100 - whitePct}%`;
+
+    // Update score badge
+    if (mate !== null && mate !== undefined) {
+        // Mate score
+        const mateText = mate > 0 ? `M${mate}` : `M${mate}`;
+        badge.textContent = mateText;
+        badge.className = 'eval-score-badge ' + (mate > 0 ? 'white-advantage' : 'black-advantage');
+    } else {
+        // Centipawn score (convert back to pawns)
+        const score = cp / 100;
+        const scoreText = score >= 0 ? `+${score.toFixed(1)}` : score.toFixed(1);
+        badge.textContent = scoreText;
+
+        // Color based on advantage
+        if (score > 1.5) {
+            badge.className = 'eval-score-badge white-advantage';
+        } else if (score < -1.5) {
+            badge.className = 'eval-score-badge black-advantage';
+        } else {
+            badge.className = 'eval-score-badge';
+        }
+    }
+}
+
 function updateEngineStatus(status, text) {
     App.elements.engineStatusText.textContent = text;
     App.elements.engineStatus.className = 'status-dot';
@@ -1174,6 +1265,18 @@ function newGame(options = {}) {
     updateMoveHistory();
     updateStatus();
     updateTimers();
+
+    // TASK 8: Hide analysis panels when starting new game (not in analysis mode)
+    const playSection = document.getElementById('playSection');
+    if (playSection && App.gameMode !== 'analysis') {
+        playSection.classList.remove('show-analysis');
+    }
+
+    // 3-COLUMN: Hide opening panel when not in Analyze mode
+    const openingPanel = document.getElementById('openingPanel');
+    if (openingPanel && App.gameMode !== 'analysis') {
+        openingPanel.classList.add('hidden');
+    }
     
     // Start timer if needed
     if (App.timeControl > 0) {
@@ -1314,6 +1417,12 @@ function loadFEN(fen, setAnalysisMode = true) {
         if (setAnalysisMode) {
             App.gameActive = false;
             App.gameMode = 'analysis';
+
+            // TASK 8: Show analysis panels when loading FEN for analysis
+            const playSection = document.getElementById('playSection');
+            if (playSection) {
+                playSection.classList.add('show-analysis');
+            }
         }
 
         // Update UI
@@ -1354,6 +1463,29 @@ function exportPGN() {
 // ===== BOARD OPERATIONS =====
 function flipBoard() {
     App.board.flip();
+
+    // HOTFIX: Toggle flipped state and sync eval bar orientation
+    App.isFlipped = !App.isFlipped;
+    syncEvalOrientation();
+}
+
+/**
+ * HOTFIX: Sync eval bar orientation with board orientation
+ * Default: white at bottom (white-bottom class applied)
+ * Flipped: black at bottom (white-bottom class removed)
+ * Logic: whiteAtBottom = !App.isFlipped
+ */
+function syncEvalOrientation() {
+    const evalBar = document.getElementById('evalBar');
+    if (!evalBar) return;
+
+    const whiteAtBottom = !App.isFlipped;
+
+    if (whiteAtBottom) {
+        evalBar.classList.add('white-bottom');
+    } else {
+        evalBar.classList.remove('white-bottom');
+    }
 }
 
 // ===== MODAL MANAGEMENT =====
@@ -1455,6 +1587,18 @@ function setupEventListeners() {
         App.gameMode = 'analysis';
         App.gameActive = false;
 
+        // TASK 8: Show analysis panels in analyze mode
+        const playSection = document.getElementById('playSection');
+        if (playSection) {
+            playSection.classList.add('show-analysis');
+        }
+
+        // 3-COLUMN: Show opening panel in Analyze mode
+        const openingPanel = document.getElementById('openingPanel');
+        if (openingPanel) {
+            openingPanel.classList.remove('hidden');
+        }
+
         // Navigate to the start of the game
         navigateToStart();
 
@@ -1514,6 +1658,54 @@ function setupEventListeners() {
             alert('Failed to copy FEN to clipboard');
         });
     });
+
+    // 3-COLUMN LAYOUT: Action Bar Buttons
+    const btnSettings = document.getElementById('btnSettings');
+    const btnResign = document.getElementById('btnResign');
+    const btnHint = document.getElementById('btnHint');
+    const btnUndo = document.getElementById('btnUndo');
+    const btnDownload = document.getElementById('btnDownload');
+
+    if (btnSettings) {
+        btnSettings.addEventListener('click', () => {
+            showModal('menuModal');
+        });
+    }
+
+    if (btnResign) {
+        btnResign.addEventListener('click', () => {
+            if (confirm('Are you sure you want to resign?')) {
+                resignGame();
+            }
+        });
+    }
+
+    if (btnHint) {
+        btnHint.addEventListener('click', () => {
+            if (!App.analyzing) {
+                startAnalysis();
+                showNotification('Analyzing position for best move...');
+            } else {
+                showNotification('Already analyzing - check Engine Analysis panel');
+            }
+        });
+    }
+
+    if (btnUndo) {
+        btnUndo.addEventListener('click', () => {
+            if (App.moveHistory.length > 0) {
+                undoMove();
+            } else {
+                showNotification('No moves to undo');
+            }
+        });
+    }
+
+    if (btnDownload) {
+        btnDownload.addEventListener('click', () => {
+            exportPGN();
+        });
+    }
 
     // New Game Modal
     setupNewGameModal();
@@ -1707,6 +1899,12 @@ function setupMenuModal() {
         // Enter analysis mode
         App.gameMode = 'analysis';
         App.gameActive = false;
+
+        // TASK 8: Show analysis panels in analyze mode
+        const playSection = document.getElementById('playSection');
+        if (playSection) {
+            playSection.classList.add('show-analysis');
+        }
 
         // Navigate to the start of the game
         navigateToStart();
@@ -2797,6 +2995,12 @@ async function loadSelectedPGN() {
         // Set game mode to analysis (allows free navigation)
         App.gameMode = 'analysis';
         App.gameActive = false;
+
+        // TASK 8: Show analysis panels when loading PGN for analysis
+        const playSection = document.getElementById('playSection');
+        if (playSection) {
+            playSection.classList.add('show-analysis');
+        }
 
         // Stop engine if running
         if (App.engine) {

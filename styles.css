@@ -31,13 +31,35 @@
     --spacing-md: 16px;
     --spacing-lg: 24px;
     --spacing-xl: 32px;
-    
+
+    /* ===== LAYOUT REDESIGN (TASKS 1-10 + REFINEMENTS) =====
+     * GOAL: Make the board the absolute dominant element
+     *
+     * CHANGES:
+     * 1. Board expanded: 480px → 680px → 720px (50% total increase, "6 inch feel")
+     * 2. Left sidebar completely hidden (display: none)
+     * 3. All controls consolidated in right sidebar (300px):
+     *    - Clocks + Turn LED (top)
+     *    - Game Menu (Flip, Analyze, Copy FEN, etc.)
+     *    - Engine Settings
+     *    - Move History
+     *    - Engine Analysis (shown only in Analyze mode)
+     * 4. Engine Analysis panels hidden by default
+     * 5. Reactive layout: .show-analysis class toggles analysis visibility
+     * 6. Main content max-width increased to 1600px
+     * 7. Responsive sizing with clamp() for all screen sizes
+     *
+     * PHILOSOPHY: "The board is the center of the product.
+     *              Everything else is contextual, collapsible, or mode-dependent."
+     */
+
     /* Sizes - CRITICAL FOR BOARD VISIBILITY */
-    --board-size: 480px; /* ~5" visual in desktop */
-    --board-gutter: 96px; /* ~1" breathing room around board */
+    --board-size: clamp(640px, 78vmin, 760px); /* PATCH A: Stronger board dominance - true "6 inch feel" */
+    --board-gutter: 32px; /* Reduced gutter for more board space */
     --sidebar-width: 220px;
-    --sidebar-width-left: 200px;
-    --sidebar-width-right: 220px;
+    --sidebar-width-left: 0px; /* Left sidebar removed - moved to nav */
+    --sidebar-width-right: 400px; /* 3-COLUMN: Right panel for moves + actions */
+    --left-wiki-width: 340px; /* 3-COLUMN: Left panel for opening narrative */
     
     /* Shadows - Dark Theme */
     --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -123,15 +145,21 @@ html, body {
 }
 
 /* ===== MAIN CONTENT LAYOUT ===== */
+/* 3-COLUMN LAYOUT: Lichess + Chess.com Hybrid */
 .main-content {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
+    display: grid;
+    grid-template-columns: var(--left-wiki-width) auto var(--sidebar-width-right);
+    gap: 18px;
+    align-items: start;
+    justify-content: center;
     padding: var(--spacing-md);
-    gap: var(--spacing-md);
-    max-width: 1400px; /* Reduced from 1800px for better fit at 100% zoom */
+    max-width: none; /* 3-COLUMN: Allow full width for 3 panels */
     margin: 0 auto;
     width: 100%;
+    overflow: hidden;
+
+    /* HOTFIX: Debug border to verify grid */
+    outline: 2px solid rgba(0, 255, 0, 0.35) !important;
 }
 
 /* ===== SIDEBARS ===== */
@@ -151,11 +179,150 @@ html, body {
 .left-sidebar {
     order: 1;
     width: var(--sidebar-width-left);
+    /* TASK 2 & 3: Hide left sidebar to free space for expanded board */
+    display: none; /* Completely remove from layout */
+    overflow: hidden;
+    opacity: 0;
 }
 
 .right-sidebar {
     order: 3;
+    width: var(--sidebar-width-right) !important; /* MINI PATCH: Force 400px width */
+    flex: 0 0 var(--sidebar-width-right) !important;
+}
+
+/* ===== 3-COLUMN LAYOUT: LEFT PANEL (Opening Wiki) ===== */
+.opening-panel {
+    border-radius: 14px;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    height: calc(100vh - 80px);
+    overflow-y: auto;
+    width: var(--left-wiki-width);
+}
+
+.opening-panel.hidden {
+    display: none !important;
+}
+
+.opening-header {
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 12px;
+}
+
+.opening-header h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 6px 0;
+}
+
+.opening-eco {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 600;
+}
+
+.opening-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.opening-text p {
+    margin-bottom: 12px;
+}
+
+.opening-text strong {
+    color: #ff9800;
+    font-weight: 600;
+}
+
+/* ===== 3-COLUMN LAYOUT: CENTER (Board) ===== */
+.board-center {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    min-width: 0; /* HOTFIX: Allow shrinking if needed */
+}
+
+/* ===== 3-COLUMN LAYOUT: RIGHT PANEL (Moves + Actions) ===== */
+.right-panel {
     width: var(--sidebar-width-right);
+    height: calc(100vh - 80px);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    /* HOTFIX: Debug border to verify visibility */
+    outline: 2px solid rgba(255, 0, 0, 0.35) !important;
+}
+
+.moves-header {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+
+.opening-title-right {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 4px;
+}
+
+.eval-numeric {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    font-family: 'Roboto Mono', monospace;
+}
+
+.eval-engine-info {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 4px;
+}
+
+.moves-panel {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 12px;
+}
+
+.action-bar {
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+}
+
+.action-bar button {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.action-bar button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.action-bar button i {
+    margin-right: 6px;
 }
 
 /* ===== BOARD CONTAINER - EXPANDED LAYOUT ===== */
@@ -180,7 +347,7 @@ html, body {
 /* Board-Editor Wrapper - Ensures board and editor have matching width */
 .board-editor-wrapper {
     width: 100%;
-    max-width: var(--board-size); /* 480px on desktop, scales down on mobile */
+    max-width: var(--board-size); /* 720px max (REFINEMENT 1 - responsive with clamp) */
     display: flex;
     flex-direction: column;
     align-items: stretch; /* Make all children same width */
@@ -192,15 +359,15 @@ html, body {
 
 /* ===== CHESSBOARD STYLES - FORCE PROPER FLOAT LAYOUT ===== */
 #chessboard {
-    /* RESPONSIVE: ~5" board (480px) with breathing room
+    /* RESPONSIVE: "6 inch feel" board (720px max) - REFINEMENT 1
      * Mobile: 85vw (leave space for gutter)
-     * Desktop: 480px (--board-size)
+     * Desktop: 720px max (--board-size uses clamp)
      * Formula: clamp(min, preferred, max)
      */
     width: clamp(280px, 85vw, var(--board-size)) !important;
     height: clamp(280px, 85vw, var(--board-size)) !important;
     max-width: var(--board-size) !important;
-    max-height: 600px !important;
+    max-height: var(--board-size) !important;
 
     /* Visual styling */
     border: 3px solid var(--board-border);
@@ -251,6 +418,76 @@ html, body {
     content: "";
     display: table;
     clear: both;
+}
+
+/* ===== REFINEMENT 2: ENGINE EVAL BAR (Lichess style) ===== */
+.board-with-eval {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    justify-content: center;
+    max-width: none; /* PATCH A: No limits on board container */
+}
+
+.eval-bar {
+    width: 14px;
+    min-width: 14px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    position: relative;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4);
+}
+
+.eval-fill {
+    width: 100%;
+    height: 50%; /* Updated by JS based on evaluation */
+    background: linear-gradient(180deg, #f9fafb 0%, #e5e7eb 100%);
+    margin-top: 50%; /* Updated by JS */
+    transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                margin-top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 -2px 8px rgba(255, 255, 255, 0.3);
+}
+
+.eval-score-badge {
+    /* PATCH C: Position outside the narrow bar for visibility */
+    position: absolute;
+    left: 22px; /* Outside bar (14px bar width + 8px gap) */
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.85);
+    border-radius: 6px;
+    pointer-events: none;
+    z-index: 10;
+    min-width: 48px;
+    text-align: center;
+    color: #fff;
+    font-family: 'Roboto Mono', monospace;
+}
+
+.eval-score-badge.white-advantage {
+    color: #10b981;
+}
+
+.eval-score-badge.black-advantage {
+    color: #ef4444;
+}
+
+/* HOTFIX: Eval bar orientation - white at bottom by default */
+/* The bar always calculates white advantage (0-100%), but we flip it visually */
+/* when white is at bottom (default) to match board orientation */
+.eval-bar.white-bottom .eval-fill {
+    /* Flip bar vertically to show white at bottom */
+    transform: scaleY(-1);
+}
+
+/* Keep badge readable when bar is flipped */
+.eval-bar.white-bottom .eval-score-badge {
+    transform: translateY(-50%) scaleY(-1);
 }
 
 /* Fritz classic color scheme - customize chessboard.js colors */
@@ -379,14 +616,15 @@ html, body {
 
 /* ===== MOVE HISTORY ===== */
 .move-history-panel {
-    /* Make Move History prominent - WinBoard style */
-    flex: 0 0 auto;
+    /* PATCH D: Force Move History to be really tall */
+    flex: 1 1 auto !important; /* GROWS to fill remaining space */
     display: flex;
     flex-direction: column;
-    min-height: 350px;
-    max-height: 450px;
+    min-height: 420px; /* PATCH D: Taller minimum for prominence */
+    max-height: none; /* No max - fills available space */
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow-md);
+    overflow: hidden; /* Container manages overflow */
 }
 
 .move-history-panel .panel-header {
@@ -512,9 +750,14 @@ html, body {
     /* Remove max-width - wrapper controls width now */
     /* Compact mode - limit height to avoid pushing Move History */
     max-height: 280px;
-    display: flex;
+    display: none; /* TASK 7: Hidden by default */
     flex-direction: column;
     box-sizing: border-box;
+}
+
+/* TASK 8: Show when in analyze mode */
+.show-analysis .analysis-panel {
+    display: flex;
 }
 
 /* Engine Analysis Header - Authoritative Style */
@@ -1284,7 +1527,7 @@ html, body {
     }
 
     .board-container {
-        max-width: 650px;
+        max-width: 800px; /* TASK 3: Increased to accommodate 680px board */
     }
 }
 
@@ -1300,7 +1543,7 @@ html, body {
     }
 
     .board-container {
-        max-width: 600px;
+        max-width: 750px; /* TASK 3: Increased to accommodate expanded board */
     }
 }
 
@@ -1364,16 +1607,16 @@ html, body {
         width: 100%;
     }
 
-    /* Board scales to viewport */
+    /* Board scales to viewport - TASK 3: Allow larger board on tablets */
     #chessboard {
-        width: min(95vw, 520px) !important;
-        height: min(95vw, 520px) !important;
+        width: min(95vw, var(--board-size)) !important;
+        height: min(95vw, var(--board-size)) !important;
         border-width: 2px;
     }
 
     /* Ensure wrapper scales on mobile */
     .board-editor-wrapper {
-        max-width: min(95vw, 520px);
+        max-width: min(95vw, var(--board-size));
     }
 
     .analysis-stats {
@@ -1464,16 +1707,16 @@ html, body {
         padding: 10px 12px;
     }
 
-    /* Compact board on small phones */
+    /* Compact board on small phones - TASK 3: Increased from 480px */
     #chessboard {
-        width: min(96vw, 480px) !important;
-        height: min(96vw, 480px) !important;
+        width: min(96vw, 600px) !important;
+        height: min(96vw, 600px) !important;
         border-width: 2px;
     }
 
     /* Ensure wrapper scales on very small screens */
     .board-editor-wrapper {
-        max-width: min(96vw, 480px);
+        max-width: min(96vw, 600px);
     }
 
     /* Analysis info row stays compact on mobile */
@@ -3707,6 +3950,34 @@ button:focus,
     color: white;
 }
 
+/* TASK 5: Compact Game Menu for Right Sidebar */
+.game-menu-compact {
+    /* PATCH D: Don't grow - fixed size for menu panel */
+    flex: 0 0 auto !important;
+    padding: 8px;
+}
+
+.game-menu-compact .panel-title-sm {
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.game-menu-grid-compact {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+}
+
+.game-menu-btn-sm {
+    padding: 8px 6px;
+    font-size: 10px;
+    min-height: 52px;
+}
+
+.game-menu-btn-sm i {
+    font-size: 14px;
+}
+
 /* ===== COMPACT LIBRARY PANEL ===== */
 .pgn-library-compact {
     padding: 10px;
@@ -3763,11 +4034,12 @@ button:focus,
     gap: 12px;
     flex: 1;
     min-height: 0;
+    max-width: none; /* PATCH A: No limits on board container */
 }
 
 .board-wrapper {
     flex: 1;
-    max-width: 100%;
+    max-width: none; /* PATCH A: No limits on board container */
     aspect-ratio: 1;
 }
 
@@ -3885,14 +4157,52 @@ button:focus,
     }
 }
 
-/* ===== COMPACT RIGHT SIDEBAR ===== */
-.right-sidebar-compact {
-    width: 220px;
-    min-width: 220px;
+/* ===== TASK 4: BOARD INDICATORS IN SIDEBAR ===== */
+.board-indicators-sidebar {
+    /* PATCH D: Don't grow - fixed size for status panel */
+    flex: 0 0 auto !important;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    gap: 6px !important; /* PATCH E: Even more compact */
+    padding: 6px 10px !important; /* PATCH E: Force compact with !important */
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.board-indicators-sidebar .clock-vertical {
+    width: 100%;
+    max-width: 160px !important; /* PATCH E: Force smaller clock width */
+    padding: 6px 10px;
+}
+
+.board-indicators-sidebar .clock-time {
+    font-size: 18px !important; /* PATCH E: Force size with !important */
+}
+
+.board-indicators-sidebar .turn-led-indicator {
+    width: 28px !important; /* PATCH E: Force smaller LED size */
+    height: 28px !important;
+    max-width: 160px; /* Match clock width */
+    flex-direction: row;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px;
+}
+
+/* ===== COMPACT RIGHT SIDEBAR ===== */
+.right-sidebar-compact {
+    width: var(--sidebar-width-right) !important; /* MINI PATCH: Force 380px width */
+    min-width: var(--sidebar-width-right) !important;
+    flex: 0 0 var(--sidebar-width-right) !important;
+    display: flex !important;
+    flex-direction: column !important;
     gap: 8px;
     padding: 8px;
+    height: calc(100vh - 24px) !important; /* Full viewport height */
+    overflow-y: auto; /* Allow scroll if content exceeds */
 }
 
 /* ===== COMPACT ENGINE PANEL ===== */
@@ -3973,11 +4283,12 @@ button:focus,
 /* ===== COMPACT MOVE HISTORY ===== */
 .move-history-compact {
     padding: 10px;
-    flex: 1;
-    min-height: 120px;
-    max-height: 200px;
+    flex: 1; /* REFINEMENT 4: Fill available space */
+    min-height: 180px; /* REFINEMENT 4: Increased min */
+    max-height: none; /* REFINEMENT 4: Allow to grow with sidebar */
     display: flex;
     flex-direction: column;
+    overflow: hidden; /* Content manages its own scroll */
 }
 
 .navigation-controls-inline {
@@ -4019,6 +4330,12 @@ button:focus,
 /* ===== ANALYSIS SIDEBAR PANEL ===== */
 .analysis-sidebar-panel {
     padding: 10px;
+    display: none; /* TASK 7: Hidden by default */
+}
+
+/* TASK 8: Show when in analyze mode */
+.show-analysis .analysis-sidebar-panel {
+    display: block;
 }
 
 .analysis-sidebar-content {
@@ -4667,7 +4984,7 @@ button:focus,
 }
 
 .arena-board-mount {
-    /* BOARD SIZE: ~5" (480px) with breathing room
+    /* BOARD SIZE: Dominant board (680px) with breathing room - TASK 3
      * Size will be set dynamically by JS ResizeObserver
      * Uses same sizing as main board for consistency
      */
@@ -5994,4 +6311,24 @@ button:focus,
     .help-actions .btn {
         width: 100%;
     }
+}
+
+/* ===== MINI PATCH: TEMPORARY - Show ONLY Move History ===== */
+/* Hide all other panels in right sidebar to focus on Move History */
+.board-indicators-sidebar,
+.engine-panel,
+.game-menu-compact,
+.analysis-sidebar-panel,
+.analysis-panel {
+    display: none !important;
+}
+
+/* Make Move History visible and full height */
+.move-history-panel,
+#movesPanel {
+    display: block !important;
+    flex: 1 1 auto !important;
+    min-height: calc(100vh - 120px) !important;
+    max-height: none !important;
+    overflow-y: auto !important;
 }
