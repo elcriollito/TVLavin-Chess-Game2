@@ -297,11 +297,11 @@ const CaissaArena = {
                 // Calculate ideal board size (use smaller dimension for square board)
                 let idealSize = Math.min(containerWidth, containerHeight);
 
-                // Clamp to reasonable bounds (chess.com style)
-                // Desktop: 480-700px, Mobile: 300-420px
+                // Clamp to reasonable bounds
+                // Desktop: 480px target (~5" visual), Mobile: 280px min
                 const isMobile = window.innerWidth < 768;
-                const minSize = isMobile ? 300 : 480;
-                const maxSize = isMobile ? 420 : 700;
+                const minSize = isMobile ? 280 : 380;
+                const maxSize = isMobile ? 420 : 480; // Match --board-size variable
 
                 const boardSize = Math.max(minSize, Math.min(maxSize, idealSize));
 
@@ -372,20 +372,66 @@ const CaissaArena = {
         console.log('[Arena] Populating engine selects...');
         console.log('[Arena] Available engines:', this.engines.length);
 
+        // CRITICAL: Verify elements exist before populating
+        const whiteSelect = this.elements.whiteEngineSelect || document.getElementById('arenaWhiteEngine');
+        const blackSelect = this.elements.blackEngineSelect || document.getElementById('arenaBlackEngine');
+
+        console.log('[Arena] Found selects?', {
+            white: !!whiteSelect,
+            black: !!blackSelect,
+            whiteId: whiteSelect?.id,
+            blackId: blackSelect?.id
+        });
+
+        if (!whiteSelect || !blackSelect) {
+            console.error('[Arena] Engine select elements NOT FOUND in DOM!');
+            console.error('[Arena] Retrying on next frame...');
+
+            // Retry on next animation frame (DOM might not be ready yet)
+            requestAnimationFrame(() => {
+                console.log('[Arena] Retry: Re-caching elements...');
+                this.cacheElements();
+                this.renderEngineSelectors();
+            });
+            return;
+        }
+
+        // Update cache with found elements
+        this.elements.whiteEngineSelect = whiteSelect;
+        this.elements.blackEngineSelect = blackSelect;
+
         const createOptions = (selectElement, selectedId, label) => {
             if (!selectElement) {
-                console.error(`[Arena] ${label} select element NOT FOUND!`);
+                console.error(`[Arena] ${label} select element is null!`);
                 return;
             }
 
-            selectElement.innerHTML = this.engines.map(engine => `
-                <option value="${engine.id}" ${engine.id === selectedId ? 'selected' : ''}>
-                    ${engine.name} (Tier ${engine.tier})
-                </option>
-            `).join('');
+            // Clear existing options
+            selectElement.innerHTML = '';
+
+            // Populate with engines
+            this.engines.forEach(engine => {
+                const option = document.createElement('option');
+                option.value = engine.id;
+                option.textContent = `${engine.name} (Tier ${engine.tier})`;
+                if (engine.id === selectedId) {
+                    option.selected = true;
+                }
+                selectElement.appendChild(option);
+            });
 
             console.log(`[Arena] ${label} populated with ${this.engines.length} engines`);
         };
+
+        // Verify we have engines
+        if (this.engines.length === 0) {
+            console.error('[Arena] NO ENGINES DEFINED! Using fallback...');
+            // This should never happen but just in case
+            this.engines = [
+                { id: 'stockfish-16', name: 'Stockfish 16', tier: 'A', description: 'World champion', elo: 3600, workerPath: 'stockfish.js', options: { depth: 20 } },
+                { id: 'stockfish-lite', name: 'Stockfish Lite', tier: 'B', description: 'Training mode', elo: 2800, workerPath: 'stockfish.js', options: { depth: 12 } }
+            ];
+        }
 
         // Default selections
         this.state.whiteEngine = this.engines[0];
@@ -393,12 +439,12 @@ const CaissaArena = {
 
         console.log('[Arena] Default engines:', this.state.whiteEngine?.name, 'vs', this.state.blackEngine?.name);
 
-        createOptions(this.elements.whiteEngineSelect, this.state.whiteEngine.id, 'WHITE');
-        createOptions(this.elements.blackEngineSelect, this.state.blackEngine.id, 'BLACK');
+        createOptions(whiteSelect, this.state.whiteEngine.id, 'WHITE');
+        createOptions(blackSelect, this.state.blackEngine.id, 'BLACK');
 
         this.updateEngineInfo();
 
-        console.log('[Arena] Engine selectors ready!');
+        console.log('[Arena] Engine selectors ready! Engines loaded:', this.engines.length);
     },
 
     selectEngine(color, engineId) {
