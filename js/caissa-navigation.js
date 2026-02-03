@@ -614,17 +614,36 @@ const CaissaNavigation = {
             const saved = localStorage.getItem('caissa_nav_state');
             if (saved) {
                 const state = JSON.parse(saved);
-                this.currentSection = state.currentSection || 'play';
+
+                // CRITICAL FIX: Always default to 'play' on initial page load
+                // Only restore section if user explicitly navigated (not on first visit)
+                // This prevents Arena from auto-opening when user refreshes the page
+                const urlParams = new URLSearchParams(window.location.search);
+                const hasExplicitSection = urlParams.has('section');
+
+                if (hasExplicitSection) {
+                    // URL override (e.g., ?section=arena)
+                    this.currentSection = urlParams.get('section') || 'play';
+                } else {
+                    // Always start with Play, ignore localStorage
+                    this.currentSection = 'play';
+                }
+
                 this.isNavCollapsed = state.isNavCollapsed || false;
 
                 if (this.isNavCollapsed) {
                     this.elements.appContainer?.classList.add('nav-collapsed');
                 }
 
-                console.log('[CAISSA Nav] State restored:', state);
+                console.log('[CAISSA Nav] State restored. Default section: play (localStorage ignored for section)');
+            } else {
+                // No saved state - fresh visit
+                this.currentSection = 'play';
+                console.log('[CAISSA Nav] No saved state. Starting with: play');
             }
         } catch (e) {
             console.error('[CAISSA Nav] Failed to restore state:', e);
+            this.currentSection = 'play'; // Fallback to play on error
         }
     },
 

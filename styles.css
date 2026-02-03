@@ -188,9 +188,13 @@ html, body {
 
 /* ===== CHESSBOARD STYLES - FORCE PROPER FLOAT LAYOUT ===== */
 #chessboard {
-    /* RESPONSIVE: Scale with viewport on mobile, fixed on desktop */
-    width: min(92vw, 600px) !important;
-    height: min(92vw, 600px) !important;
+    /* RESPONSIVE: Larger board (5"-6" equivalent) - clamp for fluid sizing
+     * Mobile: 92vw (full width minus padding)
+     * Tablet/Desktop: Between 480px-600px based on viewport
+     * Large screens: Max 600px
+     */
+    width: clamp(320px, 92vw, 600px) !important;
+    height: clamp(320px, 92vw, 600px) !important;
     max-width: 600px !important;
     max-height: 600px !important;
 
@@ -4658,11 +4662,15 @@ button:focus,
 }
 
 .arena-board-mount {
-    /* Size will be set dynamically by JS ResizeObserver */
-    width: 600px; /* Initial size */
-    height: 600px;
+    /* LARGER BOARD: 5"-6" visual equivalent (480-600px)
+     * Size will be set dynamically by JS ResizeObserver
+     * Initial size increased for better visibility
+     */
+    width: clamp(320px, 92vw, 600px); /* Fluid sizing */
+    height: clamp(320px, 92vw, 600px);
     margin: 0 auto;
     position: relative;
+    aspect-ratio: 1 / 1; /* Ensure perfect square */
 }
 
 /* Arena board element (created by JS) */

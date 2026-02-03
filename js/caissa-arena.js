@@ -369,24 +369,36 @@ const CaissaArena = {
 
     // ===== ENGINE MANAGEMENT =====
     renderEngineSelectors() {
-        const createOptions = (selectElement, selectedId) => {
-            if (!selectElement) return;
+        console.log('[Arena] Populating engine selects...');
+        console.log('[Arena] Available engines:', this.engines.length);
+
+        const createOptions = (selectElement, selectedId, label) => {
+            if (!selectElement) {
+                console.error(`[Arena] ${label} select element NOT FOUND!`);
+                return;
+            }
 
             selectElement.innerHTML = this.engines.map(engine => `
                 <option value="${engine.id}" ${engine.id === selectedId ? 'selected' : ''}>
                     ${engine.name} (Tier ${engine.tier})
                 </option>
             `).join('');
+
+            console.log(`[Arena] ${label} populated with ${this.engines.length} engines`);
         };
 
         // Default selections
         this.state.whiteEngine = this.engines[0];
         this.state.blackEngine = this.engines[1];
 
-        createOptions(this.elements.whiteEngineSelect, this.state.whiteEngine.id);
-        createOptions(this.elements.blackEngineSelect, this.state.blackEngine.id);
+        console.log('[Arena] Default engines:', this.state.whiteEngine?.name, 'vs', this.state.blackEngine?.name);
+
+        createOptions(this.elements.whiteEngineSelect, this.state.whiteEngine.id, 'WHITE');
+        createOptions(this.elements.blackEngineSelect, this.state.blackEngine.id, 'BLACK');
 
         this.updateEngineInfo();
+
+        console.log('[Arena] Engine selectors ready!');
     },
 
     selectEngine(color, engineId) {
