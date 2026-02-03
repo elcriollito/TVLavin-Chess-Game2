@@ -765,18 +765,45 @@ function updateMoveHistory() {
     }
     
     App.elements.moveHistory.innerHTML = html || '<p style="text-align: center; color: #999;">No moves yet</p>';
-    
+
     // Scroll to bottom
     App.elements.moveHistory.scrollTop = App.elements.moveHistory.scrollHeight;
-    
+
+    // HOTFIX 2: Also render moves to right panel
+    renderMovesToPanel();
+
     // Update navigation buttons
     updateNavigationButtons();
+}
+
+/**
+ * HOTFIX 2: Render moves to right panel (3-column layout)
+ * Displays moves in a compact format for the moves panel
+ */
+function renderMovesToPanel() {
+    const el = document.getElementById("movesPanel");
+    if (!el) return;
+
+    const moves = App.moveHistory; // Array of {san, ...}
+    let html = "";
+
+    for (let i = 0; i < moves.length; i += 2) {
+        const turn = Math.floor(i / 2) + 1;
+        const w = moves[i] ? moves[i].san : "";
+        const b = moves[i + 1] ? moves[i + 1].san : "";
+        html += `<div class="move-row"><span class="turn">${turn}.</span> <span>${w}</span> <span>${b || ''}</span></div>`;
+    }
+
+    el.innerHTML = html || `<div class="muted">No moves yet</div>`;
+
+    // Scroll to bottom
+    el.scrollTop = el.scrollHeight;
 }
 
 function updateNavigationButtons() {
     const atStart = App.currentMoveIndex < 0;
     const atEnd = App.currentMoveIndex === App.moveHistory.length - 1;
-    
+
     App.elements.navFirst.disabled = atStart || App.moveHistory.length === 0;
     App.elements.navPrev.disabled = atStart || App.moveHistory.length === 0;
     App.elements.navNext.disabled = atEnd || App.moveHistory.length === 0;

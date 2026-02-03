@@ -157,9 +157,6 @@ html, body {
     margin: 0 auto;
     width: 100%;
     overflow: hidden;
-
-    /* HOTFIX: Debug border to verify grid */
-    outline: 2px solid rgba(0, 255, 0, 0.35) !important;
 }
 
 /* ===== SIDEBARS ===== */
@@ -256,9 +253,7 @@ html, body {
     display: flex;
     flex-direction: column;
     gap: 12px;
-
-    /* HOTFIX: Debug border to verify visibility */
-    outline: 2px solid rgba(255, 0, 0, 0.35) !important;
+    padding: 10px; /* HOTFIX 2: Add padding for proper spacing */
 }
 
 .moves-header {
@@ -290,11 +285,12 @@ html, body {
 
 .moves-panel {
     flex: 1 1 auto;
+    min-height: 320px; /* HOTFIX 2: Ensure panel is visible */
     overflow-y: auto;
     border-radius: 14px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 12px;
+    padding: 8px 10px; /* HOTFIX 2: Match user spec */
 }
 
 .action-bar {
@@ -696,6 +692,40 @@ html, body {
 .move:hover {
     background: var(--secondary-color);
     color: white;
+}
+
+/* HOTFIX 2: Move row styles for right panel moves display */
+.move-row {
+    display: flex;
+    gap: 12px;
+    padding: 4px 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.85);
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.move-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.move-row .turn {
+    color: var(--accent-color);
+    font-weight: bold;
+    min-width: 32px;
+}
+
+.move-row span {
+    min-width: 50px;
+}
+
+.muted {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 13px;
+    text-align: center;
+    padding: 20px;
+}
     transform: translateX(2px);
 }
 
