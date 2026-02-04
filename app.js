@@ -17,6 +17,11 @@ const App = {
     timeControl: 0, // seconds, 0 = no limit
     useOpeningBook: true, // Enable book moves
 
+    // HOTFIX 4: Engine play control (independent of UI mode)
+    engineEnabled: false, // Whether engine should play moves
+    enginePlaysAs: 'black', // 'white' | 'black'
+    engineDepth: 12, // Default search depth
+
     // Game state
     isPlayerTurn: true,
     gameActive: false,
@@ -523,28 +528,63 @@ function onMoveMade(move) {
     if (typeof MentorAI !== 'undefined' && MentorAI.onMoveMade) {
         MentorAI.onMoveMade(move, App.game.fen());
     }
-    
+
     // Check game status
     if (App.game.game_over()) {
         handleGameOver();
         return;
     }
-    
-    // In engine mode, make engine move
-    if (App.gameMode === 'engine') {
-        App.isPlayerTurn = false;
-        updateStatus();
-        
-        // Delay engine move slightly for better UX
-        setTimeout(() => {
-            makeEngineMove();
-        }, 250);
-    }
-    
+
+    // HOTFIX 4: Trigger engine move (independent of UI mode)
+    maybeTriggerEngineMove();
+
     // If analysis is on, update it
     if (App.analyzing) {
         startAnalysis();
     }
+}
+
+/**
+ * HOTFIX 4: Single source of truth for engine move triggering
+ * Engine play logic independent of UI mode (Play / Analyze)
+ */
+function maybeTriggerEngineMove() {
+    console.log("[ENGINE CHECK] maybeTriggerEngineMove called");
+
+    if (!App.engine) {
+        console.warn("[ENGINE] missing");
+        return;
+    }
+
+    if (!App.engineEnabled) {
+        console.log("[ENGINE] disabled");
+        return;
+    }
+
+    if (App.game.game_over()) {
+        console.log("[ENGINE] game over");
+        return;
+    }
+
+    const turn = App.game.turn(); // 'w' or 'b'
+    const engineColor = App.enginePlaysAs; // 'white' | 'black'
+
+    const engineTurn =
+        (engineColor === 'white' && turn === 'w') ||
+        (engineColor === 'black' && turn === 'b');
+
+    if (!engineTurn) {
+        console.log("[ENGINE] waiting for player move");
+        return;
+    }
+
+    const fen = App.game.fen();
+    console.log("[ENGINE] go", fen);
+
+    // Use makeEngineMove() which has all the book/engine logic
+    setTimeout(() => {
+        makeEngineMove();
+    }, 250);
 }
 
 function makeEngineMove() {
@@ -620,7 +660,7 @@ function makeEngineMove() {
     console.log(`🎯 Engine at FULL POWER using movetime: ${moveTime}ms`);
 
     App.engine.getBestMove(currentFen, (bestMove) => {
-        console.log('[BESTMOVE EVENT]', bestMove);
+        console.log('[ENGINE] bestmove', bestMove); // HOTFIX 4: Verification log
         // Verify game state hasn't changed
         if (!App.gameActive || App.game.fen() !== currentFen) {
             debugLog('Game state changed, canceling engine move');
@@ -1320,14 +1360,6 @@ function newGame(options = {}) {
         return; // Exit early, Eve mode handles its own UI
     }
 
-    // In engine mode, if player is black, make engine move
-    if (App.gameMode === 'engine' && App.playerColor === 'black') {
-        App.isPlayerTurn = false;
-        setTimeout(() => {
-            makeEngineMove();
-        }, 500);
-    }
-
     // Clear analysis panel
     App.elements.depth.textContent = '0';
     App.elements.nodes.textContent = '0';
@@ -1339,7 +1371,8 @@ function newGame(options = {}) {
 
     // Notify engine of new game
     if (App.engine) {
-        App.engine.newGame();
+        App.engine.stop();
+        App.engine.ucinewgame();
     }
 
     // Show resign button in engine mode
@@ -1348,6 +1381,16 @@ function newGame(options = {}) {
     } else {
         App.elements.resignBtn.style.display = 'none';
     }
+
+    // HOTFIX 4: Configure engine play
+    console.log("[START GAME]");
+    App.engineEnabled = (App.gameMode === 'engine');
+    App.enginePlaysAs = (App.playerColor === 'white') ? 'black' : 'white';
+
+    console.log("[ENGINE CONFIG] enabled:", App.engineEnabled, "plays as:", App.enginePlaysAs);
+
+    // HOTFIX 4: Trigger engine move if it's engine's turn
+    maybeTriggerEngineMove();
 }
 
 function resignGame() {
@@ -1557,53 +1600,91 @@ function openMentorPanel() {
 
 // ===== EVENT LISTENERS =====
 function setupEventListeners() {
+    if (App._listenersBound) {
+        return;
+    }
+    const missingElements = new Set();
+    let loggedPlayInactive = false;
+    const safeOn = (el, eventName, handler, label) => {
+        if (!el) {
+            if (!missingElements.has(label)) {
+                console.warn(`[Play] Missing element for ${label}`);
+                missingElements.add(label);
+            }
+            return;
+        }
+        el.addEventListener(eventName, handler);
+    };
+
+    const playSection = document.getElementById('playSection');
+    const isPlayActive = !!playSection?.classList.contains('active');
+    if (!isPlayActive) {
+        if (!loggedPlayInactive) {
+            console.warn('[Play] setupEventListeners skipped: Play section not active');
+            loggedPlayInactive = true;
+        }
+        let attempts = 0;
+        const maxAttempts = 10;
+        const retry = () => {
+            const active = !!document.getElementById('playSection')?.classList.contains('active');
+            if (active) {
+                setupEventListeners();
+                return;
+            }
+            attempts += 1;
+            if (attempts < maxAttempts) {
+                requestAnimationFrame(retry);
+            } else {
+                console.warn('[Play] setupEventListeners aborted: Play section still inactive');
+            }
+        };
+        requestAnimationFrame(retry);
+        return;
+    }
+
+    App._listenersBound = true;
+
     // Header buttons
-    App.elements.newGameBtn.addEventListener('click', () => {
+    safeOn(App.elements.newGameBtn, 'click', () => {
         showModal('newGameModal');
-    });
+    }, 'newGameBtn');
 
     // Caissa Insight button in header
     const caissaInsightBtn = document.getElementById('caissaInsightBtn');
-    if (caissaInsightBtn) {
-        caissaInsightBtn.addEventListener('click', () => {
-            showModal('insightModal');
-            loadInsightProfile(); // Load saved profile if exists
-            updateInsightIndicator(); // Update indicator visibility
-        });
-    }
+    safeOn(caissaInsightBtn, 'click', () => {
+        showModal('insightModal');
+        loadInsightProfile(); // Load saved profile if exists
+        updateInsightIndicator(); // Update indicator visibility
+    }, 'caissaInsightBtn');
 
     // CAISSA Mentor button in header
     const mentorBtn = document.getElementById('mentorBtn');
-    if (mentorBtn) {
-        mentorBtn.addEventListener('click', () => {
-            openMentorPanel();
-        });
-    }
+    safeOn(mentorBtn, 'click', () => {
+        openMentorPanel();
+    }, 'mentorBtn');
 
     // Menu button in analysis panel (mobile + desktop)
-    App.elements.menuBtn.addEventListener('click', () => {
+    safeOn(App.elements.menuBtn, 'click', () => {
         showModal('menuModal');
-    });
+    }, 'menuBtn');
 
     // Menu button in header (desktop only, hidden on mobile)
-    if (App.elements.menuBtnHeader) {
-        App.elements.menuBtnHeader.addEventListener('click', () => {
-            showModal('menuModal');
-        });
-    }
+    safeOn(App.elements.menuBtnHeader, 'click', () => {
+        showModal('menuModal');
+    }, 'menuBtnHeader');
     
     // Quick actions
-    App.elements.flipBoard.addEventListener('click', flipBoard);
+    safeOn(App.elements.flipBoard, 'click', flipBoard, 'flipBoard');
     
-    App.elements.pasteFEN.addEventListener('click', () => {
+    safeOn(App.elements.pasteFEN, 'click', () => {
         showModal('fenModal');
-    });
+    }, 'pasteFEN');
 
-    App.elements.editBoard.addEventListener('click', () => {
+    safeOn(App.elements.editBoard, 'click', () => {
         toggleEditMode();
-    });
+    }, 'editBoard');
 
-    App.elements.analyzeGame.addEventListener('click', () => {
+    safeOn(App.elements.analyzeGame, 'click', () => {
         // Check if there's a game history to analyze
         if (App.moveHistory.length === 0) {
             alert('No game to analyze. Play some moves first!');
@@ -1633,42 +1714,42 @@ function setupEventListeners() {
         startAnalysis();
 
         showNotification('Analysis mode: Use navigation buttons to explore the game');
-    });
+    }, 'analyzeGame');
     
-    App.elements.toggleAnalysis.addEventListener('click', toggleAnalysis);
+    safeOn(App.elements.toggleAnalysis, 'click', toggleAnalysis, 'toggleAnalysis');
 
     // Resign button
-    App.elements.resignBtn.addEventListener('click', resignGame);
+    safeOn(App.elements.resignBtn, 'click', resignGame, 'resignBtn');
 
     // PGN Library
-    App.elements.categorySelector.addEventListener('change', onCategoryChange);
-    App.elements.playerSelector.addEventListener('change', onPlayerChange);
-    App.elements.loadPgnBtn.addEventListener('click', loadSelectedPGN);
+    safeOn(App.elements.categorySelector, 'change', onCategoryChange, 'categorySelector');
+    safeOn(App.elements.playerSelector, 'change', onPlayerChange, 'playerSelector');
+    safeOn(App.elements.loadPgnBtn, 'click', loadSelectedPGN, 'loadPgnBtn');
 
     // Navigation
-    App.elements.navFirst.addEventListener('click', navigateToStart);
-    App.elements.navPrev.addEventListener('click', navigateToPrevious);
-    App.elements.navNext.addEventListener('click', navigateToNext);
-    App.elements.navLast.addEventListener('click', navigateToEnd);
+    safeOn(App.elements.navFirst, 'click', navigateToStart, 'navFirst');
+    safeOn(App.elements.navPrev, 'click', navigateToPrevious, 'navPrev');
+    safeOn(App.elements.navNext, 'click', navigateToNext, 'navNext');
+    safeOn(App.elements.navLast, 'click', navigateToEnd, 'navLast');
     
     // Move history clicks
-    App.elements.moveHistory.addEventListener('click', (e) => {
+    safeOn(App.elements.moveHistory, 'click', (e) => {
         if (e.target.classList.contains('move')) {
             const index = parseInt(e.target.dataset.index);
             navigateToMove(index);
         }
-    });
+    }, 'moveHistory');
     
     // Settings changes
-    App.elements.playerColor.addEventListener('change', (e) => {
+    safeOn(App.elements.playerColor, 'change', (e) => {
         App.playerColor = e.target.value;
-    });
+    }, 'playerColor');
     
     // Export PGN
-    document.getElementById('exportPGN').addEventListener('click', exportPGN);
+    safeOn(document.getElementById('exportPGN'), 'click', exportPGN, 'exportPGN');
 
     // Copy FEN to clipboard
-    document.getElementById('copyFEN')?.addEventListener('click', () => {
+    safeOn(document.getElementById('copyFEN'), 'click', () => {
         const fen = App.game.fen();
         navigator.clipboard.writeText(fen).then(() => {
             // Show brief feedback
@@ -1684,7 +1765,7 @@ function setupEventListeners() {
             console.error('Failed to copy FEN:', err);
             alert('Failed to copy FEN to clipboard');
         });
-    });
+    }, 'copyFEN');
 
     // 3-COLUMN LAYOUT: Action Bar Buttons
     const btnSettings = document.getElementById('btnSettings');
@@ -1693,46 +1774,36 @@ function setupEventListeners() {
     const btnUndo = document.getElementById('btnUndo');
     const btnDownload = document.getElementById('btnDownload');
 
-    if (btnSettings) {
-        btnSettings.addEventListener('click', () => {
-            showModal('menuModal');
-        });
-    }
+    safeOn(btnSettings, 'click', () => {
+        showModal('menuModal');
+    }, 'btnSettings');
 
-    if (btnResign) {
-        btnResign.addEventListener('click', () => {
-            if (confirm('Are you sure you want to resign?')) {
-                resignGame();
-            }
-        });
-    }
+    safeOn(btnResign, 'click', () => {
+        if (confirm('Are you sure you want to resign?')) {
+            resignGame();
+        }
+    }, 'btnResign');
 
-    if (btnHint) {
-        btnHint.addEventListener('click', () => {
-            if (!App.analyzing) {
-                startAnalysis();
-                showNotification('Analyzing position for best move...');
-            } else {
-                showNotification('Already analyzing - check Engine Analysis panel');
-            }
-        });
-    }
+    safeOn(btnHint, 'click', () => {
+        if (!App.analyzing) {
+            startAnalysis();
+            showNotification('Analyzing position for best move...');
+        } else {
+            showNotification('Already analyzing - check Engine Analysis panel');
+        }
+    }, 'btnHint');
 
-    if (btnUndo) {
-        btnUndo.addEventListener('click', () => {
-            if (App.moveHistory.length > 0) {
-                undoMove();
-            } else {
-                showNotification('No moves to undo');
-            }
-        });
-    }
+    safeOn(btnUndo, 'click', () => {
+        if (App.moveHistory.length > 0) {
+            undoMove();
+        } else {
+            showNotification('No moves to undo');
+        }
+    }, 'btnUndo');
 
-    if (btnDownload) {
-        btnDownload.addEventListener('click', () => {
-            exportPGN();
-        });
-    }
+    safeOn(btnDownload, 'click', () => {
+        exportPGN();
+    }, 'btnDownload');
 
     // New Game Modal
     setupNewGameModal();
