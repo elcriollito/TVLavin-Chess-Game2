@@ -1209,10 +1209,12 @@ function updateAnalysis(info) {
         const pvToConvert = pvArray.slice(0, displayPlies);
         const shortPv = pvArray.slice(0, 8).join(' ');
         const sanMoves = convertPVtoSAN(pvToConvert);
+        const sanTokens = sanMoves ? sanMoves.split(/\s+/).filter(Boolean) : [];
+        const shortSan = sanTokens.slice(0, 8).join(' ');
 
         if (sanMoves && sanMoves.trim() !== '') {
             lineElem.textContent = sanMoves;
-            if (hintLine) hintLine.textContent = shortPv;
+            if (hintLine) hintLine.textContent = shortSan || sanMoves;
         } else {
             const uciLine = pvToConvert.join(' ');
             lineElem.textContent = uciLine;
@@ -1415,6 +1417,8 @@ function newGame(options = {}) {
     } else {
         App.board.orientation('white');
     }
+    App.isFlipped = (App.playerColor === 'black');
+    syncEvalOrientation();
     
     // Reset UI
     App.elements.gameResult.classList.remove('show');
@@ -1422,21 +1426,42 @@ function newGame(options = {}) {
     updateStatus();
     updateTimers();
 
-    // TASK 8: Hide analysis panels when starting new game (not in analysis mode)
+    // TASK 8: Show/Hide analysis panels based on mode
     const playSection = document.getElementById('playSection');
-    if (playSection && App.gameMode !== 'analysis') {
-        playSection.classList.remove('show-analysis');
+    if (playSection) {
+        if (App.gameMode === 'analysis') {
+            playSection.classList.add('show-analysis');
+        } else {
+            playSection.classList.remove('show-analysis');
+        }
     }
 
-    // 3-COLUMN: Hide opening panel when not in Analyze mode
+    // 3-COLUMN: Show opening panel only in Analyze mode
     const openingPanel = document.getElementById('openingPanel');
-    if (openingPanel && App.gameMode !== 'analysis') {
-        openingPanel.classList.add('hidden');
+    if (openingPanel) {
+        if (App.gameMode === 'analysis') {
+            openingPanel.classList.remove('hidden');
+        } else {
+            openingPanel.classList.add('hidden');
+        }
     }
     
     // Start timer if needed
     if (App.timeControl > 0) {
         startTimer();
+    }
+    
+    // Auto-start analysis in Analysis mode (New Game Analyzer)
+    if (App.gameMode === 'analysis') {
+        App.analyzing = true;
+        if (App.elements.toggleAnalysis) {
+            App.elements.toggleAnalysis.innerHTML = '<i class="fas fa-stop"></i> Stop';
+        }
+        setTimeout(() => {
+            if (App.analyzing) {
+                startAnalysis();
+            }
+        }, 100);
     }
     
     // Handle Engine vs Engine mode (from "New Game" modal)
@@ -1879,9 +1904,7 @@ function setupEventListeners() {
     }, 'btnSettings');
 
     safeOn(btnResign, 'click', () => {
-        if (confirm('Are you sure you want to resign?')) {
-            resignGame();
-        }
+        resignGame();
     }, 'btnResign');
 
     safeOn(btnHint, 'click', () => {
@@ -2111,6 +2134,18 @@ function setupMenuModal() {
         startAnalysis();
 
         showNotification('Analysis mode: Use navigation buttons to explore the game');
+    });
+
+    document.getElementById('menuEngineVsEngine')?.addEventListener('click', () => {
+        hideModal('menuModal');
+        const eveBtn = document.getElementById('engineVsEngineBtn');
+        if (eveBtn) {
+            eveBtn.click();
+        } else if (typeof toggleEngineVsEngineMode === 'function') {
+            toggleEngineVsEngineMode();
+        } else {
+            showNotification('Engine vs Engine mode unavailable');
+        }
     });
     
     document.getElementById('menuCaissaInsight').addEventListener('click', () => {

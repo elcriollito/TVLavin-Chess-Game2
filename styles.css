@@ -4764,6 +4764,10 @@ button:focus,
     color: var(--text);
 }
 
+.opening-coach-panel .panel-body {
+    min-height: clamp(110px, 18vh, 180px);
+}
+
 .panel.grow {
     min-height: 260px;
 }
