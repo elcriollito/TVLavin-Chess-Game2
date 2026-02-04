@@ -66,6 +66,28 @@ const App = {
     elements: {}
 };
 
+function engineSend(engine, cmd) {
+    if (!engine) return;
+
+    if (typeof engine.send === 'function') return engine.send(cmd);
+    if (typeof engine.postMessage === 'function') return engine.postMessage(cmd);
+    if (typeof engine.write === 'function') return engine.write(cmd);
+
+    if (engine.worker && typeof engine.worker.postMessage === 'function') {
+        return engine.worker.postMessage(cmd);
+    }
+
+    console.warn('[Engine] No send method found for cmd:', cmd, engine);
+}
+
+function engineNewGame(engine) {
+    if (!engine) return;
+    if (typeof engine.ucinewgame === 'function') return engine.ucinewgame();
+
+    engineSend(engine, 'ucinewgame');
+    engineSend(engine, 'isready');
+}
+
 // ===== UTILITY FUNCTIONS =====
 function debugLog(...args) {
     if (App.debug) {
@@ -1372,7 +1394,7 @@ function newGame(options = {}) {
     // Notify engine of new game
     if (App.engine) {
         App.engine.stop();
-        App.engine.ucinewgame();
+        engineNewGame(App.engine);
     }
 
     // Show resign button in engine mode

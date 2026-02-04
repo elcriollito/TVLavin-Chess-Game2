@@ -545,6 +545,9 @@ const CaissaArena = {
 
         return new Promise((resolve, reject) => {
             const checkBoard = () => {
+                if ((!this.board || !this.state.boardMounted) && this.elements.boardMount) {
+                    this.mountBoard();
+                }
                 // Check if board instance exists
                 if (!this.board || !this.state.boardMounted) {
                     if (Date.now() - startTime > timeoutMs) {
@@ -599,6 +602,7 @@ const CaissaArena = {
         // Wait for board to be mounted if not ready yet
         if (!this.board || !this.state.boardMounted) {
             console.log('[Arena] Waiting for board mount...');
+            this.mountBoard();
             try {
                 await this.waitForBoardMounted({ timeoutMs: 3000, pollMs: 50 });
                 console.log('[Arena] Board ready, starting match');

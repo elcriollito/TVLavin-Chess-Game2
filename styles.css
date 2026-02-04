@@ -60,7 +60,7 @@
      */
 
     /* Sizes - CRITICAL FOR BOARD VISIBILITY */
-    --board-size: clamp(480px, 60vw, 560px);
+    --board-size: clamp(520px, 60vw, 600px);
     --board-gutter: clamp(24px, 6vw, 96px);
     --sidebar-width: 220px;
     --sidebar-width-left: 0px; /* Left sidebar removed - moved to nav */
@@ -4694,7 +4694,7 @@ button:focus,
 
 .main-content.cais-grid {
     display: grid;
-    grid-template-columns: 1fr 320px;
+    grid-template-columns: 1fr 380px;
     gap: var(--gap);
     align-items: start;
     max-width: 1600px;
@@ -4730,6 +4730,7 @@ button:focus,
     display: flex;
     flex-direction: column;
     gap: var(--gap);
+    min-width: 380px;
 }
 
 .panel {
@@ -4757,12 +4758,36 @@ button:focus,
     min-height: 260px;
 }
 
+.right-controls {
+    margin-top: 12px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+}
+
+.ctrl-row {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.ctrl-row.top {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.ctrl-row.bottom {
+    grid-template-columns: repeat(2, 1fr);
+    margin-bottom: 0;
+}
+
 @media (max-width: 1050px) {
     .main-content.cais-grid {
         grid-template-columns: 1fr;
     }
     .right-panel.cais-right-col {
         order: 2;
+        min-width: 0;
     }
     .board-center {
         order: 1;
