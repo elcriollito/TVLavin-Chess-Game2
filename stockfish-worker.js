@@ -181,7 +181,8 @@ class StockfishEngine {
             multipv: 1,
             currmove: null,
             hashfull: 0,
-            tbhits: 0
+            tbhits: 0,
+            rawLine: message
         };
 
         // Parse depth

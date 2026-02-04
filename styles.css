@@ -60,7 +60,7 @@
      */
 
     /* Sizes - CRITICAL FOR BOARD VISIBILITY */
-    --board-size: clamp(560px, 60vw, 600px);
+    --board-size: clamp(560px, 60vw, 660px);
     --right-col: 400px;
     --board-gutter: clamp(24px, 6vw, 96px);
     --sidebar-width: 220px;
@@ -4768,10 +4768,39 @@ button:focus,
     min-height: 260px;
 }
 
-.eval-sub {
-    margin-top: 6px;
-    color: var(--muted);
-    font-size: 12px;
+.hint-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+}
+
+.hint-eval {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.hint-pv {
+    opacity: 0.9;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.top-clock {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text);
+    font-size: 13px;
+    padding: 0 4px;
+}
+
+.clock-sep {
+    opacity: 0.6;
 }
 
 .right-controls {

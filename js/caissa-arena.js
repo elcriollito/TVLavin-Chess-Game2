@@ -337,7 +337,7 @@ const CaissaArena = {
                 // Desktop: 480px target (~5" visual), Mobile: 280px min
                 const isMobile = window.innerWidth < 768;
                 const minSize = isMobile ? 280 : 380;
-                const maxSize = isMobile ? 420 : 480; // Match --board-size variable
+                const maxSize = isMobile ? 520 : 660; // Match --board-size variable
 
                 const boardSize = Math.max(minSize, Math.min(maxSize, idealSize));
 

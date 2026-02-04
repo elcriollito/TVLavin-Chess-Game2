@@ -915,18 +915,30 @@ function renderMovesToPanel() {
 function detectOpening() {
     if (!App.game || !App.openings || App.openings.length === 0) return;
 
-    const played = App.game.history({ verbose: false }).join(' ');
+    const playedSAN = App.game.history({ verbose: false });
+    const maxLen = Math.min(playedSAN.length, 10); // first 5 full moves
     let best = null;
 
     for (const op of App.openings) {
-        if (played.startsWith(op.moves)) {
-            if (!best || op.moves.length > best.moves.length) {
+        const openingMoves = Array.isArray(op.moves) ? op.moves : String(op.moves || '').split(/\s+/).filter(Boolean);
+        const n = Math.min(openingMoves.length, maxLen);
+        let ok = true;
+
+        for (let i = 0; i < n; i++) {
+            if (playedSAN[i] !== openingMoves[i]) {
+                ok = false;
+                break;
+            }
+        }
+
+        if (ok && n > 0) {
+            if (!best || openingMoves.length > (Array.isArray(best.moves) ? best.moves.length : String(best.moves || '').split(/\s+/).length)) {
                 best = op;
             }
         }
     }
 
-    const openingText = best ? `${best.eco} — ${best.name}` : 'Start Position';
+    const openingText = best ? `${best.eco} ? ${best.name}` : 'Opening: (unknown)';
     const openingName = document.getElementById('openingName');
     const openingTitleRight = document.getElementById('openingTitleRight');
 
@@ -1023,9 +1035,14 @@ function navigateToMove(index) {
 
 // ===== TIMERS =====
 function updateTimers() {
+    const topClockWhite = document.getElementById('topClockWhite');
+    const topClockBlack = document.getElementById('topClockBlack');
+
     if (App.timeControl === 0) {
         App.elements.whiteTime.textContent = '--:--';
         App.elements.blackTime.textContent = '--:--';
+        if (topClockWhite) topClockWhite.textContent = '--:--';
+        if (topClockBlack) topClockBlack.textContent = '--:--';
         return;
     }
     
@@ -1037,6 +1054,8 @@ function updateTimers() {
     
     App.elements.whiteTime.textContent = formatTime(App.whiteTime);
     App.elements.blackTime.textContent = formatTime(App.blackTime);
+    if (topClockWhite) topClockWhite.textContent = formatTime(App.whiteTime);
+    if (topClockBlack) topClockBlack.textContent = formatTime(App.blackTime);
     
     // Check for time out
     if (App.whiteTime <= 0 || App.blackTime <= 0) {
@@ -1135,16 +1154,6 @@ function toggleAnalysis() {
 }
 
 function updateAnalysis(info) {
-    console.log('📈 updateAnalysis called with:', {
-        depth: info.depth,
-        score: info.score,
-        mate: info.mate,
-        nodes: info.nodes,
-        nps: info.nps,
-        pvLength: info.pv?.length
-    });
-
-    // Store current evaluation for CAISSA Mentor AI
     App.currentEvaluation = {
         score: info.score,
         depth: info.depth,
@@ -1153,99 +1162,78 @@ function updateAnalysis(info) {
         pv: info.pv?.slice(0, 10)?.join(' ') || null
     };
 
-    // Notify CAISSA Mentor AI of evaluation update
     if (typeof MentorAI !== 'undefined' && MentorAI.onEvaluationUpdate) {
         MentorAI.onEvaluationUpdate(App.currentEvaluation);
     }
 
-    // Update depth, nodes, and NPS (WinBoard style)
     App.elements.depth.textContent = info.depth || '0';
     App.elements.nodes.textContent = formatNumber(info.nodes || 0);
     App.elements.nps.textContent = formatNumber(info.nps || 0);
 
     const evalElem = document.getElementById('evaluation');
     const lineElem = document.getElementById('bestLine');
-    const hintLine = document.getElementById('hintLine');
+    const hintLine = document.getElementById('hintPV');
+    const evalNumeric = document.getElementById('evalNumeric');
+    const evalEngineInfo = document.getElementById('evalEngineInfo');
 
     if (!evalElem || !lineElem) return;
 
-    // Update evaluation (Score column in WinBoard style)
     if (info.mate !== null && info.mate !== undefined) {
-        // Mate score - display as "M3" or "M-5" for mate in X moves
-        const mateText = info.mate > 0 ? `M${info.mate}` : `M${info.mate}`;
+        const mateText = `M${info.mate}`;
         evalElem.textContent = mateText;
         evalElem.style.color = info.mate > 0 ? '#4caf50' : '#f44336';
-
-        // REFINEMENT 2: Update eval bar (mate = extreme position)
         updateEvalBar(info.mate > 0 ? 1400 : -1400, info.mate);
-
-        // 3-COLUMN: Update eval numeric header
-        const evalNumeric = document.getElementById('evalNumeric');
-        if (evalNumeric) {
-            evalNumeric.textContent = mateText;
-        }
+        if (evalNumeric) evalNumeric.textContent = mateText;
     } else if (info.score !== null && info.score !== undefined) {
-        // Centipawn score - display as +1.25 or -0.50 (from White's perspective)
         const score = info.score.toFixed(2);
         evalElem.textContent = score >= 0 ? `+${score}` : score;
-        evalElem.style.color = score > 0 ? '#4caf50' :
-                               score < 0 ? '#f44336' : '#2c5f9e';
-
-        // REFINEMENT 2: Update eval bar (convert pawns to centipawns)
+        evalElem.style.color = score > 0 ? '#4caf50' : score < 0 ? '#f44336' : '#2c5f9e';
         updateEvalBar(info.score * 100, null);
-
-        // 3-COLUMN: Update eval numeric header (1 decimal for readability)
-        const evalNumeric = document.getElementById('evalNumeric');
         if (evalNumeric) {
             const scoreNum = parseFloat(score);
             evalNumeric.textContent = scoreNum >= 0 ? `+${scoreNum.toFixed(1)}` : scoreNum.toFixed(1);
         }
     }
 
-    // 3-COLUMN: Update engine info header
-    const evalEngineInfo = document.getElementById('evalEngineInfo');
     if (evalEngineInfo && info.depth) {
-        evalEngineInfo.textContent = `Stockfish 16 · Depth ${info.depth} · NNUE`;
+        evalEngineInfo.textContent = `Stockfish 16 ? Depth ${info.depth} ? NNUE`;
     }
 
-    // Update PV (Principal Variation) - the most important part!
-    if (info.pv && info.pv.length > 0) {
-        console.log('📊 PV Display - Raw PV array:', info.pv);
+    const parsedPvFromLine = extractPV(info.rawLine);
+    const pvArray = (info.pv && info.pv.length > 0)
+        ? (Array.isArray(info.pv) ? info.pv : info.pv.split(/\s+/).filter(m => m.length > 0))
+        : (parsedPvFromLine ? parsedPvFromLine.split(/\s+/).filter(m => m.length > 0) : []);
 
-        // Ensure info.pv is an array
-        let pvArray = Array.isArray(info.pv) ? info.pv : info.pv.split(/\s+/).filter(m => m.length > 0);
-
-        // Show first 12-14 plies (6-7 full moves) as requested
+    if (pvArray.length > 0) {
         const displayPlies = Math.min(pvArray.length, 14);
         const pvToConvert = pvArray.slice(0, displayPlies);
-
-        console.log('📊 PV Display - Converting to SAN:', pvToConvert);
-
-        // Convert UCI to SAN for readability
+        const shortPv = pvArray.slice(0, 8).join(' ');
         const sanMoves = convertPVtoSAN(pvToConvert);
 
         if (sanMoves && sanMoves.trim() !== '') {
             lineElem.textContent = sanMoves;
-            if (hintLine) hintLine.textContent = sanMoves;
-            console.log('✅ PV Display - Showing:', sanMoves);
+            if (hintLine) hintLine.textContent = shortPv;
         } else {
-            // Fallback: show UCI if SAN conversion fails
-            lineElem.textContent = pvToConvert.join(' ');
-            if (hintLine) hintLine.textContent = pvToConvert.join(' ');
-            console.log('⚠️ PV Display - SAN failed, showing UCI:', pvToConvert.join(' '));
+            const uciLine = pvToConvert.join(' ');
+            lineElem.textContent = uciLine;
+            if (hintLine) hintLine.textContent = shortPv || uciLine;
         }
+    } else if (info.depth > 0) {
+        lineElem.textContent = 'Analyzing...';
+        if (hintLine) hintLine.textContent = 'Analyzing...';
     } else {
-        // No PV available yet
-        if (info.depth > 0) {
-            lineElem.textContent = 'Analyzing...';
-            if (hintLine) hintLine.textContent = 'Analyzing...';
-        } else {
-            lineElem.textContent = '--';
-            if (hintLine) hintLine.textContent = '--';
-        }
+        lineElem.textContent = '--';
+        if (hintLine) hintLine.textContent = '--';
     }
+}
 
-    console.log('  - Analysis display updated');
+function extractPV(infoLine) {
+    if (!infoLine || typeof infoLine !== 'string') return null;
+    const idx = infoLine.indexOf(' pv ');
+    if (idx === -1) return null;
+    const pv = infoLine.slice(idx + 4).trim();
+    if (!pv) return null;
+    return pv;
 }
 
 // Convert UCI PV (principal variation) to readable SAN notation

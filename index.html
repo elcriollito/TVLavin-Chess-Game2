@@ -228,6 +228,11 @@
                             </div>
 
                             <div class="cais-topbar-right">
+                                <div class="top-clock">
+                                    <span id="topClockWhite">05:00</span>
+                                    <span class="clock-sep">|</span>
+                                    <span id="topClockBlack">05:00</span>
+                                </div>
                                 <button class="icon-btn" id="topbarSettings" title="Settings" type="button">
                                     <i class="fas fa-cog"></i>
                                 </button>
@@ -455,9 +460,11 @@
                 <div class="panel">
                     <div class="panel-title">Evaluation</div>
                     <div class="panel-body">
-                    <div id="evalNumeric" class="eval-numeric">+0.0</div>
+                    <div class="hint-line">
+                        <span id="evalNumeric" class="hint-eval">+0.0</span>
+                        <span id="hintPV" class="hint-pv">--</span>
+                    </div>
                     <div id="evalEngineInfo" class="eval-engine-info">Stockfish 16 · Depth 0 · NNUE</div>
-                    <div id="hintLine" class="eval-sub">--</div>
                 </div>
 
                 </div>
