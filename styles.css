@@ -60,7 +60,8 @@
      */
 
     /* Sizes - CRITICAL FOR BOARD VISIBILITY */
-    --board-size: clamp(520px, 60vw, 600px);
+    --board-size: clamp(560px, 60vw, 600px);
+    --right-col: 400px;
     --board-gutter: clamp(24px, 6vw, 96px);
     --sidebar-width: 220px;
     --sidebar-width-left: 0px; /* Left sidebar removed - moved to nav */
@@ -4694,7 +4695,7 @@ button:focus,
 
 .main-content.cais-grid {
     display: grid;
-    grid-template-columns: 1fr 380px;
+    grid-template-columns: 1fr var(--right-col);
     gap: var(--gap);
     align-items: start;
     max-width: 1600px;
@@ -4726,11 +4727,20 @@ button:focus,
     border-color: rgba(255, 140, 0, 0.35);
 }
 
+.right-controls .ctrl-btn {
+    font-size: 13px;
+    padding: 8px 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
 .right-panel.cais-right-col {
     display: flex;
     flex-direction: column;
     gap: var(--gap);
-    min-width: 380px;
+    min-width: var(--right-col);
 }
 
 .panel {
@@ -4756,6 +4766,12 @@ button:focus,
 
 .panel.grow {
     min-height: 260px;
+}
+
+.eval-sub {
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 12px;
 }
 
 .right-controls {

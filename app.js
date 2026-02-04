@@ -10,6 +10,17 @@ const App = {
     board: null,
     engine: null,
     openingBook: null, // Polyglot opening book
+    openings: [
+        { eco: 'C20', name: "King's Pawn Game", moves: 'e4 e5' },
+        { eco: 'C50', name: 'Italian Game', moves: 'e4 e5 Nf3 Nc6 Bc4' },
+        { eco: 'C60', name: 'Ruy Lopez', moves: 'e4 e5 Nf3 Nc6 Bb5' },
+        { eco: 'B01', name: 'Scandinavian Defense', moves: 'e4 d5' },
+        { eco: 'B20', name: 'Sicilian Defense', moves: 'e4 c5' },
+        { eco: 'D00', name: "Queen's Pawn Game", moves: 'd4 d5' },
+        { eco: 'D02', name: "Queen's Gambit", moves: 'd4 d5 c4' },
+        { eco: 'A40', name: "Queen's Pawn", moves: 'd4' },
+        { eco: 'A00', name: 'Bird Opening', moves: 'f4' }
+    ],
 
     // Settings
     playerColor: 'white',
@@ -545,6 +556,7 @@ function onMoveMade(move) {
     updateMoveHistory();
     updateStatus();
     updateTimers();
+    detectOpening();
 
     // Notify CAISSA Mentor AI of the move (for hooks)
     if (typeof MentorAI !== 'undefined' && MentorAI.onMoveMade) {
@@ -561,6 +573,44 @@ function onMoveMade(move) {
     maybeTriggerEngineMove();
 
     // If analysis is on, update it
+    if (App.analyzing) {
+        startAnalysis();
+    }
+}
+
+function undoMove() {
+    if (!App.game) return;
+
+    const isEngineGame = App.gameMode === 'engine' || App.engineEnabled;
+    let undone = false;
+
+    const undoOnce = () => {
+        const move = App.game.undo();
+        if (!move) return false;
+        App.moveHistory.pop();
+        return true;
+    };
+
+    undone = undoOnce();
+
+    if (undone && isEngineGame) {
+        undoOnce();
+    }
+
+    if (!undone) return;
+
+    App.currentMoveIndex = App.moveHistory.length - 1;
+    App.board.position(App.game.fen(), false);
+    updateMoveHistory();
+    updateStatus();
+    detectOpening();
+
+    const fen = App.game.fen();
+    if (App.engine) {
+        engineSend(App.engine, `position fen ${fen}`);
+        engineSend(App.engine, 'isready');
+    }
+
     if (App.analyzing) {
         startAnalysis();
     }
@@ -862,6 +912,28 @@ function renderMovesToPanel() {
     el.scrollTop = el.scrollHeight;
 }
 
+function detectOpening() {
+    if (!App.game || !App.openings || App.openings.length === 0) return;
+
+    const played = App.game.history({ verbose: false }).join(' ');
+    let best = null;
+
+    for (const op of App.openings) {
+        if (played.startsWith(op.moves)) {
+            if (!best || op.moves.length > best.moves.length) {
+                best = op;
+            }
+        }
+    }
+
+    const openingText = best ? `${best.eco} — ${best.name}` : 'Start Position';
+    const openingName = document.getElementById('openingName');
+    const openingTitleRight = document.getElementById('openingTitleRight');
+
+    if (openingName) openingName.textContent = openingText;
+    if (openingTitleRight) openingTitleRight.textContent = openingText;
+}
+
 function updateNavigationButtons() {
     const atStart = App.currentMoveIndex < 0;
     const atEnd = App.currentMoveIndex === App.moveHistory.length - 1;
@@ -1093,6 +1165,7 @@ function updateAnalysis(info) {
 
     const evalElem = document.getElementById('evaluation');
     const lineElem = document.getElementById('bestLine');
+    const hintLine = document.getElementById('hintLine');
 
     if (!evalElem || !lineElem) return;
 
@@ -1153,16 +1226,22 @@ function updateAnalysis(info) {
 
         if (sanMoves && sanMoves.trim() !== '') {
             lineElem.textContent = sanMoves;
+            if (hintLine) hintLine.textContent = sanMoves;
             console.log('✅ PV Display - Showing:', sanMoves);
         } else {
             // Fallback: show UCI if SAN conversion fails
             lineElem.textContent = pvToConvert.join(' ');
+            if (hintLine) hintLine.textContent = pvToConvert.join(' ');
             console.log('⚠️ PV Display - SAN failed, showing UCI:', pvToConvert.join(' '));
         }
     } else {
         // No PV available yet
         if (info.depth > 0) {
             lineElem.textContent = 'Analyzing...';
+            if (hintLine) hintLine.textContent = 'Analyzing...';
+        } else {
+            lineElem.textContent = '--';
+            if (hintLine) hintLine.textContent = '--';
         }
     }
 
@@ -1416,6 +1495,17 @@ function newGame(options = {}) {
 }
 
 function resignGame() {
+    if (App.eveRunning || App.gameMode === 'eve' || App.eveMode) {
+        console.log('ðŸ³ï¸ Resign in Engine vs Engine');
+        stopEngineVsEngine();
+        if (App.elements.gameResult) {
+            App.elements.gameResult.textContent = 'Engine match stopped by resignation';
+            App.elements.gameResult.classList.add('show');
+        }
+        showNotification('Engine match stopped by resignation');
+        return;
+    }
+
     if (!App.gameActive) {
         showNotification('No active game to resign.');
         return;

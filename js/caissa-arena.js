@@ -9,7 +9,9 @@ console.log('[Arena] caissa-arena.js parsed OK / loaded OK v=20260203-fix2');
 
 const ArenaEngineRegistry = [
     { id: 'stockfish-16', name: 'Stockfish 16', workerPath: 'engine/stockfish-working.js' },
-    { id: 'stockfish-lite', name: 'Stockfish Lite', workerPath: 'engine/stockfish-working.js' }
+    { id: 'stockfish-lite', name: 'Stockfish Lite', workerPath: 'engine/stockfish-working.js' },
+    { id: 'lc0', name: 'Leela Chess Zero', workerPath: '', enabled: false, reason: 'Worker not added yet' },
+    { id: 'komodo', name: 'Komodo', workerPath: '', enabled: false, reason: 'License/worker pending' }
 ];
 
 const CaissaArena = {
@@ -174,7 +176,9 @@ const CaissaArena = {
             description: engine.description || (engine.id === 'stockfish-16' ? 'World champion engine' : 'Training mode'),
             elo: engine.elo || (engine.id === 'stockfish-16' ? 3600 : 2800),
             workerPath: engine.workerPath,
-            options: engine.options || { depth: engine.id === 'stockfish-16' ? 20 : 12, threads: 2 }
+            options: engine.options || { depth: engine.id === 'stockfish-16' ? 20 : 12, threads: 2 },
+            enabled: engine.enabled !== false,
+            reason: engine.reason || ''
         }));
         this.state.enginesAvailable = engines.length > 0;
 
@@ -191,6 +195,24 @@ const CaissaArena = {
         const container = this.elements.boardMount;
         if (!container) {
             console.error('[Arena] Board mount container not found');
+            return;
+        }
+
+        // Reuse main board if available to avoid duplicate boards
+        if (window.App && App.board && document.getElementById('chessboard')) {
+            console.log('[Arena] Reusing main board instance');
+            const boardEl = document.getElementById('chessboard');
+            if (boardEl.parentElement !== container) {
+                container.innerHTML = '';
+                container.appendChild(boardEl);
+            }
+            this.board = App.board;
+            this.state.boardMounted = true;
+            this.setupResizeObserver();
+            requestAnimationFrame(() => {
+                if (this.board) this.board.resize();
+            });
+            this.enableMatchControls();
             return;
         }
 
@@ -436,7 +458,11 @@ const CaissaArena = {
             this.engines.forEach(engine => {
                 const option = document.createElement('option');
                 option.value = engine.id;
-                option.textContent = `${engine.name} (Tier ${engine.tier})`;
+                const disabledLabel = engine.enabled === false ? ' (Coming soon)' : '';
+                option.textContent = `${engine.name} (Tier ${engine.tier})${disabledLabel}`;
+                if (engine.enabled === false) {
+                    option.disabled = true;
+                }
                 if (engine.id === selectedId) {
                     option.selected = true;
                 }
@@ -494,6 +520,10 @@ const CaissaArena = {
     selectEngine(color, engineId) {
         const engine = this.engines.find(e => e.id === engineId);
         if (!engine) return;
+        if (engine.enabled === false) {
+            console.warn('[Arena] Engine not available yet:', engine.name);
+            return;
+        }
 
         if (color === 'white') {
             this.state.whiteEngine = engine;
