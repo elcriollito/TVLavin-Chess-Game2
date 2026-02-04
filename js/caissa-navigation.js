@@ -245,6 +245,18 @@ const CaissaNavigation = {
         // Special case: Sections that need the board
         if (['play', 'analyze', 'arena'].includes(sectionId)) {
             this.syncBoardToSection(sectionId);
+
+            // Resize boards after section becomes visible
+            requestAnimationFrame(() => {
+                if (window.App && App.board) {
+                    App.board.resize();
+                    console.log('[CAISSA Nav] Board resized on section enter');
+                }
+                if (sectionId === 'arena' && window.CaissaArena?.board) {
+                    window.CaissaArena.board.resize();
+                    console.log('[CAISSA Nav] Arena board resized on section enter');
+                }
+            });
         }
 
         console.log(`[CAISSA Nav] Entered ${sectionId} section`);

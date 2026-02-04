@@ -212,9 +212,36 @@
 
             <!-- SECTION: PLAY (Active by default - wraps existing content) -->
             <section id="playSection" class="content-section active">
+                <div class="cais-root">
+                    <div class="cais-stage">
+                        <!-- TOP HEADER -->
+                        <div class="cais-topbar">
+                            <div class="cais-topbar-left">
+                                <div class="cais-badge">Play vs Engine</div>
+                                <div class="cais-status" id="statusText">Ready</div>
+                            </div>
+
+                            <div class="cais-topbar-center">
+                                <div class="cais-player" id="playerWhiteName">Player</div>
+                                <div class="cais-vs">vs</div>
+                                <div class="cais-player" id="playerBlackName">Engine</div>
+                            </div>
+
+                            <div class="cais-topbar-right">
+                                <button class="icon-btn" id="topbarSettings" title="Settings" type="button">
+                                    <i class="fas fa-cog"></i>
+                                </button>
+                                <button class="icon-btn" id="topbarSound" title="Sound" type="button">
+                                    <i class="fas fa-volume-up"></i>
+                                </button>
+                                <button class="icon-btn" id="topbarInfo" title="Info" type="button">
+                                    <i class="fas fa-info-circle"></i>
+                                </button>
+                            </div>
+                        </div>
 
         <!-- Main Content Area (Legacy - now inside playSection) -->
-        <div class="main-content">
+        <div class="main-content cais-grid">
 
             <!-- 3-COLUMN LEFT: Opening Wiki Panel (Lichess-style, shown only in Analyze mode) -->
             <aside id="openingPanel" class="opening-panel hidden">
@@ -418,41 +445,51 @@
                 </div>
 
                 </div><!-- End board-editor-wrapper -->
+
+                <!-- Bottom Control Bar -->
+                <div class="cais-controls action-bar">
+                    <button id="btnResign" class="ctrl-btn" aria-label="Resign" title="Resign Game">
+                        <i class="fas fa-flag"></i> Resign
+                    </button>
+                    <button id="btnUndo" class="ctrl-btn" aria-label="Undo" title="Undo Move">
+                        <i class="fas fa-undo"></i> Undo
+                    </button>
+                    <button id="btnHint" class="ctrl-btn" aria-label="Hint" title="Show Best Move">
+                        <i class="fas fa-lightbulb"></i> Hint
+                    </button>
+                    <button id="btnDownload" class="ctrl-btn" aria-label="Download" title="Download PGN">
+                        <i class="fas fa-download"></i> PGN
+                    </button>
+                    <button id="btnSettings" class="ctrl-btn primary" aria-label="Settings" title="Game Settings">
+                        <i class="fas fa-cog"></i> Settings
+                    </button>
+                </div>
             </main>
             </div><!-- End board-center -->
 
             <!-- Right Sidebar - Compact panels -->
             <!-- 3-COLUMN RIGHT: Moves + Actions Panel (Chess.com style) -->
-            <aside class="right-panel">
-                <!-- Header: Opening Name + Eval Numeric -->
-                <div class="moves-header">
-                    <div id="openingTitleRight" class="opening-title-right">Start Position</div>
+            <aside class="right-panel cais-right-col">
+                <div class="panel">
+                    <div class="panel-title">Evaluation</div>
+                    <div class="panel-body">
                     <div id="evalNumeric" class="eval-numeric">+0.0</div>
                     <div id="evalEngineInfo" class="eval-engine-info">Stockfish 16 · Depth 0 · NNUE</div>
                 </div>
 
-                <!-- Moves Panel (tall scrollable list) -->
-                <div id="movesPanel" class="moves-panel">
-                    <div id="moveHistory" class="move-history-content"></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">Opening / Coach</div>
+                    <div class="panel-body">
+                        <div id="openingTitleRight" class="opening-title-right">Start Position</div>
+                    </div>
                 </div>
 
-                <!-- Action Bar (Chess.com style: Resign/Hint/Undo/Download/Settings) -->
-                <div class="action-bar">
-                    <button id="btnResign" aria-label="Resign" title="Resign Game">
-                        <i class="fas fa-flag"></i> Resign
-                    </button>
-                    <button id="btnHint" aria-label="Hint" title="Show Best Move">
-                        <i class="fas fa-lightbulb"></i> Hint
-                    </button>
-                    <button id="btnUndo" aria-label="Undo" title="Undo Move">
-                        <i class="fas fa-undo"></i> Undo
-                    </button>
-                    <button id="btnDownload" aria-label="Download" title="Download PGN">
-                        <i class="fas fa-download"></i> PGN
-                    </button>
-                    <button id="btnSettings" aria-label="Settings" title="Game Settings">
-                        <i class="fas fa-cog"></i> Settings
-                    </button>
+                <div class="panel grow">
+                    <div class="panel-title">Moves</div>
+                    <div id="movesPanel" class="moves-panel panel-body">
+                        <div id="moveHistory" class="move-history-content"></div>
+                    </div>
                 </div>
 
                 <!-- OLD PANELS HIDDEN FOR NOW - will be moved/removed later -->
@@ -624,6 +661,8 @@
             </aside>
         </div>
         <!-- End legacy main-content -->
+                    </div>
+                </div>
 
             </section>
             <!-- End PLAY Section -->

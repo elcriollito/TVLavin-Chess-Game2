@@ -24,6 +24,12 @@
     --text-secondary: #aab6c5;
     --text-muted: #6b7a8c;
     --border-color: #2a3544;
+
+    --panel-bg: rgba(255, 255, 255, 0.04);
+    --panel-border: rgba(255, 255, 255, 0.06);
+    --text: rgba(255, 255, 255, 0.92);
+    --muted: rgba(255, 255, 255, 0.65);
+    --gap: 16px;
     
     /* Spacing */
     --spacing-xs: 4px;
@@ -54,8 +60,8 @@
      */
 
     /* Sizes - CRITICAL FOR BOARD VISIBILITY */
-    --board-size: clamp(640px, 78vmin, 760px); /* PATCH A: Stronger board dominance - true "6 inch feel" */
-    --board-gutter: 32px; /* Reduced gutter for more board space */
+    --board-size: clamp(480px, 60vw, 560px);
+    --board-gutter: clamp(24px, 6vw, 96px);
     --sidebar-width: 220px;
     --sidebar-width-left: 0px; /* Left sidebar removed - moved to nav */
     --sidebar-width-right: 320px; /* HOTFIX 3: Reduced from 400px for better balance */
@@ -349,27 +355,24 @@ html, body {
 /* Board-Editor Wrapper - Ensures board and editor have matching width */
 .board-editor-wrapper {
     width: 100%;
-    max-width: var(--board-size); /* 720px max (REFINEMENT 1 - responsive with clamp) */
+    max-width: var(--board-size);
     display: flex;
     flex-direction: column;
     align-items: stretch; /* Make all children same width */
     gap: var(--spacing-md);
     /* Add breathing room (gutter) around board */
-    padding: clamp(12px, 4vw, var(--board-gutter));
+    padding: var(--board-gutter);
     margin: 0 auto; /* Center the board */
 }
 
 /* ===== CHESSBOARD STYLES - FORCE PROPER FLOAT LAYOUT ===== */
 #chessboard {
-    /* RESPONSIVE: "6 inch feel" board (720px max) - REFINEMENT 1
-     * Mobile: 85vw (leave space for gutter)
-     * Desktop: 720px max (--board-size uses clamp)
-     * Formula: clamp(min, preferred, max)
-     */
-    width: clamp(280px, 85vw, var(--board-size)) !important;
-    height: clamp(280px, 85vw, var(--board-size)) !important;
+    width: var(--board-size) !important;
+    height: var(--board-size) !important;
     max-width: var(--board-size) !important;
     max-height: var(--board-size) !important;
+    aspect-ratio: 1 / 1;
+    align-self: center;
 
     /* Visual styling */
     border: 3px solid var(--board-border);
@@ -1545,14 +1548,14 @@ html, body {
 /* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 1400px) {
     :root {
-        --board-size: 500px;
+        --board-size: 460px;
         --sidebar-width: 250px;
     }
 }
 
 @media (max-width: 1200px) {
     :root {
-        --board-size: 450px;
+        --board-size: 420px;
         --sidebar-width: 220px;
     }
 }
@@ -4638,6 +4641,134 @@ button:focus,
     display: block;
 }
 
+/* ===== CAISSA STAGE LAYOUT (Play) ===== */
+.cais-root {
+    width: 100%;
+}
+
+.cais-stage {
+    padding: 18px;
+}
+
+.cais-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--gap);
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--panel-border);
+    margin-bottom: var(--gap);
+}
+
+.cais-topbar-left,
+.cais-topbar-center,
+.cais-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cais-badge {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text);
+    font-size: 13px;
+}
+
+.cais-status {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.icon-btn {
+    border: 1px solid var(--panel-border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 8px 10px;
+    cursor: pointer;
+}
+
+.main-content.cais-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: var(--gap);
+    align-items: start;
+    max-width: 1600px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0;
+}
+
+.cais-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: var(--gap);
+}
+
+.ctrl-btn {
+    border: 1px solid var(--panel-border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text);
+    border-radius: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    min-width: 120px;
+}
+
+.ctrl-btn.primary {
+    background: rgba(255, 140, 0, 0.2);
+    border-color: rgba(255, 140, 0, 0.35);
+}
+
+.right-panel.cais-right-col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+}
+
+.panel {
+    border-radius: 14px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    overflow: hidden;
+}
+
+.panel-title {
+    padding: 10px 12px;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--panel-border);
+}
+
+.panel-body {
+    padding: 12px;
+    color: var(--text);
+}
+
+.panel.grow {
+    min-height: 260px;
+}
+
+@media (max-width: 1050px) {
+    .main-content.cais-grid {
+        grid-template-columns: 1fr;
+    }
+    .right-panel.cais-right-col {
+        order: 2;
+    }
+    .board-center {
+        order: 1;
+    }
+}
+
 /* Preserve existing .main-content layout inside playSection */
 #playSection .main-content {
     display: flex;
@@ -5015,7 +5146,7 @@ button:focus,
     background: var(--bg-secondary);
     border-radius: 8px;
     /* GUTTER: ~1" breathing room around board */
-    padding: clamp(12px, 4vw, var(--board-gutter));
+    padding: var(--board-gutter);
     min-height: 0; /* Allow flex shrinking */
     overflow: hidden;
 }
@@ -5025,8 +5156,8 @@ button:focus,
      * Size will be set dynamically by JS ResizeObserver
      * Uses same sizing as main board for consistency
      */
-    width: clamp(280px, 85vw, var(--board-size)); /* Fluid sizing */
-    height: clamp(280px, 85vw, var(--board-size));
+    width: var(--board-size);
+    height: var(--board-size);
     margin: 0 auto;
     position: relative;
     aspect-ratio: 1 / 1; /* Ensure perfect square */

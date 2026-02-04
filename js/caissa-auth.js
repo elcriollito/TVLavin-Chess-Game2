@@ -31,6 +31,7 @@
 
         // Check for valid config
         if (!config || !config.CLERK_PUBLISHABLE_KEY) {
+            console.warn('[Auth] Clerk disabled: missing publishableKey');
             console.warn('CAISSA Auth: Missing auth config - running without authentication');
             window.CAISSA_AUTH.isLoaded = true;
             _notifyListeners();
@@ -40,6 +41,7 @@
         // Check if publishableKey is the placeholder (not configured)
         if (config.CLERK_PUBLISHABLE_KEY === 'pk_test_REPLACE_WITH_YOUR_KEY' ||
             config.CLERK_PUBLISHABLE_KEY.includes('REPLACE')) {
+            console.warn('[Auth] Clerk disabled: missing publishableKey');
             console.warn('CAISSA Auth: Clerk key not configured - running without authentication');
             window.CAISSA_AUTH.isLoaded = true;
             _notifyListeners();

@@ -5,55 +5,24 @@
  * Supports multiple engines with scalable architecture
  */
 
+console.log('[Arena] caissa-arena.js parsed OK / loaded OK v=20260203-fix2');
+
+const ArenaEngineRegistry = [
+    { id: 'stockfish-16', name: 'Stockfish 16', workerPath: 'engine/stockfish-working.js' },
+    { id: 'stockfish-lite', name: 'Stockfish Lite', workerPath: 'engine/stockfish-working.js' }
+];
+
 const CaissaArena = {
     // ===== ENGINE REGISTRY =====
-    engines: [
-        {
-            id: 'stockfish-16',
-            name: 'Stockfish 16',
-            tier: 'A',
-            description: 'World champion engine, maximum strength',
-            elo: 3600,
-            workerPath: 'stockfish.js', // Default engine
-            options: { depth: 20, threads: 4 }
-        },
-        {
-            id: 'stockfish-lite',
-            name: 'Stockfish Lite',
-            tier: 'B',
-            description: 'Reduced strength for training',
-            elo: 2800,
-            workerPath: 'stockfish.js',
-            options: { depth: 12, threads: 2, skillLevel: 15 }
-        },
-        {
-            id: 'stockfish-beginner',
-            name: 'Stockfish Beginner',
-            tier: 'C',
-            description: 'Beginner-friendly opponent',
-            elo: 1800,
-            workerPath: 'stockfish.js',
-            options: { depth: 8, threads: 1, skillLevel: 5 }
-        },
-        {
-            id: 'lc0-sim',
-            name: 'Leela Chess Zero (Sim)',
-            tier: 'A',
-            description: 'Neural network style (simulated)',
-            elo: 3500,
-            workerPath: 'stockfish.js', // Placeholder until LC0 is integrated
-            options: { depth: 18, threads: 4 }
-        },
-        {
-            id: 'komodo-sim',
-            name: 'Komodo Dragon (Sim)',
-            tier: 'A',
-            description: 'Positional style engine (simulated)',
-            elo: 3550,
-            workerPath: 'stockfish.js',
-            options: { depth: 20, threads: 4 }
-        }
-    ],
+    engines: ArenaEngineRegistry.map((engine, index) => ({
+        id: engine.id,
+        name: engine.name,
+        tier: index === 0 ? 'A' : 'B',
+        description: engine.id === 'stockfish-16' ? 'World champion engine' : 'Training mode',
+        elo: engine.id === 'stockfish-16' ? 3600 : 2800,
+        workerPath: engine.workerPath,
+        options: { depth: engine.id === 'stockfish-16' ? 20 : 12, threads: 2 }
+    })),
 
     // ===== BOARD INSTANCE =====
     board: null,
@@ -95,6 +64,13 @@ const CaissaArena = {
     // ===== INITIALIZATION =====
     init() {
         console.log('[Arena] Initializing...');
+        const registry = this.ensureEngineRegistry();
+        console.log('[Arena] engine registry source =', registry.source);
+        console.log('[Arena] engines found =', registry.engines.length);
+        this.state.engineBinaryAvailable = typeof StockfishEngine !== 'undefined';
+        if (!this.state.engineBinaryAvailable) {
+            console.warn('[Arena] StockfishEngine class not found at init - engine binary missing?');
+        }
         this.cacheElements();
         this.bindEvents();
         this.renderEngineSelectors();
@@ -165,6 +141,44 @@ const CaissaArena = {
             boardMount: document.getElementById('arenaBoardMount'),
             moveHistory: document.getElementById('arenaMoveHistory')
         };
+    },
+
+    getEngineRegistry() {
+        if (Array.isArray(ArenaEngineRegistry)) {
+            return { engines: ArenaEngineRegistry, source: 'ArenaEngineRegistry' };
+        }
+        if (Array.isArray(window.CaissaEngineRegistry?.engines)) {
+            return { engines: window.CaissaEngineRegistry.engines, source: 'window.CaissaEngineRegistry.engines' };
+        }
+        return { engines: [], source: 'none' };
+    },
+
+    ensureEngineRegistry() {
+        const registry = this.getEngineRegistry();
+        let engines = Array.isArray(registry.engines) ? registry.engines : [];
+        let source = registry.source;
+
+        if (engines.length === 0) {
+            console.warn('[Arena] Engine registry empty. Applying fallback list.');
+            engines = [
+                { id: 'stockfish-16', name: 'Stockfish 16', workerPath: 'engine/stockfish-working.js' },
+                { id: 'stockfish-lite', name: 'Stockfish Lite', workerPath: 'engine/stockfish-working.js' }
+            ];
+            source = 'fallback';
+        }
+
+        this.engines = engines.map((engine, index) => ({
+            id: engine.id,
+            name: engine.name,
+            tier: engine.tier || (index === 0 ? 'A' : 'B'),
+            description: engine.description || (engine.id === 'stockfish-16' ? 'World champion engine' : 'Training mode'),
+            elo: engine.elo || (engine.id === 'stockfish-16' ? 3600 : 2800),
+            workerPath: engine.workerPath,
+            options: engine.options || { depth: engine.id === 'stockfish-16' ? 20 : 12, threads: 2 }
+        }));
+        this.state.enginesAvailable = engines.length > 0;
+
+        return { engines: this.engines, source };
     },
 
     // ResizeObserver for dynamic board sizing
@@ -368,8 +382,13 @@ const CaissaArena = {
     },
 
     // ===== ENGINE MANAGEMENT =====
-    renderEngineSelectors() {
+    renderEngineSelectors(attempt = 0) {
+        const maxAttempts = 6;
+        const registry = this.ensureEngineRegistry();
         console.log('[Arena] Populating engine selects...');
+        console.log('[Arena] Engine registry source =', registry.source);
+        console.log('[Arena] engine registry engines =', this.engines.map(e => e.id));
+        console.log('[Arena] engine files exist?', this.engines.map(e => ({ id: e.id, hasPath: !!e.workerPath })));
         console.log('[Arena] Available engines:', this.engines.length);
 
         // CRITICAL: Verify elements exist before populating
@@ -384,14 +403,18 @@ const CaissaArena = {
         });
 
         if (!whiteSelect || !blackSelect) {
-            console.error('[Arena] Engine select elements NOT FOUND in DOM!');
-            console.error('[Arena] Retrying on next frame...');
+            if (attempt >= maxAttempts) {
+                console.error('[Arena] Engine select elements NOT FOUND after retries.');
+                return;
+            }
 
-            // Retry on next animation frame (DOM might not be ready yet)
+            console.warn(`[Arena] Engine select elements not ready (attempt ${attempt + 1}/${maxAttempts}). Retrying...`);
+
+            // Retry on next animation frame (DOM might not be ready yet or section just became visible)
             requestAnimationFrame(() => {
                 console.log('[Arena] Retry: Re-caching elements...');
                 this.cacheElements();
-                this.renderEngineSelectors();
+                this.renderEngineSelectors(attempt + 1);
             });
             return;
         }
@@ -423,14 +446,16 @@ const CaissaArena = {
             console.log(`[Arena] ${label} populated with ${this.engines.length} engines`);
         };
 
-        // Verify we have engines
+        // Verify we have engines (ensureEngineRegistry already applied fallback)
         if (this.engines.length === 0) {
-            console.error('[Arena] NO ENGINES DEFINED! Using fallback...');
-            // This should never happen but just in case
-            this.engines = [
-                { id: 'stockfish-16', name: 'Stockfish 16', tier: 'A', description: 'World champion', elo: 3600, workerPath: 'stockfish.js', options: { depth: 20 } },
-                { id: 'stockfish-lite', name: 'Stockfish Lite', tier: 'B', description: 'Training mode', elo: 2800, workerPath: 'stockfish.js', options: { depth: 12 } }
-            ];
+            console.error('[Arena] NO ENGINES AVAILABLE even after fallback!');
+            if (this.elements.startMatchBtn) {
+                this.elements.startMatchBtn.disabled = true;
+            }
+            if (this.elements.statusResult) {
+                this.elements.statusResult.textContent = 'No engines available. Cannot start match.';
+                this.elements.statusResult.style.display = 'block';
+            }
         }
 
         // Default selections
@@ -439,10 +464,29 @@ const CaissaArena = {
 
         console.log('[Arena] Default engines:', this.state.whiteEngine?.name, 'vs', this.state.blackEngine?.name);
 
-        createOptions(whiteSelect, this.state.whiteEngine.id, 'WHITE');
-        createOptions(blackSelect, this.state.blackEngine.id, 'BLACK');
+        createOptions(whiteSelect, this.state.whiteEngine?.id, 'WHITE');
+        createOptions(blackSelect, this.state.blackEngine?.id, 'BLACK');
+
+        if (whiteSelect.options.length === 0 || blackSelect.options.length === 0) {
+            console.error('[Arena] Engine selects populated with 0 options! Check DOM visibility/selector.');
+        }
 
         this.updateEngineInfo();
+
+        // Disable Start Match if engine binary is missing
+        const engineBinaryAvailable = typeof StockfishEngine !== 'undefined';
+        this.state.engineBinaryAvailable = engineBinaryAvailable;
+        if (!engineBinaryAvailable) {
+            if (this.elements.startMatchBtn) {
+                this.elements.startMatchBtn.disabled = true;
+                this.elements.startMatchBtn.title = 'Engine binary not loaded. Check worker path or network.';
+            }
+            if (this.elements.statusResult) {
+                this.elements.statusResult.textContent = 'Engine binary missing. Cannot start match.';
+                this.elements.statusResult.style.display = 'block';
+            }
+            console.warn('[Arena] Engine binary missing. Start Match disabled.');
+        }
 
         console.log('[Arena] Engine selectors ready! Engines loaded:', this.engines.length);
     },
@@ -535,7 +579,7 @@ const CaissaArena = {
 
             checkBoard();
         });
-    }
+    },
 
     // ===== MATCH CONTROLS =====
     async startMatch() {
@@ -686,6 +730,11 @@ const CaissaArena = {
     enableMatchControls() {
         const { startMatchBtn } = this.elements;
         if (startMatchBtn) {
+            if (this.state.engineBinaryAvailable === false) {
+                console.warn('[Arena] Not enabling controls: engine binary missing');
+                startMatchBtn.disabled = true;
+                return;
+            }
             startMatchBtn.disabled = false;
             console.log('[Arena] Match controls enabled - board ready');
         }
@@ -1512,22 +1561,26 @@ const CaissaArena = {
         // CRITICAL: Always re-cache on enter to ensure fresh DOM references
         this.cacheElements();
 
-        // CRITICAL FIX: Always render engine selectors on enter
-        // The previous check `!this.elements.whiteEngineSelect?.options?.length`
-        // was unreliable because:
-        // 1. Element might be null (not found)
-        // 2. Element might exist but options were cleared by DOM manipulation
-        // 3. Timing issues with section switching
-        // Solution: Force render engines EVERY time we enter Arena section
+        // CRITICAL FIX: Always render engine selectors on enter (after paint)
         console.log('[Arena] Rendering engine selectors...');
-        this.renderEngineSelectors();
-        this.renderTournamentEngineList();
+        requestAnimationFrame(() => {
+            this.renderEngineSelectors();
+            this.renderTournamentEngineList();
+        });
 
         // Disable controls while board mounts
         this.disableMatchControls();
 
         // Mount the board (will enable controls when ready)
         this.mountBoard();
+
+        // Ensure board resize after section is visible
+        requestAnimationFrame(() => {
+            if (this.board) {
+                this.board.resize();
+                console.log('[Arena] Board resized on enter');
+            }
+        });
 
         // Initialize eval graph
         this.initEvalGraph();
