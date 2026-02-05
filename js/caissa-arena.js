@@ -7,24 +7,25 @@
 
 console.log('[Arena] caissa-arena.js parsed OK / loaded OK v=20260203-fix2');
 
-const ArenaEngineRegistry = [
-    { id: 'stockfish-16', name: 'Stockfish 16', workerPath: 'engine/stockfish-working.js' },
-    { id: 'stockfish-lite', name: 'Stockfish Lite', workerPath: 'engine/stockfish-working.js' },
-    // TODO: Lc0 requires a WASM+worker build (or server-side engine API) before enabling in browser.
-    { id: 'lc0', name: 'Leela Chess Zero (Lc0) — Coming soon', workerPath: '', enabled: false, reason: 'Requires WASM/worker build' },
-    { id: 'komodo', name: 'Komodo', workerPath: '', enabled: false, reason: 'License/worker pending' }
-];
+const ArenaEngineRegistry = (window.EngineRegistry && typeof EngineRegistry.list === 'function')
+    ? EngineRegistry.list()
+    : [
+        { id: 'stockfish', name: 'Stockfish 16', workerPath: 'engine/stockfish-working.js', enabled: true },
+        { id: 'stockfish-lite', name: 'Stockfish Lite', workerPath: 'engine/stockfish-working.js', enabled: true }
+    ];
 
 const CaissaArena = {
     // ===== ENGINE REGISTRY =====
     engines: ArenaEngineRegistry.map((engine, index) => ({
         id: engine.id,
         name: engine.name,
-        tier: index === 0 ? 'A' : 'B',
-        description: engine.id === 'stockfish-16' ? 'World champion engine' : 'Training mode',
-        elo: engine.id === 'stockfish-16' ? 3600 : 2800,
+        tier: engine.tier || (index === 0 ? 'A' : 'B'),
+        description: engine.description || (engine.id === 'stockfish' ? 'World champion engine' : 'Training mode'),
+        elo: engine.elo || (engine.id === 'stockfish' ? 3600 : 2800),
         workerPath: engine.workerPath,
-        options: { depth: engine.id === 'stockfish-16' ? 20 : 12, threads: 2 }
+        options: engine.options || { depth: engine.defaultDepth || 15, threads: 2 },
+        enabled: engine.enabled !== false,
+        reason: engine.notes || engine.reason || ''
     })),
 
     // ===== BOARD INSTANCE =====
@@ -71,9 +72,9 @@ const CaissaArena = {
         const registry = this.ensureEngineRegistry();
         console.log('[Arena] engine registry source =', registry.source);
         console.log('[Arena] engines found =', registry.engines.length);
-        this.state.engineBinaryAvailable = typeof StockfishEngine !== 'undefined';
+        this.state.engineBinaryAvailable = typeof EngineAdapter !== 'undefined';
         if (!this.state.engineBinaryAvailable) {
-            console.warn('[Arena] StockfishEngine class not found at init - engine binary missing?');
+            console.warn('[Arena] EngineAdapter class not found at init - engine adapter missing?');
         }
         this.cacheElements();
         this.bindEvents();
@@ -155,8 +156,8 @@ const CaissaArena = {
         if (Array.isArray(ArenaEngineRegistry)) {
             return { engines: ArenaEngineRegistry, source: 'ArenaEngineRegistry' };
         }
-        if (Array.isArray(window.CaissaEngineRegistry?.engines)) {
-            return { engines: window.CaissaEngineRegistry.engines, source: 'window.CaissaEngineRegistry.engines' };
+        if (window.EngineRegistry && typeof EngineRegistry.list === 'function') {
+            return { engines: EngineRegistry.list(), source: 'EngineRegistry.list' };
         }
         return { engines: [], source: 'none' };
     },
@@ -169,8 +170,8 @@ const CaissaArena = {
         if (engines.length === 0) {
             console.warn('[Arena] Engine registry empty. Applying fallback list.');
             engines = [
-                { id: 'stockfish-16', name: 'Stockfish 16', workerPath: 'engine/stockfish-working.js' },
-                { id: 'stockfish-lite', name: 'Stockfish Lite', workerPath: 'engine/stockfish-working.js' }
+                { id: 'stockfish', name: 'Stockfish 16', workerPath: 'engine/stockfish-working.js', enabled: true },
+                { id: 'stockfish-lite', name: 'Stockfish Lite', workerPath: 'engine/stockfish-working.js', enabled: true }
             ];
             source = 'fallback';
         }
@@ -179,16 +180,32 @@ const CaissaArena = {
             id: engine.id,
             name: engine.name,
             tier: engine.tier || (index === 0 ? 'A' : 'B'),
-            description: engine.description || (engine.id === 'stockfish-16' ? 'World champion engine' : 'Training mode'),
-            elo: engine.elo || (engine.id === 'stockfish-16' ? 3600 : 2800),
+            description: engine.description || (engine.id === 'stockfish' ? 'World champion engine' : 'Training mode'),
+            elo: engine.elo || (engine.id === 'stockfish' ? 3600 : 2800),
             workerPath: engine.workerPath,
-            options: engine.options || { depth: engine.id === 'stockfish-16' ? 20 : 12, threads: 2 },
+            options: engine.options || { depth: engine.defaultDepth || 15, threads: 2 },
             enabled: engine.enabled !== false,
-            reason: engine.reason || ''
+            reason: engine.notes || engine.reason || ''
         }));
         this.state.enginesAvailable = engines.length > 0;
 
         return { engines: this.engines, source };
+    },
+
+    createEngineInstance(engineConfig) {
+        if (!engineConfig || engineConfig.enabled === false) return null;
+        if (window.EngineRegistry && typeof EngineRegistry.createEngine === 'function') {
+            const instance = EngineRegistry.createEngine(engineConfig.id);
+            if (instance) return instance;
+        }
+        if (typeof EngineAdapter !== 'undefined') {
+            return new EngineAdapter(engineConfig);
+        }
+        if (typeof StockfishEngine !== 'undefined') {
+            return new StockfishEngine();
+        }
+        console.warn('[Arena] No engine adapter available for', engineConfig?.id);
+        return null;
     },
 
     // ResizeObserver for dynamic board sizing
@@ -536,7 +553,7 @@ const CaissaArena = {
             this.engines.forEach(engine => {
                 const option = document.createElement('option');
                 option.value = engine.id;
-                const disabledLabel = engine.enabled === false ? ' (Coming soon)' : '';
+                const disabledLabel = engine.enabled === false ? ' (WASM build needed)' : '';
                 option.textContent = `${engine.name} (Tier ${engine.tier})${disabledLabel}`;
                 if (engine.enabled === false) {
                     option.disabled = true;
@@ -562,9 +579,17 @@ const CaissaArena = {
             }
         }
 
-        // Default selections
-        this.state.whiteEngine = this.engines[0];
-        this.state.blackEngine = this.engines[1];
+        // Default selections (prefer stored + enabled engines)
+        const enabledEngines = this.engines.filter(e => e.enabled !== false);
+        const savedWhiteId = window.localStorage?.getItem('caissa.arena.whiteEngineId') || '';
+        const savedBlackId = window.localStorage?.getItem('caissa.arena.blackEngineId') || '';
+        this.state.whiteEngine = this.engines.find(e => e.id === savedWhiteId && e.enabled !== false)
+            || enabledEngines[0]
+            || this.engines[0];
+        this.state.blackEngine = this.engines.find(e => e.id === savedBlackId && e.enabled !== false)
+            || enabledEngines[1]
+            || enabledEngines[0]
+            || this.engines[0];
 
         console.log('[Arena] Default engines:', this.state.whiteEngine?.name, 'vs', this.state.blackEngine?.name);
 
@@ -577,19 +602,23 @@ const CaissaArena = {
 
         this.updateEngineInfo();
 
-        // Disable Start Match if engine binary is missing
-        const engineBinaryAvailable = typeof StockfishEngine !== 'undefined';
-        this.state.engineBinaryAvailable = engineBinaryAvailable;
-        if (!engineBinaryAvailable) {
+        // Disable Start Match if engine adapter or worker paths are missing
+        const adapterAvailable = typeof EngineAdapter !== 'undefined';
+        const selectedEnginesValid = !!this.state.whiteEngine?.workerPath
+            && !!this.state.blackEngine?.workerPath
+            && this.state.whiteEngine?.enabled !== false
+            && this.state.blackEngine?.enabled !== false;
+        this.state.engineBinaryAvailable = adapterAvailable && selectedEnginesValid;
+        if (!this.state.engineBinaryAvailable) {
             if (this.elements.startMatchBtn) {
                 this.elements.startMatchBtn.disabled = true;
-                this.elements.startMatchBtn.title = 'Engine binary not loaded. Check worker path or network.';
+                this.elements.startMatchBtn.title = 'Engine adapter or worker path missing.';
             }
             if (this.elements.statusResult) {
-                this.elements.statusResult.textContent = 'Engine binary missing. Cannot start match.';
+                this.elements.statusResult.textContent = 'Engine unavailable. Cannot start match.';
                 this.elements.statusResult.style.display = 'block';
             }
-            console.warn('[Arena] Engine binary missing. Start Match disabled.');
+            console.warn('[Arena] Engine unavailable. Start Match disabled.');
         }
 
         console.log('[Arena] Engine selectors ready! Engines loaded:', this.engines.length);
@@ -605,17 +634,36 @@ const CaissaArena = {
 
         if (color === 'white') {
             this.state.whiteEngine = engine;
+            if (window.localStorage) {
+                localStorage.setItem('caissa.arena.whiteEngineId', engine.id);
+            }
         } else {
             this.state.blackEngine = engine;
+            if (window.localStorage) {
+                localStorage.setItem('caissa.arena.blackEngineId', engine.id);
+            }
         }
 
         this.updateEngineInfo();
+        const adapterAvailable = typeof EngineAdapter !== 'undefined';
+        const selectedEnginesValid = !!this.state.whiteEngine?.workerPath
+            && !!this.state.blackEngine?.workerPath
+            && this.state.whiteEngine?.enabled !== false
+            && this.state.blackEngine?.enabled !== false;
+        if (this.elements.startMatchBtn) {
+            this.elements.startMatchBtn.disabled = !(adapterAvailable && selectedEnginesValid);
+        }
     },
 
     swapEngines() {
         const temp = this.state.whiteEngine;
         this.state.whiteEngine = this.state.blackEngine;
         this.state.blackEngine = temp;
+
+        if (window.localStorage) {
+            localStorage.setItem('caissa.arena.whiteEngineId', this.state.whiteEngine.id);
+            localStorage.setItem('caissa.arena.blackEngineId', this.state.blackEngine.id);
+        }
 
         // Update selectors
         if (this.elements.whiteEngineSelect) {
@@ -948,21 +996,29 @@ const CaissaArena = {
     async initEngines() {
         console.log('[Arena] Initializing engine instances...');
 
-        // Check if StockfishEngine class is available
-        if (typeof StockfishEngine === 'undefined') {
-            console.error('[Arena] StockfishEngine class not found!');
+        if (typeof EngineAdapter === 'undefined') {
+            console.error('[Arena] EngineAdapter class not found!');
             return false;
         }
 
         try {
+            const whiteConfig = this.state.whiteEngine || this.engines[0];
+            const blackConfig = this.state.blackEngine || this.engines[1] || this.engines[0];
+            const evalConfig = this.engines.find(e => e.id === 'stockfish') || whiteConfig;
+
             // Create white engine
-            this.whiteEngineInstance = new StockfishEngine();
+            this.whiteEngineInstance = this.createEngineInstance(whiteConfig);
 
             // Create black engine
-            this.blackEngineInstance = new StockfishEngine();
+            this.blackEngineInstance = this.createEngineInstance(blackConfig);
 
             // Create evaluator engine
-            this.evaluatorEngine = new StockfishEngine();
+            this.evaluatorEngine = this.createEngineInstance(evalConfig);
+
+            if (!this.whiteEngineInstance || !this.blackEngineInstance || !this.evaluatorEngine) {
+                console.error('[Arena] Failed to create engine instances');
+                return false;
+            }
 
             // Wait for all engines to be ready
             await this.waitForEngines();
@@ -1813,3 +1869,4 @@ if (window.CaissaNavigation) {
 
 // Expose globally
 window.CaissaArena = CaissaArena;
+

@@ -32,6 +32,7 @@ const App = {
     engineEnabled: false, // Whether engine should play moves
     enginePlaysAs: 'black', // 'white' | 'black'
     engineDepth: 12, // Default search depth
+    engineId: 'stockfish',
 
     // Game state
     isPlayerTurn: true,
@@ -74,6 +75,7 @@ const App = {
 
     // Debug mode
     debug: false,
+    chess960Enabled: false,
 
     // UI elements
     elements: {}
@@ -99,6 +101,29 @@ function engineNewGame(engine) {
 
     engineSend(engine, 'ucinewgame');
     engineSend(engine, 'isready');
+}
+
+function createEngineInstance(engineId) {
+    if (window.EngineRegistry && typeof EngineRegistry.createEngine === 'function') {
+        const instance = EngineRegistry.createEngine(engineId);
+        if (instance) return instance;
+    }
+    if (window.EngineAdapter && window.EngineRegistry && typeof EngineRegistry.get === 'function') {
+        let config = EngineRegistry.get(engineId) || EngineRegistry.get('stockfish');
+        if (config && config.enabled === false) {
+            config = EngineRegistry.get('stockfish');
+        }
+        if (config && config.enabled === false) {
+            console.warn('[Engine] Engine disabled:', config.name);
+            return null;
+        }
+        if (config) return new EngineAdapter(config);
+    }
+    if (typeof StockfishEngine !== 'undefined') {
+        return new StockfishEngine();
+    }
+    console.warn('[Engine] No engine adapter available');
+    return null;
 }
 
 // ===== UTILITY FUNCTIONS =====
@@ -171,6 +196,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize engine
     initializeEngine();
+    populatePlayEngineSelect();
+    if (window.localStorage) {
+        App.chess960Enabled = localStorage.getItem('caissa.chess960') === '1';
+    }
+    if (App.elements.menuChess960Toggle) {
+        App.elements.menuChess960Toggle.checked = App.chess960Enabled;
+    }
+    updateChess960ToggleUI();
+    applyChess960Setting();
 
     // Initialize opening book
     initializeOpeningBook();
@@ -258,6 +292,8 @@ function cacheElements() {
         menuModal: document.getElementById('menuModal'),
         embedModal: document.getElementById('embedModal'),
         promotionModal: document.getElementById('promotionModal'),
+        menuEngineSelect: document.getElementById('menuEngineSelect'),
+        menuChess960Toggle: document.getElementById('menuChess960Toggle'),
 
         // Board Editor
         // editBoardBtn removed - now only accessible via Menu → Edit Board
@@ -413,7 +449,23 @@ function initBoardWhenReady(config) {
 
 // ===== ENGINE INITIALIZATION =====
 function initializeEngine() {
-    App.engine = new StockfishEngine();
+    let engineId = (window.localStorage && localStorage.getItem('caissa.engineId')) || App.engineId || 'stockfish';
+    if (window.EngineRegistry && typeof EngineRegistry.get === 'function') {
+        const config = EngineRegistry.get(engineId);
+        if (!config || config.enabled === false) {
+            engineId = 'stockfish';
+        }
+    }
+    App.engineId = engineId;
+    App.engine = createEngineInstance(engineId);
+    if (window.localStorage) {
+        localStorage.setItem('caissa.engineId', engineId);
+    }
+    if (!App.engine) {
+        console.error('❌ Engine initialization failed: no adapter available');
+        updateEngineStatus('error', 'Engine Missing');
+        return;
+    }
 
     App.engine.onReady = () => {
         console.log('✅ App.engine.onReady - Stockfish ready at FULL POWER');
@@ -449,6 +501,73 @@ function initializeEngine() {
         updateEngineStatus('error', 'Engine Error');
         showErrorNotification('Engine error. Please refresh the page.');
     };
+}
+
+function getCurrentEngineConfig() {
+    if (window.EngineRegistry && typeof EngineRegistry.get === 'function') {
+        return EngineRegistry.get(App.engineId);
+    }
+    return null;
+}
+
+function updateChess960ToggleUI() {
+    const toggle = App.elements.menuChess960Toggle;
+    if (!toggle) return;
+    const config = getCurrentEngineConfig();
+    const supports = !!config?.supportsChess960;
+    toggle.disabled = !supports;
+    if (!supports) {
+        toggle.checked = false;
+        App.chess960Enabled = false;
+        if (window.localStorage) {
+            localStorage.setItem('caissa.chess960', '0');
+        }
+    }
+}
+
+function applyChess960Setting() {
+    const config = getCurrentEngineConfig();
+    if (!config || !config.supportsChess960) return;
+    if (!App.engine) return;
+    const value = App.chess960Enabled ? 'true' : 'false';
+    engineSend(App.engine, `setoption name UCI_Chess960 value ${value}`);
+}
+
+function populatePlayEngineSelect() {
+    const select = App.elements.menuEngineSelect;
+    if (!select || !window.EngineRegistry || typeof EngineRegistry.list !== 'function') return;
+
+    select.innerHTML = '';
+    const engines = EngineRegistry.list();
+    engines.forEach((engine) => {
+        const option = document.createElement('option');
+        option.value = engine.id;
+        const disabledLabel = engine.enabled === false ? ' (WASM build needed)' : '';
+        option.textContent = `${engine.name}${disabledLabel}`;
+        if (engine.enabled === false) {
+            option.disabled = true;
+        }
+        select.appendChild(option);
+    });
+
+    select.value = App.engineId || 'stockfish';
+}
+
+function setPlayEngine(engineId) {
+    if (!window.EngineRegistry || typeof EngineRegistry.get !== 'function') return;
+    const config = EngineRegistry.get(engineId);
+    if (!config || config.enabled === false) return;
+    App.engineId = engineId;
+    if (window.localStorage) {
+        localStorage.setItem('caissa.engineId', engineId);
+    }
+    if (App.engine) {
+        App.engine.terminate?.();
+        App.engine = null;
+    }
+    initializeEngine();
+    updateChess960ToggleUI();
+    applyChess960Setting();
 }
 
 /**
@@ -1882,11 +2001,27 @@ function setupEventListeners() {
 
     // Menu button in analysis panel (mobile + desktop)
     safeOn(App.elements.menuBtn, 'click', () => {
+        populatePlayEngineSelect();
+        if (App.elements.menuEngineSelect) {
+            App.elements.menuEngineSelect.value = App.engineId || 'stockfish';
+        }
+        if (App.elements.menuChess960Toggle) {
+            App.elements.menuChess960Toggle.checked = App.chess960Enabled;
+        }
+        updateChess960ToggleUI();
         showModal('menuModal');
     }, 'menuBtn');
 
     // Menu button in header (desktop only, hidden on mobile)
     safeOn(App.elements.menuBtnHeader, 'click', () => {
+        populatePlayEngineSelect();
+        if (App.elements.menuEngineSelect) {
+            App.elements.menuEngineSelect.value = App.engineId || 'stockfish';
+        }
+        if (App.elements.menuChess960Toggle) {
+            App.elements.menuChess960Toggle.checked = App.chess960Enabled;
+        }
+        updateChess960ToggleUI();
         showModal('menuModal');
     }, 'menuBtnHeader');
     
@@ -2190,6 +2325,22 @@ function setupMenuModal() {
         hideModal('menuModal');
         showModal('newGameModal');
     });
+    const menuEngineSelect = document.getElementById('menuEngineSelect');
+    if (menuEngineSelect) {
+        menuEngineSelect.addEventListener('change', (e) => {
+            setPlayEngine(e.target.value);
+        });
+    }
+    const menuChess960Toggle = document.getElementById('menuChess960Toggle');
+    if (menuChess960Toggle) {
+        menuChess960Toggle.addEventListener('change', (e) => {
+            App.chess960Enabled = !!e.target.checked;
+            if (window.localStorage) {
+                localStorage.setItem('caissa.chess960', App.chess960Enabled ? '1' : '0');
+            }
+            applyChess960Setting();
+        });
+    }
     
     document.getElementById('menuFlipBoard').addEventListener('click', () => {
         flipBoard();
@@ -2760,11 +2911,11 @@ async function startEngineVsEngine() {
 
         // Create two engine instances at FULL POWER
         console.log('Creating White engine at FULL POWER');
-        App.engineWhite = new StockfishEngine();
+        App.engineWhite = createEngineInstance(App.engineId || 'stockfish');
         // No skill level - full power
 
         console.log('Creating Black engine at FULL POWER');
-        App.engineBlack = new StockfishEngine();
+        App.engineBlack = createEngineInstance(App.engineId || 'stockfish');
         // No skill level - full power
 
         // Wait for both engines to be ready
