@@ -113,6 +113,7 @@
     "sourceUrl": "https://www.gnu.org/software/chess/",
     "selfHosted": true,
     "zipPath": "/dos/games/gnuchess/gnuchess.zip",
+    "hostedExe": "GNUCHESS.EXE",
     "license": {
       "type": "GPL",
       "url": "https://www.gnu.org/licenses/gpl-3.0.en.html",

@@ -369,51 +369,146 @@ const CaissaDOSChess = {
     async loadDOSBox() {
         console.log('[DOS Chess] Loading DOSBox runtime...');
 
-        // For now, show a placeholder message
-        // In production, this would load js-dos or similar
-        this.elements.playerContainer.innerHTML = `
-            <div class="dos-placeholder">
-                <div class="dos-placeholder-content">
-                    <i class="fas fa-desktop dos-placeholder-icon"></i>
-                    <h3>DOSBox Emulator</h3>
-                    <p>This feature requires DOSBox.js integration.</p>
-                    <p>To enable:</p>
-                    <ol style="text-align: left; margin: 20px auto; max-width: 400px;">
-                        <li>Install js-dos: <code>npm install js-dos</code></li>
-                        <li>Add DOSBox initialization code</li>
-                        <li>Load game bundle: <code>${this.currentGame?.assetZip || ''}</code></li>
-                    </ol>
-                    <p><small>For development: Game data loaded successfully. Player UI ready.</small></p>
-                </div>
-            </div>
-        `;
+        if (this.dosBoxLoaded) {
+            console.log('[DOS Chess] DOSBox already loaded');
+            return;
+        }
 
-        this.dosBoxLoaded = true;
+        try {
+            // Dynamically import js-dos
+            const { Dos } = await import('js-dos');
+            this.Dos = Dos;
+            this.dosBoxLoaded = true;
+            console.log('[DOS Chess] DOSBox runtime loaded successfully');
+        } catch (error) {
+            console.error('[DOS Chess] Failed to load js-dos:', error);
+            throw new Error('Failed to load DOSBox emulator. Please check console for details.');
+        }
     },
 
     // ===== START DOSBOX GAME =====
-    startDOSBoxGame(game) {
+    async startDOSBoxGame(game) {
         console.log('[DOS Chess] Starting game:', game.name);
 
-        // Placeholder for actual DOSBox integration
-        // In production, this would:
-        // 1. Create js-dos instance
-        // 2. Mount the ZIP bundle
-        // 3. Run the DOS executable
-        // 4. Render canvas in playerContainer
+        if (!this.Dos) {
+            throw new Error('DOSBox not loaded');
+        }
+
+        // Create canvas container
+        this.elements.playerContainer.innerHTML = `
+            <div class="dos-emulator-wrapper">
+                <div class="dos-hint">
+                    <i class="fas fa-info-circle"></i>
+                    Tip: Click inside the game to capture keyboard. ESC to exit.
+                </div>
+                <div id="dos-canvas" class="dos-canvas-container"></div>
+            </div>
+        `;
+
+        const canvasContainer = document.getElementById('dos-canvas');
+
+        try {
+            console.log('[DOS Chess] Initializing emulator...');
+
+            // Create Dos instance
+            this.dosInstance = new this.Dos(canvasContainer, {
+                wdosboxUrl: 'https://cdn.jsdelivr.net/npm/js-dos@8/dist/wdosbox.wasm.js',
+            });
+
+            const bundleUrl = new URL(game.zipPath, window.location.origin).toString();
+            const exeName = game.hostedExe || 'GNUCHESS.EXE';
+
+            console.log('[DOS Chess] Loading bundle:', bundleUrl);
+            console.log('[DOS Chess] Executing:', exeName);
+
+            // Load and run the bundle
+            await this.dosInstance.run(bundleUrl, exeName);
+
+            console.log('[DOS Chess] Game started successfully');
+
+            // Setup keyboard focus
+            this.setupKeyboardFocus(canvasContainer);
+
+        } catch (error) {
+            console.error('[DOS Chess] Error starting game:', error);
+            this.showPlayerError(
+                `Failed to start ${game.name}.\n\n` +
+                `Error: ${error.message}\n\n` +
+                `Executable: ${game.hostedExe || 'GNUCHESS.EXE'}\n\n` +
+                `Check bundle contents or use external link.`
+            );
+        }
+    },
+
+    // ===== KEYBOARD FOCUS HANDLING =====
+    setupKeyboardFocus(container) {
+        if (!container) return;
+
+        // Make container focusable
+        container.tabIndex = 0;
+        container.focus();
+
+        // Prevent default for navigation keys when focused
+        const preventKeys = (e) => {
+            const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'PageUp', 'PageDown'];
+            if (keys.includes(e.key)) {
+                e.preventDefault();
+            }
+        };
+
+        container.addEventListener('keydown', preventKeys);
+
+        // Refocus on click
+        const refocus = () => container.focus();
+        container.addEventListener('click', refocus);
+
+        // Store cleanup references
+        this._keydownHandler = preventKeys;
+        this._clickHandler = refocus;
+        this._focusContainer = container;
     },
 
     // ===== PLAYER CONTROLS =====
     closePlayer() {
         console.log('[DOS Chess] Closing player');
-        this.elements.playerModal.style.display = 'none';
+
+        // Exit fullscreen if active
+        if (document.fullscreenElement) {
+            document.exitFullscreen?.() || document.webkitExitFullscreen?.();
+        }
 
         // Stop DOSBox instance if running
         if (this.dosInstance) {
-            // this.dosInstance.stop();
+            try {
+                if (typeof this.dosInstance.stop === 'function') {
+                    this.dosInstance.stop();
+                }
+            } catch (err) {
+                console.warn('[DOS Chess] Error stopping emulator:', err);
+            }
             this.dosInstance = null;
         }
 
+        // Cleanup keyboard focus handlers
+        if (this._focusContainer) {
+            if (this._keydownHandler) {
+                this._focusContainer.removeEventListener('keydown', this._keydownHandler);
+            }
+            if (this._clickHandler) {
+                this._focusContainer.removeEventListener('click', this._clickHandler);
+            }
+            this._focusContainer = null;
+            this._keydownHandler = null;
+            this._clickHandler = null;
+        }
+
+        // Clear container
+        if (this.elements.playerContainer) {
+            this.elements.playerContainer.innerHTML = '';
+        }
+
+        // Hide modal
+        this.elements.playerModal.style.display = 'none';
         this.currentGame = null;
     },
 
@@ -422,9 +517,23 @@ const CaissaDOSChess = {
         if (!document.fullscreenElement) {
             modal.requestFullscreen?.() || modal.webkitRequestFullscreen?.();
             this.elements.playerFullscreen.querySelector('i').classList.replace('fa-expand', 'fa-compress');
+
+            // Restore focus after entering fullscreen
+            setTimeout(() => {
+                if (this._focusContainer) {
+                    this._focusContainer.focus();
+                }
+            }, 100);
         } else {
             document.exitFullscreen?.() || document.webkitExitFullscreen?.();
             this.elements.playerFullscreen.querySelector('i').classList.replace('fa-compress', 'fa-expand');
+
+            // Restore focus after exiting fullscreen
+            setTimeout(() => {
+                if (this._focusContainer) {
+                    this._focusContainer.focus();
+                }
+            }, 100);
         }
     },
 
@@ -518,39 +627,19 @@ const CaissaDOSChess = {
                 return;
             }
 
-            console.log('[DOS Chess] Bundle found, checking for emulator...');
+            console.log('[DOS Chess] Bundle found, loading emulator...');
 
-            // Check for js-dos or DOSBox integration
-            const hasJsDos = typeof window.Dos !== 'undefined' ||
-                           typeof Dos !== 'undefined' ||
-                           typeof window.emulators !== 'undefined';
+            // Show loading state
+            this.elements.playerContainer.innerHTML = `
+                <div class="dos-loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading DOSBox emulator...</p>
+                </div>
+            `;
 
-            if (!hasJsDos) {
-                // Emulator not integrated yet - show placeholder
-                this.elements.playerContainer.innerHTML = `
-                    <div class="dos-placeholder">
-                        <div class="dos-placeholder-content">
-                            <i class="fas fa-check-circle dos-placeholder-icon" style="color: #10b981;"></i>
-                            <h3>Hosted Bundle Ready</h3>
-                            <p><strong>Bundle found at:</strong> ${game.zipPath}</p>
-                            <p style="margin-top: 20px;">DOSBox emulator integration is not enabled yet.</p>
-                            <p><strong>Next steps:</strong></p>
-                            <ol style="text-align: left; margin: 20px auto; max-width: 500px;">
-                                <li>Install js-dos: <code>npm install js-dos</code></li>
-                                <li>Add DOSBox initialization in <code>loadDOSBox()</code></li>
-                                <li>Mount bundle and run <code>GNUCHESS.EXE</code></li>
-                            </ol>
-                            <p style="margin-top: 20px;"><small>For now, use the "Play (External)" button to play via archive.</small></p>
-                            <button class="btn btn-secondary" onclick="CaissaDOSChess.closePlayer()">Close</button>
-                        </div>
-                    </div>
-                `;
-            } else {
-                // Emulator available - attempt to run
-                console.log('[DOS Chess] Emulator detected, loading game...');
-                await this.loadDOSBox();
-                this.startDOSBoxGame(game);
-            }
+            // Load js-dos and start game
+            await this.loadDOSBox();
+            await this.startDOSBoxGame(game);
 
         } catch (error) {
             console.error('[DOS Chess] Error loading hosted game:', error);
