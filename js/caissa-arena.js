@@ -388,19 +388,32 @@ const CaissaArena = {
     },
 
     settleLayout() {
-        // Immediate resize
+        // FIX: Robust multi-stage layout settlement to prevent board shift
+
+        // Stage 1: Immediate resize (before any layout)
         this.resizeBoardNow();
 
-        // Next frame resize
+        // Stage 2: Next animation frame (after paint)
         requestAnimationFrame(() => {
             this.resizeBoardNow();
+
+            // Stage 3: Double RAF for font/scrollbar settlement
+            requestAnimationFrame(() => {
+                this.resizeBoardNow();
+            });
         });
 
-        // Slightly delayed resize for late layout shifts
+        // Stage 4: Short timeout for late shifts (60-120ms)
         setTimeout(() => {
             this.resizeBoardNow();
-        }, 80);
+        }, 60);
 
+        // Stage 5: Medium timeout for font loading completion
+        setTimeout(() => {
+            this.resizeBoardNow();
+        }, 120);
+
+        // Stage 6: Setup continuous layout observer
         this.setupLayoutObserver();
     },
 

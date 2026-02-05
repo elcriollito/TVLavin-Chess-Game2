@@ -5260,7 +5260,8 @@ button:focus,
 
 /* Arena Board Container - chess.com style responsive sizing */
 .arena-board-container {
-    flex: 1;
+    /* FIX: Stable flex layout - prevent board shifting */
+    flex: 1 1 auto;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -5270,6 +5271,8 @@ button:focus,
     padding: var(--board-gutter);
     min-height: 0; /* Allow flex shrinking */
     overflow: hidden;
+    /* FIX: Force layout stability */
+    position: relative;
 }
 
 .arena-board-mount {
@@ -5279,10 +5282,14 @@ button:focus,
      */
     width: var(--board-size);
     height: var(--board-size);
+    /* FIX: Prevent shrinking and ensure centering */
     margin: 0 auto;
-    flex: 0 0 auto;
+    flex: 0 0 auto; /* Never grow or shrink */
     position: relative;
     aspect-ratio: 1 / 1; /* Ensure perfect square */
+    /* FIX: Lock in layout to prevent shifts */
+    min-width: var(--board-size);
+    max-width: var(--board-size);
 }
 
 /* Arena board element (created by JS) */
@@ -5308,7 +5315,9 @@ button:focus,
     display: flex;
     flex-direction: column;
     gap: 10px;
-    overflow-y: auto;
+    /* FIX: Prevent scrollbar-induced layout shifts */
+    overflow-y: scroll; /* Fallback: always show scrollbar (Safari compatible) */
+    scrollbar-gutter: stable both-edges; /* Modern browsers: reserve space without forced scrollbar */
 }
 
 /* Evaluation Panel */
@@ -5421,7 +5430,9 @@ button:focus,
 
 .arena-move-list {
     max-height: 200px;
-    overflow-y: auto;
+    /* FIX: Prevent scrollbar-induced layout shifts */
+    overflow-y: scroll; /* Fallback: always show scrollbar (Safari compatible) */
+    scrollbar-gutter: stable both-edges; /* Modern browsers: reserve space */
     font-size: 12px;
     font-family: 'Roboto Mono', monospace;
 }
