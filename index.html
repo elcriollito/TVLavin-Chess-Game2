@@ -485,6 +485,20 @@
                 <div class="panel grow">
                     <div class="panel-title">Moves</div>
                     <div id="movesPanel" class="moves-panel panel-body">
+                        <div class="navigation-controls-inline moves-nav-inline">
+                            <button id="navFirst" class="nav-btn-sm" title="Start" aria-label="Jump to start">
+                                <i class="fas fa-fast-backward"></i>
+                            </button>
+                            <button id="navPrev" class="nav-btn-sm" title="Prev" aria-label="Previous move">
+                                <i class="fas fa-step-backward"></i>
+                            </button>
+                            <button id="navNext" class="nav-btn-sm" title="Next" aria-label="Next move">
+                                <i class="fas fa-step-forward"></i>
+                            </button>
+                            <button id="navLast" class="nav-btn-sm" title="End" aria-label="Jump to end">
+                                <i class="fas fa-fast-forward"></i>
+                            </button>
+                        </div>
                         <div id="moveHistory" class="move-history-content"></div>
                     </div>
                 </div>
@@ -590,26 +604,26 @@
                     </div>
                 </div>
 
-                <!-- Move History (moved from left) -->
+                <!-- Move History (legacy hidden layout) -->
                 <div class="panel move-history-panel move-history-compact">
                     <div class="panel-header-inline">
                         <h3 class="panel-title-sm">Moves</h3>
                         <div class="navigation-controls-inline">
-                            <button id="navFirst" class="nav-btn-sm" title="Start" aria-label="Jump to start">
+                            <button id="navFirstLegacy" class="nav-btn-sm" title="Start" aria-label="Jump to start">
                                 <i class="fas fa-fast-backward"></i>
                             </button>
-                            <button id="navPrev" class="nav-btn-sm" title="Prev" aria-label="Previous move">
+                            <button id="navPrevLegacy" class="nav-btn-sm" title="Prev" aria-label="Previous move">
                                 <i class="fas fa-step-backward"></i>
                             </button>
-                            <button id="navNext" class="nav-btn-sm" title="Next" aria-label="Next move">
+                            <button id="navNextLegacy" class="nav-btn-sm" title="Next" aria-label="Next move">
                                 <i class="fas fa-step-forward"></i>
                             </button>
-                            <button id="navLast" class="nav-btn-sm" title="End" aria-label="Jump to end">
+                            <button id="navLastLegacy" class="nav-btn-sm" title="End" aria-label="Jump to end">
                                 <i class="fas fa-fast-forward"></i>
                             </button>
                         </div>
                     </div>
-                    <div id="moveHistory" class="move-history-content move-history-scroll"></div>
+                    <div id="moveHistoryLegacy" class="move-history-content move-history-scroll"></div>
                 </div>
 
                 <!-- Engine Analysis (moved from center) -->

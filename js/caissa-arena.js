@@ -280,6 +280,7 @@ const CaissaArena = {
 
                 // Set up ResizeObserver for dynamic sizing
                 this.setupResizeObserver();
+                this.resizeBoardNow();
 
                 // Resize after short delay to ensure proper rendering
                 setTimeout(() => {
@@ -360,6 +361,29 @@ const CaissaArena = {
 
         this.resizeObserver.observe(boardContainer);
         console.log('[Arena] ResizeObserver set up with auto-sizing');
+    },
+
+    resizeBoardNow() {
+        const boardContainer = document.querySelector('.arena-board-container');
+        const boardMount = this.elements.boardMount;
+        if (!boardContainer || !boardMount) return;
+
+        const containerRect = boardContainer.getBoundingClientRect();
+        const containerWidth = containerRect.width - 32;
+        const containerHeight = containerRect.height - 32;
+        let idealSize = Math.min(containerWidth, containerHeight);
+
+        const isMobile = window.innerWidth < 768;
+        const minSize = isMobile ? 280 : 380;
+        const maxSize = isMobile ? 520 : 660;
+        const boardSize = Math.max(minSize, Math.min(maxSize, idealSize));
+
+        boardMount.style.width = `${boardSize}px`;
+        boardMount.style.height = `${boardSize}px`;
+
+        if (this.board) {
+            this.board.resize();
+        }
     },
 
     bindEvents() {
@@ -1673,6 +1697,9 @@ const CaissaArena = {
                 this.board.resize();
             }
         }, 50);
+        setTimeout(() => {
+            this.resizeBoardNow();
+        }, 0);
 
         // Pre-warm engines to reduce start delay
         this.prewarmEngines();

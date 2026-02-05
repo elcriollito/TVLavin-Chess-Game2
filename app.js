@@ -836,17 +836,23 @@ function handleGameOver() {
     clearInterval(App.timerInterval);
 
     let message = '';
+    let statusMessage = 'Game over';
     if (App.game.in_checkmate()) {
         const winner = App.game.turn() === 'w' ? 'Black' : 'White';
         message = `Checkmate! ${winner} wins!`;
+        statusMessage = `${winner} wins — checkmate`;
     } else if (App.game.in_draw()) {
         message = 'Game drawn';
+        statusMessage = 'Draw';
     } else if (App.game.in_stalemate()) {
         message = 'Stalemate!';
+        statusMessage = 'Draw — stalemate';
     } else if (App.game.in_threefold_repetition()) {
         message = 'Draw by threefold repetition';
+        statusMessage = 'Draw — threefold repetition';
     } else if (App.game.insufficient_material()) {
         message = 'Draw by insufficient material';
+        statusMessage = 'Draw — insufficient material';
     }
 
     // Update game result display if element exists
@@ -854,6 +860,7 @@ function handleGameOver() {
         App.elements.gameResult.textContent = message;
         App.elements.gameResult.classList.add('show');
     }
+    setGameStatusText(statusMessage);
 
     // Dispatch game end event for UI components
     window.dispatchEvent(new CustomEvent('caissa-game-end', {
@@ -2817,11 +2824,15 @@ async function engineVsEngineLoop() {
 
             if (App.game.in_checkmate()) {
                 const winner = App.game.turn() === 'w' ? 'Black' : 'White';
-                showNotification(`Game Over: ${winner} wins by checkmate!`);
-            } else if (App.game.in_draw()) {
-                showNotification('Game Over: Draw!');
+                setGameStatusText(`${winner} wins — checkmate`);
+            } else if (App.game.in_threefold_repetition()) {
+                setGameStatusText('Draw — threefold repetition');
+            } else if (App.game.insufficient_material()) {
+                setGameStatusText('Draw — insufficient material');
             } else if (App.game.in_stalemate()) {
-                showNotification('Game Over: Stalemate!');
+                setGameStatusText('Draw — stalemate');
+            } else if (App.game.in_draw()) {
+                setGameStatusText('Draw');
             }
         }
         return;
