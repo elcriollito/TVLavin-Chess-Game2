@@ -39,6 +39,8 @@ const App = {
     analyzing: false,
     editMode: false,
     isFlipped: false, // MINI PATCH: Track board flip state for eval bar orientation
+    lastEvalCp: null,
+    lastEvalMate: null,
     selectedEditorPiece: 'erase', // Piece to place in editor mode
     editorMoveSource: null, // Source square for move/adjust tool
 
@@ -453,7 +455,9 @@ function initializeEngine() {
  * Initialize opening book (Polyglot format)
  */
 async function initializeOpeningBook() {
-    console.log('📚 Initializing opening book...');
+    if (window.CAISSA_DEBUG || App.debug) {
+        console.log('📚 Initializing opening book...');
+    }
 
     if (typeof PolyglotBook === 'undefined') {
         console.warn('⚠️ PolyglotBook class not loaded');
@@ -466,10 +470,13 @@ async function initializeOpeningBook() {
     const bookLoaded = await App.openingBook.loadBook('book.bin');
 
     if (bookLoaded) {
-        console.log('✅ Opening book ready');
-        showNotification('Opening book loaded');
+        if (window.CAISSA_DEBUG || App.debug) {
+            console.log('✅ Opening book ready');
+        }
     } else {
-        console.log('ℹ️ No opening book found, using engine only');
+        if (window.CAISSA_DEBUG || App.debug) {
+            console.log('ℹ️ No opening book found, using engine only');
+        }
         App.openingBook = null;
     }
 }
@@ -811,6 +818,8 @@ function updateStatus() {
         indicator.textContent = statusText;
         indicator.style.color = statusColor;
     }
+
+    updateGameStatusPanel();
 
     // Dispatch turn change event for LED indicator (caissa-ui-refactor.js)
     window.dispatchEvent(new CustomEvent('caissa-turn-change', {
@@ -1187,6 +1196,8 @@ function updateAnalysis(info) {
         evalElem.style.color = info.mate > 0 ? '#4caf50' : '#f44336';
         updateEvalBar(info.mate > 0 ? 1400 : -1400, info.mate);
         if (evalNumeric) evalNumeric.textContent = mateText;
+        App.lastEvalMate = info.mate;
+        App.lastEvalCp = null;
     } else if (info.score !== null && info.score !== undefined) {
         const score = info.score.toFixed(2);
         evalElem.textContent = score >= 0 ? `+${score}` : score;
@@ -1196,6 +1207,8 @@ function updateAnalysis(info) {
             const scoreNum = parseFloat(score);
             evalNumeric.textContent = scoreNum >= 0 ? `+${scoreNum.toFixed(1)}` : scoreNum.toFixed(1);
         }
+        App.lastEvalCp = info.score * 100;
+        App.lastEvalMate = null;
     }
 
     if (evalEngineInfo && info.depth) {
@@ -1518,6 +1531,7 @@ function resignGame() {
             App.elements.gameResult.textContent = 'Engine match stopped by resignation';
             App.elements.gameResult.classList.add('show');
         }
+        setGameStatusText('Match stopped - resignation');
         showNotification('Engine match stopped by resignation');
         return;
     }
@@ -1551,6 +1565,7 @@ function resignGame() {
     App.elements.gameResult.style.background = winner === 'White' ? '#4caf50' : '#333';
     App.elements.gameResult.style.color = 'white';
 
+    setGameStatusText(`${winner} wins - resignation`);
     showNotification(`${winner} wins by resignation`);
 }
 
@@ -1665,6 +1680,16 @@ function flipBoard() {
     // HOTFIX: Toggle flipped state and sync eval bar orientation
     App.isFlipped = !App.isFlipped;
     syncEvalOrientation();
+
+    if (App.lastEvalMate !== null && App.lastEvalMate !== undefined) {
+        updateEvalBar(App.lastEvalMate > 0 ? 1400 : -1400, App.lastEvalMate);
+    } else if (App.lastEvalCp !== null && App.lastEvalCp !== undefined) {
+        updateEvalBar(App.lastEvalCp, null);
+    }
+
+    setTimeout(() => {
+        try { App.board.resize(); } catch (e) {}
+    }, 0);
 }
 
 /**
@@ -1684,6 +1709,47 @@ function syncEvalOrientation() {
     } else {
         evalBar.classList.remove('white-top');
     }
+}
+
+function updateGameStatusPanel() {
+    const el = document.getElementById('gameStatusText');
+    if (!el) return;
+
+    const game = App.game;
+    const isCheckmate = (typeof game.isCheckmate === 'function' && game.isCheckmate()) ||
+        (typeof game.in_checkmate === 'function' && game.in_checkmate());
+    const isDraw = (typeof game.isDraw === 'function' && game.isDraw()) ||
+        (typeof game.in_draw === 'function' && game.in_draw());
+    const isStalemate = (typeof game.isStalemate === 'function' && game.isStalemate()) ||
+        (typeof game.in_stalemate === 'function' && game.in_stalemate());
+    const isThreefold = (typeof game.isThreefoldRepetition === 'function' && game.isThreefoldRepetition()) ||
+        (typeof game.in_threefold_repetition === 'function' && game.in_threefold_repetition());
+    const isInsufficient = (typeof game.isInsufficientMaterial === 'function' && game.isInsufficientMaterial()) ||
+        (typeof game.insufficient_material === 'function' && game.insufficient_material());
+
+    let text = 'In progress…';
+    if (isCheckmate) {
+        const winner = game.turn() === 'w' ? 'Black' : 'White';
+        text = `${winner} wins — checkmate`;
+    } else if (isStalemate) {
+        text = 'Draw — stalemate';
+    } else if (isThreefold) {
+        text = 'Draw — threefold repetition';
+    } else if (isInsufficient) {
+        text = 'Draw — insufficient material';
+    } else if (isDraw) {
+        text = 'Draw';
+    } else {
+        const turn = game.turn() === 'w' ? 'White' : 'Black';
+        text = `In progress… (${turn} to move)`;
+    }
+
+    el.textContent = text;
+}
+
+function setGameStatusText(text) {
+    const el = document.getElementById('gameStatusText');
+    if (el) el.textContent = text;
 }
 
 async function loadOpeningsDataset() {
@@ -2930,6 +2996,7 @@ function stopEngineVsEngine() {
     // Re-enable configuration
     App.elements.eveMoveDelay.disabled = false;
 
+    setGameStatusText('Match stopped');
     showNotification('Engine vs Engine game stopped.');
 }
 

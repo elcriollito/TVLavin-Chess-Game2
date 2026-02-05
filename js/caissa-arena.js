@@ -10,7 +10,8 @@ console.log('[Arena] caissa-arena.js parsed OK / loaded OK v=20260203-fix2');
 const ArenaEngineRegistry = [
     { id: 'stockfish-16', name: 'Stockfish 16', workerPath: 'engine/stockfish-working.js' },
     { id: 'stockfish-lite', name: 'Stockfish Lite', workerPath: 'engine/stockfish-working.js' },
-    { id: 'lc0', name: 'Leela Chess Zero', workerPath: '', enabled: false, reason: 'Worker not added yet' },
+    // TODO: Lc0 requires a WASM+worker build (or server-side engine API) before enabling in browser.
+    { id: 'lc0', name: 'Leela Chess Zero (Lc0) — Coming soon', workerPath: '', enabled: false, reason: 'Requires WASM/worker build' },
     { id: 'komodo', name: 'Komodo', workerPath: '', enabled: false, reason: 'License/worker pending' }
 ];
 
@@ -44,7 +45,8 @@ const CaissaArena = {
         matchState: 'idle', // 'idle', 'running', 'paused', 'finished'
         whiteEngine: null, // Engine config (from registry)
         blackEngine: null, // Engine config (from registry)
-        moveDelay: 1000,
+        moveDelay: 150,
+        bookMaxPlies: 12,
         currentGame: null,
         evalHistory: [], // For graph: [{move: 1, eval: 0.3}, ...]
         boardMounted: false,
@@ -75,6 +77,9 @@ const CaissaArena = {
         }
         this.cacheElements();
         this.bindEvents();
+        if (this.elements.moveDelayInput) {
+            this.elements.moveDelayInput.value = String(this.state.moveDelay);
+        }
         this.renderEngineSelectors();
         this.renderTournamentEngineList();
         this.initEvalGraph();
@@ -120,6 +125,7 @@ const CaissaArena = {
             statusTurn: document.getElementById('arenaStatusTurn'),
             statusMoves: document.getElementById('arenaStatusMoves'),
             statusResult: document.getElementById('arenaStatusResult'),
+            statusText: document.getElementById('arenaStatusText'),
 
             // Evaluation panel
             evalEngineName: document.getElementById('arenaEvalEngine'),
@@ -364,15 +370,17 @@ const CaissaArena = {
         // Engine selection
         this.elements.whiteEngineSelect?.addEventListener('change', (e) => {
             this.selectEngine('white', e.target.value);
+            this.prewarmEngines();
         });
         this.elements.blackEngineSelect?.addEventListener('change', (e) => {
             this.selectEngine('black', e.target.value);
+            this.prewarmEngines();
         });
         this.elements.swapEnginesBtn?.addEventListener('click', () => this.swapEngines());
 
         // Match controls
         this.elements.moveDelayInput?.addEventListener('change', (e) => {
-            this.state.moveDelay = parseInt(e.target.value) || 1000;
+            this.state.moveDelay = parseInt(e.target.value) || 150;
         });
         this.elements.startMatchBtn?.addEventListener('click', () => this.startMatch());
         this.elements.pauseMatchBtn?.addEventListener('click', () => this.togglePause());
@@ -693,7 +701,7 @@ const CaissaArena = {
         console.log('[Arena] Starting engine loop...');
         setTimeout(() => {
             this.runEngineLoop();
-        }, 500); // Small delay to ensure UI is updated
+        }, 50); // Small delay to ensure UI is updated
     },
 
     togglePause() {
@@ -715,6 +723,10 @@ const CaissaArena = {
             }, 100);
         }
         this.updateMatchControls();
+        this.updateGameStatus({
+            turn: this.game?.turn() === 'w' ? 'white' : 'black',
+            moveCount: this.game?.history().length || 0
+        });
     },
 
     stopMatch() {
@@ -738,6 +750,7 @@ const CaissaArena = {
             this.elements.statusResult.textContent = 'Match stopped';
             this.elements.statusResult.style.display = 'block';
         }
+        this.updateGameStatus({ result: 'Match stopped' });
     },
 
     updateMatchControls() {
@@ -787,7 +800,7 @@ const CaissaArena = {
 
     // ===== GAME STATUS =====
     updateGameStatus(data = {}) {
-        const { statusTurn, statusMoves, statusResult } = this.elements;
+        const { statusTurn, statusMoves, statusResult, statusText } = this.elements;
 
         if (statusTurn && data.turn) {
             const engineName = data.turn === 'white'
@@ -803,6 +816,22 @@ const CaissaArena = {
         if (statusResult && data.result) {
             statusResult.textContent = data.result;
             statusResult.style.display = 'block';
+        }
+
+        if (statusText) {
+            let text = 'Ready';
+            if (this.state.matchState === 'running') {
+                const moveCount = data.moveCount !== undefined ? data.moveCount : this.game?.history().length || 0;
+                const turnText = data.turn ? (data.turn === 'white' ? 'White' : 'Black') : (this.game?.turn() === 'w' ? 'White' : 'Black');
+                text = `Running… Move ${moveCount} (${turnText})`;
+            } else if (this.state.matchState === 'paused') {
+                text = 'Paused';
+            } else if (this.state.matchState === 'finished') {
+                text = data.result ? `Finished: ${data.result}` : 'Finished';
+            } else if (this.state.matchState === 'idle') {
+                text = 'Ready';
+            }
+            statusText.textContent = text;
         }
     },
 
@@ -835,6 +864,17 @@ const CaissaArena = {
      * Initialize Stockfish engine instances for Arena
      * Creates three independent engine workers (white, black, evaluator)
      */
+    prewarmEngines() {
+        if (this.enginesReady || this._prewarming) return;
+        if (this.state.engineBinaryAvailable === false) return;
+        this._prewarming = true;
+        this.initEngines()
+            .catch(() => {})
+            .finally(() => {
+                this._prewarming = false;
+            });
+    },
+
     async initEngines() {
         console.log('[Arena] Initializing engine instances...');
 
@@ -945,6 +985,72 @@ const CaissaArena = {
         console.log('[Arena] All engines destroyed');
     },
 
+    getBookMove() {
+        const book = window.App?.openingBook;
+        if (!book || !book.loaded || !this.game) return null;
+        if (this.game.history().length >= this.state.bookMaxPlies) return null;
+        return book.selectBookMove(this.game);
+    },
+
+    playUciMove(uciMove, isWhiteTurn, source = 'engine') {
+        if (!uciMove) return false;
+
+        const from = uciMove.substring(0, 2);
+        const to = uciMove.substring(2, 4);
+        const promotion = uciMove.length > 4 ? uciMove.substring(4, 5) : undefined;
+
+        const moveResult = this.game.move({
+            from: from,
+            to: to,
+            promotion: promotion
+        });
+
+        if (!moveResult) {
+            console.error('[Arena] Invalid move from', source, ':', uciMove);
+            this.handleError(`Invalid move: ${uciMove}`);
+            return false;
+        }
+
+        if (this.board) {
+            this.board.position(this.game.fen());
+        } else {
+            console.error('[Arena] Board is null, cannot update position');
+            this.handleError('Board not mounted');
+            return false;
+        }
+
+        if (this.state.currentGame) {
+            this.state.currentGame.moves.push({
+                move: moveResult.san,
+                uci: uciMove,
+                fen: this.game.fen(),
+                turn: isWhiteTurn ? 'white' : 'black',
+                source: source
+            });
+        }
+
+        this.updateMoveHistory(moveResult);
+
+        this.updateGameStatus({
+            turn: this.game.turn() === 'w' ? 'white' : 'black',
+            moveCount: this.game.history().length
+        });
+
+        this.evaluatePosition(this.game.fen());
+
+        if (this.state.matchState !== 'running' || !this.state.loopActive) {
+            console.log('[Arena] Loop stopped after move');
+            return true;
+        }
+
+        const delay = source === 'book' ? 0 : this.state.moveDelay;
+        setTimeout(() => {
+            this.runEngineLoop();
+        }, delay);
+
+        return true;
+    },
+
     /**
      * Main engine loop for Arena matches
      * Self-contained - doesn't depend on app.js EVE system
@@ -983,6 +1089,12 @@ const CaissaArena = {
         const depth = engineConfig?.options?.depth || 15;
 
         try {
+            const bookMove = this.getBookMove();
+            if (bookMove) {
+                this.playUciMove(bookMove, isWhiteTurn, 'book');
+                return;
+            }
+
             // Request best move from engine
             const bestMove = await this.getEngineMove(currentEngine, fen, depth);
 
@@ -992,67 +1104,7 @@ const CaissaArena = {
                 return;
             }
 
-            // Parse UCI move format (e.g., "e2e4" -> {from: "e2", to: "e4"})
-            const from = bestMove.substring(0, 2);
-            const to = bestMove.substring(2, 4);
-            const promotion = bestMove.length > 4 ? bestMove.substring(4, 5) : undefined;
-
-            // Attempt the move
-            const moveResult = this.game.move({
-                from: from,
-                to: to,
-                promotion: promotion
-            });
-
-            if (!moveResult) {
-                console.error('[Arena] Invalid move from engine:', bestMove);
-                this.handleError(`Invalid move: ${bestMove}`);
-                return;
-            }
-
-            console.log(`[Arena] Move played: ${moveResult.san}`);
-
-            // Update board display
-            if (this.board) {
-                this.board.position(this.game.fen());
-            } else {
-                console.error('[Arena] Board is null, cannot update position');
-                this.handleError('Board not mounted');
-                return;
-            }
-
-            // Record move
-            if (this.state.currentGame) {
-                this.state.currentGame.moves.push({
-                    move: moveResult.san,
-                    uci: bestMove,
-                    fen: this.game.fen(),
-                    turn: isWhiteTurn ? 'white' : 'black'
-                });
-            }
-
-            // Update move history display
-            this.updateMoveHistory(moveResult);
-
-            // Update status
-            this.updateGameStatus({
-                turn: this.game.turn() === 'w' ? 'white' : 'black',
-                moveCount: this.game.history().length
-            });
-
-            // Request evaluation for current position
-            this.evaluatePosition(this.game.fen());
-
-            // Check if game is still running
-            if (this.state.matchState !== 'running' || !this.state.loopActive) {
-                console.log('[Arena] Loop stopped after move');
-                return;
-            }
-
-            // Wait for configured delay, then continue loop
-            setTimeout(() => {
-                this.runEngineLoop();
-            }, this.state.moveDelay);
+            this.playUciMove(bestMove, isWhiteTurn, 'engine');
 
         } catch (error) {
             console.error('[Arena] Engine loop error:', error);
@@ -1204,6 +1256,7 @@ const CaissaArena = {
             this.elements.statusResult.textContent = result;
             this.elements.statusResult.style.display = 'block';
         }
+        this.updateGameStatus({ result });
 
         // Record tournament result if in tournament mode
         if (this.state.mode === 'tournament') {
@@ -1615,9 +1668,19 @@ const CaissaArena = {
                 console.log('[Arena] Board resized on enter');
             }
         });
+        setTimeout(() => {
+            if (this.board) {
+                this.board.resize();
+            }
+        }, 50);
+
+        // Pre-warm engines to reduce start delay
+        this.prewarmEngines();
 
         // Initialize eval graph
         this.initEvalGraph();
+
+        this.updateGameStatus();
     },
 
     onExit() {
