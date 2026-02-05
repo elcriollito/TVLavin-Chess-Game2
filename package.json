@@ -8,7 +8,10 @@
     "download-pgn": "node tools/fetch-pgnmentor.mjs",
     "download-pgn-test": "node tools/fetch-pgnmentor.mjs --test",
     "download-pgn-force": "node tools/fetch-pgnmentor.mjs --force",
-    "indexnow-ping": "node tools/indexnow-ping.mjs"
+    "indexnow-ping": "node tools/indexnow-ping.mjs",
+    "dos:scrape-chess": "node tools/scrape-dosgamesarchive-chess.mjs",
+    "dos:scrape-chess-force": "node tools/scrape-dosgamesarchive-chess.mjs --force",
+    "dos:scrape-chess-dry": "node tools/scrape-dosgamesarchive-chess.mjs --dry-run"
   },
   "dependencies": {
     "@clerk/backend": "^2.29.5",
@@ -19,6 +22,7 @@
   "author": "TVLavin",
   "license": "MIT",
   "devDependencies": {
+    "cheerio": "^1.2.0",
     "sharp": "^0.34.5"
   }
 }
