@@ -59,6 +59,7 @@
     <link rel="stylesheet" href="css/caissa-auth.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-sync.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-onboarding.css?v=1.0.0">
+    <link rel="stylesheet" href="css/caissa-dos-chess.css?v=1.0.0">
 </head>
 <body>
     <!-- Main Container -->
@@ -168,6 +169,11 @@
                 <button class="nav-item" data-section="arena" aria-label="Arena section">
                     <i class="fas fa-robot"></i>
                     <span class="nav-label">Arena</span>
+                </button>
+
+                <button class="nav-item" data-section="dosChess" aria-label="DOS Chess Games">
+                    <i class="fas fa-desktop"></i>
+                    <span class="nav-label">DOS Chess</span>
                 </button>
 
                 <div class="nav-divider"></div>
@@ -1138,6 +1144,91 @@
                 </div>
             </section>
 
+            <!-- SECTION: DOS CHESS (Classic DOS Chess Games) -->
+            <section id="dosChessSection" class="content-section">
+                <div class="dos-chess-layout">
+                    <!-- Header -->
+                    <div class="dos-chess-header">
+                        <div class="dos-chess-title-area">
+                            <h2 class="dos-chess-title">
+                                <i class="fas fa-desktop"></i> All DOS Chess Games
+                            </h2>
+                            <p class="dos-chess-subtitle">Play classic MS-DOS chess games right in your browser</p>
+                        </div>
+                    </div>
+
+                    <!-- Controls Panel -->
+                    <div class="dos-chess-controls">
+                        <div class="dos-search-bar">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="dosSearchInput" placeholder="Search games..." aria-label="Search DOS games">
+                        </div>
+
+                        <div class="dos-filters">
+                            <div class="dos-filter-group">
+                                <label for="dosSortSelect">Sort by:</label>
+                                <select id="dosSortSelect" class="form-control form-control-sm" aria-label="Sort games">
+                                    <option value="popularity">Popularity</option>
+                                    <option value="year">Year</option>
+                                    <option value="name">Name</option>
+                                </select>
+                            </div>
+
+                            <div class="dos-filter-chips">
+                                <button class="dos-filter-chip active" data-filter="all" aria-label="Show all games">
+                                    All
+                                </button>
+                                <button class="dos-filter-chip" data-filter="2D" aria-label="Show 2D games">
+                                    2D
+                                </button>
+                                <button class="dos-filter-chip" data-filter="3D" aria-label="Show 3D games">
+                                    3D
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Games Grid -->
+                    <div id="dosGamesGrid" class="dos-games-grid">
+                        <!-- Games will be populated by JS -->
+                        <div class="dos-loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Loading DOS chess games...</p>
+                        </div>
+                    </div>
+
+                    <!-- DOS Player Modal (Fullscreen) -->
+                    <div id="dosPlayerModal" class="dos-player-modal" style="display: none;">
+                        <div class="dos-player-header">
+                            <div class="dos-player-title">
+                                <i class="fas fa-desktop"></i>
+                                <span id="dosPlayerGameName">Loading game...</span>
+                            </div>
+                            <div class="dos-player-controls">
+                                <button id="dosPlayerFullscreen" class="dos-btn-icon" aria-label="Toggle fullscreen" title="Fullscreen">
+                                    <i class="fas fa-expand"></i>
+                                </button>
+                                <button id="dosPlayerClose" class="dos-btn-icon" aria-label="Close player" title="Close">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="dosPlayerContainer" class="dos-player-container">
+                            <!-- DOSBox canvas will be injected here -->
+                            <div class="dos-player-loading">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Loading DOSBox emulator...</p>
+                            </div>
+                        </div>
+                        <div id="dosPlayerError" class="dos-player-error" style="display: none;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>Game bundle not installed yet.</p>
+                            <small>Add the game ZIP file to <code>/public/dos/games/</code> to play.</small>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
         </main>
         <!-- End content-area -->
 
@@ -1238,6 +1329,16 @@
             <div class="modal-body">
                 <div class="menu-section">
                     <h3>Game Options</h3>
+                    <div class="menu-field">
+                        <label for="menuEngineSelect">Engine</label>
+                        <select id="menuEngineSelect" class="form-control" aria-label="Select engine"></select>
+                    </div>
+                    <div class="menu-field menu-toggle">
+                        <label for="menuChess960Toggle">
+                            <input type="checkbox" id="menuChess960Toggle">
+                            Chess960
+                        </label>
+                    </div>
                     <button class="btn btn-block" id="menuNewGame">
                         <i class="fas fa-plus"></i> New Game
                     </button>
@@ -1332,8 +1433,15 @@
                 </div>
                 <div class="credits-section">
                     <h3><i class="fas fa-chess"></i> Chess Engine</h3>
-                    <p><strong>Engine:</strong> Stockfish 16 NNUE</p>
-                    <p><strong>Website:</strong> <a href="https://stockfishchess.org/" target="_blank" rel="noopener">stockfishchess.org</a></p>
+                    <p><strong>Engines:</strong></p>
+                    <ul class="credits-engine-list">
+                        <li>Stockfish 16 - GPLv3 - <a href="https://stockfishchess.org/" target="_blank" rel="noopener">stockfishchess.org</a></li>
+                        <li>Arasan - MIT - <a href="https://www.arasanchess.org/" target="_blank" rel="noopener">arasanchess.org</a></li>
+                        <li>Rodent III - GPLv3 - <a href="https://github.com/nescitus/Rodent_III" target="_blank" rel="noopener">github.com/nescitus/Rodent_III</a></li>
+                        <li>Texel - GPLv3 - <a href="https://github.com/peterosterlund2/texel" target="_blank" rel="noopener">github.com/peterosterlund2/texel</a></li>
+                        <li>Fairy-Stockfish - GPLv3 - <a href="https://github.com/fairy-stockfish/Fairy-Stockfish" target="_blank" rel="noopener">github.com/fairy-stockfish/Fairy-Stockfish</a></li>
+                    </ul>
+                    <p class="credits-note">Some engines are listed for attribution; browser WASM builds may still be pending.</p>
                 </div>
                 <div class="credits-section">
                     <h3><i class="fas fa-code"></i> Libraries</h3>
@@ -2301,6 +2409,8 @@
     <!-- Navigation Module (Phase 1: UX Redesign) -->
     <script src="js/caissa-navigation.js?v=1.0.0"></script>
     <script src="js/caissa-ui-refactor.js?v=1.0.0"></script>
+    <script src="js/engine-adapter.js?v=1.0.0"></script>
+    <script src="js/engine-registry.js?v=1.0.0"></script>
     <script src="js/caissa-arena.js?v=1.0.0"></script>
     <!-- Section Modules (Phase 2) -->
     <script src="js/arena-section.js?v=1.0.0"></script>
@@ -2324,6 +2434,7 @@
     <script src="js/caissa-access.js?v=1.0.0" defer></script>
     <script src="js/caissa-ui-auth.js?v=1.0.0" defer></script>
     <script src="js/caissa-onboarding.js?v=1.0.0" defer></script>
+    <script src="js/caissa-dos-chess.js?v=1.0.0" defer></script>
 
     <style>
         /* Beta Badge */

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "fritz-1",
+    "name": "Fritz (DOS)",
+    "year": 1991,
+    "view": "2D",
+    "popularity": 95,
+    "sizeKB": 800,
+    "publisher": "ChessBase",
+    "assetZip": "/dos/games/fritz/fritz.zip",
+    "description": "Classic DOS chess program by ChessBase. One of the strongest engines of its era.",
+    "features": ["Opening book", "Endgame tablebases", "Analysis mode"]
+  },
+  {
+    "id": "battle-chess",
+    "name": "Battle Chess",
+    "year": 1988,
+    "view": "3D",
+    "popularity": 98,
+    "sizeKB": 1200,
+    "publisher": "Interplay",
+    "assetZip": "/dos/games/battle-chess/battle.zip",
+    "description": "Iconic animated chess game where pieces battle when capturing. A DOS gaming classic.",
+    "features": ["Animated battles", "Medieval theme", "Multiplayer"]
+  },
+  {
+    "id": "chessmaster-2000",
+    "name": "Chessmaster 2000",
+    "year": 1986,
+    "view": "2D",
+    "popularity": 85,
+    "sizeKB": 600,
+    "publisher": "Software Toolworks",
+    "assetZip": "/dos/games/chessmaster-2000/cm2000.zip",
+    "description": "The classic Chessmaster series entry. Features tutorials and various difficulty levels.",
+    "features": ["Tutorials", "Multiple boards", "Difficulty levels"]
+  },
+  {
+    "id": "gnu-chess",
+    "name": "GNU Chess",
+    "year": 1992,
+    "view": "2D",
+    "popularity": 70,
+    "sizeKB": 400,
+    "publisher": "Free Software Foundation",
+    "assetZip": "/dos/games/gnu-chess/gnuchess.zip",
+    "description": "Open-source chess engine. Strong tactical play for its time.",
+    "features": ["Open source", "UCI protocol", "Strong tactics"]
+  },
+  {
+    "id": "power-chess",
+    "name": "Power Chess",
+    "year": 1996,
+    "view": "3D",
+    "popularity": 75,
+    "sizeKB": 1500,
+    "publisher": "Sierra",
+    "assetZip": "/dos/games/power-chess/power.zip",
+    "description": "Full 3D chess with multiple board sets and piece designs.",
+    "features": ["3D graphics", "Multiple sets", "Voice commentary"]
+  }
+]
