@@ -110,13 +110,13 @@
     "features": ["Open source", "Strong tactics", "Text interface"],
     "playUrl": "https://www.dosgamesarchive.com/play/gnu-chess",
     "downloadUrl": "https://www.dosgamesarchive.com/download/gnu-chess",
-    "sourceUrl": "https://www.dosgamesarchive.com/games?t=chess",
-    "selfHosted": false,
-    "zipPath": null,
+    "sourceUrl": "https://www.gnu.org/software/chess/",
+    "selfHosted": true,
+    "zipPath": "/dos/games/gnuchess/gnuchess.zip",
     "license": {
-      "type": "freeware",
-      "url": "https://www.gnu.org/software/chess/",
-      "notes": "GPL licensed - potential Phase 2 candidate"
+      "type": "GPL",
+      "url": "https://www.gnu.org/licenses/gpl-3.0.en.html",
+      "notes": "GNU Chess is free software under GPL. Hosted bundle provided with license + attribution."
     }
   },
   {

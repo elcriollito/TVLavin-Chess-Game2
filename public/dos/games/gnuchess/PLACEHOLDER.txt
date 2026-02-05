@@ -1,0 +1,3 @@
+GNU Chess DOS Bundle - Placeholder
+Replace this zip with actual GNU Chess DOS executable bundle.
+See README.md for details.

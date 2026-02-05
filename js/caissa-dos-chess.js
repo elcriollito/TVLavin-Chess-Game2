@@ -260,10 +260,17 @@ const CaissaDOSChess = {
         }
 
         const gamesHTML = this.filteredGames.map(game => {
-            // Phase 1: External links only
+            // Phase 2: Hosted play button (only if selfHosted==true)
+            const hostedPlayButton = game.selfHosted && game.zipPath ? `
+                <button class="btn btn-success dos-hosted-btn" onclick="CaissaDOSChess.playHostedGame('${game.id}')" aria-label="Play ${game.name} (Hosted)">
+                    <i class="fas fa-play-circle"></i> Play (Hosted)
+                </button>
+            ` : '';
+
+            // Phase 1: External links (always available as fallback)
             const playButton = game.playUrl ? `
-                <a href="${game.playUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary dos-play-btn">
-                    <i class="fas fa-play"></i> Play <i class="fas fa-external-link-alt"></i>
+                <a href="${game.playUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-${game.selfHosted ? 'outline-primary' : 'primary'} dos-play-btn">
+                    <i class="fas fa-play"></i> Play ${game.selfHosted ? '(External)' : ''} <i class="fas fa-external-link-alt"></i>
                 </a>
             ` : '';
 
@@ -299,12 +306,13 @@ const CaissaDOSChess = {
                     </div>
                     <div class="dos-game-footer">
                         <div class="dos-game-actions">
+                            ${hostedPlayButton}
                             ${playButton}
                             ${downloadButton}
                             ${retroModernButton}
                         </div>
                         <small class="dos-external-note">
-                            <i class="fas fa-info-circle"></i> Opens external site
+                            <i class="fas fa-info-circle"></i> ${game.selfHosted ? 'Hosted + external options available' : 'Opens external site'}
                         </small>
                     </div>
                 </div>
@@ -471,6 +479,87 @@ const CaissaDOSChess = {
         });
 
         this.filterAndRenderGames();
+    },
+
+    // ===== PHASE 2: HOSTED PLAY =====
+    async playHostedGame(gameId) {
+        const game = this.games.find(g => g.id === gameId);
+        if (!game) {
+            console.error('[DOS Chess] Game not found:', gameId);
+            return;
+        }
+
+        if (!game.selfHosted || !game.zipPath) {
+            alert('This game is not available for hosted play.\nPlease use the external link instead.');
+            return;
+        }
+
+        console.log('[DOS Chess] Loading hosted game:', game.name);
+
+        // Show player modal
+        this.elements.playerModal.style.display = 'flex';
+        this.elements.playerGameName.textContent = `${game.name} (Hosted)`;
+        this.elements.playerError.style.display = 'none';
+        this.currentGame = game;
+
+        // Check if bundle exists
+        const bundleUrl = new URL(game.zipPath, window.location.origin).toString();
+        console.log('[DOS Chess] Checking bundle:', bundleUrl);
+
+        try {
+            const response = await fetch(bundleUrl, { method: 'HEAD' });
+
+            if (!response.ok) {
+                this.showPlayerError(
+                    `Hosted bundle missing (${response.status}).\n\n` +
+                    `Expected at: ${game.zipPath}\n\n` +
+                    `Please add the GNU Chess DOS bundle or use external links.`
+                );
+                return;
+            }
+
+            console.log('[DOS Chess] Bundle found, checking for emulator...');
+
+            // Check for js-dos or DOSBox integration
+            const hasJsDos = typeof window.Dos !== 'undefined' ||
+                           typeof Dos !== 'undefined' ||
+                           typeof window.emulators !== 'undefined';
+
+            if (!hasJsDos) {
+                // Emulator not integrated yet - show placeholder
+                this.elements.playerContainer.innerHTML = `
+                    <div class="dos-placeholder">
+                        <div class="dos-placeholder-content">
+                            <i class="fas fa-check-circle dos-placeholder-icon" style="color: #10b981;"></i>
+                            <h3>Hosted Bundle Ready</h3>
+                            <p><strong>Bundle found at:</strong> ${game.zipPath}</p>
+                            <p style="margin-top: 20px;">DOSBox emulator integration is not enabled yet.</p>
+                            <p><strong>Next steps:</strong></p>
+                            <ol style="text-align: left; margin: 20px auto; max-width: 500px;">
+                                <li>Install js-dos: <code>npm install js-dos</code></li>
+                                <li>Add DOSBox initialization in <code>loadDOSBox()</code></li>
+                                <li>Mount bundle and run <code>GNUCHESS.EXE</code></li>
+                            </ol>
+                            <p style="margin-top: 20px;"><small>For now, use the "Play (External)" button to play via archive.</small></p>
+                            <button class="btn btn-secondary" onclick="CaissaDOSChess.closePlayer()">Close</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Emulator available - attempt to run
+                console.log('[DOS Chess] Emulator detected, loading game...');
+                await this.loadDOSBox();
+                this.startDOSBoxGame(game);
+            }
+
+        } catch (error) {
+            console.error('[DOS Chess] Error loading hosted game:', error);
+            this.showPlayerError(
+                `Failed to load hosted bundle.\n\n` +
+                `Error: ${error.message}\n\n` +
+                `Please try the external link instead.`
+            );
+        }
     },
 
     // ===== PHASE 3: RETRO VS MODERN (STUB) =====

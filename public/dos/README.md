@@ -27,9 +27,33 @@ All games use external archive links:
 
 No game binaries are stored or served by CAISSA in Phase 1.
 
-## Phase 2: Self-Hosted Games (FUTURE)
+## Phase 2: Self-Hosted Games (ACTIVE - GPL Only)
 
-**Status:** 🚧 Scaffold only - Not yet enabled
+**Status:** ✅ Active for GNU Chess only
+
+### Currently Self-Hosted
+
+**GNU Chess (GPL)** - The ONLY self-hosted game right now.
+- Bundle location: `/public/dos/games/gnuchess/`
+- License: GPL-3.0 (verified and documented)
+- Includes: LICENSE.txt, README.md, placeholder bundle
+- Button: "Play (Hosted)" (green button)
+- Fallback: External links remain available
+
+### Implementation Status
+
+**Current:** Bundle is ready, but DOSBox emulator is not yet integrated.
+
+When you click "Play (Hosted)" on GNU Chess:
+- ✅ Checks if bundle exists (`gnuchess.zip`)
+- ✅ Shows bundle status
+- ⏳ Shows "Emulator integration pending" message (if js-dos not detected)
+- 🔮 Will run game in browser (once js-dos is integrated)
+
+**To enable full DOSBox emulation:**
+1. Install: `npm install js-dos`
+2. Update `loadDOSBox()` function in `caissa-dos-chess.js`
+3. Mount bundle and execute `GNUCHESS.EXE`
 
 ### Requirements Before Self-Hosting
 

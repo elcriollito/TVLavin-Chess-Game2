@@ -1,0 +1,50 @@
+GNU GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007
+
+GNU Chess is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+Full license text available at:
+https://www.gnu.org/licenses/gpl-3.0.en.html
+
+---
+
+ATTRIBUTION
+
+GNU Chess
+Copyright (C) 1984-1992 Free Software Foundation, Inc.
+Original authors: Stuart Cracraft, John Stanback, and contributors
+
+Official project page:
+https://www.gnu.org/software/chess/
+
+This DOS version bundle is provided for educational and historical
+purposes, in compliance with GPL licensing requirements.
+
+---
+
+SOURCE CODE AVAILABILITY
+
+As required by GPL, source code is available from:
+- Official GNU Chess project: https://www.gnu.org/software/chess/
+- GNU FTP archives: https://ftp.gnu.org/gnu/chess/
+
+---
+
+REDISTRIBUTION NOTICE
+
+This bundle may be freely redistributed under the terms of the GPL v3.
+Recipients have the right to:
+- Use the software for any purpose
+- Study and modify the source code
+- Distribute copies
+- Distribute modified versions
+
+All redistributions must include this license and attribution.

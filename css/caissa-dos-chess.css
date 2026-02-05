@@ -255,7 +255,8 @@
 
 .dos-play-btn,
 .dos-download-btn,
-.dos-retro-btn {
+.dos-retro-btn,
+.dos-hosted-btn {
     padding: 8px 14px;
     font-size: 13px;
     font-weight: 600;
@@ -266,6 +267,18 @@
     text-decoration: none;
     transition: all 0.2s;
     border: 1px solid transparent;
+}
+
+.dos-hosted-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+}
+
+.dos-hosted-btn:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
 .dos-play-btn {
