@@ -365,13 +365,16 @@ const CaissaArena = {
     },
 
     resizeBoardNow() {
-        const boardContainer = document.querySelector('.arena-board-container');
+        const host = document.querySelector('.arena-board-zone');
         const boardMount = this.elements.boardMount;
-        if (!boardContainer || !boardMount) return;
+        if (!host || !boardMount) return;
 
-        const containerRect = boardContainer.getBoundingClientRect();
-        const containerWidth = containerRect.width - 32;
-        const containerHeight = containerRect.height - 32;
+        const hostRect = host.getBoundingClientRect();
+        const hostWidth = hostRect.width;
+        if (!hostWidth || hostWidth < 50) return;
+
+        const containerWidth = hostWidth - 32;
+        const containerHeight = hostRect.height - 32;
         let idealSize = Math.min(containerWidth, containerHeight);
 
         const isMobile = window.innerWidth < 768;
@@ -388,32 +391,27 @@ const CaissaArena = {
     },
 
     settleLayout() {
-        // FIX: Robust multi-stage layout settlement to prevent board shift
-
         // Stage 1: Immediate resize (before any layout)
         this.resizeBoardNow();
 
         // Stage 2: Next animation frame (after paint)
         requestAnimationFrame(() => {
             this.resizeBoardNow();
-
-            // Stage 3: Double RAF for font/scrollbar settlement
-            requestAnimationFrame(() => {
-                this.resizeBoardNow();
-            });
         });
 
-        // Stage 4: Short timeout for late shifts (60-120ms)
+        // Stage 3: Font load settlement (if supported)
+        if (document.fonts?.ready) {
+            document.fonts.ready.then(() => {
+                this.resizeBoardNow();
+            });
+        }
+
+        // Stage 4: Short timeout for late shifts
         setTimeout(() => {
             this.resizeBoardNow();
-        }, 60);
+        }, 100);
 
-        // Stage 5: Medium timeout for font loading completion
-        setTimeout(() => {
-            this.resizeBoardNow();
-        }, 120);
-
-        // Stage 6: Setup continuous layout observer
+        // Stage 5: Setup continuous layout observer
         this.setupLayoutObserver();
     },
 
@@ -422,7 +420,7 @@ const CaissaArena = {
             this.layoutObserver.disconnect();
         }
 
-        const container = document.querySelector('.arena-board-container') || this.elements.boardMount;
+        const container = document.querySelector('.arena-board-zone');
         if (!container || typeof ResizeObserver === 'undefined') return;
 
         this.layoutObserver = new ResizeObserver(() => {

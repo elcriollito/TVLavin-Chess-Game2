@@ -4928,6 +4928,13 @@ button:focus,
 
 .arena-layout-v2 {
     display: grid;
+    grid-template-columns: var(--left-wiki-width, 360px) minmax(0, 1fr) var(--sidebar-width-right, 320px);
+    gap: 16px;
+    align-items: start;
+}
+
+.arena-layout-v2 {
+    display: grid;
     grid-template-columns: 240px 1fr 280px;
     gap: 12px;
     padding: 12px;
@@ -5194,6 +5201,8 @@ button:focus,
 .arena-board-zone {
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
     gap: 8px;
     min-width: 0;
     min-height: 0; /* Allow flex shrinking */
@@ -5261,7 +5270,7 @@ button:focus,
 /* Arena Board Container - chess.com style responsive sizing */
 .arena-board-container {
     /* FIX: Stable flex layout - prevent board shifting */
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -5273,6 +5282,7 @@ button:focus,
     overflow: hidden;
     /* FIX: Force layout stability */
     position: relative;
+    margin: 0 auto;
 }
 
 .arena-board-mount {
@@ -5294,9 +5304,11 @@ button:focus,
 
 /* Arena board element (created by JS) */
 .arena-board,
-#arenaBoardElement {
+#arenaBoardElement,
+#board {
     width: 100% !important;
     height: 100% !important;
+    margin: 0 auto;
 }
 
 /* Arena Result Overlay */
@@ -5426,6 +5438,8 @@ button:focus,
     padding: 12px;
     flex: 1;
     min-height: 100px;
+    overflow-y: scroll;
+    scrollbar-gutter: stable both-edges;
 }
 
 .arena-move-list {
