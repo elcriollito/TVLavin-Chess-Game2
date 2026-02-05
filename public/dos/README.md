@@ -1,63 +1,178 @@
-# DOS Chess Games
+# DOS Chess Games - Implementation Guide
 
-This directory contains DOS chess game bundles that can be played in-browser via DOSBox.
+This directory contains metadata and documentation for the DOS Chess Games catalog feature.
 
-## Directory Structure
+## Current Implementation: Phase 1 (External Links)
+
+All games currently link to external archives (dosgamesarchive.com). No game binaries are hosted on CAISSA servers.
+
+### File Structure
 
 ```
 /public/dos/
-├── dos_chess_games.json          # Game metadata
-├── games/                         # Game bundles
-│   ├── fritz/
-│   │   └── fritz.zip             # Fritz DOS game bundle
-│   ├── battle-chess/
-│   │   └── battle.zip            # Battle Chess bundle
-│   └── [other games]/
-└── README.md                      # This file
+├── dos_chess_games.json          # Game metadata catalog
+├── README.md                      # This file
+└── games/                         # Reserved for Phase 2 self-hosted games
+    └── (empty - not used in Phase 1)
 ```
 
-## Adding New DOS Games
+## Phase 1: External Links Only (CURRENT)
 
-1. **Create game folder**: `mkdir games/[game-name]/`
+**Status:** ✅ Active
 
-2. **Add game bundle**: Place the DOS game ZIP file in the folder
-   - ZIP should contain the DOS executable and all required files
-   - Name it descriptively (e.g., `fritz.zip`, `battle.zip`)
+All games use external archive links:
+- `playUrl`: Link to play game on external site
+- `downloadUrl`: Link to download from external site
+- `sourceUrl`: Reference to source archive
 
-3. **Update metadata**: Edit `dos_chess_games.json` and add entry:
+No game binaries are stored or served by CAISSA in Phase 1.
+
+## Phase 2: Self-Hosted Games (FUTURE)
+
+**Status:** 🚧 Scaffold only - Not yet enabled
+
+### Requirements Before Self-Hosting
+
+**DO NOT add self-hosted games unless:**
+
+1. ✅ License is verified as one of:
+   - Public domain
+   - Freeware with explicit permission to redistribute
+   - GPL/Open source with clear license file
+   - Shareware with redistribution rights
+
+2. ✅ License documentation includes:
+   - Original license text or URL
+   - Source/author attribution
+   - Any required disclaimers
+
+3. ✅ File size is reasonable:
+   - Prefer: < 2 MB
+   - Maximum: 5 MB
+   - Larger games should remain external links only
+
+### Adding a Self-Hosted Game
+
+**Step 1: Verify License**
+
+Before proceeding, document the license in `dos_chess_games.json`:
 
 ```json
 {
-  "id": "unique-game-id",
-  "name": "Game Display Name",
-  "year": 1991,
-  "view": "2D" or "3D",
-  "popularity": 0-100,
-  "sizeKB": 800,
-  "publisher": "Publisher Name",
-  "assetZip": "/dos/games/folder-name/file.zip",
-  "description": "Game description...",
-  "features": ["Feature 1", "Feature 2"]
+  "license": {
+    "type": "freeware",
+    "url": "https://example.com/license.txt",
+    "notes": "Explicit permission granted by author in 1995. See license URL."
+  }
 }
 ```
 
-4. **Test**: Load the DOS Chess page and click "Play" to verify
+**Step 2: Prepare Game Bundle**
 
-## Game Bundle Requirements
+1. Create directory: `/public/dos/games/<game-id>/`
+2. Place game ZIP bundle (must be playable DOS executable + data files)
+3. Name format: `<game-id>.zip` (e.g., `gnu-chess.zip`)
 
-- Must be a valid DOS executable
-- Should include all required files (EXE, data files, etc.)
-- Keep bundles under 5MB when possible
-- Use ZIP compression
+**Step 3: Update Metadata**
 
-## Supported Formats
+Edit `dos_chess_games.json`:
 
-- DOS executables (.EXE, .COM)
-- Self-contained games (no install required)
-- Compatible with DOSBox emulation
+```json
+{
+  "id": "gnu-chess",
+  "name": "GNU Chess",
+  "selfHosted": true,
+  "zipPath": "/dos/games/gnu-chess/gnu-chess.zip",
+  "playUrl": "https://www.dosgamesarchive.com/play/gnu-chess",
+  "downloadUrl": "https://www.dosgamesarchive.com/download/gnu-chess",
+  "license": {
+    "type": "freeware",
+    "url": "https://www.gnu.org/software/chess/",
+    "notes": "GPL licensed - verified for redistribution"
+  }
+}
+```
 
-## Notes
+**Step 4: Test Locally**
 
-- Games are loaded via js-dos (DOSBox in WebAssembly)
-- First launch may take a few seconds to load emulator
-- Some games may require specific DOSBox config (add to game metadata)
+- Navigate to DOS Chess page
+- Verify game appears with "Play (Hosted)" button
+- Click and confirm DOSBox loads correctly
+
+**Step 5: Add License File**
+
+Create `/public/dos/games/<game-id>/LICENSE.txt` with:
+- Original license text
+- Author/publisher attribution
+- Date of permission (if applicable)
+
+### Example: Verified Freeware Game
+
+```
+/public/dos/games/gnu-chess/
+├── gnu-chess.zip          # Game bundle
+├── LICENSE.txt            # GPL license
+└── README.txt             # Attribution
+```
+
+### Phase 2 Features (When Enabled)
+
+- **Hosted Play Button:** If `selfHosted: true`, shows additional "Play (Hosted)" button
+- **DOSBox Integration:** Loads js-dos and mounts ZIP bundle
+- **Fallback:** External links always remain as backup option
+
+## Phase 3: Retro vs Modern Analysis (FUTURE)
+
+**Status:** 🔮 Placeholder only - Premium feature
+
+Planned features:
+- Load DOS game position into CAISSA
+- Run modern Stockfish analysis
+- Compare retro AI vs modern engine
+- Historical chess engine evolution insights
+
+Currently shows "Coming soon" alert when clicked.
+
+## License Verification Checklist
+
+Before setting `selfHosted: true`, verify:
+
+- [ ] License type documented (`freeware`, `public-domain`, `GPL`, etc.)
+- [ ] License URL or text included
+- [ ] Original author/publisher attribution
+- [ ] Redistribution rights confirmed
+- [ ] LICENSE.txt file added to game directory
+- [ ] File size under 5 MB
+- [ ] Game tested locally in DOSBox
+
+## Common License Types
+
+| Type | Can Self-Host? | Notes |
+|------|----------------|-------|
+| **Public Domain** | ✅ Yes | No restrictions |
+| **Freeware** | ✅ Maybe | Check if redistribution allowed |
+| **GPL/Open Source** | ✅ Yes | Must include license file |
+| **Shareware** | ⚠️ Rarely | Most prohibit redistribution |
+| **Commercial** | ❌ No | Never self-host |
+| **Abandonware** | ❌ No | Still copyrighted - use external links |
+
+## Security Notes
+
+- All self-hosted ZIPs are served statically (no server-side execution)
+- DOSBox runs in browser sandbox (js-dos WebAssembly)
+- No file upload or user-generated content
+- ZIPs are read-only and pre-vetted
+
+## Questions?
+
+- **"Can I add any DOS game?"** → No. License must be verified first.
+- **"What about abandonware?"** → Still copyrighted. Use external links.
+- **"Game is freeware but no docs?"** → Contact original author or keep external link.
+- **"License says 'free for personal use'?"** → That's not redistribution rights. External link only.
+
+---
+
+**Current Phase:** Phase 1 (External Links)
+**Last Updated:** 2026-02-04
+**Games Catalog:** 25 DOS chess games
+**Self-Hosted:** 0 (awaiting license verification)

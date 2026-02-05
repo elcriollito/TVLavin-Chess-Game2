@@ -160,23 +160,31 @@ const CaissaDOSChess = {
                 year: 1988,
                 view: '3D',
                 popularity: 98,
-                sizeKB: 1200,
                 publisher: 'Interplay',
-                assetZip: '/dos/games/battle-chess/battle.zip',
                 description: 'Iconic animated chess game where pieces battle when capturing.',
-                features: ['Animated battles', 'Medieval theme', 'Multiplayer']
+                features: ['Animated battles', 'Medieval theme', 'Multiplayer'],
+                playUrl: 'https://www.dosgamesarchive.com/play/battle-chess',
+                downloadUrl: 'https://www.dosgamesarchive.com/download/battle-chess',
+                sourceUrl: 'https://www.dosgamesarchive.com/games?t=chess',
+                selfHosted: false,
+                zipPath: null,
+                license: { type: 'shareware', url: '', notes: 'External link only' }
             },
             {
-                id: 'fritz-1',
-                name: 'Fritz (DOS)',
+                id: 'fritz-25',
+                name: 'Fritz 2.5 (DOS)',
                 year: 1991,
                 view: '2D',
                 popularity: 95,
-                sizeKB: 800,
                 publisher: 'ChessBase',
-                assetZip: '/dos/games/fritz/fritz.zip',
                 description: 'Classic DOS chess program by ChessBase.',
-                features: ['Opening book', 'Endgame tablebases', 'Analysis mode']
+                features: ['Opening book', 'Endgame tablebases', 'Analysis mode'],
+                playUrl: 'https://www.dosgamesarchive.com/play/fritz',
+                downloadUrl: 'https://www.dosgamesarchive.com/download/fritz',
+                sourceUrl: 'https://www.dosgamesarchive.com/games?t=chess',
+                selfHosted: false,
+                zipPath: null,
+                license: { type: 'shareware', url: '', notes: 'External link only' }
             }
         ];
     },
@@ -230,31 +238,57 @@ const CaissaDOSChess = {
             return;
         }
 
-        const gamesHTML = this.filteredGames.map(game => `
-            <div class="dos-game-card" data-game-id="${game.id}">
-                <div class="dos-game-badge ${game.view.toLowerCase()}">${game.view}</div>
-                <div class="dos-game-icon">
-                    <i class="fas ${game.view === '3D' ? 'fa-cube' : 'fa-chess-board'}"></i>
-                </div>
-                <div class="dos-game-info">
-                    <h3 class="dos-game-name">${game.name}</h3>
-                    <div class="dos-game-meta">
-                        <span><i class="fas fa-calendar"></i> ${game.year}</span>
-                        <span><i class="fas fa-building"></i> ${game.publisher}</span>
+        const gamesHTML = this.filteredGames.map(game => {
+            // Phase 1: External links only
+            const playButton = game.playUrl ? `
+                <a href="${game.playUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary dos-play-btn">
+                    <i class="fas fa-play"></i> Play <i class="fas fa-external-link-alt"></i>
+                </a>
+            ` : '';
+
+            const downloadButton = game.downloadUrl ? `
+                <a href="${game.downloadUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary dos-download-btn">
+                    <i class="fas fa-download"></i> Download <i class="fas fa-external-link-alt"></i>
+                </a>
+            ` : '';
+
+            // Phase 3: Retro vs Modern (disabled for now)
+            const retroModernButton = `
+                <button class="btn btn-outline-secondary dos-retro-btn" disabled title="Coming soon - Premium feature">
+                    <i class="fas fa-balance-scale"></i> Retro vs Modern
+                </button>
+            `;
+
+            return `
+                <div class="dos-game-card" data-game-id="${game.id}">
+                    <div class="dos-game-badge ${game.view.toLowerCase()}">${game.view}</div>
+                    <div class="dos-game-icon">
+                        <i class="fas ${game.view === '3D' ? 'fa-cube' : 'fa-chess-board'}"></i>
                     </div>
-                    <p class="dos-game-description">${game.description}</p>
-                    <div class="dos-game-features">
-                        ${game.features.slice(0, 3).map(f => `<span class="dos-feature-tag">${f}</span>`).join('')}
+                    <div class="dos-game-info">
+                        <h3 class="dos-game-name">${game.name}</h3>
+                        <div class="dos-game-meta">
+                            <span><i class="fas fa-calendar"></i> ${game.year}</span>
+                            <span><i class="fas fa-building"></i> ${game.publisher}</span>
+                        </div>
+                        <p class="dos-game-description">${game.description}</p>
+                        <div class="dos-game-features">
+                            ${game.features.slice(0, 3).map(f => `<span class="dos-feature-tag">${f}</span>`).join('')}
+                        </div>
+                    </div>
+                    <div class="dos-game-footer">
+                        <div class="dos-game-actions">
+                            ${playButton}
+                            ${downloadButton}
+                            ${retroModernButton}
+                        </div>
+                        <small class="dos-external-note">
+                            <i class="fas fa-info-circle"></i> Opens external site
+                        </small>
                     </div>
                 </div>
-                <div class="dos-game-footer">
-                    <span class="dos-game-size">${(game.sizeKB / 1024).toFixed(1)} MB</span>
-                    <button class="btn btn-primary dos-play-btn" onclick="CaissaDOSChess.launchGame('${game.id}')" aria-label="Play ${game.name}">
-                        <i class="fas fa-play"></i> Play
-                    </button>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
         this.elements.gamesGrid.innerHTML = gamesHTML;
     },
@@ -416,6 +450,20 @@ const CaissaDOSChess = {
         });
 
         this.filterAndRenderGames();
+    },
+
+    // ===== PHASE 3: RETRO VS MODERN (STUB) =====
+    openRetroModernCompare(gameId) {
+        // Phase 3 placeholder - Premium feature
+        console.log('[DOS Chess] Retro vs Modern requested for:', gameId);
+
+        // Show "Coming Soon" modal
+        alert('🚀 Retro vs Modern Analysis\n\n' +
+              'This premium feature will let you:\n' +
+              '• Load a DOS game position\n' +
+              '• Compare with modern Stockfish analysis\n' +
+              '• See how chess engines evolved\n\n' +
+              'Coming soon!');
     },
 
     // ===== SECTION LIFECYCLE =====

@@ -240,24 +240,77 @@
 
 .dos-game-footer {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 10px;
     padding-top: 16px;
     border-top: 1px solid var(--border-color);
 }
 
-.dos-game-size {
-    font-size: 12px;
-    color: var(--text-tertiary);
+.dos-game-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.dos-play-btn,
+.dos-download-btn,
+.dos-retro-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: 1px solid transparent;
 }
 
 .dos-play-btn {
-    padding: 8px 20px;
-    font-size: 14px;
-    font-weight: 600;
+    background: var(--primary-color);
+    color: white;
+}
+
+.dos-play-btn:hover {
+    background: var(--secondary-color);
+    color: white;
+}
+
+.dos-download-btn {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.dos-download-btn:hover {
+    background: var(--bg-secondary);
+}
+
+.dos-retro-btn {
+    background: transparent;
+    color: var(--text-tertiary);
+    border-color: var(--border-color);
+    font-size: 12px;
+    padding: 6px 12px;
+}
+
+.dos-retro-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.dos-external-note {
+    font-size: 11px;
+    color: var(--text-tertiary);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
+}
+
+.dos-external-note i {
+    font-size: 10px;
 }
 
 /* ===== LOADING & ERROR STATES ===== */
