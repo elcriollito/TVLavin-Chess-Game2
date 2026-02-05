@@ -487,6 +487,7 @@ html, body {
 /* Eval bar orientation: flip only when white is at the top */
 .eval-bar.white-top .eval-fill {
     transform: scaleY(-1);
+    background: linear-gradient(0deg, #f9fafb 0%, #e5e7eb 100%);
 }
 
 .eval-bar.white-top .eval-score-badge {
