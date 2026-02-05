@@ -4924,13 +4924,33 @@ button:focus,
 
 #arenaSection.active {
     display: block;
+    overflow-x: visible;
 }
 
 .arena-layout-v2 {
+    display: block;
+}
+
+.arena-grid {
     display: grid;
     grid-template-columns: var(--left-wiki-width, 360px) minmax(0, 1fr) var(--sidebar-width-right, 320px);
     gap: 16px;
     align-items: start;
+    overflow-x: visible;
+}
+
+.arena-right-panel {
+    grid-column: 3;
+    position: relative;
+    width: var(--sidebar-width-right, 320px);
+    min-width: 280px;
+    max-width: 360px;
+    transform: none;
+    right: auto;
+    left: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
 }
 
 
@@ -5206,10 +5226,15 @@ button:focus,
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 16px;
+    padding: 6px 10px;
+    min-height: 44px;
     background: var(--bg-secondary);
     border-radius: 8px;
     flex-shrink: 0; /* Don't shrink status bar */
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .arena-player {
@@ -5234,7 +5259,7 @@ button:focus,
 }
 
 .arena-player-name {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -5246,16 +5271,16 @@ button:focus,
 }
 
 .arena-turn-badge {
-    padding: 4px 12px;
+    padding: 3px 10px;
     background: var(--primary-color);
     color: white;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
 }
 
 .arena-move-counter {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-tertiary);
 }
 
@@ -5266,8 +5291,8 @@ button:focus,
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--bg-secondary);
-    border-radius: 8px;
+    background: transparent;
+    border-radius: 0;
     /* GUTTER: ~1" breathing room around board */
     padding: var(--board-gutter);
     min-height: 0; /* Allow flex shrinking */
@@ -5326,15 +5351,24 @@ button:focus,
 .arena-eval-sidebar {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    /* FIX: Prevent scrollbar-induced layout shifts */
-    overflow-y: scroll; /* Fallback: always show scrollbar (Safari compatible) */
-    scrollbar-gutter: stable both-edges; /* Modern browsers: reserve space without forced scrollbar */
+    gap: 12px;
+    width: var(--sidebar-width-right, 320px);
+    /* Solid column look */
+    overflow: hidden;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 12px;
+    box-sizing: border-box;
 }
 
 /* Evaluation Panel */
 .arena-eval-panel {
     padding: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
 }
 
 .arena-eval-header {
@@ -5399,6 +5433,9 @@ button:focus,
 /* Evaluation Graph */
 .arena-graph-panel {
     padding: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
 }
 
 .arena-eval-canvas {
@@ -5436,17 +5473,18 @@ button:focus,
 /* Arena Moves Panel */
 .arena-moves-panel {
     padding: 12px;
-    flex: 1;
-    min-height: 100px;
-    overflow-y: scroll;
-    scrollbar-gutter: stable both-edges;
+    flex: 1 1 auto;
+    min-height: 0;
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    overflow-y: auto;
 }
 
 .arena-move-list {
-    max-height: 200px;
-    /* FIX: Prevent scrollbar-induced layout shifts */
-    overflow-y: scroll; /* Fallback: always show scrollbar (Safari compatible) */
-    scrollbar-gutter: stable both-edges; /* Modern browsers: reserve space */
+    max-height: none;
+    overflow-y: auto;
+    scrollbar-gutter: stable both-edges;
     font-size: 12px;
     font-family: 'Roboto Mono', monospace;
 }
@@ -6646,4 +6684,18 @@ button:focus,
     min-height: calc(100vh - 120px) !important;
     max-height: none !important;
     overflow-y: auto !important;
+}
+/* DEBUG LAYOUT: add class `debug-layout` to body to visualize arena columns */
+body.debug-layout .arena-layout-v2 { outline: 3px solid lime !important; }
+body.debug-layout .arena-grid { outline: 3px solid lime !important; }
+body.debug-layout .arena-left-panel { outline: 3px solid cyan !important; }
+body.debug-layout .arena-board-zone { outline: 3px solid yellow !important; }
+body.debug-layout .arena-right-panel { outline: 3px solid red !important; }
+
+body.debug-layout .evaluation-panel,
+body.debug-layout .moves-panel,
+body.debug-layout .right-panel,
+body.debug-layout #right-panel,
+body.debug-layout #arena-right {
+    outline: 3px solid red !important;
 }
