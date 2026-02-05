@@ -285,6 +285,63 @@
     margin: 0;
 }
 
+/* ===== FALLBACK BANNER ===== */
+.dos-fallback-banner {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    padding: 16px 20px;
+    box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+}
+
+.dos-fallback-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: #78350f;
+}
+
+.dos-fallback-content i {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.dos-fallback-content > div {
+    flex: 1;
+}
+
+.dos-fallback-content strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.dos-fallback-content p {
+    font-size: 12px;
+    margin: 0;
+    opacity: 0.9;
+}
+
+.dos-fallback-content button {
+    flex-shrink: 0;
+    background: #78350f;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.dos-fallback-content button:hover {
+    background: #451a03;
+}
+
 /* ===== DOS PLAYER MODAL ===== */
 .dos-player-modal {
     display: none;

@@ -87,19 +87,98 @@ const CaissaDOSChess = {
 
     // ===== LOAD GAMES DATA =====
     async loadGames() {
+        // Debug mode (add ?debug=1 to URL)
+        const debugMode = new URLSearchParams(window.location.search).has('debug');
+
         try {
-            const response = await fetch('/dos/dos_chess_games.json');
-            if (!response.ok) throw new Error('Failed to load games data');
+            // Use absolute URL for production reliability
+            const url = new URL('/dos/dos_chess_games.json', window.location.origin).toString();
+
+            if (debugMode) {
+                console.log('[DOS Chess DEBUG] Fetching from:', url);
+            }
+
+            const response = await fetch(url, { cache: 'no-store' });
+
+            if (debugMode) {
+                console.log('[DOS Chess DEBUG] Response status:', response.status);
+                console.log('[DOS Chess DEBUG] Content-Type:', response.headers.get('content-type'));
+            }
+
+            // Handle specific error cases
+            if (!response.ok) {
+                const contentType = response.headers.get('content-type') || '';
+                let errorMsg = '';
+
+                if (response.status === 404) {
+                    errorMsg = 'Missing file: /dos/dos_chess_games.json';
+                } else if (contentType.includes('text/html')) {
+                    errorMsg = 'Server returned HTML (likely routing/caching issue).';
+
+                    if (debugMode) {
+                        const body = await response.text();
+                        console.log('[DOS Chess DEBUG] HTML response preview:', body.substring(0, 120));
+                    }
+                } else {
+                    errorMsg = `HTTP ${response.status} - ${response.statusText}`;
+                }
+
+                throw new Error(errorMsg);
+            }
+
+            // Verify JSON content type
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json') && debugMode) {
+                console.warn('[DOS Chess DEBUG] Unexpected content-type:', contentType);
+            }
 
             this.games = await response.json();
             this.filteredGames = [...this.games];
 
             console.log(`[DOS Chess] Loaded ${this.games.length} games`);
             this.filterAndRenderGames();
+
         } catch (error) {
             console.error('[DOS Chess] Error loading games:', error);
-            this.showError('Failed to load DOS chess games. Please refresh the page.');
+
+            // Fallback to embedded minimal dataset
+            console.warn('[DOS Chess] Using fallback dataset');
+            this.games = this.getFallbackGames();
+            this.filteredGames = [...this.games];
+
+            this.filterAndRenderGames();
+            this.showFallbackBanner(error.message);
         }
+    },
+
+    // ===== FALLBACK DATASET =====
+    getFallbackGames() {
+        return [
+            {
+                id: 'battle-chess',
+                name: 'Battle Chess',
+                year: 1988,
+                view: '3D',
+                popularity: 98,
+                sizeKB: 1200,
+                publisher: 'Interplay',
+                assetZip: '/dos/games/battle-chess/battle.zip',
+                description: 'Iconic animated chess game where pieces battle when capturing.',
+                features: ['Animated battles', 'Medieval theme', 'Multiplayer']
+            },
+            {
+                id: 'fritz-1',
+                name: 'Fritz (DOS)',
+                year: 1991,
+                view: '2D',
+                popularity: 95,
+                sizeKB: 800,
+                publisher: 'ChessBase',
+                assetZip: '/dos/games/fritz/fritz.zip',
+                description: 'Classic DOS chess program by ChessBase.',
+                features: ['Opening book', 'Endgame tablebases', 'Analysis mode']
+            }
+        ];
     },
 
     // ===== FILTER & SORT =====
@@ -302,6 +381,27 @@ const CaissaDOSChess = {
         this.elements.playerContainer.innerHTML = '';
         this.elements.playerError.querySelector('p').textContent = message;
         this.elements.playerError.style.display = 'flex';
+    },
+
+    showFallbackBanner(errorMsg) {
+        if (!this.elements.gamesGrid) return;
+
+        const banner = document.createElement('div');
+        banner.className = 'dos-fallback-banner';
+        banner.innerHTML = `
+            <div class="dos-fallback-content">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <strong>Using fallback list (JSON failed)</strong>
+                    <p>${errorMsg}</p>
+                </div>
+                <button class="btn btn-secondary" onclick="location.reload()">
+                    <i class="fas fa-sync"></i> Retry
+                </button>
+            </div>
+        `;
+
+        this.elements.gamesGrid.parentElement.insertBefore(banner, this.elements.gamesGrid);
     },
 
     clearFilters() {
