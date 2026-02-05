@@ -173,6 +173,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize opening book
     initializeOpeningBook();
 
+    // Load ECO opening names dataset
+    loadOpeningsDataset();
+
     // Setup event listeners
     setupEventListeners();
 
@@ -1665,21 +1668,37 @@ function flipBoard() {
 }
 
 /**
- * HOTFIX: Sync eval bar orientation with board orientation
- * Default: white at bottom (white-bottom class applied)
- * Flipped: black at bottom (white-bottom class removed)
- * Logic: whiteAtBottom = !App.isFlipped
+ * Sync eval bar orientation with board orientation
+ * Default: white at bottom (no flip)
+ * Flipped: white at top (apply white-top class)
+ * Logic: whiteAtTop = App.isFlipped
  */
 function syncEvalOrientation() {
     const evalBar = document.getElementById('evalBar');
     if (!evalBar) return;
 
-    const whiteAtBottom = !App.isFlipped;
+    const whiteAtTop = App.isFlipped;
 
-    if (whiteAtBottom) {
-        evalBar.classList.add('white-bottom');
+    if (whiteAtTop) {
+        evalBar.classList.add('white-top');
     } else {
-        evalBar.classList.remove('white-bottom');
+        evalBar.classList.remove('white-top');
+    }
+}
+
+async function loadOpeningsDataset() {
+    try {
+        const response = await fetch('data/openings.json', { cache: 'no-cache' });
+        if (!response.ok) {
+            throw new Error(`Failed to load openings.json (${response.status})`);
+        }
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0) {
+            App.openings = data;
+            console.log(`✅ Openings dataset loaded (${data.length} entries)`);
+        }
+    } catch (error) {
+        console.warn('⚠️ Openings dataset not loaded. Using fallback list.', error);
     }
 }
 
@@ -1913,6 +1932,12 @@ function setupEventListeners() {
             showNotification('Analyzing position for best move...');
         } else {
             showNotification('Already analyzing - check Engine Analysis panel');
+        }
+        if (App.gameMode !== 'analysis' && !App.editMode) {
+            App.gameActive = true;
+            if (App.board) {
+                App.board.draggable = true;
+            }
         }
     }, 'btnHint');
 
@@ -2586,9 +2611,15 @@ async function enterEngineVsEngineMode() {
 
         // Show EvE panel, hide other panels
         console.log('🎨 Updating UI panels...');
-        App.elements.evePanel.style.display = 'block';
-        document.querySelector('.engine-panel').style.display = 'none';
-        document.querySelector('.actions-panel').style.display = 'none';
+        if (App.elements.evePanel) {
+            App.elements.evePanel.style.display = 'block';
+        }
+        const enginePanel = document.querySelector('.engine-panel');
+        const gameMenuPanel = document.querySelector('.game-menu-panel');
+        const actionsPanel = document.querySelector('.actions-panel');
+        if (enginePanel) enginePanel.style.display = 'none';
+        if (gameMenuPanel) gameMenuPanel.style.display = 'none';
+        if (actionsPanel) actionsPanel.style.display = 'none';
 
         // Automatically start engines from current position (QUICK START)
         // This is different from "New Game → Engine vs Engine" which resets to startpos
@@ -2597,6 +2628,9 @@ async function enterEngineVsEngineMode() {
         // Auto-start the engines from current board position
         console.log('🚀 Starting engines...');
         await startEngineVsEngine();
+        setTimeout(() => {
+            try { App.board?.resize(); } catch (e) {}
+        }, 0);
         console.log('✅ Engines started successfully');
     } catch (error) {
         console.error('❌ Error in enterEngineVsEngineMode:', error);
@@ -2616,9 +2650,18 @@ function exitEngineVsEngineMode() {
     }
 
     // Hide EvE panel, show other panels
-    App.elements.evePanel.style.display = 'none';
-    document.querySelector('.engine-panel').style.display = 'block';
-    document.querySelector('.actions-panel').style.display = 'block';
+    if (App.elements.evePanel) {
+        App.elements.evePanel.style.display = 'none';
+    }
+    const enginePanel = document.querySelector('.engine-panel');
+    const gameMenuPanel = document.querySelector('.game-menu-panel');
+    const actionsPanel = document.querySelector('.actions-panel');
+    if (enginePanel) enginePanel.style.display = 'block';
+    if (gameMenuPanel) gameMenuPanel.style.display = 'block';
+    if (actionsPanel) actionsPanel.style.display = 'block';
+    setTimeout(() => {
+        try { App.board?.resize(); } catch (e) {}
+    }, 0);
 
     showNotification('Engine vs Engine mode disabled.');
 }

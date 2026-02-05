@@ -60,7 +60,7 @@
      */
 
     /* Sizes - CRITICAL FOR BOARD VISIBILITY */
-    --board-size: clamp(560px, 60vw, 660px);
+    --board-size: clamp(576px, 62vw, 700px);
     --right-col: 400px;
     --board-gutter: clamp(24px, 6vw, 96px);
     --sidebar-width: 220px;
@@ -484,16 +484,12 @@ html, body {
     color: #ef4444;
 }
 
-/* HOTFIX: Eval bar orientation - white at bottom by default */
-/* The bar always calculates white advantage (0-100%), but we flip it visually */
-/* when white is at bottom (default) to match board orientation */
-.eval-bar.white-bottom .eval-fill {
-    /* Flip bar vertically to show white at bottom */
+/* Eval bar orientation: flip only when white is at the top */
+.eval-bar.white-top .eval-fill {
     transform: scaleY(-1);
 }
 
-/* Keep badge readable when bar is flipped */
-.eval-bar.white-bottom .eval-score-badge {
+.eval-bar.white-top .eval-score-badge {
     transform: translateY(-50%) scaleY(-1);
 }
 
