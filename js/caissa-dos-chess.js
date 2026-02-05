@@ -90,65 +90,86 @@ const CaissaDOSChess = {
         // Debug mode (add ?debug=1 to URL)
         const debugMode = new URLSearchParams(window.location.search).has('debug');
 
-        try {
-            // Use absolute URL for production reliability
-            const url = new URL('/dos/dos_chess_games.json', window.location.origin).toString();
+        // Try multiple paths for Vercel (public as root) and Live Server compatibility
+        const candidates = [
+            new URL('/dos/dos_chess_games.json', window.location.origin).toString(),
+            new URL('/public/dos/dos_chess_games.json', window.location.origin).toString()
+        ];
 
-            if (debugMode) {
-                console.log('[DOS Chess DEBUG] Fetching from:', url);
-            }
+        const attempts = [];
 
-            const response = await fetch(url, { cache: 'no-store' });
-
-            if (debugMode) {
-                console.log('[DOS Chess DEBUG] Response status:', response.status);
-                console.log('[DOS Chess DEBUG] Content-Type:', response.headers.get('content-type'));
-            }
-
-            // Handle specific error cases
-            if (!response.ok) {
-                const contentType = response.headers.get('content-type') || '';
-                let errorMsg = '';
-
-                if (response.status === 404) {
-                    errorMsg = 'Missing file: /dos/dos_chess_games.json';
-                } else if (contentType.includes('text/html')) {
-                    errorMsg = 'Server returned HTML (likely routing/caching issue).';
-
-                    if (debugMode) {
-                        const body = await response.text();
-                        console.log('[DOS Chess DEBUG] HTML response preview:', body.substring(0, 120));
-                    }
-                } else {
-                    errorMsg = `HTTP ${response.status} - ${response.statusText}`;
+        for (const url of candidates) {
+            try {
+                if (debugMode) {
+                    console.log('[DOS Chess DEBUG] Attempting:', url);
                 }
 
-                throw new Error(errorMsg);
+                const response = await fetch(url, { cache: 'no-store' });
+                const contentType = response.headers.get('content-type') || '';
+
+                if (debugMode) {
+                    console.log('[DOS Chess DEBUG] Status:', response.status);
+                    console.log('[DOS Chess DEBUG] Content-Type:', contentType);
+                }
+
+                attempts.push({
+                    url,
+                    status: response.status,
+                    contentType
+                });
+
+                // Success: Found JSON
+                if (response.ok && (contentType.includes('application/json') || contentType.includes('text/plain'))) {
+                    this.games = await response.json();
+                    this.filteredGames = [...this.games];
+
+                    console.log(`[DOS Chess] Loaded ${this.games.length} games from: ${url}`);
+                    this.filterAndRenderGames();
+                    return; // Success - exit
+                }
+
+                // Log issues but try next candidate
+                if (debugMode) {
+                    if (!response.ok) {
+                        console.warn('[DOS Chess DEBUG] Failed:', response.status, response.statusText);
+                    } else if (!contentType.includes('application/json')) {
+                        console.warn('[DOS Chess DEBUG] Wrong content-type, trying next...');
+                        if (contentType.includes('text/html')) {
+                            const body = await response.text();
+                            console.log('[DOS Chess DEBUG] HTML response preview:', body.substring(0, 120));
+                        }
+                    }
+                }
+
+            } catch (error) {
+                if (debugMode) {
+                    console.warn('[DOS Chess DEBUG] Fetch error:', url, error.message);
+                }
+                attempts.push({
+                    url,
+                    status: 'error',
+                    contentType: error.message
+                });
             }
-
-            // Verify JSON content type
-            const contentType = response.headers.get('content-type') || '';
-            if (!contentType.includes('application/json') && debugMode) {
-                console.warn('[DOS Chess DEBUG] Unexpected content-type:', contentType);
-            }
-
-            this.games = await response.json();
-            this.filteredGames = [...this.games];
-
-            console.log(`[DOS Chess] Loaded ${this.games.length} games`);
-            this.filterAndRenderGames();
-
-        } catch (error) {
-            console.error('[DOS Chess] Error loading games:', error);
-
-            // Fallback to embedded minimal dataset
-            console.warn('[DOS Chess] Using fallback dataset');
-            this.games = this.getFallbackGames();
-            this.filteredGames = [...this.games];
-
-            this.filterAndRenderGames();
-            this.showFallbackBanner(error.message);
         }
+
+        // All attempts failed - use fallback
+        console.error('[DOS Chess] All JSON load attempts failed:', attempts);
+        console.warn('[DOS Chess] Using fallback dataset');
+
+        this.games = this.getFallbackGames();
+        this.filteredGames = [...this.games];
+
+        this.filterAndRenderGames();
+
+        // Show banner with details
+        const failureDetails = attempts.map(a =>
+            `${a.url} → ${a.status} (${a.contentType})`
+        ).join('\n');
+
+        this.showFallbackBanner(
+            `JSON load failed. Attempted:\n${failureDetails}\n\nUsing 2-game fallback list.`
+        );
     },
 
     // ===== FALLBACK DATASET =====
