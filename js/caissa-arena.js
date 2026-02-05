@@ -280,6 +280,7 @@ const CaissaArena = {
 
                 // Set up ResizeObserver for dynamic sizing
                 this.setupResizeObserver();
+                this.settleLayout();
                 this.resizeBoardNow();
 
                 // Resize after short delay to ensure proper rendering
@@ -384,6 +385,40 @@ const CaissaArena = {
         if (this.board) {
             this.board.resize();
         }
+    },
+
+    settleLayout() {
+        // Immediate resize
+        this.resizeBoardNow();
+
+        // Next frame resize
+        requestAnimationFrame(() => {
+            this.resizeBoardNow();
+        });
+
+        // Slightly delayed resize for late layout shifts
+        setTimeout(() => {
+            this.resizeBoardNow();
+        }, 80);
+
+        this.setupLayoutObserver();
+    },
+
+    setupLayoutObserver() {
+        if (this.layoutObserver) {
+            this.layoutObserver.disconnect();
+        }
+
+        const container = document.querySelector('.arena-board-container') || this.elements.boardMount;
+        if (!container || typeof ResizeObserver === 'undefined') return;
+
+        this.layoutObserver = new ResizeObserver(() => {
+            requestAnimationFrame(() => {
+                this.resizeBoardNow();
+            });
+        });
+
+        this.layoutObserver.observe(container);
     },
 
     bindEvents() {
@@ -1686,20 +1721,7 @@ const CaissaArena = {
         this.mountBoard();
 
         // Ensure board resize after section is visible
-        requestAnimationFrame(() => {
-            if (this.board) {
-                this.board.resize();
-                console.log('[Arena] Board resized on enter');
-            }
-        });
-        setTimeout(() => {
-            if (this.board) {
-                this.board.resize();
-            }
-        }, 50);
-        setTimeout(() => {
-            this.resizeBoardNow();
-        }, 0);
+        this.settleLayout();
 
         // Pre-warm engines to reduce start delay
         this.prewarmEngines();
@@ -1717,6 +1739,10 @@ const CaissaArena = {
         if (this.state.matchState === 'running') {
             // Optionally stop - for now we let it run
             // this.stopMatch();
+        }
+        if (this.layoutObserver) {
+            this.layoutObserver.disconnect();
+            this.layoutObserver = null;
         }
     },
 

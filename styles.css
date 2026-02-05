@@ -266,6 +266,7 @@ html, body {
     flex-direction: column;
     gap: 12px;
     padding: 10px; /* HOTFIX 2: Add padding for proper spacing */
+    scrollbar-gutter: stable both-edges;
 }
 
 .moves-header {
@@ -300,6 +301,7 @@ html, body {
     flex: 1 1 auto;
     min-height: 320px; /* HOTFIX 2: Ensure panel is visible */
     overflow-y: auto;
+    scrollbar-gutter: stable both-edges;
     border-radius: 14px;
     background: rgba(255, 255, 255, 0.025); /* HOTFIX 3: Subtler background */
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -659,6 +661,7 @@ html, body {
     flex: 1 1 auto;
     padding: var(--spacing-md);
     overflow-y: auto;
+    scrollbar-gutter: stable both-edges;
     font-family: 'Courier New', monospace;
     font-size: 14px;
     line-height: 1.9;
@@ -4743,12 +4746,14 @@ button:focus,
 .right-panel.cais-right-col .moves-panel {
     max-height: clamp(180px, 26vh, 300px);
     min-height: 200px;
-    overflow-y: auto;
+    overflow-y: scroll;
+    scrollbar-gutter: stable both-edges;
 }
 
 .right-panel.cais-right-col .move-history-content {
     max-height: 100%;
-    overflow-y: auto;
+    overflow-y: scroll;
+    scrollbar-gutter: stable both-edges;
     padding: 8px 10px;
 }
 
@@ -5275,6 +5280,7 @@ button:focus,
     width: var(--board-size);
     height: var(--board-size);
     margin: 0 auto;
+    flex: 0 0 auto;
     position: relative;
     aspect-ratio: 1 / 1; /* Ensure perfect square */
 }
