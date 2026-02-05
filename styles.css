@@ -4933,14 +4933,6 @@ button:focus,
     align-items: start;
 }
 
-.arena-layout-v2 {
-    display: grid;
-    grid-template-columns: 240px 1fr 280px;
-    gap: 12px;
-    padding: 12px;
-    height: 100%;
-    max-height: calc(100vh - 60px);
-}
 
 /* Arena Sidebar (Left) */
 .arena-sidebar {
@@ -5285,6 +5277,13 @@ button:focus,
     margin: 0 auto;
 }
 
+.arena-board-zone .arena-board-container {
+    flex: 0 0 auto;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+}
+
 .arena-board-mount {
     /* BOARD SIZE: Dominant board (680px) with breathing room - TASK 3
      * Size will be set dynamically by JS ResizeObserver
@@ -5309,6 +5308,7 @@ button:focus,
     width: 100% !important;
     height: 100% !important;
     margin: 0 auto;
+    aspect-ratio: 1 / 1;
 }
 
 /* Arena Result Overlay */
