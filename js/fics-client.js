@@ -45,6 +45,7 @@ const CaissaFICSClient = {
             // Connection
             connectBtn: document.getElementById('ficsConnectBtn'),
             disconnectBtn: document.getElementById('ficsDisconnectBtn'),
+            testGatewayBtn: document.getElementById('ficsTestGatewayBtn'),
             connectionStatus: document.getElementById('ficsConnectionStatus'),
 
             // Seek buttons
@@ -80,6 +81,7 @@ const CaissaFICSClient = {
         // Connection
         this.elements.connectBtn?.addEventListener('click', () => this.connect());
         this.elements.disconnectBtn?.addEventListener('click', () => this.disconnect());
+        this.elements.testGatewayBtn?.addEventListener('click', () => this.testGateway());
 
         // Seek buttons
         this.elements.seekBlitz1?.addEventListener('click', () => this.seek(1, 0));
@@ -124,15 +126,44 @@ const CaissaFICSClient = {
             return;
         }
 
+        // Check for HTTPS + ws:// mismatch
+        if (window.location.protocol === 'https:' && this.gatewayUrl.startsWith('ws://')) {
+            const errorMsg = '⚠️ HTTPS/WebSocket mismatch detected!\n\n' +
+                'You\'re on HTTPS but gateway URL is ws:// (insecure).\n\n' +
+                'Solutions:\n' +
+                '1. Use local dev: http://localhost:3000\n' +
+                '2. Deploy gateway with WSS (secure WebSocket)\n' +
+                '3. Update gatewayUrl in fics-client.js to wss://';
+
+            this.logToConsole(errorMsg);
+            this.updateGameStatus(errorMsg, 'error');
+            this.updateConnectionStatus(false, 'Protocol mismatch');
+            return;
+        }
+
         this.logToConsole('Connecting to FICS gateway...');
         this.updateConnectionStatus(false, 'Connecting...');
+        this.updateGameStatus('Connecting to gateway...', '');
 
         try {
             this.ws = new WebSocket(this.gatewayUrl);
 
+            // Set timeout for connection attempt
+            const connectionTimeout = setTimeout(() => {
+                if (!this.connected) {
+                    this.logToConsole('❌ Connection timeout');
+                    this.handleConnectionFailure('timeout');
+                    if (this.ws) {
+                        this.ws.close();
+                    }
+                }
+            }, 5000);
+
             this.ws.onopen = () => {
+                clearTimeout(connectionTimeout);
                 console.log('[FICS Client] WebSocket connected');
-                this.logToConsole('Connected to gateway, authenticating...');
+                this.logToConsole('✅ Connected to gateway, authenticating...');
+                this.updateGameStatus('Authenticating...', '');
 
                 // Send guest login request
                 this.send({
@@ -151,14 +182,26 @@ const CaissaFICSClient = {
             };
 
             this.ws.onerror = (error) => {
+                clearTimeout(connectionTimeout);
                 console.error('[FICS Client] WebSocket error:', error);
                 this.logToConsole('❌ Connection error');
-                this.updateConnectionStatus(false, 'Error');
+                this.handleConnectionFailure('error');
             };
 
-            this.ws.onclose = () => {
-                console.log('[FICS Client] WebSocket closed');
-                this.logToConsole('Disconnected from FICS');
+            this.ws.onclose = (event) => {
+                clearTimeout(connectionTimeout);
+                console.log('[FICS Client] WebSocket closed', event.code, event.reason);
+
+                if (this.connected) {
+                    // Was connected, now disconnected
+                    this.logToConsole('Disconnected from FICS');
+                    this.updateGameStatus('Disconnected', '');
+                } else {
+                    // Failed to connect
+                    this.logToConsole('❌ Failed to connect to gateway');
+                    this.handleConnectionFailure('close');
+                }
+
                 this.connected = false;
                 this.authenticated = false;
                 this.updateConnectionStatus(false);
@@ -167,7 +210,90 @@ const CaissaFICSClient = {
         } catch (error) {
             console.error('[FICS Client] Connection failed:', error);
             this.logToConsole(`❌ Failed to connect: ${error.message}`);
-            this.updateConnectionStatus(false, 'Failed');
+            this.handleConnectionFailure('exception');
+        }
+    },
+
+    handleConnectionFailure(reason) {
+        let errorMsg = '❌ Gateway unreachable\n\n';
+        let tips = '';
+
+        switch (reason) {
+            case 'timeout':
+                tips = '• Gateway may not be running\n' +
+                       '• Check if port 8081 is accessible\n' +
+                       '• Firewall may be blocking connection';
+                break;
+            case 'error':
+            case 'close':
+                tips = '• Is the gateway running?\n' +
+                       '  Run: npm run fics:gateway\n\n' +
+                       '• Check gateway URL: ' + this.gatewayUrl + '\n\n' +
+                       '• Firewall or antivirus blocking port 8081?';
+                break;
+            case 'exception':
+                tips = '• Invalid gateway URL\n' +
+                       '• Check fics-client.js configuration';
+                break;
+        }
+
+        const fullMsg = errorMsg + tips;
+        this.updateGameStatus(fullMsg, 'error');
+        this.updateConnectionStatus(false, 'Failed');
+    },
+
+    async testGateway() {
+        this.logToConsole('🔍 Testing gateway connection...');
+        this.updateGameStatus('Testing gateway...', '');
+
+        // Check HTTPS/ws mismatch first
+        if (window.location.protocol === 'https:' && this.gatewayUrl.startsWith('ws://')) {
+            const msg = '⚠️ Cannot test: HTTPS page cannot connect to ws:// gateway';
+            this.logToConsole(msg);
+            this.updateGameStatus(msg + '\n\nUse http://localhost:3000 for local dev', 'error');
+            return;
+        }
+
+        try {
+            const testWs = new WebSocket(this.gatewayUrl);
+
+            const timeout = setTimeout(() => {
+                testWs.close();
+                this.logToConsole('❌ Test failed: Connection timeout');
+                this.updateGameStatus('❌ Gateway unreachable (timeout)\n\nRun: npm run fics:gateway', 'error');
+            }, 5000);
+
+            testWs.onopen = () => {
+                clearTimeout(timeout);
+                this.logToConsole('✅ Gateway test successful!');
+                this.updateGameStatus('✅ Gateway is reachable!\n\nYou can now connect.', 'active');
+                testWs.close();
+            };
+
+            testWs.onerror = () => {
+                clearTimeout(timeout);
+                this.logToConsole('❌ Test failed: Cannot reach gateway');
+                this.updateGameStatus(
+                    '❌ Gateway unreachable\n\n' +
+                    'Is it running?\n' +
+                    'Run: npm run fics:gateway\n\n' +
+                    'URL: ' + this.gatewayUrl,
+                    'error'
+                );
+            };
+
+            testWs.onclose = (event) => {
+                if (event.code === 1000) {
+                    // Normal close after successful test
+                    return;
+                }
+                clearTimeout(timeout);
+            };
+
+        } catch (error) {
+            console.error('[FICS Client] Test failed:', error);
+            this.logToConsole(`❌ Test failed: ${error.message}`);
+            this.updateGameStatus('❌ Test failed: ' + error.message, 'error');
         }
     },
 
@@ -443,7 +569,14 @@ const CaissaFICSClient = {
 
     updateGameStatus(status, className = '') {
         if (this.elements.gameStatus) {
-            this.elements.gameStatus.textContent = status;
+            // Handle multiline status messages
+            if (status.includes('\n')) {
+                // Convert newlines to <br> for proper display
+                const lines = status.split('\n').map(line => line.trim()).filter(Boolean);
+                this.elements.gameStatus.innerHTML = lines.join('<br>');
+            } else {
+                this.elements.gameStatus.textContent = status;
+            }
             this.elements.gameStatus.className = `fics-game-status ${className}`;
         }
 
