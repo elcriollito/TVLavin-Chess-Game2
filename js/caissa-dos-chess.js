@@ -83,6 +83,27 @@ const CaissaDOSChess = {
                 this.closePlayer();
             }
         });
+
+        // Event delegation for dynamically created buttons
+        this.elements.gamesGrid?.addEventListener('click', (e) => {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+
+            const action = target.dataset.action;
+            const gameId = target.dataset.gameId;
+
+            switch (action) {
+                case 'play-hosted':
+                    this.playHostedGame(gameId);
+                    break;
+                case 'clear-filters':
+                    this.clearFilters();
+                    break;
+                case 'reload':
+                    location.reload();
+                    break;
+            }
+        });
     },
 
     // ===== LOAD GAMES DATA =====
@@ -253,7 +274,7 @@ const CaissaDOSChess = {
                 <div class="dos-no-results">
                     <i class="fas fa-search"></i>
                     <p>No games found matching your criteria.</p>
-                    <button class="btn btn-secondary" onclick="CaissaDOSChess.clearFilters()">Clear Filters</button>
+                    <button class="btn btn-secondary" data-action="clear-filters">Clear Filters</button>
                 </div>
             `;
             return;
@@ -262,7 +283,7 @@ const CaissaDOSChess = {
         const gamesHTML = this.filteredGames.map(game => {
             // Phase 2: Hosted play button (only if selfHosted==true)
             const hostedPlayButton = game.selfHosted && game.zipPath ? `
-                <button class="btn btn-success dos-hosted-btn" onclick="CaissaDOSChess.playHostedGame('${game.id}')" aria-label="Play ${game.name} (Hosted)">
+                <button class="btn btn-success dos-hosted-btn" data-action="play-hosted" data-game-id="${game.id}" aria-label="Play ${game.name} (Hosted)">
                     <i class="fas fa-play-circle"></i> Play (Hosted)
                 </button>
             ` : '';
@@ -567,7 +588,7 @@ const CaissaDOSChess = {
                     <strong>Using fallback list (JSON failed)</strong>
                     <p>${errorMsg}</p>
                 </div>
-                <button class="btn btn-secondary" onclick="location.reload()">
+                <button class="btn btn-secondary" data-action="reload">
                     <i class="fas fa-sync"></i> Retry
                 </button>
             </div>
