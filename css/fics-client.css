@@ -1,0 +1,444 @@
+/**
+ * CAISSA FICS Client Styles
+ * Play on Free Internet Chess Server as guest
+ */
+
+/* ===== FICS SECTION ===== */
+#ficsSection {
+    display: none;
+}
+
+#ficsSection.active {
+    display: block;
+}
+
+.fics-layout {
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+    height: calc(100vh - 80px);
+    overflow-y: auto;
+}
+
+/* ===== HEADER ===== */
+.fics-header {
+    margin-bottom: 24px;
+}
+
+.fics-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.fics-title i {
+    color: var(--accent-color);
+}
+
+.fics-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.fics-disclaimer {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: white;
+}
+
+.fics-disclaimer i {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+/* ===== CONNECTION CONTROLS ===== */
+.fics-connection {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.fics-connection-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.fics-connection-info h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    color: var(--text-primary);
+}
+
+.fics-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.fics-status::before {
+    content: '●';
+    font-size: 18px;
+}
+
+.fics-status-connected {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.fics-status-disconnected {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.fics-connection-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.fics-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.fics-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.fics-btn-primary {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.fics-btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.fics-btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.fics-btn-secondary:hover:not(:disabled) {
+    background: var(--bg-secondary);
+}
+
+.fics-btn-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+}
+
+.fics-btn-danger:hover:not(:disabled) {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+}
+
+/* ===== GAME AREA ===== */
+.fics-game-area {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.fics-board-section {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.fics-board-header {
+    margin-bottom: 16px;
+}
+
+.fics-board-header h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    color: var(--text-primary);
+}
+
+.fics-game-status {
+    font-size: 14px;
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: var(--bg-tertiary);
+}
+
+.fics-game-status.active {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.fics-game-status.ended {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+#ficsBoardContainer {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.fics-game-controls {
+    display: none;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* ===== SIDE PANEL ===== */
+.fics-side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.fics-panel {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.fics-panel h3 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.fics-opponent-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+}
+
+.fics-opponent-info i {
+    font-size: 32px;
+    color: var(--accent-color);
+}
+
+.fics-opponent-details h4 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.fics-opponent-details p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* ===== SEEK CONTROLS ===== */
+.fics-seek-presets {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.fics-seek-btn {
+    padding: 12px;
+    text-align: center;
+    border-radius: 8px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+}
+
+.fics-seek-btn:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.fics-seek-btn i {
+    display: block;
+    font-size: 20px;
+    margin-bottom: 4px;
+}
+
+.fics-custom-seek {
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.fics-custom-seek h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.fics-input-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.fics-input-group input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.fics-input-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.fics-input-group label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+/* ===== CONSOLE ===== */
+.fics-console-section {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.fics-console-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.fics-console-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.fics-console-toggle {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 4px 8px;
+}
+
+.fics-console-toggle:hover {
+    color: var(--text-primary);
+}
+
+#ficsConsole {
+    background: #000;
+    color: #0f0;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    padding: 12px;
+    border-radius: 6px;
+    height: 300px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin-bottom: 12px;
+}
+
+.fics-command-input {
+    display: flex;
+    gap: 8px;
+}
+
+.fics-command-input input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+}
+
+.fics-command-input input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+    .fics-game-area {
+        grid-template-columns: 1fr;
+    }
+
+    #ficsBoardContainer {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .fics-layout {
+        padding: 16px;
+    }
+
+    .fics-title {
+        font-size: 22px;
+    }
+
+    .fics-connection-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .fics-seek-presets {
+        grid-template-columns: 1fr;
+    }
+
+    #ficsConsole {
+        height: 200px;
+        font-size: 11px;
+    }
+}

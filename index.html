@@ -60,6 +60,7 @@
     <link rel="stylesheet" href="css/caissa-sync.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-onboarding.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-dos-chess.css?v=1.0.0">
+    <link rel="stylesheet" href="css/fics-client.css?v=1.0.0">
 </head>
 <body>
     <!-- Main Container -->
@@ -174,6 +175,11 @@
                 <button class="nav-item" data-section="dosChess" aria-label="DOS Chess Games">
                     <i class="fas fa-desktop"></i>
                     <span class="nav-label">DOS Chess</span>
+                </button>
+
+                <button class="nav-item" data-section="fics" aria-label="Play on FICS">
+                    <i class="fas fa-globe"></i>
+                    <span class="nav-label">FICS</span>
                 </button>
 
                 <div class="nav-divider"></div>
@@ -1224,6 +1230,158 @@
                             <i class="fas fa-exclamation-triangle"></i>
                             <p>Game bundle not installed yet.</p>
                             <small>Add the game ZIP file to <code>/public/dos/games/</code> to play.</small>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: FICS (Free Internet Chess Server) -->
+            <section id="ficsSection" class="content-section">
+                <div class="fics-layout">
+                    <!-- Header -->
+                    <div class="fics-header">
+                        <h2 class="fics-title">
+                            <i class="fas fa-globe"></i> Play on FICS
+                        </h2>
+                        <p class="fics-subtitle">Free Internet Chess Server - Play as guest</p>
+
+                        <div class="fics-disclaimer">
+                            <i class="fas fa-info-circle"></i>
+                            <div>
+                                <strong>Connecting to external server:</strong>
+                                FICS (freechess.org) is a third-party chess server. By connecting, you agree to their terms of service. Guest login only - no account required.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Connection Controls -->
+                    <div class="fics-connection">
+                        <div class="fics-connection-header">
+                            <div class="fics-connection-info">
+                                <h3>Connection</h3>
+                                <div id="ficsConnectionStatus" class="fics-status fics-status-disconnected">
+                                    Not connected
+                                </div>
+                            </div>
+                            <div class="fics-connection-buttons">
+                                <button id="ficsConnectBtn" class="fics-btn fics-btn-primary">
+                                    <i class="fas fa-plug"></i> Connect
+                                </button>
+                                <button id="ficsDisconnectBtn" class="fics-btn fics-btn-secondary" disabled>
+                                    <i class="fas fa-plug"></i> Disconnect
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Game Area -->
+                    <div class="fics-game-area">
+                        <!-- Board Section -->
+                        <div class="fics-board-section">
+                            <div class="fics-board-header">
+                                <h3>Board</h3>
+                                <div id="ficsGameStatus" class="fics-game-status">
+                                    No active game
+                                </div>
+                            </div>
+
+                            <div id="ficsBoardContainer"></div>
+
+                            <div id="ficsGameControls" class="fics-game-controls">
+                                <button id="ficsResignBtn" class="fics-btn fics-btn-danger">
+                                    <i class="fas fa-flag"></i> Resign
+                                </button>
+                                <button id="ficsDrawBtn" class="fics-btn fics-btn-secondary">
+                                    <i class="fas fa-handshake"></i> Offer Draw
+                                </button>
+                                <button id="ficsAbortBtn" class="fics-btn fics-btn-secondary">
+                                    <i class="fas fa-times"></i> Abort
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Side Panel -->
+                        <div class="fics-side-panel">
+                            <!-- Opponent Info -->
+                            <div class="fics-panel">
+                                <h3>Opponent</h3>
+                                <div id="ficsOpponentInfo" class="fics-opponent-info">
+                                    <i class="fas fa-user-slash"></i>
+                                    <div class="fics-opponent-details">
+                                        <h4>No opponent</h4>
+                                        <p>Seek a game to find an opponent</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Seek Controls -->
+                            <div class="fics-panel">
+                                <h3>Seek Game</h3>
+                                <div class="fics-seek-presets">
+                                    <button id="ficsSeek1_0" class="fics-seek-btn">
+                                        <i class="fas fa-bolt"></i>
+                                        <div>Bullet</div>
+                                        <small>1+0</small>
+                                    </button>
+                                    <button id="ficsSeek3_0" class="fics-seek-btn">
+                                        <i class="fas fa-fire"></i>
+                                        <div>Blitz</div>
+                                        <small>3+0</small>
+                                    </button>
+                                    <button id="ficsSeek5_0" class="fics-seek-btn">
+                                        <i class="fas fa-clock"></i>
+                                        <div>Blitz</div>
+                                        <small>5+0</small>
+                                    </button>
+                                    <button id="ficsSeek10_0" class="fics-seek-btn">
+                                        <i class="fas fa-hourglass"></i>
+                                        <div>Rapid</div>
+                                        <small>10+0</small>
+                                    </button>
+                                </div>
+
+                                <div class="fics-custom-seek">
+                                    <h4>Custom Time Control</h4>
+                                    <div class="fics-input-group">
+                                        <div style="flex: 1;">
+                                            <label>Minutes</label>
+                                            <input type="number" id="ficsCustomTime" value="5" min="1" max="180">
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label>Increment (sec)</label>
+                                            <input type="number" id="ficsCustomInc" value="0" min="0" max="60">
+                                        </div>
+                                    </div>
+                                    <button id="ficsCustomSeekBtn" class="fics-btn fics-btn-primary" style="width: 100%;">
+                                        <i class="fas fa-search"></i> Custom Seek
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Console -->
+                    <div class="fics-console-section">
+                        <div class="fics-console-header">
+                            <h3>Console</h3>
+                            <button id="ficsConsoleToggle" class="fics-console-toggle">
+                                ▼ Hide Console
+                            </button>
+                        </div>
+
+                        <div id="ficsConsoleContainer">
+                            <pre id="ficsConsole">FICS Console - Ready to connect...</pre>
+
+                            <div class="fics-command-input">
+                                <input
+                                    type="text"
+                                    id="ficsCommandInput"
+                                    placeholder="Type FICS command (e.g., 'who', 'games', 'help')..."
+                                >
+                                <button id="ficsSendCommandBtn" class="fics-btn fics-btn-secondary">
+                                    <i class="fas fa-paper-plane"></i> Send
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2435,6 +2593,7 @@
     <script src="js/caissa-ui-auth.js?v=1.0.0" defer></script>
     <script src="js/caissa-onboarding.js?v=1.0.0" defer></script>
     <script src="js/caissa-dos-chess.js?v=1.0.0" defer></script>
+    <script src="js/fics-client.js?v=1.0.0" defer></script>
 
     <style>
         /* Beta Badge */
