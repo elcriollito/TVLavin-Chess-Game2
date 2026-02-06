@@ -570,9 +570,25 @@ const CaissaDOSChess = {
         }
     },
 
-    showPlayerError(message) {
+    showPlayerError(message, testUrl = null) {
         this.elements.playerContainer.innerHTML = '';
-        this.elements.playerError.querySelector('p').textContent = message;
+        const errorP = this.elements.playerError.querySelector('p');
+
+        // Split message into main text and URL for better formatting
+        const lines = message.split('\n');
+        const formattedLines = lines.map(line => {
+            // Escape HTML but preserve line structure
+            return line.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        });
+
+        let htmlContent = formattedLines.join('<br>');
+
+        // Add clickable test link if URL provided
+        if (testUrl) {
+            htmlContent += `<br><br><a href="${testUrl}" target="_blank" rel="noopener noreferrer" style="color: #fbbf24; text-decoration: underline;">🔗 Open Bundle URL in New Tab</a>`;
+        }
+
+        errorP.innerHTML = htmlContent;
         this.elements.playerError.style.display = 'flex';
     },
 
@@ -613,7 +629,9 @@ const CaissaDOSChess = {
 
     // ===== PHASE 2: HOSTED PLAY =====
     async playHostedGame(gameId) {
+        const debugMode = new URLSearchParams(window.location.search).has('debug');
         const game = this.games.find(g => g.id === gameId);
+
         if (!game) {
             console.error('[DOS Chess] Game not found:', gameId);
             return;
@@ -636,14 +654,46 @@ const CaissaDOSChess = {
         const bundleUrl = new URL(game.zipPath, window.location.origin).toString();
         console.log('[DOS Chess] Checking bundle:', bundleUrl);
 
+        if (debugMode) {
+            console.log('[DOS Chess DEBUG] Bundle check:', {
+                gameId: game.id,
+                zipPath: game.zipPath,
+                bundleUrl: bundleUrl,
+                origin: window.location.origin
+            });
+        }
+
         try {
             const response = await fetch(bundleUrl, { method: 'HEAD' });
 
+            if (debugMode) {
+                console.log('[DOS Chess DEBUG] Bundle response:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: Object.fromEntries(response.headers.entries()),
+                    redirected: response.redirected,
+                    url: response.url
+                });
+            }
+
             if (!response.ok) {
+                // Enhanced 404 diagnostics
+                const repoPath = `public${game.zipPath}`;
+                const siteUrl = game.zipPath;
+
                 this.showPlayerError(
-                    `Hosted bundle missing (${response.status}).\n\n` +
-                    `Expected at: ${game.zipPath}\n\n` +
-                    `Please add the GNU Chess DOS bundle or use external links.`
+                    `Hosted bundle missing (HTTP ${response.status}).\n\n` +
+                    `Attempted URL:\n${bundleUrl}\n\n` +
+                    `📁 To fix this:\n` +
+                    `1. Add the DOS bundle ZIP to your repo at:\n   ${repoPath}\n\n` +
+                    `2. Ensure it contains: ${game.hostedExe || 'GNUCHESS.EXE'}\n\n` +
+                    `3. Commit and push to deploy\n\n` +
+                    `ℹ️  Vercel serves /public as root, so:\n` +
+                    `   Repo: ${repoPath}\n` +
+                    `   Site: ${siteUrl}\n\n` +
+                    `🔗 Test the URL directly: ${bundleUrl}\n\n` +
+                    `Or use the external Play link as a fallback.`,
+                    bundleUrl  // Pass URL for clickable link
                 );
                 return;
             }
