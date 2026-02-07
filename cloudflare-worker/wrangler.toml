@@ -14,6 +14,15 @@ workers_dev = true
 # [env.production]
 # vars = { }
 
+# R2 Opening Book Storage
+[[r2_buckets]]
+binding = "BOOK_BUCKET"
+bucket_name = "caissa-books"
+
+# Default book filename (can override via env var)
+[vars]
+BOOK_OBJECT_KEY = "Cerebellum3Merge.bin"
+
 # Configure custom domain after deployment via Cloudflare dashboard:
 # 1. Go to Workers & Pages
 # 2. Select your worker

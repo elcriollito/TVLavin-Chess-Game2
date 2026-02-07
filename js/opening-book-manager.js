@@ -17,6 +17,13 @@ const OpeningBookManager = {
     activeBookData: null, // In-memory data for active book
     isImporting: false,
 
+    // Cloud book
+    cloudBookEnabled: false,
+    cloudBookUrl: 'https://caissa-game-fetcher.elcriollito.workers.dev/api/book',
+    cloudBookName: 'Cerebellum',
+    cloudFetchAbort: null,   // AbortController for canceling requests
+    cloudDebounceTimer: null,
+
     // IndexedDB
     db: null,
     DB_NAME: 'caissa_opening_books',
@@ -454,10 +461,32 @@ const OpeningBookManager = {
         if (!bookId || bookId === 'none') {
             this.activeBookId = null;
             this.activeBookData = null;
+            this.cloudBookEnabled = false;
             this.renderMoves([]);
             this.setStatus('No book selected');
             return;
         }
+
+        // Handle cloud book selection
+        if (bookId === 'cloud:cerebellum') {
+            this.activeBookId = null;
+            this.activeBookData = null;
+            this.cloudBookEnabled = true;
+
+            if (this.elements.bookSelector) {
+                this.elements.bookSelector.value = 'cloud:cerebellum';
+            }
+
+            this.setStatus(`Cloud: ${this.cloudBookName}`);
+            console.log('[OpeningBook] Cloud book enabled');
+
+            // Trigger lookup for current position
+            this.lookupCurrentPosition();
+            return;
+        }
+
+        // Local book selection
+        this.cloudBookEnabled = false;
 
         const bookMeta = this.books.find(b => b.id === bookId);
         if (!bookMeta) return;
@@ -486,7 +515,20 @@ const OpeningBookManager = {
     },
 
     lookupCurrentPosition() {
-        if (!this.activeBookData || !window.App?.game) {
+        if (!window.App?.game) {
+            this.renderMoves([]);
+            return;
+        }
+
+        // Cloud book takes priority over local books if enabled
+        if (this.cloudBookEnabled) {
+            const fen = App.game.fen();
+            this.lookupCloudBook(fen);
+            return;
+        }
+
+        // Local book lookup
+        if (!this.activeBookData) {
             this.renderMoves([]);
             return;
         }
@@ -494,6 +536,77 @@ const OpeningBookManager = {
         const game = App.game;
         const moves = this.getMovesForPosition(game);
         this.renderMoves(moves);
+    },
+
+    async lookupCloudBook(fen) {
+        // Cancel previous request if still pending
+        if (this.cloudFetchAbort) {
+            this.cloudFetchAbort.abort();
+        }
+
+        // Clear previous debounce timer
+        if (this.cloudDebounceTimer) {
+            clearTimeout(this.cloudDebounceTimer);
+        }
+
+        // Debounce 200ms
+        this.cloudDebounceTimer = setTimeout(async () => {
+            try {
+                // Show loading state
+                this.renderMoves([{ san: 'Loading...', uci: '', weight: 0, percent: 0 }]);
+
+                // Create AbortController for this request
+                this.cloudFetchAbort = new AbortController();
+
+                const url = `${this.cloudBookUrl}?fen=${encodeURIComponent(fen)}&max=12`;
+                const response = await fetch(url, {
+                    signal: this.cloudFetchAbort.signal,
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    console.error('[OpeningBook] Cloud book error:', data.error);
+                    this.renderMoves([]);
+                    this.setStatus(`Cloud: ${data.error}`);
+                    return;
+                }
+
+                // Adapt cloud book response to local format
+                const moves = (data.moves || []).map(m => ({
+                    san: m.san || m.uci,
+                    uci: m.uci,
+                    weight: m.weight,
+                    count: m.weight,
+                    percent: m.percent || 0,
+                    wins: 0,
+                    draws: 0,
+                    losses: 0,
+                    totalGames: 0
+                }));
+
+                this.renderMoves(moves);
+                this.setStatus(`Cloud: ${this.cloudBookName} (${moves.length} moves)`);
+
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    // Request was cancelled, ignore
+                    return;
+                }
+
+                console.error('[OpeningBook] Cloud fetch failed:', error);
+                this.renderMoves([]);
+                this.setStatus('Cloud book unavailable');
+            } finally {
+                this.cloudFetchAbort = null;
+                this.cloudDebounceTimer = null;
+            }
+        }, 200);
     },
 
     getMovesForPosition(game) {
@@ -593,6 +706,13 @@ const OpeningBookManager = {
 
         selector.innerHTML = '<option value="none">No book loaded</option>';
 
+        // Add cloud book option
+        const cloudOpt = document.createElement('option');
+        cloudOpt.value = 'cloud:cerebellum';
+        cloudOpt.textContent = `☁️ Cloud: ${this.cloudBookName} (Online)`;
+        selector.appendChild(cloudOpt);
+
+        // Add local books
         for (const book of this.books) {
             const opt = document.createElement('option');
             opt.value = book.id;
@@ -601,13 +721,18 @@ const OpeningBookManager = {
         }
 
         // Restore selection
-        if (currentValue && this.books.find(b => b.id === currentValue)) {
+        if (currentValue === 'cloud:cerebellum') {
+            selector.value = 'cloud:cerebellum';
+        } else if (currentValue && this.books.find(b => b.id === currentValue)) {
             selector.value = currentValue;
+        } else if (this.cloudBookEnabled) {
+            selector.value = 'cloud:cerebellum';
         }
 
-        // Show/hide delete button
+        // Show/hide delete button (only for local books)
         if (this.elements.deleteBtn) {
-            this.elements.deleteBtn.style.display = this.books.length > 0 ? 'inline-flex' : 'none';
+            this.elements.deleteBtn.style.display =
+                (this.books.length > 0 && !this.cloudBookEnabled) ? 'inline-flex' : 'none';
         }
     },
 
