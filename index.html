@@ -62,6 +62,7 @@
     <link rel="stylesheet" href="css/caissa-onboarding.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-dos-chess.css?v=1.0.0">
     <link rel="stylesheet" href="css/fics-client.css?v=1.0.0">
+    <link rel="stylesheet" href="css/opening-book.css?v=1.0.0">
 </head>
 <body>
     <!-- Main Container -->
@@ -485,6 +486,34 @@
                     <div class="panel-title">Opening / Coach</div>
                     <div class="panel-body">
                         <div id="openingTitleRight" class="opening-title-right">Start Position</div>
+                    </div>
+                </div>
+
+                <div class="panel opening-book-panel">
+                    <div class="panel-title">
+                        <span>Opening Book</span>
+                        <span id="openingBookStatus" class="book-status-label"></span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="book-controls">
+                            <select id="openingBookSelector" class="book-selector">
+                                <option value="none">No book loaded</option>
+                            </select>
+                            <button id="openingBookImportBtn" class="book-btn" title="Import .bin or .pgn file">
+                                <i class="fas fa-file-import"></i>
+                            </button>
+                            <button id="openingBookDeleteBtn" class="book-btn book-btn-danger" title="Delete active book" style="display: none;">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                            <input type="file" id="openingBookFileInput" accept=".bin,.pgn" style="display: none;">
+                        </div>
+                        <div id="openingBookProgress" class="book-progress" style="display: none;">
+                            <div class="book-progress-fill"></div>
+                        </div>
+                        <div id="openingBookProgressText" class="book-progress-text" style="display: none;"></div>
+                        <div id="openingBookMoves" class="book-moves-container">
+                            <div class="book-empty">Import a .bin or .pgn file to see book moves</div>
+                        </div>
                     </div>
                 </div>
 
@@ -2598,6 +2627,7 @@
     <script src="js/caissa-onboarding.js?v=1.0.0" defer></script>
     <script src="js/caissa-dos-chess.js?v=1.0.0" defer></script>
     <script src="js/fics-client.js?v=1.0.0" defer></script>
+    <script src="js/opening-book-manager.js?v=1.0.0" defer></script>
 
     <style>
         /* Beta Badge */

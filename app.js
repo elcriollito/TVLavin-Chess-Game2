@@ -3879,6 +3879,11 @@ function updateUI() {
     updateMoveHistory();
     updateTimers();
     updateNavigationButtons();
+
+    // Update opening book moves for current position
+    if (window.OpeningBookManager) {
+        OpeningBookManager.onPositionChange();
+    }
 }
 
 // ===== KEYBOARD SHORTCUTS =====

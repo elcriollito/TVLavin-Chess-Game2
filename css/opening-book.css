@@ -1,0 +1,234 @@
+/**
+ * CAISSA Opening Book Styles
+ * Book import, selector, and move table
+ */
+
+/* ===== BOOK PANEL ===== */
+.opening-book-panel .panel-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.book-status-label {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-tertiary);
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ===== CONTROLS ===== */
+.book-controls {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+.book-selector {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 12px;
+    min-width: 0;
+}
+
+.book-selector:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.book-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.book-btn:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.book-btn-danger:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+}
+
+/* ===== PROGRESS ===== */
+.book-progress {
+    height: 4px;
+    background: var(--bg-tertiary);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
+.book-progress-fill {
+    height: 100%;
+    background: var(--primary-color);
+    border-radius: 2px;
+    transition: width 0.3s;
+    width: 0%;
+}
+
+.book-progress-text {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-bottom: 8px;
+}
+
+/* ===== MOVES TABLE ===== */
+.book-moves-container {
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.book-empty {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    text-align: center;
+    padding: 16px 8px;
+    font-style: italic;
+}
+
+.book-moves-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.book-moves-table thead th {
+    text-align: left;
+    padding: 4px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.book-moves-table tbody tr {
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.book-moves-table tbody tr:hover {
+    background: var(--bg-primary);
+}
+
+.book-moves-table td {
+    padding: 5px 6px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.book-move-san {
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.book-move-count {
+    color: var(--text-secondary);
+    font-size: 11px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* ===== POPULARITY BAR ===== */
+.book-col-bar {
+    min-width: 80px;
+}
+
+.book-bar-container {
+    position: relative;
+    height: 16px;
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.book-bar-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: var(--primary-color);
+    opacity: 0.35;
+    border-radius: 3px;
+    transition: width 0.3s;
+}
+
+.book-bar-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+/* ===== W/D/L SCORE BAR ===== */
+.book-move-score {
+    min-width: 60px;
+}
+
+.book-wdl-bar {
+    display: flex;
+    height: 10px;
+    border-radius: 2px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.book-wdl-win {
+    background: #10b981;
+    height: 100%;
+}
+
+.book-wdl-draw {
+    background: #9ca3af;
+    height: 100%;
+}
+
+.book-wdl-loss {
+    background: #ef4444;
+    height: 100%;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .book-moves-container {
+        max-height: 180px;
+    }
+
+    .book-col-bar {
+        min-width: 60px;
+    }
+
+    .book-move-score {
+        min-width: 40px;
+    }
+}
