@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAISSA Vault - Downloads & Study Materials</title>
+    <meta name="description" content="Download portable chess apps and PDF study materials from CAISSA Vault. Tools for serious chess minds.">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="vault-page.css">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="assets/favicon.png">
+</head>
+<body>
+    <!-- Header Navigation -->
+    <header class="vault-header">
+        <nav class="vault-nav">
+            <div class="vault-nav-container">
+                <a href="/" class="vault-logo">
+                    <i class="fas fa-chess-knight"></i>
+                    <span>CAISSA</span>
+                </a>
+                <div class="vault-nav-links">
+                    <a href="/" class="vault-nav-link">
+                        <i class="fas fa-chess-board"></i>
+                        Play
+                    </a>
+                    <a href="/library" class="vault-nav-link">
+                        <i class="fas fa-book"></i>
+                        Library
+                    </a>
+                    <a href="/vault" class="vault-nav-link active">
+                        <i class="fas fa-box-archive"></i>
+                        Vault
+                    </a>
+                    <a href="/about" class="vault-nav-link">
+                        <i class="fas fa-info-circle"></i>
+                        About
+                    </a>
+                    <a href="/premium" class="vault-nav-link vault-nav-premium">
+                        <i class="fas fa-crown"></i>
+                        Premium
+                    </a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="vault-main">
+        <!-- Hero Section -->
+        <section class="vault-hero">
+            <div class="vault-hero-content">
+                <h1 class="vault-hero-title">
+                    <i class="fas fa-box-archive"></i>
+                    CAISSA Vault
+                </h1>
+                <p class="vault-hero-subtitle">
+                    Tools, portable apps, and study material for serious chess minds.
+                </p>
+                <p class="vault-hero-note">
+                    <i class="fas fa-shield-halved"></i>
+                    All downloads are scanned and versioned.
+                </p>
+            </div>
+        </section>
+
+        <!-- Category Cards -->
+        <section class="vault-categories">
+            <div class="vault-container">
+                <h2 class="vault-section-title">Browse by Category</h2>
+                <div class="vault-category-grid" id="categoryGrid">
+                    <!-- Categories will be rendered by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Software Downloads Section -->
+        <section class="vault-section" id="software">
+            <div class="vault-container">
+                <div class="vault-section-header">
+                    <div>
+                        <h2 class="vault-section-title">
+                            <i class="fas fa-laptop-code"></i>
+                            Portable Software
+                        </h2>
+                        <p class="vault-section-description">
+                            Standalone applications that run without installation. Perfect for USB drives and portable setups.
+                        </p>
+                    </div>
+                </div>
+                <div class="vault-items-grid" id="softwareGrid">
+                    <!-- Software items will be rendered by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- PDFs & Studies Section -->
+        <section class="vault-section" id="pdfs">
+            <div class="vault-container">
+                <div class="vault-section-header">
+                    <div>
+                        <h2 class="vault-section-title">
+                            <i class="fas fa-file-pdf"></i>
+                            PDFs & Study Materials
+                        </h2>
+                        <p class="vault-section-description">
+                            Curated study guides, opening repertoires, and endgame references.
+                        </p>
+                    </div>
+                </div>
+                <div class="vault-items-grid" id="pdfsGrid">
+                    <!-- PDF items will be rendered by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Coming Soon Section -->
+        <section class="vault-section vault-coming-soon">
+            <div class="vault-container">
+                <h2 class="vault-section-title">
+                    <i class="fas fa-hourglass-half"></i>
+                    Coming Soon
+                </h2>
+                <p class="vault-section-description">
+                    We're working on these resources. Check back soon!
+                </p>
+                <ul class="vault-coming-soon-list" id="comingSoonList">
+                    <!-- Coming soon items will be rendered by JavaScript -->
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="vault-footer">
+        <div class="vault-container">
+            <div class="vault-footer-content">
+                <div class="vault-footer-section">
+                    <h3>CAISSA Chess</h3>
+                    <p>Advanced chess analysis and training platform.</p>
+                </div>
+                <div class="vault-footer-section">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="/">Play</a></li>
+                        <li><a href="/library">Library</a></li>
+                        <li><a href="/about">About</a></li>
+                        <li><a href="/premium">Premium</a></li>
+                    </ul>
+                </div>
+                <div class="vault-footer-section">
+                    <h3>Support</h3>
+                    <ul>
+                        <li><a href="/about#contact">Contact</a></li>
+                        <li><a href="/about#privacy">Privacy</a></li>
+                        <li><a href="https://github.com/anthropics/caissa" target="_blank">GitHub</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="vault-footer-bottom">
+                <p>&copy; 2025 CAISSA Chess. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="js/vault-page.js" type="module"></script>
+</body>
+</html>

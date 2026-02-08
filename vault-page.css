@@ -1,0 +1,672 @@
+/* ========================================
+   CAISSA Vault - Page Styles
+   ======================================== */
+
+/* CSS Variables (inherited from styles.css) */
+:root {
+    --vault-bg-primary: #12171e;
+    --vault-bg-secondary: #1a212b;
+    --vault-bg-tertiary: #222a36;
+    --vault-text-primary: #e8eef7;
+    --vault-text-secondary: #aab6c5;
+    --vault-text-muted: #6b7785;
+    --vault-primary: #2c5f9e;
+    --vault-primary-hover: #3d73b8;
+    --vault-accent: #ff9800;
+    --vault-accent-hover: #ffb333;
+    --vault-border: rgba(255, 255, 255, 0.1);
+    --vault-shadow: rgba(0, 0, 0, 0.3);
+    --vault-success: #4caf50;
+    --vault-danger: #f44336;
+
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --spacing-2xl: 48px;
+    --spacing-3xl: 64px;
+}
+
+/* ========================================
+   Global Styles
+   ======================================== */
+
+body {
+    background-color: var(--vault-bg-primary);
+    color: var(--vault-text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+}
+
+/* ========================================
+   Header & Navigation
+   ======================================== */
+
+.vault-header {
+    background-color: var(--vault-bg-secondary);
+    border-bottom: 1px solid var(--vault-border);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 8px var(--vault-shadow);
+}
+
+.vault-nav-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--spacing-md) var(--spacing-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-lg);
+}
+
+.vault-logo {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: var(--vault-text-primary);
+    text-decoration: none;
+    font-size: 1.5rem;
+    font-weight: 700;
+    transition: color 0.2s ease;
+}
+
+.vault-logo i {
+    color: var(--vault-primary);
+    font-size: 1.75rem;
+}
+
+.vault-logo:hover {
+    color: var(--vault-primary);
+}
+
+.vault-nav-links {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.vault-nav-link {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    color: var(--vault-text-secondary);
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.vault-nav-link i {
+    font-size: 0.9rem;
+}
+
+.vault-nav-link:hover {
+    background-color: var(--vault-bg-tertiary);
+    color: var(--vault-text-primary);
+}
+
+.vault-nav-link.active {
+    background-color: var(--vault-primary);
+    color: white;
+}
+
+.vault-nav-premium {
+    background: linear-gradient(135deg, #ff9800, #ff5722);
+    color: white !important;
+}
+
+.vault-nav-premium:hover {
+    background: linear-gradient(135deg, #ffb333, #ff6f3d);
+    transform: translateY(-1px);
+}
+
+/* ========================================
+   Main Content
+   ======================================== */
+
+.vault-main {
+    min-height: calc(100vh - 80px);
+}
+
+.vault-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-lg);
+}
+
+/* ========================================
+   Hero Section
+   ======================================== */
+
+.vault-hero {
+    background: linear-gradient(135deg, var(--vault-bg-secondary) 0%, var(--vault-bg-tertiary) 100%);
+    border-bottom: 1px solid var(--vault-border);
+    padding: var(--spacing-3xl) var(--spacing-lg);
+    text-align: center;
+}
+
+.vault-hero-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.vault-hero-title {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 800;
+    margin: 0 0 var(--spacing-md) 0;
+    background: linear-gradient(135deg, var(--vault-primary), var(--vault-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+}
+
+.vault-hero-title i {
+    -webkit-text-fill-color: var(--vault-primary);
+    font-size: 0.9em;
+}
+
+.vault-hero-subtitle {
+    font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+    color: var(--vault-text-secondary);
+    margin: 0 0 var(--spacing-lg) 0;
+    font-weight: 300;
+}
+
+.vault-hero-note {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: rgba(76, 175, 80, 0.1);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    border-radius: 20px;
+    color: var(--vault-success);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* ========================================
+   Categories Section
+   ======================================== */
+
+.vault-categories {
+    padding: var(--spacing-3xl) 0;
+    background-color: var(--vault-bg-primary);
+}
+
+.vault-category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-xl);
+}
+
+.vault-category-card {
+    background: linear-gradient(135deg, var(--vault-bg-secondary) 0%, var(--vault-bg-tertiary) 100%);
+    border: 1px solid var(--vault-border);
+    border-radius: 12px;
+    padding: var(--spacing-xl);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.vault-category-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--vault-primary), var(--vault-accent));
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.vault-category-card:hover::before {
+    transform: scaleX(1);
+}
+
+.vault-category-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--vault-primary);
+    box-shadow: 0 8px 24px var(--vault-shadow);
+}
+
+.vault-category-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+    background: linear-gradient(135deg, var(--vault-primary), var(--vault-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.vault-category-card h3 {
+    font-size: 1.5rem;
+    margin: 0 0 var(--spacing-sm) 0;
+    color: var(--vault-text-primary);
+}
+
+.vault-category-card p {
+    color: var(--vault-text-secondary);
+    margin: 0 0 var(--spacing-lg) 0;
+    line-height: 1.5;
+}
+
+.vault-category-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--vault-primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.vault-category-btn:hover {
+    background-color: var(--vault-primary-hover);
+    transform: translateX(4px);
+}
+
+/* ========================================
+   Section Styles
+   ======================================== */
+
+.vault-section {
+    padding: var(--spacing-3xl) 0;
+    border-bottom: 1px solid var(--vault-border);
+}
+
+.vault-section:last-of-type {
+    border-bottom: none;
+}
+
+.vault-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-xl);
+    gap: var(--spacing-lg);
+}
+
+.vault-section-title {
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+    font-weight: 700;
+    margin: 0 0 var(--spacing-sm) 0;
+    color: var(--vault-text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.vault-section-title i {
+    color: var(--vault-primary);
+    font-size: 0.9em;
+}
+
+.vault-section-description {
+    color: var(--vault-text-secondary);
+    font-size: 1.1rem;
+    margin: 0;
+    max-width: 600px;
+}
+
+/* ========================================
+   Item Grid (Downloads)
+   ======================================== */
+
+.vault-items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.vault-item-card {
+    background-color: var(--vault-bg-secondary);
+    border: 1px solid var(--vault-border);
+    border-radius: 12px;
+    padding: var(--spacing-lg);
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.vault-item-card:hover {
+    border-color: var(--vault-primary);
+    box-shadow: 0 4px 16px var(--vault-shadow);
+    transform: translateY(-2px);
+}
+
+.vault-item-header {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.vault-item-icon {
+    font-size: 2.5rem;
+    color: var(--vault-primary);
+    flex-shrink: 0;
+}
+
+.vault-item-title-group {
+    flex: 1;
+}
+
+.vault-item-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0 0 var(--spacing-xs) 0;
+    color: var(--vault-text-primary);
+}
+
+.vault-item-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.vault-item-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background-color: var(--vault-bg-tertiary);
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--vault-text-secondary);
+}
+
+.vault-item-badge i {
+    font-size: 0.7rem;
+}
+
+.vault-item-badge.version {
+    background-color: rgba(44, 95, 158, 0.2);
+    color: var(--vault-primary);
+}
+
+.vault-item-badge.platform {
+    background-color: rgba(255, 152, 0, 0.2);
+    color: var(--vault-accent);
+}
+
+.vault-item-badge.format {
+    background-color: rgba(244, 67, 54, 0.2);
+    color: #ff6b6b;
+}
+
+.vault-item-badge.topic {
+    background-color: rgba(76, 175, 80, 0.2);
+    color: var(--vault-success);
+}
+
+.vault-item-description {
+    color: var(--vault-text-secondary);
+    margin: 0 0 var(--spacing-lg) 0;
+    line-height: 1.6;
+    flex: 1;
+}
+
+.vault-item-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: auto;
+}
+
+.vault-item-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.vault-item-btn-primary {
+    background-color: var(--vault-primary);
+    color: white;
+}
+
+.vault-item-btn-primary:hover {
+    background-color: var(--vault-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(44, 95, 158, 0.3);
+}
+
+.vault-item-btn-secondary {
+    background-color: var(--vault-bg-tertiary);
+    color: var(--vault-text-secondary);
+    border: 1px solid var(--vault-border);
+}
+
+.vault-item-btn-secondary:hover {
+    background-color: var(--vault-bg-primary);
+    color: var(--vault-text-primary);
+    border-color: var(--vault-primary);
+}
+
+.vault-item-sha {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background-color: var(--vault-bg-primary);
+    border-radius: 6px;
+    border: 1px solid var(--vault-border);
+}
+
+.vault-item-sha-label {
+    font-size: 0.7rem;
+    color: var(--vault-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.vault-item-sha-value {
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    color: var(--vault-text-secondary);
+    word-break: break-all;
+}
+
+/* ========================================
+   Coming Soon Section
+   ======================================== */
+
+.vault-coming-soon {
+    background: linear-gradient(135deg, var(--vault-bg-primary) 0%, var(--vault-bg-secondary) 100%);
+}
+
+.vault-coming-soon-list {
+    list-style: none;
+    padding: 0;
+    margin: var(--spacing-xl) 0 0 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.vault-coming-soon-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    background-color: var(--vault-bg-secondary);
+    border: 1px solid var(--vault-border);
+    border-radius: 8px;
+    color: var(--vault-text-secondary);
+    transition: all 0.2s ease;
+}
+
+.vault-coming-soon-item:hover {
+    border-color: var(--vault-accent);
+    background-color: var(--vault-bg-tertiary);
+}
+
+.vault-coming-soon-item i {
+    color: var(--vault-accent);
+    font-size: 1.25rem;
+}
+
+.vault-coming-soon-item span {
+    font-weight: 500;
+}
+
+/* ========================================
+   Footer
+   ======================================== */
+
+.vault-footer {
+    background-color: var(--vault-bg-secondary);
+    border-top: 1px solid var(--vault-border);
+    padding: var(--spacing-3xl) 0 var(--spacing-lg) 0;
+    margin-top: var(--spacing-3xl);
+}
+
+.vault-footer-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
+}
+
+.vault-footer-section h3 {
+    color: var(--vault-text-primary);
+    font-size: 1.1rem;
+    margin: 0 0 var(--spacing-md) 0;
+}
+
+.vault-footer-section p {
+    color: var(--vault-text-secondary);
+    margin: 0;
+    line-height: 1.6;
+}
+
+.vault-footer-section ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.vault-footer-section li {
+    margin-bottom: var(--spacing-sm);
+}
+
+.vault-footer-section a {
+    color: var(--vault-text-secondary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.vault-footer-section a:hover {
+    color: var(--vault-primary);
+}
+
+.vault-footer-bottom {
+    text-align: center;
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid var(--vault-border);
+    color: var(--vault-text-muted);
+    font-size: 0.9rem;
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+
+@media (max-width: 768px) {
+    .vault-nav-links {
+        display: none;
+    }
+
+    .vault-hero {
+        padding: var(--spacing-2xl) var(--spacing-md);
+    }
+
+    .vault-categories,
+    .vault-section {
+        padding: var(--spacing-xl) 0;
+    }
+
+    .vault-category-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .vault-items-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .vault-section-header {
+        flex-direction: column;
+    }
+
+    .vault-footer-content {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-lg);
+    }
+
+    .vault-item-actions {
+        flex-direction: column;
+    }
+
+    .vault-coming-soon-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .vault-hero-title {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+
+    .vault-item-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+}
+
+/* ========================================
+   Smooth Scrolling
+   ======================================== */
+
+html {
+    scroll-behavior: smooth;
+}
+
+/* Focus states for accessibility */
+.vault-category-btn:focus,
+.vault-item-btn:focus {
+    outline: 2px solid var(--vault-primary);
+    outline-offset: 2px;
+}

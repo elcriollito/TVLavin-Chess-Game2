@@ -7,6 +7,7 @@
   "rewrites": [
     { "source": "/library", "destination": "/library.html" },
     { "source": "/premium", "destination": "/premium.html" },
+    { "source": "/vault", "destination": "/vault.html" },
     { "source": "/about", "destination": "/about.html" },
     { "source": "/roadmap", "destination": "/roadmap.html" },
     { "source": "/signin", "destination": "/signin.html" },
