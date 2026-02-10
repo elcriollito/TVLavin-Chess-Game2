@@ -1,0 +1,16 @@
+name = "caissa-vault-downloads"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Use Workers free tier
+workers_dev = true
+
+# R2 Vault Storage (private bucket)
+[[r2_buckets]]
+binding = "VAULT_BUCKET"
+bucket_name = "caissa-vault"
+
+# Custom domain configuration (after deployment)
+# routes = [
+#   { pattern = "downloads.caissa-chess.org/*", zone_name = "caissa-chess.org" }
+# ]

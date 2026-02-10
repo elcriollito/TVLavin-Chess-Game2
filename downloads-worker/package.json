@@ -1,0 +1,13 @@
+{
+  "name": "caissa-vault-downloads-worker",
+  "version": "1.0.0",
+  "description": "CAISSA Vault downloads Worker for serving files from R2",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "tail": "wrangler tail"
+  },
+  "keywords": ["cloudflare", "worker", "r2", "downloads"],
+  "author": "CAISSA Chess",
+  "license": "MIT"
+}
