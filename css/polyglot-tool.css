@@ -1,0 +1,187 @@
+.poly-container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+.poly-header {
+    border-bottom: 1px solid #e5e7eb;
+    background: #ffffff;
+}
+
+.poly-header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 64px;
+}
+
+.poly-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #111827;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.poly-nav {
+    display: flex;
+    gap: 16px;
+}
+
+.poly-nav a {
+    color: #374151;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.poly-nav a.active {
+    color: #1d4ed8;
+}
+
+.poly-main {
+    padding: 28px 0 44px;
+    background: #f8fafc;
+    min-height: calc(100vh - 64px);
+}
+
+.poly-hero h1 {
+    margin: 0;
+    font-size: 2rem;
+    color: #0f172a;
+}
+
+.poly-hero p {
+    margin: 8px 0 0;
+    color: #475569;
+}
+
+.poly-card {
+    margin-top: 20px;
+    padding: 20px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.poly-download-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+.poly-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 10px 14px;
+    background: #ffffff;
+    color: #0f172a;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.poly-btn-primary {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #ffffff;
+}
+
+.poly-sha-box {
+    margin-top: 14px;
+    padding: 12px;
+    border-radius: 10px;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.poly-sha-box code {
+    font-size: 0.85rem;
+    overflow-wrap: anywhere;
+}
+
+.poly-copy-btn {
+    border: 1px solid #94a3b8;
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.poly-note {
+    margin-top: 8px;
+    color: #475569;
+}
+
+.poly-form {
+    margin-top: 16px;
+    display: grid;
+    gap: 12px;
+}
+
+.poly-form label {
+    font-weight: 600;
+    color: #1f2937;
+    display: grid;
+    gap: 6px;
+}
+
+.poly-form input[type="file"],
+.poly-form input[type="number"],
+.poly-form select {
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.poly-grid {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.poly-generate-btn {
+    justify-content: center;
+    width: fit-content;
+}
+
+.poly-output {
+    margin-top: 18px;
+}
+
+.poly-log {
+    margin: 8px 0 0;
+    min-height: 180px;
+    max-height: 340px;
+    overflow: auto;
+    padding: 12px;
+    border-radius: 8px;
+    background: #000000;
+    color: #22c55e;
+    font-family: Consolas, Menlo, Monaco, monospace;
+    font-size: 0.87rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    border: 1px solid #1f2937;
+}
+
+.poly-result-row {
+    margin-top: 12px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    font-weight: 600;
+    color: #1e293b;
+}

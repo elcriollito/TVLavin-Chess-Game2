@@ -37,10 +37,11 @@ const softwareItems = [
         version: 'v1.0.0',
         platform: 'Windows x64',
         icon: 'fas fa-book-open',
-        description: 'Create and edit Polyglot opening books for chess engines. Supports PGN import and merge operations.',
-        downloadUrl: '#',  // Replace with actual download link
-        releaseNotesUrl: '#',  // Replace with actual release notes link
-        sha256: 'a3f2b8c1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1'  // Optional
+        description: 'Create Polyglot opening books for chess engines. Includes portable desktop build plus online PGN to BIN service.',
+        downloadUrl: 'https://downloads.caissa-chess.org/download/polyglot-book-creator',
+        releaseNotesUrl: 'https://downloads.caissa-chess.org/download/polyglot-book-creator-changelog',
+        toolUrl: '/tools/polyglot',
+        sha256: '6e91c3488f9af5f944e4405ca3ae04eab49701621ddc5b754f42b2f47fbdbe67'
     },
     {
         name: 'CAISSA Portable',
@@ -198,8 +199,14 @@ function renderSoftware() {
                 </a>
                 <a href="${item.releaseNotesUrl}" class="vault-item-btn vault-item-btn-secondary">
                     <i class="fas fa-file-lines"></i>
-                    Release Notes
+                    CHANGELOG
                 </a>
+                ${item.toolUrl ? `
+                <a href="${item.toolUrl}" class="vault-item-btn vault-item-btn-secondary">
+                    <i class="fas fa-wand-magic-sparkles"></i>
+                    Open Tool
+                </a>
+                ` : ''}
             </div>
             ${item.sha256 ? `
                 <div class="vault-item-sha">

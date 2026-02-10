@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAISSA Polyglot Book Creator</title>
+    <meta name="description" content="Generate Polyglot opening books (.bin) from PGN. Download the portable app or build books online.">
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/css/polyglot-tool.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header class="poly-header">
+        <div class="poly-container poly-header-inner">
+            <a href="/" class="poly-logo">
+                <i class="fas fa-chess-knight"></i>
+                <span>CAISSA</span>
+            </a>
+            <nav class="poly-nav">
+                <a href="/">Play</a>
+                <a href="/vault">Vault</a>
+                <a href="/tools/polyglot" class="active">Polyglot Tool</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="poly-main">
+        <section class="poly-hero poly-container">
+            <h1>CAISSA Polyglot Book Creator</h1>
+            <p>Generate Polyglot opening books (.bin) from PGN.</p>
+        </section>
+
+        <section class="poly-card poly-container">
+            <h2>Download v1.0.0</h2>
+            <div class="poly-download-actions">
+                <a class="poly-btn poly-btn-primary" href="https://downloads.caissa-chess.org/download/polyglot-book-creator">
+                    <i class="fas fa-download"></i>
+                    Download v1.0.0 (ZIP)
+                </a>
+                <a class="poly-btn" href="https://downloads.caissa-chess.org/download/polyglot-book-creator-sha256">
+                    <i class="fas fa-shield-halved"></i>
+                    SHA256 Checksum
+                </a>
+                <a class="poly-btn" href="https://downloads.caissa-chess.org/download/polyglot-book-creator-changelog">
+                    <i class="fas fa-file-lines"></i>
+                    CHANGELOG
+                </a>
+            </div>
+            <div class="poly-sha-box">
+                <strong>SHA256</strong>
+                <code id="releaseSha">6e91c3488f9af5f944e4405ca3ae04eab49701621ddc5b754f42b2f47fbdbe67</code>
+                <button id="copyShaBtn" class="poly-copy-btn" type="button">Copy</button>
+            </div>
+        </section>
+
+        <section class="poly-card poly-container">
+            <h2>Online PGN → BIN Service</h2>
+            <p class="poly-note">Upload PGN, apply options, and generate a Polyglot <code>.bin</code> file directly in your browser session.</p>
+
+            <form id="polyForm" class="poly-form">
+                <label for="pgnFile">PGN file</label>
+                <input id="pgnFile" name="pgnFile" type="file" accept=".pgn,text/plain,application/x-chess-pgn" required>
+
+                <div class="poly-grid">
+                    <label>
+                        Max Ply
+                        <input id="maxPly" type="number" min="1" max="1024" value="160">
+                    </label>
+                    <label>
+                        Min Count
+                        <input id="minCount" type="number" min="1" max="1000" value="1">
+                    </label>
+                    <label>
+                        Normalize
+                        <select id="normalize">
+                            <option value="cap" selected>cap</option>
+                            <option value="none">none</option>
+                        </select>
+                    </label>
+                    <label>
+                        Side
+                        <select id="side">
+                            <option value="both" selected>Both</option>
+                            <option value="white">White</option>
+                            <option value="black">Black</option>
+                        </select>
+                    </label>
+                </div>
+
+                <button id="generateBtn" class="poly-btn poly-btn-primary poly-generate-btn" type="submit">
+                    <i class="fas fa-gears"></i>
+                    Generate BIN
+                </button>
+            </form>
+
+            <div class="poly-output">
+                <h3>Build Log</h3>
+                <pre id="buildLog" class="poly-log">[ready] Waiting for PGN upload...</pre>
+                <div id="resultRow" class="poly-result-row" hidden>
+                    <span id="outputSize"></span>
+                    <a id="downloadOutputBtn" class="poly-btn poly-btn-primary" download>Download BIN</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script type="module" src="/js/polyglot-tool.js"></script>
+</body>
+</html>
