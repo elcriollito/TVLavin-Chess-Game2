@@ -73,88 +73,32 @@
     color: var(--text);
 }
 
-.poly-layout {
+.polyglot-shell {
     display: flex;
-    gap: 22px;
-    align-items: flex-start;
+    min-height: 100vh;
+    position: relative;
+    z-index: 2;
 }
 
-.polyglot-sidebar {
-    width: 240px;
-    flex: 0 0 240px;
-    background: rgba(10, 16, 28, 0.72);
-    border: 1px solid rgba(148, 163, 184, 0.24);
-    border-radius: 14px;
-    padding: 18px 14px;
-    color: #e2e8f0;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+.polyglot-global-sidebar {
+    width: 220px;
+    flex: 0 0 220px;
+    min-height: 100vh;
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    backdrop-filter: blur(4px);
 }
 
-.poly-sidebar-brand {
+.polyglot-content-area {
+    flex: 1;
     display: flex;
-    align-items: center;
-    gap: 9px;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    margin-bottom: 14px;
-}
-
-.poly-sidebar-brand i {
-    color: #93c5fd;
-}
-
-.poly-sidebar-nav {
-    display: grid;
-    gap: 8px;
-}
-
-.poly-sidebar-nav a {
-    display: block;
-    padding: 9px 11px;
-    border-radius: 9px;
-    text-decoration: none;
-    font-weight: 600;
-    color: #cbd5e1;
-    border: 1px solid transparent;
-    background: rgba(148, 163, 184, 0.08);
-}
-
-.poly-sidebar-nav a:hover {
-    border-color: rgba(148, 163, 184, 0.42);
-    background: rgba(148, 163, 184, 0.14);
-}
-
-.poly-sidebar-nav a.active {
-    color: #eff6ff;
-    border-color: rgba(96, 165, 250, 0.7);
-    background: rgba(30, 64, 175, 0.42);
-}
-
-.poly-sidebar-upcoming {
-    margin-top: 20px;
-    border-top: 1px solid rgba(148, 163, 184, 0.2);
-    padding-top: 12px;
-}
-
-.poly-sidebar-upcoming h2 {
-    margin: 0;
-    font-size: 0.86rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: rgba(226, 232, 240, 0.72);
-}
-
-.poly-sidebar-upcoming ul {
-    margin: 10px 0 0;
-    padding-left: 18px;
-    color: rgba(203, 213, 225, 0.68);
-    display: grid;
-    gap: 6px;
+    justify-content: center;
+    padding: 48px 24px;
 }
 
 .polyglot-main {
-    flex: 1;
-    min-width: 0;
+    width: 100%;
 }
 
 .polyglot-banner {
@@ -343,7 +287,7 @@
 .polyglot-page {
     position: relative;
     min-height: 100vh;
-    padding: 48px 16px;
+    padding: 0;
     background: transparent;
     overflow: hidden;
 }
@@ -373,8 +317,8 @@
 .polyglot-card {
     position: relative;
     z-index: 2;
-    max-width: 1050px;
-    margin: 0 auto;
+    width: min(1050px, 100%);
+    margin: 0;
     background: rgba(255, 255, 255, 0.92);
     border: 1px solid rgba(255, 255, 255, 0.45);
     border-radius: 16px;
@@ -388,31 +332,43 @@
 }
 
 @media (max-width: 900px) {
-    .polyglot-card {
-        padding: 16px;
-    }
-
-    .poly-layout {
+    .polyglot-shell {
         display: block;
     }
 
-    .polyglot-sidebar {
+    .polyglot-global-sidebar {
         width: 100%;
-        margin-bottom: 16px;
+        min-height: auto;
+        position: relative;
     }
 
-    .poly-sidebar-nav {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
+    .polyglot-global-sidebar .nav-header {
+        padding: 14px 16px;
     }
 
-    .poly-sidebar-nav a {
-        padding: 8px 12px;
+    .polyglot-global-sidebar .nav-items {
+        flex-direction: row;
+        overflow-x: auto;
+        gap: 6px;
+        padding: 10px 12px 12px;
     }
 
-    .poly-sidebar-upcoming ul {
-        margin-bottom: 4px;
+    .polyglot-global-sidebar .nav-item {
+        width: auto;
+        min-width: max-content;
+        padding: 10px 12px;
+    }
+
+    .polyglot-global-sidebar .nav-item .nav-label {
+        display: inline;
+    }
+
+    .polyglot-content-area {
+        padding: 16px 12px 24px;
+    }
+
+    .polyglot-card {
+        padding: 16px;
     }
 
     .polyglot-banner {
