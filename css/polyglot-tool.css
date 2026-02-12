@@ -256,6 +256,7 @@
     content: "";
     position: absolute;
     inset: 0;
+    background-color: #0b1220;
     background-image: url("/assets/wallpapers/chess-terminal-server.jpg");
     background-size: cover;
     background-position: center;
