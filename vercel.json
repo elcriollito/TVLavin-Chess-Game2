@@ -13,7 +13,6 @@
     { "source": "/roadmap", "destination": "/roadmap.html" },
     { "source": "/signin", "destination": "/signin.html" },
     { "source": "/signup", "destination": "/signup.html" },
-    { "source": "/assets/:path*", "destination": "/public/assets/:path*" },
     { "source": "/data/:path*", "destination": "/public/data/:path*" },
     { "source": "/favicon.ico", "destination": "/public/favicon.ico" },
     { "source": "/favicon-16.png", "destination": "/public/favicon-16.png" },
