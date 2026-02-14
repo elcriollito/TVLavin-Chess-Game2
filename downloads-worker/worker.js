@@ -51,6 +51,9 @@ const DOWNLOADS = {
   }
 };
 
+const COUNTED_SLUG = 'caissa-book-creator';
+const COUNTED_DOWNLOAD_KEY = 'apps/caissa-book-creator/v0.2.0/CAISSA-Book-Creator-v0.2.0-portable.zip';
+
 const DOWNLOAD_PATH_TO_SLUG = Object.entries(DOWNLOADS).reduce((acc, [slug, config]) => {
   if (!config.deprecated && config.key) {
     acc[config.key] = slug;
@@ -95,19 +98,16 @@ function getCounterStub(env) {
 
 async function incrementDownloadCount(slug, env) {
   const stub = getCounterStub(env);
-  await stub.fetch('https://download-counter/increment', {
+  await stub.fetch('https://download-counter/inc', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ slug })
+    headers: { 'Content-Type': 'application/json' }
   });
 }
 
 async function getDownloadCount(slug, env) {
   const stub = getCounterStub(env);
   const resp = await stub.fetch('https://download-counter/get', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ slug })
+    method: 'GET'
   });
   if (!resp.ok) {
     throw new Error(`Counter get failed: ${resp.status}`);
@@ -116,7 +116,7 @@ async function getDownloadCount(slug, env) {
   return Number(payload?.count || 0);
 }
 
-async function handleDownload(slug, env, origin, method = 'GET') {
+async function handleDownload(slug, env, origin, method = 'GET', shouldCount = false) {
   // Look up download config
   const config = DOWNLOADS[slug];
 
@@ -186,8 +186,8 @@ async function handleDownload(slug, env, origin, method = 'GET') {
       headers['X-CAISSA-Version'] = config.version;
     }
 
-    // Count only successful file GET downloads.
-    if (method === 'GET') {
+    // Count only successful file GET downloads for the exact tracked asset path.
+    if (method === 'GET' && shouldCount) {
       try {
         await incrementDownloadCount(slug, env);
       } catch (counterError) {
@@ -254,13 +254,12 @@ async function handleDownloadCount(url, env, origin) {
     });
   }
 
-  const config = DOWNLOADS[slug];
-  if (!config || config.deprecated || !config.key) {
+  if (slug !== COUNTED_SLUG) {
     return new Response(JSON.stringify({
-      error: 'Unknown slug',
+      error: 'Unsupported slug',
       slug
     }), {
-      status: 404,
+      status: 400,
       headers: {
         'Content-Type': 'application/json',
         ...getCorsHeaders(origin)
@@ -290,29 +289,6 @@ async function handleDownloadCount(url, env, origin) {
       }
     });
   }
-}
-
-async function handleDownloadCounts(env, origin) {
-  const slugs = Object.entries(DOWNLOADS)
-    .filter(([, config]) => !config.deprecated && config.key)
-    .map(([slug]) => slug);
-
-  const counts = {};
-  for (const slug of slugs) {
-    try {
-      counts[slug] = await getDownloadCount(slug, env);
-    } catch {
-      counts[slug] = 0;
-    }
-  }
-
-  return new Response(JSON.stringify(counts), {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/json',
-      ...getCorsHeaders(origin)
-    }
-  });
 }
 
 // ============================================================================
@@ -357,9 +333,6 @@ async function handleRequest(request, env) {
   if (path === '/api/download-count' && request.method === 'GET') {
     return handleDownloadCount(url, env, origin);
   }
-  if (path === '/api/download-counts' && request.method === 'GET') {
-    return handleDownloadCounts(env, origin);
-  }
 
   // Download endpoint: /download/{slug}
   const downloadMatch = path.match(/^\/download\/([a-z0-9-]+)$/);
@@ -374,7 +347,7 @@ async function handleRequest(request, env) {
       });
     }
     const slug = downloadMatch[1];
-    return handleDownload(slug, env, origin, request.method);
+    return handleDownload(slug, env, origin, request.method, false);
   }
 
   // Direct key endpoint: /apps/... for known catalog entries
@@ -390,7 +363,10 @@ async function handleRequest(request, env) {
         }
       });
     }
-    return handleDownload(directSlug, env, origin, request.method);
+    const shouldCount = request.method === 'GET' &&
+      directSlug === COUNTED_SLUG &&
+      directKey === COUNTED_DOWNLOAD_KEY;
+    return handleDownload(directSlug, env, origin, request.method, shouldCount);
   }
 
   // 404 for unknown routes
@@ -401,8 +377,7 @@ async function handleRequest(request, env) {
       '/health',
       '/catalog',
       '/download/{slug}',
-      '/api/download-count?slug={slug}',
-      '/api/download-counts'
+      '/api/download-count?slug=caissa-book-creator'
     ]
   }), {
     status: 404,
@@ -431,46 +406,28 @@ export class DownloadCounter {
   async fetch(request) {
     const url = new URL(request.url);
 
-    if (request.method !== 'POST') {
+    if (request.method !== 'POST' && request.method !== 'GET') {
       return new Response(JSON.stringify({ error: 'Method not allowed' }), {
         status: 405,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    let payload = {};
-    try {
-      payload = await request.json();
-    } catch {
-      return new Response(JSON.stringify({ error: 'Invalid JSON payload' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
+    const key = 'count';
 
-    const slug = payload?.slug;
-    if (!slug || typeof slug !== 'string') {
-      return new Response(JSON.stringify({ error: 'Missing or invalid slug' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    const key = `count:${slug}`;
-
-    if (url.pathname === '/increment') {
+    if (url.pathname === '/inc' && request.method === 'POST') {
       const current = Number((await this.state.storage.get(key)) || 0);
       const next = current + 1;
       await this.state.storage.put(key, next);
-      return new Response(JSON.stringify({ slug, count: next }), {
+      return new Response(JSON.stringify({ count: next }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    if (url.pathname === '/get') {
+    if (url.pathname === '/get' && request.method === 'GET') {
       const count = Number((await this.state.storage.get(key)) || 0);
-      return new Response(JSON.stringify({ slug, count }), {
+      return new Response(JSON.stringify({ count }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
       });
