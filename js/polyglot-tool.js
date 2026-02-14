@@ -1,4 +1,3 @@
-const DOWNLOAD_BASE = 'https://downloads.caissa-chess.org/download';
 const MAX_PGN_BYTES = 25 * 1024 * 1024;
 
 const form = document.getElementById('polyForm');
@@ -35,17 +34,10 @@ if (form) {
 setupDownloadLinks();
 
 function setupDownloadLinks() {
-    const links = document.querySelectorAll('a[href*="downloads.caissa-chess.org/download/"]');
+    const links = document.querySelectorAll('.poly-download-actions a[href^="https://"]');
     links.forEach(link => {
-        if (link.href.includes('/polyglot-book-creator-changelog')) {
-            link.href = `${DOWNLOAD_BASE}/polyglot-book-creator-changelog`;
-        }
-        if (link.href.includes('/polyglot-book-creator-sha256')) {
-            link.href = `${DOWNLOAD_BASE}/polyglot-book-creator-sha256`;
-        }
-        if (link.href.includes('/polyglot-book-creator') && !link.href.includes('sha256') && !link.href.includes('changelog')) {
-            link.href = `${DOWNLOAD_BASE}/polyglot-book-creator`;
-        }
+        link.target = '_blank';
+        link.rel = 'noopener';
     });
 }
 
