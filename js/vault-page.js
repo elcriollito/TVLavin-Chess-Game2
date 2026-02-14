@@ -33,15 +33,16 @@ const categories = [
  */
 const softwareItems = [
     {
-        name: 'Polyglot Book Creator',
-        version: 'v1.0.0',
+        name: 'CAISSA Book Creator',
+        version: 'v0.2.0',
         platform: 'Windows x64',
         icon: 'fas fa-book-open',
-        description: 'Create Polyglot opening books for chess engines. Includes portable desktop build plus online PGN to BIN service.',
-        downloadUrl: 'https://downloads.caissa-chess.org/download/polyglot-book-creator',
-        releaseNotesUrl: 'https://downloads.caissa-chess.org/download/polyglot-book-creator-changelog',
+        description: 'Create Polyglot opening books for chess engines. Portable desktop ZIP build.',
+        downloadUrl: 'https://downloads.caissa-chess.org/apps/caissa-book-creator/v0.2.0/CAISSA-Book-Creator-v0.2.0-portable.zip',
+        downloadLabel: 'Download CAISSA Book Creator v0.2.0 (Portable ZIP)',
+        releaseNotesUrl: null,
         toolUrl: '/tools/polyglot',
-        sha256: '6e91c3488f9af5f944e4405ca3ae04eab49701621ddc5b754f42b2f47fbdbe67'
+        sha256: null
     },
     {
         name: 'CAISSA Portable',
@@ -193,14 +194,16 @@ function renderSoftware() {
             </div>
             <p class="vault-item-description">${item.description}</p>
             <div class="vault-item-actions">
-                <a href="${item.downloadUrl}" class="vault-item-btn vault-item-btn-primary">
+                <a href="${item.downloadUrl}" class="vault-item-btn vault-item-btn-primary" ${item.downloadUrl?.startsWith('http') ? 'target="_blank" rel="noopener"' : ''}>
                     <i class="fas fa-download"></i>
-                    Download ZIP
+                    ${item.downloadLabel || 'Download ZIP'}
                 </a>
-                <a href="${item.releaseNotesUrl}" class="vault-item-btn vault-item-btn-secondary">
+                ${item.releaseNotesUrl ? `
+                <a href="${item.releaseNotesUrl}" class="vault-item-btn vault-item-btn-secondary" ${item.releaseNotesUrl.startsWith('http') ? 'target="_blank" rel="noopener"' : ''}>
                     <i class="fas fa-file-lines"></i>
                     CHANGELOG
                 </a>
+                ` : ''}
                 ${item.toolUrl ? `
                 <a href="${item.toolUrl}" class="vault-item-btn vault-item-btn-secondary">
                     <i class="fas fa-wand-magic-sparkles"></i>
@@ -212,6 +215,7 @@ function renderSoftware() {
                 <div class="vault-item-sha">
                     <span class="vault-item-sha-label">SHA256</span>
                     <code class="vault-item-sha-value">${item.sha256}</code>
+                    <button class="vault-item-sha-copy" data-sha="${item.sha256}" type="button">Copy</button>
                 </div>
             ` : ''}
         </div>
@@ -334,6 +338,23 @@ function init() {
 
     // Add download click tracking
     document.addEventListener('click', (e) => {
+        const copyBtn = e.target.closest('.vault-item-sha-copy');
+        if (copyBtn) {
+            const sha = copyBtn.getAttribute('data-sha');
+            if (sha && navigator.clipboard?.writeText) {
+                navigator.clipboard.writeText(sha).then(() => {
+                    const prev = copyBtn.textContent;
+                    copyBtn.textContent = 'Copied';
+                    setTimeout(() => {
+                        copyBtn.textContent = prev || 'Copy';
+                    }, 1200);
+                }).catch(() => {
+                    console.warn('Failed to copy SHA256');
+                });
+            }
+            return;
+        }
+
         if (e.target.closest('.vault-item-btn')) {
             handleDownloadClick(e);
         }
