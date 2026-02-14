@@ -10,6 +10,14 @@ workers_dev = true
 binding = "VAULT_BUCKET"
 bucket_name = "caissa-vault"
 
+[[durable_objects.bindings]]
+name = "DOWNLOAD_COUNTER"
+class_name = "DownloadCounter"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["DownloadCounter"]
+
 # Custom domain configuration (after deployment)
 # routes = [
 #   { pattern = "downloads.caissa-chess.org/*", zone_name = "caissa-chess.org" }
