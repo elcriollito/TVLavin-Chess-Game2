@@ -531,7 +531,12 @@
                 <div class="panel game-status-panel">
                     <div class="panel-title">Game Status</div>
                     <div class="panel-body">
-                        <div id="gameStatusText" class="game-status-text">In progress…</div>
+                        <div class="game-status-box">
+                            <div class="gs-row"><span class="gs-label">State:</span> <span id="gs-state" class="gs-state">In Progress</span></div>
+                            <div class="gs-row"><span class="gs-label">Result:</span> <span id="gs-result" class="gs-result"></span></div>
+                            <div id="gs-message" class="gs-message"></div>
+                        </div>
+                        <div id="gameStatusText" class="game-status-text" style="display:none;">In progress</div>
                     </div>
                 </div>
 

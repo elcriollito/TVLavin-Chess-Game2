@@ -40,6 +40,11 @@ const App = {
     analyzing: false,
     editMode: false,
     isFlipped: false, // Track board flip state for orientation-aware eval bar rendering
+    gameStatus: {
+        state: 'In Progress',
+        result: '',
+        message: ''
+    },
     lastEvalCp: null,
     lastEvalMate: null,
     selectedEditorPiece: 'erase', // Piece to place in editor mode
@@ -918,11 +923,11 @@ function updateStatus() {
         const winner = App.game.turn() === 'w' ? 'Black' : 'White';
         statusText = `Checkmate! ${winner} wins!`;
         statusColor = '#f44336';
-    } else if (App.game.in_draw()) {
-        statusText = 'Game drawn';
-        statusColor = '#ff9800';
     } else if (App.game.in_stalemate()) {
         statusText = 'Stalemate!';
+        statusColor = '#ff9800';
+    } else if (App.game.in_draw()) {
+        statusText = 'Game drawn';
         statusColor = '#ff9800';
     } else if (App.game.in_check()) {
         statusText = `${turn} in check!`;
@@ -955,23 +960,36 @@ function handleGameOver() {
     clearInterval(App.timerInterval);
 
     let message = '';
-    let statusMessage = 'Game over';
+    let state = 'Game Over';
+    let result = '';
+    let detailMessage = '';
+
     if (App.game.in_checkmate()) {
         const winner = App.game.turn() === 'w' ? 'Black' : 'White';
         message = `Checkmate! ${winner} wins!`;
-        statusMessage = `${winner} wins — checkmate`;
-    } else if (App.game.in_draw()) {
-        message = 'Game drawn';
-        statusMessage = 'Draw';
+        state = 'Checkmate';
+        result = winner === 'White' ? '1-0' : '0-1';
+        detailMessage = `${winner} wins by checkmate.`;
     } else if (App.game.in_stalemate()) {
         message = 'Stalemate!';
-        statusMessage = 'Draw — stalemate';
+        state = 'Stalemate';
+        result = '\u00BD-\u00BD';
+        detailMessage = 'Draw by stalemate.';
     } else if (App.game.in_threefold_repetition()) {
         message = 'Draw by threefold repetition';
-        statusMessage = 'Draw — threefold repetition';
+        state = 'Draw';
+        result = '\u00BD-\u00BD';
+        detailMessage = 'Draw by threefold repetition.';
     } else if (App.game.insufficient_material()) {
         message = 'Draw by insufficient material';
-        statusMessage = 'Draw — insufficient material';
+        state = 'Draw';
+        result = '\u00BD-\u00BD';
+        detailMessage = 'Draw by insufficient material.';
+    } else if (App.game.in_draw()) {
+        message = 'Game drawn';
+        state = 'Draw';
+        result = '\u00BD-\u00BD';
+        detailMessage = 'Game drawn.';
     }
 
     // Update game result display if element exists
@@ -979,7 +997,8 @@ function handleGameOver() {
         App.elements.gameResult.textContent = message;
         App.elements.gameResult.classList.add('show');
     }
-    setGameStatusText(statusMessage);
+
+    setGameStatus(state, result, detailMessage);
 
     // Dispatch game end event for UI components
     window.dispatchEvent(new CustomEvent('caissa-game-end', {
@@ -991,7 +1010,6 @@ function handleGameOver() {
         stopAnalysis();
     }
 }
-
 // ===== MOVE HISTORY =====
 function updateMoveHistory() {
     let html = '';
@@ -1202,6 +1220,7 @@ function updateTimers() {
         clearInterval(App.timerInterval);
         App.elements.gameResult.textContent = `Time out! ${winner} wins!`;
         App.elements.gameResult.classList.add('show');
+        setGameStatus('Timeout', winner === 'White' ? '1-0' : '0-1', `${winner} wins on time.`);
     }
 }
 
@@ -1564,6 +1583,7 @@ function newGame(options = {}) {
     
     // Reset UI
     App.elements.gameResult.classList.remove('show');
+    setGameStatus('In Progress', '', '');
     updateMoveHistory();
     updateStatus();
     updateTimers();
@@ -1657,8 +1677,7 @@ function resignGame() {
             App.elements.gameResult.textContent = 'Engine match stopped by resignation';
             App.elements.gameResult.classList.add('show');
         }
-        setGameStatusText('Match stopped - resignation');
-        showNotification('Engine match stopped by resignation');
+        setGameStatus('Match stopped', '', 'Engine match stopped by resignation.');
         return;
     }
 
@@ -1675,7 +1694,8 @@ function resignGame() {
     console.log('🏳️ Player resigned');
 
     // Determine winner based on player color
-    const winner = App.playerColor === 'white' ? 'Black' : 'White';
+    const resigningSide = App.playerColor === 'white' ? 'White' : 'Black';
+    const winner = resigningSide === 'White' ? 'Black' : 'White';
 
     // Stop game
     App.gameActive = false;
@@ -1691,8 +1711,7 @@ function resignGame() {
     App.elements.gameResult.style.background = winner === 'White' ? '#4caf50' : '#333';
     App.elements.gameResult.style.color = 'white';
 
-    setGameStatusText(`${winner} wins - resignation`);
-    showNotification(`${winner} wins by resignation`);
+    setGameStatus(`${resigningSide} resigned`, winner === 'White' ? '1-0' : '0-1', `${winner} wins by resignation.`);
 }
 
 // ===== FEN OPERATIONS =====
@@ -1833,8 +1852,11 @@ function syncEvalOrientation() {
 }
 
 function updateGameStatusPanel() {
-    const el = document.getElementById('gameStatusText');
-    if (!el) return;
+    const stickyEndStates = new Set(['White resigned', 'Black resigned', 'Timeout', 'Match stopped']);
+    if (!App.gameActive && stickyEndStates.has((App.gameStatus && App.gameStatus.state) || '')) {
+        renderGameStatusPanel();
+        return;
+    }
 
     const game = App.game;
     const isCheckmate = (typeof game.isCheckmate === 'function' && game.isCheckmate()) ||
@@ -1848,31 +1870,66 @@ function updateGameStatusPanel() {
     const isInsufficient = (typeof game.isInsufficientMaterial === 'function' && game.isInsufficientMaterial()) ||
         (typeof game.insufficient_material === 'function' && game.insufficient_material());
 
-    let text = 'In progress…';
+    let state = 'In Progress';
+    let result = '';
+    let message = '';
+
     if (isCheckmate) {
         const winner = game.turn() === 'w' ? 'Black' : 'White';
-        text = `${winner} wins — checkmate`;
+        state = 'Checkmate';
+        result = winner === 'White' ? '1-0' : '0-1';
+        message = `${winner} wins by checkmate.`;
     } else if (isStalemate) {
-        text = 'Draw — stalemate';
+        state = 'Stalemate';
+        result = '\u00BD-\u00BD';
+        message = 'Draw by stalemate.';
     } else if (isThreefold) {
-        text = 'Draw — threefold repetition';
+        state = 'Draw';
+        result = '\u00BD-\u00BD';
+        message = 'Draw by threefold repetition.';
     } else if (isInsufficient) {
-        text = 'Draw — insufficient material';
+        state = 'Draw';
+        result = '\u00BD-\u00BD';
+        message = 'Draw by insufficient material.';
     } else if (isDraw) {
-        text = 'Draw';
-    } else {
-        const turn = game.turn() === 'w' ? 'White' : 'Black';
-        text = `In progress… (${turn} to move)`;
+        state = 'Draw';
+        result = '\u00BD-\u00BD';
+        message = 'Game drawn.';
     }
 
-    el.textContent = text;
+    setGameStatus(state, result, message);
 }
 
 function setGameStatusText(text) {
-    const el = document.getElementById('gameStatusText');
-    if (el) el.textContent = text;
+    // Compatibility wrapper for legacy callers.
+    setGameStatus(text || 'In Progress', '', '');
 }
 
+function setGameStatus(state, result = '', message = '') {
+    App.gameStatus = {
+        state: state || 'In Progress',
+        result: result || '',
+        message: message || ''
+    };
+    renderGameStatusPanel();
+}
+
+function renderGameStatusPanel() {
+    const stateEl = document.getElementById('gs-state');
+    const resultEl = document.getElementById('gs-result');
+    const messageEl = document.getElementById('gs-message');
+    const legacyEl = document.getElementById('gameStatusText');
+
+    if (stateEl) stateEl.textContent = App.gameStatus.state || 'In Progress';
+    if (resultEl) resultEl.textContent = App.gameStatus.result || '';
+    if (messageEl) {
+        messageEl.textContent = App.gameStatus.message || '';
+        messageEl.style.display = App.gameStatus.message ? 'block' : 'none';
+    }
+
+    // Keep legacy element in sync if present.
+    if (legacyEl) legacyEl.textContent = App.gameStatus.state || 'In Progress';
+}
 async function loadOpeningsDataset() {
     try {
         const response = await fetch('data/openings.json', { cache: 'no-cache' });
@@ -2970,15 +3027,15 @@ async function engineVsEngineLoop() {
 
             if (App.game.in_checkmate()) {
                 const winner = App.game.turn() === 'w' ? 'Black' : 'White';
-                setGameStatusText(`${winner} wins — checkmate`);
+                setGameStatus('Checkmate', winner === 'White' ? '1-0' : '0-1', `${winner} wins by checkmate.`);
             } else if (App.game.in_threefold_repetition()) {
-                setGameStatusText('Draw — threefold repetition');
+                setGameStatus('Draw', '\u00BD-\u00BD', 'Draw by threefold repetition.');
             } else if (App.game.insufficient_material()) {
-                setGameStatusText('Draw — insufficient material');
+                setGameStatus('Draw', '\u00BD-\u00BD', 'Draw by insufficient material.');
             } else if (App.game.in_stalemate()) {
-                setGameStatusText('Draw — stalemate');
+                setGameStatus('Stalemate', '\u00BD-\u00BD', 'Draw by stalemate.');
             } else if (App.game.in_draw()) {
-                setGameStatusText('Draw');
+                setGameStatus('Draw', '\u00BD-\u00BD', 'Game drawn.');
             }
         }
         return;
@@ -3153,8 +3210,7 @@ function stopEngineVsEngine() {
     // Re-enable configuration
     App.elements.eveMoveDelay.disabled = false;
 
-    setGameStatusText('Match stopped');
-    showNotification('Engine vs Engine game stopped.');
+    setGameStatus('Match stopped', '', 'Engine vs Engine game stopped.');
 }
 
 // ===== PGN LIBRARY =====

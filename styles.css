@@ -4802,6 +4802,44 @@ button:focus,
     color: var(--text);
 }
 
+.game-status-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.gs-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.gs-label {
+    color: var(--muted);
+    font-size: 12px;
+    min-width: 48px;
+}
+
+.gs-state {
+    color: var(--text);
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.gs-result {
+    color: var(--text);
+    font-weight: 700;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 13px;
+}
+
+.gs-message {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.35;
+    word-break: break-word;
+}
+
 .panel {
     border-radius: 14px;
     background: var(--panel-bg);
