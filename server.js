@@ -361,6 +361,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/database' || pathname.startsWith('/database/eco/')) {
     filePath = './database.html';
   }
+  if (pathname === '/eco' || pathname.startsWith('/eco/')) {
+    filePath = './eco.html';
+  }
 
   const extname = String(path.extname(filePath)).toLowerCase();
   const mimeType = MIME_TYPES[extname] || 'application/octet-stream';

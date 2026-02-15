@@ -5,6 +5,8 @@
     }
   },
   "rewrites": [
+    { "source": "/eco", "destination": "/eco.html" },
+    { "source": "/eco/:code", "destination": "/eco.html" },
     { "source": "/database", "destination": "/database.html" },
     { "source": "/database/eco/:code", "destination": "/database.html" },
     { "source": "/tools/polyglot", "destination": "/polyglot.html" },

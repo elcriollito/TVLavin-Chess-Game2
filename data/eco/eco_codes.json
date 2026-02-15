@@ -1,0 +1,1458 @@
+[
+    {
+        "code":  "A00",
+        "name":  "Grob Opening"
+    },
+    {
+        "code":  "A01",
+        "name":  "Nimzowitsch-Larsen Attack"
+    },
+    {
+        "code":  "A02",
+        "name":  "Bird Opening"
+    },
+    {
+        "code":  "A03",
+        "name":  "Bird Opening"
+    },
+    {
+        "code":  "A04",
+        "name":  "Reti Opening"
+    },
+    {
+        "code":  "A05",
+        "name":  "Reti Opening"
+    },
+    {
+        "code":  "A06",
+        "name":  "Reti Opening"
+    },
+    {
+        "code":  "A07",
+        "name":  "King\u0027s Indian Attack"
+    },
+    {
+        "code":  "A09",
+        "name":  "Reti Opening"
+    },
+    {
+        "code":  "A10",
+        "name":  "English Opening"
+    },
+    {
+        "code":  "A11",
+        "name":  "English Opening: Carls-Bremen System"
+    },
+    {
+        "code":  "A12",
+        "name":  "English Opening: Carls-Bremen System"
+    },
+    {
+        "code":  "A13",
+        "name":  "English Opening: Agincourt Defense"
+    },
+    {
+        "code":  "A15",
+        "name":  "English Opening: Anglo-Indian Defense"
+    },
+    {
+        "code":  "A16",
+        "name":  "English Opening"
+    },
+    {
+        "code":  "A17",
+        "name":  "English Opening: Anglo-Indian Defense"
+    },
+    {
+        "code":  "A18",
+        "name":  "English Opening: Mikenas-Carls"
+    },
+    {
+        "code":  "A19",
+        "name":  "English Opening: Mikenas-Carls"
+    },
+    {
+        "code":  "A20",
+        "name":  "English Opening"
+    },
+    {
+        "code":  "A21",
+        "name":  "English Opening: Third-Bishop\u0027s Opening"
+    },
+    {
+        "code":  "A22",
+        "name":  "English Opening: Two Knights"
+    },
+    {
+        "code":  "A23",
+        "name":  "English Opening: Bremen System"
+    },
+    {
+        "code":  "A24",
+        "name":  "English Opening: King\u0027s English"
+    },
+    {
+        "code":  "A25",
+        "name":  "English Opening: Closed"
+    },
+    {
+        "code":  "A26",
+        "name":  "English Opening: Closed"
+    },
+    {
+        "code":  "A27",
+        "name":  "English Opening: Three Knights"
+    },
+    {
+        "code":  "A28",
+        "name":  "English Opening: Four Knights"
+    },
+    {
+        "code":  "A29",
+        "name":  "English Opening: Four Knights"
+    },
+    {
+        "code":  "A30",
+        "name":  "English Opening"
+    },
+    {
+        "code":  "A31",
+        "name":  "English Opening: Symmetrical"
+    },
+    {
+        "code":  "A32",
+        "name":  "English Opening: Symmetrical"
+    },
+    {
+        "code":  "A33",
+        "name":  "English Opening: Symmetrical"
+    },
+    {
+        "code":  "A34",
+        "name":  "English Opening: Symmetrical"
+    },
+    {
+        "code":  "A35",
+        "name":  "English Opening: Symmetrical"
+    },
+    {
+        "code":  "A36",
+        "name":  "English Opening: Symmetrical"
+    },
+    {
+        "code":  "A37",
+        "name":  "English Opening: Symmetrical"
+    },
+    {
+        "code":  "A38",
+        "name":  "English Opening: Symmetrical"
+    },
+    {
+        "code":  "A39",
+        "name":  "English Opening: Symmetrical"
+    },
+    {
+        "code":  "A40",
+        "name":  "Queen\u0027s Pawn Game"
+    },
+    {
+        "code":  "A42",
+        "name":  "Modern Defense"
+    },
+    {
+        "code":  "A43",
+        "name":  "Old Benoni Defense"
+    },
+    {
+        "code":  "A44",
+        "name":  "Old Benoni Defense"
+    },
+    {
+        "code":  "A45",
+        "name":  "Trompowsky Attack"
+    },
+    {
+        "code":  "A46",
+        "name":  "Queen\u0027s Pawn Game"
+    },
+    {
+        "code":  "A48",
+        "name":  "King\u0027s Indian Defense"
+    },
+    {
+        "code":  "A50",
+        "name":  "Queen\u0027s Pawn Game"
+    },
+    {
+        "code":  "A51",
+        "name":  "Budapest Gambit"
+    },
+    {
+        "code":  "A52",
+        "name":  "Budapest Gambit"
+    },
+    {
+        "code":  "A53",
+        "name":  "Old Indian Defense"
+    },
+    {
+        "code":  "A55",
+        "name":  "Old Indian Defense"
+    },
+    {
+        "code":  "A56",
+        "name":  "Benoni Defense"
+    },
+    {
+        "code":  "A57",
+        "name":  "Benko Gambit"
+    },
+    {
+        "code":  "A58",
+        "name":  "Benko Gambit"
+    },
+    {
+        "code":  "A59",
+        "name":  "Benko Gambit"
+    },
+    {
+        "code":  "A60",
+        "name":  "Benoni Defense"
+    },
+    {
+        "code":  "A61",
+        "name":  "Benoni Defense"
+    },
+    {
+        "code":  "A62",
+        "name":  "Benoni Defense: Fianchetto"
+    },
+    {
+        "code":  "A63",
+        "name":  "Benoni Defense: Fianchetto"
+    },
+    {
+        "code":  "A65",
+        "name":  "Benoni Defense: 6.e4"
+    },
+    {
+        "code":  "A66",
+        "name":  "Benoni Defense: Modern"
+    },
+    {
+        "code":  "A67",
+        "name":  "Benoni Defense: Taimanov"
+    },
+    {
+        "code":  "A68",
+        "name":  "Benoni Defense: Four Pawns Attack"
+    },
+    {
+        "code":  "A70",
+        "name":  "Benoni Defense: Classical"
+    },
+    {
+        "code":  "A71",
+        "name":  "Benoni Defense: Classical"
+    },
+    {
+        "code":  "A72",
+        "name":  "Benoni Defense: Classical"
+    },
+    {
+        "code":  "A73",
+        "name":  "Benoni Defense: Classical"
+    },
+    {
+        "code":  "A74",
+        "name":  "Benoni Defense: Classical"
+    },
+    {
+        "code":  "A75",
+        "name":  "Benoni Defense: Classical"
+    },
+    {
+        "code":  "A76",
+        "name":  "Benoni Defense: Classical"
+    },
+    {
+        "code":  "A77",
+        "name":  "Benoni Defense: Classical"
+    },
+    {
+        "code":  "A78",
+        "name":  "Benoni Defense: Classical"
+    },
+    {
+        "code":  "A79",
+        "name":  "Benoni Defense: Classical"
+    },
+    {
+        "code":  "A80",
+        "name":  "Dutch Defense"
+    },
+    {
+        "code":  "A81",
+        "name":  "Dutch Defense: Leningrad"
+    },
+    {
+        "code":  "A82",
+        "name":  "Dutch Defense: Staunton Gambit"
+    },
+    {
+        "code":  "A83",
+        "name":  "Dutch Defense: Staunton Gambit"
+    },
+    {
+        "code":  "A84",
+        "name":  "Dutch Defense: Classical"
+    },
+    {
+        "code":  "A85",
+        "name":  "Dutch Defense: Stonewall"
+    },
+    {
+        "code":  "A86",
+        "name":  "Dutch Defense: Stonewall"
+    },
+    {
+        "code":  "A87",
+        "name":  "Dutch Defense: Leningrad"
+    },
+    {
+        "code":  "A88",
+        "name":  "Dutch Defense: Leningrad"
+    },
+    {
+        "code":  "A89",
+        "name":  "Dutch Defense: Leningrad"
+    },
+    {
+        "code":  "A90",
+        "name":  "Dutch Defense"
+    },
+    {
+        "code":  "A91",
+        "name":  "Dutch Defense: Classical"
+    },
+    {
+        "code":  "A92",
+        "name":  "Dutch Defense: Classical"
+    },
+    {
+        "code":  "A93",
+        "name":  "Dutch Defense: Classical"
+    },
+    {
+        "code":  "A94",
+        "name":  "Dutch Defense: Classical"
+    },
+    {
+        "code":  "A95",
+        "name":  "Dutch Defense: Classical"
+    },
+    {
+        "code":  "A96",
+        "name":  "Dutch Defense: Classical"
+    },
+    {
+        "code":  "A97",
+        "name":  "Dutch Defense: Classical"
+    },
+    {
+        "code":  "A98",
+        "name":  "Dutch Defense: Classical"
+    },
+    {
+        "code":  "A99",
+        "name":  "Dutch Defense: Classical"
+    },
+    {
+        "code":  "B00",
+        "name":  "King\u0027s Pawn Game"
+    },
+    {
+        "code":  "B01",
+        "name":  "Scandinavian Defense"
+    },
+    {
+        "code":  "B02",
+        "name":  "Alekhine Defense"
+    },
+    {
+        "code":  "B03",
+        "name":  "Alekhine Defense"
+    },
+    {
+        "code":  "B04",
+        "name":  "Alekhine Defense: Modern"
+    },
+    {
+        "code":  "B05",
+        "name":  "Alekhine Defense: Modern"
+    },
+    {
+        "code":  "B06",
+        "name":  "Robatsch Defense (Modern)"
+    },
+    {
+        "code":  "B07",
+        "name":  "Pirc Defense"
+    },
+    {
+        "code":  "B09",
+        "name":  "Pirc Defense: Austrian Attack"
+    },
+    {
+        "code":  "B10",
+        "name":  "Caro-Kann Defense"
+    },
+    {
+        "code":  "B11",
+        "name":  "Caro-Kann Defense: Two Knights"
+    },
+    {
+        "code":  "B12",
+        "name":  "Caro-Kann Defense"
+    },
+    {
+        "code":  "B13",
+        "name":  "Caro-Kann Defense: Exchange"
+    },
+    {
+        "code":  "B14",
+        "name":  "Caro-Kann Defense: Panov-Botvinnik"
+    },
+    {
+        "code":  "B15",
+        "name":  "Caro-Kann Defense: Panov Attack"
+    },
+    {
+        "code":  "B16",
+        "name":  "Caro-Kann Defense: Panov Attack"
+    },
+    {
+        "code":  "B17",
+        "name":  "Caro-Kann Defense: Steinitz"
+    },
+    {
+        "code":  "B18",
+        "name":  "Caro-Kann Defense: Classical"
+    },
+    {
+        "code":  "B19",
+        "name":  "Caro-Kann Defense: Classical"
+    },
+    {
+        "code":  "B20",
+        "name":  "Sicilian Defense"
+    },
+    {
+        "code":  "B21",
+        "name":  "Sicilian Defense: Smith-Morra Gambit"
+    },
+    {
+        "code":  "B22",
+        "name":  "Sicilian Defense: Alapin"
+    },
+    {
+        "code":  "B23",
+        "name":  "Sicilian Defense: Closed"
+    },
+    {
+        "code":  "B24",
+        "name":  "Sicilian Defense: Closed"
+    },
+    {
+        "code":  "B25",
+        "name":  "Sicilian Defense: Closed"
+    },
+    {
+        "code":  "B26",
+        "name":  "Sicilian Defense: Closed"
+    },
+    {
+        "code":  "B27",
+        "name":  "Sicilian Defense: Najdorf"
+    },
+    {
+        "code":  "B28",
+        "name":  "Sicilian Defense: O\u0027Kelly"
+    },
+    {
+        "code":  "B30",
+        "name":  "Sicilian Defense: Rossolimo"
+    },
+    {
+        "code":  "B31",
+        "name":  "Sicilian Defense: Rossolimo"
+    },
+    {
+        "code":  "B32",
+        "name":  "Sicilian Defense: Kalashnikov"
+    },
+    {
+        "code":  "B33",
+        "name":  "Sicilian Defense: Sveshnikov"
+    },
+    {
+        "code":  "B34",
+        "name":  "Sicilian Defense: Accelerated Dragon"
+    },
+    {
+        "code":  "B35",
+        "name":  "Sicilian Defense: Accelerated Dragon"
+    },
+    {
+        "code":  "B36",
+        "name":  "Sicilian Defense: Accelerated Dragon"
+    },
+    {
+        "code":  "B37",
+        "name":  "Sicilian Defense: Accelerated Dragon"
+    },
+    {
+        "code":  "B38",
+        "name":  "Sicilian Defense: Accelerated Dragon"
+    },
+    {
+        "code":  "B39",
+        "name":  "Sicilian Defense: Accelerated Dragon"
+    },
+    {
+        "code":  "B40",
+        "name":  "Sicilian Defense"
+    },
+    {
+        "code":  "B41",
+        "name":  "Sicilian Defense: Kan"
+    },
+    {
+        "code":  "B42",
+        "name":  "Sicilian Defense: Kan"
+    },
+    {
+        "code":  "B43",
+        "name":  "Sicilian Defense: Kan"
+    },
+    {
+        "code":  "B45",
+        "name":  "Sicilian Defense: Taimanov"
+    },
+    {
+        "code":  "B46",
+        "name":  "Sicilian Defense: Taimanov"
+    },
+    {
+        "code":  "B47",
+        "name":  "Sicilian Defense: Taimanov"
+    },
+    {
+        "code":  "B48",
+        "name":  "Sicilian Defense: Taimanov"
+    },
+    {
+        "code":  "B49",
+        "name":  "Sicilian Defense: Taimanov"
+    },
+    {
+        "code":  "B50",
+        "name":  "Sicilian Defense"
+    },
+    {
+        "code":  "C00",
+        "name":  "French Defense"
+    },
+    {
+        "code":  "C01",
+        "name":  "French Defense: Exchange"
+    },
+    {
+        "code":  "C02",
+        "name":  "French Defense: Advance"
+    },
+    {
+        "code":  "C03",
+        "name":  "French Defense: Tarrasch"
+    },
+    {
+        "code":  "C04",
+        "name":  "French Defense: Tarrasch, Guimard"
+    },
+    {
+        "code":  "C05",
+        "name":  "French Defense: Tarrasch"
+    },
+    {
+        "code":  "C07",
+        "name":  "French Defense: Tarrasch"
+    },
+    {
+        "code":  "C08",
+        "name":  "French Defense: Tarrasch"
+    },
+    {
+        "code":  "C09",
+        "name":  "French Defense: Tarrasch"
+    },
+    {
+        "code":  "C10",
+        "name":  "French Defense: Rubinstein"
+    },
+    {
+        "code":  "C11",
+        "name":  "French Defense: Burn"
+    },
+    {
+        "code":  "C13",
+        "name":  "French Defense: Classical"
+    },
+    {
+        "code":  "C14",
+        "name":  "French Defense: Classical"
+    },
+    {
+        "code":  "C15",
+        "name":  "French Defense: Winawer"
+    },
+    {
+        "code":  "C16",
+        "name":  "French Defense: Winawer"
+    },
+    {
+        "code":  "C17",
+        "name":  "French Defense: Winawer"
+    },
+    {
+        "code":  "C18",
+        "name":  "French Defense: Winawer"
+    },
+    {
+        "code":  "C19",
+        "name":  "French Defense: Winawer"
+    },
+    {
+        "code":  "C20",
+        "name":  "King\u0027s Pawn Game"
+    },
+    {
+        "code":  "C21",
+        "name":  "Center Game"
+    },
+    {
+        "code":  "C22",
+        "name":  "Center Game"
+    },
+    {
+        "code":  "C23",
+        "name":  "Bishop\u0027s Opening"
+    },
+    {
+        "code":  "C24",
+        "name":  "Bishop\u0027s Opening"
+    },
+    {
+        "code":  "C25",
+        "name":  "Vienna Game"
+    },
+    {
+        "code":  "C26",
+        "name":  "Vienna Game"
+    },
+    {
+        "code":  "C27",
+        "name":  "Vienna Game"
+    },
+    {
+        "code":  "C28",
+        "name":  "Vienna Game"
+    },
+    {
+        "code":  "C29",
+        "name":  "Vienna Gambit"
+    },
+    {
+        "code":  "C30",
+        "name":  "King\u0027s Gambit"
+    },
+    {
+        "code":  "C31",
+        "name":  "King\u0027s Gambit Declined"
+    },
+    {
+        "code":  "C32",
+        "name":  "King\u0027s Gambit Declined"
+    },
+    {
+        "code":  "C33",
+        "name":  "King\u0027s Gambit Accepted"
+    },
+    {
+        "code":  "C34",
+        "name":  "King\u0027s Gambit Accepted"
+    },
+    {
+        "code":  "C35",
+        "name":  "King\u0027s Gambit Accepted"
+    },
+    {
+        "code":  "C36",
+        "name":  "King\u0027s Gambit Accepted"
+    },
+    {
+        "code":  "C37",
+        "name":  "King\u0027s Gambit Accepted"
+    },
+    {
+        "code":  "C38",
+        "name":  "King\u0027s Gambit Accepted"
+    },
+    {
+        "code":  "C39",
+        "name":  "King\u0027s Gambit Accepted"
+    },
+    {
+        "code":  "C40",
+        "name":  "King\u0027s Knight Opening"
+    },
+    {
+        "code":  "C41",
+        "name":  "Philidor Defense"
+    },
+    {
+        "code":  "C42",
+        "name":  "Petrov Defense"
+    },
+    {
+        "code":  "C43",
+        "name":  "Petrov Defense"
+    },
+    {
+        "code":  "C44",
+        "name":  "Scotch Game"
+    },
+    {
+        "code":  "C45",
+        "name":  "Scotch Game"
+    },
+    {
+        "code":  "C46",
+        "name":  "Three Knights Game"
+    },
+    {
+        "code":  "C47",
+        "name":  "Four Knights Game"
+    },
+    {
+        "code":  "C48",
+        "name":  "Four Knights Game"
+    },
+    {
+        "code":  "C49",
+        "name":  "Four Knights Game"
+    },
+    {
+        "code":  "C50",
+        "name":  "Italian Game"
+    },
+    {
+        "code":  "C52",
+        "name":  "Italian Game"
+    },
+    {
+        "code":  "C53",
+        "name":  "Giuoco Piano"
+    },
+    {
+        "code":  "C54",
+        "name":  "Italian Game"
+    },
+    {
+        "code":  "C55",
+        "name":  "Two Knights Defense"
+    },
+    {
+        "code":  "C56",
+        "name":  "Two Knights Defense"
+    },
+    {
+        "code":  "C57",
+        "name":  "Two Knights Defense"
+    },
+    {
+        "code":  "C58",
+        "name":  "Two Knights Defense"
+    },
+    {
+        "code":  "C59",
+        "name":  "Two Knights Defense"
+    },
+    {
+        "code":  "C60",
+        "name":  "Ruy Lopez"
+    },
+    {
+        "code":  "C61",
+        "name":  "Ruy Lopez: Bird Defense"
+    },
+    {
+        "code":  "C62",
+        "name":  "Ruy Lopez: Steinitz Defense"
+    },
+    {
+        "code":  "C63",
+        "name":  "Ruy Lopez: Schliemann Defense"
+    },
+    {
+        "code":  "C64",
+        "name":  "Ruy Lopez: Classical"
+    },
+    {
+        "code":  "C65",
+        "name":  "Ruy Lopez: Berlin Defense"
+    },
+    {
+        "code":  "C66",
+        "name":  "Ruy Lopez: Berlin Defense"
+    },
+    {
+        "code":  "C67",
+        "name":  "Ruy Lopez: Berlin Defense"
+    },
+    {
+        "code":  "C68",
+        "name":  "Ruy Lopez: Exchange"
+    },
+    {
+        "code":  "C69",
+        "name":  "Ruy Lopez: Exchange"
+    },
+    {
+        "code":  "C70",
+        "name":  "Ruy Lopez: Classical"
+    },
+    {
+        "code":  "C71",
+        "name":  "Ruy Lopez: Classical"
+    },
+    {
+        "code":  "C72",
+        "name":  "Ruy Lopez: Classical"
+    },
+    {
+        "code":  "C74",
+        "name":  "Ruy Lopez: Classical"
+    },
+    {
+        "code":  "C75",
+        "name":  "Ruy Lopez: Classical"
+    },
+    {
+        "code":  "C76",
+        "name":  "Ruy Lopez: Classical"
+    },
+    {
+        "code":  "C77",
+        "name":  "Ruy Lopez: Morphy Defense"
+    },
+    {
+        "code":  "C78",
+        "name":  "Ruy Lopez: Morphy Defense"
+    },
+    {
+        "code":  "C79",
+        "name":  "Ruy Lopez: Steinitz Defense Deferred"
+    },
+    {
+        "code":  "C80",
+        "name":  "Ruy Lopez: Open"
+    },
+    {
+        "code":  "C81",
+        "name":  "Ruy Lopez: Open"
+    },
+    {
+        "code":  "C82",
+        "name":  "Ruy Lopez: Open"
+    },
+    {
+        "code":  "C83",
+        "name":  "Ruy Lopez: Open"
+    },
+    {
+        "code":  "C86",
+        "name":  "Ruy Lopez: Closed"
+    },
+    {
+        "code":  "C87",
+        "name":  "Ruy Lopez: Closed"
+    },
+    {
+        "code":  "C88",
+        "name":  "Ruy Lopez: Closed"
+    },
+    {
+        "code":  "C89",
+        "name":  "Ruy Lopez: Marshall Attack"
+    },
+    {
+        "code":  "D00",
+        "name":  "Queen\u0027s Pawn Game"
+    },
+    {
+        "code":  "D01",
+        "name":  "Richter-Veresov Attack"
+    },
+    {
+        "code":  "D02",
+        "name":  "Queen\u0027s Gambit"
+    },
+    {
+        "code":  "D03",
+        "name":  "Torre Attack"
+    },
+    {
+        "code":  "D05",
+        "name":  "Queen\u0027s Gambit"
+    },
+    {
+        "code":  "D06",
+        "name":  "Queen\u0027s Gambit Declined"
+    },
+    {
+        "code":  "D07",
+        "name":  "Queen\u0027s Gambit Declined: Chigorin"
+    },
+    {
+        "code":  "D08",
+        "name":  "Queen\u0027s Gambit Declined: Albin Countergambit"
+    },
+    {
+        "code":  "D09",
+        "name":  "Queen\u0027s Gambit Declined: Albin Countergambit"
+    },
+    {
+        "code":  "D10",
+        "name":  "Slav Defense"
+    },
+    {
+        "code":  "D12",
+        "name":  "Slav Defense"
+    },
+    {
+        "code":  "D13",
+        "name":  "Slav Defense: Exchange"
+    },
+    {
+        "code":  "D14",
+        "name":  "Slav Defense"
+    },
+    {
+        "code":  "D15",
+        "name":  "Slav Defense"
+    },
+    {
+        "code":  "D16",
+        "name":  "Slav Defense"
+    },
+    {
+        "code":  "D17",
+        "name":  "Slav Defense"
+    },
+    {
+        "code":  "D18",
+        "name":  "Slav Defense: Dutch"
+    },
+    {
+        "code":  "D19",
+        "name":  "Slav Defense: Czech"
+    },
+    {
+        "code":  "D20",
+        "name":  "Queen\u0027s Gambit Accepted"
+    },
+    {
+        "code":  "D21",
+        "name":  "Queen\u0027s Gambit Accepted"
+    },
+    {
+        "code":  "D22",
+        "name":  "Queen\u0027s Gambit Accepted"
+    },
+    {
+        "code":  "D23",
+        "name":  "Queen\u0027s Gambit Accepted"
+    },
+    {
+        "code":  "D24",
+        "name":  "Queen\u0027s Gambit Accepted"
+    },
+    {
+        "code":  "D25",
+        "name":  "Queen\u0027s Gambit Accepted"
+    },
+    {
+        "code":  "D26",
+        "name":  "Queen\u0027s Gambit Accepted"
+    },
+    {
+        "code":  "D27",
+        "name":  "Queen\u0027s Gambit Accepted"
+    },
+    {
+        "code":  "D28",
+        "name":  "Queen\u0027s Gambit Accepted"
+    },
+    {
+        "code":  "D29",
+        "name":  "Queen\u0027s Gambit Accepted"
+    },
+    {
+        "code":  "D30",
+        "name":  "Queen\u0027s Gambit Declined"
+    },
+    {
+        "code":  "D32",
+        "name":  "Queen\u0027s Gambit Declined: Tarrasch"
+    },
+    {
+        "code":  "D33",
+        "name":  "Queen\u0027s Gambit Declined: Tarrasch"
+    },
+    {
+        "code":  "D34",
+        "name":  "Queen\u0027s Gambit Declined: Tarrasch"
+    },
+    {
+        "code":  "D35",
+        "name":  "Queen\u0027s Gambit Declined: Exchange"
+    },
+    {
+        "code":  "D37",
+        "name":  "Queen\u0027s Gambit Declined"
+    },
+    {
+        "code":  "D38",
+        "name":  "Queen\u0027s Gambit Declined: Ragozin"
+    },
+    {
+        "code":  "D39",
+        "name":  "Queen\u0027s Gambit Declined: Ragozin"
+    },
+    {
+        "code":  "D40",
+        "name":  "Queen\u0027s Gambit Declined: Semi-Tarrasch"
+    },
+    {
+        "code":  "D41",
+        "name":  "Queen\u0027s Gambit Declined: Semi-Tarrasch"
+    },
+    {
+        "code":  "D42",
+        "name":  "Queen\u0027s Gambit Declined: Semi-Tarrasch"
+    },
+    {
+        "code":  "D43",
+        "name":  "Semi-Slav Defense"
+    },
+    {
+        "code":  "D45",
+        "name":  "Queen\u0027s Gambit Declined"
+    },
+    {
+        "code":  "D46",
+        "name":  "Queen\u0027s Gambit Declined: Semi-Slav"
+    },
+    {
+        "code":  "D47",
+        "name":  "Queen\u0027s Gambit Declined: Semi-Slav"
+    },
+    {
+        "code":  "D48",
+        "name":  "Queen\u0027s Gambit Declined: Semi-Slav"
+    },
+    {
+        "code":  "D49",
+        "name":  "Queen\u0027s Gambit Declined: Semi-Slav"
+    },
+    {
+        "code":  "D50",
+        "name":  "Queen\u0027s Gambit Declined"
+    },
+    {
+        "code":  "D51",
+        "name":  "Queen\u0027s Gambit Declined: Cambridge Springs"
+    },
+    {
+        "code":  "D52",
+        "name":  "Queen\u0027s Gambit Declined: Cambridge Springs"
+    },
+    {
+        "code":  "D54",
+        "name":  "Queen\u0027s Gambit Declined"
+    },
+    {
+        "code":  "D55",
+        "name":  "Queen\u0027s Gambit Declined"
+    },
+    {
+        "code":  "D56",
+        "name":  "Queen\u0027s Gambit Declined"
+    },
+    {
+        "code":  "D57",
+        "name":  "Queen\u0027s Gambit Declined"
+    },
+    {
+        "code":  "D58",
+        "name":  "Queen\u0027s Gambit Declined"
+    },
+    {
+        "code":  "D59",
+        "name":  "Queen\u0027s Gambit Declined"
+    },
+    {
+        "code":  "D60",
+        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+    },
+    {
+        "code":  "D61",
+        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+    },
+    {
+        "code":  "D62",
+        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+    },
+    {
+        "code":  "D63",
+        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+    },
+    {
+        "code":  "D64",
+        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+    },
+    {
+        "code":  "D65",
+        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+    },
+    {
+        "code":  "D66",
+        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+    },
+    {
+        "code":  "D67",
+        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+    },
+    {
+        "code":  "D68",
+        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+    },
+    {
+        "code":  "D69",
+        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+    },
+    {
+        "code":  "D70",
+        "name":  "Neo-Grunfeld Defense"
+    },
+    {
+        "code":  "D74",
+        "name":  "Grunfeld Defense"
+    },
+    {
+        "code":  "D75",
+        "name":  "Grunfeld Defense"
+    },
+    {
+        "code":  "D76",
+        "name":  "Grunfeld Defense: Russian"
+    },
+    {
+        "code":  "D77",
+        "name":  "Grunfeld Defense"
+    },
+    {
+        "code":  "D78",
+        "name":  "Grunfeld Defense"
+    },
+    {
+        "code":  "D79",
+        "name":  "Grunfeld Defense"
+    },
+    {
+        "code":  "D80",
+        "name":  "Grunfeld Defense"
+    },
+    {
+        "code":  "D81",
+        "name":  "Grunfeld Defense: Russian"
+    },
+    {
+        "code":  "D82",
+        "name":  "Grunfeld Defense: Russian"
+    },
+    {
+        "code":  "D83",
+        "name":  "Grunfeld Defense: Russian"
+    },
+    {
+        "code":  "D84",
+        "name":  "Grunfeld Defense: Russian"
+    },
+    {
+        "code":  "D85",
+        "name":  "Grunfeld Defense"
+    },
+    {
+        "code":  "D86",
+        "name":  "Grunfeld Defense: Exchange"
+    },
+    {
+        "code":  "D87",
+        "name":  "Grunfeld Defense: Exchange"
+    },
+    {
+        "code":  "D88",
+        "name":  "Grunfeld Defense: Exchange"
+    },
+    {
+        "code":  "D89",
+        "name":  "Grunfeld Defense: Exchange"
+    },
+    {
+        "code":  "D90",
+        "name":  "Grunfeld Defense"
+    },
+    {
+        "code":  "D91",
+        "name":  "Grunfeld Defense"
+    },
+    {
+        "code":  "D92",
+        "name":  "Grunfeld Defense"
+    },
+    {
+        "code":  "D93",
+        "name":  "Grunfeld Defense"
+    },
+    {
+        "code":  "D94",
+        "name":  "Grunfeld Defense"
+    },
+    {
+        "code":  "D95",
+        "name":  "Grunfeld Defense"
+    },
+    {
+        "code":  "E00",
+        "name":  "Catalan Opening"
+    },
+    {
+        "code":  "E02",
+        "name":  "Catalan Opening"
+    },
+    {
+        "code":  "E03",
+        "name":  "Catalan Opening"
+    },
+    {
+        "code":  "E04",
+        "name":  "Catalan Opening"
+    },
+    {
+        "code":  "E05",
+        "name":  "Catalan Opening"
+    },
+    {
+        "code":  "E06",
+        "name":  "Catalan Opening"
+    },
+    {
+        "code":  "E07",
+        "name":  "Catalan Opening"
+    },
+    {
+        "code":  "E08",
+        "name":  "Catalan Opening"
+    },
+    {
+        "code":  "E09",
+        "name":  "Catalan Opening"
+    },
+    {
+        "code":  "E10",
+        "name":  "Queen\u0027s Indian Defense"
+    },
+    {
+        "code":  "E11",
+        "name":  "Bogo-Indian Defense"
+    },
+    {
+        "code":  "E14",
+        "name":  "Queen\u0027s Indian Defense"
+    },
+    {
+        "code":  "E15",
+        "name":  "Queen\u0027s Indian Defense"
+    },
+    {
+        "code":  "E16",
+        "name":  "Queen\u0027s Indian Defense"
+    },
+    {
+        "code":  "E17",
+        "name":  "Queen\u0027s Indian Defense"
+    },
+    {
+        "code":  "E18",
+        "name":  "Queen\u0027s Indian Defense"
+    },
+    {
+        "code":  "E19",
+        "name":  "Queen\u0027s Indian Defense"
+    },
+    {
+        "code":  "E20",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E23",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E24",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E25",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E26",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E27",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E28",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E29",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E30",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E31",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E32",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E33",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E34",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E35",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E36",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E37",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E38",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E39",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E40",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E41",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E42",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E43",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E44",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E45",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E46",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E47",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E48",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E49",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E50",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E51",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E52",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E54",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E56",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E57",
+        "name":  "Nimzo-Indian Defense"
+    },
+    {
+        "code":  "E60",
+        "name":  "King\u0027s Indian Defense"
+    },
+    {
+        "code":  "E70",
+        "name":  "King\u0027s Indian Defense"
+    }
+]

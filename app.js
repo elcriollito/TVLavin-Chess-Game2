@@ -1122,8 +1122,8 @@ function detectOpening() {
     if (openingName) openingName.textContent = openingText;
     if (openingLinkBook) openingLinkBook.textContent = openingText;
     if (openingLinkCoach) openingLinkCoach.textContent = openingText;
-    if (openingLinkBook) openingLinkBook.href = best && best.eco ? `/database/eco/${best.eco}` : '/database';
-    if (openingLinkCoach) openingLinkCoach.href = best && best.eco ? `/database/eco/${best.eco}` : '/database';
+    if (openingLinkBook) openingLinkBook.href = best && best.eco ? `/eco/${best.eco}` : '/eco';
+    if (openingLinkCoach) openingLinkCoach.href = best && best.eco ? `/eco/${best.eco}` : '/eco';
 
     App.currentOpening = best || null;
     App.openingName = best ? best.name : '';
