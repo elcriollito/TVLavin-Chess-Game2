@@ -39,7 +39,7 @@ const App = {
     gameActive: false,
     analyzing: false,
     editMode: false,
-    isFlipped: false, // MINI PATCH: Track board flip state for eval bar orientation
+    isFlipped: false, // Track board flip state for orientation-aware eval bar rendering
     lastEvalCp: null,
     lastEvalMate: null,
     selectedEditorPiece: 'erase', // Piece to place in editor mode
@@ -1471,9 +1471,9 @@ function updateEvalBar(cp, mate) {
     const t = cpToRatio(cp);
     const whitePct = t * 100;
 
-    // Update bar fill (white area from top)
+    // White segment height comes from engine score.
+    // Its visual anchor (top vs bottom) is controlled by eval bar orientation classes.
     fill.style.height = `${whitePct}%`;
-    fill.style.marginTop = `${100 - whitePct}%`;
 
     // Update score badge
     if (mate !== null && mate !== undefined) {
@@ -1820,21 +1820,16 @@ function flipBoard() {
 
 /**
  * Sync eval bar orientation with board orientation
- * Default: white at bottom (no flip)
- * Flipped: white at top (apply white-top class)
- * Logic: whiteAtTop = App.isFlipped
+ * Default (white at bottom): white segment grows up from the bottom.
+ * Flipped (black at bottom): white segment grows down from the top.
  */
 function syncEvalOrientation() {
     const evalBar = document.getElementById('evalBar');
     if (!evalBar) return;
 
-    const whiteAtTop = App.isFlipped;
-
-    if (whiteAtTop) {
-        evalBar.classList.add('white-top');
-    } else {
-        evalBar.classList.remove('white-top');
-    }
+    const isFlipped = App.isFlipped;
+    evalBar.classList.toggle('eval-flipped', isFlipped);
+    evalBar.classList.toggle('eval-normal', !isFlipped);
 }
 
 function updateGameStatusPanel() {
