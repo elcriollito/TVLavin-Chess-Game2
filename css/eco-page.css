@@ -117,6 +117,98 @@
   margin-top: 10px;
 }
 
+.eco-card {
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: var(--panel-bg);
+  padding: 14px;
+}
+
+.eco-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 14px;
+  align-items: start;
+}
+
+.eco-detail-main h2 {
+  margin-top: 0;
+}
+
+.eco-detail-main h3 {
+  margin-top: 16px;
+}
+
+.eco-detail-pro h3,
+.eco-detail-pro h4 {
+  margin: 0 0 10px;
+}
+
+.eco-mini-board {
+  width: min(100%, 260px);
+  aspect-ratio: 1 / 1;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  margin-bottom: 12px;
+}
+
+.eco-sq {
+  display: grid;
+  place-items: center;
+}
+
+.eco-sq.light {
+  background: #f0d9b5;
+}
+
+.eco-sq.dark {
+  background: #b58863;
+}
+
+.eco-piece {
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.eco-pro-block {
+  border-top: 1px solid var(--panel-border);
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+.eco-stats-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.eco-stats-row strong {
+  color: var(--text-primary);
+}
+
+.eco-continuations {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.eco-continuations li {
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+}
+
+.eco-muted {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
 @media (max-width: 840px) {
   .eco-row {
     grid-template-columns: 84px 1fr;
@@ -141,5 +233,13 @@
     overflow: visible;
     text-overflow: clip;
     font-size: 12px;
+  }
+
+  .eco-detail-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .eco-mini-board {
+    width: min(100%, 240px);
   }
 }

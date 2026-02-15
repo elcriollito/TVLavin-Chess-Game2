@@ -11,6 +11,7 @@
 
   let ecoCodes = [];
   let openings = [];
+  let ecoDetails = [];
   let activeLetter = 'A';
 
   function normalizeSan(san) {
@@ -64,8 +65,92 @@
       : '<div class="eco-row"><span class="eco-code">--</span><span class="eco-name">No matching ECO codes.</span><span class="eco-moves">-</span></div>';
   }
 
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function pieceImageFromFenChar(ch) {
+    const white = ch === ch.toUpperCase();
+    const map = {
+      p: 'P',
+      n: 'N',
+      b: 'B',
+      r: 'R',
+      q: 'Q',
+      k: 'K'
+    };
+    const piece = map[ch.toLowerCase()];
+    if (!piece) return '';
+    return `/img/chesspieces/wikipedia/${white ? 'w' : 'b'}${piece}.png`;
+  }
+
+  function renderMiniBoardFromFen(fen) {
+    const boardEl = document.getElementById('ecoMiniBoard');
+    const fallbackEl = document.getElementById('ecoMiniBoardFallback');
+    if (!boardEl || !fallbackEl) return;
+
+    boardEl.innerHTML = '';
+
+    if (!fen || !String(fen).trim()) {
+      fallbackEl.style.display = 'block';
+      boardEl.style.display = 'none';
+      return;
+    }
+
+    const placement = String(fen).split(' ')[0];
+    const ranks = placement.split('/');
+    if (ranks.length !== 8) {
+      fallbackEl.style.display = 'block';
+      boardEl.style.display = 'none';
+      return;
+    }
+
+    fallbackEl.style.display = 'none';
+    boardEl.style.display = 'grid';
+
+    let squareIndex = 0;
+    for (const rank of ranks) {
+      for (const token of rank) {
+        if (/\d/.test(token)) {
+          const empties = Number(token);
+          for (let i = 0; i < empties; i += 1) {
+            const sq = document.createElement('div');
+            const row = Math.floor(squareIndex / 8);
+            const col = squareIndex % 8;
+            sq.className = `eco-sq ${(row + col) % 2 === 0 ? 'dark' : 'light'}`;
+            boardEl.appendChild(sq);
+            squareIndex += 1;
+          }
+        } else {
+          const sq = document.createElement('div');
+          const row = Math.floor(squareIndex / 8);
+          const col = squareIndex % 8;
+          sq.className = `eco-sq ${(row + col) % 2 === 0 ? 'dark' : 'light'}`;
+
+          const pieceSrc = pieceImageFromFenChar(token);
+          if (pieceSrc) {
+            const img = document.createElement('img');
+            img.className = 'eco-piece';
+            img.src = pieceSrc;
+            img.alt = '';
+            sq.appendChild(img);
+          }
+
+          boardEl.appendChild(sq);
+          squareIndex += 1;
+        }
+      }
+    }
+  }
+
   async function renderDetail(code) {
     const row = ecoCodes.find(r => r.code === code);
+    const detail = ecoDetails.find(d => d.code === code) || null;
     document.getElementById('ecoDetailTitle').textContent = row ? `${row.code} - ${row.name}` : `${code} - Unknown ECO`;
 
     const lines = openings.filter(o => o.eco === code);
@@ -75,7 +160,7 @@
 
     document.getElementById('ecoDetailMoves').textContent = defining
       ? `Defining moves: ${defining.moves.join(' ')}`
-      : 'Moves not added yet';
+      : (detail && detail.moves ? `Defining moves: ${detail.moves}` : 'Moves not added yet');
 
     const tensPrefix = `${code[0]}${code[1]}`;
     const related = ecoCodes.filter(r => r.code !== code && r.code.startsWith(tensPrefix)).slice(0, 20);
@@ -100,13 +185,41 @@
     }
 
     document.getElementById('ecoDetailTheory').textContent = theoryText;
+
+    renderMiniBoardFromFen(detail && detail.fen ? detail.fen : '');
+
+    const stats = detail && detail.stats ? detail.stats : { white: 0, draw: 0, black: 0, games: 0 };
+    const show = (value) => Number(value) > 0 ? `${value}%` : 'TBD';
+    document.getElementById('ecoStatGames').textContent = Number(stats.games) > 0 ? String(stats.games) : 'TBD';
+    document.getElementById('ecoStatWhite').textContent = show(stats.white);
+    document.getElementById('ecoStatDraw').textContent = show(stats.draw);
+    document.getElementById('ecoStatBlack').textContent = show(stats.black);
+
+    const continuationsEl = document.getElementById('ecoContinuations');
+    const list = detail && Array.isArray(detail.continuations) && detail.continuations.length
+      ? detail.continuations.slice(0, 5)
+      : [
+          { san: 'TBD', label: 'Main line', percent: 0 },
+          { san: 'TBD', label: 'Sideline', percent: 0 },
+          { san: 'TBD', label: 'Flexible setup', percent: 0 },
+          { san: 'TBD', label: 'Positional line', percent: 0 },
+          { san: 'TBD', label: 'Tactical option', percent: 0 }
+        ];
+
+    continuationsEl.innerHTML = list.map((item) => {
+      const san = escapeHtml(item.san || 'TBD');
+      const label = escapeHtml(item.label || '');
+      const percent = Number(item.percent) > 0 ? `${item.percent}%` : 'TBD%';
+      return `<li><span>${san}</span> - <span>${label || 'Line'}</span> - <strong>${percent}</strong></li>`;
+    }).join('');
   }
 
   async function init() {
     try {
-      const [codesRes, openingsRes] = await Promise.all([
+      const [codesRes, openingsRes, detailsRes] = await Promise.all([
         fetch('/data/eco/eco_codes.json', { cache: 'no-cache' }),
-        fetch('/data/openings.json', { cache: 'no-cache' })
+        fetch('/data/openings.json', { cache: 'no-cache' }),
+        fetch('/data/eco/eco_details.json', { cache: 'no-cache' })
       ]);
 
       if (!codesRes.ok || !openingsRes.ok) {
@@ -115,6 +228,7 @@
 
       ecoCodes = await codesRes.json();
       openings = await openingsRes.json();
+      ecoDetails = detailsRes.ok ? await detailsRes.json() : [];
 
       if (requestedCode) {
         listView.style.display = 'none';
