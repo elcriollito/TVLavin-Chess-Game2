@@ -1049,8 +1049,9 @@ function updateMoveHistory() {
  * Displays moves in a compact format for the moves panel
  */
 function renderMovesToPanel() {
-    const el = document.getElementById("movesPanel");
-    if (!el) return;
+    const listEl = document.getElementById("moveHistory");
+    const scrollEl = document.getElementById("movesPanel");
+    if (!listEl || !scrollEl) return;
 
     const moves = App.moveHistory; // Array of {san, ...}
     let html = "";
@@ -1062,10 +1063,10 @@ function renderMovesToPanel() {
         html += `<div class="move-row"><span class="turn">${turn}.</span> <span>${w}</span> <span>${b || ''}</span></div>`;
     }
 
-    el.innerHTML = html || `<div class="muted">No moves yet</div>`;
+    listEl.innerHTML = html || `<div class="muted">No moves yet</div>`;
 
     // Scroll to bottom
-    el.scrollTop = el.scrollHeight;
+    scrollEl.scrollTop = scrollEl.scrollHeight;
 }
 
 function detectOpening() {

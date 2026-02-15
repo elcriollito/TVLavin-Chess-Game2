@@ -7,15 +7,15 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; script-src-elem 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https://img.clerk.com https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' ws://localhost:8081 ws://127.0.0.1:8081 https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://api.chess.com https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://api.stripe.com; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://checkout.stripe.com https://js.stripe.com;">
 
     <!-- Primary Meta Tags -->
-    <title>CAISSA Chess – AI Chess Platform with Stockfish & LLM</title>
-    <meta name="title" content="CAISSA Chess – AI Chess Platform with Stockfish & LLM">
+    <title>CAISSA Chess â€“ AI Chess Platform with Stockfish & LLM</title>
+    <meta name="title" content="CAISSA Chess â€“ AI Chess Platform with Stockfish & LLM">
     <meta name="description" content="Analyze FEN/PGN, run Engine vs Engine battles, and explore lines instantly. Free chess platform with Stockfish engine and AI insights.">
     <link rel="canonical" href="https://www.caissa-chess.org/" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.caissa-chess.org/">
-    <meta property="og:title" content="CAISSA Chess – AI Chess Platform with Stockfish & LLM">
+    <meta property="og:title" content="CAISSA Chess â€“ AI Chess Platform with Stockfish & LLM">
     <meta property="og:description" content="Analyze FEN/PGN, run Engine vs Engine battles, and explore lines instantly.">
     <meta property="og:image" content="https://www.caissa-chess.org/og-image.png">
     <meta property="og:image:width" content="1200">
@@ -27,10 +27,10 @@
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://www.caissa-chess.org/">
-    <meta name="twitter:title" content="CAISSA Chess – AI Chess Platform with Stockfish & LLM">
+    <meta name="twitter:title" content="CAISSA Chess â€“ AI Chess Platform with Stockfish & LLM">
     <meta name="twitter:description" content="Analyze FEN/PGN, run Engine vs Engine battles, and explore lines instantly.">
     <meta name="twitter:image" content="https://www.caissa-chess.org/og-image.png">
-    <meta name="twitter:image:alt" content="CAISSA Chess – AI Chess Platform with Stockfish & LLM">
+    <meta name="twitter:image:alt" content="CAISSA Chess â€“ AI Chess Platform with Stockfish & LLM">
 
     <!-- Additional Meta Tags -->
     <meta name="robots" content="index, follow">
@@ -277,10 +277,60 @@
             <aside id="openingPanel" class="opening-panel hidden">
                 <div class="opening-header">
                     <h3 id="openingName">Start Position</h3>
-                    <div id="openingEco" class="opening-eco">—</div>
+                    <div id="openingEco" class="opening-eco">â€”</div>
                 </div>
                 <div id="openingText" class="opening-text">
-                    <p>No opening detected yet — play a few moves to see opening information and analysis.</p>
+                    <p>No opening detected yet â€” play a few moves to see opening information and analysis.</p>
+                </div>
+            </aside>
+
+            <!-- 3-COLUMN LEFT: Play tools -->
+            <aside class="left-panel cais-left-col">
+                <div class="panel opening-coach-panel">
+                    <div class="panel-title">Evaluation</div>
+                    <div class="panel-body">
+                    <div class="hint-line">
+                        <span id="evalNumeric" class="hint-eval">+0.0</span>
+                        <span id="hintPV" class="hint-pv">--</span>
+                    </div>
+                    <div id="evalEngineInfo" class="eval-engine-info">Stockfish 16 | Depth 0 | NNUE</div>
+                </div>
+
+                </div>
+
+                <div class="panel opening-book-panel">
+                    <div class="panel-title">
+                        <span>Opening Book</span>
+                        <span id="openingBookStatus" class="book-status-label"></span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="book-controls">
+                            <select id="openingBookSelector" class="book-selector">
+                                <option value="none">No book loaded</option>
+                            </select>
+                            <button id="openingBookImportBtn" class="book-btn" title="Import .bin or .pgn file">
+                                <i class="fas fa-file-import"></i>
+                            </button>
+                            <button id="openingBookDeleteBtn" class="book-btn book-btn-danger" title="Delete active book" style="display: none;">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                            <input type="file" id="openingBookFileInput" accept=".bin,.pgn" style="display: none;">
+                        </div>
+                        <div id="openingBookProgress" class="book-progress" style="display: none;">
+                            <div class="book-progress-fill"></div>
+                        </div>
+                        <div id="openingBookProgressText" class="book-progress-text" style="display: none;"></div>
+                        <div id="openingBookMoves" class="book-moves-container">
+                            <div class="book-empty">Import a .bin or .pgn file to see book moves</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel opening-coach-panel panel-grow">
+                    <div class="panel-title">Opening / Coach</div>
+                    <div class="panel-body">
+                        <div id="openingTitleRight" class="opening-title-right">Start Position</div>
+                    </div>
                 </div>
             </aside>
 
@@ -482,51 +532,6 @@
             <!-- Right Sidebar - Compact panels -->
             <!-- 3-COLUMN RIGHT: Moves + Actions Panel (Chess.com style) -->
             <aside class="right-panel cais-right-col">
-                <div class="panel opening-coach-panel">
-                    <div class="panel-title">Evaluation</div>
-                    <div class="panel-body">
-                    <div class="hint-line">
-                        <span id="evalNumeric" class="hint-eval">+0.0</span>
-                        <span id="hintPV" class="hint-pv">--</span>
-                    </div>
-                    <div id="evalEngineInfo" class="eval-engine-info">Stockfish 16 · Depth 0 · NNUE</div>
-                </div>
-
-                </div>
-                <div class="panel">
-                    <div class="panel-title">Opening / Coach</div>
-                    <div class="panel-body">
-                        <div id="openingTitleRight" class="opening-title-right">Start Position</div>
-                    </div>
-                </div>
-
-                <div class="panel opening-book-panel">
-                    <div class="panel-title">
-                        <span>Opening Book</span>
-                        <span id="openingBookStatus" class="book-status-label"></span>
-                    </div>
-                    <div class="panel-body">
-                        <div class="book-controls">
-                            <select id="openingBookSelector" class="book-selector">
-                                <option value="none">No book loaded</option>
-                            </select>
-                            <button id="openingBookImportBtn" class="book-btn" title="Import .bin or .pgn file">
-                                <i class="fas fa-file-import"></i>
-                            </button>
-                            <button id="openingBookDeleteBtn" class="book-btn book-btn-danger" title="Delete active book" style="display: none;">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                            <input type="file" id="openingBookFileInput" accept=".bin,.pgn" style="display: none;">
-                        </div>
-                        <div id="openingBookProgress" class="book-progress" style="display: none;">
-                            <div class="book-progress-fill"></div>
-                        </div>
-                        <div id="openingBookProgressText" class="book-progress-text" style="display: none;"></div>
-                        <div id="openingBookMoves" class="book-moves-container">
-                            <div class="book-empty">Import a .bin or .pgn file to see book moves</div>
-                        </div>
-                    </div>
-                </div>
 
                 <div class="panel game-status-panel">
                     <div class="panel-title">Game Status</div>
@@ -542,7 +547,7 @@
 
                 <div class="panel grow">
                     <div class="panel-title">Moves</div>
-                    <div id="movesPanel" class="moves-panel panel-body">
+                    <div class="moves-panel panel-body">
                         <div class="navigation-controls-inline moves-nav-inline">
                             <button id="navFirst" class="nav-btn-sm" title="Start" aria-label="Jump to start">
                                 <i class="fas fa-fast-backward"></i>
@@ -557,7 +562,7 @@
                                 <i class="fas fa-fast-forward"></i>
                             </button>
                         </div>
-                        <div id="moveHistory" class="move-history-content"></div>
+                        <div id="movesPanel" class="move-history-content"><div id="moveHistory"></div></div>
                     </div>
                 </div>
 
@@ -1414,7 +1419,7 @@
                         <div class="fics-console-header">
                             <h3>Console</h3>
                             <button id="ficsConsoleToggle" class="fics-console-toggle">
-                                ▼ Hide Console
+                                â–¼ Hide Console
                             </button>
                         </div>
 
@@ -2334,10 +2339,10 @@
         <div class="mentor-mode-selector">
             <label for="mentorMode">Explanation Mode:</label>
             <select id="mentorMode" class="form-control">
-                <option value="human" selected>🧠 Human (Plans & Ideas)</option>
-                <option value="engine">🔬 Engine (Evaluations & Lines)</option>
-                <option value="classical">♔ Classical (Master Style)</option>
-                <option value="beginner">🌱 Beginner (Simple Language)</option>
+                <option value="human" selected>ðŸ§  Human (Plans & Ideas)</option>
+                <option value="engine">ðŸ”¬ Engine (Evaluations & Lines)</option>
+                <option value="classical">â™” Classical (Master Style)</option>
+                <option value="beginner">ðŸŒ± Beginner (Simple Language)</option>
             </select>
         </div>
 
@@ -2430,11 +2435,11 @@
                     <label for="mentorApiKey">API Key:</label>
                     <input type="password" id="mentorApiKey" class="form-control" placeholder="Enter your Together.ai API key">
                     <small class="form-text" id="mentorApiKeyHelp">
-                        <span id="mentorKeyHelpTogether"><a href="https://api.together.xyz/settings/api-keys" target="_blank" rel="noopener">Get Together.ai API key →</a> <a href="https://www.together.ai/pricing" target="_blank" rel="noopener">(Pricing)</a></span>
-                        <span id="mentorKeyHelpLlama" style="display:none;"><a href="https://llama.com/" target="_blank" rel="noopener">Get Llama API key →</a></span>
+                        <span id="mentorKeyHelpTogether"><a href="https://api.together.xyz/settings/api-keys" target="_blank" rel="noopener">Get Together.ai API key â†’</a> <a href="https://www.together.ai/pricing" target="_blank" rel="noopener">(Pricing)</a></span>
+                        <span id="mentorKeyHelpLlama" style="display:none;"><a href="https://llama.com/" target="_blank" rel="noopener">Get Llama API key â†’</a></span>
                         <span id="mentorKeyHelpOpenai" style="display:none;"><strong>Note:</strong> ChatGPT Plus subscription is NOT an API key.<br>
-                        <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">Get OpenAI API key →</a></span>
-                        <span id="mentorKeyHelpAnthropic" style="display:none;"><a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Get Anthropic API key →</a></span>
+                        <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">Get OpenAI API key â†’</a></span>
+                        <span id="mentorKeyHelpAnthropic" style="display:none;"><a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Get Anthropic API key â†’</a></span>
                         <span id="mentorKeyHelpLocal" style="display:none;"><i class="fas fa-check-circle"></i> No API key needed! Run <a href="https://lmstudio.ai/" target="_blank" rel="noopener">LM Studio</a> on localhost:1234</span>
                         <br>Session only - not stored permanently
                     </small>

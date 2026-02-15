@@ -4728,13 +4728,25 @@ button:focus,
 
 .main-content.cais-grid {
     display: grid;
-    grid-template-columns: 1fr var(--right-col);
+    grid-template-columns: clamp(280px, 23vw, 340px) minmax(0, 1fr) clamp(320px, 25vw, 380px);
     gap: var(--gap);
     align-items: start;
     max-width: 1600px;
     width: 100%;
     margin: 0 auto;
     padding: 0;
+}
+
+.left-panel.cais-left-col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+    min-width: 0;
+}
+
+.left-panel.cais-left-col .panel-grow {
+    flex: 1 1 auto;
+    min-height: 220px;
 }
 
 .cais-controls {
@@ -4773,19 +4785,22 @@ button:focus,
     display: flex;
     flex-direction: column;
     gap: var(--gap);
-    min-width: var(--right-col);
+    min-width: 0;
 }
 
 .right-panel.cais-right-col .moves-panel {
-    max-height: clamp(180px, 26vh, 300px);
-    min-height: 200px;
-    overflow-y: scroll;
+    max-height: clamp(260px, 42vh, 520px);
+    min-height: 260px;
+    overflow: hidden;
     scrollbar-gutter: stable both-edges;
+    display: flex;
+    flex-direction: column;
 }
 
 .right-panel.cais-right-col .move-history-content {
-    max-height: 100%;
-    overflow-y: scroll;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
     scrollbar-gutter: stable both-edges;
     padding: 8px 10px;
 }
@@ -4931,8 +4946,11 @@ button:focus,
     .main-content.cais-grid {
         grid-template-columns: 1fr;
     }
-    .right-panel.cais-right-col {
+    .left-panel.cais-left-col {
         order: 2;
+    }
+    .right-panel.cais-right-col {
+        order: 3;
         min-width: 0;
     }
     .board-center {
