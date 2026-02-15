@@ -6,7 +6,7 @@
   <title>ECO Chess Opening Codes</title>
   <meta name="description" content="Browse ECO chess opening codes A00-E99 with names and details.">
   <link rel="stylesheet" href="styles.css?v=2.0.1">
-  <link rel="stylesheet" href="css/eco-page.css?v=1.1.0">
+  <link rel="stylesheet" href="css/eco-page.css?v=1.2.0">
 </head>
 <body>
   <main class="eco-root">
@@ -15,49 +15,60 @@
       <h1>ECO Chess Opening Codes</h1>
     </header>
 
-    <section id="ecoListView">
-      <div class="eco-toolbar">
-        <input id="ecoSearch" type="search" placeholder="Search by code (B20) or opening name (Sicilian)" aria-label="Search ECO codes">
-        <div class="eco-tabs" id="ecoTabs" aria-label="ECO groups"></div>
-      </div>
-      <div id="ecoList" class="eco-list"></div>
-      <p id="ecoFallback" class="eco-fallback" style="display:none;">ECO dataset failed to load.</p>
-    </section>
+    <section class="eco-layout">
+      <section id="ecoListView" class="eco-master">
+        <div class="eco-toolbar">
+          <input id="ecoSearch" type="search" placeholder="Search by code (B20) or opening name (Sicilian)" aria-label="Search ECO codes">
+          <div class="eco-tabs" id="ecoTabs" aria-label="ECO groups"></div>
+        </div>
+        <div id="ecoList" class="eco-list"></div>
+        <p id="ecoFallback" class="eco-fallback" style="display:none;">ECO dataset failed to load.</p>
+      </section>
 
-    <section id="ecoDetailView" style="display:none;">
-      <p><a id="ecoBackLink" class="eco-back-inline" href="/eco">Back to ECO list</a></p>
-      <div class="eco-detail-layout">
-        <article class="eco-detail-main eco-card">
-          <h2 id="ecoDetailTitle"></h2>
-          <p id="ecoDetailMoves"></p>
-          <h3>Related Lines</h3>
-          <ul id="ecoDetailRelated" class="eco-related"></ul>
-          <h3>Coach Theory</h3>
-          <div id="ecoDetailTheory" class="eco-theory"></div>
-        </article>
+      <section id="ecoDetailPanel" class="eco-detail">
+        <div id="ecoDetailView" class="eco-detail-layout">
+          <article class="eco-detail-main eco-card">
+            <h2 id="ecoDetailTitle">Select an opening</h2>
+            <p id="ecoDetailMoves">Pick an ECO code from the left list to see details.</p>
+            <h3>Related Lines</h3>
+            <ul id="ecoDetailRelated" class="eco-related"><li>Select an ECO code to load related lines.</li></ul>
+            <h3>Coach Theory</h3>
+            <div id="ecoDetailTheory" class="eco-theory">Theory summary will appear here.</div>
+          </article>
 
-        <aside class="eco-detail-pro eco-card">
-          <h3>Opening Card</h3>
-          <div id="ecoMiniBoard" class="eco-mini-board" aria-label="Opening preview board"></div>
-          <p id="ecoMiniBoardFallback" class="eco-muted" style="display:none;">Board preview coming soon.</p>
+          <aside class="eco-detail-pro eco-card">
+            <h3>Opening Card</h3>
+            <div id="ecoMiniBoard" class="eco-mini-board" aria-label="Opening preview board"></div>
+            <p id="ecoMiniBoardFallback" class="eco-muted">Board preview coming soon.</p>
 
-          <div class="eco-pro-block">
-            <h4>Stats</h4>
-            <div class="eco-stats-row"><span>Games</span><strong id="ecoStatGames">TBD</strong></div>
-            <div class="eco-stats-row"><span>White</span><strong id="ecoStatWhite">TBD</strong></div>
-            <div class="eco-stats-row"><span>Draw</span><strong id="ecoStatDraw">TBD</strong></div>
-            <div class="eco-stats-row"><span>Black</span><strong id="ecoStatBlack">TBD</strong></div>
-          </div>
+            <div class="eco-pro-block">
+              <h4>Overview</h4>
+              <div class="eco-stats-row"><span>Games</span><strong id="ecoStatGames">TBD</strong></div>
+              <div class="eco-stats-row"><span>Last played</span><strong id="ecoStatLastPlayed">TBD</strong></div>
+            </div>
 
-          <div class="eco-pro-block">
-            <h4>Popular Continuations</h4>
-            <ol id="ecoContinuations" class="eco-continuations"></ol>
-            <p class="eco-muted">Continuations will be computed from PGNs/DB soon.</p>
-          </div>
-        </aside>
-      </div>
+            <div class="eco-pro-block">
+              <h4>W / D / L</h4>
+              <div class="eco-wdl-bar" aria-hidden="true">
+                <span id="ecoWdlWhiteBar" class="eco-wdl-white" style="width: 33%"></span>
+                <span id="ecoWdlDrawBar" class="eco-wdl-draw" style="width: 34%"></span>
+                <span id="ecoWdlBlackBar" class="eco-wdl-black" style="width: 33%"></span>
+              </div>
+              <div class="eco-stats-row"><span>White</span><strong id="ecoStatWhite">TBD</strong></div>
+              <div class="eco-stats-row"><span>Draw</span><strong id="ecoStatDraw">TBD</strong></div>
+              <div class="eco-stats-row"><span>Black</span><strong id="ecoStatBlack">TBD</strong></div>
+            </div>
+
+            <div class="eco-pro-block">
+              <h4>Popular Continuations</h4>
+              <ol id="ecoContinuations" class="eco-continuations"></ol>
+              <p class="eco-muted">Continuations will be computed from PGNs/DB soon.</p>
+            </div>
+          </aside>
+        </div>
+      </section>
     </section>
   </main>
-  <script src="js/eco-page.js?v=1.1.0" defer></script>
+  <script src="js/eco-page.js?v=1.2.0" defer></script>
 </body>
 </html>
