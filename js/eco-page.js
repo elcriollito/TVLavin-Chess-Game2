@@ -16,10 +16,11 @@
   let currentBoardFen = '';
 
   const MAX_MINI_BOARD_RETRIES = 5;
-  const POS_STATS_URL = window.CAISSA_POS_STATS_URL || '/api/pos-stats';
+  const POS_STATS_URL = window.CAISSA_POS_STATS_URL || '';
 
   const StatsProvider = {
     async getStatsByKey(key) {
+      if (!POS_STATS_URL) return null;
       const normalized = String(key || '').toLowerCase().trim();
       if (!/^[0-9a-f]{16}$/.test(normalized)) return null;
 
@@ -27,7 +28,12 @@
         const res = await fetch(`${POS_STATS_URL}?key=${encodeURIComponent(normalized)}`, {
           headers: { Accept: 'application/json' }
         });
-        if (!res.ok) return null;
+        if (!res.ok) {
+          if (res.status === 404) {
+            console.warn('[ECO] Missing asset URL:', `${POS_STATS_URL}?key=${encodeURIComponent(normalized)}`);
+          }
+          return null;
+        }
         const payload = await res.json();
         if (!payload || payload.error || !payload.found) return null;
         return payload;
@@ -149,7 +155,7 @@
       fallback.className = 'eco-piece-fallback';
       fallback.textContent = unicodePieceFromFenChar(fenChar) || '';
       img.replaceWith(fallback);
-      console.warn(`[ECO] Piece image failed to load: ${pieceSrc}`);
+      console.warn('[ECO] Missing asset URL:', pieceSrc);
     };
 
     return img;
@@ -186,6 +192,7 @@
     if (!boardEl || !fallbackEl) return true;
 
     boardEl.innerHTML = '';
+    boardEl.style.display = 'grid';
 
     if (!fen || !String(fen).trim()) {
       fallbackEl.style.display = 'block';
@@ -201,7 +208,8 @@
       return false;
     }
 
-    if (boardEl.clientWidth < 50 || boardEl.clientHeight < 50) {
+    const rect = boardEl.getBoundingClientRect();
+    if (rect.width < 200 || rect.height < 200) {
       return false;
     }
 
@@ -248,6 +256,10 @@
         }
       });
     });
+  }
+
+  function rerenderMiniBoard() {
+    renderMiniBoardFromFen(currentBoardFen);
   }
 
   function showContinuationStatus(message) {
@@ -395,11 +407,18 @@
 
     try {
       const registry = window.CAISSA_BOOK_REGISTRY;
-      if (!registry || typeof registry.getDefaultOpeningBook !== 'function') {
+      if (!registry || (typeof registry.getActiveBook !== 'function' && typeof registry.getDefaultOpeningBook !== 'function')) {
         throw new Error('Book registry unavailable');
       }
 
-      const book = await registry.getDefaultOpeningBook();
+      const book = typeof registry.getActiveBook === 'function'
+        ? await registry.getActiveBook()
+        : await registry.getDefaultOpeningBook();
+
+      if (!book || typeof book.lookupPosition !== 'function') {
+        throw new Error('Book adapter missing lookupPosition');
+      }
+
       const bookData = await book.lookupPosition(fen, 15);
       if (renderSeq !== detailRenderSeq) return;
 
@@ -594,6 +613,10 @@
         boardFlipped = !boardFlipped;
         renderMiniBoardFromFen(currentBoardFen);
       }
+    });
+
+    window.addEventListener('resize', () => {
+      if (currentBoardFen) rerenderMiniBoard();
     });
   }
 
