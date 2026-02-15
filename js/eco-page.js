@@ -16,9 +16,13 @@
   let currentBoardFen = '';
   let boardResizeObserver = null;
   let boardResizeDebounce = null;
+  let ecoStatsData = null;
+  let ecoContinuationsData = null;
+  let ecoFenData = null;
 
   const MAX_MINI_BOARD_RETRIES = 5;
   const POS_STATS_URL = window.CAISSA_POS_STATS_URL || '';
+  const ECO_STATS_DATA_VERSION = '1.9.0';
   const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
   const ECO_DEBUG = new URLSearchParams(window.location.search).get('debug') === '1';
 
@@ -334,9 +338,12 @@
     }
   }
 
-  function resolveFenForCode(detail, defining) {
+  function resolveFenForCode(code, detail, defining) {
     if (detail && detail.fen) {
       return { fen: String(detail.fen), source: 'fen' };
+    }
+    if (code && ecoFenData && ecoFenData[code]) {
+      return { fen: String(ecoFenData[code]), source: 'eco_fen' };
     }
     if (defining && Array.isArray(defining.moves)) {
       const fenFromMoves = fenFromMoveList(defining.moves);
@@ -380,6 +387,35 @@
       document.getElementById('ecoWdlDrawBar').style.width = '34%';
       document.getElementById('ecoWdlBlackBar').style.width = '33%';
     }
+  }
+
+  function applyEcoStatsByCode(code) {
+    if (!ecoStatsData || !code) return false;
+    const row = ecoStatsData[code];
+    if (!row) return false;
+
+    const games = Number(row.games) || 0;
+    const whiteWins = Number(row.whiteWins) || 0;
+    const draws = Number(row.draws) || 0;
+    const blackWins = Number(row.blackWins) || 0;
+    const total = whiteWins + draws + blackWins;
+
+    document.getElementById('ecoStatGames').textContent = games > 0 ? String(games) : 'TBD';
+    document.getElementById('ecoStatLastPlayed').textContent = row.lastDate || 'TBD';
+
+    const wPct = total > 0 ? (whiteWins / total) * 100 : 0;
+    const dPct = total > 0 ? (draws / total) * 100 : 0;
+    const bPct = total > 0 ? (blackWins / total) * 100 : 0;
+
+    document.getElementById('ecoStatWhite').textContent = total > 0 ? `${wPct.toFixed(1)}%` : 'TBD';
+    document.getElementById('ecoStatDraw').textContent = total > 0 ? `${dPct.toFixed(1)}%` : 'TBD';
+    document.getElementById('ecoStatBlack').textContent = total > 0 ? `${bPct.toFixed(1)}%` : 'TBD';
+
+    document.getElementById('ecoWdlWhiteBar').style.width = total > 0 ? `${wPct}%` : '33%';
+    document.getElementById('ecoWdlDrawBar').style.width = total > 0 ? `${dPct}%` : '34%';
+    document.getElementById('ecoWdlBlackBar').style.width = total > 0 ? `${bPct}%` : '33%';
+
+    return true;
   }
 
   function setStatsPlaceholders() {
@@ -433,14 +469,42 @@
     return rows.slice(0, 15);
   }
 
-  async function loadContinuationsAndStats(fen, renderSeq) {
+  function renderEcoDbContinuations(code) {
+    if (!ecoContinuationsData || !code) return false;
+    const rows = ecoContinuationsData[code];
+    if (!Array.isArray(rows) || rows.length === 0) return false;
+
+    const top = rows.slice(0, 8);
+    const totalCount = top.reduce((sum, r) => sum + (Number(r.count) || 0), 0);
+    const mapped = top.map((r) => {
+      const count = Number(r.count) || 0;
+      const w = Number(r.whiteWins) || 0;
+      const d = Number(r.draws) || 0;
+      const b = Number(r.blackWins) || 0;
+      const total = w + d + b;
+      const wPct = total > 0 ? (w / total) * 100 : 0;
+      const dPct = total > 0 ? (d / total) * 100 : 0;
+      const bPct = total > 0 ? (b / total) * 100 : 0;
+      const barPct = totalCount > 0 ? (count / totalCount) * 100 : 0;
+      return {
+        san: r.move || 'TBD',
+        label: `${count} | W${wPct.toFixed(0)} D${dPct.toFixed(0)} B${bPct.toFixed(0)}`,
+        percent: barPct
+      };
+    });
+    renderContinuationRows(mapped);
+    return true;
+  }
+
+  async function loadContinuationsAndStats(fen, renderSeq, options = {}) {
+    const renderContinuations = options.renderContinuations !== false;
     const weightEl = document.getElementById('ecoStatBookWeight');
     if (weightEl) weightEl.textContent = 'Loading...';
-    showContinuationStatus('Loading book...');
+    if (renderContinuations) showContinuationStatus('Loading book...');
 
     if (!fen) {
       if (weightEl) weightEl.textContent = 'TBD';
-      showContinuationStatus('No book moves found for this position.');
+      if (renderContinuations) showContinuationStatus('No book moves found for this position.');
       return;
     }
 
@@ -466,17 +530,19 @@
 
       const statsData = await StatsProvider.getStatsByKey(bookData?.key || '');
       if (renderSeq !== detailRenderSeq) return;
-      if (statsData) {
+      if (statsData && !applyEcoStatsByCode(selectedCode)) {
         applyStatsToPanel(statsData);
       }
 
-      const rows = mergeContinuations(fen, bookData, statsData);
-      if (rows.length === 0) {
-        showContinuationStatus('No book moves found for this position.');
-        return;
-      }
+      if (renderContinuations) {
+        const rows = mergeContinuations(fen, bookData, statsData);
+        if (rows.length === 0) {
+          showContinuationStatus('No book moves found for this position.');
+          return;
+        }
 
-      renderContinuationRows(rows);
+        renderContinuationRows(rows);
+      }
     } catch (err) {
       if (renderSeq !== detailRenderSeq) return;
       if (weightEl) weightEl.textContent = 'TBD';
@@ -487,7 +553,9 @@
         console.warn('[ECO][Book] Cloud opening book unavailable:', err);
       }
 
-      showContinuationStatus('Book unavailable (offline).');
+      if (renderContinuations) {
+        showContinuationStatus('Book unavailable (offline).');
+      }
     }
   }
 
@@ -579,14 +647,21 @@
     }
     if (theoryEl) theoryEl.textContent = theoryText;
 
-    const fenResolution = resolveFenForCode(detail, defining);
+    debugLog('selected code', normalized);
+    const fenResolution = resolveFenForCode(normalized, detail, defining);
     currentBoardFen = fenResolution.fen || START_FEN;
     debugLog('fen source', fenResolution.source, 'final fen', currentBoardFen);
     renderMiniBoardFromFen(currentBoardFen);
     setStatsPlaceholders();
-    showContinuationStatus('Loading book...');
+    const hasEcoStats = applyEcoStatsByCode(normalized);
+    const hasEcoCont = renderEcoDbContinuations(normalized);
+    if (!hasEcoCont) {
+      showContinuationStatus('Loading book...');
+    }
 
-    loadContinuationsAndStats(currentBoardFen, renderSeq);
+    loadContinuationsAndStats(currentBoardFen, renderSeq, { renderContinuations: !hasEcoCont });
+    debugLog('stats source', hasEcoStats ? 'eco_stats.json' : 'fallback');
+    debugLog('continuations source', hasEcoCont ? 'eco_continuations.json' : 'book');
   }
 
   function selectCode(code, options = {}) {
@@ -684,6 +759,22 @@
         console.warn(`[ECO] eco_details.json failed to load (${detailsRes.status}), using fallback detail rendering`);
       }
 
+      const [statsRes, contRes, fenRes] = await Promise.allSettled([
+        fetch(`/data/eco/eco_stats.json?v=${encodeURIComponent(ECO_STATS_DATA_VERSION)}`, { cache: 'no-cache' }),
+        fetch(`/data/eco/eco_continuations.json?v=${encodeURIComponent(ECO_STATS_DATA_VERSION)}`, { cache: 'no-cache' }),
+        fetch(`/data/eco/eco_fen.json?v=${encodeURIComponent(ECO_STATS_DATA_VERSION)}`, { cache: 'no-cache' })
+      ]);
+
+      if (statsRes.status === 'fulfilled' && statsRes.value.ok) {
+        ecoStatsData = await statsRes.value.json();
+      }
+      if (contRes.status === 'fulfilled' && contRes.value.ok) {
+        ecoContinuationsData = await contRes.value.json();
+      }
+      if (fenRes.status === 'fulfilled' && fenRes.value.ok) {
+        ecoFenData = await fenRes.value.json();
+      }
+
       loadTabs();
       bindEvents();
 
@@ -707,4 +798,3 @@
 
   init();
 })();
-    debugLog('selected code', normalized);
