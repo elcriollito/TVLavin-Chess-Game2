@@ -121,11 +121,6 @@
   overflow: auto;
 }
 
-.eco-related {
-  margin: 0;
-  padding-left: 18px;
-}
-
 .eco-theory {
   white-space: pre-line;
   line-height: 1.45;
@@ -146,37 +141,44 @@
 
 .eco-detail-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(300px, 1fr);
+  grid-template-columns: 1fr;
   gap: 12px;
-  align-items: stretch;
+  align-items: start;
 }
 
-.eco-detail-main h2 {
+.eco-detail-header h2 {
   margin-top: 0;
+  margin-bottom: 4px;
 }
 
-.eco-detail-main h3 {
-  margin-top: 16px;
+.eco-detail-layout h3 {
+  margin: 0 0 10px;
 }
 
-.eco-detail-main #ecoDetailMoves {
+.eco-defining #ecoDetailMoves {
   line-height: 1.45;
   white-space: normal;
   max-height: 8.5em;
   overflow: auto;
+  margin: 0;
 }
 
-.eco-detail-pro h3,
-.eco-detail-pro h4 {
-  margin: 0 0 10px;
+.eco-board-wrap {
+  display: grid;
+  gap: 8px;
+}
+
+.eco-overview {
+  border-top: 1px solid var(--panel-border);
+  padding-top: 10px;
 }
 
 .eco-mini-board {
   width: 100%;
-  max-width: 320px;
-  min-width: 220px;
+  max-width: 360px;
+  min-width: 240px;
   aspect-ratio: 1 / 1;
-  min-height: 220px;
+  min-height: 240px;
   border: 1px solid var(--panel-border);
   border-radius: 10px;
   overflow: hidden;
@@ -215,6 +217,42 @@
   border-top: 1px solid var(--panel-border);
   padding-top: 10px;
   margin-top: 10px;
+}
+
+.eco-defining,
+.eco-coach {
+  border-top: 1px solid var(--panel-border);
+  padding-top: 10px;
+}
+
+.eco-related {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.eco-related li {
+  margin-bottom: 8px;
+}
+
+.eco-related a {
+  color: #9ad7ff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: inline-block;
+}
+
+.eco-related a:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.eco-related a:focus-visible {
+  outline: 2px solid rgba(154, 215, 255, 0.9);
+  outline-offset: 2px;
 }
 
 .eco-stats-row {

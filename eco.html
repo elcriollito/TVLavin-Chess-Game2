@@ -6,7 +6,7 @@
   <title>ECO Chess Opening Codes</title>
   <meta name="description" content="Browse ECO chess opening codes A00-E99 with names and details.">
   <link rel="stylesheet" href="styles.css?v=2.0.1">
-  <link rel="stylesheet" href="css/eco-page.css?v=1.4.0">
+  <link rel="stylesheet" href="css/eco-page.css?v=1.5.0">
 </head>
 <body>
   <main class="eco-root">
@@ -26,28 +26,21 @@
       </section>
 
       <section id="ecoDetailPanel" class="eco-detail">
-        <div id="ecoDetailView" class="eco-detail-layout">
-          <article class="eco-detail-main eco-card">
+        <article id="ecoDetailView" class="eco-detail-layout eco-card">
+          <header class="eco-detail-header">
             <h2 id="ecoDetailTitle">Select an opening</h2>
-            <p id="ecoDetailMoves">Pick an ECO code from the left list to see details.</p>
-            <h3>Related Lines</h3>
-            <ul id="ecoDetailRelated" class="eco-related"><li>Select an ECO code to load related lines.</li></ul>
-            <h3>Coach Theory</h3>
-            <div id="ecoDetailTheory" class="eco-theory">Theory summary will appear here.</div>
-          </article>
+          </header>
 
-          <aside class="eco-detail-pro eco-card">
-            <h3>Opening Card</h3>
+          <section class="eco-board-wrap" aria-label="Board overview">
             <div id="ecoMiniBoard" class="eco-mini-board" aria-label="Opening preview board"></div>
             <p id="ecoMiniBoardFallback" class="eco-muted">Board preview coming soon.</p>
+          </section>
 
-            <div class="eco-pro-block">
-              <h4>Overview</h4>
-              <div class="eco-stats-row"><span>Games on database</span><strong id="ecoStatGames">TBD</strong></div>
-              <div class="eco-stats-row"><span>Book weight total</span><strong id="ecoStatBookWeight">TBD</strong></div>
-              <div class="eco-stats-row"><span>Last played</span><strong id="ecoStatLastPlayed">TBD</strong></div>
-            </div>
-
+          <section class="eco-overview">
+            <h3>Overview</h3>
+            <div class="eco-stats-row"><span>Games on database</span><strong id="ecoStatGames">TBD</strong></div>
+            <div class="eco-stats-row"><span>Book weight total</span><strong id="ecoStatBookWeight">TBD</strong></div>
+            <div class="eco-stats-row"><span>Last played</span><strong id="ecoStatLastPlayed">TBD</strong></div>
             <div class="eco-pro-block">
               <h4>W / D / L</h4>
               <div class="eco-wdl-bar" aria-hidden="true">
@@ -59,18 +52,33 @@
               <div class="eco-stats-row"><span>Draw</span><strong id="ecoStatDraw">TBD</strong></div>
               <div class="eco-stats-row"><span>Black</span><strong id="ecoStatBlack">TBD</strong></div>
             </div>
+          </section>
 
-            <div class="eco-pro-block">
-              <h4>Popular Continuations</h4>
-              <ol id="ecoContinuations" class="eco-continuations"></ol>
-              <p class="eco-muted">Continuations will be computed from PGNs/DB soon.</p>
-            </div>
-          </aside>
-        </div>
+          <section class="eco-pro-block">
+            <h3>Popular Continuations</h3>
+            <ol id="ecoContinuations" class="eco-continuations"></ol>
+            <p class="eco-muted">Continuations will be computed from PGNs/DB soon.</p>
+          </section>
+
+          <section class="eco-defining">
+            <h3>Defining Moves</h3>
+            <p id="ecoDetailMoves">Pick an ECO code from the left list to see details.</p>
+          </section>
+
+          <section>
+            <h3>Related Lines</h3>
+            <ul id="ecoDetailRelated" class="eco-related"><li>Select an ECO code to load related lines.</li></ul>
+          </section>
+
+          <section class="eco-coach">
+            <h3>Coach Theory</h3>
+            <div id="ecoDetailTheory" class="eco-theory">Theory summary will appear here.</div>
+          </section>
+        </article>
       </section>
     </section>
   </main>
-  <script src="js/books/book-registry.js?v=1.0.0" defer></script>
-  <script src="js/eco-page.js?v=1.5.0" defer></script>
+  <script src="js/books/book-registry.js?v=1.1.0" defer></script>
+  <script src="js/eco-page.js?v=1.7.0" defer></script>
 </body>
 </html>
