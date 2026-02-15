@@ -4742,6 +4742,28 @@ button:focus,
     flex-direction: column;
     gap: var(--gap);
     min-width: 0;
+    height: calc(100vh - 180px);
+    min-height: 0;
+}
+
+.left-panel.cais-left-col .panel-evaluation {
+    flex: 0 0 110px;
+    max-height: 110px;
+}
+
+.left-panel.cais-left-col .panel-openingbook {
+    flex: 0 0 110px;
+    max-height: 130px;
+}
+
+.left-panel.cais-left-col .panel-coach {
+    flex: 1 1 auto;
+    min-height: 220px;
+}
+
+.left-panel.cais-left-col .panel-coach .panel-body {
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .left-panel.cais-left-col .panel-grow {
@@ -5021,6 +5043,7 @@ button:focus,
     }
     .left-panel.cais-left-col {
         order: 2;
+        height: auto;
     }
     .right-panel.cais-right-col {
         order: 3;
