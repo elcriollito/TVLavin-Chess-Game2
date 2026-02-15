@@ -215,12 +215,16 @@
   overflow: hidden;
   display: grid;
   grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, minmax(0, 1fr));
+  align-self: start;
+  flex: 0 0 auto;
+  contain: layout paint;
   margin-bottom: 12px;
 }
 
 .eco-sq {
-  display: grid;
-  place-items: center;
+  position: relative;
+  overflow: hidden;
 }
 
 .eco-sq.light {
@@ -232,16 +236,25 @@
 }
 
 .eco-piece {
+  position: absolute;
+  inset: 6%;
+  display: block;
   width: 88%;
   height: 88%;
+  margin: auto;
   object-fit: contain;
   pointer-events: none;
   user-select: none;
 }
 
 .eco-piece-fallback {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   font-size: clamp(14px, 1.9vw, 22px);
   line-height: 1;
+  pointer-events: none;
 }
 
 .eco-pro-block {

@@ -14,6 +14,8 @@
   let detailRenderSeq = 0;
   let boardFlipped = false;
   let currentBoardFen = '';
+  let boardResizeObserver = null;
+  let boardResizeDebounce = null;
 
   const MAX_MINI_BOARD_RETRIES = 5;
   const POS_STATS_URL = window.CAISSA_POS_STATS_URL || '';
@@ -219,7 +221,7 @@
     }
 
     const rect = boardEl.getBoundingClientRect();
-    if (rect.width < 200 || rect.height < 200) {
+    if (rect.width < 160 || rect.height < 160) {
       return false;
     }
 
@@ -270,6 +272,28 @@
 
   function rerenderMiniBoard() {
     renderMiniBoardFromFen(currentBoardFen);
+  }
+
+  function setupBoardResizeObserver() {
+    if (boardResizeObserver || typeof ResizeObserver === 'undefined') return;
+    const boardEl = document.getElementById('ecoMiniBoard');
+    if (!boardEl) return;
+
+    boardResizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const width = entry.contentRect?.width || 0;
+      if (width < 160) return;
+      if (!currentBoardFen) return;
+
+      if (boardResizeDebounce) {
+        clearTimeout(boardResizeDebounce);
+      }
+      boardResizeDebounce = setTimeout(() => {
+        rerenderMiniBoard();
+      }, 60);
+    });
+    boardResizeObserver.observe(boardEl);
   }
 
   function showContinuationStatus(message) {
@@ -430,11 +454,11 @@
         ? await registry.getActiveBook()
         : await registry.getDefaultOpeningBook();
 
-      if (!book || typeof book.lookupPosition !== 'function') {
-        throw new Error('Book adapter missing lookupPosition');
+      if (!book || typeof book.getContinuations !== 'function' || (typeof book.isReady === 'function' && !book.isReady())) {
+        throw new Error('Book adapter missing getContinuations or not ready');
       }
 
-      const bookData = await book.lookupPosition(fen, 15);
+      const bookData = await book.getContinuations(fen, 15);
       if (renderSeq !== detailRenderSeq) return;
 
       const totalWeight = Number(bookData?.totalWeight) || 0;
@@ -627,13 +651,15 @@
       const action = btn.dataset.action;
       if (action === 'flip') {
         boardFlipped = !boardFlipped;
-        renderMiniBoardFromFen(currentBoardFen);
+        rerenderMiniBoard();
       }
     });
 
     window.addEventListener('resize', () => {
       if (currentBoardFen) rerenderMiniBoard();
     });
+
+    setupBoardResizeObserver();
   }
 
   async function init() {

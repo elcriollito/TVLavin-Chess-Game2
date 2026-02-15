@@ -78,27 +78,53 @@
     return data.moves;
   }
 
+  function createUnavailableBook() {
+    return {
+      isAvailable: false,
+      isReady() {
+        return false;
+      },
+      async getContinuations() {
+        return { key: '', fen: '', moves: [], totalWeight: 0 };
+      },
+      async lookupPosition() {
+        return { key: '', fen: '', moves: [], totalWeight: 0 };
+      }
+    };
+  }
+
   function adaptBook(rawBook) {
     if (!rawBook || typeof rawBook !== 'object') {
-      return {
-        isAvailable: false,
-        async lookupPosition() {
-          return { key: '', fen: '', moves: [], totalWeight: 0 };
-        }
-      };
+      return createUnavailableBook();
     }
 
-    if (typeof rawBook.lookupPosition === 'function') {
-      rawBook.isAvailable = rawBook.isAvailable !== false;
-      return rawBook;
+    const normalized = { ...rawBook };
+    normalized.isAvailable = normalized.isAvailable !== false;
+    normalized.isReady = typeof normalized.isReady === 'function'
+      ? normalized.isReady.bind(normalized)
+      : () => normalized.isAvailable !== false;
+
+    if (typeof normalized.getContinuations === 'function') {
+      if (typeof normalized.lookupPosition !== 'function') {
+        normalized.lookupPosition = normalized.getContinuations.bind(normalized);
+      }
+      return normalized;
     }
 
-    if (typeof rawBook.getMovesForFen === 'function') {
-      return {
-        ...rawBook,
+    if (typeof normalized.lookupPosition === 'function') {
+      normalized.getContinuations = normalized.lookupPosition.bind(normalized);
+      return normalized;
+    }
+
+    if (typeof normalized.getMovesForFen === 'function') {
+      const wrapped = {
+        ...normalized,
         isAvailable: true,
-        async lookupPosition(fen, max = 15) {
-          const moves = await rawBook.getMovesForFen(fen, max);
+        isReady() {
+          return true;
+        },
+        async getContinuations(fen, max = 15) {
+          const moves = await normalized.getMovesForFen(fen, max);
           const totalWeight = Array.isArray(moves)
             ? moves.reduce((sum, m) => sum + (Number(m.weight) || 0), 0)
             : 0;
@@ -110,15 +136,11 @@
           };
         }
       };
+      wrapped.lookupPosition = wrapped.getContinuations;
+      return wrapped;
     }
 
-    return {
-      ...rawBook,
-      isAvailable: false,
-      async lookupPosition() {
-        return { key: '', fen: '', moves: [], totalWeight: 0 };
-      }
-    };
+    return createUnavailableBook();
   }
 
   function getDefaultOpeningBook() {
@@ -127,6 +149,10 @@
         name: 'Cerebellum (Cloud)',
         source: 'r2-worker',
         isAvailable: true,
+        isReady() {
+          return true;
+        },
+        getContinuations: lookupPosition,
         getMovesForFen,
         lookupPosition,
         normalizeFenKey
