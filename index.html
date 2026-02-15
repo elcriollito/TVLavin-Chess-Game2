@@ -241,23 +241,7 @@
                     <div class="cais-stage">
                         <!-- TOP HEADER -->
                         <div class="cais-topbar">
-                            <div class="cais-topbar-left">
-                                <div class="cais-badge">Play vs Engine</div>
-                                <div class="cais-status" id="statusText">Ready</div>
-                            </div>
-
-                            <div class="cais-topbar-center">
-                                <div class="cais-player" id="playerWhiteName">Player</div>
-                                <div class="cais-vs">vs</div>
-                                <div class="cais-player" id="playerBlackName">Engine</div>
-                            </div>
-
                             <div class="cais-topbar-right">
-                                <div class="top-clock">
-                                    <span id="topClockWhite">05:00</span>
-                                    <span class="clock-sep">|</span>
-                                    <span id="topClockBlack">05:00</span>
-                                </div>
                                 <button class="icon-btn" id="topbarSettings" title="Settings" type="button">
                                     <i class="fas fa-cog"></i>
                                 </button>
@@ -304,7 +288,11 @@
                         <span id="openingBookStatus" class="book-status-label"></span>
                     </div>
                     <div class="panel-body">
-                        <div class="book-controls">
+                        <div class="book-simple">
+                            <div id="openingBookOpening" class="opening-title-right">Opening: (unknown)</div>
+                            <div id="openingBookSimpleStatus" class="book-simple-status">Book: On</div>
+                        </div>
+                        <div class="book-controls play-book-hidden">
                             <select id="openingBookSelector" class="book-selector">
                                 <option value="none">No book loaded</option>
                             </select>
@@ -316,20 +304,23 @@
                             </button>
                             <input type="file" id="openingBookFileInput" accept=".bin,.pgn" style="display: none;">
                         </div>
-                        <div id="openingBookProgress" class="book-progress" style="display: none;">
+                        <div id="openingBookProgress" class="book-progress play-book-hidden" style="display: none;">
                             <div class="book-progress-fill"></div>
                         </div>
-                        <div id="openingBookProgressText" class="book-progress-text" style="display: none;"></div>
-                        <div id="openingBookMoves" class="book-moves-container">
-                            <div class="book-empty">Import a .bin or .pgn file to see book moves</div>
-                        </div>
+                        <div id="openingBookProgressText" class="book-progress-text play-book-hidden" style="display: none;"></div>
+                        <div id="openingBookMoves" class="book-moves-container play-book-hidden"></div>
                     </div>
                 </div>
 
                 <div class="panel opening-coach-panel panel-grow">
                     <div class="panel-title">Opening / Coach</div>
                     <div class="panel-body">
+                        <div class="coach-toggle-row">
+                            <button id="coachOnBtn" class="coach-toggle-btn active" type="button">On</button>
+                            <button id="coachOffBtn" class="coach-toggle-btn" type="button">Off</button>
+                        </div>
                         <div id="openingTitleRight" class="opening-title-right">Start Position</div>
+                        <div id="coachText" class="coach-text"></div>
                     </div>
                 </div>
             </aside>
@@ -536,6 +527,12 @@
                 <div class="panel game-status-panel">
                     <div class="panel-title">Game Status</div>
                     <div class="panel-body">
+                        <div class="gs-console">
+                            <div class="gs-console-row"><span class="gs-console-label">Mode:</span> <span id="gsMode" class="gs-console-value">Human vs Engine</span></div>
+                            <div class="gs-console-row"><span class="gs-console-label">State:</span> <span id="statusText" class="gs-console-value">Ready</span></div>
+                            <div class="gs-console-row"><span class="gs-console-label">Match:</span> <span class="gs-console-value"><span id="playerWhiteName">Player</span> vs <span id="playerBlackName">Engine</span></span></div>
+                            <div class="gs-console-row"><span class="gs-console-label">Clock:</span> <span class="gs-console-value"><span id="topClockWhite">05:00</span> <span class="clock-sep">|</span> <span id="topClockBlack">05:00</span></span></div>
+                        </div>
                         <div class="game-status-box">
                             <div class="gs-row"><span class="gs-label">State:</span> <span id="gs-state" class="gs-state">In Progress</span></div>
                             <div class="gs-row"><span class="gs-label">Result:</span> <span id="gs-result" class="gs-result"></span></div>

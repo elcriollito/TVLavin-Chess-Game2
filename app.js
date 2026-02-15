@@ -45,6 +45,9 @@ const App = {
         result: '',
         message: ''
     },
+    openingName: '',
+    coachEnabled: true,
+    coachText: '',
     lastEvalCp: null,
     lastEvalMate: null,
     selectedEditorPiece: 'erase', // Piece to place in editor mode
@@ -222,6 +225,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update UI
     updateUI();
+    updateCoachPanel();
+    updateGameStatusConsole();
 
     // HOTFIX: Initialize eval bar orientation (white at bottom by default)
     syncEvalOrientation();
@@ -594,12 +599,21 @@ async function initializeOpeningBook() {
     const bookLoaded = await App.openingBook.loadBook('book.bin');
 
     if (bookLoaded) {
+        App.useOpeningBook = true;
+        const statusEl = document.getElementById('openingBookStatus');
+        const simpleStatusEl = document.getElementById('openingBookSimpleStatus');
+        if (statusEl) statusEl.textContent = 'Book: On';
+        if (simpleStatusEl) simpleStatusEl.textContent = 'Book: On';
         if (window.CAISSA_DEBUG || App.debug) {
-            console.log('✅ Opening book ready');
+            console.log('Opening book ready');
         }
     } else {
+        const statusEl = document.getElementById('openingBookStatus');
+        const simpleStatusEl = document.getElementById('openingBookSimpleStatus');
+        if (statusEl) statusEl.textContent = 'Book: Off';
+        if (simpleStatusEl) simpleStatusEl.textContent = 'Book: Off';
         if (window.CAISSA_DEBUG || App.debug) {
-            console.log('ℹ️ No opening book found, using engine only');
+            console.log('No opening book found, using engine only');
         }
         App.openingBook = null;
     }
@@ -944,6 +958,7 @@ function updateStatus() {
     }
 
     updateGameStatusPanel();
+    updateGameStatusConsole();
 
     // Dispatch turn change event for LED indicator (caissa-ui-refactor.js)
     window.dispatchEvent(new CustomEvent('caissa-turn-change', {
@@ -1037,9 +1052,6 @@ function updateMoveHistory() {
     // Scroll to bottom
     App.elements.moveHistory.scrollTop = App.elements.moveHistory.scrollHeight;
 
-    // HOTFIX 2: Also render moves to right panel
-    renderMovesToPanel();
-
     // Update navigation buttons
     updateNavigationButtons();
 }
@@ -1095,12 +1107,76 @@ function detectOpening() {
         }
     }
 
-    const openingText = best ? `${best.eco} ? ${best.name}` : 'Opening: (unknown)';
+    const openingText = best ? `${best.eco} - ${best.name}` : 'Opening: (unknown)';
     const openingName = document.getElementById('openingName');
     const openingTitleRight = document.getElementById('openingTitleRight');
+    const openingBookOpening = document.getElementById('openingBookOpening');
 
     if (openingName) openingName.textContent = openingText;
     if (openingTitleRight) openingTitleRight.textContent = openingText;
+    if (openingBookOpening) openingBookOpening.textContent = openingText;
+
+    App.openingName = best ? best.name : '';
+    updateCoachPanel();
+    updateGameStatusConsole();
+}
+
+function updateCoachPanel() {
+    const coachTextEl = document.getElementById('coachText');
+    const onBtn = document.getElementById('coachOnBtn');
+    const offBtn = document.getElementById('coachOffBtn');
+    if (!coachTextEl) return;
+
+    onBtn?.classList.toggle('active', !!App.coachEnabled);
+    offBtn?.classList.toggle('active', !App.coachEnabled);
+
+    if (!App.coachEnabled) {
+        App.coachText = 'Coach is off.';
+        coachTextEl.textContent = App.coachText;
+        return;
+    }
+
+    if (App.openingName) {
+        App.coachText = `Playing ${App.openingName}.\nDevelop quickly, contest the center, and keep king safety prioritized.`;
+    } else {
+        App.coachText = 'Opening not identified yet. Develop pieces, control center, king safety.';
+    }
+    coachTextEl.textContent = App.coachText;
+}
+
+function updateGameStatusConsole() {
+    const modeEl = document.getElementById('gsMode');
+    const stateEl = document.getElementById('statusText');
+    const whiteEl = document.getElementById('playerWhiteName');
+    const blackEl = document.getElementById('playerBlackName');
+    if (!modeEl || !stateEl || !whiteEl || !blackEl) return;
+
+    const modeMap = {
+        engine: 'Human vs Engine',
+        eve: 'Engine vs Engine',
+        human: 'Human vs Human',
+        analysis: 'Analysis'
+    };
+    modeEl.textContent = modeMap[App.gameMode] || 'Human vs Engine';
+
+    if (App.gameMode === 'eve') {
+        whiteEl.textContent = 'Engine';
+        blackEl.textContent = 'Engine';
+    } else if (App.gameMode === 'engine') {
+        whiteEl.textContent = App.playerColor === 'white' ? 'Player' : 'Engine';
+        blackEl.textContent = App.playerColor === 'white' ? 'Engine' : 'Player';
+    } else {
+        whiteEl.textContent = 'White';
+        blackEl.textContent = 'Black';
+    }
+
+    let lifecycle = 'Ready';
+    if (App.gameStatus && App.gameStatus.result) {
+        lifecycle = 'Finished';
+    } else if (App.gameActive) {
+        lifecycle = 'Playing';
+    }
+    stateEl.textContent = lifecycle;
 }
 
 function updateNavigationButtons() {
@@ -1588,6 +1664,8 @@ function newGame(options = {}) {
     updateMoveHistory();
     updateStatus();
     updateTimers();
+    detectOpening();
+    updateCoachPanel();
 
     // TASK 8: Show/Hide analysis panels based on mode
     const playSection = document.getElementById('playSection');
@@ -1913,6 +1991,7 @@ function setGameStatus(state, result = '', message = '') {
         message: message || ''
     };
     renderGameStatusPanel();
+    updateGameStatusConsole();
 }
 
 function renderGameStatusPanel() {
@@ -2125,6 +2204,17 @@ function setupEventListeners() {
 
     // Resign button
     safeOn(App.elements.resignBtn, 'click', resignGame, 'resignBtn');
+
+    const coachOnBtn = document.getElementById('coachOnBtn');
+    const coachOffBtn = document.getElementById('coachOffBtn');
+    safeOn(coachOnBtn, 'click', () => {
+        App.coachEnabled = true;
+        updateCoachPanel();
+    }, 'coachOnBtn');
+    safeOn(coachOffBtn, 'click', () => {
+        App.coachEnabled = false;
+        updateCoachPanel();
+    }, 'coachOffBtn');
 
     // PGN Library
     safeOn(App.elements.categorySelector, 'change', onCategoryChange, 'categorySelector');

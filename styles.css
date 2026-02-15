@@ -4687,7 +4687,7 @@ button:focus,
 .cais-topbar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: var(--gap);
     padding: 10px 12px;
     border-radius: 14px;
@@ -4823,6 +4823,33 @@ button:focus,
     gap: 6px;
 }
 
+.gs-console {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.gs-console-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.gs-console-label {
+    color: var(--muted);
+    font-size: 12px;
+    min-width: 44px;
+}
+
+.gs-console-value {
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+}
+
 .gs-row {
     display: flex;
     align-items: baseline;
@@ -4878,6 +4905,52 @@ button:focus,
 
 .opening-coach-panel .panel-body {
     min-height: clamp(110px, 18vh, 180px);
+}
+
+.book-simple {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.book-simple-status {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.play-book-hidden {
+    display: none !important;
+}
+
+.coach-toggle-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.coach-toggle-btn {
+    border: 1px solid var(--panel-border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.coach-toggle-btn.active {
+    color: var(--text);
+    border-color: rgba(255, 140, 0, 0.45);
+    background: rgba(255, 140, 0, 0.18);
+}
+
+.coach-text {
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: pre-line;
 }
 
 .panel.grow {
