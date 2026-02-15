@@ -457,3 +457,44 @@ Having issues?
 **Enjoy playing chess!** ♟️
 
 Made with ❤️ for chess enthusiasts worldwide
+
+## ECO Position Stats Pipeline
+
+Use this pipeline to serve real W/D/L and continuation frequencies for ECO detail positions without loading large PGN files in the browser.
+
+1. Build sharded stats from one or more PGN files:
+
+```bash
+node scripts/build-pos-stats.js --input ./data/pgn/master.pgn --out-dir ./data/pos-stats/shards --max-ply 30 --top-moves 24
+```
+
+2. Upload shard files to private R2 path `stats/shards/` in bucket `caissa-books`:
+
+```bash
+wrangler r2 object put caissa-books/stats/shards/pos_stats_00.json --file=./data/pos-stats/shards/pos_stats_00.json
+```
+
+3. Deploy the stats worker in `worker/stats-worker.js` with `POS_STATS_BUCKET` bound to `caissa-books`.
+
+4. Query stats:
+
+```http
+GET /api/pos-stats?key=<16-hex-polyglot-key>
+```
+
+Response shape:
+
+```json
+{
+  "key": "463b96181691fc9c",
+  "found": true,
+  "games": 12034,
+  "w": 43,
+  "d": 31,
+  "l": 26,
+  "lastPlayed": "20251102",
+  "topMoves": [
+    { "uci": "g1f3", "count": 4211, "w": 1800, "d": 1330, "l": 1081 }
+  ]
+}
+```

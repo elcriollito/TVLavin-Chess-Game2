@@ -1,0 +1,8 @@
+name = "caissa-pos-stats"
+main = "stats-worker.js"
+compatibility_date = "2026-02-15"
+
+[[r2_buckets]]
+binding = "POS_STATS_BUCKET"
+bucket_name = "caissa-books"
+

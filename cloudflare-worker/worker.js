@@ -582,6 +582,7 @@ async function handleBookQuery(request, env) {
     return {
       moves,
       fen,
+      hash: hash.toString(16).padStart(16, '0'),
       totalEntries: moves.length,
       bookName: env.BOOK_OBJECT_KEY || 'Cerebellum3Merge',
       cached: false
