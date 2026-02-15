@@ -17,6 +17,13 @@
 
   const MAX_MINI_BOARD_RETRIES = 5;
   const POS_STATS_URL = window.CAISSA_POS_STATS_URL || '';
+  const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  const ECO_DEBUG = new URLSearchParams(window.location.search).get('debug') === '1';
+
+  function debugLog(...args) {
+    if (!ECO_DEBUG) return;
+    console.log('[ECO][debug]', ...args);
+  }
 
   const StatsProvider = {
     async getStatsByKey(key) {
@@ -189,7 +196,10 @@
   function mountMiniBoardFromFen(fen) {
     const boardEl = document.getElementById('ecoMiniBoard');
     const fallbackEl = document.getElementById('ecoMiniBoardFallback');
-    if (!boardEl || !fallbackEl) return true;
+    if (!boardEl || !fallbackEl) {
+      console.warn('[ECO] Mini-board container missing. Board render skipped.');
+      return false;
+    }
 
     boardEl.innerHTML = '';
     boardEl.style.display = 'grid';
@@ -301,11 +311,16 @@
   }
 
   function resolveFenForCode(detail, defining) {
-    if (detail && detail.fen) return String(detail.fen);
-    if (defining && Array.isArray(defining.moves)) {
-      return fenFromMoveList(defining.moves);
+    if (detail && detail.fen) {
+      return { fen: String(detail.fen), source: 'fen' };
     }
-    return '';
+    if (defining && Array.isArray(defining.moves)) {
+      const fenFromMoves = fenFromMoveList(defining.moves);
+      if (fenFromMoves) {
+        return { fen: fenFromMoves, source: 'moves' };
+      }
+    }
+    return { fen: START_FEN, source: 'start' };
   }
 
   function uciToSanIfPossible(fen, uci, fallbackSan) {
@@ -459,12 +474,12 @@
     const theoryEl = document.getElementById('ecoDetailTheory');
 
     if (titleEl) titleEl.textContent = 'Select an opening';
-    if (movesEl) movesEl.textContent = 'Pick an ECO code from the left list to see details.';
+    if (movesEl) movesEl.textContent = 'Select an opening to preview position and stats.';
     if (relatedEl) relatedEl.innerHTML = '<li>Select an ECO code to load related lines.</li>';
     if (theoryEl) theoryEl.textContent = 'Theory summary will appear here.';
 
-    currentBoardFen = '';
-    renderMiniBoardFromFen('');
+    currentBoardFen = START_FEN;
+    renderMiniBoardFromFen(currentBoardFen);
     setStatsPlaceholders();
 
     renderContinuationRows([
@@ -540,13 +555,14 @@
     }
     if (theoryEl) theoryEl.textContent = theoryText;
 
-    const resolvedFen = resolveFenForCode(detail, defining);
-    currentBoardFen = resolvedFen;
+    const fenResolution = resolveFenForCode(detail, defining);
+    currentBoardFen = fenResolution.fen || START_FEN;
+    debugLog('fen source', fenResolution.source, 'final fen', currentBoardFen);
     renderMiniBoardFromFen(currentBoardFen);
     setStatsPlaceholders();
     showContinuationStatus('Loading book...');
 
-    loadContinuationsAndStats(resolvedFen, renderSeq);
+    loadContinuationsAndStats(currentBoardFen, renderSeq);
   }
 
   function selectCode(code, options = {}) {
@@ -665,3 +681,4 @@
 
   init();
 })();
+    debugLog('selected code', normalized);
