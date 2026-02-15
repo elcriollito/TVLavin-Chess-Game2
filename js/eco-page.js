@@ -12,11 +12,28 @@
   let activeLetter = 'A';
   let selectedCode = null;
   let detailRenderSeq = 0;
+  let boardFlipped = false;
+  let currentBoardFen = '';
 
   const MAX_MINI_BOARD_RETRIES = 5;
+  const POS_STATS_URL = window.CAISSA_POS_STATS_URL || '/api/pos-stats';
+
   const StatsProvider = {
-    async getStats(_fen) {
-      return null;
+    async getStatsByKey(key) {
+      const normalized = String(key || '').toLowerCase().trim();
+      if (!/^[0-9a-f]{16}$/.test(normalized)) return null;
+
+      try {
+        const res = await fetch(`${POS_STATS_URL}?key=${encodeURIComponent(normalized)}`, {
+          headers: { Accept: 'application/json' }
+        });
+        if (!res.ok) return null;
+        const payload = await res.json();
+        if (!payload || payload.error || !payload.found) return null;
+        return payload;
+      } catch (_err) {
+        return null;
+      }
     }
   };
 
@@ -138,6 +155,31 @@
     return img;
   }
 
+  function squareTone(fileIdx, rankNumber) {
+    return ((fileIdx + rankNumber) % 2 === 1) ? 'dark' : 'light';
+  }
+
+  function parseFenPlacementGrid(placement) {
+    const ranks = String(placement || '').split('/');
+    if (ranks.length !== 8) return null;
+
+    const grid = [];
+    for (const rank of ranks) {
+      const row = [];
+      for (const token of rank) {
+        if (/\d/.test(token)) {
+          const empties = Number(token);
+          for (let i = 0; i < empties; i += 1) row.push('');
+        } else {
+          row.push(token);
+        }
+      }
+      if (row.length !== 8) return null;
+      grid.push(row);
+    }
+    return grid;
+  }
+
   function mountMiniBoardFromFen(fen) {
     const boardEl = document.getElementById('ecoMiniBoard');
     const fallbackEl = document.getElementById('ecoMiniBoardFallback');
@@ -152,8 +194,8 @@
     }
 
     const placement = String(fen).split(' ')[0];
-    const ranks = placement.split('/');
-    if (ranks.length !== 8) {
+    const grid = parseFenPlacementGrid(placement);
+    if (!grid) {
       fallbackEl.style.display = 'block';
       boardEl.style.display = 'none';
       return false;
@@ -166,33 +208,22 @@
     fallbackEl.style.display = 'none';
     boardEl.style.display = 'grid';
 
-    let squareIndex = 0;
     const frag = document.createDocumentFragment();
+    const viewRanks = boardFlipped ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
+    const viewFiles = boardFlipped ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
 
-    for (const rank of ranks) {
-      for (const token of rank) {
-        if (/\d/.test(token)) {
-          const empties = Number(token);
-          for (let i = 0; i < empties; i += 1) {
-            const sq = document.createElement('div');
-            const row = Math.floor(squareIndex / 8);
-            const col = squareIndex % 8;
-            sq.className = `eco-sq ${(row + col) % 2 === 0 ? 'dark' : 'light'}`;
-            frag.appendChild(sq);
-            squareIndex += 1;
-          }
-        } else {
-          const sq = document.createElement('div');
-          const row = Math.floor(squareIndex / 8);
-          const col = squareIndex % 8;
-          sq.className = `eco-sq ${(row + col) % 2 === 0 ? 'dark' : 'light'}`;
+    for (const rankIdx of viewRanks) {
+      for (const fileIdx of viewFiles) {
+        const fenChar = grid[rankIdx][fileIdx];
+        const rankNumber = 8 - rankIdx;
 
-          const pieceNode = createPieceNode(token);
-          if (pieceNode) sq.appendChild(pieceNode);
+        const sq = document.createElement('div');
+        sq.className = `eco-sq ${squareTone(fileIdx, rankNumber)}`;
 
-          frag.appendChild(sq);
-          squareIndex += 1;
-        }
+        const pieceNode = createPieceNode(fenChar);
+        if (pieceNode) sq.appendChild(pieceNode);
+
+        frag.appendChild(sq);
       }
     }
 
@@ -276,7 +307,82 @@
     }
   }
 
-  async function loadContinuationsFromBook(fen, renderSeq) {
+  function applyStatsToPanel(stats) {
+    const whitePct = Number(stats?.w) || 0;
+    const drawPct = Number(stats?.d) || 0;
+    const blackPct = Number(stats?.l) || 0;
+    const total = whitePct + drawPct + blackPct;
+    const showPct = (v) => (Number(v) > 0 ? `${v}%` : 'TBD');
+
+    document.getElementById('ecoStatGames').textContent = Number(stats?.games) > 0 ? String(stats.games) : 'TBD';
+    document.getElementById('ecoStatLastPlayed').textContent = stats?.lastPlayed || 'TBD';
+    document.getElementById('ecoStatWhite').textContent = showPct(whitePct);
+    document.getElementById('ecoStatDraw').textContent = showPct(drawPct);
+    document.getElementById('ecoStatBlack').textContent = showPct(blackPct);
+
+    if (total > 0) {
+      document.getElementById('ecoWdlWhiteBar').style.width = `${(whitePct / total) * 100}%`;
+      document.getElementById('ecoWdlDrawBar').style.width = `${(drawPct / total) * 100}%`;
+      document.getElementById('ecoWdlBlackBar').style.width = `${(blackPct / total) * 100}%`;
+    } else {
+      document.getElementById('ecoWdlWhiteBar').style.width = '33%';
+      document.getElementById('ecoWdlDrawBar').style.width = '34%';
+      document.getElementById('ecoWdlBlackBar').style.width = '33%';
+    }
+  }
+
+  function setStatsPlaceholders() {
+    applyStatsToPanel(null);
+    document.getElementById('ecoStatBookWeight').textContent = 'TBD';
+  }
+
+  function mergeContinuations(fen, bookData, statsData) {
+    const byUci = new Map();
+
+    const statsMoves = Array.isArray(statsData?.topMoves) ? statsData.topMoves : [];
+    const statsTotal = statsMoves.reduce((sum, m) => sum + (Number(m.count) || 0), 0);
+
+    const bookMoves = Array.isArray(bookData?.moves) ? bookData.moves : [];
+    const bookTotal = bookMoves.reduce((sum, m) => sum + (Number(m.weight) || 0), 0);
+
+    for (const m of bookMoves) {
+      const uci = String(m.uci || '').trim();
+      if (!uci) continue;
+      byUci.set(uci, { uci, book: m, stats: null });
+    }
+
+    for (const m of statsMoves) {
+      const uci = String(m.uci || '').trim();
+      if (!uci) continue;
+      const cur = byUci.get(uci) || { uci, book: null, stats: null };
+      cur.stats = m;
+      byUci.set(uci, cur);
+    }
+
+    const rows = Array.from(byUci.values()).map((entry) => {
+      const statsCount = Number(entry.stats?.count) || 0;
+      const weight = Number(entry.book?.weight) || 0;
+      const percent = statsTotal > 0
+        ? (statsCount / statsTotal) * 100
+        : (bookTotal > 0 ? (weight / bookTotal) * 100 : 0);
+
+      const label = statsTotal > 0
+        ? `games ${statsCount}`
+        : `weight ${weight}`;
+
+      const san = uciToSanIfPossible(fen, entry.uci, entry.book?.san || entry.uci);
+      return { san, label, percent, sortA: statsCount, sortB: weight };
+    });
+
+    rows.sort((a, b) => {
+      if (b.sortA !== a.sortA) return b.sortA - a.sortA;
+      return b.sortB - a.sortB;
+    });
+
+    return rows.slice(0, 15);
+  }
+
+  async function loadContinuationsAndStats(fen, renderSeq) {
     const weightEl = document.getElementById('ecoStatBookWeight');
     if (weightEl) weightEl.textContent = 'Loading...';
     showContinuationStatus('Loading book...');
@@ -294,31 +400,23 @@
       }
 
       const book = await registry.getDefaultOpeningBook();
-      const entries = await book.getMovesForFen(fen, 15);
+      const bookData = await book.lookupPosition(fen, 15);
       if (renderSeq !== detailRenderSeq) return;
 
-      if (!entries || entries.length === 0) {
-        if (weightEl) weightEl.textContent = '0';
+      const totalWeight = Number(bookData?.totalWeight) || 0;
+      if (weightEl) weightEl.textContent = totalWeight > 0 ? String(totalWeight) : '0';
+
+      const statsData = await StatsProvider.getStatsByKey(bookData?.key || '');
+      if (renderSeq !== detailRenderSeq) return;
+      if (statsData) {
+        applyStatsToPanel(statsData);
+      }
+
+      const rows = mergeContinuations(fen, bookData, statsData);
+      if (rows.length === 0) {
         showContinuationStatus('No book moves found for this position.');
         return;
       }
-
-      const totalWeight = entries.reduce((sum, m) => sum + (Number(m.weight) || 0), 0);
-      if (weightEl) weightEl.textContent = String(totalWeight || 0);
-
-      const rows = entries
-        .sort((a, b) => (Number(b.weight) || 0) - (Number(a.weight) || 0))
-        .slice(0, 15)
-        .map((m) => {
-          const weight = Number(m.weight) || 0;
-          const percent = totalWeight > 0 ? (weight / totalWeight) * 100 : 0;
-          const san = uciToSanIfPossible(fen, m.uci, m.san || m.uci);
-          return {
-            san,
-            label: `weight ${weight}`,
-            percent
-          };
-        });
 
       renderContinuationRows(rows);
     } catch (err) {
@@ -346,18 +444,9 @@
     if (relatedEl) relatedEl.innerHTML = '<li>Select an ECO code to load related lines.</li>';
     if (theoryEl) theoryEl.textContent = 'Theory summary will appear here.';
 
+    currentBoardFen = '';
     renderMiniBoardFromFen('');
-
-    document.getElementById('ecoStatGames').textContent = 'TBD';
-    document.getElementById('ecoStatBookWeight').textContent = 'TBD';
-    document.getElementById('ecoStatLastPlayed').textContent = 'TBD';
-    document.getElementById('ecoStatWhite').textContent = 'TBD';
-    document.getElementById('ecoStatDraw').textContent = 'TBD';
-    document.getElementById('ecoStatBlack').textContent = 'TBD';
-
-    document.getElementById('ecoWdlWhiteBar').style.width = '33%';
-    document.getElementById('ecoWdlDrawBar').style.width = '34%';
-    document.getElementById('ecoWdlBlackBar').style.width = '33%';
+    setStatsPlaceholders();
 
     renderContinuationRows([
       { san: 'TBD', label: 'Main line', percent: 0 },
@@ -433,35 +522,12 @@
     if (theoryEl) theoryEl.textContent = theoryText;
 
     const resolvedFen = resolveFenForCode(detail, defining);
-    renderMiniBoardFromFen(resolvedFen);
-
-    const statsFromProvider = await StatsProvider.getStats(resolvedFen);
-    const stats = statsFromProvider || (detail && detail.stats ? detail.stats : { white: 0, draw: 0, black: 0, games: 0 });
-    const whitePct = Number(stats.white) || 0;
-    const drawPct = Number(stats.draw) || 0;
-    const blackPct = Number(stats.black) || 0;
-    const totalPct = whitePct + drawPct + blackPct;
-    const showPct = (v) => (Number(v) > 0 ? `${v}%` : 'TBD');
-
-    document.getElementById('ecoStatGames').textContent = Number(stats.games) > 0 ? String(stats.games) : 'TBD';
-    document.getElementById('ecoStatBookWeight').textContent = 'TBD';
-    document.getElementById('ecoStatLastPlayed').textContent = stats.lastPlayed ? String(stats.lastPlayed) : 'TBD';
-    document.getElementById('ecoStatWhite').textContent = showPct(whitePct);
-    document.getElementById('ecoStatDraw').textContent = showPct(drawPct);
-    document.getElementById('ecoStatBlack').textContent = showPct(blackPct);
-
-    if (totalPct > 0) {
-      document.getElementById('ecoWdlWhiteBar').style.width = `${(whitePct / totalPct) * 100}%`;
-      document.getElementById('ecoWdlDrawBar').style.width = `${(drawPct / totalPct) * 100}%`;
-      document.getElementById('ecoWdlBlackBar').style.width = `${(blackPct / totalPct) * 100}%`;
-    } else {
-      document.getElementById('ecoWdlWhiteBar').style.width = '33%';
-      document.getElementById('ecoWdlDrawBar').style.width = '34%';
-      document.getElementById('ecoWdlBlackBar').style.width = '33%';
-    }
-
+    currentBoardFen = resolvedFen;
+    renderMiniBoardFromFen(currentBoardFen);
+    setStatsPlaceholders();
     showContinuationStatus('Loading book...');
-    loadContinuationsFromBook(resolvedFen, renderSeq);
+
+    loadContinuationsAndStats(resolvedFen, renderSeq);
   }
 
   function selectCode(code, options = {}) {
@@ -516,6 +582,18 @@
     window.addEventListener('popstate', () => {
       const code = getCodeFromUrl();
       selectCode(code, { pushHistory: false, scrollMobile: false });
+    });
+
+    const controls = document.getElementById('ecoBoardControls');
+    controls?.addEventListener('click', (event) => {
+      const btn = event.target.closest('button[data-action]');
+      if (!btn || btn.disabled) return;
+
+      const action = btn.dataset.action;
+      if (action === 'flip') {
+        boardFlipped = !boardFlipped;
+        renderMiniBoardFromFen(currentBoardFen);
+      }
     });
   }
 

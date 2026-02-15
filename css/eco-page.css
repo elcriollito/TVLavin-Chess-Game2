@@ -168,6 +168,37 @@
   gap: 8px;
 }
 
+.eco-board-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.eco-board-controls button {
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  padding: 5px 10px;
+  font-size: 12px;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.eco-board-controls button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.eco-board-controls button:focus-visible {
+  outline: 2px solid rgba(154, 215, 255, 0.9);
+  outline-offset: 2px;
+}
+
+.eco-board-controls button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .eco-overview {
   border-top: 1px solid var(--panel-border);
   padding-top: 10px;
