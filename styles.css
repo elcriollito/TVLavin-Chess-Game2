@@ -4746,6 +4746,27 @@ button:focus,
     padding: 0;
 }
 
+/* Play board sizing should be based on visible center-area space, not root breakpoint fallbacks. */
+#playSection {
+    --play-board-size: min(78vh, 72vw, 720px);
+    --board-size: var(--play-board-size);
+}
+
+#playSection .board-center {
+    min-width: 0;
+}
+
+#playSection .board-editor-wrapper {
+    max-width: var(--play-board-size);
+}
+
+#playSection #chessboard {
+    width: var(--play-board-size) !important;
+    height: var(--play-board-size) !important;
+    max-width: var(--play-board-size) !important;
+    max-height: var(--play-board-size) !important;
+}
+
 .left-panel.cais-left-col {
     display: flex;
     flex-direction: column;
