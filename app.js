@@ -46,6 +46,7 @@ const App = {
         message: ''
     },
     openingName: '',
+    currentOpening: null,
     coachEnabled: true,
     coachText: '',
     lastEvalCp: null,
@@ -76,6 +77,12 @@ const App = {
     whiteTime: 0,
     blackTime: 0,
     timerInterval: null,
+    whiteTimeMs: 0,
+    blackTimeMs: 0,
+    clockRunning: false,
+    clockLastTs: null,
+    clockRafId: null,
+    clockDebugLastLog: 0,
     lastMoveTime: null,
 
     // Pending promotion
@@ -972,7 +979,7 @@ function updateStatus() {
 
 function handleGameOver() {
     App.gameActive = false;
-    clearInterval(App.timerInterval);
+    stopTimerLoop();
 
     let message = '';
     let state = 'Game Over';
@@ -1084,44 +1091,70 @@ function renderMovesToPanel() {
 function detectOpening() {
     if (!App.game || !App.openings || App.openings.length === 0) return;
 
-    const playedSAN = App.game.history({ verbose: false });
-    const maxLen = Math.min(playedSAN.length, 10); // first 5 full moves
+    const playedSAN = App.game.history({ verbose: false }).map(normalizeSanForEco);
     let best = null;
+    let bestLen = -1;
 
     for (const op of App.openings) {
-        const openingMoves = Array.isArray(op.moves) ? op.moves : String(op.moves || '').split(/\s+/).filter(Boolean);
-        const n = Math.min(openingMoves.length, maxLen);
-        let ok = true;
+        const openingMoves = (Array.isArray(op.moves) ? op.moves : String(op.moves || '').split(/\s+/).filter(Boolean))
+            .map(normalizeSanForEco);
+        if (!openingMoves.length || openingMoves.length > playedSAN.length) continue;
 
-        for (let i = 0; i < n; i++) {
-            if (playedSAN[i] !== openingMoves[i]) {
-                ok = false;
+        let fullMatch = true;
+        for (let i = 0; i < openingMoves.length; i++) {
+            if (openingMoves[i] !== playedSAN[i]) {
+                fullMatch = false;
                 break;
             }
         }
 
-        if (ok && n > 0) {
-            if (!best || openingMoves.length > (Array.isArray(best.moves) ? best.moves.length : String(best.moves || '').split(/\s+/).length)) {
-                best = op;
-            }
+        if (fullMatch && openingMoves.length > bestLen) {
+            best = op;
+            bestLen = openingMoves.length;
         }
     }
 
     const openingText = best ? `${best.eco} - ${best.name}` : 'Opening: (unknown)';
     const openingName = document.getElementById('openingName');
-    const openingTitleRight = document.getElementById('openingTitleRight');
-    const openingBookOpening = document.getElementById('openingBookOpening');
+    const openingLinkBook = document.getElementById('openingLinkBook');
+    const openingLinkCoach = document.getElementById('openingLinkCoach');
 
     if (openingName) openingName.textContent = openingText;
-    if (openingTitleRight) openingTitleRight.textContent = openingText;
-    if (openingBookOpening) openingBookOpening.textContent = openingText;
+    if (openingLinkBook) openingLinkBook.textContent = openingText;
+    if (openingLinkCoach) openingLinkCoach.textContent = openingText;
+    if (openingLinkBook) openingLinkBook.href = best && best.eco ? `/database/eco/${best.eco}` : '/database';
+    if (openingLinkCoach) openingLinkCoach.href = best && best.eco ? `/database/eco/${best.eco}` : '/database';
 
+    App.currentOpening = best || null;
     App.openingName = best ? best.name : '';
     updateCoachPanel();
     updateGameStatusConsole();
 }
 
-function updateCoachPanel() {
+function normalizeSanForEco(san) {
+    return String(san || '')
+        .replace(/\d+\.(\.\.)?/g, '')
+        .replace(/[+#?!]+/g, '')
+        .trim();
+}
+
+async function getCoachTheory(ecoCode) {
+    if (!ecoCode) return null;
+    App.coachTheoryCache = App.coachTheoryCache || {};
+    if (App.coachTheoryCache[ecoCode]) return App.coachTheoryCache[ecoCode];
+
+    try {
+        const response = await fetch(`/data/openings/eco/${ecoCode}.json`, { cache: 'no-cache' });
+        if (!response.ok) return null;
+        const data = await response.json();
+        App.coachTheoryCache[ecoCode] = data;
+        return data;
+    } catch (error) {
+        return null;
+    }
+}
+
+async function updateCoachPanel() {
     const coachTextEl = document.getElementById('coachText');
     const onBtn = document.getElementById('coachOnBtn');
     const offBtn = document.getElementById('coachOffBtn');
@@ -1136,7 +1169,15 @@ function updateCoachPanel() {
         return;
     }
 
-    if (App.openingName) {
+    const ecoCode = App.currentOpening && App.currentOpening.eco ? App.currentOpening.eco : '';
+    const theory = await getCoachTheory(ecoCode);
+
+    if (theory) {
+        const principles = Array.isArray(theory.principles) ? theory.principles.slice(0, 2) : [];
+        const whitePlans = Array.isArray(theory.plansWhite) ? theory.plansWhite.slice(0, 1) : [];
+        const blackPlans = Array.isArray(theory.plansBlack) ? theory.plansBlack.slice(0, 1) : [];
+        App.coachText = `${theory.eco} - ${theory.name}\n${principles.concat(whitePlans, blackPlans).join('\n')}`;
+    } else if (App.openingName) {
         App.coachText = `Playing ${App.openingName}.\nDevelop quickly, contest the center, and keep king safety prioritized.`;
     } else {
         App.coachText = 'Opening not identified yet. Develop pieces, control center, king safety.';
@@ -1284,49 +1325,99 @@ function updateTimers() {
         const secs = seconds % 60;
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
-    
+
+    const whiteMs = Math.max(0, App.whiteTimeMs || 0);
+    const blackMs = Math.max(0, App.blackTimeMs || 0);
+    App.whiteTime = Math.max(0, Math.ceil(whiteMs / 1000));
+    App.blackTime = Math.max(0, Math.ceil(blackMs / 1000));
+
     App.elements.whiteTime.textContent = formatTime(App.whiteTime);
     App.elements.blackTime.textContent = formatTime(App.blackTime);
     if (topClockWhite) topClockWhite.textContent = formatTime(App.whiteTime);
     if (topClockBlack) topClockBlack.textContent = formatTime(App.blackTime);
-    
+
     // Check for time out
-    if (App.whiteTime <= 0 || App.blackTime <= 0) {
+    if (whiteMs <= 0 || blackMs <= 0) {
         const winner = App.whiteTime <= 0 ? 'Black' : 'White';
         App.gameActive = false;
-        clearInterval(App.timerInterval);
+        stopTimerLoop();
         App.elements.gameResult.textContent = `Time out! ${winner} wins!`;
         App.elements.gameResult.classList.add('show');
         setGameStatus('Timeout', winner === 'White' ? '1-0' : '0-1', `${winner} wins on time.`);
     }
 }
 
-function startTimer() {
-    if (App.timeControl === 0) return;
+function resolveActiveClockSide() {
+    if (App.timeControl <= 0 || !App.gameActive || App.game.game_over()) return null;
+    const side = App.game.turn(); // 'w' or 'b'
+    let role = 'human';
+    if (App.gameMode === 'engine') {
+        const playerSide = App.playerColor === 'white' ? 'w' : 'b';
+        role = side === playerSide ? 'human' : 'engine';
+    } else if (App.gameMode === 'eve') {
+        role = 'engine';
+    }
+    return { side, role };
+}
 
-    // Clear any existing timer to prevent memory leaks
-    if (App.timerInterval) {
-        clearInterval(App.timerInterval);
+function clockTick(nowTs) {
+    if (!App.clockRunning) return;
+    if (!App.clockLastTs) {
+        App.clockLastTs = nowTs;
+        App.clockRafId = requestAnimationFrame(clockTick);
+        return;
     }
 
-    App.lastMoveTime = Date.now();
+    const deltaMs = Math.max(0, nowTs - App.clockLastTs);
+    App.clockLastTs = nowTs;
+    const active = resolveActiveClockSide();
 
-    App.timerInterval = setInterval(() => {
-        // Only decrement by 1 second per interval
-        if (App.game.turn() === 'w') {
-            App.whiteTime = Math.max(0, App.whiteTime - 1);
+    if (active) {
+        if (active.side === 'w') {
+            App.whiteTimeMs = Math.max(0, App.whiteTimeMs - deltaMs);
         } else {
-            App.blackTime = Math.max(0, App.blackTime - 1);
+            App.blackTimeMs = Math.max(0, App.blackTimeMs - deltaMs);
         }
 
-        updateTimers();
-
-        // Check for timeout
-        if (App.whiteTime <= 0 || App.blackTime <= 0) {
-            clearInterval(App.timerInterval);
-            App.timerInterval = null;
+        if (window.CAISSA_DEBUG_CLOCK && nowTs - App.clockDebugLastLog > 1000) {
+            App.clockDebugLastLog = nowTs;
+            console.log('[Clock]', {
+                sideToMove: App.game.turn(),
+                activeTimerSide: active.side,
+                activeRole: active.role,
+                whiteTime: Math.ceil(App.whiteTimeMs / 1000),
+                blackTime: Math.ceil(App.blackTimeMs / 1000)
+            });
         }
-    }, 1000);
+    }
+
+    updateTimers();
+    if (App.gameActive && !App.game.game_over()) {
+        App.clockRafId = requestAnimationFrame(clockTick);
+    } else {
+        stopTimerLoop();
+    }
+}
+
+function startTimer() {
+    if (App.timeControl === 0) return;
+    stopTimerLoop();
+    App.clockRunning = true;
+    App.clockLastTs = performance.now();
+    App.clockRafId = requestAnimationFrame(clockTick);
+}
+
+function stopTimerLoop() {
+    App.clockRunning = false;
+    App.clockLastTs = null;
+    if (App.clockRafId) {
+        cancelAnimationFrame(App.clockRafId);
+        App.clockRafId = null;
+    }
+    if (App.timerInterval) {
+        clearInterval(App.timerInterval);
+        App.timerInterval = null;
+    }
 }
 
 // ===== ANALYSIS =====
@@ -1623,7 +1714,7 @@ function newGame(options = {}) {
     if (App.analyzing) {
         stopAnalysis();
     }
-    clearInterval(App.timerInterval);
+    stopTimerLoop();
 
     // Reset game
     App.game.reset();
@@ -1647,6 +1738,8 @@ function newGame(options = {}) {
         App.timeControl = options.timeControl;
         App.whiteTime = options.timeControl;
         App.blackTime = options.timeControl;
+        App.whiteTimeMs = options.timeControl * 1000;
+        App.blackTimeMs = options.timeControl * 1000;
     }
     
     // Flip board if playing as black
@@ -1779,7 +1872,7 @@ function resignGame() {
     // Stop game
     App.gameActive = false;
     stopAnalysis();
-    clearInterval(App.timerInterval);
+    stopTimerLoop();
 
     // Hide resign button
     App.elements.resignBtn.style.display = 'none';
@@ -2012,7 +2105,7 @@ function renderGameStatusPanel() {
 }
 async function loadOpeningsDataset() {
     try {
-        const response = await fetch('data/openings.json', { cache: 'no-cache' });
+        const response = await fetch('/data/openings.json', { cache: 'no-cache' });
         if (!response.ok) {
             throw new Error(`Failed to load openings.json (${response.status})`);
         }

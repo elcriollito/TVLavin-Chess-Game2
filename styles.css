@@ -284,6 +284,15 @@ html, body {
     margin-bottom: 4px;
 }
 
+.opening-eco-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.opening-eco-link:hover {
+    text-decoration: underline;
+}
+
 .eval-numeric {
     font-size: 24px;
     font-weight: 700;

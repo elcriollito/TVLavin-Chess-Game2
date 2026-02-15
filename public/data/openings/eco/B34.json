@@ -1,0 +1,19 @@
+{
+  "eco": "B34",
+  "name": "Sicilian Defense: Accelerated Dragon",
+  "whenToShow": ["e4 c5 Nf3 Nc6 d4 cxd4 Nxd4 g6"],
+  "principles": [
+    "Use rapid fianchetto development to pressure central light squares.",
+    "Watch for Maroczy Bind structures and plan timely ...d5 breaks."
+  ],
+  "plansWhite": [
+    "Control d5 and limit Black's freeing pawn breaks with c4-based structures."
+  ],
+  "plansBlack": [
+    "Complete development quickly and prepare ...d5 under favorable conditions."
+  ],
+  "commonMistakes": [
+    "Ignoring d5 control and drifting into passive setups.",
+    "Premature pawn breaks before piece coordination."
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "eco": "B70",
+  "name": "Sicilian Defense: Dragon Variation",
+  "whenToShow": ["e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 g6"],
+  "principles": [
+    "Balance kingside fianchetto activity with precise king safety choices.",
+    "Coordinate tactical resources on the c-file and long diagonal."
+  ],
+  "plansWhite": [
+    "Use active piece placement and kingside pressure while controlling central breaks."
+  ],
+  "plansBlack": [
+    "Counter in the center and queenside; time tactical exchanges carefully."
+  ],
+  "commonMistakes": [
+    "Launching attacks before development is complete.",
+    "Allowing tactical motifs on h-file and c-file without prophylaxis."
+  ]
+}

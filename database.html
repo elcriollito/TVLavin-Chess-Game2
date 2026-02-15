@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CAISSA ECO Database</title>
+  <link rel="stylesheet" href="styles.css?v=2.0.1">
+  <link rel="stylesheet" href="css/database-page.css?v=1.0.0">
+</head>
+<body>
+  <main class="eco-page">
+    <header class="eco-header">
+      <a class="eco-back" href="/">Back to Play</a>
+      <h1>ECO Database</h1>
+    </header>
+
+    <section id="ecoListView" class="eco-list-view">
+      <div class="eco-toolbar">
+        <input id="ecoSearch" type="search" placeholder="Search code or opening name" aria-label="Search ECO">
+        <div class="eco-tabs" id="ecoTabs"></div>
+      </div>
+      <div id="ecoList" class="eco-list"></div>
+    </section>
+
+    <section id="ecoDetailView" class="eco-detail-view" style="display:none;">
+      <p><a id="ecoBackToList" href="/database">? All ECO codes</a></p>
+      <h2 id="ecoTitle"></h2>
+      <p id="ecoMoves"></p>
+      <h3>Related Lines</h3>
+      <ul id="ecoRelated"></ul>
+      <h3>Coach Theory</h3>
+      <div id="ecoTheory"></div>
+    </section>
+  </main>
+  <script src="js/database-page.js?v=1.0.0" defer></script>
+</body>
+</html>

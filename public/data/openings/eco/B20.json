@@ -1,0 +1,19 @@
+{
+  "eco": "B20",
+  "name": "Sicilian Defense",
+  "whenToShow": ["e4 c5"],
+  "principles": [
+    "Challenge White's central control with flexible pawn breaks and rapid development.",
+    "Coordinate development before expanding on the queenside."
+  ],
+  "plansWhite": [
+    "Develop Nf3 and d4 to challenge the center and open lines."
+  ],
+  "plansBlack": [
+    "Fight for d4 control and choose a setup (Najdorf, Dragon, Classical) after development."
+  ],
+  "commonMistakes": [
+    "Delaying kingside development while chasing early pawn grabs.",
+    "Allowing central binds without active counterplay."
+  ]
+}

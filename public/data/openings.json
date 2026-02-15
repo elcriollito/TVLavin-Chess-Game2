@@ -1,0 +1,5335 @@
+[
+  {
+    "eco": "A00",
+    "name": "Polish Opening",
+    "moves": [
+      "b4"
+    ]
+  },
+  {
+    "eco": "A00",
+    "name": "Nimzowitsch-Larsen Attack",
+    "moves": [
+      "b3"
+    ]
+  },
+  {
+    "eco": "A00",
+    "name": "Grob Opening",
+    "moves": [
+      "g4"
+    ]
+  },
+  {
+    "eco": "A01",
+    "name": "Nimzowitsch-Larsen Attack",
+    "moves": [
+      "b3",
+      "e5"
+    ]
+  },
+  {
+    "eco": "A02",
+    "name": "Bird Opening",
+    "moves": [
+      "f4"
+    ]
+  },
+  {
+    "eco": "A03",
+    "name": "Bird Opening",
+    "moves": [
+      "f4",
+      "d5"
+    ]
+  },
+  {
+    "eco": "A04",
+    "name": "Reti Opening",
+    "moves": [
+      "Nf3"
+    ]
+  },
+  {
+    "eco": "A05",
+    "name": "Reti Opening",
+    "moves": [
+      "Nf3",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "A07",
+    "name": "King's Indian Attack",
+    "moves": [
+      "Nf3",
+      "d5",
+      "g3"
+    ]
+  },
+  {
+    "eco": "A10",
+    "name": "English Opening",
+    "moves": [
+      "c4"
+    ]
+  },
+  {
+    "eco": "A16",
+    "name": "English Opening",
+    "moves": [
+      "c4",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "A20",
+    "name": "English Opening",
+    "moves": [
+      "c4",
+      "e5"
+    ]
+  },
+  {
+    "eco": "A30",
+    "name": "English Opening",
+    "moves": [
+      "c4",
+      "c5"
+    ]
+  },
+  {
+    "eco": "A40",
+    "name": "Queen's Pawn Game",
+    "moves": [
+      "d4"
+    ]
+  },
+  {
+    "eco": "A45",
+    "name": "Trompowsky Attack",
+    "moves": [
+      "d4",
+      "Nf6",
+      "Bg5"
+    ]
+  },
+  {
+    "eco": "A46",
+    "name": "Queen's Pawn Game",
+    "moves": [
+      "d4",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "A48",
+    "name": "King's Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6"
+    ]
+  },
+  {
+    "eco": "A50",
+    "name": "Queen's Pawn Game",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4"
+    ]
+  },
+  {
+    "eco": "A53",
+    "name": "Old Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "d6"
+    ]
+  },
+  {
+    "eco": "A56",
+    "name": "Benoni Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5"
+    ]
+  },
+  {
+    "eco": "A60",
+    "name": "Benoni Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5"
+    ]
+  },
+  {
+    "eco": "A80",
+    "name": "Dutch Defense",
+    "moves": [
+      "d4",
+      "f5"
+    ]
+  },
+  {
+    "eco": "A90",
+    "name": "Dutch Defense",
+    "moves": [
+      "d4",
+      "f5",
+      "c4",
+      "e6"
+    ]
+  },
+  {
+    "eco": "B00",
+    "name": "King's Pawn Game",
+    "moves": [
+      "e4"
+    ]
+  },
+  {
+    "eco": "B01",
+    "name": "Scandinavian Defense",
+    "moves": [
+      "e4",
+      "d5"
+    ]
+  },
+  {
+    "eco": "B02",
+    "name": "Alekhine Defense",
+    "moves": [
+      "e4",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "B06",
+    "name": "Robatsch Defense (Modern)",
+    "moves": [
+      "e4",
+      "g6"
+    ]
+  },
+  {
+    "eco": "B07",
+    "name": "Pirc Defense",
+    "moves": [
+      "e4",
+      "d6",
+      "d4",
+      "Nf6",
+      "Nc3",
+      "g6"
+    ]
+  },
+  {
+    "eco": "B10",
+    "name": "Caro-Kann Defense",
+    "moves": [
+      "e4",
+      "c6"
+    ]
+  },
+  {
+    "eco": "B12",
+    "name": "Caro-Kann Defense",
+    "moves": [
+      "e4",
+      "c6",
+      "d4",
+      "d5"
+    ]
+  },
+  {
+    "eco": "B20",
+    "name": "Sicilian Defense",
+    "moves": [
+      "e4",
+      "c5"
+    ]
+  },
+  {
+    "eco": "B22",
+    "name": "Sicilian Defense: Alapin",
+    "moves": [
+      "e4",
+      "c5",
+      "c3"
+    ]
+  },
+  {
+    "eco": "B23",
+    "name": "Sicilian Defense: Closed",
+    "moves": [
+      "e4",
+      "c5",
+      "Nc3"
+    ]
+  },
+  {
+    "eco": "B27",
+    "name": "Sicilian Defense: Najdorf",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "d6",
+      "d4",
+      "cxd4",
+      "Nxd4",
+      "Nf6",
+      "Nc3",
+      "a6"
+    ]
+  },
+  {
+    "eco": "B28",
+    "name": "Sicilian Defense: O'Kelly",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "a6"
+    ]
+  },
+  {
+    "eco": "B30",
+    "name": "Sicilian Defense: Rossolimo",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "Nc6",
+      "Bb5"
+    ]
+  },
+  {
+    "eco": "B33",
+    "name": "Sicilian Defense: Sveshnikov",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "Nc6",
+      "d4",
+      "cxd4",
+      "Nxd4",
+      "Nf6",
+      "Nc3",
+      "e5"
+    ]
+  },
+  {
+    "eco": "B40",
+    "name": "Sicilian Defense",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "e6"
+    ]
+  },
+  {
+    "eco": "B50",
+    "name": "Sicilian Defense",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "d6"
+    ]
+  },
+  {
+    "eco": "C00",
+    "name": "French Defense",
+    "moves": [
+      "e4",
+      "e6"
+    ]
+  },
+  {
+    "eco": "C02",
+    "name": "French Defense: Advance",
+    "moves": [
+      "e4",
+      "e6",
+      "d4",
+      "d5",
+      "e5"
+    ]
+  },
+  {
+    "eco": "C03",
+    "name": "French Defense: Tarrasch",
+    "moves": [
+      "e4",
+      "e6",
+      "d4",
+      "d5",
+      "Nd2"
+    ]
+  },
+  {
+    "eco": "C05",
+    "name": "French Defense: Tarrasch",
+    "moves": [
+      "e4",
+      "e6",
+      "d4",
+      "d5",
+      "Nd2",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "C10",
+    "name": "French Defense: Rubinstein",
+    "moves": [
+      "e4",
+      "e6",
+      "d4",
+      "d5",
+      "Nc3",
+      "dxe4"
+    ]
+  },
+  {
+    "eco": "C15",
+    "name": "French Defense: Winawer",
+    "moves": [
+      "e4",
+      "e6",
+      "d4",
+      "d5",
+      "Nc3",
+      "Bb4"
+    ]
+  },
+  {
+    "eco": "C20",
+    "name": "King's Pawn Game",
+    "moves": [
+      "e4",
+      "e5"
+    ]
+  },
+  {
+    "eco": "C21",
+    "name": "Center Game",
+    "moves": [
+      "e4",
+      "e5",
+      "d4"
+    ]
+  },
+  {
+    "eco": "C23",
+    "name": "Bishop's Opening",
+    "moves": [
+      "e4",
+      "e5",
+      "Bc4"
+    ]
+  },
+  {
+    "eco": "C25",
+    "name": "Vienna Game",
+    "moves": [
+      "e4",
+      "e5",
+      "Nc3"
+    ]
+  },
+  {
+    "eco": "C30",
+    "name": "King's Gambit",
+    "moves": [
+      "e4",
+      "e5",
+      "f4"
+    ]
+  },
+  {
+    "eco": "C33",
+    "name": "King's Gambit Accepted",
+    "moves": [
+      "e4",
+      "e5",
+      "f4",
+      "exf4"
+    ]
+  },
+  {
+    "eco": "C40",
+    "name": "King's Knight Opening",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3"
+    ]
+  },
+  {
+    "eco": "C44",
+    "name": "Scotch Game",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "d4"
+    ]
+  },
+  {
+    "eco": "C45",
+    "name": "Scotch Game",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "d4",
+      "exd4"
+    ]
+  },
+  {
+    "eco": "C50",
+    "name": "Italian Game",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bc4"
+    ]
+  },
+  {
+    "eco": "C53",
+    "name": "Giuoco Piano",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bc4",
+      "Bc5"
+    ]
+  },
+  {
+    "eco": "C54",
+    "name": "Italian Game",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bc4",
+      "Bc5",
+      "c3"
+    ]
+  },
+  {
+    "eco": "C55",
+    "name": "Two Knights Defense",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bc4",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "C57",
+    "name": "Two Knights Defense",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bc4",
+      "Nf6",
+      "Ng5"
+    ]
+  },
+  {
+    "eco": "C60",
+    "name": "Ruy Lopez",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5"
+    ]
+  },
+  {
+    "eco": "C65",
+    "name": "Ruy Lopez: Berlin Defense",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "C70",
+    "name": "Ruy Lopez: Classical",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Ba4",
+      "Nf6",
+      "O-O",
+      "Be7"
+    ]
+  },
+  {
+    "eco": "D00",
+    "name": "Queen's Pawn Game",
+    "moves": [
+      "d4",
+      "d5"
+    ]
+  },
+  {
+    "eco": "D02",
+    "name": "Queen's Gambit",
+    "moves": [
+      "d4",
+      "d5",
+      "c4"
+    ]
+  },
+  {
+    "eco": "D05",
+    "name": "Queen's Gambit",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6"
+    ]
+  },
+  {
+    "eco": "D06",
+    "name": "Queen's Gambit Declined",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3"
+    ]
+  },
+  {
+    "eco": "D10",
+    "name": "Slav Defense",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "c6"
+    ]
+  },
+  {
+    "eco": "D12",
+    "name": "Slav Defense",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "c6",
+      "Nf3"
+    ]
+  },
+  {
+    "eco": "D15",
+    "name": "Slav Defense",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "c6",
+      "Nf3",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "D30",
+    "name": "Queen's Gambit Declined",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "D35",
+    "name": "Queen's Gambit Declined: Exchange",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "cxd5"
+    ]
+  },
+  {
+    "eco": "D37",
+    "name": "Queen's Gambit Declined",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Nf3"
+    ]
+  },
+  {
+    "eco": "D43",
+    "name": "Semi-Slav Defense",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "c6"
+    ]
+  },
+  {
+    "eco": "D45",
+    "name": "Queen's Gambit Declined",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5"
+    ]
+  },
+  {
+    "eco": "D50",
+    "name": "Queen's Gambit Declined",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Be7"
+    ]
+  },
+  {
+    "eco": "D70",
+    "name": "Neo-Grunfeld Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "f3"
+    ]
+  },
+  {
+    "eco": "D80",
+    "name": "Grunfeld Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5"
+    ]
+  },
+  {
+    "eco": "D85",
+    "name": "Grunfeld Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "cxd5"
+    ]
+  },
+  {
+    "eco": "E00",
+    "name": "Catalan Opening",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "g3"
+    ]
+  },
+  {
+    "eco": "E10",
+    "name": "Queen's Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nf3",
+      "b6"
+    ]
+  },
+  {
+    "eco": "E20",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4"
+    ]
+  },
+  {
+    "eco": "E30",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "Qc2"
+    ]
+  },
+  {
+    "eco": "E60",
+    "name": "King's Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "Bg7"
+    ]
+  },
+  {
+    "eco": "E70",
+    "name": "King's Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "Bg7",
+      "e4"
+    ]
+  },
+  {
+    "eco": "A06",
+    "name": "Reti Opening",
+    "moves": [
+      "Nf3",
+      "d5"
+    ]
+  },
+  {
+    "eco": "A09",
+    "name": "Reti Opening",
+    "moves": [
+      "Nf3",
+      "d5",
+      "c4"
+    ]
+  },
+  {
+    "eco": "A11",
+    "name": "English Opening: Carls-Bremen System",
+    "moves": [
+      "c4",
+      "Nf6",
+      "Nf3"
+    ]
+  },
+  {
+    "eco": "A12",
+    "name": "English Opening: Carls-Bremen System",
+    "moves": [
+      "c4",
+      "Nf6",
+      "Nf3",
+      "e6"
+    ]
+  },
+  {
+    "eco": "A13",
+    "name": "English Opening: Agincourt Defense",
+    "moves": [
+      "c4",
+      "e6"
+    ]
+  },
+  {
+    "eco": "A15",
+    "name": "English Opening: Anglo-Indian Defense",
+    "moves": [
+      "c4",
+      "Nf6",
+      "Nf3",
+      "g6"
+    ]
+  },
+  {
+    "eco": "A17",
+    "name": "English Opening: Anglo-Indian Defense",
+    "moves": [
+      "c4",
+      "Nf6",
+      "Nc3",
+      "g6"
+    ]
+  },
+  {
+    "eco": "A18",
+    "name": "English Opening: Mikenas-Carls",
+    "moves": [
+      "c4",
+      "Nf6",
+      "Nc3",
+      "e6"
+    ]
+  },
+  {
+    "eco": "A19",
+    "name": "English Opening: Mikenas-Carls",
+    "moves": [
+      "c4",
+      "Nf6",
+      "Nc3",
+      "e6",
+      "e4"
+    ]
+  },
+  {
+    "eco": "A21",
+    "name": "English Opening: Third-Bishop's Opening",
+    "moves": [
+      "c4",
+      "e5",
+      "Nc3"
+    ]
+  },
+  {
+    "eco": "A22",
+    "name": "English Opening: Two Knights",
+    "moves": [
+      "c4",
+      "e5",
+      "Nc3",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "A23",
+    "name": "English Opening: Bremen System",
+    "moves": [
+      "c4",
+      "e5",
+      "Nc3",
+      "Nf6",
+      "g3"
+    ]
+  },
+  {
+    "eco": "A24",
+    "name": "English Opening: King's English",
+    "moves": [
+      "c4",
+      "e5",
+      "Nc3",
+      "Nf6",
+      "g3",
+      "g6"
+    ]
+  },
+  {
+    "eco": "A25",
+    "name": "English Opening: Closed",
+    "moves": [
+      "c4",
+      "e5",
+      "Nc3",
+      "Nc6"
+    ]
+  },
+  {
+    "eco": "A26",
+    "name": "English Opening: Closed",
+    "moves": [
+      "c4",
+      "e5",
+      "Nc3",
+      "Nc6",
+      "g3"
+    ]
+  },
+  {
+    "eco": "A27",
+    "name": "English Opening: Three Knights",
+    "moves": [
+      "c4",
+      "e5",
+      "Nc3",
+      "Nc6",
+      "Nf3"
+    ]
+  },
+  {
+    "eco": "A28",
+    "name": "English Opening: Four Knights",
+    "moves": [
+      "c4",
+      "e5",
+      "Nc3",
+      "Nc6",
+      "Nf3",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "A29",
+    "name": "English Opening: Four Knights",
+    "moves": [
+      "c4",
+      "e5",
+      "Nc3",
+      "Nc6",
+      "Nf3",
+      "Nf6",
+      "g3"
+    ]
+  },
+  {
+    "eco": "A31",
+    "name": "English Opening: Symmetrical",
+    "moves": [
+      "c4",
+      "c5",
+      "Nf3"
+    ]
+  },
+  {
+    "eco": "A32",
+    "name": "English Opening: Symmetrical",
+    "moves": [
+      "c4",
+      "c5",
+      "Nf3",
+      "Nc6"
+    ]
+  },
+  {
+    "eco": "A33",
+    "name": "English Opening: Symmetrical",
+    "moves": [
+      "c4",
+      "c5",
+      "Nc3"
+    ]
+  },
+  {
+    "eco": "A34",
+    "name": "English Opening: Symmetrical",
+    "moves": [
+      "c4",
+      "c5",
+      "Nc3",
+      "Nc6"
+    ]
+  },
+  {
+    "eco": "A35",
+    "name": "English Opening: Symmetrical",
+    "moves": [
+      "c4",
+      "c5",
+      "Nc3",
+      "Nc6",
+      "g3"
+    ]
+  },
+  {
+    "eco": "A36",
+    "name": "English Opening: Symmetrical",
+    "moves": [
+      "c4",
+      "c5",
+      "Nc3",
+      "Nc6",
+      "g3",
+      "g6"
+    ]
+  },
+  {
+    "eco": "A37",
+    "name": "English Opening: Symmetrical",
+    "moves": [
+      "c4",
+      "c5",
+      "Nc3",
+      "Nc6",
+      "g3",
+      "g6",
+      "Bg2"
+    ]
+  },
+  {
+    "eco": "A38",
+    "name": "English Opening: Symmetrical",
+    "moves": [
+      "c4",
+      "c5",
+      "Nc3",
+      "Nc6",
+      "g3",
+      "g6",
+      "Bg2",
+      "Bg7"
+    ]
+  },
+  {
+    "eco": "A39",
+    "name": "English Opening: Symmetrical",
+    "moves": [
+      "c4",
+      "c5",
+      "Nc3",
+      "Nc6",
+      "g3",
+      "g6",
+      "Bg2",
+      "Bg7",
+      "Nf3"
+    ]
+  },
+  {
+    "eco": "A42",
+    "name": "Modern Defense",
+    "moves": [
+      "d4",
+      "g6"
+    ]
+  },
+  {
+    "eco": "A43",
+    "name": "Old Benoni Defense",
+    "moves": [
+      "d4",
+      "c5"
+    ]
+  },
+  {
+    "eco": "A44",
+    "name": "Old Benoni Defense",
+    "moves": [
+      "d4",
+      "c5",
+      "d5"
+    ]
+  },
+  {
+    "eco": "A51",
+    "name": "Budapest Gambit",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e5"
+    ]
+  },
+  {
+    "eco": "A52",
+    "name": "Budapest Gambit",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e5",
+      "dxe5"
+    ]
+  },
+  {
+    "eco": "A55",
+    "name": "Old Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "d6",
+      "Nc3"
+    ]
+  },
+  {
+    "eco": "A57",
+    "name": "Benko Gambit",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "b5"
+    ]
+  },
+  {
+    "eco": "A58",
+    "name": "Benko Gambit",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "b5",
+      "cxb5",
+      "a6"
+    ]
+  },
+  {
+    "eco": "A59",
+    "name": "Benko Gambit",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "b5",
+      "cxb5",
+      "a6",
+      "bxa6"
+    ]
+  },
+  {
+    "eco": "A61",
+    "name": "Benoni Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "e6"
+    ]
+  },
+  {
+    "eco": "A62",
+    "name": "Benoni Defense: Fianchetto",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "e6",
+      "g3"
+    ]
+  },
+  {
+    "eco": "A63",
+    "name": "Benoni Defense: Fianchetto",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "e6",
+      "g3",
+      "d6"
+    ]
+  },
+  {
+    "eco": "A65",
+    "name": "Benoni Defense: 6.e4",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "e6",
+      "Nc3",
+      "exd5",
+      "cxd5",
+      "d6",
+      "e4"
+    ]
+  },
+  {
+    "eco": "A66",
+    "name": "Benoni Defense: Modern",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "e6",
+      "Nc3",
+      "exd5",
+      "cxd5",
+      "d6",
+      "e4",
+      "g6"
+    ]
+  },
+  {
+    "eco": "A67",
+    "name": "Benoni Defense: Taimanov",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "e6",
+      "Nc3",
+      "exd5",
+      "cxd5",
+      "d6",
+      "e4",
+      "g6",
+      "f4"
+    ]
+  },
+  {
+    "eco": "A68",
+    "name": "Benoni Defense: Four Pawns Attack",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "e6",
+      "Nc3",
+      "exd5",
+      "cxd5",
+      "d6",
+      "e4",
+      "g6",
+      "f4",
+      "Bg7"
+    ]
+  },
+  {
+    "eco": "A70",
+    "name": "Benoni Defense: Classical",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "e6",
+      "Nc3",
+      "exd5",
+      "cxd5",
+      "d6",
+      "e4",
+      "g6",
+      "Nf3"
+    ]
+  },
+  {
+    "eco": "A71",
+    "name": "Benoni Defense: Classical",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "e6",
+      "Nc3",
+      "exd5",
+      "cxd5",
+      "d6",
+      "e4",
+      "g6",
+      "Nf3",
+      "Bg7"
+    ]
+  },
+  {
+    "eco": "A72",
+    "name": "Benoni Defense: Classical",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "e6",
+      "Nc3",
+      "exd5",
+      "cxd5",
+      "d6",
+      "e4",
+      "g6",
+      "Nf3",
+      "Bg7",
+      "Be2"
+    ]
+  },
+  {
+    "eco": "A73",
+    "name": "Benoni Defense: Classical",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "e6",
+      "Nc3",
+      "exd5",
+      "cxd5",
+      "d6",
+      "e4",
+      "g6",
+      "Nf3",
+      "Bg7",
+      "Be2",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "A74",
+    "name": "Benoni Defense: Classical",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "e6",
+      "Nc3",
+      "exd5",
+      "cxd5",
+      "d6",
+      "e4",
+      "g6",
+      "Nf3",
+      "Bg7",
+      "Be2",
+      "O-O",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "A75",
+    "name": "Benoni Defense: Classical",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "e6",
+      "Nc3",
+      "exd5",
+      "cxd5",
+      "d6",
+      "e4",
+      "g6",
+      "Nf3",
+      "Bg7",
+      "Be2",
+      "O-O",
+      "O-O",
+      "a6"
+    ]
+  },
+  {
+    "eco": "A76",
+    "name": "Benoni Defense: Classical",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "e6",
+      "Nc3",
+      "exd5",
+      "cxd5",
+      "d6",
+      "e4",
+      "g6",
+      "Nf3",
+      "Bg7",
+      "Be2",
+      "O-O",
+      "O-O",
+      "a6",
+      "a4"
+    ]
+  },
+  {
+    "eco": "A77",
+    "name": "Benoni Defense: Classical",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "e6",
+      "Nc3",
+      "exd5",
+      "cxd5",
+      "d6",
+      "e4",
+      "g6",
+      "Nf3",
+      "Bg7",
+      "Be2",
+      "O-O",
+      "O-O",
+      "a6",
+      "a4",
+      "b6"
+    ]
+  },
+  {
+    "eco": "A78",
+    "name": "Benoni Defense: Classical",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "e6",
+      "Nc3",
+      "exd5",
+      "cxd5",
+      "d6",
+      "e4",
+      "g6",
+      "Nf3",
+      "Bg7",
+      "Be2",
+      "O-O",
+      "O-O",
+      "a6",
+      "a4",
+      "b6",
+      "Nd2"
+    ]
+  },
+  {
+    "eco": "A79",
+    "name": "Benoni Defense: Classical",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "c5",
+      "d5",
+      "e6",
+      "Nc3",
+      "exd5",
+      "cxd5",
+      "d6",
+      "e4",
+      "g6",
+      "Nf3",
+      "Bg7",
+      "Be2",
+      "O-O",
+      "O-O",
+      "a6",
+      "a4",
+      "b6",
+      "Nd2",
+      "Re8"
+    ]
+  },
+  {
+    "eco": "A81",
+    "name": "Dutch Defense: Leningrad",
+    "moves": [
+      "d4",
+      "f5",
+      "g3",
+      "Nf6",
+      "Bg2",
+      "g6"
+    ]
+  },
+  {
+    "eco": "A82",
+    "name": "Dutch Defense: Staunton Gambit",
+    "moves": [
+      "d4",
+      "f5",
+      "e4"
+    ]
+  },
+  {
+    "eco": "A83",
+    "name": "Dutch Defense: Staunton Gambit",
+    "moves": [
+      "d4",
+      "f5",
+      "e4",
+      "fxe4",
+      "Nc3",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "A84",
+    "name": "Dutch Defense: Classical",
+    "moves": [
+      "d4",
+      "f5",
+      "c4",
+      "Nf6",
+      "g3",
+      "e6",
+      "Bg2",
+      "Be7"
+    ]
+  },
+  {
+    "eco": "A85",
+    "name": "Dutch Defense: Stonewall",
+    "moves": [
+      "d4",
+      "f5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "g3",
+      "d5"
+    ]
+  },
+  {
+    "eco": "A86",
+    "name": "Dutch Defense: Stonewall",
+    "moves": [
+      "d4",
+      "f5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "g3",
+      "d5",
+      "Bg2",
+      "c6"
+    ]
+  },
+  {
+    "eco": "A87",
+    "name": "Dutch Defense: Leningrad",
+    "moves": [
+      "d4",
+      "f5",
+      "c4",
+      "Nf6",
+      "g3",
+      "g6",
+      "Bg2",
+      "Bg7",
+      "Nf3"
+    ]
+  },
+  {
+    "eco": "A88",
+    "name": "Dutch Defense: Leningrad",
+    "moves": [
+      "d4",
+      "f5",
+      "c4",
+      "Nf6",
+      "g3",
+      "g6",
+      "Bg2",
+      "Bg7",
+      "Nf3",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "A89",
+    "name": "Dutch Defense: Leningrad",
+    "moves": [
+      "d4",
+      "f5",
+      "c4",
+      "Nf6",
+      "g3",
+      "g6",
+      "Bg2",
+      "Bg7",
+      "Nf3",
+      "O-O",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "A91",
+    "name": "Dutch Defense: Classical",
+    "moves": [
+      "d4",
+      "f5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "g3",
+      "d5",
+      "Bg2",
+      "c6",
+      "Nh3"
+    ]
+  },
+  {
+    "eco": "A92",
+    "name": "Dutch Defense: Classical",
+    "moves": [
+      "d4",
+      "f5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "g3",
+      "d5",
+      "Bg2",
+      "c6",
+      "Nh3",
+      "Bd6"
+    ]
+  },
+  {
+    "eco": "A93",
+    "name": "Dutch Defense: Classical",
+    "moves": [
+      "d4",
+      "f5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "g3",
+      "d5",
+      "Bg2",
+      "c6",
+      "Nh3",
+      "Bd6",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "A94",
+    "name": "Dutch Defense: Classical",
+    "moves": [
+      "d4",
+      "f5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "g3",
+      "d5",
+      "Bg2",
+      "c6",
+      "Nh3",
+      "Bd6",
+      "O-O",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "A95",
+    "name": "Dutch Defense: Classical",
+    "moves": [
+      "d4",
+      "f5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "g3",
+      "d5",
+      "Bg2",
+      "c6",
+      "Nh3",
+      "Bd6",
+      "O-O",
+      "O-O",
+      "Nf4"
+    ]
+  },
+  {
+    "eco": "A96",
+    "name": "Dutch Defense: Classical",
+    "moves": [
+      "d4",
+      "f5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "g3",
+      "d5",
+      "Bg2",
+      "c6",
+      "Nh3",
+      "Bd6",
+      "O-O",
+      "O-O",
+      "Nf4",
+      "Qe8"
+    ]
+  },
+  {
+    "eco": "A97",
+    "name": "Dutch Defense: Classical",
+    "moves": [
+      "d4",
+      "f5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "g3",
+      "d5",
+      "Bg2",
+      "c6",
+      "Nh3",
+      "Bd6",
+      "O-O",
+      "O-O",
+      "Nf4",
+      "Qe8",
+      "b3"
+    ]
+  },
+  {
+    "eco": "A98",
+    "name": "Dutch Defense: Classical",
+    "moves": [
+      "d4",
+      "f5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "g3",
+      "d5",
+      "Bg2",
+      "c6",
+      "Nh3",
+      "Bd6",
+      "O-O",
+      "O-O",
+      "Nf4",
+      "Qe8",
+      "b3",
+      "a5"
+    ]
+  },
+  {
+    "eco": "A99",
+    "name": "Dutch Defense: Classical",
+    "moves": [
+      "d4",
+      "f5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "g3",
+      "d5",
+      "Bg2",
+      "c6",
+      "Nh3",
+      "Bd6",
+      "O-O",
+      "O-O",
+      "Nf4",
+      "Qe8",
+      "b3",
+      "a5",
+      "Ba3"
+    ]
+  },
+  {
+    "eco": "B03",
+    "name": "Alekhine Defense",
+    "moves": [
+      "e4",
+      "Nf6",
+      "e5",
+      "Nd5"
+    ]
+  },
+  {
+    "eco": "B04",
+    "name": "Alekhine Defense: Modern",
+    "moves": [
+      "e4",
+      "Nf6",
+      "e5",
+      "Nd5",
+      "d4"
+    ]
+  },
+  {
+    "eco": "B05",
+    "name": "Alekhine Defense: Modern",
+    "moves": [
+      "e4",
+      "Nf6",
+      "e5",
+      "Nd5",
+      "d4",
+      "d6"
+    ]
+  },
+  {
+    "eco": "B09",
+    "name": "Pirc Defense: Austrian Attack",
+    "moves": [
+      "e4",
+      "d6",
+      "d4",
+      "Nf6",
+      "Nc3",
+      "g6",
+      "f4"
+    ]
+  },
+  {
+    "eco": "B11",
+    "name": "Caro-Kann Defense: Two Knights",
+    "moves": [
+      "e4",
+      "c6",
+      "Nc3",
+      "d5",
+      "Nf3"
+    ]
+  },
+  {
+    "eco": "B13",
+    "name": "Caro-Kann Defense: Exchange",
+    "moves": [
+      "e4",
+      "c6",
+      "d4",
+      "d5",
+      "exd5",
+      "cxd5"
+    ]
+  },
+  {
+    "eco": "B14",
+    "name": "Caro-Kann Defense: Panov-Botvinnik",
+    "moves": [
+      "e4",
+      "c6",
+      "d4",
+      "d5",
+      "exd5",
+      "cxd5",
+      "c4"
+    ]
+  },
+  {
+    "eco": "B15",
+    "name": "Caro-Kann Defense: Panov Attack",
+    "moves": [
+      "e4",
+      "c6",
+      "d4",
+      "d5",
+      "exd5",
+      "cxd5",
+      "c4",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "B16",
+    "name": "Caro-Kann Defense: Panov Attack",
+    "moves": [
+      "e4",
+      "c6",
+      "d4",
+      "d5",
+      "exd5",
+      "cxd5",
+      "c4",
+      "Nf6",
+      "Nc3"
+    ]
+  },
+  {
+    "eco": "B17",
+    "name": "Caro-Kann Defense: Steinitz",
+    "moves": [
+      "e4",
+      "c6",
+      "d4",
+      "d5",
+      "Nc3",
+      "dxe4",
+      "Nxe4",
+      "Nd7"
+    ]
+  },
+  {
+    "eco": "B18",
+    "name": "Caro-Kann Defense: Classical",
+    "moves": [
+      "e4",
+      "c6",
+      "d4",
+      "d5",
+      "Nc3",
+      "dxe4",
+      "Nxe4",
+      "Bf5"
+    ]
+  },
+  {
+    "eco": "B19",
+    "name": "Caro-Kann Defense: Classical",
+    "moves": [
+      "e4",
+      "c6",
+      "d4",
+      "d5",
+      "Nc3",
+      "dxe4",
+      "Nxe4",
+      "Bf5",
+      "Ng3"
+    ]
+  },
+  {
+    "eco": "B21",
+    "name": "Sicilian Defense: Smith-Morra Gambit",
+    "moves": [
+      "e4",
+      "c5",
+      "d4",
+      "cxd4",
+      "c3"
+    ]
+  },
+  {
+    "eco": "B24",
+    "name": "Sicilian Defense: Closed",
+    "moves": [
+      "e4",
+      "c5",
+      "Nc3",
+      "Nc6",
+      "f4"
+    ]
+  },
+  {
+    "eco": "B25",
+    "name": "Sicilian Defense: Closed",
+    "moves": [
+      "e4",
+      "c5",
+      "Nc3",
+      "Nc6",
+      "g3"
+    ]
+  },
+  {
+    "eco": "B26",
+    "name": "Sicilian Defense: Closed",
+    "moves": [
+      "e4",
+      "c5",
+      "Nc3",
+      "Nc6",
+      "g3",
+      "g6"
+    ]
+  },
+  {
+    "eco": "B31",
+    "name": "Sicilian Defense: Rossolimo",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "g6"
+    ]
+  },
+  {
+    "eco": "B32",
+    "name": "Sicilian Defense: Kalashnikov",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "Nc6",
+      "d4",
+      "cxd4",
+      "Nxd4",
+      "e5"
+    ]
+  },
+  {
+    "eco": "B34",
+    "name": "Sicilian Defense: Accelerated Dragon",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "Nc6",
+      "d4",
+      "cxd4",
+      "Nxd4",
+      "g6"
+    ]
+  },
+  {
+    "eco": "B35",
+    "name": "Sicilian Defense: Accelerated Dragon",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "Nc6",
+      "d4",
+      "cxd4",
+      "Nxd4",
+      "g6",
+      "Nc3"
+    ]
+  },
+  {
+    "eco": "B36",
+    "name": "Sicilian Defense: Accelerated Dragon",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "Nc6",
+      "d4",
+      "cxd4",
+      "Nxd4",
+      "g6",
+      "c4"
+    ]
+  },
+  {
+    "eco": "B37",
+    "name": "Sicilian Defense: Accelerated Dragon",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "Nc6",
+      "d4",
+      "cxd4",
+      "Nxd4",
+      "g6",
+      "c4",
+      "Bg7"
+    ]
+  },
+  {
+    "eco": "B38",
+    "name": "Sicilian Defense: Accelerated Dragon",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "Nc6",
+      "d4",
+      "cxd4",
+      "Nxd4",
+      "g6",
+      "c4",
+      "Bg7",
+      "Be3"
+    ]
+  },
+  {
+    "eco": "B39",
+    "name": "Sicilian Defense: Accelerated Dragon",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "Nc6",
+      "d4",
+      "cxd4",
+      "Nxd4",
+      "g6",
+      "c4",
+      "Bg7",
+      "Be3",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "B41",
+    "name": "Sicilian Defense: Kan",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "e6",
+      "d4",
+      "cxd4",
+      "Nxd4",
+      "a6"
+    ]
+  },
+  {
+    "eco": "B42",
+    "name": "Sicilian Defense: Kan",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "e6",
+      "d4",
+      "cxd4",
+      "Nxd4",
+      "a6",
+      "Bd3"
+    ]
+  },
+  {
+    "eco": "B43",
+    "name": "Sicilian Defense: Kan",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "e6",
+      "d4",
+      "cxd4",
+      "Nxd4",
+      "a6",
+      "Nc3"
+    ]
+  },
+  {
+    "eco": "B45",
+    "name": "Sicilian Defense: Taimanov",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "e6",
+      "d4",
+      "cxd4",
+      "Nxd4",
+      "Nc6"
+    ]
+  },
+  {
+    "eco": "B46",
+    "name": "Sicilian Defense: Taimanov",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "e6",
+      "d4",
+      "cxd4",
+      "Nxd4",
+      "Nc6",
+      "Nc3"
+    ]
+  },
+  {
+    "eco": "B47",
+    "name": "Sicilian Defense: Taimanov",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "e6",
+      "d4",
+      "cxd4",
+      "Nxd4",
+      "Nc6",
+      "Nc3",
+      "Qc7"
+    ]
+  },
+  {
+    "eco": "B48",
+    "name": "Sicilian Defense: Taimanov",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "e6",
+      "d4",
+      "cxd4",
+      "Nxd4",
+      "Nc6",
+      "Nc3",
+      "Qc7",
+      "Be3"
+    ]
+  },
+  {
+    "eco": "B49",
+    "name": "Sicilian Defense: Taimanov",
+    "moves": [
+      "e4",
+      "c5",
+      "Nf3",
+      "e6",
+      "d4",
+      "cxd4",
+      "Nxd4",
+      "Nc6",
+      "Nc3",
+      "Qc7",
+      "Be3",
+      "a6"
+    ]
+  },
+  {
+    "eco": "C01",
+    "name": "French Defense: Exchange",
+    "moves": [
+      "e4",
+      "e6",
+      "d4",
+      "d5",
+      "exd5"
+    ]
+  },
+  {
+    "eco": "C04",
+    "name": "French Defense: Tarrasch, Guimard",
+    "moves": [
+      "e4",
+      "e6",
+      "d4",
+      "d5",
+      "Nd2",
+      "Nc6"
+    ]
+  },
+  {
+    "eco": "C07",
+    "name": "French Defense: Tarrasch",
+    "moves": [
+      "e4",
+      "e6",
+      "d4",
+      "d5",
+      "Nd2",
+      "c5"
+    ]
+  },
+  {
+    "eco": "C08",
+    "name": "French Defense: Tarrasch",
+    "moves": [
+      "e4",
+      "e6",
+      "d4",
+      "d5",
+      "Nd2",
+      "c5",
+      "Ngf3"
+    ]
+  },
+  {
+    "eco": "C09",
+    "name": "French Defense: Tarrasch",
+    "moves": [
+      "e4",
+      "e6",
+      "d4",
+      "d5",
+      "Nd2",
+      "c5",
+      "Ngf3",
+      "Nc6"
+    ]
+  },
+  {
+    "eco": "C11",
+    "name": "French Defense: Burn",
+    "moves": [
+      "e4",
+      "e6",
+      "d4",
+      "d5",
+      "Nc3",
+      "Nf6",
+      "Bg5"
+    ]
+  },
+  {
+    "eco": "C13",
+    "name": "French Defense: Classical",
+    "moves": [
+      "e4",
+      "e6",
+      "d4",
+      "d5",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Be7"
+    ]
+  },
+  {
+    "eco": "C14",
+    "name": "French Defense: Classical",
+    "moves": [
+      "e4",
+      "e6",
+      "d4",
+      "d5",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Be7",
+      "e5"
+    ]
+  },
+  {
+    "eco": "C16",
+    "name": "French Defense: Winawer",
+    "moves": [
+      "e4",
+      "e6",
+      "d4",
+      "d5",
+      "Nc3",
+      "Bb4",
+      "e5"
+    ]
+  },
+  {
+    "eco": "C17",
+    "name": "French Defense: Winawer",
+    "moves": [
+      "e4",
+      "e6",
+      "d4",
+      "d5",
+      "Nc3",
+      "Bb4",
+      "e5",
+      "c5"
+    ]
+  },
+  {
+    "eco": "C18",
+    "name": "French Defense: Winawer",
+    "moves": [
+      "e4",
+      "e6",
+      "d4",
+      "d5",
+      "Nc3",
+      "Bb4",
+      "e5",
+      "c5",
+      "a3"
+    ]
+  },
+  {
+    "eco": "C19",
+    "name": "French Defense: Winawer",
+    "moves": [
+      "e4",
+      "e6",
+      "d4",
+      "d5",
+      "Nc3",
+      "Bb4",
+      "e5",
+      "c5",
+      "a3",
+      "Bxc3"
+    ]
+  },
+  {
+    "eco": "C22",
+    "name": "Center Game",
+    "moves": [
+      "e4",
+      "e5",
+      "d4",
+      "exd4"
+    ]
+  },
+  {
+    "eco": "C24",
+    "name": "Bishop's Opening",
+    "moves": [
+      "e4",
+      "e5",
+      "Bc4",
+      "Bc5"
+    ]
+  },
+  {
+    "eco": "C26",
+    "name": "Vienna Game",
+    "moves": [
+      "e4",
+      "e5",
+      "Nc3",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "C27",
+    "name": "Vienna Game",
+    "moves": [
+      "e4",
+      "e5",
+      "Nc3",
+      "Nf6",
+      "Bc4"
+    ]
+  },
+  {
+    "eco": "C28",
+    "name": "Vienna Game",
+    "moves": [
+      "e4",
+      "e5",
+      "Nc3",
+      "Nf6",
+      "Bc4",
+      "Nxe4"
+    ]
+  },
+  {
+    "eco": "C29",
+    "name": "Vienna Gambit",
+    "moves": [
+      "e4",
+      "e5",
+      "Nc3",
+      "Nf6",
+      "f4"
+    ]
+  },
+  {
+    "eco": "C31",
+    "name": "King's Gambit Declined",
+    "moves": [
+      "e4",
+      "e5",
+      "f4",
+      "Bc5"
+    ]
+  },
+  {
+    "eco": "C32",
+    "name": "King's Gambit Declined",
+    "moves": [
+      "e4",
+      "e5",
+      "f4",
+      "d5"
+    ]
+  },
+  {
+    "eco": "C34",
+    "name": "King's Gambit Accepted",
+    "moves": [
+      "e4",
+      "e5",
+      "f4",
+      "exf4",
+      "Nf3"
+    ]
+  },
+  {
+    "eco": "C35",
+    "name": "King's Gambit Accepted",
+    "moves": [
+      "e4",
+      "e5",
+      "f4",
+      "exf4",
+      "Nf3",
+      "d5"
+    ]
+  },
+  {
+    "eco": "C36",
+    "name": "King's Gambit Accepted",
+    "moves": [
+      "e4",
+      "e5",
+      "f4",
+      "exf4",
+      "Nf3",
+      "d5",
+      "exd5"
+    ]
+  },
+  {
+    "eco": "C37",
+    "name": "King's Gambit Accepted",
+    "moves": [
+      "e4",
+      "e5",
+      "f4",
+      "exf4",
+      "Nf3",
+      "g5"
+    ]
+  },
+  {
+    "eco": "C38",
+    "name": "King's Gambit Accepted",
+    "moves": [
+      "e4",
+      "e5",
+      "f4",
+      "exf4",
+      "Nf3",
+      "g5",
+      "h4"
+    ]
+  },
+  {
+    "eco": "C39",
+    "name": "King's Gambit Accepted",
+    "moves": [
+      "e4",
+      "e5",
+      "f4",
+      "exf4",
+      "Nf3",
+      "g5",
+      "h4",
+      "g4"
+    ]
+  },
+  {
+    "eco": "C41",
+    "name": "Philidor Defense",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "d6"
+    ]
+  },
+  {
+    "eco": "C42",
+    "name": "Petrov Defense",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "C43",
+    "name": "Petrov Defense",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nf6",
+      "Nxe5"
+    ]
+  },
+  {
+    "eco": "C46",
+    "name": "Three Knights Game",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Nc3"
+    ]
+  },
+  {
+    "eco": "C47",
+    "name": "Four Knights Game",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Nc3",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "C48",
+    "name": "Four Knights Game",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Nc3",
+      "Nf6",
+      "Bb5"
+    ]
+  },
+  {
+    "eco": "C49",
+    "name": "Four Knights Game",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Nc3",
+      "Nf6",
+      "Bb5",
+      "Bb4"
+    ]
+  },
+  {
+    "eco": "C52",
+    "name": "Italian Game",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bc4",
+      "Bc5",
+      "c3",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "C56",
+    "name": "Two Knights Defense",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bc4",
+      "Nf6",
+      "d4"
+    ]
+  },
+  {
+    "eco": "C58",
+    "name": "Two Knights Defense",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bc4",
+      "Nf6",
+      "d4",
+      "exd4"
+    ]
+  },
+  {
+    "eco": "C59",
+    "name": "Two Knights Defense",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bc4",
+      "Nf6",
+      "d4",
+      "exd4",
+      "e5"
+    ]
+  },
+  {
+    "eco": "C61",
+    "name": "Ruy Lopez: Bird Defense",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "Nd4"
+    ]
+  },
+  {
+    "eco": "C62",
+    "name": "Ruy Lopez: Steinitz Defense",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "d6"
+    ]
+  },
+  {
+    "eco": "C63",
+    "name": "Ruy Lopez: Schliemann Defense",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "f5"
+    ]
+  },
+  {
+    "eco": "C64",
+    "name": "Ruy Lopez: Classical",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "Bc5"
+    ]
+  },
+  {
+    "eco": "C66",
+    "name": "Ruy Lopez: Berlin Defense",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "Nf6",
+      "O-O",
+      "Nxe4"
+    ]
+  },
+  {
+    "eco": "C67",
+    "name": "Ruy Lopez: Berlin Defense",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "Nf6",
+      "O-O",
+      "Nxe4",
+      "d4"
+    ]
+  },
+  {
+    "eco": "C68",
+    "name": "Ruy Lopez: Exchange",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Bxc6"
+    ]
+  },
+  {
+    "eco": "C69",
+    "name": "Ruy Lopez: Exchange",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Bxc6",
+      "dxc6"
+    ]
+  },
+  {
+    "eco": "C71",
+    "name": "Ruy Lopez: Classical",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Ba4",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "C72",
+    "name": "Ruy Lopez: Classical",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Ba4",
+      "Nf6",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "C74",
+    "name": "Ruy Lopez: Classical",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Ba4",
+      "Nf6",
+      "O-O",
+      "Be7",
+      "Re1"
+    ]
+  },
+  {
+    "eco": "C75",
+    "name": "Ruy Lopez: Classical",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Ba4",
+      "Nf6",
+      "O-O",
+      "Be7",
+      "Re1",
+      "b5"
+    ]
+  },
+  {
+    "eco": "C76",
+    "name": "Ruy Lopez: Classical",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Ba4",
+      "Nf6",
+      "O-O",
+      "Be7",
+      "Re1",
+      "b5",
+      "Ba4"
+    ]
+  },
+  {
+    "eco": "C77",
+    "name": "Ruy Lopez: Morphy Defense",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Ba4",
+      "Nf6",
+      "O-O",
+      "Be7",
+      "Re1",
+      "b5",
+      "Ba4",
+      "d6"
+    ]
+  },
+  {
+    "eco": "C78",
+    "name": "Ruy Lopez: Morphy Defense",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Ba4",
+      "Nf6",
+      "O-O",
+      "Be7",
+      "Re1",
+      "b5",
+      "Ba4",
+      "d6",
+      "c3"
+    ]
+  },
+  {
+    "eco": "C79",
+    "name": "Ruy Lopez: Steinitz Defense Deferred",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Ba4",
+      "d6"
+    ]
+  },
+  {
+    "eco": "C80",
+    "name": "Ruy Lopez: Open",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Ba4",
+      "Nf6",
+      "O-O",
+      "Nxe4"
+    ]
+  },
+  {
+    "eco": "C81",
+    "name": "Ruy Lopez: Open",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Ba4",
+      "Nf6",
+      "O-O",
+      "Nxe4",
+      "d4"
+    ]
+  },
+  {
+    "eco": "C82",
+    "name": "Ruy Lopez: Open",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Ba4",
+      "Nf6",
+      "O-O",
+      "Nxe4",
+      "d4",
+      "b5"
+    ]
+  },
+  {
+    "eco": "C83",
+    "name": "Ruy Lopez: Open",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Ba4",
+      "Nf6",
+      "O-O",
+      "Nxe4",
+      "d4",
+      "b5",
+      "Ba4"
+    ]
+  },
+  {
+    "eco": "C86",
+    "name": "Ruy Lopez: Closed",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Ba4",
+      "Nf6",
+      "O-O",
+      "Be7",
+      "Re1",
+      "b5",
+      "Ba4",
+      "d6",
+      "c3",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "C87",
+    "name": "Ruy Lopez: Closed",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Ba4",
+      "Nf6",
+      "O-O",
+      "Be7",
+      "Re1",
+      "b5",
+      "Ba4",
+      "d6",
+      "c3",
+      "O-O",
+      "h3"
+    ]
+  },
+  {
+    "eco": "C88",
+    "name": "Ruy Lopez: Closed",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Ba4",
+      "Nf6",
+      "O-O",
+      "Be7",
+      "Re1",
+      "b5",
+      "Ba4",
+      "d6",
+      "c3",
+      "O-O",
+      "h3",
+      "Nb8"
+    ]
+  },
+  {
+    "eco": "C89",
+    "name": "Ruy Lopez: Marshall Attack",
+    "moves": [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Ba4",
+      "Nf6",
+      "O-O",
+      "Be7",
+      "Re1",
+      "b5",
+      "Ba4",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "D01",
+    "name": "Richter-Veresov Attack",
+    "moves": [
+      "d4",
+      "d5",
+      "Nc3",
+      "Nf6",
+      "Bg5"
+    ]
+  },
+  {
+    "eco": "D03",
+    "name": "Torre Attack",
+    "moves": [
+      "d4",
+      "d5",
+      "Nf3",
+      "Nf6",
+      "Bg5"
+    ]
+  },
+  {
+    "eco": "D07",
+    "name": "Queen's Gambit Declined: Chigorin",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "Nc6"
+    ]
+  },
+  {
+    "eco": "D08",
+    "name": "Queen's Gambit Declined: Albin Countergambit",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e5"
+    ]
+  },
+  {
+    "eco": "D09",
+    "name": "Queen's Gambit Declined: Albin Countergambit",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e5",
+      "dxe5",
+      "d4"
+    ]
+  },
+  {
+    "eco": "D13",
+    "name": "Slav Defense: Exchange",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "c6",
+      "cxd5"
+    ]
+  },
+  {
+    "eco": "D14",
+    "name": "Slav Defense",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "c6",
+      "Nf3",
+      "Nf6",
+      "e3"
+    ]
+  },
+  {
+    "eco": "D16",
+    "name": "Slav Defense",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "c6",
+      "Nf3",
+      "Nf6",
+      "Nc3"
+    ]
+  },
+  {
+    "eco": "D17",
+    "name": "Slav Defense",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "c6",
+      "Nf3",
+      "Nf6",
+      "Nc3",
+      "dxc4"
+    ]
+  },
+  {
+    "eco": "D18",
+    "name": "Slav Defense: Dutch",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "c6",
+      "Nf3",
+      "Nf6",
+      "Nc3",
+      "dxc4",
+      "a4"
+    ]
+  },
+  {
+    "eco": "D19",
+    "name": "Slav Defense: Czech",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "c6",
+      "Nf3",
+      "Nf6",
+      "Nc3",
+      "dxc4",
+      "a4",
+      "Bf5"
+    ]
+  },
+  {
+    "eco": "D20",
+    "name": "Queen's Gambit Accepted",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "dxc4"
+    ]
+  },
+  {
+    "eco": "D21",
+    "name": "Queen's Gambit Accepted",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "dxc4",
+      "Nf3"
+    ]
+  },
+  {
+    "eco": "D22",
+    "name": "Queen's Gambit Accepted",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "dxc4",
+      "Nf3",
+      "a6"
+    ]
+  },
+  {
+    "eco": "D23",
+    "name": "Queen's Gambit Accepted",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "dxc4",
+      "Nf3",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "D24",
+    "name": "Queen's Gambit Accepted",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "dxc4",
+      "Nf3",
+      "Nf6",
+      "e3"
+    ]
+  },
+  {
+    "eco": "D25",
+    "name": "Queen's Gambit Accepted",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "dxc4",
+      "Nf3",
+      "Nf6",
+      "e3",
+      "e6"
+    ]
+  },
+  {
+    "eco": "D26",
+    "name": "Queen's Gambit Accepted",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "dxc4",
+      "Nf3",
+      "Nf6",
+      "e3",
+      "e6",
+      "Bxc4"
+    ]
+  },
+  {
+    "eco": "D27",
+    "name": "Queen's Gambit Accepted",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "dxc4",
+      "Nf3",
+      "Nf6",
+      "e3",
+      "e6",
+      "Bxc4",
+      "c5"
+    ]
+  },
+  {
+    "eco": "D28",
+    "name": "Queen's Gambit Accepted",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "dxc4",
+      "Nf3",
+      "Nf6",
+      "e3",
+      "e6",
+      "Bxc4",
+      "c5",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "D29",
+    "name": "Queen's Gambit Accepted",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "dxc4",
+      "Nf3",
+      "Nf6",
+      "e3",
+      "e6",
+      "Bxc4",
+      "c5",
+      "O-O",
+      "a6"
+    ]
+  },
+  {
+    "eco": "D32",
+    "name": "Queen's Gambit Declined: Tarrasch",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "c5"
+    ]
+  },
+  {
+    "eco": "D33",
+    "name": "Queen's Gambit Declined: Tarrasch",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "c5",
+      "cxd5"
+    ]
+  },
+  {
+    "eco": "D34",
+    "name": "Queen's Gambit Declined: Tarrasch",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "c5",
+      "cxd5",
+      "exd5"
+    ]
+  },
+  {
+    "eco": "D38",
+    "name": "Queen's Gambit Declined: Ragozin",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Nf3",
+      "Bb4"
+    ]
+  },
+  {
+    "eco": "D39",
+    "name": "Queen's Gambit Declined: Ragozin",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Nf3",
+      "Bb4",
+      "cxd5"
+    ]
+  },
+  {
+    "eco": "D40",
+    "name": "Queen's Gambit Declined: Semi-Tarrasch",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Nf3",
+      "c5"
+    ]
+  },
+  {
+    "eco": "D41",
+    "name": "Queen's Gambit Declined: Semi-Tarrasch",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Nf3",
+      "c5",
+      "cxd5"
+    ]
+  },
+  {
+    "eco": "D42",
+    "name": "Queen's Gambit Declined: Semi-Tarrasch",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Nf3",
+      "c5",
+      "cxd5",
+      "Nxd5"
+    ]
+  },
+  {
+    "eco": "D46",
+    "name": "Queen's Gambit Declined: Semi-Slav",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "c6",
+      "Nf3"
+    ]
+  },
+  {
+    "eco": "D47",
+    "name": "Queen's Gambit Declined: Semi-Slav",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "c6",
+      "Nf3",
+      "Nf6"
+    ]
+  },
+  {
+    "eco": "D48",
+    "name": "Queen's Gambit Declined: Semi-Slav",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "c6",
+      "Nf3",
+      "Nf6",
+      "Bg5"
+    ]
+  },
+  {
+    "eco": "D49",
+    "name": "Queen's Gambit Declined: Semi-Slav",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "c6",
+      "Nf3",
+      "Nf6",
+      "Bg5",
+      "h6"
+    ]
+  },
+  {
+    "eco": "D51",
+    "name": "Queen's Gambit Declined: Cambridge Springs",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Nbd7"
+    ]
+  },
+  {
+    "eco": "D52",
+    "name": "Queen's Gambit Declined: Cambridge Springs",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Nbd7",
+      "e3"
+    ]
+  },
+  {
+    "eco": "D54",
+    "name": "Queen's Gambit Declined",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Be7",
+      "e3"
+    ]
+  },
+  {
+    "eco": "D55",
+    "name": "Queen's Gambit Declined",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Be7",
+      "e3",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "D56",
+    "name": "Queen's Gambit Declined",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Be7",
+      "e3",
+      "O-O",
+      "Nf3"
+    ]
+  },
+  {
+    "eco": "D57",
+    "name": "Queen's Gambit Declined",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Be7",
+      "e3",
+      "O-O",
+      "Nf3",
+      "h6"
+    ]
+  },
+  {
+    "eco": "D58",
+    "name": "Queen's Gambit Declined",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Be7",
+      "e3",
+      "O-O",
+      "Nf3",
+      "h6",
+      "Bh4"
+    ]
+  },
+  {
+    "eco": "D59",
+    "name": "Queen's Gambit Declined",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Be7",
+      "e3",
+      "O-O",
+      "Nf3",
+      "h6",
+      "Bh4",
+      "b6"
+    ]
+  },
+  {
+    "eco": "D60",
+    "name": "Queen's Gambit Declined: Orthodox",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Be7",
+      "e3",
+      "O-O",
+      "Nf3",
+      "Nbd7"
+    ]
+  },
+  {
+    "eco": "D61",
+    "name": "Queen's Gambit Declined: Orthodox",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Be7",
+      "e3",
+      "O-O",
+      "Nf3",
+      "Nbd7",
+      "Rc1"
+    ]
+  },
+  {
+    "eco": "D62",
+    "name": "Queen's Gambit Declined: Orthodox",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Be7",
+      "e3",
+      "O-O",
+      "Nf3",
+      "Nbd7",
+      "Rc1",
+      "c6"
+    ]
+  },
+  {
+    "eco": "D63",
+    "name": "Queen's Gambit Declined: Orthodox",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Be7",
+      "e3",
+      "O-O",
+      "Nf3",
+      "Nbd7",
+      "Rc1",
+      "c6",
+      "Bd3"
+    ]
+  },
+  {
+    "eco": "D64",
+    "name": "Queen's Gambit Declined: Orthodox",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Be7",
+      "e3",
+      "O-O",
+      "Nf3",
+      "Nbd7",
+      "Rc1",
+      "c6",
+      "Bd3",
+      "dxc4"
+    ]
+  },
+  {
+    "eco": "D65",
+    "name": "Queen's Gambit Declined: Orthodox",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Be7",
+      "e3",
+      "O-O",
+      "Nf3",
+      "Nbd7",
+      "Rc1",
+      "c6",
+      "Bd3",
+      "dxc4",
+      "Bxc4"
+    ]
+  },
+  {
+    "eco": "D66",
+    "name": "Queen's Gambit Declined: Orthodox",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Be7",
+      "e3",
+      "O-O",
+      "Nf3",
+      "Nbd7",
+      "Rc1",
+      "c6",
+      "Bd3",
+      "dxc4",
+      "Bxc4",
+      "b5"
+    ]
+  },
+  {
+    "eco": "D67",
+    "name": "Queen's Gambit Declined: Orthodox",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Be7",
+      "e3",
+      "O-O",
+      "Nf3",
+      "Nbd7",
+      "Rc1",
+      "c6",
+      "Bd3",
+      "dxc4",
+      "Bxc4",
+      "b5",
+      "Bd3"
+    ]
+  },
+  {
+    "eco": "D68",
+    "name": "Queen's Gambit Declined: Orthodox",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Be7",
+      "e3",
+      "O-O",
+      "Nf3",
+      "Nbd7",
+      "Rc1",
+      "c6",
+      "Bd3",
+      "dxc4",
+      "Bxc4",
+      "b5",
+      "Bd3",
+      "a6"
+    ]
+  },
+  {
+    "eco": "D69",
+    "name": "Queen's Gambit Declined: Orthodox",
+    "moves": [
+      "d4",
+      "d5",
+      "c4",
+      "e6",
+      "Nc3",
+      "Nf6",
+      "Bg5",
+      "Be7",
+      "e3",
+      "O-O",
+      "Nf3",
+      "Nbd7",
+      "Rc1",
+      "c6",
+      "Bd3",
+      "dxc4",
+      "Bxc4",
+      "b5",
+      "Bd3",
+      "a6",
+      "e4"
+    ]
+  },
+  {
+    "eco": "D74",
+    "name": "Grunfeld Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "cxd5",
+      "Nxd5"
+    ]
+  },
+  {
+    "eco": "D75",
+    "name": "Grunfeld Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "cxd5",
+      "Nxd5",
+      "e4"
+    ]
+  },
+  {
+    "eco": "D76",
+    "name": "Grunfeld Defense: Russian",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "Nf3"
+    ]
+  },
+  {
+    "eco": "D77",
+    "name": "Grunfeld Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "Nf3",
+      "Bg7"
+    ]
+  },
+  {
+    "eco": "D78",
+    "name": "Grunfeld Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "Nf3",
+      "Bg7",
+      "e4"
+    ]
+  },
+  {
+    "eco": "D79",
+    "name": "Grunfeld Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "Nf3",
+      "Bg7",
+      "e4",
+      "dxe4"
+    ]
+  },
+  {
+    "eco": "D81",
+    "name": "Grunfeld Defense: Russian",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "Nf3",
+      "Bg7",
+      "Qb3"
+    ]
+  },
+  {
+    "eco": "D82",
+    "name": "Grunfeld Defense: Russian",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "Nf3",
+      "Bg7",
+      "Qb3",
+      "dxc4"
+    ]
+  },
+  {
+    "eco": "D83",
+    "name": "Grunfeld Defense: Russian",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "Nf3",
+      "Bg7",
+      "Qb3",
+      "dxc4",
+      "Qxc4"
+    ]
+  },
+  {
+    "eco": "D84",
+    "name": "Grunfeld Defense: Russian",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "Nf3",
+      "Bg7",
+      "Qb3",
+      "dxc4",
+      "Qxc4",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "D86",
+    "name": "Grunfeld Defense: Exchange",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "cxd5",
+      "Nxd5",
+      "e4",
+      "Nxc3"
+    ]
+  },
+  {
+    "eco": "D87",
+    "name": "Grunfeld Defense: Exchange",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "cxd5",
+      "Nxd5",
+      "e4",
+      "Nxc3",
+      "bxc3"
+    ]
+  },
+  {
+    "eco": "D88",
+    "name": "Grunfeld Defense: Exchange",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "cxd5",
+      "Nxd5",
+      "e4",
+      "Nxc3",
+      "bxc3",
+      "Bg7"
+    ]
+  },
+  {
+    "eco": "D89",
+    "name": "Grunfeld Defense: Exchange",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "cxd5",
+      "Nxd5",
+      "e4",
+      "Nxc3",
+      "bxc3",
+      "Bg7",
+      "Nf3"
+    ]
+  },
+  {
+    "eco": "D90",
+    "name": "Grunfeld Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "cxd5",
+      "Nxd5",
+      "e4",
+      "Nxc3",
+      "bxc3",
+      "Bg7",
+      "Nf3",
+      "c5"
+    ]
+  },
+  {
+    "eco": "D91",
+    "name": "Grunfeld Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "cxd5",
+      "Nxd5",
+      "e4",
+      "Nxc3",
+      "bxc3",
+      "Bg7",
+      "Nf3",
+      "c5",
+      "Be3"
+    ]
+  },
+  {
+    "eco": "D92",
+    "name": "Grunfeld Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "cxd5",
+      "Nxd5",
+      "e4",
+      "Nxc3",
+      "bxc3",
+      "Bg7",
+      "Nf3",
+      "c5",
+      "Be3",
+      "Nc6"
+    ]
+  },
+  {
+    "eco": "D93",
+    "name": "Grunfeld Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "cxd5",
+      "Nxd5",
+      "e4",
+      "Nxc3",
+      "bxc3",
+      "Bg7",
+      "Nf3",
+      "c5",
+      "Be3",
+      "Nc6",
+      "Rc1"
+    ]
+  },
+  {
+    "eco": "D94",
+    "name": "Grunfeld Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "cxd5",
+      "Nxd5",
+      "e4",
+      "Nxc3",
+      "bxc3",
+      "Bg7",
+      "Nf3",
+      "c5",
+      "Be3",
+      "Nc6",
+      "Rc1",
+      "cxd4"
+    ]
+  },
+  {
+    "eco": "D95",
+    "name": "Grunfeld Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "g6",
+      "Nc3",
+      "d5",
+      "cxd5",
+      "Nxd5",
+      "e4",
+      "Nxc3",
+      "bxc3",
+      "Bg7",
+      "Nf3",
+      "c5",
+      "Be3",
+      "Nc6",
+      "Rc1",
+      "cxd4",
+      "cxd4"
+    ]
+  },
+  {
+    "eco": "E02",
+    "name": "Catalan Opening",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "g3",
+      "d5"
+    ]
+  },
+  {
+    "eco": "E03",
+    "name": "Catalan Opening",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "g3",
+      "d5",
+      "Bg2"
+    ]
+  },
+  {
+    "eco": "E04",
+    "name": "Catalan Opening",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "g3",
+      "d5",
+      "Bg2",
+      "Be7"
+    ]
+  },
+  {
+    "eco": "E05",
+    "name": "Catalan Opening",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "g3",
+      "d5",
+      "Bg2",
+      "Be7",
+      "Nf3"
+    ]
+  },
+  {
+    "eco": "E06",
+    "name": "Catalan Opening",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "g3",
+      "d5",
+      "Bg2",
+      "Be7",
+      "Nf3",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "E07",
+    "name": "Catalan Opening",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "g3",
+      "d5",
+      "Bg2",
+      "Be7",
+      "Nf3",
+      "O-O",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "E08",
+    "name": "Catalan Opening",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "g3",
+      "d5",
+      "Bg2",
+      "Be7",
+      "Nf3",
+      "O-O",
+      "O-O",
+      "dxc4"
+    ]
+  },
+  {
+    "eco": "E09",
+    "name": "Catalan Opening",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "g3",
+      "d5",
+      "Bg2",
+      "Be7",
+      "Nf3",
+      "O-O",
+      "O-O",
+      "dxc4",
+      "Qc2"
+    ]
+  },
+  {
+    "eco": "E11",
+    "name": "Bogo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nf3",
+      "Bb4+"
+    ]
+  },
+  {
+    "eco": "E14",
+    "name": "Queen's Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nf3",
+      "b6",
+      "g3"
+    ]
+  },
+  {
+    "eco": "E15",
+    "name": "Queen's Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nf3",
+      "b6",
+      "g3",
+      "Bb7"
+    ]
+  },
+  {
+    "eco": "E16",
+    "name": "Queen's Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nf3",
+      "b6",
+      "g3",
+      "Bb7",
+      "Bg2"
+    ]
+  },
+  {
+    "eco": "E17",
+    "name": "Queen's Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nf3",
+      "b6",
+      "g3",
+      "Bb7",
+      "Bg2",
+      "Be7"
+    ]
+  },
+  {
+    "eco": "E18",
+    "name": "Queen's Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nf3",
+      "b6",
+      "g3",
+      "Bb7",
+      "Bg2",
+      "Be7",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "E19",
+    "name": "Queen's Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nf3",
+      "b6",
+      "g3",
+      "Bb7",
+      "Bg2",
+      "Be7",
+      "O-O",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "E23",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "Qc2",
+      "d5"
+    ]
+  },
+  {
+    "eco": "E24",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "Qc2",
+      "d5",
+      "a3"
+    ]
+  },
+  {
+    "eco": "E25",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "a3"
+    ]
+  },
+  {
+    "eco": "E26",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "a3",
+      "Bxc3+"
+    ]
+  },
+  {
+    "eco": "E27",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "a3",
+      "Bxc3+",
+      "bxc3"
+    ]
+  },
+  {
+    "eco": "E28",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "a3",
+      "Bxc3+",
+      "bxc3",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "E29",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "a3",
+      "Bxc3+",
+      "bxc3",
+      "O-O",
+      "e3"
+    ]
+  },
+  {
+    "eco": "E31",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3"
+    ]
+  },
+  {
+    "eco": "E32",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "E33",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3"
+    ]
+  },
+  {
+    "eco": "E34",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5"
+    ]
+  },
+  {
+    "eco": "E35",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3"
+    ]
+  },
+  {
+    "eco": "E36",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5"
+    ]
+  },
+  {
+    "eco": "E37",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "E38",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "Nc6"
+    ]
+  },
+  {
+    "eco": "E39",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "Nc6",
+      "a3"
+    ]
+  },
+  {
+    "eco": "E40",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "Nc6",
+      "a3",
+      "Bxc3"
+    ]
+  },
+  {
+    "eco": "E41",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "Nc6",
+      "a3",
+      "Bxc3",
+      "bxc3"
+    ]
+  },
+  {
+    "eco": "E42",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "Nc6",
+      "a3",
+      "Bxc3",
+      "bxc3",
+      "b6"
+    ]
+  },
+  {
+    "eco": "E43",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "Nc6",
+      "a3",
+      "Bxc3",
+      "bxc3",
+      "b6",
+      "Bb2"
+    ]
+  },
+  {
+    "eco": "E44",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "Nc6",
+      "a3",
+      "Bxc3",
+      "bxc3",
+      "b6",
+      "Bb2",
+      "Ba6"
+    ]
+  },
+  {
+    "eco": "E45",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "Nc6",
+      "a3",
+      "Bxc3",
+      "bxc3",
+      "b6",
+      "Bb2",
+      "Ba6",
+      "c4"
+    ]
+  },
+  {
+    "eco": "E46",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "Nc6",
+      "a3",
+      "Bxc3",
+      "bxc3",
+      "b6",
+      "Bb2",
+      "Ba6",
+      "c4",
+      "Nc6"
+    ]
+  },
+  {
+    "eco": "E47",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "Nc6",
+      "a3",
+      "Bxc3",
+      "bxc3",
+      "b6",
+      "Bb2",
+      "Ba6",
+      "c4",
+      "Nc6",
+      "Rc1"
+    ]
+  },
+  {
+    "eco": "E48",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "Nc6",
+      "a3",
+      "Bxc3",
+      "bxc3",
+      "b6",
+      "Bb2",
+      "Ba6",
+      "c4",
+      "Nc6",
+      "Rc1",
+      "Rc8"
+    ]
+  },
+  {
+    "eco": "E49",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "Nc6",
+      "a3",
+      "Bxc3",
+      "bxc3",
+      "b6",
+      "Bb2",
+      "Ba6",
+      "c4",
+      "Nc6",
+      "Rc1",
+      "Rc8",
+      "Qb3"
+    ]
+  },
+  {
+    "eco": "E50",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "Nc6",
+      "a3",
+      "Bxc3",
+      "bxc3",
+      "b6",
+      "Bb2",
+      "Ba6",
+      "c4",
+      "Nc6",
+      "Rc1",
+      "Rc8",
+      "Qb3",
+      "Na5"
+    ]
+  },
+  {
+    "eco": "E51",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "Nc6",
+      "a3",
+      "Bxc3",
+      "bxc3",
+      "b6",
+      "Bb2",
+      "Ba6",
+      "c4",
+      "Nc6",
+      "Rc1",
+      "Rc8",
+      "Qb3",
+      "Na5",
+      "Qa2"
+    ]
+  },
+  {
+    "eco": "E52",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "Nc6",
+      "a3",
+      "Bxc3",
+      "bxc3",
+      "b6",
+      "Bb2",
+      "Ba6",
+      "c4",
+      "Nc6",
+      "Rc1",
+      "Rc8",
+      "Qb3",
+      "Na5",
+      "Qa2",
+      "Bxc4"
+    ]
+  },
+  {
+    "eco": "E54",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "Nc6",
+      "a3",
+      "Bxc3",
+      "bxc3",
+      "b6",
+      "Bb2",
+      "Ba6",
+      "c4",
+      "Nc6",
+      "Rc1",
+      "Rc8",
+      "Qb3",
+      "Na5",
+      "Qa2",
+      "Bxc4",
+      "Bxc4",
+      "Nxc4"
+    ]
+  },
+  {
+    "eco": "E56",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "Nc6",
+      "a3",
+      "Bxc3",
+      "bxc3",
+      "b6",
+      "Bb2",
+      "Ba6",
+      "c4",
+      "Nc6",
+      "Rc1",
+      "Rc8",
+      "Qb3",
+      "Na5",
+      "Qa2",
+      "Bxc4",
+      "Bxc4",
+      "Nxc4",
+      "Rxc4"
+    ]
+  },
+  {
+    "eco": "E57",
+    "name": "Nimzo-Indian Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "Nc6",
+      "a3",
+      "Bxc3",
+      "bxc3",
+      "b6",
+      "Bb2",
+      "Ba6",
+      "c4",
+      "Nc6",
+      "Rc1",
+      "Rc8",
+      "Qb3",
+      "Na5",
+      "Qa2",
+      "Bxc4",
+      "Bxc4",
+      "Nxc4",
+      "Rxc4",
+      "Rxc4"
+    ]
+  }
+]
