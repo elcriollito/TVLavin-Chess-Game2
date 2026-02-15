@@ -11,6 +11,14 @@
   let ecoDetails = [];
   let activeLetter = 'A';
   let selectedCode = null;
+  let detailRenderSeq = 0;
+
+  const MAX_MINI_BOARD_RETRIES = 5;
+  const StatsProvider = {
+    async getStats(_fen) {
+      return null;
+    }
+  };
 
   function parseCode(input) {
     const value = String(input || '').toUpperCase();
@@ -95,17 +103,52 @@
     return `/img/chesspieces/wikipedia/${white ? 'w' : 'b'}${piece}.png`;
   }
 
-  function renderMiniBoardFromFen(fen) {
+  function unicodePieceFromFenChar(ch) {
+    const map = {
+      p: { w: '\u2659', b: '\u265F' },
+      n: { w: '\u2658', b: '\u265E' },
+      b: { w: '\u2657', b: '\u265D' },
+      r: { w: '\u2656', b: '\u265C' },
+      q: { w: '\u2655', b: '\u265B' },
+      k: { w: '\u2654', b: '\u265A' }
+    };
+    const key = String(ch || '').toLowerCase();
+    const row = map[key];
+    if (!row) return '';
+    return ch === ch.toUpperCase() ? row.w : row.b;
+  }
+
+  function createPieceNode(fenChar) {
+    const pieceSrc = pieceImageFromFenChar(fenChar);
+    if (!pieceSrc) return null;
+
+    const img = document.createElement('img');
+    img.className = 'eco-piece';
+    img.src = pieceSrc;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.onerror = () => {
+      const fallback = document.createElement('span');
+      fallback.className = 'eco-piece-fallback';
+      fallback.textContent = unicodePieceFromFenChar(fenChar) || '';
+      img.replaceWith(fallback);
+      console.warn(`[ECO] Piece image failed to load: ${pieceSrc}`);
+    };
+
+    return img;
+  }
+
+  function mountMiniBoardFromFen(fen) {
     const boardEl = document.getElementById('ecoMiniBoard');
     const fallbackEl = document.getElementById('ecoMiniBoardFallback');
-    if (!boardEl || !fallbackEl) return;
+    if (!boardEl || !fallbackEl) return true;
 
     boardEl.innerHTML = '';
 
     if (!fen || !String(fen).trim()) {
       fallbackEl.style.display = 'block';
       boardEl.style.display = 'none';
-      return;
+      return true;
     }
 
     const placement = String(fen).split(' ')[0];
@@ -113,13 +156,19 @@
     if (ranks.length !== 8) {
       fallbackEl.style.display = 'block';
       boardEl.style.display = 'none';
-      return;
+      return false;
+    }
+
+    if (boardEl.clientWidth < 50 || boardEl.clientHeight < 50) {
+      return false;
     }
 
     fallbackEl.style.display = 'none';
     boardEl.style.display = 'grid';
 
     let squareIndex = 0;
+    const frag = document.createDocumentFragment();
+
     for (const rank of ranks) {
       for (const token of rank) {
         if (/\d/.test(token)) {
@@ -129,7 +178,7 @@
             const row = Math.floor(squareIndex / 8);
             const col = squareIndex % 8;
             sq.className = `eco-sq ${(row + col) % 2 === 0 ? 'dark' : 'light'}`;
-            boardEl.appendChild(sq);
+            frag.appendChild(sq);
             squareIndex += 1;
           }
         } else {
@@ -138,19 +187,151 @@
           const col = squareIndex % 8;
           sq.className = `eco-sq ${(row + col) % 2 === 0 ? 'dark' : 'light'}`;
 
-          const pieceSrc = pieceImageFromFenChar(token);
-          if (pieceSrc) {
-            const img = document.createElement('img');
-            img.className = 'eco-piece';
-            img.src = pieceSrc;
-            img.alt = '';
-            sq.appendChild(img);
-          }
+          const pieceNode = createPieceNode(token);
+          if (pieceNode) sq.appendChild(pieceNode);
 
-          boardEl.appendChild(sq);
+          frag.appendChild(sq);
           squareIndex += 1;
         }
       }
+    }
+
+    boardEl.appendChild(frag);
+    return true;
+  }
+
+  function renderMiniBoardFromFen(fen, attempt = 0) {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const boardEl = document.getElementById('ecoMiniBoard');
+        if (!boardEl) return;
+
+        const ok = mountMiniBoardFromFen(fen);
+        if (!ok && attempt < MAX_MINI_BOARD_RETRIES) {
+          renderMiniBoardFromFen(fen, attempt + 1);
+          return;
+        }
+
+        if (!ok) {
+          console.warn(`[ECO] Mini board render failed after ${MAX_MINI_BOARD_RETRIES + 1} attempts.`);
+        }
+      });
+    });
+  }
+
+  function showContinuationStatus(message) {
+    const continuationsEl = document.getElementById('ecoContinuations');
+    if (!continuationsEl) return;
+    continuationsEl.innerHTML = `<li><span class="eco-cont-main">${escapeHtml(message)}</span></li>`;
+  }
+
+  function renderContinuationRows(items) {
+    const continuationsEl = document.getElementById('ecoContinuations');
+    if (!continuationsEl) return;
+
+    continuationsEl.innerHTML = items.map((item) => {
+      const san = escapeHtml(item.san || 'TBD');
+      const label = escapeHtml(item.label || 'Line');
+      const numeric = Number(item.percent);
+      const percent = numeric > 0 ? `${numeric.toFixed(1)}%` : 'TBD%';
+      const fill = numeric > 0 ? Math.min(100, Math.max(0, numeric)) : 0;
+      return `<li>
+        <span class="eco-cont-main"><span>${san}</span> - <span>${label}</span></span>
+        <strong class="eco-cont-pct">${percent}</strong>
+        <span class="eco-cont-bar"><span class="eco-cont-fill" style="width:${fill}%"></span></span>
+      </li>`;
+    }).join('');
+  }
+
+  function fenFromMoveList(moves) {
+    if (!window.Chess || !Array.isArray(moves) || moves.length === 0) return '';
+    try {
+      const game = new window.Chess();
+      for (const san of moves) {
+        const ok = game.move(san, { sloppy: true });
+        if (!ok) return '';
+      }
+      return game.fen();
+    } catch (_err) {
+      return '';
+    }
+  }
+
+  function resolveFenForCode(detail, defining) {
+    if (detail && detail.fen) return String(detail.fen);
+    if (defining && Array.isArray(defining.moves)) {
+      return fenFromMoveList(defining.moves);
+    }
+    return '';
+  }
+
+  function uciToSanIfPossible(fen, uci, fallbackSan) {
+    if (!window.Chess || !fen || !uci) return fallbackSan || uci || '';
+    try {
+      const game = new window.Chess(fen);
+      const move = game.move(uci, { sloppy: true });
+      return move && move.san ? move.san : (fallbackSan || uci);
+    } catch (_err) {
+      return fallbackSan || uci;
+    }
+  }
+
+  async function loadContinuationsFromBook(fen, renderSeq) {
+    const weightEl = document.getElementById('ecoStatBookWeight');
+    if (weightEl) weightEl.textContent = 'Loading...';
+    showContinuationStatus('Loading book...');
+
+    if (!fen) {
+      if (weightEl) weightEl.textContent = 'TBD';
+      showContinuationStatus('No book moves found for this position.');
+      return;
+    }
+
+    try {
+      const registry = window.CAISSA_BOOK_REGISTRY;
+      if (!registry || typeof registry.getDefaultOpeningBook !== 'function') {
+        throw new Error('Book registry unavailable');
+      }
+
+      const book = await registry.getDefaultOpeningBook();
+      const entries = await book.getMovesForFen(fen, 15);
+      if (renderSeq !== detailRenderSeq) return;
+
+      if (!entries || entries.length === 0) {
+        if (weightEl) weightEl.textContent = '0';
+        showContinuationStatus('No book moves found for this position.');
+        return;
+      }
+
+      const totalWeight = entries.reduce((sum, m) => sum + (Number(m.weight) || 0), 0);
+      if (weightEl) weightEl.textContent = String(totalWeight || 0);
+
+      const rows = entries
+        .sort((a, b) => (Number(b.weight) || 0) - (Number(a.weight) || 0))
+        .slice(0, 15)
+        .map((m) => {
+          const weight = Number(m.weight) || 0;
+          const percent = totalWeight > 0 ? (weight / totalWeight) * 100 : 0;
+          const san = uciToSanIfPossible(fen, m.uci, m.san || m.uci);
+          return {
+            san,
+            label: `weight ${weight}`,
+            percent
+          };
+        });
+
+      renderContinuationRows(rows);
+    } catch (err) {
+      if (renderSeq !== detailRenderSeq) return;
+      if (weightEl) weightEl.textContent = 'TBD';
+
+      if (window.CAISSA_BOOK_REGISTRY?.markUnavailableOnce) {
+        window.CAISSA_BOOK_REGISTRY.markUnavailableOnce(err);
+      } else {
+        console.warn('[ECO][Book] Cloud opening book unavailable:', err);
+      }
+
+      showContinuationStatus('Book unavailable (offline).');
     }
   }
 
@@ -159,7 +340,6 @@
     const movesEl = document.getElementById('ecoDetailMoves');
     const relatedEl = document.getElementById('ecoDetailRelated');
     const theoryEl = document.getElementById('ecoDetailTheory');
-    const continuationsEl = document.getElementById('ecoContinuations');
 
     if (titleEl) titleEl.textContent = 'Select an opening';
     if (movesEl) movesEl.textContent = 'Pick an ECO code from the left list to see details.';
@@ -169,6 +349,7 @@
     renderMiniBoardFromFen('');
 
     document.getElementById('ecoStatGames').textContent = 'TBD';
+    document.getElementById('ecoStatBookWeight').textContent = 'TBD';
     document.getElementById('ecoStatLastPlayed').textContent = 'TBD';
     document.getElementById('ecoStatWhite').textContent = 'TBD';
     document.getElementById('ecoStatDraw').textContent = 'TBD';
@@ -178,15 +359,13 @@
     document.getElementById('ecoWdlDrawBar').style.width = '34%';
     document.getElementById('ecoWdlBlackBar').style.width = '33%';
 
-    if (continuationsEl) {
-      continuationsEl.innerHTML = [
-        'Main line',
-        'Positional plan',
-        'Tactical option',
-        'Sideline',
-        'Flexible setup'
-      ].map((label) => `<li><span>TBD</span> - <span>${label}</span> - <strong>TBD%</strong></li>`).join('');
-    }
+    renderContinuationRows([
+      { san: 'TBD', label: 'Main line', percent: 0 },
+      { san: 'TBD', label: 'Positional plan', percent: 0 },
+      { san: 'TBD', label: 'Tactical option', percent: 0 },
+      { san: 'TBD', label: 'Sideline', percent: 0 },
+      { san: 'TBD', label: 'Flexible setup', percent: 0 }
+    ]);
   }
 
   async function renderDetail(code) {
@@ -195,6 +374,9 @@
       renderDefaultDetail();
       return;
     }
+
+    detailRenderSeq += 1;
+    const renderSeq = detailRenderSeq;
 
     const row = ecoCodes.find((r) => r.code === normalized) || null;
     const detail = ecoDetails.find((d) => d.code === normalized) || null;
@@ -210,7 +392,6 @@
     const movesEl = document.getElementById('ecoDetailMoves');
     const relatedEl = document.getElementById('ecoDetailRelated');
     const theoryEl = document.getElementById('ecoDetailTheory');
-    const continuationsEl = document.getElementById('ecoContinuations');
 
     const displayName = (row && row.name) || (detail && detail.name) || 'Unknown ECO';
     if (titleEl) titleEl.textContent = `${normalized} - ${displayName}`;
@@ -228,6 +409,7 @@
     const related = ecoCodes
       .filter((r) => r.code !== normalized && r.code.startsWith(tensPrefix))
       .slice(0, 20);
+
     if (relatedEl) {
       relatedEl.innerHTML = related.length
         ? related.map((r) => `<li><a href="/eco/${r.code}" data-code="${r.code}">${r.code} - ${escapeHtml(r.name)}</a></li>`).join('')
@@ -245,14 +427,16 @@
         if (Array.isArray(theory.plansBlack) && theory.plansBlack[0]) parts.push(`Black: ${theory.plansBlack[0]}`);
         if (parts.length) theoryText = parts.join('\n');
       }
-    } catch (err) {
-      // Keep fallback
+    } catch (_err) {
+      // Keep fallback text
     }
     if (theoryEl) theoryEl.textContent = theoryText;
 
-    renderMiniBoardFromFen(detail && detail.fen ? detail.fen : '');
+    const resolvedFen = resolveFenForCode(detail, defining);
+    renderMiniBoardFromFen(resolvedFen);
 
-    const stats = detail && detail.stats ? detail.stats : { white: 0, draw: 0, black: 0, games: 0 };
+    const statsFromProvider = await StatsProvider.getStats(resolvedFen);
+    const stats = statsFromProvider || (detail && detail.stats ? detail.stats : { white: 0, draw: 0, black: 0, games: 0 });
     const whitePct = Number(stats.white) || 0;
     const drawPct = Number(stats.draw) || 0;
     const blackPct = Number(stats.black) || 0;
@@ -260,6 +444,7 @@
     const showPct = (v) => (Number(v) > 0 ? `${v}%` : 'TBD');
 
     document.getElementById('ecoStatGames').textContent = Number(stats.games) > 0 ? String(stats.games) : 'TBD';
+    document.getElementById('ecoStatBookWeight').textContent = 'TBD';
     document.getElementById('ecoStatLastPlayed').textContent = stats.lastPlayed ? String(stats.lastPlayed) : 'TBD';
     document.getElementById('ecoStatWhite').textContent = showPct(whitePct);
     document.getElementById('ecoStatDraw').textContent = showPct(drawPct);
@@ -275,24 +460,8 @@
       document.getElementById('ecoWdlBlackBar').style.width = '33%';
     }
 
-    const continuationList = detail && Array.isArray(detail.continuations) && detail.continuations.length
-      ? detail.continuations.slice(0, 5)
-      : [
-          { san: 'TBD', label: 'Main line', percent: 0 },
-          { san: 'TBD', label: 'Sideline', percent: 0 },
-          { san: 'TBD', label: 'Flexible setup', percent: 0 },
-          { san: 'TBD', label: 'Positional line', percent: 0 },
-          { san: 'TBD', label: 'Tactical option', percent: 0 }
-        ];
-
-    if (continuationsEl) {
-      continuationsEl.innerHTML = continuationList.map((item) => {
-        const san = escapeHtml(item.san || 'TBD');
-        const label = escapeHtml(item.label || 'Line');
-        const percent = Number(item.percent) > 0 ? `${item.percent}%` : 'TBD%';
-        return `<li><span>${san}</span> - <span>${label}</span> - <strong>${percent}</strong></li>`;
-      }).join('');
-    }
+    showContinuationStatus('Loading book...');
+    loadContinuationsFromBook(resolvedFen, renderSeq);
   }
 
   function selectCode(code, options = {}) {
