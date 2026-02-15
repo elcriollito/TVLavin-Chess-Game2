@@ -1,1458 +1,1822 @@
 [
     {
         "code":  "A00",
-        "name":  "Grob Opening"
+        "name":  "Grob Opening",
+        "moves":  "1. g4"
     },
     {
         "code":  "A01",
-        "name":  "Nimzowitsch-Larsen Attack"
+        "name":  "Nimzowitsch-Larsen Attack",
+        "moves":  "1. b3 e5"
     },
     {
         "code":  "A02",
-        "name":  "Bird Opening"
+        "name":  "Bird Opening",
+        "moves":  "1. f4"
     },
     {
         "code":  "A03",
-        "name":  "Bird Opening"
+        "name":  "Bird Opening",
+        "moves":  "1. f4 d5"
     },
     {
         "code":  "A04",
-        "name":  "Reti Opening"
+        "name":  "Reti Opening",
+        "moves":  "1. Nf3"
     },
     {
         "code":  "A05",
-        "name":  "Reti Opening"
+        "name":  "Reti Opening",
+        "moves":  "1. Nf3 Nf6"
     },
     {
         "code":  "A06",
-        "name":  "Reti Opening"
+        "name":  "Reti Opening",
+        "moves":  "1. Nf3 d5"
     },
     {
         "code":  "A07",
-        "name":  "King\u0027s Indian Attack"
+        "name":  "King\u0027s Indian Attack",
+        "moves":  "1. Nf3 d5 2. g3"
     },
     {
         "code":  "A09",
-        "name":  "Reti Opening"
+        "name":  "Reti Opening",
+        "moves":  "1. Nf3 d5 2. c4"
     },
     {
         "code":  "A10",
-        "name":  "English Opening"
+        "name":  "English Opening",
+        "moves":  "1. c4"
     },
     {
         "code":  "A11",
-        "name":  "English Opening: Carls-Bremen System"
+        "name":  "English Opening: Carls-Bremen System",
+        "moves":  "1. c4 Nf6 2. Nf3"
     },
     {
         "code":  "A12",
-        "name":  "English Opening: Carls-Bremen System"
+        "name":  "English Opening: Carls-Bremen System",
+        "moves":  "1. c4 Nf6 2. Nf3 e6"
     },
     {
         "code":  "A13",
-        "name":  "English Opening: Agincourt Defense"
+        "name":  "English Opening: Agincourt Defense",
+        "moves":  "1. c4 e6"
     },
     {
         "code":  "A15",
-        "name":  "English Opening: Anglo-Indian Defense"
+        "name":  "English Opening: Anglo-Indian Defense",
+        "moves":  "1. c4 Nf6 2. Nf3 g6"
     },
     {
         "code":  "A16",
-        "name":  "English Opening"
+        "name":  "English Opening",
+        "moves":  "1. c4 Nf6"
     },
     {
         "code":  "A17",
-        "name":  "English Opening: Anglo-Indian Defense"
+        "name":  "English Opening: Anglo-Indian Defense",
+        "moves":  "1. c4 Nf6 2. Nc3 g6"
     },
     {
         "code":  "A18",
-        "name":  "English Opening: Mikenas-Carls"
+        "name":  "English Opening: Mikenas-Carls",
+        "moves":  "1. c4 Nf6 2. Nc3 e6"
     },
     {
         "code":  "A19",
-        "name":  "English Opening: Mikenas-Carls"
+        "name":  "English Opening: Mikenas-Carls",
+        "moves":  "1. c4 Nf6 2. Nc3 e6 3. e4"
     },
     {
         "code":  "A20",
-        "name":  "English Opening"
+        "name":  "English Opening",
+        "moves":  "1. c4 e5"
     },
     {
         "code":  "A21",
-        "name":  "English Opening: Third-Bishop\u0027s Opening"
+        "name":  "English Opening: Third-Bishop\u0027s Opening",
+        "moves":  "1. c4 e5 2. Nc3"
     },
     {
         "code":  "A22",
-        "name":  "English Opening: Two Knights"
+        "name":  "English Opening: Two Knights",
+        "moves":  "1. c4 e5 2. Nc3 Nf6"
     },
     {
         "code":  "A23",
-        "name":  "English Opening: Bremen System"
+        "name":  "English Opening: Bremen System",
+        "moves":  "1. c4 e5 2. Nc3 Nf6 3. g3"
     },
     {
         "code":  "A24",
-        "name":  "English Opening: King\u0027s English"
+        "name":  "English Opening: King\u0027s English",
+        "moves":  "1. c4 e5 2. Nc3 Nf6 3. g3 g6"
     },
     {
         "code":  "A25",
-        "name":  "English Opening: Closed"
+        "name":  "English Opening: Closed",
+        "moves":  "1. c4 e5 2. Nc3 Nc6"
     },
     {
         "code":  "A26",
-        "name":  "English Opening: Closed"
+        "name":  "English Opening: Closed",
+        "moves":  "1. c4 e5 2. Nc3 Nc6 3. g3"
     },
     {
         "code":  "A27",
-        "name":  "English Opening: Three Knights"
+        "name":  "English Opening: Three Knights",
+        "moves":  "1. c4 e5 2. Nc3 Nc6 3. Nf3"
     },
     {
         "code":  "A28",
-        "name":  "English Opening: Four Knights"
+        "name":  "English Opening: Four Knights",
+        "moves":  "1. c4 e5 2. Nc3 Nc6 3. Nf3 Nf6"
     },
     {
         "code":  "A29",
-        "name":  "English Opening: Four Knights"
+        "name":  "English Opening: Four Knights",
+        "moves":  "1. c4 e5 2. Nc3 Nc6 3. Nf3 Nf6 4. g3"
     },
     {
         "code":  "A30",
-        "name":  "English Opening"
+        "name":  "English Opening",
+        "moves":  "1. c4 c5"
     },
     {
         "code":  "A31",
-        "name":  "English Opening: Symmetrical"
+        "name":  "English Opening: Symmetrical",
+        "moves":  "1. c4 c5 2. Nf3"
     },
     {
         "code":  "A32",
-        "name":  "English Opening: Symmetrical"
+        "name":  "English Opening: Symmetrical",
+        "moves":  "1. c4 c5 2. Nf3 Nc6"
     },
     {
         "code":  "A33",
-        "name":  "English Opening: Symmetrical"
+        "name":  "English Opening: Symmetrical",
+        "moves":  "1. c4 c5 2. Nc3"
     },
     {
         "code":  "A34",
-        "name":  "English Opening: Symmetrical"
+        "name":  "English Opening: Symmetrical",
+        "moves":  "1. c4 c5 2. Nc3 Nc6"
     },
     {
         "code":  "A35",
-        "name":  "English Opening: Symmetrical"
+        "name":  "English Opening: Symmetrical",
+        "moves":  "1. c4 c5 2. Nc3 Nc6 3. g3"
     },
     {
         "code":  "A36",
-        "name":  "English Opening: Symmetrical"
+        "name":  "English Opening: Symmetrical",
+        "moves":  "1. c4 c5 2. Nc3 Nc6 3. g3 g6"
     },
     {
         "code":  "A37",
-        "name":  "English Opening: Symmetrical"
+        "name":  "English Opening: Symmetrical",
+        "moves":  "1. c4 c5 2. Nc3 Nc6 3. g3 g6 4. Bg2"
     },
     {
         "code":  "A38",
-        "name":  "English Opening: Symmetrical"
+        "name":  "English Opening: Symmetrical",
+        "moves":  "1. c4 c5 2. Nc3 Nc6 3. g3 g6 4. Bg2 Bg7"
     },
     {
         "code":  "A39",
-        "name":  "English Opening: Symmetrical"
+        "name":  "English Opening: Symmetrical",
+        "moves":  "1. c4 c5 2. Nc3 Nc6 3. g3 g6 4. Bg2 Bg7 5. Nf3"
     },
     {
         "code":  "A40",
-        "name":  "Queen\u0027s Pawn Game"
+        "name":  "Queen\u0027s Pawn Game",
+        "moves":  "1. d4"
     },
     {
         "code":  "A42",
-        "name":  "Modern Defense"
+        "name":  "Modern Defense",
+        "moves":  "1. d4 g6"
     },
     {
         "code":  "A43",
-        "name":  "Old Benoni Defense"
+        "name":  "Old Benoni Defense",
+        "moves":  "1. d4 c5"
     },
     {
         "code":  "A44",
-        "name":  "Old Benoni Defense"
+        "name":  "Old Benoni Defense",
+        "moves":  "1. d4 c5 2. d5"
     },
     {
         "code":  "A45",
-        "name":  "Trompowsky Attack"
+        "name":  "Trompowsky Attack",
+        "moves":  "1. d4 Nf6 2. Bg5"
     },
     {
         "code":  "A46",
-        "name":  "Queen\u0027s Pawn Game"
+        "name":  "Queen\u0027s Pawn Game",
+        "moves":  "1. d4 Nf6"
     },
     {
         "code":  "A48",
-        "name":  "King\u0027s Indian Defense"
+        "name":  "King\u0027s Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 g6"
     },
     {
         "code":  "A50",
-        "name":  "Queen\u0027s Pawn Game"
+        "name":  "Queen\u0027s Pawn Game",
+        "moves":  "1. d4 Nf6 2. c4"
     },
     {
         "code":  "A51",
-        "name":  "Budapest Gambit"
+        "name":  "Budapest Gambit",
+        "moves":  "1. d4 Nf6 2. c4 e5"
     },
     {
         "code":  "A52",
-        "name":  "Budapest Gambit"
+        "name":  "Budapest Gambit",
+        "moves":  "1. d4 Nf6 2. c4 e5 3. dxe5"
     },
     {
         "code":  "A53",
-        "name":  "Old Indian Defense"
+        "name":  "Old Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 d6"
     },
     {
         "code":  "A55",
-        "name":  "Old Indian Defense"
+        "name":  "Old Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 d6 3. Nc3"
     },
     {
         "code":  "A56",
-        "name":  "Benoni Defense"
+        "name":  "Benoni Defense",
+        "moves":  "1. d4 Nf6 2. c4 c5"
     },
     {
         "code":  "A57",
-        "name":  "Benko Gambit"
+        "name":  "Benko Gambit",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 b5"
     },
     {
         "code":  "A58",
-        "name":  "Benko Gambit"
+        "name":  "Benko Gambit",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 b5 4. cxb5 a6"
     },
     {
         "code":  "A59",
-        "name":  "Benko Gambit"
+        "name":  "Benko Gambit",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 b5 4. cxb5 a6 5. bxa6"
     },
     {
         "code":  "A60",
-        "name":  "Benoni Defense"
+        "name":  "Benoni Defense",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5"
     },
     {
         "code":  "A61",
-        "name":  "Benoni Defense"
+        "name":  "Benoni Defense",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 e6"
     },
     {
         "code":  "A62",
-        "name":  "Benoni Defense: Fianchetto"
+        "name":  "Benoni Defense: Fianchetto",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 e6 4. g3"
     },
     {
         "code":  "A63",
-        "name":  "Benoni Defense: Fianchetto"
+        "name":  "Benoni Defense: Fianchetto",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 e6 4. g3 d6"
     },
     {
         "code":  "A65",
-        "name":  "Benoni Defense: 6.e4"
+        "name":  "Benoni Defense: 6.e4",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 e6 4. Nc3 exd5 5. cxd5 d6 6. e4"
     },
     {
         "code":  "A66",
-        "name":  "Benoni Defense: Modern"
+        "name":  "Benoni Defense: Modern",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 e6 4. Nc3 exd5 5. cxd5 d6 6. e4 g6"
     },
     {
         "code":  "A67",
-        "name":  "Benoni Defense: Taimanov"
+        "name":  "Benoni Defense: Taimanov",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 e6 4. Nc3 exd5 5. cxd5 d6 6. e4 g6 7. f4"
     },
     {
         "code":  "A68",
-        "name":  "Benoni Defense: Four Pawns Attack"
+        "name":  "Benoni Defense: Four Pawns Attack",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 e6 4. Nc3 exd5 5. cxd5 d6 6. e4 g6 7. f4 Bg7"
     },
     {
         "code":  "A70",
-        "name":  "Benoni Defense: Classical"
+        "name":  "Benoni Defense: Classical",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 e6 4. Nc3 exd5 5. cxd5 d6 6. e4 g6 7. Nf3"
     },
     {
         "code":  "A71",
-        "name":  "Benoni Defense: Classical"
+        "name":  "Benoni Defense: Classical",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 e6 4. Nc3 exd5 5. cxd5 d6 6. e4 g6 7. Nf3 Bg7"
     },
     {
         "code":  "A72",
-        "name":  "Benoni Defense: Classical"
+        "name":  "Benoni Defense: Classical",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 e6 4. Nc3 exd5 5. cxd5 d6 6. e4 g6 7. Nf3 Bg7 8. Be2"
     },
     {
         "code":  "A73",
-        "name":  "Benoni Defense: Classical"
+        "name":  "Benoni Defense: Classical",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 e6 4. Nc3 exd5 5. cxd5 d6 6. e4 g6 7. Nf3 Bg7 8. Be2 O-O"
     },
     {
         "code":  "A74",
-        "name":  "Benoni Defense: Classical"
+        "name":  "Benoni Defense: Classical",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 e6 4. Nc3 exd5 5. cxd5 d6 6. e4 g6 7. Nf3 Bg7 8. Be2 O-O 9. O-O"
     },
     {
         "code":  "A75",
-        "name":  "Benoni Defense: Classical"
+        "name":  "Benoni Defense: Classical",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 e6 4. Nc3 exd5 5. cxd5 d6 6. e4 g6 7. Nf3 Bg7 8. Be2 O-O 9. O-O a6"
     },
     {
         "code":  "A76",
-        "name":  "Benoni Defense: Classical"
+        "name":  "Benoni Defense: Classical",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 e6 4. Nc3 exd5 5. cxd5 d6 6. e4 g6 7. Nf3 Bg7 8. Be2 O-O 9. O-O a6 10. a4"
     },
     {
         "code":  "A77",
-        "name":  "Benoni Defense: Classical"
+        "name":  "Benoni Defense: Classical",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 e6 4. Nc3 exd5 5. cxd5 d6 6. e4 g6 7. Nf3 Bg7 8. Be2 O-O 9. O-O a6 10. a4 b6"
     },
     {
         "code":  "A78",
-        "name":  "Benoni Defense: Classical"
+        "name":  "Benoni Defense: Classical",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 e6 4. Nc3 exd5 5. cxd5 d6 6. e4 g6 7. Nf3 Bg7 8. Be2 O-O 9. O-O a6 10. a4 b6 11. Nd2"
     },
     {
         "code":  "A79",
-        "name":  "Benoni Defense: Classical"
+        "name":  "Benoni Defense: Classical",
+        "moves":  "1. d4 Nf6 2. c4 c5 3. d5 e6 4. Nc3 exd5 5. cxd5 d6 6. e4 g6 7. Nf3 Bg7 8. Be2 O-O 9. O-O a6 10. a4 b6 11. Nd2 Re8"
     },
     {
         "code":  "A80",
-        "name":  "Dutch Defense"
+        "name":  "Dutch Defense",
+        "moves":  "1. d4 f5"
     },
     {
         "code":  "A81",
-        "name":  "Dutch Defense: Leningrad"
+        "name":  "Dutch Defense: Leningrad",
+        "moves":  "1. d4 f5 2. g3 Nf6 3. Bg2 g6"
     },
     {
         "code":  "A82",
-        "name":  "Dutch Defense: Staunton Gambit"
+        "name":  "Dutch Defense: Staunton Gambit",
+        "moves":  "1. d4 f5 2. e4"
     },
     {
         "code":  "A83",
-        "name":  "Dutch Defense: Staunton Gambit"
+        "name":  "Dutch Defense: Staunton Gambit",
+        "moves":  "1. d4 f5 2. e4 fxe4 3. Nc3 Nf6"
     },
     {
         "code":  "A84",
-        "name":  "Dutch Defense: Classical"
+        "name":  "Dutch Defense: Classical",
+        "moves":  "1. d4 f5 2. c4 Nf6 3. g3 e6 4. Bg2 Be7"
     },
     {
         "code":  "A85",
-        "name":  "Dutch Defense: Stonewall"
+        "name":  "Dutch Defense: Stonewall",
+        "moves":  "1. d4 f5 2. c4 e6 3. Nc3 Nf6 4. g3 d5"
     },
     {
         "code":  "A86",
-        "name":  "Dutch Defense: Stonewall"
+        "name":  "Dutch Defense: Stonewall",
+        "moves":  "1. d4 f5 2. c4 e6 3. Nc3 Nf6 4. g3 d5 5. Bg2 c6"
     },
     {
         "code":  "A87",
-        "name":  "Dutch Defense: Leningrad"
+        "name":  "Dutch Defense: Leningrad",
+        "moves":  "1. d4 f5 2. c4 Nf6 3. g3 g6 4. Bg2 Bg7 5. Nf3"
     },
     {
         "code":  "A88",
-        "name":  "Dutch Defense: Leningrad"
+        "name":  "Dutch Defense: Leningrad",
+        "moves":  "1. d4 f5 2. c4 Nf6 3. g3 g6 4. Bg2 Bg7 5. Nf3 O-O"
     },
     {
         "code":  "A89",
-        "name":  "Dutch Defense: Leningrad"
+        "name":  "Dutch Defense: Leningrad",
+        "moves":  "1. d4 f5 2. c4 Nf6 3. g3 g6 4. Bg2 Bg7 5. Nf3 O-O 6. O-O"
     },
     {
         "code":  "A90",
-        "name":  "Dutch Defense"
+        "name":  "Dutch Defense",
+        "moves":  "1. d4 f5 2. c4 e6"
     },
     {
         "code":  "A91",
-        "name":  "Dutch Defense: Classical"
+        "name":  "Dutch Defense: Classical",
+        "moves":  "1. d4 f5 2. c4 e6 3. Nc3 Nf6 4. g3 d5 5. Bg2 c6 6. Nh3"
     },
     {
         "code":  "A92",
-        "name":  "Dutch Defense: Classical"
+        "name":  "Dutch Defense: Classical",
+        "moves":  "1. d4 f5 2. c4 e6 3. Nc3 Nf6 4. g3 d5 5. Bg2 c6 6. Nh3 Bd6"
     },
     {
         "code":  "A93",
-        "name":  "Dutch Defense: Classical"
+        "name":  "Dutch Defense: Classical",
+        "moves":  "1. d4 f5 2. c4 e6 3. Nc3 Nf6 4. g3 d5 5. Bg2 c6 6. Nh3 Bd6 7. O-O"
     },
     {
         "code":  "A94",
-        "name":  "Dutch Defense: Classical"
+        "name":  "Dutch Defense: Classical",
+        "moves":  "1. d4 f5 2. c4 e6 3. Nc3 Nf6 4. g3 d5 5. Bg2 c6 6. Nh3 Bd6 7. O-O O-O"
     },
     {
         "code":  "A95",
-        "name":  "Dutch Defense: Classical"
+        "name":  "Dutch Defense: Classical",
+        "moves":  "1. d4 f5 2. c4 e6 3. Nc3 Nf6 4. g3 d5 5. Bg2 c6 6. Nh3 Bd6 7. O-O O-O 8. Nf4"
     },
     {
         "code":  "A96",
-        "name":  "Dutch Defense: Classical"
+        "name":  "Dutch Defense: Classical",
+        "moves":  "1. d4 f5 2. c4 e6 3. Nc3 Nf6 4. g3 d5 5. Bg2 c6 6. Nh3 Bd6 7. O-O O-O 8. Nf4 Qe8"
     },
     {
         "code":  "A97",
-        "name":  "Dutch Defense: Classical"
+        "name":  "Dutch Defense: Classical",
+        "moves":  "1. d4 f5 2. c4 e6 3. Nc3 Nf6 4. g3 d5 5. Bg2 c6 6. Nh3 Bd6 7. O-O O-O 8. Nf4 Qe8 9. b3"
     },
     {
         "code":  "A98",
-        "name":  "Dutch Defense: Classical"
+        "name":  "Dutch Defense: Classical",
+        "moves":  "1. d4 f5 2. c4 e6 3. Nc3 Nf6 4. g3 d5 5. Bg2 c6 6. Nh3 Bd6 7. O-O O-O 8. Nf4 Qe8 9. b3 a5"
     },
     {
         "code":  "A99",
-        "name":  "Dutch Defense: Classical"
+        "name":  "Dutch Defense: Classical",
+        "moves":  "1. d4 f5 2. c4 e6 3. Nc3 Nf6 4. g3 d5 5. Bg2 c6 6. Nh3 Bd6 7. O-O O-O 8. Nf4 Qe8 9. b3 a5 10. Ba3"
     },
     {
         "code":  "B00",
-        "name":  "King\u0027s Pawn Game"
+        "name":  "King\u0027s Pawn Game",
+        "moves":  "1. e4"
     },
     {
         "code":  "B01",
-        "name":  "Scandinavian Defense"
+        "name":  "Scandinavian Defense",
+        "moves":  "1. e4 d5"
     },
     {
         "code":  "B02",
-        "name":  "Alekhine Defense"
+        "name":  "Alekhine Defense",
+        "moves":  "1. e4 Nf6"
     },
     {
         "code":  "B03",
-        "name":  "Alekhine Defense"
+        "name":  "Alekhine Defense",
+        "moves":  "1. e4 Nf6 2. e5 Nd5"
     },
     {
         "code":  "B04",
-        "name":  "Alekhine Defense: Modern"
+        "name":  "Alekhine Defense: Modern",
+        "moves":  "1. e4 Nf6 2. e5 Nd5 3. d4"
     },
     {
         "code":  "B05",
-        "name":  "Alekhine Defense: Modern"
+        "name":  "Alekhine Defense: Modern",
+        "moves":  "1. e4 Nf6 2. e5 Nd5 3. d4 d6"
     },
     {
         "code":  "B06",
-        "name":  "Robatsch Defense (Modern)"
+        "name":  "Robatsch Defense (Modern)",
+        "moves":  "1. e4 g6"
     },
     {
         "code":  "B07",
-        "name":  "Pirc Defense"
+        "name":  "Pirc Defense",
+        "moves":  "1. e4 d6 2. d4 Nf6 3. Nc3 g6"
     },
     {
         "code":  "B09",
-        "name":  "Pirc Defense: Austrian Attack"
+        "name":  "Pirc Defense: Austrian Attack",
+        "moves":  "1. e4 d6 2. d4 Nf6 3. Nc3 g6 4. f4"
     },
     {
         "code":  "B10",
-        "name":  "Caro-Kann Defense"
+        "name":  "Caro-Kann Defense",
+        "moves":  "1. e4 c6"
     },
     {
         "code":  "B11",
-        "name":  "Caro-Kann Defense: Two Knights"
+        "name":  "Caro-Kann Defense: Two Knights",
+        "moves":  "1. e4 c6 2. Nc3 d5 3. Nf3"
     },
     {
         "code":  "B12",
-        "name":  "Caro-Kann Defense"
+        "name":  "Caro-Kann Defense",
+        "moves":  "1. e4 c6 2. d4 d5"
     },
     {
         "code":  "B13",
-        "name":  "Caro-Kann Defense: Exchange"
+        "name":  "Caro-Kann Defense: Exchange",
+        "moves":  "1. e4 c6 2. d4 d5 3. exd5 cxd5"
     },
     {
         "code":  "B14",
-        "name":  "Caro-Kann Defense: Panov-Botvinnik"
+        "name":  "Caro-Kann Defense: Panov-Botvinnik",
+        "moves":  "1. e4 c6 2. d4 d5 3. exd5 cxd5 4. c4"
     },
     {
         "code":  "B15",
-        "name":  "Caro-Kann Defense: Panov Attack"
+        "name":  "Caro-Kann Defense: Panov Attack",
+        "moves":  "1. e4 c6 2. d4 d5 3. exd5 cxd5 4. c4 Nf6"
     },
     {
         "code":  "B16",
-        "name":  "Caro-Kann Defense: Panov Attack"
+        "name":  "Caro-Kann Defense: Panov Attack",
+        "moves":  "1. e4 c6 2. d4 d5 3. exd5 cxd5 4. c4 Nf6 5. Nc3"
     },
     {
         "code":  "B17",
-        "name":  "Caro-Kann Defense: Steinitz"
+        "name":  "Caro-Kann Defense: Steinitz",
+        "moves":  "1. e4 c6 2. d4 d5 3. Nc3 dxe4 4. Nxe4 Nd7"
     },
     {
         "code":  "B18",
-        "name":  "Caro-Kann Defense: Classical"
+        "name":  "Caro-Kann Defense: Classical",
+        "moves":  "1. e4 c6 2. d4 d5 3. Nc3 dxe4 4. Nxe4 Bf5"
     },
     {
         "code":  "B19",
-        "name":  "Caro-Kann Defense: Classical"
+        "name":  "Caro-Kann Defense: Classical",
+        "moves":  "1. e4 c6 2. d4 d5 3. Nc3 dxe4 4. Nxe4 Bf5 5. Ng3"
     },
     {
         "code":  "B20",
-        "name":  "Sicilian Defense"
+        "name":  "Sicilian Defense",
+        "moves":  "1. e4 c5"
     },
     {
         "code":  "B21",
-        "name":  "Sicilian Defense: Smith-Morra Gambit"
+        "name":  "Sicilian Defense: Smith-Morra Gambit",
+        "moves":  "1. e4 c5 2. d4 cxd4 3. c3"
     },
     {
         "code":  "B22",
-        "name":  "Sicilian Defense: Alapin"
+        "name":  "Sicilian Defense: Alapin",
+        "moves":  "1. e4 c5 2. c3"
     },
     {
         "code":  "B23",
-        "name":  "Sicilian Defense: Closed"
+        "name":  "Sicilian Defense: Closed",
+        "moves":  "1. e4 c5 2. Nc3"
     },
     {
         "code":  "B24",
-        "name":  "Sicilian Defense: Closed"
+        "name":  "Sicilian Defense: Closed",
+        "moves":  "1. e4 c5 2. Nc3 Nc6 3. f4"
     },
     {
         "code":  "B25",
-        "name":  "Sicilian Defense: Closed"
+        "name":  "Sicilian Defense: Closed",
+        "moves":  "1. e4 c5 2. Nc3 Nc6 3. g3"
     },
     {
         "code":  "B26",
-        "name":  "Sicilian Defense: Closed"
+        "name":  "Sicilian Defense: Closed",
+        "moves":  "1. e4 c5 2. Nc3 Nc6 3. g3 g6"
     },
     {
         "code":  "B27",
-        "name":  "Sicilian Defense: Najdorf"
+        "name":  "Sicilian Defense: Najdorf",
+        "moves":  "1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6"
     },
     {
         "code":  "B28",
-        "name":  "Sicilian Defense: O\u0027Kelly"
+        "name":  "Sicilian Defense: O\u0027Kelly",
+        "moves":  "1. e4 c5 2. Nf3 a6"
     },
     {
         "code":  "B30",
-        "name":  "Sicilian Defense: Rossolimo"
+        "name":  "Sicilian Defense: Rossolimo",
+        "moves":  "1. e4 c5 2. Nf3 Nc6 3. Bb5"
     },
     {
         "code":  "B31",
-        "name":  "Sicilian Defense: Rossolimo"
+        "name":  "Sicilian Defense: Rossolimo",
+        "moves":  "1. e4 c5 2. Nf3 Nc6 3. Bb5 g6"
     },
     {
         "code":  "B32",
-        "name":  "Sicilian Defense: Kalashnikov"
+        "name":  "Sicilian Defense: Kalashnikov",
+        "moves":  "1. e4 c5 2. Nf3 Nc6 3. d4 cxd4 4. Nxd4 e5"
     },
     {
         "code":  "B33",
-        "name":  "Sicilian Defense: Sveshnikov"
+        "name":  "Sicilian Defense: Sveshnikov",
+        "moves":  "1. e4 c5 2. Nf3 Nc6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 e5"
     },
     {
         "code":  "B34",
-        "name":  "Sicilian Defense: Accelerated Dragon"
+        "name":  "Sicilian Defense: Accelerated Dragon",
+        "moves":  "1. e4 c5 2. Nf3 Nc6 3. d4 cxd4 4. Nxd4 g6"
     },
     {
         "code":  "B35",
-        "name":  "Sicilian Defense: Accelerated Dragon"
+        "name":  "Sicilian Defense: Accelerated Dragon",
+        "moves":  "1. e4 c5 2. Nf3 Nc6 3. d4 cxd4 4. Nxd4 g6 5. Nc3"
     },
     {
         "code":  "B36",
-        "name":  "Sicilian Defense: Accelerated Dragon"
+        "name":  "Sicilian Defense: Accelerated Dragon",
+        "moves":  "1. e4 c5 2. Nf3 Nc6 3. d4 cxd4 4. Nxd4 g6 5. c4"
     },
     {
         "code":  "B37",
-        "name":  "Sicilian Defense: Accelerated Dragon"
+        "name":  "Sicilian Defense: Accelerated Dragon",
+        "moves":  "1. e4 c5 2. Nf3 Nc6 3. d4 cxd4 4. Nxd4 g6 5. c4 Bg7"
     },
     {
         "code":  "B38",
-        "name":  "Sicilian Defense: Accelerated Dragon"
+        "name":  "Sicilian Defense: Accelerated Dragon",
+        "moves":  "1. e4 c5 2. Nf3 Nc6 3. d4 cxd4 4. Nxd4 g6 5. c4 Bg7 6. Be3"
     },
     {
         "code":  "B39",
-        "name":  "Sicilian Defense: Accelerated Dragon"
+        "name":  "Sicilian Defense: Accelerated Dragon",
+        "moves":  "1. e4 c5 2. Nf3 Nc6 3. d4 cxd4 4. Nxd4 g6 5. c4 Bg7 6. Be3 Nf6"
     },
     {
         "code":  "B40",
-        "name":  "Sicilian Defense"
+        "name":  "Sicilian Defense",
+        "moves":  "1. e4 c5 2. Nf3 e6"
     },
     {
         "code":  "B41",
-        "name":  "Sicilian Defense: Kan"
+        "name":  "Sicilian Defense: Kan",
+        "moves":  "1. e4 c5 2. Nf3 e6 3. d4 cxd4 4. Nxd4 a6"
     },
     {
         "code":  "B42",
-        "name":  "Sicilian Defense: Kan"
+        "name":  "Sicilian Defense: Kan",
+        "moves":  "1. e4 c5 2. Nf3 e6 3. d4 cxd4 4. Nxd4 a6 5. Bd3"
     },
     {
         "code":  "B43",
-        "name":  "Sicilian Defense: Kan"
+        "name":  "Sicilian Defense: Kan",
+        "moves":  "1. e4 c5 2. Nf3 e6 3. d4 cxd4 4. Nxd4 a6 5. Nc3"
     },
     {
         "code":  "B45",
-        "name":  "Sicilian Defense: Taimanov"
+        "name":  "Sicilian Defense: Taimanov",
+        "moves":  "1. e4 c5 2. Nf3 e6 3. d4 cxd4 4. Nxd4 Nc6"
     },
     {
         "code":  "B46",
-        "name":  "Sicilian Defense: Taimanov"
+        "name":  "Sicilian Defense: Taimanov",
+        "moves":  "1. e4 c5 2. Nf3 e6 3. d4 cxd4 4. Nxd4 Nc6 5. Nc3"
     },
     {
         "code":  "B47",
-        "name":  "Sicilian Defense: Taimanov"
+        "name":  "Sicilian Defense: Taimanov",
+        "moves":  "1. e4 c5 2. Nf3 e6 3. d4 cxd4 4. Nxd4 Nc6 5. Nc3 Qc7"
     },
     {
         "code":  "B48",
-        "name":  "Sicilian Defense: Taimanov"
+        "name":  "Sicilian Defense: Taimanov",
+        "moves":  "1. e4 c5 2. Nf3 e6 3. d4 cxd4 4. Nxd4 Nc6 5. Nc3 Qc7 6. Be3"
     },
     {
         "code":  "B49",
-        "name":  "Sicilian Defense: Taimanov"
+        "name":  "Sicilian Defense: Taimanov",
+        "moves":  "1. e4 c5 2. Nf3 e6 3. d4 cxd4 4. Nxd4 Nc6 5. Nc3 Qc7 6. Be3 a6"
     },
     {
         "code":  "B50",
-        "name":  "Sicilian Defense"
+        "name":  "Sicilian Defense",
+        "moves":  "1. e4 c5 2. Nf3 d6"
     },
     {
         "code":  "C00",
-        "name":  "French Defense"
+        "name":  "French Defense",
+        "moves":  "1. e4 e6"
     },
     {
         "code":  "C01",
-        "name":  "French Defense: Exchange"
+        "name":  "French Defense: Exchange",
+        "moves":  "1. e4 e6 2. d4 d5 3. exd5"
     },
     {
         "code":  "C02",
-        "name":  "French Defense: Advance"
+        "name":  "French Defense: Advance",
+        "moves":  "1. e4 e6 2. d4 d5 3. e5"
     },
     {
         "code":  "C03",
-        "name":  "French Defense: Tarrasch"
+        "name":  "French Defense: Tarrasch",
+        "moves":  "1. e4 e6 2. d4 d5 3. Nd2"
     },
     {
         "code":  "C04",
-        "name":  "French Defense: Tarrasch, Guimard"
+        "name":  "French Defense: Tarrasch, Guimard",
+        "moves":  "1. e4 e6 2. d4 d5 3. Nd2 Nc6"
     },
     {
         "code":  "C05",
-        "name":  "French Defense: Tarrasch"
+        "name":  "French Defense: Tarrasch",
+        "moves":  "1. e4 e6 2. d4 d5 3. Nd2 Nf6"
     },
     {
         "code":  "C07",
-        "name":  "French Defense: Tarrasch"
+        "name":  "French Defense: Tarrasch",
+        "moves":  "1. e4 e6 2. d4 d5 3. Nd2 c5"
     },
     {
         "code":  "C08",
-        "name":  "French Defense: Tarrasch"
+        "name":  "French Defense: Tarrasch",
+        "moves":  "1. e4 e6 2. d4 d5 3. Nd2 c5 4. Ngf3"
     },
     {
         "code":  "C09",
-        "name":  "French Defense: Tarrasch"
+        "name":  "French Defense: Tarrasch",
+        "moves":  "1. e4 e6 2. d4 d5 3. Nd2 c5 4. Ngf3 Nc6"
     },
     {
         "code":  "C10",
-        "name":  "French Defense: Rubinstein"
+        "name":  "French Defense: Rubinstein",
+        "moves":  "1. e4 e6 2. d4 d5 3. Nc3 dxe4"
     },
     {
         "code":  "C11",
-        "name":  "French Defense: Burn"
+        "name":  "French Defense: Burn",
+        "moves":  "1. e4 e6 2. d4 d5 3. Nc3 Nf6 4. Bg5"
     },
     {
         "code":  "C13",
-        "name":  "French Defense: Classical"
+        "name":  "French Defense: Classical",
+        "moves":  "1. e4 e6 2. d4 d5 3. Nc3 Nf6 4. Bg5 Be7"
     },
     {
         "code":  "C14",
-        "name":  "French Defense: Classical"
+        "name":  "French Defense: Classical",
+        "moves":  "1. e4 e6 2. d4 d5 3. Nc3 Nf6 4. Bg5 Be7 5. e5"
     },
     {
         "code":  "C15",
-        "name":  "French Defense: Winawer"
+        "name":  "French Defense: Winawer",
+        "moves":  "1. e4 e6 2. d4 d5 3. Nc3 Bb4"
     },
     {
         "code":  "C16",
-        "name":  "French Defense: Winawer"
+        "name":  "French Defense: Winawer",
+        "moves":  "1. e4 e6 2. d4 d5 3. Nc3 Bb4 4. e5"
     },
     {
         "code":  "C17",
-        "name":  "French Defense: Winawer"
+        "name":  "French Defense: Winawer",
+        "moves":  "1. e4 e6 2. d4 d5 3. Nc3 Bb4 4. e5 c5"
     },
     {
         "code":  "C18",
-        "name":  "French Defense: Winawer"
+        "name":  "French Defense: Winawer",
+        "moves":  "1. e4 e6 2. d4 d5 3. Nc3 Bb4 4. e5 c5 5. a3"
     },
     {
         "code":  "C19",
-        "name":  "French Defense: Winawer"
+        "name":  "French Defense: Winawer",
+        "moves":  "1. e4 e6 2. d4 d5 3. Nc3 Bb4 4. e5 c5 5. a3 Bxc3"
     },
     {
         "code":  "C20",
-        "name":  "King\u0027s Pawn Game"
+        "name":  "King\u0027s Pawn Game",
+        "moves":  "1. e4 e5"
     },
     {
         "code":  "C21",
-        "name":  "Center Game"
+        "name":  "Center Game",
+        "moves":  "1. e4 e5 2. d4"
     },
     {
         "code":  "C22",
-        "name":  "Center Game"
+        "name":  "Center Game",
+        "moves":  "1. e4 e5 2. d4 exd4"
     },
     {
         "code":  "C23",
-        "name":  "Bishop\u0027s Opening"
+        "name":  "Bishop\u0027s Opening",
+        "moves":  "1. e4 e5 2. Bc4"
     },
     {
         "code":  "C24",
-        "name":  "Bishop\u0027s Opening"
+        "name":  "Bishop\u0027s Opening",
+        "moves":  "1. e4 e5 2. Bc4 Bc5"
     },
     {
         "code":  "C25",
-        "name":  "Vienna Game"
+        "name":  "Vienna Game",
+        "moves":  "1. e4 e5 2. Nc3"
     },
     {
         "code":  "C26",
-        "name":  "Vienna Game"
+        "name":  "Vienna Game",
+        "moves":  "1. e4 e5 2. Nc3 Nf6"
     },
     {
         "code":  "C27",
-        "name":  "Vienna Game"
+        "name":  "Vienna Game",
+        "moves":  "1. e4 e5 2. Nc3 Nf6 3. Bc4"
     },
     {
         "code":  "C28",
-        "name":  "Vienna Game"
+        "name":  "Vienna Game",
+        "moves":  "1. e4 e5 2. Nc3 Nf6 3. Bc4 Nxe4"
     },
     {
         "code":  "C29",
-        "name":  "Vienna Gambit"
+        "name":  "Vienna Gambit",
+        "moves":  "1. e4 e5 2. Nc3 Nf6 3. f4"
     },
     {
         "code":  "C30",
-        "name":  "King\u0027s Gambit"
+        "name":  "King\u0027s Gambit",
+        "moves":  "1. e4 e5 2. f4"
     },
     {
         "code":  "C31",
-        "name":  "King\u0027s Gambit Declined"
+        "name":  "King\u0027s Gambit Declined",
+        "moves":  "1. e4 e5 2. f4 Bc5"
     },
     {
         "code":  "C32",
-        "name":  "King\u0027s Gambit Declined"
+        "name":  "King\u0027s Gambit Declined",
+        "moves":  "1. e4 e5 2. f4 d5"
     },
     {
         "code":  "C33",
-        "name":  "King\u0027s Gambit Accepted"
+        "name":  "King\u0027s Gambit Accepted",
+        "moves":  "1. e4 e5 2. f4 exf4"
     },
     {
         "code":  "C34",
-        "name":  "King\u0027s Gambit Accepted"
+        "name":  "King\u0027s Gambit Accepted",
+        "moves":  "1. e4 e5 2. f4 exf4 3. Nf3"
     },
     {
         "code":  "C35",
-        "name":  "King\u0027s Gambit Accepted"
+        "name":  "King\u0027s Gambit Accepted",
+        "moves":  "1. e4 e5 2. f4 exf4 3. Nf3 d5"
     },
     {
         "code":  "C36",
-        "name":  "King\u0027s Gambit Accepted"
+        "name":  "King\u0027s Gambit Accepted",
+        "moves":  "1. e4 e5 2. f4 exf4 3. Nf3 d5 4. exd5"
     },
     {
         "code":  "C37",
-        "name":  "King\u0027s Gambit Accepted"
+        "name":  "King\u0027s Gambit Accepted",
+        "moves":  "1. e4 e5 2. f4 exf4 3. Nf3 g5"
     },
     {
         "code":  "C38",
-        "name":  "King\u0027s Gambit Accepted"
+        "name":  "King\u0027s Gambit Accepted",
+        "moves":  "1. e4 e5 2. f4 exf4 3. Nf3 g5 4. h4"
     },
     {
         "code":  "C39",
-        "name":  "King\u0027s Gambit Accepted"
+        "name":  "King\u0027s Gambit Accepted",
+        "moves":  "1. e4 e5 2. f4 exf4 3. Nf3 g5 4. h4 g4"
     },
     {
         "code":  "C40",
-        "name":  "King\u0027s Knight Opening"
+        "name":  "King\u0027s Knight Opening",
+        "moves":  "1. e4 e5 2. Nf3"
     },
     {
         "code":  "C41",
-        "name":  "Philidor Defense"
+        "name":  "Philidor Defense",
+        "moves":  "1. e4 e5 2. Nf3 d6"
     },
     {
         "code":  "C42",
-        "name":  "Petrov Defense"
+        "name":  "Petrov Defense",
+        "moves":  "1. e4 e5 2. Nf3 Nf6"
     },
     {
         "code":  "C43",
-        "name":  "Petrov Defense"
+        "name":  "Petrov Defense",
+        "moves":  "1. e4 e5 2. Nf3 Nf6 3. Nxe5"
     },
     {
         "code":  "C44",
-        "name":  "Scotch Game"
+        "name":  "Scotch Game",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. d4"
     },
     {
         "code":  "C45",
-        "name":  "Scotch Game"
+        "name":  "Scotch Game",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. d4 exd4"
     },
     {
         "code":  "C46",
-        "name":  "Three Knights Game"
+        "name":  "Three Knights Game",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Nc3"
     },
     {
         "code":  "C47",
-        "name":  "Four Knights Game"
+        "name":  "Four Knights Game",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Nc3 Nf6"
     },
     {
         "code":  "C48",
-        "name":  "Four Knights Game"
+        "name":  "Four Knights Game",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Nc3 Nf6 4. Bb5"
     },
     {
         "code":  "C49",
-        "name":  "Four Knights Game"
+        "name":  "Four Knights Game",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Nc3 Nf6 4. Bb5 Bb4"
     },
     {
         "code":  "C50",
-        "name":  "Italian Game"
+        "name":  "Italian Game",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bc4"
     },
     {
         "code":  "C52",
-        "name":  "Italian Game"
+        "name":  "Italian Game",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. c3 Nf6"
     },
     {
         "code":  "C53",
-        "name":  "Giuoco Piano"
+        "name":  "Giuoco Piano",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5"
     },
     {
         "code":  "C54",
-        "name":  "Italian Game"
+        "name":  "Italian Game",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. c3"
     },
     {
         "code":  "C55",
-        "name":  "Two Knights Defense"
+        "name":  "Two Knights Defense",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6"
     },
     {
         "code":  "C56",
-        "name":  "Two Knights Defense"
+        "name":  "Two Knights Defense",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. d4"
     },
     {
         "code":  "C57",
-        "name":  "Two Knights Defense"
+        "name":  "Two Knights Defense",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. Ng5"
     },
     {
         "code":  "C58",
-        "name":  "Two Knights Defense"
+        "name":  "Two Knights Defense",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. d4 exd4"
     },
     {
         "code":  "C59",
-        "name":  "Two Knights Defense"
+        "name":  "Two Knights Defense",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. d4 exd4 5. e5"
     },
     {
         "code":  "C60",
-        "name":  "Ruy Lopez"
+        "name":  "Ruy Lopez",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5"
     },
     {
         "code":  "C61",
-        "name":  "Ruy Lopez: Bird Defense"
+        "name":  "Ruy Lopez: Bird Defense",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 Nd4"
     },
     {
         "code":  "C62",
-        "name":  "Ruy Lopez: Steinitz Defense"
+        "name":  "Ruy Lopez: Steinitz Defense",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 d6"
     },
     {
         "code":  "C63",
-        "name":  "Ruy Lopez: Schliemann Defense"
+        "name":  "Ruy Lopez: Schliemann Defense",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 f5"
     },
     {
         "code":  "C64",
-        "name":  "Ruy Lopez: Classical"
+        "name":  "Ruy Lopez: Classical",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 Bc5"
     },
     {
         "code":  "C65",
-        "name":  "Ruy Lopez: Berlin Defense"
+        "name":  "Ruy Lopez: Berlin Defense",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6"
     },
     {
         "code":  "C66",
-        "name":  "Ruy Lopez: Berlin Defense"
+        "name":  "Ruy Lopez: Berlin Defense",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. O-O Nxe4"
     },
     {
         "code":  "C67",
-        "name":  "Ruy Lopez: Berlin Defense"
+        "name":  "Ruy Lopez: Berlin Defense",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. O-O Nxe4 5. d4"
     },
     {
         "code":  "C68",
-        "name":  "Ruy Lopez: Exchange"
+        "name":  "Ruy Lopez: Exchange",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Bxc6"
     },
     {
         "code":  "C69",
-        "name":  "Ruy Lopez: Exchange"
+        "name":  "Ruy Lopez: Exchange",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Bxc6 dxc6"
     },
     {
         "code":  "C70",
-        "name":  "Ruy Lopez: Classical"
+        "name":  "Ruy Lopez: Classical",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7"
     },
     {
         "code":  "C71",
-        "name":  "Ruy Lopez: Classical"
+        "name":  "Ruy Lopez: Classical",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6"
     },
     {
         "code":  "C72",
-        "name":  "Ruy Lopez: Classical"
+        "name":  "Ruy Lopez: Classical",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O"
     },
     {
         "code":  "C74",
-        "name":  "Ruy Lopez: Classical"
+        "name":  "Ruy Lopez: Classical",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1"
     },
     {
         "code":  "C75",
-        "name":  "Ruy Lopez: Classical"
+        "name":  "Ruy Lopez: Classical",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5"
     },
     {
         "code":  "C76",
-        "name":  "Ruy Lopez: Classical"
+        "name":  "Ruy Lopez: Classical",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Ba4"
     },
     {
         "code":  "C77",
-        "name":  "Ruy Lopez: Morphy Defense"
+        "name":  "Ruy Lopez: Morphy Defense",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Ba4 d6"
     },
     {
         "code":  "C78",
-        "name":  "Ruy Lopez: Morphy Defense"
+        "name":  "Ruy Lopez: Morphy Defense",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Ba4 d6 8. c3"
     },
     {
         "code":  "C79",
-        "name":  "Ruy Lopez: Steinitz Defense Deferred"
+        "name":  "Ruy Lopez: Steinitz Defense Deferred",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 d6"
     },
     {
         "code":  "C80",
-        "name":  "Ruy Lopez: Open"
+        "name":  "Ruy Lopez: Open",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Nxe4"
     },
     {
         "code":  "C81",
-        "name":  "Ruy Lopez: Open"
+        "name":  "Ruy Lopez: Open",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Nxe4 6. d4"
     },
     {
         "code":  "C82",
-        "name":  "Ruy Lopez: Open"
+        "name":  "Ruy Lopez: Open",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Nxe4 6. d4 b5"
     },
     {
         "code":  "C83",
-        "name":  "Ruy Lopez: Open"
+        "name":  "Ruy Lopez: Open",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Nxe4 6. d4 b5 7. Ba4"
     },
     {
         "code":  "C86",
-        "name":  "Ruy Lopez: Closed"
+        "name":  "Ruy Lopez: Closed",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Ba4 d6 8. c3 O-O"
     },
     {
         "code":  "C87",
-        "name":  "Ruy Lopez: Closed"
+        "name":  "Ruy Lopez: Closed",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Ba4 d6 8. c3 O-O 9. h3"
     },
     {
         "code":  "C88",
-        "name":  "Ruy Lopez: Closed"
+        "name":  "Ruy Lopez: Closed",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Ba4 d6 8. c3 O-O 9. h3 Nb8"
     },
     {
         "code":  "C89",
-        "name":  "Ruy Lopez: Marshall Attack"
+        "name":  "Ruy Lopez: Marshall Attack",
+        "moves":  "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Ba4 O-O"
     },
     {
         "code":  "D00",
-        "name":  "Queen\u0027s Pawn Game"
+        "name":  "Queen\u0027s Pawn Game",
+        "moves":  "1. d4 d5"
     },
     {
         "code":  "D01",
-        "name":  "Richter-Veresov Attack"
+        "name":  "Richter-Veresov Attack",
+        "moves":  "1. d4 d5 2. Nc3 Nf6 3. Bg5"
     },
     {
         "code":  "D02",
-        "name":  "Queen\u0027s Gambit"
+        "name":  "Queen\u0027s Gambit",
+        "moves":  "1. d4 d5 2. c4"
     },
     {
         "code":  "D03",
-        "name":  "Torre Attack"
+        "name":  "Torre Attack",
+        "moves":  "1. d4 d5 2. Nf3 Nf6 3. Bg5"
     },
     {
         "code":  "D05",
-        "name":  "Queen\u0027s Gambit"
+        "name":  "Queen\u0027s Gambit",
+        "moves":  "1. d4 d5 2. c4 e6"
     },
     {
         "code":  "D06",
-        "name":  "Queen\u0027s Gambit Declined"
+        "name":  "Queen\u0027s Gambit Declined",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3"
     },
     {
         "code":  "D07",
-        "name":  "Queen\u0027s Gambit Declined: Chigorin"
+        "name":  "Queen\u0027s Gambit Declined: Chigorin",
+        "moves":  "1. d4 d5 2. c4 Nc6"
     },
     {
         "code":  "D08",
-        "name":  "Queen\u0027s Gambit Declined: Albin Countergambit"
+        "name":  "Queen\u0027s Gambit Declined: Albin Countergambit",
+        "moves":  "1. d4 d5 2. c4 e5"
     },
     {
         "code":  "D09",
-        "name":  "Queen\u0027s Gambit Declined: Albin Countergambit"
+        "name":  "Queen\u0027s Gambit Declined: Albin Countergambit",
+        "moves":  "1. d4 d5 2. c4 e5 3. dxe5 d4"
     },
     {
         "code":  "D10",
-        "name":  "Slav Defense"
+        "name":  "Slav Defense",
+        "moves":  "1. d4 d5 2. c4 c6"
     },
     {
         "code":  "D12",
-        "name":  "Slav Defense"
+        "name":  "Slav Defense",
+        "moves":  "1. d4 d5 2. c4 c6 3. Nf3"
     },
     {
         "code":  "D13",
-        "name":  "Slav Defense: Exchange"
+        "name":  "Slav Defense: Exchange",
+        "moves":  "1. d4 d5 2. c4 c6 3. cxd5"
     },
     {
         "code":  "D14",
-        "name":  "Slav Defense"
+        "name":  "Slav Defense",
+        "moves":  "1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. e3"
     },
     {
         "code":  "D15",
-        "name":  "Slav Defense"
+        "name":  "Slav Defense",
+        "moves":  "1. d4 d5 2. c4 c6 3. Nf3 Nf6"
     },
     {
         "code":  "D16",
-        "name":  "Slav Defense"
+        "name":  "Slav Defense",
+        "moves":  "1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. Nc3"
     },
     {
         "code":  "D17",
-        "name":  "Slav Defense"
+        "name":  "Slav Defense",
+        "moves":  "1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. Nc3 dxc4"
     },
     {
         "code":  "D18",
-        "name":  "Slav Defense: Dutch"
+        "name":  "Slav Defense: Dutch",
+        "moves":  "1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. Nc3 dxc4 5. a4"
     },
     {
         "code":  "D19",
-        "name":  "Slav Defense: Czech"
+        "name":  "Slav Defense: Czech",
+        "moves":  "1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. Nc3 dxc4 5. a4 Bf5"
     },
     {
         "code":  "D20",
-        "name":  "Queen\u0027s Gambit Accepted"
+        "name":  "Queen\u0027s Gambit Accepted",
+        "moves":  "1. d4 d5 2. c4 dxc4"
     },
     {
         "code":  "D21",
-        "name":  "Queen\u0027s Gambit Accepted"
+        "name":  "Queen\u0027s Gambit Accepted",
+        "moves":  "1. d4 d5 2. c4 dxc4 3. Nf3"
     },
     {
         "code":  "D22",
-        "name":  "Queen\u0027s Gambit Accepted"
+        "name":  "Queen\u0027s Gambit Accepted",
+        "moves":  "1. d4 d5 2. c4 dxc4 3. Nf3 a6"
     },
     {
         "code":  "D23",
-        "name":  "Queen\u0027s Gambit Accepted"
+        "name":  "Queen\u0027s Gambit Accepted",
+        "moves":  "1. d4 d5 2. c4 dxc4 3. Nf3 Nf6"
     },
     {
         "code":  "D24",
-        "name":  "Queen\u0027s Gambit Accepted"
+        "name":  "Queen\u0027s Gambit Accepted",
+        "moves":  "1. d4 d5 2. c4 dxc4 3. Nf3 Nf6 4. e3"
     },
     {
         "code":  "D25",
-        "name":  "Queen\u0027s Gambit Accepted"
+        "name":  "Queen\u0027s Gambit Accepted",
+        "moves":  "1. d4 d5 2. c4 dxc4 3. Nf3 Nf6 4. e3 e6"
     },
     {
         "code":  "D26",
-        "name":  "Queen\u0027s Gambit Accepted"
+        "name":  "Queen\u0027s Gambit Accepted",
+        "moves":  "1. d4 d5 2. c4 dxc4 3. Nf3 Nf6 4. e3 e6 5. Bxc4"
     },
     {
         "code":  "D27",
-        "name":  "Queen\u0027s Gambit Accepted"
+        "name":  "Queen\u0027s Gambit Accepted",
+        "moves":  "1. d4 d5 2. c4 dxc4 3. Nf3 Nf6 4. e3 e6 5. Bxc4 c5"
     },
     {
         "code":  "D28",
-        "name":  "Queen\u0027s Gambit Accepted"
+        "name":  "Queen\u0027s Gambit Accepted",
+        "moves":  "1. d4 d5 2. c4 dxc4 3. Nf3 Nf6 4. e3 e6 5. Bxc4 c5 6. O-O"
     },
     {
         "code":  "D29",
-        "name":  "Queen\u0027s Gambit Accepted"
+        "name":  "Queen\u0027s Gambit Accepted",
+        "moves":  "1. d4 d5 2. c4 dxc4 3. Nf3 Nf6 4. e3 e6 5. Bxc4 c5 6. O-O a6"
     },
     {
         "code":  "D30",
-        "name":  "Queen\u0027s Gambit Declined"
+        "name":  "Queen\u0027s Gambit Declined",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6"
     },
     {
         "code":  "D32",
-        "name":  "Queen\u0027s Gambit Declined: Tarrasch"
+        "name":  "Queen\u0027s Gambit Declined: Tarrasch",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 c5"
     },
     {
         "code":  "D33",
-        "name":  "Queen\u0027s Gambit Declined: Tarrasch"
+        "name":  "Queen\u0027s Gambit Declined: Tarrasch",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 c5 4. cxd5"
     },
     {
         "code":  "D34",
-        "name":  "Queen\u0027s Gambit Declined: Tarrasch"
+        "name":  "Queen\u0027s Gambit Declined: Tarrasch",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 c5 4. cxd5 exd5"
     },
     {
         "code":  "D35",
-        "name":  "Queen\u0027s Gambit Declined: Exchange"
+        "name":  "Queen\u0027s Gambit Declined: Exchange",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. cxd5"
     },
     {
         "code":  "D37",
-        "name":  "Queen\u0027s Gambit Declined"
+        "name":  "Queen\u0027s Gambit Declined",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Nf3"
     },
     {
         "code":  "D38",
-        "name":  "Queen\u0027s Gambit Declined: Ragozin"
+        "name":  "Queen\u0027s Gambit Declined: Ragozin",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Nf3 Bb4"
     },
     {
         "code":  "D39",
-        "name":  "Queen\u0027s Gambit Declined: Ragozin"
+        "name":  "Queen\u0027s Gambit Declined: Ragozin",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Nf3 Bb4 5. cxd5"
     },
     {
         "code":  "D40",
-        "name":  "Queen\u0027s Gambit Declined: Semi-Tarrasch"
+        "name":  "Queen\u0027s Gambit Declined: Semi-Tarrasch",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Nf3 c5"
     },
     {
         "code":  "D41",
-        "name":  "Queen\u0027s Gambit Declined: Semi-Tarrasch"
+        "name":  "Queen\u0027s Gambit Declined: Semi-Tarrasch",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Nf3 c5 5. cxd5"
     },
     {
         "code":  "D42",
-        "name":  "Queen\u0027s Gambit Declined: Semi-Tarrasch"
+        "name":  "Queen\u0027s Gambit Declined: Semi-Tarrasch",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Nf3 c5 5. cxd5 Nxd5"
     },
     {
         "code":  "D43",
-        "name":  "Semi-Slav Defense"
+        "name":  "Semi-Slav Defense",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 c6"
     },
     {
         "code":  "D45",
-        "name":  "Queen\u0027s Gambit Declined"
+        "name":  "Queen\u0027s Gambit Declined",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5"
     },
     {
         "code":  "D46",
-        "name":  "Queen\u0027s Gambit Declined: Semi-Slav"
+        "name":  "Queen\u0027s Gambit Declined: Semi-Slav",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 c6 4. Nf3"
     },
     {
         "code":  "D47",
-        "name":  "Queen\u0027s Gambit Declined: Semi-Slav"
+        "name":  "Queen\u0027s Gambit Declined: Semi-Slav",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 c6 4. Nf3 Nf6"
     },
     {
         "code":  "D48",
-        "name":  "Queen\u0027s Gambit Declined: Semi-Slav"
+        "name":  "Queen\u0027s Gambit Declined: Semi-Slav",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 c6 4. Nf3 Nf6 5. Bg5"
     },
     {
         "code":  "D49",
-        "name":  "Queen\u0027s Gambit Declined: Semi-Slav"
+        "name":  "Queen\u0027s Gambit Declined: Semi-Slav",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 c6 4. Nf3 Nf6 5. Bg5 h6"
     },
     {
         "code":  "D50",
-        "name":  "Queen\u0027s Gambit Declined"
+        "name":  "Queen\u0027s Gambit Declined",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7"
     },
     {
         "code":  "D51",
-        "name":  "Queen\u0027s Gambit Declined: Cambridge Springs"
+        "name":  "Queen\u0027s Gambit Declined: Cambridge Springs",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Nbd7"
     },
     {
         "code":  "D52",
-        "name":  "Queen\u0027s Gambit Declined: Cambridge Springs"
+        "name":  "Queen\u0027s Gambit Declined: Cambridge Springs",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Nbd7 5. e3"
     },
     {
         "code":  "D54",
-        "name":  "Queen\u0027s Gambit Declined"
+        "name":  "Queen\u0027s Gambit Declined",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3"
     },
     {
         "code":  "D55",
-        "name":  "Queen\u0027s Gambit Declined"
+        "name":  "Queen\u0027s Gambit Declined",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O"
     },
     {
         "code":  "D56",
-        "name":  "Queen\u0027s Gambit Declined"
+        "name":  "Queen\u0027s Gambit Declined",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O 6. Nf3"
     },
     {
         "code":  "D57",
-        "name":  "Queen\u0027s Gambit Declined"
+        "name":  "Queen\u0027s Gambit Declined",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O 6. Nf3 h6"
     },
     {
         "code":  "D58",
-        "name":  "Queen\u0027s Gambit Declined"
+        "name":  "Queen\u0027s Gambit Declined",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O 6. Nf3 h6 7. Bh4"
     },
     {
         "code":  "D59",
-        "name":  "Queen\u0027s Gambit Declined"
+        "name":  "Queen\u0027s Gambit Declined",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O 6. Nf3 h6 7. Bh4 b6"
     },
     {
         "code":  "D60",
-        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+        "name":  "Queen\u0027s Gambit Declined: Orthodox",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O 6. Nf3 Nbd7"
     },
     {
         "code":  "D61",
-        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+        "name":  "Queen\u0027s Gambit Declined: Orthodox",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O 6. Nf3 Nbd7 7. Rc1"
     },
     {
         "code":  "D62",
-        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+        "name":  "Queen\u0027s Gambit Declined: Orthodox",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O 6. Nf3 Nbd7 7. Rc1 c6"
     },
     {
         "code":  "D63",
-        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+        "name":  "Queen\u0027s Gambit Declined: Orthodox",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O 6. Nf3 Nbd7 7. Rc1 c6 8. Bd3"
     },
     {
         "code":  "D64",
-        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+        "name":  "Queen\u0027s Gambit Declined: Orthodox",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O 6. Nf3 Nbd7 7. Rc1 c6 8. Bd3 dxc4"
     },
     {
         "code":  "D65",
-        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+        "name":  "Queen\u0027s Gambit Declined: Orthodox",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O 6. Nf3 Nbd7 7. Rc1 c6 8. Bd3 dxc4 9. Bxc4"
     },
     {
         "code":  "D66",
-        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+        "name":  "Queen\u0027s Gambit Declined: Orthodox",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O 6. Nf3 Nbd7 7. Rc1 c6 8. Bd3 dxc4 9. Bxc4 b5"
     },
     {
         "code":  "D67",
-        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+        "name":  "Queen\u0027s Gambit Declined: Orthodox",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O 6. Nf3 Nbd7 7. Rc1 c6 8. Bd3 dxc4 9. Bxc4 b5 10. Bd3"
     },
     {
         "code":  "D68",
-        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+        "name":  "Queen\u0027s Gambit Declined: Orthodox",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O 6. Nf3 Nbd7 7. Rc1 c6 8. Bd3 dxc4 9. Bxc4 b5 10. Bd3 a6"
     },
     {
         "code":  "D69",
-        "name":  "Queen\u0027s Gambit Declined: Orthodox"
+        "name":  "Queen\u0027s Gambit Declined: Orthodox",
+        "moves":  "1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O 6. Nf3 Nbd7 7. Rc1 c6 8. Bd3 dxc4 9. Bxc4 b5 10. Bd3 a6 11. e4"
     },
     {
         "code":  "D70",
-        "name":  "Neo-Grunfeld Defense"
+        "name":  "Neo-Grunfeld Defense",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. f3"
     },
     {
         "code":  "D74",
-        "name":  "Grunfeld Defense"
+        "name":  "Grunfeld Defense",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. cxd5 Nxd5"
     },
     {
         "code":  "D75",
-        "name":  "Grunfeld Defense"
+        "name":  "Grunfeld Defense",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. cxd5 Nxd5 5. e4"
     },
     {
         "code":  "D76",
-        "name":  "Grunfeld Defense: Russian"
+        "name":  "Grunfeld Defense: Russian",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. Nf3"
     },
     {
         "code":  "D77",
-        "name":  "Grunfeld Defense"
+        "name":  "Grunfeld Defense",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. Nf3 Bg7"
     },
     {
         "code":  "D78",
-        "name":  "Grunfeld Defense"
+        "name":  "Grunfeld Defense",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. Nf3 Bg7 5. e4"
     },
     {
         "code":  "D79",
-        "name":  "Grunfeld Defense"
+        "name":  "Grunfeld Defense",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. Nf3 Bg7 5. e4 dxe4"
     },
     {
         "code":  "D80",
-        "name":  "Grunfeld Defense"
+        "name":  "Grunfeld Defense",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5"
     },
     {
         "code":  "D81",
-        "name":  "Grunfeld Defense: Russian"
+        "name":  "Grunfeld Defense: Russian",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. Nf3 Bg7 5. Qb3"
     },
     {
         "code":  "D82",
-        "name":  "Grunfeld Defense: Russian"
+        "name":  "Grunfeld Defense: Russian",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. Nf3 Bg7 5. Qb3 dxc4"
     },
     {
         "code":  "D83",
-        "name":  "Grunfeld Defense: Russian"
+        "name":  "Grunfeld Defense: Russian",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. Nf3 Bg7 5. Qb3 dxc4 6. Qxc4"
     },
     {
         "code":  "D84",
-        "name":  "Grunfeld Defense: Russian"
+        "name":  "Grunfeld Defense: Russian",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. Nf3 Bg7 5. Qb3 dxc4 6. Qxc4 O-O"
     },
     {
         "code":  "D85",
-        "name":  "Grunfeld Defense"
+        "name":  "Grunfeld Defense",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. cxd5"
     },
     {
         "code":  "D86",
-        "name":  "Grunfeld Defense: Exchange"
+        "name":  "Grunfeld Defense: Exchange",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. cxd5 Nxd5 5. e4 Nxc3"
     },
     {
         "code":  "D87",
-        "name":  "Grunfeld Defense: Exchange"
+        "name":  "Grunfeld Defense: Exchange",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. cxd5 Nxd5 5. e4 Nxc3 6. bxc3"
     },
     {
         "code":  "D88",
-        "name":  "Grunfeld Defense: Exchange"
+        "name":  "Grunfeld Defense: Exchange",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. cxd5 Nxd5 5. e4 Nxc3 6. bxc3 Bg7"
     },
     {
         "code":  "D89",
-        "name":  "Grunfeld Defense: Exchange"
+        "name":  "Grunfeld Defense: Exchange",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. cxd5 Nxd5 5. e4 Nxc3 6. bxc3 Bg7 7. Nf3"
     },
     {
         "code":  "D90",
-        "name":  "Grunfeld Defense"
+        "name":  "Grunfeld Defense",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. cxd5 Nxd5 5. e4 Nxc3 6. bxc3 Bg7 7. Nf3 c5"
     },
     {
         "code":  "D91",
-        "name":  "Grunfeld Defense"
+        "name":  "Grunfeld Defense",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. cxd5 Nxd5 5. e4 Nxc3 6. bxc3 Bg7 7. Nf3 c5 8. Be3"
     },
     {
         "code":  "D92",
-        "name":  "Grunfeld Defense"
+        "name":  "Grunfeld Defense",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. cxd5 Nxd5 5. e4 Nxc3 6. bxc3 Bg7 7. Nf3 c5 8. Be3 Nc6"
     },
     {
         "code":  "D93",
-        "name":  "Grunfeld Defense"
+        "name":  "Grunfeld Defense",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. cxd5 Nxd5 5. e4 Nxc3 6. bxc3 Bg7 7. Nf3 c5 8. Be3 Nc6 9. Rc1"
     },
     {
         "code":  "D94",
-        "name":  "Grunfeld Defense"
+        "name":  "Grunfeld Defense",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. cxd5 Nxd5 5. e4 Nxc3 6. bxc3 Bg7 7. Nf3 c5 8. Be3 Nc6 9. Rc1 cxd4"
     },
     {
         "code":  "D95",
-        "name":  "Grunfeld Defense"
+        "name":  "Grunfeld Defense",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. cxd5 Nxd5 5. e4 Nxc3 6. bxc3 Bg7 7. Nf3 c5 8. Be3 Nc6 9. Rc1 cxd4 10. cxd4"
     },
     {
         "code":  "E00",
-        "name":  "Catalan Opening"
+        "name":  "Catalan Opening",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. g3"
     },
     {
         "code":  "E02",
-        "name":  "Catalan Opening"
+        "name":  "Catalan Opening",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. g3 d5"
     },
     {
         "code":  "E03",
-        "name":  "Catalan Opening"
+        "name":  "Catalan Opening",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. g3 d5 4. Bg2"
     },
     {
         "code":  "E04",
-        "name":  "Catalan Opening"
+        "name":  "Catalan Opening",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. g3 d5 4. Bg2 Be7"
     },
     {
         "code":  "E05",
-        "name":  "Catalan Opening"
+        "name":  "Catalan Opening",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. g3 d5 4. Bg2 Be7 5. Nf3"
     },
     {
         "code":  "E06",
-        "name":  "Catalan Opening"
+        "name":  "Catalan Opening",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. g3 d5 4. Bg2 Be7 5. Nf3 O-O"
     },
     {
         "code":  "E07",
-        "name":  "Catalan Opening"
+        "name":  "Catalan Opening",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. g3 d5 4. Bg2 Be7 5. Nf3 O-O 6. O-O"
     },
     {
         "code":  "E08",
-        "name":  "Catalan Opening"
+        "name":  "Catalan Opening",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. g3 d5 4. Bg2 Be7 5. Nf3 O-O 6. O-O dxc4"
     },
     {
         "code":  "E09",
-        "name":  "Catalan Opening"
+        "name":  "Catalan Opening",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. g3 d5 4. Bg2 Be7 5. Nf3 O-O 6. O-O dxc4 7. Qc2"
     },
     {
         "code":  "E10",
-        "name":  "Queen\u0027s Indian Defense"
+        "name":  "Queen\u0027s Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nf3 b6"
     },
     {
         "code":  "E11",
-        "name":  "Bogo-Indian Defense"
+        "name":  "Bogo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nf3 Bb4+"
     },
     {
         "code":  "E14",
-        "name":  "Queen\u0027s Indian Defense"
+        "name":  "Queen\u0027s Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nf3 b6 4. g3"
     },
     {
         "code":  "E15",
-        "name":  "Queen\u0027s Indian Defense"
+        "name":  "Queen\u0027s Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nf3 b6 4. g3 Bb7"
     },
     {
         "code":  "E16",
-        "name":  "Queen\u0027s Indian Defense"
+        "name":  "Queen\u0027s Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nf3 b6 4. g3 Bb7 5. Bg2"
     },
     {
         "code":  "E17",
-        "name":  "Queen\u0027s Indian Defense"
+        "name":  "Queen\u0027s Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nf3 b6 4. g3 Bb7 5. Bg2 Be7"
     },
     {
         "code":  "E18",
-        "name":  "Queen\u0027s Indian Defense"
+        "name":  "Queen\u0027s Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nf3 b6 4. g3 Bb7 5. Bg2 Be7 6. O-O"
     },
     {
         "code":  "E19",
-        "name":  "Queen\u0027s Indian Defense"
+        "name":  "Queen\u0027s Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nf3 b6 4. g3 Bb7 5. Bg2 Be7 6. O-O O-O"
     },
     {
         "code":  "E20",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4"
     },
     {
         "code":  "E23",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. Qc2 d5"
     },
     {
         "code":  "E24",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. Qc2 d5 5. a3"
     },
     {
         "code":  "E25",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. a3"
     },
     {
         "code":  "E26",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. a3 Bxc3+"
     },
     {
         "code":  "E27",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. a3 Bxc3+ 5. bxc3"
     },
     {
         "code":  "E28",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. a3 Bxc3+ 5. bxc3 O-O"
     },
     {
         "code":  "E29",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. a3 Bxc3+ 5. bxc3 O-O 6. e3"
     },
     {
         "code":  "E30",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. Qc2"
     },
     {
         "code":  "E31",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3"
     },
     {
         "code":  "E32",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O"
     },
     {
         "code":  "E33",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3"
     },
     {
         "code":  "E34",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5"
     },
     {
         "code":  "E35",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3"
     },
     {
         "code":  "E36",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5"
     },
     {
         "code":  "E37",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O"
     },
     {
         "code":  "E38",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6"
     },
     {
         "code":  "E39",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6 8. a3"
     },
     {
         "code":  "E40",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6 8. a3 Bxc3"
     },
     {
         "code":  "E41",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6 8. a3 Bxc3 9. bxc3"
     },
     {
         "code":  "E42",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6 8. a3 Bxc3 9. bxc3 b6"
     },
     {
         "code":  "E43",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6 8. a3 Bxc3 9. bxc3 b6 10. Bb2"
     },
     {
         "code":  "E44",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6 8. a3 Bxc3 9. bxc3 b6 10. Bb2 Ba6"
     },
     {
         "code":  "E45",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6 8. a3 Bxc3 9. bxc3 b6 10. Bb2 Ba6 11. c4"
     },
     {
         "code":  "E46",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6 8. a3 Bxc3 9. bxc3 b6 10. Bb2 Ba6 11. c4 Nc6"
     },
     {
         "code":  "E47",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6 8. a3 Bxc3 9. bxc3 b6 10. Bb2 Ba6 11. c4 Nc6 12. Rc1"
     },
     {
         "code":  "E48",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6 8. a3 Bxc3 9. bxc3 b6 10. Bb2 Ba6 11. c4 Nc6 12. Rc1 Rc8"
     },
     {
         "code":  "E49",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6 8. a3 Bxc3 9. bxc3 b6 10. Bb2 Ba6 11. c4 Nc6 12. Rc1 Rc8 13. Qb3"
     },
     {
         "code":  "E50",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6 8. a3 Bxc3 9. bxc3 b6 10. Bb2 Ba6 11. c4 Nc6 12. Rc1 Rc8 13. Qb3 Na5"
     },
     {
         "code":  "E51",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6 8. a3 Bxc3 9. bxc3 b6 10. Bb2 Ba6 11. c4 Nc6 12. Rc1 Rc8 13. Qb3 Na5 14. Qa2"
     },
     {
         "code":  "E52",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6 8. a3 Bxc3 9. bxc3 b6 10. Bb2 Ba6 11. c4 Nc6 12. Rc1 Rc8 13. Qb3 Na5 14. Qa2 Bxc4"
     },
     {
         "code":  "E54",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6 8. a3 Bxc3 9. bxc3 b6 10. Bb2 Ba6 11. c4 Nc6 12. Rc1 Rc8 13. Qb3 Na5 14. Qa2 Bxc4 15. Bxc4 Nxc4"
     },
     {
         "code":  "E56",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6 8. a3 Bxc3 9. bxc3 b6 10. Bb2 Ba6 11. c4 Nc6 12. Rc1 Rc8 13. Qb3 Na5 14. Qa2 Bxc4 15. Bxc4 Nxc4 16. Rxc4"
     },
     {
         "code":  "E57",
-        "name":  "Nimzo-Indian Defense"
+        "name":  "Nimzo-Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6 8. a3 Bxc3 9. bxc3 b6 10. Bb2 Ba6 11. c4 Nc6 12. Rc1 Rc8 13. Qb3 Na5 14. Qa2 Bxc4 15. Bxc4 Nxc4 16. Rxc4 Rxc4"
     },
     {
         "code":  "E60",
-        "name":  "King\u0027s Indian Defense"
+        "name":  "King\u0027s Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 Bg7"
     },
     {
         "code":  "E70",
-        "name":  "King\u0027s Indian Defense"
+        "name":  "King\u0027s Indian Defense",
+        "moves":  "1. d4 Nf6 2. c4 g6 3. Nc3 Bg7 4. e4"
     }
 ]

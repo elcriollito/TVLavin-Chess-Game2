@@ -53,8 +53,15 @@
     rows.sort((a, b) => a.code.localeCompare(b.code));
 
     ecoList.innerHTML = rows.length
-      ? rows.map(row => `<a class="eco-row" href="/eco/${row.code}"><span class="eco-code">${row.code}</span><span>${row.name}</span></a>`).join('')
-      : '<div class="eco-row"><span class="eco-code">--</span><span>No matching ECO codes.</span></div>';
+      ? rows.map(row => {
+        const moves = (row.moves && String(row.moves).trim()) ? String(row.moves).trim() : '-';
+        return `<a class="eco-row" href="/eco/${row.code}">
+          <span class="eco-code">${row.code}</span>
+          <span class="eco-name">${row.name}</span>
+          <span class="eco-moves" title="${moves.replace(/"/g, '&quot;')}">${moves}</span>
+        </a>`;
+      }).join('')
+      : '<div class="eco-row"><span class="eco-code">--</span><span class="eco-name">No matching ECO codes.</span><span class="eco-moves">-</span></div>';
   }
 
   async function renderDetail(code) {
