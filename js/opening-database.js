@@ -4,8 +4,7 @@
     board: null,
     boardFlipped: false,
     boardScale: 1,
-    ecoStats: null,
-    ecoContinuations: null,
+    openingPositionIndex: null,
     ecoCodeDefs: [],
     datasetsLoaded: false,
     datasetsError: '',
@@ -152,31 +151,39 @@
       return;
     }
 
-    const total = rows.reduce((sum, r) => sum + (Number(r.count) || Number(r.n) || 0), 0);
+    const total = rows.reduce((sum, r) => sum + (Number(r.games) || Number(r.count) || Number(r.n) || 0), 0);
     els.statsBody.innerHTML = rows.map((row) => {
-      const n = Number(row.count) || Number(row.n) || 0;
-      const w = Number(row.whiteWins) || Number(row.w) || 0;
-      const d = Number(row.draws) || Number(row.d) || 0;
-      const l = Number(row.blackWins) || Number(row.l) || 0;
+      const n = Number(row.games) || Number(row.count) || Number(row.n) || 0;
+      const w = Number(row.whiteWins) || Number(row.w) || Number(row.winsCount) || 0;
+      const d = Number(row.drawsCount) || Number(row.d) || Number(row.drawCount) || 0;
+      const l = Number(row.blackWins) || Number(row.l) || Number(row.lossesCount) || 0;
       const sample = w + d + l;
-      const wPct = toPercent(w, sample);
-      const dPct = toPercent(d, sample);
-      const lPct = toPercent(l, sample);
-      const value = sample > 0 ? ((w + 0.5 * d) / sample) * 100 : 0;
-      const perc = total > 0 ? toPercent(n, total) : 0;
+      const winsPctFromIndex = Number(row.wins);
+      const drawsPctFromIndex = Number(row.draws);
+      const lossesPctFromIndex = Number(row.losses);
+      const percFromIndex = Number(row.perc);
+      const valueFromIndex = Number(row.value);
+      const wPct = sample > 0 ? toPercent(w, sample) : (Number.isFinite(winsPctFromIndex) ? winsPctFromIndex : 0);
+      const dPct = sample > 0 ? toPercent(d, sample) : (Number.isFinite(drawsPctFromIndex) ? drawsPctFromIndex : 0);
+      const lPct = sample > 0 ? toPercent(l, sample) : (Number.isFinite(lossesPctFromIndex) ? lossesPctFromIndex : 0);
+      const value = Number.isFinite(valueFromIndex)
+        ? valueFromIndex
+        : (sample > 0 ? ((w + 0.5 * d) / sample) * 100 : 0);
+      const perc = Number.isFinite(percFromIndex) ? percFromIndex : (total > 0 ? toPercent(n, total) : 0);
+      const year = row.year || row.lastYearSeen || 'TBD';
 
       return `
         <tr class="${dominantClass(wPct, dPct, lPct)}">
-          <td class="col-move">${row.move || row.san || 'TBD'}</td>
-          <td>${sample > 0 ? `${value.toFixed(1)}%` : 'TBD'}</td>
+          <td class="col-move">${row.move || row.san || row.uci || 'TBD'}</td>
+          <td>${Number.isFinite(value) ? `${value.toFixed(1)}%` : 'TBD'}</td>
           <td>${n > 0 ? n : 'TBD'}</td>
-          <td class="col-perc">${total > 0 ? `${perc.toFixed(1)}%` : 'TBD'}</td>
+          <td class="col-perc">${Number.isFinite(perc) ? `${perc.toFixed(1)}%` : 'TBD'}</td>
           <td>TBD</td>
           <td>TBD</td>
-          <td>${row.year || 'TBD'}</td>
-          <td>${sample > 0 ? `${wPct.toFixed(1)}%` : 'TBD'}</td>
-          <td>${sample > 0 ? `${dPct.toFixed(1)}%` : 'TBD'}</td>
-          <td>${sample > 0 ? `${lPct.toFixed(1)}%` : 'TBD'}</td>
+          <td>${year}</td>
+          <td>${Number.isFinite(wPct) ? `${wPct.toFixed(1)}%` : 'TBD'}</td>
+          <td>${Number.isFinite(dPct) ? `${dPct.toFixed(1)}%` : 'TBD'}</td>
+          <td>${Number.isFinite(lPct) ? `${lPct.toFixed(1)}%` : 'TBD'}</td>
         </tr>
       `;
     }).join('');
@@ -210,27 +217,15 @@
     };
   }
 
-  function buildRowsForPosition(opening, hash, normalizedFen) {
-    if (!state.ecoContinuations) return [];
-
-    // Primary adapter lookup by exact key if dataset ever includes exact position keys.
-    const exactRows = state.ecoContinuations[hash] || state.ecoContinuations[normalizedFen];
-    if (Array.isArray(exactRows) && exactRows.length > 0) {
-      return exactRows.slice(0, 12);
+  function getOpeningIndexEntry(fenKey) {
+    if (!state.openingPositionIndex) return null;
+    if (state.openingPositionIndex.positions && state.openingPositionIndex.positions[fenKey]) {
+      return state.openingPositionIndex.positions[fenKey];
     }
-
-    // Fallback by ECO code (current available dataset shape).
-    if (opening && opening.eco) {
-      const byEco = state.ecoContinuations[opening.eco];
-      if (Array.isArray(byEco) && byEco.length > 0) {
-        const year = state.ecoStats && state.ecoStats[opening.eco]
-          ? (state.ecoStats[opening.eco].lastYearSeen || state.ecoStats[opening.eco].lastDate || 'TBD')
-          : 'TBD';
-        return byEco.slice(0, 12).map((row) => ({ ...row, year }));
-      }
+    if (state.openingPositionIndex[fenKey]) {
+      return state.openingPositionIndex[fenKey];
     }
-
-    return [];
+    return null;
   }
 
   async function updatePositionView() {
@@ -238,9 +233,9 @@
     state.positionRequestId = requestId;
 
     const fen = state.game.fen();
-    const normalizedFen = normalizeFenForHash(fen);
+    const fenKey = normalizeFenForHash(fen);
     const hash = hashFen(fen);
-    debugLog('updatePosition key', { requestId, fen: normalizedFen, hash });
+    debugLog('updatePosition key', { requestId, fen: fenKey, hash });
 
     await Promise.resolve();
     if (requestId !== state.positionRequestId) return;
@@ -252,16 +247,26 @@
     }
 
     const opening = resolveOpeningByPosition(fen);
-    const openingText = opening.eco ? `${opening.name} (${opening.eco})` : opening.name;
-    els.openingLabel.textContent = openingText || 'Opening: (TBD)';
+    const positionEntry = getOpeningIndexEntry(fenKey);
+    const hasExact = !!(positionEntry && Array.isArray(positionEntry.moves) && positionEntry.moves.length > 0);
 
-    const rows = buildRowsForPosition(opening, hash, normalizedFen);
+    let openingText = 'Opening: (TBD)';
+    if (positionEntry && positionEntry.opening) {
+      openingText = positionEntry.opening;
+    } else if (opening.eco || opening.name !== 'Opening: (TBD)') {
+      openingText = opening.eco ? `${opening.name} (${opening.eco})` : opening.name;
+    }
+    els.openingLabel.textContent = openingText;
+
+    const rows = hasExact
+      ? positionEntry.moves.slice(0, 12).map((row) => ({ ...row, year: positionEntry.year || row.year || null }))
+      : [];
     renderStatsRows(rows);
 
     if (!state.datasetsLoaded) {
       els.lookupStatus.textContent = state.datasetsError || 'Loading datasets...';
-    } else if (rows.length > 0) {
-      els.lookupStatus.textContent = `Position lookup: match (${opening.source})`;
+    } else if (hasExact) {
+      els.lookupStatus.textContent = 'Position lookup: exact match';
     } else {
       els.lookupStatus.textContent = 'Position lookup: no exact match (placeholders)';
     }
@@ -289,25 +294,18 @@
   }
 
   async function loadDatasets() {
-    let statsLoaded = false;
-    let continuationsLoaded = false;
+    let indexLoaded = false;
     let ecoCodesLoaded = false;
 
     try {
-      const [statsRes, contRes, ecoCodesRes] = await Promise.allSettled([
-        fetch('/data/eco/eco_stats.json', { cache: 'force-cache' }),
-        fetch('/data/eco/eco_popular_continuations.json', { cache: 'force-cache' }),
+      const [indexRes, ecoCodesRes] = await Promise.allSettled([
+        fetch('/data/opening_position_index.json', { cache: 'force-cache' }),
         fetch('/data/eco/eco_codes.json', { cache: 'force-cache' })
       ]);
 
-      if (statsRes.status === 'fulfilled' && statsRes.value.ok) {
-        state.ecoStats = await statsRes.value.json();
-        statsLoaded = true;
-      }
-
-      if (contRes.status === 'fulfilled' && contRes.value.ok) {
-        state.ecoContinuations = await contRes.value.json();
-        continuationsLoaded = true;
+      if (indexRes.status === 'fulfilled' && indexRes.value.ok) {
+        state.openingPositionIndex = await indexRes.value.json();
+        indexLoaded = true;
       }
 
       if (ecoCodesRes.status === 'fulfilled' && ecoCodesRes.value.ok) {
@@ -329,8 +327,7 @@
       state.datasetsError = '';
 
       const missing = [];
-      if (!statsLoaded) missing.push('eco_stats.json');
-      if (!continuationsLoaded) missing.push('eco_popular_continuations.json');
+      if (!indexLoaded) missing.push('opening_position_index.json');
       if (!ecoCodesLoaded) missing.push('eco_codes.json');
       if (missing.length > 0) {
         showDatasetBanner(`Lookup unavailable: missing ${missing.join(', ')}`);
@@ -339,8 +336,7 @@
       }
 
       debugLog('datasets loaded', {
-        ecoStatsLoaded: statsLoaded,
-        ecoContinuationsLoaded: continuationsLoaded,
+        openingPositionIndexLoaded: indexLoaded,
         ecoCodesLoaded,
         ecoPositionMapLoaded: false
       });
@@ -350,8 +346,7 @@
       showDatasetBanner('Lookup unavailable');
       console.warn('[OpeningDB] dataset load error', error);
       debugLog('datasets loaded', {
-        ecoStatsLoaded: statsLoaded,
-        ecoContinuationsLoaded: continuationsLoaded,
+        openingPositionIndexLoaded: indexLoaded,
         ecoCodesLoaded,
         ecoPositionMapLoaded: false
       });
@@ -526,3 +521,4 @@
     runInit();
   }
 })();
+

@@ -1,0 +1,15 @@
+{
+  "meta": {
+    "generatedAt": "1970-01-01T00:00:00.000Z",
+    "maxPlies": 20,
+    "topN": 12,
+    "inputs": [],
+    "gamesParsed": 0,
+    "gamesFailed": 0,
+    "gamesSkippedNoResult": 0,
+    "positions": 0,
+    "fenKey": "piece-placement side-to-move castling en-passant",
+    "perspective": "white"
+  },
+  "positions": {}
+}
