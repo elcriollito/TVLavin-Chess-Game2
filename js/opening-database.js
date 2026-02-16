@@ -384,6 +384,7 @@
         onDrop: (source, target) => {
           const move = state.game.move({ from: source, to: target, promotion: 'q' });
           if (move === null) return 'snapback';
+          state.board.position(state.game.fen(), false);
           updatePositionView();
         },
         onSnapEnd: () => {
