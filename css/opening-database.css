@@ -170,6 +170,16 @@
   font-size: 12px;
 }
 
+.openingdb-dataset-banner {
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #ffd2a8;
+  border: 1px solid rgba(255, 166, 89, 0.45);
+  background: rgba(255, 166, 89, 0.14);
+}
+
 .openingdb-table-wrap {
   overflow-x: auto;
 }

@@ -6,9 +6,10 @@
     boardScale: 1,
     ecoStats: null,
     ecoContinuations: null,
-    ecoPositionMap: null,
+    ecoMapEnabled: false,
     datasetsLoaded: false,
-    datasetsError: ''
+    datasetsError: '',
+    positionRequestId: 0
   };
 
   const els = {
@@ -16,6 +17,7 @@
     moveList: document.getElementById('odbMoveList'),
     openingLabel: document.getElementById('odbOpeningLabel'),
     lookupStatus: document.getElementById('odbLookupStatus'),
+    datasetBanner: document.getElementById('odbDatasetBanner'),
     statsBody: document.getElementById('odbStatsBody'),
     boardShell: document.querySelector('.openingdb-board-shell'),
     smallerBtn: document.getElementById('odbSmallerBtn'),
@@ -31,9 +33,36 @@
     fenError: document.getElementById('odbFenError')
   };
 
+  const DEBUG = (() => {
+    const qs = new URLSearchParams(window.location.search).get('debug') === '1';
+    let ls = false;
+    try {
+      ls = window.localStorage && localStorage.getItem('caissa.openingdb.debug') === '1';
+    } catch (_err) {
+      ls = false;
+    }
+    return qs || ls;
+  })();
+
+  function debugLog(...args) {
+    if (!DEBUG) return;
+    console.log('[OpeningDB]', ...args);
+  }
+
   function renderBoardFatal(message) {
     if (!els.board) return;
     els.board.innerHTML = `<div class="openingdb-board-error" role="alert">${message}</div>`;
+  }
+
+  function showDatasetBanner(message) {
+    if (!els.datasetBanner) return;
+    if (!message) {
+      els.datasetBanner.hidden = true;
+      els.datasetBanner.textContent = '';
+      return;
+    }
+    els.datasetBanner.hidden = false;
+    els.datasetBanner.textContent = message;
   }
 
   function normalizeFenForHash(fen) {
@@ -125,18 +154,8 @@
 
   function resolveOpeningByPosition(fen) {
     const hash = hashFen(fen);
-    const mapped = state.ecoPositionMap && state.ecoPositionMap[hash] ? state.ecoPositionMap[hash] : null;
-
-    if (mapped) {
-      return {
-        hash,
-        eco: mapped.eco || '',
-        name: mapped.name || 'Opening: (TBD)',
-        source: 'eco_position_map'
-      };
-    }
-
     const hist = state.game.history();
+
     if (hist.length === 1 && hist[0] === 'd4') {
       return {
         hash,
@@ -174,13 +193,23 @@
     return byEco.slice(0, 12).map((row) => ({ ...row, year }));
   }
 
-  function updatePositionView() {
+  async function updatePositionView() {
+    const requestId = (state.positionRequestId || 0) + 1;
+    state.positionRequestId = requestId;
+
     const fen = state.game.fen();
+    const normalizedFen = normalizeFenForHash(fen);
+    const hash = hashFen(fen);
+    debugLog('updatePosition key', { requestId, fen: normalizedFen, hash });
+
+    await Promise.resolve();
+    if (requestId !== state.positionRequestId) return;
+
     els.moveList.value = formatMoveList() || '(start position)';
 
     const opening = resolveOpeningByPosition(fen);
     const openingText = opening.eco ? `${opening.name} (${opening.eco})` : opening.name;
-    els.openingLabel.textContent = openingText;
+    els.openingLabel.textContent = openingText || 'Opening: (TBD)';
 
     const rows = buildRowsForPosition(opening);
     renderStatsRows(rows);
@@ -216,32 +245,52 @@
   }
 
   async function loadDatasets() {
+    let statsLoaded = false;
+    let continuationsLoaded = false;
+
     try {
-      const [statsRes, contRes, mapRes] = await Promise.allSettled([
+      const [statsRes, contRes] = await Promise.allSettled([
         fetch('/data/eco/eco_stats.json', { cache: 'force-cache' }),
-        fetch('/data/eco/eco_popular_continuations.json', { cache: 'force-cache' }),
-        fetch('/data/eco/eco_position_map.json', { cache: 'force-cache' })
+        fetch('/data/eco/eco_popular_continuations.json', { cache: 'force-cache' })
       ]);
 
       if (statsRes.status === 'fulfilled' && statsRes.value.ok) {
         state.ecoStats = await statsRes.value.json();
+        statsLoaded = true;
       }
 
       if (contRes.status === 'fulfilled' && contRes.value.ok) {
         state.ecoContinuations = await contRes.value.json();
-      }
-
-      if (mapRes.status === 'fulfilled' && mapRes.value.ok) {
-        const payload = await mapRes.value.json();
-        state.ecoPositionMap = payload && payload.entries ? payload.entries : null;
+        continuationsLoaded = true;
       }
 
       state.datasetsLoaded = true;
       state.datasetsError = '';
+
+      const missing = [];
+      if (!statsLoaded) missing.push('eco_stats.json');
+      if (!continuationsLoaded) missing.push('eco_popular_continuations.json');
+      if (missing.length > 0) {
+        showDatasetBanner(`Lookup unavailable: missing ${missing.join(', ')}`);
+      } else {
+        showDatasetBanner('Dataset missing: eco_position_map.json (disabled)');
+      }
+
+      debugLog('datasets loaded', {
+        ecoStatsLoaded: statsLoaded,
+        ecoContinuationsLoaded: continuationsLoaded,
+        ecoPositionMapLoaded: false
+      });
     } catch (error) {
       state.datasetsLoaded = false;
       state.datasetsError = 'Dataset fetch failed. Showing placeholders.';
+      showDatasetBanner('Lookup unavailable');
       console.warn('[OpeningDB] dataset load error', error);
+      debugLog('datasets loaded', {
+        ecoStatsLoaded: statsLoaded,
+        ecoContinuationsLoaded: continuationsLoaded,
+        ecoPositionMapLoaded: false
+      });
     }
 
     updatePositionView();
