@@ -31,6 +31,11 @@
     fenError: document.getElementById('odbFenError')
   };
 
+  function renderBoardFatal(message) {
+    if (!els.board) return;
+    els.board.innerHTML = `<div class="openingdb-board-error" role="alert">${message}</div>`;
+  }
+
   function normalizeFenForHash(fen) {
     const parts = String(fen || '').trim().split(/\s+/);
     if (parts.length < 4) return String(fen || '').trim();
@@ -313,47 +318,83 @@
   function initBoard() {
     state.game = new Chess();
 
-    state.board = Chessboard('openingDbBoard', {
-      draggable: true,
-      position: 'start',
-      showNotation: true,
-      pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
-      onDragStart: (source, piece) => {
-        if (state.game.game_over()) return false;
-        if ((state.game.turn() === 'w' && piece.startsWith('b')) ||
-            (state.game.turn() === 'b' && piece.startsWith('w'))) {
-          return false;
+    try {
+      state.board = Chessboard('openingDbBoard', {
+        draggable: true,
+        position: 'start',
+        showNotation: true,
+        pieceTheme: '/img/chesspieces/wikipedia/{piece}.png',
+        onDragStart: (source, piece) => {
+          if (state.game.game_over()) return false;
+          if ((state.game.turn() === 'w' && piece.startsWith('b')) ||
+              (state.game.turn() === 'b' && piece.startsWith('w'))) {
+            return false;
+          }
+          return true;
+        },
+        onDrop: (source, target) => {
+          const move = state.game.move({ from: source, to: target, promotion: 'q' });
+          if (move === null) return 'snapback';
+          updatePositionView();
+        },
+        onSnapEnd: () => {
+          state.board.position(state.game.fen());
         }
-        return true;
-      },
-      onDrop: (source, target) => {
-        const move = state.game.move({ from: source, to: target, promotion: 'q' });
-        if (move === null) return 'snapback';
-        updatePositionView();
-      },
-      onSnapEnd: () => {
-        state.board.position(state.game.fen());
-      }
-    });
+      });
+    } catch (err) {
+      console.error('[OpeningDB] Board failed to initialize', err);
+      renderBoardFatal(`Board failed to initialize: ${err && err.message ? err.message : String(err)}`);
+      throw err;
+    }
 
     setTimeout(() => {
       if (state.board && typeof state.board.resize === 'function') {
         state.board.resize();
       }
-    }, 40);
+      const childCount = els.board ? els.board.children.length : 0;
+      console.log('[OpeningDB] board child count', childCount);
+      if (childCount === 0) {
+        const msg = 'Chessboard did not render markup';
+        console.error('[OpeningDB] ' + msg);
+        renderBoardFatal(msg);
+      }
+    }, 60);
   }
 
-  function init() {
-    if (!els.board || !window.Chess || !window.Chessboard) {
-      console.error('[OpeningDB] Chess dependencies not available');
+  function runInit() {
+    console.log('[OpeningDB] init start');
+    console.log('[OpeningDB] Chessboard typeof:', typeof window.Chessboard);
+    console.log('[OpeningDB] Chess typeof:', typeof window.Chess);
+    console.log('[OpeningDB] jQuery typeof:', typeof window.jQuery);
+    console.log('[OpeningDB] jQuery.fn typeof:', window.jQuery ? typeof window.jQuery.fn : 'undefined');
+    console.log('[OpeningDB] boardEl exists:', !!document.getElementById('openingDbBoard'));
+
+    if (!els.board) {
+      console.error('[OpeningDB] Board element missing');
       return;
     }
 
-    initBoard();
-    bindEvents();
-    updatePositionView();
-    loadDatasets();
+    if (!window.Chess || !window.Chessboard) {
+      const msg = 'Board failed to initialize: Chess dependencies not available';
+      console.error('[OpeningDB] ' + msg);
+      renderBoardFatal(msg);
+      return;
+    }
+
+    try {
+      initBoard();
+      bindEvents();
+      updatePositionView();
+      loadDatasets();
+    } catch (err) {
+      console.error('[OpeningDB] init fatal', err);
+      renderBoardFatal(`Board failed to initialize: ${err && err.message ? err.message : String(err)}`);
+    }
   }
 
-  init();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', runInit, { once: true });
+  } else {
+    runInit();
+  }
 })();
