@@ -16,6 +16,7 @@
   let currentBoardFen = '';
   let boardResizeObserver = null;
   let boardResizeDebounce = null;
+  let windowResizeDebounce = null;
   let ecoStatsData = null;
   let ecoContinuationsData = null;
   let ecoFenData = null;
@@ -199,6 +200,19 @@
     return grid;
   }
 
+  function ensureBoardSized() {
+    const boardEl = document.getElementById('ecoMiniBoard');
+    const containerEl = document.querySelector('.eco-board-container');
+    if (!boardEl || !containerEl) return false;
+
+    const side = Math.floor(Math.min(containerEl.clientWidth, containerEl.clientHeight));
+    if (!Number.isFinite(side) || side < 120) return false;
+
+    boardEl.style.width = `${side}px`;
+    boardEl.style.height = `${side}px`;
+    return true;
+  }
+
   function mountMiniBoardFromFen(fen) {
     const boardEl = document.getElementById('ecoMiniBoard');
     const fallbackEl = document.getElementById('ecoMiniBoardFallback');
@@ -224,6 +238,7 @@
       return false;
     }
 
+    ensureBoardSized();
     const rect = boardEl.getBoundingClientRect();
     if (rect.width < 160 || rect.height < 160) {
       return false;
@@ -261,12 +276,14 @@
         const boardEl = document.getElementById('ecoMiniBoard');
         if (!boardEl) return;
 
+        ensureBoardSized();
         const ok = mountMiniBoardFromFen(fen);
         if (!ok && attempt < MAX_MINI_BOARD_RETRIES) {
           renderMiniBoardFromFen(fen, attempt + 1);
           return;
         }
 
+        ensureBoardSized();
         if (!ok) {
           console.warn(`[ECO] Mini board render failed after ${MAX_MINI_BOARD_RETRIES + 1} attempts.`);
         }
@@ -280,8 +297,8 @@
 
   function setupBoardResizeObserver() {
     if (boardResizeObserver || typeof ResizeObserver === 'undefined') return;
-    const boardEl = document.getElementById('ecoMiniBoard');
-    if (!boardEl) return;
+    const containerEl = document.querySelector('.eco-board-container');
+    if (!containerEl) return;
 
     boardResizeObserver = new ResizeObserver((entries) => {
       const entry = entries[0];
@@ -294,16 +311,45 @@
         clearTimeout(boardResizeDebounce);
       }
       boardResizeDebounce = setTimeout(() => {
+        ensureBoardSized();
         rerenderMiniBoard();
       }, 60);
     });
-    boardResizeObserver.observe(boardEl);
+    boardResizeObserver.observe(containerEl);
   }
 
   function showContinuationStatus(message) {
     const continuationsEl = document.getElementById('ecoContinuations');
     if (!continuationsEl) return;
-    continuationsEl.innerHTML = `<li><span class="eco-cont-main">${escapeHtml(message)}</span></li>`;
+    continuationsEl.innerHTML = `<li><span class="eco-cont-main eco-cont-move">${escapeHtml(message)}</span></li>`;
+  }
+
+  function normalizeWdlPercents(whiteRaw, drawRaw, blackRaw) {
+    const white = Number(whiteRaw);
+    const draw = Number(drawRaw);
+    const black = Number(blackRaw);
+    if (![white, draw, black].every((v) => Number.isFinite(v) && v >= 0)) {
+      return null;
+    }
+
+    const total = white + draw + black;
+    if (total <= 0) return null;
+
+    if (total <= 101) {
+      return { whitePct: white, drawPct: draw, blackPct: black };
+    }
+
+    return {
+      whitePct: (white / total) * 100,
+      drawPct: (draw / total) * 100,
+      blackPct: (black / total) * 100
+    };
+  }
+
+  function extractWdlPercents(row) {
+    const fromCounts = normalizeWdlPercents(row?.whiteWins, row?.draws, row?.blackWins);
+    if (fromCounts) return fromCounts;
+    return normalizeWdlPercents(row?.w, row?.d, row?.l);
   }
 
   function renderContinuationRows(items) {
@@ -313,13 +359,27 @@
     continuationsEl.innerHTML = items.map((item) => {
       const san = escapeHtml(item.san || 'TBD');
       const label = escapeHtml(item.label || 'Line');
-      const numeric = Number(item.percent);
-      const percent = numeric > 0 ? `${numeric.toFixed(1)}%` : 'TBD%';
-      const fill = numeric > 0 ? Math.min(100, Math.max(0, numeric)) : 0;
-      return `<li>
-        <span class="eco-cont-main"><span>${san}</span> - <span>${label}</span></span>
-        <strong class="eco-cont-pct">${percent}</strong>
-        <span class="eco-cont-bar"><span class="eco-cont-fill" style="width:${fill}%"></span></span>
+      const shareNumeric = Number(item.sharePercent ?? item.percent);
+      const sharePct = shareNumeric > 0 ? Math.min(100, Math.max(0, shareNumeric)) : 0;
+      const shareText = sharePct > 0 ? `${sharePct.toFixed(1)}%` : 'TBD';
+      const wdl = normalizeWdlPercents(item.whitePct, item.drawPct, item.blackPct);
+      const whitePct = wdl ? wdl.whitePct : 33;
+      const drawPct = wdl ? wdl.drawPct : 34;
+      const blackPct = wdl ? wdl.blackPct : 33;
+
+      return `<li class="eco-cont-row">
+        <span class="eco-cont-main eco-cont-move">${san}</span>
+        <div class="eco-cont-stats">
+          <div class="eco-cont-meta">
+            <span class="eco-cont-note">${label}</span>
+            <strong class="eco-cont-pct">${shareText}</strong>
+          </div>
+          <span class="eco-cont-bar" aria-hidden="true">
+            <span class="eco-cont-w" style="width:${whitePct}%"></span>
+            <span class="eco-cont-d" style="width:${drawPct}%"></span>
+            <span class="eco-cont-l" style="width:${blackPct}%"></span>
+          </span>
+        </div>
       </li>`;
     }).join('');
   }
@@ -449,7 +509,7 @@
     const rows = Array.from(byUci.values()).map((entry) => {
       const statsCount = Number(entry.stats?.count) || 0;
       const weight = Number(entry.book?.weight) || 0;
-      const percent = statsTotal > 0
+      const sharePercent = statsTotal > 0
         ? (statsCount / statsTotal) * 100
         : (bookTotal > 0 ? (weight / bookTotal) * 100 : 0);
 
@@ -457,8 +517,18 @@
         ? `games ${statsCount}`
         : `weight ${weight}`;
 
+      const wdl = extractWdlPercents(entry.stats);
       const san = uciToSanIfPossible(fen, entry.uci, entry.book?.san || entry.uci);
-      return { san, label, percent, sortA: statsCount, sortB: weight };
+      return {
+        san,
+        label,
+        sharePercent,
+        whitePct: wdl?.whitePct ?? null,
+        drawPct: wdl?.drawPct ?? null,
+        blackPct: wdl?.blackPct ?? null,
+        sortA: statsCount,
+        sortB: weight
+      };
     });
 
     rows.sort((a, b) => {
@@ -488,8 +558,11 @@
       const barPct = totalCount > 0 ? (count / totalCount) * 100 : 0;
       return {
         san: r.move || 'TBD',
-        label: `${count} | W${wPct.toFixed(0)} D${dPct.toFixed(0)} B${bPct.toFixed(0)}`,
-        percent: barPct
+        label: `${count} games`,
+        sharePercent: barPct,
+        whitePct: wPct,
+        drawPct: dPct,
+        blackPct: bPct
       };
     });
     renderContinuationRows(mapped);
@@ -571,15 +644,16 @@
     if (theoryEl) theoryEl.textContent = 'Theory summary will appear here.';
 
     currentBoardFen = START_FEN;
+    ensureBoardSized();
     renderMiniBoardFromFen(currentBoardFen);
     setStatsPlaceholders();
 
     renderContinuationRows([
-      { san: 'TBD', label: 'Main line', percent: 0 },
-      { san: 'TBD', label: 'Positional plan', percent: 0 },
-      { san: 'TBD', label: 'Tactical option', percent: 0 },
-      { san: 'TBD', label: 'Sideline', percent: 0 },
-      { san: 'TBD', label: 'Flexible setup', percent: 0 }
+      { san: 'TBD', label: 'Main line', sharePercent: 0 },
+      { san: 'TBD', label: 'Positional plan', sharePercent: 0 },
+      { san: 'TBD', label: 'Tactical option', sharePercent: 0 },
+      { san: 'TBD', label: 'Sideline', sharePercent: 0 },
+      { san: 'TBD', label: 'Flexible setup', sharePercent: 0 }
     ]);
   }
 
@@ -651,6 +725,7 @@
     const fenResolution = resolveFenForCode(normalized, detail, defining);
     currentBoardFen = fenResolution.fen || START_FEN;
     debugLog('fen source', fenResolution.source, 'final fen', currentBoardFen);
+    ensureBoardSized();
     renderMiniBoardFromFen(currentBoardFen);
     setStatsPlaceholders();
     const hasEcoStats = applyEcoStatsByCode(normalized);
@@ -731,7 +806,13 @@
     });
 
     window.addEventListener('resize', () => {
-      if (currentBoardFen) rerenderMiniBoard();
+      if (windowResizeDebounce) {
+        clearTimeout(windowResizeDebounce);
+      }
+      windowResizeDebounce = setTimeout(() => {
+        ensureBoardSized();
+        if (currentBoardFen) rerenderMiniBoard();
+      }, 80);
     });
 
     setupBoardResizeObserver();
