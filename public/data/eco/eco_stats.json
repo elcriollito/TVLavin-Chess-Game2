@@ -1,0 +1,2914 @@
+{
+  "A00": {
+    "games": 41066,
+    "whiteWins": 15772,
+    "blackWins": 15710,
+    "draws": 9584,
+    "avgElo": 2299,
+    "lastYearSeen": 2023
+  },
+  "A01": {
+    "games": 23360,
+    "whiteWins": 9691,
+    "blackWins": 8028,
+    "draws": 5641,
+    "avgElo": 2320.7,
+    "lastYearSeen": 2023
+  },
+  "A02": {
+    "games": 6718,
+    "whiteWins": 2309,
+    "blackWins": 2695,
+    "draws": 1714,
+    "avgElo": 2247.1,
+    "lastYearSeen": 2023
+  },
+  "A03": {
+    "games": 10384,
+    "whiteWins": 3423,
+    "blackWins": 3949,
+    "draws": 3012,
+    "avgElo": 2262.8,
+    "lastYearSeen": 2023
+  },
+  "A04": {
+    "games": 34453,
+    "whiteWins": 13339,
+    "blackWins": 11608,
+    "draws": 9506,
+    "avgElo": 2310.5,
+    "lastYearSeen": 2023
+  },
+  "A05": {
+    "games": 28806,
+    "whiteWins": 11314,
+    "blackWins": 8660,
+    "draws": 8832,
+    "avgElo": 2323.2,
+    "lastYearSeen": 2023
+  },
+  "A06": {
+    "games": 15192,
+    "whiteWins": 5887,
+    "blackWins": 4962,
+    "draws": 4343,
+    "avgElo": 2338.4,
+    "lastYearSeen": 2023
+  },
+  "A07": {
+    "games": 42212,
+    "whiteWins": 15907,
+    "blackWins": 11863,
+    "draws": 14442,
+    "avgElo": 2365.7,
+    "lastYearSeen": 2023
+  },
+  "A09": {
+    "games": 8836,
+    "whiteWins": 3112,
+    "blackWins": 2983,
+    "draws": 2741,
+    "avgElo": 2365.4,
+    "lastYearSeen": 2023
+  },
+  "A10": {
+    "games": 18165,
+    "whiteWins": 7228,
+    "blackWins": 5911,
+    "draws": 5026,
+    "avgElo": 2306.7,
+    "lastYearSeen": 2023
+  },
+  "A11": {
+    "games": 20731,
+    "whiteWins": 8254,
+    "blackWins": 5152,
+    "draws": 7325,
+    "avgElo": 2366.1,
+    "lastYearSeen": 2023
+  },
+  "A12": {
+    "games": 6088,
+    "whiteWins": 2108,
+    "blackWins": 1752,
+    "draws": 2228,
+    "avgElo": 2302.2,
+    "lastYearSeen": 2023
+  },
+  "A13": {
+    "games": 28182,
+    "whiteWins": 10609,
+    "blackWins": 7967,
+    "draws": 9606,
+    "avgElo": 2355.3,
+    "lastYearSeen": 2023
+  },
+  "A15": {
+    "games": 13771,
+    "whiteWins": 5468,
+    "blackWins": 4127,
+    "draws": 4176,
+    "avgElo": 2319.4,
+    "lastYearSeen": 2023
+  },
+  "A16": {
+    "games": 20012,
+    "whiteWins": 8101,
+    "blackWins": 5134,
+    "draws": 6777,
+    "avgElo": 2332.1,
+    "lastYearSeen": 2023
+  },
+  "A17": {
+    "games": 9130,
+    "whiteWins": 3532,
+    "blackWins": 2122,
+    "draws": 3476,
+    "avgElo": 2388.9,
+    "lastYearSeen": 2023
+  },
+  "A18": {
+    "games": 4440,
+    "whiteWins": 2113,
+    "blackWins": 979,
+    "draws": 1348,
+    "avgElo": 2329.2,
+    "lastYearSeen": 2023
+  },
+  "A19": {
+    "games": 1454,
+    "whiteWins": 559,
+    "blackWins": 413,
+    "draws": 482,
+    "avgElo": 2357.7,
+    "lastYearSeen": 2023
+  },
+  "A20": {
+    "games": 14152,
+    "whiteWins": 5493,
+    "blackWins": 4414,
+    "draws": 4245,
+    "avgElo": 2350.1,
+    "lastYearSeen": 2023
+  },
+  "A21": {
+    "games": 15087,
+    "whiteWins": 5142,
+    "blackWins": 5341,
+    "draws": 4604,
+    "avgElo": 2340.4,
+    "lastYearSeen": 2023
+  },
+  "A22": {
+    "games": 7917,
+    "whiteWins": 2811,
+    "blackWins": 2704,
+    "draws": 2402,
+    "avgElo": 2325.7,
+    "lastYearSeen": 2023
+  },
+  "A23": {
+    "games": 1875,
+    "whiteWins": 659,
+    "blackWins": 649,
+    "draws": 567,
+    "avgElo": 2291.1,
+    "lastYearSeen": 2023
+  },
+  "A24": {
+    "games": 5178,
+    "whiteWins": 1895,
+    "blackWins": 1558,
+    "draws": 1725,
+    "avgElo": 2293.6,
+    "lastYearSeen": 2023
+  },
+  "A25": {
+    "games": 16455,
+    "whiteWins": 6435,
+    "blackWins": 5029,
+    "draws": 4991,
+    "avgElo": 2313.6,
+    "lastYearSeen": 2023
+  },
+  "A26": {
+    "games": 10075,
+    "whiteWins": 3543,
+    "blackWins": 2828,
+    "draws": 3704,
+    "avgElo": 2315.6,
+    "lastYearSeen": 2023
+  },
+  "A27": {
+    "games": 3512,
+    "whiteWins": 1401,
+    "blackWins": 1123,
+    "draws": 988,
+    "avgElo": 2314.1,
+    "lastYearSeen": 2023
+  },
+  "A28": {
+    "games": 11124,
+    "whiteWins": 4195,
+    "blackWins": 3185,
+    "draws": 3744,
+    "avgElo": 2386.2,
+    "lastYearSeen": 2023
+  },
+  "A29": {
+    "games": 13633,
+    "whiteWins": 4773,
+    "blackWins": 3785,
+    "draws": 5075,
+    "avgElo": 2379.6,
+    "lastYearSeen": 2023
+  },
+  "A30": {
+    "games": 29011,
+    "whiteWins": 9825,
+    "blackWins": 7186,
+    "draws": 12000,
+    "avgElo": 2370.4,
+    "lastYearSeen": 2023
+  },
+  "A31": {
+    "games": 7982,
+    "whiteWins": 3048,
+    "blackWins": 2493,
+    "draws": 2441,
+    "avgElo": 2320.3,
+    "lastYearSeen": 2023
+  },
+  "A32": {
+    "games": 6472,
+    "whiteWins": 1956,
+    "blackWins": 2124,
+    "draws": 2392,
+    "avgElo": 2370.6,
+    "lastYearSeen": 2023
+  },
+  "A33": {
+    "games": 5439,
+    "whiteWins": 1768,
+    "blackWins": 1328,
+    "draws": 2343,
+    "avgElo": 2426.3,
+    "lastYearSeen": 2023
+  },
+  "A34": {
+    "games": 13773,
+    "whiteWins": 5105,
+    "blackWins": 3826,
+    "draws": 4842,
+    "avgElo": 2355.8,
+    "lastYearSeen": 2023
+  },
+  "A35": {
+    "games": 8418,
+    "whiteWins": 3347,
+    "blackWins": 1983,
+    "draws": 3088,
+    "avgElo": 2389,
+    "lastYearSeen": 2023
+  },
+  "A36": {
+    "games": 17623,
+    "whiteWins": 5730,
+    "blackWins": 5308,
+    "draws": 6585,
+    "avgElo": 2319.7,
+    "lastYearSeen": 2023
+  },
+  "A37": {
+    "games": 15628,
+    "whiteWins": 4636,
+    "blackWins": 5115,
+    "draws": 5877,
+    "avgElo": 2349,
+    "lastYearSeen": 2023
+  },
+  "A38": {
+    "games": 3901,
+    "whiteWins": 1064,
+    "blackWins": 921,
+    "draws": 1916,
+    "avgElo": 2296,
+    "lastYearSeen": 2023
+  },
+  "A39": {
+    "games": 8266,
+    "whiteWins": 3463,
+    "blackWins": 1515,
+    "draws": 3288,
+    "avgElo": 2325,
+    "lastYearSeen": 2023
+  },
+  "A40": {
+    "games": 34099,
+    "whiteWins": 13459,
+    "blackWins": 12014,
+    "draws": 8626,
+    "avgElo": 2316.1,
+    "lastYearSeen": 2023
+  },
+  "A42": {
+    "games": 13961,
+    "whiteWins": 5610,
+    "blackWins": 4322,
+    "draws": 4029,
+    "avgElo": 2321.6,
+    "lastYearSeen": 2023
+  },
+  "A43": {
+    "games": 17870,
+    "whiteWins": 7733,
+    "blackWins": 5354,
+    "draws": 4783,
+    "avgElo": 2314.5,
+    "lastYearSeen": 2023
+  },
+  "A44": {
+    "games": 5799,
+    "whiteWins": 2743,
+    "blackWins": 1606,
+    "draws": 1450,
+    "avgElo": 2294.6,
+    "lastYearSeen": 2023
+  },
+  "A45": {
+    "games": 53315,
+    "whiteWins": 21315,
+    "blackWins": 18898,
+    "draws": 13102,
+    "avgElo": 2301,
+    "lastYearSeen": 2023
+  },
+  "A46": {
+    "games": 38956,
+    "whiteWins": 12579,
+    "blackWins": 13648,
+    "draws": 12729,
+    "avgElo": 2315.6,
+    "lastYearSeen": 2023
+  },
+  "A48": {
+    "games": 34655,
+    "whiteWins": 11646,
+    "blackWins": 11783,
+    "draws": 11226,
+    "avgElo": 2315.5,
+    "lastYearSeen": 2023
+  },
+  "A50": {
+    "games": 7221,
+    "whiteWins": 2876,
+    "blackWins": 2511,
+    "draws": 1834,
+    "avgElo": 2344.7,
+    "lastYearSeen": 2023
+  },
+  "A51": {
+    "games": 1876,
+    "whiteWins": 838,
+    "blackWins": 579,
+    "draws": 459,
+    "avgElo": 2251.8,
+    "lastYearSeen": 2023
+  },
+  "A52": {
+    "games": 7105,
+    "whiteWins": 3371,
+    "blackWins": 1796,
+    "draws": 1938,
+    "avgElo": 2278.2,
+    "lastYearSeen": 2023
+  },
+  "A53": {
+    "games": 7985,
+    "whiteWins": 3061,
+    "blackWins": 2457,
+    "draws": 2467,
+    "avgElo": 2321.5,
+    "lastYearSeen": 2023
+  },
+  "A55": {
+    "games": 8344,
+    "whiteWins": 3555,
+    "blackWins": 2032,
+    "draws": 2757,
+    "avgElo": 2333.9,
+    "lastYearSeen": 2023
+  },
+  "A56": {
+    "games": 12209,
+    "whiteWins": 5023,
+    "blackWins": 3729,
+    "draws": 3457,
+    "avgElo": 2316.9,
+    "lastYearSeen": 2023
+  },
+  "A57": {
+    "games": 20273,
+    "whiteWins": 8473,
+    "blackWins": 6524,
+    "draws": 5276,
+    "avgElo": 2306.2,
+    "lastYearSeen": 2023
+  },
+  "A58": {
+    "games": 8016,
+    "whiteWins": 3200,
+    "blackWins": 2523,
+    "draws": 2293,
+    "avgElo": 2316.3,
+    "lastYearSeen": 2023
+  },
+  "A59": {
+    "games": 5064,
+    "whiteWins": 2006,
+    "blackWins": 1446,
+    "draws": 1612,
+    "avgElo": 2307.7,
+    "lastYearSeen": 2023
+  },
+  "A60": {
+    "games": 4259,
+    "whiteWins": 1757,
+    "blackWins": 1457,
+    "draws": 1045,
+    "avgElo": 2342.5,
+    "lastYearSeen": 2023
+  },
+  "A61": {
+    "games": 6227,
+    "whiteWins": 2891,
+    "blackWins": 1752,
+    "draws": 1584,
+    "avgElo": 2356.1,
+    "lastYearSeen": 2023
+  },
+  "A62": {
+    "games": 4097,
+    "whiteWins": 1582,
+    "blackWins": 1399,
+    "draws": 1116,
+    "avgElo": 2368.7,
+    "lastYearSeen": 2023
+  },
+  "A63": {
+    "games": 1595,
+    "whiteWins": 537,
+    "blackWins": 530,
+    "draws": 528,
+    "avgElo": 2378.1,
+    "lastYearSeen": 2023
+  },
+  "A65": {
+    "games": 6297,
+    "whiteWins": 2735,
+    "blackWins": 2001,
+    "draws": 1561,
+    "avgElo": 2328.7,
+    "lastYearSeen": 2023
+  },
+  "A66": {
+    "games": 383,
+    "whiteWins": 182,
+    "blackWins": 134,
+    "draws": 67,
+    "avgElo": 2261.5,
+    "lastYearSeen": 2023
+  },
+  "A67": {
+    "games": 3397,
+    "whiteWins": 1699,
+    "blackWins": 985,
+    "draws": 713,
+    "avgElo": 2318.6,
+    "lastYearSeen": 2023
+  },
+  "A68": {
+    "games": 2477,
+    "whiteWins": 930,
+    "blackWins": 892,
+    "draws": 655,
+    "avgElo": 2290.8,
+    "lastYearSeen": 2023
+  },
+  "A70": {
+    "games": 7495,
+    "whiteWins": 3289,
+    "blackWins": 2028,
+    "draws": 2178,
+    "avgElo": 2342.4,
+    "lastYearSeen": 2023
+  },
+  "A71": {
+    "games": 639,
+    "whiteWins": 311,
+    "blackWins": 183,
+    "draws": 145,
+    "avgElo": 2345.6,
+    "lastYearSeen": 2023
+  },
+  "A72": {
+    "games": 590,
+    "whiteWins": 268,
+    "blackWins": 176,
+    "draws": 146,
+    "avgElo": 2346.6,
+    "lastYearSeen": 2023
+  },
+  "A73": {
+    "games": 1138,
+    "whiteWins": 437,
+    "blackWins": 347,
+    "draws": 354,
+    "avgElo": 2350.4,
+    "lastYearSeen": 2023
+  },
+  "A74": {
+    "games": 273,
+    "whiteWins": 152,
+    "blackWins": 57,
+    "draws": 64,
+    "avgElo": 2296.7,
+    "lastYearSeen": 2023
+  },
+  "A75": {
+    "games": 1124,
+    "whiteWins": 387,
+    "blackWins": 366,
+    "draws": 371,
+    "avgElo": 2367.5,
+    "lastYearSeen": 2023
+  },
+  "A76": {
+    "games": 221,
+    "whiteWins": 75,
+    "blackWins": 83,
+    "draws": 63,
+    "avgElo": 2277,
+    "lastYearSeen": 2023
+  },
+  "A77": {
+    "games": 2265,
+    "whiteWins": 1003,
+    "blackWins": 681,
+    "draws": 581,
+    "avgElo": 2360.6,
+    "lastYearSeen": 2023
+  },
+  "A78": {
+    "games": 528,
+    "whiteWins": 177,
+    "blackWins": 205,
+    "draws": 146,
+    "avgElo": 2326.2,
+    "lastYearSeen": 2023
+  },
+  "A79": {
+    "games": 656,
+    "whiteWins": 298,
+    "blackWins": 179,
+    "draws": 179,
+    "avgElo": 2377.4,
+    "lastYearSeen": 2023
+  },
+  "A80": {
+    "games": 15416,
+    "whiteWins": 6650,
+    "blackWins": 4664,
+    "draws": 4102,
+    "avgElo": 2301.1,
+    "lastYearSeen": 2023
+  },
+  "A81": {
+    "games": 10115,
+    "whiteWins": 4297,
+    "blackWins": 2553,
+    "draws": 3265,
+    "avgElo": 2337.1,
+    "lastYearSeen": 2023
+  },
+  "A82": {
+    "games": 865,
+    "whiteWins": 398,
+    "blackWins": 295,
+    "draws": 172,
+    "avgElo": 2238.4,
+    "lastYearSeen": 2023
+  },
+  "A83": {
+    "games": 2666,
+    "whiteWins": 1090,
+    "blackWins": 871,
+    "draws": 705,
+    "avgElo": 2256,
+    "lastYearSeen": 2023
+  },
+  "A84": {
+    "games": 4029,
+    "whiteWins": 1818,
+    "blackWins": 1136,
+    "draws": 1075,
+    "avgElo": 2278.7,
+    "lastYearSeen": 2023
+  },
+  "A85": {
+    "games": 6430,
+    "whiteWins": 2664,
+    "blackWins": 2057,
+    "draws": 1709,
+    "avgElo": 2303.4,
+    "lastYearSeen": 2023
+  },
+  "A86": {
+    "games": 3103,
+    "whiteWins": 1201,
+    "blackWins": 878,
+    "draws": 1024,
+    "avgElo": 2315.9,
+    "lastYearSeen": 2023
+  },
+  "A87": {
+    "games": 8155,
+    "whiteWins": 3113,
+    "blackWins": 2287,
+    "draws": 2755,
+    "avgElo": 2325.1,
+    "lastYearSeen": 2023
+  },
+  "A88": {
+    "games": 5443,
+    "whiteWins": 2002,
+    "blackWins": 1607,
+    "draws": 1834,
+    "avgElo": 2342.8,
+    "lastYearSeen": 2023
+  },
+  "A89": {
+    "games": 3808,
+    "whiteWins": 1460,
+    "blackWins": 1157,
+    "draws": 1191,
+    "avgElo": 2297.7,
+    "lastYearSeen": 2023
+  },
+  "A90": {
+    "games": 10736,
+    "whiteWins": 4278,
+    "blackWins": 2660,
+    "draws": 3798,
+    "avgElo": 2322,
+    "lastYearSeen": 2023
+  },
+  "A91": {
+    "games": 1018,
+    "whiteWins": 418,
+    "blackWins": 288,
+    "draws": 312,
+    "avgElo": 2290.3,
+    "lastYearSeen": 2023
+  },
+  "A92": {
+    "games": 1384,
+    "whiteWins": 618,
+    "blackWins": 298,
+    "draws": 468,
+    "avgElo": 2336.1,
+    "lastYearSeen": 2023
+  },
+  "A93": {
+    "games": 585,
+    "whiteWins": 283,
+    "blackWins": 115,
+    "draws": 187,
+    "avgElo": 2329.5,
+    "lastYearSeen": 2022
+  },
+  "A94": {
+    "games": 712,
+    "whiteWins": 340,
+    "blackWins": 113,
+    "draws": 259,
+    "avgElo": 2286.7,
+    "lastYearSeen": 2023
+  },
+  "A95": {
+    "games": 735,
+    "whiteWins": 286,
+    "blackWins": 202,
+    "draws": 247,
+    "avgElo": 2283.3,
+    "lastYearSeen": 2023
+  },
+  "A96": {
+    "games": 2745,
+    "whiteWins": 1256,
+    "blackWins": 699,
+    "draws": 790,
+    "avgElo": 2288.9,
+    "lastYearSeen": 2023
+  },
+  "A97": {
+    "games": 746,
+    "whiteWins": 334,
+    "blackWins": 166,
+    "draws": 246,
+    "avgElo": 2283.7,
+    "lastYearSeen": 2023
+  },
+  "A98": {
+    "games": 325,
+    "whiteWins": 142,
+    "blackWins": 91,
+    "draws": 92,
+    "avgElo": 2278.5,
+    "lastYearSeen": 2023
+  },
+  "A99": {
+    "games": 855,
+    "whiteWins": 413,
+    "blackWins": 174,
+    "draws": 268,
+    "avgElo": 2321.9,
+    "lastYearSeen": 2023
+  },
+  "B00": {
+    "games": 26163,
+    "whiteWins": 12258,
+    "blackWins": 8424,
+    "draws": 5481,
+    "avgElo": 2275.3,
+    "lastYearSeen": 2023
+  },
+  "B01": {
+    "games": 52193,
+    "whiteWins": 21778,
+    "blackWins": 15010,
+    "draws": 15405,
+    "avgElo": 2273.8,
+    "lastYearSeen": 2023
+  },
+  "B02": {
+    "games": 13219,
+    "whiteWins": 4595,
+    "blackWins": 4653,
+    "draws": 3971,
+    "avgElo": 2261.7,
+    "lastYearSeen": 2023
+  },
+  "B03": {
+    "games": 13721,
+    "whiteWins": 5492,
+    "blackWins": 4520,
+    "draws": 3709,
+    "avgElo": 2286.7,
+    "lastYearSeen": 2023
+  },
+  "B04": {
+    "games": 10873,
+    "whiteWins": 4334,
+    "blackWins": 3033,
+    "draws": 3506,
+    "avgElo": 2346.4,
+    "lastYearSeen": 2023
+  },
+  "B05": {
+    "games": 7467,
+    "whiteWins": 3138,
+    "blackWins": 1982,
+    "draws": 2347,
+    "avgElo": 2311.3,
+    "lastYearSeen": 2023
+  },
+  "B06": {
+    "games": 62456,
+    "whiteWins": 24290,
+    "blackWins": 22223,
+    "draws": 15943,
+    "avgElo": 2312.3,
+    "lastYearSeen": 2023
+  },
+  "B07": {
+    "games": 56716,
+    "whiteWins": 23244,
+    "blackWins": 17403,
+    "draws": 16069,
+    "avgElo": 2302.9,
+    "lastYearSeen": 2023
+  },
+  "B09": {
+    "games": 14978,
+    "whiteWins": 6031,
+    "blackWins": 4373,
+    "draws": 4574,
+    "avgElo": 2309.5,
+    "lastYearSeen": 2023
+  },
+  "B10": {
+    "games": 27978,
+    "whiteWins": 11474,
+    "blackWins": 8585,
+    "draws": 7919,
+    "avgElo": 2321.7,
+    "lastYearSeen": 2023
+  },
+  "B11": {
+    "games": 8714,
+    "whiteWins": 3188,
+    "blackWins": 2786,
+    "draws": 2740,
+    "avgElo": 2339.2,
+    "lastYearSeen": 2023
+  },
+  "B12": {
+    "games": 46542,
+    "whiteWins": 19257,
+    "blackWins": 14927,
+    "draws": 12358,
+    "avgElo": 2339.5,
+    "lastYearSeen": 2023
+  },
+  "B13": {
+    "games": 24701,
+    "whiteWins": 8364,
+    "blackWins": 8054,
+    "draws": 8283,
+    "avgElo": 2290.7,
+    "lastYearSeen": 2023
+  },
+  "B14": {
+    "games": 13968,
+    "whiteWins": 4833,
+    "blackWins": 4144,
+    "draws": 4991,
+    "avgElo": 2321.7,
+    "lastYearSeen": 2023
+  },
+  "B15": {
+    "games": 21562,
+    "whiteWins": 8096,
+    "blackWins": 7085,
+    "draws": 6381,
+    "avgElo": 2300,
+    "lastYearSeen": 2023
+  },
+  "B16": {
+    "games": 4777,
+    "whiteWins": 1990,
+    "blackWins": 1295,
+    "draws": 1492,
+    "avgElo": 2293.5,
+    "lastYearSeen": 2023
+  },
+  "B17": {
+    "games": 12441,
+    "whiteWins": 4376,
+    "blackWins": 3015,
+    "draws": 5050,
+    "avgElo": 2331.6,
+    "lastYearSeen": 2023
+  },
+  "B18": {
+    "games": 9993,
+    "whiteWins": 3301,
+    "blackWins": 2915,
+    "draws": 3777,
+    "avgElo": 2326.3,
+    "lastYearSeen": 2023
+  },
+  "B19": {
+    "games": 15521,
+    "whiteWins": 4877,
+    "blackWins": 3965,
+    "draws": 6679,
+    "avgElo": 2353.6,
+    "lastYearSeen": 2023
+  },
+  "B20": {
+    "games": 26409,
+    "whiteWins": 9781,
+    "blackWins": 9867,
+    "draws": 6761,
+    "avgElo": 2289.1,
+    "lastYearSeen": 2023
+  },
+  "B21": {
+    "games": 14178,
+    "whiteWins": 4905,
+    "blackWins": 5901,
+    "draws": 3372,
+    "avgElo": 2245.3,
+    "lastYearSeen": 2023
+  },
+  "B22": {
+    "games": 85478,
+    "whiteWins": 28738,
+    "blackWins": 27680,
+    "draws": 29060,
+    "avgElo": 2304.1,
+    "lastYearSeen": 2023
+  },
+  "B23": {
+    "games": 48723,
+    "whiteWins": 18710,
+    "blackWins": 18008,
+    "draws": 12005,
+    "avgElo": 2279.8,
+    "lastYearSeen": 2023
+  },
+  "B24": {
+    "games": 7402,
+    "whiteWins": 2437,
+    "blackWins": 2978,
+    "draws": 1987,
+    "avgElo": 2242.4,
+    "lastYearSeen": 2023
+  },
+  "B25": {
+    "games": 12509,
+    "whiteWins": 3563,
+    "blackWins": 4820,
+    "draws": 4126,
+    "avgElo": 2275.2,
+    "lastYearSeen": 2023
+  },
+  "B26": {
+    "games": 11001,
+    "whiteWins": 3430,
+    "blackWins": 4240,
+    "draws": 3331,
+    "avgElo": 2255.3,
+    "lastYearSeen": 2023
+  },
+  "B27": {
+    "games": 13808,
+    "whiteWins": 5516,
+    "blackWins": 4381,
+    "draws": 3911,
+    "avgElo": 2297,
+    "lastYearSeen": 2023
+  },
+  "B28": {
+    "games": 9130,
+    "whiteWins": 3475,
+    "blackWins": 3195,
+    "draws": 2460,
+    "avgElo": 2280.1,
+    "lastYearSeen": 2023
+  },
+  "B30": {
+    "games": 38304,
+    "whiteWins": 15331,
+    "blackWins": 11790,
+    "draws": 11183,
+    "avgElo": 2336.4,
+    "lastYearSeen": 2023
+  },
+  "B31": {
+    "games": 26546,
+    "whiteWins": 11342,
+    "blackWins": 7011,
+    "draws": 8193,
+    "avgElo": 2332.9,
+    "lastYearSeen": 2023
+  },
+  "B32": {
+    "games": 17199,
+    "whiteWins": 6379,
+    "blackWins": 5620,
+    "draws": 5200,
+    "avgElo": 2294.9,
+    "lastYearSeen": 2023
+  },
+  "B33": {
+    "games": 44236,
+    "whiteWins": 16168,
+    "blackWins": 13603,
+    "draws": 14465,
+    "avgElo": 2308.7,
+    "lastYearSeen": 2023
+  },
+  "B34": {
+    "games": 9087,
+    "whiteWins": 3190,
+    "blackWins": 3304,
+    "draws": 2593,
+    "avgElo": 2253,
+    "lastYearSeen": 2023
+  },
+  "B35": {
+    "games": 10631,
+    "whiteWins": 4126,
+    "blackWins": 3144,
+    "draws": 3361,
+    "avgElo": 2298.8,
+    "lastYearSeen": 2023
+  },
+  "B36": {
+    "games": 8097,
+    "whiteWins": 2861,
+    "blackWins": 1633,
+    "draws": 3603,
+    "avgElo": 2341.4,
+    "lastYearSeen": 2023
+  },
+  "B37": {
+    "games": 2699,
+    "whiteWins": 1249,
+    "blackWins": 633,
+    "draws": 817,
+    "avgElo": 2327.9,
+    "lastYearSeen": 2023
+  },
+  "B38": {
+    "games": 14227,
+    "whiteWins": 6048,
+    "blackWins": 3071,
+    "draws": 5108,
+    "avgElo": 2314.4,
+    "lastYearSeen": 2023
+  },
+  "B39": {
+    "games": 3698,
+    "whiteWins": 1655,
+    "blackWins": 778,
+    "draws": 1265,
+    "avgElo": 2306.3,
+    "lastYearSeen": 2023
+  },
+  "B40": {
+    "games": 31809,
+    "whiteWins": 12202,
+    "blackWins": 10860,
+    "draws": 8747,
+    "avgElo": 2314.3,
+    "lastYearSeen": 2023
+  },
+  "B41": {
+    "games": 11069,
+    "whiteWins": 3983,
+    "blackWins": 4006,
+    "draws": 3080,
+    "avgElo": 2315.1,
+    "lastYearSeen": 2023
+  },
+  "B42": {
+    "games": 23595,
+    "whiteWins": 8840,
+    "blackWins": 7425,
+    "draws": 7330,
+    "avgElo": 2346.6,
+    "lastYearSeen": 2023
+  },
+  "B43": {
+    "games": 20531,
+    "whiteWins": 6953,
+    "blackWins": 7921,
+    "draws": 5657,
+    "avgElo": 2330.2,
+    "lastYearSeen": 2023
+  },
+  "B45": {
+    "games": 11788,
+    "whiteWins": 4574,
+    "blackWins": 3280,
+    "draws": 3934,
+    "avgElo": 2322.7,
+    "lastYearSeen": 2023
+  },
+  "B46": {
+    "games": 6215,
+    "whiteWins": 2365,
+    "blackWins": 1825,
+    "draws": 2025,
+    "avgElo": 2389.8,
+    "lastYearSeen": 2023
+  },
+  "B47": {
+    "games": 15398,
+    "whiteWins": 5429,
+    "blackWins": 4776,
+    "draws": 5193,
+    "avgElo": 2354,
+    "lastYearSeen": 2023
+  },
+  "B48": {
+    "games": 14877,
+    "whiteWins": 5616,
+    "blackWins": 4792,
+    "draws": 4469,
+    "avgElo": 2370.2,
+    "lastYearSeen": 2023
+  },
+  "B49": {
+    "games": 6531,
+    "whiteWins": 2178,
+    "blackWins": 2094,
+    "draws": 2259,
+    "avgElo": 2329.8,
+    "lastYearSeen": 2023
+  },
+  "B50": {
+    "games": 24727,
+    "whiteWins": 9551,
+    "blackWins": 8071,
+    "draws": 7105,
+    "avgElo": 2315.7,
+    "lastYearSeen": 2023
+  },
+  "C00": {
+    "games": 30334,
+    "whiteWins": 12404,
+    "blackWins": 10153,
+    "draws": 7777,
+    "avgElo": 2269.5,
+    "lastYearSeen": 2023
+  },
+  "C01": {
+    "games": 26985,
+    "whiteWins": 7593,
+    "blackWins": 8129,
+    "draws": 11263,
+    "avgElo": 2292.6,
+    "lastYearSeen": 2023
+  },
+  "C02": {
+    "games": 34284,
+    "whiteWins": 13410,
+    "blackWins": 11821,
+    "draws": 9053,
+    "avgElo": 2289.4,
+    "lastYearSeen": 2023
+  },
+  "C03": {
+    "games": 10095,
+    "whiteWins": 3793,
+    "blackWins": 3095,
+    "draws": 3207,
+    "avgElo": 2329.9,
+    "lastYearSeen": 2023
+  },
+  "C04": {
+    "games": 4790,
+    "whiteWins": 2041,
+    "blackWins": 1396,
+    "draws": 1353,
+    "avgElo": 2317.9,
+    "lastYearSeen": 2023
+  },
+  "C05": {
+    "games": 16016,
+    "whiteWins": 7296,
+    "blackWins": 4581,
+    "draws": 4139,
+    "avgElo": 2299.7,
+    "lastYearSeen": 2023
+  },
+  "C07": {
+    "games": 15300,
+    "whiteWins": 5325,
+    "blackWins": 3960,
+    "draws": 6015,
+    "avgElo": 2357.3,
+    "lastYearSeen": 2023
+  },
+  "C08": {
+    "games": 5195,
+    "whiteWins": 1572,
+    "blackWins": 1216,
+    "draws": 2407,
+    "avgElo": 2365.1,
+    "lastYearSeen": 2023
+  },
+  "C09": {
+    "games": 5806,
+    "whiteWins": 1883,
+    "blackWins": 1162,
+    "draws": 2761,
+    "avgElo": 2366.6,
+    "lastYearSeen": 2023
+  },
+  "C10": {
+    "games": 19793,
+    "whiteWins": 8301,
+    "blackWins": 4273,
+    "draws": 7219,
+    "avgElo": 2322.2,
+    "lastYearSeen": 2023
+  },
+  "C11": {
+    "games": 30999,
+    "whiteWins": 11906,
+    "blackWins": 8867,
+    "draws": 10226,
+    "avgElo": 2341.1,
+    "lastYearSeen": 2023
+  },
+  "C13": {
+    "games": 3719,
+    "whiteWins": 1654,
+    "blackWins": 1125,
+    "draws": 940,
+    "avgElo": 2273.8,
+    "lastYearSeen": 2023
+  },
+  "C14": {
+    "games": 4090,
+    "whiteWins": 1718,
+    "blackWins": 1091,
+    "draws": 1281,
+    "avgElo": 2297.2,
+    "lastYearSeen": 2023
+  },
+  "C15": {
+    "games": 9625,
+    "whiteWins": 3739,
+    "blackWins": 2988,
+    "draws": 2898,
+    "avgElo": 2301.1,
+    "lastYearSeen": 2023
+  },
+  "C16": {
+    "games": 7744,
+    "whiteWins": 3190,
+    "blackWins": 2321,
+    "draws": 2233,
+    "avgElo": 2342.4,
+    "lastYearSeen": 2023
+  },
+  "C17": {
+    "games": 7563,
+    "whiteWins": 3136,
+    "blackWins": 2165,
+    "draws": 2262,
+    "avgElo": 2310.6,
+    "lastYearSeen": 2023
+  },
+  "C18": {
+    "games": 16466,
+    "whiteWins": 7100,
+    "blackWins": 4787,
+    "draws": 4579,
+    "avgElo": 2335.7,
+    "lastYearSeen": 2023
+  },
+  "C19": {
+    "games": 6516,
+    "whiteWins": 2586,
+    "blackWins": 1959,
+    "draws": 1971,
+    "avgElo": 2332,
+    "lastYearSeen": 2023
+  },
+  "C20": {
+    "games": 1089,
+    "whiteWins": 367,
+    "blackWins": 458,
+    "draws": 264,
+    "avgElo": 2251.3,
+    "lastYearSeen": 2023
+  },
+  "C21": {
+    "games": 1481,
+    "whiteWins": 563,
+    "blackWins": 505,
+    "draws": 413,
+    "avgElo": 2231.9,
+    "lastYearSeen": 2023
+  },
+  "C22": {
+    "games": 2633,
+    "whiteWins": 1078,
+    "blackWins": 971,
+    "draws": 584,
+    "avgElo": 2257.1,
+    "lastYearSeen": 2023
+  },
+  "C23": {
+    "games": 738,
+    "whiteWins": 346,
+    "blackWins": 242,
+    "draws": 150,
+    "avgElo": 2225.8,
+    "lastYearSeen": 2023
+  },
+  "C24": {
+    "games": 5522,
+    "whiteWins": 2222,
+    "blackWins": 1566,
+    "draws": 1734,
+    "avgElo": 2325.7,
+    "lastYearSeen": 2023
+  },
+  "C25": {
+    "games": 3852,
+    "whiteWins": 1594,
+    "blackWins": 1230,
+    "draws": 1028,
+    "avgElo": 2272.5,
+    "lastYearSeen": 2023
+  },
+  "C26": {
+    "games": 7203,
+    "whiteWins": 2975,
+    "blackWins": 2102,
+    "draws": 2126,
+    "avgElo": 2299.2,
+    "lastYearSeen": 2023
+  },
+  "C27": {
+    "games": 1007,
+    "whiteWins": 366,
+    "blackWins": 336,
+    "draws": 305,
+    "avgElo": 2283.7,
+    "lastYearSeen": 2023
+  },
+  "C28": {
+    "games": 6141,
+    "whiteWins": 2266,
+    "blackWins": 1936,
+    "draws": 1939,
+    "avgElo": 2304,
+    "lastYearSeen": 2023
+  },
+  "C29": {
+    "games": 3401,
+    "whiteWins": 1293,
+    "blackWins": 1188,
+    "draws": 920,
+    "avgElo": 2260,
+    "lastYearSeen": 2023
+  },
+  "C30": {
+    "games": 2216,
+    "whiteWins": 968,
+    "blackWins": 746,
+    "draws": 502,
+    "avgElo": 2236.5,
+    "lastYearSeen": 2023
+  },
+  "C31": {
+    "games": 1059,
+    "whiteWins": 421,
+    "blackWins": 398,
+    "draws": 240,
+    "avgElo": 2249.9,
+    "lastYearSeen": 2023
+  },
+  "C32": {
+    "games": 545,
+    "whiteWins": 241,
+    "blackWins": 158,
+    "draws": 146,
+    "avgElo": 2259.2,
+    "lastYearSeen": 2023
+  },
+  "C33": {
+    "games": 1960,
+    "whiteWins": 721,
+    "blackWins": 748,
+    "draws": 491,
+    "avgElo": 2303.6,
+    "lastYearSeen": 2023
+  },
+  "C34": {
+    "games": 1872,
+    "whiteWins": 719,
+    "blackWins": 787,
+    "draws": 366,
+    "avgElo": 2283.1,
+    "lastYearSeen": 2023
+  },
+  "C35": {
+    "games": 509,
+    "whiteWins": 187,
+    "blackWins": 189,
+    "draws": 133,
+    "avgElo": 2272.2,
+    "lastYearSeen": 2023
+  },
+  "C36": {
+    "games": 1882,
+    "whiteWins": 709,
+    "blackWins": 656,
+    "draws": 517,
+    "avgElo": 2284,
+    "lastYearSeen": 2023
+  },
+  "C37": {
+    "games": 332,
+    "whiteWins": 155,
+    "blackWins": 125,
+    "draws": 52,
+    "avgElo": 2284.3,
+    "lastYearSeen": 2023
+  },
+  "C38": {
+    "games": 372,
+    "whiteWins": 99,
+    "blackWins": 214,
+    "draws": 59,
+    "avgElo": 2276.5,
+    "lastYearSeen": 2023
+  },
+  "C39": {
+    "games": 626,
+    "whiteWins": 219,
+    "blackWins": 257,
+    "draws": 150,
+    "avgElo": 2301.5,
+    "lastYearSeen": 2023
+  },
+  "C40": {
+    "games": 3040,
+    "whiteWins": 1528,
+    "blackWins": 963,
+    "draws": 549,
+    "avgElo": 2237.7,
+    "lastYearSeen": 2023
+  },
+  "C41": {
+    "games": 30813,
+    "whiteWins": 12794,
+    "blackWins": 8804,
+    "draws": 9215,
+    "avgElo": 2319.7,
+    "lastYearSeen": 2023
+  },
+  "C42": {
+    "games": 27101,
+    "whiteWins": 9525,
+    "blackWins": 5362,
+    "draws": 12214,
+    "avgElo": 2359.8,
+    "lastYearSeen": 2023
+  },
+  "C43": {
+    "games": 6798,
+    "whiteWins": 2811,
+    "blackWins": 1294,
+    "draws": 2693,
+    "avgElo": 2371.7,
+    "lastYearSeen": 2023
+  },
+  "C44": {
+    "games": 11375,
+    "whiteWins": 4429,
+    "blackWins": 3879,
+    "draws": 3067,
+    "avgElo": 2264.5,
+    "lastYearSeen": 2023
+  },
+  "C45": {
+    "games": 26232,
+    "whiteWins": 9715,
+    "blackWins": 8062,
+    "draws": 8455,
+    "avgElo": 2322.2,
+    "lastYearSeen": 2023
+  },
+  "C46": {
+    "games": 4132,
+    "whiteWins": 1828,
+    "blackWins": 1329,
+    "draws": 975,
+    "avgElo": 2297.1,
+    "lastYearSeen": 2023
+  },
+  "C47": {
+    "games": 19897,
+    "whiteWins": 6169,
+    "blackWins": 5519,
+    "draws": 8209,
+    "avgElo": 2331.1,
+    "lastYearSeen": 2023
+  },
+  "C48": {
+    "games": 6860,
+    "whiteWins": 2416,
+    "blackWins": 1821,
+    "draws": 2623,
+    "avgElo": 2352.4,
+    "lastYearSeen": 2023
+  },
+  "C49": {
+    "games": 4797,
+    "whiteWins": 1609,
+    "blackWins": 1180,
+    "draws": 2008,
+    "avgElo": 2350.5,
+    "lastYearSeen": 2023
+  },
+  "C50": {
+    "games": 16827,
+    "whiteWins": 6421,
+    "blackWins": 5387,
+    "draws": 5019,
+    "avgElo": 2312,
+    "lastYearSeen": 2023
+  },
+  "C52": {
+    "games": 1238,
+    "whiteWins": 450,
+    "blackWins": 517,
+    "draws": 271,
+    "avgElo": 2285.8,
+    "lastYearSeen": 2023
+  },
+  "C53": {
+    "games": 3803,
+    "whiteWins": 1591,
+    "blackWins": 1218,
+    "draws": 994,
+    "avgElo": 2256.3,
+    "lastYearSeen": 2023
+  },
+  "C54": {
+    "games": 22472,
+    "whiteWins": 7761,
+    "blackWins": 6722,
+    "draws": 7989,
+    "avgElo": 2367.3,
+    "lastYearSeen": 2023
+  },
+  "C55": {
+    "games": 20948,
+    "whiteWins": 8078,
+    "blackWins": 6696,
+    "draws": 6174,
+    "avgElo": 2312.2,
+    "lastYearSeen": 2023
+  },
+  "C56": {
+    "games": 2464,
+    "whiteWins": 695,
+    "blackWins": 924,
+    "draws": 845,
+    "avgElo": 2254.6,
+    "lastYearSeen": 2023
+  },
+  "C57": {
+    "games": 1411,
+    "whiteWins": 592,
+    "blackWins": 555,
+    "draws": 264,
+    "avgElo": 2240.9,
+    "lastYearSeen": 2023
+  },
+  "C58": {
+    "games": 2604,
+    "whiteWins": 1130,
+    "blackWins": 911,
+    "draws": 563,
+    "avgElo": 2305.8,
+    "lastYearSeen": 2023
+  },
+  "C59": {
+    "games": 1126,
+    "whiteWins": 430,
+    "blackWins": 397,
+    "draws": 299,
+    "avgElo": 2316.1,
+    "lastYearSeen": 2023
+  },
+  "C60": {
+    "games": 7723,
+    "whiteWins": 2922,
+    "blackWins": 2405,
+    "draws": 2396,
+    "avgElo": 2333.8,
+    "lastYearSeen": 2023
+  },
+  "C61": {
+    "games": 2130,
+    "whiteWins": 986,
+    "blackWins": 540,
+    "draws": 604,
+    "avgElo": 2302.2,
+    "lastYearSeen": 2023
+  },
+  "C62": {
+    "games": 1946,
+    "whiteWins": 903,
+    "blackWins": 456,
+    "draws": 587,
+    "avgElo": 2261.7,
+    "lastYearSeen": 2023
+  },
+  "C63": {
+    "games": 7970,
+    "whiteWins": 3329,
+    "blackWins": 2332,
+    "draws": 2309,
+    "avgElo": 2298.2,
+    "lastYearSeen": 2023
+  },
+  "C64": {
+    "games": 3458,
+    "whiteWins": 1424,
+    "blackWins": 908,
+    "draws": 1126,
+    "avgElo": 2295,
+    "lastYearSeen": 2023
+  },
+  "C65": {
+    "games": 13178,
+    "whiteWins": 5044,
+    "blackWins": 3277,
+    "draws": 4857,
+    "avgElo": 2429.7,
+    "lastYearSeen": 2023
+  },
+  "C66": {
+    "games": 1425,
+    "whiteWins": 617,
+    "blackWins": 299,
+    "draws": 509,
+    "avgElo": 2299.4,
+    "lastYearSeen": 2023
+  },
+  "C67": {
+    "games": 13664,
+    "whiteWins": 3574,
+    "blackWins": 2767,
+    "draws": 7323,
+    "avgElo": 2461.6,
+    "lastYearSeen": 2023
+  },
+  "C68": {
+    "games": 10984,
+    "whiteWins": 3291,
+    "blackWins": 2932,
+    "draws": 4761,
+    "avgElo": 2338.3,
+    "lastYearSeen": 2023
+  },
+  "C69": {
+    "games": 4990,
+    "whiteWins": 1642,
+    "blackWins": 1173,
+    "draws": 2175,
+    "avgElo": 2343,
+    "lastYearSeen": 2023
+  },
+  "C70": {
+    "games": 5141,
+    "whiteWins": 1945,
+    "blackWins": 1842,
+    "draws": 1354,
+    "avgElo": 2364.1,
+    "lastYearSeen": 2023
+  },
+  "C71": {
+    "games": 1307,
+    "whiteWins": 413,
+    "blackWins": 433,
+    "draws": 461,
+    "avgElo": 2311.7,
+    "lastYearSeen": 2023
+  },
+  "C72": {
+    "games": 2313,
+    "whiteWins": 960,
+    "blackWins": 633,
+    "draws": 720,
+    "avgElo": 2391.9,
+    "lastYearSeen": 2023
+  },
+  "C74": {
+    "games": 1038,
+    "whiteWins": 401,
+    "blackWins": 318,
+    "draws": 319,
+    "avgElo": 2323.2,
+    "lastYearSeen": 2023
+  },
+  "C75": {
+    "games": 2085,
+    "whiteWins": 785,
+    "blackWins": 564,
+    "draws": 736,
+    "avgElo": 2360.5,
+    "lastYearSeen": 2023
+  },
+  "C76": {
+    "games": 2676,
+    "whiteWins": 916,
+    "blackWins": 755,
+    "draws": 1005,
+    "avgElo": 2405.6,
+    "lastYearSeen": 2023
+  },
+  "C77": {
+    "games": 13512,
+    "whiteWins": 5317,
+    "blackWins": 3970,
+    "draws": 4225,
+    "avgElo": 2339.9,
+    "lastYearSeen": 2023
+  },
+  "C78": {
+    "games": 13165,
+    "whiteWins": 4972,
+    "blackWins": 3756,
+    "draws": 4437,
+    "avgElo": 2377.9,
+    "lastYearSeen": 2023
+  },
+  "C79": {
+    "games": 926,
+    "whiteWins": 376,
+    "blackWins": 256,
+    "draws": 294,
+    "avgElo": 2350.9,
+    "lastYearSeen": 2023
+  },
+  "C80": {
+    "games": 3896,
+    "whiteWins": 1407,
+    "blackWins": 963,
+    "draws": 1526,
+    "avgElo": 2358.6,
+    "lastYearSeen": 2023
+  },
+  "C81": {
+    "games": 1121,
+    "whiteWins": 424,
+    "blackWins": 218,
+    "draws": 479,
+    "avgElo": 2382.3,
+    "lastYearSeen": 2023
+  },
+  "C82": {
+    "games": 2457,
+    "whiteWins": 883,
+    "blackWins": 680,
+    "draws": 894,
+    "avgElo": 2367.2,
+    "lastYearSeen": 2023
+  },
+  "C83": {
+    "games": 2464,
+    "whiteWins": 897,
+    "blackWins": 508,
+    "draws": 1059,
+    "avgElo": 2424.4,
+    "lastYearSeen": 2023
+  },
+  "C86": {
+    "games": 3250,
+    "whiteWins": 1308,
+    "blackWins": 906,
+    "draws": 1036,
+    "avgElo": 2325.2,
+    "lastYearSeen": 2023
+  },
+  "C87": {
+    "games": 1693,
+    "whiteWins": 659,
+    "blackWins": 337,
+    "draws": 697,
+    "avgElo": 2389.7,
+    "lastYearSeen": 2023
+  },
+  "C88": {
+    "games": 10362,
+    "whiteWins": 4094,
+    "blackWins": 2587,
+    "draws": 3681,
+    "avgElo": 2386,
+    "lastYearSeen": 2023
+  },
+  "C89": {
+    "games": 3233,
+    "whiteWins": 1041,
+    "blackWins": 911,
+    "draws": 1281,
+    "avgElo": 2377.2,
+    "lastYearSeen": 2023
+  },
+  "D00": {
+    "games": 40924,
+    "whiteWins": 15983,
+    "blackWins": 13808,
+    "draws": 11133,
+    "avgElo": 2299,
+    "lastYearSeen": 2023
+  },
+  "D01": {
+    "games": 7843,
+    "whiteWins": 2528,
+    "blackWins": 2980,
+    "draws": 2335,
+    "avgElo": 2279,
+    "lastYearSeen": 2023
+  },
+  "D02": {
+    "games": 49147,
+    "whiteWins": 17663,
+    "blackWins": 15145,
+    "draws": 16339,
+    "avgElo": 2303.7,
+    "lastYearSeen": 2023
+  },
+  "D03": {
+    "games": 12760,
+    "whiteWins": 4620,
+    "blackWins": 3591,
+    "draws": 4549,
+    "avgElo": 2304.5,
+    "lastYearSeen": 2023
+  },
+  "D05": {
+    "games": 7560,
+    "whiteWins": 2887,
+    "blackWins": 2219,
+    "draws": 2454,
+    "avgElo": 2264.1,
+    "lastYearSeen": 2023
+  },
+  "D06": {
+    "games": 4822,
+    "whiteWins": 2380,
+    "blackWins": 1082,
+    "draws": 1360,
+    "avgElo": 2285.1,
+    "lastYearSeen": 2023
+  },
+  "D07": {
+    "games": 8701,
+    "whiteWins": 3915,
+    "blackWins": 2309,
+    "draws": 2477,
+    "avgElo": 2303.8,
+    "lastYearSeen": 2023
+  },
+  "D08": {
+    "games": 2043,
+    "whiteWins": 980,
+    "blackWins": 622,
+    "draws": 441,
+    "avgElo": 2269.4,
+    "lastYearSeen": 2023
+  },
+  "D09": {
+    "games": 1472,
+    "whiteWins": 720,
+    "blackWins": 434,
+    "draws": 318,
+    "avgElo": 2278.7,
+    "lastYearSeen": 2023
+  },
+  "D10": {
+    "games": 17743,
+    "whiteWins": 6736,
+    "blackWins": 4623,
+    "draws": 6384,
+    "avgElo": 2349.4,
+    "lastYearSeen": 2023
+  },
+  "D12": {
+    "games": 12185,
+    "whiteWins": 4221,
+    "blackWins": 3036,
+    "draws": 4928,
+    "avgElo": 2392.9,
+    "lastYearSeen": 2023
+  },
+  "D13": {
+    "games": 11760,
+    "whiteWins": 3051,
+    "blackWins": 2631,
+    "draws": 6078,
+    "avgElo": 2330.5,
+    "lastYearSeen": 2023
+  },
+  "D14": {
+    "games": 7823,
+    "whiteWins": 1108,
+    "blackWins": 932,
+    "draws": 5783,
+    "avgElo": 2381,
+    "lastYearSeen": 2023
+  },
+  "D15": {
+    "games": 18558,
+    "whiteWins": 7520,
+    "blackWins": 4392,
+    "draws": 6646,
+    "avgElo": 2380.9,
+    "lastYearSeen": 2023
+  },
+  "D16": {
+    "games": 4512,
+    "whiteWins": 1754,
+    "blackWins": 1087,
+    "draws": 1671,
+    "avgElo": 2390.3,
+    "lastYearSeen": 2023
+  },
+  "D17": {
+    "games": 9160,
+    "whiteWins": 3791,
+    "blackWins": 2098,
+    "draws": 3271,
+    "avgElo": 2401.6,
+    "lastYearSeen": 2023
+  },
+  "D18": {
+    "games": 5544,
+    "whiteWins": 1958,
+    "blackWins": 1379,
+    "draws": 2207,
+    "avgElo": 2354.9,
+    "lastYearSeen": 2023
+  },
+  "D19": {
+    "games": 4140,
+    "whiteWins": 1350,
+    "blackWins": 1069,
+    "draws": 1721,
+    "avgElo": 2359.4,
+    "lastYearSeen": 2023
+  },
+  "D20": {
+    "games": 11559,
+    "whiteWins": 4394,
+    "blackWins": 3088,
+    "draws": 4077,
+    "avgElo": 2374.9,
+    "lastYearSeen": 2023
+  },
+  "D21": {
+    "games": 2163,
+    "whiteWins": 704,
+    "blackWins": 581,
+    "draws": 878,
+    "avgElo": 2374.4,
+    "lastYearSeen": 2023
+  },
+  "D22": {
+    "games": 1240,
+    "whiteWins": 404,
+    "blackWins": 275,
+    "draws": 561,
+    "avgElo": 2405.5,
+    "lastYearSeen": 2023
+  },
+  "D23": {
+    "games": 5999,
+    "whiteWins": 2118,
+    "blackWins": 1496,
+    "draws": 2385,
+    "avgElo": 2383.9,
+    "lastYearSeen": 2023
+  },
+  "D24": {
+    "games": 5045,
+    "whiteWins": 1772,
+    "blackWins": 1588,
+    "draws": 1685,
+    "avgElo": 2382.2,
+    "lastYearSeen": 2023
+  },
+  "D25": {
+    "games": 5062,
+    "whiteWins": 1898,
+    "blackWins": 1272,
+    "draws": 1892,
+    "avgElo": 2357.1,
+    "lastYearSeen": 2023
+  },
+  "D26": {
+    "games": 4914,
+    "whiteWins": 1905,
+    "blackWins": 1029,
+    "draws": 1980,
+    "avgElo": 2381.3,
+    "lastYearSeen": 2023
+  },
+  "D27": {
+    "games": 13296,
+    "whiteWins": 4229,
+    "blackWins": 2675,
+    "draws": 6392,
+    "avgElo": 2400.5,
+    "lastYearSeen": 2023
+  },
+  "D28": {
+    "games": 1304,
+    "whiteWins": 519,
+    "blackWins": 328,
+    "draws": 457,
+    "avgElo": 2370.2,
+    "lastYearSeen": 2023
+  },
+  "D29": {
+    "games": 1792,
+    "whiteWins": 544,
+    "blackWins": 573,
+    "draws": 675,
+    "avgElo": 2371.7,
+    "lastYearSeen": 2023
+  },
+  "D30": {
+    "games": 29113,
+    "whiteWins": 12204,
+    "blackWins": 6925,
+    "draws": 9984,
+    "avgElo": 2351.2,
+    "lastYearSeen": 2023
+  },
+  "D32": {
+    "games": 6428,
+    "whiteWins": 2525,
+    "blackWins": 1748,
+    "draws": 2155,
+    "avgElo": 2324.9,
+    "lastYearSeen": 2023
+  },
+  "D33": {
+    "games": 2274,
+    "whiteWins": 982,
+    "blackWins": 533,
+    "draws": 759,
+    "avgElo": 2321.7,
+    "lastYearSeen": 2023
+  },
+  "D34": {
+    "games": 11343,
+    "whiteWins": 4780,
+    "blackWins": 2182,
+    "draws": 4381,
+    "avgElo": 2332,
+    "lastYearSeen": 2023
+  },
+  "D35": {
+    "games": 21035,
+    "whiteWins": 8473,
+    "blackWins": 5275,
+    "draws": 7287,
+    "avgElo": 2326.4,
+    "lastYearSeen": 2023
+  },
+  "D37": {
+    "games": 22573,
+    "whiteWins": 9220,
+    "blackWins": 5059,
+    "draws": 8294,
+    "avgElo": 2385.5,
+    "lastYearSeen": 2023
+  },
+  "D38": {
+    "games": 15383,
+    "whiteWins": 5378,
+    "blackWins": 3956,
+    "draws": 6049,
+    "avgElo": 2425.6,
+    "lastYearSeen": 2023
+  },
+  "D39": {
+    "games": 2736,
+    "whiteWins": 808,
+    "blackWins": 695,
+    "draws": 1233,
+    "avgElo": 2473.6,
+    "lastYearSeen": 2023
+  },
+  "D40": {
+    "games": 5857,
+    "whiteWins": 1920,
+    "blackWins": 1586,
+    "draws": 2351,
+    "avgElo": 2352.1,
+    "lastYearSeen": 2023
+  },
+  "D41": {
+    "games": 7913,
+    "whiteWins": 2713,
+    "blackWins": 1529,
+    "draws": 3671,
+    "avgElo": 2419.2,
+    "lastYearSeen": 2023
+  },
+  "D42": {
+    "games": 4211,
+    "whiteWins": 1747,
+    "blackWins": 822,
+    "draws": 1642,
+    "avgElo": 2363.4,
+    "lastYearSeen": 2023
+  },
+  "D43": {
+    "games": 14367,
+    "whiteWins": 5565,
+    "blackWins": 3792,
+    "draws": 5010,
+    "avgElo": 2382.5,
+    "lastYearSeen": 2023
+  },
+  "D45": {
+    "games": 20549,
+    "whiteWins": 7918,
+    "blackWins": 5149,
+    "draws": 7482,
+    "avgElo": 2367.7,
+    "lastYearSeen": 2023
+  },
+  "D46": {
+    "games": 13372,
+    "whiteWins": 5734,
+    "blackWins": 2552,
+    "draws": 5086,
+    "avgElo": 2362.9,
+    "lastYearSeen": 2023
+  },
+  "D47": {
+    "games": 6565,
+    "whiteWins": 2249,
+    "blackWins": 1644,
+    "draws": 2672,
+    "avgElo": 2393,
+    "lastYearSeen": 2023
+  },
+  "D48": {
+    "games": 3899,
+    "whiteWins": 1406,
+    "blackWins": 1180,
+    "draws": 1313,
+    "avgElo": 2353.7,
+    "lastYearSeen": 2023
+  },
+  "D49": {
+    "games": 1015,
+    "whiteWins": 388,
+    "blackWins": 244,
+    "draws": 383,
+    "avgElo": 2392.9,
+    "lastYearSeen": 2023
+  },
+  "D50": {
+    "games": 1479,
+    "whiteWins": 602,
+    "blackWins": 406,
+    "draws": 471,
+    "avgElo": 2300.7,
+    "lastYearSeen": 2023
+  },
+  "D51": {
+    "games": 1580,
+    "whiteWins": 658,
+    "blackWins": 407,
+    "draws": 515,
+    "avgElo": 2344.6,
+    "lastYearSeen": 2023
+  },
+  "D52": {
+    "games": 5436,
+    "whiteWins": 2138,
+    "blackWins": 1378,
+    "draws": 1920,
+    "avgElo": 2330.6,
+    "lastYearSeen": 2023
+  },
+  "D54": {
+    "games": 420,
+    "whiteWins": 183,
+    "blackWins": 57,
+    "draws": 180,
+    "avgElo": 2445.6,
+    "lastYearSeen": 2023
+  },
+  "D55": {
+    "games": 5100,
+    "whiteWins": 1912,
+    "blackWins": 981,
+    "draws": 2207,
+    "avgElo": 2342.6,
+    "lastYearSeen": 2023
+  },
+  "D56": {
+    "games": 2535,
+    "whiteWins": 690,
+    "blackWins": 378,
+    "draws": 1467,
+    "avgElo": 2391.8,
+    "lastYearSeen": 2023
+  },
+  "D57": {
+    "games": 481,
+    "whiteWins": 151,
+    "blackWins": 75,
+    "draws": 255,
+    "avgElo": 2365.9,
+    "lastYearSeen": 2023
+  },
+  "D58": {
+    "games": 6705,
+    "whiteWins": 2169,
+    "blackWins": 1256,
+    "draws": 3280,
+    "avgElo": 2386.9,
+    "lastYearSeen": 2023
+  },
+  "D59": {
+    "games": 1901,
+    "whiteWins": 390,
+    "blackWins": 455,
+    "draws": 1056,
+    "avgElo": 2336,
+    "lastYearSeen": 2023
+  },
+  "D60": {
+    "games": 2347,
+    "whiteWins": 891,
+    "blackWins": 513,
+    "draws": 943,
+    "avgElo": 2296.8,
+    "lastYearSeen": 2023
+  },
+  "D61": {
+    "games": 3305,
+    "whiteWins": 1533,
+    "blackWins": 599,
+    "draws": 1173,
+    "avgElo": 2324.6,
+    "lastYearSeen": 2023
+  },
+  "D62": {
+    "games": 431,
+    "whiteWins": 124,
+    "blackWins": 62,
+    "draws": 245,
+    "avgElo": 2396.3,
+    "lastYearSeen": 2023
+  },
+  "D63": {
+    "games": 2706,
+    "whiteWins": 1053,
+    "blackWins": 495,
+    "draws": 1158,
+    "avgElo": 2358.9,
+    "lastYearSeen": 2023
+  },
+  "D64": {
+    "games": 598,
+    "whiteWins": 266,
+    "blackWins": 99,
+    "draws": 233,
+    "avgElo": 2320.6,
+    "lastYearSeen": 2023
+  },
+  "D65": {
+    "games": 452,
+    "whiteWins": 130,
+    "blackWins": 84,
+    "draws": 238,
+    "avgElo": 2390.4,
+    "lastYearSeen": 2022
+  },
+  "D66": {
+    "games": 1584,
+    "whiteWins": 676,
+    "blackWins": 272,
+    "draws": 636,
+    "avgElo": 2303.2,
+    "lastYearSeen": 2023
+  },
+  "D67": {
+    "games": 739,
+    "whiteWins": 276,
+    "blackWins": 73,
+    "draws": 390,
+    "avgElo": 2349.6,
+    "lastYearSeen": 2023
+  },
+  "D68": {
+    "games": 445,
+    "whiteWins": 161,
+    "blackWins": 50,
+    "draws": 234,
+    "avgElo": 2333.9,
+    "lastYearSeen": 2023
+  },
+  "D69": {
+    "games": 345,
+    "whiteWins": 70,
+    "blackWins": 36,
+    "draws": 239,
+    "avgElo": 2306.2,
+    "lastYearSeen": 2023
+  },
+  "D70": {
+    "games": 2429,
+    "whiteWins": 1116,
+    "blackWins": 585,
+    "draws": 728,
+    "avgElo": 2373.9,
+    "lastYearSeen": 2023
+  },
+  "D74": {
+    "games": 1208,
+    "whiteWins": 550,
+    "blackWins": 265,
+    "draws": 393,
+    "avgElo": 2307.9,
+    "lastYearSeen": 2023
+  },
+  "D75": {
+    "games": 821,
+    "whiteWins": 285,
+    "blackWins": 167,
+    "draws": 369,
+    "avgElo": 2355.8,
+    "lastYearSeen": 2023
+  },
+  "D76": {
+    "games": 5911,
+    "whiteWins": 2029,
+    "blackWins": 1485,
+    "draws": 2397,
+    "avgElo": 2388.4,
+    "lastYearSeen": 2023
+  },
+  "D77": {
+    "games": 5085,
+    "whiteWins": 1743,
+    "blackWins": 1409,
+    "draws": 1933,
+    "avgElo": 2370.4,
+    "lastYearSeen": 2023
+  },
+  "D78": {
+    "games": 7439,
+    "whiteWins": 2900,
+    "blackWins": 1699,
+    "draws": 2840,
+    "avgElo": 2368.1,
+    "lastYearSeen": 2023
+  },
+  "D79": {
+    "games": 6268,
+    "whiteWins": 1694,
+    "blackWins": 1142,
+    "draws": 3432,
+    "avgElo": 2368,
+    "lastYearSeen": 2023
+  },
+  "D80": {
+    "games": 5006,
+    "whiteWins": 1831,
+    "blackWins": 1445,
+    "draws": 1730,
+    "avgElo": 2374.8,
+    "lastYearSeen": 2023
+  },
+  "D81": {
+    "games": 360,
+    "whiteWins": 152,
+    "blackWins": 94,
+    "draws": 114,
+    "avgElo": 2398.9,
+    "lastYearSeen": 2023
+  },
+  "D82": {
+    "games": 1535,
+    "whiteWins": 529,
+    "blackWins": 437,
+    "draws": 569,
+    "avgElo": 2369.9,
+    "lastYearSeen": 2023
+  },
+  "D83": {
+    "games": 1126,
+    "whiteWins": 413,
+    "blackWins": 322,
+    "draws": 391,
+    "avgElo": 2386.9,
+    "lastYearSeen": 2023
+  },
+  "D84": {
+    "games": 495,
+    "whiteWins": 166,
+    "blackWins": 97,
+    "draws": 232,
+    "avgElo": 2384.7,
+    "lastYearSeen": 2023
+  },
+  "D85": {
+    "games": 23341,
+    "whiteWins": 8490,
+    "blackWins": 6033,
+    "draws": 8818,
+    "avgElo": 2372.6,
+    "lastYearSeen": 2023
+  },
+  "D86": {
+    "games": 2083,
+    "whiteWins": 671,
+    "blackWins": 607,
+    "draws": 805,
+    "avgElo": 2351.4,
+    "lastYearSeen": 2023
+  },
+  "D87": {
+    "games": 5167,
+    "whiteWins": 1834,
+    "blackWins": 1513,
+    "draws": 1820,
+    "avgElo": 2362.5,
+    "lastYearSeen": 2023
+  },
+  "D88": {
+    "games": 862,
+    "whiteWins": 301,
+    "blackWins": 204,
+    "draws": 357,
+    "avgElo": 2286.4,
+    "lastYearSeen": 2023
+  },
+  "D89": {
+    "games": 962,
+    "whiteWins": 359,
+    "blackWins": 272,
+    "draws": 331,
+    "avgElo": 2325.3,
+    "lastYearSeen": 2023
+  },
+  "D90": {
+    "games": 4958,
+    "whiteWins": 1976,
+    "blackWins": 1308,
+    "draws": 1674,
+    "avgElo": 2362.6,
+    "lastYearSeen": 2023
+  },
+  "D91": {
+    "games": 6585,
+    "whiteWins": 2198,
+    "blackWins": 1994,
+    "draws": 2393,
+    "avgElo": 2337.1,
+    "lastYearSeen": 2023
+  },
+  "D92": {
+    "games": 1606,
+    "whiteWins": 581,
+    "blackWins": 388,
+    "draws": 637,
+    "avgElo": 2363.4,
+    "lastYearSeen": 2023
+  },
+  "D93": {
+    "games": 4419,
+    "whiteWins": 1589,
+    "blackWins": 1132,
+    "draws": 1698,
+    "avgElo": 2331.1,
+    "lastYearSeen": 2023
+  },
+  "D94": {
+    "games": 10758,
+    "whiteWins": 3969,
+    "blackWins": 2446,
+    "draws": 4343,
+    "avgElo": 2367.8,
+    "lastYearSeen": 2023
+  },
+  "D95": {
+    "games": 1587,
+    "whiteWins": 598,
+    "blackWins": 392,
+    "draws": 597,
+    "avgElo": 2345.3,
+    "lastYearSeen": 2023
+  },
+  "E00": {
+    "games": 12178,
+    "whiteWins": 4709,
+    "blackWins": 3480,
+    "draws": 3989,
+    "avgElo": 2343.4,
+    "lastYearSeen": 2023
+  },
+  "E02": {
+    "games": 893,
+    "whiteWins": 265,
+    "blackWins": 199,
+    "draws": 429,
+    "avgElo": 2387.2,
+    "lastYearSeen": 2023
+  },
+  "E03": {
+    "games": 1194,
+    "whiteWins": 241,
+    "blackWins": 421,
+    "draws": 532,
+    "avgElo": 2386.6,
+    "lastYearSeen": 2023
+  },
+  "E04": {
+    "games": 15390,
+    "whiteWins": 5587,
+    "blackWins": 4118,
+    "draws": 5685,
+    "avgElo": 2394,
+    "lastYearSeen": 2023
+  },
+  "E05": {
+    "games": 15217,
+    "whiteWins": 5620,
+    "blackWins": 3033,
+    "draws": 6564,
+    "avgElo": 2389.5,
+    "lastYearSeen": 2023
+  },
+  "E06": {
+    "games": 8559,
+    "whiteWins": 3779,
+    "blackWins": 1948,
+    "draws": 2832,
+    "avgElo": 2342.7,
+    "lastYearSeen": 2023
+  },
+  "E07": {
+    "games": 3356,
+    "whiteWins": 1498,
+    "blackWins": 702,
+    "draws": 1156,
+    "avgElo": 2319.2,
+    "lastYearSeen": 2023
+  },
+  "E08": {
+    "games": 5251,
+    "whiteWins": 2231,
+    "blackWins": 1024,
+    "draws": 1996,
+    "avgElo": 2372.8,
+    "lastYearSeen": 2023
+  },
+  "E09": {
+    "games": 3705,
+    "whiteWins": 1669,
+    "blackWins": 696,
+    "draws": 1340,
+    "avgElo": 2310.3,
+    "lastYearSeen": 2023
+  },
+  "E10": {
+    "games": 7893,
+    "whiteWins": 3104,
+    "blackWins": 2587,
+    "draws": 2202,
+    "avgElo": 2358.6,
+    "lastYearSeen": 2023
+  },
+  "E11": {
+    "games": 36784,
+    "whiteWins": 13013,
+    "blackWins": 9187,
+    "draws": 14584,
+    "avgElo": 2385.4,
+    "lastYearSeen": 2023
+  },
+  "E14": {
+    "games": 9632,
+    "whiteWins": 3413,
+    "blackWins": 2495,
+    "draws": 3724,
+    "avgElo": 2368.8,
+    "lastYearSeen": 2023
+  },
+  "E15": {
+    "games": 23026,
+    "whiteWins": 7335,
+    "blackWins": 6004,
+    "draws": 9687,
+    "avgElo": 2412,
+    "lastYearSeen": 2023
+  },
+  "E16": {
+    "games": 7969,
+    "whiteWins": 2959,
+    "blackWins": 1798,
+    "draws": 3212,
+    "avgElo": 2378.2,
+    "lastYearSeen": 2023
+  },
+  "E17": {
+    "games": 6264,
+    "whiteWins": 2711,
+    "blackWins": 1254,
+    "draws": 2299,
+    "avgElo": 2388.9,
+    "lastYearSeen": 2023
+  },
+  "E18": {
+    "games": 9997,
+    "whiteWins": 3583,
+    "blackWins": 1856,
+    "draws": 4558,
+    "avgElo": 2356,
+    "lastYearSeen": 2023
+  },
+  "E19": {
+    "games": 2815,
+    "whiteWins": 759,
+    "blackWins": 555,
+    "draws": 1501,
+    "avgElo": 2353.3,
+    "lastYearSeen": 2023
+  },
+  "E20": {
+    "games": 11897,
+    "whiteWins": 4229,
+    "blackWins": 3676,
+    "draws": 3992,
+    "avgElo": 2372.7,
+    "lastYearSeen": 2023
+  },
+  "E23": {
+    "games": 334,
+    "whiteWins": 110,
+    "blackWins": 96,
+    "draws": 128,
+    "avgElo": 2356.8,
+    "lastYearSeen": 2023
+  },
+  "E24": {
+    "games": 2690,
+    "whiteWins": 958,
+    "blackWins": 1054,
+    "draws": 678,
+    "avgElo": 2323.1,
+    "lastYearSeen": 2023
+  },
+  "E25": {
+    "games": 2227,
+    "whiteWins": 761,
+    "blackWins": 620,
+    "draws": 846,
+    "avgElo": 2387.2,
+    "lastYearSeen": 2023
+  },
+  "E26": {
+    "games": 788,
+    "whiteWins": 287,
+    "blackWins": 298,
+    "draws": 203,
+    "avgElo": 2330.6,
+    "lastYearSeen": 2023
+  },
+  "E27": {
+    "games": 1336,
+    "whiteWins": 562,
+    "blackWins": 448,
+    "draws": 326,
+    "avgElo": 2346.1,
+    "lastYearSeen": 2023
+  },
+  "E28": {
+    "games": 706,
+    "whiteWins": 293,
+    "blackWins": 256,
+    "draws": 157,
+    "avgElo": 2354.4,
+    "lastYearSeen": 2023
+  },
+  "E29": {
+    "games": 1155,
+    "whiteWins": 387,
+    "blackWins": 424,
+    "draws": 344,
+    "avgElo": 2361,
+    "lastYearSeen": 2023
+  },
+  "E30": {
+    "games": 2364,
+    "whiteWins": 757,
+    "blackWins": 903,
+    "draws": 704,
+    "avgElo": 2305.9,
+    "lastYearSeen": 2023
+  },
+  "E31": {
+    "games": 1274,
+    "whiteWins": 423,
+    "blackWins": 431,
+    "draws": 420,
+    "avgElo": 2368.4,
+    "lastYearSeen": 2023
+  },
+  "E32": {
+    "games": 17849,
+    "whiteWins": 5884,
+    "blackWins": 5299,
+    "draws": 6666,
+    "avgElo": 2390.1,
+    "lastYearSeen": 2023
+  },
+  "E33": {
+    "games": 2776,
+    "whiteWins": 1051,
+    "blackWins": 808,
+    "draws": 917,
+    "avgElo": 2342.3,
+    "lastYearSeen": 2023
+  },
+  "E34": {
+    "games": 1945,
+    "whiteWins": 630,
+    "blackWins": 464,
+    "draws": 851,
+    "avgElo": 2398,
+    "lastYearSeen": 2023
+  },
+  "E35": {
+    "games": 2553,
+    "whiteWins": 892,
+    "blackWins": 655,
+    "draws": 1006,
+    "avgElo": 2401.6,
+    "lastYearSeen": 2023
+  },
+  "E36": {
+    "games": 2311,
+    "whiteWins": 715,
+    "blackWins": 575,
+    "draws": 1021,
+    "avgElo": 2424.9,
+    "lastYearSeen": 2023
+  },
+  "E37": {
+    "games": 815,
+    "whiteWins": 285,
+    "blackWins": 149,
+    "draws": 381,
+    "avgElo": 2442.2,
+    "lastYearSeen": 2023
+  },
+  "E38": {
+    "games": 4952,
+    "whiteWins": 1884,
+    "blackWins": 1418,
+    "draws": 1650,
+    "avgElo": 2329.5,
+    "lastYearSeen": 2023
+  },
+  "E39": {
+    "games": 4446,
+    "whiteWins": 1348,
+    "blackWins": 1227,
+    "draws": 1871,
+    "avgElo": 2398.6,
+    "lastYearSeen": 2023
+  },
+  "E40": {
+    "games": 2043,
+    "whiteWins": 838,
+    "blackWins": 598,
+    "draws": 607,
+    "avgElo": 2328.2,
+    "lastYearSeen": 2023
+  },
+  "E41": {
+    "games": 4090,
+    "whiteWins": 1344,
+    "blackWins": 1249,
+    "draws": 1497,
+    "avgElo": 2370.7,
+    "lastYearSeen": 2023
+  },
+  "E42": {
+    "games": 3938,
+    "whiteWins": 1441,
+    "blackWins": 1047,
+    "draws": 1450,
+    "avgElo": 2376.6,
+    "lastYearSeen": 2023
+  },
+  "E43": {
+    "games": 4441,
+    "whiteWins": 1487,
+    "blackWins": 1445,
+    "draws": 1509,
+    "avgElo": 2363.2,
+    "lastYearSeen": 2023
+  },
+  "E44": {
+    "games": 2748,
+    "whiteWins": 1077,
+    "blackWins": 791,
+    "draws": 880,
+    "avgElo": 2352.9,
+    "lastYearSeen": 2023
+  },
+  "E45": {
+    "games": 1640,
+    "whiteWins": 574,
+    "blackWins": 494,
+    "draws": 572,
+    "avgElo": 2374.2,
+    "lastYearSeen": 2023
+  },
+  "E46": {
+    "games": 8915,
+    "whiteWins": 2889,
+    "blackWins": 3048,
+    "draws": 2978,
+    "avgElo": 2374.9,
+    "lastYearSeen": 2023
+  },
+  "E47": {
+    "games": 1407,
+    "whiteWins": 603,
+    "blackWins": 439,
+    "draws": 365,
+    "avgElo": 2358.1,
+    "lastYearSeen": 2023
+  },
+  "E48": {
+    "games": 3950,
+    "whiteWins": 1265,
+    "blackWins": 1223,
+    "draws": 1462,
+    "avgElo": 2392.8,
+    "lastYearSeen": 2023
+  },
+  "E49": {
+    "games": 1946,
+    "whiteWins": 818,
+    "blackWins": 561,
+    "draws": 567,
+    "avgElo": 2418.4,
+    "lastYearSeen": 2023
+  },
+  "E50": {
+    "games": 1406,
+    "whiteWins": 495,
+    "blackWins": 445,
+    "draws": 466,
+    "avgElo": 2378.1,
+    "lastYearSeen": 2023
+  },
+  "E51": {
+    "games": 1708,
+    "whiteWins": 625,
+    "blackWins": 494,
+    "draws": 589,
+    "avgElo": 2398.8,
+    "lastYearSeen": 2023
+  },
+  "E52": {
+    "games": 2122,
+    "whiteWins": 695,
+    "blackWins": 606,
+    "draws": 821,
+    "avgElo": 2426.7,
+    "lastYearSeen": 2023
+  },
+  "E54": {
+    "games": 4443,
+    "whiteWins": 1268,
+    "blackWins": 1135,
+    "draws": 2040,
+    "avgElo": 2416.8,
+    "lastYearSeen": 2023
+  },
+  "E56": {
+    "games": 1172,
+    "whiteWins": 358,
+    "blackWins": 306,
+    "draws": 508,
+    "avgElo": 2414.9,
+    "lastYearSeen": 2023
+  },
+  "E57": {
+    "games": 1007,
+    "whiteWins": 450,
+    "blackWins": 167,
+    "draws": 390,
+    "avgElo": 2339.5,
+    "lastYearSeen": 2022
+  },
+  "E60": {
+    "games": 17013,
+    "whiteWins": 6621,
+    "blackWins": 4786,
+    "draws": 5606,
+    "avgElo": 2368.7,
+    "lastYearSeen": 2023
+  },
+  "E70": {
+    "games": 11412,
+    "whiteWins": 4634,
+    "blackWins": 3617,
+    "draws": 3161,
+    "avgElo": 2340.8,
+    "lastYearSeen": 2023
+  }
+}

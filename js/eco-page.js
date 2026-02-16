@@ -401,7 +401,7 @@
     const total = whiteWins + draws + blackWins;
 
     document.getElementById('ecoStatGames').textContent = games > 0 ? String(games) : 'TBD';
-    document.getElementById('ecoStatLastPlayed').textContent = row.lastDate || 'TBD';
+    document.getElementById('ecoStatLastPlayed').textContent = row.lastYearSeen || row.lastDate || 'TBD';
 
     const wPct = total > 0 ? (whiteWins / total) * 100 : 0;
     const dPct = total > 0 ? (draws / total) * 100 : 0;
@@ -661,7 +661,7 @@
 
     loadContinuationsAndStats(currentBoardFen, renderSeq, { renderContinuations: !hasEcoCont });
     debugLog('stats source', hasEcoStats ? 'eco_stats.json' : 'fallback');
-    debugLog('continuations source', hasEcoCont ? 'eco_continuations.json' : 'book');
+    debugLog('continuations source', hasEcoCont ? 'eco_popular_continuations.json' : 'book');
   }
 
   function selectCode(code, options = {}) {
@@ -761,7 +761,7 @@
 
       const [statsRes, contRes, fenRes] = await Promise.allSettled([
         fetch(`/data/eco/eco_stats.json?v=${encodeURIComponent(ECO_STATS_DATA_VERSION)}`, { cache: 'no-cache' }),
-        fetch(`/data/eco/eco_continuations.json?v=${encodeURIComponent(ECO_STATS_DATA_VERSION)}`, { cache: 'no-cache' }),
+        fetch(`/data/eco/eco_popular_continuations.json?v=${encodeURIComponent(ECO_STATS_DATA_VERSION)}`, { cache: 'no-cache' }),
         fetch(`/data/eco/eco_fen.json?v=${encodeURIComponent(ECO_STATS_DATA_VERSION)}`, { cache: 'no-cache' })
       ]);
 
