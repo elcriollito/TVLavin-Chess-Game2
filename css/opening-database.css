@@ -1,0 +1,228 @@
+.openingdb-app {
+  display: grid;
+  grid-template-columns: var(--nav-width-expanded) 1fr;
+  min-height: 100vh;
+}
+
+.openingdb-content {
+  padding: 18px;
+  overflow-x: hidden;
+}
+
+.openingdb-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  color: var(--text-primary);
+}
+
+.openingdb-header h1 {
+  margin-bottom: 8px;
+}
+
+.openingdb-header p {
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-width: 980px;
+}
+
+.openingdb-resize-controls {
+  margin-top: 12px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+}
+
+.openingdb-resize-controls button {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.openingdb-main-grid {
+  display: grid;
+  grid-template-columns: minmax(360px, auto) minmax(280px, 420px);
+  gap: 18px;
+  align-items: start;
+}
+
+.openingdb-board-shell {
+  --board-size: 5in;
+  --odb-board-scale: 1;
+  width: min(calc(var(--board-size) * var(--odb-board-scale)), 92vw);
+  height: min(calc(var(--board-size) * var(--odb-board-scale)), 92vw);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  padding: 6px;
+}
+
+.openingdb-board {
+  width: 100%;
+  height: 100%;
+}
+
+.openingdb-control-panel {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  padding: 12px;
+}
+
+.openingdb-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.openingdb-fen-panel {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: var(--bg-tertiary);
+}
+
+.openingdb-fen-panel label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.openingdb-fen-panel textarea {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-radius: 6px;
+  padding: 8px;
+  resize: vertical;
+}
+
+.openingdb-fen-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.openingdb-error {
+  margin-top: 6px;
+  color: #ff7b7b;
+  font-size: 12px;
+}
+
+.openingdb-movelist-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.openingdb-movelist {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 8px;
+  font-family: 'Roboto Mono', monospace;
+  line-height: 1.5;
+}
+
+.openingdb-stats-section {
+  margin-top: 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  padding: 12px;
+}
+
+.openingdb-opening-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.openingdb-opening-meta #odbLookupStatus {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.openingdb-table-wrap {
+  overflow-x: auto;
+}
+
+.openingdb-stats-table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+}
+
+.openingdb-stats-table th,
+.openingdb-stats-table td {
+  border-bottom: 1px solid var(--border-color);
+  padding: 8px 10px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.openingdb-stats-table .col-move {
+  padding-right: 48px; /* ~1/2 inch separation */
+}
+
+.openingdb-stats-table .col-perc {
+  padding-left: 48px; /* ~1/2 inch separation */
+}
+
+.openingdb-empty {
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.openingdb-stats-table tr.row-win {
+  background: rgba(39, 194, 106, 0.12);
+}
+
+.openingdb-stats-table tr.row-draw {
+  background: rgba(176, 182, 191, 0.14);
+}
+
+.openingdb-stats-table tr.row-loss {
+  background: rgba(224, 75, 75, 0.12);
+}
+
+@media (max-width: 1024px) {
+  .openingdb-main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .openingdb-board-shell {
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .openingdb-app {
+    grid-template-columns: 1fr;
+  }
+
+  .openingdb-content {
+    padding-top: 70px;
+  }
+
+  .main-navigation {
+    position: fixed;
+    left: -100%;
+    top: 0;
+    height: 100vh;
+    z-index: 1000;
+  }
+}

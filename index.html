@@ -200,6 +200,10 @@
                     <i class="fas fa-book"></i>
                     <span class="nav-label">ECO Codes</span>
                 </a>
+                <a href="/opening-database" class="nav-item nav-item-external" aria-label="Chess Opening Database">
+                    <i class="fas fa-chess-board"></i>
+                    <span class="nav-label">Opening Database</span>
+                </a>
 
                 <button class="nav-item nav-item-premium-feature" data-section="cheater-insight" aria-label="Cheater Insight (Premium)">
                     <i class="fas fa-user-shield"></i>
@@ -296,6 +300,12 @@
                         <div class="book-simple">
                             <div class="opening-title-right"><a id="openingLinkBook" class="opening-eco-link" href="/eco">Opening: (unknown)</a></div>
                             <div id="openingBookSimpleStatus" class="book-simple-status">Book: On</div>
+                            <div id="openingBookMeta" class="book-simple-meta">No book data for this position yet.</div>
+                            <div id="openingBookWdl" class="book-wdl-bar" aria-hidden="true">
+                                <span id="openingBookWdlW" class="book-wdl-w" style="width:33%"></span>
+                                <span id="openingBookWdlD" class="book-wdl-d" style="width:34%"></span>
+                                <span id="openingBookWdlL" class="book-wdl-l" style="width:33%"></span>
+                            </div>
                         </div>
                         <div class="book-controls play-book-hidden">
                             <select id="openingBookSelector" class="book-selector">
@@ -325,6 +335,8 @@
                             <button id="coachOffBtn" class="coach-toggle-btn" type="button">Off</button>
                         </div>
                         <div class="opening-title-right"><a id="openingLinkCoach" class="opening-eco-link" href="/eco">Start Position</a></div>
+                        <div id="coachSummary" class="coach-summary">No book data for this position yet.</div>
+                        <ol id="coachMoveList" class="coach-move-list"></ol>
                         <div id="coachText" class="coach-text"></div>
                     </div>
                 </div>
@@ -2637,7 +2649,8 @@
     <script src="js/insights-section.js?v=1.0.0"></script>
     <script src="js/history-section.js?v=1.0.0"></script>
     <script src="js/analyze-section.js?v=1.0.0"></script>
-    <script src="app.js?v=2.0.1"></script>
+    <script src="js/opening-db-service.js?v=1.0.0"></script>
+    <script src="app.js?v=2.0.2"></script>
 
     <!-- Auth Scripts -->
     <script src="js/auth-config.js?v=1.0.0"></script>

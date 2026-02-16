@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Opening Database - CAISSA</title>
+  <meta name="description" content="Interactive chess opening database with board exploration and practical game statistics.">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <link rel="stylesheet" href="styles.css?v=2.0.2">
+  <link rel="stylesheet" href="css/opening-database.css?v=1.0.0">
+</head>
+<body>
+  <div class="app-container openingdb-app">
+    <nav id="mainNav" class="main-navigation">
+      <div class="nav-header">
+        <div class="nav-logo">
+          <i class="fas fa-chess-knight"></i>
+          <span class="nav-logo-text">CAISSA</span>
+        </div>
+      </div>
+
+      <div class="nav-items">
+        <a href="/" class="nav-item nav-item-external" aria-label="Go to Play">
+          <i class="fas fa-play-circle"></i>
+          <span class="nav-label">Play</span>
+        </a>
+        <a href="/" class="nav-item nav-item-external" aria-label="Go to Analyze">
+          <i class="fas fa-chart-line"></i>
+          <span class="nav-label">Analyze</span>
+        </a>
+        <a href="/eco" class="nav-item nav-item-external" aria-label="Open ECO codes">
+          <i class="fas fa-book"></i>
+          <span class="nav-label">ECO Codes</span>
+        </a>
+        <a href="/opening-database" class="nav-item nav-item-external active" aria-label="Open Opening Database">
+          <i class="fas fa-chess-board"></i>
+          <span class="nav-label">Opening Database</span>
+        </a>
+        <a href="/vault" class="nav-item nav-item-external" aria-label="Open Vault">
+          <i class="fas fa-box-archive"></i>
+          <span class="nav-label">Vault</span>
+        </a>
+      </div>
+    </nav>
+
+    <main class="content-area openingdb-content">
+      <section class="openingdb-page">
+        <header class="openingdb-header">
+          <h1>Chess Opening Database</h1>
+          <p>
+            Enter opening moves on the chess board below to identify the opening and inspect practical statistics from strong human games.
+            The database summarizes millions of moves and highlights what is played most often in real games.
+          </p>
+        </header>
+
+        <div class="openingdb-resize-controls" aria-label="Resize chess board">
+          <span>Resize chess board:</span>
+          <button id="odbSmallerBtn" type="button">Smaller</button>
+          <span>|</span>
+          <button id="odbBiggerBtn" type="button">Bigger</button>
+        </div>
+
+        <section class="openingdb-main-grid" aria-label="Opening database workspace">
+          <div class="openingdb-board-column">
+            <div class="openingdb-board-shell">
+              <div id="openingDbBoard" class="openingdb-board" aria-label="Opening database board"></div>
+            </div>
+          </div>
+
+          <aside class="openingdb-control-panel" aria-label="Position controls">
+            <div class="openingdb-controls">
+              <button id="odbStartBtn" class="btn btn-secondary" type="button">Start Position</button>
+              <button id="odbTakebackBtn" class="btn btn-secondary" type="button">Takeback</button>
+              <button id="odbFlipBtn" class="btn btn-secondary" type="button">Flip Board</button>
+              <button id="odbFenToggleBtn" class="btn btn-secondary" type="button">Input FEN</button>
+            </div>
+
+            <div id="odbFenPanel" class="openingdb-fen-panel" hidden>
+              <label for="odbFenInput">FEN</label>
+              <textarea id="odbFenInput" rows="3" placeholder="Paste FEN here"></textarea>
+              <div class="openingdb-fen-actions">
+                <button id="odbApplyFenBtn" class="btn btn-primary" type="button">Apply</button>
+                <button id="odbCancelFenBtn" class="btn btn-secondary" type="button">Cancel</button>
+              </div>
+              <p id="odbFenError" class="openingdb-error" hidden>Invalid FEN.</p>
+            </div>
+
+            <label class="openingdb-movelist-label" for="odbMoveList">Move list (SAN)</label>
+            <textarea id="odbMoveList" class="openingdb-movelist" rows="10" readonly></textarea>
+          </aside>
+        </section>
+
+        <section class="openingdb-stats-section" aria-label="Opening statistics">
+          <div class="openingdb-opening-meta">
+            <strong id="odbOpeningLabel">Opening: (TBD)</strong>
+            <span id="odbLookupStatus">Position lookup ready.</span>
+          </div>
+
+          <div class="openingdb-table-wrap">
+            <table class="openingdb-stats-table">
+              <thead>
+                <tr>
+                  <th class="col-move">Move</th>
+                  <th>Value</th>
+                  <th>Games</th>
+                  <th class="col-perc">Perc.</th>
+                  <th>Elo</th>
+                  <th>Perf.</th>
+                  <th>Year</th>
+                  <th>Wins</th>
+                  <th>Draws</th>
+                  <th>Losses</th>
+                </tr>
+              </thead>
+              <tbody id="odbStatsBody">
+                <tr>
+                  <td colspan="10" class="openingdb-empty">No data for this position yet (TBD).</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="js/opening-db-service.js?v=1.0.0"></script>
+  <script src="js/opening-database.js?v=1.0.0"></script>
+</body>
+</html>
