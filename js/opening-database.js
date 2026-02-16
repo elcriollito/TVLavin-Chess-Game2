@@ -6,7 +6,7 @@
     boardScale: 1,
     ecoStats: null,
     ecoContinuations: null,
-    ecoMapEnabled: false,
+    ecoCodeDefs: [],
     datasetsLoaded: false,
     datasetsError: '',
     positionRequestId: 0
@@ -15,6 +15,7 @@
   const els = {
     board: document.getElementById('openingDbBoard'),
     moveList: document.getElementById('odbMoveList'),
+    turnPly: document.getElementById('odbTurnPly'),
     openingLabel: document.getElementById('odbOpeningLabel'),
     lookupStatus: document.getElementById('odbLookupStatus'),
     datasetBanner: document.getElementById('odbDatasetBanner'),
@@ -85,14 +86,43 @@
   }
 
   function hashFen(fen) {
-    if (window.OpeningDbService && typeof window.OpeningDbService.hashFen === 'function') {
-      return window.OpeningDbService.hashFen(fen);
-    }
     return fnv1a64(normalizeFenForHash(fen));
   }
 
+  function normalizeSanToken(token) {
+    return String(token || '')
+      .replace(/^\d+\.(\.\.)?/, '')
+      .replace(/^\.\.\./, '')
+      .replace(/[!?+#]+$/g, '')
+      .trim();
+  }
+
+  function parseDefiningMoves(moveText) {
+    const txt = String(moveText || '')
+      .replace(/\r/g, '\n')
+      .replace(/\{[^}]*\}/g, ' ')
+      .replace(/;[^\n]*/g, ' ')
+      .replace(/\$\d+/g, ' ');
+
+    return txt
+      .split(/\s+/)
+      .filter(Boolean)
+      .filter((t) => !(t === '1-0' || t === '0-1' || t === '1/2-1/2' || t === '*' || /^\d+\.(\.\.)?$/.test(t) || t === '...'))
+      .map(normalizeSanToken)
+      .filter(Boolean);
+  }
+
+  function isPrefix(prefix, full) {
+    if (!Array.isArray(prefix) || !Array.isArray(full)) return false;
+    if (prefix.length === 0 || prefix.length > full.length) return false;
+    for (let i = 0; i < prefix.length; i += 1) {
+      if (prefix[i] !== full[i]) return false;
+    }
+    return true;
+  }
+
   function formatMoveList() {
-    const moves = state.game.history();
+    const moves = state.game.history({ verbose: false });
     const chunks = [];
     for (let i = 0; i < moves.length; i += 2) {
       const turn = Math.floor(i / 2) + 1;
@@ -154,14 +184,21 @@
 
   function resolveOpeningByPosition(fen) {
     const hash = hashFen(fen);
-    const hist = state.game.history();
+    const played = state.game.history({ verbose: false }).map(normalizeSanToken);
 
-    if (hist.length === 1 && hist[0] === 'd4') {
+    let best = null;
+    for (const def of state.ecoCodeDefs || []) {
+      if (isPrefix(def.moves, played)) {
+        if (!best || def.moves.length > best.moves.length) best = def;
+      }
+    }
+
+    if (best) {
       return {
         hash,
-        eco: 'A40',
-        name: "Queen's Pawn Game",
-        source: 'single-move-fallback'
+        eco: best.eco || '',
+        name: best.name || 'Opening: (TBD)',
+        source: 'eco_codes_prefix'
       };
     }
 
@@ -173,24 +210,27 @@
     };
   }
 
-  function buildRowsForPosition(opening) {
-    if (!opening || !opening.eco || !state.ecoContinuations) {
-      return [];
+  function buildRowsForPosition(opening, hash, normalizedFen) {
+    if (!state.ecoContinuations) return [];
+
+    // Primary adapter lookup by exact key if dataset ever includes exact position keys.
+    const exactRows = state.ecoContinuations[hash] || state.ecoContinuations[normalizedFen];
+    if (Array.isArray(exactRows) && exactRows.length > 0) {
+      return exactRows.slice(0, 12);
     }
 
-    const byEco = state.ecoContinuations[opening.eco];
-    if (!Array.isArray(byEco)) {
-      return [];
+    // Fallback by ECO code (current available dataset shape).
+    if (opening && opening.eco) {
+      const byEco = state.ecoContinuations[opening.eco];
+      if (Array.isArray(byEco) && byEco.length > 0) {
+        const year = state.ecoStats && state.ecoStats[opening.eco]
+          ? (state.ecoStats[opening.eco].lastYearSeen || state.ecoStats[opening.eco].lastDate || 'TBD')
+          : 'TBD';
+        return byEco.slice(0, 12).map((row) => ({ ...row, year }));
+      }
     }
 
-    const year = state.ecoStats && state.ecoStats[opening.eco]
-      ? (state.ecoStats[opening.eco].lastYearSeen || state.ecoStats[opening.eco].lastDate || 'TBD')
-      : 'TBD';
-
-    // Adapter note:
-    // Current datasets are ECO-scoped, not exact FEN-scoped. This adapts by ECO.
-    // To plug exact per-position lookup, replace this branch with FEN/hash keyed continuation lookup.
-    return byEco.slice(0, 12).map((row) => ({ ...row, year }));
+    return [];
   }
 
   async function updatePositionView() {
@@ -205,21 +245,25 @@
     await Promise.resolve();
     if (requestId !== state.positionRequestId) return;
 
+    const ply = state.game.history({ verbose: false }).length;
     els.moveList.value = formatMoveList() || '(start position)';
+    if (els.turnPly) {
+      els.turnPly.textContent = `Turn: ${state.game.turn() === 'w' ? 'White' : 'Black'} | Ply: ${ply}`;
+    }
 
     const opening = resolveOpeningByPosition(fen);
     const openingText = opening.eco ? `${opening.name} (${opening.eco})` : opening.name;
     els.openingLabel.textContent = openingText || 'Opening: (TBD)';
 
-    const rows = buildRowsForPosition(opening);
+    const rows = buildRowsForPosition(opening, hash, normalizedFen);
     renderStatsRows(rows);
 
     if (!state.datasetsLoaded) {
       els.lookupStatus.textContent = state.datasetsError || 'Loading datasets...';
     } else if (rows.length > 0) {
-      els.lookupStatus.textContent = `Hash ${opening.hash} | source: ${opening.source}`;
+      els.lookupStatus.textContent = `Position lookup: match (${opening.source})`;
     } else {
-      els.lookupStatus.textContent = `Hash ${opening.hash} | no exact match, using placeholders.`;
+      els.lookupStatus.textContent = 'Position lookup: no exact match (placeholders)';
     }
   }
 
@@ -247,11 +291,13 @@
   async function loadDatasets() {
     let statsLoaded = false;
     let continuationsLoaded = false;
+    let ecoCodesLoaded = false;
 
     try {
-      const [statsRes, contRes] = await Promise.allSettled([
+      const [statsRes, contRes, ecoCodesRes] = await Promise.allSettled([
         fetch('/data/eco/eco_stats.json', { cache: 'force-cache' }),
-        fetch('/data/eco/eco_popular_continuations.json', { cache: 'force-cache' })
+        fetch('/data/eco/eco_popular_continuations.json', { cache: 'force-cache' }),
+        fetch('/data/eco/eco_codes.json', { cache: 'force-cache' })
       ]);
 
       if (statsRes.status === 'fulfilled' && statsRes.value.ok) {
@@ -264,21 +310,38 @@
         continuationsLoaded = true;
       }
 
+      if (ecoCodesRes.status === 'fulfilled' && ecoCodesRes.value.ok) {
+        const ecoCodes = await ecoCodesRes.value.json();
+        if (Array.isArray(ecoCodes)) {
+          state.ecoCodeDefs = ecoCodes
+            .filter((row) => row && row.code && row.name)
+            .map((row) => ({
+              eco: String(row.code),
+              name: String(row.name),
+              moves: parseDefiningMoves(row.moves || '')
+            }))
+            .filter((row) => row.moves.length > 0);
+          ecoCodesLoaded = true;
+        }
+      }
+
       state.datasetsLoaded = true;
       state.datasetsError = '';
 
       const missing = [];
       if (!statsLoaded) missing.push('eco_stats.json');
       if (!continuationsLoaded) missing.push('eco_popular_continuations.json');
+      if (!ecoCodesLoaded) missing.push('eco_codes.json');
       if (missing.length > 0) {
         showDatasetBanner(`Lookup unavailable: missing ${missing.join(', ')}`);
       } else {
-        showDatasetBanner('Dataset missing: eco_position_map.json (disabled)');
+        showDatasetBanner('');
       }
 
       debugLog('datasets loaded', {
         ecoStatsLoaded: statsLoaded,
         ecoContinuationsLoaded: continuationsLoaded,
+        ecoCodesLoaded,
         ecoPositionMapLoaded: false
       });
     } catch (error) {
@@ -289,6 +352,7 @@
       debugLog('datasets loaded', {
         ecoStatsLoaded: statsLoaded,
         ecoContinuationsLoaded: continuationsLoaded,
+        ecoCodesLoaded,
         ecoPositionMapLoaded: false
       });
     }
@@ -375,20 +439,34 @@
         pieceTheme: '/img/chesspieces/wikipedia/{piece}.png',
         onDragStart: (source, piece) => {
           if (state.game.game_over()) return false;
-          if ((state.game.turn() === 'w' && piece.startsWith('b')) ||
-              (state.game.turn() === 'b' && piece.startsWith('w'))) {
+          if ((state.game.turn() === 'w' && String(piece || '').startsWith('b')) ||
+              (state.game.turn() === 'b' && String(piece || '').startsWith('w'))) {
             return false;
           }
           return true;
         },
-        onDrop: (source, target) => {
+        onDrop: (source, target, piece, newPos, oldPos, orientation) => {
+          console.log('[OpeningDB] onDrop', { source, target, piece, fenBefore: state.game.fen(), orientation });
+
+          if ((state.game.turn() === 'w' && String(piece || '').startsWith('b')) ||
+              (state.game.turn() === 'b' && String(piece || '').startsWith('w'))) {
+            console.warn('[OpeningDB] illegal move: wrong turn piece', { source, target, piece });
+            return 'snapback';
+          }
+
           const move = state.game.move({ from: source, to: target, promotion: 'q' });
-          if (move === null) return 'snapback';
+          if (move === null) {
+            console.warn('[OpeningDB] illegal move', { source, target, piece });
+            return 'snapback';
+          }
+
+          console.log('[OpeningDB] legal move', { san: move.san, fenAfter: state.game.fen() });
           state.board.position(state.game.fen(), false);
           updatePositionView();
+          return undefined;
         },
         onSnapEnd: () => {
-          state.board.position(state.game.fen());
+          state.board.position(state.game.fen(), false);
         }
       });
     } catch (err) {

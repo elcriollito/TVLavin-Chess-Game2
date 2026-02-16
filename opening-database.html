@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="/assets/css/chessboard-1.0.0.min.css">
   <link rel="stylesheet" href="styles.css?v=2.0.2">
-  <link rel="stylesheet" href="css/opening-database.css?v=1.0.2">
+  <link rel="stylesheet" href="css/opening-database.css?v=1.0.3">
 </head>
 <body>
   <div class="app-container openingdb-app">
@@ -86,6 +86,7 @@
               <p id="odbFenError" class="openingdb-error" hidden>Invalid FEN.</p>
             </div>
 
+            <div id="odbTurnPly" class="openingdb-turnply">Turn: White | Ply: 0</div>
             <label class="openingdb-movelist-label" for="odbMoveList">Move list (SAN)</label>
             <textarea id="odbMoveList" class="openingdb-movelist" rows="10" readonly></textarea>
           </aside>
@@ -129,6 +130,6 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="js/opening-database.js?v=1.0.3"></script>
+  <script src="js/opening-database.js?v=1.0.4"></script>
 </body>
 </html>

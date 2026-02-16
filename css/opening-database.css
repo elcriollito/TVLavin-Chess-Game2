@@ -133,9 +133,17 @@
 
 .openingdb-movelist-label {
   display: block;
+  margin-top: 6px;
   margin-bottom: 6px;
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.openingdb-turnply {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  margin-bottom: 6px;
 }
 
 .openingdb-movelist {
