@@ -496,6 +496,25 @@ body {
     font-size: 0.75rem;
     color: var(--vault-text-secondary);
     word-break: break-all;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.vault-item-sha-copy {
+    padding: 4px 8px;
+    border: 1px solid var(--vault-border);
+    background: var(--vault-bg-tertiary);
+    color: var(--vault-text-primary);
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.vault-item-sha-copy:hover {
+    border-color: var(--vault-primary);
+    color: var(--vault-primary);
+    background: var(--vault-bg-primary);
 }
 
 /* ========================================

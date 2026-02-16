@@ -12,6 +12,9 @@
     "dos:scrape-chess": "node tools/scrape-dosgamesarchive-chess.mjs",
     "dos:scrape-chess-force": "node tools/scrape-dosgamesarchive-chess.mjs --force",
     "dos:scrape-chess-dry": "node tools/scrape-dosgamesarchive-chess.mjs --dry-run",
+    "build:eco-position-map": "node scripts/build-eco-position-map.js --out public/data/eco/eco_position_map.json",
+    "build:opening-book": "node scripts/build-opening-book.js --pgnDir data/pgn --outDir public/data/book_chunks --maxPlies 16",
+    "test:opening-known-lines": "node scripts/verify-known-lines.js",
     "fics:gateway": "node server/fics-gateway.cjs",
     "fics:dev": "node server/fics-gateway.cjs"
   },

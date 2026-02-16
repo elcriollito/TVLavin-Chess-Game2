@@ -1,0 +1,6 @@
+Fairy-Stockfish (GPLv3)
+Source: https://github.com/fairy-stockfish/Fairy-Stockfish
+WASM build: https://github.com/gbtami/fairy-stockfish.wasm
+
+This engine is licensed under the GNU General Public License v3.
+Full text: https://www.gnu.org/licenses/gpl-3.0.txt

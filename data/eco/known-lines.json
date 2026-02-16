@@ -1,0 +1,27 @@
+[
+  {
+    "eco": "D02",
+    "name": "London System",
+    "moves": "1. d4 d5 2. Bf4 Nf6 3. e3 e6 4. Nf3 c5 5. c3 Bd6"
+  },
+  {
+    "eco": "B20",
+    "name": "Sicilian Defense",
+    "moves": "1. e4 c5"
+  },
+  {
+    "eco": "C60",
+    "name": "Ruy Lopez",
+    "moves": "1. e4 e5 2. Nf3 Nc6 3. Bb5"
+  },
+  {
+    "eco": "D06",
+    "name": "Queen's Gambit Declined",
+    "moves": "1. d4 d5 2. c4 e6 3. Nc3"
+  },
+  {
+    "eco": "E60",
+    "name": "King's Indian Defense",
+    "moves": "1. d4 Nf6 2. c4 g6 3. Nc3 Bg7"
+  }
+]

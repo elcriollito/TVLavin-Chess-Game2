@@ -449,6 +449,7 @@ html, body {
 .eval-bar {
     width: 14px;
     min-width: 14px;
+    flex: 0 0 16px; /* Visual regression guard: keep eval bar from collapsing in flex layouts */
     display: flex;
     flex-direction: column-reverse; /* Default: white side is bottom of board */
     border-radius: 6px; /* HOTFIX 3: Softer corners for independent indicator feel */
@@ -458,6 +459,7 @@ html, body {
     position: relative;
     box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4);
     margin-left: 6px; /* HOTFIX 3: Extra breathing space from left edge */
+    z-index: 2;
 }
 
 .eval-fill {
@@ -502,6 +504,19 @@ html, body {
 
 .eval-bar.eval-flipped {
     flex-direction: column; /* White grows downward from top */
+}
+
+#playSection .board-with-eval {
+    overflow: visible;
+}
+
+#playSection .eval-bar {
+    align-self: stretch;
+    min-height: var(--board-size);
+}
+
+#playSection .board-wrapper {
+    overflow: visible;
 }
 
 /* Fritz classic color scheme - customize chessboard.js colors */
@@ -5005,6 +5020,135 @@ button:focus,
     white-space: pre-line;
 }
 
+#playSection {
+    --wdl-win: #27c26a;
+    --wdl-draw: #b0b6bf;
+    --wdl-loss: #e04b4b;
+}
+
+.book-simple-meta {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.book-wdl-bar {
+    margin-top: 6px;
+    display: flex;
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid var(--panel-border);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.book-wdl-w {
+    background: var(--wdl-win);
+}
+
+.book-wdl-d {
+    background: var(--wdl-draw);
+}
+
+.book-wdl-l {
+    background: var(--wdl-loss);
+}
+
+.coach-summary {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.coach-move-list {
+    margin-top: 8px;
+    margin-bottom: 4px;
+    padding-left: 0;
+    list-style: none;
+}
+
+.coach-move-row {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    margin-bottom: 10px;
+}
+
+.coach-move-label {
+    min-width: 92px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+}
+
+.coach-move-stats {
+    margin-left: 48px; /* ~0.5in separation for readability */
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.coach-move-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 5px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.coach-move-pct {
+    color: var(--text);
+    font-weight: 700;
+}
+
+.coach-move-wdl {
+    display: flex;
+    height: 7px;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid var(--panel-border);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.coach-move-wdl .seg-w {
+    background: var(--wdl-win);
+}
+
+.coach-move-wdl .seg-d {
+    background: var(--wdl-draw);
+}
+
+.coach-move-wdl .seg-l {
+    background: var(--wdl-loss);
+}
+
+.coach-move-row.good .coach-move-label,
+.coach-move-row.good .coach-move-pct {
+    color: var(--wdl-win);
+}
+
+.coach-move-row.bad .coach-move-label,
+.coach-move-row.bad .coach-move-pct {
+    color: var(--wdl-loss);
+}
+
+@media (max-width: 768px) {
+    #playSection .eval-bar {
+        min-height: min(92vw, var(--board-size));
+    }
+
+    .coach-move-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+
+    .coach-move-stats {
+        margin-left: 0;
+    }
+}
+
 .panel.grow {
     min-height: 260px;
 }
@@ -5093,6 +5237,7 @@ button:focus,
     width: 100%;
     margin: 0 auto;
     padding: 12px;
+    overflow: visible;
 }
 
 /* Give board priority - narrow sidebars */

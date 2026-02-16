@@ -49,6 +49,12 @@ const App = {
     currentOpening: null,
     coachEnabled: true,
     coachText: '',
+    openingDbEnabled: true,
+    openingDbReady: false,
+    openingDbCacheKey: '',
+    openingDbPosition: null,
+    openingDbRequestId: 0,
+    ecoPositionMap: null,
     lastEvalCp: null,
     lastEvalMate: null,
     selectedEditorPiece: 'erase', // Piece to place in editor mode
@@ -148,6 +154,20 @@ function debugLog(...args) {
     }
 }
 
+function openingDebugEnabled() {
+    if (App.debug) return true;
+    try {
+        return window.localStorage && localStorage.getItem('caissa.openingDebug') === '1';
+    } catch (_err) {
+        return false;
+    }
+}
+
+function openingDebugLog(...args) {
+    if (!openingDebugEnabled()) return;
+    console.log('[OpeningDebug]', ...args);
+}
+
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -226,6 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load ECO opening names dataset
     loadOpeningsDataset();
+    loadEcoPositionMap();
 
     // Setup event listeners
     setupEventListeners();
@@ -237,6 +258,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // HOTFIX: Initialize eval bar orientation (white at bottom by default)
     syncEvalOrientation();
+    ensureEvalBarLayout();
+    initializeOpeningDbService();
 
     // Load PGN library
     loadPGNLibrary();
@@ -395,6 +418,7 @@ function initBoardWhenReady(config) {
             setTimeout(() => {
                 if (App.board) {
                     App.board.resize();
+                    ensureEvalBarLayout();
                     console.log('First resize completed');
                 }
             }, 50);
@@ -402,6 +426,7 @@ function initBoardWhenReady(config) {
             setTimeout(() => {
                 if (App.board) {
                     App.board.resize();
+                    ensureEvalBarLayout();
                     const finalRect = boardContainer.getBoundingClientRect();
                     console.log('Board after second resize:', {
                         width: finalRect.width,
@@ -416,6 +441,7 @@ function initBoardWhenReady(config) {
                     setTimeout(() => {
                         if (App.board) {
                             App.board.resize();
+                            ensureEvalBarLayout();
                             console.log('Final resize completed - board should be fully rendered');
                         }
                     }, 100);
@@ -426,6 +452,7 @@ function initBoardWhenReady(config) {
             const debouncedResize = debounce(() => {
                 if (App.board) {
                     App.board.resize();
+                    ensureEvalBarLayout();
                 }
             }, 250);
 
@@ -437,6 +464,7 @@ function initBoardWhenReady(config) {
                     // Small delay to ensure viewport has updated
                     setTimeout(() => {
                         App.board.resize();
+                        ensureEvalBarLayout();
                         console.log('Board resized after orientation change');
                     }, 100);
                 }
@@ -1091,6 +1119,34 @@ function renderMovesToPanel() {
 function detectOpening() {
     if (!App.game || !App.openings || App.openings.length === 0) return;
 
+    const fen = App.game.fen();
+    const hash = window.OpeningDbService ? window.OpeningDbService.hashFen(fen) : '';
+    const mapHit = (hash && App.ecoPositionMap) ? App.ecoPositionMap[hash] : null;
+    if (mapHit && mapHit.name) {
+        const mapped = {
+            eco: mapHit.eco || '',
+            name: mapHit.name
+        };
+        App.currentOpening = mapped;
+        App.openingName = mapped.name;
+        openingDebugLog('opening-detect', {
+            trigger: 'eco-position-map',
+            fen,
+            hash,
+            eco: mapped.eco,
+            name: mapped.name,
+            depth: mapHit.depth || 0,
+            source: mapHit.source || ''
+        });
+        renderFallbackOpening(mapped);
+        updateOpeningCoachFromDb().catch((error) => {
+            console.warn('[OpeningDB] lookup failed:', error);
+            updateCoachPanel();
+        });
+        updateGameStatusConsole();
+        return;
+    }
+
     const playedSAN = App.game.history({ verbose: false }).map(normalizeSanForEco);
     let best = null;
     let bestLen = -1;
@@ -1114,21 +1170,273 @@ function detectOpening() {
         }
     }
 
-    const openingText = best ? `${best.eco} - ${best.name}` : 'Opening: (unknown)';
-    const openingName = document.getElementById('openingName');
-    const openingLinkBook = document.getElementById('openingLinkBook');
-    const openingLinkCoach = document.getElementById('openingLinkCoach');
-
-    if (openingName) openingName.textContent = openingText;
-    if (openingLinkBook) openingLinkBook.textContent = openingText;
-    if (openingLinkCoach) openingLinkCoach.textContent = openingText;
-    if (openingLinkBook) openingLinkBook.href = best && best.eco ? `/eco/${best.eco}` : '/eco';
-    if (openingLinkCoach) openingLinkCoach.href = best && best.eco ? `/eco/${best.eco}` : '/eco';
+    if (best && /Queen's Pawn Game/i.test(String(best.name || '')) && playedSAN.length > 1) {
+        best = null;
+    }
 
     App.currentOpening = best || null;
     App.openingName = best ? best.name : '';
-    updateCoachPanel();
+    openingDebugLog('opening-detect', {
+        trigger: best ? 'sequence-fallback' : 'unknown-fallback',
+        fen,
+        hash,
+        mapHit: !!mapHit,
+        playedPly: playedSAN.length,
+        fallbackName: best ? best.name : ''
+    });
+    renderFallbackOpening(best);
+    updateOpeningCoachFromDb().catch((error) => {
+        console.warn('[OpeningDB] lookup failed:', error);
+        updateCoachPanel();
+    });
     updateGameStatusConsole();
+}
+
+function renderFallbackOpening(opening) {
+    const fallbackText = opening ? `${opening.name} (${opening.eco})` : 'Opening: (unknown)';
+    const openingNameEl = document.getElementById('openingName');
+    const openingLinkBook = document.getElementById('openingLinkBook');
+    const openingLinkCoach = document.getElementById('openingLinkCoach');
+    const openingBookMeta = document.getElementById('openingBookMeta');
+    const openingBookSimpleStatus = document.getElementById('openingBookSimpleStatus');
+
+    if (openingNameEl) openingNameEl.textContent = fallbackText;
+    if (openingLinkBook) openingLinkBook.textContent = fallbackText;
+    if (openingLinkCoach) openingLinkCoach.textContent = fallbackText;
+    if (openingLinkBook) openingLinkBook.href = opening && opening.eco ? `/eco/${opening.eco}` : '/eco';
+    if (openingLinkCoach) openingLinkCoach.href = opening && opening.eco ? `/eco/${opening.eco}` : '/eco';
+    if (openingBookMeta) openingBookMeta.textContent = 'No book data for this position yet.';
+    if (openingBookSimpleStatus) openingBookSimpleStatus.textContent = App.openingDbReady ? 'Book: On' : 'Book: unavailable';
+    renderOpeningBookWdl(null);
+    renderCoachMoves([]);
+}
+
+function scoreFromWhiteWdl(w, d, l) {
+    const total = (Number(w) || 0) + (Number(d) || 0) + (Number(l) || 0);
+    if (total <= 0) return null;
+    return ((Number(w) || 0) + 0.5 * (Number(d) || 0)) / total;
+}
+
+function outcomeClassByScore(score) {
+    if (!Number.isFinite(score)) return 'neutral';
+    if (score >= 0.56) return 'good';
+    if (score <= 0.44) return 'bad';
+    return 'neutral';
+}
+
+function isGenericOpeningName(name) {
+    return /Queen's Pawn Game|King's Pawn Game|Opening\\s*$/i.test(String(name || '').trim());
+}
+
+function formatPct(value) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? `${numeric.toFixed(1)}%` : 'TBD';
+}
+
+function renderOpeningBookWdl(row) {
+    const wEl = document.getElementById('openingBookWdlW');
+    const dEl = document.getElementById('openingBookWdlD');
+    const lEl = document.getElementById('openingBookWdlL');
+    if (!wEl || !dEl || !lEl) return;
+
+    const w = Number(row?.w) || 0;
+    const d = Number(row?.d) || 0;
+    const l = Number(row?.l) || 0;
+    const total = w + d + l;
+    if (total <= 0) {
+        wEl.style.width = '33%';
+        dEl.style.width = '34%';
+        lEl.style.width = '33%';
+        return;
+    }
+
+    wEl.style.width = `${(w / total) * 100}%`;
+    dEl.style.width = `${(d / total) * 100}%`;
+    lEl.style.width = `${(l / total) * 100}%`;
+}
+
+function renderCoachMoves(moves) {
+    const moveListEl = document.getElementById('coachMoveList');
+    if (!moveListEl) return;
+    if (!Array.isArray(moves) || moves.length === 0) {
+        moveListEl.innerHTML = '';
+        return;
+    }
+
+    moveListEl.innerHTML = moves.map((move) => {
+        const n = Number(move.n) || 0;
+        const w = Number(move.w) || 0;
+        const d = Number(move.d) || 0;
+        const l = Number(move.l) || 0;
+        const total = w + d + l;
+        const score = scoreFromWhiteWdl(w, d, l);
+        const cls = outcomeClassByScore(score);
+        const wPct = total > 0 ? (w / total) * 100 : 33;
+        const dPct = total > 0 ? (d / total) * 100 : 34;
+        const lPct = total > 0 ? (l / total) * 100 : 33;
+
+        return `<li class="coach-move-row ${cls}">
+            <span class="coach-move-label">${escapeHtml(move.san || move.uci || 'TBD')}</span>
+            <div class="coach-move-stats">
+                <div class="coach-move-meta">
+                    <span>${n > 0 ? `${n} games` : 'TBD'}</span>
+                    <span class="coach-move-pct">${Number.isFinite(score) ? formatPct(score * 100) : 'TBD'}</span>
+                </div>
+                <div class="coach-move-wdl" aria-hidden="true">
+                    <span class="seg-w" style="width:${wPct}%"></span>
+                    <span class="seg-d" style="width:${dPct}%"></span>
+                    <span class="seg-l" style="width:${lPct}%"></span>
+                </div>
+            </div>
+        </li>`;
+    }).join('');
+}
+
+function uciToSanForCurrentPosition(uci) {
+    const value = String(uci || '').trim();
+    if (!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(value)) return value;
+    const legalMoves = App.game.moves({ verbose: true });
+    const found = legalMoves.find((m) => {
+        const promotion = m.promotion || '';
+        return `${m.from}${m.to}${promotion}` === value;
+    });
+    return found ? found.san : value;
+}
+
+function normalizeBookMoveRows(rows) {
+    if (!Array.isArray(rows)) return [];
+    return rows.map((m) => ({
+        uci: String(m.uci || '').trim(),
+        san: m.san ? String(m.san) : uciToSanForCurrentPosition(m.uci),
+        n: Number(m.n) || Number(m.count) || 0,
+        w: Number(m.w) || 0,
+        d: Number(m.d) || 0,
+        l: Number(m.l) || 0
+    }));
+}
+
+function isUsersTurnForCoach() {
+    if (!App.game || typeof App.game.turn !== 'function') return true;
+    if (App.gameMode !== 'engine') return true;
+    return App.game.turn() === (App.playerColor === 'white' ? 'w' : 'b');
+}
+
+function writeBookPanelsFromPosition(bookRow) {
+    const openingNameEl = document.getElementById('openingName');
+    const openingLinkBook = document.getElementById('openingLinkBook');
+    const openingLinkCoach = document.getElementById('openingLinkCoach');
+    const openingBookMeta = document.getElementById('openingBookMeta');
+    const openingBookSimpleStatus = document.getElementById('openingBookSimpleStatus');
+    const coachSummary = document.getElementById('coachSummary');
+
+    const preferred = (() => {
+        const current = App.currentOpening || null;
+        if (!current) return bookRow || null;
+        if (!bookRow) return current;
+        if (!isGenericOpeningName(current.name) && isGenericOpeningName(bookRow.name)) return current;
+        return bookRow;
+    })();
+    const openingLabel = (preferred?.name && preferred?.eco)
+        ? `${preferred.name} (${preferred.eco})`
+        : (preferred?.name || (preferred?.eco ? preferred.eco : 'Opening: (unknown)'));
+    const ecoHref = preferred?.eco ? `/eco/${preferred.eco}` : '/eco';
+
+    if (openingNameEl) openingNameEl.textContent = openingLabel;
+    if (openingLinkBook) {
+        openingLinkBook.textContent = openingLabel;
+        openingLinkBook.href = ecoHref;
+    }
+    if (openingLinkCoach) {
+        openingLinkCoach.textContent = openingLabel;
+        openingLinkCoach.href = ecoHref;
+    }
+
+    if (openingBookSimpleStatus) {
+        openingBookSimpleStatus.textContent = App.openingDbReady ? 'Book: On' : 'Book: unavailable';
+    }
+
+    if (openingBookMeta) {
+        if (bookRow && Number(bookRow.games) > 0) {
+            const last = bookRow.lastYearSeen ? ` | Last seen: ${bookRow.lastYearSeen}` : '';
+            openingBookMeta.textContent = `Games: ${bookRow.games}${last}`;
+        } else {
+            openingBookMeta.textContent = 'No book data for this position yet.';
+        }
+    }
+
+    renderOpeningBookWdl(bookRow);
+
+    const allMoves = normalizeBookMoveRows(bookRow?.moves || []).slice(0, 8);
+    const canShowMoves = isUsersTurnForCoach();
+    const moves = canShowMoves ? allMoves : [];
+    renderCoachMoves(moves);
+    if (coachSummary) {
+        if (!canShowMoves && allMoves.length > 0) {
+            coachSummary.textContent = 'Suggestions update when it is your turn.';
+        } else if (moves.length === 0) {
+            coachSummary.textContent = 'No book data for this position yet.';
+        } else {
+            const total = moves.reduce((sum, m) => sum + (Number(m.n) || 0), 0);
+            const top = moves[0];
+            const best = moves.slice().sort((a, b) => (scoreFromWhiteWdl(b.w, b.d, b.l) || 0) - (scoreFromWhiteWdl(a.w, a.d, a.l) || 0))[0];
+            const popPct = total > 0 ? (top.n / total) * 100 : 0;
+            const bestScore = scoreFromWhiteWdl(best.w, best.d, best.l);
+            coachSummary.textContent = `Most popular: ${top.san} (${formatPct(popPct)} of book games). Best score: ${best.san} (${Number.isFinite(bestScore) ? formatPct(bestScore * 100) : 'TBD'} white score).`;
+        }
+    }
+}
+
+async function updateOpeningCoachFromDb() {
+    if (!App.openingDbEnabled || !window.OpeningDbService || !App.game) {
+        openingDebugLog('opening-db skipped', {
+            openingDbEnabled: !!App.openingDbEnabled,
+            servicePresent: !!window.OpeningDbService,
+            hasGame: !!App.game,
+            fallback: 'coach-theory'
+        });
+        updateCoachPanel();
+        return;
+    }
+
+    const fen = App.game.fen();
+    const key = window.OpeningDbService.hashFen(fen);
+    if (key && key === App.openingDbCacheKey && App.openingDbPosition) {
+        openingDebugLog('opening-db cache-hit', {
+            fen,
+            hash: key,
+            shard: key.slice(0, 2),
+            entryExists: true
+        });
+        writeBookPanelsFromPosition(App.openingDbPosition);
+        await updateCoachPanel();
+        return;
+    }
+
+    const requestId = (App.openingDbRequestId || 0) + 1;
+    App.openingDbRequestId = requestId;
+    const lookup = await window.OpeningDbService.lookupByFen(fen, { baseUrl: '/data/book_chunks' });
+    if (requestId !== App.openingDbRequestId) return;
+    App.openingDbCacheKey = lookup.hash || '';
+    App.openingDbPosition = lookup.entry || null;
+    openingDebugLog('opening-db lookup', {
+        fen,
+        hash: lookup.hash,
+        shard: lookup.shard,
+        shardLoaded: lookup.shardLoaded,
+        fromCache: lookup.fromCache,
+        httpStatus: lookup.status,
+        entryExists: lookup.entryFound
+    });
+
+    if (lookup.entry) {
+        writeBookPanelsFromPosition(lookup.entry);
+    } else {
+        openingDebugLog('opening-db fallback', {
+            reason: 'no-entry-for-hash',
+            fallback: App.currentOpening ? 'sequence-or-map-label' : 'Opening: (unknown)'
+        });
+    }
+    await updateCoachPanel();
 }
 
 function normalizeSanForEco(san) {
@@ -1136,6 +1444,15 @@ function normalizeSanForEco(san) {
         .replace(/\d+\.(\.\.)?/g, '')
         .replace(/[+#?!]+/g, '')
         .trim();
+}
+
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 async function getCoachTheory(ecoCode) {
@@ -1169,7 +1486,8 @@ async function updateCoachPanel() {
         return;
     }
 
-    const ecoCode = App.currentOpening && App.currentOpening.eco ? App.currentOpening.eco : '';
+    const activeBook = App.openingDbPosition;
+    const ecoCode = activeBook?.eco || (App.currentOpening && App.currentOpening.eco ? App.currentOpening.eco : '');
     const theory = await getCoachTheory(ecoCode);
 
     if (theory) {
@@ -1177,6 +1495,8 @@ async function updateCoachPanel() {
         const whitePlans = Array.isArray(theory.plansWhite) ? theory.plansWhite.slice(0, 1) : [];
         const blackPlans = Array.isArray(theory.plansBlack) ? theory.plansBlack.slice(0, 1) : [];
         App.coachText = `${theory.eco} - ${theory.name}\n${principles.concat(whitePlans, blackPlans).join('\n')}`;
+    } else if (activeBook && Array.isArray(activeBook.moves) && activeBook.moves.length > 0) {
+        App.coachText = 'Opening coach is data-driven from the local opening database for this position.';
     } else if (App.openingName) {
         App.coachText = `Playing ${App.openingName}.\nDevelop quickly, contest the center, and keep king safety prioritized.`;
     } else {
@@ -2005,7 +2325,10 @@ function flipBoard() {
     }
 
     setTimeout(() => {
-        try { App.board.resize(); } catch (e) {}
+        try {
+            App.board.resize();
+            ensureEvalBarLayout();
+        } catch (e) {}
     }, 0);
 }
 
@@ -2021,6 +2344,29 @@ function syncEvalOrientation() {
     const isFlipped = App.isFlipped;
     evalBar.classList.toggle('eval-flipped', isFlipped);
     evalBar.classList.toggle('eval-normal', !isFlipped);
+}
+
+function ensureEvalBarLayout() {
+    const evalBar = document.getElementById('evalBar');
+    const boardEl = document.getElementById('chessboard');
+    if (!evalBar || !boardEl) return;
+
+    const rect = boardEl.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+
+    const size = Math.floor(Math.min(rect.width, rect.height));
+    evalBar.style.height = `${size}px`;
+    evalBar.style.width = '16px';
+    evalBar.style.minWidth = '16px';
+    evalBar.style.visibility = 'visible';
+    evalBar.style.opacity = '1';
+}
+
+function initializeOpeningDbService() {
+    App.openingDbReady = !!window.OpeningDbService;
+    if (!App.openingDbReady) {
+        console.warn('[OpeningDB] Service not found. Using ECO fallback only.');
+    }
 }
 
 function updateGameStatusPanel() {
@@ -2116,6 +2462,26 @@ async function loadOpeningsDataset() {
         }
     } catch (error) {
         console.warn('⚠️ Openings dataset not loaded. Using fallback list.', error);
+    }
+}
+
+async function loadEcoPositionMap() {
+    try {
+        const response = await fetch('/data/eco/eco_position_map.json', { cache: 'no-cache' });
+        if (!response.ok) {
+            throw new Error(`Failed to load eco_position_map.json (${response.status})`);
+        }
+        const payload = await response.json();
+        App.ecoPositionMap = payload && payload.entries ? payload.entries : {};
+        openingDebugLog('eco-position-map loaded', {
+            entries: Object.keys(App.ecoPositionMap || {}).length
+        });
+        if (App.game) {
+            detectOpening();
+        }
+    } catch (error) {
+        App.ecoPositionMap = null;
+        console.warn('[OpeningDB] ECO position map unavailable, using fallbacks.', error);
     }
 }
 
@@ -4114,6 +4480,7 @@ function updateUI() {
     updateMoveHistory();
     updateTimers();
     updateNavigationButtons();
+    ensureEvalBarLayout();
 
     // Update opening book moves for current position
     if (window.OpeningBookManager) {
