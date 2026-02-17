@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="/assets/css/chessboard-1.0.0.min.css">
   <link rel="stylesheet" href="styles.css?v=2.0.2">
-  <link rel="stylesheet" href="css/opening-database.css?v=1.0.3">
+  <link rel="stylesheet" href="css/opening-database.css?v=1.0.4">
 </head>
 <body>
   <div class="app-container openingdb-app">
@@ -54,13 +54,6 @@
           </p>
         </header>
 
-        <div class="openingdb-resize-controls" aria-label="Resize chess board">
-          <span>Resize chess board:</span>
-          <button id="odbSmallerBtn" type="button">Smaller</button>
-          <span>|</span>
-          <button id="odbBiggerBtn" type="button">Bigger</button>
-        </div>
-
         <section class="openingdb-main-grid" aria-label="Opening database workspace">
           <div class="openingdb-board-column">
             <div class="openingdb-board-shell">
@@ -104,20 +97,18 @@
               <thead>
                 <tr>
                   <th class="col-move">Move</th>
-                  <th>Value</th>
+                  <th class="col-value">Value</th>
                   <th>Games</th>
                   <th class="col-perc">Perc.</th>
+                  <th class="col-wdl">Win% (W/D/L)</th>
                   <th>Elo</th>
                   <th>Perf.</th>
                   <th>Year</th>
-                  <th>Wins</th>
-                  <th>Draws</th>
-                  <th>Losses</th>
                 </tr>
               </thead>
               <tbody id="odbStatsBody">
                 <tr>
-                  <td colspan="10" class="openingdb-empty">No data for this position yet (TBD).</td>
+                  <td colspan="8" class="openingdb-empty">No data for this position yet (TBD).</td>
                 </tr>
               </tbody>
             </table>
@@ -130,6 +121,6 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="js/opening-database.js?v=1.0.5"></script>
+  <script src="js/opening-database.js?v=1.0.7"></script>
 </body>
 </html>
