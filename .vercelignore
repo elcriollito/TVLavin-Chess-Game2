@@ -1,4 +1,5 @@
 data/pgn/**
 data/pgn_db/**
 data/openingdb/shards/**
+data/openingdb_games/**
 .wrangler/**

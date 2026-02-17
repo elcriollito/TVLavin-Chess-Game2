@@ -12,7 +12,16 @@
     datasetsError: '',
     positionRequestId: 0,
     lastDebugFenKey: '',
-    currentRows: []
+    currentRows: [],
+    activeTab: 'moves',
+    gamesTier: 'free',
+    gamesVersion: 'v1',
+    gamesBaseRoot: 'https://downloads.caissa-chess.org/openingdb/games',
+    gamesManifestFallback: true,
+    gamesShardCache: new Map(),
+    gamesCatalogCache: new Map(),
+    gamesResults: [],
+    pgnViewsUsed: 0
   };
 
   const DEFAULT_SHARD_ROOT = 'https://downloads.caissa-chess.org/openingdb/shards';
@@ -28,6 +37,17 @@
   const MANIFEST_OVERRIDE_URL = String(window.CAISSA_OPENINGDB_MANIFEST_URL || '').trim();
   const SHARD_FETCH_TIMEOUT_MS = 4000;
   const MANIFEST_FETCH_TIMEOUT_MS = 2000;
+  const GAMES_MANIFEST_URL = 'https://downloads.caissa-chess.org/openingdb/games/manifest.json';
+  const GAMES_MANIFEST_TTL_MS = 5 * 60 * 1000;
+  const GAMES_FETCH_TIMEOUT_MS = 4000;
+  const FREE_GAME_PREVIEW_LIMIT = 20;
+  const PREMIUM_GAME_PREVIEW_LIMIT = 500;
+  const FREE_PGN_VIEW_LIMIT = 5;
+  const FREE_DOWNLOAD_LINK_LIMIT = 10;
+  const PREMIUM_DOWNLOAD_LINK_LIMIT = 200;
+  const EARLY_MIDDLEGAME_PLY = 10;
+  const EARLY_MIDDLEGAME_MIN_MOVES = 3;
+  const EARLY_MIDDLEGAME_MIN_GAMES = 20;
 
   const els = {
     board: document.getElementById('openingDbBoard'),
@@ -37,6 +57,29 @@
     lookupStatus: document.getElementById('odbLookupStatus'),
     datasetBanner: document.getElementById('odbDatasetBanner'),
     statsBody: document.getElementById('odbStatsBody'),
+    tabMoves: document.getElementById('odbTabMoves'),
+    tabGames: document.getElementById('odbTabGames'),
+    movesPanel: document.getElementById('odbMovesPanel'),
+    gamesPanel: document.getElementById('odbGamesPanel'),
+    transitionPanel: document.getElementById('odbTransitionPanel'),
+    transitionMessage: document.getElementById('odbTransitionMessage'),
+    transitionStats: document.getElementById('odbTransitionStats'),
+    transitionSearchGamesBtn: document.getElementById('odbTransitionSearchGamesBtn'),
+    analyzePositionBtn: document.getElementById('odbAnalyzePositionBtn'),
+    searchGamesBtn: document.getElementById('odbSearchGamesBtn'),
+    downloadGamesBtn: document.getElementById('odbDownloadGamesBtn'),
+    gamesYearMin: document.getElementById('odbGamesYearMin'),
+    gamesYearMax: document.getElementById('odbGamesYearMax'),
+    gamesEloMin: document.getElementById('odbGamesEloMin'),
+    gamesResult: document.getElementById('odbGamesResult'),
+    gamesStatus: document.getElementById('odbGamesStatus'),
+    gamesBody: document.getElementById('odbGamesBody'),
+    gamesDownloads: document.getElementById('odbGamesDownloads'),
+    gamesPgnViewer: document.getElementById('odbGamesPgnViewer'),
+    gamesPgnTitle: document.getElementById('odbGamesPgnTitle'),
+    gamesPgnText: document.getElementById('odbGamesPgnText'),
+    gamesPgnCopyBtn: document.getElementById('odbGamesPgnCopyBtn'),
+    gamesPgnCloseBtn: document.getElementById('odbGamesPgnCloseBtn'),
     startBtn: document.getElementById('odbStartBtn'),
     takebackBtn: document.getElementById('odbTakebackBtn'),
     flipBtn: document.getElementById('odbFlipBtn'),
@@ -307,6 +350,91 @@
     }
   }
 
+  function getGamesManifestSessionKey() {
+    return 'openingdb_games_manifest_cache';
+  }
+
+  function getPgnViewsSessionKey() {
+    return 'openingdb_games_pgn_views_used';
+  }
+
+  function getTierFromUrl() {
+    const tier = String(new URLSearchParams(window.location.search).get('tier') || '').toLowerCase();
+    return tier === 'premium' ? 'premium' : 'free';
+  }
+
+  function getGamesVersionLabel() {
+    return `Games: ${state.gamesVersion}${state.gamesManifestFallback ? ' (fallback)' : ''}`;
+  }
+
+  function getCurrentPreviewLimit() {
+    return state.gamesTier === 'premium' ? PREMIUM_GAME_PREVIEW_LIMIT : FREE_GAME_PREVIEW_LIMIT;
+  }
+
+  function getCurrentDownloadLimit() {
+    return state.gamesTier === 'premium' ? PREMIUM_DOWNLOAD_LINK_LIMIT : FREE_DOWNLOAD_LINK_LIMIT;
+  }
+
+  function normalizeResultFilterForApi(rawResult) {
+    const value = String(rawResult || 'all').toLowerCase();
+    if (value === '1-0' || value === 'white') return 'white';
+    if (value === '1/2-1/2' || value === 'draw') return 'draw';
+    if (value === '0-1' || value === 'black') return 'black';
+    return 'all';
+  }
+
+  function updateDownloadButtonLabel() {
+    if (!els.downloadGamesBtn) return;
+    const limit = getCurrentDownloadLimit();
+    els.downloadGamesBtn.textContent = `Download top ${limit} (ZIP)`;
+  }
+
+  function hydratePgnViewCounter() {
+    try {
+      if (!window.sessionStorage) return;
+      const used = Number.parseInt(sessionStorage.getItem(getPgnViewsSessionKey()) || '0', 10);
+      state.pgnViewsUsed = Number.isFinite(used) && used > 0 ? used : 0;
+    } catch (_err) {
+      state.pgnViewsUsed = 0;
+    }
+  }
+
+  function persistPgnViewCounter() {
+    try {
+      if (!window.sessionStorage) return;
+      sessionStorage.setItem(getPgnViewsSessionKey(), String(state.pgnViewsUsed));
+    } catch (_err) {
+      // Ignore write errors.
+    }
+  }
+
+  function readGamesManifestFromSession() {
+    try {
+      if (!window.sessionStorage) return null;
+      const raw = sessionStorage.getItem(getGamesManifestSessionKey());
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return null;
+      const ts = Number(parsed.ts) || 0;
+      if (Date.now() - ts > GAMES_MANIFEST_TTL_MS) return null;
+      return parsed.manifest || null;
+    } catch (_err) {
+      return null;
+    }
+  }
+
+  function writeGamesManifestToSession(manifest) {
+    try {
+      if (!window.sessionStorage) return;
+      sessionStorage.setItem(getGamesManifestSessionKey(), JSON.stringify({
+        ts: Date.now(),
+        manifest
+      }));
+    } catch (_err) {
+      // Ignore cache write errors.
+    }
+  }
+
   function readShardFromSession(shard) {
     try {
       if (!window.sessionStorage) return null;
@@ -334,6 +462,20 @@
       const res = await fetch(url, { cache: 'force-cache', signal: controller.signal });
       if (!res.ok) return null;
       return await res.json();
+    } catch (_err) {
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function fetchTextWithTimeout(url, timeoutMs) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { cache: 'no-store', signal: controller.signal });
+      if (!res.ok) return null;
+      return await res.text();
     } catch (_err) {
       return null;
     } finally {
@@ -378,6 +520,68 @@
     return { source: 'fallback', ok: false };
   }
 
+  async function loadOpeningDbGamesManifest() {
+    const cached = readGamesManifestFromSession();
+    if (cached && typeof cached === 'object') {
+      state.gamesVersion = String(cached.activeVersion || 'v1');
+      state.gamesBaseRoot = String(cached.baseUrl || state.gamesBaseRoot).replace(/\/+$/, '');
+      state.gamesManifestFallback = false;
+      return { source: 'session-cache', ok: true };
+    }
+
+    const remote = await fetchJsonWithTimeout(GAMES_MANIFEST_URL, MANIFEST_FETCH_TIMEOUT_MS);
+    if (remote && typeof remote === 'object') {
+      writeGamesManifestToSession(remote);
+      state.gamesVersion = String(remote.activeVersion || 'v1');
+      state.gamesBaseRoot = String(remote.baseUrl || state.gamesBaseRoot).replace(/\/+$/, '');
+      state.gamesManifestFallback = false;
+      return { source: 'remote', ok: true };
+    }
+
+    const local = await fetchJsonWithTimeout('/data/openingdb_games/manifest.json', MANIFEST_FETCH_TIMEOUT_MS);
+    if (local && typeof local === 'object') {
+      state.gamesVersion = String(local.activeVersion || 'v1');
+      state.gamesBaseRoot = String(local.baseUrl || state.gamesBaseRoot).replace(/\/+$/, '');
+      state.gamesManifestFallback = false;
+      return { source: 'local-manifest', ok: true };
+    }
+
+    state.gamesVersion = 'v1';
+    state.gamesBaseRoot = 'https://downloads.caissa-chess.org/openingdb/games';
+    state.gamesManifestFallback = true;
+    return { source: 'fallback', ok: false };
+  }
+
+  async function loadGamesShard(shard) {
+    if (!/^[0-9a-f]{2}$/.test(String(shard || ''))) return null;
+    if (state.gamesShardCache.has(shard)) return state.gamesShardCache.get(shard);
+
+    const remoteUrl = `${state.gamesBaseRoot}/${state.gamesVersion}/shards/${shard}.json`;
+    let payload = await fetchJsonWithTimeout(remoteUrl, GAMES_FETCH_TIMEOUT_MS);
+    if (!payload || typeof payload !== 'object') {
+      payload = await fetchJsonWithTimeout(`/data/openingdb_games/${state.gamesVersion}/shards/${shard}.json`, GAMES_FETCH_TIMEOUT_MS);
+    }
+    state.gamesShardCache.set(shard, payload || null);
+    return payload || null;
+  }
+
+  async function loadGamesCatalogPrefix(prefix) {
+    if (!/^[0-9a-f]{2}$/.test(String(prefix || ''))) return null;
+    if (state.gamesCatalogCache.has(prefix)) return state.gamesCatalogCache.get(prefix);
+
+    const remoteUrl = `${state.gamesBaseRoot}/${state.gamesVersion}/catalog/${prefix}.json`;
+    let payload = await fetchJsonWithTimeout(remoteUrl, GAMES_FETCH_TIMEOUT_MS);
+    if (!payload || typeof payload !== 'object') {
+      payload = await fetchJsonWithTimeout(`/data/openingdb_games/${state.gamesVersion}/catalog/${prefix}.json`, GAMES_FETCH_TIMEOUT_MS);
+    }
+    state.gamesCatalogCache.set(prefix, payload || null);
+    return payload || null;
+  }
+
+  function buildPgnUrl(gameId) {
+    return `${state.gamesBaseRoot}/${state.gamesVersion}/pgn/${gameId}.pgn`;
+  }
+
   function prefetchShard(shard) {
     if (!/^[0-9a-f]{2}$/.test(String(shard || ''))) return;
     if (state.openingDbShardCache.has(shard)) return;
@@ -420,12 +624,18 @@
 
     try {
       const activeBase = state.shardBaseUrl || SHARD_BASE;
-      const remoteUrl = `${activeBase}/${shard}.json`;
-      let json = await fetchJsonWithTimeout(remoteUrl, SHARD_FETCH_TIMEOUT_MS);
-      let source = 'remote';
+      const localVersionedUrl = `/data/openingdb/shards/${state.activeDbVersion}/${shard}.json`;
+      let json = await fetchJsonWithTimeout(localVersionedUrl, SHARD_FETCH_TIMEOUT_MS);
+      let source = 'local-versioned';
 
       if (!json || typeof json !== 'object') {
-        source = 'local-fallback';
+        const remoteUrl = `${activeBase}/${shard}.json`;
+        source = 'remote';
+        json = await fetchJsonWithTimeout(remoteUrl, SHARD_FETCH_TIMEOUT_MS);
+      }
+
+      if (!json || typeof json !== 'object') {
+        source = 'local-legacy';
         json = await fetchJsonWithTimeout(`/data/openingdb/shards/${shard}.json`, SHARD_FETCH_TIMEOUT_MS);
       }
 
@@ -615,6 +825,316 @@
     }).join('');
   }
 
+  function setGamesStatus(message) {
+    if (!els.gamesStatus) return;
+    const tierNote = `Tier: ${state.gamesTier.toUpperCase()} | ${getGamesVersionLabel()}`;
+    els.gamesStatus.textContent = `${message} | ${tierNote}`;
+  }
+
+  function toggleTransitionPanel(show, message, statsText) {
+    if (!els.transitionPanel) return;
+    els.transitionPanel.hidden = !show;
+    if (show) {
+      if (els.transitionMessage) {
+        els.transitionMessage.textContent = message || 'Position branching is narrowing. You are transitioning from Opening Theory into Early Middlegame.';
+      }
+      if (els.transitionStats) {
+        els.transitionStats.textContent = statsText || '';
+      }
+    }
+  }
+
+  function checkTransitionState(rows, plyCount) {
+    const moves = Array.isArray(rows) ? rows : [];
+    const totalGames = moves.reduce((sum, move) => sum + (Number(move.games) || 0), 0);
+    const allowPanel = Number(plyCount) >= EARLY_MIDDLEGAME_PLY;
+    const lowCandidates = moves.length < EARLY_MIDDLEGAME_MIN_MOVES;
+    const lowGames = totalGames < EARLY_MIDDLEGAME_MIN_GAMES;
+    const shouldTransition = allowPanel && (lowCandidates || lowGames);
+
+    if (!shouldTransition) {
+      toggleTransitionPanel(false);
+      return;
+    }
+
+    const message = lowCandidates
+      ? 'Branching is narrowing. You are transitioning from Opening Theory into Early Middlegame.'
+      : 'This position is rare in the database. You are transitioning from Opening Theory into Early Middlegame.';
+    const statsText = `Ply: ${Number(plyCount) || 0} • Candidates: ${moves.length} • Games: ${totalGames}`;
+    toggleTransitionPanel(true, message, statsText);
+  }
+
+  async function loadGamePgnText(row) {
+    if (!row || !row.gameId) return null;
+    const remoteText = await fetchTextWithTimeout(row.pgnUrl, GAMES_FETCH_TIMEOUT_MS);
+    if (remoteText) return remoteText;
+    const localUrl = `/data/openingdb_games/${state.gamesVersion}/pgn/${row.gameId}.pgn`;
+    return fetchTextWithTimeout(localUrl, GAMES_FETCH_TIMEOUT_MS);
+  }
+
+  function setActiveTab(tabName) {
+    state.activeTab = tabName === 'games' ? 'games' : 'moves';
+    const isGames = state.activeTab === 'games';
+    if (els.tabMoves) {
+      els.tabMoves.classList.toggle('active', !isGames);
+      els.tabMoves.setAttribute('aria-selected', isGames ? 'false' : 'true');
+    }
+    if (els.tabGames) {
+      els.tabGames.classList.toggle('active', isGames);
+      els.tabGames.setAttribute('aria-selected', isGames ? 'true' : 'false');
+    }
+    if (els.movesPanel) els.movesPanel.hidden = isGames;
+    if (els.gamesPanel) els.gamesPanel.hidden = !isGames;
+  }
+
+  function passesGamesFilters(meta) {
+    const yearMin = Number.parseInt(String(els.gamesYearMin?.value || ''), 10);
+    const yearMax = Number.parseInt(String(els.gamesYearMax?.value || ''), 10);
+    const eloMin = Number.parseInt(String(els.gamesEloMin?.value || ''), 10);
+    const resultFilter = String(els.gamesResult?.value || 'all');
+
+    const year = Number(meta.year) || 0;
+    const avgElo = ((Number(meta.whiteElo) || 0) + (Number(meta.blackElo) || 0)) / 2;
+    const result = String(meta.result || '');
+
+    if (Number.isFinite(yearMin) && yearMin > 0 && year > 0 && year < yearMin) return false;
+    if (Number.isFinite(yearMax) && yearMax > 0 && year > 0 && year > yearMax) return false;
+    if (Number.isFinite(eloMin) && eloMin > 0 && Number.isFinite(avgElo) && avgElo > 0 && avgElo < eloMin) return false;
+    if (resultFilter !== 'all' && result !== resultFilter) return false;
+    return true;
+  }
+
+  function renderGamesRows(rows) {
+    if (!els.gamesBody) return;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      els.gamesBody.innerHTML = '<tr><td colspan="7" class="openingdb-empty">No games found for this position/filter.</td></tr>';
+      return;
+    }
+
+    els.gamesBody.innerHTML = rows.map((row, idx) => {
+      const white = row.white || 'Unknown';
+      const black = row.black || 'Unknown';
+      const result = row.result || '?';
+      const event = row.event || row.site || '-';
+      const year = row.year || '-';
+      const whiteElo = row.whiteElo ? String(row.whiteElo) : '?';
+      const blackElo = row.blackElo ? String(row.blackElo) : '?';
+      return `
+        <tr data-game-index="${idx}">
+          <td>${white}</td>
+          <td>${black}</td>
+          <td>${result}</td>
+          <td>${event}</td>
+          <td>${year}</td>
+          <td>${whiteElo}/${blackElo}</td>
+          <td>
+            <button class="btn btn-secondary odb-game-view-btn" data-action="view" data-game-index="${idx}" type="button">View PGN</button>
+            <a class="btn btn-secondary odb-game-download-link" data-action="download" data-game-index="${idx}" href="${row.pgnUrl}" download="${row.gameId}.pgn">Download</a>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function renderGamesDownloadLinks(rows) {
+    if (!els.gamesDownloads) return;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      els.gamesDownloads.innerHTML = '';
+      return;
+    }
+    const limit = Math.min(rows.length, getCurrentDownloadLimit());
+    const chosen = rows.slice(0, limit);
+    const links = chosen.map((row) => `<a href="${row.pgnUrl}" download="${row.gameId}.pgn">${row.white || '?'} vs ${row.black || '?'} (${row.year || '?'})</a>`);
+    const paywall = state.gamesTier === 'free' && rows.length > limit
+      ? '<div class="openingdb-games-status">Upgrade to Premium to download more games.</div>'
+      : '';
+    els.gamesDownloads.innerHTML = `<div class="openingdb-games-status">Download list (${limit}/${rows.length})</div>${links.join('')}${paywall}`;
+  }
+
+  function parseFilenameFromContentDisposition(value, fallback) {
+    const raw = String(value || '');
+    const matchStar = raw.match(/filename\*=UTF-8''([^;]+)/i);
+    if (matchStar && matchStar[1]) {
+      try {
+        return decodeURIComponent(matchStar[1].replace(/["']/g, ''));
+      } catch (_err) {
+        // ignore
+      }
+    }
+    const match = raw.match(/filename="?([^";]+)"?/i);
+    if (match && match[1]) return match[1];
+    return fallback;
+  }
+
+  async function triggerGamesZipDownload() {
+    if (!state.game) return;
+    const fenHash = hashFen(state.game.fen());
+    const limit = getCurrentDownloadLimit();
+    const body = {
+      fenHash,
+      limit,
+      filters: {
+        yearMin: Number.parseInt(String(els.gamesYearMin?.value || ''), 10) || null,
+        yearMax: Number.parseInt(String(els.gamesYearMax?.value || ''), 10) || null,
+        eloMin: Number.parseInt(String(els.gamesEloMin?.value || ''), 10) || null,
+        result: normalizeResultFilterForApi(els.gamesResult?.value || 'all')
+      }
+    };
+
+    const tierQuery = state.gamesTier === 'premium' ? '?tier=premium' : '';
+    const url = `${state.gamesBaseRoot}/${state.gamesVersion}/download.zip${tierQuery}`;
+    const originalLabel = els.downloadGamesBtn ? els.downloadGamesBtn.textContent : '';
+
+    if (els.downloadGamesBtn) {
+      els.downloadGamesBtn.disabled = true;
+      els.downloadGamesBtn.textContent = 'Preparing ZIP...';
+    }
+    setGamesStatus(`Preparing ZIP for ${fenHash}...`);
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-caissa-tier': state.gamesTier
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!res.ok) {
+        let detail = '';
+        try {
+          const errJson = await res.json();
+          detail = errJson?.error || '';
+        } catch (_err) {
+          detail = '';
+        }
+        throw new Error(detail || `HTTP ${res.status}`);
+      }
+
+      const blob = await res.blob();
+      const fallbackName = `caissa-games_${fenHash.slice(0, 8)}.zip`;
+      const filename = parseFilenameFromContentDisposition(res.headers.get('content-disposition'), fallbackName);
+      const urlObj = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = urlObj;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(urlObj);
+
+      const truncated = String(res.headers.get('x-caissa-truncated') || '').toLowerCase() === 'true';
+      if (truncated) {
+        setGamesStatus(`ZIP downloaded (${filename}) - truncated by size cap, see index.txt.`);
+      } else {
+        setGamesStatus(`ZIP downloaded (${filename}).`);
+      }
+    } catch (error) {
+      console.warn('[OpeningDB] ZIP download failed', error);
+      setGamesStatus(`ZIP download failed: ${error?.message || 'unknown error'}`);
+    } finally {
+      if (els.downloadGamesBtn) {
+        els.downloadGamesBtn.disabled = false;
+        els.downloadGamesBtn.textContent = originalLabel || `Download top ${limit} (ZIP)`;
+      }
+      updateDownloadButtonLabel();
+    }
+  }
+
+  async function runGamesSearch() {
+    if (!state.game) return;
+    const fenHash = hashFen(state.game.fen());
+    const shard = fenHash.slice(0, 2);
+    setGamesStatus(`Searching... fenHash=${fenHash}`);
+
+    const shardData = await loadGamesShard(shard);
+    const allGameIds = shardData && Array.isArray(shardData[fenHash]) ? shardData[fenHash] : [];
+    if (!allGameIds.length) {
+      state.gamesResults = [];
+      renderGamesRows([]);
+      if (els.gamesDownloads) els.gamesDownloads.innerHTML = '';
+      setGamesStatus('No indexed games for this position.');
+      return;
+    }
+
+    const previewCap = getCurrentPreviewLimit();
+    const gameIds = allGameIds.slice(0, previewCap);
+    const prefixes = Array.from(new Set(gameIds.map((id) => String(id || '').slice(2, 4).toLowerCase()).filter((p) => /^[0-9a-f]{2}$/.test(p))));
+
+    const catalogs = await Promise.all(prefixes.map((prefix) => loadGamesCatalogPrefix(prefix)));
+    const mergedCatalog = {};
+    catalogs.forEach((cat) => {
+      if (cat && typeof cat === 'object') {
+        Object.assign(mergedCatalog, cat);
+      }
+    });
+
+    const rows = gameIds.map((gameId) => {
+      const meta = mergedCatalog[gameId] || {};
+      return {
+        gameId,
+        white: meta.white || 'Unknown',
+        black: meta.black || 'Unknown',
+        result: meta.result || '?',
+        event: meta.event || '',
+        site: meta.site || '',
+        year: meta.year || null,
+        whiteElo: meta.whiteElo || null,
+        blackElo: meta.blackElo || null,
+        pgnKey: meta.pgnKey || '',
+        pgnUrl: meta.pgnKey
+          ? `${state.gamesBaseRoot}/${meta.pgnKey.replace(/^openingdb\/games\/[^/]+\//, `${state.gamesVersion}/`)}`
+          : buildPgnUrl(gameId)
+      };
+    }).filter(passesGamesFilters);
+
+    state.gamesResults = rows;
+    renderGamesRows(rows);
+    if (els.gamesDownloads) {
+      const shown = Math.min(rows.length, getCurrentDownloadLimit());
+      els.gamesDownloads.innerHTML = `<div class="openingdb-games-status">ZIP ready: up to ${shown} games with current tier/filters.</div>`;
+    }
+
+    const hidden = allGameIds.length > gameIds.length ? ` (showing ${gameIds.length}/${allGameIds.length})` : '';
+    setGamesStatus(`Found ${rows.length} games${hidden}`);
+  }
+
+  async function viewGamePgn(gameIndex) {
+    const idx = Number(gameIndex);
+    if (!Number.isInteger(idx) || idx < 0 || idx >= state.gamesResults.length) return;
+    const row = state.gamesResults[idx];
+    if (!row) return;
+
+    if (state.gamesTier !== 'premium' && state.pgnViewsUsed >= FREE_PGN_VIEW_LIMIT) {
+      setGamesStatus(`Free limit reached (${FREE_PGN_VIEW_LIMIT} PGN views/session). Upgrade to Premium.`);
+      return;
+    }
+
+    const pgnText = await loadGamePgnText(row);
+    if (!pgnText) {
+      setGamesStatus(`PGN unavailable for ${row.gameId}.`);
+      return;
+    }
+
+    if (state.gamesTier !== 'premium') {
+      state.pgnViewsUsed += 1;
+      persistPgnViewCounter();
+    }
+
+    if (els.gamesPgnTitle) {
+      els.gamesPgnTitle.textContent = `${row.white || '?'} vs ${row.black || '?'} (${row.result || '?'})`;
+    }
+    if (els.gamesPgnText) {
+      els.gamesPgnText.value = pgnText;
+    }
+    if (els.gamesPgnViewer) {
+      els.gamesPgnViewer.hidden = false;
+    }
+    const usedText = state.gamesTier === 'premium' ? 'premium' : `${state.pgnViewsUsed}/${FREE_PGN_VIEW_LIMIT}`;
+    setGamesStatus(`PGN loaded (${usedText}).`);
+  }
+
   function applyMoveFromRow(row) {
     if (!row || !state.game) return false;
 
@@ -722,6 +1242,7 @@
     els.openingLabel.textContent = openingText;
 
     renderStatsRows(rows);
+    checkTransitionState(rows, ply);
 
     if (!state.datasetsLoaded) {
       els.lookupStatus.textContent = state.datasetsError || 'Loading datasets...';
@@ -748,11 +1269,14 @@
     let ecoCodesLoaded = false;
     let manifestReady = false;
     let manifestSource = 'fallback';
+    let gamesManifestReady = false;
+    let gamesManifestSource = 'fallback';
 
     try {
-      const [ecoCodesRes, manifestResult] = await Promise.allSettled([
+      const [ecoCodesRes, manifestResult, gamesManifestResult] = await Promise.allSettled([
         fetch('/data/eco/eco_codes.json', { cache: 'force-cache' }),
-        loadOpeningDbManifest()
+        loadOpeningDbManifest(),
+        loadOpeningDbGamesManifest()
       ]);
 
       if (ecoCodesRes.status === 'fulfilled' && ecoCodesRes.value.ok) {
@@ -778,12 +1302,21 @@
         manifestSource = 'fallback';
       }
 
+      if (gamesManifestResult.status === 'fulfilled') {
+        gamesManifestReady = !!gamesManifestResult.value?.ok || !state.gamesManifestFallback;
+        gamesManifestSource = gamesManifestResult.value?.source || gamesManifestSource;
+      } else {
+        gamesManifestReady = false;
+        gamesManifestSource = 'fallback';
+      }
+
       state.datasetsLoaded = true;
       state.datasetsError = '';
 
       const missing = [];
       if (!ecoCodesLoaded) missing.push('eco_codes.json');
       if (!manifestReady) missing.push('openingdb/manifest.json');
+      if (!gamesManifestReady) missing.push('openingdb/games/manifest.json');
       if (missing.length > 0) {
         showDatasetBanner(`Lookup partially unavailable: missing ${missing.join(', ')}`);
       } else {
@@ -794,9 +1327,13 @@
         ecoCodesLoaded,
         manifestReady,
         manifestSource,
+        gamesManifestReady,
+        gamesManifestSource,
         shardBase: state.shardBaseUrl || SHARD_BASE,
         activeDbVersion: state.activeDbVersion,
-        dbVersionFallback: state.dbVersionFallback
+        dbVersionFallback: state.dbVersionFallback,
+        gamesBaseRoot: state.gamesBaseRoot,
+        gamesVersion: state.gamesVersion
       });
     } catch (error) {
       state.datasetsLoaded = false;
@@ -807,18 +1344,31 @@
         ecoCodesLoaded,
         manifestReady,
         manifestSource,
+        gamesManifestReady,
+        gamesManifestSource,
         shardBase: state.shardBaseUrl || SHARD_BASE,
         activeDbVersion: state.activeDbVersion,
-        dbVersionFallback: state.dbVersionFallback
+        dbVersionFallback: state.dbVersionFallback,
+        gamesBaseRoot: state.gamesBaseRoot,
+        gamesVersion: state.gamesVersion
       });
     }
 
     updateTurnPlyLabel(state.game ? state.game.history({ verbose: false }).length : 0);
+    updateDownloadButtonLabel();
+    setGamesStatus('Ready to search.');
     scheduleOpeningDbPrefetch();
     updatePositionView();
   }
 
   function bindEvents() {
+    if (els.tabMoves) {
+      els.tabMoves.addEventListener('click', () => setActiveTab('moves'));
+    }
+    if (els.tabGames) {
+      els.tabGames.addEventListener('click', () => setActiveTab('games'));
+    }
+
     els.startBtn.addEventListener('click', () => {
       state.game.reset();
       state.board.position('start', false);
@@ -887,6 +1437,62 @@
       const row = state.currentRows[idx];
       applyMoveFromRow(row);
     });
+
+    if (els.searchGamesBtn) {
+      els.searchGamesBtn.addEventListener('click', () => {
+        runGamesSearch();
+      });
+    }
+
+    if (els.transitionSearchGamesBtn) {
+      els.transitionSearchGamesBtn.addEventListener('click', () => {
+        setActiveTab('games');
+        runGamesSearch();
+      });
+    }
+
+    if (els.analyzePositionBtn) {
+      els.analyzePositionBtn.addEventListener('click', () => {
+        setGamesStatus('Analyze Position will be enabled in a later phase.');
+      });
+    }
+
+    if (els.downloadGamesBtn) {
+      els.downloadGamesBtn.addEventListener('click', () => {
+        triggerGamesZipDownload();
+      });
+    }
+
+    if (els.gamesBody) {
+      els.gamesBody.addEventListener('click', (event) => {
+        const target = event.target && event.target.closest ? event.target.closest('[data-action]') : null;
+        if (!target) return;
+        const action = target.getAttribute('data-action');
+        const idx = Number(target.getAttribute('data-game-index'));
+        if (action === 'view') {
+          event.preventDefault();
+          viewGamePgn(idx);
+        }
+      });
+    }
+
+    if (els.gamesPgnCloseBtn) {
+      els.gamesPgnCloseBtn.addEventListener('click', () => {
+        if (els.gamesPgnViewer) els.gamesPgnViewer.hidden = true;
+      });
+    }
+
+    if (els.gamesPgnCopyBtn) {
+      els.gamesPgnCopyBtn.addEventListener('click', async () => {
+        if (!els.gamesPgnText || !els.gamesPgnText.value) return;
+        try {
+          await navigator.clipboard.writeText(els.gamesPgnText.value);
+          setGamesStatus('PGN copied to clipboard.');
+        } catch (_err) {
+          setGamesStatus('Clipboard copy failed.');
+        }
+      });
+    }
 
     window.addEventListener('resize', () => {
       if (state.board && typeof state.board.resize === 'function') {
@@ -978,8 +1584,13 @@
     }
 
     try {
+      state.gamesTier = getTierFromUrl();
+      hydratePgnViewCounter();
       initBoard();
       bindEvents();
+      setActiveTab('moves');
+      updateDownloadButtonLabel();
+      setGamesStatus('Ready to search.');
       updatePositionView();
       loadDatasets();
     } catch (err) {

@@ -92,26 +92,98 @@
           </div>
           <div id="odbDatasetBanner" class="openingdb-dataset-banner" hidden></div>
 
-          <div class="openingdb-table-wrap">
-            <table class="openingdb-stats-table">
-              <thead>
-                <tr>
-                  <th class="col-move">Move</th>
-                  <th class="col-value">Value</th>
-                  <th>Games</th>
-                  <th class="col-perc">Perc.</th>
-                  <th class="col-wdl">Win% (W/D/L)</th>
-                  <th>Elo</th>
-                  <th>Perf.</th>
-                  <th>Year</th>
-                </tr>
-              </thead>
-              <tbody id="odbStatsBody">
-                <tr>
-                  <td colspan="8" class="openingdb-empty">No data for this position yet (TBD).</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="openingdb-tabs" role="tablist" aria-label="Explorer mode">
+            <button id="odbTabMoves" class="openingdb-tab active" type="button" role="tab" aria-selected="true">Moves</button>
+            <button id="odbTabGames" class="openingdb-tab" type="button" role="tab" aria-selected="false">Search Games</button>
+          </div>
+
+          <div id="odbMovesPanel" class="openingdb-tab-panel">
+            <div class="openingdb-table-wrap">
+              <table class="openingdb-stats-table">
+                <thead>
+                  <tr>
+                    <th class="col-move">Move</th>
+                    <th class="col-value">Value</th>
+                    <th>Games</th>
+                    <th class="col-perc">Perc.</th>
+                    <th class="col-wdl">Win% (W/D/L)</th>
+                    <th>Elo</th>
+                    <th>Perf.</th>
+                    <th>Year</th>
+                  </tr>
+                </thead>
+                <tbody id="odbStatsBody">
+                  <tr>
+                    <td colspan="8" class="openingdb-empty">No data for this position yet (TBD).</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div id="odbTransitionPanel" class="odb-transition" hidden>
+              <h3>Entering Early Middlegame</h3>
+              <p id="odbTransitionMessage">
+                Position branching is narrowing. You are transitioning
+                from Opening Theory into Early Middlegame.
+              </p>
+              <div id="odbTransitionStats" class="odb-transition-stats"></div>
+              <div class="odb-transition-actions">
+                <button id="odbTransitionSearchGamesBtn" class="btn btn-secondary" type="button">Search Games From This Position</button>
+                <button id="odbAnalyzePositionBtn" class="btn btn-secondary" type="button" disabled>Analyze Position</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="odbGamesPanel" class="openingdb-tab-panel" hidden>
+            <div class="openingdb-games-controls">
+              <button id="odbSearchGamesBtn" class="btn btn-primary" type="button">Search Games From This Position</button>
+              <button id="odbDownloadGamesBtn" class="btn btn-secondary" type="button">Download top 10 (ZIP)</button>
+            </div>
+            <div class="openingdb-games-filters">
+              <label>Year Min <input id="odbGamesYearMin" type="number" min="1000" max="3000" placeholder="1900"></label>
+              <label>Year Max <input id="odbGamesYearMax" type="number" min="1000" max="3000" placeholder="2026"></label>
+              <label>Elo Min <input id="odbGamesEloMin" type="number" min="0" max="3500" placeholder="2400"></label>
+              <label>Result
+                <select id="odbGamesResult">
+                  <option value="all">All</option>
+                  <option value="1-0">White wins</option>
+                  <option value="1/2-1/2">Draw</option>
+                  <option value="0-1">Black wins</option>
+                </select>
+              </label>
+            </div>
+            <div id="odbGamesStatus" class="openingdb-games-status">Ready to search.</div>
+            <div class="openingdb-games-wrap">
+              <table class="openingdb-games-table">
+                <thead>
+                  <tr>
+                    <th>White</th>
+                    <th>Black</th>
+                    <th>Result</th>
+                    <th>Event</th>
+                    <th>Year</th>
+                    <th>Elo</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="odbGamesBody">
+                  <tr>
+                    <td colspan="7" class="openingdb-empty">No games loaded yet.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="odbGamesDownloads" class="openingdb-games-downloads"></div>
+            <div id="odbGamesPgnViewer" class="openingdb-games-pgn" hidden>
+              <div class="openingdb-games-pgn-header">
+                <strong id="odbGamesPgnTitle">PGN</strong>
+                <div class="openingdb-games-pgn-actions">
+                  <button id="odbGamesPgnCopyBtn" class="btn btn-secondary" type="button">Copy PGN</button>
+                  <button id="odbGamesPgnCloseBtn" class="btn btn-secondary" type="button">Close</button>
+                </div>
+              </div>
+              <textarea id="odbGamesPgnText" rows="12" readonly></textarea>
+            </div>
           </div>
         </section>
       </section>
@@ -121,6 +193,6 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="js/opening-database.js?v=1.0.10"></script>
+  <script src="js/opening-database.js?v=1.0.14"></script>
 </body>
 </html>

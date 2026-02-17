@@ -169,6 +169,30 @@
   background: rgba(255, 166, 89, 0.14);
 }
 
+.openingdb-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.openingdb-tab {
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.openingdb-tab.active {
+  background: var(--bg-tertiary);
+  font-weight: 700;
+}
+
+.openingdb-tab-panel[hidden] {
+  display: none !important;
+}
+
 .openingdb-table-wrap {
   max-height: 340px;
   overflow-x: auto;
@@ -276,6 +300,146 @@
   text-align: center;
 }
 
+.openingdb-games-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.openingdb-games-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(110px, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.openingdb-games-filters label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: grid;
+  gap: 4px;
+}
+
+.openingdb-games-filters input,
+.openingdb-games-filters select {
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.openingdb-games-status {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.openingdb-games-wrap {
+  max-height: 340px;
+  overflow: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.openingdb-games-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.openingdb-games-table th,
+.openingdb-games-table td {
+  border-bottom: 1px solid var(--border-color);
+  padding: 8px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.openingdb-games-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--panel-bg, var(--bg-secondary));
+}
+
+.openingdb-games-downloads {
+  margin-top: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.openingdb-games-downloads a {
+  color: #8ecbff;
+  font-size: 12px;
+}
+
+.openingdb-games-pgn {
+  margin-top: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px;
+  background: var(--bg-tertiary);
+}
+
+.openingdb-games-pgn-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.openingdb-games-pgn-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.openingdb-games-pgn textarea {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 8px;
+  font-family: 'Roboto Mono', monospace;
+}
+
+.odb-transition {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid #2c2c2c;
+  background: #111;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.odb-transition h3 {
+  margin-bottom: 8px;
+  color: #d4af37;
+}
+
+.odb-transition p {
+  margin: 0;
+  font-size: 14px;
+  color: #aaa;
+}
+
+.odb-transition-stats {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #888;
+}
+
+.odb-transition-actions {
+  margin-top: 15px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .openingdb-stats-table tr.row-win {
   background: rgba(39, 194, 106, 0.12);
 }
@@ -313,5 +477,9 @@
     top: 0;
     height: 100vh;
     z-index: 1000;
+  }
+
+  .openingdb-games-filters {
+    grid-template-columns: 1fr 1fr;
   }
 }

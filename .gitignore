@@ -38,3 +38,12 @@ build/
 .env.local
 .env.*.local
 .vercel
+
+# Opening DB / local datasets (never commit)
+data/openingdb/
+data/openingdb_games/
+data/pgn_samples/
+.wrangler/
+
+# Local artifacts
+*.png
