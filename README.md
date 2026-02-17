@@ -498,3 +498,34 @@ Response shape:
   ]
 }
 ```
+
+## OpeningDB Shards (R2)
+
+Build FEN->continuations shards locally:
+
+```bash
+npm run build:openingdb
+# or custom:
+node scripts/build-openingdb-index.js --in pgn --out data/openingdb/shards
+```
+
+Upload shards to R2 with versioned keys:
+
+```bash
+npm run upload:openingdb:r2
+# or custom:
+node scripts/upload-openingdb-shards-r2.js --dir data/openingdb/shards --version v1 --bucket caissa-openingdb
+```
+
+Deploy downloads worker:
+
+```bash
+cd downloads-worker
+npm run deploy
+```
+
+Version bump flow (`v1` -> `v2`):
+
+1. Rebuild shards.
+2. Upload using `--version v2`.
+3. Update the base URL used by `js/opening-database.js` (or set `window.CAISSA_OPENINGDB_BASE`) to point to `/openingdb/shards/v2`.

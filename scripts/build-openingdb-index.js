@@ -120,9 +120,8 @@ function parseAvgElo(headers) {
   const bElo = Number.parseInt(String(headers.BlackElo || '').replace(/[^\d]/g, ''), 10);
   const hasW = Number.isFinite(wElo) && wElo > 0;
   const hasB = Number.isFinite(bElo) && bElo > 0;
-  if (!hasW && !hasB) return null;
-  if (hasW && hasB) return (wElo + bElo) / 2;
-  return hasW ? wElo : bElo;
+  if (!hasW || !hasB) return null;
+  return Math.round((wElo + bElo) / 2);
 }
 
 function moveToUci(move) {

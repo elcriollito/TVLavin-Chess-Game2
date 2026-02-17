@@ -10,6 +10,11 @@ workers_dev = true
 binding = "VAULT_BUCKET"
 bucket_name = "caissa-vault"
 
+# OpeningDB shards storage (preferred). If missing, worker falls back to VAULT_BUCKET.
+[[r2_buckets]]
+binding = "OPENINGDB_BUCKET"
+bucket_name = "caissa-openingdb"
+
 [[durable_objects.bindings]]
 name = "DOWNLOAD_COUNTER"
 class_name = "DownloadCounter"

@@ -291,6 +291,81 @@ async function handleDownloadCount(url, env, origin) {
   }
 }
 
+async function handleOpeningDbShard(path, env, origin, method = 'GET') {
+  const match = path.match(/^\/openingdb\/shards\/([a-zA-Z0-9._-]+)\/([0-9a-f]{2})(?:\.json)?$/i);
+  if (!match) {
+    return new Response(JSON.stringify({
+      error: 'Invalid openingdb shard route',
+      expected: '/openingdb/shards/:version/:shard(.json)'
+    }), {
+      status: 400,
+      headers: {
+        'Content-Type': 'application/json',
+        ...getCorsHeaders(origin)
+      }
+    });
+  }
+
+  const version = String(match[1] || '').trim();
+  const shard = String(match[2] || '').toLowerCase();
+  const key = `openingdb/shards/${version}/${shard}.json`;
+  const bucket = env.OPENINGDB_BUCKET || env.VAULT_BUCKET;
+
+  if (!bucket) {
+    return new Response(JSON.stringify({
+      error: 'Storage bucket not configured',
+      key
+    }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        ...getCorsHeaders(origin)
+      }
+    });
+  }
+
+  try {
+    const object = await bucket.get(key);
+    if (!object) {
+      return new Response(JSON.stringify({
+        error: 'Shard not found',
+        shard,
+        version
+      }), {
+        status: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getCorsHeaders(origin)
+        }
+      });
+    }
+
+    return new Response(method === 'HEAD' ? null : object.body, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Length': String(object.size || 0),
+        'ETag': object.etag || '',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        ...getCorsHeaders(origin)
+      }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({
+      error: 'Failed to read shard',
+      shard,
+      version,
+      message: error?.message || String(error)
+    }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        ...getCorsHeaders(origin)
+      }
+    });
+  }
+}
+
 // ============================================================================
 // MAIN HANDLER
 // ============================================================================
@@ -332,6 +407,22 @@ async function handleRequest(request, env) {
   // Download count endpoints
   if (path === '/api/download-count' && request.method === 'GET') {
     return handleDownloadCount(url, env, origin);
+  }
+
+  // OpeningDB shard endpoint:
+  // /openingdb/shards/{version}/{shard}
+  // /openingdb/shards/{version}/{shard}.json
+  if (path.startsWith('/openingdb/shards/')) {
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+        status: 405,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getCorsHeaders(origin)
+        }
+      });
+    }
+    return handleOpeningDbShard(path, env, origin, request.method);
   }
 
   // Download endpoint: /download/{slug}
@@ -377,6 +468,7 @@ async function handleRequest(request, env) {
       '/health',
       '/catalog',
       '/download/{slug}',
+      '/openingdb/shards/{version}/{shard}.json',
       '/api/download-count?slug=caissa-book-creator'
     ]
   }), {

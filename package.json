@@ -15,6 +15,7 @@
     "build:eco-position-map": "node scripts/build-eco-position-map.js --out public/data/eco/eco_position_map.json",
     "build:opening-book": "node scripts/build-opening-book.js --pgnDir data/pgn --outDir public/data/book_chunks --maxPlies 16",
     "build:openingdb": "node scripts/build-openingdb-index.js --in data/pgn_db --out data/openingdb/shards",
+    "upload:openingdb:r2": "node scripts/upload-openingdb-shards-r2.js --dir data/openingdb/shards --version v1",
     "test:opening-known-lines": "node scripts/verify-known-lines.js",
     "fics:gateway": "node server/fics-gateway.cjs",
     "fics:dev": "node server/fics-gateway.cjs"

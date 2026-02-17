@@ -12,6 +12,12 @@
     currentRows: []
   };
 
+  const SHARD_BASE = (() => {
+    const configured = String(window.CAISSA_OPENINGDB_BASE || '').trim();
+    return configured || 'https://downloads.caissa-chess.org/openingdb/shards/v1';
+  })();
+  const SHARD_FETCH_TIMEOUT_MS = 4000;
+
   const els = {
     board: document.getElementById('openingDbBoard'),
     moveList: document.getElementById('odbMoveList'),
@@ -245,6 +251,44 @@
     return Number.isFinite(n) ? n : null;
   }
 
+  function getShardSessionCacheKey(shard) {
+    return `caissa.openingdb.shard.${shard}`;
+  }
+
+  function readShardFromSession(shard) {
+    try {
+      if (!window.sessionStorage) return null;
+      const raw = sessionStorage.getItem(getShardSessionCacheKey(shard));
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (_err) {
+      return null;
+    }
+  }
+
+  function writeShardToSession(shard, payload) {
+    try {
+      if (!window.sessionStorage) return;
+      sessionStorage.setItem(getShardSessionCacheKey(shard), JSON.stringify(payload));
+    } catch (_err) {
+      // Ignore cache write errors.
+    }
+  }
+
+  async function fetchJsonWithTimeout(url, timeoutMs) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { cache: 'force-cache', signal: controller.signal });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (_err) {
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async function loadOpeningDbShard(shard) {
     if (!/^[0-9a-f]{2}$/.test(shard)) return null;
 
@@ -252,15 +296,31 @@
       return state.openingDbShardCache.get(shard);
     }
 
+    const fromSession = readShardFromSession(shard);
+    if (fromSession && typeof fromSession === 'object') {
+      state.openingDbShardCache.set(shard, fromSession);
+      return fromSession;
+    }
+
     try {
-      const res = await fetch(`/data/openingdb/shards/${shard}.json`, { cache: 'force-cache' });
-      if (!res.ok) {
-        state.openingDbShardCache.set(shard, null);
-        return null;
+      const remoteUrl = `${SHARD_BASE}/${shard}.json`;
+      let json = await fetchJsonWithTimeout(remoteUrl, SHARD_FETCH_TIMEOUT_MS);
+      let source = 'remote';
+
+      if (!json || typeof json !== 'object') {
+        source = 'local-fallback';
+        json = await fetchJsonWithTimeout(`/data/openingdb/shards/${shard}.json`, SHARD_FETCH_TIMEOUT_MS);
       }
-      const json = await res.json();
+
+      if (!json || typeof json !== 'object') {
+        source = 'sample-fallback';
+        json = await fetchJsonWithTimeout(`/data/openingdb/shards_sample/${shard}.json`, SHARD_FETCH_TIMEOUT_MS);
+      }
+
       const payload = json && typeof json === 'object' ? json : null;
       state.openingDbShardCache.set(shard, payload);
+      if (payload) writeShardToSession(shard, payload);
+      debugLog('shard loaded', { shard, source, base: SHARD_BASE });
       return payload;
     } catch (_err) {
       state.openingDbShardCache.set(shard, null);
@@ -356,7 +416,7 @@
       draws: drawsPct,
       losses: lossesPct,
       value,
-      elo: raw.elo || null,
+      elo: toNumberOrNull(raw.avgElo) ?? toNumberOrNull(raw.elo) ?? null,
       perf: raw.perf || null,
       year: raw.year || raw.lastYear || raw.lastYearSeen || null,
       w,
@@ -430,7 +490,7 @@
               <div class="l" style="width:${lPct.toFixed(1)}%"><span>${lPct.toFixed(1)}%</span></div>
             </div>
           </td>
-          <td>${row.elo || 'TBD'}</td>
+          <td>${Number.isFinite(Number(row.elo)) ? Math.round(Number(row.elo)) : '—'}</td>
           <td>${row.perf || 'TBD'}</td>
           <td>${year}</td>
         </tr>
@@ -571,12 +631,11 @@
 
   async function loadDatasets() {
     let ecoCodesLoaded = false;
-    let openingDbIndexLoaded = false;
+    let shardBaseReady = true;
 
     try {
-      const [ecoCodesRes, openingDbIndexRes] = await Promise.allSettled([
-        fetch('/data/eco/eco_codes.json', { cache: 'force-cache' }),
-        fetch('/data/openingdb/shards/index.json', { cache: 'force-cache' })
+      const [ecoCodesRes] = await Promise.allSettled([
+        fetch('/data/eco/eco_codes.json', { cache: 'force-cache' })
       ]);
 
       if (ecoCodesRes.status === 'fulfilled' && ecoCodesRes.value.ok) {
@@ -594,17 +653,12 @@
         }
       }
 
-      if (openingDbIndexRes.status === 'fulfilled' && openingDbIndexRes.value.ok) {
-        await openingDbIndexRes.value.json();
-        openingDbIndexLoaded = true;
-      }
-
       state.datasetsLoaded = true;
       state.datasetsError = '';
 
       const missing = [];
       if (!ecoCodesLoaded) missing.push('eco_codes.json');
-      if (!openingDbIndexLoaded) missing.push('openingdb/shards/index.json');
+      if (!shardBaseReady) missing.push('openingdb shard base');
       if (missing.length > 0) {
         showDatasetBanner(`Lookup partially unavailable: missing ${missing.join(', ')}`);
       } else {
@@ -613,7 +667,8 @@
 
       debugLog('datasets loaded', {
         ecoCodesLoaded,
-        openingDbIndexLoaded
+        shardBaseReady,
+        shardBase: SHARD_BASE
       });
     } catch (error) {
       state.datasetsLoaded = false;
@@ -622,7 +677,8 @@
       console.warn('[OpeningDB] dataset load error', error);
       debugLog('datasets loaded', {
         ecoCodesLoaded,
-        openingDbIndexLoaded
+        shardBaseReady,
+        shardBase: SHARD_BASE
       });
     }
 
