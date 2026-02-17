@@ -27,6 +27,7 @@
   const DEFAULT_SHARD_ROOT = 'https://downloads.caissa-chess.org/openingdb/shards';
   const DEFAULT_ACTIVE_VERSION = 'v1';
   const MANIFEST_URL = 'https://downloads.caissa-chess.org/openingdb/manifest.json';
+  const LOCAL_MANIFEST_URL = '/openingdb/manifest.json';
   const MANIFEST_TTL_MS = 5 * 60 * 1000;
   const SHARD_PREFETCH_DELAY_MS = 200;
   const SHARD_BASE = (() => {
@@ -38,6 +39,7 @@
   const SHARD_FETCH_TIMEOUT_MS = 4000;
   const MANIFEST_FETCH_TIMEOUT_MS = 2000;
   const GAMES_MANIFEST_URL = 'https://downloads.caissa-chess.org/openingdb/games/manifest.json';
+  const LOCAL_GAMES_MANIFEST_URL = '/openingdb/games/manifest.json';
   const GAMES_MANIFEST_TTL_MS = 5 * 60 * 1000;
   const GAMES_FETCH_TIMEOUT_MS = 4000;
   const FREE_GAME_PREVIEW_LIMIT = 20;
@@ -487,9 +489,11 @@
     const m = manifest && typeof manifest === 'object' ? manifest : {};
     const activeVersion = String(m.activeVersion || DEFAULT_ACTIVE_VERSION).trim() || DEFAULT_ACTIVE_VERSION;
     const baseRoot = String(m.baseUrl || DEFAULT_SHARD_ROOT).trim() || DEFAULT_SHARD_ROOT;
+    const normalizedBase = baseRoot.replace(/\/+$/, '');
+    const alreadyVersioned = normalizedBase.toLowerCase().endsWith(`/${activeVersion.toLowerCase()}`);
     state.activeDbVersion = activeVersion;
     state.dbVersionFallback = !!fallback;
-    state.shardBaseUrl = `${baseRoot.replace(/\/+$/, '')}/${activeVersion}`;
+    state.shardBaseUrl = alreadyVersioned ? normalizedBase : `${normalizedBase}/${activeVersion}`;
   }
 
   async function loadOpeningDbManifest() {
@@ -497,6 +501,13 @@
     if (cached) {
       applyManifest(cached, false);
       return { source: 'session-cache', ok: true };
+    }
+
+    const localManifest = await fetchJsonWithTimeout(LOCAL_MANIFEST_URL, MANIFEST_FETCH_TIMEOUT_MS);
+    if (localManifest && typeof localManifest === 'object') {
+      writeManifestToSession(localManifest);
+      applyManifest(localManifest, false);
+      return { source: 'local-site-manifest', ok: true };
     }
 
     const remoteManifestUrl = MANIFEST_OVERRIDE_URL || MANIFEST_URL;
@@ -507,9 +518,9 @@
       return { source: 'remote', ok: true };
     }
 
-    const localManifest = await fetchJsonWithTimeout('/data/openingdb/manifest.json', MANIFEST_FETCH_TIMEOUT_MS);
-    if (localManifest && typeof localManifest === 'object') {
-      applyManifest(localManifest, false);
+    const localDataManifest = await fetchJsonWithTimeout('/data/openingdb/manifest.json', MANIFEST_FETCH_TIMEOUT_MS);
+    if (localDataManifest && typeof localDataManifest === 'object') {
+      applyManifest(localDataManifest, false);
       return { source: 'local-manifest', ok: true };
     }
 
@@ -527,6 +538,22 @@
       state.gamesBaseRoot = String(cached.baseUrl || state.gamesBaseRoot).replace(/\/+$/, '');
       state.gamesManifestFallback = false;
       return { source: 'session-cache', ok: true };
+    }
+
+    const localSiteManifest = await fetchJsonWithTimeout(LOCAL_GAMES_MANIFEST_URL, MANIFEST_FETCH_TIMEOUT_MS);
+    if (localSiteManifest && typeof localSiteManifest === 'object') {
+      const status = String(localSiteManifest.status || '').toLowerCase();
+      if (status === 'pending') {
+        state.gamesVersion = String(localSiteManifest.activeVersion || state.gamesVersion || 'v1');
+        state.gamesBaseRoot = String(localSiteManifest.baseUrl || state.gamesBaseRoot).replace(/\/+$/, '');
+        state.gamesManifestFallback = true;
+        return { source: 'local-site-pending', ok: true };
+      }
+      writeGamesManifestToSession(localSiteManifest);
+      state.gamesVersion = String(localSiteManifest.activeVersion || 'v1');
+      state.gamesBaseRoot = String(localSiteManifest.baseUrl || state.gamesBaseRoot).replace(/\/+$/, '');
+      state.gamesManifestFallback = false;
+      return { source: 'local-site-manifest', ok: true };
     }
 
     const remote = await fetchJsonWithTimeout(GAMES_MANIFEST_URL, MANIFEST_FETCH_TIMEOUT_MS);
