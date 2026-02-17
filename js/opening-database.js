@@ -5,6 +5,9 @@
     boardFlipped: false,
     ecoCodeDefs: [],
     openingDbShardCache: new Map(),
+    shardBaseUrl: '',
+    activeDbVersion: 'v1',
+    dbVersionFallback: true,
     datasetsLoaded: false,
     datasetsError: '',
     positionRequestId: 0,
@@ -12,11 +15,19 @@
     currentRows: []
   };
 
+  const DEFAULT_SHARD_ROOT = 'https://downloads.caissa-chess.org/openingdb/shards';
+  const DEFAULT_ACTIVE_VERSION = 'v1';
+  const MANIFEST_URL = 'https://downloads.caissa-chess.org/openingdb/manifest.json';
+  const MANIFEST_TTL_MS = 5 * 60 * 1000;
+  const SHARD_PREFETCH_DELAY_MS = 200;
   const SHARD_BASE = (() => {
     const configured = String(window.CAISSA_OPENINGDB_BASE || '').trim();
-    return configured || 'https://downloads.caissa-chess.org/openingdb/shards/v1';
+    if (configured) return configured;
+    return `${DEFAULT_SHARD_ROOT}/${DEFAULT_ACTIVE_VERSION}`;
   })();
+  const MANIFEST_OVERRIDE_URL = String(window.CAISSA_OPENINGDB_MANIFEST_URL || '').trim();
   const SHARD_FETCH_TIMEOUT_MS = 4000;
+  const MANIFEST_FETCH_TIMEOUT_MS = 2000;
 
   const els = {
     board: document.getElementById('openingDbBoard'),
@@ -255,6 +266,47 @@
     return `caissa.openingdb.shard.${shard}`;
   }
 
+  function getManifestSessionCacheKey() {
+    return 'openingdb_manifest_cache';
+  }
+
+  function getDbVersionLabel() {
+    return `DB: ${state.activeDbVersion}${state.dbVersionFallback ? ' (fallback)' : ''}`;
+  }
+
+  function updateTurnPlyLabel(ply) {
+    if (!els.turnPly) return;
+    const turnLabel = state.game.turn() === 'w' ? 'White' : 'Black';
+    els.turnPly.textContent = `Turn: ${turnLabel} | Ply: ${ply} | ${getDbVersionLabel()}`;
+  }
+
+  function readManifestFromSession() {
+    try {
+      if (!window.sessionStorage) return null;
+      const raw = sessionStorage.getItem(getManifestSessionCacheKey());
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return null;
+      const ts = Number(parsed.ts) || 0;
+      if (Date.now() - ts > MANIFEST_TTL_MS) return null;
+      return parsed.manifest || null;
+    } catch (_err) {
+      return null;
+    }
+  }
+
+  function writeManifestToSession(manifest) {
+    try {
+      if (!window.sessionStorage) return;
+      sessionStorage.setItem(getManifestSessionCacheKey(), JSON.stringify({
+        ts: Date.now(),
+        manifest
+      }));
+    } catch (_err) {
+      // Ignore cache write errors.
+    }
+  }
+
   function readShardFromSession(shard) {
     try {
       if (!window.sessionStorage) return null;
@@ -289,6 +341,70 @@
     }
   }
 
+  function applyManifest(manifest, fallback = false) {
+    const m = manifest && typeof manifest === 'object' ? manifest : {};
+    const activeVersion = String(m.activeVersion || DEFAULT_ACTIVE_VERSION).trim() || DEFAULT_ACTIVE_VERSION;
+    const baseRoot = String(m.baseUrl || DEFAULT_SHARD_ROOT).trim() || DEFAULT_SHARD_ROOT;
+    state.activeDbVersion = activeVersion;
+    state.dbVersionFallback = !!fallback;
+    state.shardBaseUrl = `${baseRoot.replace(/\/+$/, '')}/${activeVersion}`;
+  }
+
+  async function loadOpeningDbManifest() {
+    const cached = readManifestFromSession();
+    if (cached) {
+      applyManifest(cached, false);
+      return { source: 'session-cache', ok: true };
+    }
+
+    const remoteManifestUrl = MANIFEST_OVERRIDE_URL || MANIFEST_URL;
+    const remoteManifest = await fetchJsonWithTimeout(remoteManifestUrl, MANIFEST_FETCH_TIMEOUT_MS);
+    if (remoteManifest && typeof remoteManifest === 'object') {
+      writeManifestToSession(remoteManifest);
+      applyManifest(remoteManifest, false);
+      return { source: 'remote', ok: true };
+    }
+
+    const localManifest = await fetchJsonWithTimeout('/data/openingdb/manifest.json', MANIFEST_FETCH_TIMEOUT_MS);
+    if (localManifest && typeof localManifest === 'object') {
+      applyManifest(localManifest, false);
+      return { source: 'local-manifest', ok: true };
+    }
+
+    applyManifest({
+      activeVersion: DEFAULT_ACTIVE_VERSION,
+      baseUrl: DEFAULT_SHARD_ROOT
+    }, true);
+    return { source: 'fallback', ok: false };
+  }
+
+  function prefetchShard(shard) {
+    if (!/^[0-9a-f]{2}$/.test(String(shard || ''))) return;
+    if (state.openingDbShardCache.has(shard)) return;
+    setTimeout(() => {
+      loadOpeningDbShard(shard).catch(() => {});
+    }, SHARD_PREFETCH_DELAY_MS);
+  }
+
+  function scheduleOpeningDbPrefetch() {
+    try {
+      const startFen = normalizeFenForHash(new Chess().fen());
+      const startHash = hashFen(startFen);
+      const startShard = startHash.slice(0, 2).toLowerCase();
+      prefetchShard(startShard);
+
+      const base = Number.parseInt(startShard, 16);
+      if (Number.isFinite(base)) {
+        const next1 = ((base + 1) & 0xff).toString(16).padStart(2, '0');
+        const next2 = ((base + 2) & 0xff).toString(16).padStart(2, '0');
+        prefetchShard(next1);
+        prefetchShard(next2);
+      }
+    } catch (_err) {
+      // Prefetch is best effort.
+    }
+  }
+
   async function loadOpeningDbShard(shard) {
     if (!/^[0-9a-f]{2}$/.test(shard)) return null;
 
@@ -303,7 +419,8 @@
     }
 
     try {
-      const remoteUrl = `${SHARD_BASE}/${shard}.json`;
+      const activeBase = state.shardBaseUrl || SHARD_BASE;
+      const remoteUrl = `${activeBase}/${shard}.json`;
       let json = await fetchJsonWithTimeout(remoteUrl, SHARD_FETCH_TIMEOUT_MS);
       let source = 'remote';
 
@@ -320,7 +437,7 @@
       const payload = json && typeof json === 'object' ? json : null;
       state.openingDbShardCache.set(shard, payload);
       if (payload) writeShardToSession(shard, payload);
-      debugLog('shard loaded', { shard, source, base: SHARD_BASE });
+      debugLog('shard loaded', { shard, source, base: activeBase });
       return payload;
     } catch (_err) {
       state.openingDbShardCache.set(shard, null);
@@ -490,7 +607,7 @@
               <div class="l" style="width:${lPct.toFixed(1)}%"><span>${lPct.toFixed(1)}%</span></div>
             </div>
           </td>
-          <td>${Number.isFinite(Number(row.elo)) ? Math.round(Number(row.elo)) : '—'}</td>
+          <td>${Number.isFinite(Number(row.elo)) ? Math.round(Number(row.elo)) : 'TBD'}</td>
           <td>${row.perf || 'TBD'}</td>
           <td>${year}</td>
         </tr>
@@ -585,9 +702,7 @@
     }
 
     updateMoveListFromGame(state.game);
-    if (els.turnPly) {
-      els.turnPly.textContent = `Turn: ${state.game.turn() === 'w' ? 'White' : 'Black'} | Ply: ${ply}`;
-    }
+    updateTurnPlyLabel(ply);
 
     const openingFallback = resolveOpeningByPrefix();
     const exactData = await getContinuationsForFen(fenHash);
@@ -631,11 +746,13 @@
 
   async function loadDatasets() {
     let ecoCodesLoaded = false;
-    let shardBaseReady = true;
+    let manifestReady = false;
+    let manifestSource = 'fallback';
 
     try {
-      const [ecoCodesRes] = await Promise.allSettled([
-        fetch('/data/eco/eco_codes.json', { cache: 'force-cache' })
+      const [ecoCodesRes, manifestResult] = await Promise.allSettled([
+        fetch('/data/eco/eco_codes.json', { cache: 'force-cache' }),
+        loadOpeningDbManifest()
       ]);
 
       if (ecoCodesRes.status === 'fulfilled' && ecoCodesRes.value.ok) {
@@ -653,12 +770,20 @@
         }
       }
 
+      if (manifestResult.status === 'fulfilled') {
+        manifestReady = !!manifestResult.value?.ok || !state.dbVersionFallback;
+        manifestSource = manifestResult.value?.source || manifestSource;
+      } else {
+        manifestReady = false;
+        manifestSource = 'fallback';
+      }
+
       state.datasetsLoaded = true;
       state.datasetsError = '';
 
       const missing = [];
       if (!ecoCodesLoaded) missing.push('eco_codes.json');
-      if (!shardBaseReady) missing.push('openingdb shard base');
+      if (!manifestReady) missing.push('openingdb/manifest.json');
       if (missing.length > 0) {
         showDatasetBanner(`Lookup partially unavailable: missing ${missing.join(', ')}`);
       } else {
@@ -667,8 +792,11 @@
 
       debugLog('datasets loaded', {
         ecoCodesLoaded,
-        shardBaseReady,
-        shardBase: SHARD_BASE
+        manifestReady,
+        manifestSource,
+        shardBase: state.shardBaseUrl || SHARD_BASE,
+        activeDbVersion: state.activeDbVersion,
+        dbVersionFallback: state.dbVersionFallback
       });
     } catch (error) {
       state.datasetsLoaded = false;
@@ -677,11 +805,16 @@
       console.warn('[OpeningDB] dataset load error', error);
       debugLog('datasets loaded', {
         ecoCodesLoaded,
-        shardBaseReady,
-        shardBase: SHARD_BASE
+        manifestReady,
+        manifestSource,
+        shardBase: state.shardBaseUrl || SHARD_BASE,
+        activeDbVersion: state.activeDbVersion,
+        dbVersionFallback: state.dbVersionFallback
       });
     }
 
+    updateTurnPlyLabel(state.game ? state.game.history({ verbose: false }).length : 0);
+    scheduleOpeningDbPrefetch();
     updatePositionView();
   }
 

@@ -285,7 +285,8 @@ async function handleDownloadCount(url, env, origin) {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
-        ...getCorsHeaders(origin)
+        ...getCorsHeaders(origin),
+        'Access-Control-Allow-Origin': '*'
       }
     });
   }
@@ -335,7 +336,8 @@ async function handleOpeningDbShard(path, env, origin, method = 'GET') {
         status: 404,
         headers: {
           'Content-Type': 'application/json',
-          ...getCorsHeaders(origin)
+          ...getCorsHeaders(origin),
+          'Access-Control-Allow-Origin': '*'
         }
       });
     }
@@ -361,6 +363,59 @@ async function handleOpeningDbShard(path, env, origin, method = 'GET') {
       headers: {
         'Content-Type': 'application/json',
         ...getCorsHeaders(origin)
+      }
+    });
+  }
+}
+
+async function handleOpeningDbManifest(env, origin, method = 'GET') {
+  const bucket = env.OPENINGDB_BUCKET || env.VAULT_BUCKET;
+  if (!bucket) {
+    return new Response(JSON.stringify({
+      error: 'Storage bucket not configured',
+      key: 'openingdb/manifest.json'
+    }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        ...getCorsHeaders(origin)
+      }
+    });
+  }
+
+  try {
+    const object = await bucket.get('openingdb/manifest.json');
+    if (!object) {
+      return new Response(JSON.stringify({ error: 'Manifest not found' }), {
+        status: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getCorsHeaders(origin)
+        }
+      });
+    }
+
+    return new Response(method === 'HEAD' ? null : object.body, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Length': String(object.size || 0),
+        'ETag': object.etag || '',
+        'Cache-Control': 'public, max-age=300',
+        ...getCorsHeaders(origin),
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({
+      error: 'Failed to read manifest',
+      message: error?.message || String(error)
+    }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        ...getCorsHeaders(origin),
+        'Access-Control-Allow-Origin': '*'
       }
     });
   }
@@ -407,6 +462,19 @@ async function handleRequest(request, env) {
   // Download count endpoints
   if (path === '/api/download-count' && request.method === 'GET') {
     return handleDownloadCount(url, env, origin);
+  }
+
+  if (path === '/openingdb/manifest.json') {
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+        status: 405,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getCorsHeaders(origin)
+        }
+      });
+    }
+    return handleOpeningDbManifest(env, origin, request.method);
   }
 
   // OpeningDB shard endpoint:
@@ -468,6 +536,7 @@ async function handleRequest(request, env) {
       '/health',
       '/catalog',
       '/download/{slug}',
+      '/openingdb/manifest.json',
       '/openingdb/shards/{version}/{shard}.json',
       '/api/download-count?slug=caissa-book-creator'
     ]

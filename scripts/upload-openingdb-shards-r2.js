@@ -11,7 +11,8 @@ function parseArgs(argv) {
   const args = {
     dir: DEFAULT_DIR,
     version: DEFAULT_VERSION,
-    bucket: DEFAULT_BUCKET
+    bucket: DEFAULT_BUCKET,
+    manifest: ''
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -24,6 +25,9 @@ function parseArgs(argv) {
       i += 1;
     } else if (token === '--bucket') {
       args.bucket = String(argv[i + 1] || args.bucket).trim();
+      i += 1;
+    } else if (token === '--manifest') {
+      args.manifest = path.resolve(argv[i + 1] || '');
       i += 1;
     }
   }
@@ -38,7 +42,7 @@ function getJsonFiles(dir) {
   if (!fs.existsSync(dir)) return [];
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   return entries
-    .filter((e) => e.isFile() && e.name.toLowerCase().endsWith('.json'))
+    .filter((e) => e.isFile() && /^[0-9a-f]{2}\.json$/i.test(e.name))
     .map((e) => path.join(dir, e.name))
     .sort((a, b) => path.basename(a).localeCompare(path.basename(b)));
 }
@@ -47,7 +51,7 @@ function getRunner() {
   return process.platform === 'win32' ? 'npx.cmd' : 'npx';
 }
 
-function uploadOne(filePath, key, bucket) {
+function uploadOne(filePath, key, bucket, cacheControl = 'public, max-age=31536000, immutable') {
   const runner = getRunner();
   const args = [
     'wrangler',
@@ -60,7 +64,7 @@ function uploadOne(filePath, key, bucket) {
     '--content-type',
     'application/json',
     '--cache-control',
-    'public, max-age=31536000, immutable'
+    cacheControl
   ];
 
   const result = spawnSync(runner, args, {
@@ -110,6 +114,30 @@ function main() {
     uploaded += 1;
     totalBytes += size;
     console.log(`[openingdb-upload] uploaded ${fileName} (${formatBytes(size)}) -> ${key}`);
+  }
+
+  if (args.manifest) {
+    if (!fs.existsSync(args.manifest)) {
+      throw new Error(`Manifest file not found: ${args.manifest}`);
+    }
+    const manifestSize = fs.statSync(args.manifest).size;
+    const manifestKey = 'openingdb/manifest.json';
+    const manifestRes = uploadOne(
+      args.manifest,
+      manifestKey,
+      args.bucket,
+      'public, max-age=300'
+    );
+    if (!manifestRes.ok) {
+      failed += 1;
+      console.error(`[openingdb-upload] FAILED manifest (${formatBytes(manifestSize)})`);
+      if (manifestRes.stderr.trim()) console.error(manifestRes.stderr.trim());
+      if (manifestRes.stdout.trim()) console.error(manifestRes.stdout.trim());
+    } else {
+      uploaded += 1;
+      totalBytes += manifestSize;
+      console.log(`[openingdb-upload] uploaded manifest (${formatBytes(manifestSize)}) -> ${manifestKey}`);
+    }
   }
 
   console.log(JSON.stringify({

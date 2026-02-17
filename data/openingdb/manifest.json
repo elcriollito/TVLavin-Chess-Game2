@@ -1,0 +1,26 @@
+{
+  "activeVersion": "v1",
+  "baseUrl": "https://downloads.caissa-chess.org/openingdb/shards",
+  "generatedAt": "2026-02-17T03:36:52.521Z",
+  "shardCount": 256,
+  "hash": {
+    "algo": "sha1",
+    "len": 16
+  },
+  "fenNormalization": "board turn castling ep (ignore half/fullmove)",
+  "topN": 60,
+  "maxPlies": 20,
+  "fields": [
+    "uci",
+    "san",
+    "games",
+    "w",
+    "d",
+    "l",
+    "lastYear",
+    "avgElo"
+  ],
+  "cache": {
+    "cacheControl": "public, max-age=300"
+  }
+}

@@ -517,6 +517,13 @@ npm run upload:openingdb:r2
 node scripts/upload-openingdb-shards-r2.js --dir data/openingdb/shards --version v1 --bucket caissa-openingdb
 ```
 
+Write manifest and upload with shards:
+
+```bash
+npm run write:openingdb:manifest
+node scripts/upload-openingdb-shards-r2.js --dir data/openingdb/shards --version v1 --manifest data/openingdb/manifest.json --bucket caissa-openingdb
+```
+
 Deploy downloads worker:
 
 ```bash
