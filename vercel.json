@@ -16,6 +16,7 @@
     { "source": "/about", "destination": "/about.html" },
     { "source": "/roadmap", "destination": "/roadmap.html" },
     { "source": "/opening-database", "destination": "/opening-database.html" },
+    { "source": "/opening-database/", "destination": "/opening-database.html" },
     { "source": "/signin", "destination": "/signin.html" },
     { "source": "/signup", "destination": "/signup.html" },
     { "source": "/data/:path*", "destination": "/public/data/:path*" },
