@@ -3,19 +3,14 @@
     game: null,
     board: null,
     boardFlipped: false,
-    openingPositionIndex: null,
     ecoCodeDefs: [],
-    bookChunkIndex: null,
-    bookChunkCache: new Map(),
-    cloudBookCache: new Map(),
+    openingDbShardCache: new Map(),
     datasetsLoaded: false,
     datasetsError: '',
     positionRequestId: 0,
     lastDebugFenKey: '',
     currentRows: []
   };
-
-  const CLOUD_BOOK_URL = 'https://caissa-game-fetcher.elcriollito.workers.dev/api/book';
 
   const els = {
     board: document.getElementById('openingDbBoard'),
@@ -74,21 +69,66 @@
     return `${parts[0]} ${parts[1] || 'w'} ${parts[2] || '-'} ${parts[3] || '-'}`;
   }
 
-  function fnv1a64(input) {
-    let hash = 0xcbf29ce484222325n;
-    const prime = 0x100000001b3n;
-    const text = String(input || '');
-
-    for (let i = 0; i < text.length; i += 1) {
-      hash ^= BigInt(text.charCodeAt(i));
-      hash = (hash * prime) & 0xffffffffffffffffn;
+  function sha1Hex(input) {
+    function rotl(n, s) {
+      return (n << s) | (n >>> (32 - s));
+    }
+    function toHex(i) {
+      return (`00000000${(i >>> 0).toString(16)}`).slice(-8);
     }
 
-    return hash.toString(16).padStart(16, '0');
+    const msg = unescape(encodeURIComponent(String(input || '')));
+    const words = [];
+    for (let i = 0; i < msg.length; i += 1) {
+      words[i >> 2] |= msg.charCodeAt(i) << (24 - (i % 4) * 8);
+    }
+    words[msg.length >> 2] |= 0x80 << (24 - (msg.length % 4) * 8);
+    words[(((msg.length + 8) >> 6) + 1) * 16 - 1] = msg.length * 8;
+
+    let h0 = 0x67452301;
+    let h1 = 0xefcdab89;
+    let h2 = 0x98badcfe;
+    let h3 = 0x10325476;
+    let h4 = 0xc3d2e1f0;
+
+    for (let i = 0; i < words.length; i += 16) {
+      const w = [];
+      for (let j = 0; j < 16; j += 1) w[j] = words[i + j] | 0;
+      for (let j = 16; j < 80; j += 1) w[j] = rotl(w[j - 3] ^ w[j - 8] ^ w[j - 14] ^ w[j - 16], 1);
+
+      let a = h0;
+      let b = h1;
+      let c = h2;
+      let d = h3;
+      let e = h4;
+
+      for (let j = 0; j < 80; j += 1) {
+        let f = 0;
+        let k = 0;
+        if (j < 20) { f = (b & c) | (~b & d); k = 0x5a827999; }
+        else if (j < 40) { f = b ^ c ^ d; k = 0x6ed9eba1; }
+        else if (j < 60) { f = (b & c) | (b & d) | (c & d); k = 0x8f1bbcdc; }
+        else { f = b ^ c ^ d; k = 0xca62c1d6; }
+        const temp = (rotl(a, 5) + f + e + k + (w[j] | 0)) | 0;
+        e = d;
+        d = c;
+        c = rotl(b, 30) | 0;
+        b = a;
+        a = temp;
+      }
+
+      h0 = (h0 + a) | 0;
+      h1 = (h1 + b) | 0;
+      h2 = (h2 + c) | 0;
+      h3 = (h3 + d) | 0;
+      h4 = (h4 + e) | 0;
+    }
+
+    return (toHex(h0) + toHex(h1) + toHex(h2) + toHex(h3) + toHex(h4)).toLowerCase();
   }
 
   function hashFen(fen) {
-    return fnv1a64(normalizeFenForHash(fen));
+    return sha1Hex(normalizeFenForHash(fen)).slice(0, 16);
   }
 
   function sanitizeNextMoveText(txt) {
@@ -205,37 +245,25 @@
     return Number.isFinite(n) ? n : null;
   }
 
-  function getOpeningIndexEntry(fenKey, hash) {
-    const root = state.openingPositionIndex;
-    if (!root) return null;
-
-    if (root.positions) {
-      return root.positions[fenKey] || root.positions[hash] || null;
-    }
-    return root[fenKey] || root[hash] || null;
-  }
-
-  async function getBookChunkEntriesForHash(hash) {
-    if (!state.bookChunkIndex) return null;
-    const shard = String(hash || '').slice(0, 2).toLowerCase();
+  async function loadOpeningDbShard(shard) {
     if (!/^[0-9a-f]{2}$/.test(shard)) return null;
 
-    if (state.bookChunkCache.has(shard)) {
-      return state.bookChunkCache.get(shard);
+    if (state.openingDbShardCache.has(shard)) {
+      return state.openingDbShardCache.get(shard);
     }
 
     try {
-      const res = await fetch(`/data/book_chunks/book_chunk_${shard}.json`, { cache: 'force-cache' });
+      const res = await fetch(`/data/openingdb/shards/${shard}.json`, { cache: 'force-cache' });
       if (!res.ok) {
-        state.bookChunkCache.set(shard, null);
+        state.openingDbShardCache.set(shard, null);
         return null;
       }
       const json = await res.json();
-      const entries = json && json.entries && typeof json.entries === 'object' ? json.entries : null;
-      state.bookChunkCache.set(shard, entries);
-      return entries;
+      const payload = json && typeof json === 'object' ? json : null;
+      state.openingDbShardCache.set(shard, payload);
+      return payload;
     } catch (_err) {
-      state.bookChunkCache.set(shard, null);
+      state.openingDbShardCache.set(shard, null);
       return null;
     }
   }
@@ -330,7 +358,7 @@
       value,
       elo: raw.elo || null,
       perf: raw.perf || null,
-      year: raw.year || raw.lastYearSeen || null,
+      year: raw.year || raw.lastYear || raw.lastYearSeen || null,
       w,
       d,
       l,
@@ -463,34 +491,16 @@
     };
   }
 
-  async function getContinuationsForFen(fen, fenKey, hash, ply) {
-    const fromIndex = getOpeningIndexEntry(fenKey, hash);
-    if (fromIndex) {
+  async function getContinuationsForFen(fenHash) {
+    const shard = String(fenHash || '').slice(0, 2).toLowerCase();
+    const shardData = await loadOpeningDbShard(shard);
+    const entry = shardData && typeof shardData === 'object' ? shardData[fenHash] : null;
+    if (entry) {
       return {
-        source: 'opening_position_index_exact',
-        entry: fromIndex,
-        rawCandidates: extractRawCandidates(fromIndex)
+        source: 'openingdb_shard_exact',
+        entry,
+        rawCandidates: extractRawCandidates(entry)
       };
-    }
-
-    const chunkEntries = await getBookChunkEntriesForHash(hash);
-    if (chunkEntries && chunkEntries[hash]) {
-      return {
-        source: 'book_chunks_exact',
-        entry: chunkEntries[hash],
-        rawCandidates: extractRawCandidates(chunkEntries[hash])
-      };
-    }
-
-    if (ply === 0) {
-      const cloud = await getCloudContinuationsByFen(fen);
-      if (cloud && Array.isArray(cloud.moves) && cloud.moves.length > 0) {
-        return {
-          source: 'cloud_book_exact',
-          entry: null,
-          rawCandidates: cloud.moves
-        };
-      }
     }
 
     return {
@@ -500,43 +510,13 @@
     };
   }
 
-  async function getCloudContinuationsByFen(fen) {
-    const fenKey = normalizeFenForHash(fen);
-    if (!fenKey) return null;
-    if (state.cloudBookCache.has(fenKey)) return state.cloudBookCache.get(fenKey);
-
-    try {
-      const url = `${CLOUD_BOOK_URL}?fen=${encodeURIComponent(fenKey)}&max=40`;
-      const res = await fetch(url, { headers: { Accept: 'application/json' } });
-      if (!res.ok) {
-        state.cloudBookCache.set(fenKey, null);
-        return null;
-      }
-      const payload = await res.json();
-      const moves = Array.isArray(payload && payload.moves) ? payload.moves : [];
-      const mapped = {
-        moves: moves.map((m) => ({
-          uci: m.uci || '',
-          san: m.san || '',
-          games: Number(m.weight) || 0,
-          perc: Number(m.percent) || 0
-        }))
-      };
-      state.cloudBookCache.set(fenKey, mapped);
-      return mapped;
-    } catch (_err) {
-      state.cloudBookCache.set(fenKey, null);
-      return null;
-    }
-  }
-
   async function updatePositionView(inputFen) {
     const requestId = (state.positionRequestId || 0) + 1;
     state.positionRequestId = requestId;
 
     const fen = inputFen || state.game.fen();
     const fenKey = normalizeFenForHash(fen);
-    const hash = hashFen(fen);
+    const fenHash = hashFen(fen);
     const ply = state.game.history({ verbose: false }).length;
 
     if (state.lastDebugFenKey !== fenKey) {
@@ -550,7 +530,7 @@
     }
 
     const openingFallback = resolveOpeningByPrefix();
-    const exactData = await getContinuationsForFen(fen, fenKey, hash, ply);
+    const exactData = await getContinuationsForFen(fenHash);
     if (requestId !== state.positionRequestId) return;
 
     const legal = buildLegalMaps(state.game);
@@ -561,11 +541,7 @@
     }).slice(0, ply === 0 ? 60 : 40);
 
     let openingText = 'Opening: (TBD)';
-    if (exactData.entry && exactData.entry.opening) {
-      openingText = exactData.entry.opening;
-    } else if (exactData.entry && exactData.entry.name) {
-      openingText = exactData.entry.eco ? `${exactData.entry.name} (${exactData.entry.eco})` : exactData.entry.name;
-    } else if (openingFallback.eco || openingFallback.name !== 'Opening: (TBD)') {
+    if (openingFallback.eco || openingFallback.name !== 'Opening: (TBD)') {
       openingText = openingFallback.eco ? `${openingFallback.name} (${openingFallback.eco})` : openingFallback.name;
     }
     els.openingLabel.textContent = openingText;
@@ -574,17 +550,13 @@
 
     if (!state.datasetsLoaded) {
       els.lookupStatus.textContent = state.datasetsError || 'Loading datasets...';
-    } else if (
-      exactData.source === 'opening_position_index_exact' ||
-      exactData.source === 'book_chunks_exact' ||
-      exactData.source === 'cloud_book_exact'
-    ) {
+    } else if (exactData.source === 'openingdb_shard_exact') {
       els.lookupStatus.textContent = `Position lookup: exact match (${exactData.source})`;
     } else {
       els.lookupStatus.textContent = 'Position lookup: no exact match (TBD)';
     }
 
-    debugLog('updatePosition complete', { fenKey, hash, requestId, rows: rows.length, source: exactData.source });
+    debugLog('updatePosition complete', { fenKey, fenHash, requestId, rows: rows.length, source: exactData.source });
   }
 
   function validateFenInput(rawFen) {
@@ -598,21 +570,14 @@
   }
 
   async function loadDatasets() {
-    let indexLoaded = false;
     let ecoCodesLoaded = false;
-    let bookChunksLoaded = false;
+    let openingDbIndexLoaded = false;
 
     try {
-      const [indexRes, ecoCodesRes, chunkIndexRes] = await Promise.allSettled([
-        fetch('/data/opening_position_index.json', { cache: 'force-cache' }),
+      const [ecoCodesRes, openingDbIndexRes] = await Promise.allSettled([
         fetch('/data/eco/eco_codes.json', { cache: 'force-cache' }),
-        fetch('/data/book_chunks/index.json', { cache: 'force-cache' })
+        fetch('/data/openingdb/shards/index.json', { cache: 'force-cache' })
       ]);
-
-      if (indexRes.status === 'fulfilled' && indexRes.value.ok) {
-        state.openingPositionIndex = await indexRes.value.json();
-        indexLoaded = true;
-      }
 
       if (ecoCodesRes.status === 'fulfilled' && ecoCodesRes.value.ok) {
         const ecoCodes = await ecoCodesRes.value.json();
@@ -629,18 +594,17 @@
         }
       }
 
-      if (chunkIndexRes.status === 'fulfilled' && chunkIndexRes.value.ok) {
-        state.bookChunkIndex = await chunkIndexRes.value.json();
-        bookChunksLoaded = true;
+      if (openingDbIndexRes.status === 'fulfilled' && openingDbIndexRes.value.ok) {
+        await openingDbIndexRes.value.json();
+        openingDbIndexLoaded = true;
       }
 
       state.datasetsLoaded = true;
       state.datasetsError = '';
 
       const missing = [];
-      if (!indexLoaded) missing.push('opening_position_index.json');
       if (!ecoCodesLoaded) missing.push('eco_codes.json');
-      if (!bookChunksLoaded) missing.push('book_chunks/index.json');
+      if (!openingDbIndexLoaded) missing.push('openingdb/shards/index.json');
       if (missing.length > 0) {
         showDatasetBanner(`Lookup partially unavailable: missing ${missing.join(', ')}`);
       } else {
@@ -648,9 +612,8 @@
       }
 
       debugLog('datasets loaded', {
-        openingPositionIndexLoaded: indexLoaded,
         ecoCodesLoaded,
-        bookChunksLoaded
+        openingDbIndexLoaded
       });
     } catch (error) {
       state.datasetsLoaded = false;
@@ -658,9 +621,8 @@
       showDatasetBanner('Lookup unavailable');
       console.warn('[OpeningDB] dataset load error', error);
       debugLog('datasets loaded', {
-        openingPositionIndexLoaded: indexLoaded,
         ecoCodesLoaded,
-        bookChunksLoaded
+        openingDbIndexLoaded
       });
     }
 
