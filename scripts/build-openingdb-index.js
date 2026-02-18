@@ -20,6 +20,7 @@ const DEFAULT_HASH_LEN = 16;
 const DEFAULT_FLUSH_EVERY = 100000;
 const DEFAULT_MAX_PLIES = 20;
 const DEFAULT_TOP_N = 60;
+const DEFAULT_PROGRESS_EVERY = 50000;
 
 function parseArgs(argv) {
   const args = {
@@ -30,6 +31,9 @@ function parseArgs(argv) {
     flushEvery: DEFAULT_FLUSH_EVERY,
     maxPlies: DEFAULT_MAX_PLIES,
     topN: DEFAULT_TOP_N
+    ,
+    maxGames: null,
+    progressEvery: DEFAULT_PROGRESS_EVERY
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -58,6 +62,14 @@ function parseArgs(argv) {
     } else if (token === '--topN') {
       const parsed = Number.parseInt(argv[i + 1] || `${DEFAULT_TOP_N}`, 10);
       args.topN = Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_TOP_N;
+      i += 1;
+    } else if (token === '--maxGames') {
+      const parsed = Number.parseInt(argv[i + 1] || '0', 10);
+      args.maxGames = Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+      i += 1;
+    } else if (token === '--progressEvery') {
+      const parsed = Number.parseInt(argv[i + 1] || `${DEFAULT_PROGRESS_EVERY}`, 10);
+      args.progressEvery = Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_PROGRESS_EVERY;
       i += 1;
     }
   }
@@ -390,19 +402,25 @@ async function streamGamesFromFile(filePath, onGame) {
   const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
   let current = [];
   let seenTag = false;
+  let shouldStop = false;
 
   for await (const line of rl) {
+    if (shouldStop) break;
     const trimmed = line.trim();
     if (trimmed.startsWith('[Event ')) {
       if (seenTag && current.length > 0) {
-        onGame(current.join('\n'));
+        const keepGoing = onGame(current.join('\n'));
+        if (keepGoing === false) {
+          shouldStop = true;
+          break;
+        }
         current = [];
       }
       seenTag = true;
     }
     if (seenTag || trimmed.length > 0) current.push(line);
   }
-  if (current.length > 0) onGame(current.join('\n'));
+  if (!shouldStop && current.length > 0) onGame(current.join('\n'));
 }
 
 function processGame(gamePgn, args, pendingShards, counters) {
@@ -495,6 +513,24 @@ async function main() {
   for (const filePath of inputFiles) {
     await streamGamesFromFile(filePath, (gamePgn) => {
       processGame(gamePgn, args, pendingShards, counters);
+      if (args.progressEvery && counters.gamesProcessed % args.progressEvery === 0) {
+        console.log(JSON.stringify({
+          progress: true,
+          gamesProcessed: counters.gamesProcessed,
+          movesParsed: counters.movesParsed,
+          flushCount: counters.flushCount
+        }));
+      }
+
+      if (args.maxGames && counters.gamesProcessed >= args.maxGames) {
+        if (pendingShards.size > 0) {
+          flushPendingRaw(rawCountsDir, pendingShards);
+          pendingShards.clear();
+          counters.pendingUpdates = 0;
+          counters.flushCount += 1;
+        }
+        return false;
+      }
 
       if (counters.pendingUpdates >= args.flushEvery) {
         flushPendingRaw(rawCountsDir, pendingShards);
@@ -502,6 +538,7 @@ async function main() {
         counters.pendingUpdates = 0;
         counters.flushCount += 1;
       }
+      return true;
     });
 
     if (pendingShards.size > 0) {
@@ -510,6 +547,7 @@ async function main() {
       counters.pendingUpdates = 0;
       counters.flushCount += 1;
     }
+    if (args.maxGames && counters.gamesProcessed >= args.maxGames) break;
   }
 
   const totalPositions = finalizeShards(rawCountsDir, versionDir, args.topN);

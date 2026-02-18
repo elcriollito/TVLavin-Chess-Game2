@@ -43,7 +43,9 @@ build/
 data/openingdb/
 data/openingdb_games/
 data/pgn_samples/
+data/pgn_smoke/
 .wrangler/
 
 # Local artifacts
 *.png
+r2_v2_list.json
