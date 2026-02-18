@@ -5,6 +5,11 @@ compatibility_date = "2024-01-01"
 # Use Workers free tier
 workers_dev = true
 
+# Custom domain configuration
+routes = [
+  { pattern = "downloads.caissa-chess.org/*", zone_name = "caissa-chess.org" }
+]
+
 # R2 Vault Storage (private bucket)
 [[r2_buckets]]
 binding = "VAULT_BUCKET"
@@ -22,8 +27,3 @@ class_name = "DownloadCounter"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["DownloadCounter"]
-
-# Custom domain configuration
-routes = [
-  { pattern = "downloads.caissa-chess.org/*", zone_name = "caissa-chess.org" }
-]
