@@ -1343,11 +1343,11 @@
       const missing = [];
       if (!ecoCodesLoaded) missing.push('eco_codes.json');
       if (!manifestReady) missing.push('openingdb/manifest.json');
-      if (!gamesManifestReady) missing.push('openingdb/games/manifest.json');
+      const gamesPending = gamesManifestSource === 'local-site-pending';
       if (missing.length > 0) {
         showDatasetBanner(`Lookup partially unavailable: missing ${missing.join(', ')}`);
       } else {
-        showDatasetBanner('');
+        showDatasetBanner(gamesPending ? 'Search Games: coming soon.' : '');
       }
 
       debugLog('datasets loaded', {

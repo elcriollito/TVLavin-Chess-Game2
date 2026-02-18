@@ -17,6 +17,7 @@
     { "source": "/roadmap", "destination": "/roadmap.html" },
     { "source": "/opening-database", "destination": "/opening-database.html" },
     { "source": "/opening-database/", "destination": "/opening-database.html" },
+    { "source": "/openingdb/:path*", "destination": "https://downloads.caissa-chess.org/openingdb/:path*" },
     { "source": "/signin", "destination": "/signin.html" },
     { "source": "/signup", "destination": "/signup.html" },
     { "source": "/data/:path*", "destination": "/public/data/:path*" },
