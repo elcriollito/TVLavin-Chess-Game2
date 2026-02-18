@@ -320,6 +320,71 @@ function finalizeShards(rawCountsDir, finalShardsDir, topN) {
   return totalPositions;
 }
 
+function readShardEntry(versionDir, fenHash) {
+  const shard = String(fenHash || '').slice(0, 2).toLowerCase();
+  if (!/^[0-9a-f]{2}$/.test(shard)) return null;
+  const shardPath = path.join(versionDir, `${shard}.json`);
+  const shardJson = readJsonSafe(shardPath, {});
+  if (!shardJson || typeof shardJson !== 'object') return null;
+  return shardJson[fenHash] || null;
+}
+
+function summarizeMoves(entry, limit = 10) {
+  const moves = Array.isArray(entry?.moves) ? entry.moves : [];
+  const top = moves.slice(0, limit).map((m) => ({
+    san: m.san || m.uci || '',
+    uci: m.uci || '',
+    games: Number(m.games) || 0,
+    w: Number(m.w) || 0,
+    d: Number(m.d) || 0,
+    l: Number(m.l) || 0
+  }));
+  const totalGames = moves.reduce((sum, m) => sum + (Number(m.games) || 0), 0);
+  return { totalGames, top };
+}
+
+function buildCoverageReport(versionDir, hashLen) {
+  const startGame = new Chess();
+  const startFenHash = hashFenSha1(normalizeFEN(startGame.fen()), hashLen);
+  const startEntry = readShardEntry(versionDir, startFenHash);
+  const startSummary = summarizeMoves(startEntry, 30);
+
+  const londonLine = ['d4', 'd5', 'Bf4', 'Nf6', 'e3', 'e6', 'Nf3', 'c5', 'c3', 'Bd6'];
+  const londonReport = [];
+  const replay = new Chess();
+
+  for (let ply = 0; ply <= londonLine.length; ply += 1) {
+    const fenHash = hashFenSha1(normalizeFEN(replay.fen()), hashLen);
+    const entry = readShardEntry(versionDir, fenHash);
+    const summary = summarizeMoves(entry, 3);
+    londonReport.push({
+      ply,
+      fenHash,
+      candidates: Array.isArray(entry?.moves) ? entry.moves.length : 0,
+      totalGames: summary.totalGames,
+      top3: summary.top
+    });
+
+    if (ply < londonLine.length) {
+      try {
+        replay.move(londonLine[ply], { sloppy: true });
+      } catch {
+        break;
+      }
+    }
+  }
+
+  return {
+    startPosition: {
+      fenHash: startFenHash,
+      totalGames: startSummary.totalGames,
+      top30: startSummary.top
+    },
+    londonLine,
+    londonByPly: londonReport
+  };
+}
+
 async function streamGamesFromFile(filePath, onGame) {
   const stream = fs.createReadStream(filePath, { encoding: 'utf8' });
   const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
@@ -449,6 +514,7 @@ async function main() {
 
   const totalPositions = finalizeShards(rawCountsDir, versionDir, args.topN);
   removeDirSafe(rawCountsDir);
+  const coverage = buildCoverageReport(versionDir, args.hashLen);
 
   const manifest = {
     generatedAt: new Date().toISOString(),
@@ -466,12 +532,29 @@ async function main() {
     skippedGames: counters.skippedGames,
     unknownResults: counters.unknownResults,
     flushCount: counters.flushCount,
-    positions: totalPositions
+    positions: totalPositions,
+    startPositionTotalGames: coverage.startPosition.totalGames,
+    startPositionTopMoves: coverage.startPosition.top30.slice(0, 10),
+    londonCoverageByPly: coverage.londonByPly
   };
   writeJsonAtomic(path.join(versionDir, 'index.json'), manifest);
 
   const elapsedMs = Date.now() - startedAt;
-  console.log(JSON.stringify({ ok: true, outDir: versionDir, elapsedMs, ...manifest }, null, 2));
+  const finalReport = {
+    ok: true,
+    outDir: versionDir,
+    elapsedMs,
+    inputDir: args.inPaths.map((p) => path.relative(process.cwd(), p)),
+    gamesProcessed: counters.gamesProcessed,
+    uniquePositions: totalPositions,
+    startPositionTotalGames: coverage.startPosition.totalGames,
+    startPositionTopMoves: coverage.startPosition.top30.slice(0, 30),
+    londonCoverageByPly: coverage.londonByPly,
+    parseFails: counters.parseFails,
+    illegalMoves: counters.illegalMoves,
+    unknownResults: counters.unknownResults
+  };
+  console.log(JSON.stringify(finalReport, null, 2));
 }
 
 main().catch((err) => {
