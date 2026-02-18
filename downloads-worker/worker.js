@@ -73,17 +73,26 @@ const ALLOWED_ORIGINS = [
   'https://downloads.caissa-chess.org'
 ];
 
-function getCorsHeaders(origin) {
-  const isAllowed = ALLOWED_ORIGINS.includes(origin) ||
-                    origin?.endsWith('.vercel.app') ||
-                    origin?.startsWith('http://localhost:') ||
-                    origin?.startsWith('http://127.0.0.1:');
+function isAllowedCorsOrigin(origin) {
+  return ALLOWED_ORIGINS.includes(origin) ||
+    origin?.endsWith('.vercel.app') ||
+    origin?.startsWith('http://localhost:') ||
+    origin?.startsWith('http://127.0.0.1:');
+}
+
+function getCorsHeaders(origin, options = {}) {
+  const resolvedOrigin = isAllowedCorsOrigin(origin) ? origin : 'https://www.caissa-chess.org';
+  const methods = options.allowPost
+    ? 'GET,HEAD,POST,OPTIONS'
+    : 'GET,HEAD,OPTIONS';
 
   return {
-    'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
-    'Access-Control-Allow-Methods': 'GET, HEAD, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, x-caissa-tier',
+    'Access-Control-Allow-Origin': resolvedOrigin,
+    'Access-Control-Allow-Methods': methods,
+    'Access-Control-Allow-Headers': 'Content-Type,Range,x-caissa-tier',
+    'Access-Control-Expose-Headers': 'Content-Length,Content-Range,ETag',
     'Access-Control-Max-Age': '86400',
+    'Vary': 'Origin'
   };
 }
 
@@ -285,8 +294,7 @@ async function handleDownloadCount(url, env, origin) {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
-        ...getCorsHeaders(origin),
-        'Access-Control-Allow-Origin': '*'
+        ...getCorsHeaders(origin)
       }
     });
   }
@@ -336,8 +344,7 @@ async function handleOpeningDbShard(path, env, origin, method = 'GET') {
         status: 404,
         headers: {
           'Content-Type': 'application/json',
-          ...getCorsHeaders(origin),
-          'Access-Control-Allow-Origin': '*'
+          ...getCorsHeaders(origin)
         }
       });
     }
@@ -402,8 +409,7 @@ async function handleOpeningDbManifest(env, origin, method = 'GET') {
         'Content-Length': String(object.size || 0),
         'ETag': object.etag || '',
         'Cache-Control': 'public, max-age=300',
-        ...getCorsHeaders(origin),
-        'Access-Control-Allow-Origin': '*'
+        ...getCorsHeaders(origin)
       }
     });
   } catch (error) {
@@ -414,8 +420,7 @@ async function handleOpeningDbManifest(env, origin, method = 'GET') {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
-        ...getCorsHeaders(origin),
-        'Access-Control-Allow-Origin': '*'
+        ...getCorsHeaders(origin)
       }
     });
   }
@@ -440,7 +445,7 @@ async function handleOpeningDbGamesManifest(env, origin, method = 'GET') {
     if (!object) {
       return new Response(JSON.stringify({ error: 'Games manifest not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', ...getCorsHeaders(origin), 'Access-Control-Allow-Origin': '*' }
+        headers: { 'Content-Type': 'application/json', ...getCorsHeaders(origin) }
       });
     }
     return new Response(method === 'HEAD' ? null : object.body, {
@@ -448,14 +453,13 @@ async function handleOpeningDbGamesManifest(env, origin, method = 'GET') {
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
         'Cache-Control': 'public, max-age=300',
-        ...getCorsHeaders(origin),
-        'Access-Control-Allow-Origin': '*'
+        ...getCorsHeaders(origin)
       }
     });
   } catch (error) {
     return new Response(JSON.stringify({ error: 'Failed to read games manifest', message: error?.message || String(error) }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', ...getCorsHeaders(origin), 'Access-Control-Allow-Origin': '*' }
+      headers: { 'Content-Type': 'application/json', ...getCorsHeaders(origin) }
     });
   }
 }
@@ -860,8 +864,7 @@ async function handleOpeningDbGamesDownloadZip(request, path, url, env, origin) 
       'Content-Disposition': `attachment; filename="${filename}"`,
       'Cache-Control': 'no-store',
       'X-Caissa-Truncated': truncatedBySize ? 'true' : 'false',
-      ...getCorsHeaders(origin),
-      'Access-Control-Allow-Origin': '*'
+      ...getCorsHeaders(origin, { allowPost: true })
     }
   });
 }
@@ -935,9 +938,10 @@ async function handleRequest(request, env) {
 
   // Handle CORS preflight
   if (request.method === 'OPTIONS') {
+    const allowPost = /^\/openingdb\/games\/[a-zA-Z0-9._-]+\/download(\.zip)?$/i.test(path);
     return new Response(null, {
       status: 204,
-      headers: getCorsHeaders(origin)
+      headers: getCorsHeaders(origin, { allowPost })
     });
   }
 
