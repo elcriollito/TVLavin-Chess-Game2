@@ -13,7 +13,7 @@ bucket_name = "caissa-vault"
 # OpeningDB shards storage (preferred). If missing, worker falls back to VAULT_BUCKET.
 [[r2_buckets]]
 binding = "OPENINGDB_BUCKET"
-bucket_name = "caissa-openingdb"
+bucket_name = "caissa-vault"
 
 [[durable_objects.bindings]]
 name = "DOWNLOAD_COUNTER"
@@ -23,7 +23,7 @@ class_name = "DownloadCounter"
 tag = "v1"
 new_sqlite_classes = ["DownloadCounter"]
 
-# Custom domain configuration (after deployment)
-# routes = [
-#   { pattern = "downloads.caissa-chess.org/*", zone_name = "caissa-chess.org" }
-# ]
+# Custom domain configuration
+routes = [
+  { pattern = "downloads.caissa-chess.org/*", zone_name = "caissa-chess.org" }
+]
