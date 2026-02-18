@@ -21,7 +21,7 @@ class_name = "DownloadCounter"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["DownloadCounter"]
+new_sqlite_classes = ["DownloadCounter"]
 
 # Custom domain configuration (after deployment)
 # routes = [
