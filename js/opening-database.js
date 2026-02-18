@@ -17,6 +17,8 @@
     gamesTier: 'free',
     gamesVersion: 'v1',
     gamesBaseRoot: 'https://downloads.caissa-chess.org/openingdb/games',
+    gamesManifestLoaded: false,
+    gamesManifestLoadAttempted: false,
     gamesManifestFallback: true,
     gamesShardCache: new Map(),
     gamesCatalogCache: new Map(),
@@ -541,11 +543,13 @@
   }
 
   async function loadOpeningDbGamesManifest() {
+    state.gamesManifestLoadAttempted = true;
     const cached = readGamesManifestFromSession();
     if (cached && typeof cached === 'object') {
       state.gamesVersion = String(cached.activeVersion || 'v1');
       state.gamesBaseRoot = String(cached.baseUrl || state.gamesBaseRoot).replace(/\/+$/, '');
       state.gamesManifestFallback = false;
+      state.gamesManifestLoaded = true;
       return { source: 'session-cache', ok: true };
     }
 
@@ -556,12 +560,14 @@
         state.gamesVersion = String(localSiteManifest.activeVersion || state.gamesVersion || 'v1');
         state.gamesBaseRoot = String(localSiteManifest.baseUrl || state.gamesBaseRoot).replace(/\/+$/, '');
         state.gamesManifestFallback = true;
+        state.gamesManifestLoaded = true;
         return { source: 'local-site-pending', ok: true };
       }
       writeGamesManifestToSession(localSiteManifest);
       state.gamesVersion = String(localSiteManifest.activeVersion || 'v1');
       state.gamesBaseRoot = String(localSiteManifest.baseUrl || state.gamesBaseRoot).replace(/\/+$/, '');
       state.gamesManifestFallback = false;
+      state.gamesManifestLoaded = true;
       return { source: 'local-site-manifest', ok: true };
     }
 
@@ -571,6 +577,7 @@
       state.gamesVersion = String(remote.activeVersion || 'v1');
       state.gamesBaseRoot = String(remote.baseUrl || state.gamesBaseRoot).replace(/\/+$/, '');
       state.gamesManifestFallback = false;
+      state.gamesManifestLoaded = true;
       return { source: 'remote', ok: true };
     }
 
@@ -579,13 +586,29 @@
       state.gamesVersion = String(local.activeVersion || 'v1');
       state.gamesBaseRoot = String(local.baseUrl || state.gamesBaseRoot).replace(/\/+$/, '');
       state.gamesManifestFallback = false;
+      state.gamesManifestLoaded = true;
       return { source: 'local-manifest', ok: true };
     }
 
     state.gamesVersion = 'v1';
     state.gamesBaseRoot = 'https://downloads.caissa-chess.org/openingdb/games';
     state.gamesManifestFallback = true;
+    state.gamesManifestLoaded = false;
     return { source: 'fallback', ok: false };
+  }
+
+  async function ensureGamesManifestLoaded() {
+    if (state.gamesManifestLoaded) return { ok: true, source: 'cached' };
+    if (state.gamesManifestLoadAttempted && state.gamesManifestFallback) {
+      setGamesStatus('Search Games: coming soon.');
+      return { ok: false, source: 'fallback-cached' };
+    }
+    const result = await loadOpeningDbGamesManifest();
+    if (!result || !result.ok) {
+      setGamesStatus('Search Games: coming soon.');
+      return { ok: false, source: result?.source || 'fallback' };
+    }
+    return { ok: true, source: result.source || 'remote' };
   }
 
   async function loadGamesShard(shard) {
@@ -921,6 +944,13 @@
     }
     if (els.movesPanel) els.movesPanel.hidden = isGames;
     if (els.gamesPanel) els.gamesPanel.hidden = !isGames;
+    if (isGames) {
+      ensureGamesManifestLoaded().then((result) => {
+        if (!result.ok) {
+          setGamesStatus('Search Games: coming soon.');
+        }
+      });
+    }
   }
 
   function passesGamesFilters(meta) {
@@ -1004,6 +1034,8 @@
 
   async function triggerGamesZipDownload() {
     if (!state.game) return;
+    const gamesManifest = await ensureGamesManifestLoaded();
+    if (!gamesManifest.ok) return;
     const fenHash = hashFen(state.game.fen());
     const limit = getCurrentDownloadLimit();
     const body = {
@@ -1080,6 +1112,8 @@
 
   async function runGamesSearch() {
     if (!state.game) return;
+    const gamesManifest = await ensureGamesManifestLoaded();
+    if (!gamesManifest.ok) return;
     const fenHash = hashFen(state.game.fen());
     const shard = fenHash.slice(0, 2);
     setGamesStatus(`Searching... fenHash=${fenHash}`);
@@ -1305,14 +1339,13 @@
     let ecoCodesLoaded = false;
     let manifestReady = false;
     let manifestSource = 'fallback';
-    let gamesManifestReady = false;
-    let gamesManifestSource = 'fallback';
+    const gamesManifestReady = false;
+    const gamesManifestSource = 'deferred';
 
     try {
-      const [ecoCodesRes, manifestResult, gamesManifestResult] = await Promise.allSettled([
+      const [ecoCodesRes, manifestResult] = await Promise.allSettled([
         fetch('/data/eco/eco_codes.json', { cache: 'force-cache' }),
-        loadOpeningDbManifest(),
-        loadOpeningDbGamesManifest()
+        loadOpeningDbManifest()
       ]);
 
       if (ecoCodesRes.status === 'fulfilled' && ecoCodesRes.value.ok) {
@@ -1338,25 +1371,16 @@
         manifestSource = 'fallback';
       }
 
-      if (gamesManifestResult.status === 'fulfilled') {
-        gamesManifestReady = !!gamesManifestResult.value?.ok || !state.gamesManifestFallback;
-        gamesManifestSource = gamesManifestResult.value?.source || gamesManifestSource;
-      } else {
-        gamesManifestReady = false;
-        gamesManifestSource = 'fallback';
-      }
-
       state.datasetsLoaded = true;
       state.datasetsError = '';
 
       const missing = [];
       if (!ecoCodesLoaded) missing.push('eco_codes.json');
       if (!manifestReady) missing.push('openingdb/manifest.json');
-      const gamesPending = gamesManifestSource === 'local-site-pending';
       if (missing.length > 0) {
         showDatasetBanner(`Lookup partially unavailable: missing ${missing.join(', ')}`);
       } else {
-        showDatasetBanner(gamesPending ? 'Search Games: coming soon.' : '');
+        showDatasetBanner('Search Games: coming soon.');
       }
 
       debugLog('datasets loaded', {
@@ -1392,7 +1416,7 @@
 
     updateTurnPlyLabel(state.game ? state.game.history({ verbose: false }).length : 0);
     updateDownloadButtonLabel();
-    setGamesStatus('Ready to search.');
+    setGamesStatus('Search Games: coming soon.');
     scheduleOpeningDbPrefetch();
     updatePositionView();
   }
