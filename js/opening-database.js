@@ -36,6 +36,13 @@
     return `${DEFAULT_SHARD_ROOT}/${DEFAULT_ACTIVE_VERSION}`;
   })();
   const MANIFEST_OVERRIDE_URL = String(window.CAISSA_OPENINGDB_MANIFEST_URL || '').trim();
+  const DEV_MODE = (() => {
+    const params = new URLSearchParams(window.location.search);
+    const forceDev = params.get('dev') === '1';
+    const host = String(window.location.hostname || '').toLowerCase();
+    const localHost = host === 'localhost' || host === '127.0.0.1';
+    return forceDev || localHost;
+  })();
   const SHARD_FETCH_TIMEOUT_MS = 4000;
   const MANIFEST_FETCH_TIMEOUT_MS = 2000;
   const GAMES_MANIFEST_URL = 'https://downloads.caissa-chess.org/openingdb/games/manifest.json';
@@ -503,13 +510,6 @@
       return { source: 'session-cache', ok: true };
     }
 
-    const localManifest = await fetchJsonWithTimeout(LOCAL_MANIFEST_URL, MANIFEST_FETCH_TIMEOUT_MS);
-    if (localManifest && typeof localManifest === 'object') {
-      writeManifestToSession(localManifest);
-      applyManifest(localManifest, false);
-      return { source: 'local-site-manifest', ok: true };
-    }
-
     const remoteManifestUrl = MANIFEST_OVERRIDE_URL || MANIFEST_URL;
     const remoteManifest = await fetchJsonWithTimeout(remoteManifestUrl, MANIFEST_FETCH_TIMEOUT_MS);
     if (remoteManifest && typeof remoteManifest === 'object') {
@@ -518,10 +518,19 @@
       return { source: 'remote', ok: true };
     }
 
-    const localDataManifest = await fetchJsonWithTimeout('/data/openingdb/manifest.json', MANIFEST_FETCH_TIMEOUT_MS);
-    if (localDataManifest && typeof localDataManifest === 'object') {
-      applyManifest(localDataManifest, false);
-      return { source: 'local-manifest', ok: true };
+    if (DEV_MODE) {
+      const localManifest = await fetchJsonWithTimeout(LOCAL_MANIFEST_URL, MANIFEST_FETCH_TIMEOUT_MS);
+      if (localManifest && typeof localManifest === 'object') {
+        writeManifestToSession(localManifest);
+        applyManifest(localManifest, false);
+        return { source: 'local-site-manifest', ok: true };
+      }
+
+      const localDataManifest = await fetchJsonWithTimeout('/data/openingdb/manifest.json', MANIFEST_FETCH_TIMEOUT_MS);
+      if (localDataManifest && typeof localDataManifest === 'object') {
+        applyManifest(localDataManifest, false);
+        return { source: 'local-manifest', ok: true };
+      }
     }
 
     applyManifest({
@@ -651,22 +660,22 @@
 
     try {
       const activeBase = state.shardBaseUrl || SHARD_BASE;
-      const localVersionedUrl = `/data/openingdb/shards/${state.activeDbVersion}/${shard}.json`;
-      let json = await fetchJsonWithTimeout(localVersionedUrl, SHARD_FETCH_TIMEOUT_MS);
-      let source = 'local-versioned';
+      const remoteUrl = `${activeBase}/${shard}.json`;
+      let source = 'remote';
+      let json = await fetchJsonWithTimeout(remoteUrl, SHARD_FETCH_TIMEOUT_MS);
 
-      if (!json || typeof json !== 'object') {
-        const remoteUrl = `${activeBase}/${shard}.json`;
-        source = 'remote';
-        json = await fetchJsonWithTimeout(remoteUrl, SHARD_FETCH_TIMEOUT_MS);
+      if ((!json || typeof json !== 'object') && DEV_MODE) {
+        const localVersionedUrl = `/data/openingdb/shards/${state.activeDbVersion}/${shard}.json`;
+        source = 'local-versioned';
+        json = await fetchJsonWithTimeout(localVersionedUrl, SHARD_FETCH_TIMEOUT_MS);
       }
 
-      if (!json || typeof json !== 'object') {
+      if ((!json || typeof json !== 'object') && DEV_MODE) {
         source = 'local-legacy';
         json = await fetchJsonWithTimeout(`/data/openingdb/shards/${shard}.json`, SHARD_FETCH_TIMEOUT_MS);
       }
 
-      if (!json || typeof json !== 'object') {
+      if ((!json || typeof json !== 'object') && DEV_MODE) {
         source = 'sample-fallback';
         json = await fetchJsonWithTimeout(`/data/openingdb/shards_sample/${shard}.json`, SHARD_FETCH_TIMEOUT_MS);
       }
