@@ -89,7 +89,7 @@ function getCorsHeaders(origin, options = {}) {
   return {
     'Access-Control-Allow-Origin': resolvedOrigin,
     'Access-Control-Allow-Methods': methods,
-    'Access-Control-Allow-Headers': 'Content-Type,Range,x-caissa-tier',
+    'Access-Control-Allow-Headers': '*',
     'Access-Control-Expose-Headers': 'Content-Length,Content-Range,ETag',
     'Access-Control-Max-Age': '86400',
     'Vary': 'Origin'
