@@ -326,11 +326,28 @@
   }
 
   function getShardSessionCacheKey(shard) {
-    return `caissa.openingdb.shard.${shard}`;
+    const version = String(state.activeDbVersion || DEFAULT_ACTIVE_VERSION || 'v3').toLowerCase();
+    return `caissa.openingdb.shard.${version}.${shard}`;
   }
 
   function getManifestSessionCacheKey() {
     return 'openingdb_manifest_cache';
+  }
+
+  function clearLegacyShardSessionCache() {
+    try {
+      if (!window.sessionStorage) return;
+      const keysToDelete = [];
+      for (let i = 0; i < sessionStorage.length; i += 1) {
+        const key = sessionStorage.key(i);
+        if (key && key.startsWith('caissa.openingdb.shard.') && !/^caissa\.openingdb\.shard\.v[0-9a-z._-]+\.[0-9a-f]{2}$/i.test(key)) {
+          keysToDelete.push(key);
+        }
+      }
+      keysToDelete.forEach((key) => sessionStorage.removeItem(key));
+    } catch (_err) {
+      // Ignore cache cleanup failures.
+    }
   }
 
   function getDbVersionLabel() {
@@ -516,6 +533,12 @@
     state.activeDbVersion = activeVersion;
     state.dbVersionFallback = !!fallback;
     state.shardBaseUrl = alreadyVersioned ? normalizedBase : `${normalizedBase}/${activeVersion}`;
+    console.log('[OpeningDB] manifest', {
+      activeVersion: state.activeDbVersion,
+      baseUrl: state.shardBaseUrl,
+      shardCount: Number(m.shardCount) || null
+    });
+    clearLegacyShardSessionCache();
   }
 
   function preferSameOriginManifest(manifest) {
@@ -540,21 +563,6 @@
       writeManifestToSession(runtimeManifest);
       applyManifest(runtimeManifest, false);
       return { source: 'site-proxy', ok: true };
-    }
-
-    if (DEV_MODE) {
-      const localManifest = await fetchJsonWithTimeout(LOCAL_MANIFEST_URL, MANIFEST_FETCH_TIMEOUT_MS);
-      if (localManifest && typeof localManifest === 'object') {
-        writeManifestToSession(localManifest);
-        applyManifest(localManifest, false);
-        return { source: 'local-site-manifest', ok: true };
-      }
-
-      const localDataManifest = await fetchJsonWithTimeout('/data/openingdb/manifest.json', MANIFEST_FETCH_TIMEOUT_MS);
-      if (localDataManifest && typeof localDataManifest === 'object') {
-        applyManifest(localDataManifest, false);
-        return { source: 'local-manifest', ok: true };
-      }
     }
 
     applyManifest({
@@ -694,41 +702,30 @@
     if (!/^[0-9a-f]{2}$/.test(shard)) return null;
 
     if (state.openingDbShardCache.has(shard)) {
-      return state.openingDbShardCache.get(shard);
+      const cached = state.openingDbShardCache.get(shard);
+      if (cached && typeof cached === 'object') {
+        console.log('[OpeningDB] shardLoaded', { shardId: shard, entries: Object.keys(cached).length });
+      }
+      return cached;
     }
 
     const fromSession = readShardFromSession(shard);
     if (fromSession && typeof fromSession === 'object') {
       state.openingDbShardCache.set(shard, fromSession);
+      console.log('[OpeningDB] shardLoaded', { shardId: shard, entries: Object.keys(fromSession).length });
       return fromSession;
     }
 
     try {
       const activeBase = state.shardBaseUrl || SHARD_BASE;
       const remoteUrl = `${activeBase}/${shard}.json`;
-      let source = 'remote';
-      let json = await fetchJsonWithTimeout(remoteUrl, SHARD_FETCH_TIMEOUT_MS);
-
-      if ((!json || typeof json !== 'object') && DEV_MODE) {
-        const localVersionedUrl = `/data/openingdb/shards/${state.activeDbVersion}/${shard}.json`;
-        source = 'local-versioned';
-        json = await fetchJsonWithTimeout(localVersionedUrl, SHARD_FETCH_TIMEOUT_MS);
-      }
-
-      if ((!json || typeof json !== 'object') && DEV_MODE) {
-        source = 'local-legacy';
-        json = await fetchJsonWithTimeout(`/data/openingdb/shards/${shard}.json`, SHARD_FETCH_TIMEOUT_MS);
-      }
-
-      if ((!json || typeof json !== 'object') && DEV_MODE) {
-        source = 'sample-fallback';
-        json = await fetchJsonWithTimeout(`/data/openingdb/shards_sample/${shard}.json`, SHARD_FETCH_TIMEOUT_MS);
-      }
-
+      const json = await fetchJsonWithTimeout(remoteUrl, SHARD_FETCH_TIMEOUT_MS);
       const payload = json && typeof json === 'object' ? json : null;
       state.openingDbShardCache.set(shard, payload);
       if (payload) writeShardToSession(shard, payload);
-      debugLog('shard loaded', { shard, source, base: activeBase });
+      if (payload) {
+        console.log('[OpeningDB] shardLoaded', { shardId: shard, entries: Object.keys(payload).length });
+      }
       return payload;
     } catch (_err) {
       state.openingDbShardCache.set(shard, null);
@@ -1371,10 +1368,26 @@
     };
   }
 
-  async function getContinuationsForFen(fenHash) {
+  async function getContinuationsForFen(fenHash, context = {}) {
     const shard = String(fenHash || '').slice(0, 2).toLowerCase();
+    const shardUrl = `${state.shardBaseUrl || SHARD_BASE}/${shard}.json`;
+    console.log('[OpeningDB] lookup', {
+      ply: Number(context.ply) || 0,
+      fenKey: context.fenKey || '',
+      shardId: shard,
+      shardUrl
+    });
     const shardData = await loadOpeningDbShard(shard);
     const entry = shardData && typeof shardData === 'object' ? shardData[fenHash] : null;
+    const candidateCount = Array.isArray(entry?.moves) ? entry.moves.length : 0;
+    const totalGames = Array.isArray(entry?.moves)
+      ? entry.moves.reduce((sum, move) => sum + (Number(move?.games) || 0), 0)
+      : 0;
+    console.log('[OpeningDB] match', {
+      found: !!entry,
+      candidates: candidateCount,
+      totalGames
+    });
     if (entry) {
       return {
         source: 'openingdb_shard_exact',
@@ -1390,7 +1403,8 @@
     };
   }
 
-  async function updatePositionView(inputFen) {
+  async function updatePositionView(inputFen, options = {}) {
+    const force = !!options.force;
     const requestId = (state.positionRequestId || 0) + 1;
     state.positionRequestId = requestId;
 
@@ -1399,7 +1413,7 @@
     const fenHash = hashFen(fen);
     const ply = state.game.history({ verbose: false }).length;
 
-    if (state.lastDebugFenKey !== fenKey) {
+    if (force || state.lastDebugFenKey !== fenKey) {
       state.lastDebugFenKey = fenKey;
       console.log('[OpeningDB] fenKey', fenKey, 'ply', ply);
     }
@@ -1408,7 +1422,7 @@
     updateTurnPlyLabel(ply);
 
     const openingFallback = resolveOpeningByPrefix();
-    const exactData = await getContinuationsForFen(fenHash);
+    const exactData = await getContinuationsForFen(fenHash, { ply, fenKey });
     if (requestId !== state.positionRequestId) return;
 
     const legal = buildLegalMaps(state.game);
@@ -1505,7 +1519,7 @@
       if (!ecoCodesLoaded) missing.push('eco_codes.json');
       if (!manifestReady) missing.push('openingdb/manifest.json');
       if (missing.length > 0) {
-        showDatasetBanner(`Lookup partially unavailable: missing ${missing.join(', ')}`);
+        showDatasetBanner(`Fallback dataset active - missing ${missing.join(', ')}`);
       } else {
         showDatasetBanner('Search Games: coming soon.');
       }
@@ -1545,7 +1559,7 @@
     updateDownloadButtonLabel();
     setGamesStatus('Search Games: coming soon.');
     scheduleOpeningDbPrefetch();
-    updatePositionView();
+    await updatePositionView(state.game ? state.game.fen() : undefined, { force: true });
   }
 
   function bindEvents() {
@@ -1786,7 +1800,6 @@
       setActiveTab('moves');
       updateDownloadButtonLabel();
       setGamesStatus('Ready to search.');
-      updatePositionView();
       loadDatasets();
     } catch (err) {
       console.error('[OpeningDB] init fatal', err);
