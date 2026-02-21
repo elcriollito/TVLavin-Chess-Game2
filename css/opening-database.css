@@ -135,6 +135,73 @@
   box-shadow: 0 0 0 1px var(--hack-green-dim), 0 0 10px var(--hack-green-dim);
 }
 
+.engine-analysis-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.engine-analysis-controls label {
+  display: inline-grid;
+  gap: 4px;
+  font-size: 11px;
+  color: #a8ff9c;
+  font-family: 'Roboto Mono', monospace;
+}
+
+.engine-analysis-controls select {
+  background: #0a0d0a;
+  border: 1px solid var(--hack-green-dim);
+  color: var(--hack-green);
+  border-radius: 6px;
+  padding: 4px 6px;
+}
+
+.engine-analysis-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.engine-analysis-zone .openingdb-engine-stop {
+  background: #0a0d0a;
+  border: 1px solid #2a7a2a;
+  color: #98d698;
+}
+
+.engine-analysis-readout {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 6px 10px;
+  font-family: 'Roboto Mono', monospace;
+}
+
+.engine-analysis-readout div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: #9ec79e;
+}
+
+.engine-analysis-readout strong {
+  color: var(--hack-green);
+  font-weight: 700;
+  text-align: right;
+}
+
+.engine-analysis-readout .engine-pv {
+  grid-column: 1 / -1;
+  align-items: flex-start;
+}
+
+.engine-analysis-readout .engine-pv strong {
+  text-align: left;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
 .openingdb-fen-panel {
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -699,6 +766,10 @@
   }
 
   .openingdb-games-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .engine-analysis-readout {
     grid-template-columns: 1fr 1fr;
   }
 }
