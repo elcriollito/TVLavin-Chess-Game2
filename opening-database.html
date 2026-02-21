@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="/assets/css/chessboard-1.0.0.min.css">
   <link rel="stylesheet" href="/styles.css?v=2.0.2">
-  <link rel="stylesheet" href="/css/opening-database.css?v=1.0.34">
+  <link rel="stylesheet" href="/css/opening-database.css?v=1.0.35">
 </head>
 <body>
   <div class="app-container openingdb-app">
@@ -108,18 +108,6 @@
                 </table>
               </div>
 
-              <div id="odbTransitionPanel" class="odb-transition" hidden>
-                <h3>Entering Early Middlegame</h3>
-                <p id="odbTransitionMessage">
-                  Position branching is narrowing. You are transitioning
-                  from Opening Theory into Early Middlegame.
-                </p>
-                <div id="odbTransitionStats" class="odb-transition-stats"></div>
-                <div class="odb-transition-actions">
-                  <button id="odbTransitionSearchGamesBtn" class="btn btn-secondary" type="button">Search Games From This Position</button>
-                  <button id="odbAnalyzePositionBtn" class="btn btn-secondary" type="button" disabled>Analyze Position</button>
-                </div>
-              </div>
             </div>
 
             <div id="odbGamesPanel" class="openingdb-tab-panel" hidden>
@@ -184,7 +172,10 @@
             <button id="odbFlipBtn" class="btn btn-secondary" type="button">Flip Board</button>
             <button id="odbFenToggleBtn" class="btn btn-secondary" type="button">Input FEN</button>
           </div>
-          <button id="odbStartEngineBtn" class="btn btn-primary openingdb-engine-cta" type="button">START ENGINE ANALYSIS</button>
+          <div class="engine-analysis-zone" aria-label="Engine analysis controls">
+            <div class="engine-analysis-label">ENGINE ANALYSIS</div>
+            <button id="odbStartEngineBtn" class="btn btn-primary openingdb-engine-cta" type="button">START ENGINE ANALYSIS</button>
+          </div>
 
           <div id="odbFenPanel" class="openingdb-fen-panel" hidden>
             <label for="odbFenInput">FEN</label>
@@ -207,6 +198,19 @@
               Use Search Games to find real games from this position. This area stays visible for quick access and results context.
             </p>
             <div class="openingdb-games-dock-note">If Search Games is not available yet, you'll see a "coming soon" message in the top-right panel.</div>
+
+            <div id="odbTransitionPanel" class="odb-transition" hidden>
+              <h3>Entering Early Middlegame</h3>
+              <p id="odbTransitionMessage">
+                Position branching is narrowing. You are transitioning
+                from Opening Theory into Early Middlegame.
+              </p>
+              <div id="odbTransitionStats" class="odb-transition-stats"></div>
+              <div class="odb-transition-actions">
+                <button id="odbTransitionSearchGamesBtn" class="btn btn-secondary" type="button">Search Games From This Position</button>
+                <button id="odbAnalyzePositionBtn" class="btn btn-secondary" type="button" disabled>Analyze Position</button>
+              </div>
+            </div>
           </section>
 
           <aside class="openingdb-side-panel openingdb-side-panel-bottom" aria-label="Current position move list">
@@ -222,6 +226,6 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="/js/opening-database.js?v=1.0.34"></script>
+  <script src="/js/opening-database.js?v=1.0.35"></script>
 </body>
 </html>
