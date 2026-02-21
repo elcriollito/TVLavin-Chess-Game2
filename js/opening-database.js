@@ -15,6 +15,13 @@
     currentRows: [],
     latestAllLegalRows: [],
     latestPopularRows: [],
+    rowDiagnostics: {
+      sourcePopularCount: 0,
+      sourceAllLegalCount: 0,
+      renderedCount: 0,
+      mode: 'popular',
+      matchLevel: 'none'
+    },
     moveListMode: 'popular',
     activeTab: 'moves',
     gamesTier: 'free',
@@ -118,7 +125,8 @@
   const ENGINE_MOVE_EVAL_TIMEOUT_MS = 3500;
   const ENGINE_PV_MAX_PLIES = 80;
   const DISPLAY_PV_PLIES = 40;
-  const OPENINGDB_DISPLAY_ROW_LIMIT = 20;
+  const OPENINGDB_COMPACT_ROW_LIMIT = 20;
+  const OPENINGDB_WIDE_ROW_LIMIT = 20;
   const QUICK_EVAL_STORAGE_KEY = 'odb_eval_next_moves_fast';
   const QUICK_EVAL_MODE_STORAGE_KEY = 'odb_eval_next_moves_mode';
 
@@ -136,6 +144,7 @@
     movesPopularBtn: document.getElementById('odbMovesPopularBtn'),
     movesAllBtn: document.getElementById('odbMovesAllBtn'),
     coverageBadge: document.getElementById('odbCoverageBadge'),
+    rowsDiag: document.getElementById('odbRowsDiag'),
     movesPanel: document.getElementById('odbMovesPanel'),
     gamesPanel: document.getElementById('odbGamesPanel'),
     transitionPanel: document.getElementById('odbTransitionPanel'),
@@ -1829,12 +1838,28 @@
     maybeRunNextMoveEvalQueue();
   }
 
+  function renderRowDiagnostics() {
+    if (!els.rowsDiag) return;
+    const diag = state.rowDiagnostics || {};
+    const modeLabel = diag.mode === 'all' ? 'AllLegal' : 'Popular';
+    const sourceCount = diag.mode === 'all' ? (Number(diag.sourceAllLegalCount) || 0) : (Number(diag.sourcePopularCount) || 0);
+    const renderedCount = Number(diag.renderedCount) || 0;
+    const matchLevel = String(diag.matchLevel || 'none');
+    els.rowsDiag.textContent = `Rows rendered: ${renderedCount} / Source rows: ${sourceCount} / Mode: ${modeLabel} / matchLevel: ${matchLevel}`;
+    console.log('[OpeningDB] rows', {
+      sourceCount,
+      renderedCount,
+      mode: modeLabel,
+      matchLevel
+    });
+  }
+
   function renderStatsRows(rows) {
     if (!els.statsBody) return;
 
     if (!Array.isArray(rows) || rows.length === 0) {
       if (state.moveListMode === 'all' && state.game) {
-        const fallbackRows = buildAllLegalRowsFromGame(state.game);
+        const fallbackRows = buildAllLegalRowsFromGame(state.game).slice(0, OPENINGDB_COMPACT_ROW_LIMIT);
         if (fallbackRows.length > 0) {
           state.currentRows = fallbackRows;
           rows = fallbackRows;
@@ -1848,6 +1873,9 @@
         ? 'No DB stats for this position yet. Switch to "All Legal" to see playable moves.'
         : 'No legal moves in this position.';
       els.statsBody.innerHTML = `<tr><td colspan="4" class="openingdb-empty">${message}</td></tr>`;
+      state.rowDiagnostics.renderedCount = 0;
+      state.rowDiagnostics.mode = state.moveListMode;
+      renderRowDiagnostics();
       return;
     }
 
@@ -1855,6 +1883,8 @@
       ? state.game.history({ verbose: false }).length
       : 0;
     state.currentRows = rows.slice();
+    state.rowDiagnostics.renderedCount = state.currentRows.length;
+    state.rowDiagnostics.mode = state.moveListMode;
     const rowsHtml = rows.map((row, idx) => {
       const n = Number(row.games) || 0;
       const wPct = Number(row.wins) || 0;
@@ -1889,6 +1919,7 @@
       `;
     }).join('');
     els.statsBody.innerHTML = rowsHtml;
+    renderRowDiagnostics();
   }
 
   function setGamesStatus(message) {
@@ -2370,8 +2401,13 @@
       legalByUci: legal.byUci
     });
     const merged = mergeLegalMovesWithStats(state.game, candidateRows);
-    state.latestAllLegalRows = (merged.allLegal || []).slice(0, OPENINGDB_DISPLAY_ROW_LIMIT);
-    state.latestPopularRows = (merged.popular || []).slice(0, OPENINGDB_DISPLAY_ROW_LIMIT);
+    const sourceAllLegalRows = merged.allLegal || [];
+    const sourcePopularRows = merged.popular || [];
+    state.latestAllLegalRows = sourceAllLegalRows.slice(0, OPENINGDB_COMPACT_ROW_LIMIT);
+    state.latestPopularRows = sourcePopularRows.slice(0, OPENINGDB_WIDE_ROW_LIMIT);
+    state.rowDiagnostics.sourceAllLegalCount = sourceAllLegalRows.length;
+    state.rowDiagnostics.sourcePopularCount = sourcePopularRows.length;
+    state.rowDiagnostics.matchLevel = exactData.matchLevel || 'none';
     if (state.engine.evalNextMoves) {
       applyEngineEvalCacheToRows(state.latestAllLegalRows, fen);
       applyEngineEvalCacheToRows(state.latestPopularRows, fen);

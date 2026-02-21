@@ -576,8 +576,15 @@
   color: var(--text-secondary);
 }
 
+.openingdb-rows-diag {
+  font-size: 11px;
+  color: #8fbf8a;
+  margin-bottom: 8px;
+  font-family: 'Roboto Mono', monospace;
+}
+
 .openingdb-table-wrap {
-  max-height: 340px;
+  max-height: 420px;
   overflow-x: auto;
   overflow-y: auto;
   border: 1px solid var(--border-color);
