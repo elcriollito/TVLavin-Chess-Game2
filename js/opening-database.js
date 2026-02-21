@@ -872,23 +872,14 @@
     return copy;
   }
 
-  function mergeLegalMovesWithStats(game, candidateRows) {
+  function buildAllLegalRowsFromGame(game) {
+    if (!game || typeof game.moves !== 'function') return [];
     const legalMoves = game.moves({ verbose: true }) || [];
-    const byUci = new Map();
-    const bySan = new Map();
-    (candidateRows || []).forEach((row) => {
-      if (!row || typeof row !== 'object') return;
-      const uci = sanitizeMoveCellToken(row.moveUCI || row.uci || '').toLowerCase();
-      const san = sanitizeMoveCellToken(row.moveSAN || row.san || '');
-      if (uci) byUci.set(uci, row);
-      if (san) bySan.set(san, row);
-    });
-
-    const merged = legalMoves.map((mv) => {
-      const uci = canonicalUci(mv);
-      const san = sanitizeMoveCellToken(mv.san || '');
-      const found = byUci.get(uci) || bySan.get(san) || null;
-      const base = {
+    return sortExplorerRows(legalMoves.map((mv) => {
+      const isObj = mv && typeof mv === 'object';
+      const san = sanitizeMoveCellToken(isObj ? (mv.san || '') : String(mv || ''));
+      const uci = isObj ? canonicalUci(mv) : '';
+      return {
         moveSAN: san,
         moveUCI: uci,
         games: 0,
@@ -905,12 +896,31 @@
         preview: '',
         hasData: false
       };
+    }));
+  }
+
+  function mergeLegalMovesWithStats(game, candidateRows) {
+    const legalRows = buildAllLegalRowsFromGame(game);
+    const byUci = new Map();
+    const bySan = new Map();
+    (candidateRows || []).forEach((row) => {
+      if (!row || typeof row !== 'object') return;
+      const uci = sanitizeMoveCellToken(row.moveUCI || row.uci || '').toLowerCase();
+      const san = sanitizeMoveCellToken(row.moveSAN || row.san || '');
+      if (uci) byUci.set(uci, row);
+      if (san) bySan.set(san, row);
+    });
+
+    const merged = legalRows.map((base) => {
+      const uci = sanitizeMoveCellToken(base.moveUCI || '').toLowerCase();
+      const san = sanitizeMoveCellToken(base.moveSAN || '');
+      const found = (uci ? byUci.get(uci) : null) || (san ? bySan.get(san) : null) || null;
       if (!found) return base;
       return {
         ...base,
         ...found,
-        moveSAN: sanitizeMoveCellToken(found.moveSAN || san),
-        moveUCI: sanitizeMoveCellToken(found.moveUCI || uci).toLowerCase(),
+        moveSAN: sanitizeMoveCellToken(found.moveSAN || san || base.moveSAN),
+        moveUCI: sanitizeMoveCellToken(found.moveUCI || uci || base.moveUCI).toLowerCase(),
         hasData: true
       };
     });
@@ -945,6 +955,16 @@
   }
 
   function renderStatsRows(rows) {
+    if (!Array.isArray(rows) || rows.length === 0) {
+      if (state.moveListMode === 'all' && state.game) {
+        const fallbackRows = buildAllLegalRowsFromGame(state.game);
+        if (fallbackRows.length > 0) {
+          state.currentRows = fallbackRows;
+          rows = fallbackRows;
+        }
+      }
+    }
+
     if (!Array.isArray(rows) || rows.length === 0) {
       state.currentRows = [];
       const message = state.moveListMode === 'popular'
