@@ -7,6 +7,8 @@ workers_dev = true
 
 # Custom domain configuration
 routes = [
+  { pattern = "downloads.caissa-chess.org/openingdb*", zone_name = "caissa-chess.org" },
+  { pattern = "downloads.caissa-chess.org/openingdb/*", zone_name = "caissa-chess.org" },
   { pattern = "downloads.caissa-chess.org/*", zone_name = "caissa-chess.org" }
 ]
 
