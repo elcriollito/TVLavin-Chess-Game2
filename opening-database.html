@@ -98,6 +98,13 @@
           </div>
 
           <div id="odbMovesPanel" class="openingdb-tab-panel">
+            <div class="openingdb-moves-toolbar">
+              <div class="openingdb-modes" role="group" aria-label="Move list mode">
+                <button id="odbMovesPopularBtn" class="openingdb-tab active" type="button" aria-pressed="true">Popular</button>
+                <button id="odbMovesAllBtn" class="openingdb-tab" type="button" aria-pressed="false">All Legal</button>
+              </div>
+              <div id="odbCoverageBadge" class="openingdb-coverage-badge">0/0 moves have DB stats</div>
+            </div>
             <div class="openingdb-table-wrap">
               <table class="openingdb-stats-table">
                 <thead>
@@ -193,6 +200,6 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="/js/opening-database.js?v=1.0.22"></script>
+  <script src="/js/opening-database.js?v=1.0.23"></script>
 </body>
 </html>

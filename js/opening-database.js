@@ -13,6 +13,9 @@
     positionRequestId: 0,
     lastDebugFenKey: '',
     currentRows: [],
+    latestAllLegalRows: [],
+    latestPopularRows: [],
+    moveListMode: 'popular',
     activeTab: 'moves',
     gamesTier: 'free',
     gamesVersion: 'v1',
@@ -73,6 +76,9 @@
     statsBody: document.getElementById('odbStatsBody'),
     tabMoves: document.getElementById('odbTabMoves'),
     tabGames: document.getElementById('odbTabGames'),
+    movesPopularBtn: document.getElementById('odbMovesPopularBtn'),
+    movesAllBtn: document.getElementById('odbMovesAllBtn'),
+    coverageBadge: document.getElementById('odbCoverageBadge'),
     movesPanel: document.getElementById('odbMovesPanel'),
     gamesPanel: document.getElementById('odbGamesPanel'),
     transitionPanel: document.getElementById('odbTransitionPanel'),
@@ -858,10 +864,96 @@
     return normalized;
   }
 
+  function sortExplorerRows(rows) {
+    const copy = Array.isArray(rows) ? rows.slice() : [];
+    copy.sort((a, b) => {
+      const gamesA = Number(a?.games) || 0;
+      const gamesB = Number(b?.games) || 0;
+      if (gamesB !== gamesA) return gamesB - gamesA;
+      return String(a?.moveSAN || a?.moveUCI || '').localeCompare(String(b?.moveSAN || b?.moveUCI || ''));
+    });
+    return copy;
+  }
+
+  function mergeLegalMovesWithStats(game, candidateRows) {
+    const legalMoves = game.moves({ verbose: true }) || [];
+    const byUci = new Map();
+    const bySan = new Map();
+    (candidateRows || []).forEach((row) => {
+      if (!row || typeof row !== 'object') return;
+      const uci = sanitizeMoveCellToken(row.moveUCI || row.uci || '').toLowerCase();
+      const san = sanitizeMoveCellToken(row.moveSAN || row.san || '');
+      if (uci) byUci.set(uci, row);
+      if (san) bySan.set(san, row);
+    });
+
+    const merged = legalMoves.map((mv) => {
+      const uci = canonicalUci(mv);
+      const san = sanitizeMoveCellToken(mv.san || '');
+      const found = byUci.get(uci) || bySan.get(san) || null;
+      const base = {
+        moveSAN: san,
+        moveUCI: uci,
+        games: 0,
+        wins: 0,
+        draws: 0,
+        losses: 0,
+        value: null,
+        elo: null,
+        perf: null,
+        year: null,
+        w: 0,
+        d: 0,
+        l: 0,
+        preview: '',
+        hasData: false
+      };
+      if (!found) return base;
+      return {
+        ...base,
+        ...found,
+        moveSAN: sanitizeMoveCellToken(found.moveSAN || san),
+        moveUCI: sanitizeMoveCellToken(found.moveUCI || uci).toLowerCase(),
+        hasData: true
+      };
+    });
+
+    const withData = merged.filter((row) => row.hasData);
+    return {
+      allLegal: sortExplorerRows(merged),
+      popular: sortExplorerRows(withData)
+    };
+  }
+
+  function updateCoverageBadge(hasDataCount, totalLegal) {
+    if (!els.coverageBadge) return;
+    const withData = Number(hasDataCount) || 0;
+    const total = Number(totalLegal) || 0;
+    els.coverageBadge.textContent = `${withData}/${total} moves have DB stats`;
+  }
+
+  function setMovesListMode(mode) {
+    state.moveListMode = mode === 'all' ? 'all' : 'popular';
+    const isPopular = state.moveListMode === 'popular';
+    if (els.movesPopularBtn) {
+      els.movesPopularBtn.classList.toggle('active', isPopular);
+      els.movesPopularBtn.setAttribute('aria-pressed', isPopular ? 'true' : 'false');
+    }
+    if (els.movesAllBtn) {
+      els.movesAllBtn.classList.toggle('active', !isPopular);
+      els.movesAllBtn.setAttribute('aria-pressed', isPopular ? 'false' : 'true');
+    }
+    const rows = isPopular ? state.latestPopularRows : state.latestAllLegalRows;
+    renderStatsRows(rows);
+  }
+
   function renderStatsRows(rows) {
     if (!Array.isArray(rows) || rows.length === 0) {
       state.currentRows = [];
-      els.statsBody.innerHTML = '<tr><td colspan="8" class="openingdb-empty">No data for this position yet (TBD).</td></tr>';
+      const message = state.moveListMode === 'popular'
+        ? 'No DB stats for this position yet. Switch to "All Legal" to see playable moves.'
+        : 'No legal moves in this position.';
+      els.statsBody.innerHTML = `<tr><td colspan="8" class="openingdb-empty">${message}</td></tr>`;
       return;
     }
 
@@ -874,26 +966,31 @@
       const lPct = Number(row.losses) || 0;
       const value = Number(row.value);
       const perc = total > 0 ? toPercent(n, total) : 0;
-      const year = row.year || 'TBD';
+      const hasData = !!row.hasData;
+      const year = hasData ? (row.year || 'TBD') : '—';
       const moveText = sanitizeMoveCellToken(row.moveSAN || row.moveUCI || 'TBD') || 'TBD';
       const title = row.preview && row.preview !== moveText ? ` title="${String(row.preview).replace(/"/g, '&quot;')}"` : '';
       const wdlTitle = `W:${wPct.toFixed(1)} D:${dPct.toFixed(1)} L:${lPct.toFixed(1)}`;
-
-      return `
-        <tr class="${dominantClass(wPct, dPct, lPct)}" data-row-index="${idx}">
-          <td class="col-move"${title}>${moveText}</td>
-          <td class="col-value">${Number.isFinite(value) ? `${value.toFixed(1)}%` : 'TBD'}</td>
-          <td>${n > 0 ? n : 'TBD'}</td>
-          <td class="col-perc">${Number.isFinite(perc) ? `${perc.toFixed(1)}%` : 'TBD'}</td>
-          <td class="col-wdl">
-            <div class="wdb-bar" title="${wdlTitle}">
+      const rowClass = hasData ? dominantClass(wPct, dPct, lPct) : 'row-nodata';
+      const wdlCell = hasData
+        ? `<div class="wdb-bar" title="${wdlTitle}">
               <div class="w" style="width:${wPct.toFixed(1)}%"><span>${wPct.toFixed(1)}%</span></div>
               <div class="d" style="width:${dPct.toFixed(1)}%"><span>${dPct.toFixed(1)}%</span></div>
               <div class="l" style="width:${lPct.toFixed(1)}%"><span>${lPct.toFixed(1)}%</span></div>
-            </div>
+            </div>`
+        : '<div class="wdb-bar is-empty" title="No statistics for this move">—</div>';
+
+      return `
+        <tr class="${rowClass}" data-row-index="${idx}">
+          <td class="col-move"${title}>${moveText}</td>
+          <td class="col-value">${hasData && Number.isFinite(value) ? `${value.toFixed(1)}%` : '—'}</td>
+          <td>${n}</td>
+          <td class="col-perc">${hasData && Number.isFinite(perc) ? `${perc.toFixed(1)}%` : '—'}</td>
+          <td class="col-wdl">
+            ${wdlCell}
           </td>
-          <td>${Number.isFinite(Number(row.elo)) ? Math.round(Number(row.elo)) : 'TBD'}</td>
-          <td>${row.perf || 'TBD'}</td>
+          <td>${hasData && Number.isFinite(Number(row.elo)) ? Math.round(Number(row.elo)) : '—'}</td>
+          <td>${hasData ? (row.perf || '—') : '—'}</td>
           <td>${year}</td>
         </tr>
       `;
@@ -1315,11 +1412,17 @@
     if (requestId !== state.positionRequestId) return;
 
     const legal = buildLegalMaps(state.game);
-    const rows = normalizeContinuations(exactData.rawCandidates, {
+    const candidateRows = normalizeContinuations(exactData.rawCandidates, {
       ply,
       legalBySan: legal.bySan,
       legalByUci: legal.byUci
-    }).slice(0, ply === 0 ? 60 : 40);
+    });
+    const merged = mergeLegalMovesWithStats(state.game, candidateRows);
+    state.latestAllLegalRows = merged.allLegal;
+    state.latestPopularRows = merged.popular;
+    updateCoverageBadge(state.latestPopularRows.length, state.latestAllLegalRows.length);
+
+    const rows = state.moveListMode === 'all' ? state.latestAllLegalRows : state.latestPopularRows;
 
     let openingText = 'Opening: (TBD)';
     if (openingFallback.eco || openingFallback.name !== 'Opening: (TBD)') {
@@ -1328,7 +1431,7 @@
     els.openingLabel.textContent = openingText;
 
     renderStatsRows(rows);
-    checkTransitionState(rows, ply);
+    checkTransitionState(state.latestPopularRows, ply);
 
     if (!state.datasetsLoaded) {
       els.lookupStatus.textContent = state.datasetsError || 'Loading datasets...';
@@ -1338,7 +1441,15 @@
       els.lookupStatus.textContent = 'Position lookup: no exact match (TBD)';
     }
 
-    debugLog('updatePosition complete', { fenKey, fenHash, requestId, rows: rows.length, source: exactData.source });
+    debugLog('updatePosition complete', {
+      fenKey,
+      fenHash,
+      requestId,
+      rowsRendered: rows.length,
+      rowsPopular: state.latestPopularRows.length,
+      rowsLegal: state.latestAllLegalRows.length,
+      source: exactData.source
+    });
   }
 
   function validateFenInput(rawFen) {
@@ -1443,6 +1554,12 @@
     }
     if (els.tabGames) {
       els.tabGames.addEventListener('click', () => setActiveTab('games'));
+    }
+    if (els.movesPopularBtn) {
+      els.movesPopularBtn.addEventListener('click', () => setMovesListMode('popular'));
+    }
+    if (els.movesAllBtn) {
+      els.movesAllBtn.addEventListener('click', () => setMovesListMode('all'));
     }
 
     els.startBtn.addEventListener('click', () => {
@@ -1575,6 +1692,8 @@
         state.board.resize();
       }
     });
+
+    setMovesListMode(state.moveListMode);
   }
 
   function initBoard() {
