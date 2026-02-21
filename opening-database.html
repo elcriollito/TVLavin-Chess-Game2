@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="/assets/css/chessboard-1.0.0.min.css">
   <link rel="stylesheet" href="/styles.css?v=2.0.2">
-  <link rel="stylesheet" href="/css/opening-database.css?v=1.0.40">
+  <link rel="stylesheet" href="/css/opening-database.css?v=1.0.41">
 </head>
 <body>
   <div class="app-container openingdb-app">
@@ -85,6 +85,13 @@
                 <label class="openingdb-quick-eval-toggle" for="odbQuickEvalToggle">
                   <input id="odbQuickEvalToggle" type="checkbox">
                   Eval Next Moves (fast)
+                </label>
+                <label class="openingdb-quick-eval-mode" for="odbQuickEvalMode">
+                  Mode
+                  <select id="odbQuickEvalMode">
+                    <option value="fast" selected>Fast</option>
+                    <option value="pro">Pro</option>
+                  </select>
                 </label>
                 <div id="odbCoverageBadge" class="openingdb-coverage-badge">0/0 moves have DB stats</div>
               </div>
@@ -283,6 +290,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/js/engine/stockfish-client.js?v=1.0.1"></script>
-  <script src="/js/opening-database.js?v=1.0.40"></script>
+  <script src="/js/opening-database.js?v=1.0.41"></script>
 </body>
 </html>

@@ -37,6 +37,7 @@
       running: false,
       paused: false,
       evalNextMoves: false,
+      evalMode: 'fast',
       status: 'Idle',
       requestId: 0,
       activeRequestId: 0,
@@ -115,8 +116,10 @@
   const ENGINE_MOVE_EVAL_LIMIT = 12;
   const ENGINE_MOVE_EVAL_GAP_MS = 100;
   const ENGINE_MOVE_EVAL_TIMEOUT_MS = 3500;
-  const ENGINE_PV_MAX_PLIES = 60;
+  const ENGINE_PV_MAX_PLIES = 80;
+  const DISPLAY_PV_PLIES = 40;
   const QUICK_EVAL_STORAGE_KEY = 'odb_eval_next_moves_fast';
+  const QUICK_EVAL_MODE_STORAGE_KEY = 'odb_eval_next_moves_mode';
 
   const els = {
     board: document.getElementById('openingDbBoard'),
@@ -169,6 +172,7 @@
     engineNpsValue: document.getElementById('odbEngineNpsValue'),
     engineNodesValue: document.getElementById('odbEngineNodesValue'),
     quickEvalToggle: document.getElementById('odbQuickEvalToggle') || document.getElementById('odbEngineEvalMovesToggle'),
+    quickEvalMode: document.getElementById('odbQuickEvalMode'),
     engineCopyPvBtn: document.getElementById('odbEngineCopyPvBtn'),
     engineCopyFenBtn: document.getElementById('odbEngineCopyFenBtn'),
     engineCopyFeedback: document.getElementById('odbEngineCopyFeedback'),
@@ -495,22 +499,45 @@
   }
 
 
-  function pvUciToSan(fen, pvMoves, maxMoves = ENGINE_PV_MAX_PLIES) {
+  function uciLineToSanSafe(fen, uciMoves, maxPlies = ENGINE_PV_MAX_PLIES) {
+    const capped = Array.isArray(uciMoves) ? uciMoves.slice(0, maxPlies).map((m) => String(m || '').toLowerCase()) : [];
+    if (capped.length === 0) return { text: '-', sanCount: 0 };
+    if (!window.Chess) return { text: capped.join(' '), sanCount: 0 };
     try {
-      if (!window.Chess) return (pvMoves || []).slice(0, maxMoves).join(' ');
       const game = new Chess(fen);
-      const out = [];
-      for (const uci of (pvMoves || []).slice(0, maxMoves)) {
-        const moveObj = uciToMoveObject(uci);
-        if (!moveObj) break;
-        const mv = game.move(moveObj);
+      const sanOut = [];
+      let i = 0;
+      for (; i < capped.length; i += 1) {
+        const mvObj = uciToMoveObject(capped[i]);
+        if (!mvObj) break;
+        const mv = game.move(mvObj);
         if (!mv) break;
-        out.push(mv.san || uci);
+        sanOut.push(mv.san || capped[i]);
       }
-      return out.length > 0 ? out.join(' ') : (pvMoves || []).slice(0, maxMoves).join(' ');
+      if (i < capped.length) {
+        const remaining = capped.slice(i).join(' ');
+        return {
+          text: `${sanOut.join(' ')} | UCI: ${remaining}`.trim(),
+          sanCount: sanOut.length
+        };
+      }
+      return { text: sanOut.join(' '), sanCount: sanOut.length };
     } catch (_err) {
-      return (pvMoves || []).slice(0, maxMoves).join(' ');
+      return { text: capped.join(' '), sanCount: 0 };
     }
+  }
+
+  function pvUciToSan(fen, pvMoves, maxMoves = ENGINE_PV_MAX_PLIES, displayPlies = DISPLAY_PV_PLIES) {
+    const capped = Array.isArray(pvMoves) ? pvMoves.slice(0, maxMoves) : [];
+    const converted = uciLineToSanSafe(fen, capped, maxMoves);
+    if (converted.sanCount >= displayPlies || capped.length <= converted.sanCount) {
+      return converted.text || '-';
+    }
+    const remainStart = Math.max(0, converted.sanCount);
+    const remain = capped.slice(remainStart, Math.min(capped.length, displayPlies)).join(' ');
+    if (!remain) return converted.text || '-';
+    const prefix = converted.text && converted.text !== '-' ? `${converted.text} | UCI: ` : 'UCI: ';
+    return `${prefix}${remain}`;
   }
 
   function uciToSanFromFen(fen, uci) {
@@ -604,6 +631,26 @@
     try {
       if (!window.localStorage) return;
       localStorage.setItem(QUICK_EVAL_STORAGE_KEY, enabled ? '1' : '0');
+    } catch (_err) {
+      // ignore
+    }
+  }
+
+  function loadQuickEvalModePreference() {
+    try {
+      if (!window.localStorage) return 'fast';
+      const raw = String(localStorage.getItem(QUICK_EVAL_MODE_STORAGE_KEY) || '').toLowerCase();
+      return raw === 'pro' ? 'pro' : 'fast';
+    } catch (_err) {
+      return 'fast';
+    }
+  }
+
+  function persistQuickEvalModePreference(mode) {
+    try {
+      if (!window.localStorage) return;
+      const safe = String(mode || '').toLowerCase() === 'pro' ? 'pro' : 'fast';
+      localStorage.setItem(QUICK_EVAL_MODE_STORAGE_KEY, safe);
     } catch (_err) {
       // ignore
     }
@@ -728,6 +775,9 @@
     }
     if (els.quickEvalToggle) {
       els.quickEvalToggle.checked = !!engine.evalNextMoves;
+    }
+    if (els.quickEvalMode) {
+      els.quickEvalMode.value = engine.evalMode === 'pro' ? 'pro' : 'fast';
     }
     if (els.engineDebugWorkerUrl) els.engineDebugWorkerUrl.textContent = engine.debug.workerUrl || '-';
     if (els.engineDebugHandshake) els.engineDebugHandshake.textContent = engine.debug.handshakeState || '-';
@@ -947,10 +997,12 @@
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  async function evaluateMoveUciQuick(positionFen, moveUci) {
+  async function evaluateMoveUciQuick(positionFen, moveUci, options = {}) {
     const engine = state.engine;
     const ok = await ensureEvalClient();
     if (!ok || !engine.evalClient) return '-';
+    const depth = Number(options.depth) > 0 ? Number(options.depth) : ENGINE_MOVE_EVAL_DEPTH;
+    const timeoutMs = Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : ENGINE_MOVE_EVAL_TIMEOUT_MS;
 
     let childFen = '';
     try {
@@ -981,7 +1033,7 @@
       };
       const timer = setTimeout(() => {
         finalize(bestInfo ? formatEngineScoreCompact(bestInfo, childFen) : '-');
-      }, ENGINE_MOVE_EVAL_TIMEOUT_MS);
+      }, timeoutMs);
 
       engine.evalClient.onInfo((info) => {
         if (engine.activeEvalRequestId !== reqId) return;
@@ -1004,17 +1056,20 @@
       engine.evalClient.stop();
       engine.evalClient.setOptions({ multiPV: 1 });
       engine.evalClient.setPositionFEN(childFen);
-      engine.evalClient.goDepth(ENGINE_MOVE_EVAL_DEPTH);
+      engine.evalClient.goDepth(depth);
     });
   }
 
   async function runNextMoveEvalQueue(positionFen) {
     const engine = state.engine;
     if (!engine.evalNextMoves || !state.game) return;
+    const mode = engine.evalMode === 'pro' ? 'pro' : 'fast';
+    const evalLimit = mode === 'pro' ? ENGINE_MOVE_EVAL_LIMIT : 8;
+    const evalDepth = mode === 'pro' ? ENGINE_MOVE_EVAL_DEPTH : 8;
     const sourceRows = (state.moveListMode === 'all' ? state.latestAllLegalRows : state.latestPopularRows) || [];
     const queueRows = sourceRows
       .filter((row) => row && String(row.moveUCI || '').trim())
-      .slice(0, ENGINE_MOVE_EVAL_LIMIT);
+      .slice(0, evalLimit);
     if (queueRows.length === 0) return;
 
     const sessionId = ++engine.nextMoveEvalSessionId;
@@ -1035,7 +1090,10 @@
       }
       setRowEngineEvalByUci(uci, '...');
       refreshRenderedEngineEvalCells();
-      const evalText = await evaluateMoveUciQuick(fen, uci);
+      const evalText = await evaluateMoveUciQuick(fen, uci, {
+        depth: evalDepth,
+        timeoutMs: mode === 'pro' ? ENGINE_MOVE_EVAL_TIMEOUT_MS : 2200
+      });
       if (sessionId !== engine.nextMoveEvalSessionId) break;
       engine.nextMoveEvalCache.set(cacheKey, evalText || '-');
       setRowEngineEvalByUci(uci, evalText || '-');
@@ -2730,6 +2788,17 @@
       });
     }
 
+    if (els.quickEvalMode) {
+      els.quickEvalMode.addEventListener('change', () => {
+        state.engine.evalMode = String(els.quickEvalMode.value || 'fast').toLowerCase() === 'pro' ? 'pro' : 'fast';
+        persistQuickEvalModePreference(state.engine.evalMode);
+        if (state.engine.evalNextMoves) {
+          maybeRunNextMoveEvalQueue();
+        }
+        renderEnginePanel();
+      });
+    }
+
     if (els.gamesBody) {
       els.gamesBody.addEventListener('click', (event) => {
         const target = event.target && event.target.closest ? event.target.closest('[data-action]') : null;
@@ -2872,6 +2941,10 @@
       state.engine.evalNextMoves = loadQuickEvalPreference();
       if (els.quickEvalToggle) {
         els.quickEvalToggle.checked = state.engine.evalNextMoves;
+      }
+      state.engine.evalMode = loadQuickEvalModePreference();
+      if (els.quickEvalMode) {
+        els.quickEvalMode.value = state.engine.evalMode;
       }
       state.engine.debug.workerUrl = new URL('/engine/stockfish.worker.js', window.location.origin).toString();
       state.engine.debug.handshakeState = 'idle';
