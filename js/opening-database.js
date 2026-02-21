@@ -16,7 +16,7 @@
     activeTab: 'moves',
     gamesTier: 'free',
     gamesVersion: 'v1',
-    gamesBaseRoot: 'https://downloads.caissa-chess.org/openingdb/games',
+    gamesBaseRoot: '/openingdb/games',
     gamesManifestLoaded: false,
     gamesManifestLoadAttempted: false,
     gamesManifestFallback: true,
@@ -26,9 +26,10 @@
     pgnViewsUsed: 0
   };
 
-  const DEFAULT_SHARD_ROOT = 'https://downloads.caissa-chess.org/openingdb/shards';
+  const DEFAULT_SHARD_ROOT = '/openingdb/shards';
   const DEFAULT_ACTIVE_VERSION = 'v1';
-  const MANIFEST_URL = 'https://downloads.caissa-chess.org/openingdb/manifest.json';
+  const MANIFEST_URL = '/openingdb/manifest.json';
+  const REMOTE_MANIFEST_URL = 'https://downloads.caissa-chess.org/openingdb/manifest.json';
   const LOCAL_MANIFEST_URL = '/openingdb/manifest.json';
   const MANIFEST_TTL_MS = 5 * 60 * 1000;
   const SHARD_PREFETCH_DELAY_MS = 200;
@@ -47,7 +48,8 @@
   })();
   const SHARD_FETCH_TIMEOUT_MS = 4000;
   const MANIFEST_FETCH_TIMEOUT_MS = 2000;
-  const GAMES_MANIFEST_URL = 'https://downloads.caissa-chess.org/openingdb/games/manifest.json';
+  const GAMES_MANIFEST_URL = '/openingdb/games/manifest.json';
+  const REMOTE_GAMES_MANIFEST_URL = 'https://downloads.caissa-chess.org/openingdb/games/manifest.json';
   const LOCAL_GAMES_MANIFEST_URL = '/openingdb/games/manifest.json';
   const GAMES_MANIFEST_TTL_MS = 5 * 60 * 1000;
   const GAMES_FETCH_TIMEOUT_MS = 4000;
@@ -505,6 +507,14 @@
     state.shardBaseUrl = alreadyVersioned ? normalizedBase : `${normalizedBase}/${activeVersion}`;
   }
 
+  function preferSameOriginManifest(manifest) {
+    const m = manifest && typeof manifest === 'object' ? { ...manifest } : {};
+    const activeVersion = String(m.activeVersion || DEFAULT_ACTIVE_VERSION).trim() || DEFAULT_ACTIVE_VERSION;
+    m.activeVersion = activeVersion;
+    m.baseUrl = `/openingdb/shards/${activeVersion}`;
+    return m;
+  }
+
   async function loadOpeningDbManifest() {
     const cached = readManifestFromSession();
     if (cached) {
@@ -512,11 +522,20 @@
       return { source: 'session-cache', ok: true };
     }
 
-    const remoteManifestUrl = MANIFEST_OVERRIDE_URL || MANIFEST_URL;
-    const remoteManifest = await fetchJsonWithTimeout(remoteManifestUrl, MANIFEST_FETCH_TIMEOUT_MS);
+    const siteManifestUrl = MANIFEST_OVERRIDE_URL || MANIFEST_URL;
+    const siteManifest = await fetchJsonWithTimeout(siteManifestUrl, MANIFEST_FETCH_TIMEOUT_MS);
+    if (siteManifest && typeof siteManifest === 'object') {
+      const runtimeManifest = DEV_MODE ? siteManifest : preferSameOriginManifest(siteManifest);
+      writeManifestToSession(runtimeManifest);
+      applyManifest(runtimeManifest, false);
+      return { source: 'site-proxy', ok: true };
+    }
+
+    const remoteManifest = await fetchJsonWithTimeout(REMOTE_MANIFEST_URL, MANIFEST_FETCH_TIMEOUT_MS);
     if (remoteManifest && typeof remoteManifest === 'object') {
-      writeManifestToSession(remoteManifest);
-      applyManifest(remoteManifest, false);
+      const runtimeManifest = DEV_MODE ? remoteManifest : preferSameOriginManifest(remoteManifest);
+      writeManifestToSession(runtimeManifest);
+      applyManifest(runtimeManifest, false);
       return { source: 'remote', ok: true };
     }
 
@@ -571,7 +590,7 @@
       return { source: 'local-site-manifest', ok: true };
     }
 
-    const remote = await fetchJsonWithTimeout(GAMES_MANIFEST_URL, MANIFEST_FETCH_TIMEOUT_MS);
+    const remote = await fetchJsonWithTimeout(REMOTE_GAMES_MANIFEST_URL, MANIFEST_FETCH_TIMEOUT_MS);
     if (remote && typeof remote === 'object') {
       writeGamesManifestToSession(remote);
       state.gamesVersion = String(remote.activeVersion || 'v1');
@@ -591,7 +610,7 @@
     }
 
     state.gamesVersion = 'v1';
-    state.gamesBaseRoot = 'https://downloads.caissa-chess.org/openingdb/games';
+    state.gamesBaseRoot = '/openingdb/games';
     state.gamesManifestFallback = true;
     state.gamesManifestLoaded = false;
     return { source: 'fallback', ok: false };
