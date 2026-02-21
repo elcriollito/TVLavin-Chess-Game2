@@ -149,6 +149,16 @@
     return `${parts[0]} ${parts[1] || 'w'} ${parts[2] || '-'} ${parts[3] || '-'}`;
   }
 
+  function splitFenParts(fen) {
+    const parts = String(fen || '').trim().split(/\s+/);
+    return {
+      board: parts[0] || '',
+      turn: parts[1] || 'w',
+      castling: parts[2] || '-',
+      ep: parts[3] || '-'
+    };
+  }
+
   function sha1Hex(input) {
     function rotl(n, s) {
       return (n << s) | (n >>> (32 - s));
@@ -209,6 +219,24 @@
 
   function hashFen(fen) {
     return sha1Hex(normalizeFenForHash(fen)).slice(0, 16);
+  }
+
+  function buildFenLookupVariants(fen) {
+    const p = splitFenParts(fen);
+    if (!p.board) return [];
+    const variants = [
+      { level: 'exact', key: `${p.board} ${p.turn} ${p.castling} ${p.ep}` },
+      { level: 'no_ep', key: `${p.board} ${p.turn} ${p.castling} -` },
+      { level: 'no_castling', key: `${p.board} ${p.turn} - -` },
+      { level: 'board_only', key: `${p.board}` }
+    ];
+    const seen = new Set();
+    return variants.filter((v) => {
+      const k = String(v.key || '').trim();
+      if (!k || seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
   }
 
   function sanitizeNextMoveText(txt) {
@@ -1388,36 +1416,48 @@
     };
   }
 
-  async function getContinuationsForFen(fenHash, context = {}) {
-    const shard = String(fenHash || '').slice(0, 2).toLowerCase();
-    const shardUrl = `${state.shardBaseUrl || SHARD_BASE}/${shard}.json`;
-    console.log('[OpeningDB] lookup', {
-      ply: Number(context.ply) || 0,
-      fenKey: context.fenKey || '',
-      shardId: shard,
-      shardUrl
-    });
-    const shardData = await loadOpeningDbShard(shard);
-    const entry = shardData && typeof shardData === 'object' ? shardData[fenHash] : null;
-    const candidateCount = Array.isArray(entry?.moves) ? entry.moves.length : 0;
-    const totalGames = Array.isArray(entry?.moves)
-      ? entry.moves.reduce((sum, move) => sum + (Number(move?.games) || 0), 0)
-      : 0;
-    console.log('[OpeningDB] match', {
-      found: !!entry,
-      candidates: candidateCount,
-      totalGames
-    });
-    if (entry) {
-      return {
-        source: 'openingdb_shard_exact',
-        entry,
-        rawCandidates: extractRawCandidates(entry)
-      };
+  async function getContinuationsForFen(fen, context = {}) {
+    const variants = buildFenLookupVariants(fen);
+    for (const variant of variants) {
+      const fenKeyCandidate = String(variant.key || '');
+      const fenHash = hashFen(fenKeyCandidate);
+      const shard = String(fenHash || '').slice(0, 2).toLowerCase();
+      const shardUrl = `${state.shardBaseUrl || SHARD_BASE}/${shard}.json`;
+      console.log('[OpeningDB] lookup', {
+        ply: Number(context.ply) || 0,
+        fenKey: context.fenKey || '',
+        lookupFenKey: fenKeyCandidate,
+        matchLevel: variant.level,
+        shardId: shard,
+        shardUrl
+      });
+
+      const shardData = await loadOpeningDbShard(shard);
+      const entry = shardData && typeof shardData === 'object' ? shardData[fenHash] : null;
+      const candidateCount = Array.isArray(entry?.moves) ? entry.moves.length : 0;
+      const totalGames = Array.isArray(entry?.moves)
+        ? entry.moves.reduce((sum, move) => sum + (Number(move?.games) || 0), 0)
+        : 0;
+      console.log('[OpeningDB] match', {
+        found: !!entry,
+        matchLevel: variant.level,
+        candidates: candidateCount,
+        totalGames
+      });
+
+      if (entry) {
+        return {
+          source: 'openingdb_shard_exact',
+          matchLevel: variant.level,
+          entry,
+          rawCandidates: extractRawCandidates(entry)
+        };
+      }
     }
 
     return {
       source: 'none',
+      matchLevel: 'none',
       entry: null,
       rawCandidates: []
     };
@@ -1430,7 +1470,6 @@
 
     const fen = inputFen || state.game.fen();
     const fenKey = normalizeFenForHash(fen);
-    const fenHash = hashFen(fen);
     const ply = state.game.history({ verbose: false }).length;
 
     if (force || state.lastDebugFenKey !== fenKey) {
@@ -1442,7 +1481,7 @@
     updateTurnPlyLabel(ply);
 
     const openingFallback = resolveOpeningByPrefix();
-    const exactData = await getContinuationsForFen(fenHash, { ply, fenKey });
+    const exactData = await getContinuationsForFen(fen, { ply, fenKey });
     if (requestId !== state.positionRequestId) return;
 
     const legal = buildLegalMaps(state.game);
@@ -1470,18 +1509,18 @@
     if (!state.datasetsLoaded) {
       els.lookupStatus.textContent = state.datasetsError || 'Loading datasets...';
     } else if (exactData.source === 'openingdb_shard_exact') {
-      els.lookupStatus.textContent = `Position lookup: exact match (${exactData.source})`;
+      els.lookupStatus.textContent = `Position lookup: match (${exactData.matchLevel || 'exact'})`;
     } else {
       els.lookupStatus.textContent = 'Position lookup: no exact match (TBD)';
     }
 
     debugLog('updatePosition complete', {
       fenKey,
-      fenHash,
       requestId,
       rowsRendered: rows.length,
       rowsPopular: state.latestPopularRows.length,
       rowsLegal: state.latestAllLegalRows.length,
+      matchLevel: exactData.matchLevel || 'none',
       source: exactData.source
     });
   }
