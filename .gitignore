@@ -42,6 +42,7 @@ build/
 # Opening DB / local datasets (never commit)
 data/openingdb/
 data/openingdb_games/
+data/gamesearch/
 data/pgn_samples/
 data/pgn_smoke/
 .wrangler/

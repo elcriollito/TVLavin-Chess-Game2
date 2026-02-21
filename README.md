@@ -546,3 +546,18 @@ node scripts/qa-openingdb-v3.js --base https://www.caissa-chess.org --manifest /
 # filter cases:
 node scripts/qa-openingdb-v3.js --cases "Sicilian,London"
 ```
+
+Build GameSearch index shards (lineKey -> top games):
+
+```bash
+npm run build:gamesearch:index
+npm run qa:gamesearch:index
+npm run upload:gamesearch:r2
+```
+
+GameSearch endpoint (via downloads worker):
+
+```text
+GET https://downloads.caissa-chess.org/gamesearch/line?lineKey=e2e4%20c7c5
+GET https://downloads.caissa-chess.org/gamesearch/manifest.json
+```

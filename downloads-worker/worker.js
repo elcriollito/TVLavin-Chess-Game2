@@ -114,8 +114,13 @@ function getOpeningDbCorsHeaders(env) {
   };
 }
 
+function isDataApiPath(path) {
+  const p = String(path || '');
+  return p.startsWith('/openingdb/') || p.startsWith('/gamesearch/');
+}
+
 function applyOpeningDbCors(path, response, env) {
-  if (!String(path || '').startsWith('/openingdb/')) return response;
+  if (!isDataApiPath(path)) return response;
   const headers = new Headers(response.headers || {});
   const cors = getOpeningDbCorsHeaders(env);
   for (const [key, value] of Object.entries(cors)) {
@@ -456,6 +461,164 @@ async function handleOpeningDbManifest(env, origin, method = 'GET') {
       }
     });
   }
+}
+
+function sha1Hex(input) {
+  function rotl(n, s) {
+    return (n << s) | (n >>> (32 - s));
+  }
+  function toHex(i) {
+    return (`00000000${(i >>> 0).toString(16)}`).slice(-8);
+  }
+  const msg = unescape(encodeURIComponent(String(input || '')));
+  const words = [];
+  for (let i = 0; i < msg.length; i += 1) {
+    words[i >> 2] |= msg.charCodeAt(i) << (24 - (i % 4) * 8);
+  }
+  words[msg.length >> 2] |= 0x80 << (24 - (msg.length % 4) * 8);
+  words[(((msg.length + 8) >> 6) + 1) * 16 - 1] = msg.length * 8;
+
+  let h0 = 0x67452301;
+  let h1 = 0xefcdab89;
+  let h2 = 0x98badcfe;
+  let h3 = 0x10325476;
+  let h4 = 0xc3d2e1f0;
+
+  for (let i = 0; i < words.length; i += 16) {
+    const w = [];
+    for (let j = 0; j < 16; j += 1) w[j] = words[i + j] | 0;
+    for (let j = 16; j < 80; j += 1) w[j] = rotl(w[j - 3] ^ w[j - 8] ^ w[j - 14] ^ w[j - 16], 1);
+
+    let a = h0;
+    let b = h1;
+    let c = h2;
+    let d = h3;
+    let e = h4;
+
+    for (let j = 0; j < 80; j += 1) {
+      let f = 0;
+      let k = 0;
+      if (j < 20) { f = (b & c) | (~b & d); k = 0x5a827999; }
+      else if (j < 40) { f = b ^ c ^ d; k = 0x6ed9eba1; }
+      else if (j < 60) { f = (b & c) | (b & d) | (c & d); k = 0x8f1bbcdc; }
+      else { f = b ^ c ^ d; k = 0xca62c1d6; }
+      const temp = (rotl(a, 5) + f + e + k + (w[j] | 0)) | 0;
+      e = d;
+      d = c;
+      c = rotl(b, 30) | 0;
+      b = a;
+      a = temp;
+    }
+
+    h0 = (h0 + a) | 0;
+    h1 = (h1 + b) | 0;
+    h2 = (h2 + c) | 0;
+    h3 = (h3 + d) | 0;
+    h4 = (h4 + e) | 0;
+  }
+  return (toHex(h0) + toHex(h1) + toHex(h2) + toHex(h3) + toHex(h4)).toLowerCase();
+}
+
+function lineKeyShard(lineKey) {
+  return sha1Hex(String(lineKey || '')).slice(0, 2).toLowerCase();
+}
+
+async function getGameSearchObject(env, key) {
+  const bucket = env.OPENINGDB_BUCKET || env.VAULT_BUCKET;
+  if (!bucket) return null;
+  return bucket.get(key);
+}
+
+async function handleGameSearchManifest(env, origin, method = 'GET') {
+  try {
+    const object = await getGameSearchObject(env, 'gamesearch/manifest.json');
+    if (!object) {
+      return new Response(JSON.stringify({ error: 'GameSearch manifest not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json', ...getCorsHeaders(origin) }
+      });
+    }
+    return new Response(method === 'HEAD' ? null : object.body, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'public, max-age=300',
+        ...getCorsHeaders(origin)
+      }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: 'Failed to read GameSearch manifest', message: error?.message || String(error) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json', ...getCorsHeaders(origin) }
+    });
+  }
+}
+
+async function handleGameSearchLine(url, env, origin) {
+  const lineKey = String(url.searchParams.get('lineKey') || '').trim();
+  if (!lineKey) {
+    return new Response(JSON.stringify({ error: 'Missing required query param: lineKey' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json', ...getCorsHeaders(origin) }
+    });
+  }
+
+  const versionQuery = String(url.searchParams.get('version') || '').trim();
+  const manifestObj = await getGameSearchObject(env, 'gamesearch/manifest.json');
+  let manifest = {};
+  if (manifestObj) {
+    try {
+      manifest = await manifestObj.json();
+    } catch {
+      manifest = {};
+    }
+  }
+  const version = versionQuery || String(manifest.activeVersion || 'v1');
+  const shardId = lineKeyShard(lineKey);
+  const key = `gamesearch/${version}/shards/${shardId}.json`;
+  const shardObj = await getGameSearchObject(env, key);
+  if (!shardObj) {
+    return new Response(JSON.stringify({
+      ok: true,
+      version,
+      lineKey,
+      shardId,
+      games: 0,
+      top: []
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...getCorsHeaders(origin) }
+    });
+  }
+
+  let shardJson = {};
+  try {
+    shardJson = await shardObj.json();
+  } catch {
+    shardJson = {};
+  }
+  const entries = shardJson && typeof shardJson === 'object' && shardJson.entries && typeof shardJson.entries === 'object'
+    ? shardJson.entries
+    : {};
+  const node = entries[lineKey] || null;
+  const games = Number(node?.games) || 0;
+  const top = Array.isArray(node?.top) ? node.top : [];
+
+  return new Response(JSON.stringify({
+    ok: true,
+    version,
+    lineKey,
+    shardId,
+    games,
+    top
+  }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+      ...getCorsHeaders(origin)
+    }
+  });
 }
 
 function getTier(url, request) {
@@ -998,6 +1161,26 @@ async function handleRequest(request, env) {
     return handleCatalog(origin);
   }
 
+  if (path === '/gamesearch/manifest.json') {
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+        status: 405,
+        headers: { 'Content-Type': 'application/json', ...getCorsHeaders(origin) }
+      });
+    }
+    return handleGameSearchManifest(env, origin, request.method);
+  }
+
+  if (path === '/gamesearch/line') {
+    if (request.method !== 'GET') {
+      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+        status: 405,
+        headers: { 'Content-Type': 'application/json', ...getCorsHeaders(origin) }
+      });
+    }
+    return handleGameSearchLine(url, env, origin);
+  }
+
   if (path === '/__worker_ping') {
     return new Response('pong', {
       status: 200,
@@ -1149,6 +1332,8 @@ async function handleRequest(request, env) {
       '/health',
       '/catalog',
       '/download/{slug}',
+      '/gamesearch/manifest.json',
+      '/gamesearch/line?lineKey=<uci sequence>',
       '/openingdb/manifest.json',
       '/openingdb/shards/{version}/{shard}.json',
       '/openingdb/games/manifest.json',
@@ -1175,7 +1360,7 @@ async function handleRequest(request, env) {
 export default {
   async fetch(request, env, ctx) {
     const path = new URL(request.url).pathname;
-    if (request.method === 'OPTIONS' && path.startsWith('/openingdb/')) {
+    if (request.method === 'OPTIONS' && isDataApiPath(path)) {
       return new Response(null, {
         status: 204,
         headers: getOpeningDbCorsHeaders(env)

@@ -20,6 +20,7 @@
     { "source": "/openingdb/manifest.json", "destination": "https://downloads.caissa-chess.org/openingdb/manifest.json" },
     { "source": "/openingdb/shards/:path*", "destination": "https://downloads.caissa-chess.org/openingdb/shards/:path*" },
     { "source": "/openingdb/:path*", "destination": "https://downloads.caissa-chess.org/openingdb/:path*" },
+    { "source": "/gamesearch/:path*", "destination": "https://downloads.caissa-chess.org/gamesearch/:path*" },
     { "source": "/signin", "destination": "/signin.html" },
     { "source": "/signup", "destination": "/signup.html" },
     { "source": "/data/:path*", "destination": "/public/data/:path*" },

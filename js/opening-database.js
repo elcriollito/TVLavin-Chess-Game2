@@ -20,6 +20,8 @@
     gamesTier: 'free',
     gamesVersion: 'v1',
     gamesBaseRoot: '/openingdb/games',
+    gameSearchManifest: null,
+    gameSearchLineKey: '',
     gamesManifestLoaded: false,
     gamesManifestLoadAttempted: false,
     gamesManifestFallback: true,
@@ -57,7 +59,11 @@
   const LOCAL_GAMES_MANIFEST_URL = '/openingdb/games/manifest.json';
   const GAMES_MANIFEST_TTL_MS = 5 * 60 * 1000;
   const GAMES_FETCH_TIMEOUT_MS = 4000;
-  const SEARCH_GAMES_ENABLED = false;
+  const SEARCH_GAMES_ENABLED = true;
+  const GAMESEARCH_MANIFEST_URL = '/gamesearch/manifest.json';
+  const GAMESEARCH_LINE_URL = '/gamesearch/line';
+  const GAMESEARCH_DEFAULT_MAX_PLIES = 10;
+  const GAMESEARCH_RENDER_LIMIT = 50;
   const FREE_GAME_PREVIEW_LIMIT = 20;
   const PREMIUM_GAME_PREVIEW_LIMIT = 500;
   const FREE_PGN_VIEW_LIMIT = 5;
@@ -89,6 +95,7 @@
     transitionSearchGamesBtn: document.getElementById('odbTransitionSearchGamesBtn'),
     analyzePositionBtn: document.getElementById('odbAnalyzePositionBtn'),
     searchGamesBtn: document.getElementById('odbSearchGamesBtn'),
+    copyLineKeyBtn: document.getElementById('odbCopyLineKeyBtn'),
     downloadGamesBtn: document.getElementById('odbDownloadGamesBtn'),
     gamesYearMin: document.getElementById('odbGamesYearMin'),
     gamesYearMax: document.getElementById('odbGamesYearMax'),
@@ -1204,11 +1211,13 @@
       return;
     }
     if (isGames) {
-      ensureGamesManifestLoaded().then((result) => {
-        if (!result.ok) {
-          setGamesStatus('Search Games: coming soon.');
-        }
-      });
+      const lineKey = buildCurrentLineKey();
+      state.gameSearchLineKey = lineKey;
+      if (!lineKey) {
+        setGamesStatus('Play moves, then click Search Games From This Position.');
+      } else {
+        setGamesStatus('Ready. Click Search Games From This Position.');
+      }
     }
   }
 
@@ -1240,10 +1249,16 @@
       const white = row.white || 'Unknown';
       const black = row.black || 'Unknown';
       const result = row.result || '?';
-      const event = row.event || row.site || '-';
+      const event = row.eco ? `${row.event || row.site || '-'} [${row.eco}]` : (row.event || row.site || '-');
       const year = row.year || '-';
+      const avgElo = Number(row.avgElo);
       const whiteElo = row.whiteElo ? String(row.whiteElo) : '?';
       const blackElo = row.blackElo ? String(row.blackElo) : '?';
+      const eloCell = Number.isFinite(avgElo) ? `${Math.round(avgElo)} (avg)` : `${whiteElo}/${blackElo}`;
+      const actions = row.pgnUrl
+        ? `<button class="btn btn-secondary odb-game-view-btn" data-action="view" data-game-index="${idx}" type="button">View PGN</button>
+            <a class="btn btn-secondary odb-game-download-link" data-action="download" data-game-index="${idx}" href="${row.pgnUrl}" download="${row.gameId}.pgn">Download</a>`
+        : '—';
       return `
         <tr data-game-index="${idx}">
           <td>${white}</td>
@@ -1251,11 +1266,8 @@
           <td>${result}</td>
           <td>${event}</td>
           <td>${year}</td>
-          <td>${whiteElo}/${blackElo}</td>
-          <td>
-            <button class="btn btn-secondary odb-game-view-btn" data-action="view" data-game-index="${idx}" type="button">View PGN</button>
-            <a class="btn btn-secondary odb-game-download-link" data-action="download" data-game-index="${idx}" href="${row.pgnUrl}" download="${row.gameId}.pgn">Download</a>
-          </td>
+          <td>${eloCell}</td>
+          <td>${actions}</td>
         </tr>
       `;
     }).join('');
@@ -1276,6 +1288,43 @@
     els.gamesDownloads.innerHTML = `<div class="openingdb-games-status">Download list (${limit}/${rows.length})</div>${links.join('')}${paywall}`;
   }
 
+  function moveVerboseToUci(move) {
+    if (!move || typeof move !== 'object') return '';
+    return `${move.from || ''}${move.to || ''}${move.promotion || ''}`.toLowerCase();
+  }
+
+  function getGameSearchMaxPlies() {
+    const fromManifest = Number(state.gameSearchManifest?.maxPlies);
+    if (Number.isFinite(fromManifest) && fromManifest > 0) return fromManifest;
+    return GAMESEARCH_DEFAULT_MAX_PLIES;
+  }
+
+  function buildCurrentLineKey() {
+    if (!state.game) return '';
+    const maxPlies = getGameSearchMaxPlies();
+    const history = state.game.history({ verbose: true }) || [];
+    const ucis = history.map(moveVerboseToUci).filter(Boolean);
+    if (ucis.length === 0) return '';
+    return ucis.slice(-maxPlies).join(' ');
+  }
+
+  async function ensureGameSearchManifest() {
+    if (state.gameSearchManifest && typeof state.gameSearchManifest === 'object') {
+      return state.gameSearchManifest;
+    }
+    const manifest = await fetchJsonWithTimeout(GAMESEARCH_MANIFEST_URL, MANIFEST_FETCH_TIMEOUT_MS);
+    if (!manifest || typeof manifest !== 'object') return null;
+    state.gameSearchManifest = manifest;
+    return manifest;
+  }
+
+  async function queryGameSearchByLineKey(lineKey) {
+    const url = `${GAMESEARCH_LINE_URL}?lineKey=${encodeURIComponent(lineKey)}`;
+    const data = await fetchJsonWithTimeout(url, GAMES_FETCH_TIMEOUT_MS);
+    if (!data || typeof data !== 'object') return null;
+    return data;
+  }
+
   function parseFilenameFromContentDisposition(value, fallback) {
     const raw = String(value || '');
     const matchStar = raw.match(/filename\*=UTF-8''([^;]+)/i);
@@ -1292,85 +1341,7 @@
   }
 
   async function triggerGamesZipDownload() {
-    if (!SEARCH_GAMES_ENABLED) {
-      setGamesStatus('Search Games: coming soon.');
-      return;
-    }
-    if (!state.game) return;
-    const gamesManifest = await ensureGamesManifestLoaded();
-    if (!gamesManifest.ok) return;
-    const fenHash = hashFen(state.game.fen());
-    const limit = getCurrentDownloadLimit();
-    const body = {
-      fenHash,
-      limit,
-      filters: {
-        yearMin: Number.parseInt(String(els.gamesYearMin?.value || ''), 10) || null,
-        yearMax: Number.parseInt(String(els.gamesYearMax?.value || ''), 10) || null,
-        eloMin: Number.parseInt(String(els.gamesEloMin?.value || ''), 10) || null,
-        result: normalizeResultFilterForApi(els.gamesResult?.value || 'all')
-      }
-    };
-
-    const tierQuery = state.gamesTier === 'premium' ? '?tier=premium' : '';
-    const url = `${state.gamesBaseRoot}/${state.gamesVersion}/download.zip${tierQuery}`;
-    const originalLabel = els.downloadGamesBtn ? els.downloadGamesBtn.textContent : '';
-
-    if (els.downloadGamesBtn) {
-      els.downloadGamesBtn.disabled = true;
-      els.downloadGamesBtn.textContent = 'Preparing ZIP...';
-    }
-    setGamesStatus(`Preparing ZIP for ${fenHash}...`);
-
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-caissa-tier': state.gamesTier
-        },
-        body: JSON.stringify(body)
-      });
-
-      if (!res.ok) {
-        let detail = '';
-        try {
-          const errJson = await res.json();
-          detail = errJson?.error || '';
-        } catch (_err) {
-          detail = '';
-        }
-        throw new Error(detail || `HTTP ${res.status}`);
-      }
-
-      const blob = await res.blob();
-      const fallbackName = `caissa-games_${fenHash.slice(0, 8)}.zip`;
-      const filename = parseFilenameFromContentDisposition(res.headers.get('content-disposition'), fallbackName);
-      const urlObj = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = urlObj;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(urlObj);
-
-      const truncated = String(res.headers.get('x-caissa-truncated') || '').toLowerCase() === 'true';
-      if (truncated) {
-        setGamesStatus(`ZIP downloaded (${filename}) - truncated by size cap, see index.txt.`);
-      } else {
-        setGamesStatus(`ZIP downloaded (${filename}).`);
-      }
-    } catch (error) {
-      console.warn('[OpeningDB] ZIP download failed', error);
-      setGamesStatus(`ZIP download failed: ${error?.message || 'unknown error'}`);
-    } finally {
-      if (els.downloadGamesBtn) {
-        els.downloadGamesBtn.disabled = false;
-        els.downloadGamesBtn.textContent = originalLabel || `Download top ${limit} (ZIP)`;
-      }
-      updateDownloadButtonLabel();
-    }
+    setGamesStatus('Download Games ZIP: coming soon.');
   }
 
   async function runGamesSearch() {
@@ -1379,62 +1350,65 @@
       return;
     }
     if (!state.game) return;
-    const gamesManifest = await ensureGamesManifestLoaded();
-    if (!gamesManifest.ok) return;
-    const fenHash = hashFen(state.game.fen());
-    const shard = fenHash.slice(0, 2);
-    setGamesStatus(`Searching... fenHash=${fenHash}`);
-
-    const shardData = await loadGamesShard(shard);
-    const allGameIds = shardData && Array.isArray(shardData[fenHash]) ? shardData[fenHash] : [];
-    if (!allGameIds.length) {
+    const manifest = await ensureGameSearchManifest();
+    if (!manifest) {
+      setGamesStatus('GameSearch manifest unavailable.');
+      return;
+    }
+    const lineKey = buildCurrentLineKey();
+    state.gameSearchLineKey = lineKey;
+    if (!lineKey) {
       state.gamesResults = [];
       renderGamesRows([]);
       if (els.gamesDownloads) els.gamesDownloads.innerHTML = '';
-      setGamesStatus('No indexed games for this position.');
+      setGamesStatus('No moves played yet. Play moves to search games.');
       return;
     }
 
-    const previewCap = getCurrentPreviewLimit();
-    const gameIds = allGameIds.slice(0, previewCap);
-    const prefixes = Array.from(new Set(gameIds.map((id) => String(id || '').slice(2, 4).toLowerCase()).filter((p) => /^[0-9a-f]{2}$/.test(p))));
+    setGamesStatus('Searching indexed games...');
+    const payload = await queryGameSearchByLineKey(lineKey);
+    if (!payload || !payload.ok) {
+      state.gamesResults = [];
+      renderGamesRows([]);
+      if (els.gamesDownloads) els.gamesDownloads.innerHTML = '';
+      setGamesStatus('GameSearch request failed.');
+      return;
+    }
 
-    const catalogs = await Promise.all(prefixes.map((prefix) => loadGamesCatalogPrefix(prefix)));
-    const mergedCatalog = {};
-    catalogs.forEach((cat) => {
-      if (cat && typeof cat === 'object') {
-        Object.assign(mergedCatalog, cat);
-      }
-    });
-
-    const rows = gameIds.map((gameId) => {
-      const meta = mergedCatalog[gameId] || {};
+    const topRows = Array.isArray(payload.top) ? payload.top.slice(0, GAMESEARCH_RENDER_LIMIT) : [];
+    const rows = topRows.map((meta) => {
+      const avgElo = Number(meta.avgElo);
       return {
-        gameId,
+        gameId: meta.gameId || '',
         white: meta.white || 'Unknown',
         black: meta.black || 'Unknown',
         result: meta.result || '?',
-        event: meta.event || '',
+        event: meta.event || meta.site || '',
         site: meta.site || '',
         year: meta.year || null,
         whiteElo: meta.whiteElo || null,
         blackElo: meta.blackElo || null,
-        pgnKey: meta.pgnKey || '',
-        pgnUrl: meta.pgnKey
-          ? `${state.gamesBaseRoot}/${meta.pgnKey.replace(/^openingdb\/games\/[^/]+\//, `${state.gamesVersion}/`)}`
-          : buildPgnUrl(gameId)
+        eco: meta.eco || '',
+        avgElo: Number.isFinite(avgElo) ? avgElo : null,
+        pgnUrl: ''
       };
     }).filter(passesGamesFilters);
 
     state.gamesResults = rows;
     renderGamesRows(rows);
     if (els.gamesDownloads) {
-      const shown = Math.min(rows.length, getCurrentDownloadLimit());
-      els.gamesDownloads.innerHTML = `<div class="openingdb-games-status">ZIP ready: up to ${shown} games with current tier/filters.</div>`;
+      const safeLineKey = String(lineKey).replace(/"/g, '&quot;');
+      els.gamesDownloads.innerHTML = `
+        <div class="openingdb-games-status">lineKey: <code>${safeLineKey}</code></div>
+        <div class="openingdb-games-status">Total indexed games: ${Number(payload.games) || 0} | Showing: ${rows.length}</div>
+      `;
     }
 
-    const hidden = allGameIds.length > gameIds.length ? ` (showing ${gameIds.length}/${allGameIds.length})` : '';
-    setGamesStatus(`Found ${rows.length} games${hidden}`);
+    if ((Number(payload.games) || 0) === 0) {
+      setGamesStatus('No indexed games for this line (yet).');
+    } else {
+      setGamesStatus(`Found ${Number(payload.games) || 0} indexed games for this line.`);
+    }
   }
 
   async function viewGamePgn(gameIndex) {
@@ -1610,6 +1584,7 @@
     updateCoverageBadge(state.latestPopularRows.length, state.latestAllLegalRows.length);
 
     const rows = state.moveListMode === 'all' ? state.latestAllLegalRows : state.latestPopularRows;
+    state.gameSearchLineKey = buildCurrentLineKey();
 
     let openingText = 'Opening: (TBD)';
     if (openingFallback.eco || openingFallback.name !== 'Opening: (TBD)') {
@@ -1712,7 +1687,7 @@
       if (missing.length > 0) {
         showDatasetBanner(`Fallback dataset active - missing ${missing.join(', ')}`);
       } else {
-        showDatasetBanner('Search Games: coming soon.');
+        showDatasetBanner('');
       }
 
       debugLog('datasets loaded', {
@@ -1748,7 +1723,11 @@
 
     updateTurnPlyLabel(state.game ? state.game.history({ verbose: false }).length : 0);
     updateDownloadButtonLabel();
-    setGamesStatus('Search Games: coming soon.');
+    if (els.downloadGamesBtn) {
+      els.downloadGamesBtn.disabled = true;
+      els.downloadGamesBtn.textContent = 'Download (coming soon)';
+    }
+    setGamesStatus('Ready. Click Search Games From This Position.');
     if (!SEARCH_GAMES_ENABLED) {
       if (els.searchGamesBtn) els.searchGamesBtn.disabled = true;
       if (els.downloadGamesBtn) els.downloadGamesBtn.disabled = true;
@@ -1844,6 +1823,22 @@
     if (els.searchGamesBtn) {
       els.searchGamesBtn.addEventListener('click', () => {
         runGamesSearch();
+      });
+    }
+
+    if (els.copyLineKeyBtn) {
+      els.copyLineKeyBtn.addEventListener('click', async () => {
+        const lineKey = state.gameSearchLineKey || buildCurrentLineKey();
+        if (!lineKey) {
+          setGamesStatus('No lineKey yet. Play moves first.');
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(lineKey);
+          setGamesStatus('lineKey copied.');
+        } catch (_err) {
+          setGamesStatus(`lineKey: ${lineKey}`);
+        }
       });
     }
 
