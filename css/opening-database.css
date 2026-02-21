@@ -27,7 +27,7 @@
 
 .openingdb-main-grid {
   display: grid;
-  grid-template-columns: minmax(360px, auto) minmax(280px, 420px);
+  grid-template-columns: minmax(360px, auto) minmax(300px, 420px);
   gap: 18px;
   align-items: start;
 }
@@ -61,18 +61,34 @@
   font-weight: 600;
 }
 
-.openingdb-control-panel {
+.openingdb-side-panel {
   border: 1px solid var(--border-color);
   border-radius: 10px;
   background: var(--bg-secondary);
   padding: 12px;
 }
 
+.openingdb-action-band {
+  margin-top: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
 .openingdb-controls {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
   gap: 8px;
-  margin-bottom: 10px;
+}
+
+.openingdb-engine-cta {
+  width: 100%;
+  min-height: 44px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 
 .openingdb-fen-panel {
@@ -262,12 +278,7 @@
 
 .openingdb-stats-table th.col-move,
 .openingdb-stats-table td.col-move {
-  width: 140px;
-}
-
-.openingdb-stats-table th.col-value,
-.openingdb-stats-table td.col-value {
-  width: 90px;
+  width: 180px;
 }
 
 .openingdb-stats-table td.col-move {
@@ -276,18 +287,23 @@
 
 .openingdb-stats-table td.col-move .movePrefix {
   opacity: 0.75;
-  margin-right: 6px;
+  margin-right: 0;
   font-variant-numeric: tabular-nums;
 }
 
-.openingdb-stats-table th.col-perc,
-.openingdb-stats-table td.col-perc {
-  width: 86px;
+.openingdb-stats-table th.col-games,
+.openingdb-stats-table td.col-games {
+  width: 110px;
 }
 
 .openingdb-stats-table th.col-wdl,
 .openingdb-stats-table td.col-wdl {
-  width: 230px;
+  width: 260px;
+}
+
+.openingdb-stats-table th.col-engine,
+.openingdb-stats-table td.col-engine {
+  width: 120px;
 }
 
 .openingdb-stats-table tbody tr {
@@ -511,6 +527,10 @@
 
   .openingdb-board-shell {
     margin: 0 auto;
+  }
+
+  .openingdb-controls {
+    grid-template-columns: 1fr 1fr;
   }
 }
 

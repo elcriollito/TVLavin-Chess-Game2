@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="/assets/css/chessboard-1.0.0.min.css">
   <link rel="stylesheet" href="/styles.css?v=2.0.2">
-  <link rel="stylesheet" href="/css/opening-database.css?v=1.0.29">
+  <link rel="stylesheet" href="/css/opening-database.css?v=1.0.30">
 </head>
 <body>
   <div class="app-container openingdb-app">
@@ -61,28 +61,31 @@
             </div>
           </div>
 
-          <aside class="openingdb-control-panel" aria-label="Position controls">
-            <div class="openingdb-controls">
-              <button id="odbStartBtn" class="btn btn-secondary" type="button">Start Position</button>
-              <button id="odbTakebackBtn" class="btn btn-secondary" type="button">Takeback</button>
-              <button id="odbFlipBtn" class="btn btn-secondary" type="button">Flip Board</button>
-              <button id="odbFenToggleBtn" class="btn btn-secondary" type="button">Input FEN</button>
-            </div>
-
-            <div id="odbFenPanel" class="openingdb-fen-panel" hidden>
-              <label for="odbFenInput">FEN</label>
-              <textarea id="odbFenInput" rows="3" placeholder="Paste FEN here"></textarea>
-              <div class="openingdb-fen-actions">
-                <button id="odbApplyFenBtn" class="btn btn-primary" type="button">Apply</button>
-                <button id="odbCancelFenBtn" class="btn btn-secondary" type="button">Cancel</button>
-              </div>
-              <p id="odbFenError" class="openingdb-error" hidden>Invalid FEN.</p>
-            </div>
-
+          <aside class="openingdb-side-panel" aria-label="Current position move list">
             <div id="odbTurnPly" class="openingdb-turnply">Turn: White | Ply: 0</div>
             <label class="openingdb-movelist-label" for="odbMoveList">Move list (SAN)</label>
-            <textarea id="odbMoveList" class="openingdb-movelist" rows="10" readonly></textarea>
+            <textarea id="odbMoveList" class="openingdb-movelist" rows="16" readonly></textarea>
           </aside>
+        </section>
+
+        <section class="openingdb-action-band" aria-label="Position controls">
+          <div class="openingdb-controls">
+            <button id="odbStartBtn" class="btn btn-secondary" type="button">Start Position</button>
+            <button id="odbTakebackBtn" class="btn btn-secondary" type="button">Takeback</button>
+            <button id="odbFlipBtn" class="btn btn-secondary" type="button">Flip Board</button>
+            <button id="odbFenToggleBtn" class="btn btn-secondary" type="button">Input FEN</button>
+          </div>
+          <button id="odbStartEngineBtn" class="btn btn-primary openingdb-engine-cta" type="button">START ENGINE ANALYSIS</button>
+
+          <div id="odbFenPanel" class="openingdb-fen-panel" hidden>
+            <label for="odbFenInput">FEN</label>
+            <textarea id="odbFenInput" rows="3" placeholder="Paste FEN here"></textarea>
+            <div class="openingdb-fen-actions">
+              <button id="odbApplyFenBtn" class="btn btn-primary" type="button">Apply</button>
+              <button id="odbCancelFenBtn" class="btn btn-secondary" type="button">Cancel</button>
+            </div>
+            <p id="odbFenError" class="openingdb-error" hidden>Invalid FEN.</p>
+          </div>
         </section>
 
         <section class="openingdb-stats-section" aria-label="Opening statistics">
@@ -112,19 +115,15 @@
               <table class="openingdb-stats-table">
                 <thead>
                   <tr>
-                    <th class="col-move">Move</th>
-                    <th class="col-value">Value</th>
-                    <th>Games</th>
-                    <th class="col-perc">Perc.</th>
-                    <th class="col-wdl">Win% (W/D/L)</th>
-                    <th>Elo</th>
-                    <th>Perf.</th>
-                    <th>Year</th>
+                    <th class="col-move">Next Move</th>
+                    <th class="col-games"># Games</th>
+                    <th class="col-wdl">Winnings % (W/D/L)</th>
+                    <th class="col-engine">Engine Eval.</th>
                   </tr>
                 </thead>
                 <tbody id="odbStatsBody">
                   <tr>
-                    <td colspan="8" class="openingdb-empty">No data for this position yet (TBD).</td>
+                    <td colspan="4" class="openingdb-empty">No data for this position yet (TBD).</td>
                   </tr>
                 </tbody>
               </table>
@@ -204,6 +203,6 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="/js/opening-database.js?v=1.0.29"></script>
+  <script src="/js/opening-database.js?v=1.0.30"></script>
 </body>
 </html>

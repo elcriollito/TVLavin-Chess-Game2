@@ -109,6 +109,7 @@
     gamesPgnText: document.getElementById('odbGamesPgnText'),
     gamesPgnCopyBtn: document.getElementById('odbGamesPgnCopyBtn'),
     gamesPgnCloseBtn: document.getElementById('odbGamesPgnCloseBtn'),
+    startEngineBtn: document.getElementById('odbStartEngineBtn'),
     startBtn: document.getElementById('odbStartBtn'),
     takebackBtn: document.getElementById('odbTakebackBtn'),
     flipBtn: document.getElementById('odbFlipBtn'),
@@ -413,6 +414,14 @@
     const isWhiteToMove = currentPly % 2 === 0;
     const prefix = isWhiteToMove ? `${fullmove}.` : `${fullmove}...`;
     return { prefix, san };
+  }
+
+  function getEngineEvalText(row) {
+    const direct = row && (row.engineEval ?? row.eval ?? row.ceval ?? row.stockfish);
+    if (direct !== undefined && direct !== null && String(direct).trim()) {
+      return String(direct).trim();
+    }
+    return '—';
   }
 
   function updateMoveListFromGame(game) {
@@ -1121,7 +1130,7 @@
       const message = state.moveListMode === 'popular'
         ? 'No DB stats for this position yet. Switch to "All Legal" to see playable moves.'
         : 'No legal moves in this position.';
-      els.statsBody.innerHTML = `<tr><td colspan="8" class="openingdb-empty">${message}</td></tr>`;
+      els.statsBody.innerHTML = `<tr><td colspan="4" class="openingdb-empty">${message}</td></tr>`;
       return;
     }
 
@@ -1129,22 +1138,19 @@
       ? state.game.history({ verbose: false }).length
       : 0;
     state.currentRows = rows.slice();
-    const total = rows.reduce((sum, r) => sum + (Number(r.games) || 0), 0);
     els.statsBody.innerHTML = rows.map((row, idx) => {
       const n = Number(row.games) || 0;
       const wPct = Number(row.wins) || 0;
       const dPct = Number(row.draws) || 0;
       const lPct = Number(row.losses) || 0;
-      const value = Number(row.value);
-      const perc = total > 0 ? toPercent(n, total) : 0;
       const hasData = !!row.hasData;
-      const year = hasData ? (row.year || 'TBD') : '—';
       const moveText = sanitizeMoveCellToken(row.moveSAN || row.moveUCI || 'TBD') || 'TBD';
       const prefixed = formatPrefixedSAN({ ply: currentPly, sanForCandidateMove: row.moveSAN || row.moveUCI || moveText });
       const moveCellHtml = `<span class="movePrefix">${escapeHtml(prefixed.prefix)}</span><span class="moveSan">${escapeHtml(prefixed.san)}</span>`;
       const title = row.preview && row.preview !== moveText ? ` title="${String(row.preview).replace(/"/g, '&quot;')}"` : '';
       const wdlTitle = `W:${wPct.toFixed(1)} D:${dPct.toFixed(1)} L:${lPct.toFixed(1)}`;
       const rowClass = hasData ? dominantClass(wPct, dPct, lPct) : 'row-nodata';
+      const engineEval = getEngineEvalText(row);
       const wdlCell = hasData
         ? `<div class="wdb-bar" title="${wdlTitle}">
               <div class="w" style="width:${wPct.toFixed(1)}%"><span>${wPct.toFixed(1)}%</span></div>
@@ -1156,15 +1162,11 @@
       return `
         <tr class="${rowClass}" data-row-index="${idx}">
           <td class="col-move"${title}>${moveCellHtml}</td>
-          <td class="col-value">${hasData && Number.isFinite(value) ? `${value.toFixed(1)}%` : '—'}</td>
-          <td>${n}</td>
-          <td class="col-perc">${hasData && Number.isFinite(perc) ? `${perc.toFixed(1)}%` : '—'}</td>
+          <td class="col-games">${n}</td>
           <td class="col-wdl">
             ${wdlCell}
           </td>
-          <td>${hasData && Number.isFinite(Number(row.elo)) ? Math.round(Number(row.elo)) : '—'}</td>
-          <td>${hasData ? (row.perf || '—') : '—'}</td>
-          <td>${year}</td>
+          <td class="col-engine" data-engine-eval="${escapeHtml(engineEval)}" data-engine-uci="${escapeHtml(String(row.moveUCI || ''))}">${escapeHtml(engineEval)}</td>
         </tr>
       `;
     }).join('');
@@ -1882,6 +1884,20 @@
     if (els.downloadGamesBtn) {
       els.downloadGamesBtn.addEventListener('click', () => {
         triggerGamesZipDownload();
+      });
+    }
+
+    if (els.startEngineBtn) {
+      els.startEngineBtn.addEventListener('click', () => {
+        const fen = state.game ? state.game.fen() : '';
+        const moveList = state.game ? formatMoveList(state.game) : '';
+        setGamesStatus('Engine analysis coming soon.');
+        setOpeningDbDebugLast({
+          ...(openingDbDebugState.last || {}),
+          engineCta: true,
+          engineFen: fen,
+          engineMoveList: moveList
+        });
       });
     }
 
