@@ -115,6 +115,7 @@
   const ENGINE_MOVE_EVAL_LIMIT = 12;
   const ENGINE_MOVE_EVAL_GAP_MS = 100;
   const ENGINE_MOVE_EVAL_TIMEOUT_MS = 3500;
+  const ENGINE_PV_MAX_PLIES = 60;
   const QUICK_EVAL_STORAGE_KEY = 'odb_eval_next_moves_fast';
 
   const els = {
@@ -494,7 +495,7 @@
   }
 
 
-  function pvUciToSan(fen, pvMoves, maxMoves = 40) {
+  function pvUciToSan(fen, pvMoves, maxMoves = ENGINE_PV_MAX_PLIES) {
     try {
       if (!window.Chess) return (pvMoves || []).slice(0, maxMoves).join(' ');
       const game = new Chess(fen);
@@ -822,8 +823,8 @@
         const nextDepth = Number(info.depth) || 0;
         if (nextDepth >= prevDepthForLine) {
           const baseFen = engine.lastFen || (state.game ? state.game.fen() : '');
-          const pvUci = Array.isArray(info.pv) ? info.pv.slice() : [];
-          const pvSan = pvUciToSan(baseFen, pvUci);
+          const pvUci = Array.isArray(info.pv) ? info.pv.slice(0, ENGINE_PV_MAX_PLIES) : [];
+          const pvSan = pvUciToSan(baseFen, pvUci, ENGINE_PV_MAX_PLIES);
           engine.pvLines[multipv] = {
             info,
             pvUci: pvUci.join(' '),

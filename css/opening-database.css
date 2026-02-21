@@ -205,7 +205,7 @@
   font-family: 'Roboto Mono', monospace;
 }
 
-.engine-analysis-readout div {
+.engine-analysis-readout > div {
   display: flex;
   justify-content: space-between;
   gap: 8px;
@@ -231,7 +231,8 @@
 }
 
 .engine-pv-lines {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 6px;
   width: 100%;
 }
