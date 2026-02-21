@@ -27,9 +27,9 @@
 
 .openingdb-top-area {
   display: grid;
-  grid-template-columns: minmax(360px, auto) minmax(420px, 520px);
+  grid-template-columns: minmax(420px, 6in) minmax(560px, 1fr);
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .openingdb-bottom-area {
@@ -38,6 +38,10 @@
   grid-template-columns: minmax(520px, 1fr) minmax(360px, 420px);
   gap: 16px;
   align-items: start;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  padding: 12px;
 }
 
 .openingdb-board-shell {
@@ -174,6 +178,9 @@
 
 .openingdb-stats-section-compact {
   padding: 10px;
+  display: flex;
+  flex-direction: column;
+  min-height: clamp(320px, 92vw, 6in);
 }
 
 .openingdb-stats-section-compact .openingdb-tab {
@@ -190,18 +197,24 @@
 }
 
 .openingdb-table-wrap-compact {
-  max-height: 320px;
+  flex: 1 1 auto;
+  min-height: 280px;
+  max-height: none;
 }
 
 .openingdb-side-panel-bottom {
-  min-height: 420px;
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  padding: 0 0 0 12px;
+  border-left: 1px solid var(--border-color);
 }
 
 .openingdb-games-dock {
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  background: var(--bg-secondary);
-  padding: 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
   min-height: 220px;
 }
 
@@ -345,7 +358,7 @@
 
 .openingdb-stats-table th.col-move,
 .openingdb-stats-table td.col-move {
-  width: 180px;
+  width: 110px;
 }
 
 .openingdb-stats-table td.col-move {
@@ -360,17 +373,30 @@
 
 .openingdb-stats-table th.col-games,
 .openingdb-stats-table td.col-games {
-  width: 110px;
+  width: 120px;
 }
 
 .openingdb-stats-table th.col-wdl,
 .openingdb-stats-table td.col-wdl {
-  width: 260px;
+  width: auto;
 }
 
 .openingdb-stats-table th.col-engine,
 .openingdb-stats-table td.col-engine {
+  width: 100px;
+  text-align: center;
+}
+
+.openingdb-stats-table col.colg-move {
+  width: 110px;
+}
+
+.openingdb-stats-table col.colg-games {
   width: 120px;
+}
+
+.openingdb-stats-table col.colg-engine {
+  width: 100px;
 }
 
 .openingdb-stats-table tbody tr {
@@ -384,7 +410,7 @@
 .wdb-bar {
   display: flex;
   width: 100%;
-  height: 16px;
+  height: 14px;
   border-radius: 6px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -413,9 +439,9 @@
 }
 
 .wdb-bar span {
-  font-size: 11px;
-  line-height: 16px;
-  padding: 0 6px;
+  font-size: 10px;
+  line-height: 14px;
+  padding: 0 4px;
   white-space: nowrap;
 }
 
@@ -602,6 +628,13 @@
 
   .openingdb-controls {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .openingdb-side-panel-bottom {
+    padding: 0;
+    border-left: 0;
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
   }
 }
 

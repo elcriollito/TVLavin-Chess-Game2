@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="/assets/css/chessboard-1.0.0.min.css">
   <link rel="stylesheet" href="/styles.css?v=2.0.2">
-  <link rel="stylesheet" href="/css/opening-database.css?v=1.0.33">
+  <link rel="stylesheet" href="/css/opening-database.css?v=1.0.34">
 </head>
 <body>
   <div class="app-container openingdb-app">
@@ -86,6 +86,12 @@
               </div>
               <div class="openingdb-table-wrap openingdb-table-wrap-compact">
                 <table class="openingdb-stats-table">
+                  <colgroup>
+                    <col class="colg-move">
+                    <col class="colg-games">
+                    <col class="colg-wdl">
+                    <col class="colg-engine">
+                  </colgroup>
                   <thead>
                     <tr>
                       <th class="col-move">Next Move</th>
@@ -191,7 +197,7 @@
           </div>
         </section>
 
-        <section class="openingdb-bottom-area" aria-label="Opening database explorer area">
+        <section id="openingdbBottomBox" class="openingdb-bottom-area" aria-label="Opening database explorer area">
           <section class="openingdb-games-dock" aria-label="Search games dock">
             <div class="openingdb-games-dock-header">
               <strong>Search Games</strong>
@@ -216,6 +222,6 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="/js/opening-database.js?v=1.0.33"></script>
+  <script src="/js/opening-database.js?v=1.0.34"></script>
 </body>
 </html>
