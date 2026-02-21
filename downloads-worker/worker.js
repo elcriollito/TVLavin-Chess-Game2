@@ -96,19 +96,28 @@ function getCorsHeaders(origin, options = {}) {
   };
 }
 
-function getOpeningDbCorsHeaders() {
+function getWorkerVersion(env) {
+  const fromEnv = String(env?.WORKER_VERSION || '').trim();
+  return fromEnv || 'caissa-vault-worker-2026-02-21';
+}
+
+function getOpeningDbCorsHeaders(env) {
   return {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET,HEAD,OPTIONS',
     'Access-Control-Allow-Headers': '*',
-    'Access-Control-Expose-Headers': 'ETag, Content-Length, Content-Type'
+    'Access-Control-Expose-Headers': 'ETag, Content-Length, Content-Type, X-CAISSA-Worker, X-CAISSA-Worker-Version',
+    'X-CAISSA-Worker': 'caissa-vault-worker',
+    'X-CAISSA-Worker-Version': getWorkerVersion(env),
+    'X-CAISSA-Edge-Time': new Date().toISOString(),
+    'Vary': 'Origin'
   };
 }
 
-function applyOpeningDbCors(path, response) {
+function applyOpeningDbCors(path, response, env) {
   if (!String(path || '').startsWith('/openingdb/')) return response;
   const headers = new Headers(response.headers || {});
-  const cors = getOpeningDbCorsHeaders();
+  const cors = getOpeningDbCorsHeaders(env);
   for (const [key, value] of Object.entries(cors)) {
     headers.set(key, value);
   }
@@ -989,6 +998,17 @@ async function handleRequest(request, env) {
     return handleCatalog(origin);
   }
 
+  if (path === '/__worker_ping') {
+    return new Response('pong', {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-store',
+        ...getOpeningDbCorsHeaders(env)
+      }
+    });
+  }
+
   // Download count endpoints
   if (path === '/api/download-count' && request.method === 'GET') {
     return handleDownloadCount(url, env, origin);
@@ -1158,11 +1178,11 @@ export default {
     if (request.method === 'OPTIONS' && path.startsWith('/openingdb/')) {
       return new Response(null, {
         status: 204,
-        headers: getOpeningDbCorsHeaders()
+        headers: getOpeningDbCorsHeaders(env)
       });
     }
     const response = await handleRequest(request, env);
-    return applyOpeningDbCors(path, response);
+    return applyOpeningDbCors(path, response, env);
   }
 };
 
