@@ -118,6 +118,7 @@
   const ENGINE_MOVE_EVAL_TIMEOUT_MS = 3500;
   const ENGINE_PV_MAX_PLIES = 80;
   const DISPLAY_PV_PLIES = 40;
+  const OPENINGDB_DISPLAY_ROW_LIMIT = 20;
   const QUICK_EVAL_STORAGE_KEY = 'odb_eval_next_moves_fast';
   const QUICK_EVAL_MODE_STORAGE_KEY = 'odb_eval_next_moves_mode';
 
@@ -973,6 +974,7 @@
     state.engine.nextMoveEvalSessionId += 1;
     state.engine.nextMoveEvalRunning = false;
     if (state.engine.evalClient) {
+      // Stop only the quick-eval worker; never touch main engine worker here.
       state.engine.evalClient.stop();
     }
   }
@@ -983,6 +985,7 @@
     if (!window.StockfishClient) return false;
     try {
       const workerUrl = new URL('/engine/stockfish.worker.js', window.location.origin).toString();
+      // Dedicated quick-eval client (isolated from main engine analysis client).
       engine.evalClient = new window.StockfishClient({ workerUrl });
       await engine.evalClient.init();
       return true;
@@ -2367,8 +2370,8 @@
       legalByUci: legal.byUci
     });
     const merged = mergeLegalMovesWithStats(state.game, candidateRows);
-    state.latestAllLegalRows = merged.allLegal;
-    state.latestPopularRows = merged.popular;
+    state.latestAllLegalRows = (merged.allLegal || []).slice(0, OPENINGDB_DISPLAY_ROW_LIMIT);
+    state.latestPopularRows = (merged.popular || []).slice(0, OPENINGDB_DISPLAY_ROW_LIMIT);
     if (state.engine.evalNextMoves) {
       applyEngineEvalCacheToRows(state.latestAllLegalRows, fen);
       applyEngineEvalCacheToRows(state.latestPopularRows, fen);
