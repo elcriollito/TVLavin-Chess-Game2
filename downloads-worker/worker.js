@@ -96,6 +96,29 @@ function getCorsHeaders(origin, options = {}) {
   };
 }
 
+function getOpeningDbCorsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,HEAD,OPTIONS',
+    'Access-Control-Allow-Headers': '*',
+    'Access-Control-Expose-Headers': 'ETag, Content-Length, Content-Type'
+  };
+}
+
+function applyOpeningDbCors(path, response) {
+  if (!String(path || '').startsWith('/openingdb/')) return response;
+  const headers = new Headers(response.headers || {});
+  const cors = getOpeningDbCorsHeaders();
+  for (const [key, value] of Object.entries(cors)) {
+    headers.set(key, value);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
+
 // ============================================================================
 // DOWNLOAD HANDLER
 // ============================================================================
@@ -1131,7 +1154,15 @@ async function handleRequest(request, env) {
 
 export default {
   async fetch(request, env, ctx) {
-    return handleRequest(request, env);
+    const path = new URL(request.url).pathname;
+    if (request.method === 'OPTIONS' && path.startsWith('/openingdb/')) {
+      return new Response(null, {
+        status: 204,
+        headers: getOpeningDbCorsHeaders()
+      });
+    }
+    const response = await handleRequest(request, env);
+    return applyOpeningDbCors(path, response);
   }
 };
 
