@@ -57,6 +57,7 @@
   const LOCAL_GAMES_MANIFEST_URL = '/openingdb/games/manifest.json';
   const GAMES_MANIFEST_TTL_MS = 5 * 60 * 1000;
   const GAMES_FETCH_TIMEOUT_MS = 4000;
+  const SEARCH_GAMES_ENABLED = false;
   const FREE_GAME_PREVIEW_LIMIT = 20;
   const PREMIUM_GAME_PREVIEW_LIMIT = 500;
   const FREE_PGN_VIEW_LIMIT = 5;
@@ -72,6 +73,7 @@
     turnPly: document.getElementById('odbTurnPly'),
     openingLabel: document.getElementById('odbOpeningLabel'),
     lookupStatus: document.getElementById('odbLookupStatus'),
+    matchBadge: document.getElementById('odbMatchBadge'),
     datasetBanner: document.getElementById('odbDatasetBanner'),
     statsBody: document.getElementById('odbStatsBody'),
     tabMoves: document.getElementById('odbTabMoves'),
@@ -127,6 +129,71 @@
     console.debug('[OpeningDB]', ...args);
   }
 
+  const openingDbDebugState = {
+    counters: {
+      lookupCount: 0,
+      lookupMsTotal: 0,
+      shardCacheMemoryHits: 0,
+      shardCacheSessionHits: 0,
+      shardFetchMisses: 0,
+      shardFetchCount: 0,
+      shardFetchMsTotal: 0,
+      matchLevel: {
+        exact: 0,
+        no_ep: 0,
+        no_castling: 0,
+        board_only: 0,
+        none: 0
+      }
+    },
+    last: {}
+  };
+
+  function resetOpeningDbDebug() {
+    openingDbDebugState.counters.lookupCount = 0;
+    openingDbDebugState.counters.lookupMsTotal = 0;
+    openingDbDebugState.counters.shardCacheMemoryHits = 0;
+    openingDbDebugState.counters.shardCacheSessionHits = 0;
+    openingDbDebugState.counters.shardFetchMisses = 0;
+    openingDbDebugState.counters.shardFetchCount = 0;
+    openingDbDebugState.counters.shardFetchMsTotal = 0;
+    openingDbDebugState.counters.matchLevel = {
+      exact: 0,
+      no_ep: 0,
+      no_castling: 0,
+      board_only: 0,
+      none: 0
+    };
+    openingDbDebugState.last = {};
+  }
+
+  function bumpMatchLevelCounter(level) {
+    const key = String(level || 'none');
+    if (!Object.prototype.hasOwnProperty.call(openingDbDebugState.counters.matchLevel, key)) {
+      openingDbDebugState.counters.matchLevel[key] = 0;
+    }
+    openingDbDebugState.counters.matchLevel[key] += 1;
+  }
+
+  function setOpeningDbDebugLast(payload) {
+    openingDbDebugState.last = {
+      ...payload,
+      at: new Date().toISOString()
+    };
+    if (window.__openingdbDebug) {
+      window.__openingdbDebug.last = openingDbDebugState.last;
+    }
+  }
+
+  window.__openingdbDebug = {
+    counters: openingDbDebugState.counters,
+    last: openingDbDebugState.last,
+    reset: () => {
+      resetOpeningDbDebug();
+      window.__openingdbDebug.last = openingDbDebugState.last;
+    }
+  };
+
   function renderBoardFatal(message) {
     if (!els.board) return;
     els.board.innerHTML = `<div class="openingdb-board-error" role="alert">${message}</div>`;
@@ -141,6 +208,18 @@
     }
     els.datasetBanner.hidden = false;
     els.datasetBanner.textContent = message;
+  }
+
+  function setMatchBadge(label) {
+    if (!els.matchBadge) return;
+    const text = String(label || '').trim();
+    if (!text) {
+      els.matchBadge.hidden = true;
+      els.matchBadge.textContent = '';
+      return;
+    }
+    els.matchBadge.hidden = false;
+    els.matchBadge.textContent = `match: ${text}`;
   }
 
   function normalizeFenForHash(fen) {
@@ -730,6 +809,7 @@
     if (!/^[0-9a-f]{2}$/.test(shard)) return null;
 
     if (state.openingDbShardCache.has(shard)) {
+      openingDbDebugState.counters.shardCacheMemoryHits += 1;
       const cached = state.openingDbShardCache.get(shard);
       if (cached && typeof cached === 'object') {
         console.log('[OpeningDB] shardLoaded', { shardId: shard, entries: Object.keys(cached).length });
@@ -739,24 +819,41 @@
 
     const fromSession = readShardFromSession(shard);
     if (fromSession && typeof fromSession === 'object') {
+      openingDbDebugState.counters.shardCacheSessionHits += 1;
       state.openingDbShardCache.set(shard, fromSession);
       console.log('[OpeningDB] shardLoaded', { shardId: shard, entries: Object.keys(fromSession).length });
       return fromSession;
     }
 
     try {
+      const fetchStartedAt = performance.now();
       const activeBase = state.shardBaseUrl || SHARD_BASE;
       const remoteUrl = `${activeBase}/${shard}.json`;
       const json = await fetchJsonWithTimeout(remoteUrl, SHARD_FETCH_TIMEOUT_MS);
+      const fetchMs = performance.now() - fetchStartedAt;
+      openingDbDebugState.counters.shardFetchCount += 1;
+      openingDbDebugState.counters.shardFetchMsTotal += fetchMs;
       const payload = json && typeof json === 'object' ? json : null;
+      if (!payload) openingDbDebugState.counters.shardFetchMisses += 1;
       state.openingDbShardCache.set(shard, payload);
       if (payload) writeShardToSession(shard, payload);
       if (payload) {
         console.log('[OpeningDB] shardLoaded', { shardId: shard, entries: Object.keys(payload).length });
       }
+      setOpeningDbDebugLast({
+        shardId: shard,
+        shardFetchMs: Number(fetchMs.toFixed(2)),
+        shardSource: 'network',
+        shardEntries: payload && typeof payload === 'object' ? Object.keys(payload).length : 0
+      });
       return payload;
     } catch (_err) {
+      openingDbDebugState.counters.shardFetchMisses += 1;
       state.openingDbShardCache.set(shard, null);
+      setOpeningDbDebugLast({
+        shardId: shard,
+        shardSource: 'network_error'
+      });
       return null;
     }
   }
@@ -1102,6 +1199,10 @@
     }
     if (els.movesPanel) els.movesPanel.hidden = isGames;
     if (els.gamesPanel) els.gamesPanel.hidden = !isGames;
+    if (isGames && !SEARCH_GAMES_ENABLED) {
+      setGamesStatus('Search Games: coming soon.');
+      return;
+    }
     if (isGames) {
       ensureGamesManifestLoaded().then((result) => {
         if (!result.ok) {
@@ -1191,6 +1292,10 @@
   }
 
   async function triggerGamesZipDownload() {
+    if (!SEARCH_GAMES_ENABLED) {
+      setGamesStatus('Search Games: coming soon.');
+      return;
+    }
     if (!state.game) return;
     const gamesManifest = await ensureGamesManifestLoaded();
     if (!gamesManifest.ok) return;
@@ -1269,6 +1374,10 @@
   }
 
   async function runGamesSearch() {
+    if (!SEARCH_GAMES_ENABLED) {
+      setGamesStatus('Search Games: coming soon.');
+      return;
+    }
     if (!state.game) return;
     const gamesManifest = await ensureGamesManifestLoaded();
     if (!gamesManifest.ok) return;
@@ -1329,6 +1438,10 @@
   }
 
   async function viewGamePgn(gameIndex) {
+    if (!SEARCH_GAMES_ENABLED) {
+      setGamesStatus('Search Games: coming soon.');
+      return;
+    }
     const idx = Number(gameIndex);
     if (!Number.isInteger(idx) || idx < 0 || idx >= state.gamesResults.length) return;
     const row = state.gamesResults[idx];
@@ -1464,6 +1577,7 @@
   }
 
   async function updatePositionView(inputFen, options = {}) {
+    const lookupStartedAt = performance.now();
     const force = !!options.force;
     const requestId = (state.positionRequestId || 0) + 1;
     state.positionRequestId = requestId;
@@ -1508,11 +1622,29 @@
 
     if (!state.datasetsLoaded) {
       els.lookupStatus.textContent = state.datasetsError || 'Loading datasets...';
+      setMatchBadge(state.dbVersionFallback ? 'fallback' : 'none');
     } else if (exactData.source === 'openingdb_shard_exact') {
       els.lookupStatus.textContent = `Position lookup: match (${exactData.matchLevel || 'exact'})`;
+      setMatchBadge(exactData.matchLevel || 'exact');
     } else {
       els.lookupStatus.textContent = 'Position lookup: no exact match (TBD)';
+      setMatchBadge(state.dbVersionFallback ? 'fallback' : 'none');
     }
+
+    const lookupMs = performance.now() - lookupStartedAt;
+    openingDbDebugState.counters.lookupCount += 1;
+    openingDbDebugState.counters.lookupMsTotal += lookupMs;
+    bumpMatchLevelCounter(exactData.matchLevel || 'none');
+    setOpeningDbDebugLast({
+      fenKey,
+      ply,
+      matchLevel: exactData.matchLevel || 'none',
+      source: exactData.source,
+      lookupMs: Number(lookupMs.toFixed(2)),
+      rowsRendered: rows.length,
+      rowsPopular: state.latestPopularRows.length,
+      rowsLegal: state.latestAllLegalRows.length
+    });
 
     debugLog('updatePosition complete', {
       fenKey,
@@ -1617,6 +1749,11 @@
     updateTurnPlyLabel(state.game ? state.game.history({ verbose: false }).length : 0);
     updateDownloadButtonLabel();
     setGamesStatus('Search Games: coming soon.');
+    if (!SEARCH_GAMES_ENABLED) {
+      if (els.searchGamesBtn) els.searchGamesBtn.disabled = true;
+      if (els.downloadGamesBtn) els.downloadGamesBtn.disabled = true;
+      if (els.transitionSearchGamesBtn) els.transitionSearchGamesBtn.disabled = true;
+    }
     scheduleOpeningDbPrefetch();
     await updatePositionView(state.game ? state.game.fen() : undefined, { force: true });
   }

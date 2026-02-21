@@ -88,7 +88,10 @@
         <section class="openingdb-stats-section" aria-label="Opening statistics">
           <div class="openingdb-opening-meta">
             <strong id="odbOpeningLabel">Opening: (TBD)</strong>
-            <span id="odbLookupStatus">Position lookup ready.</span>
+            <span class="openingdb-lookup-wrap">
+              <span id="odbLookupStatus">Position lookup ready.</span>
+              <span id="odbMatchBadge" class="openingdb-match-badge" hidden>match: none</span>
+            </span>
           </div>
           <div id="odbDatasetBanner" class="openingdb-dataset-banner" hidden></div>
 
@@ -200,6 +203,6 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="/js/opening-database.js?v=1.0.26"></script>
+  <script src="/js/opening-database.js?v=1.0.27"></script>
 </body>
 </html>

@@ -536,3 +536,13 @@ Version bump flow (`v1` -> `v2`):
 1. Rebuild shards.
 2. Upload using `--version v2`.
 3. Update the base URL used by `js/opening-database.js` (or set `window.CAISSA_OPENINGDB_BASE`) to point to `/openingdb/shards/v2`.
+
+Run OpeningDB v3 regression QA against production:
+
+```bash
+npm run qa:openingdb:v3
+# custom endpoints:
+node scripts/qa-openingdb-v3.js --base https://www.caissa-chess.org --manifest /openingdb/manifest.json --shardsBase /openingdb/shards/v3 --verbose
+# filter cases:
+node scripts/qa-openingdb-v3.js --cases "Sicilian,London"
+```
