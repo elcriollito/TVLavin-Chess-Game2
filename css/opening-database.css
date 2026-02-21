@@ -202,6 +202,69 @@
   word-break: break-word;
 }
 
+.engine-analysis-debug {
+  margin-top: 8px;
+  border: 1px solid rgba(57, 255, 20, 0.2);
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  font-family: 'Roboto Mono', monospace;
+}
+
+.engine-analysis-debug-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  color: #8fe67a;
+  font-size: 11px;
+}
+
+.openingdb-engine-debug-copy {
+  padding: 4px 8px;
+  font-size: 11px;
+  border-color: var(--hack-green-dim);
+  color: #9fe78b;
+  background: #0a0d0a;
+}
+
+.engine-analysis-debug-grid {
+  display: grid;
+  gap: 4px;
+}
+
+.engine-analysis-debug-grid div {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.engine-analysis-debug-grid span {
+  color: #8fbf8a;
+  font-size: 10px;
+}
+
+.engine-analysis-debug-grid strong {
+  color: #c8ffc0;
+  font-size: 10px;
+  max-width: 270px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.engine-analysis-debug-grid .engine-debug-line {
+  align-items: flex-start;
+}
+
+.engine-analysis-debug-grid .engine-debug-line strong {
+  white-space: normal;
+  word-break: break-word;
+  text-align: left;
+}
+
 .openingdb-fen-panel {
   border: 1px solid var(--border-color);
   border-radius: 8px;

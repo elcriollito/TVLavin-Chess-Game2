@@ -43,7 +43,15 @@
       debounceTimer: null,
       lastInfo: null,
       lastBestMove: '',
-      lastPvSan: ''
+      lastPvSan: '',
+      debug: {
+        workerUrl: '',
+        handshakeState: 'idle',
+        lastLine: '',
+        lastInfoAt: 0,
+        errors: [],
+        sanity: null
+      }
     }
   };
 
@@ -139,6 +147,11 @@
     engineBestMoveValue: document.getElementById('odbEngineBestMoveValue'),
     engineNpsValue: document.getElementById('odbEngineNpsValue'),
     engineNodesValue: document.getElementById('odbEngineNodesValue'),
+    engineCopyDebugBtn: document.getElementById('odbEngineCopyDebugBtn'),
+    engineDebugWorkerUrl: document.getElementById('odbEngineDebugWorkerUrl'),
+    engineDebugHandshake: document.getElementById('odbEngineDebugHandshake'),
+    engineDebugLastInfoAt: document.getElementById('odbEngineDebugLastInfoAt'),
+    engineDebugLastLine: document.getElementById('odbEngineDebugLastLine'),
     startEngineBtn: document.getElementById('odbStartEngineBtn'),
     startBtn: document.getElementById('odbStartBtn'),
     takebackBtn: document.getElementById('odbTakebackBtn'),
@@ -517,6 +530,22 @@
     }
   }
 
+  function sanitizeDebugLine(line) {
+    return String(line || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function updateEngineDebugWindow() {
+    window.__engineDebug = {
+      workerUrl: state.engine.debug.workerUrl || '',
+      state: state.engine.status || '',
+      handshakeState: state.engine.debug.handshakeState || '',
+      lastLine: state.engine.debug.lastLine || '',
+      lastInfoAt: state.engine.debug.lastInfoAt || 0,
+      errors: (state.engine.debug.errors || []).slice(),
+      sanity: state.engine.debug.sanity || null
+    };
+  }
+
   function renderEnginePanel() {
     const engine = state.engine;
     if (els.engineStatusValue) els.engineStatusValue.textContent = engine.status || 'Idle';
@@ -533,6 +562,52 @@
     if (els.stopEngineBtn) {
       els.stopEngineBtn.disabled = !engine.running;
     }
+    if (els.engineDebugWorkerUrl) els.engineDebugWorkerUrl.textContent = engine.debug.workerUrl || '—';
+    if (els.engineDebugHandshake) els.engineDebugHandshake.textContent = engine.debug.handshakeState || '—';
+    if (els.engineDebugLastInfoAt) {
+      const ago = engine.debug.lastInfoAt ? `${Math.max(0, Date.now() - engine.debug.lastInfoAt)}ms ago` : '—';
+      els.engineDebugLastInfoAt.textContent = ago;
+    }
+    if (els.engineDebugLastLine) {
+      els.engineDebugLastLine.textContent = sanitizeDebugLine(engine.debug.lastLine) || '—';
+    }
+    updateEngineDebugWindow();
+  }
+
+  function setEngineStatus(status) {
+    state.engine.status = String(status || 'Idle');
+    renderEnginePanel();
+  }
+
+  async function runEngineAssetSanityCheck() {
+    const workerPath = '/engine/stockfish.worker.js';
+    const result = {
+      url: workerPath,
+      ok: false,
+      status: 0,
+      contentType: '',
+      startsWithHtml: false,
+      checkedAt: Date.now(),
+      error: ''
+    };
+    try {
+      const response = await fetch(workerPath, { cache: 'no-store' });
+      result.status = response.status;
+      result.contentType = String(response.headers.get('content-type') || '');
+      const text = await response.text();
+      result.startsWithHtml = /^\s*<!doctype html|^\s*<html/i.test(text);
+      result.ok = response.ok && !result.startsWithHtml;
+      if (result.startsWithHtml) {
+        setEngineStatus('Worker file is HTML (rewrite/route). Check hosting/public path.');
+      } else if (!/javascript|ecmascript/i.test(result.contentType)) {
+        setEngineStatus(`Worker content-type warning: ${result.contentType || 'unknown'}`);
+      }
+    } catch (err) {
+      result.error = err?.message || String(err);
+    }
+    state.engine.debug.sanity = result;
+    renderEnginePanel();
+    return result;
   }
 
   async function ensureEngineClient() {
@@ -540,19 +615,42 @@
     if (engine.client && engine.available) return true;
     if (engine.loading) return false;
     if (!window.StockfishClient) {
-      engine.status = 'Engine unavailable';
+      setEngineStatus('Engine unavailable');
       renderEnginePanel();
       return false;
     }
     engine.loading = true;
-    engine.status = 'Loading engine...';
-    renderEnginePanel();
+    setEngineStatus('Loading engine...');
     try {
-      engine.client = new window.StockfishClient({ workerUrl: '/engine/stockfish.worker.js' });
+      const workerUrl = new URL('/engine/stockfish.worker.js', window.location.origin).toString();
+      engine.debug.workerUrl = workerUrl;
+      engine.client = new window.StockfishClient({ workerUrl });
+      engine.client.onState((snapshot) => {
+        engine.debug.workerUrl = snapshot.workerUrl || engine.debug.workerUrl;
+        engine.debug.handshakeState = snapshot.handshakeState || '';
+        engine.debug.lastLine = snapshot.lastLine || '';
+        engine.debug.lastInfoAt = Number(snapshot.lastInfoAt) || 0;
+        engine.debug.errors = Array.isArray(snapshot.errors) ? snapshot.errors.slice(-20) : [];
+        if (snapshot.handshakeState === 'uciok') console.log('[Engine] uciok');
+        if (snapshot.handshakeState === 'readyok') console.log('[Engine] readyok');
+        renderEnginePanel();
+      });
+      engine.client.onLine((line) => {
+        engine.debug.lastLine = line || '';
+        if (typeof line === 'string' && line.startsWith('info depth')) {
+          console.log('[Engine]', line);
+        }
+        renderEnginePanel();
+      });
+      engine.client.onError((err) => {
+        const msg = err?.message || String(err);
+        setEngineStatus(msg.startsWith('Worker') ? msg : `Engine error: ${msg}`);
+      });
       engine.client.onInfo((info) => {
         if (!engine.running) return;
         if ((info.multipv || 1) !== 1) return;
         if (engine.activeRequestId !== engine.requestId) return;
+        engine.debug.lastInfoAt = Date.now();
         const prevDepth = Number(engine.lastInfo?.depth) || 0;
         const nextDepth = Number(info.depth) || 0;
         if (nextDepth >= prevDepth) {
@@ -567,16 +665,16 @@
         engine.lastBestMove = uciToSanFromFen(engine.lastFen, payload.bestmove || '');
         renderEnginePanel();
       });
+      engine.debug.handshakeState = 'uci';
+      renderEnginePanel();
       await engine.client.init();
       engine.available = true;
-      engine.status = 'Ready';
-      renderEnginePanel();
+      setEngineStatus('Ready');
       return true;
     } catch (err) {
       console.warn('[OpeningDB] engine init failed', err);
       engine.available = false;
-      engine.status = 'Engine unavailable';
-      renderEnginePanel();
+      setEngineStatus(err?.message || 'Engine unavailable');
       return false;
     } finally {
       engine.loading = false;
@@ -586,6 +684,7 @@
 
   async function startEngineAnalysis(opts = {}) {
     const engine = state.engine;
+    await runEngineAssetSanityCheck();
     const ok = await ensureEngineClient();
     if (!ok || !engine.client || !state.game) return;
 
@@ -598,8 +697,7 @@
     engine.activeRequestId = engine.requestId;
     engine.running = true;
     engine.lastFen = state.game.fen();
-    engine.status = 'Running';
-    renderEnginePanel();
+    setEngineStatus('Analyzing');
 
     engine.client.stop();
     engine.client.setOptions({ multiPV });
@@ -612,16 +710,14 @@
     clearEngineDebounce();
     if (engine.client) engine.client.stop();
     engine.running = false;
-    engine.status = 'Stopped';
-    renderEnginePanel();
+    setEngineStatus('Stopped');
   }
 
   function scheduleEngineReanalyzeForCurrentPosition() {
     const engine = state.engine;
     if (!engine.running || !state.game) {
       if (!engine.running) {
-        engine.status = engine.available ? 'Ready to analyze current position' : (engine.loading ? 'Loading engine...' : 'Idle');
-        renderEnginePanel();
+        setEngineStatus(engine.available ? 'Ready to analyze current position' : (engine.loading ? 'Loading engine...' : 'Idle'));
       }
       return;
     }
@@ -2130,6 +2226,18 @@
       });
     }
 
+    if (els.engineCopyDebugBtn) {
+      els.engineCopyDebugBtn.addEventListener('click', async () => {
+        const payload = JSON.stringify(window.__engineDebug || {}, null, 2);
+        try {
+          await navigator.clipboard.writeText(payload);
+          setEngineStatus('Engine debug copied');
+        } catch (_err) {
+          setEngineStatus(`Engine debug: ${payload}`);
+        }
+      });
+    }
+
     if (els.engineDepth) {
       els.engineDepth.addEventListener('change', () => {
         const d = Number(els.engineDepth.value) || ENGINE_DEFAULT_DEPTH;
@@ -2286,6 +2394,11 @@
         const m = Number(els.engineMultiPV.value) || 1;
         state.engine.multiPV = m;
       }
+      state.engine.debug.workerUrl = new URL('/engine/stockfish.worker.js', window.location.origin).toString();
+      state.engine.debug.handshakeState = 'idle';
+      state.engine.debug.lastLine = '';
+      state.engine.debug.lastInfoAt = 0;
+      state.engine.debug.errors = [];
       renderEnginePanel();
       initBoard();
       bindEvents();

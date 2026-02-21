@@ -203,6 +203,18 @@
               <div><span>Nodes</span><strong id="odbEngineNodesValue">—</strong></div>
               <div class="engine-pv"><span>PV</span><strong id="odbEnginePvValue">—</strong></div>
             </div>
+            <div class="engine-analysis-debug">
+              <div class="engine-analysis-debug-head">
+                <span>DEBUG</span>
+                <button id="odbEngineCopyDebugBtn" class="btn btn-secondary openingdb-engine-debug-copy" type="button">COPY DEBUG</button>
+              </div>
+              <div class="engine-analysis-debug-grid">
+                <div><span>workerUrl</span><strong id="odbEngineDebugWorkerUrl">—</strong></div>
+                <div><span>handshake</span><strong id="odbEngineDebugHandshake">—</strong></div>
+                <div><span>lastInfoAt</span><strong id="odbEngineDebugLastInfoAt">—</strong></div>
+                <div class="engine-debug-line"><span>lastLine</span><strong id="odbEngineDebugLastLine">—</strong></div>
+              </div>
+            </div>
           </div>
 
           <div id="odbFenPanel" class="openingdb-fen-panel" hidden>
@@ -254,7 +266,7 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="/js/engine/stockfish-client.js?v=1.0.0"></script>
-  <script src="/js/opening-database.js?v=1.0.36"></script>
+  <script src="/js/engine/stockfish-client.js?v=1.0.1"></script>
+  <script src="/js/opening-database.js?v=1.0.37"></script>
 </body>
 </html>
