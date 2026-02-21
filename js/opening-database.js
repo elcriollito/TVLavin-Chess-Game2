@@ -26,10 +26,11 @@
     pgnViewsUsed: 0
   };
 
+  const manifestUrl = '/openingdb/manifest.json';
+  const shardBaseUrl = '/openingdb/shards/v3';
   const DEFAULT_SHARD_ROOT = '/openingdb/shards';
   const DEFAULT_ACTIVE_VERSION = 'v3';
-  const MANIFEST_URL = '/openingdb/manifest.json';
-  const REMOTE_MANIFEST_URL = 'https://downloads.caissa-chess.org/openingdb/manifest.json';
+  const MANIFEST_URL = manifestUrl;
   const LOCAL_MANIFEST_URL = '/openingdb/manifest.json';
   const MANIFEST_TTL_MS = 5 * 60 * 1000;
   const SHARD_PREFETCH_DELAY_MS = 200;
@@ -499,7 +500,11 @@
   function applyManifest(manifest, fallback = false) {
     const m = manifest && typeof manifest === 'object' ? manifest : {};
     const activeVersion = String(m.activeVersion || DEFAULT_ACTIVE_VERSION).trim() || DEFAULT_ACTIVE_VERSION;
-    const baseRoot = String(m.baseUrl || DEFAULT_SHARD_ROOT).trim() || DEFAULT_SHARD_ROOT;
+    let baseRoot = String(m.baseUrl || DEFAULT_SHARD_ROOT).trim() || DEFAULT_SHARD_ROOT;
+    // In production, force same-origin shard path to avoid any cross-origin/CORS path.
+    if (!DEV_MODE) {
+      baseRoot = `/openingdb/shards/${activeVersion}`;
+    }
     const normalizedBase = baseRoot.replace(/\/+$/, '');
     const alreadyVersioned = normalizedBase.toLowerCase().endsWith(`/${activeVersion.toLowerCase()}`);
     state.activeDbVersion = activeVersion;
@@ -531,14 +536,6 @@
       return { source: 'site-proxy', ok: true };
     }
 
-    const remoteManifest = await fetchJsonWithTimeout(REMOTE_MANIFEST_URL, MANIFEST_FETCH_TIMEOUT_MS);
-    if (remoteManifest && typeof remoteManifest === 'object') {
-      const runtimeManifest = DEV_MODE ? remoteManifest : preferSameOriginManifest(remoteManifest);
-      writeManifestToSession(runtimeManifest);
-      applyManifest(runtimeManifest, false);
-      return { source: 'remote', ok: true };
-    }
-
     if (DEV_MODE) {
       const localManifest = await fetchJsonWithTimeout(LOCAL_MANIFEST_URL, MANIFEST_FETCH_TIMEOUT_MS);
       if (localManifest && typeof localManifest === 'object') {
@@ -556,7 +553,7 @@
 
     applyManifest({
       activeVersion: DEFAULT_ACTIVE_VERSION,
-      baseUrl: DEFAULT_SHARD_ROOT
+      baseUrl: shardBaseUrl
     }, true);
     return { source: 'fallback', ok: false };
   }
