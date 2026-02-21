@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="/assets/css/chessboard-1.0.0.min.css">
   <link rel="stylesheet" href="/styles.css?v=2.0.2">
-  <link rel="stylesheet" href="/css/opening-database.css?v=1.0.35">
+  <link rel="stylesheet" href="/css/opening-database.css?v=1.0.39">
 </head>
 <body>
   <div class="app-container openingdb-app">
@@ -82,6 +82,10 @@
                   <button id="odbMovesPopularBtn" class="openingdb-tab active" type="button" aria-pressed="true">Popular</button>
                   <button id="odbMovesAllBtn" class="openingdb-tab" type="button" aria-pressed="false">All Legal</button>
                 </div>
+                <label class="openingdb-quick-eval-toggle" for="odbQuickEvalToggle">
+                  <input id="odbQuickEvalToggle" type="checkbox">
+                  Eval Next Moves (fast)
+                </label>
                 <div id="odbCoverageBadge" class="openingdb-coverage-badge">0/0 moves have DB stats</div>
               </div>
               <div class="openingdb-table-wrap openingdb-table-wrap-compact">
@@ -114,6 +118,7 @@
               <div class="openingdb-games-controls">
                 <button id="odbSearchGamesBtn" class="btn btn-primary" type="button">Search Games From This Position</button>
                 <button id="odbCopyLineKeyBtn" class="btn btn-secondary" type="button">Copy lineKey</button>
+                <button id="odbOpenSearchNewTabBtn" class="btn btn-secondary" type="button">Open in New Tab</button>
                 <button id="odbDownloadGamesBtn" class="btn btn-secondary" type="button">Download top 10 (ZIP)</button>
               </div>
               <div class="openingdb-games-filters">
@@ -130,6 +135,7 @@
                 </label>
               </div>
               <div id="odbGamesStatus" class="openingdb-games-status">Ready to search.</div>
+              <div id="odbGamesSummary" class="openingdb-games-summary">Summary pending.</div>
               <div class="openingdb-games-wrap">
                 <table class="openingdb-games-table">
                   <thead>
@@ -193,6 +199,9 @@
             <div class="engine-analysis-actions">
               <button id="odbStartEngineBtn" class="btn btn-primary openingdb-engine-cta" type="button">START ENGINE ANALYSIS</button>
               <button id="odbStopEngineBtn" class="btn btn-secondary openingdb-engine-stop" type="button">STOP</button>
+              <button id="odbEngineCopyPvBtn" class="btn btn-secondary openingdb-engine-share" type="button">Copy PV</button>
+              <button id="odbEngineCopyFenBtn" class="btn btn-secondary openingdb-engine-share" type="button">Copy FEN</button>
+              <span id="odbEngineCopyFeedback" class="engine-copy-feedback" aria-live="polite"></span>
             </div>
             <div class="engine-analysis-readout">
               <div><span>Status</span><strong id="odbEngineStatusValue">Idle</strong></div>
@@ -201,7 +210,14 @@
               <div><span>Best Move</span><strong id="odbEngineBestMoveValue">—</strong></div>
               <div><span>NPS</span><strong id="odbEngineNpsValue">—</strong></div>
               <div><span>Nodes</span><strong id="odbEngineNodesValue">—</strong></div>
-              <div class="engine-pv"><span>PV</span><strong id="odbEnginePvValue">—</strong></div>
+              <div class="engine-pv">
+                <span>PV</span>
+                <div id="odbEnginePvLines" class="engine-pv-lines">
+                  <div class="engine-pv-line">
+                    <strong id="odbEnginePvValue">-</strong>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="engine-analysis-debug">
               <div class="engine-analysis-debug-head">
@@ -267,6 +283,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/js/engine/stockfish-client.js?v=1.0.1"></script>
-  <script src="/js/opening-database.js?v=1.0.37"></script>
+  <script src="/js/opening-database.js?v=1.0.39"></script>
 </body>
 </html>

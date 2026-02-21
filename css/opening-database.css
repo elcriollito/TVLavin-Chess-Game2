@@ -150,6 +150,18 @@
   font-family: 'Roboto Mono', monospace;
 }
 
+.engine-analysis-controls .engine-analysis-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #9fe78b;
+}
+
+.engine-analysis-toggle input[type='checkbox'] {
+  accent-color: var(--hack-green);
+}
+
 .engine-analysis-controls select {
   background: #0a0d0a;
   border: 1px solid var(--hack-green-dim);
@@ -162,12 +174,28 @@
   display: flex;
   gap: 8px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .engine-analysis-zone .openingdb-engine-stop {
   background: #0a0d0a;
   border: 1px solid #2a7a2a;
   color: #98d698;
+}
+
+.engine-analysis-zone .openingdb-engine-share {
+  background: #0a0d0a;
+  border: 1px solid rgba(57, 255, 20, 0.28);
+  color: #8fe67a;
+}
+
+.engine-copy-feedback {
+  min-width: 80px;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 11px;
+  color: #8fe67a;
+  display: inline-flex;
+  align-items: center;
 }
 
 .engine-analysis-readout {
@@ -199,6 +227,35 @@
 .engine-analysis-readout .engine-pv strong {
   text-align: left;
   line-height: 1.35;
+  word-break: break-word;
+}
+
+.engine-pv-lines {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+}
+
+.engine-pv-line {
+  display: grid;
+  gap: 2px;
+  align-items: start;
+  border: 1px solid rgba(57, 255, 20, 0.2);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 6px 8px;
+}
+
+.engine-pv-line-header {
+  font-size: 11px;
+  color: #98d698;
+  white-space: normal;
+}
+
+.engine-pv-line strong {
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
   word-break: break-word;
 }
 
@@ -476,6 +533,22 @@
   flex-wrap: wrap;
 }
 
+.openingdb-quick-eval-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #9fe78b;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 4px 8px;
+  background: rgba(57, 255, 20, 0.08);
+}
+
+.openingdb-quick-eval-toggle input[type='checkbox'] {
+  accent-color: #39ff14;
+}
+
 .openingdb-modes {
   display: flex;
   gap: 8px;
@@ -547,6 +620,11 @@
 .openingdb-stats-table td.col-engine {
   width: 100px;
   text-align: center;
+}
+
+.openingdb-stats-table td.col-engine.is-pending {
+  color: #9ec79e;
+  font-style: italic;
 }
 
 .openingdb-stats-table col.colg-move {
@@ -646,6 +724,16 @@
   color: var(--text-secondary);
   font-size: 12px;
   margin-bottom: 8px;
+}
+
+.openingdb-games-summary {
+  color: #b8bfca;
+  font-size: 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .openingdb-games-wrap {
