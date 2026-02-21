@@ -10,7 +10,7 @@ function parseArgs(argv) {
     out: DEFAULT_OUT,
     baseUrl: 'https://downloads.caissa-chess.org/openingdb/shards',
     topN: 60,
-    maxPlies: 20,
+    maxPlies: 60,
     shardCount: 256,
     hashAlgo: 'sha1',
     hashLen: 16

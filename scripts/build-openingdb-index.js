@@ -5,7 +5,7 @@
  *
  * Usage:
  *   node scripts/build-openingdb-index.js --in data/pgn_samples --out data/openingdb/shards --version v1
- *   node scripts/build-openingdb-index.js --in pgn --out data/openingdb/shards --version v1 --maxPlies 20 --topN 60
+ *   node scripts/build-openingdb-index.js --in pgn --out data/openingdb/shards --version v1 --maxPlies 60 --topN 60
  */
 import fs from 'fs';
 import path from 'path';
@@ -18,7 +18,7 @@ const DEFAULT_OUT = path.resolve('data/openingdb/shards');
 const DEFAULT_VERSION = 'v1';
 const DEFAULT_HASH_LEN = 16;
 const DEFAULT_FLUSH_EVERY = 100000;
-const DEFAULT_MAX_PLIES = 20;
+const DEFAULT_MAX_PLIES = 60;
 const DEFAULT_TOP_N = 60;
 const DEFAULT_PROGRESS_EVERY = 50000;
 
