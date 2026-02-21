@@ -274,6 +274,12 @@
   font-weight: 700;
 }
 
+.openingdb-stats-table td.col-move .movePrefix {
+  opacity: 0.75;
+  margin-right: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
 .openingdb-stats-table th.col-perc,
 .openingdb-stats-table td.col-perc {
   width: 86px;

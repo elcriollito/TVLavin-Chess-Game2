@@ -396,6 +396,25 @@
     return chunks.join(' ');
   }
 
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function formatPrefixedSAN({ ply, sanForCandidateMove }) {
+    const san = sanitizeMoveCellToken(sanForCandidateMove || '');
+    if (!san) return { prefix: '', san: 'TBD' };
+    const currentPly = Number.isInteger(ply) ? ply : 0;
+    const fullmove = Math.floor(currentPly / 2) + 1;
+    const isWhiteToMove = currentPly % 2 === 0;
+    const prefix = isWhiteToMove ? `${fullmove}.` : `${fullmove}...`;
+    return { prefix, san };
+  }
+
   function updateMoveListFromGame(game) {
     if (!els.moveList) return;
     els.moveList.value = formatMoveList(game) || '(start position)';
@@ -1106,6 +1125,9 @@
       return;
     }
 
+    const currentPly = state.game && typeof state.game.history === 'function'
+      ? state.game.history({ verbose: false }).length
+      : 0;
     state.currentRows = rows.slice();
     const total = rows.reduce((sum, r) => sum + (Number(r.games) || 0), 0);
     els.statsBody.innerHTML = rows.map((row, idx) => {
@@ -1118,6 +1140,8 @@
       const hasData = !!row.hasData;
       const year = hasData ? (row.year || 'TBD') : '—';
       const moveText = sanitizeMoveCellToken(row.moveSAN || row.moveUCI || 'TBD') || 'TBD';
+      const prefixed = formatPrefixedSAN({ ply: currentPly, sanForCandidateMove: row.moveSAN || row.moveUCI || moveText });
+      const moveCellHtml = `<span class="movePrefix">${escapeHtml(prefixed.prefix)}</span><span class="moveSan">${escapeHtml(prefixed.san)}</span>`;
       const title = row.preview && row.preview !== moveText ? ` title="${String(row.preview).replace(/"/g, '&quot;')}"` : '';
       const wdlTitle = `W:${wPct.toFixed(1)} D:${dPct.toFixed(1)} L:${lPct.toFixed(1)}`;
       const rowClass = hasData ? dominantClass(wPct, dPct, lPct) : 'row-nodata';
@@ -1131,7 +1155,7 @@
 
       return `
         <tr class="${rowClass}" data-row-index="${idx}">
-          <td class="col-move"${title}>${moveText}</td>
+          <td class="col-move"${title}>${moveCellHtml}</td>
           <td class="col-value">${hasData && Number.isFinite(value) ? `${value.toFixed(1)}%` : '—'}</td>
           <td>${n}</td>
           <td class="col-perc">${hasData && Number.isFinite(perc) ? `${perc.toFixed(1)}%` : '—'}</td>
