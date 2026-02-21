@@ -6,7 +6,7 @@
     ecoCodeDefs: [],
     openingDbShardCache: new Map(),
     shardBaseUrl: '',
-    activeDbVersion: 'v1',
+    activeDbVersion: 'v3',
     dbVersionFallback: true,
     datasetsLoaded: false,
     datasetsError: '',
@@ -27,7 +27,7 @@
   };
 
   const DEFAULT_SHARD_ROOT = '/openingdb/shards';
-  const DEFAULT_ACTIVE_VERSION = 'v1';
+  const DEFAULT_ACTIVE_VERSION = 'v3';
   const MANIFEST_URL = '/openingdb/manifest.json';
   const REMOTE_MANIFEST_URL = 'https://downloads.caissa-chess.org/openingdb/manifest.json';
   const LOCAL_MANIFEST_URL = '/openingdb/manifest.json';
