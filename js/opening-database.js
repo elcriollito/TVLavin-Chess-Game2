@@ -82,7 +82,6 @@
     matchBadge: document.getElementById('odbMatchBadge'),
     datasetBanner: document.getElementById('odbDatasetBanner'),
     statsBody: document.getElementById('odbStatsBody'),
-    statsBodyWide: document.getElementById('odbStatsBodyWide'),
     tabMoves: document.getElementById('odbTabMoves'),
     tabGames: document.getElementById('odbTabGames'),
     movesPopularBtn: document.getElementById('odbMovesPopularBtn'),
@@ -95,6 +94,7 @@
     transitionStats: document.getElementById('odbTransitionStats'),
     transitionSearchGamesBtn: document.getElementById('odbTransitionSearchGamesBtn'),
     analyzePositionBtn: document.getElementById('odbAnalyzePositionBtn'),
+    openSearchDockBtn: document.getElementById('odbOpenSearchDockBtn'),
     searchGamesBtn: document.getElementById('odbSearchGamesBtn'),
     copyLineKeyBtn: document.getElementById('odbCopyLineKeyBtn'),
     downloadGamesBtn: document.getElementById('odbDownloadGamesBtn'),
@@ -1116,8 +1116,7 @@
   }
 
   function renderStatsRows(rows) {
-    const targetBodies = [els.statsBody, els.statsBodyWide].filter(Boolean);
-    if (targetBodies.length === 0) return;
+    if (!els.statsBody) return;
 
     if (!Array.isArray(rows) || rows.length === 0) {
       if (state.moveListMode === 'all' && state.game) {
@@ -1134,9 +1133,7 @@
       const message = state.moveListMode === 'popular'
         ? 'No DB stats for this position yet. Switch to "All Legal" to see playable moves.'
         : 'No legal moves in this position.';
-      targetBodies.forEach((tbody) => {
-        tbody.innerHTML = `<tr><td colspan="4" class="openingdb-empty">${message}</td></tr>`;
-      });
+      els.statsBody.innerHTML = `<tr><td colspan="4" class="openingdb-empty">${message}</td></tr>`;
       return;
     }
 
@@ -1176,9 +1173,7 @@
         </tr>
       `;
     }).join('');
-    targetBodies.forEach((tbody) => {
-      tbody.innerHTML = rowsHtml;
-    });
+    els.statsBody.innerHTML = rowsHtml;
   }
 
   function setGamesStatus(message) {
@@ -1846,9 +1841,8 @@
       updatePositionView(state.game.fen());
     });
 
-    const bindStatsRowClick = (tbody) => {
-      if (!tbody) return;
-      tbody.addEventListener('click', (event) => {
+    if (els.statsBody) {
+      els.statsBody.addEventListener('click', (event) => {
         const rowEl = event.target && event.target.closest ? event.target.closest('tr[data-row-index]') : null;
         if (!rowEl) return;
         const idx = Number(rowEl.getAttribute('data-row-index'));
@@ -1856,14 +1850,17 @@
         const row = state.currentRows[idx];
         applyMoveFromRow(row);
       });
-    };
-
-    bindStatsRowClick(els.statsBody);
-    bindStatsRowClick(els.statsBodyWide);
+    }
 
     if (els.searchGamesBtn) {
       els.searchGamesBtn.addEventListener('click', () => {
         runGamesSearch();
+      });
+    }
+
+    if (els.openSearchDockBtn) {
+      els.openSearchDockBtn.addEventListener('click', () => {
+        setActiveTab('games');
       });
     }
 

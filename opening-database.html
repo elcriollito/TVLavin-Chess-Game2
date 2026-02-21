@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="/assets/css/chessboard-1.0.0.min.css">
   <link rel="stylesheet" href="/styles.css?v=2.0.2">
-  <link rel="stylesheet" href="/css/opening-database.css?v=1.0.32">
+  <link rel="stylesheet" href="/css/opening-database.css?v=1.0.33">
 </head>
 <body>
   <div class="app-container openingdb-app">
@@ -192,27 +192,15 @@
         </section>
 
         <section class="openingdb-bottom-area" aria-label="Opening database explorer area">
-          <section class="openingdb-stats-section openingdb-stats-section-wide" aria-label="Opening statistics wide">
-            <div class="openingdb-opening-meta openingdb-opening-meta-wide">
-              <strong>OpeningDB Wide View</strong>
+          <section class="openingdb-games-dock" aria-label="Search games dock">
+            <div class="openingdb-games-dock-header">
+              <strong>Search Games</strong>
+              <button id="odbOpenSearchDockBtn" class="btn btn-secondary" type="button">Open Search Games</button>
             </div>
-            <div class="openingdb-table-wrap openingdb-table-wrap-wide">
-              <table class="openingdb-stats-table">
-                <thead>
-                  <tr>
-                    <th class="col-move">Next Move</th>
-                    <th class="col-games"># Games</th>
-                    <th class="col-wdl">Winnings % (W/D/L)</th>
-                    <th class="col-engine">Engine Eval.</th>
-                  </tr>
-                </thead>
-                <tbody id="odbStatsBodyWide">
-                  <tr>
-                    <td colspan="4" class="openingdb-empty">No data for this position yet (TBD).</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <p class="openingdb-games-dock-text">
+              Use Search Games to find real games from this position. This area stays visible for quick access and results context.
+            </p>
+            <div class="openingdb-games-dock-note">If Search Games is not available yet, you'll see a "coming soon" message in the top-right panel.</div>
           </section>
 
           <aside class="openingdb-side-panel openingdb-side-panel-bottom" aria-label="Current position move list">
@@ -228,6 +216,6 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="/js/opening-database.js?v=1.0.32"></script>
+  <script src="/js/opening-database.js?v=1.0.33"></script>
 </body>
 </html>

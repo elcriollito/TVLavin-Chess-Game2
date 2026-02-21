@@ -35,7 +35,7 @@
 .openingdb-bottom-area {
   margin-top: 16px;
   display: grid;
-  grid-template-columns: minmax(640px, 1fr) minmax(360px, 420px);
+  grid-template-columns: minmax(520px, 1fr) minmax(360px, 420px);
   gap: 16px;
   align-items: start;
 }
@@ -193,12 +193,40 @@
   max-height: 320px;
 }
 
-.openingdb-table-wrap-wide {
-  max-height: 420px;
-}
-
 .openingdb-side-panel-bottom {
   min-height: 420px;
+}
+
+.openingdb-games-dock {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  padding: 12px;
+  min-height: 220px;
+}
+
+.openingdb-games-dock-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.openingdb-games-dock-text {
+  margin: 0 0 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.openingdb-games-dock-note {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
 }
 
 .openingdb-opening-meta {
