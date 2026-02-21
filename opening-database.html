@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="/assets/css/chessboard-1.0.0.min.css">
   <link rel="stylesheet" href="/styles.css?v=2.0.2">
-  <link rel="stylesheet" href="/css/opening-database.css?v=1.0.30">
+  <link rel="stylesheet" href="/css/opening-database.css?v=1.0.31">
 </head>
 <body>
   <div class="app-container openingdb-app">
@@ -54,18 +54,12 @@
           </p>
         </header>
 
-        <section class="openingdb-main-grid" aria-label="Opening database workspace">
+        <section class="openingdb-top-area" aria-label="Opening database board area">
           <div class="openingdb-board-column">
             <div class="openingdb-board-shell">
               <div id="openingDbBoard" class="openingdb-board" aria-label="Opening database board"></div>
             </div>
           </div>
-
-          <aside class="openingdb-side-panel" aria-label="Current position move list">
-            <div id="odbTurnPly" class="openingdb-turnply">Turn: White | Ply: 0</div>
-            <label class="openingdb-movelist-label" for="odbMoveList">Move list (SAN)</label>
-            <textarea id="odbMoveList" class="openingdb-movelist" rows="16" readonly></textarea>
-          </aside>
         </section>
 
         <section class="openingdb-action-band" aria-label="Position controls">
@@ -88,113 +82,121 @@
           </div>
         </section>
 
-        <section class="openingdb-stats-section" aria-label="Opening statistics">
-          <div class="openingdb-opening-meta">
-            <strong id="odbOpeningLabel">Opening: (TBD)</strong>
-            <span class="openingdb-lookup-wrap">
-              <span id="odbLookupStatus">Position lookup ready.</span>
-              <span id="odbMatchBadge" class="openingdb-match-badge" hidden>match: none</span>
-            </span>
-          </div>
-          <div id="odbDatasetBanner" class="openingdb-dataset-banner" hidden></div>
+        <section class="openingdb-bottom-area" aria-label="Opening database explorer area">
+          <section class="openingdb-stats-section" aria-label="Opening statistics">
+            <div class="openingdb-opening-meta">
+              <strong id="odbOpeningLabel">Opening: (TBD)</strong>
+              <span class="openingdb-lookup-wrap">
+                <span id="odbLookupStatus">Position lookup ready.</span>
+                <span id="odbMatchBadge" class="openingdb-match-badge" hidden>match: none</span>
+              </span>
+            </div>
+            <div id="odbDatasetBanner" class="openingdb-dataset-banner" hidden></div>
 
-          <div class="openingdb-tabs" role="tablist" aria-label="Explorer mode">
-            <button id="odbTabMoves" class="openingdb-tab active" type="button" role="tab" aria-selected="true">Moves</button>
-            <button id="odbTabGames" class="openingdb-tab" type="button" role="tab" aria-selected="false">Search Games</button>
-          </div>
+            <div class="openingdb-tabs" role="tablist" aria-label="Explorer mode">
+              <button id="odbTabMoves" class="openingdb-tab active" type="button" role="tab" aria-selected="true">Moves</button>
+              <button id="odbTabGames" class="openingdb-tab" type="button" role="tab" aria-selected="false">Search Games</button>
+            </div>
 
-          <div id="odbMovesPanel" class="openingdb-tab-panel">
-            <div class="openingdb-moves-toolbar">
-              <div class="openingdb-modes" role="group" aria-label="Move list mode">
-                <button id="odbMovesPopularBtn" class="openingdb-tab active" type="button" aria-pressed="true">Popular</button>
-                <button id="odbMovesAllBtn" class="openingdb-tab" type="button" aria-pressed="false">All Legal</button>
+            <div id="odbMovesPanel" class="openingdb-tab-panel">
+              <div class="openingdb-moves-toolbar">
+                <div class="openingdb-modes" role="group" aria-label="Move list mode">
+                  <button id="odbMovesPopularBtn" class="openingdb-tab active" type="button" aria-pressed="true">Popular</button>
+                  <button id="odbMovesAllBtn" class="openingdb-tab" type="button" aria-pressed="false">All Legal</button>
+                </div>
+                <div id="odbCoverageBadge" class="openingdb-coverage-badge">0/0 moves have DB stats</div>
               </div>
-              <div id="odbCoverageBadge" class="openingdb-coverage-badge">0/0 moves have DB stats</div>
-            </div>
-            <div class="openingdb-table-wrap">
-              <table class="openingdb-stats-table">
-                <thead>
-                  <tr>
-                    <th class="col-move">Next Move</th>
-                    <th class="col-games"># Games</th>
-                    <th class="col-wdl">Winnings % (W/D/L)</th>
-                    <th class="col-engine">Engine Eval.</th>
-                  </tr>
-                </thead>
-                <tbody id="odbStatsBody">
-                  <tr>
-                    <td colspan="4" class="openingdb-empty">No data for this position yet (TBD).</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div id="odbTransitionPanel" class="odb-transition" hidden>
-              <h3>Entering Early Middlegame</h3>
-              <p id="odbTransitionMessage">
-                Position branching is narrowing. You are transitioning
-                from Opening Theory into Early Middlegame.
-              </p>
-              <div id="odbTransitionStats" class="odb-transition-stats"></div>
-              <div class="odb-transition-actions">
-                <button id="odbTransitionSearchGamesBtn" class="btn btn-secondary" type="button">Search Games From This Position</button>
-                <button id="odbAnalyzePositionBtn" class="btn btn-secondary" type="button" disabled>Analyze Position</button>
+              <div class="openingdb-table-wrap">
+                <table class="openingdb-stats-table">
+                  <thead>
+                    <tr>
+                      <th class="col-move">Next Move</th>
+                      <th class="col-games"># Games</th>
+                      <th class="col-wdl">Winnings % (W/D/L)</th>
+                      <th class="col-engine">Engine Eval.</th>
+                    </tr>
+                  </thead>
+                  <tbody id="odbStatsBody">
+                    <tr>
+                      <td colspan="4" class="openingdb-empty">No data for this position yet (TBD).</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-            </div>
-          </div>
 
-          <div id="odbGamesPanel" class="openingdb-tab-panel" hidden>
-            <div class="openingdb-games-controls">
-              <button id="odbSearchGamesBtn" class="btn btn-primary" type="button">Search Games From This Position</button>
-              <button id="odbCopyLineKeyBtn" class="btn btn-secondary" type="button">Copy lineKey</button>
-              <button id="odbDownloadGamesBtn" class="btn btn-secondary" type="button">Download top 10 (ZIP)</button>
-            </div>
-            <div class="openingdb-games-filters">
-              <label>Year Min <input id="odbGamesYearMin" type="number" min="1000" max="3000" placeholder="1900"></label>
-              <label>Year Max <input id="odbGamesYearMax" type="number" min="1000" max="3000" placeholder="2026"></label>
-              <label>Elo Min <input id="odbGamesEloMin" type="number" min="0" max="3500" placeholder="2400"></label>
-              <label>Result
-                <select id="odbGamesResult">
-                  <option value="all">All</option>
-                  <option value="1-0">White wins</option>
-                  <option value="1/2-1/2">Draw</option>
-                  <option value="0-1">Black wins</option>
-                </select>
-              </label>
-            </div>
-            <div id="odbGamesStatus" class="openingdb-games-status">Ready to search.</div>
-            <div class="openingdb-games-wrap">
-              <table class="openingdb-games-table">
-                <thead>
-                  <tr>
-                    <th>White</th>
-                    <th>Black</th>
-                    <th>Result</th>
-                    <th>Event</th>
-                    <th>Year</th>
-                    <th>Elo</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="odbGamesBody">
-                  <tr>
-                    <td colspan="7" class="openingdb-empty">No games loaded yet.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div id="odbGamesDownloads" class="openingdb-games-downloads"></div>
-            <div id="odbGamesPgnViewer" class="openingdb-games-pgn" hidden>
-              <div class="openingdb-games-pgn-header">
-                <strong id="odbGamesPgnTitle">PGN</strong>
-                <div class="openingdb-games-pgn-actions">
-                  <button id="odbGamesPgnCopyBtn" class="btn btn-secondary" type="button">Copy PGN</button>
-                  <button id="odbGamesPgnCloseBtn" class="btn btn-secondary" type="button">Close</button>
+              <div id="odbTransitionPanel" class="odb-transition" hidden>
+                <h3>Entering Early Middlegame</h3>
+                <p id="odbTransitionMessage">
+                  Position branching is narrowing. You are transitioning
+                  from Opening Theory into Early Middlegame.
+                </p>
+                <div id="odbTransitionStats" class="odb-transition-stats"></div>
+                <div class="odb-transition-actions">
+                  <button id="odbTransitionSearchGamesBtn" class="btn btn-secondary" type="button">Search Games From This Position</button>
+                  <button id="odbAnalyzePositionBtn" class="btn btn-secondary" type="button" disabled>Analyze Position</button>
                 </div>
               </div>
-              <textarea id="odbGamesPgnText" rows="12" readonly></textarea>
             </div>
-          </div>
+
+            <div id="odbGamesPanel" class="openingdb-tab-panel" hidden>
+              <div class="openingdb-games-controls">
+                <button id="odbSearchGamesBtn" class="btn btn-primary" type="button">Search Games From This Position</button>
+                <button id="odbCopyLineKeyBtn" class="btn btn-secondary" type="button">Copy lineKey</button>
+                <button id="odbDownloadGamesBtn" class="btn btn-secondary" type="button">Download top 10 (ZIP)</button>
+              </div>
+              <div class="openingdb-games-filters">
+                <label>Year Min <input id="odbGamesYearMin" type="number" min="1000" max="3000" placeholder="1900"></label>
+                <label>Year Max <input id="odbGamesYearMax" type="number" min="1000" max="3000" placeholder="2026"></label>
+                <label>Elo Min <input id="odbGamesEloMin" type="number" min="0" max="3500" placeholder="2400"></label>
+                <label>Result
+                  <select id="odbGamesResult">
+                    <option value="all">All</option>
+                    <option value="1-0">White wins</option>
+                    <option value="1/2-1/2">Draw</option>
+                    <option value="0-1">Black wins</option>
+                  </select>
+                </label>
+              </div>
+              <div id="odbGamesStatus" class="openingdb-games-status">Ready to search.</div>
+              <div class="openingdb-games-wrap">
+                <table class="openingdb-games-table">
+                  <thead>
+                    <tr>
+                      <th>White</th>
+                      <th>Black</th>
+                      <th>Result</th>
+                      <th>Event</th>
+                      <th>Year</th>
+                      <th>Elo</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="odbGamesBody">
+                    <tr>
+                      <td colspan="7" class="openingdb-empty">No games loaded yet.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div id="odbGamesDownloads" class="openingdb-games-downloads"></div>
+              <div id="odbGamesPgnViewer" class="openingdb-games-pgn" hidden>
+                <div class="openingdb-games-pgn-header">
+                  <strong id="odbGamesPgnTitle">PGN</strong>
+                  <div class="openingdb-games-pgn-actions">
+                    <button id="odbGamesPgnCopyBtn" class="btn btn-secondary" type="button">Copy PGN</button>
+                    <button id="odbGamesPgnCloseBtn" class="btn btn-secondary" type="button">Close</button>
+                  </div>
+                </div>
+                <textarea id="odbGamesPgnText" rows="12" readonly></textarea>
+              </div>
+            </div>
+          </section>
+
+          <aside class="openingdb-side-panel openingdb-side-panel-bottom" aria-label="Current position move list">
+            <div id="odbTurnPly" class="openingdb-turnply">Turn: White | Ply: 0</div>
+            <label class="openingdb-movelist-label" for="odbMoveList">Move list (SAN)</label>
+            <textarea id="odbMoveList" class="openingdb-movelist" rows="18" readonly></textarea>
+          </aside>
         </section>
       </section>
     </main>
@@ -203,6 +205,6 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="/js/opening-database.js?v=1.0.30"></script>
+  <script src="/js/opening-database.js?v=1.0.31"></script>
 </body>
 </html>
