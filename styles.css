@@ -5208,7 +5208,34 @@ button:focus,
 
 .ctrl-row.bottom {
     grid-template-columns: repeat(2, 1fr);
+}
+
+.ctrl-row.new-game-row {
+    grid-template-columns: 1fr;
     margin-bottom: 0;
+}
+
+.new-game-control-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    border: none;
+    background: var(--accent-color);
+    color: #0b0f14;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px 16px;
+}
+
+.new-game-control-btn:hover {
+    background: #ffb833;
+    transform: translateY(-1px);
+}
+
+.new-game-control-btn i {
+    font-size: 14px;
 }
 
 @media (max-width: 1050px) {
