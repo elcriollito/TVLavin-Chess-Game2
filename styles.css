@@ -683,6 +683,7 @@ html, body {
 .move-history-content {
     flex: 1 1 auto;
     padding: var(--spacing-md);
+    padding-bottom: 28px;
     overflow-y: auto;
     scrollbar-gutter: stable both-edges;
     font-family: 'Courier New', monospace;
@@ -704,6 +705,11 @@ html, body {
 .move-pair:hover {
     background: var(--bg-tertiary);
     border-left-color: var(--primary-color);
+}
+
+.move-pair.current-row {
+    background: rgba(255, 140, 0, 0.08);
+    border-left-color: rgba(255, 140, 0, 0.7);
 }
 
 .move-number {
@@ -744,6 +750,10 @@ html, body {
     background: rgba(255, 255, 255, 0.05);
 }
 
+.move-row.current-row {
+    background: rgba(255, 140, 0, 0.08);
+}
+
 .move-row .turn {
     color: var(--accent-color);
     font-weight: bold;
@@ -764,10 +774,11 @@ html, body {
 }
 
 .move.current {
-    background: var(--primary-color);
+    background: rgba(255, 140, 0, 0.24);
+    outline: 1px solid rgba(255, 140, 0, 0.55);
     color: white;
     font-weight: bold;
-    box-shadow: 0 2px 8px rgba(44, 95, 158, 0.4);
+    box-shadow: 0 2px 8px rgba(255, 140, 0, 0.16);
 }
 
 /* ===== NAVIGATION CONTROLS ===== */
@@ -4797,8 +4808,8 @@ button:focus,
 }
 
 .left-panel.cais-left-col .panel-openingbook {
-    flex: 0 0 110px;
-    max-height: 130px;
+    flex: 0 0 190px;
+    max-height: 230px;
 }
 
 .left-panel.cais-left-col .panel-coach {
@@ -4869,7 +4880,7 @@ button:focus,
     min-height: 0;
     overflow-y: auto;
     scrollbar-gutter: stable both-edges;
-    padding: 8px 10px;
+    padding: 8px 10px 30px;
 }
 
 .moves-nav-inline {
@@ -5028,6 +5039,32 @@ button:focus,
 
 .book-simple-meta {
     font-size: 12px;
+    color: var(--muted);
+}
+
+.book-line-sequence {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    max-height: 88px;
+    overflow-y: auto;
+    padding-right: 4px;
+    font-family: 'Roboto Mono', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--text);
+}
+
+.book-line-row {
+    display: grid;
+    grid-template-columns: 28px minmax(34px, 1fr) minmax(34px, 1fr);
+    gap: 8px;
+    align-items: baseline;
+}
+
+.book-line-number,
+.book-line-empty {
     color: var(--muted);
 }
 

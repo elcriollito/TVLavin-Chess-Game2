@@ -888,6 +888,7 @@ function makeEngineMove() {
                     updateMoveHistory();
                     updateStatus();
                     updateTimers();
+                    detectOpening();
 
                     // Check game status
                     if (App.game.game_over()) {
@@ -946,6 +947,7 @@ function makeEngineMove() {
             updateMoveHistory();
             updateStatus();
             updateTimers();
+            detectOpening();
 
             // Check game status
             if (App.game.game_over()) {
@@ -1068,15 +1070,16 @@ function updateMoveHistory() {
         const moveNumber = Math.floor(i / 2) + 1;
         const whiteMove = App.moveHistory[i];
         const blackMove = App.moveHistory[i + 1];
+        const rowCurrent = i === App.currentMoveIndex || i + 1 === App.currentMoveIndex;
         
-        html += `<div class="move-pair">`;
+        html += `<div class="move-pair ${rowCurrent ? 'current-row' : ''}">`;
         html += `<span class="move-number">${moveNumber}.</span>`;
         html += `<span class="move ${i === App.currentMoveIndex ? 'current' : ''}" 
-                       data-index="${i}">${whiteMove.san}</span>`;
+                       data-index="${i}" ${i === App.currentMoveIndex ? 'aria-current="move"' : ''}>${escapeHtml(whiteMove.san)}</span>`;
         
         if (blackMove) {
             html += `<span class="move ${i + 1 === App.currentMoveIndex ? 'current' : ''}" 
-                           data-index="${i + 1}">${blackMove.san}</span>`;
+                           data-index="${i + 1}" ${i + 1 === App.currentMoveIndex ? 'aria-current="move"' : ''}>${escapeHtml(blackMove.san)}</span>`;
         }
         
         html += `</div>`;
@@ -1084,8 +1087,12 @@ function updateMoveHistory() {
     
     App.elements.moveHistory.innerHTML = html || '<p style="text-align: center; color: #999;">No moves yet</p>';
 
-    // Scroll to bottom
-    App.elements.moveHistory.scrollTop = App.elements.moveHistory.scrollHeight;
+    const activeMove = App.elements.moveHistory.querySelector('.move.current');
+    if (activeMove) {
+        activeMove.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    } else {
+        App.elements.moveHistory.scrollTop = App.elements.moveHistory.scrollHeight;
+    }
 
     // Update navigation buttons
     updateNavigationButtons();
@@ -1107,13 +1114,25 @@ function renderMovesToPanel() {
         const turn = Math.floor(i / 2) + 1;
         const w = moves[i] ? moves[i].san : "";
         const b = moves[i + 1] ? moves[i + 1].san : "";
-        html += `<div class="move-row"><span class="turn">${turn}.</span> <span>${w}</span> <span>${b || ''}</span></div>`;
+        const rowCurrent = i === App.currentMoveIndex || i + 1 === App.currentMoveIndex;
+        const blackHtml = b
+            ? `<span class="move ${i + 1 === App.currentMoveIndex ? 'current' : ''}" data-index="${i + 1}">${escapeHtml(b)}</span>`
+            : '<span></span>';
+        html += `<div class="move-row ${rowCurrent ? 'current-row' : ''}">
+            <span class="turn">${turn}.</span>
+            <span class="move ${i === App.currentMoveIndex ? 'current' : ''}" data-index="${i}">${escapeHtml(w)}</span>
+            ${blackHtml}
+        </div>`;
     }
 
     listEl.innerHTML = html || `<div class="muted">No moves yet</div>`;
 
-    // Scroll to bottom
-    scrollEl.scrollTop = scrollEl.scrollHeight;
+    const activeMove = listEl.querySelector('.move.current');
+    if (activeMove) {
+        activeMove.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    } else {
+        scrollEl.scrollTop = scrollEl.scrollHeight;
+    }
 }
 
 function detectOpening() {
@@ -1207,8 +1226,52 @@ function renderFallbackOpening(opening) {
     if (openingLinkCoach) openingLinkCoach.href = opening && opening.eco ? `/eco/${opening.eco}` : '/eco';
     if (openingBookMeta) openingBookMeta.textContent = 'No book data for this position yet.';
     if (openingBookSimpleStatus) openingBookSimpleStatus.textContent = App.openingDbReady ? 'Book: On' : 'Book: unavailable';
+    renderOpeningBookLine(opening);
     renderOpeningBookWdl(null);
     renderCoachMoves([]);
+}
+
+function getVisibleSanHistory() {
+    if (!App.game || typeof App.game.history !== 'function') return [];
+    return App.game.history({ verbose: false }).map((san) => String(san || '').trim()).filter(Boolean);
+}
+
+function formatMoveSequenceRows(moves) {
+    const safeMoves = Array.isArray(moves) ? moves.filter(Boolean) : [];
+    const rows = [];
+    for (let i = 0; i < safeMoves.length; i += 2) {
+        rows.push({
+            number: Math.floor(i / 2) + 1,
+            white: safeMoves[i] || '',
+            black: safeMoves[i + 1] || ''
+        });
+    }
+    return rows;
+}
+
+function renderOpeningBookLine(opening) {
+    const lineEl = document.getElementById('openingBookLine');
+    if (!lineEl) return;
+
+    const playedMoves = getVisibleSanHistory();
+    const openingMoves = Array.isArray(opening?.moves)
+        ? opening.moves.map((m) => String(m || '').trim()).filter(Boolean)
+        : String(opening?.moves || '').split(/\s+/).filter(Boolean);
+    const displayMoves = playedMoves.length > 0 ? playedMoves : openingMoves;
+
+    if (!displayMoves.length) {
+        lineEl.innerHTML = '<div class="book-line-empty">No moves yet.</div>';
+        return;
+    }
+
+    const rows = formatMoveSequenceRows(displayMoves).slice(0, 8);
+    lineEl.innerHTML = rows.map((row) => `
+        <div class="book-line-row">
+            <span class="book-line-number">${row.number}.</span>
+            <span>${escapeHtml(row.white)}</span>
+            <span>${escapeHtml(row.black)}</span>
+        </div>
+    `).join('');
 }
 
 function scoreFromWhiteWdl(w, d, l) {
@@ -1364,6 +1427,7 @@ function writeBookPanelsFromPosition(bookRow) {
         }
     }
 
+    renderOpeningBookLine(preferred);
     renderOpeningBookWdl(bookRow);
 
     const allMoves = normalizeBookMoveRows(bookRow?.moves || []).slice(0, 8);
@@ -1489,18 +1553,41 @@ async function updateCoachPanel() {
     const activeBook = App.openingDbPosition;
     const ecoCode = activeBook?.eco || (App.currentOpening && App.currentOpening.eco ? App.currentOpening.eco : '');
     const theory = await getCoachTheory(ecoCode);
+    const playerSide = App.playerColor === 'black' ? 'Black' : 'White';
+    const sidePlans = playerSide === 'White' ? theory?.plansWhite : theory?.plansBlack;
+    const opponentPlans = playerSide === 'White' ? theory?.plansBlack : theory?.plansWhite;
+    const currentTurn = App.game && typeof App.game.turn === 'function'
+        ? (App.game.turn() === 'w' ? 'White to move' : 'Black to move')
+        : '';
 
     if (theory) {
-        const principles = Array.isArray(theory.principles) ? theory.principles.slice(0, 2) : [];
-        const whitePlans = Array.isArray(theory.plansWhite) ? theory.plansWhite.slice(0, 1) : [];
-        const blackPlans = Array.isArray(theory.plansBlack) ? theory.plansBlack.slice(0, 1) : [];
-        App.coachText = `${theory.eco} - ${theory.name}\n${principles.concat(whitePlans, blackPlans).join('\n')}`;
+        const principles = Array.isArray(theory.principles) ? theory.principles.slice(0, 1) : [];
+        const plans = Array.isArray(sidePlans) ? sidePlans.slice(0, 2) : [];
+        const tacticalThemes = Array.isArray(theory.commonMistakes) ? theory.commonMistakes.slice(0, 1) : [];
+        const opponentCue = Array.isArray(opponentPlans) && opponentPlans[0] ? `Watch for: ${opponentPlans[0]}` : '';
+        App.coachText = [
+            `${playerSide} plan in ${theory.name}${currentTurn ? ` (${currentTurn})` : ''}:`,
+            ...plans,
+            ...principles,
+            opponentCue,
+            tacticalThemes[0] ? `Avoid: ${tacticalThemes[0]}` : ''
+        ].filter(Boolean).join('\n');
     } else if (activeBook && Array.isArray(activeBook.moves) && activeBook.moves.length > 0) {
-        App.coachText = 'Opening coach is data-driven from the local opening database for this position.';
+        const topMoves = normalizeBookMoveRows(activeBook.moves).slice(0, 2).map((m) => m.san).filter(Boolean);
+        App.coachText = [
+            `${playerSide} plan${currentTurn ? ` (${currentTurn})` : ''}:`,
+            'Use the book candidates to keep piece activity high and contest the center.',
+            topMoves.length ? `Candidate moves: ${topMoves.join(', ')}.` : '',
+            'Prepare pawn breaks only after development and king safety are stable.'
+        ].filter(Boolean).join('\n');
     } else if (App.openingName) {
-        App.coachText = `Playing ${App.openingName}.\nDevelop quickly, contest the center, and keep king safety prioritized.`;
+        App.coachText = [
+            `${playerSide} plan in ${App.openingName}${currentTurn ? ` (${currentTurn})` : ''}:`,
+            'Develop kingside pieces, contest the center, and castle before launching flank play.',
+            'Look for active piece placement and natural pawn breaks as the structure clarifies.'
+        ].join('\n');
     } else {
-        App.coachText = 'Opening not identified yet. Develop pieces, control center, king safety.';
+        App.coachText = `${playerSide} plan: develop pieces, control the center, and secure king safety.`;
     }
     coachTextEl.textContent = App.coachText;
 }
@@ -1557,6 +1644,7 @@ function navigateToStart() {
     App.board.position(App.game.fen());
     updateStatus();
     updateMoveHistory();
+    detectOpening();
     
     if (App.analyzing) {
         startAnalysis();
@@ -1570,6 +1658,7 @@ function navigateToPrevious() {
         App.board.position(App.game.fen());
         updateStatus();
         updateMoveHistory();
+        detectOpening();
         
         if (App.analyzing) {
             startAnalysis();
@@ -1585,6 +1674,7 @@ function navigateToNext() {
         App.board.position(App.game.fen());
         updateStatus();
         updateMoveHistory();
+        detectOpening();
         
         if (App.analyzing) {
             startAnalysis();
@@ -1601,6 +1691,7 @@ function navigateToEnd() {
     App.board.position(App.game.fen());
     updateStatus();
     updateMoveHistory();
+    detectOpening();
     
     if (App.analyzing) {
         startAnalysis();
@@ -1621,6 +1712,7 @@ function navigateToMove(index) {
     App.board.position(App.game.fen());
     updateStatus();
     updateMoveHistory();
+    detectOpening();
     
     if (App.analyzing) {
         startAnalysis();
@@ -2690,13 +2782,16 @@ function setupEventListeners() {
     safeOn(App.elements.moveHistory, 'click', (e) => {
         if (e.target.classList.contains('move')) {
             const index = parseInt(e.target.dataset.index);
-            navigateToMove(index);
+            if (Number.isInteger(index) && index >= 0 && index < App.moveHistory.length) {
+                navigateToMove(index);
+            }
         }
     }, 'moveHistory');
     
     // Settings changes
     safeOn(App.elements.playerColor, 'change', (e) => {
         App.playerColor = e.target.value;
+        updateCoachPanel();
     }, 'playerColor');
     
     // Export PGN
@@ -3636,6 +3731,7 @@ async function engineVsEngineLoop() {
                     // Update UI
                     updateMoveHistory();
                     updateStatus();
+                    detectOpening();
 
                     console.log(`📖 ${engineName} played book move:`, move.san);
 
