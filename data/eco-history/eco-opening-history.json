@@ -1,0 +1,32 @@
+{
+  "B20": {
+    "name": "Sicilian Defense",
+    "summary": "The Sicilian Defense is one of Black's most enduring answers to 1. e4, creating an imbalanced fight from the first move. It became a mainstay of elite chess through players such as Bobby Fischer, Garry Kasparov, and many modern attacking specialists.",
+    "source": "Local historical summary"
+  },
+  "C50": {
+    "name": "Italian Game",
+    "summary": "The Italian Game is among the oldest recorded open games, with analysis appearing in early European chess literature. Its classical development pattern made it a teaching model for center control, rapid development, and kingside pressure.",
+    "source": "Local historical summary"
+  },
+  "C60": {
+    "name": "Ruy Lopez",
+    "summary": "The Ruy Lopez is one of the oldest recorded chess openings, named after the Spanish priest Ruy Lopez de Segura. It has remained central to opening theory for centuries because White develops naturally while applying long-term pressure to Black's e5 pawn.",
+    "source": "Local historical summary"
+  },
+  "C65": {
+    "name": "Ruy Lopez: Berlin Defense",
+    "summary": "The Berlin Defense is a resilient branch of the Ruy Lopez that became especially famous after Vladimir Kramnik used it successfully against Garry Kasparov in their 2000 World Championship match. It is known for solid structure, early queen trades in main lines, and deep endgame themes.",
+    "source": "Local historical summary"
+  },
+  "D02": {
+    "name": "Queen's Gambit",
+    "summary": "The Queen's Gambit is one of the oldest and most respected queen-pawn openings, offering the c-pawn to challenge Black's center. It has been played by generations of world champions because it combines strategic pressure with a broad range of positional plans.",
+    "source": "Local historical summary"
+  },
+  "D06": {
+    "name": "Queen's Gambit Declined",
+    "summary": "The Queen's Gambit Declined became a cornerstone of classical chess strategy in the late 19th and early 20th centuries. Black declines the pawn offer and builds a solid central structure, leading to rich battles over development, pawn breaks, and piece activity.",
+    "source": "Local historical summary"
+  }
+}

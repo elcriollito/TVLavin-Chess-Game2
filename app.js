@@ -49,12 +49,10 @@ const App = {
     currentOpening: null,
     coachEnabled: true,
     coachText: '',
-    openingDbEnabled: true,
-    openingDbReady: false,
-    openingDbCacheKey: '',
-    openingDbPosition: null,
-    openingDbRequestId: 0,
     ecoPositionMap: null,
+    ecoCodeRows: [],
+    ecoDetails: [],
+    ecoHistoryNotes: {},
     lastEvalCp: null,
     lastEvalMate: null,
     selectedEditorPiece: 'erase', // Piece to place in editor mode
@@ -246,6 +244,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load ECO opening names dataset
     loadOpeningsDataset();
+    loadEcoDetailsDataset();
+    loadEcoHistoryNotes();
     loadEcoPositionMap();
 
     // Setup event listeners
@@ -259,7 +259,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // HOTFIX: Initialize eval bar orientation (white at bottom by default)
     syncEvalOrientation();
     ensureEvalBarLayout();
-    initializeOpeningDbService();
 
     // Load PGN library
     loadPGNLibrary();
@@ -1135,17 +1134,91 @@ function renderMovesToPanel() {
     }
 }
 
+function normalizeFenForEcoHash(fen) {
+    const parts = String(fen || '').trim().split(/\s+/);
+    if (parts.length < 4) return String(fen || '').trim();
+    return `${parts[0]} ${parts[1] || 'w'} ${parts[2] || '-'} ${parts[3] || '-'}`;
+}
+
+function fnv1a64ForEco(input) {
+    let hash = 0xcbf29ce484222325n;
+    const prime = 0x100000001b3n;
+
+    for (let i = 0; i < input.length; i += 1) {
+        hash ^= BigInt(input.charCodeAt(i));
+        hash = (hash * prime) & 0xffffffffffffffffn;
+    }
+
+    return hash.toString(16).padStart(16, '0');
+}
+
+function hashFenForEco(fen) {
+    return fnv1a64ForEco(normalizeFenForEcoHash(fen));
+}
+
+function parseEcoMoveText(moveText) {
+    return String(moveText || '')
+        .replace(/\{[^}]*\}/g, ' ')
+        .replace(/\([^)]*\)/g, ' ')
+        .split(/\s+/)
+        .map((token) => token.trim())
+        .filter(Boolean)
+        .filter((token) => !/^\d+\.(\.\.)?$/.test(token) && token !== '...')
+        .filter((token) => !/^(1-0|0-1|1\/2-1\/2|\*)$/.test(token))
+        .map(normalizeSanForEco)
+        .filter(Boolean);
+}
+
+function getEcoRowByCode(ecoCode) {
+    const code = String(ecoCode || '').toUpperCase();
+    return (App.ecoCodeRows || []).find((row) => row.eco === code || row.code === code) || null;
+}
+
+function getEcoDetailByCode(ecoCode) {
+    const code = String(ecoCode || '').toUpperCase();
+    return (App.ecoDetails || []).find((row) => String(row.code || '').toUpperCase() === code) || null;
+}
+
+function getEcoHistoryNote(opening) {
+    const code = String(opening?.eco || opening?.code || '').toUpperCase();
+    const notes = App.ecoHistoryNotes || {};
+    if (code && notes[code]) return notes[code];
+    const name = String(opening?.name || '').trim().toLowerCase();
+    if (!name) return null;
+    return Object.values(notes).find((note) => String(note?.name || '').trim().toLowerCase() === name) || null;
+}
+
+function normalizeEcoOpening(row) {
+    if (!row) return null;
+    const eco = String(row.eco || row.code || '').toUpperCase();
+    const base = getEcoRowByCode(eco);
+    const detail = getEcoDetailByCode(eco);
+    const name = row.name || base?.name || detail?.name || '';
+    const moves = Array.isArray(row.moves)
+        ? row.moves.map(normalizeSanForEco).filter(Boolean)
+        : parseEcoMoveText(row.moves || base?.moves || detail?.moves || '');
+
+    return {
+        ...row,
+        eco,
+        code: eco,
+        name,
+        moves,
+        ecoMovesText: base?.ecoMovesText || base?.movesText || row.ecoMovesText || row.movesText || ''
+    };
+}
+
 function detectOpening() {
     if (!App.game || !App.openings || App.openings.length === 0) return;
 
     const fen = App.game.fen();
-    const hash = window.OpeningDbService ? window.OpeningDbService.hashFen(fen) : '';
+    const hash = hashFenForEco(fen);
     const mapHit = (hash && App.ecoPositionMap) ? App.ecoPositionMap[hash] : null;
     if (mapHit && mapHit.name) {
-        const mapped = {
+        const mapped = normalizeEcoOpening({
             eco: mapHit.eco || '',
             name: mapHit.name
-        };
+        });
         App.currentOpening = mapped;
         App.openingName = mapped.name;
         openingDebugLog('opening-detect', {
@@ -1157,11 +1230,8 @@ function detectOpening() {
             depth: mapHit.depth || 0,
             source: mapHit.source || ''
         });
-        renderFallbackOpening(mapped);
-        updateOpeningCoachFromDb().catch((error) => {
-            console.warn('[OpeningDB] lookup failed:', error);
-            updateCoachPanel();
-        });
+        renderEcoOpeningPanels(mapped);
+        updateCoachPanel();
         updateGameStatusConsole();
         return;
     }
@@ -1193,8 +1263,9 @@ function detectOpening() {
         best = null;
     }
 
-    App.currentOpening = best || null;
-    App.openingName = best ? best.name : '';
+    const normalizedBest = normalizeEcoOpening(best);
+    App.currentOpening = normalizedBest || null;
+    App.openingName = normalizedBest ? normalizedBest.name : '';
     openingDebugLog('opening-detect', {
         trigger: best ? 'sequence-fallback' : 'unknown-fallback',
         fen,
@@ -1203,11 +1274,8 @@ function detectOpening() {
         playedPly: playedSAN.length,
         fallbackName: best ? best.name : ''
     });
-    renderFallbackOpening(best);
-    updateOpeningCoachFromDb().catch((error) => {
-        console.warn('[OpeningDB] lookup failed:', error);
-        updateCoachPanel();
-    });
+    renderEcoOpeningPanels(normalizedBest);
+    updateCoachPanel();
     updateGameStatusConsole();
 }
 
@@ -1218,17 +1286,29 @@ function renderFallbackOpening(opening) {
     const openingLinkCoach = document.getElementById('openingLinkCoach');
     const openingBookMeta = document.getElementById('openingBookMeta');
     const openingBookSimpleStatus = document.getElementById('openingBookSimpleStatus');
+    const openingBookHistory = document.getElementById('openingBookHistory');
 
     if (openingNameEl) openingNameEl.textContent = fallbackText;
     if (openingLinkBook) openingLinkBook.textContent = fallbackText;
     if (openingLinkCoach) openingLinkCoach.textContent = fallbackText;
     if (openingLinkBook) openingLinkBook.href = opening && opening.eco ? `/eco/${opening.eco}` : '/eco';
     if (openingLinkCoach) openingLinkCoach.href = opening && opening.eco ? `/eco/${opening.eco}` : '/eco';
-    if (openingBookMeta) openingBookMeta.textContent = 'No book data for this position yet.';
-    if (openingBookSimpleStatus) openingBookSimpleStatus.textContent = App.openingDbReady ? 'Book: On' : 'Book: unavailable';
+    if (openingBookMeta) openingBookMeta.textContent = opening?.eco ? 'Source: ECO Chess Opening Codes' : 'No ECO opening detected yet.';
+    if (openingBookSimpleStatus) openingBookSimpleStatus.textContent = 'ECO: local';
     renderOpeningBookLine(opening);
+    renderOpeningHistoryNote(openingBookHistory, opening);
     renderOpeningBookWdl(null);
     renderCoachMoves([]);
+}
+
+function renderEcoOpeningPanels(opening) {
+    renderFallbackOpening(opening);
+}
+
+function renderOpeningHistoryNote(noteEl, opening) {
+    if (!noteEl) return;
+    const note = getEcoHistoryNote(opening);
+    noteEl.textContent = note?.summary || (opening ? 'Historical note not available yet.' : '');
 }
 
 function getVisibleSanHistory() {
@@ -1384,125 +1464,6 @@ function isUsersTurnForCoach() {
     return App.game.turn() === (App.playerColor === 'white' ? 'w' : 'b');
 }
 
-function writeBookPanelsFromPosition(bookRow) {
-    const openingNameEl = document.getElementById('openingName');
-    const openingLinkBook = document.getElementById('openingLinkBook');
-    const openingLinkCoach = document.getElementById('openingLinkCoach');
-    const openingBookMeta = document.getElementById('openingBookMeta');
-    const openingBookSimpleStatus = document.getElementById('openingBookSimpleStatus');
-    const coachSummary = document.getElementById('coachSummary');
-
-    const preferred = (() => {
-        const current = App.currentOpening || null;
-        if (!current) return bookRow || null;
-        if (!bookRow) return current;
-        if (!isGenericOpeningName(current.name) && isGenericOpeningName(bookRow.name)) return current;
-        return bookRow;
-    })();
-    const openingLabel = (preferred?.name && preferred?.eco)
-        ? `${preferred.name} (${preferred.eco})`
-        : (preferred?.name || (preferred?.eco ? preferred.eco : 'Opening: (unknown)'));
-    const ecoHref = preferred?.eco ? `/eco/${preferred.eco}` : '/eco';
-
-    if (openingNameEl) openingNameEl.textContent = openingLabel;
-    if (openingLinkBook) {
-        openingLinkBook.textContent = openingLabel;
-        openingLinkBook.href = ecoHref;
-    }
-    if (openingLinkCoach) {
-        openingLinkCoach.textContent = openingLabel;
-        openingLinkCoach.href = ecoHref;
-    }
-
-    if (openingBookSimpleStatus) {
-        openingBookSimpleStatus.textContent = App.openingDbReady ? 'Book: On' : 'Book: unavailable';
-    }
-
-    if (openingBookMeta) {
-        if (bookRow && Number(bookRow.games) > 0) {
-            const last = bookRow.lastYearSeen ? ` | Last seen: ${bookRow.lastYearSeen}` : '';
-            openingBookMeta.textContent = `Games: ${bookRow.games}${last}`;
-        } else {
-            openingBookMeta.textContent = 'No book data for this position yet.';
-        }
-    }
-
-    renderOpeningBookLine(preferred);
-    renderOpeningBookWdl(bookRow);
-
-    const allMoves = normalizeBookMoveRows(bookRow?.moves || []).slice(0, 8);
-    const canShowMoves = isUsersTurnForCoach();
-    const moves = canShowMoves ? allMoves : [];
-    renderCoachMoves(moves);
-    if (coachSummary) {
-        if (!canShowMoves && allMoves.length > 0) {
-            coachSummary.textContent = 'Suggestions update when it is your turn.';
-        } else if (moves.length === 0) {
-            coachSummary.textContent = 'No book data for this position yet.';
-        } else {
-            const total = moves.reduce((sum, m) => sum + (Number(m.n) || 0), 0);
-            const top = moves[0];
-            const best = moves.slice().sort((a, b) => (scoreFromWhiteWdl(b.w, b.d, b.l) || 0) - (scoreFromWhiteWdl(a.w, a.d, a.l) || 0))[0];
-            const popPct = total > 0 ? (top.n / total) * 100 : 0;
-            const bestScore = scoreFromWhiteWdl(best.w, best.d, best.l);
-            coachSummary.textContent = `Most popular: ${top.san} (${formatPct(popPct)} of book games). Best score: ${best.san} (${Number.isFinite(bestScore) ? formatPct(bestScore * 100) : 'TBD'} white score).`;
-        }
-    }
-}
-
-async function updateOpeningCoachFromDb() {
-    if (!App.openingDbEnabled || !window.OpeningDbService || !App.game) {
-        openingDebugLog('opening-db skipped', {
-            openingDbEnabled: !!App.openingDbEnabled,
-            servicePresent: !!window.OpeningDbService,
-            hasGame: !!App.game,
-            fallback: 'coach-theory'
-        });
-        updateCoachPanel();
-        return;
-    }
-
-    const fen = App.game.fen();
-    const key = window.OpeningDbService.hashFen(fen);
-    if (key && key === App.openingDbCacheKey && App.openingDbPosition) {
-        openingDebugLog('opening-db cache-hit', {
-            fen,
-            hash: key,
-            shard: key.slice(0, 2),
-            entryExists: true
-        });
-        writeBookPanelsFromPosition(App.openingDbPosition);
-        await updateCoachPanel();
-        return;
-    }
-
-    const requestId = (App.openingDbRequestId || 0) + 1;
-    App.openingDbRequestId = requestId;
-    const lookup = await window.OpeningDbService.lookupByFen(fen, { baseUrl: '/data/book_chunks' });
-    if (requestId !== App.openingDbRequestId) return;
-    App.openingDbCacheKey = lookup.hash || '';
-    App.openingDbPosition = lookup.entry || null;
-    openingDebugLog('opening-db lookup', {
-        fen,
-        hash: lookup.hash,
-        shard: lookup.shard,
-        shardLoaded: lookup.shardLoaded,
-        fromCache: lookup.fromCache,
-        httpStatus: lookup.status,
-        entryExists: lookup.entryFound
-    });
-
-    if (lookup.entry) {
-        writeBookPanelsFromPosition(lookup.entry);
-    } else {
-        openingDebugLog('opening-db fallback', {
-            reason: 'no-entry-for-hash',
-            fallback: App.currentOpening ? 'sequence-or-map-label' : 'Opening: (unknown)'
-        });
-    }
-    await updateCoachPanel();
-}
-
 function normalizeSanForEco(san) {
     return String(san || '')
         .replace(/\d+\.(\.\.)?/g, '')
@@ -1550,8 +1511,8 @@ async function updateCoachPanel() {
         return;
     }
 
-    const activeBook = App.openingDbPosition;
-    const ecoCode = activeBook?.eco || (App.currentOpening && App.currentOpening.eco ? App.currentOpening.eco : '');
+    const activeOpening = App.currentOpening || null;
+    const ecoCode = activeOpening?.eco || activeOpening?.code || '';
     const theory = await getCoachTheory(ecoCode);
     const playerSide = App.playerColor === 'black' ? 'Black' : 'White';
     const sidePlans = playerSide === 'White' ? theory?.plansWhite : theory?.plansBlack;
@@ -1572,12 +1533,10 @@ async function updateCoachPanel() {
             opponentCue,
             tacticalThemes[0] ? `Avoid: ${tacticalThemes[0]}` : ''
         ].filter(Boolean).join('\n');
-    } else if (activeBook && Array.isArray(activeBook.moves) && activeBook.moves.length > 0) {
-        const topMoves = normalizeBookMoveRows(activeBook.moves).slice(0, 2).map((m) => m.san).filter(Boolean);
+    } else if (activeOpening && Array.isArray(activeOpening.moves) && activeOpening.moves.length > 0) {
         App.coachText = [
             `${playerSide} plan${currentTurn ? ` (${currentTurn})` : ''}:`,
-            'Use the book candidates to keep piece activity high and contest the center.',
-            topMoves.length ? `Candidate moves: ${topMoves.join(', ')}.` : '',
+            'Use the ECO line as a reference point while keeping piece activity high and contesting the center.',
             'Prepare pawn breaks only after development and king safety are stable.'
         ].filter(Boolean).join('\n');
     } else if (App.openingName) {
@@ -2454,13 +2413,6 @@ function ensureEvalBarLayout() {
     evalBar.style.opacity = '1';
 }
 
-function initializeOpeningDbService() {
-    App.openingDbReady = !!window.OpeningDbService;
-    if (!App.openingDbReady) {
-        console.warn('[OpeningDB] Service not found. Using ECO fallback only.');
-    }
-}
-
 function updateGameStatusPanel() {
     const stickyEndStates = new Set(['White resigned', 'Black resigned', 'Timeout', 'Match stopped']);
     if (!App.gameActive && stickyEndStates.has((App.gameStatus && App.gameStatus.state) || '')) {
@@ -2543,17 +2495,55 @@ function renderGameStatusPanel() {
 }
 async function loadOpeningsDataset() {
     try {
-        const response = await fetch('/data/openings.json', { cache: 'no-cache' });
+        const response = await fetch('/data/eco/eco_codes.json', { cache: 'no-cache' });
         if (!response.ok) {
-            throw new Error(`Failed to load openings.json (${response.status})`);
+            throw new Error(`Failed to load eco_codes.json (${response.status})`);
         }
         const data = await response.json();
         if (Array.isArray(data) && data.length > 0) {
-            App.openings = data;
-            console.log(`✅ Openings dataset loaded (${data.length} entries)`);
+            App.ecoCodeRows = data.map((row) => ({
+                eco: String(row.code || '').toUpperCase(),
+                code: String(row.code || '').toUpperCase(),
+                name: row.name || '',
+                moves: parseEcoMoveText(row.moves),
+                ecoMovesText: row.moves || ''
+            })).filter((row) => row.eco && row.name);
+            App.openings = App.ecoCodeRows;
+            if (App.game) detectOpening();
+            console.log(`ECO Chess Opening Codes loaded (${App.openings.length} entries)`);
         }
     } catch (error) {
-        console.warn('⚠️ Openings dataset not loaded. Using fallback list.', error);
+        console.warn('ECO Chess Opening Codes not loaded. Using fallback list.', error);
+    }
+}
+
+async function loadEcoDetailsDataset() {
+    try {
+        const response = await fetch('/data/eco/eco_details.json', { cache: 'no-cache' });
+        if (!response.ok) {
+            throw new Error(`Failed to load eco_details.json (${response.status})`);
+        }
+        const data = await response.json();
+        App.ecoDetails = Array.isArray(data) ? data : [];
+        if (App.game) detectOpening();
+    } catch (error) {
+        App.ecoDetails = [];
+        console.warn('ECO details not loaded. Play opening display will use ECO codes only.', error);
+    }
+}
+
+async function loadEcoHistoryNotes() {
+    try {
+        const response = await fetch('/data/eco-history/eco-opening-history.json', { cache: 'no-cache' });
+        if (!response.ok) {
+            throw new Error(`Failed to load eco-opening-history.json (${response.status})`);
+        }
+        const data = await response.json();
+        App.ecoHistoryNotes = data && typeof data === 'object' ? data : {};
+        if (App.currentOpening) renderEcoOpeningPanels(App.currentOpening);
+    } catch (error) {
+        App.ecoHistoryNotes = {};
+        console.warn('ECO history notes not loaded.', error);
     }
 }
 

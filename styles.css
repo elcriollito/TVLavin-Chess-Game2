@@ -4808,13 +4808,13 @@ button:focus,
 }
 
 .left-panel.cais-left-col .panel-openingbook {
-    flex: 0 0 190px;
-    max-height: 230px;
+    flex: 0 0 285px;
+    max-height: 330px;
 }
 
 .left-panel.cais-left-col .panel-coach {
     flex: 1 1 auto;
-    min-height: 220px;
+    min-height: 120px;
 }
 
 .left-panel.cais-left-col .panel-coach .panel-body {
@@ -4888,6 +4888,20 @@ button:focus,
     gap: 6px;
     justify-content: flex-end;
     margin-bottom: 8px;
+    flex: 0 0 auto;
+    min-height: 28px;
+    visibility: visible;
+    opacity: 1;
+}
+
+.moves-nav-inline .nav-btn-sm {
+    display: inline-flex;
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--panel-border);
 }
 
 .game-status-text {
@@ -5047,7 +5061,7 @@ button:focus,
     display: flex;
     flex-direction: column;
     gap: 3px;
-    max-height: 88px;
+    max-height: 105px;
     overflow-y: auto;
     padding-right: 4px;
     font-family: 'Roboto Mono', 'Courier New', monospace;
@@ -5066,6 +5080,13 @@ button:focus,
 .book-line-number,
 .book-line-empty {
     color: var(--muted);
+}
+
+.book-history-note {
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.35;
 }
 
 .book-wdl-bar {
