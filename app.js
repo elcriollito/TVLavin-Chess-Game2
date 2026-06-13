@@ -65,6 +65,7 @@ const App = {
     engineWhite: null,
     engineBlack: null,
     eveMoveDelay: 1000,
+    eveSearchId: 0,
 
     // MultiPV analysis
     multiPvEnabled: false,
@@ -751,8 +752,10 @@ function onMoveMade(move) {
         return;
     }
 
-    // HOTFIX 4: Trigger engine move (independent of UI mode)
-    maybeTriggerEngineMove();
+    // HOTFIX 4: Trigger the normal player-engine reply outside Engine vs Engine.
+    if (!App.eveMode && !App.eveRunning && App.gameMode !== 'eve') {
+        maybeTriggerEngineMove();
+    }
 
     // If analysis is on, update it
     if (App.analyzing) {
@@ -805,6 +808,11 @@ function undoMove() {
 function maybeTriggerEngineMove() {
     console.log("[ENGINE CHECK] maybeTriggerEngineMove called");
 
+    if (App.eveMode || App.eveRunning || App.gameMode === 'eve') {
+        console.log("[ENGINE] Engine vs Engine active; normal auto-reply skipped");
+        return;
+    }
+
     if (!App.engine) {
         console.warn("[ENGINE] missing");
         return;
@@ -842,6 +850,11 @@ function maybeTriggerEngineMove() {
 }
 
 function makeEngineMove() {
+    if (App.eveMode || App.eveRunning || App.gameMode === 'eve') {
+        updateEngineStatus('ready', 'Engine Ready');
+        return;
+    }
+
     // Verify game is still active and at current position
     if (!App.gameActive || App.game.game_over()) {
         updateEngineStatus('ready', 'Engine Ready');
@@ -916,6 +929,12 @@ function makeEngineMove() {
 
     App.engine.getBestMove(currentFen, (bestMove) => {
         console.log('[ENGINE] bestmove', bestMove); // HOTFIX 4: Verification log
+        if (App.eveMode || App.eveRunning || App.gameMode === 'eve') {
+            debugLog('Engine vs Engine active, ignoring normal engine move');
+            updateEngineStatus('ready', 'Engine Ready');
+            return;
+        }
+
         // Verify game state hasn't changed
         if (!App.gameActive || App.game.fen() !== currentFen) {
             debugLog('Game state changed, canceling engine move');
@@ -1497,15 +1516,24 @@ function escapeHtml(value) {
 async function getCoachTheory(ecoCode) {
     if (!ecoCode) return null;
     App.coachTheoryCache = App.coachTheoryCache || {};
-    if (App.coachTheoryCache[ecoCode]) return App.coachTheoryCache[ecoCode];
+    if (Object.prototype.hasOwnProperty.call(App.coachTheoryCache, ecoCode)) {
+        return App.coachTheoryCache[ecoCode];
+    }
 
     try {
         const response = await fetch(`/data/openings/eco/${ecoCode}.json`, { cache: 'no-cache' });
-        if (!response.ok) return null;
+        if (!response.ok) {
+            App.coachTheoryCache[ecoCode] = null;
+            App.coachTheoryStatus = 'Detailed ECO theory not available yet.';
+            return null;
+        }
         const data = await response.json();
         App.coachTheoryCache[ecoCode] = data;
+        App.coachTheoryStatus = '';
         return data;
     } catch (error) {
+        App.coachTheoryCache[ecoCode] = null;
+        App.coachTheoryStatus = 'Detailed ECO theory not available yet.';
         return null;
     }
 }
@@ -3636,6 +3664,13 @@ async function startEngineVsEngine() {
     console.log('🤖 Starting Engine vs Engine game from position:', App.game.fen());
 
     try {
+        // Invalidate pending EVE callbacks and detach any normal-engine bestmove callback.
+        App.eveSearchId += 1;
+        if (App.engine) {
+            App.engine.onBestMove = null;
+            App.engine.stop?.();
+        }
+
         // Get configuration
         App.eveMoveDelay = parseInt(App.elements.eveMoveDelay.value);
 
@@ -3709,7 +3744,21 @@ async function startEngineVsEngine() {
     }
 }
 
-async function engineVsEngineLoop() {
+function findLegalUciMove(uciMove) {
+    if (!App.game || typeof uciMove !== 'string' || uciMove.length < 4) return null;
+
+    const from = uciMove.substring(0, 2).toLowerCase();
+    const to = uciMove.substring(2, 4).toLowerCase();
+    const promotion = uciMove.length > 4 ? uciMove.substring(4, 5).toLowerCase() : undefined;
+
+    return App.game.moves({ verbose: true }).find((move) =>
+        move.from === from &&
+        move.to === to &&
+        (promotion ? move.promotion === promotion : !move.promotion)
+    ) || null;
+}
+
+async function engineVsEngineLoop(invalidRetryCount = 0) {
     // Check if game is over or stopped
     if (!App.eveRunning || App.game.game_over()) {
         if (App.game.game_over()) {
@@ -3800,6 +3849,7 @@ async function engineVsEngineLoop() {
         if (App.engine && App.engine.ready) {
             console.log(`🔍 Starting analysis for ${engineName}'s position`);
             App.analyzing = true;
+            App.engine.onBestMove = null;
             App.engine.startAnalysis(currentFen, (info) => {
                 if (App.eveRunning) {
                     updateAnalysis(info);
@@ -3808,6 +3858,8 @@ async function engineVsEngineLoop() {
         }
 
         // Request best move from engine
+        const requestedFen = currentFen;
+        const searchId = ++App.eveSearchId;
         currentEngine.getBestMove(currentFen, async (bestMove) => {
         // Stop analysis when move is found
         if (App.analyzing && App.engine) {
@@ -3816,18 +3868,36 @@ async function engineVsEngineLoop() {
             App.analyzing = false;
         }
 
-        if (!App.eveRunning || App.evePaused) {
+        if (!App.eveRunning || App.evePaused || searchId !== App.eveSearchId) {
             return; // Game was stopped or paused during thinking
+        }
+
+        if (App.game.fen() !== requestedFen) {
+            console.warn('[EVE] Ignoring stale bestmove because the board position changed.');
+            engineVsEngineLoop();
+            return;
         }
 
         console.log(`🤖 ${engineName} engine selected move:`, bestMove);
 
-        // Parse and make the move
-        const from = bestMove.substring(0, 2);
-        const to = bestMove.substring(2, 4);
-        const promotion = bestMove.length > 4 ? bestMove[4] : undefined;
+        const legalMove = findLegalUciMove(bestMove);
+        if (!legalMove) {
+            console.warn('[EVE] Engine returned a move that is not legal in the requested position; refreshing once.', bestMove);
+            if (invalidRetryCount < 1) {
+                engineVsEngineLoop(invalidRetryCount + 1);
+                return;
+            }
 
-        const move = App.game.move({ from, to, promotion });
+            showErrorNotification('Engine returned invalid moves twice. Stopping game.');
+            stopEngineVsEngine();
+            return;
+        }
+
+        const move = App.game.move({
+            from: legalMove.from,
+            to: legalMove.to,
+            promotion: legalMove.promotion
+        });
 
         if (move) {
             // Update board
@@ -3842,9 +3912,13 @@ async function engineVsEngineLoop() {
             // Continue loop
             engineVsEngineLoop();
         } else {
-            console.error('Invalid move from engine:', bestMove);
-            showErrorNotification('Engine returned invalid move. Stopping game.');
-            stopEngineVsEngine();
+            console.warn('[EVE] Legal move could not be applied; refreshing once.', bestMove);
+            if (invalidRetryCount < 1) {
+                engineVsEngineLoop(invalidRetryCount + 1);
+            } else {
+                showErrorNotification('Engine move could not be applied twice. Stopping game.');
+                stopEngineVsEngine();
+            }
         }
         }, { movetime: 1000 }); // 1 second thinking time per move
     } // End if (!bookMoveUsed)
@@ -3853,6 +3927,9 @@ async function engineVsEngineLoop() {
 function pauseEngineVsEngine() {
     console.log('🤖 Pausing Engine vs Engine');
     App.evePaused = true;
+    App.eveSearchId += 1;
+    App.engineWhite?.stop?.();
+    App.engineBlack?.stop?.();
     App.elements.pauseEve.style.display = 'none';
     App.elements.resumeEve.style.display = 'block';
     showNotification('Game paused.');
@@ -3875,6 +3952,7 @@ function stopEngineVsEngine() {
     // Stop the game
     App.eveRunning = false;
     App.evePaused = false;
+    App.eveSearchId += 1;
 
     // Stop analysis if running
     if (App.analyzing && App.engine) {
