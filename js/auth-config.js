@@ -42,6 +42,8 @@ const CAISSA_AUTH_CONFIG = {
     }
 };
 
+window.CAISSA_AUTH_CONFIG = CAISSA_AUTH_CONFIG;
+
 // Freeze config to prevent accidental modification
 Object.freeze(CAISSA_AUTH_CONFIG);
 Object.freeze(CAISSA_AUTH_CONFIG.FEATURES);

@@ -4774,12 +4774,14 @@ button:focus,
 
 /* Play board sizing should be based on visible center-area space, not root breakpoint fallbacks. */
 #playSection {
-    --play-board-size: min(78vh, 72vw, 720px);
+    --play-board-size: min(78vh, calc(100vw - 700px), 720px);
     --board-size: var(--play-board-size);
 }
 
 #playSection .board-center {
     min-width: 0;
+    width: 100%;
+    overflow: hidden;
 }
 
 #playSection .board-editor-wrapper {
@@ -4797,8 +4799,28 @@ button:focus,
     display: flex;
     flex-direction: column;
     gap: var(--gap);
+    width: 100%;
+    max-width: 100%;
     min-width: 0;
     height: calc(100vh - 180px);
+    min-height: 0;
+    overflow: hidden;
+}
+
+.left-panel.cais-left-col > .panel {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.left-panel.cais-left-col > .panel > .panel-title {
+    flex: 0 0 auto;
+}
+
+.left-panel.cais-left-col > .panel > .panel-body {
+    flex: 1 1 auto;
     min-height: 0;
 }
 
@@ -4810,6 +4832,12 @@ button:focus,
 .left-panel.cais-left-col .panel-openingbook {
     flex: 0 0 285px;
     max-height: 330px;
+}
+
+.left-panel.cais-left-col .panel-openingbook .panel-body {
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .left-panel.cais-left-col .panel-coach {
@@ -5043,6 +5071,17 @@ button:focus,
     font-size: 12px;
     line-height: 1.4;
     white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+.coach-history-note {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
 }
 
 #playSection {
@@ -5054,6 +5093,7 @@ button:focus,
 .book-simple-meta {
     font-size: 12px;
     color: var(--muted);
+    overflow-wrap: anywhere;
 }
 
 .book-line-sequence {
@@ -5068,6 +5108,7 @@ button:focus,
     font-size: 12px;
     line-height: 1.35;
     color: var(--text);
+    min-width: 0;
 }
 
 .book-line-row {
@@ -5087,6 +5128,7 @@ button:focus,
     color: var(--muted);
     font-size: 12px;
     line-height: 1.35;
+    overflow-wrap: anywhere;
 }
 
 .book-wdl-bar {
@@ -5303,6 +5345,7 @@ button:focus,
     .left-panel.cais-left-col {
         order: 2;
         height: auto;
+        overflow: visible;
     }
     .right-panel.cais-right-col {
         order: 3;
@@ -5313,16 +5356,35 @@ button:focus,
     }
 }
 
-/* Preserve existing .main-content layout inside playSection */
+/* Keep Play columns stable so panel content cannot displace the board. */
 #playSection .main-content {
-    display: flex;
+    display: grid;
+    grid-template-columns: clamp(260px, 21vw, 320px) minmax(0, 1fr) clamp(300px, 23vw, 360px);
+    align-items: start;
     flex: 1;
     gap: 12px;
     max-width: 1600px;
     width: 100%;
     margin: 0 auto;
     padding: 12px;
-    overflow: visible;
+    overflow: hidden;
+}
+
+@media (max-width: 1050px) {
+    #playSection {
+        --play-board-size: min(78vh, calc(100vw - 48px), 720px);
+    }
+
+    #playSection .main-content {
+        grid-template-columns: minmax(0, 1fr);
+        overflow: visible;
+    }
+
+    .left-panel.cais-left-col .panel-openingbook,
+    .left-panel.cais-left-col .panel-coach {
+        flex-basis: auto;
+        max-height: 330px;
+    }
 }
 
 /* Give board priority - narrow sidebars */

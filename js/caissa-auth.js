@@ -22,45 +22,54 @@
     // Private state
     let _clerkInstance = null;
     let _sessionListeners = [];
+    let _clerkLoadPromise = null;
+
+    function _getConfiguredPublishableKey() {
+        const key = String(window.CAISSA_AUTH_CONFIG?.CLERK_PUBLISHABLE_KEY || '').trim();
+        if (!key || key.includes('REPLACE')) return '';
+        return key;
+    }
+
+    function _loadClerkSdk(publishableKey) {
+        if (typeof window.Clerk !== 'undefined') return Promise.resolve(window.Clerk);
+        if (_clerkLoadPromise) return _clerkLoadPromise;
+
+        _clerkLoadPromise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.async = true;
+            script.crossOrigin = 'anonymous';
+            script.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
+            script.dataset.clerkPublishableKey = publishableKey;
+            script.onload = () => resolve(window.Clerk);
+            script.onerror = () => reject(new Error('Clerk SDK failed to load'));
+            document.head.appendChild(script);
+        });
+
+        return _clerkLoadPromise;
+    }
 
     /**
      * Initialize Clerk and set up session watching
      */
     async function initializeAuth() {
         const config = window.CAISSA_AUTH_CONFIG;
+        const publishableKey = _getConfiguredPublishableKey();
 
         // Check for valid config
-        if (!config || !config.CLERK_PUBLISHABLE_KEY) {
+        if (!config || !publishableKey) {
             console.warn('[Auth] Clerk disabled: missing publishableKey');
-            console.warn('CAISSA Auth: Missing auth config - running without authentication');
-            window.CAISSA_AUTH.isLoaded = true;
-            _notifyListeners();
-            return;
-        }
-
-        // Check if publishableKey is the placeholder (not configured)
-        if (config.CLERK_PUBLISHABLE_KEY === 'pk_test_REPLACE_WITH_YOUR_KEY' ||
-            config.CLERK_PUBLISHABLE_KEY.includes('REPLACE')) {
-            console.warn('[Auth] Clerk disabled: missing publishableKey');
-            console.warn('CAISSA Auth: Clerk key not configured - running without authentication');
-            window.CAISSA_AUTH.isLoaded = true;
-            _notifyListeners();
-            return;
-        }
-
-        // Check if Clerk SDK is loaded
-        if (typeof window.Clerk === 'undefined') {
-            console.warn('CAISSA Auth: Clerk SDK not loaded - running without authentication');
             window.CAISSA_AUTH.isLoaded = true;
             _notifyListeners();
             return;
         }
 
         try {
+            await _loadClerkSdk(publishableKey);
+
             // Initialize Clerk
             _clerkInstance = window.Clerk;
             await _clerkInstance.load({
-                publishableKey: config.CLERK_PUBLISHABLE_KEY
+                publishableKey
             });
 
             window.CAISSA_AUTH.clerk = _clerkInstance;
@@ -366,35 +375,10 @@
     window.CAISSA_AUTH.redirectToSignUp = redirectToSignUp;
     window.CAISSA_AUTH.onAuthStateChange = onAuthStateChange;
 
-    // Auto-initialize when DOM is ready and Clerk is loaded
-    function _waitForClerkAndInit() {
-        if (typeof window.Clerk !== 'undefined') {
-            initializeAuth();
-        } else {
-            // Wait for Clerk to load
-            const checkInterval = setInterval(() => {
-                if (typeof window.Clerk !== 'undefined') {
-                    clearInterval(checkInterval);
-                    initializeAuth();
-                }
-            }, 100);
-
-            // Timeout after 3 seconds (fast failover)
-            setTimeout(() => {
-                clearInterval(checkInterval);
-                if (!window.CAISSA_AUTH.isLoaded) {
-                    console.warn('CAISSA Auth: Clerk SDK load timeout - continuing without auth');
-                    window.CAISSA_AUTH.isLoaded = true;
-                    _notifyListeners();
-                }
-            }, 3000);
-        }
-    }
-
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', _waitForClerkAndInit);
+        document.addEventListener('DOMContentLoaded', initializeAuth);
     } else {
-        _waitForClerkAndInit();
+        initializeAuth();
     }
 
 })();

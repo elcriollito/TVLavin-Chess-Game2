@@ -1182,9 +1182,13 @@ function getEcoDetailByCode(ecoCode) {
 function getEcoHistoryNote(opening) {
     const code = String(opening?.eco || opening?.code || '').toUpperCase();
     const notes = App.ecoHistoryNotes || {};
-    if (code && notes[code]) return notes[code];
     const name = String(opening?.name || '').trim().toLowerCase();
     if (!name) return null;
+    const codeNote = code ? notes[code] : null;
+    const codeNoteName = String(codeNote?.name || '').trim().toLowerCase();
+    if (codeNote && codeNoteName && (name.includes(codeNoteName) || codeNoteName.includes(name))) {
+        return codeNote;
+    }
     return Object.values(notes).find((note) => String(note?.name || '').trim().toLowerCase() === name) || null;
 }
 
@@ -1196,7 +1200,7 @@ function normalizeEcoOpening(row) {
     const name = row.name || base?.name || detail?.name || '';
     const moves = Array.isArray(row.moves)
         ? row.moves.map(normalizeSanForEco).filter(Boolean)
-        : parseEcoMoveText(row.moves || base?.moves || detail?.moves || '');
+        : parseEcoMoveText(row.moves || row.ecoMovesText || base?.moves || detail?.moves || '');
 
     return {
         ...row,
@@ -1204,7 +1208,7 @@ function normalizeEcoOpening(row) {
         code: eco,
         name,
         moves,
-        ecoMovesText: base?.ecoMovesText || base?.movesText || row.ecoMovesText || row.movesText || ''
+        ecoMovesText: row.ecoMovesText || row.movesText || base?.ecoMovesText || base?.movesText || ''
     };
 }
 
@@ -1213,11 +1217,15 @@ function detectOpening() {
 
     const fen = App.game.fen();
     const hash = hashFenForEco(fen);
+    const playedSAN = App.game.history({ verbose: false }).map(normalizeSanForEco);
     const mapHit = (hash && App.ecoPositionMap) ? App.ecoPositionMap[hash] : null;
     if (mapHit && mapHit.name) {
         const mapped = normalizeEcoOpening({
             eco: mapHit.eco || '',
-            name: mapHit.name
+            name: mapHit.name,
+            moves: playedSAN,
+            matchedDepth: Number(mapHit.depth) || playedSAN.length,
+            matchSource: mapHit.source || 'eco-position-map'
         });
         App.currentOpening = mapped;
         App.openingName = mapped.name;
@@ -1236,7 +1244,6 @@ function detectOpening() {
         return;
     }
 
-    const playedSAN = App.game.history({ verbose: false }).map(normalizeSanForEco);
     let best = null;
     let bestLen = -1;
 
@@ -1254,13 +1261,14 @@ function detectOpening() {
         }
 
         if (fullMatch && openingMoves.length > bestLen) {
-            best = op;
+            best = {
+                ...op,
+                moves: playedSAN,
+                matchedDepth: openingMoves.length,
+                matchSource: 'eco-sequence'
+            };
             bestLen = openingMoves.length;
         }
-    }
-
-    if (best && /Queen's Pawn Game/i.test(String(best.name || '')) && playedSAN.length > 1) {
-        best = null;
     }
 
     const normalizedBest = normalizeEcoOpening(best);
@@ -1293,10 +1301,16 @@ function renderFallbackOpening(opening) {
     if (openingLinkCoach) openingLinkCoach.textContent = fallbackText;
     if (openingLinkBook) openingLinkBook.href = opening && opening.eco ? `/eco/${opening.eco}` : '/eco';
     if (openingLinkCoach) openingLinkCoach.href = opening && opening.eco ? `/eco/${opening.eco}` : '/eco';
-    if (openingBookMeta) openingBookMeta.textContent = opening?.eco ? 'Source: ECO Chess Opening Codes' : 'No ECO opening detected yet.';
+    if (openingBookMeta) {
+        const depth = Number(opening?.matchedDepth) || 0;
+        openingBookMeta.textContent = opening?.eco
+            ? `Source: ECO Chess Opening Codes${depth ? ` | Deepest match: ${depth} ply` : ''}`
+            : 'No ECO opening detected yet.';
+    }
     if (openingBookSimpleStatus) openingBookSimpleStatus.textContent = 'ECO: local';
     renderOpeningBookLine(opening);
     renderOpeningHistoryNote(openingBookHistory, opening);
+    renderOpeningHistoryNote(document.getElementById('coachHistory'), opening);
     renderOpeningBookWdl(null);
     renderCoachMoves([]);
 }
@@ -1496,8 +1510,58 @@ async function getCoachTheory(ecoCode) {
     }
 }
 
+function getEcoCoachGuidance(opening, playerSide, theory) {
+    const name = String(opening?.name || theory?.name || 'the current position');
+    const lowerName = name.toLowerCase();
+    const isWhite = playerSide === 'White';
+    const guidance = {
+        philosophy: 'Build central influence, improve the least active piece, and keep the position flexible.',
+        plan: isWhite
+            ? 'Use the first-move initiative to gain space without overextending.'
+            : 'Challenge White\'s center and seek active counterplay without weakening key squares.',
+        development: 'Develop minor pieces toward useful central squares and connect the rooks.',
+        pawnBreak: isWhite ? 'Prepare a central pawn break only when your pieces support it.' : 'Time a central counter-break after completing development.',
+        tactics: 'Watch for loose pieces, central pins, and open-file tactics.',
+        kingSafety: 'Complete development and secure the king before starting a flank attack.'
+    };
+
+    if (/sicilian/.test(lowerName)) {
+        guidance.philosophy = 'Accept an imbalanced structure and compete for the initiative.';
+        guidance.plan = isWhite ? 'Use the space advantage and coordinate pressure before Black activates.' : 'Generate queenside activity and pressure the central dark squares.';
+        guidance.pawnBreak = isWhite ? 'Prepare f4-f5 or a well-supported central advance.' : 'Look for ...d5; ...b5 can support queenside expansion.';
+        guidance.tactics = 'Track sacrifices on e6, b5, and the open c-file.';
+    } else if (/queen's gambit|slav|queen's pawn|london|catalan/.test(lowerName)) {
+        guidance.philosophy = 'Use pawn tension and long-term central pressure to improve piece activity.';
+        guidance.plan = isWhite ? 'Press the center and queenside while keeping the option of a kingside initiative.' : 'Complete development, challenge White\'s center, and avoid passive piece placement.';
+        guidance.pawnBreak = isWhite ? 'Prepare e4 or a minority-style b-pawn advance when the structure supports it.' : 'Seek ...c5 or ...e5 to free the position.';
+        guidance.tactics = 'Watch for pressure on c- and e-files, overloaded defenders, and diagonal pins.';
+    } else if (/indian|dragon|modern|pirc|grunfeld|fianchetto/.test(lowerName)) {
+        guidance.philosophy = 'Use flexible development and long-diagonal pressure before committing the center.';
+        guidance.plan = isWhite ? 'Claim useful space while limiting the opponent\'s freeing breaks.' : 'Pressure the center from a distance and counterattack once it advances.';
+        guidance.pawnBreak = isWhite ? 'Use d5 or e5 only when the center can be maintained.' : 'Prepare ...c5 or ...e5 to challenge the pawn center.';
+        guidance.tactics = 'Monitor the long diagonal, central pawn pins, and exchange sacrifices near the king.';
+    } else if (/ruy lopez|italian|scotch|vienna|four knights|two knights|petrov|philidor/.test(lowerName)) {
+        guidance.philosophy = 'Prioritize rapid development and central control in the open game.';
+        guidance.plan = isWhite ? 'Keep pressure on the center while improving pieces for a kingside initiative.' : 'Neutralize early pressure, then contest the center with active pieces.';
+        guidance.pawnBreak = isWhite ? 'Prepare d4 under favorable conditions.' : 'Use ...d5 when it equalizes central space.';
+        guidance.tactics = 'Watch f7/f2, central forks, pins on the e-file, and discovered attacks.';
+    } else if (/gambit/.test(lowerName)) {
+        guidance.philosophy = 'Value development, initiative, and open lines over short-term material.';
+        guidance.plan = isWhite ? 'Use the initiative quickly before the extra activity fades.' : 'Return material when needed to complete development and reduce pressure.';
+        guidance.tactics = 'Calculate forcing checks, captures, and threats on open files and diagonals.';
+    }
+
+    const sidePlans = isWhite ? theory?.plansWhite : theory?.plansBlack;
+    if (Array.isArray(sidePlans) && sidePlans[0]) guidance.plan = sidePlans[0];
+    if (Array.isArray(theory?.principles) && theory.principles[0]) guidance.philosophy = theory.principles[0];
+    if (Array.isArray(theory?.commonMistakes) && theory.commonMistakes[0]) guidance.tactics = `Avoid: ${theory.commonMistakes[0]}`;
+
+    return guidance;
+}
+
 async function updateCoachPanel() {
     const coachTextEl = document.getElementById('coachText');
+    const coachSummaryEl = document.getElementById('coachSummary');
     const onBtn = document.getElementById('coachOnBtn');
     const offBtn = document.getElementById('coachOffBtn');
     if (!coachTextEl) return;
@@ -1508,46 +1572,37 @@ async function updateCoachPanel() {
     if (!App.coachEnabled) {
         App.coachText = 'Coach is off.';
         coachTextEl.textContent = App.coachText;
+        if (coachSummaryEl) coachSummaryEl.textContent = '';
         return;
     }
 
     const activeOpening = App.currentOpening || null;
     const ecoCode = activeOpening?.eco || activeOpening?.code || '';
+    const updateId = (App.coachUpdateId || 0) + 1;
+    App.coachUpdateId = updateId;
     const theory = await getCoachTheory(ecoCode);
+    if (updateId !== App.coachUpdateId) return;
+
     const playerSide = App.playerColor === 'black' ? 'Black' : 'White';
-    const sidePlans = playerSide === 'White' ? theory?.plansWhite : theory?.plansBlack;
-    const opponentPlans = playerSide === 'White' ? theory?.plansBlack : theory?.plansWhite;
     const currentTurn = App.game && typeof App.game.turn === 'function'
         ? (App.game.turn() === 'w' ? 'White to move' : 'Black to move')
         : '';
+    const openingLabel = activeOpening?.name
+        ? `${activeOpening.name}${ecoCode ? ` (${ecoCode})` : ''}`
+        : 'Unclassified position';
+    const guidance = getEcoCoachGuidance(activeOpening, playerSide, theory);
 
-    if (theory) {
-        const principles = Array.isArray(theory.principles) ? theory.principles.slice(0, 1) : [];
-        const plans = Array.isArray(sidePlans) ? sidePlans.slice(0, 2) : [];
-        const tacticalThemes = Array.isArray(theory.commonMistakes) ? theory.commonMistakes.slice(0, 1) : [];
-        const opponentCue = Array.isArray(opponentPlans) && opponentPlans[0] ? `Watch for: ${opponentPlans[0]}` : '';
-        App.coachText = [
-            `${playerSide} plan in ${theory.name}${currentTurn ? ` (${currentTurn})` : ''}:`,
-            ...plans,
-            ...principles,
-            opponentCue,
-            tacticalThemes[0] ? `Avoid: ${tacticalThemes[0]}` : ''
-        ].filter(Boolean).join('\n');
-    } else if (activeOpening && Array.isArray(activeOpening.moves) && activeOpening.moves.length > 0) {
-        App.coachText = [
-            `${playerSide} plan${currentTurn ? ` (${currentTurn})` : ''}:`,
-            'Use the ECO line as a reference point while keeping piece activity high and contesting the center.',
-            'Prepare pawn breaks only after development and king safety are stable.'
-        ].filter(Boolean).join('\n');
-    } else if (App.openingName) {
-        App.coachText = [
-            `${playerSide} plan in ${App.openingName}${currentTurn ? ` (${currentTurn})` : ''}:`,
-            'Develop kingside pieces, contest the center, and castle before launching flank play.',
-            'Look for active piece placement and natural pawn breaks as the structure clarifies.'
-        ].join('\n');
-    } else {
-        App.coachText = `${playerSide} plan: develop pieces, control the center, and secure king safety.`;
+    if (coachSummaryEl) {
+        coachSummaryEl.textContent = `${openingLabel} | You are ${playerSide}${currentTurn ? ` | ${currentTurn}` : ''}`;
     }
+    App.coachText = [
+        `Philosophy: ${guidance.philosophy}`,
+        `Strategic plan: ${guidance.plan}`,
+        `Development: ${guidance.development}`,
+        `Pawn break: ${guidance.pawnBreak}`,
+        `Tactical themes: ${guidance.tactics}`,
+        `King safety: ${guidance.kingSafety}`
+    ].join('\n');
     coachTextEl.textContent = App.coachText;
 }
 
@@ -3853,6 +3908,12 @@ function stopEngineVsEngine() {
 let libraryData = null; // Store library data globally
 
 async function loadPGNLibrary() {
+    const categorySelector = App.elements.categorySelector;
+    if (!categorySelector) {
+        console.warn('[PGN Library] UI unavailable: categorySelector is not rendered; skipping initialization.');
+        return;
+    }
+
     try {
         console.log('📚 Loading PGN library.json...');
         const response = await fetch('pgn/library.json');
@@ -3866,7 +3927,6 @@ async function loadPGNLibrary() {
         console.log('📚 Library loaded:', libraryData);
 
         // Populate category dropdown
-        const categorySelector = App.elements.categorySelector;
         categorySelector.innerHTML = '<option value="">-- Select category --</option>';
 
         for (const category of Object.keys(libraryData)) {
@@ -3883,9 +3943,14 @@ async function loadPGNLibrary() {
 }
 
 function onCategoryChange() {
-    const category = App.elements.categorySelector.value;
+    const categorySelector = App.elements.categorySelector;
     const playerSelector = App.elements.playerSelector;
     const fileSelector = App.elements.fileSelector;
+    if (!categorySelector || !playerSelector || !fileSelector) {
+        console.warn('[PGN Library] Category change skipped: selector UI is not rendered.');
+        return;
+    }
+    const category = categorySelector.value;
 
     // Reset player and file dropdowns
     playerSelector.innerHTML = '<option value="">-- Select player --</option>';
@@ -3910,9 +3975,15 @@ function onCategoryChange() {
 }
 
 function onPlayerChange() {
-    const category = App.elements.categorySelector.value;
-    const player = App.elements.playerSelector.value;
+    const categorySelector = App.elements.categorySelector;
+    const playerSelector = App.elements.playerSelector;
     const fileSelector = App.elements.fileSelector;
+    if (!categorySelector || !playerSelector || !fileSelector) {
+        console.warn('[PGN Library] Player change skipped: selector UI is not rendered.');
+        return;
+    }
+    const category = categorySelector.value;
+    const player = playerSelector.value;
 
     fileSelector.innerHTML = '<option value="">-- Select game --</option>';
 
@@ -4082,14 +4153,19 @@ function loadPGNProgrammatically(pgnText) {
 }
 
 async function loadSelectedPGN() {
-    const selectedFile = App.elements.fileSelector.value;
+    const fileSelector = App.elements.fileSelector;
+    if (!fileSelector) {
+        console.warn('[PGN Library] Game load skipped: fileSelector is not rendered.');
+        return;
+    }
+    const selectedFile = fileSelector.value;
 
     if (!selectedFile) {
         showNotification('Please select a game first.');
         return;
     }
 
-    const selectedOption = App.elements.fileSelector.options[App.elements.fileSelector.selectedIndex];
+    const selectedOption = fileSelector.options[fileSelector.selectedIndex];
     console.log('📖 Loading PGN from path:', selectedFile);
 
     try {
@@ -4618,26 +4694,12 @@ document.addEventListener('keydown', (e) => {
 
 // ===== ERROR HANDLING =====
 window.addEventListener('error', (e) => {
-    // Ignore Clerk errors if auth is not configured (we handle this gracefully)
-    const errorMsg = e.error?.message || '';
-    if (errorMsg.includes('clerk') || errorMsg.includes('publishableKey')) {
-        console.warn('Application error (auth related):', e.error);
-        return true; // Prevent error propagation
-    }
-
     console.error('Application error:', e.error);
     showErrorNotification('An unexpected error occurred. The application may need to be refreshed.');
     return false;
 });
 
 window.addEventListener('unhandledrejection', (e) => {
-    // Ignore Clerk promise rejections
-    const reason = e.reason?.message || String(e.reason || '');
-    if (reason.includes('clerk') || reason.includes('publishableKey')) {
-        console.warn('Unhandled promise rejection (auth related):', e.reason);
-        return true;
-    }
-
     console.error('Unhandled promise rejection:', e.reason);
     showErrorNotification('An error occurred while processing your request.');
     return false;
