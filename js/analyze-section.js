@@ -14,6 +14,7 @@ const AnalyzeSection = {
     currentMoveIndex: -1,
     isAnalyzing: false,
     analysisResults: [],
+    positionAnalyses: [],
     analysisEngine: null,
     analysisToken: 0,
 
@@ -413,6 +414,7 @@ const AnalyzeSection = {
             };
             this.currentMoveIndex = this.loadedGame.game.history().length - 1;
             this.analysisResults = [];
+            this.positionAnalyses = [];
 
             // Update metadata display
             this.updateMetadata();
@@ -614,29 +616,26 @@ const AnalyzeSection = {
     },
 
     getCurrentEvaluation() {
-        if (this.currentMoveIndex >= 0) {
-            const selected = this.analysisResults[this.currentMoveIndex];
-            if (selected && !selected.unavailable) {
-                return { evaluation: selected.evalAfter, mate: selected.mateAfter };
-            }
-            for (let i = this.currentMoveIndex - 1; i >= 0; i--) {
-                const previous = this.analysisResults[i];
-                if (previous && !previous.unavailable) {
-                    return { evaluation: previous.evalAfter, mate: previous.mateAfter };
-                }
-            }
+        if (this.currentMoveIndex < 0) {
+            return { evaluation: 0, mate: null };
         }
 
-        const first = this.analysisResults.find((result) => result && !result.unavailable);
-        return first
-            ? { evaluation: first.evalBefore, mate: first.mateBefore }
+        const positionAnalysis = this.positionAnalyses[this.currentMoveIndex + 1];
+        if (positionAnalysis) {
+            return { evaluation: positionAnalysis.eval, mate: positionAnalysis.mate };
+        }
+
+        const selected = this.analysisResults[this.currentMoveIndex];
+        return selected && !selected.unavailable
+            ? { evaluation: selected.evalAfter, mate: selected.mateAfter }
             : { evaluation: 0, mate: null };
     },
 
     formatEvalBarScore(evaluation, mate) {
         if (mate !== null && mate !== undefined) return mate > 0 ? `M+${mate}` : `M${mate}`;
         const value = evaluation ?? 0;
-        return `${value >= 0 ? '+' : ''}${value.toFixed(2)}`;
+        if (Math.abs(value) < 0.05) return '0.0';
+        return `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
     },
 
     /**
@@ -660,6 +659,7 @@ const AnalyzeSection = {
         this.isAnalyzing = true;
         const token = ++this.analysisToken;
         this.analysisResults = [];
+        this.positionAnalyses = [];
         this.updateMoveList();
         this.updateMentorPanel();
         this.updateEvaluationBar();
@@ -696,6 +696,7 @@ const AnalyzeSection = {
                 this.updateProgress(progress, `Analyzing position ${i + 1}/${positions.length}`);
                 const analysis = await this.analyzePositionWithRetry(positions[i], token);
                 positionAnalyses.push(analysis);
+                this.positionAnalyses[i] = analysis;
                 if (!analysis) skippedPositions += 1;
 
                 if (i > 0) {
@@ -740,7 +741,7 @@ const AnalyzeSection = {
         const loss = isBestMove ? 0 : Math.max(0, beforePlayerEval - afterPlayerEval);
         const gain = afterPlayerEval - beforePlayerEval;
         const mateSwing = this.hasMateSwing(before, after, move.color);
-        const classification = this.classifyMove(loss, gain, isBestMove, moveIndex, mateSwing);
+        const classification = this.classifyMove(loss, gain, isBestMove, moveIndex, mateSwing, move.san);
 
         return {
             moveIndex,
@@ -799,15 +800,17 @@ const AnalyzeSection = {
         return allowedLosingMate || lostWinningMate;
     },
 
-    classifyMove(loss, gain, isBestMove, moveIndex = 0, mateSwing = false) {
+    classifyMove(loss, gain, isBestMove, moveIndex = 0, mateSwing = false, san = '') {
         const openingPhase = moveIndex < 16;
+        const commonFirstMove = moveIndex === 0 && ['d4', 'e4', 'Nf3', 'c4'].includes(san);
+        if (commonFirstMove && !mateSwing && loss <= 2) {
+            return { annotation: '!', label: 'Good opening move', commonOpeningChoice: true };
+        }
         if (isBestMove && gain >= 1) return { annotation: '!!', label: 'Brilliant move' };
         if (isBestMove || loss <= 0.5) return { annotation: '!', label: 'Excellent move' };
         if (!openingPhase && loss <= 0.75) return { annotation: '!?', label: 'Interesting move' };
         if (openingPhase && !mateSwing && loss <= 2) {
-            return loss <= 0.75
-                ? { annotation: '!?', label: 'Interesting move' }
-                : { annotation: '?!', label: 'Dubious move' };
+            return { annotation: '!', label: 'Sound opening move', openingProtected: true };
         }
         if (mateSwing || loss > 2.5) return { annotation: '??', label: 'Blunder' };
         if (loss > 1.25) return { annotation: '?', label: 'Mistake' };
@@ -815,6 +818,8 @@ const AnalyzeSection = {
     },
 
     buildMentorText(classification, loss, bestMoveSan, isBestMove) {
+        if (classification.commonOpeningChoice) return 'Good opening move. The engine may prefer another line, but this is a fully sound opening choice.';
+        if (classification.openingProtected) return `Sound opening move.${bestMoveSan ? ` The engine preferred ${bestMoveSan}, but this remains a reasonable opening choice.` : ' This remains a reasonable opening choice.'}`;
         if (classification.annotation === '!!') return 'Brilliant move. You found the engine choice and created a major improvement.';
         if (classification.annotation === '??') return `Blunder. This caused a decisive swing.${bestMoveSan ? ` Better was ${bestMoveSan}.` : ''}`;
         if (classification.annotation === '?') return `Mistake. This lost about ${loss.toFixed(1)} pawns.${bestMoveSan ? ` Better was ${bestMoveSan}.` : ''}`;
