@@ -27,6 +27,7 @@ const AnalyzeSection = {
         console.log('[Analyze] Initializing...');
         this.cacheElements();
         this.bindEvents();
+        this.updateNavigationControls();
         console.log('[Analyze] Ready');
     },
 
@@ -72,9 +73,14 @@ const AnalyzeSection = {
             progressBar: document.getElementById('analyzeProgressBar'),
             progressFill: document.getElementById('analyzeProgressFill'),
             progressText: document.getElementById('analyzeProgressText'),
+            mentor: document.getElementById('analyzeMentor'),
 
             // Move list
-            moveList: document.getElementById('analyzeMoveList')
+            moveList: document.getElementById('analyzeMoveList'),
+            navFirst: document.getElementById('analyzeNavFirst'),
+            navPrev: document.getElementById('analyzeNavPrev'),
+            navNext: document.getElementById('analyzeNavNext'),
+            navLast: document.getElementById('analyzeNavLast')
         };
     },
 
@@ -118,6 +124,13 @@ const AnalyzeSection = {
         // Stop analysis
         this.elements.stopBtn?.addEventListener('click', () => {
             this.stopAnalysis();
+        });
+
+        this.elements.navFirst?.addEventListener('click', () => this.jumpToMove(-1));
+        this.elements.navPrev?.addEventListener('click', () => this.jumpToMove(this.currentMoveIndex - 1));
+        this.elements.navNext?.addEventListener('click', () => this.jumpToMove(this.currentMoveIndex + 1));
+        this.elements.navLast?.addEventListener('click', () => {
+            this.jumpToMove((this.loadedGame?.game.history().length || 0) - 1);
         });
     },
 
@@ -396,6 +409,7 @@ const AnalyzeSection = {
                 date: headers.Date || ''
             };
             this.currentMoveIndex = this.loadedGame.game.history().length - 1;
+            this.analysisResults = [];
 
             // Update metadata display
             this.updateMetadata();
@@ -408,6 +422,8 @@ const AnalyzeSection = {
 
             // Update move list
             this.updateMoveList();
+            this.updateNavigationControls();
+            this.updateMentorPanel();
 
             this.setStatus('Ready to analyze', 'ready');
             console.log('[Analyze] Game loaded successfully');
@@ -457,12 +473,14 @@ const AnalyzeSection = {
             const moveNum = Math.floor(i / 2) + 1;
             const whiteMove = moves[i] || '';
             const blackMove = moves[i + 1] || '';
+            const whiteAnnotation = this.analysisResults[i]?.annotation || '';
+            const blackAnnotation = this.analysisResults[i + 1]?.annotation || '';
 
             html += `
                 <div class="move-row">
                     <span class="move-num">${moveNum}.</span>
-                    <span class="move-white${i === this.currentMoveIndex ? ' active' : ''}" data-index="${i}">${whiteMove}</span>
-                    <span class="move-black${i + 1 === this.currentMoveIndex ? ' active' : ''}" data-index="${i + 1}">${blackMove}</span>
+                    <span class="move-white${i === this.currentMoveIndex ? ' active' : ''}" data-index="${i}">${whiteMove}${whiteAnnotation ? `<strong class="analyze-move-annotation">${whiteAnnotation}</strong>` : ''}</span>
+                    <span class="move-black${i + 1 === this.currentMoveIndex ? ' active' : ''}" data-index="${i + 1}">${blackMove}${blackAnnotation ? `<strong class="analyze-move-annotation">${blackAnnotation}</strong>` : ''}</span>
                 </div>
             `;
         }
@@ -484,21 +502,24 @@ const AnalyzeSection = {
      */
     jumpToMove(index) {
         if (!this.loadedGame || !window.App) return;
+        const moves = this.loadedGame.game.history();
+        const safeIndex = Math.max(-1, Math.min(index, moves.length - 1));
 
         // Reset to start
         App.game.reset();
 
         // Replay moves up to index
-        const moves = this.loadedGame.game.history();
-        for (let i = 0; i <= index && i < moves.length; i++) {
+        for (let i = 0; i <= safeIndex && i < moves.length; i++) {
             App.game.move(moves[i]);
         }
 
-        this.currentMoveIndex = index;
+        this.currentMoveIndex = safeIndex;
         this.updateBoardAndUI();
         this.updateMoveList();
+        this.updateNavigationControls();
+        this.updateMentorPanel();
 
-        console.log('[Analyze] Jumped to move:', index + 1);
+        console.log('[Analyze] Jumped to move:', safeIndex + 1);
     },
 
     updateBoardAndUI() {
@@ -509,6 +530,49 @@ const AnalyzeSection = {
         if (typeof App.updateUI === 'function') {
             App.updateUI();
         }
+    },
+
+    updateNavigationControls() {
+        const moveCount = this.loadedGame?.game.history().length || 0;
+        const atStart = this.currentMoveIndex < 0;
+        const atEnd = moveCount === 0 || this.currentMoveIndex >= moveCount - 1;
+        if (this.elements.navFirst) this.elements.navFirst.disabled = atStart || moveCount === 0;
+        if (this.elements.navPrev) this.elements.navPrev.disabled = atStart || moveCount === 0;
+        if (this.elements.navNext) this.elements.navNext.disabled = atEnd;
+        if (this.elements.navLast) this.elements.navLast.disabled = atEnd;
+    },
+
+    updateMentorPanel() {
+        if (!this.elements.mentor) return;
+        if (this.currentMoveIndex < 0) {
+            this.elements.mentor.innerHTML = '<p class="empty-state">Starting position. Select a move to see guidance.</p>';
+            return;
+        }
+
+        const result = this.analysisResults[this.currentMoveIndex];
+        const move = this.loadedGame?.game.history()[this.currentMoveIndex] || '';
+        if (!result) {
+            this.elements.mentor.innerHTML = `
+                <div class="analyze-mentor-heading"><strong>${this.escapeHtml(move)}</strong></div>
+                <p class="analyze-mentor-copy">Analyze the game to see an engine evaluation and recommendation for this move.</p>
+            `;
+            return;
+        }
+
+        this.elements.mentor.innerHTML = `
+            <div class="analyze-mentor-heading">
+                <strong>${this.escapeHtml(move)}</strong>
+                <span class="analyze-annotation">${result.annotation}</span>
+                <span>${this.escapeHtml(result.label)}</span>
+            </div>
+            <p class="analyze-mentor-copy">${this.escapeHtml(result.mentorText)}</p>
+            <div class="analyze-eval-grid">
+                <div class="analyze-eval-item">Before<strong>${this.formatEvaluation(result.evalBefore, result.mateBefore)}</strong></div>
+                <div class="analyze-eval-item">After<strong>${this.formatEvaluation(result.evalAfter, result.mateAfter)}</strong></div>
+                <div class="analyze-eval-item">Eval loss<strong>${result.loss.toFixed(2)}</strong></div>
+                <div class="analyze-eval-item">Engine preferred<strong>${this.escapeHtml(result.bestMoveSan || result.bestMove || 'Played move')}</strong></div>
+            </div>
+        `;
     },
 
     /**
@@ -532,6 +596,8 @@ const AnalyzeSection = {
         this.isAnalyzing = true;
         const token = ++this.analysisToken;
         this.analysisResults = [];
+        this.updateMoveList();
+        this.updateMentorPanel();
 
         // Update UI
         this.elements.startBtn.style.display = 'none';
@@ -541,36 +607,46 @@ const AnalyzeSection = {
 
         const moves = this.loadedGame.game.history({ verbose: true });
         const totalMoves = moves.length;
+        if (totalMoves === 0) {
+            this.isAnalyzing = false;
+            this.setStatus('No moves to analyze', 'warning');
+            this.elements.startBtn.style.display = 'block';
+            this.elements.stopBtn.style.display = 'none';
+            this.elements.progressBar.style.display = 'none';
+            return;
+        }
 
         try {
-            // Reset to start
             const tempGame = new Chess();
+            const positions = [tempGame.fen()];
+            moves.forEach((move) => {
+                tempGame.move(move.san);
+                positions.push(tempGame.fen());
+            });
 
-            for (let i = 0; i < totalMoves && this.isAnalyzing && token === this.analysisToken; i++) {
-                // Update progress
-                const progress = Math.round(((i + 1) / totalMoves) * 100);
-                this.updateProgress(progress, `Move ${i + 1}/${totalMoves}`);
+            const positionAnalyses = [];
+            for (let i = 0; i < positions.length && this.isAnalyzing && token === this.analysisToken; i++) {
+                const progress = Math.round((i / totalMoves) * 100);
+                this.updateProgress(progress, `Analyzing position ${i + 1}/${positions.length}`);
+                positionAnalyses.push(await this.analyzePosition(positions[i], token));
 
-                // Analyze position
-                const fen = tempGame.fen();
-                const analysis = await this.analyzePosition(fen, token);
-
-                this.analysisResults.push({
-                    moveIndex: i,
-                    move: moves[i].san,
-                    fen: fen,
-                    ...analysis
-                });
-                const evaluation = analysis.mate !== null && analysis.mate !== undefined
-                    ? `Mate ${analysis.mate}`
-                    : (analysis.eval !== null && analysis.eval !== undefined ? `${analysis.eval >= 0 ? '+' : ''}${analysis.eval.toFixed(2)}` : 'No score');
-                this.updateProgress(progress, `Move ${i + 1}/${totalMoves} · ${evaluation}`);
-
-                // Make move
-                tempGame.move(moves[i].san);
+                if (i > 0) {
+                    this.analysisResults[i - 1] = this.buildMoveAnalysis(
+                        i - 1,
+                        moves[i - 1],
+                        positions[i - 1],
+                        positionAnalyses[i - 1],
+                        positionAnalyses[i]
+                    );
+                    this.updateMoveList();
+                    if (this.currentMoveIndex === i - 1) this.updateMentorPanel();
+                }
             }
 
             if (this.isAnalyzing && token === this.analysisToken) {
+                this.updateProgress(100, `Analyzed ${totalMoves} moves`);
+                this.updateMoveList();
+                this.updateMentorPanel();
                 this.setStatus('Analysis complete', 'success');
                 console.log('[Analyze] Analysis complete');
             }
@@ -584,6 +660,87 @@ const AnalyzeSection = {
             this.elements.stopBtn.style.display = 'none';
             this.elements.progressBar.style.display = 'none';
         }
+    },
+
+    buildMoveAnalysis(moveIndex, move, fenBefore, before, after) {
+        const playedUci = `${move.from}${move.to}${move.promotion || ''}`;
+        const bestMove = before.bestMove || before.pv?.[0] || null;
+        const bestMoveSan = this.uciToSan(fenBefore, bestMove);
+        const isBestMove = !!bestMove && playedUci.toLowerCase() === bestMove.toLowerCase();
+        const beforePlayerEval = this.playerPerspectiveEval(before, move.color);
+        const afterPlayerEval = this.playerPerspectiveEval(after, move.color);
+        const loss = isBestMove ? 0 : Math.max(0, beforePlayerEval - afterPlayerEval);
+        const gain = afterPlayerEval - beforePlayerEval;
+        const classification = this.classifyMove(loss, gain, isBestMove);
+
+        return {
+            moveIndex,
+            move: move.san,
+            playedUci,
+            bestMove,
+            bestMoveSan,
+            isBestMove,
+            evalBefore: before.eval,
+            evalAfter: after.eval,
+            mateBefore: before.mate,
+            mateAfter: after.mate,
+            loss,
+            gain,
+            annotation: classification.annotation,
+            label: classification.label,
+            mentorText: this.buildMentorText(classification, loss, bestMoveSan, isBestMove)
+        };
+    },
+
+    playerPerspectiveEval(analysis, color) {
+        if (analysis.mate !== null && analysis.mate !== undefined) {
+            const mateValue = analysis.mate > 0 ? 100 : -100;
+            return color === 'w' ? mateValue : -mateValue;
+        }
+        const evaluation = analysis.eval ?? 0;
+        return color === 'w' ? evaluation : -evaluation;
+    },
+
+    classifyMove(loss, gain, isBestMove) {
+        if (isBestMove) {
+            return gain >= 0.5
+                ? { annotation: '!!', label: 'Exceptional move' }
+                : { annotation: '!', label: 'Best move' };
+        }
+        if (loss > 2) return { annotation: '??', label: 'Blunder' };
+        if (loss >= 1) return { annotation: '?', label: 'Mistake' };
+        if (loss >= 0.5) return { annotation: '?!', label: 'Questionable move' };
+        return { annotation: '!', label: 'Good move' };
+    },
+
+    buildMentorText(classification, loss, bestMoveSan, isBestMove) {
+        if (classification.annotation === '!!') return 'Exceptional move. You found the engine choice and improved your position.';
+        if (classification.annotation === '??') return `Blunder. This lost about ${loss.toFixed(1)} pawns and allowed a decisive swing.${bestMoveSan ? ` Better was ${bestMoveSan}.` : ''}`;
+        if (classification.annotation === '?') return `Mistake. This move lost about ${loss.toFixed(1)} pawns.${bestMoveSan ? ` Better was ${bestMoveSan}.` : ''}`;
+        if (classification.annotation === '?!') return `Questionable move. This conceded about ${loss.toFixed(1)} pawns.${bestMoveSan ? ` The engine preferred ${bestMoveSan}.` : ''}`;
+        if (isBestMove) return 'Good move. You matched the engine choice and kept the position under control.';
+        return `Good move. You kept the position stable.${bestMoveSan ? ` The engine slightly preferred ${bestMoveSan}.` : ''}`;
+    },
+
+    uciToSan(fen, uci) {
+        if (!uci || !/^[a-h][1-8][a-h][1-8][qrbn]?$/i.test(uci)) return null;
+        try {
+            const game = new Chess(fen);
+            const move = game.move({
+                from: uci.slice(0, 2),
+                to: uci.slice(2, 4),
+                promotion: uci.slice(4, 5) || undefined
+            });
+            return move?.san || null;
+        } catch (_error) {
+            return null;
+        }
+    },
+
+    formatEvaluation(evaluation, mate) {
+        if (mate !== null && mate !== undefined) return `Mate ${mate}`;
+        if (evaluation === null || evaluation === undefined) return '-';
+        return `${evaluation >= 0 ? '+' : ''}${evaluation.toFixed(2)}`;
     },
 
     /**
