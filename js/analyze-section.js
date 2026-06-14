@@ -17,6 +17,7 @@ const AnalyzeSection = {
     positionAnalyses: [],
     analysisEngine: null,
     analysisToken: 0,
+    keyboardHandler: null,
 
     // DOM cache
     elements: {},
@@ -136,6 +137,44 @@ const AnalyzeSection = {
         this.elements.navLast?.addEventListener('click', () => {
             this.jumpToMove((this.loadedGame?.game.history().length || 0) - 1);
         });
+
+        this.bindKeyboardNavigation();
+    },
+
+    bindKeyboardNavigation() {
+        if (this.keyboardHandler) return;
+        this.keyboardHandler = (event) => this.handleKeyboardNavigation(event);
+        document.addEventListener('keydown', this.keyboardHandler);
+    },
+
+    handleKeyboardNavigation(event) {
+        if (!this.loadedGame || !this.isAnalyzeActive() || this.isEditableTarget(event.target)) return;
+        if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+        const lastMoveIndex = this.loadedGame.game.history().length - 1;
+        const destinations = {
+            ArrowLeft: this.currentMoveIndex - 1,
+            ArrowRight: this.currentMoveIndex + 1,
+            Home: -1,
+            End: lastMoveIndex
+        };
+        if (!Object.prototype.hasOwnProperty.call(destinations, event.key)) return;
+
+        event.preventDefault();
+        this.jumpToMove(destinations[event.key]);
+    },
+
+    isAnalyzeActive() {
+        if (window.CaissaNavigation?.currentSection) {
+            return CaissaNavigation.currentSection === 'analyze';
+        }
+        return document.getElementById('analyzeSection')?.classList.contains('active') || false;
+    },
+
+    isEditableTarget(target) {
+        if (!(target instanceof Element)) return false;
+        return target.isContentEditable
+            || !!target.closest('input, select, textarea, [contenteditable="true"]');
     },
 
     /**
