@@ -781,8 +781,8 @@
             <!-- SECTION: ANALYZE (Game Analysis) -->
             <section id="analyzeSection" class="content-section">
                 <div class="analyze-layout">
-                    <!-- Left: Import & Board -->
-                    <div class="analyze-main">
+                    <!-- Left: Import & Source Controls -->
+                    <aside class="analyze-import-sidebar">
                         <div class="analyze-header">
                             <h2><i class="fas fa-chart-line"></i> Analyze Games</h2>
                             <p>Import games and analyze with Stockfish engine</p>
@@ -860,12 +860,15 @@
                                 <i class="fas fa-book"></i> Open Library
                             </button>
                         </div>
+                    </aside>
 
+                    <!-- Center: Board -->
+                    <main class="analyze-main">
                         <!-- Board Zone -->
                         <div class="board-zone analyze-board-zone">
                             <!-- Board moves here when section is active -->
                         </div>
-                    </div>
+                    </main>
 
                     <!-- Right: Analysis Panel -->
                     <aside class="context-panel">
@@ -2703,7 +2706,7 @@
     <script src="js/arena-section.js?v=1.0.0"></script>
     <script src="js/insights-section.js?v=1.0.0"></script>
     <script src="js/history-section.js?v=1.0.0"></script>
-    <script src="js/analyze-section.js?v=1.0.0"></script>
+    <script src="js/analyze-section.js?v=1.0.1"></script>
     <script src="app.js?v=2.0.2"></script>
 
     <!-- Auth Scripts -->

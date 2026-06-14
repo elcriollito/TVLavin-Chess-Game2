@@ -6580,29 +6580,45 @@ button:focus,
 
 .analyze-layout {
     display: grid;
-    grid-template-columns: 1fr 380px;
-    gap: var(--spacing-lg);
+    grid-template-columns: minmax(260px, 320px) minmax(420px, 1fr) minmax(300px, 360px);
+    gap: 20px;
     padding: var(--spacing-md);
-    max-width: 1600px;
-    margin: 0 auto;
+    width: 100%;
+    max-width: none;
+    margin: 0;
     height: 100%;
+    align-items: start;
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+.analyze-import-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    min-width: 0;
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-gutter: stable;
 }
 
 .analyze-main {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-md);
+    align-items: center;
+    min-width: 0;
 }
 
 .analyze-header {
     background: var(--bg-secondary);
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md);
     border-radius: 8px;
     border: 1px solid var(--border-color);
 }
 
 .analyze-header h2 {
-    font-size: 24px;
+    font-size: 20px;
     color: var(--primary-color);
     margin-bottom: var(--spacing-xs);
 }
@@ -6614,8 +6630,9 @@ button:focus,
 
 /* Tabs */
 .analyze-tabs {
-    display: flex;
-    gap: var(--spacing-sm);
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
     background: var(--bg-secondary);
     padding: var(--spacing-sm);
     border-radius: 8px;
@@ -6623,18 +6640,19 @@ button:focus,
 }
 
 .analyze-tab {
-    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: var(--spacing-sm);
-    padding: var(--spacing-md);
+    padding: 10px 6px;
     border: 2px solid transparent;
     border-radius: 6px;
     background: transparent;
     cursor: pointer;
     transition: all 0.2s;
     font-weight: 500;
+    font-size: 11px;
     color: var(--text-secondary);
 }
 
@@ -6650,14 +6668,18 @@ button:focus,
 }
 
 .analyze-tab i {
-    font-size: 18px;
+    font-size: 14px;
+}
+
+.analyze-tab span {
+    overflow-wrap: anywhere;
 }
 
 /* Panels */
 .analyze-panel {
     display: none;
     background: var(--bg-secondary);
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md);
     border-radius: 8px;
     border: 1px solid var(--border-color);
 }
@@ -6668,7 +6690,7 @@ button:focus,
 
 .analyze-form-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    grid-template-columns: 1fr;
     gap: var(--spacing-md);
     margin-bottom: var(--spacing-md);
 }
@@ -6711,11 +6733,33 @@ button:focus,
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    padding: var(--spacing-lg);
-    background: var(--bg-secondary);
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    min-height: 400px;
+    padding: 0;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    background: transparent;
+    border: 0;
+    overflow: visible;
+}
+
+#analyzeSection .analyze-board-zone > #chessboard {
+    width: min(100%, var(--board-size)) !important;
+    height: auto !important;
+    max-width: var(--board-size) !important;
+    max-height: none !important;
+    aspect-ratio: 1 / 1;
+}
+
+#analyzeSection .context-panel {
+    grid-column: 3;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-gutter: stable;
+    justify-self: end;
 }
 
 /* Metadata */
@@ -6794,17 +6838,50 @@ button:focus,
 /* Mobile */
 @media (max-width: 1024px) {
     .analyze-layout {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(240px, 300px) minmax(380px, 1fr);
     }
 
-    .analyze-layout .context-panel {
+    #analyzeSection .context-panel {
+        grid-column: 1 / -1;
         width: 100%;
+        max-height: none;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--spacing-md);
+    }
+
+    .analyze-import-sidebar {
+        max-height: none;
     }
 }
 
 @media (max-width: 768px) {
+    .analyze-layout {
+        grid-template-columns: 1fr;
+        padding: var(--spacing-sm);
+    }
+
+    .analyze-import-sidebar,
+    .analyze-main,
+    #analyzeSection .context-panel {
+        grid-column: 1;
+    }
+
+    .analyze-main {
+        order: 1;
+    }
+
+    .analyze-import-sidebar {
+        order: 2;
+    }
+
+    #analyzeSection .context-panel {
+        order: 3;
+        display: flex;
+    }
+
     .analyze-tabs {
-        flex-direction: column;
+        grid-template-columns: 1fr;
     }
 
     .analyze-form-grid {

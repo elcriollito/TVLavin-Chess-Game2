@@ -266,7 +266,11 @@ const AnalyzeSection = {
             if (window.App) {
                 App.game.load_pgn(pgn);
                 App.board.position(App.game.fen());
-                App.updateUI();
+                if (typeof App.updateUI === 'function') {
+                    App.updateUI();
+                } else if (typeof window.updateUI === 'function') {
+                    window.updateUI();
+                }
             }
 
             // Update move list
