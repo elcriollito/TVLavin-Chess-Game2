@@ -5,13 +5,23 @@
     boardFlipped: false,
     ecoCodeDefs: [],
     openingDbShardCache: new Map(),
+    openingDbShardInflight: new Map(),
+    openingDbShardMeta: new Map(),
+    useNodeApi: false,
+    strictNodeApi: false,
+    nodeApiBase: '',
+    nodeApiVersion: '',
+    nodeApiController: null,
     shardBaseUrl: '',
     activeDbVersion: 'v3',
     dbVersionFallback: true,
     datasetsLoaded: false,
     datasetsError: '',
     positionRequestId: 0,
+    openingDbBasePly: 0,
     lastDebugFenKey: '',
+    lastResolvedFenKey: '',
+    lastRenderedRowsFingerprint: { mode: '', fp: '' },
     currentRows: [],
     latestAllLegalRows: [],
     latestPopularRows: [],
@@ -89,14 +99,27 @@
     return `${DEFAULT_SHARD_ROOT}/${DEFAULT_ACTIVE_VERSION}`;
   })();
   const MANIFEST_OVERRIDE_URL = String(window.CAISSA_OPENINGDB_MANIFEST_URL || '').trim();
+  const URL_PARAMS = new URLSearchParams(window.location.search);
+  const readFlagParam = (name, fallback = false) => {
+    const raw = String(URL_PARAMS.get(name) || '').trim().toLowerCase();
+    if (!raw) return !!fallback;
+    return raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on';
+  };
+  const USE_NODE_API = readFlagParam('useNodeApi', false);
+  const STRICT_NODE_API = readFlagParam('strictNodeApi', false);
+  const NODE_API_BASE_PARAM = String(URL_PARAMS.get('nodeApiBase') || window.CAISSA_OPENINGDB_NODE_API_BASE || '').trim();
+  const NODE_API_VERSION_PARAM = String(URL_PARAMS.get('openingdbVersion') || window.CAISSA_OPENINGDB_NODE_API_VERSION || 'v4_sub').trim() || 'v4_sub';
+  const NODE_API_TIMEOUT_MS = 4000;
   const DEV_MODE = (() => {
-    const params = new URLSearchParams(window.location.search);
-    const forceDev = params.get('dev') === '1';
+    const forceDev = URL_PARAMS.get('dev') === '1';
     const host = String(window.location.hostname || '').toLowerCase();
     const localHost = host === 'localhost' || host === '127.0.0.1';
     return forceDev || localHost;
   })();
   const SHARD_FETCH_TIMEOUT_MS = 4000;
+  const OPENINGDB_MAX_SHARDS_IN_MEMORY = 2;
+  const ENABLE_SHARD_SESSION_CACHE = false;
+  const PREFETCH_NEXT_SHARDS_LIMIT = readFlagParam('prefetch', false) ? 2 : 0;
   const MANIFEST_FETCH_TIMEOUT_MS = 2000;
   const GAMES_MANIFEST_URL = '/openingdb/games/manifest.json';
   const REMOTE_GAMES_MANIFEST_URL = 'https://downloads.caissa-chess.org/openingdb/games/manifest.json';
@@ -123,10 +146,14 @@
   const ENGINE_MOVE_EVAL_LIMIT = 12;
   const ENGINE_MOVE_EVAL_GAP_MS = 100;
   const ENGINE_MOVE_EVAL_TIMEOUT_MS = 3500;
+  const ENGINE_EVAL_CACHE_MAX_ENTRIES = 1200;
   const ENGINE_PV_MAX_PLIES = 80;
   const DISPLAY_PV_PLIES = 40;
   const OPENINGDB_COMPACT_ROW_LIMIT = 20;
   const OPENINGDB_WIDE_ROW_LIMIT = 20;
+  const OPENINGDB_MAX_FULLMOVES = 15;
+  const OPENINGDB_MAX_PLIES = OPENINGDB_MAX_FULLMOVES * 2;
+  const OPENINGDB_DEPTH_LIMIT_MESSAGE = `Opening database depth limit reached. Analysis is capped at move ${OPENINGDB_MAX_FULLMOVES} for performance.`;
   const QUICK_EVAL_STORAGE_KEY = 'odb_eval_next_moves_fast';
   const QUICK_EVAL_MODE_STORAGE_KEY = 'odb_eval_next_moves_mode';
 
@@ -204,7 +231,7 @@
   };
 
   const DEBUG = (() => {
-    const qs = new URLSearchParams(window.location.search).get('debug') === '1';
+    const qs = URL_PARAMS.get('debug') === '1';
     let ls = false;
     try {
       ls = window.localStorage && localStorage.getItem('caissa.openingdb.debug') === '1';
@@ -213,10 +240,94 @@
     }
     return qs || ls;
   })();
+  const BENCH_DEBUG = (() => {
+    return DEBUG && URL_PARAMS.get('bench') === '1';
+  })();
+  const TRACE_MEMORY = (() => {
+    return DEBUG && URL_PARAMS.get('traceMemory') === '1';
+  })();
+  const BENCH_BATCH_SIZE = 10;
+  const openingDbPerfBench = {
+    positions: 0,
+    lookupMsTotal: 0,
+    renderMsTotal: 0,
+    renderedRowsAppliedCount: 0,
+    inMemoryShardsMax: 0,
+    shardLoads: 0,
+    shardFetchMsTotal: 0,
+    shardParseMsTotal: 0,
+    shardBytesTotal: 0
+  };
+
+  let lastMemoryTracePly = -1;
 
   function debugLog(...args) {
     if (!DEBUG) return;
     console.debug('[OpeningDB]', ...args);
+  }
+
+  function recordBenchShardSample(sample) {
+    if (!BENCH_DEBUG || !sample) return;
+    openingDbPerfBench.shardLoads += 1;
+    openingDbPerfBench.shardFetchMsTotal += Number(sample.fetchMs) || 0;
+    openingDbPerfBench.shardParseMsTotal += Number(sample.parseMs) || 0;
+    openingDbPerfBench.shardBytesTotal += Number(sample.bytes) || 0;
+  }
+
+  function recordBenchPositionSample(sample) {
+    if (!BENCH_DEBUG || !sample) return;
+    openingDbPerfBench.positions += 1;
+    openingDbPerfBench.lookupMsTotal += Number(sample.lookupMs) || 0;
+    openingDbPerfBench.renderMsTotal += Number(sample.renderMs) || 0;
+    if (sample.renderedRowsApplied) openingDbPerfBench.renderedRowsAppliedCount += 1;
+    openingDbPerfBench.inMemoryShardsMax = Math.max(
+      openingDbPerfBench.inMemoryShardsMax,
+      Number(sample.inMemoryShards) || 0
+    );
+
+    if (openingDbPerfBench.positions % BENCH_BATCH_SIZE === 0) {
+      const p = openingDbPerfBench.positions;
+      const shardLoads = openingDbPerfBench.shardLoads || 0;
+      console.info('[OpeningDB][bench]', {
+        positions: p,
+        avgLookupMs: Number((openingDbPerfBench.lookupMsTotal / p).toFixed(2)),
+        avgRenderMs: Number((openingDbPerfBench.renderMsTotal / p).toFixed(2)),
+        renderAppliedRate: Number((openingDbPerfBench.renderedRowsAppliedCount / p).toFixed(2)),
+        maxInMemoryShards: openingDbPerfBench.inMemoryShardsMax,
+        shardLoads,
+        avgShardFetchMs: shardLoads ? Number((openingDbPerfBench.shardFetchMsTotal / shardLoads).toFixed(2)) : 0,
+        avgShardParseMs: shardLoads ? Number((openingDbPerfBench.shardParseMsTotal / shardLoads).toFixed(2)) : 0,
+        avgShardBytes: shardLoads ? Math.round(openingDbPerfBench.shardBytesTotal / shardLoads) : 0
+      });
+    }
+  }
+
+  function traceMemoryCheckpoint(payload = {}) {
+    if (!TRACE_MEMORY) return;
+    const ply = Number(payload.ply) || 0;
+    if (ply <= 0) return;
+    if (ply % 5 !== 0) return;
+    if (lastMemoryTracePly === ply) return;
+    lastMemoryTracePly = ply;
+    const heapBytes = window.performance && window.performance.memory
+      ? Number(window.performance.memory.usedJSHeapSize) || 0
+      : 0;
+    const heapMB = heapBytes > 0 ? (heapBytes / (1024 * 1024)).toFixed(1) : 'n/a';
+    const fallbackUsed = !!payload.nodeApiFallback;
+    const nodeError = !!payload.nodeApiError;
+    const line = [
+      '[OpeningDB][mem]',
+      `ply=${ply}`,
+      `heapMB=${heapMB}`,
+      `evalCache=${Number(payload.engineEvalCacheSize) || 0}`,
+      `nodeApi=${payload.nodeApiEnabled ? 1 : 0}`,
+      `strict=${payload.strictNodeApi ? 1 : 0}`,
+      `match=${String(payload.matchLevel || 'none')}`,
+      `rows=${Number(payload.rowsRendered) || 0}`,
+      `fallback=${fallbackUsed ? 1 : 0}`,
+      `nodeErr=${nodeError ? 1 : 0}`
+    ].join(' ');
+    console.info(line);
   }
 
   const openingDbDebugState = {
@@ -228,6 +339,13 @@
       shardFetchMisses: 0,
       shardFetchCount: 0,
       shardFetchMsTotal: 0,
+      shardParseMsTotal: 0,
+      shardBytesTotal: 0,
+      nodeApiRequestCount: 0,
+      nodeApiRequestMsTotal: 0,
+      nodeApiResponseBytesTotal: 0,
+      nodeApiCacheHitCount: 0,
+      nodeApiCacheMissCount: 0,
       matchLevel: {
         exact: 0,
         no_ep: 0,
@@ -247,6 +365,13 @@
     openingDbDebugState.counters.shardFetchMisses = 0;
     openingDbDebugState.counters.shardFetchCount = 0;
     openingDbDebugState.counters.shardFetchMsTotal = 0;
+    openingDbDebugState.counters.shardParseMsTotal = 0;
+    openingDbDebugState.counters.shardBytesTotal = 0;
+    openingDbDebugState.counters.nodeApiRequestCount = 0;
+    openingDbDebugState.counters.nodeApiRequestMsTotal = 0;
+    openingDbDebugState.counters.nodeApiResponseBytesTotal = 0;
+    openingDbDebugState.counters.nodeApiCacheHitCount = 0;
+    openingDbDebugState.counters.nodeApiCacheMissCount = 0;
     openingDbDebugState.counters.matchLevel = {
       exact: 0,
       no_ep: 0,
@@ -310,6 +435,41 @@
     }
     els.matchBadge.hidden = false;
     els.matchBadge.textContent = `match: ${text}`;
+  }
+
+  function normalizeNodeApiBase(rawBase) {
+    const input = String(rawBase || '').trim();
+    if (!input) return `${window.location.origin}`;
+    try {
+      const u = new URL(input, window.location.origin);
+      const path = u.pathname && u.pathname !== '/' ? u.pathname.replace(/\/+$/, '') : '';
+      return `${u.origin}${path}`;
+    } catch (_err) {
+      return `${window.location.origin}`;
+    }
+  }
+
+  function configureNodeApiMode() {
+    state.useNodeApi = !!USE_NODE_API;
+    state.strictNodeApi = !!STRICT_NODE_API && state.useNodeApi;
+    state.nodeApiVersion = NODE_API_VERSION_PARAM;
+    state.nodeApiBase = normalizeNodeApiBase(NODE_API_BASE_PARAM);
+    if (state.useNodeApi) {
+      state.activeDbVersion = state.nodeApiVersion;
+      state.dbVersionFallback = false;
+    }
+    debugLog('[OpeningDB] nodeApiConfig', {
+      enabled: state.useNodeApi,
+      strict: state.strictNodeApi,
+      base: state.nodeApiBase,
+      version: state.nodeApiVersion,
+      params: {
+        useNodeApi: URL_PARAMS.get('useNodeApi'),
+        strictNodeApi: URL_PARAMS.get('strictNodeApi'),
+        nodeApiBase: URL_PARAMS.get('nodeApiBase'),
+        openingdbVersion: URL_PARAMS.get('openingdbVersion')
+      }
+    });
   }
 
   function normalizeFenForHash(fen) {
@@ -613,6 +773,32 @@
     return `${String(fen || '').trim()}|${String(moveUci || '').trim().toLowerCase()}`;
   }
 
+  function getEngineEvalCacheValue(cacheKey) {
+    if (!cacheKey || !state.engine.nextMoveEvalCache.has(cacheKey)) return null;
+    const val = state.engine.nextMoveEvalCache.get(cacheKey);
+    // LRU touch.
+    state.engine.nextMoveEvalCache.delete(cacheKey);
+    state.engine.nextMoveEvalCache.set(cacheKey, val);
+    return val;
+  }
+
+  function setEngineEvalCacheValue(cacheKey, value) {
+    if (!cacheKey) return;
+    if (state.engine.nextMoveEvalCache.has(cacheKey)) {
+      state.engine.nextMoveEvalCache.delete(cacheKey);
+    }
+    state.engine.nextMoveEvalCache.set(cacheKey, String(value || '-'));
+    while (state.engine.nextMoveEvalCache.size > ENGINE_EVAL_CACHE_MAX_ENTRIES) {
+      const oldest = state.engine.nextMoveEvalCache.keys().next().value;
+      if (!oldest) break;
+      state.engine.nextMoveEvalCache.delete(oldest);
+    }
+  }
+
+  function clearEngineEvalCache() {
+    state.engine.nextMoveEvalCache.clear();
+  }
+
   function setEngineCopyFeedback(message) {
     if (!els.engineCopyFeedback) return;
     els.engineCopyFeedback.textContent = String(message || '');
@@ -718,7 +904,7 @@
         row.engineEval = '-';
         return;
       }
-      const cached = state.engine.nextMoveEvalCache.get(getEngineCacheKey(currentFen, uci));
+      const cached = getEngineEvalCacheValue(getEngineCacheKey(currentFen, uci));
       row.engineEval = cached || '-';
     });
   }
@@ -734,7 +920,7 @@
       const uci = String(row?.moveUCI || row?.uci || '').trim().toLowerCase();
       const cell = rowEl.querySelector('td.col-engine');
       if (!cell) return;
-      const text = uci ? (state.engine.nextMoveEvalCache.get(getEngineCacheKey(fen, uci)) || row.engineEval || '-') : '-';
+      const text = uci ? (getEngineEvalCacheValue(getEngineCacheKey(fen, uci)) || row.engineEval || '-') : '-';
       cell.textContent = text;
       cell.setAttribute('data-engine-eval', text);
       cell.classList.toggle('is-pending', text === '...');
@@ -1094,7 +1280,7 @@
       const uci = String(row.moveUCI || '').toLowerCase();
       if (!uci) continue;
       const cacheKey = getEngineCacheKey(fen, uci);
-      const cached = engine.nextMoveEvalCache.get(cacheKey);
+      const cached = getEngineEvalCacheValue(cacheKey);
       if (cached) {
         setRowEngineEvalByUci(uci, cached);
         refreshRenderedEngineEvalCells();
@@ -1107,7 +1293,7 @@
         timeoutMs: mode === 'pro' ? ENGINE_MOVE_EVAL_TIMEOUT_MS : 2200
       });
       if (sessionId !== engine.nextMoveEvalSessionId) break;
-      engine.nextMoveEvalCache.set(cacheKey, evalText || '-');
+      setEngineEvalCacheValue(cacheKey, evalText || '-');
       setRowEngineEvalByUci(uci, evalText || '-');
       refreshRenderedEngineEvalCells();
       if (i < queueRows.length - 1) {
@@ -1122,6 +1308,10 @@
 
   function maybeRunNextMoveEvalQueue() {
     if (!state.engine.evalNextMoves || !state.game) return;
+    if (isOpeningDbDepthLimitReached()) {
+      cancelNextMoveEvalQueue();
+      return;
+    }
     const fen = state.game.fen();
     cancelNextMoveEvalQueue();
     void runNextMoveEvalQueue(fen);
@@ -1215,6 +1405,10 @@
   }
 
   function getDbVersionLabel() {
+    if (state.useNodeApi) {
+      const strictTag = state.strictNodeApi ? ' strict' : '';
+      return `DB: ${state.nodeApiVersion || 'v4_sub'} (node-api${strictTag})`;
+    }
     return `DB: ${state.activeDbVersion}${state.dbVersionFallback ? ' (fallback)' : ''}`;
   }
 
@@ -1338,6 +1532,7 @@
 
   function readShardFromSession(shard) {
     try {
+      if (!ENABLE_SHARD_SESSION_CACHE) return null;
       if (!window.sessionStorage) return null;
       const raw = sessionStorage.getItem(getShardSessionCacheKey(shard));
       if (!raw) return null;
@@ -1349,6 +1544,7 @@
 
   function writeShardToSession(shard, payload) {
     try {
+      if (!ENABLE_SHARD_SESSION_CACHE) return;
       if (!window.sessionStorage) return;
       sessionStorage.setItem(getShardSessionCacheKey(shard), JSON.stringify(payload));
     } catch (_err) {
@@ -1394,13 +1590,24 @@
     }
     const normalizedBase = baseRoot.replace(/\/+$/, '');
     const alreadyVersioned = normalizedBase.toLowerCase().endsWith(`/${activeVersion.toLowerCase()}`);
+    const previousBase = String(state.shardBaseUrl || '');
+    const previousVersion = String(state.activeDbVersion || '');
     state.activeDbVersion = activeVersion;
     state.dbVersionFallback = !!fallback;
     state.shardBaseUrl = alreadyVersioned ? normalizedBase : `${normalizedBase}/${activeVersion}`;
-    console.log('[OpeningDB] manifest', {
+    const changed = previousBase !== state.shardBaseUrl || previousVersion !== state.activeDbVersion;
+    if (changed) {
+      state.openingDbShardCache.clear();
+      state.openingDbShardInflight.clear();
+      state.openingDbShardMeta.clear();
+      state.lastResolvedFenKey = '';
+      state.lastRenderedRowsFingerprint = { mode: '', fp: '' };
+    }
+    debugLog('[OpeningDB] manifest', {
       activeVersion: state.activeDbVersion,
       baseUrl: state.shardBaseUrl,
-      shardCount: Number(m.shardCount) || null
+      shardCount: Number(m.shardCount) || null,
+      changed
     });
     clearLegacyShardSessionCache();
   }
@@ -1564,54 +1771,105 @@
 
   async function loadOpeningDbShard(shard) {
     if (!/^[0-9a-f]{2}$/.test(shard)) return null;
+    if (state.useNodeApi && state.strictNodeApi) {
+      if (DEBUG) {
+        console.debug('[OpeningDB] shard fallback blocked (strictNodeApi=1)', {
+          shardId: shard
+        });
+      }
+      return null;
+    }
 
     if (state.openingDbShardCache.has(shard)) {
       openingDbDebugState.counters.shardCacheMemoryHits += 1;
       const cached = state.openingDbShardCache.get(shard);
-      if (cached && typeof cached === 'object') {
-        console.log('[OpeningDB] shardLoaded', { shardId: shard, entries: Object.keys(cached).length });
-      }
+      touchOpeningDbShardCache(shard, cached);
       return cached;
+    }
+
+    if (state.openingDbShardInflight.has(shard)) {
+      return state.openingDbShardInflight.get(shard);
     }
 
     const fromSession = readShardFromSession(shard);
     if (fromSession && typeof fromSession === 'object') {
       openingDbDebugState.counters.shardCacheSessionHits += 1;
-      state.openingDbShardCache.set(shard, fromSession);
-      console.log('[OpeningDB] shardLoaded', { shardId: shard, entries: Object.keys(fromSession).length });
+      touchOpeningDbShardCache(shard, fromSession);
       return fromSession;
     }
 
-    try {
-      const fetchStartedAt = performance.now();
-      const activeBase = state.shardBaseUrl || SHARD_BASE;
-      const remoteUrl = `${activeBase}/${shard}.json`;
-      const json = await fetchJsonWithTimeout(remoteUrl, SHARD_FETCH_TIMEOUT_MS);
-      const fetchMs = performance.now() - fetchStartedAt;
-      openingDbDebugState.counters.shardFetchCount += 1;
-      openingDbDebugState.counters.shardFetchMsTotal += fetchMs;
-      const payload = json && typeof json === 'object' ? json : null;
-      if (!payload) openingDbDebugState.counters.shardFetchMisses += 1;
-      state.openingDbShardCache.set(shard, payload);
-      if (payload) writeShardToSession(shard, payload);
-      if (payload) {
-        console.log('[OpeningDB] shardLoaded', { shardId: shard, entries: Object.keys(payload).length });
+    const loadPromise = (async () => {
+      try {
+        const activeBase = state.shardBaseUrl || SHARD_BASE;
+        const remoteUrl = `${activeBase}/${shard}.json`;
+        const { payload, fetchMs, parseMs, bytes } = await fetchOpeningDbShardPayload(remoteUrl, SHARD_FETCH_TIMEOUT_MS);
+        openingDbDebugState.counters.shardFetchCount += 1;
+        openingDbDebugState.counters.shardFetchMsTotal += fetchMs;
+        openingDbDebugState.counters.shardParseMsTotal += parseMs;
+        openingDbDebugState.counters.shardBytesTotal += bytes;
+        if (!payload) openingDbDebugState.counters.shardFetchMisses += 1;
+        touchOpeningDbShardCache(shard, payload, { bytes });
+        if (payload) writeShardToSession(shard, payload);
+        setOpeningDbDebugLast({
+          shardId: shard,
+          shardFetchMs: Number(fetchMs.toFixed(2)),
+          shardParseMs: Number(parseMs.toFixed(2)),
+          shardBytes: bytes,
+          inMemoryShards: state.openingDbShardCache.size,
+          shardSource: 'network',
+          shardEntries: null
+        });
+        debugLog('[OpeningDB][perf] shardLoaded', {
+          shardId: shard,
+          shardFetchMs: Number(fetchMs.toFixed(2)),
+          shardParseMs: Number(parseMs.toFixed(2)),
+          shardBytes: bytes,
+          inMemoryShards: state.openingDbShardCache.size
+        });
+        recordBenchShardSample({
+          fetchMs,
+          parseMs,
+          bytes
+        });
+        return payload;
+      } catch (_err) {
+        openingDbDebugState.counters.shardFetchMisses += 1;
+        touchOpeningDbShardCache(shard, null);
+        setOpeningDbDebugLast({
+          shardId: shard,
+          shardSource: 'network_error'
+        });
+        return null;
+      } finally {
+        state.openingDbShardInflight.delete(shard);
       }
-      setOpeningDbDebugLast({
-        shardId: shard,
-        shardFetchMs: Number(fetchMs.toFixed(2)),
-        shardSource: 'network',
-        shardEntries: payload && typeof payload === 'object' ? Object.keys(payload).length : 0
-      });
-      return payload;
-    } catch (_err) {
-      openingDbDebugState.counters.shardFetchMisses += 1;
-      state.openingDbShardCache.set(shard, null);
-      setOpeningDbDebugLast({
-        shardId: shard,
-        shardSource: 'network_error'
-      });
-      return null;
+    })();
+
+    state.openingDbShardInflight.set(shard, loadPromise);
+    return loadPromise;
+  }
+
+  function prefetchLikelyNextShards(rows) {
+    if (!Array.isArray(rows) || rows.length === 0 || !state.game || PREFETCH_NEXT_SHARDS_LIMIT <= 0) return;
+    const baseFen = state.game.fen();
+    const picked = new Set();
+    for (const row of rows.slice(0, PREFETCH_NEXT_SHARDS_LIMIT)) {
+      const moveObj = uciToMoveObject(row?.moveUCI || '');
+      if (!moveObj) continue;
+      try {
+        const clone = new Chess(baseFen);
+        const legal = clone.move(moveObj);
+        if (!legal) continue;
+        const nextHash = hashFen(normalizeFenForHash(clone.fen()));
+        const nextShard = String(nextHash || '').slice(0, 2).toLowerCase();
+        if (!/^[0-9a-f]{2}$/.test(nextShard)) continue;
+        if (picked.has(nextShard)) continue;
+        picked.add(nextShard);
+        if (state.openingDbShardCache.has(nextShard) || state.openingDbShardInflight.has(nextShard)) continue;
+        prefetchShard(nextShard);
+      } catch (_err) {
+        // Best-effort.
+      }
     }
   }
 
@@ -1832,10 +2090,122 @@
       els.movesAllBtn.classList.toggle('active', !isPopular);
       els.movesAllBtn.setAttribute('aria-pressed', isPopular ? 'false' : 'true');
     }
-    const rows = isPopular ? state.latestPopularRows : state.latestAllLegalRows;
-    renderStatsRows(rows);
+    if (isOpeningDbDepthLimitReached()) {
+      renderOpeningDbDepthLimit();
+      return;
+    }
+    const rows = isPopular && state.latestPopularRows.length > 0
+      ? state.latestPopularRows
+      : state.latestAllLegalRows;
+    if (rowsNeedRender(rows)) {
+      renderStatsRows(rows);
+    }
     refreshRenderedEngineEvalCells();
     maybeRunNextMoveEvalQueue();
+  }
+
+  function getPlyFromFen(fen) {
+    const parts = String(fen || '').trim().split(/\s+/);
+    const fullmove = Math.max(1, Number.parseInt(parts[5] || '1', 10) || 1);
+    return ((fullmove - 1) * 2) + (parts[1] === 'b' ? 1 : 0);
+  }
+
+  function getOpeningDbPly(game = state.game) {
+    if (!game || typeof game.history !== 'function') return Number(state.openingDbBasePly) || 0;
+    return (Number(state.openingDbBasePly) || 0) + game.history({ verbose: false }).length;
+  }
+
+  function isOpeningDbDepthLimitReached(game = state.game) {
+    return getOpeningDbPly(game) >= OPENINGDB_MAX_PLIES;
+  }
+
+  function renderOpeningDbDepthLimit() {
+    cancelNextMoveEvalQueue();
+    if (state.nodeApiController) {
+      try {
+        state.nodeApiController.abort();
+      } catch (_err) {
+        // Best-effort cancellation.
+      }
+      state.nodeApiController = null;
+    }
+    state.latestAllLegalRows = [];
+    state.latestPopularRows = [];
+    state.currentRows = [];
+    state.lastRenderedRowsFingerprint = { mode: '', fp: '' };
+    state.rowDiagnostics.sourceAllLegalCount = 0;
+    state.rowDiagnostics.sourcePopularCount = 0;
+    state.rowDiagnostics.renderedCount = 0;
+    state.rowDiagnostics.mode = state.moveListMode;
+    state.rowDiagnostics.matchLevel = 'depth_limit';
+    if (els.statsBody) {
+      els.statsBody.innerHTML = `<tr><td colspan="4" class="openingdb-empty">${OPENINGDB_DEPTH_LIMIT_MESSAGE}</td></tr>`;
+    }
+    if (els.lookupStatus) els.lookupStatus.textContent = OPENINGDB_DEPTH_LIMIT_MESSAGE;
+    setMatchBadge('depth limit');
+    updateCoverageBadge(0, 0);
+    renderRowDiagnostics();
+  }
+
+  function rowFingerprint(rows) {
+    if (!Array.isArray(rows) || rows.length === 0) return '';
+    return rows.map((row) => `${row.moveUCI || ''}:${row.games || 0}:${row.wins || 0}:${row.draws || 0}:${row.losses || 0}`).join('|');
+  }
+
+  function rowsNeedRender(rows) {
+    const next = {
+      mode: state.moveListMode === 'all' ? 'all' : 'popular',
+      fp: rowFingerprint(rows)
+    };
+    const prev = state.lastRenderedRowsFingerprint || { mode: '', fp: '' };
+    const shouldRender = next.mode !== prev.mode || next.fp !== prev.fp;
+    state.lastRenderedRowsFingerprint = next;
+    return shouldRender;
+  }
+
+  function touchOpeningDbShardCache(shard, payload, meta = null) {
+    if (state.openingDbShardCache.has(shard)) state.openingDbShardCache.delete(shard);
+    state.openingDbShardCache.set(shard, payload);
+    if (meta && typeof meta === 'object') {
+      state.openingDbShardMeta.set(shard, {
+        bytes: Number(meta.bytes) || 0,
+        fetchedAt: Date.now()
+      });
+    }
+
+    while (state.openingDbShardCache.size > OPENINGDB_MAX_SHARDS_IN_MEMORY) {
+      const oldestShard = state.openingDbShardCache.keys().next().value;
+      if (!oldestShard) break;
+      state.openingDbShardCache.delete(oldestShard);
+      state.openingDbShardMeta.delete(oldestShard);
+      debugLog('[OpeningDB][perf] shardEvicted', {
+        shardId: oldestShard,
+        inMemoryShards: state.openingDbShardCache.size
+      });
+    }
+  }
+
+  async function fetchOpeningDbShardPayload(remoteUrl, timeoutMs) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const fetchStartedAt = performance.now();
+    try {
+      const res = await fetch(remoteUrl, { cache: 'force-cache', signal: controller.signal });
+      if (!res.ok) return { payload: null, fetchMs: performance.now() - fetchStartedAt, parseMs: 0, bytes: 0 };
+      const rawText = await res.text();
+      const fetchMs = performance.now() - fetchStartedAt;
+      const parseStartedAt = performance.now();
+      const parsed = JSON.parse(rawText);
+      const parseMs = performance.now() - parseStartedAt;
+      return {
+        payload: parsed && typeof parsed === 'object' ? parsed : null,
+        fetchMs,
+        parseMs,
+        bytes: rawText.length
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   function renderRowDiagnostics() {
@@ -1846,7 +2216,7 @@
     const renderedCount = Number(diag.renderedCount) || 0;
     const matchLevel = String(diag.matchLevel || 'none');
     els.rowsDiag.textContent = `Rows rendered: ${renderedCount} / Source rows: ${sourceCount} / Mode: ${modeLabel} / matchLevel: ${matchLevel}`;
-    console.log('[OpeningDB] rows', {
+    debugLog('[OpeningDB] rows', {
       sourceCount,
       renderedCount,
       mode: modeLabel,
@@ -1879,6 +2249,8 @@
       return;
     }
 
+    const rowLimit = state.moveListMode === 'all' ? OPENINGDB_COMPACT_ROW_LIMIT : OPENINGDB_WIDE_ROW_LIMIT;
+    rows = rows.slice(0, rowLimit);
     const currentPly = state.game && typeof state.game.history === 'function'
       ? state.game.history({ verbose: false }).length
       : 0;
@@ -2168,6 +2540,10 @@
       return;
     }
     if (!state.game) return;
+    if (isOpeningDbDepthLimitReached()) {
+      setGamesStatus(OPENINGDB_DEPTH_LIMIT_MESSAGE);
+      return;
+    }
     const manifest = await ensureGameSearchManifest();
     if (!manifest) {
       setGamesStatus('GameSearch manifest unavailable.');
@@ -2274,6 +2650,10 @@
 
   function applyMoveFromRow(row) {
     if (!row || !state.game) return false;
+    if (isOpeningDbDepthLimitReached()) {
+      renderOpeningDbDepthLimit();
+      return false;
+    }
 
     const uci = sanitizeMoveCellToken(row.moveUCI || row.uci || '').toLowerCase();
     const san = sanitizeMoveCellToken(row.moveSAN || row.san || '');
@@ -2325,14 +2705,14 @@
     };
   }
 
-  async function getContinuationsForFen(fen, context = {}) {
+  async function getContinuationsForFenFromShards(fen, context = {}) {
     const variants = buildFenLookupVariants(fen);
     for (const variant of variants) {
       const fenKeyCandidate = String(variant.key || '');
       const fenHash = hashFen(fenKeyCandidate);
       const shard = String(fenHash || '').slice(0, 2).toLowerCase();
       const shardUrl = `${state.shardBaseUrl || SHARD_BASE}/${shard}.json`;
-      console.log('[OpeningDB] lookup', {
+      debugLog('[OpeningDB] lookup', {
         ply: Number(context.ply) || 0,
         fenKey: context.fenKey || '',
         lookupFenKey: fenKeyCandidate,
@@ -2347,7 +2727,7 @@
       const totalGames = Array.isArray(entry?.moves)
         ? entry.moves.reduce((sum, move) => sum + (Number(move?.games) || 0), 0)
         : 0;
-      console.log('[OpeningDB] match', {
+      debugLog('[OpeningDB] match', {
         found: !!entry,
         matchLevel: variant.level,
         candidates: candidateCount,
@@ -2372,6 +2752,163 @@
     };
   }
 
+  async function getContinuationsForFenViaNodeApi(fen, context = {}) {
+    if (!state.useNodeApi) return null;
+    const base = normalizeNodeApiBase(state.nodeApiBase);
+    const version = String(state.nodeApiVersion || NODE_API_VERSION_PARAM || 'v4_sub').trim() || 'v4_sub';
+    const endpoint = `${base}/openingdb/node`;
+    const requestUrl = new URL(endpoint);
+    requestUrl.searchParams.set('fen', String(fen || ''));
+    requestUrl.searchParams.set('version', version);
+    if (DEBUG) {
+      console.debug('[OpeningDB] nodeAPI lookup', {
+        requestUrl: requestUrl.toString(),
+        base,
+        version,
+        ply: Number(context.ply) || 0,
+        fenKey: context.fenKey || ''
+      });
+    }
+
+    if (state.nodeApiController) {
+      try {
+        state.nodeApiController.abort();
+      } catch (_err) {
+        // ignore
+      }
+    }
+    const controller = new AbortController();
+    state.nodeApiController = controller;
+    const timeout = setTimeout(() => controller.abort(), NODE_API_TIMEOUT_MS);
+    const startedAt = performance.now();
+    try {
+      const res = await fetch(requestUrl.toString(), { cache: 'no-store', signal: controller.signal });
+      const rawText = await res.text();
+      const elapsedMs = performance.now() - startedAt;
+      const bytes = rawText.length;
+      let payload = {};
+      try {
+        payload = rawText ? JSON.parse(rawText) : {};
+      } catch (_err) {
+        payload = {};
+      }
+
+      openingDbDebugState.counters.nodeApiRequestCount += 1;
+      openingDbDebugState.counters.nodeApiRequestMsTotal += elapsedMs;
+      openingDbDebugState.counters.nodeApiResponseBytesTotal += bytes;
+      const cacheHeader = String(res.headers.get('x-caissa-node-cache') || '').toLowerCase();
+      if (cacheHeader === 'hit') openingDbDebugState.counters.nodeApiCacheHitCount += 1;
+      else if (cacheHeader === 'miss') openingDbDebugState.counters.nodeApiCacheMissCount += 1;
+
+      debugLog('[OpeningDB][perf] nodeApi', {
+        requestUrl: requestUrl.toString(),
+        status: res.status,
+        elapsedMs: Number(elapsedMs.toFixed(2)),
+        bytes,
+        cache: cacheHeader || 'unknown',
+        ply: Number(context.ply) || 0,
+        fenKey: context.fenKey || ''
+      });
+
+      if (res.status === 404) {
+        if (DEBUG) {
+          console.debug('[OpeningDB] nodeAPI error', {
+            status: 404,
+            reason: 'node_not_found',
+            requestUrl: requestUrl.toString()
+          });
+        }
+        return {
+          source: 'openingdb_node_not_found',
+          matchLevel: 'none',
+          entry: null,
+          rawCandidates: []
+        };
+      }
+      if (!res.ok) {
+        if (DEBUG) {
+          console.debug('[OpeningDB] nodeAPI error', {
+            status: res.status,
+            requestUrl: requestUrl.toString(),
+            bodySample: String(rawText || '').slice(0, 120)
+          });
+        }
+        return null;
+      }
+      if (!payload || typeof payload !== 'object') return null;
+
+      const rows = Array.isArray(payload.moves) ? payload.moves : [];
+      const rawCandidates = rows.map((row) => {
+        const games = Number(row?.games) || 0;
+        const w = Number(row?.white) || 0;
+        const d = Number(row?.draw) || 0;
+        const l = Number(row?.black) || 0;
+        return {
+          moveUCI: String(row?.uci || ''),
+          uci: String(row?.uci || ''),
+          games,
+          whiteWins: w,
+          drawsCount: d,
+          blackWins: l,
+          w,
+          d,
+          l
+        };
+      });
+
+      return {
+        source: 'openingdb_node_api',
+        matchLevel: String(payload.matchLevel || 'none'),
+        entry: { moves: rawCandidates },
+        rawCandidates
+      };
+    } catch (err) {
+      if (DEBUG) {
+        console.debug('[OpeningDB] nodeAPI error', {
+          requestUrl: requestUrl.toString(),
+          message: err && err.message ? String(err.message) : 'request_failed'
+        });
+      }
+      return null;
+    } finally {
+      clearTimeout(timeout);
+      if (state.nodeApiController === controller) {
+        state.nodeApiController = null;
+      }
+    }
+  }
+
+  async function getContinuationsForFen(fen, context = {}) {
+    if (state.useNodeApi) {
+      const viaNode = await getContinuationsForFenViaNodeApi(fen, context);
+      if (viaNode) return viaNode;
+      if (state.strictNodeApi) {
+        if (DEBUG) {
+          console.debug('[OpeningDB] nodeAPI error', {
+            strictNodeApi: 1,
+            action: 'return_node_error',
+            ply: Number(context.ply) || 0,
+            fenKey: context.fenKey || ''
+          });
+        }
+        return {
+          source: 'openingdb_node_error',
+          matchLevel: 'none',
+          entry: null,
+          rawCandidates: []
+        };
+      }
+      if (DEBUG) {
+        console.debug('[OpeningDB] shard fallback', {
+          reason: 'node_api_unavailable_non_strict',
+          ply: Number(context.ply) || 0,
+          fenKey: context.fenKey || ''
+        });
+      }
+    }
+    return getContinuationsForFenFromShards(fen, context);
+  }
+
   async function updatePositionView(inputFen, options = {}) {
     const lookupStartedAt = performance.now();
     const force = !!options.force;
@@ -2380,17 +2917,30 @@
 
     const fen = inputFen || state.game.fen();
     const fenKey = normalizeFenForHash(fen);
-    const ply = state.game.history({ verbose: false }).length;
+    const ply = getOpeningDbPly(state.game);
+
+    if (!force && state.lastResolvedFenKey === fenKey) {
+      debugLog('[OpeningDB][perf] skipLookupSameFen', { fenKey, ply });
+      updateMoveListFromGame(state.game);
+      updateTurnPlyLabel(ply);
+      return;
+    }
 
     if (force || state.lastDebugFenKey !== fenKey) {
       state.lastDebugFenKey = fenKey;
-      console.log('[OpeningDB] fenKey', fenKey, 'ply', ply);
+      debugLog('[OpeningDB] fenKey', fenKey, 'ply', ply);
     }
 
     updateMoveListFromGame(state.game);
     updateTurnPlyLabel(ply);
 
     const openingFallback = resolveOpeningByPrefix();
+    if (ply >= OPENINGDB_MAX_PLIES) {
+      renderOpeningDbDepthLimit();
+      state.lastResolvedFenKey = fenKey;
+      return;
+    }
+
     const exactData = await getContinuationsForFen(fen, { ply, fenKey });
     if (requestId !== state.positionRequestId) return;
 
@@ -2414,9 +2964,17 @@
     } else {
       clearCurrentPositionEngineEvalRows();
     }
+    if (!state.useNodeApi) {
+      prefetchLikelyNextShards(state.latestPopularRows);
+    }
     updateCoverageBadge(state.latestPopularRows.length, state.latestAllLegalRows.length);
 
-    const rows = state.moveListMode === 'all' ? state.latestAllLegalRows : state.latestPopularRows;
+    const popularFallbackToLegal = state.moveListMode === 'popular' &&
+      state.latestPopularRows.length === 0 &&
+      state.latestAllLegalRows.length > 0;
+    const rows = state.moveListMode === 'all' || popularFallbackToLegal
+      ? state.latestAllLegalRows
+      : state.latestPopularRows;
     state.gameSearchLineKey = buildCurrentLineKey();
 
     let openingText = 'Opening: (TBD)';
@@ -2425,16 +2983,27 @@
     }
     els.openingLabel.textContent = openingText;
 
-    renderStatsRows(rows);
+    const renderStartedAt = performance.now();
+    const shouldRenderRows = rowsNeedRender(rows);
+    if (shouldRenderRows) {
+      renderStatsRows(rows);
+    }
+    const renderMs = performance.now() - renderStartedAt;
     refreshRenderedEngineEvalCells();
     checkTransitionState(state.latestPopularRows, ply);
 
     if (!state.datasetsLoaded) {
       els.lookupStatus.textContent = state.datasetsError || 'Loading datasets...';
       setMatchBadge(state.dbVersionFallback ? 'fallback' : 'none');
-    } else if (exactData.source === 'openingdb_shard_exact') {
+    } else if (exactData.source === 'openingdb_node_error') {
+      els.lookupStatus.textContent = 'Position lookup: Node API unavailable (strict mode)';
+      setMatchBadge('none');
+    } else if (exactData.source === 'openingdb_shard_exact' || exactData.source === 'openingdb_node_api') {
       els.lookupStatus.textContent = `Position lookup: match (${exactData.matchLevel || 'exact'})`;
       setMatchBadge(exactData.matchLevel || 'exact');
+    } else if (popularFallbackToLegal) {
+      els.lookupStatus.textContent = 'No database statistics for this position yet. Showing legal replies.';
+      setMatchBadge('legal');
     } else {
       els.lookupStatus.textContent = 'Position lookup: no exact match (TBD)';
       setMatchBadge(state.dbVersionFallback ? 'fallback' : 'none');
@@ -2450,10 +3019,46 @@
       matchLevel: exactData.matchLevel || 'none',
       source: exactData.source,
       lookupMs: Number(lookupMs.toFixed(2)),
+      renderMs: Number(renderMs.toFixed(2)),
+      renderedRowsApplied: shouldRenderRows,
+      inMemoryShards: state.openingDbShardCache.size,
+      engineEvalCacheSize: state.engine.nextMoveEvalCache.size,
+      nodeApiEnabled: state.useNodeApi,
+      strictNodeApi: state.strictNodeApi,
       rowsRendered: rows.length,
       rowsPopular: state.latestPopularRows.length,
-      rowsLegal: state.latestAllLegalRows.length
+      rowsLegal: state.latestAllLegalRows.length,
+      jsHeapUsedMB: (() => {
+        const used = window.performance && window.performance.memory ? Number(window.performance.memory.usedJSHeapSize) : 0;
+        return used > 0 ? Number((used / (1024 * 1024)).toFixed(2)) : null;
+      })()
     });
+    traceMemoryCheckpoint({
+      ply,
+      engineEvalCacheSize: state.engine.nextMoveEvalCache.size,
+      nodeApiEnabled: state.useNodeApi,
+      strictNodeApi: state.strictNodeApi,
+      matchLevel: exactData.matchLevel || 'none',
+      rowsRendered: rows.length,
+      nodeApiFallback: state.useNodeApi && !state.strictNodeApi && exactData.source === 'openingdb_shard_exact',
+      nodeApiError: exactData.source === 'openingdb_node_error'
+    });
+    debugLog('[OpeningDB][perf] position', {
+      fenKey,
+      ply,
+      lookupMs: Number(lookupMs.toFixed(2)),
+      renderMs: Number(renderMs.toFixed(2)),
+      renderedRowsApplied: shouldRenderRows,
+      rowsRendered: rows.length,
+      inMemoryShards: state.openingDbShardCache.size
+    });
+    recordBenchPositionSample({
+      lookupMs,
+      renderMs,
+      renderedRowsApplied: shouldRenderRows,
+      inMemoryShards: state.openingDbShardCache.size
+    });
+    state.lastResolvedFenKey = fenKey;
 
     debugLog('updatePosition complete', {
       fenKey,
@@ -2603,7 +3208,9 @@
       if (els.downloadGamesBtn) els.downloadGamesBtn.disabled = true;
       if (els.transitionSearchGamesBtn) els.transitionSearchGamesBtn.disabled = true;
     }
-    scheduleOpeningDbPrefetch();
+    if (!state.useNodeApi) {
+      scheduleOpeningDbPrefetch();
+    }
     await updatePositionView(state.game ? state.game.fen() : undefined, { force: true });
   }
 
@@ -2623,6 +3230,8 @@
 
     els.startBtn.addEventListener('click', () => {
       state.game.reset();
+      state.openingDbBasePly = 0;
+      clearEngineEvalCache();
       state.board.position('start', false);
       updateMoveListFromGame(state.game);
       updatePositionView(state.game.fen());
@@ -2631,6 +3240,7 @@
     els.takebackBtn.addEventListener('click', () => {
       const undone = state.game.undo();
       if (!undone) return;
+      clearEngineEvalCache();
       state.board.position(state.game.fen(), false);
       updateMoveListFromGame(state.game);
       updatePositionView(state.game.fen());
@@ -2668,6 +3278,8 @@
 
       try {
         state.game.load(check.fen);
+        state.openingDbBasePly = getPlyFromFen(check.fen);
+        clearEngineEvalCache();
       } catch (_err) {
         els.fenError.hidden = false;
         els.fenError.textContent = 'Invalid FEN.';
@@ -2895,6 +3507,10 @@
         pieceTheme: '/img/chesspieces/wikipedia/{piece}.png',
         onDragStart: (source, piece) => {
           if (state.game.game_over()) return false;
+          if (isOpeningDbDepthLimitReached()) {
+            renderOpeningDbDepthLimit();
+            return false;
+          }
           if ((state.game.turn() === 'w' && String(piece || '').startsWith('b')) ||
               (state.game.turn() === 'b' && String(piece || '').startsWith('w'))) {
             return false;
@@ -2902,7 +3518,7 @@
           return true;
         },
         onDrop: (source, target, piece, newPos, oldPos, orientation) => {
-          console.log('[OpeningDB] onDrop', { source, target, piece, fenBefore: state.game.fen(), orientation });
+          debugLog('[OpeningDB] onDrop', { source, target, piece, fenBefore: state.game.fen(), orientation });
 
           if ((state.game.turn() === 'w' && String(piece || '').startsWith('b')) ||
               (state.game.turn() === 'b' && String(piece || '').startsWith('w'))) {
@@ -2916,7 +3532,7 @@
             return 'snapback';
           }
 
-          console.log('[OpeningDB] legal move', { san: move.san, fenAfter: state.game.fen() });
+          debugLog('[OpeningDB] legal move', { san: move.san, fenAfter: state.game.fen() });
           state.board.position(state.game.fen(), false);
           updateMoveListFromGame(state.game);
           updatePositionView(state.game.fen());
@@ -2937,7 +3553,7 @@
         state.board.resize();
       }
       const childCount = els.board ? els.board.children.length : 0;
-      console.log('[OpeningDB] board child count', childCount);
+      debugLog('[OpeningDB] board child count', childCount);
       if (childCount === 0) {
         const msg = 'Chessboard did not render markup';
         console.error('[OpeningDB] ' + msg);
@@ -2947,12 +3563,12 @@
   }
 
   function runInit() {
-    console.log('[OpeningDB] init start');
-    console.log('[OpeningDB] Chessboard typeof:', typeof window.Chessboard);
-    console.log('[OpeningDB] Chess typeof:', typeof window.Chess);
-    console.log('[OpeningDB] jQuery typeof:', typeof window.jQuery);
-    console.log('[OpeningDB] jQuery.fn typeof:', window.jQuery ? typeof window.jQuery.fn : 'undefined');
-    console.log('[OpeningDB] boardEl exists:', !!document.getElementById('openingDbBoard'));
+    debugLog('[OpeningDB] init start');
+    debugLog('[OpeningDB] Chessboard typeof:', typeof window.Chessboard);
+    debugLog('[OpeningDB] Chess typeof:', typeof window.Chess);
+    debugLog('[OpeningDB] jQuery typeof:', typeof window.jQuery);
+    debugLog('[OpeningDB] jQuery.fn typeof:', window.jQuery ? typeof window.jQuery.fn : 'undefined');
+    debugLog('[OpeningDB] boardEl exists:', !!document.getElementById('openingDbBoard'));
 
     if (!els.board) {
       console.error('[OpeningDB] Board element missing');
@@ -2967,6 +3583,7 @@
     }
 
     try {
+      configureNodeApiMode();
       state.gamesTier = getTierFromUrl();
       hydratePgnViewCounter();
       if (els.engineDepth) {

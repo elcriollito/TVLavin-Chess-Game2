@@ -1507,6 +1507,16 @@ html, body {
     gap: var(--spacing-sm);
 }
 
+.time-btn,
+.color-btn {
+    color: var(--text-primary, #f5f7fa);
+}
+
+.time-btn.active,
+.color-btn.active {
+    color: #fff;
+}
+
 .promotion-options {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
