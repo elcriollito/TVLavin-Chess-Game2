@@ -6695,6 +6695,65 @@ button:focus,
     margin-bottom: var(--spacing-md);
 }
 
+.analyze-fetched-games {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 320px;
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--border-color);
+    overflow-y: auto;
+}
+
+.analyze-fetched-game {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    gap: 3px 8px;
+    align-items: center;
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+}
+
+.analyze-fetched-game:hover,
+.analyze-fetched-game.active {
+    border-color: var(--primary-color);
+    background: color-mix(in srgb, var(--primary-color) 14%, var(--bg-primary));
+}
+
+.analyze-game-number {
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.analyze-game-label,
+.analyze-game-meta {
+    min-width: 0;
+}
+
+.analyze-game-label {
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.analyze-game-meta {
+    grid-column: 2;
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .analyze-file-row {
     display: flex;
     align-items: center;

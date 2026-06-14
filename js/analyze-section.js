@@ -9,8 +9,13 @@ const AnalyzeSection = {
     // State
     currentSource: 'online',
     loadedGame: null,
+    fetchedGames: [],
+    selectedFetchedGameIndex: -1,
+    currentMoveIndex: -1,
     isAnalyzing: false,
     analysisResults: [],
+    analysisEngine: null,
+    analysisToken: 0,
 
     // DOM cache
     elements: {},
@@ -43,6 +48,7 @@ const AnalyzeSection = {
             username: document.getElementById('analyzeUsername'),
             gameCount: document.getElementById('analyzeGameCount'),
             fetchBtn: document.getElementById('analyzeFetchBtn'),
+            fetchedGames: document.getElementById('analyzeFetchedGames'),
 
             // PGN import
             pgnInput: document.getElementById('analyzePgnInput'),
@@ -164,10 +170,16 @@ const AnalyzeSection = {
                 throw new Error('No games found');
             }
 
-            console.log(`[Analyze] Received ${data.count} games`);
-            this.loadGameFromPgn(this.getFirstPgn(data.pgn), data.source || provider);
+            this.fetchedGames = this.parsePgnCollection(data.pgn, data.source || provider);
+            this.selectedFetchedGameIndex = -1;
+            console.log(`[Analyze] Received ${this.fetchedGames.length} games`);
+            this.renderFetchedGames();
 
-            this.setStatus('Game loaded', 'success');
+            if (this.fetchedGames.length === 1) {
+                this.selectFetchedGame(0);
+            } else {
+                this.setStatus('Select a game', 'ready');
+            }
         } catch (error) {
             console.error('[Analyze] Fetch error:', error);
             this.setStatus('Fetch failed', 'error');
@@ -234,7 +246,9 @@ const AnalyzeSection = {
             });
             if (!response.ok) continue;
             const data = await response.json();
-            games.push(...(data.games || []).slice().reverse().filter((game) => game.pgn));
+            games.push(...(data.games || []).slice().reverse().filter((game) => (
+                game.pgn && this.isLoadablePgn(game.pgn)
+            )));
         }
 
         const selected = games.slice(0, count);
@@ -245,8 +259,74 @@ const AnalyzeSection = {
         };
     },
 
-    getFirstPgn(combinedPgn) {
-        return String(combinedPgn || '').trim().split(/\r?\n\r?\n(?=\[Event\s)/)[0];
+    isLoadablePgn(pgn) {
+        try {
+            const game = new Chess();
+            return !!game.load_pgn(pgn);
+        } catch (_error) {
+            return false;
+        }
+    },
+
+    parsePgnCollection(combinedPgn, source) {
+        return String(combinedPgn || '')
+            .trim()
+            .split(/\r?\n\s*\r?\n(?=\[Event\s)/)
+            .map((pgn, index) => {
+                try {
+                    const game = new Chess();
+                    if (!game.load_pgn(pgn)) return null;
+                    const headers = game.header();
+                    return {
+                        index,
+                        pgn,
+                        source,
+                        white: headers.White || 'Unknown',
+                        black: headers.Black || 'Unknown',
+                        result: headers.Result || '*',
+                        date: headers.Date || ''
+                    };
+                } catch (_error) {
+                    return null;
+                }
+            })
+            .filter(Boolean);
+    },
+
+    renderFetchedGames() {
+        if (!this.elements.fetchedGames) return;
+        if (this.fetchedGames.length === 0) {
+            this.elements.fetchedGames.hidden = true;
+            this.elements.fetchedGames.innerHTML = '';
+            return;
+        }
+
+        this.elements.fetchedGames.hidden = false;
+        this.elements.fetchedGames.innerHTML = this.fetchedGames.map((game, index) => `
+            <button type="button" class="analyze-fetched-game${index === this.selectedFetchedGameIndex ? ' active' : ''}" data-game-index="${index}">
+                <span class="analyze-game-number">${index + 1}</span>
+                <span class="analyze-game-label">${this.escapeHtml(game.white)} vs ${this.escapeHtml(game.black)}</span>
+                <span class="analyze-game-meta">${this.escapeHtml(game.source)} · ${this.escapeHtml(game.result)}${game.date ? ` · ${this.escapeHtml(game.date)}` : ''}</span>
+            </button>
+        `).join('');
+
+        this.elements.fetchedGames.querySelectorAll('[data-game-index]').forEach((button) => {
+            button.addEventListener('click', () => this.selectFetchedGame(Number(button.dataset.gameIndex)));
+        });
+    },
+
+    selectFetchedGame(index) {
+        const game = this.fetchedGames[index];
+        if (!game) return;
+        this.selectedFetchedGameIndex = index;
+        this.renderFetchedGames();
+        this.loadGameFromPgn(game.pgn, game.source, game);
+    },
+
+    escapeHtml(value) {
+        const div = document.createElement('div');
+        div.textContent = String(value ?? '');
+        return div.innerHTML;
     },
 
     /**
@@ -315,6 +395,7 @@ const AnalyzeSection = {
                 event: headers.Event || '',
                 date: headers.Date || ''
             };
+            this.currentMoveIndex = this.loadedGame.game.history().length - 1;
 
             // Update metadata display
             this.updateMetadata();
@@ -322,12 +403,7 @@ const AnalyzeSection = {
             // Load into main board via App
             if (window.App) {
                 App.game.load_pgn(pgn);
-                App.board.position(App.game.fen());
-                if (typeof App.updateUI === 'function') {
-                    App.updateUI();
-                } else if (typeof window.updateUI === 'function') {
-                    window.updateUI();
-                }
+                this.updateBoardAndUI();
             }
 
             // Update move list
@@ -385,8 +461,8 @@ const AnalyzeSection = {
             html += `
                 <div class="move-row">
                     <span class="move-num">${moveNum}.</span>
-                    <span class="move-white" data-index="${i}">${whiteMove}</span>
-                    <span class="move-black" data-index="${i + 1}">${blackMove}</span>
+                    <span class="move-white${i === this.currentMoveIndex ? ' active' : ''}" data-index="${i}">${whiteMove}</span>
+                    <span class="move-black${i + 1 === this.currentMoveIndex ? ' active' : ''}" data-index="${i + 1}">${blackMove}</span>
                 </div>
             `;
         }
@@ -418,11 +494,21 @@ const AnalyzeSection = {
             App.game.move(moves[i]);
         }
 
-        // Update board
-        App.board.position(App.game.fen());
-        App.updateUI();
+        this.currentMoveIndex = index;
+        this.updateBoardAndUI();
+        this.updateMoveList();
 
         console.log('[Analyze] Jumped to move:', index + 1);
+    },
+
+    updateBoardAndUI() {
+        if (!window.App || !App.game) return;
+        if (App.board && typeof App.board.position === 'function') {
+            App.board.position(App.game.fen());
+        }
+        if (typeof App.updateUI === 'function') {
+            App.updateUI();
+        }
     },
 
     /**
@@ -435,7 +521,16 @@ const AnalyzeSection = {
         }
 
         console.log('[Analyze] Starting analysis...');
+        this.setStatus('Engine loading...', 'loading');
+        const engine = await this.ensureAnalysisEngine();
+        if (!engine) {
+            this.setStatus('Engine unavailable', 'error');
+            this.showNotification('Stockfish could not be loaded. Please try again.', 'error');
+            return;
+        }
+
         this.isAnalyzing = true;
+        const token = ++this.analysisToken;
         this.analysisResults = [];
 
         // Update UI
@@ -451,14 +546,14 @@ const AnalyzeSection = {
             // Reset to start
             const tempGame = new Chess();
 
-            for (let i = 0; i < totalMoves && this.isAnalyzing; i++) {
+            for (let i = 0; i < totalMoves && this.isAnalyzing && token === this.analysisToken; i++) {
                 // Update progress
                 const progress = Math.round(((i + 1) / totalMoves) * 100);
                 this.updateProgress(progress, `Move ${i + 1}/${totalMoves}`);
 
                 // Analyze position
                 const fen = tempGame.fen();
-                const analysis = await this.analyzePosition(fen);
+                const analysis = await this.analyzePosition(fen, token);
 
                 this.analysisResults.push({
                     moveIndex: i,
@@ -466,13 +561,19 @@ const AnalyzeSection = {
                     fen: fen,
                     ...analysis
                 });
+                const evaluation = analysis.mate !== null && analysis.mate !== undefined
+                    ? `Mate ${analysis.mate}`
+                    : (analysis.eval !== null && analysis.eval !== undefined ? `${analysis.eval >= 0 ? '+' : ''}${analysis.eval.toFixed(2)}` : 'No score');
+                this.updateProgress(progress, `Move ${i + 1}/${totalMoves} · ${evaluation}`);
 
                 // Make move
                 tempGame.move(moves[i].san);
             }
 
-            this.setStatus('Analysis complete', 'success');
-            console.log('[Analyze] Analysis complete');
+            if (this.isAnalyzing && token === this.analysisToken) {
+                this.setStatus('Analysis complete', 'success');
+                console.log('[Analyze] Analysis complete');
+            }
 
         } catch (error) {
             console.error('[Analyze] Analysis error:', error);
@@ -491,66 +592,67 @@ const AnalyzeSection = {
     stopAnalysis() {
         console.log('[Analyze] Stopping analysis...');
         this.isAnalyzing = false;
+        this.analysisToken += 1;
+        this.analysisEngine?.stop?.();
         this.setStatus('Analysis stopped', 'warning');
     },
 
     /**
      * Analyze single position with Stockfish
      */
-    analyzePosition(fen) {
-        return new Promise((resolve) => {
-            // Use existing App.analyzePosition if available
-            if (window.App && typeof App.analyzePosition === 'function') {
-                // Temporarily capture analysis result
-                const originalCallback = App.onAnalysisResult;
-                const timeout = setTimeout(() => {
-                    App.onAnalysisResult = originalCallback;
-                    resolve({ eval: 0, bestMove: null, depth: 0 });
-                }, 3000);
+    async ensureAnalysisEngine() {
+        if (this.analysisEngine?.isReady?.()) return this.analysisEngine;
+        if (!this.analysisEngine && window.EngineRegistry?.createEngine) {
+            this.analysisEngine = EngineRegistry.createEngine('stockfish');
+        }
+        if (!this.analysisEngine) return null;
 
-                App.onAnalysisResult = (result) => {
-                    clearTimeout(timeout);
-                    App.onAnalysisResult = originalCallback;
-                    resolve({
-                        eval: result.eval || 0,
-                        bestMove: result.bestMove || null,
-                        depth: result.depth || 0,
-                        pv: result.pv || ''
-                    });
-                };
+        const started = Date.now();
+        while (!this.analysisEngine.isReady?.() && Date.now() - started < 8000) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        return this.analysisEngine.isReady?.() ? this.analysisEngine : null;
+    },
 
-                // Trigger analysis
-                App.analyzePosition(fen);
-            } else if (window.App && App.stockfish) {
-                // Direct Stockfish worker communication
-                const timeout = setTimeout(() => {
-                    resolve({ eval: 0, bestMove: null, depth: 0 });
-                }, 3000);
-
-                // Send position to stockfish
-                App.stockfish.postMessage('position fen ' + fen);
-                App.stockfish.postMessage('go depth 12');
-
-                const handler = (e) => {
-                    const data = e.data;
-                    if (typeof data === 'string' && data.startsWith('bestmove')) {
-                        clearTimeout(timeout);
-                        App.stockfish.removeEventListener('message', handler);
-                        const bestMove = data.split(' ')[1];
-                        resolve({
-                            eval: 0,
-                            bestMove: bestMove,
-                            depth: 12
-                        });
-                    }
-                };
-
-                App.stockfish.addEventListener('message', handler);
-            } else {
-                // Fallback - no engine available
-                console.warn('[Analyze] No Stockfish engine available');
-                resolve({ eval: 0, bestMove: null, depth: 0 });
+    analyzePosition(fen, token) {
+        return new Promise((resolve, reject) => {
+            const engine = this.analysisEngine;
+            if (!engine?.isReady?.()) {
+                reject(new Error('Stockfish engine is not ready'));
+                return;
             }
+
+            let latestInfo = null;
+            const finish = (result) => {
+                clearTimeout(timeout);
+                engine.onInfo = null;
+                engine.onBestMove = null;
+                resolve(result);
+            };
+            const timeout = setTimeout(() => {
+                engine.stop();
+                engine.onInfo = null;
+                engine.onBestMove = null;
+                reject(new Error('Stockfish analysis timed out'));
+            }, 10000);
+
+            engine.onInfo = (info) => {
+                if (token !== this.analysisToken) return;
+                latestInfo = info;
+            };
+            engine.getBestMove(fen, (bestMove) => {
+                if (token !== this.analysisToken) {
+                    finish({ eval: null, bestMove: null, depth: 0, pv: [] });
+                    return;
+                }
+                finish({
+                    eval: latestInfo?.score ?? null,
+                    mate: latestInfo?.mate ?? null,
+                    bestMove,
+                    depth: latestInfo?.depth ?? 0,
+                    pv: latestInfo?.pv ?? []
+                });
+            }, { depth: 12 });
         });
     },
 
@@ -669,6 +771,10 @@ style.textContent = `
         border-radius: 3px;
     }
     .move-white:hover, .move-black:hover {
+        background: var(--primary-color);
+        color: white;
+    }
+    .move-white.active, .move-black.active {
         background: var(--primary-color);
         color: white;
     }
