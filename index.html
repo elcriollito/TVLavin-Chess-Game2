@@ -1106,7 +1106,7 @@
 
                             <div class="arena-section">
                                 <button id="arenaSetPositionBtn" class="btn btn-block btn-secondary" type="button">
-                                    <i class="fas fa-edit"></i> Set Position
+                                    <i class="fas fa-file-import"></i> Set Position
                                 </button>
                                 <div id="arenaPositionPanel" class="arena-position-panel" hidden>
                                     <label for="arenaFenInput">Starting FEN</label>
@@ -1117,9 +1117,15 @@
                                     </div>
                                     <div id="arenaFenMessage" class="arena-fen-message" role="status"></div>
                                 </div>
+                                <button id="arenaManualSetupBtn" class="btn btn-block btn-secondary" type="button">
+                                    <i class="fas fa-edit"></i> Manual Setup
+                                </button>
                             </div>
 
                             <div class="arena-controls">
+                                <button id="arenaInfiniteAnalysis" class="btn btn-block btn-secondary" type="button">
+                                    <i class="fas fa-search"></i> Infinite Analysis
+                                </button>
                                 <button id="arenaStartMatch" class="btn btn-block btn-primary btn-lg" aria-label="Start Match">
                                     <i class="fas fa-play"></i> Start Match
                                 </button>
@@ -1225,6 +1231,41 @@
                             <div id="arenaMoveHistory" class="arena-move-list"></div>
                         </div>
                     </aside>
+                    </div>
+                </div>
+
+                <div id="arenaSetupModal" class="modal arena-setup-modal">
+                    <div class="modal-content arena-setup-modal-content">
+                        <div class="modal-header">
+                            <h2>Manual Setup</h2>
+                            <button id="arenaSetupClose" class="modal-close" type="button" aria-label="Close manual setup">&times;</button>
+                        </div>
+                        <div class="modal-body arena-setup-body">
+                            <div id="arenaSetupBoard" class="arena-setup-board"></div>
+                            <div class="arena-setup-tools">
+                                <div id="arenaSetupPalette" class="arena-setup-palette"></div>
+                                <div class="arena-setup-options">
+                                    <label for="arenaSetupTurn">Side to move</label>
+                                    <select id="arenaSetupTurn" class="form-control">
+                                        <option value="w">White</option>
+                                        <option value="b">Black</option>
+                                    </select>
+                                    <span>Castling rights</span>
+                                    <div class="arena-setup-castling">
+                                        <label><input id="arenaSetupCastleWK" type="checkbox" checked> K</label>
+                                        <label><input id="arenaSetupCastleWQ" type="checkbox" checked> Q</label>
+                                        <label><input id="arenaSetupCastleBK" type="checkbox" checked> k</label>
+                                        <label><input id="arenaSetupCastleBQ" type="checkbox" checked> q</label>
+                                    </div>
+                                </div>
+                                <div id="arenaSetupMessage" class="arena-fen-message" role="status"></div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button id="arenaSetupClear" class="btn btn-secondary" type="button">Clear Board</button>
+                            <button id="arenaSetupReset" class="btn btn-secondary" type="button">Initial Position</button>
+                            <button id="arenaSetupApply" class="btn btn-primary" type="button">Apply Position</button>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -2657,7 +2698,7 @@
     <script src="js/caissa-ui-refactor.js?v=1.0.0"></script>
     <script src="js/engine-adapter.js?v=1.0.0"></script>
     <script src="js/engine-registry.js?v=1.0.0"></script>
-    <script src="js/caissa-arena.js?v=1.2.0"></script>
+    <script src="js/caissa-arena.js?v=1.3.0"></script>
     <!-- Section Modules (Phase 2) -->
     <script src="js/arena-section.js?v=1.0.0"></script>
     <script src="js/insights-section.js?v=1.0.0"></script>

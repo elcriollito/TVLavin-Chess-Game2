@@ -54,6 +54,9 @@ const CaissaArena = {
         currentGame: null,
         evalHistory: [], // For graph: [{move: 1, eval: 0.3}, ...]
         customStartFen: '',
+        analysisRunning: false,
+        analysisFen: '',
+        setupPiece: 'erase',
         boardMounted: false,
         loopActive: false, // Is engine loop running
         searchToken: 0,
@@ -126,12 +129,27 @@ const CaissaArena = {
             startMatchBtn: document.getElementById('arenaStartMatch'),
             pauseMatchBtn: document.getElementById('arenaPauseMatch'),
             stopMatchBtn: document.getElementById('arenaStopMatch'),
+            infiniteAnalysisBtn: document.getElementById('arenaInfiniteAnalysis'),
             setPositionBtn: document.getElementById('arenaSetPositionBtn'),
+            manualSetupBtn: document.getElementById('arenaManualSetupBtn'),
             positionPanel: document.getElementById('arenaPositionPanel'),
             fenInput: document.getElementById('arenaFenInput'),
             applyFenBtn: document.getElementById('arenaApplyFen'),
             useStartPositionBtn: document.getElementById('arenaUseStartPosition'),
             fenMessage: document.getElementById('arenaFenMessage'),
+            setupModal: document.getElementById('arenaSetupModal'),
+            setupCloseBtn: document.getElementById('arenaSetupClose'),
+            setupBoard: document.getElementById('arenaSetupBoard'),
+            setupPalette: document.getElementById('arenaSetupPalette'),
+            setupTurn: document.getElementById('arenaSetupTurn'),
+            setupCastleWK: document.getElementById('arenaSetupCastleWK'),
+            setupCastleWQ: document.getElementById('arenaSetupCastleWQ'),
+            setupCastleBK: document.getElementById('arenaSetupCastleBK'),
+            setupCastleBQ: document.getElementById('arenaSetupCastleBQ'),
+            setupClearBtn: document.getElementById('arenaSetupClear'),
+            setupResetBtn: document.getElementById('arenaSetupReset'),
+            setupApplyBtn: document.getElementById('arenaSetupApply'),
+            setupMessage: document.getElementById('arenaSetupMessage'),
 
             // Game status
             statusWhiteName: document.getElementById('arenaStatusWhite'),
@@ -366,28 +384,26 @@ const CaissaArena = {
                 // Get container dimensions
                 const containerRect = boardContainer.getBoundingClientRect();
                 const containerWidth = containerRect.width - 32; // padding
-                const containerHeight = containerRect.height - 32;
-
-                // Calculate ideal board size (use smaller dimension for square board)
-                let idealSize = Math.min(containerWidth, containerHeight);
+                const idealSize = containerWidth;
 
                 // Clamp to reasonable bounds
                 // Desktop: 480px target (~5" visual), Mobile: 280px min
                 const isMobile = window.innerWidth < 768;
                 const minSize = isMobile ? 280 : 380;
-                const maxSize = isMobile ? 520 : 660; // Match --board-size variable
+                const cssBoardSize = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--board-size'));
+                const maxSize = Math.min(isMobile ? 520 : 660, cssBoardSize || Infinity);
 
                 const boardSize = Math.max(minSize, Math.min(maxSize, idealSize));
 
                 // Apply size to board mount container
                 boardMount.style.width = `${boardSize}px`;
                 boardMount.style.height = `${boardSize}px`;
-                this.syncGraphToBoardSize(boardSize);
 
-                console.log(`[Arena] Resizing board: ${boardSize}px (container: ${containerWidth}x${containerHeight})`);
+                console.log(`[Arena] Resizing board: ${boardSize}px (container width: ${containerWidth}px)`);
 
                 // Trigger chessboard.js resize
                 this.board.resize();
+                requestAnimationFrame(() => this.syncBoardAndGraphSize(boardSize));
             }, 150);
         });
 
@@ -405,25 +421,32 @@ const CaissaArena = {
         if (!hostWidth || hostWidth < 50) return;
 
         const containerWidth = hostWidth - 32;
-        const containerHeight = hostRect.height - 32;
-        let idealSize = Math.min(containerWidth, containerHeight);
+        const idealSize = containerWidth;
 
         const isMobile = window.innerWidth < 768;
         const minSize = isMobile ? 280 : 380;
-        const maxSize = isMobile ? 520 : 660;
+        const cssBoardSize = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--board-size'));
+        const maxSize = Math.min(isMobile ? 520 : 660, cssBoardSize || Infinity);
         const boardSize = Math.max(minSize, Math.min(maxSize, idealSize));
 
         boardMount.style.width = `${boardSize}px`;
         boardMount.style.height = `${boardSize}px`;
-        this.syncGraphToBoardSize(boardSize);
 
         if (this.board) {
             this.board.resize();
         }
+        requestAnimationFrame(() => this.syncBoardAndGraphSize(boardSize));
     },
 
-    syncGraphToBoardSize(boardSize) {
+    syncBoardAndGraphSize(fallbackSize) {
         const { graphPanel, evalGraph } = this.elements;
+        const boardElement = document.querySelector('#arenaSection .arena-board-container > #chessboard')
+            || document.getElementById('arenaBoardElement')
+            || this.elements.boardMount;
+        const measuredWidth = Math.round(boardElement?.getBoundingClientRect().width || 0);
+        const boardSize = measuredWidth || fallbackSize;
+        if (!boardSize) return;
+
         if (graphPanel) {
             graphPanel.style.width = `${boardSize}px`;
         }
@@ -503,9 +526,16 @@ const CaissaArena = {
         this.elements.startMatchBtn?.addEventListener('click', () => this.startMatch());
         this.elements.pauseMatchBtn?.addEventListener('click', () => this.togglePause());
         this.elements.stopMatchBtn?.addEventListener('click', () => this.stopMatch());
+        this.elements.infiniteAnalysisBtn?.addEventListener('click', () => this.toggleInfiniteAnalysis());
         this.elements.setPositionBtn?.addEventListener('click', () => this.togglePositionPanel());
+        this.elements.manualSetupBtn?.addEventListener('click', () => this.openManualSetup());
         this.elements.applyFenBtn?.addEventListener('click', () => this.applyCustomPosition());
         this.elements.useStartPositionBtn?.addEventListener('click', () => this.useInitialPosition());
+        this.elements.setupCloseBtn?.addEventListener('click', () => this.closeManualSetup());
+        this.elements.setupClearBtn?.addEventListener('click', () => this.setupBoardInstance?.position({}));
+        this.elements.setupResetBtn?.addEventListener('click', () => this.resetManualSetup());
+        this.elements.setupApplyBtn?.addEventListener('click', () => this.applyManualSetup());
+        this.elements.setupBoard?.addEventListener('click', (event) => this.onManualSetupSquareClick(event));
 
         // Tournament controls
         this.elements.startTournamentBtn?.addEventListener('click', () => this.startTournament());
@@ -557,17 +587,7 @@ const CaissaArena = {
                 throw new Error('Invalid FEN');
             }
 
-            if (this.state.matchState === 'running' || this.state.matchState === 'paused') {
-                this.stopMatch();
-            }
-            this.state.matchState = 'idle';
-            this.state.customStartFen = candidate.fen();
-            this.resetBoard();
-            this.updateMatchControls();
-
-            const side = candidate.turn() === 'w' ? 'White' : 'Black';
-            this.setFenMessage(`Custom position ready. ${side} to move.`);
-            this.updateGameStatus({ result: `Ready: Custom position set (${side} to move)` });
+            this.applyArenaPosition(candidate.fen(), 'Custom position');
         } catch (error) {
             this.setFenMessage('Invalid FEN. Check the position and try again.', true);
         }
@@ -577,6 +597,7 @@ const CaissaArena = {
         if (this.state.matchState === 'running' || this.state.matchState === 'paused') {
             this.stopMatch();
         }
+        this.stopInfiniteAnalysis(false);
         this.state.matchState = 'idle';
         this.state.customStartFen = '';
         this.resetBoard();
@@ -588,10 +609,147 @@ const CaissaArena = {
         this.updateGameStatus({ result: 'Ready: Initial position' });
     },
 
+    applyArenaPosition(fen, label = 'Custom position') {
+        if (this.state.matchState === 'running' || this.state.matchState === 'paused') {
+            this.stopMatch();
+        }
+        this.stopInfiniteAnalysis(false);
+
+        this.state.matchState = 'idle';
+        this.state.customStartFen = fen;
+        this.resetBoard();
+        this.updateBoardPosition(fen);
+        this.updateMatchControls();
+
+        const side = this.game?.turn() === 'b' ? 'Black' : 'White';
+        if (this.elements.fenInput) {
+            this.elements.fenInput.value = fen;
+        }
+        this.setFenMessage(`${label} ready. ${side} to move.`);
+        this.updateGameStatus({ result: `Ready: ${label} (${side} to move)` });
+        requestAnimationFrame(() => {
+            this.board?.resize?.();
+            this.syncBoardAndGraphSize();
+        });
+    },
+
     setFenMessage(message, isError = false) {
         if (!this.elements.fenMessage) return;
         this.elements.fenMessage.textContent = message;
         this.elements.fenMessage.classList.toggle('error', isError);
+    },
+
+    openManualSetup() {
+        if (!this.elements.setupModal || typeof Chessboard === 'undefined') return;
+        this.renderSetupPalette();
+        this.elements.setupModal.classList.add('show');
+
+        const fen = this.game?.fen() || this.state.customStartFen || 'start';
+        const position = fen === 'start' ? 'start' : fen.split(' ')[0];
+        if (!this.setupBoardInstance) {
+            this.setupBoardInstance = Chessboard('arenaSetupBoard', {
+                draggable: false,
+                position,
+                pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
+                showNotation: true
+            });
+        } else {
+            this.setupBoardInstance.position(position, false);
+        }
+        this.loadSetupOptionsFromFen(fen);
+        requestAnimationFrame(() => this.setupBoardInstance?.resize?.());
+    },
+
+    closeManualSetup() {
+        this.elements.setupModal?.classList.remove('show');
+    },
+
+    renderSetupPalette() {
+        if (!this.elements.setupPalette || this.elements.setupPalette.children.length) return;
+        const pieces = ['wP', 'wN', 'wB', 'wR', 'wQ', 'wK', 'bP', 'bN', 'bB', 'bR', 'bQ', 'bK'];
+        pieces.forEach((piece) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'arena-setup-piece';
+            button.dataset.piece = piece;
+            button.title = piece;
+            button.innerHTML = `<img src="img/chesspieces/wikipedia/${piece}.png" alt="${piece}">`;
+            button.addEventListener('click', () => this.selectSetupPiece(piece));
+            this.elements.setupPalette.appendChild(button);
+        });
+        const erase = document.createElement('button');
+        erase.type = 'button';
+        erase.className = 'arena-setup-piece active';
+        erase.dataset.piece = 'erase';
+        erase.title = 'Erase piece';
+        erase.innerHTML = '<i class="fas fa-eraser"></i>';
+        erase.addEventListener('click', () => this.selectSetupPiece('erase'));
+        this.elements.setupPalette.appendChild(erase);
+    },
+
+    selectSetupPiece(piece) {
+        this.state.setupPiece = piece;
+        this.elements.setupPalette?.querySelectorAll('.arena-setup-piece').forEach((button) => {
+            button.classList.toggle('active', button.dataset.piece === piece);
+        });
+    },
+
+    onManualSetupSquareClick(event) {
+        const squareElement = event.target.closest('.square-55d63');
+        if (!squareElement || !this.setupBoardInstance) return;
+        const squareClass = Array.from(squareElement.classList).find((name) => /^square-[a-h][1-8]$/.test(name));
+        if (!squareClass) return;
+
+        const square = squareClass.replace('square-', '');
+        const position = this.setupBoardInstance.position();
+        if (this.state.setupPiece === 'erase') {
+            delete position[square];
+        } else {
+            position[square] = this.state.setupPiece;
+        }
+        this.setupBoardInstance.position(position, false);
+    },
+
+    resetManualSetup() {
+        this.setupBoardInstance?.start?.(false);
+        this.loadSetupOptionsFromFen(new Chess().fen());
+    },
+
+    loadSetupOptionsFromFen(fen) {
+        const parts = String(fen || '').split(' ');
+        const turn = parts[1] || 'w';
+        const castling = parts[2] || '-';
+        if (this.elements.setupTurn) this.elements.setupTurn.value = turn;
+        if (this.elements.setupCastleWK) this.elements.setupCastleWK.checked = castling.includes('K');
+        if (this.elements.setupCastleWQ) this.elements.setupCastleWQ.checked = castling.includes('Q');
+        if (this.elements.setupCastleBK) this.elements.setupCastleBK.checked = castling.includes('k');
+        if (this.elements.setupCastleBQ) this.elements.setupCastleBQ.checked = castling.includes('q');
+    },
+
+    applyManualSetup() {
+        try {
+            const position = this.setupBoardInstance?.position();
+            if (!position || typeof generateFENFromPosition !== 'function') {
+                throw new Error('Board editor unavailable');
+            }
+            const turn = this.elements.setupTurn?.value || 'w';
+            let castling = '';
+            if (this.elements.setupCastleWK?.checked) castling += 'K';
+            if (this.elements.setupCastleWQ?.checked) castling += 'Q';
+            if (this.elements.setupCastleBK?.checked) castling += 'k';
+            if (this.elements.setupCastleBQ?.checked) castling += 'q';
+            const fen = `${generateFENFromPosition(position)} ${turn} ${castling || '-'} - 0 1`;
+            const candidate = new Chess();
+            if (candidate.load(fen) === false) throw new Error('Invalid position');
+
+            this.applyArenaPosition(candidate.fen(), 'Manual position');
+            this.closeManualSetup();
+        } catch (error) {
+            if (this.elements.setupMessage) {
+                this.elements.setupMessage.textContent = 'Invalid position. Place both kings before applying.';
+                this.elements.setupMessage.classList.add('error');
+            }
+        }
     },
 
     // ===== ENGINE MANAGEMENT =====
@@ -843,6 +1001,7 @@ const CaissaArena = {
             return;
         }
 
+        this.stopInfiniteAnalysis(false);
         console.log('[Arena] Starting match:', this.state.whiteEngine.name, 'vs', this.state.blackEngine.name);
 
         // Wait for board to be mounted if not ready yet
@@ -954,6 +1113,10 @@ const CaissaArena = {
     },
 
     stopMatch() {
+        if (this.state.analysisRunning && this.state.matchState === 'idle') {
+            this.stopInfiniteAnalysis();
+            return;
+        }
         console.log('[Arena] Stopping match');
         this.state.matchState = 'idle';
         this.state.loopActive = false;
@@ -975,11 +1138,11 @@ const CaissaArena = {
     },
 
     updateMatchControls() {
-        const { matchState } = this.state;
-        const { startMatchBtn, pauseMatchBtn, stopMatchBtn } = this.elements;
+        const { matchState, analysisRunning } = this.state;
+        const { startMatchBtn, pauseMatchBtn, stopMatchBtn, infiniteAnalysisBtn } = this.elements;
 
         if (startMatchBtn) {
-            startMatchBtn.style.display = matchState === 'idle' ? 'block' : 'none';
+            startMatchBtn.style.display = matchState === 'idle' && !analysisRunning ? 'block' : 'none';
         }
         if (pauseMatchBtn) {
             pauseMatchBtn.style.display = matchState === 'running' || matchState === 'paused' ? 'block' : 'none';
@@ -990,6 +1153,68 @@ const CaissaArena = {
         if (stopMatchBtn) {
             stopMatchBtn.style.display = matchState !== 'idle' ? 'block' : 'none';
         }
+        if (infiniteAnalysisBtn) {
+            infiniteAnalysisBtn.style.display = matchState === 'idle' ? 'block' : 'none';
+            infiniteAnalysisBtn.innerHTML = analysisRunning
+                ? '<i class="fas fa-stop"></i> Stop Analysis'
+                : '<i class="fas fa-search"></i> Infinite Analysis';
+            infiniteAnalysisBtn.classList.toggle('btn-danger', analysisRunning);
+            infiniteAnalysisBtn.classList.toggle('btn-secondary', !analysisRunning);
+        }
+    },
+
+    async toggleInfiniteAnalysis() {
+        if (this.state.analysisRunning) {
+            this.stopInfiniteAnalysis();
+            return;
+        }
+        if (this.state.matchState === 'running' || this.state.matchState === 'paused') {
+            this.stopMatch();
+        }
+        await this.startInfiniteAnalysis();
+    },
+
+    async startInfiniteAnalysis() {
+        if (!this.game) return;
+        if (!this.enginesReady || !this.evaluatorReady) {
+            const initialized = await this.initEngines();
+            if (!initialized) {
+                this.handleError('Unable to initialize analysis engine');
+                return;
+            }
+        }
+
+        const fen = this.game.fen();
+        this.evaluatorEngine.stop?.();
+        this.evaluatorEngine.currentFen = fen;
+        this.evaluatorEngine.onBestMove = null;
+        this.evaluatorEngine.onInfo = (info) => {
+            if (!this.state.analysisRunning || this.state.analysisFen !== fen || this.game.fen() !== fen) return;
+            this.recordEvaluationInfo(info);
+        };
+        this.state.analysisRunning = true;
+        this.state.analysisFen = fen;
+        this.updateMatchControls();
+        this.updateGameStatus({ result: 'Infinite analysis running' });
+        this.evaluatorEngine.setPosition(fen);
+        this.evaluatorEngine.go({ infinite: true });
+        console.log('[Arena] Infinite analysis started', { fen });
+    },
+
+    stopInfiniteAnalysis(updateStatus = true) {
+        if (!this.state.analysisRunning) return;
+        this.evaluatorEngine?.stop?.();
+        if (this.evaluatorEngine) {
+            this.evaluatorEngine.onInfo = null;
+            this.evaluatorEngine.onBestMove = null;
+        }
+        this.state.analysisRunning = false;
+        this.state.analysisFen = '';
+        this.updateMatchControls();
+        if (updateStatus) {
+            this.updateGameStatus({ result: 'Infinite analysis stopped' });
+        }
+        console.log('[Arena] Infinite analysis stopped');
     },
 
     /**
@@ -1577,7 +1802,7 @@ const CaissaArena = {
      * Evaluate current position and update eval panel + graph
      */
     evaluatePosition(fen) {
-        if (!this.evaluatorEngine || !this.evaluatorReady) {
+        if (!this.evaluatorEngine || !this.evaluatorReady || this.state.analysisRunning) {
             return;
         }
 
@@ -1586,42 +1811,36 @@ const CaissaArena = {
 
         // Set up info callback to capture evaluation data
         this.evaluatorEngine.onInfo = (info) => {
-            if ((info.score != null || info.mate != null) && info.depth > 0) {
-                // Calculate evaluation score (white perspective)
-                let evalScore = 0;
-                if (info.mate != null) {
-                    evalScore = info.mate > 0 ? 99 : -99; // Mate in X moves
-                } else if (info.score != null) {
-                    evalScore = info.score; // Already in pawns (white perspective)
-                }
-
-                // Update eval panel
-                this.updateEvalPanelWithInfo({
-                    score: evalScore,
-                    mate: info.mate,
-                    depth: info.depth,
-                    nodes: info.nodes,
-                    pv: info.pv,
-                    turn: this.game.turn() === 'w' ? 'white' : 'black'
-                });
-
-                // Add to eval history for graph
-                const move = this.game.history().length;
-                const latest = this.state.evalHistory[this.state.evalHistory.length - 1];
-                if (latest && latest.move === move) {
-                    latest.eval = evalScore;
-                } else {
-                    this.state.evalHistory.push({ move, eval: evalScore });
-                }
-
-                // Update graph
-                this.updateEvalGraph();
-            }
+            if (this.game.fen() !== fen) return;
+            this.recordEvaluationInfo(info);
         };
 
         // Start analysis with short movetime
         this.evaluatorEngine.setPosition(fen);
         this.evaluatorEngine.go({ movetime: 400 });
+    },
+
+    recordEvaluationInfo(info) {
+        if ((info.score == null && info.mate == null) || info.depth <= 0) return;
+        const evalScore = info.mate != null ? (info.mate > 0 ? 99 : -99) : info.score;
+
+        this.updateEvalPanelWithInfo({
+            score: evalScore,
+            mate: info.mate,
+            depth: info.depth,
+            nodes: info.nodes,
+            pv: info.pv,
+            turn: this.game.turn() === 'w' ? 'white' : 'black'
+        });
+
+        const move = this.game.history().length;
+        const latest = this.state.evalHistory[this.state.evalHistory.length - 1];
+        if (latest && latest.move === move) {
+            latest.eval = evalScore;
+        } else {
+            this.state.evalHistory.push({ move, eval: evalScore });
+        }
+        this.updateEvalGraph();
     },
 
     /**
@@ -1829,10 +2048,9 @@ const CaissaArena = {
         const ctx = this.evalGraphCtx;
         const history = this.state.evalHistory;
 
-        if (history.length < 2) return;
-
         // Clear and redraw
         this.clearEvalGraph();
+        if (history.length === 0) return;
 
         // Draw eval line
         ctx.strokeStyle = '#4ecdc4';
@@ -1858,6 +2076,14 @@ const CaissaArena = {
         });
 
         ctx.stroke();
+        if (history.length === 1) {
+            const evalClamped = Math.max(-5, Math.min(5, history[0].eval));
+            const y = graphHeight / 2 - (evalClamped / evalRange) * graphHeight;
+            ctx.fillStyle = '#4ecdc4';
+            ctx.beginPath();
+            ctx.arc(padding, y, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
 
         // Fill areas
         ctx.globalAlpha = 0.2;
@@ -2134,6 +2360,10 @@ const CaissaArena = {
     updateBoardPosition(fen) {
         if (this.board && fen) {
             this.board.position(fen, false);
+            requestAnimationFrame(() => {
+                this.board?.resize?.();
+                this.syncBoardAndGraphSize();
+            });
         }
     },
 
