@@ -14,6 +14,9 @@ const ArenaEngineRegistry = (window.EngineRegistry && typeof EngineRegistry.list
         { id: 'stockfish-lite', name: 'Stockfish Lite', workerPath: 'engine/stockfish-working.js', enabled: true }
     ];
 
+const ARENA_ENGINE_MOVETIME_MS = 2000;
+const ARENA_ENGINE_TIMEOUT_MS = 12000;
+
 const CaissaArena = {
     // ===== ENGINE REGISTRY =====
     engines: ArenaEngineRegistry.map((engine, index) => ({
@@ -52,6 +55,9 @@ const CaissaArena = {
         evalHistory: [], // For graph: [{move: 1, eval: 0.3}, ...]
         boardMounted: false,
         loopActive: false, // Is engine loop running
+        searchToken: 0,
+        loopRunning: false,
+        cancelPendingSearch: null,
         tournament: {
             engines: [],
             format: 'swiss',
@@ -781,6 +787,21 @@ const CaissaArena = {
 
         // Reset game state
         this.resetBoard();
+        this.cancelActiveSearch('match restart');
+        this.state.loopRunning = false;
+        this.whiteEngineInstance.newGame?.();
+        this.blackEngineInstance.newGame?.();
+        this.evaluatorEngine?.newGame?.();
+        try {
+            await Promise.all([
+                this.waitForEngineReadyOk(this.whiteEngineInstance, 'white'),
+                this.waitForEngineReadyOk(this.blackEngineInstance, 'black')
+            ]);
+        } catch (error) {
+            console.error('[Arena] Player engine readiness failed:', error);
+            this.handleError(error.message);
+            return;
+        }
 
         // Set match state
         this.state.matchState = 'running';
@@ -827,6 +848,10 @@ const CaissaArena = {
             // Pause the match
             this.state.matchState = 'paused';
             this.state.loopActive = false;
+            this.cancelActiveSearch('match paused');
+            this.state.loopRunning = false;
+            this.whiteEngineInstance?.stop?.();
+            this.blackEngineInstance?.stop?.();
             console.log('[Arena] Match paused');
             window.dispatchEvent(new CustomEvent('caissa-arena-pause'));
         } else if (this.state.matchState === 'paused') {
@@ -851,6 +876,8 @@ const CaissaArena = {
         console.log('[Arena] Stopping match');
         this.state.matchState = 'idle';
         this.state.loopActive = false;
+        this.cancelActiveSearch('match stopped');
+        this.state.loopRunning = false;
 
         // Stop any ongoing engine calculations
         if (this.whiteEngineInstance) {
@@ -1118,22 +1145,72 @@ const CaissaArena = {
         return book.selectBookMove(this.game);
     },
 
+    findLegalUciMove(uciMove) {
+        if (!this.game || typeof uciMove !== 'string' || uciMove.length < 4) return null;
+        const from = uciMove.substring(0, 2).toLowerCase();
+        const to = uciMove.substring(2, 4).toLowerCase();
+        const promotion = uciMove.length > 4 ? uciMove.substring(4, 5).toLowerCase() : undefined;
+        return this.game.moves({ verbose: true }).find((move) =>
+            move.from === from &&
+            move.to === to &&
+            (promotion ? move.promotion === promotion : !move.promotion)
+        ) || null;
+    },
+
+    cancelActiveSearch(reason) {
+        this.state.searchToken += 1;
+        const cancel = this.state.cancelPendingSearch;
+        this.state.cancelPendingSearch = null;
+        if (typeof cancel === 'function') cancel(reason || 'search canceled');
+    },
+
+    waitForEngineReadyOk(engine, color) {
+        return new Promise((resolve, reject) => {
+            if (!engine || !engine.isReady()) {
+                reject(new Error(`${color} engine is not initialized`));
+                return;
+            }
+
+            const previousOnLine = engine.onLine;
+            let timeout = null;
+            let settled = false;
+            const finish = (callback) => {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timeout);
+                engine.onLine = previousOnLine;
+                callback();
+            };
+            engine.onLine = (line) => {
+                if (previousOnLine) previousOnLine(line);
+                if (String(line || '').includes('readyok')) {
+                    console.log('[Arena] Engine readyok received', {
+                        color,
+                        engineId: engine.id || 'unknown'
+                    });
+                    finish(resolve);
+                }
+            };
+            engine.send('isready');
+            timeout = setTimeout(() => {
+                finish(() => reject(new Error(`${color} engine readyok timeout`)));
+            }, 5000);
+        });
+    },
+
     playUciMove(uciMove, isWhiteTurn, source = 'engine') {
         if (!uciMove) return false;
 
-        const from = uciMove.substring(0, 2);
-        const to = uciMove.substring(2, 4);
-        const promotion = uciMove.length > 4 ? uciMove.substring(4, 5) : undefined;
+        const legalMove = this.findLegalUciMove(uciMove);
+        if (!legalMove) return false;
 
         const moveResult = this.game.move({
-            from: from,
-            to: to,
-            promotion: promotion
+            from: legalMove.from,
+            to: legalMove.to,
+            promotion: legalMove.promotion
         });
 
         if (!moveResult) {
-            console.error('[Arena] Invalid move from', source, ':', uciMove);
-            this.handleError(`Invalid move: ${uciMove}`);
             return false;
         }
 
@@ -1181,10 +1258,14 @@ const CaissaArena = {
      * Main engine loop for Arena matches
      * Self-contained - doesn't depend on app.js EVE system
      */
-    async runEngineLoop() {
+    async runEngineLoop(invalidRetryCount = 0) {
         // Safety check
         if (this.state.matchState !== 'running' || !this.state.loopActive) {
             console.log('[Arena] Loop stopped - match not running');
+            return;
+        }
+        if (this.state.loopRunning) {
+            console.warn('[Arena] Loop request ignored because another move search is active');
             return;
         }
 
@@ -1213,6 +1294,7 @@ const CaissaArena = {
 
         // Get depth from engine config
         const depth = engineConfig?.options?.depth || 15;
+        const color = isWhiteTurn ? 'white' : 'black';
 
         try {
             const bookMove = this.getBookMove();
@@ -1222,7 +1304,25 @@ const CaissaArena = {
             }
 
             // Request best move from engine
-            const bestMove = await this.getEngineMove(currentEngine, fen, depth);
+            this.state.loopRunning = true;
+            const bestMove = await this.getEngineMove(currentEngine, fen, {
+                color,
+                engineId: engineConfig?.id || currentEngine?.id || 'unknown',
+                depth
+            });
+            this.state.loopRunning = false;
+
+            if (this.state.matchState !== 'running' || !this.state.loopActive) return;
+            if (this.game.fen() !== fen) {
+                console.warn('[Arena] Ignoring stale bestmove because the board FEN changed', {
+                    color,
+                    engineId: engineConfig?.id,
+                    requestedFen: fen,
+                    currentFen: this.game.fen()
+                });
+                this.runEngineLoop();
+                return;
+            }
 
             if (!bestMove) {
                 console.error('[Arena] Engine returned no move');
@@ -1230,9 +1330,24 @@ const CaissaArena = {
                 return;
             }
 
-            this.playUciMove(bestMove, isWhiteTurn, 'engine');
+            if (!this.playUciMove(bestMove, isWhiteTurn, 'engine')) {
+                console.warn('[Arena] Engine returned an illegal move; requesting one fresh move', {
+                    color,
+                    engineId: engineConfig?.id,
+                    requestedFen: fen,
+                    bestMove,
+                    retry: invalidRetryCount
+                });
+                if (invalidRetryCount < 1) {
+                    this.runEngineLoop(invalidRetryCount + 1);
+                    return;
+                }
+                this.handleError(`Illegal move from ${color} ${engineConfig?.name || 'engine'}: ${bestMove}`);
+            }
 
         } catch (error) {
+            this.state.loopRunning = false;
+            if (error?.name === 'ArenaStaleSearchError') return;
             console.error('[Arena] Engine loop error:', error);
             this.handleError(error.message);
         }
@@ -1241,23 +1356,72 @@ const CaissaArena = {
     /**
      * Get move from engine (Promise wrapper)
      */
-    getEngineMove(engine, fen, depth) {
+    getEngineMove(engine, fen, context = {}) {
         return new Promise((resolve, reject) => {
             if (!engine || !engine.isReady()) {
                 reject(new Error('Engine not ready'));
                 return;
             }
 
+            const color = context.color || 'unknown';
+            const engineId = context.engineId || engine.id || 'unknown';
+            const searchToken = ++this.state.searchToken;
+            let timeout = null;
+            let settled = false;
+            const finish = (callback) => {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timeout);
+                if (this.state.cancelPendingSearch === cancelSearch) {
+                    this.state.cancelPendingSearch = null;
+                }
+                callback();
+            };
+            const cancelSearch = (reason) => {
+                const error = new Error(reason || 'Arena search canceled');
+                error.name = 'ArenaStaleSearchError';
+                finish(() => reject(error));
+            };
+            this.state.cancelPendingSearch = cancelSearch;
+
+            console.log('[Arena] Engine search requested', {
+                color,
+                engineId,
+                requestedFen: fen,
+                searchToken,
+                movetime: ARENA_ENGINE_MOVETIME_MS
+            });
+
             // Set up callback for best move
             engine.getBestMove(fen, (bestMove) => {
-                console.log(`[Arena] Engine returned: ${bestMove}`);
-                resolve(bestMove);
-            }, { depth: depth });
+                if (settled || searchToken !== this.state.searchToken) {
+                    console.warn('[Arena] Ignoring late or stale bestmove', {
+                        color,
+                        engineId,
+                        requestedFen: fen,
+                        searchToken,
+                        activeSearchToken: this.state.searchToken,
+                        bestMove
+                    });
+                    return;
+                }
+                console.log('[Arena] Engine bestmove received', {
+                    color,
+                    engineId,
+                    requestedFen: fen,
+                    searchToken,
+                    bestMove
+                });
+                finish(() => resolve(bestMove));
+            }, { movetime: ARENA_ENGINE_MOVETIME_MS });
 
-            // Timeout after 30 seconds
-            setTimeout(() => {
-                reject(new Error('Engine move timeout'));
-            }, 30000);
+            timeout = setTimeout(() => {
+                if (settled || searchToken !== this.state.searchToken) return;
+                engine.stop?.();
+                finish(() => reject(new Error(
+                    `Engine move timeout (${color}, ${engineId}, search ${searchToken}, FEN ${fen})`
+                )));
+            }, ARENA_ENGINE_TIMEOUT_MS);
         });
     },
 
@@ -1353,6 +1517,8 @@ const CaissaArena = {
     handleGameOver() {
         this.state.matchState = 'finished';
         this.state.loopActive = false;
+        this.cancelActiveSearch('game over');
+        this.state.loopRunning = false;
 
         let result = '';
         let resultCode = '1/2-1/2';
@@ -1400,6 +1566,8 @@ const CaissaArena = {
     handleError(message) {
         this.state.matchState = 'idle';
         this.state.loopActive = false;
+        this.cancelActiveSearch('arena error');
+        this.state.loopRunning = false;
         this.updateMatchControls();
 
         if (this.elements.statusResult) {
