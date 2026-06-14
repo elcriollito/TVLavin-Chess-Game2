@@ -6,6 +6,7 @@
  */
 
 const AnalyzeSection = {
+    workerGamesUrl: '/api/games',
 
     // State
     currentSource: 'online',
@@ -151,45 +152,62 @@ const AnalyzeSection = {
             return;
         }
 
-        console.log(`[Analyze] Fetching ${count} games from ${provider} for ${username}`);
+        console.log('[Analyze] Fetching games via provider', { provider, username, count });
         this.setStatus('Fetching games...', 'loading');
+        if (this.elements.fetchBtn) {
+            this.elements.fetchBtn.disabled = true;
+        }
 
         try {
-            // Use existing ChessComAPI if available
-            if (window.ChessComAPI && provider === 'chess.com') {
-                const games = await ChessComAPI.fetchGames(username, count);
-                if (games && games.length > 0) {
-                    this.loadGameFromPgn(games[0].pgn, provider, games[0]);
-                } else {
-                    throw new Error('No games found');
-                }
-            } else if (provider === 'lichess') {
-                // Lichess API
-                const response = await fetch(
-                    `https://lichess.org/api/games/user/${username}?max=${count}&pgnInJson=true`,
-                    { headers: { Accept: 'application/x-ndjson' } }
-                );
+            const platform = provider === 'chess.com' ? 'chesscom' : 'lichess';
+            const requestUrl = new URL(this.workerGamesUrl, window.location.origin);
+            requestUrl.search = new URLSearchParams({
+                platform,
+                username,
+                max: String(count),
+                tc: 'all'
+            }).toString();
 
-                if (!response.ok) throw new Error('Failed to fetch from Lichess');
-
-                const text = await response.text();
-                const lines = text.trim().split('\n');
-                if (lines.length > 0) {
-                    const game = JSON.parse(lines[0]);
-                    this.loadGameFromPgn(game.pgn, 'Lichess', {
-                        white: game.players?.white?.user?.name || 'Unknown',
-                        black: game.players?.black?.user?.name || 'Unknown',
-                        result: game.winner ? (game.winner === 'white' ? '1-0' : '0-1') : '1/2-1/2'
-                    });
-                }
+            if (provider === 'lichess') {
+                console.log('[Analyze] Using proxy for lichess');
+            } else {
+                console.log('[Analyze] Using proxy for chess.com');
             }
+            console.log('[Analyze] Request URL:', requestUrl.toString());
+
+            const response = await fetch(requestUrl.toString(), {
+                headers: { Accept: 'application/json' }
+            });
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data.message || data.error || `Request failed (${response.status})`);
+            }
+            if (!data.pgn || !data.count) {
+                throw new Error('No games found');
+            }
+
+            console.log(`[Analyze] Received ${data.count} games`);
+            this.loadGameFromPgn(this.getFirstPgn(data.pgn), data.source || provider);
 
             this.setStatus('Game loaded', 'success');
         } catch (error) {
             console.error('[Analyze] Fetch error:', error);
             this.setStatus('Fetch failed', 'error');
-            this.showNotification(`Failed to fetch games: ${error.message}`, 'error');
+            const providerName = provider === 'lichess' ? 'Lichess' : 'Chess.com';
+            this.showNotification(
+                `Could not fetch games from ${providerName}. Please try again or upload PGN manually.`,
+                'error'
+            );
+        } finally {
+            if (this.elements.fetchBtn) {
+                this.elements.fetchBtn.disabled = false;
+            }
         }
+    },
+
+    getFirstPgn(combinedPgn) {
+        return String(combinedPgn || '').trim().split(/\r?\n\r?\n(?=\[Event\s)/)[0];
     },
 
     /**
