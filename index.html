@@ -53,7 +53,7 @@
     <!-- Stylesheets -->
     <link rel="stylesheet" href="./assets/css/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="styles.css?v=2.0.4">
+    <link rel="stylesheet" href="styles.css?v=2.0.5">
     <link rel="stylesheet" href="caissa-library.css?v=1.1.0">
     <link rel="stylesheet" href="query-engine.css?v=1.0.0">
     <link rel="stylesheet" href="position-forge.css?v=1.0.0">
@@ -867,6 +867,10 @@
                     <main class="analyze-main">
                         <!-- Board Zone -->
                         <div class="board-zone analyze-board-zone">
+                            <div id="analyzeEvalBar" class="analyze-eval-bar" title="Current position evaluation">
+                                <div id="analyzeEvalFill" class="analyze-eval-fill"></div>
+                                <span id="analyzeEvalScore" class="analyze-eval-score">+0.00</span>
+                            </div>
                             <!-- Board moves here when section is active -->
                         </div>
                         <div class="analyze-board-navigation" aria-label="Analyze move navigation">
@@ -2727,7 +2731,7 @@
     <script src="js/arena-section.js?v=1.0.0"></script>
     <script src="js/insights-section.js?v=1.0.0"></script>
     <script src="js/history-section.js?v=1.0.0"></script>
-    <script src="js/analyze-section.js?v=1.0.5"></script>
+    <script src="js/analyze-section.js?v=1.0.6"></script>
     <script src="app.js?v=2.0.2"></script>
 
     <!-- Auth Scripts -->

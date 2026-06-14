@@ -74,6 +74,9 @@ const AnalyzeSection = {
             progressFill: document.getElementById('analyzeProgressFill'),
             progressText: document.getElementById('analyzeProgressText'),
             mentor: document.getElementById('analyzeMentor'),
+            evalBar: document.getElementById('analyzeEvalBar'),
+            evalFill: document.getElementById('analyzeEvalFill'),
+            evalScore: document.getElementById('analyzeEvalScore'),
 
             // Move list
             moveList: document.getElementById('analyzeMoveList'),
@@ -424,6 +427,7 @@ const AnalyzeSection = {
             this.updateMoveList();
             this.updateNavigationControls();
             this.updateMentorPanel();
+            this.updateEvaluationBar();
 
             this.setStatus('Ready to analyze', 'ready');
             console.log('[Analyze] Game loaded successfully');
@@ -475,12 +479,14 @@ const AnalyzeSection = {
             const blackMove = moves[i + 1] || '';
             const whiteAnnotation = this.analysisResults[i]?.annotation || '';
             const blackAnnotation = this.analysisResults[i + 1]?.annotation || '';
+            const whiteAnnotationClass = this.getAnnotationClass(whiteAnnotation);
+            const blackAnnotationClass = this.getAnnotationClass(blackAnnotation);
 
             html += `
                 <div class="move-row">
                     <span class="move-num">${moveNum}.</span>
-                    <span class="move-white${i === this.currentMoveIndex ? ' active' : ''}" data-index="${i}">${whiteMove}${whiteAnnotation ? `<strong class="analyze-move-annotation">${whiteAnnotation}</strong>` : ''}</span>
-                    <span class="move-black${i + 1 === this.currentMoveIndex ? ' active' : ''}" data-index="${i + 1}">${blackMove}${blackAnnotation ? `<strong class="analyze-move-annotation">${blackAnnotation}</strong>` : ''}</span>
+                    <span class="move-white${i === this.currentMoveIndex ? ' active' : ''}" data-index="${i}">${whiteMove}${whiteAnnotation ? `<strong class="analyze-move-annotation ${whiteAnnotationClass}">${whiteAnnotation}</strong>` : ''}</span>
+                    <span class="move-black${i + 1 === this.currentMoveIndex ? ' active' : ''}" data-index="${i + 1}">${blackMove}${blackAnnotation ? `<strong class="analyze-move-annotation ${blackAnnotationClass}">${blackAnnotation}</strong>` : ''}</span>
                 </div>
             `;
         }
@@ -518,6 +524,7 @@ const AnalyzeSection = {
         this.updateMoveList();
         this.updateNavigationControls();
         this.updateMentorPanel();
+        this.updateEvaluationBar();
 
         console.log('[Analyze] Jumped to move:', safeIndex + 1);
     },
@@ -573,7 +580,7 @@ const AnalyzeSection = {
         this.elements.mentor.innerHTML = `
             <div class="analyze-mentor-heading">
                 <strong>${this.escapeHtml(move)}</strong>
-                <span class="analyze-annotation">${result.annotation}</span>
+                <span class="analyze-annotation ${this.getAnnotationClass(result.annotation)}">${result.annotation}</span>
                 <span>${this.escapeHtml(result.label)}</span>
             </div>
             <p class="analyze-mentor-copy">${this.escapeHtml(result.mentorText)}</p>
@@ -584,6 +591,52 @@ const AnalyzeSection = {
                 <div class="analyze-eval-item">Engine preferred<strong>${this.escapeHtml(result.bestMoveSan || result.bestMove || 'Played move')}</strong></div>
             </div>
         `;
+    },
+
+    updateEvaluationBar() {
+        const fill = this.elements.evalFill;
+        const score = this.elements.evalScore;
+        if (!fill || !score) return;
+
+        const current = this.getCurrentEvaluation();
+        const evaluation = current.evaluation ?? 0;
+        const mate = current.mate;
+        const centipawns = mate !== null && mate !== undefined
+            ? (mate > 0 ? 1500 : -1500)
+            : evaluation * 100;
+        const bounded = Math.max(-1500, Math.min(1500, centipawns));
+        const whitePercent = (1 / (1 + Math.exp(-bounded / 200))) * 100;
+
+        fill.style.height = `${whitePercent}%`;
+        score.textContent = this.formatEvalBarScore(evaluation, mate);
+        score.classList.toggle('white-advantage', centipawns > 75);
+        score.classList.toggle('black-advantage', centipawns < -75);
+    },
+
+    getCurrentEvaluation() {
+        if (this.currentMoveIndex >= 0) {
+            const selected = this.analysisResults[this.currentMoveIndex];
+            if (selected && !selected.unavailable) {
+                return { evaluation: selected.evalAfter, mate: selected.mateAfter };
+            }
+            for (let i = this.currentMoveIndex - 1; i >= 0; i--) {
+                const previous = this.analysisResults[i];
+                if (previous && !previous.unavailable) {
+                    return { evaluation: previous.evalAfter, mate: previous.mateAfter };
+                }
+            }
+        }
+
+        const first = this.analysisResults.find((result) => result && !result.unavailable);
+        return first
+            ? { evaluation: first.evalBefore, mate: first.mateBefore }
+            : { evaluation: 0, mate: null };
+    },
+
+    formatEvalBarScore(evaluation, mate) {
+        if (mate !== null && mate !== undefined) return mate > 0 ? `M+${mate}` : `M${mate}`;
+        const value = evaluation ?? 0;
+        return `${value >= 0 ? '+' : ''}${value.toFixed(2)}`;
     },
 
     /**
@@ -609,6 +662,7 @@ const AnalyzeSection = {
         this.analysisResults = [];
         this.updateMoveList();
         this.updateMentorPanel();
+        this.updateEvaluationBar();
 
         // Update UI
         this.elements.startBtn.style.display = 'none';
@@ -649,7 +703,10 @@ const AnalyzeSection = {
                         ? this.buildMoveAnalysis(i - 1, moves[i - 1], positions[i - 1], positionAnalyses[i - 1], positionAnalyses[i])
                         : this.buildUnavailableMoveAnalysis(i - 1, moves[i - 1]);
                     this.updateMoveList();
-                    if (this.currentMoveIndex === i - 1) this.updateMentorPanel();
+                    if (this.currentMoveIndex === i - 1) {
+                        this.updateMentorPanel();
+                        this.updateEvaluationBar();
+                    }
                 }
             }
 
@@ -657,16 +714,9 @@ const AnalyzeSection = {
                 this.updateProgress(100, `Analyzed ${totalMoves} moves`);
                 this.updateMoveList();
                 this.updateMentorPanel();
-                const analyzedMoves = this.analysisResults.filter((result) => result && !result.unavailable).length;
-                if (analyzedMoves === 0) {
-                    this.setStatus('Analysis failed', 'error');
-                } else if (skippedPositions > 0) {
-                    this.setStatus('Partial analysis complete', 'warning');
-                    console.warn(`[Analyze] Partial analysis complete; ${skippedPositions} position(s) unavailable`);
-                } else {
-                    this.setStatus('Analysis complete', 'success');
-                    console.log('[Analyze] Analysis complete');
-                }
+                this.updateEvaluationBar();
+                const analyzedPositions = positions.length - skippedPositions;
+                this.setAnalysisCompletionStatus(analyzedPositions, positions.length);
             }
 
         } catch (error) {
@@ -689,7 +739,8 @@ const AnalyzeSection = {
         const afterPlayerEval = this.playerPerspectiveEval(after, move.color);
         const loss = isBestMove ? 0 : Math.max(0, beforePlayerEval - afterPlayerEval);
         const gain = afterPlayerEval - beforePlayerEval;
-        const classification = this.classifyMove(loss, gain, isBestMove, moveIndex);
+        const mateSwing = this.hasMateSwing(before, after, move.color);
+        const classification = this.classifyMove(loss, gain, isBestMove, moveIndex, mateSwing);
 
         return {
             moveIndex,
@@ -704,6 +755,7 @@ const AnalyzeSection = {
             mateAfter: after.mate,
             loss,
             gain,
+            mateSwing,
             annotation: classification.annotation,
             label: classification.label,
             mentorText: this.buildMentorText(classification, loss, bestMoveSan, isBestMove)
@@ -729,29 +781,74 @@ const AnalyzeSection = {
         return color === 'w' ? evaluation : -evaluation;
     },
 
-    classifyMove(loss, gain, isBestMove, moveIndex = 0) {
-        if (isBestMove) {
-            return gain >= 0.5
-                ? { annotation: '!!', label: 'Exceptional move' }
-                : { annotation: '!', label: 'Best move' };
+    hasMateSwing(before, after, color) {
+        const beforeMate = before.mate;
+        const afterMate = after.mate;
+        const beforeForPlayer = beforeMate === null || beforeMate === undefined
+            ? null
+            : (color === 'w' ? beforeMate : -beforeMate);
+        const afterForPlayer = afterMate === null || afterMate === undefined
+            ? null
+            : (color === 'w' ? afterMate : -afterMate);
+        const allowedLosingMate = afterForPlayer !== null
+            && afterForPlayer < 0
+            && (beforeForPlayer === null || beforeForPlayer >= 0);
+        const lostWinningMate = beforeForPlayer !== null
+            && beforeForPlayer > 0
+            && (afterForPlayer === null || afterForPlayer <= 0);
+        return allowedLosingMate || lostWinningMate;
+    },
+
+    classifyMove(loss, gain, isBestMove, moveIndex = 0, mateSwing = false) {
+        const openingPhase = moveIndex < 16;
+        if (isBestMove && gain >= 1) return { annotation: '!!', label: 'Brilliant move' };
+        if (isBestMove || loss <= 0.5) return { annotation: '!', label: 'Excellent move' };
+        if (!openingPhase && loss <= 0.75) return { annotation: '!?', label: 'Interesting move' };
+        if (openingPhase && !mateSwing && loss <= 2) {
+            return loss <= 0.75
+                ? { annotation: '!?', label: 'Interesting move' }
+                : { annotation: '?!', label: 'Dubious move' };
         }
-        if (loss >= 3) return { annotation: '??', label: 'Blunder' };
-        if (loss >= 1.5) {
-            return moveIndex < 20
-                ? { annotation: '?!', label: 'Questionable move' }
-                : { annotation: '?', label: 'Mistake' };
-        }
-        if (loss >= 0.75) return { annotation: '?!', label: 'Questionable move' };
-        return { annotation: '!', label: 'Playable move' };
+        if (mateSwing || loss > 2.5) return { annotation: '??', label: 'Blunder' };
+        if (loss > 1.25) return { annotation: '?', label: 'Mistake' };
+        return { annotation: '?!', label: 'Dubious move' };
     },
 
     buildMentorText(classification, loss, bestMoveSan, isBestMove) {
-        if (classification.annotation === '!!') return 'Exceptional move. You found the engine choice and improved your position.';
-        if (classification.annotation === '??') return `Blunder. This lost about ${loss.toFixed(1)} pawns and allowed a decisive swing.${bestMoveSan ? ` Better was ${bestMoveSan}.` : ''}`;
-        if (classification.annotation === '?') return `Mistake. This lost nearly ${loss.toFixed(1)} pawns.${bestMoveSan ? ` Better was ${bestMoveSan}.` : ''}`;
-        if (classification.annotation === '?!') return `Questionable. This lost around ${loss.toFixed(1)} pawns.${bestMoveSan ? ` The engine preferred ${bestMoveSan}.` : ''}`;
-        if (isBestMove) return 'Good move. You matched the engine choice and kept the position under control.';
-        return `Playable move.${bestMoveSan ? ` The engine had a slight preference for ${bestMoveSan}, but this is not a serious mistake.` : ' You kept the position stable.'}`;
+        if (classification.annotation === '!!') return 'Brilliant move. You found the engine choice and created a major improvement.';
+        if (classification.annotation === '??') return `Blunder. This caused a decisive swing.${bestMoveSan ? ` Better was ${bestMoveSan}.` : ''}`;
+        if (classification.annotation === '?') return `Mistake. This lost about ${loss.toFixed(1)} pawns.${bestMoveSan ? ` Better was ${bestMoveSan}.` : ''}`;
+        if (classification.annotation === '?!') return `Dubious move. You gave up about ${loss.toFixed(1)} pawns of evaluation.${bestMoveSan ? ` The engine preferred ${bestMoveSan}.` : ''}`;
+        if (classification.annotation === '!?') return `Interesting choice.${bestMoveSan ? ` The engine slightly preferred ${bestMoveSan}, but this remains playable.` : ' This remains playable.'}`;
+        if (isBestMove) return 'Excellent move. You matched the engine choice and kept the position healthy.';
+        return 'Excellent move. It keeps the position healthy.';
+    },
+
+    setAnalysisCompletionStatus(analyzedPositions, totalPositions) {
+        const ratio = totalPositions > 0 ? analyzedPositions / totalPositions : 0;
+        if (ratio >= 0.9) {
+            this.setStatus(`Analysis complete · ${analyzedPositions}/${totalPositions} positions analyzed`, 'success');
+            console.log(`[Analyze] Analysis complete; ${analyzedPositions}/${totalPositions} positions analyzed`);
+        } else if (ratio >= 0.5) {
+            this.setStatus(`Partial analysis complete · ${analyzedPositions}/${totalPositions} positions analyzed`, 'warning');
+            console.warn(`[Analyze] Partial analysis complete; ${analyzedPositions}/${totalPositions} positions analyzed`);
+        } else {
+            this.setStatus(`Analysis failed · only ${analyzedPositions}/${totalPositions} positions analyzed`, 'error');
+            console.error(`[Analyze] Analysis failed; only ${analyzedPositions}/${totalPositions} positions analyzed`);
+        }
+    },
+
+    getAnnotationClass(annotation) {
+        const classes = {
+            '!!': 'annotation-brilliant',
+            '!': 'annotation-good',
+            '!?': 'annotation-interesting',
+            '?!': 'annotation-dubious',
+            '?': 'annotation-mistake',
+            '??': 'annotation-blunder',
+            '-': 'annotation-unavailable'
+        };
+        return classes[annotation] || '';
     },
 
     uciToSan(fen, uci) {
