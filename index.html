@@ -1104,6 +1104,21 @@
                                 </div>
                             </div>
 
+                            <div class="arena-section">
+                                <button id="arenaSetPositionBtn" class="btn btn-block btn-secondary" type="button">
+                                    <i class="fas fa-edit"></i> Set Position
+                                </button>
+                                <div id="arenaPositionPanel" class="arena-position-panel" hidden>
+                                    <label for="arenaFenInput">Starting FEN</label>
+                                    <textarea id="arenaFenInput" class="form-control arena-fen-input" rows="3" spellcheck="false" aria-label="Arena starting FEN"></textarea>
+                                    <div class="arena-position-actions">
+                                        <button id="arenaApplyFen" class="btn btn-primary btn-sm" type="button">Apply FEN</button>
+                                        <button id="arenaUseStartPosition" class="btn btn-secondary btn-sm" type="button">Initial Position</button>
+                                    </div>
+                                    <div id="arenaFenMessage" class="arena-fen-message" role="status"></div>
+                                </div>
+                            </div>
+
                             <div class="arena-controls">
                                 <button id="arenaStartMatch" class="btn btn-block btn-primary btn-lg" aria-label="Start Match">
                                     <i class="fas fa-play"></i> Start Match
@@ -1178,7 +1193,14 @@
                             <div id="arenaBoardMount" class="arena-board-mount"></div>
                         </div>
 
-                        <div id="arenaStatusResult" class="arena-result" style="display: none;"></div>
+                        <div id="arenaGraphPanel" class="panel arena-graph-panel arena-board-graph-panel">
+                            <h4 class="panel-title-sm">Eval Graph</h4>
+                            <canvas id="arenaEvalGraph" class="arena-eval-canvas" width="636" height="120"></canvas>
+                            <div class="arena-graph-legend">
+                                <span><span class="dot white"></span>White</span>
+                                <span><span class="dot black"></span>Black</span>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Right Sidebar: Evaluation -->
@@ -1195,15 +1217,6 @@
                             <div class="arena-eval-pv">
                                 <span class="pv-label">PV:</span>
                                 <span id="arenaEvalPV" class="pv-moves">--</span>
-                            </div>
-                        </div>
-
-                        <div class="panel arena-graph-panel">
-                            <h4 class="panel-title-sm">Eval Graph</h4>
-                            <canvas id="arenaEvalGraph" class="arena-eval-canvas" width="260" height="120"></canvas>
-                            <div class="arena-graph-legend">
-                                <span><span class="dot white"></span>White</span>
-                                <span><span class="dot black"></span>Black</span>
                             </div>
                         </div>
 
@@ -2644,7 +2657,7 @@
     <script src="js/caissa-ui-refactor.js?v=1.0.0"></script>
     <script src="js/engine-adapter.js?v=1.0.0"></script>
     <script src="js/engine-registry.js?v=1.0.0"></script>
-    <script src="js/caissa-arena.js?v=1.1.0"></script>
+    <script src="js/caissa-arena.js?v=1.2.0"></script>
     <!-- Section Modules (Phase 2) -->
     <script src="js/arena-section.js?v=1.0.0"></script>
     <script src="js/insights-section.js?v=1.0.0"></script>

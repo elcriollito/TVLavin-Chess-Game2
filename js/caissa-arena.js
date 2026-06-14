@@ -53,6 +53,7 @@ const CaissaArena = {
         bookMaxPlies: 12,
         currentGame: null,
         evalHistory: [], // For graph: [{move: 1, eval: 0.3}, ...]
+        customStartFen: '',
         boardMounted: false,
         loopActive: false, // Is engine loop running
         searchToken: 0,
@@ -125,13 +126,18 @@ const CaissaArena = {
             startMatchBtn: document.getElementById('arenaStartMatch'),
             pauseMatchBtn: document.getElementById('arenaPauseMatch'),
             stopMatchBtn: document.getElementById('arenaStopMatch'),
+            setPositionBtn: document.getElementById('arenaSetPositionBtn'),
+            positionPanel: document.getElementById('arenaPositionPanel'),
+            fenInput: document.getElementById('arenaFenInput'),
+            applyFenBtn: document.getElementById('arenaApplyFen'),
+            useStartPositionBtn: document.getElementById('arenaUseStartPosition'),
+            fenMessage: document.getElementById('arenaFenMessage'),
 
             // Game status
             statusWhiteName: document.getElementById('arenaStatusWhite'),
             statusBlackName: document.getElementById('arenaStatusBlack'),
             statusTurn: document.getElementById('arenaStatusTurn'),
             statusMoves: document.getElementById('arenaStatusMoves'),
-            statusResult: document.getElementById('arenaStatusResult'),
             statusText: document.getElementById('arenaStatusText'),
 
             // Evaluation panel
@@ -143,6 +149,7 @@ const CaissaArena = {
 
             // Eval graph canvas
             evalGraph: document.getElementById('arenaEvalGraph'),
+            graphPanel: document.getElementById('arenaGraphPanel'),
 
             // Tournament
             tournamentEngineList: document.getElementById('arenaTournamentEngines'),
@@ -375,6 +382,7 @@ const CaissaArena = {
                 // Apply size to board mount container
                 boardMount.style.width = `${boardSize}px`;
                 boardMount.style.height = `${boardSize}px`;
+                this.syncGraphToBoardSize(boardSize);
 
                 console.log(`[Arena] Resizing board: ${boardSize}px (container: ${containerWidth}x${containerHeight})`);
 
@@ -407,9 +415,26 @@ const CaissaArena = {
 
         boardMount.style.width = `${boardSize}px`;
         boardMount.style.height = `${boardSize}px`;
+        this.syncGraphToBoardSize(boardSize);
 
         if (this.board) {
             this.board.resize();
+        }
+    },
+
+    syncGraphToBoardSize(boardSize) {
+        const { graphPanel, evalGraph } = this.elements;
+        if (graphPanel) {
+            graphPanel.style.width = `${boardSize}px`;
+        }
+        if (!evalGraph) return;
+
+        const canvasWidth = Math.max(256, Math.floor(boardSize - 24));
+        if (evalGraph.width !== canvasWidth) {
+            evalGraph.width = canvasWidth;
+            this.evalGraphCtx = evalGraph.getContext('2d');
+            this.clearEvalGraph();
+            this.updateEvalGraph();
         }
     },
 
@@ -478,6 +503,9 @@ const CaissaArena = {
         this.elements.startMatchBtn?.addEventListener('click', () => this.startMatch());
         this.elements.pauseMatchBtn?.addEventListener('click', () => this.togglePause());
         this.elements.stopMatchBtn?.addEventListener('click', () => this.stopMatch());
+        this.elements.setPositionBtn?.addEventListener('click', () => this.togglePositionPanel());
+        this.elements.applyFenBtn?.addEventListener('click', () => this.applyCustomPosition());
+        this.elements.useStartPositionBtn?.addEventListener('click', () => this.useInitialPosition());
 
         // Tournament controls
         this.elements.startTournamentBtn?.addEventListener('click', () => this.startTournament());
@@ -502,6 +530,68 @@ const CaissaArena = {
         if (this.elements.panelTournament) {
             this.elements.panelTournament.style.display = tab === 'tournament' ? 'block' : 'none';
         }
+    },
+
+    togglePositionPanel() {
+        const panel = this.elements.positionPanel;
+        if (!panel) return;
+
+        panel.hidden = !panel.hidden;
+        if (!panel.hidden && this.elements.fenInput) {
+            this.elements.fenInput.value = this.state.customStartFen || this.game?.fen() || '';
+            this.elements.fenInput.focus();
+        }
+    },
+
+    applyCustomPosition() {
+        const fen = this.elements.fenInput?.value.trim();
+        if (!fen || typeof Chess === 'undefined') {
+            this.setFenMessage('Enter a valid FEN position.', true);
+            return;
+        }
+
+        try {
+            const candidate = new Chess();
+            const loaded = candidate.load(fen);
+            if (loaded === false) {
+                throw new Error('Invalid FEN');
+            }
+
+            if (this.state.matchState === 'running' || this.state.matchState === 'paused') {
+                this.stopMatch();
+            }
+            this.state.matchState = 'idle';
+            this.state.customStartFen = candidate.fen();
+            this.resetBoard();
+            this.updateMatchControls();
+
+            const side = candidate.turn() === 'w' ? 'White' : 'Black';
+            this.setFenMessage(`Custom position ready. ${side} to move.`);
+            this.updateGameStatus({ result: `Ready: Custom position set (${side} to move)` });
+        } catch (error) {
+            this.setFenMessage('Invalid FEN. Check the position and try again.', true);
+        }
+    },
+
+    useInitialPosition() {
+        if (this.state.matchState === 'running' || this.state.matchState === 'paused') {
+            this.stopMatch();
+        }
+        this.state.matchState = 'idle';
+        this.state.customStartFen = '';
+        this.resetBoard();
+        this.updateMatchControls();
+        if (this.elements.fenInput) {
+            this.elements.fenInput.value = this.game?.fen() || '';
+        }
+        this.setFenMessage('Initial position ready.');
+        this.updateGameStatus({ result: 'Ready: Initial position' });
+    },
+
+    setFenMessage(message, isError = false) {
+        if (!this.elements.fenMessage) return;
+        this.elements.fenMessage.textContent = message;
+        this.elements.fenMessage.classList.toggle('error', isError);
     },
 
     // ===== ENGINE MANAGEMENT =====
@@ -579,10 +669,7 @@ const CaissaArena = {
             if (this.elements.startMatchBtn) {
                 this.elements.startMatchBtn.disabled = true;
             }
-            if (this.elements.statusResult) {
-                this.elements.statusResult.textContent = 'No engines available. Cannot start match.';
-                this.elements.statusResult.style.display = 'block';
-            }
+            this.updateGameStatus({ result: 'Error: No engines available. Cannot start match.' });
         }
 
         // Default selections (prefer stored + enabled engines)
@@ -620,10 +707,7 @@ const CaissaArena = {
                 this.elements.startMatchBtn.disabled = true;
                 this.elements.startMatchBtn.title = 'Engine adapter or worker path missing.';
             }
-            if (this.elements.statusResult) {
-                this.elements.statusResult.textContent = 'Engine unavailable. Cannot start match.';
-                this.elements.statusResult.style.display = 'block';
-            }
+            this.updateGameStatus({ result: 'Error: Engine unavailable. Cannot start match.' });
             console.warn('[Arena] Engine unavailable. Start Match disabled.');
         }
 
@@ -811,21 +895,18 @@ const CaissaArena = {
             white: this.state.whiteEngine,
             black: this.state.blackEngine,
             moves: [],
+            startFen: this.game.fen(),
             startTime: Date.now()
         };
-
-        // Hide result from previous game
-        if (this.elements.statusResult) {
-            this.elements.statusResult.style.display = 'none';
-        }
 
         // Update UI
         this.updateMatchControls();
         this.updateGameStatus({
-            turn: 'white',
+            turn: this.game.turn() === 'w' ? 'white' : 'black',
             moveCount: 0
         });
         this.clearEvalGraph();
+        this.evaluatePosition(this.game.fen());
 
         // Dispatch event for external listeners
         window.dispatchEvent(new CustomEvent('caissa-arena-start', {
@@ -890,11 +971,6 @@ const CaissaArena = {
         window.dispatchEvent(new CustomEvent('caissa-arena-stop'));
         this.updateMatchControls();
 
-        // Show stopped message
-        if (this.elements.statusResult) {
-            this.elements.statusResult.textContent = 'Match stopped';
-            this.elements.statusResult.style.display = 'block';
-        }
         this.updateGameStatus({ result: 'Match stopped' });
     },
 
@@ -945,7 +1021,7 @@ const CaissaArena = {
 
     // ===== GAME STATUS =====
     updateGameStatus(data = {}) {
-        const { statusTurn, statusMoves, statusResult, statusText } = this.elements;
+        const { statusTurn, statusMoves, statusText } = this.elements;
 
         if (statusTurn && data.turn) {
             const engineName = data.turn === 'white'
@@ -958,14 +1034,11 @@ const CaissaArena = {
             statusMoves.textContent = data.moveCount;
         }
 
-        if (statusResult && data.result) {
-            statusResult.textContent = data.result;
-            statusResult.style.display = 'block';
-        }
-
         if (statusText) {
             let text = 'Ready';
-            if (this.state.matchState === 'running') {
+            if (data.result) {
+                text = this.state.matchState === 'finished' ? `Finished: ${data.result}` : data.result;
+            } else if (this.state.matchState === 'running') {
                 const moveCount = data.moveCount !== undefined ? data.moveCount : this.game?.history().length || 0;
                 const turnText = data.turn ? (data.turn === 'white' ? 'White' : 'Black') : (this.game?.turn() === 'w' ? 'White' : 'Black');
                 text = `Running… Move ${moveCount} (${turnText})`;
@@ -1508,14 +1581,17 @@ const CaissaArena = {
             return;
         }
 
+        this.evaluatorEngine.stop?.();
+        this.evaluatorEngine.currentFen = fen;
+
         // Set up info callback to capture evaluation data
         this.evaluatorEngine.onInfo = (info) => {
-            if (info.depth >= 12 && info.pv && info.pv.length > 0) {
+            if ((info.score != null || info.mate != null) && info.depth > 0) {
                 // Calculate evaluation score (white perspective)
                 let evalScore = 0;
-                if (info.mate !== null) {
+                if (info.mate != null) {
                     evalScore = info.mate > 0 ? 99 : -99; // Mate in X moves
-                } else if (info.score !== null) {
+                } else if (info.score != null) {
                     evalScore = info.score; // Already in pawns (white perspective)
                 }
 
@@ -1530,10 +1606,13 @@ const CaissaArena = {
                 });
 
                 // Add to eval history for graph
-                this.state.evalHistory.push({
-                    move: this.game.history().length,
-                    eval: evalScore
-                });
+                const move = this.game.history().length;
+                const latest = this.state.evalHistory[this.state.evalHistory.length - 1];
+                if (latest && latest.move === move) {
+                    latest.eval = evalScore;
+                } else {
+                    this.state.evalHistory.push({ move, eval: evalScore });
+                }
 
                 // Update graph
                 this.updateEvalGraph();
@@ -1542,7 +1621,7 @@ const CaissaArena = {
 
         // Start analysis with short movetime
         this.evaluatorEngine.setPosition(fen);
-        this.evaluatorEngine.go({ movetime: 250 }); // 250ms quick eval
+        this.evaluatorEngine.go({ movetime: 400 });
     },
 
     /**
@@ -1619,10 +1698,6 @@ const CaissaArena = {
 
         // Update UI
         this.updateMatchControls();
-        if (this.elements.statusResult) {
-            this.elements.statusResult.textContent = result;
-            this.elements.statusResult.style.display = 'block';
-        }
         this.updateGameStatus({ result });
 
         // Record tournament result if in tournament mode
@@ -1645,10 +1720,7 @@ const CaissaArena = {
         this.state.loopRunning = false;
         this.updateMatchControls();
 
-        if (this.elements.statusResult) {
-            this.elements.statusResult.textContent = `Error: ${message}`;
-            this.elements.statusResult.style.display = 'block';
-        }
+        this.updateGameStatus({ result: `Error: ${message}` });
     },
 
     /**
@@ -2070,10 +2142,14 @@ const CaissaArena = {
      */
     resetBoard() {
         if (this.game) {
-            this.game.reset();
+            if (this.state.customStartFen) {
+                this.game.load(this.state.customStartFen);
+            } else {
+                this.game.reset();
+            }
         }
         if (this.board) {
-            this.board.position('start', false);
+            this.board.position(this.game?.fen() || 'start', false);
         }
         this.state.evalHistory = [];
         this.clearEvalGraph();
@@ -2085,7 +2161,7 @@ const CaissaArena = {
 
         // Reset status
         this.updateGameStatus({
-            turn: 'white',
+            turn: this.game?.turn() === 'b' ? 'black' : 'white',
             moveCount: 0
         });
     }
