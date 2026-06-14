@@ -558,6 +558,17 @@ const AnalyzeSection = {
             `;
             return;
         }
+        if (result.unavailable) {
+            this.elements.mentor.innerHTML = `
+                <div class="analyze-mentor-heading">
+                    <strong>${this.escapeHtml(move)}</strong>
+                    <span class="analyze-annotation">-</span>
+                    <span>Analysis unavailable</span>
+                </div>
+                <p class="analyze-mentor-copy">Stockfish could not evaluate this move in time. Other analyzed moves remain available.</p>
+            `;
+            return;
+        }
 
         this.elements.mentor.innerHTML = `
             <div class="analyze-mentor-heading">
@@ -625,19 +636,18 @@ const AnalyzeSection = {
             });
 
             const positionAnalyses = [];
+            let skippedPositions = 0;
             for (let i = 0; i < positions.length && this.isAnalyzing && token === this.analysisToken; i++) {
                 const progress = Math.round((i / totalMoves) * 100);
                 this.updateProgress(progress, `Analyzing position ${i + 1}/${positions.length}`);
-                positionAnalyses.push(await this.analyzePosition(positions[i], token));
+                const analysis = await this.analyzePositionWithRetry(positions[i], token);
+                positionAnalyses.push(analysis);
+                if (!analysis) skippedPositions += 1;
 
                 if (i > 0) {
-                    this.analysisResults[i - 1] = this.buildMoveAnalysis(
-                        i - 1,
-                        moves[i - 1],
-                        positions[i - 1],
-                        positionAnalyses[i - 1],
-                        positionAnalyses[i]
-                    );
+                    this.analysisResults[i - 1] = positionAnalyses[i - 1] && positionAnalyses[i]
+                        ? this.buildMoveAnalysis(i - 1, moves[i - 1], positions[i - 1], positionAnalyses[i - 1], positionAnalyses[i])
+                        : this.buildUnavailableMoveAnalysis(i - 1, moves[i - 1]);
                     this.updateMoveList();
                     if (this.currentMoveIndex === i - 1) this.updateMentorPanel();
                 }
@@ -647,8 +657,16 @@ const AnalyzeSection = {
                 this.updateProgress(100, `Analyzed ${totalMoves} moves`);
                 this.updateMoveList();
                 this.updateMentorPanel();
-                this.setStatus('Analysis complete', 'success');
-                console.log('[Analyze] Analysis complete');
+                const analyzedMoves = this.analysisResults.filter((result) => result && !result.unavailable).length;
+                if (analyzedMoves === 0) {
+                    this.setStatus('Analysis failed', 'error');
+                } else if (skippedPositions > 0) {
+                    this.setStatus('Partial analysis complete', 'warning');
+                    console.warn(`[Analyze] Partial analysis complete; ${skippedPositions} position(s) unavailable`);
+                } else {
+                    this.setStatus('Analysis complete', 'success');
+                    console.log('[Analyze] Analysis complete');
+                }
             }
 
         } catch (error) {
@@ -671,7 +689,7 @@ const AnalyzeSection = {
         const afterPlayerEval = this.playerPerspectiveEval(after, move.color);
         const loss = isBestMove ? 0 : Math.max(0, beforePlayerEval - afterPlayerEval);
         const gain = afterPlayerEval - beforePlayerEval;
-        const classification = this.classifyMove(loss, gain, isBestMove);
+        const classification = this.classifyMove(loss, gain, isBestMove, moveIndex);
 
         return {
             moveIndex,
@@ -692,6 +710,16 @@ const AnalyzeSection = {
         };
     },
 
+    buildUnavailableMoveAnalysis(moveIndex, move) {
+        return {
+            moveIndex,
+            move: move.san,
+            unavailable: true,
+            annotation: '-',
+            label: 'Analysis unavailable'
+        };
+    },
+
     playerPerspectiveEval(analysis, color) {
         if (analysis.mate !== null && analysis.mate !== undefined) {
             const mateValue = analysis.mate > 0 ? 100 : -100;
@@ -701,25 +729,29 @@ const AnalyzeSection = {
         return color === 'w' ? evaluation : -evaluation;
     },
 
-    classifyMove(loss, gain, isBestMove) {
+    classifyMove(loss, gain, isBestMove, moveIndex = 0) {
         if (isBestMove) {
             return gain >= 0.5
                 ? { annotation: '!!', label: 'Exceptional move' }
                 : { annotation: '!', label: 'Best move' };
         }
-        if (loss > 2) return { annotation: '??', label: 'Blunder' };
-        if (loss >= 1) return { annotation: '?', label: 'Mistake' };
-        if (loss >= 0.5) return { annotation: '?!', label: 'Questionable move' };
-        return { annotation: '!', label: 'Good move' };
+        if (loss >= 3) return { annotation: '??', label: 'Blunder' };
+        if (loss >= 1.5) {
+            return moveIndex < 20
+                ? { annotation: '?!', label: 'Questionable move' }
+                : { annotation: '?', label: 'Mistake' };
+        }
+        if (loss >= 0.75) return { annotation: '?!', label: 'Questionable move' };
+        return { annotation: '!', label: 'Playable move' };
     },
 
     buildMentorText(classification, loss, bestMoveSan, isBestMove) {
         if (classification.annotation === '!!') return 'Exceptional move. You found the engine choice and improved your position.';
         if (classification.annotation === '??') return `Blunder. This lost about ${loss.toFixed(1)} pawns and allowed a decisive swing.${bestMoveSan ? ` Better was ${bestMoveSan}.` : ''}`;
-        if (classification.annotation === '?') return `Mistake. This move lost about ${loss.toFixed(1)} pawns.${bestMoveSan ? ` Better was ${bestMoveSan}.` : ''}`;
-        if (classification.annotation === '?!') return `Questionable move. This conceded about ${loss.toFixed(1)} pawns.${bestMoveSan ? ` The engine preferred ${bestMoveSan}.` : ''}`;
+        if (classification.annotation === '?') return `Mistake. This lost nearly ${loss.toFixed(1)} pawns.${bestMoveSan ? ` Better was ${bestMoveSan}.` : ''}`;
+        if (classification.annotation === '?!') return `Questionable. This lost around ${loss.toFixed(1)} pawns.${bestMoveSan ? ` The engine preferred ${bestMoveSan}.` : ''}`;
         if (isBestMove) return 'Good move. You matched the engine choice and kept the position under control.';
-        return `Good move. You kept the position stable.${bestMoveSan ? ` The engine slightly preferred ${bestMoveSan}.` : ''}`;
+        return `Playable move.${bestMoveSan ? ` The engine had a slight preference for ${bestMoveSan}, but this is not a serious mistake.` : ' You kept the position stable.'}`;
     },
 
     uciToSan(fen, uci) {
@@ -771,7 +803,22 @@ const AnalyzeSection = {
         return this.analysisEngine.isReady?.() ? this.analysisEngine : null;
     },
 
-    analyzePosition(fen, token) {
+    async analyzePositionWithRetry(fen, token) {
+        try {
+            return await this.analyzePosition(fen, token, 12, 12000);
+        } catch (error) {
+            if (token !== this.analysisToken || !this.isAnalyzing) return null;
+            console.warn('[Analyze] Position analysis timed out; retrying at lower depth');
+            try {
+                return await this.analyzePosition(fen, token, 8, 12000);
+            } catch (_retryError) {
+                console.warn('[Analyze] Position analysis unavailable after retry');
+                return null;
+            }
+        }
+    },
+
+    analyzePosition(fen, token, depth = 12, timeoutMs = 12000) {
         return new Promise((resolve, reject) => {
             const engine = this.analysisEngine;
             if (!engine?.isReady?.()) {
@@ -791,7 +838,7 @@ const AnalyzeSection = {
                 engine.onInfo = null;
                 engine.onBestMove = null;
                 reject(new Error('Stockfish analysis timed out'));
-            }, 10000);
+            }, timeoutMs);
 
             engine.onInfo = (info) => {
                 if (token !== this.analysisToken) return;
@@ -809,7 +856,7 @@ const AnalyzeSection = {
                     depth: latestInfo?.depth ?? 0,
                     pv: latestInfo?.pv ?? []
                 });
-            }, { depth: 12 });
+            }, { depth });
         });
     },
 

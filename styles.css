@@ -6823,6 +6823,11 @@ button:focus,
     height: 34px;
 }
 
+.analyze-mentor-panel {
+    width: min(100%, var(--board-size));
+    margin: 0;
+}
+
 #analyzeSection .context-panel {
     grid-column: 3;
     width: 100%;
