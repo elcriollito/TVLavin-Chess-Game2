@@ -6,8 +6,6 @@
  */
 
 const AnalyzeSection = {
-    workerGamesUrl: '/api/games',
-
     // State
     currentSource: 'online',
     loadedGame: null,
@@ -159,30 +157,9 @@ const AnalyzeSection = {
         }
 
         try {
-            const platform = provider === 'chess.com' ? 'chesscom' : 'lichess';
-            const requestUrl = new URL(this.workerGamesUrl, window.location.origin);
-            requestUrl.search = new URLSearchParams({
-                platform,
-                username,
-                max: String(count),
-                tc: 'all'
-            }).toString();
-
-            if (provider === 'lichess') {
-                console.log('[Analyze] Using proxy for lichess');
-            } else {
-                console.log('[Analyze] Using proxy for chess.com');
-            }
-            console.log('[Analyze] Request URL:', requestUrl.toString());
-
-            const response = await fetch(requestUrl.toString(), {
-                headers: { Accept: 'application/json' }
-            });
-            const data = await response.json().catch(() => ({}));
-
-            if (!response.ok) {
-                throw new Error(data.message || data.error || `Request failed (${response.status})`);
-            }
+            const data = provider === 'lichess'
+                ? await this.fetchLichessGames(username, count)
+                : await this.fetchChessComGames(username, count);
             if (!data.pgn || !data.count) {
                 throw new Error('No games found');
             }
@@ -204,6 +181,68 @@ const AnalyzeSection = {
                 this.elements.fetchBtn.disabled = false;
             }
         }
+    },
+
+    async fetchLichessGames(username, count) {
+        const requestUrl = new URL(`https://lichess.org/api/games/user/${encodeURIComponent(username)}`);
+        requestUrl.search = new URLSearchParams({
+            max: String(count),
+            moves: 'true',
+            tags: 'true',
+            clocks: 'false',
+            evals: 'false',
+            opening: 'false'
+        }).toString();
+
+        console.log('[Analyze] Using Lichess CORS API');
+        console.log('[Analyze] Request URL:', requestUrl.toString());
+
+        const response = await fetch(requestUrl.toString(), {
+            headers: { Accept: 'application/x-chess-pgn' }
+        });
+        if (!response.ok) {
+            throw new Error(`Lichess request failed (${response.status})`);
+        }
+
+        const pgn = (await response.text()).trim();
+        return {
+            pgn,
+            count: (pgn.match(/\[Event\s/g) || []).length,
+            source: 'Lichess'
+        };
+    },
+
+    async fetchChessComGames(username, count) {
+        const archivesUrl = `https://api.chess.com/pub/player/${encodeURIComponent(username.toLowerCase())}/games/archives`;
+        console.log('[Analyze] Using Chess.com CORS API');
+        console.log('[Analyze] Request URL:', archivesUrl);
+
+        const archivesResponse = await fetch(archivesUrl, {
+            headers: { Accept: 'application/json' }
+        });
+        if (!archivesResponse.ok) {
+            throw new Error(`Chess.com archives request failed (${archivesResponse.status})`);
+        }
+
+        const { archives = [] } = await archivesResponse.json();
+        const games = [];
+        for (const archiveUrl of archives.slice().reverse()) {
+            if (games.length >= count) break;
+            console.log('[Analyze] Request URL:', archiveUrl);
+            const response = await fetch(archiveUrl, {
+                headers: { Accept: 'application/json' }
+            });
+            if (!response.ok) continue;
+            const data = await response.json();
+            games.push(...(data.games || []).slice().reverse().filter((game) => game.pgn));
+        }
+
+        const selected = games.slice(0, count);
+        return {
+            pgn: selected.map((game) => game.pgn.trim()).join('\n\n'),
+            count: selected.length,
+            source: 'Chess.com'
+        };
     },
 
     getFirstPgn(combinedPgn) {
