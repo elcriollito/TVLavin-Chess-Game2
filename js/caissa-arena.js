@@ -1142,7 +1142,26 @@ const CaissaArena = {
         const book = window.App?.openingBook;
         if (!book || !book.loaded || !this.game) return null;
         if (this.game.history().length >= this.state.bookMaxPlies) return null;
-        return book.selectBookMove(this.game);
+        try {
+            const move = book.selectBookMove(this.game);
+            if (!move) return null;
+            if (!this.findLegalUciMove(move)) {
+                console.warn('[Arena] Ignoring unusable book move and falling back to engine', {
+                    color: this.game.turn() === 'w' ? 'white' : 'black',
+                    fen: this.game.fen(),
+                    bookMove: move
+                });
+                return null;
+            }
+            return move;
+        } catch (error) {
+            console.warn('[Arena] Book lookup failed; falling back to engine', {
+                color: this.game.turn() === 'w' ? 'white' : 'black',
+                fen: this.game.fen(),
+                message: error?.message || String(error)
+            });
+            return null;
+        }
     },
 
     findLegalUciMove(uciMove) {
@@ -1299,11 +1318,26 @@ const CaissaArena = {
         try {
             const bookMove = this.getBookMove();
             if (bookMove) {
-                this.playUciMove(bookMove, isWhiteTurn, 'book');
-                return;
+                if (this.playUciMove(bookMove, isWhiteTurn, 'book')) {
+                    return;
+                }
+                console.warn('[Arena] Book move could not be applied; falling back to engine search', {
+                    color,
+                    engineId: engineConfig?.id,
+                    requestedFen: fen,
+                    bookMove
+                });
             }
 
             // Request best move from engine
+            console.log('[Arena] Falling back to engine search', {
+                color,
+                engineId: engineConfig?.id || currentEngine?.id || 'unknown',
+                requestedFen: fen,
+                engineReady: !!currentEngine?.isReady?.(),
+                separatePlayerInstances: this.whiteEngineInstance !== this.blackEngineInstance,
+                command: `go movetime ${ARENA_ENGINE_MOVETIME_MS}`
+            });
             this.state.loopRunning = true;
             const bestMove = await this.getEngineMove(currentEngine, fen, {
                 color,
@@ -1368,10 +1402,15 @@ const CaissaArena = {
             const searchToken = ++this.state.searchToken;
             let timeout = null;
             let settled = false;
+            let goCommandSent = false;
+            let bestMoveReceived = false;
+            let workerCrashed = false;
+            const previousOnError = engine.onError;
             const finish = (callback) => {
                 if (settled) return;
                 settled = true;
                 clearTimeout(timeout);
+                engine.onError = previousOnError;
                 if (this.state.cancelPendingSearch === cancelSearch) {
                     this.state.cancelPendingSearch = null;
                 }
@@ -1383,13 +1422,28 @@ const CaissaArena = {
                 finish(() => reject(error));
             };
             this.state.cancelPendingSearch = cancelSearch;
+            engine.onError = (error) => {
+                workerCrashed = true;
+                console.error('[Arena] Engine worker error during move search', {
+                    color,
+                    engineId,
+                    requestedFen: fen,
+                    searchToken,
+                    goCommandSent,
+                    message: error?.message || String(error)
+                });
+                if (previousOnError) previousOnError(error);
+                finish(() => reject(new Error(`Engine worker failed (${color}, ${engineId}, search ${searchToken})`)));
+            };
 
             console.log('[Arena] Engine search requested', {
                 color,
                 engineId,
                 requestedFen: fen,
                 searchToken,
-                movetime: ARENA_ENGINE_MOVETIME_MS
+                engineReady: engine.isReady(),
+                goCommandSent: false,
+                command: `go movetime ${ARENA_ENGINE_MOVETIME_MS}`
             });
 
             // Set up callback for best move
@@ -1405,6 +1459,7 @@ const CaissaArena = {
                     });
                     return;
                 }
+                bestMoveReceived = true;
                 console.log('[Arena] Engine bestmove received', {
                     color,
                     engineId,
@@ -1414,10 +1469,30 @@ const CaissaArena = {
                 });
                 finish(() => resolve(bestMove));
             }, { movetime: ARENA_ENGINE_MOVETIME_MS });
+            goCommandSent = true;
+            console.log('[Arena] Engine search command sent', {
+                color,
+                engineId,
+                requestedFen: fen,
+                searchToken,
+                engineReady: engine.isReady(),
+                command: `go movetime ${ARENA_ENGINE_MOVETIME_MS}`
+            });
 
             timeout = setTimeout(() => {
                 if (settled || searchToken !== this.state.searchToken) return;
                 engine.stop?.();
+                console.error('[Arena] Engine move timeout diagnostic', {
+                    color,
+                    engineId,
+                    requestedFen: fen,
+                    searchToken,
+                    engineReady: engine.isReady(),
+                    goCommandSent,
+                    bestMoveReceived,
+                    workerCrashed,
+                    command: `go movetime ${ARENA_ENGINE_MOVETIME_MS}`
+                });
                 finish(() => reject(new Error(
                     `Engine move timeout (${color}, ${engineId}, search ${searchToken}, FEN ${fen})`
                 )));
