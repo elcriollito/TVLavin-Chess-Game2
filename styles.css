@@ -7022,6 +7022,34 @@ button:focus,
     gap: 10px;
 }
 
+.analyze-review-opening {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 3px 8px;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: var(--bg-primary);
+}
+
+.analyze-review-opening span {
+    grid-column: 1 / -1;
+    color: var(--text-secondary);
+    font-size: 10px;
+}
+
+.analyze-review-opening strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: 12px;
+}
+
+.analyze-review-opening a {
+    color: var(--primary-color);
+    font-size: 12px;
+    font-weight: 700;
+}
+
 .analyze-accuracy-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -7087,6 +7115,42 @@ button:focus,
     color: var(--text-secondary);
     font-size: 10px;
     line-height: 1.35;
+}
+
+.analyze-critical-moments {
+    display: grid;
+    gap: 5px;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.analyze-critical-moment {
+    display: grid;
+    gap: 3px;
+    width: 100%;
+    padding: 7px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+}
+
+.analyze-critical-moment:hover,
+.analyze-critical-moment:focus-visible {
+    border-color: var(--primary-color);
+    background: var(--bg-secondary);
+}
+
+.analyze-critical-move {
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.analyze-critical-swing {
+    color: var(--text-secondary);
+    font-size: 10px;
 }
 
 /* Move List */

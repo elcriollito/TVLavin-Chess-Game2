@@ -3,7 +3,7 @@
  * Handles game import and Stockfish analysis
  *
  * Part of Phase 2: Section Migration
- * Analyze Page Status: v1.0 Feature Complete
+ * Analyze Page Status: v1.1 Stable (v1.0 Feature Complete)
  */
 
 const AnalyzeSection = {
@@ -82,6 +82,7 @@ const AnalyzeSection = {
             evalFill: document.getElementById('analyzeEvalFill'),
             evalScore: document.getElementById('analyzeEvalScore'),
             reviewSummary: document.getElementById('analyzeReviewSummary'),
+            criticalMoments: document.getElementById('analyzeCriticalMoments'),
 
             // Move list
             moveList: document.getElementById('analyzeMoveList'),
@@ -454,12 +455,15 @@ const AnalyzeSection = {
                 black: metadata.black || headers.Black || 'Unknown',
                 result: metadata.result || headers.Result || '*',
                 event: headers.Event || '',
-                date: headers.Date || ''
+                date: headers.Date || '',
+                eco: metadata.eco || headers.ECO || '',
+                opening: metadata.opening || headers.Opening || ''
             };
             this.currentMoveIndex = this.loadedGame.game.history().length - 1;
             this.analysisResults = [];
             this.positionAnalyses = [];
             this.updateReviewSummary();
+            this.updateCriticalMoments();
 
             // Update metadata display
             this.updateMetadata();
@@ -651,8 +655,14 @@ const AnalyzeSection = {
         const white = this.buildSideReview(analyzed.filter((result) => result.moveIndex % 2 === 0));
         const black = this.buildSideReview(analyzed.filter((result) => result.moveIndex % 2 === 1));
         const qualities = ['Brilliant', 'Great', 'Best', 'Good', 'Interesting', 'Dubious', 'Mistake', 'Blunder'];
+        const opening = this.getAnalyzeOpening();
 
         this.elements.reviewSummary.innerHTML = `
+            <div class="analyze-review-opening">
+                <span>Opening</span>
+                <strong>${this.escapeHtml(opening?.name || 'Opening not identified')}</strong>
+                ${opening?.eco ? `<a href="/eco/${this.escapeHtml(opening.eco)}">${this.escapeHtml(opening.eco)}</a>` : ''}
+            </div>
             <div class="analyze-accuracy-grid">
                 <div class="analyze-accuracy-card"><span>White accuracy</span><strong>${this.formatAccuracy(white.accuracy)}</strong></div>
                 <div class="analyze-accuracy-card"><span>Black accuracy</span><strong>${this.formatAccuracy(black.accuracy)}</strong></div>
@@ -669,6 +679,34 @@ const AnalyzeSection = {
             </div>
             <p class="analyze-accuracy-note">Accuracy estimates consistency from average evaluation loss.</p>
         `;
+    },
+
+    getAnalyzeOpening() {
+        if (!this.loadedGame) return null;
+        const played = this.loadedGame.game.history().map((move) => this.normalizeEcoSan(move));
+        let best = null;
+        let bestDepth = -1;
+
+        for (const opening of window.App?.openings || []) {
+            const moves = (Array.isArray(opening.moves) ? opening.moves : String(opening.moves || '').split(/\s+/))
+                .map((move) => this.normalizeEcoSan(move))
+                .filter(Boolean);
+            if (!moves.length || moves.length > played.length || moves.length <= bestDepth) continue;
+            if (moves.every((move, index) => move === played[index])) {
+                best = { name: opening.name || '', eco: opening.eco || opening.code || '' };
+                bestDepth = moves.length;
+            }
+        }
+
+        if (best) return best;
+        if (this.loadedGame.opening || this.loadedGame.eco) {
+            return { name: this.loadedGame.opening || 'ECO opening', eco: this.loadedGame.eco || '' };
+        }
+        return null;
+    },
+
+    normalizeEcoSan(move) {
+        return String(move || '').replace(/[+#?!]/g, '').trim();
     },
 
     buildSideReview(results) {
@@ -701,6 +739,46 @@ const AnalyzeSection = {
             return 'Good';
         }
         return 'Good';
+    },
+
+    updateCriticalMoments() {
+        if (!this.elements.criticalMoments) return;
+        const critical = this.analysisResults.filter((result) => result && !result.unavailable && this.isCriticalMoment(result));
+        if (critical.length === 0) {
+            this.elements.criticalMoments.innerHTML = '<p class="empty-state">No critical moments identified yet.</p>';
+            return;
+        }
+
+        this.elements.criticalMoments.innerHTML = critical.map((result) => {
+            const moveNumber = Math.floor(result.moveIndex / 2) + 1;
+            const sideSuffix = result.moveIndex % 2 === 1 ? '...' : '';
+            return `
+                <button class="analyze-critical-moment" type="button" data-index="${result.moveIndex}">
+                    <span class="analyze-critical-move">Move ${moveNumber}${sideSuffix} · ${this.escapeHtml(result.move)} <strong class="${this.getAnnotationClass(result.annotation)}">${result.annotation}</strong></span>
+                    <span class="analyze-critical-swing">${this.getCriticalMomentText(result)}</span>
+                </button>
+            `;
+        }).join('');
+
+        this.elements.criticalMoments.querySelectorAll('.analyze-critical-moment').forEach((button) => {
+            button.addEventListener('click', () => this.jumpToMove(Number(button.dataset.index)));
+        });
+    },
+
+    isCriticalMoment(result) {
+        return result.annotation === '?'
+            || result.annotation === '??'
+            || result.mateSwing
+            || result.loss >= 1.5
+            || (result.beforePlayerEval >= 1.5 && result.afterPlayerEval < 0.5);
+    },
+
+    getCriticalMomentText(result) {
+        if (result.mateSwing) return 'Decisive mate swing';
+        if (result.beforePlayerEval >= 1.5 && result.afterPlayerEval < 0.5) {
+            return `Missed winning chance · lost ${result.loss.toFixed(1)} pawns`;
+        }
+        return `Lost ${result.loss.toFixed(1)} pawns`;
     },
 
     flipAnalyzeBoard() {
@@ -785,6 +863,7 @@ const AnalyzeSection = {
         this.updateMentorPanel();
         this.updateEvaluationBar();
         this.updateReviewSummary();
+        this.updateCriticalMoments();
 
         // Update UI
         this.elements.startBtn.style.display = 'none';
@@ -827,6 +906,7 @@ const AnalyzeSection = {
                         : this.buildUnavailableMoveAnalysis(i - 1, moves[i - 1]);
                     this.updateMoveList();
                     this.updateReviewSummary();
+                    this.updateCriticalMoments();
                     if (this.currentMoveIndex === i - 1) {
                         this.updateMentorPanel();
                         this.updateEvaluationBar();
@@ -840,6 +920,7 @@ const AnalyzeSection = {
                 this.updateMentorPanel();
                 this.updateEvaluationBar();
                 this.updateReviewSummary();
+                this.updateCriticalMoments();
                 const analyzedPositions = positions.length - skippedPositions;
                 this.setAnalysisCompletionStatus(analyzedPositions, positions.length);
             }
@@ -881,6 +962,8 @@ const AnalyzeSection = {
             loss,
             gain,
             mateSwing,
+            beforePlayerEval,
+            afterPlayerEval,
             annotation: classification.annotation,
             label: classification.label,
             mentorText: this.buildMentorText(classification, loss, bestMoveSan, isBestMove)
