@@ -3,7 +3,7 @@
  * Handles game import and Stockfish analysis
  *
  * Part of Phase 2: Section Migration
- * Analyze Page Status: v1.1 Stable (v1.0 Feature Complete)
+ * Analyze Page Status: v1.2 Stable Candidate
  */
 
 const AnalyzeSection = {
@@ -450,6 +450,7 @@ const AnalyzeSection = {
             this.loadedGame = {
                 pgn: pgn,
                 game: game,
+                initialFen: headers.SetUp === '1' && headers.FEN ? headers.FEN : null,
                 source: source,
                 white: metadata.white || headers.White || 'Unknown',
                 black: metadata.black || headers.Black || 'Unknown',
@@ -562,8 +563,12 @@ const AnalyzeSection = {
         const moves = this.loadedGame.game.history();
         const safeIndex = Math.max(-1, Math.min(index, moves.length - 1));
 
-        // Reset to start
-        App.game.reset();
+        // Reset to the game's actual starting position.
+        if (this.loadedGame.initialFen) {
+            App.game.load(this.loadedGame.initialFen);
+        } else {
+            App.game.reset();
+        }
 
         // Replay moves up to index
         for (let i = 0; i <= safeIndex && i < moves.length; i++) {
@@ -883,7 +888,9 @@ const AnalyzeSection = {
         }
 
         try {
-            const tempGame = new Chess();
+            const tempGame = this.loadedGame.initialFen
+                ? new Chess(this.loadedGame.initialFen)
+                : new Chess();
             const positions = [tempGame.fen()];
             moves.forEach((move) => {
                 tempGame.move(move.san);
