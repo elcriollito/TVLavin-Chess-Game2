@@ -53,7 +53,7 @@
     <!-- Stylesheets -->
     <link rel="stylesheet" href="./assets/css/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="styles.css?v=2.0.6">
+    <link rel="stylesheet" href="styles.css?v=2.0.7">
     <link rel="stylesheet" href="caissa-library.css?v=1.1.0">
     <link rel="stylesheet" href="query-engine.css?v=1.0.0">
     <link rel="stylesheet" href="position-forge.css?v=1.0.0">
@@ -888,6 +888,9 @@
                             <button id="analyzeNavLast" class="nav-btn-sm" title="Last move" aria-label="Jump to end">
                                 <i class="fas fa-fast-forward"></i>
                             </button>
+                            <button id="analyzeFlipBoard" class="nav-btn-sm" title="Flip board" aria-label="Flip board">
+                                <i class="fas fa-exchange-alt"></i>
+                            </button>
                         </div>
                         <div class="panel analyze-mentor-panel">
                             <h3 class="panel-title">Move Analysis / Mentor</h3>
@@ -946,6 +949,14 @@
                                     </div>
                                     <span id="analyzeProgressText">0%</span>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Analyze v1.1 Game Review Summary -->
+                        <div class="panel">
+                            <h3 class="panel-title">Game Review Summary</h3>
+                            <div id="analyzeReviewSummary" class="analyze-review-summary">
+                                <p class="empty-state">Analyze the game to see accuracy and move quality.</p>
                             </div>
                         </div>
 
@@ -2733,7 +2744,7 @@
     <script src="js/arena-section.js?v=1.0.0"></script>
     <script src="js/insights-section.js?v=1.0.0"></script>
     <script src="js/history-section.js?v=1.0.0"></script>
-    <script src="js/analyze-section.js?v=1.0.8"></script>
+    <script src="js/analyze-section.js?v=1.1.0"></script>
     <script src="app.js?v=2.0.2"></script>
 
     <!-- Auth Scripts -->

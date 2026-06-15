@@ -6865,9 +6865,13 @@ button:focus,
     color: #f87171;
 }
 
+.analyze-eval-bar.eval-flipped .analyze-eval-fill {
+    inset: 0 0 auto;
+}
+
 .analyze-board-navigation {
     display: grid;
-    grid-template-columns: repeat(4, 38px);
+    grid-template-columns: repeat(5, 38px);
     gap: 8px;
     justify-content: center;
     width: min(100%, calc(var(--board-size) + 60px));
@@ -6876,6 +6880,11 @@ button:focus,
 .analyze-board-navigation .nav-btn-sm {
     width: 38px;
     height: 34px;
+}
+
+.analyze-board-navigation .nav-btn-sm.active {
+    color: white;
+    background: var(--primary-color);
 }
 
 .analyze-mentor-panel {
@@ -7007,6 +7016,79 @@ button:focus,
     font-size: 13px;
 }
 
+.analyze-review-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.analyze-accuracy-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.analyze-accuracy-card {
+    padding: 9px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: var(--bg-primary);
+}
+
+.analyze-accuracy-card span {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+
+.analyze-accuracy-card strong {
+    display: block;
+    margin-top: 3px;
+    color: var(--text-primary);
+    font-size: 19px;
+}
+
+.analyze-quality-table {
+    display: grid;
+    gap: 2px;
+}
+
+.analyze-quality-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 42px 42px;
+    align-items: center;
+    min-height: 24px;
+    padding: 3px 5px;
+    border-radius: 3px;
+    background: var(--bg-primary);
+    font-size: 11px;
+}
+
+.analyze-quality-row strong {
+    text-align: center;
+}
+
+.analyze-quality-header {
+    color: var(--text-secondary);
+    background: transparent;
+}
+
+.quality-brilliant { color: #2dd4bf; }
+.quality-great,
+.quality-best,
+.quality-good { color: #22c55e; }
+.quality-interesting { color: #60a5fa; }
+.quality-dubious { color: #f59e0b; }
+.quality-mistake { color: #f97316; }
+.quality-blunder { color: #ef4444; }
+
+.analyze-accuracy-note {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 10px;
+    line-height: 1.35;
+}
+
 /* Move List */
 .analyze-move-list {
     max-height: 300px;
@@ -7112,6 +7194,7 @@ button:focus,
     #analyzeSection .context-panel {
         order: 3;
         display: flex;
+        flex-direction: column;
     }
 
     .analyze-tabs {

@@ -3,6 +3,7 @@
  * Handles game import and Stockfish analysis
  *
  * Part of Phase 2: Section Migration
+ * Analyze Page Status: v1.0 Feature Complete
  */
 
 const AnalyzeSection = {
@@ -18,6 +19,7 @@ const AnalyzeSection = {
     analysisEngine: null,
     analysisToken: 0,
     keyboardHandler: null,
+    boardFlipped: false,
 
     // DOM cache
     elements: {},
@@ -79,13 +81,15 @@ const AnalyzeSection = {
             evalBar: document.getElementById('analyzeEvalBar'),
             evalFill: document.getElementById('analyzeEvalFill'),
             evalScore: document.getElementById('analyzeEvalScore'),
+            reviewSummary: document.getElementById('analyzeReviewSummary'),
 
             // Move list
             moveList: document.getElementById('analyzeMoveList'),
             navFirst: document.getElementById('analyzeNavFirst'),
             navPrev: document.getElementById('analyzeNavPrev'),
             navNext: document.getElementById('analyzeNavNext'),
-            navLast: document.getElementById('analyzeNavLast')
+            navLast: document.getElementById('analyzeNavLast'),
+            flipBoard: document.getElementById('analyzeFlipBoard')
         };
     },
 
@@ -137,6 +141,7 @@ const AnalyzeSection = {
         this.elements.navLast?.addEventListener('click', () => {
             this.jumpToMove((this.loadedGame?.game.history().length || 0) - 1);
         });
+        this.elements.flipBoard?.addEventListener('click', () => this.flipAnalyzeBoard());
 
         this.bindKeyboardNavigation();
     },
@@ -454,6 +459,7 @@ const AnalyzeSection = {
             this.currentMoveIndex = this.loadedGame.game.history().length - 1;
             this.analysisResults = [];
             this.positionAnalyses = [];
+            this.updateReviewSummary();
 
             // Update metadata display
             this.updateMetadata();
@@ -634,6 +640,82 @@ const AnalyzeSection = {
         `;
     },
 
+    updateReviewSummary() {
+        if (!this.elements.reviewSummary) return;
+        const analyzed = this.analysisResults.filter((result) => result && !result.unavailable);
+        if (analyzed.length === 0) {
+            this.elements.reviewSummary.innerHTML = '<p class="empty-state">Analyze the game to see accuracy and move quality.</p>';
+            return;
+        }
+
+        const white = this.buildSideReview(analyzed.filter((result) => result.moveIndex % 2 === 0));
+        const black = this.buildSideReview(analyzed.filter((result) => result.moveIndex % 2 === 1));
+        const qualities = ['Brilliant', 'Great', 'Best', 'Good', 'Interesting', 'Dubious', 'Mistake', 'Blunder'];
+
+        this.elements.reviewSummary.innerHTML = `
+            <div class="analyze-accuracy-grid">
+                <div class="analyze-accuracy-card"><span>White accuracy</span><strong>${this.formatAccuracy(white.accuracy)}</strong></div>
+                <div class="analyze-accuracy-card"><span>Black accuracy</span><strong>${this.formatAccuracy(black.accuracy)}</strong></div>
+            </div>
+            <div class="analyze-quality-table">
+                <div class="analyze-quality-row analyze-quality-header"><span>Quality</span><strong>White</strong><strong>Black</strong></div>
+                ${qualities.map((quality) => `
+                    <div class="analyze-quality-row">
+                        <span class="quality-${quality.toLowerCase()}">${quality}</span>
+                        <strong>${white.counts[quality]}</strong>
+                        <strong>${black.counts[quality]}</strong>
+                    </div>
+                `).join('')}
+            </div>
+            <p class="analyze-accuracy-note">Accuracy estimates consistency from average evaluation loss.</p>
+        `;
+    },
+
+    buildSideReview(results) {
+        const qualities = ['Brilliant', 'Great', 'Best', 'Good', 'Interesting', 'Dubious', 'Mistake', 'Blunder'];
+        const counts = Object.fromEntries(qualities.map((quality) => [quality, 0]));
+        if (results.length === 0) return { accuracy: null, counts };
+
+        let accuracyTotal = 0;
+        results.forEach((result) => {
+            counts[this.getMoveQuality(result)] += 1;
+            // Consistent, explainable estimate: each pawn of eval loss reduces move accuracy exponentially.
+            accuracyTotal += 100 * Math.exp(-0.55 * Math.max(0, result.loss || 0));
+        });
+        return { accuracy: (accuracyTotal / results.length).toFixed(1), counts };
+    },
+
+    formatAccuracy(accuracy) {
+        return accuracy === null ? '-' : `${accuracy}%`;
+    },
+
+    getMoveQuality(result) {
+        if (result.annotation === '!!') return 'Brilliant';
+        if (result.annotation === '!?') return 'Interesting';
+        if (result.annotation === '?!') return 'Dubious';
+        if (result.annotation === '?') return 'Mistake';
+        if (result.annotation === '??') return 'Blunder';
+        if (result.annotation === '!') {
+            if (result.isBestMove && result.gain >= 0.5) return 'Great';
+            if (result.isBestMove) return 'Best';
+            return 'Good';
+        }
+        return 'Good';
+    },
+
+    flipAnalyzeBoard() {
+        this.boardFlipped = !this.boardFlipped;
+        this.applyAnalyzeOrientation();
+    },
+
+    applyAnalyzeOrientation() {
+        if (!window.App?.board || typeof App.board.orientation !== 'function') return;
+        App.board.orientation(this.boardFlipped ? 'black' : 'white');
+        this.elements.evalBar?.classList.toggle('eval-flipped', this.boardFlipped);
+        this.elements.flipBoard?.classList.toggle('active', this.boardFlipped);
+        setTimeout(() => App.board?.resize?.(), 0);
+    },
+
     updateEvaluationBar() {
         const fill = this.elements.evalFill;
         const score = this.elements.evalScore;
@@ -702,6 +784,7 @@ const AnalyzeSection = {
         this.updateMoveList();
         this.updateMentorPanel();
         this.updateEvaluationBar();
+        this.updateReviewSummary();
 
         // Update UI
         this.elements.startBtn.style.display = 'none';
@@ -743,6 +826,7 @@ const AnalyzeSection = {
                         ? this.buildMoveAnalysis(i - 1, moves[i - 1], positions[i - 1], positionAnalyses[i - 1], positionAnalyses[i])
                         : this.buildUnavailableMoveAnalysis(i - 1, moves[i - 1]);
                     this.updateMoveList();
+                    this.updateReviewSummary();
                     if (this.currentMoveIndex === i - 1) {
                         this.updateMentorPanel();
                         this.updateEvaluationBar();
@@ -755,6 +839,7 @@ const AnalyzeSection = {
                 this.updateMoveList();
                 this.updateMentorPanel();
                 this.updateEvaluationBar();
+                this.updateReviewSummary();
                 const analyzedPositions = positions.length - skippedPositions;
                 this.setAnalysisCompletionStatus(analyzedPositions, positions.length);
             }
@@ -1075,7 +1160,7 @@ const AnalyzeSection = {
      */
     onEnter() {
         console.log('[Analyze] Section entered');
-        // Could sync board here if needed
+        setTimeout(() => this.applyAnalyzeOrientation(), 0);
     },
 
     /**
@@ -1086,6 +1171,9 @@ const AnalyzeSection = {
         // Stop analysis if running
         if (this.isAnalyzing) {
             this.stopAnalysis();
+        }
+        if (window.App?.board && typeof App.board.orientation === 'function') {
+            App.board.orientation(App.isFlipped ? 'black' : 'white');
         }
     }
 };
