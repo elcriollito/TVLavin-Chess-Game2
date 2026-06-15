@@ -110,6 +110,17 @@
     color: #ef4444;
 }
 
+.fics-status-connecting,
+.fics-status-reconnecting {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+}
+
+.fics-status-error {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
 .fics-gateway-details {
     display: grid;
     gap: 4px;

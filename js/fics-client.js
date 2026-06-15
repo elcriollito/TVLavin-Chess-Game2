@@ -12,6 +12,15 @@ const CaissaFICSClient = {
     ws: null,
     connected: false,
     authenticated: false,
+    connectionState: 'disconnected',
+    rawBuffer: '',
+    guestLoginSent: false,
+    guestReturnSent: false,
+    connectionStartedAt: 0,
+    latencyMs: null,
+    manualDisconnect: false,
+    reconnectAttempts: 0,
+    reconnectTimer: null,
 
     // Game state
     chess: null, // chess.js instance
@@ -40,7 +49,7 @@ const CaissaFICSClient = {
         this.configureGateway();
         this.bindEvents();
         this.initChessEngine();
-        this.updateConnectionStatus(false);
+        this.setConnectionState('disconnected');
         this.updateGatewayStatus();
     },
 
@@ -53,6 +62,7 @@ const CaissaFICSClient = {
             connectionStatus: document.getElementById('ficsConnectionStatus'),
             gatewayStatus: document.getElementById('ficsGatewayStatus'),
             gatewayUrl: document.getElementById('ficsGatewayUrl'),
+            gatewayLatency: document.getElementById('ficsGatewayLatency'),
 
             // Seek buttons
             seekBlitz1: document.getElementById('ficsSeek1_0'),
@@ -92,12 +102,11 @@ const CaissaFICSClient = {
         if (isLocal) {
             this.gatewayUrl = configuredUrl || 'ws://localhost:8081';
             this.gatewayMode = this.gatewayUrl.startsWith('wss://') ? 'local wss' : 'local ws';
-        } else if (configuredUrl.startsWith('wss://')) {
-            this.gatewayUrl = configuredUrl;
-            this.gatewayMode = 'production wss';
         } else {
-            this.gatewayUrl = null;
-            this.gatewayMode = 'production wss required';
+            this.gatewayUrl = configuredUrl.startsWith('wss://')
+                ? configuredUrl
+                : 'wss://fics-gateway.caissa-chess.org/ws';
+            this.gatewayMode = 'production wss';
         }
     },
 
@@ -121,6 +130,7 @@ const CaissaFICSClient = {
         if (this.elements.gatewayUrl) {
             this.elements.gatewayUrl.textContent = this.gatewayUrl || 'Not configured';
         }
+        this.updateLatency();
         if (!configured) {
             this.elements.connectBtn?.setAttribute('disabled', 'true');
             this.elements.testGatewayBtn?.setAttribute('disabled', 'true');
@@ -187,8 +197,14 @@ const CaissaFICSClient = {
         }
 
         this.logToConsole('Connecting to FICS gateway...');
-        this.updateConnectionStatus(false, 'Connecting...');
+        this.manualDisconnect = false;
+        clearTimeout(this.reconnectTimer);
+        this.setConnectionState('connecting');
         this.updateGameStatus('Connecting to gateway...', '');
+        this.rawBuffer = '';
+        this.guestLoginSent = false;
+        this.guestReturnSent = false;
+        this.connectionStartedAt = performance.now();
 
         try {
             this.ws = new WebSocket(this.gatewayUrl);
@@ -207,23 +223,16 @@ const CaissaFICSClient = {
             this.ws.onopen = () => {
                 clearTimeout(connectionTimeout);
                 console.log('[FICS Client] WebSocket connected');
+                this.connected = true;
+                this.latencyMs = Math.round(performance.now() - this.connectionStartedAt);
+                this.updateLatency();
                 this.logToConsole('✅ Connected to gateway, authenticating...');
                 this.updateGameStatus('Authenticating...', '');
 
-                // Send guest login request
-                this.send({
-                    type: 'connectGuest',
-                    handlePrefix: 'CAISSA'
-                });
             };
 
             this.ws.onmessage = (event) => {
-                try {
-                    const message = JSON.parse(event.data);
-                    this.handleServerMessage(message);
-                } catch (error) {
-                    console.error('[FICS Client] Failed to parse message:', error);
-                }
+                this.handleRawGatewayData(String(event.data));
             };
 
             this.ws.onerror = (error) => {
@@ -236,12 +245,15 @@ const CaissaFICSClient = {
             this.ws.onclose = (event) => {
                 clearTimeout(connectionTimeout);
                 console.log('[FICS Client] WebSocket closed', event.code, event.reason);
+                const shouldReconnect = !this.manualDisconnect
+                    && event.code !== 1000
+                    && this.reconnectAttempts < 3;
 
-                if (this.connected) {
+                if (this.connected && !shouldReconnect) {
                     // Was connected, now disconnected
                     this.logToConsole('Disconnected from FICS');
                     this.updateGameStatus('Disconnected', '');
-                } else {
+                } else if (!shouldReconnect && !this.manualDisconnect) {
                     // Failed to connect
                     this.logToConsole('❌ Failed to connect to gateway');
                     this.handleConnectionFailure('close');
@@ -249,7 +261,15 @@ const CaissaFICSClient = {
 
                 this.connected = false;
                 this.authenticated = false;
-                this.updateConnectionStatus(false);
+                if (shouldReconnect) {
+                    this.reconnectAttempts += 1;
+                    this.setConnectionState('reconnecting');
+                    this.updateGameStatus('Connection interrupted. Reconnecting...', '');
+                    this.reconnectTimer = setTimeout(() => this.connect(), 1500);
+                } else {
+                    this.reconnectAttempts = 0;
+                    this.setConnectionState(event.code === 1000 ? 'disconnected' : 'error');
+                }
             };
 
         } catch (error) {
@@ -284,7 +304,7 @@ const CaissaFICSClient = {
 
         const fullMsg = errorMsg + tips;
         this.updateGameStatus(fullMsg, 'error');
-        this.updateConnectionStatus(false, 'Failed');
+        this.setConnectionState('error', 'Failed');
     },
 
     async testGateway() {
@@ -301,6 +321,8 @@ const CaissaFICSClient = {
 
         try {
             const testWs = new WebSocket(this.gatewayUrl);
+            const startedAt = performance.now();
+            let receivedBanner = false;
 
             const timeout = setTimeout(() => {
                 testWs.close();
@@ -309,10 +331,19 @@ const CaissaFICSClient = {
             }, 5000);
 
             testWs.onopen = () => {
-                clearTimeout(timeout);
                 this.logToConsole('✅ Gateway test successful!');
                 this.updateGameStatus('✅ Gateway is reachable!\n\nYou can now connect.', 'active');
-                testWs.close();
+            };
+
+            testWs.onmessage = () => {
+                if (receivedBanner) return;
+                receivedBanner = true;
+                clearTimeout(timeout);
+                this.latencyMs = Math.round(performance.now() - startedAt);
+                this.updateLatency();
+                this.logToConsole('Gateway test successful; FICS banner received.');
+                this.updateGameStatus('Gateway and FICS are reachable. You can now connect.', 'active');
+                testWs.close(1000, 'Gateway test complete');
             };
 
             testWs.onerror = () => {
@@ -343,23 +374,57 @@ const CaissaFICSClient = {
     },
 
     disconnect() {
+        this.manualDisconnect = true;
+        clearTimeout(this.reconnectTimer);
         if (this.ws) {
-            this.send({ type: 'disconnect' });
-            this.ws.close();
+            this.send('quit');
+            this.ws.close(1000, 'User disconnected');
             this.ws = null;
         }
         this.connected = false;
         this.authenticated = false;
-        this.updateConnectionStatus(false);
+        this.setConnectionState('disconnected');
         this.logToConsole('Disconnected');
     },
 
     send(message) {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            this.ws.send(JSON.stringify(message));
+            const command = typeof message === 'string' ? message : message?.text;
+            if (command !== undefined) this.ws.send(command);
         } else {
             console.warn('[FICS Client] Cannot send, not connected');
         }
+    },
+
+    handleRawGatewayData(text) {
+        this.rawBuffer = `${this.rawBuffer}${text}`.slice(-16384);
+        this.logToConsole(text.replace(/\r/g, '').trimEnd());
+
+        if (!this.guestLoginSent && /login:/i.test(this.rawBuffer)) {
+            this.guestLoginSent = true;
+            this.rawBuffer = '';
+            this.send('guest');
+            return;
+        }
+        if (!this.guestReturnSent && /Press return to enter the server/i.test(this.rawBuffer)) {
+            this.guestReturnSent = true;
+            this.rawBuffer = '';
+            this.send('');
+            return;
+        }
+        if (!this.authenticated && /Starting FICS session|fics%/i.test(this.rawBuffer)) {
+            this.authenticated = true;
+            this.reconnectAttempts = 0;
+            this.setConnectionState('connected');
+            this.updateGameStatus('Connected as FICS guest', 'active');
+            this.logToConsole('Connected as guest. You can now seek games or enter commands.');
+            this.send('set style 12');
+            this.send('set interface CAISSA Chess');
+        }
+
+        text.replace(/\r/g, '').split('\n').forEach((line) => {
+            if (line.trim()) this.parseGameLine(line.trim());
+        });
     },
 
     // ===== MESSAGE HANDLING =====
@@ -613,6 +678,32 @@ const CaissaFICSClient = {
                 this.elements.connectBtn?.setAttribute('disabled', 'true');
             }
             this.elements.disconnectBtn?.setAttribute('disabled', 'true');
+        }
+    },
+
+    setConnectionState(state, message = null) {
+        this.connectionState = state;
+        const labels = {
+            disconnected: 'Disconnected',
+            connecting: 'Connecting',
+            connected: 'Connected',
+            reconnecting: 'Reconnecting',
+            error: 'Error'
+        };
+        if (this.elements.connectionStatus) {
+            this.elements.connectionStatus.textContent = message || labels[state] || state;
+            this.elements.connectionStatus.className = `fics-status fics-status-${state}`;
+        }
+        const active = state === 'connecting' || state === 'connected' || state === 'reconnecting';
+        this.elements.connectBtn?.toggleAttribute('disabled', active || !this.isGatewayConfigured());
+        this.elements.disconnectBtn?.toggleAttribute('disabled', !active);
+    },
+
+    updateLatency() {
+        if (this.elements.gatewayLatency) {
+            this.elements.gatewayLatency.textContent = this.latencyMs === null
+                ? 'Not measured'
+                : `${this.latencyMs} ms`;
         }
     },
 
