@@ -1461,7 +1461,24 @@
                                 </div>
                             </div>
 
-                            <div id="ficsBoardContainer"></div>
+                            <div class="fics-live-board-shell">
+                                <div id="ficsTopPlayerBar" class="fics-player-bar black">
+                                    <span class="fics-color-dot" aria-hidden="true"></span>
+                                    <span class="fics-player-name">Black</span>
+                                    <span class="fics-player-rating">waiting</span>
+                                    <span class="fics-player-lag">lag --</span>
+                                    <strong class="fics-player-clock">--:--</strong>
+                                </div>
+                                <div id="ficsPendingState" class="fics-pending-state" aria-live="polite"></div>
+                                <div id="ficsBoardContainer"></div>
+                                <div id="ficsBottomPlayerBar" class="fics-player-bar white">
+                                    <span class="fics-color-dot" aria-hidden="true"></span>
+                                    <span class="fics-player-name">White</span>
+                                    <span class="fics-player-rating">waiting</span>
+                                    <span class="fics-player-lag">lag --</span>
+                                    <strong class="fics-player-clock">--:--</strong>
+                                </div>
+                            </div>
                             <div class="fics-live-clocks" aria-label="Live game clocks">
                                 <span>White <strong id="ficsWhiteClock">--:--</strong></span>
                                 <span>Black <strong id="ficsBlackClock">--:--</strong></span>
@@ -1537,6 +1554,19 @@
                                     </button>
                                 </div>
                                 <div id="ficsSeekActions" class="fics-seek-actions" aria-live="polite"></div>
+                                <p id="ficsLobbyNote" class="fics-lobby-note">Spectator filters and active-game browsing are planned for a later FICS phase.</p>
+                            </div>
+
+                            <div class="fics-panel">
+                                <div class="fics-panel-heading">
+                                    <h3>Live Moves</h3>
+                                    <button id="ficsDownloadPgnBtn" class="fics-btn fics-btn-secondary">
+                                        <i class="fas fa-download"></i> Download PGN
+                                    </button>
+                                </div>
+                                <div id="ficsMoveList" class="fics-move-list" aria-live="polite">
+                                    Moves will appear here as Style12 updates arrive.
+                                </div>
                             </div>
                         </div>
                     </div>

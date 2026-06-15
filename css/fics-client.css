@@ -253,14 +253,89 @@
     border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
-#ficsBoardContainer {
+.fics-live-board-shell {
     width: 100%;
     max-width: 600px;
     margin: 0 auto;
 }
 
+#ficsBoardContainer {
+    width: 100%;
+}
+
+.fics-player-bar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.fics-player-bar:first-child {
+    border-radius: 8px 8px 0 0;
+    border-bottom: 0;
+}
+
+.fics-player-bar:last-child {
+    border-radius: 0 0 8px 8px;
+    border-top: 0;
+}
+
+.fics-color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: #f8fafc;
+}
+
+.fics-player-bar.black .fics-color-dot {
+    background: #111827;
+}
+
+.fics-player-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 700;
+}
+
+.fics-player-rating,
+.fics-player-lag {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.fics-player-clock {
+    min-width: 48px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.fics-pending-state {
+    min-height: 24px;
+    padding: 4px 8px;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-align: center;
+}
+
+.fics-pending-state.pending {
+    color: #f59e0b;
+}
+
+.fics-pending-state.confirmed {
+    color: #10b981;
+}
+
 .fics-live-clocks {
-    display: flex;
+    display: none;
     justify-content: space-between;
     width: 100%;
     max-width: 600px;
@@ -372,25 +447,78 @@
     color: var(--text-secondary);
 }
 
-.fics-seek-actions {
+.fics-panel-heading {
     display: flex;
-    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.fics-panel-heading h3 {
+    margin: 0;
+}
+
+.fics-seek-actions {
+    display: grid;
     gap: 8px;
     margin-top: 14px;
 }
 
 .fics-seek-action {
+    display: grid;
+    gap: 2px;
     padding: 8px 10px;
     border: 1px solid var(--border-color);
     border-radius: 6px;
     background: var(--bg-tertiary);
     color: var(--text-primary);
     cursor: pointer;
+    text-align: left;
 }
 
 .fics-seek-action:hover {
     border-color: var(--primary-color);
     color: var(--primary-color);
+}
+
+.fics-seek-action-main {
+    font-weight: 700;
+}
+
+.fics-seek-action small {
+    color: var(--text-secondary);
+}
+
+.fics-lobby-note {
+    margin: 12px 0 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.fics-move-list {
+    display: grid;
+    gap: 6px;
+    max-height: 260px;
+    overflow-y: auto;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.fics-move-row {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.fics-move-number {
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
 }
 
 .fics-input-group {
@@ -500,6 +628,10 @@
     #ficsBoardContainer {
         max-width: 100%;
     }
+
+    .fics-live-board-shell {
+        max-width: 100%;
+    }
 }
 
 @media (max-width: 768px) {
@@ -518,6 +650,20 @@
 
     .fics-seek-presets {
         grid-template-columns: 1fr;
+    }
+
+    .fics-player-bar {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+
+    .fics-player-rating,
+    .fics-player-lag {
+        display: none;
+    }
+
+    .fics-panel-heading {
+        align-items: stretch;
+        flex-direction: column;
     }
 
     #ficsConsole {

@@ -22,6 +22,7 @@ const CaissaFICSClient = {
     manualDisconnect: false,
     reconnectAttempts: 0,
     reconnectTimer: null,
+    ficsUsername: 'Guest',
 
     // Game state
     chess: null, // chess.js instance
@@ -41,6 +42,8 @@ const CaissaFICSClient = {
         lastMove: null,
         whiteClock: null,
         blackClock: null,
+        initialTime: null,
+        increment: null,
         currentFen: null,
         gameActive: false,
         observedGame: false,
@@ -48,6 +51,9 @@ const CaissaFICSClient = {
         status: 'idle'
     },
     seekActions: [],
+    moveHistory: [],
+    lastMoveKey: null,
+    pgnResult: '*',
 
     // UI elements
     elements: {},
@@ -92,12 +98,18 @@ const CaissaFICSClient = {
             customTimeInput: document.getElementById('ficsCustomTime'),
             customIncInput: document.getElementById('ficsCustomInc'),
             seekActions: document.getElementById('ficsSeekActions'),
+            lobbyNote: document.getElementById('ficsLobbyNote'),
 
             // Game info
             gameStatus: document.getElementById('ficsGameStatus'),
             opponentInfo: document.getElementById('ficsOpponentInfo'),
             whiteClock: document.getElementById('ficsWhiteClock'),
             blackClock: document.getElementById('ficsBlackClock'),
+            topPlayerBar: document.getElementById('ficsTopPlayerBar'),
+            bottomPlayerBar: document.getElementById('ficsBottomPlayerBar'),
+            pendingState: document.getElementById('ficsPendingState'),
+            moveList: document.getElementById('ficsMoveList'),
+            downloadPgnBtn: document.getElementById('ficsDownloadPgnBtn'),
             gameControls: document.getElementById('ficsGameControls'),
             resignBtn: document.getElementById('ficsResignBtn'),
             drawBtn: document.getElementById('ficsDrawBtn'),
@@ -162,6 +174,9 @@ const CaissaFICSClient = {
 
     bindEvents() {
         // Connection
+        document.querySelector('[data-section="fics"]')?.addEventListener('click', () => {
+            setTimeout(() => this.onEnter(), 0);
+        });
         this.elements.connectBtn?.addEventListener('click', () => this.connect());
         this.elements.disconnectBtn?.addEventListener('click', () => this.disconnect());
         this.elements.testGatewayBtn?.addEventListener('click', () => this.testGateway());
@@ -181,6 +196,7 @@ const CaissaFICSClient = {
         this.elements.resignBtn?.addEventListener('click', () => this.resign());
         this.elements.drawBtn?.addEventListener('click', () => this.offerDraw());
         this.elements.abortBtn?.addEventListener('click', () => this.abort());
+        this.elements.downloadPgnBtn?.addEventListener('click', () => this.downloadPGN());
 
         // Console
         this.elements.consoleToggle?.addEventListener('click', () => this.toggleConsole());
@@ -197,6 +213,7 @@ const CaissaFICSClient = {
         if (typeof Chess !== 'undefined') {
             this.chess = new Chess();
             console.log('[FICS Client] Chess.js initialized');
+            this.updatePlayerBars();
         } else {
             console.error('[FICS Client] Chess.js not found!');
         }
@@ -223,6 +240,7 @@ const CaissaFICSClient = {
         clearTimeout(this.reconnectTimer);
         this.setConnectionState('connecting');
         this.updateGameStatus('Connecting to gateway...', '');
+        this.initBoard(this.liveGame.currentFen || 'start');
         this.rawBuffer = '';
         this.lineBuffer = '';
         this.guestLoginSent = false;
@@ -440,11 +458,14 @@ const CaissaFICSClient = {
             return;
         }
         if (!this.authenticated && /Starting FICS session|fics%/i.test(this.rawBuffer)) {
+            const loginMatch = this.rawBuffer.match(/Starting FICS session as\s+([^\s(]+)/i);
+            if (loginMatch) this.ficsUsername = loginMatch[1];
             this.authenticated = true;
             this.reconnectAttempts = 0;
             this.setConnectionState('connected');
-            this.updateGameStatus('Connected as FICS guest', 'active');
+            this.updateGameStatus('Connected as FICS guest. Seek or accept a game to begin.', 'active');
             this.logToConsole('Connected as guest. You can now seek games or enter commands.');
+            this.updatePlayerBars();
             this.send('set style 12');
             this.send('set interface CAISSA Chess');
         }
@@ -520,7 +541,7 @@ const CaissaFICSClient = {
 
         this.parseSeekLine(line);
         if (this.pendingMove && /illegal move|not your move|move is not legal/i.test(line)) {
-            this.pendingMove = null;
+            this.clearPendingMove(false);
             if (this.board && this.liveGame.currentFen) this.board.position(this.liveGame.currentFen, false);
             this.updateGameStatus('Move rejected by FICS', 'error');
         }
@@ -558,6 +579,7 @@ const CaissaFICSClient = {
         if (this.chess) {
             this.chess.reset();
         }
+        this.resetGameRecord();
         this.initBoard();
 
         this.logToConsole('🎮 Game started!');
@@ -569,7 +591,9 @@ const CaissaFICSClient = {
         this.liveGame.result = line;
         this.liveGame.status = 'ended';
         this.pendingMove = null;
+        this.pgnResult = this.extractResult(line);
         this.updateGameStatus(`Game ended: ${line}`, 'ended');
+        this.updatePlayerBars();
         this.logToConsole('🏁 ' + line);
     },
 
@@ -580,6 +604,7 @@ const CaissaFICSClient = {
 
     handleStyle12(state) {
         const wasActive = this.liveGame.gameActive;
+        const isNewGame = this.liveGame.gameNumber !== null && this.liveGame.gameNumber !== state.gameNumber;
         const playing = state.relation === 1 || state.relation === -1;
         const userColor = state.userColor === 'w' ? 'white'
             : state.userColor === 'b' ? 'black'
@@ -590,6 +615,9 @@ const CaissaFICSClient = {
             return;
         }
 
+        if (isNewGame) this.resetGameRecord();
+
+        const previousPending = this.pendingMove;
         this.liveGame = {
             ...this.liveGame,
             gameNumber: state.gameNumber,
@@ -601,6 +629,8 @@ const CaissaFICSClient = {
             lastMove: state.lastMove,
             whiteClock: state.whiteClock,
             blackClock: state.blackClock,
+            initialTime: state.initialTime,
+            increment: state.increment,
             currentFen: state.fen,
             gameActive: playing,
             observedGame: state.observedGame,
@@ -610,7 +640,7 @@ const CaissaFICSClient = {
         this.gameActive = playing;
         this.gameNumber = state.gameNumber;
         this.myColor = userColor;
-        this.pendingMove = null;
+        if (previousPending) this.clearPendingMove(true);
 
         this.initBoard(state.fen);
         if (this.board) {
@@ -618,6 +648,7 @@ const CaissaFICSClient = {
             this.board.position(state.fen, false);
         }
 
+        this.recordStyle12Move(state);
         this.updateLiveGameUI();
         if (!wasActive && playing) this.logToConsole(`Game ${state.gameNumber} started from Style12.`);
     },
@@ -628,8 +659,23 @@ const CaissaFICSClient = {
 
         const seekNumber = match[1];
         if (this.seekActions.some((seek) => seek.number === seekNumber)) return;
-        this.seekActions = [{ number: seekNumber, label: line }, ...this.seekActions].slice(0, 8);
+        this.seekActions = [{ number: seekNumber, label: line, details: this.parseSeekDetails(line, seekNumber) }, ...this.seekActions].slice(0, 8);
         this.renderSeekActions();
+    },
+
+    parseSeekDetails(line, seekNumber) {
+        const compact = line.replace(/\s+/g, ' ').trim();
+        const time = compact.match(/\[\s*([a-z]+)\s+(\d+)\s+(\d+)\s*\]/i);
+        const player = compact.match(/^\s*(?:\d+\s+)?(?:[A-Za-z+*.]+\s+)?([A-Za-z][\w-]*)/);
+        const rating = compact.match(/\b(\d{3,4}|\+{4})\b/);
+        return {
+            number: seekNumber,
+            player: player?.[1] || 'FICS player',
+            rating: rating?.[1] || 'guest',
+            timeControl: time ? `${time[2]}+${time[3]}` : 'open',
+            variant: time?.[1] || 'standard',
+            rated: /\brated\b/i.test(compact) ? 'rated' : /\bunrated\b/i.test(compact) ? 'unrated' : ''
+        };
     },
 
     renderSeekActions() {
@@ -639,7 +685,12 @@ const CaissaFICSClient = {
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'fics-seek-action';
-            button.textContent = `Play seek #${seek.number}`;
+            const detail = seek.details;
+            button.innerHTML = `
+                <span class="fics-seek-action-main">Play #${seek.number}</span>
+                <span>${this.escapeHtml(detail.player)} · ${this.escapeHtml(detail.rating)} · ${this.escapeHtml(detail.timeControl)}</span>
+                <small>${this.escapeHtml([detail.rated, detail.variant].filter(Boolean).join(' · ') || 'seek')}</small>
+            `;
             button.title = seek.label;
             button.addEventListener('click', () => {
                 this.logToConsole(`> play ${seek.number}`);
@@ -661,6 +712,8 @@ const CaissaFICSClient = {
 
         if (this.elements.whiteClock) this.elements.whiteClock.textContent = this.formatClock(state.whiteClock);
         if (this.elements.blackClock) this.elements.blackClock.textContent = this.formatClock(state.blackClock);
+        this.updatePlayerBars();
+        this.renderMoveList();
 
         if (this.elements.opponentInfo) {
             const opponentName = state.userColor === 'white'
@@ -689,10 +742,180 @@ const CaissaFICSClient = {
         return `${Math.floor(safeSeconds / 60)}:${String(safeSeconds % 60).padStart(2, '0')}`;
     },
 
+    clearPendingMove(confirmed) {
+        if (this.pendingMove?.sentAt && confirmed) {
+            const roundTrip = Math.max(0, Math.round(performance.now() - this.pendingMove.sentAt));
+            this.latencyMs = roundTrip;
+            this.updateLatency();
+            this.setPendingState('confirmed', `Confirmed in ${roundTrip} ms`);
+            setTimeout(() => {
+                if (!this.pendingMove) this.setPendingState('', '');
+            }, 1200);
+        } else {
+            this.setPendingState('', '');
+        }
+        this.pendingMove = null;
+    },
+
+    setPendingState(kind, text) {
+        if (!this.elements.pendingState) return;
+        this.elements.pendingState.textContent = text || '';
+        this.elements.pendingState.className = `fics-pending-state ${kind || ''}`.trim();
+    },
+
+    resetGameRecord() {
+        this.moveHistory = [];
+        this.lastMoveKey = null;
+        this.pgnResult = '*';
+        this.renderMoveList();
+    },
+
+    recordStyle12Move(state) {
+        if (!state.lastMove || state.lastMove === 'none' || state.lastMove === '---') return;
+        const color = state.sideToMove === 'w' ? 'black' : 'white';
+        const moveNumber = color === 'white' ? state.moveNumber : Math.max(1, state.moveNumber - 1);
+        const key = `${state.gameNumber}:${moveNumber}:${color}:${state.lastMove}:${state.fen}`;
+        if (key === this.lastMoveKey) return;
+        this.lastMoveKey = key;
+        this.moveHistory.push({
+            moveNumber,
+            color,
+            san: state.lastMove,
+            verbose: state.lastMoveVerbose,
+            fen: state.fen
+        });
+        this.renderMoveList();
+    },
+
+    renderMoveList() {
+        if (!this.elements.moveList) return;
+        if (!this.moveHistory.length) {
+            this.elements.moveList.textContent = 'Moves will appear here as Style12 updates arrive.';
+            return;
+        }
+        const rows = [];
+        this.moveHistory.forEach((move) => {
+            let row = rows.find((item) => item.moveNumber === move.moveNumber);
+            if (!row) {
+                row = { moveNumber: move.moveNumber, white: '', black: '' };
+                rows.push(row);
+            }
+            row[move.color] = move.san;
+        });
+        this.elements.moveList.replaceChildren(...rows.map((row) => {
+            const item = document.createElement('div');
+            item.className = 'fics-move-row';
+            item.innerHTML = `
+                <span class="fics-move-number">${row.moveNumber}.</span>
+                <span>${this.escapeHtml(row.white || '...')}</span>
+                <span>${this.escapeHtml(row.black || '')}</span>
+            `;
+            return item;
+        }));
+    },
+
+    buildPGN() {
+        const date = new Date();
+        const state = this.liveGame;
+        const timeControl = Number.isFinite(state.initialTime) && Number.isFinite(state.increment)
+            ? `${state.initialTime * 60}+${state.increment}`
+            : '-';
+        const headers = [
+            ['Event', 'FICS game'],
+            ['Site', 'freechess.org'],
+            ['Date', date.toISOString().slice(0, 10).replace(/-/g, '.')],
+            ['Round', state.gameNumber || '-'],
+            ['White', state.whiteName || 'White'],
+            ['Black', state.blackName || 'Black'],
+            ['Result', this.pgnResult],
+            ['TimeControl', timeControl]
+        ].map(([key, value]) => `[${key} "${String(value).replace(/"/g, '\\"')}"]`);
+
+        const rows = [];
+        this.moveHistory.forEach((move) => {
+            let row = rows.find((item) => item.moveNumber === move.moveNumber);
+            if (!row) {
+                row = { moveNumber: move.moveNumber, white: '', black: '' };
+                rows.push(row);
+            }
+            row[move.color] = move.san;
+        });
+        const moves = rows.map((row) => `${row.moveNumber}. ${row.white || '...'}${row.black ? ` ${row.black}` : ''}`).join(' ');
+        return `${headers.join('\n')}\n\n${moves} ${this.pgnResult}`.trim() + '\n';
+    },
+
+    downloadPGN() {
+        const pgn = this.buildPGN();
+        const blob = new Blob([pgn], { type: 'application/x-chess-pgn' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `fics-game-${this.liveGame.gameNumber || 'live'}.pgn`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    },
+
+    extractResult(line) {
+        if (/1-0/.test(line)) return '1-0';
+        if (/0-1/.test(line)) return '0-1';
+        if (/1\/2-1\/2|drawn|draw/i.test(line)) return '1/2-1/2';
+        return '*';
+    },
+
+    escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[char]));
+    },
+
+    updatePlayerBars() {
+        const state = this.liveGame;
+        const hasGame = !!state.currentFen;
+        const orientation = state.userColor || 'white';
+        const white = {
+            color: 'white',
+            name: state.whiteName || (this.myColor === 'white' ? this.ficsUsername : 'White'),
+            rating: state.whiteName ? 'FICS' : 'waiting',
+            clock: this.formatClock(state.whiteClock)
+        };
+        const black = {
+            color: 'black',
+            name: state.blackName || (this.myColor === 'black' ? this.ficsUsername : 'Black'),
+            rating: state.blackName ? 'FICS' : 'waiting',
+            clock: this.formatClock(state.blackClock)
+        };
+        const top = orientation === 'black' ? white : black;
+        const bottom = orientation === 'black' ? black : white;
+        this.renderPlayerBar(this.elements.topPlayerBar, top, hasGame);
+        this.renderPlayerBar(this.elements.bottomPlayerBar, bottom, hasGame);
+    },
+
+    renderPlayerBar(element, player, hasGame) {
+        if (!element) return;
+        element.className = `fics-player-bar ${player.color}`;
+        element.innerHTML = `
+            <span class="fics-color-dot" aria-hidden="true"></span>
+            <span class="fics-player-name">${this.escapeHtml(player.name)}</span>
+            <span class="fics-player-rating">${this.escapeHtml(player.rating)}</span>
+            <span class="fics-player-lag">lag --</span>
+            <strong class="fics-player-clock">${hasGame ? this.escapeHtml(player.clock) : '--:--'}</strong>
+        `;
+    },
+
     // ===== BOARD MANAGEMENT =====
     initBoard(position = this.liveGame.currentFen || 'start') {
         if (!this.elements.boardContainer) return;
-        if (this.board) return;
+        if (!this.elements.boardContainer.offsetParent && !this.board) return;
+        if (this.board) {
+            if (position) this.board.position(position, false);
+            return;
+        }
 
         // Clear existing board
         this.elements.boardContainer.innerHTML = '';
@@ -751,13 +974,21 @@ const CaissaFICSClient = {
         if (move === null) return 'snapback';
 
         const moveStr = source + target + (move.promotion || '');
-        this.pendingMove = moveStr;
+        this.pendingMove = {
+            uci: moveStr,
+            optimisticFen: validator.fen(),
+            sentAt: performance.now()
+        };
+        this.setPendingState('pending', `Pending ${moveStr}...`);
+        if (this.board) this.board.position(validator.fen(), true);
         this.sendMove(moveStr);
-        return 'snapback';
     },
 
     onSnapEnd() {
-        if (this.board && this.liveGame.currentFen) {
+        if (!this.board) return;
+        if (this.pendingMove?.optimisticFen) {
+            this.board.position(this.pendingMove.optimisticFen, false);
+        } else if (this.liveGame.currentFen) {
             this.board.position(this.liveGame.currentFen, false);
         }
     },
@@ -915,6 +1146,11 @@ const CaissaFICSClient = {
     // ===== LIFECYCLE =====
     onEnter() {
         console.log('[FICS Client] Section entered');
+        this.initBoard(this.liveGame.currentFen || 'start');
+        if (!this.liveGame.currentFen && this.authenticated) {
+            this.updateGameStatus('Connected as FICS guest. Seek or accept a game to begin.', 'active');
+        }
+        this.updatePlayerBars();
     },
 
     onExit() {
