@@ -110,6 +110,31 @@
     color: #ef4444;
 }
 
+.fics-gateway-details {
+    display: grid;
+    gap: 4px;
+    margin-top: 10px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.fics-gateway-details code {
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+}
+
+.fics-gateway-status {
+    font-weight: 600;
+}
+
+.fics-gateway-ready {
+    color: #10b981;
+}
+
+.fics-gateway-unconfigured {
+    color: #f59e0b;
+}
+
 .fics-connection-buttons {
     display: flex;
     gap: 12px;

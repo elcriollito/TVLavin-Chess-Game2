@@ -61,7 +61,7 @@
     <link rel="stylesheet" href="css/caissa-sync.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-onboarding.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-dos-chess.css?v=1.0.0">
-    <link rel="stylesheet" href="css/fics-client.css?v=1.0.0">
+    <link rel="stylesheet" href="css/fics-client.css?v=1.0.1">
     <link rel="stylesheet" href="css/opening-book.css?v=1.0.0">
 </head>
 <body>
@@ -1430,6 +1430,10 @@
                                 <div id="ficsConnectionStatus" class="fics-status fics-status-disconnected">
                                     Not connected
                                 </div>
+                                <div class="fics-gateway-details">
+                                    <span id="ficsGatewayStatus" class="fics-gateway-status">Checking gateway...</span>
+                                    <span>Gateway: <code id="ficsGatewayUrl">Checking...</code></span>
+                                </div>
                             </div>
                             <div class="fics-connection-buttons">
                                 <button id="ficsTestGatewayBtn" class="fics-btn fics-btn-secondary">
@@ -2764,7 +2768,7 @@
     <script src="js/caissa-ui-auth.js?v=1.0.0" defer></script>
     <script src="js/caissa-onboarding.js?v=1.0.0" defer></script>
     <script src="js/caissa-dos-chess.js?v=1.0.0" defer></script>
-    <script src="js/fics-client.js?v=1.0.0" defer></script>
+    <script src="js/fics-client.js?v=1.0.1" defer></script>
     <script src="js/opening-book-manager.js?v=1.0.0" defer></script>
 
     <style>

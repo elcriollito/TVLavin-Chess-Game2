@@ -28,16 +28,20 @@ const CaissaFICSClient = {
     messageBuffer: [],
     maxBufferSize: 500,
 
-    // Gateway URL (configurable)
-    gatewayUrl: 'ws://localhost:8081',
+    // Local development may use ws://. Production requires an explicitly
+    // configured secure endpoint via window.CAISSA_FICS_GATEWAY_URL.
+    gatewayUrl: null,
+    gatewayMode: 'unconfigured',
 
     // ===== INITIALIZATION =====
     init() {
         console.log('[FICS Client] Initializing...');
         this.cacheElements();
+        this.configureGateway();
         this.bindEvents();
         this.initChessEngine();
         this.updateConnectionStatus(false);
+        this.updateGatewayStatus();
     },
 
     cacheElements() {
@@ -47,6 +51,8 @@ const CaissaFICSClient = {
             disconnectBtn: document.getElementById('ficsDisconnectBtn'),
             testGatewayBtn: document.getElementById('ficsTestGatewayBtn'),
             connectionStatus: document.getElementById('ficsConnectionStatus'),
+            gatewayStatus: document.getElementById('ficsGatewayStatus'),
+            gatewayUrl: document.getElementById('ficsGatewayUrl'),
 
             // Seek buttons
             seekBlitz1: document.getElementById('ficsSeek1_0'),
@@ -75,6 +81,51 @@ const CaissaFICSClient = {
             commandInput: document.getElementById('ficsCommandInput'),
             sendCommandBtn: document.getElementById('ficsSendCommandBtn')
         };
+    },
+
+    configureGateway() {
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        const configuredUrl = typeof window.CAISSA_FICS_GATEWAY_URL === 'string'
+            ? window.CAISSA_FICS_GATEWAY_URL.trim()
+            : '';
+
+        if (isLocal) {
+            this.gatewayUrl = configuredUrl || 'ws://localhost:8081';
+            this.gatewayMode = this.gatewayUrl.startsWith('wss://') ? 'local wss' : 'local ws';
+        } else if (configuredUrl.startsWith('wss://')) {
+            this.gatewayUrl = configuredUrl;
+            this.gatewayMode = 'production wss';
+        } else {
+            this.gatewayUrl = null;
+            this.gatewayMode = 'production wss required';
+        }
+    },
+
+    isGatewayConfigured() {
+        return !!this.gatewayUrl
+            && (window.location.protocol !== 'https:' || this.gatewayUrl.startsWith('wss://'));
+    },
+
+    updateGatewayStatus() {
+        const configured = this.isGatewayConfigured();
+        const message = configured
+            ? `Gateway ready (${this.gatewayMode})`
+            : 'FICS gateway requires a secure WSS endpoint in production.';
+
+        if (this.elements.gatewayStatus) {
+            this.elements.gatewayStatus.textContent = message;
+            this.elements.gatewayStatus.className = configured
+                ? 'fics-gateway-status fics-gateway-ready'
+                : 'fics-gateway-status fics-gateway-unconfigured';
+        }
+        if (this.elements.gatewayUrl) {
+            this.elements.gatewayUrl.textContent = this.gatewayUrl || 'Not configured';
+        }
+        if (!configured) {
+            this.elements.connectBtn?.setAttribute('disabled', 'true');
+            this.elements.testGatewayBtn?.setAttribute('disabled', 'true');
+            this.updateGameStatus(message, 'error');
+        }
     },
 
     bindEvents() {
@@ -126,18 +177,12 @@ const CaissaFICSClient = {
             return;
         }
 
-        // Check for HTTPS + ws:// mismatch
-        if (window.location.protocol === 'https:' && this.gatewayUrl.startsWith('ws://')) {
-            const errorMsg = '⚠️ HTTPS/WebSocket mismatch detected!\n\n' +
-                'You\'re on HTTPS but gateway URL is ws:// (insecure).\n\n' +
-                'Solutions:\n' +
-                '1. Use local dev: http://localhost:3000\n' +
-                '2. Deploy gateway with WSS (secure WebSocket)\n' +
-                '3. Update gatewayUrl in fics-client.js to wss://';
-
+        if (!this.isGatewayConfigured()) {
+            const errorMsg = 'FICS gateway requires a secure WSS endpoint in production.';
             this.logToConsole(errorMsg);
             this.updateGameStatus(errorMsg, 'error');
-            this.updateConnectionStatus(false, 'Protocol mismatch');
+            this.updateConnectionStatus(false, 'Gateway not configured');
+            this.updateGatewayStatus();
             return;
         }
 
@@ -246,11 +291,11 @@ const CaissaFICSClient = {
         this.logToConsole('🔍 Testing gateway connection...');
         this.updateGameStatus('Testing gateway...', '');
 
-        // Check HTTPS/ws mismatch first
-        if (window.location.protocol === 'https:' && this.gatewayUrl.startsWith('ws://')) {
-            const msg = '⚠️ Cannot test: HTTPS page cannot connect to ws:// gateway';
+        if (!this.isGatewayConfigured()) {
+            const msg = 'FICS gateway requires a secure WSS endpoint in production.';
             this.logToConsole(msg);
-            this.updateGameStatus(msg + '\n\nUse http://localhost:3000 for local dev', 'error');
+            this.updateGameStatus(msg, 'error');
+            this.updateGatewayStatus();
             return;
         }
 
@@ -562,7 +607,11 @@ const CaissaFICSClient = {
         } else {
             this.elements.connectionStatus.textContent = message || 'Not connected';
             this.elements.connectionStatus.className = 'fics-status fics-status-disconnected';
-            this.elements.connectBtn?.removeAttribute('disabled');
+            if (this.isGatewayConfigured()) {
+                this.elements.connectBtn?.removeAttribute('disabled');
+            } else {
+                this.elements.connectBtn?.setAttribute('disabled', 'true');
+            }
             this.elements.disconnectBtn?.setAttribute('disabled', 'true');
         }
     },
