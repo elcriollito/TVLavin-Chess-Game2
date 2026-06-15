@@ -3,7 +3,7 @@
  * Handles game import and Stockfish analysis
  *
  * Part of Phase 2: Section Migration
- * Analyze Page Status: v1.2 Stable Candidate
+ * Analyze Page Status: v1.2 Production Ready
  */
 
 const AnalyzeSection = {
