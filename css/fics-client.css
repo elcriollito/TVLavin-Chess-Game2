@@ -259,6 +259,21 @@
     margin: 0 auto;
 }
 
+.fics-live-clocks {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 600px;
+    margin: 10px auto 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.fics-live-clocks strong {
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
 .fics-game-controls {
     display: none;
     gap: 12px;
@@ -355,6 +370,27 @@
     margin: 0 0 12px 0;
     font-size: 14px;
     color: var(--text-secondary);
+}
+
+.fics-seek-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.fics-seek-action {
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.fics-seek-action:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
 }
 
 .fics-input-group {

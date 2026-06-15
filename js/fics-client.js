@@ -14,6 +14,7 @@ const CaissaFICSClient = {
     authenticated: false,
     connectionState: 'disconnected',
     rawBuffer: '',
+    lineBuffer: '',
     guestLoginSent: false,
     guestReturnSent: false,
     connectionStartedAt: 0,
@@ -29,6 +30,24 @@ const CaissaFICSClient = {
     myColor: null,
     gameNumber: null,
     opponent: null,
+    pendingMove: null,
+    liveGame: {
+        gameNumber: null,
+        whiteName: null,
+        blackName: null,
+        userColor: null,
+        relation: null,
+        sideToMove: null,
+        lastMove: null,
+        whiteClock: null,
+        blackClock: null,
+        currentFen: null,
+        gameActive: false,
+        observedGame: false,
+        result: null,
+        status: 'idle'
+    },
+    seekActions: [],
 
     // UI elements
     elements: {},
@@ -72,10 +91,13 @@ const CaissaFICSClient = {
             customSeekBtn: document.getElementById('ficsCustomSeekBtn'),
             customTimeInput: document.getElementById('ficsCustomTime'),
             customIncInput: document.getElementById('ficsCustomInc'),
+            seekActions: document.getElementById('ficsSeekActions'),
 
             // Game info
             gameStatus: document.getElementById('ficsGameStatus'),
             opponentInfo: document.getElementById('ficsOpponentInfo'),
+            whiteClock: document.getElementById('ficsWhiteClock'),
+            blackClock: document.getElementById('ficsBlackClock'),
             gameControls: document.getElementById('ficsGameControls'),
             resignBtn: document.getElementById('ficsResignBtn'),
             drawBtn: document.getElementById('ficsDrawBtn'),
@@ -202,6 +224,7 @@ const CaissaFICSClient = {
         this.setConnectionState('connecting');
         this.updateGameStatus('Connecting to gateway...', '');
         this.rawBuffer = '';
+        this.lineBuffer = '';
         this.guestLoginSent = false;
         this.guestReturnSent = false;
         this.connectionStartedAt = performance.now();
@@ -383,6 +406,10 @@ const CaissaFICSClient = {
         }
         this.connected = false;
         this.authenticated = false;
+        this.gameActive = false;
+        this.liveGame.gameActive = false;
+        this.liveGame.status = 'disconnected';
+        this.pendingMove = null;
         this.setConnectionState('disconnected');
         this.logToConsole('Disconnected');
     },
@@ -422,7 +449,9 @@ const CaissaFICSClient = {
             this.send('set interface CAISSA Chess');
         }
 
-        text.replace(/\r/g, '').split('\n').forEach((line) => {
+        const lines = `${this.lineBuffer}${text.replace(/\r/g, '')}`.split('\n');
+        this.lineBuffer = lines.pop() || '';
+        lines.forEach((line) => {
             if (line.trim()) this.parseGameLine(line.trim());
         });
     },
@@ -481,16 +510,28 @@ const CaissaFICSClient = {
         this.logToConsole(`❌ ${message.message}`);
     },
 
-    // ===== GAME PARSING (Basic) =====
+    // ===== GAME PARSING =====
     parseGameLine(line) {
+        const style12 = window.FICSStyle12?.parseStyle12(line);
+        if (style12) {
+            this.handleStyle12(style12);
+            return;
+        }
+
+        this.parseSeekLine(line);
+        if (this.pendingMove && /illegal move|not your move|move is not legal/i.test(line)) {
+            this.pendingMove = null;
+            if (this.board && this.liveGame.currentFen) this.board.position(this.liveGame.currentFen, false);
+            this.updateGameStatus('Move rejected by FICS', 'error');
+        }
+
         // Detect game start
         if (line.includes('Creating:') || line.includes('Game ') && line.includes('(') && line.includes(')')) {
             this.handleGameStart(line);
         }
 
         // Detect game end
-        if (line.includes('Game ') && (line.includes('resigns') || line.includes('checkmated') ||
-            line.includes('Game drawn') || line.includes('forfeits'))) {
+        if (line.includes('Game ') && /resigns|checkmated|drawn|forfeits|flagged|aborted|adjourned|disconnect/i.test(line)) {
             this.handleGameEnd(line);
         }
 
@@ -524,7 +565,11 @@ const CaissaFICSClient = {
 
     handleGameEnd(line) {
         this.gameActive = false;
-        this.updateGameStatus('Game ended', 'ended');
+        this.liveGame.gameActive = false;
+        this.liveGame.result = line;
+        this.liveGame.status = 'ended';
+        this.pendingMove = null;
+        this.updateGameStatus(`Game ended: ${line}`, 'ended');
         this.logToConsole('🏁 ' + line);
     },
 
@@ -533,9 +578,121 @@ const CaissaFICSClient = {
         this.logToConsole('♟️ ' + line);
     },
 
+    handleStyle12(state) {
+        const wasActive = this.liveGame.gameActive;
+        const playing = state.relation === 1 || state.relation === -1;
+        const userColor = state.userColor === 'w' ? 'white'
+            : state.userColor === 'b' ? 'black'
+                : null;
+
+        if (!this.chess || !this.chess.load(state.fen)) {
+            console.warn('[FICS Client] Ignored invalid Style12 FEN:', state.fen);
+            return;
+        }
+
+        this.liveGame = {
+            ...this.liveGame,
+            gameNumber: state.gameNumber,
+            whiteName: state.whiteName,
+            blackName: state.blackName,
+            userColor,
+            relation: state.relation,
+            sideToMove: state.sideToMove,
+            lastMove: state.lastMove,
+            whiteClock: state.whiteClock,
+            blackClock: state.blackClock,
+            currentFen: state.fen,
+            gameActive: playing,
+            observedGame: state.observedGame,
+            result: null,
+            status: playing ? 'playing' : state.observedGame ? 'observing' : 'examining'
+        };
+        this.gameActive = playing;
+        this.gameNumber = state.gameNumber;
+        this.myColor = userColor;
+        this.pendingMove = null;
+
+        this.initBoard(state.fen);
+        if (this.board) {
+            this.board.orientation(userColor || 'white');
+            this.board.position(state.fen, false);
+        }
+
+        this.updateLiveGameUI();
+        if (!wasActive && playing) this.logToConsole(`Game ${state.gameNumber} started from Style12.`);
+    },
+
+    parseSeekLine(line) {
+        const match = line.match(/\bplay\s+(\d+)\b/i);
+        if (!match || !/seek|seeking|respond/i.test(line)) return;
+
+        const seekNumber = match[1];
+        if (this.seekActions.some((seek) => seek.number === seekNumber)) return;
+        this.seekActions = [{ number: seekNumber, label: line }, ...this.seekActions].slice(0, 8);
+        this.renderSeekActions();
+    },
+
+    renderSeekActions() {
+        if (!this.elements.seekActions) return;
+        this.elements.seekActions.replaceChildren();
+        this.seekActions.forEach((seek) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'fics-seek-action';
+            button.textContent = `Play seek #${seek.number}`;
+            button.title = seek.label;
+            button.addEventListener('click', () => {
+                this.logToConsole(`> play ${seek.number}`);
+                this.send(`play ${seek.number}`);
+            });
+            this.elements.seekActions.appendChild(button);
+        });
+    },
+
+    updateLiveGameUI() {
+        const state = this.liveGame;
+        const sideLabel = state.sideToMove === 'w' ? 'White' : 'Black';
+        const status = state.gameActive
+            ? `Game ${state.gameNumber} · ${sideLabel} to move`
+            : state.observedGame
+                ? `Observing game ${state.gameNumber} · ${sideLabel} to move`
+                : `Game ${state.gameNumber} position`;
+        this.updateGameStatus(status, state.gameActive ? 'active' : '');
+
+        if (this.elements.whiteClock) this.elements.whiteClock.textContent = this.formatClock(state.whiteClock);
+        if (this.elements.blackClock) this.elements.blackClock.textContent = this.formatClock(state.blackClock);
+
+        if (this.elements.opponentInfo) {
+            const opponentName = state.userColor === 'white'
+                ? state.blackName
+                : state.userColor === 'black'
+                    ? state.whiteName
+                    : `${state.whiteName} vs ${state.blackName}`;
+            const detail = state.observedGame ? 'Observed live game' : `You are ${state.userColor || 'spectating'}`;
+            this.elements.opponentInfo.replaceChildren();
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-user';
+            const details = document.createElement('div');
+            details.className = 'fics-opponent-details';
+            const heading = document.createElement('h4');
+            heading.textContent = opponentName;
+            const paragraph = document.createElement('p');
+            paragraph.textContent = detail;
+            details.append(heading, paragraph);
+            this.elements.opponentInfo.append(icon, details);
+        }
+    },
+
+    formatClock(seconds) {
+        if (!Number.isFinite(seconds)) return '--:--';
+        const safeSeconds = Math.max(0, seconds);
+        return `${Math.floor(safeSeconds / 60)}:${String(safeSeconds % 60).padStart(2, '0')}`;
+    },
+
     // ===== BOARD MANAGEMENT =====
-    initBoard() {
+    initBoard(position = this.liveGame.currentFen || 'start') {
         if (!this.elements.boardContainer) return;
+        if (this.board) return;
 
         // Clear existing board
         this.elements.boardContainer.innerHTML = '';
@@ -543,7 +700,7 @@ const CaissaFICSClient = {
         // Create new board
         const config = {
             draggable: true,
-            position: 'start',
+            position,
             onDragStart: (source, piece) => this.onDragStart(source, piece),
             onDrop: (source, target) => this.onDrop(source, target),
             onSnapEnd: () => this.onSnapEnd()
@@ -564,11 +721,11 @@ const CaissaFICSClient = {
     },
 
     onDragStart(source, piece) {
-        // Don't allow moves if game not active
-        if (!this.gameActive) return false;
+        if (!this.gameActive || this.liveGame.observedGame || this.pendingMove) return false;
+        if (this.liveGame.relation !== 1) return false;
 
         // Don't allow picking up pieces if game is over
-        if (this.chess.game_over()) return false;
+        if (!this.chess || this.chess.game_over()) return false;
 
         // Only allow moving own pieces
         if ((this.myColor === 'white' && piece.search(/^b/) !== -1) ||
@@ -580,24 +737,28 @@ const CaissaFICSClient = {
     },
 
     onDrop(source, target) {
-        // Try to make the move
-        const move = this.chess.move({
+        if (!this.liveGame.currentFen || this.liveGame.relation !== 1) return 'snapback';
+
+        const validator = new Chess(this.liveGame.currentFen);
+        const move = validator.move({
             from: source,
             to: target,
+            // TODO: Add a promotion picker before sending underpromotions to FICS.
             promotion: 'q' // Always promote to queen for simplicity
         });
 
         // Illegal move
         if (move === null) return 'snapback';
 
-        // Send move to FICS
-        const moveStr = source + target;
+        const moveStr = source + target + (move.promotion || '');
+        this.pendingMove = moveStr;
         this.sendMove(moveStr);
+        return 'snapback';
     },
 
     onSnapEnd() {
-        if (this.board) {
-            this.board.position(this.chess.fen());
+        if (this.board && this.liveGame.currentFen) {
+            this.board.position(this.liveGame.currentFen, false);
         }
     },
 

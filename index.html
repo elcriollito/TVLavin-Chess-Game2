@@ -61,7 +61,7 @@
     <link rel="stylesheet" href="css/caissa-sync.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-onboarding.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-dos-chess.css?v=1.0.0">
-    <link rel="stylesheet" href="css/fics-client.css?v=1.1.0">
+    <link rel="stylesheet" href="css/fics-client.css?v=1.2.0">
     <link rel="stylesheet" href="css/opening-book.css?v=1.0.0">
 </head>
 <body>
@@ -1462,6 +1462,10 @@
                             </div>
 
                             <div id="ficsBoardContainer"></div>
+                            <div class="fics-live-clocks" aria-label="Live game clocks">
+                                <span>White <strong id="ficsWhiteClock">--:--</strong></span>
+                                <span>Black <strong id="ficsBlackClock">--:--</strong></span>
+                            </div>
 
                             <div id="ficsGameControls" class="fics-game-controls">
                                 <button id="ficsResignBtn" class="fics-btn fics-btn-danger">
@@ -1532,6 +1536,7 @@
                                         <i class="fas fa-search"></i> Custom Seek
                                     </button>
                                 </div>
+                                <div id="ficsSeekActions" class="fics-seek-actions" aria-live="polite"></div>
                             </div>
                         </div>
                     </div>
@@ -2769,7 +2774,8 @@
     <script src="js/caissa-ui-auth.js?v=1.0.0" defer></script>
     <script src="js/caissa-onboarding.js?v=1.0.0" defer></script>
     <script src="js/caissa-dos-chess.js?v=1.0.0" defer></script>
-    <script src="js/fics-client.js?v=1.1.0" defer></script>
+    <script src="js/fics-style12.js?v=1.0.0" defer></script>
+    <script src="js/fics-client.js?v=1.2.0" defer></script>
     <script src="js/opening-book-manager.js?v=1.0.0" defer></script>
 
     <style>
