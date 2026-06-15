@@ -275,16 +275,16 @@ const CaissaNavigation = {
 
         // Find target container in new section
         const targetContainer = document.querySelector(`#${sectionId}Section .board-zone, #${sectionId}Section .board-container, #${sectionId}Section .arena-board-container`);
-        if (targetContainer && !targetContainer.contains(boardEl)) {
+        const boardWrapper = sectionId === 'play'
+            ? targetContainer?.querySelector('.board-wrapper')
+            : targetContainer?.querySelector('.board-editor-wrapper');
+        const boardDestination = boardWrapper || targetContainer;
+
+        if (boardDestination && !boardDestination.contains(boardEl)) {
             console.log('[CAISSA Nav] Moving board to section:', sectionId);
 
             // Move board to new section
-            const boardWrapper = targetContainer.querySelector('.board-editor-wrapper');
-            if (boardWrapper) {
-                boardWrapper.insertBefore(boardEl, boardWrapper.firstChild);
-            } else {
-                targetContainer.insertBefore(boardEl, targetContainer.firstChild);
-            }
+            boardDestination.insertBefore(boardEl, boardDestination.firstChild);
 
             // Trigger board resize/redraw
             if (window.App && App.board) {
