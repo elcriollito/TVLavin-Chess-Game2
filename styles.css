@@ -5084,6 +5084,96 @@ button:focus,
     overflow-wrap: anywhere;
 }
 
+.coach-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    white-space: normal;
+}
+
+.coach-section-block {
+    padding: 9px;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.coach-section-title {
+    margin-bottom: 5px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.coach-opening-name {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.coach-opening-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 8px;
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.coach-plan-grid {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.coach-plan-grid div {
+    display: grid;
+    gap: 3px;
+}
+
+.coach-plan-grid strong,
+.coach-guidance-list strong {
+    color: var(--text);
+}
+
+.coach-plan-grid span,
+.coach-guidance-list {
+    color: var(--muted);
+}
+
+.coach-guidance-list {
+    display: grid;
+    gap: 5px;
+    margin: 0;
+    padding-left: 16px;
+}
+
+.coach-fallback {
+    margin: 0 0 8px;
+    color: var(--text);
+}
+
+.coach-resource-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 10px;
+    border: 1px solid rgba(255, 140, 0, 0.42);
+    border-radius: 8px;
+    background: rgba(255, 140, 0, 0.12);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.coach-resource-link:hover {
+    background: rgba(255, 140, 0, 0.2);
+    text-decoration: none;
+}
+
 .coach-history-note {
     margin-top: 10px;
     padding-top: 8px;

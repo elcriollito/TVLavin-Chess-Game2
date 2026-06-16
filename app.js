@@ -1587,6 +1587,100 @@ function getEcoCoachGuidance(opening, playerSide, theory) {
     return guidance;
 }
 
+const WIKIBOOKS_OPENING_LINKS = {
+    e4: 'https://en.wikibooks.org/wiki/Chess_Opening_Theory/1._e4',
+    d4: 'https://en.wikibooks.org/wiki/Chess_Opening_Theory/1._d4',
+    c4: 'https://en.wikibooks.org/wiki/Chess_Opening_Theory/1._c4',
+    nf3: 'https://en.wikibooks.org/wiki/Chess_Opening_Theory/1._Nf3',
+    general: 'https://en.wikibooks.org/wiki/Chess_Opening_Theory'
+};
+
+function getOpeningVariation(opening) {
+    const explicit = opening?.variation || opening?.variant || opening?.line || opening?.subline;
+    if (explicit) return String(explicit).trim();
+
+    const name = String(opening?.name || '').trim();
+    const colonParts = name.split(':');
+    if (colonParts.length > 1) return colonParts.slice(1).join(':').trim();
+    return '';
+}
+
+function getOpeningFirstMove(opening) {
+    const played = getVisibleSanHistory();
+    const openingMoves = Array.isArray(opening?.moves) ? opening.moves : [];
+    return normalizeSanForEco(played[0] || openingMoves[0] || '').toLowerCase();
+}
+
+function getWikibooksOpeningResource(opening) {
+    const firstMove = getOpeningFirstMove(opening);
+    if (firstMove === 'e4') return WIKIBOOKS_OPENING_LINKS.e4;
+    if (firstMove === 'd4') return WIKIBOOKS_OPENING_LINKS.d4;
+    if (firstMove === 'c4') return WIKIBOOKS_OPENING_LINKS.c4;
+    if (firstMove === 'nf3') return WIKIBOOKS_OPENING_LINKS.nf3;
+    return WIKIBOOKS_OPENING_LINKS.general;
+}
+
+function getOpeningDepthText(opening) {
+    const depth = Number(opening?.matchedDepth) || 0;
+    const played = getVisibleSanHistory().length;
+    const bookDepth = Math.max(depth, played);
+    return bookDepth > 0 ? `${bookDepth} ply` : '';
+}
+
+function renderOpeningCoachCard({ opening, ecoCode, playerSide, currentTurn, theory }) {
+    const openingName = opening?.name || 'Unknown';
+    const variation = getOpeningVariation(opening);
+    const whiteGuidance = getEcoCoachGuidance(opening, 'White', theory);
+    const blackGuidance = getEcoCoachGuidance(opening, 'Black', theory);
+    const playerGuidance = playerSide === 'Black' ? blackGuidance : whiteGuidance;
+    const wikibooksUrl = getWikibooksOpeningResource(opening);
+    const depthText = getOpeningDepthText(opening);
+    const fallbackCoach = !opening
+        ? 'Develop pieces, control the center, keep king safety in mind.'
+        : '';
+
+    return `
+        <div class="coach-card">
+            <div class="coach-section-block">
+                <div class="coach-section-title">Opening</div>
+                <div class="coach-opening-name">${escapeHtml(openingName)}</div>
+                <div class="coach-opening-meta">
+                    <span>ECO: ${escapeHtml(ecoCode || 'Unknown')}</span>
+                    ${variation ? `<span>Variation: ${escapeHtml(variation)}</span>` : ''}
+                    ${depthText ? `<span>Book depth: ${escapeHtml(depthText)}</span>` : ''}
+                    ${currentTurn ? `<span>${escapeHtml(currentTurn)}</span>` : ''}
+                </div>
+            </div>
+
+            <div class="coach-section-block">
+                <div class="coach-section-title">Coach Guidance</div>
+                ${fallbackCoach ? `<p class="coach-fallback">${escapeHtml(fallbackCoach)}</p>` : ''}
+                <div class="coach-plan-grid">
+                    <div>
+                        <strong>White plan</strong>
+                        <span>${escapeHtml(whiteGuidance.plan)}</span>
+                    </div>
+                    <div>
+                        <strong>Black plan</strong>
+                        <span>${escapeHtml(blackGuidance.plan)}</span>
+                    </div>
+                </div>
+                <ul class="coach-guidance-list">
+                    <li><strong>Key themes:</strong> ${escapeHtml(playerGuidance.philosophy)}</li>
+                    <li><strong>Typical pawn breaks:</strong> ${escapeHtml(playerGuidance.pawnBreak)}</li>
+                    <li><strong>Development priorities:</strong> ${escapeHtml(playerGuidance.development)}</li>
+                    <li><strong>Tactical ideas:</strong> ${escapeHtml(playerGuidance.tactics)}</li>
+                    <li><strong>King safety:</strong> ${escapeHtml(playerGuidance.kingSafety)}</li>
+                </ul>
+            </div>
+
+            <a class="coach-resource-link" href="${escapeHtml(wikibooksUrl)}" target="_blank" rel="noopener noreferrer">
+                Read more on Wikibooks
+            </a>
+        </div>
+    `;
+}
+
 async function updateCoachPanel() {
     const coachTextEl = document.getElementById('coachText');
     const coachSummaryEl = document.getElementById('coachSummary');
@@ -1617,21 +1711,19 @@ async function updateCoachPanel() {
         : '';
     const openingLabel = activeOpening?.name
         ? `${activeOpening.name}${ecoCode ? ` (${ecoCode})` : ''}`
-        : 'Unclassified position';
-    const guidance = getEcoCoachGuidance(activeOpening, playerSide, theory);
+        : 'Unknown';
 
     if (coachSummaryEl) {
         coachSummaryEl.textContent = `${openingLabel} | You are ${playerSide}${currentTurn ? ` | ${currentTurn}` : ''}`;
     }
-    App.coachText = [
-        `Philosophy: ${guidance.philosophy}`,
-        `Strategic plan: ${guidance.plan}`,
-        `Development: ${guidance.development}`,
-        `Pawn break: ${guidance.pawnBreak}`,
-        `Tactical themes: ${guidance.tactics}`,
-        `King safety: ${guidance.kingSafety}`
-    ].join('\n');
-    coachTextEl.textContent = App.coachText;
+    App.coachText = renderOpeningCoachCard({
+        opening: activeOpening,
+        ecoCode,
+        playerSide,
+        currentTurn,
+        theory
+    });
+    coachTextEl.innerHTML = App.coachText;
 }
 
 function updateGameStatusConsole() {
