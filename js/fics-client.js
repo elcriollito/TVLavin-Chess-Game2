@@ -51,6 +51,10 @@ const CaissaFICSClient = {
         status: 'idle'
     },
     seekActions: [],
+    activeTables: [],
+    lobbyRefreshTimer: null,
+    lobbyRefreshInFlight: false,
+    lobbyLastRefreshAt: 0,
     moveHistory: [],
     lastMoveKey: null,
     pgnResult: '*',
@@ -76,6 +80,7 @@ const CaissaFICSClient = {
         this.initChessEngine();
         this.setConnectionState('disconnected');
         this.updateGatewayStatus();
+        this.renderRoomTables();
     },
 
     cacheElements() {
@@ -99,6 +104,11 @@ const CaissaFICSClient = {
             customIncInput: document.getElementById('ficsCustomInc'),
             seekActions: document.getElementById('ficsSeekActions'),
             lobbyNote: document.getElementById('ficsLobbyNote'),
+            refreshLobbyBtn: document.getElementById('ficsRefreshLobbyBtn'),
+            roomStatus: document.getElementById('ficsRoomStatus'),
+            activeTables: document.getElementById('ficsActiveTables'),
+            waitingPlayers: document.getElementById('ficsWaitingPlayers'),
+            openTables: document.getElementById('ficsOpenTables'),
 
             // Game info
             gameStatus: document.getElementById('ficsGameStatus'),
@@ -190,6 +200,11 @@ const CaissaFICSClient = {
             const time = parseInt(this.elements.customTimeInput.value) || 5;
             const inc = parseInt(this.elements.customIncInput.value) || 0;
             this.seek(time, inc);
+        });
+        this.elements.refreshLobbyBtn?.addEventListener('click', () => this.refreshLobby(true));
+        this.elements.openTables?.addEventListener('click', (event) => {
+            const table = event.target.closest('[data-open-table]');
+            if (table) this.createOpenTableSeek(table.dataset.openTable);
         });
 
         // Game controls
@@ -425,10 +440,14 @@ const CaissaFICSClient = {
         this.connected = false;
         this.authenticated = false;
         this.gameActive = false;
+        this.stopLobbyRefresh();
+        this.seekActions = [];
+        this.activeTables = [];
         this.liveGame.gameActive = false;
         this.liveGame.status = 'disconnected';
         this.pendingMove = null;
         this.setConnectionState('disconnected');
+        this.renderRoomTables();
         this.logToConsole('Disconnected');
     },
 
@@ -466,6 +485,7 @@ const CaissaFICSClient = {
             this.updateGameStatus('Connected as FICS guest. Seek or accept a game to begin.', 'active');
             this.logToConsole('Connected as guest. You can now seek games or enter commands.');
             this.updatePlayerBars();
+            this.startLobbyRefresh();
             this.send('set style 12');
             this.send('set interface CAISSA Chess');
         }
@@ -540,6 +560,7 @@ const CaissaFICSClient = {
         }
 
         this.parseSeekLine(line);
+        this.parseActiveGameLine(line);
         if (this.pendingMove && /illegal move|not your move|move is not legal/i.test(line)) {
             this.clearPendingMove(false);
             if (this.board && this.liveGame.currentFen) this.board.position(this.liveGame.currentFen, false);
@@ -661,6 +682,7 @@ const CaissaFICSClient = {
         if (this.seekActions.some((seek) => seek.number === seekNumber)) return;
         this.seekActions = [{ number: seekNumber, label: line, details: this.parseSeekDetails(line, seekNumber) }, ...this.seekActions].slice(0, 8);
         this.renderSeekActions();
+        this.renderRoomTables();
     },
 
     parseSeekDetails(line, seekNumber) {
@@ -674,7 +696,10 @@ const CaissaFICSClient = {
             rating: rating?.[1] || 'guest',
             timeControl: time ? `${time[2]}+${time[3]}` : 'open',
             variant: time?.[1] || 'standard',
-            rated: /\brated\b/i.test(compact) ? 'rated' : /\bunrated\b/i.test(compact) ? 'unrated' : ''
+            rated: /\bunrated\b/i.test(compact) ? 'unrated' : /\brated\b/i.test(compact) ? 'rated' : '',
+            color: /\bwhite\b/i.test(compact) ? 'white'
+                : /\bblack\b/i.test(compact) ? 'black'
+                    : ''
         };
     },
 
@@ -697,6 +722,204 @@ const CaissaFICSClient = {
                 this.send(`play ${seek.number}`);
             });
             this.elements.seekActions.appendChild(button);
+        });
+    },
+
+    parseActiveGameLine(line) {
+        if (/\bplay\s+\d+\b/i.test(line) || !/^\s*\d+\s+/.test(line)) return;
+
+        const compact = line.replace(/\s+/g, ' ').trim();
+        const match = compact.match(/^(\d+)\s+(.+?)(?:\s+\[\s*([^\]]+)\s*\]|\s+\(([^)]+)\))/);
+        if (!match) return;
+
+        const gameNumber = match[1];
+        if (this.activeTables.some((table) => table.number === gameNumber)) return;
+
+        const playerPart = match[2].trim();
+        const tokens = playerPart.split(/\s+/).filter(Boolean);
+        const names = tokens.filter((token) => /[A-Za-z]/.test(token) && !/^\d{3,4}$/.test(token));
+        const ratings = tokens.filter((token) => /^\d{3,4}$/.test(token));
+        const timeInfo = match[3] || match[4] || '';
+
+        this.activeTables = [{
+            number: gameNumber,
+            white: names[0] || 'White',
+            black: names[1] || 'Black',
+            whiteRating: ratings[0] || '',
+            blackRating: ratings[1] || '',
+            timeControl: this.extractGameTimeControl(timeInfo),
+            observers: this.extractObserverCount(compact),
+            label: line
+        }, ...this.activeTables].slice(0, 8);
+        this.renderRoomTables();
+    },
+
+    extractGameTimeControl(text) {
+        const compact = String(text || '').replace(/\s+/g, ' ').trim();
+        const tc = compact.match(/\b(\d+)\s+(\d+)\b/);
+        return tc ? `${tc[1]}+${tc[2]}` : compact || 'live';
+    },
+
+    extractObserverCount(line) {
+        const match = line.match(/\b(\d+)\s+observers?\b/i) || line.match(/\bobs?\s*[:=]?\s*(\d+)\b/i);
+        return match ? match[1] : '';
+    },
+
+    startLobbyRefresh() {
+        this.stopLobbyRefresh();
+        this.refreshLobby(true);
+        this.lobbyRefreshTimer = setInterval(() => this.refreshLobby(false), 25000);
+    },
+
+    stopLobbyRefresh() {
+        if (this.lobbyRefreshTimer) {
+            clearInterval(this.lobbyRefreshTimer);
+            this.lobbyRefreshTimer = null;
+        }
+        this.lobbyRefreshInFlight = false;
+    },
+
+    refreshLobby(manual = false) {
+        if (!this.authenticated) {
+            this.renderRoomTables();
+            return;
+        }
+
+        const now = Date.now();
+        if (!manual && now - this.lobbyLastRefreshAt < 20000) return;
+        if (this.lobbyRefreshInFlight) return;
+
+        this.lobbyRefreshInFlight = true;
+        this.lobbyLastRefreshAt = now;
+        this.seekActions = [];
+        this.activeTables = [];
+        this.renderSeekActions();
+        this.renderRoomTables();
+        this.updateRoomStatus('Refreshing room tables...');
+        this.send('sought');
+        this.send('games');
+        setTimeout(() => {
+            this.lobbyRefreshInFlight = false;
+            this.renderRoomTables();
+        }, 2500);
+    },
+
+    createOpenTableSeek(tableNumber) {
+        if (!this.authenticated) {
+            this.logToConsole('Connect to FICS before creating a seek.');
+            this.renderRoomTables();
+            return;
+        }
+
+        const time = parseInt(this.elements.customTimeInput?.value, 10) || 5;
+        const inc = parseInt(this.elements.customIncInput?.value, 10) || 0;
+        const command = `seek ${time} ${inc} unrated`;
+        this.logToConsole(`Open Table ${tableNumber}: > ${command}`);
+        this.send(command);
+    },
+
+    updateRoomStatus(message) {
+        if (this.elements.roomStatus) this.elements.roomStatus.textContent = message;
+    },
+
+    renderRoomTables() {
+        const connected = this.authenticated;
+        this.elements.refreshLobbyBtn?.toggleAttribute('disabled', !connected);
+
+        if (!connected) {
+            this.updateRoomStatus('Connect to FICS to view room tables.');
+            this.renderActiveTables([]);
+            this.renderWaitingPlayers([]);
+            this.updateOpenTables(false);
+            return;
+        }
+
+        this.updateRoomStatus(this.lobbyLastRefreshAt
+            ? `Lobby refreshed ${new Date(this.lobbyLastRefreshAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+            : 'Use Refresh Lobby to load current room tables.');
+        this.renderActiveTables(this.activeTables);
+        this.renderWaitingPlayers(this.seekActions);
+        this.updateOpenTables(true);
+    },
+
+    renderActiveTables(tables) {
+        if (!this.elements.activeTables) return;
+        if (!tables.length) {
+            this.elements.activeTables.innerHTML = '<div class="fics-room-empty">Active game table browsing coming soon.</div>';
+            return;
+        }
+
+        this.elements.activeTables.replaceChildren(...tables.map((table) => {
+            const card = document.createElement('div');
+            card.className = 'fics-table-card';
+            card.innerHTML = `
+                <div class="fics-table-main">
+                    <span class="fics-table-title">Table #${this.escapeHtml(table.number)}</span>
+                    <span class="fics-table-badge">Active</span>
+                </div>
+                <div class="fics-table-players">
+                    <span>${this.escapeHtml(table.white)} ${this.escapeHtml(table.whiteRating ? `(${table.whiteRating})` : '')}</span>
+                    <span>${this.escapeHtml(table.black)} ${this.escapeHtml(table.blackRating ? `(${table.blackRating})` : '')}</span>
+                </div>
+                <div class="fics-table-meta">
+                    <span>${this.escapeHtml(table.timeControl)}</span>
+                    <span>${this.escapeHtml(table.observers ? `${table.observers} watching` : 'Watch live')}</span>
+                </div>
+            `;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'fics-table-action';
+            button.textContent = 'Watch';
+            button.addEventListener('click', () => {
+                this.logToConsole(`> observe ${table.number}`);
+                this.send(`observe ${table.number}`);
+            });
+            card.appendChild(button);
+            return card;
+        }));
+    },
+
+    renderWaitingPlayers(seeks) {
+        if (!this.elements.waitingPlayers) return;
+        if (!seeks.length) {
+            this.elements.waitingPlayers.innerHTML = '<div class="fics-room-empty">No waiting players yet. Refresh or run sought.</div>';
+            return;
+        }
+
+        this.elements.waitingPlayers.replaceChildren(...seeks.map((seek) => {
+            const detail = seek.details;
+            const card = document.createElement('div');
+            card.className = 'fics-table-card fics-waiting-table';
+            card.innerHTML = `
+                <div class="fics-table-main">
+                    <span class="fics-table-title">Table #${this.escapeHtml(seek.number)}</span>
+                    <span class="fics-table-badge waiting">Waiting</span>
+                </div>
+                <div class="fics-table-players">
+                    <span>${this.escapeHtml(detail.player)}</span>
+                    <span>${this.escapeHtml(detail.rating)}</span>
+                </div>
+                <div class="fics-table-meta">
+                    <span>${this.escapeHtml(detail.variant || 'standard')} ${this.escapeHtml(detail.timeControl)}</span>
+                    <span>${this.escapeHtml([detail.rated, detail.color].filter(Boolean).join(' · ') || 'open color')}</span>
+                </div>
+            `;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'fics-table-action';
+            button.textContent = 'Sit / Play';
+            button.addEventListener('click', () => {
+                this.logToConsole(`> play ${seek.number}`);
+                this.send(`play ${seek.number}`);
+            });
+            card.appendChild(button);
+            return card;
+        }));
+    },
+
+    updateOpenTables(enabled) {
+        this.elements.openTables?.querySelectorAll('[data-open-table]').forEach((button) => {
+            button.toggleAttribute('disabled', !enabled);
         });
     },
 

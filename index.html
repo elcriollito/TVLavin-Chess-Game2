@@ -1452,6 +1452,49 @@
 
                     <!-- Game Area -->
                     <div class="fics-game-area">
+                        <!-- Room Tables -->
+                        <div class="fics-room-panel">
+                            <div class="fics-panel-heading">
+                                <h3>Room Tables</h3>
+                                <button id="ficsRefreshLobbyBtn" class="fics-btn fics-btn-secondary">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                            </div>
+                            <p id="ficsRoomStatus" class="fics-room-status">Connect to FICS to view room tables.</p>
+
+                            <div class="fics-room-section">
+                                <h4>Active Tables</h4>
+                                <div id="ficsActiveTables" class="fics-room-list">
+                                    <div class="fics-room-empty">Active game table browsing coming soon.</div>
+                                </div>
+                            </div>
+
+                            <div class="fics-room-section">
+                                <h4>Waiting Players</h4>
+                                <div id="ficsWaitingPlayers" class="fics-room-list">
+                                    <div class="fics-room-empty">Run sought or refresh the lobby after connecting.</div>
+                                </div>
+                            </div>
+
+                            <div class="fics-room-section">
+                                <h4>Open Tables</h4>
+                                <div id="ficsOpenTables" class="fics-room-list fics-open-tables">
+                                    <button class="fics-table-card fics-open-table" type="button" data-open-table="1">
+                                        <span class="fics-table-title">Open Table 1</span>
+                                        <span>Create seek</span>
+                                    </button>
+                                    <button class="fics-table-card fics-open-table" type="button" data-open-table="2">
+                                        <span class="fics-table-title">Open Table 2</span>
+                                        <span>Create seek</span>
+                                    </button>
+                                    <button class="fics-table-card fics-open-table" type="button" data-open-table="3">
+                                        <span class="fics-table-title">Open Table 3</span>
+                                        <span>Create seek</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Board Section -->
                         <div class="fics-board-section">
                             <div class="fics-board-header">
