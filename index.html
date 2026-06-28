@@ -1440,6 +1440,7 @@
                                 <div id="ficsConnectionStatus" class="fics-status fics-status-disconnected">
                                     Not connected
                                 </div>
+                                <div id="ficsIdentityStatus" class="fics-identity-status">Guest Login ready</div>
                                 <div class="fics-gateway-details">
                                     <span id="ficsGatewayStatus" class="fics-gateway-status">Checking gateway...</span>
                                     <span>Gateway: <code id="ficsGatewayUrl">Checking...</code></span>
@@ -1462,6 +1463,7 @@
                                         <input type="text" id="ficsAccountUsername" autocomplete="username" placeholder="Username" aria-label="FICS username">
                                         <input type="password" id="ficsAccountPassword" autocomplete="current-password" placeholder="Password" aria-label="FICS password">
                                     </div>
+                                    <div class="fics-login-note">Registered FICS login beta</div>
                                 </div>
                                 <button id="ficsTestGatewayBtn" class="fics-btn fics-btn-secondary">
                                     <i class="fas fa-stethoscope"></i> Test Gateway
@@ -1475,6 +1477,9 @@
                                 <button id="ficsDisconnectBtn" class="fics-btn fics-btn-secondary" disabled>
                                     <i class="fas fa-power-off"></i> Disconnect
                                 </button>
+                                <button id="ficsDifferentUserBtn" class="fics-btn fics-btn-secondary" hidden>
+                                    <i class="fas fa-user-edit"></i> Login as different user
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -1483,43 +1488,32 @@
                     <div class="fics-game-area">
                         <!-- Room Tables -->
                         <div class="fics-room-panel">
-                            <div class="fics-panel-heading">
-                                <h3>Room Tables</h3>
-                                <button id="ficsRefreshLobbyBtn" class="fics-btn fics-btn-secondary">
-                                    <i class="fas fa-sync-alt"></i> Refresh
-                                </button>
+                            <div class="fics-lobby-header">
+                                <div>
+                                    <h3>Room Tables</h3>
+                                    <div class="fics-lobby-future">Friends · Tournaments · Private</div>
+                                </div>
+                                <div class="fics-lobby-actions">
+                                    <button id="ficsRefreshLobbyBtn" class="fics-btn fics-btn-secondary">
+                                        <i class="fas fa-sync-alt"></i> Refresh
+                                    </button>
+                                    <button id="ficsLobbyFilterBtn" class="fics-btn fics-btn-secondary" type="button" disabled>
+                                        <i class="fas fa-filter"></i> Filter
+                                    </button>
+                                </div>
                             </div>
                             <p id="ficsRoomStatus" class="fics-room-status">Connect to FICS to view room tables.</p>
 
-                            <div class="fics-room-section">
-                                <h4>Active Tables</h4>
-                                <div id="ficsActiveTables" class="fics-room-list">
-                                    <div class="fics-room-empty">Active game table browsing coming soon.</div>
+                            <div class="fics-lobby-table" role="table" aria-label="FICS room tables">
+                                <div class="fics-lobby-row fics-lobby-head" role="row">
+                                    <span role="columnheader">Status</span>
+                                    <span role="columnheader">Table</span>
+                                    <span role="columnheader">Time</span>
+                                    <span role="columnheader">Players</span>
+                                    <span role="columnheader">Action</span>
                                 </div>
-                            </div>
-
-                            <div class="fics-room-section">
-                                <h4>Waiting Players</h4>
-                                <div id="ficsWaitingPlayers" class="fics-room-list">
-                                    <div class="fics-room-empty">Run sought or refresh the lobby after connecting.</div>
-                                </div>
-                            </div>
-
-                            <div class="fics-room-section">
-                                <h4>Open Tables</h4>
-                                <div id="ficsOpenTables" class="fics-room-list fics-open-tables">
-                                    <button class="fics-table-card fics-open-table" type="button" data-open-table="1">
-                                        <span class="fics-table-title">Open Table 1</span>
-                                        <span>Create seek</span>
-                                    </button>
-                                    <button class="fics-table-card fics-open-table" type="button" data-open-table="2">
-                                        <span class="fics-table-title">Open Table 2</span>
-                                        <span>Create seek</span>
-                                    </button>
-                                    <button class="fics-table-card fics-open-table" type="button" data-open-table="3">
-                                        <span class="fics-table-title">Open Table 3</span>
-                                        <span>Create seek</span>
-                                    </button>
+                                <div id="ficsLobbyRows" class="fics-lobby-rows" role="rowgroup">
+                                    <div class="fics-room-empty">Connect to FICS to view room tables.</div>
                                 </div>
                             </div>
                         </div>

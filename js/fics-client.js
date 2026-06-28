@@ -101,7 +101,9 @@ const CaissaFICSClient = {
             accountConnectBtn: document.getElementById('ficsAccountConnectBtn'),
             disconnectBtn: document.getElementById('ficsDisconnectBtn'),
             testGatewayBtn: document.getElementById('ficsTestGatewayBtn'),
+            differentUserBtn: document.getElementById('ficsDifferentUserBtn'),
             connectionStatus: document.getElementById('ficsConnectionStatus'),
+            identityStatus: document.getElementById('ficsIdentityStatus'),
             gatewayStatus: document.getElementById('ficsGatewayStatus'),
             gatewayUrl: document.getElementById('ficsGatewayUrl'),
             gatewayLatency: document.getElementById('ficsGatewayLatency'),
@@ -122,6 +124,7 @@ const CaissaFICSClient = {
             lobbyNote: document.getElementById('ficsLobbyNote'),
             refreshLobbyBtn: document.getElementById('ficsRefreshLobbyBtn'),
             roomStatus: document.getElementById('ficsRoomStatus'),
+            lobbyRows: document.getElementById('ficsLobbyRows'),
             activeTables: document.getElementById('ficsActiveTables'),
             waitingPlayers: document.getElementById('ficsWaitingPlayers'),
             openTables: document.getElementById('ficsOpenTables'),
@@ -207,6 +210,7 @@ const CaissaFICSClient = {
         this.elements.connectBtn?.addEventListener('click', () => this.connect('guest'));
         this.elements.accountConnectBtn?.addEventListener('click', () => this.connect('account'));
         this.elements.disconnectBtn?.addEventListener('click', () => this.disconnect());
+        this.elements.differentUserBtn?.addEventListener('click', () => this.loginAsDifferentUser());
         this.elements.testGatewayBtn?.addEventListener('click', () => this.testGateway());
         this.elements.loginModeInputs?.forEach((input) => {
             input.addEventListener('change', () => this.setLoginMode(input.value));
@@ -225,6 +229,8 @@ const CaissaFICSClient = {
             const inc = parseInt(this.elements.customIncInput.value) || 0;
             this.seek(time, inc);
         });
+        this.elements.customTimeInput?.addEventListener('input', () => this.updateOpenTables(this.authenticated));
+        this.elements.customIncInput?.addEventListener('input', () => this.updateOpenTables(this.authenticated));
         this.elements.refreshLobbyBtn?.addEventListener('click', () => this.refreshLobby(true));
         this.elements.openTables?.addEventListener('click', (event) => {
             const table = event.target.closest('[data-open-table]');
@@ -269,6 +275,7 @@ const CaissaFICSClient = {
         if (this.elements.connectBtn) this.elements.connectBtn.hidden = this.loginMode !== 'guest';
         if (this.elements.accountConnectBtn) this.elements.accountConnectBtn.hidden = this.loginMode !== 'account';
         this.updateLoginControls();
+        this.updateIdentityStatus();
     },
 
     updateLoginControls() {
@@ -527,12 +534,43 @@ const CaissaFICSClient = {
         this.pendingMove = null;
         this.setConnectionState('disconnected');
         this.renderRoomTables();
+        this.updateIdentityStatus();
         this.logToConsole('Disconnected');
     },
 
     clearAccountPassword() {
         this.pendingAccountPassword = null;
         if (this.elements.accountPasswordInput) this.elements.accountPasswordInput.value = '';
+    },
+
+    loginAsDifferentUser() {
+        if (this.connected || this.authenticated) this.disconnect();
+        this.accountUsername = '';
+        this.ficsUsername = 'Guest';
+        if (this.elements.accountUsernameInput) this.elements.accountUsernameInput.value = '';
+        this.clearAccountPassword();
+        this.setLoginMode('account');
+        this.setConnectionState('disconnected');
+        this.updateIdentityStatus();
+        this.elements.accountUsernameInput?.focus();
+    },
+
+    updateIdentityStatus(message = null) {
+        if (!this.elements.identityStatus) return;
+        const registered = this.authenticated && this.loginMode === 'account';
+        this.elements.identityStatus.className = `fics-identity-status${registered ? ' registered' : ''}`;
+        if (message) {
+            this.elements.identityStatus.textContent = message;
+        } else if (registered) {
+            this.elements.identityStatus.textContent = `Logged in as ${this.ficsUsername}`;
+        } else if (this.authenticated) {
+            this.elements.identityStatus.textContent = `Guest connected as ${this.ficsUsername}`;
+        } else {
+            this.elements.identityStatus.textContent = this.loginMode === 'account'
+                ? 'Registered FICS login beta'
+                : 'Guest Login ready';
+        }
+        this.elements.differentUserBtn?.toggleAttribute('hidden', !registered);
     },
 
     send(message) {
@@ -586,7 +624,7 @@ const CaissaFICSClient = {
             return;
         }
         if (!this.authenticated && this.loginMode === 'account' && this.isFicsLoginFailure(this.rawBuffer)) {
-            this.handleFicsLoginFailure();
+            this.handleFicsLoginFailure(this.extractFicsLoginFailureMessage(this.rawBuffer));
             return;
         }
         if (!this.authenticated && /Starting FICS session|fics%/i.test(this.rawBuffer)) {
@@ -602,6 +640,7 @@ const CaissaFICSClient = {
             this.logToConsole(this.loginMode === 'account'
                 ? `Logged in as ${this.ficsUsername}. You can now seek games or enter commands.`
                 : 'Connected as guest. You can now seek games or enter commands.');
+            this.updateIdentityStatus();
             this.updatePlayerBars();
             this.startLobbyRefresh();
             this.send('set style 12');
@@ -626,12 +665,22 @@ const CaissaFICSClient = {
         return /invalid password|login incorrect|try again|not a registered player|bad password|authentication failed/i.test(text || '');
     },
 
+    extractFicsLoginFailureMessage(text) {
+        const clean = this.sanitizeFicsConsoleText(text)
+            .split('\n')
+            .map((line) => line.trim())
+            .filter(Boolean);
+        const exact = clean.find((line) => this.isFicsLoginFailure(line));
+        return exact || 'Login failed. Check your FICS username and password.';
+    },
+
     handleFicsLoginFailure(reason = 'Login failed. Check your FICS username and password.') {
         if (this.authFailed) return;
         this.authFailed = true;
         this.clearAccountPassword();
         this.updateGameStatus(reason, 'error');
         this.setConnectionState('error', 'Login failed');
+        this.updateIdentityStatus(this.extractFicsLoginFailureMessage(reason));
         this.logToConsole(`Login failed: ${reason}`);
         this.manualDisconnect = true;
         if (this.ws) {
@@ -846,13 +895,14 @@ const CaissaFICSClient = {
     parseSeekDetails(line, seekNumber) {
         const compact = line.replace(/\s+/g, ' ').trim();
         const time = compact.match(/\[\s*([a-z]+)\s+(\d+)\s+(\d+)\s*\]/i);
+        const fallbackTime = compact.match(/\b(\d{1,3})\s+(\d{1,3})\b/);
         const player = compact.match(/^\s*(?:\d+\s+)?(?:[A-Za-z+*.]+\s+)?([A-Za-z][\w-]*)/);
         const rating = compact.match(/\b(\d{3,4}|\+{4})\b/);
         return {
             number: seekNumber,
             player: player?.[1] || 'FICS player',
-            rating: rating?.[1] || 'guest',
-            timeControl: time ? `${time[2]}+${time[3]}` : 'open',
+            rating: rating?.[1] || 'Guest',
+            timeControl: time ? `${time[2]}+${time[3]}` : fallbackTime ? `${fallbackTime[1]}+${fallbackTime[2]}` : 'open',
             variant: time?.[1] || 'standard',
             rated: /\bunrated\b/i.test(compact) ? 'unrated' : /\brated\b/i.test(compact) ? 'rated' : '',
             color: /\bwhite\b/i.test(compact) ? 'white'
@@ -986,18 +1036,112 @@ const CaissaFICSClient = {
 
         if (!connected) {
             this.updateRoomStatus('Connect to FICS to view room tables.');
-            this.renderActiveTables([]);
-            this.renderWaitingPlayers([]);
-            this.updateOpenTables(false);
+            this.renderLobbyRows([]);
             return;
         }
 
         this.updateRoomStatus(this.lobbyLastRefreshAt
             ? `Lobby refreshed ${new Date(this.lobbyLastRefreshAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
             : 'Use Refresh Lobby to load current room tables.');
-        this.renderActiveTables(this.activeTables);
-        this.renderWaitingPlayers(this.seekActions);
-        this.updateOpenTables(true);
+        this.renderLobbyRows(this.buildLobbyRows());
+    },
+
+    buildLobbyRows() {
+        const waitingRows = this.seekActions.map((seek) => {
+            const detail = seek.details;
+            const own = this.isCurrentFicsUser(detail.player);
+            return {
+                kind: 'waiting',
+                status: 'Waiting',
+                table: seek.number,
+                timeControl: detail.timeControl || 'open',
+                players: this.formatPlayerLabel(detail.player, detail.rating),
+                rated: detail.rated || 'unrated',
+                action: own ? 'Waiting...' : 'Sit',
+                disabled: own,
+                title: seek.label,
+                command: `play ${seek.number}`,
+                sortRating: this.ratingValue(detail.rating)
+            };
+        });
+
+        const playingRows = this.activeTables.map((table) => {
+            const own = this.isCurrentFicsUser(table.white) || this.isCurrentFicsUser(table.black);
+            const averageRating = this.averageRatings(table.whiteRating, table.blackRating);
+            return {
+                kind: 'playing',
+                status: 'Playing',
+                table: table.number,
+                timeControl: table.timeControl || 'live',
+                players: `${this.formatPlayerLabel(table.white, table.whiteRating)}\nvs\n${this.formatPlayerLabel(table.black, table.blackRating)}`,
+                rated: table.observers ? `${table.observers} watching` : 'live',
+                action: own ? 'Playing' : 'Watch',
+                disabled: own,
+                title: table.label,
+                command: `observe ${table.number}`,
+                sortRating: averageRating
+            };
+        }).sort((a, b) => b.sortRating - a.sortRating);
+
+        return [...waitingRows, ...playingRows];
+    },
+
+    renderLobbyRows(rows) {
+        if (!this.elements.lobbyRows) return;
+        if (!rows.length) {
+            this.elements.lobbyRows.innerHTML = `<div class="fics-room-empty">${this.authenticated
+                ? 'No room tables yet. Refresh the lobby or create a seek from the right panel.'
+                : 'Connect to FICS to view room tables.'}</div>`;
+            return;
+        }
+
+        this.elements.lobbyRows.replaceChildren(...rows.map((row) => {
+            const item = document.createElement('div');
+            item.className = `fics-lobby-row ${row.kind === 'waiting' ? 'is-waiting' : 'is-playing'}`;
+            item.setAttribute('role', 'row');
+            item.innerHTML = `
+                <span class="fics-lobby-status" role="cell">
+                    <span class="fics-lobby-led" aria-hidden="true"></span>
+                    <span>${this.escapeHtml(row.status)}</span>
+                </span>
+                <span class="fics-lobby-table-number" role="cell">#${this.escapeHtml(row.table)}</span>
+                <span class="fics-lobby-time" role="cell">${this.escapeHtml(row.timeControl)}</span>
+                <span class="fics-lobby-players" role="cell">${this.escapeHtml(row.players)}</span>
+            `;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'fics-table-action';
+            button.textContent = row.action;
+            button.disabled = !!row.disabled;
+            button.title = row.title || row.rated || row.action;
+            if (!row.disabled) {
+                button.addEventListener('click', () => {
+                    this.logToConsole(`> ${row.command}`);
+                    this.send(row.command);
+                });
+            }
+            item.appendChild(button);
+            return item;
+        }));
+    },
+
+    isCurrentFicsUser(name) {
+        return !!name && !!this.ficsUsername && String(name).toLowerCase() === String(this.ficsUsername).toLowerCase();
+    },
+
+    formatPlayerLabel(name, rating) {
+        const safeName = name || 'FICS player';
+        return rating ? `${safeName} (${rating})` : safeName;
+    },
+
+    ratingValue(rating) {
+        const parsed = parseInt(rating, 10);
+        return Number.isFinite(parsed) ? parsed : 0;
+    },
+
+    averageRatings(a, b) {
+        const values = [this.ratingValue(a), this.ratingValue(b)].filter((value) => value > 0);
+        return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
     },
 
     renderActiveTables(tables) {
@@ -1011,23 +1155,15 @@ const CaissaFICSClient = {
             const card = document.createElement('div');
             card.className = 'fics-table-card';
             card.innerHTML = `
-                <div class="fics-table-main">
-                    <span class="fics-table-title">Table #${this.escapeHtml(table.number)}</span>
-                    <span class="fics-table-badge">Active</span>
-                </div>
-                <div class="fics-table-players">
-                    <span>${this.escapeHtml(table.white)} ${this.escapeHtml(table.whiteRating ? `(${table.whiteRating})` : '')}</span>
-                    <span>${this.escapeHtml(table.black)} ${this.escapeHtml(table.blackRating ? `(${table.blackRating})` : '')}</span>
-                </div>
-                <div class="fics-table-meta">
-                    <span>${this.escapeHtml(table.timeControl)}</span>
-                    <span>${this.escapeHtml(table.observers ? `${table.observers} watching` : 'Watch live')}</span>
-                </div>
+                <span class="fics-room-cell fics-room-table">#${this.escapeHtml(table.number)}</span>
+                <span class="fics-room-cell fics-room-time">${this.escapeHtml(table.timeControl || 'live')}</span>
+                <span class="fics-room-cell fics-room-players">${this.escapeHtml(`${table.white}${table.whiteRating ? ` (${table.whiteRating})` : ''} vs ${table.black}${table.blackRating ? ` (${table.blackRating})` : ''}`)}</span>
             `;
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'fics-table-action';
             button.textContent = 'Watch';
+            button.title = table.observers ? `${table.observers} watching` : 'Watch live game';
             button.addEventListener('click', () => {
                 this.logToConsole(`> observe ${table.number}`);
                 this.send(`observe ${table.number}`);
@@ -1065,7 +1201,13 @@ const CaissaFICSClient = {
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'fics-table-action';
-            button.textContent = 'Sit / Play';
+            card.innerHTML = `
+                <span class="fics-room-cell fics-room-table">#${this.escapeHtml(seek.number)}</span>
+                <span class="fics-room-cell fics-room-time">${this.escapeHtml(detail.timeControl || 'open')}</span>
+                <span class="fics-room-cell fics-room-players">${this.escapeHtml(`${detail.player} (${detail.rating || 'Guest'}) ${detail.rated || 'unrated'}`)}</span>
+            `;
+            button.textContent = 'Sit';
+            button.title = [detail.variant, detail.color].filter(Boolean).join(' - ') || seek.label;
             button.addEventListener('click', () => {
                 this.logToConsole(`> play ${seek.number}`);
                 this.send(`play ${seek.number}`);
@@ -1076,8 +1218,12 @@ const CaissaFICSClient = {
     },
 
     updateOpenTables(enabled) {
+        const time = parseInt(this.elements.customTimeInput?.value, 10) || 5;
+        const inc = parseInt(this.elements.customIncInput?.value, 10) || 0;
         this.elements.openTables?.querySelectorAll('[data-open-table]').forEach((button) => {
             button.toggleAttribute('disabled', !enabled);
+            const timeCell = button.querySelector('.fics-room-time');
+            if (timeCell) timeCell.textContent = `${time}+${inc}`;
         });
     },
 
