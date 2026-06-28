@@ -202,8 +202,8 @@
 /* ===== GAME AREA ===== */
 .fics-game-area {
     display: grid;
-    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr) minmax(320px, 380px);
-    gap: 20px;
+    grid-template-columns: minmax(240px, 280px) minmax(520px, 1fr) minmax(300px, 340px);
+    gap: 16px;
     margin-bottom: 20px;
     align-items: start;
 }
@@ -214,21 +214,38 @@
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 20px;
+    min-width: 0;
 }
 
 .fics-room-panel {
     display: grid;
     gap: 16px;
+    align-content: start;
+    overflow: hidden;
 }
 
 .fics-board-header {
     margin-bottom: 16px;
 }
 
+.fics-board-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
 .fics-board-header h3 {
-    margin: 0 0 8px 0;
+    margin: 0;
     font-size: 18px;
     color: var(--text-primary);
+}
+
+.fics-sound-toggle {
+    flex: 0 0 auto;
+    padding: 7px 10px;
+    font-size: 12px;
 }
 
 .fics-game-status {
@@ -262,7 +279,7 @@
 
 .fics-live-board-shell {
     width: 100%;
-    max-width: 600px;
+    max-width: 680px;
     margin: 0 auto;
 }
 
@@ -272,7 +289,7 @@
 
 .fics-player-bar {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+    grid-template-columns: auto auto minmax(0, 1fr) auto auto auto;
     align-items: center;
     gap: 8px;
     padding: 9px 12px;
@@ -280,6 +297,25 @@
     background: var(--bg-tertiary);
     color: var(--text-primary);
     font-size: 13px;
+}
+
+.fics-turn-led {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    background: rgba(148, 163, 184, 0.22);
+    box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.45);
+}
+
+.fics-turn-led.active {
+    border-color: rgba(34, 197, 94, 0.95);
+    background: #22c55e;
+    box-shadow: 0 0 9px rgba(34, 197, 94, 0.9), inset 0 0 3px rgba(255, 255, 255, 0.45);
+}
+
+.fics-player-bar.turn-active {
+    border-color: rgba(34, 197, 94, 0.35);
 }
 
 .fics-player-bar:first-child {
@@ -369,6 +405,7 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
+    min-width: 0;
 }
 
 .fics-panel {
@@ -686,7 +723,10 @@
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 20px;
-    margin-bottom: 20px;
+    margin-top: 20px;
+    margin-bottom: 0;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .fics-console-header {
@@ -784,7 +824,7 @@
     }
 
     .fics-player-bar {
-        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-columns: auto auto minmax(0, 1fr) auto;
     }
 
     .fics-player-rating,

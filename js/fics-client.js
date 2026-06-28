@@ -58,6 +58,9 @@ const CaissaFICSClient = {
     moveHistory: [],
     lastMoveKey: null,
     pgnResult: '*',
+    soundsEnabled: false,
+    audioContext: null,
+    lastSoundAt: {},
 
     // UI elements
     elements: {},
@@ -78,6 +81,7 @@ const CaissaFICSClient = {
         this.configureGateway();
         this.bindEvents();
         this.initChessEngine();
+        this.loadSoundPreference();
         this.setConnectionState('disconnected');
         this.updateGatewayStatus();
         this.renderRoomTables();
@@ -124,6 +128,7 @@ const CaissaFICSClient = {
             resignBtn: document.getElementById('ficsResignBtn'),
             drawBtn: document.getElementById('ficsDrawBtn'),
             abortBtn: document.getElementById('ficsAbortBtn'),
+            soundToggle: document.getElementById('ficsSoundToggle'),
 
             // Board
             boardContainer: document.getElementById('ficsBoardContainer'),
@@ -212,6 +217,7 @@ const CaissaFICSClient = {
         this.elements.drawBtn?.addEventListener('click', () => this.offerDraw());
         this.elements.abortBtn?.addEventListener('click', () => this.abort());
         this.elements.downloadPgnBtn?.addEventListener('click', () => this.downloadPGN());
+        this.elements.soundToggle?.addEventListener('click', () => this.toggleSounds());
 
         // Console
         this.elements.consoleToggle?.addEventListener('click', () => this.toggleConsole());
@@ -602,6 +608,7 @@ const CaissaFICSClient = {
         }
         this.resetGameRecord();
         this.initBoard();
+        this.playNotificationSound('seekAccepted');
 
         this.logToConsole('🎮 Game started!');
     },
@@ -626,6 +633,8 @@ const CaissaFICSClient = {
     handleStyle12(state) {
         const wasActive = this.liveGame.gameActive;
         const isNewGame = this.liveGame.gameNumber !== null && this.liveGame.gameNumber !== state.gameNumber;
+        const previousFen = this.liveGame.currentFen;
+        const previousSideToMove = this.liveGame.sideToMove;
         const playing = state.relation === 1 || state.relation === -1;
         const userColor = state.userColor === 'w' ? 'white'
             : state.userColor === 'b' ? 'black'
@@ -671,6 +680,14 @@ const CaissaFICSClient = {
 
         this.recordStyle12Move(state);
         this.updateLiveGameUI();
+        this.handleStyle12SoundEvents({
+            wasActive,
+            previousFen,
+            previousSideToMove,
+            state,
+            playing,
+            userColor
+        });
         if (!wasActive && playing) this.logToConsole(`Game ${state.gameNumber} started from Style12.`);
     },
 
@@ -768,7 +785,7 @@ const CaissaFICSClient = {
     startLobbyRefresh() {
         this.stopLobbyRefresh();
         this.refreshLobby(true);
-        this.lobbyRefreshTimer = setInterval(() => this.refreshLobby(false), 25000);
+        this.lobbyRefreshTimer = setInterval(() => this.refreshLobby(false), 60000);
     },
 
     stopLobbyRefresh() {
@@ -786,7 +803,7 @@ const CaissaFICSClient = {
         }
 
         const now = Date.now();
-        if (!manual && now - this.lobbyLastRefreshAt < 20000) return;
+        if (!manual && now - this.lobbyLastRefreshAt < 60000) return;
         if (this.lobbyRefreshInFlight) return;
 
         this.lobbyRefreshInFlight = true;
@@ -1097,6 +1114,100 @@ const CaissaFICSClient = {
         }[char]));
     },
 
+    loadSoundPreference() {
+        try {
+            this.soundsEnabled = localStorage.getItem('caissaFicsSoundsEnabled') === 'true';
+        } catch (error) {
+            this.soundsEnabled = false;
+        }
+        this.updateSoundToggle();
+    },
+
+    toggleSounds() {
+        this.soundsEnabled = !this.soundsEnabled;
+        try {
+            localStorage.setItem('caissaFicsSoundsEnabled', String(this.soundsEnabled));
+        } catch (error) {
+            // Sound preference is optional; ignore storage failures.
+        }
+        if (this.soundsEnabled) {
+            this.ensureAudioContext();
+            this.playNotificationSound('enabled', { force: true });
+        }
+        this.updateSoundToggle();
+    },
+
+    updateSoundToggle() {
+        if (!this.elements.soundToggle) return;
+        this.elements.soundToggle.setAttribute('aria-pressed', String(this.soundsEnabled));
+        this.elements.soundToggle.innerHTML = this.soundsEnabled
+            ? '<i class="fas fa-volume-up"></i> Disable Sounds'
+            : '<i class="fas fa-volume-mute"></i> Enable Sounds';
+    },
+
+    ensureAudioContext() {
+        if (this.audioContext) return this.audioContext;
+        const AudioCtor = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtor) return null;
+        this.audioContext = new AudioCtor();
+        return this.audioContext;
+    },
+
+    playNotificationSound(type, options = {}) {
+        if (!this.soundsEnabled && !options.force) return;
+        const now = performance.now();
+        if (!options.force && now - (this.lastSoundAt[type] || 0) < 650) return;
+        this.lastSoundAt[type] = now;
+
+        const context = this.ensureAudioContext();
+        if (!context) return;
+        if (context.state === 'suspended') context.resume().catch(() => {});
+
+        const patterns = {
+            gameStart: [523, 659],
+            playerTurn: [784, 988],
+            opponentMove: [440],
+            seekAccepted: [659, 880],
+            enabled: [660]
+        };
+        const tones = patterns[type] || patterns.opponentMove;
+        tones.forEach((frequency, index) => {
+            const oscillator = context.createOscillator();
+            const gain = context.createGain();
+            const startAt = context.currentTime + index * 0.085;
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(frequency, startAt);
+            gain.gain.setValueAtTime(0.0001, startAt);
+            gain.gain.exponentialRampToValueAtTime(0.045, startAt + 0.012);
+            gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.11);
+            oscillator.connect(gain).connect(context.destination);
+            oscillator.start(startAt);
+            oscillator.stop(startAt + 0.12);
+        });
+    },
+
+    handleStyle12SoundEvents({ wasActive, previousFen, previousSideToMove, state, playing, userColor }) {
+        if (!playing && !state.observedGame) return;
+        const fenChanged = previousFen && previousFen !== state.fen;
+        const turnChanged = previousSideToMove && previousSideToMove !== state.sideToMove;
+
+        if (!wasActive && playing) {
+            if (performance.now() - (this.lastSoundAt.seekAccepted || 0) > 2000) {
+                this.playNotificationSound('gameStart');
+            }
+            return;
+        }
+
+        if (!fenChanged || !turnChanged) return;
+
+        const sideToMoveColor = state.sideToMove === 'w' ? 'white' : 'black';
+        if (playing && userColor && sideToMoveColor === userColor) {
+            this.playNotificationSound('playerTurn');
+        } else if (state.observedGame) {
+            this.playNotificationSound('opponentMove');
+        }
+    },
+
     updatePlayerBars() {
         const state = this.liveGame;
         const hasGame = !!state.currentFen;
@@ -1115,14 +1226,16 @@ const CaissaFICSClient = {
         };
         const top = orientation === 'black' ? white : black;
         const bottom = orientation === 'black' ? black : white;
-        this.renderPlayerBar(this.elements.topPlayerBar, top, hasGame);
-        this.renderPlayerBar(this.elements.bottomPlayerBar, bottom, hasGame);
+        this.renderPlayerBar(this.elements.topPlayerBar, top, hasGame, state.sideToMove);
+        this.renderPlayerBar(this.elements.bottomPlayerBar, bottom, hasGame, state.sideToMove);
     },
 
-    renderPlayerBar(element, player, hasGame) {
+    renderPlayerBar(element, player, hasGame, sideToMove) {
         if (!element) return;
-        element.className = `fics-player-bar ${player.color}`;
+        const isTurn = hasGame && sideToMove === (player.color === 'white' ? 'w' : 'b');
+        element.className = `fics-player-bar ${player.color}${isTurn ? ' turn-active' : ''}`;
         element.innerHTML = `
+            <span class="fics-turn-led${isTurn ? ' active' : ''}" aria-label="${isTurn ? `${player.color} to move` : `${player.color} waiting`}"></span>
             <span class="fics-color-dot" aria-hidden="true"></span>
             <span class="fics-player-name">${this.escapeHtml(player.name)}</span>
             <span class="fics-player-rating">${this.escapeHtml(player.rating)}</span>

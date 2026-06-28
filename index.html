@@ -1508,7 +1508,12 @@
                         <!-- Board Section -->
                         <div class="fics-board-section">
                             <div class="fics-board-header">
-                                <h3>Board</h3>
+                                <div class="fics-board-title-row">
+                                    <h3>Board</h3>
+                                    <button id="ficsSoundToggle" class="fics-btn fics-btn-secondary fics-sound-toggle" type="button" aria-pressed="false">
+                                        <i class="fas fa-volume-mute"></i> Enable Sounds
+                                    </button>
+                                </div>
                                 <div id="ficsGameStatus" class="fics-game-status">
                                     No active game
                                 </div>
@@ -1547,6 +1552,31 @@
                                 <button id="ficsAbortBtn" class="fics-btn fics-btn-secondary">
                                     <i class="fas fa-times"></i> Abort
                                 </button>
+                            </div>
+
+                            <!-- Console -->
+                            <div class="fics-console-section">
+                                <div class="fics-console-header">
+                                    <h3>Console</h3>
+                                    <button id="ficsConsoleToggle" class="fics-console-toggle">
+                                        â–¼ Hide Console
+                                    </button>
+                                </div>
+
+                                <div id="ficsConsoleContainer">
+                                    <pre id="ficsConsole">FICS Console - Ready to connect...</pre>
+
+                                    <div class="fics-command-input">
+                                        <input
+                                            type="text"
+                                            id="ficsCommandInput"
+                                            placeholder="Type FICS command (e.g., 'who', 'games', 'help')..."
+                                        >
+                                        <button id="ficsSendCommandBtn" class="fics-btn fics-btn-secondary">
+                                            <i class="fas fa-paper-plane"></i> Send
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -1624,30 +1654,6 @@
                         </div>
                     </div>
 
-                    <!-- Console -->
-                    <div class="fics-console-section">
-                        <div class="fics-console-header">
-                            <h3>Console</h3>
-                            <button id="ficsConsoleToggle" class="fics-console-toggle">
-                                â–¼ Hide Console
-                            </button>
-                        </div>
-
-                        <div id="ficsConsoleContainer">
-                            <pre id="ficsConsole">FICS Console - Ready to connect...</pre>
-
-                            <div class="fics-command-input">
-                                <input
-                                    type="text"
-                                    id="ficsCommandInput"
-                                    placeholder="Type FICS command (e.g., 'who', 'games', 'help')..."
-                                >
-                                <button id="ficsSendCommandBtn" class="fics-btn fics-btn-secondary">
-                                    <i class="fas fa-paper-plane"></i> Send
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </section>
 
