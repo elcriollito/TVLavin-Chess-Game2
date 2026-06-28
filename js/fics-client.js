@@ -947,22 +947,39 @@ const CaissaFICSClient = {
         if (this.activeTables.some((table) => table.number === gameNumber)) return;
 
         const playerPart = match[2].trim();
-        const tokens = playerPart.split(/\s+/).filter(Boolean);
-        const names = tokens.filter((token) => /[A-Za-z]/.test(token) && !/^\d{3,4}$/.test(token));
-        const ratings = tokens.filter((token) => /^\d{3,4}$/.test(token));
+        const players = this.parseActiveGamePlayers(playerPart);
         const timeInfo = match[3] || match[4] || '';
 
         this.activeTables = [{
             number: gameNumber,
-            white: names[0] || 'White',
-            black: names[1] || 'Black',
-            whiteRating: ratings[0] || '',
-            blackRating: ratings[1] || '',
+            white: players.white.name || 'White',
+            black: players.black.name || 'Black',
+            whiteRating: players.white.rating || '',
+            blackRating: players.black.rating || '',
             timeControl: this.extractGameTimeControl(timeInfo),
             observers: this.extractObserverCount(compact),
             label: line
         }, ...this.activeTables].slice(0, 8);
         this.renderRoomTables();
+    },
+
+    parseActiveGamePlayers(playerPart) {
+        const tokens = String(playerPart || '').split(/\s+/).filter(Boolean);
+        const players = [];
+        for (let i = 0; i < tokens.length; i += 1) {
+            if (/^\d{3,4}$/.test(tokens[i]) && tokens[i + 1] && /[A-Za-z]/.test(tokens[i + 1])) {
+                players.push({ rating: tokens[i], name: tokens[i + 1] });
+                i += 1;
+            } else if (/[A-Za-z]/.test(tokens[i]) && !/^\d{3,4}$/.test(tokens[i])) {
+                players.push({ rating: '', name: tokens[i] });
+            }
+            if (players.length >= 2) break;
+        }
+
+        return {
+            white: players[0] || { name: '', rating: '' },
+            black: players[1] || { name: '', rating: '' }
+        };
     },
 
     extractGameTimeControl(text) {
@@ -1064,6 +1081,7 @@ const CaissaFICSClient = {
                 table: seek.number,
                 timeControl: detail.timeControl || 'open',
                 players: own ? `${this.formatPlayerLabel(detail.player, detail.rating)}\nWaiting...` : this.formatPlayerLabel(detail.player, detail.rating),
+                playersHtml: own ? `${this.formatPlayerHtml(detail.player, detail.rating)} <span class="fics-room-waiting-note">Waiting...</span>` : this.formatPlayerHtml(detail.player, detail.rating),
                 rated: detail.rated || 'unrated',
                 action: own ? 'Cancel' : 'Sit',
                 disabled: false,
@@ -1081,6 +1099,7 @@ const CaissaFICSClient = {
                 table: '...',
                 timeControl: this.pendingSeek.timeControl || 'open',
                 players: `${this.ficsUsername || 'You'}\nWaiting...`,
+                playersHtml: `${this.formatPlayerHtml(this.ficsUsername || 'You', '')} <span class="fics-room-waiting-note">Waiting...</span>`,
                 rated: 'unrated',
                 action: 'Cancel',
                 disabled: false,
@@ -1100,7 +1119,8 @@ const CaissaFICSClient = {
                 status: 'Playing',
                 table: table.number,
                 timeControl: table.timeControl || 'live',
-                players: `${this.formatPlayerLabel(table.white, table.whiteRating)}\nvs\n${this.formatPlayerLabel(table.black, table.blackRating)}`,
+                players: `${this.formatPlayerLabel(table.white, table.whiteRating)} vs ${this.formatPlayerLabel(table.black, table.blackRating)}`,
+                playersHtml: `${this.formatPlayerHtml(table.white, table.whiteRating)} <span class="fics-vs">vs</span> ${this.formatPlayerHtml(table.black, table.blackRating)}`,
                 rated: table.observers ? `${table.observers} watching` : 'live',
                 action: own ? 'Playing' : currentObserved ? 'Watching' : 'Watch',
                 disabled: own,
@@ -1134,7 +1154,7 @@ const CaissaFICSClient = {
                 </span>
                 <span class="fics-lobby-table-number" role="cell">#${this.escapeHtml(row.table)}</span>
                 <span class="fics-lobby-time" role="cell">${this.escapeHtml(row.timeControl)}</span>
-                <span class="fics-lobby-players" role="cell" title="${this.escapeHtml(row.players)}">${this.escapeHtml(row.players)}</span>
+                <span class="fics-lobby-players" role="cell" title="${this.escapeHtml(row.players)}">${row.playersHtml || this.escapeHtml(row.players)}</span>
             `;
             const button = document.createElement('button');
             button.type = 'button';
@@ -1201,7 +1221,29 @@ const CaissaFICSClient = {
 
     formatPlayerLabel(name, rating) {
         const safeName = name || 'FICS player';
-        return rating ? `${safeName} (${rating})` : safeName;
+        const displayName = this.formatComputerPlayerName(safeName);
+        return rating ? `${displayName} (${rating})` : displayName;
+    },
+
+    formatPlayerHtml(name, rating) {
+        const safeName = name || 'FICS player';
+        const displayName = this.escapeHtml(safeName);
+        const ratingText = rating ? ` (${this.escapeHtml(rating)})` : '';
+        const badge = this.isLikelyComputerPlayer(safeName)
+            ? ' <span class="fics-engine-badge" title="Computer/engine account">C</span>'
+            : '';
+        return `${displayName}${ratingText}${badge}`;
+    },
+
+    formatComputerPlayerName(name) {
+        return this.isLikelyComputerPlayer(name) && !/\(C\)$/i.test(String(name || ''))
+            ? `${name} (C)`
+            : name;
+    },
+
+    isLikelyComputerPlayer(name) {
+        const value = String(name || '');
+        return /(engine|stockfish|stock|computer|bot)/i.test(value) || /comp$/i.test(value);
     },
 
     ratingValue(rating) {
@@ -1212,6 +1254,11 @@ const CaissaFICSClient = {
     averageRatings(a, b) {
         const values = [this.ratingValue(a), this.ratingValue(b)].filter((value) => value > 0);
         return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+    },
+
+    getActiveTableForGame(gameNumber) {
+        if (gameNumber === null || gameNumber === undefined) return null;
+        return this.activeTables.find((table) => String(table.number) === String(gameNumber)) || null;
     },
 
     renderActiveTables(tables) {
@@ -1573,16 +1620,17 @@ const CaissaFICSClient = {
         const idleUserRating = this.authenticated
             ? (this.loginMode === 'account' ? 'registered' : 'guest')
             : 'waiting';
+        const tableMeta = this.getActiveTableForGame(state.gameNumber);
         const white = {
             color: 'white',
             name: state.whiteName || (this.myColor === 'white' || (!hasGame && idleUserName) ? this.ficsUsername : 'White'),
-            rating: state.whiteName ? 'FICS' : idleUserRating,
+            rating: state.whiteName ? (tableMeta?.whiteRating || 'FICS') : idleUserRating,
             clock: this.formatClock(state.whiteClock)
         };
         const black = {
             color: 'black',
             name: state.blackName || (this.myColor === 'black' ? this.ficsUsername : 'Black'),
-            rating: state.blackName ? 'FICS' : 'waiting',
+            rating: state.blackName ? (tableMeta?.blackRating || 'FICS') : 'waiting',
             clock: this.formatClock(state.blackClock)
         };
         const top = orientation === 'black' ? white : black;
@@ -1595,10 +1643,13 @@ const CaissaFICSClient = {
         if (!element) return;
         const isTurn = hasGame && sideToMove === (player.color === 'white' ? 'w' : 'b');
         element.className = `fics-player-bar ${player.color}${isTurn ? ' turn-active' : ''}`;
+        const engineBadge = this.isLikelyComputerPlayer(player.name)
+            ? ' <span class="fics-engine-badge" title="Computer/engine account">C</span>'
+            : '';
         element.innerHTML = `
             <span class="fics-turn-led${isTurn ? ' active' : ''}" aria-label="${isTurn ? `${player.color} to move` : `${player.color} waiting`}"></span>
             <span class="fics-color-dot" aria-hidden="true"></span>
-            <span class="fics-player-name">${this.escapeHtml(player.name)}</span>
+            <span class="fics-player-name" title="${this.escapeHtml(this.formatComputerPlayerName(player.name))}">${this.escapeHtml(player.name)}${engineBadge}</span>
             <span class="fics-player-rating">${this.escapeHtml(player.rating)}</span>
             <span class="fics-player-lag">lag --</span>
             <strong class="fics-player-clock">${hasGame ? this.escapeHtml(player.clock) : '--:--'}</strong>
