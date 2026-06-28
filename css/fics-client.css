@@ -626,9 +626,9 @@
 
 .fics-lobby-row {
     display: grid;
-    grid-template-columns: 28px 60px 70px minmax(130px, 1fr) 130px;
+    grid-template-columns: 22px 44px 54px minmax(0, 1fr) 76px;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     min-width: 0;
 }
 
