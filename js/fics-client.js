@@ -17,6 +17,12 @@ const CaissaFICSClient = {
     lineBuffer: '',
     guestLoginSent: false,
     guestReturnSent: false,
+    loginMode: 'guest',
+    accountUsername: '',
+    accountLoginSent: false,
+    accountPasswordSent: false,
+    pendingAccountPassword: null,
+    authFailed: false,
     connectionStartedAt: 0,
     latencyMs: null,
     manualDisconnect: false,
@@ -84,6 +90,7 @@ const CaissaFICSClient = {
         this.loadSoundPreference();
         this.setConnectionState('disconnected');
         this.updateGatewayStatus();
+        this.setLoginMode(this.loginMode);
         this.renderRoomTables();
     },
 
@@ -91,12 +98,17 @@ const CaissaFICSClient = {
         this.elements = {
             // Connection
             connectBtn: document.getElementById('ficsConnectBtn'),
+            accountConnectBtn: document.getElementById('ficsAccountConnectBtn'),
             disconnectBtn: document.getElementById('ficsDisconnectBtn'),
             testGatewayBtn: document.getElementById('ficsTestGatewayBtn'),
             connectionStatus: document.getElementById('ficsConnectionStatus'),
             gatewayStatus: document.getElementById('ficsGatewayStatus'),
             gatewayUrl: document.getElementById('ficsGatewayUrl'),
             gatewayLatency: document.getElementById('ficsGatewayLatency'),
+            loginModeInputs: document.querySelectorAll('input[name="ficsLoginMode"]'),
+            accountFields: document.getElementById('ficsAccountFields'),
+            accountUsernameInput: document.getElementById('ficsAccountUsername'),
+            accountPasswordInput: document.getElementById('ficsAccountPassword'),
 
             // Seek buttons
             seekBlitz1: document.getElementById('ficsSeek1_0'),
@@ -192,9 +204,16 @@ const CaissaFICSClient = {
         document.querySelector('[data-section="fics"]')?.addEventListener('click', () => {
             setTimeout(() => this.onEnter(), 0);
         });
-        this.elements.connectBtn?.addEventListener('click', () => this.connect());
+        this.elements.connectBtn?.addEventListener('click', () => this.connect('guest'));
+        this.elements.accountConnectBtn?.addEventListener('click', () => this.connect('account'));
         this.elements.disconnectBtn?.addEventListener('click', () => this.disconnect());
         this.elements.testGatewayBtn?.addEventListener('click', () => this.testGateway());
+        this.elements.loginModeInputs?.forEach((input) => {
+            input.addEventListener('change', () => this.setLoginMode(input.value));
+        });
+        this.elements.accountPasswordInput?.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') this.connect('account');
+        });
 
         // Seek buttons
         this.elements.seekBlitz1?.addEventListener('click', () => this.seek(1, 0));
@@ -241,11 +260,53 @@ const CaissaFICSClient = {
     },
 
     // ===== CONNECTION MANAGEMENT =====
-    connect() {
+    setLoginMode(mode) {
+        this.loginMode = mode === 'account' ? 'account' : 'guest';
+        this.elements.loginModeInputs?.forEach((input) => {
+            input.checked = input.value === this.loginMode;
+        });
+        if (this.elements.accountFields) this.elements.accountFields.hidden = this.loginMode !== 'account';
+        if (this.elements.connectBtn) this.elements.connectBtn.hidden = this.loginMode !== 'guest';
+        if (this.elements.accountConnectBtn) this.elements.accountConnectBtn.hidden = this.loginMode !== 'account';
+        this.updateLoginControls();
+    },
+
+    updateLoginControls() {
+        const active = this.connectionState === 'connecting'
+            || this.connectionState === 'connected'
+            || this.connectionState === 'reconnecting';
+        const disabled = active || !this.isGatewayConfigured();
+        this.elements.connectBtn?.toggleAttribute('disabled', disabled);
+        this.elements.accountConnectBtn?.toggleAttribute('disabled', disabled);
+        this.elements.loginModeInputs?.forEach((input) => {
+            input.disabled = active;
+        });
+        if (this.elements.accountUsernameInput) this.elements.accountUsernameInput.disabled = active;
+        if (this.elements.accountPasswordInput) this.elements.accountPasswordInput.disabled = active;
+    },
+
+    prepareAccountCredentials() {
+        // TODO: Registered FICS login requires manual validation with real credentials before marking production stable.
+        const username = (this.elements.accountUsernameInput?.value || '').trim();
+        const password = this.elements.accountPasswordInput?.value || '';
+        if (!username || !password) {
+            this.updateGameStatus('Enter your FICS username and password to connect.', 'error');
+            this.setConnectionState('error', 'Login details required');
+            this.logToConsole('Enter your FICS username and password to connect.');
+            return false;
+        }
+        this.accountUsername = username;
+        this.pendingAccountPassword = password;
+        if (this.elements.accountPasswordInput) this.elements.accountPasswordInput.value = '';
+        return true;
+    },
+
+    connect(mode = this.loginMode) {
         if (this.ws && this.connected) {
             this.logToConsole('Already connected to FICS');
             return;
         }
+        this.setLoginMode(mode);
 
         if (!this.isGatewayConfigured()) {
             const errorMsg = 'FICS gateway requires a secure WSS endpoint in production.';
@@ -255,6 +316,8 @@ const CaissaFICSClient = {
             this.updateGatewayStatus();
             return;
         }
+
+        if (this.loginMode === 'account' && !this.prepareAccountCredentials()) return;
 
         this.logToConsole('Connecting to FICS gateway...');
         this.manualDisconnect = false;
@@ -266,6 +329,10 @@ const CaissaFICSClient = {
         this.lineBuffer = '';
         this.guestLoginSent = false;
         this.guestReturnSent = false;
+        this.accountLoginSent = false;
+        this.accountPasswordSent = false;
+        this.authFailed = false;
+        this.ficsUsername = this.loginMode === 'account' ? this.accountUsername : 'Guest';
         this.connectionStartedAt = performance.now();
 
         try {
@@ -289,7 +356,7 @@ const CaissaFICSClient = {
                 this.latencyMs = Math.round(performance.now() - this.connectionStartedAt);
                 this.updateLatency();
                 this.logToConsole('✅ Connected to gateway, authenticating...');
-                this.updateGameStatus('Authenticating...', '');
+                this.updateGameStatus(this.loginMode === 'account' ? 'Logging in...' : 'Authenticating...', '');
 
             };
 
@@ -308,6 +375,7 @@ const CaissaFICSClient = {
                 clearTimeout(connectionTimeout);
                 console.log('[FICS Client] WebSocket closed', event.code, event.reason);
                 const shouldReconnect = !this.manualDisconnect
+                    && this.loginMode === 'guest'
                     && event.code !== 1000
                     && this.reconnectAttempts < 3;
 
@@ -323,6 +391,7 @@ const CaissaFICSClient = {
 
                 this.connected = false;
                 this.authenticated = false;
+                if (!shouldReconnect || this.loginMode === 'account') this.clearAccountPassword();
                 if (shouldReconnect) {
                     this.reconnectAttempts += 1;
                     this.setConnectionState('reconnecting');
@@ -330,7 +399,9 @@ const CaissaFICSClient = {
                     this.reconnectTimer = setTimeout(() => this.connect(), 1500);
                 } else {
                     this.reconnectAttempts = 0;
-                    this.setConnectionState(event.code === 1000 ? 'disconnected' : 'error');
+                    if (!this.authFailed) {
+                        this.setConnectionState(event.code === 1000 ? 'disconnected' : 'error');
+                    }
                 }
             };
 
@@ -342,6 +413,7 @@ const CaissaFICSClient = {
     },
 
     handleConnectionFailure(reason) {
+        this.clearAccountPassword();
         let errorMsg = '❌ Gateway unreachable\n\n';
         let tips = '';
 
@@ -445,6 +517,7 @@ const CaissaFICSClient = {
         }
         this.connected = false;
         this.authenticated = false;
+        this.clearAccountPassword();
         this.gameActive = false;
         this.stopLobbyRefresh();
         this.seekActions = [];
@@ -455,6 +528,11 @@ const CaissaFICSClient = {
         this.setConnectionState('disconnected');
         this.renderRoomTables();
         this.logToConsole('Disconnected');
+    },
+
+    clearAccountPassword() {
+        this.pendingAccountPassword = null;
+        if (this.elements.accountPasswordInput) this.elements.accountPasswordInput.value = '';
     },
 
     send(message) {
@@ -468,18 +546,47 @@ const CaissaFICSClient = {
 
     handleRawGatewayData(text) {
         this.rawBuffer = `${this.rawBuffer}${text}`.slice(-16384);
-        this.logToConsole(text.replace(/\r/g, '').trimEnd());
+        this.logToConsole(this.sanitizeFicsConsoleText(text));
 
-        if (!this.guestLoginSent && /login:/i.test(this.rawBuffer)) {
+        if (this.loginMode === 'account' && !this.accountLoginSent && /login:/i.test(this.rawBuffer)) {
+            this.accountLoginSent = true;
+            this.rawBuffer = '';
+            this.setConnectionState('connecting', 'Logging in');
+            this.updateGameStatus('Logging in...', '');
+            this.send(this.accountUsername);
+            return;
+        }
+        if (this.loginMode === 'account' && !this.accountPasswordSent && /password:/i.test(this.rawBuffer)) {
+            this.accountPasswordSent = true;
+            const password = this.pendingAccountPassword;
+            this.clearAccountPassword();
+            this.rawBuffer = '';
+            if (!password) {
+                this.handleFicsLoginFailure('Password was cleared before FICS requested it.');
+                return;
+            }
+            this.send(password);
+            return;
+        }
+        if (this.loginMode === 'guest' && !this.guestLoginSent && /login:/i.test(this.rawBuffer)) {
             this.guestLoginSent = true;
             this.rawBuffer = '';
             this.send('guest');
             return;
         }
-        if (!this.guestReturnSent && /Press return to enter the server/i.test(this.rawBuffer)) {
+        if (this.loginMode === 'guest' && !this.guestReturnSent && /Press return to enter the server/i.test(this.rawBuffer)) {
             this.guestReturnSent = true;
             this.rawBuffer = '';
             this.send('');
+            return;
+        }
+        if (this.loginMode === 'account' && this.accountPasswordSent && /Press return to enter the server/i.test(this.rawBuffer)) {
+            this.rawBuffer = '';
+            this.send('');
+            return;
+        }
+        if (!this.authenticated && this.loginMode === 'account' && this.isFicsLoginFailure(this.rawBuffer)) {
+            this.handleFicsLoginFailure();
             return;
         }
         if (!this.authenticated && /Starting FICS session|fics%/i.test(this.rawBuffer)) {
@@ -488,8 +595,13 @@ const CaissaFICSClient = {
             this.authenticated = true;
             this.reconnectAttempts = 0;
             this.setConnectionState('connected');
-            this.updateGameStatus('Connected as FICS guest. Seek or accept a game to begin.', 'active');
-            this.logToConsole('Connected as guest. You can now seek games or enter commands.');
+            const identity = this.loginMode === 'account'
+                ? `Logged in as ${this.ficsUsername}. Seek or accept a game to begin.`
+                : 'Connected as FICS guest. Seek or accept a game to begin.';
+            this.updateGameStatus(identity, 'active');
+            this.logToConsole(this.loginMode === 'account'
+                ? `Logged in as ${this.ficsUsername}. You can now seek games or enter commands.`
+                : 'Connected as guest. You can now seek games or enter commands.');
             this.updatePlayerBars();
             this.startLobbyRefresh();
             this.send('set style 12');
@@ -501,6 +613,35 @@ const CaissaFICSClient = {
         lines.forEach((line) => {
             if (line.trim()) this.parseGameLine(line.trim());
         });
+    },
+
+    sanitizeFicsConsoleText(text) {
+        return String(text || '')
+            .replace(/\r/g, '')
+            .replace(/(password:\s*)[^\n]*/ig, '$1')
+            .trimEnd();
+    },
+
+    isFicsLoginFailure(text) {
+        return /invalid password|login incorrect|try again|not a registered player|bad password|authentication failed/i.test(text || '');
+    },
+
+    handleFicsLoginFailure(reason = 'Login failed. Check your FICS username and password.') {
+        if (this.authFailed) return;
+        this.authFailed = true;
+        this.clearAccountPassword();
+        this.updateGameStatus(reason, 'error');
+        this.setConnectionState('error', 'Login failed');
+        this.logToConsole(`Login failed: ${reason}`);
+        this.manualDisconnect = true;
+        if (this.ws) {
+            this.ws.close(1000, 'FICS login failed');
+            this.ws = null;
+        }
+        this.connected = false;
+        this.authenticated = false;
+        this.stopLobbyRefresh();
+        this.renderRoomTables();
     },
 
     // ===== MESSAGE HANDLING =====
@@ -1212,10 +1353,14 @@ const CaissaFICSClient = {
         const state = this.liveGame;
         const hasGame = !!state.currentFen;
         const orientation = state.userColor || 'white';
+        const idleUserName = this.authenticated ? this.ficsUsername : null;
+        const idleUserRating = this.authenticated
+            ? (this.loginMode === 'account' ? 'registered' : 'guest')
+            : 'waiting';
         const white = {
             color: 'white',
-            name: state.whiteName || (this.myColor === 'white' ? this.ficsUsername : 'White'),
-            rating: state.whiteName ? 'FICS' : 'waiting',
+            name: state.whiteName || (this.myColor === 'white' || (!hasGame && idleUserName) ? this.ficsUsername : 'White'),
+            rating: state.whiteName ? 'FICS' : idleUserRating,
             clock: this.formatClock(state.whiteClock)
         };
         const black = {
@@ -1396,17 +1541,21 @@ const CaissaFICSClient = {
             this.elements.connectionStatus.textContent = message || 'Connected';
             this.elements.connectionStatus.className = 'fics-status fics-status-connected';
             this.elements.connectBtn?.setAttribute('disabled', 'true');
+            this.elements.accountConnectBtn?.setAttribute('disabled', 'true');
             this.elements.disconnectBtn?.removeAttribute('disabled');
         } else {
             this.elements.connectionStatus.textContent = message || 'Not connected';
             this.elements.connectionStatus.className = 'fics-status fics-status-disconnected';
             if (this.isGatewayConfigured()) {
                 this.elements.connectBtn?.removeAttribute('disabled');
+                this.elements.accountConnectBtn?.removeAttribute('disabled');
             } else {
                 this.elements.connectBtn?.setAttribute('disabled', 'true');
+                this.elements.accountConnectBtn?.setAttribute('disabled', 'true');
             }
             this.elements.disconnectBtn?.setAttribute('disabled', 'true');
         }
+        this.updateLoginControls();
     },
 
     setConnectionState(state, message = null) {
@@ -1424,7 +1573,9 @@ const CaissaFICSClient = {
         }
         const active = state === 'connecting' || state === 'connected' || state === 'reconnecting';
         this.elements.connectBtn?.toggleAttribute('disabled', active || !this.isGatewayConfigured());
+        this.elements.accountConnectBtn?.toggleAttribute('disabled', active || !this.isGatewayConfigured());
         this.elements.disconnectBtn?.toggleAttribute('disabled', !active);
+        this.updateLoginControls();
     },
 
     updateLatency() {
@@ -1484,7 +1635,9 @@ const CaissaFICSClient = {
         console.log('[FICS Client] Section entered');
         this.initBoard(this.liveGame.currentFen || 'start');
         if (!this.liveGame.currentFen && this.authenticated) {
-            this.updateGameStatus('Connected as FICS guest. Seek or accept a game to begin.', 'active');
+            this.updateGameStatus(this.loginMode === 'account'
+                ? `Logged in as ${this.ficsUsername}. Seek or accept a game to begin.`
+                : 'Connected as FICS guest. Seek or accept a game to begin.', 'active');
         }
         this.updatePlayerBars();
     },

@@ -1421,13 +1421,13 @@
                         <h2 class="fics-title">
                             <i class="fas fa-globe"></i> Play on FICS
                         </h2>
-                        <p class="fics-subtitle">Free Internet Chess Server - Play as guest</p>
+                        <p class="fics-subtitle">Free Internet Chess Server - Play as guest or with a FICS account</p>
 
                         <div class="fics-disclaimer">
                             <i class="fas fa-info-circle"></i>
                             <div>
                                 <strong>Connecting to external server:</strong>
-                                FICS (freechess.org) is a third-party chess server. By connecting, you agree to their terms of service. Guest login only - no account required.
+                                FICS (freechess.org) is a third-party chess server. By connecting, you agree to their terms of service. Guest login requires no account; registered FICS login is optional.
                             </div>
                         </div>
                     </div>
@@ -1447,11 +1447,30 @@
                                 </div>
                             </div>
                             <div class="fics-connection-buttons">
+                                <div class="fics-login-panel" aria-label="FICS login mode">
+                                    <div class="fics-login-modes">
+                                        <label class="fics-login-mode">
+                                            <input type="radio" name="ficsLoginMode" value="guest" checked>
+                                            <span>Guest Login</span>
+                                        </label>
+                                        <label class="fics-login-mode">
+                                            <input type="radio" name="ficsLoginMode" value="account">
+                                            <span>FICS Account Login</span>
+                                        </label>
+                                    </div>
+                                    <div id="ficsAccountFields" class="fics-account-fields" hidden>
+                                        <input type="text" id="ficsAccountUsername" autocomplete="username" placeholder="Username" aria-label="FICS username">
+                                        <input type="password" id="ficsAccountPassword" autocomplete="current-password" placeholder="Password" aria-label="FICS password">
+                                    </div>
+                                </div>
                                 <button id="ficsTestGatewayBtn" class="fics-btn fics-btn-secondary">
                                     <i class="fas fa-stethoscope"></i> Test Gateway
                                 </button>
                                 <button id="ficsConnectBtn" class="fics-btn fics-btn-primary">
                                     <i class="fas fa-plug"></i> Connect
+                                </button>
+                                <button id="ficsAccountConnectBtn" class="fics-btn fics-btn-primary" hidden>
+                                    <i class="fas fa-user-lock"></i> Connect with FICS Account
                                 </button>
                                 <button id="ficsDisconnectBtn" class="fics-btn fics-btn-secondary" disabled>
                                     <i class="fas fa-power-off"></i> Disconnect
