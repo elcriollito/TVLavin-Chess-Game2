@@ -422,6 +422,7 @@ const CaissaFICSClient = {
                 } else {
                     this.reconnectAttempts = 0;
                     if (!this.authFailed) {
+                        this.resetLiveSessionState();
                         this.setConnectionState(event.code === 1000 ? 'disconnected' : 'error');
                     }
                 }
@@ -459,6 +460,7 @@ const CaissaFICSClient = {
         }
 
         const fullMsg = errorMsg + tips;
+        this.resetLiveSessionState();
         this.updateGameStatus(fullMsg, 'error');
         this.setConnectionState('error', 'Failed');
     },
@@ -545,14 +547,51 @@ const CaissaFICSClient = {
         this.seekActions = [];
         this.activeTables = [];
         this.pendingSeek = null;
-        this.liveGame.gameActive = false;
-        this.liveGame.status = 'disconnected';
-        this.pendingMove = null;
-        this.cancelPromotionSelection(false);
+        this.resetLiveSessionState();
         this.setConnectionState('disconnected');
         this.renderRoomTables();
         this.updateIdentityStatus();
         this.logToConsole('Disconnected');
+    },
+
+    createEmptyLiveGameState(status = 'idle') {
+        return {
+            gameNumber: null,
+            whiteName: null,
+            blackName: null,
+            userColor: null,
+            relation: null,
+            sideToMove: null,
+            lastMove: null,
+            whiteClock: null,
+            blackClock: null,
+            initialTime: null,
+            increment: null,
+            currentFen: null,
+            gameActive: false,
+            observedGame: false,
+            result: null,
+            status
+        };
+    },
+
+    resetLiveSessionState() {
+        this.gameActive = false;
+        this.myColor = null;
+        this.gameNumber = null;
+        this.opponent = null;
+        this.ficsUsername = 'Guest';
+        this.pendingMove = null;
+        this.cancelPromotionSelection(false);
+        this.liveGame = this.createEmptyLiveGameState('disconnected');
+        this.resetGameRecord();
+        if (this.chess) this.chess.reset();
+        if (this.board) {
+            this.board.orientation('white');
+            this.board.position('start', false);
+        }
+        this.updatePlayerBars();
+        this.updateGameStatus('No active game', '');
     },
 
     clearAccountPassword() {
@@ -623,6 +662,13 @@ const CaissaFICSClient = {
             this.send(password);
             return;
         }
+        if (!this.authenticated
+            && this.loginMode === 'account'
+            && this.accountLoginSent
+            && /login:/i.test(this.rawBuffer)) {
+            this.handleFicsLoginFailure(this.extractFicsLoginFailureMessage(this.rawBuffer));
+            return;
+        }
         if (this.loginMode === 'guest' && !this.guestLoginSent && /login:/i.test(this.rawBuffer)) {
             this.guestLoginSent = true;
             this.rawBuffer = '';
@@ -679,7 +725,7 @@ const CaissaFICSClient = {
     },
 
     isFicsLoginFailure(text) {
-        return /invalid password|login incorrect|try again|not a registered player|bad password|authentication failed/i.test(text || '');
+        return /invalid password|login incorrect|try again|not a registered player|not registered|not a registered name|bad password|authentication failed|unknown user|unknown player|no such user/i.test(text || '');
     },
 
     extractFicsLoginFailureMessage(text) {
@@ -707,6 +753,7 @@ const CaissaFICSClient = {
         this.connected = false;
         this.authenticated = false;
         this.stopLobbyRefresh();
+        this.resetLiveSessionState();
         this.renderRoomTables();
     },
 
