@@ -1542,6 +1542,20 @@
                                 </div>
                                 <div id="ficsPendingState" class="fics-pending-state" aria-live="polite"></div>
                                 <div id="ficsBoardContainer"></div>
+                                <div id="ficsPromotionSelector" class="fics-promotion-selector" hidden role="dialog" aria-modal="true" aria-labelledby="ficsPromotionTitle">
+                                    <div class="fics-promotion-card">
+                                        <div class="fics-promotion-header">
+                                            <strong id="ficsPromotionTitle">Promote pawn</strong>
+                                            <button id="ficsPromotionCancel" class="fics-promotion-close" type="button" aria-label="Cancel promotion">&times;</button>
+                                        </div>
+                                        <div class="fics-promotion-options" role="group" aria-label="Choose promotion piece">
+                                            <button class="fics-promotion-btn" type="button" data-promotion="q">Queen</button>
+                                            <button class="fics-promotion-btn" type="button" data-promotion="n">Knight</button>
+                                            <button class="fics-promotion-btn" type="button" data-promotion="b">Bishop</button>
+                                            <button class="fics-promotion-btn" type="button" data-promotion="r">Rook</button>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div id="ficsBottomPlayerBar" class="fics-player-bar white">
                                     <span class="fics-color-dot" aria-hidden="true"></span>
                                     <span class="fics-player-name">White</span>

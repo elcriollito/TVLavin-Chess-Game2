@@ -38,6 +38,7 @@ const CaissaFICSClient = {
     gameNumber: null,
     opponent: null,
     pendingMove: null,
+    pendingPromotionMove: null,
     liveGame: {
         gameNumber: null,
         whiteName: null,
@@ -145,6 +146,9 @@ const CaissaFICSClient = {
             drawBtn: document.getElementById('ficsDrawBtn'),
             abortBtn: document.getElementById('ficsAbortBtn'),
             soundToggle: document.getElementById('ficsSoundToggle'),
+            promotionSelector: document.getElementById('ficsPromotionSelector'),
+            promotionButtons: document.querySelectorAll('#ficsPromotionSelector [data-promotion]'),
+            promotionCancelBtn: document.getElementById('ficsPromotionCancel'),
 
             // Board
             boardContainer: document.getElementById('ficsBoardContainer'),
@@ -244,6 +248,16 @@ const CaissaFICSClient = {
         this.elements.abortBtn?.addEventListener('click', () => this.abort());
         this.elements.downloadPgnBtn?.addEventListener('click', () => this.downloadPGN());
         this.elements.soundToggle?.addEventListener('click', () => this.toggleSounds());
+        this.elements.promotionButtons?.forEach((button) => {
+            button.addEventListener('click', () => this.completePromotionSelection(button.dataset.promotion));
+        });
+        this.elements.promotionCancelBtn?.addEventListener('click', () => this.cancelPromotionSelection());
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && this.pendingPromotionMove) {
+                event.preventDefault();
+                this.cancelPromotionSelection();
+            }
+        });
 
         // Console
         this.elements.consoleToggle?.addEventListener('click', () => this.toggleConsole());
@@ -534,6 +548,7 @@ const CaissaFICSClient = {
         this.liveGame.gameActive = false;
         this.liveGame.status = 'disconnected';
         this.pendingMove = null;
+        this.cancelPromotionSelection(false);
         this.setConnectionState('disconnected');
         this.renderRoomTables();
         this.updateIdentityStatus();
@@ -761,6 +776,7 @@ const CaissaFICSClient = {
         this.parseActiveGameLine(line);
         if (this.pendingMove && /illegal move|not your move|move is not legal/i.test(line)) {
             this.clearPendingMove(false);
+            this.cancelPromotionSelection(false);
             if (this.board && this.liveGame.currentFen) this.board.position(this.liveGame.currentFen, false);
             this.updateGameStatus('Move rejected by FICS', 'error');
         }
@@ -811,6 +827,7 @@ const CaissaFICSClient = {
         this.liveGame.result = line;
         this.liveGame.status = 'ended';
         this.pendingMove = null;
+        this.cancelPromotionSelection(false);
         this.pgnResult = this.extractResult(line);
         this.updateGameStatus(`Game ended: ${line}`, 'ended');
         this.updatePlayerBars();
@@ -863,6 +880,7 @@ const CaissaFICSClient = {
         this.gameNumber = state.gameNumber;
         this.myColor = userColor;
         this.pendingSeek = null;
+        this.cancelPromotionSelection(false);
         if (previousPending) this.clearPendingMove(true);
 
         this.initBoard(state.fen);
@@ -1185,6 +1203,7 @@ const CaissaFICSClient = {
     },
 
     switchObservedGame(gameNumber) {
+        this.cancelPromotionSelection(false);
         const target = String(gameNumber);
         const current = this.liveGame?.observedGame && this.liveGame.gameNumber !== null
             ? String(this.liveGame.gameNumber)
@@ -1692,7 +1711,7 @@ const CaissaFICSClient = {
     },
 
     onDragStart(source, piece) {
-        if (!this.gameActive || this.liveGame.observedGame || this.pendingMove) return false;
+        if (!this.gameActive || this.liveGame.observedGame || this.pendingMove || this.pendingPromotionMove) return false;
         if (this.liveGame.relation !== 1) return false;
 
         // Don't allow picking up pieces if game is over
@@ -1708,14 +1727,17 @@ const CaissaFICSClient = {
     },
 
     onDrop(source, target) {
-        if (!this.liveGame.currentFen || this.liveGame.relation !== 1) return 'snapback';
+        if (!this.canSubmitGraphicalMove()) return 'snapback';
 
         const validator = new Chess(this.liveGame.currentFen);
+        if (this.isPromotionAttempt(validator, source, target)) {
+            this.showPromotionSelector(source, target);
+            return 'snapback';
+        }
+
         const move = validator.move({
             from: source,
-            to: target,
-            // TODO: Add a promotion picker before sending underpromotions to FICS.
-            promotion: 'q' // Always promote to queen for simplicity
+            to: target
         });
 
         // Illegal move
@@ -1730,6 +1752,68 @@ const CaissaFICSClient = {
         this.setPendingState('pending', `Pending ${moveStr}...`);
         if (this.board) this.board.position(validator.fen(), true);
         this.sendMove(moveStr);
+    },
+
+    canSubmitGraphicalMove() {
+        if (!this.liveGame.currentFen || this.liveGame.relation !== 1) return false;
+        if (!this.gameActive || this.liveGame.observedGame || this.pendingMove) return false;
+        if (!this.myColor || !this.liveGame.sideToMove) return false;
+        return this.liveGame.sideToMove === (this.myColor === 'white' ? 'w' : 'b');
+    },
+
+    isPromotionAttempt(validator, source, target) {
+        const piece = validator.get?.(source);
+        if (!piece || piece.type !== 'p') return false;
+        const targetRank = target?.[1];
+        return (piece.color === 'w' && targetRank === '8') || (piece.color === 'b' && targetRank === '1');
+    },
+
+    showPromotionSelector(source, target) {
+        this.pendingPromotionMove = { source, target, fen: this.liveGame.currentFen };
+        this.setPendingState('pending', `Choose promotion for ${source}${target}`);
+        if (this.board && this.liveGame.currentFen) this.board.position(this.liveGame.currentFen, false);
+        if (this.elements.promotionSelector) {
+            this.elements.promotionSelector.hidden = false;
+            const firstButton = this.elements.promotionSelector.querySelector('[data-promotion]');
+            setTimeout(() => firstButton?.focus(), 0);
+        }
+    },
+
+    completePromotionSelection(piece) {
+        if (!this.pendingPromotionMove || !/^[qnbr]$/.test(piece || '')) return;
+        if (!this.canSubmitGraphicalMove()) {
+            this.cancelPromotionSelection();
+            return;
+        }
+
+        const { source, target } = this.pendingPromotionMove;
+        const validator = new Chess(this.liveGame.currentFen);
+        const move = validator.move({ from: source, to: target, promotion: piece });
+        if (move === null) {
+            this.cancelPromotionSelection();
+            this.updateGameStatus('Promotion move is not legal', 'error');
+            return;
+        }
+
+        const moveStr = source + target + piece;
+        this.cancelPromotionSelection(false);
+        this.pendingMove = {
+            uci: moveStr,
+            optimisticFen: validator.fen(),
+            sentAt: performance.now()
+        };
+        this.setPendingState('pending', `Pending ${moveStr}...`);
+        if (this.board) this.board.position(validator.fen(), true);
+        this.sendMove(moveStr);
+    },
+
+    cancelPromotionSelection(restoreBoard = true) {
+        this.pendingPromotionMove = null;
+        if (this.elements.promotionSelector) this.elements.promotionSelector.hidden = true;
+        this.setPendingState('', '');
+        if (restoreBoard && this.board && this.liveGame.currentFen) {
+            this.board.position(this.liveGame.currentFen, false);
+        }
     },
 
     onSnapEnd() {
