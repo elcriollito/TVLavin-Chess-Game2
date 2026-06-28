@@ -58,6 +58,7 @@ const CaissaFICSClient = {
     },
     seekActions: [],
     activeTables: [],
+    pendingSeek: null,
     lobbyRefreshTimer: null,
     lobbyRefreshInFlight: false,
     lobbyLastRefreshAt: 0,
@@ -529,6 +530,7 @@ const CaissaFICSClient = {
         this.stopLobbyRefresh();
         this.seekActions = [];
         this.activeTables = [];
+        this.pendingSeek = null;
         this.liveGame.gameActive = false;
         this.liveGame.status = 'disconnected';
         this.pendingMove = null;
@@ -860,6 +862,7 @@ const CaissaFICSClient = {
         this.gameActive = playing;
         this.gameNumber = state.gameNumber;
         this.myColor = userColor;
+        this.pendingSeek = null;
         if (previousPending) this.clearPendingMove(true);
 
         this.initBoard(state.fen);
@@ -1023,6 +1026,11 @@ const CaissaFICSClient = {
         const inc = parseInt(this.elements.customIncInput?.value, 10) || 0;
         const command = `seek ${time} ${inc} unrated`;
         this.logToConsole(`Open Table ${tableNumber}: > ${command}`);
+        this.pendingSeek = {
+            timeControl: `${time}+${inc}`,
+            label: `Open Table ${tableNumber}`
+        };
+        this.renderRoomTables();
         this.send(command);
     },
 
@@ -1055,18 +1063,37 @@ const CaissaFICSClient = {
                 status: 'Waiting',
                 table: seek.number,
                 timeControl: detail.timeControl || 'open',
-                players: this.formatPlayerLabel(detail.player, detail.rating),
+                players: own ? `${this.formatPlayerLabel(detail.player, detail.rating)}\nWaiting...` : this.formatPlayerLabel(detail.player, detail.rating),
                 rated: detail.rated || 'unrated',
-                action: own ? 'Waiting...' : 'Sit',
-                disabled: own,
+                action: own ? 'Cancel' : 'Sit',
+                disabled: false,
                 title: seek.label,
-                command: `play ${seek.number}`,
+                command: own ? 'unseek' : `play ${seek.number}`,
+                commandType: own ? 'unseek' : 'play',
                 sortRating: this.ratingValue(detail.rating)
             };
         });
 
+        if (this.pendingSeek && !waitingRows.some((row) => row.commandType === 'unseek')) {
+            waitingRows.unshift({
+                kind: 'waiting',
+                status: 'Waiting',
+                table: '...',
+                timeControl: this.pendingSeek.timeControl || 'open',
+                players: `${this.ficsUsername || 'You'}\nWaiting...`,
+                rated: 'unrated',
+                action: 'Cancel',
+                disabled: false,
+                title: this.pendingSeek.label || 'Your active seek',
+                command: 'unseek',
+                commandType: 'unseek',
+                sortRating: 0
+            });
+        }
+
         const playingRows = this.activeTables.map((table) => {
             const own = this.isCurrentFicsUser(table.white) || this.isCurrentFicsUser(table.black);
+            const currentObserved = this.liveGame.observedGame && String(this.liveGame.gameNumber) === String(table.number);
             const averageRating = this.averageRatings(table.whiteRating, table.blackRating);
             return {
                 kind: 'playing',
@@ -1075,10 +1102,11 @@ const CaissaFICSClient = {
                 timeControl: table.timeControl || 'live',
                 players: `${this.formatPlayerLabel(table.white, table.whiteRating)}\nvs\n${this.formatPlayerLabel(table.black, table.blackRating)}`,
                 rated: table.observers ? `${table.observers} watching` : 'live',
-                action: own ? 'Playing' : 'Watch',
+                action: own ? 'Playing' : currentObserved ? 'Watching' : 'Watch',
                 disabled: own,
                 title: table.label,
                 command: `observe ${table.number}`,
+                commandType: 'observe',
                 sortRating: averageRating
             };
         }).sort((a, b) => b.sortRating - a.sortRating);
@@ -1115,14 +1143,56 @@ const CaissaFICSClient = {
             button.disabled = !!row.disabled;
             button.title = row.title || row.rated || row.action;
             if (!row.disabled) {
-                button.addEventListener('click', () => {
-                    this.logToConsole(`> ${row.command}`);
-                    this.send(row.command);
-                });
+                button.addEventListener('click', () => this.handleLobbyAction(row));
             }
             item.appendChild(button);
             return item;
         }));
+    },
+
+    handleLobbyAction(row) {
+        if (!row?.command) return;
+        if (row.commandType === 'observe') {
+            this.switchObservedGame(row.table);
+            return;
+        }
+        if (row.commandType === 'unseek') {
+            this.cancelSeek();
+            return;
+        }
+        this.logToConsole(`> ${row.command}`);
+        this.send(row.command);
+    },
+
+    switchObservedGame(gameNumber) {
+        const target = String(gameNumber);
+        const current = this.liveGame?.observedGame && this.liveGame.gameNumber !== null
+            ? String(this.liveGame.gameNumber)
+            : null;
+
+        if (current && current !== target) {
+            this.updateGameStatus(`Switching observation from game ${current} to game ${target}...`, 'active');
+            this.logToConsole(`> unobserve ${current}`);
+            this.send(`unobserve ${current}`);
+            setTimeout(() => {
+                this.logToConsole(`> observe ${target}`);
+                this.send(`observe ${target}`);
+            }, 250);
+            return;
+        }
+
+        this.updateGameStatus(`Observing game ${target}...`, 'active');
+        this.logToConsole(`> observe ${target}`);
+        this.send(`observe ${target}`);
+    },
+
+    cancelSeek() {
+        this.pendingSeek = null;
+        this.updateRoomStatus('Canceling seek...');
+        this.renderRoomTables();
+        this.logToConsole('> unseek');
+        this.send('unseek');
+        setTimeout(() => this.refreshLobby(true), 1200);
     },
 
     isCurrentFicsUser(name) {
@@ -1629,6 +1699,11 @@ const CaissaFICSClient = {
 
         const command = `seek ${time} ${inc}`;
         this.logToConsole(`> ${command}`);
+        this.pendingSeek = {
+            timeControl: `${time}+${inc}`,
+            label: 'Your active seek'
+        };
+        this.renderRoomTables();
         this.send({
             type: 'command',
             text: command

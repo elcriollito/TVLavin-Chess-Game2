@@ -14,7 +14,7 @@
 
 .fics-layout {
     padding: 20px;
-    max-width: 1400px;
+    max-width: 1520px;
     margin: 0 auto;
     height: calc(100vh - 80px);
     overflow-y: auto;
@@ -275,7 +275,7 @@
 /* ===== GAME AREA ===== */
 .fics-game-area {
     display: grid;
-    grid-template-columns: minmax(240px, 280px) minmax(520px, 1fr) minmax(300px, 340px);
+    grid-template-columns: minmax(340px, 380px) minmax(500px, 1fr) minmax(300px, 340px);
     gap: 16px;
     margin-bottom: 20px;
     align-items: start;
@@ -622,7 +622,7 @@
 
 .fics-lobby-row {
     display: grid;
-    grid-template-columns: 74px 54px 52px minmax(0, 1fr) 62px;
+    grid-template-columns: 70px 54px 58px minmax(0, 1fr) 78px;
     align-items: center;
     gap: 8px;
     min-width: 0;
@@ -836,6 +836,7 @@
     font-size: 12px;
     font-weight: 700;
     white-space: nowrap;
+    min-width: 64px;
 }
 
 .fics-table-action:hover {
@@ -1081,7 +1082,7 @@
     }
 
     .fics-lobby-row {
-        grid-template-columns: 62px 44px 44px minmax(0, 1fr) 54px;
+        grid-template-columns: 54px 40px 46px minmax(0, 1fr) 62px;
         gap: 6px;
     }
 
