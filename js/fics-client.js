@@ -1127,14 +1127,14 @@ const CaissaFICSClient = {
             const item = document.createElement('div');
             item.className = `fics-lobby-row ${row.kind === 'waiting' ? 'is-waiting' : 'is-playing'}`;
             item.setAttribute('role', 'row');
+            const statusLabel = row.kind === 'waiting' ? 'Waiting table' : 'Playing table';
             item.innerHTML = `
-                <span class="fics-lobby-status" role="cell">
+                <span class="fics-lobby-status" role="cell" aria-label="${statusLabel}" title="${statusLabel}">
                     <span class="fics-lobby-led" aria-hidden="true"></span>
-                    <span>${this.escapeHtml(row.status)}</span>
                 </span>
                 <span class="fics-lobby-table-number" role="cell">#${this.escapeHtml(row.table)}</span>
                 <span class="fics-lobby-time" role="cell">${this.escapeHtml(row.timeControl)}</span>
-                <span class="fics-lobby-players" role="cell">${this.escapeHtml(row.players)}</span>
+                <span class="fics-lobby-players" role="cell" title="${this.escapeHtml(row.players)}">${this.escapeHtml(row.players)}</span>
             `;
             const button = document.createElement('button');
             button.type = 'button';
