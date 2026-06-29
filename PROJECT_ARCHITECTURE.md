@@ -75,7 +75,7 @@ Production-critical files and directories:
 
 Production validation and deployment-sensitive assets:
 
-- `scripts/production-validation-suite.cjs`
+- `tools/validation/production-validation-suite.cjs`
 - `docs/production-validation-suite.md`
 - `.vercel/` local link state, if present
 - `.wrangler/` local Cloudflare state, if present
@@ -169,7 +169,7 @@ These should be run when touching opening database generation, shard loading, or
 
 The Production Validation Suite is a lightweight post-deployment smoke test:
 
-- `scripts/production-validation-suite.cjs`
+- `tools/validation/production-validation-suite.cjs`
 - `docs/production-validation-suite.md`
 
 It validates the live CAISSA FICS workflow without changing production behavior:

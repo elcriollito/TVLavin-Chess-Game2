@@ -52,7 +52,7 @@ Validation tooling includes production smoke checks and domain-specific QA.
 
 Current scripts include:
 
-- `scripts/production-validation-suite.cjs`
+- `tools/validation/production-validation-suite.cjs`
 - `scripts/qa-openingdb-v3.js`
 - `scripts/qa-gamesearch-index.js`
 - `scripts/verify-known-lines.js`
@@ -89,7 +89,7 @@ Current scripts include:
 
 These scripts must not move casually because package commands, documentation, production validation, or active data workflows depend on them:
 
-- `scripts/production-validation-suite.cjs`
+- `tools/validation/production-validation-suite.cjs`
 - `scripts/build-eco-position-map.js`
 - `scripts/build-opening-book.js`
 - `scripts/build-openingdb-index.js`
@@ -181,7 +181,7 @@ Move only approved scripts into their future folders. Avoid moving experimental 
 
 Suggested first execution scope:
 
-- `scripts/production-validation-suite.cjs` to `tools/validation/`
+- `tools/validation/production-validation-suite.cjs` remains in `tools/validation/`
 - stable OpeningDB scripts to `tools/openingdb/`
 - GameSearch scripts to `tools/gamesearch/`
 - stable upload helpers to `tools/deployment/`
@@ -193,7 +193,7 @@ Update every package script that references moved files.
 Examples:
 
 - `node scripts/build-openingdb-index.js` becomes `node tools/openingdb/build-openingdb-index.js`
-- `node scripts/production-validation-suite.cjs` becomes `node tools/validation/production-validation-suite.cjs`
+- any future PVS package command should use `node tools/validation/production-validation-suite.cjs`
 
 No package command should point to a missing path after this stage.
 

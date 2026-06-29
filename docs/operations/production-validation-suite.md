@@ -9,7 +9,7 @@ guest FICS workflow.
 ## Run
 
 ```bash
-node scripts/production-validation-suite.cjs
+node tools/validation/production-validation-suite.cjs
 ```
 
 The default target is:

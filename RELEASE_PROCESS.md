@@ -145,7 +145,7 @@ Run targeted smoke tests for the changed area:
 For FICS or deployment-sensitive client changes, run:
 
 ```powershell
-node scripts/production-validation-suite.cjs
+node tools/validation/production-validation-suite.cjs
 ```
 
 Expected output should end with:

@@ -66,7 +66,7 @@ CAISSA Chess v1.2 is the first documented stable platform release. It represents
 
 - Cloudflare Gateway: production WSS endpoint for FICS at `fics-gateway.caissa-chess.org`.
 - Vercel Deployment: production web deployment for `www.caissa-chess.org`.
-- Validation Suite: lightweight production validation script in `scripts/production-validation-suite.cjs`.
+- Validation Suite: lightweight production validation script in `tools/validation/production-validation-suite.cjs`.
 - Wrangler Configuration: worker projects documented and validated for FICS gateway and downloads/opening database infrastructure.
 
 ### Documentation
