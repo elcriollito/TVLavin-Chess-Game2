@@ -1293,23 +1293,38 @@ const CaissaFICSClient = {
 
     formatPlayerHtml(name, rating) {
         const safeName = name || 'FICS player';
-        const displayName = this.escapeHtml(safeName);
-        const ratingText = rating ? ` (${this.escapeHtml(rating)})` : '';
-        const badge = this.isLikelyComputerPlayer(safeName)
-            ? ' <span class="fics-engine-badge" title="Computer/engine account">C</span>'
+        const computer = this.isLikelyComputerPlayer(safeName);
+        const displayName = this.escapeHtml(this.stripComputerMarker(safeName));
+        const computerMarker = computer
+            ? '<span class="fics-computer-marker" title="Computer / engine account">(C)</span>'
             : '';
-        return `${displayName}${ratingText}${badge}`;
+        const ratingText = rating ? ` (${this.escapeHtml(rating)})` : '';
+        return `${displayName}${computerMarker}${ratingText}`;
     },
 
     formatComputerPlayerName(name) {
-        return this.isLikelyComputerPlayer(name) && !/\(C\)$/i.test(String(name || ''))
-            ? `${name} (C)`
-            : name;
+        if (!this.isLikelyComputerPlayer(name)) return name;
+        return `${this.stripComputerMarker(name)}(C)`;
+    },
+
+    stripComputerMarker(name) {
+        return String(name || '').replace(/\s*(?:\((?:C|computer)\)|\[(?:C|computer)\])\s*$/i, '');
     },
 
     isLikelyComputerPlayer(name) {
-        const value = String(name || '');
-        return /(engine|stockfish|stock|computer|bot)/i.test(value) || /comp$/i.test(value);
+        const value = String(name || '').trim();
+        const normalized = value.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const knownComputerAccounts = new Set([
+            'ifdstock',
+            'execomp',
+            'stockfishbot',
+            'griffyjr'
+        ]);
+
+        return /\((?:c|computer)\)|\[(?:c|computer)\]/i.test(value)
+            || knownComputerAccounts.has(normalized)
+            || /(stockfish|fairystockfish|lc0|leela|komodo|crafty|gnuchess|bot|engine)/i.test(normalized)
+            || /(?:^|[_-])comp$/i.test(value);
     },
 
     ratingValue(rating) {
@@ -1709,13 +1724,16 @@ const CaissaFICSClient = {
         if (!element) return;
         const isTurn = hasGame && sideToMove === (player.color === 'white' ? 'w' : 'b');
         element.className = `fics-player-bar ${player.color}${isTurn ? ' turn-active' : ''}`;
-        const engineBadge = this.isLikelyComputerPlayer(player.name)
-            ? ' <span class="fics-engine-badge" title="Computer/engine account">C</span>'
+        const computer = this.isLikelyComputerPlayer(player.name);
+        const displayName = this.escapeHtml(this.stripComputerMarker(player.name));
+        const computerMarker = computer
+            ? '<span class="fics-computer-marker" title="Computer / engine account">(C)</span>'
             : '';
+        const titleName = this.escapeHtml(this.formatComputerPlayerName(player.name));
         element.innerHTML = `
             <span class="fics-turn-led${isTurn ? ' active' : ''}" aria-label="${isTurn ? `${player.color} to move` : `${player.color} waiting`}"></span>
             <span class="fics-color-dot" aria-hidden="true"></span>
-            <span class="fics-player-name" title="${this.escapeHtml(this.formatComputerPlayerName(player.name))}">${this.escapeHtml(player.name)}${engineBadge}</span>
+            <span class="fics-player-name" title="${titleName}">${displayName}${computerMarker}</span>
             <span class="fics-player-rating">${this.escapeHtml(player.rating)}</span>
             <span class="fics-player-lag">lag --</span>
             <strong class="fics-player-clock">${hasGame ? this.escapeHtml(player.clock) : '--:--'}</strong>
