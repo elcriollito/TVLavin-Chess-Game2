@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 async function loadParser() {
-    await import('../../js/fics-style12.js');
+    await import('../../../js/fics-style12.js');
     return globalThis.FICSStyle12;
 }
 

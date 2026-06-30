@@ -8,6 +8,8 @@ Browser WSS -> Cloudflare Worker -> TCP freechess.org:5000
 
 This project is intentionally isolated from the CAISSA production UI.
 
+Repository location: `gateway/fics-cloudflare-worker/`.
+
 ## Routes
 
 - `GET /health`: service and target status.

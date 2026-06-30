@@ -36,7 +36,7 @@ Current high-level structure:
 - `scripts/`: build, QA, upload, benchmark, and validation scripts.
 - `docs/`: subsystem reports, stable-candidate notes, pipeline documentation, and validation suite docs.
 - `downloads-worker/`: Cloudflare Worker for CAISSA Vault/downloads and opening database related endpoints.
-- `fics-gateway-worker/`: Cloudflare Worker proof/production gateway project for FICS WebSocket-to-TCP bridge.
+- `gateway/fics-cloudflare-worker/`: Cloudflare Worker proof/production gateway project for FICS WebSocket-to-TCP bridge.
 - `server/`: local Node server and gateway helpers.
 - `tools/`: standalone data-fetch or utility tools.
 - `engine/`, `stockfish-worker.js`, `js/engine/*`: engine-related client/worker assets.
@@ -70,8 +70,8 @@ Production-critical files and directories:
 - `package-lock.json`
 - `downloads-worker/worker.js`
 - `downloads-worker/wrangler.toml`
-- `fics-gateway-worker/src/`
-- `fics-gateway-worker/wrangler.toml`
+- `gateway/fics-cloudflare-worker/src/`
+- `gateway/fics-cloudflare-worker/wrangler.toml`
 
 Production validation and deployment-sensitive assets:
 
@@ -96,11 +96,11 @@ The FICS gateway bridges browser WebSocket traffic to FICS TCP:
 
 Relevant project:
 
-- `fics-gateway-worker/src/worker.js`
-- `fics-gateway-worker/src/gateway-utils.js`
-- `fics-gateway-worker/wrangler.toml`
-- `fics-gateway-worker/scripts/`
-- `fics-gateway-worker/test/`
+- `gateway/fics-cloudflare-worker/src/worker.js`
+- `gateway/fics-cloudflare-worker/src/gateway-utils.js`
+- `gateway/fics-cloudflare-worker/wrangler.toml`
+- `gateway/fics-cloudflare-worker/scripts/`
+- `gateway/fics-cloudflare-worker/test/`
 
 The gateway supports health checks, origin allow-listing, rate limits, idle/session timeouts, and validation scripts.
 
