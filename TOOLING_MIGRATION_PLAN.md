@@ -78,8 +78,8 @@ Current scripts include:
 - `experimental/openingdb-v4/build-openingdb-v4-sub.js`
 - `experimental/openingdb-v4/qa-openingdb-v4-sub.js`
 - `experimental/openingdb-v4/upload-openingdb-subshards-r2.js`
-- `scripts/qa-openingdb-node-api.js`
-- `scripts/probe-openingdb-node-canary.js`
+- `experimental/node-api/qa-openingdb-node-api.js`
+- `experimental/canary/probe-openingdb-node-canary.js`
 - `scripts/benchmark-openingdb-ab.js`
 - `experimental/openingdb-v4/finalize-openingdb-from-raw.js`
 
@@ -122,8 +122,8 @@ These scripts should remain outside the primary tooling migration until the Open
 - `experimental/openingdb-v4/build-openingdb-v4-sub.js`
 - `experimental/openingdb-v4/qa-openingdb-v4-sub.js`
 - `experimental/openingdb-v4/upload-openingdb-subshards-r2.js`
-- `scripts/qa-openingdb-node-api.js`
-- `scripts/probe-openingdb-node-canary.js`
+- `experimental/node-api/qa-openingdb-node-api.js`
+- `experimental/canary/probe-openingdb-node-canary.js`
 - `scripts/benchmark-openingdb-ab.js`
 
 Migration requirement: move only into an explicit `experimental/` layout once that phase is approved.
@@ -166,9 +166,10 @@ experimental/
     finalize-openingdb-from-raw.js
   node-api/
     qa-openingdb-node-api.js
-    probe-openingdb-node-canary.js
     benchmark-openingdb-ab.js
   canary/
+    probe-openingdb-node-canary.js
+    wrangler.canary.toml
 ```
 
 Do not implement this structure until a dedicated execution phase.
@@ -304,7 +305,7 @@ Known risks:
 - `package.json` references may become stale after moving scripts.
 - Documentation examples may point to old paths.
 - Some scripts may assume `process.cwd()` is the repository root.
-- Some scripts may use relative imports, such as `qa-openingdb-node-api.js` importing `../downloads-worker/worker.js`.
+- Some scripts may use relative imports, such as `experimental/node-api/qa-openingdb-node-api.js` importing `../../downloads-worker/worker.js`.
 - R2 upload scripts depend on Wrangler and platform-specific command resolution.
 - PVS may depend on location-sensitive assumptions or documentation paths.
 - Worker assumptions should not be affected by script movement.

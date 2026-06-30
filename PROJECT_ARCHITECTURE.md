@@ -114,7 +114,7 @@ Relevant files:
 - `downloads-worker/wrangler.toml`
 - `downloads-worker/DEPLOYMENT.md`
 - `downloads-worker/package.json`
-- `downloads-worker/wrangler.canary.toml` for canary experimentation
+- `experimental/canary/wrangler.canary.toml` for canary experimentation
 
 This worker is infrastructure-sensitive and should be handled separately from client UI work.
 
@@ -159,7 +159,7 @@ QA and verification scripts include:
 
 - `scripts/qa-openingdb-v3.js`
 - `experimental/openingdb-v4/qa-openingdb-v4-sub.js`
-- `scripts/qa-openingdb-node-api.js`
+- `experimental/node-api/qa-openingdb-node-api.js`
 - `tools/gamesearch/qa-gamesearch-index.js`
 - `scripts/verify-known-lines.js`
 
@@ -188,7 +188,7 @@ It validates the live CAISSA FICS workflow without changing production behavior:
 Benchmark/probe scripts support OpeningDB and R2 validation:
 
 - `scripts/benchmark-openingdb-ab.js`
-- `scripts/probe-openingdb-node-canary.js`
+- `experimental/canary/probe-openingdb-node-canary.js`
 
 Benchmark output belongs in `tmp/` or archived reports, not mixed into feature commits.
 
@@ -222,9 +222,9 @@ Known related paths:
 - `experimental/openingdb-v4/build-openingdb-v4-sub.js`
 - `experimental/openingdb-v4/plan-openingdb-v4-sub.js`
 - `experimental/openingdb-v4/qa-openingdb-v4-sub.js`
-- `scripts/probe-openingdb-node-canary.js`
+- `experimental/canary/probe-openingdb-node-canary.js`
 - `experimental/openingdb-v4/upload-openingdb-subshards-r2.js`
-- `downloads-worker/wrangler.canary.toml`
+- `experimental/canary/wrangler.canary.toml`
 - `tmp/`
 - `logs/`
 

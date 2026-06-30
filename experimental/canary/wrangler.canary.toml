@@ -1,0 +1,20 @@
+﻿name = "caissa-vault-downloads-canary"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+workers_dev = true
+
+[[r2_buckets]]
+binding = "VAULT_BUCKET"
+bucket_name = "caissa-vault"
+
+[[r2_buckets]]
+binding = "OPENINGDB_BUCKET"
+bucket_name = "caissa-vault"
+
+[[durable_objects.bindings]]
+name = "DOWNLOAD_COUNTER"
+class_name = "DownloadCounter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["DownloadCounter"]
