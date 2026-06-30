@@ -147,13 +147,13 @@ cd /opt/fics-gateway
 cd /opt/fics-gateway
 git clone https://github.com/YOUR_USERNAME/TVLavin-Chess-Game2.git .
 # Or just the gateway files:
-# Copy server/fics-gateway.cjs and package.json
+# Copy gateway/fics-local-node/fics-gateway.cjs and package.json
 ```
 
 **Option B: Manual upload**
 ```bash
 # From your local machine:
-scp server/fics-gateway.cjs root@YOUR_VPS_IP:/opt/fics-gateway/
+scp gateway/fics-local-node/fics-gateway.cjs root@YOUR_VPS_IP:/opt/fics-gateway/
 scp package.json root@YOUR_VPS_IP:/opt/fics-gateway/
 
 # On VPS, create minimal package.json if needed:
@@ -187,7 +187,7 @@ ls -la node_modules/ws
 
 ```bash
 # Test run (should start on port 8081)
-node server/fics-gateway.cjs
+node gateway/fics-local-node/fics-gateway.cjs
 
 # You should see:
 # [FICS Gateway] Starting...
@@ -219,7 +219,7 @@ cat > /opt/fics-gateway/ecosystem.config.js <<'EOF'
 module.exports = {
   apps: [{
     name: 'fics-gateway',
-    script: './server/fics-gateway.cjs',
+    script: './gateway/fics-local-node/fics-gateway.cjs',
     instances: 1,
     autorestart: true,
     watch: false,
@@ -888,7 +888,7 @@ cd /opt/fics-gateway
 npm install
 
 # 6. Start with PM2
-pm2 start server/fics-gateway.cjs --name fics-gateway
+pm2 start gateway/fics-local-node/fics-gateway.cjs --name fics-gateway
 pm2 save
 pm2 startup
 

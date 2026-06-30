@@ -10,7 +10,7 @@ CAISSA Chess now includes integration with FICS (Free Internet Chess Server), al
 Browser (CAISSA) <--WebSocket--> Gateway Server <--TCP--> FICS (freechess.org:5000)
 ```
 
-- **Gateway Server**: WebSocket/TCP bridge (`server/fics-gateway.cjs`)
+- **Gateway Server**: WebSocket/TCP bridge (`gateway/fics-local-node/fics-gateway.cjs`)
 - **Frontend Client**: Browser-based UI (`js/fics-client.js`)
 - **FICS**: Third-party chess server (freechess.org)
 
@@ -23,7 +23,7 @@ Browser (CAISSA) <--WebSocket--> Gateway Server <--TCP--> FICS (freechess.org:50
 npm run fics:gateway
 
 # Or directly
-node server/fics-gateway.cjs
+node gateway/fics-local-node/fics-gateway.cjs
 ```
 
 The gateway will start on port **8081** (configurable via `FICS_GATEWAY_PORT` env var).
@@ -88,7 +88,7 @@ FICS_GATEWAY_PORT=9000 npm run fics:gateway
 
 The gateway includes basic rate limiting (10 messages/second per client).
 
-Adjust in `server/fics-gateway.cjs`:
+Adjust in `gateway/fics-local-node/fics-gateway.cjs`:
 ```javascript
 const MAX_MESSAGES_PER_SECOND = 10; // Change as needed
 ```
@@ -207,7 +207,7 @@ npm install
 **Option 1: Same server as CAISSA**
 ```bash
 # Run gateway alongside main app (use process manager)
-pm2 start server/fics-gateway.cjs --name fics-gateway
+pm2 start gateway/fics-local-node/fics-gateway.cjs --name fics-gateway
 pm2 start server.js --name caissa
 ```
 
@@ -221,7 +221,7 @@ pm2 start server.js --name caissa
 ```dockerfile
 # Add to Dockerfile
 EXPOSE 8081
-CMD ["node", "server/fics-gateway.cjs"]
+CMD ["node", "gateway/fics-local-node/fics-gateway.cjs"]
 ```
 
 ### Security Considerations
@@ -235,7 +235,7 @@ CMD ["node", "server/fics-gateway.cjs"]
 ### Recommended Production Config
 
 ```javascript
-// server/fics-gateway.cjs
+// gateway/fics-local-node/fics-gateway.cjs
 
 const WS_PORT = process.env.FICS_GATEWAY_PORT || 8081;
 const MAX_MESSAGES_PER_SECOND = 5; // Lower for production
@@ -333,7 +333,7 @@ done
 
 - **FICS Server Issues**: Contact freechess.org admins
 - **CAISSA Issues**: Open issue on CAISSA repo
-- **Gateway Issues**: Check logs in `server/fics-gateway.cjs`
+- **Gateway Issues**: Check logs in `gateway/fics-local-node/fics-gateway.cjs`
 
 ## References
 

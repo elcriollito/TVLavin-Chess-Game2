@@ -26,8 +26,8 @@
     "build:openingdb:games": "node scripts/build-openingdb-games-index.js --in data/pgn_db --out data/openingdb_games --version v1",
     "upload:openingdb:games:r2": "node scripts/upload-openingdb-games-r2.js --dir data/openingdb_games --version v1 --manifest data/openingdb_games/manifest.json",
     "test:opening-known-lines": "node scripts/verify-known-lines.js",
-    "fics:gateway": "node server/fics-gateway.cjs",
-    "fics:dev": "node server/fics-gateway.cjs"
+    "fics:gateway": "node gateway/fics-local-node/fics-gateway.cjs",
+    "fics:dev": "node gateway/fics-local-node/fics-gateway.cjs"
   },
   "dependencies": {
     "@clerk/backend": "^2.29.5",
