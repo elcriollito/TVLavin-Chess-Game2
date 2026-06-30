@@ -66,7 +66,7 @@ Current scripts include:
 - `scripts/upload-openingdb-shards-r2.js`
 - `scripts/upload-openingdb-games-r2.js`
 - `tools/gamesearch/upload-gamesearch-index-r2.js`
-- `scripts/upload-openingdb-subshards-r2.js`
+- `experimental/openingdb-v4/upload-openingdb-subshards-r2.js`
 
 ### Experimental
 
@@ -74,14 +74,14 @@ Experimental tooling currently supports OpeningDB v4 subsharding, node API valid
 
 Current scripts include:
 
-- `scripts/plan-openingdb-v4-sub.js`
-- `scripts/build-openingdb-v4-sub.js`
-- `scripts/qa-openingdb-v4-sub.js`
-- `scripts/upload-openingdb-subshards-r2.js`
+- `experimental/openingdb-v4/plan-openingdb-v4-sub.js`
+- `experimental/openingdb-v4/build-openingdb-v4-sub.js`
+- `experimental/openingdb-v4/qa-openingdb-v4-sub.js`
+- `experimental/openingdb-v4/upload-openingdb-subshards-r2.js`
 - `scripts/qa-openingdb-node-api.js`
 - `scripts/probe-openingdb-node-canary.js`
 - `scripts/benchmark-openingdb-ab.js`
-- `scripts/finalize-openingdb-from-raw.js`
+- `experimental/openingdb-v4/finalize-openingdb-from-raw.js`
 
 ## 3. Script Classification
 
@@ -110,7 +110,7 @@ These scripts can move later as a coordinated tooling organization phase, provid
 - `tools/gamesearch/qa-gamesearch-index.js`
 - `tools/gamesearch/upload-gamesearch-index-r2.js`
 - `scripts/build-pos-stats.js`
-- `scripts/finalize-openingdb-from-raw.js`
+- `experimental/openingdb-v4/finalize-openingdb-from-raw.js`
 
 Migration requirement: update package entries, README references, and any doc examples that invoke these paths.
 
@@ -118,10 +118,10 @@ Migration requirement: update package entries, README references, and any doc ex
 
 These scripts should remain outside the primary tooling migration until the OpeningDB v4/node API roadmap is approved:
 
-- `scripts/plan-openingdb-v4-sub.js`
-- `scripts/build-openingdb-v4-sub.js`
-- `scripts/qa-openingdb-v4-sub.js`
-- `scripts/upload-openingdb-subshards-r2.js`
+- `experimental/openingdb-v4/plan-openingdb-v4-sub.js`
+- `experimental/openingdb-v4/build-openingdb-v4-sub.js`
+- `experimental/openingdb-v4/qa-openingdb-v4-sub.js`
+- `experimental/openingdb-v4/upload-openingdb-subshards-r2.js`
 - `scripts/qa-openingdb-node-api.js`
 - `scripts/probe-openingdb-node-canary.js`
 - `scripts/benchmark-openingdb-ab.js`
@@ -142,7 +142,6 @@ tools/
     build-openingdb-index.js
     build-openingdb-games-index.js
     build-pos-stats.js
-    finalize-openingdb-from-raw.js
     write-openingdb-manifest.js
     verify-known-lines.js
   gamesearch/
@@ -164,6 +163,7 @@ experimental/
     build-openingdb-v4-sub.js
     qa-openingdb-v4-sub.js
     upload-openingdb-subshards-r2.js
+    finalize-openingdb-from-raw.js
   node-api/
     qa-openingdb-node-api.js
     probe-openingdb-node-canary.js

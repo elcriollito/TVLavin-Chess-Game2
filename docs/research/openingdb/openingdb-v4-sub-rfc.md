@@ -227,10 +227,9 @@ Mitigations:
 Run planning tool (no production changes):
 
 ```bash
-node scripts/plan-openingdb-v4-sub.js --in data/openingdb/shards_build/v3_p60 --version v4_sub
+node experimental/openingdb-v4/plan-openingdb-v4-sub.js --in data/openingdb/shards_build/v3_p60 --version v4_sub
 ```
 
 This outputs a concrete rollout plan file:
 
 - `data/openingdb/subshards_build/v4_sub/plan.json`
-

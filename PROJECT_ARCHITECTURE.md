@@ -145,11 +145,11 @@ Opening database tooling lives primarily in `scripts/`:
 
 - `scripts/build-openingdb-index.js`
 - `scripts/build-openingdb-games-index.js`
-- `scripts/build-openingdb-v4-sub.js`
+- `experimental/openingdb-v4/build-openingdb-v4-sub.js`
 - `scripts/build-opening-book.js`
 - `scripts/build-eco-position-map.js`
 - `scripts/write-openingdb-manifest.js`
-- `scripts/finalize-openingdb-from-raw.js`
+- `experimental/openingdb-v4/finalize-openingdb-from-raw.js`
 
 These scripts generate or transform opening datasets and manifests. Some output directories are intentionally ignored because generated datasets can be large.
 
@@ -158,7 +158,7 @@ These scripts generate or transform opening datasets and manifests. Some output 
 QA and verification scripts include:
 
 - `scripts/qa-openingdb-v3.js`
-- `scripts/qa-openingdb-v4-sub.js`
+- `experimental/openingdb-v4/qa-openingdb-v4-sub.js`
 - `scripts/qa-openingdb-node-api.js`
 - `tools/gamesearch/qa-gamesearch-index.js`
 - `scripts/verify-known-lines.js`
@@ -197,7 +197,7 @@ Benchmark output belongs in `tmp/` or archived reports, not mixed into feature c
 Other scripts support uploads, indexing, scraping, and pipeline maintenance:
 
 - `scripts/upload-openingdb-shards-r2.js`
-- `scripts/upload-openingdb-subshards-r2.js`
+- `experimental/openingdb-v4/upload-openingdb-subshards-r2.js`
 - `scripts/upload-openingdb-games-r2.js`
 - `tools/gamesearch/upload-gamesearch-index-r2.js`
 - `tools/`
@@ -218,12 +218,12 @@ The repository currently includes ongoing or dormant experimental areas:
 
 Known related paths:
 
-- `docs/openingdb-v4-sub-rfc.md`
-- `scripts/build-openingdb-v4-sub.js`
-- `scripts/plan-openingdb-v4-sub.js`
-- `scripts/qa-openingdb-v4-sub.js`
+- `docs/research/openingdb/openingdb-v4-sub-rfc.md`
+- `experimental/openingdb-v4/build-openingdb-v4-sub.js`
+- `experimental/openingdb-v4/plan-openingdb-v4-sub.js`
+- `experimental/openingdb-v4/qa-openingdb-v4-sub.js`
 - `scripts/probe-openingdb-node-canary.js`
-- `scripts/upload-openingdb-subshards-r2.js`
+- `experimental/openingdb-v4/upload-openingdb-subshards-r2.js`
 - `downloads-worker/wrangler.canary.toml`
 - `tmp/`
 - `logs/`
