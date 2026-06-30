@@ -42,9 +42,9 @@ GameSearch tooling builds and validates a searchable game index and uploads it t
 
 Current scripts include:
 
-- `scripts/build-gamesearch-index.js`
-- `scripts/qa-gamesearch-index.js`
-- `scripts/upload-gamesearch-index-r2.js`
+- `tools/gamesearch/build-gamesearch-index.js`
+- `tools/gamesearch/qa-gamesearch-index.js`
+- `tools/gamesearch/upload-gamesearch-index-r2.js`
 
 ### Validation
 
@@ -54,7 +54,7 @@ Current scripts include:
 
 - `tools/validation/production-validation-suite.cjs`
 - `scripts/qa-openingdb-v3.js`
-- `scripts/qa-gamesearch-index.js`
+- `tools/gamesearch/qa-gamesearch-index.js`
 - `scripts/verify-known-lines.js`
 
 ### Deployment
@@ -65,7 +65,7 @@ Current scripts include:
 
 - `scripts/upload-openingdb-shards-r2.js`
 - `scripts/upload-openingdb-games-r2.js`
-- `scripts/upload-gamesearch-index-r2.js`
+- `tools/gamesearch/upload-gamesearch-index-r2.js`
 - `scripts/upload-openingdb-subshards-r2.js`
 
 ### Experimental
@@ -106,9 +106,9 @@ These scripts can move later as a coordinated tooling organization phase, provid
 
 - `scripts/build-openingdb-games-index.js`
 - `scripts/upload-openingdb-games-r2.js`
-- `scripts/build-gamesearch-index.js`
-- `scripts/qa-gamesearch-index.js`
-- `scripts/upload-gamesearch-index-r2.js`
+- `tools/gamesearch/build-gamesearch-index.js`
+- `tools/gamesearch/qa-gamesearch-index.js`
+- `tools/gamesearch/upload-gamesearch-index-r2.js`
 - `scripts/build-pos-stats.js`
 - `scripts/finalize-openingdb-from-raw.js`
 
@@ -148,10 +148,10 @@ tools/
   gamesearch/
     build-gamesearch-index.js
     qa-gamesearch-index.js
+    upload-gamesearch-index-r2.js
   deployment/
     upload-openingdb-shards-r2.js
     upload-openingdb-games-r2.js
-    upload-gamesearch-index-r2.js
   maintenance/
 ```
 

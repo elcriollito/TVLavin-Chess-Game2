@@ -160,7 +160,7 @@ QA and verification scripts include:
 - `scripts/qa-openingdb-v3.js`
 - `scripts/qa-openingdb-v4-sub.js`
 - `scripts/qa-openingdb-node-api.js`
-- `scripts/qa-gamesearch-index.js`
+- `tools/gamesearch/qa-gamesearch-index.js`
 - `scripts/verify-known-lines.js`
 
 These should be run when touching opening database generation, shard loading, or node API behavior.
@@ -199,7 +199,7 @@ Other scripts support uploads, indexing, scraping, and pipeline maintenance:
 - `scripts/upload-openingdb-shards-r2.js`
 - `scripts/upload-openingdb-subshards-r2.js`
 - `scripts/upload-openingdb-games-r2.js`
-- `scripts/upload-gamesearch-index-r2.js`
+- `tools/gamesearch/upload-gamesearch-index-r2.js`
 - `tools/`
 
 Utility scripts should be committed only with matching documentation or validation evidence.

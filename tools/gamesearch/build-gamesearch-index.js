@@ -4,8 +4,8 @@
  *   lineKey (UCI sequence up to N plies) -> { games, top[] }
  *
  * Usage:
- *   node scripts/build-gamesearch-index.js --in pgn --out data/gamesearch/shards_build --version v1
- *   node scripts/build-gamesearch-index.js --in "https://example.com/database.pgn" --maxPlies 10 --topK 100
+ *   node tools/gamesearch/build-gamesearch-index.js --in pgn --out data/gamesearch/shards_build --version v1
+ *   node tools/gamesearch/build-gamesearch-index.js --in "https://example.com/database.pgn" --maxPlies 10 --topK 100
  */
 import fs from 'fs';
 import path from 'path';
@@ -416,4 +416,3 @@ main().catch((err) => {
   console.error('[build-gamesearch-index] failed:', err?.message || err);
   process.exit(1);
 });
-
