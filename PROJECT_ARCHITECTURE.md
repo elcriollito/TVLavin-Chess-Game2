@@ -187,7 +187,7 @@ It validates the live CAISSA FICS workflow without changing production behavior:
 
 Benchmark/probe scripts support OpeningDB and R2 validation:
 
-- `scripts/benchmark-openingdb-ab.js`
+- `experimental/benchmarks/benchmark-openingdb-ab.js`
 - `experimental/canary/probe-openingdb-node-canary.js`
 
 Benchmark output belongs in `tmp/` or archived reports, not mixed into feature commits.

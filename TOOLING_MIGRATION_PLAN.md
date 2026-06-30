@@ -80,7 +80,7 @@ Current scripts include:
 - `experimental/openingdb-v4/upload-openingdb-subshards-r2.js`
 - `experimental/node-api/qa-openingdb-node-api.js`
 - `experimental/canary/probe-openingdb-node-canary.js`
-- `scripts/benchmark-openingdb-ab.js`
+- `experimental/benchmarks/benchmark-openingdb-ab.js`
 - `experimental/openingdb-v4/finalize-openingdb-from-raw.js`
 
 ## 3. Script Classification
@@ -124,7 +124,7 @@ These scripts should remain outside the primary tooling migration until the Open
 - `experimental/openingdb-v4/upload-openingdb-subshards-r2.js`
 - `experimental/node-api/qa-openingdb-node-api.js`
 - `experimental/canary/probe-openingdb-node-canary.js`
-- `scripts/benchmark-openingdb-ab.js`
+- `experimental/benchmarks/benchmark-openingdb-ab.js`
 
 Migration requirement: move only into an explicit `experimental/` layout once that phase is approved.
 
@@ -166,6 +166,7 @@ experimental/
     finalize-openingdb-from-raw.js
   node-api/
     qa-openingdb-node-api.js
+  benchmarks/
     benchmark-openingdb-ab.js
   canary/
     probe-openingdb-node-canary.js
