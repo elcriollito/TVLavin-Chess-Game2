@@ -1,0 +1,21 @@
+name = "caissa-fics-gateway-poc"
+main = "src/worker.js"
+compatibility_date = "2026-06-15"
+workers_dev = true
+
+[[routes]]
+pattern = "fics-gateway.caissa-chess.org"
+custom_domain = true
+
+[vars]
+FICS_HOST = "freechess.org"
+FICS_PORT = "5000"
+ALLOWED_ORIGINS = "https://www.caissa-chess.org,http://localhost:8000,http://localhost:3000,http://127.0.0.1:8000,http://127.0.0.1:3000"
+MAX_MESSAGES_PER_SECOND = "10"
+MAX_MESSAGE_LENGTH = "4096"
+MAX_SESSION_SECONDS = "7200"
+IDLE_TIMEOUT_SECONDS = "600"
+
+[observability]
+enabled = true
+head_sampling_rate = 1

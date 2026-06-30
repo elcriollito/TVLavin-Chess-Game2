@@ -1,0 +1,22 @@
+{
+  "name": "caissa-fics-gateway-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node --test test/*.test.js",
+    "smoke": "node scripts/smoke.mjs",
+    "load:5": "node scripts/load-test.mjs 5",
+    "load:20": "node scripts/load-test.mjs 20",
+    "load:100": "node scripts/load-test.mjs 100",
+    "long:1": "node scripts/long-session.mjs 1 300",
+    "long:5": "node scripts/long-session.mjs 5 300",
+    "long:20": "node scripts/long-session.mjs 20 120"
+  },
+  "devDependencies": {
+    "wrangler": "^4.65.0",
+    "ws": "^8.19.0"
+  }
+}
