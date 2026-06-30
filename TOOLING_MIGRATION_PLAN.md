@@ -34,7 +34,6 @@ Current scripts include:
 - `scripts/verify-known-lines.js`
 - `scripts/upload-openingdb-shards-r2.js`
 - `scripts/upload-openingdb-games-r2.js`
-- `scripts/build-pos-stats.js`
 
 ### GameSearch
 
@@ -82,6 +81,10 @@ Current scripts include:
 - `experimental/canary/probe-openingdb-node-canary.js`
 - `experimental/benchmarks/benchmark-openingdb-ab.js`
 - `experimental/openingdb-v4/finalize-openingdb-from-raw.js`
+- `experimental/openingdb-research/build-pos-stats.js`
+- `experimental/openingdb-research/build-eco-stats.mjs`
+- `experimental/openingdb-research/eco-pgn-stats.js`
+- `experimental/openingdb-research/build-opening-position-index.js`
 
 ## 3. Script Classification
 
@@ -109,7 +112,6 @@ These scripts can move later as a coordinated tooling organization phase, provid
 - `tools/gamesearch/build-gamesearch-index.js`
 - `tools/gamesearch/qa-gamesearch-index.js`
 - `tools/gamesearch/upload-gamesearch-index-r2.js`
-- `scripts/build-pos-stats.js`
 - `experimental/openingdb-v4/finalize-openingdb-from-raw.js`
 
 Migration requirement: update package entries, README references, and any doc examples that invoke these paths.
@@ -125,6 +127,10 @@ These scripts should remain outside the primary tooling migration until the Open
 - `experimental/node-api/qa-openingdb-node-api.js`
 - `experimental/canary/probe-openingdb-node-canary.js`
 - `experimental/benchmarks/benchmark-openingdb-ab.js`
+- `experimental/openingdb-research/build-pos-stats.js`
+- `experimental/openingdb-research/build-eco-stats.mjs`
+- `experimental/openingdb-research/eco-pgn-stats.js`
+- `experimental/openingdb-research/build-opening-position-index.js`
 
 Migration requirement: move only into an explicit `experimental/` layout once that phase is approved.
 
@@ -141,7 +147,6 @@ tools/
     build-opening-book.js
     build-openingdb-index.js
     build-openingdb-games-index.js
-    build-pos-stats.js
     write-openingdb-manifest.js
     verify-known-lines.js
   gamesearch/
@@ -168,6 +173,11 @@ experimental/
     qa-openingdb-node-api.js
   benchmarks/
     benchmark-openingdb-ab.js
+  openingdb-research/
+    build-pos-stats.js
+    build-eco-stats.mjs
+    eco-pgn-stats.js
+    build-opening-position-index.js
   canary/
     probe-openingdb-node-canary.js
     wrangler.canary.toml

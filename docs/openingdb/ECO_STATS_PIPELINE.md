@@ -11,13 +11,13 @@ This pipeline builds lightweight ECO stats JSON files from a large local PGN dat
 ## Run
 
 ```bash
-node tools/build-eco-stats.mjs "D:\Chess\DB\mydb.pgn"
+node experimental/openingdb-research/build-eco-stats.mjs "D:\Chess\DB\mydb.pgn"
 ```
 
 Options:
 
 ```bash
-node tools/build-eco-stats.mjs <pgn-path> --max-ply 60 --top 20 --out-dir public/data/eco
+node experimental/openingdb-research/build-eco-stats.mjs <pgn-path> --max-ply 60 --top 20 --out-dir public/data/eco
 ```
 
 ## Outputs
@@ -39,4 +39,3 @@ Written to `public/data/eco/`:
 
 - Do not commit the source PGN file.
 - Commit only generated JSON files if desired.
-

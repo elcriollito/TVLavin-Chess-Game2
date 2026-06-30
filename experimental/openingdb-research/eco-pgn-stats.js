@@ -44,7 +44,7 @@ function parseArgs(argv) {
   }
 
   if (!args.input) {
-    throw new Error('Usage: node tools/eco-pgn-stats.js --input <local_pgn_path> [--out public/data/eco] [--top 10] [--max-ply 24]');
+    throw new Error('Usage: node experimental/openingdb-research/eco-pgn-stats.js --input <local_pgn_path> [--out public/data/eco] [--top 10] [--max-ply 24]');
   }
 
   return args;

@@ -189,6 +189,10 @@ Benchmark/probe scripts support OpeningDB and R2 validation:
 
 - `experimental/benchmarks/benchmark-openingdb-ab.js`
 - `experimental/canary/probe-openingdb-node-canary.js`
+- `experimental/openingdb-research/build-pos-stats.js`
+- `experimental/openingdb-research/build-eco-stats.mjs`
+- `experimental/openingdb-research/eco-pgn-stats.js`
+- `experimental/openingdb-research/build-opening-position-index.js`
 
 Benchmark output belongs in `tmp/` or archived reports, not mixed into feature commits.
 
@@ -224,6 +228,10 @@ Known related paths:
 - `experimental/openingdb-v4/qa-openingdb-v4-sub.js`
 - `experimental/canary/probe-openingdb-node-canary.js`
 - `experimental/openingdb-v4/upload-openingdb-subshards-r2.js`
+- `experimental/openingdb-research/build-pos-stats.js`
+- `experimental/openingdb-research/build-eco-stats.mjs`
+- `experimental/openingdb-research/eco-pgn-stats.js`
+- `experimental/openingdb-research/build-opening-position-index.js`
 - `experimental/canary/wrangler.canary.toml`
 - `tmp/`
 - `logs/`

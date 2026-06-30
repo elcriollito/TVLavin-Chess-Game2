@@ -37,7 +37,7 @@ function parseArgs(argv) {
   }
 
   if (!args.pgnPath) {
-    throw new Error('Usage: node tools/build-eco-stats.mjs <path-to.pgn> [--max-ply 60] [--top 20] [--out-dir public/data/eco]');
+    throw new Error('Usage: node experimental/openingdb-research/build-eco-stats.mjs <path-to.pgn> [--max-ply 60] [--top 20] [--out-dir public/data/eco]');
   }
 
   return args;
@@ -335,4 +335,3 @@ main().catch((err) => {
   console.error('[build-eco-stats] failed:', err.message);
   process.exit(1);
 });
-

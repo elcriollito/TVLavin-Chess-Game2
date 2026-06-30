@@ -45,7 +45,7 @@ function parseArgs(argv) {
   }
 
   if (args.inputs.length === 0) {
-    throw new Error('No PGN files found. Usage: node tools/build-opening-position-index.js --pgnDir data/pgn --out public/data/opening_position_index.json --maxPlies 20 --topN 12');
+    throw new Error('No PGN files found. Usage: node experimental/openingdb-research/build-opening-position-index.js --pgnDir data/pgn --out public/data/opening_position_index.json --maxPlies 20 --topN 12');
   }
 
   return args;

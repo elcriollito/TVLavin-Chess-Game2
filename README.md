@@ -465,7 +465,7 @@ Use this pipeline to serve real W/D/L and continuation frequencies for ECO detai
 1. Build sharded stats from one or more PGN files:
 
 ```bash
-node scripts/build-pos-stats.js --input ./data/pgn/master.pgn --out-dir ./data/pos-stats/shards --max-ply 30 --top-moves 24
+node experimental/openingdb-research/build-pos-stats.js --input ./data/pgn/master.pgn --out-dir ./data/pos-stats/shards --max-ply 30 --top-moves 24
 ```
 
 2. Upload shard files to private R2 path `stats/shards/` in bucket `caissa-books`:

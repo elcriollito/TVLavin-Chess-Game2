@@ -36,7 +36,7 @@ function parseArgs(argv) {
   }
 
   if (args.input.length === 0) {
-    throw new Error('Usage: node scripts/build-pos-stats.js --input <file.pgn> [--input <file2.pgn>] [--out-dir data/pos-stats/shards] [--max-ply 30] [--top-moves 24]');
+    throw new Error('Usage: node experimental/openingdb-research/build-pos-stats.js --input <file.pgn> [--input <file2.pgn>] [--out-dir data/pos-stats/shards] [--max-ply 30] [--top-moves 24]');
   }
 
   return args;
@@ -268,4 +268,3 @@ main().catch((err) => {
   console.error('[build-pos-stats] failed:', err.message);
   process.exit(1);
 });
-
