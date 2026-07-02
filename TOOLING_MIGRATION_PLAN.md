@@ -325,7 +325,7 @@ Known risks:
 Special caution:
 
 - Do not move `downloads-worker/`.
-- Do not move `fics-gateway-worker/`.
+- Historical note: `fics-gateway-worker/` was reorganized during Season 3.6E into `gateway/fics-cloudflare-worker/`.
 - Do not edit `.vercel/`, `.wrangler/`, `.claude/`, `tmp/`, or `logs/`.
 - Do not delete old scripts during migration; use `git mv` so history remains clear.
 

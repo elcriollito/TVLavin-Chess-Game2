@@ -112,7 +112,7 @@ if pm2 list | grep -q "fics-gateway"; then
     print_warning "Application already running, restarting..."
     pm2 restart fics-gateway
 else
-    pm2 start server/fics-gateway.cjs --name fics-gateway
+    pm2 start gateway/fics-local-node/fics-gateway.cjs --name fics-gateway
 fi
 pm2 save
 print_success "Application started"

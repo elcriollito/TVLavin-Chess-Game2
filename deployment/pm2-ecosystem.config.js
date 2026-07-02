@@ -9,7 +9,7 @@
 module.exports = {
   apps: [{
     name: 'fics-gateway',
-    script: './server/fics-gateway.cjs',
+    script: './gateway/fics-local-node/fics-gateway.cjs',
 
     // Process management
     instances: 1,
