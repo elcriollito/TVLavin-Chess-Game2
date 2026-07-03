@@ -1142,6 +1142,17 @@ const CaissaFICSClient = {
         if (this.elements.roomStatus) this.elements.roomStatus.textContent = message;
     },
 
+    renderEmptyState(target, options = {}) {
+        if (!target) return;
+        if (window.CaissaUI?.createEmptyState) {
+            const node = window.CaissaUI.createEmptyState(options);
+            node.classList.add('caissa-ui-empty-state--compact');
+            target.replaceChildren(node);
+            return;
+        }
+        target.textContent = options.message || options.title || '';
+    },
+
     renderRoomTables() {
         const connected = this.authenticated;
         this.elements.refreshLobbyBtn?.toggleAttribute('disabled', !connected);
@@ -1224,9 +1235,15 @@ const CaissaFICSClient = {
     renderLobbyRows(rows) {
         if (!this.elements.lobbyRows) return;
         if (!rows.length) {
-            this.elements.lobbyRows.innerHTML = `<div class="fics-room-empty">${this.authenticated
-                ? 'No room tables yet. Refresh the lobby or create a seek from the right panel.'
-                : 'Connect to FICS to view room tables.'}</div>`;
+            if (this.authenticated) {
+                this.elements.lobbyRows.innerHTML = '<div class="fics-room-empty">No room tables yet. Refresh the lobby or create a seek from the right panel.</div>';
+            } else {
+                this.renderEmptyState(this.elements.lobbyRows, {
+                    icon: 'fa-plug',
+                    title: 'Not connected.',
+                    message: 'Connect to FICS to access games and room tables.'
+                });
+            }
             return;
         }
 
@@ -1553,7 +1570,11 @@ const CaissaFICSClient = {
     renderMoveList() {
         if (!this.elements.moveList) return;
         if (!this.moveHistory.length) {
-            this.elements.moveList.textContent = 'Moves will appear here as Style12 updates arrive.';
+            this.renderEmptyState(this.elements.moveList, {
+                icon: 'fa-list-ol',
+                title: 'No live moves yet.',
+                message: 'Start or observe a game to see moves here.'
+            });
             return;
         }
         const rows = [];

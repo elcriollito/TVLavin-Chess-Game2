@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="/assets/css/chessboard-1.0.0.min.css">
   <link rel="stylesheet" href="/styles.css?v=2.0.2">
-  <link rel="stylesheet" href="/css/caissa-ui-foundation.css?v=1.0.1">
+  <link rel="stylesheet" href="/css/caissa-ui-foundation.css?v=1.0.2">
   <link rel="stylesheet" href="/css/opening-database.css?v=1.0.43">
 </head>
 <body>
@@ -160,7 +160,13 @@
                   </thead>
                   <tbody id="odbGamesBody">
                     <tr>
-                      <td colspan="7" class="openingdb-empty">No games loaded yet.</td>
+                      <td colspan="7">
+                        <div class="caissa-ui-empty-state caissa-ui-empty-state--compact" role="status">
+                          <i class="fas fa-database caissa-ui-empty-state__icon" aria-hidden="true"></i>
+                          <p class="caissa-ui-empty-state__title">No position loaded.</p>
+                          <p class="caissa-ui-empty-state__message">Load a position to browse opening theory.</p>
+                        </div>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -292,7 +298,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/js/engine/stockfish-client.js?v=1.0.1"></script>
-  <script src="/js/caissa-ui-foundation.js?v=1.0.1"></script>
+  <script src="/js/caissa-ui-foundation.js?v=1.0.2"></script>
   <script src="/js/opening-database.js?v=1.0.44"></script>
 </body>
 </html>

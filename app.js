@@ -1081,6 +1081,25 @@ function handleGameOver() {
     }
 }
 // ===== MOVE HISTORY =====
+function renderSharedEmptyStateHtml(options = {}) {
+    if (window.CaissaUI?.emptyStateHtml) {
+        return window.CaissaUI.emptyStateHtml({
+            icon: false,
+            ...options,
+            className: [options.className, 'caissa-ui-empty-state--compact'].filter(Boolean).join(' ')
+        });
+    }
+
+    const title = escapeHtml(options.title || '');
+    const message = escapeHtml(options.message || '');
+    return `
+        <div class="caissa-ui-empty-state caissa-ui-empty-state--compact" role="status">
+            ${title ? `<p class="caissa-ui-empty-state__title">${title}</p>` : ''}
+            ${message ? `<p class="caissa-ui-empty-state__message">${message}</p>` : ''}
+        </div>
+    `;
+}
+
 function updateMoveHistory() {
     let html = '';
     
@@ -1103,7 +1122,11 @@ function updateMoveHistory() {
         html += `</div>`;
     }
     
-    App.elements.moveHistory.innerHTML = html || '<p style="text-align: center; color: #999;">No moves yet</p>';
+    App.elements.moveHistory.innerHTML = html || renderSharedEmptyStateHtml({
+        icon: 'fa-list-ol',
+        title: 'No moves yet.',
+        message: 'Start a game or load PGN to see the move list.'
+    });
 
     const activeMove = App.elements.moveHistory.querySelector('.move.current');
     if (activeMove) {
@@ -1143,7 +1166,11 @@ function renderMovesToPanel() {
         </div>`;
     }
 
-    listEl.innerHTML = html || `<div class="muted">No moves yet</div>`;
+    listEl.innerHTML = html || renderSharedEmptyStateHtml({
+        icon: 'fa-list-ol',
+        title: 'No moves yet.',
+        message: 'Start a game or load PGN to see the move list.'
+    });
 
     const activeMove = listEl.querySelector('.move.current');
     if (activeMove) {
@@ -1373,7 +1400,11 @@ function renderOpeningBookLine(opening) {
     const displayMoves = playedMoves.length > 0 ? playedMoves : openingMoves;
 
     if (!displayMoves.length) {
-        lineEl.innerHTML = '<div class="book-line-empty">No moves yet.</div>';
+        lineEl.innerHTML = renderSharedEmptyStateHtml({
+            icon: 'fa-route',
+            title: 'No line yet.',
+            message: 'Play moves to see the current opening sequence.'
+        });
         return;
     }
 

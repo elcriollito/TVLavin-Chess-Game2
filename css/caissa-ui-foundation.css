@@ -253,6 +253,20 @@
     line-height: 1.45;
 }
 
+.caissa-ui-empty-state--compact {
+    min-height: 72px;
+    padding: 12px;
+    gap: 6px;
+}
+
+.caissa-ui-empty-state--compact .caissa-ui-empty-state__title {
+    font-size: 0.88rem;
+}
+
+.caissa-ui-empty-state--compact .caissa-ui-empty-state__message {
+    font-size: 0.8rem;
+}
+
 .caissa-ui-tooltip-host {
     position: relative;
 }

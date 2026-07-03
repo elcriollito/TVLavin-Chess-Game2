@@ -24,6 +24,18 @@ const AnalyzeSection = {
     // DOM cache
     elements: {},
 
+    renderEmptyState(target, options = {}) {
+        if (!target) return;
+        const payload = { icon: false, ...options };
+        if (window.CaissaUI?.createEmptyState) {
+            const node = window.CaissaUI.createEmptyState(payload);
+            node.classList.add('caissa-ui-empty-state--compact');
+            target.replaceChildren(node);
+            return;
+        }
+        target.innerHTML = `<p class="empty-state">${this.escapeHtml(payload.message || payload.title || 'Nothing to show yet.')}</p>`;
+    },
+
     /**
      * Initialize Analyze section
      */
@@ -516,7 +528,11 @@ const AnalyzeSection = {
         const moves = this.loadedGame.game.history();
 
         if (moves.length === 0) {
-            this.elements.moveList.innerHTML = '<p class="empty-state">No moves in game</p>';
+            this.renderEmptyState(this.elements.moveList, {
+                icon: 'fa-list-ol',
+                title: 'No moves yet.',
+                message: 'Load a game with moves to review the move list.'
+            });
             return;
         }
 
@@ -604,7 +620,11 @@ const AnalyzeSection = {
     updateMentorPanel() {
         if (!this.elements.mentor) return;
         if (this.currentMoveIndex < 0) {
-            this.elements.mentor.innerHTML = '<p class="empty-state">Starting position. Select a move to see guidance.</p>';
+            this.renderEmptyState(this.elements.mentor, {
+                icon: 'fa-brain',
+                title: 'No move selected.',
+                message: 'Select a move to see analysis guidance.'
+            });
             return;
         }
 
@@ -649,7 +669,11 @@ const AnalyzeSection = {
         if (!this.elements.reviewSummary) return;
         const analyzed = this.analysisResults.filter((result) => result && !result.unavailable);
         if (analyzed.length === 0) {
-            this.elements.reviewSummary.innerHTML = '<p class="empty-state">Analyze the game to see accuracy and move quality.</p>';
+            this.renderEmptyState(this.elements.reviewSummary, {
+                icon: 'fa-chart-pie',
+                title: 'No review yet.',
+                message: 'Analyze a loaded game to see accuracy and move quality.'
+            });
             return;
         }
 
@@ -746,7 +770,11 @@ const AnalyzeSection = {
         if (!this.elements.criticalMoments) return;
         const critical = this.analysisResults.filter((result) => result && !result.unavailable && this.isCriticalMoment(result));
         if (critical.length === 0) {
-            this.elements.criticalMoments.innerHTML = '<p class="empty-state">No critical moments identified yet.</p>';
+            this.renderEmptyState(this.elements.criticalMoments, {
+                icon: 'fa-exclamation-triangle',
+                title: 'No critical moments yet.',
+                message: 'Run analysis to highlight training moments.'
+            });
             return;
         }
 

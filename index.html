@@ -54,7 +54,7 @@
     <link rel="stylesheet" href="./assets/css/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="styles.css?v=2.0.7">
-    <link rel="stylesheet" href="css/caissa-ui-foundation.css?v=1.0.1">
+    <link rel="stylesheet" href="css/caissa-ui-foundation.css?v=1.0.2">
     <link rel="stylesheet" href="caissa-library.css?v=1.1.0">
     <link rel="stylesheet" href="query-engine.css?v=1.0.0">
     <link rel="stylesheet" href="position-forge.css?v=1.0.0">
@@ -273,10 +273,14 @@
             <aside id="openingPanel" class="opening-panel hidden">
                 <div class="opening-header">
                     <h3 id="openingName">Start Position</h3>
-                    <div id="openingEco" class="opening-eco">â€”</div>
-                </div>
-                <div id="openingText" class="opening-text">
-                    <p>No opening detected yet â€” play a few moves to see opening information and analysis.</p>
+                <div id="openingEco" class="opening-eco">â€”</div>
+            </div>
+            <div id="openingText" class="opening-text">
+                    <div class="caissa-ui-empty-state caissa-ui-empty-state--compact" role="status">
+                        <i class="fas fa-book-open caissa-ui-empty-state__icon" aria-hidden="true"></i>
+                        <p class="caissa-ui-empty-state__title">No opening detected yet.</p>
+                        <p class="caissa-ui-empty-state__message">Play additional moves or load a position to see opening guidance.</p>
+                    </div>
                 </div>
             </aside>
 
@@ -303,8 +307,14 @@
                         <div class="book-simple">
                             <div class="opening-title-right"><a id="openingLinkBook" class="opening-eco-link" href="/eco">Opening: (unknown)</a></div>
                             <div id="openingBookSimpleStatus" class="book-simple-status">Book: On</div>
-                            <div id="openingBookMeta" class="book-simple-meta">No book data for this position yet.</div>
-                            <div id="openingBookLine" class="book-line-sequence">No moves yet.</div>
+                            <div id="openingBookMeta" class="book-simple-meta">Play additional moves to find opening book data.</div>
+                            <div id="openingBookLine" class="book-line-sequence">
+                                <div class="caissa-ui-empty-state caissa-ui-empty-state--compact" role="status">
+                                    <i class="fas fa-route caissa-ui-empty-state__icon" aria-hidden="true"></i>
+                                    <p class="caissa-ui-empty-state__title">No line yet.</p>
+                                    <p class="caissa-ui-empty-state__message">Play moves to see the current opening sequence.</p>
+                                </div>
+                            </div>
                             <div id="openingBookHistory" class="book-history-note"></div>
                             <div id="openingBookWdl" class="book-wdl-bar" aria-hidden="true">
                                 <span id="openingBookWdlW" class="book-wdl-w" style="width:33%"></span>
@@ -340,7 +350,7 @@
                             <button id="coachOffBtn" class="coach-toggle-btn" type="button">Off</button>
                         </div>
                         <div class="opening-title-right"><a id="openingLinkCoach" class="opening-eco-link" href="/eco">Start Position</a></div>
-                        <div id="coachSummary" class="coach-summary">No book data for this position yet.</div>
+                        <div id="coachSummary" class="coach-summary">Play additional moves or load a position to see opening guidance.</div>
                         <ol id="coachMoveList" class="coach-move-list"></ol>
                         <div id="coachText" class="coach-text"></div>
                         <div id="coachHistory" class="coach-history-note"></div>
@@ -906,7 +916,11 @@
                         <div class="panel analyze-mentor-panel">
                             <h3 class="panel-title">Move Analysis / Mentor</h3>
                             <div id="analyzeMentor" class="analyze-mentor">
-                                <p class="empty-state">Select a move or analyze the game to see guidance.</p>
+                                <div class="caissa-ui-empty-state caissa-ui-empty-state--compact" role="status">
+                                    <i class="fas fa-brain caissa-ui-empty-state__icon" aria-hidden="true"></i>
+                                    <p class="caissa-ui-empty-state__title">No analysis available.</p>
+                                    <p class="caissa-ui-empty-state__message">Load a game and start analysis to see move guidance.</p>
+                                </div>
                             </div>
                         </div>
                     </main>
@@ -967,14 +981,22 @@
                         <div class="panel">
                             <h3 class="panel-title">Game Review Summary</h3>
                             <div id="analyzeReviewSummary" class="analyze-review-summary">
-                                <p class="empty-state">Analyze the game to see accuracy and move quality.</p>
+                                <div class="caissa-ui-empty-state caissa-ui-empty-state--compact" role="status">
+                                    <i class="fas fa-chart-pie caissa-ui-empty-state__icon" aria-hidden="true"></i>
+                                    <p class="caissa-ui-empty-state__title">No review yet.</p>
+                                    <p class="caissa-ui-empty-state__message">Analyze a loaded game to see accuracy and move quality.</p>
+                                </div>
                             </div>
                         </div>
 
                         <div class="panel">
                             <h3 class="panel-title">Critical Moments</h3>
                             <div id="analyzeCriticalMoments" class="analyze-critical-moments">
-                                <p class="empty-state">Analyze the game to identify critical moments.</p>
+                                <div class="caissa-ui-empty-state caissa-ui-empty-state--compact" role="status">
+                                    <i class="fas fa-exclamation-triangle caissa-ui-empty-state__icon" aria-hidden="true"></i>
+                                    <p class="caissa-ui-empty-state__title">No critical moments yet.</p>
+                                    <p class="caissa-ui-empty-state__message">Run analysis to highlight training moments.</p>
+                                </div>
                             </div>
                         </div>
 
@@ -982,7 +1004,11 @@
                         <div class="panel">
                             <h3 class="panel-title">Moves</h3>
                             <div id="analyzeMoveList" class="analyze-move-list">
-                                <p class="empty-state">Load a game to see moves</p>
+                                <div class="caissa-ui-empty-state caissa-ui-empty-state--compact" role="status">
+                                    <i class="fas fa-list-ol caissa-ui-empty-state__icon" aria-hidden="true"></i>
+                                    <p class="caissa-ui-empty-state__title">No game loaded.</p>
+                                    <p class="caissa-ui-empty-state__message">Fetch a game or upload PGN to see the move list.</p>
+                                </div>
                             </div>
                         </div>
                     </aside>
@@ -1514,7 +1540,11 @@
                                     <span role="columnheader">Action</span>
                                 </div>
                                 <div id="ficsLobbyRows" class="fics-lobby-rows" role="rowgroup">
-                                    <div class="fics-room-empty">Connect to FICS to view room tables.</div>
+                                    <div class="caissa-ui-empty-state caissa-ui-empty-state--compact" role="status">
+                                        <i class="fas fa-plug caissa-ui-empty-state__icon" aria-hidden="true"></i>
+                                        <p class="caissa-ui-empty-state__title">Not connected.</p>
+                                        <p class="caissa-ui-empty-state__message">Connect to FICS to access games and room tables.</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1528,9 +1558,7 @@
                                         <i class="fas fa-volume-mute" aria-hidden="true"></i> Enable Sounds
                                     </button>
                                 </div>
-                                <div id="ficsGameStatus" class="fics-game-status">
-                                    No active game
-                                </div>
+                                <div id="ficsGameStatus" class="fics-game-status">No active game</div>
                             </div>
 
                             <div class="fics-live-board-shell">
@@ -1677,7 +1705,11 @@
                                     </button>
                                 </div>
                                 <div id="ficsMoveList" class="fics-move-list" aria-live="polite">
-                                    Moves will appear here as Style12 updates arrive.
+                                    <div class="caissa-ui-empty-state caissa-ui-empty-state--compact" role="status">
+                                        <i class="fas fa-list-ol caissa-ui-empty-state__icon" aria-hidden="true"></i>
+                                        <p class="caissa-ui-empty-state__title">No live moves yet.</p>
+                                        <p class="caissa-ui-empty-state__message">Start or observe a game to see moves here.</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2879,13 +2911,13 @@
     <script src="js/arena-section.js?v=1.0.0"></script>
     <script src="js/insights-section.js?v=1.0.0"></script>
     <script src="js/history-section.js?v=1.0.0"></script>
-    <script src="js/analyze-section.js?v=1.2.1"></script>
-    <script src="app.js?v=2.0.2"></script>
+    <script src="js/analyze-section.js?v=1.2.2"></script>
+    <script src="app.js?v=2.0.3"></script>
 
     <!-- Auth Scripts -->
     <script src="js/auth-config.js?v=1.0.0"></script>
     <script src="js/caissa-logger.js?v=1.0.0" defer></script>
-    <script src="js/caissa-ui-foundation.js?v=1.0.1" defer></script>
+    <script src="js/caissa-ui-foundation.js?v=1.0.2" defer></script>
     <script src="js/caissa-notifications.js?v=1.0.0" defer></script>
     <script src="js/caissa-feature-flags.js?v=1.0.0" defer></script>
     <script src="js/caissa-auth.js?v=1.0.0" defer></script>
@@ -2894,7 +2926,7 @@
     <script src="js/caissa-onboarding.js?v=1.0.0" defer></script>
     <script src="js/caissa-dos-chess.js?v=1.0.0" defer></script>
     <script src="js/fics-style12.js?v=1.0.0" defer></script>
-    <script src="js/fics-client.js?v=1.2.1" defer></script>
+    <script src="js/fics-client.js?v=1.2.2" defer></script>
     <script src="js/opening-book-manager.js?v=1.0.0" defer></script>
 
     <style>

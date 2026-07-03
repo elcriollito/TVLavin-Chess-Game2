@@ -188,6 +188,17 @@
         return emptyState;
     }
 
+    function emptyStateHtml(options = {}) {
+        const node = createEmptyState(options);
+        if (options.className) {
+            String(options.className)
+                .split(/\s+/)
+                .filter(Boolean)
+                .forEach((className) => node.classList.add(className));
+        }
+        return node.outerHTML;
+    }
+
     function createPanelHeader(options = {}) {
         const header = createElement('div', { className: 'caissa-ui-panel-header' });
         const titleTag = options.level && /^h[1-6]$/i.test(options.level)
@@ -266,6 +277,7 @@
         createSpinner,
         createBanner,
         createEmptyState,
+        emptyStateHtml,
         createPanelHeader,
         applyTooltip,
         setButtonLoading,
