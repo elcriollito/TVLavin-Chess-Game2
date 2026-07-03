@@ -365,7 +365,7 @@ const AnalyzeSection = {
 
         this.elements.fetchedGames.hidden = false;
         this.elements.fetchedGames.innerHTML = this.fetchedGames.map((game, index) => `
-            <button type="button" class="analyze-fetched-game${index === this.selectedFetchedGameIndex ? ' active' : ''}" data-game-index="${index}">
+            <button type="button" class="analyze-fetched-game${index === this.selectedFetchedGameIndex ? ' active' : ''}" data-game-index="${index}" aria-label="Load game ${index + 1}: ${this.escapeHtml(game.white)} versus ${this.escapeHtml(game.black)}, ${this.escapeHtml(game.result)}">
                 <span class="analyze-game-number">${index + 1}</span>
                 <span class="analyze-game-label">${this.escapeHtml(game.white)} vs ${this.escapeHtml(game.black)}</span>
                 <span class="analyze-game-meta">${this.escapeHtml(game.source)} · ${this.escapeHtml(game.result)}${game.date ? ` · ${this.escapeHtml(game.date)}` : ''}</span>
@@ -757,8 +757,9 @@ const AnalyzeSection = {
         this.elements.criticalMoments.innerHTML = critical.map((result) => {
             const moveNumber = Math.floor(result.moveIndex / 2) + 1;
             const sideSuffix = result.moveIndex % 2 === 1 ? '...' : '';
+            const label = `Jump to critical moment move ${moveNumber}${sideSuffix} ${result.move}: ${this.getCriticalMomentText(result)}`;
             return `
-                <button class="analyze-critical-moment" type="button" data-index="${result.moveIndex}">
+                <button class="analyze-critical-moment" type="button" data-index="${result.moveIndex}" aria-label="${this.escapeHtml(label)}">
                     <span class="analyze-critical-move">Move ${moveNumber}${sideSuffix} · ${this.escapeHtml(result.move)} <strong class="${this.getAnnotationClass(result.annotation)}">${result.annotation}</strong></span>
                     <span class="analyze-critical-swing">${this.getCriticalMomentText(result)}</span>
                 </button>

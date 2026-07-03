@@ -993,6 +993,8 @@ const CaissaFICSClient = {
                 <small>${this.escapeHtml([detail.rated, detail.variant].filter(Boolean).join(' · ') || 'seek')}</small>
             `;
             button.title = seek.label;
+            button.setAttribute('aria-label', `Play seek ${seek.number}: ${detail.player}, ${detail.timeControl}`);
+            window.CaissaUI?.applyTooltip(button, seek.label, { title: false });
             button.addEventListener('click', () => {
                 this.logToConsole(`> play ${seek.number}`);
                 this.send(`play ${seek.number}`);
@@ -1227,12 +1229,28 @@ const CaissaFICSClient = {
             button.textContent = row.action;
             button.disabled = !!row.disabled;
             button.title = row.title || row.rated || row.action;
+            button.setAttribute('aria-label', this.getLobbyActionLabel(row));
+            window.CaissaUI?.applyTooltip(button, button.title, { title: false });
             if (!row.disabled) {
                 button.addEventListener('click', () => this.handleLobbyAction(row));
             }
             item.appendChild(button);
             return item;
         }));
+    },
+
+    getLobbyActionLabel(row) {
+        const table = row.table ? `table ${row.table}` : 'selected table';
+        if (row.commandType === 'observe') {
+            return `${row.action} ${table}: ${row.players}`;
+        }
+        if (row.commandType === 'play') {
+            return `Sit at ${table}: ${row.players}`;
+        }
+        if (row.commandType === 'unseek') {
+            return `Cancel your active FICS seek`;
+        }
+        return `${row.action} ${table}`;
     },
 
     handleLobbyAction(row) {
@@ -1625,9 +1643,11 @@ const CaissaFICSClient = {
     updateSoundToggle() {
         if (!this.elements.soundToggle) return;
         this.elements.soundToggle.setAttribute('aria-pressed', String(this.soundsEnabled));
+        this.elements.soundToggle.setAttribute('aria-label', this.soundsEnabled ? 'Disable FICS sounds' : 'Enable FICS sounds');
+        this.elements.soundToggle.title = this.soundsEnabled ? 'Disable FICS sounds' : 'Enable FICS sounds';
         this.elements.soundToggle.innerHTML = this.soundsEnabled
-            ? '<i class="fas fa-volume-up"></i> Disable Sounds'
-            : '<i class="fas fa-volume-mute"></i> Enable Sounds';
+            ? '<i class="fas fa-volume-up" aria-hidden="true"></i> Disable Sounds'
+            : '<i class="fas fa-volume-mute" aria-hidden="true"></i> Enable Sounds';
     },
 
     ensureAudioContext() {
@@ -1727,11 +1747,11 @@ const CaissaFICSClient = {
         const computer = this.isLikelyComputerPlayer(player.name);
         const displayName = this.escapeHtml(this.stripComputerMarker(player.name));
         const computerMarker = computer
-            ? '<span class="fics-computer-marker" title="Computer / engine account">(C)</span>'
+            ? '<span class="fics-computer-marker" title="Computer / engine account" aria-label="Computer / engine account">(C)</span>'
             : '';
         const titleName = this.escapeHtml(this.formatComputerPlayerName(player.name));
         element.innerHTML = `
-            <span class="fics-turn-led${isTurn ? ' active' : ''}" aria-label="${isTurn ? `${player.color} to move` : `${player.color} waiting`}"></span>
+            <span class="fics-turn-led${isTurn ? ' active' : ''}" role="img" aria-label="${isTurn ? `${player.color} to move` : `${player.color} waiting`}"></span>
             <span class="fics-color-dot" aria-hidden="true"></span>
             <span class="fics-player-name" title="${titleName}">${displayName}${computerMarker}</span>
             <span class="fics-player-rating">${this.escapeHtml(player.rating)}</span>
@@ -2047,6 +2067,8 @@ const CaissaFICSClient = {
             this.elements.consoleContainer.style.display = isHidden ? 'block' : 'none';
             if (this.elements.consoleToggle) {
                 this.elements.consoleToggle.textContent = isHidden ? '▼ Hide Console' : '▶ Show Console';
+                this.elements.consoleToggle.setAttribute('aria-expanded', String(isHidden));
+                this.elements.consoleToggle.setAttribute('aria-label', isHidden ? 'Hide FICS console' : 'Show FICS console');
             }
         }
     },

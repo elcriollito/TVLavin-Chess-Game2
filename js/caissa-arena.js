@@ -673,6 +673,7 @@ const CaissaArena = {
             button.className = 'arena-setup-piece';
             button.dataset.piece = piece;
             button.title = piece;
+            button.setAttribute('aria-label', `Select ${piece} for manual setup`);
             button.innerHTML = `<img src="img/chesspieces/wikipedia/${piece}.png" alt="${piece}">`;
             button.addEventListener('click', () => this.selectSetupPiece(piece));
             this.elements.setupPalette.appendChild(button);
@@ -682,7 +683,8 @@ const CaissaArena = {
         erase.className = 'arena-setup-piece active';
         erase.dataset.piece = 'erase';
         erase.title = 'Erase piece';
-        erase.innerHTML = '<i class="fas fa-eraser"></i>';
+        erase.setAttribute('aria-label', 'Select eraser for manual setup');
+        erase.innerHTML = '<i class="fas fa-eraser" aria-hidden="true"></i>';
         erase.addEventListener('click', () => this.selectSetupPiece('erase'));
         this.elements.setupPalette.appendChild(erase);
     },

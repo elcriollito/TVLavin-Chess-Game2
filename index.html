@@ -254,14 +254,14 @@
                         <!-- TOP HEADER -->
                         <div class="cais-topbar">
                             <div class="cais-topbar-right">
-                                <button class="icon-btn" id="topbarSettings" title="Settings" type="button">
-                                    <i class="fas fa-cog"></i>
+                                <button class="icon-btn caissa-ui-tooltip-host" id="topbarSettings" title="Settings" type="button" aria-label="Open settings" data-caissa-tooltip="Settings">
+                                    <i class="fas fa-cog" aria-hidden="true"></i>
                                 </button>
-                                <button class="icon-btn" id="topbarSound" title="Sound" type="button">
-                                    <i class="fas fa-volume-up"></i>
+                                <button class="icon-btn caissa-ui-tooltip-host" id="topbarSound" title="Sound" type="button" aria-label="Toggle sound" data-caissa-tooltip="Sound">
+                                    <i class="fas fa-volume-up" aria-hidden="true"></i>
                                 </button>
-                                <button class="icon-btn" id="topbarInfo" title="Info" type="button">
-                                    <i class="fas fa-info-circle"></i>
+                                <button class="icon-btn caissa-ui-tooltip-host" id="topbarInfo" title="Info" type="button" aria-label="Open information" data-caissa-tooltip="Info">
+                                    <i class="fas fa-info-circle" aria-hidden="true"></i>
                                 </button>
                             </div>
                         </div>
@@ -316,11 +316,11 @@
                             <select id="openingBookSelector" class="book-selector">
                                 <option value="none">No book loaded</option>
                             </select>
-                            <button id="openingBookImportBtn" class="book-btn" title="Import .bin or .pgn file">
-                                <i class="fas fa-file-import"></i>
+                            <button id="openingBookImportBtn" class="book-btn caissa-ui-tooltip-host" title="Import .bin or .pgn file" aria-label="Import opening book file" data-caissa-tooltip="Import opening book">
+                                <i class="fas fa-file-import" aria-hidden="true"></i>
                             </button>
-                            <button id="openingBookDeleteBtn" class="book-btn book-btn-danger" title="Delete active book" style="display: none;">
-                                <i class="fas fa-trash-alt"></i>
+                            <button id="openingBookDeleteBtn" class="book-btn book-btn-danger caissa-ui-tooltip-host" title="Delete active book" aria-label="Delete active opening book" data-caissa-tooltip="Delete active book" style="display: none;">
+                                <i class="fas fa-trash-alt" aria-hidden="true"></i>
                             </button>
                             <input type="file" id="openingBookFileInput" accept=".bin,.pgn" style="display: none;">
                         </div>
@@ -434,57 +434,57 @@
                                 <!-- White Pieces Row -->
                                 <div class="palette-row">
                                     <span class="palette-row-label">W:</span>
-                                    <button class="piece-btn" data-piece="wP" title="White Pawn">
+                                    <button class="piece-btn" data-piece="wP" title="White Pawn" aria-label="Place white pawn">
                                         <img src="img/chesspieces/wikipedia/wP.png" alt="White Pawn">
                                     </button>
-                                    <button class="piece-btn" data-piece="wN" title="White Knight">
+                                    <button class="piece-btn" data-piece="wN" title="White Knight" aria-label="Place white knight">
                                         <img src="img/chesspieces/wikipedia/wN.png" alt="White Knight">
                                     </button>
-                                    <button class="piece-btn" data-piece="wB" title="White Bishop">
+                                    <button class="piece-btn" data-piece="wB" title="White Bishop" aria-label="Place white bishop">
                                         <img src="img/chesspieces/wikipedia/wB.png" alt="White Bishop">
                                     </button>
-                                    <button class="piece-btn" data-piece="wR" title="White Rook">
+                                    <button class="piece-btn" data-piece="wR" title="White Rook" aria-label="Place white rook">
                                         <img src="img/chesspieces/wikipedia/wR.png" alt="White Rook">
                                     </button>
-                                    <button class="piece-btn" data-piece="wQ" title="White Queen">
+                                    <button class="piece-btn" data-piece="wQ" title="White Queen" aria-label="Place white queen">
                                         <img src="img/chesspieces/wikipedia/wQ.png" alt="White Queen">
                                     </button>
-                                    <button class="piece-btn" data-piece="wK" title="White King">
+                                    <button class="piece-btn" data-piece="wK" title="White King" aria-label="Place white king">
                                         <img src="img/chesspieces/wikipedia/wK.png" alt="White King">
                                     </button>
                                 </div>
                                 <!-- Black Pieces Row -->
                                 <div class="palette-row">
                                     <span class="palette-row-label">B:</span>
-                                    <button class="piece-btn" data-piece="bP" title="Black Pawn">
+                                    <button class="piece-btn" data-piece="bP" title="Black Pawn" aria-label="Place black pawn">
                                         <img src="img/chesspieces/wikipedia/bP.png" alt="Black Pawn">
                                     </button>
-                                    <button class="piece-btn" data-piece="bN" title="Black Knight">
+                                    <button class="piece-btn" data-piece="bN" title="Black Knight" aria-label="Place black knight">
                                         <img src="img/chesspieces/wikipedia/bN.png" alt="Black Knight">
                                     </button>
-                                    <button class="piece-btn" data-piece="bB" title="Black Bishop">
+                                    <button class="piece-btn" data-piece="bB" title="Black Bishop" aria-label="Place black bishop">
                                         <img src="img/chesspieces/wikipedia/bB.png" alt="Black Bishop">
                                     </button>
-                                    <button class="piece-btn" data-piece="bR" title="Black Rook">
+                                    <button class="piece-btn" data-piece="bR" title="Black Rook" aria-label="Place black rook">
                                         <img src="img/chesspieces/wikipedia/bR.png" alt="Black Rook">
                                     </button>
-                                    <button class="piece-btn" data-piece="bQ" title="Black Queen">
+                                    <button class="piece-btn" data-piece="bQ" title="Black Queen" aria-label="Place black queen">
                                         <img src="img/chesspieces/wikipedia/bQ.png" alt="Black Queen">
                                     </button>
-                                    <button class="piece-btn" data-piece="bK" title="Black King">
+                                    <button class="piece-btn" data-piece="bK" title="Black King" aria-label="Place black king">
                                         <img src="img/chesspieces/wikipedia/bK.png" alt="Black King">
                                     </button>
                                 </div>
                                 <!-- Tools Row -->
                                 <div class="palette-row palette-tools">
-                                    <button class="piece-btn piece-btn-tool" data-piece="move" title="Move/Adjust Piece">
-                                        <i class="fas fa-hand-pointer"></i>
+                                    <button class="piece-btn piece-btn-tool" data-piece="move" title="Move/Adjust Piece" aria-label="Move or adjust piece">
+                                        <i class="fas fa-hand-pointer" aria-hidden="true"></i>
                                     </button>
-                                    <button class="piece-btn piece-btn-tool active" data-piece="erase" title="Eraser">
-                                        <i class="fas fa-eraser"></i>
+                                    <button class="piece-btn piece-btn-tool active" data-piece="erase" title="Eraser" aria-label="Erase piece">
+                                        <i class="fas fa-eraser" aria-hidden="true"></i>
                                     </button>
-                                    <button class="piece-btn piece-btn-tool" id="clearAllBtn" title="Clear All">
-                                        <i class="fas fa-trash-alt"></i>
+                                    <button class="piece-btn piece-btn-tool" id="clearAllBtn" title="Clear All" aria-label="Clear all pieces">
+                                        <i class="fas fa-trash-alt" aria-hidden="true"></i>
                                     </button>
                                 </div>
                             </div>
@@ -625,8 +625,8 @@
 
                     <!-- Turn LED Indicator -->
                     <div class="turn-led-indicator" id="turnLedIndicator" aria-live="polite">
-                        <div class="led led-white active" id="ledWhite" title="White to move"></div>
-                        <div class="led led-black" id="ledBlack" title="Black to move"></div>
+                        <div class="led led-white active" id="ledWhite" title="White to move" role="status" aria-label="White to move"></div>
+                        <div class="led led-black" id="ledBlack" title="Black to move" role="status" aria-label="Black waiting"></div>
                     </div>
 
                     <!-- White Clock (bottom when playing as white) -->
@@ -1157,14 +1157,14 @@
                                 <div class="arena-setting-row">
                                     <label>Move Delay:</label>
                                     <div class="arena-input-group">
-                                        <input type="number" id="arenaMoveDelay" class="form-control form-control-sm" value="150" min="100" max="5000" step="50">
+                                        <input type="number" id="arenaMoveDelay" class="form-control form-control-sm" value="150" min="100" max="5000" step="50" aria-label="Arena move delay in milliseconds">
                                         <span class="arena-input-suffix">ms</span>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="arena-section">
-                                <button id="arenaSetPositionBtn" class="btn btn-block btn-secondary" type="button">
+                                <button id="arenaSetPositionBtn" class="btn btn-block btn-secondary" type="button" aria-label="Set Arena starting position">
                                     <i class="fas fa-file-import"></i> Set Position
                                 </button>
                                 <div id="arenaPositionPanel" class="arena-position-panel" hidden>
@@ -1176,22 +1176,22 @@
                                     </div>
                                     <div id="arenaFenMessage" class="arena-fen-message" role="status"></div>
                                 </div>
-                                <button id="arenaManualSetupBtn" class="btn btn-block btn-secondary" type="button">
+                                <button id="arenaManualSetupBtn" class="btn btn-block btn-secondary" type="button" aria-label="Open Arena manual board setup">
                                     <i class="fas fa-edit"></i> Manual Setup
                                 </button>
                             </div>
 
                             <div class="arena-controls">
-                                <button id="arenaInfiniteAnalysis" class="btn btn-block btn-secondary" type="button">
+                                <button id="arenaInfiniteAnalysis" class="btn btn-block btn-secondary" type="button" aria-label="Start or stop Arena infinite analysis">
                                     <i class="fas fa-search"></i> Infinite Analysis
                                 </button>
                                 <button id="arenaStartMatch" class="btn btn-block btn-primary btn-lg" aria-label="Start Match">
                                     <i class="fas fa-play"></i> Start Match
                                 </button>
-                                <button id="arenaPauseMatch" class="btn btn-block btn-secondary" style="display: none;">
+                                <button id="arenaPauseMatch" class="btn btn-block btn-secondary" style="display: none;" aria-label="Pause Arena match">
                                     <i class="fas fa-pause"></i> Pause
                                 </button>
-                                <button id="arenaStopMatch" class="btn btn-block btn-danger" style="display: none;">
+                                <button id="arenaStopMatch" class="btn btn-block btn-danger" style="display: none;" aria-label="Stop Arena match">
                                     <i class="fas fa-stop"></i> Stop
                                 </button>
                             </div>
@@ -1495,11 +1495,11 @@
                                     <div class="fics-lobby-future">Friends · Tournaments · Private</div>
                                 </div>
                                 <div class="fics-lobby-actions">
-                                    <button id="ficsRefreshLobbyBtn" class="fics-btn fics-btn-secondary">
-                                        <i class="fas fa-sync-alt"></i> Refresh
+                                    <button id="ficsRefreshLobbyBtn" class="fics-btn fics-btn-secondary" type="button" aria-label="Refresh FICS room tables" title="Refresh room tables">
+                                        <i class="fas fa-sync-alt" aria-hidden="true"></i> Refresh
                                     </button>
-                                    <button id="ficsLobbyFilterBtn" class="fics-btn fics-btn-secondary" type="button" disabled>
-                                        <i class="fas fa-filter"></i> Filter
+                                    <button id="ficsLobbyFilterBtn" class="fics-btn fics-btn-secondary" type="button" disabled aria-label="Filter room tables coming soon" title="Filter room tables coming soon">
+                                        <i class="fas fa-filter" aria-hidden="true"></i> Filter
                                     </button>
                                 </div>
                             </div>
@@ -1524,8 +1524,8 @@
                             <div class="fics-board-header">
                                 <div class="fics-board-title-row">
                                     <h3>Board</h3>
-                                    <button id="ficsSoundToggle" class="fics-btn fics-btn-secondary fics-sound-toggle" type="button" aria-pressed="false">
-                                        <i class="fas fa-volume-mute"></i> Enable Sounds
+                                    <button id="ficsSoundToggle" class="fics-btn fics-btn-secondary fics-sound-toggle" type="button" aria-pressed="false" aria-label="Enable FICS sounds" title="Enable FICS sounds">
+                                        <i class="fas fa-volume-mute" aria-hidden="true"></i> Enable Sounds
                                     </button>
                                 </div>
                                 <div id="ficsGameStatus" class="fics-game-status">
@@ -1534,7 +1534,7 @@
                             </div>
 
                             <div class="fics-live-board-shell">
-                                <div id="ficsTopPlayerBar" class="fics-player-bar black">
+                                <div id="ficsTopPlayerBar" class="fics-player-bar black" role="group" aria-label="Top player">
                                     <span class="fics-color-dot" aria-hidden="true"></span>
                                     <span class="fics-player-name">Black</span>
                                     <span class="fics-player-rating">waiting</span>
@@ -1557,7 +1557,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div id="ficsBottomPlayerBar" class="fics-player-bar white">
+                                <div id="ficsBottomPlayerBar" class="fics-player-bar white" role="group" aria-label="Bottom player">
                                     <span class="fics-color-dot" aria-hidden="true"></span>
                                     <span class="fics-player-name">White</span>
                                     <span class="fics-player-rating">waiting</span>
@@ -1571,14 +1571,14 @@
                             </div>
 
                             <div id="ficsGameControls" class="fics-game-controls">
-                                <button id="ficsResignBtn" class="fics-btn fics-btn-danger">
-                                    <i class="fas fa-flag"></i> Resign
+                                <button id="ficsResignBtn" class="fics-btn fics-btn-danger" type="button" aria-label="Resign FICS game" title="Resign FICS game">
+                                    <i class="fas fa-flag" aria-hidden="true"></i> Resign
                                 </button>
-                                <button id="ficsDrawBtn" class="fics-btn fics-btn-secondary">
-                                    <i class="fas fa-handshake"></i> Offer Draw
+                                <button id="ficsDrawBtn" class="fics-btn fics-btn-secondary" type="button" aria-label="Offer draw" title="Offer draw">
+                                    <i class="fas fa-handshake" aria-hidden="true"></i> Offer Draw
                                 </button>
-                                <button id="ficsAbortBtn" class="fics-btn fics-btn-secondary">
-                                    <i class="fas fa-times"></i> Abort
+                                <button id="ficsAbortBtn" class="fics-btn fics-btn-secondary" type="button" aria-label="Abort FICS game" title="Abort FICS game">
+                                    <i class="fas fa-times" aria-hidden="true"></i> Abort
                                 </button>
                             </div>
 
@@ -1586,7 +1586,7 @@
                             <div class="fics-console-section">
                                 <div class="fics-console-header">
                                     <h3>Console</h3>
-                                    <button id="ficsConsoleToggle" class="fics-console-toggle">
+                                    <button id="ficsConsoleToggle" class="fics-console-toggle" type="button" aria-expanded="true" aria-controls="ficsConsoleContainer" aria-label="Hide FICS console">
                                         â–¼ Hide Console
                                     </button>
                                 </div>
@@ -1599,9 +1599,10 @@
                                             type="text"
                                             id="ficsCommandInput"
                                             placeholder="Type FICS command (e.g., 'who', 'games', 'help')..."
+                                            aria-label="FICS command"
                                         >
-                                        <button id="ficsSendCommandBtn" class="fics-btn fics-btn-secondary">
-                                            <i class="fas fa-paper-plane"></i> Send
+                                        <button id="ficsSendCommandBtn" class="fics-btn fics-btn-secondary" type="button" aria-label="Send FICS command">
+                                            <i class="fas fa-paper-plane" aria-hidden="true"></i> Send
                                         </button>
                                     </div>
                                 </div>
@@ -1626,23 +1627,23 @@
                             <div class="fics-panel">
                                 <h3>Seek Game</h3>
                                 <div class="fics-seek-presets">
-                                    <button id="ficsSeek1_0" class="fics-seek-btn">
-                                        <i class="fas fa-bolt"></i>
+                                    <button id="ficsSeek1_0" class="fics-seek-btn" type="button" aria-label="Create unrated bullet seek 1+0">
+                                        <i class="fas fa-bolt" aria-hidden="true"></i>
                                         <div>Bullet</div>
                                         <small>1+0</small>
                                     </button>
-                                    <button id="ficsSeek3_0" class="fics-seek-btn">
-                                        <i class="fas fa-fire"></i>
+                                    <button id="ficsSeek3_0" class="fics-seek-btn" type="button" aria-label="Create unrated blitz seek 3+0">
+                                        <i class="fas fa-fire" aria-hidden="true"></i>
                                         <div>Blitz</div>
                                         <small>3+0</small>
                                     </button>
-                                    <button id="ficsSeek5_0" class="fics-seek-btn">
-                                        <i class="fas fa-clock"></i>
+                                    <button id="ficsSeek5_0" class="fics-seek-btn" type="button" aria-label="Create unrated blitz seek 5+0">
+                                        <i class="fas fa-clock" aria-hidden="true"></i>
                                         <div>Blitz</div>
                                         <small>5+0</small>
                                     </button>
-                                    <button id="ficsSeek10_0" class="fics-seek-btn">
-                                        <i class="fas fa-hourglass"></i>
+                                    <button id="ficsSeek10_0" class="fics-seek-btn" type="button" aria-label="Create unrated rapid seek 10+0">
+                                        <i class="fas fa-hourglass" aria-hidden="true"></i>
                                         <div>Rapid</div>
                                         <small>10+0</small>
                                     </button>
@@ -1652,16 +1653,16 @@
                                     <h4>Custom Time Control</h4>
                                     <div class="fics-input-group">
                                         <div style="flex: 1;">
-                                            <label>Minutes</label>
+                                            <label for="ficsCustomTime">Minutes</label>
                                             <input type="number" id="ficsCustomTime" value="5" min="1" max="180">
                                         </div>
                                         <div style="flex: 1;">
-                                            <label>Increment (sec)</label>
+                                            <label for="ficsCustomInc">Increment (sec)</label>
                                             <input type="number" id="ficsCustomInc" value="0" min="0" max="60">
                                         </div>
                                     </div>
-                                    <button id="ficsCustomSeekBtn" class="fics-btn fics-btn-primary" style="width: 100%;">
-                                        <i class="fas fa-search"></i> Custom Seek
+                                    <button id="ficsCustomSeekBtn" class="fics-btn fics-btn-primary" style="width: 100%;" type="button" aria-label="Create custom FICS seek">
+                                        <i class="fas fa-search" aria-hidden="true"></i> Custom Seek
                                     </button>
                                 </div>
                                 <div id="ficsSeekActions" class="fics-seek-actions" aria-live="polite"></div>
@@ -1671,8 +1672,8 @@
                             <div class="fics-panel">
                                 <div class="fics-panel-heading">
                                     <h3>Live Moves</h3>
-                                    <button id="ficsDownloadPgnBtn" class="fics-btn fics-btn-secondary">
-                                        <i class="fas fa-download"></i> Download PGN
+                                    <button id="ficsDownloadPgnBtn" class="fics-btn fics-btn-secondary" type="button" aria-label="Download FICS game PGN" title="Download PGN">
+                                        <i class="fas fa-download" aria-hidden="true"></i> Download PGN
                                     </button>
                                 </div>
                                 <div id="ficsMoveList" class="fics-move-list" aria-live="polite">
