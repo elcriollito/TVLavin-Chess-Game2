@@ -770,8 +770,6 @@ html, body {
     text-align: center;
     padding: 20px;
 }
-    transform: translateX(2px);
-}
 
 .move.current {
     background: rgba(255, 140, 0, 0.24);
@@ -7866,6 +7864,155 @@ button:focus,
 
     .help-actions .btn {
         width: 100%;
+    }
+}
+
+/* ===== Season 4.1H: Responsive Layout Polish ===== */
+#playSection .main-content,
+.analyze-layout,
+.arena-grid {
+    min-width: 0;
+}
+
+#playSection .panel,
+#playSection .panel-body,
+#playSection .right-panel,
+#playSection .left-panel,
+.analyze-import-sidebar,
+.analyze-main,
+#analyzeSection .context-panel,
+.arena-sidebar,
+.arena-board-zone,
+.arena-right-panel {
+    min-width: 0;
+}
+
+#playSection .panel-header,
+#playSection .opening-title-right,
+.analyze-board-navigation,
+.arena-game-status,
+.arena-graph-legend {
+    flex-wrap: wrap;
+}
+
+#playSection .book-line-sequence,
+#playSection .coach-text,
+#playSection .move-history-content,
+.analyze-move-list,
+.analyze-critical-moments,
+.arena-move-list,
+.arena-eval-pv,
+.arena-status-text {
+    overflow-wrap: anywhere;
+}
+
+#playSection .right-panel,
+#playSection .left-panel.cais-left-col,
+.analyze-import-sidebar,
+#analyzeSection .context-panel,
+.arena-sidebar,
+.arena-right-panel {
+    scrollbar-gutter: stable;
+}
+
+#playSection .board-with-eval,
+.analyze-board-zone,
+.arena-board-container {
+    max-width: 100%;
+}
+
+.analyze-board-navigation {
+    grid-template-columns: repeat(5, minmax(34px, 38px));
+}
+
+.arena-player,
+.arena-status-center {
+    min-width: 0;
+}
+
+.arena-player-name,
+.arena-eval-engine-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.arena-eval-pv {
+    max-height: 96px;
+    overflow-y: auto;
+}
+
+@media (max-width: 1200px) and (min-width: 769px) {
+    #playSection {
+        --play-board-size: min(72vh, calc(100vw - 620px), 680px);
+    }
+
+    .analyze-layout {
+        grid-template-columns: minmax(230px, 290px) minmax(0, 1fr);
+    }
+
+    .arena-grid {
+        grid-template-columns: minmax(230px, 280px) minmax(0, 1fr);
+    }
+
+    .arena-right-panel {
+        grid-column: 1 / -1;
+        width: 100%;
+        max-width: none;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+}
+
+@media (max-width: 768px) {
+    #playSection {
+        --play-board-size: min(72vh, calc(100vw - 40px), 680px);
+    }
+
+    #playSection .main-content,
+    .analyze-layout,
+    .arena-grid {
+        gap: var(--spacing-sm);
+    }
+
+    #playSection .board-editor-wrapper,
+    .analyze-main,
+    .arena-board-zone {
+        width: 100%;
+    }
+
+    .analyze-board-navigation {
+        grid-template-columns: repeat(5, minmax(34px, 1fr));
+        width: min(100%, calc(var(--board-size) + 50px));
+    }
+
+    .arena-game-status {
+        align-items: stretch;
+    }
+
+    .arena-player {
+        flex: 1 1 120px;
+    }
+}
+
+@media (max-width: 480px) {
+    #playSection {
+        --play-board-size: min(68vh, calc(100vw - 32px), 640px);
+    }
+
+    .analyze-board-zone {
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 6px;
+    }
+
+    .analyze-eval-score {
+        width: 34px;
+    }
+
+    .arena-graph-legend {
+        gap: 8px;
     }
 }
 

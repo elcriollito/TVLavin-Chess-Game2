@@ -1107,6 +1107,66 @@
     border-color: var(--primary-color);
 }
 
+/* Season 4.1H: responsive stability polish */
+.fics-game-area,
+.fics-room-panel,
+.fics-board-section,
+.fics-side-panel,
+.fics-console-section {
+    min-width: 0;
+}
+
+.fics-board-title-row,
+.fics-console-header,
+.fics-panel-heading {
+    min-width: 0;
+}
+
+.fics-board-title-row h3,
+.fics-console-header h3,
+.fics-panel-heading h3 {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fics-lobby-row {
+    grid-template-columns: 26px 60px 70px minmax(120px, 1fr) minmax(86px, 100px);
+}
+
+.fics-lobby-head,
+.fics-lobby-rows .fics-lobby-row {
+    column-gap: 10px;
+}
+
+.fics-lobby-players,
+.fics-table-title,
+.fics-table-players,
+.fics-table-meta,
+.fics-move-row span {
+    min-width: 0;
+}
+
+.fics-lobby-rows .fics-table-action {
+    justify-self: center;
+    width: 100%;
+    max-width: 96px;
+}
+
+@media (max-width: 1180px) and (min-width: 769px) {
+    .fics-game-area {
+        grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+    }
+
+    .fics-side-panel {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+    }
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
     .fics-game-area {
@@ -1174,7 +1234,7 @@
     }
 
     .fics-lobby-row {
-        grid-template-columns: 18px 42px 48px minmax(0, 1fr) 64px;
+        grid-template-columns: 20px 48px 54px minmax(84px, 1fr) 72px;
         gap: 6px;
     }
 
