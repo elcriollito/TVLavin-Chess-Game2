@@ -2544,68 +2544,74 @@
       setGamesStatus(OPENINGDB_DEPTH_LIMIT_MESSAGE);
       return;
     }
-    const manifest = await ensureGameSearchManifest();
-    if (!manifest) {
-      setGamesStatus('GameSearch manifest unavailable.');
-      renderGamesSummary([], 0);
-      return;
-    }
-    const lineKey = buildCurrentLineKey();
-    state.gameSearchLineKey = lineKey;
-    if (!lineKey) {
-      state.gamesResults = [];
-      renderGamesRows([]);
-      renderGamesSummary([], 0);
-      if (els.gamesDownloads) els.gamesDownloads.innerHTML = '';
-      setGamesStatus('No moves played yet. Play moves to search games.');
-      return;
-    }
+    const loadingButtons = [els.searchGamesBtn, els.transitionSearchGamesBtn].filter(Boolean);
+    loadingButtons.forEach((button) => window.CaissaUI?.setButtonLoading(button, true, { label: 'Searching...' }));
+    try {
+      const manifest = await ensureGameSearchManifest();
+      if (!manifest) {
+        setGamesStatus('GameSearch manifest unavailable.');
+        renderGamesSummary([], 0);
+        return;
+      }
+      const lineKey = buildCurrentLineKey();
+      state.gameSearchLineKey = lineKey;
+      if (!lineKey) {
+        state.gamesResults = [];
+        renderGamesRows([]);
+        renderGamesSummary([], 0);
+        if (els.gamesDownloads) els.gamesDownloads.innerHTML = '';
+        setGamesStatus('No moves played yet. Play moves to search games.');
+        return;
+      }
 
-    setGamesStatus('Searching indexed games...');
-    const payload = await queryGameSearchByLineKey(lineKey);
-    if (!payload || !payload.ok) {
-      state.gamesResults = [];
-      renderGamesRows([]);
-      renderGamesSummary([], 0);
-      if (els.gamesDownloads) els.gamesDownloads.innerHTML = '';
-      setGamesStatus('GameSearch request failed.');
-      return;
-    }
+      setGamesStatus('Searching indexed games...');
+      const payload = await queryGameSearchByLineKey(lineKey);
+      if (!payload || !payload.ok) {
+        state.gamesResults = [];
+        renderGamesRows([]);
+        renderGamesSummary([], 0);
+        if (els.gamesDownloads) els.gamesDownloads.innerHTML = '';
+        setGamesStatus('GameSearch request failed.');
+        return;
+      }
 
-    const topRows = Array.isArray(payload.top) ? payload.top.slice(0, GAMESEARCH_RENDER_LIMIT) : [];
-    const rows = topRows.map((meta) => {
-      const avgElo = Number(meta.avgElo);
-      return {
-        gameId: meta.gameId || '',
-        white: meta.white || 'Unknown',
-        black: meta.black || 'Unknown',
-        result: meta.result || '?',
-        event: meta.event || meta.site || '',
-        site: meta.site || '',
-        year: meta.year || null,
-        whiteElo: meta.whiteElo || null,
-        blackElo: meta.blackElo || null,
-        eco: meta.eco || '',
-        avgElo: Number.isFinite(avgElo) ? avgElo : null,
-        pgnUrl: ''
-      };
-    }).filter(passesGamesFilters);
+      const topRows = Array.isArray(payload.top) ? payload.top.slice(0, GAMESEARCH_RENDER_LIMIT) : [];
+      const rows = topRows.map((meta) => {
+        const avgElo = Number(meta.avgElo);
+        return {
+          gameId: meta.gameId || '',
+          white: meta.white || 'Unknown',
+          black: meta.black || 'Unknown',
+          result: meta.result || '?',
+          event: meta.event || meta.site || '',
+          site: meta.site || '',
+          year: meta.year || null,
+          whiteElo: meta.whiteElo || null,
+          blackElo: meta.blackElo || null,
+          eco: meta.eco || '',
+          avgElo: Number.isFinite(avgElo) ? avgElo : null,
+          pgnUrl: ''
+        };
+      }).filter(passesGamesFilters);
 
-    state.gamesResults = rows;
-    renderGamesRows(rows);
-    renderGamesSummary(rows, Number(payload.games) || rows.length);
-    if (els.gamesDownloads) {
-      const safeLineKey = String(lineKey).replace(/"/g, '&quot;');
-      els.gamesDownloads.innerHTML = `
-        <div class="openingdb-games-status">lineKey: <code>${safeLineKey}</code></div>
-        <div class="openingdb-games-status">Total indexed games: ${Number(payload.games) || 0} | Showing: ${rows.length}</div>
-      `;
-    }
+      state.gamesResults = rows;
+      renderGamesRows(rows);
+      renderGamesSummary(rows, Number(payload.games) || rows.length);
+      if (els.gamesDownloads) {
+        const safeLineKey = String(lineKey).replace(/"/g, '&quot;');
+        els.gamesDownloads.innerHTML = `
+          <div class="openingdb-games-status">lineKey: <code>${safeLineKey}</code></div>
+          <div class="openingdb-games-status">Total indexed games: ${Number(payload.games) || 0} | Showing: ${rows.length}</div>
+        `;
+      }
 
-    if ((Number(payload.games) || 0) === 0) {
-      setGamesStatus('No indexed games for this line (yet).');
-    } else {
-      setGamesStatus(`Found ${Number(payload.games) || 0} indexed games for this line.`);
+      if ((Number(payload.games) || 0) === 0) {
+        setGamesStatus('No indexed games for this line (yet).');
+      } else {
+        setGamesStatus(`Found ${Number(payload.games) || 0} indexed games for this line.`);
+      }
+    } finally {
+      loadingButtons.forEach((button) => window.CaissaUI?.setButtonLoading(button, false));
     }
   }
 

@@ -223,6 +223,42 @@
         return element;
     }
 
+    function setButtonLoading(button, loading, options = {}) {
+        if (!button) return null;
+
+        if (loading) {
+            if (!button.dataset.caissaUiOriginalHtml) {
+                button.dataset.caissaUiOriginalHtml = button.innerHTML;
+                button.dataset.caissaUiOriginalDisabled = button.disabled ? 'true' : 'false';
+                button.dataset.caissaUiOriginalAriaLabel = button.getAttribute('aria-label') || '';
+            }
+            const label = options.label || button.textContent.trim() || 'Loading';
+            const spinner = createSpinner({ size: 'small', label });
+            button.replaceChildren(spinner, document.createTextNode(label));
+            button.classList.add('caissa-ui-button-loading');
+            button.disabled = options.disabled !== false;
+            button.setAttribute('aria-busy', 'true');
+            button.setAttribute('aria-label', label);
+            return button;
+        }
+
+        if (button.dataset.caissaUiOriginalHtml) {
+            button.innerHTML = button.dataset.caissaUiOriginalHtml;
+            button.disabled = button.dataset.caissaUiOriginalDisabled === 'true';
+            if (button.dataset.caissaUiOriginalAriaLabel) {
+                button.setAttribute('aria-label', button.dataset.caissaUiOriginalAriaLabel);
+            } else {
+                button.removeAttribute('aria-label');
+            }
+            delete button.dataset.caissaUiOriginalHtml;
+            delete button.dataset.caissaUiOriginalDisabled;
+            delete button.dataset.caissaUiOriginalAriaLabel;
+        }
+        button.classList.remove('caissa-ui-button-loading');
+        button.removeAttribute('aria-busy');
+        return button;
+    }
+
     window.CaissaUI = Object.freeze({
         createElement,
         render,
@@ -232,6 +268,7 @@
         createEmptyState,
         createPanelHeader,
         applyTooltip,
+        setButtonLoading,
         statuses: Object.freeze(Array.from(STATUS_TYPES))
     });
 })();

@@ -307,6 +307,18 @@ const CaissaFICSClient = {
         if (this.elements.accountPasswordInput) this.elements.accountPasswordInput.disabled = active;
     },
 
+    setConnectionButtonsLoading(active, label = 'Connecting...') {
+        const target = this.loginMode === 'account'
+            ? this.elements.accountConnectBtn
+            : this.elements.connectBtn;
+        if (active) {
+            window.CaissaUI?.setButtonLoading(target, true, { label });
+            return;
+        }
+        window.CaissaUI?.setButtonLoading(this.elements.connectBtn, false);
+        window.CaissaUI?.setButtonLoading(this.elements.accountConnectBtn, false);
+    },
+
     prepareAccountCredentials() {
         // TODO: Registered FICS login requires manual validation with real credentials before marking production stable.
         const username = (this.elements.accountUsernameInput?.value || '').trim();
@@ -345,7 +357,7 @@ const CaissaFICSClient = {
         this.manualDisconnect = false;
         clearTimeout(this.reconnectTimer);
         this.setConnectionState('connecting');
-        this.updateGameStatus('Connecting to gateway...', '');
+        this.updateGameStatus('Connecting to FICS...', '');
         this.initBoard(this.liveGame.currentFen || 'start');
         this.rawBuffer = '';
         this.lineBuffer = '';
@@ -468,12 +480,14 @@ const CaissaFICSClient = {
     async testGateway() {
         this.logToConsole('🔍 Testing gateway connection...');
         this.updateGameStatus('Testing gateway...', '');
+        window.CaissaUI?.setButtonLoading(this.elements.testGatewayBtn, true, { label: 'Testing...' });
 
         if (!this.isGatewayConfigured()) {
             const msg = 'FICS gateway requires a secure WSS endpoint in production.';
             this.logToConsole(msg);
             this.updateGameStatus(msg, 'error');
             this.updateGatewayStatus();
+            window.CaissaUI?.setButtonLoading(this.elements.testGatewayBtn, false);
             return;
         }
 
@@ -485,12 +499,13 @@ const CaissaFICSClient = {
             const timeout = setTimeout(() => {
                 testWs.close();
                 this.logToConsole('❌ Test failed: Connection timeout');
-                this.updateGameStatus('❌ Gateway unreachable (timeout)\n\nRun: npm run fics:gateway', 'error');
+                this.updateGameStatus('Gateway unreachable. Check the FICS gateway and try again.', 'error');
+                window.CaissaUI?.setButtonLoading(this.elements.testGatewayBtn, false);
             }, 5000);
 
             testWs.onopen = () => {
-                this.logToConsole('✅ Gateway test successful!');
-                this.updateGameStatus('✅ Gateway is reachable!\n\nYou can now connect.', 'active');
+                this.logToConsole('Gateway connected. Waiting for FICS banner...');
+                this.updateGameStatus('Gateway connected. Waiting for FICS...', '');
             };
 
             testWs.onmessage = () => {
@@ -501,6 +516,7 @@ const CaissaFICSClient = {
                 this.updateLatency();
                 this.logToConsole('Gateway test successful; FICS banner received.');
                 this.updateGameStatus('Gateway and FICS are reachable. You can now connect.', 'active');
+                window.CaissaUI?.setButtonLoading(this.elements.testGatewayBtn, false);
                 testWs.close(1000, 'Gateway test complete');
             };
 
@@ -514,6 +530,7 @@ const CaissaFICSClient = {
                     'URL: ' + this.gatewayUrl,
                     'error'
                 );
+                window.CaissaUI?.setButtonLoading(this.elements.testGatewayBtn, false);
             };
 
             testWs.onclose = (event) => {
@@ -528,6 +545,7 @@ const CaissaFICSClient = {
             console.error('[FICS Client] Test failed:', error);
             this.logToConsole(`❌ Test failed: ${error.message}`);
             this.updateGameStatus('❌ Test failed: ' + error.message, 'error');
+            window.CaissaUI?.setButtonLoading(this.elements.testGatewayBtn, false);
         }
     },
 
@@ -1091,10 +1109,12 @@ const CaissaFICSClient = {
         this.renderSeekActions();
         this.renderRoomTables();
         this.updateRoomStatus('Refreshing room tables...');
+        window.CaissaUI?.setButtonLoading(this.elements.refreshLobbyBtn, true, { label: 'Refreshing...' });
         this.send('sought');
         this.send('games');
         setTimeout(() => {
             this.lobbyRefreshInFlight = false;
+            window.CaissaUI?.setButtonLoading(this.elements.refreshLobbyBtn, false);
             this.renderRoomTables();
         }, 2500);
     },
@@ -1979,12 +1999,14 @@ const CaissaFICSClient = {
         if (!this.elements.connectionStatus) return;
 
         if (connected) {
+            this.setConnectionButtonsLoading(false);
             this.elements.connectionStatus.textContent = message || 'Connected';
             this.elements.connectionStatus.className = 'fics-status fics-status-connected';
             this.elements.connectBtn?.setAttribute('disabled', 'true');
             this.elements.accountConnectBtn?.setAttribute('disabled', 'true');
             this.elements.disconnectBtn?.removeAttribute('disabled');
         } else {
+            this.setConnectionButtonsLoading(false);
             this.elements.connectionStatus.textContent = message || 'Not connected';
             this.elements.connectionStatus.className = 'fics-status fics-status-disconnected';
             if (this.isGatewayConfigured()) {
@@ -2012,7 +2034,9 @@ const CaissaFICSClient = {
             this.elements.connectionStatus.textContent = message || labels[state] || state;
             this.elements.connectionStatus.className = `fics-status fics-status-${state}`;
         }
-        const active = state === 'connecting' || state === 'connected' || state === 'reconnecting';
+        const loading = state === 'connecting' || state === 'reconnecting';
+        this.setConnectionButtonsLoading(loading, state === 'reconnecting' ? 'Reconnecting...' : 'Connecting...');
+        const active = loading || state === 'connected';
         this.elements.connectBtn?.toggleAttribute('disabled', active || !this.isGatewayConfigured());
         this.elements.accountConnectBtn?.toggleAttribute('disabled', active || !this.isGatewayConfigured());
         this.elements.disconnectBtn?.toggleAttribute('disabled', !active);

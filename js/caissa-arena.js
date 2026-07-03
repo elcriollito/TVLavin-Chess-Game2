@@ -1003,6 +1003,7 @@ const CaissaArena = {
             return;
         }
 
+        window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, true, { label: 'Starting...' });
         this.stopInfiniteAnalysis(false);
         console.log('[Arena] Starting match:', this.state.whiteEngine.name, 'vs', this.state.blackEngine.name);
 
@@ -1016,6 +1017,7 @@ const CaissaArena = {
             } catch (error) {
                 console.error('[Arena] Board mount failed:', error.message);
                 alert('Board failed to mount. Please refresh and try again.');
+                window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
                 return;
             }
         }
@@ -1026,6 +1028,7 @@ const CaissaArena = {
             const success = await this.initEngines();
             if (!success) {
                 alert('Failed to initialize engines. Please try again.');
+                window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
                 return;
             }
         }
@@ -1045,6 +1048,7 @@ const CaissaArena = {
         } catch (error) {
             console.error('[Arena] Player engine readiness failed:', error);
             this.handleError(error.message);
+            window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
             return;
         }
 
@@ -1061,6 +1065,7 @@ const CaissaArena = {
         };
 
         // Update UI
+        window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
         this.updateMatchControls();
         this.updateGameStatus({
             turn: this.game.turn() === 'w' ? 'white' : 'black',
@@ -1178,10 +1183,12 @@ const CaissaArena = {
 
     async startInfiniteAnalysis() {
         if (!this.game) return;
+        window.CaissaUI?.setButtonLoading(this.elements.infiniteAnalysisBtn, true, { label: 'Loading engine...' });
         if (!this.enginesReady || !this.evaluatorReady) {
             const initialized = await this.initEngines();
             if (!initialized) {
                 this.handleError('Unable to initialize analysis engine');
+                window.CaissaUI?.setButtonLoading(this.elements.infiniteAnalysisBtn, false);
                 return;
             }
         }
@@ -1196,6 +1203,7 @@ const CaissaArena = {
         };
         this.state.analysisRunning = true;
         this.state.analysisFen = fen;
+        window.CaissaUI?.setButtonLoading(this.elements.infiniteAnalysisBtn, false);
         this.updateMatchControls();
         this.updateGameStatus({ result: 'Infinite analysis running' });
         this.evaluatorEngine.setPosition(fen);

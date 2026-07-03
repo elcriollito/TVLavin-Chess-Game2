@@ -137,6 +137,14 @@
     border-width: 3px;
 }
 
+.caissa-ui-button-loading {
+    cursor: progress;
+}
+
+.caissa-ui-button-loading .caissa-ui-spinner {
+    margin-right: 8px;
+}
+
 @keyframes caissa-ui-spin {
     to {
         transform: rotate(360deg);

@@ -219,10 +219,8 @@ const AnalyzeSection = {
         }
 
         console.log('[Analyze] Fetching games via provider', { provider, username, count });
-        this.setStatus('Fetching games...', 'loading');
-        if (this.elements.fetchBtn) {
-            this.elements.fetchBtn.disabled = true;
-        }
+        this.setStatus('Loading games...', 'loading');
+        window.CaissaUI?.setButtonLoading(this.elements.fetchBtn, true, { label: 'Loading games...' });
 
         try {
             const data = provider === 'lichess'
@@ -251,9 +249,7 @@ const AnalyzeSection = {
                 'error'
             );
         } finally {
-            if (this.elements.fetchBtn) {
-                this.elements.fetchBtn.disabled = false;
-            }
+            window.CaissaUI?.setButtonLoading(this.elements.fetchBtn, false);
         }
     },
 
@@ -854,9 +850,11 @@ const AnalyzeSection = {
 
         console.log('[Analyze] Starting analysis...');
         this.setStatus('Engine loading...', 'loading');
+        window.CaissaUI?.setButtonLoading(this.elements.startBtn, true, { label: 'Loading engine...' });
         const engine = await this.ensureAnalysisEngine();
         if (!engine) {
             this.setStatus('Engine unavailable', 'error');
+            window.CaissaUI?.setButtonLoading(this.elements.startBtn, false);
             this.showNotification('Stockfish could not be loaded. Please try again.', 'error');
             return;
         }
@@ -875,7 +873,7 @@ const AnalyzeSection = {
         this.elements.startBtn.style.display = 'none';
         this.elements.stopBtn.style.display = 'block';
         this.elements.progressBar.style.display = 'block';
-        this.setStatus('Analyzing...', 'loading');
+        this.setStatus('Preparing analysis...', 'loading');
 
         const moves = this.loadedGame.game.history({ verbose: true });
         const totalMoves = moves.length;
@@ -885,6 +883,7 @@ const AnalyzeSection = {
             this.elements.startBtn.style.display = 'block';
             this.elements.stopBtn.style.display = 'none';
             this.elements.progressBar.style.display = 'none';
+            window.CaissaUI?.setButtonLoading(this.elements.startBtn, false);
             return;
         }
 
@@ -941,6 +940,7 @@ const AnalyzeSection = {
             this.elements.startBtn.style.display = 'block';
             this.elements.stopBtn.style.display = 'none';
             this.elements.progressBar.style.display = 'none';
+            window.CaissaUI?.setButtonLoading(this.elements.startBtn, false);
         }
     },
 
