@@ -1103,7 +1103,7 @@
     } catch (err) {
       console.warn('[OpeningDB] engine init failed', err);
       engine.available = false;
-      setEngineStatus(err?.message || 'Engine unavailable');
+      setEngineStatus('Engine unavailable. Try again.');
       return false;
     } finally {
       engine.loading = false;
@@ -2561,7 +2561,7 @@
     try {
       const manifest = await ensureGameSearchManifest();
       if (!manifest) {
-        setGamesStatus('GameSearch manifest unavailable.');
+        setGamesStatus('Game search data is not available yet.');
         renderGamesSummary([], 0);
         return;
       }
@@ -2583,7 +2583,7 @@
         renderGamesRows([]);
         renderGamesSummary([], 0);
         if (els.gamesDownloads) els.gamesDownloads.innerHTML = '';
-        setGamesStatus('GameSearch request failed.');
+        setGamesStatus('Could not load matching games. Try again.');
         return;
       }
 
@@ -2644,7 +2644,7 @@
 
     const pgnText = await loadGamePgnText(row);
     if (!pgnText) {
-      setGamesStatus(`PGN unavailable for ${row.gameId}.`);
+      setGamesStatus('PGN is not available for this game yet.');
       return;
     }
 
@@ -3110,7 +3110,7 @@
       await navigator.clipboard.writeText(payload);
       setEngineCopyFeedback('Copied!');
     } catch (_err) {
-      setEngineCopyFeedback('Copy failed');
+      setEngineCopyFeedback('Copy did not work. Try again.');
     }
   }
 
@@ -3121,7 +3121,7 @@
       await navigator.clipboard.writeText(fen);
       setEngineCopyFeedback('Copied!');
     } catch (_err) {
-      setEngineCopyFeedback('Copy failed');
+      setEngineCopyFeedback('Copy did not work. Try again.');
     }
   }
 
@@ -3197,8 +3197,8 @@
       });
     } catch (error) {
       state.datasetsLoaded = false;
-      state.datasetsError = 'Dataset fetch failed. Showing placeholders.';
-      showDatasetBanner('Lookup unavailable');
+      state.datasetsError = 'Opening data is not available yet.';
+      showDatasetBanner('Opening data is not available yet.');
       console.warn('[OpeningDB] dataset load error', error);
       debugLog('datasets loaded', {
         ecoCodesLoaded,
@@ -3300,7 +3300,7 @@
         clearEngineEvalCache();
       } catch (_err) {
         els.fenError.hidden = false;
-        els.fenError.textContent = 'Invalid FEN.';
+        els.fenError.textContent = 'FEN could not be loaded. Check the position and try again.';
         return;
       }
 
@@ -3494,7 +3494,7 @@
           await navigator.clipboard.writeText(els.gamesPgnText.value);
           setGamesStatus('PGN copied to clipboard.');
         } catch (_err) {
-          setGamesStatus('Clipboard copy failed.');
+          setGamesStatus('Copy did not work. Try again.');
         }
       });
     }
@@ -3562,7 +3562,7 @@
       });
     } catch (err) {
       console.error('[OpeningDB] Board failed to initialize', err);
-      renderBoardFatal(`Board failed to initialize: ${err && err.message ? err.message : String(err)}`);
+      renderBoardFatal('The board could not load. Refresh and try again.');
       throw err;
     }
 
@@ -3575,7 +3575,7 @@
       if (childCount === 0) {
         const msg = 'Chessboard did not render markup';
         console.error('[OpeningDB] ' + msg);
-        renderBoardFatal(msg);
+        renderBoardFatal('The board could not load. Refresh and try again.');
       }
     }, 60);
   }
@@ -3594,9 +3594,9 @@
     }
 
     if (!window.Chess || !window.Chessboard) {
-      const msg = 'Board failed to initialize: Chess dependencies not available';
+      const msg = 'Chess dependencies not available';
       console.error('[OpeningDB] ' + msg);
-      renderBoardFatal(msg);
+      renderBoardFatal('The board could not load. Refresh and try again.');
       return;
     }
 
@@ -3635,7 +3635,7 @@
       loadDatasets();
     } catch (err) {
       console.error('[OpeningDB] init fatal', err);
-      renderBoardFatal(`Board failed to initialize: ${err && err.message ? err.message : String(err)}`);
+      renderBoardFatal('The board could not load. Refresh and try again.');
     }
   }
 

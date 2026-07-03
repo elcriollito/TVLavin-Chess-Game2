@@ -2541,7 +2541,7 @@ function loadFEN(fen, setAnalysisMode = true) {
     } catch (error) {
         console.error('❌ FEN load error:', error.message);
         console.error('❌ Failed FEN string:', fen);
-        showErrorNotification(error.message || 'Invalid FEN string');
+        showErrorNotification('FEN could not be loaded. Check the position and try again.');
         return false;
     }
 }
@@ -3008,7 +3008,7 @@ function setupEventListeners() {
             }, 2000);
         }).catch(err => {
             console.error('Failed to copy FEN:', err);
-            alert('Failed to copy FEN to clipboard');
+            alert('Could not copy FEN. Please copy it manually.');
         });
     }, 'copyFEN');
 
@@ -3193,7 +3193,7 @@ function setupFENModal() {
             fenError.classList.remove('show');
         } else {
             console.log('❌ FEN load failed');
-            fenError.textContent = 'Invalid FEN string. Please check and try again.';
+            fenError.textContent = 'FEN could not be loaded. Check the position and try again.';
             fenError.classList.add('show');
         }
     });
@@ -3286,7 +3286,7 @@ function setupMenuModal() {
         } else if (typeof toggleEngineVsEngineMode === 'function') {
             toggleEngineVsEngineMode();
         } else {
-            showNotification('Engine vs Engine mode unavailable');
+            showNotification('Engine vs Engine is not available right now.');
         }
     });
     
@@ -4011,7 +4011,7 @@ async function engineVsEngineLoop(invalidRetryCount = 0) {
                 return;
             }
 
-            showErrorNotification('Engine returned invalid moves twice. Stopping game.');
+            showErrorNotification('Engine move could not be used. The match was stopped.');
             stopEngineVsEngine();
             return;
         }
@@ -4039,7 +4039,7 @@ async function engineVsEngineLoop(invalidRetryCount = 0) {
             if (invalidRetryCount < 1) {
                 engineVsEngineLoop(invalidRetryCount + 1);
             } else {
-                showErrorNotification('Engine move could not be applied twice. Stopping game.');
+                showErrorNotification('Engine move could not be used. The match was stopped.');
                 stopEngineVsEngine();
             }
         }
@@ -4526,7 +4526,7 @@ async function loadSelectedPGN() {
     } catch (error) {
         console.error('❌ Failed to load PGN:', error);
         console.error('❌ Error stack:', error.stack);
-        showErrorNotification(`Failed to load game: ${error.message}`);
+        showErrorNotification('Could not load game. Check the PGN and try again.');
     }
 }
 

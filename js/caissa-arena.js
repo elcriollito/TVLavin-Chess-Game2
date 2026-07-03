@@ -589,7 +589,7 @@ const CaissaArena = {
 
             this.applyArenaPosition(candidate.fen(), 'Custom position');
         } catch (error) {
-            this.setFenMessage('Invalid FEN. Check the position and try again.', true);
+            this.setFenMessage('FEN could not be loaded. Check the position and try again.', true);
         }
     },
 
@@ -829,7 +829,7 @@ const CaissaArena = {
             if (this.elements.startMatchBtn) {
                 this.elements.startMatchBtn.disabled = true;
             }
-            this.updateGameStatus({ result: 'Error: No engines available. Cannot start match.' });
+            this.updateGameStatus({ result: 'No engines are available. Check engine setup and try again.' });
         }
 
         // Default selections (prefer stored + enabled engines)
@@ -867,7 +867,7 @@ const CaissaArena = {
                 this.elements.startMatchBtn.disabled = true;
                 this.elements.startMatchBtn.title = 'Engine adapter or worker path missing.';
             }
-            this.updateGameStatus({ result: 'Error: Engine unavailable. Cannot start match.' });
+            this.updateGameStatus({ result: 'Engine unavailable. Check engine setup and try again.' });
             console.warn('[Arena] Engine unavailable. Start Match disabled.');
         }
 
@@ -999,7 +999,7 @@ const CaissaArena = {
         }
 
         if (!this.state.whiteEngine || !this.state.blackEngine) {
-            alert('Please select both engines');
+            alert('Select both engines before starting a match.');
             return;
         }
 
@@ -1016,7 +1016,7 @@ const CaissaArena = {
                 console.log('[Arena] Board ready, starting match');
             } catch (error) {
                 console.error('[Arena] Board mount failed:', error.message);
-                alert('Board failed to mount. Please refresh and try again.');
+                alert('The board could not load. Refresh and try again.');
                 window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
                 return;
             }
@@ -1027,7 +1027,7 @@ const CaissaArena = {
             console.log('[Arena] Engines not ready, initializing...');
             const success = await this.initEngines();
             if (!success) {
-                alert('Failed to initialize engines. Please try again.');
+                alert('Engines could not start. Try again.');
                 window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
                 return;
             }
@@ -1949,7 +1949,8 @@ const CaissaArena = {
         this.state.loopRunning = false;
         this.updateMatchControls();
 
-        this.updateGameStatus({ result: `Error: ${message}` });
+        console.warn('[Arena] Match stopped after error:', message);
+        this.updateGameStatus({ result: 'Arena match stopped. Try starting a new match.' });
     },
 
     /**

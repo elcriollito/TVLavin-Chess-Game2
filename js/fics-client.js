@@ -449,34 +449,13 @@ const CaissaFICSClient = {
 
     handleConnectionFailure(reason) {
         this.clearAccountPassword();
-        let errorMsg = '❌ Gateway unreachable\n\n';
-        let tips = '';
-
-        switch (reason) {
-            case 'timeout':
-                tips = '• Gateway may not be running\n' +
-                       '• Check if port 8081 is accessible\n' +
-                       '• Firewall may be blocking connection';
-                break;
-            case 'error':
-            case 'close':
-                tips = '• Is the gateway running?\n' +
-                       '  Run: npm run fics:gateway\n\n' +
-                       '• Check gateway URL: ' + this.gatewayUrl + '\n\n' +
-                       '• Firewall or antivirus blocking port 8081?';
-                break;
-            case 'exception':
-                tips = '• Invalid gateway URL\n' +
-                       '• Check fics-client.js configuration';
-                break;
-        }
-
-        const fullMsg = errorMsg + tips;
         this.resetLiveSessionState();
+        const fullMsg = reason === 'timeout'
+            ? 'FICS connection timed out. Check the gateway and try again.'
+            : 'Could not connect to FICS. Check the gateway and try again.';
         this.updateGameStatus(fullMsg, 'error');
         this.setConnectionState('error', 'Failed');
     },
-
     async testGateway() {
         this.logToConsole('🔍 Testing gateway connection...');
         this.updateGameStatus('Testing gateway...', '');
@@ -522,17 +501,10 @@ const CaissaFICSClient = {
 
             testWs.onerror = () => {
                 clearTimeout(timeout);
-                this.logToConsole('❌ Test failed: Cannot reach gateway');
-                this.updateGameStatus(
-                    '❌ Gateway unreachable\n\n' +
-                    'Is it running?\n' +
-                    'Run: npm run fics:gateway\n\n' +
-                    'URL: ' + this.gatewayUrl,
-                    'error'
-                );
+                this.logToConsole('Test failed: Cannot reach gateway');
+                this.updateGameStatus('Gateway unreachable. Check the FICS gateway and try again.', 'error');
                 window.CaissaUI?.setButtonLoading(this.elements.testGatewayBtn, false);
             };
-
             testWs.onclose = (event) => {
                 if (event.code === 1000) {
                     // Normal close after successful test
@@ -544,7 +516,7 @@ const CaissaFICSClient = {
         } catch (error) {
             console.error('[FICS Client] Test failed:', error);
             this.logToConsole(`❌ Test failed: ${error.message}`);
-            this.updateGameStatus('❌ Test failed: ' + error.message, 'error');
+            this.updateGameStatus('Gateway test failed. Check the connection and try again.', 'error');
             window.CaissaUI?.setButtonLoading(this.elements.testGatewayBtn, false);
         }
     },

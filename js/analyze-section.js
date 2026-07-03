@@ -268,7 +268,7 @@ const AnalyzeSection = {
                 this.showNotification(`No games found for this ${providerName} username.`, 'warning');
                 return;
             }
-            this.setStatus('Fetch failed', 'error');
+            this.setStatus('Could not load games', 'error');
             this.showNotification(
                 `Could not fetch games from ${providerName}. Please try again or upload PGN manually.`,
                 'error'
@@ -507,8 +507,8 @@ const AnalyzeSection = {
 
         } catch (error) {
             console.error('[Analyze] PGN load error:', error);
-            this.showNotification(`Failed to load PGN: ${error.message}`, 'error');
-            this.setStatus('Load failed', 'error');
+            this.showNotification('Could not load PGN. Check the format and try again.', 'error');
+            this.setStatus('Could not load PGN', 'error');
         }
     },
 
@@ -885,7 +885,7 @@ const AnalyzeSection = {
      */
     async startAnalysis() {
         if (!this.loadedGame) {
-            this.showNotification('Load a game first', 'error');
+            this.showNotification('Load a game before starting analysis.', 'error');
             return;
         }
 
@@ -896,7 +896,7 @@ const AnalyzeSection = {
         if (!engine) {
             this.setStatus('Engine unavailable', 'error');
             window.CaissaUI?.setButtonLoading(this.elements.startBtn, false);
-            this.showNotification('Stockfish could not be loaded. Please try again.', 'error');
+            this.showNotification('Analysis engine could not start. Try again.', 'error');
             return;
         }
 
@@ -975,7 +975,7 @@ const AnalyzeSection = {
 
         } catch (error) {
             console.error('[Analyze] Analysis error:', error);
-            this.setStatus('Analysis failed', 'error');
+            this.setStatus('Analysis could not finish. Try again.', 'error');
         } finally {
             this.isAnalyzing = false;
             this.elements.startBtn.style.display = 'block';
