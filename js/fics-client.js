@@ -1236,7 +1236,11 @@ const CaissaFICSClient = {
         if (!this.elements.lobbyRows) return;
         if (!rows.length) {
             if (this.authenticated) {
-                this.elements.lobbyRows.innerHTML = '<div class="fics-room-empty">No room tables yet. Refresh the lobby or create a seek from the right panel.</div>';
+                this.renderEmptyState(this.elements.lobbyRows, {
+                    icon: 'fa-search',
+                    title: 'No room tables found.',
+                    message: 'Refresh the lobby or create a seek from the right panel.'
+                });
             } else {
                 this.renderEmptyState(this.elements.lobbyRows, {
                     icon: 'fa-plug',

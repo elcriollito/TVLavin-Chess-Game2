@@ -2428,10 +2428,22 @@
     return true;
   }
 
+  function renderGamesNoResultsRow() {
+    const content = window.CaissaUI?.emptyStateHtml
+      ? window.CaissaUI.emptyStateHtml({
+          icon: 'fa-search',
+          title: 'No games found.',
+          message: 'Adjust the position or filters and search again.',
+          className: 'caissa-ui-empty-state--compact'
+        })
+      : '<div class="openingdb-empty">No games found for this position/filter.</div>';
+    return `<tr><td colspan="7">${content}</td></tr>`;
+  }
+
   function renderGamesRows(rows) {
     if (!els.gamesBody) return;
     if (!Array.isArray(rows) || rows.length === 0) {
-      els.gamesBody.innerHTML = '<tr><td colspan="7" class="openingdb-empty">No games found for this position/filter.</td></tr>';
+      els.gamesBody.innerHTML = renderGamesNoResultsRow();
       return;
     }
 

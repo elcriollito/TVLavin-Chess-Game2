@@ -254,8 +254,21 @@ const AnalyzeSection = {
             }
         } catch (error) {
             console.error('[Analyze] Fetch error:', error);
-            this.setStatus('Fetch failed', 'error');
             const providerName = provider === 'lichess' ? 'Lichess' : 'Chess.com';
+            if (String(error?.message || '').toLowerCase().includes('no games')) {
+                this.setStatus('No games found', 'warning');
+                if (this.elements.fetchedGames) {
+                    this.elements.fetchedGames.hidden = false;
+                    this.renderEmptyState(this.elements.fetchedGames, {
+                        icon: 'fa-search',
+                        title: 'No games found.',
+                        message: `Try a different ${providerName} username or upload PGN manually.`
+                    });
+                }
+                this.showNotification(`No games found for this ${providerName} username.`, 'warning');
+                return;
+            }
+            this.setStatus('Fetch failed', 'error');
             this.showNotification(
                 `Could not fetch games from ${providerName}. Please try again or upload PGN manually.`,
                 'error'
