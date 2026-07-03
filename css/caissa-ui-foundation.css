@@ -1,0 +1,294 @@
+/*
+ * CAISSA UI Foundation
+ *
+ * Shared, opt-in UI primitives for Season 4 UX work.
+ * These styles are intentionally scoped with the caissa-ui prefix so they do
+ * not alter existing page layouts until components adopt them explicitly.
+ */
+
+:root {
+    --caissa-ui-radius: 8px;
+    --caissa-ui-border: rgba(148, 163, 184, 0.24);
+    --caissa-ui-surface: rgba(15, 23, 42, 0.82);
+    --caissa-ui-surface-soft: rgba(30, 41, 59, 0.72);
+    --caissa-ui-text: #f8fafc;
+    --caissa-ui-text-muted: #cbd5e1;
+    --caissa-ui-info: #38bdf8;
+    --caissa-ui-success: #22c55e;
+    --caissa-ui-warning: #f59e0b;
+    --caissa-ui-error: #ef4444;
+    --caissa-ui-disabled: #64748b;
+    --caissa-ui-focus: #60a5fa;
+}
+
+.caissa-ui-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+}
+
+.caissa-ui-panel-title {
+    min-width: 0;
+    margin: 0;
+    color: var(--caissa-ui-text);
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.caissa-ui-panel-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.caissa-ui-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    min-height: 24px;
+    padding: 3px 9px;
+    border: 1px solid var(--caissa-ui-border);
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.12);
+    color: var(--caissa-ui-text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.caissa-ui-badge__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    flex: 0 0 auto;
+}
+
+.caissa-ui-badge--success {
+    border-color: rgba(34, 197, 94, 0.42);
+    background: rgba(34, 197, 94, 0.12);
+    color: var(--caissa-ui-success);
+}
+
+.caissa-ui-badge--info,
+.caissa-ui-badge--connected,
+.caissa-ui-badge--observing {
+    border-color: rgba(56, 189, 248, 0.42);
+    background: rgba(56, 189, 248, 0.12);
+    color: var(--caissa-ui-info);
+}
+
+.caissa-ui-badge--warning,
+.caissa-ui-badge--beta,
+.caissa-ui-badge--searching,
+.caissa-ui-badge--connecting {
+    border-color: rgba(245, 158, 11, 0.42);
+    background: rgba(245, 158, 11, 0.12);
+    color: var(--caissa-ui-warning);
+}
+
+.caissa-ui-badge--error,
+.caissa-ui-badge--offline {
+    border-color: rgba(239, 68, 68, 0.42);
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--caissa-ui-error);
+}
+
+.caissa-ui-badge--playing {
+    border-color: rgba(34, 197, 94, 0.42);
+    background: rgba(34, 197, 94, 0.12);
+    color: var(--caissa-ui-success);
+}
+
+.caissa-ui-badge--disabled,
+.caissa-ui-badge--empty,
+.caissa-ui-badge--no-results {
+    border-color: rgba(100, 116, 139, 0.42);
+    background: rgba(100, 116, 139, 0.12);
+    color: var(--caissa-ui-disabled);
+}
+
+.caissa-ui-spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(203, 213, 225, 0.28);
+    border-top-color: var(--caissa-ui-info);
+    border-radius: 50%;
+    animation: caissa-ui-spin 0.8s linear infinite;
+    vertical-align: middle;
+}
+
+.caissa-ui-spinner--small {
+    width: 14px;
+    height: 14px;
+    border-width: 2px;
+}
+
+.caissa-ui-spinner--large {
+    width: 28px;
+    height: 28px;
+    border-width: 3px;
+}
+
+@keyframes caissa-ui-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.caissa-ui-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--caissa-ui-border);
+    border-radius: var(--caissa-ui-radius);
+    background: var(--caissa-ui-surface-soft);
+    color: var(--caissa-ui-text-muted);
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
+.caissa-ui-banner__icon {
+    flex: 0 0 auto;
+    margin-top: 2px;
+}
+
+.caissa-ui-banner__content {
+    min-width: 0;
+}
+
+.caissa-ui-banner__title {
+    margin: 0 0 2px;
+    color: var(--caissa-ui-text);
+    font-weight: 700;
+}
+
+.caissa-ui-banner__message {
+    margin: 0;
+}
+
+.caissa-ui-banner--success {
+    border-color: rgba(34, 197, 94, 0.34);
+    background: rgba(34, 197, 94, 0.1);
+}
+
+.caissa-ui-banner--success .caissa-ui-banner__icon {
+    color: var(--caissa-ui-success);
+}
+
+.caissa-ui-banner--info {
+    border-color: rgba(56, 189, 248, 0.34);
+    background: rgba(56, 189, 248, 0.1);
+}
+
+.caissa-ui-banner--info .caissa-ui-banner__icon {
+    color: var(--caissa-ui-info);
+}
+
+.caissa-ui-banner--warning {
+    border-color: rgba(245, 158, 11, 0.34);
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.caissa-ui-banner--warning .caissa-ui-banner__icon {
+    color: var(--caissa-ui-warning);
+}
+
+.caissa-ui-banner--error {
+    border-color: rgba(239, 68, 68, 0.34);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.caissa-ui-banner--error .caissa-ui-banner__icon {
+    color: var(--caissa-ui-error);
+}
+
+.caissa-ui-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 120px;
+    padding: 20px;
+    border: 1px dashed var(--caissa-ui-border);
+    border-radius: var(--caissa-ui-radius);
+    background: rgba(15, 23, 42, 0.34);
+    color: var(--caissa-ui-text-muted);
+    text-align: center;
+}
+
+.caissa-ui-empty-state__icon {
+    color: var(--caissa-ui-info);
+    font-size: 1.2rem;
+}
+
+.caissa-ui-empty-state__title {
+    margin: 0;
+    color: var(--caissa-ui-text);
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.caissa-ui-empty-state__message {
+    max-width: 46ch;
+    margin: 0;
+    font-size: 0.86rem;
+    line-height: 1.45;
+}
+
+.caissa-ui-tooltip-host {
+    position: relative;
+}
+
+.caissa-ui-tooltip-host[data-caissa-tooltip]::after {
+    content: attr(data-caissa-tooltip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    z-index: 50;
+    max-width: 220px;
+    padding: 6px 8px;
+    border: 1px solid var(--caissa-ui-border);
+    border-radius: 6px;
+    background: rgba(2, 6, 23, 0.96);
+    color: var(--caissa-ui-text);
+    font-size: 0.75rem;
+    line-height: 1.3;
+    text-align: center;
+    white-space: normal;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 4px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.caissa-ui-tooltip-host[data-caissa-tooltip]:hover::after,
+.caissa-ui-tooltip-host[data-caissa-tooltip]:focus-visible::after {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+.caissa-ui-focus-ring:focus-visible {
+    outline: 2px solid var(--caissa-ui-focus);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .caissa-ui-spinner {
+        animation-duration: 1.4s;
+    }
+
+    .caissa-ui-tooltip-host[data-caissa-tooltip]::after {
+        transition: none;
+    }
+}
