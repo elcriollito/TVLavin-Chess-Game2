@@ -8016,6 +8016,60 @@ button:focus,
     }
 }
 
+/* ===== Season 4.1I: Cross-Page Consistency Polish ===== */
+:where(.btn, .fics-btn, .ctrl-btn, .game-menu-btn, .nav-btn, .nav-btn-sm, .openingdb-tab, .arena-tab, .coach-toggle-btn) {
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    line-height: 1.2;
+}
+
+:where(.btn, .fics-btn, .ctrl-btn, .game-menu-btn, .openingdb-tab, .arena-tab, .coach-toggle-btn) i {
+    flex: 0 0 auto;
+    line-height: 1;
+}
+
+:where(.btn, .fics-btn, .ctrl-btn, .openingdb-tab, .arena-tab) {
+    min-height: 36px;
+}
+
+:where(.btn:disabled, .fics-btn:disabled, .ctrl-btn:disabled, .game-menu-btn:disabled, .nav-btn:disabled, .nav-btn-sm:disabled) {
+    opacity: 0.48;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+:where(.panel-title, .arena-section-title, .openingdb-movelist-label, .fics-panel-heading h3) {
+    line-height: 1.25;
+}
+
+:where(.caissa-ui-empty-state, .dos-no-results, .openingdb-empty, .fics-room-empty) {
+    text-wrap: balance;
+}
+
+#playSection .panel-title,
+.arena-status-label,
+.openingdb-side-panel h3,
+.fics-panel-heading h3 {
+    letter-spacing: 0.055em;
+}
+
+.analyze-fetched-game,
+.arena-move-row,
+.fics-move-row {
+    min-width: 0;
+}
+
+.analyze-game-label,
+.analyze-game-meta,
+.arena-move-row span,
+.fics-move-row span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* ===== MINI PATCH: TEMPORARY - Show ONLY Move History ===== */
 /* Hide all other panels in right sidebar to focus on Move History */
 .board-indicators-sidebar,

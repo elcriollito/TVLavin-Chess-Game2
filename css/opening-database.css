@@ -789,6 +789,48 @@
   background: var(--panel-bg, var(--bg-secondary));
 }
 
+/* Season 4.1I: cross-page consistency polish */
+.openingdb-side-panel,
+.openingdb-action-band,
+.openingdb-stats-section,
+.openingdb-games-dock,
+.openingdb-table-wrap,
+.openingdb-games-wrap,
+.openingdb-games-pgn {
+  border-radius: 10px;
+}
+
+.openingdb-header h1,
+.openingdb-side-panel h3,
+.openingdb-games-dock-header,
+.openingdb-movelist-label {
+  line-height: 1.25;
+}
+
+.openingdb-controls .btn,
+.openingdb-games-controls .btn,
+.openingdb-games-pgn-actions .btn,
+.openingdb-fen-actions .btn,
+.openingdb-engine-controls .btn,
+.openingdb-tab {
+  min-height: 36px;
+  line-height: 1.2;
+}
+
+.openingdb-stats-table thead th,
+.openingdb-games-table thead th {
+  height: 36px;
+}
+
+.openingdb-stats-table tbody tr,
+.openingdb-games-table tbody tr {
+  min-height: 38px;
+}
+
+.openingdb-games-table td:last-child {
+  text-align: center;
+}
+
 .openingdb-games-downloads {
   margin-top: 8px;
   display: grid;

@@ -267,6 +267,9 @@
     text-decoration: none;
     transition: all 0.2s;
     border: 1px solid transparent;
+    justify-content: center;
+    line-height: 1.2;
+    min-height: 36px;
 }
 
 .dos-hosted-btn {
@@ -334,6 +337,16 @@
     padding: 60px 20px;
     color: var(--text-secondary);
     grid-column: 1 / -1;
+    line-height: 1.45;
+    text-wrap: balance;
+}
+
+/* Season 4.1I: cross-page consistency polish */
+.dos-chess-card,
+.dos-game-image,
+.dos-empty-state,
+.dos-setup-required {
+    border-radius: 10px;
 }
 
 .dos-loading i,

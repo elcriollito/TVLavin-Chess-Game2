@@ -1154,6 +1154,40 @@
     max-width: 96px;
 }
 
+/* Season 4.1I: cross-page consistency polish */
+.fics-panel,
+.fics-room-panel,
+.fics-board-section,
+.fics-console-section {
+    border-radius: 10px;
+}
+
+.fics-panel-heading,
+.fics-lobby-header,
+.fics-console-header,
+.fics-board-title-row {
+    gap: 10px;
+}
+
+.fics-btn,
+.fics-table-action,
+.fics-seek-action {
+    line-height: 1.2;
+}
+
+.fics-lobby-head {
+    min-height: 36px;
+}
+
+.fics-lobby-rows .fics-lobby-row {
+    min-height: 38px;
+}
+
+.fics-room-empty,
+.fics-lobby-note {
+    line-height: 1.45;
+}
+
 @media (max-width: 1180px) and (min-width: 769px) {
     .fics-game-area {
         grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
