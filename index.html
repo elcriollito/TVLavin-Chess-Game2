@@ -1647,16 +1647,26 @@
                                     <span>Latency: <code id="ficsGatewayLatency">Not measured</code></span>
                                 </div>
                             </div>
-                            <div class="fics-connection-buttons">
+                            <div class="fics-session-column" aria-label="FICS session and board controls">
+                                <h3>Session / Board</h3>
+                                <div id="ficsGameStatus" class="fics-game-status">No active game</div>
+                                <button id="ficsSoundToggle" class="fics-btn fics-btn-secondary fics-sound-toggle" type="button" aria-pressed="false" aria-label="Enable FICS sounds" title="Enable FICS sounds">
+                                    <i class="fas fa-volume-mute" aria-hidden="true"></i> Enable Sounds
+                                </button>
+                                <button id="ficsTestGatewayBtn" class="fics-btn fics-btn-secondary">
+                                    <i class="fas fa-stethoscope"></i> Test Gateway
+                                </button>
+                            </div>
+                            <div class="fics-connection-buttons" aria-label="FICS authentication controls">
                                 <div class="fics-login-panel" aria-label="FICS login mode">
                                     <div class="fics-login-modes">
                                         <label class="fics-login-mode">
-                                            <input type="radio" name="ficsLoginMode" value="guest" checked>
-                                            <span>Guest Login</span>
-                                        </label>
-                                        <label class="fics-login-mode">
                                             <input type="radio" name="ficsLoginMode" value="account">
                                             <span>FICS Account Login</span>
+                                        </label>
+                                        <label class="fics-login-mode">
+                                            <input type="radio" name="ficsLoginMode" value="guest" checked>
+                                            <span>Guest Login</span>
                                         </label>
                                     </div>
                                     <div id="ficsAccountFields" class="fics-account-fields" hidden>
@@ -1665,9 +1675,6 @@
                                     </div>
                                     <div class="fics-login-note">Registered FICS login beta</div>
                                 </div>
-                                <button id="ficsTestGatewayBtn" class="fics-btn fics-btn-secondary">
-                                    <i class="fas fa-stethoscope"></i> Test Gateway
-                                </button>
                                 <button id="ficsConnectBtn" class="fics-btn fics-btn-primary">
                                     <i class="fas fa-plug"></i> Connect
                                 </button>
@@ -1724,16 +1731,6 @@
 
                         <!-- Board Section -->
                         <div class="fics-board-section">
-                            <div class="fics-board-header">
-                                <div class="fics-board-title-row">
-                                    <h3>Board</h3>
-                                    <button id="ficsSoundToggle" class="fics-btn fics-btn-secondary fics-sound-toggle" type="button" aria-pressed="false" aria-label="Enable FICS sounds" title="Enable FICS sounds">
-                                        <i class="fas fa-volume-mute" aria-hidden="true"></i> Enable Sounds
-                                    </button>
-                                </div>
-                                <div id="ficsGameStatus" class="fics-game-status">No active game</div>
-                            </div>
-
                             <div class="fics-live-board-shell">
                                 <div id="ficsTopPlayerBar" class="fics-player-bar black" role="group" aria-label="Top player">
                                     <span class="fics-color-dot" aria-hidden="true"></span>
