@@ -213,22 +213,32 @@
 
         updateCatalog(activeTables) {
             if (!window.CaissaSpectatorTVCatalog?.updateCatalog) return;
-            const entries = (activeTables || []).map((table) => ({
-                gameId: table.number,
-                whitePlayer: table.white,
-                blackPlayer: table.black,
-                whiteRating: table.whiteRating,
-                blackRating: table.blackRating,
-                timeControl: table.timeControl,
-                observers: table.observers,
-                status: 'active',
-                source: 'fics-active-tables',
-                label: table.label
-            }));
+            const entries = (activeTables || [])
+                .filter((table) => this.isObservableGameTable(table))
+                .map((table) => ({
+                    gameId: table.number,
+                    whitePlayer: table.white,
+                    blackPlayer: table.black,
+                    whiteRating: table.whiteRating,
+                    blackRating: table.blackRating,
+                    timeControl: table.timeControl,
+                    observers: table.observers,
+                    status: 'active',
+                    source: 'fics-active-tables',
+                    label: table.label
+                }));
             this.catalog = window.CaissaSpectatorTVCatalog.updateCatalog(this.catalog, entries, {
                 selectedChannelId: 'featured'
             });
             this.renderCatalogSummary();
+        },
+
+        isObservableGameTable(table) {
+            const label = String(table?.label || '');
+            return !!table?.number
+                && !!table?.white
+                && !!table?.black
+                && /\b[WB]:\s*\d+\b/.test(label);
         },
 
         observeFeaturedCandidate() {

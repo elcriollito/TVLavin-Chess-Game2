@@ -44,6 +44,7 @@
             STATES.DISCONNECTED
         ]),
         [STATES.LOADING_GAMES]: Object.freeze([
+            STATES.SWITCHING_GAME,
             STATES.WATCHING,
             STATES.ERROR,
             STATES.RECONNECT_REQUIRED,
