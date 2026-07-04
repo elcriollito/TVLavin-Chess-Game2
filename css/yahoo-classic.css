@@ -143,7 +143,8 @@
 
 .yc-tab,
 .yc-classic-button,
-.yc-send-button {
+.yc-send-button,
+.yc-row-action {
     min-height: 23px;
     border: 2px solid;
     border-color: #ffffff #707070 #707070 #ffffff;
@@ -174,7 +175,8 @@
 
 .yc-tab:active,
 .yc-classic-button:active,
-.yc-send-button:active:not(:disabled) {
+.yc-send-button:active:not(:disabled),
+.yc-row-action:active:not(:disabled) {
     border-color: #707070 #ffffff #ffffff #707070;
     padding-top: 3px;
     padding-left: 10px;
@@ -357,6 +359,29 @@
 .yc-table-row:hover:not(.yc-table-head),
 .yc-player-row:hover:not(.yc-player-head) {
     background: #dbe8ff;
+}
+
+.yc-row-empty span {
+    grid-column: 1 / -1;
+    color: #484848;
+    font-style: italic;
+}
+
+.yc-row-action {
+    width: 100%;
+    min-height: 18px;
+    padding: 1px 4px;
+    font-size: 10px;
+    text-align: center;
+}
+
+.yc-row-action:hover:not(:disabled) {
+    background: #d9d9d9;
+}
+
+.yc-row-action:focus-visible {
+    outline: 1px dotted #000000;
+    outline-offset: -3px;
 }
 
 .yc-pixel-led {
