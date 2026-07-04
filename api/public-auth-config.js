@@ -9,9 +9,14 @@ export default function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    const clerkPublishableKeyCandidates = [
+        process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+        process.env.CLERK_PUBLISHABLE_KEY
+    ].filter(Boolean);
+
     const clerkPublishableKey =
-        process.env.CLERK_PUBLISHABLE_KEY ||
-        process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+        clerkPublishableKeyCandidates.find((key) => String(key).startsWith('pk_live_')) ||
+        clerkPublishableKeyCandidates[0] ||
         '';
 
     const supabaseUrl =
