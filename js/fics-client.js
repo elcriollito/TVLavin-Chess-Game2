@@ -899,6 +899,12 @@ const CaissaFICSClient = {
         this.pgnResult = this.extractResult(line);
         this.updateGameStatus(`Game ended: ${line}`, 'ended');
         this.updatePlayerBars();
+        this.notifySpectator('game-ended', {
+            resultLine: line,
+            result: this.pgnResult,
+            liveGame: { ...this.liveGame },
+            moveHistory: this.moveHistory.map((move) => ({ ...move }))
+        });
         this.logToConsole('🏁 ' + line);
     },
 

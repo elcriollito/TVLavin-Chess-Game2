@@ -6948,12 +6948,22 @@ function initializeCheaterInsight() {
     const year = now.getFullYear();
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
     document.getElementById('cheaterMonth').value = `${year}-${month}`;
+    updateCheaterMonthDisplay();
 
     // Reset UI
     document.getElementById('cheaterProgressSection').style.display = 'none';
     document.getElementById('cheaterResultsSection').style.display = 'none';
     document.getElementById('cheaterError').style.display = 'none';
 }
+
+function updateCheaterMonthDisplay() {
+    const input = document.getElementById('cheaterMonth');
+    const display = document.getElementById('cheaterMonthDisplay');
+    if (!input || !display) return;
+    display.textContent = input.value ? `Selected month: ${input.value}` : 'Select a month';
+}
+
+document.getElementById('cheaterMonth')?.addEventListener('change', updateCheaterMonthDisplay);
 
 document.getElementById('cheaterSearchBtn').addEventListener('click', async () => {
     const username = document.getElementById('cheaterUsername').value.trim();

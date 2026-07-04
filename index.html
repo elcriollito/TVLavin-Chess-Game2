@@ -121,7 +121,7 @@
                     <i class="fas fa-sign-in-alt"></i>
                     <span class="nav-label">Sign In</span>
                 </a>
-                <div class="nav-auth-user nav-auth-signed-in" id="sidebarUserInfo" style="display: none;">
+                <button type="button" class="nav-auth-user nav-auth-signed-in" id="sidebarUserInfo" style="display: none;" aria-label="Account menu" aria-expanded="false">
                     <div class="nav-auth-avatar" id="sidebarUserAvatar">
                         <span class="nav-auth-initials">U</span>
                     </div>
@@ -129,6 +129,17 @@
                         <span class="nav-auth-name" id="sidebarUserName">User</span>
                         <span class="nav-auth-tier" id="sidebarUserTier">Free</span>
                     </div>
+                    <i class="fas fa-chevron-down nav-auth-menu-caret" aria-hidden="true"></i>
+                </button>
+                <div class="nav-auth-menu" id="sidebarAuthMenu" role="menu" aria-hidden="true" hidden>
+                    <button type="button" class="nav-auth-menu-item" id="sidebarAccountBtn" role="menuitem">
+                        <i class="fas fa-user-circle" aria-hidden="true"></i>
+                        <span>Account</span>
+                    </button>
+                    <button type="button" class="nav-auth-menu-item nav-auth-menu-signout" id="sidebarSignOutBtn" role="menuitem">
+                        <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                        <span>Sign Out</span>
+                    </button>
                 </div>
             </div>
 
@@ -1566,6 +1577,10 @@
                                         <strong>Waiting</strong>
                                     </div>
                                     <div class="spectator-context-row">
+                                        <span>Result</span>
+                                        <strong>—</strong>
+                                    </div>
+                                    <div class="spectator-context-row">
                                         <span>Status</span>
                                         <strong>Not watching</strong>
                                     </div>
@@ -2555,8 +2570,9 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="cheaterMonth">Month (YYYY-MM):</label>
+                            <label for="cheaterMonth">Month:</label>
                             <input type="month" id="cheaterMonth" class="form-control" required aria-label="Select month" />
+                            <div id="cheaterMonthDisplay" class="cheater-month-display" aria-live="polite">Selected month: --</div>
                         </div>
 
                         <div class="form-group">

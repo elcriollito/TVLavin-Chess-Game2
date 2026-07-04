@@ -126,9 +126,36 @@
                         formButtonPrimary: {
                             backgroundColor: '#4ecdc4',
                             color: '#0b0f1a',
+                            fontWeight: '700',
                             '&:hover': {
                                 backgroundColor: '#3dbdb5'
                             }
+                        },
+                        socialButtonsBlockButton: {
+                            backgroundColor: '#f8fafc',
+                            border: '1px solid rgba(255, 255, 255, 0.85)',
+                            boxShadow: '0 10px 24px rgba(0, 0, 0, 0.28)',
+                            color: '#0b0f1a',
+                            fontWeight: '700',
+                            minHeight: '46px',
+                            '&:hover': {
+                                backgroundColor: '#ffffff',
+                                borderColor: '#4ecdc4'
+                            }
+                        },
+                        socialButtonsBlockButtonText: {
+                            color: '#0b0f1a',
+                            fontWeight: '700'
+                        },
+                        dividerLine: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.22)'
+                        },
+                        dividerText: {
+                            color: '#d7dde8',
+                            fontSize: '12px',
+                            fontWeight: '700',
+                            letterSpacing: '0.04em',
+                            textTransform: 'uppercase'
                         }
                     }
                 }

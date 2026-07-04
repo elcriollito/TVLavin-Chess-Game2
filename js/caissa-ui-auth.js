@@ -45,6 +45,9 @@
                 if (this.isDropdownOpen && !e.target.closest('.caissa-auth-container')) {
                     this.closeDropdown();
                 }
+                if (!e.target.closest('#sidebarAuthArea')) {
+                    this.closeSidebarMenu();
+                }
             });
 
             // Initial render if auth is already loaded
@@ -107,6 +110,9 @@
             const userName = document.getElementById('sidebarUserName');
             const userTier = document.getElementById('sidebarUserTier');
             const userAvatar = document.getElementById('sidebarUserAvatar');
+            const sidebarMenu = document.getElementById('sidebarAuthMenu');
+            const accountBtn = document.getElementById('sidebarAccountBtn');
+            const signOutBtn = document.getElementById('sidebarSignOutBtn');
 
             if (!signInBtn || !userInfo) return;
 
@@ -114,6 +120,7 @@
                 // Hide sign in button, show user info
                 signInBtn.style.display = 'none';
                 userInfo.style.display = 'flex';
+                userInfo.setAttribute('aria-expanded', 'false');
 
                 // Update user details
                 if (userName) {
@@ -140,15 +147,70 @@
                     }
                 }
 
-                // Make user info clickable to show dropdown
-                userInfo.onclick = () => {
-                    this.toggleDropdown();
+                userInfo.onclick = (event) => {
+                    event.stopPropagation();
+                    this.toggleSidebarMenu();
                 };
+
+                if (accountBtn && !accountBtn.dataset.bound) {
+                    accountBtn.dataset.bound = 'true';
+                    accountBtn.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        this.closeSidebarMenu();
+                        this.toggleDropdown();
+                    });
+                }
+
+                if (signOutBtn && !signOutBtn.dataset.bound) {
+                    signOutBtn.dataset.bound = 'true';
+                    signOutBtn.addEventListener('click', async (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        this.closeSidebarMenu();
+                        await this.handleSignOut();
+                    });
+                }
             } else {
                 // Show sign in button, hide user info
                 signInBtn.style.display = 'flex';
                 userInfo.style.display = 'none';
+                this.closeSidebarMenu();
+                if (sidebarMenu) {
+                    sidebarMenu.hidden = true;
+                    sidebarMenu.setAttribute('aria-hidden', 'true');
+                }
             }
+        },
+
+        toggleSidebarMenu: function() {
+            const menu = document.getElementById('sidebarAuthMenu');
+            if (!menu) return;
+            if (menu.hidden) {
+                this.openSidebarMenu();
+            } else {
+                this.closeSidebarMenu();
+            }
+        },
+
+        openSidebarMenu: function() {
+            const menu = document.getElementById('sidebarAuthMenu');
+            const userInfo = document.getElementById('sidebarUserInfo');
+            if (!menu) return;
+            menu.hidden = false;
+            menu.classList.add('open');
+            menu.setAttribute('aria-hidden', 'false');
+            userInfo?.setAttribute('aria-expanded', 'true');
+        },
+
+        closeSidebarMenu: function() {
+            const menu = document.getElementById('sidebarAuthMenu');
+            const userInfo = document.getElementById('sidebarUserInfo');
+            if (!menu) return;
+            menu.classList.remove('open');
+            menu.hidden = true;
+            menu.setAttribute('aria-hidden', 'true');
+            userInfo?.setAttribute('aria-expanded', 'false');
         },
 
         /**

@@ -100,6 +100,8 @@
                 if (this.pendingFeaturedWatch && activeTables.length) this.observeFeaturedCandidate();
             } else if (detail.event === 'style12') {
                 this.renderStyle12(detail.payload);
+            } else if (detail.event === 'game-ended') {
+                this.renderGameEnded(detail.payload);
             } else if (detail.event === 'disconnected') {
                 this.handleDisconnected();
             }
@@ -359,6 +361,24 @@
             this.render();
         },
 
+        renderGameEnded(payload = {}) {
+            const liveGame = payload.liveGame || {};
+            if (!liveGame.gameNumber && !this.state?.currentObservedGameId) return;
+            const expectedGameId = this.state?.currentObservedGameId;
+            if (expectedGameId && liveGame.gameNumber && String(expectedGameId) !== String(liveGame.gameNumber)) {
+                return;
+            }
+            this.transition(window.CaissaSpectatorTV.STATES.GAME_FINISHED, {
+                metadata: {
+                    ...(this.state?.metadata || {}),
+                    result: payload.result || this.normalizeGameResult(payload.resultLine || liveGame.result)
+                }
+            });
+            this.renderLiveContext(liveGame, payload.moveHistory || []);
+            this.renderGameStatus(liveGame);
+            this.render();
+        },
+
         renderPlayers(liveGame) {
             const table = window.CaissaFICSClient?.getActiveTableForGame?.(liveGame.gameNumber);
             this.renderPlayerBar(this.elements.topPlayer, {
@@ -520,6 +540,7 @@
                 <div class="spectator-context-row"><span>Time</span><strong>${this.escapeHtml(context.timeControl)}</strong></div>
                 <div class="spectator-context-row"><span>Move</span><strong>${this.escapeHtml(context.currentMove)}</strong></div>
                 <div class="spectator-context-row"><span>Phase</span><strong>${this.escapeHtml(context.phase)}</strong></div>
+                <div class="spectator-context-row"><span>Result</span><strong>${this.escapeHtml(context.result)}</strong></div>
                 <div class="spectator-context-row"><span>Status</span>${statusBadge}</div>
             `;
         },
@@ -529,6 +550,8 @@
             const game = gameId ? this.catalog?.gameMap?.[String(gameId)] : null;
             const opening = this.resolveOpening(moveHistory);
             const plyCount = Array.isArray(moveHistory) ? moveHistory.length : 0;
+            const result = this.normalizeGameResult(liveGame?.result || this.state?.metadata?.result);
+            const finished = result !== '—' || liveGame?.status === 'ended' || this.state?.status === window.CaissaSpectatorTV?.STATES.GAME_FINISHED;
             return {
                 openingName: opening.name,
                 ecoCode: opening.eco || '--',
@@ -537,8 +560,18 @@
                 timeControl: game?.timeControl || 'live',
                 currentMove: plyCount ? String(Math.ceil(plyCount / 2)) : '--',
                 phase: this.getGamePhase(liveGame?.currentFen, plyCount),
-                status: liveGame?.gameNumber ? 'Live' : 'Not watching'
+                result,
+                status: finished ? 'Finished' : liveGame?.gameNumber ? 'Live' : 'Not watching'
             };
+        },
+
+        normalizeGameResult(value) {
+            const text = String(value || '').trim();
+            if (!text) return '—';
+            if (/\b1-0\b/.test(text)) return '1-0';
+            if (/\b0-1\b/.test(text)) return '0-1';
+            if (/1\/2-1\/2|drawn|draw/i.test(text)) return '1/2-1/2';
+            return '—';
         },
 
         resolveOpening(moveHistory = []) {

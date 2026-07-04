@@ -2848,6 +2848,13 @@ button:focus,
     margin-right: 8px;
 }
 
+.cheater-month-display {
+    margin-top: 6px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+}
+
 .cheater-value-proposition {
     padding: var(--spacing-lg);
     background: linear-gradient(135deg, #2a2215 0%, #1f1a10 100%);
@@ -4566,6 +4573,7 @@ button:focus,
 .nav-auth-area {
     padding: 12px 16px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
 }
 
 .nav-auth-btn {
@@ -4597,14 +4605,20 @@ button:focus,
     display: flex;
     align-items: center;
     gap: 12px;
+    width: 100%;
     padding: 8px;
+    border: 0;
     border-radius: 8px;
+    background: transparent;
     cursor: pointer;
     transition: background 0.2s;
+    text-align: left;
 }
 
-.nav-auth-user:hover {
+.nav-auth-user:hover,
+.nav-auth-user:focus-visible {
     background: rgba(255, 255, 255, 0.1);
+    outline: none;
 }
 
 .nav-auth-avatar {
@@ -4635,6 +4649,7 @@ button:focus,
     display: flex;
     flex-direction: column;
     min-width: 0;
+    flex: 1;
 }
 
 .nav-auth-name {
@@ -4653,6 +4668,64 @@ button:focus,
 
 .nav-auth-tier.premium {
     color: var(--accent-color);
+}
+
+.nav-auth-menu-caret {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 11px;
+    transition: transform 0.2s ease;
+}
+
+.nav-auth-user[aria-expanded="true"] .nav-auth-menu-caret {
+    transform: rotate(180deg);
+}
+
+.nav-auth-menu {
+    display: grid;
+    gap: 4px;
+    margin-top: 8px;
+    padding: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.96);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.nav-auth-menu[hidden] {
+    display: none;
+}
+
+.nav-auth-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    font-size: 13px;
+    text-align: left;
+    transition: background 0.2s, color 0.2s;
+}
+
+.nav-auth-menu-item:hover,
+.nav-auth-menu-item:focus-visible {
+    background: rgba(78, 205, 196, 0.12);
+    color: white;
+    outline: none;
+}
+
+.nav-auth-menu-item i {
+    width: 16px;
+    color: var(--primary-color);
+    text-align: center;
+}
+
+.nav-auth-menu-signout i {
+    color: #ff6b6b;
 }
 
 /* Collapsed nav auth */
@@ -4675,6 +4748,11 @@ button:focus,
 
 .nav-collapsed .nav-auth-user {
     justify-content: center;
+}
+
+.nav-collapsed .nav-auth-menu,
+.nav-collapsed .nav-auth-menu-caret {
+    display: none;
 }
 
 /* ===== HIDE FABs ON MOBILE ===== */
