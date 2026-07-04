@@ -2,7 +2,7 @@
  * CAISSA Auth Configuration
  *
  * Clerk publishable key - safe to expose in client-side code.
- * For production, /api/auth/config supplies this from Vercel environment
+ * For production, /api/public-auth-config supplies this from Vercel environment
  * variables so secrets stay server-side and static files do not need edits.
  *
  * To get your Clerk publishable key:
@@ -13,7 +13,7 @@
  */
 
 const CAISSA_AUTH_CONFIG = {
-    // Fallback only. Production should hydrate this from /api/auth/config.
+    // Fallback only. Production should hydrate this from /api/public-auth-config.
     CLERK_PUBLISHABLE_KEY: 'pk_test_REPLACE_WITH_YOUR_KEY',
     REGISTRATION_TRACKING_AVAILABLE: false,
 
@@ -45,7 +45,7 @@ const CAISSA_AUTH_CONFIG = {
 window.CAISSA_AUTH_CONFIG = CAISSA_AUTH_CONFIG;
 window.CAISSA_AUTH_CONFIG_READY = (async function loadPublicAuthConfig() {
     try {
-        const response = await fetch('/api/auth/config', {
+        const response = await fetch('/api/public-auth-config', {
             method: 'GET',
             headers: { 'Accept': 'application/json' },
             cache: 'no-store'
