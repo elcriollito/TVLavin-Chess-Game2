@@ -22,6 +22,7 @@ const CaissaNavigation = {
         insights: null,    // Future: insights-section.js
         history: null,     // Future: history-section.js
         arena: null,       // Future: arena-section.js
+        yahooClassic: null, // CAISSA Classic page foundation
         library: null,     // Opens library panel (existing)
         premium: null,     // Redirect to /premium
         settings: null     // Future: settings-section.js
@@ -589,7 +590,8 @@ const CaissaNavigation = {
                 insights: 'Insights',
                 history: 'History',
                 arena: 'Arena',
-                spectator: 'Spectator TV'
+                spectator: 'Spectator TV',
+                yahooClassic: 'Yahoo Classic'
             };
             this.elements.sectionNameDisplay.textContent = names[sectionId] || 'CAISSA';
         }
@@ -624,7 +626,14 @@ const CaissaNavigation = {
                 const urlParams = new URLSearchParams(window.location.search);
                 const hasExplicitSection = urlParams.has('section');
 
-                if (hasExplicitSection) {
+                const pathSections = {
+                    '/yahoo-classic': 'yahooClassic'
+                };
+                const pathSection = pathSections[window.location.pathname];
+
+                if (pathSection) {
+                    this.currentSection = pathSection;
+                } else if (hasExplicitSection) {
                     // URL override (e.g., ?section=arena)
                     this.currentSection = urlParams.get('section') || 'play';
                 } else {
@@ -641,8 +650,14 @@ const CaissaNavigation = {
                 console.log('[CAISSA Nav] State restored. Default section: play (localStorage ignored for section)');
             } else {
                 // No saved state - fresh visit
-                this.currentSection = 'play';
-                console.log('[CAISSA Nav] No saved state. Starting with: play');
+                const pathSections = {
+                    '/yahoo-classic': 'yahooClassic'
+                };
+                const urlParams = new URLSearchParams(window.location.search);
+                this.currentSection = pathSections[window.location.pathname]
+                    || (urlParams.has('section') ? urlParams.get('section') : null)
+                    || 'play';
+                console.log('[CAISSA Nav] No saved state. Starting with:', this.currentSection);
             }
         } catch (e) {
             console.error('[CAISSA Nav] Failed to restore state:', e);

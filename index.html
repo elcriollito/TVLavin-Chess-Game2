@@ -63,6 +63,7 @@
     <link rel="stylesheet" href="css/caissa-onboarding.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-dos-chess.css?v=1.0.1">
     <link rel="stylesheet" href="css/fics-client.css?v=1.2.5">
+    <link rel="stylesheet" href="css/yahoo-classic.css?v=1.0.0">
     <link rel="stylesheet" href="css/opening-book.css?v=1.0.0">
 </head>
 <body>
@@ -191,6 +192,11 @@
                 <button class="nav-item" data-section="spectator" aria-label="Spectator TV">
                     <i class="fas fa-tv"></i>
                     <span class="nav-label">Spectator TV</span>
+                </button>
+
+                <button class="nav-item" data-section="yahooClassic" aria-label="Yahoo Chess Classic inspired lounge">
+                    <i class="fas fa-window-restore"></i>
+                    <span class="nav-label">Yahoo Classic</span>
                 </button>
 
                 <div class="nav-divider"></div>
@@ -1451,6 +1457,151 @@
                             <p>Game bundle not installed yet.</p>
                             <small>Add the game ZIP file to <code>/public/dos/games/</code> to play.</small>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: CAISSA Classic (Yahoo Chess inspired foundation) -->
+            <section id="yahooClassicSection" class="content-section">
+                <div class="yc-page" aria-labelledby="ycPageTitle">
+                    <div class="yc-shell" role="application" aria-label="CAISSA Classic retro chess lounge">
+                        <header class="yc-header">
+                            <div class="yc-brand">
+                                <div class="yc-brand-mark" aria-hidden="true">C</div>
+                                <div>
+                                    <h2 id="ycPageTitle">CAISSA Classic</h2>
+                                    <p>Retro Chess Lounge - lobby foundation preview</p>
+                                </div>
+                            </div>
+                            <div class="yc-room-tabs" aria-label="Classic lounge rooms">
+                                <button class="yc-tab active" type="button">Coyote Gulch</button>
+                                <button class="yc-tab" type="button">Beginner</button>
+                                <button class="yc-tab" type="button">Social</button>
+                                <button class="yc-tab" type="button">Tournament</button>
+                            </div>
+                        </header>
+
+                        <main class="yc-workspace">
+                            <aside class="yc-sidebar" aria-label="Classic actions">
+                                <div class="yc-panel yc-actions-panel">
+                                    <div class="yc-panel-title">Games</div>
+                                    <button class="yc-classic-button primary" type="button">Play Now</button>
+                                    <button class="yc-classic-button" type="button">Create Table</button>
+                                    <button class="yc-classic-button" type="button">Join Table</button>
+                                    <button class="yc-classic-button" type="button">Watch Table</button>
+                                </div>
+                                <div class="yc-panel yc-actions-panel">
+                                    <div class="yc-panel-title">Controls</div>
+                                    <button class="yc-classic-button" type="button">Options</button>
+                                    <button class="yc-classic-button" type="button">Help</button>
+                                    <button class="yc-classic-button" type="button">Exit Games</button>
+                                </div>
+                                <div class="yc-status-card">
+                                    <strong>Classic Preview</strong>
+                                    <span>Demo lobby data only. FICS wiring arrives in a later phase.</span>
+                                </div>
+                            </aside>
+
+                            <section class="yc-table-panel" aria-labelledby="ycTablesTitle">
+                                <div class="yc-panel-heading">
+                                    <h3 id="ycTablesTitle">Room Tables</h3>
+                                    <span>42 players - 8 tables</span>
+                                </div>
+                                <div class="yc-table-grid" role="table" aria-label="Classic room tables">
+                                    <div class="yc-table-row yc-table-head" role="row">
+                                        <span role="columnheader">Table</span>
+                                        <span role="columnheader">White</span>
+                                        <span role="columnheader">Black</span>
+                                        <span role="columnheader">Who's Watching</span>
+                                        <span role="columnheader">Options</span>
+                                    </div>
+                                    <div class="yc-table-row" role="row">
+                                        <span role="cell">#14</span>
+                                        <span role="cell">MesaRook</span>
+                                        <span role="cell">DesertKnight</span>
+                                        <span role="cell">7</span>
+                                        <span role="cell">5 min rated</span>
+                                    </div>
+                                    <div class="yc-table-row waiting" role="row">
+                                        <span role="cell">#18</span>
+                                        <span role="cell">Open Seat</span>
+                                        <span role="cell">CafeBishop</span>
+                                        <span role="cell">2</span>
+                                        <span role="cell">10 min unrated</span>
+                                    </div>
+                                    <div class="yc-table-row" role="row">
+                                        <span role="cell">#21</span>
+                                        <span role="cell">OlivePawn</span>
+                                        <span role="cell">BlueCastle</span>
+                                        <span role="cell">11</span>
+                                        <span role="cell">3+2 blitz</span>
+                                    </div>
+                                    <div class="yc-table-row waiting" role="row">
+                                        <span role="cell">#32</span>
+                                        <span role="cell">CoyoteGuest</span>
+                                        <span role="cell">Open Seat</span>
+                                        <span role="cell">0</span>
+                                        <span role="cell">1+0 bullet</span>
+                                    </div>
+                                    <div class="yc-table-row" role="row">
+                                        <span role="cell">#45</span>
+                                        <span role="cell">RetroQueen</span>
+                                        <span role="cell">TahomaKing</span>
+                                        <span role="cell">4</span>
+                                        <span role="cell">15+10 casual</span>
+                                    </div>
+                                    <div class="yc-table-row" role="row">
+                                        <span role="cell">#51</span>
+                                        <span role="cell">VioletFile</span>
+                                        <span role="cell">OrangeRank</span>
+                                        <span role="cell">5</span>
+                                        <span role="cell">5+5 rated</span>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <aside class="yc-player-panel" aria-labelledby="ycPlayersTitle">
+                                <div class="yc-panel-heading">
+                                    <h3 id="ycPlayersTitle">Players</h3>
+                                    <span>Coyote Gulch</span>
+                                </div>
+                                <div class="yc-player-list" role="table" aria-label="Classic player list">
+                                    <div class="yc-player-row yc-player-head" role="row">
+                                        <span role="columnheader">Name</span>
+                                        <span role="columnheader">Rating</span>
+                                        <span role="columnheader">Tbl</span>
+                                    </div>
+                                    <div class="yc-player-row" role="row"><span>MesaRook</span><span>1820</span><span>14</span></div>
+                                    <div class="yc-player-row" role="row"><span>DesertKnight</span><span>1764</span><span>14</span></div>
+                                    <div class="yc-player-row" role="row"><span>CafeBishop</span><span>1543</span><span>18</span></div>
+                                    <div class="yc-player-row" role="row"><span>BlueCastle</span><span>1902</span><span>21</span></div>
+                                    <div class="yc-player-row" role="row"><span>RetroQueen</span><span>1688</span><span>45</span></div>
+                                    <div class="yc-player-row" role="row"><span>CoyoteGuest</span><span>Guest</span><span>32</span></div>
+                                    <div class="yc-player-row" role="row"><span>OrangeRank</span><span>1711</span><span>51</span></div>
+                                </div>
+                            </aside>
+                        </main>
+
+                        <section class="yc-chat-panel" aria-labelledby="ycChatTitle">
+                            <div class="yc-chat-status">
+                                <strong id="ycChatTitle">Coyote Gulch</strong>
+                                <span>Welcome to CAISSA Classic. Please be courteous.</span>
+                            </div>
+                            <div class="yc-chat-body" aria-label="Classic chat log">
+                                <p><strong>System:</strong> Demo room opened. Live chat is not connected yet.</p>
+                                <p><strong>MesaRook:</strong> gg at table 14</p>
+                                <p><strong>CafeBishop:</strong> looking for 10 min unrated</p>
+                            </div>
+                            <label class="yc-say-row">
+                                <span>Say:</span>
+                                <input type="text" value="" placeholder="Chat is a visual placeholder in this foundation phase" aria-label="Classic chat input preview" disabled>
+                            </label>
+                        </section>
+
+                        <footer class="yc-browser-status" aria-label="Classic browser status bar">
+                            <span>Done</span>
+                            <span>Internet</span>
+                        </footer>
                     </div>
                 </div>
             </section>
@@ -3073,6 +3224,7 @@
     <script src="position-forge-ui.js?v=1.0.0"></script>
     <!-- Navigation Module (Phase 1: UX Redesign) -->
     <script src="js/caissa-navigation.js?v=1.0.1"></script>
+    <script src="js/yahoo-classic-section.js?v=1.0.0"></script>
     <script src="js/caissa-ui-refactor.js?v=1.0.0"></script>
     <script src="js/engine-adapter.js?v=1.0.0"></script>
     <script src="js/engine-registry.js?v=1.0.0"></script>

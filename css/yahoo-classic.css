@@ -1,0 +1,361 @@
+/*
+ * CAISSA Classic - Season 4.3A page foundation
+ * Retro chess lounge inspired by late-90s/early-2000s chess lobbies.
+ * Scoped with yc- classes so it does not affect production pages.
+ */
+
+#yahooClassicSection {
+    background: #7f8660;
+}
+
+#yahooClassicSection.active {
+    display: block;
+}
+
+.yc-page {
+    min-height: calc(100vh - 80px);
+    padding: 18px;
+    overflow: auto;
+    background:
+        linear-gradient(90deg, rgba(65, 72, 45, 0.12) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(65, 72, 45, 0.12) 1px, transparent 1px),
+        #858c63;
+    background-size: 18px 18px;
+    color: #111;
+    font-family: Tahoma, Arial, sans-serif;
+}
+
+.yc-shell {
+    max-width: 1280px;
+    min-height: 760px;
+    margin: 0 auto;
+    border: 2px solid #4b4b4b;
+    background: #d8d0ac;
+    box-shadow:
+        inset 2px 2px 0 #fff8dc,
+        inset -2px -2px 0 #6c674f,
+        0 18px 42px rgba(0, 0, 0, 0.35);
+}
+
+.yc-header {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) auto;
+    gap: 14px;
+    align-items: end;
+    padding: 10px 12px 8px;
+    border-bottom: 2px solid #5a4e87;
+    background: linear-gradient(180deg, #f5e7b2 0%, #d58a2e 100%);
+}
+
+.yc-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.yc-brand-mark {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border: 2px solid #3f3274;
+    background: #5d4495;
+    color: #ffe682;
+    font-family: Georgia, serif;
+    font-size: 27px;
+    font-weight: 700;
+    box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.45), inset -2px -2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.yc-brand h2 {
+    margin: 0;
+    color: #2f2765;
+    font-size: 26px;
+    line-height: 1;
+    letter-spacing: 0;
+}
+
+.yc-brand p {
+    margin: 3px 0 0;
+    color: #402b18;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.yc-room-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: flex-end;
+}
+
+.yc-tab,
+.yc-classic-button {
+    min-height: 28px;
+    border: 2px solid;
+    border-color: #fff8dc #65605a #65605a #fff8dc;
+    background: #d9d2bb;
+    color: #111;
+    cursor: pointer;
+    font-family: Tahoma, Arial, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    box-shadow: 1px 1px 0 #2f2f2f;
+}
+
+.yc-tab {
+    padding: 4px 10px;
+}
+
+.yc-tab.active {
+    background: #5d4495;
+    color: #fff8dc;
+    border-color: #c6b8ef #342365 #342365 #c6b8ef;
+}
+
+.yc-workspace {
+    display: grid;
+    grid-template-columns: 168px minmax(460px, 1fr) 230px;
+    gap: 8px;
+    padding: 8px;
+    align-items: stretch;
+}
+
+.yc-sidebar,
+.yc-player-panel,
+.yc-table-panel,
+.yc-chat-panel {
+    min-width: 0;
+    border: 2px solid;
+    border-color: #6a664f #fff8dc #fff8dc #6a664f;
+    background: #c8c0a0;
+    box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.22);
+}
+
+.yc-sidebar {
+    display: grid;
+    gap: 8px;
+    align-content: start;
+    padding: 8px;
+}
+
+.yc-panel {
+    border: 2px solid;
+    border-color: #fff8dc #6a664f #6a664f #fff8dc;
+    background: #dcd3b0;
+    padding: 7px;
+}
+
+.yc-panel-title,
+.yc-panel-heading {
+    border-bottom: 1px solid #6d6648;
+    color: #2f2765;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.yc-panel-title {
+    margin-bottom: 7px;
+    padding-bottom: 5px;
+}
+
+.yc-actions-panel {
+    display: grid;
+    gap: 6px;
+}
+
+.yc-classic-button {
+    width: 100%;
+    padding: 4px 8px;
+    text-align: left;
+}
+
+.yc-classic-button.primary {
+    background: #f4d36b;
+}
+
+.yc-classic-button:active,
+.yc-tab:active {
+    border-color: #65605a #fff8dc #fff8dc #65605a;
+    box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+.yc-status-card {
+    display: grid;
+    gap: 4px;
+    padding: 7px;
+    border: 1px solid #6d6648;
+    background: #efe6c5;
+    color: #333;
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.yc-panel-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+    padding: 6px 8px;
+    background: #e4d9b9;
+}
+
+.yc-panel-heading h3 {
+    margin: 0;
+    font-size: 13px;
+}
+
+.yc-panel-heading span {
+    color: #4f4a3d;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.yc-table-grid,
+.yc-player-list {
+    display: grid;
+    background: #fff7dc;
+    font-size: 12px;
+}
+
+.yc-table-row {
+    display: grid;
+    grid-template-columns: 62px minmax(110px, 1fr) minmax(110px, 1fr) 118px minmax(130px, 0.9fr);
+    min-height: 28px;
+}
+
+.yc-player-row {
+    display: grid;
+    grid-template-columns: minmax(86px, 1fr) 62px 42px;
+    min-height: 27px;
+}
+
+.yc-table-row span,
+.yc-player-row span {
+    min-width: 0;
+    padding: 5px 6px;
+    border-right: 1px solid #b6ad85;
+    border-bottom: 1px solid #b6ad85;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.yc-table-head,
+.yc-player-head {
+    background: #2e5391;
+    color: #fff;
+    font-weight: 700;
+}
+
+.yc-table-row:not(.yc-table-head):nth-child(odd),
+.yc-player-row:not(.yc-player-head):nth-child(odd) {
+    background: #f6edcc;
+}
+
+.yc-table-row.waiting {
+    background: #fff2b8;
+}
+
+.yc-chat-panel {
+    margin: 0 8px 8px;
+}
+
+.yc-chat-status {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 5px 8px;
+    background: #d68021;
+    color: #fff7dc;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.yc-chat-body {
+    height: 94px;
+    overflow-y: auto;
+    padding: 6px 8px;
+    background: #fff7dc;
+    color: #111;
+    font-size: 12px;
+}
+
+.yc-chat-body p {
+    margin: 0 0 4px;
+}
+
+.yc-say-row {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 6px;
+    align-items: center;
+    padding: 6px 8px;
+    border-top: 1px solid #8a805e;
+    background: #d8d0ac;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.yc-say-row input {
+    min-width: 0;
+    padding: 5px 7px;
+    border: 2px solid;
+    border-color: #6a664f #fff8dc #fff8dc #6a664f;
+    background: #efe8ce;
+    color: #555;
+    font-family: Tahoma, Arial, sans-serif;
+    font-size: 12px;
+}
+
+.yc-browser-status {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 8px;
+    border-top: 1px solid #6a664f;
+    background: #d9d2bb;
+    color: #333;
+    font-size: 11px;
+}
+
+@media (max-width: 1180px) {
+    .yc-workspace {
+        grid-template-columns: 160px minmax(0, 1fr);
+    }
+
+    .yc-player-panel {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 760px) {
+    .yc-page {
+        padding: 10px;
+    }
+
+    .yc-shell {
+        min-height: 0;
+    }
+
+    .yc-header,
+    .yc-workspace {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .yc-room-tabs {
+        justify-content: flex-start;
+    }
+
+    .yc-table-panel {
+        overflow-x: auto;
+    }
+
+    .yc-table-row {
+        min-width: 650px;
+    }
+
+    .yc-chat-status {
+        display: grid;
+    }
+}
