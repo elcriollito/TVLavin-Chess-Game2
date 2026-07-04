@@ -1541,6 +1541,51 @@
                             </aside>
                         </main>
 
+                        <section id="ycGameWindow" class="yc-game-window" aria-label="Classic game table" aria-hidden="true">
+                            <aside class="yc-game-controls" aria-label="Classic table controls">
+                                <div class="yc-panel yc-actions-panel">
+                                    <div class="yc-panel-title">Table</div>
+                                    <button id="ycSitBtn" class="yc-classic-button primary" type="button">Sit</button>
+                                    <button id="ycStandBtn" class="yc-classic-button" type="button">Stand</button>
+                                    <button id="ycDrawBtn" class="yc-classic-button" type="button" disabled>Offer Draw</button>
+                                    <button id="ycResignBtn" class="yc-classic-button" type="button" disabled>Resign</button>
+                                    <button id="ycTakebackBtn" class="yc-classic-button" type="button" disabled>Takeback</button>
+                                    <button id="ycOptionsBtn" class="yc-classic-button" type="button" disabled>Options</button>
+                                    <button id="ycSoundBtn" class="yc-classic-button" type="button" disabled>Sound</button>
+                                </div>
+                                <div class="yc-status-card">
+                                    <strong id="ycGameMode">No Table</strong>
+                                    <span id="ycGameDetail">Watch or join a room table to open the classic board.</span>
+                                </div>
+                            </aside>
+
+                            <main class="yc-game-board-panel" aria-label="Classic chess board">
+                                <div id="ycBlackPlayerBar" class="yc-game-player black" role="group" aria-label="Black player">
+                                    <span class="yc-turn-led" aria-hidden="true"></span>
+                                    <span class="yc-player-name">Black</span>
+                                    <span class="yc-player-rating">FICS</span>
+                                    <strong class="yc-player-clock">--:--</strong>
+                                </div>
+                                <div id="ycClassicBoard" class="yc-classic-board"></div>
+                                <div id="ycWhitePlayerBar" class="yc-game-player white" role="group" aria-label="White player">
+                                    <span class="yc-turn-led" aria-hidden="true"></span>
+                                    <span class="yc-player-name">White</span>
+                                    <span class="yc-player-rating">FICS</span>
+                                    <strong class="yc-player-clock">--:--</strong>
+                                </div>
+                            </main>
+
+                            <aside class="yc-move-panel" aria-labelledby="ycMoveTitle">
+                                <div class="yc-panel-heading">
+                                    <h3 id="ycMoveTitle">Moves</h3>
+                                    <span id="ycGameMeta">No table</span>
+                                </div>
+                                <div id="ycMoveList" class="yc-classic-move-list" aria-live="polite">
+                                    <div class="yc-move-empty">Moves will appear when the table updates.</div>
+                                </div>
+                            </aside>
+                        </section>
+
                         <section class="yc-chat-panel" aria-labelledby="ycChatTitle">
                             <div class="yc-chat-status">
                                 <strong id="ycChatTitle">Coyote Gulch</strong>

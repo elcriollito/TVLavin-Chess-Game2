@@ -18,6 +18,13 @@
         activeTables: [],
         seekActions: [],
         catalog: null,
+        tableOpen: false,
+        currentTableId: null,
+        currentTableMeta: null,
+        liveGame: null,
+        moveHistory: [],
+        board: null,
+        lastRenderedFen: null,
         systemMessages: ['Connect to FICS to receive lobby status.'],
 
         init() {
@@ -36,7 +43,18 @@
                 tableGrid: document.getElementById('ycTableGrid'),
                 playerList: document.getElementById('ycPlayerList'),
                 chatBody: document.getElementById('ycChatBody'),
-                browserStatus: document.getElementById('ycBrowserStatus')
+                browserStatus: document.getElementById('ycBrowserStatus'),
+                shell: document.querySelector('#yahooClassicSection .yc-shell'),
+                gameWindow: document.getElementById('ycGameWindow'),
+                classicBoard: document.getElementById('ycClassicBoard'),
+                whitePlayerBar: document.getElementById('ycWhitePlayerBar'),
+                blackPlayerBar: document.getElementById('ycBlackPlayerBar'),
+                moveList: document.getElementById('ycMoveList'),
+                gameMode: document.getElementById('ycGameMode'),
+                gameDetail: document.getElementById('ycGameDetail'),
+                gameMeta: document.getElementById('ycGameMeta'),
+                sitBtn: document.getElementById('ycSitBtn'),
+                standBtn: document.getElementById('ycStandBtn')
             };
         },
 
@@ -47,6 +65,8 @@
             window.addEventListener('caissa:fics:style12', (event) => this.handleFicsEvent(event.detail));
             window.addEventListener('caissa:fics:game-ended', (event) => this.handleFicsEvent(event.detail));
             window.addEventListener('caissa:fics:disconnected', (event) => this.handleFicsEvent(event.detail));
+            this.elements.standBtn?.addEventListener('click', () => this.standFromTable());
+            this.elements.sitBtn?.addEventListener('click', () => this.addSystemMessage('Choose Join from a waiting table to sit.'));
         },
 
         onEnter() {
@@ -86,9 +106,9 @@
                 this.updateCatalog();
                 this.addSystemMessage('Receiving lobby...');
             } else if (event === 'style12') {
-                const gameNumber = payload.liveGame?.gameNumber;
-                if (gameNumber) this.addSystemMessage(`Watching table ${gameNumber}.`);
+                this.handleStyle12(payload);
             } else if (event === 'game-ended') {
+                if (payload.liveGame) this.liveGame = { ...payload.liveGame };
                 this.addSystemMessage('Observed game finished.');
             } else if (event === 'disconnected') {
                 this.handleDisconnected(false);
@@ -102,6 +122,7 @@
             this.activeTables = [];
             this.seekActions = [];
             this.catalog = window.CaissaSpectatorTVCatalog?.clearCatalog?.() || null;
+            this.closeTable(false);
             this.addSystemMessage('Disconnected.');
             if (render) this.render();
         },
@@ -114,6 +135,12 @@
             this.activeTables = Array.isArray(client.activeTables) ? client.activeTables.map((table) => ({ ...table })) : [];
             this.seekActions = Array.isArray(client.seekActions) ? client.seekActions.map((seek) => ({ ...seek })) : [];
             this.updateCatalog();
+            if (client.liveGame?.currentFen) {
+                this.handleStyle12({
+                    liveGame: { ...client.liveGame },
+                    moveHistory: client.moveHistory?.map((move) => ({ ...move })) || []
+                }, false);
+            }
 
             if (this.authenticated) {
                 this.addSystemMessage(this.activeTables.length || this.seekActions.length
@@ -151,6 +178,7 @@
             this.renderSummary();
             this.renderTables();
             this.renderPlayers();
+            this.renderGameExperience();
             this.renderChat();
             this.renderStatusBar();
         },
@@ -292,6 +320,7 @@
 
             if (rowData.action === 'watch') {
                 this.addSystemMessage(`Opening table ${rowData.table}...`);
+                this.openTable(rowData.table, rowData.raw, 'watching');
                 if (typeof client.switchObservedGame === 'function') {
                     client.switchObservedGame(rowData.table);
                 } else {
@@ -302,6 +331,7 @@
 
             if (rowData.action === 'join') {
                 this.addSystemMessage(`Joining table ${rowData.table}...`);
+                this.openTable(rowData.table, rowData.raw, 'joining');
                 const lobbyRow = {
                     command: rowData.command,
                     commandType: 'play',
@@ -315,6 +345,55 @@
                     client.send?.(rowData.command);
                 }
             }
+        },
+
+        openTable(tableId, meta = null, mode = 'watching') {
+            this.tableOpen = true;
+            this.currentTableId = tableId || this.currentTableId;
+            this.currentTableMeta = meta || this.currentTableMeta;
+            if (this.elements.gameMode) {
+                this.elements.gameMode.textContent = mode === 'joining' ? 'Joining Table' : 'Watching Table';
+            }
+            if (this.elements.gameDetail) {
+                this.elements.gameDetail.textContent = this.currentTableId
+                    ? `Table ${this.currentTableId} is opening through the existing FICS session.`
+                    : 'Opening table through the existing FICS session.';
+            }
+            this.renderGameExperience();
+        },
+
+        closeTable(sendUnobserve = true) {
+            const client = window.CaissaFICSClient;
+            const gameNumber = this.liveGame?.gameNumber || this.currentTableId;
+            if (sendUnobserve && client?.authenticated && gameNumber && this.liveGame?.observedGame) {
+                client.send?.(`unobserve ${gameNumber}`);
+                this.addSystemMessage(`Standing from table ${gameNumber}.`);
+            }
+            this.tableOpen = false;
+            this.currentTableId = null;
+            this.currentTableMeta = null;
+            this.liveGame = null;
+            this.moveHistory = [];
+            this.lastRenderedFen = null;
+            this.renderGameExperience();
+        },
+
+        standFromTable() {
+            this.closeTable(true);
+            this.render();
+        },
+
+        handleStyle12(payload = {}, render = true) {
+            const liveGame = payload.liveGame || {};
+            if (!liveGame.currentFen) return;
+
+            this.liveGame = { ...liveGame };
+            this.moveHistory = Array.isArray(payload.moveHistory)
+                ? payload.moveHistory.map((move) => ({ ...move }))
+                : this.moveHistory;
+            this.openTable(liveGame.gameNumber || this.currentTableId, this.currentTableMeta, liveGame.observedGame ? 'watching' : 'playing');
+            if (liveGame.gameNumber) this.addSystemMessage(`Watching table ${liveGame.gameNumber}.`);
+            if (render) this.render();
         },
 
         renderPlayers() {
@@ -424,13 +503,161 @@
             const players = this.getPlayers().length;
             const tables = this.activeTables.length + this.seekActions.length;
             const status = this.authenticated ? 'Connected to FICS' : 'FICS idle';
-            const lobby = this.authenticated ? 'Receiving lobby...' : 'Not connected';
-            const values = ['Done', status, `Watching ${tables} tables`, `${players} players online`];
+            const tableLabel = this.tableOpen && (this.liveGame?.gameNumber || this.currentTableId)
+                ? `Watching Table ${this.liveGame?.gameNumber || this.currentTableId}`
+                : this.authenticated ? `Watching ${tables} tables` : 'Not connected';
+            const turnLabel = this.liveGame?.sideToMove
+                ? `${this.liveGame.sideToMove === 'b' ? 'Black' : 'White'} to Move`
+                : `${players} players online`;
+            const values = ['Done', status, tableLabel, turnLabel];
             this.elements.browserStatus.replaceChildren(...values.map((value, index) => {
                 const cell = document.createElement('span');
-                cell.textContent = index === 2 && !this.authenticated ? lobby : value;
+                cell.textContent = value;
                 return cell;
             }));
+        },
+
+        renderGameExperience() {
+            this.elements.shell?.classList.toggle('yc-table-open', this.tableOpen);
+            this.elements.gameWindow?.setAttribute('aria-hidden', this.tableOpen ? 'false' : 'true');
+            this.renderClassicBoard();
+            this.renderGamePlayers();
+            this.renderClassicMoves();
+            this.renderGameMeta();
+        },
+
+        initClassicBoard() {
+            if (this.board || !this.elements.classicBoard || typeof Chessboard === 'undefined') return;
+            if (!this.elements.section?.classList.contains('active')) return;
+            this.board = Chessboard(this.elements.classicBoard, {
+                draggable: false,
+                position: 'start'
+            });
+        },
+
+        renderClassicBoard() {
+            if (!this.tableOpen) return;
+            this.initClassicBoard();
+            const fen = this.liveGame?.currentFen || 'start';
+            if (this.board && fen !== this.lastRenderedFen) {
+                this.board.position(fen, false);
+                this.lastRenderedFen = fen;
+            }
+            requestAnimationFrame(() => this.board?.resize?.());
+        },
+
+        renderGamePlayers() {
+            const table = this.getCurrentTableMeta();
+            this.renderGamePlayerBar(this.elements.blackPlayerBar, {
+                color: 'black',
+                name: this.liveGame?.blackName || table?.black || 'Black',
+                rating: table?.blackRating || 'FICS',
+                clock: this.formatClock(this.liveGame?.blackClock),
+                active: this.liveGame?.sideToMove === 'b'
+            });
+            this.renderGamePlayerBar(this.elements.whitePlayerBar, {
+                color: 'white',
+                name: this.liveGame?.whiteName || table?.white || 'White',
+                rating: table?.whiteRating || 'FICS',
+                clock: this.formatClock(this.liveGame?.whiteClock),
+                active: this.liveGame?.sideToMove === 'w'
+            });
+        },
+
+        renderGamePlayerBar(element, player) {
+            if (!element) return;
+            element.className = `yc-game-player ${player.color}${player.active ? ' turn-active' : ''}`;
+            const name = element.querySelector('.yc-player-name');
+            const rating = element.querySelector('.yc-player-rating');
+            const clock = element.querySelector('.yc-player-clock');
+            if (name) {
+                name.textContent = player.name || player.color;
+                name.title = name.textContent;
+            }
+            if (rating) rating.textContent = player.rating || 'FICS';
+            if (clock) clock.textContent = player.clock || '--:--';
+        },
+
+        renderClassicMoves() {
+            if (!this.elements.moveList) return;
+            if (!this.moveHistory.length) {
+                const empty = document.createElement('div');
+                empty.className = 'yc-move-empty';
+                empty.textContent = this.tableOpen
+                    ? 'Moves will appear when the table updates.'
+                    : 'Watch or join a table to see moves.';
+                this.elements.moveList.replaceChildren(empty);
+                return;
+            }
+
+            const rows = [];
+            this.moveHistory.forEach((move) => {
+                let row = rows.find((item) => item.moveNumber === move.moveNumber);
+                if (!row) {
+                    row = { moveNumber: move.moveNumber, white: '', black: '' };
+                    rows.push(row);
+                }
+                row[move.color] = move.san;
+            });
+
+            this.elements.moveList.replaceChildren(...rows.map((row) => {
+                const item = document.createElement('div');
+                item.className = 'yc-move-row';
+                item.append(
+                    this.createMoveCell(`${row.moveNumber}.`, 'yc-move-number'),
+                    this.createMoveCell(row.white || '...'),
+                    this.createMoveCell(row.black || '')
+                );
+                return item;
+            }));
+            this.elements.moveList.scrollTop = this.elements.moveList.scrollHeight;
+        },
+
+        createMoveCell(value, className = '') {
+            const cell = document.createElement('span');
+            if (className) cell.className = className;
+            cell.textContent = value || '';
+            cell.title = cell.textContent;
+            return cell;
+        },
+
+        renderGameMeta() {
+            const table = this.getCurrentTableMeta();
+            const gameNumber = this.liveGame?.gameNumber || this.currentTableId;
+            const side = this.liveGame?.sideToMove === 'b' ? 'Black' : this.liveGame?.sideToMove === 'w' ? 'White' : null;
+            const time = table?.timeControl || this.liveGame?.initialTime || 'live';
+            const game = table ? this.formatGameLabel(table) : 'Live';
+
+            if (this.elements.gameMode) {
+                this.elements.gameMode.textContent = gameNumber ? `Table ${gameNumber}` : 'No Table';
+            }
+            if (this.elements.gameDetail) {
+                this.elements.gameDetail.textContent = gameNumber
+                    ? `${game} ${time} - ${side ? `${side} to move` : 'waiting for board'}`
+                    : 'Watch or join a room table to open the classic board.';
+            }
+            if (this.elements.gameMeta) {
+                this.elements.gameMeta.textContent = gameNumber ? `#${gameNumber} - ${game} - ${time}` : 'No table';
+            }
+            this.elements.standBtn?.toggleAttribute('disabled', !this.tableOpen);
+            this.elements.sitBtn?.toggleAttribute('disabled', !this.authenticated);
+        },
+
+        getCurrentTableMeta() {
+            const gameNumber = this.liveGame?.gameNumber || this.currentTableId;
+            if (!gameNumber) return this.currentTableMeta;
+            return this.activeTables.find((table) => String(table.number) === String(gameNumber))
+                || this.currentTableMeta
+                || null;
+        },
+
+        formatClock(seconds) {
+            if (window.CaissaFICSClient?.formatClock) {
+                return window.CaissaFICSClient.formatClock(seconds);
+            }
+            if (!Number.isFinite(seconds)) return '--:--';
+            const safeSeconds = Math.max(0, seconds);
+            return `${Math.floor(safeSeconds / 60)}:${String(safeSeconds % 60).padStart(2, '0')}`;
         },
 
         isCurrentObservedGame(gameNumber) {
