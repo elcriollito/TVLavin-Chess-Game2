@@ -23,6 +23,27 @@
             return;
         }
 
+        if (window.CAISSA_AUTH_CONFIG_READY) {
+            try {
+                await window.CAISSA_AUTH_CONFIG_READY;
+            } catch (error) {
+                console.warn('Sign In: Public auth config could not be loaded', error.message);
+            }
+        }
+
+        // Check if key is configured before waiting for the Clerk SDK.
+        const publishableKey = config?.CLERK_PUBLISHABLE_KEY;
+        if (!publishableKey || publishableKey === 'pk_test_REPLACE_WITH_YOUR_KEY') {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px 20px; color: #9aa0a6;">
+                    <i class="fas fa-key" style="font-size: 48px; color: #ffc107; margin-bottom: 16px;"></i>
+                    <p style="margin: 0 0 12px;">Sign in is not configured yet.</p>
+                    <p style="margin: 0; font-size: 12px;">Set the Clerk publishable key in production environment settings.</p>
+                </div>
+            `;
+            return;
+        }
+
         // Wait for Clerk to be available
         const waitForClerk = () => {
             return new Promise((resolve) => {
@@ -53,19 +74,6 @@
                 <div style="text-align: center; padding: 40px 20px; color: #9aa0a6;">
                     <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #f44336; margin-bottom: 16px;"></i>
                     <p style="margin: 0;">Unable to load authentication. Please refresh the page.</p>
-                </div>
-            `;
-            return;
-        }
-
-        // Check if key is configured
-        const publishableKey = config?.CLERK_PUBLISHABLE_KEY;
-        if (!publishableKey || publishableKey === 'pk_test_REPLACE_WITH_YOUR_KEY') {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 40px 20px; color: #9aa0a6;">
-                    <i class="fas fa-key" style="font-size: 48px; color: #ffc107; margin-bottom: 16px;"></i>
-                    <p style="margin: 0 0 12px;">Clerk is not configured yet.</p>
-                    <p style="margin: 0; font-size: 12px;">Set your publishable key in <code>js/auth-config.js</code></p>
                 </div>
             `;
             return;

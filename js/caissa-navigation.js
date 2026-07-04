@@ -165,7 +165,7 @@ const CaissaNavigation = {
         }
 
         if (sectionId === 'cheater-insight') {
-            // Cheater Insight - premium gated feature
+            // Cheater Insight opens its existing modal for all users.
             this.openCheaterInsight();
             return;
         }
@@ -501,30 +501,20 @@ const CaissaNavigation = {
     },
 
     /**
-     * Open Cheater Insight (premium gated)
+     * Open Cheater Insight
      */
     openCheaterInsight() {
         console.log('[CAISSA Nav] Opening Cheater Insight...');
 
-        // Check if user is premium (via CaissaAccess or app-container class)
-        const isPremium = document.querySelector('.app-container')?.classList.contains('user-premium') ||
-                         (window.CaissaAccess && CaissaAccess.hasFeature && CaissaAccess.hasFeature('cheater_insight'));
-
-        if (isPremium) {
-            // Premium user - open the actual cheater insight modal
-            const cheaterModal = document.getElementById('cheaterInsightModal');
-            if (cheaterModal) {
-                cheaterModal.classList.add('show');
-            } else {
-                // Fallback to menu modal cheater insight button
-                const menuCheaterBtn = document.getElementById('menuCheaterInsight');
-                if (menuCheaterBtn) {
-                    menuCheaterBtn.click();
-                }
-            }
+        const cheaterModal = document.getElementById('cheaterInsightModal');
+        if (cheaterModal) {
+            cheaterModal.classList.add('show');
         } else {
-            // Not premium - show upgrade modal
-            this.showPremiumFeatureModal('Cheater Insight', 'Detect suspicious play patterns with AI-powered analysis. Analyze Chess.com games for engine correlation and statistical anomalies.');
+            // Fallback to menu modal cheater insight button
+            const menuCheaterBtn = document.getElementById('menuCheaterInsight');
+            if (menuCheaterBtn) {
+                menuCheaterBtn.click();
+            }
         }
 
         // Close mobile nav if open

@@ -2,7 +2,8 @@
  * CAISSA Auth Configuration
  *
  * Clerk publishable key - safe to expose in client-side code.
- * For production, set this via Vercel environment variables.
+ * For production, /api/auth/config supplies this from Vercel environment
+ * variables so secrets stay server-side and static files do not need edits.
  *
  * To get your Clerk publishable key:
  * 1. Go to https://dashboard.clerk.com
@@ -12,10 +13,9 @@
  */
 
 const CAISSA_AUTH_CONFIG = {
-    // Replace with your actual Clerk publishable key
-    // For local development, use pk_test_...
-    // For production, use pk_live_...
+    // Fallback only. Production should hydrate this from /api/auth/config.
     CLERK_PUBLISHABLE_KEY: 'pk_test_REPLACE_WITH_YOUR_KEY',
+    REGISTRATION_TRACKING_AVAILABLE: false,
 
     // Redirect URLs after auth actions
     REDIRECT_AFTER_SIGN_IN: '/',
@@ -43,9 +43,33 @@ const CAISSA_AUTH_CONFIG = {
 };
 
 window.CAISSA_AUTH_CONFIG = CAISSA_AUTH_CONFIG;
+window.CAISSA_AUTH_CONFIG_READY = (async function loadPublicAuthConfig() {
+    try {
+        const response = await fetch('/api/auth/config', {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store'
+        });
 
-// Freeze config to prevent accidental modification
-Object.freeze(CAISSA_AUTH_CONFIG);
+        if (!response.ok) {
+            console.warn('[Auth Config] Public auth config unavailable', response.status);
+            return CAISSA_AUTH_CONFIG;
+        }
+
+        const data = await response.json();
+        const publishableKey = String(data.clerkPublishableKey || '').trim();
+        if (publishableKey && !publishableKey.includes('REPLACE')) {
+            CAISSA_AUTH_CONFIG.CLERK_PUBLISHABLE_KEY = publishableKey;
+        }
+        CAISSA_AUTH_CONFIG.REGISTRATION_TRACKING_AVAILABLE = data.registrationTracking === true;
+    } catch (error) {
+        console.warn('[Auth Config] Public auth config failed to load', error.message);
+    }
+
+    return CAISSA_AUTH_CONFIG;
+})();
+
+// Keep the top-level config mutable so the public server config can hydrate it.
 Object.freeze(CAISSA_AUTH_CONFIG.FEATURES);
 Object.freeze(CAISSA_AUTH_CONFIG.STORAGE_KEYS);
 

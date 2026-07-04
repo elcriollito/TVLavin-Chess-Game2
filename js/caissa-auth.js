@@ -53,6 +53,13 @@
      */
     async function initializeAuth() {
         const config = window.CAISSA_AUTH_CONFIG;
+        if (window.CAISSA_AUTH_CONFIG_READY) {
+            try {
+                await window.CAISSA_AUTH_CONFIG_READY;
+            } catch (error) {
+                console.warn('[Auth] Public auth config could not be loaded', error.message);
+            }
+        }
         const publishableKey = _getConfiguredPublishableKey();
 
         // Check for valid config
