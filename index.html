@@ -62,7 +62,7 @@
     <link rel="stylesheet" href="css/caissa-sync.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-onboarding.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-dos-chess.css?v=1.0.1">
-    <link rel="stylesheet" href="css/fics-client.css?v=1.2.4">
+    <link rel="stylesheet" href="css/fics-client.css?v=1.2.5">
     <link rel="stylesheet" href="css/opening-book.css?v=1.0.0">
 </head>
 <body>
@@ -1547,6 +1547,28 @@
                                             <span>Rating unavailable</span>
                                             <span>Waiting for game</span>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="fics-panel">
+                                <h3>Live Game Context</h3>
+                                <div id="spectatorLiveContext" class="spectator-live-context" aria-live="polite">
+                                    <div class="spectator-context-row">
+                                        <span>Opening</span>
+                                        <strong>Unknown Opening</strong>
+                                    </div>
+                                    <div class="spectator-context-row">
+                                        <span>ECO</span>
+                                        <strong>--</strong>
+                                    </div>
+                                    <div class="spectator-context-row">
+                                        <span>Phase</span>
+                                        <strong>Waiting</strong>
+                                    </div>
+                                    <div class="spectator-context-row">
+                                        <span>Status</span>
+                                        <strong>Not watching</strong>
                                     </div>
                                 </div>
                             </div>
@@ -3066,7 +3088,7 @@
     <script src="js/spectator-tv-catalog.js?v=1.0.0" defer></script>
     <script src="js/fics-style12.js?v=1.0.0" defer></script>
     <script src="js/fics-client.js?v=1.2.4" defer></script>
-    <script src="js/spectator-tv-section.js?v=1.0.3" defer></script>
+    <script src="js/spectator-tv-section.js?v=1.0.4" defer></script>
     <script src="js/opening-book-manager.js?v=1.0.0" defer></script>
 
     <style>

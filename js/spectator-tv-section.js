@@ -18,6 +18,7 @@
         pendingFeaturedWatch: false,
         unsubscribeFics: null,
         playerCardSnapshots: Object.create(null),
+        contextSnapshot: '',
         visibleChannelIds: Object.freeze(['featured', 'top-rated', 'blitz', 'bullet', 'rapid']),
 
         init() {
@@ -45,6 +46,7 @@
                 gameStatus: document.getElementById('spectatorGameStatus'),
                 metadata: document.getElementById('spectatorMetadata'),
                 moveList: document.getElementById('spectatorMoveList'),
+                liveContext: document.getElementById('spectatorLiveContext'),
                 whitePlayerCard: document.getElementById('spectatorWhitePlayerCard'),
                 blackPlayerCard: document.getElementById('spectatorBlackPlayerCard'),
                 channelList: document.getElementById('spectatorChannelList'),
@@ -128,8 +130,10 @@
             this.pendingFeaturedWatch = false;
             this.lastRenderedFen = null;
             this.playerCardSnapshots = Object.create(null);
+            this.contextSnapshot = '';
             if (this.board) this.board.position('start', false);
             this.renderPlayerCards(null);
+            this.renderLiveContext(null, []);
             this.render();
         },
 
@@ -256,6 +260,8 @@
                     whiteRating: table.whiteRating,
                     blackRating: table.blackRating,
                     timeControl: table.timeControl,
+                    variant: table.variant,
+                    rated: table.rated || table.label,
                     observers: table.observers,
                     status: 'active',
                     source: 'fics-active-tables',
@@ -346,6 +352,7 @@
 
             this.renderPlayers(liveGame);
             this.renderPlayerCards(liveGame);
+            this.renderLiveContext(liveGame, payload.moveHistory || []);
             this.renderClocks(liveGame);
             this.renderMoveList(payload.moveHistory || []);
             this.renderGameStatus(liveGame);
@@ -487,6 +494,115 @@
         renderBadge(badge) {
             const title = badge.title ? ` title="${this.escapeHtml(badge.title)}"` : '';
             return `<span class="caissa-ui-badge caissa-ui-badge--${this.escapeHtml(badge.variant)}"${title}>${this.escapeHtml(badge.label)}</span>`;
+        },
+
+        renderLiveContext(liveGame, moveHistory = []) {
+            if (!this.elements.liveContext) return;
+            const context = this.getLiveContextData(liveGame, moveHistory);
+            const snapshot = JSON.stringify(context);
+            if (this.contextSnapshot === snapshot) return;
+            this.contextSnapshot = snapshot;
+
+            const statusBadge = this.renderBadge({
+                label: context.status,
+                variant: context.status === 'Live' ? 'playing' : context.status === 'Finished' ? 'disabled' : 'info'
+            });
+            const ratedBadge = this.renderBadge({
+                label: context.rated,
+                variant: context.rated === 'Rated' ? 'success' : context.rated === 'Unrated' ? 'disabled' : 'info'
+            });
+
+            this.elements.liveContext.innerHTML = `
+                <div class="spectator-context-row"><span>Opening</span><strong title="${this.escapeHtml(context.openingName)}">${this.escapeHtml(context.openingName)}</strong></div>
+                <div class="spectator-context-row"><span>ECO</span><strong>${this.escapeHtml(context.ecoCode)}</strong></div>
+                <div class="spectator-context-row"><span>Variant</span><strong>${this.escapeHtml(context.variant)}</strong></div>
+                <div class="spectator-context-row"><span>Rated</span>${ratedBadge}</div>
+                <div class="spectator-context-row"><span>Time</span><strong>${this.escapeHtml(context.timeControl)}</strong></div>
+                <div class="spectator-context-row"><span>Move</span><strong>${this.escapeHtml(context.currentMove)}</strong></div>
+                <div class="spectator-context-row"><span>Phase</span><strong>${this.escapeHtml(context.phase)}</strong></div>
+                <div class="spectator-context-row"><span>Status</span>${statusBadge}</div>
+            `;
+        },
+
+        getLiveContextData(liveGame, moveHistory = []) {
+            const gameId = liveGame?.gameNumber;
+            const game = gameId ? this.catalog?.gameMap?.[String(gameId)] : null;
+            const opening = this.resolveOpening(moveHistory);
+            const plyCount = Array.isArray(moveHistory) ? moveHistory.length : 0;
+            return {
+                openingName: opening.name,
+                ecoCode: opening.eco || '--',
+                variant: this.titleCase(game?.variant || 'standard'),
+                rated: game?.rated === true ? 'Rated' : game?.rated === false ? 'Unrated' : 'Live',
+                timeControl: game?.timeControl || 'live',
+                currentMove: plyCount ? String(Math.ceil(plyCount / 2)) : '--',
+                phase: this.getGamePhase(liveGame?.currentFen, plyCount),
+                status: liveGame?.gameNumber ? 'Live' : 'Not watching'
+            };
+        },
+
+        resolveOpening(moveHistory = []) {
+            const playedSAN = (moveHistory || [])
+                .map((move) => this.normalizeSan(move?.san))
+                .filter(Boolean);
+            if (!playedSAN.length) return { name: 'Unknown Opening', eco: '' };
+
+            const candidates = [];
+            if (Array.isArray(window.App?.openings)) candidates.push(...window.App.openings);
+            if (Array.isArray(window.App?.ecoCodeRows)) candidates.push(...window.App.ecoCodeRows);
+
+            let best = null;
+            let bestDepth = 0;
+            candidates.forEach((candidate) => {
+                const moves = this.extractOpeningMoves(candidate).map((move) => this.normalizeSan(move)).filter(Boolean);
+                if (!moves.length || moves.length > playedSAN.length || moves.length <= bestDepth) return;
+                const match = moves.every((move, index) => move === playedSAN[index]);
+                if (!match) return;
+                best = {
+                    name: candidate.name || candidate.opening || candidate.title || 'Unknown Opening',
+                    eco: candidate.eco || candidate.code || ''
+                };
+                bestDepth = moves.length;
+            });
+
+            return best || { name: 'Unknown Opening', eco: '' };
+        },
+
+        extractOpeningMoves(candidate = {}) {
+            const source = Array.isArray(candidate.moves)
+                ? candidate.moves
+                : String(candidate.moves || candidate.ecoMovesText || candidate.movesText || '').split(/\s+/);
+            return source.filter((move) => move && !/^(?:1-0|0-1|1\/2-1\/2|\*)$/.test(String(move)));
+        },
+
+        normalizeSan(value) {
+            return String(value || '')
+                .replace(/^\d+\.(?:\.\.)?/, '')
+                .replace(/[!?+#]+/g, '')
+                .replace(/\s+/g, '')
+                .trim();
+        },
+
+        getGamePhase(fen, plyCount) {
+            if (!plyCount) return 'Waiting';
+            if (plyCount <= 16) return 'Opening';
+            if (this.isEndgameFen(fen) || plyCount >= 60) return 'Endgame';
+            return 'Middlegame';
+        },
+
+        isEndgameFen(fen) {
+            const board = String(fen || '').split(' ')[0];
+            if (!board) return false;
+            const pieces = board.replace(/[0-9/]/g, '');
+            const queens = (pieces.match(/[qQ]/g) || []).length;
+            const nonKingPieces = pieces.replace(/[kK]/g, '').length;
+            return queens === 0 && nonKingPieces <= 8;
+        },
+
+        titleCase(value) {
+            return String(value || '')
+                .replace(/[-_]+/g, ' ')
+                .replace(/\b\w/g, (char) => char.toUpperCase());
         },
 
         renderClocks(liveGame) {

@@ -412,6 +412,41 @@
     font-size: 11px;
 }
 
+.spectator-live-context {
+    display: grid;
+    gap: 7px;
+    height: 280px;
+    align-content: start;
+}
+
+.spectator-context-row {
+    display: grid;
+    grid-template-columns: 86px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    min-height: 24px;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.spectator-context-row strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.spectator-context-row .caissa-ui-badge {
+    min-height: 20px;
+    padding: 2px 7px;
+    font-size: 11px;
+    justify-self: start;
+}
+
 .spectator-metadata,
 .spectator-move-list {
     display: grid;
