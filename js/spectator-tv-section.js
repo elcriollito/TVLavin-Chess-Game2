@@ -17,6 +17,7 @@
         lastRenderedFen: null,
         pendingFeaturedWatch: false,
         unsubscribeFics: null,
+        visibleChannelIds: Object.freeze(['featured', 'top-rated', 'blitz', 'bullet', 'rapid']),
 
         init() {
             this.cacheElements();
@@ -42,13 +43,24 @@
                 blackClock: document.getElementById('spectatorBlackClock'),
                 gameStatus: document.getElementById('spectatorGameStatus'),
                 metadata: document.getElementById('spectatorMetadata'),
-                moveList: document.getElementById('spectatorMoveList')
+                moveList: document.getElementById('spectatorMoveList'),
+                channelList: document.getElementById('spectatorChannelList'),
+                gameList: document.getElementById('spectatorGameList'),
+                gameCount: document.getElementById('spectatorGameCount')
             };
         },
 
         bindEvents() {
             this.elements.watchBtn?.addEventListener('click', () => this.watchFeaturedGame());
             this.elements.refreshBtn?.addEventListener('click', () => this.refreshCatalog(true));
+            this.elements.channelList?.addEventListener('click', (event) => {
+                const button = event.target.closest('[data-channel]');
+                if (button) this.selectChannel(button.dataset.channel);
+            });
+            this.elements.gameList?.addEventListener('click', (event) => {
+                const button = event.target.closest('[data-game-id]');
+                if (button) this.watchGame(button.dataset.gameId);
+            });
         },
 
         subscribeToFics() {
@@ -60,6 +72,7 @@
             this.subscribeToFics();
             this.initBoard();
             this.syncFromFicsClient();
+            this.renderChannels();
             this.render();
             requestAnimationFrame(() => this.board?.resize?.());
         },
@@ -188,6 +201,22 @@
             this.refreshCatalog(true);
         },
 
+        selectChannel(channelId) {
+            const channel = this.visibleChannelIds.includes(channelId) ? channelId : 'featured';
+            if (window.CaissaSpectatorTV?.setChannel) {
+                this.state = window.CaissaSpectatorTV.setChannel(this.state, channel);
+            }
+            this.catalog = window.CaissaSpectatorTVCatalog?.createCatalog?.({
+                games: this.catalog?.games || [],
+                selectedChannelId: channel,
+                refreshPolicy: this.catalog?.refreshPolicy,
+                lastRefreshAt: this.catalog?.lastRefreshAt
+            }) || this.catalog;
+            this.renderChannels();
+            this.renderGameList();
+            this.renderCatalogSummary();
+        },
+
         refreshCatalog(manual = false) {
             const client = window.CaissaFICSClient;
             if (!client?.authenticated) {
@@ -228,9 +257,10 @@
                     label: table.label
                 }));
             this.catalog = window.CaissaSpectatorTVCatalog.updateCatalog(this.catalog, entries, {
-                selectedChannelId: 'featured'
+                selectedChannelId: this.state?.selectedChannelId || 'featured'
             });
             this.renderCatalogSummary();
+            this.renderGameList();
         },
 
         isObservableGameTable(table) {
@@ -257,20 +287,43 @@
             }
 
             this.pendingFeaturedWatch = false;
-            this.state = window.CaissaSpectatorTV.setObservedGame(this.state, candidate.gameId, candidate);
-            this.transition(window.CaissaSpectatorTV.STATES.SWITCHING_GAME);
-            this.showMessage(`Opening featured game #${candidate.gameId}...`, 'info');
-            if (typeof client.switchObservedGame === 'function') {
-                client.switchObservedGame(candidate.gameId);
-            } else {
-                client.send?.(`observe ${candidate.gameId}`);
+            this.watchGame(candidate.gameId);
+        },
+
+        watchGame(gameId) {
+            const client = window.CaissaFICSClient;
+            const targetGame = this.catalog?.gameMap?.[String(gameId)] || null;
+
+            if (!client?.authenticated) {
+                this.showMessage('Connect to FICS before watching.', 'info');
+                return;
             }
+
+            if (!targetGame) {
+                this.showMessage('That live game is no longer available. Refresh the list.', 'warning');
+                this.renderGameList();
+                return;
+            }
+
+            this.state = window.CaissaSpectatorTV.setObservedGame(this.state, targetGame.gameId, targetGame);
+            this.transition(window.CaissaSpectatorTV.STATES.SWITCHING_GAME);
+            this.showMessage(`Opening game #${targetGame.gameId}...`, 'info');
+            if (typeof client.switchObservedGame === 'function') {
+                client.switchObservedGame(targetGame.gameId);
+            } else {
+                client.send?.(`observe ${targetGame.gameId}`);
+            }
+            this.renderGameList();
             this.render();
         },
 
         renderStyle12(payload = {}) {
             const liveGame = payload.liveGame || {};
             if (!liveGame.currentFen) return;
+            const expectedGameId = this.state?.currentObservedGameId;
+            if (expectedGameId && liveGame.gameNumber && String(expectedGameId) !== String(liveGame.gameNumber)) {
+                return;
+            }
 
             this.initBoard();
             if (this.board && liveGame.currentFen !== this.lastRenderedFen) {
@@ -371,7 +424,9 @@
 
         renderCatalogSummary() {
             if (!this.elements.metadata) return;
-            const candidate = window.CaissaSpectatorTVCatalog?.selectFeaturedGame?.(this.catalog?.games || []);
+            const currentGameId = this.state?.currentObservedGameId;
+            const current = currentGameId ? this.catalog?.gameMap?.[String(currentGameId)] : null;
+            const candidate = current || window.CaissaSpectatorTVCatalog?.selectFeaturedGame?.(this.catalog?.games || []);
             if (!candidate) {
                 this.renderEmptyState(this.elements.metadata, {
                     icon: 'fa-tv',
@@ -382,11 +437,71 @@
             }
 
             this.elements.metadata.innerHTML = `
-                <div class="spectator-meta-row"><span>Featured</span><strong>#${this.escapeHtml(candidate.gameId)}</strong></div>
+                <div class="spectator-meta-row"><span>Game</span><strong>#${this.escapeHtml(candidate.gameId)}</strong></div>
                 <div class="spectator-meta-row"><span>Players</span><strong>${this.escapeHtml(candidate.whitePlayer)} vs ${this.escapeHtml(candidate.blackPlayer)}</strong></div>
                 <div class="spectator-meta-row"><span>Time</span><strong>${this.escapeHtml(candidate.timeControl)}</strong></div>
                 <div class="spectator-meta-row"><span>Rating</span><strong>${this.escapeHtml(candidate.averageRating || 'FICS')}</strong></div>
             `;
+        },
+
+        renderChannels() {
+            const selected = this.state?.selectedChannelId || 'featured';
+            this.elements.channelList?.querySelectorAll('[data-channel]').forEach((button) => {
+                const active = button.dataset.channel === selected;
+                button.classList.toggle('active', active);
+                button.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+        },
+
+        getVisibleGames() {
+            return window.CaissaSpectatorTVCatalog?.filterByChannel?.(
+                this.catalog?.games || [],
+                this.state?.selectedChannelId || 'featured'
+            ) || [];
+        },
+
+        renderGameList() {
+            if (!this.elements.gameList) return;
+            const games = this.getVisibleGames();
+            if (this.elements.gameCount) this.elements.gameCount.textContent = String(games.length);
+            if (!games.length) {
+                this.renderEmptyState(this.elements.gameList, {
+                    icon: 'fa-search',
+                    title: 'No games found.',
+                    message: 'Try another channel or refresh live games.'
+                });
+                return;
+            }
+
+            this.elements.gameList.replaceChildren(...games.map((game) => {
+                const row = document.createElement('div');
+                const current = String(this.state?.currentObservedGameId || '') === String(game.gameId);
+                row.className = `spectator-game-row${current ? ' is-current' : ''}`;
+                row.innerHTML = `
+                    <div class="spectator-game-main">
+                        <div class="spectator-game-players" title="${this.escapeHtml(`${game.whitePlayer} vs ${game.blackPlayer}`)}">
+                            ${this.escapeHtml(game.whitePlayer)} vs ${this.escapeHtml(game.blackPlayer)}
+                        </div>
+                        <div class="spectator-game-meta">
+                            <span>#${this.escapeHtml(game.gameId)}</span>
+                            <span>${this.escapeHtml(game.timeControl)}</span>
+                            <span>${this.escapeHtml(game.variant || 'standard')}</span>
+                            <span>${this.escapeHtml(game.averageRating || 'FICS')}</span>
+                            <span>${game.rated === true ? 'rated' : game.rated === false ? 'unrated' : 'live'}</span>
+                            <span>${this.escapeHtml(game.observers || 0)} watching</span>
+                        </div>
+                    </div>
+                `;
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'fics-btn fics-btn-secondary spectator-game-watch';
+                button.dataset.gameId = game.gameId;
+                button.textContent = current ? 'Watching' : 'Watch';
+                button.disabled = current;
+                button.setAttribute('aria-label', `${current ? 'Watching' : 'Watch'} game ${game.gameId}: ${game.whitePlayer} vs ${game.blackPlayer}`);
+                row.appendChild(button);
+                return row;
+            }));
         },
 
         render() {
@@ -400,6 +515,8 @@
                     ? `Featured #${this.catalog.featuredGameId}`
                     : 'Featured';
             }
+            this.renderChannels();
+            this.renderGameList();
             this.renderCatalogSummary();
         },
 

@@ -131,17 +131,131 @@
 
 .spectator-grid {
     display: grid;
-    grid-template-columns: minmax(440px, 720px) minmax(300px, 380px);
+    grid-template-columns: minmax(260px, 320px) minmax(420px, 680px) minmax(300px, 360px);
     justify-content: center;
     gap: 18px;
     align-items: start;
 }
 
 .spectator-board-panel,
+.spectator-browser-panel .fics-panel,
 .spectator-side-panel .fics-panel {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 12px;
+}
+
+.spectator-browser-panel {
+    display: grid;
+    gap: 14px;
+    min-width: 0;
+}
+
+.spectator-channel-list {
+    display: grid;
+    gap: 8px;
+}
+
+.spectator-channel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.spectator-channel:hover,
+.spectator-channel:focus-visible {
+    border-color: rgba(59, 130, 246, 0.45);
+    color: var(--text-primary);
+}
+
+.spectator-channel.active {
+    border-color: rgba(59, 130, 246, 0.65);
+    background: rgba(59, 130, 246, 0.16);
+    color: var(--text-primary);
+}
+
+.spectator-game-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.14);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.spectator-game-list {
+    display: grid;
+    gap: 8px;
+    max-height: 540px;
+    overflow-y: auto;
+}
+
+.spectator-game-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-tertiary);
+}
+
+.spectator-game-row.is-current {
+    border-color: rgba(16, 185, 129, 0.55);
+    background: rgba(16, 185, 129, 0.09);
+}
+
+.spectator-game-main {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+}
+
+.spectator-game-players {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.spectator-game-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+
+.spectator-game-meta span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 18px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.11);
+}
+
+.spectator-game-watch {
+    min-width: 72px;
 }
 
 .spectator-board-panel {

@@ -62,7 +62,7 @@
     <link rel="stylesheet" href="css/caissa-sync.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-onboarding.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-dos-chess.css?v=1.0.1">
-    <link rel="stylesheet" href="css/fics-client.css?v=1.2.2">
+    <link rel="stylesheet" href="css/fics-client.css?v=1.2.3">
     <link rel="stylesheet" href="css/opening-book.css?v=1.0.0">
 </head>
 <body>
@@ -1472,6 +1472,33 @@
                     </div>
 
                     <div class="spectator-grid">
+                        <aside class="spectator-browser-panel" aria-label="Spectator TV live game browser">
+                            <div class="fics-panel">
+                                <h3>Channels</h3>
+                                <div id="spectatorChannelList" class="spectator-channel-list" role="tablist" aria-label="Spectator TV channels">
+                                    <button class="spectator-channel active" type="button" data-channel="featured" role="tab" aria-selected="true">Featured</button>
+                                    <button class="spectator-channel" type="button" data-channel="top-rated" role="tab" aria-selected="false">Top Rated</button>
+                                    <button class="spectator-channel" type="button" data-channel="blitz" role="tab" aria-selected="false">Blitz</button>
+                                    <button class="spectator-channel" type="button" data-channel="bullet" role="tab" aria-selected="false">Bullet</button>
+                                    <button class="spectator-channel" type="button" data-channel="rapid" role="tab" aria-selected="false">Rapid</button>
+                                </div>
+                            </div>
+
+                            <div class="fics-panel">
+                                <div class="fics-panel-heading">
+                                    <h3>Live Games</h3>
+                                    <span id="spectatorGameCount" class="spectator-game-count">0</span>
+                                </div>
+                                <div id="spectatorGameList" class="spectator-game-list" aria-live="polite">
+                                    <div class="caissa-ui-empty-state caissa-ui-empty-state--compact" role="status">
+                                        <i class="fas fa-search caissa-ui-empty-state__icon" aria-hidden="true"></i>
+                                        <p class="caissa-ui-empty-state__title">No games loaded.</p>
+                                        <p class="caissa-ui-empty-state__message">Refresh live games to browse Spectator TV.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </aside>
+
                         <main class="spectator-board-panel" aria-label="Featured live game board">
                             <div id="spectatorTopPlayer" class="spectator-player-bar black" role="group" aria-label="Top player">
                                 <span class="spectator-turn-led" aria-label="Black waiting"></span>
@@ -3011,7 +3038,7 @@
     <script src="js/spectator-tv-catalog.js?v=1.0.0" defer></script>
     <script src="js/fics-style12.js?v=1.0.0" defer></script>
     <script src="js/fics-client.js?v=1.2.4" defer></script>
-    <script src="js/spectator-tv-section.js?v=1.0.1" defer></script>
+    <script src="js/spectator-tv-section.js?v=1.0.2" defer></script>
     <script src="js/opening-book-manager.js?v=1.0.0" defer></script>
 
     <style>
