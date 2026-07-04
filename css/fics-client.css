@@ -12,6 +12,267 @@
     display: block;
 }
 
+#spectatorSection {
+    display: none;
+}
+
+#spectatorSection.active {
+    display: block;
+}
+
+.spectator-layout {
+    padding: 20px;
+    max-width: 1320px;
+    margin: 0 auto;
+    height: calc(100vh - 80px);
+    overflow-y: auto;
+}
+
+.spectator-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.spectator-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 6px 0;
+    color: var(--text-primary);
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.spectator-title i {
+    color: var(--accent-color);
+}
+
+.spectator-subtitle {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.spectator-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.spectator-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    background: rgba(148, 163, 184, 0.14);
+    color: var(--text-secondary);
+}
+
+.spectator-status::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.spectator-status-watching,
+.spectator-status-connected {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.12);
+}
+
+.spectator-status-connecting,
+.spectator-status-loading-games,
+.spectator-status-switching-game {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.13);
+}
+
+.spectator-status-error,
+.spectator-status-reconnect-required {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.14);
+}
+
+.spectator-message {
+    min-height: 38px;
+    margin-bottom: 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.spectator-message-info {
+    color: #93c5fd;
+    border-color: rgba(59, 130, 246, 0.25);
+}
+
+.spectator-message-warning {
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.28);
+}
+
+.spectator-message-error {
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.spectator-grid {
+    display: grid;
+    grid-template-columns: minmax(440px, 720px) minmax(300px, 380px);
+    justify-content: center;
+    gap: 18px;
+    align-items: start;
+}
+
+.spectator-board-panel,
+.spectator-side-panel .fics-panel {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+}
+
+.spectator-board-panel {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+}
+
+.spectator-board {
+    width: min(68vh, 100%, 680px);
+    max-width: 680px;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+}
+
+.spectator-player-bar {
+    display: grid;
+    grid-template-columns: 12px 12px minmax(0, 1fr) auto auto;
+    gap: 8px;
+    align-items: center;
+    min-height: 38px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.spectator-turn-led {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: rgba(148, 163, 184, 0.35);
+}
+
+.spectator-turn-led.active {
+    background: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.16);
+}
+
+.spectator-color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.spectator-player-bar.white .spectator-color-dot {
+    background: #f8fafc;
+}
+
+.spectator-player-bar.black .spectator-color-dot {
+    background: #111827;
+}
+
+.spectator-player-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 700;
+}
+
+.spectator-player-rating {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.spectator-player-clock {
+    font-variant-numeric: tabular-nums;
+}
+
+.spectator-clock-row,
+.spectator-game-status {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.spectator-game-status {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.spectator-side-panel {
+    display: grid;
+    gap: 14px;
+}
+
+.spectator-metadata,
+.spectator-move-list {
+    display: grid;
+    gap: 8px;
+}
+
+.spectator-meta-row,
+.spectator-move-row {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.spectator-meta-row strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-primary);
+}
+
+.spectator-move-list {
+    max-height: 360px;
+    overflow-y: auto;
+}
+
+.spectator-move-row {
+    grid-template-columns: 42px minmax(0, 1fr) minmax(0, 1fr);
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.spectator-move-number {
+    color: var(--text-secondary);
+}
+
 .fics-layout {
     padding: 20px;
     max-width: 1520px;
@@ -1203,6 +1464,14 @@
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
+    .spectator-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .spectator-board {
+        width: min(72vh, 100%, 640px);
+    }
+
     .fics-game-area {
         grid-template-columns: 1fr;
     }
@@ -1217,6 +1486,33 @@
 }
 
 @media (max-width: 768px) {
+    .spectator-layout {
+        height: auto;
+        padding: 14px;
+    }
+
+    .spectator-header,
+    .spectator-actions {
+        display: grid;
+        justify-content: stretch;
+    }
+
+    .spectator-title {
+        font-size: 22px;
+    }
+
+    .spectator-board-panel {
+        padding: 10px;
+    }
+
+    .spectator-player-bar {
+        grid-template-columns: 10px 10px minmax(0, 1fr) auto;
+    }
+
+    .spectator-player-rating {
+        display: none;
+    }
+
     .fics-layout {
         padding: 16px;
     }

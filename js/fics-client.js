@@ -69,6 +69,7 @@ const CaissaFICSClient = {
     soundsEnabled: false,
     audioContext: null,
     lastSoundAt: {},
+    spectatorListeners: new Set(),
 
     // UI elements
     elements: {},
@@ -177,6 +178,31 @@ const CaissaFICSClient = {
                 : 'wss://fics-gateway.caissa-chess.org/ws';
             this.gatewayMode = 'production wss';
         }
+    },
+
+    addSpectatorListener(listener) {
+        if (typeof listener !== 'function') return () => {};
+        this.spectatorListeners.add(listener);
+        return () => this.spectatorListeners.delete(listener);
+    },
+
+    notifySpectator(event, payload = {}) {
+        const detail = {
+            event,
+            payload,
+            client: this,
+            at: new Date().toISOString()
+        };
+
+        this.spectatorListeners.forEach((listener) => {
+            try {
+                listener(detail);
+            } catch (error) {
+                console.warn('[FICS Client] Spectator listener failed:', error);
+            }
+        });
+
+        window.dispatchEvent(new CustomEvent(`caissa:fics:${event}`, { detail }));
     },
 
     isGatewayConfigured() {
@@ -542,6 +568,7 @@ const CaissaFICSClient = {
         this.renderRoomTables();
         this.updateIdentityStatus();
         this.logToConsole('Disconnected');
+        this.notifySpectator('disconnected');
     },
 
     createEmptyLiveGameState(status = 'idle') {
@@ -698,6 +725,10 @@ const CaissaFICSClient = {
             this.startLobbyRefresh();
             this.send('set style 12');
             this.send('set interface CAISSA Chess');
+            this.notifySpectator('authenticated', {
+                username: this.ficsUsername,
+                loginMode: this.loginMode
+            });
         }
 
         const lines = `${this.lineBuffer}${text.replace(/\r/g, '')}`.split('\n');
@@ -928,6 +959,11 @@ const CaissaFICSClient = {
 
         this.recordStyle12Move(state);
         this.updateLiveGameUI();
+        this.notifySpectator('style12', {
+            style12: state,
+            liveGame: { ...this.liveGame },
+            moveHistory: this.moveHistory.map((move) => ({ ...move }))
+        });
         this.handleStyle12SoundEvents({
             wasActive,
             previousFen,
@@ -1139,6 +1175,10 @@ const CaissaFICSClient = {
             ? `Lobby refreshed ${new Date(this.lobbyLastRefreshAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
             : 'Use Refresh Lobby to load current room tables.');
         this.renderLobbyRows(this.buildLobbyRows());
+        this.notifySpectator('lobby-updated', {
+            activeTables: this.activeTables.map((table) => ({ ...table })),
+            seekActions: this.seekActions.map((seek) => ({ ...seek }))
+        });
     },
 
     buildLobbyRows() {
@@ -2038,6 +2078,12 @@ const CaissaFICSClient = {
         this.elements.accountConnectBtn?.toggleAttribute('disabled', active || !this.isGatewayConfigured());
         this.elements.disconnectBtn?.toggleAttribute('disabled', !active);
         this.updateLoginControls();
+        this.notifySpectator('connection-state', {
+            state,
+            authenticated: this.authenticated,
+            connected: this.connected,
+            message: message || labels[state] || state
+        });
     },
 
     updateLatency() {

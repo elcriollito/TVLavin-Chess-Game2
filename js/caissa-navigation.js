@@ -598,7 +598,8 @@ const CaissaNavigation = {
                 analyze: 'Analyze',
                 insights: 'Insights',
                 history: 'History',
-                arena: 'Arena'
+                arena: 'Arena',
+                spectator: 'Spectator TV'
             };
             this.elements.sectionNameDisplay.textContent = names[sectionId] || 'CAISSA';
         }

@@ -177,6 +177,11 @@
                     <span class="nav-label">FICS</span>
                 </button>
 
+                <button class="nav-item" data-section="spectator" aria-label="Spectator TV">
+                    <i class="fas fa-tv"></i>
+                    <span class="nav-label">Spectator TV</span>
+                </button>
+
                 <div class="nav-divider"></div>
 
                 <button class="nav-item nav-item-tool" data-section="mentor" aria-label="Open Mentor AI">
@@ -1436,6 +1441,83 @@
                             <p>Game bundle not installed yet.</p>
                             <small>Add the game ZIP file to <code>/public/dos/games/</code> to play.</small>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: Spectator TV -->
+            <section id="spectatorSection" class="content-section">
+                <div class="spectator-layout">
+                    <div class="spectator-header">
+                        <div>
+                            <h2 class="spectator-title">
+                                <i class="fas fa-tv" aria-hidden="true"></i> Spectator TV
+                            </h2>
+                            <p class="spectator-subtitle">Watch one featured live FICS game through CAISSA's broadcast view.</p>
+                        </div>
+                        <div class="spectator-actions">
+                            <span id="spectatorConnectionStatus" class="spectator-status spectator-status-disconnected">Disconnected</span>
+                            <span id="spectatorFeaturedBadge" class="caissa-ui-badge caissa-ui-badge--info">Featured</span>
+                            <button id="spectatorRefreshFeaturedBtn" class="fics-btn fics-btn-secondary" type="button" aria-label="Refresh featured Spectator TV game">
+                                <i class="fas fa-sync-alt" aria-hidden="true"></i> Refresh
+                            </button>
+                            <button id="spectatorWatchFeaturedBtn" class="fics-btn fics-btn-primary" type="button" aria-label="Watch featured FICS game">
+                                <i class="fas fa-play" aria-hidden="true"></i> Watch Featured
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="spectatorMessage" class="spectator-message" role="status" aria-live="polite">
+                        Connect to FICS and load the featured game to begin watching.
+                    </div>
+
+                    <div class="spectator-grid">
+                        <main class="spectator-board-panel" aria-label="Featured live game board">
+                            <div id="spectatorTopPlayer" class="spectator-player-bar black" role="group" aria-label="Top player">
+                                <span class="spectator-turn-led" aria-label="Black waiting"></span>
+                                <span class="spectator-color-dot" aria-hidden="true"></span>
+                                <span class="spectator-player-name">Black</span>
+                                <span class="spectator-player-rating">FICS</span>
+                                <strong class="spectator-player-clock">--:--</strong>
+                            </div>
+                            <div id="spectatorBoard" class="spectator-board"></div>
+                            <div id="spectatorBottomPlayer" class="spectator-player-bar white" role="group" aria-label="Bottom player">
+                                <span class="spectator-turn-led" aria-label="White waiting"></span>
+                                <span class="spectator-color-dot" aria-hidden="true"></span>
+                                <span class="spectator-player-name">White</span>
+                                <span class="spectator-player-rating">FICS</span>
+                                <strong class="spectator-player-clock">--:--</strong>
+                            </div>
+                            <div class="spectator-clock-row" aria-label="Live game clocks">
+                                <span>White <strong id="spectatorWhiteClock">--:--</strong></span>
+                                <span>Black <strong id="spectatorBlackClock">--:--</strong></span>
+                            </div>
+                            <div id="spectatorGameStatus" class="spectator-game-status">No featured game selected</div>
+                        </main>
+
+                        <aside class="spectator-side-panel" aria-label="Featured game information">
+                            <div class="fics-panel">
+                                <h3>Game Metadata</h3>
+                                <div id="spectatorMetadata" class="spectator-metadata">
+                                    <div class="caissa-ui-empty-state caissa-ui-empty-state--compact" role="status">
+                                        <i class="fas fa-tv caissa-ui-empty-state__icon" aria-hidden="true"></i>
+                                        <p class="caissa-ui-empty-state__title">No featured candidate yet.</p>
+                                        <p class="caissa-ui-empty-state__message">Refresh live games to select a featured board.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="fics-panel">
+                                <h3>Live Moves</h3>
+                                <div id="spectatorMoveList" class="spectator-move-list" aria-live="polite">
+                                    <div class="caissa-ui-empty-state caissa-ui-empty-state--compact" role="status">
+                                        <i class="fas fa-list-ol caissa-ui-empty-state__icon" aria-hidden="true"></i>
+                                        <p class="caissa-ui-empty-state__title">No live moves yet.</p>
+                                        <p class="caissa-ui-empty-state__message">Moves will appear when the featured game updates.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </aside>
                     </div>
                 </div>
             </section>
@@ -2929,6 +3011,7 @@
     <script src="js/spectator-tv-catalog.js?v=1.0.0" defer></script>
     <script src="js/fics-style12.js?v=1.0.0" defer></script>
     <script src="js/fics-client.js?v=1.2.4" defer></script>
+    <script src="js/spectator-tv-section.js?v=1.0.0" defer></script>
     <script src="js/opening-book-manager.js?v=1.0.0" defer></script>
 
     <style>
