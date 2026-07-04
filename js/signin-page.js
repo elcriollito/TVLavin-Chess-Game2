@@ -15,20 +15,41 @@
         return params.get('redirect_url') || '/';
     }
 
+    function getClerkDomain(publishableKey) {
+        try {
+            return atob(publishableKey.split('_')[2]).slice(0, -1);
+        } catch (error) {
+            throw new Error('Invalid Clerk publishable key');
+        }
+    }
+
+    function loadScript(src, attributes = {}) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.async = true;
+            script.crossOrigin = 'anonymous';
+            script.src = src;
+            Object.entries(attributes).forEach(([key, value]) => {
+                script.setAttribute(key, value);
+            });
+            script.onload = resolve;
+            script.onerror = () => reject(new Error(`Failed to load ${src}`));
+            document.head.appendChild(script);
+        });
+    }
+
     function loadClerkSdk(publishableKey) {
         if (typeof window.Clerk !== 'undefined') return Promise.resolve(window.Clerk);
         if (clerkLoadPromise) return clerkLoadPromise;
 
-        clerkLoadPromise = new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.async = true;
-            script.crossOrigin = 'anonymous';
-            script.dataset.clerkPublishableKey = publishableKey;
-            script.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
-            script.onload = () => resolve(window.Clerk);
-            script.onerror = () => reject(new Error('Clerk SDK failed to load'));
-            document.head.appendChild(script);
-        });
+        clerkLoadPromise = (async () => {
+            const clerkDomain = getClerkDomain(publishableKey);
+            await loadScript(`https://${clerkDomain}/npm/@clerk/ui@1/dist/ui.browser.js`);
+            await loadScript(`https://${clerkDomain}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`, {
+                'data-clerk-publishable-key': publishableKey
+            });
+            return window.Clerk;
+        })();
 
         return clerkLoadPromise;
     }
@@ -70,7 +91,7 @@
 
             // Load Clerk with publishable key
             await Clerk.load({
-                publishableKey: publishableKey
+                ui: { ClerkUI: window.__internal_ClerkUICtor }
             });
 
             // Check if already signed in
