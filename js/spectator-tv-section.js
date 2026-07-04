@@ -17,6 +17,7 @@
         lastRenderedFen: null,
         pendingFeaturedWatch: false,
         unsubscribeFics: null,
+        playerCardSnapshots: Object.create(null),
         visibleChannelIds: Object.freeze(['featured', 'top-rated', 'blitz', 'bullet', 'rapid']),
 
         init() {
@@ -44,6 +45,8 @@
                 gameStatus: document.getElementById('spectatorGameStatus'),
                 metadata: document.getElementById('spectatorMetadata'),
                 moveList: document.getElementById('spectatorMoveList'),
+                whitePlayerCard: document.getElementById('spectatorWhitePlayerCard'),
+                blackPlayerCard: document.getElementById('spectatorBlackPlayerCard'),
                 channelList: document.getElementById('spectatorChannelList'),
                 gameList: document.getElementById('spectatorGameList'),
                 gameCount: document.getElementById('spectatorGameCount')
@@ -124,7 +127,9 @@
             }
             this.pendingFeaturedWatch = false;
             this.lastRenderedFen = null;
+            this.playerCardSnapshots = Object.create(null);
             if (this.board) this.board.position('start', false);
+            this.renderPlayerCards(null);
             this.render();
         },
 
@@ -340,6 +345,7 @@
             }
 
             this.renderPlayers(liveGame);
+            this.renderPlayerCards(liveGame);
             this.renderClocks(liveGame);
             this.renderMoveList(payload.moveHistory || []);
             this.renderGameStatus(liveGame);
@@ -366,14 +372,121 @@
 
         renderPlayerBar(element, player) {
             if (!element) return;
+            const ficsClient = window.CaissaFICSClient;
+            const displayName = ficsClient?.stripComputerMarker?.(player.name) || player.name;
+            const computer = !!ficsClient?.isLikelyComputerPlayer?.(player.name);
+            const computerMarker = computer
+                ? '<span class="fics-computer-marker" title="Computer / engine account" aria-label="Computer / engine account">(C)</span>'
+                : '';
+            const titleName = ficsClient?.formatComputerPlayerName?.(player.name) || player.name;
             element.className = `spectator-player-bar ${player.color}${player.active ? ' turn-active' : ''}`;
             element.innerHTML = `
                 <span class="spectator-turn-led${player.active ? ' active' : ''}" aria-label="${player.active ? `${player.color} to move` : `${player.color} waiting`}"></span>
                 <span class="spectator-color-dot" aria-hidden="true"></span>
-                <span class="spectator-player-name" title="${this.escapeHtml(player.name)}">${this.escapeHtml(player.name)}</span>
+                <span class="spectator-player-name" title="${this.escapeHtml(titleName)}">${this.escapeHtml(displayName)}${computerMarker}</span>
                 <span class="spectator-player-rating">${this.escapeHtml(player.rating || '')}</span>
                 <strong class="spectator-player-clock">${this.escapeHtml(player.clock)}</strong>
             `;
+        },
+
+        renderPlayerCards(liveGame) {
+            this.renderPlayerCard(this.elements.whitePlayerCard, this.getPlayerCardData(liveGame, 'white'));
+            this.renderPlayerCard(this.elements.blackPlayerCard, this.getPlayerCardData(liveGame, 'black'));
+        },
+
+        getPlayerCardData(liveGame, color) {
+            const table = liveGame?.gameNumber
+                ? window.CaissaFICSClient?.getActiveTableForGame?.(liveGame.gameNumber)
+                : null;
+            const game = liveGame?.gameNumber
+                ? this.catalog?.gameMap?.[String(liveGame.gameNumber)]
+                : null;
+            const isWhite = color === 'white';
+            const name = liveGame
+                ? (isWhite ? liveGame.whiteName : liveGame.blackName) || (isWhite ? 'White' : 'Black')
+                : (isWhite ? 'White' : 'Black');
+            const rating = isWhite
+                ? table?.whiteRating || game?.whiteRating || null
+                : table?.blackRating || game?.blackRating || null;
+            const clock = liveGame
+                ? this.formatClock(isWhite ? liveGame.whiteClock : liveGame.blackClock)
+                : '--:--';
+            const active = !!liveGame && liveGame.sideToMove === (isWhite ? 'w' : 'b');
+            const timeControl = game?.timeControl || table?.timeControl || 'live';
+            const variant = game?.variant || 'standard';
+            const rated = game?.rated;
+
+            return {
+                color,
+                name,
+                rating,
+                clock,
+                active,
+                timeControl,
+                variant,
+                rated,
+                hasGame: !!liveGame?.gameNumber
+            };
+        },
+
+        renderPlayerCard(element, player) {
+            if (!element || !player) return;
+            const ficsClient = window.CaissaFICSClient;
+            const computer = !!ficsClient?.isLikelyComputerPlayer?.(player.name);
+            const displayName = ficsClient?.stripComputerMarker?.(player.name) || player.name;
+            const titleName = ficsClient?.formatComputerPlayerName?.(player.name) || player.name;
+            const identity = this.getPlayerIdentity(player.name, player.hasGame);
+            const badgeData = [
+                { label: identity, variant: identity === 'Guest' ? 'warning' : 'info' },
+                computer ? { label: 'Computer', variant: 'info', title: 'Computer / engine account' } : null,
+                player.rated === true ? { label: 'Rated', variant: 'success' } : null,
+                player.rated === false ? { label: 'Unrated', variant: 'disabled' } : null,
+                player.active ? { label: 'To move', variant: 'playing' } : null
+            ].filter(Boolean);
+            const details = [
+                player.rating ? `Rating ${player.rating}` : 'Rating unavailable',
+                player.timeControl || 'live',
+                player.variant || 'standard'
+            ];
+            const snapshot = JSON.stringify({
+                ...player,
+                computer,
+                identity,
+                displayName,
+                titleName,
+                badgeData,
+                details
+            });
+
+            if (this.playerCardSnapshots[player.color] === snapshot) return;
+            this.playerCardSnapshots[player.color] = snapshot;
+
+            element.className = `spectator-player-card ${player.color}${player.active ? ' turn-active' : ''}`;
+            element.setAttribute('aria-label', `${player.color} player card: ${titleName}, ${player.active ? 'to move' : 'waiting'}`);
+            element.innerHTML = `
+                <div class="spectator-player-card__header">
+                    <span class="spectator-color-dot" aria-hidden="true"></span>
+                    <strong class="spectator-player-card__name" title="${this.escapeHtml(titleName)}">${this.escapeHtml(displayName)}${computer ? '<span class="fics-computer-marker" title="Computer / engine account" aria-label="Computer / engine account">(C)</span>' : ''}</strong>
+                    <span class="spectator-player-card__clock">${this.escapeHtml(player.clock)}</span>
+                </div>
+                <div class="spectator-player-card__details">
+                    ${details.map((detail) => `<span>${this.escapeHtml(detail)}</span>`).join('')}
+                </div>
+                <div class="spectator-player-card__badges" aria-label="Player status">
+                    ${badgeData.map((badge) => this.renderBadge(badge)).join('')}
+                </div>
+            `;
+        },
+
+        getPlayerIdentity(name, hasGame) {
+            if (!hasGame) return 'Waiting';
+            const value = String(name || '');
+            return /^guest/i.test(value) ? 'Guest' : 'Registered';
+        },
+
+        renderBadge(badge) {
+            const title = badge.title ? ` title="${this.escapeHtml(badge.title)}"` : '';
+            return `<span class="caissa-ui-badge caissa-ui-badge--${this.escapeHtml(badge.variant)}"${title}>${this.escapeHtml(badge.label)}</span>`;
         },
 
         renderClocks(liveGame) {

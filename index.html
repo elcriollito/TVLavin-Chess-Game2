@@ -62,7 +62,7 @@
     <link rel="stylesheet" href="css/caissa-sync.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-onboarding.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-dos-chess.css?v=1.0.1">
-    <link rel="stylesheet" href="css/fics-client.css?v=1.2.3">
+    <link rel="stylesheet" href="css/fics-client.css?v=1.2.4">
     <link rel="stylesheet" href="css/opening-book.css?v=1.0.0">
 </head>
 <body>
@@ -1523,6 +1523,34 @@
                         </main>
 
                         <aside class="spectator-side-panel" aria-label="Featured game information">
+                            <div class="fics-panel">
+                                <h3>Player Cards</h3>
+                                <div class="spectator-player-cards" aria-live="polite">
+                                    <div id="spectatorWhitePlayerCard" class="spectator-player-card white" role="group" aria-label="White player card">
+                                        <div class="spectator-player-card__header">
+                                            <span class="spectator-color-dot" aria-hidden="true"></span>
+                                            <strong class="spectator-player-card__name">White</strong>
+                                            <span class="spectator-player-card__clock">--:--</span>
+                                        </div>
+                                        <div class="spectator-player-card__details">
+                                            <span>Rating unavailable</span>
+                                            <span>Waiting for game</span>
+                                        </div>
+                                    </div>
+                                    <div id="spectatorBlackPlayerCard" class="spectator-player-card black" role="group" aria-label="Black player card">
+                                        <div class="spectator-player-card__header">
+                                            <span class="spectator-color-dot" aria-hidden="true"></span>
+                                            <strong class="spectator-player-card__name">Black</strong>
+                                            <span class="spectator-player-card__clock">--:--</span>
+                                        </div>
+                                        <div class="spectator-player-card__details">
+                                            <span>Rating unavailable</span>
+                                            <span>Waiting for game</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="fics-panel">
                                 <h3>Game Metadata</h3>
                                 <div id="spectatorMetadata" class="spectator-metadata">
@@ -3038,7 +3066,7 @@
     <script src="js/spectator-tv-catalog.js?v=1.0.0" defer></script>
     <script src="js/fics-style12.js?v=1.0.0" defer></script>
     <script src="js/fics-client.js?v=1.2.4" defer></script>
-    <script src="js/spectator-tv-section.js?v=1.0.2" defer></script>
+    <script src="js/spectator-tv-section.js?v=1.0.3" defer></script>
     <script src="js/opening-book-manager.js?v=1.0.0" defer></script>
 
     <style>
