@@ -77,8 +77,9 @@
                 this.enterLoadingGames();
                 if (this.pendingFeaturedWatch) this.refreshCatalog(true);
             } else if (detail.event === 'lobby-updated') {
-                this.updateCatalog(detail.payload?.activeTables || []);
-                if (this.pendingFeaturedWatch) this.observeFeaturedCandidate();
+                const activeTables = detail.payload?.activeTables || [];
+                this.updateCatalog(activeTables);
+                if (this.pendingFeaturedWatch && activeTables.length) this.observeFeaturedCandidate();
             } else if (detail.event === 'style12') {
                 this.renderStyle12(detail.payload);
             } else if (detail.event === 'disconnected') {
@@ -233,7 +234,6 @@
         observeFeaturedCandidate() {
             const client = window.CaissaFICSClient;
             const candidate = window.CaissaSpectatorTVCatalog?.selectFeaturedGame?.(this.catalog?.games || []);
-            this.pendingFeaturedWatch = false;
 
             if (!client?.authenticated) {
                 this.showMessage('Connect to FICS before watching.', 'info');
@@ -246,6 +246,7 @@
                 return;
             }
 
+            this.pendingFeaturedWatch = false;
             this.state = window.CaissaSpectatorTV.setObservedGame(this.state, candidate.gameId, candidate);
             this.transition(window.CaissaSpectatorTV.STATES.SWITCHING_GAME);
             this.showMessage(`Opening featured game #${candidate.gameId}...`, 'info');
