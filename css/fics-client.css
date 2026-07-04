@@ -354,6 +354,8 @@
 .spectator-player-card {
     display: grid;
     gap: 8px;
+    min-height: 118px;
+    align-content: start;
     padding: 10px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -392,6 +394,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+    min-height: 20px;
     color: var(--text-secondary);
     font-size: 12px;
 }
@@ -400,6 +403,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+    min-height: 20px;
 }
 
 .spectator-player-card__badges .caissa-ui-badge {
@@ -450,7 +454,7 @@
 }
 
 .fics-layout {
-    padding: 20px;
+    padding: 16px 20px 20px;
     max-width: 1520px;
     margin: 0 auto;
     height: calc(100vh - 80px);
@@ -459,14 +463,14 @@
 
 /* ===== HEADER ===== */
 .fics-header {
-    margin-bottom: 24px;
+    margin-bottom: 14px;
 }
 
 .fics-title {
-    font-size: 28px;
+    font-size: 26px;
     font-weight: 700;
     color: var(--text-primary);
-    margin: 0 0 8px 0;
+    margin: 0 0 5px 0;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -485,17 +489,17 @@
 .fics-disclaimer {
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     border-radius: 8px;
-    padding: 12px 16px;
-    margin-top: 12px;
+    padding: 9px 12px;
+    margin-top: 10px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-size: 13px;
+    gap: 10px;
+    font-size: 12px;
     color: white;
 }
 
 .fics-disclaimer i {
-    font-size: 20px;
+    font-size: 17px;
     flex-shrink: 0;
 }
 
@@ -504,21 +508,20 @@
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
+    padding: 14px;
+    margin-bottom: 14px;
 }
 
 .fics-connection-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 16px;
+    display: grid;
+    grid-template-columns: minmax(320px, 1fr) minmax(340px, 460px);
+    align-items: start;
+    gap: 14px;
 }
 
 .fics-connection-info h3 {
-    margin: 0 0 8px 0;
-    font-size: 18px;
+    margin: 0 0 6px 0;
+    font-size: 16px;
     color: var(--text-primary);
 }
 
@@ -559,7 +562,7 @@
 }
 
 .fics-identity-status {
-    margin-top: 8px;
+    margin-top: 6px;
     color: var(--text-secondary);
     font-size: 13px;
     font-weight: 600;
@@ -571,15 +574,28 @@
 
 .fics-gateway-details {
     display: grid;
-    gap: 4px;
-    margin-top: 10px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
+    margin-top: 8px;
     color: var(--text-secondary);
     font-size: 12px;
 }
 
+.fics-gateway-details span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .fics-gateway-details code {
+    display: inline-block;
+    max-width: min(100%, 360px);
     color: var(--text-primary);
-    overflow-wrap: anywhere;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
 }
 
 .fics-gateway-status {
@@ -595,35 +611,54 @@
 }
 
 .fics-connection-buttons {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: flex-start;
-    flex-wrap: wrap;
-    gap: 16px;
+    gap: 8px;
+    min-width: 0;
+}
+
+.fics-connection-buttons > .fics-btn {
+    justify-content: center;
+    width: 100%;
+    min-height: 36px;
+    padding-inline: 12px;
+}
+
+.fics-connection [hidden],
+.fics-connection-buttons > [hidden] {
+    display: none !important;
+}
+
+#ficsAccountConnectBtn,
+#ficsDifferentUserBtn {
+    grid-column: 1 / -1;
 }
 
 .fics-login-panel {
     display: grid;
-    gap: 10px;
-    min-width: min(100%, 280px);
+    grid-column: 1 / -1;
+    gap: 7px;
+    min-width: 0;
 }
 
 .fics-login-modes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
 }
 
 .fics-login-mode {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 10px;
+    gap: 5px;
+    padding: 6px 8px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     background: var(--bg-tertiary);
     color: var(--text-secondary);
     cursor: pointer;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     position: relative;
 }
@@ -642,12 +677,13 @@
 
 .fics-account-fields {
     display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
 }
 
 .fics-account-fields input {
     width: 100%;
-    padding: 9px 11px;
+    padding: 8px 10px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     background: var(--bg-primary);
@@ -662,7 +698,7 @@
 
 .fics-login-note {
     color: var(--text-tertiary);
-    font-size: 12px;
+    font-size: 11px;
 }
 
 .fics-btn {
@@ -1626,6 +1662,10 @@
 }
 
 @media (max-width: 1180px) and (min-width: 769px) {
+    .fics-connection-header {
+        grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+    }
+
     .fics-game-area {
         grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
     }
@@ -1698,8 +1738,17 @@
     }
 
     .fics-connection-header {
-        flex-direction: column;
+        grid-template-columns: minmax(0, 1fr);
         align-items: stretch;
+    }
+
+    .fics-connection-buttons {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .fics-login-modes,
+    .fics-account-fields {
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .fics-seek-presets {
