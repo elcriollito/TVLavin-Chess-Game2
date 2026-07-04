@@ -7,10 +7,30 @@
 (function() {
     'use strict';
 
+    let clerkLoadPromise = null;
+
     // Get redirect URL from query params
     function getRedirectUrl() {
         const params = new URLSearchParams(window.location.search);
         return params.get('redirect_url') || '/';
+    }
+
+    function loadClerkSdk(publishableKey) {
+        if (typeof window.Clerk !== 'undefined') return Promise.resolve(window.Clerk);
+        if (clerkLoadPromise) return clerkLoadPromise;
+
+        clerkLoadPromise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.async = true;
+            script.crossOrigin = 'anonymous';
+            script.dataset.clerkPublishableKey = publishableKey;
+            script.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
+            script.onload = () => resolve(window.Clerk);
+            script.onerror = () => reject(new Error('Clerk SDK failed to load'));
+            document.head.appendChild(script);
+        });
+
+        return clerkLoadPromise;
     }
 
     // Initialize Clerk Sign Up
@@ -44,42 +64,10 @@
             return;
         }
 
-        // Wait for Clerk to be available
-        const waitForClerk = () => {
-            return new Promise((resolve) => {
-                if (typeof window.Clerk !== 'undefined') {
-                    resolve(window.Clerk);
-                    return;
-                }
-
-                const interval = setInterval(() => {
-                    if (typeof window.Clerk !== 'undefined') {
-                        clearInterval(interval);
-                        resolve(window.Clerk);
-                    }
-                }, 100);
-
-                // Timeout after 15 seconds
-                setTimeout(() => {
-                    clearInterval(interval);
-                    resolve(null);
-                }, 15000);
-            });
-        };
-
-        const Clerk = await waitForClerk();
-
-        if (!Clerk) {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 40px 20px; color: #9aa0a6;">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #f44336; margin-bottom: 16px;"></i>
-                    <p style="margin: 0;">Unable to load authentication. Please refresh the page.</p>
-                </div>
-            `;
-            return;
-        }
-
         try {
+            const Clerk = await loadClerkSdk(publishableKey);
+            if (!Clerk) throw new Error('Clerk SDK unavailable');
+
             // Load Clerk with publishable key
             await Clerk.load({
                 publishableKey: publishableKey
