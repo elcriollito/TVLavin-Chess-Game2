@@ -7,6 +7,8 @@
 
 console.log('[FICS Client] Module loaded');
 
+const FICS_STANDARD_START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
 const CaissaFICSClient = {
     // WebSocket connection
     ws: null,
@@ -66,6 +68,7 @@ const CaissaFICSClient = {
     moveHistory: [],
     lastMoveKey: null,
     pgnResult: '*',
+    pgnStartFen: null,
     soundsEnabled: false,
     audioContext: null,
     lastSoundAt: {},
@@ -883,6 +886,7 @@ const CaissaFICSClient = {
             this.chess.reset();
         }
         this.resetGameRecord();
+        this.pgnStartFen = FICS_STANDARD_START_FEN;
         this.initBoard();
         this.playNotificationSound('seekAccepted');
 
@@ -963,7 +967,7 @@ const CaissaFICSClient = {
             this.board.position(state.fen, false);
         }
 
-        this.recordStyle12Move(state);
+        this.recordStyle12Move(state, isNewGame ? null : previousFen);
         this.updateLiveGameUI();
         this.notifySpectator('style12', {
             style12: state,
@@ -1569,24 +1573,64 @@ const CaissaFICSClient = {
         this.moveHistory = [];
         this.lastMoveKey = null;
         this.pgnResult = '*';
+        this.pgnStartFen = null;
         this.renderMoveList();
     },
 
-    recordStyle12Move(state) {
-        if (!state.lastMove || state.lastMove === 'none' || state.lastMove === '---') return;
+    recordStyle12Move(state, previousFen = null) {
+        const san = this.normalizeStyle12PgnMove(state);
+        if (!san) {
+            if (!this.pgnStartFen && state.fen) this.pgnStartFen = state.fen;
+            return;
+        }
+
         const color = state.sideToMove === 'w' ? 'black' : 'white';
         const moveNumber = color === 'white' ? state.moveNumber : Math.max(1, state.moveNumber - 1);
-        const key = `${state.gameNumber}:${moveNumber}:${color}:${state.lastMove}:${state.fen}`;
+
+        if (!this.pgnStartFen) {
+            if (previousFen) {
+                this.pgnStartFen = previousFen;
+            } else if (!state.observedGame) {
+                this.pgnStartFen = FICS_STANDARD_START_FEN;
+            } else {
+                this.pgnStartFen = state.fen;
+                this.lastMoveKey = `${state.gameNumber}:${moveNumber}:${color}:${san}:${state.fen}`;
+                return;
+            }
+        }
+
+        if (previousFen && previousFen === state.fen) return;
+
+        const key = `${state.gameNumber}:${moveNumber}:${color}:${san}:${state.fen}`;
         if (key === this.lastMoveKey) return;
         this.lastMoveKey = key;
         this.moveHistory.push({
             moveNumber,
             color,
-            san: state.lastMove,
+            san,
             verbose: state.lastMoveVerbose,
             fen: state.fen
         });
         this.renderMoveList();
+    },
+
+    normalizeStyle12PgnMove(state) {
+        const raw = String(state?.lastMove || '').trim();
+        if (raw && !/^(?:none|---|\*)$/i.test(raw)) {
+            return raw
+                .replace(/[^\x20-\x7E]/g, '')
+                .replace(/^o-o-o$/i, 'O-O-O')
+                .replace(/^o-o$/i, 'O-O')
+                .trim();
+        }
+
+        return this.verboseStyle12MoveToCoordinate(state?.lastMoveVerbose);
+    },
+
+    verboseStyle12MoveToCoordinate(verbose) {
+        const match = String(verbose || '').match(/[KQRBNP]?\/([a-h][1-8])-([a-h][1-8])(?:=([QRBN]))?/i);
+        if (!match) return '';
+        return `${match[1]}${match[2]}${match[3] ? `=${match[3].toUpperCase()}` : ''}`;
     },
 
     renderMoveList() {
@@ -1626,6 +1670,7 @@ const CaissaFICSClient = {
         const timeControl = Number.isFinite(state.initialTime) && Number.isFinite(state.increment)
             ? `${state.initialTime * 60}+${state.increment}`
             : '-';
+        const startFen = this.pgnStartFen || state.currentFen || FICS_STANDARD_START_FEN;
         const headers = [
             ['Event', 'FICS game'],
             ['Site', 'freechess.org'],
@@ -1635,7 +1680,13 @@ const CaissaFICSClient = {
             ['Black', state.blackName || 'Black'],
             ['Result', this.pgnResult],
             ['TimeControl', timeControl]
-        ].map(([key, value]) => `[${key} "${String(value).replace(/"/g, '\\"')}"]`);
+        ];
+
+        if (!this.isStandardStartFen(startFen)) {
+            headers.push(['SetUp', '1'], ['FEN', startFen]);
+        }
+
+        const headerText = headers.map(([key, value]) => `[${key} "${String(value).replace(/"/g, '\\"')}"]`);
 
         const rows = [];
         this.moveHistory.forEach((move) => {
@@ -1647,7 +1698,12 @@ const CaissaFICSClient = {
             row[move.color] = move.san;
         });
         const moves = rows.map((row) => `${row.moveNumber}. ${row.white || '...'}${row.black ? ` ${row.black}` : ''}`).join(' ');
-        return `${headers.join('\n')}\n\n${moves} ${this.pgnResult}`.trim() + '\n';
+        const movetext = moves ? `${moves} ${this.pgnResult}` : this.pgnResult;
+        return `${headerText.join('\n')}\n\n${movetext}`.trim() + '\n';
+    },
+
+    isStandardStartFen(fen) {
+        return String(fen || '').trim() === FICS_STANDARD_START_FEN;
     },
 
     downloadPGN() {

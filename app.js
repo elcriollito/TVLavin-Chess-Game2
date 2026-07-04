@@ -4300,6 +4300,18 @@ function loadPGNProgrammatically(pgnText) {
     console.log('🔧 Loading PGN programmatically...');
 
     try {
+        const startingFen = extractPGNHeader(pgnText, 'FEN');
+        if (startingFen) {
+            const loadedFen = App.game.load(startingFen);
+            if (!loadedFen) {
+                console.error('Invalid FEN header in PGN:', startingFen);
+                return false;
+            }
+            console.log('Loaded PGN starting FEN:', startingFen);
+        } else {
+            App.game.reset();
+        }
+
         // Extract movetext (everything after headers)
         const headerEndIndex = pgnText.lastIndexOf(']');
         if (headerEndIndex === -1) {
@@ -4351,6 +4363,12 @@ function loadPGNProgrammatically(pgnText) {
         console.error('❌ Error stack:', error.stack);
         return false;
     }
+}
+
+function extractPGNHeader(pgnText, headerName) {
+    const escapedName = String(headerName || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const match = String(pgnText || '').match(new RegExp(`\\[${escapedName}\\s+"([^"]+)"\\]`, 'i'));
+    return match ? match[1].trim() : '';
 }
 
 async function loadSelectedPGN() {
