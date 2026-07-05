@@ -162,6 +162,98 @@
     color: #f8fafc;
 }
 
+.academy-breadcrumbs {
+    order: 16;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px;
+    margin-top: 10px;
+    color: #64748b;
+    font-size: 0.84rem;
+    font-weight: 800;
+}
+
+.academy-breadcrumbs a,
+.academy-inline-link {
+    color: #154857;
+    font-weight: 900;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+}
+
+.academy-breadcrumbs a:hover,
+.academy-breadcrumbs a:focus-visible,
+.academy-inline-link:hover,
+.academy-inline-link:focus-visible {
+    color: #7b4e18;
+}
+
+.academy-link-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 2px;
+}
+
+.academy-link-row a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    border: 1px solid rgba(21, 72, 87, 0.16);
+    border-radius: 999px;
+    background: #eef4f2;
+    color: #154857;
+    font-size: 0.76rem;
+    font-weight: 900;
+    padding: 5px 9px;
+    text-decoration: none;
+}
+
+.academy-link-row a:hover,
+.academy-link-row a:focus-visible {
+    border-color: #154857;
+    background: #154857;
+    color: #f8fafc;
+}
+
+#academyFacultyFundamentals,
+#academyFacultyStrategy,
+#academyFacultyDynamic,
+#academyFacultyEndgame,
+#academyFacultyAdaptive,
+#academyCourse101,
+#academyCourse102,
+#academyCourse201,
+#academyCourse202,
+#academyCourse301,
+#academyCourse302,
+#academyCourse401,
+#academyCourse402,
+#academyCourseA1,
+#academyCertificateFundamentals,
+#academyCertificateStrategy,
+#academyCertificateDynamic,
+#academyCertificateEndgame,
+#academyCertificateAdaptive,
+#academyDegreeNovice,
+#academyDegreeStudent,
+#academyDegreeClubScholar,
+#academyDegreeStrategicScholar,
+#academyDegreeAcademyFellow,
+#academyDegreeCaissaMaster,
+#academyMentorDaisy,
+#academyMentorMya,
+#academyMentorAlex,
+#academyMentorSophia,
+#academyMentorMorphy,
+#academyMentorCapablanca,
+#academyMentorTal,
+#academyMentorCaissa {
+    scroll-margin-top: 18px;
+}
+
 .academy-student-journey {
     order: 20;
 }
