@@ -9,6 +9,7 @@
     'use strict';
 
     const MAX_SYSTEM_MESSAGES = 5;
+    const CURRENT_ROOM = 'CAISSA Lobby';
 
     const YahooClassicSection = {
         elements: {},
@@ -98,7 +99,7 @@
             } else if (event === 'authenticated') {
                 this.authenticated = true;
                 this.addSystemMessage('Connected.');
-                this.addSystemMessage('Loading room...');
+                this.addSystemMessage(`Loading ${CURRENT_ROOM}...`);
             } else if (event === 'lobby-updated') {
                 this.authenticated = true;
                 this.activeTables = Array.isArray(payload.activeTables) ? payload.activeTables.map((table) => ({ ...table })) : [];
@@ -187,7 +188,7 @@
             if (!this.elements.roomSummary) return;
             const players = this.getPlayers();
             const tables = this.activeTables.length + this.seekActions.length;
-            this.elements.roomSummary.textContent = `Players Online: ${players.length} - Tables Available: ${tables}`;
+            this.elements.roomSummary.textContent = `Current Room: ${CURRENT_ROOM} - Players Online: ${players.length} - Active Tables: ${tables}`;
         },
 
         renderTables() {
@@ -219,10 +220,11 @@
                     table: seek.number,
                     white: player,
                     black: 'Open Seat',
-                    watching: '0',
-                    game: details.rated || 'unrated',
-                    time: details.timeControl || 'open',
-                    status: 'Join',
+                watching: '0',
+                game: this.formatSeekGameLabel(details),
+                gameClass: this.getTableChipClass(this.formatSeekGameLabel(details), details.timeControl),
+                time: details.timeControl || 'open',
+                status: 'Join',
                     action: 'join',
                     command: `play ${seek.number}`,
                     raw: seek
@@ -236,6 +238,7 @@
                 black: this.formatPlayer(table.black || 'Black', table.blackRating),
                 watching: this.formatCount(table.observers),
                 game: this.formatGameLabel(table),
+                gameClass: this.getTableChipClass(this.formatGameLabel(table), table.timeControl, this.isCurrentObservedGame(table.number)),
                 time: table.timeControl || 'live',
                 status: this.isCurrentObservedGame(table.number) ? 'Watching' : 'Watch',
                 action: this.isCurrentObservedGame(table.number) ? 'watching' : 'watch',
@@ -280,7 +283,7 @@
                 rowData.white,
                 rowData.black,
                 rowData.watching,
-                rowData.game,
+                { label: rowData.game, className: rowData.gameClass },
                 rowData.time
             ].forEach((value) => row.appendChild(this.createCell(value)));
 
@@ -305,6 +308,14 @@
         createCell(value) {
             const cell = document.createElement('span');
             cell.setAttribute('role', 'cell');
+            if (value && typeof value === 'object') {
+                const chip = document.createElement('span');
+                chip.className = `yc-table-chip ${value.className || ''}`.trim();
+                chip.textContent = value.label || '-';
+                cell.appendChild(chip);
+                cell.title = chip.textContent;
+                return cell;
+            }
             cell.textContent = value || '-';
             cell.title = cell.textContent;
             return cell;
@@ -451,6 +462,7 @@
             led.className = `yc-pixel-led ${player.rating ? 'online' : 'guest'}`;
             led.setAttribute('aria-hidden', 'true');
             nameCell.append(led, player.name);
+            nameCell.appendChild(this.createPlayerBadge(player));
             nameCell.title = player.name;
 
             row.append(nameCell, this.createCell(player.rating || 'Guest'), this.createCell(player.table || '-'));
@@ -505,11 +517,11 @@
             const status = this.authenticated ? 'Connected to FICS' : 'FICS idle';
             const tableLabel = this.tableOpen && (this.liveGame?.gameNumber || this.currentTableId)
                 ? `Watching Table ${this.liveGame?.gameNumber || this.currentTableId}`
-                : this.authenticated ? `Watching ${tables} tables` : 'Not connected';
+                : this.authenticated ? `Inside ${CURRENT_ROOM}` : 'Not connected';
             const turnLabel = this.liveGame?.sideToMove
                 ? `${this.liveGame.sideToMove === 'b' ? 'Black' : 'White'} to Move`
-                : `${players} players online`;
-            const values = ['Done', status, tableLabel, turnLabel];
+                : `${tables} Active Tables - ${players} Players`;
+            const values = ['Ready', status, tableLabel, turnLabel];
             this.elements.browserStatus.replaceChildren(...values.map((value, index) => {
                 const cell = document.createElement('span');
                 cell.textContent = value;
@@ -676,6 +688,35 @@
             if (label.includes('unrated')) return 'Unrated';
             if (label.includes('rated')) return 'Rated';
             return table?.variant || 'Live';
+        },
+
+        formatSeekGameLabel(details = {}) {
+            const rated = String(details.rated || '').toLowerCase();
+            if (rated.includes('rated') && !rated.includes('unrated')) return 'Rated';
+            if (rated.includes('unrated')) return 'Casual';
+            return 'Casual';
+        },
+
+        getTableChipClass(label, timeControl, observed = false) {
+            if (observed) return 'observed';
+            const text = `${label || ''} ${timeControl || ''}`.toLowerCase();
+            if (text.includes('private')) return 'private';
+            if (text.includes('bullet') || /\b1\+/.test(text)) return 'blitz';
+            if (text.includes('blitz') || /\b[2-5]\+/.test(text)) return 'blitz';
+            if (text.includes('rapid') || /\b(?:10|15)\+/.test(text)) return 'rapid';
+            if (text.includes('rated') && !text.includes('unrated')) return 'rated';
+            return 'casual';
+        },
+
+        createPlayerBadge(player) {
+            const badge = document.createElement('span');
+            const name = String(player?.name || '');
+            const isComputer = /(stockfish|lc0|leela|komodo|crafty|gnuchess|bot|engine|comp)/i.test(name);
+            const isObserving = this.liveGame && String(player?.table || '') === String(this.liveGame.gameNumber || '');
+            const label = isComputer ? 'Computer' : player?.rating ? 'Registered' : 'Guest';
+            badge.className = `yc-player-badge${isComputer ? ' computer' : ''}${isObserving ? ' observing' : ''}`;
+            badge.textContent = isObserving && !isComputer ? 'Observing' : label;
+            return badge;
         },
 
         formatCount(value) {
