@@ -112,6 +112,7 @@
 .academy-student-journey,
 .academy-degrees,
 .academy-course-catalog,
+.academy-certification-program,
 .academy-learning-paths,
 .academy-mentor-guidance,
 .academy-programs,
@@ -777,6 +778,173 @@
     margin: 0;
     color: #475569;
     line-height: 1.45;
+}
+
+.academy-certification-program {
+    border: 1px solid rgba(30, 41, 59, 0.12);
+    border-radius: 14px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(245, 241, 232, 0.90)),
+        radial-gradient(circle at 100% 0%, rgba(191, 143, 62, 0.14), transparent 32%);
+    box-shadow: 0 14px 38px rgba(15, 23, 42, 0.09);
+    padding: clamp(18px, 3vw, 26px);
+}
+
+.academy-certificate-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.academy-certificate-card {
+    display: grid;
+    align-content: start;
+    gap: 11px;
+    min-height: 360px;
+    border: 1px solid rgba(21, 72, 87, 0.14);
+    border-radius: 12px;
+    background: linear-gradient(180deg, #ffffff, #f8fafc);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+    padding: 16px;
+}
+
+.academy-certificate-adaptive {
+    border-color: rgba(191, 143, 62, 0.36);
+    background: linear-gradient(180deg, #fffaf0, #ffffff);
+}
+
+.academy-certificate-faculty {
+    width: fit-content;
+    border: 1px solid rgba(191, 143, 62, 0.28);
+    border-radius: 999px;
+    background: #fff7ed;
+    color: #7b4e18;
+    font-size: 0.7rem;
+    font-weight: 900;
+    padding: 4px 9px;
+    text-transform: uppercase;
+}
+
+.academy-certificate-card h4 {
+    margin: 0;
+    color: #14232f;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.18rem;
+    line-height: 1.18;
+}
+
+.academy-certificate-meta {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+}
+
+.academy-certificate-meta div {
+    display: grid;
+    gap: 3px;
+    border-top: 1px solid rgba(30, 41, 59, 0.08);
+    padding-top: 8px;
+}
+
+.academy-certificate-meta dt,
+.academy-certificate-meta dd {
+    margin: 0;
+}
+
+.academy-certificate-meta dt {
+    color: #7b4e18;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.academy-certificate-meta dd {
+    color: #253444;
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.academy-certificate-card button {
+    min-height: 40px;
+    border: 1px solid rgba(21, 72, 87, 0.25);
+    border-radius: 8px;
+    background: #e7ecea;
+    color: #64748b;
+    font-weight: 800;
+    cursor: not-allowed;
+}
+
+.academy-certificate-card button span {
+    display: block;
+    color: #7b4e18;
+    font-size: 0.68rem;
+    font-weight: 900;
+    margin-top: 2px;
+    text-transform: uppercase;
+}
+
+.academy-certificate-diploma {
+    display: grid;
+    gap: 12px;
+    max-width: 760px;
+    margin: 18px auto 0;
+    border: 3px double rgba(191, 143, 62, 0.62);
+    border-radius: 12px;
+    background:
+        linear-gradient(135deg, rgba(255, 253, 247, 0.96), rgba(238, 244, 242, 0.94)),
+        radial-gradient(circle at 50% 0%, rgba(191, 143, 62, 0.12), transparent 38%);
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
+    padding: clamp(18px, 4vw, 34px);
+    text-align: center;
+}
+
+.academy-certificate-diploma > span {
+    color: #7b4e18;
+    font-size: 0.82rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.academy-certificate-diploma h4 {
+    margin: 0;
+    color: #14232f;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(1.5rem, 3vw, 2.4rem);
+}
+
+.academy-certificate-diploma dl {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+    text-align: left;
+}
+
+.academy-certificate-diploma div {
+    border: 1px solid rgba(21, 72, 87, 0.12);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.72);
+    padding: 10px;
+}
+
+.academy-certificate-diploma dt,
+.academy-certificate-diploma dd {
+    margin: 0;
+}
+
+.academy-certificate-diploma dt {
+    color: #7b4e18;
+    font-size: 0.7rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.academy-certificate-diploma dd {
+    color: #253444;
+    font-weight: 800;
+    margin-top: 3px;
 }
 
 .academy-program-grid {
@@ -1458,6 +1626,7 @@
     .academy-faculty-grid,
     .academy-degree-grid,
     .academy-course-grid,
+    .academy-certificate-grid,
     .academy-path-grid,
     .academy-trainer-grid,
     .academy-future-grid,
@@ -1496,6 +1665,7 @@
     .academy-faculty-grid,
     .academy-degree-grid,
     .academy-course-grid,
+    .academy-certificate-grid,
     .academy-path-grid,
     .academy-trainer-grid,
     .academy-future-grid,
@@ -1508,6 +1678,10 @@
 
     .academy-passport-header {
         grid-template-columns: 54px minmax(0, 1fr);
+    }
+
+    .academy-certificate-diploma dl {
+        grid-template-columns: 1fr;
     }
 
     .academy-passport-status {
