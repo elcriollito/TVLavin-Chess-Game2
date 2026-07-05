@@ -268,16 +268,15 @@
             const waiting = this.seekActions.map((seek) => {
                 const details = seek.details || {};
                 const player = this.formatPlayer(details.player || 'Open Seat', details.rating);
+                const gameLabel = this.formatSeekGameLabel(details);
                 return {
                     kind: 'waiting',
                     table: seek.number,
                     white: player,
                     black: 'Open Seat',
-                watching: '0',
-                game: this.formatSeekGameLabel(details),
-                gameClass: this.getTableChipClass(this.formatSeekGameLabel(details), details.timeControl),
-                time: details.timeControl || 'open',
-                status: 'Join',
+                    watching: '0',
+                    options: this.buildOptionParts(details.timeControl || 'open', gameLabel),
+                    status: 'Join',
                     action: 'join',
                     command: `play ${seek.number}`,
                     raw: seek
@@ -290,9 +289,7 @@
                 white: this.formatPlayer(table.white || 'White', table.whiteRating),
                 black: this.formatPlayer(table.black || 'Black', table.blackRating),
                 watching: this.formatCount(table.observers),
-                game: this.formatGameLabel(table),
-                gameClass: this.getTableChipClass(this.formatGameLabel(table), table.timeControl, this.isCurrentObservedGame(table.number)),
-                time: table.timeControl || 'live',
+                options: this.buildOptionParts(table.timeControl || 'live', this.formatGameLabel(table), this.isCurrentObservedGame(table.number)),
                 status: this.isCurrentObservedGame(table.number) ? 'Watching' : 'Watch',
                 action: this.isCurrentObservedGame(table.number) ? 'watching' : 'watch',
                 command: `observe ${table.number}`,
@@ -306,7 +303,7 @@
             const row = document.createElement('div');
             row.className = 'yc-table-row yc-table-head';
             row.setAttribute('role', 'row');
-            ['Table', 'White', 'Black', 'Watching', 'Game', 'Time', 'Status'].forEach((label) => {
+            ['Table', 'White', 'Black', 'Options', 'Who is Watching'].forEach((label) => {
                 const cell = document.createElement('span');
                 cell.setAttribute('role', 'columnheader');
                 cell.textContent = label;
@@ -334,13 +331,40 @@
             [
                 `#${rowData.table || '-'}`,
                 rowData.white,
-                rowData.black,
-                rowData.watching,
-                { label: rowData.game, className: rowData.gameClass },
-                rowData.time
+                rowData.black
             ].forEach((value) => row.appendChild(this.createCell(value)));
 
-            const statusCell = this.createCell('');
+            row.appendChild(this.createOptionsCell(rowData.options));
+            row.appendChild(this.createWatchingCell(rowData));
+            return row;
+        },
+
+        createOptionsCell(options = []) {
+            const cell = document.createElement('span');
+            cell.className = 'yc-options-cell';
+            cell.setAttribute('role', 'cell');
+            const parts = Array.isArray(options) && options.length
+                ? options
+                : [{ label: 'Live', className: 'live' }];
+            parts.forEach((option) => {
+                const chip = document.createElement('span');
+                chip.className = `yc-table-chip ${option.className || ''}`.trim();
+                chip.textContent = option.label || '-';
+                cell.appendChild(chip);
+            });
+            cell.title = parts.map((part) => part.label).join(' | ');
+            return cell;
+        },
+
+        createWatchingCell(rowData) {
+            const statusCell = document.createElement('span');
+            statusCell.className = 'yc-watchers-cell';
+            statusCell.setAttribute('role', 'cell');
+            const watcherText = document.createElement('span');
+            watcherText.className = 'yc-watcher-count';
+            const count = this.formatCount(rowData.watching);
+            watcherText.textContent = count === '1' ? '1 watching' : `${count} watching`;
+            statusCell.appendChild(watcherText);
             if (rowData.action === 'watch' || rowData.action === 'join') {
                 const button = document.createElement('button');
                 button.type = 'button';
@@ -350,12 +374,14 @@
                     ? `Watch table ${rowData.table}`
                     : `Join table ${rowData.table}`;
                 button.addEventListener('click', () => this.handleTableAction(rowData));
-                statusCell.replaceChildren(button);
+                statusCell.appendChild(button);
             } else {
-                statusCell.textContent = rowData.status;
+                const label = document.createElement('strong');
+                label.textContent = rowData.status;
+                statusCell.appendChild(label);
             }
-            row.appendChild(statusCell);
-            return row;
+            statusCell.title = `${watcherText.textContent} - ${rowData.status}`;
+            return statusCell;
         },
 
         createCell(value) {
@@ -552,7 +578,7 @@
             const row = document.createElement('div');
             row.className = 'yc-player-row yc-player-head';
             row.setAttribute('role', 'row');
-            ['Name', 'Rating', 'Tbl'].forEach((label) => {
+            ['Color', 'Name', 'Rating', 'Tbl'].forEach((label) => {
                 const cell = document.createElement('span');
                 cell.setAttribute('role', 'columnheader');
                 cell.textContent = label;
@@ -577,16 +603,22 @@
             row.className = 'yc-player-row';
             row.setAttribute('role', 'row');
 
-            const nameCell = document.createElement('span');
-            nameCell.setAttribute('role', 'cell');
+            const colorCell = document.createElement('span');
+            colorCell.className = 'yc-player-color-cell';
+            colorCell.setAttribute('role', 'cell');
             const led = document.createElement('i');
             led.className = `yc-pixel-led ${player.rating ? 'online' : 'guest'}`;
             led.setAttribute('aria-hidden', 'true');
-            nameCell.append(led, player.name);
+            colorCell.appendChild(led);
+            colorCell.title = player.rating ? 'Registered player' : 'Guest player';
+
+            const nameCell = document.createElement('span');
+            nameCell.setAttribute('role', 'cell');
+            nameCell.append(player.name);
             nameCell.appendChild(this.createPlayerBadge(player));
             nameCell.title = player.name;
 
-            row.append(nameCell, this.createCell(player.rating || 'Guest'), this.createCell(player.table || '-'));
+            row.append(colorCell, nameCell, this.createCell(player.rating || 'Guest'), this.createCell(player.table || '-'));
             return row;
         },
 
@@ -634,15 +666,11 @@
         renderStatusBar() {
             if (!this.elements.browserStatus) return;
             const players = this.getPlayers().length;
-            const tables = this.activeTables.length + this.seekActions.length;
             const status = this.authenticated ? 'Connected to FICS' : 'FICS idle';
-            const tableLabel = this.tableOpen && (this.liveGame?.gameNumber || this.currentTableId)
+            const session = this.tableOpen && (this.liveGame?.gameNumber || this.currentTableId)
                 ? `Watching Table ${this.liveGame?.gameNumber || this.currentTableId}`
-                : this.authenticated ? `Inside ${this.currentRoom.name}` : 'Not connected';
-            const turnLabel = this.liveGame?.sideToMove
-                ? `${this.liveGame.sideToMove === 'b' ? 'Black' : 'White'} to Move`
-                : `${tables} Active Tables - ${players} Players`;
-            const values = [this.authenticated ? 'Connection Stable' : 'Ready', status, tableLabel, turnLabel];
+                : this.authenticated ? 'Connected' : 'Not connected';
+            const values = ['Done', status, session, `${players} players online`];
             this.elements.browserStatus.replaceChildren(...values.map((value, index) => {
                 const cell = document.createElement('span');
                 cell.textContent = value;
@@ -818,10 +846,44 @@
             return 'Casual';
         },
 
+        buildOptionParts(timeControl, label, observed = false) {
+            const timeLabel = this.formatClassicTime(timeControl);
+            const gameType = this.getClassicGameType(timeControl, label);
+            const statusLabel = label === 'Unrated' ? 'Casual' : label || 'Live';
+            return [
+                { label: timeLabel, className: this.getTableChipClass(timeLabel, timeControl, observed) },
+                { label: gameType, className: this.getTableChipClass(gameType, timeControl, observed) },
+                { label: statusLabel, className: this.getTableChipClass(statusLabel, timeControl, observed) }
+            ];
+        },
+
+        formatClassicTime(timeControl) {
+            const text = String(timeControl || '').trim();
+            const match = text.match(/^(\d+)\+(\d+)$/);
+            if (match) {
+                return `${match[1]}m ${match[2]}s`;
+            }
+            const spaced = text.match(/^(\d+)\s+(\d+)$/);
+            if (spaced) {
+                return `${spaced[1]}m ${spaced[2]}s`;
+            }
+            return text && text !== 'live' && text !== 'open' ? text : 'Live';
+        },
+
+        getClassicGameType(timeControl, label) {
+            const text = `${timeControl || ''} ${label || ''}`.toLowerCase();
+            const minutes = Number.parseInt(String(timeControl || '').match(/\d+/)?.[0] || '', 10);
+            if (text.includes('bullet') || minutes === 1) return 'Bullet';
+            if (text.includes('rapid') || (Number.isFinite(minutes) && minutes >= 10 && minutes < 25)) return 'Rapid';
+            if (text.includes('classical') || (Number.isFinite(minutes) && minutes >= 25)) return 'Classical';
+            return 'Blitz';
+        },
+
         getTableChipClass(label, timeControl, observed = false) {
             if (observed) return 'observed';
             const text = `${label || ''} ${timeControl || ''}`.toLowerCase();
             if (text.includes('private')) return 'private';
+            if (text.includes('bullet')) return 'blitz';
             if (text.includes('bullet') || /\b1\+/.test(text)) return 'blitz';
             if (text.includes('blitz') || /\b[2-5]\+/.test(text)) return 'blitz';
             if (text.includes('rapid') || /\b(?:10|15)\+/.test(text)) return 'rapid';

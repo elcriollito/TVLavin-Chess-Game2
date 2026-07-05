@@ -12,6 +12,7 @@
     --yc-classic-gray-dark: #808080;
     --yc-classic-blue: #003399;
     --yc-classic-purple: #5c3f8f;
+    --yc-classic-red: #ba1010;
     --yc-status-orange: #d78018;
     --yc-panel-white: #fffdf0;
     --yc-border-gray: #606060;
@@ -91,7 +92,7 @@
     border: 2px solid;
     border-color: #f8e9b0 #654f16 #654f16 #fff8dc;
     background:
-        linear-gradient(90deg, var(--yc-classic-purple) 0%, #7b5bb5 34%, var(--yc-status-orange) 35%, #e1a043 100%);
+        linear-gradient(180deg, #fff6b9 0%, #efd074 48%, #c9982c 49%, #f2df9a 100%);
 }
 
 .yc-brand {
@@ -99,7 +100,7 @@
     align-items: center;
     gap: 7px;
     min-width: 0;
-    color: #fff7c8;
+    color: #332500;
 }
 
 .yc-brand-mark {
@@ -108,9 +109,9 @@
     display: grid;
     place-items: center;
     border: 2px solid;
-    border-color: #e9d7ff #2b1c55 #2b1c55 #f8ecff;
-    background: var(--yc-classic-purple);
-    color: #ffe174;
+    border-color: #ffffff #806500 #806500 #fff8dc;
+    background: #fff6c7;
+    color: var(--yc-classic-red);
     font-family: Georgia, "Times New Roman", serif;
     font-size: 23px;
     font-weight: 700;
@@ -119,17 +120,29 @@
 
 .yc-brand h2 {
     margin: 0;
-    color: #fff3b4;
     font-family: Arial, Tahoma, sans-serif;
     font-size: 25px;
     font-weight: 700;
     line-height: 1;
-    text-shadow: 1px 1px 0 #24154f;
+    letter-spacing: 0;
+    text-shadow: 1px 1px 0 #fff4a8, 2px 2px 0 #4d2600;
+}
+
+.yc-brand-caissa {
+    color: var(--yc-classic-red);
+    font-size: 34px;
+    font-weight: 900;
+}
+
+.yc-brand-rest {
+    color: #2c205a;
+    font-size: 20px;
+    font-weight: 700;
 }
 
 .yc-brand p {
     margin: 2px 0 0;
-    color: #fffdf0;
+    color: #332500;
     font-size: 11px;
     font-weight: 700;
 }
@@ -264,6 +277,11 @@
     gap: 4px;
 }
 
+.yc-login-panel {
+    display: grid;
+    gap: 4px;
+}
+
 .yc-classic-button {
     width: 100%;
     padding: 3px 7px;
@@ -308,6 +326,52 @@
     display: block;
     color: #241d54;
     font-size: 10px;
+}
+
+.yc-rating-legend {
+    display: grid;
+    gap: 4px;
+    align-self: end;
+    font-size: 10px;
+}
+
+.yc-rating-legend span {
+    display: grid;
+    grid-template-columns: 14px minmax(0, 1fr);
+    gap: 5px;
+    align-items: center;
+}
+
+.yc-rating-box {
+    width: 12px;
+    height: 12px;
+    border: 1px solid;
+    border-color: #ffffff var(--yc-border-gray) var(--yc-border-gray) #ffffff;
+    background: #c0c0c0;
+}
+
+.yc-rating-box.elite {
+    background: #6f1d7a;
+}
+
+.yc-rating-box.expert {
+    background: #154fb8;
+}
+
+.yc-rating-box.club {
+    background: #238a40;
+}
+
+.yc-rating-box.casual {
+    background: #d0a21a;
+}
+
+.yc-rating-box.new {
+    background: #b43b26;
+}
+
+.yc-rating-box.provisional {
+    background: #a9a9a9;
 }
 
 .yc-activity-panel {
@@ -417,18 +481,18 @@
 
 .yc-table-row {
     display: grid;
-    grid-template-columns: 48px minmax(90px, 1fr) minmax(90px, 1fr) 64px 70px 58px 74px;
+    grid-template-columns: 54px minmax(88px, 0.75fr) minmax(88px, 0.75fr) minmax(168px, 1fr) minmax(210px, 1.45fr);
     min-height: 22px;
 }
 
 .yc-player-row {
     display: grid;
-    grid-template-columns: minmax(94px, 1fr) 58px 34px;
+    grid-template-columns: 42px minmax(96px, 1fr) 58px 36px;
     min-height: 22px;
 }
 
-.yc-table-row span,
-.yc-player-row span {
+.yc-table-row > span,
+.yc-player-row > span {
     min-width: 0;
     padding: 3px 5px;
     border-right: 1px solid #b9b096;
@@ -445,8 +509,8 @@
     font-weight: 700;
 }
 
-.yc-table-head span,
-.yc-player-head span {
+.yc-table-head > span,
+.yc-player-head > span {
     border-right-color: #7fa1de;
     border-bottom-color: #001f73;
 }
@@ -470,14 +534,14 @@
     background: #dbe8ff;
 }
 
-.yc-row-empty span {
+.yc-row-empty > span {
     grid-column: 1 / -1;
     color: #484848;
     font-style: italic;
 }
 
 .yc-row-action {
-    width: 100%;
+    flex: 0 0 54px;
     min-height: 18px;
     padding: 1px 4px;
     font-size: 10px;
@@ -506,6 +570,32 @@
     font-weight: 700;
     line-height: 1.1;
     vertical-align: middle;
+}
+
+.yc-options-cell,
+.yc-watchers-cell {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.yc-options-cell {
+    flex-wrap: wrap;
+}
+
+.yc-watchers-cell {
+    justify-content: space-between;
+}
+
+.yc-watcher-count {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.yc-player-color-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .yc-table-chip.rated {
@@ -871,7 +961,7 @@
     }
 
     .yc-table-row {
-        min-width: 640px;
+        min-width: 740px;
     }
 
     .yc-chat-body {

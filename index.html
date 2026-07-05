@@ -1467,9 +1467,9 @@
                     <div class="yc-shell" role="application" aria-label="CAISSA Classic retro chess lounge">
                         <header class="yc-header">
                             <div class="yc-brand">
-                                <div class="yc-brand-mark" aria-hidden="true">C</div>
+                                <div class="yc-brand-mark" aria-hidden="true">&#9820;</div>
                                 <div>
-                                    <h2 id="ycPageTitle">CAISSA Classic</h2>
+                                    <h2 id="ycPageTitle"><span class="yc-brand-caissa">CAISSA</span> <span class="yc-brand-rest">Classic Chess</span></h2>
                                     <p>Retro Internet Chess Lounge</p>
                                 </div>
                             </div>
@@ -1490,14 +1490,16 @@
 
                         <main class="yc-workspace">
                             <aside class="yc-sidebar" aria-label="Classic actions">
-                                <div class="yc-panel yc-actions-panel">
-                                    <div class="yc-panel-title">Games</div>
-                                    <button class="yc-classic-button primary" type="button" title="Play now">Play Now</button>
-                                    <button class="yc-classic-button" type="button" title="Join a selected table">Join Table</button>
-                                    <button class="yc-classic-button" type="button" title="Create a new table">Create Table</button>
+                                <div class="yc-panel yc-login-panel">
+                                    <div class="yc-panel-title">Sign In / Login</div>
+                                    <button class="yc-classic-button" type="button" title="Use registered FICS login from the FICS page">FICS Account Login</button>
+                                    <button class="yc-classic-button primary" type="button" title="Use guest login from the FICS page">Guest Login</button>
                                 </div>
                                 <div class="yc-panel yc-actions-panel">
                                     <div class="yc-panel-title">Controls</div>
+                                    <button class="yc-classic-button primary" type="button" title="Play now">Play Now</button>
+                                    <button class="yc-classic-button" type="button" title="Join a selected table">Join Table</button>
+                                    <button class="yc-classic-button" type="button" title="Create a new table">Create Table</button>
                                     <button class="yc-classic-button" type="button" title="Classic options">Options</button>
                                     <button class="yc-classic-button" type="button" title="Classic help">Help</button>
                                     <button class="yc-classic-button" type="button" title="Exit the classic lobby">Exit</button>
@@ -1525,6 +1527,15 @@
                                         <div class="yc-activity-line"><span>Ready</span><strong>Waiting for lobby events.</strong></div>
                                     </div>
                                 </div>
+                                <div class="yc-panel yc-rating-legend" aria-label="Classic rating legend">
+                                    <div class="yc-panel-title">Rating Legend</div>
+                                    <span><i class="yc-rating-box elite" aria-hidden="true"></i>2100+</span>
+                                    <span><i class="yc-rating-box expert" aria-hidden="true"></i>1800-2099</span>
+                                    <span><i class="yc-rating-box club" aria-hidden="true"></i>1500-1799</span>
+                                    <span><i class="yc-rating-box casual" aria-hidden="true"></i>1200-1499</span>
+                                    <span><i class="yc-rating-box new" aria-hidden="true"></i>0-1199</span>
+                                    <span><i class="yc-rating-box provisional" aria-hidden="true"></i>Provisional</span>
+                                </div>
                             </aside>
 
                             <section class="yc-table-panel" aria-labelledby="ycTablesTitle">
@@ -1537,10 +1548,8 @@
                                         <span role="columnheader">Table</span>
                                         <span role="columnheader">White</span>
                                         <span role="columnheader">Black</span>
-                                        <span role="columnheader">Watching</span>
-                                        <span role="columnheader">Game</span>
-                                        <span role="columnheader">Time</span>
-                                        <span role="columnheader">Status</span>
+                                        <span role="columnheader">Options</span>
+                                        <span role="columnheader">Who is Watching</span>
                                     </div>
                                     <div class="yc-table-row yc-row-empty" role="row">
                                         <span role="cell">Connect to FICS to receive live room tables.</span>
@@ -1555,6 +1564,7 @@
                                 </div>
                                 <div id="ycPlayerList" class="yc-player-list" role="table" aria-label="Classic player list">
                                     <div class="yc-player-row yc-player-head" role="row">
+                                        <span role="columnheader">Color</span>
                                         <span role="columnheader">Name</span>
                                         <span role="columnheader">Rating</span>
                                         <span role="columnheader">Tbl</span>
