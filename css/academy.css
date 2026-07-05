@@ -108,6 +108,7 @@
     padding-top: 10px;
 }
 
+.academy-faculties,
 .academy-student-journey,
 .academy-learning-paths,
 .academy-mentor-guidance,
@@ -129,6 +130,157 @@
     margin: 0;
     color: #14232f;
     font-size: clamp(1.35rem, 2vw, 2rem);
+}
+
+.academy-faculties {
+    border: 1px solid rgba(30, 41, 59, 0.12);
+    border-radius: 14px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(239, 245, 243, 0.90)),
+        radial-gradient(circle at 12% 0%, rgba(21, 72, 87, 0.10), transparent 34%);
+    box-shadow: 0 16px 42px rgba(15, 23, 42, 0.10);
+    padding: clamp(18px, 3vw, 28px);
+}
+
+.academy-faculty-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.academy-faculty-card {
+    display: grid;
+    align-content: start;
+    gap: 12px;
+    min-height: 360px;
+    border: 1px solid rgba(21, 72, 87, 0.14);
+    border-top: 5px solid #154857;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #ffffff, #f7faf9);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+    padding: 16px;
+}
+
+.academy-faculty-fundamentals {
+    border-top-color: #15803d;
+}
+
+.academy-faculty-strategy {
+    border-top-color: #1d4ed8;
+}
+
+.academy-faculty-dynamic {
+    border-top-color: #b91c1c;
+}
+
+.academy-faculty-endgame {
+    border-top-color: #7c3aed;
+}
+
+.academy-faculty-adaptive {
+    border-top-color: #bf8f3e;
+}
+
+.academy-faculty-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.academy-faculty-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    min-height: 26px;
+    border: 1px solid rgba(21, 72, 87, 0.16);
+    border-radius: 999px;
+    background: #eef4f2;
+    color: #154857;
+    font-size: 0.72rem;
+    font-weight: 900;
+    padding: 4px 10px;
+    text-transform: uppercase;
+}
+
+.academy-faculty-topline em {
+    color: #64748b;
+    font-size: 0.74rem;
+    font-style: normal;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.academy-faculty-card h4 {
+    margin: 0;
+    color: #14232f;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.2rem;
+    line-height: 1.15;
+}
+
+.academy-faculty-card p {
+    margin: 0;
+    color: #475569;
+    line-height: 1.5;
+}
+
+.academy-faculty-meta {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+}
+
+.academy-faculty-meta div {
+    display: grid;
+    gap: 3px;
+    border-top: 1px solid rgba(30, 41, 59, 0.08);
+    padding-top: 8px;
+}
+
+.academy-faculty-meta dt,
+.academy-faculty-meta dd {
+    margin: 0;
+}
+
+.academy-faculty-meta dt {
+    color: #7b4e18;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.academy-faculty-meta dd {
+    color: #253444;
+    font-weight: 800;
+}
+
+.academy-faculty-profile {
+    border: 1px solid rgba(21, 72, 87, 0.14);
+    border-radius: 10px;
+    background: rgba(248, 250, 252, 0.78);
+    overflow: hidden;
+}
+
+.academy-faculty-profile summary {
+    color: #154857;
+    cursor: pointer;
+    font-weight: 900;
+    list-style-position: inside;
+    padding: 9px 10px;
+}
+
+.academy-faculty-profile summary:focus-visible {
+    outline: 3px solid rgba(191, 143, 62, 0.48);
+    outline-offset: 2px;
+}
+
+.academy-faculty-profile-body {
+    display: grid;
+    gap: 8px;
+    border-top: 1px solid rgba(21, 72, 87, 0.12);
+    padding: 10px;
 }
 
 .academy-student-journey {
@@ -1093,6 +1245,7 @@
     }
 
     .academy-program-grid,
+    .academy-faculty-grid,
     .academy-path-grid,
     .academy-trainer-grid,
     .academy-future-grid,
@@ -1128,6 +1281,7 @@
 
     .academy-hero-panel,
     .academy-program-grid,
+    .academy-faculty-grid,
     .academy-path-grid,
     .academy-trainer-grid,
     .academy-future-grid,
