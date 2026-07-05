@@ -23,6 +23,7 @@
     let _clerkInstance = null;
     let _sessionListeners = [];
     let _clerkLoadPromise = null;
+    let _lastAuthSignature = '';
 
     function _getConfiguredPublishableKey() {
         const key = String(window.CAISSA_AUTH_CONFIG?.CLERK_PUBLISHABLE_KEY || '').trim();
@@ -86,11 +87,13 @@
                 _handleSessionChange();
             });
 
-            // Initial session check
+            // Initial session check. Mark loaded first so UI never renders a
+            // transient signed-out state while Clerk already has a session.
+            window.CAISSA_AUTH.isLoaded = true;
             _handleSessionChange();
 
-            window.CAISSA_AUTH.isLoaded = true;
             console.log('CAISSA Auth: Initialized successfully');
+            return;
 
         } catch (error) {
             console.warn('CAISSA Auth: Initialization failed - running without authentication', error);
@@ -342,6 +345,18 @@
      * Notify all listeners of state change
      */
     function _notifyListeners() {
+        const signature = JSON.stringify({
+            isLoaded: window.CAISSA_AUTH.isLoaded,
+            isSignedIn: window.CAISSA_AUTH.isSignedIn,
+            userId: window.CAISSA_AUTH.userId,
+            email: window.CAISSA_AUTH.email,
+            fullName: window.CAISSA_AUTH.fullName,
+            imageUrl: window.CAISSA_AUTH.imageUrl
+        });
+
+        if (signature === _lastAuthSignature) return;
+        _lastAuthSignature = signature;
+
         _sessionListeners.forEach(callback => {
             try {
                 callback(window.CAISSA_AUTH);

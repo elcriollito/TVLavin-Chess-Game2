@@ -24,6 +24,7 @@
         init: function() {
             // Find or create auth container
             this._findOrCreateContainer();
+            this._bindSidebarSignInGuard();
 
             // Listen for auth state changes
             window.addEventListener('caissa-auth-change', (e) => {
@@ -54,8 +55,7 @@
             if (window.CAISSA_AUTH && window.CAISSA_AUTH.isLoaded) {
                 this.render(window.CAISSA_AUTH);
             } else {
-                // Set initial sidebar state to signed out
-                this._updateSidebarAuth({ isSignedIn: false });
+                this.render({ isLoaded: false, isSignedIn: false });
             }
         },
 
@@ -89,12 +89,19 @@
          */
         render: function(authState) {
             const container = this.elements.container;
-            if (!container) return;
 
-            if (authState.isSignedIn) {
-                this._renderSignedIn(authState);
-            } else {
-                this._renderSignedOut();
+            if (authState?.isLoaded !== true) {
+                if (container) this._renderPending();
+                this._updateSidebarAuth({ isLoaded: false, isSignedIn: false });
+                return;
+            }
+
+            if (container) {
+                if (authState.isSignedIn) {
+                    this._renderSignedIn(authState);
+                } else {
+                    this._renderSignedOut();
+                }
             }
 
             // Also update sidebar auth area
@@ -115,6 +122,17 @@
             const signOutBtn = document.getElementById('sidebarSignOutBtn');
 
             if (!signInBtn || !userInfo) return;
+
+            if (authState?.isLoaded !== true) {
+                signInBtn.style.display = 'none';
+                userInfo.style.display = 'none';
+                this.closeSidebarMenu();
+                if (sidebarMenu) {
+                    sidebarMenu.hidden = true;
+                    sidebarMenu.setAttribute('aria-hidden', 'true');
+                }
+                return;
+            }
 
             if (authState.isSignedIn) {
                 // Hide sign in button, show user info
@@ -183,6 +201,25 @@
             }
         },
 
+        _bindSidebarSignInGuard: function() {
+            const signInBtn = document.getElementById('sidebarSignIn');
+            if (!signInBtn || signInBtn.dataset.authGuardBound) return;
+
+            signInBtn.dataset.authGuardBound = 'true';
+            signInBtn.addEventListener('click', (event) => {
+                const auth = window.CAISSA_AUTH || {};
+                if (auth.isLoaded !== true) {
+                    event.preventDefault();
+                    return;
+                }
+
+                if (auth.isSignedIn === true) {
+                    event.preventDefault();
+                    this.openSidebarMenu();
+                }
+            });
+        },
+
         toggleSidebarMenu: function() {
             const menu = document.getElementById('sidebarAuthMenu');
             if (!menu) return;
@@ -224,6 +261,12 @@
                     <span class="auth-btn-text">Sign In</span>
                 </a>
             `;
+        },
+
+        _renderPending: function() {
+            const container = this.elements.container;
+            container.innerHTML = '';
+            this.closeDropdown();
         },
 
         /**

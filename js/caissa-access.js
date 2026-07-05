@@ -97,7 +97,7 @@
                 _lastSyncFailedAt = Date.now();
                 if (!_syncWarningShown) {
                     _syncWarningShown = true;
-                    console.warn('CAISSA Access: User sync unavailable', resp.status);
+                    console.info('CAISSA Access: User sync temporarily unavailable; using local session state', resp.status);
                 }
                 return false;
             }

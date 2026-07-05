@@ -60,6 +60,9 @@ window.CAISSA_AUTH_CONFIG_READY = (async function loadPublicAuthConfig() {
         const publishableKey = String(data.clerkPublishableKey || '').trim();
         if (publishableKey && !publishableKey.includes('REPLACE')) {
             CAISSA_AUTH_CONFIG.CLERK_PUBLISHABLE_KEY = publishableKey;
+            if (window.location.hostname === 'www.caissa-chess.org' && publishableKey.startsWith('pk_test_')) {
+                console.warn('[Auth Config] Production is using a Clerk development publishable key. Configure NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY with a pk_live_ key in Vercel.');
+            }
         }
         CAISSA_AUTH_CONFIG.REGISTRATION_TRACKING_AVAILABLE = data.registrationTracking === true;
     } catch (error) {
