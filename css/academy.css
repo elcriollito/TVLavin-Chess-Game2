@@ -133,6 +133,31 @@
     gap: 14px;
 }
 
+.academy-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: -4px 0 16px;
+}
+
+.academy-filter-bar span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    border: 1px solid rgba(21, 72, 87, 0.18);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.82);
+    color: #334155;
+    font-weight: 800;
+    padding: 7px 13px;
+}
+
+.academy-filter-bar span.active {
+    border-color: #154857;
+    background: #154857;
+    color: #f8fafc;
+}
+
 .academy-program-card,
 .academy-trainer-card {
     border: 1px solid rgba(30, 41, 59, 0.12);
@@ -201,21 +226,28 @@
 
 .academy-trainer-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
 }
 
 .academy-trainer-card {
     display: grid;
-    grid-template-columns: 54px minmax(0, 1fr);
-    gap: 12px;
-    padding: 16px;
+    grid-template-columns: 62px minmax(0, 1fr);
+    align-content: start;
+    gap: 12px 14px;
+    min-height: 360px;
+    padding: 18px;
 }
 
 .academy-trainer-card p,
-.academy-trainer-card strong,
+.academy-trainer-meta,
+.academy-faculty-status,
 .academy-trainer-card button {
     grid-column: 1 / -1;
+}
+
+.academy-trainer-heading {
+    align-self: center;
 }
 
 .academy-trainer-card span {
@@ -226,19 +258,58 @@
 .academy-avatar {
     display: grid;
     place-items: center;
-    width: 52px;
-    height: 52px;
+    width: 60px;
+    height: 60px;
     border: 2px solid #d7b56d;
     border-radius: 50%;
-    background: #f8fafc;
+    background: linear-gradient(180deg, #fffdf7, #eef4f2);
     color: #154857;
     font-family: Georgia, "Times New Roman", serif;
     font-weight: 900;
 }
 
-.academy-trainer-card strong {
-    color: #154857;
-    font-size: 0.86rem;
+.academy-trainer-meta {
+    display: grid;
+    gap: 8px;
+    margin: 2px 0 0;
+}
+
+.academy-trainer-meta div {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 10px;
+    border-top: 1px solid rgba(30, 41, 59, 0.08);
+    padding-top: 8px;
+}
+
+.academy-trainer-meta dt,
+.academy-trainer-meta dd {
+    margin: 0;
+    line-height: 1.35;
+}
+
+.academy-trainer-meta dt {
+    color: #7b4e18;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.academy-trainer-meta dd {
+    color: #253444;
+    font-weight: 700;
+}
+
+.academy-faculty-status {
+    width: fit-content;
+    border: 1px solid rgba(191, 143, 62, 0.32);
+    border-radius: 6px;
+    background: #fff7ed;
+    color: #7b4e18;
+    font-size: 0.78rem;
+    font-weight: 900;
+    padding: 5px 9px;
 }
 
 .academy-trainer-card button {
@@ -296,5 +367,14 @@
 
     .academy-program-card {
         grid-template-columns: 42px minmax(0, 1fr);
+    }
+
+    .academy-trainer-card {
+        min-height: auto;
+    }
+
+    .academy-trainer-meta div {
+        grid-template-columns: 1fr;
+        gap: 2px;
     }
 }
