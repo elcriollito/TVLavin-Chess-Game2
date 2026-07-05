@@ -242,7 +242,8 @@
 .academy-trainer-card p,
 .academy-trainer-meta,
 .academy-faculty-status,
-.academy-trainer-card button {
+.academy-profile,
+.academy-profile-actions {
     grid-column: 1 / -1;
 }
 
@@ -312,7 +313,86 @@
     padding: 5px 9px;
 }
 
-.academy-trainer-card button {
+.academy-profile {
+    border: 1px solid rgba(21, 72, 87, 0.16);
+    border-radius: 10px;
+    background: rgba(248, 250, 252, 0.78);
+    overflow: hidden;
+}
+
+.academy-profile summary {
+    min-height: 40px;
+    color: #154857;
+    cursor: pointer;
+    font-weight: 900;
+    list-style-position: inside;
+    padding: 10px 12px;
+}
+
+.academy-profile summary:focus-visible {
+    outline: 2px solid #bf8f3e;
+    outline-offset: 2px;
+}
+
+.academy-profile[open] summary {
+    border-bottom: 1px solid rgba(21, 72, 87, 0.12);
+    background: rgba(21, 72, 87, 0.08);
+}
+
+.academy-profile-body {
+    display: grid;
+    gap: 12px;
+    padding: 12px;
+}
+
+.academy-profile-body dl {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+}
+
+.academy-profile-body dl div {
+    display: grid;
+    grid-template-columns: 122px minmax(0, 1fr);
+    gap: 10px;
+}
+
+.academy-profile-body dt,
+.academy-profile-body dd {
+    margin: 0;
+    line-height: 1.4;
+}
+
+.academy-profile-body dt {
+    color: #7b4e18;
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.academy-profile-body dd {
+    color: #334155;
+}
+
+.academy-profile-body blockquote {
+    margin: 0;
+    border-left: 3px solid #bf8f3e;
+    color: #14232f;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.96rem;
+    font-style: italic;
+    line-height: 1.5;
+    padding-left: 12px;
+}
+
+.academy-profile-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.academy-profile-actions button {
     min-height: 38px;
     border: 1px solid rgba(21, 72, 87, 0.25);
     border-radius: 8px;
@@ -320,6 +400,15 @@
     color: #64748b;
     font-weight: 800;
     cursor: not-allowed;
+}
+
+.academy-profile-actions button span {
+    display: block;
+    color: #7b4e18;
+    font-size: 0.68rem;
+    font-weight: 900;
+    margin-top: 2px;
+    text-transform: uppercase;
 }
 
 .academy-trainer-featured {
@@ -376,5 +465,10 @@
     .academy-trainer-meta div {
         grid-template-columns: 1fr;
         gap: 2px;
+    }
+
+    .academy-profile-body dl div,
+    .academy-profile-actions {
+        grid-template-columns: 1fr;
     }
 }
