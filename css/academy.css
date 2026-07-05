@@ -110,6 +110,7 @@
 
 .academy-faculties,
 .academy-student-journey,
+.academy-degrees,
 .academy-learning-paths,
 .academy-mentor-guidance,
 .academy-programs,
@@ -567,6 +568,88 @@
     font-style: normal;
     font-weight: 900;
     text-transform: uppercase;
+}
+
+.academy-degrees {
+    border: 1px solid rgba(30, 41, 59, 0.12);
+    border-radius: 14px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(245, 241, 232, 0.90)),
+        radial-gradient(circle at 92% 0%, rgba(191, 143, 62, 0.12), transparent 30%);
+    box-shadow: 0 14px 38px rgba(15, 23, 42, 0.09);
+    padding: clamp(18px, 3vw, 26px);
+}
+
+.academy-degree-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.academy-degree-card {
+    display: grid;
+    align-content: start;
+    gap: 10px;
+    min-height: 238px;
+    border: 1px solid rgba(21, 72, 87, 0.14);
+    border-radius: 12px;
+    background: linear-gradient(180deg, #ffffff, #f7faf9);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+    padding: 14px;
+}
+
+.academy-degree-icon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(191, 143, 62, 0.26);
+    border-radius: 12px;
+    background: #fff7ed;
+    font-size: 1.3rem;
+}
+
+.academy-degree-card h4 {
+    margin: 0;
+    color: #14232f;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.12rem;
+}
+
+.academy-degree-card p {
+    margin: 0;
+    color: #475569;
+    line-height: 1.45;
+}
+
+.academy-degree-card dl {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+}
+
+.academy-degree-card dl div {
+    border-top: 1px solid rgba(30, 41, 59, 0.08);
+    padding-top: 8px;
+}
+
+.academy-degree-card dt,
+.academy-degree-card dd {
+    margin: 0;
+}
+
+.academy-degree-card dt {
+    color: #7b4e18;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.academy-degree-card dd {
+    color: #253444;
+    font-weight: 800;
+    margin-top: 3px;
 }
 
 .academy-program-grid {
@@ -1246,6 +1329,7 @@
 
     .academy-program-grid,
     .academy-faculty-grid,
+    .academy-degree-grid,
     .academy-path-grid,
     .academy-trainer-grid,
     .academy-future-grid,
@@ -1282,6 +1366,7 @@
     .academy-hero-panel,
     .academy-program-grid,
     .academy-faculty-grid,
+    .academy-degree-grid,
     .academy-path-grid,
     .academy-trainer-grid,
     .academy-future-grid,
