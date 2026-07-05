@@ -1567,6 +1567,14 @@
                         </main>
 
                         <section id="ycGameWindow" class="yc-game-window" aria-label="Classic game table" aria-hidden="true">
+                            <header class="yc-game-table-header" aria-label="Classic table information">
+                                <strong id="ycGameHeaderTable">Table --</strong>
+                                <span id="ycGameHeaderType">Live game</span>
+                                <span id="ycGameHeaderRated">Rated/Casual</span>
+                                <span id="ycGameHeaderTime">Time --</span>
+                                <span id="ycGameHeaderPlayers">Players --</span>
+                                <span id="ycGameHeaderSpectators">Spectators --</span>
+                            </header>
                             <aside class="yc-game-controls" aria-label="Classic table controls">
                                 <div class="yc-panel yc-actions-panel">
                                     <div class="yc-panel-title">Table</div>
@@ -1581,6 +1589,16 @@
                                 <div class="yc-status-card">
                                     <strong id="ycGameMode">No Table</strong>
                                     <span id="ycGameDetail">Watch or join a room table to open the classic board.</span>
+                                </div>
+                                <div class="yc-panel yc-game-info-panel" aria-label="Classic table context">
+                                    <div class="yc-panel-title">Table Information</div>
+                                    <dl class="yc-game-info-grid">
+                                        <dt>Opening</dt><dd id="ycGameInfoOpening">Unknown Opening</dd>
+                                        <dt>ECO</dt><dd id="ycGameInfoEco">--</dd>
+                                        <dt>Move</dt><dd id="ycGameInfoMove">0</dd>
+                                        <dt>Result</dt><dd id="ycGameInfoResult">--</dd>
+                                        <dt>Phase</dt><dd id="ycGameInfoPhase">Opening</dd>
+                                    </dl>
                                 </div>
                             </aside>
 

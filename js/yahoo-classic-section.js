@@ -71,6 +71,17 @@
                 gameMode: document.getElementById('ycGameMode'),
                 gameDetail: document.getElementById('ycGameDetail'),
                 gameMeta: document.getElementById('ycGameMeta'),
+                gameHeaderTable: document.getElementById('ycGameHeaderTable'),
+                gameHeaderType: document.getElementById('ycGameHeaderType'),
+                gameHeaderRated: document.getElementById('ycGameHeaderRated'),
+                gameHeaderTime: document.getElementById('ycGameHeaderTime'),
+                gameHeaderPlayers: document.getElementById('ycGameHeaderPlayers'),
+                gameHeaderSpectators: document.getElementById('ycGameHeaderSpectators'),
+                gameInfoOpening: document.getElementById('ycGameInfoOpening'),
+                gameInfoEco: document.getElementById('ycGameInfoEco'),
+                gameInfoMove: document.getElementById('ycGameInfoMove'),
+                gameInfoResult: document.getElementById('ycGameInfoResult'),
+                gameInfoPhase: document.getElementById('ycGameInfoPhase'),
                 sitBtn: document.getElementById('ycSitBtn'),
                 standBtn: document.getElementById('ycStandBtn')
             };
@@ -680,10 +691,17 @@
             if (!this.elements.browserStatus) return;
             const players = this.getPlayers().length;
             const status = this.authenticated ? 'Connected to FICS' : 'FICS idle';
-            const session = this.tableOpen && (this.liveGame?.gameNumber || this.currentTableId)
-                ? `Watching Table ${this.liveGame?.gameNumber || this.currentTableId}`
-                : this.authenticated ? 'Connected' : 'Not connected';
-            const values = ['Done', status, session, `${players} players online`];
+            const table = this.getCurrentTableMeta();
+            const gameNumber = this.liveGame?.gameNumber || this.currentTableId;
+            const side = this.liveGame?.sideToMove === 'b' ? 'Black' : this.liveGame?.sideToMove === 'w' ? 'White' : null;
+            const time = table?.timeControl || this.liveGame?.initialTime || 'live';
+            const game = table ? this.formatGameLabel(table) : 'Live';
+            const gameType = this.getClassicGameType(time, game);
+            const rated = game === 'Unrated' || game === 'Casual' ? 'Casual' : 'Rated';
+            const spectators = this.formatCount(table?.observers || this.liveGame?.observers || 0);
+            const values = this.tableOpen && gameNumber
+                ? ['Connected', `${rated} ${gameType}`, `Table ${gameNumber}`, side ? `${side} to Move` : 'Waiting', `Spectators ${spectators}`]
+                : ['Done', status, this.authenticated ? 'Connected' : 'Not connected', `${players} players online`];
             this.elements.browserStatus.replaceChildren(...values.map((value, index) => {
                 const cell = document.createElement('span');
                 cell.textContent = value;
@@ -748,7 +766,11 @@
                 name.textContent = player.name || player.color;
                 name.title = name.textContent;
             }
-            if (rating) rating.textContent = player.rating || 'FICS';
+            if (rating) {
+                const status = player.rating && player.rating !== 'FICS' ? 'Registered' : 'Guest';
+                rating.textContent = `${player.rating || 'FICS'} · ${status}`;
+                rating.title = status;
+            }
             if (clock) clock.textContent = player.clock || '--:--';
         },
 
@@ -801,6 +823,16 @@
             const side = this.liveGame?.sideToMove === 'b' ? 'Black' : this.liveGame?.sideToMove === 'w' ? 'White' : null;
             const time = table?.timeControl || this.liveGame?.initialTime || 'live';
             const game = table ? this.formatGameLabel(table) : 'Live';
+            const gameType = this.getClassicGameType(time, game);
+            const rated = game === 'Unrated' || game === 'Casual' ? 'Casual' : 'Rated';
+            const spectators = this.formatCount(table?.observers || this.liveGame?.observers || 0);
+            const white = this.liveGame?.whiteName || table?.white || 'White';
+            const black = this.liveGame?.blackName || table?.black || 'Black';
+            const moveNumber = this.getCurrentMoveNumber();
+            const phase = this.getGamePhase(moveNumber);
+            const result = this.liveGame?.result || table?.result || '--';
+            const opening = this.liveGame?.openingName || this.liveGame?.opening || table?.opening || 'Unknown Opening';
+            const eco = this.liveGame?.eco || table?.eco || '--';
 
             if (this.elements.gameMode) {
                 this.elements.gameMode.textContent = gameNumber ? `Table ${gameNumber}` : 'No Table';
@@ -813,8 +845,39 @@
             if (this.elements.gameMeta) {
                 this.elements.gameMeta.textContent = gameNumber ? `#${gameNumber} - ${game} - ${time}` : 'No table';
             }
+            this.setText(this.elements.gameHeaderTable, gameNumber ? `Table ${gameNumber}` : 'Table --');
+            this.setText(this.elements.gameHeaderType, gameType);
+            this.setText(this.elements.gameHeaderRated, rated);
+            this.setText(this.elements.gameHeaderTime, this.formatClassicTime(time));
+            this.setText(this.elements.gameHeaderPlayers, `${white} vs ${black}`);
+            this.setText(this.elements.gameHeaderSpectators, `${spectators} spectators`);
+            this.setText(this.elements.gameInfoOpening, opening);
+            this.setText(this.elements.gameInfoEco, eco);
+            this.setText(this.elements.gameInfoMove, String(moveNumber));
+            this.setText(this.elements.gameInfoResult, result);
+            this.setText(this.elements.gameInfoPhase, phase);
             this.elements.standBtn?.toggleAttribute('disabled', !this.tableOpen);
             this.elements.sitBtn?.toggleAttribute('disabled', !this.authenticated);
+        },
+
+        setText(element, value) {
+            if (!element) return;
+            const text = String(value ?? '--');
+            if (element.textContent !== text) element.textContent = text;
+            element.title = text;
+        },
+
+        getCurrentMoveNumber() {
+            if (!this.moveHistory.length) return 0;
+            const last = this.moveHistory[this.moveHistory.length - 1];
+            const parsed = Number.parseInt(last?.moveNumber, 10);
+            return Number.isFinite(parsed) ? parsed : Math.ceil(this.moveHistory.length / 2);
+        },
+
+        getGamePhase(moveNumber) {
+            if (moveNumber >= 30) return 'Endgame';
+            if (moveNumber >= 12) return 'Middlegame';
+            return 'Opening';
         },
 
         getCurrentTableMeta() {
