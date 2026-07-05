@@ -16,6 +16,7 @@
     { "source": "/about", "destination": "/about.html" },
     { "source": "/roadmap", "destination": "/roadmap.html" },
     { "source": "/yahoo-classic", "destination": "/index.html" },
+    { "source": "/academy", "destination": "/index.html" },
     { "source": "/opening-database", "destination": "/opening-database.html" },
     { "source": "/opening-database/", "destination": "/opening-database.html" },
     { "source": "/openingdb/manifest.json", "destination": "https://downloads.caissa-chess.org/openingdb/manifest.json" },
