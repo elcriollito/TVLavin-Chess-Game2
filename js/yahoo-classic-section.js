@@ -12,6 +12,26 @@
     const CURRENT_ROOM = 'CAISSA Lobby';
     const ACTIVITY_LIMIT = 8;
     const SOUND_CUES = Object.freeze(['connect', 'disconnect', 'move', 'join', 'notify', 'error']);
+    const SOUND_STORAGE_KEY = 'caissaClassicSoundEnabled';
+
+    const ClassicSoundManager = {
+        enabled: false,
+        userActivated: false,
+        lastCue: null,
+
+        setEnabled(enabled, userActivated = false) {
+            this.enabled = !!enabled;
+            this.userActivated = !!userActivated;
+        },
+
+        cue(type) {
+            if (!SOUND_CUES.includes(type)) return false;
+            this.lastCue = type;
+            // Prepared hook only. No audio is produced in this phase, which
+            // keeps CAISSA Classic compliant with browser autoplay rules.
+            return this.enabled && this.userActivated;
+        }
+    };
 
     const YahooClassicSection = {
         elements: {},
@@ -39,11 +59,14 @@
             message: 'Waiting for lobby events.'
         }],
         pendingSoundCue: null,
+        soundEnabled: false,
+        soundUserActivated: false,
         systemMessages: ['Connect to FICS to receive lobby status.'],
 
         init() {
             if (this.initialized) return;
             this.cacheElements();
+            this.loadSoundPreference();
             this.bindFicsEvents();
             this.initialized = true;
             this.syncFromFicsClient();
@@ -86,6 +109,7 @@
                 gameSystemLog: document.getElementById('ycGameSystemLog'),
                 gameTurnState: document.getElementById('ycGameTurnState'),
                 gameSpectatorState: document.getElementById('ycGameSpectatorState'),
+                soundBtn: document.getElementById('ycSoundBtn'),
                 sitBtn: document.getElementById('ycSitBtn'),
                 standBtn: document.getElementById('ycStandBtn')
             };
@@ -103,6 +127,7 @@
             });
             this.elements.standBtn?.addEventListener('click', () => this.standFromTable());
             this.elements.sitBtn?.addEventListener('click', () => this.addSystemMessage('Choose Join from a waiting table to sit.'));
+            this.elements.soundBtn?.addEventListener('click', () => this.toggleClassicSound());
         },
 
         onEnter() {
@@ -229,6 +254,7 @@
             this.renderActivityFeed();
             this.renderChat();
             this.renderStatusBar();
+            this.renderSoundToggle();
         },
 
         selectRoom(button) {
@@ -578,9 +604,46 @@
 
         queueSoundCue(type) {
             if (!SOUND_CUES.includes(type)) return;
-            // Architecture hook only. Future phases can route this cue to the
-            // existing user-controlled sound system without playing audio here.
             this.pendingSoundCue = type;
+            ClassicSoundManager.cue(type);
+        },
+
+        loadSoundPreference() {
+            let enabled = false;
+            try {
+                enabled = window.localStorage?.getItem(SOUND_STORAGE_KEY) === 'true';
+            } catch (error) {
+                enabled = false;
+            }
+            this.soundEnabled = enabled;
+            this.soundUserActivated = false;
+            ClassicSoundManager.setEnabled(enabled, false);
+        },
+
+        toggleClassicSound() {
+            this.soundEnabled = !this.soundEnabled;
+            this.soundUserActivated = true;
+            ClassicSoundManager.setEnabled(this.soundEnabled, true);
+            try {
+                window.localStorage?.setItem(SOUND_STORAGE_KEY, this.soundEnabled ? 'true' : 'false');
+            } catch (error) {
+                // localStorage may be unavailable in private or restricted contexts.
+            }
+            const message = this.soundEnabled ? 'Sound enabled.' : 'Sound disabled.';
+            this.addSystemMessage(message);
+            this.addActivity(message, this.soundEnabled ? 'notify' : 'disconnect');
+            this.queueSoundCue('notify');
+            this.render();
+        },
+
+        renderSoundToggle() {
+            const button = this.elements.soundBtn;
+            if (!button) return;
+            const label = this.soundEnabled ? '[Sound: On]' : '[Sound: Off]';
+            button.textContent = label;
+            button.title = this.soundEnabled ? 'Disable CAISSA Classic sound' : 'Enable CAISSA Classic sound';
+            button.setAttribute('aria-pressed', this.soundEnabled ? 'true' : 'false');
+            button.classList.toggle('active', this.soundEnabled);
         },
 
         renderPlayers() {
@@ -706,8 +769,8 @@
             const rated = game === 'Unrated' || game === 'Casual' ? 'Casual' : 'Rated';
             const spectators = this.formatCount(table?.observers || this.liveGame?.observers || 0);
             const values = this.tableOpen && gameNumber
-                ? ['Connected', `${rated} ${gameType}`, `Table ${gameNumber}`, side ? `${side} to Move` : 'Waiting', `Spectators ${spectators}`]
-                : ['Done', status, this.authenticated ? 'Connected' : 'Not connected', `${players} players online`];
+                ? ['Connected', `${rated} ${gameType}`, `Table ${gameNumber}`, side ? `${side} to Move` : 'Waiting', `Spectators ${spectators}`, `[Sound: ${this.soundEnabled ? 'On' : 'Off'}]`]
+                : ['Done', status, this.authenticated ? 'Connected' : 'Not connected', `${players} players online`, `[Sound: ${this.soundEnabled ? 'On' : 'Off'}]`];
             this.elements.browserStatus.replaceChildren(...values.map((value, index) => {
                 const cell = document.createElement('span');
                 cell.textContent = value;

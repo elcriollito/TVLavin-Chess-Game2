@@ -297,6 +297,15 @@
     background: #f2d15f;
 }
 
+.yc-classic-button.active,
+.yc-sound-toggle[aria-pressed="true"] {
+    border-color: #707070 #ffffff #ffffff #707070;
+    background: #fff3a8;
+    color: #000000;
+    padding-top: 4px;
+    padding-left: 8px;
+}
+
 .yc-status-card {
     display: grid;
     gap: 3px;
@@ -812,7 +821,7 @@
 
 .yc-browser-status {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 120px 110px 110px 110px;
+    grid-template-columns: minmax(0, 1fr) 120px 110px 110px 110px 100px;
     gap: 3px;
     padding: 3px 5px;
     border-top: 2px solid;
