@@ -1469,6 +1469,156 @@
     padding-left: 12px;
 }
 
+.academy-office {
+    display: grid;
+    gap: 12px;
+    border: 1px solid rgba(21, 72, 87, 0.16);
+    border-radius: 12px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(239, 245, 243, 0.86)),
+        radial-gradient(circle at 100% 0%, rgba(191, 143, 62, 0.10), transparent 32%);
+    padding: 14px;
+}
+
+.academy-office-header {
+    display: grid;
+    gap: 10px;
+}
+
+.academy-office-header h5 {
+    margin: 0;
+    color: #14232f;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.12rem;
+}
+
+.academy-office-header dl {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+}
+
+.academy-office-header dl div {
+    border: 1px solid rgba(21, 72, 87, 0.12);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.80);
+    padding: 8px;
+}
+
+.academy-office-header dt,
+.academy-office-header dd {
+    margin: 0;
+}
+
+.academy-office-header dt {
+    color: #7b4e18;
+    font-size: 0.68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.academy-office-header dd {
+    color: #253444;
+    font-weight: 800;
+    margin-top: 3px;
+}
+
+.academy-office-question {
+    display: grid;
+    gap: 8px;
+}
+
+.academy-office-question label {
+    display: grid;
+    gap: 6px;
+    color: #154857;
+    font-weight: 900;
+}
+
+.academy-office-question textarea {
+    min-height: 78px;
+    resize: vertical;
+    border: 1px solid rgba(21, 72, 87, 0.18);
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #64748b;
+    font: inherit;
+    padding: 10px;
+}
+
+.academy-office-question button {
+    width: fit-content;
+    min-height: 38px;
+    border: 1px solid rgba(21, 72, 87, 0.25);
+    border-radius: 8px;
+    background: #e7ecea;
+    color: #64748b;
+    font-weight: 800;
+    cursor: not-allowed;
+    padding: 7px 12px;
+}
+
+.academy-office-question button span {
+    display: block;
+    color: #7b4e18;
+    font-size: 0.68rem;
+    font-weight: 900;
+    margin-top: 2px;
+    text-transform: uppercase;
+}
+
+.academy-office-popular {
+    display: grid;
+    gap: 8px;
+}
+
+.academy-office-popular h6,
+.academy-office-notes strong {
+    margin: 0;
+    color: #14232f;
+    font-size: 0.92rem;
+}
+
+.academy-office-popular ul {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding-left: 18px;
+}
+
+.academy-office-popular li {
+    color: #475569;
+    line-height: 1.4;
+}
+
+.academy-office-notes {
+    display: grid;
+    gap: 6px;
+    border: 1px solid rgba(191, 143, 62, 0.22);
+    border-radius: 10px;
+    background: #fffdf7;
+    padding: 10px;
+}
+
+.academy-office-notes p {
+    margin: 0;
+    color: #475569;
+    line-height: 1.45;
+}
+
+.academy-office-notes span {
+    width: fit-content;
+    border: 1px solid rgba(191, 143, 62, 0.28);
+    border-radius: 999px;
+    background: #fff7ed;
+    color: #7b4e18;
+    font-size: 0.68rem;
+    font-weight: 900;
+    padding: 4px 8px;
+    text-transform: uppercase;
+}
+
 .academy-curriculum {
     display: grid;
     gap: 10px;
@@ -1672,6 +1822,7 @@
     .academy-passport-details,
     .academy-progress-grid,
     .academy-mentor-slots,
+    .academy-office-header dl,
     .academy-guidance-row {
         grid-template-columns: 1fr;
     }
