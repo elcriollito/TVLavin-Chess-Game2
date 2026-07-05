@@ -1,0 +1,300 @@
+/**
+ * CAISSA Academy - Season 5.0 foundation
+ * Isolated styles for the Academy product surface.
+ */
+
+#academySection {
+    background:
+        linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(229, 236, 232, 0.96)),
+        radial-gradient(circle at 20% 12%, rgba(191, 143, 62, 0.12), transparent 28%),
+        radial-gradient(circle at 86% 10%, rgba(25, 83, 95, 0.10), transparent 30%);
+    color: #17212b;
+    overflow: auto;
+}
+
+#academySection.active {
+    display: block;
+}
+
+.academy-page {
+    width: min(1440px, 100%);
+    margin: 0 auto;
+    padding: clamp(18px, 3vw, 34px);
+}
+
+.academy-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 24px;
+    align-items: stretch;
+    min-height: 280px;
+    border: 1px solid rgba(30, 41, 59, 0.14);
+    border-radius: 14px;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(244, 239, 228, 0.92)),
+        linear-gradient(90deg, rgba(35, 83, 93, 0.12), transparent);
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
+    padding: clamp(22px, 4vw, 46px);
+}
+
+.academy-hero-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 760px;
+}
+
+.academy-kicker {
+    color: #7b4e18;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.academy-hero h2 {
+    margin: 10px 0 12px;
+    color: #14232f;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(2.25rem, 5vw, 4.8rem);
+    font-weight: 800;
+    line-height: 0.96;
+    letter-spacing: 0;
+}
+
+.academy-lede {
+    max-width: 680px;
+    margin: 0;
+    color: #334155;
+    font-size: clamp(1rem, 1.5vw, 1.2rem);
+    line-height: 1.65;
+}
+
+.academy-motto {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 26px;
+}
+
+.academy-motto span {
+    border: 1px solid rgba(21, 72, 87, 0.2);
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #154857;
+    font-weight: 800;
+    padding: 8px 14px;
+}
+
+.academy-hero-panel {
+    display: grid;
+    align-content: center;
+    gap: 12px;
+    border-left: 4px solid #bf8f3e;
+    border-radius: 10px;
+    background: #15202b;
+    color: #f8fafc;
+    padding: 24px;
+}
+
+.academy-hero-panel strong {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.65rem;
+}
+
+.academy-hero-panel span {
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
+    color: #d9e5e2;
+    padding-top: 10px;
+}
+
+.academy-programs,
+.academy-trainers {
+    margin-top: clamp(22px, 4vw, 36px);
+}
+
+.academy-section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.academy-section-heading h3 {
+    margin: 0;
+    color: #14232f;
+    font-size: clamp(1.35rem, 2vw, 2rem);
+}
+
+.academy-program-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.academy-program-card,
+.academy-trainer-card {
+    border: 1px solid rgba(30, 41, 59, 0.12);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+}
+
+.academy-program-card {
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr);
+    grid-template-areas:
+        "icon title"
+        "icon text"
+        "icon status";
+    gap: 4px 12px;
+    min-height: 150px;
+    padding: 18px;
+}
+
+.academy-program-icon {
+    grid-area: icon;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: #154857;
+    color: #f8fafc;
+}
+
+.academy-program-card h4,
+.academy-trainer-card h4 {
+    margin: 0;
+    color: #14232f;
+    font-size: 1.05rem;
+}
+
+.academy-program-card h4 {
+    grid-area: title;
+}
+
+.academy-program-card p,
+.academy-trainer-card p {
+    margin: 0;
+    color: #475569;
+    line-height: 1.5;
+}
+
+.academy-program-card p {
+    grid-area: text;
+}
+
+.academy-coming-soon {
+    grid-area: status;
+    width: fit-content;
+    margin-top: 8px;
+    border: 1px solid rgba(191, 143, 62, 0.36);
+    border-radius: 999px;
+    background: #fff7ed;
+    color: #7b4e18;
+    font-size: 0.78rem;
+    font-weight: 800;
+    padding: 5px 10px;
+}
+
+.academy-trainer-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.academy-trainer-card {
+    display: grid;
+    grid-template-columns: 54px minmax(0, 1fr);
+    gap: 12px;
+    padding: 16px;
+}
+
+.academy-trainer-card p,
+.academy-trainer-card strong,
+.academy-trainer-card button {
+    grid-column: 1 / -1;
+}
+
+.academy-trainer-card span {
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.academy-avatar {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border: 2px solid #d7b56d;
+    border-radius: 50%;
+    background: #f8fafc;
+    color: #154857;
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 900;
+}
+
+.academy-trainer-card strong {
+    color: #154857;
+    font-size: 0.86rem;
+}
+
+.academy-trainer-card button {
+    min-height: 38px;
+    border: 1px solid rgba(21, 72, 87, 0.25);
+    border-radius: 8px;
+    background: #e7ecea;
+    color: #64748b;
+    font-weight: 800;
+    cursor: not-allowed;
+}
+
+.academy-trainer-featured {
+    border-color: rgba(191, 143, 62, 0.38);
+    background: linear-gradient(180deg, #fffaf0, #ffffff);
+}
+
+@media (max-width: 1180px) {
+    .academy-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .academy-hero-panel {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border-left: 0;
+        border-top: 4px solid #bf8f3e;
+    }
+
+    .academy-program-grid,
+    .academy-trainer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .academy-page {
+        padding: 14px;
+    }
+
+    .academy-hero {
+        border-radius: 10px;
+        padding: 20px;
+    }
+
+    .academy-hero-panel,
+    .academy-program-grid,
+    .academy-trainer-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .academy-section-heading {
+        align-items: start;
+        flex-direction: column;
+    }
+
+    .academy-program-card {
+        grid-template-columns: 42px minmax(0, 1fr);
+    }
+}

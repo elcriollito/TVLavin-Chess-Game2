@@ -23,6 +23,7 @@ const CaissaNavigation = {
         history: null,     // Future: history-section.js
         arena: null,       // Future: arena-section.js
         yahooClassic: null, // CAISSA Classic page foundation
+        academy: null,     // CAISSA Academy foundation
         library: null,     // Opens library panel (existing)
         premium: null,     // Redirect to /premium
         settings: null     // Future: settings-section.js
@@ -591,7 +592,8 @@ const CaissaNavigation = {
                 history: 'History',
                 arena: 'Arena',
                 spectator: 'Spectator TV',
-                yahooClassic: 'Yahoo Classic'
+                yahooClassic: 'Yahoo Classic',
+                academy: 'Academy'
             };
             this.elements.sectionNameDisplay.textContent = names[sectionId] || 'CAISSA';
         }
@@ -627,7 +629,8 @@ const CaissaNavigation = {
                 const hasExplicitSection = urlParams.has('section');
 
                 const pathSections = {
-                    '/yahoo-classic': 'yahooClassic'
+                    '/yahoo-classic': 'yahooClassic',
+                    '/academy': 'academy'
                 };
                 const pathSection = pathSections[window.location.pathname];
 
@@ -651,7 +654,8 @@ const CaissaNavigation = {
             } else {
                 // No saved state - fresh visit
                 const pathSections = {
-                    '/yahoo-classic': 'yahooClassic'
+                    '/yahoo-classic': 'yahooClassic',
+                    '/academy': 'academy'
                 };
                 const urlParams = new URLSearchParams(window.location.search);
                 this.currentSection = pathSections[window.location.pathname]
