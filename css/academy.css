@@ -1392,7 +1392,8 @@
     margin: -4px 0 16px;
 }
 
-.academy-filter-bar span {
+.academy-filter-bar span,
+.academy-filter-bar button {
     display: inline-flex;
     align-items: center;
     min-height: 34px;
@@ -1400,14 +1401,37 @@
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.82);
     color: #334155;
+    cursor: default;
+    font: inherit;
     font-weight: 800;
     padding: 7px 13px;
 }
 
-.academy-filter-bar span.active {
+.academy-filter-bar button {
+    cursor: pointer;
+}
+
+.academy-filter-bar span.active,
+.academy-filter-bar button.active {
     border-color: #154857;
     background: #154857;
     color: #f8fafc;
+}
+
+.academy-filter-bar button:focus-visible {
+    outline: 3px solid rgba(191, 143, 62, 0.48);
+    outline-offset: 2px;
+}
+
+.academy-filter-note {
+    margin: -4px 0 14px;
+    color: #64748b;
+    font-size: 0.86rem;
+    font-weight: 700;
+}
+
+.academy-path-card[hidden] {
+    display: none;
 }
 
 .academy-program-card,

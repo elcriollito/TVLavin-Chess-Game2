@@ -41,6 +41,9 @@
 
     // Track if backend is available
     let _backendAvailable = true;
+    let _lastSyncUserId = null;
+    let _lastSyncFailedAt = 0;
+    let _syncWarningShown = false;
 
     // ========================================
     // BACKEND API HELPERS
@@ -63,10 +66,13 @@
      */
     async function _syncUser() {
         const auth = window.CAISSA_AUTH || {};
-        if (!auth.isSignedIn) return;
+        if (!auth.isSignedIn) return false;
+        if (_lastSyncUserId === auth.userId && !_backendAvailable && Date.now() - _lastSyncFailedAt < 300000) {
+            return false;
+        }
 
         const headers = await _getAuthHeaders();
-        if (!headers) return;
+        if (!headers) return false;
 
         try {
             const resp = await fetch('/api/user/sync', {
@@ -80,13 +86,30 @@
 
             if (resp.ok) {
                 _backendAvailable = true;
+                _lastSyncUserId = auth.userId;
+                _lastSyncFailedAt = 0;
+                _syncWarningShown = false;
                 console.log('CAISSA Access: User synced to backend');
+                return true;
             } else {
-                console.warn('CAISSA Access: User sync failed', resp.status);
+                _backendAvailable = false;
+                _lastSyncUserId = auth.userId;
+                _lastSyncFailedAt = Date.now();
+                if (!_syncWarningShown) {
+                    _syncWarningShown = true;
+                    console.warn('CAISSA Access: User sync unavailable', resp.status);
+                }
+                return false;
             }
         } catch (e) {
             _backendAvailable = false;
-            console.warn('CAISSA Access: Backend unreachable for user sync', e.message);
+            _lastSyncUserId = auth.userId;
+            _lastSyncFailedAt = Date.now();
+            if (!_syncWarningShown) {
+                _syncWarningShown = true;
+                console.warn('CAISSA Access: Backend unreachable for user sync', e.message);
+            }
+            return false;
         }
     }
 
@@ -561,8 +584,8 @@
             getWallet();
 
             // Sync user and hydrate wallet from backend
-            await _syncUser();
-            await _fetchWallet();
+            const synced = await _syncUser();
+            if (synced) await _fetchWallet();
         }
     });
 

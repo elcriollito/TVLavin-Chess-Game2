@@ -1679,7 +1679,7 @@
                         <div class="academy-hero-copy">
                             <span class="academy-kicker">CAISSA Academy</span>
                             <h2 id="academyTitle">Welcome to CAISSA Academy</h2>
-                            <p class="academy-lede">A calm training center for learning chess with future mentor guidance, structured courses, and clear academic paths.</p>
+                            <p class="academy-lede">A calm training center for learning chess with future mentor guidance, structured courses, and clear academic paths. Academy 1.0 Beta is a foundation preview; lessons, certificates, progress, and mentor conversations are not active yet.</p>
                             <div class="academy-motto" aria-label="Academy motto">
                                 <span>Learn.</span>
                                 <span>Practice.</span>
@@ -2388,15 +2388,15 @@
                                 <h3 id="academyLearningPathsTitle">Choose what you want to learn</h3>
                             </div>
                         </div>
-                        <div class="academy-filter-bar" aria-label="Visual learning path filters">
-                            <span class="active">All</span>
-                            <span>Beginner</span>
-                            <span>Intermediate</span>
-                            <span>Advanced</span>
-                            <span>Master</span>
+                        <div class="academy-filter-bar" aria-label="Learning path filters" data-academy-path-filters>
+                            <button type="button" class="active" data-academy-path-filter="all" aria-pressed="true">All</button>
+                            <button type="button" data-academy-path-filter="beginner" aria-pressed="false">Beginner</button>
+                            <button type="button" data-academy-path-filter="intermediate" aria-pressed="false">Intermediate</button>
+                            <button type="button" data-academy-path-filter="advanced" aria-pressed="false">Advanced</button>
+                            <button type="button" data-academy-path-filter="master" aria-pressed="false">Master</button>
                         </div>
                         <div class="academy-path-grid">
-                            <article class="academy-path-card">
+                            <article class="academy-path-card" data-academy-path-difficulty="beginner">
                                 <div class="academy-path-header">
                                     <span class="academy-path-icon" aria-hidden="true"><i class="fas fa-book-open"></i></span>
                                     <div>
@@ -2414,7 +2414,7 @@
                                 </dl>
                                 <span class="academy-path-status">Coming Soon</span>
                             </article>
-                            <article class="academy-path-card">
+                            <article class="academy-path-card" data-academy-path-difficulty="intermediate">
                                 <div class="academy-path-header">
                                     <span class="academy-path-icon" aria-hidden="true"><i class="fas fa-chess-board"></i></span>
                                     <div>
@@ -2432,7 +2432,7 @@
                                 </dl>
                                 <span class="academy-path-status">Coming Soon</span>
                             </article>
-                            <article class="academy-path-card">
+                            <article class="academy-path-card" data-academy-path-difficulty="intermediate">
                                 <div class="academy-path-header">
                                     <span class="academy-path-icon" aria-hidden="true"><i class="fas fa-chess-king"></i></span>
                                     <div>
@@ -2450,7 +2450,7 @@
                                 </dl>
                                 <span class="academy-path-status">Coming Soon</span>
                             </article>
-                            <article class="academy-path-card">
+                            <article class="academy-path-card" data-academy-path-difficulty="beginner">
                                 <div class="academy-path-header">
                                     <span class="academy-path-icon" aria-hidden="true"><i class="fas fa-bolt"></i></span>
                                     <div>
@@ -2468,7 +2468,7 @@
                                 </dl>
                                 <span class="academy-path-status">Coming Soon</span>
                             </article>
-                            <article class="academy-path-card">
+                            <article class="academy-path-card" data-academy-path-difficulty="advanced">
                                 <div class="academy-path-header">
                                     <span class="academy-path-icon" aria-hidden="true"><i class="fas fa-project-diagram"></i></span>
                                     <div>
@@ -2486,7 +2486,7 @@
                                 </dl>
                                 <span class="academy-path-status">Coming Soon</span>
                             </article>
-                            <article class="academy-path-card">
+                            <article class="academy-path-card" data-academy-path-difficulty="advanced">
                                 <div class="academy-path-header">
                                     <span class="academy-path-icon" aria-hidden="true"><i class="fas fa-search"></i></span>
                                     <div>
@@ -2504,7 +2504,7 @@
                                 </dl>
                                 <span class="academy-path-status">Coming Soon</span>
                             </article>
-                            <article class="academy-path-card">
+                            <article class="academy-path-card" data-academy-path-difficulty="advanced">
                                 <div class="academy-path-header">
                                     <span class="academy-path-icon" aria-hidden="true"><i class="fas fa-shield-alt"></i></span>
                                     <div>
@@ -2522,7 +2522,7 @@
                                 </dl>
                                 <span class="academy-path-status">Coming Soon</span>
                             </article>
-                            <article class="academy-path-card">
+                            <article class="academy-path-card" data-academy-path-difficulty="master">
                                 <div class="academy-path-header">
                                     <span class="academy-path-icon" aria-hidden="true"><i class="fas fa-fire"></i></span>
                                     <div>
@@ -2540,7 +2540,7 @@
                                 </dl>
                                 <span class="academy-path-status">Coming Soon</span>
                             </article>
-                            <article class="academy-path-card">
+                            <article class="academy-path-card" data-academy-path-difficulty="intermediate">
                                 <div class="academy-path-header">
                                     <span class="academy-path-icon" aria-hidden="true"><i class="fas fa-stopwatch"></i></span>
                                     <div>
@@ -2558,7 +2558,7 @@
                                 </dl>
                                 <span class="academy-path-status">Coming Soon</span>
                             </article>
-                            <article class="academy-path-card">
+                            <article class="academy-path-card" data-academy-path-difficulty="advanced">
                                 <div class="academy-path-header">
                                     <span class="academy-path-icon" aria-hidden="true"><i class="fas fa-hourglass-half"></i></span>
                                     <div>
@@ -2576,7 +2576,7 @@
                                 </dl>
                                 <span class="academy-path-status">Coming Soon</span>
                             </article>
-                            <article class="academy-path-card">
+                            <article class="academy-path-card" data-academy-path-difficulty="beginner">
                                 <div class="academy-path-header">
                                     <span class="academy-path-icon" aria-hidden="true"><i class="fas fa-graduation-cap"></i></span>
                                     <div>
@@ -2594,7 +2594,7 @@
                                 </dl>
                                 <span class="academy-path-status">Coming Soon</span>
                             </article>
-                            <article class="academy-path-card">
+                            <article class="academy-path-card" data-academy-path-difficulty="master">
                                 <div class="academy-path-header">
                                     <span class="academy-path-icon" aria-hidden="true"><i class="fas fa-trophy"></i></span>
                                     <div>
@@ -2613,6 +2613,7 @@
                                 <span class="academy-path-status">Coming Soon</span>
                             </article>
                         </div>
+                        <p class="academy-filter-note" data-academy-path-filter-note>Showing all learning paths. Filters are active in this beta; lessons still remain Coming Soon.</p>
                     </section>
 
                     <section id="academyGuidance" class="academy-mentor-guidance" aria-labelledby="academyMentorGuidanceTitle">
@@ -3316,7 +3317,7 @@
                             <div>
                                 <span class="academy-kicker">CAISSA Academy</span>
                                 <strong>1.0 Beta</strong>
-                                <p>Academy is now closed as a visual beta: the academic structure is coherent, production-presentable, and clear about which areas are available today versus prepared for future work.</p>
+                                <p>Academy is now closed as a visual beta: the academic structure is coherent, production-presentable, and clear that browsing, navigation, and Learning Path filters are available today while lessons, certificates, progress, and mentor conversations remain Coming Soon.</p>
                             </div>
                             <dl>
                                 <div><dt>Version</dt><dd>1.0 Beta</dd></div>

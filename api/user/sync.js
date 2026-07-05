@@ -17,21 +17,16 @@ export default async function handler(req, res) {
 
     // Verify Clerk token
     const auth = await verifyAuth(req);
-    if (auth.error) return res.status(auth.status).json({ error: auth.error });
+    if (auth.error) return res.status(auth.status || 401).json({ error: auth.error });
 
     try {
         const supabase = getSupabase();
-        const { email, fullName } = req.body || {};
+        const { email } = req.body || {};
 
         // Validate email format (non-critical — Clerk is source of truth)
         const emailVal = (email || auth.email || '').trim();
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const safeEmail = (emailVal && emailRegex.test(emailVal)) ? emailVal : auth.email || null;
-
-        // Sanitize fullName: strip HTML tags, limit to 100 chars
-        const safeName = fullName
-            ? String(fullName).replace(/<[^>]*>/g, '').trim().slice(0, 100)
-            : null;
 
         // Upsert user by clerk_id
         const upsertData = {
@@ -39,7 +34,6 @@ export default async function handler(req, res) {
             email: safeEmail,
             updated_at: new Date().toISOString()
         };
-        if (safeName) upsertData.full_name = safeName;
 
         const { data, error } = await supabase
             .from('users')
@@ -52,7 +46,10 @@ export default async function handler(req, res) {
 
         if (error) {
             logError('user_sync', error, { userId: auth.userId });
-            return res.status(500).json({ error: 'Failed to sync user' });
+            return res.status(503).json({
+                error: 'User sync is temporarily unavailable',
+                recoverable: true
+            });
         }
 
         logAction('user_synced', { userId: auth.userId });
@@ -69,6 +66,9 @@ export default async function handler(req, res) {
 
     } catch (err) {
         logError('user_sync', err, { userId: auth.userId });
-        return res.status(500).json({ error: 'Failed to sync user' });
+        return res.status(503).json({
+            error: 'User sync is temporarily unavailable',
+            recoverable: true
+        });
     }
 }
