@@ -109,7 +109,8 @@
 }
 
 .academy-programs,
-.academy-trainers {
+.academy-trainers,
+.academy-future-panel {
     margin-top: clamp(22px, 4vw, 36px);
 }
 
@@ -386,6 +387,72 @@
     padding-left: 12px;
 }
 
+.academy-curriculum {
+    display: grid;
+    gap: 10px;
+    border: 1px solid rgba(191, 143, 62, 0.22);
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(255, 253, 247, 0.95), rgba(248, 250, 252, 0.92));
+    padding: 12px;
+}
+
+.academy-curriculum h5 {
+    margin: 0;
+    color: #14232f;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1rem;
+}
+
+.academy-curriculum ol {
+    display: grid;
+    gap: 8px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.academy-curriculum li {
+    display: grid;
+    grid-template-columns: 18px 74px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid rgba(21, 72, 87, 0.10);
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 9px 10px;
+}
+
+.academy-curriculum li::before {
+    content: "\f19d";
+    color: #bf8f3e;
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+}
+
+.academy-curriculum li span {
+    color: #7b4e18;
+    font-size: 0.74rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.academy-curriculum li strong {
+    color: #253444;
+    font-size: 0.9rem;
+}
+
+.academy-curriculum li em {
+    border: 1px solid rgba(191, 143, 62, 0.28);
+    border-radius: 999px;
+    background: #fff7ed;
+    color: #7b4e18;
+    font-size: 0.68rem;
+    font-style: normal;
+    font-weight: 900;
+    padding: 4px 7px;
+    text-transform: uppercase;
+}
+
 .academy-profile-actions {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -416,6 +483,52 @@
     background: linear-gradient(180deg, #fffaf0, #ffffff);
 }
 
+.academy-future-panel {
+    border: 1px solid rgba(30, 41, 59, 0.12);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+    padding: 18px;
+}
+
+.academy-future-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.academy-future-grid article {
+    display: grid;
+    gap: 7px;
+    min-height: 112px;
+    border: 1px solid rgba(21, 72, 87, 0.14);
+    border-radius: 10px;
+    background: linear-gradient(180deg, #ffffff, #f5f8f7);
+    padding: 14px;
+}
+
+.academy-future-grid i {
+    color: #154857;
+    font-size: 1.2rem;
+}
+
+.academy-future-grid strong {
+    color: #14232f;
+}
+
+.academy-future-grid span {
+    width: fit-content;
+    align-self: end;
+    border: 1px solid rgba(191, 143, 62, 0.28);
+    border-radius: 999px;
+    background: #fff7ed;
+    color: #7b4e18;
+    font-size: 0.7rem;
+    font-weight: 900;
+    padding: 4px 8px;
+    text-transform: uppercase;
+}
+
 @media (max-width: 1180px) {
     .academy-hero {
         grid-template-columns: 1fr;
@@ -428,7 +541,8 @@
     }
 
     .academy-program-grid,
-    .academy-trainer-grid {
+    .academy-trainer-grid,
+    .academy-future-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
@@ -445,7 +559,8 @@
 
     .academy-hero-panel,
     .academy-program-grid,
-    .academy-trainer-grid {
+    .academy-trainer-grid,
+    .academy-future-grid {
         grid-template-columns: 1fr;
     }
 
@@ -468,7 +583,8 @@
     }
 
     .academy-profile-body dl div,
-    .academy-profile-actions {
+    .academy-profile-actions,
+    .academy-curriculum li {
         grid-template-columns: 1fr;
     }
 }
