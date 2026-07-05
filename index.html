@@ -1590,6 +1590,12 @@
                                     <strong id="ycGameMode">No Table</strong>
                                     <span id="ycGameDetail">Watch or join a room table to open the classic board.</span>
                                 </div>
+                                <div class="yc-panel yc-game-system-panel" aria-label="Classic table system messages">
+                                    <div class="yc-panel-title">Table Log</div>
+                                    <div id="ycGameSystemLog" class="yc-game-system-log" aria-live="polite">
+                                        <p>Open a table to receive system messages.</p>
+                                    </div>
+                                </div>
                                 <div class="yc-panel yc-game-info-panel" aria-label="Classic table context">
                                     <div class="yc-panel-title">Table Information</div>
                                     <dl class="yc-game-info-grid">
@@ -1607,6 +1613,7 @@
                                     <span class="yc-turn-led" aria-hidden="true"></span>
                                     <span class="yc-player-name">Black</span>
                                     <span class="yc-player-rating">FICS</span>
+                                    <span class="yc-player-state">Waiting</span>
                                     <strong class="yc-player-clock">--:--</strong>
                                 </div>
                                 <div id="ycClassicBoard" class="yc-classic-board"></div>
@@ -1614,6 +1621,7 @@
                                     <span class="yc-turn-led" aria-hidden="true"></span>
                                     <span class="yc-player-name">White</span>
                                     <span class="yc-player-rating">FICS</span>
+                                    <span class="yc-player-state">Waiting</span>
                                     <strong class="yc-player-clock">--:--</strong>
                                 </div>
                             </main>
@@ -1622,6 +1630,10 @@
                                 <div class="yc-panel-heading">
                                     <h3 id="ycMoveTitle">Moves</h3>
                                     <span id="ycGameMeta">No table</span>
+                                </div>
+                                <div class="yc-game-watch-strip" aria-label="Classic observer status">
+                                    <span id="ycGameTurnState">Waiting</span>
+                                    <span id="ycGameSpectatorState">Spectators 0</span>
                                 </div>
                                 <div id="ycMoveList" class="yc-classic-move-list" aria-live="polite">
                                     <div class="yc-move-empty">Moves will appear when the table updates.</div>

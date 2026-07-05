@@ -24,6 +24,7 @@
         tableOpen: false,
         currentTableId: null,
         currentTableMeta: null,
+        tableMode: '',
         liveGame: null,
         moveHistory: [],
         board: null,
@@ -82,6 +83,9 @@
                 gameInfoMove: document.getElementById('ycGameInfoMove'),
                 gameInfoResult: document.getElementById('ycGameInfoResult'),
                 gameInfoPhase: document.getElementById('ycGameInfoPhase'),
+                gameSystemLog: document.getElementById('ycGameSystemLog'),
+                gameTurnState: document.getElementById('ycGameTurnState'),
+                gameSpectatorState: document.getElementById('ycGameSpectatorState'),
                 sitBtn: document.getElementById('ycSitBtn'),
                 standBtn: document.getElementById('ycStandBtn')
             };
@@ -468,6 +472,7 @@
             this.tableOpen = true;
             this.currentTableId = tableId || this.currentTableId;
             this.currentTableMeta = meta || this.currentTableMeta;
+            this.tableMode = mode;
             if (this.elements.gameMode) {
                 this.elements.gameMode.textContent = mode === 'joining' ? 'Joining Table' : 'Watching Table';
             }
@@ -493,6 +498,7 @@
             this.liveGame = null;
             this.moveHistory = [];
             this.lastRenderedFen = null;
+            this.tableMode = '';
             this.renderGameExperience();
         },
 
@@ -711,11 +717,15 @@
 
         renderGameExperience() {
             this.elements.shell?.classList.toggle('yc-table-open', this.tableOpen);
+            if (this.elements.gameWindow) {
+                this.elements.gameWindow.dataset.mode = this.tableMode || (this.liveGame?.observedGame ? 'watching' : 'playing');
+            }
             this.elements.gameWindow?.setAttribute('aria-hidden', this.tableOpen ? 'false' : 'true');
             this.renderClassicBoard();
             this.renderGamePlayers();
             this.renderClassicMoves();
             this.renderGameMeta();
+            this.renderGameSystemLog();
         },
 
         initClassicBoard() {
@@ -745,14 +755,16 @@
                 name: this.liveGame?.blackName || table?.black || 'Black',
                 rating: table?.blackRating || 'FICS',
                 clock: this.formatClock(this.liveGame?.blackClock),
-                active: this.liveGame?.sideToMove === 'b'
+                active: this.liveGame?.sideToMove === 'b',
+                state: this.liveGame?.sideToMove === 'b' ? 'To move' : 'Waiting'
             });
             this.renderGamePlayerBar(this.elements.whitePlayerBar, {
                 color: 'white',
                 name: this.liveGame?.whiteName || table?.white || 'White',
                 rating: table?.whiteRating || 'FICS',
                 clock: this.formatClock(this.liveGame?.whiteClock),
-                active: this.liveGame?.sideToMove === 'w'
+                active: this.liveGame?.sideToMove === 'w',
+                state: this.liveGame?.sideToMove === 'w' ? 'To move' : 'Waiting'
             });
         },
 
@@ -761,6 +773,7 @@
             element.className = `yc-game-player ${player.color}${player.active ? ' turn-active' : ''}`;
             const name = element.querySelector('.yc-player-name');
             const rating = element.querySelector('.yc-player-rating');
+            const state = element.querySelector('.yc-player-state');
             const clock = element.querySelector('.yc-player-clock');
             if (name) {
                 name.textContent = player.name || player.color;
@@ -768,9 +781,10 @@
             }
             if (rating) {
                 const status = player.rating && player.rating !== 'FICS' ? 'Registered' : 'Guest';
-                rating.textContent = `${player.rating || 'FICS'} · ${status}`;
+                rating.textContent = `${player.rating || 'FICS'} - ${status}`;
                 rating.title = status;
             }
+            if (state) state.textContent = player.state || 'Waiting';
             if (clock) clock.textContent = player.clock || '--:--';
         },
 
@@ -833,6 +847,8 @@
             const result = this.liveGame?.result || table?.result || '--';
             const opening = this.liveGame?.openingName || this.liveGame?.opening || table?.opening || 'Unknown Opening';
             const eco = this.liveGame?.eco || table?.eco || '--';
+            const turnText = side ? `${side} to Move` : 'Waiting for board';
+            const spectatorText = `Spectators ${spectators}`;
 
             if (this.elements.gameMode) {
                 this.elements.gameMode.textContent = gameNumber ? `Table ${gameNumber}` : 'No Table';
@@ -856,8 +872,27 @@
             this.setText(this.elements.gameInfoMove, String(moveNumber));
             this.setText(this.elements.gameInfoResult, result);
             this.setText(this.elements.gameInfoPhase, phase);
+            this.setText(this.elements.gameTurnState, turnText);
+            this.setText(this.elements.gameSpectatorState, spectatorText);
             this.elements.standBtn?.toggleAttribute('disabled', !this.tableOpen);
             this.elements.sitBtn?.toggleAttribute('disabled', !this.authenticated);
+        },
+
+        renderGameSystemLog() {
+            if (!this.elements.gameSystemLog) return;
+            const messages = this.systemMessages.slice(-4);
+            if (!messages.length) {
+                const empty = document.createElement('p');
+                empty.textContent = this.tableOpen ? 'Waiting for table updates.' : 'Open a table to receive system messages.';
+                this.elements.gameSystemLog.replaceChildren(empty);
+                return;
+            }
+            this.elements.gameSystemLog.replaceChildren(...messages.map((message) => {
+                const line = document.createElement('p');
+                line.textContent = message;
+                return line;
+            }));
+            this.elements.gameSystemLog.scrollTop = this.elements.gameSystemLog.scrollHeight;
         },
 
         setText(element, value) {
