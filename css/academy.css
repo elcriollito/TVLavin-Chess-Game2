@@ -110,6 +110,7 @@
 
 .academy-student-journey,
 .academy-learning-paths,
+.academy-mentor-guidance,
 .academy-programs,
 .academy-trainers,
 .academy-future-panel {
@@ -488,7 +489,7 @@
 
 .academy-path-meta div {
     display: grid;
-    grid-template-columns: 92px minmax(0, 1fr);
+    grid-template-columns: 142px minmax(0, 1fr);
     gap: 10px;
     border-top: 1px solid rgba(30, 41, 59, 0.08);
     padding-top: 8px;
@@ -555,6 +556,134 @@
     font-weight: 900;
     padding: 5px 9px;
     text-transform: uppercase;
+}
+
+.academy-mentor-guidance {
+    border: 1px solid rgba(30, 41, 59, 0.12);
+    border-radius: 14px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 244, 235, 0.90)),
+        radial-gradient(circle at 100% 0%, rgba(191, 143, 62, 0.12), transparent 32%);
+    box-shadow: 0 14px 38px rgba(15, 23, 42, 0.09);
+    padding: clamp(18px, 3vw, 26px);
+}
+
+.academy-guidance-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(240px, 0.7fr) minmax(260px, 0.8fr);
+    gap: 14px;
+}
+
+.academy-guidance-card {
+    display: grid;
+    align-content: start;
+    gap: 12px;
+    border: 1px solid rgba(21, 72, 87, 0.14);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+    padding: 16px;
+}
+
+.academy-guidance-feature {
+    border-color: rgba(191, 143, 62, 0.34);
+    background: linear-gradient(180deg, #fffaf0, #ffffff);
+}
+
+.academy-guidance-label {
+    color: #7b4e18;
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.academy-guidance-card h4 {
+    margin: 0;
+    color: #14232f;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.24rem;
+}
+
+.academy-guidance-card p {
+    margin: 0;
+    color: #475569;
+    line-height: 1.55;
+}
+
+.academy-mentor-slots {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.academy-mentor-slots span {
+    display: grid;
+    gap: 5px;
+    border: 1px solid rgba(21, 72, 87, 0.14);
+    border-radius: 10px;
+    background: #f8fafc;
+    padding: 10px;
+}
+
+.academy-mentor-slots strong {
+    color: #7b4e18;
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.academy-mentor-slots em {
+    color: #14232f;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.05rem;
+    font-style: normal;
+    font-weight: 900;
+}
+
+.academy-next-recommendation p {
+    color: #154857;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.35rem;
+    font-weight: 900;
+}
+
+.academy-guidance-map {
+    display: grid;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.academy-guidance-row {
+    display: grid;
+    grid-template-columns: minmax(150px, 0.8fr) minmax(90px, 0.35fr) minmax(90px, 0.35fr) minmax(260px, 1.5fr);
+    align-items: center;
+    gap: 10px;
+    border: 1px solid rgba(21, 72, 87, 0.12);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.78);
+    padding: 10px 12px;
+}
+
+.academy-guidance-row strong {
+    color: #14232f;
+}
+
+.academy-guidance-row span {
+    width: fit-content;
+    border: 1px solid rgba(21, 72, 87, 0.16);
+    border-radius: 999px;
+    background: #eef4f2;
+    color: #154857;
+    font-size: 0.78rem;
+    font-weight: 900;
+    padding: 4px 9px;
+}
+
+.academy-guidance-row em {
+    color: #64748b;
+    font-style: normal;
+    line-height: 1.4;
 }
 
 .academy-filter-bar {
@@ -973,8 +1102,17 @@
     }
 
     .academy-journey-grid,
-    .academy-journey-lower {
+    .academy-journey-lower,
+    .academy-guidance-grid {
         grid-template-columns: 1fr;
+    }
+
+    .academy-guidance-row {
+        grid-template-columns: minmax(140px, 0.9fr) repeat(2, minmax(88px, 0.45fr));
+    }
+
+    .academy-guidance-row em {
+        grid-column: 1 / -1;
     }
 }
 
@@ -994,7 +1132,9 @@
     .academy-trainer-grid,
     .academy-future-grid,
     .academy-passport-details,
-    .academy-progress-grid {
+    .academy-progress-grid,
+    .academy-mentor-slots,
+    .academy-guidance-row {
         grid-template-columns: 1fr;
     }
 
@@ -1020,7 +1160,8 @@
         min-height: auto;
     }
 
-    .academy-trainer-meta div {
+    .academy-trainer-meta div,
+    .academy-path-meta div {
         grid-template-columns: 1fr;
         gap: 2px;
     }
