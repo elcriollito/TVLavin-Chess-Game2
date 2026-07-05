@@ -29,6 +29,10 @@
     box-sizing: border-box;
 }
 
+#yahooClassicSection {
+    cursor: default;
+}
+
 #yahooClassicSection *::-webkit-scrollbar {
     width: 16px;
     height: 16px;
@@ -159,7 +163,7 @@
     border-color: #ffffff #707070 #707070 #ffffff;
     background: var(--yc-classic-gray);
     color: var(--yc-black);
-    cursor: pointer;
+    cursor: default;
     font-family: var(--yc-font-classic);
     font-size: 11px;
     font-weight: 700;
@@ -186,6 +190,7 @@
 .yc-classic-button:hover,
 .yc-send-button:hover:not(:disabled) {
     background: #d9d9d9;
+    color: #000000;
 }
 
 .yc-tab:active,
@@ -303,6 +308,61 @@
     display: block;
     color: #241d54;
     font-size: 10px;
+}
+
+.yc-activity-panel {
+    min-height: 120px;
+}
+
+.yc-activity-feed {
+    max-height: 150px;
+    overflow-y: auto;
+    border: 2px solid;
+    border-color: var(--yc-border-gray) #ffffff #ffffff var(--yc-border-gray);
+    background: var(--yc-panel-white);
+    font-family: "Courier New", Courier, monospace;
+    font-size: 10px;
+}
+
+.yc-activity-line {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 4px;
+    min-height: 20px;
+    padding: 3px 5px;
+    border-bottom: 1px solid #b9b096;
+}
+
+.yc-activity-line:nth-child(odd) {
+    background: #f1e7c4;
+}
+
+.yc-activity-line span {
+    color: #241d54;
+    font-weight: 700;
+}
+
+.yc-activity-line strong {
+    min-width: 0;
+    overflow: hidden;
+    color: #202020;
+    font-weight: 400;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.yc-activity-line.connect strong {
+    color: #006b2f;
+}
+
+.yc-activity-line.disconnect strong,
+.yc-activity-line.error strong {
+    color: #7a1d1d;
+}
+
+.yc-activity-line.watch strong,
+.yc-activity-line.room strong {
+    color: var(--yc-classic-blue);
 }
 
 .yc-panel-heading {
@@ -470,6 +530,16 @@
 
 .yc-table-chip.private {
     background: #ead5d5;
+}
+
+.yc-browser-status span:first-child::before {
+    content: "";
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: 4px;
+    border: 1px solid #404040;
+    background: #00a651;
 }
 
 .yc-player-badge {

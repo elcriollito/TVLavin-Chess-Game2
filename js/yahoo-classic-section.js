@@ -10,6 +10,8 @@
 
     const MAX_SYSTEM_MESSAGES = 5;
     const CURRENT_ROOM = 'CAISSA Lobby';
+    const ACTIVITY_LIMIT = 8;
+    const SOUND_CUES = Object.freeze(['connect', 'disconnect', 'move', 'join', 'notify', 'error']);
 
     const YahooClassicSection = {
         elements: {},
@@ -26,6 +28,16 @@
         moveHistory: [],
         board: null,
         lastRenderedFen: null,
+        currentRoom: {
+            name: CURRENT_ROOM,
+            description: 'Welcome to the main chess lounge.'
+        },
+        activityEvents: [{
+            type: 'ready',
+            label: 'Ready',
+            message: 'Waiting for lobby events.'
+        }],
+        pendingSoundCue: null,
         systemMessages: ['Connect to FICS to receive lobby status.'],
 
         init() {
@@ -41,8 +53,13 @@
             this.elements = {
                 section: document.getElementById('yahooClassicSection'),
                 roomSummary: document.getElementById('ycRoomSummary'),
+                currentRoomLabel: document.getElementById('ycCurrentRoomLabel'),
+                roomCardTitle: document.getElementById('ycRoomCardTitle'),
+                roomCardDescription: document.getElementById('ycRoomCardDescription'),
+                roomTabs: document.querySelectorAll('#yahooClassicSection .yc-tab[data-room]'),
                 tableGrid: document.getElementById('ycTableGrid'),
                 playerList: document.getElementById('ycPlayerList'),
+                activityFeed: document.getElementById('ycActivityFeed'),
                 chatBody: document.getElementById('ycChatBody'),
                 browserStatus: document.getElementById('ycBrowserStatus'),
                 shell: document.querySelector('#yahooClassicSection .yc-shell'),
@@ -66,6 +83,9 @@
             window.addEventListener('caissa:fics:style12', (event) => this.handleFicsEvent(event.detail));
             window.addEventListener('caissa:fics:game-ended', (event) => this.handleFicsEvent(event.detail));
             window.addEventListener('caissa:fics:disconnected', (event) => this.handleFicsEvent(event.detail));
+            this.elements.roomTabs?.forEach((button) => {
+                button.addEventListener('click', () => this.selectRoom(button));
+            });
             this.elements.standBtn?.addEventListener('click', () => this.standFromTable());
             this.elements.sitBtn?.addEventListener('click', () => this.addSystemMessage('Choose Join from a waiting table to sit.'));
         },
@@ -91,8 +111,10 @@
                 this.authenticated = !!payload.authenticated;
                 if (payload.state === 'connecting' || payload.state === 'reconnecting') {
                     this.addSystemMessage('Connecting to FICS...');
+                    this.addActivity('Connecting to FICS.', 'connect');
                 } else if (payload.state === 'connected' && payload.authenticated) {
                     this.addSystemMessage('Connected.');
+                    this.addActivity('Connected to FICS.', 'connect');
                 } else if (payload.state === 'disconnected') {
                     this.handleDisconnected(false);
                 }
@@ -100,17 +122,23 @@
                 this.authenticated = true;
                 this.addSystemMessage('Connected.');
                 this.addSystemMessage(`Loading ${CURRENT_ROOM}...`);
+                this.addActivity('Player session connected.', 'connect');
+                this.queueSoundCue('connect');
             } else if (event === 'lobby-updated') {
+                const previousTables = new Set(this.activeTables.map((table) => String(table.number)));
+                const previousPlayers = new Set(this.getPlayers().map((player) => player.name.toLowerCase()));
                 this.authenticated = true;
                 this.activeTables = Array.isArray(payload.activeTables) ? payload.activeTables.map((table) => ({ ...table })) : [];
                 this.seekActions = Array.isArray(payload.seekActions) ? payload.seekActions.map((seek) => ({ ...seek })) : [];
                 this.updateCatalog();
+                this.recordLobbyActivity(previousTables, previousPlayers);
                 this.addSystemMessage('Receiving lobby...');
             } else if (event === 'style12') {
                 this.handleStyle12(payload);
             } else if (event === 'game-ended') {
                 if (payload.liveGame) this.liveGame = { ...payload.liveGame };
                 this.addSystemMessage('Observed game finished.');
+                this.addActivity('Table closed.', 'notify');
             } else if (event === 'disconnected') {
                 this.handleDisconnected(false);
             }
@@ -125,6 +153,8 @@
             this.catalog = window.CaissaSpectatorTVCatalog?.clearCatalog?.() || null;
             this.closeTable(false);
             this.addSystemMessage('Disconnected.');
+            this.addActivity('Disconnected from FICS.', 'disconnect');
+            this.queueSoundCue('disconnect');
             if (render) this.render();
         },
 
@@ -176,19 +206,42 @@
         },
 
         render() {
+            this.renderRoomIdentity();
             this.renderSummary();
             this.renderTables();
             this.renderPlayers();
             this.renderGameExperience();
+            this.renderActivityFeed();
             this.renderChat();
             this.renderStatusBar();
+        },
+
+        selectRoom(button) {
+            if (!button) return;
+            this.currentRoom = {
+                name: button.dataset.room || CURRENT_ROOM,
+                description: button.dataset.description || 'Welcome to the main chess lounge.'
+            };
+            this.elements.roomTabs?.forEach((tab) => {
+                const active = tab === button;
+                tab.classList.toggle('active', active);
+                tab.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+            this.addActivity(`Entered ${this.currentRoom.name}.`, 'room');
+            this.render();
+        },
+
+        renderRoomIdentity() {
+            if (this.elements.currentRoomLabel) this.elements.currentRoomLabel.textContent = this.currentRoom.name;
+            if (this.elements.roomCardTitle) this.elements.roomCardTitle.textContent = this.currentRoom.name;
+            if (this.elements.roomCardDescription) this.elements.roomCardDescription.textContent = this.currentRoom.description;
         },
 
         renderSummary() {
             if (!this.elements.roomSummary) return;
             const players = this.getPlayers();
             const tables = this.activeTables.length + this.seekActions.length;
-            this.elements.roomSummary.textContent = `Current Room: ${CURRENT_ROOM} - Players Online: ${players.length} - Active Tables: ${tables}`;
+            this.elements.roomSummary.textContent = `Current Room: ${this.currentRoom.name} - Players Online: ${players.length} - Active Tables: ${tables}`;
         },
 
         renderTables() {
@@ -331,6 +384,8 @@
 
             if (rowData.action === 'watch') {
                 this.addSystemMessage(`Opening table ${rowData.table}...`);
+                this.addActivity(`Watching table ${rowData.table}.`, 'watch');
+                this.queueSoundCue('notify');
                 this.openTable(rowData.table, rowData.raw, 'watching');
                 if (typeof client.switchObservedGame === 'function') {
                     client.switchObservedGame(rowData.table);
@@ -342,6 +397,8 @@
 
             if (rowData.action === 'join') {
                 this.addSystemMessage(`Joining table ${rowData.table}...`);
+                this.addActivity(`Joining table ${rowData.table}.`, 'join');
+                this.queueSoundCue('join');
                 this.openTable(rowData.table, rowData.raw, 'joining');
                 const lobbyRow = {
                     command: rowData.command,
@@ -379,6 +436,7 @@
             if (sendUnobserve && client?.authenticated && gameNumber && this.liveGame?.observedGame) {
                 client.send?.(`unobserve ${gameNumber}`);
                 this.addSystemMessage(`Standing from table ${gameNumber}.`);
+                this.addActivity(`Table ${gameNumber} closed.`, 'notify');
             }
             this.tableOpen = false;
             this.currentTableId = null;
@@ -398,13 +456,76 @@
             const liveGame = payload.liveGame || {};
             if (!liveGame.currentFen) return;
 
+            const previousMoveCount = this.moveHistory.length;
             this.liveGame = { ...liveGame };
             this.moveHistory = Array.isArray(payload.moveHistory)
                 ? payload.moveHistory.map((move) => ({ ...move }))
                 : this.moveHistory;
             this.openTable(liveGame.gameNumber || this.currentTableId, this.currentTableMeta, liveGame.observedGame ? 'watching' : 'playing');
             if (liveGame.gameNumber) this.addSystemMessage(`Watching table ${liveGame.gameNumber}.`);
+            if (this.moveHistory.length > previousMoveCount) {
+                this.addActivity('Move received.', 'move');
+                this.queueSoundCue('move');
+            }
             if (render) this.render();
+        },
+
+        recordLobbyActivity(previousTables, previousPlayers) {
+            const nextTables = new Set(this.activeTables.map((table) => String(table.number)));
+            const nextPlayers = new Set(this.getPlayers().map((player) => player.name.toLowerCase()));
+
+            this.activeTables.forEach((table) => {
+                const key = String(table.number);
+                if (!previousTables.has(key)) {
+                    this.addActivity(this.formatGameLabel(table) === 'Rated'
+                        ? `Rated game started at table ${key}.`
+                        : `Table ${key} opened.`, 'notify');
+                }
+            });
+
+            previousTables.forEach((key) => {
+                if (!nextTables.has(key)) this.addActivity(`Table ${key} closed.`, 'notify');
+            });
+
+            this.getPlayers().forEach((player) => {
+                const key = player.name.toLowerCase();
+                if (!previousPlayers.has(key)) this.addActivity(`${player.name} joined.`, 'notify');
+            });
+
+            previousPlayers.forEach((key) => {
+                if (!nextPlayers.has(key)) this.addActivity('Player disconnected.', 'disconnect');
+            });
+        },
+
+        addActivity(message, type = 'notify') {
+            const text = String(message || '').trim();
+            if (!text) return;
+            const last = this.activityEvents[this.activityEvents.length - 1];
+            if (last?.message === text) return;
+            const label = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            this.activityEvents = [...this.activityEvents, { type, label, message: text }].slice(-ACTIVITY_LIMIT);
+        },
+
+        renderActivityFeed() {
+            if (!this.elements.activityFeed) return;
+            this.elements.activityFeed.replaceChildren(...this.activityEvents.slice().reverse().map((entry) => {
+                const line = document.createElement('div');
+                line.className = `yc-activity-line ${entry.type || 'notify'}`;
+                const label = document.createElement('span');
+                label.textContent = entry.label || 'Now';
+                const message = document.createElement('strong');
+                message.textContent = entry.message || '';
+                message.title = message.textContent;
+                line.append(label, message);
+                return line;
+            }));
+        },
+
+        queueSoundCue(type) {
+            if (!SOUND_CUES.includes(type)) return;
+            // Architecture hook only. Future phases can route this cue to the
+            // existing user-controlled sound system without playing audio here.
+            this.pendingSoundCue = type;
         },
 
         renderPlayers() {
@@ -517,11 +638,11 @@
             const status = this.authenticated ? 'Connected to FICS' : 'FICS idle';
             const tableLabel = this.tableOpen && (this.liveGame?.gameNumber || this.currentTableId)
                 ? `Watching Table ${this.liveGame?.gameNumber || this.currentTableId}`
-                : this.authenticated ? `Inside ${CURRENT_ROOM}` : 'Not connected';
+                : this.authenticated ? `Inside ${this.currentRoom.name}` : 'Not connected';
             const turnLabel = this.liveGame?.sideToMove
                 ? `${this.liveGame.sideToMove === 'b' ? 'Black' : 'White'} to Move`
                 : `${tables} Active Tables - ${players} Players`;
-            const values = ['Ready', status, tableLabel, turnLabel];
+            const values = [this.authenticated ? 'Connection Stable' : 'Ready', status, tableLabel, turnLabel];
             this.elements.browserStatus.replaceChildren(...values.map((value, index) => {
                 const cell = document.createElement('span');
                 cell.textContent = value;
