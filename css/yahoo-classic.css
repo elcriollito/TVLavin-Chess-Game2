@@ -23,6 +23,7 @@
 
 #yahooClassicSection.active {
     display: flex;
+    height: calc(100vh - 72px);
     min-height: calc(100vh - 72px);
 }
 
@@ -56,7 +57,8 @@
 
 .yc-page {
     width: 100%;
-    min-height: calc(100vh - 72px);
+    height: 100%;
+    min-height: 0;
     padding: 6px;
     overflow: hidden;
     scrollbar-color: #d8d8d8 var(--yc-classic-gray);
@@ -72,8 +74,8 @@
 
 .yc-shell {
     width: 100%;
-    height: calc(100vh - 84px);
-    min-height: 640px;
+    height: 100%;
+    min-height: 0;
     margin: 0;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto auto;
@@ -353,28 +355,32 @@
     background: #c0c0c0;
 }
 
+.yc-rating-box.master {
+    background: #000000;
+}
+
 .yc-rating-box.elite {
-    background: #6f1d7a;
+    background: #b30000;
 }
 
 .yc-rating-box.expert {
-    background: #154fb8;
+    background: #f28c00;
 }
 
 .yc-rating-box.club {
-    background: #238a40;
+    background: #7b35b4;
 }
 
 .yc-rating-box.casual {
-    background: #d0a21a;
+    background: #1f59c9;
 }
 
 .yc-rating-box.new {
-    background: #b43b26;
+    background: #238a40;
 }
 
 .yc-rating-box.provisional {
-    background: #a9a9a9;
+    background: #8a5a2b;
 }
 
 .yc-activity-panel {
@@ -484,7 +490,7 @@
 
 .yc-table-row {
     display: grid;
-    grid-template-columns: 52px minmax(94px, 0.72fr) minmax(94px, 0.72fr) minmax(160px, 0.9fr) minmax(240px, 1.7fr);
+    grid-template-columns: 46px 62px minmax(92px, 0.68fr) minmax(92px, 0.68fr) minmax(150px, 0.9fr) minmax(238px, 1.75fr);
     min-height: 22px;
 }
 
@@ -544,7 +550,7 @@
 }
 
 .yc-row-action {
-    flex: 0 0 54px;
+    width: 100%;
     min-height: 18px;
     padding: 1px 4px;
     font-size: 10px;
@@ -576,10 +582,15 @@
 }
 
 .yc-options-cell,
+.yc-watch-action-cell,
 .yc-watchers-cell {
     display: flex;
     gap: 4px;
     align-items: center;
+}
+
+.yc-watch-action-cell {
+    justify-content: center;
 }
 
 .yc-options-cell {
@@ -669,8 +680,36 @@
     background: #4e79c8;
 }
 
+.yc-pixel-led.rating-master {
+    background: #000000;
+}
+
+.yc-pixel-led.rating-elite {
+    background: #b30000;
+}
+
+.yc-pixel-led.rating-expert {
+    background: #f28c00;
+}
+
+.yc-pixel-led.rating-club {
+    background: #7b35b4;
+}
+
+.yc-pixel-led.rating-casual {
+    background: #1f59c9;
+}
+
+.yc-pixel-led.rating-new {
+    background: #238a40;
+}
+
+.yc-pixel-led.rating-provisional {
+    background: #8a5a2b;
+}
+
 .yc-chat-panel {
-    margin: 0 6px 6px;
+    margin: 0 6px;
 }
 
 .yc-chat-status {
@@ -964,7 +1003,7 @@
     }
 
     .yc-table-row {
-        min-width: 740px;
+        min-width: 800px;
     }
 
     .yc-chat-body {

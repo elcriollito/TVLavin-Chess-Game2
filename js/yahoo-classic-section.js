@@ -303,7 +303,7 @@
             const row = document.createElement('div');
             row.className = 'yc-table-row yc-table-head';
             row.setAttribute('role', 'row');
-            ['Table', 'White', 'Black', 'Options', 'Who is Watching'].forEach((label) => {
+            ['Table', 'Watch', 'White', 'Black', 'Options', 'Who is Watching'].forEach((label) => {
                 const cell = document.createElement('span');
                 cell.setAttribute('role', 'columnheader');
                 cell.textContent = label;
@@ -330,13 +330,40 @@
 
             [
                 `#${rowData.table || '-'}`,
+            ].forEach((value) => row.appendChild(this.createCell(value)));
+
+            row.appendChild(this.createActionCell(rowData));
+
+            [
                 rowData.white,
                 rowData.black
             ].forEach((value) => row.appendChild(this.createCell(value)));
 
             row.appendChild(this.createOptionsCell(rowData.options));
-            row.appendChild(this.createWatchingCell(rowData));
+            row.appendChild(this.createWatchingCell(rowData.watching));
             return row;
+        },
+
+        createActionCell(rowData) {
+            const actionCell = document.createElement('span');
+            actionCell.className = 'yc-watch-action-cell';
+            actionCell.setAttribute('role', 'cell');
+            if (rowData.action === 'watch' || rowData.action === 'join') {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'yc-row-action';
+                button.textContent = rowData.action === 'join' ? 'JOIN' : 'Watch';
+                button.title = rowData.action === 'watch'
+                    ? `Watch table ${rowData.table}`
+                    : `Join table ${rowData.table}`;
+                button.addEventListener('click', () => this.handleTableAction(rowData));
+                actionCell.appendChild(button);
+            } else {
+                const label = document.createElement('strong');
+                label.textContent = rowData.status || '-';
+                actionCell.appendChild(label);
+            }
+            return actionCell;
         },
 
         createOptionsCell(options = []) {
@@ -356,31 +383,16 @@
             return cell;
         },
 
-        createWatchingCell(rowData) {
+        createWatchingCell(watching) {
             const statusCell = document.createElement('span');
             statusCell.className = 'yc-watchers-cell';
             statusCell.setAttribute('role', 'cell');
             const watcherText = document.createElement('span');
             watcherText.className = 'yc-watcher-count';
-            const count = this.formatCount(rowData.watching);
+            const count = this.formatCount(watching);
             watcherText.textContent = count === '1' ? '1 watching' : `${count} watching`;
             statusCell.appendChild(watcherText);
-            if (rowData.action === 'watch' || rowData.action === 'join') {
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.className = 'yc-row-action';
-                button.textContent = rowData.status;
-                button.title = rowData.action === 'watch'
-                    ? `Watch table ${rowData.table}`
-                    : `Join table ${rowData.table}`;
-                button.addEventListener('click', () => this.handleTableAction(rowData));
-                statusCell.appendChild(button);
-            } else {
-                const label = document.createElement('strong');
-                label.textContent = rowData.status;
-                statusCell.appendChild(label);
-            }
-            statusCell.title = `${watcherText.textContent} - ${rowData.status}`;
+            statusCell.title = watcherText.textContent;
             return statusCell;
         },
 
@@ -607,10 +619,11 @@
             colorCell.className = 'yc-player-color-cell';
             colorCell.setAttribute('role', 'cell');
             const led = document.createElement('i');
-            led.className = `yc-pixel-led ${player.rating ? 'online' : 'guest'}`;
+            const ratingClass = this.getRatingClass(player.rating);
+            led.className = `yc-pixel-led rating-${ratingClass}`;
             led.setAttribute('aria-hidden', 'true');
             colorCell.appendChild(led);
-            colorCell.title = player.rating ? 'Registered player' : 'Guest player';
+            colorCell.title = this.getRatingLabel(ratingClass);
 
             const nameCell = document.createElement('span');
             nameCell.setAttribute('role', 'cell');
@@ -900,6 +913,30 @@
             badge.className = `yc-player-badge${isComputer ? ' computer' : ''}${isObserving ? ' observing' : ''}`;
             badge.textContent = isObserving && !isComputer ? 'Observing' : label;
             return badge;
+        },
+
+        getRatingClass(rating) {
+            const value = Number.parseInt(String(rating || '').replace(/[^\d]/g, ''), 10);
+            if (!Number.isFinite(value)) return 'provisional';
+            if (value >= 2400) return 'master';
+            if (value >= 2100) return 'elite';
+            if (value >= 1800) return 'expert';
+            if (value >= 1500) return 'club';
+            if (value >= 1200) return 'casual';
+            return 'new';
+        },
+
+        getRatingLabel(ratingClass) {
+            const labels = {
+                master: '2400+',
+                elite: '2100-2399',
+                expert: '1800-2099',
+                club: '1500-1799',
+                casual: '1200-1499',
+                new: '0-1199',
+                provisional: 'Provisional'
+            };
+            return labels[ratingClass] || labels.provisional;
         },
 
         formatCount(value) {
