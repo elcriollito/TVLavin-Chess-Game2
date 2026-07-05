@@ -108,6 +108,7 @@
     padding-top: 10px;
 }
 
+.academy-student-journey,
 .academy-programs,
 .academy-trainers,
 .academy-future-panel {
@@ -126,6 +127,292 @@
     margin: 0;
     color: #14232f;
     font-size: clamp(1.35rem, 2vw, 2rem);
+}
+
+.academy-student-journey {
+    border: 1px solid rgba(30, 41, 59, 0.12);
+    border-radius: 14px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 244, 235, 0.88)),
+        radial-gradient(circle at 100% 0%, rgba(191, 143, 62, 0.10), transparent 34%);
+    box-shadow: 0 16px 42px rgba(15, 23, 42, 0.10);
+    padding: clamp(18px, 3vw, 28px);
+}
+
+.academy-journey-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.55fr);
+    gap: 16px;
+}
+
+.academy-passport,
+.academy-next-step,
+.academy-timeline,
+.academy-certificates,
+.academy-achievements {
+    border: 1px solid rgba(21, 72, 87, 0.14);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.academy-passport {
+    padding: 18px;
+}
+
+.academy-passport-header {
+    display: grid;
+    grid-template-columns: 68px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid rgba(30, 41, 59, 0.10);
+    padding-bottom: 14px;
+}
+
+.academy-passport-avatar {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border: 2px solid #bf8f3e;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #fffdf7, #e9efed);
+    color: #154857;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.45rem;
+    font-weight: 900;
+}
+
+.academy-passport-header h4 {
+    margin: 4px 0 0;
+    color: #14232f;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.55rem;
+}
+
+.academy-passport-status,
+.academy-next-step em,
+.academy-timeline em,
+.academy-certificate-preview em {
+    border: 1px solid rgba(191, 143, 62, 0.28);
+    border-radius: 999px;
+    background: #fff7ed;
+    color: #7b4e18;
+    font-size: 0.72rem;
+    font-style: normal;
+    font-weight: 900;
+    padding: 5px 9px;
+    text-transform: uppercase;
+}
+
+.academy-passport-details {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+    margin: 16px 0;
+}
+
+.academy-passport-details div {
+    border: 1px solid rgba(30, 41, 59, 0.08);
+    border-radius: 10px;
+    background: #f8fafc;
+    padding: 10px;
+}
+
+.academy-passport-details dt,
+.academy-passport-details dd {
+    margin: 0;
+}
+
+.academy-passport-details dt {
+    color: #7b4e18;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.academy-passport-details dd {
+    color: #253444;
+    font-weight: 800;
+    margin-top: 4px;
+}
+
+.academy-level-track {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.academy-level-track span {
+    border: 1px solid rgba(21, 72, 87, 0.16);
+    border-radius: 999px;
+    background: #ffffff;
+    color: #334155;
+    font-size: 0.78rem;
+    font-weight: 800;
+    padding: 6px 10px;
+}
+
+.academy-level-track span.active {
+    border-color: #154857;
+    background: #154857;
+    color: #f8fafc;
+}
+
+.academy-next-step {
+    display: grid;
+    align-content: center;
+    gap: 10px;
+    padding: 18px;
+}
+
+.academy-next-step strong {
+    color: #14232f;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.35rem;
+}
+
+.academy-next-step p {
+    margin: 0;
+    color: #475569;
+    line-height: 1.5;
+}
+
+.academy-progress-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.academy-progress-grid article {
+    border: 1px solid rgba(21, 72, 87, 0.12);
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 14px;
+}
+
+.academy-progress-grid span {
+    display: block;
+    color: #154857;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 2rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.academy-progress-grid strong {
+    display: block;
+    color: #475569;
+    font-size: 0.84rem;
+    margin-top: 8px;
+}
+
+.academy-journey-lower {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(240px, 0.85fr) minmax(260px, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.academy-timeline,
+.academy-certificates,
+.academy-achievements {
+    padding: 16px;
+}
+
+.academy-timeline h4,
+.academy-certificates h4,
+.academy-achievements h4 {
+    margin: 0 0 12px;
+    color: #14232f;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.1rem;
+}
+
+.academy-timeline ol {
+    display: grid;
+    gap: 10px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.academy-timeline li {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+}
+
+.academy-timeline li::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border: 2px solid #bf8f3e;
+    border-radius: 50%;
+    background: #fff7ed;
+}
+
+.academy-timeline span {
+    color: #253444;
+    font-weight: 800;
+}
+
+.academy-certificates p {
+    margin: 0 0 14px;
+    color: #64748b;
+}
+
+.academy-certificate-preview {
+    display: grid;
+    gap: 8px;
+    border: 1px solid rgba(191, 143, 62, 0.28);
+    border-radius: 10px;
+    background: linear-gradient(135deg, #fffdf7, #eef4f2);
+    min-height: 118px;
+    padding: 14px;
+}
+
+.academy-certificate-preview span {
+    color: #7b4e18;
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.academy-certificate-preview strong {
+    color: #14232f;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.2rem;
+}
+
+.academy-achievement-grid {
+    display: grid;
+    gap: 8px;
+}
+
+.academy-achievement-grid span {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    border: 1px solid rgba(30, 41, 59, 0.08);
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #253444;
+    font-weight: 800;
+    padding: 9px 10px;
+}
+
+.academy-achievement-grid em {
+    color: #64748b;
+    font-size: 0.72rem;
+    font-style: normal;
+    font-weight: 900;
+    text-transform: uppercase;
 }
 
 .academy-program-grid {
@@ -542,8 +829,15 @@
 
     .academy-program-grid,
     .academy-trainer-grid,
-    .academy-future-grid {
+    .academy-future-grid,
+    .academy-passport-details,
+    .academy-progress-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .academy-journey-grid,
+    .academy-journey-lower {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -560,8 +854,19 @@
     .academy-hero-panel,
     .academy-program-grid,
     .academy-trainer-grid,
-    .academy-future-grid {
+    .academy-future-grid,
+    .academy-passport-details,
+    .academy-progress-grid {
         grid-template-columns: 1fr;
+    }
+
+    .academy-passport-header {
+        grid-template-columns: 54px minmax(0, 1fr);
+    }
+
+    .academy-passport-status {
+        grid-column: 1 / -1;
+        width: fit-content;
     }
 
     .academy-section-heading {
@@ -584,7 +889,8 @@
 
     .academy-profile-body dl div,
     .academy-profile-actions,
-    .academy-curriculum li {
+    .academy-curriculum li,
+    .academy-timeline li {
         grid-template-columns: 1fr;
     }
 }
