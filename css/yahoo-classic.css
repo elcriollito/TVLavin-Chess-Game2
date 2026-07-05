@@ -85,10 +85,10 @@
 
 .yc-header {
     display: grid;
-    grid-template-columns: minmax(320px, 1fr) auto;
+    grid-template-columns: minmax(300px, 1fr) minmax(420px, auto);
     gap: 8px;
     align-items: end;
-    padding: 6px 7px;
+    padding: 5px 7px;
     border: 2px solid;
     border-color: #f8e9b0 #654f16 #654f16 #fff8dc;
     background:
@@ -150,9 +150,10 @@
 .yc-room-tabs {
     display: flex;
     flex-wrap: wrap;
-    gap: 3px;
+    gap: 2px;
     justify-content: flex-end;
     align-items: center;
+    max-width: 620px;
 }
 
 .yc-era-note {
@@ -184,7 +185,9 @@
 }
 
 .yc-tab {
-    padding: 2px 9px;
+    min-height: 21px;
+    padding: 1px 6px;
+    font-size: 10px;
 }
 
 .yc-tab span {
@@ -309,14 +312,14 @@
 
 .yc-room-directory {
     display: grid;
-    gap: 4px;
+    gap: 3px;
     font-size: 10px;
     line-height: 1.25;
 }
 
 .yc-room-directory span {
     display: block;
-    padding: 3px 4px;
+    padding: 3px 4px 4px;
     border: 1px solid;
     border-color: var(--yc-border-gray) #ffffff #ffffff var(--yc-border-gray);
     background: #f0e7c7;
@@ -481,7 +484,7 @@
 
 .yc-table-row {
     display: grid;
-    grid-template-columns: 54px minmax(88px, 0.75fr) minmax(88px, 0.75fr) minmax(168px, 1fr) minmax(210px, 1.45fr);
+    grid-template-columns: 52px minmax(94px, 0.72fr) minmax(94px, 0.72fr) minmax(160px, 0.9fr) minmax(240px, 1.7fr);
     min-height: 22px;
 }
 

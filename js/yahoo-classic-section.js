@@ -30,7 +30,7 @@
         lastRenderedFen: null,
         currentRoom: {
             name: CURRENT_ROOM,
-            description: 'Welcome to the main chess lounge.'
+            description: 'Main chess lounge. Live FICS tables.'
         },
         activityEvents: [{
             type: 'ready',
@@ -220,7 +220,7 @@
             if (!button) return;
             this.currentRoom = {
                 name: button.dataset.room || CURRENT_ROOM,
-                description: button.dataset.description || 'Welcome to the main chess lounge.'
+                description: button.dataset.description || 'Main chess lounge. Live FICS tables.'
             };
             this.elements.roomTabs?.forEach((tab) => {
                 const active = tab === button;
