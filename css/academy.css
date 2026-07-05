@@ -17,6 +17,8 @@
 }
 
 .academy-page {
+    display: flex;
+    flex-direction: column;
     width: min(1440px, 100%);
     margin: 0 auto;
     padding: clamp(18px, 3vw, 34px);
@@ -119,6 +121,81 @@
 .academy-trainers,
 .academy-future-panel {
     margin-top: clamp(22px, 4vw, 36px);
+    scroll-margin-top: 18px;
+}
+
+.academy-hero {
+    order: 10;
+}
+
+.academy-anchor-nav {
+    order: 15;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+    border: 1px solid rgba(21, 72, 87, 0.14);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+    padding: 10px;
+}
+
+.academy-anchor-nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    border: 1px solid rgba(21, 72, 87, 0.16);
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #154857;
+    font-size: 0.82rem;
+    font-weight: 900;
+    padding: 7px 12px;
+    text-decoration: none;
+}
+
+.academy-anchor-nav a:hover,
+.academy-anchor-nav a:focus-visible {
+    border-color: #154857;
+    background: #154857;
+    color: #f8fafc;
+}
+
+.academy-student-journey {
+    order: 20;
+}
+
+.academy-faculties {
+    order: 30;
+}
+
+.academy-trainers {
+    order: 40;
+}
+
+.academy-learning-paths {
+    order: 50;
+}
+
+.academy-mentor-guidance {
+    order: 55;
+}
+
+.academy-course-catalog {
+    order: 60;
+}
+
+.academy-degrees {
+    order: 70;
+}
+
+.academy-certification-program {
+    order: 80;
+}
+
+.academy-future-panel {
+    order: 100;
 }
 
 .academy-section-heading {
@@ -1723,6 +1800,66 @@
     padding: 18px;
 }
 
+.academy-beta-status {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(21, 72, 87, 0.14);
+    border-radius: 12px;
+    background:
+        linear-gradient(135deg, rgba(255, 253, 247, 0.96), rgba(239, 245, 243, 0.92)),
+        radial-gradient(circle at 100% 0%, rgba(191, 143, 62, 0.10), transparent 34%);
+    padding: 16px;
+}
+
+.academy-beta-status strong {
+    display: block;
+    margin-top: 4px;
+    color: #14232f;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.35rem;
+}
+
+.academy-beta-status p {
+    margin: 8px 0 0;
+    color: #475569;
+    line-height: 1.55;
+}
+
+.academy-beta-status dl {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+}
+
+.academy-beta-status dl div {
+    border: 1px solid rgba(30, 41, 59, 0.08);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.76);
+    padding: 10px;
+}
+
+.academy-beta-status dt,
+.academy-beta-status dd {
+    margin: 0;
+}
+
+.academy-beta-status dt {
+    color: #7b4e18;
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.academy-beta-status dd {
+    color: #253444;
+    font-weight: 800;
+    line-height: 1.45;
+    margin-top: 4px;
+}
+
 .academy-future-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -1787,7 +1924,8 @@
 
     .academy-journey-grid,
     .academy-journey-lower,
-    .academy-guidance-grid {
+    .academy-guidance-grid,
+    .academy-beta-status {
         grid-template-columns: 1fr;
     }
 
