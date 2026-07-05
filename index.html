@@ -1690,6 +1690,9 @@
                             <strong>Foundation</strong>
                             <span>Architecture ready</span>
                             <span>No engines connected yet</span>
+                            <span id="academyIdentityBadge" class="academy-identity-badge" aria-live="polite">Guest Mode</span>
+                            <span class="academy-free-access-badge" aria-label="Academy beta free access">FREE DURING BETA</span>
+                            <span class="academy-free-access-note">No credits required. No wallet required.</span>
                         </aside>
                     </header>
 
@@ -1865,12 +1868,13 @@
                         <div class="academy-journey-grid">
                             <article class="academy-passport" aria-label="Academy student passport preview">
                                 <div class="academy-passport-header">
-                                    <div class="academy-passport-avatar" aria-hidden="true">S</div>
+                                    <div id="academyPassportAvatar" class="academy-passport-avatar" aria-hidden="true">G</div>
                                     <div>
-                                        <span class="academy-kicker">Current User</span>
-                                        <h4>Student Name</h4>
+                                        <span id="academyPassportLabel" class="academy-kicker">Guest Student</span>
+                                        <h4 id="academyStudentName">Guest Student</h4>
+                                        <p id="academyStudentMessage" class="academy-student-message">Sign in to personalize your Academy journey.</p>
                                     </div>
-                                    <span class="academy-passport-status">Foundation Ready</span>
+                                    <span id="academyPassportStatus" class="academy-passport-status">Sign in to track your progress.</span>
                                 </div>
                                 <dl class="academy-passport-details">
                                     <div><dt>Current Academic Rank</dt><dd><a class="academy-inline-link" href="#academyDegreeNovice">Novice</a></dd></div>
@@ -1881,8 +1885,8 @@
                                     <div><dt>Certificate Status</dt><dd>Coming Soon</dd></div>
                                     <div><dt>Current Mentor</dt><dd><a class="academy-inline-link" href="#academyMentors">No mentor selected</a></dd></div>
                                     <div><dt>Current Goal</dt><dd>Improve Tactical Vision</dd></div>
-                                    <div><dt>Enrollment Date</dt><dd>Coming Soon</dd></div>
-                                    <div><dt>Status</dt><dd>Foundation Ready</dd></div>
+                                    <div><dt>Enrollment Date</dt><dd id="academyEnrollmentDate">Pending Enrollment</dd></div>
+                                    <div><dt>Status</dt><dd id="academyJourneyStatus">Sign in to track your progress.</dd></div>
                                 </dl>
                                 <div class="academy-level-track" aria-label="Academy level placeholders">
                                     <span class="active">Novice</span>
@@ -1903,11 +1907,11 @@
                         </div>
 
                         <div class="academy-progress-grid" aria-label="Academy progress placeholders">
-                            <article><span>0</span><strong>Lessons Completed</strong></article>
-                            <article><span>0</span><strong>Courses Started</strong></article>
-                            <article><span>0</span><strong>Training Games</strong></article>
-                            <article><span>0</span><strong>Certificates Earned</strong></article>
-                            <article><span>0</span><strong>Achievements</strong></article>
+                            <article><span data-academy-progress="lessons">-</span><strong>Lessons Completed</strong></article>
+                            <article><span data-academy-progress="courses">-</span><strong>Courses Started</strong></article>
+                            <article><span data-academy-progress="games">-</span><strong>Training Games</strong></article>
+                            <article><span data-academy-progress="certificates">-</span><strong>Certificates Earned</strong></article>
+                            <article><span data-academy-progress="achievements">-</span><strong>Achievements</strong></article>
                         </div>
 
                         <div class="academy-journey-lower">

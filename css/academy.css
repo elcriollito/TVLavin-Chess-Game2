@@ -110,6 +110,40 @@
     padding-top: 10px;
 }
 
+.academy-hero-panel .academy-identity-badge,
+.academy-hero-panel .academy-free-access-badge,
+.academy-hero-panel .academy-free-access-note {
+    width: fit-content;
+}
+
+.academy-hero-panel .academy-identity-badge {
+    border: 1px solid rgba(217, 229, 226, 0.28);
+    border-radius: 999px;
+    background: rgba(248, 250, 252, 0.08);
+    color: #f8fafc;
+    font-size: 0.78rem;
+    font-weight: 900;
+    padding: 7px 10px;
+}
+
+.academy-hero-panel .academy-free-access-badge {
+    border: 1px solid rgba(191, 143, 62, 0.56);
+    border-radius: 999px;
+    background: #fff7ed;
+    color: #7b4e18;
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    padding: 6px 10px;
+    text-transform: uppercase;
+}
+
+.academy-hero-panel .academy-free-access-note {
+    color: #d9e5e2;
+    font-size: 0.84rem;
+    font-weight: 800;
+}
+
 .academy-faculties,
 .academy-student-journey,
 .academy-degrees,
@@ -514,6 +548,14 @@
     color: #14232f;
     font-family: Georgia, "Times New Roman", serif;
     font-size: 1.55rem;
+}
+
+.academy-student-message {
+    margin: 5px 0 0;
+    color: #64748b;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.4;
 }
 
 .academy-passport-status,
