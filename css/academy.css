@@ -109,6 +109,7 @@
 }
 
 .academy-student-journey,
+.academy-learning-paths,
 .academy-programs,
 .academy-trainers,
 .academy-future-panel {
@@ -419,6 +420,141 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
+}
+
+.academy-learning-paths {
+    border: 1px solid rgba(30, 41, 59, 0.12);
+    border-radius: 14px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.90), rgba(242, 246, 244, 0.88)),
+        radial-gradient(circle at 0% 0%, rgba(21, 72, 87, 0.08), transparent 34%);
+    box-shadow: 0 14px 38px rgba(15, 23, 42, 0.09);
+    padding: clamp(18px, 3vw, 26px);
+}
+
+.academy-path-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.academy-path-card {
+    display: grid;
+    align-content: start;
+    gap: 14px;
+    min-height: 286px;
+    border: 1px solid rgba(21, 72, 87, 0.14);
+    border-radius: 12px;
+    background: linear-gradient(180deg, #ffffff, #f7faf9);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+    padding: 16px;
+}
+
+.academy-path-header {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 12px;
+}
+
+.academy-path-icon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(21, 72, 87, 0.20);
+    border-radius: 10px;
+    background: #eef4f2;
+    color: #154857;
+}
+
+.academy-path-card h4 {
+    margin: 0 0 5px;
+    color: #14232f;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.16rem;
+}
+
+.academy-path-card p {
+    margin: 0;
+    color: #475569;
+    line-height: 1.5;
+}
+
+.academy-path-meta {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+}
+
+.academy-path-meta div {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 10px;
+    border-top: 1px solid rgba(30, 41, 59, 0.08);
+    padding-top: 8px;
+}
+
+.academy-path-meta dt,
+.academy-path-meta dd {
+    margin: 0;
+}
+
+.academy-path-meta dt {
+    color: #7b4e18;
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.academy-path-meta dd {
+    color: #253444;
+    font-weight: 800;
+}
+
+.academy-path-difficulty {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    min-height: 24px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 900;
+    padding: 3px 9px;
+    text-transform: uppercase;
+}
+
+.academy-path-beginner {
+    background: #e7f7ee;
+    color: #166534;
+}
+
+.academy-path-intermediate {
+    background: #eef4ff;
+    color: #1d4ed8;
+}
+
+.academy-path-advanced {
+    background: #fff7ed;
+    color: #9a3412;
+}
+
+.academy-path-master {
+    background: #f5f0ff;
+    color: #6d28d9;
+}
+
+.academy-path-status {
+    width: fit-content;
+    align-self: end;
+    border: 1px solid rgba(191, 143, 62, 0.32);
+    border-radius: 6px;
+    background: #fff7ed;
+    color: #7b4e18;
+    font-size: 0.78rem;
+    font-weight: 900;
+    padding: 5px 9px;
+    text-transform: uppercase;
 }
 
 .academy-filter-bar {
@@ -828,6 +964,7 @@
     }
 
     .academy-program-grid,
+    .academy-path-grid,
     .academy-trainer-grid,
     .academy-future-grid,
     .academy-passport-details,
@@ -853,6 +990,7 @@
 
     .academy-hero-panel,
     .academy-program-grid,
+    .academy-path-grid,
     .academy-trainer-grid,
     .academy-future-grid,
     .academy-passport-details,
