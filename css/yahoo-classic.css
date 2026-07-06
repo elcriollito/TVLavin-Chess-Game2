@@ -586,6 +586,89 @@
     overflow: auto;
 }
 
+.yc-tournament-hero,
+.yc-tournament-panel {
+    margin: 6px;
+    border: 2px solid;
+    border-color: #ffffff var(--yc-border-gray) var(--yc-border-gray) #ffffff;
+    background: #f1e7c4;
+    color: #202020;
+}
+
+.yc-tournament-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 10px;
+    padding: 8px;
+    background: linear-gradient(180deg, #fff1b4, #d8c38a);
+}
+
+.yc-tournament-hero h4,
+.yc-tournament-panel h4 {
+    margin: 0;
+    color: #241d54;
+    font-size: 12px;
+}
+
+.yc-tournament-hero p {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.yc-tournament-badge {
+    justify-self: end;
+    align-self: start;
+    padding: 2px 6px;
+    border: 1px solid;
+    border-color: var(--yc-border-gray) #ffffff #ffffff var(--yc-border-gray);
+    background: #eee3bd;
+    color: #7a1d1d;
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.yc-tournament-panel {
+    display: grid;
+    gap: 6px;
+    padding: 7px;
+}
+
+.yc-tournament-list {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr);
+    margin: 0;
+    border: 1px solid #b9b096;
+    background: var(--yc-panel-white);
+}
+
+.yc-tournament-list dt,
+.yc-tournament-list dd {
+    margin: 0;
+    padding: 4px 6px;
+    border-bottom: 1px solid #d0c6a8;
+    font-size: 11px;
+}
+
+.yc-tournament-list dt {
+    border-right: 1px solid #b9b096;
+    background: #eee3bd;
+    color: #241d54;
+    font-weight: 700;
+}
+
+.yc-tournament-empty {
+    margin: 0;
+    padding: 5px 6px;
+    border: 1px solid #b9b096;
+    background: #fff8dc;
+    color: #484848;
+    font-size: 11px;
+    line-height: 1.35;
+}
+
 .yc-player-list {
     height: 100%;
     max-height: none;
@@ -1359,6 +1442,18 @@
 
     .yc-table-row {
         min-width: 800px;
+    }
+
+    .yc-tournament-hero {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .yc-tournament-badge {
+        justify-self: start;
+    }
+
+    .yc-tournament-list {
+        grid-template-columns: 92px minmax(0, 1fr);
     }
 
     .yc-chat-body {

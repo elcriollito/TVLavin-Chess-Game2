@@ -137,6 +137,7 @@
                 roomCardTitle: document.getElementById('ycRoomCardTitle'),
                 roomCardDescription: document.getElementById('ycRoomCardDescription'),
                 roomTabs: document.querySelectorAll('#yahooClassicSection .yc-tab[data-room]'),
+                tablesTitle: document.getElementById('ycTablesTitle'),
                 tableGrid: document.getElementById('ycTableGrid'),
                 playerList: document.getElementById('ycPlayerList'),
                 activityFeed: document.getElementById('ycActivityFeed'),
@@ -352,12 +353,19 @@
             if (this.elements.currentRoomLabel) this.elements.currentRoomLabel.textContent = this.currentRoom.name;
             if (this.elements.roomCardTitle) this.elements.roomCardTitle.textContent = this.currentRoom.name;
             if (this.elements.roomCardDescription) this.elements.roomCardDescription.textContent = this.currentRoom.description;
+            if (this.elements.tablesTitle) {
+                this.elements.tablesTitle.textContent = this.isTournamentRoom() ? 'Tournament Hall' : 'Room Tables';
+            }
         },
 
         renderSummary() {
             if (!this.elements.roomSummary) return;
             const players = this.getPlayers();
             const tables = this.activeTables.length + this.seekActions.length;
+            if (this.isTournamentRoom()) {
+                this.elements.roomSummary.textContent = `Current Room: Tournament Hall - Players Online: ${players.length} - Tournament Feed: Not available`;
+                return;
+            }
             this.elements.roomSummary.textContent = `Current Room: ${this.currentRoom.name} - Players Online: ${players.length} - Active Tables: ${tables}`;
         },
 
@@ -365,6 +373,13 @@
             const tableGrid = this.elements.tableGrid;
             if (!tableGrid) return;
 
+            if (this.isTournamentRoom()) {
+                this.renderTournamentHall(tableGrid);
+                return;
+            }
+
+            tableGrid.setAttribute('role', 'table');
+            tableGrid.setAttribute('aria-label', 'Classic room tables');
             const header = tableGrid.querySelector('.yc-table-head')?.cloneNode(true) || this.createTableHeader();
             const rows = this.buildTableRows();
 
@@ -379,6 +394,69 @@
             }
 
             tableGrid.replaceChildren(header, ...rows.map((row) => this.createTableRow(row)));
+        },
+
+        renderTournamentHall(container) {
+            container.setAttribute('role', 'region');
+            container.setAttribute('aria-label', 'Classic Tournament Hall');
+            container.replaceChildren(
+                this.createTournamentHero(),
+                this.createTournamentPanel('Event Board', [
+                    ['Status', 'No active tournament feed'],
+                    ['Source', 'Existing CAISSA/FICS lobby state only'],
+                    ['Registration', 'Not open']
+                ], 'Tournament events will appear here only when tournament data is available through the existing connection.'),
+                this.createTournamentPanel('Pairings', [
+                    ['Round', '--'],
+                    ['Boards', '0'],
+                    ['Clock', '--']
+                ], 'No pairings are available. CAISSA Classic is not running a tournament backend in this phase.'),
+                this.createTournamentPanel('Standings', [
+                    ['Players', '0'],
+                    ['Leaders', '--'],
+                    ['Tiebreaks', '--']
+                ], 'No standings are available from the current lobby data.'),
+                this.createTournamentPanel('Room Notes', [
+                    ['Format', 'Classic lobby shell'],
+                    ['Live Tables', String(this.activeTables.length + this.seekActions.length)],
+                    ['Players Online', String(this.getPlayers().length)]
+                ], 'Use CAISSA Lobby for live FICS tables. Tournament Hall is prepared for future organized events.')
+            );
+        },
+
+        createTournamentHero() {
+            const hero = document.createElement('div');
+            hero.className = 'yc-tournament-hero';
+            const title = document.createElement('h4');
+            title.textContent = 'Tournament Hall';
+            const summary = document.createElement('p');
+            summary.textContent = 'Organized play, event boards, pairings, and standings will live here when real tournament data is available.';
+            const badge = document.createElement('span');
+            badge.className = 'yc-tournament-badge';
+            badge.textContent = 'No active tournament data';
+            hero.append(title, summary, badge);
+            return hero;
+        },
+
+        createTournamentPanel(title, rows, emptyText) {
+            const panel = document.createElement('section');
+            panel.className = 'yc-tournament-panel';
+            const heading = document.createElement('h4');
+            heading.textContent = title;
+            const list = document.createElement('dl');
+            list.className = 'yc-tournament-list';
+            rows.forEach(([term, value]) => {
+                const dt = document.createElement('dt');
+                dt.textContent = term;
+                const dd = document.createElement('dd');
+                dd.textContent = value;
+                list.append(dt, dd);
+            });
+            const empty = document.createElement('p');
+            empty.className = 'yc-tournament-empty';
+            empty.textContent = emptyText;
+            panel.append(heading, list, empty);
+            return panel;
         },
 
         buildTableRows() {
@@ -414,6 +492,10 @@
             }));
 
             return [...waiting, ...playing];
+        },
+
+        isTournamentRoom() {
+            return this.currentRoom.name === 'Tournament Hall';
         },
 
         createTableHeader() {
