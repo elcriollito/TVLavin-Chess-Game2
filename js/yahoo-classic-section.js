@@ -140,6 +140,8 @@
                 tablesTitle: document.getElementById('ycTablesTitle'),
                 tableGrid: document.getElementById('ycTableGrid'),
                 playerList: document.getElementById('ycPlayerList'),
+                ficsAccountLoginBtn: document.getElementById('ycFicsAccountLoginBtn'),
+                ficsGuestLoginBtn: document.getElementById('ycFicsGuestLoginBtn'),
                 activityFeed: document.getElementById('ycActivityFeed'),
                 chatBody: document.getElementById('ycChatBody'),
                 browserStatus: document.getElementById('ycBrowserStatus'),
@@ -194,6 +196,8 @@
             this.elements.standBtn?.addEventListener('click', () => this.standFromTable());
             this.elements.sitBtn?.addEventListener('click', () => this.addSystemMessage('Choose Join from a waiting table to sit.'));
             this.elements.soundBtn?.addEventListener('click', () => this.toggleClassicSound());
+            this.elements.ficsAccountLoginBtn?.addEventListener('click', () => this.openFicsLogin('account'));
+            this.elements.ficsGuestLoginBtn?.addEventListener('click', () => this.openFicsLogin('guest'));
             this.elements.createTableToggle?.addEventListener('click', () => this.toggleCreateTablePanel());
             this.elements.createTablePanel?.addEventListener('submit', (event) => this.handleCreateTable(event));
             const unlockSound = () => {
@@ -207,6 +211,7 @@
         onEnter() {
             this.init();
             this.active = true;
+            document.body?.classList.add('yc-classic-active');
             const section = this.elements.section || document.getElementById('yahooClassicSection');
             if (section) section.dataset.ready = 'true';
             this.syncFromFicsClient();
@@ -215,6 +220,7 @@
 
         onExit() {
             this.active = false;
+            document.body?.classList.remove('yc-classic-active');
         },
 
         handleFicsEvent(detail = {}) {
@@ -347,6 +353,24 @@
             });
             this.addActivity(`Entered ${this.currentRoom.name}.`, 'room');
             this.render();
+        },
+
+        openFicsLogin(mode = 'guest') {
+            const client = window.CaissaFICSClient;
+            const loginMode = mode === 'account' ? 'account' : 'guest';
+            client?.setLoginMode?.(loginMode);
+            if (window.CaissaNavigation?.navigateToSection) {
+                window.CaissaNavigation.navigateToSection('fics');
+            } else {
+                document.querySelector('[data-section="fics"]')?.click();
+            }
+            requestAnimationFrame(() => {
+                client?.setLoginMode?.(loginMode);
+                const target = loginMode === 'account'
+                    ? document.getElementById('ficsAccountUsername')
+                    : document.getElementById('ficsConnectBtn');
+                target?.focus?.();
+            });
         },
 
         renderRoomIdentity() {
