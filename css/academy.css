@@ -252,6 +252,52 @@
     color: #f8fafc;
 }
 
+.academy-active-actions {
+    display: flex;
+    flex-wrap: wrap;
+    grid-column: 1 / -1;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.academy-active-button,
+.academy-action-live {
+    min-height: 36px;
+    border: 1px solid rgba(21, 72, 87, 0.24);
+    border-radius: 8px;
+    background: #154857;
+    color: #f8fafc;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 900;
+    padding: 7px 11px;
+}
+
+.academy-active-button:hover,
+.academy-active-button:focus-visible,
+.academy-action-live:hover,
+.academy-action-live:focus-visible {
+    border-color: #bf8f3e;
+    background: #1f6272;
+    outline: 3px solid rgba(191, 143, 62, 0.30);
+    outline-offset: 2px;
+}
+
+.academy-selected {
+    border-color: rgba(21, 72, 87, 0.68) !important;
+    box-shadow:
+        0 0 0 3px rgba(21, 72, 87, 0.14),
+        0 12px 28px rgba(15, 23, 42, 0.12) !important;
+}
+
+.academy-recommended:not(.academy-selected) {
+    border-color: rgba(191, 143, 62, 0.54) !important;
+    box-shadow:
+        0 0 0 2px rgba(191, 143, 62, 0.14),
+        0 10px 24px rgba(15, 23, 42, 0.08) !important;
+}
+
 #academyFacultyFundamentals,
 #academyFacultyStrategy,
 #academyFacultyDynamic,
@@ -1943,6 +1989,17 @@
     font-weight: 900;
     margin-top: 2px;
     text-transform: uppercase;
+}
+
+.academy-profile-actions button.academy-action-live {
+    border-color: rgba(21, 72, 87, 0.24);
+    background: #154857;
+    color: #f8fafc;
+    cursor: pointer;
+}
+
+.academy-profile-actions button.academy-action-live span {
+    color: #d9e5e2;
 }
 
 .academy-trainer-featured {
