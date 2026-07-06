@@ -949,7 +949,8 @@
 
 .yc-game-board-panel {
     display: grid;
-    grid-template-rows: minmax(30px, auto) minmax(0, 1fr) minmax(30px, auto);
+    grid-template-rows: minmax(30px, auto) minmax(0, 1fr) minmax(20px, auto) minmax(30px, auto);
+    grid-auto-rows: auto;
     gap: 6px;
     justify-items: center;
     align-content: stretch;
@@ -1058,7 +1059,7 @@
 }
 
 .yc-classic-board {
-    width: min(100%, 74vh, 820px);
+    width: min(100%, 72vh, 820px);
     aspect-ratio: 1;
     align-self: center;
     padding: 7px;
@@ -1075,8 +1076,70 @@
         0 1px 0 #ffffff;
 }
 
+.yc-classic-board.yc-board-has-move {
+    border-color: #5f5a48 #ffffff #ffffff #5f5a48;
+}
+
+.yc-classic-board.yc-board-has-capture {
+    border-color: #8a1f1f #ffffff #ffffff #8a1f1f;
+}
+
+.yc-classic-board.yc-board-update {
+    animation: ycBoardUpdate 520ms steps(2, end);
+}
+
 .yc-classic-board .board-b72b1 {
     border: 0;
+}
+
+.yc-classic-board .highlight-square,
+.yc-classic-board .legal-square,
+.yc-classic-board .selected-square {
+    outline: 2px dotted #241d54;
+    outline-offset: -4px;
+}
+
+.yc-board-feedback {
+    width: min(100%, 820px);
+    min-height: 20px;
+    padding: 3px 6px;
+    border: 2px solid;
+    border-color: var(--yc-border-gray) #ffffff #ffffff var(--yc-border-gray);
+    background: #e8dfbd;
+    color: #202020;
+    font-family: "Tahoma", "Arial", sans-serif;
+    font-size: 11px;
+    line-height: 1.1;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.yc-board-feedback.has-move {
+    background: #dbe8ff;
+    color: #001f73;
+    font-weight: 700;
+}
+
+.yc-board-feedback.capture {
+    background: #ffe2c4;
+    color: #7a120c;
+}
+
+@keyframes ycBoardUpdate {
+    0% {
+        box-shadow:
+            inset 1px 1px 0 #3f3a2d,
+            inset -1px -1px 0 #f6edcf,
+            0 0 0 2px #fff3a6;
+    }
+    100% {
+        box-shadow:
+            inset 1px 1px 0 #3f3a2d,
+            inset -1px -1px 0 #f6edcf,
+            0 1px 0 #ffffff;
+    }
 }
 
 .yc-move-panel {
@@ -1146,6 +1209,15 @@
     font-weight: 700;
 }
 
+.yc-move-row.capture {
+    box-shadow: inset 3px 0 0 #8a1f1f;
+}
+
+.yc-move-row.latest.capture {
+    background: #ffe2c4;
+    color: #7a120c;
+}
+
 .yc-move-number {
     color: #241d54;
     font-weight: 700;
@@ -1175,7 +1247,8 @@
     }
 
     .yc-classic-board,
-    .yc-game-player {
+    .yc-game-player,
+    .yc-board-feedback {
         width: min(100%, 66vh, 720px);
     }
 
@@ -1231,7 +1304,8 @@
     }
 
     .yc-classic-board,
-    .yc-game-player {
+    .yc-game-player,
+    .yc-board-feedback {
         width: min(100%, 92vw);
     }
 

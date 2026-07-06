@@ -49,6 +49,7 @@
         moveHistory: [],
         board: null,
         lastRenderedFen: null,
+        lastMoveSignature: '',
         currentRoom: {
             name: CURRENT_ROOM,
             description: 'Main chess lounge. Live FICS tables.'
@@ -92,6 +93,7 @@
                 whitePlayerBar: document.getElementById('ycWhitePlayerBar'),
                 blackPlayerBar: document.getElementById('ycBlackPlayerBar'),
                 moveList: document.getElementById('ycMoveList'),
+                boardFeedback: null,
                 gameMode: document.getElementById('ycGameMode'),
                 gameDetail: document.getElementById('ycGameDetail'),
                 gameMeta: document.getElementById('ycGameMeta'),
@@ -524,6 +526,7 @@
             this.liveGame = null;
             this.moveHistory = [];
             this.lastRenderedFen = null;
+            this.lastMoveSignature = '';
             this.tableMode = '';
             this.renderGameExperience();
         },
@@ -785,6 +788,7 @@
             }
             this.elements.gameWindow?.setAttribute('aria-hidden', this.tableOpen ? 'false' : 'true');
             this.renderClassicBoard();
+            this.renderBoardFeedback();
             this.renderGamePlayers();
             this.renderClassicMoves();
             this.renderGameMeta();
@@ -809,6 +813,42 @@
                 this.lastRenderedFen = fen;
             }
             requestAnimationFrame(() => this.board?.resize?.());
+        },
+
+        ensureBoardFeedback() {
+            if (this.elements.boardFeedback || !this.elements.classicBoard) return;
+            const feedback = document.createElement('div');
+            feedback.id = 'ycBoardFeedback';
+            feedback.className = 'yc-board-feedback';
+            feedback.setAttribute('aria-live', 'polite');
+            this.elements.classicBoard.insertAdjacentElement('afterend', feedback);
+            this.elements.boardFeedback = feedback;
+        },
+
+        renderBoardFeedback() {
+            if (!this.tableOpen || !this.elements.classicBoard) return;
+            this.ensureBoardFeedback();
+            const latest = this.getLatestMove();
+            const hasMove = Boolean(latest);
+            const isCapture = this.isCaptureMove(latest);
+            const feedback = this.elements.boardFeedback;
+            this.elements.classicBoard.classList.toggle('yc-board-has-move', hasMove);
+            this.elements.classicBoard.classList.toggle('yc-board-has-capture', isCapture);
+            if (feedback) {
+                feedback.className = `yc-board-feedback${hasMove ? ' has-move' : ''}${isCapture ? ' capture' : ''}`;
+                feedback.textContent = hasMove
+                    ? `Last move: ${this.formatMoveLabel(latest)}${isCapture ? ' - Capture' : ''}`
+                    : 'Board ready. Waiting for first move.';
+            }
+            const signature = hasMove
+                ? `${latest.moveNumber}:${latest.color}:${latest.san}:${this.liveGame?.currentFen || ''}`
+                : '';
+            if (signature && signature !== this.lastMoveSignature) {
+                this.elements.classicBoard.classList.remove('yc-board-update');
+                void this.elements.classicBoard.offsetWidth;
+                this.elements.classicBoard.classList.add('yc-board-update');
+            }
+            this.lastMoveSignature = signature;
         },
 
         renderGamePlayers() {
@@ -880,8 +920,10 @@
             });
 
             this.elements.moveList.replaceChildren(...rows.map((row, index) => {
+                const hasCapture = this.isCaptureSan(row.white) || this.isCaptureSan(row.black);
                 const item = document.createElement('div');
-                item.className = `yc-move-row${index === rows.length - 1 ? ' latest' : ''}`;
+                item.className = `yc-move-row${index === rows.length - 1 ? ' latest' : ''}${hasCapture ? ' capture' : ''}`;
+                if (hasCapture) item.title = 'Capture in this move pair';
                 item.append(
                     this.createMoveCell(`${row.moveNumber}.`, 'yc-move-number'),
                     this.createMoveCell(row.white || '...'),
@@ -898,6 +940,25 @@
             cell.textContent = value || '';
             cell.title = cell.textContent;
             return cell;
+        },
+
+        getLatestMove() {
+            return this.moveHistory.length ? this.moveHistory[this.moveHistory.length - 1] : null;
+        },
+
+        isCaptureMove(move) {
+            return this.isCaptureSan(move?.san);
+        },
+
+        isCaptureSan(san) {
+            return /x/.test(String(san || ''));
+        },
+
+        formatMoveLabel(move) {
+            if (!move) return '';
+            const number = move.moveNumber || this.getCurrentMoveNumber();
+            const separator = move.color === 'black' ? '...' : '.';
+            return `${number}${separator} ${move.san || ''}`.trim();
         },
 
         renderGameMeta() {
