@@ -354,7 +354,11 @@
             if (this.elements.roomCardTitle) this.elements.roomCardTitle.textContent = this.currentRoom.name;
             if (this.elements.roomCardDescription) this.elements.roomCardDescription.textContent = this.currentRoom.description;
             if (this.elements.tablesTitle) {
-                this.elements.tablesTitle.textContent = this.isTournamentRoom() ? 'Tournament Hall' : 'Room Tables';
+                this.elements.tablesTitle.textContent = this.isTournamentRoom()
+                    ? 'Tournament Hall'
+                    : this.isComputerRoom()
+                        ? 'Computer Hall'
+                        : 'Room Tables';
             }
         },
 
@@ -366,6 +370,10 @@
                 this.elements.roomSummary.textContent = `Current Room: Tournament Hall - Players Online: ${players.length} - Tournament Feed: Not available`;
                 return;
             }
+            if (this.isComputerRoom()) {
+                this.elements.roomSummary.textContent = `Current Room: Computer Hall - Players Online: ${players.length} - Engine Room: Offline`;
+                return;
+            }
             this.elements.roomSummary.textContent = `Current Room: ${this.currentRoom.name} - Players Online: ${players.length} - Active Tables: ${tables}`;
         },
 
@@ -375,6 +383,11 @@
 
             if (this.isTournamentRoom()) {
                 this.renderTournamentHall(tableGrid);
+                return;
+            }
+
+            if (this.isComputerRoom()) {
+                this.renderComputerHall(tableGrid);
                 return;
             }
 
@@ -459,6 +472,69 @@
             return panel;
         },
 
+        renderComputerHall(container) {
+            container.setAttribute('role', 'region');
+            container.setAttribute('aria-label', 'Classic Computer Hall');
+            container.replaceChildren(
+                this.createComputerHero(),
+                this.createComputerPanel('Engine Room', [
+                    ['Status', 'No bot backend connected'],
+                    ['Play Bots', 'Not available'],
+                    ['Training Engines', 'Coming soon']
+                ], 'Computer opponents will appear here only after a supported engine/bot pathway is connected.'),
+                this.createComputerPanel('Future Bot Tables', [
+                    ['Beginner Bots', 'Coming soon'],
+                    ['Classic Engines', 'Coming soon'],
+                    ['Training Partners', 'Coming soon']
+                ], 'No playable bot tables are available in this phase. CAISSA Classic will not present fake engine games.'),
+                this.createComputerPanel('Training Support', [
+                    ['Coach Bots', 'Future Academy integration'],
+                    ['Engine Mapping', 'Deferred'],
+                    ['Analysis Rooms', 'Deferred']
+                ], 'Computer Hall is prepared as a retro shell for future safe engine and training support.'),
+                this.createComputerPanel('Room Notes', [
+                    ['Format', 'Classic engine-room shell'],
+                    ['Live Tables', String(this.activeTables.length + this.seekActions.length)],
+                    ['Players Online', String(this.getPlayers().length)]
+                ], 'Use CAISSA Lobby for live FICS play. Computer Hall does not create engine services or bot games yet.')
+            );
+        },
+
+        createComputerHero() {
+            const hero = document.createElement('div');
+            hero.className = 'yc-computer-hero';
+            const title = document.createElement('h4');
+            title.textContent = 'Computer Hall';
+            const summary = document.createElement('p');
+            summary.textContent = 'A classic engine room shell for future computer opponents, training partners, and bot tables.';
+            const badge = document.createElement('span');
+            badge.className = 'yc-computer-badge';
+            badge.textContent = 'Engine backend not connected';
+            hero.append(title, summary, badge);
+            return hero;
+        },
+
+        createComputerPanel(title, rows, emptyText) {
+            const panel = document.createElement('section');
+            panel.className = 'yc-computer-panel';
+            const heading = document.createElement('h4');
+            heading.textContent = title;
+            const list = document.createElement('dl');
+            list.className = 'yc-computer-list';
+            rows.forEach(([term, value]) => {
+                const dt = document.createElement('dt');
+                dt.textContent = term;
+                const dd = document.createElement('dd');
+                dd.textContent = value;
+                list.append(dt, dd);
+            });
+            const empty = document.createElement('p');
+            empty.className = 'yc-computer-empty';
+            empty.textContent = emptyText;
+            panel.append(heading, list, empty);
+            return panel;
+        },
+
         buildTableRows() {
             const waiting = this.seekActions.map((seek) => {
                 const details = seek.details || {};
@@ -496,6 +572,10 @@
 
         isTournamentRoom() {
             return this.currentRoom.name === 'Tournament Hall';
+        },
+
+        isComputerRoom() {
+            return this.currentRoom.name === 'Computer Hall';
         },
 
         createTableHeader() {
