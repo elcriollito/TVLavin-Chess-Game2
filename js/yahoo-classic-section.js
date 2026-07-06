@@ -818,6 +818,7 @@
                 name: this.liveGame?.blackName || table?.black || 'Black',
                 rating: table?.blackRating || 'FICS',
                 clock: this.formatClock(this.liveGame?.blackClock),
+                clockSeconds: this.liveGame?.blackClock,
                 active: this.liveGame?.sideToMove === 'b',
                 state: this.liveGame?.sideToMove === 'b' ? 'To move' : 'Waiting'
             });
@@ -826,6 +827,7 @@
                 name: this.liveGame?.whiteName || table?.white || 'White',
                 rating: table?.whiteRating || 'FICS',
                 clock: this.formatClock(this.liveGame?.whiteClock),
+                clockSeconds: this.liveGame?.whiteClock,
                 active: this.liveGame?.sideToMove === 'w',
                 state: this.liveGame?.sideToMove === 'w' ? 'To move' : 'Waiting'
             });
@@ -833,7 +835,11 @@
 
         renderGamePlayerBar(element, player) {
             if (!element) return;
-            element.className = `yc-game-player ${player.color}${player.active ? ' turn-active' : ''}`;
+            const identity = player.rating && player.rating !== 'FICS' ? 'registered' : 'guest';
+            const lowClock = Number.isFinite(player.clockSeconds) && player.clockSeconds <= 30;
+            element.className = `yc-game-player ${player.color}${player.active ? ' turn-active' : ''}${lowClock ? ' clock-low' : ''}`;
+            element.dataset.identity = identity;
+            element.setAttribute('aria-label', `${player.color} player ${player.name || player.color}, ${player.state || 'Waiting'}, clock ${player.clock || '--:--'}`);
             const name = element.querySelector('.yc-player-name');
             const rating = element.querySelector('.yc-player-rating');
             const state = element.querySelector('.yc-player-state');
@@ -843,7 +849,7 @@
                 name.title = name.textContent;
             }
             if (rating) {
-                const status = player.rating && player.rating !== 'FICS' ? 'Registered' : 'Guest';
+                const status = identity === 'registered' ? 'Registered' : 'Guest';
                 rating.textContent = `${player.rating || 'FICS'} - ${status}`;
                 rating.title = status;
             }
@@ -873,9 +879,9 @@
                 row[move.color] = move.san;
             });
 
-            this.elements.moveList.replaceChildren(...rows.map((row) => {
+            this.elements.moveList.replaceChildren(...rows.map((row, index) => {
                 const item = document.createElement('div');
-                item.className = 'yc-move-row';
+                item.className = `yc-move-row${index === rows.length - 1 ? ' latest' : ''}`;
                 item.append(
                     this.createMoveCell(`${row.moveNumber}.`, 'yc-move-number'),
                     this.createMoveCell(row.white || '...'),
