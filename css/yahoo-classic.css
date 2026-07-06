@@ -480,6 +480,15 @@
     color: var(--yc-classic-blue);
 }
 
+.yc-activity-line.challenge strong {
+    color: #7b3f00;
+}
+
+.yc-activity-line.capture strong,
+.yc-activity-line.gameover strong {
+    color: #8a1f1f;
+}
+
 .yc-panel-heading {
     display: flex;
     justify-content: space-between;

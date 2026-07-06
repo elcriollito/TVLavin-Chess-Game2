@@ -11,25 +11,80 @@
     const MAX_SYSTEM_MESSAGES = 5;
     const CURRENT_ROOM = 'CAISSA Lobby';
     const ACTIVITY_LIMIT = 8;
-    const SOUND_CUES = Object.freeze(['connect', 'disconnect', 'move', 'join', 'notify', 'error']);
+    const SOUND_CUES = Object.freeze(['connect', 'disconnect', 'move', 'capture', 'join', 'challenge', 'notify', 'gameover', 'error']);
     const SOUND_STORAGE_KEY = 'caissaClassicSoundEnabled';
+    const SOUND_PATTERNS = Object.freeze({
+        connect: [{ frequency: 523, duration: 0.06 }, { frequency: 659, duration: 0.08 }],
+        disconnect: [{ frequency: 392, duration: 0.08 }, { frequency: 262, duration: 0.10 }],
+        move: [{ frequency: 880, duration: 0.045 }],
+        capture: [{ frequency: 659, duration: 0.045 }, { frequency: 330, duration: 0.07 }],
+        join: [{ frequency: 494, duration: 0.06 }, { frequency: 740, duration: 0.08 }],
+        challenge: [{ frequency: 784, duration: 0.055 }, { frequency: 988, duration: 0.055 }],
+        notify: [{ frequency: 587, duration: 0.055 }],
+        gameover: [{ frequency: 659, duration: 0.08 }, { frequency: 523, duration: 0.08 }, { frequency: 392, duration: 0.12 }],
+        error: [{ frequency: 220, duration: 0.12 }]
+    });
 
     const ClassicSoundManager = {
         enabled: false,
         userActivated: false,
         lastCue: null,
+        audioContext: null,
+        lastPlayedAt: {},
+        masterGain: 0.045,
 
         setEnabled(enabled, userActivated = false) {
             this.enabled = !!enabled;
-            this.userActivated = !!userActivated;
+            this.userActivated = this.userActivated || !!userActivated;
+            if (!this.enabled) this.lastCue = null;
         },
 
         cue(type) {
             if (!SOUND_CUES.includes(type)) return false;
             this.lastCue = type;
-            // Prepared hook only. No audio is produced in this phase, which
-            // keeps CAISSA Classic compliant with browser autoplay rules.
-            return this.enabled && this.userActivated;
+            if (!this.enabled || !this.userActivated) return false;
+            return this.play(type);
+        },
+
+        getContext() {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return null;
+            if (!this.audioContext) this.audioContext = new AudioContext();
+            return this.audioContext;
+        },
+
+        play(type) {
+            try {
+                const now = performance.now();
+                if (now - (this.lastPlayedAt[type] || 0) < 90) return false;
+                const context = this.getContext();
+                const pattern = SOUND_PATTERNS[type] || SOUND_PATTERNS.notify;
+                if (!context || !pattern) return false;
+                this.lastPlayedAt[type] = now;
+                const startAt = context.currentTime + 0.01;
+                if (context.state === 'suspended') {
+                    context.resume?.().catch(() => {});
+                }
+                pattern.forEach((step, index) => this.playStep(context, step, startAt + (index * 0.075)));
+                return true;
+            } catch (error) {
+                return false;
+            }
+        },
+
+        playStep(context, step, startAt) {
+            const oscillator = context.createOscillator();
+            const gain = context.createGain();
+            const duration = Math.max(0.03, step.duration || 0.06);
+            oscillator.type = 'square';
+            oscillator.frequency.setValueAtTime(step.frequency || 440, startAt);
+            gain.gain.setValueAtTime(0.0001, startAt);
+            gain.gain.linearRampToValueAtTime(this.masterGain, startAt + 0.008);
+            gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+            oscillator.connect(gain);
+            gain.connect(context.destination);
+            oscillator.start(startAt);
+            oscillator.stop(startAt + duration + 0.02);
         }
     };
 
@@ -130,6 +185,12 @@
             this.elements.standBtn?.addEventListener('click', () => this.standFromTable());
             this.elements.sitBtn?.addEventListener('click', () => this.addSystemMessage('Choose Join from a waiting table to sit.'));
             this.elements.soundBtn?.addEventListener('click', () => this.toggleClassicSound());
+            const unlockSound = () => {
+                this.soundUserActivated = true;
+                ClassicSoundManager.setEnabled(this.soundEnabled, true);
+            };
+            window.addEventListener('pointerdown', unlockSound, { once: true, passive: true });
+            window.addEventListener('keydown', unlockSound, { once: true });
         },
 
         onEnter() {
@@ -169,18 +230,20 @@
             } else if (event === 'lobby-updated') {
                 const previousTables = new Set(this.activeTables.map((table) => String(table.number)));
                 const previousPlayers = new Set(this.getPlayers().map((player) => player.name.toLowerCase()));
+                const previousSeeks = new Set(this.seekActions.map((seek) => String(seek.number)));
                 this.authenticated = true;
                 this.activeTables = Array.isArray(payload.activeTables) ? payload.activeTables.map((table) => ({ ...table })) : [];
                 this.seekActions = Array.isArray(payload.seekActions) ? payload.seekActions.map((seek) => ({ ...seek })) : [];
                 this.updateCatalog();
-                this.recordLobbyActivity(previousTables, previousPlayers);
+                this.recordLobbyActivity(previousTables, previousPlayers, previousSeeks);
                 this.addSystemMessage('Receiving lobby...');
             } else if (event === 'style12') {
                 this.handleStyle12(payload);
             } else if (event === 'game-ended') {
                 if (payload.liveGame) this.liveGame = { ...payload.liveGame };
                 this.addSystemMessage('Observed game finished.');
-                this.addActivity('Table closed.', 'notify');
+                this.addActivity('Game over.', 'gameover');
+                this.queueSoundCue('gameover');
             } else if (event === 'disconnected') {
                 this.handleDisconnected(false);
             }
@@ -459,6 +522,7 @@
             const client = window.CaissaFICSClient;
             if (!client?.authenticated) {
                 this.addSystemMessage('Connect to FICS before using room actions.');
+                this.queueSoundCue('error');
                 this.render();
                 return;
             }
@@ -548,15 +612,19 @@
             this.openTable(liveGame.gameNumber || this.currentTableId, this.currentTableMeta, liveGame.observedGame ? 'watching' : 'playing');
             if (liveGame.gameNumber) this.addSystemMessage(`Watching table ${liveGame.gameNumber}.`);
             if (this.moveHistory.length > previousMoveCount) {
-                this.addActivity('Move received.', 'move');
-                this.queueSoundCue('move');
+                const latest = this.getLatestMove();
+                const capture = this.isCaptureMove(latest);
+                this.addActivity(capture ? 'Capture received.' : 'Move received.', capture ? 'capture' : 'move');
+                this.queueSoundCue(capture ? 'capture' : 'move');
             }
             if (render) this.render();
         },
 
-        recordLobbyActivity(previousTables, previousPlayers) {
+        recordLobbyActivity(previousTables, previousPlayers, previousSeeks = new Set()) {
             const nextTables = new Set(this.activeTables.map((table) => String(table.number)));
             const nextPlayers = new Set(this.getPlayers().map((player) => player.name.toLowerCase()));
+            let notifyQueued = false;
+            let challengeQueued = false;
 
             this.activeTables.forEach((table) => {
                 const key = String(table.number);
@@ -564,21 +632,45 @@
                     this.addActivity(this.formatGameLabel(table) === 'Rated'
                         ? `Rated game started at table ${key}.`
                         : `Table ${key} opened.`, 'notify');
+                    notifyQueued = true;
                 }
             });
 
             previousTables.forEach((key) => {
-                if (!nextTables.has(key)) this.addActivity(`Table ${key} closed.`, 'notify');
+                if (!nextTables.has(key)) {
+                    this.addActivity(`Table ${key} closed.`, 'notify');
+                    notifyQueued = true;
+                }
             });
 
             this.getPlayers().forEach((player) => {
                 const key = player.name.toLowerCase();
-                if (!previousPlayers.has(key)) this.addActivity(`${player.name} joined.`, 'notify');
+                if (!previousPlayers.has(key)) {
+                    this.addActivity(`${player.name} joined.`, 'notify');
+                    notifyQueued = true;
+                }
             });
 
             previousPlayers.forEach((key) => {
-                if (!nextPlayers.has(key)) this.addActivity('Player disconnected.', 'disconnect');
+                if (!nextPlayers.has(key)) {
+                    this.addActivity('Player disconnected.', 'disconnect');
+                    notifyQueued = true;
+                }
             });
+
+            this.seekActions.forEach((seek) => {
+                const key = String(seek.number);
+                if (!previousSeeks.has(key)) {
+                    this.addActivity(`Challenge posted at table ${key}.`, 'challenge');
+                    challengeQueued = true;
+                }
+            });
+
+            if (challengeQueued) {
+                this.queueSoundCue('challenge');
+            } else if (notifyQueued) {
+                this.queueSoundCue('notify');
+            }
         },
 
         addActivity(message, type = 'notify') {
