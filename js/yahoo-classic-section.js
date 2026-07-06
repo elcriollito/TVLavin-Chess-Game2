@@ -490,18 +490,18 @@
                 this.createComputerHero(),
                 this.createComputerPanel('Engine Room', [
                     ['Status', 'No bot backend connected'],
-                    ['Play Bots', 'Not available'],
-                    ['Training Engines', 'Coming soon']
+                    ['Play Bots', 'Not Available'],
+                    ['Training Engines', 'Coming Soon']
                 ], 'Computer opponents will appear here only after a supported engine/bot pathway is connected.'),
                 this.createComputerPanel('Future Bot Tables', [
-                    ['Beginner Bots', 'Coming soon'],
-                    ['Classic Engines', 'Coming soon'],
-                    ['Training Partners', 'Coming soon']
+                    ['Beginner Bots', 'Coming Soon'],
+                    ['Classic Engines', 'Coming Soon'],
+                    ['Training Partners', 'Coming Soon']
                 ], 'No playable bot tables are available in this phase. CAISSA Classic will not present fake engine games.'),
                 this.createComputerPanel('Training Support', [
                     ['Coach Bots', 'Future Academy integration'],
-                    ['Engine Mapping', 'Deferred'],
-                    ['Analysis Rooms', 'Deferred']
+                    ['Engine Mapping', 'Coming Soon'],
+                    ['Analysis Rooms', 'Coming Soon']
                 ], 'Computer Hall is prepared as a retro shell for future safe engine and training support.'),
                 this.createComputerPanel('Room Notes', [
                     ['Format', 'Classic engine-room shell'],
@@ -553,18 +553,18 @@
                 this.createTeachingHero(),
                 this.createTeachingPanel('Teaching Tables', [
                     ['Status', 'No teaching backend connected'],
-                    ['Live Classes', 'Not available'],
-                    ['Study Groups', 'Coming soon']
+                    ['Live Classes', 'Not Available'],
+                    ['Study Groups', 'Coming Soon']
                 ], 'Teaching tables will appear here only when a supported lesson or classroom pathway exists.'),
                 this.createTeachingPanel('Training Board', [
                     ['Board Mode', 'Preview only'],
-                    ['Exercises', 'Not available'],
-                    ['Coach Support', 'Coming soon']
+                    ['Exercises', 'Not Available'],
+                    ['Coach Support', 'Coming Soon']
                 ], 'No interactive training board is available in this phase. CAISSA Classic will not present fake lessons.'),
                 this.createTeachingPanel('Lesson Notes', [
                     ['Current Lesson', '--'],
                     ['Instructor', '--'],
-                    ['Materials', 'Not available']
+                    ['Materials', 'Not Available']
                 ], 'Lesson notes are reserved for future real teaching sessions and study rooms.'),
                 this.createTeachingPanel('Room Notes', [
                     ['Format', 'Classic teaching-room shell'],
@@ -713,6 +713,7 @@
                 button.title = rowData.action === 'watch'
                     ? `Watch table ${rowData.table}`
                     : `Join table ${rowData.table}`;
+                button.setAttribute('aria-label', button.title);
                 button.addEventListener('click', () => this.handleTableAction(rowData));
                 actionCell.appendChild(button);
             } else {

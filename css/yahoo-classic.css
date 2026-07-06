@@ -205,14 +205,14 @@
 }
 
 .yc-tab:hover,
-.yc-classic-button:hover,
+.yc-classic-button:hover:not(:disabled),
 .yc-send-button:hover:not(:disabled) {
     background: #d9d9d9;
     color: #000000;
 }
 
 .yc-tab:active,
-.yc-classic-button:active,
+.yc-classic-button:active:not(:disabled),
 .yc-send-button:active:not(:disabled),
 .yc-row-action:active:not(:disabled) {
     border-color: #707070 #ffffff #ffffff #707070;
@@ -344,6 +344,14 @@
     width: 100%;
     padding: 3px 7px;
     text-align: left;
+}
+
+.yc-classic-button:disabled,
+.yc-row-action:disabled {
+    border-color: #ffffff #8d8d8d #8d8d8d #ffffff;
+    background: #b9b9b9;
+    color: #666666;
+    text-shadow: 1px 1px 0 #ffffff;
 }
 
 .yc-classic-button.primary {
