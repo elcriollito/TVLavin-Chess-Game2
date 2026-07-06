@@ -56,11 +56,14 @@
 }
 
 body.yc-classic-active .content-area {
+    height: 100dvh;
+    min-height: 100dvh;
     padding: 0;
     overflow: hidden;
 }
 
 #yahooClassicSection {
+    display: flex;
     height: 100dvh;
     min-height: 100dvh;
     overflow: hidden;
@@ -91,6 +94,7 @@ body.yc-classic-active .content-area {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto auto;
     border: 2px solid;
+    border-width: 2px 2px 0;
     border-color: #ffffff var(--yc-border-gray) var(--yc-border-gray) #ffffff;
     background: var(--yc-classic-beige);
     outline: 1px solid #2f2f2f;
@@ -296,6 +300,35 @@ body.yc-classic-active .content-area {
 .yc-login-panel {
     display: grid;
     gap: 4px;
+}
+
+.yc-classic-account-fields {
+    display: grid;
+    gap: 4px;
+    padding: 4px;
+    border: 2px solid;
+    border-color: var(--yc-border-gray) #ffffff #ffffff var(--yc-border-gray);
+    background: #d8ceb0;
+}
+
+.yc-classic-account-fields[hidden] {
+    display: none;
+}
+
+.yc-classic-login-status {
+    min-height: 24px;
+    padding: 3px 4px;
+    border: 1px solid;
+    border-color: var(--yc-border-gray) #ffffff #ffffff var(--yc-border-gray);
+    background: #efe4bd;
+    color: #2b2b2b;
+    font-size: 10px;
+    line-height: 1.25;
+}
+
+.yc-classic-login-status[data-state="error"] {
+    color: #8a0000;
+    font-weight: 700;
 }
 
 .yc-create-table-panel {

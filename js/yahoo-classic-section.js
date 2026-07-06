@@ -142,6 +142,11 @@
                 playerList: document.getElementById('ycPlayerList'),
                 ficsAccountLoginBtn: document.getElementById('ycFicsAccountLoginBtn'),
                 ficsGuestLoginBtn: document.getElementById('ycFicsGuestLoginBtn'),
+                classicAccountFields: document.getElementById('ycClassicAccountFields'),
+                classicAccountUsername: document.getElementById('ycClassicAccountUsername'),
+                classicAccountPassword: document.getElementById('ycClassicAccountPassword'),
+                classicAccountSubmit: document.getElementById('ycClassicAccountSubmit'),
+                classicLoginStatus: document.getElementById('ycClassicLoginStatus'),
                 activityFeed: document.getElementById('ycActivityFeed'),
                 chatBody: document.getElementById('ycChatBody'),
                 browserStatus: document.getElementById('ycBrowserStatus'),
@@ -196,8 +201,9 @@
             this.elements.standBtn?.addEventListener('click', () => this.standFromTable());
             this.elements.sitBtn?.addEventListener('click', () => this.addSystemMessage('Choose Join from a waiting table to sit.'));
             this.elements.soundBtn?.addEventListener('click', () => this.toggleClassicSound());
-            this.elements.ficsAccountLoginBtn?.addEventListener('click', () => this.openFicsLogin('account'));
-            this.elements.ficsGuestLoginBtn?.addEventListener('click', () => this.openFicsLogin('guest'));
+            this.elements.ficsAccountLoginBtn?.addEventListener('click', () => this.showClassicAccountLogin());
+            this.elements.ficsGuestLoginBtn?.addEventListener('click', () => this.connectClassicGuest());
+            this.elements.classicAccountFields?.addEventListener('submit', (event) => this.connectClassicAccount(event));
             this.elements.createTableToggle?.addEventListener('click', () => this.toggleCreateTablePanel());
             this.elements.createTablePanel?.addEventListener('submit', (event) => this.handleCreateTable(event));
             const unlockSound = () => {
@@ -233,6 +239,7 @@
                     this.addSystemMessage('Connecting to FICS...');
                     this.addActivity('Connecting to FICS.', 'connect');
                 } else if (payload.state === 'connected' && payload.authenticated) {
+                    this.setClassicLoginStatus('Connected to FICS.');
                     this.addSystemMessage('Connected.');
                     this.addActivity('Connected to FICS.', 'connect');
                 } else if (payload.state === 'disconnected') {
@@ -240,6 +247,7 @@
                 }
             } else if (event === 'authenticated') {
                 this.authenticated = true;
+                this.setClassicLoginStatus('Connected to FICS.');
                 this.addSystemMessage('Connected.');
                 this.addSystemMessage(`Loading ${CURRENT_ROOM}...`);
                 this.addActivity('Player session connected.', 'connect');
@@ -270,6 +278,7 @@
 
         handleDisconnected(render = true) {
             this.authenticated = false;
+            this.setClassicLoginStatus('Disconnected.');
             this.activeTables = [];
             this.seekActions = [];
             this.catalog = window.CaissaSpectatorTVCatalog?.clearCatalog?.() || null;
@@ -355,22 +364,72 @@
             this.render();
         },
 
-        openFicsLogin(mode = 'guest') {
+        getFicsClient() {
             const client = window.CaissaFICSClient;
-            const loginMode = mode === 'account' ? 'account' : 'guest';
-            client?.setLoginMode?.(loginMode);
-            if (window.CaissaNavigation?.navigateToSection) {
-                window.CaissaNavigation.navigateToSection('fics');
-            } else {
-                document.querySelector('[data-section="fics"]')?.click();
+            if (!client?.connect) {
+                this.setClassicLoginStatus('FICS client is not ready.', true);
+                this.addSystemMessage('FICS client is not ready.');
+                return null;
             }
-            requestAnimationFrame(() => {
-                client?.setLoginMode?.(loginMode);
-                const target = loginMode === 'account'
-                    ? document.getElementById('ficsAccountUsername')
-                    : document.getElementById('ficsConnectBtn');
-                target?.focus?.();
-            });
+            return client;
+        },
+
+        setClassicLoginStatus(message, isError = false) {
+            if (!this.elements.classicLoginStatus) return;
+            this.elements.classicLoginStatus.textContent = message;
+            this.elements.classicLoginStatus.dataset.state = isError ? 'error' : 'normal';
+        },
+
+        showClassicAccountLogin() {
+            const client = this.getFicsClient();
+            if (!client) return;
+            client.setLoginMode?.('account');
+            if (this.elements.classicAccountFields) this.elements.classicAccountFields.hidden = false;
+            this.elements.ficsAccountLoginBtn?.setAttribute('aria-expanded', 'true');
+            this.setClassicLoginStatus('Enter your FICS account to connect inside CAISSA Classic.');
+            this.addSystemMessage('FICS account login ready.');
+            requestAnimationFrame(() => this.elements.classicAccountUsername?.focus?.());
+        },
+
+        connectClassicGuest() {
+            const client = this.getFicsClient();
+            if (!client) return;
+            client.setLoginMode?.('guest');
+            if (this.elements.classicAccountFields) this.elements.classicAccountFields.hidden = true;
+            this.elements.ficsAccountLoginBtn?.setAttribute('aria-expanded', 'false');
+            this.setClassicLoginStatus('Connecting to FICS as guest...');
+            this.addSystemMessage('Connecting to FICS as guest...');
+            this.addActivity('Guest login started.', 'connect');
+            client.connect('guest');
+            this.render();
+        },
+
+        connectClassicAccount(event) {
+            event?.preventDefault?.();
+            const client = this.getFicsClient();
+            if (!client) return;
+
+            const username = (this.elements.classicAccountUsername?.value || '').trim();
+            const password = this.elements.classicAccountPassword?.value || '';
+            if (!username || !password) {
+                this.setClassicLoginStatus('Enter your FICS username and password.', true);
+                this.addSystemMessage('Enter your FICS username and password.');
+                this.elements.classicAccountUsername?.focus?.();
+                return;
+            }
+
+            const modernUsername = document.getElementById('ficsAccountUsername');
+            const modernPassword = document.getElementById('ficsAccountPassword');
+            if (modernUsername) modernUsername.value = username;
+            if (modernPassword) modernPassword.value = password;
+
+            client.setLoginMode?.('account');
+            this.setClassicLoginStatus(`Connecting to FICS as ${username}...`);
+            this.addSystemMessage(`Connecting to FICS as ${username}...`);
+            this.addActivity('FICS account login started.', 'connect');
+            client.connect('account');
+            if (this.elements.classicAccountPassword) this.elements.classicAccountPassword.value = '';
+            this.render();
         },
 
         renderRoomIdentity() {

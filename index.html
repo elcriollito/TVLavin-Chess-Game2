@@ -1492,8 +1492,14 @@
                             <aside class="yc-sidebar" aria-label="Classic actions">
                                 <div class="yc-panel yc-login-panel">
                                     <div class="yc-panel-title">Sign In / Login</div>
-                                    <button id="ycFicsAccountLoginBtn" class="yc-classic-button" type="button" title="Use registered FICS login from the FICS page">FICS Account Login</button>
-                                    <button id="ycFicsGuestLoginBtn" class="yc-classic-button primary" type="button" title="Use guest login from the FICS page">Guest Login</button>
+                                    <button id="ycFicsAccountLoginBtn" class="yc-classic-button" type="button" title="Show FICS account login inside CAISSA Classic" aria-controls="ycClassicAccountFields" aria-expanded="false">FICS Account Login</button>
+                                    <form id="ycClassicAccountFields" class="yc-classic-account-fields" hidden aria-label="Classic FICS account login">
+                                        <input id="ycClassicAccountUsername" class="yc-classic-field" type="text" autocomplete="username" placeholder="Username" aria-label="FICS username">
+                                        <input id="ycClassicAccountPassword" class="yc-classic-field" type="password" autocomplete="current-password" placeholder="Password" aria-label="FICS password">
+                                        <button id="ycClassicAccountSubmit" class="yc-classic-button primary" type="submit" title="Connect with existing FICS account">Connect Account</button>
+                                    </form>
+                                    <button id="ycFicsGuestLoginBtn" class="yc-classic-button primary" type="button" title="Connect to FICS as a guest inside CAISSA Classic">Guest Login</button>
+                                    <small id="ycClassicLoginStatus" class="yc-classic-login-status" aria-live="polite">Use the existing FICS connection from CAISSA Classic.</small>
                                 </div>
                                 <div class="yc-panel yc-actions-panel">
                                     <div class="yc-panel-title">Controls</div>
