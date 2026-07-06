@@ -1608,22 +1608,22 @@
 
                         <section id="ycGameWindow" class="yc-game-window" aria-label="Classic game table" aria-hidden="true">
                             <header class="yc-game-table-header" aria-label="Classic table information">
-                                <strong id="ycGameHeaderTable">Table --</strong>
-                                <span id="ycGameHeaderType">Live game</span>
-                                <span id="ycGameHeaderRated">Rated/Casual</span>
-                                <span id="ycGameHeaderTime">Time --</span>
-                                <span id="ycGameHeaderPlayers">Players --</span>
-                                <span id="ycGameHeaderSpectators">Spectators --</span>
+                                <strong id="ycGameHeaderTable" data-label="Table">Table --</strong>
+                                <span id="ycGameHeaderType" data-label="Game">Live game</span>
+                                <span id="ycGameHeaderRated" data-label="Mode">Rated/Casual</span>
+                                <span id="ycGameHeaderTime" data-label="Clock">Time --</span>
+                                <span id="ycGameHeaderPlayers" data-label="Players">Players --</span>
+                                <span id="ycGameHeaderSpectators" data-label="Watching">Spectators --</span>
                             </header>
                             <aside class="yc-game-controls" aria-label="Classic table controls">
                                 <div class="yc-panel yc-actions-panel">
                                     <div class="yc-panel-title">Table</div>
-                                    <button id="ycSitBtn" class="yc-classic-button primary" type="button">Sit</button>
-                                    <button id="ycStandBtn" class="yc-classic-button" type="button">Stand</button>
-                                    <button id="ycDrawBtn" class="yc-classic-button" type="button" disabled>Offer Draw</button>
-                                    <button id="ycResignBtn" class="yc-classic-button" type="button" disabled>Resign</button>
-                                    <button id="ycTakebackBtn" class="yc-classic-button" type="button" disabled>Takeback</button>
-                                    <button id="ycOptionsBtn" class="yc-classic-button" type="button" disabled>Options</button>
+                                    <button id="ycSitBtn" class="yc-classic-button primary" type="button" title="Sit at an available table when supported">Sit</button>
+                                    <button id="ycStandBtn" class="yc-classic-button" type="button" title="Close the current classic table">Stand</button>
+                                    <button id="ycDrawBtn" class="yc-classic-button" type="button" disabled aria-disabled="true" title="Offer draw is not active in this Classic release">Offer Draw</button>
+                                    <button id="ycResignBtn" class="yc-classic-button" type="button" disabled aria-disabled="true" title="Resign is not active in this Classic release">Resign</button>
+                                    <button id="ycTakebackBtn" class="yc-classic-button" type="button" disabled aria-disabled="true" title="Takeback is not active in this Classic release">Takeback</button>
+                                    <button id="ycOptionsBtn" class="yc-classic-button" type="button" disabled aria-disabled="true" title="Table options are not active in this Classic release">Options</button>
                                     <button id="ycSoundBtn" class="yc-classic-button yc-sound-toggle" type="button" aria-pressed="false" title="Toggle CAISSA Classic sound">[Sound: Off]</button>
                                 </div>
                                 <div class="yc-status-card">
@@ -1656,7 +1656,7 @@
                                     <span class="yc-player-state">Waiting</span>
                                     <strong class="yc-player-clock">--:--</strong>
                                 </div>
-                                <div id="ycClassicBoard" class="yc-classic-board"></div>
+                                <div id="ycClassicBoard" class="yc-classic-board" role="img" aria-label="Classic chess board"></div>
                                 <div id="ycWhitePlayerBar" class="yc-game-player white" role="group" aria-label="White player">
                                     <span class="yc-turn-led" aria-hidden="true"></span>
                                     <span class="yc-player-name">White</span>

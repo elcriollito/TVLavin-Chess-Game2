@@ -1376,6 +1376,7 @@
             const lowClock = Number.isFinite(player.clockSeconds) && player.clockSeconds <= 30;
             element.className = `yc-game-player ${player.color}${player.active ? ' turn-active' : ''}${lowClock ? ' clock-low' : ''}`;
             element.dataset.identity = identity;
+            element.dataset.turn = player.active ? 'active' : 'waiting';
             element.setAttribute('aria-label', `${player.color} player ${player.name || player.color}, ${player.state || 'Waiting'}, clock ${player.clock || '--:--'}`);
             const name = element.querySelector('.yc-player-name');
             const rating = element.querySelector('.yc-player-rating');
@@ -1391,7 +1392,10 @@
                 rating.title = status;
             }
             if (state) state.textContent = player.state || 'Waiting';
-            if (clock) clock.textContent = player.clock || '--:--';
+            if (clock) {
+                clock.textContent = player.clock || '--:--';
+                clock.title = `${player.color} clock ${clock.textContent}`;
+            }
         },
 
         renderClassicMoves() {
@@ -1476,6 +1480,9 @@
             const eco = this.liveGame?.eco || table?.eco || '--';
             const turnText = side ? `${side} to Move` : 'Waiting for board';
             const spectatorText = `Spectators ${spectators}`;
+            const tableLabel = gameNumber
+                ? `Classic table ${gameNumber}: ${white} versus ${black}, ${rated} ${gameType}, ${turnText}`
+                : 'Classic game table';
 
             if (this.elements.gameMode) {
                 this.elements.gameMode.textContent = gameNumber ? `Table ${gameNumber}` : 'No Table';
@@ -1501,8 +1508,15 @@
             this.setText(this.elements.gameInfoPhase, phase);
             this.setText(this.elements.gameTurnState, turnText);
             this.setText(this.elements.gameSpectatorState, spectatorText);
-            this.elements.standBtn?.toggleAttribute('disabled', !this.tableOpen);
-            this.elements.sitBtn?.toggleAttribute('disabled', !this.authenticated);
+            this.elements.gameWindow?.setAttribute('aria-label', tableLabel);
+            this.setButtonDisabled(this.elements.standBtn, !this.tableOpen);
+            this.setButtonDisabled(this.elements.sitBtn, !this.authenticated);
+        },
+
+        setButtonDisabled(button, disabled) {
+            if (!button) return;
+            button.toggleAttribute('disabled', disabled);
+            button.setAttribute('aria-disabled', disabled ? 'true' : 'false');
         },
 
         renderGameSystemLog() {
