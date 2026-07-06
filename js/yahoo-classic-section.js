@@ -168,7 +168,15 @@
                 gameSpectatorState: document.getElementById('ycGameSpectatorState'),
                 soundBtn: document.getElementById('ycSoundBtn'),
                 sitBtn: document.getElementById('ycSitBtn'),
-                standBtn: document.getElementById('ycStandBtn')
+                standBtn: document.getElementById('ycStandBtn'),
+                createTableToggle: document.getElementById('ycCreateTableToggle'),
+                createTablePanel: document.getElementById('ycCreateTablePanel'),
+                createTableSubmit: document.getElementById('ycCreateTableSubmit'),
+                createRated: document.getElementById('ycCreateRated'),
+                createTime: document.getElementById('ycCreateTime'),
+                createIncrement: document.getElementById('ycCreateIncrement'),
+                createColor: document.getElementById('ycCreateColor'),
+                createTableStatus: document.getElementById('ycCreateTableStatus')
             };
         },
 
@@ -185,6 +193,8 @@
             this.elements.standBtn?.addEventListener('click', () => this.standFromTable());
             this.elements.sitBtn?.addEventListener('click', () => this.addSystemMessage('Choose Join from a waiting table to sit.'));
             this.elements.soundBtn?.addEventListener('click', () => this.toggleClassicSound());
+            this.elements.createTableToggle?.addEventListener('click', () => this.toggleCreateTablePanel());
+            this.elements.createTablePanel?.addEventListener('submit', (event) => this.handleCreateTable(event));
             const unlockSound = () => {
                 this.soundUserActivated = true;
                 ClassicSoundManager.setEnabled(this.soundEnabled, true);
@@ -320,6 +330,7 @@
             this.renderChat();
             this.renderStatusBar();
             this.renderSoundToggle();
+            this.renderCreateTableControls();
         },
 
         selectRoom(button) {
@@ -558,6 +569,76 @@
                     client.send?.(rowData.command);
                 }
             }
+        },
+
+        toggleCreateTablePanel() {
+            const panel = this.elements.createTablePanel;
+            if (!panel) return;
+            const expanded = panel.dataset.expanded !== 'true';
+            panel.dataset.expanded = expanded ? 'true' : 'false';
+            this.elements.createTableToggle?.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            this.renderCreateTableControls();
+        },
+
+        handleCreateTable(event) {
+            event?.preventDefault();
+            const client = window.CaissaFICSClient;
+            if (!client?.authenticated) {
+                this.setCreateTableStatus('Connect to FICS before creating a table.', true);
+                this.addSystemMessage('Connect to FICS before creating a table.');
+                this.queueSoundCue('error');
+                return;
+            }
+
+            const time = this.getBoundedInteger(this.elements.createTime?.value, 1, 180, 5);
+            const increment = this.getBoundedInteger(this.elements.createIncrement?.value, 0, 60, 0);
+            const rated = this.elements.createRated?.value === 'rated' ? 'rated' : 'unrated';
+            const color = ['white', 'black'].includes(this.elements.createColor?.value)
+                ? this.elements.createColor.value
+                : '';
+            if (this.elements.createTime) this.elements.createTime.value = String(time);
+            if (this.elements.createIncrement) this.elements.createIncrement.value = String(increment);
+
+            const command = ['seek', time, increment, rated, color].filter((part) => part !== '').join(' ');
+            client.send?.(command);
+            client.pendingSeek = {
+                timeControl: `${time}+${increment}`,
+                label: 'Your CAISSA Classic table'
+            };
+            client.renderRoomTables?.();
+            this.setCreateTableStatus(`Posted ${rated === 'rated' ? 'rated' : 'casual'} ${time}+${increment}${color ? ` ${color}` : ''} table.`, false);
+            this.addSystemMessage(`Posted table: ${time}+${increment} ${rated}${color ? ` ${color}` : ''}.`);
+            this.addActivity(`Table posted: ${time}+${increment} ${rated}.`, 'challenge');
+            this.render();
+        },
+
+        renderCreateTableControls() {
+            const panel = this.elements.createTablePanel;
+            if (!panel) return;
+            const connected = !!window.CaissaFICSClient?.authenticated;
+            panel.classList.toggle('disabled', !connected);
+            panel.setAttribute('aria-disabled', connected ? 'false' : 'true');
+            this.elements.createTableToggle?.setAttribute('aria-expanded', panel.dataset.expanded === 'true' ? 'true' : 'false');
+            this.elements.createTableSubmit?.toggleAttribute('disabled', !connected);
+            [this.elements.createRated, this.elements.createTime, this.elements.createIncrement, this.elements.createColor]
+                .forEach((control) => control?.toggleAttribute('disabled', !connected));
+            if (!connected) {
+                this.setCreateTableStatus('Connect to FICS to create a table.', true);
+            } else if (!this.elements.createTableStatus?.textContent || this.elements.createTableStatus.dataset.offline === 'true') {
+                this.setCreateTableStatus('Ready to post a FICS seek.', false);
+            }
+        },
+
+        setCreateTableStatus(message, offline = false) {
+            if (!this.elements.createTableStatus) return;
+            this.elements.createTableStatus.textContent = message;
+            this.elements.createTableStatus.dataset.offline = offline ? 'true' : 'false';
+        },
+
+        getBoundedInteger(value, min, max, fallback) {
+            const parsed = parseInt(value, 10);
+            if (!Number.isFinite(parsed)) return fallback;
+            return Math.min(max, Math.max(min, parsed));
         },
 
         openTable(tableId, meta = null, mode = 'watching') {

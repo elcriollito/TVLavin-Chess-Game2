@@ -1499,11 +1499,39 @@
                                     <div class="yc-panel-title">Controls</div>
                                     <button class="yc-classic-button primary" type="button" title="Play now">Play Now</button>
                                     <button class="yc-classic-button" type="button" title="Join a selected table">Join Table</button>
-                                    <button class="yc-classic-button" type="button" title="Create a new table">Create Table</button>
+                                    <button id="ycCreateTableToggle" class="yc-classic-button" type="button" title="Create a new table" aria-expanded="true">Create Table</button>
                                     <button class="yc-classic-button" type="button" title="Classic options">Options</button>
                                     <button class="yc-classic-button" type="button" title="Classic help">Help</button>
                                     <button class="yc-classic-button" type="button" title="Exit the classic lobby">Exit</button>
                                 </div>
+                                <form id="ycCreateTablePanel" class="yc-panel yc-create-table-panel" data-expanded="true" aria-label="Create CAISSA Classic table">
+                                    <div class="yc-panel-title">Create Table</div>
+                                    <label>
+                                        <span>Game</span>
+                                        <select id="ycCreateRated" class="yc-classic-field">
+                                            <option value="unrated">Casual</option>
+                                            <option value="rated">Rated</option>
+                                        </select>
+                                    </label>
+                                    <label>
+                                        <span>Minutes</span>
+                                        <input id="ycCreateTime" class="yc-classic-field" type="number" min="1" max="180" value="5" inputmode="numeric">
+                                    </label>
+                                    <label>
+                                        <span>Increment</span>
+                                        <input id="ycCreateIncrement" class="yc-classic-field" type="number" min="0" max="60" value="0" inputmode="numeric">
+                                    </label>
+                                    <label>
+                                        <span>Color</span>
+                                        <select id="ycCreateColor" class="yc-classic-field">
+                                            <option value="">Either</option>
+                                            <option value="white">White</option>
+                                            <option value="black">Black</option>
+                                        </select>
+                                    </label>
+                                    <button id="ycCreateTableSubmit" class="yc-classic-button primary" type="submit">Post Table</button>
+                                    <small id="ycCreateTableStatus">Connect to FICS to create a table.</small>
+                                </form>
                                 <div class="yc-status-card">
                                     <strong id="ycRoomCardTitle">CAISSA Lobby</strong>
                                     <span id="ycRoomCardDescription">Main chess lounge. Live FICS tables.</span>
