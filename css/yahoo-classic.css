@@ -755,6 +755,92 @@
     line-height: 1.35;
 }
 
+.yc-teaching-hero,
+.yc-teaching-panel {
+    margin: 6px;
+    border: 2px solid;
+    border-color: #ffffff var(--yc-border-gray) var(--yc-border-gray) #ffffff;
+    background: #eee6c8;
+    color: #202020;
+}
+
+.yc-teaching-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 10px;
+    padding: 8px;
+    background:
+        linear-gradient(90deg, rgba(0, 96, 56, 0.08) 1px, transparent 1px),
+        linear-gradient(180deg, #e9f4d5, #c8dba5);
+    background-size: 8px 8px, auto;
+}
+
+.yc-teaching-hero h4,
+.yc-teaching-panel h4 {
+    margin: 0;
+    color: #214d2e;
+    font-size: 12px;
+}
+
+.yc-teaching-hero p {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.yc-teaching-badge {
+    justify-self: end;
+    align-self: start;
+    padding: 2px 6px;
+    border: 1px solid;
+    border-color: var(--yc-border-gray) #ffffff #ffffff var(--yc-border-gray);
+    background: #eee3bd;
+    color: #214d2e;
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.yc-teaching-panel {
+    display: grid;
+    gap: 6px;
+    padding: 7px;
+}
+
+.yc-teaching-list {
+    display: grid;
+    grid-template-columns: 124px minmax(0, 1fr);
+    margin: 0;
+    border: 1px solid #b9b096;
+    background: var(--yc-panel-white);
+}
+
+.yc-teaching-list dt,
+.yc-teaching-list dd {
+    margin: 0;
+    padding: 4px 6px;
+    border-bottom: 1px solid #d0c6a8;
+    font-size: 11px;
+}
+
+.yc-teaching-list dt {
+    border-right: 1px solid #b9b096;
+    background: #e3edce;
+    color: #214d2e;
+    font-weight: 700;
+}
+
+.yc-teaching-empty {
+    margin: 0;
+    padding: 5px 6px;
+    border: 1px solid #b9b096;
+    background: #fbf6df;
+    color: #484848;
+    font-size: 11px;
+    line-height: 1.35;
+}
+
 .yc-player-list {
     height: 100%;
     max-height: none;
@@ -1551,6 +1637,18 @@
     }
 
     .yc-computer-list {
+        grid-template-columns: 104px minmax(0, 1fr);
+    }
+
+    .yc-teaching-hero {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .yc-teaching-badge {
+        justify-self: start;
+    }
+
+    .yc-teaching-list {
         grid-template-columns: 104px minmax(0, 1fr);
     }
 

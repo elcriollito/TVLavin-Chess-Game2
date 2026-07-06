@@ -358,7 +358,9 @@
                     ? 'Tournament Hall'
                     : this.isComputerRoom()
                         ? 'Computer Hall'
-                        : 'Room Tables';
+                        : this.isTeachingRoom()
+                            ? 'Teaching & Training Hall'
+                            : 'Room Tables';
             }
         },
 
@@ -372,6 +374,10 @@
             }
             if (this.isComputerRoom()) {
                 this.elements.roomSummary.textContent = `Current Room: Computer Hall - Players Online: ${players.length} - Engine Room: Offline`;
+                return;
+            }
+            if (this.isTeachingRoom()) {
+                this.elements.roomSummary.textContent = `Current Room: Teaching & Training Hall - Players Online: ${players.length} - Training Feed: Not available`;
                 return;
             }
             this.elements.roomSummary.textContent = `Current Room: ${this.currentRoom.name} - Players Online: ${players.length} - Active Tables: ${tables}`;
@@ -388,6 +394,11 @@
 
             if (this.isComputerRoom()) {
                 this.renderComputerHall(tableGrid);
+                return;
+            }
+
+            if (this.isTeachingRoom()) {
+                this.renderTeachingHall(tableGrid);
                 return;
             }
 
@@ -535,6 +546,69 @@
             return panel;
         },
 
+        renderTeachingHall(container) {
+            container.setAttribute('role', 'region');
+            container.setAttribute('aria-label', 'Classic Teaching and Training Hall');
+            container.replaceChildren(
+                this.createTeachingHero(),
+                this.createTeachingPanel('Teaching Tables', [
+                    ['Status', 'No teaching backend connected'],
+                    ['Live Classes', 'Not available'],
+                    ['Study Groups', 'Coming soon']
+                ], 'Teaching tables will appear here only when a supported lesson or classroom pathway exists.'),
+                this.createTeachingPanel('Training Board', [
+                    ['Board Mode', 'Preview only'],
+                    ['Exercises', 'Not available'],
+                    ['Coach Support', 'Coming soon']
+                ], 'No interactive training board is available in this phase. CAISSA Classic will not present fake lessons.'),
+                this.createTeachingPanel('Lesson Notes', [
+                    ['Current Lesson', '--'],
+                    ['Instructor', '--'],
+                    ['Materials', 'Not available']
+                ], 'Lesson notes are reserved for future real teaching sessions and study rooms.'),
+                this.createTeachingPanel('Room Notes', [
+                    ['Format', 'Classic teaching-room shell'],
+                    ['Live Tables', String(this.activeTables.length + this.seekActions.length)],
+                    ['Players Online', String(this.getPlayers().length)]
+                ], 'Use CAISSA Lobby for live FICS play. Teaching & Training Hall is prepared for future lessons and guided study.')
+            );
+        },
+
+        createTeachingHero() {
+            const hero = document.createElement('div');
+            hero.className = 'yc-teaching-hero';
+            const title = document.createElement('h4');
+            title.textContent = 'Teaching & Training Hall';
+            const summary = document.createElement('p');
+            summary.textContent = 'A classic study-room shell for future teaching tables, lesson notes, and training boards.';
+            const badge = document.createElement('span');
+            badge.className = 'yc-teaching-badge';
+            badge.textContent = 'Training backend not connected';
+            hero.append(title, summary, badge);
+            return hero;
+        },
+
+        createTeachingPanel(title, rows, emptyText) {
+            const panel = document.createElement('section');
+            panel.className = 'yc-teaching-panel';
+            const heading = document.createElement('h4');
+            heading.textContent = title;
+            const list = document.createElement('dl');
+            list.className = 'yc-teaching-list';
+            rows.forEach(([term, value]) => {
+                const dt = document.createElement('dt');
+                dt.textContent = term;
+                const dd = document.createElement('dd');
+                dd.textContent = value;
+                list.append(dt, dd);
+            });
+            const empty = document.createElement('p');
+            empty.className = 'yc-teaching-empty';
+            empty.textContent = emptyText;
+            panel.append(heading, list, empty);
+            return panel;
+        },
+
         buildTableRows() {
             const waiting = this.seekActions.map((seek) => {
                 const details = seek.details || {};
@@ -576,6 +650,10 @@
 
         isComputerRoom() {
             return this.currentRoom.name === 'Computer Hall';
+        },
+
+        isTeachingRoom() {
+            return this.currentRoom.name === 'Teaching & Training Hall';
         },
 
         createTableHeader() {
