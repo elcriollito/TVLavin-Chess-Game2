@@ -106,6 +106,8 @@
         board: null,
         lastRenderedFen: null,
         lastMoveSignature: '',
+        recentlyLeftObservedGame: null,
+        leaveTableInProgress: false,
         currentRoom: {
             name: CURRENT_ROOM,
             description: 'Main chess lounge. Live FICS tables.'
@@ -178,6 +180,7 @@
                 soundBtn: document.getElementById('ycSoundBtn'),
                 sitBtn: document.getElementById('ycSitBtn'),
                 standBtn: document.getElementById('ycStandBtn'),
+                leaveTableBtn: document.getElementById('ycLeaveTableBtn'),
                 createTableToggle: document.getElementById('ycCreateTableToggle'),
                 createTablePanel: document.getElementById('ycCreateTablePanel'),
                 createTableSubmit: document.getElementById('ycCreateTableSubmit'),
@@ -195,11 +198,13 @@
             window.addEventListener('caissa:fics:lobby-updated', (event) => this.handleFicsEvent(event.detail));
             window.addEventListener('caissa:fics:style12', (event) => this.handleFicsEvent(event.detail));
             window.addEventListener('caissa:fics:game-ended', (event) => this.handleFicsEvent(event.detail));
+            window.addEventListener('caissa:fics:observer-left', (event) => this.handleFicsEvent(event.detail));
             window.addEventListener('caissa:fics:disconnected', (event) => this.handleFicsEvent(event.detail));
             this.elements.roomTabs?.forEach((button) => {
                 button.addEventListener('click', () => this.selectRoom(button));
             });
             this.elements.standBtn?.addEventListener('click', () => this.standFromTable());
+            this.elements.leaveTableBtn?.addEventListener('click', () => this.leaveTable());
             this.elements.sitBtn?.addEventListener('click', () => this.addSystemMessage('Choose Join from a waiting table to sit.'));
             this.elements.soundBtn?.addEventListener('click', () => this.toggleClassicSound());
             this.elements.ficsAccountLoginBtn?.addEventListener('click', () => this.showClassicAccountLogin());
@@ -279,6 +284,23 @@
                 this.addSystemMessage(`Game finished: ${resultText}.`);
                 this.addActivity(`Game over: ${resultText}.`, 'gameover');
                 this.queueSoundCue('gameover');
+            } else if (event === 'observer-left') {
+                const leftGame = payload.gameNumber !== null && payload.gameNumber !== undefined ? String(payload.gameNumber) : '';
+                const currentGame = this.liveGame?.gameNumber || this.currentTableId;
+                if (!leftGame || !currentGame || leftGame === String(currentGame)) {
+                    if (leftGame) {
+                        this.recentlyLeftObservedGame = {
+                            gameNumber: leftGame,
+                            until: Date.now() + 2500
+                        };
+                    }
+                    this.closeTable(false);
+                    this.selectLobbyRoom();
+                    if (!this.leaveTableInProgress) {
+                        this.addSystemMessage(leftGame ? `Left table ${leftGame}.` : 'Left observed table.');
+                        this.addActivity('Returned to CAISSA Lobby.', 'room');
+                    }
+                }
             } else if (event === 'disconnected') {
                 this.handleDisconnected(false);
             }
@@ -377,6 +399,21 @@
             });
             this.addActivity(`Entered ${this.currentRoom.name}.`, 'room');
             this.render();
+        },
+
+        selectLobbyRoom() {
+            const lobbyTab = Array.from(this.elements.roomTabs || [])
+                .find((tab) => tab.dataset.room === CURRENT_ROOM);
+            if (!lobbyTab) return;
+            this.currentRoom = {
+                name: CURRENT_ROOM,
+                description: lobbyTab.dataset.description || 'Main chess lounge. Live FICS tables.'
+            };
+            this.elements.roomTabs?.forEach((tab) => {
+                const active = tab === lobbyTab;
+                tab.classList.toggle('active', active);
+                tab.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
         },
 
         getFicsClient() {
@@ -1041,6 +1078,9 @@
         },
 
         openTable(tableId, meta = null, mode = 'watching') {
+            if (tableId && this.recentlyLeftObservedGame?.gameNumber === String(tableId)) {
+                this.recentlyLeftObservedGame = null;
+            }
             this.tableOpen = true;
             this.currentTableId = tableId || this.currentTableId;
             this.currentTableMeta = meta || this.currentTableMeta;
@@ -1076,13 +1116,59 @@
         },
 
         standFromTable() {
-            this.closeTable(true);
+            if (!this.tableOpen) return;
+            if (this.liveGame?.observedGame) {
+                this.addSystemMessage('You are watching this table. Use Leave Table / Return to Lobby to stop observing.');
+                this.addActivity('Stand is reserved for seated table states.', 'notify');
+            } else {
+                this.addSystemMessage('Stand keeps the table context. Use Leave Table / Return to Lobby to exit the table.');
+                this.addActivity('Standing is available only when the current FICS table supports it.', 'notify');
+            }
+            this.render();
+        },
+
+        leaveTable() {
+            if (!this.tableOpen) return;
+            const client = window.CaissaFICSClient;
+            const gameNumber = this.liveGame?.gameNumber || this.currentTableId;
+            const wasObserved = !!this.liveGame?.observedGame;
+            let sentUnobserve = false;
+
+            if (wasObserved && client?.authenticated && gameNumber) {
+                this.recentlyLeftObservedGame = {
+                    gameNumber: String(gameNumber),
+                    until: Date.now() + 2500
+                };
+                this.leaveTableInProgress = true;
+                try {
+                    if (typeof client.leaveObservedGame === 'function') {
+                        sentUnobserve = client.leaveObservedGame(gameNumber);
+                    } else {
+                        client.send?.(`unobserve ${gameNumber}`);
+                        sentUnobserve = true;
+                    }
+                } finally {
+                    this.leaveTableInProgress = false;
+                }
+            }
+
+            this.closeTable(false);
+            this.selectLobbyRoom();
+            this.addSystemMessage(gameNumber
+                ? `${sentUnobserve ? 'Stopped observing' : 'Left'} table ${gameNumber}.`
+                : 'Returned to CAISSA Lobby.');
+            this.addActivity('Returned to CAISSA Lobby.', 'room');
             this.render();
         },
 
         handleStyle12(payload = {}, render = true) {
             const liveGame = payload.liveGame || {};
             if (!liveGame.currentFen) return;
+            const leftGame = this.recentlyLeftObservedGame;
+            if (leftGame && liveGame.observedGame && String(liveGame.gameNumber) === leftGame.gameNumber) {
+                if (Date.now() < leftGame.until) return;
+                this.recentlyLeftObservedGame = null;
+            }
 
             const previousMoveCount = this.moveHistory.length;
             this.liveGame = { ...liveGame };
@@ -1658,6 +1744,7 @@
             this.setText(this.elements.gameSpectatorState, spectatorText);
             this.elements.gameWindow?.setAttribute('aria-label', tableLabel);
             this.setButtonDisabled(this.elements.standBtn, !this.tableOpen);
+            this.setButtonDisabled(this.elements.leaveTableBtn, !this.tableOpen);
             this.setButtonDisabled(this.elements.sitBtn, !this.authenticated);
         },
 

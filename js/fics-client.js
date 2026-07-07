@@ -1353,6 +1353,46 @@ const CaissaFICSClient = {
         this.send(`observe ${target}`);
     },
 
+    leaveObservedGame(gameNumber = null) {
+        const target = gameNumber !== null && gameNumber !== undefined
+            ? String(gameNumber)
+            : this.liveGame?.gameNumber !== null && this.liveGame?.gameNumber !== undefined
+                ? String(this.liveGame.gameNumber)
+                : '';
+        if (!this.authenticated || !target || !this.liveGame?.observedGame) return false;
+
+        this.updateGameStatus(`Leaving observed game ${target}...`, 'active');
+        this.logToConsole(`> unobserve ${target}`);
+        this.send(`unobserve ${target}`);
+        this.clearObservedGameState(target);
+        setTimeout(() => this.refreshLobby(true), 1200);
+        return true;
+    },
+
+    clearObservedGameState(gameNumber = null) {
+        const target = gameNumber !== null && gameNumber !== undefined
+            ? String(gameNumber)
+            : this.liveGame?.gameNumber !== null && this.liveGame?.gameNumber !== undefined
+                ? String(this.liveGame.gameNumber)
+                : '';
+        this.gameActive = false;
+        this.myColor = null;
+        this.gameNumber = null;
+        this.pendingMove = null;
+        this.cancelPromotionSelection(false);
+        this.liveGame = this.createEmptyLiveGameState('idle');
+        this.resetGameRecord();
+        if (this.chess) this.chess.reset();
+        if (this.board) {
+            this.board.orientation('white');
+            this.board.position('start', false);
+        }
+        this.updatePlayerBars();
+        this.updateGameStatus('No active game', '');
+        this.renderRoomTables();
+        this.notifySpectator('observer-left', { gameNumber: target });
+    },
+
     cancelSeek() {
         this.pendingSeek = null;
         this.updateRoomStatus('Canceling seek...');
