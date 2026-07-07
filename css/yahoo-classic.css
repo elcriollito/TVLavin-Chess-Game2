@@ -62,6 +62,13 @@ body.yc-classic-active .content-area {
     overflow: hidden;
 }
 
+body.yc-classic-active,
+body.yc-classic-active #app {
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+}
+
 #yahooClassicSection {
     display: flex;
     height: 100dvh;
@@ -324,6 +331,7 @@ body.yc-classic-active .content-area {
     color: #2b2b2b;
     font-size: 10px;
     line-height: 1.25;
+    font-weight: 700;
 }
 
 .yc-classic-login-status[data-state="error"] {
@@ -1626,9 +1634,23 @@ body.yc-classic-active .content-area {
 
 .yc-row-pending span {
     grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(150px, auto) minmax(0, 1fr) auto;
+    gap: 6px;
+    align-items: center;
     color: #4d3a00;
     font-weight: 700;
     background: #fff0ad;
+}
+
+.yc-row-pending strong {
+    color: #241d54;
+}
+
+.yc-row-pending .yc-cancel-seek {
+    min-height: 19px;
+    padding: 1px 6px;
+    font-size: 10px;
 }
 
 .yc-move-number {

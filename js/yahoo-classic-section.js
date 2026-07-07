@@ -93,6 +93,7 @@
         initialized: false,
         active: false,
         authenticated: false,
+        connectionState: 'disconnected',
         activeTables: [],
         seekActions: [],
         catalog: null,
@@ -235,11 +236,13 @@
 
             if (event === 'connection-state') {
                 this.authenticated = !!payload.authenticated;
+                this.connectionState = payload.state || (payload.connected ? 'connected' : 'disconnected');
                 if (payload.state === 'connecting' || payload.state === 'reconnecting') {
+                    this.setClassicLoginStatus(this.getClassicIdentityText('Connecting'));
                     this.addSystemMessage('Connecting to FICS...');
                     this.addActivity('Connecting to FICS.', 'connect');
                 } else if (payload.state === 'connected' && payload.authenticated) {
-                    this.setClassicLoginStatus('Connected to FICS.');
+                    this.setClassicLoginStatus(this.getClassicIdentityText('Connected'));
                     this.addSystemMessage('Connected.');
                     this.addActivity('Connected to FICS.', 'connect');
                 } else if (payload.state === 'disconnected') {
@@ -247,7 +250,8 @@
                 }
             } else if (event === 'authenticated') {
                 this.authenticated = true;
-                this.setClassicLoginStatus('Connected to FICS.');
+                this.connectionState = 'connected';
+                this.setClassicLoginStatus(this.getClassicIdentityText('Connected'));
                 this.addSystemMessage('Connected.');
                 this.addSystemMessage(`Loading ${CURRENT_ROOM}...`);
                 this.addActivity('Player session connected.', 'connect');
@@ -284,7 +288,8 @@
 
         handleDisconnected(render = true) {
             this.authenticated = false;
-            this.setClassicLoginStatus('Disconnected.');
+            this.connectionState = 'disconnected';
+            this.setClassicLoginStatus(this.getClassicIdentityText('Disconnected'));
             this.activeTables = [];
             this.seekActions = [];
             this.catalog = window.CaissaSpectatorTVCatalog?.clearCatalog?.() || null;
@@ -300,6 +305,7 @@
             if (!client) return;
 
             this.authenticated = !!client.authenticated;
+            this.connectionState = client.authenticated ? 'connected' : client.connected ? 'connecting' : 'disconnected';
             this.activeTables = Array.isArray(client.activeTables) ? client.activeTables.map((table) => ({ ...table })) : [];
             this.seekActions = Array.isArray(client.seekActions) ? client.seekActions.map((seek) => ({ ...seek })) : [];
             this.updateCatalog();
@@ -311,9 +317,12 @@
             }
 
             if (this.authenticated) {
+                this.setClassicLoginStatus(this.getClassicIdentityText('Connected'));
                 this.addSystemMessage(this.activeTables.length || this.seekActions.length
                     ? 'Receiving lobby...'
                     : 'Connected. Waiting for lobby data...');
+            } else {
+                this.setClassicLoginStatus(this.getClassicIdentityText('Disconnected'));
             }
         },
 
@@ -386,6 +395,15 @@
             this.elements.classicLoginStatus.dataset.state = isError ? 'error' : 'normal';
         },
 
+        getClassicIdentityText(stateLabel = null) {
+            const client = window.CaissaFICSClient;
+            const state = stateLabel || (this.authenticated ? 'Connected' : this.connectionState === 'connecting' ? 'Connecting' : 'Disconnected');
+            if (!client || !this.authenticated) return `${state}. No FICS user connected.`;
+            const username = client.ficsUsername || (client.loginMode === 'account' ? client.accountUsername : 'Guest');
+            const mode = client.loginMode === 'account' ? 'Account' : 'Guest';
+            return `${state}. ${mode}: ${username}.`;
+        },
+
         showClassicAccountLogin() {
             const client = this.getFicsClient();
             if (!client) return;
@@ -401,6 +419,7 @@
             const client = this.getFicsClient();
             if (!client) return;
             client.setLoginMode?.('guest');
+            this.connectionState = 'connecting';
             if (this.elements.classicAccountFields) this.elements.classicAccountFields.hidden = true;
             this.elements.ficsAccountLoginBtn?.setAttribute('aria-expanded', 'false');
             this.setClassicLoginStatus('Connecting to FICS as guest...');
@@ -430,6 +449,7 @@
             if (modernPassword) modernPassword.value = password;
 
             client.setLoginMode?.('account');
+            this.connectionState = 'connecting';
             this.setClassicLoginStatus(`Connecting to FICS as ${username}...`);
             this.addSystemMessage(`Connecting to FICS as ${username}...`);
             this.addActivity('FICS account login started.', 'connect');
@@ -783,9 +803,36 @@
             row.setAttribute('role', 'row');
             const cell = document.createElement('span');
             cell.setAttribute('role', 'cell');
-            cell.textContent = `Pending posted table: ${pending.timeControl || 'seek'} - waiting for FICS lobby confirmation.`;
+            const label = document.createElement('strong');
+            label.textContent = 'Your posted table / seek';
+            const detail = document.createElement('span');
+            detail.textContent = `${pending.timeControl || 'seek'} - Pending - Waiting for opponent`;
+            const cancel = document.createElement('button');
+            cancel.type = 'button';
+            cancel.className = 'yc-row-action yc-cancel-seek';
+            cancel.textContent = 'Cancel Posted Table';
+            cancel.title = 'Cancel your pending FICS seek';
+            cancel.addEventListener('click', () => this.cancelPostedTable());
+            cell.append(label, detail, cancel);
             row.appendChild(cell);
             return row;
+        },
+
+        cancelPostedTable() {
+            const client = window.CaissaFICSClient;
+            if (!client?.authenticated || !client.pendingSeek) {
+                this.addSystemMessage('No posted table is pending.');
+                this.setCreateTableStatus('No posted table is pending.', true);
+                this.render();
+                return;
+            }
+            client.send?.('unseek');
+            client.pendingSeek = null;
+            client.renderRoomTables?.();
+            this.setCreateTableStatus('Canceling posted table with FICS unseek.', false);
+            this.addSystemMessage('Canceling posted table.');
+            this.addActivity('Posted table canceled.', 'notify');
+            this.render();
         },
 
         createTableRow(rowData) {
@@ -952,7 +999,9 @@
             client.send?.(command);
             client.pendingSeek = {
                 timeControl: `${time}+${increment}`,
-                label: 'Your CAISSA Classic table'
+                label: 'Your CAISSA Classic table',
+                rated,
+                color
             };
             client.renderRoomTables?.();
             this.setCreateTableStatus(`Posted ${rated === 'rated' ? 'rated' : 'casual'} ${time}+${increment}${color ? ` ${color}` : ''} table.`, false);
@@ -1040,8 +1089,14 @@
             this.moveHistory = Array.isArray(payload.moveHistory)
                 ? payload.moveHistory.map((move) => ({ ...move }))
                 : this.moveHistory;
+            const wasWaitingForSeek = (!!window.CaissaFICSClient?.pendingSeek || this.tableMode === 'joining') && liveGame.gameActive && !liveGame.observedGame;
             this.openTable(liveGame.gameNumber || this.currentTableId, this.currentTableMeta, liveGame.observedGame ? 'watching' : 'playing');
-            if (liveGame.gameNumber) this.addSystemMessage(`Watching table ${liveGame.gameNumber}.`);
+            if (wasWaitingForSeek) {
+                this.addSystemMessage(`Opponent joined. Game started. ${this.getPlayerRoleText()}.`);
+                this.addActivity('Opponent joined. Game started.', 'join');
+            } else if (liveGame.gameNumber) {
+                this.addSystemMessage(liveGame.observedGame ? `Watching table ${liveGame.gameNumber}.` : `Game started at table ${liveGame.gameNumber}. ${this.getPlayerRoleText()}.`);
+            }
             if (this.moveHistory.length > previousMoveCount) {
                 const latest = this.getLatestMove();
                 const capture = this.isCaptureMove(latest);
@@ -1294,8 +1349,12 @@
             const gameType = this.getClassicGameType(time, game);
             const rated = game === 'Unrated' || game === 'Casual' ? 'Casual' : 'Rated';
             const spectators = this.formatCount(table?.observers || this.liveGame?.observers || 0);
+            const result = this.normalizeGameResult(this.liveGame?.result || table?.result);
+            const finished = result !== '--' || this.liveGame?.status === 'ended';
+            const readiness = this.getGameReadinessText({ side, result, finished });
+            const role = this.getPlayerRoleText();
             const values = this.tableOpen && gameNumber
-                ? ['Connected', `${rated} ${gameType}`, `Table ${gameNumber}`, side ? `${side} to Move` : 'Waiting', `Spectators ${spectators}`, `[Sound: ${this.soundEnabled ? 'On' : 'Off'}]`]
+                ? ['Connected', `${rated} ${gameType}`, `Table ${gameNumber}`, role, readiness, `[Sound: ${this.soundEnabled ? 'On' : 'Off'}]`]
                 : ['Done', status, this.authenticated ? 'Connected' : 'Not connected', `${players} players online`, `[Sound: ${this.soundEnabled ? 'On' : 'Off'}]`];
             this.elements.browserStatus.replaceChildren(...values.map((value, index) => {
                 const cell = document.createElement('span');
@@ -1565,6 +1624,8 @@
                 ? `Finished${result !== '--' ? ` ${result}` : ''}`
                 : side ? `${side} to Move` : 'Waiting for board';
             const spectatorText = `Spectators ${spectators}`;
+            const roleText = this.getPlayerRoleText();
+            const readinessText = this.getGameReadinessText({ side, result, finished });
             const tableLabel = gameNumber
                 ? `Classic table ${gameNumber}: ${white} versus ${black}, ${rated} ${gameType}, ${turnText}`
                 : 'Classic game table';
@@ -1574,8 +1635,8 @@
             }
             if (this.elements.gameDetail) {
                 this.elements.gameDetail.textContent = gameNumber
-                    ? `${game} ${time} - ${side ? `${side} to move` : 'waiting for board'}`
-                    : 'Watch or join a room table to open the classic board.';
+                    ? `${roleText} - ${readinessText}`
+                    : this.getPendingSeekStatus() || 'Watch or join a room table to open the classic board.';
             }
             if (this.elements.gameMeta) {
                 this.elements.gameMeta.textContent = gameNumber
@@ -1593,11 +1654,39 @@
             this.setText(this.elements.gameInfoMove, String(moveNumber));
             this.setText(this.elements.gameInfoResult, result);
             this.setText(this.elements.gameInfoPhase, phase);
-            this.setText(this.elements.gameTurnState, turnText);
+            this.setText(this.elements.gameTurnState, readinessText);
             this.setText(this.elements.gameSpectatorState, spectatorText);
             this.elements.gameWindow?.setAttribute('aria-label', tableLabel);
             this.setButtonDisabled(this.elements.standBtn, !this.tableOpen);
             this.setButtonDisabled(this.elements.sitBtn, !this.authenticated);
+        },
+
+        getPlayerRoleText() {
+            const client = window.CaissaFICSClient;
+            const color = this.liveGame?.userColor || client?.myColor;
+            if (this.liveGame?.observedGame) return 'Watching';
+            if (color === 'white') return 'You are White';
+            if (color === 'black') return 'You are Black';
+            return this.tableOpen ? 'Waiting for seat' : 'Watching';
+        },
+
+        getPendingSeekStatus() {
+            const pending = window.CaissaFICSClient?.pendingSeek;
+            return pending ? `Your posted table / seek: ${pending.timeControl || 'seek'} - Waiting for opponent.` : '';
+        },
+
+        getGameReadinessText({ side, result, finished }) {
+            const status = String(this.liveGame?.status || '').toLowerCase();
+            if (status.includes('abort')) return 'Game aborted';
+            if (finished) return `Game finished: ${result !== '--' ? result : 'result received'}`;
+            if (this.liveGame?.observedGame) return side ? `${side} to move` : 'Watching';
+            if (!this.liveGame?.currentFen) return this.getPendingSeekStatus() || 'Waiting for board';
+            const client = window.CaissaFICSClient;
+            const color = this.liveGame?.userColor || client?.myColor;
+            if (!side) return 'Waiting for board';
+            if ((color === 'white' && side === 'White') || (color === 'black' && side === 'Black')) return 'Your move';
+            if (color === 'white' || color === 'black') return 'Opponent to move';
+            return `${side} to move`;
         },
 
         setButtonDisabled(button, disabled) {
