@@ -265,9 +265,15 @@
             } else if (event === 'style12') {
                 this.handleStyle12(payload);
             } else if (event === 'game-ended') {
-                if (payload.liveGame) this.liveGame = { ...payload.liveGame };
-                this.addSystemMessage('Observed game finished.');
-                this.addActivity('Game over.', 'gameover');
+                const result = this.normalizeGameResult(payload.result || payload.resultLine || payload.liveGame?.result || this.liveGame?.result);
+                if (payload.liveGame) {
+                    this.liveGame = { ...payload.liveGame, result, status: 'ended' };
+                } else if (this.liveGame) {
+                    this.liveGame = { ...this.liveGame, result, status: 'ended' };
+                }
+                const resultText = result && result !== '--' ? result : 'result received';
+                this.addSystemMessage(`Game finished: ${resultText}.`);
+                this.addActivity(`Game over: ${resultText}.`, 'gameover');
                 this.queueSoundCue('gameover');
             } else if (event === 'disconnected') {
                 this.handleDisconnected(false);
@@ -496,11 +502,17 @@
             }
 
             if (!rows.length) {
-                tableGrid.replaceChildren(header, this.createEmptyTableRow('Receiving lobby. No live tables yet.'));
+                const pending = this.createPendingSeekNotice();
+                tableGrid.replaceChildren(header, pending || this.createEmptyTableRow('Receiving lobby. No live tables yet.'));
                 return;
             }
 
-            tableGrid.replaceChildren(header, ...rows.map((row) => this.createTableRow(row)));
+            const pending = this.createPendingSeekNotice();
+            tableGrid.replaceChildren(
+                header,
+                ...(pending ? [pending] : []),
+                ...rows.map((row) => this.createTableRow(row))
+            );
         },
 
         renderTournamentHall(container) {
@@ -763,6 +775,19 @@
             return row;
         },
 
+        createPendingSeekNotice() {
+            const pending = window.CaissaFICSClient?.pendingSeek;
+            if (!this.authenticated || !pending) return null;
+            const row = document.createElement('div');
+            row.className = 'yc-table-row yc-row-pending';
+            row.setAttribute('role', 'row');
+            const cell = document.createElement('span');
+            cell.setAttribute('role', 'cell');
+            cell.textContent = `Pending posted table: ${pending.timeControl || 'seek'} - waiting for FICS lobby confirmation.`;
+            row.appendChild(cell);
+            return row;
+        },
+
         createTableRow(rowData) {
             const row = document.createElement('div');
             row.className = `yc-table-row${rowData.kind === 'waiting' ? ' waiting' : ''}`;
@@ -933,6 +958,7 @@
             this.setCreateTableStatus(`Posted ${rated === 'rated' ? 'rated' : 'casual'} ${time}+${increment}${color ? ` ${color}` : ''} table.`, false);
             this.addSystemMessage(`Posted table: ${time}+${increment} ${rated}${color ? ` ${color}` : ''}.`);
             this.addActivity(`Table posted: ${time}+${increment} ${rated}.`, 'challenge');
+            setTimeout(() => client.refreshLobby?.(true), 1200);
             this.render();
         },
 
@@ -1296,8 +1322,11 @@
             if (this.board || !this.elements.classicBoard || typeof Chessboard === 'undefined') return;
             if (!this.elements.section?.classList.contains('active')) return;
             this.board = Chessboard(this.elements.classicBoard, {
-                draggable: false,
-                position: 'start'
+                draggable: true,
+                position: 'start',
+                onDragStart: (source, piece) => this.handleClassicDragStart(source, piece),
+                onDrop: (source, target) => this.handleClassicDrop(source, target),
+                onSnapEnd: () => this.handleClassicSnapEnd()
             });
         },
 
@@ -1305,11 +1334,63 @@
             if (!this.tableOpen) return;
             this.initClassicBoard();
             const fen = this.liveGame?.currentFen || 'start';
+            const client = window.CaissaFICSClient;
+            const orientation = client?.myColor || this.liveGame?.userColor || 'white';
+            this.board?.orientation?.(orientation);
             if (this.board && fen !== this.lastRenderedFen) {
                 this.board.position(fen, false);
                 this.lastRenderedFen = fen;
             }
-            requestAnimationFrame(() => this.board?.resize?.());
+            const playable = !!client?.canSubmitGraphicalMove?.();
+            this.elements.classicBoard?.classList.toggle('yc-board-playable', playable);
+            requestAnimationFrame(() => this.resizeClassicBoard());
+        },
+
+        resizeClassicBoard() {
+            if (!this.elements.classicBoard) return;
+            const panel = this.elements.classicBoard.closest('.yc-game-board-panel');
+            if (!panel) return;
+            const reserved = [
+                this.elements.blackPlayerBar,
+                this.elements.whitePlayerBar,
+                this.elements.boardFeedback
+            ].reduce((total, element) => total + (element?.offsetHeight || 0), 0);
+            const panelStyle = window.getComputedStyle(panel);
+            const rowGap = parseFloat(panelStyle.rowGap || panelStyle.gap || '0') || 0;
+            const availableHeight = panel.clientHeight - reserved - (rowGap * 3) - 2;
+            const availableWidth = panel.clientWidth - 16;
+            const size = Math.max(160, Math.floor(Math.min(availableWidth, availableHeight, 760)));
+            this.elements.classicBoard.style.width = `${size}px`;
+            this.board?.resize?.();
+        },
+
+        handleClassicDragStart(source, piece) {
+            const client = window.CaissaFICSClient;
+            if (!client?.onDragStart) return false;
+            return client.onDragStart(source, piece);
+        },
+
+        handleClassicDrop(source, target) {
+            const client = window.CaissaFICSClient;
+            if (!client?.onDrop) return 'snapback';
+            const result = client.onDrop(source, target);
+            if (result === 'snapback') return 'snapback';
+            const optimisticFen = client.pendingMove?.optimisticFen;
+            if (optimisticFen) {
+                this.board?.position?.(optimisticFen, true);
+                this.lastRenderedFen = optimisticFen;
+            }
+            return result;
+        },
+
+        handleClassicSnapEnd() {
+            const client = window.CaissaFICSClient;
+            const fen = client?.pendingMove?.optimisticFen || this.liveGame?.currentFen;
+            if (fen) {
+                this.board?.position?.(fen, false);
+                this.lastRenderedFen = fen;
+            }
+            client?.onSnapEnd?.();
         },
 
         ensureBoardFeedback() {
@@ -1337,6 +1418,7 @@
                     ? `Last move: ${this.formatMoveLabel(latest)}${isCapture ? ' - Capture' : ''}`
                     : 'Board ready. Waiting for first move.';
             }
+            this.resizeClassicBoard();
             const signature = hasMove
                 ? `${latest.moveNumber}:${latest.color}:${latest.san}:${this.liveGame?.currentFen || ''}`
                 : '';
@@ -1475,10 +1557,13 @@
             const black = this.liveGame?.blackName || table?.black || 'Black';
             const moveNumber = this.getCurrentMoveNumber();
             const phase = this.getGamePhase(moveNumber);
-            const result = this.liveGame?.result || table?.result || '--';
+            const result = this.normalizeGameResult(this.liveGame?.result || table?.result);
+            const finished = result !== '--' || this.liveGame?.status === 'ended';
             const opening = this.liveGame?.openingName || this.liveGame?.opening || table?.opening || 'Unknown Opening';
             const eco = this.liveGame?.eco || table?.eco || '--';
-            const turnText = side ? `${side} to Move` : 'Waiting for board';
+            const turnText = finished
+                ? `Finished${result !== '--' ? ` ${result}` : ''}`
+                : side ? `${side} to Move` : 'Waiting for board';
             const spectatorText = `Spectators ${spectators}`;
             const tableLabel = gameNumber
                 ? `Classic table ${gameNumber}: ${white} versus ${black}, ${rated} ${gameType}, ${turnText}`
@@ -1493,7 +1578,9 @@
                     : 'Watch or join a room table to open the classic board.';
             }
             if (this.elements.gameMeta) {
-                this.elements.gameMeta.textContent = gameNumber ? `#${gameNumber} - ${game} - ${time}` : 'No table';
+                this.elements.gameMeta.textContent = gameNumber
+                    ? `#${gameNumber} - ${game} - ${time}${finished && result !== '--' ? ` - ${result}` : ''}`
+                    : 'No table';
             }
             this.setText(this.elements.gameHeaderTable, gameNumber ? `Table ${gameNumber}` : 'Table --');
             this.setText(this.elements.gameHeaderType, gameType);
@@ -1554,6 +1641,13 @@
             if (moveNumber >= 30) return 'Endgame';
             if (moveNumber >= 12) return 'Middlegame';
             return 'Opening';
+        },
+
+        normalizeGameResult(value) {
+            const text = String(value || '').trim();
+            if (!text) return '--';
+            const match = text.match(/\b(1-0|0-1|1\/2-1\/2|\*)\b/);
+            return match ? match[1] : text;
         },
 
         getCurrentTableMeta() {
