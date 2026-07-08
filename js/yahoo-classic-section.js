@@ -1756,26 +1756,78 @@
         renderGamePlayers() {
             const table = this.getCurrentTableMeta();
             const localColor = this.getLocalPlayerColor();
+            const blackSeat = this.getGameSeatData('black', table);
+            const whiteSeat = this.getGameSeatData('white', table);
             this.renderGamePlayerBar(this.elements.blackPlayerBar, {
                 color: 'black',
-                name: this.liveGame?.blackName || table?.black || 'Black',
-                rating: table?.blackRating || 'FICS',
-                clock: this.formatClock(this.liveGame?.blackClock),
-                clockSeconds: this.liveGame?.blackClock,
+                name: blackSeat.name,
+                rating: blackSeat.rating,
+                clock: this.formatClock(blackSeat.clockSeconds),
+                clockSeconds: blackSeat.clockSeconds,
                 active: this.liveGame?.sideToMove === 'b',
                 state: this.liveGame?.sideToMove === 'b' ? 'To move' : 'Waiting',
                 isLocal: localColor === 'black'
             });
             this.renderGamePlayerBar(this.elements.whitePlayerBar, {
                 color: 'white',
-                name: this.liveGame?.whiteName || table?.white || 'White',
-                rating: table?.whiteRating || 'FICS',
-                clock: this.formatClock(this.liveGame?.whiteClock),
-                clockSeconds: this.liveGame?.whiteClock,
+                name: whiteSeat.name,
+                rating: whiteSeat.rating,
+                clock: this.formatClock(whiteSeat.clockSeconds),
+                clockSeconds: whiteSeat.clockSeconds,
                 active: this.liveGame?.sideToMove === 'w',
                 state: this.liveGame?.sideToMove === 'w' ? 'To move' : 'Waiting',
                 isLocal: localColor === 'white'
             });
+        },
+
+        getGameSeatData(color, table = this.getCurrentTableMeta()) {
+            const isWhite = color === 'white';
+            const liveName = isWhite ? this.liveGame?.whiteName : this.liveGame?.blackName;
+            const tableName = isWhite ? table?.white : table?.black;
+            const name = this.getSeatName(color, liveName, tableName, table);
+            return {
+                color,
+                name,
+                rating: this.getSeatRating(color, name, table),
+                clockSeconds: isWhite ? this.liveGame?.whiteClock : this.liveGame?.blackClock
+            };
+        },
+
+        getSeatName(color, liveName, tableName, table = this.getCurrentTableMeta()) {
+            const cleanLiveName = String(liveName || '').trim();
+            if (cleanLiveName) return cleanLiveName;
+            const localColor = this.getLocalPlayerColor();
+            const localName = this.getLocalPlayerName();
+            if (localName && color === localColor) return localName;
+            const isWhite = color === 'white';
+            const directName = String(tableName || '').trim();
+            const oppositeName = String((isWhite ? table?.black : table?.white) || '').trim();
+            if (localName && color !== localColor && this.normalizePlayerName(directName) === this.normalizePlayerName(localName) && oppositeName) {
+                return oppositeName;
+            }
+            return directName || (isWhite ? 'White' : 'Black');
+        },
+
+        getSeatRating(color, name, table = this.getCurrentTableMeta()) {
+            const isWhite = color === 'white';
+            const directRating = isWhite ? table?.whiteRating : table?.blackRating;
+            const oppositeRating = isWhite ? table?.blackRating : table?.whiteRating;
+            const directName = isWhite ? table?.white : table?.black;
+            const oppositeName = isWhite ? table?.black : table?.white;
+            const seatName = this.normalizePlayerName(name);
+            if (seatName && seatName === this.normalizePlayerName(directName)) return directRating || 'FICS';
+            if (seatName && seatName === this.normalizePlayerName(oppositeName)) return oppositeRating || 'FICS';
+            return directRating || 'FICS';
+        },
+
+        normalizePlayerName(name) {
+            return String(name || '').trim().toLowerCase();
+        },
+
+        getLocalPlayerName() {
+            const client = window.CaissaFICSClient;
+            const name = client?.ficsUsername || (client?.loginMode === 'account' ? client?.accountUsername : '');
+            return String(name || '').trim();
         },
 
         renderGamePlayerBar(element, player) {
