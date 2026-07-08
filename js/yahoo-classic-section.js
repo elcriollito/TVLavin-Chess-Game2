@@ -109,6 +109,7 @@
         board: null,
         lastRenderedFen: null,
         lastMoveSignature: '',
+        lastHighlightedSquares: [],
         recentlyLeftObservedGame: null,
         leaveTableInProgress: false,
         currentRoom: {
@@ -189,6 +190,9 @@
                 boardStyleSelects: document.querySelectorAll('#yahooClassicSection .yc-board-style-select'),
                 sitBtn: document.getElementById('ycSitBtn'),
                 standBtn: document.getElementById('ycStandBtn'),
+                drawBtn: document.getElementById('ycDrawBtn'),
+                resignBtn: document.getElementById('ycResignBtn'),
+                takebackBtn: document.getElementById('ycTakebackBtn'),
                 leaveTableBtn: document.getElementById('ycLeaveTableBtn'),
                 createTableToggle: document.getElementById('ycCreateTableToggle'),
                 createTablePanel: document.getElementById('ycCreateTablePanel'),
@@ -215,6 +219,8 @@
             this.elements.standBtn?.addEventListener('click', () => this.standFromTable());
             this.elements.leaveTableBtn?.addEventListener('click', () => this.leaveTable());
             this.elements.sitBtn?.addEventListener('click', () => this.addSystemMessage('Choose Join from a waiting table to sit.'));
+            this.elements.drawBtn?.addEventListener('click', () => this.offerDraw());
+            this.elements.resignBtn?.addEventListener('click', () => this.resignGame());
             this.elements.soundBtn?.addEventListener('click', () => this.toggleClassicSound());
             this.elements.lastMoveHighlightToggle?.addEventListener('change', (event) => {
                 this.setLastMoveHighlight(event.target.checked, true);
@@ -1143,6 +1149,37 @@
             this.render();
         },
 
+        offerDraw() {
+            if (!this.canUsePlayerTableActions() || typeof window.CaissaFICSClient?.offerDraw !== 'function') {
+                this.addSystemMessage('Offer Draw is available only while you are playing a live game.');
+                return;
+            }
+            window.CaissaFICSClient.offerDraw();
+            this.addSystemMessage('Offer draw sent.');
+        },
+
+        resignGame() {
+            if (!this.canUsePlayerTableActions() || typeof window.CaissaFICSClient?.resign !== 'function') {
+                this.addSystemMessage('Resign is available only while you are playing a live game.');
+                return;
+            }
+            window.CaissaFICSClient.resign();
+            this.addSystemMessage('Resign command sent.');
+        },
+
+        canUsePlayerTableActions() {
+            const client = window.CaissaFICSClient;
+            const liveGame = client?.liveGame || this.liveGame;
+            const color = liveGame?.userColor || client?.myColor || this.liveGame?.userColor;
+            const relation = Number(liveGame?.relation ?? this.liveGame?.relation);
+            const playingRelation = relation === 1 || relation === -1;
+            return !!client?.authenticated
+                && !!client?.gameActive
+                && !!liveGame?.currentFen
+                && !liveGame?.observedGame
+                && (playingRelation || color === 'white' || color === 'black');
+        },
+
         leaveTable() {
             if (!this.tableOpen) return;
             const client = window.CaissaFICSClient;
@@ -1666,6 +1703,7 @@
                     : 'Board ready. Waiting for first move.';
             }
             this.resizeClassicBoard();
+            this.renderLastMoveSquares(showHighlight ? latest : null);
             const signature = hasMove
                 ? `${latest.moveNumber}:${latest.color}:${latest.san}:${this.liveGame?.currentFen || ''}`
                 : '';
@@ -1675,6 +1713,44 @@
                 this.elements.classicBoard.classList.add('yc-board-update');
             }
             this.lastMoveSignature = signature;
+        },
+
+        renderLastMoveSquares(move, retry = true) {
+            if (!this.elements.classicBoard) return;
+            this.clearLastMoveSquares();
+            const squares = this.getMoveSquares(move);
+            if (!squares.length) return;
+            let applied = 0;
+            squares.forEach((square, index) => {
+                const target = this.elements.classicBoard.querySelector(`.square-${square}`);
+                if (!target) return;
+                target.classList.add('yc-last-move-square');
+                target.classList.add(index === 0 ? 'yc-last-move-from' : 'yc-last-move-to');
+                this.lastHighlightedSquares.push(target);
+                applied += 1;
+            });
+            if (!applied && retry) {
+                requestAnimationFrame(() => {
+                    if (this.lastMoveHighlightEnabled && move === this.getLatestMove()) this.renderLastMoveSquares(move, false);
+                });
+            }
+        },
+
+        clearLastMoveSquares() {
+            this.lastHighlightedSquares.forEach((square) => {
+                square.classList.remove('yc-last-move-square', 'yc-last-move-from', 'yc-last-move-to');
+            });
+            this.lastHighlightedSquares = [];
+        },
+
+        getMoveSquares(move) {
+            const verbose = String(move?.verbose || '').trim();
+            const verboseMatch = verbose.match(/[KQRBNP]?\/([a-h][1-8])-([a-h][1-8])(?:=([QRBN]))?/i);
+            if (verboseMatch) return [verboseMatch[1].toLowerCase(), verboseMatch[2].toLowerCase()];
+            const san = String(move?.san || '').trim();
+            const coordinateMatch = san.match(/^([a-h][1-8])([a-h][1-8])(?:=([QRBN]))?$/i);
+            if (coordinateMatch) return [coordinateMatch[1].toLowerCase(), coordinateMatch[2].toLowerCase()];
+            return [];
         },
 
         renderGamePlayers() {
@@ -1702,9 +1778,11 @@
         renderGamePlayerBar(element, player) {
             if (!element) return;
             const identity = player.rating && player.rating !== 'FICS' ? 'registered' : 'guest';
+            const ratingClass = this.getRatingClass(player.rating);
             const lowClock = Number.isFinite(player.clockSeconds) && player.clockSeconds <= 30;
             element.className = `yc-game-player ${player.color}${player.active ? ' turn-active' : ''}${lowClock ? ' clock-low' : ''}`;
             element.dataset.identity = identity;
+            element.dataset.ratingClass = ratingClass;
             element.dataset.turn = player.active ? 'active' : 'waiting';
             element.setAttribute('aria-label', `${player.color} player ${player.name || player.color}, ${player.state || 'Waiting'}, clock ${player.clock || '--:--'}`);
             const name = element.querySelector('.yc-player-name');
@@ -1718,7 +1796,7 @@
             if (rating) {
                 const status = identity === 'registered' ? 'Registered' : 'Guest';
                 rating.textContent = `${player.rating || 'FICS'} - ${status}`;
-                rating.title = status;
+                rating.title = `${status} - ${this.getRatingLabel(ratingClass)}`;
             }
             if (state) state.textContent = player.state || 'Waiting';
             if (clock) {
@@ -1845,9 +1923,26 @@
             this.setText(this.elements.gameTurnState, readinessText);
             this.setText(this.elements.gameSpectatorState, spectatorText);
             this.elements.gameWindow?.setAttribute('aria-label', tableLabel);
+            const playerActionsEnabled = this.canUsePlayerTableActions();
             this.setButtonDisabled(this.elements.standBtn, !this.tableOpen);
             this.setButtonDisabled(this.elements.leaveTableBtn, !this.tableOpen);
             this.setButtonDisabled(this.elements.sitBtn, !this.authenticated);
+            this.setButtonDisabled(this.elements.drawBtn, !playerActionsEnabled);
+            this.setButtonDisabled(this.elements.resignBtn, !playerActionsEnabled);
+            this.setButtonDisabled(this.elements.takebackBtn, true);
+            if (this.elements.drawBtn) {
+                this.elements.drawBtn.title = playerActionsEnabled
+                    ? 'Offer a draw through the existing FICS game command'
+                    : 'Offer Draw is available only while you are playing a live game';
+            }
+            if (this.elements.resignBtn) {
+                this.elements.resignBtn.title = playerActionsEnabled
+                    ? 'Resign through the existing FICS game command'
+                    : 'Resign is available only while you are playing a live game';
+            }
+            if (this.elements.takebackBtn) {
+                this.elements.takebackBtn.title = 'Undo Turn / takeback is disabled until the existing Core exposes a safe takeback command';
+            }
         },
 
         getDisplaySpectatorCount(table = this.getCurrentTableMeta()) {

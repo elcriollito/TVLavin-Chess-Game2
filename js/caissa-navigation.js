@@ -8,7 +8,7 @@
 const CaissaNavigation = {
 
     // State
-    currentSection: 'play',
+    currentSection: 'yahooClassic',
     isNavCollapsed: false,
     navOpen: false, // Mobile only
 
@@ -638,10 +638,10 @@ const CaissaNavigation = {
                     this.currentSection = pathSection;
                 } else if (hasExplicitSection) {
                     // URL override (e.g., ?section=arena)
-                    this.currentSection = urlParams.get('section') || 'play';
+                    this.currentSection = urlParams.get('section') || 'yahooClassic';
                 } else {
-                    // Always start with Play, ignore localStorage
-                    this.currentSection = 'play';
+                    // Always start with CAISSA Classic, ignore localStorage section
+                    this.currentSection = 'yahooClassic';
                 }
 
                 this.isNavCollapsed = state.isNavCollapsed || false;
@@ -650,7 +650,7 @@ const CaissaNavigation = {
                     this.elements.appContainer?.classList.add('nav-collapsed');
                 }
 
-                console.log('[CAISSA Nav] State restored. Default section: play (localStorage ignored for section)');
+                console.log('[CAISSA Nav] State restored. Default section: yahooClassic (localStorage ignored for section)');
             } else {
                 // No saved state - fresh visit
                 const pathSections = {
@@ -660,12 +660,12 @@ const CaissaNavigation = {
                 const urlParams = new URLSearchParams(window.location.search);
                 this.currentSection = pathSections[window.location.pathname]
                     || (urlParams.has('section') ? urlParams.get('section') : null)
-                    || 'play';
+                    || 'yahooClassic';
                 console.log('[CAISSA Nav] No saved state. Starting with:', this.currentSection);
             }
         } catch (e) {
             console.error('[CAISSA Nav] Failed to restore state:', e);
-            this.currentSection = 'play'; // Fallback to play on error
+            this.currentSection = 'yahooClassic'; // Fallback to CAISSA Classic on error
         }
     },
 
@@ -686,6 +686,9 @@ const CaissaNavigation = {
         // Activate the section directly
         const sectionEl = document.getElementById(`${targetSection}Section`);
         if (sectionEl) {
+            if (targetSection !== 'yahooClassic') {
+                document.body?.classList.remove('yc-classic-active');
+            }
             sectionEl.classList.add('active');
 
             // Activate nav item

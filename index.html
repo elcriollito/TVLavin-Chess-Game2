@@ -79,7 +79,7 @@
 
                 <!-- Center: Page context (optional, shown on mobile) -->
                 <div class="header-center">
-                    <span class="header-section-name" id="headerSectionName">Play</span>
+                    <span class="header-section-name" id="headerSectionName">CAISSA Classic</span>
                 </div>
 
                 <!-- Right: Auth area -->
@@ -155,7 +155,12 @@
             </div>
 
             <div class="nav-items">
-                <button class="nav-item active" data-section="play" aria-label="Play section">
+                <button class="nav-item active" data-section="yahooClassic" aria-label="CAISSA Classic retro chess lounge">
+                    <i class="fas fa-window-restore"></i>
+                    <span class="nav-label">CAISSA Classic</span>
+                </button>
+
+                <button class="nav-item" data-section="play" aria-label="Play section">
                     <i class="fas fa-play-circle"></i>
                     <span class="nav-label">Play</span>
                 </button>
@@ -193,11 +198,6 @@
                 <button class="nav-item" data-section="spectator" aria-label="Spectator TV">
                     <i class="fas fa-tv"></i>
                     <span class="nav-label">Spectator TV</span>
-                </button>
-
-                <button class="nav-item" data-section="yahooClassic" aria-label="CAISSA Classic retro chess lounge">
-                    <i class="fas fa-window-restore"></i>
-                    <span class="nav-label">CAISSA Classic</span>
                 </button>
 
                 <button class="nav-item" data-section="academy" aria-label="CAISSA Academy">
@@ -274,8 +274,8 @@
         <!-- Content Area (replaces main-content) -->
         <main id="mainContent" class="content-area">
 
-            <!-- SECTION: PLAY (Active by default - wraps existing content) -->
-            <section id="playSection" class="content-section active">
+            <!-- SECTION: PLAY (wraps existing content) -->
+            <section id="playSection" class="content-section">
                 <div class="cais-root">
                     <div class="cais-stage">
                         <!-- TOP HEADER -->
@@ -1468,7 +1468,7 @@
             </section>
 
             <!-- SECTION: CAISSA Classic (retro internet chess lounge) -->
-            <section id="yahooClassicSection" class="content-section">
+            <section id="yahooClassicSection" class="content-section active">
                 <div class="yc-page" aria-labelledby="ycPageTitle">
                     <div class="yc-shell" role="application" aria-label="CAISSA Classic retro chess lounge">
                         <header class="yc-header">
@@ -1721,7 +1721,7 @@
                             </div>
                             <label class="yc-say-row">
                                 <span>Say:</span>
-                                <input type="text" value="" placeholder="Chat is a visual placeholder in this foundation phase" aria-label="Classic chat input preview" disabled>
+                                <input type="text" value="" placeholder="Read-only system log. Chat sending is not enabled." aria-label="Classic chat input preview" disabled>
                                 <button class="yc-send-button" type="button" disabled>Send</button>
                             </label>
                         </section>
