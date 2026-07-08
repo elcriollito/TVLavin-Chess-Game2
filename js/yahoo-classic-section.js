@@ -14,6 +14,7 @@
     const SOUND_CUES = Object.freeze(['connect', 'disconnect', 'move', 'capture', 'join', 'challenge', 'notify', 'gameover', 'error']);
     const SOUND_STORAGE_KEY = 'caissaClassicSoundEnabled';
     const BOARD_STYLE_STORAGE_KEY = 'caissaClassicBoardStyle';
+    const LAST_MOVE_HIGHLIGHT_STORAGE_KEY = 'caissaClassicLastMoveHighlight';
     const BOARD_STYLES = Object.freeze(['classic', 'yahoo-table']);
     const SOUND_PATTERNS = Object.freeze({
         connect: [{ frequency: 523, duration: 0.06 }, { frequency: 659, duration: 0.08 }],
@@ -123,6 +124,7 @@
         soundEnabled: false,
         soundUserActivated: false,
         boardStyle: 'classic',
+        lastMoveHighlightEnabled: true,
         systemMessages: ['Connect to FICS to receive lobby status.'],
 
         init() {
@@ -130,6 +132,7 @@
             this.cacheElements();
             this.loadSoundPreference();
             this.loadBoardStylePreference();
+            this.loadLastMoveHighlightPreference();
             this.bindFicsEvents();
             this.initialized = true;
             this.syncFromFicsClient();
@@ -182,6 +185,7 @@
                 gameTurnState: document.getElementById('ycGameTurnState'),
                 gameSpectatorState: document.getElementById('ycGameSpectatorState'),
                 soundBtn: document.getElementById('ycSoundBtn'),
+                lastMoveHighlightToggle: document.getElementById('ycLastMoveHighlightToggle'),
                 boardStyleSelects: document.querySelectorAll('#yahooClassicSection .yc-board-style-select'),
                 sitBtn: document.getElementById('ycSitBtn'),
                 standBtn: document.getElementById('ycStandBtn'),
@@ -212,6 +216,9 @@
             this.elements.leaveTableBtn?.addEventListener('click', () => this.leaveTable());
             this.elements.sitBtn?.addEventListener('click', () => this.addSystemMessage('Choose Join from a waiting table to sit.'));
             this.elements.soundBtn?.addEventListener('click', () => this.toggleClassicSound());
+            this.elements.lastMoveHighlightToggle?.addEventListener('change', (event) => {
+                this.setLastMoveHighlight(event.target.checked, true);
+            });
             this.elements.boardStyleSelects?.forEach((select) => {
                 select.addEventListener('change', () => this.setBoardStyle(select.value, true));
             });
@@ -1443,7 +1450,7 @@
             const game = table ? this.formatGameLabel(table) : 'Live';
             const gameType = this.getClassicGameType(time, game);
             const rated = game === 'Unrated' || game === 'Casual' ? 'Casual' : 'Rated';
-            const spectators = this.formatCount(table?.observers || this.liveGame?.observers || 0);
+            const spectators = this.formatCount(this.getDisplaySpectatorCount(table));
             const result = this.normalizeGameResult(this.liveGame?.result || table?.result);
             const finished = result !== '--' || this.liveGame?.status === 'ended';
             const readiness = this.getGameReadinessText({ side, result, finished });
@@ -1470,6 +1477,7 @@
             this.renderClassicMoves();
             this.renderGameMeta();
             this.renderGameSystemLog();
+            this.renderLastMoveHighlightControl();
         },
 
         loadBoardStylePreference() {
@@ -1501,6 +1509,36 @@
             this.applyBoardStyle();
             this.renderBoardStyleControls();
             requestAnimationFrame(() => this.resizeClassicBoard());
+        },
+
+        loadLastMoveHighlightPreference() {
+            let saved = 'true';
+            try {
+                saved = window.localStorage?.getItem(LAST_MOVE_HIGHLIGHT_STORAGE_KEY) ?? 'true';
+            } catch (error) {
+                saved = 'true';
+            }
+            this.lastMoveHighlightEnabled = saved !== 'false';
+            this.renderLastMoveHighlightControl();
+        },
+
+        setLastMoveHighlight(enabled, persist = false) {
+            this.lastMoveHighlightEnabled = !!enabled;
+            if (persist) {
+                try {
+                    window.localStorage?.setItem(LAST_MOVE_HIGHLIGHT_STORAGE_KEY, this.lastMoveHighlightEnabled ? 'true' : 'false');
+                } catch (error) {
+                    // Last-move highlight is a local preference; ignore storage failures.
+                }
+                this.addSystemMessage(`Last move highlight: ${this.lastMoveHighlightEnabled ? 'On' : 'Off'}.`);
+            }
+            this.renderLastMoveHighlightControl();
+            this.renderBoardFeedback();
+        },
+
+        renderLastMoveHighlightControl() {
+            if (!this.elements.lastMoveHighlightToggle) return;
+            this.elements.lastMoveHighlightToggle.checked = this.lastMoveHighlightEnabled;
         },
 
         applyBoardStyle() {
@@ -1554,10 +1592,18 @@
                 this.elements.blackPlayerBar,
                 this.elements.whitePlayerBar,
                 this.elements.boardFeedback
-            ].reduce((total, element) => total + (element?.offsetHeight || 0), 0);
+            ].reduce((total, element) => {
+                if (!element || !panel.contains(element)) return total;
+                return total + element.offsetHeight;
+            }, 0);
             const panelStyle = window.getComputedStyle(panel);
             const rowGap = parseFloat(panelStyle.rowGap || panelStyle.gap || '0') || 0;
-            const availableHeight = panel.clientHeight - reserved - (rowGap * 3) - 2;
+            const reservedRows = [
+                this.elements.blackPlayerBar,
+                this.elements.whitePlayerBar,
+                this.elements.boardFeedback
+            ].filter((element) => element && panel.contains(element)).length;
+            const availableHeight = panel.clientHeight - reserved - (rowGap * reservedRows) - 2;
             const availableWidth = panel.clientWidth - 16;
             const size = Math.max(160, Math.floor(Math.min(availableWidth, availableHeight, 760)));
             this.elements.classicBoard.style.width = `${size}px`;
@@ -1609,11 +1655,12 @@
             const latest = this.getLatestMove();
             const hasMove = Boolean(latest);
             const isCapture = this.isCaptureMove(latest);
+            const showHighlight = hasMove && this.lastMoveHighlightEnabled;
             const feedback = this.elements.boardFeedback;
-            this.elements.classicBoard.classList.toggle('yc-board-has-move', hasMove);
-            this.elements.classicBoard.classList.toggle('yc-board-has-capture', isCapture);
+            this.elements.classicBoard.classList.toggle('yc-board-has-move', showHighlight);
+            this.elements.classicBoard.classList.toggle('yc-board-has-capture', showHighlight && isCapture);
             if (feedback) {
-                feedback.className = `yc-board-feedback${hasMove ? ' has-move' : ''}${isCapture ? ' capture' : ''}`;
+                feedback.className = `yc-board-feedback${showHighlight ? ' has-move' : ''}${showHighlight && isCapture ? ' capture' : ''}`;
                 feedback.textContent = hasMove
                     ? `Last move: ${this.formatMoveLabel(latest)}${isCapture ? ' - Capture' : ''}`
                     : 'Board ready. Waiting for first move.';
@@ -1622,7 +1669,7 @@
             const signature = hasMove
                 ? `${latest.moveNumber}:${latest.color}:${latest.san}:${this.liveGame?.currentFen || ''}`
                 : '';
-            if (signature && signature !== this.lastMoveSignature) {
+            if (showHighlight && signature && signature !== this.lastMoveSignature) {
                 this.elements.classicBoard.classList.remove('yc-board-update');
                 void this.elements.classicBoard.offsetWidth;
                 this.elements.classicBoard.classList.add('yc-board-update');
@@ -1752,7 +1799,7 @@
             const game = table ? this.formatGameLabel(table) : 'Live';
             const gameType = this.getClassicGameType(time, game);
             const rated = game === 'Unrated' || game === 'Casual' ? 'Casual' : 'Rated';
-            const spectators = this.formatCount(table?.observers || this.liveGame?.observers || 0);
+            const spectators = this.formatCount(this.getDisplaySpectatorCount(table));
             const white = this.liveGame?.whiteName || table?.white || 'White';
             const black = this.liveGame?.blackName || table?.black || 'Black';
             const moveNumber = this.getCurrentMoveNumber();
@@ -1801,6 +1848,13 @@
             this.setButtonDisabled(this.elements.standBtn, !this.tableOpen);
             this.setButtonDisabled(this.elements.leaveTableBtn, !this.tableOpen);
             this.setButtonDisabled(this.elements.sitBtn, !this.authenticated);
+        },
+
+        getDisplaySpectatorCount(table = this.getCurrentTableMeta()) {
+            const rawCount = Number(table?.observers ?? this.liveGame?.observers ?? 0);
+            const count = Number.isFinite(rawCount) ? rawCount : 0;
+            const watching = this.tableOpen && (this.tableMode === 'watching' || this.liveGame?.observedGame);
+            return watching ? Math.max(1, count) : count;
         },
 
         getPlayerRoleText() {

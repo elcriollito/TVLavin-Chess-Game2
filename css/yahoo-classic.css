@@ -23,8 +23,8 @@
 
 #yahooClassicSection.active {
     display: flex;
-    height: calc(100vh - 72px);
-    min-height: calc(100vh - 72px);
+    height: 100dvh;
+    min-height: 100dvh;
 }
 
 #yahooClassicSection * {
@@ -104,6 +104,10 @@ body.yc-classic-active #app {
     border-color: #ffffff var(--yc-border-gray) var(--yc-border-gray) #ffffff;
     background: var(--yc-classic-beige);
     outline: 1px solid #2f2f2f;
+}
+
+.yc-shell.yc-table-open {
+    grid-template-rows: auto minmax(0, 1fr) minmax(120px, 20vh) auto;
 }
 
 .yc-header {
@@ -1155,6 +1159,9 @@ body.yc-classic-active #app {
 
 .yc-chat-panel {
     margin: 0 6px;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    min-height: 0;
 }
 
 .yc-chat-status {
@@ -1171,7 +1178,8 @@ body.yc-classic-active #app {
 }
 
 .yc-chat-body {
-    height: clamp(104px, 16vh, 220px);
+    height: auto;
+    min-height: 0;
     overflow-y: auto;
     padding: 5px 7px;
     border: 2px solid;
@@ -1319,6 +1327,37 @@ body.yc-classic-active #app {
     overflow-y: auto;
 }
 
+.yc-table-game-options {
+    gap: 5px;
+}
+
+.yc-options-heading {
+    color: #241d54;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.yc-check-control,
+.yc-time-control {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr);
+    align-items: center;
+    gap: 4px;
+    color: #202020;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.yc-time-control {
+    grid-template-columns: minmax(0, 1fr) 72px;
+}
+
+.yc-check-control input {
+    width: 13px;
+    height: 13px;
+    margin: 0;
+}
+
 .yc-game-controls .yc-classic-button {
     min-height: 20px;
     padding: 2px 5px;
@@ -1365,7 +1404,7 @@ body.yc-classic-active #app {
 
 .yc-game-board-panel {
     display: grid;
-    grid-template-rows: auto minmax(180px, 1fr) auto auto;
+    grid-template-rows: minmax(180px, 1fr) auto;
     grid-auto-rows: auto;
     gap: 6px;
     justify-items: center;
@@ -1376,7 +1415,7 @@ body.yc-classic-active #app {
 }
 
 .yc-game-player {
-    width: min(100%, 760px);
+    width: 100%;
     display: grid;
     grid-template-columns: 14px minmax(0, 1fr) 124px 70px 88px;
     align-items: center;
@@ -1423,9 +1462,9 @@ body.yc-classic-active #app {
 .yc-game-player[data-identity="guest"] .yc-player-rating::before {
     content: "";
     display: inline-block;
-    width: 7px;
-    height: 7px;
-    margin-right: 4px;
+    width: 12px;
+    height: 12px;
+    margin-right: 6px;
     border: 1px solid #404040;
     background: #4e79c8;
     vertical-align: 1px;
@@ -1578,7 +1617,9 @@ body.yc-classic-active #app {
 
 .yc-move-panel {
     display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto minmax(76px, 16vh);
+    gap: 4px;
+    padding: 4px;
     min-height: 0;
     overflow: hidden;
     background: #c8bea0;
@@ -1616,7 +1657,7 @@ body.yc-classic-active #app {
     font-family: "Courier New", Courier, monospace;
     font-size: 11px;
     line-height: 1.25;
-    border-top: 1px solid #8f866e;
+    border: 1px solid #8f866e;
 }
 
 .yc-move-row {
@@ -1690,12 +1731,16 @@ body.yc-classic-active #app {
 }
 
 .yc-shell.yc-board-style-yahoo-table .yc-game-window {
-    grid-template-columns: 154px minmax(430px, 1fr) clamp(286px, 24vw, 400px);
+    grid-template-columns: 154px minmax(480px, 1fr) clamp(330px, 28vw, 440px);
     gap: 3px;
     padding: 4px;
     background:
         linear-gradient(180deg, #e6e6e6 0, #b8b8b8 24px, transparent 24px),
         #b6b6b6;
+}
+
+.yc-shell.yc-board-style-yahoo-table.yc-table-open {
+    grid-template-rows: auto minmax(0, 1fr) minmax(132px, 21vh) auto;
 }
 
 .yc-shell.yc-board-style-yahoo-table {
@@ -1918,6 +1963,22 @@ body.yc-classic-active #app {
     background: #79aaa5;
 }
 
+.yc-shell.yc-board-style-yahoo-table .yc-actions-panel {
+    gap: 3px;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-table-game-options {
+    padding: 4px;
+    background: #d8d0a8;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-check-control,
+.yc-shell.yc-board-style-yahoo-table .yc-time-control,
+.yc-shell.yc-board-style-yahoo-table .yc-options-heading {
+    font-size: 10px;
+    line-height: 1.1;
+}
+
 .yc-shell.yc-board-style-yahoo-table .yc-game-controls .yc-panel,
 .yc-shell.yc-board-style-yahoo-table .yc-game-controls .yc-status-card {
     border-color: #3e6b66 #c6e3de #c6e3de #3e6b66;
@@ -1948,12 +2009,20 @@ body.yc-classic-active #app {
 }
 
 .yc-shell.yc-board-style-yahoo-table .yc-game-board-panel {
+    justify-content: center;
+    align-content: center;
     padding: 4px;
     background:
         linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px),
         linear-gradient(180deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px),
         #8a9774;
     background-size: 10px 10px;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-move-panel {
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto minmax(82px, 17vh);
+    gap: 4px;
+    padding: 4px;
 }
 
 .yc-shell.yc-board-style-yahoo-table .yc-move-panel .yc-panel-heading {
@@ -1982,9 +2051,17 @@ body.yc-classic-active #app {
 .yc-shell.yc-board-style-yahoo-table .yc-game-player {
     min-height: 25px;
     padding: 3px 7px;
+    grid-template-columns: 16px minmax(0, 1fr) 120px 64px 74px;
     border-color: #ffffff #707070 #707070 #ffffff;
     background: linear-gradient(180deg, #f7f7f7, #cfcfcf);
     color: #000000;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-player[data-identity="registered"] .yc-player-rating::before,
+.yc-shell.yc-board-style-yahoo-table .yc-game-player[data-identity="guest"] .yc-player-rating::before {
+    width: 13px;
+    height: 13px;
+    vertical-align: -2px;
 }
 
 .yc-shell.yc-board-style-yahoo-table .yc-game-player.black {
@@ -2025,6 +2102,10 @@ body.yc-classic-active #app {
     animation: none;
 }
 
+.yc-shell.yc-board-style-yahoo-table .yc-board-feedback {
+    display: none;
+}
+
 .yc-shell.yc-board-style-yahoo-table .yc-classic-board.yc-board-playable {
     cursor: grab;
 }
@@ -2039,6 +2120,28 @@ body.yc-classic-active #app {
     background: #ffffff;
     color: #000000;
     scrollbar-color: #d4d0c8 #ffffff;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-system-panel {
+    min-height: 0;
+    padding: 0;
+    gap: 0;
+    border-color: #808080 #ffffff #ffffff #808080;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-system-panel .yc-panel-title {
+    margin: 0;
+    border-width: 0 0 1px;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    background: #5e7f4c;
+    color: #ffffff;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-system-log {
+    min-height: 0;
+    max-height: none;
+    height: 100%;
+    border-width: 0;
 }
 
 .yc-shell.yc-board-style-yahoo-table .yc-classic-move-list::-webkit-scrollbar,
@@ -2072,6 +2175,7 @@ body.yc-classic-active #app {
 .yc-shell.yc-board-style-yahoo-table .yc-chat-panel {
     border-color: #808080 #ffffff #ffffff #808080;
     background: #c0c0c0;
+    min-height: 0;
 }
 
 .yc-shell.yc-board-style-yahoo-table .yc-chat-body {

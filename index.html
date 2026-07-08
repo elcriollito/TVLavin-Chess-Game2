@@ -1623,31 +1623,42 @@
                             </header>
                             <aside class="yc-game-controls" aria-label="Classic table controls">
                                 <div class="yc-panel yc-actions-panel">
-                                    <div class="yc-panel-title">Table</div>
-                                    <button id="ycSitBtn" class="yc-classic-button primary" type="button" title="Sit at an available table when supported">Sit</button>
-                                    <button id="ycStandBtn" class="yc-classic-button" type="button" title="Leave a playing seat when supported by the current FICS table">Stand</button>
-                                    <button id="ycLeaveTableBtn" class="yc-classic-button" type="button" title="Stop observing this table and return to CAISSA Lobby">Leave Table / Return to Lobby</button>
-                                    <button id="ycDrawBtn" class="yc-classic-button" type="button" disabled aria-disabled="true" title="Offer draw is not active in this Classic release">Offer Draw</button>
+                                    <div class="yc-panel-title">Controls</div>
+                                    <button id="ycSitBtn" class="yc-classic-button primary" type="button" title="Sit at an available table when supported">Start Game</button>
+                                    <button id="ycTakebackBtn" class="yc-classic-button" type="button" disabled aria-disabled="true" title="Takeback is not active in this Classic release">Undo Turn</button>
                                     <button id="ycResignBtn" class="yc-classic-button" type="button" disabled aria-disabled="true" title="Resign is not active in this Classic release">Resign</button>
-                                    <button id="ycTakebackBtn" class="yc-classic-button" type="button" disabled aria-disabled="true" title="Takeback is not active in this Classic release">Takeback</button>
+                                    <button id="ycDrawBtn" class="yc-classic-button" type="button" disabled aria-disabled="true" title="Offer draw is not active in this Classic release">Offer Draw</button>
+                                    <button id="ycStandBtn" class="yc-classic-button" type="button" title="Leave a playing seat when supported by the current FICS table">Stand Up</button>
                                     <div class="yc-options-control yc-table-options-control" aria-label="Classic table options">
-                                        <label for="ycBoardStyleSelectTable">Board Style</label>
+                                        <label for="ycBoardStyleSelectTable">Table Type (Board Style)</label>
                                         <select id="ycBoardStyleSelectTable" class="yc-classic-field yc-board-style-select">
                                             <option value="classic">Classic Board</option>
                                             <option value="yahoo-table">Yahoo Table Board</option>
                                         </select>
                                     </div>
+                                    <div class="yc-options-control yc-table-game-options" aria-label="Classic game options">
+                                        <span class="yc-options-heading">Options</span>
+                                        <label class="yc-check-control">
+                                            <input type="checkbox" checked disabled>
+                                            <span>Rated Game</span>
+                                        </label>
+                                        <label class="yc-time-control" for="ycTableTimeSelect">
+                                            <span>Set Time</span>
+                                            <select id="ycTableTimeSelect" class="yc-classic-field" disabled>
+                                                <option>5 min</option>
+                                            </select>
+                                        </label>
+                                        <label class="yc-check-control">
+                                            <input id="ycLastMoveHighlightToggle" type="checkbox" checked>
+                                            <span>Last Move Highlight</span>
+                                        </label>
+                                    </div>
                                     <button id="ycSoundBtn" class="yc-classic-button yc-sound-toggle" type="button" aria-pressed="false" title="Toggle CAISSA Classic sound">[Sound: Off]</button>
+                                    <button id="ycLeaveTableBtn" class="yc-classic-button" type="button" title="Stop observing this table and return to CAISSA Lobby">Exit Table</button>
                                 </div>
                                 <div class="yc-status-card">
                                     <strong id="ycGameMode">No Table</strong>
                                     <span id="ycGameDetail">Watch or join a room table to open the classic board.</span>
-                                </div>
-                                <div class="yc-panel yc-game-system-panel" aria-label="Classic table system messages">
-                                    <div class="yc-panel-title">Table Log</div>
-                                    <div id="ycGameSystemLog" class="yc-game-system-log" aria-live="polite">
-                                        <p>Open a table to receive system messages.</p>
-                                    </div>
                                 </div>
                                 <div class="yc-panel yc-game-info-panel" aria-label="Classic table context">
                                     <div class="yc-panel-title">Table Information</div>
@@ -1662,6 +1673,10 @@
                             </aside>
 
                             <main class="yc-game-board-panel" aria-label="Classic chess board">
+                                <div id="ycClassicBoard" class="yc-classic-board" role="img" aria-label="Classic chess board"></div>
+                            </main>
+
+                            <aside class="yc-move-panel" aria-labelledby="ycMoveTitle">
                                 <div id="ycBlackPlayerBar" class="yc-game-player black" role="group" aria-label="Black player">
                                     <span class="yc-turn-led" aria-hidden="true"></span>
                                     <span class="yc-player-name">Black</span>
@@ -1669,17 +1684,6 @@
                                     <span class="yc-player-state">Waiting</span>
                                     <strong class="yc-player-clock">--:--</strong>
                                 </div>
-                                <div id="ycClassicBoard" class="yc-classic-board" role="img" aria-label="Classic chess board"></div>
-                                <div id="ycWhitePlayerBar" class="yc-game-player white" role="group" aria-label="White player">
-                                    <span class="yc-turn-led" aria-hidden="true"></span>
-                                    <span class="yc-player-name">White</span>
-                                    <span class="yc-player-rating">FICS</span>
-                                    <span class="yc-player-state">Waiting</span>
-                                    <strong class="yc-player-clock">--:--</strong>
-                                </div>
-                            </main>
-
-                            <aside class="yc-move-panel" aria-labelledby="ycMoveTitle">
                                 <div class="yc-panel-heading">
                                     <h3 id="ycMoveTitle">Moves</h3>
                                     <span id="ycGameMeta">No table</span>
@@ -1690,6 +1694,19 @@
                                 </div>
                                 <div id="ycMoveList" class="yc-classic-move-list" aria-live="polite">
                                     <div class="yc-move-empty">Moves will appear when the table updates.</div>
+                                </div>
+                                <div id="ycWhitePlayerBar" class="yc-game-player white" role="group" aria-label="White player">
+                                    <span class="yc-turn-led" aria-hidden="true"></span>
+                                    <span class="yc-player-name">White</span>
+                                    <span class="yc-player-rating">FICS</span>
+                                    <span class="yc-player-state">Waiting</span>
+                                    <strong class="yc-player-clock">--:--</strong>
+                                </div>
+                                <div class="yc-panel yc-game-system-panel" aria-label="Classic table system messages">
+                                    <div class="yc-panel-title">Table Log</div>
+                                    <div id="ycGameSystemLog" class="yc-game-system-log" aria-live="polite">
+                                        <p>Open a table to receive system messages.</p>
+                                    </div>
                                 </div>
                             </aside>
                         </section>
