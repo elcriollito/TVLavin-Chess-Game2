@@ -13,6 +13,8 @@
     const ACTIVITY_LIMIT = 8;
     const SOUND_CUES = Object.freeze(['connect', 'disconnect', 'move', 'capture', 'join', 'challenge', 'notify', 'gameover', 'error']);
     const SOUND_STORAGE_KEY = 'caissaClassicSoundEnabled';
+    const BOARD_STYLE_STORAGE_KEY = 'caissaClassicBoardStyle';
+    const BOARD_STYLES = Object.freeze(['classic', 'yahoo-table']);
     const SOUND_PATTERNS = Object.freeze({
         connect: [{ frequency: 523, duration: 0.06 }, { frequency: 659, duration: 0.08 }],
         disconnect: [{ frequency: 392, duration: 0.08 }, { frequency: 262, duration: 0.10 }],
@@ -120,12 +122,14 @@
         pendingSoundCue: null,
         soundEnabled: false,
         soundUserActivated: false,
+        boardStyle: 'classic',
         systemMessages: ['Connect to FICS to receive lobby status.'],
 
         init() {
             if (this.initialized) return;
             this.cacheElements();
             this.loadSoundPreference();
+            this.loadBoardStylePreference();
             this.bindFicsEvents();
             this.initialized = true;
             this.syncFromFicsClient();
@@ -178,6 +182,7 @@
                 gameTurnState: document.getElementById('ycGameTurnState'),
                 gameSpectatorState: document.getElementById('ycGameSpectatorState'),
                 soundBtn: document.getElementById('ycSoundBtn'),
+                boardStyleSelects: document.querySelectorAll('#yahooClassicSection .yc-board-style-select'),
                 sitBtn: document.getElementById('ycSitBtn'),
                 standBtn: document.getElementById('ycStandBtn'),
                 leaveTableBtn: document.getElementById('ycLeaveTableBtn'),
@@ -207,6 +212,9 @@
             this.elements.leaveTableBtn?.addEventListener('click', () => this.leaveTable());
             this.elements.sitBtn?.addEventListener('click', () => this.addSystemMessage('Choose Join from a waiting table to sit.'));
             this.elements.soundBtn?.addEventListener('click', () => this.toggleClassicSound());
+            this.elements.boardStyleSelects?.forEach((select) => {
+                select.addEventListener('change', () => this.setBoardStyle(select.value, true));
+            });
             this.elements.ficsAccountLoginBtn?.addEventListener('click', () => this.showClassicAccountLogin());
             this.elements.ficsGuestLoginBtn?.addEventListener('click', () => this.connectClassicGuest());
             this.elements.classicAccountFields?.addEventListener('submit', (event) => this.connectClassicAccount(event));
@@ -384,6 +392,7 @@
             this.renderStatusBar();
             this.renderSoundToggle();
             this.renderCreateTableControls();
+            this.renderBoardStyleControls();
         },
 
         selectRoom(button) {
@@ -1461,6 +1470,52 @@
             this.renderClassicMoves();
             this.renderGameMeta();
             this.renderGameSystemLog();
+        },
+
+        loadBoardStylePreference() {
+            let saved = 'classic';
+            try {
+                saved = window.localStorage?.getItem(BOARD_STYLE_STORAGE_KEY) || 'classic';
+            } catch (error) {
+                saved = 'classic';
+            }
+            this.boardStyle = BOARD_STYLES.includes(saved) ? saved : 'classic';
+            this.applyBoardStyle();
+        },
+
+        setBoardStyle(style, persist = false) {
+            const nextStyle = BOARD_STYLES.includes(style) ? style : 'classic';
+            if (this.boardStyle === nextStyle) {
+                this.renderBoardStyleControls();
+                return;
+            }
+            this.boardStyle = nextStyle;
+            if (persist) {
+                try {
+                    window.localStorage?.setItem(BOARD_STYLE_STORAGE_KEY, nextStyle);
+                } catch (error) {
+                    // Board style is a local preference; ignore storage failures.
+                }
+                this.addSystemMessage(`Board style: ${nextStyle === 'yahoo-table' ? 'Yahoo Table Board' : 'Classic Board'}.`);
+            }
+            this.applyBoardStyle();
+            this.renderBoardStyleControls();
+            requestAnimationFrame(() => this.resizeClassicBoard());
+        },
+
+        applyBoardStyle() {
+            const shell = this.elements.shell;
+            if (!shell) return;
+            shell.classList.toggle('yc-board-style-classic', this.boardStyle === 'classic');
+            shell.classList.toggle('yc-board-style-yahoo-table', this.boardStyle === 'yahoo-table');
+            shell.dataset.boardStyle = this.boardStyle;
+        },
+
+        renderBoardStyleControls() {
+            this.elements.boardStyleSelects?.forEach((select) => {
+                if (select.value !== this.boardStyle) select.value = this.boardStyle;
+            });
+            this.applyBoardStyle();
         },
 
         initClassicBoard() {

@@ -1506,7 +1506,13 @@
                                     <button class="yc-classic-button primary" type="button" title="Play now">Play Now</button>
                                     <button class="yc-classic-button" type="button" title="Join a selected table">Join Table</button>
                                     <button id="ycCreateTableToggle" class="yc-classic-button" type="button" title="Create a new table" aria-expanded="true">Create Table</button>
-                                    <button class="yc-classic-button" type="button" title="Classic options">Options</button>
+                                    <div class="yc-options-control" aria-label="Classic options">
+                                        <label for="ycBoardStyleSelect">Board Style</label>
+                                        <select id="ycBoardStyleSelect" class="yc-classic-field yc-board-style-select">
+                                            <option value="classic">Classic Board</option>
+                                            <option value="yahoo-table">Yahoo Table Board</option>
+                                        </select>
+                                    </div>
                                     <button class="yc-classic-button" type="button" title="Classic help">Help</button>
                                     <button class="yc-classic-button" type="button" title="Exit the classic lobby">Exit</button>
                                 </div>
@@ -1624,7 +1630,13 @@
                                     <button id="ycDrawBtn" class="yc-classic-button" type="button" disabled aria-disabled="true" title="Offer draw is not active in this Classic release">Offer Draw</button>
                                     <button id="ycResignBtn" class="yc-classic-button" type="button" disabled aria-disabled="true" title="Resign is not active in this Classic release">Resign</button>
                                     <button id="ycTakebackBtn" class="yc-classic-button" type="button" disabled aria-disabled="true" title="Takeback is not active in this Classic release">Takeback</button>
-                                    <button id="ycOptionsBtn" class="yc-classic-button" type="button" disabled aria-disabled="true" title="Table options are not active in this Classic release">Options</button>
+                                    <div class="yc-options-control yc-table-options-control" aria-label="Classic table options">
+                                        <label for="ycBoardStyleSelectTable">Board Style</label>
+                                        <select id="ycBoardStyleSelectTable" class="yc-classic-field yc-board-style-select">
+                                            <option value="classic">Classic Board</option>
+                                            <option value="yahoo-table">Yahoo Table Board</option>
+                                        </select>
+                                    </div>
                                     <button id="ycSoundBtn" class="yc-classic-button yc-sound-toggle" type="button" aria-pressed="false" title="Toggle CAISSA Classic sound">[Sound: Off]</button>
                                 </div>
                                 <div class="yc-status-card">

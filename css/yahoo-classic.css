@@ -70,7 +70,6 @@ body.yc-classic-active #app {
 }
 
 #yahooClassicSection {
-    display: flex;
     height: 100dvh;
     min-height: 100dvh;
     overflow: hidden;
@@ -417,6 +416,33 @@ body.yc-classic-active #app {
     color: #000000;
     padding-top: 4px;
     padding-left: 8px;
+}
+
+.yc-options-control {
+    display: grid;
+    gap: 3px;
+    padding: 5px;
+    border: 2px solid;
+    border-color: var(--yc-border-gray) #ffffff #ffffff var(--yc-border-gray);
+    background: #ded6b9;
+}
+
+.yc-options-control label {
+    color: #241d54;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.yc-board-style-select {
+    width: 100%;
+    min-height: 22px;
+    padding: 2px 4px;
+    font-size: 11px;
+}
+
+.yc-table-options-control {
+    padding: 4px;
+    background: #d5ccb0;
 }
 
 .yc-status-card {
@@ -1661,6 +1687,468 @@ body.yc-classic-active #app {
 .yc-move-empty {
     color: #484848;
     font-style: italic;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-window {
+    grid-template-columns: 154px minmax(430px, 1fr) clamp(286px, 24vw, 400px);
+    gap: 3px;
+    padding: 4px;
+    background:
+        linear-gradient(180deg, #e6e6e6 0, #b8b8b8 24px, transparent 24px),
+        #b6b6b6;
+}
+
+.yc-shell.yc-board-style-yahoo-table {
+    position: relative;
+    width: calc(100% - 8px);
+    height: calc(100% - 8px);
+    margin: 4px;
+    padding-top: 38px;
+    border: 2px solid;
+    border-color: #ffffff #404040 #404040 #ffffff;
+    background: #c0c0c0;
+    outline: 1px solid #000000;
+}
+
+.yc-shell.yc-board-style-yahoo-table::before {
+    content: "Game: Chess - Room: CAISSA Lobby - Table";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    height: 18px;
+    padding: 2px 56px 2px 6px;
+    border-bottom: 1px solid #000000;
+    background:
+        linear-gradient(135deg, #ffffff 0 42%, #808080 43% 100%) right 4px top 3px / 14px 12px no-repeat,
+        linear-gradient(135deg, #ffffff 0 42%, #808080 43% 100%) right 21px top 3px / 14px 12px no-repeat,
+        linear-gradient(135deg, #ffffff 0 42%, #808080 43% 100%) right 38px top 3px / 14px 12px no-repeat,
+        linear-gradient(90deg, #000080, #1084d0);
+    color: #ffffff;
+    font-family: "MS Sans Serif", Tahoma, Arial, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.yc-shell.yc-board-style-yahoo-table::after {
+    content: "Game   Table   View   Options   Help";
+    position: absolute;
+    top: 21px;
+    left: 2px;
+    right: 2px;
+    height: 17px;
+    padding: 2px 6px;
+    border-top: 1px solid #ffffff;
+    border-bottom: 1px solid #808080;
+    background: #c0c0c0;
+    color: #000000;
+    font-family: "MS Sans Serif", Tahoma, Arial, sans-serif;
+    font-size: 11px;
+    line-height: 12px;
+    white-space: pre;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-page,
+.yc-shell.yc-board-style-yahoo-table .yc-workspace,
+.yc-shell.yc-board-style-yahoo-table .yc-chat-panel,
+.yc-shell.yc-board-style-yahoo-table .yc-browser-status {
+    font-family: "MS Sans Serif", Tahoma, Arial, sans-serif;
+}
+
+.yc-shell.yc-board-style-yahoo-table,
+.yc-shell.yc-board-style-yahoo-table .yc-game-table-header,
+.yc-shell.yc-board-style-yahoo-table .yc-panel-heading,
+.yc-shell.yc-board-style-yahoo-table .yc-panel-title,
+.yc-shell.yc-board-style-yahoo-table .yc-game-player,
+.yc-shell.yc-board-style-yahoo-table .yc-browser-status,
+.yc-shell.yc-board-style-yahoo-table .yc-chat-status {
+    user-select: none;
+}
+
+.yc-shell.yc-board-style-yahoo-table input,
+.yc-shell.yc-board-style-yahoo-table select,
+.yc-shell.yc-board-style-yahoo-table textarea,
+.yc-shell.yc-board-style-yahoo-table .yc-chat-body,
+.yc-shell.yc-board-style-yahoo-table .yc-game-system-log,
+.yc-shell.yc-board-style-yahoo-table .yc-classic-move-list {
+    user-select: text;
+}
+
+.yc-page:has(.yc-shell.yc-board-style-yahoo-table) {
+    background: #008080;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-header {
+    min-height: 58px;
+    padding: 4px 7px;
+    border-color: #ffffff #7a7a7a #7a7a7a #ffffff;
+    background:
+        linear-gradient(180deg, #ffffff 0, #fff7d8 58%, #dcdcdc 59%, #b8b8b8 100%);
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-brand-mark {
+    width: 30px;
+    height: 30px;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    background: #f5f5f5;
+    color: #101010;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-brand h2 {
+    text-shadow: 1px 1px 0 #ffe98a, 2px 2px 0 #5a1b1b;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-brand-caissa {
+    color: #a90000;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-brand-rest {
+    color: #3a1f7a;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-tab.active {
+    background: #a85f20;
+    border-color: #e8b17d #5a2600 #5a2600 #fff2d8;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-tab,
+.yc-shell.yc-board-style-yahoo-table .yc-classic-button,
+.yc-shell.yc-board-style-yahoo-table .yc-send-button,
+.yc-shell.yc-board-style-yahoo-table .yc-row-action {
+    border-width: 2px;
+    border-color: #ffffff #404040 #404040 #ffffff;
+    cursor: default;
+    box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-tab:hover,
+.yc-shell.yc-board-style-yahoo-table .yc-classic-button:hover:not(:disabled),
+.yc-shell.yc-board-style-yahoo-table .yc-send-button:hover:not(:disabled),
+.yc-shell.yc-board-style-yahoo-table .yc-row-action:hover:not(:disabled) {
+    background: #d4d0c8;
+    color: #000000;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-tab:active,
+.yc-shell.yc-board-style-yahoo-table .yc-classic-button:active:not(:disabled),
+.yc-shell.yc-board-style-yahoo-table .yc-send-button:active:not(:disabled),
+.yc-shell.yc-board-style-yahoo-table .yc-row-action:active:not(:disabled) {
+    border-color: #404040 #ffffff #ffffff #404040;
+    box-shadow: inset 1px 1px 0 #808080;
+    transform: none;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-tab:active {
+    padding: 1px 6px;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-controls .yc-classic-button:active:not(:disabled) {
+    padding: 1px 5px 2px;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-send-button:active:not(:disabled),
+.yc-shell.yc-board-style-yahoo-table .yc-row-action:active:not(:disabled) {
+    padding-top: 0;
+    padding-left: 0;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-tab:focus-visible,
+.yc-shell.yc-board-style-yahoo-table .yc-classic-button:focus-visible,
+.yc-shell.yc-board-style-yahoo-table .yc-send-button:focus-visible,
+.yc-shell.yc-board-style-yahoo-table .yc-row-action:focus-visible,
+.yc-shell.yc-board-style-yahoo-table .yc-classic-field:focus-visible,
+.yc-shell.yc-board-style-yahoo-table .yc-tab:focus,
+.yc-shell.yc-board-style-yahoo-table .yc-classic-button:focus,
+.yc-shell.yc-board-style-yahoo-table .yc-send-button:focus,
+.yc-shell.yc-board-style-yahoo-table .yc-row-action:focus,
+.yc-shell.yc-board-style-yahoo-table .yc-classic-field:focus {
+    outline: 1px dotted #000000;
+    outline-offset: -4px;
+    box-shadow:
+        inset 0 0 0 1px #000000,
+        inset -2px -2px 0 #808080,
+        inset 2px 2px 0 #dfdfdf;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-classic-button:disabled,
+.yc-shell.yc-board-style-yahoo-table .yc-row-action:disabled,
+.yc-shell.yc-board-style-yahoo-table .yc-classic-field:disabled {
+    cursor: default;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-classic-field {
+    cursor: default;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-classic-field:hover:not(:disabled) {
+    background: #ffffff;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-table-header {
+    min-height: 26px;
+    padding: 2px 4px;
+    border-color: #85a7ef #001f73 #001f73 #dce8ff;
+    background: linear-gradient(180deg, #3f72d8, #1740a0 52%, #0d2a78);
+    color: #ffffff;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-table-header span,
+.yc-shell.yc-board-style-yahoo-table .yc-game-table-header strong {
+    padding: 1px 4px 2px;
+    border-color: #0b2367 #86a7f0 #86a7f0 #0b2367;
+    background: #e9eefc;
+    color: #101010;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-controls,
+.yc-shell.yc-board-style-yahoo-table .yc-game-board-panel,
+.yc-shell.yc-board-style-yahoo-table .yc-move-panel {
+    border-width: 2px;
+    border-color: #808080 #ffffff #ffffff #808080;
+    background: #c0c0c0;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-controls {
+    gap: 2px;
+    padding: 4px;
+    background: #79aaa5;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-controls .yc-panel,
+.yc-shell.yc-board-style-yahoo-table .yc-game-controls .yc-status-card {
+    border-color: #3e6b66 #c6e3de #c6e3de #3e6b66;
+    background: #d8d0a8;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-controls .yc-panel-title,
+.yc-shell.yc-board-style-yahoo-table .yc-game-controls .yc-options-control label {
+    min-height: 18px;
+    padding: 2px 5px;
+    border: 1px solid #f5efc8;
+    background: #efe4b5;
+    color: #001f73;
+    line-height: 1.1;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-controls .yc-classic-button {
+    min-height: 20px;
+    padding: 1px 5px 2px;
+    font-size: 10px;
+    line-height: 1.05;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-controls .yc-classic-field {
+    min-height: 20px;
+    padding: 1px 3px;
+    font-size: 10px;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-board-panel {
+    padding: 4px;
+    background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px),
+        #8a9774;
+    background-size: 10px 10px;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-move-panel .yc-panel-heading {
+    min-height: 24px;
+    padding: 3px 5px;
+    border-bottom: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    background: #d8d0a8;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-move-panel .yc-panel-heading h3 {
+    color: #001f73;
+    font-size: 12px;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-watch-strip {
+    padding: 2px 4px;
+    background: #efe8c8;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-watch-strip span {
+    min-height: 18px;
+    padding: 1px 4px;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-player {
+    min-height: 25px;
+    padding: 3px 7px;
+    border-color: #ffffff #707070 #707070 #ffffff;
+    background: linear-gradient(180deg, #f7f7f7, #cfcfcf);
+    color: #000000;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-player.black {
+    background: linear-gradient(180deg, #d8d8d8, #a8a8a8);
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-player.white {
+    background: linear-gradient(180deg, #ffffff, #dcdcdc);
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-game-player.turn-active {
+    background: linear-gradient(180deg, #fff6a5, #f0cb45);
+    border-color: #ffffff #8a6b00 #8a6b00 #ffffff;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-classic-board {
+    padding: 10px;
+    border-width: 5px;
+    border-color: #2a241c #ffffff #ffffff #2a241c;
+    background:
+        linear-gradient(180deg, #756b51, #4d452f);
+    box-shadow:
+        inset 2px 2px 0 #2f2b20,
+        inset -2px -2px 0 #e8e2c8,
+        0 0 0 3px #1c1c1c,
+        0 0 0 5px #8f866c;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-classic-board .white-1e1d7 {
+    background-color: #fff4c7 !important;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-classic-board .black-3c85d {
+    background-color: #5f8f4e !important;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-classic-board.yc-board-update {
+    animation: none;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-classic-board.yc-board-playable {
+    cursor: grab;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-classic-board:not(.yc-board-playable) {
+    cursor: default;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-classic-move-list,
+.yc-shell.yc-board-style-yahoo-table .yc-game-system-log,
+.yc-shell.yc-board-style-yahoo-table .yc-chat-body {
+    background: #ffffff;
+    color: #000000;
+    scrollbar-color: #d4d0c8 #ffffff;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-classic-move-list::-webkit-scrollbar,
+.yc-shell.yc-board-style-yahoo-table .yc-game-system-log::-webkit-scrollbar,
+.yc-shell.yc-board-style-yahoo-table .yc-chat-body::-webkit-scrollbar {
+    width: 16px;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-classic-move-list::-webkit-scrollbar-track,
+.yc-shell.yc-board-style-yahoo-table .yc-game-system-log::-webkit-scrollbar-track,
+.yc-shell.yc-board-style-yahoo-table .yc-chat-body::-webkit-scrollbar-track {
+    background: #ffffff;
+    border-left: 1px solid #808080;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-classic-move-list::-webkit-scrollbar-thumb,
+.yc-shell.yc-board-style-yahoo-table .yc-game-system-log::-webkit-scrollbar-thumb,
+.yc-shell.yc-board-style-yahoo-table .yc-chat-body::-webkit-scrollbar-thumb {
+    background: #d4d0c8;
+    border: 2px solid;
+    border-color: #ffffff #404040 #404040 #ffffff;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-chat-status {
+    min-height: 20px;
+    padding: 3px 6px;
+    background: #d98214;
+    color: #ffffff;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-chat-panel {
+    border-color: #808080 #ffffff #ffffff #808080;
+    background: #c0c0c0;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-chat-body {
+    border: 2px solid;
+    border-color: #808080 #ffffff #ffffff #808080;
+    font-size: 11px;
+    line-height: 1.25;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-say-row {
+    border-top: 1px solid #808080;
+    background: #c0c0c0;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-browser-status {
+    gap: 2px;
+    padding: 2px;
+    border-top: 1px solid #ffffff;
+    background: #c0c0c0;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-browser-status span {
+    min-height: 18px;
+    border: 1px solid;
+    border-color: #808080 #ffffff #ffffff #808080;
+    background: #d4d0c8;
+    color: #000000;
+    font-size: 11px;
+    line-height: 14px;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-move-row:nth-child(odd) {
+    background: #f0f0f0;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-move-row.latest {
+    background: #d7e5ff;
+    color: #001f73;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-move-row:hover,
+.yc-shell.yc-board-style-yahoo-table .yc-table-row:hover:not(.yc-table-head),
+.yc-shell.yc-board-style-yahoo-table .yc-player-row:hover:not(.yc-player-head) {
+    background: #e8eefc;
+    color: #000000;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-board-feedback,
+.yc-shell.yc-board-style-yahoo-table .yc-options-control {
+    border-color: #808080 #ffffff #ffffff #808080;
+    background: #e6e6e6;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-tab:focus,
+.yc-shell.yc-board-style-yahoo-table .yc-tab:focus-visible,
+.yc-shell.yc-board-style-yahoo-table .yc-classic-button:focus,
+.yc-shell.yc-board-style-yahoo-table .yc-classic-button:focus-visible,
+.yc-shell.yc-board-style-yahoo-table .yc-send-button:focus,
+.yc-shell.yc-board-style-yahoo-table .yc-send-button:focus-visible,
+.yc-shell.yc-board-style-yahoo-table .yc-row-action:focus,
+.yc-shell.yc-board-style-yahoo-table .yc-row-action:focus-visible,
+.yc-shell.yc-board-style-yahoo-table .yc-classic-field:focus,
+.yc-shell.yc-board-style-yahoo-table .yc-classic-field:focus-visible {
+    outline: 1px dotted #000000;
+    outline-offset: -4px;
+    box-shadow:
+        inset 0 0 0 1px #000000,
+        inset -2px -2px 0 #808080,
+        inset 2px 2px 0 #dfdfdf;
+}
+
+.yc-shell.yc-board-style-yahoo-table .yc-tab:disabled:focus,
+.yc-shell.yc-board-style-yahoo-table .yc-classic-button:disabled:focus,
+.yc-shell.yc-board-style-yahoo-table .yc-row-action:disabled:focus,
+.yc-shell.yc-board-style-yahoo-table .yc-classic-field:disabled:focus {
+    outline: none;
+    box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
 }
 
 @media (max-width: 1180px) {
