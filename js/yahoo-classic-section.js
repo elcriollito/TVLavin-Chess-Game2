@@ -1715,7 +1715,7 @@
             this.lastMoveSignature = signature;
         },
 
-        renderLastMoveSquares(move, retry = true) {
+        renderLastMoveSquares(move, retry = 2) {
             if (!this.elements.classicBoard) return;
             this.clearLastMoveSquares();
             const squares = this.getMoveSquares(move);
@@ -1729,10 +1729,10 @@
                 this.lastHighlightedSquares.push(target);
                 applied += 1;
             });
-            if (!applied && retry) {
-                requestAnimationFrame(() => {
-                    if (this.lastMoveHighlightEnabled && move === this.getLatestMove()) this.renderLastMoveSquares(move, false);
-                });
+            if (applied < squares.length && retry > 0) {
+                window.setTimeout(() => {
+                    if (this.lastMoveHighlightEnabled && move === this.getLatestMove()) this.renderLastMoveSquares(move, retry - 1);
+                }, 40);
             }
         },
 
@@ -1755,6 +1755,7 @@
 
         renderGamePlayers() {
             const table = this.getCurrentTableMeta();
+            const localColor = this.getLocalPlayerColor();
             this.renderGamePlayerBar(this.elements.blackPlayerBar, {
                 color: 'black',
                 name: this.liveGame?.blackName || table?.black || 'Black',
@@ -1762,7 +1763,8 @@
                 clock: this.formatClock(this.liveGame?.blackClock),
                 clockSeconds: this.liveGame?.blackClock,
                 active: this.liveGame?.sideToMove === 'b',
-                state: this.liveGame?.sideToMove === 'b' ? 'To move' : 'Waiting'
+                state: this.liveGame?.sideToMove === 'b' ? 'To move' : 'Waiting',
+                isLocal: localColor === 'black'
             });
             this.renderGamePlayerBar(this.elements.whitePlayerBar, {
                 color: 'white',
@@ -1771,7 +1773,8 @@
                 clock: this.formatClock(this.liveGame?.whiteClock),
                 clockSeconds: this.liveGame?.whiteClock,
                 active: this.liveGame?.sideToMove === 'w',
-                state: this.liveGame?.sideToMove === 'w' ? 'To move' : 'Waiting'
+                state: this.liveGame?.sideToMove === 'w' ? 'To move' : 'Waiting',
+                isLocal: localColor === 'white'
             });
         },
 
@@ -1780,29 +1783,52 @@
             const identity = player.rating && player.rating !== 'FICS' ? 'registered' : 'guest';
             const ratingClass = this.getRatingClass(player.rating);
             const lowClock = Number.isFinite(player.clockSeconds) && player.clockSeconds <= 30;
-            element.className = `yc-game-player ${player.color}${player.active ? ' turn-active' : ''}${lowClock ? ' clock-low' : ''}`;
+            const sideLabel = player.color === 'white' ? 'Playing White' : 'Playing Black';
+            element.className = `yc-game-player ${player.color}${player.active ? ' turn-active' : ''}${player.isLocal ? ' local-player' : ''}${lowClock ? ' clock-low' : ''}`;
             element.dataset.identity = identity;
             element.dataset.ratingClass = ratingClass;
             element.dataset.turn = player.active ? 'active' : 'waiting';
-            element.setAttribute('aria-label', `${player.color} player ${player.name || player.color}, ${player.state || 'Waiting'}, clock ${player.clock || '--:--'}`);
+            element.dataset.side = player.color;
+            element.dataset.local = player.isLocal ? 'true' : 'false';
+            element.setAttribute('aria-label', `${player.isLocal ? 'You, ' : ''}${player.color} player ${player.name || player.color}, ${sideLabel}, ${player.state || 'Waiting'}, clock ${player.clock || '--:--'}`);
             const name = element.querySelector('.yc-player-name');
             const rating = element.querySelector('.yc-player-rating');
             const state = element.querySelector('.yc-player-state');
             const clock = element.querySelector('.yc-player-clock');
             if (name) {
-                name.textContent = player.name || player.color;
-                name.title = name.textContent;
+                name.replaceChildren();
+                name.append(player.name || player.color);
+                if (player.isLocal) {
+                    const badge = document.createElement('span');
+                    badge.className = 'yc-local-player-badge';
+                    badge.textContent = 'YOU';
+                    name.append(' ');
+                    name.appendChild(badge);
+                }
+                name.title = player.isLocal ? `You - ${sideLabel}` : sideLabel;
             }
             if (rating) {
                 const status = identity === 'registered' ? 'Registered' : 'Guest';
                 rating.textContent = `${player.rating || 'FICS'} - ${status}`;
-                rating.title = `${status} - ${this.getRatingLabel(ratingClass)}`;
+                rating.title = `${sideLabel}; rating band ${this.getRatingLabel(ratingClass)}; ${status}`;
             }
-            if (state) state.textContent = player.state || 'Waiting';
+            if (state) {
+                const compactSide = player.color === 'white' ? 'White' : 'Black';
+                state.textContent = player.isLocal ? `${compactSide} - ${player.state || 'Waiting'}` : player.state || 'Waiting';
+                state.title = sideLabel;
+            }
             if (clock) {
                 clock.textContent = player.clock || '--:--';
-                clock.title = `${player.color} clock ${clock.textContent}`;
+                clock.title = `${player.isLocal ? 'Your' : player.color} clock ${clock.textContent}`;
             }
+        },
+
+        getLocalPlayerColor() {
+            if (this.liveGame?.observedGame) return '';
+            const color = this.liveGame?.userColor || window.CaissaFICSClient?.myColor || '';
+            if (color === 'w') return 'white';
+            if (color === 'b') return 'black';
+            return color === 'white' || color === 'black' ? color : '';
         },
 
         renderClassicMoves() {
