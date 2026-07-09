@@ -125,6 +125,8 @@ const CaissaNavigation = {
             this.closeMobileAnalysis();
         });
 
+        this.closeMobileAnalysis();
+
         console.log('[CAISSA Nav] Event listeners bound');
     },
 
@@ -206,6 +208,7 @@ const CaissaNavigation = {
         this.currentSection = sectionId;
         this.saveState();
         this.updateSectionName(sectionId);
+        this.updateMobileGameplayControls(sectionId);
 
         // Close mobile nav
         if (window.innerWidth <= 768) {
@@ -374,8 +377,12 @@ const CaissaNavigation = {
     toggleMobileAnalysis() {
         const sheet = document.getElementById('mobileAnalysisSheet');
         if (sheet) {
-            sheet.classList.toggle('open');
-            if (sheet.classList.contains('open')) {
+            const willOpen = !sheet.classList.contains('open');
+            sheet.classList.toggle('open', willOpen);
+            sheet.hidden = !willOpen;
+            sheet.setAttribute('aria-hidden', String(!willOpen));
+            sheet.inert = !willOpen;
+            if (willOpen) {
                 this.updateMobileAnalysis();
             }
         }
@@ -388,6 +395,50 @@ const CaissaNavigation = {
         const sheet = document.getElementById('mobileAnalysisSheet');
         if (sheet) {
             sheet.classList.remove('open');
+            sheet.hidden = true;
+            sheet.setAttribute('aria-hidden', 'true');
+            sheet.inert = true;
+        }
+    },
+
+    /**
+     * Keep mobile gameplay controls contextual and outside the accessibility
+     * tree when the current section does not use them.
+     */
+    updateMobileGameplayControls(sectionId = this.currentSection) {
+        const isGameplaySection = sectionId === 'play' || sectionId === 'analyze';
+        const quickActions = document.querySelector('.mobile-quick-actions');
+        const newGameBtn = document.getElementById('mobileNewGame');
+        const arenaBtn = document.getElementById('mobileArena');
+        const analysisBtn = document.getElementById('mobileAnalysisToggle');
+
+        document.body?.setAttribute('data-caissa-section', sectionId || '');
+        document.body?.classList.toggle('caissa-mobile-gameplay-active', isGameplaySection);
+
+        if (quickActions) {
+            quickActions.hidden = !isGameplaySection;
+            quickActions.setAttribute('aria-hidden', String(!isGameplaySection));
+            quickActions.inert = !isGameplaySection;
+        }
+
+        if (newGameBtn) {
+            const showNewGame = sectionId === 'play';
+            newGameBtn.hidden = !showNewGame;
+            newGameBtn.setAttribute('aria-hidden', String(!showNewGame));
+        }
+
+        if (arenaBtn) {
+            arenaBtn.hidden = true;
+            arenaBtn.setAttribute('aria-hidden', 'true');
+        }
+
+        if (analysisBtn) {
+            analysisBtn.hidden = !isGameplaySection;
+            analysisBtn.setAttribute('aria-hidden', String(!isGameplaySection));
+        }
+
+        if (!isGameplaySection) {
+            this.closeMobileAnalysis();
         }
     },
 
@@ -702,6 +753,7 @@ const CaissaNavigation = {
 
             // Call section enter hook
             this.onSectionEnter(targetSection);
+            this.updateMobileGameplayControls(targetSection);
         }
     }
 };

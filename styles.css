@@ -8181,3 +8181,416 @@ body.debug-layout #right-panel,
 body.debug-layout #arena-right {
     outline: 3px solid red !important;
 }
+
+/* ===== Season 1.0.6 Phase 2B: Mobile Gameplay Experience ===== */
+@media (max-width: 768px) {
+    body.caissa-mobile-gameplay-active .content-area {
+        padding-bottom: calc(var(--caissa-mobile-bottom-reserve, 72px) + env(safe-area-inset-bottom, 0px));
+    }
+
+    body:not(.caissa-mobile-gameplay-active) .mobile-quick-actions,
+    body:not(.caissa-mobile-gameplay-active) .mobile-analysis-sheet {
+        display: none !important;
+    }
+
+    #playSection {
+        --play-mobile-board-size: min(calc(100vw - 64px), calc(100dvh - 232px), 680px);
+        --play-board-size: var(--play-mobile-board-size);
+        --board-size: var(--play-mobile-board-size);
+    }
+
+    #playSection .cais-stage,
+    #playSection .cais-root {
+        min-width: 0;
+        overflow-x: clip;
+    }
+
+    #playSection .cais-topbar {
+        min-height: 0;
+        padding-block: 4px;
+    }
+
+    #playSection .main-content {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+        padding: 8px;
+        overflow: visible;
+    }
+
+    #playSection .board-center,
+    #playSection .board-container,
+    #playSection .board-zone,
+    #playSection .board-with-eval,
+    #playSection .board-wrapper {
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    #playSection .board-center {
+        order: 1;
+        display: flex;
+        justify-content: center;
+    }
+
+    #playSection .board-container {
+        width: 100%;
+        padding: 4px;
+        gap: 8px;
+    }
+
+    #playSection .board-zone {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+    }
+
+    #playSection .board-with-eval {
+        width: auto;
+        gap: 8px;
+        justify-content: center;
+        align-items: stretch;
+    }
+
+    #playSection .eval-bar {
+        width: 12px;
+        min-width: 12px;
+        flex-basis: 12px;
+        min-height: var(--play-mobile-board-size);
+        margin-left: 0;
+    }
+
+    #playSection .eval-score-badge {
+        min-width: 36px;
+        padding: 2px 5px;
+        font-size: 12px;
+    }
+
+    #playSection #chessboard {
+        width: var(--play-mobile-board-size) !important;
+        height: var(--play-mobile-board-size) !important;
+        max-width: var(--play-mobile-board-size) !important;
+        max-height: var(--play-mobile-board-size) !important;
+    }
+
+    #playSection .board-editor-wrapper {
+        width: min(100%, calc(var(--play-mobile-board-size) + 28px));
+        max-width: 100%;
+    }
+
+    #playSection .analysis-panel-compact {
+        max-height: 150px;
+        overflow: hidden;
+    }
+
+    #playSection .analysis-panel-compact .analysis-content {
+        max-height: 104px;
+    }
+
+    #playSection .left-panel.cais-left-col {
+        display: none !important;
+    }
+
+    #playSection .right-panel.cais-right-col {
+        order: 2;
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+        width: 100%;
+        min-width: 0;
+        max-width: min(100%, 520px);
+        justify-self: center;
+    }
+
+    #playSection .right-panel .panel {
+        min-width: 0;
+    }
+
+    #playSection .game-status-panel .panel-body {
+        display: grid;
+        gap: 8px;
+    }
+
+    #playSection .gs-console {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 4px 8px;
+    }
+
+    #playSection .gs-console-row,
+    #playSection .gs-row {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    #playSection .game-status-box {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 4px 8px;
+    }
+
+    #playSection .right-panel > .panel.grow {
+        max-height: 170px;
+        min-height: 0;
+    }
+
+    #playSection .moves-panel,
+    #playSection #movesPanel {
+        min-height: 0 !important;
+        max-height: 128px !important;
+        padding: 8px;
+    }
+
+    #playSection .moves-nav-inline,
+    #playSection .navigation-controls-inline {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(44px, 1fr));
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    #playSection .nav-btn-sm,
+    .analyze-board-navigation .nav-btn-sm {
+        width: auto;
+        min-width: 44px;
+        height: 44px;
+        min-height: 44px;
+    }
+
+    #playSection .right-controls {
+        display: grid;
+        gap: 8px;
+    }
+
+    #playSection .ctrl-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    #playSection .ctrl-row.bottom {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    #playSection .ctrl-row.new-game-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    #playSection .ctrl-btn,
+    #playSection .new-game-control-btn {
+        min-height: 44px;
+        white-space: nowrap;
+    }
+
+    #analyzeSection {
+        --analyze-mobile-board-size: min(calc(100vw - 84px), calc(100dvh - 232px), 680px);
+        --board-size: var(--analyze-mobile-board-size);
+    }
+
+    .analyze-layout {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+        padding: 8px;
+        overflow: visible;
+    }
+
+    .analyze-main {
+        order: 1;
+        gap: 8px;
+    }
+
+    .analyze-import-sidebar {
+        order: 2;
+        max-height: none;
+    }
+
+    #analyzeSection .context-panel {
+        order: 3;
+        display: flex;
+        flex-direction: column;
+        max-height: none;
+    }
+
+    .analyze-board-zone {
+        grid-template-columns: 34px minmax(0, var(--analyze-mobile-board-size));
+        gap: 8px;
+        width: min(100%, calc(var(--analyze-mobile-board-size) + 42px));
+        justify-content: center;
+    }
+
+    #analyzeSection .analyze-board-zone > #chessboard {
+        width: var(--analyze-mobile-board-size) !important;
+        height: var(--analyze-mobile-board-size) !important;
+        max-width: var(--analyze-mobile-board-size) !important;
+        max-height: var(--analyze-mobile-board-size) !important;
+    }
+
+    .analyze-eval-bar {
+        width: 16px;
+    }
+
+    .analyze-eval-score {
+        width: 34px;
+        min-height: 24px;
+        font-size: 12px;
+    }
+
+    .analyze-board-navigation {
+        grid-template-columns: repeat(5, minmax(44px, 1fr));
+        gap: 8px;
+        width: min(100%, calc(var(--analyze-mobile-board-size) + 42px));
+    }
+
+    .analyze-mentor-panel {
+        width: min(100%, calc(var(--analyze-mobile-board-size) + 42px));
+    }
+}
+
+@media (max-width: 950px) and (max-height: 480px) and (orientation: landscape) {
+    body.caissa-mobile-gameplay-active .header-minimal {
+        position: absolute;
+        min-height: 0;
+        padding-block: 4px;
+        opacity: 0.98;
+    }
+
+    body.caissa-mobile-gameplay-active .content-area {
+        padding-top: calc(8px + env(safe-area-inset-top, 0px));
+        padding-bottom: calc(54px + env(safe-area-inset-bottom, 0px));
+    }
+
+    body[data-caissa-section="play"] #playSection {
+        --play-mobile-board-size: min(calc(100dvh - 112px), calc(58vw - 40px), 430px);
+        --play-board-size: var(--play-mobile-board-size);
+        --board-size: var(--play-mobile-board-size);
+    }
+
+    body[data-caissa-section="play"] #playSection .cais-topbar {
+        display: none;
+    }
+
+    body[data-caissa-section="play"] #playSection .main-content {
+        grid-template-columns: minmax(0, max-content) minmax(210px, 1fr);
+        align-items: start;
+        justify-content: center;
+        gap: 8px;
+        padding: 4px 8px;
+    }
+
+    body[data-caissa-section="play"] #playSection .board-center {
+        grid-column: 1;
+        width: auto;
+    }
+
+    body[data-caissa-section="play"] #playSection .board-container {
+        padding: 0;
+    }
+
+    body[data-caissa-section="play"] #playSection .board-editor-wrapper {
+        display: none;
+    }
+
+    body[data-caissa-section="play"] #playSection .right-panel.cais-right-col {
+        grid-column: 2;
+        align-self: start;
+        max-width: 360px;
+        max-height: calc(100dvh - 68px);
+        overflow-y: auto;
+        padding-right: 2px;
+    }
+
+    body[data-caissa-section="play"] #playSection .game-status-panel .panel-body {
+        gap: 4px;
+    }
+
+    body[data-caissa-section="play"] #playSection .gs-console {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    body[data-caissa-section="play"] #playSection .game-status-box {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    body[data-caissa-section="play"] #playSection .right-panel > .panel.grow {
+        max-height: 120px;
+    }
+
+    body[data-caissa-section="play"] #playSection .moves-panel,
+    body[data-caissa-section="play"] #playSection #movesPanel {
+        max-height: 84px !important;
+    }
+
+    body[data-caissa-section="play"] #playSection .moves-nav-inline,
+    body[data-caissa-section="play"] #playSection .navigation-controls-inline {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(44px, 1fr));
+        gap: 6px;
+    }
+
+    body[data-caissa-section="play"] #playSection .nav-btn-sm,
+    body[data-caissa-section="play"] #playSection .ctrl-btn,
+    body[data-caissa-section="play"] #playSection .new-game-control-btn,
+    body[data-caissa-section="analyze"] .analyze-board-navigation .nav-btn-sm {
+        width: auto !important;
+        min-width: 44px !important;
+        height: 44px !important;
+        min-height: 44px !important;
+    }
+
+    body[data-caissa-section="play"] #playSection .ctrl-row {
+        grid-template-columns: repeat(3, minmax(44px, 1fr));
+    }
+
+    body[data-caissa-section="play"] .mobile-quick-actions {
+        height: calc(52px + env(safe-area-inset-bottom, 0px));
+        padding-block: 4px calc(4px + env(safe-area-inset-bottom, 0px));
+    }
+
+    body[data-caissa-section="play"] .mobile-quick-btn {
+        height: 44px;
+    }
+
+    body[data-caissa-section="analyze"] #analyzeSection {
+        --analyze-mobile-board-size: min(calc(100dvh - 112px), calc(58vw - 52px), 430px);
+        --board-size: var(--analyze-mobile-board-size);
+    }
+
+    body[data-caissa-section="analyze"] .analyze-layout {
+        grid-template-columns: minmax(0, max-content) minmax(220px, 1fr);
+        align-items: start;
+        justify-content: center;
+        gap: 8px;
+        padding: 4px 8px;
+    }
+
+    body[data-caissa-section="analyze"] .analyze-main {
+        grid-column: 1;
+    }
+
+    body[data-caissa-section="analyze"] .analyze-import-sidebar {
+        grid-column: 2;
+        order: 2;
+        max-height: calc(100dvh - 68px);
+        overflow-y: auto;
+    }
+
+    body[data-caissa-section="analyze"] #analyzeSection .context-panel {
+        grid-column: 2;
+        order: 3;
+        max-height: calc(100dvh - 68px);
+        overflow-y: auto;
+    }
+
+    body[data-caissa-section="analyze"] .analyze-board-navigation {
+        grid-template-columns: repeat(5, minmax(44px, 1fr));
+        gap: 4px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mobile-analysis-sheet,
+    .mobile-quick-btn,
+    .mobile-nav-toggle {
+        transition: none;
+    }
+}

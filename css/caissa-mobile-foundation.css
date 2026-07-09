@@ -112,6 +112,10 @@
         --caissa-board-safe-size: min(var(--play-board-size, var(--board-size, 100vw)), calc(100vw - 64px));
     }
 
+    #analyzeSection {
+        --caissa-board-safe-size: min(var(--board-size, 100vw), calc(100vw - 84px));
+    }
+
     body #chessboard,
     body .chessboard {
         width: var(--caissa-board-safe-size) !important;
@@ -123,6 +127,13 @@
     body #playSection #chessboard {
         width: var(--caissa-board-safe-size) !important;
         height: var(--caissa-board-safe-size) !important;
+    }
+
+    body #analyzeSection .analyze-board-zone > #chessboard {
+        width: var(--caissa-board-safe-size) !important;
+        height: var(--caissa-board-safe-size) !important;
+        max-width: var(--caissa-board-safe-size) !important;
+        max-height: var(--caissa-board-safe-size) !important;
     }
 
     body :is(
@@ -258,6 +269,11 @@
         padding-bottom: calc(var(--caissa-mobile-bottom-reserve) + var(--caissa-mobile-safe-bottom));
     }
 
+    .mobile-quick-actions[hidden],
+    .mobile-analysis-sheet[hidden] {
+        display: none !important;
+    }
+
     .mobile-quick-actions {
         height: calc(64px + var(--caissa-mobile-safe-bottom));
         padding-bottom: calc(8px + var(--caissa-mobile-safe-bottom));
@@ -363,6 +379,10 @@
 
     #playSection {
         --caissa-board-safe-size: min(var(--play-board-size, var(--board-size, 100vw)), calc(100vw - 64px), calc(100dvh - 112px));
+    }
+
+    #analyzeSection {
+        --caissa-board-safe-size: min(var(--board-size, 100vw), calc(100vw - 84px), calc(100dvh - 132px));
     }
 
     .caissa-phone-landscape-only {
