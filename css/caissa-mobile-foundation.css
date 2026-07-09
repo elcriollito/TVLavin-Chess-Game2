@@ -294,6 +294,16 @@
         pointer-events: auto;
     }
 
+    :where(.modal-content, [role="dialog"]) {
+        max-width: calc(100vw - (2 * var(--caissa-mobile-edge)));
+        max-height: calc(100dvh - 32px - var(--caissa-mobile-safe-bottom));
+    }
+
+    :where(.modal-content) {
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
     .main-navigation {
         padding-top: var(--caissa-mobile-safe-top);
         padding-bottom: var(--caissa-mobile-safe-bottom);
@@ -338,6 +348,34 @@
         display: grid;
         grid-template-columns: minmax(0, 1fr);
         gap: var(--caissa-mobile-gap);
+    }
+
+    .caissa-mobile-scroll-table {
+        max-width: 100%;
+        overflow-x: auto;
+        overscroll-behavior-inline: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .caissa-mobile-card-list {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--caissa-mobile-gap);
+    }
+
+    .caissa-mobile-card-row {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .caissa-mobile-sticky-actions {
+        position: sticky;
+        bottom: calc(8px + var(--caissa-mobile-safe-bottom));
+        z-index: 5;
+    }
+
+    :where(.caissa-mobile-scroll-table, .caissa-mobile-card-list, .caissa-mobile-card-row) {
+        scrollbar-gutter: stable;
     }
 }
 
@@ -403,6 +441,18 @@
 @media (min-width: 769px) and (max-width: 1180px) and (orientation: landscape) {
     .caissa-tablet-landscape-only {
         display: revert !important;
+    }
+
+    :where(
+        #navCollapseBtn,
+        #sidebarSignIn,
+        #mentorCloseBtn,
+        #libraryCloseBtn,
+        .quick-eval-toggle,
+        #qe-toggle
+    ) {
+        min-width: var(--caissa-mobile-touch-target) !important;
+        min-height: var(--caissa-mobile-touch-target) !important;
     }
 }
 

@@ -1763,13 +1763,49 @@
 @media (max-width: 768px) {
     .spectator-layout {
         height: auto;
-        padding: 14px;
+        padding: 12px;
     }
 
     .spectator-header,
     .spectator-actions {
         display: grid;
         justify-content: stretch;
+    }
+
+    .spectator-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .spectator-board-panel {
+        order: 1;
+    }
+
+    .spectator-browser-panel {
+        order: 2;
+    }
+
+    .spectator-side-panel {
+        order: 3;
+    }
+
+    .spectator-channel-list {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        scroll-snap-type: x proximity;
+    }
+
+    .spectator-channel {
+        flex: 0 0 auto;
+        min-width: 116px;
+        scroll-snap-align: start;
+    }
+
+    .spectator-game-list {
+        max-height: 240px;
     }
 
     .spectator-title {
@@ -1782,18 +1818,56 @@
 
     .spectator-player-bar {
         grid-template-columns: 10px 10px minmax(0, 1fr) auto;
+        min-height: 44px;
     }
 
     .spectator-player-rating {
         display: none;
     }
 
+    .spectator-board {
+        --spectator-mobile-board-size: min(calc(100vw - 44px), calc(100dvh - 236px), 560px);
+        width: var(--spectator-mobile-board-size);
+        height: var(--spectator-mobile-board-size);
+        max-width: 100%;
+        aspect-ratio: 1 / 1;
+    }
+
+    .spectator-board > * {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    .spectator-player-card {
+        min-height: 0;
+    }
+
+    .spectator-live-context {
+        height: auto;
+        max-height: 220px;
+        overflow-y: auto;
+    }
+
+    .spectator-move-list {
+        max-height: 220px;
+    }
+
     .fics-layout {
-        padding: 16px;
+        height: auto;
+        padding: 12px;
+        overflow-x: clip;
     }
 
     .fics-title {
         font-size: 22px;
+    }
+
+    .fics-disclaimer {
+        align-items: flex-start;
+    }
+
+    .fics-connection {
+        padding: 12px;
     }
 
     .fics-connection-buttons {
@@ -1805,12 +1879,52 @@
         grid-template-columns: minmax(0, 1fr);
     }
 
+    .fics-login-mode input {
+        width: 34px;
+        height: 34px;
+        transform: scale(1.35);
+        transform-origin: center;
+    }
+
     .fics-seek-presets {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .fics-game-area {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .fics-board-section {
+        order: 1;
+        padding: 12px;
+    }
+
+    .fics-room-panel {
+        order: 2;
+    }
+
+    .fics-side-panel {
+        order: 3;
+    }
+
+    .fics-live-board-shell {
+        width: min(100%, calc(100vw - 32px));
+        margin-inline: auto;
+    }
+
+    #ficsBoardContainer {
+        width: min(calc(100vw - 44px), calc(100dvh - 250px), 560px) !important;
+        height: auto !important;
+        aspect-ratio: 1 / 1;
+        margin-inline: auto;
     }
 
     .fics-player-bar {
         grid-template-columns: auto auto minmax(0, 1fr) auto;
+        min-height: 44px;
     }
 
     .fics-player-rating,
@@ -1824,13 +1938,15 @@
     }
 
     #ficsConsole {
-        height: 200px;
-        font-size: 11px;
+        height: clamp(150px, 26dvh, 220px);
+        font-size: 12px;
+        line-height: 1.45;
     }
 
-    .fics-room-header-row,
-    .fics-table-card {
-        grid-template-columns: minmax(48px, 0.7fr) minmax(42px, 0.6fr) minmax(0, 1.4fr) auto;
+    .fics-command-input {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
     }
 
     .fics-lobby-header {
@@ -1842,19 +1958,152 @@
         justify-content: flex-start;
     }
 
+    .fics-lobby-table {
+        overflow-x: clip;
+    }
+
+    .fics-lobby-head {
+        display: none;
+    }
+
+    .fics-lobby-rows {
+        display: grid;
+        gap: 8px;
+    }
+
     .fics-lobby-row {
-        grid-template-columns: 20px 48px 54px minmax(84px, 1fr) 72px;
-        gap: 6px;
+        grid-template-columns: 20px minmax(0, 1fr) auto;
+        gap: 6px 10px;
     }
 
     .fics-lobby-head,
     .fics-lobby-rows .fics-lobby-row {
         padding-left: 8px;
         padding-right: 8px;
-        font-size: 11px;
+        font-size: 12px;
+    }
+
+    .fics-lobby-rows .fics-lobby-row {
+        min-height: 64px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--bg-tertiary);
+    }
+
+    .fics-lobby-rows .fics-lobby-row > span {
+        min-width: 0;
+    }
+
+    .fics-lobby-rows .fics-lobby-row > span:nth-child(1) {
+        grid-row: span 2;
+        align-self: center;
+    }
+
+    .fics-lobby-rows .fics-lobby-row > span:nth-child(2)::before { content: "Table "; color: var(--text-secondary); }
+    .fics-lobby-rows .fics-lobby-row > span:nth-child(3)::before { content: "Time "; color: var(--text-secondary); }
+    .fics-lobby-rows .fics-lobby-row > span:nth-child(4)::before { content: "Players "; color: var(--text-secondary); }
+
+    .fics-lobby-rows .fics-lobby-row > span:nth-child(4) {
+        grid-column: 1 / -1;
+        padding-left: 30px;
+    }
+
+    .fics-lobby-rows .fics-lobby-row > span:nth-child(5) {
+        grid-row: 1 / span 2;
+        grid-column: 3;
+        align-self: center;
     }
 
     .fics-table-action {
-        padding: 7px 8px;
+        min-height: 44px;
+        padding: 8px 10px;
+    }
+}
+
+@media (max-width: 950px) and (max-height: 480px) and (orientation: landscape) {
+    .spectator-layout,
+    .fics-layout {
+        padding: 8px;
+    }
+
+    .spectator-header,
+    .fics-header,
+    .fics-disclaimer {
+        display: none;
+    }
+
+    .spectator-grid,
+    .fics-game-area {
+        display: grid;
+        grid-template-columns: minmax(0, max-content) minmax(220px, 1fr);
+        align-items: start;
+        gap: 8px;
+    }
+
+    .spectator-board-panel,
+    .fics-board-section {
+        grid-column: 1;
+        order: initial;
+    }
+
+    .spectator-browser-panel,
+    .spectator-side-panel,
+    .fics-room-panel,
+    .fics-side-panel {
+        grid-column: 2;
+        order: initial;
+        max-height: calc(100dvh - 20px);
+        overflow-y: auto;
+    }
+
+    .fics-connection {
+        margin-bottom: 8px;
+    }
+
+    .fics-connection-header {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .fics-btn,
+    .fics-table-action,
+    .fics-seek-btn,
+    .spectator-channel,
+    .spectator-game-watch,
+    .fics-login-mode input {
+        min-height: 44px;
+    }
+
+    .fics-login-mode input {
+        width: 34px;
+        height: 34px;
+        transform: scale(1.35);
+        transform-origin: center;
+    }
+
+    .spectator-channel-list {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+
+    .spectator-board {
+        width: min(calc(100dvh - 112px), calc(56vw - 28px), 430px);
+        height: auto;
+    }
+
+    #ficsBoardContainer {
+        width: min(calc(100dvh - 150px), calc(56vw - 28px), 430px) !important;
+        height: auto !important;
+        aspect-ratio: 1 / 1;
+    }
+
+    .fics-console-section,
+    .spectator-live-context,
+    .spectator-move-list,
+    .spectator-game-list {
+        max-height: calc(100dvh - 120px);
+        overflow-y: auto;
     }
 }

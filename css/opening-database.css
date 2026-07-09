@@ -971,7 +971,26 @@
   }
 
   .openingdb-content {
-    padding-top: 70px;
+    padding: 70px 12px 18px;
+    overflow-x: clip;
+  }
+
+  .openingdb-page {
+    max-width: 100%;
+  }
+
+  .openingdb-header h1 {
+    font-size: 24px;
+    line-height: 1.15;
+  }
+
+  .openingdb-header p {
+    font-size: 13px;
+  }
+
+  .openingdb-top-area,
+  .openingdb-bottom-area {
+    gap: 12px;
   }
 
   .main-navigation {
@@ -982,12 +1001,121 @@
     z-index: 1000;
   }
 
+  .openingdb-board-shell {
+    width: min(calc(100vw - 32px), calc(100dvh - 250px), var(--board-size));
+    height: min(calc(100vw - 32px), calc(100dvh - 250px), var(--board-size));
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .openingdb-opening-meta {
+    display: grid;
+    gap: 6px;
+  }
+
+  .openingdb-tabs,
+  .openingdb-moves-toolbar,
+  .openingdb-modes {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scroll-snap-type: x proximity;
+  }
+
+  .openingdb-tab {
+    flex: 0 0 auto;
+    min-height: 44px;
+    scroll-snap-align: start;
+  }
+
+  .openingdb-quick-eval-toggle,
+  .openingdb-quick-eval-mode,
+  .openingdb-coverage-badge {
+    flex: 0 0 auto;
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .openingdb-table-wrap,
+  .openingdb-games-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .openingdb-stats-table {
+    min-width: 620px;
+  }
+
+  .openingdb-games-table {
+    min-width: 760px;
+  }
+
+  .openingdb-stats-table th,
+  .openingdb-stats-table td,
+  .openingdb-games-table th,
+  .openingdb-games-table td {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
+  .openingdb-controls,
+  .openingdb-games-controls,
+  .engine-analysis-actions,
+  .openingdb-fen-actions,
+  .openingdb-games-pgn-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .openingdb-controls .btn,
+  .openingdb-games-controls .btn,
+  .engine-analysis-actions .btn,
+  .openingdb-fen-actions .btn,
+  .openingdb-games-pgn-actions .btn {
+    min-height: 44px;
+  }
+
   .openingdb-games-filters {
     grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .openingdb-games-filters label,
+  .engine-analysis-controls label {
+    min-width: 0;
+  }
+
+  .openingdb-games-filters input,
+  .openingdb-games-filters select,
+  .engine-analysis-controls select {
+    width: 100%;
+    min-height: 44px;
+    font-size: 16px;
   }
 
   .engine-analysis-readout {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .engine-analysis-debug-grid strong {
+    max-width: 100%;
+  }
+
+  .openingdb-games-pgn textarea,
+  .openingdb-movelist,
+  #odbFenInput {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .openingdb-side-panel-bottom {
+    max-height: 52dvh;
+    overflow-y: auto;
   }
 }
 
@@ -1015,10 +1143,60 @@
     align-items: stretch;
   }
 
-  .openingdb-tabs,
-  .openingdb-moves-toolbar,
   .openingdb-games-controls,
   .openingdb-games-pgn-actions {
     flex-direction: column;
+  }
+
+  .openingdb-games-filters,
+  .openingdb-controls,
+  .openingdb-games-controls,
+  .engine-analysis-actions,
+  .openingdb-fen-actions,
+  .openingdb-games-pgn-actions,
+  .engine-analysis-readout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 950px) and (max-height: 480px) and (orientation: landscape) {
+  .openingdb-app {
+    grid-template-columns: 1fr;
+  }
+
+  .main-navigation {
+    display: none;
+  }
+
+  .openingdb-content {
+    padding: 8px;
+    overflow-x: clip;
+  }
+
+  .openingdb-header {
+    display: none;
+  }
+
+  .openingdb-top-area {
+    grid-template-columns: minmax(0, max-content) minmax(260px, 1fr);
+    align-items: start;
+    gap: 8px;
+  }
+
+  .openingdb-board-shell {
+    width: min(calc(100dvh - 34px), calc(48vw - 24px), 430px);
+    height: min(calc(100dvh - 34px), calc(48vw - 24px), 430px);
+  }
+
+  .openingdb-stats-section,
+  .openingdb-action-band,
+  .openingdb-bottom-area {
+    max-height: calc(100dvh - 18px);
+    overflow-y: auto;
+  }
+
+  .openingdb-action-band,
+  .openingdb-bottom-area {
+    margin-top: 8px;
   }
 }

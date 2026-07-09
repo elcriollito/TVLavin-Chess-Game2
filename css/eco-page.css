@@ -425,8 +425,47 @@
 }
 
 @media (max-width: 840px) {
+  .eco-root {
+    padding: 14px;
+  }
+
+  .eco-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .eco-header h1 {
+    font-size: 24px;
+    line-height: 1.15;
+  }
+
+  .eco-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #ecoSearch {
+    flex-basis: auto;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .eco-tabs {
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scroll-snap-type: x proximity;
+  }
+
+  .eco-tab {
+    flex: 0 0 auto;
+    min-height: 44px;
+    min-width: 52px;
+    scroll-snap-align: start;
+  }
+
   .eco-layout {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .eco-detail {
@@ -440,6 +479,7 @@
       "moves moves";
     align-items: start;
     row-gap: 6px;
+    min-height: 64px;
   }
 
   .eco-code {
@@ -460,6 +500,7 @@
 
   .eco-detail-layout {
     grid-template-columns: 1fr;
+    padding: 12px;
   }
 
   .eco-mini-board {
@@ -468,8 +509,29 @@
   }
 
   .eco-board-container {
-    width: min(92vw, 4in);
-    height: min(92vw, 4in);
+    width: min(calc(100vw - 44px), calc(100dvh - 260px), 4in);
+    height: min(calc(100vw - 44px), calc(100dvh - 260px), 4in);
+    justify-self: center;
+  }
+
+  .eco-board-controls {
+    width: min(100%, calc(100vw - 44px));
+    display: grid;
+    grid-template-columns: repeat(5, minmax(44px, 1fr));
+    justify-self: center;
+  }
+
+  .eco-board-controls button {
+    min-height: 44px;
+    padding: 8px 10px;
+  }
+
+  .eco-overview,
+  .eco-pro-block,
+  .eco-defining,
+  .eco-coach {
+    max-height: 42dvh;
+    overflow-y: auto;
   }
 
   .eco-continuations li {
@@ -488,6 +550,40 @@
 
   .eco-cont-meta {
     flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 950px) and (max-height: 480px) and (orientation: landscape) {
+  .eco-root {
+    padding: 8px;
+  }
+
+  .eco-header {
+    margin-bottom: 8px;
+  }
+
+  .eco-layout {
+    grid-template-columns: minmax(210px, 0.9fr) minmax(0, 1.1fr);
+    gap: 8px;
+  }
+
+  .eco-list {
+    max-height: calc(100dvh - 104px);
+    overflow-y: auto;
+  }
+
+  .eco-detail-layout {
+    max-height: calc(100dvh - 76px);
+    overflow-y: auto;
+  }
+
+  .eco-board-container {
+    width: min(calc(100dvh - 142px), 42vw, 320px);
+    height: min(calc(100dvh - 142px), 42vw, 320px);
+  }
+
+  .eco-board-controls {
+    grid-template-columns: repeat(5, minmax(40px, 1fr));
   }
 }
 

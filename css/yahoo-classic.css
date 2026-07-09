@@ -2348,11 +2348,12 @@ body.yc-classic-active #app {
     .yc-page {
         height: 100dvh;
         padding: 0;
+        overflow-y: auto;
     }
 
     .yc-shell {
-        height: 100%;
-        min-height: 0;
+        height: auto;
+        min-height: 100%;
     }
 
     .yc-header,
@@ -2373,8 +2374,22 @@ body.yc-classic-active #app {
         text-align: left;
     }
 
+    .yc-sidebar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .yc-login-panel,
+    .yc-actions-panel,
+    .yc-create-table-panel {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 6px;
+    }
+
     .yc-table-panel {
-        overflow-x: auto;
+        overflow-x: clip;
     }
 
     .yc-workspace,
@@ -2382,8 +2397,83 @@ body.yc-classic-active #app {
         overflow: visible;
     }
 
+    .yc-table-head,
+    .yc-player-head {
+        display: none;
+    }
+
+    .yc-table-grid,
+    .yc-player-list {
+        display: grid;
+        gap: 8px;
+    }
+
     .yc-table-row {
-        min-width: 800px;
+        min-width: 0;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px 10px;
+        padding: 10px;
+        border: 1px solid var(--yc-border-gray);
+        background: var(--yc-classic-cream);
+    }
+
+    .yc-table-row > span,
+    .yc-player-row > span {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .yc-table-row:not(.yc-row-empty) > span::before,
+    .yc-player-row:not(.yc-row-empty) > span::before {
+        display: block;
+        margin-bottom: 2px;
+        color: #274b27;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .yc-table-row > span:nth-child(1)::before { content: "Table"; }
+    .yc-table-row > span:nth-child(2)::before { content: "Watch"; }
+    .yc-table-row > span:nth-child(3)::before { content: "White"; }
+    .yc-table-row > span:nth-child(4)::before { content: "Black"; }
+    .yc-table-row > span:nth-child(5)::before { content: "Options"; }
+    .yc-table-row > span:nth-child(6)::before { content: "Watching"; }
+
+    .yc-table-row > span:nth-child(3),
+    .yc-table-row > span:nth-child(4),
+    .yc-table-row > span:nth-child(5),
+    .yc-table-row > span:nth-child(6) {
+        grid-column: 1 / -1;
+    }
+
+    .yc-row-action,
+    .yc-table-row button,
+    .yc-player-row button {
+        min-height: 44px;
+        width: 100%;
+    }
+
+    .yc-player-row {
+        min-width: 0;
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr) minmax(76px, auto);
+        gap: 6px 10px;
+        padding: 10px;
+        border: 1px solid var(--yc-border-gray);
+        background: var(--yc-classic-cream);
+    }
+
+    .yc-player-row > span:nth-child(1)::before { content: "Color"; }
+    .yc-player-row > span:nth-child(2)::before { content: "Name"; }
+    .yc-player-row > span:nth-child(3)::before { content: "Rating"; }
+    .yc-player-row > span:nth-child(4)::before { content: "Table"; }
+
+    .yc-player-row > span:nth-child(2) {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .yc-tournament-hero {
@@ -2423,17 +2513,85 @@ body.yc-classic-active #app {
     }
 
     .yc-chat-body {
-        height: 128px;
+        height: clamp(150px, 28dvh, 240px);
+        font-size: 12px;
+        line-height: 1.45;
     }
 
     .yc-classic-board,
     .yc-game-player,
     .yc-board-feedback {
-        width: min(100%, 92vw);
+        width: min(calc(100vw - 28px), calc(100dvh - 210px), 560px);
+        max-width: 100%;
+    }
+
+    .yc-classic-board {
+        aspect-ratio: 1 / 1;
+        height: auto;
+        justify-self: center;
+    }
+
+    .yc-game-window {
+        gap: 8px;
+    }
+
+    .yc-shell.yc-board-style-yahoo-table .yc-game-window,
+    .yc-shell.yc-table-open .yc-game-window {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .yc-game-table-header {
+        order: 0;
+    }
+
+    .yc-game-board-panel {
+        order: 1;
+        min-width: 0;
+        padding: 8px;
+        justify-items: center;
+    }
+
+    .yc-move-panel {
+        order: 2;
+        min-height: 0;
+        display: grid;
+        gap: 8px;
+    }
+
+    .yc-game-controls {
+        order: 3;
+        display: grid;
+        gap: 8px;
+    }
+
+    .yc-game-controls .yc-classic-button,
+    .yc-game-controls .yc-classic-field,
+    .yc-shell.yc-board-style-yahoo-table .yc-game-controls .yc-classic-button,
+    .yc-shell.yc-board-style-yahoo-table .yc-game-controls .yc-classic-field,
+    .yc-sidebar .yc-classic-button,
+    .yc-sidebar .yc-classic-field,
+    .yc-room-tabs .yc-tab {
+        min-height: 44px !important;
+        height: auto !important;
+        font-size: 12px;
+        padding-block: 8px;
+    }
+
+    .yc-check-control input,
+    .yc-time-control input {
+        width: 34px;
+        height: 34px;
+    }
+
+    .yc-game-system-log,
+    .yc-classic-move-list {
+        max-height: 180px;
+        overflow-y: auto;
     }
 
     .yc-game-player {
-        grid-template-columns: 12px minmax(0, 1fr) 78px;
+        grid-template-columns: 14px minmax(0, 1fr) auto;
+        min-height: 44px;
     }
 
     .yc-player-state,
@@ -2448,5 +2606,122 @@ body.yc-classic-active #app {
 
     .yc-browser-status {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .yc-say-row input,
+    .yc-say-row .yc-send-button {
+        min-height: 44px !important;
+        height: auto !important;
+    }
+}
+
+@media (max-width: 950px) and (max-height: 480px) and (orientation: landscape) {
+    .yc-page {
+        overflow-y: auto;
+    }
+
+    .yc-header {
+        display: none;
+    }
+
+    .yc-workspace {
+        grid-template-columns: 150px minmax(0, 1fr);
+        gap: 8px;
+        padding: 6px;
+    }
+
+    .yc-table-panel,
+    .yc-player-panel {
+        min-width: 0;
+    }
+
+    .yc-table-panel {
+        overflow-x: auto;
+    }
+
+    .yc-table-row {
+        min-width: 620px;
+    }
+
+    .yc-chat-panel {
+        max-height: 150px;
+        overflow-y: auto;
+    }
+
+    .yc-game-window[aria-hidden="false"] {
+        grid-template-columns: minmax(0, max-content) minmax(220px, 1fr);
+        align-items: start;
+        gap: 8px;
+        padding: 6px;
+    }
+
+    .yc-shell.yc-board-style-yahoo-table .yc-game-window[aria-hidden="false"],
+    .yc-shell.yc-table-open .yc-game-window[aria-hidden="false"] {
+        grid-template-columns: minmax(0, max-content) minmax(220px, 1fr);
+    }
+
+    .yc-game-table-header {
+        grid-column: 1 / -1;
+    }
+
+    .yc-game-board-panel {
+        grid-column: 1;
+    }
+
+    .yc-move-panel,
+    .yc-game-controls {
+        grid-column: 2;
+    }
+
+    .yc-classic-board,
+    .yc-game-player,
+    .yc-board-feedback {
+        width: min(calc(100dvh - 96px), calc(50vw - 24px), 430px);
+    }
+
+    .yc-game-controls .yc-classic-button,
+    .yc-game-controls .yc-classic-field,
+    .yc-shell.yc-board-style-yahoo-table .yc-game-controls .yc-classic-button,
+    .yc-shell.yc-board-style-yahoo-table .yc-game-controls .yc-classic-field {
+        min-height: 44px !important;
+        height: auto !important;
+        font-size: 12px;
+        padding-block: 8px;
+    }
+
+    .yc-check-control input,
+    .yc-time-control input {
+        min-width: 34px;
+        min-height: 34px;
+    }
+
+    .yc-game-controls .yc-panel,
+    .yc-game-info-panel,
+    .yc-game-system-panel {
+        max-height: calc(100dvh - 82px);
+        overflow-y: auto;
+    }
+
+    .yc-browser-status {
+        display: none;
+    }
+}
+
+@media (min-width: 821px) and (max-width: 1180px) and (orientation: landscape) {
+    .yc-classic-button,
+    .yc-classic-field,
+    .yc-shell.yc-board-style-yahoo-table .yc-classic-button,
+    .yc-shell.yc-board-style-yahoo-table .yc-classic-field,
+    .yc-tab,
+    .yc-say-row input,
+    .yc-send-button {
+        min-height: 36px !important;
+        height: auto !important;
+    }
+
+    .yc-check-control input,
+    .yc-time-control input {
+        width: 34px;
+        height: 34px;
     }
 }
