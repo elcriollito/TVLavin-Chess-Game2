@@ -1,0 +1,398 @@
+/*
+ * CAISSA Mobile Foundation
+ *
+ * Season 1.0.6 Phase 2A responsive guardrails.
+ * Mobile-only infrastructure for safer viewport behavior, touch targets,
+ * typography, safe areas, and standalone header wrapping.
+ */
+
+:root {
+    --caissa-mobile-breakpoint: 768px;
+    --caissa-phone-breakpoint: 480px;
+    --caissa-mobile-touch-target: 44px;
+    --caissa-mobile-text-min: 12px;
+    --caissa-mobile-gap: 12px;
+    --caissa-mobile-edge: 16px;
+    --caissa-mobile-bottom-reserve: 72px;
+    --caissa-mobile-safe-bottom: env(safe-area-inset-bottom, 0px);
+    --caissa-mobile-safe-top: env(safe-area-inset-top, 0px);
+}
+
+.caissa-viewport-safe {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.caissa-mobile-stack {
+    min-width: 0;
+}
+
+.caissa-phone-portrait-only,
+.caissa-phone-landscape-only,
+.caissa-tablet-portrait-only,
+.caissa-tablet-landscape-only {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    :root {
+        --caissa-board-safe-size: min(var(--board-size, 100vw), calc(100vw - (2 * var(--caissa-mobile-edge))));
+    }
+
+    html,
+    body {
+        max-width: 100%;
+        overflow-x: clip;
+    }
+
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+
+    img,
+    svg,
+    video,
+    canvas,
+    iframe,
+    table,
+    pre,
+    code {
+        max-width: 100%;
+    }
+
+    pre,
+    code {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    :where(
+        .app-container,
+        .content-area,
+        .content-section,
+        .main-content,
+        .panel,
+        .modal-content,
+        .library-main,
+        .premium-main,
+        .eco-page,
+        .openingdb-page,
+        .poly-page,
+        .vault-page,
+        .auth-page-container
+    ) {
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    :where(
+        .board-container,
+        .board-container-expanded,
+        .board-editor-wrapper,
+        .board-zone,
+        .board-with-eval,
+        .analyze-board-zone,
+        .arena-board-container,
+        .arena-board-zone,
+        .fics-board-shell,
+        .fics-board-section,
+        .yc-board-panel,
+        .yc-board-host,
+        .eco-board-wrap,
+        .eco-board-container
+    ) {
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    #playSection {
+        --caissa-board-safe-size: min(var(--play-board-size, var(--board-size, 100vw)), calc(100vw - 64px));
+    }
+
+    body #chessboard,
+    body .chessboard {
+        width: var(--caissa-board-safe-size) !important;
+        height: var(--caissa-board-safe-size) !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+    }
+
+    body #playSection #chessboard {
+        width: var(--caissa-board-safe-size) !important;
+        height: var(--caissa-board-safe-size) !important;
+    }
+
+    body :is(
+        button,
+        [type="button"],
+        [type="submit"],
+        [type="reset"],
+        a,
+        select,
+        input,
+        textarea,
+        summary,
+        [role="button"],
+        [role="tab"],
+        .btn,
+        .fics-btn,
+        .ctrl-btn,
+        .game-menu-btn,
+        .nav-btn,
+        .nav-btn-sm,
+        .nav-item,
+        .nav-auth-btn,
+        .nav-auth-user,
+        .openingdb-tab,
+        .arena-tab,
+        .yc-classic-button,
+        .yc-tab,
+        .yc-send-button,
+        .eco-tab,
+        .library-nav-link,
+        .library-filter-chip,
+        .premium-nav-link,
+        .plan-cta,
+        .faq-question,
+        .opening-eco-link
+    ) {
+        min-height: var(--caissa-mobile-touch-target) !important;
+        min-width: var(--caissa-mobile-touch-target);
+    }
+
+    body :is(
+        .about-link,
+        .auth-page-footer a,
+        .library-page-footer a,
+        .premium-footer a,
+        .vault-footer a,
+        .opening-eco-link,
+        footer a
+    ) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: var(--caissa-mobile-touch-target);
+    }
+
+    body :is(input, select, textarea) {
+        font-size: 16px;
+    }
+
+    body :is(
+        button,
+        a,
+        select,
+        label,
+        summary,
+        .btn,
+        .nav-item,
+        .nav-label,
+        .panel-title,
+        .yc-classic-shell,
+        .yc-classic-button,
+        .yc-era-note,
+        .yc-meta-strip,
+        .yc-table,
+        .fics-client,
+        .fics-btn,
+        .fics-panel,
+        .openingdb-page,
+        .openingdb-tab,
+        .openingdb-match-badge,
+        .openingdb-rows-diag,
+        .wdb-bar,
+        .opening-eco-link,
+        .eco-page,
+        .library-page-body,
+        .chip-count,
+        .premium-page-body
+    ) {
+        font-size: max(var(--caissa-mobile-text-min), 1em);
+    }
+
+    body :is(
+        .nav-premium-badge,
+        .yc-era-note,
+        .yc-panel-title,
+        .yc-classic-login-status,
+        .fics-login-note,
+        .fics-lobby-future,
+        .eval-engine-info,
+        .book-status-label,
+        .coach-section-title,
+        .context-fen,
+        .library-fen-hint,
+        .caissa-ui-empty-state__message,
+        .openingdb-match-badge,
+        .openingdb-rows-diag,
+        .wdb-bar,
+        .chip-count,
+        .plan-popular-badge,
+        [class*="badge"],
+        [class*="status"],
+        [class*="note"],
+        [class*="label"],
+        [class*="meta"],
+        [class*="message"],
+        p,
+        small
+    ) {
+        font-size: max(var(--caissa-mobile-text-min), 12px) !important;
+    }
+
+    body .yc-classic-shell :is(div, span, strong, small, p),
+    body .openingdb-page :is(div, span, strong, small, p) {
+        font-size: max(var(--caissa-mobile-text-min), 12px) !important;
+    }
+
+    :where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+        outline: 3px solid var(--caissa-ui-focus, #60a5fa);
+        outline-offset: 2px;
+    }
+
+    .content-area {
+        padding-bottom: calc(var(--caissa-mobile-bottom-reserve) + var(--caissa-mobile-safe-bottom));
+    }
+
+    .mobile-quick-actions {
+        height: calc(64px + var(--caissa-mobile-safe-bottom));
+        padding-bottom: calc(8px + var(--caissa-mobile-safe-bottom));
+    }
+
+    .mobile-analysis-sheet {
+        bottom: calc(64px + var(--caissa-mobile-safe-bottom));
+        max-height: calc(100dvh - 96px - var(--caissa-mobile-safe-bottom));
+    }
+
+    .mobile-analysis-sheet:not(.open) {
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    .mobile-analysis-sheet.open {
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    .main-navigation {
+        padding-top: var(--caissa-mobile-safe-top);
+        padding-bottom: var(--caissa-mobile-safe-bottom);
+    }
+
+    .library-nav-header,
+    .premium-nav-header {
+        overflow-x: clip;
+    }
+
+    .library-nav-content,
+    .premium-nav-content {
+        width: 100%;
+        max-width: 100%;
+        min-height: 64px;
+        height: auto;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .library-nav-brand,
+    .premium-nav-brand,
+    .library-nav-links,
+    .premium-nav-links,
+    .caissa-auth-container {
+        min-width: 0;
+    }
+
+    .library-nav-links,
+    .premium-nav-links {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 6px;
+    }
+
+    .library-nav-link,
+    .premium-nav-link {
+        padding-inline: 12px;
+    }
+
+    .caissa-mobile-stack {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--caissa-mobile-gap);
+    }
+}
+
+@media (max-width: 480px) {
+    :root {
+        --caissa-mobile-edge: 12px;
+        --caissa-mobile-gap: 10px;
+    }
+
+    .library-nav-content,
+    .premium-nav-content {
+        justify-content: center;
+    }
+
+    .library-nav-brand,
+    .premium-nav-brand {
+        flex: 1 1 100%;
+        justify-content: center;
+    }
+
+    .library-nav-links,
+    .premium-nav-links {
+        flex: 1 1 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) and (orientation: portrait) {
+    .caissa-phone-portrait-only {
+        display: revert !important;
+    }
+}
+
+@media (max-width: 900px) and (orientation: landscape) {
+    :root {
+        --caissa-mobile-bottom-reserve: 64px;
+        --caissa-board-safe-size: min(var(--board-size, 100vw), calc(100vw - (2 * var(--caissa-mobile-edge))), calc(100dvh - 112px));
+    }
+
+    #playSection {
+        --caissa-board-safe-size: min(var(--play-board-size, var(--board-size, 100vw)), calc(100vw - 64px), calc(100dvh - 112px));
+    }
+
+    .caissa-phone-landscape-only {
+        display: revert !important;
+    }
+
+    .content-area {
+        padding-top: calc(48px + var(--caissa-mobile-safe-top));
+    }
+}
+
+@media (min-width: 481px) and (max-width: 900px) and (orientation: portrait) {
+    .caissa-tablet-portrait-only {
+        display: revert !important;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1180px) and (orientation: landscape) {
+    .caissa-tablet-landscape-only {
+        display: revert !important;
+    }
+}
+
+@supports not (overflow: clip) {
+    @media (max-width: 768px) {
+        html,
+        body,
+        .library-nav-header,
+        .premium-nav-header {
+            overflow-x: hidden;
+        }
+    }
+}
