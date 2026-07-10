@@ -449,8 +449,22 @@
         #mentorCloseBtn,
         #libraryCloseBtn,
         .quick-eval-toggle,
-        #qe-toggle
+        #qe-toggle,
+        .auth-page-footer a,
+        .library-nav-brand,
+        .premium-nav-brand,
+        .vault-logo,
+        .premium-footer a,
+        .library-page-footer a,
+        .library-filter-chip,
+        .library-post-read-btn,
+        #addPostBtn,
+        #billingToggle,
+        .vault-category-btn
     ) {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
         min-width: var(--caissa-mobile-touch-target) !important;
         min-height: var(--caissa-mobile-touch-target) !important;
     }

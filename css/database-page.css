@@ -89,3 +89,14 @@
     overflow-y: auto;
   }
 }
+
+@media (min-width: 769px) and (max-width: 1180px) and (orientation: landscape) {
+  .eco-back,
+  .eco-tab {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

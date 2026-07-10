@@ -8530,7 +8530,11 @@ body.debug-layout #arena-right {
     body[data-caissa-section="play"] #playSection .nav-btn-sm,
     body[data-caissa-section="play"] #playSection .ctrl-btn,
     body[data-caissa-section="play"] #playSection .new-game-control-btn,
+    body[data-caissa-section="play"] #playSection .opening-eco-link,
     body[data-caissa-section="analyze"] .analyze-board-navigation .nav-btn-sm {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
         width: auto !important;
         min-width: 44px !important;
         height: 44px !important;
@@ -8584,6 +8588,17 @@ body.debug-layout #arena-right {
     body[data-caissa-section="analyze"] .analyze-board-navigation {
         grid-template-columns: repeat(5, minmax(44px, 1fr));
         gap: 4px;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1180px) and (orientation: landscape) {
+    #playSection .opening-eco-link,
+    #playSection .cais-topbar .icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        min-height: 44px;
     }
 }
 
