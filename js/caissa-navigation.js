@@ -494,7 +494,9 @@ const CaissaNavigation = {
 
         // Use existing modal system
         const newGameModal = document.getElementById('newGameModal');
-        if (newGameModal) {
+        if (typeof window.showModal === 'function') {
+            window.showModal('newGameModal');
+        } else if (newGameModal) {
             newGameModal.classList.add('show');
         }
 

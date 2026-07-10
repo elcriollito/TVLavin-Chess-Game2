@@ -40,6 +40,9 @@ const App = {
     analyzing: false,
     editMode: false,
     isFlipped: false, // Track board flip state for orientation-aware eval bar rendering
+    mobileTapSource: null,
+    dragScrollLocked: false,
+    lastDragEndAt: 0,
     gameStatus: {
         state: 'In Progress',
         result: '',
@@ -193,18 +196,17 @@ function sleep(ms) {
  * Prevents page from scrolling while dragging chess pieces
  */
 function lockScroll() {
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.width = '100%';
+    App.dragScrollLocked = true;
+    document.body.classList.add('caissa-piece-dragging');
 }
 
 /**
  * Unlock page scrolling (restore after drag)
  */
 function unlockScroll() {
-    document.body.style.overflow = '';
-    document.body.style.position = '';
-    document.body.style.width = '';
+    App.dragScrollLocked = false;
+    App.lastDragEndAt = Date.now();
+    document.body.classList.remove('caissa-piece-dragging');
 }
 
 // ===== INITIALIZATION =====
@@ -400,7 +402,10 @@ function initBoardWhenReady(config) {
     const checkAndInit = () => {
         const rect = boardContainer.getBoundingClientRect();
 
-        if (rect.width >= 300 && rect.height >= 300) {
+        const mobileBoardReady = window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+        const minBoardSize = mobileBoardReady ? 180 : 300;
+
+        if (rect.width >= minBoardSize && rect.height >= minBoardSize) {
             // Container is ready, create the board
             App.board = Chessboard('chessboard', config);
 
@@ -474,12 +479,13 @@ function initBoardWhenReady(config) {
             const boardElement = document.getElementById('chessboard');
             if (boardElement) {
                 boardElement.addEventListener('touchmove', (e) => {
-                    // Only prevent default if we're dragging a piece
-                    // Check if target is a piece or part of the board
-                    if (e.target.closest('.piece-417db') || e.target.closest('.square-55d63')) {
+                    if (App.dragScrollLocked && (e.target.closest('.piece-417db') || e.target.closest('.square-55d63'))) {
                         e.preventDefault();
                     }
                 }, { passive: false });
+
+                boardElement.addEventListener('click', handleMobileBoardTap);
+                boardElement.addEventListener('touchcancel', clearMobileTapSource, { passive: true });
             }
         } else {
             // Container not ready, wait and try again
@@ -655,29 +661,55 @@ async function initializeOpeningBook() {
 }
 
 // ===== BOARD EVENT HANDLERS =====
-function onDragStart(source, piece, position, orientation) {
-    // Don't allow moves if in edit mode
-    if (App.editMode) return false;
+function isMobilePlayInteraction() {
+    return window.matchMedia && window.matchMedia('(max-width: 768px), (pointer: coarse)').matches;
+}
 
-    // Don't allow moves if game is not active
-    if (!App.gameActive) return false;
-
-    // Don't allow moves if not navigated to end
-    if (App.currentMoveIndex !== App.moveHistory.length - 1 && App.moveHistory.length > 0) {
-        return false;
+function getSquareFromEventTarget(target) {
+    let current = target;
+    const board = document.getElementById('chessboard');
+    while (current && current !== board) {
+        if (current.classList && current.classList.contains('square-55d63')) {
+            const squareClass = Array.from(current.classList).find((cls) => /^square-[a-h][1-8]$/.test(cls));
+            return squareClass ? squareClass.replace('square-', '') : null;
+        }
+        current = current.parentElement;
     }
+    return null;
+}
 
-    // In engine mode, only allow player's pieces
+function clearMobileTapSource() {
+    App.mobileTapSource = null;
+    document.querySelectorAll('#chessboard .mobile-tap-source').forEach((el) => {
+        el.classList.remove('mobile-tap-source');
+    });
+}
+
+function markMobileTapSource(square) {
+    clearMobileTapSource();
+    App.mobileTapSource = square;
+    const squareEl = document.querySelector(`#chessboard .square-${square}`);
+    squareEl?.classList.add('mobile-tap-source');
+}
+
+function getPieceCodeAt(square) {
+    const piece = App.game.get(square);
+    return piece ? `${piece.color}${piece.type.toUpperCase()}` : '';
+}
+
+function canStartMoveFrom(source, piece) {
+    if (App.editMode) return false;
+    if (!App.gameActive) return false;
+    if (App.currentMoveIndex !== App.moveHistory.length - 1 && App.moveHistory.length > 0) return false;
+
     if (App.gameMode === 'engine') {
         if (!App.isPlayerTurn) return false;
-
         if ((App.playerColor === 'white' && piece.search(/^b/) !== -1) ||
             (App.playerColor === 'black' && piece.search(/^w/) !== -1)) {
             return false;
         }
     }
 
-    // In analysis and human vs human mode, only allow moving side to move pieces
     if (App.gameMode === 'analysis' || App.gameMode === 'human') {
         if ((App.game.turn() === 'w' && piece.search(/^b/) !== -1) ||
             (App.game.turn() === 'b' && piece.search(/^w/) !== -1)) {
@@ -685,11 +717,66 @@ function onDragStart(source, piece, position, orientation) {
         }
     }
 
-    // Don't allow moves if game is over
     if (App.game.game_over()) return false;
+    return !!source;
+}
+
+function makeMoveFromSquares(source, target) {
+    const moves = App.game.moves({ verbose: true });
+    const move = moves.find((m) => m.from === source && m.to === target);
+
+    if (move && move.flags.includes('p')) {
+        App.pendingPromotion = { from: source, to: target };
+        showPromotionDialog();
+        return true;
+    }
+
+    const result = App.game.move({ from: source, to: target });
+    if (result === null) return false;
+
+    onMoveMade(result);
+    return true;
+}
+
+function handleMobileBoardTap(event) {
+    if (!isMobilePlayInteraction() || App.editMode) return;
+    if (Date.now() - App.lastDragEndAt < 250) return;
+
+    const square = getSquareFromEventTarget(event.target);
+    if (!square) return;
+
+    const piece = getPieceCodeAt(square);
+    if (!App.mobileTapSource) {
+        if (piece && canStartMoveFrom(square, piece)) {
+            event.preventDefault();
+            markMobileTapSource(square);
+        }
+        return;
+    }
+
+    event.preventDefault();
+    const source = App.mobileTapSource;
+    if (source === square) {
+        clearMobileTapSource();
+        return;
+    }
+
+    const moved = makeMoveFromSquares(source, square);
+    clearMobileTapSource();
+    if (!moved) {
+        if (piece && canStartMoveFrom(square, piece)) {
+            markMobileTapSource(square);
+        } else if (App.board) {
+            App.board.position(App.game.fen());
+        }
+    }
+}
+
+function onDragStart(source, piece, position, orientation) {
+    if (!canStartMoveFrom(source, piece)) return false;
 
     // Lock page scrolling on mobile during drag
-    lockScroll();
+    if (isMobilePlayInteraction()) lockScroll();
 
     return true;
 }
@@ -725,6 +812,7 @@ function onDrop(source, target) {
 
 function onSnapEnd() {
     App.board.position(App.game.fen());
+    clearMobileTapSource();
     // Unlock scroll after snap animation completes
     unlockScroll();
 }
@@ -2295,7 +2383,13 @@ function newGame(options = {}) {
 
     // Reset game
     App.game.reset();
+    if (!App.board) {
+        initializeBoard();
+        showNotification('Board is still loading. Please try Start Game again in a moment.');
+        return;
+    }
     App.board.position('start');
+    clearMobileTapSource();
     App.moveHistory = [];
     App.currentMoveIndex = -1;
     App.isPlayerTurn = true;

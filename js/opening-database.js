@@ -2281,12 +2281,12 @@
 
       return `
         <tr class="${rowClass}" data-row-index="${idx}">
-          <td class="col-move"${title}>${moveCellHtml}</td>
-          <td class="col-games">${n}</td>
-          <td class="col-wdl">
+          <td class="col-move" data-label="Next Move"${title}>${moveCellHtml}</td>
+          <td class="col-games" data-label="Games">${n}</td>
+          <td class="col-wdl" data-label="Results">
             ${wdlCell}
           </td>
-          <td class="${engineClass}" data-engine-eval="${escapeHtml(engineEval)}" data-engine-uci="${escapeHtml(String(row.moveUCI || ''))}">${escapeHtml(engineEval)}</td>
+          <td class="${engineClass}" data-label="Engine" data-engine-eval="${escapeHtml(engineEval)}" data-engine-uci="${escapeHtml(String(row.moveUCI || ''))}">${escapeHtml(engineEval)}</td>
         </tr>
       `;
     }).join('');
