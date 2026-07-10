@@ -8194,9 +8194,30 @@ body.debug-layout #arena-right {
     }
 
     #playSection {
-        --play-mobile-board-size: min(calc(100vw - 64px), calc(100dvh - 232px), 680px);
+        --play-mobile-eval-width: 16px;
+        --play-mobile-board-gap: 8px;
+        --play-mobile-horizontal-gutters: calc(
+            72px
+            + var(--play-mobile-eval-width)
+            + var(--play-mobile-board-gap)
+            + env(safe-area-inset-left, 0px)
+            + env(safe-area-inset-right, 0px)
+        );
+        --play-mobile-board-size: min(calc(100vw - var(--play-mobile-horizontal-gutters)), calc(100dvh - 232px), 680px);
         --play-board-size: var(--play-mobile-board-size);
         --board-size: var(--play-mobile-board-size);
+    }
+
+    @supports (width: 100svw) {
+        #playSection {
+            --play-mobile-board-size: min(calc(100svw - var(--play-mobile-horizontal-gutters)), calc(100dvh - 232px), 680px);
+        }
+    }
+
+    @supports (width: 100dvw) {
+        #playSection {
+            --play-mobile-board-size: min(calc(100dvw - var(--play-mobile-horizontal-gutters)), calc(100dvh - 232px), 680px);
+        }
     }
 
     #playSection .cais-stage,
@@ -8246,16 +8267,17 @@ body.debug-layout #arena-right {
     }
 
     #playSection .board-with-eval {
-        width: auto;
-        gap: 8px;
+        width: 100%;
+        gap: var(--play-mobile-board-gap);
         justify-content: center;
         align-items: stretch;
     }
 
     #playSection .eval-bar {
-        width: 12px;
-        min-width: 12px;
-        flex-basis: 12px;
+        width: var(--play-mobile-eval-width);
+        min-width: var(--play-mobile-eval-width);
+        flex: 0 0 var(--play-mobile-eval-width);
+        flex-basis: var(--play-mobile-eval-width);
         min-height: var(--play-mobile-board-size);
         margin-left: 0;
     }
