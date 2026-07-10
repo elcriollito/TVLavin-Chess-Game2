@@ -20,6 +20,9 @@ const AnalyzeSection = {
     analysisToken: 0,
     keyboardHandler: null,
     boardFlipped: false,
+    studyModeInitialized: false,
+    tapSource: null,
+    tapTargets: [],
 
     // DOM cache
     elements: {},
@@ -102,6 +105,8 @@ const AnalyzeSection = {
             navPrev: document.getElementById('analyzeNavPrev'),
             navNext: document.getElementById('analyzeNavNext'),
             navLast: document.getElementById('analyzeNavLast'),
+            undoMove: document.getElementById('analyzeUndoMove'),
+            resetBoard: document.getElementById('analyzeResetBoard'),
             flipBoard: document.getElementById('analyzeFlipBoard')
         };
     },
@@ -154,6 +159,8 @@ const AnalyzeSection = {
         this.elements.navLast?.addEventListener('click', () => {
             this.jumpToMove((this.loadedGame?.game.history().length || 0) - 1);
         });
+        this.elements.undoMove?.addEventListener('click', () => this.undoStudyMove());
+        this.elements.resetBoard?.addEventListener('click', () => this.resetStudyBoard({ explicit: true }));
         this.elements.flipBoard?.addEventListener('click', () => this.flipAnalyzeBoard());
 
         this.bindKeyboardNavigation();
@@ -193,6 +200,193 @@ const AnalyzeSection = {
         if (!(target instanceof Element)) return false;
         return target.isContentEditable
             || !!target.closest('input, select, textarea, [contenteditable="true"]');
+    },
+
+    ensureStudyBoard() {
+        if (!window.App || !window.Chess) return false;
+
+        if (!this.loadedGame) {
+            this.resetStudyBoard({ silent: true });
+        }
+
+        App.game = this.loadedGame.game;
+        App.gameMode = 'analysis';
+        App.gameActive = false;
+        App.engineEnabled = false;
+        App.moveHistory = App.game.history({ verbose: true });
+        App.currentMoveIndex = App.moveHistory.length - 1;
+
+        if (App.board && typeof App.board.position === 'function') {
+            App.board.position(App.game.fen(), false);
+            App.board.orientation(this.boardFlipped ? 'black' : 'white');
+            App.board.resize?.();
+        }
+
+        this.updateMetadata();
+        this.updateMoveList();
+        this.updateNavigationControls();
+        this.updateMentorPanel();
+        this.updateEvaluationBar();
+        return true;
+    },
+
+    cloneGame(game = window.App?.game) {
+        if (!game || !window.Chess) return null;
+        const clone = new Chess();
+        game.history().forEach((san) => clone.move(san));
+        return clone;
+    },
+
+    resetStudyBoard({ explicit = false, silent = false } = {}) {
+        if (!window.Chess) return;
+
+        if (this.isAnalyzing) this.stopAnalysis();
+        const game = new Chess();
+        this.loadedGame = {
+            pgn: '',
+            game,
+            initialFen: null,
+            source: 'Study Board',
+            white: 'White',
+            black: 'Black',
+            result: '*',
+            event: 'Free Study',
+            date: '',
+            eco: '',
+            opening: ''
+        };
+        this.currentMoveIndex = -1;
+        this.analysisResults = [];
+        this.positionAnalyses = [];
+        this.clearTapSelection();
+
+        if (window.App) {
+            App.game = game;
+            App.gameMode = 'analysis';
+            App.gameActive = false;
+            App.engineEnabled = false;
+            App.clockRunning = false;
+            App.moveHistory = [];
+            App.currentMoveIndex = -1;
+            App.pendingPromotion = null;
+            App.mobileTapSource = null;
+            App.mobileTapTargets = [];
+            if (App.board?.position) {
+                App.board.position(App.game.fen(), false);
+            }
+        }
+
+        this.updateMetadata();
+        this.updateMoveList();
+        this.updateNavigationControls();
+        this.updateMentorPanel();
+        this.updateEvaluationBar();
+        this.updateReviewSummary();
+        this.updateCriticalMoments();
+        this.setStatus('Study board ready', 'ready');
+        this.studyModeInitialized = true;
+        if (explicit && !silent) {
+            this.showNotification('Study board reset to the starting position.', 'success');
+        }
+    },
+
+    canStartStudyMove(square) {
+        if (!this.isAnalyzeActive() || !this.loadedGame || !window.App?.game) return false;
+        const piece = App.game.get(square);
+        if (!piece) return false;
+        return piece.color === App.game.turn() && !App.game.game_over();
+    },
+
+    playStudyMove(from, to, promotion) {
+        if (!this.isAnalyzeActive() || !this.loadedGame || !window.App?.game) return false;
+
+        const move = App.game.move({ from, to, promotion });
+        if (!move) return false;
+
+        this.loadedGame.game = App.game;
+        this.currentMoveIndex = App.game.history().length - 1;
+        App.moveHistory = App.game.history({ verbose: true });
+        App.currentMoveIndex = this.currentMoveIndex;
+        App.gameMode = 'analysis';
+        App.gameActive = false;
+        App.engineEnabled = false;
+        this.analysisResults = [];
+        this.positionAnalyses = [];
+        this.clearTapSelection();
+        this.updateBoardAndUI();
+        this.updateMoveList();
+        this.updateNavigationControls();
+        this.updateMentorPanel();
+        this.updateEvaluationBar();
+        this.updateReviewSummary();
+        this.updateCriticalMoments();
+        this.setStatus(`${App.game.turn() === 'w' ? 'White' : 'Black'} to move`, 'ready');
+        return true;
+    },
+
+    undoStudyMove() {
+        if (!this.loadedGame || !window.App?.game) return;
+        const move = App.game.undo();
+        if (!move) return;
+        this.loadedGame.game = App.game;
+        this.currentMoveIndex = App.game.history().length - 1;
+        App.moveHistory = App.game.history({ verbose: true });
+        App.currentMoveIndex = this.currentMoveIndex;
+        this.analysisResults = [];
+        this.positionAnalyses = [];
+        this.clearTapSelection();
+        this.updateBoardAndUI();
+        this.updateMoveList();
+        this.updateNavigationControls();
+        this.updateMentorPanel();
+        this.updateEvaluationBar();
+        this.updateReviewSummary();
+        this.updateCriticalMoments();
+        this.setStatus(`${App.game.turn() === 'w' ? 'White' : 'Black'} to move`, 'ready');
+    },
+
+    clearTapSelection() {
+        this.tapSource = null;
+        this.tapTargets = [];
+        document.querySelectorAll('#analyzeSection #chessboard .analyze-tap-source, #analyzeSection #chessboard .analyze-tap-target').forEach((el) => {
+            el.classList.remove('analyze-tap-source', 'analyze-tap-target');
+        });
+    },
+
+    markTapSource(square) {
+        this.clearTapSelection();
+        this.tapSource = square;
+        this.tapTargets = App.game.moves({ square, verbose: true }).map((move) => move.to);
+        document.querySelector(`#analyzeSection #chessboard .square-${square}`)?.classList.add('analyze-tap-source');
+        this.tapTargets.forEach((target) => {
+            document.querySelector(`#analyzeSection #chessboard .square-${target}`)?.classList.add('analyze-tap-target');
+        });
+    },
+
+    handleBoardTap(square) {
+        if (!square || !window.App?.game) return false;
+
+        if (!this.tapSource) {
+            if (this.canStartStudyMove(square)) {
+                this.markTapSource(square);
+                return true;
+            }
+            return false;
+        }
+
+        const source = this.tapSource;
+        if (source === square) {
+            this.clearTapSelection();
+            return true;
+        }
+
+        const moved = this.playStudyMove(source, square);
+        if (!moved) {
+            this.clearTapSelection();
+            if (this.canStartStudyMove(square)) this.markTapSource(square);
+            else App.board?.position(App.game.fen(), false);
+        }
+        return true;
     },
 
     /**
@@ -544,7 +738,7 @@ const AnalyzeSection = {
             this.renderEmptyState(this.elements.moveList, {
                 icon: 'fa-list-ol',
                 title: 'No moves yet.',
-                message: 'Load a game with moves to review the move list.'
+                message: 'Use the board to enter moves from a book, magazine, or PGN.'
             });
             return;
         }
@@ -628,6 +822,15 @@ const AnalyzeSection = {
         if (this.elements.navPrev) this.elements.navPrev.disabled = atStart || moveCount === 0;
         if (this.elements.navNext) this.elements.navNext.disabled = atEnd;
         if (this.elements.navLast) this.elements.navLast.disabled = atEnd;
+        if (this.elements.undoMove) {
+            const disabled = moveCount === 0;
+            this.elements.undoMove.disabled = disabled;
+            this.elements.undoMove.setAttribute('aria-disabled', String(disabled));
+        }
+        if (this.elements.resetBoard) {
+            this.elements.resetBoard.disabled = false;
+            this.elements.resetBoard.setAttribute('aria-disabled', 'false');
+        }
     },
 
     updateMentorPanel() {
@@ -1292,7 +1495,19 @@ const AnalyzeSection = {
      */
     onEnter() {
         console.log('[Analyze] Section entered');
-        setTimeout(() => this.applyAnalyzeOrientation(), 0);
+        if (!this.loadedGame) {
+            this.resetStudyBoard({ silent: true });
+        } else {
+            this.ensureStudyBoard();
+        }
+        setTimeout(() => {
+            if (!window.App?.board && typeof window.initializeBoard === 'function') {
+                window.initializeBoard();
+            }
+            this.ensureStudyBoard();
+            this.applyAnalyzeOrientation();
+            App.board?.resize?.();
+        }, 0);
     },
 
     /**
@@ -1300,6 +1515,13 @@ const AnalyzeSection = {
      */
     onExit() {
         console.log('[Analyze] Section exited');
+        if (this.loadedGame && window.App?.game) {
+            const clone = this.cloneGame(App.game);
+            if (clone) {
+                this.loadedGame.game = clone;
+                this.currentMoveIndex = clone.history().length - 1;
+            }
+        }
         // Stop analysis if running
         if (this.isAnalyzing) {
             this.stopAnalysis();

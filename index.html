@@ -94,7 +94,7 @@
     <!-- Stylesheets -->
     <link rel="stylesheet" href="./assets/css/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="styles.css?v=2.0.11">
+    <link rel="stylesheet" href="styles.css?v=2.0.12">
     <link rel="stylesheet" href="css/caissa-ui-foundation.css?v=1.0.2">
     <link rel="stylesheet" href="caissa-library.css?v=1.1.0">
     <link rel="stylesheet" href="query-engine.css?v=1.0.0">
@@ -977,6 +977,14 @@
                             </button>
                             <button id="analyzeNavLast" class="nav-btn-sm" title="Last move" aria-label="Jump to end">
                                 <i class="fas fa-fast-forward"></i>
+                            </button>
+                            <button id="analyzeUndoMove" class="nav-btn-sm analyze-study-action" title="Undo last move" aria-label="Undo last study move" disabled aria-disabled="true">
+                                <i class="fas fa-undo"></i>
+                                <span>Undo</span>
+                            </button>
+                            <button id="analyzeResetBoard" class="nav-btn-sm analyze-study-action analyze-study-reset" title="Reset board to the starting position" aria-label="Reset study board to the starting position">
+                                <i class="fas fa-sync-alt"></i>
+                                <span>Reset</span>
                             </button>
                             <button id="analyzeFlipBoard" class="nav-btn-sm" title="Flip board" aria-label="Flip board">
                                 <i class="fas fa-exchange-alt"></i>
@@ -5078,8 +5086,8 @@
     <script src="js/arena-section.js?v=1.0.0"></script>
     <script src="js/insights-section.js?v=1.0.0"></script>
     <script src="js/history-section.js?v=1.0.0"></script>
-    <script src="js/analyze-section.js?v=1.2.4"></script>
-    <script src="app.js?v=2.0.8"></script>
+    <script src="js/analyze-section.js?v=1.2.5"></script>
+    <script src="app.js?v=2.0.9"></script>
 
     <!-- Auth Scripts -->
     <script src="js/auth-config.js?v=1.0.2"></script>

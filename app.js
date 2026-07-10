@@ -481,6 +481,7 @@ function initBoardWhenReady(config) {
                     setTimeout(() => {
                         App.board.resize();
                         ensureEvalBarLayout();
+                        schedulePlayBoardVisibility('orientation');
                         console.log('Board resized after orientation change');
                     }, 100);
                 }
@@ -691,6 +692,46 @@ function isMobilePlayInteraction() {
     return isTouchMoveDevice() || (window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
 }
 
+function isMobilePlayViewport() {
+    return window.matchMedia && window.matchMedia('(max-width: 950px), (pointer: coarse)').matches;
+}
+
+function schedulePlayBoardVisibility(reason = 'update') {
+    if (!isMobilePlayViewport()) return;
+    if (!document.getElementById('playSection')?.classList.contains('active')) return;
+    if (document.querySelector('.modal.show')) return;
+    if (!App.gameActive && !App.eveRunning && App.gameMode !== 'eve') return;
+
+    requestAnimationFrame(() => {
+        const board = document.querySelector('#playSection #chessboard');
+        if (!board || document.querySelector('.modal.show')) return;
+
+        const rect = board.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+
+        const viewportHeight = window.visualViewport?.height || window.innerHeight;
+        const headerOffset = (document.getElementById('mobileNavToggle')?.getBoundingClientRect().bottom || 0) + 12;
+        const bottomPadding = 16;
+        const available = viewportHeight - headerOffset - bottomPadding;
+        if (rect.height > available) return;
+
+        let delta = 0;
+        if (rect.top < headerOffset) {
+            delta = rect.top - headerOffset;
+        } else if (rect.bottom > viewportHeight - bottomPadding) {
+            delta = rect.bottom - (viewportHeight - bottomPadding);
+        }
+
+        if (Math.abs(delta) > 4) {
+            window.scrollBy({ top: delta, left: 0, behavior: 'auto' });
+        }
+    });
+}
+
+function isAnalyzeStudyActive() {
+    return window.AnalyzeSection?.isAnalyzeActive?.() && !!window.AnalyzeSection?.loadedGame;
+}
+
 function getSquareFromEventTarget(target) {
     let current = target;
     const board = document.getElementById('chessboard');
@@ -733,6 +774,9 @@ function getPieceCodeAt(square) {
 }
 
 function canStartMoveFrom(source, piece) {
+    if (isAnalyzeStudyActive()) {
+        return window.AnalyzeSection.canStartStudyMove(source);
+    }
     if (App.editMode) return false;
     if (!App.gameActive) return false;
     if (App.currentMoveIndex !== App.moveHistory.length - 1 && App.moveHistory.length > 0) return false;
@@ -757,6 +801,16 @@ function canStartMoveFrom(source, piece) {
 }
 
 function makeMoveFromSquares(source, target) {
+    if (isAnalyzeStudyActive()) {
+        const move = App.game.moves({ verbose: true }).find((m) => m.from === source && m.to === target);
+        if (move && move.flags.includes('p')) {
+            App.pendingPromotion = { from: source, to: target, context: 'analyze' };
+            showPromotionDialog();
+            return true;
+        }
+        return window.AnalyzeSection.playStudyMove(source, target);
+    }
+
     const moves = App.game.moves({ verbose: true });
     const move = moves.find((m) => m.from === source && m.to === target);
 
@@ -775,12 +829,22 @@ function makeMoveFromSquares(source, target) {
 
 function handleMobileBoardTap(event) {
     if (!isMobilePlayInteraction() || App.editMode) return;
-    if (!event.target.closest('#playSection #chessboard')) return;
+    const inPlayBoard = event.target.closest('#playSection #chessboard');
+    const inAnalyzeBoard = event.target.closest('#analyzeSection #chessboard');
+    if (!inPlayBoard && !inAnalyzeBoard) return;
     if (document.querySelector('.modal.show')) return;
     if (Date.now() - App.lastDragEndAt < 250) return;
 
     const square = getSquareFromEventTarget(event.target);
     if (!square) return;
+
+    if (inAnalyzeBoard && isAnalyzeStudyActive()) {
+        event.preventDefault();
+        window.AnalyzeSection.handleBoardTap(square);
+        return;
+    }
+
+    if (!inPlayBoard) return;
 
     const piece = getPieceCodeAt(square);
     if (!App.mobileTapSource) {
@@ -817,6 +881,19 @@ function onDragStart(source, piece, position, orientation) {
 }
 
 function onDrop(source, target) {
+    if (isAnalyzeStudyActive()) {
+        const move = App.game.moves({ verbose: true }).find((m) => m.from === source && m.to === target);
+        if (move && move.flags.includes('p')) {
+            App.pendingPromotion = { from: source, to: target, context: 'analyze' };
+            showPromotionDialog();
+            unlockScroll();
+            return;
+        }
+        const moved = window.AnalyzeSection.playStudyMove(source, target);
+        unlockScroll();
+        return moved ? undefined : 'snapback';
+    }
+
     // Check if it's a promotion move
     const moves = App.game.moves({ verbose: true });
     const move = moves.find(m => m.from === source && m.to === target);
@@ -1033,6 +1110,7 @@ function makeEngineMove() {
                         updateEngineStatus('ready', 'Engine Ready');
                     }
 
+                    schedulePlayBoardVisibility('engine-book-move');
                     return; // Book move played, exit early
                 } else {
                     console.warn('⚠️ Book move invalid, falling back to engine');
@@ -1097,6 +1175,7 @@ function makeEngineMove() {
                 App.isPlayerTurn = true;
                 updateStatus();
             }
+            schedulePlayBoardVisibility('engine-move');
         }
 
         updateEngineStatus('ready', 'Engine Ready');
@@ -1252,9 +1331,9 @@ function updateMoveHistory() {
     });
 
     const activeMove = App.elements.moveHistory.querySelector('.move.current');
-    if (activeMove) {
+    if (activeMove && !isMobilePlayViewport()) {
         activeMove.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-    } else {
+    } else if (!isMobilePlayViewport()) {
         App.elements.moveHistory.scrollTop = App.elements.moveHistory.scrollHeight;
     }
 
@@ -1296,9 +1375,9 @@ function renderMovesToPanel() {
     });
 
     const activeMove = listEl.querySelector('.move.current');
-    if (activeMove) {
+    if (activeMove && !isMobilePlayViewport()) {
         activeMove.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-    } else {
+    } else if (!isMobilePlayViewport()) {
         scrollEl.scrollTop = scrollEl.scrollHeight;
     }
 }
@@ -1937,6 +2016,8 @@ function navigateToStart() {
     if (App.analyzing) {
         startAnalysis();
     }
+
+    schedulePlayBoardVisibility('move');
 }
 
 function navigateToPrevious() {
@@ -2510,6 +2591,7 @@ function newGame(options = {}) {
         // Start Engine vs Engine mode from starting position
         setTimeout(() => {
             startEngineVsEngine();
+            schedulePlayBoardVisibility('engine-vs-engine');
         }, 100);
         return; // Exit early, Eve mode handles its own UI
     }
@@ -2545,6 +2627,7 @@ function newGame(options = {}) {
 
     // HOTFIX 4: Trigger engine move if it's engine's turn
     maybeTriggerEngineMove();
+    schedulePlayBoardVisibility('new-game');
 }
 
 function resignGame() {
@@ -3689,7 +3772,17 @@ function showPromotionDialog() {
 function handlePromotion(piece) {
     if (!App.pendingPromotion) return;
 
-    const { from, to } = App.pendingPromotion;
+    const { from, to, context } = App.pendingPromotion;
+
+    if (context === 'analyze' && window.AnalyzeSection?.isAnalyzeActive?.()) {
+        const moved = window.AnalyzeSection.playStudyMove(from, to, piece);
+        if (!moved) {
+            App.board.position(App.game.fen());
+        }
+        App.pendingPromotion = null;
+        hideModal('promotionModal');
+        return;
+    }
 
     // Make the promotion move
     const result = App.game.move({
@@ -7356,3 +7449,4 @@ document.getElementById('cheaterCopyListBtn').addEventListener('click', () => {
 // Export for debugging
 window.App = App;
 window.ensurePlayInitialized = ensurePlayInitialized;
+window.initializeBoard = initializeBoard;
