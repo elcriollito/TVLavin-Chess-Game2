@@ -23,6 +23,8 @@ const AnalyzeSection = {
     studyModeInitialized: false,
     tapSource: null,
     tapTargets: [],
+    liveEngineEnabled: false,
+    liveEngineToken: 0,
 
     // DOM cache
     elements: {},
@@ -105,6 +107,7 @@ const AnalyzeSection = {
             navPrev: document.getElementById('analyzeNavPrev'),
             navNext: document.getElementById('analyzeNavNext'),
             navLast: document.getElementById('analyzeNavLast'),
+            engineToggle: document.getElementById('analyzeEngineToggle'),
             undoMove: document.getElementById('analyzeUndoMove'),
             resetBoard: document.getElementById('analyzeResetBoard'),
             flipBoard: document.getElementById('analyzeFlipBoard')
@@ -159,6 +162,7 @@ const AnalyzeSection = {
         this.elements.navLast?.addEventListener('click', () => {
             this.jumpToMove((this.loadedGame?.game.history().length || 0) - 1);
         });
+        this.elements.engineToggle?.addEventListener('click', () => this.toggleLiveEngine());
         this.elements.undoMove?.addEventListener('click', () => this.undoStudyMove());
         this.elements.resetBoard?.addEventListener('click', () => this.resetStudyBoard({ explicit: true }));
         this.elements.flipBoard?.addEventListener('click', () => this.flipAnalyzeBoard());
@@ -281,6 +285,7 @@ const AnalyzeSection = {
         this.updateNavigationControls();
         this.updateMentorPanel();
         this.updateEvaluationBar();
+        this.refreshLiveEvaluation();
         this.updateReviewSummary();
         this.updateCriticalMoments();
         this.setStatus('Study board ready', 'ready');
@@ -318,6 +323,7 @@ const AnalyzeSection = {
         this.updateNavigationControls();
         this.updateMentorPanel();
         this.updateEvaluationBar();
+        this.refreshLiveEvaluation();
         this.updateReviewSummary();
         this.updateCriticalMoments();
         this.setStatus(`${App.game.turn() === 'w' ? 'White' : 'Black'} to move`, 'ready');
@@ -340,6 +346,7 @@ const AnalyzeSection = {
         this.updateNavigationControls();
         this.updateMentorPanel();
         this.updateEvaluationBar();
+        this.refreshLiveEvaluation();
         this.updateReviewSummary();
         this.updateCriticalMoments();
         this.setStatus(`${App.game.turn() === 'w' ? 'White' : 'Black'} to move`, 'ready');
@@ -800,6 +807,7 @@ const AnalyzeSection = {
         this.updateNavigationControls();
         this.updateMentorPanel();
         this.updateEvaluationBar();
+        this.refreshLiveEvaluation();
 
         console.log('[Analyze] Jumped to move:', safeIndex + 1);
     },
@@ -1061,14 +1069,13 @@ const AnalyzeSection = {
     },
 
     getCurrentEvaluation() {
-        if (this.currentMoveIndex < 0) {
-            return { evaluation: 0, mate: null };
-        }
-
-        const positionAnalysis = this.positionAnalyses[this.currentMoveIndex + 1];
+        const positionIndex = Math.max(0, this.currentMoveIndex + 1);
+        const positionAnalysis = this.positionAnalyses[positionIndex];
         if (positionAnalysis) {
             return { evaluation: positionAnalysis.eval, mate: positionAnalysis.mate };
         }
+
+        if (this.currentMoveIndex < 0) return { evaluation: 0, mate: null };
 
         const selected = this.analysisResults[this.currentMoveIndex];
         return selected && !selected.unavailable
@@ -1083,6 +1090,62 @@ const AnalyzeSection = {
         return `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
     },
 
+    toggleLiveEngine() {
+        this.setLiveEngineEnabled(!this.liveEngineEnabled);
+    },
+
+    setLiveEngineEnabled(enabled, { silent = false } = {}) {
+        this.liveEngineEnabled = !!enabled;
+        this.liveEngineToken += 1;
+        this.updateLiveEngineButton();
+
+        if (!this.liveEngineEnabled) {
+            this.analysisEngine?.stop?.();
+            this.setStatus('Engine off - study board ready', 'ready');
+            return;
+        }
+
+        if (!silent) this.setStatus('Engine on - evaluating position', 'loading');
+        this.refreshLiveEvaluation();
+    },
+
+    updateLiveEngineButton() {
+        const button = this.elements.engineToggle;
+        if (!button) return;
+        button.classList.toggle('active', this.liveEngineEnabled);
+        button.setAttribute('aria-pressed', String(this.liveEngineEnabled));
+        button.setAttribute('aria-label', this.liveEngineEnabled
+            ? 'Turn live engine evaluation off'
+            : 'Turn live engine evaluation on');
+        const label = button.querySelector('span');
+        if (label) label.textContent = this.liveEngineEnabled ? 'Engine On' : 'Engine';
+    },
+
+    async refreshLiveEvaluation() {
+        if (!this.liveEngineEnabled || !this.loadedGame || !window.App?.game || this.isAnalyzing) return;
+        const token = ++this.liveEngineToken;
+        const fen = App.game.fen();
+        const positionIndex = Math.max(0, this.currentMoveIndex + 1);
+
+        this.setStatus('Engine on - evaluating position', 'loading');
+        const engine = await this.ensureAnalysisEngine();
+        if (!engine || token !== this.liveEngineToken || !this.liveEngineEnabled) {
+            if (this.liveEngineEnabled) this.setStatus('Engine unavailable', 'error');
+            return;
+        }
+
+        try {
+            const result = await this.analyzePosition(fen, token, 8, 8000);
+            if (token !== this.liveEngineToken || !this.liveEngineEnabled) return;
+            this.positionAnalyses[positionIndex] = result;
+            this.updateEvaluationBar();
+            this.setStatus('Engine on - live evaluation', 'ready');
+        } catch (_error) {
+            if (token !== this.liveEngineToken || !this.liveEngineEnabled) return;
+            this.setStatus('Engine evaluation unavailable', 'warning');
+        }
+    },
+
     /**
      * Start Stockfish analysis
      */
@@ -1090,6 +1153,10 @@ const AnalyzeSection = {
         if (!this.loadedGame) {
             this.showNotification('Load a game before starting analysis.', 'error');
             return;
+        }
+
+        if (this.liveEngineEnabled) {
+            this.setLiveEngineEnabled(false, { silent: true });
         }
 
         console.log('[Analyze] Starting analysis...');
@@ -1495,6 +1562,7 @@ const AnalyzeSection = {
      */
     onEnter() {
         console.log('[Analyze] Section entered');
+        this.updateLiveEngineButton();
         if (!this.loadedGame) {
             this.resetStudyBoard({ silent: true });
         } else {
@@ -1515,6 +1583,9 @@ const AnalyzeSection = {
      */
     onExit() {
         console.log('[Analyze] Section exited');
+        if (this.liveEngineEnabled) {
+            this.setLiveEngineEnabled(false, { silent: true });
+        }
         if (this.loadedGame && window.App?.game) {
             const clone = this.cloneGame(App.game);
             if (clone) {

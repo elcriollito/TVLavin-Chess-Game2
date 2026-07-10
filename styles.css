@@ -7087,7 +7087,7 @@ button:focus,
 
 .analyze-board-navigation {
     display: grid;
-    grid-template-columns: repeat(7, minmax(38px, auto));
+    grid-template-columns: repeat(8, minmax(38px, auto));
     gap: 8px;
     justify-content: center;
     width: min(100%, calc(var(--board-size) + 60px));
@@ -7100,6 +7100,11 @@ button:focus,
 }
 
 .analyze-board-navigation .analyze-study-action {
+    padding-inline: 8px;
+    gap: 5px;
+}
+
+.analyze-board-navigation .analyze-engine-toggle {
     padding-inline: 8px;
     gap: 5px;
 }
@@ -7592,7 +7597,7 @@ button:focus,
     bottom: 0;
     left: 0;
     right: 0;
-    height: 64px;
+    min-height: 64px;
     background: var(--bg-secondary);
     border-top: 1px solid var(--border-color);
     z-index: 100;
@@ -7610,7 +7615,8 @@ button:focus,
 
 .mobile-quick-btn {
     flex: 1;
-    max-width: 140px;
+    min-width: 0;
+    max-width: 112px;
     height: 48px;
     border: none;
     border-radius: 8px;
@@ -8060,7 +8066,7 @@ button:focus,
 }
 
 .analyze-board-navigation {
-    grid-template-columns: repeat(5, minmax(34px, 38px));
+    grid-template-columns: repeat(4, minmax(44px, 1fr));
 }
 
 .arena-player,
@@ -8286,9 +8292,13 @@ body.debug-layout #arena-right {
         overflow-x: clip;
     }
 
-    #playSection .cais-topbar {
-        min-height: 0;
-        padding-block: 4px;
+    body[data-caissa-section="play"] #playSection .cais-topbar {
+        display: none !important;
+        min-height: 0 !important;
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: 0 !important;
     }
 
     #playSection .main-content {
@@ -8446,8 +8456,7 @@ body.debug-layout #arena-right {
     }
 
     #playSection .right-controls {
-        display: grid;
-        gap: 8px;
+        display: none !important;
     }
 
     #playSection .ctrl-row {
@@ -8473,6 +8482,19 @@ body.debug-layout #arena-right {
     #analyzeSection {
         --analyze-mobile-board-size: min(calc(100vw - 84px), calc(100dvh - 232px), 680px);
         --board-size: var(--analyze-mobile-board-size);
+    }
+
+    body[data-caissa-section="play"].caissa-play-game-active #playSection .board-editor-wrapper,
+    body[data-caissa-section="play"].caissa-play-game-active #playSection .right-panel.cais-right-col {
+        display: none !important;
+    }
+
+    body[data-caissa-section="play"].caissa-play-game-active #playSection .main-content {
+        gap: 4px;
+    }
+
+    body[data-caissa-section="play"].caissa-play-game-active #playSection .board-container {
+        padding-bottom: 0;
     }
 
     .analyze-layout {
@@ -8638,8 +8660,20 @@ body.debug-layout #arena-right {
         padding-block: 4px calc(4px + env(safe-area-inset-bottom, 0px));
     }
 
-    body[data-caissa-section="play"] .mobile-quick-btn {
+    body.caissa-mobile-gameplay-active .mobile-quick-actions {
+        justify-content: space-between;
+        padding-inline: max(8px, env(safe-area-inset-left, 0px)) max(8px, env(safe-area-inset-right, 0px));
+        gap: 6px;
+    }
+
+    body.caissa-mobile-gameplay-active .mobile-quick-btn {
         height: 44px;
+        max-width: none;
+        padding: 4px 6px;
+        flex-direction: column;
+        gap: 2px;
+        font-size: 11px;
+        line-height: 1.05;
     }
 
     body[data-caissa-section="analyze"] #analyzeSection {
@@ -8674,8 +8708,13 @@ body.debug-layout #arena-right {
     }
 
     body[data-caissa-section="analyze"] .analyze-board-navigation {
-        grid-template-columns: repeat(5, minmax(44px, 1fr));
+        grid-template-columns: repeat(4, minmax(44px, 1fr));
         gap: 4px;
+    }
+
+    body[data-caissa-section="analyze"] .analyze-board-navigation .analyze-engine-toggle,
+    body[data-caissa-section="analyze"] .analyze-board-navigation .analyze-study-action {
+        padding-inline: 4px;
     }
 }
 
@@ -8687,6 +8726,54 @@ body.debug-layout #arena-right {
         justify-content: center;
         min-width: 44px;
         min-height: 44px;
+    }
+}
+
+@media (max-width: 950px) and (max-height: 480px) and (orientation: landscape) {
+    body.caissa-mobile-gameplay-active .content-area {
+        padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    }
+
+    body.caissa-mobile-gameplay-active .mobile-quick-actions {
+        display: flex;
+        justify-content: space-between;
+        height: calc(52px + env(safe-area-inset-bottom, 0px));
+        padding: 4px max(8px, env(safe-area-inset-right, 0px)) calc(4px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px));
+        gap: 6px;
+    }
+
+    body.caissa-mobile-gameplay-active .mobile-quick-btn {
+        max-width: none;
+        height: 44px;
+        min-width: 0;
+        padding: 4px 6px;
+        flex-direction: column;
+        gap: 2px;
+        font-size: 11px;
+        line-height: 1.05;
+    }
+
+    body[data-caissa-section="play"] #playSection .cais-topbar {
+        display: none !important;
+        min-height: 0 !important;
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: 0 !important;
+    }
+
+    body[data-caissa-section="play"].caissa-play-game-active #playSection .board-editor-wrapper,
+    body[data-caissa-section="play"].caissa-play-game-active #playSection .right-panel.cais-right-col {
+        display: none !important;
+    }
+
+    body[data-caissa-section="play"] #playSection .right-controls {
+        display: none !important;
+    }
+
+    body[data-caissa-section="analyze"] .analyze-board-navigation {
+        grid-template-columns: repeat(4, minmax(44px, 1fr));
+        gap: 4px;
     }
 }
 

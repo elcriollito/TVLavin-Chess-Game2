@@ -50,6 +50,8 @@ const CaissaNavigation = {
             collapseBtn: document.getElementById('navCollapseBtn'),
             mobileToggle: document.getElementById('mobileNavToggle'),
             newGameBtn: document.getElementById('navNewGameBtn'),
+            mobileQuickActions: document.querySelector('.mobile-quick-actions'),
+            mobileActionButtons: document.querySelectorAll('[data-mobile-action]'),
             navItems: document.querySelectorAll('.nav-item[data-section]'),
             sections: document.querySelectorAll('.content-section'),
             appContainer: document.querySelector('.app-container'),
@@ -109,16 +111,10 @@ const CaissaNavigation = {
         });
 
         // Mobile Quick Actions
-        document.getElementById('mobileNewGame')?.addEventListener('click', () => {
-            this.openNewGameModal();
-        });
-
-        document.getElementById('mobileArena')?.addEventListener('click', () => {
-            this.navigateToSection('arena');
-        });
-
-        document.getElementById('mobileAnalysisToggle')?.addEventListener('click', () => {
-            this.toggleMobileAnalysis();
+        this.elements.mobileActionButtons?.forEach((button) => {
+            button.addEventListener('click', () => {
+                this.handleMobileQuickAction(button.dataset.mobileAction);
+            });
         });
 
         document.getElementById('closeAnalysisSheet')?.addEventListener('click', () => {
@@ -409,11 +405,8 @@ const CaissaNavigation = {
      * tree when the current section does not use them.
      */
     updateMobileGameplayControls(sectionId = this.currentSection) {
-        const isGameplaySection = sectionId === 'play' || sectionId === 'analyze';
-        const quickActions = document.querySelector('.mobile-quick-actions');
-        const newGameBtn = document.getElementById('mobileNewGame');
-        const arenaBtn = document.getElementById('mobileArena');
-        const analysisBtn = document.getElementById('mobileAnalysisToggle');
+        const isGameplaySection = sectionId === 'play' || sectionId === 'analyze' || sectionId === 'arena';
+        const quickActions = this.elements.mobileQuickActions || document.querySelector('.mobile-quick-actions');
 
         document.body?.setAttribute('data-caissa-section', sectionId || '');
         document.body?.classList.toggle('caissa-mobile-gameplay-active', isGameplaySection);
@@ -424,25 +417,84 @@ const CaissaNavigation = {
             quickActions.inert = !isGameplaySection;
         }
 
-        if (newGameBtn) {
-            const showNewGame = sectionId === 'play';
-            newGameBtn.hidden = !showNewGame;
-            newGameBtn.setAttribute('aria-hidden', String(!showNewGame));
-        }
-
-        if (arenaBtn) {
-            arenaBtn.hidden = true;
-            arenaBtn.setAttribute('aria-hidden', 'true');
-        }
-
-        if (analysisBtn) {
-            analysisBtn.hidden = !isGameplaySection;
-            analysisBtn.setAttribute('aria-hidden', String(!isGameplaySection));
-        }
+        this.configureMobileQuickActions(sectionId);
 
         if (!isGameplaySection) {
             this.closeMobileAnalysis();
         }
+    },
+
+    configureMobileQuickActions(sectionId = this.currentSection) {
+        const layouts = {
+            play: [
+                { action: 'new-game', label: 'New Game', icon: 'fa-plus', style: 'primary' },
+                { action: 'undo', label: 'Undo', icon: 'fa-undo' },
+                { action: 'hint', label: 'Hint', icon: 'fa-lightbulb' },
+                { action: 'pgn', label: 'PGN', icon: 'fa-file-export' },
+                { action: 'menu', label: 'Menu', icon: 'fa-bars', style: 'analysis' }
+            ],
+            analyze: [
+                { action: 'analyze-engine', label: 'Engine', icon: 'fa-brain', style: 'primary' },
+                { action: 'analyze-undo', label: 'Undo', icon: 'fa-undo' },
+                { action: 'analyze-reset', label: 'Reset', icon: 'fa-sync-alt' },
+                { action: 'analyze-flip', label: 'Flip', icon: 'fa-exchange-alt' },
+                { action: 'menu', label: 'Menu', icon: 'fa-bars', style: 'analysis' }
+            ],
+            arena: [
+                { action: 'arena-start', label: 'New Game', icon: 'fa-play', style: 'primary' },
+                { action: 'arena-engine', label: 'Engine', icon: 'fa-microchip' },
+                { action: 'menu', label: 'Menu', icon: 'fa-bars', style: 'analysis' }
+            ]
+        };
+
+        const buttons = Array.from(this.elements.mobileActionButtons || document.querySelectorAll('[data-mobile-action]'));
+        const config = layouts[sectionId] || [];
+        buttons.forEach((button, index) => {
+            const item = config[index];
+            button.hidden = !item;
+            button.setAttribute('aria-hidden', String(!item));
+            if (!item) return;
+
+            button.dataset.mobileAction = item.action;
+            button.classList.toggle('mobile-quick-btn-primary', item.style === 'primary');
+            button.classList.toggle('mobile-quick-btn-analysis', item.style === 'analysis');
+            button.classList.toggle('mobile-quick-btn-secondary', !item.style);
+            button.setAttribute('aria-label', item.label);
+            const icon = button.querySelector('i');
+            if (icon) icon.className = `fas ${item.icon}`;
+            const label = button.querySelector('span');
+            if (label) label.textContent = item.label;
+        });
+    },
+
+    handleMobileQuickAction(action) {
+        const click = (selector) => {
+            const target = document.querySelector(selector);
+            if (target) {
+                target.click();
+                return true;
+            }
+            return false;
+        };
+
+        const actions = {
+            'new-game': () => this.openNewGameModal(),
+            undo: () => click('#btnUndo'),
+            hint: () => click('#btnHint'),
+            pgn: () => click('#btnDownload'),
+            menu: () => {
+                if (this.currentSection === 'play' && click('#btnSettings')) return;
+                this.openNav();
+            },
+            'analyze-engine': () => click('#analyzeEngineToggle'),
+            'analyze-undo': () => click('#analyzeUndoMove'),
+            'analyze-reset': () => click('#analyzeResetBoard'),
+            'analyze-flip': () => click('#analyzeFlipBoard'),
+            'arena-start': () => click('#arenaStartMatch'),
+            'arena-engine': () => click('#arenaInfiniteAnalysis')
+        };
+
+        actions[action]?.();
     },
 
     /**

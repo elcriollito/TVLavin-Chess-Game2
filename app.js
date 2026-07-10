@@ -728,6 +728,14 @@ function schedulePlayBoardVisibility(reason = 'update') {
     });
 }
 
+function syncPlayMobileStateClasses() {
+    const gameOver = !!(App.game && typeof App.game.game_over === 'function' && App.game.game_over());
+    const hasResult = !!App.gameStatus?.result || gameOver;
+    const active = !!(App.gameActive && !hasResult);
+    document.body?.classList.toggle('caissa-play-game-active', active);
+    document.body?.classList.toggle('caissa-play-game-ended', hasResult);
+}
+
 function isAnalyzeStudyActive() {
     return window.AnalyzeSection?.isAnalyzeActive?.() && !!window.AnalyzeSection?.loadedGame;
 }
@@ -1216,6 +1224,7 @@ function updateStatus() {
 
     updateGameStatusPanel();
     updateGameStatusConsole();
+    syncPlayMobileStateClasses();
 
     // Dispatch turn change event for LED indicator (caissa-ui-refactor.js)
     window.dispatchEvent(new CustomEvent('caissa-turn-change', {
@@ -1271,6 +1280,7 @@ function handleGameOver() {
     }
 
     setGameStatus(state, result, detailMessage);
+    syncPlayMobileStateClasses();
 
     // Dispatch game end event for UI components
     window.dispatchEvent(new CustomEvent('caissa-game-end', {
@@ -2894,6 +2904,7 @@ function setGameStatus(state, result = '', message = '') {
     };
     renderGameStatusPanel();
     updateGameStatusConsole();
+    syncPlayMobileStateClasses();
 }
 
 function renderGameStatusPanel() {
