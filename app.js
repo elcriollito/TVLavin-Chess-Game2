@@ -41,6 +41,7 @@ const App = {
     editMode: false,
     isFlipped: false, // Track board flip state for orientation-aware eval bar rendering
     mobileTapSource: null,
+    mobileTapTargets: [],
     dragScrollLocked: false,
     lastDragEndAt: 0,
     gameStatus: {
@@ -368,7 +369,7 @@ function cacheElements() {
 // ===== BOARD INITIALIZATION =====
 function initializeBoard() {
     const config = {
-        draggable: true,
+        draggable: !isTouchMoveDevice(),
         position: 'start',
         onDragStart: onDragStart,
         onDrop: onDrop,
@@ -476,6 +477,7 @@ function initBoardWhenReady(config) {
             // Handle orientation change (mobile devices)
             window.addEventListener('orientationchange', () => {
                 if (App.board) {
+                    clearMobileTapSource();
                     // Small delay to ensure viewport has updated
                     setTimeout(() => {
                         App.board.resize();
@@ -496,6 +498,13 @@ function initBoardWhenReady(config) {
 
                 boardElement.addEventListener('click', handleMobileBoardTap);
                 boardElement.addEventListener('touchcancel', clearMobileTapSource, { passive: true });
+                document.addEventListener('click', (event) => {
+                    if (!isMobilePlayInteraction() || !App.mobileTapSource) return;
+                    if (document.querySelector('.modal.show')) return;
+                    if (!event.target.closest('#playSection #chessboard')) {
+                        clearMobileTapSource();
+                    }
+                });
             }
         } else {
             // Container not ready, wait and try again
@@ -671,8 +680,16 @@ async function initializeOpeningBook() {
 }
 
 // ===== BOARD EVENT HANDLERS =====
+function isTouchMoveDevice() {
+    const hasTouchPoints = navigator.maxTouchPoints && navigator.maxTouchPoints > 0;
+    const coarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    const noHover = window.matchMedia && window.matchMedia('(hover: none)').matches;
+
+    return !!(hasTouchPoints || coarsePointer || noHover);
+}
+
 function isMobilePlayInteraction() {
-    return window.matchMedia && window.matchMedia('(max-width: 768px), (pointer: coarse)').matches;
+    return isTouchMoveDevice() || (window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
 }
 
 function getSquareFromEventTarget(target) {
@@ -690,16 +707,25 @@ function getSquareFromEventTarget(target) {
 
 function clearMobileTapSource() {
     App.mobileTapSource = null;
+    App.mobileTapTargets = [];
     document.querySelectorAll('#chessboard .mobile-tap-source').forEach((el) => {
         el.classList.remove('mobile-tap-source');
+    });
+    document.querySelectorAll('#chessboard .mobile-tap-target').forEach((el) => {
+        el.classList.remove('mobile-tap-target');
     });
 }
 
 function markMobileTapSource(square) {
     clearMobileTapSource();
     App.mobileTapSource = square;
+    App.mobileTapTargets = App.game.moves({ square, verbose: true }).map((move) => move.to);
     const squareEl = document.querySelector(`#chessboard .square-${square}`);
     squareEl?.classList.add('mobile-tap-source');
+    App.mobileTapTargets.forEach((target) => {
+        const targetEl = document.querySelector(`#chessboard .square-${target}`);
+        targetEl?.classList.add('mobile-tap-target');
+    });
 }
 
 function getPieceCodeAt(square) {
@@ -750,6 +776,8 @@ function makeMoveFromSquares(source, target) {
 
 function handleMobileBoardTap(event) {
     if (!isMobilePlayInteraction() || App.editMode) return;
+    if (!event.target.closest('#playSection #chessboard')) return;
+    if (document.querySelector('.modal.show')) return;
     if (Date.now() - App.lastDragEndAt < 250) return;
 
     const square = getSquareFromEventTarget(event.target);
@@ -783,10 +811,8 @@ function handleMobileBoardTap(event) {
 }
 
 function onDragStart(source, piece, position, orientation) {
+    if (isTouchMoveDevice()) return false;
     if (!canStartMoveFrom(source, piece)) return false;
-
-    // Lock page scrolling on mobile during drag
-    if (isMobilePlayInteraction()) lockScroll();
 
     return true;
 }
@@ -2673,6 +2699,7 @@ function exportPGN() {
 
 // ===== BOARD OPERATIONS =====
 function flipBoard() {
+    clearMobileTapSource();
     App.board.flip();
 
     // HOTFIX: Toggle flipped state and sync eval bar orientation
@@ -3214,46 +3241,50 @@ function setupNewGameModal() {
     const gameModeSelect = document.getElementById('gameMode');
     const colorSelection = document.getElementById('colorSelection');
     const engineLevelSelection = document.getElementById('engineLevelSelection');
-    const timeButtons = document.querySelectorAll('.time-btn');
-    const colorButtons = document.querySelectorAll('.color-btn');
+    const timeButtons = modal.querySelectorAll('.time-btn');
+    const colorButtons = modal.querySelectorAll('.color-btn');
     const startButton = document.getElementById('startNewGame');
     
-    let selectedTime = 0;
-    let selectedColor = 'white';
+    let selectedTime = parseInt(modal.querySelector('.time-btn.active')?.dataset.time || '0', 10);
+    let selectedColor = modal.querySelector('.color-btn.active')?.dataset.color || 'white';
+    let lastModalAction = { key: '', type: '', at: 0 };
 
-    // Game mode change
-    gameModeSelect.addEventListener('change', (e) => {
-        const mode = e.target.value;
+    const shouldSkipModalAction = (key, eventType) => {
+        const now = Date.now();
+        if (eventType === 'click' && lastModalAction.key === key && lastModalAction.type !== 'click' && now - lastModalAction.at < 450) {
+            return true;
+        }
+        lastModalAction = { key, type: eventType, at: now };
+        return false;
+    };
+
+    const selectTime = (button) => {
+        timeButtons.forEach((btn) => {
+            const active = btn === button;
+            btn.classList.toggle('active', active);
+            btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        selectedTime = parseInt(button.dataset.time, 10);
+    };
+
+    const selectColor = (button) => {
+        colorButtons.forEach((btn) => {
+            const active = btn === button;
+            btn.classList.toggle('active', active);
+            btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        selectedColor = button.dataset.color;
+    };
+
+    const syncModeControls = () => {
+        const mode = gameModeSelect.value;
         const isEngine = mode === 'engine';
 
-        // Show color/level selection only for engine mode
-        // Hide for human, eve, and analysis modes
         colorSelection.style.display = isEngine ? 'block' : 'none';
         engineLevelSelection.style.display = isEngine ? 'block' : 'none';
-    });
+    };
 
-    // Time control selection
-    timeButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            timeButtons.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            selectedTime = parseInt(btn.dataset.time);
-        });
-    });
-
-    // Color selection
-    colorButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            colorButtons.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            selectedColor = btn.dataset.color;
-        });
-    });
-
-    // No engine level selection - always full power
-
-    // Start game button
-    startButton.addEventListener('click', () => {
+    const startSelectedGame = () => {
         const mode = gameModeSelect.value;
 
         newGame({
@@ -3264,7 +3295,69 @@ function setupNewGameModal() {
         });
 
         hideModal('newGameModal');
+    };
+
+    const handleModalActivation = (event) => {
+        const target = event.target;
+        const timeButton = target.closest('.time-btn');
+        const colorButton = target.closest('.color-btn');
+        const closeButton = target.closest('.modal-close, button[data-modal]');
+        const startGameButton = target.closest('#startNewGame');
+
+        if (timeButton && modal.contains(timeButton)) {
+            if (shouldSkipModalAction(`time:${timeButton.dataset.time}`, event.type)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            selectTime(timeButton);
+            return;
+        }
+
+        if (colorButton && modal.contains(colorButton)) {
+            if (shouldSkipModalAction(`color:${colorButton.dataset.color}`, event.type)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            selectColor(colorButton);
+            return;
+        }
+
+        if (startGameButton && modal.contains(startGameButton)) {
+            if (shouldSkipModalAction('start', event.type)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            startSelectedGame();
+            return;
+        }
+
+        if (closeButton && modal.contains(closeButton)) {
+            if (shouldSkipModalAction('close', event.type)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            hideModal(closeButton.dataset.modal || closeButton.getAttribute('data-modal'));
+        }
+    };
+
+    timeButtons.forEach((btn) => {
+        btn.type = 'button';
+        btn.setAttribute('aria-pressed', btn.classList.contains('active') ? 'true' : 'false');
     });
+
+    colorButtons.forEach((btn) => {
+        btn.type = 'button';
+        btn.setAttribute('aria-pressed', btn.classList.contains('active') ? 'true' : 'false');
+    });
+
+    startButton.type = 'button';
+    syncModeControls();
+
+    // Game mode change
+    gameModeSelect.addEventListener('change', syncModeControls);
+    modal.addEventListener('pointerup', handleModalActivation);
+    if (!window.PointerEvent) {
+        modal.addEventListener('touchend', handleModalActivation, { passive: false });
+    }
+    modal.addEventListener('click', handleModalActivation);
+
+    // No engine level selection - always full power
 }
 
 // ===== FEN MODAL =====
