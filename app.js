@@ -398,12 +398,22 @@ function initBoardWhenReady(config) {
         return;
     }
 
+    const getBoardReadyMinimum = (rect) => {
+        const isMobileWidth = window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+        const isPhoneLandscape = window.matchMedia && window.matchMedia('(max-width: 950px) and (max-height: 480px) and (orientation: landscape)').matches;
+        const isCoarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+        const hasCompactBoardSize = rect.width >= 180 && rect.height >= 180 && rect.width < 300 && rect.height < 300;
+        const compactGameplay = isMobileWidth || isPhoneLandscape || (isCoarsePointer && hasCompactBoardSize);
+
+        return compactGameplay ? 180 : 300;
+    };
+
     // Check if container has proper dimensions
     const checkAndInit = () => {
-        const rect = boardContainer.getBoundingClientRect();
+        if (App.board) return;
 
-        const mobileBoardReady = window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
-        const minBoardSize = mobileBoardReady ? 180 : 300;
+        const rect = boardContainer.getBoundingClientRect();
+        const minBoardSize = getBoardReadyMinimum(rect);
 
         if (rect.width >= minBoardSize && rect.height >= minBoardSize) {
             // Container is ready, create the board
