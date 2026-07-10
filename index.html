@@ -94,7 +94,7 @@
     <!-- Stylesheets -->
     <link rel="stylesheet" href="./assets/css/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="styles.css?v=2.0.13">
+    <link rel="stylesheet" href="styles.css?v=2.0.14">
     <link rel="stylesheet" href="css/caissa-ui-foundation.css?v=1.0.2">
     <link rel="stylesheet" href="caissa-library.css?v=1.1.0">
     <link rel="stylesheet" href="query-engine.css?v=1.0.0">
@@ -965,34 +965,39 @@
                             </div>
                             <!-- Board moves here when section is active -->
                         </div>
-                        <div class="analyze-board-navigation" aria-label="Analyze move navigation">
-                            <button id="analyzeEngineToggle" class="nav-btn-sm analyze-engine-toggle" title="Toggle live position evaluation" aria-label="Turn live engine evaluation on" aria-pressed="false">
-                                <i class="fas fa-brain"></i>
-                                <span>Engine</span>
-                            </button>
-                            <button id="analyzeNavFirst" class="nav-btn-sm" title="First move" aria-label="Jump to start">
-                                <i class="fas fa-fast-backward"></i>
-                            </button>
-                            <button id="analyzeNavPrev" class="nav-btn-sm" title="Previous move" aria-label="Previous move">
-                                <i class="fas fa-step-backward"></i>
-                            </button>
-                            <button id="analyzeNavNext" class="nav-btn-sm" title="Next move" aria-label="Next move">
-                                <i class="fas fa-step-forward"></i>
-                            </button>
-                            <button id="analyzeNavLast" class="nav-btn-sm" title="Last move" aria-label="Jump to end">
-                                <i class="fas fa-fast-forward"></i>
-                            </button>
-                            <button id="analyzeUndoMove" class="nav-btn-sm analyze-study-action" title="Undo last move" aria-label="Undo last study move" disabled aria-disabled="true">
-                                <i class="fas fa-undo"></i>
-                                <span>Undo</span>
-                            </button>
-                            <button id="analyzeResetBoard" class="nav-btn-sm analyze-study-action analyze-study-reset" title="Reset board to the starting position" aria-label="Reset study board to the starting position">
-                                <i class="fas fa-sync-alt"></i>
-                                <span>Reset</span>
-                            </button>
-                            <button id="analyzeFlipBoard" class="nav-btn-sm" title="Flip board" aria-label="Flip board">
-                                <i class="fas fa-exchange-alt"></i>
-                            </button>
+                        <div class="analyze-board-controls" aria-label="Analyze board controls">
+                            <div class="analyze-board-navigation" aria-label="Analyze move navigation">
+                                <button id="analyzeNavFirst" class="nav-btn-sm" title="First move" aria-label="Jump to start">
+                                    <i class="fas fa-fast-backward"></i>
+                                </button>
+                                <button id="analyzeNavPrev" class="nav-btn-sm" title="Previous move" aria-label="Previous move">
+                                    <i class="fas fa-step-backward"></i>
+                                </button>
+                                <button id="analyzeNavNext" class="nav-btn-sm" title="Next move" aria-label="Next move">
+                                    <i class="fas fa-step-forward"></i>
+                                </button>
+                                <button id="analyzeNavLast" class="nav-btn-sm" title="Last move" aria-label="Jump to end">
+                                    <i class="fas fa-fast-forward"></i>
+                                </button>
+                                <button id="analyzeUndoMove" class="nav-btn-sm analyze-study-action" title="Undo last move" aria-label="Undo last study move" disabled aria-disabled="true">
+                                    <i class="fas fa-undo"></i>
+                                    <span>Undo</span>
+                                </button>
+                                <button id="analyzeResetBoard" class="nav-btn-sm analyze-study-action analyze-study-reset" title="Reset board to the starting position" aria-label="Reset study board to the starting position">
+                                    <i class="fas fa-sync-alt"></i>
+                                    <span>Reset</span>
+                                </button>
+                            </div>
+                            <div class="analyze-board-tools" aria-label="Analyze independent board tools">
+                                <button id="analyzeEngineToggle" class="nav-btn-sm analyze-engine-toggle" title="Toggle live position evaluation" aria-label="Turn live engine evaluation on" aria-pressed="false">
+                                    <i class="fas fa-brain"></i>
+                                    <span>Engine Off</span>
+                                </button>
+                                <button id="analyzeFlipBoard" class="nav-btn-sm analyze-flip-tool" title="Flip board" aria-label="Flip board">
+                                    <i class="fas fa-exchange-alt"></i>
+                                    <span>Flip</span>
+                                </button>
+                            </div>
                         </div>
                         <div class="panel analyze-mentor-panel">
                             <h3 class="panel-title">Move Analysis / Mentor</h3>
@@ -5087,7 +5092,7 @@
     <script src="position-forge.js?v=1.0.0"></script>
     <script src="position-forge-ui.js?v=1.0.0"></script>
     <!-- Navigation Module (Phase 1: UX Redesign) -->
-    <script src="js/caissa-navigation.js?v=1.0.4"></script>
+    <script src="js/caissa-navigation.js?v=1.0.5"></script>
     <script src="js/academy-section.js?v=1.0.0"></script>
     <script src="js/yahoo-classic-section.js?v=1.0.0"></script>
     <script src="js/caissa-ui-refactor.js?v=1.0.0"></script>
@@ -5098,7 +5103,7 @@
     <script src="js/arena-section.js?v=1.0.0"></script>
     <script src="js/insights-section.js?v=1.0.0"></script>
     <script src="js/history-section.js?v=1.0.0"></script>
-    <script src="js/analyze-section.js?v=1.2.6"></script>
+    <script src="js/analyze-section.js?v=1.2.7"></script>
     <script src="app.js?v=2.0.10"></script>
 
     <!-- Auth Scripts -->

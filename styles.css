@@ -7085,35 +7085,53 @@ button:focus,
     inset: 0 0 auto;
 }
 
-.analyze-board-navigation {
+.analyze-board-controls {
     display: grid;
-    grid-template-columns: repeat(8, minmax(38px, auto));
     gap: 8px;
-    justify-content: center;
+    justify-items: center;
     width: min(100%, calc(var(--board-size) + 60px));
 }
 
-.analyze-board-navigation .nav-btn-sm {
+.analyze-board-navigation,
+.analyze-board-tools {
+    display: grid;
+    gap: 8px;
+    justify-content: center;
+    width: 100%;
+}
+
+.analyze-board-navigation {
+    grid-template-columns: repeat(6, minmax(38px, auto));
+}
+
+.analyze-board-tools {
+    grid-template-columns: repeat(2, minmax(96px, 160px));
+    gap: 8px;
+    justify-content: center;
+}
+
+.analyze-board-controls .nav-btn-sm {
     width: auto;
     min-width: 38px;
     height: 34px;
 }
 
-.analyze-board-navigation .analyze-study-action {
+.analyze-board-controls .analyze-study-action {
     padding-inline: 8px;
     gap: 5px;
 }
 
-.analyze-board-navigation .analyze-engine-toggle {
+.analyze-board-controls .analyze-engine-toggle,
+.analyze-board-controls .analyze-flip-tool {
     padding-inline: 8px;
     gap: 5px;
 }
 
-.analyze-board-navigation .analyze-study-reset {
+.analyze-board-controls .analyze-study-reset {
     color: var(--danger-color);
 }
 
-.analyze-board-navigation .nav-btn-sm.active {
+.analyze-board-controls .nav-btn-sm.active {
     color: white;
     background: var(--primary-color);
 }
@@ -8033,7 +8051,7 @@ button:focus,
 
 #playSection .panel-header,
 #playSection .opening-title-right,
-.analyze-board-navigation,
+.analyze-board-controls,
 .arena-game-status,
 .arena-graph-legend {
     flex-wrap: wrap;
@@ -8127,9 +8145,16 @@ button:focus,
         width: 100%;
     }
 
-    .analyze-board-navigation {
-        grid-template-columns: repeat(5, minmax(34px, 1fr));
+    .analyze-board-controls {
         width: min(100%, calc(var(--board-size) + 50px));
+    }
+
+    .analyze-board-navigation {
+        grid-template-columns: repeat(4, minmax(44px, 1fr));
+    }
+
+    .analyze-board-tools {
+        grid-template-columns: repeat(2, minmax(96px, 1fr));
     }
 
     .arena-game-status {
@@ -8712,8 +8737,15 @@ body.debug-layout #arena-right {
         gap: 4px;
     }
 
-    body[data-caissa-section="analyze"] .analyze-board-navigation .analyze-engine-toggle,
-    body[data-caissa-section="analyze"] .analyze-board-navigation .analyze-study-action {
+    body[data-caissa-section="analyze"] .analyze-board-tools {
+        grid-template-columns: repeat(2, minmax(96px, 1fr));
+        gap: 4px;
+    }
+
+    body[data-caissa-section="analyze"] .analyze-board-controls .analyze-engine-toggle,
+    body[data-caissa-section="analyze"] .analyze-board-controls .analyze-study-action,
+    body[data-caissa-section="analyze"] .analyze-board-controls .analyze-flip-tool {
+        min-height: 44px;
         padding-inline: 4px;
     }
 }
@@ -8773,6 +8805,11 @@ body.debug-layout #arena-right {
 
     body[data-caissa-section="analyze"] .analyze-board-navigation {
         grid-template-columns: repeat(4, minmax(44px, 1fr));
+        gap: 4px;
+    }
+
+    body[data-caissa-section="analyze"] .analyze-board-tools {
+        grid-template-columns: repeat(2, minmax(96px, 1fr));
         gap: 4px;
     }
 }

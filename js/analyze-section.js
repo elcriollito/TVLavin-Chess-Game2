@@ -25,6 +25,11 @@ const AnalyzeSection = {
     tapTargets: [],
     liveEngineEnabled: false,
     liveEngineToken: 0,
+    liveEngineTimer: null,
+    liveEngineOwner: null,
+    livePositionAnalyses: {},
+    liveCurrentFen: null,
+    liveCurrentResult: null,
 
     // DOM cache
     elements: {},
@@ -160,7 +165,7 @@ const AnalyzeSection = {
         this.elements.navPrev?.addEventListener('click', () => this.jumpToMove(this.currentMoveIndex - 1));
         this.elements.navNext?.addEventListener('click', () => this.jumpToMove(this.currentMoveIndex + 1));
         this.elements.navLast?.addEventListener('click', () => {
-            this.jumpToMove((this.loadedGame?.game.history().length || 0) - 1);
+            this.jumpToMove(this.getLoadedMoves().length - 1);
         });
         this.elements.engineToggle?.addEventListener('click', () => this.toggleLiveEngine());
         this.elements.undoMove?.addEventListener('click', () => this.undoStudyMove());
@@ -180,7 +185,7 @@ const AnalyzeSection = {
         if (!this.loadedGame || !this.isAnalyzeActive() || this.isEditableTarget(event.target)) return;
         if (event.ctrlKey || event.metaKey || event.altKey) return;
 
-        const lastMoveIndex = this.loadedGame.game.history().length - 1;
+        const lastMoveIndex = this.getLoadedMoves().length - 1;
         const destinations = {
             ArrowLeft: this.currentMoveIndex - 1,
             ArrowRight: this.currentMoveIndex + 1,
@@ -241,10 +246,30 @@ const AnalyzeSection = {
         return clone;
     },
 
+    syncLoadedMoveLine(game = window.App?.game) {
+        if (!this.loadedGame || !game?.history) return;
+        this.loadedGame.movesSan = game.history().slice();
+        this.loadedGame.movesVerbose = game.history({ verbose: true }).map((move) => ({ ...move }));
+    },
+
+    getLoadedMoves({ verbose = false } = {}) {
+        if (!this.loadedGame) return [];
+        if (verbose && Array.isArray(this.loadedGame.movesVerbose)) {
+            return this.loadedGame.movesVerbose.map((move) => ({ ...move }));
+        }
+        if (!verbose && Array.isArray(this.loadedGame.movesSan)) {
+            return this.loadedGame.movesSan.slice();
+        }
+        return this.loadedGame.game.history(verbose ? { verbose: true } : undefined);
+    },
+
     resetStudyBoard({ explicit = false, silent = false } = {}) {
         if (!window.Chess) return;
 
         if (this.isAnalyzing) this.stopAnalysis();
+        this.livePositionAnalyses = {};
+        this.liveCurrentFen = null;
+        this.liveCurrentResult = null;
         const game = new Chess();
         this.loadedGame = {
             pgn: '',
@@ -257,7 +282,9 @@ const AnalyzeSection = {
             event: 'Free Study',
             date: '',
             eco: '',
-            opening: ''
+            opening: '',
+            movesSan: [],
+            movesVerbose: []
         };
         this.currentMoveIndex = -1;
         this.analysisResults = [];
@@ -309,6 +336,7 @@ const AnalyzeSection = {
         if (!move) return false;
 
         this.loadedGame.game = App.game;
+        this.syncLoadedMoveLine(App.game);
         this.currentMoveIndex = App.game.history().length - 1;
         App.moveHistory = App.game.history({ verbose: true });
         App.currentMoveIndex = this.currentMoveIndex;
@@ -335,6 +363,7 @@ const AnalyzeSection = {
         const move = App.game.undo();
         if (!move) return;
         this.loadedGame.game = App.game;
+        this.syncLoadedMoveLine(App.game);
         this.currentMoveIndex = App.game.history().length - 1;
         App.moveHistory = App.game.history({ verbose: true });
         App.currentMoveIndex = this.currentMoveIndex;
@@ -680,9 +709,11 @@ const AnalyzeSection = {
                 event: headers.Event || '',
                 date: headers.Date || '',
                 eco: metadata.eco || headers.ECO || '',
-                opening: metadata.opening || headers.Opening || ''
+                opening: metadata.opening || headers.Opening || '',
+                movesSan: game.history().slice(),
+                movesVerbose: game.history({ verbose: true }).map((move) => ({ ...move }))
             };
-            this.currentMoveIndex = this.loadedGame.game.history().length - 1;
+            this.currentMoveIndex = this.getLoadedMoves().length - 1;
             this.analysisResults = [];
             this.positionAnalyses = [];
             this.updateReviewSummary();
@@ -739,7 +770,7 @@ const AnalyzeSection = {
     updateMoveList() {
         if (!this.elements.moveList || !this.loadedGame) return;
 
-        const moves = this.loadedGame.game.history();
+        const moves = this.getLoadedMoves();
 
         if (moves.length === 0) {
             this.renderEmptyState(this.elements.moveList, {
@@ -786,7 +817,7 @@ const AnalyzeSection = {
      */
     jumpToMove(index) {
         if (!this.loadedGame || !window.App) return;
-        const moves = this.loadedGame.game.history();
+        const moves = this.getLoadedMoves();
         const safeIndex = Math.max(-1, Math.min(index, moves.length - 1));
 
         // Reset to the game's actual starting position.
@@ -823,7 +854,7 @@ const AnalyzeSection = {
     },
 
     updateNavigationControls() {
-        const moveCount = this.loadedGame?.game.history().length || 0;
+        const moveCount = this.getLoadedMoves().length;
         const atStart = this.currentMoveIndex < 0;
         const atEnd = moveCount === 0 || this.currentMoveIndex >= moveCount - 1;
         if (this.elements.navFirst) this.elements.navFirst.disabled = atStart || moveCount === 0;
@@ -843,6 +874,10 @@ const AnalyzeSection = {
 
     updateMentorPanel() {
         if (!this.elements.mentor) return;
+        if (this.liveEngineEnabled && !this.isAnalyzing) {
+            this.updateLiveMentorPanel();
+            return;
+        }
         if (this.currentMoveIndex < 0) {
             this.renderEmptyState(this.elements.mentor, {
                 icon: 'fa-brain',
@@ -853,7 +888,7 @@ const AnalyzeSection = {
         }
 
         const result = this.analysisResults[this.currentMoveIndex];
-        const move = this.loadedGame?.game.history()[this.currentMoveIndex] || '';
+        const move = this.getLoadedMoves()[this.currentMoveIndex] || '';
         if (!result) {
             this.elements.mentor.innerHTML = `
                 <div class="analyze-mentor-heading"><strong>${this.escapeHtml(move)}</strong></div>
@@ -932,7 +967,7 @@ const AnalyzeSection = {
 
     getAnalyzeOpening() {
         if (!this.loadedGame) return null;
-        const played = this.loadedGame.game.history().map((move) => this.normalizeEcoSan(move));
+        const played = this.getLoadedMoves().map((move) => this.normalizeEcoSan(move));
         let best = null;
         let bestDepth = -1;
 
@@ -1066,10 +1101,16 @@ const AnalyzeSection = {
         score.textContent = this.formatEvalBarScore(evaluation, mate);
         score.classList.toggle('white-advantage', centipawns > 75);
         score.classList.toggle('black-advantage', centipawns < -75);
+        score.classList.toggle('engine-off', !this.liveEngineEnabled && !this.isAnalyzing);
     },
 
     getCurrentEvaluation() {
         const positionIndex = Math.max(0, this.currentMoveIndex + 1);
+        if (this.liveEngineEnabled && this.livePositionAnalyses[positionIndex]) {
+            const live = this.livePositionAnalyses[positionIndex];
+            return { evaluation: live.eval, mate: live.mate };
+        }
+
         const positionAnalysis = this.positionAnalyses[positionIndex];
         if (positionAnalysis) {
             return { evaluation: positionAnalysis.eval, mate: positionAnalysis.mate };
@@ -1100,13 +1141,23 @@ const AnalyzeSection = {
         this.updateLiveEngineButton();
 
         if (!this.liveEngineEnabled) {
+            clearTimeout(this.liveEngineTimer);
+            this.liveEngineToken += 1;
+            this.liveEngineOwner = null;
+            this.liveCurrentResult = null;
             this.analysisEngine?.stop?.();
+            if (this.analysisEngine) {
+                this.analysisEngine.onInfo = null;
+                this.analysisEngine.onBestMove = null;
+            }
             this.setStatus('Engine off - study board ready', 'ready');
+            this.updateEvaluationBar();
+            this.updateLiveMentorPanel({ off: true });
             return;
         }
 
-        if (!silent) this.setStatus('Engine on - evaluating position', 'loading');
-        this.refreshLiveEvaluation();
+        if (!silent) this.setStatus('Engine loading...', 'loading');
+        this.refreshLiveEvaluation({ immediate: true });
     },
 
     updateLiveEngineButton() {
@@ -1118,16 +1169,31 @@ const AnalyzeSection = {
             ? 'Turn live engine evaluation off'
             : 'Turn live engine evaluation on');
         const label = button.querySelector('span');
-        if (label) label.textContent = this.liveEngineEnabled ? 'Engine On' : 'Engine';
+        if (label) label.textContent = this.liveEngineEnabled ? 'Engine On' : 'Engine Off';
     },
 
-    async refreshLiveEvaluation() {
+    refreshLiveEvaluation({ immediate = false } = {}) {
+        if (!this.liveEngineEnabled || !this.loadedGame || !window.App?.game || this.isAnalyzing) return;
+        clearTimeout(this.liveEngineTimer);
+        const delay = immediate ? 0 : 180;
+        this.liveEngineTimer = setTimeout(() => {
+            this.runLiveEvaluation();
+        }, delay);
+    },
+
+    async runLiveEvaluation() {
         if (!this.liveEngineEnabled || !this.loadedGame || !window.App?.game || this.isAnalyzing) return;
         const token = ++this.liveEngineToken;
         const fen = App.game.fen();
         const positionIndex = Math.max(0, this.currentMoveIndex + 1);
+        this.liveCurrentFen = fen;
+        this.liveCurrentResult = null;
+        delete this.livePositionAnalyses[positionIndex];
+        this.liveEngineOwner = 'analyze-live';
 
-        this.setStatus('Engine on - evaluating position', 'loading');
+        this.setStatus('Engine analyzing...', 'loading');
+        this.updateEvaluationBar();
+        this.updateLiveMentorPanel({ loading: true, fen });
         const engine = await this.ensureAnalysisEngine();
         if (!engine || token !== this.liveEngineToken || !this.liveEngineEnabled) {
             if (this.liveEngineEnabled) this.setStatus('Engine unavailable', 'error');
@@ -1135,15 +1201,75 @@ const AnalyzeSection = {
         }
 
         try {
-            const result = await this.analyzePosition(fen, token, 8, 8000);
+            const result = await this.analyzePosition(fen, token, 10, 10000, {
+                tokenType: 'live',
+                owner: 'analyze-live'
+            });
             if (token !== this.liveEngineToken || !this.liveEngineEnabled) return;
-            this.positionAnalyses[positionIndex] = result;
+            this.livePositionAnalyses[positionIndex] = result;
+            this.liveCurrentResult = result;
             this.updateEvaluationBar();
-            this.setStatus('Engine on - live evaluation', 'ready');
+            this.updateLiveMentorPanel({ result, fen });
+            this.setStatus('Evaluation ready', 'success');
         } catch (_error) {
             if (token !== this.liveEngineToken || !this.liveEngineEnabled) return;
             this.setStatus('Engine evaluation unavailable', 'warning');
+            this.updateLiveMentorPanel({ unavailable: true, fen });
         }
+    },
+
+    updateLiveMentorPanel({ loading = false, result = null, unavailable = false, off = false, fen = null } = {}) {
+        if (!this.elements.mentor) return;
+        if (off || !this.liveEngineEnabled) {
+            this.renderEmptyState(this.elements.mentor, {
+                icon: 'fa-chess-board',
+                title: 'Study board ready.',
+                message: 'Turn Engine On for live evaluation of the current position.'
+            });
+            return;
+        }
+
+        const activeFen = fen || window.App?.game?.fen?.() || '';
+        if (loading) {
+            this.elements.mentor.innerHTML = `
+                <div class="analyze-mentor-heading"><strong>Engine analyzing...</strong></div>
+                <p class="analyze-mentor-copy">Stockfish is evaluating the current Study Board position.</p>
+                <div class="analyze-live-fen">${this.escapeHtml(activeFen)}</div>
+            `;
+            return;
+        }
+
+        if (unavailable) {
+            this.elements.mentor.innerHTML = `
+                <div class="analyze-mentor-heading"><strong>Engine unavailable</strong></div>
+                <p class="analyze-mentor-copy">Toggle Engine Off and On to retry. The Study Board remains fully interactive.</p>
+            `;
+            return;
+        }
+
+        const live = result || this.liveCurrentResult;
+        if (!live) {
+            this.elements.mentor.innerHTML = `
+                <div class="analyze-mentor-heading"><strong>Engine on</strong></div>
+                <p class="analyze-mentor-copy">Waiting for the current position evaluation.</p>
+            `;
+            return;
+        }
+
+        const bestMoveSan = this.uciToSan(activeFen, live.bestMove || live.pv?.[0]) || live.bestMove || live.pv?.[0] || '-';
+        const pv = Array.isArray(live.pv) && live.pv.length ? live.pv.slice(0, 5).join(' ') : '-';
+        this.elements.mentor.innerHTML = `
+            <div class="analyze-mentor-heading">
+                <strong>Live evaluation</strong>
+                <span>${this.formatEvaluation(live.eval, live.mate)}</span>
+            </div>
+            <p class="analyze-mentor-copy">Stockfish is evaluating this position only. It will not move pieces or start a game.</p>
+            <div class="analyze-eval-grid">
+                <div class="analyze-eval-item">Best move<strong>${this.escapeHtml(bestMoveSan)}</strong></div>
+                <div class="analyze-eval-item">Depth<strong>${Number(live.depth || 0)}</strong></div>
+                <div class="analyze-eval-item">PV<strong>${this.escapeHtml(pv)}</strong></div>
+            </div>
+        `;
     },
 
     /**
@@ -1186,7 +1312,7 @@ const AnalyzeSection = {
         this.elements.progressBar.style.display = 'block';
         this.setStatus('Preparing analysis...', 'loading');
 
-        const moves = this.loadedGame.game.history({ verbose: true });
+        const moves = this.getLoadedMoves({ verbose: true });
         const totalMoves = moves.length;
         if (totalMoves === 0) {
             this.isAnalyzing = false;
@@ -1433,12 +1559,12 @@ const AnalyzeSection = {
 
     async analyzePositionWithRetry(fen, token) {
         try {
-            return await this.analyzePosition(fen, token, 12, 12000);
+            return await this.analyzePosition(fen, token, 12, 12000, { tokenType: 'review', owner: 'analyze-review' });
         } catch (error) {
             if (token !== this.analysisToken || !this.isAnalyzing) return null;
             console.warn('[Analyze] Position analysis timed out; retrying at lower depth');
             try {
-                return await this.analyzePosition(fen, token, 8, 12000);
+                return await this.analyzePosition(fen, token, 8, 12000, { tokenType: 'review', owner: 'analyze-review' });
             } catch (_retryError) {
                 console.warn('[Analyze] Position analysis unavailable after retry');
                 return null;
@@ -1446,7 +1572,17 @@ const AnalyzeSection = {
         }
     },
 
-    analyzePosition(fen, token, depth = 12, timeoutMs = 12000) {
+    isAnalyzeTokenActive(token, tokenType = 'review') {
+        if (tokenType === 'live') {
+            return this.liveEngineEnabled
+                && !this.isAnalyzing
+                && token === this.liveEngineToken
+                && this.isAnalyzeActive();
+        }
+        return this.isAnalyzing && token === this.analysisToken && this.isAnalyzeActive();
+    },
+
+    analyzePosition(fen, token, depth = 12, timeoutMs = 12000, options = {}) {
         return new Promise((resolve, reject) => {
             const engine = this.analysisEngine;
             if (!engine?.isReady?.()) {
@@ -1454,26 +1590,50 @@ const AnalyzeSection = {
                 return;
             }
 
+            const tokenType = options.tokenType || 'review';
+            const owner = options.owner || (tokenType === 'live' ? 'analyze-live' : 'analyze-review');
             let latestInfo = null;
             const finish = (result) => {
                 clearTimeout(timeout);
-                engine.onInfo = null;
-                engine.onBestMove = null;
+                if (this.liveEngineOwner === owner || tokenType === 'review') {
+                    engine.onInfo = null;
+                    engine.onBestMove = null;
+                    if (this.liveEngineOwner === owner) this.liveEngineOwner = null;
+                }
                 resolve(result);
             };
             const timeout = setTimeout(() => {
                 engine.stop();
-                engine.onInfo = null;
-                engine.onBestMove = null;
+                if (this.liveEngineOwner === owner || tokenType === 'review') {
+                    engine.onInfo = null;
+                    engine.onBestMove = null;
+                    if (this.liveEngineOwner === owner) this.liveEngineOwner = null;
+                }
                 reject(new Error('Stockfish analysis timed out'));
             }, timeoutMs);
 
+            engine.stop?.();
+            this.liveEngineOwner = owner;
             engine.onInfo = (info) => {
-                if (token !== this.analysisToken) return;
+                if (!this.isAnalyzeTokenActive(token, tokenType)) return;
                 latestInfo = info;
+                if (tokenType === 'live') {
+                    const positionIndex = Math.max(0, this.currentMoveIndex + 1);
+                    const interim = {
+                        eval: info.score ?? null,
+                        mate: info.mate ?? null,
+                        bestMove: info.pv?.[0] || null,
+                        depth: info.depth ?? 0,
+                        pv: info.pv ?? []
+                    };
+                    this.livePositionAnalyses[positionIndex] = interim;
+                    this.liveCurrentResult = interim;
+                    this.updateEvaluationBar();
+                    this.updateLiveMentorPanel({ result: interim, fen });
+                }
             };
             engine.getBestMove(fen, (bestMove) => {
-                if (token !== this.analysisToken) {
+                if (!this.isAnalyzeTokenActive(token, tokenType)) {
                     finish({ eval: null, bestMove: null, depth: 0, pv: [] });
                     return;
                 }
@@ -1575,6 +1735,9 @@ const AnalyzeSection = {
             this.ensureStudyBoard();
             this.applyAnalyzeOrientation();
             App.board?.resize?.();
+            if (this.liveEngineEnabled) {
+                this.refreshLiveEvaluation({ immediate: true });
+            }
         }, 0);
     },
 
@@ -1582,9 +1745,15 @@ const AnalyzeSection = {
      * Section lifecycle: Exit
      */
     onExit() {
-        console.log('[Analyze] Section exited');
         if (this.liveEngineEnabled) {
-            this.setLiveEngineEnabled(false, { silent: true });
+            clearTimeout(this.liveEngineTimer);
+            this.liveEngineToken += 1;
+            this.analysisEngine?.stop?.();
+            if (this.analysisEngine) {
+                this.analysisEngine.onInfo = null;
+                this.analysisEngine.onBestMove = null;
+            }
+            this.liveEngineOwner = null;
         }
         if (this.loadedGame && window.App?.game) {
             const clone = this.cloneGame(App.game);

@@ -435,9 +435,6 @@ const CaissaNavigation = {
             ],
             analyze: [
                 { action: 'analyze-engine', label: 'Engine', icon: 'fa-brain', style: 'primary' },
-                { action: 'analyze-undo', label: 'Undo', icon: 'fa-undo' },
-                { action: 'analyze-reset', label: 'Reset', icon: 'fa-sync-alt' },
-                { action: 'analyze-flip', label: 'Flip', icon: 'fa-exchange-alt' },
                 { action: 'menu', label: 'Menu', icon: 'fa-bars', style: 'analysis' }
             ],
             arena: [
