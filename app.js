@@ -100,6 +100,7 @@ const App = {
     // Debug mode
     debug: false,
     chess960Enabled: false,
+    playInitializationPending: false,
 
     // UI elements
     elements: {}
@@ -228,9 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Cache DOM elements
     cacheElements();
 
-    // Initialize board
-    initializeBoard();
-
     // Initialize engine
     initializeEngine();
     populatePlayEngineSelect();
@@ -252,8 +250,9 @@ document.addEventListener('DOMContentLoaded', () => {
     loadEcoHistoryNotes();
     loadEcoPositionMap();
 
-    // Setup event listeners
-    setupEventListeners();
+    // Setup Play only after the section is visible. Yahoo Classic is the
+    // default route, so Play can be hidden during global bootstrap.
+    ensurePlayInitialized('bootstrap');
 
     // Update UI
     updateUI();
@@ -2930,6 +2929,68 @@ function hideModal(modalId) {
     }
 }
 
+function isPlaySectionActive() {
+    const playSection = document.getElementById('playSection');
+    return !!playSection?.classList.contains('active');
+}
+
+function hasVisiblePlayBoardContainer() {
+    const boardContainer = document.getElementById('chessboard');
+    if (!boardContainer) return false;
+    const rect = boardContainer.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+}
+
+function ensurePlayInitialized(source = 'unknown') {
+    const requiredNodes = {
+        playSection: document.getElementById('playSection'),
+        chessboard: document.getElementById('chessboard'),
+        newGameModal: document.getElementById('newGameModal'),
+        startNewGame: document.getElementById('startNewGame')
+    };
+
+    const missing = Object.entries(requiredNodes)
+        .filter(([, el]) => !el)
+        .map(([name]) => name);
+
+    if (missing.length) {
+        console.warn('[Play] initialization deferred: missing DOM nodes', missing.join(', '));
+        App.playInitializationPending = true;
+        return false;
+    }
+
+    if (!isPlaySectionActive()) {
+        App.playInitializationPending = true;
+        console.info('[Play] initialization deferred until section enter');
+        return false;
+    }
+
+    if (!hasVisiblePlayBoardContainer()) {
+        App.playInitializationPending = true;
+        if (source !== 'post-layout') {
+            requestAnimationFrame(() => ensurePlayInitialized('post-layout'));
+        }
+        return false;
+    }
+
+    if (!App.board) {
+        initializeBoard();
+    } else {
+        requestAnimationFrame(() => {
+            App.board?.resize();
+            ensureEvalBarLayout();
+        });
+    }
+
+    setupEventListeners();
+
+    if (App.playInitializationPending) {
+        console.info('[Play] Deferred initialization completed on section enter');
+    }
+    App.playInitializationPending = false;
+    return true;
+}
+
 // ===== MENTOR PANEL HELPER =====
 /**
  * Opens the CAISSA Mentor panel with safety guards.
@@ -2949,46 +3010,15 @@ function setupEventListeners() {
     if (App._listenersBound) {
         return;
     }
-    const missingElements = new Set();
-    let loggedPlayInactive = false;
     const safeOn = (el, eventName, handler, label) => {
         if (!el) {
-            if (!missingElements.has(label)) {
-                console.warn(`[Play] Missing element for ${label}`);
-                missingElements.add(label);
-            }
             return;
         }
         el.addEventListener(eventName, handler);
     };
 
-    const playSection = document.getElementById('playSection');
-    const isPlayActive = !!playSection?.classList.contains('active');
-    if (!isPlayActive) {
-        if (!loggedPlayInactive) {
-            console.warn('[Play] setupEventListeners skipped: Play section not active');
-            loggedPlayInactive = true;
-        }
-        let attempts = 0;
-        const maxAttempts = 10;
-        const retry = () => {
-            const active = !!document.getElementById('playSection')?.classList.contains('active');
-            if (active) {
-                setupEventListeners();
-                return;
-            }
-            attempts += 1;
-            if (attempts < maxAttempts) {
-                requestAnimationFrame(retry);
-            } else {
-                console.warn('[Play] setupEventListeners aborted: Play section still inactive');
-            }
-        };
-        requestAnimationFrame(retry);
-        return;
-    }
-
     App._listenersBound = true;
+    console.info('[Play] Event listeners attached');
 
     // Header buttons
     safeOn(App.elements.newGameBtn, 'click', () => {
@@ -3237,26 +3267,21 @@ function setupEventListeners() {
 
 // ===== NEW GAME MODAL =====
 function setupNewGameModal() {
+    if (App._newGameModalBound) return;
+
     const modal = document.getElementById('newGameModal');
+    if (!modal) return;
+
     const gameModeSelect = document.getElementById('gameMode');
     const colorSelection = document.getElementById('colorSelection');
     const engineLevelSelection = document.getElementById('engineLevelSelection');
     const timeButtons = modal.querySelectorAll('.time-btn');
     const colorButtons = modal.querySelectorAll('.color-btn');
     const startButton = document.getElementById('startNewGame');
+    if (!gameModeSelect || !colorSelection || !engineLevelSelection || !startButton) return;
     
     let selectedTime = parseInt(modal.querySelector('.time-btn.active')?.dataset.time || '0', 10);
     let selectedColor = modal.querySelector('.color-btn.active')?.dataset.color || 'white';
-    let lastModalAction = { key: '', type: '', at: 0 };
-
-    const shouldSkipModalAction = (key, eventType) => {
-        const now = Date.now();
-        if (eventType === 'click' && lastModalAction.key === key && lastModalAction.type !== 'click' && now - lastModalAction.at < 450) {
-            return true;
-        }
-        lastModalAction = { key, type: eventType, at: now };
-        return false;
-    };
 
     const selectTime = (button) => {
         timeButtons.forEach((btn) => {
@@ -3305,7 +3330,6 @@ function setupNewGameModal() {
         const startGameButton = target.closest('#startNewGame');
 
         if (timeButton && modal.contains(timeButton)) {
-            if (shouldSkipModalAction(`time:${timeButton.dataset.time}`, event.type)) return;
             event.preventDefault();
             event.stopPropagation();
             selectTime(timeButton);
@@ -3313,7 +3337,6 @@ function setupNewGameModal() {
         }
 
         if (colorButton && modal.contains(colorButton)) {
-            if (shouldSkipModalAction(`color:${colorButton.dataset.color}`, event.type)) return;
             event.preventDefault();
             event.stopPropagation();
             selectColor(colorButton);
@@ -3321,7 +3344,6 @@ function setupNewGameModal() {
         }
 
         if (startGameButton && modal.contains(startGameButton)) {
-            if (shouldSkipModalAction('start', event.type)) return;
             event.preventDefault();
             event.stopPropagation();
             startSelectedGame();
@@ -3329,7 +3351,6 @@ function setupNewGameModal() {
         }
 
         if (closeButton && modal.contains(closeButton)) {
-            if (shouldSkipModalAction('close', event.type)) return;
             event.preventDefault();
             event.stopPropagation();
             hideModal(closeButton.dataset.modal || closeButton.getAttribute('data-modal'));
@@ -3351,11 +3372,8 @@ function setupNewGameModal() {
 
     // Game mode change
     gameModeSelect.addEventListener('change', syncModeControls);
-    modal.addEventListener('pointerup', handleModalActivation);
-    if (!window.PointerEvent) {
-        modal.addEventListener('touchend', handleModalActivation, { passive: false });
-    }
     modal.addEventListener('click', handleModalActivation);
+    App._newGameModalBound = true;
 
     // No engine level selection - always full power
 }
@@ -7337,3 +7355,4 @@ document.getElementById('cheaterCopyListBtn').addEventListener('click', () => {
 
 // Export for debugging
 window.App = App;
+window.ensurePlayInitialized = ensurePlayInitialized;

@@ -253,6 +253,9 @@ const CaissaNavigation = {
 
             // Resize boards after section becomes visible
             requestAnimationFrame(() => {
+                if (sectionId === 'play' && typeof window.ensurePlayInitialized === 'function') {
+                    window.ensurePlayInitialized('navigation-enter');
+                }
                 if (window.App && App.board) {
                     App.board.resize();
                     console.log('[CAISSA Nav] Board resized on section enter');
@@ -490,6 +493,9 @@ const CaissaNavigation = {
         // Navigate to Play section first
         if (this.currentSection !== 'play') {
             this.navigateToSection('play');
+        }
+        if (typeof window.ensurePlayInitialized === 'function') {
+            window.ensurePlayInitialized('open-new-game');
         }
 
         // Use existing modal system
