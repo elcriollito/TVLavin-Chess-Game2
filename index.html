@@ -94,7 +94,7 @@
     <!-- Stylesheets -->
     <link rel="stylesheet" href="./assets/css/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="styles.css?v=2.0.14">
+    <link rel="stylesheet" href="styles.css?v=2.0.15">
     <link rel="stylesheet" href="css/caissa-ui-foundation.css?v=1.0.2">
     <link rel="stylesheet" href="caissa-library.css?v=1.1.0">
     <link rel="stylesheet" href="query-engine.css?v=1.0.0">
@@ -104,7 +104,7 @@
     <link rel="stylesheet" href="css/caissa-onboarding.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-dos-chess.css?v=1.0.1">
     <link rel="stylesheet" href="css/fics-client.css?v=1.2.5">
-    <link rel="stylesheet" href="css/yahoo-classic.css?v=1.0.0">
+    <link rel="stylesheet" href="css/yahoo-classic.css?v=1.0.1">
     <link rel="stylesheet" href="css/academy.css?v=1.0.0">
     <link rel="stylesheet" href="css/opening-book.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-mobile-foundation.css?v=1.0.6">
@@ -966,7 +966,7 @@
                             <!-- Board moves here when section is active -->
                         </div>
                         <div class="analyze-board-controls" aria-label="Analyze board controls">
-                            <div class="analyze-board-navigation" aria-label="Analyze move navigation">
+                            <div class="analyze-board-navigation" aria-label="Analyze board toolbar">
                                 <button id="analyzeNavFirst" class="nav-btn-sm" title="First move" aria-label="Jump to start">
                                     <i class="fas fa-fast-backward"></i>
                                 </button>
@@ -987,8 +987,6 @@
                                     <i class="fas fa-sync-alt"></i>
                                     <span>Reset</span>
                                 </button>
-                            </div>
-                            <div class="analyze-board-tools" aria-label="Analyze independent board tools">
                                 <button id="analyzeEngineToggle" class="nav-btn-sm analyze-engine-toggle" title="Toggle live position evaluation" aria-label="Turn live engine evaluation on" aria-pressed="false">
                                     <i class="fas fa-brain"></i>
                                     <span>Engine Off</span>
@@ -1538,12 +1536,12 @@
                                     <p>Retro Internet Chess Lounge</p>
                                 </div>
                             </div>
-                            <div class="yc-room-tabs" aria-label="Classic lounge rooms">
+                            <div class="yc-room-tabs" aria-label="Classic lounge rooms" data-mobile-enabled-room-count="1">
                                 <span class="yc-era-note">Current Room: <strong id="ycCurrentRoomLabel">CAISSA Lobby</strong></span>
-                                <button class="yc-tab active" type="button" data-room="CAISSA Lobby" data-description="Main chess lounge. Live FICS tables." title="CAISSA Lobby"><span aria-hidden="true">&#9823;</span> CAISSA Lobby</button>
-                                <button class="yc-tab" type="button" data-room="Tournament Hall" data-description="Events and organized play." title="Tournament Hall"><span aria-hidden="true">&#9876;</span> Tournament Hall</button>
-                                <button class="yc-tab" type="button" data-room="Computer Hall" data-description="Play engines and classic bots. Coming soon." title="Computer Hall"><span aria-hidden="true">&#9881;</span> Computer Hall</button>
-                                <button class="yc-tab" type="button" data-room="Teaching & Training Hall" data-description="Lessons, coaching, and study rooms. Coming soon." title="Teaching & Training Hall"><span aria-hidden="true">&#9998;</span> Teaching &amp; Training Hall</button>
+                                <button class="yc-tab active" type="button" data-room="CAISSA Lobby" data-mobile-room-enabled="true" data-description="Main chess lounge. Live FICS tables." title="CAISSA Lobby"><span aria-hidden="true">&#9823;</span> CAISSA Lobby</button>
+                                <button class="yc-tab" type="button" data-room="Tournament Hall" data-mobile-room-enabled="false" data-description="Events and organized play." title="Tournament Hall"><span aria-hidden="true">&#9876;</span> Tournament Hall</button>
+                                <button class="yc-tab" type="button" data-room="Computer Hall" data-mobile-room-enabled="false" data-description="Play engines and classic bots. Coming soon." title="Computer Hall"><span aria-hidden="true">&#9881;</span> Computer Hall</button>
+                                <button class="yc-tab" type="button" data-room="Teaching & Training Hall" data-mobile-room-enabled="false" data-description="Lessons, coaching, and study rooms. Coming soon." title="Teaching & Training Hall"><span aria-hidden="true">&#9998;</span> Teaching &amp; Training Hall</button>
                             </div>
                         </header>
 

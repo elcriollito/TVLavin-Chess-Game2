@@ -2370,6 +2370,11 @@ body.yc-classic-active #app {
         justify-content: flex-start;
     }
 
+    .yc-room-tabs[data-mobile-enabled-room-count="0"],
+    .yc-room-tabs[data-mobile-enabled-room-count="1"] {
+        display: none;
+    }
+
     .yc-era-note {
         text-align: left;
     }
@@ -2621,6 +2626,11 @@ body.yc-classic-active #app {
     }
 
     .yc-header {
+        display: none;
+    }
+
+    .yc-room-tabs[data-mobile-enabled-room-count="0"],
+    .yc-room-tabs[data-mobile-enabled-room-count="1"] {
         display: none;
     }
 

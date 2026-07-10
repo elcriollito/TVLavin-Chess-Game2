@@ -7086,28 +7086,17 @@ button:focus,
 }
 
 .analyze-board-controls {
-    display: grid;
-    gap: 8px;
-    justify-items: center;
+    display: flex;
+    justify-content: center;
     width: min(100%, calc(var(--board-size) + 60px));
 }
 
-.analyze-board-navigation,
-.analyze-board-tools {
+.analyze-board-navigation {
     display: grid;
     gap: 8px;
     justify-content: center;
     width: 100%;
-}
-
-.analyze-board-navigation {
-    grid-template-columns: repeat(6, minmax(38px, auto));
-}
-
-.analyze-board-tools {
-    grid-template-columns: repeat(2, minmax(96px, 160px));
-    gap: 8px;
-    justify-content: center;
+    grid-template-columns: repeat(8, minmax(38px, auto));
 }
 
 .analyze-board-controls .nav-btn-sm {
@@ -8083,10 +8072,6 @@ button:focus,
     max-width: 100%;
 }
 
-.analyze-board-navigation {
-    grid-template-columns: repeat(4, minmax(44px, 1fr));
-}
-
 .arena-player,
 .arena-status-center {
     min-width: 0;
@@ -8151,10 +8136,6 @@ button:focus,
 
     .analyze-board-navigation {
         grid-template-columns: repeat(4, minmax(44px, 1fr));
-    }
-
-    .analyze-board-tools {
-        grid-template-columns: repeat(2, minmax(96px, 1fr));
     }
 
     .arena-game-status {
@@ -8571,7 +8552,7 @@ body.debug-layout #arena-right {
     }
 
     .analyze-board-navigation {
-        grid-template-columns: repeat(5, minmax(44px, 1fr));
+        grid-template-columns: repeat(4, minmax(44px, 1fr));
         gap: 8px;
         width: min(100%, calc(var(--analyze-mobile-board-size) + 42px));
     }
@@ -8737,11 +8718,6 @@ body.debug-layout #arena-right {
         gap: 4px;
     }
 
-    body[data-caissa-section="analyze"] .analyze-board-tools {
-        grid-template-columns: repeat(2, minmax(96px, 1fr));
-        gap: 4px;
-    }
-
     body[data-caissa-section="analyze"] .analyze-board-controls .analyze-engine-toggle,
     body[data-caissa-section="analyze"] .analyze-board-controls .analyze-study-action,
     body[data-caissa-section="analyze"] .analyze-board-controls .analyze-flip-tool {
@@ -8805,11 +8781,6 @@ body.debug-layout #arena-right {
 
     body[data-caissa-section="analyze"] .analyze-board-navigation {
         grid-template-columns: repeat(4, minmax(44px, 1fr));
-        gap: 4px;
-    }
-
-    body[data-caissa-section="analyze"] .analyze-board-tools {
-        grid-template-columns: repeat(2, minmax(96px, 1fr));
         gap: 4px;
     }
 }
