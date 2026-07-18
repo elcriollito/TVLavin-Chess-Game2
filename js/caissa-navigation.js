@@ -164,12 +164,6 @@ const CaissaNavigation = {
             return;
         }
 
-        if (sectionId === 'cheater-insight') {
-            // Cheater Insight opens its existing modal for all users.
-            this.openCheaterInsight();
-            return;
-        }
-
         // Deactivate current section
         const currentEl = document.getElementById(`${this.currentSection}Section`);
         currentEl?.classList.remove('active');
@@ -178,6 +172,7 @@ const CaissaNavigation = {
         this.elements.navItems.forEach(item => {
             if (item.dataset.section === this.currentSection) {
                 item.classList.remove('active');
+                item.removeAttribute('aria-current');
             }
         });
 
@@ -193,6 +188,7 @@ const CaissaNavigation = {
         this.elements.navItems.forEach(item => {
             if (item.dataset.section === sectionId) {
                 item.classList.add('active');
+                item.setAttribute('aria-current', 'page');
             }
         });
 
@@ -611,29 +607,6 @@ const CaissaNavigation = {
     },
 
     /**
-     * Open Cheater Insight
-     */
-    openCheaterInsight() {
-        console.log('[CAISSA Nav] Opening Cheater Insight...');
-
-        const cheaterModal = document.getElementById('cheaterInsightModal');
-        if (cheaterModal) {
-            cheaterModal.classList.add('show');
-        } else {
-            // Fallback to menu modal cheater insight button
-            const menuCheaterBtn = document.getElementById('menuCheaterInsight');
-            if (menuCheaterBtn) {
-                menuCheaterBtn.click();
-            }
-        }
-
-        // Close mobile nav if open
-        if (window.innerWidth <= 768) {
-            this.closeNav();
-        }
-    },
-
-    /**
      * Show premium feature modal for locked features
      */
     showPremiumFeatureModal(featureName, featureDescription) {
@@ -700,6 +673,7 @@ const CaissaNavigation = {
                 history: 'History',
                 arena: 'Arena',
                 spectator: 'Spectator TV',
+                'cheater-insight': 'Cheater Insight',
                 yahooClassic: 'Yahoo Classic',
                 academy: 'Academy'
             };
@@ -803,8 +777,10 @@ const CaissaNavigation = {
             this.elements.navItems.forEach(item => {
                 if (item.dataset.section === targetSection) {
                     item.classList.add('active');
+                    item.setAttribute('aria-current', 'page');
                 } else {
                     item.classList.remove('active');
+                    item.removeAttribute('aria-current');
                 }
             });
 

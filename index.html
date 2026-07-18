@@ -4552,14 +4552,13 @@
         </div>
     </div>
 
-    <!-- Cheater Insight Modal -->
-    <div id="cheaterInsightModal" class="modal">
-        <div class="modal-content modal-large">
-            <div class="modal-header">
-                <h2><i class="fas fa-user-shield"></i> Cheater Insight (Chess.com)</h2>
-                <button class="modal-close" data-modal="cheaterInsightModal" aria-label="Close modal">&times;</button>
-            </div>
-            <div class="modal-body">
+    <!-- SECTION: Cheater Insight -->
+    <section id="cheater-insightSection" class="content-section cheater-insight-section" aria-labelledby="cheaterInsightTitle">
+        <div class="cheater-insight-page">
+            <header class="cheater-insight-header">
+                <h1 id="cheaterInsightTitle"><i class="fas fa-user-shield"></i> Cheater Insight (Chess.com)</h1>
+            </header>
+            <div class="cheater-insight-body">
                 <!-- Disclaimer -->
                 <div class="cheater-insight-disclaimer">
                     <p><i class="fas fa-info-circle"></i> <strong>Important:</strong> This tool checks opponents' public Chess.com account status. An account marked "Closed: Fair Play" indicates Chess.com closed it for fair play violations. This is account-level information, not proof that individual games involved cheating.</p>
@@ -4573,7 +4572,7 @@
 
                 <!-- Search Form -->
                 <div class="insight-section">
-                    <h3><i class="fas fa-search"></i> Search Configuration</h3>
+                    <h2><i class="fas fa-search"></i> Search Configuration</h2>
 
                     <div class="coach-config-grid">
                         <div class="form-group">
@@ -4600,7 +4599,7 @@
                     </div>
 
                     <div class="insight-actions">
-                        <button id="cheaterSearchBtn" class="btn btn-primary btn-block">
+                        <button type="button" id="cheaterSearchBtn" class="btn btn-primary btn-block">
                             <i class="fas fa-search"></i> Search
                         </button>
                     </div>
@@ -4608,7 +4607,7 @@
 
                 <!-- Progress Section -->
                 <div class="insight-section" id="cheaterProgressSection" style="display: none;">
-                    <h3><i class="fas fa-spinner fa-spin"></i> Analyzing Games...</h3>
+                    <h2><i class="fas fa-spinner fa-spin"></i> Analyzing Games...</h2>
                     <div class="coach-progress">
                         <div class="progress-bar-container">
                             <div id="cheaterProgressBar" class="progress-bar"></div>
@@ -4618,8 +4617,8 @@
                 </div>
 
                 <!-- Results Section -->
-                <div class="insight-section" id="cheaterResultsSection" style="display: none;">
-                    <h3><i class="fas fa-flag"></i> Results</h3>
+                <div class="insight-section" id="cheaterResultsSection" style="display: none;" aria-live="polite">
+                    <h2><i class="fas fa-flag"></i> Results</h2>
 
                     <!-- Summary Stats -->
                     <div class="cheater-summary">
@@ -4635,10 +4634,10 @@
 
                     <!-- Export Actions -->
                     <div class="insight-actions">
-                        <button id="cheaterExportJsonBtn" class="btn btn-secondary">
+                        <button type="button" id="cheaterExportJsonBtn" class="btn btn-secondary">
                             <i class="fas fa-file-export"></i> Export JSON
                         </button>
-                        <button id="cheaterCopyListBtn" class="btn btn-secondary">
+                        <button type="button" id="cheaterCopyListBtn" class="btn btn-secondary">
                             <i class="fas fa-copy"></i> Copy List
                         </button>
                     </div>
@@ -4646,7 +4645,7 @@
 
                 <!-- How It Works -->
                 <div class="insight-section cheater-how-it-works">
-                    <h3><i class="fas fa-question-circle"></i> How It Works</h3>
+                    <h2><i class="fas fa-question-circle"></i> How It Works</h2>
                     <ul>
                         <li>We scan your Chess.com games for the selected month</li>
                         <li>We check each opponent's public Chess.com account status</li>
@@ -4656,10 +4655,10 @@
                     </ul>
                 </div>
 
-                <div id="cheaterError" class="error-message" style="display: none;"></div>
+                <div id="cheaterError" class="error-message" style="display: none;" role="alert"></div>
             </div>
         </div>
-    </div>
+    </section>
 
     <!-- Help / FAQ Modal -->
     <div id="helpModal" class="modal">

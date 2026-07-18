@@ -3612,8 +3612,7 @@ function setupMenuModal() {
 
     document.getElementById('menuCheaterInsight').addEventListener('click', () => {
         hideModal('menuModal');
-        showModal('cheaterInsightModal');
-        initializeCheaterInsight();
+        window.CaissaNavigation?.navigateToSection('cheater-insight');
     });
 
     document.getElementById('menuEmbed').addEventListener('click', () => {
@@ -7278,8 +7277,12 @@ function generateTrainingPlanHTML(plan) {
 // ===== CHEATER INSIGHT (Chess.com) =====
 
 let cheaterInsightResults = null;
+let cheaterInsightInitialized = false;
 
 function initializeCheaterInsight() {
+    if (cheaterInsightInitialized) return;
+    cheaterInsightInitialized = true;
+
     // Set default month to current month
     const now = new Date();
     const year = now.getFullYear();
@@ -7292,6 +7295,15 @@ function initializeCheaterInsight() {
     document.getElementById('cheaterResultsSection').style.display = 'none';
     document.getElementById('cheaterError').style.display = 'none';
 }
+
+const cheaterInsightSection = document.getElementById('cheater-insightSection');
+const mainContent = document.getElementById('mainContent');
+if (cheaterInsightSection && mainContent && cheaterInsightSection.parentElement !== mainContent) {
+    mainContent.appendChild(cheaterInsightSection);
+}
+window.CaissaNavigation?.registerSection('cheater-insight', {
+    onEnter: initializeCheaterInsight
+});
 
 function updateCheaterMonthDisplay() {
     const input = document.getElementById('cheaterMonth');

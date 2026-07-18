@@ -2878,6 +2878,42 @@ button:focus,
 
 /* ===== CHEATER INSIGHT (Chess.com) ===== */
 
+.cheater-insight-section {
+    min-width: 0;
+    padding: clamp(var(--spacing-md), 3vw, var(--spacing-xl));
+    background: var(--bg-primary);
+}
+
+.cheater-insight-page {
+    width: min(100%, 1100px);
+    margin: 0 auto;
+}
+
+.cheater-insight-header {
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.cheater-insight-header h1 {
+    margin: 0;
+    font-size: clamp(24px, 3vw, 32px);
+    color: var(--text-primary);
+}
+
+.cheater-insight-header i,
+.cheater-insight-body .insight-section h2 i {
+    color: var(--accent-color);
+}
+
+.cheater-insight-body {
+    min-width: 0;
+}
+
+.cheater-insight-body .insight-section h2 {
+    font-size: 20px;
+}
+
 .cheater-insight-disclaimer {
     padding: var(--spacing-md);
     background: var(--bg-secondary);
@@ -3062,7 +3098,7 @@ button:focus,
     padding: var(--spacing-md);
 }
 
-.cheater-how-it-works h3 {
+.cheater-how-it-works h2 {
     margin-top: 0;
 }
 
