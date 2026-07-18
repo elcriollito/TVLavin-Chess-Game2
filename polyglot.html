@@ -6,50 +6,17 @@
     <title>CAISSA Polyglot Book Creator</title>
     <meta name="description" content="Generate Polyglot opening books (.bin) from PGN. Download the portable app or build books online.">
     <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.0.0">
     <link rel="stylesheet" href="/css/polyglot-tool.css">
     <link rel="stylesheet" href="/css/caissa-mobile-foundation.css?v=1.0.6">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="polyglot-page">
-        <div class="polyglot-shell">
-            <nav class="main-navigation polyglot-global-sidebar" aria-label="CAISSA main navigation">
-                <div class="nav-header">
-                    <a href="/" class="nav-logo">
-                        <i class="fas fa-chess-knight"></i>
-                        <span class="nav-logo-text">CAISSA</span>
-                    </a>
-                </div>
+        <div class="polyglot-shell caissa-standalone-layout">
+            <div data-caissa-standalone-sidebar data-active="polyglot"></div>
 
-                <div class="nav-items">
-                    <a href="/" class="nav-item" aria-label="Play">
-                        <i class="fas fa-play-circle"></i>
-                        <span class="nav-label">Play</span>
-                    </a>
-                    <a href="/#analyze" class="nav-item" aria-label="Analyze">
-                        <i class="fas fa-chart-line"></i>
-                        <span class="nav-label">Analyze</span>
-                    </a>
-                    <a href="/#insights" class="nav-item" aria-label="Insights">
-                        <i class="fas fa-brain"></i>
-                        <span class="nav-label">Insights</span>
-                    </a>
-                    <a href="/vault" class="nav-item nav-item-external" aria-label="Vault">
-                        <i class="fas fa-box-archive"></i>
-                        <span class="nav-label">Vault</span>
-                    </a>
-                    <a href="/tools/polyglot" class="nav-item nav-item-external active" aria-label="Polyglot Tool" aria-current="page">
-                        <i class="fas fa-book-open"></i>
-                        <span class="nav-label">Polyglot Tool</span>
-                    </a>
-                    <a href="/library" class="nav-item nav-item-external" aria-label="Game Library">
-                        <i class="fas fa-database"></i>
-                        <span class="nav-label">Game Library</span>
-                    </a>
-                </div>
-            </nav>
-
-            <main class="polyglot-content-area">
+            <main class="polyglot-content-area caissa-standalone-content">
                 <div class="polyglot-card">
                     <section class="polyglot-main">
                         <div class="polyglot-banner">Build professional Polyglot opening books from real PGNs. No heuristics. No magic filtering.</div>
@@ -126,6 +93,11 @@
         </div>
     </div>
 
+    <script src="/js/caissa-standalone-sidebar.js?v=1.0.0"></script>
+    <script src="/js/auth-config.js?v=1.0.2" defer></script>
+    <script src="/js/caissa-auth.js?v=1.0.2" defer></script>
+    <script src="/js/caissa-access.js?v=1.0.2" defer></script>
+    <script src="/js/caissa-ui-auth.js?v=1.0.2" defer></script>
     <script type="module" src="/js/polyglot-tool.js"></script>
 </body>
 </html>

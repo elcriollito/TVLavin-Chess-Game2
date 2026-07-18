@@ -5,14 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ECO Chess Opening Codes</title>
   <meta name="description" content="Browse ECO chess opening codes A00-E99 with names and details.">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="styles.css?v=2.0.1">
+  <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.0.0">
   <link rel="stylesheet" href="css/eco-page.css?v=1.9.0">
   <link rel="stylesheet" href="css/caissa-mobile-foundation.css?v=1.0.6">
 </head>
 <body>
-  <main class="eco-root">
+  <div class="caissa-standalone-layout">
+    <div data-caissa-standalone-sidebar data-active="eco"></div>
+  <main class="eco-root caissa-standalone-content">
     <header class="eco-header">
-      <a class="eco-back" href="/">Back to CAISSA</a>
       <h1>ECO Chess Opening Codes</h1>
     </header>
 
@@ -88,6 +91,12 @@
       </section>
     </section>
   </main>
+  </div>
+  <script src="js/caissa-standalone-sidebar.js?v=1.0.0"></script>
+  <script src="js/auth-config.js?v=1.0.2" defer></script>
+  <script src="js/caissa-auth.js?v=1.0.2" defer></script>
+  <script src="js/caissa-access.js?v=1.0.2" defer></script>
+  <script src="js/caissa-ui-auth.js?v=1.0.2" defer></script>
   <script src="js/books/book-registry.js?v=1.3.0" defer></script>
   <script src="js/eco-page.js?v=2.3.0" defer></script>
 </body>

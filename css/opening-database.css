@@ -1,6 +1,5 @@
 .openingdb-app {
-  display: grid;
-  grid-template-columns: var(--nav-width-expanded) 1fr;
+  display: flex;
   min-height: 100vh;
 }
 
@@ -23,24 +22,6 @@
   color: var(--text-secondary);
   line-height: 1.5;
   max-width: 980px;
-}
-
-.openingdb-home-link {
-  width: fit-content;
-  min-height: 40px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  color: #93c5fd;
-  text-decoration: none;
-  font-weight: 700;
-}
-
-.openingdb-home-link:hover,
-.openingdb-home-link:focus-visible {
-  color: #bfdbfe;
-  text-decoration: underline;
 }
 
 .openingdb-top-area {
@@ -986,7 +967,6 @@
 @media (max-width: 768px) {
   .openingdb-app {
     display: block;
-    grid-template-columns: 1fr;
   }
 
   .openingdb-content {

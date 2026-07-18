@@ -80,16 +80,6 @@
     z-index: 2;
 }
 
-.polyglot-global-sidebar {
-    width: 220px;
-    flex: 0 0 220px;
-    min-height: 100vh;
-    position: sticky;
-    top: 0;
-    z-index: 3;
-    backdrop-filter: blur(4px);
-}
-
 .polyglot-content-area {
     flex: 1;
     display: flex;
@@ -332,37 +322,6 @@
 }
 
 @media (max-width: 900px) {
-    .polyglot-shell {
-        display: block;
-    }
-
-    .polyglot-global-sidebar {
-        width: 100%;
-        min-height: auto;
-        position: relative;
-    }
-
-    .polyglot-global-sidebar .nav-header {
-        padding: 14px 16px;
-    }
-
-    .polyglot-global-sidebar .nav-items {
-        flex-direction: row;
-        overflow-x: auto;
-        gap: 6px;
-        padding: 10px 12px 12px;
-    }
-
-    .polyglot-global-sidebar .nav-item {
-        width: auto;
-        min-width: max-content;
-        padding: 10px 12px;
-    }
-
-    .polyglot-global-sidebar .nav-item .nav-label {
-        display: inline;
-    }
-
     .polyglot-content-area {
         padding: 16px 12px 24px;
     }

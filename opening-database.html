@@ -8,51 +8,18 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="/assets/css/chessboard-1.0.0.min.css">
   <link rel="stylesheet" href="/styles.css?v=2.0.10">
+  <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.0.0">
   <link rel="stylesheet" href="/css/caissa-ui-foundation.css?v=1.0.2">
   <link rel="stylesheet" href="/css/opening-database.css?v=1.0.46">
   <link rel="stylesheet" href="/css/caissa-mobile-foundation.css?v=1.0.6">
 </head>
 <body>
-  <div class="app-container openingdb-app">
-    <nav id="mainNav" class="main-navigation">
-      <div class="nav-header">
-        <div class="nav-logo">
-          <i class="fas fa-chess-knight"></i>
-          <span class="nav-logo-text">CAISSA</span>
-        </div>
-      </div>
+  <div class="openingdb-app caissa-standalone-layout">
+    <div data-caissa-standalone-sidebar data-active="opening-database"></div>
 
-      <div class="nav-items">
-        <a href="/" class="nav-item nav-item-external" aria-label="Go to Play">
-          <i class="fas fa-play-circle"></i>
-          <span class="nav-label">Play</span>
-        </a>
-        <a href="/" class="nav-item nav-item-external" aria-label="Go to Analyze">
-          <i class="fas fa-chart-line"></i>
-          <span class="nav-label">Analyze</span>
-        </a>
-        <a href="/eco" class="nav-item nav-item-external" aria-label="Open ECO codes">
-          <i class="fas fa-book"></i>
-          <span class="nav-label">ECO Codes</span>
-        </a>
-        <a href="/opening-database" class="nav-item nav-item-external active" aria-label="Open Opening Database">
-          <i class="fas fa-chess-board"></i>
-          <span class="nav-label">Opening Database</span>
-        </a>
-        <a href="/vault" class="nav-item nav-item-external" aria-label="Open Vault">
-          <i class="fas fa-box-archive"></i>
-          <span class="nav-label">Vault</span>
-        </a>
-      </div>
-    </nav>
-
-    <main class="content-area openingdb-content">
+    <main class="content-area openingdb-content caissa-standalone-content">
       <section class="openingdb-page">
         <header class="openingdb-header">
-          <a class="openingdb-home-link" href="/" aria-label="Back to CAISSA Home">
-            <i class="fas fa-arrow-left" aria-hidden="true"></i>
-            <span>Back to CAISSA Home</span>
-          </a>
           <h1>Chess Opening Database</h1>
           <p>
             Enter opening moves on the chess board below to identify the opening and inspect practical statistics from strong human games.
@@ -299,6 +266,11 @@
     </main>
   </div>
 
+  <script src="/js/caissa-standalone-sidebar.js?v=1.0.0"></script>
+  <script src="/js/auth-config.js?v=1.0.2" defer></script>
+  <script src="/js/caissa-auth.js?v=1.0.2" defer></script>
+  <script src="/js/caissa-access.js?v=1.0.2" defer></script>
+  <script src="/js/caissa-ui-auth.js?v=1.0.2" defer></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>

@@ -1,0 +1,152 @@
+.caissa-standalone-layout {
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
+}
+
+.caissa-standalone-sidebar-host {
+    flex: 0 0 var(--nav-width-expanded, 220px);
+    width: var(--nav-width-expanded, 220px);
+    min-width: 0;
+    transition: flex-basis var(--nav-transition, 0.3s ease), width var(--nav-transition, 0.3s ease);
+}
+
+.caissa-standalone-sidebar-host .main-navigation {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    height: 100vh;
+    min-height: 0;
+    grid-row: auto;
+    overflow: hidden;
+}
+
+.caissa-standalone-sidebar-host .nav-logo {
+    color: inherit;
+    text-decoration: none;
+}
+
+.caissa-standalone-sidebar-host .nav-item {
+    text-decoration: none;
+}
+
+.caissa-standalone-sidebar-host .nav-items {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.caissa-standalone-sidebar-host .nav-footer {
+    flex: 0 0 auto;
+}
+
+.caissa-standalone-sidebar-host.is-collapsed {
+    flex-basis: var(--nav-width-collapsed, 72px);
+    width: var(--nav-width-collapsed, 72px);
+}
+
+.caissa-standalone-sidebar-host.is-collapsed .nav-logo-text,
+.caissa-standalone-sidebar-host.is-collapsed .nav-label,
+.caissa-standalone-sidebar-host.is-collapsed .nav-premium-badge,
+.caissa-standalone-sidebar-host.is-collapsed .nav-auth-details,
+.caissa-standalone-sidebar-host.is-collapsed .nav-auth-menu-caret,
+.caissa-standalone-sidebar-host.is-collapsed .nav-external-icon {
+    display: none;
+}
+
+.caissa-standalone-sidebar-host.is-collapsed .nav-header,
+.caissa-standalone-sidebar-host.is-collapsed .nav-logo,
+.caissa-standalone-sidebar-host.is-collapsed .nav-item,
+.caissa-standalone-sidebar-host.is-collapsed .nav-auth-btn,
+.caissa-standalone-sidebar-host.is-collapsed .nav-auth-user,
+.caissa-standalone-sidebar-host.is-collapsed .nav-premium-btn {
+    justify-content: center;
+}
+
+.caissa-standalone-sidebar-host.is-collapsed .nav-header {
+    flex-direction: column;
+    gap: 12px;
+    padding-inline: 8px;
+}
+
+.caissa-standalone-sidebar-host.is-collapsed .nav-items,
+.caissa-standalone-sidebar-host.is-collapsed .nav-footer,
+.caissa-standalone-sidebar-host.is-collapsed .nav-auth-area,
+.caissa-standalone-sidebar-host.is-collapsed .nav-premium-cta {
+    padding-inline: 8px;
+}
+
+.caissa-standalone-sidebar-host.is-collapsed .nav-item,
+.caissa-standalone-sidebar-host.is-collapsed .nav-auth-btn,
+.caissa-standalone-sidebar-host.is-collapsed .nav-premium-btn {
+    padding-inline: 8px;
+}
+
+.caissa-standalone-content {
+    flex: 1 1 auto;
+    width: calc(100% - var(--nav-width-expanded, 220px));
+    min-width: 0;
+}
+
+.caissa-standalone-mobile-toggle {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .caissa-standalone-layout {
+        display: block;
+    }
+
+    .caissa-standalone-sidebar-host,
+    .caissa-standalone-sidebar-host.is-collapsed {
+        width: 0;
+        height: 0;
+        flex-basis: 0;
+    }
+
+    .caissa-standalone-sidebar-host .main-navigation {
+        position: fixed;
+        left: -280px;
+        top: 0;
+        bottom: 0;
+        width: 280px;
+        height: 100dvh;
+        z-index: 1001;
+        transition: left 0.3s ease;
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .caissa-standalone-sidebar-host.is-open .main-navigation {
+        left: 0;
+    }
+
+    .caissa-standalone-sidebar-host.is-collapsed .nav-logo-text,
+    .caissa-standalone-sidebar-host.is-collapsed .nav-label,
+    .caissa-standalone-sidebar-host.is-collapsed .nav-premium-badge,
+    .caissa-standalone-sidebar-host.is-collapsed .nav-auth-details,
+    .caissa-standalone-sidebar-host.is-collapsed .nav-external-icon {
+        display: initial;
+    }
+
+    .caissa-standalone-sidebar-host.is-collapsed .nav-header {
+        flex-direction: row;
+        padding: 20px 16px;
+    }
+
+    .caissa-standalone-mobile-toggle {
+        display: grid;
+        place-items: center;
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        z-index: 1002;
+    }
+
+    .caissa-standalone-sidebar-host.is-open .caissa-standalone-mobile-toggle {
+        left: 216px;
+    }
+
+    .caissa-standalone-content {
+        width: 100%;
+    }
+}
