@@ -5,6 +5,8 @@
     }
   },
   "rewrites": [
+    { "source": "/endgame-trainer", "destination": "/endgame-trainer.html" },
+    { "source": "/endgame-trainer/", "destination": "/endgame-trainer.html" },
     { "source": "/eco", "destination": "/eco.html" },
     { "source": "/eco/:code", "destination": "/eco.html" },
     { "source": "/database", "destination": "/database.html" },
