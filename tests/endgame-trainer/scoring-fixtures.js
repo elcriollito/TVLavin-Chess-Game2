@@ -1,0 +1,20 @@
+export const SCORING_FIXTURES = Object.freeze({
+    kqkReasonable: { categoryId: 'KQK', strongSide: 'white', fen: '7k/8/8/8/4Q3/8/2K5/8 w - - 0 1' },
+    krkReasonable: { categoryId: 'KRK', strongSide: 'white', fen: '7k/8/8/8/3R4/8/2K5/8 w - - 0 1' },
+    kpkReasonable: { categoryId: 'KPK', strongSide: 'white', fen: '8/8/4k3/8/4P3/8/4K3/8 w - - 0 1' },
+    kpkpReasonable: { categoryId: 'KPKP', strongSide: 'white', fen: '8/8/3k4/3p4/4P3/4K3/8/8 w - - 0 1' },
+    queenHanging: { categoryId: 'KQK', strongSide: 'black', fen: '7k/8/8/8/8/8/4q3/4K3 w - - 0 1' },
+    rookHanging: { categoryId: 'KRK', strongSide: 'black', fen: '7k/8/8/8/8/8/4r3/4K3 w - - 0 1' },
+    promotionInOne: { categoryId: 'KPK', strongSide: 'white', fen: '7k/4P3/8/8/8/8/4K3/8 w - - 0 1' },
+    checkmate: { categoryId: 'KQK', strongSide: 'white', fen: '7k/6Q1/5K2/8/8/8/8/8 b - - 0 1' },
+    stalemate: { categoryId: 'KQK', strongSide: 'white', fen: '7k/5Q2/6K1/8/8/8/8/8 b - - 0 1' },
+    insufficient: { categoryId: 'KQK', strongSide: 'white', fen: '4k3/8/8/8/8/8/8/4K3 w - - 0 1' },
+    opposition: { categoryId: 'KPK', strongSide: 'white', fen: '8/8/4k3/8/4K3/4P3/8/8 w - - 0 1' },
+    clustered: { categoryId: 'KPKP', strongSide: 'white', fen: '8/8/8/8/3kp3/3PK3/8/8 w - - 0 1' },
+    dispersed: { categoryId: 'KPKP', strongSide: 'white', fen: 'k7/7p/8/8/8/8/P7/7K w - - 0 1' },
+    onlyOneLegalMove: { categoryId: 'KQK', strongSide: 'white', fen: '7k/6Q1/8/2K5/8/8/8/8 b - - 0 1' },
+    promotionWithCheck: { fen: 'k7/6P1/8/8/8/8/8/7K w - - 0 1' },
+    captureWithCheck: { fen: 'k7/p7/8/8/8/8/8/R6K w - - 0 1' },
+    captureMate: { fen: '7k/5Kr1/5Q2/8/8/8/8/8 w - - 0 1' },
+    pinnedMajorNotCapturable: { fen: '7k/8/8/8/1b6/8/2qR4/4K3 w - - 0 1' }
+});
