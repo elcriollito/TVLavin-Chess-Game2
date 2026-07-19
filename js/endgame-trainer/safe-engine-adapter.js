@@ -82,22 +82,27 @@ export class SafeEngineAdapter {
     #initializationPromise = null;
     #initialization = null;
     #activeRequest = null;
+    #pendingRequest = null;
     #readyBarrier = null;
     #requestSequence = 0;
     #generation = 0;
     #engineGeneration = 0;
     #supportedOptions = new Set();
     #detachEngineListeners = null;
+    #staleBestMoveCount = 0;
+    #replacementPolicy;
 
-    constructor({ createEngine, defaultTimeoutMs = 5000, logger = null, options = {} } = {}) {
+    constructor({ createEngine, defaultTimeoutMs = 5000, logger = null, options = {}, replacementPolicy = 'restart-worker' } = {}) {
         if (typeof createEngine !== 'function' || !integerInRange(defaultTimeoutMs, 1, 600000)) {
             throw engineError('invalid-options');
         }
         if (logger !== null && typeof logger !== 'function') throw engineError('invalid-options');
+        if (replacementPolicy !== 'restart-worker') throw engineError('invalid-options');
         this.#createEngine = createEngine;
         this.#defaultTimeoutMs = defaultTimeoutMs;
         this.#logger = logger;
         this.#initialOptions = this.#validateEngineOptions(options);
+        this.#replacementPolicy = replacementPolicy;
     }
 
     isReady() {
@@ -109,7 +114,11 @@ export class SafeEngineAdapter {
             state: this.#state,
             ready: this.isReady(),
             requestId: this.#activeRequest?.requestId ?? null,
+            pendingRequestId: this.#pendingRequest?.requestId ?? null,
             generation: this.#generation,
+            transportGeneration: this.#engineGeneration,
+            staleBestMoveCount: this.#staleBestMoveCount,
+            replacementPolicy: this.#replacementPolicy,
             supportedOptions: Object.freeze([...this.#supportedOptions])
         });
     }
@@ -117,6 +126,10 @@ export class SafeEngineAdapter {
     initialize() {
         if (this.#state === ENGINE_STATES.DISPOSED) return Promise.reject(engineError('engine-disposed'));
         if (this.#state === ENGINE_STATES.READY) return Promise.resolve(this.getState());
+        return this.#initializeTransport(this.#defaultTimeoutMs, 'engine-initialization-timeout');
+    }
+
+    #initializeTransport(timeoutMs, timeoutCode) {
         if (this.#initializationPromise) return this.#initializationPromise;
         this.#state = ENGINE_STATES.INITIALIZING;
         const engineGeneration = ++this.#engineGeneration;
@@ -131,7 +144,7 @@ export class SafeEngineAdapter {
                 this.#failInitialization('engine-load-failed', reject);
                 return;
             }
-            const timer = setTimeout(() => this.#failInitialization('engine-initialization-timeout', reject), this.#defaultTimeoutMs);
+            const timer = setTimeout(() => this.#failInitialization(timeoutCode, reject), timeoutMs);
             this.#initialization = { engineGeneration, phase: 'uci', resolve, reject, timer };
             this.#send('uci');
         }).finally(() => {
@@ -179,6 +192,7 @@ export class SafeEngineAdapter {
         if (this.#state === ENGINE_STATES.DISPOSED) return;
         this.#generation += 1;
         if (this.#activeRequest) this.#settleRequest(this.#activeRequest, false, engineError('engine-disposed'));
+        if (this.#pendingRequest) this.#settleRequest(this.#pendingRequest, false, engineError('engine-disposed'));
         if (this.#initialization) {
             clearTimeout(this.#initialization.timer);
             this.#initialization.reject(engineError('engine-disposed'));
@@ -189,14 +203,11 @@ export class SafeEngineAdapter {
             this.#readyBarrier.reject(engineError('engine-disposed'));
             this.#readyBarrier = null;
         }
-        const engine = this.#engine;
-        this.#detach();
-        this.#engine = null;
-        if (engine && typeof engine.terminate === 'function') engine.terminate();
+        this.#terminateTransport();
         this.#state = ENGINE_STATES.DISPOSED;
     }
 
-    async #startSearch(kind, rawOptions = {}) {
+    #startSearch(kind, rawOptions = {}) {
         this.#assertUsable();
         if (this.#state !== ENGINE_STATES.READY && this.#state !== ENGINE_STATES.SEARCHING && this.#state !== ENGINE_STATES.STOPPING) {
             throw engineError('engine-not-ready');
@@ -206,18 +217,8 @@ export class SafeEngineAdapter {
         if (!validated.valid) throw engineError('invalid-fen');
         if (options.signal?.aborted) throw engineError('engine-search-cancelled');
 
-        if (this.#activeRequest) {
-            this.#cancelActive('engine-search-cancelled', true);
-            await this.#ensureReadyBarrier();
-        } else if (this.#readyBarrier) {
-            await this.#readyBarrier.promise;
-        }
-        this.#assertUsable();
-        if (this.#state !== ENGINE_STATES.READY) throw engineError('engine-not-ready');
-
-        this.#applySearchOptions(options);
         const requestId = ++this.#requestSequence;
-        const generation = ++this.#generation;
+        const generation = null;
         const startedAt = performance.now();
         let resolvePromise;
         let rejectPromise;
@@ -226,26 +227,62 @@ export class SafeEngineAdapter {
             rejectPromise = reject;
         });
         const request = { requestId, generation, kind, fen: validated.fen, options, startedAt, promise, resolve: resolvePromise, reject: rejectPromise, lines: new Map(), lastInfo: null, timer: null, abortHandler: null, settled: false };
-        this.#activeRequest = request;
-        this.#state = ENGINE_STATES.SEARCHING;
+        request.deadline = startedAt + options.timeoutMs;
         request.timer = setTimeout(() => {
-            if (this.#activeRequest === request && request.generation === this.#generation) {
+            if (this.#pendingRequest === request) {
+                this.#pendingRequest = null;
+                this.#cancelInitialization('engine-search-timeout');
+                this.#settleRequest(request, false, engineError('engine-search-timeout'));
+            } else if (this.#activeRequest === request && request.generation === this.#generation) {
                 this.#cancelActive('engine-search-timeout', true);
                 void this.#ensureReadyBarrier().catch(() => {});
             }
         }, options.timeoutMs);
         if (options.signal) {
             request.abortHandler = () => {
-                if (this.#activeRequest === request) {
+                if (this.#pendingRequest === request) {
+                    this.#pendingRequest = null;
+                    this.#cancelInitialization('engine-search-cancelled');
+                    this.#settleRequest(request, false, engineError('engine-search-cancelled'));
+                } else if (this.#activeRequest === request) {
                     this.#cancelActive('engine-search-cancelled', true);
                     void this.#ensureReadyBarrier().catch(() => {});
                 }
             };
             options.signal.addEventListener('abort', request.abortHandler, { once: true });
         }
-        this.#send(`position fen ${validated.fen}`);
-        this.#send(this.#buildGoCommand(options));
+        this.#pendingRequest = request;
+        void this.#activateRequest(request);
         return request.promise;
+    }
+
+    async #activateRequest(request) {
+        try {
+            if (this.#activeRequest) {
+                this.#cancelActive('engine-search-cancelled', true);
+                this.#terminateTransport();
+                this.#supportedOptions.clear();
+                const remainingMs = Math.max(1, Math.ceil(request.deadline - performance.now()));
+                await this.#initializeTransport(remainingMs, 'engine-search-timeout');
+            } else if (this.#readyBarrier) {
+                await this.#readyBarrier.promise;
+            }
+            if (request.settled || this.#pendingRequest !== request) return;
+            this.#assertUsable();
+            if (this.#state !== ENGINE_STATES.READY) throw engineError('engine-not-ready');
+            this.#pendingRequest = null;
+            request.generation = ++this.#generation;
+            this.#activeRequest = request;
+            this.#state = ENGINE_STATES.SEARCHING;
+            this.#applySearchOptions(request.options);
+            this.#send(`position fen ${request.fen}`);
+            this.#send(this.#buildGoCommand(request.options));
+        } catch (error) {
+            if (!request.settled) {
+                if (this.#pendingRequest === request) this.#pendingRequest = null;
+                this.#settleRequest(request, false, error?.code ? error : engineError('engine-load-failed'));
+            }
+        }
     }
 
     #handleMessage(message, engineGeneration) {
@@ -292,6 +329,13 @@ export class SafeEngineAdapter {
         }
         const bestMove = parseUciBestMove(message);
         if (!bestMove) return;
+        if (bestMove.bestMove && !this.#isLegalBestMove(request.fen, bestMove.bestMove)) {
+            this.#staleBestMoveCount += 1;
+            request.lastInfo = null;
+            request.lines.clear();
+            this.#log('stale-bestmove-ignored');
+            return;
+        }
         const lines = [...request.lines.entries()].sort(([left], [right]) => left - right).map(([, line]) => cloneInfo(line));
         const result = request.kind === 'analysis'
             ? { requestId: request.requestId, fen: request.fen, bestMove: bestMove.bestMove, lines, elapsedMs: performance.now() - request.startedAt, completed: true }
@@ -369,6 +413,7 @@ export class SafeEngineAdapter {
         clearTimeout(request.timer);
         if (request.options.signal && request.abortHandler) request.options.signal.removeEventListener('abort', request.abortHandler);
         if (this.#activeRequest === request) this.#activeRequest = null;
+        if (this.#pendingRequest === request) this.#pendingRequest = null;
         request.lines.clear();
         if (completed) request.resolve(value);
         else request.reject(value);
@@ -378,12 +423,38 @@ export class SafeEngineAdapter {
         const initialization = this.#initialization;
         if (initialization) clearTimeout(initialization.timer);
         this.#initialization = null;
+        this.#terminateTransport();
+        this.#state = ENGINE_STATES.ERROR;
+        reject(engineError(code));
+    }
+
+    #cancelInitialization(code) {
+        const initialization = this.#initialization;
+        if (!initialization) return;
+        clearTimeout(initialization.timer);
+        this.#initialization = null;
+        this.#terminateTransport();
+        this.#state = ENGINE_STATES.ERROR;
+        initialization.reject(engineError(code));
+    }
+
+    #terminateTransport() {
         const engine = this.#engine;
+        this.#engineGeneration += 1;
         this.#detach();
         this.#engine = null;
         if (engine && typeof engine.terminate === 'function') engine.terminate();
-        this.#state = ENGINE_STATES.ERROR;
-        reject(engineError(code));
+    }
+
+    #isLegalBestMove(fen, move) {
+        const normalizedMove = typeof move === 'string' ? move.toLowerCase() : '';
+        if (!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(normalizedMove)) return false;
+        try {
+            const appliedMove = ChessRulesFacade.fromFen(fen).move(normalizedMove);
+            return appliedMove?.lan === normalizedMove;
+        } catch {
+            return false;
+        }
     }
 
     #recordOption(message) {
