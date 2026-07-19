@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CAISSA ET.6 Board Harness</title>
+  <link rel="stylesheet" href="assets/css/chessboard-1.0.0.min.css">
+  <link rel="stylesheet" href="css/endgame-board-harness.css">
+</head>
+<body>
+<main class="et-harness">
+  <h1>ET.6 Board View Harness</h1>
+  <div class="et-harness-controls">
+    <input id="fen" aria-label="FEN" value="8/8/8/8/8/8/4P3/4K2k w - - 0 1">
+    <button id="load" type="button">Load FEN</button><button id="flip" type="button">Flip</button>
+    <label><input id="interactive" type="checkbox" checked> Interactive</label>
+    <label><input id="thinking" type="checkbox"> Thinking</label>
+    <button id="clear" type="button">Clear highlights</button>
+    <label>Promotion <select id="promotion"><option value="q">Queen</option><option value="r">Rook</option><option value="b">Bishop</option><option value="n">Knight</option><option value="">Cancel</option></select></label>
+    <button id="dispose" type="button">Dispose A</button><button id="reinitialize" type="button">Reinitialize A</button>
+    <button id="second" type="button">Create Second Board</button>
+  </div>
+  <div class="et-harness-boards">
+    <section class="et-harness-panel"><h2>Board A</h2><div id="board-a" class="et-harness-board"></div></section>
+    <section class="et-harness-panel" id="panel-b" hidden><h2>Board B</h2><div id="board-b" class="et-harness-board"></div></section>
+  </div>
+  <section class="et-harness-panel"><h2>Movement log</h2><pre id="log" class="et-harness-output"></pre></section>
+  <section class="et-harness-panel"><h2>State and performance</h2><pre id="state" class="et-harness-output et-harness-metrics"></pre></section>
+  <p id="live" role="status" aria-live="polite"></p>
+</main>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+<script type="module">
+import { EndgameBoardView, createChessboardJsBoard } from './js/endgame-trainer/endgame-board-view.js';
+
+const byId = (id) => document.getElementById(id);
+const output = byId('log');
+const state = byId('state');
+const live = byId('live');
+const promotion = byId('promotion');
+const timings = {};
+let boardA;
+let boardB;
+const diagnostics = {
+  moves: [], errors: [], announcements: [], deferred: false, pending: [],
+  promotionDeferred: false, promotionReject: false, pendingPromotions: [],
+  dragStarts: 0, drops: 0, snapEnds: 0
+};
+
+function rulesFactory(fen) {
+  const chess = new Chess();
+  if (fen && !chess.load(fen)) throw new Error('invalid-fen');
+  return {
+    fen: () => chess.fen(),
+    sideToMove: () => chess.turn() === 'w' ? 'white' : 'black',
+    legalMoves: (options) => chess.moves(options),
+    pieces: () => chess.board().flatMap((rank, rankIndex) => rank.flatMap((piece, fileIndex) => piece ? [{
+      square: `${'abcdefgh'[fileIndex]}${8 - rankIndex}`, type: piece.type,
+      color: piece.color === 'w' ? 'white' : 'black'
+    }] : []))
+  };
+}
+
+function measure(name, operation) {
+  const started = performance.now();
+  const result = operation();
+  timings[name] = `${(performance.now() - started).toFixed(3)} ms`;
+  return result;
+}
+
+function renderState() {
+  const snapshot = { boardA: boardA?.getState(), boardB: boardB?.getState(), timings };
+  state.textContent = JSON.stringify(snapshot, null, 2);
+}
+
+function create(root, fen, orientation) {
+  const view = new EndgameBoardView({
+    element: root,
+    createBoard: (element, boardOptions) => createChessboardJsBoard(element, {
+      ...boardOptions,
+      onDragStart: (...args) => { diagnostics.dragStarts += 1; return boardOptions.onDragStart(...args); },
+      onDrop: (...args) => { diagnostics.drops += 1; return boardOptions.onDrop(...args); },
+      onSnapEnd: (...args) => { diagnostics.snapEnds += 1; return boardOptions.onSnapEnd(...args); }
+    }),
+    rulesFactory,
+    promotionResolver: async () => {
+      if (diagnostics.promotionReject) throw new Error('diagnostic promotion failure');
+      if (!diagnostics.promotionDeferred) return promotion.value || null;
+      return new Promise((resolve, reject) => diagnostics.pendingPromotions.push({ resolve, reject }));
+    },
+    onMove: async (move) => {
+      diagnostics.moves.push({ board: root.id, move });
+      output.textContent += `${root.id}: ${JSON.stringify(move)}\n`; renderState();
+      if (!diagnostics.deferred) return true;
+      return new Promise((resolve, reject) => diagnostics.pending.push({ resolve, reject }));
+    },
+    onError: (error) => { diagnostics.errors.push(error.code); output.textContent += `${root.id}: error ${error.code}\n`; },
+    onAnnouncement: (message) => { diagnostics.announcements.push(message); live.textContent = message; },
+    options: { label: `${root.id} endgame board`, board: { pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png' } }
+  });
+  measure(`${root.id}.initialize`, () => view.initialize());
+  measure(`${root.id}.setPosition`, () => view.setPosition(fen));
+  view.setOrientation(orientation);
+  renderState();
+  return view;
+}
+
+function createA() { boardA = create(byId('board-a'), byId('fen').value, 'white'); }
+createA();
+renderState();
+byId('load').addEventListener('click', () => { try { measure('board-a.setPosition', () => boardA.setPosition(byId('fen').value)); } catch (error) { output.textContent += `${error.code || error.message}\n`; } renderState(); });
+byId('flip').addEventListener('click', () => { measure('board-a.flip', () => boardA.flip()); renderState(); });
+byId('interactive').addEventListener('change', (event) => { boardA.setInteractive(event.target.checked); renderState(); });
+byId('thinking').addEventListener('change', (event) => { boardA.setThinking(event.target.checked); renderState(); });
+byId('clear').addEventListener('click', () => { boardA.clearHighlights(); renderState(); });
+byId('dispose').addEventListener('click', () => { measure('board-a.dispose', () => boardA.dispose()); renderState(); });
+byId('reinitialize').addEventListener('click', () => { boardA?.dispose(); createA(); });
+byId('second').addEventListener('click', () => {
+  if (boardB) return;
+  byId('panel-b').hidden = false;
+  boardB = create(byId('board-b'), '8/8/8/8/8/3K4/4P3/7k w - - 0 1', 'black');
+  renderState();
+});
+window.etHarness = {
+  get boardA() { return boardA; },
+  get boardB() { return boardB; },
+  diagnostics,
+  rulesFactory,
+  createSecond() { byId('second').click(); return boardB; },
+  reinitializeA() { byId('reinitialize').click(); return boardA; },
+  setDeferred(value) { diagnostics.deferred = Boolean(value); },
+  resolveNext(value = true) { diagnostics.pending.shift()?.resolve(value); },
+  rejectNext(message = 'diagnostic rejection') { diagnostics.pending.shift()?.reject(new Error(message)); },
+  resolvePromotion(value = 'q') { diagnostics.pendingPromotions.shift()?.resolve(value); },
+  rejectPromotion(message = 'diagnostic promotion rejection') { diagnostics.pendingPromotions.shift()?.reject(new Error(message)); },
+  reset() {
+    diagnostics.moves.length = 0; diagnostics.errors.length = 0; diagnostics.announcements.length = 0;
+    diagnostics.pending.length = 0; diagnostics.pendingPromotions.length = 0;
+    diagnostics.deferred = false; diagnostics.promotionDeferred = false; diagnostics.promotionReject = false;
+    diagnostics.dragStarts = 0; diagnostics.drops = 0; diagnostics.snapEnds = 0;
+  }
+};
+</script>
+</body>
+</html>
