@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CAISSA Endgame Engine Harness</title>
+    <style>
+        :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #101319; color: #edf2f7; }
+        body { margin: 0 auto; max-width: 1100px; padding: 24px; }
+        h1, h2 { color: #d7b56d; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+        label { display: grid; gap: 5px; }
+        input { padding: 8px; background: #171d27; border: 1px solid #526071; color: inherit; }
+        button { padding: 9px 12px; margin: 4px; background: #263449; border: 1px solid #718096; color: inherit; cursor: pointer; }
+        button:disabled { opacity: .45; cursor: wait; }
+        pre { max-height: 360px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: #090c11; padding: 12px; border: 1px solid #303846; }
+        .status { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin-bottom: 18px; }
+        .status div { background: #171d27; padding: 9px; }
+    </style>
+</head>
+<body>
+    <h1>CAISSA Endgame Engine Harness</h1>
+    <p>This isolated diagnostic page is not connected to CAISSA navigation or gameplay.</p>
+
+    <section class="status" aria-label="Engine status">
+        <div>Worker URL: <span id="worker-url">resolving</span></div>
+        <div>Adapter: <span id="adapter-state">idle</span></div>
+        <div>UCI: <span id="uci-status">pending</span></div>
+        <div>Ready: <span id="ready-status">pending</span></div>
+        <div>Options: <span id="option-count">0</span></div>
+    </section>
+
+    <section class="grid" aria-label="Engine request parameters">
+        <label>FEN
+            <input id="fen" value="8/8/8/8/8/4k3/8/R3K3 w - - 0 1" aria-label="FEN position">
+        </label>
+        <label>Depth
+            <input id="depth" type="number" min="1" max="128" value="5" aria-label="Search depth">
+        </label>
+        <label>Move time (ms)
+            <input id="movetime" type="number" min="1" max="600000" value="500" aria-label="Move time in milliseconds">
+        </label>
+        <label>MultiPV
+            <input id="multipv" type="number" min="1" max="10" value="2" aria-label="MultiPV lines">
+        </label>
+    </section>
+
+    <section aria-label="Harness controls">
+        <button type="button" id="initialize">Initialize</button>
+        <button type="button" id="bestmove">Request Best Move</button>
+        <button type="button" id="analyze">Analyze</button>
+        <button type="button" id="full-probe">Run Full Probe</button>
+        <button type="button" id="race">Start Race Test</button>
+        <button type="button" id="stop">Stop</button>
+        <button type="button" id="dispose">Dispose</button>
+        <button type="button" id="clear">Clear Logs</button>
+    </section>
+
+    <h2>Errors</h2>
+    <pre id="errors" aria-live="polite">None</pre>
+    <h2>Last structured response</h2>
+    <pre id="last-response" aria-live="polite">None</pre>
+    <h2>Diagnostic logs</h2>
+    <pre id="logs" aria-live="polite">No entries</pre>
+    <pre id="probe-result" hidden>pending</pre>
+
+    <script type="importmap">
+        { "imports": { "chess.js": "./node_modules/chess.js/dist/esm/chess.js" } }
+    </script>
+    <script type="module">
+        import { ChessRulesFacade } from './js/endgame-trainer/chess-rules-facade.js';
+        import { SafeEngineAdapter } from './js/endgame-trainer/safe-engine-adapter.js';
+        import { createStockfishWorker, resolveStockfishWorkerUrl } from './js/endgame-trainer/stockfish-worker-factory.js';
+        import { runStockfishBrowserProbe } from './js/endgame-trainer/stockfish-browser-probe.js';
+
+        const elements = Object.fromEntries([...document.querySelectorAll('[id]')].map((element) => [element.id, element]));
+        const actionButtons = [...document.querySelectorAll('button:not(#clear)')];
+        const logs = [];
+        let adapter = null;
+        let busy = false;
+        let infoLogCount = 0;
+        let nextTransportId = 0;
+        let transportsCreated = 0;
+        let transportsTerminated = 0;
+        let activeTransports = 0;
+
+        const workerUrl = resolveStockfishWorkerUrl().href;
+        elements['worker-url'].textContent = workerUrl;
+
+        function renderLogs() {
+            elements.logs.textContent = logs.length ? logs.map((entry) => JSON.stringify(entry)).join('\n') : 'No entries';
+        }
+
+        function log(event, details = {}) {
+            logs.push({ timestamp: new Date().toISOString(), event, ...details });
+            if (logs.length > 500) logs.splice(0, logs.length - 500);
+            renderLogs();
+        }
+
+        function showResult(result) {
+            elements['last-response'].textContent = JSON.stringify(result, null, 2);
+        }
+
+        function showError(error) {
+            const value = { code: error?.code ?? 'browser-error' };
+            elements.errors.textContent = JSON.stringify(value, null, 2);
+            log('error', value);
+        }
+
+        function updateState() {
+            const state = adapter?.getState() ?? { state: 'idle', ready: false, supportedOptions: [] };
+            elements['adapter-state'].textContent = state.state;
+            elements['ready-status'].textContent = state.ready ? 'readyok' : 'not ready';
+            elements['option-count'].textContent = String(state.supportedOptions.length);
+            elements['bestmove'].disabled = busy || !state.ready;
+            elements.analyze.disabled = busy || !state.ready;
+            elements.stop.disabled = busy || state.state !== 'searching';
+            elements.dispose.disabled = busy || !adapter || state.state === 'disposed';
+            elements.initialize.disabled = busy || state.ready || state.state === 'disposed';
+        }
+
+        function setBusy(value) {
+            busy = value;
+            for (const button of actionButtons) button.disabled = value;
+            if (!value) updateState();
+        }
+
+        function requestOptions() {
+            const validation = ChessRulesFacade.validateFen(elements.fen.value);
+            if (!validation.valid) throw Object.assign(new Error(), { code: 'invalid-fen' });
+            return { fen: validation.fen, depth: Number(elements.depth.value), timeoutMs: 15000 };
+        }
+
+        function createHarnessTransport() {
+            const worker = createStockfishWorker({ workerUrl });
+            const transportId = ++nextTransportId;
+            let terminated = false;
+            transportsCreated += 1;
+            activeTransports += 1;
+            log('transport-created', { transportId, transportsCreated, transportsTerminated, activeTransports });
+            worker.addEventListener('message', (event) => {
+                if (typeof event.data !== 'string') return;
+                if (event.data === 'uciok') elements['uci-status'].textContent = 'uciok';
+                if (event.data === 'readyok') elements['ready-status'].textContent = 'readyok';
+                if (event.data.startsWith('option name ')) elements['option-count'].textContent = String(Number(elements['option-count'].textContent) + 1);
+                if (!event.data.startsWith('info ') || infoLogCount++ % 20 === 0) log('uci-message', { transportId, message: event.data.slice(0, 240) });
+            });
+            worker.addEventListener('error', () => showError({ code: 'worker-browser-error' }));
+            worker.addEventListener('messageerror', () => showError({ code: 'worker-message-error' }));
+            return {
+                postMessage: (command) => worker.postMessage(command),
+                addEventListener: (type, handler) => worker.addEventListener(type, handler),
+                removeEventListener: (type, handler) => worker.removeEventListener(type, handler),
+                terminate() {
+                    if (terminated) return;
+                    terminated = true;
+                    transportsTerminated += 1;
+                    activeTransports -= 1;
+                    log('transport-terminated', { transportId, transportsCreated, transportsTerminated, activeTransports });
+                    worker.terminate();
+                }
+            };
+        }
+
+        async function initialize() {
+            if (adapter?.isReady()) return adapter;
+            adapter = new SafeEngineAdapter({ createEngine: createHarnessTransport, defaultTimeoutMs: 15000, logger: (entry) => log('adapter', entry) });
+            await adapter.initialize();
+            updateState();
+            log('initialized', { state: adapter.getState().state });
+            return adapter;
+        }
+
+        async function action(operation) {
+            if (busy) return;
+            setBusy(true);
+            elements.errors.textContent = 'None';
+            try {
+                const result = await operation();
+                if (result !== undefined) showResult(result);
+                updateState();
+            } catch (error) {
+                showError(error);
+            } finally {
+                setBusy(false);
+            }
+        }
+
+        elements.initialize.addEventListener('click', () => action(() => initialize().then((value) => value.getState())));
+        elements.bestmove.addEventListener('click', () => action(async () => (await initialize()).requestBestMove(requestOptions())));
+        elements.analyze.addEventListener('click', () => action(async () => {
+            const active = await initialize();
+            return active.analyzePosition({ ...requestOptions(), multiPv: Number(elements.multipv.value), onInfo: (info) => log('analysis-info', { requestId: active.getState().requestId, depth: info.depth, multipv: info.multipv }) });
+        }));
+        elements.stop.addEventListener('click', () => action(async () => (await initialize()).stop()));
+        elements.dispose.addEventListener('click', () => action(async () => {
+            const activeAdapter = adapter;
+            activeAdapter?.dispose();
+            const state = activeAdapter?.getState();
+            adapter = null;
+            updateState();
+            return { ...state, transportsCreated, transportsTerminated, activeTransports };
+        }));
+        elements.clear.addEventListener('click', () => { logs.length = 0; renderLogs(); });
+        elements['full-probe'].addEventListener('click', () => action(async () => {
+            const result = await runStockfishBrowserProbe({ logger: (entry) => log('probe', entry) });
+            elements['probe-result'].textContent = JSON.stringify(result);
+            return result;
+        }));
+        elements.race.addEventListener('click', () => action(async () => {
+            const result = await runStockfishBrowserProbe({ raceTest: true, logger: (entry) => log('race-probe', entry) });
+            return result.tests.race;
+        }));
+
+        updateState();
+        if (new URL(location.href).searchParams.get('autorun') === '1') {
+            action(async () => {
+                const result = await runStockfishBrowserProbe({ raceTest: true, logger: (entry) => log('autorun', entry) });
+                elements['probe-result'].textContent = JSON.stringify(result);
+                document.documentElement.dataset.probeComplete = 'true';
+                document.documentElement.dataset.probeOk = String(result.ok);
+                return result;
+            });
+        }
+    </script>
+</body>
+</html>
