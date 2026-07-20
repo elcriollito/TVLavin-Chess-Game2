@@ -48,9 +48,50 @@ const cases = [
     ['37 dialog listeners abort on unmount', page, /data-promotion-piece[\s\S]*\{ signal \}/],
     ['38 diagnostic mode is explicitly gated', page, /params\.get\('diagnostic'\) === '1'/],
     ['39 no storage coupling', page, /localStorage|sessionStorage/],
-    ['40 responsive board sizing', css, /\.endgame-trainer-page \.board-b72b1\{box-sizing:content-box\}/]
+    ['40 responsive board sizing', css, /\.endgame-trainer-page \.board-b72b1\s*\{\s*box-sizing:\s*content-box/],
+    ['41 empty overlay', html, /data-empty-board-overlay[\s\S]*Prepare an endgame position/],
+    ['42 empty overlay state contract', css, /not\(\.is-empty\):not\(\.is-preparing\)[\s\S]*empty-overlay/],
+    ['43 free during beta', html, />Free during beta</],
+    ['44 setup helper', html, />Choose your training settings\.</],
+    ['45 disabled start remains present', html, /data-action="start" disabled>Start</],
+    ['46 start helper hook', html, /data-start-helper>Prepare a position first\.</],
+    ['47 start helper state mapping', page, /The position is ready to start\.[\s\S]*Session in progress\./],
+    ['48 session empty guidance', html, /data-session-empty[\s\S]*How it works[\s\S]*Start training against Stockfish/],
+    ['49 session details alternate view', html, /data-session-details/],
+    ['50 session details hidden while empty', css, /session-details\s*\{\s*display:\s*none/],
+    ['51 move history empty copy', html, /No moves yet\.<\/strong><span>Moves will appear here once the session starts\./],
+    ['52 no fake numbered empty move', html, /<ol[^>]*data-history><li><strong>No moves yet\./],
+    ['53 primary action group', html, /data-action-group="primary"[\s\S]*data-action="hint"[\s\S]*data-action="restart"[\s\S]*data-action="new"/],
+    ['54 secondary action group', html, /data-action-group="secondary"[\s\S]*data-action="undo"[\s\S]*data-action="flip"[\s\S]*data-action="resign"/],
+    ['55 resign danger only enabled', css, /endgame-trainer-page__resign:not\(:disabled\)/],
+    ['56 visual state classes', page, /\['empty', 'preparing', 'ready', 'user-turn', 'engine-thinking', 'completed', 'resigned', 'error', 'disposed'\]/],
+    ['57 status copy mapping', page, /Ready to train[\s\S]*Position ready[\s\S]*Your turn[\s\S]*Stockfish is thinking[\s\S]*Endgame completed/],
+    ['58 heuristic score label', html, />Heuristic score</],
+    ['59 mobile DOM begins with board', html, /endgame-trainer-page__grid">\s*<section class="endgame-trainer-page__board-panel"/],
+    ['60 overlay is noninteractive', css, /endgame-trainer-page__empty-overlay[\s\S]*pointer-events:\s*none/]
 ];
 
 for (const [name, source, pattern] of cases) {
     test(name, name.startsWith('36 ') || name.startsWith('39 ') ? lacks(source, pattern) : has(source, pattern));
 }
+
+test('61 no duplicate IDs', () => {
+    const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map(match => match[1]);
+    assert.equal(new Set(ids).size, ids.length);
+});
+test('62 security and presentation remain dependency free', () => {
+    assert.doesNotMatch(page, /innerHTML|\beval\s*\(|new\s+Function|document\.write|localStorage|sessionStorage|\bfetch\s*\(/);
+    assert.doesNotMatch(html, /\sonclick\s*=/);
+});
+test('63 runtime hooks preserved', () => {
+    for (const hook of ['data-board', 'data-board-overlay', 'data-promotion', 'data-announcement', 'data-field="status"', 'data-history']) assert.match(html, new RegExp(hook));
+});
+test('64 terminal results use human-readable presentation labels', () => {
+    assert.match(page, /RESULT_LABELS = \{ checkmate: 'Checkmate', resignation: 'Resignation', stalemate: 'Stalemate', draw: 'Draw' \}/);
+    assert.match(page, /text\(field\('result'\), resultLabel\(state\.result\?\.gameResult\)\)/);
+});
+test('65 promotion restores focus to the keyboard-accessible board', () => {
+    assert.match(html, /data-board tabindex="0" aria-label="Endgame training board"/);
+    assert.match(page, /returnFocus = root\.querySelector\('\[data-board\]'\)/);
+    assert.match(page, /dialog\.close\(\); returnFocus\?\.focus\?\.\(\)/);
+});

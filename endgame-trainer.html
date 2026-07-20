@@ -1,14 +1,125 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>CAISSA Endgame Trainer – Practice Chess Endgames Against Stockfish</title><meta name="description" content="Practice focused chess endgames with procedural positions, Stockfish training, mobile-friendly controls, and guided session feedback in CAISSA Chess.">
-<link rel="canonical" href="https://www.caissa-chess.org/endgame-trainer"><meta property="og:title" content="CAISSA Endgame Trainer – Practice Chess Endgames Against Stockfish"><meta property="og:description" content="Practice focused chess endgames with procedural positions, Stockfish training, mobile-friendly controls, and guided session feedback in CAISSA Chess."><meta property="og:url" content="https://www.caissa-chess.org/endgame-trainer"><meta property="og:image" content="https://www.caissa-chess.org/og-image.png">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><link rel="stylesheet" href="/assets/css/chessboard-1.0.0.min.css"><link rel="stylesheet" href="/css/endgame-trainer.css"><script type="importmap">{"imports":{"chess.js":"https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm"}}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"CAISSA Endgame Trainer","url":"https://www.caissa-chess.org/endgame-trainer","description":"Practice focused chess endgames with guided session feedback.","provider":{"@type":"Organization","name":"CAISSA Chess"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free during beta"}}</script></head>
-<body><div class="endgame-trainer-page" data-endgame-trainer-page data-state="empty">
-<button class="endgame-trainer-page__nav-toggle" data-mobile-nav-toggle aria-controls="endgame-nav" aria-expanded="false" aria-label="Open navigation"><i class="fas fa-bars" aria-hidden="true"></i></button>
-<nav id="endgame-nav" class="endgame-trainer-page__nav" data-mobile-nav aria-label="CAISSA main navigation"><a class="endgame-trainer-page__logo" href="/"><i class="fas fa-chess-knight" aria-hidden="true"></i> CAISSA</a><a class="endgame-trainer-page__auth" href="/signin" aria-label="Sign in to CAISSA"><i class="fas fa-sign-in-alt" aria-hidden="true"></i> Sign In</a><a class="endgame-trainer-page__premium" href="/premium"><i class="fas fa-crown" aria-hidden="true"></i> Premium</a><div class="endgame-trainer-page__nav-items">
-<a data-nav-key="classic" href="/?section=yahooClassic">CAISSA Classic</a><a data-nav-key="play" href="/?section=play">Play</a><a data-nav-key="mentor" href="/?section=mentor">Mentor</a><a data-nav-key="academy" href="/?section=academy">Academy</a><a data-nav-key="endgame-trainer" href="/endgame-trainer"><i class="fas fa-chess-pawn" aria-hidden="true"></i> Endgame Trainer</a><a data-nav-key="insights" href="/?section=insights">Insights</a><a data-nav-key="fics" href="/?section=fics">FICS</a><a data-nav-key="analyze" href="/?section=analyze">Analyze</a><a data-nav-key="spectator" href="/?section=spectator">Spectator TV</a><a data-nav-key="arena" href="/?section=arena">Arena</a><a data-nav-key="cheater-insight" href="/?section=cheater-insight">Cheater Insight</a><a data-nav-key="polyglot" href="/tools/polyglot">Polyglot Tool</a><a data-nav-key="opening-database" href="/opening-database">Opening Database</a><a data-nav-key="eco" href="/eco">ECO Codes</a><a data-nav-key="library" href="/?section=library">Game Library</a><a data-nav-key="history" href="/?section=history">History</a><a data-nav-key="dosChess" href="/?section=dosChess">DOS Chess</a><a data-nav-key="vault" href="/vault">Vault</a><a data-nav-key="blog" href="https://tvlavin.blogspot.com/" target="_blank" rel="noopener noreferrer">Blog</a><a data-nav-key="help-videos" href="https://www.youtube.com/playlist?list=PLS6AOWARshCU" target="_blank" rel="noopener noreferrer">Help Videos</a><a href="mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback">Contact / Feedback</a></div><footer class="endgame-trainer-page__nav-footer"><a href="/?section=help">Help</a><a href="/?section=settings">Settings</a></footer></nav>
-<main class="endgame-trainer-page__main"><header class="endgame-trainer-page__header"><p class="endgame-trainer-page__kicker">CAISSA Training</p><div><h1>Endgame Trainer</h1><span class="endgame-trainer-page__badge">Beta</span></div><p>Practice focused endgame positions against Stockfish.</p></header>
-<div class="endgame-trainer-page__grid"><section class="endgame-trainer-page__setup" aria-labelledby="setup-title"><h2 id="setup-title">Setup</h2><fieldset><legend>Piece Count</legend><select data-setup="pieces" name="piece-count"><option value="3">3</option><option value="4">4</option><option value="random">Random</option><option disabled>5 — Coming Soon</option><option disabled>6 — Coming Soon</option></select></fieldset><fieldset><legend>Category</legend><select data-setup="category" name="category"><option value="KPK">King and Pawn vs King</option><option value="KRK">King and Rook vs King</option><option value="KQK">King and Queen vs King</option><option value="KPKP">King and Pawn vs King and Pawn</option><option value="random">Random Supported Endgame</option></select></fieldset><fieldset><legend>Play As</legend><select data-setup="color" name="color"><option value="white">White</option><option value="black">Black</option><option value="random">Random</option></select></fieldset><fieldset><legend>Engine Strength</legend><select data-setup="strength" name="strength"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option><option value="strong">Strong</option></select></fieldset><button type="button" data-action="prepare">Prepare Position</button><button type="button" data-action="start" disabled>Start</button><p data-page-message role="status">Choose settings and prepare a position.</p></section>
-<section class="endgame-trainer-page__board-panel" aria-labelledby="board-title"><h2 id="board-title">Training board</h2><div class="endgame-trainer-page__board" data-board aria-label="Endgame training board"></div><div class="endgame-trainer-page__overlay" data-board-overlay hidden>Engine thinking…</div><p data-announcement role="status" aria-live="polite"></p><section class="endgame-trainer-page__state" data-diagnostic-state aria-live="polite"><div data-state-view="empty"><h3>Ready to practice?</h3></div><div data-state-view="loading" role="status"><span class="endgame-trainer-page__spinner" aria-label="Loading"></span><h3>Preparing trainer</h3></div><div data-state-view="error" role="alert"><h3>Trainer unavailable</h3><p data-error-message></p></div><div data-state-view="completed" role="status"><h3>Practice complete</h3></div></section></section>
-<aside class="endgame-trainer-page__session" aria-labelledby="session-title"><h2 id="session-title">Session</h2><dl><dt>Objective</dt><dd data-field="objective">—</dd><dt>Turn</dt><dd data-field="turn">—</dd><dt>Session Status</dt><dd data-field="status">Empty</dd><dt>Attempt</dt><dd data-field="attempt">—</dd><dt>Hints</dt><dd data-field="hints">0</dd><dt>Undos</dt><dd data-field="undos">0</dd><dt>Engine Status</dt><dd data-field="engine">Not initialized</dd><dt>Result</dt><dd data-field="result">—</dd><dt>Score</dt><dd data-field="score">—</dd></dl><p data-hint-output></p><h3>Move History</h3><ol class="endgame-trainer-page__history" data-history><li>No moves yet.</li></ol><div class="endgame-trainer-page__controls" aria-label="Session controls"><button data-action="hint" disabled>Hint</button><button data-action="undo" disabled>Undo</button><button data-action="restart" disabled>Restart</button><button data-action="new" disabled>New Position</button><button data-action="resign" disabled>Resign</button><button data-action="flip">Flip Board</button></div></aside></div></main><dialog class="endgame-trainer-page__promotion" data-promotion aria-labelledby="promotion-title"><h2 id="promotion-title">Choose promotion</h2><div><button data-promotion-piece="q">Queen</button><button data-promotion-piece="r">Rook</button><button data-promotion-piece="b">Bishop</button><button data-promotion-piece="n">Knight</button><button data-promotion-piece="">Cancel</button></div></dialog></div><script src="https://code.jquery.com/jquery-3.6.0.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script><script type="module" src="/js/endgame-trainer/endgame-trainer-page.js"></script></body></html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <title>CAISSA Endgame Trainer – Practice Chess Endgames Against Stockfish</title>
+    <meta name="description" content="Practice focused chess endgames with procedural positions, Stockfish training, mobile-friendly controls, and guided session feedback in CAISSA Chess.">
+    <link rel="canonical" href="https://www.caissa-chess.org/endgame-trainer">
+    <meta property="og:title" content="CAISSA Endgame Trainer – Practice Chess Endgames Against Stockfish">
+    <meta property="og:description" content="Practice focused chess endgames with procedural positions, Stockfish training, mobile-friendly controls, and guided session feedback in CAISSA Chess.">
+    <meta property="og:url" content="https://www.caissa-chess.org/endgame-trainer">
+    <meta property="og:image" content="https://www.caissa-chess.org/og-image.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/chessboard-1.0.0.min.css">
+    <link rel="stylesheet" href="/css/endgame-trainer.css">
+    <script type="importmap">{"imports":{"chess.js":"https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm"}}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"CAISSA Endgame Trainer","url":"https://www.caissa-chess.org/endgame-trainer","description":"Practice focused endgames with guided session feedback.","provider":{"@type":"Organization","name":"CAISSA Chess"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free during beta"}}</script>
+</head>
+<body>
+<div class="endgame-trainer-page is-empty" data-endgame-trainer-page data-state="empty">
+    <button class="endgame-trainer-page__nav-toggle" data-mobile-nav-toggle aria-controls="endgame-nav" aria-expanded="false" aria-label="Open navigation"><i class="fas fa-bars" aria-hidden="true"></i></button>
+    <nav id="endgame-nav" class="endgame-trainer-page__nav" data-mobile-nav aria-label="CAISSA main navigation">
+        <a class="endgame-trainer-page__logo" href="/"><i class="fas fa-chess-knight" aria-hidden="true"></i> CAISSA</a>
+        <a class="endgame-trainer-page__auth" href="/signin" aria-label="Sign in to CAISSA"><i class="fas fa-sign-in-alt" aria-hidden="true"></i> Sign In</a>
+        <a class="endgame-trainer-page__premium" href="/premium"><i class="fas fa-crown" aria-hidden="true"></i> Premium</a>
+        <div class="endgame-trainer-page__nav-items">
+            <a data-nav-key="classic" href="/?section=yahooClassic">CAISSA Classic</a><a data-nav-key="play" href="/?section=play">Play</a><a data-nav-key="mentor" href="/?section=mentor">Mentor</a><a data-nav-key="academy" href="/?section=academy">Academy</a><a data-nav-key="endgame-trainer" href="/endgame-trainer"><i class="fas fa-chess-pawn" aria-hidden="true"></i> Endgame Trainer</a><a data-nav-key="insights" href="/?section=insights">Insights</a><a data-nav-key="fics" href="/?section=fics">FICS</a><a data-nav-key="analyze" href="/?section=analyze">Analyze</a><a data-nav-key="spectator" href="/?section=spectator">Spectator TV</a><a data-nav-key="arena" href="/?section=arena">Arena</a><a data-nav-key="cheater-insight" href="/?section=cheater-insight">Cheater Insight</a><a data-nav-key="polyglot" href="/tools/polyglot">Polyglot Tool</a><a data-nav-key="opening-database" href="/opening-database">Opening Database</a><a data-nav-key="eco" href="/eco">ECO Codes</a><a data-nav-key="library" href="/?section=library">Game Library</a><a data-nav-key="history" href="/?section=history">History</a><a data-nav-key="dosChess" href="/?section=dosChess">DOS Chess</a><a data-nav-key="vault" href="/vault">Vault</a><a data-nav-key="blog" href="https://tvlavin.blogspot.com/" target="_blank" rel="noopener noreferrer">Blog</a><a data-nav-key="help-videos" href="https://www.youtube.com/playlist?list=PLS6AOWARshCU" target="_blank" rel="noopener noreferrer">Help Videos</a><a href="mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback">Contact / Feedback</a>
+        </div>
+        <footer class="endgame-trainer-page__nav-footer"><a href="/?section=help">Help</a><a href="/?section=settings">Settings</a></footer>
+    </nav>
+
+    <main class="endgame-trainer-page__main">
+        <header class="endgame-trainer-page__header">
+            <p class="endgame-trainer-page__kicker">CAISSA Training</p>
+            <div class="endgame-trainer-page__title-row">
+                <h1>Endgame Trainer</h1>
+                <span class="endgame-trainer-page__badge">Beta</span>
+                <span class="endgame-trainer-page__free">Free during beta</span>
+            </div>
+            <p>Practice focused endgame positions against Stockfish.</p>
+        </header>
+
+        <div class="endgame-trainer-page__grid">
+            <section class="endgame-trainer-page__board-panel" aria-labelledby="board-title">
+                <h2 id="board-title">Training board</h2>
+                <div class="endgame-trainer-page__board-stage">
+                    <div class="endgame-trainer-page__board" data-board tabindex="0" aria-label="Endgame training board"></div>
+                    <div class="endgame-trainer-page__empty-overlay" data-empty-board-overlay role="status" aria-label="No endgame position prepared">
+                        <i class="fas fa-chess-pawn" aria-hidden="true"></i>
+                        <h3>Prepare an endgame position</h3>
+                        <p>Choose a category, side, and engine strength to begin training.</p>
+                        <span>Use the Setup panel to begin.</span>
+                    </div>
+                    <div class="endgame-trainer-page__overlay" data-board-overlay hidden>Stockfish is thinking…</div>
+                </div>
+                <p data-announcement class="endgame-trainer-page__announcement" role="status" aria-live="polite"></p>
+                <section class="endgame-trainer-page__state" data-diagnostic-state aria-live="polite">
+                    <div class="endgame-trainer-page__status-icon" aria-hidden="true"><i class="fas fa-bullseye"></i></div>
+                    <div><h3 data-status-title>Ready to train</h3><p data-status-copy>Prepare a focused endgame position to begin.</p><p data-error-message role="alert"></p></div>
+                </section>
+                <div class="endgame-trainer-page__controls endgame-trainer-page__controls--primary" data-action-group="primary" aria-label="Primary session actions">
+                    <button data-action="hint" disabled>Hint</button>
+                    <button data-action="restart" disabled>Restart</button>
+                    <button class="endgame-trainer-page__new-position" data-action="new" disabled>New Position</button>
+                </div>
+            </section>
+
+            <section class="endgame-trainer-page__setup" aria-labelledby="setup-title">
+                <h2 id="setup-title">Setup</h2>
+                <p class="endgame-trainer-page__panel-intro">Choose your training settings.</p>
+                <fieldset><legend>Piece Count</legend><select data-setup="pieces" name="piece-count"><option value="3">3</option><option value="4">4</option><option value="random">Random</option><option disabled>5 — Coming Soon</option><option disabled>6 — Coming Soon</option></select></fieldset>
+                <fieldset><legend>Category</legend><select data-setup="category" name="category"><option value="KPK">King and Pawn vs King</option><option value="KRK">King and Rook vs King</option><option value="KQK">King and Queen vs King</option><option value="KPKP">King and Pawn vs King and Pawn</option><option value="random">Random Supported Endgame</option></select></fieldset>
+                <fieldset><legend>Play As</legend><select data-setup="color" name="color"><option value="white">White</option><option value="black">Black</option><option value="random">Random</option></select></fieldset>
+                <fieldset><legend>Engine Strength</legend><select data-setup="strength" name="strength"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option><option value="strong">Strong</option></select></fieldset>
+                <div class="endgame-trainer-page__setup-actions">
+                    <button class="endgame-trainer-page__prepare" type="button" data-action="prepare">Prepare Position</button>
+                    <button type="button" data-action="start" disabled>Start</button>
+                    <p id="start-helper" class="endgame-trainer-page__helper" data-start-helper>Prepare a position first.</p>
+                </div>
+                <p data-page-message class="endgame-trainer-page__page-message" role="status">Choose settings and prepare a position.</p>
+            </section>
+
+            <aside class="endgame-trainer-page__session" aria-labelledby="session-title">
+                <h2 id="session-title">Session</h2>
+                <section class="endgame-trainer-page__session-empty" data-session-empty>
+                    <i class="fas fa-route" aria-hidden="true"></i><h3>How it works</h3>
+                    <ol><li>Choose an endgame.</li><li>Prepare the position.</li><li>Start training against Stockfish.</li></ol>
+                </section>
+                <div class="endgame-trainer-page__session-details" data-session-details>
+                    <dl class="endgame-trainer-page__facts endgame-trainer-page__facts--main">
+                        <div class="endgame-trainer-page__fact endgame-trainer-page__fact--objective"><dt>Objective</dt><dd data-field="objective">—</dd></div>
+                        <div class="endgame-trainer-page__fact"><dt>Turn</dt><dd data-field="turn">—</dd></div>
+                        <div class="endgame-trainer-page__fact"><dt>Session Status</dt><dd data-field="status">Empty</dd></div>
+                    </dl>
+                    <dl class="endgame-trainer-page__facts">
+                        <div class="endgame-trainer-page__fact"><dt>Attempt</dt><dd data-field="attempt">—</dd></div>
+                        <div class="endgame-trainer-page__fact"><dt>Hints</dt><dd data-field="hints">0</dd></div>
+                        <div class="endgame-trainer-page__fact"><dt>Undos</dt><dd data-field="undos">0</dd></div>
+                    </dl>
+                    <dl class="endgame-trainer-page__facts">
+                        <div class="endgame-trainer-page__fact"><dt>Engine Status</dt><dd data-field="engine">Not initialized</dd></div>
+                        <div class="endgame-trainer-page__fact"><dt>Result</dt><dd data-field="result">—</dd></div>
+                        <div class="endgame-trainer-page__fact"><dt>Heuristic score</dt><dd data-field="score">—</dd></div>
+                    </dl>
+                    <p data-hint-output class="endgame-trainer-page__hint-output"></p>
+                </div>
+                <section class="endgame-trainer-page__history-section">
+                    <h3>Move History</h3>
+                    <ol class="endgame-trainer-page__history" data-history><li><strong>No moves yet.</strong><span>Moves will appear here once the session starts.</span></li></ol>
+                </section>
+                <div class="endgame-trainer-page__controls endgame-trainer-page__controls--secondary" data-action-group="secondary" aria-label="Secondary session actions">
+                    <button data-action="undo" disabled>Undo</button>
+                    <button data-action="flip">Flip Board</button>
+                    <button class="endgame-trainer-page__resign" data-action="resign" disabled>Resign</button>
+                </div>
+            </aside>
+        </div>
+    </main>
+    <dialog class="endgame-trainer-page__promotion" data-promotion aria-labelledby="promotion-title"><h2 id="promotion-title">Choose promotion</h2><div><button data-promotion-piece="q">Queen</button><button data-promotion-piece="r">Rook</button><button data-promotion-piece="b">Bishop</button><button data-promotion-piece="n">Knight</button><button data-promotion-piece="">Cancel</button></div></dialog>
+</div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+<script type="module" src="/js/endgame-trainer/endgame-trainer-page.js"></script>
+</body>
+</html>

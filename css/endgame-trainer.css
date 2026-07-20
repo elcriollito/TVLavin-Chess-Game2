@@ -1,5 +1,165 @@
-.endgame-trainer-page{--et-bg:#0b1020;--et-panel:#151d2f;--et-line:#2a3650;--et-text:#edf2ff;--et-muted:#a9b4ca;--et-accent:#7c9cff;min-height:100vh;background:var(--et-bg);color:var(--et-text);font:16px/1.5 Inter,system-ui,sans-serif;display:grid;grid-template-columns:220px minmax(0,1fr)}.endgame-trainer-page *{box-sizing:border-box}.endgame-trainer-page a{color:inherit}.endgame-trainer-page__nav{position:sticky;top:0;height:100vh;padding:20px 12px;background:#101829;display:flex;flex-direction:column;gap:16px;overflow:auto}.endgame-trainer-page__logo{font-size:1.35rem;font-weight:800;text-decoration:none}.endgame-trainer-page__auth{padding:12px;border:1px solid var(--et-line);border-radius:10px;color:var(--et-muted)}.endgame-trainer-page__premium{padding:11px;border-radius:10px;background:#8b5cf6;text-decoration:none;font-weight:700}.endgame-trainer-page__nav-items{display:grid;gap:4px}.endgame-trainer-page__nav-items a,.endgame-trainer-page__nav-footer a{min-height:44px;padding:10px 12px;border-radius:8px;text-decoration:none}.endgame-trainer-page__nav-items a.is-active{background:var(--et-accent);color:#08101f;font-weight:800}.endgame-trainer-page__nav-footer{margin-top:auto;display:grid}.endgame-trainer-page__nav-toggle{display:none}.endgame-trainer-page__main{min-width:0;padding:clamp(16px,3vw,36px)}.endgame-trainer-page__header{max-width:1100px;margin:auto auto 24px}.endgame-trainer-page__header h1{display:inline;margin-right:10px;font-size:clamp(2rem,4vw,3.5rem)}.endgame-trainer-page__kicker{color:var(--et-accent);font-weight:800;text-transform:uppercase;letter-spacing:.12em}.endgame-trainer-page__badge{padding:4px 9px;border-radius:999px;background:#244436;color:#8ff0bd}.endgame-trainer-page__grid{max-width:1100px;margin:auto;display:grid;grid-template-columns:minmax(190px,240px) minmax(360px,1fr) minmax(220px,280px);gap:18px;align-items:start}.endgame-trainer-page__setup,.endgame-trainer-page__board-panel,.endgame-trainer-page__session{min-width:0;padding:18px;border:1px solid var(--et-line);border-radius:14px;background:var(--et-panel)}.endgame-trainer-page fieldset{border:0;padding:0;margin:0 0 14px}.endgame-trainer-page legend{font-weight:700;margin-bottom:5px}.endgame-trainer-page select,.endgame-trainer-page button{width:100%;min-height:44px;padding:9px;border:1px solid var(--et-line);border-radius:8px;background:#0f1728;color:var(--et-text);font:inherit}.endgame-trainer-page button:focus-visible,.endgame-trainer-page a:focus-visible,.endgame-trainer-page select:focus-visible{outline:3px solid #f8d66d;outline-offset:2px}.endgame-trainer-page button:disabled{opacity:.55}.endgame-trainer-page__board{aspect-ratio:1;display:grid;place-items:center;text-align:center;padding:24px;border-radius:10px;background-color:#d4b483;background-image:linear-gradient(45deg,#825f3a 25%,transparent 25%),linear-gradient(-45deg,#825f3a 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#825f3a 75%),linear-gradient(-45deg,transparent 75%,#825f3a 75%);background-size:25% 25%;background-position:0 0,0 12.5%,12.5% -12.5%,-12.5% 0;color:#fff;text-shadow:0 2px 5px #000;font-weight:800}.endgame-trainer-page__state{margin-top:14px}.endgame-trainer-page [data-state-view]{display:none}.endgame-trainer-page[data-state="empty"] [data-state-view="empty"],.endgame-trainer-page[data-state="loading"] [data-state-view="loading"],.endgame-trainer-page[data-state="error"] [data-state-view="error"],.endgame-trainer-page[data-state="completed"] [data-state-view="completed"]{display:block}.endgame-trainer-page__spinner{display:inline-block;width:28px;height:28px;border:4px solid var(--et-line);border-top-color:var(--et-accent);border-radius:50%;animation:et-spin .8s linear infinite}.endgame-trainer-page__session dl{display:grid;grid-template-columns:1fr 1fr;gap:7px}.endgame-trainer-page__session dd{margin:0;text-align:right;color:var(--et-muted)}.endgame-trainer-page__history{max-height:160px;overflow:auto;padding-left:22px}.endgame-trainer-page__controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}@keyframes et-spin{to{transform:rotate(360deg)}}
-@media(max-width:1100px){.endgame-trainer-page__grid{grid-template-columns:1fr 1fr}.endgame-trainer-page__board-panel{grid-column:1/-1;grid-row:1}.endgame-trainer-page__setup,.endgame-trainer-page__session{grid-row:2}}
-@media(max-width:768px){.endgame-trainer-page{display:block;padding-top:env(safe-area-inset-top)}.endgame-trainer-page__nav{position:fixed;z-index:20;inset:0 auto 0 0;width:min(280px,85vw);height:100dvh;transform:translateX(-105%);transition:transform .2s ease}.endgame-trainer-page.is-nav-open .endgame-trainer-page__nav{transform:none}.endgame-trainer-page__nav-toggle{display:grid;place-items:center;position:fixed;z-index:21;top:max(12px,env(safe-area-inset-top));left:12px;width:48px;height:48px;border:0;border-radius:50%;background:#24314a;color:#fff}.endgame-trainer-page__main{padding:76px 10px 20px}.endgame-trainer-page__grid{display:flex;flex-direction:column}.endgame-trainer-page__board-panel{order:1;width:100%}.endgame-trainer-page__setup{order:2;width:100%}.endgame-trainer-page__session{order:3;width:100%}.endgame-trainer-page__header h1{font-size:2rem}}
-@media(prefers-reduced-motion:reduce){.endgame-trainer-page__spinner{animation:none}.endgame-trainer-page__nav{transition:none}}
-.endgame-trainer-page__board-panel{position:relative}.endgame-trainer-page__board{display:block;padding:0;background:none;text-shadow:none}.endgame-trainer-page .board-b72b1{box-sizing:content-box}.endgame-trainer-page__overlay{position:absolute;inset:58px 18px auto;aspect-ratio:1;display:grid;place-items:center;background:#08101fcc;z-index:4;font-weight:800}.endgame-trainer-page__overlay[hidden]{display:none}.endgame-trainer-page__promotion{max-width:calc(100vw - 24px);max-height:calc(100vh - 24px);background:var(--et-panel);color:var(--et-text);border:1px solid var(--et-line);border-radius:14px}.endgame-trainer-page__promotion div{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.endgame-trainer-page {
+    --et-bg: #090e1b;
+    --et-panel: #141d30;
+    --et-panel-raised: #18243a;
+    --et-line: #31405d;
+    --et-text: #f1f5ff;
+    --et-muted: #b8c2d6;
+    --et-accent: #86a2ff;
+    --et-accent-strong: #6f91ff;
+    --et-success: #91e8bb;
+    min-height: 100vh;
+    background: radial-gradient(circle at 55% -20%, #16213a 0, var(--et-bg) 42%);
+    color: var(--et-text);
+    font: 16px/1.5 Inter, system-ui, sans-serif;
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+}
+.endgame-trainer-page * { box-sizing: border-box; }
+.endgame-trainer-page a { color: inherit; }
+.endgame-trainer-page__nav {
+    position: sticky; top: 0; height: 100vh; padding: 20px 12px;
+    background: #0e1728; border-right: 1px solid #26344d;
+    display: flex; flex-direction: column; gap: 16px; overflow: auto;
+    scrollbar-color: #34415a transparent; scrollbar-width: thin;
+}
+.endgame-trainer-page__logo { font-size: 1.35rem; font-weight: 800; text-decoration: none; }
+.endgame-trainer-page__auth { padding: 12px; border: 1px solid var(--et-line); border-radius: 10px; color: var(--et-muted); }
+.endgame-trainer-page__premium { padding: 11px; border-radius: 10px; background: #8058df; text-decoration: none; font-weight: 700; }
+.endgame-trainer-page__nav-items { display: grid; gap: 4px; }
+.endgame-trainer-page__nav-items a, .endgame-trainer-page__nav-footer a { min-height: 44px; padding: 10px 12px; border-radius: 8px; text-decoration: none; }
+.endgame-trainer-page__nav-items a.is-active { background: var(--et-accent); color: #08101f; font-weight: 800; }
+.endgame-trainer-page__nav-footer { margin-top: auto; display: grid; }
+.endgame-trainer-page__nav-toggle { display: none; }
+.endgame-trainer-page__main { min-width: 0; padding: clamp(18px, 2.5vw, 32px); }
+.endgame-trainer-page__header { max-width: 1140px; margin: 0 auto 18px; }
+.endgame-trainer-page__header > p:last-child { max-width: 100%; margin: 7px 0 0; color: var(--et-muted); overflow-wrap: anywhere; }
+.endgame-trainer-page__kicker { margin: 0 0 4px; color: var(--et-accent); font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .14em; }
+.endgame-trainer-page__title-row { min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; }
+.endgame-trainer-page__header h1 { max-width: 100%; margin: 0; font-size: clamp(2rem, 3.5vw, 3.15rem); line-height: 1.08; letter-spacing: -.035em; overflow-wrap: anywhere; }
+.endgame-trainer-page__badge, .endgame-trainer-page__free { display: inline-flex; align-items: center; min-height: 28px; padding: 3px 9px; border-radius: 999px; font-size: .82rem; white-space: nowrap; }
+.endgame-trainer-page__badge { background: #204634; color: var(--et-success); }
+.endgame-trainer-page__free { border: 1px solid var(--et-line); background: #111a2b; color: #cbd5e9; }
+.endgame-trainer-page__grid {
+    max-width: 1140px; margin: auto; display: grid;
+    grid-template-columns: minmax(220px, 240px) minmax(390px, 1fr) minmax(250px, 280px);
+    grid-template-areas: "setup board session"; gap: 16px; align-items: start;
+}
+.endgame-trainer-page__setup, .endgame-trainer-page__board-panel, .endgame-trainer-page__session {
+    min-width: 0; padding: 16px; border: 1px solid var(--et-line); border-radius: 16px;
+    background: linear-gradient(180deg, var(--et-panel-raised), var(--et-panel));
+    box-shadow: 0 16px 40px #02071338;
+}
+.endgame-trainer-page__setup { grid-area: setup; }
+.endgame-trainer-page__board-panel { grid-area: board; }
+.endgame-trainer-page__session { grid-area: session; }
+.endgame-trainer-page h2 { margin: 0 0 12px; font-size: 1.16rem; letter-spacing: -.01em; }
+.endgame-trainer-page__panel-intro { margin: -5px 0 16px; color: var(--et-muted); font-size: .9rem; }
+.endgame-trainer-page fieldset { border: 0; padding: 0; margin: 0 0 12px; }
+.endgame-trainer-page legend { margin-bottom: 5px; color: #dfe6f7; font-size: .82rem; font-weight: 750; }
+.endgame-trainer-page select, .endgame-trainer-page button {
+    width: 100%; min-height: 44px; padding: 9px 11px; border: 1px solid var(--et-line);
+    border-radius: 9px; background: #0e1728; color: var(--et-text); font: inherit;
+}
+.endgame-trainer-page button { cursor: pointer; transition: border-color .15s ease, background .15s ease, opacity .15s ease, transform .15s ease; }
+.endgame-trainer-page button:not(:disabled):hover { border-color: #61749b; background: #17243a; }
+.endgame-trainer-page button:not(:disabled):active { transform: translateY(1px); }
+.endgame-trainer-page button:focus-visible, .endgame-trainer-page a:focus-visible, .endgame-trainer-page select:focus-visible { outline: 3px solid #f8d66d; outline-offset: 2px; }
+.endgame-trainer-page button:disabled { opacity: .66; color: #aeb9ce; background: #111a2b; cursor: not-allowed; }
+.endgame-trainer-page__prepare:not(:disabled) { border-color: #829dff; background: linear-gradient(135deg, #6688f8, #7f69e8); color: #fff; font-weight: 800; }
+.endgame-trainer-page__setup-actions { display: grid; gap: 8px; margin-top: 16px; }
+.endgame-trainer-page__helper { min-height: 20px; margin: -1px 2px 0; color: var(--et-muted); font-size: .78rem; }
+.endgame-trainer-page__page-message { margin: 12px 0 0; color: var(--et-muted); font-size: .82rem; }
+.endgame-trainer-page__board-stage { position: relative; width: 100%; aspect-ratio: 1; overflow: hidden; border-radius: 12px; background: #0a1120; box-shadow: 0 0 0 1px #50607d, 0 18px 36px #02071355; }
+.endgame-trainer-page__board { display: block; width: 100%; padding: 0; background: none; text-shadow: none; }
+.endgame-trainer-page .board-b72b1 { box-sizing: content-box; }
+.endgame-trainer-page__empty-overlay, .endgame-trainer-page__overlay {
+    position: absolute; inset: -1px; z-index: 4; display: grid; place-content: center; justify-items: center;
+    padding: clamp(18px, 6%, 34px); text-align: center;
+}
+.endgame-trainer-page__empty-overlay {
+    background:
+        linear-gradient(#0b1423f2, #0b1423fa),
+        conic-gradient(from 90deg at 1px 1px, #263752 25%, transparent 0) 0 0/25% 25%;
+    pointer-events: none;
+}
+.endgame-trainer-page__empty-overlay > * { max-width: 100%; }
+.endgame-trainer-page__empty-overlay i { display: grid; place-items: center; width: 46px; height: 46px; margin-bottom: 12px; border: 1px solid #526486; border-radius: 50%; color: var(--et-accent); font-size: 1.25rem; }
+.endgame-trainer-page__empty-overlay h3 { margin: 0; font-size: clamp(1rem, 3.5vw, 1.35rem); overflow-wrap: anywhere; }
+.endgame-trainer-page__empty-overlay p { max-width: 330px; margin: 7px 0 10px; color: #c8d2e5; font-size: clamp(.78rem, 2vw, .92rem); }
+.endgame-trainer-page__empty-overlay span { color: var(--et-accent); font-size: .78rem; font-weight: 750; }
+.endgame-trainer-page:not(.is-empty):not(.is-preparing) .endgame-trainer-page__empty-overlay { display: none; }
+.endgame-trainer-page__overlay { background: #08101fe8; font-weight: 800; }
+.endgame-trainer-page__overlay[hidden] { display: none; }
+.endgame-trainer-page__announcement { min-height: 0; margin: 0; }
+.endgame-trainer-page__announcement:empty { display: none; }
+.endgame-trainer-page__state { display: flex; gap: 11px; align-items: flex-start; margin-top: 13px; padding: 12px; border: 1px solid #344664; border-radius: 11px; background: #0e1829; }
+.endgame-trainer-page__state h3 { margin: 0; font-size: 1rem; }
+.endgame-trainer-page__state p { margin: 2px 0 0; color: var(--et-muted); font-size: .84rem; }
+.endgame-trainer-page__state [data-error-message]:empty { display: none; }
+.endgame-trainer-page__status-icon { display: grid; place-items: center; flex: 0 0 34px; height: 34px; border-radius: 9px; background: #263656; color: var(--et-accent); }
+.endgame-trainer-page.is-error .endgame-trainer-page__state { border-color: #7f4551; }
+.endgame-trainer-page.is-completed .endgame-trainer-page__state { border-color: #397052; }
+.endgame-trainer-page__controls { display: grid; gap: 8px; }
+.endgame-trainer-page__controls--primary { grid-template-columns: repeat(3, 1fr); margin-top: 10px; }
+.endgame-trainer-page__controls--primary button:not(:disabled) { border-color: #506da8; }
+.endgame-trainer-page__new-position:not(:disabled) { background: #1f3357; font-weight: 700; }
+.endgame-trainer-page__session-empty { padding: 17px 14px; border: 1px dashed #405270; border-radius: 12px; background: #101a2b; }
+.endgame-trainer-page__session-empty i { color: var(--et-accent); }
+.endgame-trainer-page__session-empty h3 { margin: 8px 0 6px; font-size: 1rem; }
+.endgame-trainer-page__session-empty ol { margin: 0; padding-left: 20px; color: var(--et-muted); font-size: .86rem; }
+.endgame-trainer-page__session-details { display: none; }
+.endgame-trainer-page:not(.is-empty):not(.is-preparing) .endgame-trainer-page__session-empty { display: none; }
+.endgame-trainer-page:not(.is-empty):not(.is-preparing) .endgame-trainer-page__session-details { display: block; }
+.endgame-trainer-page__facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin: 0; padding: 10px 0; border-top: 1px solid #2a3953; }
+.endgame-trainer-page__facts--main { grid-template-columns: 1fr; padding-top: 0; border-top: 0; }
+.endgame-trainer-page__fact { min-width: 0; padding: 7px; border-radius: 8px; background: #101a2b; }
+.endgame-trainer-page__fact dt { color: #9eabc2; font-size: .68rem; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
+.endgame-trainer-page__fact dd { margin: 2px 0 0; color: var(--et-text); font-size: .88rem; font-weight: 650; overflow-wrap: anywhere; }
+.endgame-trainer-page__fact--objective { min-height: 64px; }
+.endgame-trainer-page__hint-output { margin: 6px 0 0; color: var(--et-accent); font-size: .84rem; }
+.endgame-trainer-page__hint-output:empty { display: none; }
+.endgame-trainer-page__history-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid #2a3953; }
+.endgame-trainer-page__history-section h3 { margin: 0 0 7px; font-size: .96rem; }
+.endgame-trainer-page__history { max-height: 145px; margin: 0; padding: 0; overflow: auto; list-style: none; scrollbar-width: thin; }
+.endgame-trainer-page__history li { display: grid; gap: 2px; padding: 7px 8px; border-radius: 7px; font-size: .84rem; }
+.endgame-trainer-page__history li:nth-child(even), .endgame-trainer-page__history li:last-child:not(:only-child) { background: #101b2e; }
+.endgame-trainer-page__history li span { color: var(--et-muted); font-size: .76rem; }
+.endgame-trainer-page__controls--secondary { grid-template-columns: 1fr 1fr; margin-top: 12px; }
+.endgame-trainer-page__resign:not(:disabled) { border-color: #87515a; color: #ffc3ca; }
+.endgame-trainer-page__promotion { max-width: calc(100vw - 24px); max-height: calc(100vh - 24px); background: var(--et-panel); color: var(--et-text); border: 1px solid var(--et-line); border-radius: 14px; }
+.endgame-trainer-page__promotion div { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+@media (max-width: 1100px) {
+    .endgame-trainer-page__grid { grid-template-columns: 1fr 1fr; grid-template-areas: "board board" "setup session"; }
+    .endgame-trainer-page__board-panel { width: min(720px, 100%); justify-self: center; }
+}
+@media (max-width: 768px) {
+    .endgame-trainer-page { display: block; padding-top: env(safe-area-inset-top); }
+    .endgame-trainer-page__nav { position: fixed; z-index: 20; inset: 0 auto 0 0; width: min(280px, 85vw); height: 100dvh; transform: translateX(-105%); transition: transform .2s ease; box-shadow: 18px 0 45px #0008; }
+    .endgame-trainer-page.is-nav-open .endgame-trainer-page__nav { transform: none; }
+    .endgame-trainer-page__nav-toggle { display: grid; place-items: center; position: fixed; z-index: 21; top: max(12px, env(safe-area-inset-top)); left: 12px; width: 48px; height: 48px; border: 0; border-radius: 50%; background: #24314a; color: #fff; }
+    .endgame-trainer-page__main { padding: 76px 10px 20px; }
+    .endgame-trainer-page__header { margin-bottom: 16px; padding: 0 6px; }
+    .endgame-trainer-page__header h1 { font-size: clamp(1.8rem, 9vw, 2.35rem); }
+    .endgame-trainer-page__title-row { align-items: center; }
+    .endgame-trainer-page__grid { display: flex; flex-direction: column; gap: 12px; }
+    .endgame-trainer-page__board-panel, .endgame-trainer-page__setup, .endgame-trainer-page__session { width: 100%; }
+    .endgame-trainer-page__board-panel { order: 1; padding: 12px; }
+    .endgame-trainer-page__setup { order: 2; }
+    .endgame-trainer-page__session { order: 3; }
+    .endgame-trainer-page__controls--primary { grid-template-columns: 1fr 1fr 1.15fr; }
+}
+@media (max-width: 360px) {
+    .endgame-trainer-page__main { padding-inline: 8px; }
+    .endgame-trainer-page__header { padding-inline: 4px; }
+    .endgame-trainer-page__header h1 { flex-basis: 100%; }
+    .endgame-trainer-page__free { font-size: .75rem; }
+    .endgame-trainer-page__empty-overlay { padding: 14px; }
+    .endgame-trainer-page__empty-overlay i { width: 38px; height: 38px; margin-bottom: 8px; }
+    .endgame-trainer-page__empty-overlay p { margin: 5px 0 7px; }
+    .endgame-trainer-page__controls--primary { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .endgame-trainer-page__nav, .endgame-trainer-page button { transition: none; }
+}

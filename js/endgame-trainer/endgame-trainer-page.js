@@ -3,14 +3,16 @@ import { createEndgameTrainerRuntime } from './endgame-trainer-runtime.js';
 const CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP'];
 const STRENGTH = { beginner: { depth: 5, skillLevel: 2 }, intermediate: { depth: 8, skillLevel: 8 }, advanced: { depth: 12, skillLevel: 14 }, strong: { depth: 15, skillLevel: 20 } };
 const PUBLIC_ERRORS = { 'candidate-selection-failed': 'No suitable position was found.', 'engine-not-ready': 'The chess engine could not start.', 'engine-search-timeout': 'The engine took too long.', 'engine-load-failed': 'The chess engine could not load.', 'engine-move-failed': 'The engine could not complete its move.', 'invalid-move': 'That move is not legal.', 'invalid-options': 'Check the selected settings.', 'board-initialization-failed': 'The board could not start.', 'session-disposed': 'The session has ended.' };
+const RESULT_LABELS = { checkmate: 'Checkmate', resignation: 'Resignation', stalemate: 'Stalemate', draw: 'Draw' };
 let mounted = null;
 const copy = value => structuredClone(value);
 const text = (node, value) => { if (node) node.textContent = value ?? '—'; };
+const resultLabel = value => RESULT_LABELS[value] ?? value;
 
 function promotion(root, signal) {
-    const dialog = root.querySelector('[data-promotion]'); let settle = null;
+    const dialog = root.querySelector('[data-promotion]'); let settle = null; let returnFocus = null;
     const cancel = () => settle?.(null);
-    const resolve = () => new Promise(done => { let closed = false; settle = value => { if (closed) return; closed = true; settle = null; dialog.close(); done(value); }; dialog.showModal(); dialog.querySelector('[data-promotion-piece="q"]')?.focus(); });
+    const resolve = () => new Promise(done => { let closed = false; returnFocus = root.ownerDocument.activeElement; if (returnFocus === root.ownerDocument.body) returnFocus = root.querySelector('[data-board]'); settle = value => { if (closed) return; closed = true; settle = null; dialog.close(); returnFocus?.focus?.(); returnFocus = null; done(value); }; dialog.showModal(); dialog.querySelector('[data-promotion-piece="q"]')?.focus(); });
     dialog?.addEventListener('click', event => { const value = event.target?.dataset?.promotionPiece; if (value !== undefined) settle?.(value || null); }, { signal });
     dialog?.addEventListener('cancel', event => { event.preventDefault(); cancel(); }, { signal });
     return { resolve, cancel };
@@ -19,7 +21,11 @@ function promotion(root, signal) {
 function renderHistory(root, moves = []) {
     const list = root.querySelector('[data-history]'); if (!list) return;
     list.replaceChildren(); const doc = root.ownerDocument;
-    if (!moves.length) { const li = doc.createElement('li'); li.textContent = 'No moves yet.'; list.append(li); return; }
+    if (!moves.length) {
+        const li = doc.createElement('li'), title = doc.createElement('strong'), detail = doc.createElement('span');
+        title.textContent = 'No moves yet.'; detail.textContent = 'Moves will appear here once the session starts.';
+        li.append(title, detail); list.append(li); return;
+    }
     for (const entry of moves) { const li = doc.createElement('li'); li.textContent = `${entry.actor}: ${entry.move?.san || entry.move?.lan || 'move'}`; list.append(li); }
     list.lastElementChild?.scrollIntoView?.({ block: 'nearest' });
 }
@@ -27,15 +33,38 @@ function renderHistory(root, moves = []) {
 function update(root, page, snapshot) {
     const state = snapshot?.controllerState ?? page.controllerState ?? { status: 'idle', moveHistory: [] };
     page.controllerState = copy(state); page.operation = snapshot?.loading ?? null; page.hint = snapshot?.hint ?? page.hint;
-    const status = state.status === 'idle' ? 'empty' : page.operation ? 'loading' : state.status === 'completed' ? 'completed' : state.status === 'error' ? 'error' : state.status;
-    root.dataset.state = ['empty', 'loading', 'error', 'completed'].includes(status) ? status : 'ready';
+    const status = page.disposed ? 'disposed'
+        : page.operation ? 'preparing'
+        : state.engineThinking || state.status === 'engine-thinking' ? 'engine-thinking'
+        : state.status === 'idle' ? 'empty'
+        : ['ready', 'user-turn', 'completed', 'resigned', 'error'].includes(state.status) ? state.status
+        : 'ready';
+    root.dataset.state = status;
+    for (const name of ['empty', 'preparing', 'ready', 'user-turn', 'engine-thinking', 'completed', 'resigned', 'error', 'disposed']) {
+        root.classList.toggle(`is-${name}`, name === status);
+    }
     root.querySelector('[data-diagnostic-state]')?.setAttribute('aria-busy', String(Boolean(page.operation || state.engineThinking)));
+    const completedCopy = state.result?.gameResult ? `Result: ${resultLabel(state.result.gameResult)}.` : 'Review the final position and start another attempt.';
+    const statusCopy = {
+        empty: ['Ready to train', 'Prepare a focused endgame position to begin.'],
+        preparing: ['Preparing your position', 'Building a focused endgame for this session.'],
+        ready: ['Position ready', 'Review the board, then start the session.'],
+        'user-turn': ['Your turn', 'Find the best move in the position.'],
+        'engine-thinking': ['Stockfish is thinking', 'The board is temporarily locked.'],
+        completed: ['Endgame completed', completedCopy],
+        resigned: ['Session resigned', 'Prepare a new position when you are ready.'],
+        error: ['Unable to continue', 'Review the message and prepare another position.'],
+        disposed: ['Trainer closed', 'This training session is no longer active.']
+    }[status];
+    text(root.querySelector('[data-status-title]'), statusCopy[0]); text(root.querySelector('[data-status-copy]'), statusCopy[1]);
+    text(root.querySelector('[data-start-helper]'), status === 'empty' || status === 'error' ? 'Prepare a position first.' : status === 'ready' ? 'The position is ready to start.' : 'Session in progress.');
     const field = name => root.querySelector(`[data-field="${name}"]`);
     text(field('objective'), state.objective); text(field('turn'), state.sideToMove ? `${state.sideToMove[0].toUpperCase()}${state.sideToMove.slice(1)} to move` : '—');
     text(field('status'), state.status === 'user-turn' ? 'Your turn' : state.status); text(field('attempt'), state.attemptNumber); text(field('hints'), state.hintsUsed ?? 0); text(field('undos'), state.undosUsed ?? 0);
-    text(field('engine'), state.engineThinking ? 'Thinking' : page.disposed ? 'Disposed' : state.sessionId ? 'Ready' : 'Not initialized'); text(field('result'), state.result?.gameResult); text(field('score'), state.score);
+    text(field('engine'), state.engineThinking ? 'Thinking' : page.disposed ? 'Disposed' : state.sessionId ? 'Ready' : 'Not initialized'); text(field('result'), resultLabel(state.result?.gameResult)); text(field('score'), state.score);
     text(root.querySelector('[data-hint-output]'), page.hint?.suggestedMove ? `Suggested move: ${page.hint.suggestedMove}` : ''); renderHistory(root, state.moveHistory);
-    const overlay = root.querySelector('[data-board-overlay]'); if (overlay) overlay.hidden = !state.engineThinking;
+    const emptyOverlay = root.querySelector('[data-empty-board-overlay]'); if (emptyOverlay) emptyOverlay.hidden = !['empty', 'preparing'].includes(status);
+    const overlay = root.querySelector('[data-board-overlay]'); if (overlay) overlay.hidden = status !== 'engine-thinking';
     const enabled = page.disposed ? {} : { prepare: ['idle', 'error'].includes(state.status) && !page.operation, start: state.status === 'ready' && !page.operation, hint: state.status === 'user-turn' && !page.operation, undo: state.status === 'user-turn' && state.moveHistory?.length > 0 && !page.operation, restart: Boolean(state.sessionId), new: Boolean(state.sessionId), resign: Boolean(state.sessionId) && !['completed', 'resigned', 'error'].includes(state.status), flip: true };
     for (const button of root.querySelectorAll('[data-action]')) button.disabled = !enabled[button.dataset.action];
 }
