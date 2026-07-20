@@ -115,8 +115,28 @@
                 </div>
             </aside>
         </div>
+
+        <section class="endgame-trainer-page__summary" data-session-summary hidden aria-labelledby="summary-title">
+            <h2 id="summary-title">Session Summary</h2>
+            <dl data-summary-facts></dl>
+        </section>
+
+        <section class="endgame-trainer-page__progress" data-training-progress aria-labelledby="progress-title">
+            <header><div><h2 id="progress-title">Training Progress</h2><p>Stored only in this browser.</p></div></header>
+            <div class="endgame-trainer-page__metrics" data-progress-metrics></div>
+            <div class="endgame-trainer-page__progress-grid">
+                <section aria-labelledby="category-title"><h3 id="category-title">By Endgame</h3><ul class="endgame-trainer-page__category-list" data-category-breakdown></ul></section>
+                <section aria-labelledby="recent-title"><h3 id="recent-title">Recent Sessions</h3><ol class="endgame-trainer-page__recent" data-recent-sessions><li>No recent sessions yet.</li></ol><p data-recent-caption></p></section>
+            </div>
+            <footer class="endgame-trainer-page__progress-footer">
+                <div><p>Progress is stored only in this browser and is not synced to an account.</p><p data-persistence-warning role="status"></p></div>
+                <button type="button" data-reset-progress>Reset local progress</button>
+            </footer>
+            <p data-progress-announcement class="endgame-trainer-page__sr-only" role="status" aria-live="polite"></p>
+        </section>
     </main>
     <dialog class="endgame-trainer-page__promotion" data-promotion aria-labelledby="promotion-title"><h2 id="promotion-title">Choose promotion</h2><div><button data-promotion-piece="q">Queen</button><button data-promotion-piece="r">Rook</button><button data-promotion-piece="b">Bishop</button><button data-promotion-piece="n">Knight</button><button data-promotion-piece="">Cancel</button></div></dialog>
+    <dialog class="endgame-trainer-page__reset-dialog" data-reset-dialog aria-labelledby="reset-title"><h2 id="reset-title">Reset local progress?</h2><p>This removes Endgame Trainer progress stored in this browser.</p><div><button type="button" data-reset-cancel>Cancel</button><button type="button" data-reset-confirm>Reset progress</button></div></dialog>
 </div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>

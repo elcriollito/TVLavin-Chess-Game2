@@ -87,7 +87,7 @@ test('63 runtime hooks preserved', () => {
     for (const hook of ['data-board', 'data-board-overlay', 'data-promotion', 'data-announcement', 'data-field="status"', 'data-history']) assert.match(html, new RegExp(hook));
 });
 test('64 terminal results use human-readable presentation labels', () => {
-    assert.match(page, /RESULT_LABELS = \{ checkmate: 'Checkmate', resignation: 'Resignation', stalemate: 'Stalemate', draw: 'Draw' \}/);
+    assert.match(page, /checkmate: 'Checkmate'[\s\S]*resignation: 'Resignation'[\s\S]*stalemate: 'Stalemate'[\s\S]*draw: 'Draw'[\s\S]*abandoned: 'Abandoned'/);
     assert.match(page, /text\(field\('result'\), resultLabel\(state\.result\?\.gameResult\)\)/);
 });
 test('65 promotion restores focus to the keyboard-accessible board', () => {
@@ -95,3 +95,31 @@ test('65 promotion restores focus to the keyboard-accessible board', () => {
     assert.match(page, /returnFocus = root\.querySelector\('\[data-board\]'\)/);
     assert.match(page, /dialog\.close\(\); returnFocus\?\.focus\?\.\(\)/);
 });
+const progressCases = [
+    ['66 progress store imported', page, /createEndgameProgressStore/],
+    ['67 store factory injectable', page, /options\.progressStoreFactory/],
+    ['68 authoritative snapshot reconciliation', page, /reconcileProgress\(root, page, state\)/],
+    ['69 prepared ownership', page, /recordPreparedPosition/],
+    ['70 started ownership', page, /recordSessionStarted/],
+    ['71 completed ownership', page, /recordSessionCompleted/],
+    ['72 resigned ownership', page, /recordSessionResigned/],
+    ['73 abandoned ownership', page, /recordSessionAbandoned/],
+    ['74 pagehide abandonment', page, /addEventListener\?\.\('pagehide', abandon/],
+    ['75 store disposed', page, /progressStore\.dispose\(\)/],
+    ['76 session summary', html, /data-session-summary[\s\S]*Session Summary/],
+    ['77 training progress', html, /data-training-progress[\s\S]*Training Progress/],
+    ['78 six metrics', html, /data-progress-metrics/],
+    ['79 category breakdown', html, /By Endgame[\s\S]*data-category-breakdown/],
+    ['80 recent sessions', html, /Recent Sessions[\s\S]*data-recent-sessions/],
+    ['81 privacy copy', html, /Progress is stored only in this browser and is not synced to an account\./],
+    ['82 reset dialog', html, /data-reset-dialog[\s\S]*Reset local progress/],
+    ['83 reset uses dialog not confirm', page, /resetDialog\.showModal\(\)/],
+    ['84 reset focus restored', page, /resetReturnFocus\?\.focus/],
+    ['85 persistence warning', html, /data-persistence-warning role="status"/],
+    ['86 mobile order follows trainer', html, /endgame-trainer-page__grid[\s\S]*data-session-summary[\s\S]*data-training-progress/],
+    ['87 progress full width', css, /endgame-trainer-page__summary, \.endgame-trainer-page__progress[\s\S]*max-width: 1140px/],
+    ['88 compact mobile categories', css, /max-width: 390px[\s\S]*category-list li[\s\S]*grid-template-columns: 1fr/],
+    ['89 no progress polling', page, /setInterval|MutationObserver/],
+    ['90 no confirm API', page, /window\.confirm|globalThis\.confirm/]
+];
+for (const [name, source, pattern] of progressCases) test(name, name.startsWith('89 ') || name.startsWith('90 ') ? lacks(source, pattern) : has(source, pattern));
