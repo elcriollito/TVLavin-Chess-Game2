@@ -36,6 +36,17 @@ export function createEndgameProgressStore(options = {}) {
     let state = fresh(), disposed = false, available = Boolean(storage), errorCode = null, futureVersion = false;
     const seen = { prepared: new Set(), started: new Set(), terminal: new Set() };
     const fail = code => { available = false; errorCode = code; };
+    const read = ({ preserveOnError = false } = {}) => {
+        if (!storage) { fail('storage-unavailable'); return false; }
+        try {
+            const raw = storage.getItem(ENDGAME_PROGRESS_STORAGE_KEY);
+            const parsed = raw === null ? { state: fresh(), future: false } : normalize(JSON.parse(raw));
+            state = parsed.state; futureVersion = parsed.future; available = true; errorCode = null; return true;
+        } catch (error) {
+            if (!preserveOnError) state = fresh();
+            fail(error instanceof SyntaxError ? 'invalid-json' : 'storage-unavailable'); return false;
+        }
+    };
     const write = () => {
         if (!storage || futureVersion) { if (!storage) fail('storage-unavailable'); return false; }
         try { state.updatedAt = integer(now()); storage.setItem(ENDGAME_PROGRESS_STORAGE_KEY, JSON.stringify(state)); available = true; errorCode = null; return true; }
@@ -44,7 +55,7 @@ export function createEndgameProgressStore(options = {}) {
     const assertActive = () => { if (disposed) throw new Error('progress-store-disposed'); };
     const bump = (category, fields) => { for (const [field, amount] of Object.entries(fields)) { if (!TOTAL_FIELDS.includes(field)) continue; state.totals[field] += integer(amount); if (CATEGORIES.includes(category)) state.categories[category][field] += integer(amount); } };
     const idFor = entry => short(entry?.id ?? entry?.sessionId, 100);
-    const once = (type, entry, action) => { assertActive(); const id = idFor(entry); if (!id || seen[type].has(id)) return false; if (type === 'terminal' && state.recentSessions.some(item => item.id === id)) { seen[type].add(id); return false; } seen[type].add(id); action(id); write(); return true; };
+    const once = (type, entry, action) => { assertActive(); const id = idFor(entry); if (!id || seen[type].has(id)) return false; read({ preserveOnError: true }); if (type === 'terminal' && state.recentSessions.some(item => item.id === id)) { seen[type].add(id); return false; } seen[type].add(id); action(id); write(); return true; };
     const terminal = (entry, result, completed) => once('terminal', entry, id => {
         const category = CATEGORIES.includes(entry.category) ? entry.category : entry.categoryId;
         const field = result === 'resignation' ? 'resignations' : result === 'abandoned' ? 'abandoned' : `${result}s`;
@@ -53,9 +64,11 @@ export function createEndgameProgressStore(options = {}) {
         if (item) state.recentSessions = [...state.recentSessions.filter(old => old.id !== id), item].slice(-MAX_RECENT);
     });
     return {
-        load() { assertActive(); if (!storage) { fail('storage-unavailable'); return clone(state); } try { const raw = storage.getItem(ENDGAME_PROGRESS_STORAGE_KEY); if (raw !== null) { const parsed = normalize(JSON.parse(raw)); state = parsed.state; futureVersion = parsed.future; } available = true; errorCode = null; } catch (error) { state = fresh(); fail(error instanceof SyntaxError ? 'invalid-json' : 'storage-unavailable'); } return clone(state); },
+        load() { assertActive(); read(); return clone(state); },
+        refreshFromStorage() { assertActive(); read(); return clone({ ...state, completionRate: state.totals.sessionsStarted ? Math.round(state.totals.sessionsCompleted * 100 / state.totals.sessionsStarted) : 0, persistence: { available, errorCode } }); },
         getSnapshot() { assertActive(); return clone({ ...state, completionRate: state.totals.sessionsStarted ? Math.round(state.totals.sessionsCompleted * 100 / state.totals.sessionsStarted) : 0, persistence: { available, errorCode } }); },
         getDiagnosticSnapshot() { assertActive(); return { storageKey: ENDGAME_PROGRESS_STORAGE_KEY, schemaVersion: ENDGAME_PROGRESS_VERSION, lastRecordedSessionId: state.recentSessions.at(-1)?.id ?? null, persistenceAvailable: available, persistenceErrorCode: errorCode }; },
+        isStorageArea(value) { assertActive(); return !value || value === storage; },
         recordPreparedPosition(entry) { return once('prepared', entry, () => bump(entry.category ?? entry.categoryId, { positionsPrepared: 1 })); },
         recordSessionStarted(entry) { return once('started', entry, () => bump(entry.category ?? entry.categoryId, { sessionsStarted: 1 })); },
         recordSessionCompleted(entry) { const result = ENTRY_RESULTS.has(entry.result) ? entry.result : 'draw'; return terminal(entry, result, true); },

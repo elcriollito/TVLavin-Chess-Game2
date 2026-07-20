@@ -1,15 +1,16 @@
 import { createEndgameTrainerRuntime } from './endgame-trainer-runtime.js';
-import { createEndgameProgressStore } from './endgame-progress-store.js';
+import { createEndgameProgressStore, ENDGAME_PROGRESS_STORAGE_KEY } from './endgame-progress-store.js';
 
 const CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP'];
 const STRENGTH = { beginner: { depth: 5, skillLevel: 2 }, intermediate: { depth: 8, skillLevel: 8 }, advanced: { depth: 12, skillLevel: 14 }, strong: { depth: 15, skillLevel: 20 } };
 const PUBLIC_ERRORS = { 'candidate-selection-failed': 'No suitable position was found.', 'engine-not-ready': 'The chess engine could not start.', 'engine-search-timeout': 'The engine took too long.', 'engine-load-failed': 'The chess engine could not load.', 'engine-move-failed': 'The engine could not complete its move.', 'invalid-move': 'That move is not legal.', 'invalid-options': 'Check the selected settings.', 'board-initialization-failed': 'The board could not start.', 'session-disposed': 'The session has ended.' };
 const RESULT_LABELS = { checkmate: 'Checkmate', resignation: 'Resignation', stalemate: 'Stalemate', draw: 'Draw', abandoned: 'Abandoned' };
 let mounted = null;
+let pageSequence = 0;
 const copy = value => structuredClone(value);
 const text = (node, value) => { if (node) node.textContent = value ?? '—'; };
 const resultLabel = value => RESULT_LABELS[value] ?? value;
-const publicPage = page => copy({ mounted: page.mounted, navOpen: page.navOpen, runtimeAttached: page.runtimeAttached, operation: page.operation, hint: page.hint, error: page.error, disposed: page.disposed, diagnosticState: page.diagnosticState, controllerState: page.controllerState, progress: page.progressSnapshot, progressDiagnostic: page.diagnosticEnabled ? page.progressStore.getDiagnosticSnapshot() : undefined });
+const publicPage = page => copy({ mounted: page.mounted, navOpen: page.navOpen, runtimeAttached: page.runtimeAttached, operation: page.operation, hint: page.hint, error: page.error, disposed: page.disposed, diagnosticState: page.diagnosticState, controllerState: page.controllerState, progress: page.progressSnapshot, recentExpanded: page.recentExpanded, recentResult: page.recentResult, recentCategory: page.recentCategory, syncFeedback: page.syncFeedback, progressDiagnostic: page.diagnosticEnabled ? page.progressStore.getDiagnosticSnapshot() : undefined });
 const CATEGORY_LABELS = { KQK: 'Queen vs King', KRK: 'Rook vs King', KPK: 'Pawn vs King', KPKP: 'Pawn vs Pawn' };
 const durationLabel = value => { const seconds = Math.max(0, Math.round((value ?? 0) / 1000)); return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`; };
 
@@ -22,26 +23,36 @@ function renderProgress(root, page) {
     }
     const categories = root.querySelector('[data-category-breakdown]'); categories?.replaceChildren();
     for (const id of CATEGORIES) { const item = doc.createElement('li'), title = doc.createElement('strong'); title.textContent = CATEGORY_LABELS[id]; item.append(title); for (const [label, value] of [['sessions', snapshot.categories[id].sessionsStarted], ['completed', snapshot.categories[id].sessionsCompleted], ['checkmates', snapshot.categories[id].checkmates]]) { const span = doc.createElement('span'); span.textContent = `${value} ${label}`; item.append(span); } categories?.append(item); }
-    const recent = root.querySelector('[data-recent-sessions]'); recent?.replaceChildren(); const items = snapshot.recentSessions.slice(-5).reverse();
-    if (!items.length) { const li = doc.createElement('li'); li.textContent = 'No recent sessions yet.'; recent?.append(li); }
+    const allRecent = snapshot.recentSessions.slice().reverse();
+    const resultMatches = entry => page.recentResult === 'all' || page.recentResult === 'draw' ? page.recentResult === 'all' || ['draw', 'stalemate'].includes(entry.result) : entry.result === page.recentResult;
+    const filtered = allRecent.filter(entry => resultMatches(entry) && (page.recentCategory === 'all' || entry.category === page.recentCategory));
+    const items = page.recentExpanded ? filtered : filtered.slice(0, 5);
+    const recent = root.querySelector('[data-recent-sessions]'); recent?.replaceChildren();
+    if (!items.length) { const li = doc.createElement('li'); li.textContent = allRecent.length ? 'No sessions match these filters.' : 'No recent sessions yet.'; recent?.append(li); }
     for (const entry of items) { const li = doc.createElement('li'), badge = doc.createElement('span'), title = doc.createElement('strong'), detail = doc.createElement('small'); badge.className = 'endgame-trainer-page__result-badge'; badge.textContent = resultLabel(entry.result); title.textContent = `${CATEGORY_LABELS[entry.category]} · ${entry.userColor === 'black' ? 'Black' : 'White'}`; detail.textContent = `${entry.moveCount} moves · ${durationLabel(entry.durationMs)} · ${entry.endedAt ? new Date(entry.endedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Recently'}`; li.append(badge, title, detail); recent?.append(li); }
-    text(root.querySelector('[data-recent-caption]'), items.length ? `Showing the latest ${items.length} session${items.length === 1 ? '' : 's'}.` : '');
+    const filteredMode = page.recentResult !== 'all' || page.recentCategory !== 'all';
+    const caption = !allRecent.length ? '' : !filtered.length ? 'No sessions match these filters.' : filteredMode ? `Showing ${filtered.length} matching session${filtered.length === 1 ? '' : 's'}.` : page.recentExpanded ? `Showing all ${filtered.length} stored sessions.` : `Showing the latest ${Math.min(5, filtered.length)} session${Math.min(5, filtered.length) === 1 ? '' : 's'}.`;
+    text(root.querySelector('[data-recent-caption]'), caption);
+    const toggle = root.querySelector('[data-recent-toggle]'); if (toggle) { toggle.hidden = filtered.length <= 5; toggle.textContent = page.recentExpanded ? 'Show less' : 'Show more'; toggle.setAttribute('aria-expanded', String(page.recentExpanded)); }
     text(root.querySelector('[data-persistence-warning]'), snapshot.persistence.available ? '' : 'Progress could not be saved in this browser.');
+    text(root.querySelector('[data-sync-feedback]'), page.syncFeedback || '');
+    const progressNav = root.querySelector('[data-progress-nav]'); if (progressNav) progressNav.hidden = snapshot.totals.sessionsStarted === 0 && !['completed', 'resigned'].includes(page.controllerState?.status);
     page.progressSnapshot = snapshot;
 }
 
-function sessionEntry(state, owner, now) { return { id: state.sessionId, category: state.categoryId, pieceCount: state.initialFen?.split(' ')[0].replace(/[1-8/]/g, '').length ?? 0, userColor: state.userColor, attemptNumber: state.attemptNumber, hintsUsed: state.hintsUsed, undosUsed: state.undosUsed, moveCount: state.moveHistory?.length ?? 0, preparedAt: owner.preparedAt, endedAt: now, durationMs: owner.startedAt ? Math.max(0, now - owner.startedAt) : 0, initialFen: state.initialFen, finalFen: state.currentFen }; }
+function sessionEntry(state, owner, now) { return { id: owner.progressId, category: state.categoryId, pieceCount: state.initialFen?.split(' ')[0].replace(/[1-8/]/g, '').length ?? 0, userColor: state.userColor, attemptNumber: state.attemptNumber, hintsUsed: state.hintsUsed, undosUsed: state.undosUsed, moveCount: state.moveHistory?.length ?? 0, preparedAt: owner.preparedAt, endedAt: now, durationMs: owner.startedAt ? Math.max(0, now - owner.startedAt) : 0, initialFen: state.initialFen, finalFen: state.currentFen }; }
+function localProgress(page, operation) { const changed = operation(); if (changed) page.syncFeedback = ''; return changed; }
 function reconcileProgress(root, page, state) {
     if (!page.progressStore || page.disposed) return;
     const now = page.now(), previous = page.progressOwner;
-    if (previous && state.sessionId && previous.id !== state.sessionId && previous.started && !previous.terminal) { page.progressStore.recordSessionAbandoned(sessionEntry(previous.state, previous, now)); previous.terminal = true; }
+    if (previous && state.sessionId && previous.id !== state.sessionId && previous.started && !previous.terminal) { localProgress(page, () => page.progressStore.recordSessionAbandoned(sessionEntry(previous.state, previous, now))); previous.terminal = true; }
     if (!state.sessionId) { renderProgress(root, page); return; }
-    let owner = page.progressOwners.get(state.sessionId); if (!owner) { owner = { id: state.sessionId, preparedAt: now, startedAt: null, prepared: false, started: false, terminal: false, state }; page.progressOwners.set(state.sessionId, owner); }
+    let owner = page.progressOwners.get(state.sessionId); if (!owner) { owner = { id: state.sessionId, progressId: `${page.progressScopeId}:${state.sessionId}`, preparedAt: now, startedAt: null, prepared: false, started: false, terminal: false, state }; page.progressOwners.set(state.sessionId, owner); }
     owner.state = state; page.progressOwner = owner;
-    if (!owner.prepared && state.status !== 'preparing') { page.progressStore.recordPreparedPosition({ id: state.sessionId, category: state.categoryId }); owner.prepared = true; }
-    if (!owner.started && ['user-turn', 'engine-thinking', 'completed', 'resigned'].includes(state.status)) { owner.startedAt = now; page.progressStore.recordSessionStarted({ id: state.sessionId, category: state.categoryId }); owner.started = true; }
-    if (!owner.terminal && state.status === 'completed') { page.progressStore.recordSessionCompleted({ ...sessionEntry(state, owner, now), result: state.result?.gameResult }); owner.terminal = true; }
-    if (!owner.terminal && state.status === 'resigned') { page.progressStore.recordSessionResigned(sessionEntry(state, owner, now)); owner.terminal = true; }
+    if (!owner.prepared && state.status !== 'preparing') { localProgress(page, () => page.progressStore.recordPreparedPosition({ id: owner.progressId, category: state.categoryId })); owner.prepared = true; }
+    if (!owner.started && ['user-turn', 'engine-thinking', 'completed', 'resigned'].includes(state.status)) { owner.startedAt = now; localProgress(page, () => page.progressStore.recordSessionStarted({ id: owner.progressId, category: state.categoryId })); owner.started = true; }
+    if (!owner.terminal && state.status === 'completed') { localProgress(page, () => page.progressStore.recordSessionCompleted({ ...sessionEntry(state, owner, now), result: state.result?.gameResult })); owner.terminal = true; }
+    if (!owner.terminal && state.status === 'resigned') { localProgress(page, () => page.progressStore.recordSessionResigned(sessionEntry(state, owner, now))); owner.terminal = true; }
     renderProgress(root, page);
 }
 
@@ -123,7 +134,8 @@ export function mountEndgameTrainerPage(options = {}) {
     const params = new URLSearchParams(win.location?.search ?? '');
     const diagnosticEnabled = params.get('diagnostic') === '1', diagnosticState = diagnosticEnabled && ['empty', 'loading', 'error', 'completed'].includes(params.get('diagnosticState')) ? params.get('diagnosticState') : null;
     const progressStoreFactory = options.progressStoreFactory ?? createEndgameProgressStore, progressStore = progressStoreFactory({ storage: options.storage, now: options.now }); progressStore.load();
-    const page = { mounted: true, navOpen: false, runtimeAttached: false, operation: null, hint: null, error: null, disposed: false, diagnosticEnabled, diagnosticState, controllerState: null, seedSequence: 0, progressStore, progressOwners: new Map(), progressOwner: null, progressSnapshot: null, now: options.now ?? Date.now };
+    const progressScopeId = options.progressScopeId ?? globalThis.crypto?.randomUUID?.() ?? `tab-${++pageSequence}-${(options.now ?? Date.now)()}`;
+    const page = { mounted: true, navOpen: false, runtimeAttached: false, operation: null, hint: null, error: null, disposed: false, diagnosticEnabled, diagnosticState, controllerState: null, seedSequence: 0, progressStore, progressOwners: new Map(), progressOwner: null, progressSnapshot: null, progressScopeId, recentExpanded: false, recentResult: 'all', recentCategory: 'all', syncFeedback: '', now: options.now ?? Date.now };
     const runtimeFactory = options.runtimeFactory ?? createEndgameTrainerRuntime;
     let runtime = null;
     if (board) { runtime = runtimeFactory({ boardElement: board, promotionResolver: promo.resolve, callbacks: { onStateChange: snap => update(root, page, snap), onAnnouncement: value => text(root.querySelector('[data-announcement]'), value), onError: error => { if (error.code !== 'stale-operation') { page.error = { code: error.code }; text(root.querySelector('[data-error-message]'), PUBLIC_ERRORS[error.code] || 'The trainer encountered an error.'); } } } }).initialize(); page.runtimeAttached = true; }
@@ -133,14 +145,19 @@ export function mountEndgameTrainerPage(options = {}) {
     toggle?.addEventListener('click', () => { page.navOpen = !page.navOpen; root.classList.toggle('is-nav-open', page.navOpen); toggle.setAttribute('aria-expanded', String(page.navOpen)); }, { signal });
     doc.addEventListener('keydown', e => { if (e.key === 'Escape' && page.navOpen) closeNav(true); }, { signal }); doc.addEventListener('click', e => { if (page.navOpen && !nav?.contains(e.target) && !toggle?.contains(e.target)) closeNav(); }, { signal });
     win.addEventListener?.('resize', () => { if (page.navOpen && win.innerWidth > 768) closeNav(); }, { signal });
-    const abandon = () => { const owner = page.progressOwner; if (owner?.started && !owner.terminal) { page.progressStore.recordSessionAbandoned(sessionEntry(owner.state, owner, page.now())); owner.terminal = true; renderProgress(root, page); } };
+    const abandon = () => { const owner = page.progressOwner; if (owner?.started && !owner.terminal) { localProgress(page, () => page.progressStore.recordSessionAbandoned(sessionEntry(owner.state, owner, page.now()))); owner.terminal = true; renderProgress(root, page); } };
     win.addEventListener?.('pagehide', abandon, { signal });
     const resetDialog = root.querySelector('[data-reset-dialog]'), resetButton = root.querySelector('[data-reset-progress]'); let resetReturnFocus = null;
     resetButton?.addEventListener('click', () => { resetReturnFocus = resetButton; resetDialog.showModal(); root.querySelector('[data-reset-cancel]')?.focus(); }, { signal });
     const closeReset = () => { resetDialog?.close(); resetReturnFocus?.focus?.(); resetReturnFocus = null; };
     root.querySelector('[data-reset-cancel]')?.addEventListener('click', closeReset, { signal });
     resetDialog?.addEventListener('cancel', event => { event.preventDefault(); closeReset(); }, { signal });
-    root.querySelector('[data-reset-confirm]')?.addEventListener('click', () => { page.progressStore.reset(); renderProgress(root, page); text(root.querySelector('[data-progress-announcement]'), 'Local progress reset.'); closeReset(); }, { signal });
+    root.querySelector('[data-reset-confirm]')?.addEventListener('click', () => { page.progressStore.reset(); page.recentExpanded = false; page.recentResult = 'all'; page.recentCategory = 'all'; page.syncFeedback = ''; const result = root.querySelector('[data-recent-result]'), categoryFilter = root.querySelector('[data-recent-category]'); if (result) result.value = 'all'; if (categoryFilter) categoryFilter.value = 'all'; renderProgress(root, page); text(root.querySelector('[data-progress-announcement]'), 'Local progress reset.'); closeReset(); }, { signal });
+    root.querySelector('[data-recent-toggle]')?.addEventListener('click', () => { page.recentExpanded = !page.recentExpanded; renderProgress(root, page); }, { signal });
+    root.querySelector('[data-recent-result]')?.addEventListener('change', event => { page.recentResult = event.target.value; page.recentExpanded = false; renderProgress(root, page); }, { signal });
+    root.querySelector('[data-recent-category]')?.addEventListener('change', event => { page.recentCategory = event.target.value; page.recentExpanded = false; renderProgress(root, page); }, { signal });
+    root.querySelector('[data-view-progress]')?.addEventListener('click', () => { const heading = root.querySelector('#progress-title'), reduced = win.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches; heading?.scrollIntoView?.({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); heading?.focus?.({ preventScroll: true }); }, { signal });
+    win.addEventListener?.('storage', event => { if (event.key !== ENDGAME_PROGRESS_STORAGE_KEY || !page.progressStore.isStorageArea(event.storageArea)) return; const refreshed = page.progressStore.refreshFromStorage(); page.syncFeedback = event.newValue === null || refreshed.totals.sessionsStarted === 0 && refreshed.recentSessions.length === 0 ? 'Training progress was reset in another tab.' : 'Training progress updated from another tab.'; renderProgress(root, page); }, { signal });
     const act = (name, fn, invalidates = false) => root.querySelector(`[data-action="${name}"]`)?.addEventListener('click', async () => { if (invalidates) promo.cancel(); page.error = null; try { await fn(); } catch (error) { if (error?.code !== 'stale-operation') { page.error = { code: error?.code || 'operation-failed' }; text(root.querySelector('[data-error-message]'), PUBLIC_ERRORS[page.error.code] || 'The trainer encountered an error.'); } } finally { if (runtime) update(root, page, runtime.binding.getState()); } }, { signal });
     const nextSeed = () => `caissa-product-${Date.now()}-${++page.seedSequence}`;
     const category = seed => {

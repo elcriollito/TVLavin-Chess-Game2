@@ -123,3 +123,27 @@ const progressCases = [
     ['90 no confirm API', page, /window\.confirm|globalThis\.confirm/]
 ];
 for (const [name, source, pattern] of progressCases) test(name, name.startsWith('89 ') || name.startsWith('90 ') ? lacks(source, pattern) : has(source, pattern));
+
+const syncCases = [
+    ['91 scoped storage listener', page, /addEventListener\?\.\('storage'/],
+    ['92 exact storage key import', page, /ENDGAME_PROGRESS_STORAGE_KEY/],
+    ['93 store refresh on external event', page, /refreshFromStorage\(\)/],
+    ['94 update feedback', page, /Training progress updated from another tab\./],
+    ['95 reset feedback', page, /Training progress was reset in another tab\./],
+    ['96 result filter markup', html, /data-recent-result[\s\S]*Checkmate[\s\S]*Resignation[\s\S]*Abandoned/],
+    ['97 category filter markup', html, /data-recent-category[\s\S]*Queen vs King[\s\S]*Pawn vs Pawn/],
+    ['98 show more button', html, /data-recent-toggle[\s\S]*aria-expanded="false"[\s\S]*aria-controls="recent-sessions-list"/],
+    ['99 no-match copy', page, /No sessions match these filters\./],
+    ['100 draw includes stalemate', page, /\['draw', 'stalemate'\]\.includes/],
+    ['101 view progress action', html, /data-view-progress>View training progress/],
+    ['102 progress heading focus target', html, /id="progress-title" tabindex="-1"/],
+    ['103 reduced motion navigation', page, /prefers-reduced-motion: reduce/],
+    ['104 scroll without URL mutation', page, /scrollIntoView/],
+    ['105 sync polite live region', html, /data-sync-feedback role="status" aria-live="polite"/],
+    ['106 filter labels', html, /<label>Result<select[\s\S]*<label>Category<select/],
+    ['107 mobile select height', css, /recent-filters select[\s\S]*min-height: 44px/],
+    ['108 mobile show more height', css, /recent-toggle[\s\S]*min-height: 44px/],
+    ['109 no cross-tab polling', page, /setInterval|MutationObserver|BroadcastChannel/],
+    ['110 no remote synchronization', page, /postMessage|sendBeacon|XMLHttpRequest/]
+];
+for (const [name, source, pattern] of syncCases) test(name, name.startsWith('109 ') || name.startsWith('110 ') ? lacks(source, pattern) : has(source, pattern));

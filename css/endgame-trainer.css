@@ -168,6 +168,10 @@
     max-width: 1140px; margin: 16px auto 0; padding: 18px; border: 1px solid var(--et-line); border-radius: 16px;
     background: linear-gradient(180deg, var(--et-panel-raised), var(--et-panel)); box-shadow: 0 16px 40px #02071338;
 }
+.endgame-trainer-page__progress-nav { width: min(1140px, calc(100% - 32px)); margin: 10px auto 0; text-align: right; }
+.endgame-trainer-page__progress-nav[hidden] { display: none; }
+.endgame-trainer-page__progress-nav button { width: auto; min-height: 44px; }
+.endgame-trainer-page__progress h2:focus-visible { outline: 3px solid var(--et-accent); outline-offset: 5px; border-radius: 4px; }
 .endgame-trainer-page__summary[hidden] { display: none; }
 .endgame-trainer-page__summary dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0; }
 .endgame-trainer-page__summary dl div, .endgame-trainer-page__metric { min-width: 0; padding: 10px; border: 1px solid #30415f; border-radius: 10px; background: #0e1829; }
@@ -180,6 +184,12 @@
 .endgame-trainer-page__progress-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 18px; }
 .endgame-trainer-page__progress h3 { margin: 0 0 9px; font-size: 1rem; }
 .endgame-trainer-page__category-list, .endgame-trainer-page__recent { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.endgame-trainer-page__recent-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 9px; }
+.endgame-trainer-page__recent-filters label { display: grid; gap: 4px; color: var(--et-muted); font-size: .76rem; font-weight: 700; }
+.endgame-trainer-page__recent-filters select { width: 100%; min-height: 44px; padding: 7px 9px; border: 1px solid #3b4d6d; border-radius: 8px; color: var(--et-text); background: #0e1829; }
+.endgame-trainer-page__recent-toggle { width: auto; min-width: 120px; min-height: 44px; margin-top: 9px; }
+.endgame-trainer-page__recent-toggle[hidden] { display: none; }
+[data-sync-feedback]:not(:empty) { margin-top: 6px; color: #b8d8ff; font-weight: 700; }
 .endgame-trainer-page__category-list li, .endgame-trainer-page__recent li { display: grid; gap: 3px; padding: 9px 10px; border: 1px solid #2d3c57; border-radius: 9px; background: #0e1829; }
 .endgame-trainer-page__category-list li { grid-template-columns: minmax(0, 1fr) repeat(3, auto); }
 .endgame-trainer-page__category-list span, .endgame-trainer-page__recent small { color: var(--et-muted); font-size: .78rem; }
@@ -198,6 +208,7 @@
 }
 @media (max-width: 768px) {
     .endgame-trainer-page__summary, .endgame-trainer-page__progress { width: 100%; margin-top: 16px; padding: 15px; }
+    .endgame-trainer-page__progress-nav { width: 100%; padding: 0 16px; }
     .endgame-trainer-page__progress-grid { grid-template-columns: 1fr; }
     .endgame-trainer-page__progress-footer { align-items: stretch; flex-direction: column; }
     .endgame-trainer-page__progress-footer button { width: 100%; }
@@ -206,5 +217,7 @@
     .endgame-trainer-page__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .endgame-trainer-page__summary dl { grid-template-columns: 1fr 1fr; }
     .endgame-trainer-page__category-list li { grid-template-columns: 1fr; }
+    .endgame-trainer-page__recent-filters { grid-template-columns: 1fr; }
+    .endgame-trainer-page__recent-toggle, .endgame-trainer-page__progress-nav button { width: 100%; }
     .endgame-trainer-page__reset-dialog div { grid-template-columns: 1fr; }
 }

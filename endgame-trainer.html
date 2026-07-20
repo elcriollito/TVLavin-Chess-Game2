@@ -120,16 +120,27 @@
             <h2 id="summary-title">Session Summary</h2>
             <dl data-summary-facts></dl>
         </section>
+        <div class="endgame-trainer-page__progress-nav" data-progress-nav hidden>
+            <button type="button" data-view-progress>View training progress</button>
+        </div>
 
         <section class="endgame-trainer-page__progress" data-training-progress aria-labelledby="progress-title">
-            <header><div><h2 id="progress-title">Training Progress</h2><p>Stored only in this browser.</p></div></header>
+            <header><div><h2 id="progress-title" tabindex="-1">Training Progress</h2><p>Stored only in this browser.</p></div></header>
             <div class="endgame-trainer-page__metrics" data-progress-metrics></div>
             <div class="endgame-trainer-page__progress-grid">
                 <section aria-labelledby="category-title"><h3 id="category-title">By Endgame</h3><ul class="endgame-trainer-page__category-list" data-category-breakdown></ul></section>
-                <section aria-labelledby="recent-title"><h3 id="recent-title">Recent Sessions</h3><ol class="endgame-trainer-page__recent" data-recent-sessions><li>No recent sessions yet.</li></ol><p data-recent-caption></p></section>
+                <section aria-labelledby="recent-title"><h3 id="recent-title">Recent Sessions</h3>
+                    <div class="endgame-trainer-page__recent-filters" data-recent-filters>
+                        <label>Result<select data-recent-result><option value="all">All</option><option value="checkmate">Checkmate</option><option value="draw">Draw</option><option value="resignation">Resignation</option><option value="abandoned">Abandoned</option></select></label>
+                        <label>Category<select data-recent-category><option value="all">All endgames</option><option value="KQK">Queen vs King</option><option value="KRK">Rook vs King</option><option value="KPK">Pawn vs King</option><option value="KPKP">Pawn vs Pawn</option></select></label>
+                    </div>
+                    <ol id="recent-sessions-list" class="endgame-trainer-page__recent" data-recent-sessions><li>No recent sessions yet.</li></ol>
+                    <p data-recent-caption role="status"></p>
+                    <button class="endgame-trainer-page__recent-toggle" type="button" data-recent-toggle aria-expanded="false" aria-controls="recent-sessions-list" hidden>Show more</button>
+                </section>
             </div>
             <footer class="endgame-trainer-page__progress-footer">
-                <div><p>Progress is stored only in this browser and is not synced to an account.</p><p data-persistence-warning role="status"></p></div>
+                <div><p>Progress is stored only in this browser and is not synced to an account.</p><p data-persistence-warning role="status"></p><p data-sync-feedback role="status" aria-live="polite"></p></div>
                 <button type="button" data-reset-progress>Reset local progress</button>
             </footer>
             <p data-progress-announcement class="endgame-trainer-page__sr-only" role="status" aria-live="polite"></p>
