@@ -80,7 +80,8 @@ export class EndgameSessionController {
             if (generation !== this.#generation) fail('stale-operation');
             const selection = await this.#candidateSelector({
                 categoryId: normalized.categoryId, seed: normalized.seed, candidateCount: normalized.candidateCount,
-                minimumScore: normalized.minimumScore, recentPositionKeys: normalized.recentPositionKeys
+                minimumScore: normalized.minimumScore, recentPositionKeys: normalized.recentPositionKeys,
+                generatorOptions: normalized.generatorOptions
             });
             if (generation !== this.#generation) fail('stale-operation');
             if (!selection?.ok || !selection.selected?.fen) fail(selection?.error?.code === 'unknown-category' ? 'unknown-category' : 'candidate-selection-failed');
@@ -269,10 +270,11 @@ export class EndgameSessionController {
         if (typeof categoryId !== 'string' || !categoryId) fail('invalid-options');
         if (!COLORS.has(userColor)) fail('invalid-user-color');
         if (options.engineOptions !== undefined && (!options.engineOptions || typeof options.engineOptions !== 'object' || Array.isArray(options.engineOptions))) fail('invalid-options');
+        if (options.generatorOptions !== undefined && (!options.generatorOptions || typeof options.generatorOptions !== 'object' || Array.isArray(options.generatorOptions))) fail('invalid-options');
         return {
             categoryId, userColor, seed: options.seed ?? 'caissa-session', candidateCount: options.candidateCount ?? 12,
             minimumScore: options.minimumScore, recentPositionKeys: cloneSessionValue(options.recentPositionKeys ?? []),
-            engineOptions: cloneSessionValue(options.engineOptions ?? {})
+            engineOptions: cloneSessionValue(options.engineOptions ?? {}), generatorOptions: cloneSessionValue(options.generatorOptions ?? {})
         };
     }
     async #requestEngineMove() {

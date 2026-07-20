@@ -221,3 +221,52 @@
     .endgame-trainer-page__recent-toggle, .endgame-trainer-page__progress-nav button { width: 100%; }
     .endgame-trainer-page__reset-dialog div { grid-template-columns: 1fr; }
 }
+
+.endgame-trainer-page__active-lesson { margin-top: 12px; padding: 12px; border: 1px solid #516b9f; border-radius: 12px; background: #111f37; }
+.endgame-trainer-page__active-lesson[hidden], .endgame-trainer-page__curriculum[hidden], .endgame-trainer-page__path-detail[hidden], [data-guided-launcher][hidden], [data-free-practice][hidden] { display: none; }
+.endgame-trainer-page__active-lesson > div:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.endgame-trainer-page__active-lesson p { margin: 0; color: var(--et-accent); font-size: .78rem; font-weight: 800; }
+.endgame-trainer-page__active-lesson h3 { margin: 0; font-size: 1rem; }
+.endgame-trainer-page__active-lesson dl, .endgame-trainer-page__guided-summary dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin: 10px 0; }
+.endgame-trainer-page__active-lesson dl div, .endgame-trainer-page__guided-summary dl div { min-width: 0; padding: 8px; border-radius: 8px; background: #0d182a; }
+.endgame-trainer-page__active-lesson dt, .endgame-trainer-page__guided-summary dt { color: var(--et-muted); font-size: .68rem; text-transform: uppercase; }
+.endgame-trainer-page__active-lesson dd, .endgame-trainer-page__guided-summary dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.endgame-trainer-page__lesson-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.endgame-trainer-page__lesson-nav [data-guided-exit] { grid-column: 1 / -1; }
+.endgame-trainer-page__guided-launcher { display: grid; gap: 10px; padding: 12px; border: 1px solid #435a82; border-radius: 11px; background: #101b2e; }
+.endgame-trainer-page__guided-launcher h3, .endgame-trainer-page__guided-launcher p { margin: 0; }
+.endgame-trainer-page__curriculum { max-width: 1140px; margin: 16px auto 0; padding: 18px; border: 1px solid var(--et-line); border-radius: 16px; background: linear-gradient(180deg, var(--et-panel-raised), var(--et-panel)); }
+.endgame-trainer-page__curriculum > header p { margin: 3px 0 0; color: var(--et-muted); }
+.endgame-trainer-page__paths { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.endgame-trainer-page__path-card { min-width: 0; padding: 14px; border: 1px solid #344866; border-radius: 12px; background: #0e1829; }
+.endgame-trainer-page__path-card h3, .endgame-trainer-page__path-card p { margin: 0 0 7px; overflow-wrap: anywhere; }
+.endgame-trainer-page__path-card p { color: var(--et-muted); font-size: .84rem; }
+.endgame-trainer-page__progressbar { height: 12px; margin: 10px 0; overflow: hidden; border: 1px solid #405376; border-radius: 999px; background: #09111f; }
+.endgame-trainer-page__progressbar span { display: block; width: var(--progress, 0%); height: 100%; background: var(--et-success); }
+.endgame-trainer-page__path-detail { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--et-line); }
+.endgame-trainer-page__path-detail > header { display: flex; justify-content: space-between; gap: 12px; }
+.endgame-trainer-page__path-detail h3, .endgame-trainer-page__path-detail p { margin: 0 0 5px; }
+.endgame-trainer-page__path-detail ol { display: grid; gap: 9px; margin: 12px 0 0; padding: 0; list-style: none; }
+.endgame-trainer-page__path-detail li { padding: 12px; border: 1px solid #334663; border-radius: 10px; background: #0e1829; }
+.endgame-trainer-page__path-detail li[data-lesson-status="completed"] { border-color: #397052; }
+.endgame-trainer-page__path-detail h4 { margin: 0 0 5px; }
+.endgame-trainer-page__path-detail li p { color: var(--et-muted); font-size: .82rem; }
+.endgame-trainer-page__path-detail li button { width: auto; min-width: 150px; margin-top: 5px; }
+.endgame-trainer-page__guided-summary { margin-bottom: 18px; padding: 13px; border: 1px solid #344866; border-radius: 12px; background: #101a2b; }
+.endgame-trainer-page__guided-summary dl { grid-template-columns: repeat(5, minmax(0, 1fr)); margin-bottom: 0; }
+.endgame-trainer-page__switch-dialog { width: min(470px, calc(100vw - 24px)); padding: 20px; border: 1px solid var(--et-line); border-radius: 14px; background: var(--et-panel); color: var(--et-text); }
+.endgame-trainer-page__switch-dialog::backdrop { background: #020713bb; }
+.endgame-trainer-page__switch-dialog div { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 18px; }
+
+@media (max-width: 768px) {
+    .endgame-trainer-page__paths { grid-template-columns: 1fr; }
+    .endgame-trainer-page__curriculum { width: 100%; padding: 15px; }
+    .endgame-trainer-page__active-lesson { margin-top: 10px; }
+    .endgame-trainer-page__guided-summary dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .endgame-trainer-page__path-detail > header { display: block; }
+}
+@media (max-width: 390px) {
+    .endgame-trainer-page__active-lesson dl, .endgame-trainer-page__guided-summary dl, .endgame-trainer-page__lesson-nav, .endgame-trainer-page__switch-dialog div { grid-template-columns: 1fr; }
+    .endgame-trainer-page__lesson-nav [data-guided-exit] { grid-column: auto; }
+    .endgame-trainer-page__path-detail li button { width: 100%; }
+}

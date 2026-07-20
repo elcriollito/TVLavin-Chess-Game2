@@ -1,5 +1,6 @@
 import { createEndgameTrainerRuntime } from './endgame-trainer-runtime.js';
 import { createEndgameProgressStore, ENDGAME_PROGRESS_STORAGE_KEY } from './endgame-progress-store.js';
+import { createEndgameCurriculum } from './endgame-curriculum.js';
 
 const CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP', 'KRPvKR'];
 const RANDOM_CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP'];
@@ -11,9 +12,37 @@ let pageSequence = 0;
 const copy = value => structuredClone(value);
 const text = (node, value) => { if (node) node.textContent = value ?? '—'; };
 const resultLabel = value => RESULT_LABELS[value] ?? value;
-const publicPage = page => copy({ mounted: page.mounted, navOpen: page.navOpen, runtimeAttached: page.runtimeAttached, operation: page.operation, hint: page.hint, error: page.error, disposed: page.disposed, diagnosticState: page.diagnosticState, controllerState: page.controllerState, progress: page.progressSnapshot, recentExpanded: page.recentExpanded, recentResult: page.recentResult, recentCategory: page.recentCategory, syncFeedback: page.syncFeedback, progressDiagnostic: page.diagnosticEnabled ? page.progressStore.getDiagnosticSnapshot() : undefined });
+const publicPage = page => copy({ mounted: page.mounted, navOpen: page.navOpen, runtimeAttached: page.runtimeAttached, operation: page.operation, hint: page.hint, error: page.error, disposed: page.disposed, diagnosticState: page.diagnosticState, controllerState: page.controllerState, progress: page.progressSnapshot, trainingMode: page.trainingMode, selectedPathId: page.selectedPathId, activeLesson: page.activeLesson, curriculumProgress: page.curriculumProgress, recentExpanded: page.recentExpanded, recentResult: page.recentResult, recentCategory: page.recentCategory, syncFeedback: page.syncFeedback, progressDiagnostic: page.diagnosticEnabled ? page.progressStore.getDiagnosticSnapshot() : undefined });
 const CATEGORY_LABELS = { KQK: 'Queen vs King', KRK: 'Rook vs King', KPK: 'Pawn vs King', KPKP: 'Pawn vs Pawn', KRPvKR: 'Rook and Pawn vs Rook' };
 const durationLabel = value => { const seconds = Math.max(0, Math.round((value ?? 0) / 1000)); return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`; };
+
+function renderCurriculum(root, page) {
+    const guided = page.trainingMode === 'guided', snapshot = page.progressSnapshot ?? page.progressStore.getSnapshot(), progress = page.curriculum.getProgress(snapshot), doc = root.ownerDocument;
+    const curriculumPanel = root.querySelector('[data-guided-curriculum]'), launcher = root.querySelector('[data-guided-launcher]'), free = root.querySelector('[data-free-practice]');
+    if (curriculumPanel) curriculumPanel.hidden = !guided; if (launcher) launcher.hidden = !guided; if (free) free.hidden = guided;
+    const recommendation = page.curriculum.getRecommendedLesson(snapshot); text(root.querySelector('[data-guided-recommendation]'), recommendation?.title ?? 'Choose a learning path.');
+    const paths = root.querySelector('[data-guided-paths]'); paths?.replaceChildren();
+    for (const item of page.curriculum.getPaths()) {
+        const card = doc.createElement('article'), title = doc.createElement('h3'), description = doc.createElement('p'), meta = doc.createElement('p'), bar = doc.createElement('div'), button = doc.createElement('button'), value = progress.paths[item.id];
+        card.className = 'endgame-trainer-page__path-card'; title.textContent = item.title; description.textContent = item.shortDescription; meta.textContent = `${value.completed} of ${value.total} lessons completed`;
+        bar.className = 'endgame-trainer-page__progressbar'; bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-label', `${item.title} progress`); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', '100'); bar.setAttribute('aria-valuenow', String(value.percent)); const fill = doc.createElement('span'); fill.style.setProperty('--progress', `${value.percent}%`); bar.append(fill);
+        button.type = 'button'; button.dataset.guidedPath = item.id; button.textContent = page.selectedPathId === item.id ? 'View lessons' : value.completed ? 'Continue' : 'View lessons'; card.append(title, description, meta, bar, button); paths?.append(card);
+    }
+    const selected = page.curriculum.getPath(page.selectedPathId), detail = root.querySelector('[data-guided-path-detail]'); if (detail) detail.hidden = !guided || !selected;
+    if (selected) {
+        text(root.querySelector('[data-path-title]'), selected.title); text(root.querySelector('[data-path-description]'), selected.shortDescription); const value = progress.paths[selected.id]; text(root.querySelector('[data-path-progress]'), `${value.percent}% complete`);
+        const list = root.querySelector('[data-guided-lessons]'); list?.replaceChildren();
+        for (const item of selected.lessons) {
+            const record = snapshot.curriculum.lessons[item.id], status = record?.completed ? 'Completed' : record?.sessionsStarted ? 'In progress' : 'Not started', li = doc.createElement('li'), heading = doc.createElement('h4'), copyNode = doc.createElement('p'), meta = doc.createElement('p'), objective = doc.createElement('p'), button = doc.createElement('button');
+            heading.textContent = `${item.order}. ${item.title}`; copyNode.textContent = item.shortDescription; meta.textContent = `${status} · ${item.difficulty} · ${CATEGORY_LABELS[item.category]} · ${item.trainingRole}`; objective.textContent = item.objective; button.type = 'button'; button.dataset.guidedLesson = item.id; button.dataset.guidedPath = selected.id; button.textContent = record?.sessionsStarted ? 'Continue lesson' : 'Start Lesson'; li.dataset.lessonStatus = status.toLowerCase().replace(' ', '-'); li.append(heading, copyNode, meta, objective, button); list?.append(li);
+        }
+    }
+    const active = page.activeLesson, panel = root.querySelector('[data-active-lesson]'); if (panel) panel.hidden = !active;
+    if (active) {
+        const record = snapshot.curriculum.lessons[active.id] ?? {}; text(root.querySelector('[data-active-path]'), active.pathTitle); text(root.querySelector('[data-active-title]'), active.title); text(root.querySelector('[data-active-objective]'), active.objective); text(root.querySelector('[data-active-difficulty]'), active.difficulty); text(root.querySelector('[data-active-role]'), active.trainingRole); text(root.querySelector('[data-active-progress]'), `Session ${Math.min((record.sessionsStarted ?? 0) + 1, active.targetSessions)} of ${active.targetSessions}`);
+        const previous = page.curriculum.getPreviousLesson(active.pathId, active.id), next = page.curriculum.getNextLesson(active.pathId, active.id), previousButton = root.querySelector('[data-guided-previous]'), nextButton = root.querySelector('[data-guided-next]'); if (previousButton) previousButton.disabled = !previous; if (nextButton) nextButton.disabled = !next || !record.completed;
+    }
+}
 
 function renderProgress(root, page) {
     const snapshot = page.progressStore.getSnapshot(), doc = root.ownerDocument;
@@ -30,7 +59,7 @@ function renderProgress(root, page) {
     const items = page.recentExpanded ? filtered : filtered.slice(0, 5);
     const recent = root.querySelector('[data-recent-sessions]'); recent?.replaceChildren();
     if (!items.length) { const li = doc.createElement('li'); li.textContent = allRecent.length ? 'No sessions match these filters.' : 'No recent sessions yet.'; recent?.append(li); }
-    for (const entry of items) { const li = doc.createElement('li'), badge = doc.createElement('span'), title = doc.createElement('strong'), detail = doc.createElement('small'); badge.className = 'endgame-trainer-page__result-badge'; badge.textContent = resultLabel(entry.result); title.textContent = `${CATEGORY_LABELS[entry.category]} · ${entry.userColor === 'black' ? 'Black' : 'White'}`; detail.textContent = `${entry.moveCount} moves · ${durationLabel(entry.durationMs)} · ${entry.endedAt ? new Date(entry.endedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Recently'}`; li.append(badge, title, detail); recent?.append(li); }
+    for (const entry of items) { const li = doc.createElement('li'), badge = doc.createElement('span'), title = doc.createElement('strong'), detail = doc.createElement('small'); badge.className = 'endgame-trainer-page__result-badge'; badge.textContent = entry.mode === 'guided' ? `Guided · ${resultLabel(entry.result)}` : `Free Practice · ${resultLabel(entry.result)}`; title.textContent = entry.mode === 'guided' && entry.lessonTitle ? `${entry.lessonTitle} · ${entry.userColor === 'black' ? 'Black' : 'White'}` : `${CATEGORY_LABELS[entry.category]} · ${entry.userColor === 'black' ? 'Black' : 'White'}`; detail.textContent = `${entry.moveCount} moves · ${durationLabel(entry.durationMs)} · ${entry.endedAt ? new Date(entry.endedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Recently'}`; li.append(badge, title, detail); recent?.append(li); }
     const filteredMode = page.recentResult !== 'all' || page.recentCategory !== 'all';
     const caption = !allRecent.length ? '' : !filtered.length ? 'No sessions match these filters.' : filteredMode ? `Showing ${filtered.length} matching session${filtered.length === 1 ? '' : 's'}.` : page.recentExpanded ? `Showing all ${filtered.length} stored sessions.` : `Showing the latest ${Math.min(5, filtered.length)} session${Math.min(5, filtered.length) === 1 ? '' : 's'}.`;
     text(root.querySelector('[data-recent-caption]'), caption);
@@ -38,22 +67,28 @@ function renderProgress(root, page) {
     text(root.querySelector('[data-persistence-warning]'), snapshot.persistence.available ? '' : 'Progress could not be saved in this browser.');
     text(root.querySelector('[data-sync-feedback]'), page.syncFeedback || '');
     const progressNav = root.querySelector('[data-progress-nav]'); if (progressNav) progressNav.hidden = snapshot.totals.sessionsStarted === 0 && !['completed', 'resigned'].includes(page.controllerState?.status);
+    const curriculumProgress = page.curriculum.getProgress(snapshot), selectedPath = page.curriculum.getPath(snapshot.curriculum.selectedPathId), selectedLesson = selectedPath ? page.curriculum.getLesson(selectedPath.id, snapshot.curriculum.selectedLessonId) : null;
+    page.curriculumProgress = curriculumProgress;
+    text(root.querySelector('[data-guided-completed]'), `${curriculumProgress.lessonsCompleted} of ${curriculumProgress.totalLessons}`);
+    text(root.querySelector('[data-guided-percent]'), `${Math.round(curriculumProgress.lessonsCompleted * 100 / curriculumProgress.totalLessons)}%`);
+    text(root.querySelector('[data-guided-active-path]'), selectedPath?.title ?? 'Not selected'); text(root.querySelector('[data-guided-current-lesson]'), selectedLesson?.title ?? 'Not selected'); text(root.querySelector('[data-guided-sessions]'), snapshot.curriculum.guidedSessions);
     page.progressSnapshot = snapshot;
+    renderCurriculum(root, page);
 }
 
-function sessionEntry(state, owner, now) { return { id: owner.progressId, category: state.categoryId, pieceCount: state.initialFen?.split(' ')[0].replace(/[1-8/]/g, '').length ?? 0, userColor: state.userColor, attemptNumber: state.attemptNumber, hintsUsed: state.hintsUsed, undosUsed: state.undosUsed, moveCount: state.moveHistory?.length ?? 0, preparedAt: owner.preparedAt, endedAt: now, durationMs: owner.startedAt ? Math.max(0, now - owner.startedAt) : 0, initialFen: state.initialFen, finalFen: state.currentFen }; }
+function sessionEntry(state, owner, now) { return { id: owner.progressId, category: state.categoryId, pieceCount: state.initialFen?.split(' ')[0].replace(/[1-8/]/g, '').length ?? 0, userColor: state.userColor, attemptNumber: state.attemptNumber, hintsUsed: state.hintsUsed, undosUsed: state.undosUsed, moveCount: state.moveHistory?.length ?? 0, preparedAt: owner.preparedAt, endedAt: now, durationMs: owner.startedAt ? Math.max(0, now - owner.startedAt) : 0, initialFen: state.initialFen, finalFen: state.currentFen, mode: owner.lesson ? 'guided' : 'free', pathId: owner.lesson?.pathId, lessonId: owner.lesson?.id, pathTitle: owner.lesson?.pathTitle, lessonTitle: owner.lesson?.title }; }
 function localProgress(page, operation) { const changed = operation(); if (changed) page.syncFeedback = ''; return changed; }
 function reconcileProgress(root, page, state) {
     if (!page.progressStore || page.disposed) return;
     const now = page.now(), previous = page.progressOwner;
-    if (previous && state.sessionId && previous.id !== state.sessionId && previous.started && !previous.terminal) { localProgress(page, () => page.progressStore.recordSessionAbandoned(sessionEntry(previous.state, previous, now))); previous.terminal = true; }
+    if (previous && state.sessionId && previous.id !== state.sessionId && previous.started && !previous.terminal) { const entry = sessionEntry(previous.state, previous, now); localProgress(page, () => page.progressStore.recordSessionAbandoned(entry)); if (previous.lesson) localProgress(page, () => page.progressStore.recordCurriculumTerminal({ ...entry, result: 'abandoned', pathId: previous.lesson.pathId, lessonId: previous.lesson.id, trainingRole: previous.lesson.trainingRole, completionRule: previous.lesson.completionRule })); previous.terminal = true; }
     if (!state.sessionId) { renderProgress(root, page); return; }
-    let owner = page.progressOwners.get(state.sessionId); if (!owner) { owner = { id: state.sessionId, progressId: `${page.progressScopeId}:${state.sessionId}`, preparedAt: now, startedAt: null, prepared: false, started: false, terminal: false, state }; page.progressOwners.set(state.sessionId, owner); }
+    let owner = page.progressOwners.get(state.sessionId); if (!owner) { owner = { id: state.sessionId, progressId: `${page.progressScopeId}:${state.sessionId}`, preparedAt: now, startedAt: null, prepared: false, started: false, terminal: false, state, lesson: page.trainingMode === 'guided' ? copy(page.activeLesson) : null }; page.progressOwners.set(state.sessionId, owner); }
     owner.state = state; page.progressOwner = owner;
     if (!owner.prepared && state.status !== 'preparing') { localProgress(page, () => page.progressStore.recordPreparedPosition({ id: owner.progressId, category: state.categoryId })); owner.prepared = true; }
-    if (!owner.started && ['user-turn', 'engine-thinking', 'completed', 'resigned'].includes(state.status)) { owner.startedAt = now; localProgress(page, () => page.progressStore.recordSessionStarted({ id: owner.progressId, category: state.categoryId })); owner.started = true; }
-    if (!owner.terminal && state.status === 'completed') { localProgress(page, () => page.progressStore.recordSessionCompleted({ ...sessionEntry(state, owner, now), result: state.result?.gameResult })); owner.terminal = true; }
-    if (!owner.terminal && state.status === 'resigned') { localProgress(page, () => page.progressStore.recordSessionResigned(sessionEntry(state, owner, now))); owner.terminal = true; }
+    if (!owner.started && ['user-turn', 'engine-thinking', 'completed', 'resigned'].includes(state.status)) { owner.startedAt = now; localProgress(page, () => page.progressStore.recordSessionStarted({ id: owner.progressId, category: state.categoryId })); if (owner.lesson) localProgress(page, () => page.progressStore.recordCurriculumStarted({ id: owner.progressId, pathId: owner.lesson.pathId, lessonId: owner.lesson.id })); owner.started = true; }
+    if (!owner.terminal && state.status === 'completed') { const entry = { ...sessionEntry(state, owner, now), result: state.result?.gameResult, exerciseOutcome: state.result?.exerciseOutcome }; localProgress(page, () => page.progressStore.recordSessionCompleted(entry)); if (owner.lesson) localProgress(page, () => page.progressStore.recordCurriculumTerminal({ ...entry, pathId: owner.lesson.pathId, lessonId: owner.lesson.id, trainingRole: owner.lesson.trainingRole, completionRule: owner.lesson.completionRule })); owner.terminal = true; }
+    if (!owner.terminal && state.status === 'resigned') { const entry = sessionEntry(state, owner, now); localProgress(page, () => page.progressStore.recordSessionResigned(entry)); if (owner.lesson) localProgress(page, () => page.progressStore.recordCurriculumTerminal({ ...entry, result: 'resignation', pathId: owner.lesson.pathId, lessonId: owner.lesson.id, trainingRole: owner.lesson.trainingRole, completionRule: owner.lesson.completionRule })); owner.terminal = true; }
     renderProgress(root, page);
 }
 
@@ -134,9 +169,10 @@ export function mountEndgameTrainerPage(options = {}) {
     const abort = new AbortController(), signal = abort.signal, promo = promotion(root, signal), board = root.querySelector('[data-board]');
     const params = new URLSearchParams(win.location?.search ?? '');
     const diagnosticEnabled = params.get('diagnostic') === '1', diagnosticState = diagnosticEnabled && ['empty', 'loading', 'error', 'completed'].includes(params.get('diagnosticState')) ? params.get('diagnosticState') : null;
-    const progressStoreFactory = options.progressStoreFactory ?? createEndgameProgressStore, progressStore = progressStoreFactory({ storage: options.storage, now: options.now }); progressStore.load();
+    const progressStoreFactory = options.progressStoreFactory ?? createEndgameProgressStore, progressStore = progressStoreFactory({ storage: options.storage, now: options.now }); progressStore.load(); const loadedProgress = progressStore.getSnapshot();
+    const curriculum = options.curriculum ?? createEndgameCurriculum();
     const progressScopeId = options.progressScopeId ?? globalThis.crypto?.randomUUID?.() ?? `tab-${++pageSequence}-${(options.now ?? Date.now)()}`;
-    const page = { mounted: true, navOpen: false, runtimeAttached: false, operation: null, hint: null, error: null, disposed: false, diagnosticEnabled, diagnosticState, controllerState: null, seedSequence: 0, progressStore, progressOwners: new Map(), progressOwner: null, progressSnapshot: null, progressScopeId, recentExpanded: false, recentResult: 'all', recentCategory: 'all', syncFeedback: '', now: options.now ?? Date.now };
+    const page = { mounted: true, navOpen: false, runtimeAttached: false, operation: null, hint: null, error: null, disposed: false, diagnosticEnabled, diagnosticState, controllerState: null, seedSequence: 0, progressStore, progressOwners: new Map(), progressOwner: null, progressSnapshot: loadedProgress, progressScopeId, curriculum, curriculumProgress: curriculum.getProgress(loadedProgress), trainingMode: 'free', selectedPathId: loadedProgress.curriculum?.selectedPathId ?? null, activeLesson: null, pendingLesson: null, recentExpanded: false, recentResult: 'all', recentCategory: 'all', syncFeedback: '', now: options.now ?? Date.now };
     const runtimeFactory = options.runtimeFactory ?? createEndgameTrainerRuntime;
     let runtime = null;
     if (board) { runtime = runtimeFactory({ boardElement: board, promotionResolver: promo.resolve, callbacks: { onStateChange: snap => update(root, page, snap), onAnnouncement: value => text(root.querySelector('[data-announcement]'), value), onError: error => { if (error.code !== 'stale-operation') { page.error = { code: error.code }; text(root.querySelector('[data-error-message]'), PUBLIC_ERRORS[error.code] || 'The trainer encountered an error.'); } } } }).initialize(); page.runtimeAttached = true; }
@@ -146,7 +182,7 @@ export function mountEndgameTrainerPage(options = {}) {
     toggle?.addEventListener('click', () => { page.navOpen = !page.navOpen; root.classList.toggle('is-nav-open', page.navOpen); toggle.setAttribute('aria-expanded', String(page.navOpen)); }, { signal });
     doc.addEventListener('keydown', e => { if (e.key === 'Escape' && page.navOpen) closeNav(true); }, { signal }); doc.addEventListener('click', e => { if (page.navOpen && !nav?.contains(e.target) && !toggle?.contains(e.target)) closeNav(); }, { signal });
     win.addEventListener?.('resize', () => { if (page.navOpen && win.innerWidth > 768) closeNav(); }, { signal });
-    const abandon = () => { const owner = page.progressOwner; if (owner?.started && !owner.terminal) { localProgress(page, () => page.progressStore.recordSessionAbandoned(sessionEntry(owner.state, owner, page.now()))); owner.terminal = true; renderProgress(root, page); } };
+    const abandon = () => { const owner = page.progressOwner; if (owner?.started && !owner.terminal) { const entry = sessionEntry(owner.state, owner, page.now()); localProgress(page, () => page.progressStore.recordSessionAbandoned(entry)); if (owner.lesson) localProgress(page, () => page.progressStore.recordCurriculumTerminal({ ...entry, result: 'abandoned', pathId: owner.lesson.pathId, lessonId: owner.lesson.id, trainingRole: owner.lesson.trainingRole, completionRule: owner.lesson.completionRule })); owner.terminal = true; renderProgress(root, page); } };
     win.addEventListener?.('pagehide', abandon, { signal });
     const resetDialog = root.querySelector('[data-reset-dialog]'), resetButton = root.querySelector('[data-reset-progress]'); let resetReturnFocus = null;
     resetButton?.addEventListener('click', () => { resetReturnFocus = resetButton; resetDialog.showModal(); root.querySelector('[data-reset-cancel]')?.focus(); }, { signal });
@@ -159,6 +195,30 @@ export function mountEndgameTrainerPage(options = {}) {
     root.querySelector('[data-recent-category]')?.addEventListener('change', event => { page.recentCategory = event.target.value; page.recentExpanded = false; renderProgress(root, page); }, { signal });
     root.querySelector('[data-view-progress]')?.addEventListener('click', () => { const heading = root.querySelector('#progress-title'), reduced = win.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches; heading?.scrollIntoView?.({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); heading?.focus?.({ preventScroll: true }); }, { signal });
     win.addEventListener?.('storage', event => { if (event.key !== ENDGAME_PROGRESS_STORAGE_KEY || !page.progressStore.isStorageArea(event.storageArea)) return; const refreshed = page.progressStore.refreshFromStorage(); page.syncFeedback = event.newValue === null || refreshed.totals.sessionsStarted === 0 && refreshed.recentSessions.length === 0 ? 'Training progress was reset in another tab.' : 'Training progress updated from another tab.'; renderProgress(root, page); }, { signal });
+    const switchDialog = root.querySelector('[data-guided-switch-dialog]'); let switchReturnFocus = null;
+    const closeSwitch = () => { if (switchDialog?.open) switchDialog.close(); switchReturnFocus?.focus?.(); switchReturnFocus = null; page.pendingLesson = null; };
+    const lessonDetails = (pathId, lessonId) => { const path = page.curriculum.getPath(pathId), lesson = page.curriculum.getLesson(pathId, lessonId); return path && lesson ? { ...lesson, pathTitle: path.title } : null; };
+    const runLesson = async (pathId, lessonId) => {
+        const lesson = lessonDetails(pathId, lessonId), resolved = page.curriculum.resolveTrainingOptions(pathId, lessonId); if (!lesson || !resolved || !runtime) return false;
+        page.trainingMode = 'guided'; page.selectedPathId = pathId; page.activeLesson = lesson; page.progressStore.selectCurriculumLesson(pathId, lessonId); renderProgress(root, page);
+        const options = { ...resolved, seed: `caissa-guided-${lessonId}-${Date.now()}-${++page.seedSequence}`, engineOptions: STRENGTH[root.querySelector('[data-setup="strength"]')?.value] };
+        const active = page.controllerState?.sessionId && !['idle', 'completed', 'resigned', 'error'].includes(page.controllerState.status);
+        try { if (active) await runtime.binding.newPosition(options); else await runtime.binding.prepare(options); update(root, page, runtime.binding.getState()); return true; }
+        catch (error) { page.error = { code: error?.code || 'operation-failed' }; text(root.querySelector('[data-error-message]'), PUBLIC_ERRORS[page.error.code] || 'The trainer encountered an error.'); return false; }
+    };
+    const requestLesson = (pathId, lessonId, trigger) => {
+        const active = page.controllerState?.sessionId && ['user-turn', 'engine-thinking'].includes(page.controllerState.status);
+        if (!active) return void runLesson(pathId, lessonId);
+        page.pendingLesson = { pathId, lessonId }; switchReturnFocus = trigger ?? root.ownerDocument.activeElement; switchDialog?.showModal(); root.querySelector('[data-guided-switch-cancel]')?.focus();
+    };
+    root.querySelector('[data-training-mode]')?.addEventListener('change', event => { page.trainingMode = event.target.value === 'guided' ? 'guided' : 'free'; if (page.trainingMode === 'free' && !['completed', 'resigned', 'idle', 'error'].includes(page.controllerState?.status)) { event.target.value = 'guided'; page.trainingMode = 'guided'; text(root.querySelector('[data-page-message]'), 'Finish the active lesson before returning to Free Practice.'); } renderProgress(root, page); }, { signal });
+    root.querySelector('[data-guided-curriculum]')?.addEventListener('click', event => { const lessonId = event.target?.dataset?.guidedLesson, pathId = event.target?.dataset?.guidedPath; if (lessonId && pathId) requestLesson(pathId, lessonId, event.target); else if (pathId) { page.selectedPathId = pathId; page.progressStore.selectCurriculumLesson(pathId, page.curriculum.getPath(pathId)?.lessons[0]?.id); renderProgress(root, page); root.querySelector('#path-detail-title')?.focus?.(); } }, { signal });
+    root.querySelector('[data-guided-recommended]')?.addEventListener('click', event => { const lesson = page.curriculum.getRecommendedLesson(page.progressStore.getSnapshot()); requestLesson(lesson.pathId, lesson.id, event.target); }, { signal });
+    root.querySelector('[data-guided-previous]')?.addEventListener('click', event => { const lesson = page.activeLesson && page.curriculum.getPreviousLesson(page.activeLesson.pathId, page.activeLesson.id); if (lesson) requestLesson(lesson.pathId, lesson.id, event.target); }, { signal });
+    root.querySelector('[data-guided-next]')?.addEventListener('click', event => { const lesson = page.activeLesson && page.curriculum.getNextLesson(page.activeLesson.pathId, page.activeLesson.id); if (lesson) requestLesson(lesson.pathId, lesson.id, event.target); }, { signal });
+    root.querySelector('[data-guided-exit]')?.addEventListener('click', () => { if (!['completed', 'resigned', 'error'].includes(page.controllerState?.status)) { text(root.querySelector('[data-page-message]'), 'Complete or resign the active session before exiting guided training.'); return; } page.trainingMode = 'free'; page.activeLesson = null; const mode = root.querySelector('[data-training-mode]'); if (mode) mode.value = 'free'; renderProgress(root, page); }, { signal });
+    root.querySelector('[data-guided-switch-cancel]')?.addEventListener('click', closeSwitch, { signal }); switchDialog?.addEventListener('cancel', event => { event.preventDefault(); closeSwitch(); }, { signal });
+    root.querySelector('[data-guided-switch-confirm]')?.addEventListener('click', async () => { const pending = page.pendingLesson; if (switchDialog?.open) switchDialog.close(); page.pendingLesson = null; if (pending) await runLesson(pending.pathId, pending.lessonId); switchReturnFocus = null; }, { signal });
     const act = (name, fn, invalidates = false) => root.querySelector(`[data-action="${name}"]`)?.addEventListener('click', async () => { if (invalidates) promo.cancel(); page.error = null; try { await fn(); } catch (error) { if (error?.code !== 'stale-operation') { page.error = { code: error?.code || 'operation-failed' }; text(root.querySelector('[data-error-message]'), PUBLIC_ERRORS[page.error.code] || 'The trainer encountered an error.'); } } finally { if (runtime) update(root, page, runtime.binding.getState()); } }, { signal });
     const nextSeed = () => `caissa-product-${Date.now()}-${++page.seedSequence}`;
     const category = seed => {
