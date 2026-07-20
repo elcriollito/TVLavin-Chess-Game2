@@ -18,7 +18,12 @@ function seededColor(seed) {
     for (let index = 0; index < text.length; index += 1) hash = Math.imul(hash ^ text.charCodeAt(index), 16777619);
     return (hash >>> 0) % 2 === 0 ? 'white' : 'black';
 }
-function objectiveFor(classification) {
+function objectiveFor(classification, candidate, userColor) {
+    if (candidate?.metadata?.categoryId === 'KRPvKR') {
+        const attacking = userColor === candidate.metadata.strongSide;
+        if (attacking) return candidate.metadata.trainingRole === 'attack' ? candidate.metadata.objective : 'Cut off the defending king and improve the rook.';
+        return candidate.metadata.trainingRole === 'defense' ? candidate.metadata.objective : 'Use active rook checks to contain the pawn.';
+    }
     const type = classification?.type;
     if (type === 'basic-mate-practice') return 'Practice the basic mating technique.';
     if (type === 'opposition-pattern') return 'Explore an opposition pattern.';
@@ -92,7 +97,7 @@ export class EndgameSessionController {
             this.#state = {
                 ...createInitialSessionState(), status: 'ready', sessionId, categoryId: normalized.categoryId,
                 initialFen: fen, currentFen: fen, positionKey: positionKey(fen), userColor, engineColor: opposite(userColor),
-                sideToMove: rules.sideToMove(), orientation: userColor, objective: objectiveFor(selection.selected.classification),
+                sideToMove: rules.sideToMove(), orientation: userColor, objective: objectiveFor(selection.selected.classification, selection.selected, userColor),
                 classification: cloneSessionValue(selection.selected.classification), score: selection.selected.scoring?.score ?? null,
                 attemptNumber: 1, versions: { ...createInitialSessionState().versions, controller: SESSION_CONTROLLER_VERSION }, error: null
             };

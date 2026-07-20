@@ -1,7 +1,8 @@
 import { createEndgameTrainerRuntime } from './endgame-trainer-runtime.js';
 import { createEndgameProgressStore, ENDGAME_PROGRESS_STORAGE_KEY } from './endgame-progress-store.js';
 
-const CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP'];
+const CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP', 'KRPvKR'];
+const RANDOM_CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP'];
 const STRENGTH = { beginner: { depth: 5, skillLevel: 2 }, intermediate: { depth: 8, skillLevel: 8 }, advanced: { depth: 12, skillLevel: 14 }, strong: { depth: 15, skillLevel: 20 } };
 const PUBLIC_ERRORS = { 'candidate-selection-failed': 'No suitable position was found.', 'engine-not-ready': 'The chess engine could not start.', 'engine-search-timeout': 'The engine took too long.', 'engine-load-failed': 'The chess engine could not load.', 'engine-move-failed': 'The engine could not complete its move.', 'invalid-move': 'That move is not legal.', 'invalid-options': 'Check the selected settings.', 'board-initialization-failed': 'The board could not start.', 'session-disposed': 'The session has ended.' };
 const RESULT_LABELS = { checkmate: 'Checkmate', resignation: 'Resignation', stalemate: 'Stalemate', draw: 'Draw', abandoned: 'Abandoned' };
@@ -11,7 +12,7 @@ const copy = value => structuredClone(value);
 const text = (node, value) => { if (node) node.textContent = value ?? '—'; };
 const resultLabel = value => RESULT_LABELS[value] ?? value;
 const publicPage = page => copy({ mounted: page.mounted, navOpen: page.navOpen, runtimeAttached: page.runtimeAttached, operation: page.operation, hint: page.hint, error: page.error, disposed: page.disposed, diagnosticState: page.diagnosticState, controllerState: page.controllerState, progress: page.progressSnapshot, recentExpanded: page.recentExpanded, recentResult: page.recentResult, recentCategory: page.recentCategory, syncFeedback: page.syncFeedback, progressDiagnostic: page.diagnosticEnabled ? page.progressStore.getDiagnosticSnapshot() : undefined });
-const CATEGORY_LABELS = { KQK: 'Queen vs King', KRK: 'Rook vs King', KPK: 'Pawn vs King', KPKP: 'Pawn vs Pawn' };
+const CATEGORY_LABELS = { KQK: 'Queen vs King', KRK: 'Rook vs King', KPK: 'Pawn vs King', KPKP: 'Pawn vs Pawn', KRPvKR: 'Rook and Pawn vs Rook' };
 const durationLabel = value => { const seconds = Math.max(0, Math.round((value ?? 0) / 1000)); return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`; };
 
 function renderProgress(root, page) {
@@ -163,11 +164,22 @@ export function mountEndgameTrainerPage(options = {}) {
     const category = seed => {
         const pieces = root.querySelector('[data-setup="pieces"]')?.value;
         const selected = root.querySelector('[data-setup="category"]')?.value;
-        const compatible = pieces === '3' ? ['KQK', 'KRK', 'KPK'] : pieces === '4' ? ['KPKP'] : CATEGORIES;
+        const compatible = pieces === '3' ? ['KQK', 'KRK', 'KPK'] : pieces === '4' ? ['KPKP'] : pieces === '5' ? ['KRPvKR'] : RANDOM_CATEGORIES;
         if (selected !== 'random' && compatible.includes(selected)) return selected;
         let hash = 0; for (const character of seed) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
         return compatible[hash % compatible.length];
     };
+    const piecesSelect = root.querySelector('[data-setup="pieces"]'), categorySelect = root.querySelector('[data-setup="category"]');
+    const syncSetup = source => {
+        if (!piecesSelect || !categorySelect) return;
+        if (source === 'category' && categorySelect.value === 'KRPvKR') piecesSelect.value = '5';
+        const compatible = piecesSelect.value === '3' ? ['KQK', 'KRK', 'KPK', 'random'] : piecesSelect.value === '4' ? ['KPKP'] : piecesSelect.value === '5' ? ['KRPvKR'] : [...RANDOM_CATEGORIES, 'random'];
+        for (const option of categorySelect.options) option.disabled = !compatible.includes(option.value);
+        if (!compatible.includes(categorySelect.value)) categorySelect.value = piecesSelect.value === '5' ? 'KRPvKR' : compatible[0];
+    };
+    piecesSelect?.addEventListener('change', () => syncSetup('pieces'), { signal });
+    categorySelect?.addEventListener('change', () => syncSetup('category'), { signal });
+    syncSetup('mount');
     act('prepare', () => { const seed = nextSeed(); return runtime.binding.prepare({ categoryId: category(seed), userColor: root.querySelector('[data-setup="color"]')?.value, seed, candidateCount: 12, engineOptions: STRENGTH[root.querySelector('[data-setup="strength"]')?.value] }); });
     act('start', () => runtime.binding.start()); act('hint', () => runtime.binding.requestHint()); act('undo', () => runtime.binding.undo(), true); act('restart', () => runtime.binding.restart(), true); act('new', () => runtime.binding.newPosition({ seed: nextSeed() }), true); act('resign', () => runtime.binding.resign(), true); act('flip', () => runtime.binding.flip());
     mounted = { root, page, runtime, abort, promo, closeNav, abandon, resetDialog }; update(root, page, runtime?.binding.getState()); if (diagnosticState) root.dataset.state = diagnosticState; return publicPage(page);

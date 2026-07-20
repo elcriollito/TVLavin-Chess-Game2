@@ -1,6 +1,6 @@
 export const ENDGAME_PROGRESS_STORAGE_KEY = 'caissa:endgame-trainer:progress:v1';
 export const ENDGAME_PROGRESS_VERSION = 1;
-const CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP'];
+const CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP', 'KRPvKR'];
 const TOTAL_FIELDS = ['positionsPrepared', 'sessionsStarted', 'sessionsCompleted', 'checkmates', 'stalemates', 'draws', 'resignations', 'abandoned', 'hintsUsed', 'undosUsed', 'attempts'];
 const ENTRY_RESULTS = new Set(['checkmate', 'stalemate', 'draw', 'resignation', 'abandoned']);
 const MAX_RECENT = 20;

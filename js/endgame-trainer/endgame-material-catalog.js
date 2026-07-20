@@ -38,6 +38,22 @@ const CATEGORIES = {
         allowedStrongSides: ['white', 'black'], allowedSidesToMove: ['white', 'black'],
         allowsPawns: true, description: 'King and pawn against king and pawn.',
         provisionalObjective: 'Practice pawn-race structure without assigning WDL.'
+    },
+    KRPvKR: {
+        id: 'KRPvKR', internalName: 'king-rook-pawn-versus-king-rook', exactPieceCount: 5,
+        label: 'Rook and Pawn vs Rook', shortLabel: 'Rook + Pawn vs Rook',
+        materialByStrongSide: {
+            white: { white: ['k', 'r', 'p'], black: ['k', 'r'] },
+            black: { white: ['k', 'r'], black: ['k', 'r', 'p'] }
+        },
+        allowedStrongSides: ['white', 'black'], allowedSidesToMove: ['white', 'black'],
+        allowsPawns: true, description: 'King, rook and pawn against king and rook.',
+        provisionalObjective: 'Practice rook-and-pawn technique without assigning WDL.',
+        curriculum: {
+            difficulty: ['foundational', 'intermediate', 'advanced'],
+            trainingRoles: ['attack', 'defense'],
+            recommendedPrerequisites: ['KRK', 'KPK']
+        }
     }
 };
 

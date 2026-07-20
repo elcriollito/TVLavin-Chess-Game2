@@ -70,6 +70,16 @@ export function validateEndgamePosition(fen, options = {}) {
         metadata.sideToMove = facade.sideToMove();
         metadata.legalMoveCount = facade.legalMoveCount();
         metadata.inCheck = facade.isCheck();
+        if (category?.id === 'KRPvKR') {
+            const materialCaptures = facade.legalMoves({ verbose: true }).filter(move => ['r', 'p'].includes(move.captured));
+            const rookCaptures = materialCaptures.filter(move => move.captured === 'r');
+            const pawnCaptures = materialCaptures.filter(move => move.captured === 'p');
+            metadata.immediateRookCaptureCount = rookCaptures.length;
+            metadata.immediatePawnCaptureCount = pawnCaptures.length;
+            if (rookCaptures.length && !options.allowImmediateMaterialChange) addUnique(errors, 'immediate-rook-capture');
+            if (pawnCaptures.length && !options.allowImmediateMaterialChange) addUnique(errors, 'immediate-pawn-capture');
+            if (metadata.legalMoveCount < 2) addUnique(errors, 'insufficient-mobility');
+        }
         if (metadata.legalMoveCount === 0) addUnique(errors, 'no-legal-moves');
         if (facade.isGameOver()) addUnique(errors, 'game-already-over');
     }

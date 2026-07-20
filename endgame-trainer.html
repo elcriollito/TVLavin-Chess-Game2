@@ -68,8 +68,8 @@
             <section class="endgame-trainer-page__setup" aria-labelledby="setup-title">
                 <h2 id="setup-title">Setup</h2>
                 <p class="endgame-trainer-page__panel-intro">Choose your training settings.</p>
-                <fieldset><legend>Piece Count</legend><select data-setup="pieces" name="piece-count"><option value="3">3</option><option value="4">4</option><option value="random">Random</option><option disabled>5 — Coming Soon</option><option disabled>6 — Coming Soon</option></select></fieldset>
-                <fieldset><legend>Category</legend><select data-setup="category" name="category"><option value="KPK">King and Pawn vs King</option><option value="KRK">King and Rook vs King</option><option value="KQK">King and Queen vs King</option><option value="KPKP">King and Pawn vs King and Pawn</option><option value="random">Random Supported Endgame</option></select></fieldset>
+                <fieldset><legend>Piece Count</legend><select data-setup="pieces" name="piece-count"><option value="3">3</option><option value="4">4</option><option value="5">5 — Rook and Pawn vs Rook</option><option value="random">Random</option><option disabled>6 — Coming later</option></select></fieldset>
+                <fieldset><legend>Category</legend><select data-setup="category" name="category"><option value="KPK">King and Pawn vs King</option><option value="KRK">King and Rook vs King</option><option value="KQK">King and Queen vs King</option><option value="KPKP">King and Pawn vs King and Pawn</option><option value="KRPvKR">Rook and Pawn vs Rook</option><option value="random">Random Supported Endgame</option></select></fieldset>
                 <fieldset><legend>Play As</legend><select data-setup="color" name="color"><option value="white">White</option><option value="black">Black</option><option value="random">Random</option></select></fieldset>
                 <fieldset><legend>Engine Strength</legend><select data-setup="strength" name="strength"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option><option value="strong">Strong</option></select></fieldset>
                 <div class="endgame-trainer-page__setup-actions">
@@ -132,7 +132,7 @@
                 <section aria-labelledby="recent-title"><h3 id="recent-title">Recent Sessions</h3>
                     <div class="endgame-trainer-page__recent-filters" data-recent-filters>
                         <label>Result<select data-recent-result><option value="all">All</option><option value="checkmate">Checkmate</option><option value="draw">Draw</option><option value="resignation">Resignation</option><option value="abandoned">Abandoned</option></select></label>
-                        <label>Category<select data-recent-category><option value="all">All endgames</option><option value="KQK">Queen vs King</option><option value="KRK">Rook vs King</option><option value="KPK">Pawn vs King</option><option value="KPKP">Pawn vs Pawn</option></select></label>
+                        <label>Category<select data-recent-category><option value="all">All endgames</option><option value="KQK">Queen vs King</option><option value="KRK">Rook vs King</option><option value="KPK">Pawn vs King</option><option value="KPKP">Pawn vs Pawn</option><option value="KRPvKR">Rook and Pawn vs Rook</option></select></label>
                     </div>
                     <ol id="recent-sessions-list" class="endgame-trainer-page__recent" data-recent-sessions><li>No recent sessions yet.</li></ol>
                     <p data-recent-caption role="status"></p>

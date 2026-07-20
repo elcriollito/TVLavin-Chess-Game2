@@ -4,6 +4,7 @@ import { positionKey } from './endgame-fen-utils.js';
 import { extractPositionFeatures } from './endgame-position-features.js';
 import { scoreEndgamePosition, SCORING_THRESHOLDS } from './endgame-position-scorer.js';
 import { classifyExercise } from './endgame-exercise-classifier.js';
+import { KRPVKR_TEMPLATES } from './endgame-rook-pawn-templates.js';
 
 export const SELECTOR_VERSION = '1.0.0';
 function failure(code) { return { ok: false, error: { code }, version: SELECTOR_VERSION }; }
@@ -28,6 +29,8 @@ export function selectBestEndgameCandidate(options = {}) {
     if (!generatorOptions || typeof generatorOptions !== 'object' || Array.isArray(generatorOptions)) return failure('invalid-options');
 
     const candidates = [];
+    const candidateKeys = new Set();
+    let forcedTemplateFallback = false;
     const rejectionSummary = {};
     for (let index = 0; index < candidateCount; index += 1) {
         const generated = generateEndgamePosition({ ...generatorOptions, categoryId, seed: `${String(seed)}:${index}` });
@@ -41,16 +44,35 @@ export function selectBestEndgameCandidate(options = {}) {
             continue;
         }
         const key = positionKey(generated.fen);
-        const features = extractPositionFeatures(generated.fen, { categoryId });
+        if (candidateKeys.has(key)) { rejectionSummary['duplicate-position'] = (rejectionSummary['duplicate-position'] || 0) + 1; continue; }
+        candidateKeys.add(key);
+        const features = extractPositionFeatures(generated.fen, { categoryId, strongSide: generated.metadata.strongSide });
         const scoring = scoreEndgamePosition(generated.fen, { categoryId, strongSide: generated.metadata.strongSide, minimumScore, recentPositionKeys });
         const classification = classifyExercise(generated.fen, features, scoring);
         candidates.push({ fen: generated.fen, metadata: generated.metadata, features, scoring, classification, positionKey: key, diversity: recentPositionKeys.includes(key) ? 0 : 1, generationIndex: index });
     }
+    if (!candidates.length && categoryId === 'KRPvKR') {
+        const hash = [...String(seed)].reduce((value, character) => (value * 31 + character.charCodeAt(0)) >>> 0, 0);
+        const template = KRPVKR_TEMPLATES[hash % KRPVKR_TEMPLATES.length];
+        const generated = generateEndgamePosition({ categoryId, template: template.id });
+        const features = extractPositionFeatures(generated.fen, { categoryId, strongSide: template.strongSide });
+        const scoring = scoreEndgamePosition(generated.fen, { categoryId, strongSide: template.strongSide, minimumScore: 0, allowPromotionInOne: true });
+        candidates.push({ fen: generated.fen, metadata: generated.metadata, features, scoring, classification: classifyExercise(generated.fen, features, scoring), positionKey: positionKey(generated.fen), diversity: 1, generationIndex: candidateCount });
+        forcedTemplateFallback = true;
+    }
     if (!candidates.length) return { ...failure('no-candidate-available'), rejectionSummary };
     candidates.sort(compareEndgameCandidates);
     const accepted = candidates.filter((candidate) => candidate.scoring.score >= minimumScore);
-    const fallbackUsed = accepted.length === 0;
-    const selected = accepted[0] || candidates[0];
+    const fallbackUsed = forcedTemplateFallback || accepted.length === 0;
+    let selected = accepted[0] || candidates[0];
+    if (fallbackUsed && !forcedTemplateFallback && categoryId === 'KRPvKR') {
+        const hash = [...String(seed)].reduce((value, character) => (value * 31 + character.charCodeAt(0)) >>> 0, 0);
+        const template = KRPVKR_TEMPLATES[hash % KRPVKR_TEMPLATES.length];
+        const generated = generateEndgamePosition({ categoryId, template: template.id });
+        const features = extractPositionFeatures(generated.fen, { categoryId, strongSide: template.strongSide });
+        const scoring = scoreEndgamePosition(generated.fen, { categoryId, strongSide: template.strongSide, minimumScore: 0, allowPromotionInOne: true });
+        selected = { fen: generated.fen, metadata: generated.metadata, features, scoring, classification: classifyExercise(generated.fen, features, scoring), positionKey: positionKey(generated.fen), diversity: 1, generationIndex: candidateCount };
+    }
     const selectionPool = accepted.length ? accepted : candidates;
     const runnerUp = selectionPool[1];
     const topScoreTieCount = selectionPool.filter((candidate) => candidate.scoring.score === selected.scoring.score).length;

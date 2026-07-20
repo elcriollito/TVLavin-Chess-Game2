@@ -3,9 +3,9 @@ import { positionKey, materialSignature } from './endgame-fen-utils.js';
 import { extractPositionFeatures } from './endgame-position-features.js';
 
 export const SCORING_VERSION = '1.0.0';
-const CLUSTERING_BY_CATEGORY = Object.freeze({ KQK: 0.3, KRK: 0.3, KPK: 0.8, KPKP: 0.75 });
+const CLUSTERING_BY_CATEGORY = Object.freeze({ KQK: 0.3, KRK: 0.3, KPK: 0.8, KPKP: 0.75, KRPvKR: 0.65 });
 export const SCORING_THRESHOLDS = Object.freeze({
-    KQK: 58, KRK: 58, KPK: 55, KPKP: 55,
+    KQK: 58, KRK: 58, KPK: 55, KPKP: 55, KRPvKR: 48,
     excessiveClustering: 0.3, clusteringByCategory: CLUSTERING_BY_CATEGORY,
     excessiveDispersionArea: 42
 });
@@ -26,7 +26,7 @@ export function scoreEndgamePosition(fen, options = {}) {
     if (options.recentPositionKeys !== undefined && !Array.isArray(options.recentPositionKeys)) {
         throw new EndgameScoringError('invalid-options');
     }
-    const features = extractPositionFeatures(fen, { categoryId: category.id });
+    const features = extractPositionFeatures(fen, { categoryId: category.id, strongSide: options.strongSide });
     if (!features.ok) throw new EndgameScoringError('invalid-fen');
     const penalties = [];
     const bonuses = [];
@@ -65,6 +65,17 @@ export function scoreEndgamePosition(fen, options = {}) {
         if (features.immediatePawnCaptureCount) penalize('trivial-pawn-capture', -18, features.immediatePawnCaptureCount, 'A pawn is immediately capturable.');
         if (features.averagePieceDistance > 5) penalize('pawns-low-interaction', -14, features.averagePieceDistance, 'Kings and pawns are too dispersed.');
         if (features.occupiedBoundingBoxArea <= 30) bonus('balanced-visual-structure', 10, features.occupiedBoundingBoxArea, 'The material occupies related board regions.');
+    } else if (category.id === 'KRPvKR' && features.rookPawn) {
+        const rookPawn = features.rookPawn;
+        if (rookPawn.immediateRookTradePossibility) penalize('immediate-rook-trade', -28, true, 'A rook can be exchanged immediately.');
+        if (rookPawn.immediatePawnLossRisk) penalize('immediate-pawn-loss-risk', -22, true, 'The pawn can be lost immediately.');
+        if (features.uniquePromotionOpportunityCount) penalize('trivial-promotion', -22, features.uniquePromotionOpportunityCount, 'Promotion is immediately available.');
+        if (features.averagePieceDistance > 5.5) penalize('rook-ending-low-interaction', -12, features.averagePieceDistance, 'The pieces are too dispersed for a focused task.');
+        if (rookPawn.rookBehindPawn || rookPawn.defendingRookBehindPawn) bonus('rook-behind-pawn-structure', 12, true, 'A rook is placed behind the pawn.');
+        if (rookPawn.kingCutOffFiles >= 2 || rookPawn.kingCutOffRanks >= 2) bonus('king-cutoff-structure', 10, true, 'The defending king is geometrically cut off.');
+        if (rookPawn.sideCheckAvailability || rookPawn.frontalCheckAvailability) bonus('active-defense-available', 10, true, 'The defending rook has a checking setup.');
+        if (rookPawn.pawnRankProgress >= 4 && rookPawn.pawnRankProgress <= 6) bonus('advanced-pawn-technique', 10, rookPawn.pawnRankProgress, 'The advanced pawn creates a concrete technique exercise.');
+        if (rookPawn.checkingDistance >= 2) bonus('checking-distance', 6, rookPawn.checkingDistance, 'The rook has useful checking distance.');
     }
 
     const score = Math.max(0, Math.min(100, 50 + penalties.reduce((sum, item) => sum + item.weight, 0) + bonuses.reduce((sum, item) => sum + item.weight, 0)));

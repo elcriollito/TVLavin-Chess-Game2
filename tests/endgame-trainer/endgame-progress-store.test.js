@@ -17,7 +17,7 @@ test('7 known v0 migration', () => assert.equal(make(JSON.stringify({ version: 0
 test('8 unknown future version uses fresh memory without overwrite', () => { const storage = memory(JSON.stringify({ version: 9 })); const { store } = make(null, { storage }); store.recordPreparedPosition(entry()); assert.match(storage.raw(), /"version":9/); });
 test('9 negative values sanitize', () => assert.equal(make(JSON.stringify({ version: 1, totals: { attempts: -3 } })).store.getSnapshot().totals.attempts, 0));
 test('10 invalid numeric values sanitize', () => assert.equal(make(JSON.stringify({ version: 1, totals: { attempts: 'NaN' } })).store.getSnapshot().totals.attempts, 0));
-test('11 category validation', () => assert.equal(Object.keys(make(null).store.getSnapshot().categories).length, 4));
+test('11 category validation', () => assert.deepEqual(Object.keys(make(null).store.getSnapshot().categories), ['KQK', 'KRK', 'KPK', 'KPKP', 'KRPvKR']));
 test('12 unknown category ignored', () => assert.equal(make(JSON.stringify({ version: 1, categories: { OTHER: { sessionsStarted: 8 } } })).store.getSnapshot().categories.OTHER, undefined));
 test('13 recent sessions capped at 20', () => { const recentSessions = Array.from({ length: 25 }, (_, i) => entry({ id: `s${i}` })); assert.equal(make(JSON.stringify({ version: 1, recentSessions })).store.getSnapshot().recentSessions.length, 20); });
 test('14 record prepared once', () => { const { store } = make(null); assert.equal(store.recordPreparedPosition(entry()), true); assert.equal(store.recordPreparedPosition(entry()), false); assert.equal(store.getSnapshot().totals.positionsPrepared, 1); });

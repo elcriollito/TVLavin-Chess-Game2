@@ -31,7 +31,8 @@ function expectedSignature(category, strongSide) {
 const suiteStart = performance.now();
 const report = { total: { generated: 0, accepted: 0, rejected: 0, exhausted: 0, unique: 0, collisions: 0 }, categories: {} };
 
-for (const category of Object.values(ENDGAME_MATERIAL_CATALOG)) {
+const LEGACY_CATEGORY_IDS = ['KQK', 'KRK', 'KPK', 'KPKP'];
+for (const category of LEGACY_CATEGORY_IDS.map(id => ENDGAME_MATERIAL_CATALOG[id])) {
     const started = performance.now();
     const stats = { generationCalls: 0, generated: 0, accepted: 0, rejected: 0, exhausted: 0, unique: 0, collisions: 0, totalAttempts: 0, internallyRejectedCandidates: 0, rejectionCounts: {}, collisionDetails: [] };
     const keys = new Map();

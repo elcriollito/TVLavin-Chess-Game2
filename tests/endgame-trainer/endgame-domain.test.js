@@ -93,11 +93,11 @@ test('supported FEN board round trip independently preserves placement and turn'
     }
 });
 
-test('catalog declares only Season ET.1 categories', () => {
-    assert.deepEqual(Object.keys(ENDGAME_MATERIAL_CATALOG), ['KQK', 'KRK', 'KPK', 'KPKP']);
+test('catalog preserves Season ET.1 categories and adds isolated KRPvKR', () => {
+    assert.deepEqual(Object.keys(ENDGAME_MATERIAL_CATALOG), ['KQK', 'KRK', 'KPK', 'KPKP', 'KRPvKR']);
     for (const category of Object.values(ENDGAME_MATERIAL_CATALOG)) {
         assert.ok(category.id && category.internalName && category.description && category.provisionalObjective);
-        assert.ok([3, 4].includes(category.exactPieceCount));
+        assert.ok([3, 4, 5].includes(category.exactPieceCount));
         assert.equal(Object.isFrozen(category), true);
         assert.equal(Object.isFrozen(category.allowedStrongSides), true);
         assert.doesNotMatch(category.provisionalObjective, /\b(?:won|winning|drawn|lost|losing|exact win)\b/i);
