@@ -3,3 +3,5 @@ data/pgn_db/**
 data/openingdb/shards/**
 data/openingdb_games/**
 .wrangler/**
+tests/endgame-trainer/et10c-deterministic-curriculum-fixture.js
+tests/endgame-trainer/et10c-deterministic-curriculum-fixture.test.js
