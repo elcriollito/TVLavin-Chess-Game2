@@ -1,7 +1,9 @@
-export class EndgameBoardInteractionError extends Error {
+export const CAISSA_BOARD_INTERACTION_API_VERSION = '1.0';
+
+export class CaissaBoardInteractionError extends Error {
     constructor(code, cause) {
         super(code, { cause });
-        this.name = 'EndgameBoardInteractionError';
+        this.name = 'CaissaBoardInteractionError';
         this.code = code;
     }
 }
@@ -44,7 +46,7 @@ export class CaissaBoardInteraction {
                 lan: move.lan || `${move.from}${move.to}${move.promotion || ''}`
             }));
         } catch (error) {
-            throw new EndgameBoardInteractionError('invalid-move', error);
+            throw new CaissaBoardInteractionError('invalid-move', error);
         }
     }
 
@@ -149,7 +151,7 @@ export class CaissaBoardInteraction {
 
     dispose() { if (!this.#disposed) { this.#disposed = true; this.invalidate(); this.#rules = null; this.#view = null; } }
     #owns(token) { return !this.#disposed && token === this.#generation; }
-    #assertAlive() { if (this.#disposed) throw new EndgameBoardInteractionError('board-disposed'); }
+    #assertAlive() { if (this.#disposed) throw new CaissaBoardInteractionError('board-disposed'); }
     #pieceAt(square) { return this.#rules.pieces().find((piece) => piece.square === square); }
     #isPromotion(move) {
         const piece = this.#pieceAt(move.from);
@@ -157,5 +159,3 @@ export class CaissaBoardInteraction {
             (piece.color === 'black' && move.to[1] === '1'));
     }
 }
-
-export const EndgameBoardInteraction = CaissaBoardInteraction;

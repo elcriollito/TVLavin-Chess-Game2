@@ -69,8 +69,11 @@ export class EndgameBoardView {
     }
 
     initialize() {
-        this.#assertAlive();
         if (this.#state.initialized) return this;
+        if (this.#state.disposed) {
+            this.#state.disposed = false; this.#state.submitting = false; this.#state.pendingPromotion = null;
+            this.#state.selectedSquare = null; this.#state.legalTargets = [];
+        }
         if (typeof this.#createBoard !== 'function' || typeof this.#rulesFactory !== 'function')
             throw new EndgameBoardViewError('board-library-unavailable');
         this.#abort = new AbortController();
