@@ -2,6 +2,8 @@ import { ChessRulesFacade } from './chess-rules-facade.js';
 import { selectBestEndgameCandidate } from './endgame-candidate-selector.js';
 import { positionKey } from './endgame-fen-utils.js';
 import { createInitialSessionState, snapshotSessionState, cloneSessionValue } from './endgame-session-state.js';
+import { extractPositionFeatures } from './endgame-position-features.js';
+import { createMoveCoaching, createProgressiveHint, createSuccessCoaching } from './endgame-coach.js';
 
 export const SESSION_CONTROLLER_VERSION = '1.0.0';
 const COLORS = new Set(['white', 'black', 'random']);
@@ -40,6 +42,7 @@ export class EndgameSessionController {
     #createEngineAdapter; #candidateSelector; #rulesFactory; #idFactory; #now; #defaultEngineOptions;
     #engine = null; #rules = null; #state = createInitialSessionState(); #candidate = null;
     #generation = 0; #operationId = 0; #activeOperation = null; #listeners = new Set(); #lastOptions = null;
+    #lastHintAnalysis = null;
     #emitting = false;
 
     constructor({
@@ -99,7 +102,8 @@ export class EndgameSessionController {
             this.#state = {
                 ...createInitialSessionState(), status: 'ready', sessionId, categoryId: normalized.categoryId,
                 initialFen: fen, currentFen: fen, positionKey: positionKey(fen), userColor, engineColor: opposite(userColor),
-                sideToMove: rules.sideToMove(), orientation: userColor, objective: objectiveFor(selection.selected.classification, selection.selected, userColor),
+                sideToMove: rules.sideToMove(), orientation: userColor, objective: normalized.lesson.objective ?? objectiveFor(selection.selected.classification, selection.selected, userColor),
+                lessonId: normalized.lesson.lessonId ?? null, theme: normalized.lesson.theme ?? selection.selected.metadata?.theme ?? null,
                 classification: cloneSessionValue(selection.selected.classification), score: selection.selected.scoring?.score ?? null,
                 attemptNumber: 1, versions: { ...createInitialSessionState().versions, controller: SESSION_CONTROLLER_VERSION }, error: null
             };
@@ -142,11 +146,23 @@ export class EndgameSessionController {
         if (this.#activeOperation?.type === 'hint') await this.#invalidateOperations();
         else if (this.#activeOperation) fail('invalid-session-state');
         if (this.#promotionRequired(move)) fail('promotion-required');
+        const positionBefore = this.#rules.fen();
+        const positionFeatures = extractPositionFeatures(positionBefore, { categoryId: this.#state.categoryId, strongSide: this.#candidate?.metadata?.strongSide });
+        const hintAnalysis = this.#lastHintAnalysis?.fen === positionBefore ? this.#lastHintAnalysis : null;
         let applied;
         try { applied = this.#rules.move(move); }
         catch {
             fail('invalid-move');
         }
+        const positionAfter = this.#rules.fen();
+        this.#state.coaching = createMoveCoaching({
+            theme: this.#state.theme, lessonId: this.#state.lessonId, objective: this.#state.objective,
+            studentColor: this.#state.userColor, sideToMove: this.#state.userColor,
+            positionBefore, positionAfter, studentMove: applied, bestMove: hintAnalysis?.bestMove ?? null,
+            evaluationBefore: hintAnalysis?.lines?.[0]?.score ?? null,
+            positionFeatures, moveFeatures: { preservesTechnique: true }
+        });
+        this.#state.hintLevel = 0; this.#lastHintAnalysis = null;
         this.#recordMove(applied, 'user');
         if (this.#completeIfTerminal()) return { ok: true, move: cloneSessionValue(applied), state: this.getState() };
         await this.#requestEngineMove();
@@ -157,18 +173,28 @@ export class EndgameSessionController {
         this.#assertAlive();
         if (this.#state.status !== 'user-turn') fail('invalid-session-state');
         if (this.#activeOperation) fail('invalid-session-state');
+        const level = this.#state.theme ? Math.min(4, this.#state.hintLevel + 1) : 4;
+        const baseContext = this.#coachingContext(this.#rules.fen());
+        if (level < 4) {
+            const hint = createProgressiveHint(baseContext, level);
+            this.#state.hintLevel = level; this.#state.hintsUsed += 1; this.#emit();
+            return { requestId: `instruction-${this.#state.hintsUsed}`, fen: this.#rules.fen(), ...cloneSessionValue(hint), completed: true };
+        }
         const token = this.#beginOperation('hint');
         try {
-            const result = this.#engine.analyzePosition
+            const result = this.#lastHintAnalysis?.fen === token.fen ? this.#lastHintAnalysis : this.#engine.analyzePosition
                 ? await this.#engine.analyzePosition({ fen: token.fen, ...cloneSessionValue(options) })
                 : await this.#engine.requestBestMove({ fen: token.fen, ...cloneSessionValue(options) });
             this.#assertCurrent(token);
             if (result?.fen && result.fen !== token.fen) fail('hint-failed');
             const suggestedMove = result?.bestMove ?? result?.suggestedMove;
             if (!suggestedMove || !this.#isLegalOnFen(token.fen, suggestedMove)) fail('hint-failed');
+            this.#lastHintAnalysis = cloneSessionValue({ ...result, fen: token.fen, bestMove: suggestedMove });
+            const hint = createProgressiveHint({ ...baseContext, bestMove: suggestedMove }, level);
+            this.#state.hintLevel = level;
             this.#state.hintsUsed += 1;
             this.#emit();
-            return { requestId: result.requestId ?? token.operationId, fen: token.fen, suggestedMove, lines: cloneSessionValue(result.lines ?? []), completed: true };
+            return { requestId: result.requestId ?? token.operationId, fen: token.fen, ...cloneSessionValue(hint), lines: cloneSessionValue(result.lines ?? []), completed: true };
         } catch (error) {
             if (!this.#isTokenCurrent(token)) fail('stale-operation');
             throw normalizeEngineError(error, 'hint-failed');
@@ -189,6 +215,7 @@ export class EndgameSessionController {
         this.#state.sideToMove = this.#rules.sideToMove();
         this.#state.status = this.#state.sideToMove === this.#state.userColor ? 'user-turn' : 'ready';
         this.#state.result = null;
+        this.#state.coaching = null; this.#state.hintLevel = 0; this.#lastHintAnalysis = null;
         this.#emit();
         return this.getState();
     }
@@ -205,6 +232,7 @@ export class EndgameSessionController {
         this.#state.attemptNumber += 1;
         this.#state.result = null;
         this.#state.error = null;
+        this.#state.coaching = null; this.#state.hintLevel = 0; this.#lastHintAnalysis = null;
         this.#state.status = 'ready';
         this.#state.engineThinking = false;
         this.#emit();
@@ -250,6 +278,7 @@ export class EndgameSessionController {
         try { this.#engine?.dispose(); } catch { /* Disposal is best effort. */ }
         this.#engine = null;
         this.#rules = null;
+        this.#lastHintAnalysis = null;
         this.#state.status = 'disposed';
         this.#state.engineThinking = false;
         this.#state.result ??= { gameResult: 'aborted', exerciseOutcome: 'aborted', at: this.#now() };
@@ -339,6 +368,7 @@ export class EndgameSessionController {
         this.#state.status = 'completed';
         this.#state.engineThinking = false;
         this.#state.result = { gameResult, exerciseOutcome, at: this.#now() };
+        if (lastActor === 'user' && exerciseOutcome === 'completed') this.#state.coaching = createSuccessCoaching(this.#state.coaching?.context ?? this.#coachingContext(this.#state.currentFen));
         this.#emit();
         return true;
     }
@@ -348,6 +378,13 @@ export class EndgameSessionController {
         return this.#rules.legalMoves({ square: from, verbose: true }).some((candidate) => candidate.to === to && candidate.promotion);
     }
     #isLegalOnFen(fen, move) { try { this.#rulesFactory(fen).move(move); return true; } catch { return false; } }
+    #coachingContext(fen) {
+        return {
+            theme: this.#state.theme, lessonId: this.#state.lessonId, objective: this.#state.objective,
+            studentColor: this.#state.userColor, sideToMove: this.#rules?.sideToMove(), positionBefore: fen,
+            positionFeatures: extractPositionFeatures(fen, { categoryId: this.#state.categoryId, strongSide: this.#candidate?.metadata?.strongSide })
+        };
+    }
     #setState(patch) { Object.assign(this.#state, cloneSessionValue(patch)); this.#emit(); }
     #emit() {
         if (this.#emitting || this.#state.status === 'disposed') return;

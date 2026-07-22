@@ -94,6 +94,7 @@ export class EndgameSessionBoardBinding {
         if (this.#disposed) return;
         const previous = this.#state.controllerState;
         this.#state.controllerState = clone(state);
+        if ((previous?.sessionId && previous.sessionId !== state.sessionId) || (previous?.hintLevel > 0 && state.hintLevel === 0)) this.#state.hint = null;
         const last = state.moveHistory?.at(-1)?.move;
         const historyLength = state.moveHistory?.length ?? 0;
         const incrementalMove = state.sessionId === this.#projection.sessionId && historyLength === this.#projection.historyLength + 1 ? last : null;

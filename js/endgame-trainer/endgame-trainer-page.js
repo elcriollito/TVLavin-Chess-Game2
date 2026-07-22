@@ -2,6 +2,7 @@ import { createEndgameTrainerRuntime } from './endgame-trainer-runtime.js';
 import { createEndgameProgressStore, ENDGAME_PROGRESS_STORAGE_KEY } from './endgame-progress-store.js';
 import { createEndgameCurriculum } from './endgame-curriculum.js';
 import { ESSENTIAL_CANON_PILOT, createPilotSession } from './essential-canon-pilot.js';
+import { setIdempotentText } from './endgame-feedback-renderer.js';
 
 const CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP', 'KRPvKR'];
 const RANDOM_CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP'];
@@ -11,7 +12,7 @@ const RESULT_LABELS = { checkmate: 'Checkmate', resignation: 'Resignation', stal
 let mounted = null;
 let pageSequence = 0;
 const copy = value => structuredClone(value);
-const text = (node, value) => { if (node) node.textContent = value ?? '—'; };
+const text = setIdempotentText;
 const resultLabel = value => RESULT_LABELS[value] ?? value;
 const publicPage = page => copy({ mounted: page.mounted, navOpen: page.navOpen, runtimeAttached: page.runtimeAttached, operation: page.operation, hint: page.hint, error: page.error, disposed: page.disposed, diagnosticState: page.diagnosticState, controllerState: page.controllerState, progress: page.progressSnapshot, trainingMode: page.trainingMode, selectedPathId: page.selectedPathId, activeLesson: page.activeLesson, curriculumProgress: page.curriculumProgress, recentExpanded: page.recentExpanded, recentResult: page.recentResult, recentCategory: page.recentCategory, syncFeedback: page.syncFeedback, progressDiagnostic: page.diagnosticEnabled ? page.progressStore.getDiagnosticSnapshot() : undefined });
 const CATEGORY_LABELS = { KQK: 'Queen vs King', KRK: 'Rook vs King', KPK: 'Pawn vs King', KPKP: 'Pawn vs Pawn', KRPvKR: 'Rook and Pawn vs Rook' };
@@ -153,7 +154,7 @@ function renderHistory(root, moves = []) {
 function update(root, page, snapshot) {
     const state = snapshot?.controllerState ?? page.controllerState ?? { status: 'idle', moveHistory: [] };
     reconcileProgress(root, page, state);
-    page.controllerState = copy(state); page.operation = snapshot?.loading ?? null; page.hint = snapshot?.hint ?? page.hint;
+    page.controllerState = copy(state); page.operation = snapshot?.loading ?? null; if (snapshot && Object.hasOwn(snapshot, 'hint')) page.hint = snapshot.hint;
     const status = page.disposed ? 'disposed'
         : page.operation ? 'preparing'
         : state.engineThinking || state.status === 'engine-thinking' ? 'engine-thinking'
@@ -165,7 +166,7 @@ function update(root, page, snapshot) {
         root.classList.toggle(`is-${name}`, name === status);
     }
     root.querySelector('[data-diagnostic-state]')?.setAttribute('aria-busy', String(Boolean(page.operation || state.engineThinking)));
-    const completedCopy = state.result?.gameResult ? `Result: ${resultLabel(state.result.gameResult)}.` : 'Review the final position and start another attempt.';
+    const completedCopy = state.coaching?.classification === 'SUCCESS' ? state.coaching.message : state.result?.gameResult ? `Result: ${resultLabel(state.result.gameResult)}.` : 'Review the final position and start another attempt.';
     const statusCopy = {
         empty: ['Ready to train', 'Prepare a focused endgame position to begin.'],
         preparing: ['Preparing your position', 'Building a focused endgame for this session.'],
@@ -183,7 +184,9 @@ function update(root, page, snapshot) {
     text(field('objective'), state.objective); text(field('turn'), state.sideToMove ? `${state.sideToMove[0].toUpperCase()}${state.sideToMove.slice(1)} to move` : '—');
     text(field('status'), state.status === 'user-turn' ? 'Your turn' : state.status); text(field('attempt'), state.attemptNumber); text(field('hints'), state.hintsUsed ?? 0); text(field('undos'), state.undosUsed ?? 0);
     text(field('engine'), state.engineThinking ? 'Thinking' : page.disposed ? 'Disposed' : state.sessionId ? 'Ready' : 'Not initialized'); text(field('result'), resultLabel(state.result?.gameResult)); text(field('score'), state.score);
-    text(root.querySelector('[data-hint-output]'), page.hint?.suggestedMove ? `Suggested move: ${page.hint.suggestedMove}` : ''); renderHistory(root, state.moveHistory);
+    text(root.querySelector('[data-hint-output]'), page.hint?.message ?? '');
+    text(root.querySelector('[data-page-message]'), state.coaching?.message ?? (status === 'user-turn' ? 'Find a move that preserves the lesson idea.' : statusCopy[status]?.[1] ?? ''));
+    renderHistory(root, state.moveHistory);
     const emptyOverlay = root.querySelector('[data-empty-board-overlay]'); if (emptyOverlay) emptyOverlay.hidden = !['empty', 'preparing'].includes(status);
     const overlay = root.querySelector('[data-board-overlay]'); if (overlay) overlay.hidden = status !== 'engine-thinking';
     const enabled = page.disposed ? {} : { prepare: ['idle', 'error'].includes(state.status) && !page.operation, start: state.status === 'ready' && !page.operation, hint: state.status === 'user-turn' && !page.operation, undo: state.status === 'user-turn' && state.moveHistory?.length > 0 && !page.operation, restart: Boolean(state.sessionId), new: Boolean(state.sessionId), resign: Boolean(state.sessionId) && !['completed', 'resigned', 'error'].includes(state.status), flip: true };

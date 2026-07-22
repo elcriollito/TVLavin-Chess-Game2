@@ -17,7 +17,8 @@ export function createInitialSessionState() {
         status: 'idle', sessionId: null, categoryId: null, initialFen: null, currentFen: null,
         positionKey: null, userColor: null, engineColor: null, sideToMove: null, orientation: 'white',
         objective: null, classification: null, score: null, moveHistory: [], attemptNumber: 0,
-        hintsUsed: 0, undosUsed: 0, engineThinking: false, result: null, error: null,
+        hintsUsed: 0, hintLevel: 0, undosUsed: 0, engineThinking: false, result: null, error: null,
+        lessonId: null, theme: null, coaching: null,
         versions: { sessionState: SESSION_STATE_VERSION }
     };
 }

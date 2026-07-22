@@ -77,7 +77,7 @@ test('mixed practical-resistance lesson has a completable session rule', () => {
 test('procedural attack and defense roles control both material side and user side', () => {
   assert.deepEqual(curriculum.resolveTrainingOptions('basic-checkmates', 'mate-finish'), {
     categoryId: 'KQK', userColor: 'white', betaWhiteOnly: true, candidateCount: 24, generatorOptions: { strongSide: 'white', sideToMove: 'white' },
-    lesson: { pathId: 'basic-checkmates', lessonId: 'mate-finish', theme: 'finishing-technique', trainingRole: 'attack', difficulty: 'intermediate' }
+    lesson: { pathId: 'basic-checkmates', lessonId: 'mate-finish', theme: 'finishing-technique', objective: 'Coordinate king and queen to complete the exercise.', trainingRole: 'attack', difficulty: 'intermediate' }
   });
   const defense = curriculum.resolveTrainingOptions('defensive-technique', 'defense-hold-opposition');
   assert.equal(defense.userColor, 'white');

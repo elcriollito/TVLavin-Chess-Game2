@@ -10,6 +10,7 @@ const WHITE_MATE_FEN = '7k/8/5KQ1/8/8/8/8/8 w - - 0 1';
 const BLACK_MATE_FEN = '8/8/8/8/8/5kq1/8/7K b - - 0 1';
 const STALEMATE_FEN = 'k7/2Q5/2K5/8/8/8/8/8 w - - 0 1';
 const ROOK_MATE_FEN = '7k/5K2/6R1/8/8/8/8/8 w - - 0 1';
+const MOVE_CLASSIFICATIONS_FOR_TEST = new Set(['BEST', 'GOOD', 'INACCURACY', 'MISTAKE', 'BLUNDER', 'ONLY_MOVE', 'SUCCESS']);
 
 function candidate(fen = FEN_A, type = 'basic-mate-practice', score = 90) {
     return { fen, positionKey: fen.split(' ').slice(0, 4).join(' '), classification: { type, labels: ['test'] }, scoring: { score }, metadata: { strongSide: 'white' } };
@@ -314,4 +315,27 @@ test('75 newPosition during the first prepare is rejected without cancelling pre
 });
 test('76 newPosition recovers from an engine error with a fresh session', async () => {
     const c = await started(setup({ fens: [FEN_A, FEN_A], automatic: false })); const play = c.controller.playUserMove(legalLan(FEN_A)); c.engine.rejectNext(); await rejectsCode(play, 'engine-move-failed'); const oldId = c.controller.getState().sessionId; await c.controller.newPosition(); assert.notEqual(c.controller.getState().sessionId, oldId); assert.equal(c.controller.getState().status, 'ready'); assert.equal(c.controller.getState().error, null);
+});
+test('77 themed hints reveal principle, focus, direction, then an engine move', async () => {
+    const c = await started(setup(), { lesson: { lessonId: 'rook-opposition-test', theme: 'opposition', objective: 'Use the opposition.' } });
+    const hints = [];
+    for (let index = 0; index < 4; index += 1) hints.push(await c.controller.requestHint());
+    assert.match(hints[0].message, /^Principle:/); assert.match(hints[1].message, /^Focus:/); assert.match(hints[2].message, /^Direction:/);
+    assert.match(hints[3].message, /^Move:/); assert.ok(hints[3].suggestedMove); assert.equal(c.engine.searches.length, 1);
+    assert.equal(c.controller.getState().hintLevel, 4); assert.equal(c.controller.getState().hintsUsed, 4);
+});
+test('78 restart and new position reset progressive coaching state', async () => {
+    const options = { lesson: { lessonId: 'rook-opposition-test', theme: 'opposition', objective: 'Use the opposition.' } };
+    const c = await started(setup({ fens: [FEN_A, FEN_A] }), options);
+    await c.controller.requestHint(); await c.controller.requestHint();
+    assert.equal(c.controller.getState().hintLevel, 2);
+    await c.controller.restart(); assert.equal(c.controller.getState().hintLevel, 0); assert.equal(c.controller.getState().hintsUsed, 2);
+    await c.controller.requestHint(); await c.controller.newPosition();
+    assert.equal(c.controller.getState().hintLevel, 0); assert.equal(c.controller.getState().coaching, null);
+});
+test('79 a user move emits deterministic coaching without adding an analysis search', async () => {
+    const c = await started(setup(), { lesson: { lessonId: 'rook-activity-test', theme: 'king-activity', objective: 'Activate the king.' } });
+    await c.controller.playUserMove(legalLan(FEN_A));
+    const coaching = c.controller.getState().coaching;
+    assert.ok(coaching); assert.ok(MOVE_CLASSIFICATIONS_FOR_TEST.has(coaching.classification)); assert.equal(c.engine.searches.length, 1);
 });
