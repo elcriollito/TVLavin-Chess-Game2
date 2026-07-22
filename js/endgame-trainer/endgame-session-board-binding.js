@@ -10,6 +10,7 @@ const safe = (callback, value) => { try { callback?.(value); } catch { /* extern
 export class EndgameSessionBoardBinding {
     #controller; #board; #callbacks; #rulesFactory; #unsubscribe = null;
     #generation = 0; #operationId = 0; #initialized = false; #disposed = false;
+    #projection = { fen: null, sessionId: null, historyLength: 0, orientation: null, thinking: null, interactive: null, lastMove: null, checkSquare: null };
     #state = { loading: null, hint: null, error: null, operation: null, controllerState: null };
 
     constructor({ controller, boardView, onStateChange, onError, onAnnouncement,
@@ -93,13 +94,21 @@ export class EndgameSessionBoardBinding {
         if (this.#disposed) return;
         const previous = this.#state.controllerState;
         this.#state.controllerState = clone(state);
-        if (state.currentFen && state.currentFen !== this.#board.getPosition()) this.#board.setPosition(state.currentFen);
-        if (state.orientation && state.orientation !== this.#board.getState().orientation) this.#board.setOrientation(state.orientation);
-        this.#board.setThinking(Boolean(state.engineThinking));
-        this.#board.setInteractive(state.status === 'user-turn' && !state.engineThinking);
         const last = state.moveHistory?.at(-1)?.move;
-        this.#board.setLastMove(last?.from && last?.to ? { from: last.from, to: last.to } : null);
-        this.#board.setCheckSquare(this.#checkSquare(state.currentFen));
+        const historyLength = state.moveHistory?.length ?? 0;
+        const incrementalMove = state.sessionId === this.#projection.sessionId && historyLength === this.#projection.historyLength + 1 ? last : null;
+        if (state.currentFen && state.currentFen !== this.#projection.fen) { this.#board.setPosition(state.currentFen, incrementalMove); this.#projection.fen = state.currentFen; }
+        this.#projection.sessionId = state.sessionId; this.#projection.historyLength = historyLength;
+        if (state.orientation && state.orientation !== this.#projection.orientation) { this.#board.setOrientation(state.orientation); this.#projection.orientation = state.orientation; }
+        const thinking = Boolean(state.engineThinking);
+        if (thinking !== this.#projection.thinking) { this.#board.setThinking(thinking); this.#projection.thinking = thinking; }
+        const interactive = state.status === 'user-turn' && !state.engineThinking;
+        if (interactive !== this.#projection.interactive) { this.#board.setInteractive(interactive); this.#projection.interactive = interactive; }
+        const lastMove = last?.from && last?.to ? { from: last.from, to: last.to, ...(last.promotion ? { promotion: last.promotion } : {}) } : null;
+        const lastKey = lastMove ? `${lastMove.from}-${lastMove.to}-${lastMove.promotion ?? ''}` : null;
+        if (lastKey !== this.#projection.lastMove) { this.#board.setLastMove(lastMove); this.#projection.lastMove = lastKey; }
+        const checkSquare = this.#checkSquare(state.currentFen);
+        if (checkSquare !== this.#projection.checkSquare) { this.#board.setCheckSquare(checkSquare); this.#projection.checkSquare = checkSquare; }
         if (previous?.status !== state.status) safe(this.#callbacks.onAnnouncement, this.#announcement(state));
         safe(this.#callbacks.onStateChange, this.getState());
     }

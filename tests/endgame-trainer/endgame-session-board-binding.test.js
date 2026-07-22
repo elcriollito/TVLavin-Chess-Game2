@@ -20,7 +20,7 @@ class FakeController {
 class FakeBoard {
     constructor() { this.state = { orientation: 'white' }; this.fen = null; this.calls = []; this.disposed = 0; }
     initialize() { this.calls.push(['initialize']); } getPosition() { return this.fen; } getState() { return structuredClone(this.state); }
-    setPosition(v) { this.fen = v; this.calls.push(['fen', v]); } setOrientation(v) { this.state.orientation = v; this.calls.push(['orientation', v]); }
+    setPosition(v, move) { this.fen = v; this.calls.push(['fen', v, move]); } setOrientation(v) { this.state.orientation = v; this.calls.push(['orientation', v]); }
     setThinking(v) { this.calls.push(['thinking', v]); } setInteractive(v) { this.calls.push(['interactive', v]); }
     setLastMove(v) { this.calls.push(['last', v]); } setCheckSquare(v) { this.calls.push(['check', v]); }
     dispose() { this.disposed++; }
@@ -63,3 +63,6 @@ test('37 snapshots immutable', () => { const x = setup(); const s = x.binding.ge
 test('38 no duplicate subscriptions', () => { const x = setup(); x.binding.initialize(); assert.equal(x.controller.listeners.size, 1); });
 test('39 no duplicate adapters by binding', () => { const x = setup(); assert.equal(x.controller.calls.length, 0); });
 test('40 no duplicate workers by binding', () => { const x = setup(); x.binding.initialize(); assert.equal(x.controller.listeners.size, 1); });
+test('41 one incremental board update per move', () => { const x = setup(base({ status: 'user-turn', sessionId: 'A', currentFen: 'fen-a' })); const before = x.board.calls.filter(call => call[0] === 'fen').length; x.controller.emit({ currentFen: 'fen-b', moveHistory: [{ move: { from: 'a2', to: 'a3' } }] }); const updates = x.board.calls.filter(call => call[0] === 'fen'); assert.equal(updates.length, before + 1); assert.deepEqual(updates.at(-1), ['fen', 'fen-b', { from: 'a2', to: 'a3' }]); });
+test('42 hint and loading emissions do not update board state', () => { const x = setup(base({ status: 'user-turn', sessionId: 'A', currentFen: 'fen-a' })); const before = x.board.calls.length; x.controller.emit({ status: 'user-turn' }); x.controller.emit({ status: 'user-turn' }); assert.equal(x.board.calls.length, before); });
+test('43 undo uses a full position update, not a stale incremental move', () => { const x = setup(base({ status: 'user-turn', sessionId: 'A', currentFen: 'fen-b', moveHistory: [{ move: { from: 'a2', to: 'a3' } }] })); x.controller.emit({ currentFen: 'fen-a', moveHistory: [] }); assert.deepEqual(x.board.calls.filter(call => call[0] === 'fen').at(-1), ['fen', 'fen-a', null]); });

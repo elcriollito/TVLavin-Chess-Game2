@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ChessRulesFacade } from '../../js/endgame-trainer/chess-rules-facade.js';
-import { EndgameBoardView, EndgameBoardViewError } from '../../js/endgame-trainer/endgame-board-view.js';
+import { EndgameBoardView, EndgameBoardViewError, detectTouchCapability } from '../../js/endgame-trainer/endgame-board-view.js';
 
 const START = '8/8/8/8/8/8/4P3/4K2k w - - 0 1';
 const BLACK_PROMO = '8/8/8/8/8/8/p7/4K2k b - - 0 1';
@@ -46,12 +46,12 @@ class FakeRoot extends FakeNode {
 }
 
 function factoryLog(root, { fail = false } = {}) {
-    const log = { positions: [], orientations: [], resize: 0, destroy: 0, config: null };
+    const log = { positions: [], moves: [], orientations: [], resize: 0, destroy: 0, config: null };
     const createBoard = (_element, config) => {
         if (fail) throw new Error('factory');
         log.config = config;
         return {
-            position(fen) { log.positions.push(fen); }, orientation(color) { log.orientations.push(color); },
+            position(fen) { log.positions.push(fen); }, move(value, animate) { log.moves.push([value, animate]); }, orientation(color) { log.orientations.push(color); },
             resize() { log.resize += 1; }, destroy() { log.destroy += 1; }
         };
     };
@@ -90,7 +90,7 @@ test('16 legal highlights', async () => { const { root } = create(); root.emit('
 test('17 capture highlights', async () => { const { root } = create({ fen: '8/8/8/8/3p4/4P3/8/4K2k w - - 0 1' }); root.emit('click', { target: root.square('e3') }); await tick(); assert.equal(root.square('d4').classList.contains('et-board-capture'), true); });
 test('18 drag blocked wrong color', () => { const { log } = create(); assert.equal(log.config.onDragStart('h1', 'bK'), false); });
 test('19 drag blocked thinking', () => { const { view, log } = create(); view.setThinking(true); assert.equal(log.config.onDragStart('e2', 'wP'), false); });
-test('20 legal drop', async () => { let move; const { log } = create({ onMove: (value) => { move = value; } }); assert.equal(log.config.onDrop('e2', 'e3'), 'snapback'); await tick(); assert.equal(move.to, 'e3'); });
+test('20 legal drop stays in place', async () => { let move; const { log } = create({ onMove: (value) => { move = value; } }); assert.equal(log.config.onDrop('e2', 'e3'), undefined); await tick(); assert.equal(move.to, 'e3'); });
 test('21 illegal drop snapback', async () => { let count = 0; const { log } = create({ onMove: () => count++ }); assert.equal(log.config.onDrop('e2', 'a8'), 'snapback'); await tick(); assert.equal(count, 0); });
 test('22 async onMove success', async () => { const { log, view } = create({ onMove: async () => true }); log.config.onDrop('e2', 'e3'); await tick(); assert.equal(view.getState().submitting, false); });
 test('23 async onMove rejection', async () => { const { log, view } = create({ onMove: async () => { throw new Error('no'); } }); log.config.onDrop('e2', 'e3'); await tick(); assert.equal(view.getPosition(), START); });
@@ -125,3 +125,9 @@ test('51 principal race FEN A to B', async () => { let resolve; let moves = 0; c
 test('52 real pointer tap survives Chessboard moving the pointerup target', async () => { const { root, view } = create(); root.emit('pointerdown', { target: root.square('e2'), pointerId: 1, clientX: 20, clientY: 20 }); root.emit('pointerup', { target: root, pointerId: 1, clientX: 21, clientY: 21 }); await tick(); assert.equal(view.getState().selectedSquare, 'e2'); });
 test('53 pointer drag does not duplicate the board drop callback', async () => { let moves = 0; const { root, log } = create({ onMove: () => { moves++; } }); root.emit('pointerdown', { target: root.square('e2'), pointerId: 1, clientX: 20, clientY: 20 }); root.emit('pointerup', { target: root.square('e3'), pointerId: 1, clientX: 20, clientY: 80 }); log.config.onDrop('e2', 'e3'); await tick(); assert.equal(moves, 1); });
 test('54 throwing promotion and error callbacks recover without unhandled state', async () => { const { log, view } = create({ fen: WHITE_PROMO, promotionResolver: async () => { throw new Error('resolver'); }, onError: () => { throw new Error('observer'); } }); log.config.onDrop('a7', 'a8'); await tick(); assert.equal(view.getState().submitting, false); assert.equal(view.canInteract(), true); assert.equal(view.getPosition(), WHITE_PROMO); });
+test('55 touch capability disables drag without using viewport width', () => { const { root, log } = create({ options: { resizeObserver: false, touchDetector: () => true } }); assert.equal(log.config.draggable, false); assert.equal(root.getAttribute('data-input-mode'), 'tap'); });
+test('56 desktop capability retains drag', () => { const { root, log } = create({ options: { resizeObserver: false, touchDetector: () => false } }); assert.equal(log.config.draggable, true); assert.equal(root.getAttribute('data-input-mode'), 'pointer'); });
+test('57 tap move causes one incremental render and no full redraw', async () => { let view; const result = create({ onMove: async move => { view.setPosition('8/8/8/8/8/4P3/8/4K2k b - - 0 1', move); return true; } }); view = result.view; const baseline = result.log.positions.length; result.root.emit('click', { target: result.root.square('e2') }); result.root.emit('click', { target: result.root.square('e3') }); await tick(); assert.equal(result.log.positions.length, baseline); assert.deepEqual(result.log.moves, [['e2-e3', false]]); assert.equal(view.getState().incrementalMoveCount, 1); });
+test('58 status-only updates never invoke a board renderer', () => { const { view, log } = create(); const positions = log.positions.length; view.setThinking(true); view.setThinking(false); view.setInteractive(false); view.setInteractive(true); view.setLastMove({ from: 'e2', to: 'e3' }); assert.equal(log.positions.length, positions); assert.equal(log.moves.length, 0); });
+test('59 touch detection uses pointer capability', () => { assert.equal(detectTouchCapability({ navigator: { maxTouchPoints: 1 } }), true); assert.equal(detectTouchCapability({ navigator: { maxTouchPoints: 0 }, matchMedia: () => ({ matches: true }) }), true); assert.equal(detectTouchCapability({ navigator: { maxTouchPoints: 0 }, matchMedia: () => ({ matches: false }) }), false); });
+test('60 promotion uses one correct position diff without remounting', () => { const { view, log } = create({ fen: WHITE_PROMO }); const baseline = log.positions.length; view.setPosition('Q6k/8/8/8/8/8/8/7K b - - 0 1', { from: 'a7', to: 'a8', promotion: 'q' }); assert.equal(log.positions.length, baseline + 1); assert.equal(log.moves.length, 0); assert.equal(log.destroy, 0); assert.equal(view.getState().mountCount, 1); });

@@ -1,4 +1,4 @@
-import { EndgameBoardInteraction } from './endgame-board-interaction.js';
+import { CaissaBoardInteraction } from '../caissa-board-interaction.js';
 
 export class EndgameBoardViewError extends Error {
     constructor(code, cause) { super(code, { cause }); this.name = 'EndgameBoardViewError'; this.code = code; }
@@ -19,6 +19,13 @@ function isElement(value) {
 }
 
 function safeCall(callback, value) { try { callback?.(value); } catch { /* callbacks are isolation boundaries */ } }
+
+export function detectTouchCapability(environment = globalThis) {
+    const points = Number(environment.navigator?.maxTouchPoints) || 0;
+    let coarse = false;
+    try { coarse = environment.matchMedia?.('(any-pointer: coarse)')?.matches === true; } catch { /* optional capability */ }
+    return points > 0 || coarse;
+}
 
 export function createChessboardJsBoard(element, options = {}) {
     const factory = globalThis.Chessboard;
@@ -41,6 +48,8 @@ export class EndgameBoardView {
     #observer = null;
     #frame = null;
     #pointerStart = null;
+    #pendingVisualMove = null;
+    #touchCapable = false;
     #state;
 
     constructor({ element, createBoard = createChessboardJsBoard, rulesFactory, promotionResolver,
@@ -50,11 +59,12 @@ export class EndgameBoardView {
         this.#createBoard = createBoard;
         this.#rulesFactory = rulesFactory;
         this.#callbacks = { promotionResolver, onMove, onSelectionChange, onError, onAnnouncement };
-        this.#options = { label: 'Endgame training board', resizeObserver: true, ...options };
+        this.#options = { label: 'Endgame training board', resizeObserver: true, touchDetector: detectTouchCapability, ...options };
         this.#state = {
             initialized: false, disposed: false, fen: null, orientation: 'white', interactive: true,
             thinking: false, submitting: false, selectedSquare: null, legalTargets: [], lastMove: null,
-            checkSquare: null, pendingPromotion: null, inputMode: null, focusedSquare: 'a1', version: 0
+            checkSquare: null, pendingPromotion: null, inputMode: null, focusedSquare: 'a1', version: 0,
+            mountCount: 0, fullPositionRenderCount: 0, incrementalMoveCount: 0
         };
     }
 
@@ -64,22 +74,23 @@ export class EndgameBoardView {
         if (typeof this.#createBoard !== 'function' || typeof this.#rulesFactory !== 'function')
             throw new EndgameBoardViewError('board-library-unavailable');
         this.#abort = new AbortController();
+        this.#touchCapable = this.#options.touchDetector(globalThis) === true;
         const config = {
-            draggable: true, position: this.#state.fen || 'start', orientation: this.#state.orientation,
+            draggable: !this.#touchCapable, position: this.#state.fen || 'start', orientation: this.#state.orientation,
             onDragStart: (source, piece) => this.#interaction?.canStart(source, piece) ?? false,
-            onDrop: (from, to) => { void this.#interaction?.drop(from, to); return 'snapback'; },
-            onSnapEnd: () => this.restoreControlledPosition(),
+            onDrop: (from, to) => this.#interaction?.beginDrop(from, to) ? undefined : 'snapback',
             ...(this.#options.board || {})
         };
         try {
             this.#board = this.#createBoard(this.#element, config);
             if (!this.#board) throw new Error('empty-board');
             this.#rules = this.#rulesFactory(this.#state.fen);
-            this.#interaction = new EndgameBoardInteraction({
+            this.#interaction = new CaissaBoardInteraction({
                 rules: this.#rules, boardView: this, onMove: this.#callbacks.onMove,
                 promotionResolver: this.#callbacks.promotionResolver
             });
             this.#state.initialized = true;
+            this.#state.mountCount += 1;
             this.#configureRoot();
             this.#attachEvents();
             this.#setupResize();
@@ -92,12 +103,14 @@ export class EndgameBoardView {
         }
     }
 
-    setPosition(fen) {
+    setPosition(fen, move = null) {
         this.#assertReady();
         let rules;
         try { rules = this.#rulesFactory(fen); } catch (error) { throw new EndgameBoardViewError('invalid-fen', error); }
         if (!rules || typeof rules.fen !== 'function') throw new EndgameBoardViewError('invalid-fen');
         const normalized = rules.fen();
+        if (normalized === this.#state.fen) return normalized;
+        const previousFen = this.#state.fen;
         this.#interaction.invalidate();
         this.#rules = rules;
         this.#interaction.setRules(rules);
@@ -106,7 +119,18 @@ export class EndgameBoardView {
         this.#state.pendingPromotion = null;
         this.#state.version += 1;
         this.setSelectedSquare(null);
-        this.#board.position(normalized, false);
+        if (previousFen && move?.from && move?.to) {
+            const key = `${move.from}-${move.to}`;
+            const alreadyRendered = this.#pendingVisualMove?.key === key && this.#pendingVisualMove.rendered;
+            const needsPositionDiff = Boolean(move.promotion) || /[ekq]/.test(move.flags ?? '');
+            if (needsPositionDiff) this.#board.position(normalized, true);
+            else if (!alreadyRendered) this.#board.move?.(key, false);
+            this.#state.incrementalMoveCount += 1;
+        } else {
+            this.#board.position(normalized, false);
+            this.#state.fullPositionRenderCount += 1;
+        }
+        this.#pendingVisualMove = null;
         this.#syncDom();
         return normalized;
     }
@@ -127,7 +151,9 @@ export class EndgameBoardView {
     resize() { this.#assertReady(); this.#board.resize?.(); this.#syncDom(); }
     getState() { return structuredClone(this.#state); }
     canInteract() { return this.#state.initialized && !this.#state.disposed && this.#state.interactive && !this.#state.thinking && !this.#state.submitting; }
-    restoreControlledPosition() { if (this.#board && this.#state.fen) this.#board.position(this.#state.fen, false); }
+    restoreControlledPosition() { return this.#state.fen; }
+    setPendingVisualMove(move, rendered = false) { this.#pendingVisualMove = move?.from && move?.to ? { key: `${move.from}-${move.to}`, rendered: Boolean(rendered) } : null; }
+    rollbackPendingVisualMove() { if (this.#pendingVisualMove?.rendered && this.#state.fen) this.#board.position(this.#state.fen, false); this.#pendingVisualMove = null; }
     reportError(code, cause) { safeCall(this.#callbacks.onError, Object.freeze({ code, cause })); }
 
     setSubmitting(value, move = null) {
@@ -146,7 +172,7 @@ export class EndgameBoardView {
     dispose() {
         if (this.#state.disposed) return;
         this.#state.disposed = true; this.#state.initialized = false; this.#state.version += 1;
-        this.#pointerStart = null;
+        this.#pointerStart = null; this.#pendingVisualMove = null;
         this.#interaction?.dispose(); this.#abort?.abort(); this.#observer?.disconnect?.();
         if (this.#frame !== null) (globalThis.cancelAnimationFrame || clearTimeout)(this.#frame);
         this.#clearDomClasses();
@@ -157,6 +183,7 @@ export class EndgameBoardView {
     #configureRoot() {
         this.#element.setAttribute('role', 'grid');
         this.#element.setAttribute('aria-label', this.#options.label);
+        this.#element.setAttribute('data-input-mode', this.#touchCapable ? 'tap' : 'pointer');
     }
     #attachEvents() {
         const signal = this.#abort.signal;

@@ -72,6 +72,8 @@
 .endgame-trainer-page__page-message { margin: 12px 0 0; color: var(--et-muted); font-size: .82rem; }
 .endgame-trainer-page__board-stage { position: relative; width: 100%; aspect-ratio: 1; overflow: hidden; border-radius: 12px; background: #0a1120; box-shadow: 0 0 0 1px #50607d, 0 18px 36px #02071355; }
 .endgame-trainer-page__board { display: block; width: 100%; padding: 0; background: none; text-shadow: none; }
+.endgame-trainer-page__board[data-input-mode="tap"] { touch-action: pan-y pinch-zoom; }
+.endgame-trainer-page__board .piece-417db { transition: none !important; opacity: 1 !important; }
 .endgame-trainer-page .board-b72b1 { box-sizing: content-box; }
 .endgame-trainer-page__empty-overlay, .endgame-trainer-page__overlay {
     position: absolute; inset: -1px; z-index: 4; display: grid; place-content: center; justify-items: center;
