@@ -5,8 +5,9 @@ import { extractPositionFeatures } from './endgame-position-features.js';
 import { scoreEndgamePosition, SCORING_THRESHOLDS } from './endgame-position-scorer.js';
 import { classifyExercise } from './endgame-exercise-classifier.js';
 import { KRPVKR_TEMPLATES } from './endgame-rook-pawn-templates.js';
+import { validateEndgameTheme } from './endgame-theme-validator.js';
 
-export const SELECTOR_VERSION = '1.0.0';
+export const SELECTOR_VERSION = '1.1.0';
 function failure(code) { return { ok: false, error: { code }, version: SELECTOR_VERSION }; }
 
 /** Deterministic ordering contract used by candidate selection. */
@@ -20,6 +21,12 @@ export function compareEndgameCandidates(left, right) {
 
 export function selectBestEndgameCandidate(options = {}) {
     const { categoryId, seed = 'caissa-selector', candidateCount = 12, generatorOptions = {} } = options;
+    const exercise = options.exercise ?? options.lesson ?? {};
+    const studentColor = options.studentColor ?? 'white';
+    const enforceWhiteBeta = options.enforceWhiteBeta === true || options.betaWhiteOnly === true;
+    const requireInstructionalCandidate = enforceWhiteBeta || Object.keys(exercise).length > 0;
+    const debugLogger = typeof options.debugLogger === 'function' ? options.debugLogger : null;
+    const logRejection = (reason, fen = null, evaluation = null) => debugLogger?.({ status: 'Rejected Position', reason: Array.isArray(reason) ? reason : [reason], theme: exercise.theme ?? null, evaluation, fen });
     const minimumScore = options.minimumScore ?? SCORING_THRESHOLDS[categoryId];
     const recentPositionKeys = options.recentPositionKeys ?? [];
     if (!SCORING_THRESHOLDS[categoryId]) return failure('unknown-category');
@@ -32,47 +39,66 @@ export function selectBestEndgameCandidate(options = {}) {
     const candidateKeys = new Set();
     let forcedTemplateFallback = false;
     const rejectionSummary = {};
-    for (let index = 0; index < candidateCount; index += 1) {
+    const attemptLimit = requireInstructionalCandidate ? Math.min(100, candidateCount * 4) : candidateCount;
+    for (let index = 0; index < attemptLimit; index += 1) {
         const generated = generateEndgamePosition({ ...generatorOptions, categoryId, seed: `${String(seed)}:${index}` });
         if (!generated.ok) {
             rejectionSummary[generated.error.code] = (rejectionSummary[generated.error.code] || 0) + 1;
+            logRejection(generated.error.code);
             continue;
         }
         const validation = validateEndgamePosition(generated.fen, { categoryId, strongSide: generated.metadata.strongSide });
         if (!validation.valid) {
             for (const code of validation.errors) rejectionSummary[code] = (rejectionSummary[code] || 0) + 1;
+            logRejection(validation.errors, generated.fen);
             continue;
         }
         const key = positionKey(generated.fen);
-        if (candidateKeys.has(key)) { rejectionSummary['duplicate-position'] = (rejectionSummary['duplicate-position'] || 0) + 1; continue; }
+        if (candidateKeys.has(key)) { rejectionSummary['duplicate-position'] = (rejectionSummary['duplicate-position'] || 0) + 1; logRejection('duplicate-position', generated.fen); continue; }
         candidateKeys.add(key);
         const features = extractPositionFeatures(generated.fen, { categoryId, strongSide: generated.metadata.strongSide });
         const scoring = scoreEndgamePosition(generated.fen, { categoryId, strongSide: generated.metadata.strongSide, minimumScore, recentPositionKeys });
         const classification = classifyExercise(generated.fen, features, scoring);
-        candidates.push({ fen: generated.fen, metadata: generated.metadata, features, scoring, classification, positionKey: key, diversity: recentPositionKeys.includes(key) ? 0 : 1, generationIndex: index });
+        const themeValidation = requireInstructionalCandidate
+            ? validateEndgameTheme(generated.fen, { categoryId, strongSide: generated.metadata.strongSide, studentColor, enforceWhiteBeta, theme: exercise.theme, trainingRole: exercise.trainingRole, features, scoring })
+            : { valid: true, errors: [], metadata: { educationallyValid: null, mode: 'legacy-unscoped' } };
+        if (!themeValidation.valid) {
+            for (const code of themeValidation.errors) rejectionSummary[code] = (rejectionSummary[code] || 0) + 1;
+            debugLogger?.({ status: 'Rejected Position', reason: themeValidation.errors, theme: exercise.theme ?? classification.type, evaluation: scoring.score, fen: generated.fen });
+            continue;
+        }
+        debugLogger?.({ status: 'Accepted Position', reason: 'legality-and-theme-valid', theme: exercise.theme ?? classification.type, evaluation: scoring.score, fen: generated.fen });
+        candidates.push({ fen: generated.fen, metadata: { ...generated.metadata, educationalValidation: themeValidation.metadata }, features, scoring, classification, positionKey: key, diversity: recentPositionKeys.includes(key) ? 0 : 1, generationIndex: index });
     }
     if (!candidates.length && categoryId === 'KRPvKR') {
         const hash = [...String(seed)].reduce((value, character) => (value * 31 + character.charCodeAt(0)) >>> 0, 0);
         const template = KRPVKR_TEMPLATES[hash % KRPVKR_TEMPLATES.length];
-        const generated = generateEndgamePosition({ categoryId, template: template.id });
-        const features = extractPositionFeatures(generated.fen, { categoryId, strongSide: template.strongSide });
-        const scoring = scoreEndgamePosition(generated.fen, { categoryId, strongSide: template.strongSide, minimumScore: 0, allowPromotionInOne: true });
-        candidates.push({ fen: generated.fen, metadata: generated.metadata, features, scoring, classification: classifyExercise(generated.fen, features, scoring), positionKey: positionKey(generated.fen), diversity: 1, generationIndex: candidateCount });
-        forcedTemplateFallback = true;
+        const generated = generateEndgamePosition({ categoryId, template: template.id, strongSide: generatorOptions.strongSide });
+        const features = extractPositionFeatures(generated.fen, { categoryId, strongSide: generated.metadata.strongSide });
+        const scoring = scoreEndgamePosition(generated.fen, { categoryId, strongSide: generated.metadata.strongSide, minimumScore: 0, allowPromotionInOne: true });
+        const classification = classifyExercise(generated.fen, features, scoring);
+        const themeValidation = validateEndgameTheme(generated.fen, { categoryId, strongSide: generated.metadata.strongSide, studentColor, enforceWhiteBeta, theme: exercise.theme, trainingRole: exercise.trainingRole, features, scoring });
+        if (themeValidation.valid) {
+            candidates.push({ fen: generated.fen, metadata: { ...generated.metadata, educationalValidation: themeValidation.metadata }, features, scoring, classification, positionKey: positionKey(generated.fen), diversity: 1, generationIndex: candidateCount });
+            forcedTemplateFallback = true;
+        } else for (const code of themeValidation.errors) rejectionSummary[code] = (rejectionSummary[code] || 0) + 1;
     }
     if (!candidates.length) return { ...failure('no-candidate-available'), rejectionSummary };
     candidates.sort(compareEndgameCandidates);
     const accepted = candidates.filter((candidate) => candidate.scoring.score >= minimumScore);
     const fallbackUsed = forcedTemplateFallback || accepted.length === 0;
-    let selected = accepted[0] || candidates[0];
+    let selected = accepted[0] || (requireInstructionalCandidate ? null : candidates[0]);
     if (fallbackUsed && !forcedTemplateFallback && categoryId === 'KRPvKR') {
         const hash = [...String(seed)].reduce((value, character) => (value * 31 + character.charCodeAt(0)) >>> 0, 0);
         const template = KRPVKR_TEMPLATES[hash % KRPVKR_TEMPLATES.length];
-        const generated = generateEndgamePosition({ categoryId, template: template.id });
-        const features = extractPositionFeatures(generated.fen, { categoryId, strongSide: template.strongSide });
-        const scoring = scoreEndgamePosition(generated.fen, { categoryId, strongSide: template.strongSide, minimumScore: 0, allowPromotionInOne: true });
-        selected = { fen: generated.fen, metadata: generated.metadata, features, scoring, classification: classifyExercise(generated.fen, features, scoring), positionKey: positionKey(generated.fen), diversity: 1, generationIndex: candidateCount };
+        const generated = generateEndgamePosition({ categoryId, template: template.id, strongSide: generatorOptions.strongSide });
+        const features = extractPositionFeatures(generated.fen, { categoryId, strongSide: generated.metadata.strongSide });
+        const scoring = scoreEndgamePosition(generated.fen, { categoryId, strongSide: generated.metadata.strongSide, minimumScore: 0, allowPromotionInOne: true });
+        const classification = classifyExercise(generated.fen, features, scoring);
+        const themeValidation = validateEndgameTheme(generated.fen, { categoryId, strongSide: generated.metadata.strongSide, studentColor, enforceWhiteBeta, theme: exercise.theme, trainingRole: exercise.trainingRole, features, scoring });
+        if (themeValidation.valid) selected = { fen: generated.fen, metadata: { ...generated.metadata, educationalValidation: themeValidation.metadata }, features, scoring, classification, positionKey: positionKey(generated.fen), diversity: 1, generationIndex: candidateCount };
     }
+    if (!selected) return { ...failure('no-instructional-candidate'), rejectionSummary };
     const selectionPool = accepted.length ? accepted : candidates;
     const runnerUp = selectionPool[1];
     const topScoreTieCount = selectionPool.filter((candidate) => candidate.scoring.score === selected.scoring.score).length;
@@ -85,7 +111,7 @@ export function selectBestEndgameCandidate(options = {}) {
         else tieBreakDecidedBy = 'position-key';
     }
     return {
-        ok: true, selected, candidatesEvaluated: candidates.length,
+        ok: true, selected, candidatesEvaluated: candidateCount,
         candidatesAccepted: accepted.length, fallbackUsed, rejectionSummary,
         warnings: fallbackUsed ? [{ code: 'no-candidate-met-threshold' }] : [],
         diagnostics: {

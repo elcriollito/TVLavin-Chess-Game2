@@ -1,5 +1,5 @@
 import { getEndgameCategory, materialFor } from './endgame-material-catalog.js';
-import { boardToFen } from './endgame-fen-utils.js';
+import { boardFromFen, boardToFen } from './endgame-fen-utils.js';
 import { validateEndgamePosition } from './endgame-position-validator.js';
 import { getKrpvkrTemplate, reflectKrpvkrTemplate } from './endgame-rook-pawn-templates.js';
 
@@ -33,6 +33,11 @@ function nextRandom(rng) {
 }
 
 function choose(list, rng) { return list[Math.floor(nextRandom(rng) * list.length)]; }
+function reverseTemplateColor(template) {
+    const board = boardFromFen(template.fen).map(piece => ({ ...piece, color: piece.color === 'white' ? 'black' : 'white', square: `${String.fromCharCode(104 - (piece.square.charCodeAt(0) - 97))}${9 - Number(piece.square[1])}` }));
+    const side = template.fen.split(/\s+/)[1] === 'w' ? 'black' : 'white';
+    return { ...template, fen: boardToFen(board, side), strongSide: template.strongSide === 'white' ? 'black' : 'white' };
+}
 
 function placeMaterial(material, rng) {
     const available = Array.from({ length: 64 }, (_, index) => `${String.fromCharCode(97 + (index % 8))}${Math.floor(index / 8) + 1}`);
@@ -92,8 +97,9 @@ export function generateEndgamePosition(options = {}) {
     if (options.template !== undefined) {
         if (categoryId !== 'KRPvKR' || typeof options.template !== 'string') return { ok: false, error: { code: 'invalid-template' } };
         const sourceTemplate = getKrpvkrTemplate(options.template);
-        const template = options.reflectTemplate ? reflectKrpvkrTemplate(sourceTemplate) : sourceTemplate;
+        let template = options.reflectTemplate ? reflectKrpvkrTemplate(sourceTemplate) : sourceTemplate;
         if (!template) return { ok: false, error: { code: 'unknown-template' } };
+        if (options.strongSide && options.strongSide !== template.strongSide) template = reverseTemplateColor(template);
         const validation = validateEndgamePosition(template.fen, { categoryId, strongSide: template.strongSide, allowImmediateMaterialChange: true });
         if (!validation.valid) return { ok: false, error: { code: 'invalid-template-position', errors: validation.errors } };
         return { ok: true, fen: validation.metadata.normalizedFen, metadata: { ...template, pieceCount: 5, sideToMove: validation.metadata.sideToMove, materialSignature: validation.metadata.materialSignature, legalMoveCount: validation.metadata.legalMoveCount, inCheck: validation.metadata.inCheck, attempts: 1, source: 'template' }, diagnostics: { rejectionCounts: {} } };

@@ -28,7 +28,7 @@ test('14 KQK lesson resolves', () => assert.equal(curriculum.resolveTrainingOpti
 test('15 KPKP lesson resolves', () => assert.equal(curriculum.resolveTrainingOptions('pawn-foundations', 'pawn-king-activity').categoryId, 'KPKP'));
 test('16 Lucena resolves exact template', () => assert.equal(curriculum.resolveTrainingOptions('rook-essentials', 'rook-lucena').generatorOptions.template, 'KRPvKR-01'));
 test('17 Philidor resolves exact template', () => assert.equal(curriculum.resolveTrainingOptions('rook-essentials', 'rook-philidor').generatorOptions.template, 'KRPvKR-02'));
-test('18 role mapping', () => { assert.equal(curriculum.resolveTrainingOptions('rook-essentials', 'rook-lucena').userColor, 'white'); assert.equal(curriculum.resolveTrainingOptions('rook-essentials', 'rook-philidor').userColor, 'black'); });
+test('18 beta role mapping keeps the student White', () => { assert.equal(curriculum.resolveTrainingOptions('rook-essentials', 'rook-lucena').userColor, 'white'); assert.equal(curriculum.resolveTrainingOptions('rook-essentials', 'rook-philidor').userColor, 'white'); });
 test('19 difficulty mapping', () => assert.equal(curriculum.getLesson('rook-essentials', 'rook-side-checks').difficulty, 'advanced'));
 test('20 deterministic options', () => assert.deepEqual(curriculum.resolveTrainingOptions('rook-essentials', 'rook-lucena'), curriculum.resolveTrainingOptions('rook-essentials', 'rook-lucena')));
 test('21 legacy v1 initializes curriculum', () => assert.equal(storeWith(memory(JSON.stringify({ version: 1, totals: { sessionsStarted: 3 } }))).getSnapshot().curriculum.guidedSessions, 0));
@@ -76,12 +76,13 @@ test('mixed practical-resistance lesson has a completable session rule', () => {
 });
 test('procedural attack and defense roles control both material side and user side', () => {
   assert.deepEqual(curriculum.resolveTrainingOptions('basic-checkmates', 'mate-finish'), {
-    categoryId: 'KQK', userColor: 'white', candidateCount: 12, generatorOptions: { strongSide: 'white' },
+    categoryId: 'KQK', userColor: 'white', betaWhiteOnly: true, candidateCount: 24, generatorOptions: { strongSide: 'white', sideToMove: 'white' },
     lesson: { pathId: 'basic-checkmates', lessonId: 'mate-finish', theme: 'finishing-technique', trainingRole: 'attack', difficulty: 'intermediate' }
   });
   const defense = curriculum.resolveTrainingOptions('defensive-technique', 'defense-hold-opposition');
-  assert.equal(defense.userColor, 'black');
-  assert.equal(defense.generatorOptions.strongSide, 'white');
+  assert.equal(defense.userColor, 'white');
+  assert.equal(defense.generatorOptions.strongSide, 'black');
+  assert.equal(defense.generatorOptions.sideToMove, 'white');
 });
 test('terminal-completed requires the user exercise outcome and completes only once', () => {
   const store = storeWith(), rule = { type: 'terminal-completed', target: 1 };

@@ -104,11 +104,10 @@ export function createEndgameCurriculum() {
         resolveTrainingOptions(pathId, lessonId) {
             const item = lessonBy(pathId, lessonId); if (!item) return null;
             const template = item.candidatePolicy.template ? getKrpvkrTemplate(item.candidatePolicy.template) : null;
-            let userColor = 'random';
-            if (item.trainingRole === 'attack') userColor = template?.strongSide ?? 'white';
-            if (item.trainingRole === 'defense') userColor = (template?.strongSide ?? 'white') === 'white' ? 'black' : 'white';
-            const generatorOptions = template ? { template: template.id } : item.trainingRole === 'mixed' ? {} : { strongSide: 'white' };
-            return clone({ categoryId: item.category, userColor, candidateCount: 12, generatorOptions, lesson: { pathId, lessonId, theme: item.theme, trainingRole: item.trainingRole, difficulty: item.difficulty } });
+            const userColor = 'white';
+            const strongSide = item.trainingRole === 'defense' ? 'black' : 'white';
+            const generatorOptions = template ? { template: template.id, strongSide, sideToMove: 'white' } : { strongSide, sideToMove: 'white' };
+            return clone({ categoryId: item.category, userColor, betaWhiteOnly: true, candidateCount: 24, generatorOptions, lesson: { pathId, lessonId, theme: item.theme, trainingRole: item.trainingRole, difficulty: item.difficulty } });
         },
         getProgress(progressSnapshot = {}) { return clone({ paths: Object.fromEntries(paths.map(item => [item.id, pathProgress(item, progressSnapshot)])), lessonsCompleted: allLessons().filter(item => lessonProgress(progressSnapshot, item.id).completed).length, totalLessons: allLessons().length }); },
         validate: () => ({ valid: validationErrors().length === 0, errors: validationErrors() }),

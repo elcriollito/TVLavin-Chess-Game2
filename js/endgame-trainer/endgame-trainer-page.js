@@ -295,7 +295,7 @@ export function mountEndgameTrainerPage(options = {}) {
     piecesSelect?.addEventListener('change', () => syncSetup('pieces'), { signal });
     categorySelect?.addEventListener('change', () => syncSetup('category'), { signal });
     syncSetup('mount');
-    act('prepare', () => { const seed = nextSeed(); return runtime.binding.prepare({ categoryId: category(seed), userColor: root.querySelector('[data-setup="color"]')?.value, seed, candidateCount: 12, engineOptions: STRENGTH[root.querySelector('[data-setup="strength"]')?.value] }); });
+    act('prepare', () => { const seed = nextSeed(); return runtime.binding.prepare({ categoryId: category(seed), userColor: 'white', betaWhiteOnly: true, seed, candidateCount: 24, generatorOptions: { strongSide: 'white', sideToMove: 'white' }, engineOptions: STRENGTH[root.querySelector('[data-setup="strength"]')?.value] }); });
     act('start', () => runtime.binding.start()); act('hint', () => runtime.binding.requestHint()); act('undo', () => runtime.binding.undo(), true); act('restart', () => runtime.binding.restart(), true); act('new', () => runtime.binding.newPosition({ seed: nextSeed() }), true); act('resign', () => runtime.binding.resign(), true); act('flip', () => runtime.binding.flip());
     mounted = { root, page, runtime, abort, promo, closeNav, abandon, resetDialog }; update(root, page, runtime?.binding.getState()); if (diagnosticState) root.dataset.state = diagnosticState; return publicPage(page);
 }

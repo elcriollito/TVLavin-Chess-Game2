@@ -81,7 +81,8 @@ export class EndgameSessionController {
             const selection = await this.#candidateSelector({
                 categoryId: normalized.categoryId, seed: normalized.seed, candidateCount: normalized.candidateCount,
                 minimumScore: normalized.minimumScore, recentPositionKeys: normalized.recentPositionKeys,
-                generatorOptions: normalized.generatorOptions
+                generatorOptions: normalized.generatorOptions, exercise: normalized.lesson,
+                studentColor: normalized.userColor, enforceWhiteBeta: normalized.betaWhiteOnly
             });
             if (generation !== this.#generation) fail('stale-operation');
             if (!selection?.ok || !selection.selected?.fen) fail(selection?.error?.code === 'unknown-category' ? 'unknown-category' : 'candidate-selection-failed');
@@ -274,7 +275,8 @@ export class EndgameSessionController {
         return {
             categoryId, userColor, seed: options.seed ?? 'caissa-session', candidateCount: options.candidateCount ?? 12,
             minimumScore: options.minimumScore, recentPositionKeys: cloneSessionValue(options.recentPositionKeys ?? []),
-            engineOptions: cloneSessionValue(options.engineOptions ?? {}), generatorOptions: cloneSessionValue(options.generatorOptions ?? {})
+            engineOptions: cloneSessionValue(options.engineOptions ?? {}), generatorOptions: cloneSessionValue(options.generatorOptions ?? {}),
+            lesson: cloneSessionValue(options.lesson ?? {}), betaWhiteOnly: options.betaWhiteOnly === true
         };
     }
     async #requestEngineMove() {

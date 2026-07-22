@@ -39,7 +39,7 @@ const cases = [
     ['28 KRK category', html, /option value="KRK"/],
     ['29 KQK category', html, /option value="KQK"/],
     ['30 KPKP category', html, /option value="KPKP"/],
-    ['31 random color retained for seeded controller', page, /userColor: root\.querySelector\('\[data-setup="color"\]\'\)\?\.value/],
+    ['31 beta sessions normalize player color to White', page, /userColor: 'white', betaWhiteOnly: true/],
     ['32 strength mapping has four levels', page, /beginner:[\s\S]*intermediate:[\s\S]*advanced:[\s\S]*strong:/],
     ['33 piece count constrains categories', page, /pieces === '3'[\s\S]*pieces === '4'/],
     ['34 random selection is seed-derived', page, /character\.charCodeAt\(0\)/],
