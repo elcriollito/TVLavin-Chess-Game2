@@ -1,3 +1,5 @@
+import { createTrainingMemory, normalizeTrainingMemory, recordTrainingSession, summarizeTrainingMemory, exportTrainingMemory, importTrainingMemory } from './endgame-training-memory.js';
+
 export const ENDGAME_PROGRESS_STORAGE_KEY = 'caissa:endgame-trainer:progress:v1';
 export const ENDGAME_PROGRESS_VERSION = 1;
 const CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP', 'KRPvKR'];
@@ -12,7 +14,7 @@ const short = (value, max = 160) => typeof value === 'string' ? value.slice(0, m
 const blankCounters = () => Object.fromEntries(TOTAL_FIELDS.map(name => [name, 0]));
 const blankLesson = () => ({ sessionsStarted: 0, sessionsCompleted: 0, resignations: 0, abandoned: 0, hintsUsed: 0, undosUsed: 0, moveCount: 0, bestMoveCount: 0, completed: false, completedAt: null, updatedAt: null, rolesCompleted: [] });
 const freshCurriculum = () => ({ selectedPathId: null, selectedLessonId: null, guidedSessions: 0, lessons: {}, pilotEvents: [] });
-const fresh = () => ({ version: ENDGAME_PROGRESS_VERSION, totals: blankCounters(), categories: Object.fromEntries(CATEGORIES.map(id => [id, blankCounters()])), recentSessions: [], curriculum: freshCurriculum(), updatedAt: null });
+const fresh = () => ({ version: ENDGAME_PROGRESS_VERSION, totals: blankCounters(), categories: Object.fromEntries(CATEGORIES.map(id => [id, blankCounters()])), recentSessions: [], curriculum: freshCurriculum(), trainingMemory: createTrainingMemory(), updatedAt: null });
 const identifier = value => typeof value === 'string' && /^[a-z0-9-]{1,80}$/.test(value) ? value : null;
 
 function sanitizeLesson(value) {
@@ -47,6 +49,7 @@ function normalize(value) {
     const lessons = value.curriculum?.lessons && typeof value.curriculum.lessons === 'object' ? Object.entries(value.curriculum.lessons).slice(0, MAX_CURRICULUM_LESSONS) : [];
     for (const [id, lesson] of lessons) if (identifier(id)) state.curriculum.lessons[id] = sanitizeLesson(lesson);
     state.curriculum.pilotEvents = Array.isArray(value.curriculum?.pilotEvents) ? value.curriculum.pilotEvents.filter(event => event && typeof event === 'object' && short(event.key, 180) && identifier(event.lessonId) && identifier(event.event)).map(event => ({ key: short(event.key, 180), event: identifier(event.event), lessonId: identifier(event.lessonId), subjectId: short(event.subjectId, 100), at: integer(event.at) || null })).slice(-MAX_PILOT_EVENTS) : [];
+    state.trainingMemory = normalizeTrainingMemory(value.trainingMemory);
     state.updatedAt = integer(value.updatedAt) || null;
     return { state, future: false };
 }
@@ -135,6 +138,10 @@ export function createEndgameProgressStore(options = {}) {
             }
             write(); return true;
         },
+        recordTrainingSession(entry) { assertActive(); read({ preserveOnError: true }); const result = recordTrainingSession(state.trainingMemory, entry); state.trainingMemory = result.memory; if (result.recorded) write(); return result.recorded; },
+        getTrainingSummary() { assertActive(); return summarizeTrainingMemory(state.trainingMemory); },
+        exportTrainingMemory() { assertActive(); return exportTrainingMemory(state.trainingMemory); },
+        importTrainingMemory(json) { assertActive(); const result = importTrainingMemory(json); if (!result.ok) return result; state.trainingMemory = result.memory; return write() ? { ok: true, summary: summarizeTrainingMemory(state.trainingMemory) } : { ok: false, error: errorCode }; },
         reset() { assertActive(); state = fresh(); futureVersion = false; Object.values(seen).forEach(set => set.clear()); write(); return clone(state); },
         dispose() { if (disposed) return false; disposed = true; Object.values(seen).forEach(set => set.clear()); return true; }
     };
