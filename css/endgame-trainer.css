@@ -270,3 +270,12 @@
     .endgame-trainer-page__lesson-nav [data-guided-exit] { grid-column: auto; }
     .endgame-trainer-page__path-detail li button { width: 100%; }
 }
+/* Essential Canon Learn/Recall pilot */
+.endgame-trainer-page__pilot { margin: 1rem 0 1.5rem; padding: 1rem; border: 1px solid #d5d8dc; border-radius: .75rem; }
+.endgame-trainer-page__pilot-lessons { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: .75rem; }
+.endgame-trainer-page__pilot-lessons article, .endgame-trainer-page__pilot-player { padding: 1rem; border: 1px solid #d5d8dc; border-radius: .65rem; }
+.endgame-trainer-page__pilot-player { margin-top: 1rem; }
+.endgame-trainer-page__pilot-player button, .endgame-trainer-page__pilot-lessons button { min-height: 44px; }
+.endgame-trainer-page__pilot-player fieldset { margin: .75rem 0; }
+.endgame-trainer-page__pilot-player [data-pilot-options] { display: flex; flex-wrap: wrap; gap: .5rem; }
+.endgame-trainer-page__pilot-feedback { min-height: 1.5em; }

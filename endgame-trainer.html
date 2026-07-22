@@ -127,6 +127,17 @@
 
         <section class="endgame-trainer-page__curriculum" data-guided-curriculum hidden aria-labelledby="guided-title">
             <header><div><p class="endgame-trainer-page__kicker">Local curriculum</p><h2 id="guided-title">Guided Training</h2><p>Follow short lessons built from supported CAISSA endgames.</p></div></header>
+            <section class="endgame-trainer-page__pilot" data-essential-pilot aria-labelledby="essential-pilot-title">
+                <header><div><p class="endgame-trainer-page__kicker">Canon 10 pilot</p><h3 id="essential-pilot-title">Essential Learn and Recall</h3><p>Study two reviewed patterns without engine grading or chess moves.</p></div></header>
+                <div class="endgame-trainer-page__pilot-lessons" data-pilot-lessons></div>
+                <section class="endgame-trainer-page__pilot-player" data-pilot-player hidden aria-labelledby="pilot-player-title">
+                    <p data-pilot-mode></p><h4 id="pilot-player-title" data-pilot-title tabindex="-1"></h4><p data-pilot-objective></p>
+                    <p><strong data-pilot-step></strong></p><p data-pilot-copy></p><p data-pilot-accessibility></p>
+                    <fieldset data-pilot-answers hidden><legend data-pilot-prompt></legend><div data-pilot-options></div></fieldset>
+                    <p class="endgame-trainer-page__pilot-feedback" data-pilot-feedback role="status" aria-live="polite"></p>
+                    <div class="endgame-trainer-page__lesson-nav"><button type="button" data-pilot-action="previous">Previous</button><button type="button" data-pilot-action="next">Next</button><button type="button" data-pilot-action="restart">Restart</button><button type="button" data-pilot-action="replay" hidden>Replay</button><button type="button" data-pilot-action="exit">Exit lesson</button></div>
+                </section>
+            </section>
             <div class="endgame-trainer-page__paths" data-guided-paths></div>
             <section class="endgame-trainer-page__path-detail" data-guided-path-detail hidden aria-labelledby="path-detail-title"><header><div><h3 id="path-detail-title" data-path-title tabindex="-1"></h3><p data-path-description></p></div><div data-path-progress></div></header><ol data-guided-lessons></ol></section>
         </section>

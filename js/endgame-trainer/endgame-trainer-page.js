@@ -1,6 +1,7 @@
 import { createEndgameTrainerRuntime } from './endgame-trainer-runtime.js';
 import { createEndgameProgressStore, ENDGAME_PROGRESS_STORAGE_KEY } from './endgame-progress-store.js';
 import { createEndgameCurriculum } from './endgame-curriculum.js';
+import { ESSENTIAL_CANON_PILOT, createPilotSession } from './essential-canon-pilot.js';
 
 const CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP', 'KRPvKR'];
 const RANDOM_CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP'];
@@ -15,6 +16,35 @@ const resultLabel = value => RESULT_LABELS[value] ?? value;
 const publicPage = page => copy({ mounted: page.mounted, navOpen: page.navOpen, runtimeAttached: page.runtimeAttached, operation: page.operation, hint: page.hint, error: page.error, disposed: page.disposed, diagnosticState: page.diagnosticState, controllerState: page.controllerState, progress: page.progressSnapshot, trainingMode: page.trainingMode, selectedPathId: page.selectedPathId, activeLesson: page.activeLesson, curriculumProgress: page.curriculumProgress, recentExpanded: page.recentExpanded, recentResult: page.recentResult, recentCategory: page.recentCategory, syncFeedback: page.syncFeedback, progressDiagnostic: page.diagnosticEnabled ? page.progressStore.getDiagnosticSnapshot() : undefined });
 const CATEGORY_LABELS = { KQK: 'Queen vs King', KRK: 'Rook vs King', KPK: 'Pawn vs King', KPKP: 'Pawn vs Pawn', KRPvKR: 'Rook and Pawn vs Rook' };
 const durationLabel = value => { const seconds = Math.max(0, Math.round((value ?? 0) / 1000)); return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`; };
+
+function renderPilot(root, page, runtime) {
+    const host = root.querySelector('[data-pilot-lessons]'), doc = root.ownerDocument;
+    if (host && !host.childElementCount) for (const lesson of ESSENTIAL_CANON_PILOT.lessons) {
+        const card = doc.createElement('article'), title = doc.createElement('h4'), copyNode = doc.createElement('p'), learn = doc.createElement('button'), recall = doc.createElement('button');
+        title.textContent = lesson.publicTitle; copyNode.textContent = lesson.learningObjective;
+        learn.type = recall.type = 'button'; learn.dataset.pilotLesson = recall.dataset.pilotLesson = lesson.lessonId; learn.dataset.pilotMode = 'learn'; recall.dataset.pilotMode = 'recall'; learn.textContent = 'Start Learn'; recall.textContent = 'Start Recall';
+        card.append(title, copyNode, learn, recall); host.append(card);
+    }
+    const panel = root.querySelector('[data-pilot-player]'), session = page.pilotSession;
+    if (panel) panel.hidden = !session;
+    if (!session) return;
+    const state = session.getSnapshot(), lesson = state.lesson, current = state.current;
+    text(root.querySelector('[data-pilot-mode]'), `${page.pilotMode === 'learn' ? 'Learn' : 'Recall'} · no engine`);
+    text(root.querySelector('[data-pilot-title]'), lesson.publicTitle); text(root.querySelector('[data-pilot-objective]'), lesson.learningObjective);
+    text(root.querySelector('[data-pilot-step]'), page.pilotMode === 'learn' ? `Checkpoint ${state.index + 1} of 4: ${current.title}` : `Card ${state.index + 1} of 2`);
+    text(root.querySelector('[data-pilot-copy]'), page.pilotMode === 'learn' ? current.explanation : current.prompt);
+    const position = ESSENTIAL_CANON_PILOT.positions.find(item => item.positionId === (page.pilotMode === 'learn' ? lesson.positionIds[0] : current.positionId));
+    text(root.querySelector('[data-pilot-accessibility]'), `${position.accessibilityDescription} Orientation: ${position.orientation}. ${current.accessibilityText ?? ''}`);
+    const positionKey = `${position.positionId}:${position.version}`;
+    if (page.pilotRenderedPositionKey !== positionKey) { runtime?.boardView?.setPosition(position.fen); runtime?.boardView?.setOrientation(position.orientation); page.pilotRenderedPositionKey = positionKey; }
+    runtime?.boardView?.setInteractive(false);
+    root.querySelector('[data-empty-board-overlay]')?.setAttribute('hidden', ''); root.querySelector('[data-board]')?.setAttribute('aria-label', position.accessibilityDescription);
+    const answers = root.querySelector('[data-pilot-answers]'), prompt = page.pilotMode === 'learn' ? current.prompt : { text: current.prompt, options: current.answerOptions };
+    if (answers) answers.hidden = !prompt; text(root.querySelector('[data-pilot-prompt]'), prompt?.text); const options = root.querySelector('[data-pilot-options]'); options?.replaceChildren();
+    for (const value of prompt?.options ?? []) { const button = doc.createElement('button'); button.type = 'button'; button.dataset.pilotAnswer = value; button.textContent = value; options?.append(button); }
+    const previous = root.querySelector('[data-pilot-action="previous"]'), next = root.querySelector('[data-pilot-action="next"]'), replay = root.querySelector('[data-pilot-action="replay"]');
+    if (previous) previous.disabled = page.pilotMode !== 'learn' || state.index === 0; if (next) next.disabled = state.completed; if (replay) replay.hidden = !state.completed;
+}
 
 function renderCurriculum(root, page) {
     const guided = page.trainingMode === 'guided', snapshot = page.progressSnapshot ?? page.progressStore.getSnapshot(), progress = page.curriculum.getProgress(snapshot), doc = root.ownerDocument;
@@ -42,6 +72,7 @@ function renderCurriculum(root, page) {
         const record = snapshot.curriculum.lessons[active.id] ?? {}; text(root.querySelector('[data-active-path]'), active.pathTitle); text(root.querySelector('[data-active-title]'), active.title); text(root.querySelector('[data-active-objective]'), active.objective); text(root.querySelector('[data-active-difficulty]'), active.difficulty); text(root.querySelector('[data-active-role]'), active.trainingRole); text(root.querySelector('[data-active-progress]'), `Session ${Math.min((record.sessionsStarted ?? 0) + 1, active.targetSessions)} of ${active.targetSessions}`);
         const previous = page.curriculum.getPreviousLesson(active.pathId, active.id), next = page.curriculum.getNextLesson(active.pathId, active.id), previousButton = root.querySelector('[data-guided-previous]'), nextButton = root.querySelector('[data-guided-next]'); if (previousButton) previousButton.disabled = !previous; if (nextButton) nextButton.disabled = !next || !record.completed;
     }
+    renderPilot(root, page, page.runtime);
 }
 
 function renderProgress(root, page) {
@@ -172,10 +203,10 @@ export function mountEndgameTrainerPage(options = {}) {
     const progressStoreFactory = options.progressStoreFactory ?? createEndgameProgressStore, progressStore = progressStoreFactory({ storage: options.storage, now: options.now }); progressStore.load(); const loadedProgress = progressStore.getSnapshot();
     const curriculum = options.curriculum ?? createEndgameCurriculum();
     const progressScopeId = options.progressScopeId ?? globalThis.crypto?.randomUUID?.() ?? `tab-${++pageSequence}-${(options.now ?? Date.now)()}`;
-    const page = { mounted: true, navOpen: false, runtimeAttached: false, operation: null, hint: null, error: null, disposed: false, diagnosticEnabled, diagnosticState, controllerState: null, seedSequence: 0, progressStore, progressOwners: new Map(), progressOwner: null, progressSnapshot: loadedProgress, progressScopeId, curriculum, curriculumProgress: curriculum.getProgress(loadedProgress), trainingMode: 'free', selectedPathId: loadedProgress.curriculum?.selectedPathId ?? null, activeLesson: null, pendingLesson: null, recentExpanded: false, recentResult: 'all', recentCategory: 'all', syncFeedback: '', now: options.now ?? Date.now };
+    const page = { mounted: true, navOpen: false, runtimeAttached: false, operation: null, hint: null, error: null, disposed: false, diagnosticEnabled, diagnosticState, controllerState: null, seedSequence: 0, progressStore, progressOwners: new Map(), progressOwner: null, progressSnapshot: loadedProgress, progressScopeId, curriculum, curriculumProgress: curriculum.getProgress(loadedProgress), trainingMode: 'free', selectedPathId: loadedProgress.curriculum?.selectedPathId ?? null, activeLesson: null, pendingLesson: null, pilotSession: null, pilotMode: null, pilotRenderedPositionKey: null, recentExpanded: false, recentResult: 'all', recentCategory: 'all', syncFeedback: '', now: options.now ?? Date.now };
     const runtimeFactory = options.runtimeFactory ?? createEndgameTrainerRuntime;
     let runtime = null;
-    if (board) { runtime = runtimeFactory({ boardElement: board, promotionResolver: promo.resolve, callbacks: { onStateChange: snap => update(root, page, snap), onAnnouncement: value => text(root.querySelector('[data-announcement]'), value), onError: error => { if (error.code !== 'stale-operation') { page.error = { code: error.code }; text(root.querySelector('[data-error-message]'), PUBLIC_ERRORS[error.code] || 'The trainer encountered an error.'); } } } }).initialize(); page.runtimeAttached = true; }
+    if (board) { runtime = runtimeFactory({ boardElement: board, promotionResolver: promo.resolve, callbacks: { onStateChange: snap => update(root, page, snap), onAnnouncement: value => text(root.querySelector('[data-announcement]'), value), onError: error => { if (error.code !== 'stale-operation') { page.error = { code: error.code }; text(root.querySelector('[data-error-message]'), PUBLIC_ERRORS[error.code] || 'The trainer encountered an error.'); } } } }).initialize(); page.runtimeAttached = true; page.runtime = runtime; }
     const nav = root.querySelector('[data-mobile-nav]'), toggle = root.querySelector('[data-mobile-nav-toggle]');
     root.querySelectorAll('[data-nav-key]').forEach(item => { const active = item.dataset.navKey === 'endgame-trainer'; item.classList.toggle('is-active', active); active ? item.setAttribute('aria-current', 'page') : item.removeAttribute('aria-current'); });
     const closeNav = focus => { page.navOpen = false; root.classList.remove('is-nav-open'); toggle?.setAttribute('aria-expanded', 'false'); if (focus) toggle?.focus?.(); };
@@ -200,6 +231,7 @@ export function mountEndgameTrainerPage(options = {}) {
     const lessonDetails = (pathId, lessonId) => { const path = page.curriculum.getPath(pathId), lesson = page.curriculum.getLesson(pathId, lessonId); return path && lesson ? { ...lesson, pathTitle: path.title } : null; };
     const runLesson = async (pathId, lessonId) => {
         const lesson = lessonDetails(pathId, lessonId), resolved = page.curriculum.resolveTrainingOptions(pathId, lessonId); if (!lesson || !resolved || !runtime) return false;
+        page.pilotSession?.dispose(); page.pilotSession = null; page.pilotMode = null; page.pilotRenderedPositionKey = null; runtime.boardView?.setInteractive(true);
         page.trainingMode = 'guided'; page.selectedPathId = pathId; page.activeLesson = lesson; page.progressStore.selectCurriculumLesson(pathId, lessonId); renderProgress(root, page);
         const options = { ...resolved, seed: `caissa-guided-${lessonId}-${Date.now()}-${++page.seedSequence}`, engineOptions: STRENGTH[root.querySelector('[data-setup="strength"]')?.value] };
         const active = page.controllerState?.sessionId && !['idle', 'completed', 'resigned', 'error'].includes(page.controllerState.status);
@@ -211,7 +243,7 @@ export function mountEndgameTrainerPage(options = {}) {
         if (!active) return void runLesson(pathId, lessonId);
         page.pendingLesson = { pathId, lessonId }; switchReturnFocus = trigger ?? root.ownerDocument.activeElement; switchDialog?.showModal(); root.querySelector('[data-guided-switch-cancel]')?.focus();
     };
-    root.querySelector('[data-training-mode]')?.addEventListener('change', event => { page.trainingMode = event.target.value === 'guided' ? 'guided' : 'free'; if (page.trainingMode === 'free' && !['completed', 'resigned', 'idle', 'error'].includes(page.controllerState?.status)) { event.target.value = 'guided'; page.trainingMode = 'guided'; text(root.querySelector('[data-page-message]'), 'Finish the active lesson before returning to Free Practice.'); } renderProgress(root, page); }, { signal });
+    root.querySelector('[data-training-mode]')?.addEventListener('change', event => { page.trainingMode = event.target.value === 'guided' ? 'guided' : 'free'; if (page.trainingMode === 'free' && !['completed', 'resigned', 'idle', 'error'].includes(page.controllerState?.status)) { event.target.value = 'guided'; page.trainingMode = 'guided'; text(root.querySelector('[data-page-message]'), 'Finish the active lesson before returning to Free Practice.'); } if (page.trainingMode === 'free' && page.pilotSession) { page.pilotSession.dispose(); page.pilotSession = null; page.pilotMode = null; page.pilotRenderedPositionKey = null; runtime?.boardView?.setInteractive(true); } renderProgress(root, page); }, { signal });
     root.querySelector('[data-guided-curriculum]')?.addEventListener('click', event => { const lessonId = event.target?.dataset?.guidedLesson, pathId = event.target?.dataset?.guidedPath; if (lessonId && pathId) requestLesson(pathId, lessonId, event.target); else if (pathId) { page.selectedPathId = pathId; page.progressStore.selectCurriculumLesson(pathId, page.curriculum.getPath(pathId)?.lessons[0]?.id); renderProgress(root, page); root.querySelector('#path-detail-title')?.focus?.(); } }, { signal });
     root.querySelector('[data-guided-recommended]')?.addEventListener('click', event => { const lesson = page.curriculum.getRecommendedLesson(page.progressStore.getSnapshot()); requestLesson(lesson.pathId, lesson.id, event.target); }, { signal });
     root.querySelector('[data-guided-previous]')?.addEventListener('click', event => { const lesson = page.activeLesson && page.curriculum.getPreviousLesson(page.activeLesson.pathId, page.activeLesson.id); if (lesson) requestLesson(lesson.pathId, lesson.id, event.target); }, { signal });
@@ -219,6 +251,29 @@ export function mountEndgameTrainerPage(options = {}) {
     root.querySelector('[data-guided-exit]')?.addEventListener('click', () => { if (!['completed', 'resigned', 'error'].includes(page.controllerState?.status)) { text(root.querySelector('[data-page-message]'), 'Complete or resign the active session before exiting guided training.'); return; } page.trainingMode = 'free'; page.activeLesson = null; const mode = root.querySelector('[data-training-mode]'); if (mode) mode.value = 'free'; renderProgress(root, page); }, { signal });
     root.querySelector('[data-guided-switch-cancel]')?.addEventListener('click', closeSwitch, { signal }); switchDialog?.addEventListener('cancel', event => { event.preventDefault(); closeSwitch(); }, { signal });
     root.querySelector('[data-guided-switch-confirm]')?.addEventListener('click', async () => { const pending = page.pendingLesson; if (switchDialog?.open) switchDialog.close(); page.pendingLesson = null; if (pending) await runLesson(pending.pathId, pending.lessonId); switchReturnFocus = null; }, { signal });
+    const pilotEvent = event => {
+        page.progressStore.recordPilotEvent?.({ ...event, at: page.now() });
+        if (['learn-completed', 'recall-completed'].includes(event.event)) {
+            const history = page.progressStore.getSnapshot().curriculum?.pilotEvents ?? [], lessonEvents = history.filter(item => item.lessonId === event.lessonId).map(item => item.event);
+            if (lessonEvents.includes('learn-completed') && lessonEvents.includes('recall-completed')) page.progressStore.recordPilotEvent?.({ event: 'lesson-completed', key: `${event.lessonId}:et11b4-v1`, lessonId: event.lessonId, at: page.now() });
+        }
+        page.progressSnapshot = page.progressStore.getSnapshot();
+    };
+    root.querySelector('[data-essential-pilot]')?.addEventListener('click', event => {
+        const lessonId = event.target?.dataset?.pilotLesson, mode = event.target?.dataset?.pilotMode;
+        if (lessonId && mode) {
+            if (page.controllerState?.sessionId && ['user-turn', 'engine-thinking'].includes(page.controllerState.status)) { text(root.querySelector('[data-page-message]'), 'Finish or resign the active practice session before starting this lesson.'); return; }
+            page.trainingMode = 'guided'; page.pilotMode = mode; page.pilotSession?.dispose();
+            page.pilotSession = createPilotSession({ lessonId, mode, sessionId: `${page.progressScopeId}-${lessonId}-${mode}-${++page.seedSequence}`, emit: pilotEvent });
+            page.pilotSession.start(); renderPilot(root, page, runtime); root.querySelector('[data-pilot-title]')?.focus(); return;
+        }
+        const answer = event.target?.dataset?.pilotAnswer, action = event.target?.dataset?.pilotAction;
+        if (!page.pilotSession) return;
+        if (answer) { const result = page.pilotSession.answer(answer); text(root.querySelector('[data-pilot-feedback]'), result.feedback); if (result.correct) root.querySelector('[data-pilot-action="next"]')?.focus(); }
+        else if (action === 'next') page.pilotSession.next(); else if (action === 'previous') page.pilotSession.previous(); else if (action === 'restart' || action === 'replay') page.pilotSession.restart();
+        else if (action === 'exit') { page.pilotSession.dispose(); page.pilotSession = null; page.pilotMode = null; page.pilotRenderedPositionKey = null; runtime?.boardView?.setInteractive(true); }
+        renderPilot(root, page, runtime);
+    }, { signal });
     const act = (name, fn, invalidates = false) => root.querySelector(`[data-action="${name}"]`)?.addEventListener('click', async () => { if (invalidates) promo.cancel(); page.error = null; try { await fn(); } catch (error) { if (error?.code !== 'stale-operation') { page.error = { code: error?.code || 'operation-failed' }; text(root.querySelector('[data-error-message]'), PUBLIC_ERRORS[page.error.code] || 'The trainer encountered an error.'); } } finally { if (runtime) update(root, page, runtime.binding.getState()); } }, { signal });
     const nextSeed = () => `caissa-product-${Date.now()}-${++page.seedSequence}`;
     const category = seed => {
@@ -245,6 +300,6 @@ export function mountEndgameTrainerPage(options = {}) {
     mounted = { root, page, runtime, abort, promo, closeNav, abandon, resetDialog }; update(root, page, runtime?.binding.getState()); if (diagnosticState) root.dataset.state = diagnosticState; return publicPage(page);
 }
 
-export function unmountEndgameTrainerPage() { if (!mounted) return false; mounted.abandon(); mounted.page.disposed = true; update(mounted.root, mounted.page, mounted.runtime?.binding.getState()); mounted.promo.cancel(); if (mounted.resetDialog?.open) mounted.resetDialog.close(); mounted.abort.abort(); mounted.closeNav(); mounted.runtime?.dispose(); mounted.page.progressStore.dispose(); mounted.page.runtimeAttached = false; mounted.page.mounted = false; mounted = null; return true; }
+export function unmountEndgameTrainerPage() { if (!mounted) return false; mounted.abandon(); mounted.page.pilotSession?.dispose(); mounted.page.disposed = true; update(mounted.root, mounted.page, mounted.runtime?.binding.getState()); mounted.promo.cancel(); if (mounted.resetDialog?.open) mounted.resetDialog.close(); mounted.abort.abort(); mounted.closeNav(); mounted.runtime?.dispose(); mounted.page.progressStore.dispose(); mounted.page.runtimeAttached = false; mounted.page.mounted = false; mounted = null; return true; }
 export function getEndgameTrainerPageState() { return mounted ? publicPage(mounted.page) : { mounted: false, navOpen: false, runtimeAttached: false, operation: null, hint: null, error: null, disposed: true, controllerState: null, progress: null }; }
 if (globalThis.document) { const start = () => mountEndgameTrainerPage(); document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', start, { once: true }) : start(); globalThis.addEventListener?.('pagehide', () => unmountEndgameTrainerPage(), { once: true }); }

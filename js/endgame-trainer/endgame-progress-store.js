@@ -5,12 +5,13 @@ const TOTAL_FIELDS = ['positionsPrepared', 'sessionsStarted', 'sessionsCompleted
 const ENTRY_RESULTS = new Set(['checkmate', 'stalemate', 'draw', 'resignation', 'abandoned']);
 const MAX_RECENT = 20;
 const MAX_CURRICULUM_LESSONS = 40;
+const MAX_PILOT_EVENTS = 400;
 const clone = value => structuredClone(value);
 const integer = value => Number.isSafeInteger(value) && value >= 0 ? value : 0;
 const short = (value, max = 160) => typeof value === 'string' ? value.slice(0, max) : null;
 const blankCounters = () => Object.fromEntries(TOTAL_FIELDS.map(name => [name, 0]));
 const blankLesson = () => ({ sessionsStarted: 0, sessionsCompleted: 0, resignations: 0, abandoned: 0, hintsUsed: 0, undosUsed: 0, moveCount: 0, bestMoveCount: 0, completed: false, completedAt: null, updatedAt: null, rolesCompleted: [] });
-const freshCurriculum = () => ({ selectedPathId: null, selectedLessonId: null, guidedSessions: 0, lessons: {} });
+const freshCurriculum = () => ({ selectedPathId: null, selectedLessonId: null, guidedSessions: 0, lessons: {}, pilotEvents: [] });
 const fresh = () => ({ version: ENDGAME_PROGRESS_VERSION, totals: blankCounters(), categories: Object.fromEntries(CATEGORIES.map(id => [id, blankCounters()])), recentSessions: [], curriculum: freshCurriculum(), updatedAt: null });
 const identifier = value => typeof value === 'string' && /^[a-z0-9-]{1,80}$/.test(value) ? value : null;
 
@@ -45,6 +46,7 @@ function normalize(value) {
     state.curriculum.guidedSessions = integer(value.curriculum?.guidedSessions);
     const lessons = value.curriculum?.lessons && typeof value.curriculum.lessons === 'object' ? Object.entries(value.curriculum.lessons).slice(0, MAX_CURRICULUM_LESSONS) : [];
     for (const [id, lesson] of lessons) if (identifier(id)) state.curriculum.lessons[id] = sanitizeLesson(lesson);
+    state.curriculum.pilotEvents = Array.isArray(value.curriculum?.pilotEvents) ? value.curriculum.pilotEvents.filter(event => event && typeof event === 'object' && short(event.key, 180) && identifier(event.lessonId) && identifier(event.event)).map(event => ({ key: short(event.key, 180), event: identifier(event.event), lessonId: identifier(event.lessonId), subjectId: short(event.subjectId, 100), at: integer(event.at) || null })).slice(-MAX_PILOT_EVENTS) : [];
     state.updatedAt = integer(value.updatedAt) || null;
     return { state, future: false };
 }
@@ -116,6 +118,22 @@ export function createEndgameProgressStore(options = {}) {
                 if (!lesson.completed && curriculumComplete(lesson, entry)) { lesson.completed = true; lesson.completedAt = lesson.updatedAt; }
                 state.curriculum.selectedPathId = pathId; state.curriculum.selectedLessonId = lessonId;
             });
+        },
+        recordPilotEvent(entry) {
+            assertActive();
+            const key = short(entry?.key, 180), event = identifier(entry?.event), lessonId = identifier(entry?.lessonId);
+            if (!key || !event || !lessonId) return false;
+            read({ preserveOnError: true });
+            if (state.curriculum.pilotEvents.some(item => item.key === key)) return false;
+            state.curriculum.pilotEvents = [...state.curriculum.pilotEvents, { key, event, lessonId, subjectId: short(entry.subjectId ?? entry.cardId ?? entry.checkpointId, 100), at: integer(entry.at ?? now()) || null }].slice(-MAX_PILOT_EVENTS);
+            if (event === 'learn-started' || event === 'recall-started') {
+                state.curriculum.selectedPathId = 'essential-canon-pilot'; state.curriculum.selectedLessonId = lessonId;
+                const lesson = curriculumLesson(lessonId); lesson.sessionsStarted += 1; lesson.updatedAt = integer(now());
+            }
+            if (event === 'lesson-completed') {
+                const lesson = curriculumLesson(lessonId); lesson.completed = true; lesson.sessionsCompleted = Math.max(1, lesson.sessionsCompleted); lesson.completedAt ??= integer(now()); lesson.updatedAt = integer(now());
+            }
+            write(); return true;
         },
         reset() { assertActive(); state = fresh(); futureVersion = false; Object.values(seen).forEach(set => set.clear()); write(); return clone(state); },
         dispose() { if (disposed) return false; disposed = true; Object.values(seen).forEach(set => set.clear()); return true; }
