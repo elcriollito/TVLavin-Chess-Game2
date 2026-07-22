@@ -53,7 +53,7 @@ const cases = [
     ['42 empty overlay state contract', css, /not\(\.is-empty\):not\(\.is-preparing\)[\s\S]*empty-overlay/],
     ['43 free during beta', html, />Free during beta</],
     ['44 setup helper', html, />Choose your training settings\.</],
-    ['45 disabled start remains present', html, /data-action="start" disabled>Start</],
+    ['45 disabled start remains present', html, /data-action="start" disabled>▶ Start Training</],
     ['46 start helper hook', html, /data-start-helper>Prepare a position first\.</],
     ['47 start helper state mapping', page, /The position is ready to start\.[\s\S]*Session in progress\./],
     ['48 session empty guidance', html, /data-session-empty[\s\S]*How it works[\s\S]*Start training against Stockfish/],
@@ -147,3 +147,21 @@ const syncCases = [
     ['110 no remote synchronization', page, /postMessage|sendBeacon|XMLHttpRequest/]
 ];
 for (const [name, source, pattern] of syncCases) test(name, name.startsWith('109 ') || name.startsWith('110 ') ? lacks(source, pattern) : has(source, pattern));
+
+const stabilizationCases = [
+    ['111 empty overlay follows position ownership instead of preparing state', page, /emptyOverlay\.hidden = Boolean\(state\.currentFen\)/],
+    ['112 hidden empty overlay cannot cover a mounted board', css, /empty-overlay\[hidden\] \{ display: none; \}/],
+    ['113 lesson companion is inside setup before free practice controls', html, /endgame-trainer-page__setup[\s\S]*data-active-lesson[\s\S]*data-free-practice/],
+    ['114 lesson companion includes required instructional fields', html, /Lesson Companion[\s\S]*data-active-objective[\s\S]*data-active-progress[\s\S]*data-active-instruction[\s\S]*data-active-principle/],
+    ['115 lesson companion navigation is complete', html, /data-guided-previous[\s\S]*data-guided-next[\s\S]*data-guided-restart[\s\S]*data-guided-exit/],
+    ['116 companion is collapsible', page, /data-companion-toggle[\s\S]*aria-expanded/],
+    ['117 prepared start CTA is explicit', html, /endgame-trainer-page__start[\s\S]*▶ Start Training/],
+    ['118 start CTA has primary visual treatment', css, /__start:not\(:disabled\)[\s\S]*accent-strong[\s\S]*font-weight/],
+    ['119 in-session start state is unambiguous', page, /Training in progress/],
+    ['120 laptop keeps companion beside board', css, /max-width: 1100px[\s\S]*grid-template-areas: "setup board" "session session"/],
+    ['121 active workspace hides the curriculum catalog', page, /curriculumPanel\.hidden = !guided \|\| Boolean\(page\.activeLesson\)/],
+    ['122 tablet breakpoint switches to the board-first flow', css, /max-width: 900px[\s\S]*__grid \{ display: flex; flex-direction: column; width: 100%; min-width: 0/],
+    ['123 mobile navigation toggle keeps its fixed touch target', css, /\.endgame-trainer-page \.endgame-trainer-page__nav-toggle[\s\S]*width: 48px; height: 48px/],
+    ['124 standalone page prevents horizontal viewport overflow', css, /html, body \{ margin: 0; min-width: 0; overflow-x: hidden; \}[\s\S]*width: 100%; max-width: 100%; overflow-x: clip/]
+];
+for (const [name, source, pattern] of stabilizationCases) test(name, has(source, pattern));

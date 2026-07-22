@@ -57,7 +57,7 @@ const sourceCases = [
     ['43 progress text', page, /Session \$\{[\s\S]*of \$\{/], ['44 previous next', html, /data-guided-previous[\s\S]*data-guided-next/], ['45 exit guided', html, /data-guided-exit/],
     ['46 confirmation dialog', html, /data-guided-switch-dialog/], ['47 cancel switch', page, /data-guided-switch-cancel/], ['48 confirm switch', page, /data-guided-switch-confirm/],
     ['49 recommendation', page, /getRecommendedLesson/], ['50 guided progress summary', html, /data-guided-summary/], ['51 recent Guided badge', page, /Guided ·/],
-    ['52 cross-tab UI', page, /refreshFromStorage/], ['53 reset UI', page, /progressStore\.reset/], ['54 mobile order', html, /data-board[\s\S]*data-active-lesson[\s\S]*data-training-mode/],
+    ['52 cross-tab UI', page, /refreshFromStorage/], ['53 reset UI', page, /progressStore\.reset/], ['54 mobile order', html, /data-board[\s\S]*data-training-mode[\s\S]*data-active-lesson/],
     ['55 no second runtime', page, /let runtime = null/], ['56 no second Worker', page, /\bWorker\b/], ['57 Free Practice regression', html, /data-free-practice[\s\S]*data-action="prepare"/],
     ['58 no dynamic innerHTML', page, /innerHTML/], ['59 no network', page, /\bfetch\s*\(|XMLHttpRequest|sendBeacon/], ['60 no auth backend', page, /auth|checkout|\/api\//]
 ];

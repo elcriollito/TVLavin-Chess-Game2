@@ -58,11 +58,6 @@
                     <div class="endgame-trainer-page__status-icon" aria-hidden="true"><i class="fas fa-bullseye"></i></div>
                     <div><h3 data-status-title>Ready to train</h3><p data-status-copy>Prepare a focused endgame position to begin.</p><p data-error-message role="alert"></p></div>
                 </section>
-                <section class="endgame-trainer-page__active-lesson" data-active-lesson hidden aria-labelledby="active-lesson-title">
-                    <div><p data-active-path></p><h3 id="active-lesson-title" data-active-title>Guided lesson</h3></div>
-                    <dl><div><dt>Objective</dt><dd data-active-objective>â€”</dd></div><div><dt>Difficulty</dt><dd data-active-difficulty>â€”</dd></div><div><dt>Role</dt><dd data-active-role>â€”</dd></div><div><dt>Progress</dt><dd data-active-progress>â€”</dd></div></dl>
-                    <div class="endgame-trainer-page__lesson-nav"><button type="button" data-guided-previous>Previous lesson</button><button type="button" data-guided-next>Next lesson</button><button type="button" data-guided-exit>Exit guided training</button></div>
-                </section>
                 <div class="endgame-trainer-page__controls endgame-trainer-page__controls--primary" data-action-group="primary" aria-label="Primary session actions">
                     <button data-action="hint" disabled>Hint</button>
                     <button data-action="restart" disabled>Restart</button>
@@ -74,6 +69,11 @@
                 <h2 id="setup-title">Setup</h2>
                 <p class="endgame-trainer-page__panel-intro">Choose your training settings.</p>
                 <fieldset><legend>Training Mode</legend><select data-training-mode aria-label="Training Mode"><option value="free">Free Practice</option><option value="guided">Guided Training</option></select></fieldset>
+                <section class="endgame-trainer-page__active-lesson" data-active-lesson hidden aria-labelledby="active-lesson-title">
+                    <div><div><p>Lesson Companion</p><h3 id="active-lesson-title" data-active-title>Guided lesson</h3></div><button type="button" class="endgame-trainer-page__companion-toggle" data-companion-toggle aria-expanded="true" aria-controls="lesson-companion-body">Collapse</button></div>
+                    <div id="lesson-companion-body" data-companion-body><p data-active-path></p><dl><div><dt>Objective</dt><dd data-active-objective>â€”</dd></div><div><dt>Current step</dt><dd data-active-progress>â€”</dd></div><div><dt>Instruction</dt><dd data-active-instruction>â€”</dd></div><div><dt>Principle</dt><dd data-active-principle>â€”</dd></div></dl>
+                    <div class="endgame-trainer-page__lesson-nav"><button type="button" data-guided-previous>Previous</button><button type="button" data-guided-next>Next</button><button type="button" data-guided-restart>Restart Lesson</button><button type="button" data-guided-exit>Return to Setup</button></div></div>
+                </section>
                 <div data-free-practice>
                 <fieldset><legend>Piece Count</legend><select data-setup="pieces" name="piece-count"><option value="3">3</option><option value="4">4</option><option value="5">5 — Rook and Pawn vs Rook</option><option value="random">Random</option><option disabled>6 — Coming later</option></select></fieldset>
                 <fieldset><legend>Category</legend><select data-setup="category" name="category"><option value="KPK">King and Pawn vs King</option><option value="KRK">King and Rook vs King</option><option value="KQK">King and Queen vs King</option><option value="KPKP">King and Pawn vs King and Pawn</option><option value="KRPvKR">Rook and Pawn vs Rook</option><option value="random">Random Supported Endgame</option></select></fieldset>
@@ -81,7 +81,7 @@
                 <fieldset><legend>Engine Strength</legend><select data-setup="strength" name="strength"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option><option value="strong">Strong</option></select></fieldset>
                 <div class="endgame-trainer-page__setup-actions">
                     <button class="endgame-trainer-page__prepare" type="button" data-action="prepare">Prepare Position</button>
-                    <button type="button" data-action="start" disabled>Start</button>
+                    <button class="endgame-trainer-page__start" type="button" data-action="start" disabled>▶ Start Training</button>
                     <p id="start-helper" class="endgame-trainer-page__helper" data-start-helper>Prepare a position first.</p>
                 </div>
                 </div>
