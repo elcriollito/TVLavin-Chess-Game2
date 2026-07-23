@@ -83,12 +83,32 @@
                     <p id="start-helper" class="endgame-trainer-page__helper" data-start-helper>Prepare a position first.</p>
                 </div>
                 </div>
-                <div class="endgame-trainer-page__guided-launcher" data-guided-launcher hidden><h3>Guided Training</h3><p>Choose a path below, then start a focused lesson.</p></div>
                 </div>
+                <section class="endgame-trainer-page__curriculum-navigator" data-curriculum-navigator hidden aria-labelledby="guided-title">
+                    <header><div><p class="endgame-trainer-page__kicker">Guided Training</p><h2 id="guided-title">Curriculum Navigator</h2></div><button type="button" data-navigator-toggle aria-expanded="true" aria-controls="curriculum-navigator-body">Collapse</button></header>
+                    <div id="curriculum-navigator-body" data-navigator-body><p>Choose one focused lesson while keeping the board in view.</p>
+                    <section class="endgame-trainer-page__navigator-recommendation" aria-labelledby="navigator-recommendation-title"><h3 id="navigator-recommendation-title">Recommended</h3><p data-guided-recommendation>Choose a learning path.</p><button type="button" data-guided-recommended>Start recommended lesson</button></section>
+                    <section class="endgame-trainer-page__pilot" data-essential-pilot aria-labelledby="essential-pilot-title">
+                        <header><p class="endgame-trainer-page__kicker">Canon 10 pilot</p><h3 id="essential-pilot-title">Essential Learn and Recall</h3></header>
+                        <div class="endgame-trainer-page__pilot-lessons" data-pilot-lessons></div>
+                    </section>
+                    <div class="endgame-trainer-page__paths" data-guided-paths></div>
+                    <section class="endgame-trainer-page__path-detail" data-guided-path-detail hidden aria-labelledby="path-detail-title"><header><div><h3 id="path-detail-title" data-path-title tabindex="-1"></h3><p data-path-description></p></div><div data-path-progress></div></header><ol data-guided-lessons></ol></section>
+                    <button type="button" data-guided-return-setup>Return to Free Practice</button>
+                    </div>
+                </section>
                 <section class="endgame-trainer-page__active-lesson" data-active-lesson hidden aria-labelledby="active-lesson-title">
                     <div><div><p>Lesson Companion</p><h3 id="active-lesson-title" data-active-title>Guided lesson</h3></div><button type="button" class="endgame-trainer-page__companion-toggle" data-companion-toggle aria-expanded="true" aria-controls="lesson-companion-body">Collapse</button></div>
                     <div id="lesson-companion-body" data-companion-body><p data-active-path></p><dl><div><dt>Objective</dt><dd data-active-objective>â€”</dd></div><div><dt>Current step</dt><dd data-active-progress>â€”</dd></div><div><dt>Instruction</dt><dd data-active-instruction>â€”</dd></div><div><dt>Principle</dt><dd data-active-principle>â€”</dd></div></dl>
-                    <div class="endgame-trainer-page__lesson-nav"><button type="button" data-guided-previous>Previous</button><button type="button" data-guided-next>Next</button><button type="button" data-guided-restart>Restart Lesson</button><button type="button" data-guided-exit>Return to Setup</button></div></div>
+                    <div class="endgame-trainer-page__lesson-nav"><button type="button" data-guided-previous>Previous</button><button type="button" data-guided-next>Next</button><button type="button" data-guided-restart>Restart Lesson</button><button type="button" data-guided-catalog>Return to Curriculum</button><button type="button" data-guided-exit>Return to Setup</button></div></div>
+                </section>
+                <section class="endgame-trainer-page__pilot-player endgame-trainer-page__pilot-companion" data-pilot-player hidden aria-labelledby="pilot-player-title">
+                    <header><div><p class="endgame-trainer-page__kicker">Pilot Companion</p><p data-pilot-mode></p><h2 id="pilot-player-title" data-pilot-title tabindex="-1"></h2></div><button type="button" data-pilot-toggle aria-expanded="true" aria-controls="pilot-companion-body">Collapse</button></header><div id="pilot-companion-body" data-pilot-body><p data-pilot-objective></p>
+                    <p><strong data-pilot-step></strong></p><p data-pilot-copy></p><p data-pilot-accessibility></p>
+                    <fieldset data-pilot-answers hidden><legend data-pilot-prompt></legend><div data-pilot-options></div></fieldset>
+                    <p class="endgame-trainer-page__pilot-feedback" data-pilot-feedback role="status" aria-live="polite"></p>
+                    <div class="endgame-trainer-page__lesson-nav"><button type="button" data-pilot-action="previous">Previous</button><button type="button" data-pilot-action="next">Next</button><button type="button" data-pilot-action="restart">Restart</button><button type="button" data-pilot-action="replay" hidden>Replay</button><button type="button" data-pilot-action="exit">Return to Curriculum</button></div>
+                    </div>
                 </section>
                 <p data-page-message class="endgame-trainer-page__page-message" role="status">Choose settings and prepare a position.</p>
             </section>
@@ -131,22 +151,6 @@
             </aside>
         </div>
 
-        <section class="endgame-trainer-page__curriculum" data-guided-curriculum hidden aria-labelledby="guided-title">
-            <header><div><p class="endgame-trainer-page__kicker">Local curriculum</p><h2 id="guided-title">Guided Training</h2><p>Follow short lessons built from supported CAISSA endgames.</p></div></header>
-            <section class="endgame-trainer-page__pilot" data-essential-pilot aria-labelledby="essential-pilot-title">
-                <header><div><p class="endgame-trainer-page__kicker">Canon 10 pilot</p><h3 id="essential-pilot-title">Essential Learn and Recall</h3><p>Study two reviewed patterns without engine grading or chess moves.</p></div></header>
-                <div class="endgame-trainer-page__pilot-lessons" data-pilot-lessons></div>
-                <section class="endgame-trainer-page__pilot-player" data-pilot-player hidden aria-labelledby="pilot-player-title">
-                    <p data-pilot-mode></p><h4 id="pilot-player-title" data-pilot-title tabindex="-1"></h4><p data-pilot-objective></p>
-                    <p><strong data-pilot-step></strong></p><p data-pilot-copy></p><p data-pilot-accessibility></p>
-                    <fieldset data-pilot-answers hidden><legend data-pilot-prompt></legend><div data-pilot-options></div></fieldset>
-                    <p class="endgame-trainer-page__pilot-feedback" data-pilot-feedback role="status" aria-live="polite"></p>
-                    <div class="endgame-trainer-page__lesson-nav"><button type="button" data-pilot-action="previous">Previous</button><button type="button" data-pilot-action="next">Next</button><button type="button" data-pilot-action="restart">Restart</button><button type="button" data-pilot-action="replay" hidden>Replay</button><button type="button" data-pilot-action="exit">Exit lesson</button></div>
-                </section>
-            </section>
-            <div class="endgame-trainer-page__paths" data-guided-paths></div>
-            <section class="endgame-trainer-page__path-detail" data-guided-path-detail hidden aria-labelledby="path-detail-title"><header><div><h3 id="path-detail-title" data-path-title tabindex="-1"></h3><p data-path-description></p></div><div data-path-progress></div></header><ol data-guided-lessons></ol></section>
-        </section>
         </section>
 
         <section class="endgame-trainer-page__workspace endgame-trainer-page__progress-workspace" data-progress-workspace aria-labelledby="progress-workspace-title">
@@ -162,7 +166,6 @@
         <section class="endgame-trainer-page__progress" data-training-progress aria-labelledby="progress-title">
             <header><div><h2 id="progress-title" tabindex="-1">Training Progress</h2><p>Stored only in this browser.</p></div></header>
             <section class="endgame-trainer-page__dashboard-card endgame-trainer-page__insights" aria-labelledby="insights-title"><h3 id="insights-title">Insights</h3><div class="endgame-trainer-page__metrics" data-progress-metrics></div></section>
-            <section class="endgame-trainer-page__dashboard-card endgame-trainer-page__recommendation" aria-labelledby="recommendation-title"><h3 id="recommendation-title">Recommendation</h3><p data-guided-recommendation>Choose a learning path.</p><button type="button" data-guided-recommended>Start recommended lesson</button></section>
             <section class="endgame-trainer-page__guided-summary" data-guided-summary aria-labelledby="guided-progress-title"><h3 id="guided-progress-title">Guided Training</h3><dl><div><dt>Lessons completed</dt><dd data-guided-completed>0 of 20</dd></div><div><dt>Completion</dt><dd data-guided-percent>0%</dd></div><div><dt>Active path</dt><dd data-guided-active-path>Not selected</dd></div><div><dt>Current lesson</dt><dd data-guided-current-lesson>Not selected</dd></div><div><dt>Guided sessions</dt><dd data-guided-sessions>0</dd></div></dl></section>
             <div class="endgame-trainer-page__progress-grid">
                 <section class="endgame-trainer-page__dashboard-card" aria-labelledby="category-title"><h3 id="category-title">Theme Mastery</h3><ul class="endgame-trainer-page__category-list" data-category-breakdown></ul></section>

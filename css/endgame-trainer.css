@@ -248,11 +248,11 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
     .endgame-trainer-page__reset-dialog div { grid-template-columns: 1fr; }
 }
 
-.endgame-trainer-page__active-lesson { margin-top: 12px; padding: 12px; border: 1px solid #516b9f; border-radius: 12px; background: #111f37; }
-.endgame-trainer-page__active-lesson[hidden], .endgame-trainer-page__curriculum[hidden], .endgame-trainer-page__path-detail[hidden], [data-guided-launcher][hidden], [data-free-practice][hidden], [data-setup-workspace][hidden] { display: none; }
+.endgame-trainer-page__active-lesson, .endgame-trainer-page__pilot-companion { padding: 12px; border: 1px solid #516b9f; border-radius: 12px; background: #111f37; }
+.endgame-trainer-page__active-lesson[hidden], .endgame-trainer-page__curriculum-navigator[hidden], .endgame-trainer-page__pilot-player[hidden], .endgame-trainer-page__path-detail[hidden], [data-free-practice][hidden], [data-setup-workspace][hidden] { display: none; }
 .endgame-trainer-page__active-lesson > div:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.endgame-trainer-page__companion-toggle { width: auto; min-height: 36px; padding: 6px 9px; }
-.endgame-trainer-page__active-lesson [data-companion-body][hidden] { display: none; }
+.endgame-trainer-page__companion-toggle, [data-navigator-toggle], [data-pilot-toggle] { display: none; width: auto; min-height: 36px; padding: 6px 9px; }
+.endgame-trainer-page__active-lesson [data-companion-body][hidden], [data-navigator-body][hidden], [data-pilot-body][hidden] { display: none; }
 .endgame-trainer-page__active-lesson p { margin: 0; color: var(--et-accent); font-size: .78rem; font-weight: 800; }
 .endgame-trainer-page__active-lesson h3 { margin: 0; font-size: 1rem; }
 .endgame-trainer-page__active-lesson dl, .endgame-trainer-page__guided-summary dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin: 10px 0; }
@@ -261,12 +261,13 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
 .endgame-trainer-page__active-lesson dd, .endgame-trainer-page__guided-summary dd { margin: 2px 0 0; overflow-wrap: anywhere; }
 .endgame-trainer-page__lesson-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
 .endgame-trainer-page__lesson-nav [data-guided-exit] { grid-column: 1 / -1; }
-.endgame-trainer-page__guided-launcher { display: grid; gap: 10px; padding: 12px; border: 1px solid #435a82; border-radius: 11px; background: #101b2e; }
-.endgame-trainer-page__guided-launcher h3, .endgame-trainer-page__guided-launcher p { margin: 0; }
-.endgame-trainer-page__curriculum { max-width: 1140px; margin: 16px auto 0; padding: 18px; border: 1px solid var(--et-line); border-radius: 16px; background: linear-gradient(180deg, var(--et-panel-raised), var(--et-panel)); }
-.endgame-trainer-page__curriculum > header p { margin: 3px 0 0; color: var(--et-muted); }
-.endgame-trainer-page__paths { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
-.endgame-trainer-page__path-card { min-width: 0; padding: 14px; border: 1px solid #344866; border-radius: 12px; background: #0e1829; }
+.endgame-trainer-page__curriculum-navigator { max-height: min(720px, calc(100vh - 170px)); overflow: auto; scrollbar-width: thin; }
+.endgame-trainer-page__curriculum-navigator > header, .endgame-trainer-page__pilot-companion > header { display: flex; align-items: start; justify-content: space-between; gap: 8px; }
+.endgame-trainer-page__curriculum-navigator h2, .endgame-trainer-page__curriculum-navigator h3, .endgame-trainer-page__curriculum-navigator p, .endgame-trainer-page__pilot-companion h2 { margin-top: 0; }
+.endgame-trainer-page__navigator-recommendation { padding: 10px; border: 1px solid #435a82; border-radius: 10px; background: #101b2e; }
+.endgame-trainer-page__navigator-recommendation button { margin-top: 7px; }
+.endgame-trainer-page__paths { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 10px; }
+.endgame-trainer-page__path-card { min-width: 0; padding: 10px; border: 1px solid #344866; border-radius: 10px; background: #0e1829; }
 .endgame-trainer-page__path-card h3, .endgame-trainer-page__path-card p { margin: 0 0 7px; overflow-wrap: anywhere; }
 .endgame-trainer-page__path-card p { color: var(--et-muted); font-size: .84rem; }
 .endgame-trainer-page__progressbar { height: 12px; margin: 10px 0; overflow: hidden; border: 1px solid #405376; border-radius: 999px; background: #09111f; }
@@ -286,11 +287,14 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
 .endgame-trainer-page__switch-dialog::backdrop { background: #020713bb; }
 .endgame-trainer-page__switch-dialog div { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 18px; }
 
+@media (max-width: 900px) {
+    .endgame-trainer-page__curriculum-navigator { max-height: none; overflow: visible; }
+    .endgame-trainer-page__companion-toggle, [data-navigator-toggle], [data-pilot-toggle] { display: block; }
+}
+
 @media (max-width: 768px) {
     .endgame-trainer-page__paths { grid-template-columns: 1fr; }
     .endgame-trainer-page__curriculum { width: 100%; padding: 15px; }
-    .endgame-trainer-page__active-lesson { margin-top: 10px; }
-    .endgame-trainer-page__companion-toggle { display: block; }
     .endgame-trainer-page__guided-summary dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .endgame-trainer-page__path-detail > header { display: block; }
 }
@@ -300,10 +304,11 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
     .endgame-trainer-page__path-detail li button { width: 100%; }
 }
 /* Essential Canon Learn/Recall pilot */
-.endgame-trainer-page__pilot { margin: 1rem 0 1.5rem; padding: 1rem; border: 1px solid #d5d8dc; border-radius: .75rem; }
-.endgame-trainer-page__pilot-lessons { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: .75rem; }
-.endgame-trainer-page__pilot-lessons article, .endgame-trainer-page__pilot-player { padding: 1rem; border: 1px solid #d5d8dc; border-radius: .65rem; }
-.endgame-trainer-page__pilot-player { margin-top: 1rem; }
+.endgame-trainer-page__pilot { margin: .75rem 0; padding: .75rem; border: 1px solid #344866; border-radius: .7rem; }
+.endgame-trainer-page__pilot-lessons { display: grid; grid-template-columns: 1fr; gap: .5rem; }
+.endgame-trainer-page__pilot-lessons article { padding: .65rem; border: 1px solid #344866; border-radius: .6rem; background: #0e1829; }
+.endgame-trainer-page__pilot-lessons article h4, .endgame-trainer-page__pilot-lessons article p { margin: 0 0 .4rem; }
+.endgame-trainer-page__pilot-companion { margin: 0; }
 .endgame-trainer-page__pilot-player button, .endgame-trainer-page__pilot-lessons button { min-height: 44px; }
 .endgame-trainer-page__pilot-player fieldset { margin: .75rem 0; }
 .endgame-trainer-page__pilot-player [data-pilot-options] { display: flex; flex-wrap: wrap; gap: .5rem; }

@@ -117,7 +117,7 @@ const progressCases = [
     ['84 reset focus restored', page, /resetReturnFocus\?\.focus/],
     ['85 persistence warning', html, /data-persistence-warning role="status"/],
     ['86 mobile order follows trainer', html, /endgame-trainer-page__grid[\s\S]*data-session-summary[\s\S]*data-training-progress/],
-    ['87 progress full width', css, /endgame-trainer-page__summary, \.endgame-trainer-page__progress[\s\S]*max-width: 1140px/],
+    ['87 progress full width', css, /endgame-trainer-page__summary, \.endgame-trainer-page__progress[\s\S]*width: 100%/],
     ['88 compact mobile categories', css, /max-width: 390px[\s\S]*category-list li[\s\S]*grid-template-columns: 1fr/],
     ['89 no progress polling', page, /setInterval|MutationObserver/],
     ['90 no confirm API', page, /window\.confirm|globalThis\.confirm/]
@@ -159,15 +159,15 @@ const stabilizationCases = [
     ['118 start CTA has primary visual treatment', css, /__start:not\(:disabled\)[\s\S]*accent-strong[\s\S]*font-weight/],
     ['119 in-session start state is unambiguous', page, /Training in progress/],
     ['120 laptop keeps companion beside board', css, /max-width: 1100px[\s\S]*grid-template-areas: "setup board" "session session"/],
-    ['121 active workspace hides the curriculum catalog', page, /curriculumPanel\.hidden = !guided \|\| Boolean\(page\.activeLesson\)/],
+    ['121 active workspace hides the curriculum catalog', page, /curriculumPanel\.hidden = page\.workspaceState !== 'guided-catalog'/],
     ['122 tablet breakpoint switches to the board-first flow', css, /max-width: 900px[\s\S]*__grid \{ display: flex; flex-direction: column; width: 100%; min-width: 0/],
     ['123 mobile navigation toggle keeps its fixed touch target', css, /\.endgame-trainer-page \.endgame-trainer-page__nav-toggle[\s\S]*width: 48px; height: 48px/],
     ['124 standalone page prevents horizontal viewport overflow', css, /html, body \{ margin: 0; min-width: 0; overflow-x: hidden; \}[\s\S]*width: 100%; max-width: 100%; overflow-x: clip/],
     ['125 training and progress are separate semantic workspaces', html, /data-training-workspace[\s\S]*Training Workspace[\s\S]*data-progress-workspace[\s\S]*Progress Workspace/],
-    ['126 training workspace contains board setup session and curriculum', html, /data-training-workspace[\s\S]*data-board[\s\S]*endgame-trainer-page__setup[\s\S]*endgame-trainer-page__session[\s\S]*data-guided-curriculum/],
-    ['127 active lesson replaces setup controls', page, /setupWorkspace\.hidden = Boolean\(active\)/],
+    ['126 training workspace contains board setup session and curriculum', html, /data-training-workspace[\s\S]*data-board[\s\S]*endgame-trainer-page__setup[\s\S]*data-curriculum-navigator[\s\S]*endgame-trainer-page__session/],
+    ['127 active lesson replaces setup controls', page, /setupWorkspace\.hidden = page\.workspaceState !== 'setup'/],
     ['128 setup replacement has an explicit hidden contract', css, /\[data-setup-workspace\]\[hidden\] \{ display: none; \}/],
-    ['129 progress dashboard contains required review surfaces', html, /Progress Workspace[\s\S]*Insights[\s\S]*Recommendation[\s\S]*Theme Mastery[\s\S]*Recent Sessions[\s\S]*Training Memory/],
+    ['129 progress dashboard contains required review surfaces', html, /Progress Workspace[\s\S]*Insights[\s\S]*Theme Mastery[\s\S]*Recent Sessions[\s\S]*Training Memory/],
     ['130 recommendation has one presentation owner', html, /data-guided-recommendation/],
     ['131 session panel is collapsible', html, /data-session-toggle[\s\S]*aria-controls="session-panel-body"[\s\S]*data-session-panel-body/],
     ['132 session collapse handler preserves panel state', page, /data-session-toggle[\s\S]*data-session-panel-body[\s\S]*aria-expanded/],
@@ -179,3 +179,20 @@ test('134 recommendation hook is not duplicated', () => {
     assert.equal([...html.matchAll(/data-guided-recommendation/g)].length, 1);
     assert.equal([...html.matchAll(/data-guided-recommended/g)].length, 1);
 });
+
+const unifiedWorkspaceCases = [
+    ['135 unified resolver is exported', page, /export function resolveGuidedWorkspaceState/],
+    ['136 curriculum navigator lives inside adaptive context', html, /endgame-trainer-page__setup[\s\S]*data-curriculum-navigator[\s\S]*Curriculum Navigator/],
+    ['137 navigator owns recommendation', html, /data-curriculum-navigator[\s\S]*data-guided-recommendation[\s\S]*data-guided-recommended/],
+    ['138 pilot companion lives inside adaptive context', html, /endgame-trainer-page__setup[\s\S]*data-pilot-player[\s\S]*Pilot Companion/],
+    ['139 lower curriculum workflow was removed', html, /<\/div>\s*<section class="endgame-trainer-page__curriculum"/],
+    ['140 pilot start clears standard lesson ownership', page, /page\.trainingMode = 'guided'; page\.activeLesson = null; page\.pilotMode = mode/],
+    ['141 pilot exit returns through unified rendering', page, /action === 'exit'[\s\S]*page\.pilotSession = null[\s\S]*renderProgress\(root, page\)/],
+    ['142 standard lesson can return to curriculum', html, /data-guided-catalog>Return to Curriculum/],
+    ['143 catalog can return to free practice', html, /data-guided-return-setup>Return to Free Practice/],
+    ['144 guided contexts are collapsible at board-first breakpoint', css, /max-width: 900px[\s\S]*data-navigator-toggle[\s\S]*data-pilot-toggle[\s\S]*display: block/],
+    ['145 navigator is bounded without shrinking board', css, /curriculum-navigator \{ max-height: min\(720px, calc\(100vh - 170px\)\); overflow: auto/],
+    ['146 prepared standard lesson can return to catalog', page, /targetMode === 'guided' \? \['ready', 'completed', 'resigned', 'error'\]/],
+    ['147 pilot exit restores the controller-owned board', page, /action === 'exit'[\s\S]*state\?\.currentFen[\s\S]*setPosition\(state\.currentFen\)[\s\S]*setOrientation\(state\.orientation\)/]
+];
+for (const [name, source, pattern] of unifiedWorkspaceCases) test(name, name.startsWith('139 ') ? lacks(source, pattern) : has(source, pattern));
