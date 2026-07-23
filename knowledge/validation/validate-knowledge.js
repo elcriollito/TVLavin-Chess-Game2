@@ -84,6 +84,13 @@ function validateUnit(unit, options) {
                 !localized || ['title', 'summary', 'explanation'].some(field => !text(localized[field]))) {
                 errors.push(issue('invalid-locale-metadata', id, `localization.${locale}`, `Locale ${locale} is incomplete or invalid`));
             }
+            if (PUBLIC_STATUSES.has(unit?.status)) {
+                for (const field of ['keyIdeas', 'misconceptions', 'practicalRules', 'decisionProcess', 'coachingPrompts', 'reflectionPrompts']) {
+                    if (!Array.isArray(localized?.[field]) || localized[field].length === 0 || localized[field].some(value => !text(value))) {
+                        errors.push(issue('required-instructional-content', id, `localization.content.${locale}.${field}`, `Published instruction requires ${field}`));
+                    }
+                }
+            }
         }
         const undeclared = Object.keys(localization.content ?? {}).filter(locale => !localization.availableLocales.includes(locale));
         if (undeclared.length) errors.push(issue('invalid-locale-metadata', id, 'localization.content', `Undeclared locale content: ${undeclared.join(', ')}`));
@@ -105,6 +112,15 @@ function validateUnit(unit, options) {
                 if (!result.valid) errors.push(issue('invalid-fen', id, `${path}.fen`, 'FEN is syntactically or legally invalid'));
                 else if (ChessRulesFacade.fromFen(position.fen).sideToMove() !== position.sideToMove) {
                     errors.push(issue('invalid-side-to-move', id, `${path}.sideToMove`, 'sideToMove does not match FEN'));
+                } else {
+                    for (const [ideaIndex, idea] of (position.principalIdeas ?? []).entries()) {
+                        try {
+                            const game = ChessRulesFacade.fromFen(position.fen);
+                            for (const move of idea.moves ?? []) game.move(move);
+                        } catch {
+                            errors.push(issue('invalid-principal-sequence', id, `${path}.principalIdeas[${ideaIndex}].moves`, 'Principal move sequence must be legal from the position FEN'));
+                        }
+                    }
                 }
             }
         });
@@ -116,6 +132,11 @@ function validateUnit(unit, options) {
         if (!Array.isArray(unit?.learningObjects?.[expected])) {
             errors.push(issue('invalid-learning-object-type', id, `learningObjects.${expected}`, `Expected array for registered learning object type "${expected}"`));
         }
+    }
+    const learningObjectIds = Object.values(unit?.learningObjects ?? {}).flatMap(items =>
+        Array.isArray(items) ? items.map(value => value?.id).filter(text) : []);
+    for (const duplicate of duplicates(learningObjectIds)) {
+        errors.push(issue('duplicate-learning-object-id', id, 'learningObjects', `Duplicate learning object id: ${duplicate}`));
     }
     if (!unit?.editorial || !text(unit.editorial.owner) || !DATE.test(unit.editorial.createdAt ?? '') ||
         !DATE.test(unit.editorial.updatedAt ?? '') || !text(unit.editorial.provenance?.notes) ||
@@ -192,10 +213,14 @@ export function validateKnowledgeRepository(units, options = {}) {
             checkTaxonomy(errors, unit, 'relationships.type', edge.type, 'relationshipTypes', options);
             if (!text(edge.type) || !text(edge.targetId)) {
                 errors.push(issue('invalid-relationships', unit?.id, 'relationships', 'Relationship type and target are required'));
+            } else if (!text(edge.reason) && !unit?.education?.prerequisites?.includes(edge.targetId)) {
+                errors.push(issue('empty-relationship-reason', unit?.id, 'relationships', `Relationship reason is required: ${edge.type}:${edge.targetId}`));
             } else if (edge.targetId === unit?.id) {
                 errors.push(issue('self-reference', unit.id, 'relationships', `Self-reference is not allowed: ${edge.type}`));
             } else if (!known.has(edge.targetId)) {
                 errors.push(issue('invalid-relationship-target', unit?.id, 'relationships', `Unknown target: ${edge.targetId}`));
+            } else if (unit?.status === 'published' && edge.type === 'prerequisite' && byId.get(edge.targetId)?.status !== 'published') {
+                errors.push(issue('published-prerequisite-not-published', unit?.id, 'education.prerequisites', `Published prerequisite must target published unit: ${edge.targetId}`));
             } else if (PUBLIC_STATUSES.has(unit?.status) && byId.get(edge.targetId)?.status === 'draft') {
                 errors.push(issue('production-relationship-to-draft', unit?.id, 'relationships', `Production unit cannot target draft: ${edge.targetId}`));
             }

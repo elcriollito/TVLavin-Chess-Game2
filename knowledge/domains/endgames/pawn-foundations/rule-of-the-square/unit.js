@@ -5,7 +5,7 @@ export const ruleOfTheSquare = {
     domain: 'endgames',
     status: 'published',
     schemaVersion: '1.0.0',
-    contentVersion: '1.0.0',
+    contentVersion: '1.1.0',
     education: {
         knowledgeType: 'decision-rule',
         endgameFamily: 'pawn-endgames',
@@ -77,7 +77,10 @@ export const ruleOfTheSquare = {
         assessments: [],
         reviewItems: []
     },
-    relationships: [],
+    relationships: [
+        { type: 'progression', targetId: 'ku:endgames:pawn-foundations:activate-the-king', reason: 'After measuring whether a king can catch a pawn, the learner can plan how to improve that king.' },
+        { type: 'recommendation', targetId: 'ku:endgames:pawn-foundations:activate-the-king', reason: 'King activation is the normal next unit for turning geometric recognition into a plan.' }
+    ],
     integrations: {
         capabilities: [
             'academy-compatible',
@@ -96,7 +99,7 @@ export const ruleOfTheSquare = {
         owner: 'CAISSA Curriculum',
         reviewer: 'CAISSA Season 9 Review',
         createdAt: '2026-07-22',
-        updatedAt: '2026-07-22',
+        updatedAt: '2026-07-23',
         reviewStatus: 'approved',
         provenance: {
             kind: 'caissa-original',

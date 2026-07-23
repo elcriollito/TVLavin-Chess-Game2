@@ -4,7 +4,12 @@ import { ruleOfTheSquare } from '../../knowledge/domains/endgames/pawn-foundatio
 import { createKnowledgeLoader, KnowledgeRepositoryError } from '../../knowledge/loaders/knowledge-loader.js';
 import { validateKnowledgeRepository } from '../../knowledge/validation/validate-knowledge.js';
 
-const unit = () => structuredClone(ruleOfTheSquare);
+const unit = () => {
+    const value = structuredClone(ruleOfTheSquare);
+    value.education.prerequisites = [];
+    value.relationships = [];
+    return value;
+};
 const codes = units => validateKnowledgeRepository(units).errors.map(error => error.code);
 
 test('accepts a valid Knowledge Unit and the production exemplar', () => {

@@ -28,6 +28,11 @@ Consumers explicitly load a release ID through
 `consumer/library-reader.js`; they do not import authored units or resolve a
 mutable “latest” release.
 
+Authors start with `knowledge/AUTHORING.md`, inspect active values through the
+draft scaffold, and run `npm run knowledge:editorial:report` before publication.
+The scaffold creates no prose, chess positions, relationships, or review
+claims.
+
 See the Season 9.0.2 architecture document for taxonomy and hashing governance,
 and `docs/architecture/SEASON_9_0_3_IMMUTABLE_LIBRARY_RELEASES_AND_CONSUMER_API.md`
 for snapshot and consumer contracts.

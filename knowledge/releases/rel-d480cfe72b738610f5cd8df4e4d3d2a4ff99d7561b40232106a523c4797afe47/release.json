@@ -1,0 +1,76 @@
+{
+  "compatibility": {
+    "minimumConsumerSnapshotSchema": "1.0.0",
+    "supportedKnowledgeSchemaVersions": [
+      "1.0.0"
+    ]
+  },
+  "files": {
+    "graph": "graph.json",
+    "manifest": "manifest.json",
+    "taxonomy": "taxonomy.json",
+    "units": [
+      {
+        "contentHash": "23d005ede06bee0caf893a74644e4229bdff8487702b9d8f5cde39d862c6f2a2",
+        "contentVersion": "1.0.0",
+        "file": "units/cf34a2f60047b2df0373756c5bf55894bd790866ed4eb6d5634d396bf693f979.json",
+        "id": "ku:endgames:pawn-foundations:activate-the-king",
+        "schemaVersion": "1.0.0"
+      },
+      {
+        "contentHash": "1d1a252bf43daed397094bcc8648be86dd989f5e5dda39212e7007dd86c70c9f",
+        "contentVersion": "1.0.0",
+        "file": "units/67fd2cad46bae3a422af5772ec98bce29bebaf14fb868866804e3ef6757ff72b.json",
+        "id": "ku:endgames:pawn-foundations:convert-with-king-support",
+        "schemaVersion": "1.0.0"
+      },
+      {
+        "contentHash": "ce00faac68a72fb1296da7c7ccaf5c97ea880c2b9dd011324f07ff7be8247f52",
+        "contentVersion": "1.0.0",
+        "file": "units/b1cfb80cc1fbb30606a64213bc6ae1a9768e25d31d2907bbf27fccb5cebc1e49.json",
+        "id": "ku:endgames:pawn-foundations:direct-opposition",
+        "schemaVersion": "1.0.0"
+      },
+      {
+        "contentHash": "6461a6c074c939183baa7c2aec0f9855a18180afdfd13321742f42a893eb47f4",
+        "contentVersion": "1.0.0",
+        "file": "units/6856de56560b565a739189480b649171d8612f551de47e2cfad7718fd40bd029.json",
+        "id": "ku:endgames:pawn-foundations:key-squares",
+        "schemaVersion": "1.0.0"
+      },
+      {
+        "contentHash": "983ddfefab24219bb14a2d6e99f218d405bd034d98654e67cd45230bb5f7c498",
+        "contentVersion": "1.1.0",
+        "file": "units/2fb846d9aa29eb4d0db98624087573c20d678aca218264ac9106f4ebb1b4e1dc.json",
+        "id": "ku:endgames:pawn-foundations:rule-of-the-square",
+        "schemaVersion": "1.0.0"
+      }
+    ]
+  },
+  "generatorVersion": "1.0.0",
+  "integrity": {
+    "algorithm": "sha256",
+    "graphHash": "b30711e2e74201738764e101c4cc4e440a83c39f8b5323ef2717c0d3ab3a732a",
+    "manifestHash": "5535828118558e19be0ea78623ca9cbe27c1da9b92fa277b9d0aebffb32a3d9c",
+    "releaseHash": "286eb4b6219ebe5010442ce4bb913140a6b9a710d4a37a1c4f973575b98d3dcb"
+  },
+  "libraryVersion": "0.1.0",
+  "localeCoverage": [
+    "en-US"
+  ],
+  "publication": {
+    "publishedAt": null,
+    "status": "development"
+  },
+  "releaseId": "rel-d480cfe72b738610f5cd8df4e4d3d2a4ff99d7561b40232106a523c4797afe47",
+  "releaseLabel": "season-9-foundation",
+  "releaseSchemaVersion": "1.0.0",
+  "repositoryFingerprint": "de082f8f0047592127c0a461d4bf9bd160730f284ca0dfa1c91e74c045f0d6e0",
+  "snapshotSchemaVersion": "1.0.0",
+  "supportedDomains": [
+    "endgames"
+  ],
+  "taxonomyHash": "947380a383fc41b6ed1793611ad8795e864b9896f913dfa5639b34b8446afdf5",
+  "taxonomyVersion": "1.1.0",
+  "unitCount": 5
+}

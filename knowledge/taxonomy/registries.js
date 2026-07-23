@@ -1,7 +1,7 @@
 const entry = (id, label, definition, options = {}) => ({ id, label, definition, status: 'active', aliases: [], ...options });
 const registry = (id, entries) => ({ id, entries });
 
-export const TAXONOMY_VERSION = '1.0.0';
+export const TAXONOMY_VERSION = '1.1.0';
 export const TAXONOMY_ENTRY_STATUSES = Object.freeze(['active', 'proposed', 'deprecated']);
 
 const source = {
@@ -9,20 +9,30 @@ const source = {
         entry('endgames', 'Endgames', 'Knowledge about positions with substantially reduced material.')
     ]),
     knowledgeTypes: registry('knowledge-types', [
-        entry('decision-rule', 'Decision rule', 'A bounded procedure used to make a chess decision.')
+        entry('decision-rule', 'Decision rule', 'A bounded procedure used to make a chess decision.'),
+        entry('pattern', 'Pattern', 'A recognizable arrangement whose geometry carries instructional meaning.'),
+        entry('principle', 'Principle', 'A bounded planning idea that guides choices while allowing exceptions.'),
+        entry('technique', 'Technique', 'A reusable coordination procedure applied through move choices.')
     ]),
     endgameFamilies: registry('endgame-families', [
         entry('pawn-endgames', 'Pawn endgames', 'Endgames whose principal educational material is kings and pawns.', { domainScope: 'endgames' })
     ]),
     themes: registry('themes', [
         entry('king-activity', 'King activity', 'Effective use of the king as an active piece.', { domainScope: 'endgames' }),
+        entry('key-squares', 'Key squares', 'Target squares from which a king can support a pawn objective.', { domainScope: 'endgames' }),
+        entry('opposition', 'Opposition', 'King geometry in which tempo determines access around the opposing king.', { domainScope: 'endgames' }),
+        entry('pawn-support', 'Pawn support', 'Coordination of king and pawn during controlled advancement.', { domainScope: 'endgames' }),
         entry('pawn-races', 'Pawn races', 'Tempo and geometry in competing promotion or interception paths.', { domainScope: 'endgames' }),
+        entry('tempo', 'Tempo', 'The instructional effect of whose turn it is and available waiting moves.', { domainScope: 'endgames' }),
         entry('candidate-endgame-theme', 'Candidate endgame theme', 'Reserved for explicit draft taxonomy workflow.', { domainScope: 'endgames', status: 'proposed' }),
         entry('pawn-race', 'Pawn race', 'Deprecated singular identifier retained for migration diagnostics.', { domainScope: 'endgames', status: 'deprecated', replacementId: 'pawn-races' })
     ]),
     skills: registry('skills', [
         entry('board-geometry', 'Board geometry', 'Recognition and comparison of square-based distances.'),
-        entry('calculation', 'Calculation', 'Concrete analysis of move sequences and tempos.')
+        entry('calculation', 'Calculation', 'Concrete analysis of move sequences and tempos.'),
+        entry('move-order', 'Move order', 'Selection of an action sequence whose order preserves access or tempi.'),
+        entry('pattern-recognition', 'Pattern recognition', 'Identification of meaningful recurring chess geometry.'),
+        entry('planning', 'Planning', 'Selection of a useful objective before calculating concrete moves.')
     ]),
     difficulties: registry('difficulty-levels', [
         entry('foundation', 'Foundation', 'Introductory knowledge with minimal prerequisite depth.'),
@@ -35,7 +45,11 @@ const source = {
         entry('foundation-rules-aware', 'Rules-aware foundation', 'Learners who know legal movement and basic game rules.')
     ]),
     positionRoles: registry('instructional-position-roles', [
-        entry('recognition-example', 'Recognition example', 'A position used to recognize or delimit a concept.')
+        entry('assessment', 'Assessment', 'A position used for independent evidence of mastery.'),
+        entry('clean-demonstration', 'Clean demonstration', 'A minimal position that isolates the primary concept.'),
+        entry('contrast', 'Contrast', 'A near or opposing case that clarifies the concept boundary.'),
+        entry('recognition-example', 'Recognition example', 'A position used to recognize or delimit a concept.'),
+        entry('transfer', 'Transfer', 'A changed geometry requiring the learner to reuse the concept.')
     ]),
     learningObjectTypes: registry('learning-object-types', [
         entry('demonstrations', 'Demonstrations', 'Authored demonstrations of knowledge.'),

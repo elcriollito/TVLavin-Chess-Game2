@@ -11,7 +11,12 @@ import { readSnapshotFiles, writeLibrarySnapshot } from '../../knowledge/snapsho
 import { verifySnapshotFiles } from '../../knowledge/snapshots/verify-snapshot.js';
 
 const json = value => `${canonicalJson(value, 2)}\n`;
-const unit = () => structuredClone(ruleOfTheSquare);
+const unit = () => {
+    const value = structuredClone(ruleOfTheSquare);
+    value.education.prerequisites = [];
+    value.relationships = [];
+    return value;
+};
 const fixture = (id, slug, status = 'published') => {
     const value = unit();
     value.id = id; value.slug = slug; value.status = status;
@@ -33,14 +38,14 @@ const temporary = async callback => {
 };
 
 test('same content has the same ID; instruction changes it; editorial and publication metadata do not', () => {
-    const first = buildLibrarySnapshot();
-    assert.equal(buildLibrarySnapshot().releaseId, first.releaseId);
+    const first = buildLibrarySnapshot([unit()]);
+    assert.equal(buildLibrarySnapshot([unit()]).releaseId, first.releaseId);
     const changed = unit(); changed.localization.content['en-US'].explanation += ' Changed instruction.';
     assert.notEqual(buildLibrarySnapshot([changed]).releaseId, first.releaseId);
     const editorial = unit(); editorial.editorial.updatedAt = '2026-07-23';
     assert.equal(buildLibrarySnapshot([editorial]).releaseId, first.releaseId);
-    assert.equal(buildLibrarySnapshot(undefined, { publishedAt: '2026-07-23T12:00:00Z' }).releaseId, first.releaseId);
-    assert.equal(buildLibrarySnapshot(undefined, { releaseLabel: 'another-human-label' }).releaseId, first.releaseId);
+    assert.equal(buildLibrarySnapshot([unit()], { publishedAt: '2026-07-23T12:00:00Z' }).releaseId, first.releaseId);
+    assert.equal(buildLibrarySnapshot([unit()], { releaseLabel: 'another-human-label' }).releaseId, first.releaseId);
 });
 
 test('snapshot bytes are deterministic, ordered, complete, and exclude drafts/private editorial data', () => {
@@ -65,25 +70,25 @@ test('invalid source leaves no partial release and identical writes are idempote
     const invalid = unit(); invalid.education.themes = ['missing'];
     assert.throws(() => buildLibrarySnapshot([invalid]), /snapshot-source-invalid/);
     assert.deepEqual(await readdir(directory), []);
-    const snapshot = buildLibrarySnapshot();
+    const snapshot = buildLibrarySnapshot([unit()]);
     assert.deepEqual(await writeLibrarySnapshot({ releasesDirectory: directory, snapshot }), { releaseId: snapshot.releaseId, created: true });
     assert.deepEqual(await writeLibrarySnapshot({ releasesDirectory: directory, snapshot }), { releaseId: snapshot.releaseId, created: false });
 }));
 
 test('conflicting bytes cannot overwrite an immutable release', async () => temporary(async directory => {
-    const first = buildLibrarySnapshot();
+    const first = buildLibrarySnapshot([unit()]);
     await writeLibrarySnapshot({ releasesDirectory: directory, snapshot: first });
-    const conflict = buildLibrarySnapshot(undefined, { publishedAt: '2026-07-23T12:00:00Z' });
+    const conflict = buildLibrarySnapshot([unit()], { publishedAt: '2026-07-23T12:00:00Z' });
     await assert.rejects(() => writeLibrarySnapshot({ releasesDirectory: directory, snapshot: conflict }), /immutable-release-conflict/);
 }));
 
 test('valid self-contained snapshot verifies without authored modules', () => {
-    const snapshot = buildLibrarySnapshot();
+    const snapshot = buildLibrarySnapshot([unit()]);
     assert.equal(verifySnapshotFiles(snapshot.files, snapshot.releaseId).valid, true);
 });
 
 test('verifier rejects corrupted unit content and incorrect content hash', () => {
-    const snapshot = buildLibrarySnapshot();
+    const snapshot = buildLibrarySnapshot([unit()]);
     const corrupted = copyFiles(snapshot);
     const record = snapshot.release.files.units[0];
     mutateJson(corrupted, record.file, value => { value.unit.localization.content['en-US'].explanation += ' corruption'; });
@@ -94,7 +99,7 @@ test('verifier rejects corrupted unit content and incorrect content hash', () =>
 });
 
 test('verifier rejects fingerprint, missing unit, unexpected unit and broken graph target', () => {
-    const snapshot = buildLibrarySnapshot();
+    const snapshot = buildLibrarySnapshot([unit()]);
     const fingerprint = copyFiles(snapshot);
     mutateJson(fingerprint, 'release.json', value => { value.repositoryFingerprint = '0'.repeat(64); });
     assert.ok(codes(verifySnapshotFiles(fingerprint, snapshot.releaseId)).includes('repository-fingerprint-mismatch'));
@@ -108,7 +113,7 @@ test('verifier rejects fingerprint, missing unit, unexpected unit and broken gra
 });
 
 test('verifier rejects incompatible schema, malformed ID, taxonomy mismatch and malformed payload', () => {
-    const snapshot = buildLibrarySnapshot();
+    const snapshot = buildLibrarySnapshot([unit()]);
     const schema = copyFiles(snapshot);
     mutateJson(schema, 'release.json', value => { value.snapshotSchemaVersion = '9.0.0'; });
     assert.ok(codes(verifySnapshotFiles(schema, snapshot.releaseId)).includes('unsupported-snapshot-schema'));
@@ -122,7 +127,7 @@ test('verifier rejects incompatible schema, malformed ID, taxonomy mismatch and 
 });
 
 test('consumer loads by immutable ID and exposes metadata, summaries, ID and slug access', async () => temporary(async directory => {
-    const snapshot = buildLibrarySnapshot();
+    const snapshot = buildLibrarySnapshot([unit()]);
     await writeLibrarySnapshot({ releasesDirectory: directory, snapshot });
     const reader = await loadLibraryRelease({ releasesDirectory: directory, releaseId: snapshot.releaseId });
     assert.equal(reader.getReleaseMetadata().releaseId, snapshot.releaseId);
@@ -135,7 +140,7 @@ test('consumer loads by immutable ID and exposes metadata, summaries, ID and slu
 }));
 
 test('consumer filters deterministically by domain and every supported facet', async () => temporary(async directory => {
-    const snapshot = buildLibrarySnapshot(); await writeLibrarySnapshot({ releasesDirectory: directory, snapshot });
+    const snapshot = buildLibrarySnapshot([unit()]); await writeLibrarySnapshot({ releasesDirectory: directory, snapshot });
     const reader = await loadLibraryRelease({ releasesDirectory: directory, releaseId: snapshot.releaseId });
     assert.equal(reader.listUnitsByDomain('endgames').length, 1);
     for (const filter of [
@@ -167,7 +172,7 @@ test('consumer graph and taxonomy APIs are safe for empty and authored fixture e
 }));
 
 test('consumer returns immutable independent values and refuses unverifiable releases', async () => temporary(async directory => {
-    const snapshot = buildLibrarySnapshot(); await writeLibrarySnapshot({ releasesDirectory: directory, snapshot });
+    const snapshot = buildLibrarySnapshot([unit()]); await writeLibrarySnapshot({ releasesDirectory: directory, snapshot });
     const reader = await loadLibraryRelease({ releasesDirectory: directory, releaseId: snapshot.releaseId });
     const first = reader.getUnitById(ruleOfTheSquare.id);
     assert.equal(Object.isFrozen(first), true);
@@ -181,7 +186,7 @@ test('consumer returns immutable independent values and refuses unverifiable rel
 test('path traversal IDs are rejected and reader metadata exposes no filesystem paths', async () => {
     await assert.rejects(() => loadLibraryRelease({ releasesDirectory: 'ignored', releaseId: '../escape' }), /invalid-release-id/);
     await temporary(async directory => {
-        const snapshot = buildLibrarySnapshot(); await writeLibrarySnapshot({ releasesDirectory: directory, snapshot });
+        const snapshot = buildLibrarySnapshot([unit()]); await writeLibrarySnapshot({ releasesDirectory: directory, snapshot });
         const reader = await loadLibraryRelease({ releasesDirectory: directory, releaseId: snapshot.releaseId });
         assert.equal(JSON.stringify(reader.getReleaseMetadata()).includes(directory), false);
     });

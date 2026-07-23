@@ -5,7 +5,12 @@ import { ruleOfTheSquare } from '../../knowledge/domains/endgames/pawn-foundatio
 import { buildGraphIndexes, buildKnowledgeRelease, contentHash, serializeKnowledgeRelease } from '../../knowledge/release/build-release.js';
 import { checkReleaseArtifacts, RELEASE_ARTIFACTS, staleReleaseArtifacts } from '../../knowledge/release/release-artifacts.js';
 
-const unit = () => structuredClone(ruleOfTheSquare);
+const unit = () => {
+    const value = structuredClone(ruleOfTheSquare);
+    value.education.prerequisites = [];
+    value.relationships = [];
+    return value;
+};
 const fixture = (id, slug, status = 'published') => {
     const value = unit();
     value.id = id;
@@ -54,7 +59,7 @@ test('manifest counts production units and locales while excluding drafts', () =
 test('manifest remains lightweight and excludes full instructional content', () => {
     const output = serializeKnowledgeRelease().manifest;
     assert.doesNotMatch(output, /decisionProcess|coachingPrompts|principalIdeas/);
-    assert.equal(JSON.parse(output).units[0].contentHash, contentHash(ruleOfTheSquare));
+    assert.equal(JSON.parse(output).units.find(value => value.id === ruleOfTheSquare.id).contentHash, contentHash(ruleOfTheSquare));
 });
 
 test('graph indexes contain authored forward, reverse and prerequisite edges only', () => {

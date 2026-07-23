@@ -1,9 +1,15 @@
 import { ruleOfTheSquare } from '../domains/endgames/pawn-foundations/rule-of-the-square/unit.js';
+import { activateTheKing } from '../domains/endgames/pawn-foundations/activate-the-king/unit.js';
+import { directOpposition } from '../domains/endgames/pawn-foundations/direct-opposition/unit.js';
+import { keySquares } from '../domains/endgames/pawn-foundations/key-squares/unit.js';
+import { convertWithKingSupport } from '../domains/endgames/pawn-foundations/convert-with-king-support/unit.js';
 
 export const KNOWLEDGE_MANIFEST_VERSION = '1.0.0';
 
 // Explicit imports make discovery reviewable and deterministic in every runtime.
-export const KNOWLEDGE_UNIT_REGISTRY = Object.freeze([ruleOfTheSquare]);
+export const KNOWLEDGE_UNIT_REGISTRY = Object.freeze([
+    ruleOfTheSquare, activateTheKing, directOpposition, keySquares, convertWithKingSupport
+]);
 
 export const KNOWLEDGE_MANIFEST = Object.freeze(KNOWLEDGE_UNIT_REGISTRY.map(unit => Object.freeze({
     id: unit.id,
