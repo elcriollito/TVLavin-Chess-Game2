@@ -26,8 +26,7 @@
             ['history', 'History', 'fas fa-history', '/?section=history'],
             ['dosChess', 'DOS Chess', 'fas fa-desktop', '/?section=dosChess'],
             ['vault', 'Vault', 'fas fa-box-archive', '/vault', 'nav-item-external', true],
-            ['blog', 'Blog', 'fas fa-rss', 'https://tvlavin.blogspot.com/', 'nav-item-external', true, true],
-            ['help-videos', 'Help Videos', 'fas fa-video', 'https://www.youtube.com/playlist?list=PLS6AOWARshCU', 'nav-item-external', true, true]
+            ['blog', 'Blog', 'fas fa-rss', '/blog', 'nav-item-external']
         ]
     ];
 
@@ -92,10 +91,20 @@
                     </a>
                 </div>
                 <div class="nav-items">${items}
+                    <div class="nav-connect-label nav-label">Connect with CAISSA Chess</div>
+                    <a href="https://www.facebook.com/CaissaChessOrg/" target="_blank" rel="noopener noreferrer" class="nav-item nav-item-external" aria-label="CAISSA Chess on Facebook (opens in a new tab)">
+                        <i class="fab fa-facebook" aria-hidden="true"></i>
+                        <span class="nav-label">Facebook</span>
+                        <i class="fas fa-external-link-alt nav-external-icon" aria-hidden="true"></i>
+                    </a>
+                    <a href="https://www.youtube.com/@CaissaChessOrg" target="_blank" rel="noopener noreferrer" class="nav-item nav-item-external" aria-label="CAISSA Chess YouTube (opens in a new tab)">
+                        <i class="fas fa-video" aria-hidden="true"></i>
+                        <span class="nav-label">CAISSA Chess YouTube</span>
+                        <i class="fas fa-external-link-alt nav-external-icon" aria-hidden="true"></i>
+                    </a>
                     <a href="${feedbackHref}" class="nav-item nav-item-external" aria-label="Send feedback about CAISSA Chess">
                         <i class="fas fa-comment-dots" aria-hidden="true"></i>
-                        <span class="nav-label">Contact / Feedback</span>
-                        <i class="fas fa-external-link-alt nav-external-icon" aria-hidden="true"></i>
+                        <span class="nav-label">Share an Idea / Contact &amp; Feedback</span>
                     </a>
                 </div>
                 <div class="nav-footer">

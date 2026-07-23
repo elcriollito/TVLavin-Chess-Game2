@@ -16,8 +16,10 @@ const MIME_TYPES = {
   '.js': 'text/javascript',
   '.css': 'text/css',
   '.json': 'application/json',
+  '.xml': 'application/xml',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
+  '.webp': 'image/webp',
   '.gif': 'image/gif',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
@@ -337,6 +339,13 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const pathname = url.pathname;
 
+  // Consolidate public blog routes on the canonical no-trailing-slash form.
+  if (pathname === '/blog/' || /^\/blog\/[a-z0-9]+(?:-[a-z0-9]+)*\/$/.test(pathname)) {
+    res.writeHead(308, { Location: pathname.slice(0, -1) + url.search });
+    res.end();
+    return;
+  }
+
   // API Routes
   if (pathname === '/api/health') {
     handleHealthCheck(res);
@@ -357,6 +366,18 @@ const server = http.createServer(async (req, res) => {
   let filePath = '.' + pathname;
   if (filePath === './') {
     filePath = './index.html';
+  }
+  if (pathname === '/blog') {
+    filePath = './blog/index.html';
+  }
+  if (pathname === '/about' || pathname === '/about/') {
+    filePath = './about.html';
+  }
+  if (pathname === '/endgame-trainer' || pathname === '/endgame-trainer/') {
+    filePath = './endgame-trainer.html';
+  }
+  if (/^\/blog\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(pathname)) {
+    filePath = `.${pathname}/index.html`;
   }
   if (pathname === '/database' || pathname.startsWith('/database/eco/')) {
     filePath = './database.html';

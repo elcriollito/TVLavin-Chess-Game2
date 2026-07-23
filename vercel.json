@@ -4,7 +4,12 @@
       "maxDuration": 10
     }
   },
+  "redirects": [
+    { "source": "/blog/", "destination": "/blog", "permanent": true },
+    { "source": "/blog/:slug/", "destination": "/blog/:slug", "permanent": true }
+  ],
   "rewrites": [
+    { "source": "/blog", "destination": "/blog/index.html" },
     { "source": "/endgame-trainer", "destination": "/endgame-trainer.html" },
     { "source": "/endgame-trainer/", "destination": "/endgame-trainer.html" },
     { "source": "/eco", "destination": "/eco.html" },
