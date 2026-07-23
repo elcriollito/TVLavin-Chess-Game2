@@ -40,6 +40,8 @@
             <p>Practice focused endgame positions against Stockfish.</p>
         </header>
 
+        <section class="endgame-trainer-page__workspace endgame-trainer-page__training-workspace" data-training-workspace aria-labelledby="training-workspace-title">
+        <header class="endgame-trainer-page__workspace-header"><div><p class="endgame-trainer-page__kicker">Learn · Play · Solve</p><h2 id="training-workspace-title">Training Workspace</h2></div><p>Keep the lesson, position, coaching, and session together.</p></header>
         <div class="endgame-trainer-page__grid">
             <section class="endgame-trainer-page__board-panel" aria-labelledby="board-title">
                 <h2 id="board-title">Training board</h2>
@@ -65,15 +67,11 @@
                 </div>
             </section>
 
-            <section class="endgame-trainer-page__setup" aria-labelledby="setup-title">
+            <section class="endgame-trainer-page__setup" aria-label="Training controls">
+                <div data-setup-workspace>
                 <h2 id="setup-title">Setup</h2>
                 <p class="endgame-trainer-page__panel-intro">Choose your training settings.</p>
                 <fieldset><legend>Training Mode</legend><select data-training-mode aria-label="Training Mode"><option value="free">Free Practice</option><option value="guided">Guided Training</option></select></fieldset>
-                <section class="endgame-trainer-page__active-lesson" data-active-lesson hidden aria-labelledby="active-lesson-title">
-                    <div><div><p>Lesson Companion</p><h3 id="active-lesson-title" data-active-title>Guided lesson</h3></div><button type="button" class="endgame-trainer-page__companion-toggle" data-companion-toggle aria-expanded="true" aria-controls="lesson-companion-body">Collapse</button></div>
-                    <div id="lesson-companion-body" data-companion-body><p data-active-path></p><dl><div><dt>Objective</dt><dd data-active-objective>â€”</dd></div><div><dt>Current step</dt><dd data-active-progress>â€”</dd></div><div><dt>Instruction</dt><dd data-active-instruction>â€”</dd></div><div><dt>Principle</dt><dd data-active-principle>â€”</dd></div></dl>
-                    <div class="endgame-trainer-page__lesson-nav"><button type="button" data-guided-previous>Previous</button><button type="button" data-guided-next>Next</button><button type="button" data-guided-restart>Restart Lesson</button><button type="button" data-guided-exit>Return to Setup</button></div></div>
-                </section>
                 <div data-free-practice>
                 <fieldset><legend>Piece Count</legend><select data-setup="pieces" name="piece-count"><option value="3">3</option><option value="4">4</option><option value="5">5 — Rook and Pawn vs Rook</option><option value="random">Random</option><option disabled>6 — Coming later</option></select></fieldset>
                 <fieldset><legend>Category</legend><select data-setup="category" name="category"><option value="KPK">King and Pawn vs King</option><option value="KRK">King and Rook vs King</option><option value="KQK">King and Queen vs King</option><option value="KPKP">King and Pawn vs King and Pawn</option><option value="KRPvKR">Rook and Pawn vs Rook</option><option value="random">Random Supported Endgame</option></select></fieldset>
@@ -85,12 +83,19 @@
                     <p id="start-helper" class="endgame-trainer-page__helper" data-start-helper>Prepare a position first.</p>
                 </div>
                 </div>
-                <div class="endgame-trainer-page__guided-launcher" data-guided-launcher hidden><h3>Guided Training</h3><p>Choose a path below, then start a focused lesson.</p><p><strong>Recommended next lesson</strong><br><span data-guided-recommendation></span></p><button type="button" data-guided-recommended>Start recommended lesson</button></div>
+                <div class="endgame-trainer-page__guided-launcher" data-guided-launcher hidden><h3>Guided Training</h3><p>Choose a path below, then start a focused lesson.</p></div>
+                </div>
+                <section class="endgame-trainer-page__active-lesson" data-active-lesson hidden aria-labelledby="active-lesson-title">
+                    <div><div><p>Lesson Companion</p><h3 id="active-lesson-title" data-active-title>Guided lesson</h3></div><button type="button" class="endgame-trainer-page__companion-toggle" data-companion-toggle aria-expanded="true" aria-controls="lesson-companion-body">Collapse</button></div>
+                    <div id="lesson-companion-body" data-companion-body><p data-active-path></p><dl><div><dt>Objective</dt><dd data-active-objective>â€”</dd></div><div><dt>Current step</dt><dd data-active-progress>â€”</dd></div><div><dt>Instruction</dt><dd data-active-instruction>â€”</dd></div><div><dt>Principle</dt><dd data-active-principle>â€”</dd></div></dl>
+                    <div class="endgame-trainer-page__lesson-nav"><button type="button" data-guided-previous>Previous</button><button type="button" data-guided-next>Next</button><button type="button" data-guided-restart>Restart Lesson</button><button type="button" data-guided-exit>Return to Setup</button></div></div>
+                </section>
                 <p data-page-message class="endgame-trainer-page__page-message" role="status">Choose settings and prepare a position.</p>
             </section>
 
             <aside class="endgame-trainer-page__session" aria-labelledby="session-title">
-                <h2 id="session-title">Session</h2>
+                <header class="endgame-trainer-page__session-header"><h2 id="session-title">Session</h2><button type="button" class="endgame-trainer-page__session-toggle" data-session-toggle aria-expanded="true" aria-controls="session-panel-body">Collapse</button></header>
+                <div id="session-panel-body" data-session-panel-body>
                 <section class="endgame-trainer-page__session-empty" data-session-empty>
                     <i class="fas fa-route" aria-hidden="true"></i><h3>How it works</h3>
                     <ol><li>Choose an endgame.</li><li>Prepare the position.</li><li>Start training against Stockfish.</li></ol>
@@ -122,6 +127,7 @@
                     <button data-action="flip">Flip Board</button>
                     <button class="endgame-trainer-page__resign" data-action="resign" disabled>Resign</button>
                 </div>
+                </div>
             </aside>
         </div>
 
@@ -141,7 +147,10 @@
             <div class="endgame-trainer-page__paths" data-guided-paths></div>
             <section class="endgame-trainer-page__path-detail" data-guided-path-detail hidden aria-labelledby="path-detail-title"><header><div><h3 id="path-detail-title" data-path-title tabindex="-1"></h3><p data-path-description></p></div><div data-path-progress></div></header><ol data-guided-lessons></ol></section>
         </section>
+        </section>
 
+        <section class="endgame-trainer-page__workspace endgame-trainer-page__progress-workspace" data-progress-workspace aria-labelledby="progress-workspace-title">
+        <header class="endgame-trainer-page__workspace-header"><div><p class="endgame-trainer-page__kicker">Review · Analyze · Improve</p><h2 id="progress-workspace-title">Progress Workspace</h2></div><p>Review mastery, recent work, and the next recommended lesson.</p></header>
         <section class="endgame-trainer-page__summary" data-session-summary hidden aria-labelledby="summary-title">
             <h2 id="summary-title">Session Summary</h2>
             <dl data-summary-facts></dl>
@@ -152,11 +161,12 @@
 
         <section class="endgame-trainer-page__progress" data-training-progress aria-labelledby="progress-title">
             <header><div><h2 id="progress-title" tabindex="-1">Training Progress</h2><p>Stored only in this browser.</p></div></header>
-            <div class="endgame-trainer-page__metrics" data-progress-metrics></div>
+            <section class="endgame-trainer-page__dashboard-card endgame-trainer-page__insights" aria-labelledby="insights-title"><h3 id="insights-title">Insights</h3><div class="endgame-trainer-page__metrics" data-progress-metrics></div></section>
+            <section class="endgame-trainer-page__dashboard-card endgame-trainer-page__recommendation" aria-labelledby="recommendation-title"><h3 id="recommendation-title">Recommendation</h3><p data-guided-recommendation>Choose a learning path.</p><button type="button" data-guided-recommended>Start recommended lesson</button></section>
             <section class="endgame-trainer-page__guided-summary" data-guided-summary aria-labelledby="guided-progress-title"><h3 id="guided-progress-title">Guided Training</h3><dl><div><dt>Lessons completed</dt><dd data-guided-completed>0 of 20</dd></div><div><dt>Completion</dt><dd data-guided-percent>0%</dd></div><div><dt>Active path</dt><dd data-guided-active-path>Not selected</dd></div><div><dt>Current lesson</dt><dd data-guided-current-lesson>Not selected</dd></div><div><dt>Guided sessions</dt><dd data-guided-sessions>0</dd></div></dl></section>
             <div class="endgame-trainer-page__progress-grid">
-                <section aria-labelledby="category-title"><h3 id="category-title">By Endgame</h3><ul class="endgame-trainer-page__category-list" data-category-breakdown></ul></section>
-                <section aria-labelledby="recent-title"><h3 id="recent-title">Recent Sessions</h3>
+                <section class="endgame-trainer-page__dashboard-card" aria-labelledby="category-title"><h3 id="category-title">Theme Mastery</h3><ul class="endgame-trainer-page__category-list" data-category-breakdown></ul></section>
+                <section class="endgame-trainer-page__dashboard-card" aria-labelledby="recent-title"><h3 id="recent-title">Recent Sessions</h3>
                     <div class="endgame-trainer-page__recent-filters" data-recent-filters>
                         <label>Result<select data-recent-result><option value="all">All</option><option value="checkmate">Checkmate</option><option value="draw">Draw</option><option value="resignation">Resignation</option><option value="abandoned">Abandoned</option></select></label>
                         <label>Category<select data-recent-category><option value="all">All endgames</option><option value="KQK">Queen vs King</option><option value="KRK">Rook vs King</option><option value="KPK">Pawn vs King</option><option value="KPKP">Pawn vs Pawn</option><option value="KRPvKR">Rook and Pawn vs Rook</option></select></label>
@@ -167,13 +177,14 @@
                 </section>
             </div>
             <footer class="endgame-trainer-page__progress-footer">
-                <div><p>Progress is stored only in this browser and is not synced to an account.</p><p data-persistence-warning role="status"></p><p data-sync-feedback role="status" aria-live="polite"></p></div>
+                <div><h3>Training Memory</h3><p>Progress is stored only in this browser and is not synced to an account.</p><p data-persistence-warning role="status"></p><p data-sync-feedback role="status" aria-live="polite"></p></div>
                 <button type="button" data-export-training-memory>Export training memory</button>
                 <button type="button" data-import-training-memory>Import training memory</button>
                 <input type="file" accept="application/json,.json" data-training-memory-file hidden>
                 <button type="button" data-reset-progress>Reset local progress</button>
             </footer>
             <p data-progress-announcement class="endgame-trainer-page__sr-only" role="status" aria-live="polite"></p>
+        </section>
         </section>
     </main>
     <dialog class="endgame-trainer-page__promotion" data-promotion aria-labelledby="promotion-title"><h2 id="promotion-title">Choose promotion</h2><div><button data-promotion-piece="q">Queen</button><button data-promotion-piece="r">Rook</button><button data-promotion-piece="b">Bishop</button><button data-promotion-piece="n">Knight</button><button data-promotion-piece="">Cancel</button></div></dialog>

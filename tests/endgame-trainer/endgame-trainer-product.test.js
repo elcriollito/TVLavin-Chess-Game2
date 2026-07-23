@@ -109,7 +109,7 @@ const progressCases = [
     ['76 session summary', html, /data-session-summary[\s\S]*Session Summary/],
     ['77 training progress', html, /data-training-progress[\s\S]*Training Progress/],
     ['78 six metrics', html, /data-progress-metrics/],
-    ['79 category breakdown', html, /By Endgame[\s\S]*data-category-breakdown/],
+    ['79 category breakdown', html, /Theme Mastery[\s\S]*data-category-breakdown/],
     ['80 recent sessions', html, /Recent Sessions[\s\S]*data-recent-sessions/],
     ['81 privacy copy', html, /Progress is stored only in this browser and is not synced to an account\./],
     ['82 reset dialog', html, /data-reset-dialog[\s\S]*Reset local progress/],
@@ -151,7 +151,7 @@ for (const [name, source, pattern] of syncCases) test(name, name.startsWith('109
 const stabilizationCases = [
     ['111 empty overlay follows position ownership instead of preparing state', page, /emptyOverlay\.hidden = Boolean\(state\.currentFen\)/],
     ['112 hidden empty overlay cannot cover a mounted board', css, /empty-overlay\[hidden\] \{ display: none; \}/],
-    ['113 lesson companion is inside setup before free practice controls', html, /endgame-trainer-page__setup[\s\S]*data-active-lesson[\s\S]*data-free-practice/],
+    ['113 lesson companion and setup controls share one dynamic column', html, /endgame-trainer-page__setup[\s\S]*data-setup-workspace[\s\S]*data-free-practice[\s\S]*data-active-lesson/],
     ['114 lesson companion includes required instructional fields', html, /Lesson Companion[\s\S]*data-active-objective[\s\S]*data-active-progress[\s\S]*data-active-instruction[\s\S]*data-active-principle/],
     ['115 lesson companion navigation is complete', html, /data-guided-previous[\s\S]*data-guided-next[\s\S]*data-guided-restart[\s\S]*data-guided-exit/],
     ['116 companion is collapsible', page, /data-companion-toggle[\s\S]*aria-expanded/],
@@ -162,6 +162,20 @@ const stabilizationCases = [
     ['121 active workspace hides the curriculum catalog', page, /curriculumPanel\.hidden = !guided \|\| Boolean\(page\.activeLesson\)/],
     ['122 tablet breakpoint switches to the board-first flow', css, /max-width: 900px[\s\S]*__grid \{ display: flex; flex-direction: column; width: 100%; min-width: 0/],
     ['123 mobile navigation toggle keeps its fixed touch target', css, /\.endgame-trainer-page \.endgame-trainer-page__nav-toggle[\s\S]*width: 48px; height: 48px/],
-    ['124 standalone page prevents horizontal viewport overflow', css, /html, body \{ margin: 0; min-width: 0; overflow-x: hidden; \}[\s\S]*width: 100%; max-width: 100%; overflow-x: clip/]
+    ['124 standalone page prevents horizontal viewport overflow', css, /html, body \{ margin: 0; min-width: 0; overflow-x: hidden; \}[\s\S]*width: 100%; max-width: 100%; overflow-x: clip/],
+    ['125 training and progress are separate semantic workspaces', html, /data-training-workspace[\s\S]*Training Workspace[\s\S]*data-progress-workspace[\s\S]*Progress Workspace/],
+    ['126 training workspace contains board setup session and curriculum', html, /data-training-workspace[\s\S]*data-board[\s\S]*endgame-trainer-page__setup[\s\S]*endgame-trainer-page__session[\s\S]*data-guided-curriculum/],
+    ['127 active lesson replaces setup controls', page, /setupWorkspace\.hidden = Boolean\(active\)/],
+    ['128 setup replacement has an explicit hidden contract', css, /\[data-setup-workspace\]\[hidden\] \{ display: none; \}/],
+    ['129 progress dashboard contains required review surfaces', html, /Progress Workspace[\s\S]*Insights[\s\S]*Recommendation[\s\S]*Theme Mastery[\s\S]*Recent Sessions[\s\S]*Training Memory/],
+    ['130 recommendation has one presentation owner', html, /data-guided-recommendation/],
+    ['131 session panel is collapsible', html, /data-session-toggle[\s\S]*aria-controls="session-panel-body"[\s\S]*data-session-panel-body/],
+    ['132 session collapse handler preserves panel state', page, /data-session-toggle[\s\S]*data-session-panel-body[\s\S]*aria-expanded/],
+    ['133 board retains a protected central track', css, /grid-template-columns: minmax\(220px, 240px\) minmax\(440px, 1fr\) minmax\(250px, 280px\)/]
 ];
 for (const [name, source, pattern] of stabilizationCases) test(name, has(source, pattern));
+
+test('134 recommendation hook is not duplicated', () => {
+    assert.equal([...html.matchAll(/data-guided-recommendation/g)].length, 1);
+    assert.equal([...html.matchAll(/data-guided-recommended/g)].length, 1);
+});
