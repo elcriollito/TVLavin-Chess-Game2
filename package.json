@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
+    "test:knowledge": "node --test tests/knowledge/knowledge-repository.test.js",
+    "validate:knowledge": "node knowledge/validation/validate-repository.js",
+    "lint:knowledge": "node --check knowledge/schema/knowledge-unit.js && node --check knowledge/indexes/manifest.js && node --check knowledge/loaders/knowledge-loader.js && node --check knowledge/validation/validate-knowledge.js",
     "download-pgn": "node tools/fetch-pgnmentor.mjs",
     "download-pgn-test": "node tools/fetch-pgnmentor.mjs --test",
     "download-pgn-force": "node tools/fetch-pgnmentor.mjs --force",
