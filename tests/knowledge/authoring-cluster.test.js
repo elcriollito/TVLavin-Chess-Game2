@@ -14,6 +14,7 @@ const units = () => structuredClone(KNOWLEDGE_UNIT_REGISTRY);
 const codes = values => validateKnowledgeRepository(values).errors.map(value => value.code);
 const bySlug = slug => units().find(value => value.slug === slug);
 const OLD_RELEASE_ID = 'rel-41b28d1102cbde379326d8ee3d0b5dbfab165935ba832144c73a3d2dfe51d9f6';
+const FIVE_UNIT_RELEASE_ID = 'rel-d480cfe72b738610f5cd8df4e4d3d2a4ff99d7561b40232106a523c4797afe47';
 
 test('draft scaffold is explicit, prose-free, taxonomy-discoverable, and excluded from releases', () => {
     const scaffold = createDraftKnowledgeUnitScaffold({ id: 'ku:endgames:draft:test', slug: 'draft-test' });
@@ -28,7 +29,7 @@ test('draft scaffold is explicit, prose-free, taxonomy-discoverable, and exclude
     completeDraft.status = 'draft';
     completeDraft.relationships = [];
     completeDraft.education.prerequisites = [];
-    assert.equal(buildLibrarySnapshot([...units(), completeDraft]).release.unitCount, 5);
+    assert.equal(buildLibrarySnapshot([...units(), completeDraft]).release.unitCount, 9);
 });
 
 test('objective editorial validation rejects missing instruction and duplicate authored IDs', () => {
@@ -57,16 +58,17 @@ test('objective editorial validation rejects relationship, prerequisite, origina
     assert.ok(codes(provenance).includes('invalid-editorial-metadata'));
 });
 
-test('the authored cluster is exactly five valid, stable, uniquely scoped published units', () => {
+test('the authored library is exactly nine valid, stable, uniquely scoped published units', () => {
     const result = validateKnowledgeRepository(KNOWLEDGE_UNIT_REGISTRY);
     assert.equal(result.valid, true);
-    assert.equal(KNOWLEDGE_UNIT_REGISTRY.length, 5);
+    assert.equal(KNOWLEDGE_UNIT_REGISTRY.length, 9);
     assert.equal(KNOWLEDGE_UNIT_REGISTRY.every(value => value.status === 'published'), true);
-    assert.equal(new Set(KNOWLEDGE_UNIT_REGISTRY.map(value => `${value.domain}:${value.slug}`)).size, 5);
+    assert.equal(new Set(KNOWLEDGE_UNIT_REGISTRY.map(value => `${value.domain}:${value.slug}`)).size, 9);
     assert.deepEqual(KNOWLEDGE_UNIT_REGISTRY.map(value => value.slug), [
-        'rule-of-the-square', 'activate-the-king', 'direct-opposition', 'key-squares', 'convert-with-king-support'
+        'rule-of-the-square', 'activate-the-king', 'direct-opposition', 'key-squares', 'convert-with-king-support',
+        'reserve-tempo', 'protected-passed-pawn', 'outside-passed-pawn', 'pawn-breakthrough'
     ]);
-    assert.deepEqual(buildEditorialReport().counts, { units: 5, published: 5, positions: 9, relationships: 21 });
+    assert.deepEqual(buildEditorialReport().counts, { units: 9, published: 9, positions: 17, relationships: 47 });
 });
 
 test('cluster prerequisites are acyclic and match the intended pedagogical dependencies', () => {
@@ -83,7 +85,7 @@ test('cluster prerequisites are acyclic and match the intended pedagogical depen
 
 test('cluster graph has valid targets, reverse edges, remediation and recommendation paths', () => {
     const snapshot = buildLibrarySnapshot();
-    assert.equal(snapshot.release.unitCount, 5);
+    assert.equal(snapshot.release.unitCount, 9);
     const verification = verifySnapshotFiles(snapshot.files, snapshot.releaseId);
     assert.equal(verification.valid, true);
     const reader = createLibraryReader(verification.data);
@@ -114,14 +116,14 @@ test('every new unit has purposeful positions, complete learning objects, and le
             assert.ok(value.learningObjects[type].length > 0, `${value.id}:${type}`);
         }
         assert.ok(value.education.masteryCriteria.every(criterion => /\b(?:four|three|five|4|3|5)\b/i.test(criterion)));
-        assert.equal(value.localization.content['en-US'].coachingPrompts.length, 5);
+        assert.ok(value.localization.content['en-US'].coachingPrompts.length >= 5);
     }
 });
 
-test('all five units are consumable through ID, slug, facets, and the new release while history remains unchanged', async () => {
+test('all nine units are consumable through ID, slug, facets, and the new release while history remains unchanged', async () => {
     const current = buildLibrarySnapshot();
     const reader = await loadLibraryRelease({ releasesDirectory: LIBRARY_RELEASES_DIRECTORY, releaseId: current.releaseId });
-    assert.equal(reader.listUnitsByDomain('endgames').length, 5);
+    assert.equal(reader.listUnitsByDomain('endgames').length, 9);
     for (const value of KNOWLEDGE_UNIT_REGISTRY) {
         assert.equal(reader.getUnitById(value.id).id, value.id);
         assert.equal(reader.getUnitByScopedSlug(`${value.domain}/${value.slug}`).id, value.id);
@@ -131,4 +133,6 @@ test('all five units are consumable through ID, slug, facets, and the new releas
     const historical = await loadLibraryRelease({ releasesDirectory: LIBRARY_RELEASES_DIRECTORY, releaseId: OLD_RELEASE_ID });
     assert.equal(historical.listUnitSummaries().length, 1);
     assert.equal(historical.getUnitById(KNOWLEDGE_UNIT_REGISTRY[0].id).contentVersion, '1.0.0');
+    const fiveUnit = await loadLibraryRelease({ releasesDirectory: LIBRARY_RELEASES_DIRECTORY, releaseId: FIVE_UNIT_RELEASE_ID });
+    assert.equal(fiveUnit.listUnitSummaries().length, 5);
 });

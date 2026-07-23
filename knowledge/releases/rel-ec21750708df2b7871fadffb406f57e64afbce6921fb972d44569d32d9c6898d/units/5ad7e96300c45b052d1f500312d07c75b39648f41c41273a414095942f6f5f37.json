@@ -1,0 +1,253 @@
+{
+  "contentHash": "ff5010879f2bb6ae2f0de38c9361f2009ba1db07d8292f7ec68b18e0e29a256a",
+  "contentVersion": "1.0.0",
+  "id": "ku:endgames:pawn-transformations:pawn-breakthrough",
+  "releaseId": "rel-ec21750708df2b7871fadffb406f57e64afbce6921fb972d44569d32d9c6898d",
+  "schemaVersion": "1.0.0",
+  "unit": {
+    "contentVersion": "1.0.0",
+    "domain": "endgames",
+    "education": {
+      "difficulty": "intermediate",
+      "endgameFamily": "pawn-endgames",
+      "expectedLearnerLevel": "foundation-rules-aware",
+      "knowledgeType": "technique",
+      "learningObjectives": [
+        "Identify forcing pawn contacts where a sacrifice can transform a blocked structure into a passer.",
+        "Calculate candidate breaks and the final pawn race instead of copying a visual pattern."
+      ],
+      "masteryCriteria": [
+        "Lists at least two candidate pawn breaks and calculates the correct move order in four of five structures.",
+        "Rejects a visually similar false breakthrough and creates the surviving passer in three of four independent tasks without a final hint."
+      ],
+      "prerequisites": [
+        "ku:endgames:pawn-transformations:protected-passed-pawn",
+        "ku:endgames:pawn-transformations:outside-passed-pawn"
+      ],
+      "skills": [
+        "pattern-recognition",
+        "move-order",
+        "calculation"
+      ],
+      "themes": [
+        "pawn-breakthrough",
+        "pawn-structure",
+        "passed-pawns",
+        "pawn-races"
+      ]
+    },
+    "id": "ku:endgames:pawn-transformations:pawn-breakthrough",
+    "integrations": {
+      "academy": {
+        "compatible": true
+      },
+      "capabilities": [
+        "academy-compatible",
+        "deterministic-coaching-prompts",
+        "mastery-criteria",
+        "training-memory-theme-link"
+      ],
+      "coaching": {
+        "conceptIds": [
+          "pawn-breakthrough",
+          "deflection",
+          "surviving-passer"
+        ],
+        "hintOrder": [
+          "observation",
+          "structural-recognition",
+          "candidate-identification",
+          "calculation-direction",
+          "decision-process",
+          "reflection"
+        ],
+        "policy": "deterministic-prompt-only"
+      },
+      "mastery": {
+        "criterionIds": [
+          "breakthrough-candidates-4-of-5",
+          "breakthrough-transfer-3-of-4"
+        ]
+      },
+      "recommendation": {
+        "remediationUnitIds": [
+          "ku:endgames:pawn-transformations:protected-passed-pawn",
+          "ku:endgames:pawn-transformations:outside-passed-pawn"
+        ]
+      },
+      "trainingMemory": {
+        "themeIds": [
+          "pawn-breakthrough",
+          "pawn-structure",
+          "pawn-races"
+        ]
+      }
+    },
+    "learningObjects": {
+      "assessments": [
+        {
+          "criterionId": "breakthrough-transfer-3-of-4",
+          "id": "assessment:pawn-breakthrough:three-of-four"
+        }
+      ],
+      "checksForUnderstanding": [
+        {
+          "id": "check:pawn-breakthrough:definition",
+          "prompt": "State what must survive for a sacrifice to count as a breakthrough."
+        }
+      ],
+      "demonstrations": [
+        {
+          "id": "demo:pawn-breakthrough:deflection",
+          "positionId": "pos:pawn-breakthrough:three-versus-three"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "exercise:pawn-breakthrough:side-to-move",
+          "positionId": "pos:pawn-breakthrough:black-to-move-near-miss",
+          "task": "Explain why pattern recognition alone is insufficient."
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "guided:pawn-breakthrough:candidates",
+          "positionId": "pos:pawn-breakthrough:three-versus-three",
+          "prompt": "List all forcing advances before calculating one."
+        }
+      ],
+      "reviewItems": [
+        {
+          "id": "review:pawn-breakthrough:exact-versus-heuristic",
+          "prompt": "Separate the verified line from the pattern-based candidate heuristic."
+        }
+      ]
+    },
+    "localization": {
+      "availableLocales": [
+        "en-US"
+      ],
+      "content": {
+        "en-US": {
+          "coachingPrompts": [
+            "Where are the pawn chains locked in direct contact?",
+            "Which pawn could be deflected from guarding a neighboring file?",
+            "What forcing advances must be compared?",
+            "Which candidate sacrifice could leave a different pawn alive?",
+            "Calculate reply, recapture, surviving passer, and final race.",
+            "After the sacrifice, which pawn actually retains a clear route?"
+          ],
+          "decisionProcess": [
+            "Identify locked pawn contact points.",
+            "List forcing pawn advances and captures.",
+            "Calculate each legal reply rather than following a memorized pattern.",
+            "Determine which sacrifice creates the surviving passer.",
+            "Verify the final pawn race and side-to-move dependency."
+          ],
+          "explanation": "A breakthrough is not merely a pawn sacrifice. It is a forced structural transformation in which pawn advances and captures deflect the opposing pawns so that another pawn survives as a passer. Familiar shapes are candidate generators, not proofs. The exact truth belongs to the legal sequence, side to move, capture choices, and final race. Test forcing breaks first, compare replies, and reject the idea when no surviving passer is created.",
+          "keyIdeas": [
+            "The sacrificed pawn succeeds only because another pawn inherits a clear route.",
+            "Move order and side to move can turn a known pattern into a false breakthrough."
+          ],
+          "misconceptions": [
+            "A pawn sacrifice is not a breakthrough when it creates no forced surviving passer.",
+            "A memorized three-against-three shape does not remove the need to calculate every capture choice."
+          ],
+          "practicalRules": [
+            "Test forcing pawn breaks before quiet moves when the pawn chains are locked in contact.",
+            "Treat the pattern as promising only provided the final passer wins the verified pawn race."
+          ],
+          "reflectionPrompts": [
+            "What exact reply would refute the apparent breakthrough?",
+            "Why is the surviving passer—not the sacrifice—the defining feature?"
+          ],
+          "summary": "Calculate a sacrificial transformation that leaves a surviving passed pawn.",
+          "title": "Break through the pawn chain"
+        }
+      },
+      "defaultLocale": "en-US",
+      "translationStatus": {
+        "en-US": "ready"
+      }
+    },
+    "positions": [
+      {
+        "expectedConcepts": [
+          "pawn-breakthrough",
+          "deflection",
+          "surviving-passer"
+        ],
+        "fen": "8/ppp5/8/PPP5/8/8/8/4K2k w - - 0 1",
+        "id": "pos:pawn-breakthrough:three-versus-three",
+        "principalIdeas": [
+          {
+            "moves": [
+              "b6",
+              "axb6",
+              "c6",
+              "bxc6",
+              "a6"
+            ],
+            "purpose": "Deflect both neighboring pawns so the a-pawn survives with a clear route."
+          }
+        ],
+        "role": "clean-demonstration",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "The complete principal sequence is structurally legal and verifies the surviving passer; broader result claims stop at that boundary.",
+          "structural": "valid"
+        }
+      },
+      {
+        "expectedConcepts": [
+          "side-to-move-dependency",
+          "false-breakthrough",
+          "candidate-comparison"
+        ],
+        "fen": "8/ppp5/8/PPP5/8/8/8/4K2k b - - 0 1",
+        "id": "pos:pawn-breakthrough:black-to-move-near-miss",
+        "principalIdeas": [
+          {
+            "moves": [
+              "b6"
+            ],
+            "purpose": "Change the contact structure before White can execute the demonstration sequence."
+          }
+        ],
+        "role": "contrast",
+        "sideToMove": "black",
+        "validation": {
+          "educational": "verified",
+          "notes": "The same pawn placement with the opposite move is materially different and prevents rote transfer.",
+          "structural": "valid"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "reason": "If the learner cannot identify the pawn that will support or survive, revisit pawn-chain roles.",
+        "targetId": "ku:endgames:pawn-transformations:protected-passed-pawn",
+        "type": "remediation"
+      },
+      {
+        "reason": "If the learner creates a passer but misjudges its race, revisit diversion and return-route calculation.",
+        "targetId": "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "type": "remediation"
+      },
+      {
+        "reason": "The final surviving passer must still be checked with exact pawn-race geometry.",
+        "targetId": "ku:endgames:pawn-foundations:rule-of-the-square",
+        "type": "related"
+      },
+      {
+        "reason": "Both techniques are side-to-move sensitive, but breakthrough transforms structure rather than merely transferring obligation.",
+        "targetId": "ku:endgames:pawn-transformations:reserve-tempo",
+        "type": "related"
+      }
+    ],
+    "schemaVersion": "1.0.0",
+    "slug": "pawn-breakthrough",
+    "status": "published"
+  }
+}

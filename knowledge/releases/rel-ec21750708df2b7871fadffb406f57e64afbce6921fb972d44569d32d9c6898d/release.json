@@ -1,0 +1,104 @@
+{
+  "compatibility": {
+    "minimumConsumerSnapshotSchema": "1.0.0",
+    "supportedKnowledgeSchemaVersions": [
+      "1.0.0"
+    ]
+  },
+  "files": {
+    "graph": "graph.json",
+    "manifest": "manifest.json",
+    "taxonomy": "taxonomy.json",
+    "units": [
+      {
+        "contentHash": "23d005ede06bee0caf893a74644e4229bdff8487702b9d8f5cde39d862c6f2a2",
+        "contentVersion": "1.0.0",
+        "file": "units/cf34a2f60047b2df0373756c5bf55894bd790866ed4eb6d5634d396bf693f979.json",
+        "id": "ku:endgames:pawn-foundations:activate-the-king",
+        "schemaVersion": "1.0.0"
+      },
+      {
+        "contentHash": "1d1a252bf43daed397094bcc8648be86dd989f5e5dda39212e7007dd86c70c9f",
+        "contentVersion": "1.0.0",
+        "file": "units/67fd2cad46bae3a422af5772ec98bce29bebaf14fb868866804e3ef6757ff72b.json",
+        "id": "ku:endgames:pawn-foundations:convert-with-king-support",
+        "schemaVersion": "1.0.0"
+      },
+      {
+        "contentHash": "eafd4b20f9feccebdf35893b57267d05449c285c40de24c4afdc817aa41ff799",
+        "contentVersion": "1.1.0",
+        "file": "units/b1cfb80cc1fbb30606a64213bc6ae1a9768e25d31d2907bbf27fccb5cebc1e49.json",
+        "id": "ku:endgames:pawn-foundations:direct-opposition",
+        "schemaVersion": "1.0.0"
+      },
+      {
+        "contentHash": "6461a6c074c939183baa7c2aec0f9855a18180afdfd13321742f42a893eb47f4",
+        "contentVersion": "1.0.0",
+        "file": "units/6856de56560b565a739189480b649171d8612f551de47e2cfad7718fd40bd029.json",
+        "id": "ku:endgames:pawn-foundations:key-squares",
+        "schemaVersion": "1.0.0"
+      },
+      {
+        "contentHash": "7d9f05155b66b61b10ab36c83dcaaf57d8368ed4bb25adb00ef72fc073a48a94",
+        "contentVersion": "1.2.0",
+        "file": "units/2fb846d9aa29eb4d0db98624087573c20d678aca218264ac9106f4ebb1b4e1dc.json",
+        "id": "ku:endgames:pawn-foundations:rule-of-the-square",
+        "schemaVersion": "1.0.0"
+      },
+      {
+        "contentHash": "77f5e02fcdf696b15f9ba2f7fcefa688e9cd10c619dbfefffa4604052f59909b",
+        "contentVersion": "1.0.0",
+        "file": "units/94dcfee54be55350343f4b3630728f7af05bf8c3a2eddded9046fcb897020bee.json",
+        "id": "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "schemaVersion": "1.0.0"
+      },
+      {
+        "contentHash": "ff5010879f2bb6ae2f0de38c9361f2009ba1db07d8292f7ec68b18e0e29a256a",
+        "contentVersion": "1.0.0",
+        "file": "units/5ad7e96300c45b052d1f500312d07c75b39648f41c41273a414095942f6f5f37.json",
+        "id": "ku:endgames:pawn-transformations:pawn-breakthrough",
+        "schemaVersion": "1.0.0"
+      },
+      {
+        "contentHash": "fb83d3fcd38a6087a0549c2a7fb935af50e7d054c87ab1a2ce0a45b64848fd11",
+        "contentVersion": "1.0.0",
+        "file": "units/9cc553c47446d272f1f8e7c78ed4c2fbb5b1c3ddb4dcfc73946f1c0907beb729.json",
+        "id": "ku:endgames:pawn-transformations:protected-passed-pawn",
+        "schemaVersion": "1.0.0"
+      },
+      {
+        "contentHash": "0cb1d8f900b79f9af7f75fcbce263a5af9bbb6c22d5538b9e969df32a6ed0816",
+        "contentVersion": "1.0.0",
+        "file": "units/808fb8b363d255c425ce1cb89252a11926e8046c306e608660d72b072db08207.json",
+        "id": "ku:endgames:pawn-transformations:reserve-tempo",
+        "schemaVersion": "1.0.0"
+      }
+    ]
+  },
+  "generatorVersion": "1.0.0",
+  "integrity": {
+    "algorithm": "sha256",
+    "graphHash": "84a143f0c770ba5e0b34f39c32501f3f85fe9f4235216baa7bf25b281f61e1d3",
+    "manifestHash": "5e4680b3da1d0d74722ba64669936af0a371037fb8f004cf87cc5b41fb950516",
+    "releaseHash": "2c01f840559c7ed10c74d0e6907bd0313abbe386675d7dc8ab59041e4b8191c5"
+  },
+  "libraryVersion": "0.1.0",
+  "localeCoverage": [
+    "en-US"
+  ],
+  "publication": {
+    "publishedAt": null,
+    "status": "development"
+  },
+  "releaseId": "rel-ec21750708df2b7871fadffb406f57e64afbce6921fb972d44569d32d9c6898d",
+  "releaseLabel": "season-9-foundation",
+  "releaseSchemaVersion": "1.0.0",
+  "repositoryFingerprint": "02fdf0e8fc4c0b4c0b6b93eda18c7417ad04932054de92aa9796e32c91a2b85d",
+  "snapshotSchemaVersion": "1.0.0",
+  "supportedDomains": [
+    "endgames"
+  ],
+  "taxonomyHash": "f4c762ef98c00de9d8500990dc844006c0aac3bd524802b398f1a2b92b217534",
+  "taxonomyVersion": "1.2.0",
+  "unitCount": 9
+}

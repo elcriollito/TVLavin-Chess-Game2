@@ -1,0 +1,531 @@
+{
+  "registries": {
+    "difficulties": {
+      "entries": [
+        {
+          "aliases": [],
+          "definition": "Introductory knowledge with minimal prerequisite depth.",
+          "id": "foundation",
+          "label": "Foundation",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Knowledge requiring reliable use of foundational ideas.",
+          "id": "developing",
+          "label": "Developing",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Knowledge requiring combined concepts and calculation.",
+          "id": "intermediate",
+          "label": "Intermediate",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Knowledge requiring precise synthesis and exceptions.",
+          "id": "advanced",
+          "label": "Advanced",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Specialized knowledge with substantial prerequisite depth.",
+          "id": "expert",
+          "label": "Expert",
+          "status": "active"
+        }
+      ],
+      "id": "difficulty-levels"
+    },
+    "domains": {
+      "entries": [
+        {
+          "aliases": [],
+          "definition": "Knowledge about positions with substantially reduced material.",
+          "id": "endgames",
+          "label": "Endgames",
+          "status": "active"
+        }
+      ],
+      "id": "domains"
+    },
+    "editorialStatuses": {
+      "entries": [
+        {
+          "aliases": [],
+          "definition": "Editorial work is incomplete.",
+          "id": "draft",
+          "label": "Draft",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Editorial review is underway.",
+          "id": "in-review",
+          "label": "In review",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Editorial review has passed.",
+          "id": "approved",
+          "label": "Approved",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Review requires revision.",
+          "id": "changes-requested",
+          "label": "Changes requested",
+          "status": "active"
+        }
+      ],
+      "id": "editorial-statuses"
+    },
+    "endgameFamilies": {
+      "entries": [
+        {
+          "aliases": [],
+          "definition": "Endgames whose principal educational material is kings and pawns.",
+          "domainScope": "endgames",
+          "id": "pawn-endgames",
+          "label": "Pawn endgames",
+          "status": "active"
+        }
+      ],
+      "id": "endgame-families"
+    },
+    "integrationCapabilities": {
+      "entries": [
+        {
+          "aliases": [],
+          "definition": "May be referenced by a future Academy adapter.",
+          "id": "academy-compatible",
+          "label": "Academy compatible",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Provides authored prompts without live classification.",
+          "id": "deterministic-coaching-prompts",
+          "label": "Deterministic coaching prompts",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Declares stable mastery criteria.",
+          "id": "mastery-criteria",
+          "label": "Mastery criteria",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "May be considered as an entry unit.",
+          "id": "recommendation-entry-unit",
+          "label": "Recommendation entry unit",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Declares stable theme aggregation identifiers.",
+          "id": "training-memory-theme-link",
+          "label": "Training Memory theme link",
+          "status": "active"
+        }
+      ],
+      "id": "integration-capabilities"
+    },
+    "knowledgeTypes": {
+      "entries": [
+        {
+          "aliases": [],
+          "definition": "A bounded procedure used to make a chess decision.",
+          "id": "decision-rule",
+          "label": "Decision rule",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "A recognizable arrangement whose geometry carries instructional meaning.",
+          "id": "pattern",
+          "label": "Pattern",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "A bounded planning idea that guides choices while allowing exceptions.",
+          "id": "principle",
+          "label": "Principle",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "A reusable coordination procedure applied through move choices.",
+          "id": "technique",
+          "label": "Technique",
+          "status": "active"
+        }
+      ],
+      "id": "knowledge-types"
+    },
+    "learnerLevels": {
+      "entries": [
+        {
+          "aliases": [],
+          "definition": "Learners who know legal movement and basic game rules.",
+          "id": "foundation-rules-aware",
+          "label": "Rules-aware foundation",
+          "status": "active"
+        }
+      ],
+      "id": "learner-levels"
+    },
+    "learningObjectTypes": {
+      "entries": [
+        {
+          "aliases": [],
+          "definition": "Authored demonstrations of knowledge.",
+          "id": "demonstrations",
+          "label": "Demonstrations",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Supported learner practice.",
+          "id": "guidedPractice",
+          "label": "Guided practice",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Learner tasks with assessable actions.",
+          "id": "exercises",
+          "label": "Exercises",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Short checks of current understanding.",
+          "id": "checksForUnderstanding",
+          "label": "Checks for understanding",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Formal mastery evidence.",
+          "id": "assessments",
+          "label": "Assessments",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Retention and recall activities.",
+          "id": "reviewItems",
+          "label": "Review items",
+          "status": "active"
+        }
+      ],
+      "id": "learning-object-types"
+    },
+    "positionRoles": {
+      "entries": [
+        {
+          "aliases": [],
+          "definition": "A position used for independent evidence of mastery.",
+          "id": "assessment",
+          "label": "Assessment",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "A minimal position that isolates the primary concept.",
+          "id": "clean-demonstration",
+          "label": "Clean demonstration",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "A near or opposing case that clarifies the concept boundary.",
+          "id": "contrast",
+          "label": "Contrast",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "A position used to recognize or delimit a concept.",
+          "id": "recognition-example",
+          "label": "Recognition example",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "A changed geometry requiring the learner to reuse the concept.",
+          "id": "transfer",
+          "label": "Transfer",
+          "status": "active"
+        }
+      ],
+      "id": "instructional-position-roles"
+    },
+    "relationshipTypes": {
+      "entries": [
+        {
+          "aliases": [],
+          "definition": "The target knowledge is required first.",
+          "id": "prerequisite",
+          "label": "Prerequisite",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "The target is conceptually associated.",
+          "id": "related",
+          "label": "Related",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Comparison with the target clarifies a boundary.",
+          "id": "contrast",
+          "label": "Contrast",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "The target is a continuation after this unit.",
+          "id": "progression",
+          "label": "Progression",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "The target addresses a likely weakness.",
+          "id": "remediation",
+          "label": "Remediation",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "The target is an authored continuation option.",
+          "id": "recommendation",
+          "label": "Recommendation",
+          "status": "active"
+        }
+      ],
+      "id": "relationship-types"
+    },
+    "skills": {
+      "entries": [
+        {
+          "aliases": [],
+          "definition": "Recognition and comparison of square-based distances.",
+          "id": "board-geometry",
+          "label": "Board geometry",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Concrete analysis of move sequences and tempos.",
+          "id": "calculation",
+          "label": "Calculation",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Selection of an action sequence whose order preserves access or tempi.",
+          "id": "move-order",
+          "label": "Move order",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Identification of meaningful recurring chess geometry.",
+          "id": "pattern-recognition",
+          "label": "Pattern recognition",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Selection of a useful objective before calculating concrete moves.",
+          "id": "planning",
+          "label": "Planning",
+          "status": "active"
+        }
+      ],
+      "id": "skills"
+    },
+    "themes": {
+      "entries": [
+        {
+          "aliases": [],
+          "definition": "Effective use of the king as an active piece.",
+          "domainScope": "endgames",
+          "id": "king-activity",
+          "label": "King activity",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Target squares from which a king can support a pawn objective.",
+          "domainScope": "endgames",
+          "id": "key-squares",
+          "label": "Key squares",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "King geometry in which tempo determines access around the opposing king.",
+          "domainScope": "endgames",
+          "id": "opposition",
+          "label": "Opposition",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Coordination of king and pawn during controlled advancement.",
+          "domainScope": "endgames",
+          "id": "pawn-support",
+          "label": "Pawn support",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Tempo and geometry in competing promotion or interception paths.",
+          "domainScope": "endgames",
+          "id": "pawn-races",
+          "label": "Pawn races",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "The relationships among pawn chains, contacts, weaknesses, and transformation possibilities.",
+          "domainScope": "endgames",
+          "id": "pawn-structure",
+          "label": "Pawn structure",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Pawns with no opposing pawn able to stop them on their file or adjacent files.",
+          "domainScope": "endgames",
+          "id": "passed-pawns",
+          "label": "Passed pawns",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Positions in which the obligation to move worsens the moving side’s situation.",
+          "domainScope": "endgames",
+          "id": "zugzwang",
+          "label": "Zugzwang",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Use of a remote threat to draw a defender away from another target.",
+          "domainScope": "endgames",
+          "id": "diversion",
+          "label": "Diversion",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "A calculated pawn sacrifice or sequence that transforms a restrained structure into a surviving passed pawn.",
+          "domainScope": "endgames",
+          "id": "pawn-breakthrough",
+          "label": "Pawn breakthrough",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "The instructional effect of whose turn it is and available waiting moves.",
+          "domainScope": "endgames",
+          "id": "tempo",
+          "label": "Tempo",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Reserved for explicit draft taxonomy workflow.",
+          "domainScope": "endgames",
+          "id": "candidate-endgame-theme",
+          "label": "Candidate endgame theme",
+          "status": "proposed"
+        },
+        {
+          "aliases": [],
+          "definition": "Deprecated singular identifier retained for migration diagnostics.",
+          "domainScope": "endgames",
+          "id": "pawn-race",
+          "label": "Pawn race",
+          "replacementId": "pawn-races",
+          "status": "deprecated"
+        }
+      ],
+      "id": "themes"
+    },
+    "translationStatuses": {
+      "entries": [
+        {
+          "aliases": [],
+          "definition": "Translation is incomplete.",
+          "id": "draft",
+          "label": "Draft",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Translation is under review.",
+          "id": "review",
+          "label": "Review",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Translation is approved for use.",
+          "id": "ready",
+          "label": "Ready",
+          "status": "active"
+        }
+      ],
+      "id": "translation-statuses"
+    },
+    "verificationStates": {
+      "entries": [
+        {
+          "aliases": [],
+          "definition": "Verification has not begun.",
+          "id": "unverified",
+          "label": "Unverified",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Verification is underway.",
+          "id": "in-progress",
+          "label": "In progress",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Required verification has passed.",
+          "id": "verified",
+          "label": "Verified",
+          "status": "active"
+        },
+        {
+          "aliases": [],
+          "definition": "Prior verification is no longer valid.",
+          "id": "revoked",
+          "label": "Revoked",
+          "status": "active"
+        }
+      ],
+      "id": "verification-states"
+    }
+  },
+  "taxonomyVersion": "1.2.0"
+}

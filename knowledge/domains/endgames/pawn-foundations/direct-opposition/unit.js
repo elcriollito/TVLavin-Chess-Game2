@@ -5,7 +5,7 @@ export const directOpposition = {
     domain: 'endgames',
     status: 'published',
     schemaVersion: '1.0.0',
-    contentVersion: '1.0.0',
+    contentVersion: '1.1.0',
     education: {
         knowledgeType: 'pattern',
         endgameFamily: 'pawn-endgames',
@@ -94,6 +94,8 @@ export const directOpposition = {
     relationships: [
         { type: 'progression', targetId: 'ku:endgames:pawn-foundations:key-squares', reason: 'Opposition becomes purposeful when it helps the king reach a target square.' },
         { type: 'recommendation', targetId: 'ku:endgames:pawn-foundations:key-squares', reason: 'Key squares are the next application of controlled king access.' },
+        { type: 'recommendation', targetId: 'ku:endgames:pawn-transformations:reserve-tempo', reason: 'Reserve tempi extend side-to-move control by preserving a pawn move until opposition becomes critical.' },
+        { type: 'progression', targetId: 'ku:endgames:pawn-transformations:reserve-tempo', reason: 'After reading opposition geometry, learners can use a stored pawn move to transfer the move obligation.' },
         { type: 'remediation', targetId: 'ku:endgames:pawn-foundations:activate-the-king', reason: 'If the learner sees the pattern but cannot choose a route, revisit the purpose of king activity.' }
     ],
     integrations: {
@@ -101,7 +103,7 @@ export const directOpposition = {
         coaching: { policy: 'deterministic-prompt-only', conceptIds: ['direct-opposition', 'side-to-move'], hintOrder: ['observation', 'recall', 'direction', 'decision-process', 'reflection'] },
         trainingMemory: { themeIds: ['opposition', 'tempo'] },
         mastery: { criterionIds: ['opposition-4-of-5'] },
-        recommendation: { nextUnitIds: ['ku:endgames:pawn-foundations:key-squares'], remediationUnitIds: ['ku:endgames:pawn-foundations:activate-the-king'] },
+        recommendation: { nextUnitIds: ['ku:endgames:pawn-foundations:key-squares', 'ku:endgames:pawn-transformations:reserve-tempo'], remediationUnitIds: ['ku:endgames:pawn-foundations:activate-the-king'] },
         academy: { compatible: true }
     },
     editorial: {

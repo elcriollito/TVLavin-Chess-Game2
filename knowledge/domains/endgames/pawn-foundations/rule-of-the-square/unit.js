@@ -5,7 +5,7 @@ export const ruleOfTheSquare = {
     domain: 'endgames',
     status: 'published',
     schemaVersion: '1.0.0',
-    contentVersion: '1.1.0',
+    contentVersion: '1.2.0',
     education: {
         knowledgeType: 'decision-rule',
         endgameFamily: 'pawn-endgames',
@@ -79,7 +79,9 @@ export const ruleOfTheSquare = {
     },
     relationships: [
         { type: 'progression', targetId: 'ku:endgames:pawn-foundations:activate-the-king', reason: 'After measuring whether a king can catch a pawn, the learner can plan how to improve that king.' },
-        { type: 'recommendation', targetId: 'ku:endgames:pawn-foundations:activate-the-king', reason: 'King activation is the normal next unit for turning geometric recognition into a plan.' }
+        { type: 'recommendation', targetId: 'ku:endgames:pawn-foundations:activate-the-king', reason: 'King activation is the normal next unit for turning geometric recognition into a plan.' },
+        { type: 'recommendation', targetId: 'ku:endgames:pawn-transformations:outside-passed-pawn', reason: 'Outside-passer play applies square counting to a chase, return route, and opposite-wing target.' },
+        { type: 'progression', targetId: 'ku:endgames:pawn-transformations:outside-passed-pawn', reason: 'After learning a single pawn race boundary, learners can calculate a remote passer as part of a two-wing plan.' }
     ],
     integrations: {
         capabilities: [
@@ -92,7 +94,7 @@ export const ruleOfTheSquare = {
         coaching: { policy: 'deterministic-prompt-only', conceptIds: ['pawn-square-boundary'] },
         trainingMemory: { themeIds: ['king-activity'] },
         mastery: { criterionIds: ['square-test-4-of-5'] },
-        recommendation: { entryUnit: true },
+        recommendation: { entryUnit: true, nextUnitIds: ['ku:endgames:pawn-foundations:activate-the-king', 'ku:endgames:pawn-transformations:outside-passed-pawn'] },
         academy: { compatible: true }
     },
     editorial: {

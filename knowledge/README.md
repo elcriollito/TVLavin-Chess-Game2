@@ -33,6 +33,11 @@ draft scaffold, and run `npm run knowledge:editorial:report` before publication.
 The scaffold creates no prose, chess positions, relationships, or review
 claims.
 
+The current authored library contains nine published units in two bounded
+clusters: foundational king-and-pawn conversion and pawn-structure
+transformation. The second cluster is documented in
+`docs/architecture/SEASON_9_0_5_PAWN_STRUCTURE_TRANSFORMATION_CLUSTER.md`.
+
 See the Season 9.0.2 architecture document for taxonomy and hashing governance,
 and `docs/architecture/SEASON_9_0_3_IMMUTABLE_LIBRARY_RELEASES_AND_CONSUMER_API.md`
 for snapshot and consumer contracts.
