@@ -1,0 +1,15 @@
+{
+  "forward": {
+    "ku:endgames:pawn-foundations:rule-of-the-square": {}
+  },
+  "prerequisites": {
+    "ku:endgames:pawn-foundations:rule-of-the-square": {
+      "dependents": [],
+      "direct": []
+    }
+  },
+  "reverse": {
+    "ku:endgames:pawn-foundations:rule-of-the-square": {}
+  },
+  "schemaVersion": "1.0.0"
+}

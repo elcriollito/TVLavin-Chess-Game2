@@ -1,0 +1,92 @@
+const entry = (id, label, definition, options = {}) => ({ id, label, definition, status: 'active', aliases: [], ...options });
+const registry = (id, entries) => ({ id, entries });
+
+export const TAXONOMY_VERSION = '1.0.0';
+export const TAXONOMY_ENTRY_STATUSES = Object.freeze(['active', 'proposed', 'deprecated']);
+
+const source = {
+    domains: registry('domains', [
+        entry('endgames', 'Endgames', 'Knowledge about positions with substantially reduced material.')
+    ]),
+    knowledgeTypes: registry('knowledge-types', [
+        entry('decision-rule', 'Decision rule', 'A bounded procedure used to make a chess decision.')
+    ]),
+    endgameFamilies: registry('endgame-families', [
+        entry('pawn-endgames', 'Pawn endgames', 'Endgames whose principal educational material is kings and pawns.', { domainScope: 'endgames' })
+    ]),
+    themes: registry('themes', [
+        entry('king-activity', 'King activity', 'Effective use of the king as an active piece.', { domainScope: 'endgames' }),
+        entry('pawn-races', 'Pawn races', 'Tempo and geometry in competing promotion or interception paths.', { domainScope: 'endgames' }),
+        entry('candidate-endgame-theme', 'Candidate endgame theme', 'Reserved for explicit draft taxonomy workflow.', { domainScope: 'endgames', status: 'proposed' }),
+        entry('pawn-race', 'Pawn race', 'Deprecated singular identifier retained for migration diagnostics.', { domainScope: 'endgames', status: 'deprecated', replacementId: 'pawn-races' })
+    ]),
+    skills: registry('skills', [
+        entry('board-geometry', 'Board geometry', 'Recognition and comparison of square-based distances.'),
+        entry('calculation', 'Calculation', 'Concrete analysis of move sequences and tempos.')
+    ]),
+    difficulties: registry('difficulty-levels', [
+        entry('foundation', 'Foundation', 'Introductory knowledge with minimal prerequisite depth.'),
+        entry('developing', 'Developing', 'Knowledge requiring reliable use of foundational ideas.'),
+        entry('intermediate', 'Intermediate', 'Knowledge requiring combined concepts and calculation.'),
+        entry('advanced', 'Advanced', 'Knowledge requiring precise synthesis and exceptions.'),
+        entry('expert', 'Expert', 'Specialized knowledge with substantial prerequisite depth.')
+    ]),
+    learnerLevels: registry('learner-levels', [
+        entry('foundation-rules-aware', 'Rules-aware foundation', 'Learners who know legal movement and basic game rules.')
+    ]),
+    positionRoles: registry('instructional-position-roles', [
+        entry('recognition-example', 'Recognition example', 'A position used to recognize or delimit a concept.')
+    ]),
+    learningObjectTypes: registry('learning-object-types', [
+        entry('demonstrations', 'Demonstrations', 'Authored demonstrations of knowledge.'),
+        entry('guidedPractice', 'Guided practice', 'Supported learner practice.'),
+        entry('exercises', 'Exercises', 'Learner tasks with assessable actions.'),
+        entry('checksForUnderstanding', 'Checks for understanding', 'Short checks of current understanding.'),
+        entry('assessments', 'Assessments', 'Formal mastery evidence.'),
+        entry('reviewItems', 'Review items', 'Retention and recall activities.')
+    ]),
+    relationshipTypes: registry('relationship-types', [
+        entry('prerequisite', 'Prerequisite', 'The target knowledge is required first.'),
+        entry('related', 'Related', 'The target is conceptually associated.'),
+        entry('contrast', 'Contrast', 'Comparison with the target clarifies a boundary.'),
+        entry('progression', 'Progression', 'The target is a continuation after this unit.'),
+        entry('remediation', 'Remediation', 'The target addresses a likely weakness.'),
+        entry('recommendation', 'Recommendation', 'The target is an authored continuation option.')
+    ]),
+    verificationStates: registry('verification-states', [
+        entry('unverified', 'Unverified', 'Verification has not begun.'),
+        entry('in-progress', 'In progress', 'Verification is underway.'),
+        entry('verified', 'Verified', 'Required verification has passed.'),
+        entry('revoked', 'Revoked', 'Prior verification is no longer valid.')
+    ]),
+    editorialStatuses: registry('editorial-statuses', [
+        entry('draft', 'Draft', 'Editorial work is incomplete.'),
+        entry('in-review', 'In review', 'Editorial review is underway.'),
+        entry('approved', 'Approved', 'Editorial review has passed.'),
+        entry('changes-requested', 'Changes requested', 'Review requires revision.')
+    ]),
+    translationStatuses: registry('translation-statuses', [
+        entry('draft', 'Draft', 'Translation is incomplete.'),
+        entry('review', 'Review', 'Translation is under review.'),
+        entry('ready', 'Ready', 'Translation is approved for use.')
+    ]),
+    integrationCapabilities: registry('integration-capabilities', [
+        entry('academy-compatible', 'Academy compatible', 'May be referenced by a future Academy adapter.'),
+        entry('deterministic-coaching-prompts', 'Deterministic coaching prompts', 'Provides authored prompts without live classification.'),
+        entry('mastery-criteria', 'Mastery criteria', 'Declares stable mastery criteria.'),
+        entry('recommendation-entry-unit', 'Recommendation entry unit', 'May be considered as an entry unit.'),
+        entry('training-memory-theme-link', 'Training Memory theme link', 'Declares stable theme aggregation identifiers.')
+    ])
+};
+
+function deepFreeze(value) {
+    if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
+    Object.freeze(value);
+    for (const child of Object.values(value)) deepFreeze(child);
+    return value;
+}
+
+export const TAXONOMY_REGISTRIES = deepFreeze(source);
+export const TAXONOMY_LOOKUPS = Object.freeze(Object.fromEntries(
+    Object.entries(TAXONOMY_REGISTRIES).map(([name, value]) => [name, new Map(value.entries.map(item => [item.id, item]))])
+));

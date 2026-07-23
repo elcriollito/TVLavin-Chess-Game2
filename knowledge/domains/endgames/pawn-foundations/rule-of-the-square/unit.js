@@ -12,7 +12,7 @@ export const ruleOfTheSquare = {
         themes: ['pawn-races', 'king-activity'],
         skills: ['board-geometry', 'calculation'],
         difficulty: 'foundation',
-        expectedLearnerLevel: 'Learners who know legal king and pawn movement.',
+        expectedLearnerLevel: 'foundation-rules-aware',
         prerequisites: [],
         learningObjectives: [
             'Construct the pawn square from the pawn to its promotion rank.',
@@ -79,6 +79,13 @@ export const ruleOfTheSquare = {
     },
     relationships: [],
     integrations: {
+        capabilities: [
+            'academy-compatible',
+            'deterministic-coaching-prompts',
+            'mastery-criteria',
+            'recommendation-entry-unit',
+            'training-memory-theme-link'
+        ],
         coaching: { policy: 'deterministic-prompt-only', conceptIds: ['pawn-square-boundary'] },
         trainingMemory: { themeIds: ['king-activity'] },
         mastery: { criterionIds: ['square-test-4-of-5'] },

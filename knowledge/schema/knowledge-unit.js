@@ -32,7 +32,7 @@
  * @property {Array<{id:string,fen?:string,sideToMove:Side,role:string,expectedConcepts:string[],principalIdeas?:Array<{moves:string[],purpose:string}>,validation:{structural:'pending'|'valid'|'invalid',educational:'pending'|'verified'|'rejected',notes?:string}}>} positions
  * @property {{demonstrations:Array<object>,guidedPractice:Array<object>,exercises:Array<object>,checksForUnderstanding:Array<object>,assessments:Array<object>,reviewItems:Array<object>}} learningObjects
  * @property {Array<{type:RelationshipType,targetId:string,reason:string}>} relationships
- * @property {{coaching?:object,trainingMemory?:object,mastery?:object,recommendation?:object,academy?:object}} integrations
+ * @property {{capabilities:string[],coaching?:object,trainingMemory?:object,mastery?:object,recommendation?:object,academy?:object}} integrations
  * @property {{owner:string,reviewer?:string,createdAt:string,updatedAt:string,reviewStatus:'draft'|'in-review'|'approved'|'changes-requested',provenance:{kind:'caissa-original'|'inspired',notes:string,inspirationReferences:Array<object>},copyrightNotes:string,originalityDeclaration:string,verificationState:'unverified'|'in-progress'|'verified'|'revoked',deprecation?:{reason:string,replacementId?:string,effectiveAt:string}}} editorial
  */
 

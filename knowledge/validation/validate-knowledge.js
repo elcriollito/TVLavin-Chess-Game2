@@ -1,8 +1,9 @@
 import { ChessRulesFacade } from '../../js/endgame-trainer/chess-rules-facade.js';
 import {
-    KNOWLEDGE_RELATIONSHIP_TYPES, KNOWLEDGE_STATUSES,
-    SUPPORTED_KNOWLEDGE_SCHEMA_VERSIONS, TRANSLATION_STATUSES
+    KNOWLEDGE_STATUSES, SUPPORTED_KNOWLEDGE_SCHEMA_VERSIONS
 } from '../schema/knowledge-unit.js';
+import { TAXONOMY_LOOKUPS, TAXONOMY_REGISTRIES } from '../taxonomy/registries.js';
+import { validateTaxonomyRegistries } from '../taxonomy/validate-taxonomy.js';
 
 const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const LOCALE = /^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-[A-Z]{2}|\d{3})?$/;
@@ -14,7 +15,33 @@ const issue = (code, unitId, path, message) => ({ code, unitId: unitId ?? '', pa
 const text = value => typeof value === 'string' && value.trim().length > 0;
 const duplicates = values => [...new Set(values.filter((value, index) => values.indexOf(value) !== index))];
 
-function validateUnit(unit) {
+function taxonomyIssue(unit, path, value, registryName, options) {
+    const record = TAXONOMY_LOOKUPS[registryName]?.get(value);
+    const expected = TAXONOMY_REGISTRIES[registryName]?.id ?? registryName;
+    if (!record) return issue('unknown-taxonomy-value', unit?.id, path, `Unknown value "${value}"; expected registry "${expected}"`);
+    if (record.domainScope && record.domainScope !== unit?.domain) {
+        return issue('taxonomy-scope-mismatch', unit?.id, path, `Value "${value}" is scoped to domain "${record.domainScope}"`);
+    }
+    if (record.status === 'deprecated') {
+        return issue('deprecated-taxonomy-value', unit?.id, path, `Value "${value}" is deprecated${record.replacementId ? `; use "${record.replacementId}"` : ''}`);
+    }
+    if (record.status === 'proposed' && !(options.allowProposedTaxonomy === true && unit?.status === 'draft')) {
+        return issue('proposed-taxonomy-value', unit?.id, path, `Value "${value}" is proposed and allowed only in explicit draft validation`);
+    }
+    return null;
+}
+
+function checkTaxonomy(errors, unit, path, value, registryName, options) {
+    if (typeof value !== 'string') {
+        errors.push(issue('malformed-taxonomy-value', unit?.id, path,
+            `Malformed value "${String(value)}"; expected registry "${TAXONOMY_REGISTRIES[registryName]?.id ?? registryName}"`));
+        return;
+    }
+    const error = taxonomyIssue(unit, path, value, registryName, options);
+    if (error) errors.push(error);
+}
+
+function validateUnit(unit, options) {
     const id = unit?.id;
     const errors = [];
     for (const field of ['id', 'slug', 'domain', 'status', 'schemaVersion', 'contentVersion']) {
@@ -29,6 +56,7 @@ function validateUnit(unit) {
     if (text(unit?.status) && !KNOWLEDGE_STATUSES.includes(unit.status)) {
         errors.push(issue('invalid-status', id, 'status', `Invalid status: ${unit.status}`));
     }
+    checkTaxonomy(errors, unit, 'domain', unit?.domain, 'domains', options);
     if (!unit?.education || !text(unit.education.knowledgeType) || !text(unit.education.difficulty) || !text(unit.education.expectedLearnerLevel)) {
         errors.push(issue('required-education', id, 'education', 'Educational classification is incomplete'));
     }
@@ -37,6 +65,12 @@ function validateUnit(unit) {
             errors.push(issue('required-education', id, `education.${field}`, `${field} must contain values`));
         }
     }
+    checkTaxonomy(errors, unit, 'education.knowledgeType', unit?.education?.knowledgeType, 'knowledgeTypes', options);
+    if (unit?.education?.endgameFamily) checkTaxonomy(errors, unit, 'education.endgameFamily', unit.education.endgameFamily, 'endgameFamilies', options);
+    (unit?.education?.themes ?? []).forEach((value, index) => checkTaxonomy(errors, unit, `education.themes[${index}]`, value, 'themes', options));
+    (unit?.education?.skills ?? []).forEach((value, index) => checkTaxonomy(errors, unit, `education.skills[${index}]`, value, 'skills', options));
+    checkTaxonomy(errors, unit, 'education.difficulty', unit?.education?.difficulty, 'difficulties', options);
+    checkTaxonomy(errors, unit, 'education.expectedLearnerLevel', unit?.education?.expectedLearnerLevel, 'learnerLevels', options);
     const localization = unit?.localization;
     if (!localization || !text(localization.defaultLocale) || !Array.isArray(localization.availableLocales) || !localization.availableLocales.length) {
         errors.push(issue('invalid-locale-metadata', id, 'localization', 'A default and at least one available locale are required'));
@@ -46,7 +80,7 @@ function validateUnit(unit) {
         }
         for (const locale of localization.availableLocales) {
             const localized = localization.content?.[locale];
-            if (!LOCALE.test(locale) || !TRANSLATION_STATUSES.includes(localization.translationStatus?.[locale]) ||
+            if (!LOCALE.test(locale) || !text(localization.translationStatus?.[locale]) ||
                 !localized || ['title', 'summary', 'explanation'].some(field => !text(localized[field]))) {
                 errors.push(issue('invalid-locale-metadata', id, `localization.${locale}`, `Locale ${locale} is incomplete or invalid`));
             }
@@ -65,6 +99,7 @@ function validateUnit(unit) {
                 !Array.isArray(position?.expectedConcepts) || !position.expectedConcepts.length || !position.validation) {
                 errors.push(issue('invalid-position', id, path, 'Instructional position structure is invalid'));
             }
+            checkTaxonomy(errors, unit, `${path}.role`, position?.role, 'positionRoles', options);
             if (position?.fen) {
                 const result = ChessRulesFacade.validateFen(position.fen);
                 if (!result.valid) errors.push(issue('invalid-fen', id, `${path}.fen`, 'FEN is syntactically or legally invalid'));
@@ -73,6 +108,14 @@ function validateUnit(unit) {
                 }
             }
         });
+    }
+    for (const key of Object.keys(unit?.learningObjects ?? {})) {
+        checkTaxonomy(errors, unit, `learningObjects.${key}`, key, 'learningObjectTypes', options);
+    }
+    for (const expected of TAXONOMY_REGISTRIES.learningObjectTypes.entries.map(value => value.id)) {
+        if (!Array.isArray(unit?.learningObjects?.[expected])) {
+            errors.push(issue('invalid-learning-object-type', id, `learningObjects.${expected}`, `Expected array for registered learning object type "${expected}"`));
+        }
     }
     if (!unit?.editorial || !text(unit.editorial.owner) || !DATE.test(unit.editorial.createdAt ?? '') ||
         !DATE.test(unit.editorial.updatedAt ?? '') || !text(unit.editorial.provenance?.notes) ||
@@ -84,6 +127,20 @@ function validateUnit(unit) {
         (unit.editorial?.reviewStatus !== 'approved' || unit.editorial?.verificationState !== 'verified' ||
          unit.localization?.translationStatus?.[unit.localization?.defaultLocale] !== 'ready')) {
         errors.push(issue('editorial-status-inconsistent', id, 'editorial', 'Approved/published units require approved, verified, locale-ready metadata'));
+    }
+    checkTaxonomy(errors, unit, 'editorial.reviewStatus', unit?.editorial?.reviewStatus, 'editorialStatuses', options);
+    checkTaxonomy(errors, unit, 'editorial.verificationState', unit?.editorial?.verificationState, 'verificationStates', options);
+    for (const [locale, value] of Object.entries(unit?.localization?.translationStatus ?? {})) {
+        checkTaxonomy(errors, unit, `localization.translationStatus.${locale}`, value, 'translationStatuses', options);
+    }
+    if (!Array.isArray(unit?.integrations?.capabilities)) {
+        errors.push(issue('required-integration-capabilities', id, 'integrations.capabilities', 'Integration capabilities must be an array'));
+    } else {
+        for (const value of duplicates(unit.integrations.capabilities)) {
+            errors.push(issue('duplicate-taxonomy-value', id, 'integrations.capabilities', `Duplicate integration capability: ${value}`));
+        }
+        unit.integrations.capabilities.forEach((value, index) =>
+            checkTaxonomy(errors, unit, `integrations.capabilities[${index}]`, value, 'integrationCapabilities', options));
     }
     if (unit?.status === 'deprecated') {
         if (!text(unit.editorial?.deprecation?.reason) || !DATE.test(unit.editorial?.deprecation?.effectiveAt ?? '')) {
@@ -112,14 +169,18 @@ function prerequisiteCycles(units) {
     return [...cycles].sort();
 }
 
-export function validateKnowledgeRepository(units) {
+export function validateKnowledgeRepository(units, options = {}) {
     const source = Array.isArray(units) ? units : [];
-    const errors = source.flatMap(validateUnit);
+    const taxonomyValidation = validateTaxonomyRegistries();
+    const errors = taxonomyValidation.errors.map(error =>
+        issue('invalid-taxonomy-registry', '', `taxonomy.${error.registry}.${error.path}`, error.message));
+    errors.push(...source.flatMap(unit => validateUnit(unit, options)));
     const ids = source.map(unit => unit?.id).filter(text);
     for (const id of duplicates(ids).sort()) errors.push(issue('duplicate-id', id, 'id', `Duplicate id: ${id}`));
     const slugKeys = source.map(unit => text(unit?.slug) && text(unit?.domain) ? `${unit.domain}:${unit.slug}` : null).filter(Boolean);
     for (const key of duplicates(slugKeys).sort()) errors.push(issue('duplicate-slug', '', 'slug', `Duplicate domain slug: ${key}`));
     const known = new Set(ids);
+    const byId = new Map(source.map(unit => [unit?.id, unit]));
     for (const unit of source) {
         const relationships = [
             ...(unit?.education?.prerequisites ?? []).map(targetId => ({ type: 'prerequisite', targetId })),
@@ -128,12 +189,15 @@ export function validateKnowledgeRepository(units) {
         const keys = relationships.map(edge => `${edge.type}:${edge.targetId}`);
         for (const key of duplicates(keys)) errors.push(issue('duplicate-relationship', unit?.id, 'relationships', `Duplicate relationship: ${key}`));
         for (const edge of relationships) {
-            if (!KNOWLEDGE_RELATIONSHIP_TYPES.includes(edge.type) || !text(edge.targetId)) {
+            checkTaxonomy(errors, unit, 'relationships.type', edge.type, 'relationshipTypes', options);
+            if (!text(edge.type) || !text(edge.targetId)) {
                 errors.push(issue('invalid-relationships', unit?.id, 'relationships', 'Relationship type and target are required'));
             } else if (edge.targetId === unit?.id) {
                 errors.push(issue('self-reference', unit.id, 'relationships', `Self-reference is not allowed: ${edge.type}`));
             } else if (!known.has(edge.targetId)) {
                 errors.push(issue('invalid-relationship-target', unit?.id, 'relationships', `Unknown target: ${edge.targetId}`));
+            } else if (PUBLIC_STATUSES.has(unit?.status) && byId.get(edge.targetId)?.status === 'draft') {
+                errors.push(issue('production-relationship-to-draft', unit?.id, 'relationships', `Production unit cannot target draft: ${edge.targetId}`));
             }
         }
     }

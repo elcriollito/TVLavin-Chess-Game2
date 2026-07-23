@@ -1,0 +1,50 @@
+{
+  "counts": {
+    "byDomain": {
+      "endgames": 1
+    },
+    "byLocaleAvailability": {
+      "en-US": 1
+    },
+    "byStatus": {
+      "published": 1
+    },
+    "totalProductionUnits": 1
+  },
+  "generatorVersion": "1.0.0",
+  "releaseSchemaVersion": "1.0.0",
+  "repositoryFingerprint": "f17da1dc410598525f8fb8978b3094bdbddbbc131748f65dbdab5432a8497cba",
+  "taxonomyVersion": "1.0.0",
+  "units": [
+    {
+      "availableLocales": [
+        "en-US"
+      ],
+      "contentHash": "2c4e55cf8c0504b670a28a743ae8cc1c363198fb5c492906ba057ee07e2aee6c",
+      "contentVersion": "1.0.0",
+      "defaultLocale": "en-US",
+      "difficulty": "foundation",
+      "domain": "endgames",
+      "endgameFamily": "pawn-endgames",
+      "id": "ku:endgames:pawn-foundations:rule-of-the-square",
+      "knowledgeType": "decision-rule",
+      "learnerLevel": "foundation-rules-aware",
+      "prerequisites": [],
+      "relationshipCounts": {},
+      "schemaVersion": "1.0.0",
+      "scopedSlug": "endgames/rule-of-the-square",
+      "skills": [
+        "board-geometry",
+        "calculation"
+      ],
+      "summary": "Use board geometry to estimate whether a king can catch a lone advancing pawn.",
+      "themes": [
+        "king-activity",
+        "pawn-races"
+      ],
+      "title": "The pawn’s square",
+      "updatedAt": "2026-07-22",
+      "verificationState": "verified"
+    }
+  ]
+}
