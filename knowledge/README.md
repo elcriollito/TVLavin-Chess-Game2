@@ -14,6 +14,20 @@ artifacts under `generated/` are derived, committed, and must be refreshed with
 taxonomy, source units, and generated-artifact freshness without rewriting
 files.
 
-See
-`docs/architecture/SEASON_9_0_2_CONTROLLED_TAXONOMY_AND_RELEASE_INTELLIGENCE.md`
-for governance, hashing, and release semantics.
+Immutable runtime products live under `releases/<release-id>/`. After authored
+content and working artifacts pass validation:
+
+```text
+npm run knowledge:release:snapshot
+npm run knowledge:release:verify
+npm run knowledge:release:reproduce
+npm run knowledge:validate
+```
+
+Consumers explicitly load a release ID through
+`consumer/library-reader.js`; they do not import authored units or resolve a
+mutable “latest” release.
+
+See the Season 9.0.2 architecture document for taxonomy and hashing governance,
+and `docs/architecture/SEASON_9_0_3_IMMUTABLE_LIBRARY_RELEASES_AND_CONSUMER_API.md`
+for snapshot and consumer contracts.

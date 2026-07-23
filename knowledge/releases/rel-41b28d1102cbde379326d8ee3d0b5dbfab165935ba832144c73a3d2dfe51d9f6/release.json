@@ -1,0 +1,48 @@
+{
+  "compatibility": {
+    "minimumConsumerSnapshotSchema": "1.0.0",
+    "supportedKnowledgeSchemaVersions": [
+      "1.0.0"
+    ]
+  },
+  "files": {
+    "graph": "graph.json",
+    "manifest": "manifest.json",
+    "taxonomy": "taxonomy.json",
+    "units": [
+      {
+        "contentHash": "2c4e55cf8c0504b670a28a743ae8cc1c363198fb5c492906ba057ee07e2aee6c",
+        "contentVersion": "1.0.0",
+        "file": "units/2fb846d9aa29eb4d0db98624087573c20d678aca218264ac9106f4ebb1b4e1dc.json",
+        "id": "ku:endgames:pawn-foundations:rule-of-the-square",
+        "schemaVersion": "1.0.0"
+      }
+    ]
+  },
+  "generatorVersion": "1.0.0",
+  "integrity": {
+    "algorithm": "sha256",
+    "graphHash": "7869291e85600bbdf341af05d138f0b97168d72e6b664245313240fde56d662a",
+    "manifestHash": "f091b399ef5142e72cadccfb3df2e86085c8815b1edf62a2f3fd19535bccecfd",
+    "releaseHash": "9704700d9c3d0c11353d951ca5b5ab4b5262288a6a94ba55ee8659961dae15f4"
+  },
+  "libraryVersion": "0.1.0",
+  "localeCoverage": [
+    "en-US"
+  ],
+  "publication": {
+    "publishedAt": null,
+    "status": "development"
+  },
+  "releaseId": "rel-41b28d1102cbde379326d8ee3d0b5dbfab165935ba832144c73a3d2dfe51d9f6",
+  "releaseLabel": "season-9-foundation",
+  "releaseSchemaVersion": "1.0.0",
+  "repositoryFingerprint": "f17da1dc410598525f8fb8978b3094bdbddbbc131748f65dbdab5432a8497cba",
+  "snapshotSchemaVersion": "1.0.0",
+  "supportedDomains": [
+    "endgames"
+  ],
+  "taxonomyHash": "ec6dde876c197518af610adc441ff1fa43d737738fe1838ef1ee4d325460e36e",
+  "taxonomyVersion": "1.0.0",
+  "unitCount": 1
+}

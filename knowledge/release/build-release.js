@@ -2,9 +2,9 @@ import { KNOWLEDGE_UNIT_REGISTRY } from '../indexes/manifest.js';
 import { TAXONOMY_VERSION } from '../taxonomy/registries.js';
 import { validateKnowledgeRepository } from '../validation/validate-knowledge.js';
 import { canonicalJson, sha256 } from './canonical-json.js';
+import { RELEASE_GENERATOR_VERSION, RELEASE_SCHEMA_VERSION } from './release-contract.js';
 
-export const RELEASE_SCHEMA_VERSION = '1.0.0';
-export const RELEASE_GENERATOR_VERSION = '1.0.0';
+export { RELEASE_GENERATOR_VERSION, RELEASE_SCHEMA_VERSION } from './release-contract.js';
 
 export function contentHash(unit) {
     const { editorial: _editorial, ...content } = unit;
