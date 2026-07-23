@@ -1,7 +1,7 @@
 const entry = (id, label, definition, options = {}) => ({ id, label, definition, status: 'active', aliases: [], ...options });
 const registry = (id, entries) => ({ id, entries });
 
-export const TAXONOMY_VERSION = '1.2.0';
+export const TAXONOMY_VERSION = '1.3.0';
 export const TAXONOMY_ENTRY_STATUSES = Object.freeze(['active', 'proposed', 'deprecated']);
 
 const source = {
@@ -28,6 +28,11 @@ const source = {
         entry('zugzwang', 'Zugzwang', 'Positions in which the obligation to move worsens the moving side’s situation.', { domainScope: 'endgames' }),
         entry('diversion', 'Diversion', 'Use of a remote threat to draw a defender away from another target.', { domainScope: 'endgames' }),
         entry('pawn-breakthrough', 'Pawn breakthrough', 'A calculated pawn sacrifice or sequence that transforms a restrained structure into a surviving passed pawn.', { domainScope: 'endgames' }),
+        entry('pawn-majority', 'Pawn majority', 'A local numerical pawn advantage whose usefulness depends on mobility and resulting exchanges.', { domainScope: 'endgames' }),
+        entry('fixed-weakness', 'Fixed weakness', 'A structural target whose useful advance or exchange has been restrained.', { domainScope: 'endgames' }),
+        entry('restraint', 'Restraint', 'Restriction of an opposing pawn advance, exchange, or liberating break.', { domainScope: 'endgames' }),
+        entry('isolated-pawn', 'Isolated pawn', 'A pawn with no friendly pawn on either neighboring file.', { domainScope: 'endgames' }),
+        entry('backward-pawn', 'Backward pawn', 'A pawn held behind neighboring pawns because it cannot advance safely.', { domainScope: 'endgames' }),
         entry('tempo', 'Tempo', 'The instructional effect of whose turn it is and available waiting moves.', { domainScope: 'endgames' }),
         entry('candidate-endgame-theme', 'Candidate endgame theme', 'Reserved for explicit draft taxonomy workflow.', { domainScope: 'endgames', status: 'proposed' }),
         entry('pawn-race', 'Pawn race', 'Deprecated singular identifier retained for migration diagnostics.', { domainScope: 'endgames', status: 'deprecated', replacementId: 'pawn-races' })

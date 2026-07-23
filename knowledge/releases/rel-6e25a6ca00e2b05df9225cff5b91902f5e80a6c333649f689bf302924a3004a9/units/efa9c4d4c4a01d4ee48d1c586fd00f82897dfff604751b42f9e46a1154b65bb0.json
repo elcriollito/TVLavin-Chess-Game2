@@ -1,0 +1,245 @@
+{
+  "contentHash": "eed972bb9c11a0c146e4a93a052d651a67bea3743ed7d37e08380c25da1b2b7e",
+  "contentVersion": "1.0.0",
+  "id": "ku:endgames:pawn-weaknesses:isolated-pawn",
+  "releaseId": "rel-6e25a6ca00e2b05df9225cff5b91902f5e80a6c333649f689bf302924a3004a9",
+  "schemaVersion": "1.0.0",
+  "unit": {
+    "contentVersion": "1.0.0",
+    "domain": "endgames",
+    "education": {
+      "difficulty": "developing",
+      "endgameFamily": "pawn-endgames",
+      "expectedLearnerLevel": "foundation-rules-aware",
+      "knowledgeType": "technique",
+      "learningObjectives": [
+        "Classify a pawn as isolated by the absence of friendly pawns on neighboring files.",
+        "Compare restraint and attack with the isolated pawn’s activity and exchange resources."
+      ],
+      "masteryCriteria": [
+        "Classifies isolated and non-isolated pawns correctly in four of five structures.",
+        "Finds an attack route or rejects an unsafe attack when activity compensates in three of four tasks."
+      ],
+      "prerequisites": [
+        "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+      ],
+      "skills": [
+        "pattern-recognition",
+        "planning",
+        "calculation"
+      ],
+      "themes": [
+        "isolated-pawn",
+        "fixed-weakness",
+        "restraint",
+        "king-activity"
+      ]
+    },
+    "id": "ku:endgames:pawn-weaknesses:isolated-pawn",
+    "integrations": {
+      "academy": {
+        "compatible": true
+      },
+      "capabilities": [
+        "academy-compatible",
+        "deterministic-coaching-prompts",
+        "mastery-criteria",
+        "training-memory-theme-link"
+      ],
+      "coaching": {
+        "conceptIds": [
+          "isolated-pawn",
+          "restraint",
+          "activity"
+        ],
+        "hintOrder": [
+          "observation",
+          "classification",
+          "candidate-identification",
+          "calculation-direction",
+          "decision-process",
+          "reflection"
+        ],
+        "policy": "deterministic-prompt-only"
+      },
+      "mastery": {
+        "criterionIds": [
+          "isolated-classify-4-of-5",
+          "isolated-plan-3-of-4"
+        ]
+      },
+      "recommendation": {
+        "nextUnitIds": [
+          "ku:endgames:pawn-weaknesses:backward-pawn"
+        ],
+        "remediationUnitIds": [
+          "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+        ]
+      },
+      "trainingMemory": {
+        "themeIds": [
+          "isolated-pawn",
+          "fixed-weakness"
+        ]
+      }
+    },
+    "learningObjects": {
+      "assessments": [
+        {
+          "criterionId": "isolated-plan-3-of-4",
+          "id": "assessment:isolated-pawn:three-of-four"
+        }
+      ],
+      "checksForUnderstanding": [
+        {
+          "id": "check:isolated-pawn:definition",
+          "prompt": "Define isolation without making a result claim."
+        }
+      ],
+      "demonstrations": [
+        {
+          "id": "demo:isolated-pawn:classify-and-restrain",
+          "positionId": "pos:isolated-pawn:restrained"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "exercise:isolated-pawn:activity",
+          "positionId": "pos:isolated-pawn:active-counterplay",
+          "task": "Decide whether activity compensates for isolation."
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "guided:isolated-pawn:route",
+          "positionId": "pos:isolated-pawn:restrained",
+          "prompt": "Classify the pawn, then map a restrained king approach."
+        }
+      ],
+      "reviewItems": []
+    },
+    "localization": {
+      "availableLocales": [
+        "en-US"
+      ],
+      "content": {
+        "en-US": {
+          "coachingPrompts": [
+            "Which friendly pawns occupy neighboring files?",
+            "Is the pawn isolated and also fixed?",
+            "Which candidate restrains its advance?",
+            "What activity does the defender gain while your king attacks?",
+            "Use support, escape, restraint, route, and activity to choose the plan.",
+            "Did the attack win a target or release useful counterplay?"
+          ],
+          "decisionProcess": [
+            "Check both neighboring files for friendly pawns.",
+            "Test safe advances and exchanges.",
+            "Identify a restraining square.",
+            "Map the attacking king route.",
+            "Evaluate defender activity and races.",
+            "Choose restraint, attack, or transformation."
+          ],
+          "explanation": "An isolated pawn has no friendly pawn on either neighboring file. That exact classification explains why another pawn cannot defend it, but not whether it is lost. The pawn may advance, create a passer, gain space, or distract the king. Restrain its useful advance, map the king route, and compare the attack with the activity the defender receives.",
+          "keyIdeas": [
+            "Isolation is an exact structural relation; weakness is a position-dependent evaluation.",
+            "Restraint prevents the isolated pawn from trading its weakness for activity."
+          ],
+          "misconceptions": [
+            "An isolated pawn is not automatically losing.",
+            "A neighboring piece or active king can compensate even though no pawn can provide support."
+          ],
+          "practicalRules": [
+            "Isolated pawns are often easier to attack in simplified endings when their advance is restrained.",
+            "Do not chase the pawn if its advance creates a dangerous race or entry route."
+          ],
+          "reflectionPrompts": [
+            "What compensation can make an isolated pawn harmless or strong?",
+            "Which structural exchange would remove the isolation?"
+          ],
+          "summary": "Restrain a pawn without neighboring support, then test whether it is truly attackable.",
+          "title": "Exploit an isolated pawn"
+        }
+      },
+      "defaultLocale": "en-US",
+      "translationStatus": {
+        "en-US": "ready"
+      }
+    },
+    "positions": [
+      {
+        "expectedConcepts": [
+          "isolated-pawn",
+          "restraint",
+          "attack-route"
+        ],
+        "fen": "8/8/3k4/3p4/3P4/2K5/P7/8 w - - 0 1",
+        "id": "pos:isolated-pawn:restrained",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Kb4"
+            ],
+            "purpose": "Approach the isolated fixed pawn while retaining restraint."
+          }
+        ],
+        "role": "clean-demonstration",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "No black pawns occupy neighboring files; the legal approach is verified.",
+          "structural": "valid"
+        }
+      },
+      {
+        "expectedConcepts": [
+          "isolated-pawn-activity",
+          "advance-resource",
+          "race-check"
+        ],
+        "fen": "8/8/5k2/4p3/8/3K4/P7/8 b - - 0 1",
+        "id": "pos:isolated-pawn:active-counterplay",
+        "principalIdeas": [
+          {
+            "moves": [
+              "e4+"
+            ],
+            "purpose": "Use the isolated pawn actively rather than wait for a static attack."
+          }
+        ],
+        "role": "contrast",
+        "sideToMove": "black",
+        "validation": {
+          "educational": "verified",
+          "notes": "The legal checking advance demonstrates compensation without claiming a final result.",
+          "structural": "valid"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "reason": "An isolated pawn lacks neighboring pawn support; a backward pawn may have neighbors but cannot advance safely.",
+        "targetId": "ku:endgames:pawn-weaknesses:backward-pawn",
+        "type": "contrast"
+      },
+      {
+        "reason": "Backward-pawn diagnosis adds blocked advance and liberation to the weakness-classification process.",
+        "targetId": "ku:endgames:pawn-weaknesses:backward-pawn",
+        "type": "progression"
+      },
+      {
+        "reason": "If the learner attacks while the pawn can advance, revisit fixing the target.",
+        "targetId": "ku:endgames:pawn-weaknesses:fix-pawn-weakness",
+        "type": "remediation"
+      },
+      {
+        "reason": "King access determines whether structural isolation can be exploited.",
+        "targetId": "ku:endgames:pawn-foundations:activate-the-king",
+        "type": "related"
+      }
+    ],
+    "schemaVersion": "1.0.0",
+    "slug": "isolated-pawn",
+    "status": "published"
+  }
+}

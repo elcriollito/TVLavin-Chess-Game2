@@ -5,7 +5,7 @@ export const ruleOfTheSquare = {
     domain: 'endgames',
     status: 'published',
     schemaVersion: '1.0.0',
-    contentVersion: '1.2.0',
+    contentVersion: '1.3.0',
     education: {
         knowledgeType: 'decision-rule',
         endgameFamily: 'pawn-endgames',
@@ -82,6 +82,8 @@ export const ruleOfTheSquare = {
         { type: 'recommendation', targetId: 'ku:endgames:pawn-foundations:activate-the-king', reason: 'King activation is the normal next unit for turning geometric recognition into a plan.' },
         { type: 'recommendation', targetId: 'ku:endgames:pawn-transformations:outside-passed-pawn', reason: 'Outside-passer play applies square counting to a chase, return route, and opposite-wing target.' },
         { type: 'progression', targetId: 'ku:endgames:pawn-transformations:outside-passed-pawn', reason: 'After learning a single pawn race boundary, learners can calculate a remote passer as part of a two-wing plan.' }
+        ,{ type: 'recommendation', targetId: 'ku:endgames:pawn-weaknesses:pawn-majority', reason: 'Majority play applies pawn-square geometry after exchanges create a candidate passer.' }
+        ,{ type: 'progression', targetId: 'ku:endgames:pawn-weaknesses:pawn-majority', reason: 'After exact single-pawn races, learners can calculate whether a local majority produces a viable passer.' }
     ],
     integrations: {
         capabilities: [

@@ -7,13 +7,18 @@ import { reserveTempo } from '../domains/endgames/pawn-transformations/reserve-t
 import { protectedPassedPawn } from '../domains/endgames/pawn-transformations/protected-passed-pawn/unit.js';
 import { outsidePassedPawn } from '../domains/endgames/pawn-transformations/outside-passed-pawn/unit.js';
 import { pawnBreakthrough } from '../domains/endgames/pawn-transformations/pawn-breakthrough/unit.js';
+import { pawnMajority } from '../domains/endgames/pawn-weaknesses/pawn-majority/unit.js';
+import { fixPawnWeakness } from '../domains/endgames/pawn-weaknesses/fix-pawn-weakness/unit.js';
+import { isolatedPawn } from '../domains/endgames/pawn-weaknesses/isolated-pawn/unit.js';
+import { backwardPawn } from '../domains/endgames/pawn-weaknesses/backward-pawn/unit.js';
 
 export const KNOWLEDGE_MANIFEST_VERSION = '1.0.0';
 
 // Explicit imports make discovery reviewable and deterministic in every runtime.
 export const KNOWLEDGE_UNIT_REGISTRY = Object.freeze([
     ruleOfTheSquare, activateTheKing, directOpposition, keySquares, convertWithKingSupport,
-    reserveTempo, protectedPassedPawn, outsidePassedPawn, pawnBreakthrough
+    reserveTempo, protectedPassedPawn, outsidePassedPawn, pawnBreakthrough,
+    pawnMajority, fixPawnWeakness, isolatedPawn, backwardPawn
 ]);
 
 export const KNOWLEDGE_MANIFEST = Object.freeze(KNOWLEDGE_UNIT_REGISTRY.map(unit => Object.freeze({

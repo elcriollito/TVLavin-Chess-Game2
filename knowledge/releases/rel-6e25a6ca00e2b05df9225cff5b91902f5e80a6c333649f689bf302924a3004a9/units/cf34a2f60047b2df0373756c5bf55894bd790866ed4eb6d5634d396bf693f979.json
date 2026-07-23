@@ -1,0 +1,237 @@
+{
+  "contentHash": "b870dbeb8153ca35b8a364f53876f70ee4827df7e9572281709f7601e0272bf9",
+  "contentVersion": "1.1.0",
+  "id": "ku:endgames:pawn-foundations:activate-the-king",
+  "releaseId": "rel-6e25a6ca00e2b05df9225cff5b91902f5e80a6c333649f689bf302924a3004a9",
+  "schemaVersion": "1.0.0",
+  "unit": {
+    "contentVersion": "1.1.0",
+    "domain": "endgames",
+    "education": {
+      "difficulty": "foundation",
+      "endgameFamily": "pawn-endgames",
+      "expectedLearnerLevel": "foundation-rules-aware",
+      "knowledgeType": "principle",
+      "learningObjectives": [
+        "Compare a king-improving move with an immediate pawn move before choosing a plan.",
+        "Identify when the king can approach the critical area without abandoning a concrete pawn threat."
+      ],
+      "masteryCriteria": [
+        "Selects a useful king approach in four of five varied king-and-pawn positions and names the tactical exception check before moving."
+      ],
+      "prerequisites": [],
+      "skills": [
+        "planning",
+        "calculation"
+      ],
+      "themes": [
+        "king-activity",
+        "tempo"
+      ]
+    },
+    "id": "ku:endgames:pawn-foundations:activate-the-king",
+    "integrations": {
+      "academy": {
+        "compatible": true
+      },
+      "capabilities": [
+        "academy-compatible",
+        "deterministic-coaching-prompts",
+        "mastery-criteria",
+        "recommendation-entry-unit",
+        "training-memory-theme-link"
+      ],
+      "coaching": {
+        "conceptIds": [
+          "king-route",
+          "irreversible-pawn-tempo"
+        ],
+        "hintOrder": [
+          "observation",
+          "recall",
+          "direction",
+          "decision-process",
+          "reflection"
+        ],
+        "policy": "deterministic-prompt-only"
+      },
+      "mastery": {
+        "criterionIds": [
+          "active-route-4-of-5"
+        ]
+      },
+      "recommendation": {
+        "nextUnitIds": [
+          "ku:endgames:pawn-foundations:direct-opposition"
+        ],
+        "remediationUnitIds": [
+          "ku:endgames:pawn-foundations:rule-of-the-square"
+        ]
+      },
+      "trainingMemory": {
+        "themeIds": [
+          "king-activity",
+          "tempo"
+        ]
+      }
+    },
+    "learningObjects": {
+      "assessments": [
+        {
+          "criterionId": "active-route-4-of-5",
+          "id": "assessment:activate-king:varied-five"
+        }
+      ],
+      "checksForUnderstanding": [
+        {
+          "id": "check:activate-king:exception",
+          "prompt": "Name one forcing event that can override king activation."
+        }
+      ],
+      "demonstrations": [
+        {
+          "id": "demo:activate-king:compare-tempi",
+          "positionId": "pos:activate-king:central-route"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "exercise:activate-king:king-or-pawn",
+          "positionId": "pos:activate-king:central-route",
+          "task": "Compare one king move and one pawn move."
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "guided:activate-king:route",
+          "positionId": "pos:activate-king:transfer-flank",
+          "prompt": "Name the target square before selecting a move."
+        }
+      ],
+      "reviewItems": []
+    },
+    "localization": {
+      "availableLocales": [
+        "en-US"
+      ],
+      "content": {
+        "en-US": {
+          "coachingPrompts": [
+            "Which part of the board must your king influence?",
+            "What does king activity mean in this position?",
+            "Which direction improves access while staying near the pawn?",
+            "Compare one king move with one pawn move using the four-step process.",
+            "After your choice, which option did you preserve?"
+          ],
+          "decisionProcess": [
+            "Identify the square or pawn the king needs to influence.",
+            "Compare the shortest safe king route with the immediate pawn move.",
+            "Check whether the opponent has a forcing capture, race, or entry.",
+            "Choose the move that improves access without losing the concrete position."
+          ],
+          "explanation": "In reduced material, the king often changes from a protected piece into the main worker. A pawn move uses a tempo and permanently changes the structure; a king move may gain access, escort a pawn, or restrict the opposing king. Compare both plans before advancing. King activation is a practical priority, not an automatic command: an immediate race, capture, or promotion threat can make a pawn move more urgent.",
+          "keyIdeas": [
+            "King distance is a practical resource in an endgame.",
+            "Pawn moves are irreversible, while king routes often preserve choices."
+          ],
+          "misconceptions": [
+            "Activating the king does not mean walking toward the center without checking threats.",
+            "Delaying every pawn move is not safer; a concrete tempo can be decisive in a race."
+          ],
+          "practicalRules": [
+            "Before pushing, ask what useful square the king could reach with the same tempo.",
+            "Check captures, races, and promotion threats before following the king-activity heuristic."
+          ],
+          "reflectionPrompts": [
+            "What concrete threat would justify advancing the pawn before improving the king?",
+            "Which king square would make the next decision easier?"
+          ],
+          "summary": "Improve the king’s access before spending pawn moves that cannot be recovered.",
+          "title": "Activate the king"
+        }
+      },
+      "defaultLocale": "en-US",
+      "translationStatus": {
+        "en-US": "ready"
+      }
+    },
+    "positions": [
+      {
+        "expectedConcepts": [
+          "king-route",
+          "irreversible-pawn-tempo"
+        ],
+        "fen": "8/7k/8/8/8/3P4/2K5/8 w - - 0 1",
+        "id": "pos:activate-king:central-route",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Kc3"
+            ],
+            "purpose": "Improve king access while keeping both pawn advances available."
+          }
+        ],
+        "role": "clean-demonstration",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "The move is legal; the instructional claim is a bounded planning comparison, not an exact-result claim.",
+          "structural": "valid"
+        }
+      },
+      {
+        "expectedConcepts": [
+          "king-route",
+          "threat-check"
+        ],
+        "fen": "k7/8/8/8/8/4P3/5K2/8 w - - 0 1",
+        "id": "pos:activate-king:transfer-flank",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Kf3"
+            ],
+            "purpose": "Begin a safe approach before deciding when to advance."
+          }
+        ],
+        "role": "transfer",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "Transfer changes file and approach direction without changing the planning question.",
+          "structural": "valid"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "reason": "After learning purposeful king routes, learners can use the king to stabilize and approach a pawn target.",
+        "targetId": "ku:endgames:pawn-weaknesses:fix-pawn-weakness",
+        "type": "recommendation"
+      },
+      {
+        "reason": "King activity becomes a structural plan when it preserves restraint before attacking.",
+        "targetId": "ku:endgames:pawn-weaknesses:fix-pawn-weakness",
+        "type": "progression"
+      },
+      {
+        "reason": "Square counting checks whether king activation can affect a pawn race.",
+        "targetId": "ku:endgames:pawn-foundations:rule-of-the-square",
+        "type": "related"
+      },
+      {
+        "reason": "After choosing to activate, the learner needs a precise king-versus-king access pattern.",
+        "targetId": "ku:endgames:pawn-foundations:direct-opposition",
+        "type": "progression"
+      },
+      {
+        "reason": "Direct opposition is the normal next study for active king entry.",
+        "targetId": "ku:endgames:pawn-foundations:direct-opposition",
+        "type": "recommendation"
+      }
+    ],
+    "schemaVersion": "1.0.0",
+    "slug": "activate-the-king",
+    "status": "published"
+  }
+}

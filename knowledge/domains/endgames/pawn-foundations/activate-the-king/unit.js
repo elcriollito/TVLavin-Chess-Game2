@@ -5,7 +5,7 @@ export const activateTheKing = {
     domain: 'endgames',
     status: 'published',
     schemaVersion: '1.0.0',
-    contentVersion: '1.0.0',
+    contentVersion: '1.1.0',
     education: {
         knowledgeType: 'principle',
         endgameFamily: 'pawn-endgames',
@@ -92,6 +92,8 @@ export const activateTheKing = {
         reviewItems: []
     },
     relationships: [
+        { type: 'recommendation', targetId: 'ku:endgames:pawn-weaknesses:fix-pawn-weakness', reason: 'After learning purposeful king routes, learners can use the king to stabilize and approach a pawn target.' },
+        { type: 'progression', targetId: 'ku:endgames:pawn-weaknesses:fix-pawn-weakness', reason: 'King activity becomes a structural plan when it preserves restraint before attacking.' },
         { type: 'related', targetId: 'ku:endgames:pawn-foundations:rule-of-the-square', reason: 'Square counting checks whether king activation can affect a pawn race.' },
         { type: 'progression', targetId: 'ku:endgames:pawn-foundations:direct-opposition', reason: 'After choosing to activate, the learner needs a precise king-versus-king access pattern.' },
         { type: 'recommendation', targetId: 'ku:endgames:pawn-foundations:direct-opposition', reason: 'Direct opposition is the normal next study for active king entry.' }
