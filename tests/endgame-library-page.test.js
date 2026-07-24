@@ -2,12 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [html, page, css, server, vercel] = await Promise.all([
+const [html, page, css, server, vercel, sitemap] = await Promise.all([
   readFile(new URL('../endgame-library.html', import.meta.url), 'utf8'),
   readFile(new URL('../js/endgame-library/endgame-library-page.js', import.meta.url), 'utf8'),
   readFile(new URL('../css/endgame-library.css', import.meta.url), 'utf8'),
   readFile(new URL('../server.js', import.meta.url), 'utf8'),
-  readFile(new URL('../vercel.json', import.meta.url), 'utf8')
+  readFile(new URL('../vercel.json', import.meta.url), 'utf8'),
+  readFile(new URL('../public/sitemap.xml', import.meta.url), 'utf8')
 ]);
 
 test('route has accessible loading, error, empty, missing, filter, and detail states', () => {
@@ -30,6 +31,24 @@ test('position preview uses Board API v1 and disables interaction', () => {
   assert.match(page, /setInteractive\(false\)/);
   assert.match(page, /setPosition\(position\.fen\)/);
   assert.match(page, /Read-only chess position/);
+  assert.equal((page.match(/new EndgameBoardView/g) || []).length, 1);
+  assert.match(page, /board-unavailable/);
+  assert.match(page, /try \{[\s\S]*new EndgameBoardView[\s\S]*\} catch/);
+});
+
+test('board assets use the proven trainer strategy in dependency order', () => {
+  const jquery = 'https://code.jquery.com/jquery-3.6.0.min.js';
+  const chessboard = 'https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js';
+  assert.match(html, /\/assets\/css\/chessboard-1\.0\.0\.min\.css/);
+  assert.match(html, new RegExp(jquery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(html, new RegExp(chessboard.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.ok(html.indexOf(jquery) < html.indexOf(chessboard));
+  assert.ok(html.indexOf(chessboard) < html.indexOf('/js/endgame-library/endgame-library-page.js'));
+  assert.doesNotMatch(html, /src="\/js\/(?:jquery-3\.7\.1|chessboard-1\.0\.0)\.min\.js"|href="\/css\/chessboard-1\.0\.0\.min\.css"/);
+});
+
+test('the public sitemap includes the canonical library route', () => {
+  assert.match(sitemap, /https:\/\/www\.caissa-chess\.org\/endgame-library/);
 });
 
 test('responsive styles prevent overflow and collapse grids', () => {

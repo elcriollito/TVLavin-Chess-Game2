@@ -62,6 +62,13 @@
   </url>
 
   <url>
+    <loc>https://www.caissa-chess.org/endgame-library</loc>
+    <lastmod>2026-07-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
     <loc>https://www.caissa-chess.org/premium</loc>
     <lastmod>2026-07-09</lastmod>
     <changefreq>monthly</changefreq>

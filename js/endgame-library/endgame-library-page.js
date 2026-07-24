@@ -167,6 +167,7 @@ async function openUnit(scopedSlug, { push = true } = {}) {
           <h2 id="position-title">Study positions</h2>
           <div class="position-tabs" role="tablist" aria-label="Choose a study position">${unit.positions.map(positionTemplate).join('')}</div>
           <div id="library-board" class="library-board" aria-label="Read-only chess position"></div>
+          <p id="board-unavailable" class="board-unavailable" role="status" hidden>The interactive diagram is unavailable. Position details remain available below.</p>
           <div id="position-description" class="position-description"></div>
         </section>
       </aside>
@@ -174,11 +175,17 @@ async function openUnit(scopedSlug, { push = true } = {}) {
     <section class="learning-section"><h2>Learning activities</h2>${learningObjects(unit)}</section>
     <section class="relationships"><h2>Knowledge connections</h2>${relationSections(unit)}</section>`;
   if (push) history.pushState({}, '', `?unit=${encodeURIComponent(scopedSlug)}`);
-  state.board = new EndgameBoardView({
-    element: $('#library-board'),
-    rulesFactory: fen => ChessRulesFacade.fromFen(fen)
-  }).initialize();
-  state.board.setInteractive(false);
+  try {
+    state.board = new EndgameBoardView({
+      element: $('#library-board'),
+      rulesFactory: fen => ChessRulesFacade.fromFen(fen)
+    }).initialize();
+    state.board.setInteractive(false);
+  } catch {
+    state.board = null;
+    $('#library-board').hidden = true;
+    $('#board-unavailable').hidden = false;
+  }
   updatePosition(0);
   $('#detail-title').focus();
 }
