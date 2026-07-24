@@ -346,6 +346,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (pathname === '/yahoo-classic/' || (pathname === '/' && url.searchParams.get('section') === 'yahooClassic')) {
+    res.writeHead(308, { Location: '/yahoo-classic' });
+    res.end();
+    return;
+  }
+
   // API Routes
   if (pathname === '/api/health') {
     handleHealthCheck(res);
@@ -374,7 +380,7 @@ const server = http.createServer(async (req, res) => {
     filePath = './about.html';
   }
   if (pathname === '/yahoo-classic') {
-    filePath = './index.html';
+    filePath = './yahoo-classic.html';
   }
   if (pathname === '/endgame-trainer' || pathname === '/endgame-trainer/') {
     filePath = './endgame-trainer.html';

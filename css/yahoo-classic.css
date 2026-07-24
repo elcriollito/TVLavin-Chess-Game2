@@ -21,6 +21,113 @@
     background: var(--yc-classic-olive);
 }
 
+body.yc-standalone-page.yc-classic-active,
+body.yc-standalone-page.yc-classic-active #app,
+body.yc-standalone-page.yc-classic-active .content-area,
+body.yc-standalone-page #yahooClassicSection.active,
+body.yc-standalone-page .yc-page {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+}
+
+body.yc-standalone-page #yahooClassicSection.active {
+    display: block;
+    background: #222716;
+}
+
+.yc-landing-intro,
+.yc-landing-support {
+    width: min(1120px, calc(100% - 32px));
+    margin: 0 auto;
+    color: #fffbe8;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.yc-landing-intro {
+    padding: 16px 0 14px;
+}
+
+.yc-landing-kicker {
+    margin: 0 0 4px;
+    color: #f4d88a;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.yc-landing-intro h1 {
+    margin: 0 0 8px;
+    color: #fff;
+    font-size: clamp(1.35rem, 2.5vw, 2rem);
+    line-height: 1.15;
+}
+
+.yc-landing-intro p {
+    max-width: 900px;
+    margin: 0 0 7px;
+    line-height: 1.45;
+}
+
+.yc-landing-disclaimer {
+    color: #f8e6b0;
+    font-size: 0.9rem;
+}
+
+body.yc-standalone-page .yc-shell {
+    min-height: min(760px, calc(100dvh - 150px));
+}
+
+.yc-landing-support {
+    padding: 24px 0 40px;
+}
+
+.yc-landing-support h2 {
+    margin: 22px 0 8px;
+    color: #fff;
+    font-size: 1.25rem;
+}
+
+.yc-landing-support p {
+    margin: 0;
+    line-height: 1.6;
+}
+
+.yc-landing-support a {
+    color: #ffe08a;
+}
+
+.yc-landing-cta {
+    display: inline-flex;
+    min-height: 44px;
+    margin-top: 22px;
+    padding: 10px 16px;
+    align-items: center;
+    border: 2px solid #fff1b8;
+    background: #5c3f8f;
+    color: #fff !important;
+    font-weight: 700;
+}
+
+.yc-landing-cta:focus-visible,
+.yc-landing-support a:focus-visible,
+.yc-landing-intro a:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 3px;
+}
+
+@media (max-width: 480px) {
+    .yc-landing-intro,
+    .yc-landing-support {
+        width: min(100% - 20px, 1120px);
+    }
+
+    .yc-landing-intro {
+        padding-top: 58px;
+    }
+}
+
 #yahooClassicSection.active {
     display: flex;
     height: 100dvh;

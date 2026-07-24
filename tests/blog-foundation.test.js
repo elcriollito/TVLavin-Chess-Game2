@@ -240,13 +240,13 @@ test('Yahoo Chess article is uniquely featured, indexed and reciprocally linked'
   assert.equal(shell(`a[href="/blog/${slug}"]`).text().trim(), 'Read the story behind CAISSA Classic');
 });
 
-test('Yahoo Classic standalone alias retains the established homepage canonical', () => {
-  const shell = load(read('index.html'));
+test('Yahoo Classic uses its dedicated standalone canonical document', () => {
+  const shell = load(read('yahoo-classic.html'));
   const server = read('server.js');
-  assert.equal(shell('link[rel="canonical"]').attr('href'), `${production}/`);
-  assert.equal(shell('meta[property="og:url"]').attr('content'), `${production}/`);
+  assert.equal(shell('link[rel="canonical"]').attr('href'), `${production}/yahoo-classic`);
+  assert.equal(shell('meta[property="og:url"]').attr('content'), `${production}/yahoo-classic`);
   assert.ok(shell('#yahooClassicSection').text().includes('CAISSA Classic Chess'));
   assert.ok(sitemap.includes(`<loc>${production}/yahoo-classic</loc>`));
   assert.ok(!sitemap.includes('?section=yahooClassic'));
-  assert.match(server, /pathname === '\/yahoo-classic'[\s\S]*filePath = '\.\/index\.html'/);
+  assert.match(server, /pathname === '\/yahoo-classic'[\s\S]*filePath = '\.\/yahoo-classic\.html'/);
 });

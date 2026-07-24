@@ -3,7 +3,7 @@
 
     const groups = [
         [
-            ['yahooClassic', 'CAISSA Classic', 'fas fa-window-restore', '/?section=yahooClassic'],
+            ['yahooClassic', 'CAISSA Classic', 'fas fa-window-restore', '/yahoo-classic'],
             ['play', 'Play', 'fas fa-play-circle', '/?section=play'],
             ['mentor', 'Mentor', 'fas fa-graduation-cap', '/?section=mentor', 'nav-item-tool'],
             ['academy', 'Academy', 'fas fa-graduation-cap', '/?section=academy'],

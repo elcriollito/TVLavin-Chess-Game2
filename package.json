@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "build:blog": "node scripts/build-blog.mjs",
+    "build:yahoo-classic": "node scripts/build-yahoo-classic.mjs",
     "test:blog": "node --test tests/blog-foundation.test.js",
     "lint:blog": "node --check js/caissa-standalone-sidebar.js && node --check scripts/build-blog.mjs && node --check tests/blog-foundation.test.js",
     "test:knowledge": "node --test tests/knowledge/*.test.js",

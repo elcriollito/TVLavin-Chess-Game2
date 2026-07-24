@@ -6,7 +6,9 @@
   },
   "redirects": [
     { "source": "/blog/", "destination": "/blog", "permanent": true },
-    { "source": "/blog/:slug/", "destination": "/blog/:slug", "permanent": true }
+    { "source": "/blog/:slug/", "destination": "/blog/:slug", "permanent": true },
+    { "source": "/", "has": [{ "type": "query", "key": "section", "value": "yahooClassic" }], "destination": "/yahoo-classic", "permanent": true },
+    { "source": "/yahoo-classic/", "destination": "/yahoo-classic", "permanent": true }
   ],
   "rewrites": [
     { "source": "/blog", "destination": "/blog/index.html" },
@@ -24,7 +26,7 @@
     { "source": "/vault", "destination": "/vault.html" },
     { "source": "/about", "destination": "/about.html" },
     { "source": "/roadmap", "destination": "/roadmap.html" },
-    { "source": "/yahoo-classic", "destination": "/index.html" },
+    { "source": "/yahoo-classic", "destination": "/yahoo-classic.html" },
     { "source": "/academy", "destination": "/index.html" },
     { "source": "/opening-database", "destination": "/opening-database.html" },
     { "source": "/opening-database/", "destination": "/opening-database.html" },
