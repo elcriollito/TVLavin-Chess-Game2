@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { load } from 'cheerio';
-import publicAuthConfig from '../api/public-auth-config.js';
+import classicMiddleware from '../middleware.js';
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const production = 'https://www.caissa-chess.org';
@@ -68,54 +68,23 @@ test('canonical route and legacy query state consolidate without sitemap duplica
   assert.ok(!sitemap.includes(`${canonical}/`));
   assert.ok(!sitemap.includes('?section=yahooClassic'));
   assert.ok(vercel.rewrites.some(rule => rule.source === '/yahoo-classic' && rule.destination === '/yahoo-classic.html'));
-  assert.ok(vercel.rewrites.some(rule =>
-    rule.source === '/'
-    && rule.destination === '/api/public-auth-config?classicRedirect=1'
-    && rule.has?.some(condition => condition.key === 'section' && condition.value === 'yahooClassic')
-  ));
+  const middleware = read('middleware.js');
+  assert.match(middleware, /matcher: '\/'/);
+  assert.match(middleware, /searchParams\.get\('section'\) !== 'yahooClassic'/);
   assert.match(server, /searchParams\.get\('section'\) === 'yahooClassic'/);
   assert.match(server, /pathname === '\/yahoo-classic'[\s\S]*filePath = '\.\/yahoo-classic\.html'/);
 });
 
 test('legacy query redirect returns a clean permanent canonical location', () => {
-  const headers = new Map();
-  let statusCode;
-  let ended = false;
-  const response = {
-    setHeader: (name, value) => headers.set(name.toLowerCase(), value),
-    status: code => {
-      statusCode = code;
-      return response;
-    },
-    end: () => {
-      ended = true;
-      return response;
-    }
-  };
-  publicAuthConfig({ method: 'GET', url: '/api/public-auth-config?classicRedirect=1&section=yahooClassic' }, response);
-  assert.equal(statusCode, 308);
-  assert.equal(headers.get('location'), '/yahoo-classic');
-  assert.equal(ended, true);
+  const response = classicMiddleware(new Request(`${production}/?section=yahooClassic`));
+  assert.equal(response.status, 308);
+  assert.equal(response.headers.get('location'), canonical);
 });
 
-test('public auth configuration retains its normal non-redirect response', () => {
-  let statusCode;
-  let payload;
-  const response = {
-    status: code => {
-      statusCode = code;
-      return response;
-    },
-    json: value => {
-      payload = value;
-      return response;
-    }
-  };
-  publicAuthConfig({ method: 'GET', url: '/api/public-auth-config' }, response);
-  assert.equal(statusCode, 200);
-  assert.equal(typeof payload, 'object');
-  assert.equal(Object.hasOwn(payload, 'clerkPublishableKey'), true);
-  assert.equal(Object.hasOwn(payload, 'registrationTracking'), true);
+test('routing middleware ignores every unrelated homepage state', () => {
+  for (const section of ['play', 'fics', 'analyze', 'arena']) {
+    assert.equal(classicMiddleware(new Request(`${production}/?section=${section}`)), undefined);
+  }
 });
 
 test('public copy makes no prohibited affiliation claim', () => {

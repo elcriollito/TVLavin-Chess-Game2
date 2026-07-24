@@ -10,7 +10,6 @@
     { "source": "/yahoo-classic/", "destination": "/yahoo-classic", "permanent": true }
   ],
   "rewrites": [
-    { "source": "/", "has": [{ "type": "query", "key": "section", "value": "yahooClassic" }], "destination": "/api/public-auth-config?classicRedirect=1" },
     { "source": "/blog", "destination": "/blog/index.html" },
     { "source": "/endgame-trainer", "destination": "/endgame-trainer.html" },
     { "source": "/endgame-trainer/", "destination": "/endgame-trainer.html" },
