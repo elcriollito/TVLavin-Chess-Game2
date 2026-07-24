@@ -7,10 +7,10 @@
   "redirects": [
     { "source": "/blog/", "destination": "/blog", "permanent": true },
     { "source": "/blog/:slug/", "destination": "/blog/:slug", "permanent": true },
-    { "source": "/", "has": [{ "type": "query", "key": "section", "value": "yahooClassic" }], "destination": "/yahoo-classic", "permanent": true, "preserveQueryParams": false },
     { "source": "/yahoo-classic/", "destination": "/yahoo-classic", "permanent": true }
   ],
   "rewrites": [
+    { "source": "/", "has": [{ "type": "query", "key": "section", "value": "yahooClassic" }], "destination": "/api/yahoo-classic-redirect" },
     { "source": "/blog", "destination": "/blog/index.html" },
     { "source": "/endgame-trainer", "destination": "/endgame-trainer.html" },
     { "source": "/endgame-trainer/", "destination": "/endgame-trainer.html" },

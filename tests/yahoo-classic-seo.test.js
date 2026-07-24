@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { load } from 'cheerio';
+import yahooClassicRedirect from '../api/yahoo-classic-redirect.js';
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const production = 'https://www.caissa-chess.org';
@@ -67,13 +68,34 @@ test('canonical route and legacy query state consolidate without sitemap duplica
   assert.ok(!sitemap.includes(`${canonical}/`));
   assert.ok(!sitemap.includes('?section=yahooClassic'));
   assert.ok(vercel.rewrites.some(rule => rule.source === '/yahoo-classic' && rule.destination === '/yahoo-classic.html'));
-  assert.ok(vercel.redirects.some(rule =>
+  assert.ok(vercel.rewrites.some(rule =>
     rule.source === '/'
-    && rule.preserveQueryParams === false
+    && rule.destination === '/api/yahoo-classic-redirect'
     && rule.has?.some(condition => condition.key === 'section' && condition.value === 'yahooClassic')
   ));
   assert.match(server, /searchParams\.get\('section'\) === 'yahooClassic'/);
   assert.match(server, /pathname === '\/yahoo-classic'[\s\S]*filePath = '\.\/yahoo-classic\.html'/);
+});
+
+test('legacy query redirect returns a clean permanent canonical location', () => {
+  const headers = new Map();
+  let statusCode;
+  let ended = false;
+  const response = {
+    setHeader: (name, value) => headers.set(name.toLowerCase(), value),
+    status: code => {
+      statusCode = code;
+      return response;
+    },
+    end: () => {
+      ended = true;
+      return response;
+    }
+  };
+  yahooClassicRedirect({}, response);
+  assert.equal(statusCode, 308);
+  assert.equal(headers.get('location'), '/yahoo-classic');
+  assert.equal(ended, true);
 });
 
 test('public copy makes no prohibited affiliation claim', () => {
