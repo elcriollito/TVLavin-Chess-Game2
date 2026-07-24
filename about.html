@@ -41,8 +41,12 @@
     <link rel="stylesheet" href="library-page.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-auth.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-mobile-foundation.css?v=1.0.6">
+    <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.1.0">
 </head>
 <body class="library-page-body">
+    <div class="caissa-standalone-layout">
+    <div data-caissa-standalone-sidebar data-active="about"></div>
+    <div class="caissa-standalone-content">
     <!-- Navigation Header -->
     <header class="library-nav-header">
         <div class="library-nav-content">
@@ -219,8 +223,12 @@
             </p>
         </div>
     </footer>
+    </div>
+    </div>
 
     <!-- Auth Scripts -->
+    <script src="/js/caissa-primary-navigation.js?v=1.0.0"></script>
+    <script src="/js/caissa-standalone-sidebar.js?v=1.1.0"></script>
     <script src="js/auth-config.js?v=1.0.0"></script>
     <script
         async
@@ -236,6 +244,9 @@
 
     <style>
         /* About Page Specific Styles */
+        .caissa-standalone-content > .library-nav-header {
+            display: none;
+        }
         .about-section {
             max-width: 900px;
             margin: 0 auto;

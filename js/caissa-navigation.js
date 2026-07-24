@@ -38,6 +38,7 @@ const CaissaNavigation = {
         this.bindEvents();
         this.restoreState();
         this.updateUI();
+        this.openRequestedAction();
         console.log('[CAISSA Nav] Ready. Current section:', this.currentSection);
     },
 
@@ -53,6 +54,7 @@ const CaissaNavigation = {
             mobileQuickActions: document.querySelector('.mobile-quick-actions'),
             mobileActionButtons: document.querySelectorAll('[data-mobile-action]'),
             navItems: document.querySelectorAll('.nav-item[data-section]'),
+            navActions: document.querySelectorAll('.nav-item[data-nav-action]'),
             sections: document.querySelectorAll('.content-section'),
             appContainer: document.querySelector('.app-container'),
             sectionNameDisplay: document.getElementById('headerSectionName')
@@ -114,6 +116,11 @@ const CaissaNavigation = {
         this.elements.mobileActionButtons?.forEach((button) => {
             button.addEventListener('click', () => {
                 this.handleMobileQuickAction(button.dataset.mobileAction);
+            });
+        });
+        this.elements.navActions.forEach(item => {
+            item.addEventListener('click', (event) => {
+                this.handleNavigationAction(event.currentTarget.dataset.navAction);
             });
         });
 
@@ -396,6 +403,18 @@ const CaissaNavigation = {
         }
     },
 
+    handleNavigationAction(action) {
+        if (action === 'help') this.openHelpModal();
+        if (action === 'settings') this.openSettingsModal();
+    },
+
+    openRequestedAction() {
+        const action = new URLSearchParams(window.location.search).get('action');
+        if (action === 'help' || action === 'settings') {
+            this.handleNavigationAction(action);
+        }
+    },
+
     /**
      * Keep mobile gameplay controls contextual and outside the accessibility
      * tree when the current section does not use them.
@@ -601,6 +620,18 @@ const CaissaNavigation = {
         }
 
         // Close mobile nav if open
+        if (window.innerWidth <= 768) {
+            this.closeNav();
+        }
+    },
+
+    openSettingsModal() {
+        console.log('[CAISSA Nav] Opening Settings modal...');
+        const settingsModal = document.getElementById('menuModal');
+        if (settingsModal) {
+            settingsModal.classList.add('show');
+            settingsModal.querySelector('button, input, select, [href]')?.focus?.();
+        }
         if (window.innerWidth <= 768) {
             this.closeNav();
         }

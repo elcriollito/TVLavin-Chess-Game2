@@ -26,7 +26,7 @@ button:hover, button:focus-visible, .button-link:hover { filter: brightness(1.1)
 .library-header nav a[aria-current] { color: var(--gold); }
 .brand { color: white; text-decoration: none; font-size: 1.25rem; font-weight: 900; letter-spacing: .08em; }
 .brand span { color: var(--gold); }
-.library-shell { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; padding: clamp(2rem, 5vw, 5rem) 0; }
+.library-shell { width: 100%; max-width: none; margin: 0; padding: clamp(2rem, 5vw, 5rem) clamp(1rem, 4vw, 4rem); }
 .hero { max-width: 760px; margin-bottom: 2.25rem; }
 .hero h1, .detail-header h1 { font-family: Georgia, serif; font-size: clamp(2.5rem, 7vw, 5rem); line-height: 1; margin: .2rem 0 1rem; }
 .eyebrow, .card-cluster { color: var(--green); text-transform: uppercase; letter-spacing: .1em; font-size: .75rem; font-weight: 800; }
@@ -66,6 +66,7 @@ button:hover, button:focus-visible, .button-link:hover { filter: brightness(1.1)
 .position-tabs button { flex: 1 1 9rem; padding: .45rem; background: transparent; color: var(--muted); border-color: var(--line); font-size: .8rem; }
 .position-tabs button[aria-selected="true"] { background: var(--gold); color: #17130a; border-color: var(--gold); }
 .library-board { width: 100%; aspect-ratio: 1; pointer-events: none; }
+.library-board .board-b72b1 { box-sizing: border-box; }
 .board-unavailable { border-left: 3px solid var(--gold); color: var(--muted); padding-left: .75rem; }
 .position-description { overflow-wrap: anywhere; }
 .position-description code { color: var(--muted); font-size: .75rem; }
@@ -86,7 +87,7 @@ button:hover, button:focus-visible, .button-link:hover { filter: brightness(1.1)
 @media (max-width: 600px) {
   .library-header { align-items: flex-start; flex-direction: column; }
   .library-header nav { font-size: .85rem; }
-  .library-shell { width: min(100% - 1.25rem, 1180px); padding-top: 2rem; }
+  .library-shell { width: 100%; padding: 2rem .625rem 0; }
   #library-filters, .card-grid, .relation-list { grid-template-columns: 1fr; }
   .search-field { grid-column: auto; }
   .results-heading, .cluster-heading { align-items: flex-start; flex-direction: column; gap: 0; }

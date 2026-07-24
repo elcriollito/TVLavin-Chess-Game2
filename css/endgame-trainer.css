@@ -30,7 +30,10 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
 .endgame-trainer-page__premium { padding: 11px; border-radius: 10px; background: #8058df; text-decoration: none; font-weight: 700; }
 .endgame-trainer-page__nav-items { display: grid; gap: 4px; }
 .endgame-trainer-page__nav-items a, .endgame-trainer-page__nav-footer a { min-height: 44px; padding: 10px 12px; border-radius: 8px; text-decoration: none; }
-.endgame-trainer-page__nav-items a.is-active { background: var(--et-accent); color: #08101f; font-weight: 800; }
+.endgame-trainer-page__nav-items a.is-active, .endgame-trainer-page__nav-items a.active { background: var(--et-accent); color: #08101f; font-weight: 800; }
+.endgame-trainer-page__nav-items a, .endgame-trainer-page__nav-footer a { display: flex; align-items: center; gap: 9px; }
+.endgame-trainer-page__nav-items .nav-divider { border-top: 1px solid var(--et-line); margin: 8px 0; }
+.endgame-trainer-page__nav-items .nav-connect-label { padding: 10px 12px 4px; color: var(--et-muted); }
 .endgame-trainer-page__nav-footer { margin-top: auto; display: grid; }
 .endgame-trainer-page__nav-toggle { display: none; }
 .endgame-trainer-page__main { min-width: 0; padding: clamp(18px, 2.5vw, 32px); }

@@ -1,55 +1,12 @@
 (function () {
     'use strict';
 
-    const groups = [
-        [
-            ['yahooClassic', 'CAISSA Classic', 'fas fa-window-restore', '/yahoo-classic'],
-            ['play', 'Play', 'fas fa-play-circle', '/?section=play'],
-            ['mentor', 'Mentor', 'fas fa-graduation-cap', '/?section=mentor', 'nav-item-tool'],
-            ['academy', 'Academy', 'fas fa-graduation-cap', '/?section=academy'],
-            ['endgame-library', 'Endgame Library', 'fas fa-book-reader', '/endgame-library', 'nav-item-external']
-        ],
-        [
-            ['insights', 'Insights', 'fas fa-brain', '/?section=insights'],
-            ['fics', 'FICS', 'fas fa-globe', '/?section=fics'],
-            ['analyze', 'Analyze', 'fas fa-chart-line', '/?section=analyze'],
-            ['spectator', 'Spectator TV', 'fas fa-tv', '/?section=spectator'],
-            ['arena', 'Arena', 'fas fa-robot', '/?section=arena']
-        ],
-        [
-            ['cheater-insight', 'Cheater Insight', 'fas fa-user-shield', '/?section=cheater-insight'],
-            ['polyglot', 'Polyglot Tool', 'fas fa-book-open', '/tools/polyglot', 'nav-item-external', true],
-            ['opening-database', 'Opening Database', 'fas fa-chess-board', '/opening-database', 'nav-item-external'],
-            ['eco', 'ECO Codes', 'fas fa-book', '/eco', 'nav-item-external'],
-            ['library', 'Game Library', 'fas fa-database', '/?section=library', 'nav-item-tool']
-        ],
-        [
-            ['history', 'History', 'fas fa-history', '/?section=history'],
-            ['dosChess', 'DOS Chess', 'fas fa-desktop', '/?section=dosChess'],
-            ['vault', 'Vault', 'fas fa-box-archive', '/vault', 'nav-item-external', true],
-            ['blog', 'Blog', 'fas fa-rss', '/blog', 'nav-item-external']
-        ]
-    ];
-
-    const feedbackHref = 'mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A';
-
-    function renderItem(item, activeKey) {
-        const [key, label, icon, href, extraClass = '', showExternalIcon = false, newTab = false] = item;
-        const isActive = key === activeKey;
-        const classes = ['nav-item', extraClass, isActive ? 'active' : ''].filter(Boolean).join(' ');
-        const current = isActive ? ' aria-current="page"' : '';
-        const external = newTab ? ' target="_blank" rel="noopener noreferrer"' : '';
-        const externalIcon = showExternalIcon ? '<i class="fas fa-external-link-alt nav-external-icon" aria-hidden="true"></i>' : '';
-        return `<a href="${href}" class="${classes}" aria-label="${label}"${current}${external}>
-            <i class="${icon}" aria-hidden="true"></i>
-            <span class="nav-label">${label}</span>
-            ${externalIcon}
-        </a>`;
-    }
-
     function renderSidebar(host) {
+        const navigation = window.CaissaPrimaryNavigation;
+        if (!navigation) throw new Error('CAISSA primary navigation inventory is unavailable.');
         const activeKey = host.dataset.active || '';
-        const items = groups.map((group) => group.map((item) => renderItem(item, activeKey)).join('')).join('<div class="nav-divider" aria-hidden="true"></div>');
+        const renderOptions = { activeKey, mode: 'routes' };
+        const items = navigation.renderGroups(renderOptions);
 
         host.classList.add('caissa-standalone-sidebar-host');
         host.innerHTML = `
@@ -91,27 +48,8 @@
                         <span class="nav-premium-badge">Upgrade</span>
                     </a>
                 </div>
-                <div class="nav-items">${items}
-                    <div class="nav-connect-label nav-label">Connect with CAISSA Chess</div>
-                    <a href="https://www.facebook.com/CaissaChessOrg/" target="_blank" rel="noopener noreferrer" class="nav-item nav-item-external" aria-label="CAISSA Chess on Facebook (opens in a new tab)">
-                        <i class="fab fa-facebook" aria-hidden="true"></i>
-                        <span class="nav-label">Facebook</span>
-                        <i class="fas fa-external-link-alt nav-external-icon" aria-hidden="true"></i>
-                    </a>
-                    <a href="https://www.youtube.com/@CaissaChessOrg" target="_blank" rel="noopener noreferrer" class="nav-item nav-item-external" aria-label="CAISSA Chess YouTube (opens in a new tab)">
-                        <i class="fas fa-video" aria-hidden="true"></i>
-                        <span class="nav-label">CAISSA Chess YouTube</span>
-                        <i class="fas fa-external-link-alt nav-external-icon" aria-hidden="true"></i>
-                    </a>
-                    <a href="${feedbackHref}" class="nav-item nav-item-external" aria-label="Send feedback about CAISSA Chess">
-                        <i class="fas fa-comment-dots" aria-hidden="true"></i>
-                        <span class="nav-label">Share an Idea / Contact &amp; Feedback</span>
-                    </a>
-                </div>
-                <div class="nav-footer">
-                    <a href="/?section=help" class="nav-item" aria-label="Help and FAQ"><i class="fas fa-question-circle" aria-hidden="true"></i><span class="nav-label">Help</span></a>
-                    <a href="/?section=settings" class="nav-item" aria-label="Settings section"><i class="fas fa-cog" aria-hidden="true"></i><span class="nav-label">Settings</span></a>
-                </div>
+                <div class="nav-items">${items}${navigation.renderConnect(renderOptions)}</div>
+                <div class="nav-footer">${navigation.renderSupport(renderOptions)}</div>
             </nav>`;
 
         const nav = host.querySelector('.main-navigation');

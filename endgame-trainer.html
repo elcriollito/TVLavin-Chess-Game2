@@ -23,10 +23,10 @@
         <a class="endgame-trainer-page__logo" href="/"><i class="fas fa-chess-knight" aria-hidden="true"></i> CAISSA</a>
         <a class="endgame-trainer-page__auth" href="/signin" aria-label="Sign in to CAISSA"><i class="fas fa-sign-in-alt" aria-hidden="true"></i> Sign In</a>
         <a class="endgame-trainer-page__premium" href="/premium"><i class="fas fa-crown" aria-hidden="true"></i> Premium</a>
-        <div class="endgame-trainer-page__nav-items">
+        <div class="endgame-trainer-page__nav-items" data-caissa-primary-groups data-active="endgame-trainer" data-include-connect>
             <a data-nav-key="classic" href="/yahoo-classic">CAISSA Classic</a><a data-nav-key="play" href="/?section=play">Play</a><a data-nav-key="mentor" href="/?section=mentor">Mentor</a><a data-nav-key="academy" href="/?section=academy">Academy</a><a data-nav-key="endgame-trainer" href="/endgame-trainer"><i class="fas fa-chess-pawn" aria-hidden="true"></i> Endgame Trainer</a><a data-nav-key="endgame-library" href="/endgame-library"><i class="fas fa-book-reader" aria-hidden="true"></i> Endgame Library</a><a data-nav-key="insights" href="/?section=insights">Insights</a><a data-nav-key="fics" href="/?section=fics">FICS</a><a data-nav-key="analyze" href="/?section=analyze">Analyze</a><a data-nav-key="spectator" href="/?section=spectator">Spectator TV</a><a data-nav-key="arena" href="/?section=arena">Arena</a><a data-nav-key="cheater-insight" href="/?section=cheater-insight">Cheater Insight</a><a data-nav-key="polyglot" href="/tools/polyglot">Polyglot Tool</a><a data-nav-key="opening-database" href="/opening-database">Opening Database</a><a data-nav-key="eco" href="/eco">ECO Codes</a><a data-nav-key="library" href="/?section=library">Game Library</a><a data-nav-key="history" href="/?section=history">History</a><a data-nav-key="dosChess" href="/?section=dosChess">DOS Chess</a><a data-nav-key="vault" href="/vault">Vault</a><a data-nav-key="blog" href="/blog">Blog</a><a href="https://www.facebook.com/CaissaChessOrg/" target="_blank" rel="noopener noreferrer">Facebook</a><a data-nav-key="help-videos" href="https://www.youtube.com/@CaissaChessOrg" target="_blank" rel="noopener noreferrer">CAISSA Chess YouTube</a><a href="mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback">Share an Idea / Contact &amp; Feedback</a>
         </div>
-        <footer class="endgame-trainer-page__nav-footer"><a href="/?section=help">Help</a><a href="/?section=settings">Settings</a></footer>
+        <footer class="endgame-trainer-page__nav-footer" data-caissa-primary-support data-active="endgame-trainer"><a href="/?action=help">Help</a><a href="/?action=settings">Settings</a><a href="/about">About</a></footer>
     </nav>
 
     <main class="endgame-trainer-page__main">
@@ -196,6 +196,7 @@
 </div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+<script src="/js/caissa-primary-navigation.js?v=1.0.0"></script>
 <script type="module" src="/js/endgame-trainer/endgame-trainer-page.js"></script>
 </body>
 </html>

@@ -26,11 +26,16 @@ test('blog index has unique crawlable metadata and one H1', () => {
 });
 
 test('official navigation uses native blog and official social accounts', () => {
+  const inventory = read('js/caissa-primary-navigation.js');
+  for (const expected of ['/blog', 'https://www.facebook.com/CaissaChessOrg/', 'https://www.youtube.com/@CaissaChessOrg']) {
+    assert.ok(inventory.includes(expected), `canonical navigation is missing ${expected}`);
+  }
   for (const file of ['index.html', 'js/caissa-standalone-sidebar.js', 'endgame-trainer.html']) {
     const source = read(file);
-    assert.ok(source.includes('/blog'), `${file} is missing /blog`);
-    assert.ok(source.includes('https://www.facebook.com/CaissaChessOrg/'), `${file} is missing Facebook`);
-    assert.ok(source.includes('https://www.youtube.com/@CaissaChessOrg'), `${file} is missing YouTube`);
+    assert.ok(
+      source.includes('caissa-primary-navigation') || source.includes('CaissaPrimaryNavigation'),
+      `${file} does not consume canonical navigation`
+    );
     assert.ok(!source.includes('tvlavin.blogspot.com'), `${file} still exposes Blogspot in navigation`);
   }
 });
