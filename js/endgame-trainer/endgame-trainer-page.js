@@ -4,6 +4,7 @@ import { createEndgameCurriculum } from './endgame-curriculum.js';
 import { ESSENTIAL_CANON_PILOT, createPilotSession } from './essential-canon-pilot.js';
 import { setIdempotentText } from './endgame-feedback-renderer.js';
 import { ENDGAME_COACHING_MESSAGES, GENERAL_COACHING_MESSAGES } from './endgame-coaching-messages.js';
+import { loadGuidedStudyRequest, parseGuidedStudyRequest } from '../endgame-library/guided-study-entry.js';
 
 const CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP', 'KRPvKR'];
 const RANDOM_CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP'];
@@ -21,7 +22,7 @@ export function resolveGuidedWorkspaceState({ trainingMode = 'free', activeLesso
     if (activeLesson) return 'guided-lesson';
     return 'guided-catalog';
 }
-const publicPage = page => copy({ mounted: page.mounted, navOpen: page.navOpen, runtimeAttached: page.runtimeAttached, operation: page.operation, hint: page.hint, error: page.error, disposed: page.disposed, diagnosticState: page.diagnosticState, controllerState: page.controllerState, progress: page.progressSnapshot, trainingMode: page.trainingMode, workspaceState: page.workspaceState, selectedPathId: page.selectedPathId, activeLesson: page.activeLesson, pilotMode: page.pilotMode, curriculumProgress: page.curriculumProgress, recentExpanded: page.recentExpanded, recentResult: page.recentResult, recentCategory: page.recentCategory, syncFeedback: page.syncFeedback, progressDiagnostic: page.diagnosticEnabled ? page.progressStore.getDiagnosticSnapshot() : undefined });
+const publicPage = page => copy({ mounted: page.mounted, navOpen: page.navOpen, runtimeAttached: page.runtimeAttached, operation: page.operation, hint: page.hint, error: page.error, disposed: page.disposed, diagnosticState: page.diagnosticState, controllerState: page.controllerState, progress: page.progressSnapshot, trainingMode: page.trainingMode, workspaceState: page.workspaceState, selectedPathId: page.selectedPathId, activeLesson: page.activeLesson, pilotMode: page.pilotMode, libraryStudy: page.libraryStudy, curriculumProgress: page.curriculumProgress, recentExpanded: page.recentExpanded, recentResult: page.recentResult, recentCategory: page.recentCategory, syncFeedback: page.syncFeedback, progressDiagnostic: page.diagnosticEnabled ? page.progressStore.getDiagnosticSnapshot() : undefined });
 const CATEGORY_LABELS = { KQK: 'Queen vs King', KRK: 'Rook vs King', KPK: 'Pawn vs King', KPKP: 'Pawn vs Pawn', KRPvKR: 'Rook and Pawn vs Rook' };
 const durationLabel = value => { const seconds = Math.max(0, Math.round((value ?? 0) / 1000)); return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`; };
 
@@ -115,6 +116,72 @@ function renderProgress(root, page) {
     text(root.querySelector('[data-guided-active-path]'), selectedPath?.title ?? 'Not selected'); text(root.querySelector('[data-guided-current-lesson]'), selectedLesson?.title ?? 'Not selected'); text(root.querySelector('[data-guided-sessions]'), snapshot.curriculum.guidedSessions);
     page.progressSnapshot = snapshot;
     renderCurriculum(root, page);
+}
+
+const STUDY_ERRORS = Object.freeze({
+    'invalid-unit-id': 'The study link contains an invalid unit identifier.',
+    'release-mismatch': 'This study link does not match the supported library release.',
+    'unit-not-found': 'This study unit is not part of the pinned library release.',
+    'unit-not-eligible': 'Guided study is not available for this concept yet.',
+    'release-unavailable': 'The pinned library release could not be loaded.'
+});
+
+async function initializeLibraryStudy({ root, page, runtime, search, fetchImpl }) {
+    const request = parseGuidedStudyRequest(search);
+    if (!request) return;
+    page.libraryStudy = { status: 'loading', unitId: request.unitId ?? null, releaseId: request.releaseId ?? null };
+    root.classList.add('is-library-study');
+    const panel = root.querySelector('[data-library-study]');
+    if (panel) panel.hidden = false;
+    for (const selector of ['[data-setup-workspace]', '[data-curriculum-navigator]', '[data-active-lesson]', '[data-pilot-player]']) {
+        const element = root.querySelector(selector); if (element) element.hidden = true;
+    }
+    runtime?.boardView?.setInteractive(false);
+    const result = await loadGuidedStudyRequest(search, { fetchImpl });
+    if (page.disposed) return;
+    if (result.status !== 'ready') {
+        page.libraryStudy = { status: 'error', code: result.code, unitId: request.unitId ?? null, releaseId: request.releaseId ?? null };
+        const error = root.querySelector('[data-library-study-error]'); if (error) error.hidden = false;
+        text(root.querySelector('[data-library-study-error-message]'), STUDY_ERRORS[result.code] || 'This study unit could not be opened.');
+        text(root.querySelector('[data-library-study-title]'), 'Study unavailable');
+        return;
+    }
+    const model = result.model;
+    page.libraryStudy = { status: 'ready', unitId: model.unitId, releaseId: model.releaseId, positionIndex: 0, promptIndex: 0 };
+    text(root.querySelector('[data-library-study-title]'), model.title);
+    text(root.querySelector('[data-library-study-objective]'), model.objective);
+    const ready = root.querySelector('[data-library-study-ready]'); if (ready) ready.hidden = false;
+    const returnLink = root.querySelector('[data-library-study-return]'); if (returnLink) returnLink.href = model.returnHref;
+    const positionSelect = root.querySelector('[data-library-study-position]');
+    positionSelect?.replaceChildren();
+    model.positions.forEach((position, index) => {
+        const option = root.ownerDocument.createElement('option');
+        option.value = String(index); option.textContent = `Position ${index + 1}: ${String(position.role || 'study').replaceAll('-', ' ')}`;
+        positionSelect?.append(option);
+    });
+    const showPosition = index => {
+        const position = model.positions[index]; if (!position) return;
+        page.libraryStudy.positionIndex = index;
+        runtime?.boardView?.setPosition(position.fen);
+        runtime?.boardView?.setOrientation(position.sideToMove === 'black' ? 'black' : 'white');
+        runtime?.boardView?.setInteractive(false);
+        const overlay = root.querySelector('[data-empty-board-overlay]'); if (overlay) overlay.hidden = true;
+        const board = root.querySelector('[data-board]'); board?.setAttribute('aria-label', `${model.title}. ${position.sideToMove} to move. Read-only guided study position.`);
+    };
+    const showPrompt = index => {
+        const bounded = Math.max(0, Math.min(model.prompts.length - 1, index));
+        page.libraryStudy.promptIndex = bounded;
+        text(root.querySelector('[data-library-study-step]'), `Prompt ${bounded + 1} of ${model.prompts.length}`);
+        text(root.querySelector('[data-library-study-prompt]'), model.prompts[bounded]);
+        const previous = root.querySelector('[data-library-study-previous]'), next = root.querySelector('[data-library-study-next]');
+        if (previous) previous.disabled = bounded === 0;
+        if (next) next.disabled = bounded === model.prompts.length - 1;
+    };
+    positionSelect?.addEventListener('change', event => showPosition(Number(event.target.value)), { signal: page.signal });
+    root.querySelector('[data-library-study-previous]')?.addEventListener('click', () => showPrompt(page.libraryStudy.promptIndex - 1), { signal: page.signal });
+    root.querySelector('[data-library-study-next]')?.addEventListener('click', () => showPrompt(page.libraryStudy.promptIndex + 1), { signal: page.signal });
+    showPosition(0); showPrompt(0);
+    root.querySelector('[data-library-study-title]')?.focus?.();
 }
 
 function sessionEntry(state, owner, now) { return { id: owner.progressId, category: state.categoryId, pieceCount: state.initialFen?.split(' ')[0].replace(/[1-8/]/g, '').length ?? 0, userColor: state.userColor, attemptNumber: state.attemptNumber, hintsUsed: state.hintsUsed, undosUsed: state.undosUsed, moveCount: state.moveHistory?.length ?? 0, preparedAt: owner.preparedAt, endedAt: now, durationMs: owner.startedAt ? Math.max(0, now - owner.startedAt) : 0, initialFen: state.initialFen, finalFen: state.currentFen, mode: owner.lesson ? 'guided' : 'free', pathId: owner.lesson?.pathId, lessonId: owner.lesson?.id, pathTitle: owner.lesson?.pathTitle, lessonTitle: owner.lesson?.title }; }
@@ -218,7 +285,7 @@ export function mountEndgameTrainerPage(options = {}) {
     const progressStoreFactory = options.progressStoreFactory ?? createEndgameProgressStore, progressStore = progressStoreFactory({ storage: options.storage, now: options.now }); progressStore.load(); const loadedProgress = progressStore.getSnapshot();
     const curriculum = options.curriculum ?? createEndgameCurriculum();
     const progressScopeId = options.progressScopeId ?? globalThis.crypto?.randomUUID?.() ?? `tab-${++pageSequence}-${(options.now ?? Date.now)()}`;
-    const page = { mounted: true, navOpen: false, runtimeAttached: false, operation: null, hint: null, error: null, disposed: false, diagnosticEnabled, diagnosticState, controllerState: null, seedSequence: 0, progressStore, progressOwners: new Map(), progressOwner: null, progressSnapshot: loadedProgress, progressScopeId, curriculum, curriculumProgress: curriculum.getProgress(loadedProgress), trainingMode: 'free', workspaceState: 'setup', selectedPathId: loadedProgress.curriculum?.selectedPathId ?? null, activeLesson: null, pendingLesson: null, pilotSession: null, pilotMode: null, pilotRenderedPositionKey: null, recentExpanded: false, recentResult: 'all', recentCategory: 'all', syncFeedback: '', now: options.now ?? Date.now };
+    const page = { mounted: true, navOpen: false, runtimeAttached: false, operation: null, hint: null, error: null, disposed: false, signal, diagnosticEnabled, diagnosticState, controllerState: null, seedSequence: 0, progressStore, progressOwners: new Map(), progressOwner: null, progressSnapshot: loadedProgress, progressScopeId, curriculum, curriculumProgress: curriculum.getProgress(loadedProgress), trainingMode: 'free', workspaceState: 'setup', selectedPathId: loadedProgress.curriculum?.selectedPathId ?? null, activeLesson: null, pendingLesson: null, pilotSession: null, pilotMode: null, pilotRenderedPositionKey: null, libraryStudy: null, recentExpanded: false, recentResult: 'all', recentCategory: 'all', syncFeedback: '', now: options.now ?? Date.now };
     const runtimeFactory = options.runtimeFactory ?? createEndgameTrainerRuntime;
     let runtime = null;
     if (board) { runtime = runtimeFactory({ boardElement: board, promotionResolver: promo.resolve, callbacks: { onStateChange: snap => update(root, page, snap), onAnnouncement: value => text(root.querySelector('[data-announcement]'), value), onError: error => { if (error.code !== 'stale-operation') { page.error = { code: error.code }; text(root.querySelector('[data-error-message]'), PUBLIC_ERRORS[error.code] || 'The trainer encountered an error.'); } } } }).initialize(); page.runtimeAttached = true; page.runtime = runtime; }
@@ -327,7 +394,9 @@ export function mountEndgameTrainerPage(options = {}) {
     syncSetup('mount');
     act('prepare', () => { const seed = nextSeed(); return runtime.binding.prepare({ categoryId: category(seed), userColor: 'white', betaWhiteOnly: true, seed, candidateCount: 24, generatorOptions: { strongSide: 'white', sideToMove: 'white' }, engineOptions: STRENGTH[root.querySelector('[data-setup="strength"]')?.value] }); });
     act('start', () => runtime.binding.start()); act('hint', () => runtime.binding.requestHint()); act('undo', () => runtime.binding.undo(), true); act('restart', () => runtime.binding.restart(), true); act('new', () => runtime.binding.newPosition({ seed: nextSeed() }), true); act('resign', () => runtime.binding.resign(), true); act('flip', () => runtime.binding.flip());
-    mounted = { root, page, runtime, abort, promo, closeNav, abandon, resetDialog }; update(root, page, runtime?.binding.getState()); if (diagnosticState) root.dataset.state = diagnosticState; return publicPage(page);
+    mounted = { root, page, runtime, abort, promo, closeNav, abandon, resetDialog }; update(root, page, runtime?.binding.getState()); if (diagnosticState) root.dataset.state = diagnosticState;
+    void initializeLibraryStudy({ root, page, runtime, search: win.location?.search ?? '', fetchImpl: options.fetchImpl ?? win.fetch?.bind(win) });
+    return publicPage(page);
 }
 
 export function unmountEndgameTrainerPage() { if (!mounted) return false; mounted.abandon(); mounted.page.pilotSession?.dispose(); mounted.page.disposed = true; update(mounted.root, mounted.page, mounted.runtime?.binding.getState()); mounted.promo.cancel(); if (mounted.resetDialog?.open) mounted.resetDialog.close(); mounted.abort.abort(); mounted.closeNav(); mounted.runtime?.dispose(); mounted.page.progressStore.dispose(); mounted.page.runtimeAttached = false; mounted.page.mounted = false; mounted = null; return true; }

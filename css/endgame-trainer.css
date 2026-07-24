@@ -63,6 +63,17 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
 .endgame-trainer-page__setup { grid-area: setup; }
 .endgame-trainer-page__board-panel { grid-area: board; }
 .endgame-trainer-page__session { grid-area: session; }
+.endgame-trainer-page.is-library-study .endgame-trainer-page__grid {
+    grid-template-columns: minmax(260px, 340px) minmax(440px, 1fr);
+    grid-template-areas: "setup board";
+}
+.endgame-trainer-page.is-library-study .endgame-trainer-page__session { display: none; }
+.endgame-trainer-page__library-study { display: grid; gap: 12px; }
+.endgame-trainer-page__library-study[hidden], .endgame-trainer-page__library-study [hidden] { display: none; }
+.endgame-trainer-page__library-study h2, .endgame-trainer-page__library-study p { margin: 0; }
+.endgame-trainer-page__library-study label { color: var(--et-muted); font-size: .82rem; font-weight: 750; }
+.endgame-trainer-page__library-study [data-library-study-ready] { display: grid; gap: 12px; }
+.endgame-trainer-page__library-return { display: inline-flex; justify-content: center; min-height: 44px; padding: 10px 12px; border: 1px solid var(--et-accent); border-radius: 9px; text-decoration: none; font-weight: 750; }
 .endgame-trainer-page__session-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .endgame-trainer-page__session-toggle { display: none; width: auto; min-height: 36px; padding: 6px 9px; }
 .endgame-trainer-page__session [data-session-panel-body][hidden] { display: none; }

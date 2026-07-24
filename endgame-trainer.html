@@ -84,6 +84,26 @@
                 </div>
                 </div>
                 </div>
+                <section class="endgame-trainer-page__library-study" data-library-study hidden aria-labelledby="library-study-title">
+                    <p class="endgame-trainer-page__kicker">Guided Study Preview</p>
+                    <h2 id="library-study-title" data-library-study-title tabindex="-1">Loading study unit</h2>
+                    <div data-library-study-ready hidden>
+                        <p data-library-study-objective></p>
+                        <label for="library-study-position">Instructional position</label>
+                        <select id="library-study-position" data-library-study-position></select>
+                        <p><strong data-library-study-step></strong></p>
+                        <p data-library-study-prompt></p>
+                        <div class="endgame-trainer-page__lesson-nav">
+                            <button type="button" data-library-study-previous>Previous prompt</button>
+                            <button type="button" data-library-study-next>Next prompt</button>
+                        </div>
+                        <p class="endgame-trainer-page__helper">This preview is read-only and does not record completion or progress.</p>
+                    </div>
+                    <div data-library-study-error hidden>
+                        <p data-library-study-error-message role="alert">This study unit could not be opened.</p>
+                    </div>
+                    <a class="endgame-trainer-page__library-return" data-library-study-return href="/endgame-library">Return to Endgame Library</a>
+                </section>
                 <section class="endgame-trainer-page__curriculum-navigator" data-curriculum-navigator hidden aria-labelledby="guided-title">
                     <header><div><p class="endgame-trainer-page__kicker">Guided Training</p><h2 id="guided-title">Curriculum Navigator</h2></div><button type="button" data-navigator-toggle aria-expanded="true" aria-controls="curriculum-navigator-body">Collapse</button></header>
                     <div id="curriculum-navigator-body" data-navigator-body><p>Choose one focused lesson while keeping the board in view.</p>
