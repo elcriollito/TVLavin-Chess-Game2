@@ -1,6 +1,6 @@
 import { loadPinnedEndgameLibrary, PINNED_RELEASE } from './browser-library-reader.js';
 import { EndgameBoardView } from '../endgame-trainer/endgame-board-view.js';
-import { ChessRulesFacade } from '../endgame-trainer/chess-rules-facade.js';
+import { createLibraryBoardRules } from './library-board-rules.js';
 
 const CLUSTERS = Object.freeze([
   { id: 'foundations', label: 'King and Pawn Foundations', prefix: 'ku:endgames:pawn-foundations:' },
@@ -178,7 +178,7 @@ async function openUnit(scopedSlug, { push = true } = {}) {
   try {
     state.board = new EndgameBoardView({
       element: $('#library-board'),
-      rulesFactory: fen => ChessRulesFacade.fromFen(fen)
+      rulesFactory: createLibraryBoardRules
     }).initialize();
     state.board.setInteractive(false);
   } catch {

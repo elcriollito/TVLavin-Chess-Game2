@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { createLibraryBoardRules } from '../js/endgame-library/library-board-rules.js';
 
 const [html, page, css, server, vercel, sitemap] = await Promise.all([
   readFile(new URL('../endgame-library.html', import.meta.url), 'utf8'),
@@ -27,13 +28,24 @@ test('detail includes instructional content and learner-facing graph groups', ()
 
 test('position preview uses Board API v1 and disables interaction', () => {
   assert.match(page, /EndgameBoardView/);
-  assert.match(page, /ChessRulesFacade/);
+  assert.match(page, /createLibraryBoardRules/);
   assert.match(page, /setInteractive\(false\)/);
   assert.match(page, /setPosition\(position\.fen\)/);
   assert.match(page, /Read-only chess position/);
   assert.equal((page.match(/new EndgameBoardView/g) || []).length, 1);
   assert.match(page, /board-unavailable/);
   assert.match(page, /try \{[\s\S]*new EndgameBoardView[\s\S]*\} catch/);
+});
+
+test('library rules factory honors the Board API empty-FEN contract', () => {
+  const initialFromNull = createLibraryBoardRules(null);
+  const initialFromUndefined = createLibraryBoardRules(undefined);
+  assert.equal(initialFromNull.fen(), initialFromUndefined.fen());
+  assert.match(initialFromNull.fen(), / w /);
+
+  const fen = '8/8/6k1/2p1p3/2PP4/5K2/8/8 w - - 0 1';
+  assert.equal(createLibraryBoardRules(fen).fen(), fen);
+  assert.throws(() => createLibraryBoardRules('not-a-fen'), { code: 'invalid-fen' });
 });
 
 test('board assets use the proven trainer strategy in dependency order', () => {
