@@ -117,7 +117,7 @@ body.yc-standalone-page .yc-shell {
     outline-offset: 3px;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
     .yc-landing-intro,
     .yc-landing-support {
         width: min(100% - 20px, 1120px);
