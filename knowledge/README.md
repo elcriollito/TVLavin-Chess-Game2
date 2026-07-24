@@ -33,11 +33,12 @@ draft scaffold, and run `npm run knowledge:editorial:report` before publication.
 The scaffold creates no prose, chess positions, relationships, or review
 claims.
 
-The current authored library contains thirteen published units in three bounded
+The current authored library contains seventeen published units in four bounded
 clusters: foundational king-and-pawn conversion, pawn-structure transformation,
-and pawn majorities with structural weaknesses. The newest cluster is
+majorities with structural weaknesses, and pawn exchanges with favorable
+simplification. The newest cluster is
 documented in
-`docs/architecture/SEASON_9_0_6_PAWN_MAJORITIES_AND_STRUCTURAL_WEAKNESSES.md`.
+`docs/architecture/SEASON_9_0_7_PAWN_EXCHANGES_AND_FAVORABLE_SIMPLIFICATION.md`.
 
 See the Season 9.0.2 architecture document for taxonomy and hashing governance,
 and `docs/architecture/SEASON_9_0_3_IMMUTABLE_LIBRARY_RELEASES_AND_CONSUMER_API.md`

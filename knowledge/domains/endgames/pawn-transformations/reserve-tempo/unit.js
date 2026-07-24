@@ -5,7 +5,7 @@ export const reserveTempo = {
     domain: 'endgames',
     status: 'published',
     schemaVersion: '1.0.0',
-    contentVersion: '1.0.0',
+    contentVersion: '1.1.0',
     education: {
         knowledgeType: 'technique',
         endgameFamily: 'pawn-endgames',
@@ -90,6 +90,7 @@ export const reserveTempo = {
         reviewItems: []
     },
     relationships: [
+        { type: 'recommendation', targetId: 'ku:endgames:pawn-exchanges:pawn-tension', reason: 'After preserving a waiting move, compare the distinct choice of preserving unresolved pawn captures.' },
         { type: 'progression', targetId: 'ku:endgames:pawn-transformations:protected-passed-pawn', reason: 'After controlling move obligation, learners can study how pawn structure restricts king routes.' },
         { type: 'remediation', targetId: 'ku:endgames:pawn-foundations:direct-opposition', reason: 'Learners who cannot explain the transferred obligation should revisit opposition geometry and side to move.' },
         { type: 'related', targetId: 'ku:endgames:pawn-foundations:convert-with-king-support', reason: 'Both units compare irreversible pawn moves with king improvement.' }

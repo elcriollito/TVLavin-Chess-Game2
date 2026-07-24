@@ -80,7 +80,7 @@ test('consumer exposes all published units and transformation facets in both gra
     const verified = verifySnapshotFiles(snapshot.files, snapshot.releaseId);
     assert.equal(verified.valid, true);
     const reader = createLibraryReader(verified.data);
-    assert.equal(reader.listUnitsByDomain('endgames').length, 13);
+    assert.equal(reader.listUnitsByDomain('endgames').length, 17);
     assert.ok(reader.filterUnits({ theme: 'passed-pawns' }).length >= 3);
     assert.ok(reader.filterUnits({ skill: 'calculation' }).length >= 4);
     for (const unit of KNOWLEDGE_UNIT_REGISTRY) {

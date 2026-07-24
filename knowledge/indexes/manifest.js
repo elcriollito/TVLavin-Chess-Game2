@@ -11,6 +11,10 @@ import { pawnMajority } from '../domains/endgames/pawn-weaknesses/pawn-majority/
 import { fixPawnWeakness } from '../domains/endgames/pawn-weaknesses/fix-pawn-weakness/unit.js';
 import { isolatedPawn } from '../domains/endgames/pawn-weaknesses/isolated-pawn/unit.js';
 import { backwardPawn } from '../domains/endgames/pawn-weaknesses/backward-pawn/unit.js';
+import { pawnTension } from '../domains/endgames/pawn-exchanges/pawn-tension/unit.js';
+import { exchangeIntoPasser } from '../domains/endgames/pawn-exchanges/exchange-into-passer/unit.js';
+import { secondDistantTarget } from '../domains/endgames/pawn-exchanges/second-distant-target/unit.js';
+import { favorableKingEnding } from '../domains/endgames/pawn-exchanges/favorable-king-ending/unit.js';
 
 export const KNOWLEDGE_MANIFEST_VERSION = '1.0.0';
 
@@ -18,7 +22,8 @@ export const KNOWLEDGE_MANIFEST_VERSION = '1.0.0';
 export const KNOWLEDGE_UNIT_REGISTRY = Object.freeze([
     ruleOfTheSquare, activateTheKing, directOpposition, keySquares, convertWithKingSupport,
     reserveTempo, protectedPassedPawn, outsidePassedPawn, pawnBreakthrough,
-    pawnMajority, fixPawnWeakness, isolatedPawn, backwardPawn
+    pawnMajority, fixPawnWeakness, isolatedPawn, backwardPawn,
+    pawnTension, exchangeIntoPasser, secondDistantTarget, favorableKingEnding
 ]);
 
 export const KNOWLEDGE_MANIFEST = Object.freeze(KNOWLEDGE_UNIT_REGISTRY.map(unit => Object.freeze({

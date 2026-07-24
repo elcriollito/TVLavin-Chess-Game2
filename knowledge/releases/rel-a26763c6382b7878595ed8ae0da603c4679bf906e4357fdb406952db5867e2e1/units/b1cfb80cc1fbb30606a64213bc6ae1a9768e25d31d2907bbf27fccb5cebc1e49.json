@@ -1,0 +1,240 @@
+{
+  "contentHash": "eafd4b20f9feccebdf35893b57267d05449c285c40de24c4afdc817aa41ff799",
+  "contentVersion": "1.1.0",
+  "id": "ku:endgames:pawn-foundations:direct-opposition",
+  "releaseId": "rel-a26763c6382b7878595ed8ae0da603c4679bf906e4357fdb406952db5867e2e1",
+  "schemaVersion": "1.0.0",
+  "unit": {
+    "contentVersion": "1.1.0",
+    "domain": "endgames",
+    "education": {
+      "difficulty": "foundation",
+      "endgameFamily": "pawn-endgames",
+      "expectedLearnerLevel": "foundation-rules-aware",
+      "knowledgeType": "pattern",
+      "learningObjectives": [
+        "Recognize direct opposition when two kings face each other with one square between them.",
+        "Explain how the side to move changes which king must yield access."
+      ],
+      "masteryCriteria": [
+        "Correctly identifies the presence and holder of direct opposition in four of five mixed-turn diagrams and chooses a legal access-preserving king move in three guided cases."
+      ],
+      "prerequisites": [
+        "ku:endgames:pawn-foundations:activate-the-king"
+      ],
+      "skills": [
+        "pattern-recognition",
+        "calculation"
+      ],
+      "themes": [
+        "opposition",
+        "tempo",
+        "king-activity"
+      ]
+    },
+    "id": "ku:endgames:pawn-foundations:direct-opposition",
+    "integrations": {
+      "academy": {
+        "compatible": true
+      },
+      "capabilities": [
+        "academy-compatible",
+        "deterministic-coaching-prompts",
+        "mastery-criteria",
+        "training-memory-theme-link"
+      ],
+      "coaching": {
+        "conceptIds": [
+          "direct-opposition",
+          "side-to-move"
+        ],
+        "hintOrder": [
+          "observation",
+          "recall",
+          "direction",
+          "decision-process",
+          "reflection"
+        ],
+        "policy": "deterministic-prompt-only"
+      },
+      "mastery": {
+        "criterionIds": [
+          "opposition-4-of-5"
+        ]
+      },
+      "recommendation": {
+        "nextUnitIds": [
+          "ku:endgames:pawn-foundations:key-squares",
+          "ku:endgames:pawn-transformations:reserve-tempo"
+        ],
+        "remediationUnitIds": [
+          "ku:endgames:pawn-foundations:activate-the-king"
+        ]
+      },
+      "trainingMemory": {
+        "themeIds": [
+          "opposition",
+          "tempo"
+        ]
+      }
+    },
+    "learningObjects": {
+      "assessments": [
+        {
+          "criterionId": "opposition-4-of-5",
+          "id": "assessment:opposition:mixed-turn-five"
+        }
+      ],
+      "checksForUnderstanding": [
+        {
+          "id": "check:opposition:definition",
+          "prompt": "State both conditions for direct opposition."
+        }
+      ],
+      "demonstrations": [
+        {
+          "id": "demo:opposition:file-geometry",
+          "positionId": "pos:direct-opposition:file"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "exercise:opposition:near-miss",
+          "positionId": "pos:direct-opposition:near-miss",
+          "task": "Decide whether direct opposition exists before moving."
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "guided:opposition:turn-and-access",
+          "positionId": "pos:direct-opposition:file",
+          "prompt": "Name geometry, turn, and opened route."
+        }
+      ],
+      "reviewItems": []
+    },
+    "localization": {
+      "availableLocales": [
+        "en-US"
+      ],
+      "content": {
+        "en-US": {
+          "coachingPrompts": [
+            "How many squares lie between the kings?",
+            "What two facts define direct opposition?",
+            "Which king is required to move now?",
+            "Use the geometry-turn-access process before choosing a square.",
+            "Which route opened after the king moved?"
+          ],
+          "decisionProcess": [
+            "Locate both kings and the line connecting them.",
+            "Count the square between them and verify direct geometry.",
+            "Identify whose turn it is.",
+            "Calculate which access square opens after the moving king yields."
+          ],
+          "explanation": "Direct opposition occurs when the kings face along one rank or file with exactly one square between them. Because neither king may step next to the other, the side that must move often yields a route. This geometry matters only in context: pawn moves, edge squares, and alternate king routes can change what the tempo achieves. First recognize the pattern, then calculate the available king moves.",
+          "keyIdeas": [
+            "Geometry and side to move are both part of opposition.",
+            "Opposition controls access; it is not itself a declaration of the final result."
+          ],
+          "misconceptions": [
+            "Kings facing each other at any distance are not automatically in direct opposition.",
+            "Having opposition does not guarantee success when the needed entry square is unavailable."
+          ],
+          "practicalRules": [
+            "Confirm one square lies between the kings before naming direct opposition.",
+            "After recognizing it, list the legal king exits rather than assuming a result."
+          ],
+          "reflectionPrompts": [
+            "How would the position’s meaning change if the turn changed?",
+            "Why is opposition an access tool rather than a result label?"
+          ],
+          "summary": "Read king-to-king geometry and the move to understand who must give way.",
+          "title": "Recognize direct opposition"
+        }
+      },
+      "defaultLocale": "en-US",
+      "translationStatus": {
+        "en-US": "ready"
+      }
+    },
+    "positions": [
+      {
+        "expectedConcepts": [
+          "direct-opposition",
+          "side-to-move"
+        ],
+        "fen": "8/8/4k3/8/4K3/8/P7/8 w - - 0 1",
+        "id": "pos:direct-opposition:file",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Kd4"
+            ],
+            "purpose": "Yield sideways and observe which access line changes."
+          }
+        ],
+        "role": "clean-demonstration",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "The kings form exact file opposition; no final-result claim is made.",
+          "structural": "valid"
+        }
+      },
+      {
+        "expectedConcepts": [
+          "diagonal-near-miss",
+          "recognition-boundary"
+        ],
+        "fen": "8/8/5k2/8/3K4/8/P7/8 w - - 0 1",
+        "id": "pos:direct-opposition:near-miss",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Ke4"
+            ],
+            "purpose": "Move toward a direct relationship while distinguishing the starting geometry."
+          }
+        ],
+        "role": "contrast",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "The diagonal king placement is a deliberate non-example of direct opposition.",
+          "structural": "valid"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "reason": "Opposition becomes purposeful when it helps the king reach a target square.",
+        "targetId": "ku:endgames:pawn-foundations:key-squares",
+        "type": "progression"
+      },
+      {
+        "reason": "Key squares are the next application of controlled king access.",
+        "targetId": "ku:endgames:pawn-foundations:key-squares",
+        "type": "recommendation"
+      },
+      {
+        "reason": "Reserve tempi extend side-to-move control by preserving a pawn move until opposition becomes critical.",
+        "targetId": "ku:endgames:pawn-transformations:reserve-tempo",
+        "type": "recommendation"
+      },
+      {
+        "reason": "After reading opposition geometry, learners can use a stored pawn move to transfer the move obligation.",
+        "targetId": "ku:endgames:pawn-transformations:reserve-tempo",
+        "type": "progression"
+      },
+      {
+        "reason": "If the learner sees the pattern but cannot choose a route, revisit the purpose of king activity.",
+        "targetId": "ku:endgames:pawn-foundations:activate-the-king",
+        "type": "remediation"
+      }
+    ],
+    "schemaVersion": "1.0.0",
+    "slug": "direct-opposition",
+    "status": "published"
+  }
+}

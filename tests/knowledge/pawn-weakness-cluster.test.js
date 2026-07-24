@@ -54,12 +54,12 @@ test('graph keeps isolated and backward definitions separate with minimal prereq
     assert.ok(bySlug('fix-pawn-weakness').relationships.some(edge => edge.targetId.includes('pawn-foundations')));
 });
 
-test('consumer exposes thirteen units, weakness facets, and authored reverse edges', () => {
+test('consumer exposes all published units, weakness facets, and authored reverse edges', () => {
     const snapshot = buildLibrarySnapshot();
     const verified = verifySnapshotFiles(snapshot.files, snapshot.releaseId);
     assert.equal(verified.valid, true);
     const reader = createLibraryReader(verified.data);
-    assert.equal(reader.listUnitsByDomain('endgames').length, 13);
+    assert.equal(reader.listUnitsByDomain('endgames').length, 17);
     assert.equal(reader.filterUnits({ theme: 'isolated-pawn' }).length, 1);
     assert.equal(reader.filterUnits({ theme: 'backward-pawn' }).length, 1);
     for (const unit of KNOWLEDGE_UNIT_REGISTRY) {

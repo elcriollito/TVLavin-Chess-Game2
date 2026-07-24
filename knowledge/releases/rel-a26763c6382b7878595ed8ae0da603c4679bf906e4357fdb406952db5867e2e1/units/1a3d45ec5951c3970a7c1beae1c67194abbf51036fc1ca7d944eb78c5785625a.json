@@ -1,0 +1,257 @@
+{
+  "contentHash": "30c898a7b58229541fcf3b9e498bcca38130f139d8a8dff355377bd93424b159",
+  "contentVersion": "1.0.0",
+  "id": "ku:endgames:pawn-exchanges:favorable-king-ending",
+  "releaseId": "rel-a26763c6382b7878595ed8ae0da603c4679bf906e4357fdb406952db5867e2e1",
+  "schemaVersion": "1.0.0",
+  "unit": {
+    "contentVersion": "1.0.0",
+    "domain": "endgames",
+    "education": {
+      "difficulty": "intermediate",
+      "endgameFamily": "pawn-endgames",
+      "expectedLearnerLevel": "foundation-rules-aware",
+      "knowledgeType": "decision-rule",
+      "learningObjectives": [
+        "Compare current and resulting pawn structures before simplifying.",
+        "Accept or reject simplification using king access, opposition, key squares, reserve tempi, and races."
+      ],
+      "masteryCriteria": [
+        "Names at least four changed features after simplification in four of five comparisons.",
+        "Selects the favorable transition or rejects a merely simpler ending in three of four tasks without a final hint."
+      ],
+      "prerequisites": [
+        "ku:endgames:pawn-foundations:activate-the-king",
+        "ku:endgames:pawn-foundations:direct-opposition"
+      ],
+      "skills": [
+        "calculation",
+        "planning",
+        "move-order"
+      ],
+      "themes": [
+        "favorable-simplification",
+        "exchange-decision",
+        "king-activity",
+        "opposition",
+        "key-squares"
+      ]
+    },
+    "id": "ku:endgames:pawn-exchanges:favorable-king-ending",
+    "integrations": {
+      "academy": {
+        "compatible": true
+      },
+      "capabilities": [
+        "academy-compatible",
+        "deterministic-coaching-prompts",
+        "mastery-criteria",
+        "training-memory-theme-link"
+      ],
+      "coaching": {
+        "conceptIds": [
+          "favorable-simplification",
+          "before-after",
+          "king-access"
+        ],
+        "hintOrder": [
+          "observation",
+          "structural-classification",
+          "candidate-identification",
+          "before-after-calculation",
+          "decision-process",
+          "reflection"
+        ],
+        "policy": "deterministic-prompt-only"
+      },
+      "mastery": {
+        "criterionIds": [
+          "simplification-features-4-of-5",
+          "favorable-transition-3-of-4"
+        ]
+      },
+      "recommendation": {
+        "remediationUnitIds": [
+          "ku:endgames:pawn-foundations:activate-the-king",
+          "ku:endgames:pawn-foundations:direct-opposition",
+          "ku:endgames:pawn-foundations:key-squares"
+        ]
+      },
+      "trainingMemory": {
+        "themeIds": [
+          "favorable-simplification",
+          "exchange-decision",
+          "king-activity"
+        ]
+      }
+    },
+    "learningObjects": {
+      "assessments": [
+        {
+          "criterionId": "favorable-transition-3-of-4",
+          "id": "assessment:favorable-ending:three-of-four"
+        }
+      ],
+      "checksForUnderstanding": [
+        {
+          "id": "check:favorable-ending:criteria",
+          "prompt": "Name four features that must be recalculated."
+        }
+      ],
+      "demonstrations": [
+        {
+          "id": "demo:favorable-ending:before-after",
+          "positionId": "pos:favorable-ending:open-king-route"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "exercise:favorable-ending:reject",
+          "positionId": "pos:favorable-ending:advantage-disappears",
+          "task": "Decide whether the exchange improves more than material simplicity."
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "guided:favorable-ending:feature-ledger",
+          "positionId": "pos:favorable-ending:open-king-route",
+          "prompt": "Record every changed feature before evaluating."
+        }
+      ],
+      "reviewItems": [
+        {
+          "conceptIds": [
+            "pawn-tension",
+            "capture-order",
+            "divided-defense",
+            "favorable-simplification"
+          ],
+          "id": "review:pawn-exchanges:bounded-choice"
+        }
+      ]
+    },
+    "localization": {
+      "availableLocales": [
+        "en-US"
+      ],
+      "content": {
+        "en-US": {
+          "coachingPrompts": [
+            "What concrete advantage exists before the exchange?",
+            "What type of king ending would remain?",
+            "Which exchange sequence must be reconstructed?",
+            "What changes in king access, opposition, targets, tempi, and races?",
+            "Use current board, full sequence, rebuilt board, and changed features.",
+            "Did simplification improve the position or only reduce material?"
+          ],
+          "decisionProcess": [
+            "Record the current structure and advantage.",
+            "List the full exchange sequence.",
+            "Reconstruct the resulting board.",
+            "Recalculate king routes, opposition, and key squares.",
+            "Check reserve tempi, weaknesses, and races.",
+            "Compare the measurable advantages before choosing."
+          ],
+          "explanation": "A simpler ending is favorable only when the resulting position preserves or increases the advantage. Every exchange can change king routes, opposition, key squares, reserve tempi, weaknesses, and races. Compare the current board with the reconstructed board after all captures. Do not trade merely because you are ahead; simplify when the resulting king ending gives a measurable access, structure, or race benefit.",
+          "keyIdeas": [
+            "Simplification is an irreversible transition evaluated on the resulting board.",
+            "King activity and move order can outweigh the reduction in pawn count."
+          ],
+          "misconceptions": [
+            "Trading pawns when ahead is not a universal rule.",
+            "Fewer pawns do not guarantee easier conversion if the only target or reserve tempo disappears."
+          ],
+          "practicalRules": [
+            "Simplify when the resulting king access, target, or race is clearer and favorable.",
+            "Reject exchanges that improve only neatness while surrendering opposition or key squares."
+          ],
+          "reflectionPrompts": [
+            "Which lost feature would make the transition unfavorable?",
+            "What measurable access or race benefit justifies simplifying?"
+          ],
+          "summary": "Trade only when the resulting pawn ending improves concrete king access and structural prospects.",
+          "title": "Simplify into a favorable king ending"
+        }
+      },
+      "defaultLocale": "en-US",
+      "translationStatus": {
+        "en-US": "ready"
+      }
+    },
+    "positions": [
+      {
+        "expectedConcepts": [
+          "favorable-simplification",
+          "king-route",
+          "resulting-structure"
+        ],
+        "fen": "8/8/5k2/3p4/2P1P3/3K4/8/8 w - - 0 1",
+        "id": "pos:favorable-ending:open-king-route",
+        "principalIdeas": [
+          {
+            "moves": [
+              "cxd5"
+            ],
+            "purpose": "Clarify the center and evaluate the newly opened king route and remaining e-pawn."
+          }
+        ],
+        "role": "clean-demonstration",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "The legal capture and structural transition are verified; no tablebase result claimed.",
+          "structural": "valid"
+        }
+      },
+      {
+        "expectedConcepts": [
+          "unfavorable-clarification",
+          "opposition-change",
+          "lost-target"
+        ],
+        "fen": "8/8/3k4/3p4/2P1P3/3K4/8/8 w - - 0 1",
+        "id": "pos:favorable-ending:advantage-disappears",
+        "principalIdeas": [
+          {
+            "moves": [
+              "cxd5"
+            ],
+            "purpose": "Test a similar exchange with a differently placed defender and recalculate access."
+          }
+        ],
+        "role": "contrast",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "Changed king geometry makes this a distinct before-and-after comparison; no final-result claim.",
+          "structural": "valid"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "reason": "If simplification worsens king access, revisit purposeful king activation.",
+        "targetId": "ku:endgames:pawn-foundations:activate-the-king",
+        "type": "remediation"
+      },
+      {
+        "reason": "If the exchange loses move-order access, revisit opposition and side to move.",
+        "targetId": "ku:endgames:pawn-foundations:direct-opposition",
+        "type": "remediation"
+      },
+      {
+        "reason": "If the resulting king has no destination, revisit target-square evaluation.",
+        "targetId": "ku:endgames:pawn-foundations:key-squares",
+        "type": "remediation"
+      },
+      {
+        "reason": "Simplification can remove or create waiting moves that change the resulting king contest.",
+        "targetId": "ku:endgames:pawn-transformations:reserve-tempo",
+        "type": "related"
+      }
+    ],
+    "schemaVersion": "1.0.0",
+    "slug": "favorable-king-ending",
+    "status": "published"
+  }
+}

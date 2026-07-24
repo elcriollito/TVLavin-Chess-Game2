@@ -1,0 +1,185 @@
+{
+  "contentHash": "4457e29d53f6c0f2415127409cea5708d1437a49013cd9ed3e0991da2ac37ae6",
+  "contentVersion": "1.3.0",
+  "id": "ku:endgames:pawn-foundations:rule-of-the-square",
+  "releaseId": "rel-a26763c6382b7878595ed8ae0da603c4679bf906e4357fdb406952db5867e2e1",
+  "schemaVersion": "1.0.0",
+  "unit": {
+    "contentVersion": "1.3.0",
+    "domain": "endgames",
+    "education": {
+      "difficulty": "foundation",
+      "endgameFamily": "pawn-endgames",
+      "expectedLearnerLevel": "foundation-rules-aware",
+      "knowledgeType": "decision-rule",
+      "learningObjectives": [
+        "Construct the pawn square from the pawn to its promotion rank.",
+        "Decide whether the defending king can enter that square on its move."
+      ],
+      "masteryCriteria": [
+        "Correctly applies the square test in four of five structurally valid positions without a hint."
+      ],
+      "prerequisites": [],
+      "skills": [
+        "board-geometry",
+        "calculation"
+      ],
+      "themes": [
+        "pawn-races",
+        "king-activity"
+      ]
+    },
+    "id": "ku:endgames:pawn-foundations:rule-of-the-square",
+    "integrations": {
+      "academy": {
+        "compatible": true
+      },
+      "capabilities": [
+        "academy-compatible",
+        "deterministic-coaching-prompts",
+        "mastery-criteria",
+        "recommendation-entry-unit",
+        "training-memory-theme-link"
+      ],
+      "coaching": {
+        "conceptIds": [
+          "pawn-square-boundary"
+        ],
+        "policy": "deterministic-prompt-only"
+      },
+      "mastery": {
+        "criterionIds": [
+          "square-test-4-of-5"
+        ]
+      },
+      "recommendation": {
+        "entryUnit": true,
+        "nextUnitIds": [
+          "ku:endgames:pawn-foundations:activate-the-king",
+          "ku:endgames:pawn-transformations:outside-passed-pawn"
+        ]
+      },
+      "trainingMemory": {
+        "themeIds": [
+          "king-activity"
+        ]
+      }
+    },
+    "learningObjects": {
+      "assessments": [],
+      "checksForUnderstanding": [
+        {
+          "id": "check:identify-boundary",
+          "promptKey": "decisionProcess.1"
+        }
+      ],
+      "demonstrations": [
+        {
+          "id": "demo:construct-square",
+          "positionId": "pos:rule-square:a-pawn-white-king-outside"
+        }
+      ],
+      "exercises": [],
+      "guidedPractice": [],
+      "reviewItems": []
+    },
+    "localization": {
+      "availableLocales": [
+        "en-US"
+      ],
+      "content": {
+        "en-US": {
+          "coachingPrompts": [
+            "Where is the nearest boundary of the pawn’s square for the defending king?"
+          ],
+          "decisionProcess": [
+            "Locate the promotion square.",
+            "Build the geometric square.",
+            "Account for the side to move.",
+            "Check for tactical exceptions before deciding."
+          ],
+          "explanation": "Imagine a square whose side runs from the pawn to its promotion rank. Extend the same distance sideways. If the defending king can step into that area on its turn, the king can usually approach in time; if it cannot, the pawn usually outruns the king. Rebuild the square after every pawn move and calculate when checks, captures, or supporting kings change the race.",
+          "keyIdeas": [
+            "The remaining distance to promotion sets the square’s width.",
+            "Whose turn it is can move the boundary by one tempo."
+          ],
+          "misconceptions": [
+            "The rule is not a verdict when another piece, a checking move, or an occupied promotion path changes the race."
+          ],
+          "practicalRules": [
+            "Count the pawn’s remaining moves, then compare that count with the king’s shortest route."
+          ],
+          "reflectionPrompts": [
+            "Which single tempo would reverse your conclusion?"
+          ],
+          "summary": "Use board geometry to estimate whether a king can catch a lone advancing pawn.",
+          "title": "The pawn’s square"
+        }
+      },
+      "defaultLocale": "en-US",
+      "translationStatus": {
+        "en-US": "ready"
+      }
+    },
+    "positions": [
+      {
+        "expectedConcepts": [
+          "pawn-square-boundary",
+          "tempo"
+        ],
+        "fen": "k7/8/8/8/p7/8/8/7K w - - 0 1",
+        "id": "pos:rule-square:a-pawn-white-king-outside",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Kh2"
+            ],
+            "purpose": "Test whether the king’s shortest route reaches the square after the pawn advances."
+          }
+        ],
+        "role": "recognition-example",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "Repository validation proves legal structure only; the bounded teaching claim was reviewed separately.",
+          "structural": "valid"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "reason": "After measuring whether a king can catch a pawn, the learner can plan how to improve that king.",
+        "targetId": "ku:endgames:pawn-foundations:activate-the-king",
+        "type": "progression"
+      },
+      {
+        "reason": "King activation is the normal next unit for turning geometric recognition into a plan.",
+        "targetId": "ku:endgames:pawn-foundations:activate-the-king",
+        "type": "recommendation"
+      },
+      {
+        "reason": "Outside-passer play applies square counting to a chase, return route, and opposite-wing target.",
+        "targetId": "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "type": "recommendation"
+      },
+      {
+        "reason": "After learning a single pawn race boundary, learners can calculate a remote passer as part of a two-wing plan.",
+        "targetId": "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "type": "progression"
+      },
+      {
+        "reason": "Majority play applies pawn-square geometry after exchanges create a candidate passer.",
+        "targetId": "ku:endgames:pawn-weaknesses:pawn-majority",
+        "type": "recommendation"
+      },
+      {
+        "reason": "After exact single-pawn races, learners can calculate whether a local majority produces a viable passer.",
+        "targetId": "ku:endgames:pawn-weaknesses:pawn-majority",
+        "type": "progression"
+      }
+    ],
+    "schemaVersion": "1.0.0",
+    "slug": "rule-of-the-square",
+    "status": "published"
+  }
+}

@@ -1,0 +1,242 @@
+{
+  "contentHash": "ebb0930c5069ec5cb3e830ce5c5f4be471ecdca7e622f5d2ab48d71640635c64",
+  "contentVersion": "1.1.0",
+  "id": "ku:endgames:pawn-transformations:reserve-tempo",
+  "releaseId": "rel-a26763c6382b7878595ed8ae0da603c4679bf906e4357fdb406952db5867e2e1",
+  "schemaVersion": "1.0.0",
+  "unit": {
+    "contentVersion": "1.1.0",
+    "domain": "endgames",
+    "education": {
+      "difficulty": "developing",
+      "endgameFamily": "pawn-endgames",
+      "expectedLearnerLevel": "foundation-rules-aware",
+      "knowledgeType": "technique",
+      "learningObjectives": [
+        "Recognize a harmless pawn move that can be preserved to transfer the move obligation.",
+        "Compare spending and preserving a reserve tempo before changing the pawn structure."
+      ],
+      "masteryCriteria": [
+        "Identifies the available reserve tempo and explains its move-order effect in four of five varied positions.",
+        "Preserves or spends the waiting move correctly in three of four independent tasks without a final-move hint."
+      ],
+      "prerequisites": [
+        "ku:endgames:pawn-foundations:direct-opposition"
+      ],
+      "skills": [
+        "move-order",
+        "calculation",
+        "planning"
+      ],
+      "themes": [
+        "tempo",
+        "opposition",
+        "zugzwang",
+        "pawn-structure"
+      ]
+    },
+    "id": "ku:endgames:pawn-transformations:reserve-tempo",
+    "integrations": {
+      "academy": {
+        "compatible": true
+      },
+      "capabilities": [
+        "academy-compatible",
+        "deterministic-coaching-prompts",
+        "mastery-criteria",
+        "training-memory-theme-link"
+      ],
+      "coaching": {
+        "conceptIds": [
+          "reserve-tempo",
+          "move-obligation"
+        ],
+        "hintOrder": [
+          "observation",
+          "structural-recognition",
+          "candidate-identification",
+          "calculation-direction",
+          "decision-process",
+          "reflection"
+        ],
+        "policy": "deterministic-prompt-only"
+      },
+      "mastery": {
+        "criterionIds": [
+          "reserve-tempo-recognition-4-of-5",
+          "reserve-tempo-use-3-of-4"
+        ]
+      },
+      "recommendation": {
+        "nextUnitIds": [
+          "ku:endgames:pawn-transformations:protected-passed-pawn"
+        ],
+        "remediationUnitIds": [
+          "ku:endgames:pawn-foundations:direct-opposition"
+        ]
+      },
+      "trainingMemory": {
+        "themeIds": [
+          "tempo",
+          "opposition",
+          "zugzwang"
+        ]
+      }
+    },
+    "learningObjects": {
+      "assessments": [
+        {
+          "criterionId": "reserve-tempo-recognition-4-of-5",
+          "id": "assessment:reserve-tempo:four-of-five"
+        }
+      ],
+      "checksForUnderstanding": [
+        {
+          "id": "check:reserve-tempo:conditions",
+          "prompt": "Name the timing benefit and the structural cost that must be checked."
+        }
+      ],
+      "demonstrations": [
+        {
+          "id": "demo:reserve-tempo:transfer",
+          "positionId": "pos:reserve-tempo:waiting-move"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "exercise:reserve-tempo:spent",
+          "positionId": "pos:reserve-tempo:already-spent",
+          "task": "Explain what move-order resource is missing."
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "guided:reserve-tempo:compare",
+          "positionId": "pos:reserve-tempo:waiting-move",
+          "prompt": "Compare using the wing pawn now with preserving it."
+        }
+      ],
+      "reviewItems": []
+    },
+    "localization": {
+      "availableLocales": [
+        "en-US"
+      ],
+      "content": {
+        "en-US": {
+          "coachingPrompts": [
+            "Which pawn still has a harmless move available?",
+            "What structural feature makes that move a reserve tempo?",
+            "Which candidate keeps the waiting move and which candidate spends it?",
+            "When would changing whose turn it is alter the king contest?",
+            "Compare preserve, transfer, and recalculate before choosing.",
+            "What changed in the king geometry after the waiting move?"
+          ],
+          "decisionProcess": [
+            "Identify pawn moves that do not damage the current structure.",
+            "Check whether moving first changes opposition, access, or zugzwang.",
+            "Preserve the waiting move until transferring the move obligation has a concrete purpose.",
+            "Recalculate the king routes before spending it."
+          ],
+          "explanation": "A reserve tempo is a pawn move that can wait without immediately changing the critical structure. In positions where the kings are contesting access, spending that move at the right moment may pass the move obligation back to the opponent. This is an exact move-order effect in a calculated position, not a universal promise of zugzwang. Preserve flexibility while the waiting move still matters, and recalculate the king geometry before using it.",
+          "keyIdeas": [
+            "A reserve tempo has value because it changes who must move in the critical position.",
+            "The pawn move is useful only if its structural cost does not outweigh its timing benefit."
+          ],
+          "misconceptions": [
+            "Every legal pawn move is not a reserve tempo; an irreversible push may surrender a square or create a target.",
+            "A waiting move does not automatically win opposition if the opponent has another useful move or route."
+          ],
+          "practicalRules": [
+            "Usually preserve harmless pawn flexibility until the king geometry makes the move obligation important.",
+            "Before spending a reserve tempo, check every reply and whether the intended opposition still matters."
+          ],
+          "reflectionPrompts": [
+            "What would be lost by spending the pawn move one turn earlier?",
+            "Which defender resource would make the waiting move ineffective?"
+          ],
+          "summary": "Save a harmless pawn move until changing the move obligation changes the king contest.",
+          "title": "Preserve a reserve tempo"
+        }
+      },
+      "defaultLocale": "en-US",
+      "translationStatus": {
+        "en-US": "ready"
+      }
+    },
+    "positions": [
+      {
+        "expectedConcepts": [
+          "reserve-tempo",
+          "move-obligation",
+          "opposition"
+        ],
+        "fen": "8/8/3k4/8/3Kp3/4P3/P7/8 w - - 0 1",
+        "id": "pos:reserve-tempo:waiting-move",
+        "principalIdeas": [
+          {
+            "moves": [
+              "a3"
+            ],
+            "purpose": "Use the preserved wing-pawn move without altering the central pawn contact."
+          }
+        ],
+        "role": "clean-demonstration",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "Legality and the transfer of the move are verified; no universal result claim is attached.",
+          "structural": "valid"
+        }
+      },
+      {
+        "expectedConcepts": [
+          "spent-reserve-tempo",
+          "move-order-consequence"
+        ],
+        "fen": "8/8/3k4/8/3Kp3/P3P3/8/8 w - - 0 1",
+        "id": "pos:reserve-tempo:already-spent",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Kxe4"
+            ],
+            "purpose": "Show that the stored wing-pawn option is no longer available in the comparison position."
+          }
+        ],
+        "role": "contrast",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "The a-pawn has already advanced, materially changing the available waiting moves.",
+          "structural": "valid"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "reason": "After preserving a waiting move, compare the distinct choice of preserving unresolved pawn captures.",
+        "targetId": "ku:endgames:pawn-exchanges:pawn-tension",
+        "type": "recommendation"
+      },
+      {
+        "reason": "After controlling move obligation, learners can study how pawn structure restricts king routes.",
+        "targetId": "ku:endgames:pawn-transformations:protected-passed-pawn",
+        "type": "progression"
+      },
+      {
+        "reason": "Learners who cannot explain the transferred obligation should revisit opposition geometry and side to move.",
+        "targetId": "ku:endgames:pawn-foundations:direct-opposition",
+        "type": "remediation"
+      },
+      {
+        "reason": "Both units compare irreversible pawn moves with king improvement.",
+        "targetId": "ku:endgames:pawn-foundations:convert-with-king-support",
+        "type": "related"
+      }
+    ],
+    "schemaVersion": "1.0.0",
+    "slug": "reserve-tempo",
+    "status": "published"
+  }
+}

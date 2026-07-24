@@ -1,7 +1,7 @@
 /** @type {import('../../../../schema/knowledge-unit.js').KnowledgeUnit} */
 export const pawnMajority = {
     id: 'ku:endgames:pawn-weaknesses:pawn-majority', slug: 'pawn-majority', domain: 'endgames',
-    status: 'published', schemaVersion: '1.0.0', contentVersion: '1.0.0',
+    status: 'published', schemaVersion: '1.0.0', contentVersion: '1.1.0',
     education: {
         knowledgeType: 'technique', endgameFamily: 'pawn-endgames',
         themes: ['pawn-majority', 'passed-pawns', 'pawn-races', 'pawn-structure'],
@@ -38,6 +38,7 @@ export const pawnMajority = {
         reviewItems: []
     },
     relationships: [
+        { type: 'recommendation', targetId: 'ku:endgames:pawn-exchanges:exchange-into-passer', reason: 'After mobilizing a majority, calculate the concrete capture order that determines the surviving passer.' },
         { type: 'related', targetId: 'ku:endgames:pawn-transformations:outside-passed-pawn', reason: 'A mobile wing majority may create the distant passer used for diversion.' },
         { type: 'contrast', targetId: 'ku:endgames:pawn-transformations:pawn-breakthrough', reason: 'Majority play normally preserves connected mobility; breakthrough deliberately sacrifices material to transform locked contacts.' },
         { type: 'progression', targetId: 'ku:endgames:pawn-weaknesses:fix-pawn-weakness', reason: 'After learning to mobilize one structure, learners study how to stop an opposing structure from escaping.' },
