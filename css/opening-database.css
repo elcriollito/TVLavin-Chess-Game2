@@ -24,6 +24,24 @@
   max-width: 980px;
 }
 
+.openingdb-header .openingdb-eco-reference {
+  margin-top: -6px;
+}
+
+.openingdb-eco-reference a {
+  color: #9ad7ff;
+  text-underline-offset: 3px;
+}
+
+.openingdb-eco-reference a:hover {
+  color: #c7eaff;
+}
+
+.openingdb-eco-reference a:focus-visible {
+  outline: 2px solid rgba(154, 215, 255, 0.9);
+  outline-offset: 2px;
+}
+
 .openingdb-top-area {
   display: grid;
   grid-template-columns: minmax(360px, 6in) minmax(0, 1fr);

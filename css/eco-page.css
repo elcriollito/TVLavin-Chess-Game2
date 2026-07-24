@@ -1,4 +1,6 @@
 .eco-root {
+  box-sizing: border-box;
+  width: 100%;
   max-width: 1460px;
   margin: 0 auto;
   padding: 24px;
@@ -9,10 +11,38 @@
 }
 
 .eco-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
   margin-bottom: 16px;
+}
+
+.eco-header h1 {
+  margin: 0 0 8px;
+}
+
+.eco-intro {
+  max-width: 900px;
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.eco-intro a,
+.eco-explainer a {
+  color: #9ad7ff;
+  text-underline-offset: 3px;
+}
+
+.eco-intro a:hover,
+.eco-explainer a:hover {
+  color: #c7eaff;
+}
+
+.eco-intro a:focus-visible,
+.eco-explainer a:focus-visible,
+.eco-row:focus-visible,
+.eco-tab:focus-visible,
+#ecoSearch:focus-visible {
+  outline: 2px solid rgba(154, 215, 255, 0.9);
+  outline-offset: 2px;
 }
 
 .eco-back-inline {
@@ -423,27 +453,64 @@
   font-size: 12px;
 }
 
+.eco-explainer {
+  max-width: 920px;
+  margin-top: 24px;
+  padding: 18px 20px;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: var(--panel-bg);
+}
+
+.eco-explainer h2 {
+  margin: 0 0 10px;
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.eco-explainer p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.eco-explainer p + p {
+  margin-top: 10px;
+}
+
 @media (max-width: 840px) {
   .eco-root {
     padding: 14px;
   }
 
   .eco-header {
-    align-items: flex-start;
-    flex-wrap: wrap;
+    margin-bottom: 14px;
   }
 
   .eco-header h1 {
+    width: calc(100% - 52px);
+    margin-left: 52px;
     font-size: 24px;
     line-height: 1.15;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .eco-header h1 span {
+    display: block;
   }
 
   .eco-toolbar {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    max-width: 100%;
   }
 
   #ecoSearch {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
     flex-basis: auto;
     min-height: 44px;
     font-size: 16px;
@@ -487,6 +554,7 @@
 
   .eco-name {
     grid-area: name;
+    overflow-wrap: anywhere;
   }
 
   .eco-moves {
@@ -549,6 +617,15 @@
 
   .eco-cont-meta {
     flex-wrap: wrap;
+  }
+
+  .eco-explainer {
+    margin-top: 16px;
+    padding: 16px;
+  }
+
+  .eco-explainer h2 {
+    font-size: 20px;
   }
 }
 
