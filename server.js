@@ -391,6 +391,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/opening-database' || pathname === '/opening-database/') {
     filePath = './opening-database.html';
   }
+  if (pathname === '/tools/polyglot') {
+    filePath = './polyglot.html';
+  }
 
   const extname = String(path.extname(filePath)).toLowerCase();
   const mimeType = MIME_TYPES[extname] || 'application/octet-stream';

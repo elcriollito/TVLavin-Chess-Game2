@@ -4,7 +4,6 @@ const form = document.getElementById('polyForm');
 const pgnFileInput = document.getElementById('pgnFile');
 const maxPlyInput = document.getElementById('maxPly');
 const minCountInput = document.getElementById('minCount');
-const normalizeInput = document.getElementById('normalize');
 const sideInput = document.getElementById('side');
 const buildLog = document.getElementById('buildLog');
 const resultRow = document.getElementById('resultRow');
@@ -69,7 +68,6 @@ async function handleBuildRequest(event) {
         options: {
             maxPly: Number(maxPlyInput.value || 160),
             minCount: Number(minCountInput.value || 1),
-            normalize: normalizeInput.value || 'cap',
             side: sideInput.value || 'both'
         }
     };
