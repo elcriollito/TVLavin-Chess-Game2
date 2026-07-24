@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Browse CAISSA's immutable endgame knowledge release.">
+  <title>Endgame Library | CAISSA Chess</title>
+  <link rel="stylesheet" href="/css/chessboard-1.0.0.min.css">
+  <link rel="stylesheet" href="/css/endgame-library.css">
+  <script type="importmap">{"imports":{"chess.js":"https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm"}}</script>
+</head>
+<body>
+  <a class="skip-link" href="#library-main">Skip to library</a>
+  <header class="library-header">
+    <a class="brand" href="/" aria-label="CAISSA Chess home">CAISSA <span>Chess</span></a>
+    <nav aria-label="Primary navigation">
+      <a href="/endgame-trainer">Endgame Trainer</a>
+      <a href="/endgame-library" aria-current="page">Endgame Library</a>
+      <a href="/blog.html">Learn</a>
+    </nav>
+  </header>
+
+  <main id="library-main" class="library-shell" tabindex="-1">
+    <section class="hero" aria-labelledby="library-title">
+      <p class="eyebrow">Season 9.1 · Read-only knowledge</p>
+      <h1 id="library-title" tabindex="-1">Endgame Library</h1>
+      <p>Explore a verified, immutable collection of endgame concepts. This library is for study and reference; it does not change training progress or mastery.</p>
+      <p class="release-note" id="release-note">Loading pinned release…</p>
+    </section>
+
+    <section id="loading-state" class="state-card" role="status">
+      <span class="spinner" aria-hidden="true"></span> Loading the endgame library…
+    </section>
+    <section id="error-state" class="state-card error-card" hidden>
+      <h2>Library unavailable</h2>
+      <p id="error-message">The pinned release could not be loaded.</p>
+      <button id="retry-button" type="button">Try again</button>
+    </section>
+
+    <div id="library-content" hidden>
+      <details class="filters-panel" open>
+        <summary>Search and filters</summary>
+        <form id="library-filters">
+          <label class="search-field">Search
+            <input id="filter-query" name="query" type="search" placeholder="Try opposition or pawn race" autocomplete="off">
+          </label>
+          <label>Difficulty
+            <select id="filter-difficulty" name="difficulty"><option value="">All difficulties</option></select>
+          </label>
+          <label>Learner level
+            <select id="filter-level" name="learnerLevel"><option value="">All levels</option></select>
+          </label>
+          <label>Theme
+            <select id="filter-theme" name="theme"><option value="">All themes</option></select>
+          </label>
+          <label>Skill
+            <select id="filter-skill" name="skill"><option value="">All skills</option></select>
+          </label>
+          <button class="secondary-button" id="reset-filters" type="reset">Reset</button>
+        </form>
+      </details>
+
+      <div class="results-heading">
+        <h2>Browse concepts</h2>
+        <p id="result-count" role="status" aria-live="polite"></p>
+      </div>
+      <div id="cluster-nav" class="cluster-nav" aria-label="Endgame topic groups"></div>
+      <div id="library-results"></div>
+      <section id="empty-state" class="state-card" hidden>
+        <h2>No matching concepts</h2>
+        <p>Try a broader search or clear one of your filters.</p>
+        <button id="empty-reset" type="button">Reset filters</button>
+      </section>
+    </div>
+
+    <section id="unit-detail" class="unit-detail" hidden aria-labelledby="detail-title"></section>
+    <section id="missing-state" class="state-card" hidden>
+      <h2>Concept not found</h2>
+      <p>This concept is not part of the pinned library release.</p>
+      <a class="button-link" href="/endgame-library">Back to the library</a>
+    </section>
+  </main>
+
+  <script src="/js/jquery-3.7.1.min.js"></script>
+  <script src="/js/chessboard-1.0.0.min.js"></script>
+  <script type="module" src="/js/endgame-library/endgame-library-page.js"></script>
+</body>
+</html>

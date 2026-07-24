@@ -6,7 +6,8 @@
             ['yahooClassic', 'CAISSA Classic', 'fas fa-window-restore', '/?section=yahooClassic'],
             ['play', 'Play', 'fas fa-play-circle', '/?section=play'],
             ['mentor', 'Mentor', 'fas fa-graduation-cap', '/?section=mentor', 'nav-item-tool'],
-            ['academy', 'Academy', 'fas fa-graduation-cap', '/?section=academy']
+            ['academy', 'Academy', 'fas fa-graduation-cap', '/?section=academy'],
+            ['endgame-library', 'Endgame Library', 'fas fa-book-reader', '/endgame-library', 'nav-item-external']
         ],
         [
             ['insights', 'Insights', 'fas fa-brain', '/?section=insights'],

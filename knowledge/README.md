@@ -28,6 +28,13 @@ Consumers explicitly load a release ID through
 `consumer/library-reader.js`; they do not import authored units or resolve a
 mutable “latest” release.
 
+The Season 9.1 read-only browser at `/endgame-library` is pinned to the current
+17-unit immutable release. Its narrow fetch adapter reads release artifacts
+only; it cannot read authoring sources or write knowledge or learner state. See
+`docs/architecture/SEASON_9_1_READ_ONLY_ENDGAME_LIBRARY_MVP.md` for its boundary,
+presentation-only cluster mapping, Board API integration, and verification
+contract.
+
 Authors start with `knowledge/AUTHORING.md`, inspect active values through the
 draft scaffold, and run `npm run knowledge:editorial:report` before publication.
 The scaffold creates no prose, chess positions, relationships, or review
