@@ -5,6 +5,12 @@
  */
 
 export default function handler(req, res) {
+    const requestUrl = new URL(req.url || '/', 'https://www.caissa-chess.org');
+    if (requestUrl.searchParams.get('classicRedirect') === '1') {
+        res.setHeader('Location', '/yahoo-classic');
+        return res.status(308).end();
+    }
+
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
     }

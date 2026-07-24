@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { load } from 'cheerio';
-import yahooClassicRedirect from '../api/yahoo-classic-redirect.js';
+import publicAuthConfig from '../api/public-auth-config.js';
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const production = 'https://www.caissa-chess.org';
@@ -70,7 +70,7 @@ test('canonical route and legacy query state consolidate without sitemap duplica
   assert.ok(vercel.rewrites.some(rule => rule.source === '/yahoo-classic' && rule.destination === '/yahoo-classic.html'));
   assert.ok(vercel.rewrites.some(rule =>
     rule.source === '/'
-    && rule.destination === '/api/yahoo-classic-redirect'
+    && rule.destination === '/api/public-auth-config?classicRedirect=1'
     && rule.has?.some(condition => condition.key === 'section' && condition.value === 'yahooClassic')
   ));
   assert.match(server, /searchParams\.get\('section'\) === 'yahooClassic'/);
@@ -92,10 +92,30 @@ test('legacy query redirect returns a clean permanent canonical location', () =>
       return response;
     }
   };
-  yahooClassicRedirect({}, response);
+  publicAuthConfig({ method: 'GET', url: '/api/public-auth-config?classicRedirect=1&section=yahooClassic' }, response);
   assert.equal(statusCode, 308);
   assert.equal(headers.get('location'), '/yahoo-classic');
   assert.equal(ended, true);
+});
+
+test('public auth configuration retains its normal non-redirect response', () => {
+  let statusCode;
+  let payload;
+  const response = {
+    status: code => {
+      statusCode = code;
+      return response;
+    },
+    json: value => {
+      payload = value;
+      return response;
+    }
+  };
+  publicAuthConfig({ method: 'GET', url: '/api/public-auth-config' }, response);
+  assert.equal(statusCode, 200);
+  assert.equal(typeof payload, 'object');
+  assert.equal(Object.hasOwn(payload, 'clerkPublishableKey'), true);
+  assert.equal(Object.hasOwn(payload, 'registrationTracking'), true);
 });
 
 test('public copy makes no prohibited affiliation claim', () => {
