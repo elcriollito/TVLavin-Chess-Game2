@@ -67,7 +67,11 @@ test('canonical route and legacy query state consolidate without sitemap duplica
   assert.ok(!sitemap.includes(`${canonical}/`));
   assert.ok(!sitemap.includes('?section=yahooClassic'));
   assert.ok(vercel.rewrites.some(rule => rule.source === '/yahoo-classic' && rule.destination === '/yahoo-classic.html'));
-  assert.ok(vercel.redirects.some(rule => rule.source === '/' && rule.has?.some(condition => condition.key === 'section' && condition.value === 'yahooClassic')));
+  assert.ok(vercel.redirects.some(rule =>
+    rule.source === '/'
+    && rule.preserveQueryParams === false
+    && rule.has?.some(condition => condition.key === 'section' && condition.value === 'yahooClassic')
+  ));
   assert.match(server, /searchParams\.get\('section'\) === 'yahooClassic'/);
   assert.match(server, /pathname === '\/yahoo-classic'[\s\S]*filePath = '\.\/yahoo-classic\.html'/);
 });
