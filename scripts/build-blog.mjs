@@ -14,7 +14,7 @@ const escape = value => String(value).replace(/[&<>"']/g, character => ({
 }[character]));
 const renderInline = value => {
   const source = String(value);
-  const linkPattern = /\[([^\]]+)\]\((\/[a-z0-9][a-z0-9/-]*)\)/gi;
+  const linkPattern = /\[([^\]]+)\]\((\/(?:[a-z0-9][a-z0-9/-]*)?)\)/gi;
   let output = '';
   let cursor = 0;
   for (const match of source.matchAll(linkPattern)) {

@@ -3,6 +3,130 @@
   "publisher": "CAISSA Chess Editorial",
   "articles": [
     {
+      "slug": "yahoo-chess-spirit-caissa-classic",
+      "title": "The Spirit of Yahoo Chess Lives Again in CAISSA Classic",
+      "seoTitle": "Yahoo Chess Alternative: Rediscover Classic Chess Rooms",
+      "description": "Remember Yahoo Chess rooms and see how independent CAISSA Classic brings social lobbies, visible tables and a retro chess atmosphere to today's players.",
+      "excerpt": "Many players remember Yahoo Chess as a place of rooms, tables and familiar names. Explore the independent tribute behind CAISSA Classic.",
+      "category": "Online Chess History",
+      "tags": ["Yahoo Chess", "CAISSA Classic", "Online Chess", "Chess Rooms", "Chess Community", "Retro Chess", "Internet History"],
+      "author": "CAISSA Chess Editorial",
+      "publishedDate": "2026-07-24",
+      "modifiedDate": "2026-07-24",
+      "featuredImage": "/assets/blog/classic-online-chess-room-nostalgia.webp",
+      "featuredImageAlt": "Retro computer displaying a social online chess room inspired by early internet communities",
+      "featuredImageWidth": 1440,
+      "featuredImageHeight": 960,
+      "introduction": [
+        "Entering an early online chess room felt different from pressing a modern pairing button. A list of player names filled the screen. Tables showed who was playing, who was watching, and where a seat remained open. Ratings, challenges, conversation, and the small rituals of joining a room made the surrounding space part of the game.",
+        "Many players remember Yahoo Chess in those terms: not only as a board, but as a place where regular opponents became recognizable and an evening could begin by looking around. [CAISSA Classic](/yahoo-classic) is an independent tribute to that room-based style of online chess. It draws on the social idea without claiming to be Yahoo Chess, an authorized recreation, or an official continuation."
+      ],
+      "body": [
+        {
+          "heading": "Why Yahoo Chess Meant More Than a Chessboard",
+          "subheading": "Rooms turned online play into a place",
+          "paragraphs": [
+            "Yahoo Chess belonged to a period when joining an online game often began in a shared room. The room provided context before the first move: players could see names, notice active tables, consider challenges, and decide whether to play or remain a spectator. That public layer made chess feel less like an isolated transaction and more like visiting a club.",
+            "Recognition mattered. A familiar username could signal a regular opponent, a strong player worth watching, or simply someone who appeared at the same hour. Tables made games visible to the surrounding room, so observation became part of participation. Players could learn the character of a community without immediately entering a match.",
+            "The service was not perfect, and memory can smooth over old frustrations. Yet its room structure gave ordinary actions social meaning. Waiting, browsing, watching, and choosing a table created a sense of arrival. For many players, that atmosphere remains as memorable as any individual game."
+          ]
+        },
+        {
+          "heading": "What Happened to Yahoo Chess?",
+          "paragraphs": [
+            "Yahoo Chess existed within the broader Yahoo Games ecosystem, which grew from Yahoo's late-1990s expansion into browser-based games. Contemporary corporate material promoted internet play with other people and included Chess among its classic board games. The familiar chess rooms were therefore part of a larger portal rather than a separate chess company.",
+            "The ending unfolded in stages. Most of the older classic Yahoo Games experiences, including the familiar chess offering, were removed in 2014 as Yahoo retired legacy games. Contemporary reports later documented that the remaining Yahoo Games portal and publishing channel closed on May 13, 2016. Treating those milestones separately avoids assigning one misleading shutdown date to every version of the service.",
+            "Public reporting confirms the discontinuation, but it does not justify speculation about every internal decision behind it. What can be said safely is that a recognizable kind of browser-based social room disappeared. The loss was cultural as well as practical: players could find chess elsewhere, but not necessarily the same sense of place."
+          ]
+        },
+        {
+          "heading": "What Modern Chess Platforms Gained—and Lost",
+          "paragraphs": [
+            "Online chess has advanced considerably. Modern services can offer fast pairing, responsive mobile play, extensive analysis, large game archives, learning tools, broadcasts, and stronger systems for fair play. Those improvements make it easier to begin a game quickly and to study it afterward.",
+            "Efficiency also changes the journey into a game. When the main action is an instant pairing request, there may be less reason to wander through rooms, notice who is present, or watch a nearby table before playing. Community has not vanished, but it is often organized around different surfaces and habits.",
+            "This is an editorial contrast, not a criticism of current platforms. Fast matchmaking and social rooms serve different moods. A player may value both: immediate competition on one visit and the slower discovery of a public chess lounge on another."
+          ]
+        },
+        {
+          "heading": "Why Players Still Search for a Yahoo Chess Alternative",
+          "paragraphs": [
+            "A search for a Yahoo Chess alternative is not always a request for an identical old website. It can be a search for recognizable social ingredients: named rooms, visible tables, familiar players, open observation, and enough time to understand the character of a space before committing to a game.",
+            "Nostalgia is part of that interest, but it is not the whole explanation. Room identity can make online chess feel inhabited. Seeing activity around a table suggests that games belong to a community rather than appearing and disappearing behind a pairing queue. Spectatorship and casual browsing provide ways to participate without playing every moment.",
+            "Former Yahoo Chess players do not all want the same experience, and no modern project can reproduce an earlier internet community exactly. The continuing search nevertheless shows that interface design affects belonging. Some players are looking for a place, not only an opponent."
+          ]
+        },
+        {
+          "heading": "What Is CAISSA Classic?",
+          "paragraphs": [
+            "CAISSA Classic is a publicly accessible part of CAISSA Chess designed around retro-inspired rooms, tables, and shared activity. It is an independent CAISSA experience with its own name, visual identity, and implementation. Its purpose is to revisit the social grammar of classic online chess without presenting itself as a Yahoo product.",
+            "The page opens into a room-oriented lounge rather than hiding the community behind a single action. Players can move through visible room tabs, inspect table and player information, use the integrated chess area, and approach play through controls that make the surrounding lobby part of the experience.",
+            "The tribute is deliberately about atmosphere and interaction patterns. CAISSA Classic is not affiliated with Yahoo, is not an official recreation, and is not a corporate successor to Yahoo Chess. Readers can learn more about the independent project on the [CAISSA Chess About page](/about)."
+          ]
+        },
+        {
+          "heading": "Inside the CAISSA Classic Lobby",
+          "paragraphs": [
+            "The main CAISSA Lobby presents live FICS-oriented tables within the classic room shell. Its interface includes room activity, player and game information, table controls, challenges, observation controls, an integrated board area, and optional activity sounds. These elements are visible parts of the released experience rather than promises about a future version.",
+            "Room navigation also shows Tournament Hall, Computer Hall, and Teaching & Training Hall. Their presence helps establish the larger lounge structure, but their current status messages are intentionally candid where a specialized tournament, bot, or lesson service is not available. The article does not treat a visible room name as proof of a completed game mode.",
+            "Players can review tables, open or create a table through the available controls, and explore the lounge according to the current connection state. The design makes status legible: empty or unavailable activity is shown as such instead of being filled with invented games or players."
+          ]
+        },
+        {
+          "heading": "A Familiar Feeling, Not a Copy",
+          "paragraphs": [
+            "CAISSA Classic preserves broad ideas that many early online communities shared: public rooms, visible tables, spectatorship, challenges, activity cues, and a sense that other people occupy the same space. Those concepts can inspire a modern experience without reproducing a proprietary screen or claiming ownership of someone else's history.",
+            "The visual language belongs to CAISSA. The article illustration and interface use CAISSA's own independent presentation rather than copied Yahoo assets or a replica of a historical screen. Nostalgia works best here as recognition rather than imitation.",
+            "That distinction also protects the meaning of the tribute. The goal is not to freeze online chess in an old technical form. It is to ask what made room-based communities welcoming, then express those lessons through an independent platform with its own identity."
+          ]
+        },
+        {
+          "heading": "Who Is CAISSA Classic For?",
+          "paragraphs": [
+            "Former Yahoo Chess players may recognize the emphasis on rooms and visible tables. Players who enjoy watching games, browsing before playing, or discovering familiar opponents may also appreciate the format. The lounge can appeal to casual competitors and to people interested in the cultural history of online chess.",
+            "CAISSA Classic is also for players who prefer social discovery to a purely transactional pairing flow. A room provides several levels of participation: enter, observe, inspect activity, consider a challenge, create a table, or play when the moment feels right.",
+            "No single interface satisfies every player or every use case. CAISSA Classic does not claim to replace every modern chess service, reproduce every remembered feature, or meet every competitive need. It offers one considered approach to the human surroundings of online play."
+          ]
+        },
+        {
+          "heading": "How to Enter CAISSA Classic",
+          "paragraphs": [
+            "CAISSA Classic is available through the public [CAISSA Classic route](/yahoo-classic). The current page opens the classic lounge as its default application section, so visitors can see the room shell and available controls before deciding how to participate.",
+            "Begin in CAISSA Lobby, review the visible table and activity information, and use the room tabs to understand the wider lounge. Where connection or feature status limits an action, follow the message shown by the interface rather than assuming a table or specialized hall is active.",
+            "The basic path is intentionally direct: arrive, choose a room, inspect or create a table, and then play, watch, or explore according to the available options. The experience remains part of the broader [CAISSA Chess homepage](/), where players can also reach the project's other released chess tools."
+          ],
+          "orderedList": [
+            "Visit CAISSA Chess and open CAISSA Classic.",
+            "Start in CAISSA Lobby or choose another visible room.",
+            "Review player, activity, and table information.",
+            "Select an available table or use the table-creation controls.",
+            "Play, watch, or continue exploring according to the current room status."
+          ]
+        },
+        {
+          "heading": "Preserving the Human Side of Online Chess",
+          "paragraphs": [
+            "Chess platforms are not only delivery systems for legal moves. Their layouts influence whether players feel hurried, welcomed, anonymous, recognized, competitive, or curious. A username seen over many evenings can become part of a personal chess history even when the games themselves are no longer saved.",
+            "Rooms encourage routines. People learn where activity gathers, which tables attract spectators, and when familiar names tend to appear. Those small patterns help transform software into a community. They also explain why an outdated interface can remain emotionally vivid long after newer technology has surpassed it.",
+            "Nostalgia is most useful when it identifies something worth carrying forward. CAISSA Classic treats room identity, visible activity, and social discovery as design values rather than museum pieces. It preserves the lesson while continuing as its own platform."
+          ]
+        },
+        {
+          "heading": "Enter CAISSA Classic",
+          "paragraphs": [
+            "Yahoo Chess is remembered because its rooms gave online games a social setting. The chessboard mattered, but so did the names around it, the open tables, the spectators, and the feeling of returning to a familiar corner of the internet.",
+            "CAISSA Classic offers an independent modern tribute to that room-based spirit. Visitors can [enter CAISSA Classic](/yahoo-classic), explore the released lounge, and decide whether its slower, more visible approach to online chess feels familiar.",
+            "CAISSA Chess is an independent project and is not affiliated with, endorsed by, sponsored by, or an official successor to Yahoo or Yahoo Chess. It is not an official recreation or continuation. Yahoo and Yahoo Chess names belong to their respective rights holders and are discussed here only in the context of online-chess history and player culture. More CAISSA stories are available on the [native blog](/blog)."
+          ]
+        }
+      ],
+      "relatedArticleSlugs": ["who-is-caissa-goddess-of-chess"],
+      "relatedCaissaRoute": "/yahoo-classic",
+      "ctaHeading": "Enter CAISSA Classic",
+      "ctaText": "CAISSA Chess is an independent project and is not affiliated with or endorsed by Yahoo. Explore the released room-based chess experience.",
+      "ctaLabel": "Enter CAISSA Classic",
+      "status": "published"
+    },
+    {
       "slug": "what-is-a-polyglot-opening-book",
       "title": "What Is a Polyglot Opening Book and How Do Chess Engines Use It?",
       "seoTitle": "Polyglot Opening Books: How Chess Engines Use BIN Files",

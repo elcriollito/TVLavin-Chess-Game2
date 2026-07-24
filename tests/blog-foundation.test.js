@@ -152,11 +152,101 @@ test('Polyglot guide is unique in sitemap, featured once and reciprocally linked
 
   const index = load(read('blog/index.html'));
   assert.equal(index(`a[href="/blog/${slug}"]`).length, 1);
-  assert.equal(index('.blog-card-featured a').attr('href'), `/blog/${slug}`);
-  assert.equal(index(`.blog-grid a[href="/blog/${slug}"]`).length, 0);
+  assert.equal(index(`a[href="/blog/${slug}"]`).length, 1);
+  assert.equal(index(`.blog-grid a[href="/blog/${slug}"]`).length, 1);
   assert.equal(index('a[href="/blog/who-is-caissa-goddess-of-chess"]').length, 1);
 
   const tool = load(read('polyglot.html'));
   assert.equal(tool(`a[href="/blog/${slug}"]`).length, 1);
   assert.match(tool(`a[href="/blog/${slug}"]`).text(), /Learn how Polyglot opening books work/);
+});
+
+test('Yahoo Chess history article has approved metadata, disclaimer and structure', async () => {
+  const slug = 'yahoo-chess-spirit-caissa-classic';
+  const article = registry.articles.find(item => item.slug === slug);
+  assert.ok(article, 'Yahoo Chess history article is missing from registry');
+  assert.equal(article.status, 'published');
+  assert.equal(article.seoTitle, 'Yahoo Chess Alternative: Rediscover Classic Chess Rooms');
+  assert.equal(article.description, "Remember Yahoo Chess rooms and see how independent CAISSA Classic brings social lobbies, visible tables and a retro chess atmosphere to today's players.");
+
+  const $ = load(read(`blog/${slug}/index.html`));
+  const canonical = `${production}/blog/${slug}`;
+  const headings = $('.blog-prose > section:not(.blog-related) > h2').toArray().map(node => $(node).text().trim());
+  assert.equal($('h1').text().trim(), 'The Spirit of Yahoo Chess Lives Again in CAISSA Classic');
+  assert.deepEqual(headings, [
+    'Why Yahoo Chess Meant More Than a Chessboard',
+    'What Happened to Yahoo Chess?',
+    'What Modern Chess Platforms Gained—and Lost',
+    'Why Players Still Search for a Yahoo Chess Alternative',
+    'What Is CAISSA Classic?',
+    'Inside the CAISSA Classic Lobby',
+    'A Familiar Feeling, Not a Copy',
+    'Who Is CAISSA Classic For?',
+    'How to Enter CAISSA Classic',
+    'Preserving the Human Side of Online Chess',
+    'Enter CAISSA Classic'
+  ]);
+  assert.equal($('link[rel="canonical"]').attr('href'), canonical);
+  assert.equal($('.blog-cta-button[href="/yahoo-classic"]').text().trim(), 'Enter CAISSA Classic');
+
+  const visible = $('body').text().replace(/\s+/g, ' ').trim();
+  assert.match(visible, /CAISSA Chess is an independent project/);
+  assert.match(visible, /not affiliated with, endorsed by, sponsored by, or an official successor to Yahoo or Yahoo Chess/);
+  assert.match(visible, /names belong to their respective rights holders/);
+  assert.doesNotMatch(visible, /official Yahoo Chess return|Yahoo Chess is back|CAISSA (?:Classic|Chess) is (?:an )?authorized successor|CAISSA (?:Classic|Chess) is (?:an )?exact Yahoo Chess clone|CAISSA (?:Classic|Chess) is the new Yahoo Chess|officially restored Yahoo rooms|CAISSA (?:Classic|Chess) is endorsed by Yahoo|replacement owned by Yahoo/i);
+  assert.doesNotMatch(visible, /Yahoo logo/i);
+  assert.equal($('.blog-prose a[href="/"]').text().trim(), 'CAISSA Chess homepage');
+  assert.doesNotMatch($('.blog-prose').text(), /\[[^\]]+\]\([^)]+\)/);
+
+  const publicImageReferences = [
+    article.featuredImage,
+    $('meta[property="og:image"]').attr('content'),
+    $('meta[name="twitter:image"]').attr('content')
+  ].join(' ');
+  assert.doesNotMatch(publicImageReferences, /yahoo|logo/i);
+
+  const structured = $('script[type="application/ld+json"]').toArray().map(node => JSON.parse($(node).text()));
+  const posting = structured.find(item => item['@type'] === 'BlogPosting');
+  const breadcrumbs = structured.find(item => item['@type'] === 'BreadcrumbList');
+  assert.equal(posting.headline, article.title);
+  assert.equal(posting.description, article.description);
+  assert.equal(posting.mainEntityOfPage, canonical);
+  assert.equal(posting.image, `${production}${article.featuredImage}`);
+  assert.equal(posting.articleSection, 'Online Chess History');
+  assert.match(posting.keywords, /Yahoo Chess/);
+  assert.equal(breadcrumbs.itemListElement.at(-1).item, canonical);
+
+  const image = await sharp(path.join(root, article.featuredImage)).metadata();
+  assert.equal(image.format, 'webp');
+  assert.equal(image.width, 1440);
+  assert.equal(image.height, 960);
+});
+
+test('Yahoo Chess article is uniquely featured, indexed and reciprocally linked', () => {
+  const slug = 'yahoo-chess-spirit-caissa-classic';
+  const canonical = `${production}/blog/${slug}`;
+  assert.equal((sitemap.match(new RegExp(`<loc>${canonical}</loc>`, 'g')) || []).length, 1);
+  assert.ok(!sitemap.includes(`<loc>${canonical}/</loc>`));
+
+  const index = load(read('blog/index.html'));
+  assert.equal(index(`a[href="/blog/${slug}"]`).length, 1);
+  assert.equal(index('.blog-card-featured a').attr('href'), `/blog/${slug}`);
+  assert.equal(index(`.blog-grid a[href="/blog/${slug}"]`).length, 0);
+  assert.equal(index('a[href="/blog/what-is-a-polyglot-opening-book"]').length, 1);
+  assert.equal(index('a[href="/blog/who-is-caissa-goddess-of-chess"]').length, 1);
+
+  const shell = load(read('index.html'));
+  assert.equal(shell(`a[href="/blog/${slug}"]`).length, 1);
+  assert.equal(shell(`a[href="/blog/${slug}"]`).text().trim(), 'Read the story behind CAISSA Classic');
+});
+
+test('Yahoo Classic standalone alias retains the established homepage canonical', () => {
+  const shell = load(read('index.html'));
+  const server = read('server.js');
+  assert.equal(shell('link[rel="canonical"]').attr('href'), `${production}/`);
+  assert.equal(shell('meta[property="og:url"]').attr('content'), `${production}/`);
+  assert.ok(shell('#yahooClassicSection').text().includes('CAISSA Classic Chess'));
+  assert.ok(sitemap.includes(`<loc>${production}/yahoo-classic</loc>`));
+  assert.ok(!sitemap.includes('?section=yahooClassic'));
+  assert.match(server, /pathname === '\/yahoo-classic'[\s\S]*filePath = '\.\/index\.html'/);
 });

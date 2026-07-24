@@ -174,6 +174,20 @@ body.yc-classic-active #app {
     font-weight: 700;
 }
 
+.yc-story-link {
+    display: inline-block;
+    margin-top: 4px;
+    color: #163f72;
+    font-size: 12px;
+    font-weight: 700;
+    text-underline-offset: 2px;
+}
+
+.yc-story-link:focus-visible {
+    outline: 3px solid #1f5f9f;
+    outline-offset: 3px;
+}
+
 .yc-room-tabs {
     display: flex;
     flex-wrap: wrap;
