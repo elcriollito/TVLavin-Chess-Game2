@@ -1,149 +1,50 @@
 {
   "completed": [
     {
-      "title": "Phase A: Core Platform (MVP)",
-      "description": "Foundational chess analysis platform with Stockfish integration, interactive board, and essential tools.",
-      "completedDate": "January 2026",
+      "title": "Core Chess Experiences",
+      "description": "CAISSA provides connected experiences for play, analysis, study, opening exploration, endgame practice, and classic online chess.",
       "features": [
-        "Stockfish 17 WebAssembly engine",
-        "Interactive chessboard with drag-and-drop",
-        "PGN import/export",
-        "Multi-PV analysis",
-        "Opening book integration",
-        "Game library (Chess.com, Lichess, custom)",
-        "Engine vs Engine mode"
+        "Interactive chess play and analysis",
+        "Game and position organization",
+        "Endgame Trainer and Endgame Library",
+        "Opening and database tools",
+        "CAISSA Classic"
       ]
     },
     {
-      "title": "Phase B: AI Integration & Premium",
-      "description": "LLM-powered chess mentor and monetization infrastructure with Stripe payments.",
-      "completedDate": "January 2026",
+      "title": "Guided Learning Foundations",
+      "description": "Focused training, instructional boards, guided lessons, and clear explanations help players turn analysis into practical study.",
       "features": [
-        "CAISSA Mentor AI (Together.ai, OpenAI, Anthropic, Llama support)",
-        "Engine-backed analysis mode",
-        "Multiple explanation styles (Human, Engine, Classical, Beginner)",
-        "Stripe payment integration",
-        "Credit system for AI features",
-        "User authentication (Clerk)",
-        "Premium tier with subscriptions"
-      ]
-    },
-    {
-      "title": "Phase C: Library Phase 3 (Advanced Tools)",
-      "description": "Power user features for position management, querying, and editing.",
-      "completedDate": "January 2026",
-      "features": [
-        "Query Engine (natural language position search)",
-        "Position Forge (custom position builder)",
-        "Game collections",
-        "CAISSA Insight (Chess.com game analysis)",
-        "Coach Report (training plans)",
-        "Position tagging and filtering",
-        "Export/import library backups"
-      ]
-    },
-    {
-      "title": "Block 1: Hardening & Launch Prep",
-      "description": "Production-ready infrastructure, rate limiting, logging, and polished UX.",
-      "completedDate": "January 2026",
-      "features": [
-        "Shared rate limiting module across all API endpoints",
-        "Stripe webhook idempotency (prevents duplicate credits)",
-        "Structured JSON logging for all API operations",
-        "Unified frontend notification system",
-        "Frontend debug logger with error capture",
-        "Input validation and sanitization",
-        "User-friendly error messages",
-        "Guest mode CTA improvements"
-      ]
-    },
-    {
-      "title": "Block 2: Cloud Sync (Library)",
-      "description": "Bidirectional library sync with conflict resolution and offline-first architecture.",
-      "completedDate": "January 2026",
-      "features": [
-        "IndexedDB v2 with sync metadata stores",
-        "Supabase sync tables (positions, collections, deletions)",
-        "Push/Pull API endpoints with incremental sync",
-        "syncStatus tracking on all library operations",
-        "Sync indicator UI with last sync timestamp",
-        "Manual sync button",
-        "Auto-sync on auth + panel open",
-        "Conflict resolution (server timestamp wins)"
+        "Guided endgame study",
+        "Instructional chess positions",
+        "Progress review in supported training experiences",
+        "Accessible desktop and mobile layouts"
       ]
     }
   ],
   "inProgress": [
     {
-      "title": "Block 3: Launch & Growth",
-      "description": "Public launch preparation with onboarding, feature flags, and marketing pages.",
-      "targetDate": "February 2026",
+      "title": "Learning Experience Expansion",
+      "description": "CAISSA is improving the path from discovering a chess concept to studying it in a focused workspace.",
       "features": [
-        "About page (mission, tech stack, privacy)",
-        "Public roadmap page (this page!)",
-        "First-time user onboarding flow",
-        "Feature flags system for gradual rollouts",
-        "Beta badge and version indicator",
-        "SEO optimizations",
-        "Social sharing improvements"
+        "More connected study experiences",
+        "Clearer transitions between reference and practice",
+        "Ongoing usability and accessibility improvements"
       ]
     }
   ],
   "planned": [
     {
-      "title": "Mobile Experience",
-      "description": "Optimized touch interface and progressive web app support for mobile chess analysis.",
-      "features": [
-        "Touch-optimized board controls",
-        "Responsive UI improvements",
-        "PWA installation support",
-        "Offline mode for library access",
-        "Mobile-first mentor chat interface"
-      ]
+      "title": "More Lessons and Study Tools",
+      "description": "The learning catalog will continue to expand with additional lessons and training experiences."
     },
     {
-      "title": "Advanced Analysis Tools",
-      "description": "Professional-grade analysis features for serious players.",
-      "features": [
-        "Opening repertoire builder",
-        "Variation tree visualization",
-        "Training positions from mistakes",
-        "Spaced repetition system",
-        "Blunder detection and categorization"
-      ]
+      "title": "Stronger Mobile Study",
+      "description": "Mobile play, analysis, and guided study will continue to become more comfortable and capable."
     },
     {
-      "title": "Social & Sharing",
-      "description": "Share positions, studies, and analysis with the chess community.",
-      "features": [
-        "Public position sharing links",
-        "Annotated study creation",
-        "Community position library",
-        "Embed positions in blogs/forums",
-        "Follow other users' analysis"
-      ]
-    },
-    {
-      "title": "Performance & Scale",
-      "description": "Optimize for larger libraries and faster analysis.",
-      "features": [
-        "Virtual scrolling for large position lists",
-        "IndexedDB query optimization",
-        "Stockfish NNUE performance tuning",
-        "Background sync workers",
-        "Lazy loading for better page speed"
-      ]
-    },
-    {
-      "title": "Integrations",
-      "description": "Connect with popular chess platforms and tools.",
-      "features": [
-        "Lichess game import",
-        "Chess.com PGN export automation",
-        "ChessBase format support",
-        "Chessable integration for opening training",
-        "Stockfish cloud engine option"
-      ]
+      "title": "Community and Sharing",
+      "description": "Future work may make it easier to share useful chess positions, studies, and learning resources."
     }
   ]
 }
