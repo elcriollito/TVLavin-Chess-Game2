@@ -23,6 +23,11 @@
     "featuredImageAlt": {"type": "string", "minLength": 20, "maxLength": 180},
     "featuredImageWidth": {"type": "integer", "minimum": 600},
     "featuredImageHeight": {"type": "integer", "minimum": 400},
+    "introduction": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 80}
+    },
     "body": {
       "type": "array",
       "minItems": 3,
@@ -33,12 +38,16 @@
         "properties": {
           "heading": {"type": "string", "minLength": 4},
           "subheading": {"type": "string"},
-          "paragraphs": {"type": "array", "minItems": 2, "items": {"type": "string", "minLength": 80}}
+          "paragraphs": {"type": "array", "minItems": 2, "items": {"type": "string", "minLength": 80}},
+          "orderedList": {"type": "array", "minItems": 2, "items": {"type": "string", "minLength": 10}}
         }
       }
     },
     "relatedArticleSlugs": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
     "relatedCaissaRoute": {"type": "string", "pattern": "^/"},
+    "ctaHeading": {"type": "string", "minLength": 4},
+    "ctaText": {"type": "string", "minLength": 20},
+    "ctaLabel": {"type": "string", "minLength": 4},
     "status": {"enum": ["draft", "published"]}
   }
 }

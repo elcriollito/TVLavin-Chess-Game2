@@ -12,6 +12,18 @@ const published = registry.articles.filter(article => article.status === 'publis
 const escape = value => String(value).replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 }[character]));
+const renderInline = value => {
+  const source = String(value);
+  const linkPattern = /\[([^\]]+)\]\((\/[a-z0-9][a-z0-9/-]*)\)/gi;
+  let output = '';
+  let cursor = 0;
+  for (const match of source.matchAll(linkPattern)) {
+    output += escape(source.slice(cursor, match.index));
+    output += `<a href="${escape(match[2])}">${escape(match[1])}</a>`;
+    cursor = match.index + match[0].length;
+  }
+  return output + escape(source.slice(cursor));
+};
 const isoDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
 const displayDate = value => new Intl.DateTimeFormat('en-US', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`));
 
@@ -48,8 +60,9 @@ function renderIndex() {
   const featured = published[0]
     ? articleCard(published[0], true)
     : `<div class="blog-empty"><i class="fas fa-feather-pointed" aria-hidden="true"></i><h3>Editorial stories are on the way</h3><p>We are preparing original, carefully reviewed articles. Until then, explore the chess tools already available on CAISSA.</p></div>`;
-  const recent = published.length
-    ? `<div class="blog-grid">${published.map(article => articleCard(article)).join('')}</div>`
+  const recentArticles = published.slice(1);
+  const recent = recentArticles.length
+    ? `<div class="blog-grid">${recentArticles.map(article => articleCard(article)).join('')}</div>`
     : '<p class="blog-empty-inline">No articles have been published yet.</p>';
   html = html.replace(/<!-- BLOG_FEATURED_START -->[\s\S]*?<!-- BLOG_FEATURED_END -->/, `<!-- BLOG_FEATURED_START -->\n${featured}\n        <!-- BLOG_FEATURED_END -->`);
   html = html.replace(/<!-- BLOG_RECENT_START -->[\s\S]*?<!-- BLOG_RECENT_END -->/, `<!-- BLOG_RECENT_START -->\n${recent}\n        <!-- BLOG_RECENT_END -->`);
@@ -59,7 +72,13 @@ function renderIndex() {
 function renderArticle(article) {
   const canonical = `${origin}/blog/${article.slug}`;
   const related = article.relatedArticleSlugs.map(slug => published.find(candidate => candidate.slug === slug)).filter(Boolean);
-  const sections = article.body.map(section => `<section><h2>${escape(section.heading)}</h2>${section.subheading ? `<h3>${escape(section.subheading)}</h3>` : ''}${section.paragraphs.map(paragraph => `<p>${escape(paragraph)}</p>`).join('')}</section>`).join('');
+  const introduction = (article.introduction || []).map(paragraph => `<p>${renderInline(paragraph)}</p>`).join('');
+  const sections = article.body.map(section => {
+    const orderedList = section.orderedList?.length
+      ? `<ol>${section.orderedList.map(item => `<li>${renderInline(item)}</li>`).join('')}</ol>`
+      : '';
+    return `<section><h2>${escape(section.heading)}</h2>${section.subheading ? `<h3>${escape(section.subheading)}</h3>` : ''}${section.paragraphs.map(paragraph => `<p>${renderInline(paragraph)}</p>`).join('')}${orderedList}</section>`;
+  }).join('');
   const modified = article.modifiedDate
     ? `<span>Last updated <time datetime="${article.modifiedDate}">${displayDate(article.modifiedDate)}</time></span>` : '';
   const relatedHtml = related.length ? `<section class="blog-related"><h2>Related articles</h2><ul>${related.map(item => `<li><a href="/blog/${item.slug}">${escape(item.title)}</a></li>`).join('')}</ul></section>` : '';
@@ -67,6 +86,7 @@ function renderArticle(article) {
     '@context': 'https://schema.org', '@type': 'BlogPosting', headline: article.title,
     description: article.description, image: `${origin}${article.featuredImage}`, datePublished: article.publishedDate,
     dateModified: article.modifiedDate || article.publishedDate, mainEntityOfPage: canonical,
+    articleSection: article.category, keywords: article.tags.join(', '),
     author: { '@type': 'Organization', name: article.author },
     publisher: { '@type': 'Organization', name: 'CAISSA Chess', url: `${origin}/` }
   };
@@ -77,6 +97,9 @@ function renderArticle(article) {
       { '@type': 'ListItem', position: 3, name: article.title, item: canonical }
     ]
   };
+  const cta = article.ctaHeading && article.ctaText && article.ctaLabel
+    ? `<aside class="blog-cta"><h2>${escape(article.ctaHeading)}</h2><p>${renderInline(article.ctaText)}</p><a class="blog-cta-button" href="${escape(article.relatedCaissaRoute)}">${escape(article.ctaLabel)}</a></aside>`
+    : `<aside class="blog-cta"><h2>Continue with CAISSA Chess</h2><p>Learn more <a href="${escape(article.relatedCaissaRoute)}">about CAISSA Chess</a>, or put your own ideas into practice over the board.</p><a class="blog-cta-button" href="${origin}/">Explore CAISSA Chess</a></aside>`;
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${escape(article.seoTitle)}</title><meta name="description" content="${escape(article.description)}"><meta name="author" content="${escape(article.author)}"><meta name="robots" content="index, follow"><link rel="canonical" href="${canonical}">
   <meta property="og:type" content="article"><meta property="og:url" content="${canonical}"><meta property="og:title" content="${escape(article.title)}"><meta property="og:description" content="${escape(article.description)}"><meta property="og:image" content="${origin}${escape(article.featuredImage)}"><meta property="og:image:alt" content="${escape(article.featuredImageAlt)}">
@@ -87,7 +110,7 @@ function renderArticle(article) {
   <body><div class="caissa-standalone-layout"><div data-caissa-standalone-sidebar data-active="blog"></div><main class="blog-shell blog-article-shell">
   <nav class="blog-breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/">CAISSA Chess</a></li><li><a href="/blog">Blog</a></li><li aria-current="page">${escape(article.title)}</li></ol></nav>
   <article><header class="blog-article-header"><p class="blog-kicker">${escape(article.category)}</p><h1>${escape(article.title)}</h1><p class="blog-deck">${escape(article.excerpt)}</p><div class="blog-byline"><span>By ${escape(article.author)}</span><span>Published <time datetime="${article.publishedDate}">${displayDate(article.publishedDate)}</time></span>${modified}</div><img src="${escape(article.featuredImage)}" alt="${escape(article.featuredImageAlt)}" width="${article.featuredImageWidth}" height="${article.featuredImageHeight}" decoding="async"></header>
-  <div class="blog-prose">${sections}<aside class="blog-cta"><h2>Continue with CAISSA Chess</h2><p>Learn more <a href="${escape(article.relatedCaissaRoute)}">about CAISSA Chess</a>, or put your own ideas into practice over the board.</p><a class="blog-cta-button" href="${origin}/">Explore CAISSA Chess</a></aside>${relatedHtml}</div></article>
+  <div class="blog-prose">${introduction}${sections}${cta}${relatedHtml}</div></article>
   <footer class="blog-footer"><p>&copy; 2026 CAISSA Chess.</p><p><a href="/blog">Back to the blog</a></p></footer></main></div><script src="/js/caissa-standalone-sidebar.js?v=1.0.1"></script></body></html>`;
   const directory = path.join(root, 'blog', article.slug);
   fs.mkdirSync(directory, { recursive: true });

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { load } from 'cheerio';
+import sharp from 'sharp';
 
 const root = path.resolve(import.meta.dirname, '..');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
@@ -86,4 +87,76 @@ test('published article pages carry complete visible and structured metadata', (
     assert.ok(data.some(item => item['@type'] === 'BlogPosting'));
     assert.ok(data.some(item => item['@type'] === 'BreadcrumbList'));
   }
+});
+
+test('Polyglot guide has complete metadata, education, links and safe claims', async () => {
+  const slug = 'what-is-a-polyglot-opening-book';
+  const article = registry.articles.find(item => item.slug === slug);
+  assert.ok(article, 'Polyglot article is missing from registry');
+  assert.equal(article.status, 'published');
+  assert.equal(article.title, 'What Is a Polyglot Opening Book and How Do Chess Engines Use It?');
+  assert.equal(article.seoTitle, 'Polyglot Opening Books: How Chess Engines Use BIN Files');
+  assert.equal(article.description, 'Learn how Polyglot BIN opening books store positions, moves and weights, how compatible chess engines use them, and how to create one from PGN files.');
+
+  const $ = load(read(`blog/${slug}/index.html`));
+  const canonical = `${production}/blog/${slug}`;
+  const headings = $('.blog-prose > section:not(.blog-related) > h2').toArray().map(node => $(node).text().trim());
+  const requiredHeadings = [
+    'What Is a Chess Engine Opening Book?',
+    'What Makes a Polyglot Opening Book Different?',
+    'What Is Stored Inside a Polyglot BIN File?',
+    'How Chess Engines Use Book Moves',
+    'What Do Opening Book Weights Mean?',
+    'PGN vs Polyglot BIN',
+    'How to Create a Polyglot Opening Book from PGN',
+    'How Source Games Affect Book Quality',
+    'Compatibility and Testing',
+    'Create a Polyglot Opening Book with CAISSA'
+  ];
+  assert.equal($('h1').text().trim(), article.title);
+  assert.deepEqual(headings, requiredHeadings);
+  assert.equal($('link[rel="canonical"]').attr('href'), canonical);
+  for (const href of ['/tools/polyglot', '/opening-database', '/eco', '/blog']) {
+    assert.ok($(`a[href="${href}"]`).length >= 1, `missing crawlable link to ${href}`);
+  }
+  assert.equal($('.blog-cta-button[href="/tools/polyglot"]').text().trim(), 'Create a Polyglot Opening Book');
+
+  const visible = $('body').text().replace(/\s+/g, ' ').trim();
+  assert.doesNotMatch(visible, /every chess engine supports Polyglot|PGN and BIN are universally interchangeable|weights? guarantee the best move|processing is browser-only|generated books? (?:are|is) automatically tournament-ready|Polyglot is a chess engine/i);
+  assert.match(visible, /does not replace analysis/i);
+  assert.match(visible, /frequency reflects the source collection/i);
+  assert.match(visible, /where assistance is permitted/i);
+
+  const structured = $('script[type="application/ld+json"]').toArray().map(node => JSON.parse($(node).text()));
+  const posting = structured.find(item => item['@type'] === 'BlogPosting');
+  const breadcrumbs = structured.find(item => item['@type'] === 'BreadcrumbList');
+  assert.equal(posting.headline, article.title);
+  assert.equal(posting.description, article.description);
+  assert.equal(posting.image, `${production}${article.featuredImage}`);
+  assert.equal(posting.mainEntityOfPage, canonical);
+  assert.equal(posting.articleSection, article.category);
+  assert.match(posting.keywords, /Polyglot/);
+  assert.equal(breadcrumbs.itemListElement.at(-1).item, canonical);
+
+  const image = await sharp(path.join(root, article.featuredImage)).metadata();
+  assert.equal(image.format, 'webp');
+  assert.equal(image.width, article.featuredImageWidth);
+  assert.equal(image.height, article.featuredImageHeight);
+});
+
+test('Polyglot guide is unique in sitemap, featured once and reciprocally linked', () => {
+  const slug = 'what-is-a-polyglot-opening-book';
+  const canonical = `${production}/blog/${slug}`;
+  assert.equal((sitemap.match(new RegExp(`<loc>${canonical}</loc>`, 'g')) || []).length, 1);
+  assert.ok(!sitemap.includes(`<loc>${canonical}/</loc>`));
+
+  const index = load(read('blog/index.html'));
+  assert.equal(index(`a[href="/blog/${slug}"]`).length, 1);
+  assert.equal(index('.blog-card-featured a').attr('href'), `/blog/${slug}`);
+  assert.equal(index(`.blog-grid a[href="/blog/${slug}"]`).length, 0);
+  assert.equal(index('a[href="/blog/who-is-caissa-goddess-of-chess"]').length, 1);
+
+  const tool = load(read('polyglot.html'));
+  assert.equal(tool(`a[href="/blog/${slug}"]`).length, 1);
+  assert.match(tool(`a[href="/blog/${slug}"]`).text(), /Learn how Polyglot opening books work/);
 });

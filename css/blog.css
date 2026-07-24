@@ -64,6 +64,8 @@ body {
 .blog-prose h2 { margin-top: 2.4em; font-size: 2rem; line-height: 1.2; }
 .blog-prose h3 { margin-top: 1.7em; font-size: 1.35rem; }
 .blog-prose p { margin-top: 1em; }
+.blog-prose ol { padding-left: 1.5em; }
+.blog-prose li { margin-top: .7em; padding-left: .25em; }
 .blog-cta, .blog-related { margin-top: 48px; padding: 28px; border: 1px solid var(--blog-border); border-radius: 12px; background: var(--blog-panel-soft); }
 .blog-cta-button { display: inline-block; margin-top: 8px; padding: 11px 17px; border: 1px solid var(--blog-accent); border-radius: 6px; color: var(--blog-text) !important; font-family: system-ui, sans-serif; font-weight: 700; text-decoration: none; }
 .blog-cta-button:hover { background: rgba(215, 170, 85, .12); }
