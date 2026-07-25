@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "1.0.0",
+  "poolId": "caissa-king-pawn-decisions",
+  "poolVersion": "1.0.0",
+  "engineEvidence": "caissa-king-pawn-decisions-1.0.0.stockfish-18.json",
+  "summary": {
+    "confirmed": 2,
+    "requiresHumanReview": 4,
+    "authoredAnswerQuestioned": 4
+  },
+  "publicationDecision": "preserve-immutable-historical-artifact",
+  "competitiveUseBlocked": true,
+  "newPoolVersionRequiredForAnyContentCorrection": true,
+  "publicVerificationFlagsChanged": false,
+  "notes": "Engine evidence assists human review. It does not automatically change authored answers or declare the historical pool engine-reviewed."
+}

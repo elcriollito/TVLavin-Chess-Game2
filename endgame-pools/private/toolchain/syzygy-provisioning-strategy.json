@@ -1,0 +1,15 @@
+{
+  "strategySchemaVersion": "1.0.0",
+  "operationalTarget": "3-4-5-piece",
+  "approvedCandidateSource": "https://tablebase.sesse.net/syzygy/3-4-5/",
+  "sourcePolicy": "inventory must pin every HTTPS URL and SHA-256 before download",
+  "estimatedStorage": "approximately 1 GB",
+  "adapterMaximumPieces": 7,
+  "installedMaximumPieces": 0,
+  "ciFeasibility": "not approved due asset size and cache governance",
+  "repositoryFeasibility": "forbidden",
+  "vercelFeasibility": "forbidden",
+  "runtimeNetworkDependency": false,
+  "status": "provisioning-tool-ready-assets-not-installed",
+  "files": []
+}

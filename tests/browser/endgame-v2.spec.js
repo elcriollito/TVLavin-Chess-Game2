@@ -163,3 +163,45 @@ test('digest mismatch blocks Start neutrally and permits retry', async ({ page }
     await expect(page.locator('[data-v2-score]')).toHaveText('0');
     await expect(start).toBeEnabled();
 });
+
+test('challenge reuses one board and starts no engine Worker', async ({ page, browserName }) => {
+    await page.addInitScript(() => {
+        const OriginalWorker = window.Worker;
+        window.__caissaWorkerCount = 0;
+        window.Worker = class extends OriginalWorker {
+            constructor(...args) {
+                window.__caissaWorkerCount += 1;
+                super(...args);
+            }
+        };
+    });
+    await openV2(page);
+    const heapBefore = await page.evaluate(() => performance.memory?.usedJSHeapSize ?? null);
+    const startAt = performance.now();
+    await page.locator('[data-v2-action="start"]').click();
+    await expect(page.locator('[data-v2-item-label]')).toContainText('1 of 5');
+    const startMs = performance.now() - startAt;
+    const position = await currentPosition(page);
+    await playLanWithPointer(page, position.expectedLan);
+    const transitionAt = performance.now();
+    await page.locator('[data-v2-action="continue"]').click();
+    await expect(page.locator('[data-v2-item-label]')).toContainText('2 of 5');
+    const transitionMs = performance.now() - transitionAt;
+    const runtime = await page.evaluate(() => ({
+        boards: document.querySelectorAll('[data-board]').length,
+        workers: window.__caissaWorkerCount,
+        heapAfter: performance.memory?.usedJSHeapSize ?? null
+    }));
+    expect(runtime.boards).toBe(1);
+    expect(runtime.workers).toBe(0);
+    if (heapBefore !== null && runtime.heapAfter !== null)
+        expect(runtime.heapAfter - heapBefore).toBeLessThan(20 * 1024 * 1024);
+    console.log(JSON.stringify({
+        browserName,
+        challengeStartMs: Math.round(startMs),
+        itemTransitionMs: Math.round(transitionMs),
+        heapDeltaBytes: heapBefore === null ? null : runtime.heapAfter - heapBefore,
+        boards: runtime.boards,
+        workers: runtime.workers
+    }));
+});

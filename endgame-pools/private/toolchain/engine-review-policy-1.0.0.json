@@ -1,0 +1,17 @@
+{
+  "policySchemaVersion": "1.0.0",
+  "policyId": "caissa-engine-review-standard",
+  "policyVersion": "1.0.0",
+  "depth": 18,
+  "multiPv": 3,
+  "timeoutMs": 30000,
+  "uciOptions": {
+    "Threads": 1,
+    "Hash": 64,
+    "Ponder": false,
+    "MultiPV": 3
+  },
+  "startupHandshake": ["uci", "uciok", "setoption", "isready", "readyok"],
+  "analysisCutoff": "go depth 18",
+  "cleanup": "quit-after-bestmove; kill-on-error-or-timeout"
+}

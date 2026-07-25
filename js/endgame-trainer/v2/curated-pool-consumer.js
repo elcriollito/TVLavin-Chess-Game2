@@ -3,8 +3,9 @@ import {
     computeCompatibilityFingerprint, deepFreezePool, validatePublishedPoolArtifact
 } from './curated-pool-validator.js';
 import {
-    verifyManifest, verifyPoolDigest
+    verifyManifest, verifyPoolDigest, verifySignedManifest
 } from './curated-pool-integrity.js';
+import { CURATED_POOL_TRUSTED_KEYS } from './curated-pool-trusted-keys.js';
 
 const cache = new Map();
 export const DEFAULT_CURATED_POOL = Object.freeze({
@@ -34,9 +35,15 @@ export async function loadCuratedPool({
         const manifest = await manifestResponse.json();
         let manifestValid = false;
         try {
-            manifestValid = await verifyManifest(manifest, cryptoImpl);
+            manifestValid = manifest.signatureStatus === 'signed'
+                ? await verifySignedManifest(manifest, CURATED_POOL_TRUSTED_KEYS, cryptoImpl)
+                : await verifyManifest(manifest, cryptoImpl);
         } catch (error) {
             if (error.code !== 'crypto-unavailable') throw error;
+            if (manifest.signatureStatus === 'signed')
+                throw Object.assign(new Error('signature-verification-unavailable'), {
+                    code: 'signature-verification-unavailable'
+                });
             manifestValid = manifest?.manifestDigest === descriptor.manifestDigest;
         }
         const membership = manifest.pools?.find((entry) =>

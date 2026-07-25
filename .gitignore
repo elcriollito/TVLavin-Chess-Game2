@@ -30,6 +30,9 @@ build/
 .public-release/
 test-results/
 playwright-report/
+endgame-pools/private/assets/
+*.rtbw
+*.rtbz
 
 # Temporary files
 tmp/

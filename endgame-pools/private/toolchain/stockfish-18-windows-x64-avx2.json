@@ -1,0 +1,23 @@
+{
+  "identitySchemaVersion": "1.0.0",
+  "engineId": "stockfish-18-windows-x64-avx2",
+  "engineName": "Stockfish 18",
+  "engineVersion": "18",
+  "sourceRelease": "official-stockfish/Stockfish@sf_18",
+  "license": "GPL-3.0",
+  "binaryPlatform": "windows",
+  "binaryArchitecture": "x86-64-avx2",
+  "nodePlatform": "win32",
+  "nodeArchitecture": "x64",
+  "archiveSha256": "6f6c272ebd6ea594377715235c8a7326f75940ef4f4f856f45106028fe6ae900",
+  "binarySha256": "c86215fa1977d53b82ed854540a4c7b025be4cd042276c85ba3de53fb9118911",
+  "uciOptions": {
+    "Threads": 1,
+    "Hash": 64,
+    "Ponder": false,
+    "MultiPV": 3
+  },
+  "analysisPolicyId": "caissa-engine-review-standard",
+  "analysisPolicyVersion": "1.0.0",
+  "repositoryPolicy": "binary-external-to-git-and-public-release"
+}
