@@ -120,9 +120,9 @@ const progressCases = [
     ['87 progress full width', css, /endgame-trainer-page__summary, \.endgame-trainer-page__progress[\s\S]*width: 100%/],
     ['88 compact mobile categories', css, /max-width: 390px[\s\S]*category-list li[\s\S]*grid-template-columns: 1fr/],
     ['89 no progress polling', page, /setInterval|MutationObserver/],
-    ['90 no confirm API', page, /window\.confirm|globalThis\.confirm/]
+    ['90 learning-data destruction requires explicit confirmation', page, /page\.window\.confirm/]
 ];
-for (const [name, source, pattern] of progressCases) test(name, name.startsWith('89 ') || name.startsWith('90 ') ? lacks(source, pattern) : has(source, pattern));
+for (const [name, source, pattern] of progressCases) test(name, name.startsWith('89 ') ? lacks(source, pattern) : has(source, pattern));
 
 const syncCases = [
     ['91 scoped storage listener', page, /addEventListener\?\.\('storage'/],

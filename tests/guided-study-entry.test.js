@@ -112,7 +112,7 @@ test('guided-study adapter has no authored, draft, persistence, mastery, recomme
 test('workspace preview is explicitly read-only and does not claim completion', () => {
   const html = read('endgame-trainer.html');
   const trainer = read('js/endgame-trainer/endgame-trainer-page.js');
-  assert.match(html, /read-only and does not persist completion or progress/);
+  assert.match(html, /read-only\. Optional local progress never means completion or mastery/);
   assert.match(trainer, /boardView\?\.setInteractive\(false\)/);
   assert.doesNotMatch(trainer.slice(
     trainer.indexOf('async function initializeLibraryStudy'),

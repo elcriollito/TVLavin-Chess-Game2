@@ -194,7 +194,7 @@ test('Guided Study session validates events in memory and never exposes persiste
   assert.equal(snapshot.progress.state, 'practicing');
 });
 
-test('production integration has no learning store, Training Memory write, AI call, or authored import', () => {
+test('contracts remain pure and Guided Study persistence stays separate from Training Memory, mastery, and AI', () => {
   const contracts = fs.readFileSync(new URL('../js/learning/learning-progress-contracts.js', import.meta.url), 'utf8');
   const session = fs.readFileSync(new URL('../js/learning/guided-study-event-session.js', import.meta.url), 'utf8');
   const page = fs.readFileSync(new URL('../js/endgame-trainer/endgame-trainer-page.js', import.meta.url), 'utf8');
@@ -202,15 +202,15 @@ test('production integration has no learning store, Training Memory write, AI ca
   for (const source of [contracts, session]) {
     assert.doesNotMatch(source, /localStorage|indexedDB|fetch\(|knowledge\/domains|OpenAI|Anthropic|Together/);
   }
-  assert.doesNotMatch(guidedSlice, /recordSession|recordTraining|recordCurriculum|masteryFor|getRecommendedLesson|localStorage/);
+  assert.doesNotMatch(guidedSlice, /recordSession|recordTraining|recordCurriculum|masteryFor|getRecommendedLesson|OpenAI|Anthropic|Together/);
 });
 
 test('learner-facing controls are optional, transparent, and outside Play Game Options', () => {
   const html = fs.readFileSync(new URL('../endgame-trainer.html', import.meta.url), 'utf8');
-  assert.match(html, /Enable progress preview/);
+  assert.match(html, /Enable local progress/);
   assert.match(html, /Not now/);
   assert.match(html, /Learn more/);
   assert.match(html, /does not count as mastery/);
-  assert.match(html, /does not persist these events/);
+  assert.match(html, /There is no cloud sync/);
   assert.doesNotMatch(fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8'), /data-learning-consent/);
 });

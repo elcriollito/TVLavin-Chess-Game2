@@ -6,6 +6,7 @@ import { setIdempotentText } from './endgame-feedback-renderer.js';
 import { ENDGAME_COACHING_MESSAGES, GENERAL_COACHING_MESSAGES } from './endgame-coaching-messages.js';
 import { loadGuidedStudyRequest, parseGuidedStudyRequest } from '../endgame-library/guided-study-entry.js';
 import { createGuidedStudyEventSession } from '../learning/guided-study-event-session.js';
+import { createLocalLearningStore, LOCAL_LEARNING_STORAGE_KEY } from '../learning/local-learning-store.js';
 
 const CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP', 'KRPvKR'];
 const RANDOM_CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP'];
@@ -149,6 +150,15 @@ async function initializeLibraryStudy({ root, page, runtime, search, fetchImpl }
         return;
     }
     const model = result.model;
+    const learningContext = {
+        releaseId: model.releaseId,
+        unitIds: [model.unitId],
+        positionIds: model.positions.map(position => position.id),
+        learningObjectIds: model.learningObjectIds,
+        assessmentItemIds: model.assessmentItemIds
+    };
+    page.learningStore.setContext(learningContext);
+    const storeLoad = page.learningStore.load();
     const eventSessionFactory = page.learningEventSessionFactory ?? createGuidedStudyEventSession;
     page.learningEventSession = eventSessionFactory({
         releaseId: model.releaseId,
@@ -160,21 +170,41 @@ async function initializeLibraryStudy({ root, page, runtime, search, fetchImpl }
         now: page.now,
         idFactory: page.learningEventIdFactory
     });
-    const renderLearningPreview = () => {
+    if (storeLoad.ok) page.learningEventSession.applyConsent(page.learningStore.getSummary().consent);
+    const renderLearningPreview = (message = '') => {
         const snapshot = page.learningEventSession.snapshot();
+        const stored = page.learningStore.getSummary();
+        const storedProgress = stored.progressByUnit[`${model.releaseId}:${model.unitId}`];
         page.learningPreview = snapshot;
         const enabled = snapshot.consent.state === 'local-progress-enabled';
         const declined = snapshot.consent.state === 'declined';
-        text(root.querySelector('[data-learning-consent-status]'), enabled
-            ? `Progress preview enabled for this tab. ${snapshot.events.length} validated events; none persisted.`
-            : declined ? 'Progress preview declined. Guided Study remains fully available and nothing is saved.'
-                : 'No learning activity is being saved. Preview events remain in memory for this tab only.');
-        text(root.querySelector('[data-learning-progress-summary]'), enabled
-            ? `${snapshot.progress.explanation} Current preview state: ${snapshot.progress.state}.`
-            : 'No learner progress state is shown without explicit opt-in.');
-        const revoke = root.querySelector('[data-learning-consent-revoke]'); if (revoke) revoke.hidden = !enabled;
+        const diagnostic = page.learningStore.getDiagnosticState();
+        text(root.querySelector('[data-learning-consent-status]'), message || (!['empty', 'loaded', 'migrated', 'committed'].includes(diagnostic.code)
+            ? 'Saved learning data cannot be read safely. Guided Study still works; clear the learning store to recover.'
+            : enabled ? 'Saved locally on this device. There is no cloud sync.'
+                : declined ? 'Progress saving is disabled. Guided Study remains fully available.'
+                    : 'Current session only. No learning activity is being saved.'));
+        const progress = storedProgress ?? snapshot.progress;
+        text(root.querySelector('[data-learning-progress-summary]'),
+            `${progress.state.replace('-', ' ')} · ${progress.positionsExplored} positions explored · ${progress.learningObjectsAttempted} practice objects · ${progress.assessmentEvidenceCount} assessment evidence${progress.mostRecentActivityAt ? ` · last studied ${new Date(progress.mostRecentActivityAt).toLocaleString()}` : ''}. ${storedProgress ? 'Saved locally.' : 'Current session only.'}`);
+        const hasRecords = stored.totals.units > 0 || stored.totals.events > 0 || stored.totals.evidence > 0;
+        const visibility = {
+            '[data-learning-consent-disable]': enabled, '[data-learning-clear-unit]': hasRecords,
+            '[data-learning-clear-all]': hasRecords, '[data-learning-disable-clear]': enabled || hasRecords,
+            '[data-learning-export]': hasRecords, '[data-learning-import]': enabled
+        };
+        for (const [selector, visible] of Object.entries(visibility)) {
+            const control = root.querySelector(selector); if (control) control.hidden = !visible;
+        }
+        const recovery = root.querySelector('[data-learning-recovery-clear]'); if (recovery) recovery.hidden = diagnostic.code === 'empty' || diagnostic.code === 'loaded' || diagnostic.code === 'committed' || diagnostic.code === 'migrated';
     };
-    const emitLearningEvent = (type, detail) => { page.learningEventSession.emit(type, detail); renderLearningPreview(); };
+    const emitLearningEvent = (type, detail) => {
+        const event = page.learningEventSession.emit(type, detail);
+        if (event.persistenceEligible) {
+            const saved = page.learningStore.appendInteractionEvent(event);
+            renderLearningPreview(saved.ok ? '' : 'This activity remains in the current session because local saving was unavailable.');
+        } else renderLearningPreview();
+    };
     emitLearningEvent('study-session-started');
     emitLearningEvent('unit-opened');
     emitLearningEvent('explanation-viewed');
@@ -227,9 +257,58 @@ async function initializeLibraryStudy({ root, page, runtime, search, fetchImpl }
     };
     root.querySelector('[data-library-study-previous]')?.addEventListener('click', () => advancePrompt(-1), { signal: page.signal });
     root.querySelector('[data-library-study-next]')?.addEventListener('click', () => advancePrompt(1), { signal: page.signal });
-    root.querySelector('[data-learning-consent-enable]')?.addEventListener('click', () => { page.learningEventSession.enablePreview(); renderLearningPreview(); }, { signal: page.signal });
-    root.querySelector('[data-learning-consent-decline]')?.addEventListener('click', () => { page.learningEventSession.decline(); renderLearningPreview(); }, { signal: page.signal });
-    root.querySelector('[data-learning-consent-revoke]')?.addEventListener('click', () => { page.learningEventSession.revokeAndClear(); renderLearningPreview(); }, { signal: page.signal });
+    root.querySelector('[data-learning-consent-enable]')?.addEventListener('click', () => {
+        const saved = page.learningStore.setConsent('local-progress-enabled');
+        if (saved.ok) { page.learningEventSession.applyConsent(page.learningStore.getSummary().consent); emitLearningEvent('unit-opened'); }
+        else renderLearningPreview('Local progress could not be enabled. No study activity was saved.');
+    }, { signal: page.signal });
+    root.querySelector('[data-learning-consent-decline]')?.addEventListener('click', () => {
+        const saved = page.learningStore.setConsent('declined');
+        if (saved.ok) page.learningEventSession.applyConsent(page.learningStore.getSummary().consent);
+        renderLearningPreview();
+    }, { signal: page.signal });
+    root.querySelector('[data-learning-consent-disable]')?.addEventListener('click', () => {
+        const saved = page.learningStore.disableSaving();
+        if (saved.ok) page.learningEventSession.applyConsent(page.learningStore.getSummary().consent);
+        renderLearningPreview(saved.ok ? 'Progress saving is disabled. Existing records remain on this device.' : 'Progress saving could not be changed safely.');
+    }, { signal: page.signal });
+    root.querySelector('[data-learning-clear-unit]')?.addEventListener('click', () => {
+        if (!page.window.confirm?.('Clear saved learning progress for this unit?')) return;
+        const cleared = page.learningStore.clearUnit(model.releaseId, model.unitId);
+        renderLearningPreview(cleared.ok ? 'Saved progress for this unit was cleared.' : 'Saved progress could not be cleared safely.');
+    }, { signal: page.signal });
+    root.querySelector('[data-learning-clear-all]')?.addEventListener('click', () => {
+        if (!page.window.confirm?.('Clear all local learning progress and keep saving enabled?')) return;
+        const cleared = page.learningStore.clearAll();
+        renderLearningPreview(cleared.ok ? 'All local learning progress was cleared. Saving remains enabled.' : 'Local learning progress could not be cleared safely.');
+    }, { signal: page.signal });
+    root.querySelector('[data-learning-disable-clear]')?.addEventListener('click', () => {
+        if (!page.window.confirm?.('Disable progress saving and clear all local learning records?')) return;
+        const cleared = page.learningStore.disableAndClear();
+        if (cleared.ok) page.learningEventSession.applyConsent(page.learningStore.getSummary().consent);
+        renderLearningPreview(cleared.ok ? 'Progress saving was disabled and all local learning records were cleared.' : 'Local learning progress could not be changed safely.');
+    }, { signal: page.signal });
+    root.querySelector('[data-learning-recovery-clear]')?.addEventListener('click', () => {
+        if (!page.window.confirm?.('Clear the unreadable local learning store? This cannot be undone.')) return;
+        const cleared = page.learningStore.clearUnreadableStore();
+        renderLearningPreview(cleared.ok ? 'The unreadable local learning store was cleared.' : 'The unreadable local learning store could not be cleared.');
+    }, { signal: page.signal });
+    root.querySelector('[data-learning-export]')?.addEventListener('click', () => {
+        const exported = page.learningStore.exportData(); if (!exported.ok) return void renderLearningPreview('Local learning data could not be exported safely.');
+        const blob = new Blob([exported.json], { type: 'application/json' }), url = URL.createObjectURL(blob), link = root.ownerDocument.createElement('a');
+        link.href = url; link.download = 'caissa-learning-progress.json'; link.click(); URL.revokeObjectURL(url);
+        renderLearningPreview('Local learning data exported.');
+    }, { signal: page.signal });
+    const learningFile = root.querySelector('[data-learning-import-file]');
+    root.querySelector('[data-learning-import]')?.addEventListener('click', () => learningFile?.click(), { signal: page.signal });
+    learningFile?.addEventListener('change', async () => {
+        const file = learningFile.files?.[0]; if (!file) return;
+        const json = await file.text(), preview = page.learningStore.previewImport(json); learningFile.value = '';
+        if (!preview.ok) return void renderLearningPreview('The selected CAISSA learning file is not valid.');
+        if (!page.window.confirm?.(`Import and merge ${preview.summary.totals.units} learning unit record(s)? Consent will not be changed.`)) return;
+        const merged = page.learningStore.mergeImport(json);
+        renderLearningPreview(merged.ok ? 'Local learning data imported and merged.' : 'Local learning data could not be imported safely.');
+    }, { signal: page.signal });
     root.querySelector('[data-learning-consent-more]')?.addEventListener('click', event => {
         const details = root.querySelector('[data-learning-consent-details]'), expanded = event.currentTarget.getAttribute('aria-expanded') === 'true';
         event.currentTarget.setAttribute('aria-expanded', String(!expanded)); if (details) details.hidden = expanded;
@@ -238,7 +317,13 @@ async function initializeLibraryStudy({ root, page, runtime, search, fetchImpl }
         emitLearningEvent('return-to-library'); emitLearningEvent('study-session-ended');
     }, { signal: page.signal });
     page.window?.addEventListener?.('pagehide', () => {
-        if (page.learningEventSession) page.learningEventSession.emit('study-session-ended');
+        if (page.learningEventSession) emitLearningEvent('study-session-ended');
+    }, { signal: page.signal });
+    page.window?.addEventListener?.('storage', event => {
+        if (event.key !== LOCAL_LEARNING_STORAGE_KEY || !page.learningStore.isStorageArea(event.storageArea)) return;
+        const refreshed = page.learningStore.refreshFromStorage();
+        if (refreshed.ok) page.learningEventSession.applyConsent(page.learningStore.getSummary().consent);
+        renderLearningPreview(refreshed.ok ? 'Local learning progress changed in another tab.' : 'Learning data changed in another tab but cannot be read safely.');
     }, { signal: page.signal });
     showPosition(0); showPrompt(0);
     renderLearningPreview();
@@ -346,7 +431,10 @@ export function mountEndgameTrainerPage(options = {}) {
     const progressStoreFactory = options.progressStoreFactory ?? createEndgameProgressStore, progressStore = progressStoreFactory({ storage: options.storage, now: options.now }); progressStore.load(); const loadedProgress = progressStore.getSnapshot();
     const curriculum = options.curriculum ?? createEndgameCurriculum();
     const progressScopeId = options.progressScopeId ?? globalThis.crypto?.randomUUID?.() ?? `tab-${++pageSequence}-${(options.now ?? Date.now)()}`;
-    const page = { mounted: true, navOpen: false, runtimeAttached: false, operation: null, hint: null, error: null, disposed: false, signal, diagnosticEnabled, diagnosticState, controllerState: null, seedSequence: 0, progressStore, progressOwners: new Map(), progressOwner: null, progressSnapshot: loadedProgress, progressScopeId, curriculum, curriculumProgress: curriculum.getProgress(loadedProgress), trainingMode: 'free', workspaceState: 'setup', selectedPathId: loadedProgress.curriculum?.selectedPathId ?? null, activeLesson: null, pendingLesson: null, pilotSession: null, pilotMode: null, pilotRenderedPositionKey: null, libraryStudy: null, learningEventSession: null, learningPreview: null, learningEventSessionFactory: options.learningEventSessionFactory, learningEventIdFactory: options.learningEventIdFactory, window: win, recentExpanded: false, recentResult: 'all', recentCategory: 'all', syncFeedback: '', now: options.now ?? Date.now };
+    const learningStorage = options.learningStorage ?? options.storage;
+    const learningStoreFactory = options.learningStoreFactory ?? createLocalLearningStore;
+    const learningStore = learningStoreFactory({ storage: learningStorage, now: options.now });
+    const page = { mounted: true, navOpen: false, runtimeAttached: false, operation: null, hint: null, error: null, disposed: false, signal, diagnosticEnabled, diagnosticState, controllerState: null, seedSequence: 0, progressStore, progressOwners: new Map(), progressOwner: null, progressSnapshot: loadedProgress, progressScopeId, curriculum, curriculumProgress: curriculum.getProgress(loadedProgress), trainingMode: 'free', workspaceState: 'setup', selectedPathId: loadedProgress.curriculum?.selectedPathId ?? null, activeLesson: null, pendingLesson: null, pilotSession: null, pilotMode: null, pilotRenderedPositionKey: null, libraryStudy: null, learningEventSession: null, learningPreview: null, learningEventSessionFactory: options.learningEventSessionFactory, learningEventIdFactory: options.learningEventIdFactory, learningStore, learningStorage, window: win, recentExpanded: false, recentResult: 'all', recentCategory: 'all', syncFeedback: '', now: options.now ?? Date.now };
     const runtimeFactory = options.runtimeFactory ?? createEndgameTrainerRuntime;
     let runtime = null;
     if (board) { runtime = runtimeFactory({ boardElement: board, promotionResolver: promo.resolve, callbacks: { onStateChange: snap => update(root, page, snap), onAnnouncement: value => text(root.querySelector('[data-announcement]'), value), onError: error => { if (error.code !== 'stale-operation') { page.error = { code: error.code }; text(root.querySelector('[data-error-message]'), PUBLIC_ERRORS[error.code] || 'The trainer encountered an error.'); } } } }).initialize(); page.runtimeAttached = true; page.runtime = runtime; }

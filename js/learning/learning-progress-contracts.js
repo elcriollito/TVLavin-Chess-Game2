@@ -31,7 +31,11 @@ const RELEASE_ID = /^rel-[a-f0-9]{64}$/;
 const UNIT_ID = /^ku:endgames:[a-z0-9-]+:[a-z0-9-]+$/;
 const clone = value => structuredClone(value);
 const exactKeys = (value, allowed) => Object.keys(value).every(key => allowed.includes(key));
-const validTime = value => Number.isSafeInteger(value) && value > 0;
+const toIsoTime = value => {
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isFinite(date.getTime()) ? date.toISOString() : null;
+};
+const validTime = value => typeof value === 'string' && toIsoTime(value) === value;
 const result = errors => Object.freeze({ ok: errors.length === 0, errors: Object.freeze([...errors]) });
 
 export function createConsentState({
@@ -39,14 +43,15 @@ export function createConsentState({
 } = {}) {
   const enabled = state === 'local-progress-enabled';
   const declined = state === 'declined';
+  const timestamp = occurredAt === null ? null : toIsoTime(occurredAt);
   return Object.freeze({
     contractVersion: LEARNING_CONSENT_VERSION,
     state,
     scope: CONSENT_SCOPE,
     storageMode: 'local-device',
     dataCategories: enabled ? Object.freeze(['validated-events', 'evidence', 'progress-summary']) : Object.freeze([]),
-    grantedAt: enabled ? occurredAt : null,
-    revokedAt: declined ? occurredAt : null,
+    grantedAt: enabled ? timestamp : null,
+    revokedAt: declined ? timestamp : null,
     retention: 'bounded-versioned-records',
     clearData: Boolean(clearData)
   });
@@ -87,7 +92,7 @@ export function createInteractionEvent(input, context) {
     schemaVersion: LEARNING_EVENT_VERSION,
     eventType: input.eventType,
     classification: EVENT_TYPES[input.eventType] ?? null,
-    occurredAt: input.occurredAt,
+    occurredAt: toIsoTime(input.occurredAt),
     sessionId: input.sessionId,
     releaseId: input.releaseId,
     unitId: input.unitId,
@@ -220,7 +225,7 @@ export function deriveLearnerProgress({ unitId, releaseId, events = [], evidence
   else if (types.has('assessment-success')) state = 'assessed';
   else if (types.has('participation') || types.has('guided-success')) state = 'practicing';
   else if (types.has('exposure')) state = 'explored';
-  const times = events.map(item => item.occurredAt).filter(validTime).sort((a, b) => a - b);
+  const times = events.map(item => item.occurredAt).filter(validTime).sort();
   return Object.freeze({
     contractVersion: LEARNING_PROGRESS_VERSION,
     unitId,

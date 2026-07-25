@@ -102,19 +102,26 @@
                             <button type="button" data-library-study-previous>Previous prompt</button>
                             <button type="button" data-library-study-next>Next prompt</button>
                         </div>
-                        <p class="endgame-trainer-page__helper">The study board is read-only and does not persist completion or progress.</p>
+                        <p class="endgame-trainer-page__helper">The study board is read-only. Optional local progress never means completion or mastery.</p>
                         <section class="endgame-trainer-page__learning-consent" data-learning-consent aria-labelledby="learning-consent-title">
-                            <h3 id="learning-consent-title">Learning progress preview</h3>
-                            <p>CAISSA can validate study activity in this tab. Opening or reading a lesson does not count as mastery.</p>
+                            <h3 id="learning-consent-title">Save study progress on this device</h3>
+                            <p>Optional local progress can remember explored positions, practice, and assessment evidence. Opening or reading a lesson does not count as mastery.</p>
                             <p data-learning-consent-status role="status">No learning activity is being saved.</p>
                             <div class="endgame-trainer-page__lesson-nav">
-                                <button type="button" data-learning-consent-enable>Enable progress preview</button>
+                                <button type="button" data-learning-consent-enable>Enable local progress</button>
                                 <button type="button" data-learning-consent-decline>Not now</button>
                                 <button type="button" data-learning-consent-more aria-expanded="false">Learn more</button>
-                                <button type="button" data-learning-consent-revoke hidden>Disable and clear preview</button>
+                                <button type="button" data-learning-consent-disable hidden>Disable progress saving</button>
+                                <button type="button" data-learning-clear-unit hidden>Clear this unit</button>
+                                <button type="button" data-learning-clear-all hidden>Clear all learning progress</button>
+                                <button type="button" data-learning-disable-clear hidden>Disable and clear all</button>
+                                <button type="button" data-learning-export hidden>Export local learning data</button>
+                                <button type="button" data-learning-import hidden>Import CAISSA learning data</button>
+                                <button type="button" data-learning-recovery-clear hidden>Clear unreadable learning data</button>
+                                <input type="file" accept="application/json,.json" data-learning-import-file hidden>
                             </div>
                             <div data-learning-consent-details hidden>
-                                <p>The preview is optional, local to this browser tab, and can be cleared. Guided Study works fully without it. Season 9.3.1 does not persist these events, sync them to an account, mark mastery, or change recommendations.</p>
+                                <p>Saving is optional, stays in this browser on this device, and can be cleared. Guided Study works fully without it. There is no cloud sync, account or sign-in requirement. Practice and assessments provide stronger evidence than reading, but local progress never marks mastery and does not change recommendations.</p>
                             </div>
                             <p data-learning-progress-summary></p>
                         </section>

@@ -48,6 +48,7 @@ export function createGuidedStudyEventSession({
   };
   return Object.freeze({
     emit,
+    applyConsent(value) { consent = value; return snapshot(); },
     enablePreview() { consent = createConsentState({ state: 'local-progress-enabled', occurredAt: now() }); return snapshot(); },
     decline() { consent = createConsentState({ state: 'declined', occurredAt: now() }); return snapshot(); },
     revokeAndClear() { consent = createConsentState({ state: 'declined', occurredAt: now(), clearData: true }); events = []; return snapshot(); },
