@@ -27,6 +27,7 @@ yarn.lock
 dist/
 build/
 .cache/
+.public-release/
 
 # Temporary files
 tmp/

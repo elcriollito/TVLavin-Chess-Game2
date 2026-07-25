@@ -61,6 +61,12 @@ test('internal architecture and authoring sources are excluded from deployment',
     'docs/**', 'PROJECT_ARCHITECTURE.md', 'knowledge/AUTHORING.md',
     'knowledge/authoring/**', 'knowledge/domains/**', 'knowledge/schema/**'
   ]) assert.ok(ignored.includes(pattern), `${pattern} is not deployment-excluded`);
+  const releaseBuilder = read('scripts/build-public-release.mjs');
+  for (const protectedPath of [
+    "'docs/'", "'knowledge/authoring/'", "'knowledge/domains/'",
+    "'knowledge/schema/'", "'knowledge/consumer/'"
+  ]) assert.ok(releaseBuilder.includes(protectedPath), `${protectedPath} is not physically excluded`);
+  assert.match(read('package.json'), /"release:public:audit"/);
   const sitemap = read('public/sitemap.xml');
   assert.doesNotMatch(sitemap, /docs\/|PROJECT_ARCHITECTURE|knowledge\/AUTHORING/);
 });

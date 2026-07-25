@@ -39,6 +39,13 @@ the former deployment even though they were not sitemap-linked. Deployment
 exclusions now keep internal documentation and authored Knowledge source files
 out of the public artifact while retaining the immutable browser release assets.
 
+Vercel archive-mode uploads do not reliably apply directory patterns from
+`.vercelignore`. The public-release builder therefore starts from Git-tracked
+files and physically omits protected paths before deployment. Its audit fails if
+a protected path survives or a required runtime page or pinned release manifest
+is absent. Production uploads should use this generated `.public-release`
+directory rather than the live workspace.
+
 Privacy copy is intentionally bounded. This milestone verifies statements
 against the current code and public runtime, but it is not a substitute for a
 formal legal privacy-policy review.
