@@ -7,11 +7,20 @@ import {
   migrateLocalLearningEnvelope
 } from '../js/learning/local-learning-store.js';
 import { createInteractionEvent } from '../js/learning/learning-progress-contracts.js';
+import { deriveUnitReviewExplanation } from '../js/learning/review-explanations.js';
 
 const releaseId = `rel-${'a'.repeat(64)}`;
 const unitId = 'ku:endgames:test:unit';
 const context = { releaseId, unitIds: [unitId], positionIds: ['pos:a'], learningObjectIds: ['object:a'], assessmentItemIds: ['assessment:a'] };
 const fixedTime = Date.parse('2026-07-24T12:00:00.000Z');
+const stable = value => Array.isArray(value) ? `[${value.map(stable).join(',')}]`
+  : value && typeof value === 'object' ? `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`
+    : JSON.stringify(value);
+const checksum = value => {
+  let hash = 2166136261;
+  for (const character of stable(value)) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619);
+  return `fnv1a32:${(hash >>> 0).toString(16).padStart(8, '0')}`;
+};
 const memoryStorage = (initial = {}) => {
   const values = new Map(Object.entries(initial));
   return {
@@ -138,8 +147,96 @@ test('migration infrastructure supports only the documented development-preview 
   }, fixedTime);
   assert.equal(migrated.ok, true);
   assert.deepEqual(migrated.envelope.migration.applied, ['development-preview-v0-to-v1']);
-  assert.equal(migrateLocalLearningEnvelope({ schemaVersion: 2 }, fixedTime).code, 'unsupported-future-version');
+  assert.equal(migrateLocalLearningEnvelope({ schemaVersion: 3 }, fixedTime).code, 'unsupported-future-version');
   assert.equal(migrateLocalLearningEnvelope({ schemaVersion: -1 }, fixedTime).code, 'unsupported-schema-version');
+});
+
+test('Season 9.3.2 schema v1 migrates in memory to v2 without losing learning records', () => {
+  const storage = memoryStorage(), source = enabledStore(storage);
+  source.appendInteractionEvent(event());
+  const legacy = JSON.parse(storage.getItem(LOCAL_LEARNING_STORAGE_KEY));
+  legacy.schemaVersion = 1;
+  delete legacy.reviewDismissals;
+  const migrated = migrateLocalLearningEnvelope(legacy, fixedTime + 1000);
+  assert.equal(migrated.ok, true);
+  assert.equal(migrated.envelope.schemaVersion, 2);
+  assert.deepEqual(migrated.envelope.reviewDismissals, {});
+  assert.equal(migrated.envelope.events.length, 1);
+  assert.ok(migrated.envelope.migration.applied.includes('season-9.3.2-v1-to-season-9.3.3-v2'));
+});
+
+test('Season 9.3.2 export v1 remains import-compatible and cannot change consent', () => {
+  const sourceStorage = memoryStorage(), source = enabledStore(sourceStorage);
+  source.appendInteractionEvent(event());
+  const legacy = JSON.parse(source.exportData().json);
+  legacy.formatVersion = 1;
+  legacy.storageSchemaVersion = 1;
+  delete legacy.reviewDismissals;
+  legacy.integrity.digest = null;
+  legacy.integrity.digest = checksum(legacy);
+  const targetStorage = memoryStorage(), target = enabledStore(targetStorage);
+  const merged = target.mergeImport(JSON.stringify(legacy));
+  assert.equal(merged.ok, true);
+  assert.equal(target.getSummary().consent.state, 'local-progress-enabled');
+  assert.equal(target.getSummary().totals.units, 1);
+});
+
+test('review dismissal, restore, and scoped evidence clearing are consent-checked and atomic', () => {
+  const storage = memoryStorage(), store = enabledStore(storage);
+  const assessment = (id, time) => event(id, {
+    eventType: 'assessment-evaluated', occurredAt: time, positionId: null,
+    assessmentItemId: 'assessment:a', result: 'correct', hintLevel: 'final-answer'
+  });
+  store.appendInteractionEvent(assessment('event:guided-one', fixedTime));
+  store.appendInteractionEvent(assessment('event:guided-two', fixedTime + 1000));
+  const records = store.getLearningRecords();
+  const unit = { id: unitId, relationships: [], learningObjects: { assessments: [{ id: 'assessment:a' }] } };
+  const review = deriveUnitReviewExplanation({ unit, releaseId, evidence: records.evidence, events: records.events });
+  assert.equal(review.triggerType, 'repeated-final-hint-dependence');
+  assert.equal(store.dismissReview(review).ok, true);
+  assert.equal(store.getLearningRecords().reviewDismissals[`${releaseId}:${unitId}`].explanationId, review.explanationId);
+  assert.equal(store.restoreDismissedReview(releaseId, unitId).ok, true);
+  assert.equal(store.getLearningRecords().reviewDismissals[`${releaseId}:${unitId}`], undefined);
+  assert.equal(store.clearReviewEvidence(review).ok, true);
+  assert.deepEqual(store.getSummary().totals, { units: 0, events: 0, evidence: 0 });
+  store.disableSaving();
+  assert.equal(store.dismissReview(review).code, 'consent-required');
+});
+
+test('review-suggested requires two unsuccessful assessments and later success resolves display state', () => {
+  const storage = memoryStorage(), store = enabledStore(storage);
+  const assessed = (id, time, result, hintLevel = 'none') => event(id, {
+    eventType: 'assessment-evaluated', occurredAt: time, positionId: null,
+    assessmentItemId: 'assessment:a', result, hintLevel
+  });
+  store.appendInteractionEvent(assessed('event:wrong-one', fixedTime, 'incorrect'));
+  assert.notEqual(store.getSummary().progressByUnit[`${releaseId}:${unitId}`].state, 'review-suggested');
+  store.appendInteractionEvent(assessed('event:wrong-two', fixedTime + 1000, 'incorrect'));
+  assert.equal(store.getSummary().progressByUnit[`${releaseId}:${unitId}`].state, 'review-suggested');
+  store.appendInteractionEvent(assessed('event:success', fixedTime + 2000, 'correct'));
+  assert.equal(store.getSummary().progressByUnit[`${releaseId}:${unitId}`].state, 'assessed');
+});
+
+test('review dismissal and evidence clearing propagate through the existing multi-tab refresh path', () => {
+  const storage = memoryStorage(), first = enabledStore(storage);
+  const guided = (id, time) => event(id, {
+    eventType: 'assessment-evaluated', occurredAt: time, positionId: null,
+    assessmentItemId: 'assessment:a', result: 'correct', hintLevel: 'final-answer'
+  });
+  first.appendInteractionEvent(guided('event:tab-one', fixedTime));
+  first.appendInteractionEvent(guided('event:tab-two', fixedTime + 1000));
+  const second = createLocalLearningStore({ storage, now: () => fixedTime + 2000, context });
+  second.load();
+  const unit = { id: unitId, relationships: [], learningObjects: { assessments: [{ id: 'assessment:a' }] } };
+  const records = second.getLearningRecords();
+  const review = deriveUnitReviewExplanation({ unit, releaseId, evidence: records.evidence, events: records.events });
+  second.dismissReview(review);
+  first.refreshFromStorage();
+  assert.equal(first.getLearningRecords().reviewDismissals[`${releaseId}:${unitId}`].explanationId, review.explanationId);
+  second.restoreDismissedReview(releaseId, unitId);
+  second.clearReviewEvidence(review);
+  first.refreshFromStorage();
+  assert.deepEqual(first.getSummary().totals, { units: 0, events: 0, evidence: 0 });
 });
 
 test('static integration keeps learning persistence outside mastery, recommendations, and Trainer writes', async () => {

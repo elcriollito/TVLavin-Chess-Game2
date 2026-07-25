@@ -7,6 +7,7 @@ import { ENDGAME_COACHING_MESSAGES, GENERAL_COACHING_MESSAGES } from './endgame-
 import { loadGuidedStudyRequest, parseGuidedStudyRequest } from '../endgame-library/guided-study-entry.js';
 import { createGuidedStudyEventSession } from '../learning/guided-study-event-session.js';
 import { createLocalLearningStore, LOCAL_LEARNING_STORAGE_KEY } from '../learning/local-learning-store.js';
+import { deriveUnitReviewExplanation } from '../learning/review-explanations.js';
 
 const CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP', 'KRPvKR'];
 const RANDOM_CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP'];
@@ -150,6 +151,9 @@ async function initializeLibraryStudy({ root, page, runtime, search, fetchImpl }
         return;
     }
     const model = result.model;
+    const reviewFrom = new URLSearchParams(search).get('reviewFrom');
+    const reviewContext = root.querySelector('[data-learning-review-context]');
+    if (reviewContext) reviewContext.hidden = !reviewFrom;
     const learningContext = {
         releaseId: model.releaseId,
         unitIds: [model.unitId],
@@ -171,6 +175,35 @@ async function initializeLibraryStudy({ root, page, runtime, search, fetchImpl }
         idFactory: page.learningEventIdFactory
     });
     if (storeLoad.ok) page.learningEventSession.applyConsent(page.learningStore.getSummary().consent);
+    let currentReview = null;
+    const renderReview = (message = '') => {
+        const panel = root.querySelector('[data-learning-review]');
+        const records = page.learningStore.getLearningRecords();
+        const dismissal = records.reviewDismissals[`${model.releaseId}:${model.unitId}`] ?? null;
+        currentReview = deriveUnitReviewExplanation({
+            unit: model.reviewUnit, releaseId: model.releaseId,
+            evidence: records.evidence, events: records.events, dismissal
+        });
+        if (panel) panel.hidden = !currentReview;
+        if (!currentReview) return;
+        const dismissed = currentReview.status === 'dismissed';
+        text(root.querySelector('[data-learning-review-title]'), dismissed ? 'Review dismissed for now' : currentReview.title);
+        text(root.querySelector('[data-learning-review-explanation]'), dismissed ? 'The suggestion is hidden until new qualifying evidence appears.' : currentReview.explanation);
+        text(root.querySelector('[data-learning-review-reason]'), dismissed ? '' : currentReview.whyReviewMayHelp);
+        text(root.querySelector('[data-learning-review-target]'), dismissed ? '' : currentReview.targetRelationshipReason);
+        text(root.querySelector('[data-learning-review-evidence]'),
+            `${currentReview.supportingEvidenceIds.length} supporting evidence record${currentReview.supportingEvidenceIds.length === 1 ? '' : 's'} · hint guidance: ${currentReview.hintDependence.join(', ') || 'none'} · latest ${new Date(currentReview.mostRecentEvidenceAt).toLocaleString()}.`);
+        text(root.querySelector('[data-learning-review-status]'), message);
+        const reviewNow = root.querySelector('[data-learning-review-now]');
+        if (reviewNow) {
+            reviewNow.hidden = dismissed;
+            reviewNow.textContent = currentReview.primaryAction;
+            reviewNow.href = `/endgame-trainer?studyUnit=${encodeURIComponent(currentReview.targetUnitId)}&release=${encodeURIComponent(model.releaseId)}&reviewFrom=${encodeURIComponent(model.unitId)}`;
+        }
+        const dismiss = root.querySelector('[data-learning-review-dismiss]'); if (dismiss) dismiss.hidden = dismissed;
+        const restore = root.querySelector('[data-learning-review-restore]'); if (restore) restore.hidden = !dismissed;
+        const clear = root.querySelector('[data-learning-review-clear]'); if (clear) clear.hidden = dismissed;
+    };
     const renderLearningPreview = (message = '') => {
         const snapshot = page.learningEventSession.snapshot();
         const stored = page.learningStore.getSummary();
@@ -197,6 +230,7 @@ async function initializeLibraryStudy({ root, page, runtime, search, fetchImpl }
             const control = root.querySelector(selector); if (control) control.hidden = !visible;
         }
         const recovery = root.querySelector('[data-learning-recovery-clear]'); if (recovery) recovery.hidden = diagnostic.code === 'empty' || diagnostic.code === 'loaded' || diagnostic.code === 'committed' || diagnostic.code === 'migrated';
+        renderReview();
     };
     const emitLearningEvent = (type, detail) => {
         const event = page.learningEventSession.emit(type, detail);
@@ -308,6 +342,24 @@ async function initializeLibraryStudy({ root, page, runtime, search, fetchImpl }
         if (!page.window.confirm?.(`Import and merge ${preview.summary.totals.units} learning unit record(s)? Consent will not be changed.`)) return;
         const merged = page.learningStore.mergeImport(json);
         renderLearningPreview(merged.ok ? 'Local learning data imported and merged.' : 'Local learning data could not be imported safely.');
+    }, { signal: page.signal });
+    root.querySelector('[data-learning-review-dismiss]')?.addEventListener('click', () => {
+        if (!currentReview) return;
+        const dismissed = page.learningStore.dismissReview(currentReview);
+        renderReview(dismissed.ok ? 'Review dismissed. The supporting evidence remains saved locally.' : 'The review could not be dismissed safely.');
+    }, { signal: page.signal });
+    root.querySelector('[data-learning-review-restore]')?.addEventListener('click', () => {
+        const restored = page.learningStore.restoreDismissedReview(model.releaseId, model.unitId);
+        renderReview(restored.ok ? 'Review suggestion restored.' : 'The review could not be restored safely.');
+    }, { signal: page.signal });
+    root.querySelector('[data-learning-review-clear]')?.addEventListener('click', () => {
+        if (!currentReview || !page.window.confirm?.('Clear only the local evidence supporting this review?')) return;
+        const cleared = page.learningStore.clearReviewEvidence(currentReview);
+        renderLearningPreview(cleared.ok ? 'Supporting evidence was cleared and local progress was recalculated.' : 'Supporting evidence could not be cleared safely.');
+    }, { signal: page.signal });
+    root.querySelector('[data-learning-review-why]')?.addEventListener('click', event => {
+        const details = root.querySelector('[data-learning-review-details]'), expanded = event.currentTarget.getAttribute('aria-expanded') === 'true';
+        event.currentTarget.setAttribute('aria-expanded', String(!expanded)); if (details) details.hidden = expanded;
     }, { signal: page.signal });
     root.querySelector('[data-learning-consent-more]')?.addEventListener('click', event => {
         const details = root.querySelector('[data-learning-consent-details]'), expanded = event.currentTarget.getAttribute('aria-expanded') === 'true';

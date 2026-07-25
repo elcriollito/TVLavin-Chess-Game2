@@ -54,6 +54,13 @@ export function createGuidedStudyModel(unit, summary) {
     positions: clone(unit.positions.filter(position => position.validation?.structural === 'valid')),
     learningObjectIds: clone(Object.values(unit.learningObjects || {}).flat().map(item => item.id).filter(Boolean)),
     assessmentItemIds: clone((unit.learningObjects?.assessments || []).map(item => item.id).filter(Boolean)),
+    reviewUnit: Object.freeze({
+      id: unit.id,
+      relationships: clone(unit.relationships || []),
+      learningObjects: Object.freeze({
+        assessments: clone(unit.learningObjects?.assessments || [])
+      })
+    }),
     returnHref: `/endgame-library?unit=${encodeURIComponent(summary?.scopedSlug || `${unit.domain}/${unit.slug}`)}`
   });
 }

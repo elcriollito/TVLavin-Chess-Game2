@@ -220,8 +220,15 @@ export function validateEvidenceRecord(evidence, sourceEvents = []) {
 
 export function deriveLearnerProgress({ unitId, releaseId, events = [], evidence = [], consent }) {
   const types = new Set(evidence.map(item => item.evidenceType));
+  const successRecords = evidence.filter(item => ['independent-success', 'assessment-success', 'transfer-success'].includes(item.evidenceType));
+  const successfulAt = successRecords.map(item => item.createdAt).sort().at(-1) ?? null;
+  const unresolvedMisconceptions = evidence.filter(item => item.evidenceType === 'misconception'
+    && !successRecords.some(success => item.masteryCriterionId
+      && success.masteryCriterionId === item.masteryCriterionId && success.createdAt > item.createdAt));
+  const unresolvedRemediation = evidence.filter(item => item.evidenceType === 'remediation-needed'
+    && (!successfulAt || item.createdAt > successfulAt));
   let state = 'not-started';
-  if (types.has('remediation-needed')) state = 'review-suggested';
+  if (unresolvedMisconceptions.length || unresolvedRemediation.length >= 2) state = 'review-suggested';
   else if (types.has('assessment-success')) state = 'assessed';
   else if (types.has('participation') || types.has('guided-success')) state = 'practicing';
   else if (types.has('exposure')) state = 'explored';

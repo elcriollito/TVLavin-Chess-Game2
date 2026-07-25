@@ -12,17 +12,19 @@ import {
   validateInteractionEvent,
   validateLearnerProgress
 } from './learning-progress-contracts.js';
+import { REVIEW_TRIGGERS } from './review-explanations.js';
 
 export const LOCAL_LEARNING_STORAGE_KEY = 'caissa:learning-progress:v1';
-export const LOCAL_LEARNING_SCHEMA_VERSION = 1;
+export const LOCAL_LEARNING_SCHEMA_VERSION = 2;
 export const LOCAL_LEARNING_EXPORT_FORMAT = 'caissa-learning-progress-export';
-export const LOCAL_LEARNING_EXPORT_VERSION = 1;
+export const LOCAL_LEARNING_EXPORT_VERSION = 2;
 export const LOCAL_LEARNING_LIMITS = Object.freeze({
   units: 17, events: 160, evidence: 240, deduplication: 500, importBytes: 262144
 });
 
 const RELEASE_ID = /^rel-[a-f0-9]{64}$/;
 const UNIT_ID = /^ku:endgames:[a-z0-9-]+:[a-z0-9-]+$/;
+const STABLE_ID = /^[a-z0-9][a-z0-9:._-]{0,159}$/i;
 const clone = value => structuredClone(value);
 const immutable = value => Object.freeze(clone(value));
 const iso = value => {
@@ -46,6 +48,16 @@ const recordKey = record => `${record.releaseId}:${record.unitId}`;
 const sortRecords = records => [...records].sort((a, b) =>
   String(a.createdAt ?? a.occurredAt ?? a.unitId).localeCompare(String(b.createdAt ?? b.occurredAt ?? b.unitId))
   || String(a.evidenceId ?? a.eventId ?? recordKey(a)).localeCompare(String(b.evidenceId ?? b.eventId ?? recordKey(b))));
+const dismissalSupported = (dismissal, evidence) => {
+  const records = evidence.filter(item => item.unitId === dismissal.unitId && item.releaseId === dismissal.releaseId);
+  if (dismissal.triggerType === 'misconception-evidence-present') return records.some(item => item.evidenceType === 'misconception');
+  if (dismissal.triggerType === 'assessment-unsuccessful') return records.filter(item => item.evidenceType === 'remediation-needed').length >= 2;
+  if (dismissal.triggerType === 'repeated-final-hint-dependence') return records.filter(item => item.evidenceType === 'guided-success' && item.hintDependence === 'final-answer').length >= 2;
+  if (dismissal.triggerType === 'repeated-decision-process-hint-dependence') return records.filter(item => item.evidenceType === 'guided-success' && item.hintDependence === 'decision-process').length >= 2;
+  if (dismissal.triggerType === 'guided-success-without-independent-success') return records.some(item => item.evidenceType === 'guided-success');
+  return dismissal.triggerType === 'assessment-not-yet-attempted'
+    && records.some(item => ['participation', 'exposure'].includes(item.evidenceType));
+};
 
 function contextForEvent(event) {
   return {
@@ -72,6 +84,7 @@ function emptyEnvelope(consent, now) {
     migration: { applied: [], migratedAt: null },
     retention: { ...LOCAL_LEARNING_LIMITS, policy: 'evidence-first-bounded-v1' },
     importProvenance: [],
+    reviewDismissals: {},
     integrity: { algorithm: 'fnv1a32', digest: null }
   };
 }
@@ -86,7 +99,7 @@ function withIntegrity(envelope) {
 export function validateLocalLearningEnvelope(envelope) {
   const errors = [];
   const keys = ['schemaVersion', 'createdAt', 'updatedAt', 'consent', 'releaseIds', 'progressByUnit',
-    'evidence', 'events', 'deduplication', 'migration', 'retention', 'importProvenance', 'integrity'];
+    'evidence', 'events', 'deduplication', 'migration', 'retention', 'importProvenance', 'reviewDismissals', 'integrity'];
   if (!exact(envelope, keys)) return result(false, 'invalid-envelope', { errors: ['invalid-envelope-shape'] });
   if (envelope.schemaVersion !== LOCAL_LEARNING_SCHEMA_VERSION) errors.push(envelope.schemaVersion > LOCAL_LEARNING_SCHEMA_VERSION ? 'unsupported-future-version' : 'unsupported-schema-version');
   if (!iso(envelope.createdAt) || iso(envelope.createdAt) !== envelope.createdAt
@@ -117,6 +130,13 @@ export function validateLocalLearningEnvelope(envelope) {
   if (!exact(envelope.migration, ['applied', 'migratedAt']) || !Array.isArray(envelope.migration?.applied)) errors.push('invalid-migration-metadata');
   if (!exact(envelope.retention, ['units', 'events', 'evidence', 'deduplication', 'importBytes', 'policy'])) errors.push('invalid-retention-metadata');
   if (!Array.isArray(envelope.importProvenance) || envelope.importProvenance.length > 20) errors.push('invalid-import-provenance');
+  if (!envelope.reviewDismissals || typeof envelope.reviewDismissals !== 'object' || Array.isArray(envelope.reviewDismissals)
+    || Object.values(envelope.reviewDismissals).some(item => !exact(item, ['explanationId', 'triggerType', 'unitId', 'releaseId', 'dismissedAt'])
+      || !STABLE_ID.test(item.explanationId ?? '') || !REVIEW_TRIGGERS.includes(item.triggerType)
+      || !UNIT_ID.test(item.unitId ?? '') || !RELEASE_ID.test(item.releaseId ?? '')
+      || iso(item.dismissedAt) !== item.dismissedAt)) errors.push('invalid-review-dismissals');
+  if (envelope.reviewDismissals && typeof envelope.reviewDismissals === 'object'
+    && Object.values(envelope.reviewDismissals).some(item => !dismissalSupported(item, evidence))) errors.push('orphan-review-dismissal');
   if (!exact(envelope.integrity, ['algorithm', 'digest']) || envelope.integrity?.algorithm !== 'fnv1a32') errors.push('invalid-integrity');
   if (!errors.length) {
     const expected = withIntegrity(envelope).integrity.digest;
@@ -129,6 +149,20 @@ export function migrateLocalLearningEnvelope(input, now = Date.now()) {
   const source = clone(input);
   if (source?.schemaVersion === LOCAL_LEARNING_SCHEMA_VERSION) return result(true, 'current', { envelope: immutable(source), migrated: false });
   if (Number(source?.schemaVersion) > LOCAL_LEARNING_SCHEMA_VERSION) return result(false, 'unsupported-future-version');
+  if (source?.schemaVersion === 1) {
+    const migrated = withIntegrity({
+      ...source,
+      schemaVersion: LOCAL_LEARNING_SCHEMA_VERSION,
+      reviewDismissals: {},
+      migration: {
+        applied: [...(source.migration?.applied ?? []), 'season-9.3.2-v1-to-season-9.3.3-v2'],
+        migratedAt: iso(now)
+      }
+    });
+    const validation = validateLocalLearningEnvelope(migrated);
+    return validation.ok ? result(true, 'migrated', { envelope: immutable(migrated), migrated: true })
+      : result(false, 'migration-failed', { errors: validation.errors });
+  }
   if (source?.schemaVersion !== 0 || source?.previewDraft !== true) return result(false, 'unsupported-schema-version');
   const consent = source.consent ?? createConsentState();
   const migrated = withIntegrity({
@@ -158,9 +192,12 @@ function parseRaw(raw, now) {
 function mergeProgress(previous, next) {
   if (!previous) return next;
   const rank = ['not-started', 'explored', 'practicing', 'assessed', 'review-suggested'];
+  const state = previous.state === 'review-suggested' || next.state === 'review-suggested'
+    ? next.state
+    : rank.indexOf(previous.state) > rank.indexOf(next.state) ? previous.state : next.state;
   return {
     ...next,
-    state: rank.indexOf(previous.state) > rank.indexOf(next.state) ? previous.state : next.state,
+    state,
     firstActivityAt: [previous.firstActivityAt, next.firstActivityAt].filter(Boolean).sort()[0] ?? null,
     mostRecentActivityAt: [previous.mostRecentActivityAt, next.mostRecentActivityAt].filter(Boolean).sort().at(-1) ?? null,
     sessionsCount: Math.max(previous.sessionsCount, next.sessionsCount),
@@ -301,6 +338,7 @@ export function createLocalLearningStore({ storage = globalThis.localStorage, no
       releaseIds: envelope?.releaseIds ?? [], progressByUnit: envelope?.progressByUnit ?? {},
       evidence: envelope?.evidence ?? [], events: envelope?.events ?? [],
       deduplication: envelope?.deduplication ?? [],
+      reviewDismissals: envelope?.reviewDismissals ?? {},
       integrity: { algorithm: 'fnv1a32', digest: null }
     };
     payload.integrity.digest = fingerprint(payload);
@@ -309,13 +347,17 @@ export function createLocalLearningStore({ storage = globalThis.localStorage, no
   const previewImport = json => {
     if (typeof json !== 'string' || new TextEncoder().encode(json).length > LOCAL_LEARNING_LIMITS.importBytes) return result(false, 'import-too-large');
     let payload; try { payload = JSON.parse(json); } catch { return result(false, 'invalid-import-json'); }
-    const keys = ['format', 'formatVersion', 'exportedAt', 'sourceApplication', 'storageSchemaVersion', 'releaseIds', 'progressByUnit', 'evidence', 'events', 'deduplication', 'integrity'];
-    if (!exact(payload, keys) || payload.format !== LOCAL_LEARNING_EXPORT_FORMAT || payload.formatVersion !== LOCAL_LEARNING_EXPORT_VERSION
-      || payload.storageSchemaVersion !== LOCAL_LEARNING_SCHEMA_VERSION || payload.integrity?.digest !== fingerprint({ ...payload, integrity: { algorithm: 'fnv1a32', digest: null } })) return result(false, 'invalid-import-format');
+    const baseKeys = ['format', 'formatVersion', 'exportedAt', 'sourceApplication', 'storageSchemaVersion', 'releaseIds', 'progressByUnit', 'evidence', 'events', 'deduplication', 'integrity'];
+    const supportedV1 = payload?.formatVersion === 1 && payload?.storageSchemaVersion === 1 && exact(payload, baseKeys);
+    const supportedV2 = payload?.formatVersion === LOCAL_LEARNING_EXPORT_VERSION
+      && payload?.storageSchemaVersion === LOCAL_LEARNING_SCHEMA_VERSION && exact(payload, [...baseKeys, 'reviewDismissals']);
+    if ((!supportedV1 && !supportedV2) || payload.format !== LOCAL_LEARNING_EXPORT_FORMAT
+      || payload.integrity?.digest !== fingerprint({ ...payload, integrity: { algorithm: 'fnv1a32', digest: null } })) return result(false, 'invalid-import-format');
     const previewEnvelope = withIntegrity({
       ...emptyEnvelope(createConsentState(), payload.exportedAt),
       updatedAt: payload.exportedAt, releaseIds: payload.releaseIds, progressByUnit: payload.progressByUnit,
-      evidence: payload.evidence, events: payload.events, deduplication: payload.deduplication
+      evidence: payload.evidence, events: payload.events, deduplication: payload.deduplication,
+      reviewDismissals: payload.reviewDismissals ?? {}
     });
     const validation = validateLocalLearningEnvelope(previewEnvelope);
     return validation.ok ? result(true, 'import-preview', { payload: immutable(payload), summary: summary(previewEnvelope) })
@@ -335,11 +377,16 @@ export function createLocalLearningStore({ storage = globalThis.localStorage, no
     preview.payload.deduplication.forEach(item => dedupMap.set(item.eventId, item));
     const progressByUnit = { ...loaded.envelope.progressByUnit };
     for (const [key, item] of Object.entries(preview.payload.progressByUnit)) progressByUnit[key] = mergeProgress(progressByUnit[key], item);
+    const reviewDismissals = { ...loaded.envelope.reviewDismissals };
+    for (const [key, item] of Object.entries(preview.payload.reviewDismissals ?? {})) {
+      if (!dismissalSupported(item, preview.payload.evidence)) return result(false, 'orphan-review-dismissal');
+      if (!reviewDismissals[key] || reviewDismissals[key].dismissedAt < item.dismissedAt) reviewDismissals[key] = item;
+    }
     let candidate = applyRetention({
       ...loaded.envelope, updatedAt: iso(now()),
       releaseIds: [...new Set([...loaded.envelope.releaseIds, ...preview.payload.releaseIds])].sort(),
       progressByUnit, events: [...eventMap.values()], evidence: [...evidenceMap.values()],
-      deduplication: [...dedupMap.values()],
+      deduplication: [...dedupMap.values()], reviewDismissals,
       importProvenance: [...loaded.envelope.importProvenance, {
         importedAt: iso(now()), format: LOCAL_LEARNING_EXPORT_FORMAT,
         formatVersion: LOCAL_LEARNING_EXPORT_VERSION, digest: preview.payload.integrity.digest
@@ -348,10 +395,65 @@ export function createLocalLearningStore({ storage = globalThis.localStorage, no
     candidate = withIntegrity(candidate);
     return commit(candidate);
   };
+  const dismissReview = explanation => {
+    const loaded = requireReadable(); if (!loaded.ok) return loaded;
+    if (!loaded.envelope || loaded.envelope.consent.state !== 'local-progress-enabled') return result(false, 'consent-required');
+    if (!STABLE_ID.test(explanation?.explanationId ?? '') || !REVIEW_TRIGGERS.includes(explanation?.triggerType) || !UNIT_ID.test(explanation.unitId ?? '')
+      || !RELEASE_ID.test(explanation.releaseId ?? '') || !explanation.supportingEvidenceIds?.every(id =>
+        loaded.envelope.evidence.some(item => item.evidenceId === id))) return result(false, 'invalid-review-dismissal');
+    const item = {
+      explanationId: explanation.explanationId, triggerType: explanation.triggerType,
+      unitId: explanation.unitId, releaseId: explanation.releaseId, dismissedAt: iso(now())
+    };
+    return commit(withIntegrity({
+      ...loaded.envelope, updatedAt: iso(now()),
+      reviewDismissals: { ...loaded.envelope.reviewDismissals, [recordKey(explanation)]: item }
+    }));
+  };
+  const restoreDismissedReview = (releaseId, unitId) => {
+    const loaded = requireReadable(); if (!loaded.ok) return loaded;
+    if (!loaded.envelope || loaded.envelope.consent.state !== 'local-progress-enabled') return result(false, 'consent-required');
+    const reviewDismissals = { ...loaded.envelope.reviewDismissals };
+    delete reviewDismissals[`${releaseId}:${unitId}`];
+    return commit(withIntegrity({ ...loaded.envelope, updatedAt: iso(now()), reviewDismissals }));
+  };
+  const clearReviewEvidence = explanation => {
+    const loaded = requireReadable(); if (!loaded.ok) return loaded;
+    if (!loaded.envelope || loaded.envelope.consent.state !== 'local-progress-enabled') return result(false, 'consent-required');
+    const supporting = new Set(explanation?.supportingEvidenceIds ?? []);
+    if (!supporting.size || ![...supporting].every(id => loaded.envelope.evidence.some(item => item.evidenceId === id))) return result(false, 'invalid-review-evidence');
+    const removed = loaded.envelope.evidence.filter(item => supporting.has(item.evidenceId));
+    if (removed.some(item => item.releaseId !== explanation.releaseId || item.unitId !== explanation.unitId)) return result(false, 'review-evidence-scope-mismatch');
+    const evidence = loaded.envelope.evidence.filter(item => !supporting.has(item.evidenceId));
+    const referenced = new Set(evidence.flatMap(item => item.sourceEventIds));
+    const sourceIds = new Set(removed.flatMap(item => item.sourceEventIds));
+    const events = loaded.envelope.events.filter(item => !sourceIds.has(item.eventId) || referenced.has(item.eventId));
+    const removedEventIds = new Set(loaded.envelope.events.filter(item => !events.includes(item)).map(item => item.eventId));
+    const progressByUnit = { ...loaded.envelope.progressByUnit };
+    const unitEvents = events.filter(item => item.releaseId === explanation.releaseId && item.unitId === explanation.unitId);
+    const unitEvidence = evidence.filter(item => item.releaseId === explanation.releaseId && item.unitId === explanation.unitId);
+    const key = `${explanation.releaseId}:${explanation.unitId}`;
+    if (!unitEvents.length && !unitEvidence.length) delete progressByUnit[key];
+    else progressByUnit[key] = deriveLearnerProgress({
+      unitId: explanation.unitId, releaseId: explanation.releaseId,
+      events: unitEvents, evidence: unitEvidence, consent: loaded.envelope.consent
+    });
+    const reviewDismissals = { ...loaded.envelope.reviewDismissals }; delete reviewDismissals[key];
+    return commit(withIntegrity({
+      ...loaded.envelope, updatedAt: iso(now()), evidence, events, progressByUnit, reviewDismissals,
+      deduplication: loaded.envelope.deduplication.filter(item => !removedEventIds.has(item.eventId))
+    }));
+  };
   return Object.freeze({
     load() { const loaded = read(); return loaded.ok ? result(true, loaded.code, { summary: summary(loaded.envelope) }) : loaded; },
     refreshFromStorage() { return this.load(); },
     getSummary() { return summary(cached); },
+    getLearningRecords() {
+      return immutable({
+        evidence: cached?.evidence ?? [], events: cached?.events ?? [],
+        reviewDismissals: cached?.reviewDismissals ?? {}
+      });
+    },
     getDiagnosticState() { return immutable({ code: lastLoad.code, errors: lastLoad.errors ?? [], hasRaw: Boolean(lastLoad.raw) }); },
     isStorageArea(area) { return !area || area === storage; },
     setContext(value) { currentContext = value; },
@@ -364,6 +466,9 @@ export function createLocalLearningStore({ storage = globalThis.localStorage, no
     exportData,
     previewImport,
     mergeImport,
+    dismissReview,
+    restoreDismissedReview,
+    clearReviewEvidence,
     clearUnreadableStore() {
       const loaded = read();
       if (loaded.ok) return result(false, 'store-is-readable');

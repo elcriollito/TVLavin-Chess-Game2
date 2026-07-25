@@ -68,6 +68,7 @@ const requiredFiles = [
   'js/learning/learning-progress-contracts.js',
   'js/learning/guided-study-event-session.js',
   'js/learning/local-learning-store.js',
+  'js/learning/review-explanations.js',
   'vercel.json',
   'knowledge/releases/rel-a26763c6382b7878595ed8ae0da603c4679bf906e4357fdb406952db5867e2e1/release.json'
 ];

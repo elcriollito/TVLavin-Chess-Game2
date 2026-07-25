@@ -125,6 +125,26 @@
                             </div>
                             <p data-learning-progress-summary></p>
                         </section>
+                        <p class="endgame-trainer-page__learning-consent" data-learning-review-context hidden>You opened this unit from a local review suggestion. Opening it does not resolve the review or create evidence by itself.</p>
+                        <section class="endgame-trainer-page__learning-consent" data-learning-review hidden aria-labelledby="learning-review-title">
+                            <p class="endgame-trainer-page__kicker">Local learning evidence</p>
+                            <h3 id="learning-review-title" data-learning-review-title>Review suggested</h3>
+                            <p data-learning-review-explanation></p>
+                            <p data-learning-review-reason></p>
+                            <p data-learning-review-target></p>
+                            <div class="endgame-trainer-page__lesson-nav">
+                                <a data-learning-review-now href="#">Review now</a>
+                                <button type="button" data-learning-review-dismiss>Dismiss for now</button>
+                                <button type="button" data-learning-review-restore hidden>Restore review</button>
+                                <button type="button" data-learning-review-clear>Clear evidence for this review</button>
+                                <button type="button" data-learning-review-why aria-expanded="false">Why am I seeing this?</button>
+                            </div>
+                            <div data-learning-review-details hidden>
+                                <p data-learning-review-evidence></p>
+                                <p>This explanation is based only on progress saved in this browser. This is not a Mastery result.</p>
+                            </div>
+                            <p data-learning-review-status role="status"></p>
+                        </section>
                     </div>
                     <div data-library-study-error hidden>
                         <p data-library-study-error-message role="alert">This study unit could not be opened.</p>
