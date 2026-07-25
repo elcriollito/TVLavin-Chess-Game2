@@ -3,10 +3,13 @@ import test from 'node:test';
 import {
   DEFAULT_OUTPUT,
   auditPublicFiles,
+  buildPublicRelease,
   isProtectedPublicPath,
   trackedPublicFiles
 } from '../scripts/build-public-release.mjs';
 import { resolve } from 'node:path';
+import { mkdtemp, readFile, stat } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 
 test('public release excludes internal architecture and authored Knowledge sources', () => {
   for (const path of [
@@ -15,8 +18,40 @@ test('public release excludes internal architecture and authored Knowledge sourc
     'knowledge/AUTHORING.md',
     'knowledge/domains/endgames/example/unit.js',
     'knowledge/schema/knowledge-unit.js',
-    'knowledge/consumer/library-reader.js'
+    'knowledge/consumer/library-reader.js',
+    'DIAGNOSTIC.html',
+    'TEST_ENGINE.html',
+    'endgame-board-harness.html',
+    'endgame-engine-harness.html',
+    'test-hash.html',
+    'test-pgn-load.html',
+    'tests/public-release-builder.test.js',
+    'scripts/build-public-release.mjs',
+    'tools/indexnow-ping.mjs',
+    'client/package.json',
+    'supabase-schema.sql',
+    'TVLavin-Chess-Game2.zip'
   ]) assert.equal(isProtectedPublicPath(path), true, `${path} was not protected`);
+});
+
+test('built artifact enforces disclosure boundaries on rendered public content', async () => {
+  const output = await mkdtemp(resolve(tmpdir(), 'caissa-disclosure-'));
+  await buildPublicRelease({ output });
+  const readOutput = path => readFile(resolve(output, path), 'utf8');
+  const about = await readOutput('about.html');
+  const roadmap = await readOutput('data/roadmap.json');
+  const premium = await readOutput('premium.html');
+  const classic = await readOutput('yahoo-classic.html');
+  const vault = await readOutput('vault.html');
+  assert.doesNotMatch(about, /Supabase|Vercel|serverless|open source|auditable on GitHub/i);
+  assert.doesNotMatch(roadmap, /schema|provider integration|season 9|API endpoint/i);
+  assert.match(premium, /not currently available/i);
+  assert.doesNotMatch(premium, /No tracking, no selling/i);
+  assert.doesNotMatch(classic, /No data is sent to external servers/i);
+  assert.doesNotMatch(vault, /github\.com\/anthropics\/caissa/i);
+  for (const path of ['DIAGNOSTIC.html', 'TEST_ENGINE.html', 'endgame-board-harness.html']) {
+    await assert.rejects(stat(resolve(output, path)), { code: 'ENOENT' });
+  }
 });
 
 test('public release preserves runtime pages and immutable release assets', () => {
@@ -34,7 +69,7 @@ test('committed-tree audit has no protected paths and all required runtime files
   const result = auditPublicFiles(files);
   assert.equal(result.protectedPaths, 0);
   assert.equal(result.requiredPaths, 7);
-  assert.ok(result.files > 700);
+  assert.ok(result.files > 500);
 });
 
 test('default release output is outside the repository to prevent parent-worktree scanning', () => {

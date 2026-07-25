@@ -54,9 +54,16 @@ test('study model exposes only released instructional content and a Library retu
   const model = createGuidedStudyModel(eligible, summary);
   assert.equal(model.title, 'Exchange into a passed pawn');
   assert.equal(model.objective, eligible.education.learningObjectives[0]);
+  assert.equal(model.explanation, eligible.localization.content['en-US'].explanation);
   assert.equal(model.positions[0].fen, eligible.positions[0].fen);
+  assert.equal(model.positions[0].principalIdeas[0].purpose, eligible.positions[0].principalIdeas[0].purpose);
   assert.equal(model.prompts[0], eligible.localization.content['en-US'].coachingPrompts[0]);
   assert.equal(model.returnHref, '/endgame-library?unit=endgames%2Fexchange-into-passer');
+});
+
+test('all 17 pinned released units satisfy objective Guided Study eligibility', () => {
+  assert.equal(units.length, 17);
+  assert.equal(units.filter(isGuidedStudyEligible).length, 17);
 });
 
 test('loader fails safely before fetching on malformed or mismatched state', async () => {
@@ -80,7 +87,12 @@ test('Library and existing Guided Workspace share the released-data adapter', ()
   assert.match(trainer, /loadGuidedStudyRequest/);
   assert.match(trainer, /runtime\?\.boardView\?\.setPosition/);
   assert.match(html, /data-library-study/);
+  assert.match(html, /Lesson Companion/);
+  assert.match(html, /data-library-study-explanation/);
+  assert.match(html, /data-library-study-position-purpose/);
   assert.match(html, /Return to Endgame Library/);
+  assert.match(trainer, /position-unavailable/);
+  assert.match(trainer, /principalIdeas/);
 });
 
 test('guided-study adapter has no authored, draft, persistence, mastery, recommendation, or AI dependency', () => {

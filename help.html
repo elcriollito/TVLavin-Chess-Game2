@@ -19,6 +19,18 @@
     <link rel="stylesheet" href="/library-page.css?v=1.0.0">
     <link rel="stylesheet" href="/css/caissa-mobile-foundation.css?v=1.0.6">
     <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.1.0">
+    <style>
+        .about-section, .about-section-content, .about-feature-card, .help-faq { max-width: 100%; min-width: 0; }
+        .about-features-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+        .about-section { padding: 24px; }
+        .about-feature-card, .faq-item { padding: 16px; }
+        @media (max-width: 768px) {
+            .about-features-grid { grid-template-columns: 1fr; }
+            .about-section { padding: 16px 0; }
+            .library-hero-title { flex-wrap: wrap; line-height: 1.2; }
+            .about-section-content p, .about-section-content li, .faq-item { overflow-wrap: anywhere; }
+        }
+    </style>
 </head>
 <body class="library-page-body">
     <div class="caissa-standalone-layout">

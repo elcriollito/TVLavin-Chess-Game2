@@ -8,14 +8,43 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const DEFAULT_OUTPUT = join(tmpdir(), 'caissa-public-release');
 
 const protectedFiles = new Set([
+  'DIAGNOSTIC.html',
+  'DEBUG_BOARD.html',
+  'LAUNCH_CHESS_GAME.html',
   'PROJECT_ARCHITECTURE.md',
   'PROJECT_HISTORY.md',
+  'QUICK_START.txt',
+  'README.md',
   'RELEASE_PROCESS.md',
+  'START_SERVER.bat',
+  'TEST_ENGINE.html',
+  'TVLavin-Chess-Game2.zip',
   'TOOLING_MIGRATION_PLAN.md',
-  'knowledge/AUTHORING.md'
+  'CHANGELOG.md',
+  'JUGAR_AJEDREZ.bat',
+  'LEEME_PRIMERO.txt',
+  'chess-llm-platform-complete.tar.gz',
+  'create-book-simple.cjs',
+  'create-book.cjs',
+  'endgame-board-harness.html',
+  'endgame-engine-harness.html',
+  'endgame-trainer-integration-harness.html',
+  'knowledge/AUTHORING.md',
+  'supabase-schema-v2.sql',
+  'supabase-schema.sql',
+  'test-hash.html',
+  'test-pgn-load.html'
 ]);
 const protectedDirectories = [
+  '.claude/',
+  'chess-llm-platform/',
+  'client/',
+  'cloudflare-worker/',
+  'deployment/',
   'docs/',
+  'downloads-worker/',
+  'experimental/',
+  'gateway/',
   'knowledge/authoring/',
   'knowledge/consumer/',
   'knowledge/domains/',
@@ -25,7 +54,10 @@ const protectedDirectories = [
   'knowledge/schema/',
   'knowledge/snapshots/',
   'knowledge/taxonomy/',
-  'knowledge/validation/'
+  'knowledge/validation/',
+  'scripts/',
+  'tests/',
+  'tools/'
 ];
 const requiredFiles = [
   'index.html',

@@ -123,7 +123,8 @@ const STUDY_ERRORS = Object.freeze({
     'release-mismatch': 'This study link does not match the supported library release.',
     'unit-not-found': 'This study unit is not part of the pinned library release.',
     'unit-not-eligible': 'Guided study is not available for this concept yet.',
-    'release-unavailable': 'The pinned library release could not be loaded.'
+    'release-unavailable': 'The pinned library release could not be loaded.',
+    'position-unavailable': 'The released instructional position could not be displayed safely.'
 });
 
 async function initializeLibraryStudy({ root, page, runtime, search, fetchImpl }) {
@@ -150,6 +151,7 @@ async function initializeLibraryStudy({ root, page, runtime, search, fetchImpl }
     page.libraryStudy = { status: 'ready', unitId: model.unitId, releaseId: model.releaseId, positionIndex: 0, promptIndex: 0 };
     text(root.querySelector('[data-library-study-title]'), model.title);
     text(root.querySelector('[data-library-study-objective]'), model.objective);
+    text(root.querySelector('[data-library-study-explanation]'), model.explanation);
     const ready = root.querySelector('[data-library-study-ready]'); if (ready) ready.hidden = false;
     const returnLink = root.querySelector('[data-library-study-return]'); if (returnLink) returnLink.href = model.returnHref;
     const positionSelect = root.querySelector('[data-library-study-position]');
@@ -161,12 +163,22 @@ async function initializeLibraryStudy({ root, page, runtime, search, fetchImpl }
     });
     const showPosition = index => {
         const position = model.positions[index]; if (!position) return;
-        page.libraryStudy.positionIndex = index;
-        runtime?.boardView?.setPosition(position.fen);
-        runtime?.boardView?.setOrientation(position.sideToMove === 'black' ? 'black' : 'white');
-        runtime?.boardView?.setInteractive(false);
-        const overlay = root.querySelector('[data-empty-board-overlay]'); if (overlay) overlay.hidden = true;
-        const board = root.querySelector('[data-board]'); board?.setAttribute('aria-label', `${model.title}. ${position.sideToMove} to move. Read-only guided study position.`);
+        try {
+            if (!runtime?.boardView?.setPosition) throw new Error('Board unavailable');
+            page.libraryStudy.positionIndex = index;
+            runtime.boardView.setPosition(position.fen);
+            runtime.boardView.setOrientation(position.sideToMove === 'black' ? 'black' : 'white');
+            runtime.boardView.setInteractive(false);
+            const purpose = position.principalIdeas?.map(idea => idea.purpose).filter(Boolean).join(' ');
+            text(root.querySelector('[data-library-study-position-purpose]'), purpose || 'Use this position to study the lesson objective.');
+            const overlay = root.querySelector('[data-empty-board-overlay]'); if (overlay) overlay.hidden = true;
+            const board = root.querySelector('[data-board]'); board?.setAttribute('aria-label', `${model.title}. ${position.sideToMove} to move. Read-only guided study position.`);
+        } catch {
+            page.libraryStudy = { ...page.libraryStudy, status: 'error', code: 'position-unavailable' };
+            if (ready) ready.hidden = true;
+            const error = root.querySelector('[data-library-study-error]'); if (error) error.hidden = false;
+            text(root.querySelector('[data-library-study-error-message]'), STUDY_ERRORS['position-unavailable']);
+        }
     };
     const showPrompt = index => {
         const bounded = Math.max(0, Math.min(model.prompts.length - 1, index));
