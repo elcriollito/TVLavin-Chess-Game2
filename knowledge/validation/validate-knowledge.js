@@ -13,6 +13,7 @@ const PUBLIC_STATUSES = new Set(['approved', 'published']);
 
 const issue = (code, unitId, path, message) => ({ code, unitId: unitId ?? '', path, message });
 const text = value => typeof value === 'string' && value.trim().length > 0;
+const hasHtml = value => typeof value === 'string' && /<[^>]+>/.test(value);
 const duplicates = values => [...new Set(values.filter((value, index) => values.indexOf(value) !== index))];
 
 function taxonomyIssue(unit, path, value, registryName, options) {
@@ -137,6 +138,69 @@ function validateUnit(unit, options) {
         Array.isArray(items) ? items.map(value => value?.id).filter(text) : []);
     for (const duplicate of duplicates(learningObjectIds)) {
         errors.push(issue('duplicate-learning-object-id', id, 'learningObjects', `Duplicate learning object id: ${duplicate}`));
+    }
+    const activityItems = unit?.activityItems;
+    if (unit?.schemaVersion === '1.1.0' && (!Array.isArray(activityItems) || activityItems.length === 0)) {
+        errors.push(issue('missing-activity-items', id, 'activityItems', 'Schema 1.1.0 requires authored activity items'));
+    }
+    if (activityItems !== undefined && !Array.isArray(activityItems)) {
+        errors.push(issue('invalid-activity-items', id, 'activityItems', 'activityItems must be an array'));
+    }
+    const activityIds = Array.isArray(activityItems) ? activityItems.map(item => item?.id) : [];
+    for (const duplicate of duplicates(activityIds)) {
+        errors.push(issue('duplicate-activity-id', id, 'activityItems', `Duplicate activity item id: ${duplicate}`));
+    }
+    for (const [activityIndex, item] of (activityItems ?? []).entries()) {
+        const path = `activityItems[${activityIndex}]`;
+        const responseTypes = ['exact-move', 'single-choice', 'plan-choice'];
+        const activityTypes = ['independent-practice', 'assessment'];
+        if (!text(item?.id) || item?.itemSchemaVersion !== '1.0.0' || item?.authoredStatus !== 'verified'
+            || !activityTypes.includes(item?.activityType) || !responseTypes.includes(item?.responseType)
+            || !text(item?.title) || !text(item?.instruction) || !text(item?.objective)
+            || !learningObjectIds.includes(item?.sourceLearningObjectId)) {
+            errors.push(issue('invalid-activity-contract', id, path, 'Activity identity, prompt, type, or source object is invalid'));
+        }
+        const authoredText = [
+            item?.title, item?.instruction, item?.objective,
+            ...Object.values(item?.feedback ?? {}).filter(value => typeof value === 'string'),
+            ...(item?.answer?.choices ?? []).map(choice => choice?.label)
+        ];
+        if (authoredText.some(hasHtml)) {
+            errors.push(issue('raw-html-rejected', id, path, 'Authored activity text must not contain raw HTML'));
+        }
+        const position = unit.positions?.find(candidate => candidate.id === item?.positionId);
+        if (!position) errors.push(issue('invalid-activity-position', id, `${path}.positionId`, 'Activity position must exist in the unit'));
+        if (!item?.answer || !text(item.answer.evaluatorType) || item.answer.expected === undefined
+            || !Array.isArray(item.answer.acceptedAlternatives) || !Array.isArray(item.answer.misconceptionMappings)
+            || !item.feedback || !item.evidence?.reviewResolution) {
+            errors.push(issue('invalid-activity-answer', id, `${path}.answer`, 'Activity answer, feedback, evidence, and resolution are required'));
+            continue;
+        }
+        if (item.responseType === 'exact-move' && position?.fen) {
+            for (const [moveIndex, move] of [item.answer.expected, ...item.answer.acceptedAlternatives].entries()) {
+                try { ChessRulesFacade.fromFen(position.fen).move(move); }
+                catch { errors.push(issue('invalid-activity-move', id, `${path}.answer[${moveIndex}]`, 'Expected and alternative moves must be legal')); }
+            }
+        } else if (['single-choice', 'plan-choice'].includes(item.responseType)) {
+            const choices = item.answer.choices;
+            const choiceIds = Array.isArray(choices) ? choices.map(choice => choice?.id) : [];
+            if (!Array.isArray(choices) || choices.length < 2 || duplicates(choiceIds).length
+                || !choiceIds.includes(item.answer.expected) || choices.some(choice => !text(choice?.id) || !text(choice?.label))) {
+                errors.push(issue('invalid-activity-choices', id, `${path}.answer.choices`, 'Choice IDs must be unique and include the expected answer'));
+            }
+            for (const mapping of item.answer.misconceptionMappings) {
+                const sourceMisconceptions = unit.localization?.content?.[unit.localization.defaultLocale]?.misconceptions ?? [];
+                if (!choiceIds.includes(mapping?.responseId) || !text(mapping?.misconceptionId)
+                    || !Number.isSafeInteger(mapping?.sourceMisconceptionIndex)
+                    || !sourceMisconceptions[mapping.sourceMisconceptionIndex]
+                    || !activityIds.includes(mapping?.resolutionActivityId) || !text(mapping?.explanation)) {
+                    errors.push(issue('invalid-misconception-mapping', id, `${path}.answer.misconceptionMappings`, 'Mapping must reference a choice, authored misconception, and resolution activity'));
+                }
+            }
+        }
+        if (item.activityType === 'assessment' && item.hintPolicy?.finalAnswerBeforeSubmission !== false) {
+            errors.push(issue('invalid-assessment-hint-policy', id, `${path}.hintPolicy`, 'Assessment cannot reveal the final answer before submission'));
+        }
     }
     if (!unit?.editorial || !text(unit.editorial.owner) || !DATE.test(unit.editorial.createdAt ?? '') ||
         !DATE.test(unit.editorial.updatedAt ?? '') || !text(unit.editorial.provenance?.notes) ||

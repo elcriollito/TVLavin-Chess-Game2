@@ -1,0 +1,378 @@
+{
+  "contentHash": "49308084667c224f2f5d292d73664491b1a91637e0a4151554dee6f11c87ad39",
+  "contentVersion": "1.1.0",
+  "id": "ku:endgames:pawn-transformations:outside-passed-pawn",
+  "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+  "schemaVersion": "1.1.0",
+  "unit": {
+    "activityItems": [
+      {
+        "activityType": "independent-practice",
+        "answer": {
+          "acceptedAlternatives": [],
+          "evaluatorType": "authored-san-exact-v2",
+          "expected": "a5",
+          "misconceptionMappings": [],
+          "rejectionRules": [
+            "illegal-move",
+            "unsupported-legal-move"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "independent-success",
+          "misconception": null,
+          "reviewResolution": {
+            "requires": "independent-success",
+            "triggerTypes": [
+              "guided-success-without-independent-success",
+              "repeated-final-hint-dependence"
+            ]
+          },
+          "unsuccessful": "remediation-needed-after-two-unsuccessful"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies outside-passer diversion in the released position.",
+          "guided": "Correct with support. This counts as guided practice for outside-passer diversion.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about outside-passer diversion.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply outside-passer diversion in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:outside-passer:independent-return",
+        "instruction": "Play the candidate push before calculating the defender’s return.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Evaluate the outside passer through chase-and-return geometry.",
+        "positionId": "pos:outside-passer:defender-returns",
+        "responseType": "exact-move",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "exercise:outside-passer:return",
+        "title": "Test the diversion",
+        "transfer": false
+      },
+      {
+        "activityType": "assessment",
+        "answer": {
+          "acceptedAlternatives": [],
+          "choices": [
+            {
+              "id": "choice:outside-passer:chase-return",
+              "label": "Count the chase, capture, return, and opposite-wing entry."
+            },
+            {
+              "id": "choice:outside-passer:assessment-return:misconception",
+              "label": "A remote passer wins automatically because it is far from the center.",
+              "misconceptionId": "misconception:outside-passer:automatic-win"
+            }
+          ],
+          "evaluatorType": "authored-single-choice-v1",
+          "expected": "choice:outside-passer:chase-return",
+          "misconceptionMappings": [
+            {
+              "explanation": "This choice expresses the authored misconception: A remote passer wins automatically because it is far from the center.",
+              "misconceptionId": "misconception:outside-passer:automatic-win",
+              "resolutionActivityId": "activity:outside-passer:assessment-return",
+              "responseId": "choice:outside-passer:assessment-return:misconception",
+              "sourceMisconceptionIndex": 0
+            }
+          ],
+          "rejectionRules": [
+            "unknown-choice-id"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "assessment-success",
+          "misconception": {
+            "evidenceType": "misconception",
+            "misconceptionId": "misconception:outside-passer:automatic-win"
+          },
+          "reviewResolution": {
+            "requires": "assessment-success",
+            "triggerTypes": [
+              "assessment-not-yet-attempted",
+              "assessment-unsuccessful"
+            ]
+          },
+          "unsuccessful": "assessment-unsuccessful-event"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies outside-passer diversion in the released position.",
+          "guided": "Correct with support. This counts as guided practice for outside-passer diversion.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about outside-passer diversion.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply outside-passer diversion in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:outside-passer:assessment-return",
+        "instruction": "Choose the calculation required before calling the diversion successful.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Include both the chase and the return route.",
+        "positionId": "pos:outside-passer:defender-returns",
+        "responseType": "single-choice",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "assessment:outside-passer:three-of-four",
+        "title": "Assess the outside passer",
+        "transfer": false
+      }
+    ],
+    "contentVersion": "1.1.0",
+    "domain": "endgames",
+    "education": {
+      "difficulty": "developing",
+      "endgameFamily": "pawn-endgames",
+      "expectedLearnerLevel": "foundation-rules-aware",
+      "knowledgeType": "principle",
+      "learningObjectives": [
+        "Recognize an outside passed pawn by its distance from the remaining pawn structure.",
+        "Calculate the enemy king chase and return route before using the passer as a diversion."
+      ],
+      "masteryCriteria": [
+        "Correctly classifies a genuine outside passer in four of five mixed structures.",
+        "Calculates chase, return, and opposite-wing penetration in three of four tasks without a final-move hint."
+      ],
+      "prerequisites": [
+        "ku:endgames:pawn-foundations:rule-of-the-square"
+      ],
+      "skills": [
+        "board-geometry",
+        "calculation",
+        "planning"
+      ],
+      "themes": [
+        "passed-pawns",
+        "diversion",
+        "pawn-races",
+        "king-activity"
+      ]
+    },
+    "id": "ku:endgames:pawn-transformations:outside-passed-pawn",
+    "integrations": {
+      "academy": {
+        "compatible": true
+      },
+      "capabilities": [
+        "academy-compatible",
+        "deterministic-coaching-prompts",
+        "mastery-criteria",
+        "training-memory-theme-link"
+      ],
+      "coaching": {
+        "conceptIds": [
+          "outside-passed-pawn",
+          "diversion",
+          "return-route"
+        ],
+        "hintOrder": [
+          "observation",
+          "structural-recognition",
+          "candidate-identification",
+          "calculation-direction",
+          "decision-process",
+          "reflection"
+        ],
+        "policy": "deterministic-prompt-only"
+      },
+      "mastery": {
+        "criterionIds": [
+          "outside-passer-classify-4-of-5",
+          "outside-passer-calculate-3-of-4"
+        ]
+      },
+      "recommendation": {
+        "nextUnitIds": [
+          "ku:endgames:pawn-transformations:pawn-breakthrough"
+        ],
+        "remediationUnitIds": [
+          "ku:endgames:pawn-foundations:rule-of-the-square"
+        ]
+      },
+      "trainingMemory": {
+        "themeIds": [
+          "passed-pawns",
+          "diversion",
+          "pawn-races"
+        ]
+      }
+    },
+    "learningObjects": {
+      "assessments": [
+        {
+          "criterionId": "outside-passer-calculate-3-of-4",
+          "id": "assessment:outside-passer:three-of-four"
+        }
+      ],
+      "checksForUnderstanding": [
+        {
+          "id": "check:outside-passer:definition",
+          "prompt": "Distinguish an outside passer from an ordinary passer by the remaining structure."
+        }
+      ],
+      "demonstrations": [
+        {
+          "id": "demo:outside-passer:diversion",
+          "positionId": "pos:outside-passer:successful-diversion"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "exercise:outside-passer:return",
+          "positionId": "pos:outside-passer:defender-returns",
+          "task": "Decide whether pushing creates enough time."
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "guided:outside-passer:route",
+          "positionId": "pos:outside-passer:successful-diversion",
+          "prompt": "Trace chase, capture, return, and penetration routes."
+        }
+      ],
+      "reviewItems": []
+    },
+    "localization": {
+      "availableLocales": [
+        "en-US"
+      ],
+      "content": {
+        "en-US": {
+          "coachingPrompts": [
+            "Which passer is farthest from the remaining pawn structure?",
+            "What makes its distance a potential diversion?",
+            "Which candidate starts the diversion, and which improves the king first?",
+            "Must the enemy king chase, and where would it finish?",
+            "Calculate chase, return, target, and timing before pushing.",
+            "What did the diversion make available on the opposite wing?"
+          ],
+          "decisionProcess": [
+            "Identify the passer most distant from the remaining pawns.",
+            "Calculate whether the enemy king must chase it.",
+            "Calculate the king’s capture and return route.",
+            "Identify the penetration target on the opposite wing.",
+            "Compare pushing now with improving the king first."
+          ],
+          "explanation": "An outside passed pawn is separated from the remaining pawn mass and can force the enemy king to travel away from another target. Distance is useful only when the calculations work: the king must need to chase, the passer must last long enough, and the attacking king must gain something before the defender returns. The farthest pawn is therefore not automatically winning. Treat diversion as a concrete race joined to a plan on the other wing.",
+          "keyIdeas": [
+            "An outside passer creates value by stretching the defender across two distant tasks.",
+            "The chase and the return route are both part of the calculation."
+          ],
+          "misconceptions": [
+            "The pawn farthest from the center is not necessarily outside relative to the remaining structure.",
+            "A remote passer does not win automatically when the enemy king can consume it and return in time."
+          ],
+          "practicalRules": [
+            "An outside passer often distracts the king when the opposite wing contains a reachable target.",
+            "Improve the king first when pushing immediately gives the defender time to return."
+          ],
+          "reflectionPrompts": [
+            "Which return square decides whether the diversion succeeds?",
+            "How would moving the attacking king first change the race?"
+          ],
+          "summary": "Use distance to divert the enemy king and open an entry on the opposite wing.",
+          "title": "Create an outside passed pawn"
+        }
+      },
+      "defaultLocale": "en-US",
+      "translationStatus": {
+        "en-US": "ready"
+      }
+    },
+    "positions": [
+      {
+        "expectedConcepts": [
+          "outside-passed-pawn",
+          "diversion",
+          "opposite-wing-entry"
+        ],
+        "fen": "8/8/5k2/8/P2K1P2/8/8/8 w - - 0 1",
+        "id": "pos:outside-passer:successful-diversion",
+        "principalIdeas": [
+          {
+            "moves": [
+              "a5"
+            ],
+            "purpose": "Advance the remote passer and ask whether the king must leave the kingside target."
+          }
+        ],
+        "role": "clean-demonstration",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "Distance and legal chase geometry are verified; the position teaches calculation rather than asserting a universal result.",
+          "structural": "valid"
+        }
+      },
+      {
+        "expectedConcepts": [
+          "outside-passer-near-miss",
+          "king-return-route"
+        ],
+        "fen": "8/8/2k5/8/P2K1P2/8/8/8 w - - 0 1",
+        "id": "pos:outside-passer:defender-returns",
+        "principalIdeas": [
+          {
+            "moves": [
+              "a5"
+            ],
+            "purpose": "Test the tempting push against a much shorter chase and return route."
+          }
+        ],
+        "role": "contrast",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "The defender starts close to the outside pawn, materially changing the race.",
+          "structural": "valid"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "reason": "An outside passer relies on distance and diversion rather than mutual pawn support and restriction.",
+        "targetId": "ku:endgames:pawn-transformations:protected-passed-pawn",
+        "type": "contrast"
+      },
+      {
+        "reason": "Breakthrough calculation applies race geometry to the creation of a new passer.",
+        "targetId": "ku:endgames:pawn-transformations:pawn-breakthrough",
+        "type": "progression"
+      },
+      {
+        "reason": "After calculating an existing outside passer, learn to create a passer through transformation.",
+        "targetId": "ku:endgames:pawn-transformations:pawn-breakthrough",
+        "type": "recommendation"
+      },
+      {
+        "reason": "Learners who omit the chase or return count should revisit pawn-square geometry.",
+        "targetId": "ku:endgames:pawn-foundations:rule-of-the-square",
+        "type": "remediation"
+      },
+      {
+        "reason": "The diversion has purpose only when the attacking king can exploit the opposite wing.",
+        "targetId": "ku:endgames:pawn-foundations:activate-the-king",
+        "type": "related"
+      }
+    ],
+    "schemaVersion": "1.1.0",
+    "slug": "outside-passed-pawn",
+    "status": "published"
+  }
+}

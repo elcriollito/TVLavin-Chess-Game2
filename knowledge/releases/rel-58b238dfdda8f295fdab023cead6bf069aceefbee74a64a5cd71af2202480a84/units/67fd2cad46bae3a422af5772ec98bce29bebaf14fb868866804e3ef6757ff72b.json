@@ -1,0 +1,375 @@
+{
+  "contentHash": "f09ee0f553c8733047f742588b041461530e51436331f03480d98101381ccc25",
+  "contentVersion": "1.1.0",
+  "id": "ku:endgames:pawn-foundations:convert-with-king-support",
+  "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+  "schemaVersion": "1.1.0",
+  "unit": {
+    "activityItems": [
+      {
+        "activityType": "independent-practice",
+        "answer": {
+          "acceptedAlternatives": [],
+          "evaluatorType": "authored-san-exact-v2",
+          "expected": "Kd5",
+          "misconceptionMappings": [],
+          "rejectionRules": [
+            "illegal-move",
+            "unsupported-legal-move"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "independent-success",
+          "misconception": null,
+          "reviewResolution": {
+            "requires": "independent-success",
+            "triggerTypes": [
+              "guided-success-without-independent-success",
+              "repeated-final-hint-dependence"
+            ]
+          },
+          "unsuccessful": "remediation-needed-after-two-unsuccessful"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies king-pawn coordination in the released position.",
+          "guided": "Correct with support. This counts as guided practice for king-pawn coordination.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about king-pawn coordination.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply king-pawn coordination in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:king-support:independent-transfer",
+        "instruction": "Play the king move that preserves support against side entry.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Keep the king connected to the pawn while improving access.",
+        "positionId": "pos:king-support:transfer-side-entry",
+        "responseType": "exact-move",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "exercise:king-support:move-order",
+        "title": "Coordinate king and pawn",
+        "transfer": false
+      },
+      {
+        "activityType": "assessment",
+        "answer": {
+          "acceptedAlternatives": [],
+          "choices": [
+            {
+              "id": "plan:king-support:king-route-first",
+              "label": "Improve king access, then advance when support remains."
+            },
+            {
+              "id": "choice:king-support:assessment-order:misconception",
+              "label": "Push the passed pawn automatically before securing king entry.",
+              "misconceptionId": "misconception:king-support:push-automatically"
+            }
+          ],
+          "evaluatorType": "authored-plan-choice-v1",
+          "expected": "plan:king-support:king-route-first",
+          "misconceptionMappings": [
+            {
+              "explanation": "This choice expresses the authored misconception: Push the passed pawn automatically before securing king entry.",
+              "misconceptionId": "misconception:king-support:push-automatically",
+              "resolutionActivityId": "activity:king-support:assessment-order",
+              "responseId": "choice:king-support:assessment-order:misconception",
+              "sourceMisconceptionIndex": 0
+            }
+          ],
+          "rejectionRules": [
+            "unknown-choice-id"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "assessment-success",
+          "misconception": {
+            "evidenceType": "misconception",
+            "misconceptionId": "misconception:king-support:push-automatically"
+          },
+          "reviewResolution": {
+            "requires": "assessment-success",
+            "triggerTypes": [
+              "assessment-not-yet-attempted",
+              "assessment-unsuccessful"
+            ]
+          },
+          "unsuccessful": "assessment-unsuccessful-event"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies king-pawn coordination in the released position.",
+          "guided": "Correct with support. This counts as guided practice for king-pawn coordination.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about king-pawn coordination.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply king-pawn coordination in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:king-support:assessment-order",
+        "instruction": "Choose the correct division of labor between king and pawn.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Coordinate the king route before an irreversible pawn push.",
+        "positionId": "pos:king-support:central-coordination",
+        "responseType": "plan-choice",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "assessment:king-support:four-of-five",
+        "title": "Assess the conversion order",
+        "transfer": false
+      }
+    ],
+    "contentVersion": "1.1.0",
+    "domain": "endgames",
+    "education": {
+      "difficulty": "developing",
+      "endgameFamily": "pawn-endgames",
+      "expectedLearnerLevel": "foundation-rules-aware",
+      "knowledgeType": "technique",
+      "learningObjectives": [
+        "Coordinate king improvement and pawn advancement without surrendering a needed entry square.",
+        "Use square counting, target squares, and side to move to choose an independent move order."
+      ],
+      "masteryCriteria": [
+        "Solves four of five varied king-support move-order tasks without the final hint and explains why an immediate pawn advance is safe or premature."
+      ],
+      "prerequisites": [
+        "ku:endgames:pawn-foundations:activate-the-king",
+        "ku:endgames:pawn-foundations:key-squares"
+      ],
+      "skills": [
+        "move-order",
+        "calculation",
+        "planning"
+      ],
+      "themes": [
+        "pawn-support",
+        "key-squares",
+        "king-activity",
+        "tempo"
+      ]
+    },
+    "id": "ku:endgames:pawn-foundations:convert-with-king-support",
+    "integrations": {
+      "academy": {
+        "compatible": true
+      },
+      "capabilities": [
+        "academy-compatible",
+        "deterministic-coaching-prompts",
+        "mastery-criteria",
+        "training-memory-theme-link"
+      ],
+      "coaching": {
+        "conceptIds": [
+          "king-pawn-jobs",
+          "supported-move-order"
+        ],
+        "hintOrder": [
+          "observation",
+          "recall",
+          "direction",
+          "decision-process",
+          "reflection"
+        ],
+        "policy": "deterministic-prompt-only"
+      },
+      "mastery": {
+        "criterionIds": [
+          "supported-conversion-4-of-5"
+        ]
+      },
+      "recommendation": {
+        "remediationUnitIds": [
+          "ku:endgames:pawn-foundations:key-squares",
+          "ku:endgames:pawn-foundations:activate-the-king"
+        ]
+      },
+      "trainingMemory": {
+        "themeIds": [
+          "pawn-support",
+          "key-squares",
+          "king-activity"
+        ]
+      }
+    },
+    "learningObjects": {
+      "assessments": [
+        {
+          "criterionId": "supported-conversion-4-of-5",
+          "id": "assessment:king-support:four-of-five"
+        }
+      ],
+      "checksForUnderstanding": [
+        {
+          "id": "check:king-support:recalculate",
+          "prompt": "Name what must be recalculated after the pawn advances."
+        }
+      ],
+      "demonstrations": [
+        {
+          "id": "demo:king-support:assign-jobs",
+          "positionId": "pos:king-support:central-coordination"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "exercise:king-support:move-order",
+          "positionId": "pos:king-support:central-coordination",
+          "task": "Choose and justify the first move without a final-move hint."
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "guided:king-support:compare",
+          "positionId": "pos:king-support:transfer-side-entry",
+          "prompt": "Compare the best king move with the best pawn move."
+        }
+      ],
+      "reviewItems": [
+        {
+          "conceptIds": [
+            "pawn-square-boundary",
+            "king-route",
+            "direct-opposition",
+            "target-square"
+          ],
+          "id": "review:king-support:concept-chain"
+        }
+      ]
+    },
+    "localization": {
+      "availableLocales": [
+        "en-US"
+      ],
+      "content": {
+        "en-US": {
+          "coachingPrompts": [
+            "What job belongs to the king and what job belongs to the pawn?",
+            "Which earlier concepts help compare the two candidate moves?",
+            "Which direction preserves the king’s access?",
+            "Use target, opposition, comparison, and recalculation before deciding.",
+            "Why was the pawn move safe now—or why was it still premature?"
+          ],
+          "decisionProcess": [
+            "Identify the current king target and the pawn’s promotion route.",
+            "Check opposition, side to move, and the defender’s nearest entry.",
+            "Compare the best king-improving move with the best pawn advance.",
+            "Choose the order that preserves support, then recalculate after the move."
+          ],
+          "explanation": "Conversion begins when separate ideas become one move-order decision. The king seeks a useful supporting square, the pawn preserves or uses tempi, and square counting checks races. Improve the king when that preserves access; advance when the pawn move creates progress without giving the defending king a decisive route. This technique does not promise a win in every position. It organizes calculation in positions where king support is the central task.",
+          "keyIdeas": [
+            "The king and pawn have different jobs, and move order coordinates them.",
+            "A pawn advance is strongest when the king already controls the squares the pawn cannot."
+          ],
+          "misconceptions": [
+            "A passed pawn should not be pushed automatically when its king still needs an entry route.",
+            "Placing the king in front is not sufficient if the move order loses a tempo or allows a bypass."
+          ],
+          "practicalRules": [
+            "State the king’s target and the pawn’s next job before choosing which piece moves.",
+            "Recheck the pawn square and opponent’s entry after every irreversible advance."
+          ],
+          "reflectionPrompts": [
+            "Which earlier concept changed your move order?",
+            "What defender entry would make your plan fail?"
+          ],
+          "summary": "Coordinate king access and pawn timing instead of pushing by habit.",
+          "title": "Convert with king support"
+        }
+      },
+      "defaultLocale": "en-US",
+      "translationStatus": {
+        "en-US": "ready"
+      }
+    },
+    "positions": [
+      {
+        "expectedConcepts": [
+          "king-pawn-jobs",
+          "supported-move-order"
+        ],
+        "fen": "8/4k3/8/3K4/4P3/8/8/8 w - - 0 1",
+        "id": "pos:king-support:central-coordination",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Kc6"
+            ],
+            "purpose": "Improve king access before deciding whether the pawn should advance."
+          }
+        ],
+        "role": "clean-demonstration",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "The sequence demonstrates coordination only; no unverified forced-result claim is attached.",
+          "structural": "valid"
+        }
+      },
+      {
+        "expectedConcepts": [
+          "defender-entry",
+          "supported-move-order"
+        ],
+        "fen": "8/2k5/8/4K3/4P3/8/8/8 w - - 0 1",
+        "id": "pos:king-support:transfer-side-entry",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Kd5"
+            ],
+            "purpose": "Keep the king connected to the pawn while accounting for the defender’s side entry."
+          }
+        ],
+        "role": "transfer",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "Transfer requires recalculating the king route against a changed defender approach.",
+          "structural": "valid"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "reason": "If the learner advances without a king destination, revisit target-square identification.",
+        "targetId": "ku:endgames:pawn-foundations:key-squares",
+        "type": "remediation"
+      },
+      {
+        "reason": "If king and pawn jobs are confused, revisit the purpose and exceptions of king activity.",
+        "targetId": "ku:endgames:pawn-foundations:activate-the-king",
+        "type": "remediation"
+      },
+      {
+        "reason": "Square counting checks whether the chosen move order survives a pawn race.",
+        "targetId": "ku:endgames:pawn-foundations:rule-of-the-square",
+        "type": "related"
+      },
+      {
+        "reason": "Review opposition when conversion attempts repeatedly lose king access on the move.",
+        "targetId": "ku:endgames:pawn-foundations:direct-opposition",
+        "type": "recommendation"
+      }
+    ],
+    "schemaVersion": "1.1.0",
+    "slug": "convert-with-king-support",
+    "status": "published"
+  }
+}

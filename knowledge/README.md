@@ -50,3 +50,9 @@ documented in
 See the Season 9.0.2 architecture document for taxonomy and hashing governance,
 and `docs/architecture/SEASON_9_0_3_IMMUTABLE_LIBRARY_RELEASES_AND_CONSUMER_API.md`
 for snapshot and consumer contracts.
+
+Knowledge schema `1.1.0` adds validated item-level `activityItems` while
+preserving consumer support for historical schema `1.0.0`. The current
+immutable release provides one independent-practice item and one assessment
+item for each of the 17 published endgame units. Browser runtime code evaluates
+only these released answer contracts and never invents answer keys.

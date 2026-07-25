@@ -1,0 +1,335 @@
+{
+  "contentHash": "578c18c96855d5b14dfd08b857a811e5c101c9cb02f580d26f8f553b20c19b47",
+  "contentVersion": "1.4.0",
+  "id": "ku:endgames:pawn-foundations:rule-of-the-square",
+  "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+  "schemaVersion": "1.1.0",
+  "unit": {
+    "activityItems": [
+      {
+        "activityType": "independent-practice",
+        "answer": {
+          "acceptedAlternatives": [],
+          "choices": [
+            {
+              "id": "choice:rule-square:count-after-move",
+              "label": "Count the shortest king route after accounting for the side to move."
+            },
+            {
+              "id": "choice:rule-square:independent-boundary:misconception",
+              "label": "Treat the square as an automatic verdict regardless of move order.",
+              "misconceptionId": "misconception:rule-square:automatic-verdict"
+            }
+          ],
+          "evaluatorType": "authored-single-choice-v1",
+          "expected": "choice:rule-square:count-after-move",
+          "misconceptionMappings": [
+            {
+              "explanation": "This choice expresses the authored misconception: Treat the square as an automatic verdict regardless of move order.",
+              "misconceptionId": "misconception:rule-square:automatic-verdict",
+              "resolutionActivityId": "activity:rule-square:independent-boundary",
+              "responseId": "choice:rule-square:independent-boundary:misconception",
+              "sourceMisconceptionIndex": 0
+            }
+          ],
+          "rejectionRules": [
+            "unknown-choice-id"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "transfer-success",
+          "misconception": {
+            "evidenceType": "misconception",
+            "misconceptionId": "misconception:rule-square:automatic-verdict"
+          },
+          "reviewResolution": {
+            "requires": "independent-transfer-success",
+            "triggerTypes": [
+              "guided-success-without-independent-success",
+              "repeated-final-hint-dependence"
+            ]
+          },
+          "unsuccessful": "remediation-needed-after-two-unsuccessful"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies pawn-square geometry in the released position.",
+          "guided": "Correct with support. This counts as guided practice for pawn-square geometry.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about pawn-square geometry.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply pawn-square geometry in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:rule-square:independent-boundary",
+        "instruction": "Choose the correct use of the square in this position.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Decide whether the king route reaches the pawn square in time.",
+        "positionId": "pos:rule-square:a-pawn-white-king-outside",
+        "responseType": "single-choice",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "check:identify-boundary",
+        "title": "Apply the pawn square",
+        "transfer": true
+      },
+      {
+        "activityType": "assessment",
+        "answer": {
+          "acceptedAlternatives": [],
+          "choices": [
+            {
+              "id": "choice:rule-square:bounded-test",
+              "label": "Use the square as a race test, then check moves that alter the path."
+            },
+            {
+              "id": "choice:rule-square:assessment-limits:misconception",
+              "label": "The square alone proves the final result in every pawn race.",
+              "misconceptionId": "misconception:rule-square:automatic-verdict"
+            }
+          ],
+          "evaluatorType": "authored-single-choice-v1",
+          "expected": "choice:rule-square:bounded-test",
+          "misconceptionMappings": [
+            {
+              "explanation": "This choice expresses the authored misconception: The square alone proves the final result in every pawn race.",
+              "misconceptionId": "misconception:rule-square:automatic-verdict",
+              "resolutionActivityId": "activity:rule-square:assessment-limits",
+              "responseId": "choice:rule-square:assessment-limits:misconception",
+              "sourceMisconceptionIndex": 0
+            }
+          ],
+          "rejectionRules": [
+            "unknown-choice-id"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "assessment-success",
+          "misconception": {
+            "evidenceType": "misconception",
+            "misconceptionId": "misconception:rule-square:automatic-verdict"
+          },
+          "reviewResolution": {
+            "requires": "assessment-success",
+            "triggerTypes": [
+              "assessment-not-yet-attempted",
+              "assessment-unsuccessful"
+            ]
+          },
+          "unsuccessful": "assessment-unsuccessful-event"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies the boundary of the pawn square in the released position.",
+          "guided": "Correct with support. This counts as guided practice for the boundary of the pawn square.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about the boundary of the pawn square.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply the boundary of the pawn square in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:rule-square:assessment-limits",
+        "instruction": "Select the statement that keeps the rule within its valid boundary.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Recognize when extra tactical or blocking features require calculation.",
+        "positionId": "pos:rule-square:a-pawn-white-king-outside",
+        "responseType": "single-choice",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "check:identify-boundary",
+        "title": "Assess the square rule boundary",
+        "transfer": false
+      }
+    ],
+    "contentVersion": "1.4.0",
+    "domain": "endgames",
+    "education": {
+      "difficulty": "foundation",
+      "endgameFamily": "pawn-endgames",
+      "expectedLearnerLevel": "foundation-rules-aware",
+      "knowledgeType": "decision-rule",
+      "learningObjectives": [
+        "Construct the pawn square from the pawn to its promotion rank.",
+        "Decide whether the defending king can enter that square on its move."
+      ],
+      "masteryCriteria": [
+        "Correctly applies the square test in four of five structurally valid positions without a hint."
+      ],
+      "prerequisites": [],
+      "skills": [
+        "board-geometry",
+        "calculation"
+      ],
+      "themes": [
+        "pawn-races",
+        "king-activity"
+      ]
+    },
+    "id": "ku:endgames:pawn-foundations:rule-of-the-square",
+    "integrations": {
+      "academy": {
+        "compatible": true
+      },
+      "capabilities": [
+        "academy-compatible",
+        "deterministic-coaching-prompts",
+        "mastery-criteria",
+        "recommendation-entry-unit",
+        "training-memory-theme-link"
+      ],
+      "coaching": {
+        "conceptIds": [
+          "pawn-square-boundary"
+        ],
+        "policy": "deterministic-prompt-only"
+      },
+      "mastery": {
+        "criterionIds": [
+          "square-test-4-of-5"
+        ]
+      },
+      "recommendation": {
+        "entryUnit": true,
+        "nextUnitIds": [
+          "ku:endgames:pawn-foundations:activate-the-king",
+          "ku:endgames:pawn-transformations:outside-passed-pawn"
+        ]
+      },
+      "trainingMemory": {
+        "themeIds": [
+          "king-activity"
+        ]
+      }
+    },
+    "learningObjects": {
+      "assessments": [],
+      "checksForUnderstanding": [
+        {
+          "id": "check:identify-boundary",
+          "promptKey": "decisionProcess.1"
+        }
+      ],
+      "demonstrations": [
+        {
+          "id": "demo:construct-square",
+          "positionId": "pos:rule-square:a-pawn-white-king-outside"
+        }
+      ],
+      "exercises": [],
+      "guidedPractice": [],
+      "reviewItems": []
+    },
+    "localization": {
+      "availableLocales": [
+        "en-US"
+      ],
+      "content": {
+        "en-US": {
+          "coachingPrompts": [
+            "Where is the nearest boundary of the pawn’s square for the defending king?"
+          ],
+          "decisionProcess": [
+            "Locate the promotion square.",
+            "Build the geometric square.",
+            "Account for the side to move.",
+            "Check for tactical exceptions before deciding."
+          ],
+          "explanation": "Imagine a square whose side runs from the pawn to its promotion rank. Extend the same distance sideways. If the defending king can step into that area on its turn, the king can usually approach in time; if it cannot, the pawn usually outruns the king. Rebuild the square after every pawn move and calculate when checks, captures, or supporting kings change the race.",
+          "keyIdeas": [
+            "The remaining distance to promotion sets the square’s width.",
+            "Whose turn it is can move the boundary by one tempo."
+          ],
+          "misconceptions": [
+            "The rule is not a verdict when another piece, a checking move, or an occupied promotion path changes the race."
+          ],
+          "practicalRules": [
+            "Count the pawn’s remaining moves, then compare that count with the king’s shortest route."
+          ],
+          "reflectionPrompts": [
+            "Which single tempo would reverse your conclusion?"
+          ],
+          "summary": "Use board geometry to estimate whether a king can catch a lone advancing pawn.",
+          "title": "The pawn’s square"
+        }
+      },
+      "defaultLocale": "en-US",
+      "translationStatus": {
+        "en-US": "ready"
+      }
+    },
+    "positions": [
+      {
+        "expectedConcepts": [
+          "pawn-square-boundary",
+          "tempo"
+        ],
+        "fen": "k7/8/8/8/p7/8/8/7K w - - 0 1",
+        "id": "pos:rule-square:a-pawn-white-king-outside",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Kh2"
+            ],
+            "purpose": "Test whether the king’s shortest route reaches the square after the pawn advances."
+          }
+        ],
+        "role": "recognition-example",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "Repository validation proves legal structure only; the bounded teaching claim was reviewed separately.",
+          "structural": "valid"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "reason": "After measuring whether a king can catch a pawn, the learner can plan how to improve that king.",
+        "targetId": "ku:endgames:pawn-foundations:activate-the-king",
+        "type": "progression"
+      },
+      {
+        "reason": "King activation is the normal next unit for turning geometric recognition into a plan.",
+        "targetId": "ku:endgames:pawn-foundations:activate-the-king",
+        "type": "recommendation"
+      },
+      {
+        "reason": "Outside-passer play applies square counting to a chase, return route, and opposite-wing target.",
+        "targetId": "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "type": "recommendation"
+      },
+      {
+        "reason": "After learning a single pawn race boundary, learners can calculate a remote passer as part of a two-wing plan.",
+        "targetId": "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "type": "progression"
+      },
+      {
+        "reason": "Majority play applies pawn-square geometry after exchanges create a candidate passer.",
+        "targetId": "ku:endgames:pawn-weaknesses:pawn-majority",
+        "type": "recommendation"
+      },
+      {
+        "reason": "After exact single-pawn races, learners can calculate whether a local majority produces a viable passer.",
+        "targetId": "ku:endgames:pawn-weaknesses:pawn-majority",
+        "type": "progression"
+      }
+    ],
+    "schemaVersion": "1.1.0",
+    "slug": "rule-of-the-square",
+    "status": "published"
+  }
+}

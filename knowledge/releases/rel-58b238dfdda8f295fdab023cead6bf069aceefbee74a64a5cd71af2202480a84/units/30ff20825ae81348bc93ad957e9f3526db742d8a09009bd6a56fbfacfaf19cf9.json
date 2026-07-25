@@ -1,0 +1,379 @@
+{
+  "contentHash": "6edd55c93ba0644c43f84ddf8c5dc4d9cd6bac49dfa792ca25d6b2acc291c741",
+  "contentVersion": "1.2.0",
+  "id": "ku:endgames:pawn-weaknesses:pawn-majority",
+  "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+  "schemaVersion": "1.1.0",
+  "unit": {
+    "activityItems": [
+      {
+        "activityType": "independent-practice",
+        "answer": {
+          "acceptedAlternatives": [],
+          "evaluatorType": "authored-san-exact-v2",
+          "expected": "Kf3",
+          "misconceptionMappings": [],
+          "rejectionRules": [
+            "illegal-move",
+            "unsupported-legal-move"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "transfer-success",
+          "misconception": null,
+          "reviewResolution": {
+            "requires": "independent-transfer-success",
+            "triggerTypes": [
+              "guided-success-without-independent-success",
+              "repeated-final-hint-dependence"
+            ]
+          },
+          "unsuccessful": "remediation-needed-after-two-unsuccessful"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies majority mobilization in the released position.",
+          "guided": "Correct with support. This counts as guided practice for majority mobilization.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about majority mobilization.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply majority mobilization in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:pawn-majority:independent-blocked",
+        "instruction": "Play the king-improving move instead of forcing the blocked majority.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Recognize when a numerical majority is not yet usable.",
+        "positionId": "pos:pawn-majority:blocked-near-miss",
+        "responseType": "exact-move",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "exercise:pawn-majority:blocked",
+        "title": "Improve before mobilizing",
+        "transfer": true
+      },
+      {
+        "activityType": "assessment",
+        "answer": {
+          "acceptedAlternatives": [],
+          "choices": [
+            {
+              "id": "plan:pawn-majority:improve-first",
+              "label": "Improve king support and identify the candidate before pushing."
+            },
+            {
+              "id": "choice:pawn-majority:assessment-plan:misconception",
+              "label": "Push immediately because a numerical majority always creates a passer.",
+              "misconceptionId": "misconception:pawn-majority:number-is-enough"
+            }
+          ],
+          "evaluatorType": "authored-plan-choice-v1",
+          "expected": "plan:pawn-majority:improve-first",
+          "misconceptionMappings": [
+            {
+              "explanation": "This choice expresses the authored misconception: Push immediately because a numerical majority always creates a passer.",
+              "misconceptionId": "misconception:pawn-majority:number-is-enough",
+              "resolutionActivityId": "activity:pawn-majority:assessment-plan",
+              "responseId": "choice:pawn-majority:assessment-plan:misconception",
+              "sourceMisconceptionIndex": 0
+            }
+          ],
+          "rejectionRules": [
+            "unknown-choice-id"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "assessment-success",
+          "misconception": {
+            "evidenceType": "misconception",
+            "misconceptionId": "misconception:pawn-majority:number-is-enough"
+          },
+          "reviewResolution": {
+            "requires": "assessment-success",
+            "triggerTypes": [
+              "assessment-not-yet-attempted",
+              "assessment-unsuccessful"
+            ]
+          },
+          "unsuccessful": "assessment-unsuccessful-event"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies majority mobilization in the released position.",
+          "guided": "Correct with support. This counts as guided practice for majority mobilization.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about majority mobilization.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply majority mobilization in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:pawn-majority:assessment-plan",
+        "instruction": "Choose the plan for a blocked numerical majority.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Test mobility and exchanges before advancing.",
+        "positionId": "pos:pawn-majority:blocked-near-miss",
+        "responseType": "plan-choice",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "assessment:pawn-majority:three-of-four",
+        "title": "Assess the majority plan",
+        "transfer": false
+      }
+    ],
+    "contentVersion": "1.2.0",
+    "domain": "endgames",
+    "education": {
+      "difficulty": "developing",
+      "endgameFamily": "pawn-endgames",
+      "expectedLearnerLevel": "foundation-rules-aware",
+      "knowledgeType": "technique",
+      "learningObjectives": [
+        "Identify a local pawn majority and its candidate pawn.",
+        "Calculate whether mobilization and exchanges create a viable passed pawn."
+      ],
+      "masteryCriteria": [
+        "Identifies the majority and candidate pawn in four of five mixed-wing structures.",
+        "Calculates the resulting passer or rejects a damaging push in three of four tasks without a final hint."
+      ],
+      "prerequisites": [
+        "ku:endgames:pawn-foundations:rule-of-the-square"
+      ],
+      "skills": [
+        "calculation",
+        "move-order",
+        "planning"
+      ],
+      "themes": [
+        "pawn-majority",
+        "passed-pawns",
+        "pawn-races",
+        "pawn-structure"
+      ]
+    },
+    "id": "ku:endgames:pawn-weaknesses:pawn-majority",
+    "integrations": {
+      "academy": {
+        "compatible": true
+      },
+      "capabilities": [
+        "academy-compatible",
+        "deterministic-coaching-prompts",
+        "mastery-criteria",
+        "training-memory-theme-link"
+      ],
+      "coaching": {
+        "conceptIds": [
+          "pawn-majority",
+          "candidate-pawn",
+          "mobility"
+        ],
+        "hintOrder": [
+          "observation",
+          "classification",
+          "candidate-identification",
+          "calculation-direction",
+          "decision-process",
+          "reflection"
+        ],
+        "policy": "deterministic-prompt-only"
+      },
+      "mastery": {
+        "criterionIds": [
+          "majority-identify-4-of-5",
+          "majority-calculate-3-of-4"
+        ]
+      },
+      "recommendation": {
+        "nextUnitIds": [
+          "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+        ],
+        "remediationUnitIds": [
+          "ku:endgames:pawn-foundations:rule-of-the-square"
+        ]
+      },
+      "trainingMemory": {
+        "themeIds": [
+          "pawn-majority",
+          "passed-pawns"
+        ]
+      }
+    },
+    "learningObjects": {
+      "assessments": [
+        {
+          "criterionId": "majority-calculate-3-of-4",
+          "id": "assessment:pawn-majority:three-of-four"
+        }
+      ],
+      "checksForUnderstanding": [
+        {
+          "id": "check:pawn-majority:usable",
+          "prompt": "Name the three conditions that make a majority usable."
+        }
+      ],
+      "demonstrations": [
+        {
+          "id": "demo:pawn-majority:count-and-candidate",
+          "positionId": "pos:pawn-majority:mobile-three-two"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "exercise:pawn-majority:blocked",
+          "positionId": "pos:pawn-majority:blocked-near-miss",
+          "task": "Explain why the numerical majority is not yet usable."
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "guided:pawn-majority:exchange-map",
+          "positionId": "pos:pawn-majority:mobile-three-two",
+          "prompt": "Name the candidate and map likely exchanges."
+        }
+      ],
+      "reviewItems": []
+    },
+    "localization": {
+      "availableLocales": [
+        "en-US"
+      ],
+      "content": {
+        "en-US": {
+          "coachingPrompts": [
+            "On which wing is the numerical majority?",
+            "Is that majority mobile or blocked?",
+            "Which pawn is the candidate?",
+            "What remains after the likely exchanges?",
+            "Use count, mobility, candidate, exchange, and race before deciding.",
+            "Did the move preserve the majority’s ability to create a passer?"
+          ],
+          "decisionProcess": [
+            "Count pawns on each wing.",
+            "Test whether the majority can move.",
+            "Identify the candidate pawn.",
+            "Calculate exchanges and the resulting passer.",
+            "Apply king-distance checks.",
+            "Compare mobilization with king improvement."
+          ],
+          "explanation": "A pawn majority is a local numerical advantage, not a result. It becomes useful when its pawns can move together, exchanges leave a passer, and the enemy king cannot stop the plan. The candidate pawn is usually the pawn without an opposing pawn on its file, but the position decides the move order. Count, test mobility, calculate exchanges, and compare pawn moves with king improvement.",
+          "keyIdeas": [
+            "A usable majority combines numbers, mobility, and a favorable resulting race.",
+            "Candidate-pawn choice preserves the pawns that can recapture toward a passer."
+          ],
+          "misconceptions": [
+            "A numerical majority does not automatically create a passed pawn.",
+            "Pushing the most advanced pawn first can allow blockade or exchange away the advantage."
+          ],
+          "practicalRules": [
+            "Majorities are often valuable when they remain mobile and connected.",
+            "Before mobilizing, verify the resulting passer with king-distance and race calculations."
+          ],
+          "reflectionPrompts": [
+            "Which blockade would make the majority merely numerical?",
+            "When would king improvement be more urgent than mobilization?"
+          ],
+          "summary": "Turn a mobile numerical advantage on one wing into a calculated passed-pawn plan.",
+          "title": "Mobilize a pawn majority"
+        }
+      },
+      "defaultLocale": "en-US",
+      "translationStatus": {
+        "en-US": "ready"
+      }
+    },
+    "positions": [
+      {
+        "expectedConcepts": [
+          "pawn-majority",
+          "candidate-pawn",
+          "mobility"
+        ],
+        "fen": "8/8/5k2/5pp1/5PPP/3K4/8/8 w - - 0 1",
+        "id": "pos:pawn-majority:mobile-three-two",
+        "principalIdeas": [
+          {
+            "moves": [
+              "h5"
+            ],
+            "purpose": "Mobilize the candidate while preserving neighboring recaptures."
+          }
+        ],
+        "role": "clean-demonstration",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "The three-versus-two count and legal first move are verified; no forced-win claim is made.",
+          "structural": "valid"
+        }
+      },
+      {
+        "expectedConcepts": [
+          "blocked-majority",
+          "king-improvement",
+          "premature-push"
+        ],
+        "fen": "8/8/6k1/5pp1/5PPP/6K1/8/8 w - - 0 1",
+        "id": "pos:pawn-majority:blocked-near-miss",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Kf3"
+            ],
+            "purpose": "Improve the king instead of treating the blocked count as an immediate pawn break."
+          }
+        ],
+        "role": "contrast",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "The pawn count is unchanged but king placement and locked contacts materially alter usability.",
+          "structural": "valid"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "reason": "After mobilizing a majority, calculate the concrete capture order that determines the surviving passer.",
+        "targetId": "ku:endgames:pawn-exchanges:exchange-into-passer",
+        "type": "recommendation"
+      },
+      {
+        "reason": "A mobile wing majority may create the distant passer used for diversion.",
+        "targetId": "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "type": "related"
+      },
+      {
+        "reason": "Majority play normally preserves connected mobility; breakthrough deliberately sacrifices material to transform locked contacts.",
+        "targetId": "ku:endgames:pawn-transformations:pawn-breakthrough",
+        "type": "contrast"
+      },
+      {
+        "reason": "After learning to mobilize one structure, learners study how to stop an opposing structure from escaping.",
+        "targetId": "ku:endgames:pawn-weaknesses:fix-pawn-weakness",
+        "type": "progression"
+      },
+      {
+        "reason": "Race errors require renewed king-distance and pawn-square calculation.",
+        "targetId": "ku:endgames:pawn-foundations:rule-of-the-square",
+        "type": "remediation"
+      }
+    ],
+    "schemaVersion": "1.1.0",
+    "slug": "pawn-majority",
+    "status": "published"
+  }
+}

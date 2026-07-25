@@ -4,8 +4,8 @@ export const activateTheKing = {
     slug: 'activate-the-king',
     domain: 'endgames',
     status: 'published',
-    schemaVersion: '1.0.0',
-    contentVersion: '1.1.0',
+    schemaVersion: '1.1.0',
+    contentVersion: '1.2.0',
     education: {
         knowledgeType: 'principle',
         endgameFamily: 'pawn-endgames',
@@ -91,6 +91,7 @@ export const activateTheKing = {
         assessments: [{ id: 'assessment:activate-king:varied-five', criterionId: 'active-route-4-of-5' }],
         reviewItems: []
     },
+    activityItems: activityItemsFor('ku:endgames:pawn-foundations:activate-the-king'),
     relationships: [
         { type: 'recommendation', targetId: 'ku:endgames:pawn-weaknesses:fix-pawn-weakness', reason: 'After learning purposeful king routes, learners can use the king to stabilize and approach a pawn target.' },
         { type: 'progression', targetId: 'ku:endgames:pawn-weaknesses:fix-pawn-weakness', reason: 'King activity becomes a structural plan when it preserves restraint before attacking.' },
@@ -110,7 +111,7 @@ export const activateTheKing = {
         owner: 'CAISSA Curriculum',
         reviewer: 'CAISSA Season 9 Review',
         createdAt: '2026-07-23',
-        updatedAt: '2026-07-23',
+        updatedAt: '2026-07-25',
         reviewStatus: 'approved',
         provenance: { kind: 'caissa-original', notes: 'Original CAISSA planning sequence for the universal endgame role of the king.', inspirationReferences: [] },
         copyrightNotes: 'No source prose, annotations, diagram collection, or exercise order was copied.',
@@ -118,3 +119,4 @@ export const activateTheKing = {
         verificationState: 'verified'
     }
 };
+import { activityItemsFor } from '../../../../authoring/evaluable-endgame-activities.js';

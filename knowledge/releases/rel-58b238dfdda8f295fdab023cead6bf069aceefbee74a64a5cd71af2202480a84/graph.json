@@ -1,0 +1,645 @@
+{
+  "forward": {
+    "ku:endgames:pawn-exchanges:exchange-into-passer": {
+      "contrast": [
+        "ku:endgames:pawn-weaknesses:pawn-majority"
+      ],
+      "prerequisite": [
+        "ku:endgames:pawn-weaknesses:pawn-majority"
+      ],
+      "progression": [
+        "ku:endgames:pawn-exchanges:second-distant-target"
+      ],
+      "related": [
+        "ku:endgames:pawn-transformations:pawn-breakthrough"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-foundations:rule-of-the-square"
+      ]
+    },
+    "ku:endgames:pawn-exchanges:favorable-king-ending": {
+      "prerequisite": [
+        "ku:endgames:pawn-foundations:activate-the-king",
+        "ku:endgames:pawn-foundations:direct-opposition"
+      ],
+      "related": [
+        "ku:endgames:pawn-transformations:reserve-tempo"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-foundations:activate-the-king",
+        "ku:endgames:pawn-foundations:direct-opposition",
+        "ku:endgames:pawn-foundations:key-squares"
+      ]
+    },
+    "ku:endgames:pawn-exchanges:pawn-tension": {
+      "contrast": [
+        "ku:endgames:pawn-transformations:reserve-tempo"
+      ],
+      "progression": [
+        "ku:endgames:pawn-exchanges:exchange-into-passer"
+      ],
+      "related": [
+        "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+      ]
+    },
+    "ku:endgames:pawn-exchanges:second-distant-target": {
+      "prerequisite": [
+        "ku:endgames:pawn-transformations:outside-passed-pawn"
+      ],
+      "progression": [
+        "ku:endgames:pawn-exchanges:favorable-king-ending"
+      ],
+      "related": [
+        "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-transformations:outside-passed-pawn"
+      ]
+    },
+    "ku:endgames:pawn-foundations:activate-the-king": {
+      "progression": [
+        "ku:endgames:pawn-foundations:direct-opposition",
+        "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+      ],
+      "recommendation": [
+        "ku:endgames:pawn-foundations:direct-opposition",
+        "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+      ],
+      "related": [
+        "ku:endgames:pawn-foundations:rule-of-the-square"
+      ]
+    },
+    "ku:endgames:pawn-foundations:convert-with-king-support": {
+      "prerequisite": [
+        "ku:endgames:pawn-foundations:activate-the-king",
+        "ku:endgames:pawn-foundations:key-squares"
+      ],
+      "recommendation": [
+        "ku:endgames:pawn-foundations:direct-opposition"
+      ],
+      "related": [
+        "ku:endgames:pawn-foundations:rule-of-the-square"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-foundations:activate-the-king",
+        "ku:endgames:pawn-foundations:key-squares"
+      ]
+    },
+    "ku:endgames:pawn-foundations:direct-opposition": {
+      "prerequisite": [
+        "ku:endgames:pawn-foundations:activate-the-king"
+      ],
+      "progression": [
+        "ku:endgames:pawn-foundations:key-squares",
+        "ku:endgames:pawn-transformations:reserve-tempo"
+      ],
+      "recommendation": [
+        "ku:endgames:pawn-foundations:key-squares",
+        "ku:endgames:pawn-transformations:reserve-tempo"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-foundations:activate-the-king"
+      ]
+    },
+    "ku:endgames:pawn-foundations:key-squares": {
+      "contrast": [
+        "ku:endgames:pawn-foundations:direct-opposition"
+      ],
+      "prerequisite": [
+        "ku:endgames:pawn-foundations:activate-the-king",
+        "ku:endgames:pawn-foundations:direct-opposition"
+      ],
+      "progression": [
+        "ku:endgames:pawn-foundations:convert-with-king-support"
+      ],
+      "recommendation": [
+        "ku:endgames:pawn-foundations:convert-with-king-support"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-foundations:direct-opposition"
+      ]
+    },
+    "ku:endgames:pawn-foundations:rule-of-the-square": {
+      "progression": [
+        "ku:endgames:pawn-foundations:activate-the-king",
+        "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "ku:endgames:pawn-weaknesses:pawn-majority"
+      ],
+      "recommendation": [
+        "ku:endgames:pawn-foundations:activate-the-king",
+        "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "ku:endgames:pawn-weaknesses:pawn-majority"
+      ]
+    },
+    "ku:endgames:pawn-transformations:outside-passed-pawn": {
+      "contrast": [
+        "ku:endgames:pawn-transformations:protected-passed-pawn"
+      ],
+      "prerequisite": [
+        "ku:endgames:pawn-foundations:rule-of-the-square"
+      ],
+      "progression": [
+        "ku:endgames:pawn-transformations:pawn-breakthrough"
+      ],
+      "recommendation": [
+        "ku:endgames:pawn-transformations:pawn-breakthrough"
+      ],
+      "related": [
+        "ku:endgames:pawn-foundations:activate-the-king"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-foundations:rule-of-the-square"
+      ]
+    },
+    "ku:endgames:pawn-transformations:pawn-breakthrough": {
+      "prerequisite": [
+        "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "ku:endgames:pawn-transformations:protected-passed-pawn"
+      ],
+      "related": [
+        "ku:endgames:pawn-foundations:rule-of-the-square",
+        "ku:endgames:pawn-transformations:reserve-tempo"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "ku:endgames:pawn-transformations:protected-passed-pawn"
+      ]
+    },
+    "ku:endgames:pawn-transformations:protected-passed-pawn": {
+      "contrast": [
+        "ku:endgames:pawn-transformations:outside-passed-pawn"
+      ],
+      "prerequisite": [
+        "ku:endgames:pawn-foundations:activate-the-king"
+      ],
+      "progression": [
+        "ku:endgames:pawn-transformations:pawn-breakthrough"
+      ],
+      "recommendation": [
+        "ku:endgames:pawn-transformations:pawn-breakthrough"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-foundations:activate-the-king",
+        "ku:endgames:pawn-foundations:convert-with-king-support"
+      ]
+    },
+    "ku:endgames:pawn-transformations:reserve-tempo": {
+      "prerequisite": [
+        "ku:endgames:pawn-foundations:direct-opposition"
+      ],
+      "progression": [
+        "ku:endgames:pawn-transformations:protected-passed-pawn"
+      ],
+      "recommendation": [
+        "ku:endgames:pawn-exchanges:pawn-tension"
+      ],
+      "related": [
+        "ku:endgames:pawn-foundations:convert-with-king-support"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-foundations:direct-opposition"
+      ]
+    },
+    "ku:endgames:pawn-weaknesses:backward-pawn": {
+      "contrast": [
+        "ku:endgames:pawn-weaknesses:isolated-pawn"
+      ],
+      "prerequisite": [
+        "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+      ],
+      "related": [
+        "ku:endgames:pawn-transformations:pawn-breakthrough"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-transformations:pawn-breakthrough",
+        "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+      ]
+    },
+    "ku:endgames:pawn-weaknesses:fix-pawn-weakness": {
+      "prerequisite": [
+        "ku:endgames:pawn-foundations:activate-the-king"
+      ],
+      "progression": [
+        "ku:endgames:pawn-weaknesses:backward-pawn",
+        "ku:endgames:pawn-weaknesses:isolated-pawn"
+      ],
+      "related": [
+        "ku:endgames:pawn-transformations:protected-passed-pawn"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-foundations:activate-the-king"
+      ]
+    },
+    "ku:endgames:pawn-weaknesses:isolated-pawn": {
+      "contrast": [
+        "ku:endgames:pawn-weaknesses:backward-pawn"
+      ],
+      "prerequisite": [
+        "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+      ],
+      "progression": [
+        "ku:endgames:pawn-weaknesses:backward-pawn"
+      ],
+      "related": [
+        "ku:endgames:pawn-foundations:activate-the-king"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+      ]
+    },
+    "ku:endgames:pawn-weaknesses:pawn-majority": {
+      "contrast": [
+        "ku:endgames:pawn-transformations:pawn-breakthrough"
+      ],
+      "prerequisite": [
+        "ku:endgames:pawn-foundations:rule-of-the-square"
+      ],
+      "progression": [
+        "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+      ],
+      "recommendation": [
+        "ku:endgames:pawn-exchanges:exchange-into-passer"
+      ],
+      "related": [
+        "ku:endgames:pawn-transformations:outside-passed-pawn"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-foundations:rule-of-the-square"
+      ]
+    }
+  },
+  "prerequisites": {
+    "ku:endgames:pawn-exchanges:exchange-into-passer": {
+      "dependents": [],
+      "direct": [
+        "ku:endgames:pawn-weaknesses:pawn-majority"
+      ]
+    },
+    "ku:endgames:pawn-exchanges:favorable-king-ending": {
+      "dependents": [],
+      "direct": [
+        "ku:endgames:pawn-foundations:activate-the-king",
+        "ku:endgames:pawn-foundations:direct-opposition"
+      ]
+    },
+    "ku:endgames:pawn-exchanges:pawn-tension": {
+      "dependents": [],
+      "direct": []
+    },
+    "ku:endgames:pawn-exchanges:second-distant-target": {
+      "dependents": [],
+      "direct": [
+        "ku:endgames:pawn-transformations:outside-passed-pawn"
+      ]
+    },
+    "ku:endgames:pawn-foundations:activate-the-king": {
+      "dependents": [
+        "ku:endgames:pawn-exchanges:favorable-king-ending",
+        "ku:endgames:pawn-foundations:convert-with-king-support",
+        "ku:endgames:pawn-foundations:direct-opposition",
+        "ku:endgames:pawn-foundations:key-squares",
+        "ku:endgames:pawn-transformations:protected-passed-pawn",
+        "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+      ],
+      "direct": []
+    },
+    "ku:endgames:pawn-foundations:convert-with-king-support": {
+      "dependents": [],
+      "direct": [
+        "ku:endgames:pawn-foundations:activate-the-king",
+        "ku:endgames:pawn-foundations:key-squares"
+      ]
+    },
+    "ku:endgames:pawn-foundations:direct-opposition": {
+      "dependents": [
+        "ku:endgames:pawn-exchanges:favorable-king-ending",
+        "ku:endgames:pawn-foundations:key-squares",
+        "ku:endgames:pawn-transformations:reserve-tempo"
+      ],
+      "direct": [
+        "ku:endgames:pawn-foundations:activate-the-king"
+      ]
+    },
+    "ku:endgames:pawn-foundations:key-squares": {
+      "dependents": [
+        "ku:endgames:pawn-foundations:convert-with-king-support"
+      ],
+      "direct": [
+        "ku:endgames:pawn-foundations:activate-the-king",
+        "ku:endgames:pawn-foundations:direct-opposition"
+      ]
+    },
+    "ku:endgames:pawn-foundations:rule-of-the-square": {
+      "dependents": [
+        "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "ku:endgames:pawn-weaknesses:pawn-majority"
+      ],
+      "direct": []
+    },
+    "ku:endgames:pawn-transformations:outside-passed-pawn": {
+      "dependents": [
+        "ku:endgames:pawn-exchanges:second-distant-target",
+        "ku:endgames:pawn-transformations:pawn-breakthrough"
+      ],
+      "direct": [
+        "ku:endgames:pawn-foundations:rule-of-the-square"
+      ]
+    },
+    "ku:endgames:pawn-transformations:pawn-breakthrough": {
+      "dependents": [],
+      "direct": [
+        "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "ku:endgames:pawn-transformations:protected-passed-pawn"
+      ]
+    },
+    "ku:endgames:pawn-transformations:protected-passed-pawn": {
+      "dependents": [
+        "ku:endgames:pawn-transformations:pawn-breakthrough"
+      ],
+      "direct": [
+        "ku:endgames:pawn-foundations:activate-the-king"
+      ]
+    },
+    "ku:endgames:pawn-transformations:reserve-tempo": {
+      "dependents": [],
+      "direct": [
+        "ku:endgames:pawn-foundations:direct-opposition"
+      ]
+    },
+    "ku:endgames:pawn-weaknesses:backward-pawn": {
+      "dependents": [],
+      "direct": [
+        "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+      ]
+    },
+    "ku:endgames:pawn-weaknesses:fix-pawn-weakness": {
+      "dependents": [
+        "ku:endgames:pawn-weaknesses:backward-pawn",
+        "ku:endgames:pawn-weaknesses:isolated-pawn"
+      ],
+      "direct": [
+        "ku:endgames:pawn-foundations:activate-the-king"
+      ]
+    },
+    "ku:endgames:pawn-weaknesses:isolated-pawn": {
+      "dependents": [],
+      "direct": [
+        "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+      ]
+    },
+    "ku:endgames:pawn-weaknesses:pawn-majority": {
+      "dependents": [
+        "ku:endgames:pawn-exchanges:exchange-into-passer"
+      ],
+      "direct": [
+        "ku:endgames:pawn-foundations:rule-of-the-square"
+      ]
+    }
+  },
+  "reverse": {
+    "ku:endgames:pawn-exchanges:exchange-into-passer": {
+      "progression": [
+        "ku:endgames:pawn-exchanges:pawn-tension"
+      ],
+      "recommendation": [
+        "ku:endgames:pawn-weaknesses:pawn-majority"
+      ]
+    },
+    "ku:endgames:pawn-exchanges:favorable-king-ending": {
+      "progression": [
+        "ku:endgames:pawn-exchanges:second-distant-target"
+      ]
+    },
+    "ku:endgames:pawn-exchanges:pawn-tension": {
+      "recommendation": [
+        "ku:endgames:pawn-transformations:reserve-tempo"
+      ]
+    },
+    "ku:endgames:pawn-exchanges:second-distant-target": {
+      "progression": [
+        "ku:endgames:pawn-exchanges:exchange-into-passer"
+      ]
+    },
+    "ku:endgames:pawn-foundations:activate-the-king": {
+      "prerequisite": [
+        "ku:endgames:pawn-exchanges:favorable-king-ending",
+        "ku:endgames:pawn-foundations:convert-with-king-support",
+        "ku:endgames:pawn-foundations:direct-opposition",
+        "ku:endgames:pawn-foundations:key-squares",
+        "ku:endgames:pawn-transformations:protected-passed-pawn",
+        "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+      ],
+      "progression": [
+        "ku:endgames:pawn-foundations:rule-of-the-square"
+      ],
+      "recommendation": [
+        "ku:endgames:pawn-foundations:rule-of-the-square"
+      ],
+      "related": [
+        "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "ku:endgames:pawn-weaknesses:isolated-pawn"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-exchanges:favorable-king-ending",
+        "ku:endgames:pawn-foundations:convert-with-king-support",
+        "ku:endgames:pawn-foundations:direct-opposition",
+        "ku:endgames:pawn-transformations:protected-passed-pawn",
+        "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+      ]
+    },
+    "ku:endgames:pawn-foundations:convert-with-king-support": {
+      "progression": [
+        "ku:endgames:pawn-foundations:key-squares"
+      ],
+      "recommendation": [
+        "ku:endgames:pawn-foundations:key-squares"
+      ],
+      "related": [
+        "ku:endgames:pawn-transformations:reserve-tempo"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-transformations:protected-passed-pawn"
+      ]
+    },
+    "ku:endgames:pawn-foundations:direct-opposition": {
+      "contrast": [
+        "ku:endgames:pawn-foundations:key-squares"
+      ],
+      "prerequisite": [
+        "ku:endgames:pawn-exchanges:favorable-king-ending",
+        "ku:endgames:pawn-foundations:key-squares",
+        "ku:endgames:pawn-transformations:reserve-tempo"
+      ],
+      "progression": [
+        "ku:endgames:pawn-foundations:activate-the-king"
+      ],
+      "recommendation": [
+        "ku:endgames:pawn-foundations:activate-the-king",
+        "ku:endgames:pawn-foundations:convert-with-king-support"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-exchanges:favorable-king-ending",
+        "ku:endgames:pawn-foundations:key-squares",
+        "ku:endgames:pawn-transformations:reserve-tempo"
+      ]
+    },
+    "ku:endgames:pawn-foundations:key-squares": {
+      "prerequisite": [
+        "ku:endgames:pawn-foundations:convert-with-king-support"
+      ],
+      "progression": [
+        "ku:endgames:pawn-foundations:direct-opposition"
+      ],
+      "recommendation": [
+        "ku:endgames:pawn-foundations:direct-opposition"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-exchanges:favorable-king-ending",
+        "ku:endgames:pawn-foundations:convert-with-king-support"
+      ]
+    },
+    "ku:endgames:pawn-foundations:rule-of-the-square": {
+      "prerequisite": [
+        "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "ku:endgames:pawn-weaknesses:pawn-majority"
+      ],
+      "related": [
+        "ku:endgames:pawn-foundations:activate-the-king",
+        "ku:endgames:pawn-foundations:convert-with-king-support",
+        "ku:endgames:pawn-transformations:pawn-breakthrough"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-exchanges:exchange-into-passer",
+        "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "ku:endgames:pawn-weaknesses:pawn-majority"
+      ]
+    },
+    "ku:endgames:pawn-transformations:outside-passed-pawn": {
+      "contrast": [
+        "ku:endgames:pawn-transformations:protected-passed-pawn"
+      ],
+      "prerequisite": [
+        "ku:endgames:pawn-exchanges:second-distant-target",
+        "ku:endgames:pawn-transformations:pawn-breakthrough"
+      ],
+      "progression": [
+        "ku:endgames:pawn-foundations:rule-of-the-square"
+      ],
+      "recommendation": [
+        "ku:endgames:pawn-foundations:rule-of-the-square"
+      ],
+      "related": [
+        "ku:endgames:pawn-weaknesses:pawn-majority"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-exchanges:second-distant-target",
+        "ku:endgames:pawn-transformations:pawn-breakthrough"
+      ]
+    },
+    "ku:endgames:pawn-transformations:pawn-breakthrough": {
+      "contrast": [
+        "ku:endgames:pawn-weaknesses:pawn-majority"
+      ],
+      "progression": [
+        "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "ku:endgames:pawn-transformations:protected-passed-pawn"
+      ],
+      "recommendation": [
+        "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "ku:endgames:pawn-transformations:protected-passed-pawn"
+      ],
+      "related": [
+        "ku:endgames:pawn-exchanges:exchange-into-passer",
+        "ku:endgames:pawn-weaknesses:backward-pawn"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-weaknesses:backward-pawn"
+      ]
+    },
+    "ku:endgames:pawn-transformations:protected-passed-pawn": {
+      "contrast": [
+        "ku:endgames:pawn-transformations:outside-passed-pawn"
+      ],
+      "prerequisite": [
+        "ku:endgames:pawn-transformations:pawn-breakthrough"
+      ],
+      "progression": [
+        "ku:endgames:pawn-transformations:reserve-tempo"
+      ],
+      "related": [
+        "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-transformations:pawn-breakthrough"
+      ]
+    },
+    "ku:endgames:pawn-transformations:reserve-tempo": {
+      "contrast": [
+        "ku:endgames:pawn-exchanges:pawn-tension"
+      ],
+      "progression": [
+        "ku:endgames:pawn-foundations:direct-opposition"
+      ],
+      "recommendation": [
+        "ku:endgames:pawn-foundations:direct-opposition"
+      ],
+      "related": [
+        "ku:endgames:pawn-exchanges:favorable-king-ending",
+        "ku:endgames:pawn-transformations:pawn-breakthrough"
+      ]
+    },
+    "ku:endgames:pawn-weaknesses:backward-pawn": {
+      "contrast": [
+        "ku:endgames:pawn-weaknesses:isolated-pawn"
+      ],
+      "progression": [
+        "ku:endgames:pawn-weaknesses:fix-pawn-weakness",
+        "ku:endgames:pawn-weaknesses:isolated-pawn"
+      ]
+    },
+    "ku:endgames:pawn-weaknesses:fix-pawn-weakness": {
+      "prerequisite": [
+        "ku:endgames:pawn-weaknesses:backward-pawn",
+        "ku:endgames:pawn-weaknesses:isolated-pawn"
+      ],
+      "progression": [
+        "ku:endgames:pawn-foundations:activate-the-king",
+        "ku:endgames:pawn-weaknesses:pawn-majority"
+      ],
+      "recommendation": [
+        "ku:endgames:pawn-foundations:activate-the-king"
+      ],
+      "related": [
+        "ku:endgames:pawn-exchanges:pawn-tension",
+        "ku:endgames:pawn-exchanges:second-distant-target"
+      ],
+      "remediation": [
+        "ku:endgames:pawn-weaknesses:backward-pawn",
+        "ku:endgames:pawn-weaknesses:isolated-pawn"
+      ]
+    },
+    "ku:endgames:pawn-weaknesses:isolated-pawn": {
+      "contrast": [
+        "ku:endgames:pawn-weaknesses:backward-pawn"
+      ],
+      "progression": [
+        "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+      ]
+    },
+    "ku:endgames:pawn-weaknesses:pawn-majority": {
+      "contrast": [
+        "ku:endgames:pawn-exchanges:exchange-into-passer"
+      ],
+      "prerequisite": [
+        "ku:endgames:pawn-exchanges:exchange-into-passer"
+      ],
+      "progression": [
+        "ku:endgames:pawn-foundations:rule-of-the-square"
+      ],
+      "recommendation": [
+        "ku:endgames:pawn-foundations:rule-of-the-square"
+      ]
+    }
+  },
+  "schemaVersion": "1.0.0"
+}

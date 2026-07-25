@@ -83,7 +83,7 @@ const EVENT_KEYS = [
   'eventId', 'schemaVersion', 'eventType', 'classification', 'occurredAt', 'sessionId',
   'releaseId', 'unitId', 'learningObjectId', 'positionId', 'promptStage',
   'assessmentItemId', 'action', 'attemptNumber', 'hintLevel', 'responseType',
-  'result', 'sourceSurface', 'persistenceEligible', 'consentState',
+  'result', 'misconceptionId', 'transfer', 'sourceSurface', 'persistenceEligible', 'consentState',
   'localOnly', 'dataMinimization'
 ];
 
@@ -106,6 +106,8 @@ export function createInteractionEvent(input, context) {
     hintLevel: input.hintLevel ?? 'none',
     responseType: input.responseType ?? null,
     result: input.result ?? null,
+    misconceptionId: input.misconceptionId ?? null,
+    transfer: Boolean(input.transfer),
     sourceSurface: 'guided-study',
     persistenceEligible: Boolean(input.persistenceEligible),
     consentState: input.consentState,
@@ -136,6 +138,8 @@ export function validateInteractionEvent(event, context = {}) {
   if (event.action !== event.eventType) errors.push('invalid-event-action');
   if (![null, 'choice', 'move', 'boolean'].includes(event.responseType)) errors.push('invalid-response-type');
   if (![null, 'correct', 'incorrect', 'partial', 'unobserved'].includes(event.result)) errors.push('invalid-event-result');
+  if (event.misconceptionId !== null && !ID.test(event.misconceptionId)) errors.push('invalid-misconception-id');
+  if (typeof event.transfer !== 'boolean') errors.push('invalid-transfer-flag');
   if (!CONSENT_STATES.includes(event.consentState)) errors.push('invalid-event-consent');
   if (event.persistenceEligible && event.consentState !== 'local-progress-enabled') errors.push('persistence-without-consent');
   if (event.localOnly !== true || event.dataMinimization !== 'stable-references-only') errors.push('invalid-privacy-boundary');
@@ -167,10 +171,17 @@ export function deriveEducationalEvidence(events, context = {}) {
       explanation = event.eventType === 'hint-requested'
         ? 'You requested support. A hint is guidance, not a failure.'
         : 'You participated in guided study without an assessed mastery claim.';
+    } else if (['activity-evaluated', 'assessment-evaluated'].includes(event.eventType)
+      && event.result === 'incorrect' && event.misconceptionId) {
+      evidenceType = 'misconception';
+      explanation = 'The selected authored response matches a specific concept misconception that can be reviewed.';
     } else if (event.eventType === 'activity-evaluated' && event.result === 'correct') {
-      evidenceType = event.hintLevel === 'none' ? 'independent-success' : 'guided-success';
+      evidenceType = event.hintLevel !== 'none' ? 'guided-success'
+        : event.transfer ? 'transfer-success' : 'independent-success';
       explanation = event.hintLevel === 'none'
-        ? 'An authored practice move was correct without answer-revealing help.'
+        ? event.transfer
+          ? 'An explicit transfer activity was correct without answer-revealing help.'
+          : 'An authored practice response was correct without answer-revealing help.'
         : 'The authored practice move was correct after answer-revealing help, so it is guided success.';
     } else if (event.eventType === 'activity-evaluated' && event.result === 'incorrect') {
       const earlier = valid.filter(item => item.eventType === 'activity-evaluated'
@@ -197,7 +208,7 @@ export function deriveEducationalEvidence(events, context = {}) {
       schemaVersion: LEARNING_EVIDENCE_VERSION,
       releaseId: event.releaseId,
       unitId: event.unitId,
-      masteryCriterionId: null,
+      masteryCriterionId: event.misconceptionId,
       evidenceType,
       sourceEventIds: Object.freeze([event.eventId]),
       strength: evidenceType,

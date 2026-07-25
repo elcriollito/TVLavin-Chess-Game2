@@ -1,7 +1,7 @@
 /** @type {import('../../../../schema/knowledge-unit.js').KnowledgeUnit} */
 export const fixPawnWeakness = {
     id: 'ku:endgames:pawn-weaknesses:fix-pawn-weakness', slug: 'fix-pawn-weakness', domain: 'endgames',
-    status: 'published', schemaVersion: '1.0.0', contentVersion: '1.0.0',
+    status: 'published', schemaVersion: '1.1.0', contentVersion: '1.1.0',
     education: {
         knowledgeType: 'principle', endgameFamily: 'pawn-endgames',
         themes: ['fixed-weakness', 'restraint', 'pawn-structure', 'king-activity'],
@@ -36,6 +36,7 @@ export const fixPawnWeakness = {
         assessments: [{ id: 'assessment:fix-weakness:three-of-four', criterionId: 'fix-before-attack-3-of-4' }],
         reviewItems: []
     },
+    activityItems: activityItemsFor('ku:endgames:pawn-weaknesses:fix-pawn-weakness'),
     relationships: [
         { type: 'progression', targetId: 'ku:endgames:pawn-weaknesses:isolated-pawn', reason: 'Once restraint is understood, learners can apply it to a pawn without neighboring support.' },
         { type: 'progression', targetId: 'ku:endgames:pawn-weaknesses:backward-pawn', reason: 'Fixing prepares learners to distinguish a restrained backward pawn from one that can break free.' },
@@ -49,8 +50,9 @@ export const fixPawnWeakness = {
         recommendation: { nextUnitIds: ['ku:endgames:pawn-weaknesses:isolated-pawn', 'ku:endgames:pawn-weaknesses:backward-pawn'], remediationUnitIds: ['ku:endgames:pawn-foundations:activate-the-king'] }, academy: { compatible: true }
     },
     editorial: {
-        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-23', reviewStatus: 'approved',
+        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-25', reviewStatus: 'approved',
         provenance: { kind: 'caissa-original', notes: 'Original CAISSA target-escape-restraint-approach-counterplay sequence.', inspirationReferences: [] },
         copyrightNotes: 'No source prose, annotations, or commercial exercise sequence was copied.', originalityDeclaration: 'This unit was independently scoped, sequenced, and written for CAISSA.', verificationState: 'verified'
     }
 };
+import { activityItemsFor } from '../../../../authoring/evaluable-endgame-activities.js';

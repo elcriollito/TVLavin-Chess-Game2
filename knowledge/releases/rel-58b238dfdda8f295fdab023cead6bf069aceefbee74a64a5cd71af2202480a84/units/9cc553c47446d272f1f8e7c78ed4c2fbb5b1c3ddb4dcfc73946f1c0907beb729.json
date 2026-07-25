@@ -1,0 +1,379 @@
+{
+  "contentHash": "6acd8bca81bd504e79455f128b163741660dd1b2ded7624a0ca01038589e9edc",
+  "contentVersion": "1.1.0",
+  "id": "ku:endgames:pawn-transformations:protected-passed-pawn",
+  "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+  "schemaVersion": "1.1.0",
+  "unit": {
+    "activityItems": [
+      {
+        "activityType": "independent-practice",
+        "answer": {
+          "acceptedAlternatives": [],
+          "evaluatorType": "authored-san-exact-v2",
+          "expected": "Kxe4",
+          "misconceptionMappings": [],
+          "rejectionRules": [
+            "illegal-move",
+            "unsupported-legal-move"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "transfer-success",
+          "misconception": null,
+          "reviewResolution": {
+            "requires": "independent-transfer-success",
+            "triggerTypes": [
+              "guided-success-without-independent-success",
+              "repeated-final-hint-dependence"
+            ]
+          },
+          "unsuccessful": "remediation-needed-after-two-unsuccessful"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies protected-passer stability in the released position.",
+          "guided": "Correct with support. This counts as guided practice for protected-passer stability.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about protected-passer stability.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply protected-passer stability in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:protected-passer:independent-base",
+        "instruction": "Play the move that exposes the boundary of the protected-passer heuristic.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Test the support base before assuming the passer is stable.",
+        "positionId": "pos:protected-passer:attackable-base",
+        "responseType": "exact-move",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "exercise:protected-passer:base",
+        "title": "Attack the support base",
+        "transfer": true
+      },
+      {
+        "activityType": "assessment",
+        "answer": {
+          "acceptedAlternatives": [],
+          "choices": [
+            {
+              "id": "plan:protected-passer:improve-king",
+              "label": "Improve the king while preserving the support chain."
+            },
+            {
+              "id": "choice:protected-passer:assessment-plan:misconception",
+              "label": "Push immediately because every protected passer wins.",
+              "misconceptionId": "misconception:protected-passer:automatic-win"
+            }
+          ],
+          "evaluatorType": "authored-plan-choice-v1",
+          "expected": "plan:protected-passer:improve-king",
+          "misconceptionMappings": [
+            {
+              "explanation": "This choice expresses the authored misconception: Push immediately because every protected passer wins.",
+              "misconceptionId": "misconception:protected-passer:automatic-win",
+              "resolutionActivityId": "activity:protected-passer:assessment-plan",
+              "responseId": "choice:protected-passer:assessment-plan:misconception",
+              "sourceMisconceptionIndex": 0
+            }
+          ],
+          "rejectionRules": [
+            "unknown-choice-id"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "assessment-success",
+          "misconception": {
+            "evidenceType": "misconception",
+            "misconceptionId": "misconception:protected-passer:automatic-win"
+          },
+          "reviewResolution": {
+            "requires": "assessment-success",
+            "triggerTypes": [
+              "assessment-not-yet-attempted",
+              "assessment-unsuccessful"
+            ]
+          },
+          "unsuccessful": "assessment-unsuccessful-event"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies protected-passer stability in the released position.",
+          "guided": "Correct with support. This counts as guided practice for protected-passer stability.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about protected-passer stability.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply protected-passer stability in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:protected-passer:assessment-plan",
+        "instruction": "Choose the plan that respects the support base.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Evaluate restriction and support rather than assuming an automatic win.",
+        "positionId": "pos:protected-passer:restriction-anchor",
+        "responseType": "plan-choice",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "assessment:protected-passer:four-of-five",
+        "title": "Assess the protected passer",
+        "transfer": false
+      }
+    ],
+    "contentVersion": "1.1.0",
+    "domain": "endgames",
+    "education": {
+      "difficulty": "developing",
+      "endgameFamily": "pawn-endgames",
+      "expectedLearnerLevel": "foundation-rules-aware",
+      "knowledgeType": "principle",
+      "learningObjectives": [
+        "Identify the passed pawn and the pawn that protects it.",
+        "Evaluate the passer as a restriction anchor while checking attacks on its support base."
+      ],
+      "masteryCriteria": [
+        "Identifies passer, support base, and restricted king squares in four of five diagrams.",
+        "Distinguishes a stable protected passer from an attackable chain and selects a king-improving plan in three of four tasks."
+      ],
+      "prerequisites": [
+        "ku:endgames:pawn-foundations:activate-the-king"
+      ],
+      "skills": [
+        "pattern-recognition",
+        "planning",
+        "calculation"
+      ],
+      "themes": [
+        "passed-pawns",
+        "pawn-structure",
+        "pawn-support",
+        "king-activity"
+      ]
+    },
+    "id": "ku:endgames:pawn-transformations:protected-passed-pawn",
+    "integrations": {
+      "academy": {
+        "compatible": true
+      },
+      "capabilities": [
+        "academy-compatible",
+        "deterministic-coaching-prompts",
+        "mastery-criteria",
+        "training-memory-theme-link"
+      ],
+      "coaching": {
+        "conceptIds": [
+          "protected-passed-pawn",
+          "support-base",
+          "king-restriction"
+        ],
+        "hintOrder": [
+          "observation",
+          "structural-recognition",
+          "candidate-identification",
+          "calculation-direction",
+          "decision-process",
+          "reflection"
+        ],
+        "policy": "deterministic-prompt-only"
+      },
+      "mastery": {
+        "criterionIds": [
+          "protected-passer-map-4-of-5",
+          "protected-passer-plan-3-of-4"
+        ]
+      },
+      "recommendation": {
+        "nextUnitIds": [
+          "ku:endgames:pawn-transformations:pawn-breakthrough"
+        ],
+        "remediationUnitIds": [
+          "ku:endgames:pawn-foundations:activate-the-king",
+          "ku:endgames:pawn-foundations:convert-with-king-support"
+        ]
+      },
+      "trainingMemory": {
+        "themeIds": [
+          "passed-pawns",
+          "pawn-structure",
+          "pawn-support"
+        ]
+      }
+    },
+    "learningObjects": {
+      "assessments": [
+        {
+          "criterionId": "protected-passer-map-4-of-5",
+          "id": "assessment:protected-passer:four-of-five"
+        }
+      ],
+      "checksForUnderstanding": [
+        {
+          "id": "check:protected-passer:value",
+          "prompt": "Explain restriction value without claiming an automatic win."
+        }
+      ],
+      "demonstrations": [
+        {
+          "id": "demo:protected-passer:anchor",
+          "positionId": "pos:protected-passer:restriction-anchor"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "exercise:protected-passer:base",
+          "positionId": "pos:protected-passer:attackable-base",
+          "task": "Test whether the chain is stable before planning king activity."
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "guided:protected-passer:map",
+          "positionId": "pos:protected-passer:restriction-anchor",
+          "prompt": "Name the passer, base, and restricted routes."
+        }
+      ],
+      "reviewItems": []
+    },
+    "localization": {
+      "availableLocales": [
+        "en-US"
+      ],
+      "content": {
+        "en-US": {
+          "coachingPrompts": [
+            "Which pawn is passed, and which pawn protects it?",
+            "Which king squares does the protected pair deny?",
+            "Which candidate improves the king without loosening the pawn chain?",
+            "Can the defender attack the supporting pawn?",
+            "Compare king improvement with a pawn advance, then verify the chain.",
+            "Did the move preserve restriction or release the enemy king?"
+          ],
+          "decisionProcess": [
+            "Identify the passed pawn and the pawn that supports it.",
+            "Determine which enemy king routes the pawn pair restricts.",
+            "Check whether the support base can be attacked.",
+            "Activate the king while preserving useful restriction.",
+            "Advance only when the transformed structure remains secure."
+          ],
+          "explanation": "A protected passed pawn is defended by another pawn and has no opposing pawn able to stop it on its file or adjacent files. Its strategic value often comes from restricting the enemy king, not from racing forward immediately. The supporting pawn is also a base that may be attacked. Keep the passer secure, activate the king, and advance only when the structure remains sound. A protected passer is an asset, not an automatic win.",
+          "keyIdeas": [
+            "The advanced pawn restricts while the supporting pawn maintains the chain.",
+            "Restriction can create time for king activity even when immediate promotion is impossible."
+          ],
+          "misconceptions": [
+            "A protected passed pawn does not always win; the support base, king placement, and remaining pawn play matter.",
+            "Pushing the passer is not automatically best when it abandons protection or releases the enemy king."
+          ],
+          "practicalRules": [
+            "Often keep the protected passer as an anchor while improving the king.",
+            "Advance only when the support base remains safe or concrete calculation justifies changing the chain."
+          ],
+          "reflectionPrompts": [
+            "Why can restriction be more valuable than immediate speed?",
+            "What change would turn the supporting pawn into a vulnerable base?"
+          ],
+          "summary": "Treat a mutually supported passer as a restriction anchor while the king improves.",
+          "title": "Use the protected passed pawn"
+        }
+      },
+      "defaultLocale": "en-US",
+      "translationStatus": {
+        "en-US": "ready"
+      }
+    },
+    "positions": [
+      {
+        "expectedConcepts": [
+          "protected-passed-pawn",
+          "support-base",
+          "king-restriction"
+        ],
+        "fen": "8/8/8/3P1k2/2K1P3/8/8/8 w - - 0 1",
+        "id": "pos:protected-passer:restriction-anchor",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Kd4"
+            ],
+            "purpose": "Improve the king while the e-pawn continues to support the advanced d-pawn."
+          }
+        ],
+        "role": "clean-demonstration",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "The mutual support and denied king approach are structurally verified; no forced-win claim is made.",
+          "structural": "valid"
+        }
+      },
+      {
+        "expectedConcepts": [
+          "attackable-support-base",
+          "protected-passer-exception"
+        ],
+        "fen": "8/8/8/3P4/2K1P3/5k2/8/8 b - - 0 1",
+        "id": "pos:protected-passer:attackable-base",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Kxe4"
+            ],
+            "purpose": "Attack the support base and demonstrate the boundary of the protected-passer heuristic."
+          }
+        ],
+        "role": "contrast",
+        "sideToMove": "black",
+        "validation": {
+          "educational": "verified",
+          "notes": "The defender can legally capture the support base; this is a deliberate near-miss.",
+          "structural": "valid"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "reason": "A protected passer gains value from mutual support and restriction; an outside passer gains value from distance and diversion.",
+        "targetId": "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "type": "contrast"
+      },
+      {
+        "reason": "Understanding support chains prepares the learner to calculate which pawn sacrifice leaves a surviving passer.",
+        "targetId": "ku:endgames:pawn-transformations:pawn-breakthrough",
+        "type": "progression"
+      },
+      {
+        "reason": "Breakthrough is the next transformation task after recognizing a stable support structure.",
+        "targetId": "ku:endgames:pawn-transformations:pawn-breakthrough",
+        "type": "recommendation"
+      },
+      {
+        "reason": "Learners who push the anchor without improving their king should revisit king activity.",
+        "targetId": "ku:endgames:pawn-foundations:activate-the-king",
+        "type": "remediation"
+      },
+      {
+        "reason": "Learners who release the defender through poor move order should revisit coordinated conversion.",
+        "targetId": "ku:endgames:pawn-foundations:convert-with-king-support",
+        "type": "remediation"
+      }
+    ],
+    "schemaVersion": "1.1.0",
+    "slug": "protected-passed-pawn",
+    "status": "published"
+  }
+}

@@ -1,0 +1,384 @@
+{
+  "contentHash": "1ec9093613eb858881481fa48a08340f68b3aa6033aa802799eb565b4a53c899",
+  "contentVersion": "1.1.0",
+  "id": "ku:endgames:pawn-weaknesses:backward-pawn",
+  "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+  "schemaVersion": "1.1.0",
+  "unit": {
+    "activityItems": [
+      {
+        "activityType": "independent-practice",
+        "answer": {
+          "acceptedAlternatives": [],
+          "evaluatorType": "authored-san-exact-v2",
+          "expected": "c4",
+          "misconceptionMappings": [],
+          "rejectionRules": [
+            "illegal-move",
+            "unsupported-legal-move"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "independent-success",
+          "misconception": null,
+          "reviewResolution": {
+            "requires": "independent-success",
+            "triggerTypes": [
+              "guided-success-without-independent-success",
+              "repeated-final-hint-dependence"
+            ]
+          },
+          "unsuccessful": "remediation-needed-after-two-unsuccessful"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies backward-pawn transformation in the released position.",
+          "guided": "Correct with support. This counts as guided practice for backward-pawn transformation.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about backward-pawn transformation.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply backward-pawn transformation in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:backward-pawn:independent-break",
+        "instruction": "Play the move that transforms the alleged backward weakness.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Check whether a safe break makes backwardness temporary.",
+        "positionId": "pos:backward-pawn:liberating-break",
+        "responseType": "exact-move",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "exercise:backward-pawn:fix-or-transform",
+        "title": "Find the liberating break",
+        "transfer": false
+      },
+      {
+        "activityType": "assessment",
+        "answer": {
+          "acceptedAlternatives": [],
+          "choices": [
+            {
+              "id": "choice:backward-pawn:temporary",
+              "label": "The safe c-pawn break can transform the structure."
+            },
+            {
+              "id": "choice:backward-pawn:assessment-status:misconception",
+              "label": "A pawn behind its neighbor is permanently backward.",
+              "misconceptionId": "misconception:backward-pawn:permanent"
+            }
+          ],
+          "evaluatorType": "authored-single-choice-v1",
+          "expected": "choice:backward-pawn:temporary",
+          "misconceptionMappings": [
+            {
+              "explanation": "This choice expresses the authored misconception: A pawn behind its neighbor is permanently backward.",
+              "misconceptionId": "misconception:backward-pawn:permanent",
+              "resolutionActivityId": "activity:backward-pawn:assessment-status",
+              "responseId": "choice:backward-pawn:assessment-status:misconception",
+              "sourceMisconceptionIndex": 0
+            }
+          ],
+          "rejectionRules": [
+            "unknown-choice-id"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "assessment-success",
+          "misconception": {
+            "evidenceType": "misconception",
+            "misconceptionId": "misconception:backward-pawn:permanent"
+          },
+          "reviewResolution": {
+            "requires": "assessment-success",
+            "triggerTypes": [
+              "assessment-not-yet-attempted",
+              "assessment-unsuccessful"
+            ]
+          },
+          "unsuccessful": "assessment-unsuccessful-event"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies backward-pawn transformation in the released position.",
+          "guided": "Correct with support. This counts as guided practice for backward-pawn transformation.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about backward-pawn transformation.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply backward-pawn transformation in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:backward-pawn:assessment-status",
+        "instruction": "Choose the classification that accounts for the freeing break.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Distinguish permanent restraint from temporary backwardness.",
+        "positionId": "pos:backward-pawn:liberating-break",
+        "responseType": "single-choice",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "assessment:backward-pawn:three-of-four",
+        "title": "Assess backwardness",
+        "transfer": false
+      }
+    ],
+    "contentVersion": "1.1.0",
+    "domain": "endgames",
+    "education": {
+      "difficulty": "intermediate",
+      "endgameFamily": "pawn-endgames",
+      "expectedLearnerLevel": "foundation-rules-aware",
+      "knowledgeType": "technique",
+      "learningObjectives": [
+        "Identify a pawn that cannot advance safely despite neighboring pawn structure.",
+        "Choose between restraining and attacking the pawn or calculating its liberating break."
+      ],
+      "masteryCriteria": [
+        "Distinguishes backward from isolated pawns and names the unsafe advance in four of five structures.",
+        "Finds or rejects a liberating break and selects fix-versus-transform correctly in three of four tasks."
+      ],
+      "prerequisites": [
+        "ku:endgames:pawn-weaknesses:fix-pawn-weakness"
+      ],
+      "skills": [
+        "pattern-recognition",
+        "planning",
+        "calculation"
+      ],
+      "themes": [
+        "backward-pawn",
+        "fixed-weakness",
+        "restraint",
+        "pawn-breakthrough"
+      ]
+    },
+    "id": "ku:endgames:pawn-weaknesses:backward-pawn",
+    "integrations": {
+      "academy": {
+        "compatible": true
+      },
+      "capabilities": [
+        "academy-compatible",
+        "deterministic-coaching-prompts",
+        "mastery-criteria",
+        "training-memory-theme-link"
+      ],
+      "coaching": {
+        "conceptIds": [
+          "backward-pawn",
+          "front-square",
+          "liberating-break"
+        ],
+        "hintOrder": [
+          "observation",
+          "classification",
+          "candidate-identification",
+          "calculation-direction",
+          "decision-process",
+          "reflection"
+        ],
+        "policy": "deterministic-prompt-only"
+      },
+      "mastery": {
+        "criterionIds": [
+          "backward-classify-4-of-5",
+          "backward-transform-3-of-4"
+        ]
+      },
+      "recommendation": {
+        "remediationUnitIds": [
+          "ku:endgames:pawn-weaknesses:fix-pawn-weakness",
+          "ku:endgames:pawn-transformations:pawn-breakthrough"
+        ]
+      },
+      "trainingMemory": {
+        "themeIds": [
+          "backward-pawn",
+          "fixed-weakness",
+          "pawn-breakthrough"
+        ]
+      }
+    },
+    "learningObjects": {
+      "assessments": [
+        {
+          "criterionId": "backward-transform-3-of-4",
+          "id": "assessment:backward-pawn:three-of-four"
+        }
+      ],
+      "checksForUnderstanding": [
+        {
+          "id": "check:backward-pawn:contrast",
+          "prompt": "Distinguish backwardness from isolation using support and safe advance."
+        }
+      ],
+      "demonstrations": [
+        {
+          "id": "demo:backward-pawn:front-square",
+          "positionId": "pos:backward-pawn:fixed-chain"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "exercise:backward-pawn:fix-or-transform",
+          "positionId": "pos:backward-pawn:fixed-chain",
+          "task": "Compare preserving the target with changing the structure."
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "guided:backward-pawn:break-check",
+          "positionId": "pos:backward-pawn:liberating-break",
+          "prompt": "Classify the pawn, then calculate its freeing break."
+        }
+      ],
+      "reviewItems": [
+        {
+          "conceptIds": [
+            "pawn-majority",
+            "fixed-weakness",
+            "isolated-pawn",
+            "backward-pawn",
+            "pawn-breakthrough"
+          ],
+          "id": "review:pawn-weaknesses:fix-or-transform"
+        }
+      ]
+    },
+    "localization": {
+      "availableLocales": [
+        "en-US"
+      ],
+      "content": {
+        "en-US": {
+          "coachingPrompts": [
+            "Which pawn stands behind its neighboring structure?",
+            "Is its problem isolation or an unsafe advance?",
+            "Which candidate restrains or enables the liberating break?",
+            "What structure results after the break and exchanges?",
+            "Use support, advance, front square, break, and race to choose.",
+            "Was preserving the weakness stronger than transforming it?"
+          ],
+          "decisionProcess": [
+            "Identify neighboring pawn support.",
+            "Test whether the pawn can advance safely.",
+            "Identify the weak front square and attack route.",
+            "Calculate every liberating break.",
+            "Compare continued restraint with transformation.",
+            "Check king access and resulting races."
+          ],
+          "explanation": "A backward pawn is held behind neighboring pawns because advancing would lose it or damage the structure. Unlike an isolated pawn, it may have friendly pawns on adjacent files; its problem is safe mobility and the weak square in front. Restrain the liberating break before attacking. If the break works concretely, transform the structure instead of preserving a static label.",
+          "keyIdeas": [
+            "Backwardness is defined by unsafe advance within a neighboring pawn structure.",
+            "The square in front and the liberating pawn break are central planning facts."
+          ],
+          "misconceptions": [
+            "A pawn is not backward merely because it stands behind another pawn.",
+            "A backward pawn is not permanently weak when a safe break can liberate it."
+          ],
+          "practicalRules": [
+            "Backward pawns often require restraint before a king attack.",
+            "Transformation may be stronger than prolonged attack when a pawn break produces useful activity or a passer."
+          ],
+          "reflectionPrompts": [
+            "What exact fact makes the advance unsafe?",
+            "Which change would liberate the pawn and erase the backward classification?"
+          ],
+          "summary": "Target a pawn held behind its neighbors—or calculate the break that frees it.",
+          "title": "Exploit a backward pawn"
+        }
+      },
+      "defaultLocale": "en-US",
+      "translationStatus": {
+        "en-US": "ready"
+      }
+    },
+    "positions": [
+      {
+        "expectedConcepts": [
+          "backward-pawn",
+          "front-square",
+          "restraint"
+        ],
+        "fen": "8/8/3k4/2pp4/2P5/3P4/3K4/8 w - - 0 1",
+        "id": "pos:backward-pawn:fixed-chain",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Kc3"
+            ],
+            "purpose": "Approach the backward d5 pawn while monitoring its freeing advance."
+          }
+        ],
+        "role": "clean-demonstration",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "The neighboring pawn structure and legal king route are verified; no forced capture is claimed.",
+          "structural": "valid"
+        }
+      },
+      {
+        "expectedConcepts": [
+          "liberating-break",
+          "temporary-backwardness",
+          "structural-transformation"
+        ],
+        "fen": "8/8/3k4/2p5/1P6/3P4/3K4/8 b - - 0 1",
+        "id": "pos:backward-pawn:liberating-break",
+        "principalIdeas": [
+          {
+            "moves": [
+              "c4"
+            ],
+            "purpose": "Advance and transform the contact rather than accept a permanent backward target."
+          }
+        ],
+        "role": "contrast",
+        "sideToMove": "black",
+        "validation": {
+          "educational": "verified",
+          "notes": "The legal break materially changes the structure and defines the exception boundary.",
+          "structural": "valid"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "reason": "A backward pawn can have neighboring pawn support but lacks a safe advance; isolation is defined by absent neighboring pawns.",
+        "targetId": "ku:endgames:pawn-weaknesses:isolated-pawn",
+        "type": "contrast"
+      },
+      {
+        "reason": "A liberating break transforms a weakness only when concrete calculation supports the resulting structure.",
+        "targetId": "ku:endgames:pawn-transformations:pawn-breakthrough",
+        "type": "related"
+      },
+      {
+        "reason": "If the target escapes before the attack, revisit restraint and escape analysis.",
+        "targetId": "ku:endgames:pawn-weaknesses:fix-pawn-weakness",
+        "type": "remediation"
+      },
+      {
+        "reason": "If every pawn break is treated as sound, revisit the requirement for a verified surviving structural gain.",
+        "targetId": "ku:endgames:pawn-transformations:pawn-breakthrough",
+        "type": "remediation"
+      }
+    ],
+    "schemaVersion": "1.1.0",
+    "slug": "backward-pawn",
+    "status": "published"
+  }
+}

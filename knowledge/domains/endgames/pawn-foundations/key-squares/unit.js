@@ -4,8 +4,8 @@ export const keySquares = {
     slug: 'key-squares',
     domain: 'endgames',
     status: 'published',
-    schemaVersion: '1.0.0',
-    contentVersion: '1.0.0',
+    schemaVersion: '1.1.0',
+    contentVersion: '1.1.0',
     education: {
         knowledgeType: 'decision-rule',
         endgameFamily: 'pawn-endgames',
@@ -89,6 +89,7 @@ export const keySquares = {
         assessments: [{ id: 'assessment:key-squares:four-of-five', criterionId: 'key-square-4-of-5' }],
         reviewItems: []
     },
+    activityItems: activityItemsFor('ku:endgames:pawn-foundations:key-squares'),
     relationships: [
         { type: 'contrast', targetId: 'ku:endgames:pawn-foundations:direct-opposition', reason: 'Opposition describes temporary king geometry; key squares describe the destination that geometry may help reach.' },
         { type: 'progression', targetId: 'ku:endgames:pawn-foundations:convert-with-king-support', reason: 'After identifying the target, the learner must coordinate king and pawn move order.' },
@@ -104,7 +105,7 @@ export const keySquares = {
         academy: { compatible: true }
     },
     editorial: {
-        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-23',
+        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-25',
         reviewStatus: 'approved',
         provenance: { kind: 'caissa-original', notes: 'Original CAISSA structure-target-route-advance teaching sequence for a universal pawn-ending concept.', inspirationReferences: [] },
         copyrightNotes: 'No source wording, annotations, or diagram collection was copied.',
@@ -112,3 +113,4 @@ export const keySquares = {
         verificationState: 'verified'
     }
 };
+import { activityItemsFor } from '../../../../authoring/evaluable-endgame-activities.js';

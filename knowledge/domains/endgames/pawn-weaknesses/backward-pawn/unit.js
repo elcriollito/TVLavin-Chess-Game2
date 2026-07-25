@@ -1,7 +1,7 @@
 /** @type {import('../../../../schema/knowledge-unit.js').KnowledgeUnit} */
 export const backwardPawn = {
     id: 'ku:endgames:pawn-weaknesses:backward-pawn', slug: 'backward-pawn', domain: 'endgames',
-    status: 'published', schemaVersion: '1.0.0', contentVersion: '1.0.0',
+    status: 'published', schemaVersion: '1.1.0', contentVersion: '1.1.0',
     education: {
         knowledgeType: 'technique', endgameFamily: 'pawn-endgames',
         themes: ['backward-pawn', 'fixed-weakness', 'restraint', 'pawn-breakthrough'],
@@ -36,6 +36,7 @@ export const backwardPawn = {
         assessments: [{ id: 'assessment:backward-pawn:three-of-four', criterionId: 'backward-transform-3-of-4' }],
         reviewItems: [{ id: 'review:pawn-weaknesses:fix-or-transform', conceptIds: ['pawn-majority', 'fixed-weakness', 'isolated-pawn', 'backward-pawn', 'pawn-breakthrough'] }]
     },
+    activityItems: activityItemsFor('ku:endgames:pawn-weaknesses:backward-pawn'),
     relationships: [
         { type: 'contrast', targetId: 'ku:endgames:pawn-weaknesses:isolated-pawn', reason: 'A backward pawn can have neighboring pawn support but lacks a safe advance; isolation is defined by absent neighboring pawns.' },
         { type: 'related', targetId: 'ku:endgames:pawn-transformations:pawn-breakthrough', reason: 'A liberating break transforms a weakness only when concrete calculation supports the resulting structure.' },
@@ -49,8 +50,9 @@ export const backwardPawn = {
         recommendation: { remediationUnitIds: ['ku:endgames:pawn-weaknesses:fix-pawn-weakness', 'ku:endgames:pawn-transformations:pawn-breakthrough'] }, academy: { compatible: true }
     },
     editorial: {
-        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-23', reviewStatus: 'approved',
+        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-25', reviewStatus: 'approved',
         provenance: { kind: 'caissa-original', notes: 'Original CAISSA support-advance-front-square-break-transformation sequence.', inspirationReferences: [] },
         copyrightNotes: 'No source prose, annotations, or commercial exercise sequence was copied.', originalityDeclaration: 'This unit was independently scoped, sequenced, and written for CAISSA.', verificationState: 'verified'
     }
 };
+import { activityItemsFor } from '../../../../authoring/evaluable-endgame-activities.js';

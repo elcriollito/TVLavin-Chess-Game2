@@ -1,0 +1,368 @@
+{
+  "contentHash": "c8ccf9f8e550c302e726c46e482eaacff0ae9264071562e6f4dab3fe3f76bda9",
+  "contentVersion": "1.2.0",
+  "id": "ku:endgames:pawn-foundations:activate-the-king",
+  "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+  "schemaVersion": "1.1.0",
+  "unit": {
+    "activityItems": [
+      {
+        "activityType": "independent-practice",
+        "answer": {
+          "acceptedAlternatives": [
+            "Ke2"
+          ],
+          "evaluatorType": "authored-san-exact-v2",
+          "expected": "Kf3",
+          "misconceptionMappings": [],
+          "rejectionRules": [
+            "illegal-move",
+            "unsupported-legal-move"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "independent-success",
+          "misconception": null,
+          "reviewResolution": {
+            "requires": "independent-success",
+            "triggerTypes": [
+              "guided-success-without-independent-success",
+              "repeated-final-hint-dependence"
+            ]
+          },
+          "unsuccessful": "remediation-needed-after-two-unsuccessful"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies purposeful king activation in the released position.",
+          "guided": "Correct with support. This counts as guided practice for purposeful king activation.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about purposeful king activation.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply purposeful king activation in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:activate-king:independent-transfer",
+        "instruction": "Play a king-improving move before spending the pawn tempo.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Activate the king while retaining the pawn move.",
+        "positionId": "pos:activate-king:transfer-flank",
+        "responseType": "exact-move",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "exercise:activate-king:king-or-pawn",
+        "title": "Choose a safe king approach",
+        "transfer": false
+      },
+      {
+        "activityType": "assessment",
+        "answer": {
+          "acceptedAlternatives": [],
+          "choices": [
+            {
+              "id": "plan:activate-king:improve-with-check",
+              "label": "Improve the king while preserving both pawn advances."
+            },
+            {
+              "id": "choice:activate-king:assessment-plan:misconception",
+              "label": "Walk toward the center without checking the concrete pawn race.",
+              "misconceptionId": "misconception:activate-king:center-without-check"
+            }
+          ],
+          "evaluatorType": "authored-plan-choice-v1",
+          "expected": "plan:activate-king:improve-with-check",
+          "misconceptionMappings": [
+            {
+              "explanation": "This choice expresses the authored misconception: Walk toward the center without checking the concrete pawn race.",
+              "misconceptionId": "misconception:activate-king:center-without-check",
+              "resolutionActivityId": "activity:activate-king:assessment-plan",
+              "responseId": "choice:activate-king:assessment-plan:misconception",
+              "sourceMisconceptionIndex": 0
+            }
+          ],
+          "rejectionRules": [
+            "unknown-choice-id"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "assessment-success",
+          "misconception": {
+            "evidenceType": "misconception",
+            "misconceptionId": "misconception:activate-king:center-without-check"
+          },
+          "reviewResolution": {
+            "requires": "assessment-success",
+            "triggerTypes": [
+              "assessment-not-yet-attempted",
+              "assessment-unsuccessful"
+            ]
+          },
+          "unsuccessful": "assessment-unsuccessful-event"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies purposeful king activation in the released position.",
+          "guided": "Correct with support. This counts as guided practice for purposeful king activation.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about purposeful king activation.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply purposeful king activation in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:activate-king:assessment-plan",
+        "instruction": "Choose the plan that checks threats before committing the pawn.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Distinguish purposeful king activity from automatic centralization.",
+        "positionId": "pos:activate-king:central-route",
+        "responseType": "plan-choice",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "assessment:activate-king:varied-five",
+        "title": "Assess the activation plan",
+        "transfer": false
+      }
+    ],
+    "contentVersion": "1.2.0",
+    "domain": "endgames",
+    "education": {
+      "difficulty": "foundation",
+      "endgameFamily": "pawn-endgames",
+      "expectedLearnerLevel": "foundation-rules-aware",
+      "knowledgeType": "principle",
+      "learningObjectives": [
+        "Compare a king-improving move with an immediate pawn move before choosing a plan.",
+        "Identify when the king can approach the critical area without abandoning a concrete pawn threat."
+      ],
+      "masteryCriteria": [
+        "Selects a useful king approach in four of five varied king-and-pawn positions and names the tactical exception check before moving."
+      ],
+      "prerequisites": [],
+      "skills": [
+        "planning",
+        "calculation"
+      ],
+      "themes": [
+        "king-activity",
+        "tempo"
+      ]
+    },
+    "id": "ku:endgames:pawn-foundations:activate-the-king",
+    "integrations": {
+      "academy": {
+        "compatible": true
+      },
+      "capabilities": [
+        "academy-compatible",
+        "deterministic-coaching-prompts",
+        "mastery-criteria",
+        "recommendation-entry-unit",
+        "training-memory-theme-link"
+      ],
+      "coaching": {
+        "conceptIds": [
+          "king-route",
+          "irreversible-pawn-tempo"
+        ],
+        "hintOrder": [
+          "observation",
+          "recall",
+          "direction",
+          "decision-process",
+          "reflection"
+        ],
+        "policy": "deterministic-prompt-only"
+      },
+      "mastery": {
+        "criterionIds": [
+          "active-route-4-of-5"
+        ]
+      },
+      "recommendation": {
+        "nextUnitIds": [
+          "ku:endgames:pawn-foundations:direct-opposition"
+        ],
+        "remediationUnitIds": [
+          "ku:endgames:pawn-foundations:rule-of-the-square"
+        ]
+      },
+      "trainingMemory": {
+        "themeIds": [
+          "king-activity",
+          "tempo"
+        ]
+      }
+    },
+    "learningObjects": {
+      "assessments": [
+        {
+          "criterionId": "active-route-4-of-5",
+          "id": "assessment:activate-king:varied-five"
+        }
+      ],
+      "checksForUnderstanding": [
+        {
+          "id": "check:activate-king:exception",
+          "prompt": "Name one forcing event that can override king activation."
+        }
+      ],
+      "demonstrations": [
+        {
+          "id": "demo:activate-king:compare-tempi",
+          "positionId": "pos:activate-king:central-route"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "exercise:activate-king:king-or-pawn",
+          "positionId": "pos:activate-king:central-route",
+          "task": "Compare one king move and one pawn move."
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "guided:activate-king:route",
+          "positionId": "pos:activate-king:transfer-flank",
+          "prompt": "Name the target square before selecting a move."
+        }
+      ],
+      "reviewItems": []
+    },
+    "localization": {
+      "availableLocales": [
+        "en-US"
+      ],
+      "content": {
+        "en-US": {
+          "coachingPrompts": [
+            "Which part of the board must your king influence?",
+            "What does king activity mean in this position?",
+            "Which direction improves access while staying near the pawn?",
+            "Compare one king move with one pawn move using the four-step process.",
+            "After your choice, which option did you preserve?"
+          ],
+          "decisionProcess": [
+            "Identify the square or pawn the king needs to influence.",
+            "Compare the shortest safe king route with the immediate pawn move.",
+            "Check whether the opponent has a forcing capture, race, or entry.",
+            "Choose the move that improves access without losing the concrete position."
+          ],
+          "explanation": "In reduced material, the king often changes from a protected piece into the main worker. A pawn move uses a tempo and permanently changes the structure; a king move may gain access, escort a pawn, or restrict the opposing king. Compare both plans before advancing. King activation is a practical priority, not an automatic command: an immediate race, capture, or promotion threat can make a pawn move more urgent.",
+          "keyIdeas": [
+            "King distance is a practical resource in an endgame.",
+            "Pawn moves are irreversible, while king routes often preserve choices."
+          ],
+          "misconceptions": [
+            "Activating the king does not mean walking toward the center without checking threats.",
+            "Delaying every pawn move is not safer; a concrete tempo can be decisive in a race."
+          ],
+          "practicalRules": [
+            "Before pushing, ask what useful square the king could reach with the same tempo.",
+            "Check captures, races, and promotion threats before following the king-activity heuristic."
+          ],
+          "reflectionPrompts": [
+            "What concrete threat would justify advancing the pawn before improving the king?",
+            "Which king square would make the next decision easier?"
+          ],
+          "summary": "Improve the king’s access before spending pawn moves that cannot be recovered.",
+          "title": "Activate the king"
+        }
+      },
+      "defaultLocale": "en-US",
+      "translationStatus": {
+        "en-US": "ready"
+      }
+    },
+    "positions": [
+      {
+        "expectedConcepts": [
+          "king-route",
+          "irreversible-pawn-tempo"
+        ],
+        "fen": "8/7k/8/8/8/3P4/2K5/8 w - - 0 1",
+        "id": "pos:activate-king:central-route",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Kc3"
+            ],
+            "purpose": "Improve king access while keeping both pawn advances available."
+          }
+        ],
+        "role": "clean-demonstration",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "The move is legal; the instructional claim is a bounded planning comparison, not an exact-result claim.",
+          "structural": "valid"
+        }
+      },
+      {
+        "expectedConcepts": [
+          "king-route",
+          "threat-check"
+        ],
+        "fen": "k7/8/8/8/8/4P3/5K2/8 w - - 0 1",
+        "id": "pos:activate-king:transfer-flank",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Kf3"
+            ],
+            "purpose": "Begin a safe approach before deciding when to advance."
+          }
+        ],
+        "role": "transfer",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "Transfer changes file and approach direction without changing the planning question.",
+          "structural": "valid"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "reason": "After learning purposeful king routes, learners can use the king to stabilize and approach a pawn target.",
+        "targetId": "ku:endgames:pawn-weaknesses:fix-pawn-weakness",
+        "type": "recommendation"
+      },
+      {
+        "reason": "King activity becomes a structural plan when it preserves restraint before attacking.",
+        "targetId": "ku:endgames:pawn-weaknesses:fix-pawn-weakness",
+        "type": "progression"
+      },
+      {
+        "reason": "Square counting checks whether king activation can affect a pawn race.",
+        "targetId": "ku:endgames:pawn-foundations:rule-of-the-square",
+        "type": "related"
+      },
+      {
+        "reason": "After choosing to activate, the learner needs a precise king-versus-king access pattern.",
+        "targetId": "ku:endgames:pawn-foundations:direct-opposition",
+        "type": "progression"
+      },
+      {
+        "reason": "Direct opposition is the normal next study for active king entry.",
+        "targetId": "ku:endgames:pawn-foundations:direct-opposition",
+        "type": "recommendation"
+      }
+    ],
+    "schemaVersion": "1.1.0",
+    "slug": "activate-the-king",
+    "status": "published"
+  }
+}

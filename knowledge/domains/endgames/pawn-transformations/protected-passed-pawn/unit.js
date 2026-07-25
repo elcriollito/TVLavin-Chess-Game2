@@ -1,7 +1,7 @@
 /** @type {import('../../../../schema/knowledge-unit.js').KnowledgeUnit} */
 export const protectedPassedPawn = {
     id: 'ku:endgames:pawn-transformations:protected-passed-pawn', slug: 'protected-passed-pawn', domain: 'endgames',
-    status: 'published', schemaVersion: '1.0.0', contentVersion: '1.0.0',
+    status: 'published', schemaVersion: '1.1.0', contentVersion: '1.1.0',
     education: {
         knowledgeType: 'principle', endgameFamily: 'pawn-endgames',
         themes: ['passed-pawns', 'pawn-structure', 'pawn-support', 'king-activity'],
@@ -82,6 +82,7 @@ export const protectedPassedPawn = {
         assessments: [{ id: 'assessment:protected-passer:four-of-five', criterionId: 'protected-passer-map-4-of-5' }],
         reviewItems: []
     },
+    activityItems: activityItemsFor('ku:endgames:pawn-transformations:protected-passed-pawn'),
     relationships: [
         { type: 'contrast', targetId: 'ku:endgames:pawn-transformations:outside-passed-pawn', reason: 'A protected passer gains value from mutual support and restriction; an outside passer gains value from distance and diversion.' },
         { type: 'progression', targetId: 'ku:endgames:pawn-transformations:pawn-breakthrough', reason: 'Understanding support chains prepares the learner to calculate which pawn sacrifice leaves a surviving passer.' },
@@ -98,7 +99,7 @@ export const protectedPassedPawn = {
         academy: { compatible: true }
     },
     editorial: {
-        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-23',
+        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-25',
         reviewStatus: 'approved',
         provenance: { kind: 'caissa-original', notes: 'Original CAISSA restriction-first treatment contrasting a stable anchor with an exposed support base.', inspirationReferences: [] },
         copyrightNotes: 'No source prose, annotations, or commercial exercise sequence was copied.',
@@ -106,3 +107,4 @@ export const protectedPassedPawn = {
         verificationState: 'verified'
     }
 };
+import { activityItemsFor } from '../../../../authoring/evaluable-endgame-activities.js';

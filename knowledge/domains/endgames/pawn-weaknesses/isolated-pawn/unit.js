@@ -1,7 +1,7 @@
 /** @type {import('../../../../schema/knowledge-unit.js').KnowledgeUnit} */
 export const isolatedPawn = {
     id: 'ku:endgames:pawn-weaknesses:isolated-pawn', slug: 'isolated-pawn', domain: 'endgames',
-    status: 'published', schemaVersion: '1.0.0', contentVersion: '1.0.0',
+    status: 'published', schemaVersion: '1.1.0', contentVersion: '1.1.0',
     education: {
         knowledgeType: 'technique', endgameFamily: 'pawn-endgames',
         themes: ['isolated-pawn', 'fixed-weakness', 'restraint', 'king-activity'],
@@ -36,6 +36,7 @@ export const isolatedPawn = {
         assessments: [{ id: 'assessment:isolated-pawn:three-of-four', criterionId: 'isolated-plan-3-of-4' }],
         reviewItems: []
     },
+    activityItems: activityItemsFor('ku:endgames:pawn-weaknesses:isolated-pawn'),
     relationships: [
         { type: 'contrast', targetId: 'ku:endgames:pawn-weaknesses:backward-pawn', reason: 'An isolated pawn lacks neighboring pawn support; a backward pawn may have neighbors but cannot advance safely.' },
         { type: 'progression', targetId: 'ku:endgames:pawn-weaknesses:backward-pawn', reason: 'Backward-pawn diagnosis adds blocked advance and liberation to the weakness-classification process.' },
@@ -49,8 +50,9 @@ export const isolatedPawn = {
         recommendation: { nextUnitIds: ['ku:endgames:pawn-weaknesses:backward-pawn'], remediationUnitIds: ['ku:endgames:pawn-weaknesses:fix-pawn-weakness'] }, academy: { compatible: true }
     },
     editorial: {
-        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-23', reviewStatus: 'approved',
+        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-25', reviewStatus: 'approved',
         provenance: { kind: 'caissa-original', notes: 'Original CAISSA support-escape-restraint-route-activity sequence.', inspirationReferences: [] },
         copyrightNotes: 'No source prose, annotations, or commercial exercise sequence was copied.', originalityDeclaration: 'This unit was independently scoped, sequenced, and written for CAISSA.', verificationState: 'verified'
     }
 };
+import { activityItemsFor } from '../../../../authoring/evaluable-endgame-activities.js';

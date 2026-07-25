@@ -1,7 +1,7 @@
 /** @type {import('../../../../schema/knowledge-unit.js').KnowledgeUnit} */
 export const pawnBreakthrough = {
     id: 'ku:endgames:pawn-transformations:pawn-breakthrough', slug: 'pawn-breakthrough', domain: 'endgames',
-    status: 'published', schemaVersion: '1.0.0', contentVersion: '1.0.0',
+    status: 'published', schemaVersion: '1.1.0', contentVersion: '1.1.0',
     education: {
         knowledgeType: 'technique', endgameFamily: 'pawn-endgames',
         themes: ['pawn-breakthrough', 'pawn-structure', 'passed-pawns', 'pawn-races'],
@@ -85,6 +85,7 @@ export const pawnBreakthrough = {
         assessments: [{ id: 'assessment:pawn-breakthrough:three-of-four', criterionId: 'breakthrough-transfer-3-of-4' }],
         reviewItems: [{ id: 'review:pawn-breakthrough:exact-versus-heuristic', prompt: 'Separate the verified line from the pattern-based candidate heuristic.' }]
     },
+    activityItems: activityItemsFor('ku:endgames:pawn-transformations:pawn-breakthrough'),
     relationships: [
         { type: 'remediation', targetId: 'ku:endgames:pawn-transformations:protected-passed-pawn', reason: 'If the learner cannot identify the pawn that will support or survive, revisit pawn-chain roles.' },
         { type: 'remediation', targetId: 'ku:endgames:pawn-transformations:outside-passed-pawn', reason: 'If the learner creates a passer but misjudges its race, revisit diversion and return-route calculation.' },
@@ -100,7 +101,7 @@ export const pawnBreakthrough = {
         academy: { compatible: true }
     },
     editorial: {
-        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-23',
+        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-25',
         reviewStatus: 'approved',
         provenance: { kind: 'caissa-original', notes: 'Original CAISSA candidate-reply-survivor sequence using a public-domain geometric motif with independently written instruction.', inspirationReferences: [{ kind: 'traditional-chess-pattern', title: 'Three-versus-three pawn breakthrough motif' }] },
         copyrightNotes: 'Traditional chess geometry is factual; all wording, sequencing, prompts, and learning objects are original.',
@@ -108,3 +109,4 @@ export const pawnBreakthrough = {
         verificationState: 'verified'
     }
 };
+import { activityItemsFor } from '../../../../authoring/evaluable-endgame-activities.js';

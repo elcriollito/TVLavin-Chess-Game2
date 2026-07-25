@@ -9,7 +9,7 @@ export const GUIDED_STUDY_QUERY = Object.freeze({
 const clone = value => structuredClone(value);
 
 export function isGuidedStudyEligible(unit) {
-  if (!unit || unit.status !== 'published' || unit.schemaVersion !== '1.0.0') return false;
+  if (!unit || unit.status !== 'published' || !['1.0.0', '1.1.0'].includes(unit.schemaVersion)) return false;
   if (!Array.isArray(unit.positions) || !unit.positions.some(position =>
     typeof position?.fen === 'string' && position.validation?.structural === 'valid'
   )) return false;

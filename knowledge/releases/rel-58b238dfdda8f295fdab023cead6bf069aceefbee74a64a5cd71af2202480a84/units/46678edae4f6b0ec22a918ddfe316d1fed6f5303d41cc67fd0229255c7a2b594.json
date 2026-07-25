@@ -1,0 +1,376 @@
+{
+  "contentHash": "5bd8ae08b609e8cf1e2a395c737cf4faad36a229dc91126bb49dabfbc860e315",
+  "contentVersion": "1.1.0",
+  "id": "ku:endgames:pawn-exchanges:exchange-into-passer",
+  "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+  "schemaVersion": "1.1.0",
+  "unit": {
+    "activityItems": [
+      {
+        "activityType": "independent-practice",
+        "answer": {
+          "acceptedAlternatives": [],
+          "evaluatorType": "authored-san-exact-v2",
+          "expected": "exd4+",
+          "misconceptionMappings": [],
+          "rejectionRules": [
+            "illegal-move",
+            "unsupported-legal-move"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "independent-success",
+          "misconception": null,
+          "reviewResolution": {
+            "requires": "independent-success",
+            "triggerTypes": [
+              "guided-success-without-independent-success",
+              "repeated-final-hint-dependence"
+            ]
+          },
+          "unsuccessful": "remediation-needed-after-two-unsuccessful"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies capture-order reconstruction in the released position.",
+          "guided": "Correct with support. This counts as guided practice for capture-order reconstruction.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about capture-order reconstruction.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply capture-order reconstruction in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:exchange-passer:independent-enemy",
+        "instruction": "Play the transforming capture available to the side to move.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Reconstruct the pawn race after the opponent captures first.",
+        "positionId": "pos:exchange-passer:enemy-race",
+        "responseType": "exact-move",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "exercise:exchange-passer:enemy",
+        "title": "Respect the opponent’s capture",
+        "transfer": false
+      },
+      {
+        "activityType": "assessment",
+        "answer": {
+          "acceptedAlternatives": [],
+          "choices": [
+            {
+              "id": "choice:exchange-passer:both-races",
+              "label": "Rebuild the position and calculate both passers from the actual side to move."
+            },
+            {
+              "id": "choice:exchange-passer:assessment-race:misconception",
+              "label": "Any exchange that creates your passer is automatically favorable.",
+              "misconceptionId": "misconception:exchange-passer:any-passer-good"
+            }
+          ],
+          "evaluatorType": "authored-single-choice-v1",
+          "expected": "choice:exchange-passer:both-races",
+          "misconceptionMappings": [
+            {
+              "explanation": "This choice expresses the authored misconception: Any exchange that creates your passer is automatically favorable.",
+              "misconceptionId": "misconception:exchange-passer:any-passer-good",
+              "resolutionActivityId": "activity:exchange-passer:assessment-race",
+              "responseId": "choice:exchange-passer:assessment-race:misconception",
+              "sourceMisconceptionIndex": 0
+            }
+          ],
+          "rejectionRules": [
+            "unknown-choice-id"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "assessment-success",
+          "misconception": {
+            "evidenceType": "misconception",
+            "misconceptionId": "misconception:exchange-passer:any-passer-good"
+          },
+          "reviewResolution": {
+            "requires": "assessment-success",
+            "triggerTypes": [
+              "assessment-not-yet-attempted",
+              "assessment-unsuccessful"
+            ]
+          },
+          "unsuccessful": "assessment-unsuccessful-event"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies capture-order reconstruction in the released position.",
+          "guided": "Correct with support. This counts as guided practice for capture-order reconstruction.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about capture-order reconstruction.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply capture-order reconstruction in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:exchange-passer:assessment-race",
+        "instruction": "Choose what must be calculated after the exchange.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Evaluate both resulting passers and the move order.",
+        "positionId": "pos:exchange-passer:enemy-race",
+        "responseType": "single-choice",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "assessment:exchange-passer:three-of-four",
+        "title": "Assess the resulting passer",
+        "transfer": false
+      }
+    ],
+    "contentVersion": "1.1.0",
+    "domain": "endgames",
+    "education": {
+      "difficulty": "intermediate",
+      "endgameFamily": "pawn-endgames",
+      "expectedLearnerLevel": "foundation-rules-aware",
+      "knowledgeType": "technique",
+      "learningObjectives": [
+        "Reconstruct the pawn structure after alternative capture orders.",
+        "Select an exchange that creates a viable passer without creating a faster enemy passer."
+      ],
+      "masteryCriteria": [
+        "Reconstructs the correct post-exchange structure in four of five sequences.",
+        "Selects capture order and verifies the race in three of four tasks without a final hint."
+      ],
+      "prerequisites": [
+        "ku:endgames:pawn-weaknesses:pawn-majority"
+      ],
+      "skills": [
+        "calculation",
+        "move-order",
+        "board-geometry"
+      ],
+      "themes": [
+        "exchange-decision",
+        "capture-order",
+        "passed-pawns",
+        "pawn-races"
+      ]
+    },
+    "id": "ku:endgames:pawn-exchanges:exchange-into-passer",
+    "integrations": {
+      "academy": {
+        "compatible": true
+      },
+      "capabilities": [
+        "academy-compatible",
+        "deterministic-coaching-prompts",
+        "mastery-criteria",
+        "training-memory-theme-link"
+      ],
+      "coaching": {
+        "conceptIds": [
+          "capture-order",
+          "structure-reconstruction",
+          "passed-pawn"
+        ],
+        "hintOrder": [
+          "observation",
+          "structural-classification",
+          "candidate-identification",
+          "before-after-calculation",
+          "decision-process",
+          "reflection"
+        ],
+        "policy": "deterministic-prompt-only"
+      },
+      "mastery": {
+        "criterionIds": [
+          "exchange-rebuild-4-of-5",
+          "exchange-race-3-of-4"
+        ]
+      },
+      "recommendation": {
+        "nextUnitIds": [
+          "ku:endgames:pawn-exchanges:second-distant-target"
+        ],
+        "remediationUnitIds": [
+          "ku:endgames:pawn-foundations:rule-of-the-square"
+        ]
+      },
+      "trainingMemory": {
+        "themeIds": [
+          "exchange-decision",
+          "capture-order",
+          "passed-pawns"
+        ]
+      }
+    },
+    "learningObjects": {
+      "assessments": [
+        {
+          "criterionId": "exchange-race-3-of-4",
+          "id": "assessment:exchange-passer:three-of-four"
+        }
+      ],
+      "checksForUnderstanding": [
+        {
+          "id": "check:exchange-passer:complete",
+          "prompt": "Name what must be checked after a passer appears."
+        }
+      ],
+      "demonstrations": [
+        {
+          "id": "demo:exchange-passer:rebuild",
+          "positionId": "pos:exchange-passer:create"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "exercise:exchange-passer:enemy",
+          "positionId": "pos:exchange-passer:enemy-race",
+          "task": "Identify the opponent’s resulting passer and race."
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "guided:exchange-passer:orders",
+          "positionId": "pos:exchange-passer:create",
+          "prompt": "Rebuild the board after each capture candidate."
+        }
+      ],
+      "reviewItems": []
+    },
+    "localization": {
+      "availableLocales": [
+        "en-US"
+      ],
+      "content": {
+        "en-US": {
+          "coachingPrompts": [
+            "What are the current pawn counts and contacts?",
+            "Which resulting structures are possible?",
+            "Which capture order must be compared?",
+            "After all recaptures, which pawns and king routes remain?",
+            "Use count, captures, reconstruction, passers, routes, and race.",
+            "Did the exchange create a useful passer or a faster enemy threat?"
+          ],
+          "decisionProcess": [
+            "Record pawn counts and files.",
+            "List legal captures and advances.",
+            "Calculate recaptures.",
+            "Reconstruct the resulting structure.",
+            "Identify passers and candidates.",
+            "Recalculate king routes and reserve tempi.",
+            "Compare the final race."
+          ],
+          "explanation": "Majority play develops a numerical advantage over time; exchange transformation asks what remains after a concrete capture sequence. Capture direction decides files, support, and whose passer survives. Record the structure, calculate forced recaptures, rebuild the board, and then apply king-distance checks. Creating a passer is useful only when the resulting race and king access work.",
+          "keyIdeas": [
+            "Capture order determines the identity and route of the surviving pawn.",
+            "The exchange is unfinished analytically until the resulting king routes and race are checked."
+          ],
+          "misconceptions": [
+            "Any exchange that creates a passer is not automatically favorable.",
+            "Equivalent pawn counts can conceal different capture directions and races."
+          ],
+          "practicalRules": [
+            "Reconstruct the board after every forced recapture.",
+            "Reject an attractive passer when the exchange gives the opponent a faster one."
+          ],
+          "reflectionPrompts": [
+            "Which capture direction changed the passer’s file?",
+            "What king-distance fact decides the final evaluation?"
+          ],
+          "summary": "Calculate capture direction and recapture order until the surviving passer and race are explicit.",
+          "title": "Exchange into a passed pawn"
+        }
+      },
+      "defaultLocale": "en-US",
+      "translationStatus": {
+        "en-US": "ready"
+      }
+    },
+    "positions": [
+      {
+        "expectedConcepts": [
+          "capture-order",
+          "passed-pawn-creation",
+          "structure-reconstruction"
+        ],
+        "fen": "8/8/6k1/2p1p3/2PP4/5K2/8/8 w - - 0 1",
+        "id": "pos:exchange-passer:create",
+        "principalIdeas": [
+          {
+            "moves": [
+              "dxe5"
+            ],
+            "purpose": "Capture toward the open file and create a pawn with no opposing neighbor able to stop it."
+          }
+        ],
+        "role": "clean-demonstration",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "The legal capture and resulting passed-pawn status are structurally verified.",
+          "structural": "valid"
+        }
+      },
+      {
+        "expectedConcepts": [
+          "side-to-move",
+          "enemy-passer",
+          "race-check"
+        ],
+        "fen": "8/8/6k1/2p1p3/2PP4/2K5/8/8 b - - 0 1",
+        "id": "pos:exchange-passer:enemy-race",
+        "principalIdeas": [
+          {
+            "moves": [
+              "exd4+"
+            ],
+            "purpose": "Show that move order can give the opponent the transforming capture."
+          }
+        ],
+        "role": "contrast",
+        "sideToMove": "black",
+        "validation": {
+          "educational": "verified",
+          "notes": "The legal checking capture changes ownership of the initiative; no full-result claim is made.",
+          "structural": "valid"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "reason": "A created passer can become one of two separated demands on the defending king.",
+        "targetId": "ku:endgames:pawn-exchanges:second-distant-target",
+        "type": "progression"
+      },
+      {
+        "reason": "Incorrect race evaluation requires exact pawn-square geometry.",
+        "targetId": "ku:endgames:pawn-foundations:rule-of-the-square",
+        "type": "remediation"
+      },
+      {
+        "reason": "Majority play mobilizes over time; this unit resolves a concrete capture sequence.",
+        "targetId": "ku:endgames:pawn-weaknesses:pawn-majority",
+        "type": "contrast"
+      },
+      {
+        "reason": "Both transform structure, but exchange-to-passer need not sacrifice a pawn to deflect two defenders.",
+        "targetId": "ku:endgames:pawn-transformations:pawn-breakthrough",
+        "type": "related"
+      }
+    ],
+    "schemaVersion": "1.1.0",
+    "slug": "exchange-into-passer",
+    "status": "published"
+  }
+}

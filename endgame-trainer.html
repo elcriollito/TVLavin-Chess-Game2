@@ -104,7 +104,7 @@
                         </div>
                         <p class="endgame-trainer-page__helper">The study board is read-only. Optional local progress never means completion or mastery.</p>
                         <section class="endgame-trainer-page__released-activity" data-released-activity aria-labelledby="released-activity-title">
-                            <h3 id="released-activity-title">Independent Practice</h3>
+                            <h3 id="released-activity-title" data-released-activity-mode>Independent Practice</h3>
                             <div data-released-activity-ready hidden>
                                 <label for="released-activity-select">Eligible released activity</label>
                                 <select id="released-activity-select" data-released-activity-select></select>
@@ -112,6 +112,7 @@
                                 <p class="endgame-trainer-page__helper">Enter one legal SAN move from the displayed position. Your first attempt is independent; revealing help changes the result to guided practice.</p>
                                 <label for="released-activity-response">Your move</label>
                                 <input id="released-activity-response" data-released-activity-response maxlength="16" autocomplete="off" spellcheck="false">
+                                <select data-released-activity-choice aria-label="Choose an authored response" hidden></select>
                                 <div class="endgame-trainer-page__actions">
                                     <button type="button" data-released-activity-submit>Submit move</button>
                                     <button type="button" data-released-activity-help>Reveal released move</button>

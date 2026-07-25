@@ -1,0 +1,363 @@
+{
+  "contentHash": "f8db2d321dff2f73b3b131a6f0b9fe9bff2244397714019ad054a369965845f6",
+  "contentVersion": "1.1.0",
+  "id": "ku:endgames:pawn-exchanges:pawn-tension",
+  "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+  "schemaVersion": "1.1.0",
+  "unit": {
+    "activityItems": [
+      {
+        "activityType": "independent-practice",
+        "answer": {
+          "acceptedAlternatives": [],
+          "evaluatorType": "authored-san-exact-v2",
+          "expected": "dxe5+",
+          "misconceptionMappings": [],
+          "rejectionRules": [
+            "illegal-move",
+            "unsupported-legal-move"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "independent-success",
+          "misconception": null,
+          "reviewResolution": {
+            "requires": "independent-success",
+            "triggerTypes": [
+              "guided-success-without-independent-success",
+              "repeated-final-hint-dependence"
+            ]
+          },
+          "unsuccessful": "remediation-needed-after-two-unsuccessful"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies pawn-tension timing in the released position.",
+          "guided": "Correct with support. This counts as guided practice for pawn-tension timing.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about pawn-tension timing.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply pawn-tension timing in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:pawn-tension:independent-clarify",
+        "instruction": "Play the capture that prevents passive waiting.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Recognize when preserving tension loses access.",
+        "positionId": "pos:pawn-tension:clarify-now",
+        "responseType": "exact-move",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "exercise:pawn-tension:clarify",
+        "title": "Clarify at the right moment",
+        "transfer": false
+      },
+      {
+        "activityType": "assessment",
+        "answer": {
+          "acceptedAlternatives": [],
+          "choices": [
+            {
+              "id": "plan:pawn-tension:clarify-now",
+              "label": "Clarify now before the opposing king improves."
+            },
+            {
+              "id": "choice:pawn-tension:assessment-plan:misconception",
+              "label": "Always preserve tension because unresolved contact is automatically useful.",
+              "misconceptionId": "misconception:pawn-tension:always-preserve"
+            }
+          ],
+          "evaluatorType": "authored-plan-choice-v1",
+          "expected": "plan:pawn-tension:clarify-now",
+          "misconceptionMappings": [
+            {
+              "explanation": "This choice expresses the authored misconception: Always preserve tension because unresolved contact is automatically useful.",
+              "misconceptionId": "misconception:pawn-tension:always-preserve",
+              "resolutionActivityId": "activity:pawn-tension:assessment-plan",
+              "responseId": "choice:pawn-tension:assessment-plan:misconception",
+              "sourceMisconceptionIndex": 0
+            }
+          ],
+          "rejectionRules": [
+            "unknown-choice-id"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "assessment-success",
+          "misconception": {
+            "evidenceType": "misconception",
+            "misconceptionId": "misconception:pawn-tension:always-preserve"
+          },
+          "reviewResolution": {
+            "requires": "assessment-success",
+            "triggerTypes": [
+              "assessment-not-yet-attempted",
+              "assessment-unsuccessful"
+            ]
+          },
+          "unsuccessful": "assessment-unsuccessful-event"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies pawn-tension timing in the released position.",
+          "guided": "Correct with support. This counts as guided practice for pawn-tension timing.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about pawn-tension timing.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply pawn-tension timing in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:pawn-tension:assessment-plan",
+        "instruction": "Choose the plan justified by the current king geometry.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Distinguish useful tension from passive waiting.",
+        "positionId": "pos:pawn-tension:clarify-now",
+        "responseType": "plan-choice",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "assessment:pawn-tension:three-of-four",
+        "title": "Assess the tension decision",
+        "transfer": false
+      }
+    ],
+    "contentVersion": "1.1.0",
+    "domain": "endgames",
+    "education": {
+      "difficulty": "developing",
+      "endgameFamily": "pawn-endgames",
+      "expectedLearnerLevel": "foundation-rules-aware",
+      "knowledgeType": "principle",
+      "learningObjectives": [
+        "Recognize unresolved pawn contact and identify which side benefits from clarification.",
+        "Compare preserving tension with each legal capture or advance."
+      ],
+      "masteryCriteria": [
+        "Classifies useful versus passive tension in four of five structures.",
+        "Preserves or resolves tension correctly after comparing two candidates in three of four tasks."
+      ],
+      "prerequisites": [],
+      "skills": [
+        "planning",
+        "calculation",
+        "move-order"
+      ],
+      "themes": [
+        "pawn-tension",
+        "exchange-decision",
+        "pawn-structure",
+        "restraint"
+      ]
+    },
+    "id": "ku:endgames:pawn-exchanges:pawn-tension",
+    "integrations": {
+      "academy": {
+        "compatible": true
+      },
+      "capabilities": [
+        "academy-compatible",
+        "deterministic-coaching-prompts",
+        "mastery-criteria",
+        "training-memory-theme-link"
+      ],
+      "coaching": {
+        "conceptIds": [
+          "pawn-tension",
+          "clarification"
+        ],
+        "hintOrder": [
+          "observation",
+          "structural-classification",
+          "candidate-identification",
+          "before-after-calculation",
+          "decision-process",
+          "reflection"
+        ],
+        "policy": "deterministic-prompt-only"
+      },
+      "mastery": {
+        "criterionIds": [
+          "tension-classify-4-of-5",
+          "tension-choice-3-of-4"
+        ]
+      },
+      "recommendation": {
+        "nextUnitIds": [
+          "ku:endgames:pawn-exchanges:exchange-into-passer"
+        ]
+      },
+      "trainingMemory": {
+        "themeIds": [
+          "pawn-tension",
+          "exchange-decision"
+        ]
+      }
+    },
+    "learningObjects": {
+      "assessments": [
+        {
+          "criterionId": "tension-choice-3-of-4",
+          "id": "assessment:pawn-tension:three-of-four"
+        }
+      ],
+      "checksForUnderstanding": [
+        {
+          "id": "check:pawn-tension:reserve-distinction",
+          "prompt": "Distinguish structural tension from a waiting tempo."
+        }
+      ],
+      "demonstrations": [
+        {
+          "id": "demo:pawn-tension:options",
+          "positionId": "pos:pawn-tension:preserve-contact"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "exercise:pawn-tension:clarify",
+          "positionId": "pos:pawn-tension:clarify-now",
+          "task": "Explain why waiting is passive."
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "guided:pawn-tension:compare",
+          "positionId": "pos:pawn-tension:preserve-contact",
+          "prompt": "Compare waiting with clarification."
+        }
+      ],
+      "reviewItems": []
+    },
+    "localization": {
+      "availableLocales": [
+        "en-US"
+      ],
+      "content": {
+        "en-US": {
+          "coachingPrompts": [
+            "Which pawns are in unresolved contact?",
+            "Who benefits if the structure clarifies now?",
+            "Which capture, advance, or waiting candidate must be compared?",
+            "What exact structure and king route remain afterward?",
+            "Use contact, candidates, reconstruction, access, and comparison.",
+            "Did the choice preserve useful options or merely postpone a decision?"
+          ],
+          "decisionProcess": [
+            "Record the current pawn contact.",
+            "List legal captures and advances.",
+            "Reconstruct each resulting structure.",
+            "Identify released routes and targets.",
+            "Compare waiting with clarification.",
+            "Choose the option that preserves the better structure."
+          ],
+          "explanation": "Pawn tension exists when opposing pawns can capture or change their contact. Preserving it keeps structural choices unresolved; resolving it changes files, targets, or access. This differs from a reserve tempo, which stores a waiting move to change move obligation. Tension is useful only while it restricts the opponent or preserves superior choices. If waiting concedes king access, clarification may be necessary.",
+          "keyIdeas": [
+            "Tension preserves capture choices and structural uncertainty.",
+            "The right question is which structure remains after each clarification."
+          ],
+          "misconceptions": [
+            "Keeping tension is not automatically best when waiting loses access.",
+            "Tension is not a reserve tempo merely because a pawn has not moved."
+          ],
+          "practicalRules": [
+            "Often preserve tension when the opponent benefits from the only clean exchange.",
+            "Resolve it when waiting is passive or a concrete capture improves the resulting structure."
+          ],
+          "reflectionPrompts": [
+            "What opponent resource appears after the exchange?",
+            "What fact would make continued tension passive?"
+          ],
+          "summary": "Keep unresolved pawn contact when clarification would improve the opponent’s structure or king route.",
+          "title": "Preserve useful pawn tension"
+        }
+      },
+      "defaultLocale": "en-US",
+      "translationStatus": {
+        "en-US": "ready"
+      }
+    },
+    "positions": [
+      {
+        "expectedConcepts": [
+          "pawn-tension",
+          "structural-options",
+          "king-route"
+        ],
+        "fen": "8/8/3k4/4p3/3P4/2K5/8/8 w - - 0 1",
+        "id": "pos:pawn-tension:preserve-contact",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Kc4"
+            ],
+            "purpose": "Improve the king while leaving both pawn-capture choices unresolved."
+          }
+        ],
+        "role": "clean-demonstration",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "Legal contact and king move verified; no final result claimed.",
+          "structural": "valid"
+        }
+      },
+      {
+        "expectedConcepts": [
+          "necessary-clarification",
+          "capture-choice",
+          "passive-waiting"
+        ],
+        "fen": "8/8/5k2/4p3/3P4/3K4/8/8 w - - 0 1",
+        "id": "pos:pawn-tension:clarify-now",
+        "principalIdeas": [
+          {
+            "moves": [
+              "dxe5+"
+            ],
+            "purpose": "Resolve contact before the opposing king improves its approach."
+          }
+        ],
+        "role": "contrast",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "The checking capture is legal and illustrates a concrete reason to clarify.",
+          "structural": "valid"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "reason": "Tension preserves unresolved captures; reserve tempo preserves a waiting move that transfers move obligation.",
+        "targetId": "ku:endgames:pawn-transformations:reserve-tempo",
+        "type": "contrast"
+      },
+      {
+        "reason": "After comparing whether to clarify, learners calculate a capture sequence that deliberately creates a passer.",
+        "targetId": "ku:endgames:pawn-exchanges:exchange-into-passer",
+        "type": "progression"
+      },
+      {
+        "reason": "Clarification can release a fixed weakness that tension was helping restrain.",
+        "targetId": "ku:endgames:pawn-weaknesses:fix-pawn-weakness",
+        "type": "related"
+      }
+    ],
+    "schemaVersion": "1.1.0",
+    "slug": "pawn-tension",
+    "status": "published"
+  }
+}

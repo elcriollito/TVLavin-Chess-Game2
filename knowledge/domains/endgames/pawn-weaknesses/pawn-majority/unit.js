@@ -1,7 +1,7 @@
 /** @type {import('../../../../schema/knowledge-unit.js').KnowledgeUnit} */
 export const pawnMajority = {
     id: 'ku:endgames:pawn-weaknesses:pawn-majority', slug: 'pawn-majority', domain: 'endgames',
-    status: 'published', schemaVersion: '1.0.0', contentVersion: '1.1.0',
+    status: 'published', schemaVersion: '1.1.0', contentVersion: '1.2.0',
     education: {
         knowledgeType: 'technique', endgameFamily: 'pawn-endgames',
         themes: ['pawn-majority', 'passed-pawns', 'pawn-races', 'pawn-structure'],
@@ -37,6 +37,7 @@ export const pawnMajority = {
         assessments: [{ id: 'assessment:pawn-majority:three-of-four', criterionId: 'majority-calculate-3-of-4' }],
         reviewItems: []
     },
+    activityItems: activityItemsFor('ku:endgames:pawn-weaknesses:pawn-majority'),
     relationships: [
         { type: 'recommendation', targetId: 'ku:endgames:pawn-exchanges:exchange-into-passer', reason: 'After mobilizing a majority, calculate the concrete capture order that determines the surviving passer.' },
         { type: 'related', targetId: 'ku:endgames:pawn-transformations:outside-passed-pawn', reason: 'A mobile wing majority may create the distant passer used for diversion.' },
@@ -51,8 +52,9 @@ export const pawnMajority = {
         recommendation: { nextUnitIds: ['ku:endgames:pawn-weaknesses:fix-pawn-weakness'], remediationUnitIds: ['ku:endgames:pawn-foundations:rule-of-the-square'] }, academy: { compatible: true }
     },
     editorial: {
-        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-23', reviewStatus: 'approved',
+        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-25', reviewStatus: 'approved',
         provenance: { kind: 'caissa-original', notes: 'Original CAISSA count-mobility-candidate-exchange-race sequence.', inspirationReferences: [] },
         copyrightNotes: 'No source prose, annotations, or commercial exercise sequence was copied.', originalityDeclaration: 'This unit was independently scoped, sequenced, and written for CAISSA.', verificationState: 'verified'
     }
 };
+import { activityItemsFor } from '../../../../authoring/evaluable-endgame-activities.js';

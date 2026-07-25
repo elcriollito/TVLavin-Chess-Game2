@@ -3,7 +3,8 @@ import { ChessRulesFacade } from '../endgame-trainer/chess-rules-facade.js';
 export const ACTIVITY_SCHEMA_VERSION = '1.0.0';
 export const ATTEMPT_SCHEMA_VERSION = '1.0.0';
 export const EVALUATION_SCHEMA_VERSION = '1.0.0';
-export const ACTIVITY_TYPES = Object.freeze(['independent-practice']);
+export const ACTIVITY_TYPES = Object.freeze(['independent-practice', 'assessment']);
+export const RESPONSE_TYPES = Object.freeze(['exact-move', 'single-choice', 'plan-choice']);
 export const EVALUATION_STATUSES = Object.freeze([
   'not-submitted', 'invalid-response', 'unsuccessful', 'successful',
   'successful-with-guidance', 'unavailable'
@@ -27,7 +28,47 @@ function eligibleExercise(unit, exercise) {
 }
 
 export function deriveReleasedActivities(unit, releaseId) {
-  if (!unit || unit.status !== 'published' || unit.schemaVersion !== '1.0.0') return Object.freeze([]);
+  if (!unit || unit.status !== 'published' || !['1.0.0', '1.1.0'].includes(unit.schemaVersion)) return Object.freeze([]);
+  if (unit.schemaVersion === '1.1.0' && Array.isArray(unit.activityItems)) {
+    return Object.freeze(unit.activityItems.map(item => {
+      const position = unit.positions.find(candidate => candidate.id === item.positionId);
+      return immutable({
+        activityId: item.id,
+        schemaVersion: ACTIVITY_SCHEMA_VERSION,
+        releaseId,
+        unitId: unit.id,
+        sourceLearningObjectId: item.sourceLearningObjectId,
+        activityType: item.activityType,
+        objective: item.objective,
+        masteryCriterionIds: [],
+        expectedConcepts: [...(position?.expectedConcepts ?? [])],
+        transfer: Boolean(item.transfer),
+        remediation: false,
+        position: {
+          id: position.id, fen: position.fen, sideToMove: position.sideToMove,
+          orientation: position.sideToMove, purpose: position.principalIdeas?.[0]?.purpose ?? item.objective
+        },
+        title: item.title,
+        prompt: item.instruction,
+        responseType: item.responseType,
+        allowedAttempts: item.attemptPolicy.maximumAttempts,
+        hintPolicy: item.hintPolicy,
+        retryPolicy: item.retryPolicy,
+        evaluatorType: item.answer.evaluatorType,
+        acceptedMoves: item.responseType === 'exact-move'
+          ? [item.answer.expected, ...item.answer.acceptedAlternatives] : [],
+        acceptedAlternatives: [...item.answer.acceptedAlternatives],
+        choices: clone(item.answer.choices ?? []),
+        expectedChoiceId: item.responseType === 'exact-move' ? null : item.answer.expected,
+        misconceptionMappings: clone(item.answer.misconceptionMappings),
+        resolutionMisconceptionIds: item.answer.misconceptionMappings
+          .filter(mapping => mapping.resolutionActivityId === item.id)
+          .map(mapping => mapping.misconceptionId),
+        feedback: clone(item.feedback),
+        evidenceMapping: clone(item.evidence)
+      });
+    }).sort((a, b) => a.activityId.localeCompare(b.activityId)));
+  }
   const activities = [];
   for (const exercise of unit.learningObjects?.exercises ?? []) {
     if (!eligibleExercise(unit, exercise)) continue;
@@ -53,7 +94,7 @@ export function deriveReleasedActivities(unit, releaseId) {
         purpose: principal.purpose
       },
       prompt: exercise.task,
-      responseType: 'move',
+      responseType: 'exact-move',
       allowedAttempts: 3,
       hintPolicy: 'answer-reveal-on-request',
       retryPolicy: 'reset-position',
@@ -61,6 +102,7 @@ export function deriveReleasedActivities(unit, releaseId) {
       acceptedMoves: [...principal.moves],
       acceptedAlternatives: [],
       misconceptionMappings: [],
+      resolutionMisconceptionIds: [],
       feedbackTemplateIds: [
         'move-correct-independent', 'move-correct-guided', 'move-legal-unsuccessful',
         'move-invalid', 'retry-original-position'
@@ -83,22 +125,33 @@ export function validateRuntimeActivity(activity) {
   if (!stableId(activity.activityId) || !stableId(activity.sourceLearningObjectId)) errors.push('invalid-activity-id');
   if (activity.schemaVersion !== ACTIVITY_SCHEMA_VERSION) errors.push('unsupported-activity-version');
   if (!ACTIVITY_TYPES.includes(activity.activityType)) errors.push('unsupported-activity-type');
-  if (activity.responseType !== 'move' || activity.evaluatorType !== 'authored-san-exact-v1') errors.push('unsupported-evaluator');
-  if (!Array.isArray(activity.acceptedMoves) || activity.acceptedMoves.length !== 1) errors.push('accepted-move-required');
-  if (activity.acceptedAlternatives?.length) errors.push('unauthored-alternative');
-  if (activity.misconceptionMappings?.length) errors.push('unauthored-misconception');
-  if (hasHtml(activity.prompt) || hasHtml(activity.objective) || hasHtml(activity.position?.purpose)) errors.push('raw-html-rejected');
+  if (!RESPONSE_TYPES.includes(activity.responseType)) errors.push('unsupported-response-type');
+  if (activity.responseType === 'exact-move' && (!Array.isArray(activity.acceptedMoves) || !activity.acceptedMoves.length)) errors.push('accepted-move-required');
+  if (['single-choice', 'plan-choice'].includes(activity.responseType)
+    && (!Array.isArray(activity.choices) || activity.choices.length < 2
+      || !activity.choices.some(choice => choice.id === activity.expectedChoiceId))) errors.push('choice-contract-required');
+  const authoredText = [
+    activity.title, activity.prompt, activity.objective, activity.position?.purpose,
+    ...(activity.choices ?? []).map(choice => choice?.label),
+    ...Object.values(activity.feedback ?? {}).filter(value => typeof value === 'string')
+  ];
+  if (authoredText.some(hasHtml)) errors.push('raw-html-rejected');
   try {
     const rules = ChessRulesFacade.fromFen(activity.position?.fen);
     if (rules.sideToMove() !== activity.position?.sideToMove) errors.push('side-to-move-mismatch');
-    rules.move(activity.acceptedMoves?.[0]);
+    if (activity.responseType === 'exact-move') {
+      for (const move of activity.acceptedMoves) {
+        const candidate = ChessRulesFacade.fromFen(activity.position.fen);
+        candidate.move(move);
+      }
+    }
   } catch {
     errors.push('invalid-authored-move');
   }
   return Object.freeze({ ok: errors.length === 0, errors: Object.freeze([...new Set(errors)].sort()) });
 }
 
-export function evaluateReleasedMove(activity, {
+export function evaluateReleasedResponse(activity, {
   attemptId, sessionId, attemptNumber, response, hintLevel = 'none',
   startedAt, submittedAt, reviewContext = null
 }) {
@@ -114,8 +167,8 @@ export function evaluateReleasedMove(activity, {
     attemptNumber,
     startedAt: new Date(startedAt).toISOString(),
     submittedAt: new Date(submittedAt).toISOString(),
-    responseType: 'move',
-    response: String(response ?? '').trim().slice(0, 16),
+    responseType: activity.responseType,
+    response: String(response ?? '').trim().slice(0, activity.responseType === 'exact-move' ? 16 : 160),
     hintLevel,
     reviewContext
   };
@@ -126,6 +179,33 @@ export function evaluateReleasedMove(activity, {
       schemaVersion: EVALUATION_SCHEMA_VERSION, status: 'invalid-response', accepted: false,
       evaluatorType: activity.evaluatorType, feedbackTemplateId: 'move-invalid',
       evidenceCategory: null, retryAllowed: true, attempt: baseAttempt
+    });
+  }
+  if (['single-choice', 'plan-choice'].includes(activity.responseType)) {
+    const choice = activity.choices.find(item => item.id === baseAttempt.response);
+    if (!choice) {
+      return immutable({
+        schemaVersion: EVALUATION_SCHEMA_VERSION, status: 'invalid-response', accepted: false,
+        evaluatorType: activity.evaluatorType, feedbackTemplateId: 'choice-invalid',
+        feedback: activity.feedback.invalid, evidenceCategory: null, retryAllowed: true, attempt: baseAttempt
+      });
+    }
+    const accepted = choice.id === activity.expectedChoiceId;
+    const mapping = activity.misconceptionMappings.find(item => item.responseId === choice.id) ?? null;
+    const guided = hintLevel === 'final-answer';
+    return immutable({
+      schemaVersion: EVALUATION_SCHEMA_VERSION,
+      status: accepted ? (guided ? 'successful-with-guidance' : 'successful') : 'unsuccessful',
+      accepted, evaluatorType: activity.evaluatorType,
+      feedbackTemplateId: accepted ? (guided ? 'choice-correct-guided' : 'choice-correct') : mapping ? 'choice-misconception' : 'choice-unsuccessful',
+      feedback: accepted ? (guided ? activity.feedback.guided : activity.feedback.correct)
+        : mapping ? activity.feedback.misconception : activity.feedback.unsuccessful,
+      evidenceCategory: accepted
+        ? (guided ? 'guided-success' : activity.evidenceMapping.independentSuccess) : mapping ? 'misconception' : null,
+      misconceptionCategory: mapping?.misconceptionId ?? null,
+      remediationTarget: null,
+      retryAllowed: !accepted && attemptNumber < activity.allowedAttempts,
+      explanationAvailable: true, attempt: baseAttempt
     });
   }
   let played;
@@ -139,9 +219,11 @@ export function evaluateReleasedMove(activity, {
       evidenceCategory: null, retryAllowed: true, attempt: baseAttempt
     });
   }
-  const authored = ChessRulesFacade.fromFen(activity.position.fen).move(activity.acceptedMoves[0]);
-  const accepted = played.from === authored.from && played.to === authored.to
-    && (played.promotion ?? null) === (authored.promotion ?? null);
+  const accepted = activity.acceptedMoves.some(move => {
+    const authored = ChessRulesFacade.fromFen(activity.position.fen).move(move);
+    return played.from === authored.from && played.to === authored.to
+      && (played.promotion ?? null) === (authored.promotion ?? null);
+  });
   const guided = hintLevel === 'final-answer';
   return immutable({
     schemaVersion: EVALUATION_SCHEMA_VERSION,
@@ -151,7 +233,11 @@ export function evaluateReleasedMove(activity, {
     feedbackTemplateId: accepted
       ? (guided ? 'move-correct-guided' : 'move-correct-independent')
       : 'move-legal-unsuccessful',
-    evidenceCategory: accepted ? (guided ? 'guided-success' : activity.evidenceMapping.independent) : null,
+    feedback: accepted ? (guided ? activity.feedback?.guided : activity.feedback?.correct)
+      : activity.feedback?.unsuccessful,
+    evidenceCategory: accepted ? (guided ? 'guided-success'
+      : activity.transfer ? 'transfer-success' : activity.activityType === 'assessment'
+        ? 'assessment-success' : 'independent-success') : null,
     misconceptionCategory: null,
     remediationTarget: null,
     retryAllowed: !accepted && attemptNumber < activity.allowedAttempts,
@@ -159,6 +245,8 @@ export function evaluateReleasedMove(activity, {
     attempt: baseAttempt
   });
 }
+
+export const evaluateReleasedMove = evaluateReleasedResponse;
 
 export function activityFeedback(result) {
   const messages = {
@@ -168,5 +256,5 @@ export function activityFeedback(result) {
     'move-invalid': 'That response is not a legal move from the original position.',
     'retry-original-position': 'Try again from the original position.'
   };
-  return messages[result?.feedbackTemplateId] ?? 'This activity is unavailable.';
+  return result?.feedback ?? messages[result?.feedbackTemplateId] ?? 'This activity is unavailable.';
 }

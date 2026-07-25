@@ -145,8 +145,9 @@ async function openUnit(scopedSlug, { push = true } = {}) {
   state.detailUnit = unit;
   const copy = unit.localization.content[unit.localization.defaultLocale];
   const studyHref = createGuidedStudyHref(unit);
-  const practiceActivities = deriveReleasedActivities(unit, PINNED_RELEASE.id);
-  const practiceHref = practiceActivities.length ? `${studyHref}&activity=practice` : null;
+  const releasedActivities = deriveReleasedActivities(unit, PINNED_RELEASE.id);
+  const practiceHref = releasedActivities.some(item => item.activityType === 'independent-practice') ? `${studyHref}&activity=practice` : null;
+  const assessmentHref = releasedActivities.some(item => item.activityType === 'assessment') ? `${studyHref}&activity=assessment` : null;
   detail.innerHTML = `
     <a class="back-link" href="/endgame-library" data-back-library>← Back to all concepts</a>
     <header class="detail-header">
@@ -156,6 +157,7 @@ async function openUnit(scopedSlug, { push = true } = {}) {
       <div class="tags"><span>${escapeHtml(words(unit.education.difficulty))}</span><span>${escapeHtml(words(unit.education.expectedLearnerLevel))}</span></div>
       ${studyHref ? `<a class="button-link study-unit-link" href="${escapeHtml(studyHref)}">Study this unit</a>` : '<p class="study-unavailable">Guided study is not available for this concept yet.</p>'}
       ${practiceHref ? `<a class="button-link study-unit-link" href="${escapeHtml(practiceHref)}">Practice this concept</a>` : ''}
+      ${assessmentHref ? `<a class="button-link study-unit-link" href="${escapeHtml(assessmentHref)}">Try assessment</a>` : ''}
     </header>
     <div class="detail-grid">
       <div>

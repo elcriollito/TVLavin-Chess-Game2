@@ -1,6 +1,6 @@
 const PINNED_RELEASE = Object.freeze({
-  id: 'rel-a26763c6382b7878595ed8ae0da603c4679bf906e4357fdb406952db5867e2e1',
-  fingerprint: '2635057f80fe1f244fd1c60e7d52af97c76de4102e5ff07e66d9daaa69c77886',
+  id: 'rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84',
+  fingerprint: 'da0b332b45933135eede26894ab8d23ece9f674299071bc8847e2da6a2811f37',
   releaseSchemaVersion: '1.0.0',
   snapshotSchemaVersion: '1.0.0',
   taxonomyVersion: '1.4.0',

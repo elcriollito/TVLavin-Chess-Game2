@@ -4,8 +4,8 @@ export const convertWithKingSupport = {
     slug: 'convert-with-king-support',
     domain: 'endgames',
     status: 'published',
-    schemaVersion: '1.0.0',
-    contentVersion: '1.0.0',
+    schemaVersion: '1.1.0',
+    contentVersion: '1.1.0',
     education: {
         knowledgeType: 'technique',
         endgameFamily: 'pawn-endgames',
@@ -89,6 +89,7 @@ export const convertWithKingSupport = {
         assessments: [{ id: 'assessment:king-support:four-of-five', criterionId: 'supported-conversion-4-of-5' }],
         reviewItems: [{ id: 'review:king-support:concept-chain', conceptIds: ['pawn-square-boundary', 'king-route', 'direct-opposition', 'target-square'] }]
     },
+    activityItems: activityItemsFor('ku:endgames:pawn-foundations:convert-with-king-support'),
     relationships: [
         { type: 'remediation', targetId: 'ku:endgames:pawn-foundations:key-squares', reason: 'If the learner advances without a king destination, revisit target-square identification.' },
         { type: 'remediation', targetId: 'ku:endgames:pawn-foundations:activate-the-king', reason: 'If king and pawn jobs are confused, revisit the purpose and exceptions of king activity.' },
@@ -104,7 +105,7 @@ export const convertWithKingSupport = {
         academy: { compatible: true }
     },
     editorial: {
-        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-23',
+        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-25',
         reviewStatus: 'approved',
         provenance: { kind: 'caissa-original', notes: 'Original CAISSA integration sequence joining target, access, move comparison, and recalculation.', inspirationReferences: [] },
         copyrightNotes: 'No source prose, annotations, or commercial exercise organization was copied.',
@@ -112,3 +113,4 @@ export const convertWithKingSupport = {
         verificationState: 'verified'
     }
 };
+import { activityItemsFor } from '../../../../authoring/evaluable-endgame-activities.js';

@@ -1,0 +1,370 @@
+{
+  "contentHash": "d07d40376a268f5645a6c74bb9d153ad84f7e8e1a25d1315ad552cc9cda89ee3",
+  "contentVersion": "1.1.0",
+  "id": "ku:endgames:pawn-exchanges:second-distant-target",
+  "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+  "schemaVersion": "1.1.0",
+  "unit": {
+    "activityItems": [
+      {
+        "activityType": "independent-practice",
+        "answer": {
+          "acceptedAlternatives": [],
+          "evaluatorType": "authored-san-exact-v2",
+          "expected": "Kd4",
+          "misconceptionMappings": [],
+          "rejectionRules": [
+            "illegal-move",
+            "unsupported-legal-move"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "independent-success",
+          "misconception": null,
+          "reviewResolution": {
+            "requires": "independent-success",
+            "triggerTypes": [
+              "guided-success-without-independent-success",
+              "repeated-final-hint-dependence"
+            ]
+          },
+          "unsuccessful": "remediation-needed-after-two-unsuccessful"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies divided-defense geometry in the released position.",
+          "guided": "Correct with support. This counts as guided practice for divided-defense geometry.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about divided-defense geometry.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply divided-defense geometry in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:second-target:independent-shared-route",
+        "instruction": "Play the central king move that continues to cover both nearby targets.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Recognize a false second target.",
+        "positionId": "pos:second-target:single-route",
+        "responseType": "exact-move",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "exercise:second-target:false",
+        "title": "Use the shared route",
+        "transfer": false
+      },
+      {
+        "activityType": "assessment",
+        "answer": {
+          "acceptedAlternatives": [],
+          "choices": [
+            {
+              "id": "choice:second-target:shared-route",
+              "label": "This is not a genuine second target because one central route covers both."
+            },
+            {
+              "id": "choice:second-target:assessment-genuine:misconception",
+              "label": "Any two weaknesses automatically overload the defending king.",
+              "misconceptionId": "misconception:second-target:any-two-weaknesses"
+            }
+          ],
+          "evaluatorType": "authored-single-choice-v1",
+          "expected": "choice:second-target:shared-route",
+          "misconceptionMappings": [
+            {
+              "explanation": "This choice expresses the authored misconception: Any two weaknesses automatically overload the defending king.",
+              "misconceptionId": "misconception:second-target:any-two-weaknesses",
+              "resolutionActivityId": "activity:second-target:assessment-genuine",
+              "responseId": "choice:second-target:assessment-genuine:misconception",
+              "sourceMisconceptionIndex": 0
+            }
+          ],
+          "rejectionRules": [
+            "unknown-choice-id"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "assessment-success",
+          "misconception": {
+            "evidenceType": "misconception",
+            "misconceptionId": "misconception:second-target:any-two-weaknesses"
+          },
+          "reviewResolution": {
+            "requires": "assessment-success",
+            "triggerTypes": [
+              "assessment-not-yet-attempted",
+              "assessment-unsuccessful"
+            ]
+          },
+          "unsuccessful": "assessment-unsuccessful-event"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies divided-defense geometry in the released position.",
+          "guided": "Correct with support. This counts as guided practice for divided-defense geometry.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about divided-defense geometry.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply divided-defense geometry in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:second-target:assessment-genuine",
+        "instruction": "Choose the condition that makes the second target genuine.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Test whether one king route can cover both targets.",
+        "positionId": "pos:second-target:single-route",
+        "responseType": "single-choice",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "assessment:second-target:three-of-four",
+        "title": "Assess the second target",
+        "transfer": false
+      }
+    ],
+    "contentVersion": "1.1.0",
+    "domain": "endgames",
+    "education": {
+      "difficulty": "intermediate",
+      "endgameFamily": "pawn-endgames",
+      "expectedLearnerLevel": "foundation-rules-aware",
+      "knowledgeType": "principle",
+      "learningObjectives": [
+        "Distinguish genuinely separated targets from two pawns covered by one king route.",
+        "Choose a king route that forces the defender to divide attention."
+      ],
+      "masteryCriteria": [
+        "Classifies a genuine second distant target in four of five structures.",
+        "Selects the correct approach and names the overloaded defensive route in three of four tasks."
+      ],
+      "prerequisites": [
+        "ku:endgames:pawn-transformations:outside-passed-pawn"
+      ],
+      "skills": [
+        "planning",
+        "board-geometry",
+        "calculation"
+      ],
+      "themes": [
+        "divided-defense",
+        "fixed-weakness",
+        "diversion",
+        "king-activity"
+      ]
+    },
+    "id": "ku:endgames:pawn-exchanges:second-distant-target",
+    "integrations": {
+      "academy": {
+        "compatible": true
+      },
+      "capabilities": [
+        "academy-compatible",
+        "deterministic-coaching-prompts",
+        "mastery-criteria",
+        "training-memory-theme-link"
+      ],
+      "coaching": {
+        "conceptIds": [
+          "divided-defense",
+          "second-target",
+          "shared-route"
+        ],
+        "hintOrder": [
+          "observation",
+          "structural-classification",
+          "candidate-identification",
+          "before-after-calculation",
+          "decision-process",
+          "reflection"
+        ],
+        "policy": "deterministic-prompt-only"
+      },
+      "mastery": {
+        "criterionIds": [
+          "second-target-classify-4-of-5",
+          "second-target-route-3-of-4"
+        ]
+      },
+      "recommendation": {
+        "nextUnitIds": [
+          "ku:endgames:pawn-exchanges:favorable-king-ending"
+        ],
+        "remediationUnitIds": [
+          "ku:endgames:pawn-transformations:outside-passed-pawn"
+        ]
+      },
+      "trainingMemory": {
+        "themeIds": [
+          "divided-defense",
+          "diversion",
+          "fixed-weakness"
+        ]
+      }
+    },
+    "learningObjects": {
+      "assessments": [
+        {
+          "criterionId": "second-target-route-3-of-4",
+          "id": "assessment:second-target:three-of-four"
+        }
+      ],
+      "checksForUnderstanding": [
+        {
+          "id": "check:second-target:qualification",
+          "prompt": "State what makes a second target genuine."
+        }
+      ],
+      "demonstrations": [
+        {
+          "id": "demo:second-target:divide",
+          "positionId": "pos:second-target:separated-wings"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "exercise:second-target:false",
+          "positionId": "pos:second-target:single-route",
+          "task": "Explain why one route covers both targets."
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "guided:second-target:routes",
+          "positionId": "pos:second-target:separated-wings",
+          "prompt": "Map both defensive routes and the attacking entry."
+        }
+      ],
+      "reviewItems": []
+    },
+    "localization": {
+      "availableLocales": [
+        "en-US"
+      ],
+      "content": {
+        "en-US": {
+          "coachingPrompts": [
+            "Where are the two candidate targets?",
+            "Are they genuinely separated for the defending king?",
+            "Which target or passer can force a choice?",
+            "Can one route defend both, and what entry opens after diversion?",
+            "Use targets, routes, separation, diversion, and return time.",
+            "Which defensive responsibility became overloaded?"
+          ],
+          "decisionProcess": [
+            "Locate both candidate targets.",
+            "Measure their separation and defensive routes.",
+            "Test whether one route covers both.",
+            "Identify the diversion and opposite-wing entry.",
+            "Calculate chase and return.",
+            "Choose which target to approach first."
+          ],
+          "explanation": "A second target matters when distance forces the defending king to choose between two responsibilities. Two weak pawns are not automatically two targets: one route or central square may cover both. In pawn endings, use a remote passer or fixed weakness to draw the king away, then approach the other wing. Calculate chase, return, and entry squares rather than invoking a universal two-weakness rule.",
+          "keyIdeas": [
+            "Distance matters only when one defensive route cannot serve both targets in time.",
+            "The attacking king needs a concrete entry created by the defender’s diversion."
+          ],
+          "misconceptions": [
+            "Two weaknesses do not always win when one king route covers both.",
+            "Creating a remote pawn is pointless if no opposite-wing entry exists."
+          ],
+          "practicalRules": [
+            "Create targets on separated wings when the defender cannot shuttle between them.",
+            "Approach the target whose defense most restricts the enemy king."
+          ],
+          "reflectionPrompts": [
+            "What central square would make the two targets false?",
+            "Which target should be approached first and why?"
+          ],
+          "summary": "Stretch the defending king between separated pawn-ending responsibilities.",
+          "title": "Create a second distant target"
+        }
+      },
+      "defaultLocale": "en-US",
+      "translationStatus": {
+        "en-US": "ready"
+      }
+    },
+    "positions": [
+      {
+        "expectedConcepts": [
+          "second-distant-target",
+          "divided-defense",
+          "king-entry"
+        ],
+        "fen": "8/8/4k3/8/P2K3P/8/8/8 w - - 0 1",
+        "id": "pos:second-target:separated-wings",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Kc5"
+            ],
+            "purpose": "Approach the queenside while preserving the distant kingside demand."
+          }
+        ],
+        "role": "clean-demonstration",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "Separated wings and legal approach verified without a forced-win claim.",
+          "structural": "valid"
+        }
+      },
+      {
+        "expectedConcepts": [
+          "false-second-target",
+          "shared-defense-route",
+          "central-king"
+        ],
+        "fen": "8/8/3k4/8/2P1P3/3K4/8/8 w - - 0 1",
+        "id": "pos:second-target:single-route",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Kd4"
+            ],
+            "purpose": "Test the central route that continues to address both nearby pawns."
+          }
+        ],
+        "role": "contrast",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "Targets are close enough for a central defensive route; geometry is the lesson boundary.",
+          "structural": "valid"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "reason": "After multiplying targets, learners decide whether an exchange preserves the divided defense in a simpler king ending.",
+        "targetId": "ku:endgames:pawn-exchanges:favorable-king-ending",
+        "type": "progression"
+      },
+      {
+        "reason": "A fixed weakness can serve as one stable target while play develops on the other wing.",
+        "targetId": "ku:endgames:pawn-weaknesses:fix-pawn-weakness",
+        "type": "related"
+      },
+      {
+        "reason": "If the diversion route is miscalculated, revisit chase and return geometry.",
+        "targetId": "ku:endgames:pawn-transformations:outside-passed-pawn",
+        "type": "remediation"
+      }
+    ],
+    "schemaVersion": "1.1.0",
+    "slug": "second-distant-target",
+    "status": "published"
+  }
+}

@@ -1,0 +1,377 @@
+{
+  "contentHash": "7da787e843fbf4fa9ed3af22e414cbb362c8c7c40b2c20cb19567c3152d884c8",
+  "contentVersion": "1.1.0",
+  "id": "ku:endgames:pawn-weaknesses:fix-pawn-weakness",
+  "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+  "schemaVersion": "1.1.0",
+  "unit": {
+    "activityItems": [
+      {
+        "activityType": "independent-practice",
+        "answer": {
+          "acceptedAlternatives": [
+            "Kb3"
+          ],
+          "evaluatorType": "authored-san-exact-v2",
+          "expected": "Kb4",
+          "misconceptionMappings": [],
+          "rejectionRules": [
+            "illegal-move",
+            "unsupported-legal-move"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "independent-success",
+          "misconception": null,
+          "reviewResolution": {
+            "requires": "independent-success",
+            "triggerTypes": [
+              "guided-success-without-independent-success",
+              "repeated-final-hint-dependence"
+            ]
+          },
+          "unsuccessful": "remediation-needed-after-two-unsuccessful"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies fixing before attacking in the released position.",
+          "guided": "Correct with support. This counts as guided practice for fixing before attacking.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about fixing before attacking.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply fixing before attacking in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:fix-weakness:independent-route",
+        "instruction": "Play a king route that keeps the pawn fixed.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Approach the target without releasing its advance.",
+        "positionId": "pos:fix-weakness:restrained-target",
+        "responseType": "exact-move",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "exercise:fix-weakness:approach",
+        "title": "Approach under restraint",
+        "transfer": false
+      },
+      {
+        "activityType": "assessment",
+        "answer": {
+          "acceptedAlternatives": [],
+          "choices": [
+            {
+              "id": "choice:fix-weakness:temporary",
+              "label": "The pawn is temporary because it can advance safely."
+            },
+            {
+              "id": "choice:fix-weakness:assessment-classify:misconception",
+              "label": "The pawn is fixed merely because it currently looks exposed.",
+              "misconceptionId": "misconception:fix-weakness:exposed-is-fixed"
+            }
+          ],
+          "evaluatorType": "authored-single-choice-v1",
+          "expected": "choice:fix-weakness:temporary",
+          "misconceptionMappings": [
+            {
+              "explanation": "This choice expresses the authored misconception: The pawn is fixed merely because it currently looks exposed.",
+              "misconceptionId": "misconception:fix-weakness:exposed-is-fixed",
+              "resolutionActivityId": "activity:fix-weakness:assessment-classify",
+              "responseId": "choice:fix-weakness:assessment-classify:misconception",
+              "sourceMisconceptionIndex": 0
+            }
+          ],
+          "rejectionRules": [
+            "unknown-choice-id"
+          ]
+        },
+        "attemptPolicy": {
+          "firstAttemptIndependent": true,
+          "maximumAttempts": 3
+        },
+        "authoredStatus": "verified",
+        "evidence": {
+          "guidedSuccess": "guided-success",
+          "independentSuccess": "assessment-success",
+          "misconception": {
+            "evidenceType": "misconception",
+            "misconceptionId": "misconception:fix-weakness:exposed-is-fixed"
+          },
+          "reviewResolution": {
+            "requires": "assessment-success",
+            "triggerTypes": [
+              "assessment-not-yet-attempted",
+              "assessment-unsuccessful"
+            ]
+          },
+          "unsuccessful": "assessment-unsuccessful-event"
+        },
+        "feedback": {
+          "correct": "Correct. This response applies fixing before attacking in the released position.",
+          "guided": "Correct with support. This counts as guided practice for fixing before attacking.",
+          "invalid": "That response is not valid for this activity.",
+          "misconception": "That response matches a common misconception about fixing before attacking.",
+          "retry": "Return to the original position and compare the authored alternatives again.",
+          "unsuccessful": "That response does not apply fixing before attacking in this position."
+        },
+        "hintPolicy": {
+          "finalAnswerBeforeSubmission": false,
+          "staged": true
+        },
+        "id": "activity:fix-weakness:assessment-classify",
+        "instruction": "Classify the pawn before planning an attack.",
+        "itemSchemaVersion": "1.0.0",
+        "objective": "Distinguish a fixed weakness from a temporary target.",
+        "positionId": "pos:fix-weakness:escape-available",
+        "responseType": "single-choice",
+        "retryPolicy": "reset-source-context",
+        "sourceLearningObjectId": "assessment:fix-weakness:three-of-four",
+        "title": "Assess whether the target is fixed",
+        "transfer": false
+      }
+    ],
+    "contentVersion": "1.1.0",
+    "domain": "endgames",
+    "education": {
+      "difficulty": "developing",
+      "endgameFamily": "pawn-endgames",
+      "expectedLearnerLevel": "foundation-rules-aware",
+      "knowledgeType": "principle",
+      "learningObjectives": [
+        "Distinguish a fixed target from a pawn that can escape by advancing or exchanging.",
+        "Restrain a target before improving the king and attacking it."
+      ],
+      "masteryCriteria": [
+        "Identifies the target’s advance or exchange escape in four of five positions.",
+        "Chooses restraint before attack and explains the counterplay check in three of four tasks."
+      ],
+      "prerequisites": [
+        "ku:endgames:pawn-foundations:activate-the-king"
+      ],
+      "skills": [
+        "planning",
+        "move-order",
+        "calculation"
+      ],
+      "themes": [
+        "fixed-weakness",
+        "restraint",
+        "pawn-structure",
+        "king-activity"
+      ]
+    },
+    "id": "ku:endgames:pawn-weaknesses:fix-pawn-weakness",
+    "integrations": {
+      "academy": {
+        "compatible": true
+      },
+      "capabilities": [
+        "academy-compatible",
+        "deterministic-coaching-prompts",
+        "mastery-criteria",
+        "training-memory-theme-link"
+      ],
+      "coaching": {
+        "conceptIds": [
+          "fixed-weakness",
+          "restraint",
+          "escape"
+        ],
+        "hintOrder": [
+          "observation",
+          "classification",
+          "candidate-identification",
+          "calculation-direction",
+          "decision-process",
+          "reflection"
+        ],
+        "policy": "deterministic-prompt-only"
+      },
+      "mastery": {
+        "criterionIds": [
+          "target-escape-4-of-5",
+          "fix-before-attack-3-of-4"
+        ]
+      },
+      "recommendation": {
+        "nextUnitIds": [
+          "ku:endgames:pawn-weaknesses:isolated-pawn",
+          "ku:endgames:pawn-weaknesses:backward-pawn"
+        ],
+        "remediationUnitIds": [
+          "ku:endgames:pawn-foundations:activate-the-king"
+        ]
+      },
+      "trainingMemory": {
+        "themeIds": [
+          "fixed-weakness",
+          "restraint"
+        ]
+      }
+    },
+    "learningObjects": {
+      "assessments": [
+        {
+          "criterionId": "fix-before-attack-3-of-4",
+          "id": "assessment:fix-weakness:three-of-four"
+        }
+      ],
+      "checksForUnderstanding": [
+        {
+          "id": "check:fix-weakness:fixed-versus-temporary",
+          "prompt": "State what makes a target fixed rather than temporary."
+        }
+      ],
+      "demonstrations": [
+        {
+          "id": "demo:fix-weakness:restrain",
+          "positionId": "pos:fix-weakness:restrained-target"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "exercise:fix-weakness:approach",
+          "positionId": "pos:fix-weakness:restrained-target",
+          "task": "Choose a king route that preserves restraint."
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "guided:fix-weakness:escape-list",
+          "positionId": "pos:fix-weakness:escape-available",
+          "prompt": "List every advance and exchange escape before attacking."
+        }
+      ],
+      "reviewItems": []
+    },
+    "localization": {
+      "availableLocales": [
+        "en-US"
+      ],
+      "content": {
+        "en-US": {
+          "coachingPrompts": [
+            "Which pawn appears to be the target?",
+            "Is it fixed or only temporarily vulnerable?",
+            "Which restraining candidate removes its escape?",
+            "What counterplay follows an immediate attack?",
+            "Use target, escape, restraint, improvement, and counterplay before committing.",
+            "Did the move stabilize the target or help it escape?"
+          ],
+          "decisionProcess": [
+            "Identify the potential target.",
+            "List its advance and exchange escapes.",
+            "Restrict those escapes.",
+            "Improve the king without releasing the target.",
+            "Attack only when the target is stable.",
+            "Recalculate counterplay and transformation options."
+          ],
+          "explanation": "A pawn is a dependable target only when it cannot solve its problem by advancing, exchanging, or creating counterplay. Fixing uses pawn contact, king control, or a blockade to stabilize the weakness. Attacking too early may release it. Restrain first when the target can escape, improve the king without loosening your own structure, and transform instead when restraint gives the opponent too much activity.",
+          "keyIdeas": [
+            "Fixing turns temporary vulnerability into a stable planning target.",
+            "The attacker must preserve flexibility while removing the defender’s pawn breaks."
+          ],
+          "misconceptions": [
+            "An exposed-looking pawn is not fixed if it can advance or exchange safely.",
+            "Fixing is not automatically best when a concrete transformation creates a clearer advantage."
+          ],
+          "practicalRules": [
+            "Often restrain a weakness before sending the king to attack it.",
+            "Recheck pawn breaks whenever king movement changes the structure."
+          ],
+          "reflectionPrompts": [
+            "Which pawn break would make the target disappear?",
+            "When would transforming the structure be stronger than preserving the weakness?"
+          ],
+          "summary": "Remove a pawn’s escape before committing the king to attack it.",
+          "title": "Fix the target before attacking"
+        }
+      },
+      "defaultLocale": "en-US",
+      "translationStatus": {
+        "en-US": "ready"
+      }
+    },
+    "positions": [
+      {
+        "expectedConcepts": [
+          "fixed-weakness",
+          "restraint",
+          "king-route"
+        ],
+        "fen": "8/8/3k4/3p4/3P4/2K5/8/8 w - - 0 1",
+        "id": "pos:fix-weakness:restrained-target",
+        "principalIdeas": [
+          {
+            "moves": [
+              "Kb4"
+            ],
+            "purpose": "Approach the fixed pawn while maintaining the restraining pawn contact."
+          }
+        ],
+        "role": "clean-demonstration",
+        "sideToMove": "white",
+        "validation": {
+          "educational": "verified",
+          "notes": "The locked pawn contact and legal king approach are verified without a final-result claim.",
+          "structural": "valid"
+        }
+      },
+      {
+        "expectedConcepts": [
+          "temporary-target",
+          "advance-escape",
+          "classification-boundary"
+        ],
+        "fen": "8/8/3k4/3p4/8/2K5/4P3/8 b - - 0 1",
+        "id": "pos:fix-weakness:escape-available",
+        "principalIdeas": [
+          {
+            "moves": [
+              "d4"
+            ],
+            "purpose": "Demonstrate that the alleged target can advance and is not fixed."
+          }
+        ],
+        "role": "contrast",
+        "sideToMove": "black",
+        "validation": {
+          "educational": "verified",
+          "notes": "The legal escape distinguishes temporary vulnerability from a fixed target.",
+          "structural": "valid"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "reason": "Once restraint is understood, learners can apply it to a pawn without neighboring support.",
+        "targetId": "ku:endgames:pawn-weaknesses:isolated-pawn",
+        "type": "progression"
+      },
+      {
+        "reason": "Fixing prepares learners to distinguish a restrained backward pawn from one that can break free.",
+        "targetId": "ku:endgames:pawn-weaknesses:backward-pawn",
+        "type": "progression"
+      },
+      {
+        "reason": "Both units examine pawn-chain stability, but one preserves an asset while the other stabilizes a target.",
+        "targetId": "ku:endgames:pawn-transformations:protected-passed-pawn",
+        "type": "related"
+      },
+      {
+        "reason": "Premature pawn attacks often reveal that the learner has no useful king route.",
+        "targetId": "ku:endgames:pawn-foundations:activate-the-king",
+        "type": "remediation"
+      }
+    ],
+    "schemaVersion": "1.1.0",
+    "slug": "fix-pawn-weakness",
+    "status": "published"
+  }
+}

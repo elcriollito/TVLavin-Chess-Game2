@@ -71,7 +71,7 @@ const requiredFiles = [
   'js/learning/review-explanations.js',
   'js/learning/released-activity-runtime.js',
   'vercel.json',
-  'knowledge/releases/rel-a26763c6382b7878595ed8ae0da603c4679bf906e4357fdb406952db5867e2e1/release.json'
+  'knowledge/releases/rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84/release.json'
 ];
 
 export const isProtectedPublicPath = path =>

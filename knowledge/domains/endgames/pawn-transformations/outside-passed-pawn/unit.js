@@ -1,7 +1,7 @@
 /** @type {import('../../../../schema/knowledge-unit.js').KnowledgeUnit} */
 export const outsidePassedPawn = {
     id: 'ku:endgames:pawn-transformations:outside-passed-pawn', slug: 'outside-passed-pawn', domain: 'endgames',
-    status: 'published', schemaVersion: '1.0.0', contentVersion: '1.0.0',
+    status: 'published', schemaVersion: '1.1.0', contentVersion: '1.1.0',
     education: {
         knowledgeType: 'principle', endgameFamily: 'pawn-endgames',
         themes: ['passed-pawns', 'diversion', 'pawn-races', 'king-activity'],
@@ -82,6 +82,7 @@ export const outsidePassedPawn = {
         assessments: [{ id: 'assessment:outside-passer:three-of-four', criterionId: 'outside-passer-calculate-3-of-4' }],
         reviewItems: []
     },
+    activityItems: activityItemsFor('ku:endgames:pawn-transformations:outside-passed-pawn'),
     relationships: [
         { type: 'contrast', targetId: 'ku:endgames:pawn-transformations:protected-passed-pawn', reason: 'An outside passer relies on distance and diversion rather than mutual pawn support and restriction.' },
         { type: 'progression', targetId: 'ku:endgames:pawn-transformations:pawn-breakthrough', reason: 'Breakthrough calculation applies race geometry to the creation of a new passer.' },
@@ -98,7 +99,7 @@ export const outsidePassedPawn = {
         academy: { compatible: true }
     },
     editorial: {
-        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-23',
+        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-25',
         reviewStatus: 'approved',
         provenance: { kind: 'caissa-original', notes: 'Original CAISSA chase-return-target sequence with a close-king near-miss.', inspirationReferences: [] },
         copyrightNotes: 'No source prose, annotations, or commercial exercise sequence was copied.',
@@ -106,3 +107,4 @@ export const outsidePassedPawn = {
         verificationState: 'verified'
     }
 };
+import { activityItemsFor } from '../../../../authoring/evaluable-endgame-activities.js';

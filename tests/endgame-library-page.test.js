@@ -29,8 +29,8 @@ test('detail includes instructional content and learner-facing graph groups', ()
 test('detail derives practice actions only from released eligible activities', () => {
   assert.match(page, /deriveReleasedActivities/);
   assert.match(page, /Practice this concept/);
-  assert.match(page, /practiceActivities\.length/);
-  assert.doesNotMatch(page, /Try assessment/);
+  assert.match(page, /releasedActivities\.some/);
+  assert.match(page, /Try assessment/);
 });
 
 test('position preview uses Board API v1 and disables interaction', () => {

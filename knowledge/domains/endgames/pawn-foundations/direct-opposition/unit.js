@@ -4,8 +4,8 @@ export const directOpposition = {
     slug: 'direct-opposition',
     domain: 'endgames',
     status: 'published',
-    schemaVersion: '1.0.0',
-    contentVersion: '1.1.0',
+    schemaVersion: '1.1.0',
+    contentVersion: '1.2.0',
     education: {
         knowledgeType: 'pattern',
         endgameFamily: 'pawn-endgames',
@@ -91,6 +91,7 @@ export const directOpposition = {
         assessments: [{ id: 'assessment:opposition:mixed-turn-five', criterionId: 'opposition-4-of-5' }],
         reviewItems: []
     },
+    activityItems: activityItemsFor('ku:endgames:pawn-foundations:direct-opposition'),
     relationships: [
         { type: 'progression', targetId: 'ku:endgames:pawn-foundations:key-squares', reason: 'Opposition becomes purposeful when it helps the king reach a target square.' },
         { type: 'recommendation', targetId: 'ku:endgames:pawn-foundations:key-squares', reason: 'Key squares are the next application of controlled king access.' },
@@ -107,7 +108,7 @@ export const directOpposition = {
         academy: { compatible: true }
     },
     editorial: {
-        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-23',
+        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-25',
         reviewStatus: 'approved',
         provenance: { kind: 'caissa-original', notes: 'Original CAISSA recognition-to-access sequence for universal king geometry.', inspirationReferences: [] },
         copyrightNotes: 'No commercial wording, annotations, or curated diagram sequence was used.',
@@ -115,3 +116,4 @@ export const directOpposition = {
         verificationState: 'verified'
     }
 };
+import { activityItemsFor } from '../../../../authoring/evaluable-endgame-activities.js';

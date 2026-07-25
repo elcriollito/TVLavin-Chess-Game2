@@ -130,3 +130,22 @@ Use `createDraftKnowledgeUnitScaffold` only to expose the empty contract and
 active vocabulary. It intentionally supplies no educational prose or chess
 material. `npm run knowledge:editorial:report` gives objective repository
 visibility without claiming subjective approval.
+
+## Evaluable activity items
+
+Published schema `1.1.0` units include `activityItems`. Every item needs an
+explicit prompt, supported response type, source learning-object and position,
+authored answer, deterministic feedback, evidence mapping, and review
+resolution. Exact moves and alternatives must be legal from the referenced
+FEN. Choice and plan-choice options use stable IDs; labels are not answer
+identity.
+
+Misconception mappings point to a specific response, an existing localized
+misconception by index, and a valid resolution activity. An ordinary wrong
+answer is not a misconception. Assessments prohibit final-answer reveal before
+submission. Transfer is explicit and materially different, never inferred from
+a cosmetic FEN change.
+
+Do not author free-text grading, hidden engine answers, generated alternatives,
+decorative trivia, or Mastery claims. Increment `contentVersion` and
+`editorial.updatedAt` whenever evaluable content changes.

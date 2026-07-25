@@ -4,8 +4,8 @@ export const reserveTempo = {
     slug: 'reserve-tempo',
     domain: 'endgames',
     status: 'published',
-    schemaVersion: '1.0.0',
-    contentVersion: '1.1.0',
+    schemaVersion: '1.1.0',
+    contentVersion: '1.2.0',
     education: {
         knowledgeType: 'technique',
         endgameFamily: 'pawn-endgames',
@@ -89,6 +89,7 @@ export const reserveTempo = {
         assessments: [{ id: 'assessment:reserve-tempo:four-of-five', criterionId: 'reserve-tempo-recognition-4-of-5' }],
         reviewItems: []
     },
+    activityItems: activityItemsFor('ku:endgames:pawn-transformations:reserve-tempo'),
     relationships: [
         { type: 'recommendation', targetId: 'ku:endgames:pawn-exchanges:pawn-tension', reason: 'After preserving a waiting move, compare the distinct choice of preserving unresolved pawn captures.' },
         { type: 'progression', targetId: 'ku:endgames:pawn-transformations:protected-passed-pawn', reason: 'After controlling move obligation, learners can study how pawn structure restricts king routes.' },
@@ -104,7 +105,7 @@ export const reserveTempo = {
         academy: { compatible: true }
     },
     editorial: {
-        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-23',
+        owner: 'CAISSA Curriculum', reviewer: 'CAISSA Season 9 Review', createdAt: '2026-07-23', updatedAt: '2026-07-25',
         reviewStatus: 'approved',
         provenance: { kind: 'caissa-original', notes: 'Original CAISSA sequence separating stored pawn flexibility from the opposition geometry it modifies.', inspirationReferences: [] },
         copyrightNotes: 'No source prose, annotations, or commercial exercise sequence was copied.',
@@ -112,3 +113,4 @@ export const reserveTempo = {
         verificationState: 'verified'
     }
 };
+import { activityItemsFor } from '../../../../authoring/evaluable-endgame-activities.js';
