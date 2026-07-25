@@ -1,4 +1,5 @@
 import { PINNED_RELEASE, loadPinnedEndgameLibrary } from './browser-library-reader.js';
+import { deriveReleasedActivities } from '../learning/released-activity-runtime.js';
 
 export const GUIDED_STUDY_QUERY = Object.freeze({
   unit: 'studyUnit',
@@ -52,6 +53,7 @@ export function createGuidedStudyModel(unit, summary) {
     explanation: copy.explanation,
     prompts: clone(copy.coachingPrompts),
     positions: clone(unit.positions.filter(position => position.validation?.structural === 'valid')),
+    activities: clone(deriveReleasedActivities(unit, PINNED_RELEASE.id)),
     learningObjectIds: clone(Object.values(unit.learningObjects || {}).flat().map(item => item.id).filter(Boolean)),
     assessmentItemIds: clone((unit.learningObjects?.assessments || []).map(item => item.id).filter(Boolean)),
     reviewUnit: Object.freeze({

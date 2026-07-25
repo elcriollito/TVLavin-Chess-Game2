@@ -8,6 +8,7 @@ import { loadGuidedStudyRequest, parseGuidedStudyRequest } from '../endgame-libr
 import { createGuidedStudyEventSession } from '../learning/guided-study-event-session.js';
 import { createLocalLearningStore, LOCAL_LEARNING_STORAGE_KEY } from '../learning/local-learning-store.js';
 import { deriveUnitReviewExplanation } from '../learning/review-explanations.js';
+import { activityFeedback, evaluateReleasedMove } from '../learning/released-activity-runtime.js';
 
 const CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP', 'KRPvKR'];
 const RANDOM_CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP'];
@@ -284,6 +285,79 @@ async function initializeLibraryStudy({ root, page, runtime, search, fetchImpl }
         if (previous) previous.disabled = bounded === 0;
         if (next) next.disabled = bounded === model.prompts.length - 1;
     };
+    const activityReady = root.querySelector('[data-released-activity-ready]');
+    const activityUnavailable = root.querySelector('[data-released-activity-unavailable]');
+    const activitySelect = root.querySelector('[data-released-activity-select]');
+    const activityResponse = root.querySelector('[data-released-activity-response]');
+    let activityState = { index: 0, attemptNumber: 1, hintLevel: 'none', startedAt: page.now() };
+    const currentActivity = () => model.activities[activityState.index] ?? null;
+    const showActivity = index => {
+        const activity = model.activities[index]; if (!activity) return;
+        activityState = { index, attemptNumber: 1, hintLevel: 'none', startedAt: page.now() };
+        text(root.querySelector('[data-released-activity-prompt]'), activity.prompt);
+        text(root.querySelector('[data-released-activity-feedback]'), '');
+        text(root.querySelector('[data-released-activity-hint]'), '');
+        const hint = root.querySelector('[data-released-activity-hint]'); if (hint) hint.hidden = true;
+        const retry = root.querySelector('[data-released-activity-retry]'); if (retry) retry.hidden = true;
+        const positionIndex = model.positions.findIndex(position => position.id === activity.position.id);
+        if (positionIndex >= 0) {
+            if (positionSelect) positionSelect.value = String(positionIndex);
+            showPosition(positionIndex);
+        }
+        if (activityResponse) { activityResponse.value = ''; activityResponse.disabled = false; }
+    };
+    if (activityReady) activityReady.hidden = model.activities.length === 0;
+    if (activityUnavailable) activityUnavailable.hidden = model.activities.length > 0;
+    activitySelect?.replaceChildren();
+    model.activities.forEach((activity, index) => {
+        const option = root.ownerDocument.createElement('option');
+        option.value = String(index); option.textContent = `Practice ${index + 1}: ${activity.prompt}`;
+        activitySelect?.append(option);
+    });
+    activitySelect?.addEventListener('change', event => showActivity(Number(event.target.value)), { signal: page.signal });
+    root.querySelector('[data-released-activity-help]')?.addEventListener('click', () => {
+        const activity = currentActivity(); if (!activity) return;
+        activityState.hintLevel = 'final-answer';
+        const hint = root.querySelector('[data-released-activity-hint]');
+        text(hint, `Released move: ${activity.acceptedMoves[0]}.`);
+        if (hint) hint.hidden = false;
+        emitLearningEvent('hint-requested', {
+            learningObjectId: activity.sourceLearningObjectId, positionId: activity.position.id,
+            attemptNumber: activityState.attemptNumber, hintLevel: 'final-answer'
+        });
+    }, { signal: page.signal });
+    root.querySelector('[data-released-activity-submit]')?.addEventListener('click', () => {
+        const activity = currentActivity(); if (!activity) return;
+        const evaluation = evaluateReleasedMove(activity, {
+            attemptId: `attempt:${page.learningEventIdFactory()}`,
+            sessionId: `study-${page.progressScopeId}`,
+            attemptNumber: activityState.attemptNumber,
+            response: activityResponse?.value,
+            hintLevel: activityState.hintLevel,
+            startedAt: activityState.startedAt,
+            submittedAt: page.now(),
+            reviewContext: reviewFrom ? { sourceUnitId: reviewFrom } : null
+        });
+        text(root.querySelector('[data-released-activity-feedback]'), activityFeedback(evaluation));
+        if (!['successful', 'successful-with-guidance', 'unsuccessful'].includes(evaluation.status)) return;
+        emitLearningEvent('activity-evaluated', {
+            learningObjectId: activity.sourceLearningObjectId, positionId: activity.position.id,
+            attemptNumber: activityState.attemptNumber, hintLevel: activityState.hintLevel,
+            responseType: 'move', result: evaluation.accepted ? 'correct' : 'incorrect'
+        });
+        const retry = root.querySelector('[data-released-activity-retry]');
+        if (retry) retry.hidden = !evaluation.retryAllowed;
+        if (evaluation.accepted && activityResponse) activityResponse.disabled = true;
+    }, { signal: page.signal });
+    root.querySelector('[data-released-activity-retry]')?.addEventListener('click', event => {
+        const activity = currentActivity(); if (!activity) return;
+        activityState = { ...activityState, attemptNumber: activityState.attemptNumber + 1, startedAt: page.now() };
+        if (activityResponse) { activityResponse.value = ''; activityResponse.disabled = false; activityResponse.focus(); }
+        text(root.querySelector('[data-released-activity-feedback]'), 'Try again from the original position.');
+        event.currentTarget.hidden = true;
+        const positionIndex = model.positions.findIndex(position => position.id === activity.position.id);
+        if (positionIndex >= 0) showPosition(positionIndex);
+    }, { signal: page.signal });
     positionSelect?.addEventListener('change', event => showPosition(Number(event.target.value)), { signal: page.signal });
     const advancePrompt = direction => {
         showPrompt(page.libraryStudy.promptIndex + direction);
@@ -377,7 +451,7 @@ async function initializeLibraryStudy({ root, page, runtime, search, fetchImpl }
         if (refreshed.ok) page.learningEventSession.applyConsent(page.learningStore.getSummary().consent);
         renderLearningPreview(refreshed.ok ? 'Local learning progress changed in another tab.' : 'Learning data changed in another tab but cannot be read safely.');
     }, { signal: page.signal });
-    showPosition(0); showPrompt(0);
+    showPosition(0); showPrompt(0); if (model.activities.length) showActivity(0);
     renderLearningPreview();
     root.querySelector('[data-library-study-title]')?.focus?.();
 }
@@ -486,7 +560,7 @@ export function mountEndgameTrainerPage(options = {}) {
     const learningStorage = options.learningStorage ?? options.storage;
     const learningStoreFactory = options.learningStoreFactory ?? createLocalLearningStore;
     const learningStore = learningStoreFactory({ storage: learningStorage, now: options.now });
-    const page = { mounted: true, navOpen: false, runtimeAttached: false, operation: null, hint: null, error: null, disposed: false, signal, diagnosticEnabled, diagnosticState, controllerState: null, seedSequence: 0, progressStore, progressOwners: new Map(), progressOwner: null, progressSnapshot: loadedProgress, progressScopeId, curriculum, curriculumProgress: curriculum.getProgress(loadedProgress), trainingMode: 'free', workspaceState: 'setup', selectedPathId: loadedProgress.curriculum?.selectedPathId ?? null, activeLesson: null, pendingLesson: null, pilotSession: null, pilotMode: null, pilotRenderedPositionKey: null, libraryStudy: null, learningEventSession: null, learningPreview: null, learningEventSessionFactory: options.learningEventSessionFactory, learningEventIdFactory: options.learningEventIdFactory, learningStore, learningStorage, window: win, recentExpanded: false, recentResult: 'all', recentCategory: 'all', syncFeedback: '', now: options.now ?? Date.now };
+    const page = { mounted: true, navOpen: false, runtimeAttached: false, operation: null, hint: null, error: null, disposed: false, signal, diagnosticEnabled, diagnosticState, controllerState: null, seedSequence: 0, progressStore, progressOwners: new Map(), progressOwner: null, progressSnapshot: loadedProgress, progressScopeId, curriculum, curriculumProgress: curriculum.getProgress(loadedProgress), trainingMode: 'free', workspaceState: 'setup', selectedPathId: loadedProgress.curriculum?.selectedPathId ?? null, activeLesson: null, pendingLesson: null, pilotSession: null, pilotMode: null, pilotRenderedPositionKey: null, libraryStudy: null, learningEventSession: null, learningPreview: null, learningEventSessionFactory: options.learningEventSessionFactory, learningEventIdFactory: options.learningEventIdFactory ?? (() => globalThis.crypto?.randomUUID?.() ?? `local-${++pageSequence}`), learningStore, learningStorage, window: win, recentExpanded: false, recentResult: 'all', recentCategory: 'all', syncFeedback: '', now: options.now ?? Date.now };
     const runtimeFactory = options.runtimeFactory ?? createEndgameTrainerRuntime;
     let runtime = null;
     if (board) { runtime = runtimeFactory({ boardElement: board, promotionResolver: promo.resolve, callbacks: { onStateChange: snap => update(root, page, snap), onAnnouncement: value => text(root.querySelector('[data-announcement]'), value), onError: error => { if (error.code !== 'stale-operation') { page.error = { code: error.code }; text(root.querySelector('[data-error-message]'), PUBLIC_ERRORS[error.code] || 'The trainer encountered an error.'); } } } }).initialize(); page.runtimeAttached = true; page.runtime = runtime; }

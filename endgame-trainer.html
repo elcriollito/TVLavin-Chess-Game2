@@ -103,6 +103,26 @@
                             <button type="button" data-library-study-next>Next prompt</button>
                         </div>
                         <p class="endgame-trainer-page__helper">The study board is read-only. Optional local progress never means completion or mastery.</p>
+                        <section class="endgame-trainer-page__released-activity" data-released-activity aria-labelledby="released-activity-title">
+                            <h3 id="released-activity-title">Independent Practice</h3>
+                            <div data-released-activity-ready hidden>
+                                <label for="released-activity-select">Eligible released activity</label>
+                                <select id="released-activity-select" data-released-activity-select></select>
+                                <p data-released-activity-prompt></p>
+                                <p class="endgame-trainer-page__helper">Enter one legal SAN move from the displayed position. Your first attempt is independent; revealing help changes the result to guided practice.</p>
+                                <label for="released-activity-response">Your move</label>
+                                <input id="released-activity-response" data-released-activity-response maxlength="16" autocomplete="off" spellcheck="false">
+                                <div class="endgame-trainer-page__actions">
+                                    <button type="button" data-released-activity-submit>Submit move</button>
+                                    <button type="button" data-released-activity-help>Reveal released move</button>
+                                    <button type="button" data-released-activity-retry hidden>Retry</button>
+                                </div>
+                                <p data-released-activity-hint hidden></p>
+                                <p data-released-activity-feedback role="status" aria-live="polite"></p>
+                            </div>
+                            <p data-released-activity-unavailable>No released independent activity in this unit has a complete objective answer contract. Study content remains available.</p>
+                            <p class="endgame-trainer-page__helper">No assessment is shown unless released content includes an objective item and answer key. Practice evidence is not Mastery.</p>
+                        </section>
                         <section class="endgame-trainer-page__learning-consent" data-learning-consent aria-labelledby="learning-consent-title">
                             <h3 id="learning-consent-title">Save study progress on this device</h3>
                             <p>Optional local progress can remember explored positions, practice, and assessment evidence. Opening or reading a lesson does not count as mastery.</p>

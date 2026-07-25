@@ -2,6 +2,7 @@ import { loadPinnedEndgameLibrary, PINNED_RELEASE } from './browser-library-read
 import { EndgameBoardView } from '../endgame-trainer/endgame-board-view.js';
 import { createLibraryBoardRules } from './library-board-rules.js';
 import { createGuidedStudyHref } from './guided-study-entry.js';
+import { deriveReleasedActivities } from '../learning/released-activity-runtime.js';
 
 const CLUSTERS = Object.freeze([
   { id: 'foundations', label: 'King and Pawn Foundations', prefix: 'ku:endgames:pawn-foundations:' },
@@ -144,6 +145,8 @@ async function openUnit(scopedSlug, { push = true } = {}) {
   state.detailUnit = unit;
   const copy = unit.localization.content[unit.localization.defaultLocale];
   const studyHref = createGuidedStudyHref(unit);
+  const practiceActivities = deriveReleasedActivities(unit, PINNED_RELEASE.id);
+  const practiceHref = practiceActivities.length ? `${studyHref}&activity=practice` : null;
   detail.innerHTML = `
     <a class="back-link" href="/endgame-library" data-back-library>← Back to all concepts</a>
     <header class="detail-header">
@@ -152,6 +155,7 @@ async function openUnit(scopedSlug, { push = true } = {}) {
       <p>${escapeHtml(copy.summary)}</p>
       <div class="tags"><span>${escapeHtml(words(unit.education.difficulty))}</span><span>${escapeHtml(words(unit.education.expectedLearnerLevel))}</span></div>
       ${studyHref ? `<a class="button-link study-unit-link" href="${escapeHtml(studyHref)}">Study this unit</a>` : '<p class="study-unavailable">Guided study is not available for this concept yet.</p>'}
+      ${practiceHref ? `<a class="button-link study-unit-link" href="${escapeHtml(practiceHref)}">Practice this concept</a>` : ''}
     </header>
     <div class="detail-grid">
       <div>

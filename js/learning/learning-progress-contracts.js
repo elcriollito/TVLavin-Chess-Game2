@@ -14,6 +14,7 @@ export const EVENT_TYPES = Object.freeze({
   'coaching-prompt-advanced': 'practice',
   'hint-requested': 'practice',
   'answer-submitted': 'practice',
+  'activity-evaluated': 'evaluative',
   'assessment-evaluated': 'evaluative',
   'return-to-library': 'administrative'
 });
@@ -166,6 +167,19 @@ export function deriveEducationalEvidence(events, context = {}) {
       explanation = event.eventType === 'hint-requested'
         ? 'You requested support. A hint is guidance, not a failure.'
         : 'You participated in guided study without an assessed mastery claim.';
+    } else if (event.eventType === 'activity-evaluated' && event.result === 'correct') {
+      evidenceType = event.hintLevel === 'none' ? 'independent-success' : 'guided-success';
+      explanation = event.hintLevel === 'none'
+        ? 'An authored practice move was correct without answer-revealing help.'
+        : 'The authored practice move was correct after answer-revealing help, so it is guided success.';
+    } else if (event.eventType === 'activity-evaluated' && event.result === 'incorrect') {
+      const earlier = valid.filter(item => item.eventType === 'activity-evaluated'
+        && item.learningObjectId === event.learningObjectId && item.result === 'incorrect'
+        && item.occurredAt <= event.occurredAt);
+      if (earlier.length >= 2) {
+        evidenceType = 'remediation-needed';
+        explanation = 'Two unsuccessful attempts on the same authored activity may benefit from review.';
+      }
     } else if (event.eventType === 'assessment-evaluated' && event.result === 'correct') {
       evidenceType = event.hintLevel === 'none' ? 'assessment-success' : 'guided-success';
       explanation = event.hintLevel === 'final-answer'
