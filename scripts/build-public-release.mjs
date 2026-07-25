@@ -1,10 +1,11 @@
 import { copyFile, mkdir, rm } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
+import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-export const DEFAULT_OUTPUT = join(repositoryRoot, '.public-release');
+export const DEFAULT_OUTPUT = join(tmpdir(), 'caissa-public-release');
 
 const protectedFiles = new Set([
   'PROJECT_ARCHITECTURE.md',
@@ -59,8 +60,8 @@ export function auditPublicFiles(files) {
 export async function buildPublicRelease({ cwd = repositoryRoot, output = DEFAULT_OUTPUT } = {}) {
   const sourceRoot = resolve(cwd);
   const targetRoot = resolve(output);
-  if (targetRoot === sourceRoot || !targetRoot.startsWith(`${sourceRoot}${sep}`)) {
-    throw new Error('Release output must be a dedicated directory inside the repository.');
+  if (targetRoot === sourceRoot || sourceRoot.startsWith(`${targetRoot}${sep}`)) {
+    throw new Error('Release output must be a dedicated directory outside the repository tree.');
   }
   const files = trackedPublicFiles({ cwd: sourceRoot });
   const audit = auditPublicFiles(files);

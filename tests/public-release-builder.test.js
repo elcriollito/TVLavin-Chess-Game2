@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  DEFAULT_OUTPUT,
   auditPublicFiles,
   isProtectedPublicPath,
   trackedPublicFiles
 } from '../scripts/build-public-release.mjs';
+import { resolve } from 'node:path';
 
 test('public release excludes internal architecture and authored Knowledge sources', () => {
   for (const path of [
@@ -33,6 +35,10 @@ test('committed-tree audit has no protected paths and all required runtime files
   assert.equal(result.protectedPaths, 0);
   assert.equal(result.requiredPaths, 6);
   assert.ok(result.files > 700);
+});
+
+test('default release output is outside the repository to prevent parent-worktree scanning', () => {
+  assert.equal(DEFAULT_OUTPUT.startsWith(`${resolve('.') }\\`), false);
 });
 
 test('audit rejects a leaked protected path and a missing required path', () => {
