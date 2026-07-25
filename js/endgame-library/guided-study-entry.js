@@ -52,6 +52,8 @@ export function createGuidedStudyModel(unit, summary) {
     explanation: copy.explanation,
     prompts: clone(copy.coachingPrompts),
     positions: clone(unit.positions.filter(position => position.validation?.structural === 'valid')),
+    learningObjectIds: clone(Object.values(unit.learningObjects || {}).flat().map(item => item.id).filter(Boolean)),
+    assessmentItemIds: clone((unit.learningObjects?.assessments || []).map(item => item.id).filter(Boolean)),
     returnHref: `/endgame-library?unit=${encodeURIComponent(summary?.scopedSlug || `${unit.domain}/${unit.slug}`)}`
   });
 }

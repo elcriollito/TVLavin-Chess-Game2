@@ -102,7 +102,22 @@
                             <button type="button" data-library-study-previous>Previous prompt</button>
                             <button type="button" data-library-study-next>Next prompt</button>
                         </div>
-                        <p class="endgame-trainer-page__helper">This preview is read-only and does not record completion or progress.</p>
+                        <p class="endgame-trainer-page__helper">The study board is read-only and does not persist completion or progress.</p>
+                        <section class="endgame-trainer-page__learning-consent" data-learning-consent aria-labelledby="learning-consent-title">
+                            <h3 id="learning-consent-title">Learning progress preview</h3>
+                            <p>CAISSA can validate study activity in this tab. Opening or reading a lesson does not count as mastery.</p>
+                            <p data-learning-consent-status role="status">No learning activity is being saved.</p>
+                            <div class="endgame-trainer-page__lesson-nav">
+                                <button type="button" data-learning-consent-enable>Enable progress preview</button>
+                                <button type="button" data-learning-consent-decline>Not now</button>
+                                <button type="button" data-learning-consent-more aria-expanded="false">Learn more</button>
+                                <button type="button" data-learning-consent-revoke hidden>Disable and clear preview</button>
+                            </div>
+                            <div data-learning-consent-details hidden>
+                                <p>The preview is optional, local to this browser tab, and can be cleared. Guided Study works fully without it. Season 9.3.1 does not persist these events, sync them to an account, mark mastery, or change recommendations.</p>
+                            </div>
+                            <p data-learning-progress-summary></p>
+                        </section>
                     </div>
                     <div data-library-study-error hidden>
                         <p data-library-study-error-message role="alert">This study unit could not be opened.</p>

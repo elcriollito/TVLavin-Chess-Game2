@@ -5,6 +5,7 @@ import { ESSENTIAL_CANON_PILOT, createPilotSession } from './essential-canon-pil
 import { setIdempotentText } from './endgame-feedback-renderer.js';
 import { ENDGAME_COACHING_MESSAGES, GENERAL_COACHING_MESSAGES } from './endgame-coaching-messages.js';
 import { loadGuidedStudyRequest, parseGuidedStudyRequest } from '../endgame-library/guided-study-entry.js';
+import { createGuidedStudyEventSession } from '../learning/guided-study-event-session.js';
 
 const CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP', 'KRPvKR'];
 const RANDOM_CATEGORIES = ['KQK', 'KRK', 'KPK', 'KPKP'];
@@ -148,6 +149,35 @@ async function initializeLibraryStudy({ root, page, runtime, search, fetchImpl }
         return;
     }
     const model = result.model;
+    const eventSessionFactory = page.learningEventSessionFactory ?? createGuidedStudyEventSession;
+    page.learningEventSession = eventSessionFactory({
+        releaseId: model.releaseId,
+        unitId: model.unitId,
+        positionIds: model.positions.map(position => position.id),
+        learningObjectIds: model.learningObjectIds,
+        assessmentItemIds: model.assessmentItemIds,
+        sessionId: `study-${page.progressScopeId}`,
+        now: page.now,
+        idFactory: page.learningEventIdFactory
+    });
+    const renderLearningPreview = () => {
+        const snapshot = page.learningEventSession.snapshot();
+        page.learningPreview = snapshot;
+        const enabled = snapshot.consent.state === 'local-progress-enabled';
+        const declined = snapshot.consent.state === 'declined';
+        text(root.querySelector('[data-learning-consent-status]'), enabled
+            ? `Progress preview enabled for this tab. ${snapshot.events.length} validated events; none persisted.`
+            : declined ? 'Progress preview declined. Guided Study remains fully available and nothing is saved.'
+                : 'No learning activity is being saved. Preview events remain in memory for this tab only.');
+        text(root.querySelector('[data-learning-progress-summary]'), enabled
+            ? `${snapshot.progress.explanation} Current preview state: ${snapshot.progress.state}.`
+            : 'No learner progress state is shown without explicit opt-in.');
+        const revoke = root.querySelector('[data-learning-consent-revoke]'); if (revoke) revoke.hidden = !enabled;
+    };
+    const emitLearningEvent = (type, detail) => { page.learningEventSession.emit(type, detail); renderLearningPreview(); };
+    emitLearningEvent('study-session-started');
+    emitLearningEvent('unit-opened');
+    emitLearningEvent('explanation-viewed');
     page.libraryStudy = { status: 'ready', unitId: model.unitId, releaseId: model.releaseId, positionIndex: 0, promptIndex: 0 };
     text(root.querySelector('[data-library-study-title]'), model.title);
     text(root.querySelector('[data-library-study-objective]'), model.objective);
@@ -173,6 +203,7 @@ async function initializeLibraryStudy({ root, page, runtime, search, fetchImpl }
             text(root.querySelector('[data-library-study-position-purpose]'), purpose || 'Use this position to study the lesson objective.');
             const overlay = root.querySelector('[data-empty-board-overlay]'); if (overlay) overlay.hidden = true;
             const board = root.querySelector('[data-board]'); board?.setAttribute('aria-label', `${model.title}. ${position.sideToMove} to move. Read-only guided study position.`);
+            emitLearningEvent('position-selected', { positionId: position.id });
         } catch {
             page.libraryStudy = { ...page.libraryStudy, status: 'error', code: 'position-unavailable' };
             if (ready) ready.hidden = true;
@@ -190,9 +221,27 @@ async function initializeLibraryStudy({ root, page, runtime, search, fetchImpl }
         if (next) next.disabled = bounded === model.prompts.length - 1;
     };
     positionSelect?.addEventListener('change', event => showPosition(Number(event.target.value)), { signal: page.signal });
-    root.querySelector('[data-library-study-previous]')?.addEventListener('click', () => showPrompt(page.libraryStudy.promptIndex - 1), { signal: page.signal });
-    root.querySelector('[data-library-study-next]')?.addEventListener('click', () => showPrompt(page.libraryStudy.promptIndex + 1), { signal: page.signal });
+    const advancePrompt = direction => {
+        showPrompt(page.libraryStudy.promptIndex + direction);
+        emitLearningEvent('coaching-prompt-advanced', { promptStage: page.libraryStudy.promptIndex, hintLevel: 'none' });
+    };
+    root.querySelector('[data-library-study-previous]')?.addEventListener('click', () => advancePrompt(-1), { signal: page.signal });
+    root.querySelector('[data-library-study-next]')?.addEventListener('click', () => advancePrompt(1), { signal: page.signal });
+    root.querySelector('[data-learning-consent-enable]')?.addEventListener('click', () => { page.learningEventSession.enablePreview(); renderLearningPreview(); }, { signal: page.signal });
+    root.querySelector('[data-learning-consent-decline]')?.addEventListener('click', () => { page.learningEventSession.decline(); renderLearningPreview(); }, { signal: page.signal });
+    root.querySelector('[data-learning-consent-revoke]')?.addEventListener('click', () => { page.learningEventSession.revokeAndClear(); renderLearningPreview(); }, { signal: page.signal });
+    root.querySelector('[data-learning-consent-more]')?.addEventListener('click', event => {
+        const details = root.querySelector('[data-learning-consent-details]'), expanded = event.currentTarget.getAttribute('aria-expanded') === 'true';
+        event.currentTarget.setAttribute('aria-expanded', String(!expanded)); if (details) details.hidden = expanded;
+    }, { signal: page.signal });
+    root.querySelector('[data-library-study-return]')?.addEventListener('click', () => {
+        emitLearningEvent('return-to-library'); emitLearningEvent('study-session-ended');
+    }, { signal: page.signal });
+    page.window?.addEventListener?.('pagehide', () => {
+        if (page.learningEventSession) page.learningEventSession.emit('study-session-ended');
+    }, { signal: page.signal });
     showPosition(0); showPrompt(0);
+    renderLearningPreview();
     root.querySelector('[data-library-study-title]')?.focus?.();
 }
 
@@ -297,7 +346,7 @@ export function mountEndgameTrainerPage(options = {}) {
     const progressStoreFactory = options.progressStoreFactory ?? createEndgameProgressStore, progressStore = progressStoreFactory({ storage: options.storage, now: options.now }); progressStore.load(); const loadedProgress = progressStore.getSnapshot();
     const curriculum = options.curriculum ?? createEndgameCurriculum();
     const progressScopeId = options.progressScopeId ?? globalThis.crypto?.randomUUID?.() ?? `tab-${++pageSequence}-${(options.now ?? Date.now)()}`;
-    const page = { mounted: true, navOpen: false, runtimeAttached: false, operation: null, hint: null, error: null, disposed: false, signal, diagnosticEnabled, diagnosticState, controllerState: null, seedSequence: 0, progressStore, progressOwners: new Map(), progressOwner: null, progressSnapshot: loadedProgress, progressScopeId, curriculum, curriculumProgress: curriculum.getProgress(loadedProgress), trainingMode: 'free', workspaceState: 'setup', selectedPathId: loadedProgress.curriculum?.selectedPathId ?? null, activeLesson: null, pendingLesson: null, pilotSession: null, pilotMode: null, pilotRenderedPositionKey: null, libraryStudy: null, recentExpanded: false, recentResult: 'all', recentCategory: 'all', syncFeedback: '', now: options.now ?? Date.now };
+    const page = { mounted: true, navOpen: false, runtimeAttached: false, operation: null, hint: null, error: null, disposed: false, signal, diagnosticEnabled, diagnosticState, controllerState: null, seedSequence: 0, progressStore, progressOwners: new Map(), progressOwner: null, progressSnapshot: loadedProgress, progressScopeId, curriculum, curriculumProgress: curriculum.getProgress(loadedProgress), trainingMode: 'free', workspaceState: 'setup', selectedPathId: loadedProgress.curriculum?.selectedPathId ?? null, activeLesson: null, pendingLesson: null, pilotSession: null, pilotMode: null, pilotRenderedPositionKey: null, libraryStudy: null, learningEventSession: null, learningPreview: null, learningEventSessionFactory: options.learningEventSessionFactory, learningEventIdFactory: options.learningEventIdFactory, window: win, recentExpanded: false, recentResult: 'all', recentCategory: 'all', syncFeedback: '', now: options.now ?? Date.now };
     const runtimeFactory = options.runtimeFactory ?? createEndgameTrainerRuntime;
     let runtime = null;
     if (board) { runtime = runtimeFactory({ boardElement: board, promotionResolver: promo.resolve, callbacks: { onStateChange: snap => update(root, page, snap), onAnnouncement: value => text(root.querySelector('[data-announcement]'), value), onError: error => { if (error.code !== 'stale-operation') { page.error = { code: error.code }; text(root.querySelector('[data-error-message]'), PUBLIC_ERRORS[error.code] || 'The trainer encountered an error.'); } } } }).initialize(); page.runtimeAttached = true; page.runtime = runtime; }

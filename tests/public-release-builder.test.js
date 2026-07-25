@@ -14,6 +14,7 @@ import { tmpdir } from 'node:os';
 test('public release excludes internal architecture and authored Knowledge sources', () => {
   for (const path of [
     'docs/architecture/SEASON_9_2_PUBLIC_DISCLOSURE_REVIEW_AND_GUIDED_STUDY_ENTRY.md',
+    'docs/architecture/SEASON_9_3_1_LEARNING_EVIDENCE_CONSENT_AND_PROGRESS_CONTRACTS.md',
     'PROJECT_ARCHITECTURE.md',
     'knowledge/AUTHORING.md',
     'knowledge/domains/endgames/example/unit.js',
@@ -59,6 +60,8 @@ test('public release preserves runtime pages and immutable release assets', () =
     'index.html',
     'endgame-library.html',
     'js/endgame-library/browser-library-reader.js',
+    'js/learning/learning-progress-contracts.js',
+    'js/learning/guided-study-event-session.js',
     'knowledge/releases/rel-example/release.json',
     'knowledge/generated/endgames-library-browser.json'
   ]) assert.equal(isProtectedPublicPath(path), false, `${path} was incorrectly protected`);
@@ -68,7 +71,7 @@ test('committed-tree audit has no protected paths and all required runtime files
   const files = trackedPublicFiles();
   const result = auditPublicFiles(files);
   assert.equal(result.protectedPaths, 0);
-  assert.equal(result.requiredPaths, 7);
+  assert.equal(result.requiredPaths, 9);
   assert.ok(result.files > 500);
 });
 

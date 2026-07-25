@@ -58,6 +58,8 @@ test('study model exposes only released instructional content and a Library retu
   assert.equal(model.positions[0].fen, eligible.positions[0].fen);
   assert.equal(model.positions[0].principalIdeas[0].purpose, eligible.positions[0].principalIdeas[0].purpose);
   assert.equal(model.prompts[0], eligible.localization.content['en-US'].coachingPrompts[0]);
+  assert.ok(model.learningObjectIds.includes('guided:exchange-passer:orders'));
+  assert.ok(model.assessmentItemIds.includes('assessment:exchange-passer:three-of-four'));
   assert.equal(model.returnHref, '/endgame-library?unit=endgames%2Fexchange-into-passer');
 });
 
@@ -90,9 +92,11 @@ test('Library and existing Guided Workspace share the released-data adapter', ()
   assert.match(html, /Lesson Companion/);
   assert.match(html, /data-library-study-explanation/);
   assert.match(html, /data-library-study-position-purpose/);
+  assert.match(html, /data-learning-consent/);
   assert.match(html, /Return to Endgame Library/);
   assert.match(trainer, /position-unavailable/);
   assert.match(trainer, /principalIdeas/);
+  assert.match(trainer, /createGuidedStudyEventSession/);
 });
 
 test('guided-study adapter has no authored, draft, persistence, mastery, recommendation, or AI dependency', () => {
@@ -108,7 +112,7 @@ test('guided-study adapter has no authored, draft, persistence, mastery, recomme
 test('workspace preview is explicitly read-only and does not claim completion', () => {
   const html = read('endgame-trainer.html');
   const trainer = read('js/endgame-trainer/endgame-trainer-page.js');
-  assert.match(html, /read-only and does not record completion or progress/);
+  assert.match(html, /read-only and does not persist completion or progress/);
   assert.match(trainer, /boardView\?\.setInteractive\(false\)/);
   assert.doesNotMatch(trainer.slice(
     trainer.indexOf('async function initializeLibraryStudy'),
