@@ -147,3 +147,19 @@ test('V2 shell and Modes dialog have no automated axe violations', async ({ page
     const dialog = await new AxeBuilder({ page }).include('[data-v2-modes-dialog]').analyze();
     expect(dialog.violations).toEqual([]);
 });
+
+test('digest mismatch blocks Start neutrally and permits retry', async ({ page }) => {
+    await page.route('**/data/endgame-pools/caissa-king-pawn-decisions/1.0.0.json', async (route) => {
+        const response = await route.fetch();
+        const body = await response.json();
+        body.description += ' tampered';
+        await route.fulfill({ response, json: body });
+    });
+    await openV2(page);
+    const start = page.locator('[data-v2-action="start"]');
+    await start.click();
+    await expect(page.locator('[data-endgame-trainer-page]')).toHaveAttribute('data-state', 'v2-unavailable');
+    await expect(page.locator('[data-v2-feedback]')).toContainText('unavailable');
+    await expect(page.locator('[data-v2-score]')).toHaveText('0');
+    await expect(start).toBeEnabled();
+});

@@ -13,6 +13,18 @@ const artifact = JSON.parse(await readFile(new URL(
     import.meta.url
 ), 'utf8'));
 const options = { poolId: artifact.poolId, poolVersion: artifact.poolVersion };
+const manifest = JSON.parse(await readFile(new URL(
+    '../../public/data/endgame-pools/manifest-1.0.0.json',
+    import.meta.url
+), 'utf8'));
+const routeFetch = (pool = artifact, publishedManifest = manifest, onCall = () => {}) =>
+    async (url) => {
+        onCall(url);
+        return {
+            ok: true,
+            json: async () => structuredClone(url.includes('manifest') ? publishedManifest : pool)
+        };
+    };
 
 test('consumer exposes only an allowlisted immutable version', () => {
     assert.equal(getCuratedPoolDescriptor(options.poolId, options.poolVersion)?.positionCount, 10);
@@ -22,14 +34,11 @@ test('consumer exposes only an allowlisted immutable version', () => {
 test('consumer validates, freezes, and caches one artifact fetch per session', async () => {
     clearCuratedPoolCacheForTests();
     let calls = 0;
-    const fetchImpl = async () => {
-        calls += 1;
-        return { ok: true, json: async () => structuredClone(artifact) };
-    };
+    const fetchImpl = routeFetch(artifact, manifest, () => { calls += 1; });
     const first = await loadCuratedPool({ ...options, fetchImpl });
     const second = await loadCuratedPool({ ...options, fetchImpl });
     assert.equal(first, second);
-    assert.equal(calls, 1);
+    assert.equal(calls, 2);
     assert.equal(Object.isFrozen(first.positions[0].provenance), true);
 });
 
@@ -41,8 +50,25 @@ test('consumer rejects arbitrary pools, mismatched version, and altered fingerpr
     const altered = structuredClone(artifact);
     altered.positions[0].fen = artifact.positions[1].fen;
     await assert.rejects(loadCuratedPool({
-        ...options, fetchImpl: async () => ({ ok: true, json: async () => altered })
+        ...options, fetchImpl: routeFetch(altered)
     }), { code: 'release-mismatch' });
+});
+
+test('consumer rejects digest and manifest membership mismatch neutrally', async () => {
+    clearCuratedPoolCacheForTests();
+    const alteredManifest = structuredClone(manifest);
+    alteredManifest.pools[0].runtimePath = '/data/endgame-pools/other.json';
+    await assert.rejects(loadCuratedPool({
+        ...options, fetchImpl: routeFetch(artifact, alteredManifest)
+    }), { code: 'manifest-mismatch' });
+
+    clearCuratedPoolCacheForTests();
+    const descriptorDigestArtifact = structuredClone(artifact);
+    descriptorDigestArtifact.description += ' changed';
+    descriptorDigestArtifact.contentFingerprint = artifact.contentFingerprint;
+    await assert.rejects(loadCuratedPool({
+        ...options, fetchImpl: routeFetch(descriptorDigestArtifact)
+    }));
 });
 
 test('selection is deterministic, seeded, bounded, and has no repeats', () => {

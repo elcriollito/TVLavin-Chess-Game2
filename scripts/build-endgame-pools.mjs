@@ -9,11 +9,16 @@ import {
     validateAuthoredPoolSource,
     validatePublishedPoolArtifact
 } from '../js/endgame-trainer/v2/curated-pool-validator.js';
+import {
+    nodeSha256, validateReviewBundle
+} from './endgame-verification-contracts.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const AUTHORING_DIRECTORY = join(ROOT, 'endgame-pools', 'authoring', 'pools');
+const REVIEW_DIRECTORY = join(ROOT, 'endgame-pools', 'private', 'reviews');
 const OUTPUT_DIRECTORY = join(ROOT, 'public', 'data', 'endgame-pools');
 const REGISTRY_PATH = join(ROOT, 'js', 'endgame-trainer', 'v2', 'curated-pool-registry.js');
+const MANIFEST_PATH = join(OUTPUT_DIRECTORY, 'manifest-1.0.0.json');
 
 function normalizedMove(fen, response) {
     const rules = ChessRulesFacade.fromFen(fen);
@@ -102,12 +107,24 @@ async function loadSources() {
     })));
 }
 
+async function loadReviews() {
+    const files = (await readdir(REVIEW_DIRECTORY)).filter((file) => file.endsWith('.review.json')).sort();
+    const entries = await Promise.all(files.map(async (file) => {
+        const review = JSON.parse(await readFile(join(REVIEW_DIRECTORY, file), 'utf8'));
+        return [`${review.poolId}@${review.poolVersion}`, review];
+    }));
+    return new Map(entries);
+}
+
 export async function buildAllPools({ check = false } = {}) {
     const sources = await loadSources();
+    const reviews = await loadReviews();
     if (!sources.length) throw new Error('no-authored-endgame-pools');
     const outputs = [];
     const registry = [];
     for (const { source } of sources) {
+        const review = reviews.get(`${source.poolId}@${source.poolVersion}`);
+        validateReviewBundle(source, review);
         const artifact = buildPublishedPool(source);
         validatePublishedPoolArtifact(artifact, {
             poolId: source.poolId,
@@ -121,10 +138,34 @@ export async function buildAllPools({ check = false } = {}) {
             poolId: artifact.poolId,
             poolVersion: artifact.poolVersion,
             contentFingerprint: artifact.contentFingerprint,
+            contentDigest: nodeSha256(artifact),
             positionCount: artifact.positionCount,
-            url: `/data/endgame-pools/${artifact.poolId}/${artifact.poolVersion}.json`
+            url: `/data/endgame-pools/${artifact.poolId}/${artifact.poolVersion}.json`,
+            manifestUrl: '/data/endgame-pools/manifest-1.0.0.json'
         });
     }
+    const manifestContent = {
+        manifestSchemaVersion: '1.0.0',
+        generatedFrom: 'private-reviewed-pool-sources',
+        publishedStatus: 'published',
+        signatureStatus: 'unsigned',
+        signatureAlgorithm: 'Ed25519',
+        keyId: null,
+        pools: registry.map((entry, index) => ({
+            poolId: entry.poolId,
+            poolVersion: entry.poolVersion,
+            runtimePath: entry.url,
+            contentFingerprint: entry.contentFingerprint,
+            contentDigest: entry.contentDigest,
+            positionCount: entry.positionCount,
+            objectiveTypes: outputs[index].artifact.objectiveTypes,
+            verificationSummary: outputs[index].artifact.verificationSummary,
+            publishedStatus: 'published'
+        }))
+    };
+    const manifest = { ...manifestContent, manifestDigest: nodeSha256(manifestContent) };
+    for (const entry of registry) entry.manifestDigest = manifest.manifestDigest;
+    const manifestBytes = artifactBytes(manifest);
     const registryContent = registryBytes(registry);
     if (check) {
         for (const { outputPath, bytes } of outputs) {
@@ -133,11 +174,14 @@ export async function buildAllPools({ check = false } = {}) {
         }
         const existingRegistry = await readFile(REGISTRY_PATH, 'utf8').catch(() => null);
         if (existingRegistry !== registryContent) throw new Error('stale-endgame-pool-registry');
+        const existingManifest = await readFile(MANIFEST_PATH, 'utf8').catch(() => null);
+        if (existingManifest !== manifestBytes) throw new Error('stale-endgame-pool-manifest');
     } else {
         for (const { outputPath, bytes } of outputs) {
             await mkdir(dirname(outputPath), { recursive: true });
             await writeFile(outputPath, bytes, 'utf8');
         }
+        await writeFile(MANIFEST_PATH, manifestBytes, 'utf8');
         await writeFile(REGISTRY_PATH, registryContent, 'utf8');
     }
     return Object.freeze({

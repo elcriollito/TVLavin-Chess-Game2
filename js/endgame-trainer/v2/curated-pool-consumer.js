@@ -2,6 +2,9 @@ import { CURATED_POOL_REGISTRY } from './curated-pool-registry.js';
 import {
     computeCompatibilityFingerprint, deepFreezePool, validatePublishedPoolArtifact
 } from './curated-pool-validator.js';
+import {
+    verifyManifest, verifyPoolDigest
+} from './curated-pool-integrity.js';
 
 const cache = new Map();
 export const DEFAULT_CURATED_POOL = Object.freeze({
@@ -17,7 +20,8 @@ export function getCuratedPoolDescriptor(poolId, poolVersion) {
 export async function loadCuratedPool({
     poolId,
     poolVersion,
-    fetchImpl = globalThis.fetch?.bind(globalThis)
+    fetchImpl = globalThis.fetch?.bind(globalThis),
+    cryptoImpl = globalThis.crypto
 } = {}) {
     const descriptor = getCuratedPoolDescriptor(poolId, poolVersion);
     if (!descriptor) throw Object.assign(new Error('pool-unavailable'), { code: 'pool-unavailable' });
@@ -25,6 +29,24 @@ export async function loadCuratedPool({
     const cacheKey = `${poolId}@${poolVersion}`;
     if (cache.has(cacheKey)) return cache.get(cacheKey);
     const loading = (async () => {
+        const manifestResponse = await fetchImpl(descriptor.manifestUrl, { cache: 'force-cache' });
+        if (!manifestResponse?.ok) throw Object.assign(new Error('manifest-unavailable'), { code: 'manifest-unavailable' });
+        const manifest = await manifestResponse.json();
+        let manifestValid = false;
+        try {
+            manifestValid = await verifyManifest(manifest, cryptoImpl);
+        } catch (error) {
+            if (error.code !== 'crypto-unavailable') throw error;
+            manifestValid = manifest?.manifestDigest === descriptor.manifestDigest;
+        }
+        const membership = manifest.pools?.find((entry) =>
+            entry.poolId === poolId && entry.poolVersion === poolVersion);
+        if (!manifestValid || !membership ||
+            membership.runtimePath !== descriptor.url ||
+            membership.contentFingerprint !== descriptor.contentFingerprint ||
+            membership.contentDigest !== descriptor.contentDigest) {
+            throw Object.assign(new Error('manifest-mismatch'), { code: 'manifest-mismatch' });
+        }
         const response = await fetchImpl(descriptor.url, { cache: 'force-cache' });
         if (!response?.ok) throw Object.assign(new Error('pool-unavailable'), { code: 'pool-unavailable' });
         const artifact = await response.json();
@@ -33,6 +55,12 @@ export async function loadCuratedPool({
             throw Object.assign(new Error('release-mismatch'), {
                 code: 'release-mismatch', diagnostics: validation.errors
             });
+        }
+        try {
+            if (!await verifyPoolDigest(artifact, descriptor.contentDigest, cryptoImpl))
+                throw Object.assign(new Error('digest-mismatch'), { code: 'digest-mismatch' });
+        } catch (error) {
+            if (error.code !== 'crypto-unavailable') throw error;
         }
         return deepFreezePool(artifact);
     })();

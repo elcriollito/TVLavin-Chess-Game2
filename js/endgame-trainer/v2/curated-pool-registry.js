@@ -4,7 +4,10 @@ export const CURATED_POOL_REGISTRY = Object.freeze([
         "poolId": "caissa-king-pawn-decisions",
         "poolVersion": "1.0.0",
         "contentFingerprint": "epool-fnv1a32-7f150692",
+        "contentDigest": "sha256-edf0ca70dccbafb2638e2661213e82d600214402aa7c3f305d4f836c87ba7984",
         "positionCount": 10,
-        "url": "/data/endgame-pools/caissa-king-pawn-decisions/1.0.0.json"
+        "url": "/data/endgame-pools/caissa-king-pawn-decisions/1.0.0.json",
+        "manifestUrl": "/data/endgame-pools/manifest-1.0.0.json",
+        "manifestDigest": "sha256-bb06567441f5c183f616b8edb8972773cdf76c09185c9b287f38cb5af8ebe27e"
     }
 ].map((entry) => Object.freeze(entry)));
