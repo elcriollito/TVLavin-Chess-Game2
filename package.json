@@ -14,6 +14,8 @@
     "lint:endgame-library": "node --check js/endgame-library/browser-library-reader.js && node --check js/endgame-library/library-board-rules.js && node --check js/endgame-library/endgame-library-page.js && node --check tests/endgame-library-page.test.js && node --check tests/knowledge/endgame-library-browser-reader.test.js",
     "test:navigation": "node --test tests/navigation-integrity.test.js",
     "lint:navigation": "node --check js/caissa-primary-navigation.js && node --check js/caissa-standalone-sidebar.js && node --check js/caissa-navigation.js && node --check tests/navigation-integrity.test.js",
+    "test:hotfix-9-2-1": "node --test tests/hotfix-9-2-1-help-game-options.test.js",
+    "lint:hotfix-9-2-1": "node --check app.js && node --check middleware.js && node --check tests/hotfix-9-2-1-help-game-options.test.js",
     "test:disclosure": "node --test tests/public-disclosure.test.js",
     "lint:disclosure": "node --check tests/public-disclosure.test.js",
     "release:public:audit": "node scripts/build-public-release.mjs --check",

@@ -352,6 +352,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (pathname === '/' && url.searchParams.get('action') === 'help') {
+    res.writeHead(308, { Location: '/help' });
+    res.end();
+    return;
+  }
+
   // API Routes
   if (pathname === '/api/health') {
     handleHealthCheck(res);
@@ -378,6 +384,9 @@ const server = http.createServer(async (req, res) => {
   }
   if (pathname === '/about' || pathname === '/about/') {
     filePath = './about.html';
+  }
+  if (pathname === '/help' || pathname === '/help/') {
+    filePath = './help.html';
   }
   if (pathname === '/yahoo-classic') {
     filePath = './yahoo-classic.html';

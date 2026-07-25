@@ -3001,7 +3001,11 @@ async function loadEcoPositionMap() {
 function showModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
+        App.modalReturnFocus ||= {};
+        App.modalReturnFocus[modalId] = document.activeElement;
         modal.classList.add('show');
+        modal.setAttribute('aria-hidden', 'false');
+        modal.querySelector('.modal-close, button, input, select, textarea, [href]')?.focus?.();
 
         // Auto-focus FEN input when opening FEN modal
         if (modalId === 'fenModal') {
@@ -3020,6 +3024,10 @@ function hideModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.remove('show');
+        modal.setAttribute('aria-hidden', 'true');
+        const returnFocus = App.modalReturnFocus?.[modalId];
+        if (returnFocus?.isConnected) returnFocus.focus?.();
+        if (App.modalReturnFocus) delete App.modalReturnFocus[modalId];
     }
 }
 
@@ -3269,6 +3277,7 @@ function setupEventListeners() {
 
     // 3-COLUMN LAYOUT: Action Bar Buttons
     const btnSettings = document.getElementById('btnSettings');
+    const topbarSettings = document.getElementById('topbarSettings');
     const btnResign = document.getElementById('btnResign');
     const btnHint = document.getElementById('btnHint');
     const btnUndo = document.getElementById('btnUndo');
@@ -3277,6 +3286,13 @@ function setupEventListeners() {
     safeOn(btnSettings, 'click', () => {
         showModal('menuModal');
     }, 'btnSettings');
+    safeOn(topbarSettings, 'click', () => {
+        populatePlayEngineSelect();
+        if (App.elements.menuEngineSelect) App.elements.menuEngineSelect.value = App.engineId || 'stockfish';
+        if (App.elements.menuChess960Toggle) App.elements.menuChess960Toggle.checked = App.chess960Enabled;
+        updateChess960ToggleUI();
+        showModal('menuModal');
+    }, 'topbarSettings');
 
     safeOn(btnResign, 'click', () => {
         resignGame();
@@ -3559,7 +3575,7 @@ function setupMenuModal() {
         toggleEditMode();
     });
 
-    document.getElementById('menuAnalyzeGame').addEventListener('click', () => {
+    document.getElementById('menuAnalyzeGame')?.addEventListener('click', () => {
         hideModal('menuModal');
 
         // Check if there's a game history to analyze
@@ -3599,7 +3615,7 @@ function setupMenuModal() {
         }
     });
     
-    document.getElementById('menuCaissaInsight').addEventListener('click', () => {
+    document.getElementById('menuCaissaInsight')?.addEventListener('click', () => {
         hideModal('menuModal');
         showModal('insightModal');
         loadInsightProfile(); // Load saved profile if exists
@@ -3610,12 +3626,12 @@ function setupMenuModal() {
         openMentorPanel();
     });
 
-    document.getElementById('menuCheaterInsight').addEventListener('click', () => {
+    document.getElementById('menuCheaterInsight')?.addEventListener('click', () => {
         hideModal('menuModal');
         window.CaissaNavigation?.navigateToSection('cheater-insight');
     });
 
-    document.getElementById('menuEmbed').addEventListener('click', () => {
+    document.getElementById('menuEmbed')?.addEventListener('click', () => {
         hideModal('menuModal');
         showModal('embedModal');
         generateEmbedCode();
@@ -3626,12 +3642,12 @@ function setupMenuModal() {
         hideModal('menuModal');
     });
 
-    document.getElementById('menuAbout').addEventListener('click', () => {
+    document.getElementById('menuAbout')?.addEventListener('click', () => {
         hideModal('menuModal');
         showModal('aboutModal');
     });
 
-    document.getElementById('menuCredits').addEventListener('click', () => {
+    document.getElementById('menuCredits')?.addEventListener('click', () => {
         hideModal('menuModal');
         showModal('creditsModal');
     });
@@ -5189,8 +5205,18 @@ function updateUI() {
 
 // ===== KEYBOARD SHORTCUTS =====
 document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const openModals = [...document.querySelectorAll('.modal.show')];
+        const openModal = openModals.at(-1);
+        if (openModal) {
+            e.preventDefault();
+            hideModal(openModal.id);
+            return;
+        }
+    }
+
     // Don't handle shortcuts if typing in input
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
         return;
     }
     
@@ -5217,13 +5243,6 @@ document.addEventListener('keydown', (e) => {
             if (e.ctrlKey || e.metaKey) {
                 e.preventDefault();
                 showModal('newGameModal');
-            }
-            break;
-        case 'Escape':
-            // Close any open modal
-            const openModal = document.querySelector('.modal.show');
-            if (openModal) {
-                hideModal(openModal.id);
             }
             break;
     }

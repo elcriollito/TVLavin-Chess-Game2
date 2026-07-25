@@ -30,6 +30,7 @@ const protectedDirectories = [
 const requiredFiles = [
   'index.html',
   'about.html',
+  'help.html',
   'endgame-library.html',
   'endgame-trainer.html',
   'vercel.json',

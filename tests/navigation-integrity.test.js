@@ -26,9 +26,10 @@ test('canonical primary navigation inventory is unique and stable', () => {
       'history', 'dosChess', 'vault', 'blog'
     ]
   );
-  for (const label of ['Endgame Library', 'Analyze', 'Help', 'Settings', 'About']) {
+  for (const label of ['Endgame Library', 'Analyze', 'Help', 'About']) {
     assert.ok(labels.includes(label), `${label} is missing`);
   }
+  assert.ok(!labels.includes('Settings'), 'game-specific Settings must not be global navigation');
 });
 
 test('main application and trainer consume the canonical inventory', () => {
@@ -70,13 +71,14 @@ test('About reuses its approved destination inside the standard shell', () => {
   assert.match(page('main').text(), /About CAISSA Chess/);
 });
 
-test('Help and Settings use real navigation actions', () => {
+test('Help is first-class and legacy Settings opens contextual Play options', () => {
   const inventory = loadInventory();
-  assert.equal(inventory.support.find(({ id }) => id === 'help').route, '/?action=help');
-  assert.equal(inventory.support.find(({ id }) => id === 'settings').route, '/?action=settings');
+  assert.equal(inventory.support.find(({ id }) => id === 'help').route, '/help');
+  assert.equal(inventory.support.some(({ id }) => id === 'settings'), false);
   const navigation = read('js/caissa-navigation.js');
   assert.match(navigation, /openRequestedAction\(\)/);
-  assert.match(navigation, /document\.getElementById\('helpModal'\)/);
+  assert.match(navigation, /window\.location\.replace\('\/help'\)/);
+  assert.match(navigation, /currentSection !== 'play'/);
   assert.match(navigation, /document\.getElementById\('menuModal'\)/);
 });
 
@@ -90,7 +92,7 @@ test('explicit section routing remains ahead of the Classic default', () => {
 
 test('all standalone shell pages load the canonical source before the renderer', () => {
   const pages = [
-    'endgame-library.html', 'about.html', 'eco.html', 'opening-database.html',
+    'endgame-library.html', 'about.html', 'help.html', 'eco.html', 'opening-database.html',
     'polyglot.html', 'vault.html', 'blog/index.html'
   ];
   for (const path of pages) {

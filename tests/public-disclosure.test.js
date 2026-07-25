@@ -5,7 +5,7 @@ import { load } from 'cheerio';
 
 const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const publicHtml = [
-  'index.html', 'yahoo-classic.html', 'about.html', 'roadmap.html',
+  'index.html', 'yahoo-classic.html', 'about.html', 'help.html', 'roadmap.html',
   'endgame-library.html', 'endgame-trainer.html', 'polyglot.html',
   'eco.html', 'opening-database.html', 'vault.html', 'blog/index.html',
   'blog/who-is-caissa-goddess-of-chess/index.html',

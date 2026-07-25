@@ -33,8 +33,7 @@
     ]);
 
     const support = Object.freeze([
-        { id: 'help', label: 'Help', icon: 'fas fa-question-circle', action: 'help', route: '/?action=help' },
-        { id: 'settings', label: 'Settings', icon: 'fas fa-cog', action: 'settings', route: '/?action=settings' },
+        { id: 'help', label: 'Help', icon: 'fas fa-question-circle', route: '/help' },
         { id: 'about', label: 'About', icon: 'fas fa-info-circle', route: '/about' }
     ]);
 

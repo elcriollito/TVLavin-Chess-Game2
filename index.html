@@ -319,16 +319,7 @@
                 </a>
             </div>
 
-            <div class="nav-footer" data-caissa-primary-support data-navigation-mode="application">
-                <button class="nav-item" data-section="help" aria-label="Help and FAQ">
-                    <i class="fas fa-question-circle"></i>
-                    <span class="nav-label">Help</span>
-                </button>
-                <button class="nav-item" data-section="settings" aria-label="Settings section">
-                    <i class="fas fa-cog"></i>
-                    <span class="nav-label">Settings</span>
-                </button>
-            </div>
+            <div class="nav-footer" data-caissa-primary-support data-navigation-mode="application"></div>
         </nav>
 
         <!-- Content Area (replaces main-content) -->
@@ -341,7 +332,7 @@
                         <!-- TOP HEADER -->
                         <div class="cais-topbar">
                             <div class="cais-topbar-right">
-                                <button class="icon-btn caissa-ui-tooltip-host" id="topbarSettings" title="Settings" type="button" aria-label="Open settings" data-caissa-tooltip="Settings">
+                                <button class="icon-btn caissa-ui-tooltip-host" id="topbarSettings" title="Game Options" type="button" aria-label="Open game options" data-caissa-tooltip="Game Options">
                                     <i class="fas fa-cog" aria-hidden="true"></i>
                                 </button>
                                 <button class="icon-btn caissa-ui-tooltip-host" id="topbarSound" title="Sound" type="button" aria-label="Toggle sound" data-caissa-tooltip="Sound">
@@ -4008,15 +3999,15 @@
     </div>
 
     <!-- Menu Modal -->
-    <div id="menuModal" class="modal">
+    <div id="menuModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="game-options-title">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Menu</h2>
-                <button class="modal-close" data-modal="menuModal" aria-label="Close modal">&times;</button>
+                <h2 id="game-options-title">Game Options</h2>
+                <button type="button" class="modal-close" data-modal="menuModal" aria-label="Close game options">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="menu-section">
-                    <h3>Game Options</h3>
+                    <h3>Board Setup</h3>
                     <div class="menu-field">
                         <label for="menuEngineSelect">Engine</label>
                         <select id="menuEngineSelect" class="form-control" aria-label="Select engine"></select>
@@ -4039,55 +4030,11 @@
                     <button class="btn btn-block" id="menuEditBoard">
                         <i class="fas fa-edit"></i> Edit Board
                     </button>
-                    <button class="btn btn-block" id="menuAnalyzeGame">
-                        <i class="fas fa-chart-line"></i> Analyze Game
-                    </button>
                     <button class="btn btn-block" id="menuEngineVsEngine">
                         <i class="fas fa-robot"></i> Chess engine vs chess engine
                     </button>
-                </div>
-                
-                <div class="menu-section">
-                    <h3>Advanced</h3>
-                    <a href="/library" class="btn btn-block" id="menuBlogLibrary">
-                        <i class="fas fa-book-open"></i> Chess Library
-                    </a>
-                    <a href="/premium" class="btn btn-block btn-premium-menu" id="menuPremium">
-                        <i class="fas fa-crown"></i> Premium & Credits
-                    </a>
-                    <a href="/vault" class="btn btn-block" id="menuVault">
-                        <i class="fas fa-box-archive"></i> Vault - Downloads
-                    </a>
-                    <a href="/tools/polyglot" class="btn btn-block" id="menuPolyglotTool">
-                        <i class="fas fa-book-open"></i> Polyglot Book Creator
-                    </a>
-                    <button class="btn btn-block" id="menuLibrary">
-                        <i class="fas fa-book"></i> Position Library
-                    </button>
-                    <button class="btn btn-block" id="menuCaissaInsight">
-                        <i class="fas fa-chart-radar"></i> Caissa Insight
-                    </button>
-                    <button class="btn btn-block" id="menuMentor">
-                        <i class="fas fa-graduation-cap"></i> CAISSA Mentor
-                    </button>
-                    <button class="btn btn-block" id="menuCheaterInsight">
-                        <i class="fas fa-user-shield"></i> Cheater Insight
-                    </button>
-                    <button class="btn btn-block" id="menuEmbed">
-                        <i class="fas fa-code"></i> Get Embed Code
-                    </button>
                     <button class="btn btn-block" id="menuExportPGN">
                         <i class="fas fa-download"></i> Export PGN
-                    </button>
-                </div>
-
-                <div class="menu-section">
-                    <h3>Info</h3>
-                    <button class="btn btn-block" id="menuAbout">
-                        <i class="fas fa-info-circle"></i> About
-                    </button>
-                    <button class="btn btn-block" id="menuCredits">
-                        <i class="fas fa-award"></i> Credits
                     </button>
                 </div>
             </div>
@@ -4675,11 +4622,11 @@
     </section>
 
     <!-- Help / FAQ Modal -->
-    <div id="helpModal" class="modal">
+    <div id="legacyHelpContent" hidden>
         <div class="modal-content modal-large">
             <div class="modal-header">
                 <h2><i class="fas fa-question-circle"></i> Help & Quick Start</h2>
-                <button class="modal-close" data-modal="helpModal" aria-label="Close modal">&times;</button>
+                <button class="modal-close" data-modal="legacyHelpContent" aria-label="Close help">&times;</button>
             </div>
             <div class="modal-body help-modal-body">
                 <!-- Quick Start -->
@@ -4783,13 +4730,13 @@
 
                 <!-- Quick Links -->
                 <div class="help-actions">
-                    <button class="btn btn-primary" onclick="document.getElementById('helpModal').classList.remove('show'); CaissaNavigation.navigateToSection('play');">
+                    <button class="btn btn-primary" onclick="document.getElementById('legacyHelpContent').hidden = true; CaissaNavigation.navigateToSection('play');">
                         <i class="fas fa-play"></i> Start Playing
                     </button>
-                    <button class="btn btn-secondary" onclick="document.getElementById('helpModal').classList.remove('show'); CaissaNavigation.navigateToSection('analyze');">
+                    <button class="btn btn-secondary" onclick="document.getElementById('legacyHelpContent').hidden = true; CaissaNavigation.navigateToSection('analyze');">
                         <i class="fas fa-chart-line"></i> Analyze Games
                     </button>
-                    <button class="btn btn-secondary" onclick="document.getElementById('helpModal').classList.remove('show'); CaissaNavigation.openMentorPanel();">
+                    <button class="btn btn-secondary" onclick="document.getElementById('legacyHelpContent').hidden = true; CaissaNavigation.openMentorPanel();">
                         <i class="fas fa-graduation-cap"></i> Open Mentor
                     </button>
                 </div>

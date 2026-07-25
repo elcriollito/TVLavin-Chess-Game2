@@ -144,7 +144,7 @@ const CaissaNavigation = {
 
         console.log('[CAISSA Nav] Navigating from', this.currentSection, 'to', sectionId);
 
-        // Special cases: Library, Mentor, Help, and Premium
+        // Special cases: Library, Mentor, and Premium
         if (sectionId === 'library') {
             // Open library panel instead of switching section
             if (window.LibraryUI && typeof window.LibraryUI.toggle === 'function') {
@@ -156,12 +156,6 @@ const CaissaNavigation = {
         if (sectionId === 'mentor') {
             // Open Mentor AI panel instead of switching section
             this.openMentorPanel();
-            return;
-        }
-
-        if (sectionId === 'help') {
-            // Open Help/FAQ modal
-            this.openHelpModal();
             return;
         }
 
@@ -404,15 +398,16 @@ const CaissaNavigation = {
     },
 
     handleNavigationAction(action) {
-        if (action === 'help') this.openHelpModal();
         if (action === 'settings') this.openSettingsModal();
     },
 
     openRequestedAction() {
         const action = new URLSearchParams(window.location.search).get('action');
-        if (action === 'help' || action === 'settings') {
-            this.handleNavigationAction(action);
+        if (action === 'help') {
+            window.location.replace('/help');
+            return;
         }
+        if (action === 'settings') this.openSettingsModal();
     },
 
     /**
@@ -608,30 +603,13 @@ const CaissaNavigation = {
         }
     },
 
-    /**
-     * Open Help/FAQ modal
-     */
-    openHelpModal() {
-        console.log('[CAISSA Nav] Opening Help modal...');
-
-        const helpModal = document.getElementById('helpModal');
-        if (helpModal) {
-            helpModal.classList.add('show');
-        }
-
-        // Close mobile nav if open
-        if (window.innerWidth <= 768) {
-            this.closeNav();
-        }
-    },
-
     openSettingsModal() {
-        console.log('[CAISSA Nav] Opening Settings modal...');
+        console.log('[CAISSA Nav] Opening Play game options...');
+        if (this.currentSection !== 'play') this.navigateToSection('play');
         const settingsModal = document.getElementById('menuModal');
-        if (settingsModal) {
-            settingsModal.classList.add('show');
-            settingsModal.querySelector('button, input, select, [href]')?.focus?.();
-        }
+        if (typeof window.showModal === 'function') window.showModal('menuModal');
+        else settingsModal?.classList.add('show');
+        settingsModal?.querySelector('button, input, select')?.focus?.();
         if (window.innerWidth <= 768) {
             this.closeNav();
         }
