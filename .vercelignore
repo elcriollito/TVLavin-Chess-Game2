@@ -13,9 +13,11 @@ cloudflare-worker/**
 deployment/**
 downloads-worker/**
 experimental/**
+endgame-pools/authoring/**
 gateway/**
 scripts/**
 tests/**
+playwright.config.js
 tools/**
 DIAGNOSTIC.html
 DEBUG_BOARD.html

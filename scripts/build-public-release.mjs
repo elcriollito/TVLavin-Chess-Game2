@@ -13,6 +13,7 @@ const protectedFiles = new Set([
   'LAUNCH_CHESS_GAME.html',
   'PROJECT_ARCHITECTURE.md',
   'PROJECT_HISTORY.md',
+  'playwright.config.js',
   'QUICK_START.txt',
   'README.md',
   'RELEASE_PROCESS.md',
@@ -43,6 +44,7 @@ const protectedDirectories = [
   'deployment/',
   'docs/',
   'downloads-worker/',
+  'endgame-pools/authoring/',
   'experimental/',
   'gateway/',
   'knowledge/authoring/',
@@ -71,6 +73,7 @@ const requiredFiles = [
   'js/learning/review-explanations.js',
   'js/learning/released-activity-runtime.js',
   'vercel.json',
+  'public/data/endgame-pools/caissa-king-pawn-decisions/1.0.0.json',
   'knowledge/releases/rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84/release.json'
 ];
 

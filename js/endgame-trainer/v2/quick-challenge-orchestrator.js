@@ -3,11 +3,8 @@ import {
     createEndgameSession, formatElapsedTime, scoreQuickChallengeResult
 } from './endgame-v2-contracts.js';
 import {
-    QUICK_CHALLENGE_FIXTURE_POOL_FINGERPRINT,
-    QUICK_CHALLENGE_FIXTURE_POOL_ID,
-    QUICK_CHALLENGE_FIXTURE_POOL_VERSION,
-    validateQuickChallengeFixturePool
-} from './quick-challenge-fixture-pool.js';
+    validatePublishedPoolArtifact
+} from './curated-pool-validator.js';
 
 const TRANSITIONS = Object.freeze({
     configured: ['loading', 'abandoned'],
@@ -37,8 +34,15 @@ export class QuickChallengeOrchestrator {
     #locked = false;
     #generation = 0;
 
-    constructor({ items, onChange = () => {}, now = () => performance.now(), loadItem = async () => true, sessionId } = {}) {
-        if (!validateQuickChallengeFixturePool(items)) throw new TypeError('Quick Challenge fixture contract is invalid.');
+    constructor({ pool, items, onChange = () => {}, now = () => performance.now(), loadItem = async () => true, sessionId } = {}) {
+        const poolValidation = validatePublishedPoolArtifact(pool, {
+            poolId: pool?.poolId,
+            poolVersion: pool?.poolVersion,
+            contentFingerprint: pool?.contentFingerprint
+        });
+        if (!poolValidation.valid || !Array.isArray(items) || items.length !== 5 ||
+            items.some((item) => !pool.positionIds.includes(item.positionId)))
+            throw new TypeError('Quick Challenge curated pool contract is invalid.');
         this.#items = items;
         this.#onChange = onChange;
         this.#now = now;
@@ -46,10 +50,10 @@ export class QuickChallengeOrchestrator {
         const timestamp = this.#now();
         const session = createEndgameSession({
             sessionId: sessionId || `qc-${Math.floor(timestamp)}-${++sessionSequence}`,
-            sourceId: QUICK_CHALLENGE_FIXTURE_POOL_FINGERPRINT,
+            sourceId: pool.contentFingerprint,
             sourceVersion: '1.0.0',
-            poolId: QUICK_CHALLENGE_FIXTURE_POOL_ID,
-            poolVersion: QUICK_CHALLENGE_FIXTURE_POOL_VERSION,
+            poolId: pool.poolId,
+            poolVersion: pool.poolVersion,
             now: timestamp
         });
         this.#state = this.#snapshot({
@@ -76,7 +80,7 @@ export class QuickChallengeOrchestrator {
         this.#commit({
             hintUsed: true, hintLevel: 1, hintState: {
                 ...this.#state.hintState, usedThisItem: true
-            }, feedback: this.#state.item.hint
+            }, feedback: this.#state.item.hintStages[0].text
         });
         return true;
     }
@@ -89,7 +93,11 @@ export class QuickChallengeOrchestrator {
             const rules = ChessRulesFacade.fromFen(this.#state.item.fen);
             const played = rules.move({ from: intent.from, to: intent.to, promotion: intent.promotion || undefined });
             this.#transition('evaluating');
-            const correct = lan === this.#state.item.expectedMove;
+            const acceptedMoves = new Set([
+                this.#state.item.expectedLan,
+                ...this.#state.item.acceptedAlternatives.map((move) => move.lan)
+            ]);
+            const correct = acceptedMoves.has(lan);
             this.#finishItem({
                 kind: correct ? 'correct' : 'incorrect', correct,
                 playedSan: played.san, resultingFen: rules.fen()
@@ -175,7 +183,7 @@ export class QuickChallengeOrchestrator {
 
     #recordUnavailable(index, item) {
         const result = Object.freeze({
-            itemId: item.id, kind: 'unavailable', correct: false, hintUsed: false,
+            itemId: item.positionId, kind: 'unavailable', correct: false, hintUsed: false,
             points: 0, elapsedMs: 0, elapsedLabel: '0:00', playedSan: null, resultingFen: null
         });
         this.#transition('unavailable', {
@@ -193,12 +201,12 @@ export class QuickChallengeOrchestrator {
         const independent = correct && !this.#state.hintUsed;
         const currentStreak = independent ? this.#state.currentStreak + 1 : 0;
         const result = Object.freeze({
-            itemId: this.#state.item.id, kind, correct, hintUsed: this.#state.hintUsed,
+            itemId: this.#state.item.positionId, kind, correct, hintUsed: this.#state.hintUsed,
             points, elapsedMs: itemElapsedMs, elapsedLabel: formatElapsedTime(itemElapsedMs),
             playedSan, resultingFen
         });
         const feedback = correct
-            ? `${this.#state.hintUsed ? 'Solved with help' : 'Correct'}: ${this.#state.item.expectedSan}.`
+            ? `${this.#state.hintUsed ? 'Solved with help' : 'Correct'}: ${playedSan}.`
             : kind === 'skipped' ? `Skipped. The authored move is ${this.#state.item.expectedSan}.`
                 : kind === 'revealed' ? `Answer revealed: ${this.#state.item.expectedSan}. This item earns no independent points.`
                 : `The authored move is ${this.#state.item.expectedSan}.`;

@@ -28,6 +28,8 @@ dist/
 build/
 .cache/
 .public-release/
+test-results/
+playwright-report/
 
 # Temporary files
 tmp/

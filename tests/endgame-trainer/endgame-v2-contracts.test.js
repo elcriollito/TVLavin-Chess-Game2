@@ -44,8 +44,10 @@ test('mode contract exposes exactly four modes with only Quick Challenge operati
     assert.equal(validatePositionSource('curated-pool'), true);
     assert.equal(validatePositionSource('remote-code'), false);
     assert.equal(validateObjectiveId('only-move'), true);
+    assert.equal(validateObjectiveId('authored-move'), true);
     assert.equal(validateObjectiveId('win-somehow'), false);
     assert.equal(validatePoolVersion('caissa-quick-challenge-technical-pilot', '1.0.0'), true);
+    assert.equal(validatePoolVersion('caissa-king-pawn-decisions', '1.0.0'), true);
     assert.equal(validatePoolVersion('caissa-quick-challenge-technical-pilot', 'latest'), false);
 });
 

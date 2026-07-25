@@ -15,12 +15,20 @@ export const ENDGAME_OBJECTIVES = Object.freeze({
         failure: 'A different legal move is submitted.',
         terminal: 'One legal move is submitted or the item is skipped.',
         timeout: 'none'
+    }),
+    'authored-move': Object.freeze({
+        id: 'authored-move', version: '1.0.0',
+        evaluator: 'authored-exact-legal-move',
+        success: 'The legal move equals an explicitly authored accepted move.',
+        failure: 'A different legal move is submitted.',
+        terminal: 'One legal move is submitted or the item is skipped.',
+        timeout: 'none'
     })
 });
 export const ENDGAME_V2_MODES = Object.freeze([
     Object.freeze({
         id: 'quick-challenge', contractVersion: ENDGAME_MODE_CONTRACT_VERSION, label: 'Quick Challenge',
-        description: 'Solve five curated endgame positions.', defaultConfiguration: Object.freeze({ poolId: 'caissa-quick-challenge-technical-pilot' }),
+        description: 'Solve five curated endgame positions.', defaultConfiguration: Object.freeze({ poolId: 'caissa-king-pawn-decisions', poolVersion: '1.0.0' }),
         positionSource: 'curated-pool', sessionLengthPolicy: Object.freeze({ type: 'fixed', count: 5 }),
         timerPolicy: 'local-monotonic-count-up', hintPolicy: 'one-authored-hint',
         scoringPolicy: QUICK_CHALLENGE_SCORE_VERSION, evidencePolicy: 'none',
@@ -85,7 +93,10 @@ export function validateObjectiveId(objectiveId) {
 }
 
 export function validatePoolVersion(poolId, poolVersion) {
-    return poolId === 'caissa-quick-challenge-technical-pilot' && poolVersion === '1.0.0';
+    return poolVersion === '1.0.0' && [
+        'caissa-quick-challenge-technical-pilot',
+        'caissa-king-pawn-decisions'
+    ].includes(poolId);
 }
 
 export function createEndgameSession({ sessionId, sourceId, sourceVersion, poolId, poolVersion, now }) {

@@ -361,7 +361,8 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
 .endgame-v2__modes header { display: flex; justify-content: space-between; align-items: start; }
 .endgame-v2__mode-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .75rem; margin-top: 1rem; }
 .endgame-v2__mode-grid > * { display: grid; text-align: left; gap: .35rem; padding: 1rem; border: 1px solid #777; border-radius: .6rem; }
-.endgame-v2__mode-grid em { font-style: normal; color: #8a6a00; font-weight: 700; }
+.endgame-v2__mode-grid em { font-style: normal; color: #f0c94a; font-weight: 700; }
+.endgame-v2__modes .endgame-trainer-page__kicker { color: #334e9a; }
 .endgame-v2 button, .endgame-v2__modes button, .endgame-v2__modes a { min-height: 44px; }
 @media (prefers-reduced-motion: reduce) {
     .endgame-trainer-page.is-v2 *, .endgame-v2__modes * { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }

@@ -27,7 +27,7 @@ test('accessible modes surface contains four non-duplicated destinations and clo
 test('V2 creates one board adapter and does not import engine or persistence modules', () => {
     assert.equal((page.match(/new EndgameBoardView/g) || []).length, 1);
     assert.doesNotMatch(page, /Stockfish|safe-engine|progress-store|training-memory|localStorage/);
-    assert.match(html, /Results stay on this page/);
+    assert.match(html, /results stay on this page/i);
     assert.match(html, /data-v2-summary/);
     assert.match(html, /data-v2-replay/);
 });

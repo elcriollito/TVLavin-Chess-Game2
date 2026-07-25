@@ -1,7 +1,9 @@
 import { ChessRulesFacade } from '../chess-rules-facade.js';
 import { EndgameBoardView } from '../endgame-board-view.js';
 import { formatElapsedTime } from './endgame-v2-contracts.js';
-import { getQuickChallengeSession } from './quick-challenge-fixture-pool.js';
+import {
+    DEFAULT_CURATED_POOL, loadCuratedPool, selectCuratedPositions
+} from './curated-pool-consumer.js';
 import { QuickChallengeOrchestrator } from './quick-challenge-orchestrator.js';
 
 let mounted = null;
@@ -36,6 +38,7 @@ export function mountEndgameTrainerV2Page({ document: doc = globalThis.document,
         element: boardElement,
         rulesFactory: (fen) => fen ? ChessRulesFacade.fromFen(fen) : new ChessRulesFacade(),
         onMove: (intent) => {
+            if (!orchestrator) return false;
             const accepted = orchestrator.submitMove(intent);
             const result = orchestrator.getState().results.at(-1);
             if (accepted && result?.resultingFen) board.setPosition(result.resultingFen, intent);
@@ -54,7 +57,7 @@ export function mountEndgameTrainerV2Page({ document: doc = globalThis.document,
         setText(root, '[data-v2-streak]', state.currentStreak);
         setText(root, '[data-v2-time]', formatElapsedTime(state.elapsedMs));
         setText(root, '[data-v2-item-label]', state.item ? `Position ${state.index + 1} of 5 · ${state.item.title}` : state.phase === 'completed' ? 'Session complete' : 'Ready for a five-position session.');
-        setText(root, '[data-v2-objective]', state.item?.objective || (state.phase === 'completed' ? `Final local practice score: ${state.score}` : 'Find the only move.'));
+        setText(root, '[data-v2-objective]', state.item?.objective?.label || (state.phase === 'completed' ? `Final local practice score: ${state.score}` : 'Find the authored move.'));
         setText(root, '[data-v2-feedback]', state.feedback);
         setAction(root, 'start', state.phase === 'ready');
         setAction(root, 'hint', active, state.hintLevel >= 2);
@@ -81,30 +84,55 @@ export function mountEndgameTrainerV2Page({ document: doc = globalThis.document,
         board.setInteractive(active);
         root.dataset.state = `v2-${state.phase}`;
     };
-    orchestrator = new QuickChallengeOrchestrator({
-        items: getQuickChallengeSession(),
-        loadItem: async (item) => {
-            board.setPosition(item.fen);
-            board.setOrientation(item.sideToMove);
-            return true;
-        },
-        onChange: (state) => {
-        render(state);
-    } });
-    render(orchestrator.getState());
-
-    root.querySelector('[data-v2-action="start"]')?.addEventListener('click', () => orchestrator.start(), { signal });
-    root.querySelector('[data-v2-action="hint"]')?.addEventListener('click', () => orchestrator.revealHint(), { signal });
-    root.querySelector('[data-v2-action="skip"]')?.addEventListener('click', () => orchestrator.skip(), { signal });
-    root.querySelector('[data-v2-action="continue"]')?.addEventListener('click', () => orchestrator.continue(), { signal });
-    root.querySelector('[data-v2-action="retry"]')?.addEventListener('click', () => orchestrator.retry(), { signal });
+    let poolPromise = null;
+    const getPool = () => {
+        if (!poolPromise) {
+            poolPromise = loadCuratedPool({
+                ...DEFAULT_CURATED_POOL,
+                fetchImpl: win.fetch?.bind(win)
+            });
+        }
+        return poolPromise;
+    };
+    const startButton = root.querySelector('[data-v2-action="start"]');
+    startButton?.addEventListener('click', async () => {
+        if (orchestrator || startButton.disabled) return;
+        startButton.disabled = true;
+        setText(root, '[data-v2-feedback]', 'Loading curated positions…');
+        try {
+            const pool = await getPool();
+            const sessionId = `qc-${Date.now()}`;
+            const items = selectCuratedPositions(pool, { count: 5, seed: sessionId });
+            orchestrator = new QuickChallengeOrchestrator({
+                pool, items, sessionId,
+                loadItem: async (item) => {
+                    board.setPosition(item.fen);
+                    board.setOrientation(item.sideToMove);
+                    return true;
+                },
+                onChange: render
+            });
+            if (mounted) mounted.orchestrator = orchestrator;
+            render(orchestrator.getState());
+            await orchestrator.start();
+        } catch {
+            poolPromise = null;
+            startButton.disabled = false;
+            setText(root, '[data-v2-feedback]', 'Curated positions are unavailable. Return to Custom Lab or try again later.');
+            root.dataset.state = 'v2-unavailable';
+        }
+    }, { signal });
+    root.querySelector('[data-v2-action="hint"]')?.addEventListener('click', () => orchestrator?.revealHint(), { signal });
+    root.querySelector('[data-v2-action="skip"]')?.addEventListener('click', () => orchestrator?.skip(), { signal });
+    root.querySelector('[data-v2-action="continue"]')?.addEventListener('click', () => orchestrator?.continue(), { signal });
+    root.querySelector('[data-v2-action="retry"]')?.addEventListener('click', () => orchestrator?.retry(), { signal });
     root.querySelector('[data-v2-action="abandon"]')?.addEventListener('click', () => {
-        if (orchestrator.abandon()) win.location.assign('/endgame-trainer');
+        if (orchestrator?.abandon()) win.location.assign('/endgame-trainer');
     }, { signal });
     root.querySelector('[data-v2-replay]')?.addEventListener('click', () => win.location.reload(), { signal });
     const timer = win.setInterval?.(() => {
-        orchestrator.tick();
-        setText(root, '[data-v2-time]', formatElapsedTime(orchestrator.getState().elapsedMs));
+        orchestrator?.tick();
+        if (orchestrator) setText(root, '[data-v2-time]', formatElapsedTime(orchestrator.getState().elapsedMs));
     }, 250);
 
     const dialog = root.querySelector('[data-v2-modes-dialog]');
@@ -127,7 +155,8 @@ export function mountEndgameTrainerV2Page({ document: doc = globalThis.document,
         if (!mode) return;
         if (mode.dataset.v2Mode === 'quick-challenge') { closeDialog(); return; }
         const href = mode.dataset.v2Href;
-        const activeSession = !['configured', 'completed', 'abandoned'].includes(orchestrator.getState().phase);
+        const activeSession = orchestrator &&
+            !['configured', 'completed', 'abandoned'].includes(orchestrator.getState().phase);
         if (!activeSession) { win.location.assign(href); return; }
         leave.href = href; modeList.hidden = true; confirm.hidden = false; confirm.querySelector('h2')?.focus?.();
     }, { signal });
@@ -142,7 +171,7 @@ export function mountEndgameTrainerV2Page({ document: doc = globalThis.document,
 export function unmountEndgameTrainerV2Page() {
     if (!mounted) return false;
     mounted.abort.abort();
-    mounted.orchestrator.abandon();
+    mounted.orchestrator?.abandon();
     mounted.window.clearInterval?.(mounted.timer);
     mounted.board.dispose();
     mounted.root.classList.remove('is-v2');

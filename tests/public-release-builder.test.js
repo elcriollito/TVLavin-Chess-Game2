@@ -18,6 +18,7 @@ test('public release excludes internal architecture and authored Knowledge sourc
     'PROJECT_ARCHITECTURE.md',
     'knowledge/AUTHORING.md',
     'knowledge/domains/endgames/example/unit.js',
+    'endgame-pools/authoring/pools/private.json',
     'knowledge/schema/knowledge-unit.js',
     'knowledge/consumer/library-reader.js',
     'DIAGNOSTIC.html',
@@ -63,7 +64,8 @@ test('public release preserves runtime pages and immutable release assets', () =
     'js/learning/learning-progress-contracts.js',
     'js/learning/guided-study-event-session.js',
     'knowledge/releases/rel-example/release.json',
-    'knowledge/generated/endgames-library-browser.json'
+    'knowledge/generated/endgames-library-browser.json',
+    'public/data/endgame-pools/caissa-king-pawn-decisions/1.0.0.json'
   ]) assert.equal(isProtectedPublicPath(path), false, `${path} was incorrectly protected`);
 });
 
@@ -71,7 +73,7 @@ test('committed-tree audit has no protected paths and all required runtime files
   const files = trackedPublicFiles();
   const result = auditPublicFiles(files);
   assert.equal(result.protectedPaths, 0);
-  assert.equal(result.requiredPaths, 12);
+  assert.equal(result.requiredPaths, 13);
   assert.ok(result.files > 500);
 });
 
