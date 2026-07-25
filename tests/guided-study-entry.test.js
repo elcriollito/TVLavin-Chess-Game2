@@ -60,12 +60,19 @@ test('study model exposes only released instructional content and a Library retu
   assert.equal(model.prompts[0], eligible.localization.content['en-US'].coachingPrompts[0]);
   assert.ok(model.learningObjectIds.includes('guided:exchange-passer:orders'));
   assert.ok(model.assessmentItemIds.includes('assessment:exchange-passer:three-of-four'));
+  assert.ok(model.activities.filter(activity => activity.activityType === 'assessment')
+    .every(activity => model.assessmentItemIds.includes(activity.sourceLearningObjectId)));
   assert.equal(model.returnHref, '/endgame-library?unit=endgames%2Fexchange-into-passer');
 });
 
 test('all 17 pinned released units satisfy objective Guided Study eligibility', () => {
   assert.equal(units.length, 17);
   assert.equal(units.filter(isGuidedStudyEligible).length, 17);
+  for (const unit of units) {
+    const model = createGuidedStudyModel(unit);
+    assert.ok(model.activities.filter(activity => activity.activityType === 'assessment')
+      .every(activity => model.assessmentItemIds.includes(activity.sourceLearningObjectId)));
+  }
 });
 
 test('loader fails safely before fetching on malformed or mismatched state', async () => {

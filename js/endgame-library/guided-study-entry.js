@@ -44,6 +44,10 @@ export function parseGuidedStudyRequest(search = '') {
 export function createGuidedStudyModel(unit, summary) {
   if (!isGuidedStudyEligible(unit)) return null;
   const copy = unit.localization.content[unit.localization.defaultLocale];
+  const activities = deriveReleasedActivities(unit, PINNED_RELEASE.id);
+  const releasedAssessmentIds = activities
+    .filter(activity => activity.activityType === 'assessment')
+    .map(activity => activity.sourceLearningObjectId);
   return Object.freeze({
     releaseId: PINNED_RELEASE.id,
     unitId: unit.id,
@@ -53,9 +57,12 @@ export function createGuidedStudyModel(unit, summary) {
     explanation: copy.explanation,
     prompts: clone(copy.coachingPrompts),
     positions: clone(unit.positions.filter(position => position.validation?.structural === 'valid')),
-    activities: clone(deriveReleasedActivities(unit, PINNED_RELEASE.id)),
+    activities: clone(activities),
     learningObjectIds: clone(Object.values(unit.learningObjects || {}).flat().map(item => item.id).filter(Boolean)),
-    assessmentItemIds: clone((unit.learningObjects?.assessments || []).map(item => item.id).filter(Boolean)),
+    assessmentItemIds: clone([...new Set([
+      ...(unit.learningObjects?.assessments || []).map(item => item.id).filter(Boolean),
+      ...releasedAssessmentIds
+    ])]),
     reviewUnit: Object.freeze({
       id: unit.id,
       relationships: clone(unit.relationships || []),
