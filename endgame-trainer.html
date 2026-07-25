@@ -44,6 +44,48 @@
         <header class="endgame-trainer-page__workspace-header"><div><p class="endgame-trainer-page__kicker">Learn · Play · Solve</p><h2 id="training-workspace-title">Training Workspace</h2></div><p>Keep the lesson, position, coaching, and session together.</p></header>
         <div class="endgame-trainer-page__grid">
             <section class="endgame-trainer-page__board-panel" aria-labelledby="board-title">
+                <section class="endgame-v2" data-endgame-v2-shell hidden aria-labelledby="endgame-v2-title">
+                    <header class="endgame-v2__header">
+                        <div><p class="endgame-trainer-page__kicker">Season 10.1 preview</p><h1 id="endgame-v2-title">Quick Challenge</h1></div>
+                        <button type="button" data-v2-open-modes aria-haspopup="dialog">Modes</button>
+                    </header>
+                    <p class="endgame-v2__disclosure">Technical pilot: five authored positions, no engine or tablebase verification. Results stay on this page and are not saved as learning evidence.</p>
+                    <div class="endgame-v2__metrics" aria-label="Quick Challenge session">
+                        <span><strong data-v2-progress>0 / 5</strong> Position</span>
+                        <span><strong data-v2-score>0</strong> Local practice score</span>
+                        <span><strong data-v2-streak>0</strong> Independent streak</span>
+                        <span><strong data-v2-time>0:00</strong> Local timer</span>
+                    </div>
+                    <div class="endgame-v2__objective">
+                        <p data-v2-item-label>Ready for a five-position session.</p>
+                        <h2 data-v2-objective>Find the only move.</h2>
+                    </div>
+                    <div class="endgame-v2__actions">
+                        <button type="button" data-v2-action="start">Start Challenge</button>
+                        <button type="button" data-v2-action="hint" hidden>Hint</button>
+                        <button type="button" data-v2-action="skip" hidden>Skip</button>
+                        <button type="button" data-v2-action="continue" hidden>Continue</button>
+                        <button type="button" data-v2-action="retry" hidden>Retry</button>
+                        <button type="button" data-v2-action="abandon" hidden>Exit challenge</button>
+                    </div>
+                    <p class="endgame-v2__feedback" data-v2-feedback role="status" aria-live="polite"></p>
+                    <section class="endgame-v2__summary" data-v2-summary hidden aria-labelledby="v2-summary-title">
+                        <h2 id="v2-summary-title" tabindex="-1">Local practice summary</h2>
+                        <dl>
+                            <div><dt>Positions completed</dt><dd data-v2-summary-completed>0</dd></div>
+                            <div><dt>Successful objectives</dt><dd data-v2-summary-successful>0</dd></div>
+                            <div><dt>Independent successes</dt><dd data-v2-summary-independent>0</dd></div>
+                            <div><dt>Hint-assisted successes</dt><dd data-v2-summary-assisted>0</dd></div>
+                            <div><dt>Skipped</dt><dd data-v2-summary-skipped>0</dd></div>
+                            <div><dt>Unavailable</dt><dd data-v2-summary-unavailable>0</dd></div>
+                            <div><dt>Local practice score</dt><dd data-v2-summary-score>0</dd></div>
+                            <div><dt>Best independent streak</dt><dd data-v2-summary-streak>0</dd></div>
+                            <div><dt>Local elapsed time</dt><dd data-v2-summary-time>0:00</dd></div>
+                        </dl>
+                        <p>Not a rating, rank, Mastery result, or cloud-saved record.</p>
+                        <div><button type="button" data-v2-replay>Replay</button><a href="/endgame-trainer" data-v2-exit>Exit to Custom Lab</a></div>
+                    </section>
+                </section>
                 <h2 id="board-title">Training board</h2>
                 <div class="endgame-trainer-page__board-stage">
                     <div class="endgame-trainer-page__board" data-board tabindex="0" aria-label="Endgame training board"></div>
@@ -281,6 +323,22 @@
     <dialog class="endgame-trainer-page__promotion" data-promotion aria-labelledby="promotion-title"><h2 id="promotion-title">Choose promotion</h2><div><button data-promotion-piece="q">Queen</button><button data-promotion-piece="r">Rook</button><button data-promotion-piece="b">Bishop</button><button data-promotion-piece="n">Knight</button><button data-promotion-piece="">Cancel</button></div></dialog>
     <dialog class="endgame-trainer-page__reset-dialog" data-reset-dialog aria-labelledby="reset-title"><h2 id="reset-title">Reset local progress?</h2><p>This removes Endgame Trainer progress stored in this browser.</p><div><button type="button" data-reset-cancel>Cancel</button><button type="button" data-reset-confirm>Reset progress</button></div></dialog>
     <dialog class="endgame-trainer-page__switch-dialog" data-guided-switch-dialog aria-labelledby="switch-title"><h2 id="switch-title">Leave the active lesson?</h2><p>Your current guided attempt will be recorded as abandoned before the next lesson is prepared.</p><div><button type="button" data-guided-switch-cancel>Keep current lesson</button><button type="button" data-guided-switch-confirm>Continue</button></div></dialog>
+    <dialog class="endgame-v2__modes" data-v2-modes-dialog aria-labelledby="v2-modes-title">
+        <div data-v2-mode-list>
+            <header><div><p class="endgame-trainer-page__kicker">Endgame Trainer V2</p><h2 id="v2-modes-title">Modes</h2></div><button type="button" data-v2-close-modes aria-label="Close modes">×</button></header>
+            <div class="endgame-v2__mode-grid">
+                <button type="button" data-v2-mode="quick-challenge"><strong>Quick Challenge</strong><span>Five focused positions</span><em>Available now</em></button>
+                <button type="button" data-v2-mode="knowledge-practice" data-v2-href="/endgame-library"><strong>Knowledge Practice</strong><span>Study released endgame lessons</span><em>Open Library</em></button>
+                <div class="endgame-v2__mode-card" aria-disabled="true"><strong>Endgame Run</strong><span>A longer challenge format</span><em>Coming later</em></div>
+                <button type="button" data-v2-mode="custom-lab" data-v2-href="/endgame-trainer"><strong>Custom Lab</strong><span>Use the current configurable trainer</span><em>Open V1</em></button>
+            </div>
+        </div>
+        <section data-v2-leave-confirm hidden aria-labelledby="v2-leave-title">
+            <h2 id="v2-leave-title" tabindex="-1">Leave this Quick Challenge?</h2>
+            <p>The current preview session is ephemeral and will be discarded.</p>
+            <div><button type="button" data-v2-stay>Stay</button><a href="/endgame-library" data-v2-leave>Leave session</a></div>
+        </section>
+    </dialog>
 </div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>

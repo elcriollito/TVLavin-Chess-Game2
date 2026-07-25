@@ -708,4 +708,19 @@ export function mountEndgameTrainerPage(options = {}) {
 
 export function unmountEndgameTrainerPage() { if (!mounted) return false; mounted.abandon(); mounted.page.pilotSession?.dispose(); mounted.page.disposed = true; update(mounted.root, mounted.page, mounted.runtime?.binding.getState()); mounted.promo.cancel(); if (mounted.resetDialog?.open) mounted.resetDialog.close(); mounted.abort.abort(); mounted.closeNav(); mounted.runtime?.dispose(); mounted.page.progressStore.dispose(); mounted.page.runtimeAttached = false; mounted.page.mounted = false; mounted = null; return true; }
 export function getEndgameTrainerPageState() { return mounted ? publicPage(mounted.page) : { mounted: false, navOpen: false, runtimeAttached: false, operation: null, hint: null, error: null, disposed: true, controllerState: null, progress: null }; }
-if (globalThis.document) { const start = () => mountEndgameTrainerPage(); document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', start, { once: true }) : start(); globalThis.addEventListener?.('pagehide', () => unmountEndgameTrainerPage(), { once: true }); }
+if (globalThis.document) {
+    const start = async () => {
+        const { shouldActivateEndgameV2 } = await import('./v2/endgame-v2-contracts.js');
+        if (shouldActivateEndgameV2(globalThis.location?.search ?? '')) {
+            const { mountEndgameTrainerV2Page, unmountEndgameTrainerV2Page } = await import('./v2/endgame-trainer-v2-page.js');
+            mountEndgameTrainerV2Page();
+            globalThis.addEventListener?.('pagehide', () => unmountEndgameTrainerV2Page(), { once: true });
+            return;
+        }
+        mountEndgameTrainerPage();
+        globalThis.addEventListener?.('pagehide', () => unmountEndgameTrainerPage(), { once: true });
+    };
+    document.readyState === 'loading'
+        ? document.addEventListener('DOMContentLoaded', () => { void start(); }, { once: true })
+        : void start();
+}

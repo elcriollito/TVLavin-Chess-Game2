@@ -333,3 +333,44 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
 .endgame-trainer-page__pilot-player fieldset { margin: .75rem 0; }
 .endgame-trainer-page__pilot-player [data-pilot-options] { display: flex; flex-wrap: wrap; gap: .5rem; }
 .endgame-trainer-page__pilot-feedback { min-height: 1.5em; }
+/* Season 10.1 V2 is query-flagged; these rules do not affect the default V1 shell. */
+.endgame-trainer-page.is-v2 .endgame-trainer-page__header,
+.endgame-trainer-page.is-v2 .endgame-trainer-page__workspace-header,
+.endgame-trainer-page.is-v2 .endgame-trainer-page__setup,
+.endgame-trainer-page.is-v2 .endgame-trainer-page__session,
+.endgame-trainer-page.is-v2 [data-progress-workspace],
+.endgame-trainer-page.is-v2 [data-diagnostic-state],
+.endgame-trainer-page.is-v2 [data-action-group],
+.endgame-trainer-page.is-v2 [data-empty-board-overlay] { display: none !important; }
+.endgame-trainer-page.is-v2 .endgame-trainer-page__grid { grid-template-columns: minmax(0, 760px); justify-content: center; }
+.endgame-trainer-page.is-v2 .endgame-trainer-page__board-panel > #board-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+.endgame-v2 { display: grid; gap: 1rem; margin-bottom: 1rem; }
+.endgame-v2[hidden] { display: none; }
+.endgame-v2__header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.endgame-v2__header h1, .endgame-v2__objective h2 { margin: .15rem 0; }
+.endgame-v2__disclosure { padding: .75rem; border-left: 3px solid #c9a227; background: rgba(201,162,39,.1); }
+.endgame-v2__metrics { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: .65rem; }
+.endgame-v2__metrics span { display: grid; gap: .2rem; padding: .65rem; border: 1px solid rgba(127,127,127,.3); border-radius: .5rem; }
+.endgame-v2__actions { display: flex; flex-wrap: wrap; gap: .6rem; }
+.endgame-v2__feedback { min-height: 1.5em; font-weight: 600; }
+.endgame-v2__summary dl { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .5rem; }
+.endgame-v2__summary dl div { display: flex; justify-content: space-between; gap: .75rem; padding: .5rem; border-bottom: 1px solid rgba(127,127,127,.3); }
+.endgame-v2__summary > div { display: flex; flex-wrap: wrap; gap: .75rem; }
+.endgame-v2__modes { width: min(720px,calc(100vw - 2rem)); border: 0; border-radius: .75rem; padding: 1.25rem; }
+.endgame-v2__modes::backdrop { background: rgba(0,0,0,.65); }
+.endgame-v2__modes header { display: flex; justify-content: space-between; align-items: start; }
+.endgame-v2__mode-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .75rem; margin-top: 1rem; }
+.endgame-v2__mode-grid > * { display: grid; text-align: left; gap: .35rem; padding: 1rem; border: 1px solid #777; border-radius: .6rem; }
+.endgame-v2__mode-grid em { font-style: normal; color: #8a6a00; font-weight: 700; }
+.endgame-v2 button, .endgame-v2__modes button, .endgame-v2__modes a { min-height: 44px; }
+@media (prefers-reduced-motion: reduce) {
+    .endgame-trainer-page.is-v2 *, .endgame-v2__modes * { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+@media (max-width: 700px) {
+    .endgame-v2__metrics, .endgame-v2__mode-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .endgame-v2__modes { width: calc(100vw - 1rem); max-height: calc(100dvh - 1rem); overflow: auto; padding: max(1rem,env(safe-area-inset-top)) max(1rem,env(safe-area-inset-right)) max(1rem,env(safe-area-inset-bottom)) max(1rem,env(safe-area-inset-left)); }
+}
+@media (max-width: 430px) {
+    .endgame-v2__metrics, .endgame-v2__mode-grid, .endgame-v2__summary dl { grid-template-columns: 1fr; }
+    .endgame-v2__header { align-items: flex-start; }
+}
