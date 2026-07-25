@@ -1,5 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
+const externalBaseUrl = process.env.PLAYWRIGHT_BASE_URL;
+
 export default defineConfig({
     testDir: './tests/browser',
     timeout: 45_000,
@@ -8,13 +10,13 @@ export default defineConfig({
     workers: 1,
     reporter: 'line',
     use: {
-        baseURL: 'http://127.0.0.1:8000',
+        baseURL: externalBaseUrl || 'http://127.0.0.1:8000',
         headless: true,
         trace: 'off',
         screenshot: 'off',
         video: 'off'
     },
-    webServer: {
+    webServer: externalBaseUrl ? undefined : {
         command: 'node server.js',
         url: 'http://127.0.0.1:8000/endgame-trainer',
         reuseExistingServer: true,

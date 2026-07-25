@@ -72,6 +72,7 @@ test('feature flag starts and completes a five-position curated challenge', asyn
 test('incorrect move, hint, reveal answer, and Continue are truthful', async ({ page }) => {
     await openV2(page);
     await page.locator('[data-v2-action="start"]').click();
+    await expect(page.locator('[data-v2-item-label]')).toContainText('1 of 5');
     const position = await currentPosition(page);
     const accepted = new Set([position.expectedLan, ...position.acceptedAlternatives.map(({ lan }) => lan)]);
     const source = position.expectedLan.slice(0, 2);
