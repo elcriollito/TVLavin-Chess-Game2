@@ -32,6 +32,12 @@
             { id: 'blog', label: 'Blog', icon: 'fas fa-rss', route: '/blog' }
         ])
     ]);
+    const groupLabels = Object.freeze([
+        'Learning',
+        'Play & Watch',
+        'Tools & Databases',
+        'Community'
+    ]);
 
     const support = Object.freeze([
         { id: 'help', label: 'Help', icon: 'fas fa-question-circle', route: '/help' },
@@ -75,8 +81,14 @@
     }
 
     function renderGroups(options = {}) {
-        return groups.map((group) => group.map((item) => renderItem(item, options)).join(''))
-            .join('<div class="nav-divider" aria-hidden="true"></div>');
+        return groups.map((group, index) => {
+            const items = group.map((item) => renderItem(item, options)).join('');
+            if (!options.showHeadings) return items;
+            return `<section class="nav-group" aria-labelledby="caissa-nav-group-${index}">
+                <h2 class="nav-group-heading nav-label" id="caissa-nav-group-${index}">${groupLabels[index]}</h2>
+                ${items}
+            </section>`;
+        }).join('<div class="nav-divider" aria-hidden="true"></div>');
     }
 
     function renderSupport(options = {}) {
@@ -89,6 +101,7 @@
 
     const api = Object.freeze({
         inventory,
+        groupLabels,
         renderGroups,
         renderSupport,
         renderConnect

@@ -5,7 +5,7 @@
         const navigation = window.CaissaPrimaryNavigation;
         if (!navigation) throw new Error('CAISSA primary navigation inventory is unavailable.');
         const activeKey = host.dataset.active || '';
-        const renderOptions = { activeKey, mode: 'routes' };
+        const renderOptions = { activeKey, mode: 'routes', showHeadings: true };
         const items = navigation.renderGroups(renderOptions);
 
         host.classList.add('caissa-standalone-sidebar-host');
@@ -49,13 +49,18 @@
                     </a>
                 </div>
                 <div class="nav-items">${items}${navigation.renderConnect(renderOptions)}</div>
-                <div class="nav-footer">${navigation.renderSupport(renderOptions)}</div>
-            </nav>`;
+                <div class="nav-footer">
+                    <h2 class="nav-group-heading nav-label">Support</h2>
+                    ${navigation.renderSupport(renderOptions)}
+                </div>
+            </nav>
+            <div class="caissa-standalone-backdrop" aria-hidden="true"></div>`;
 
         const nav = host.querySelector('.main-navigation');
         const collapseButton = host.querySelector('.nav-collapse-btn');
         const mobileToggle = host.querySelector('.caissa-standalone-mobile-toggle');
-        const activeItem = host.querySelector('.nav-items > .active');
+        const backdrop = host.querySelector('.caissa-standalone-backdrop');
+        const activeItem = host.querySelector('.nav-items .active');
         if (activeItem) {
             const itemList = activeItem.closest('.nav-items');
             itemList.scrollTop = Math.max(0, activeItem.offsetTop - itemList.clientHeight + activeItem.offsetHeight + 12);
@@ -70,14 +75,21 @@
 
         function closeMobileNav() {
             host.classList.remove('is-open');
+            document.body.classList.remove('caissa-standalone-nav-open');
             mobileToggle.setAttribute('aria-expanded', 'false');
             mobileToggle.setAttribute('aria-label', 'Open navigation menu');
         }
 
         mobileToggle.addEventListener('click', () => {
             const open = host.classList.toggle('is-open');
+            document.body.classList.toggle('caissa-standalone-nav-open', open);
             mobileToggle.setAttribute('aria-expanded', String(open));
             mobileToggle.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
+            if (open) nav.querySelector('a, button')?.focus();
+        });
+        backdrop.addEventListener('click', () => {
+            closeMobileNav();
+            mobileToggle.focus();
         });
         nav.addEventListener('click', (event) => {
             if (event.target.closest('a') && window.innerWidth <= 768) closeMobileNav();
@@ -89,6 +101,19 @@
             if (event.key === 'Escape' && host.classList.contains('is-open')) {
                 closeMobileNav();
                 mobileToggle.focus();
+            }
+            if (event.key === 'Tab' && host.classList.contains('is-open')) {
+                const focusable = [mobileToggle, ...nav.querySelectorAll('a[href], button:not([hidden]):not([disabled])')]
+                    .filter((element) => element.getClientRects().length);
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
             }
         });
     }
