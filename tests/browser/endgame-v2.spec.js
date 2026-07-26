@@ -140,11 +140,28 @@ test('V1 default and Guided Study precedence remain intact', async ({ page }) =>
 });
 
 test('mobile, 200 percent zoom, touch targets, and reduced motion remain bounded', async ({ page }) => {
-    for (const width of [320, 375, 390, 768, 1024, 1440]) {
-        await page.setViewportSize({ width, height: width < 500 ? 844 : 900 });
+    const matrix = [[320,568],[375,667],[390,844],[768,1024],[820,1180],[1024,768],[1280,720],[1440,900],[1920,1080]];
+    for (const [width, height] of matrix) {
+        await page.setViewportSize({ width, height });
         await openV2(page);
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
         expect(overflow).toBeLessThanOrEqual(1);
+        const order = await page.evaluate(() => {
+            const top = (selector) => document.querySelector(selector).getBoundingClientRect().top;
+            return {
+                metrics: top('.endgame-v2__metrics'),
+                objective: top('.endgame-v2__objective'),
+                board: top('.endgame-trainer-page__board-stage'),
+                feedback: top('.endgame-v2__feedback'),
+                actions: top('.endgame-v2__actions')
+            };
+        });
+        if (width <= 1024) {
+            expect(order.metrics).toBeLessThan(order.objective);
+            expect(order.objective).toBeLessThan(order.board);
+            expect(order.board).toBeLessThanOrEqual(order.feedback);
+            expect(order.feedback).toBeLessThanOrEqual(order.actions);
+        }
     }
     await page.setViewportSize({ width: 390, height: 844 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -155,6 +172,23 @@ test('mobile, 200 percent zoom, touch targets, and reduced motion remain bounded
     const duration = await page.locator('[data-v2-action="start"]').evaluate((element) =>
         getComputedStyle(element).transitionDuration);
     expect(Number.parseFloat(duration)).toBeLessThanOrEqual(0.00001);
+});
+
+test('desktop is board-first with one primary action and only released mode destinations', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openV2(page);
+    const geometry = await page.evaluate(() => {
+        const board = document.querySelector('.endgame-trainer-page__board-stage').getBoundingClientRect();
+        const objective = document.querySelector('.endgame-v2__objective').getBoundingClientRect();
+        return { boardWidth: board.width, contentWidth: board.width + objective.width, aligned: Math.abs(board.top - document.querySelector('.endgame-v2__metrics').getBoundingClientRect().top) < 2 };
+    });
+    expect(geometry.boardWidth / geometry.contentWidth).toBeGreaterThanOrEqual(.55);
+    expect(geometry.boardWidth / geometry.contentWidth).toBeLessThanOrEqual(.65);
+    expect(geometry.aligned).toBe(true);
+    expect(await page.locator('[data-action-priority="primary"]:visible').count()).toBe(1);
+    await page.locator('[data-v2-open-modes]').click();
+    await expect(page.locator('[data-v2-mode]')).toHaveCount(3);
+    await expect(page.locator('[data-v2-modes-dialog]')).not.toContainText('Coming later');
 });
 
 test('V2 shell and Modes dialog have no automated axe violations', async ({ page }) => {

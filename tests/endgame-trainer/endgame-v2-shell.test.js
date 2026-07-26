@@ -14,11 +14,12 @@ test('V2 shell is present but hidden for default and cold V1 loads', () => {
     assert.match(entry, /mountEndgameTrainerPage\(\)/);
 });
 
-test('accessible modes surface contains four non-duplicated destinations and close control', () => {
+test('accessible modes surface contains only available non-duplicated destinations and close control', () => {
     assert.equal((html.match(/data-v2-mode="/g) || []).length, 3);
     assert.match(html, /data-v2-close-modes aria-label="Close modes"/);
-    assert.match(html, /Endgame Run/);
-    assert.match(html, /Coming later/);
+    const modesDialog = html.match(/data-v2-modes-dialog[\s\S]*?<\/dialog>/)?.[0] || '';
+    assert.doesNotMatch(modesDialog, /Coming later/);
+    assert.match(html, /aria-current="true"/);
     assert.match(page, /dialog\?\.addEventListener\('close'/);
     assert.match(page, /opener\?\.focus/);
     assert.match(page, /activeSession/);

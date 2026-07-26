@@ -56,7 +56,7 @@
                         <span><strong data-v2-streak>0</strong> Independent streak</span>
                         <span><strong data-v2-time>0:00</strong> Local timer</span>
                     </div>
-                    <div class="endgame-v2__objective">
+                    <div class="endgame-v2__objective" aria-live="polite">
                         <p data-v2-item-label>Ready for a five-position session.</p>
                         <h2 data-v2-objective>Find the authored move.</h2>
                     </div>
@@ -68,7 +68,7 @@
                         <button type="button" data-v2-action="retry" hidden>Retry</button>
                         <button type="button" data-v2-action="abandon" hidden>Exit challenge</button>
                     </div>
-                    <p class="endgame-v2__feedback" data-v2-feedback role="status" aria-live="polite"></p>
+                    <p class="endgame-v2__feedback" data-v2-feedback data-tone="neutral" role="status" aria-live="polite"></p>
                     <section class="endgame-v2__summary" data-v2-summary hidden aria-labelledby="v2-summary-title">
                         <h2 id="v2-summary-title" tabindex="-1">Local practice summary</h2>
                         <dl>
@@ -327,9 +327,8 @@
         <div data-v2-mode-list>
             <header><div><p class="endgame-trainer-page__kicker">Endgame Trainer V2</p><h2 id="v2-modes-title">Modes</h2></div><button type="button" data-v2-close-modes aria-label="Close modes">×</button></header>
             <div class="endgame-v2__mode-grid">
-                <button type="button" data-v2-mode="quick-challenge"><strong>Quick Challenge</strong><span>Five focused positions</span><em>Available now</em></button>
+                <button type="button" data-v2-mode="quick-challenge" aria-current="true"><strong>Quick Challenge</strong><span>Five focused positions</span><em>Current mode</em></button>
                 <button type="button" data-v2-mode="knowledge-practice" data-v2-href="/endgame-library"><strong>Knowledge Practice</strong><span>Study released endgame lessons</span><em>Open Library</em></button>
-                <div class="endgame-v2__mode-card" aria-disabled="true"><strong>Endgame Run</strong><span>A longer challenge format</span><em>Coming later</em></div>
                 <button type="button" data-v2-mode="custom-lab" data-v2-href="/endgame-trainer"><strong>Custom Lab</strong><span>Use the current configurable trainer</span><em>Open V1</em></button>
             </div>
         </div>

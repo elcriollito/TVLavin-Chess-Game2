@@ -22,6 +22,28 @@ function setAction(root, action, visible, disabled = false) {
     button.disabled = disabled;
 }
 
+function setPresentationState(root, phase, feedback = '') {
+    const primaryByPhase = {
+        ready: 'start',
+        feedback: 'continue',
+        unavailable: 'continue',
+        recovering: 'retry',
+        error: 'retry'
+    };
+    root.querySelectorAll('[data-v2-action]').forEach((button) => {
+        if (button.hidden) {
+            delete button.dataset.actionPriority;
+            return;
+        }
+        button.dataset.actionPriority = button.dataset.v2Action === primaryByPhase[phase] ? 'primary' : 'secondary';
+    });
+    const output = root.querySelector('[data-v2-feedback]');
+    if (!output) return;
+    output.dataset.tone = phase === 'feedback'
+        ? (/correct|success|completed/i.test(feedback) ? 'success' : 'instruction')
+        : (['unavailable', 'recovering', 'error'].includes(phase) ? 'technical' : 'neutral');
+}
+
 export function mountEndgameTrainerV2Page({ document: doc = globalThis.document, window: win = globalThis } = {}) {
     if (shouldActivateMultiMovePilot(win.location?.search ?? '')) return mountMultiMovePilotPage({ document: doc, window: win });
     if (mounted) return mounted;
@@ -35,6 +57,7 @@ export function mountEndgameTrainerV2Page({ document: doc = globalThis.document,
     root.querySelector('[data-endgame-v2-shell]').hidden = false;
     const empty = root.querySelector('[data-empty-board-overlay]');
     if (empty) empty.hidden = true;
+    setPresentationState(root, 'ready');
 
     let orchestrator;
     const board = new EndgameBoardView({
@@ -70,6 +93,7 @@ export function mountEndgameTrainerV2Page({ document: doc = globalThis.document,
         setAction(root, 'continue', feedback || state.phase === 'unavailable');
         setAction(root, 'retry', ['recovering', 'error'].includes(state.phase));
         setAction(root, 'abandon', !['configured', 'completed', 'abandoned'].includes(state.phase));
+        setPresentationState(root, state.phase, state.feedback);
         const summary = root.querySelector('[data-v2-summary]');
         if (summary) summary.hidden = state.phase !== 'completed';
         if (state.phase === 'completed') {
@@ -123,6 +147,7 @@ export function mountEndgameTrainerV2Page({ document: doc = globalThis.document,
             startButton.disabled = false;
             setText(root, '[data-v2-feedback]', 'Curated positions are unavailable. Return to Custom Lab or try again later.');
             root.dataset.state = 'v2-unavailable';
+            setPresentationState(root, 'unavailable', 'Curated positions are unavailable.');
         }
     }, { signal });
     root.querySelector('[data-v2-action="hint"]')?.addEventListener('click', () => orchestrator?.revealHint(), { signal });
