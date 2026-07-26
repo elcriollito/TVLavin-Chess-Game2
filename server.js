@@ -5,6 +5,7 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createPrivateRunOperationalConfig } from './js/endgame-trainer/v2/private-run-operational-config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -360,6 +361,22 @@ const server = http.createServer(async (req, res) => {
   }
 
   // API Routes
+  if (pathname === '/api/endgame/private-run-availability') {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store, max-age=0',
+      'Pragma': 'no-cache',
+      'Referrer-Policy': 'no-referrer',
+      'X-Content-Type-Options': 'nosniff'
+    };
+    if (req.method !== 'GET') {
+      res.writeHead(405, headers); res.end(JSON.stringify({ error: 'Method not allowed' })); return;
+    }
+    res.writeHead(200, headers);
+    res.end(JSON.stringify(createPrivateRunOperationalConfig(process.env)));
+    return;
+  }
+
   if (pathname === '/api/health') {
     handleHealthCheck(res);
     return;

@@ -153,7 +153,8 @@ test('manifest mutations and artifact binding failures are neutral and block par
     return {ok:true,json:async()=>value};
   };
   const run=new PrivateFiveItemRunController({fetchImpl:badFetch});
-  assert.equal(await run.load(valid),false);
+  assert.equal(await run.load(valid),true);
+  assert.equal(await run.start(),false);
   assert.equal(run.getState().status,'technical-unavailable');
   assert.deepEqual(run.getState().completedItemIndexes,[]);
 });

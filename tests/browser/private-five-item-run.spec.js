@@ -15,6 +15,15 @@ const complete=async(page,index)=>{for(const move of routes[index])await play(pa
 const start=async page=>{await page.goto(route);await page.getByRole('button',{name:'Start Run'}).click();};
 
 test.beforeEach(async({page})=>{
+  await page.route('**/api/endgame/private-run-availability',route=>route.fulfill({
+    status:200,contentType:'application/json',
+    headers:{'Cache-Control':'no-store'},
+    body:JSON.stringify({
+      schemaVersion:'1.0.0',featureId:'five-item-private-endgame-run',enabled:true,mode:'enabled',
+      reasonCode:'operational',userMessage:'',effectivePolicy:'fail-closed-no-cache',
+      configurationSource:'server-environment',failClosed:true,lastKnownSafeDefault:'disabled'
+    })
+  }));
   await page.addInitScript(()=>{
     window.__privateRunAudit={local:0,session:0,indexedDb:0,cookies:0,confirm:0};
     const set=Storage.prototype.setItem;
@@ -126,7 +135,7 @@ test('mixed selectors fail neutral and refresh clears all progress',async({page}
     '?trainerV2=1&multiMovePilot=1&privateEndgameRun=five-item&endgameRun=1'
   ]){
     await page.goto(`/endgame-trainer${search}`);
-    await expect(page.locator('[data-private-feedback-status]')).toHaveText('We could not verify this position');
-    await expect(page.locator('[data-private-feedback-explanation]')).toContainText('not a chess mistake');
+    await expect(page.locator('#private-operational-title')).toHaveText('We could not verify this run');
+    await expect(page.locator('[data-private-operational-message]')).toContainText('technical issue');
   }
 });

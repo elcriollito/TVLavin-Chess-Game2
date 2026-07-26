@@ -1,7 +1,7 @@
 import { computeCompatibilityFingerprint, stableStringify } from './curated-pool-validator.js';
 import { sha256Digest } from './curated-pool-integrity.js';
 import { loadMultiMovePilot, MultiMovePilotController } from './multi-move-pilot.js';
-import { PRIVATE_FIVE_ITEM_RUN_BASE } from './private-five-item-run-manifest.js';
+export { shouldActivatePrivateFiveItemRun } from './private-run-operational-config.js';
 
 export const PRIVATE_FIVE_ITEM_RUN_DESCRIPTOR = Object.freeze({
   runId: 'five-item-private-endgame-run',
@@ -23,14 +23,6 @@ const resolverSearch = Object.freeze({
   'activate-king@1.0.0': '?objectiveArtifact=activate-king@1.0.0'
 });
 
-export function shouldActivatePrivateFiveItemRun(search = '') {
-  const params = new URLSearchParams(search);
-  const modes = MODE_KEYS.filter(key => params.has(key)).length;
-  return params.get('trainerV2') === '1' && params.get('multiMovePilot') === '1' &&
-    (params.has('privateEndgameRun') || modes > 1) &&
-    !['studyUnit','release','activity','reviewFrom'].some(key => params.has(key));
-}
-
 export function validatePrivateFiveItemRunSearch(search = '') {
   const params = new URLSearchParams(search);
   if ([...params.keys()].some(key => !ALLOWED_KEYS.has(key))) throw new Error('private-run-flags-invalid');
@@ -41,6 +33,7 @@ export function validatePrivateFiveItemRunSearch(search = '') {
 }
 
 export async function validatePrivateFiveItemRunManifest(base, cryptoImpl = globalThis.crypto) {
+  const {PRIVATE_FIVE_ITEM_RUN_BASE}=await import('./private-five-item-run-manifest.js');
   const expected = PRIVATE_FIVE_ITEM_RUN_BASE.orderedItems.map(itemKey);
   const actual = base?.orderedItems?.map(itemKey);
   if (base?.runId !== PRIVATE_FIVE_ITEM_RUN_DESCRIPTOR.runId ||
@@ -60,24 +53,37 @@ export async function validatePrivateFiveItemRunManifest(base, cryptoImpl = glob
 export async function loadPrivateFiveItemRun({
   fetchImpl = fetch, cryptoImpl = globalThis.crypto, search = ''
 } = {}) {
+  const base=await loadPrivateFiveItemRunManifest({cryptoImpl,search});
+  const artifacts=await Promise.all(base.orderedItems.map(binding=>
+    loadPrivateFiveItemRunItem(binding,{fetchImpl,cryptoImpl})));
+  return Object.freeze({ manifest: base, artifacts: Object.freeze(artifacts) });
+}
+
+export async function loadPrivateFiveItemRunManifest({
+  cryptoImpl = globalThis.crypto, search = ''
+} = {}) {
   validatePrivateFiveItemRunSearch(search);
+  const {PRIVATE_FIVE_ITEM_RUN_BASE}=await import('./private-five-item-run-manifest.js');
   const base = clone(PRIVATE_FIVE_ITEM_RUN_BASE);
   await validatePrivateFiveItemRunManifest(base, cryptoImpl);
-  const artifacts = await Promise.all(base.orderedItems.map(async binding => {
-    const selector = resolverSearch[itemKey(binding)];
-    if (selector === undefined) throw new Error('private-run-item-not-allowed');
-    const artifact = await loadMultiMovePilot({ fetchImpl, cryptoImpl, search: selector });
-    const actualFingerprint = artifact.contentFingerprint ??
-      computeCompatibilityFingerprint(artifact).replace('epool-', 'eobjective-');
-    const actualDigest = artifact.contentDigest ?? await sha256Digest(artifact, cryptoImpl);
-    if (artifact.pilotId !== binding.artifactId || artifact.pilotVersion !== binding.artifactVersion ||
-        actualFingerprint !== binding.fingerprint || actualDigest !== binding.sha256 ||
-        artifact.opponentPolicy?.runtimeNetworkRequired !== false ||
-        (binding.approvalDigest && artifact.humanApprovalBinding?.digest !== binding.approvalDigest))
-      throw new Error('private-run-item-integrity-failure');
-    return artifact;
-  }));
-  return Object.freeze({ manifest: Object.freeze(base), artifacts: Object.freeze(artifacts) });
+  return Object.freeze(base);
+}
+
+export async function loadPrivateFiveItemRunItem(binding,{
+  fetchImpl = fetch, cryptoImpl = globalThis.crypto
+} = {}) {
+  const selector = resolverSearch[itemKey(binding)];
+  if (selector === undefined) throw new Error('private-run-item-not-allowed');
+  const artifact = await loadMultiMovePilot({ fetchImpl, cryptoImpl, search: selector });
+  const actualFingerprint = artifact.contentFingerprint ??
+    computeCompatibilityFingerprint(artifact).replace('epool-', 'eobjective-');
+  const actualDigest = artifact.contentDigest ?? await sha256Digest(artifact, cryptoImpl);
+  if (artifact.pilotId !== binding.artifactId || artifact.pilotVersion !== binding.artifactVersion ||
+      actualFingerprint !== binding.fingerprint || actualDigest !== binding.sha256 ||
+      artifact.opponentPolicy?.runtimeNetworkRequired !== false ||
+      (binding.approvalDigest && artifact.humanApprovalBinding?.digest !== binding.approvalDigest))
+    throw new Error('private-run-item-integrity-failure');
+  return Object.freeze(artifact);
 }
 
 export class PrivateFiveItemRunController {
@@ -99,10 +105,10 @@ export class PrivateFiveItemRunController {
     if (this.#state.status !== 'idle') return false;
     const generation = ++this.#generation; this.#commit({ status: 'loading' });
     try {
-      const loaded = await loadPrivateFiveItemRun({ fetchImpl: this.#fetch, cryptoImpl: this.#crypto, search });
+      const manifest = await loadPrivateFiveItemRunManifest({ cryptoImpl: this.#crypto, search });
       if (generation !== this.#generation) return false;
-      this.#artifacts = [...loaded.artifacts];
-      this.#commit({ status: 'ready', manifest: loaded.manifest, technicalUnavailable: false });
+      this.#artifacts = [];
+      this.#commit({ status: 'ready', manifest, technicalUnavailable: false });
       return true;
     } catch {
       if (generation === this.#generation) this.#commit({ status: 'technical-unavailable', technicalUnavailable: true });
@@ -115,8 +121,20 @@ export class PrivateFiveItemRunController {
     return this.#activateItem(0);
   }
   async #activateItem(index) {
-    const generation = this.#generation, artifact = this.#artifacts[index];
-    if (!artifact) return false;
+    const generation = this.#generation;
+    let artifact=this.#artifacts[index];
+    if(!artifact){
+      try{
+        artifact=await loadPrivateFiveItemRunItem(this.#state.manifest?.orderedItems?.[index],{
+          fetchImpl:this.#fetch,cryptoImpl:this.#crypto
+        });
+        if(generation!==this.#generation)return false;
+        this.#artifacts[index]=artifact;
+      }catch{
+        if(generation===this.#generation)this.#commit({status:'technical-unavailable',technicalUnavailable:true,itemState:null});
+        return false;
+      }
+    }
     this.#itemController?.abandon();
     this.#itemController = new MultiMovePilotController({
       artifact, delay: this.#delay,
