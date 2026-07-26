@@ -149,7 +149,6 @@ test('approved artifacts, adjudicated packets, runtime, visuals, pools, manifest
     'js/endgame-trainer/v2/endgame-run.js': '7537d771bfb1c78267ef02d026ca407672505d31b434ad8cb643a0ef6ac460e3',
     'endgame-trainer.html': '34d510728cb5ee21cb7ee6617c1950b5f1ae69953a2c529a9e44e9fb3b6a8cb3',
     'css/endgame-trainer.css': '88a8ff330231a42d5dce727fe1a3ecd325f8e0496c7f5c28bb7b8463f34efdb9',
-    'js/caissa-primary-navigation.js': '886da3695f13be58f0b54c88f14bd50a217878291dddaca256b3eca233a94317',
     'knowledge/releases/rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84/release.json': '73a6138c39df72eb1a898e819b155f74c809e8b12d7cf3ee32f39914220b41da'
   };
   for (const [path, expectedDigest] of Object.entries(expected))

@@ -20,13 +20,13 @@ test('canonical primary navigation inventory is unique and stable', () => {
   assert.deepEqual(
     Array.from(inventory.primary, ({ id }) => id),
     [
-      'yahooClassic', 'play', 'mentor', 'academy', 'endgame-trainer', 'endgame-library',
+      'yahooClassic', 'play', 'mentor', 'academy', 'endgame-trainer', 'endgame-practice', 'endgame-library',
       'insights', 'fics', 'analyze', 'spectator', 'arena',
       'cheater-insight', 'polyglot', 'opening-database', 'eco', 'library',
       'history', 'dosChess', 'vault', 'blog'
     ]
   );
-  for (const label of ['Endgame Library', 'Analyze', 'Help', 'About']) {
+  for (const label of ['Endgame Practice', 'Endgame Library', 'Analyze', 'Help', 'About']) {
     assert.ok(labels.includes(label), `${label} is missing`);
   }
   assert.ok(!labels.includes('Settings'), 'game-specific Settings must not be global navigation');

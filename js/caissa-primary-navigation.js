@@ -8,6 +8,7 @@
             { id: 'mentor', label: 'Mentor', icon: 'fas fa-graduation-cap', section: 'mentor', route: '/?section=mentor', className: 'nav-item-tool' },
             { id: 'academy', label: 'Academy', icon: 'fas fa-graduation-cap', section: 'academy', route: '/?section=academy' },
             { id: 'endgame-trainer', label: 'Endgame Trainer', icon: 'fas fa-chess-pawn', route: '/endgame-trainer' },
+            { id: 'endgame-practice', label: 'Endgame Practice', icon: 'fas fa-chess-board', route: '/endgame-practice' },
             { id: 'endgame-library', label: 'Endgame Library', icon: 'fas fa-book-reader', route: '/endgame-library' }
         ]),
         Object.freeze([

@@ -20,6 +20,7 @@ const exactRouteFiles = new Map([
   ['database.html', '/database'],
   ['eco.html', '/eco'],
   ['endgame-library.html', '/endgame-library'],
+  ['endgame-practice.html', '/endgame-practice'],
   ['endgame-trainer.html', '/endgame-trainer'],
   ['help.html', '/help'],
   ['opening-database.html', '/opening-database'],

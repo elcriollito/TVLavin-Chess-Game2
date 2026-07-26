@@ -5,25 +5,28 @@ import fs from 'node:fs';
 const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8');
 const html=read('endgame-practice.html');
 
-test('closed shell has exact identity, copy and five human exercises',()=>{
+test('released shell has exact identity, copy and five human exercises',()=>{
   for(const text of [
-    'CAISSA Endgame Practice','Limited Preview','Practice five focused endgame ideas through short, guided positions.',
-    '5</strong> exercises','No account required','No saved progress','Private preview',
+    'CAISSA Endgame Practice','Limited Preview','Practice five focused endgame ideas through short, guided positions with clear feedback.',
+    '5</strong> reviewed exercises','No account required','No rating impact','No saved progress',
     'Promote the Pawn','Stop the Pawn','Trade to Simplify','Hold the Draw','Activate the King',
     'Guide a passed pawn toward promotion with king support.',
     'Catch a dangerous pawn before it promotes.',
     'Use a favorable exchange to reach a clearer winning position.',
     'Preserve the draw through a safe liquidation.',
     'Bring the king forward before advancing the pawn.',
-    'This preview does not save your moves, hints, results, or progress.',
-    'this preview does not affect any rating.'
+    'Your moves, hints, results, and progress are not saved.','Exercise analytics are disabled.',
+    'This is a small preview, not a complete training course.','Share Feedback'
   ])assert.match(html,new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i'));
 });
 
-test('shell is undiscoverable and does not expose private source details',()=>{
-  assert.match(html,/<meta name="robots" content="noindex, nofollow">/);
-  assert.doesNotMatch(html,/rel="canonical"|application\/ld\+json|property="og:|fingerprint|sha256|FEN|reviewer|tablebase/i);
+test('shell has exact honest discovery metadata and exposes no private source details',()=>{
+  assert.match(html,/<meta name="robots" content="index, follow">/);
+  assert.match(html,/rel="canonical" href="https:\/\/www\.caissa-chess\.org\/endgame-practice"/);
+  assert.match(html,/CAISSA Endgame Practice — Guided Chess Endgames/);
+  assert.match(html,/type="application\/ld\+json"/);
+  assert.doesNotMatch(html,/fingerprint|sha256|FEN|reviewer|tablebase/i);
   assert.match(html,/data-start hidden/);
-  assert.doesNotMatch(read('public/sitemap.xml'),/endgame-practice/);
+  assert.equal((read('public/sitemap.xml').match(/https:\/\/www\.caissa-chess\.org\/endgame-practice/g)||[]).length,1);
   assert.doesNotMatch(read('public/robots.txt'),/endgame-practice/);
 });

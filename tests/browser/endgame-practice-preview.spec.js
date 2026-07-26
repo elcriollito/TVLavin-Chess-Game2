@@ -17,7 +17,7 @@ test('production-default shell is closed, responsive, accessible and loads no ru
   await expect(page.getByRole('heading',{level:1,name:'CAISSA Endgame Practice'})).toBeVisible();
   await expect(page.getByText('Limited Preview').first()).toBeVisible();
   await expect(page.getByRole('link',{name:'Start Limited Preview'})).toBeHidden();
-  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content','noindex, nofollow');
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content','index, follow');
   expect(requests.filter(url=>/private-five-item-run-manifest|endgame-pilots|chessboard/.test(url))).toEqual([]);
   for(const [width,height] of [[320,568],[360,800],[390,844],[412,915],[768,1024],[1024,768],[1280,720],[1366,768],[1440,900],[1920,1080]]){
     await page.setViewportSize({width,height});
