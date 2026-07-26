@@ -1,0 +1,248 @@
+{
+  "evidenceReuseSchemaVersion": "1.0.0",
+  "poolId": "caissa-king-pawn-decisions",
+  "poolVersion": "1.1.0",
+  "providerId": "lichess-syzygy-remote",
+  "providerVersion": "1.0.0",
+  "reuseBasis": "exact-fen-and-provider-request-identity-unchanged",
+  "localTablebaseVerified": false,
+  "records": [
+    {
+      "positionId": "kp-opposition-near-miss",
+      "exactFen": "8/8/5k2/8/3K4/8/P7/8 w - - 0 1",
+      "revisedPositionContentDigest": "sha256-8cc20741d2c533cbdcad0a2eef5e9c4655caa3fc08ae39e61b1af2c933bfb14f",
+      "reusedRemoteEvidenceDigest": "sha256-e896d4a6346df13aa3f5817be661bf9889f0ed99144f92e50d812ed4e9fd7c96",
+      "reusedRequestDigest": "sha256-5258293eb3cf9bdfc26c40168d26eb67196b58f211f4a0e0f898a665f4f030a3",
+      "approvedMoveLans": [
+        "d4d5",
+        "d4c5"
+      ],
+      "wdlPreservingMoves": [
+        "d4c5",
+        "d4d5"
+      ],
+      "dtzOptimalMoves": [
+        "d4c5",
+        "d4d5"
+      ],
+      "humanAdjudicationPacketDigest": "sha256-b919d6e2f6fc32444eab7ee30da159c761bd4bd93d6b1d735748044233c0e64b",
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "reuseRecordDigest": "sha256-d2ae2727b2d390395e7d99719b8ed707d092759b11b11fba3ee9c70b60de1a12"
+    },
+    {
+      "positionId": "kp-key-square-approach",
+      "exactFen": "8/4k3/8/3P4/2K5/8/8/8 w - - 0 1",
+      "revisedPositionContentDigest": "sha256-9a41bbe5f0b7654036b2114c79828b98e33d22292df4eae111eb431602a6cf5a",
+      "reusedRemoteEvidenceDigest": "sha256-8d84f8758ec08145542f13af8b7b38656309fff84bb0f7e0a0cf7c1516fd81d2",
+      "reusedRequestDigest": "sha256-c9552518e61f7f61f76c2fdaf46fbd5e28ebc89bc8f5ff27db20b9566bc25048",
+      "approvedMoveLans": [
+        "c4c5",
+        "c4d4"
+      ],
+      "wdlPreservingMoves": [
+        "d5d6",
+        "c4b3",
+        "c4c3",
+        "c4d3",
+        "c4b4",
+        "c4d4",
+        "c4b5",
+        "c4c5"
+      ],
+      "dtzOptimalMoves": [
+        "d5d6",
+        "c4b3",
+        "c4c3",
+        "c4d3",
+        "c4b4",
+        "c4d4",
+        "c4b5",
+        "c4c5"
+      ],
+      "humanAdjudicationPacketDigest": "sha256-fbb7bc86d9b29eabf8bb4a4a30e3e366e5e21f3be2a3cfe73fdf1e20be99aae0",
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "reuseRecordDigest": "sha256-9d7fa136c34dcbeea248c665cd828ca1452661c48139288fd53598c8653aea0a"
+    },
+    {
+      "positionId": "kp-coordinate-support",
+      "exactFen": "8/2k5/8/4K3/4P3/8/8/8 w - - 0 1",
+      "revisedPositionContentDigest": "sha256-304e9160c265b844adb5044dcb41d8efc5103498a20a913b19555878f0dabba8",
+      "reusedRemoteEvidenceDigest": "sha256-473231eb64958acdf2cd91664f4c3958e547641550216a1c3a67b7617777e27a",
+      "reusedRequestDigest": "sha256-1bbcec1e8466821866249e8c93f07e78622bdb11f5232ac670e73866170a559f",
+      "approvedMoveLans": [
+        "e5e6",
+        "e5f6"
+      ],
+      "wdlPreservingMoves": [
+        "e5e6",
+        "e5f6",
+        "e5f5",
+        "e5f4"
+      ],
+      "dtzOptimalMoves": [
+        "e5e6",
+        "e5f6"
+      ],
+      "humanAdjudicationPacketDigest": "sha256-e4b23bfa2377971ed8df331f15d7b273b19fd64b5e6d682fd4a44868237f4dbe",
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "reuseRecordDigest": "sha256-f0d46827ac7bd74bd420636a738f89b3c81ea87716dbc80ab25850ead9a4d0a4"
+    },
+    {
+      "positionId": "kp-breakthrough-side-to-move",
+      "exactFen": "8/ppp5/8/PPP5/8/8/8/4K2k b - - 0 1",
+      "revisedPositionContentDigest": "sha256-8dbd44811f638af150147b324733ec68da3a0c89ce058b1fecdf687a47014c48",
+      "reusedRemoteEvidenceDigest": "sha256-a5c46e9e2c53f16c7148d81d1dd7765cf82513faceacd4de5bb72f6199df6f60",
+      "reusedRequestDigest": "sha256-9beeab4b2b90102cf41fd2dc389d3366a6c365e5592fd96657d37db30bc02c0f",
+      "approvedMoveLans": [
+        "b7b6"
+      ],
+      "wdlPreservingMoves": [
+        "h1g1",
+        "h1g2",
+        "h1h2",
+        "a7a6",
+        "b7b6",
+        "c7c6"
+      ],
+      "dtzOptimalMoves": [],
+      "humanAdjudicationPacketDigest": "sha256-91888138568587ab3a197188b042651631a5e358f80c1f4ab7be08eac8001e33",
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "reuseRecordDigest": "sha256-702743c7bf8854a47bc1685a0c1853d5f34b4dac87e8fb58305712fd3ab99df8"
+    },
+    {
+      "positionId": "kp-outside-passer-diversion",
+      "exactFen": "8/8/2k5/8/P2K1P2/8/8/8 w - - 0 1",
+      "revisedPositionContentDigest": "sha256-cf7cb3f5ea9bebd555c867258cf134b87e3799a7f6e84c3fd4a5b8c490ae1f2d",
+      "reusedRemoteEvidenceDigest": "sha256-4048b7ec02a949f3560d81f289e9d4e55b51ae6bb36c030a9c55003c12a75d78",
+      "reusedRequestDigest": "sha256-05adb7cc1e15f6e544af3fc89b271935ab098eedc647cb814451c11ff8286e57",
+      "approvedMoveLans": [
+        "f4f5",
+        "a4a5"
+      ],
+      "wdlPreservingMoves": [
+        "a4a5",
+        "f4f5",
+        "d4e4",
+        "d4e5",
+        "d4c3",
+        "d4d3",
+        "d4e3",
+        "d4c4"
+      ],
+      "dtzOptimalMoves": [
+        "a4a5",
+        "f4f5",
+        "d4e4",
+        "d4e5",
+        "d4c3",
+        "d4d3",
+        "d4e3",
+        "d4c4"
+      ],
+      "humanAdjudicationPacketDigest": "sha256-f92a5ebd2fccf5957c5896f397f79cf318b74422887b4b72b177887d94f6fa4b",
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "reuseRecordDigest": "sha256-590693c05437db9ef3fc9b8e3c7377580708bd7e22f993e3b95202fcafe8c8da"
+    },
+    {
+      "positionId": "kp-majority-improve-first",
+      "exactFen": "8/8/6k1/5pp1/5PPP/6K1/8/8 w - - 0 1",
+      "revisedPositionContentDigest": "sha256-f15176b154ff6d165ee1efb6584b27c3cceeec22edf53a2dec68517aa48bb58c",
+      "reusedRemoteEvidenceDigest": "sha256-8354d317de963986736e8c6057c3001c1179f3d0e5d33442f55d490f9f6c48d5",
+      "reusedRequestDigest": "sha256-31992964b02993538cf04b0efdd3842132641dedda564f240e49b4a2c936f47a",
+      "approvedMoveLans": [
+        "h4g5",
+        "f4g5",
+        "g4f5"
+      ],
+      "wdlPreservingMoves": [
+        "f4g5",
+        "h4g5",
+        "g4f5",
+        "g3f2",
+        "g3g2",
+        "g3h2"
+      ],
+      "dtzOptimalMoves": [
+        "f4g5",
+        "h4g5",
+        "g3f2",
+        "g3g2",
+        "g3h2"
+      ],
+      "humanAdjudicationPacketDigest": "sha256-ee3c6f2884a2c9afeea984ae11d277d26878f26e78674a15d647289aed2986ae",
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "reuseRecordDigest": "sha256-b829f7ee6e89388df6ea43241f5220cb3787de0814894803d3f5b05027a5a28d"
+    },
+    {
+      "positionId": "kp-safe-king-approach",
+      "exactFen": "k7/8/8/8/8/4P3/5K2/8 w - - 0 1",
+      "revisedPositionContentDigest": "sha256-8d736b1e4b2d8a5a3017ad1bcbfbd9e92ce2e7bacc89b885e5ea9afc5a627c0f",
+      "reusedRemoteEvidenceDigest": "sha256-b60e0e35e8d7a323b2810d2791873287b340e1333d9cb3c1f48f2c79d6f7c42b",
+      "reusedRequestDigest": "sha256-a2c0840c4a18ea36c5654a464bf8a26b603ed276b57f3c8314a6839cb5b61e75",
+      "approvedMoveLans": [
+        "f2f3",
+        "f2e2",
+        "f2g2",
+        "f2g3"
+      ],
+      "wdlPreservingMoves": [
+        "e3e4",
+        "f2f3",
+        "f2g3",
+        "f2e2",
+        "f2g2",
+        "f2e1",
+        "f2f1",
+        "f2g1"
+      ],
+      "dtzOptimalMoves": [
+        "e3e4",
+        "f2e2",
+        "f2g2"
+      ],
+      "humanAdjudicationPacketDigest": "sha256-dfe1b5643a563d32e8155fc2bd457a37fd179bf5676f07df2e47fc58326986c6",
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "reuseRecordDigest": "sha256-896e11478a36048b69a51b6a832709d6e036e6bb00e0bd82746621522ad1daa0"
+    },
+    {
+      "positionId": "kp-restrained-approach",
+      "exactFen": "8/8/3k4/3p4/3P4/2K5/8/8 w - - 0 1",
+      "revisedPositionContentDigest": "sha256-f046d565f7a508974dcad04185800bcd18968d746471f7e8764b8462fc05be72",
+      "reusedRemoteEvidenceDigest": "sha256-c1f1db0a6752b5acc33792be39fd1ec9e07ae43fcb1a08efda9767a65d501549",
+      "reusedRequestDigest": "sha256-96bc2e8d85a2ce7667235e6aa075dfe5d55ef3fa0a3ffe4d18f5cc581316175a",
+      "approvedMoveLans": [
+        "c3b4",
+        "c3b3",
+        "c3d3"
+      ],
+      "wdlPreservingMoves": [
+        "c3b2",
+        "c3c2",
+        "c3d2",
+        "c3b3",
+        "c3d3",
+        "c3b4"
+      ],
+      "dtzOptimalMoves": [
+        "c3b2",
+        "c3c2",
+        "c3d2",
+        "c3b3",
+        "c3d3",
+        "c3b4"
+      ],
+      "humanAdjudicationPacketDigest": "sha256-f28aa60111469b27bce2dd67431e6e3f2ce3ca834a94f780562e749d3e184c64",
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "reuseRecordDigest": "sha256-a0113aa15c62de160e2ea2631d74b89400a53d28246e122851b46a47f9cbe28c"
+    }
+  ],
+  "evidenceReuseDigest": "sha256-8b089943db61ca786655ffb6ad45aed4c2523900794b5fc9a05f5fa8215ca066"
+}

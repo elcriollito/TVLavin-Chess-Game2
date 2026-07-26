@@ -6,7 +6,7 @@ import { selectCuratedPositions } from '../../js/endgame-trainer/v2/curated-pool
 import { QuickChallengeOrchestrator } from '../../js/endgame-trainer/v2/quick-challenge-orchestrator.js';
 
 const pool = JSON.parse(await readFile(new URL(
-    '../../public/data/endgame-pools/caissa-king-pawn-decisions/1.0.0.json',
+    '../../public/data/endgame-pools/caissa-king-pawn-decisions/1.1.0.json',
     import.meta.url
 ), 'utf8'));
 
@@ -55,6 +55,7 @@ test('explicit accepted alternative succeeds deterministically', async () => {
     assert.equal(session.submitMove(intent(alternativeItem.acceptedAlternatives[0].lan)), true);
     assert.equal(session.getState().results[0].kind, 'correct');
     assert.equal(session.getState().score, 100);
+    assert.equal(session.getState().feedback, alternativeItem.feedback.correct);
 });
 
 test('hint assistance, wrong moves, and skip have explicit score and streak effects', async () => {
@@ -71,6 +72,7 @@ test('hint assistance, wrong moves, and skip have explicit score and streak effe
     assert.equal(session.submitMove(wrongLegalIntent(selected[1])), true);
     assert.equal(session.getState().results[1].kind, 'incorrect');
     assert.equal(session.getState().score, 50);
+    assert.equal(session.getState().feedback, selected[1].feedback.incorrect);
     await session.continue();
     assert.equal(session.skip(), true);
     assert.equal(session.skip(), false);

@@ -206,10 +206,10 @@ export class QuickChallengeOrchestrator {
             playedSan, resultingFen
         });
         const feedback = correct
-            ? `${this.#state.hintUsed ? 'Solved with help' : 'Correct'}: ${playedSan}.`
+            ? this.#state.item.feedback.correct
             : kind === 'skipped' ? `Skipped. The authored move is ${this.#state.item.expectedSan}.`
                 : kind === 'revealed' ? `Answer revealed: ${this.#state.item.expectedSan}. This item earns no independent points.`
-                : `The authored move is ${this.#state.item.expectedSan}.`;
+                : this.#state.item.feedback.incorrect;
         this.#transition('feedback', {
             score: this.#state.score + points,
             scoreState: { ...this.#state.scoreState, points: this.#state.score + points },

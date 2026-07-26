@@ -1,0 +1,738 @@
+{
+  "schemaVersion": "1.0.0",
+  "poolId": "caissa-king-pawn-decisions",
+  "poolVersion": "1.1.0",
+  "label": "King and Pawn Endgames — Human Adjudicated",
+  "description": "Ten curated king-and-pawn decisions incorporating Season 10.5B human adjudications.",
+  "theme": "king-and-pawn-decisions",
+  "difficultyBand": "foundation-to-intermediate",
+  "selectionPolicy": "deterministic-seeded-no-repeat",
+  "repeatPolicy": "once-per-session",
+  "positions": [
+    {
+      "schemaVersion": "1.0.0",
+      "positionId": "kp-opposition-near-miss",
+      "title": "Convert a near-miss",
+      "theme": "opposition",
+      "fen": "8/8/5k2/8/3K4/8/P7/8 w - - 0 1",
+      "sideToMove": "white",
+      "objective": {
+        "type": "authored-move",
+        "evaluator": "authored-exact-legal-move",
+        "label": "Find an authored move."
+      },
+      "expectedMove": "Kd5",
+      "acceptedAlternatives": [
+        "Kc5"
+      ],
+      "hintStages": [
+        {
+          "stage": 1,
+          "text": "Advance the king while preserving the winning king geometry.",
+          "independenceImpact": "removes-independent",
+          "scorePercent": 50,
+          "answerReveal": false
+        }
+      ],
+      "feedback": {
+        "correct": "Correct. The king advances on a route that preserves the winning opposition geometry.",
+        "incorrect": "Compare the forward king routes before stepping toward the opposing king."
+      },
+      "difficulty": {
+        "band": "foundation",
+        "basis": "editorial-estimate",
+        "calculationDepth": 1,
+        "conceptCount": 1,
+        "onlyMove": false
+      },
+      "verification": {
+        "state": "published",
+        "legalFen": true,
+        "legalExpectedMove": true,
+        "objectiveCompatible": true,
+        "engineReviewed": false,
+        "tablebaseVerified": false,
+        "editorialApproved": true,
+        "publicationEligible": true,
+        "humanAdjudicated": true,
+        "engineEvidenceAvailable": true,
+        "engineEvidenceHumanReviewed": true,
+        "remoteTablebaseEvidenceAvailable": true,
+        "localTablebaseVerified": false
+      },
+      "eligibility": {
+        "previewScore": true,
+        "personalBest": false,
+        "futureLeaderboard": false
+      },
+      "provenance": {
+        "sourceType": "immutable-knowledge-activity",
+        "sourceReference": "ku:endgames:pawn-foundations:direct-opposition/activity:opposition:independent-near-miss",
+        "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+        "positionReference": "pos:direct-opposition:near-miss"
+      },
+      "conceptMappings": [
+        "opposition",
+        "king-activity"
+      ],
+      "editorial": {
+        "reviewedByRole": "CAISSA chess content editor",
+        "reviewBasis": "Season 10.5B human adjudication bound to Stockfish and remote tablebase evidence",
+        "notes": "Approved authored instructional scope; machine-equivalent moves are accepted only when explicitly listed."
+      }
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "positionId": "kp-key-square-approach",
+      "title": "Approach the target square",
+      "theme": "key-squares",
+      "fen": "8/4k3/8/3P4/2K5/8/8/8 w - - 0 1",
+      "sideToMove": "white",
+      "objective": {
+        "type": "authored-move",
+        "evaluator": "authored-exact-legal-move",
+        "label": "Find an authored move."
+      },
+      "expectedMove": "Kc5",
+      "acceptedAlternatives": [
+        "Kd4"
+      ],
+      "hintStages": [
+        {
+          "stage": 1,
+          "text": "Choose the king route toward the useful entry square.",
+          "independenceImpact": "removes-independent",
+          "scorePercent": 50,
+          "answerReveal": false
+        }
+      ],
+      "feedback": {
+        "correct": "Correct. The king approaches the target square.",
+        "incorrect": "Recheck which king square supports the pawn most directly."
+      },
+      "difficulty": {
+        "band": "developing",
+        "basis": "editorial-estimate",
+        "calculationDepth": 1,
+        "conceptCount": 2,
+        "onlyMove": false
+      },
+      "verification": {
+        "state": "published",
+        "legalFen": true,
+        "legalExpectedMove": true,
+        "objectiveCompatible": true,
+        "engineReviewed": false,
+        "tablebaseVerified": false,
+        "editorialApproved": true,
+        "publicationEligible": true,
+        "humanAdjudicated": true,
+        "engineEvidenceAvailable": true,
+        "engineEvidenceHumanReviewed": true,
+        "remoteTablebaseEvidenceAvailable": true,
+        "localTablebaseVerified": false
+      },
+      "eligibility": {
+        "previewScore": true,
+        "personalBest": false,
+        "futureLeaderboard": false
+      },
+      "provenance": {
+        "sourceType": "immutable-knowledge-activity",
+        "sourceReference": "ku:endgames:pawn-foundations:key-squares/activity:key-squares:independent-target",
+        "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+        "positionReference": "pos:key-squares:opposition-contrast"
+      },
+      "conceptMappings": [
+        "key-squares",
+        "king-activity"
+      ],
+      "editorial": {
+        "reviewedByRole": "CAISSA chess content editor",
+        "reviewBasis": "Season 10.5B human adjudication bound to Stockfish and remote tablebase evidence",
+        "notes": "Approved authored instructional scope; machine-equivalent moves are accepted only when explicitly listed."
+      }
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "positionId": "kp-coordinate-support",
+      "title": "Coordinate king and pawn",
+      "theme": "pawn-support",
+      "fen": "8/2k5/8/4K3/4P3/8/8/8 w - - 0 1",
+      "sideToMove": "white",
+      "objective": {
+        "type": "authored-move",
+        "evaluator": "authored-exact-legal-move",
+        "label": "Find an authored move."
+      },
+      "expectedMove": "Ke6",
+      "acceptedAlternatives": [
+        "Kf6"
+      ],
+      "hintStages": [
+        {
+          "stage": 1,
+          "text": "Move the king ahead while keeping a clear support route for the pawn.",
+          "independenceImpact": "removes-independent",
+          "scorePercent": 50,
+          "answerReveal": false
+        }
+      ],
+      "feedback": {
+        "correct": "Correct. The king moves ahead and remains ready to escort the pawn.",
+        "incorrect": "Look for a forward king move that keeps the pawn securely supported."
+      },
+      "difficulty": {
+        "band": "developing",
+        "basis": "editorial-estimate",
+        "calculationDepth": 1,
+        "conceptCount": 2,
+        "onlyMove": false
+      },
+      "verification": {
+        "state": "published",
+        "legalFen": true,
+        "legalExpectedMove": true,
+        "objectiveCompatible": true,
+        "engineReviewed": false,
+        "tablebaseVerified": false,
+        "editorialApproved": true,
+        "publicationEligible": true,
+        "humanAdjudicated": true,
+        "engineEvidenceAvailable": true,
+        "engineEvidenceHumanReviewed": true,
+        "remoteTablebaseEvidenceAvailable": true,
+        "localTablebaseVerified": false
+      },
+      "eligibility": {
+        "previewScore": true,
+        "personalBest": false,
+        "futureLeaderboard": false
+      },
+      "provenance": {
+        "sourceType": "immutable-knowledge-activity",
+        "sourceReference": "ku:endgames:pawn-foundations:convert-with-king-support/activity:king-support:independent-transfer",
+        "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+        "positionReference": "pos:king-support:transfer-side-entry"
+      },
+      "conceptMappings": [
+        "pawn-support",
+        "king-activity"
+      ],
+      "editorial": {
+        "reviewedByRole": "CAISSA chess content editor",
+        "reviewBasis": "Season 10.5B human adjudication bound to Stockfish and remote tablebase evidence",
+        "notes": "Approved authored instructional scope; machine-equivalent moves are accepted only when explicitly listed."
+      }
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "positionId": "kp-reserve-tempo-spent",
+      "title": "Play without the stored tempo",
+      "theme": "reserve-tempo",
+      "fen": "8/8/3k4/8/3Kp3/P3P3/8/8 w - - 0 1",
+      "sideToMove": "white",
+      "objective": {
+        "type": "only-move",
+        "evaluator": "authored-exact-legal-move",
+        "label": "Find the authored move."
+      },
+      "expectedMove": "Kxe4",
+      "acceptedAlternatives": [],
+      "hintStages": [
+        {
+          "stage": 1,
+          "text": "The immediate pawn capture is available to the king.",
+          "independenceImpact": "removes-independent",
+          "scorePercent": 50,
+          "answerReveal": false
+        }
+      ],
+      "feedback": {
+        "correct": "Correct. The king takes the available pawn.",
+        "incorrect": "Check the immediate legal capture before spending another pawn move."
+      },
+      "difficulty": {
+        "band": "developing",
+        "basis": "editorial-estimate",
+        "calculationDepth": 1,
+        "conceptCount": 2,
+        "onlyMove": true
+      },
+      "verification": {
+        "state": "published",
+        "legalFen": true,
+        "legalExpectedMove": true,
+        "objectiveCompatible": true,
+        "engineReviewed": false,
+        "tablebaseVerified": false,
+        "editorialApproved": true,
+        "publicationEligible": true
+      },
+      "eligibility": {
+        "previewScore": true,
+        "personalBest": false,
+        "futureLeaderboard": false
+      },
+      "provenance": {
+        "sourceType": "immutable-knowledge-activity",
+        "sourceReference": "ku:endgames:pawn-transformations:reserve-tempo/activity:reserve-tempo:independent-spent",
+        "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+        "positionReference": "pos:reserve-tempo:already-spent"
+      },
+      "conceptMappings": [
+        "tempo",
+        "opposition"
+      ],
+      "editorial": {
+        "reviewedByRole": "CAISSA chess content editor",
+        "reviewBasis": "released authored exact-move activity",
+        "notes": "Exact authored capture."
+      }
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "positionId": "kp-breakthrough-side-to-move",
+      "title": "Respect the side to move",
+      "theme": "pawn-breakthrough",
+      "fen": "8/ppp5/8/PPP5/8/8/8/4K2k b - - 0 1",
+      "sideToMove": "black",
+      "objective": {
+        "type": "authored-move",
+        "evaluator": "authored-exact-legal-move",
+        "label": "Play the thematic central-pawn breakthrough."
+      },
+      "expectedMove": "b6",
+      "acceptedAlternatives": [],
+      "hintStages": [
+        {
+          "stage": 1,
+          "text": "Begin with the central pawn of the three-pawn front.",
+          "independenceImpact": "removes-independent",
+          "scorePercent": 50,
+          "answerReveal": false
+        }
+      ],
+      "feedback": {
+        "correct": "Correct. The breakthrough begins with the authored pawn move.",
+        "incorrect": "Recalculate the capture sequence from the side-to-move fact."
+      },
+      "difficulty": {
+        "band": "intermediate",
+        "basis": "editorial-estimate",
+        "calculationDepth": 3,
+        "conceptCount": 2,
+        "onlyMove": false
+      },
+      "verification": {
+        "state": "published",
+        "legalFen": true,
+        "legalExpectedMove": true,
+        "objectiveCompatible": true,
+        "engineReviewed": false,
+        "tablebaseVerified": false,
+        "editorialApproved": true,
+        "publicationEligible": true,
+        "humanAdjudicated": true,
+        "engineEvidenceAvailable": true,
+        "engineEvidenceHumanReviewed": true,
+        "remoteTablebaseEvidenceAvailable": true,
+        "localTablebaseVerified": false
+      },
+      "eligibility": {
+        "previewScore": true,
+        "personalBest": false,
+        "futureLeaderboard": false
+      },
+      "provenance": {
+        "sourceType": "immutable-knowledge-activity",
+        "sourceReference": "ku:endgames:pawn-transformations:pawn-breakthrough/activity:pawn-breakthrough:independent-turn",
+        "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+        "positionReference": "pos:pawn-breakthrough:black-to-move-near-miss"
+      },
+      "conceptMappings": [
+        "pawn-breakthrough",
+        "pawn-races"
+      ],
+      "editorial": {
+        "reviewedByRole": "CAISSA chess content editor",
+        "reviewBasis": "Season 10.5B human adjudication bound to Stockfish and remote tablebase evidence",
+        "notes": "Approved authored instructional scope; machine-equivalent moves are accepted only when explicitly listed."
+      }
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "positionId": "kp-outside-passer-diversion",
+      "title": "Test the diversion",
+      "theme": "outside-passer",
+      "fen": "8/8/2k5/8/P2K1P2/8/8/8 w - - 0 1",
+      "sideToMove": "white",
+      "objective": {
+        "type": "authored-move",
+        "evaluator": "authored-exact-legal-move",
+        "label": "Find an authored move."
+      },
+      "expectedMove": "f5",
+      "acceptedAlternatives": [
+        "a5"
+      ],
+      "hintStages": [
+        {
+          "stage": 1,
+          "text": "Advance the distant pawn to test the king’s route.",
+          "independenceImpact": "removes-independent",
+          "scorePercent": 50,
+          "answerReveal": false
+        }
+      ],
+      "feedback": {
+        "correct": "Correct. The outside pawn creates the authored diversion.",
+        "incorrect": "Compare which pawn can pull the king away first."
+      },
+      "difficulty": {
+        "band": "developing",
+        "basis": "editorial-estimate",
+        "calculationDepth": 2,
+        "conceptCount": 2,
+        "onlyMove": false
+      },
+      "verification": {
+        "state": "published",
+        "legalFen": true,
+        "legalExpectedMove": true,
+        "objectiveCompatible": true,
+        "engineReviewed": false,
+        "tablebaseVerified": false,
+        "editorialApproved": true,
+        "publicationEligible": true,
+        "humanAdjudicated": true,
+        "engineEvidenceAvailable": true,
+        "engineEvidenceHumanReviewed": true,
+        "remoteTablebaseEvidenceAvailable": true,
+        "localTablebaseVerified": false
+      },
+      "eligibility": {
+        "previewScore": true,
+        "personalBest": false,
+        "futureLeaderboard": false
+      },
+      "provenance": {
+        "sourceType": "immutable-knowledge-activity",
+        "sourceReference": "ku:endgames:pawn-transformations:outside-passed-pawn/activity:outside-passer:independent-return",
+        "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+        "positionReference": "pos:outside-passer:defender-returns"
+      },
+      "conceptMappings": [
+        "passed-pawns",
+        "diversion"
+      ],
+      "editorial": {
+        "reviewedByRole": "CAISSA chess content editor",
+        "reviewBasis": "Season 10.5B human adjudication bound to Stockfish and remote tablebase evidence",
+        "notes": "Approved authored instructional scope; machine-equivalent moves are accepted only when explicitly listed."
+      }
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "positionId": "kp-majority-improve-first",
+      "title": "Improve before mobilizing",
+      "theme": "pawn-majority",
+      "fen": "8/8/6k1/5pp1/5PPP/6K1/8/8 w - - 0 1",
+      "sideToMove": "white",
+      "objective": {
+        "type": "authored-move",
+        "evaluator": "authored-exact-legal-move",
+        "label": "Transform the pawn majority before the opponent can hold the structure."
+      },
+      "expectedMove": "hxg5",
+      "acceptedAlternatives": [
+        "fxg5",
+        "gxf5"
+      ],
+      "hintStages": [
+        {
+          "stage": 1,
+          "text": "Look for the pawn capture that transforms the blocked majority immediately.",
+          "independenceImpact": "removes-independent",
+          "scorePercent": 50,
+          "answerReveal": false
+        }
+      ],
+      "feedback": {
+        "correct": "Correct. The pawn exchange activates the majority and preserves the win.",
+        "incorrect": "The king move is too slow here. Calculate the immediate pawn exchanges."
+      },
+      "difficulty": {
+        "band": "developing",
+        "basis": "editorial-estimate",
+        "calculationDepth": 1,
+        "conceptCount": 2,
+        "onlyMove": false
+      },
+      "verification": {
+        "state": "published",
+        "legalFen": true,
+        "legalExpectedMove": true,
+        "objectiveCompatible": true,
+        "engineReviewed": false,
+        "tablebaseVerified": false,
+        "editorialApproved": true,
+        "publicationEligible": true,
+        "humanAdjudicated": true,
+        "engineEvidenceAvailable": true,
+        "engineEvidenceHumanReviewed": true,
+        "remoteTablebaseEvidenceAvailable": true,
+        "localTablebaseVerified": false
+      },
+      "eligibility": {
+        "previewScore": true,
+        "personalBest": false,
+        "futureLeaderboard": false
+      },
+      "provenance": {
+        "sourceType": "immutable-knowledge-activity",
+        "sourceReference": "ku:endgames:pawn-weaknesses:pawn-majority/activity:pawn-majority:independent-blocked",
+        "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+        "positionReference": "pos:pawn-majority:blocked-near-miss"
+      },
+      "conceptMappings": [
+        "pawn-majority",
+        "king-activity"
+      ],
+      "editorial": {
+        "reviewedByRole": "CAISSA chess content editor",
+        "reviewBasis": "Season 10.5B human adjudication bound to Stockfish and remote tablebase evidence",
+        "notes": "Approved authored instructional scope; machine-equivalent moves are accepted only when explicitly listed."
+      }
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "positionId": "kp-favorable-simplification",
+      "title": "Recalculate the exchange",
+      "theme": "favorable-simplification",
+      "fen": "8/8/3k4/3p4/2P1P3/3K4/8/8 w - - 0 1",
+      "sideToMove": "white",
+      "objective": {
+        "type": "only-move",
+        "evaluator": "authored-exact-legal-move",
+        "label": "Find the authored move."
+      },
+      "expectedMove": "cxd5",
+      "acceptedAlternatives": [],
+      "hintStages": [
+        {
+          "stage": 1,
+          "text": "Consider the pawn exchange that clarifies the king ending.",
+          "independenceImpact": "removes-independent",
+          "scorePercent": 50,
+          "answerReveal": false
+        }
+      ],
+      "feedback": {
+        "correct": "Correct. The authored exchange clarifies the structure.",
+        "incorrect": "Recalculate the immediate capture and resulting structure."
+      },
+      "difficulty": {
+        "band": "intermediate",
+        "basis": "editorial-estimate",
+        "calculationDepth": 2,
+        "conceptCount": 3,
+        "onlyMove": true
+      },
+      "verification": {
+        "state": "published",
+        "legalFen": true,
+        "legalExpectedMove": true,
+        "objectiveCompatible": true,
+        "engineReviewed": false,
+        "tablebaseVerified": false,
+        "editorialApproved": true,
+        "publicationEligible": true
+      },
+      "eligibility": {
+        "previewScore": true,
+        "personalBest": false,
+        "futureLeaderboard": false
+      },
+      "provenance": {
+        "sourceType": "immutable-knowledge-activity",
+        "sourceReference": "ku:endgames:pawn-exchanges:favorable-king-ending/activity:favorable-ending:independent-recalculate",
+        "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+        "positionReference": "pos:favorable-ending:advantage-disappears"
+      },
+      "conceptMappings": [
+        "favorable-simplification",
+        "exchange-decision"
+      ],
+      "editorial": {
+        "reviewedByRole": "CAISSA chess content editor",
+        "reviewBasis": "released authored exact-move activity",
+        "notes": "One-ply exact answer."
+      }
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "positionId": "kp-safe-king-approach",
+      "title": "Choose a safe king approach",
+      "theme": "king-activity",
+      "fen": "k7/8/8/8/8/4P3/5K2/8 w - - 0 1",
+      "sideToMove": "white",
+      "objective": {
+        "type": "authored-move",
+        "evaluator": "authored-exact-legal-move",
+        "label": "Find an authored move."
+      },
+      "expectedMove": "Kf3",
+      "acceptedAlternatives": [
+        "Ke2",
+        "Kg2",
+        "Kg3"
+      ],
+      "hintStages": [
+        {
+          "stage": 1,
+          "text": "Choose a safe king route that stays near the pawn.",
+          "independenceImpact": "removes-independent",
+          "scorePercent": 50,
+          "answerReveal": false
+        }
+      ],
+      "feedback": {
+        "correct": "Correct. This is an authored safe king approach.",
+        "incorrect": "Keep the king’s route coordinated with the pawn."
+      },
+      "difficulty": {
+        "band": "foundation",
+        "basis": "editorial-estimate",
+        "calculationDepth": 1,
+        "conceptCount": 1,
+        "onlyMove": false
+      },
+      "verification": {
+        "state": "published",
+        "legalFen": true,
+        "legalExpectedMove": true,
+        "objectiveCompatible": true,
+        "engineReviewed": false,
+        "tablebaseVerified": false,
+        "editorialApproved": true,
+        "publicationEligible": true,
+        "humanAdjudicated": true,
+        "engineEvidenceAvailable": true,
+        "engineEvidenceHumanReviewed": true,
+        "remoteTablebaseEvidenceAvailable": true,
+        "localTablebaseVerified": false
+      },
+      "eligibility": {
+        "previewScore": true,
+        "personalBest": false,
+        "futureLeaderboard": false
+      },
+      "provenance": {
+        "sourceType": "immutable-knowledge-activity",
+        "sourceReference": "ku:endgames:pawn-foundations:activate-the-king/activity:activate-king:independent-transfer",
+        "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+        "positionReference": "pos:activate-king:transfer-flank"
+      },
+      "conceptMappings": [
+        "king-activity",
+        "tempo"
+      ],
+      "editorial": {
+        "reviewedByRole": "CAISSA chess content editor",
+        "reviewBasis": "Season 10.5B human adjudication bound to Stockfish and remote tablebase evidence",
+        "notes": "Approved authored instructional scope; machine-equivalent moves are accepted only when explicitly listed."
+      }
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "positionId": "kp-restrained-approach",
+      "title": "Approach under restraint",
+      "theme": "fixed-weakness",
+      "fen": "8/8/3k4/3p4/3P4/2K5/8/8 w - - 0 1",
+      "sideToMove": "white",
+      "objective": {
+        "type": "authored-move",
+        "evaluator": "authored-exact-legal-move",
+        "label": "Find an authored move."
+      },
+      "expectedMove": "Kb4",
+      "acceptedAlternatives": [
+        "Kb3",
+        "Kd3"
+      ],
+      "hintStages": [
+        {
+          "stage": 1,
+          "text": "Approach the fixed pawn without releasing the restraint.",
+          "independenceImpact": "removes-independent",
+          "scorePercent": 50,
+          "answerReveal": false
+        }
+      ],
+      "feedback": {
+        "correct": "Correct. This is an authored restrained approach.",
+        "incorrect": "Compare the king routes while keeping the pawn fixed."
+      },
+      "difficulty": {
+        "band": "developing",
+        "basis": "editorial-estimate",
+        "calculationDepth": 1,
+        "conceptCount": 2,
+        "onlyMove": false
+      },
+      "verification": {
+        "state": "published",
+        "legalFen": true,
+        "legalExpectedMove": true,
+        "objectiveCompatible": true,
+        "engineReviewed": false,
+        "tablebaseVerified": false,
+        "editorialApproved": true,
+        "publicationEligible": true,
+        "humanAdjudicated": true,
+        "engineEvidenceAvailable": true,
+        "engineEvidenceHumanReviewed": true,
+        "remoteTablebaseEvidenceAvailable": true,
+        "localTablebaseVerified": false
+      },
+      "eligibility": {
+        "previewScore": true,
+        "personalBest": false,
+        "futureLeaderboard": false
+      },
+      "provenance": {
+        "sourceType": "immutable-knowledge-activity",
+        "sourceReference": "ku:endgames:pawn-weaknesses:fix-pawn-weakness/activity:fix-weakness:independent-route",
+        "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+        "positionReference": "pos:fix-weakness:restrained-target"
+      },
+      "conceptMappings": [
+        "fixed-weakness",
+        "restraint"
+      ],
+      "editorial": {
+        "reviewedByRole": "CAISSA chess content editor",
+        "reviewBasis": "Season 10.5B human adjudication bound to Stockfish and remote tablebase evidence",
+        "notes": "Approved authored instructional scope; machine-equivalent moves are accepted only when explicitly listed."
+      }
+    }
+  ],
+  "compatibility": {
+    "classification": "content-compatible-new-score-cohort",
+    "previousVersion": "1.0.0",
+    "scoreComparisonAcrossVersions": false
+  },
+  "changelog": [
+    "Registered eight digest-bound human adjudications.",
+    "Corrected three primary moves, expanded authored alternatives, and removed six unsupported only-move claims.",
+    "Preserved all FENs, provenance, scoring boundaries, and position membership."
+  ],
+  "verificationEvidenceSummary": {
+    "humanAdjudicatedCount": 8,
+    "engineEvidenceAvailableCount": 10,
+    "engineEvidenceHumanReviewedCount": 8,
+    "remoteTablebaseEvidenceAvailableCount": 8,
+    "localTablebaseVerifiedCount": 0
+  }
+}

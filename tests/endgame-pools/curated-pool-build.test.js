@@ -32,9 +32,9 @@ test('published output excludes editorial notes and source ownership fields', ()
 test('check mode proves committed artifacts and registry are current', async () => {
     const result = await buildAllPools({ check: true });
     assert.deepEqual(result, {
-        poolCount: 1,
-        positionCount: 10,
-        fingerprints: ['epool-fnv1a32-7f150692']
+        poolCount: 2,
+        positionCount: 20,
+        fingerprints: ['epool-fnv1a32-7f150692', 'epool-fnv1a32-920ee3e2']
     });
 });
 

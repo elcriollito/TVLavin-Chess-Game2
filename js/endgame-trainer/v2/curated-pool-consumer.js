@@ -10,7 +10,7 @@ import { CURATED_POOL_TRUSTED_KEYS } from './curated-pool-trusted-keys.js';
 const cache = new Map();
 export const DEFAULT_CURATED_POOL = Object.freeze({
     poolId: 'caissa-king-pawn-decisions',
-    poolVersion: '1.0.0'
+    poolVersion: '1.1.0'
 });
 
 export function getCuratedPoolDescriptor(poolId, poolVersion) {

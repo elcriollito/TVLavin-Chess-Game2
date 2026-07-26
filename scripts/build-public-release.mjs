@@ -75,6 +75,7 @@ const requiredFiles = [
   'js/learning/released-activity-runtime.js',
   'vercel.json',
   'public/data/endgame-pools/caissa-king-pawn-decisions/1.0.0.json',
+  'public/data/endgame-pools/caissa-king-pawn-decisions/1.1.0.json',
   'public/data/endgame-pools/manifest-1.0.0.json',
   'knowledge/releases/rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84/release.json'
 ];

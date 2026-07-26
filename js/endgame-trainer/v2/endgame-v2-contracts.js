@@ -28,7 +28,7 @@ export const ENDGAME_OBJECTIVES = Object.freeze({
 export const ENDGAME_V2_MODES = Object.freeze([
     Object.freeze({
         id: 'quick-challenge', contractVersion: ENDGAME_MODE_CONTRACT_VERSION, label: 'Quick Challenge',
-        description: 'Solve five curated endgame positions.', defaultConfiguration: Object.freeze({ poolId: 'caissa-king-pawn-decisions', poolVersion: '1.0.0' }),
+        description: 'Solve five curated endgame positions.', defaultConfiguration: Object.freeze({ poolId: 'caissa-king-pawn-decisions', poolVersion: '1.1.0' }),
         positionSource: 'curated-pool', sessionLengthPolicy: Object.freeze({ type: 'fixed', count: 5 }),
         timerPolicy: 'local-monotonic-count-up', hintPolicy: 'one-authored-hint',
         scoringPolicy: QUICK_CHALLENGE_SCORE_VERSION, evidencePolicy: 'none',

@@ -1,0 +1,198 @@
+{
+  "reviewWorkflowVersion": "1.0.0",
+  "poolId": "caissa-king-pawn-decisions",
+  "poolVersion": "1.1.0",
+  "reviewedContentDigest": "sha256-3b171265896680d76aff2b331f84303817c447f7a02fec703ddc5252decb9376",
+  "positionReviews": [
+    {
+      "positionId": "kp-opposition-near-miss",
+      "reviewStatus": "publish-ready",
+      "authorReview": {
+        "reviewerReference": "role:content-author",
+        "reviewRole": "content-author",
+        "reviewRevision": "1"
+      },
+      "chessReview": {
+        "reviewerReference": "reviewer:alexander:season-10.5b",
+        "reviewRole": "chess-reviewer",
+        "reviewRevision": "1"
+      },
+      "editorialApproval": {
+        "reviewerReference": "reviewer:alexander:season-10.5b",
+        "reviewRole": "editorial-approver",
+        "reviewRevision": "1"
+      }
+    },
+    {
+      "positionId": "kp-key-square-approach",
+      "reviewStatus": "publish-ready",
+      "authorReview": {
+        "reviewerReference": "role:content-author",
+        "reviewRole": "content-author",
+        "reviewRevision": "1"
+      },
+      "chessReview": {
+        "reviewerReference": "reviewer:alexander:season-10.5b",
+        "reviewRole": "chess-reviewer",
+        "reviewRevision": "1"
+      },
+      "editorialApproval": {
+        "reviewerReference": "reviewer:alexander:season-10.5b",
+        "reviewRole": "editorial-approver",
+        "reviewRevision": "1"
+      }
+    },
+    {
+      "positionId": "kp-coordinate-support",
+      "reviewStatus": "publish-ready",
+      "authorReview": {
+        "reviewerReference": "role:content-author",
+        "reviewRole": "content-author",
+        "reviewRevision": "1"
+      },
+      "chessReview": {
+        "reviewerReference": "reviewer:alexander:season-10.5b",
+        "reviewRole": "chess-reviewer",
+        "reviewRevision": "1"
+      },
+      "editorialApproval": {
+        "reviewerReference": "reviewer:alexander:season-10.5b",
+        "reviewRole": "editorial-approver",
+        "reviewRevision": "1"
+      }
+    },
+    {
+      "positionId": "kp-reserve-tempo-spent",
+      "reviewStatus": "publish-ready",
+      "authorReview": {
+        "reviewerReference": "role:content-author",
+        "reviewRole": "content-author",
+        "reviewRevision": "1"
+      },
+      "chessReview": {
+        "reviewerReference": "role:chess-reviewer",
+        "reviewRole": "chess-reviewer",
+        "reviewRevision": "1"
+      },
+      "editorialApproval": {
+        "reviewerReference": "role:editorial-approver",
+        "reviewRole": "editorial-approver",
+        "reviewRevision": "1"
+      }
+    },
+    {
+      "positionId": "kp-breakthrough-side-to-move",
+      "reviewStatus": "publish-ready",
+      "authorReview": {
+        "reviewerReference": "role:content-author",
+        "reviewRole": "content-author",
+        "reviewRevision": "1"
+      },
+      "chessReview": {
+        "reviewerReference": "reviewer:alexander:season-10.5b",
+        "reviewRole": "chess-reviewer",
+        "reviewRevision": "1"
+      },
+      "editorialApproval": {
+        "reviewerReference": "reviewer:alexander:season-10.5b",
+        "reviewRole": "editorial-approver",
+        "reviewRevision": "1"
+      }
+    },
+    {
+      "positionId": "kp-outside-passer-diversion",
+      "reviewStatus": "publish-ready",
+      "authorReview": {
+        "reviewerReference": "role:content-author",
+        "reviewRole": "content-author",
+        "reviewRevision": "1"
+      },
+      "chessReview": {
+        "reviewerReference": "reviewer:alexander:season-10.5b",
+        "reviewRole": "chess-reviewer",
+        "reviewRevision": "1"
+      },
+      "editorialApproval": {
+        "reviewerReference": "reviewer:alexander:season-10.5b",
+        "reviewRole": "editorial-approver",
+        "reviewRevision": "1"
+      }
+    },
+    {
+      "positionId": "kp-majority-improve-first",
+      "reviewStatus": "publish-ready",
+      "authorReview": {
+        "reviewerReference": "role:content-author",
+        "reviewRole": "content-author",
+        "reviewRevision": "1"
+      },
+      "chessReview": {
+        "reviewerReference": "reviewer:alexander:season-10.5b",
+        "reviewRole": "chess-reviewer",
+        "reviewRevision": "1"
+      },
+      "editorialApproval": {
+        "reviewerReference": "reviewer:alexander:season-10.5b",
+        "reviewRole": "editorial-approver",
+        "reviewRevision": "1"
+      }
+    },
+    {
+      "positionId": "kp-favorable-simplification",
+      "reviewStatus": "publish-ready",
+      "authorReview": {
+        "reviewerReference": "role:content-author",
+        "reviewRole": "content-author",
+        "reviewRevision": "1"
+      },
+      "chessReview": {
+        "reviewerReference": "role:chess-reviewer",
+        "reviewRole": "chess-reviewer",
+        "reviewRevision": "1"
+      },
+      "editorialApproval": {
+        "reviewerReference": "role:editorial-approver",
+        "reviewRole": "editorial-approver",
+        "reviewRevision": "1"
+      }
+    },
+    {
+      "positionId": "kp-safe-king-approach",
+      "reviewStatus": "publish-ready",
+      "authorReview": {
+        "reviewerReference": "role:content-author",
+        "reviewRole": "content-author",
+        "reviewRevision": "1"
+      },
+      "chessReview": {
+        "reviewerReference": "reviewer:alexander:season-10.5b",
+        "reviewRole": "chess-reviewer",
+        "reviewRevision": "1"
+      },
+      "editorialApproval": {
+        "reviewerReference": "reviewer:alexander:season-10.5b",
+        "reviewRole": "editorial-approver",
+        "reviewRevision": "1"
+      }
+    },
+    {
+      "positionId": "kp-restrained-approach",
+      "reviewStatus": "publish-ready",
+      "authorReview": {
+        "reviewerReference": "role:content-author",
+        "reviewRole": "content-author",
+        "reviewRevision": "1"
+      },
+      "chessReview": {
+        "reviewerReference": "reviewer:alexander:season-10.5b",
+        "reviewRole": "chess-reviewer",
+        "reviewRevision": "1"
+      },
+      "editorialApproval": {
+        "reviewerReference": "reviewer:alexander:season-10.5b",
+        "reviewRole": "editorial-approver",
+        "reviewRevision": "1"
+      }
+    }
+  ]
+}

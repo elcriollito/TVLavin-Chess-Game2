@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { readFile } from 'node:fs/promises';
 
 const artifact = JSON.parse(await readFile(new URL(
-    '../../public/data/endgame-pools/caissa-king-pawn-decisions/1.0.0.json',
+    '../../public/data/endgame-pools/caissa-king-pawn-decisions/1.1.0.json',
     import.meta.url
 ), 'utf8'));
 const byTitle = new Map(artifact.positions.map((position) => [position.title, position]));
@@ -82,7 +82,7 @@ test('incorrect move, hint, reveal answer, and Continue are truthful', async ({ 
     const wrongTarget = legalTargets.find((target) => !accepted.has(`${source}${target}`));
     if (wrongTarget) {
         await page.locator(`.square-${wrongTarget}`).click();
-        await expect(page.locator('[data-v2-feedback]')).toContainText('authored move');
+        await expect(page.locator('[data-v2-feedback]')).toContainText(position.feedback.incorrect);
         await page.locator('[data-v2-action="continue"]').click();
     } else {
         await page.keyboard.press('Escape');
@@ -110,6 +110,24 @@ test('keyboard board move, modal Escape, and focus return work', async ({ page }
     await expect(page.locator('[data-v2-close-modes]')).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(modes).toBeFocused();
+});
+
+test('adjudicated accepted alternative succeeds with truthful live feedback', async ({ page }) => {
+    await openV2(page);
+    await page.locator('[data-v2-action="start"]').click();
+    await expect(page.locator('[data-v2-item-label]')).toContainText('1 of 5');
+    for (let index = 0; index < 5; index += 1) {
+        const position = await currentPosition(page);
+        if (position.acceptedAlternatives.length) {
+            await playLanWithPointer(page, position.acceptedAlternatives[0].lan);
+            await expect(page.locator('[data-endgame-trainer-page]')).toHaveAttribute('data-state', 'v2-feedback');
+            await expect(page.locator('[data-v2-feedback]')).toContainText(position.feedback.correct);
+            return;
+        }
+        await playLanWithPointer(page, position.expectedLan);
+        await page.locator('[data-v2-action="continue"]').click();
+    }
+    throw new Error('selected session did not contain an approved alternative');
 });
 
 test('V1 default and Guided Study precedence remain intact', async ({ page }) => {
@@ -149,7 +167,7 @@ test('V2 shell and Modes dialog have no automated axe violations', async ({ page
 });
 
 test('digest mismatch blocks Start neutrally and permits retry', async ({ page }) => {
-    await page.route('**/data/endgame-pools/caissa-king-pawn-decisions/1.0.0.json', async (route) => {
+    await page.route('**/data/endgame-pools/caissa-king-pawn-decisions/1.1.0.json', async (route) => {
         const response = await route.fetch();
         const body = await response.json();
         body.description += ' tampered';

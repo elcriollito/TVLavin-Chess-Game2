@@ -71,7 +71,8 @@ export function buildPublishedPool(source) {
             rulesVerified: positions.every(({ verification }) => verification.objectiveCompatible),
             engineReviewedCount: positions.filter(({ verification }) => verification.engineReviewed).length,
             tablebaseVerifiedCount: positions.filter(({ verification }) => verification.tablebaseVerified).length,
-            editoriallyApprovedCount: positions.filter(({ verification }) => verification.editorialApproved).length
+            editoriallyApprovedCount: positions.filter(({ verification }) => verification.editorialApproved).length,
+            ...(source.verificationEvidenceSummary || {})
         },
         scoringEligibility: 'preview-score-only',
         personalBestEligibility: false,
@@ -82,6 +83,8 @@ export function buildPublishedPool(source) {
             sourceType: 'immutable-knowledge-activities',
             releaseIds: [...new Set(positions.map(({ provenance }) => provenance.releaseId))].sort()
         },
+        ...(source.compatibility ? { compatibility: source.compatibility } : {}),
+        ...(source.changelog ? { changelog: source.changelog } : {}),
         positions
     };
     return {
