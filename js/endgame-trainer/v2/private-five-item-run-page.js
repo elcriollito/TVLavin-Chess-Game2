@@ -69,7 +69,7 @@ export function mountPrivateFiveItemRunPage({ document: doc = globalThis.documen
     action(root,'continue',state.status === 'item-success',state.currentItemIndex === 4 ? 'Complete Run' : `Continue to Exercise ${state.currentItemIndex + 2}`);
     action(root,'retry',['item-terminal','technical-unavailable'].includes(state.status),
       state.status === 'technical-unavailable' ? 'Retry Current Exercise' : 'Retry');
-    action(root,'skip',state.runStarted && !['run-success','aborted'].includes(state.status),'Restart Run');
+    action(root,'skip',state.runStarted && state.status !== 'aborted','Restart Run');
     action(root,'abandon',state.status !== 'aborted','Exit');
     summary.hidden = state.status !== 'run-success';
     if (!summary.hidden) {

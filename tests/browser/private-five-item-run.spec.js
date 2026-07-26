@@ -45,6 +45,7 @@ test('five-item happy path waits for Continue and renders the exact ephemeral su
   await expect(page.getByRole('heading',{name:'Run complete'})).toBeVisible();
   await expect(page.locator('[data-private-run-summary-list] li')).toHaveText(titles.map(title=>`${title} — completed`));
   await expect(page.locator('.endgame-v2__summary > p')).toContainText('Independent completion: yes');
+  await expect(page.getByRole('button',{name:'Restart Run'})).toBeVisible();
   expect(await page.evaluate(()=>window.__privateRunAudit)).toEqual({local:0,session:0,indexedDb:0,account:0,analytics:0,telemetry:0,cookies:0});
   expect(analytics).toEqual([]);
   expect(await page.evaluate(()=>typeof window.clarity)).toBe('undefined');
