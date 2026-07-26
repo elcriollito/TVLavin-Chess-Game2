@@ -106,6 +106,36 @@ test('Stage 3 is sticky across item retry and full restart restores independence
   assert.deepEqual(run.getState().completedItemIndexes,[]);
 });
 
+test('restart current preserves run independence and completed items while technical boundary is neutral', async () => {
+  const run = new PrivateFiveItemRunController({ fetchImpl });
+  await run.load(valid); await run.start();
+  for (const move of routes[0]) await run.submitMove(intent(move)); await run.continue();
+  run.hint(); run.hint(); run.hint();
+  assert.equal(await run.restartCurrent(), true);
+  assert.deepEqual(run.getState().completedItemIndexes, [0]);
+  assert.equal(run.getState().runIndependentSuccessEligible, false);
+  assert.equal(run.reportTechnicalUnavailable(), true);
+  assert.equal(run.getState().status, 'technical-unavailable');
+  assert.deepEqual(run.getState().completedItemIndexes, [0]);
+  assert.equal(await run.retryTechnical(valid), true);
+  assert.equal(run.getState().status, 'active');
+});
+
+test('technical boundary abandons a pending opponent reply and prevents stale mutation', async () => {
+  let release;
+  const delay = () => new Promise(resolve => { release = resolve; });
+  const run = new PrivateFiveItemRunController({ fetchImpl, delay });
+  await run.load(valid); await run.start();
+  const pending = run.submitMove(intent('e5f6'));
+  while (!release) await new Promise(resolve => setImmediate(resolve));
+  assert.equal(run.getState().itemState.phase, 'opponent-evaluating');
+  assert.equal(run.reportTechnicalUnavailable(), true);
+  release(); await pending;
+  assert.equal(run.getState().status, 'technical-unavailable');
+  assert.equal(run.getState().itemState, null);
+  assert.deepEqual(run.getState().completedItemIndexes, []);
+});
+
 test('manifest mutations and artifact binding failures are neutral and block partial start', async () => {
   for (const mutate of [
     manifest => manifest.orderedItems.reverse(),

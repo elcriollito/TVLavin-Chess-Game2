@@ -162,6 +162,17 @@ export class PrivateFiveItemRunController {
     if (result) this.#commit({ status: 'active', itemState: this.#itemController.getState(), technicalUnavailable: false });
     return result;
   }
+  async restartCurrent() {
+    if (!this.#state.runStarted || this.#state.status === 'run-success' || this.#state.status === 'aborted') return false;
+    return this.#activateItem(this.#state.currentItemIndex);
+  }
+  reportTechnicalUnavailable() {
+    if (this.#state.status === 'aborted' || this.#state.status === 'run-success') return false;
+    this.#itemController?.abandon();
+    this.#itemController = null;
+    this.#commit({ status: 'technical-unavailable', itemState: null, technicalUnavailable: true });
+    return true;
+  }
   async retryTechnical(search) {
     if (this.#state.status !== 'technical-unavailable') return false;
     if (this.#artifacts.length) return this.#activateItem(this.#state.currentItemIndex);
