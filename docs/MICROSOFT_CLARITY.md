@@ -40,6 +40,9 @@ the Clarity project settings.
 On production, confirm one request for
 `https://www.clarity.ms/tag/xsjvqwy3ns?ref=bwt`, no request on localhost or a
 Vercel URL, and no `_clck` or `_clsk` cookie while analytics consent is denied.
+The CSP permits Clarity's documented load-balanced `*.clarity.ms` script and
+connection hosts plus `c.bing.com`; production currently loads its runtime from
+`scripts.clarity.ms`.
 Use Clarity's metadata verification command to inspect the consent signal.
 Recordings and heatmaps are available in the Clarity project dashboard.
 

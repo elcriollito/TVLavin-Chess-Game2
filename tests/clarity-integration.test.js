@@ -130,7 +130,7 @@ test('privacy disclosure and narrow consent controls are present', () => {
 test('CSP additions are limited to required Clarity script and connection hosts', () => {
   for (const path of ['index.html', 'about.html', 'yahoo-classic.html']) {
     const html = read(path);
-    assert.match(html, /script-src-elem[^;]+https:\/\/www\.clarity\.ms/);
+    assert.match(html, /script-src-elem[^;]+https:\/\/\*\.clarity\.ms/);
     assert.match(html, /connect-src[^;]+https:\/\/\*\.clarity\.ms/);
     assert.match(html, /connect-src[^;]+https:\/\/c\.bing\.com/);
   }
