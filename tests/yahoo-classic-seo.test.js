@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { load } from 'cheerio';
-import classicMiddleware from '../middleware.js';
+import classicMiddleware, { config as middlewareConfig } from '../middleware.js';
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const production = 'https://www.caissa-chess.org';
@@ -69,7 +69,9 @@ test('canonical route and legacy query state consolidate without sitemap duplica
   assert.ok(!sitemap.includes('?section=yahooClassic'));
   assert.ok(vercel.rewrites.some(rule => rule.source === '/yahoo-classic' && rule.destination === '/yahoo-classic.html'));
   const middleware = read('middleware.js');
-  assert.match(middleware, /matcher: '\/'/);
+  // The original single-root matcher was replaced when the existing edge
+  // middleware became the server-evaluated private availability endpoint.
+  assert.deepEqual(middlewareConfig.matcher, ['/', '/api/endgame/private-run-availability']);
   assert.match(middleware, /searchParams\.get\('section'\) !== 'yahooClassic'/);
   assert.match(server, /searchParams\.get\('section'\) === 'yahooClassic'/);
   assert.match(server, /pathname === '\/yahoo-classic'[\s\S]*filePath = '\.\/yahoo-classic\.html'/);

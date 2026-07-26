@@ -30,6 +30,7 @@ build/
 .public-release/
 test-results/
 playwright-report/
+coverage/
 endgame-pools/private/assets/
 *.rtbw
 *.rtbz

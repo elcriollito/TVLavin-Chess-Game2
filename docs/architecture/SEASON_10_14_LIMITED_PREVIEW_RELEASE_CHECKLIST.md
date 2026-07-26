@@ -4,6 +4,7 @@ This checklist is preparation only. Season 10.14 is not approved or ready.
 
 | Decision or gate | Status |
 | --- | --- |
+| Season 10.13A regression gate | passed |
 | Human approval to release | pending-human-approval |
 | Production release mode change | pending-human-approval |
 | Runtime enablement | pending-human-approval |
