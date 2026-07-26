@@ -12,7 +12,7 @@
         var search = window.location && typeof window.location.search === 'string'
             ? window.location.search
             : '';
-        return /(?:^\?|&)objectiveArtifact(?:=|&|$)/.test(search);
+        return /(?:^\?|&)(?:objectiveArtifact|privateEndgameRun)(?:=|&|$)/.test(search);
     }
 
     function storageValue(key) {

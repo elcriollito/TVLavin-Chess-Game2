@@ -76,7 +76,7 @@ test('Season 10.9 runtime, item artifacts, pools, manifest, Knowledge, visuals, 
   const expected = {
     'js/endgame-trainer/v2/endgame-run.js': '7537d771bfb1c78267ef02d026ca407672505d31b434ad8cb643a0ef6ac460e3',
     'js/endgame-trainer/v2/endgame-run-page.js': '217f8184743dbdd6a3ff7a8ef56a2d66cf336c03081d9665d367868e63576bd1',
-    'js/endgame-trainer/v2/endgame-trainer-v2-page.js': '56f7896e7e35fcb4d526273c5320faf344c549f23e5a1bbbd4aadced0d60fd84',
+    'js/endgame-trainer/v2/endgame-trainer-v2-page.js': '039516a532b02860fa2be656c27dd54baafa6d15077f6d878ae2988f2c84becd',
     'js/endgame-trainer/v2/multi-move-pilot.js': '609a76496b6c52e7c12b23e376750da1f7ed36a285697c3885fbba41a483aa9e',
     'public/data/endgame-runs/endgame-run-technical-two-item/1.0.0.json': '814668ca1df164e5c775529a8bcff3153e50c5495dc785b82ea9c3ab0473ad7c',
     'public/data/endgame-pilots/kp-coordinate-support-promote/1.0.0.json': '4b3a0ef4560a1c0a46f0b6bdfc615ef8860cec2c8b0bf8de8261b2c67a6847e3',

@@ -1,0 +1,31 @@
+export const PRIVATE_FIVE_ITEM_RUN_BASE = Object.freeze({
+  runSchemaVersion: '1.0.0',
+  runId: 'five-item-private-endgame-run',
+  runVersion: '1.0.0',
+  title: 'Private technical run',
+  description: 'Five approved exercises in a fixed pedagogical order. No saved progress.',
+  visibility: 'private-technical-only',
+  runtimeEligibility: 'private-flag-only',
+  itemCount: 5,
+  orderedItems: Object.freeze([
+    Object.freeze({ artifactId: 'kp-coordinate-support-promote', artifactVersion: '1.0.0', fingerprint: 'epilot-fnv1a32-f5f5df1f', sha256: 'sha256-076a58b2983d66d7f8035ebfb2b52946cb88e92c444cb59bafc9c140455117c6', title: 'Promote', rationale: 'introduces successful pawn conversion' }),
+    Object.freeze({ artifactId: 'rule-square-a-pawn-catch-stop-promotion', artifactVersion: '1.0.0', fingerprint: 'epilot-fnv1a32-52fddf30', sha256: 'sha256-d0e482faf45c08a10db2d98f0328a2639292107c6ecf68ac56adf00505745f22', title: 'Stop Promotion', rationale: 'introduces defensive prevention' }),
+    Object.freeze({ artifactId: 'convert-material-advantage', artifactVersion: '1.0.0', fingerprint: 'eobjective-fnv1a32-796c6d4c', sha256: 'sha256-85bb414f4cfd76ed43ddf0328f288d2abca2df33ff6c052cfd502bb3ef528db6', title: 'Convert Material Advantage', rationale: 'introduces favorable transformation and king activation', approvalDigest: 'sha256-d85d14b5c333b92df5dd5a4509ab025e8022045fb74a9eb73d85e1063c269a28' }),
+    Object.freeze({ artifactId: 'hold-draw', artifactVersion: '1.0.0', fingerprint: 'eobjective-fnv1a32-d1d02d11', sha256: 'sha256-ffb2bdaab1ef4ffc84d5ebadd528e47564c55c2edf3d1ee740bc3613e7302081', title: 'Hold Draw', rationale: 'introduces result preservation without forcing a win', approvalDigest: 'sha256-10d353a1f7576d9311826b9c0d17bf3f09d4e648053b2892d5ef6ebceddd38f8' }),
+    Object.freeze({ artifactId: 'activate-king', artifactVersion: '1.0.0', fingerprint: 'eobjective-fnv1a32-f2b249ef', sha256: 'sha256-cfb7e1708a5d3ba8c861408ce6c6be84476492607ecf555bde762e1413ccd50a', title: 'Activate King', rationale: 'finishes with a multi-decision strategic king route', approvalDigest: 'sha256-f3f79097b81528f3e4e1ba9622ca1eba2242902f65355ea7b6667dafb79921e6' })
+  ]),
+  completionPolicy: 'all-five-items-must-reach-approved-success',
+  retryPolicy: 'retry-current-item-from-approved-initial-state',
+  advancePolicy: 'manual-continue-after-success',
+  restartPolicy: 'reset-entire-run-in-memory',
+  summaryPolicy: 'ephemeral-completion-list-and-independent-eligibility',
+  failurePolicy: 'remain-on-current-item-with-truthful-artifact-feedback',
+  technicalFailurePolicy: 'neutral-safe-retry-or-abort',
+  hintEligibilityPolicy: 'stage-three-removes-run-independent-success',
+  persistencePolicy: 'none',
+  analyticsPolicy: 'disabled',
+  privacy: Object.freeze({ noindex: true, nofollow: true, publicCanonical: false, publicNavigation: false }),
+  featureFlags: Object.freeze({ trainerV2: '1', multiMovePilot: '1', privateEndgameRun: 'five-item' }),
+  sourceArtifactBindings: 'orderedItems',
+  integrity: Object.freeze({ canonicalization: 'caissa-stable-json-v1', fingerprintAlgorithm: 'fnv1a32', digestAlgorithm: 'sha256' })
+});

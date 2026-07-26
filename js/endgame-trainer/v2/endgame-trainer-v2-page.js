@@ -9,6 +9,8 @@ import { shouldActivateMultiMovePilot } from './multi-move-pilot.js';
 import { mountMultiMovePilotPage, unmountMultiMovePilotPage } from './multi-move-pilot-page.js';
 import { shouldActivateEndgameRun } from './endgame-run.js';
 import { mountEndgameRunPage, unmountEndgameRunPage } from './endgame-run-page.js';
+import { shouldActivatePrivateFiveItemRun } from './private-five-item-run.js';
+import { mountPrivateFiveItemRunPage, unmountPrivateFiveItemRunPage } from './private-five-item-run-page.js';
 
 let mounted = null;
 
@@ -47,6 +49,7 @@ function setPresentationState(root, phase, feedback = '') {
 }
 
 export function mountEndgameTrainerV2Page({ document: doc = globalThis.document, window: win = globalThis } = {}) {
+    if (shouldActivatePrivateFiveItemRun(win.location?.search ?? '')) return mountPrivateFiveItemRunPage({ document: doc, window: win });
     if (shouldActivateEndgameRun(win.location?.search ?? '')) return mountEndgameRunPage({ document: doc, window: win });
     if (shouldActivateMultiMovePilot(win.location?.search ?? '')) return mountMultiMovePilotPage({ document: doc, window: win });
     if (mounted) return mounted;
@@ -200,7 +203,7 @@ export function mountEndgameTrainerV2Page({ document: doc = globalThis.document,
 }
 
 export function unmountEndgameTrainerV2Page() {
-    if (!mounted) return unmountEndgameRunPage() || unmountMultiMovePilotPage();
+    if (!mounted) return unmountPrivateFiveItemRunPage() || unmountEndgameRunPage() || unmountMultiMovePilotPage();
     if (!mounted) return false;
     mounted.abort.abort();
     mounted.orchestrator?.abandon();

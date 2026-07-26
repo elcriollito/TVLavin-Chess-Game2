@@ -159,3 +159,16 @@ test('objectiveArtifact suppresses Clarity before storage, consent, or network',
     assert.equal(result.window.clarity, undefined);
   }
 });
+
+test('privateEndgameRun suppresses Clarity before every storage or network side effect', () => {
+  for (const value of ['five-item', '', 'unknown', 'five-item&privateEndgameRun=five-item']) {
+    const accesses = [];
+    const result = environment({
+      search: `?trainerV2=1&multiMovePilot=1&privateEndgameRun=${value}`,
+      storageAccesses: accesses
+    });
+    assert.equal(result.scripts.length, 0);
+    assert.deepEqual(accesses, []);
+    assert.equal(result.window.clarity, undefined);
+  }
+});
