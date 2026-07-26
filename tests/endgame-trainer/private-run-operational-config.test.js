@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import handler from '../../api/endgame/private-run-availability.js';
+import middleware from '../../middleware.js';
 import {
   createPrivateRunOperationalConfig, fetchPrivateRunOperationalConfig,
   PRIVATE_RUN_AVAILABILITY_URL, validatePrivateRunOperationalConfig
@@ -71,21 +71,17 @@ test('availability timeout aborts and returns disabled without caching prior ena
   assert.equal(config.enabled,false);assert.equal(config.reasonCode,'configuration-unavailable');
 });
 
-test('server endpoint exposes only the minimal contract with no-store and no secrets',()=>{
+test('edge-evaluated endpoint exposes only the minimal contract with no-store and no secrets',async()=>{
   const previous={
     enabled:process.env.CAISSA_PRIVATE_ENDGAME_RUN_ENABLED,
     secret:process.env.CAISSA_TEST_PRIVATE_SECRET
   };
   process.env.CAISSA_PRIVATE_ENDGAME_RUN_ENABLED='true';process.env.CAISSA_TEST_PRIVATE_SECRET='must-not-leak';
-  const headers={},res={
-    setHeader:(name,value)=>{headers[name]=value;},
-    status(code){this.statusCode=code;return this;},
-    json(value){this.body=value;return this;}
-  };
-  handler({method:'GET'},res);
-  assert.equal(res.statusCode,200);assert.match(headers['Cache-Control'],/no-store/);assert.equal(headers['Referrer-Policy'],'no-referrer');
-  assert.equal(res.body.enabled,true);assert.doesNotMatch(JSON.stringify(res.body),/secret|must-not-leak|environment variable/i);
-  handler({method:'POST'},res);assert.equal(res.statusCode,405);
+  const response=middleware(new Request('https://www.caissa-chess.org/api/endgame/private-run-availability'));
+  const body=await response.json();
+  assert.equal(response.status,200);assert.match(response.headers.get('Cache-Control'),/no-store/);assert.equal(response.headers.get('Referrer-Policy'),'no-referrer');
+  assert.equal(body.enabled,true);assert.doesNotMatch(JSON.stringify(body),/secret|must-not-leak|environment variable/i);
+  assert.equal(middleware(new Request('https://www.caissa-chess.org/api/endgame/private-run-availability',{method:'POST'})).status,405);
   if(previous.enabled===undefined)delete process.env.CAISSA_PRIVATE_ENDGAME_RUN_ENABLED;else process.env.CAISSA_PRIVATE_ENDGAME_RUN_ENABLED=previous.enabled;
   if(previous.secret===undefined)delete process.env.CAISSA_TEST_PRIVATE_SECRET;else process.env.CAISSA_TEST_PRIVATE_SECRET=previous.secret;
 });

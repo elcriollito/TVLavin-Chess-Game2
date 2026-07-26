@@ -2,11 +2,11 @@
 
 ## Scope and operating model
 
-This runbook covers only `five-item-private-endgame-run`. It does not authorize a public preview. The operational decision is made by the same-origin serverless endpoint `/api/endgame/private-run-availability` before the browser imports the private manifest/runtime module or initializes the board.
+This runbook covers only `five-item-private-endgame-run`. It does not authorize a public preview. The operational decision is made by the existing same-origin Vercel middleware at `/api/endgame/private-run-availability` before the browser imports the private manifest/runtime module or initializes the board.
 
 The endpoint returns only the validated availability contract, uses `Cache-Control: no-store`, and never returns environment values, artifacts, approvals, digests, request metadata or user data. The browser also uses `cache: no-store`, `credentials: omit` and `referrerPolicy: no-referrer`. The safe default is disabled.
 
-The repository has no existing mutable runtime configuration service such as Vercel Edge Config. Vercel deployment environment variables are therefore the narrowest available server-evaluated mechanism. Updating them requires a normal Vercel deployment of the same or newer Git revision. Do not add a remote configuration vendor merely to bypass that deployment boundary.
+The repository has no existing mutable runtime configuration service such as Vercel Edge Config. Vercel deployment environment variables evaluated by the existing middleware are therefore the narrowest available mechanism. Updating them requires a normal Vercel deployment of the same or newer Git revision. Do not add a remote configuration vendor merely to bypass that deployment boundary. Reusing middleware also stays within the Vercel Hobby function limit.
 
 ## Configuration contract
 
