@@ -26,6 +26,7 @@ export function shouldActivateMultiMovePilot(search = '') {
   const params = new URLSearchParams(search);
   const selector = params.get('pilot');
   return params.get('trainerV2') === '1' && params.get('multiMovePilot') === '1' &&
+    !params.has('endgameRun') &&
     (!selector || DESCRIPTORS.has(selector)) &&
     !['studyUnit','release','activity','reviewFrom'].some(key => params.has(key));
 }

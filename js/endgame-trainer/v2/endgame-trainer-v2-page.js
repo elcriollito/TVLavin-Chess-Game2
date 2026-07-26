@@ -7,6 +7,8 @@ import {
 import { QuickChallengeOrchestrator } from './quick-challenge-orchestrator.js';
 import { shouldActivateMultiMovePilot } from './multi-move-pilot.js';
 import { mountMultiMovePilotPage, unmountMultiMovePilotPage } from './multi-move-pilot-page.js';
+import { shouldActivateEndgameRun } from './endgame-run.js';
+import { mountEndgameRunPage, unmountEndgameRunPage } from './endgame-run-page.js';
 
 let mounted = null;
 
@@ -45,6 +47,7 @@ function setPresentationState(root, phase, feedback = '') {
 }
 
 export function mountEndgameTrainerV2Page({ document: doc = globalThis.document, window: win = globalThis } = {}) {
+    if (shouldActivateEndgameRun(win.location?.search ?? '')) return mountEndgameRunPage({ document: doc, window: win });
     if (shouldActivateMultiMovePilot(win.location?.search ?? '')) return mountMultiMovePilotPage({ document: doc, window: win });
     if (mounted) return mounted;
     const root = doc?.querySelector('[data-endgame-trainer-page]');
@@ -197,7 +200,7 @@ export function mountEndgameTrainerV2Page({ document: doc = globalThis.document,
 }
 
 export function unmountEndgameTrainerV2Page() {
-    if (!mounted) return unmountMultiMovePilotPage();
+    if (!mounted) return unmountEndgameRunPage() || unmountMultiMovePilotPage();
     if (!mounted) return false;
     mounted.abort.abort();
     mounted.orchestrator?.abandon();
