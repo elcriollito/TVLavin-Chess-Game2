@@ -1,0 +1,159 @@
+{
+  "evidenceSchemaVersion": "1.0.0",
+  "evidenceType": "stockfish-secondary-comparison",
+  "positionId": "king-leads-pawn-to-c4-support",
+  "fen": "8/7k/8/8/8/3P4/8/2K5 w - - 0 1",
+  "engineIdentity": {
+    "identitySchemaVersion": "1.0.0",
+    "engineId": "stockfish-18-windows-x64-avx2",
+    "engineName": "Stockfish 18",
+    "engineVersion": "18",
+    "sourceRelease": "official-stockfish/Stockfish@sf_18",
+    "license": "GPL-3.0",
+    "binaryPlatform": "windows",
+    "binaryArchitecture": "x86-64-avx2",
+    "nodePlatform": "win32",
+    "nodeArchitecture": "x64",
+    "archiveSha256": "6f6c272ebd6ea594377715235c8a7326f75940ef4f4f856f45106028fe6ae900",
+    "binarySha256": "c86215fa1977d53b82ed854540a4c7b025be4cd042276c85ba3de53fb9118911",
+    "uciOptions": {
+      "Threads": 1,
+      "Hash": 64,
+      "Ponder": false,
+      "MultiPV": 3
+    },
+    "analysisPolicyId": "caissa-engine-review-standard",
+    "analysisPolicyVersion": "1.0.0",
+    "repositoryPolicy": "binary-external-to-git-and-public-release"
+  },
+  "analysisPolicy": {
+    "policySchemaVersion": "1.0.0",
+    "policyId": "caissa-engine-review-standard",
+    "policyVersion": "1.0.0",
+    "depth": 18,
+    "multiPv": 3,
+    "timeoutMs": 30000,
+    "uciOptions": {
+      "Threads": 1,
+      "Hash": 64,
+      "Ponder": false,
+      "MultiPV": 3
+    },
+    "startupHandshake": [
+      "uci",
+      "uciok",
+      "setoption",
+      "isready",
+      "readyok"
+    ],
+    "analysisCutoff": "go depth 18",
+    "cleanup": "quit-after-bestmove; kill-on-error-or-timeout"
+  },
+  "bestMove": "c1c2",
+  "candidates": [
+    {
+      "multiPv": 1,
+      "depth": 18,
+      "selDepth": 25,
+      "nodes": 590795,
+      "score": {
+        "type": "cp",
+        "value": 511
+      },
+      "principalVariation": [
+        "c1c2",
+        "h7g7",
+        "c2b3",
+        "g7f6",
+        "b3c4",
+        "f6e5",
+        "c4c5",
+        "e5f4",
+        "d3d4",
+        "f4e3",
+        "d4d5",
+        "e3e4",
+        "d5d6",
+        "e4f5",
+        "c5c6",
+        "f5e5",
+        "d6d7",
+        "e5e6",
+        "c6c7",
+        "e6d5",
+        "c7b6",
+        "d5e5",
+        "b6c5"
+      ]
+    },
+    {
+      "multiPv": 2,
+      "depth": 18,
+      "selDepth": 43,
+      "nodes": 590795,
+      "score": {
+        "type": "cp",
+        "value": 511
+      },
+      "principalVariation": [
+        "c1d2",
+        "h7g6",
+        "d2c3",
+        "g6f6",
+        "c3c4",
+        "f6e5",
+        "c4c5",
+        "e5e6",
+        "d3d4",
+        "e6e7",
+        "c5c6",
+        "e7e6",
+        "d4d5",
+        "e6e5",
+        "c6c5",
+        "e5f5",
+        "d5d6",
+        "f5e4"
+      ]
+    },
+    {
+      "multiPv": 3,
+      "depth": 18,
+      "selDepth": 51,
+      "nodes": 590795,
+      "score": {
+        "type": "cp",
+        "value": 511
+      },
+      "principalVariation": [
+        "c1b2",
+        "h7g7",
+        "b2c3",
+        "g7f6",
+        "c3c4",
+        "f6e5",
+        "c4c5",
+        "e5e6",
+        "d3d4",
+        "e6e7",
+        "c5c6",
+        "e7e6",
+        "d4d5",
+        "e6e5",
+        "d5d6",
+        "e5d4",
+        "c6b7",
+        "d4d5",
+        "b7c7",
+        "d5e6",
+        "d6d7",
+        "e6e5",
+        "c7b6",
+        "e5d4"
+      ]
+    }
+  ],
+  "authority": "secondary-only-tablebase-is-theoretical-authority",
+  "approvalStatus": "unapproved-human-review-required",
+  "evidenceDigest": "sha256-bc41fcee494ef9d9711a2a07b2b82765df4f02a72e6b18c14a68b30cacf7d9f9"
+}

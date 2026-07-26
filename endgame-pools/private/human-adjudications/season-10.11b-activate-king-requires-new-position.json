@@ -1,0 +1,19 @@
+{
+  "adjudicationSchemaVersion": "1.0.0",
+  "adjudicationId": "season-10.11b-activate-king-requires-new-position@1",
+  "reviewDecision": "requires-new-position",
+  "reviewerReference": "reviewer:alexander:season-10.11b-activate-king",
+  "reviewRevision": 1,
+  "decisionBasis": "The proposed multi-move objective could be completed immediately with Kb3 or Kc3.",
+  "rejectedBinding": {
+    "positionId": "king-activation-support-region",
+    "initialFen": "8/7k/8/8/8/3P4/2K5/8 w - - 0 1",
+    "positionDigest": "sha256-6b694d3f4c3abdb822b6789b8f0d60afb7547bb4283f11c40b722b2cf1a7c297",
+    "treeDigest": "sha256-949cd346baac5804d90abf79bd338cd80bbaa05865766eeab3cedc0978913b6e",
+    "engineDigest": "sha256-47cc1a45fcf3b57ed69bfe06f86df0d6123f0bea83275beb8fa1175b3ba93008",
+    "packetDigest": "sha256-0c2535abc7b9c1fff10faf980473a4377fa6eb33e02c6f815177f604f6e9930f"
+  },
+  "originalPacketMutated": false,
+  "replacementApprovalGranted": false,
+  "adjudicationDigest": "sha256-13ff6646509c758efcde599ed5888e61e015fa40e764ddac8756ed6551369071"
+}
