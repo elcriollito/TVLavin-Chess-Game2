@@ -2,7 +2,7 @@
 
 CAISSA uses Microsoft Clarity on selected public pages to identify aggregate
 navigation, click, scroll, device, and usability patterns. The public Clarity
-project ID is `xsjvqwy3ns`.
+project ID is `xskndnmhky`.
 
 ## Architecture
 
@@ -38,7 +38,7 @@ the Clarity project settings.
 ## Verification and operations
 
 On production, confirm one request for
-`https://www.clarity.ms/tag/xsjvqwy3ns?ref=bwt`, no request on localhost or a
+`https://www.clarity.ms/tag/xskndnmhky`, no request on localhost or a
 Vercel URL, and no `_clck` or `_clsk` cookie while analytics consent is denied.
 The CSP permits Clarity's documented load-balanced `*.clarity.ms` script and
 connection hosts plus `c.bing.com`; production currently loads its runtime from

@@ -1,9 +1,9 @@
 (function (window, document) {
     'use strict';
 
-    var PROJECT_ID = 'xsjvqwy3ns';
+    var PROJECT_ID = 'xskndnmhky';
     var SCRIPT_ID = 'caissa-clarity-tag';
-    var SCRIPT_URL = 'https://www.clarity.ms/tag/' + PROJECT_ID + '?ref=bwt';
+    var SCRIPT_URL = 'https://www.clarity.ms/tag/' + PROJECT_ID;
     var CONSENT_KEY = 'caissa:analytics-consent:v1';
     var DISABLE_KEY = 'caissa:clarity-disabled:v1';
     var ALLOWED_HOSTS = new Set(['www.caissa-chess.org', 'caissa-chess.org']);

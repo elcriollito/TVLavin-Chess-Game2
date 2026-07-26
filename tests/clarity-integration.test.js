@@ -5,8 +5,9 @@ import test from 'node:test';
 
 const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const loader = read('js/caissa-clarity.js');
-const PROJECT_ID = 'xsjvqwy3ns';
-const TAG_URL = `https://www.clarity.ms/tag/${PROJECT_ID}?ref=bwt`;
+const PROJECT_ID = 'xskndnmhky';
+const TAG_URL = `https://www.clarity.ms/tag/${PROJECT_ID}`;
+const OBSOLETE_PROJECT_ID = ['xsj', 'vqwy3ns'].join('');
 
 function environment({
   hostname = 'www.caissa-chess.org',
@@ -51,6 +52,7 @@ test('loader uses the approved project and asynchronous official tag URL', () =>
   assert.equal(result.scripts.length, 1);
   assert.equal(result.scripts[0].src, TAG_URL);
   assert.equal(result.scripts[0].async, true);
+  assert.doesNotMatch(loader, new RegExp(OBSOLETE_PROJECT_ID));
 });
 
 test('only exact production hosts initialize Clarity', () => {
