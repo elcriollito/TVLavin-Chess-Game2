@@ -1,0 +1,163 @@
+{
+  "artifactSchemaVersion": "1.0.0",
+  "artifactId": "hold-draw@1.0.0",
+  "pilotId": "hold-draw",
+  "pilotVersion": "1.0.0",
+  "positionId": "rook-pawn-liquidation",
+  "initialFen": "8/8/4k3/8/4K3/8/P7/8 w - - 0 1",
+  "learnerSide": "white",
+  "mission": "Preserve the draw through safe rook-pawn liquidation.",
+  "objective": {
+    "id": "hold-draw",
+    "version": "1.0.0",
+    "label": "Hold the draw",
+    "maximumPly": 10
+  },
+  "opponentPolicy": {
+    "id": "authored-deterministic-tree@1.0.0",
+    "runtimeNetworkRequired": false,
+    "runtimeEngineRequired": false,
+    "runtimeTablebaseRequired": false,
+    "persistence": false,
+    "scoring": false
+  },
+  "branches": [
+    {
+      "branchId": "approved-route",
+      "firstMove": "a3",
+      "nodes": [
+        {
+          "approvedLearnerMove": {
+            "uci": "a2a3",
+            "san": "a3",
+            "resultingFen": "8/8/4k3/8/4K3/P7/8/8 b - - 0 1"
+          },
+          "opponentReply": {
+            "uci": "e6d6",
+            "san": "Kd6",
+            "resultingFen": "8/8/3k4/8/4K3/P7/8/8 w - - 1 2"
+          },
+          "deviationClassifications": {
+            "a2a3": "approved",
+            "a2a4": "objective-miss-result-preserved",
+            "e4d3": "objective-miss-result-preserved",
+            "e4e3": "objective-miss-result-preserved",
+            "e4f3": "objective-miss-result-preserved",
+            "e4d4": "objective-miss-result-preserved",
+            "e4f4": "objective-miss-result-preserved",
+            "e4d5": "objective-miss-result-preserved",
+            "e4e5": "objective-miss-result-preserved",
+            "e4f5": "objective-miss-result-preserved"
+          },
+          "terminal": false
+        },
+        {
+          "approvedLearnerMove": {
+            "uci": "a3a4",
+            "san": "a4",
+            "resultingFen": "8/8/3k4/8/P3K3/8/8/8 b - - 0 2"
+          },
+          "opponentReply": {
+            "uci": "d6c5",
+            "san": "Kc5",
+            "resultingFen": "8/8/8/2k5/P3K3/8/8/8 w - - 1 3"
+          },
+          "deviationClassifications": {
+            "a3a4": "approved",
+            "e4d3": "authored-concept-miss",
+            "e4e3": "authored-concept-miss",
+            "e4f3": "authored-concept-miss",
+            "e4d4": "authored-concept-miss",
+            "e4f4": "authored-concept-miss",
+            "e4d5": "authored-concept-miss",
+            "e4e5": "authored-concept-miss",
+            "e4f5": "authored-concept-miss"
+          },
+          "terminal": false
+        },
+        {
+          "approvedLearnerMove": {
+            "uci": "a4a5",
+            "san": "a5",
+            "resultingFen": "8/8/8/P1k5/4K3/8/8/8 b - - 0 3"
+          },
+          "opponentReply": {
+            "uci": "c5b5",
+            "san": "Kb5",
+            "resultingFen": "8/8/8/Pk6/4K3/8/8/8 w - - 1 4"
+          },
+          "deviationClassifications": {
+            "a4a5": "approved",
+            "e4d3": "authored-concept-miss",
+            "e4e3": "authored-concept-miss",
+            "e4f3": "authored-concept-miss",
+            "e4d4": "authored-concept-miss",
+            "e4f4": "authored-concept-miss",
+            "e4d5": "authored-concept-miss",
+            "e4e5": "authored-concept-miss",
+            "e4f5": "authored-concept-miss"
+          },
+          "terminal": false
+        },
+        {
+          "approvedLearnerMove": {
+            "uci": "a5a6",
+            "san": "a6",
+            "resultingFen": "8/8/P7/1k6/4K3/8/8/8 b - - 0 4"
+          },
+          "opponentReply": {
+            "uci": "b5a6",
+            "san": "Kxa6",
+            "resultingFen": "8/8/k7/8/4K3/8/8/8 w - - 0 5"
+          },
+          "deviationClassifications": {
+            "a5a6": "approved",
+            "e4d3": "authored-concept-miss",
+            "e4e3": "authored-concept-miss",
+            "e4f3": "authored-concept-miss",
+            "e4d4": "authored-concept-miss",
+            "e4f4": "authored-concept-miss",
+            "e4d5": "authored-concept-miss",
+            "e4e5": "authored-concept-miss",
+            "e4f5": "authored-concept-miss"
+          },
+          "terminal": true
+        }
+      ]
+    }
+  ],
+  "terminalConditions": {
+    "requiredFen": "8/8/k7/8/4K3/8/8/8 w - - 0 5"
+  },
+  "feedback": {
+    "progress": "Good. The pawn advances while the draw remains secure.",
+    "acceptedAlternative": "That move also holds the draw, but this exercise follows the pawn-liquidation route.",
+    "conceptMiss": "The position is still drawn, but this leaves the approved liquidation route. Return to the previous position and continue.",
+    "objectiveMissResultPreserved": "The draw remains intact, but the required rook-pawn liquidation was not demonstrated.",
+    "failure": "That move gives up the verified draw.",
+    "objectiveFailure": "The approved liquidation route can no longer be completed.",
+    "opponent": "Black's king approaches the rook pawn while preserving the draw.",
+    "success": "Draw held. The rook pawn was liquidated safely, leaving insufficient material.",
+    "technical": "The position could not be classified safely. This is not learner failure.",
+    "retry": "The last approved position has been restored.",
+    "summary": "You preserved the draw and liquidated the rook pawn without disturbing the defensive balance."
+  },
+  "hints": [
+    "The position is already drawn. Look for a simple way to remove the last pawn without creating unnecessary complications.",
+    "Advance the rook pawn one square at a time while keeping your king stable.",
+    "Reveal the approved learner move for the current node."
+  ],
+  "humanApprovalBinding": {
+    "digest": "sha256-10d353a1f7576d9311826b9c0d17bf3f09d4e648053b2892d5ef6ebceddd38f8"
+  },
+  "sourceEvidenceBinding": [
+    "sha256-9cb54a040b9f403c41573210f5a463e53004dce066b209249e1db47a33580af1",
+    "sha256-da2dcf8744dc5cd9f2a968ed23f4ebddac2cdfe6cf3325c2968bf331341eed48",
+    "sha256-d64d360e8f9c16840d2b63053b008806dd95a8c1d8488639c2fc3a2d7b7d11ac",
+    "sha256-0d9f313349a135d92505ea8241a3fd4898eff8ca255e350ff4d6b6dff9599f39"
+  ],
+  "privacy": "private-technical-inspector",
+  "runtimeEligibility": true,
+  "contentFingerprint": "eobjective-fnv1a32-d1d02d11",
+  "contentDigest": "sha256-ffb2bdaab1ef4ffc84d5ebadd528e47564c55c2edf3d1ee740bc3613e7302081"
+}

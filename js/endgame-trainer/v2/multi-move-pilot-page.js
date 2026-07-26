@@ -25,8 +25,8 @@ export function mountMultiMovePilotPage({ document: doc = globalThis.document, w
   const search = win.location?.search ?? '';
   const descriptor = resolveMultiMovePilotDescriptor(search);
   const isStopPromotion = descriptor?.pilotId === 'rule-square-a-pawn-catch-stop-promotion';
-  const objectiveLabel = isStopPromotion ? 'Stop the a-pawn' : 'Promote the e-pawn';
-  const maximumPly = isStopPromotion ? 10 : 12;
+  let objectiveLabel = isStopPromotion ? 'Stop the a-pawn' : 'Promote the e-pawn';
+  let maximumPly = isStopPromotion ? 10 : 12;
   text(root, '[data-v2-objective]', objectiveLabel);
   text(root, '[data-v2-item-label]', 'Ready · White to move');
   const currentMode=root.querySelector('[data-v2-mode="quick-challenge"]');
@@ -57,7 +57,7 @@ export function mountMultiMovePilotPage({ document: doc = globalThis.document, w
       summary.querySelector('dl').hidden=true; text(root,'.endgame-v2__summary > p',state.result?.replaceAll('-',' '));}
     root.dataset.state=`pilot-${state.phase}`;
   };
-  start.addEventListener('click',async()=>{start.disabled=true;try{const artifact=await loadMultiMovePilot({fetchImpl:win.fetch.bind(win),search});controller=new MultiMovePilotController({artifact,onChange:render,
+  start.addEventListener('click',async()=>{start.disabled=true;try{const artifact=await loadMultiMovePilot({fetchImpl:win.fetch.bind(win),search});objectiveLabel=artifact.objective.label;maximumPly=artifact.objective.maximumPly;text(root,'[data-v2-objective]',objectiveLabel);controller=new MultiMovePilotController({artifact,onChange:render,
       delay:()=>new Promise(resolve=>win.setTimeout(resolve,win.matchMedia?.('(prefers-reduced-motion: reduce)').matches?0:180))});
     mounted.controller=controller;render(controller.getState());await controller.start();}catch{text(root,'[data-v2-feedback]','The pilot is technically unavailable.');root.dataset.state='pilot-technical-unavailable';present(root,'technical-unavailable','The pilot is technically unavailable.');}finally{start.disabled=false;}},{signal:abort.signal});
   root.querySelector('[data-v2-action="hint"]').addEventListener('click',()=>controller?.hint(),{signal:abort.signal});

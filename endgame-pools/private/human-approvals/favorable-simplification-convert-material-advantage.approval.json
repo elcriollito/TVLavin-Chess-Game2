@@ -1,0 +1,117 @@
+{
+  "reviewDecision": "approve-objective-pilot",
+  "reviewRationale": "The position is approved for a hidden convert-material-advantage technical pilot. The approved first move is cxd5, followed by the authored deterministic route 1...Ke7 2.Kc4 Kd6 3.Kd4 Kc7. Success is not awarded merely for capturing the pawn. It requires the exact authored terminal, the white king on d4, both white pawns still present, the black d5 pawn removed by the white c-pawn, and the verified win preserved. The alternative exd5 preserves the theoretical result but misses the approved conversion mechanism, so it must be classified as objective-miss-result-preserved and never as chess-result-failure. Other covered moves that preserve the win but leave the authored route are truthful authored-concept misses or accepted alternatives according to the approved graph. A move is chess-result-failure only when exact evidence changes the win to a draw or loss. Promotion is outside this bounded exercise and is not required for success. Stalemate is never success. Repetition, uncovered states, digest failures, invalid artifacts, missing transitions, ambiguous classifications, and internal errors are neutral technical-unavailable conditions. The maximum length is eight plies. The third-stage move reveal removes independent-success eligibility. No result may create scoring, Personal Best, leaderboard data, Training Memory, Mastery, Recommendations, account data, analytics, telemetry, or persistent browser storage. This approval is bound to the reviewed position, graph, engine evidence, and packet digests. Any change requires a new human-review revision.",
+  "reviewerReference": "reviewer:alexander:season-10.11b-conversion",
+  "reviewRevision": 1,
+  "approvedObjectiveId": "convert-material-advantage",
+  "approvedObjectiveVersion": "1.0.0",
+  "approvedInitialFen": "8/8/5k2/3p4/2P1P3/3K4/8/8 w - - 0 1",
+  "approvedLearnerSide": "white",
+  "approvedDesignatedTargets": {
+    "capture": {
+      "capturingPiece": "white pawn from c4",
+      "capturedPiece": "black pawn on d5",
+      "requiredMove": "c4d5"
+    },
+    "whiteKingRequiredSquare": "d4",
+    "whitePawnsRequiredSquaresAtSuccess": ["d5", "e4"],
+    "requiredTheoreticalResult": "win",
+    "requiredTerminalFen": "8/2k5/8/3P4/3KP3/8/8/8 w - - 5 4"
+  },
+  "approvedFirstMoves": ["c4d5"],
+  "approvedSubsequentLearnerMoves": {
+    "after:c4d5-f6e7": ["d3c4"],
+    "after:c4d5-f6e7-d3c4-e7d6": ["c4d4"]
+  },
+  "approvedOpponentPolicy": "authored-deterministic-tree@1.0.0",
+  "approvedTieBreakRule": "not-applicable; every opponent reply is explicitly authored",
+  "approvedSuccessCondition": {
+    "type": "human-authored-terminal",
+    "requiredTerminalFen": "8/2k5/8/3P4/3KP3/8/8/8 w - - 5 4",
+    "requirements": [
+      "the black pawn originally on d5 was captured by the white pawn from c4",
+      "the white king is on d4",
+      "the white pawns are on d5 and e4",
+      "the verified win is preserved",
+      "the approved authored terminal is reached"
+    ],
+    "neverInferFromResultAlone": true
+  },
+  "approvedFailureCondition": {
+    "objectiveFailure": "The approved conversion mission is no longer reachable within the reviewed artifact.",
+    "chessResultFailure": "The verified win changes to a draw or loss.",
+    "technicalUnavailable": "The state cannot be classified safely because evidence, integrity, schema, transition, FEN, or artifact validation failed.",
+    "maximumPlyWithoutSuccess": "objective-failure only for a covered and safely classified state; otherwise technical-unavailable"
+  },
+  "approvedObjectiveMissSemantics": {
+    "exd5": {
+      "classification": "objective-miss-result-preserved",
+      "meaning": "The position remains winning, but the approved c-pawn conversion mechanism was not demonstrated.",
+      "runtimeBehavior": "show truthful feedback, restore the previous reviewed node, allow retry, do not mark learner failure"
+    },
+    "coveredWinningOffRouteMove": {
+      "classification": "authored-concept-miss",
+      "meaning": "The verified win remains, but the learner leaves the bounded authored route.",
+      "runtimeBehavior": "show truthful feedback, restore the previous reviewed node when no authored continuation exists, allow retry"
+    }
+  },
+  "approvedPromotionSemantics": {
+    "promotionRequiredForSuccess": false,
+    "promotionInsideApprovedExercise": false,
+    "coveredPromotionState": "classify according to exact reviewed evidence but never as success for this objective",
+    "uncoveredPromotionState": "technical-unavailable"
+  },
+  "approvedStalemateSemantics": {
+    "stalemateIsSuccess": false,
+    "coveredStalemate": "chess-result-failure because the initial position is a verified win",
+    "uncoveredStalemate": "technical-unavailable"
+  },
+  "approvedMaximumPly": 8,
+  "approvedTechnicalFailureBehavior": {
+    "classification": "technical-unavailable",
+    "learnerFailure": false,
+    "scoringEffect": "none",
+    "persistenceEffect": "none",
+    "allowedRecovery": ["safe-retry", "restart", "abort"],
+    "mustNotInferChessResult": true
+  },
+  "approvedHintStages": [
+    {
+      "stage": 1,
+      "text": "Look for a favorable pawn exchange that removes the central blocker.",
+      "independentSuccessEligibilityAfterUse": true,
+      "persistenceEffect": "none"
+    },
+    {
+      "stage": 2,
+      "text": "Choose the capture that opens a direct route for your king toward the center.",
+      "independentSuccessEligibilityAfterUse": true,
+      "persistenceEffect": "none"
+    },
+    {
+      "stage": 3,
+      "text": "Reveal the approved learner move for the current node.",
+      "independentSuccessEligibilityAfterUse": false,
+      "persistenceEffect": "none"
+    }
+  ],
+  "approvedFeedback": {
+    "correctProgress": "Good. The favorable exchange is complete and your king is entering the center.",
+    "acceptedAlternative": "That move also preserves the win, but this exercise follows the approved conversion route.",
+    "authoredConceptMiss": "The position still wins, but this leaves the approved conversion route. Return to the previous position and continue.",
+    "objectiveMissResultPreserved": "The position remains winning, but the approved c-pawn capture and conversion mechanism was not demonstrated.",
+    "chessResultFailure": "That move gives up the verified win.",
+    "objectiveFailure": "The approved conversion mission can no longer be completed.",
+    "opponentReply": "Black follows the reviewed defensive route while your king approaches the center.",
+    "success": "Material converted. You removed the central blocker, activated the king, and preserved the win.",
+    "technicalUnavailable": "The position could not be classified safely. This is not learner failure.",
+    "retry": "The last approved position has been restored.",
+    "summary": "You used the favorable pawn exchange to clear the center and activate the king."
+  },
+  "reviewedPositionDigest": "sha256-58c212529abfe98326f32b40de0ed1737302514b5bda04f47b567fc0ef19a8aa",
+  "reviewedTablebaseTreeDigest": "sha256-9550b394b9b804dc935c6748d25676f2f1775f559c35a2006d00b3fd79512454",
+  "reviewedEngineEvidenceDigest": "sha256-72411f7c2425c17cabb8aa2cd69102d13fe54e5d2e458f7d4fe9cd6477fa5533",
+  "reviewedPacketDigest": "sha256-fdc77958dd1f4adfb8fc531ab132ccc4cb66959e1fe892b90e508c36ef39589b",
+  "humanApproved": true,
+  "cryptographicallySigned": false
+}

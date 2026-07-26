@@ -8,6 +8,13 @@
     var DISABLE_KEY = 'caissa:clarity-disabled:v1';
     var ALLOWED_HOSTS = new Set(['www.caissa-chess.org', 'caissa-chess.org']);
 
+    function isPrivateObjectiveInspector() {
+        var search = window.location && typeof window.location.search === 'string'
+            ? window.location.search
+            : '';
+        return /(?:^\?|&)objectiveArtifact(?:=|&|$)/.test(search);
+    }
+
     function storageValue(key) {
         try {
             return window.localStorage && window.localStorage.getItem(key);
@@ -78,6 +85,8 @@
     }
 
     function initialize() {
+        // This gate intentionally precedes environment, storage, consent and network access.
+        if (isPrivateObjectiveInspector()) return false;
         if (!isEligibleEnvironment()) return false;
         if (window.__caissaClarityInitialized) {
             bindControls();

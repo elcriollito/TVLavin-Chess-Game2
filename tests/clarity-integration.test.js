@@ -13,7 +13,9 @@ function environment({
   hostname = 'www.caissa-chess.org',
   protocol = 'https:',
   webdriver = false,
-  stored = {}
+  stored = {},
+  search = '',
+  storageAccesses = null
 } = {}) {
   const scripts = [];
   const listeners = new Map();
@@ -35,11 +37,11 @@ function environment({
     addEventListener: (name, callback) => listeners.set(name, callback)
   };
   const window = {
-    location: { hostname, protocol },
+    location: { hostname, protocol, search },
     navigator: { webdriver },
     localStorage: {
-      getItem: key => storage.get(key) ?? null,
-      setItem: (key, value) => storage.set(key, value)
+      getItem: key => { storageAccesses?.push('read'); return storage.get(key) ?? null; },
+      setItem: (key, value) => { storageAccesses?.push('write'); storage.set(key, value); }
     }
   };
   vm.runInNewContext(loader, { window, document, Set });
@@ -143,4 +145,17 @@ test('SEO metadata remains route-specific and unchanged in purpose', () => {
   assert.match(read('eco.html'), /<link rel="canonical" href="https:\/\/www\.caissa-chess\.org\/eco">/);
   assert.match(read('opening-database.html'), /<title>Chess Opening Database - CAISSA<\/title>/);
   assert.match(read('polyglot.html'), /<link rel="canonical" href="https:\/\/www\.caissa-chess\.org\/tools\/polyglot">/);
+});
+
+test('objectiveArtifact suppresses Clarity before storage, consent, or network', () => {
+  for (const value of ['activate-king@1.0.0', 'hold-draw@1.0.0', 'convert-material-advantage@1.0.0', '', 'unknown', 'activate-king@1.0.0&objectiveArtifact=hold-draw@1.0.0']) {
+    const accesses = [];
+    const result = environment({
+      search: `?trainerV2=1&multiMovePilot=1&objectiveArtifact=${value}`,
+      storageAccesses: accesses
+    });
+    assert.equal(result.scripts.length, 0);
+    assert.deepEqual(accesses, []);
+    assert.equal(result.window.clarity, undefined);
+  }
 });

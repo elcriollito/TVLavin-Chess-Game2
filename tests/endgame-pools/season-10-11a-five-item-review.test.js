@@ -141,7 +141,7 @@ test('runtime, visuals, navigation, pools, manifest, and Knowledge remain byte-i
     'js/endgame-trainer/v2/endgame-run.js': '7537d771bfb1c78267ef02d026ca407672505d31b434ad8cb643a0ef6ac460e3',
     'js/endgame-trainer/v2/endgame-run-page.js': '217f8184743dbdd6a3ff7a8ef56a2d66cf336c03081d9665d367868e63576bd1',
     'js/endgame-trainer/v2/endgame-trainer-v2-page.js': '56f7896e7e35fcb4d526273c5320faf344c549f23e5a1bbbd4aadced0d60fd84',
-    'endgame-trainer.html': 'f4e29f79b755dfe332a4ab4e214c15960de192bd9be086526a10f1ef37a76744',
+    'endgame-trainer.html': '34d510728cb5ee21cb7ee6617c1950b5f1ae69953a2c529a9e44e9fb3b6a8cb3',
     'css/endgame-trainer.css': '88a8ff330231a42d5dce727fe1a3ecd325f8e0496c7f5c28bb7b8463f34efdb9',
     'js/caissa-primary-navigation.js': '886da3695f13be58f0b54c88f14bd50a217878291dddaca256b3eca233a94317',
     'public/data/endgame-pools/caissa-king-pawn-decisions/1.0.0.json': '7324ffada9e27a07a64a7e30960e1f69dadd110844f3ad97e4967364a2c91d23',

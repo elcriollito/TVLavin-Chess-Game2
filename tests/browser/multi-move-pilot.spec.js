@@ -26,3 +26,32 @@ test('stop-promotion distinguishes drawing mission miss, loss, hint and responsi
   for(const width of [320,375,390,768,820,1024,1280,1440,1920]){await page.setViewportSize({width,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth)).toBeLessThanOrEqual(1);}
   expect((await new AxeBuilder({page}).include('[data-endgame-v2-shell]').analyze()).violations).toEqual([]);
 });
+test('private objective allowlist completes offline with zero Clarity requests or analytics storage',async({page})=>{
+  const analyticsRequests=[];
+  page.on('request',request=>{if(/clarity\.ms/i.test(request.url()))analyticsRequests.push(request.url());});
+  await page.addInitScript(()=>{
+    window.__analyticsWrites=[];
+    const original=Storage.prototype.setItem;
+    Storage.prototype.setItem=function(key,value){if(/clarity|analytics-consent/i.test(String(key)))window.__analyticsWrites.push(String(key));return original.call(this,key,value);};
+  });
+  const routes={
+    'convert-material-advantage@1.0.0':['c4d5','d3c4','c4d4'],
+    'hold-draw@1.0.0':['a2a3','a3a4','a4a5','a5a6'],
+    'activate-king@1.0.0':['c1b2','b2b3','b3c4']
+  };
+  for(const [id,moves] of Object.entries(routes)){
+    await page.goto(`/endgame-trainer?trainerV2=1&multiMovePilot=1&objectiveArtifact=${id}`);
+    await page.getByRole('button',{name:'Start Pilot'}).click();
+    for(const move of moves)await play(page,move);
+    await expect(page.locator('[data-v2-feedback]')).toHaveAttribute('data-tone','success');
+    expect(await page.evaluate(()=>window.__analyticsWrites)).toEqual([]);
+    expect(await page.context().cookies()).toEqual([]);
+  }
+  expect(analyticsRequests).toEqual([]);
+  for(const suffix of ['unknown@1.0.0','','activate-king@1.0.0&objectiveArtifact=hold-draw@1.0.0']){
+    await page.goto(`/endgame-trainer?trainerV2=1&multiMovePilot=1&objectiveArtifact=${suffix}`);
+    await page.getByRole('button',{name:'Start Pilot'}).click();
+    await expect(page.locator('[data-v2-feedback]')).toContainText('technically unavailable');
+  }
+  expect(analyticsRequests).toEqual([]);
+});

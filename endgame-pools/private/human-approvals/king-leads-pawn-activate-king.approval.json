@@ -1,0 +1,135 @@
+{
+  "reviewDecision": "approve-objective-pilot",
+  "reviewRationale": "The replacement position is approved for a hidden activate-king technical pilot. Unlike the rejected candidate, no legal first move immediately completes the objective. The learner must make three meaningful king decisions before reaching the approved support square. The approved authored route is 1.Kb2 Kg6 2.Kb3 Kf5 3.Kc4. Success requires the white king on c4, the white pawn still on d3, the exact win preserved, and the approved authored terminal reached. The natural pawn advance d4 is a genuine chess-result failure because exact tablebase evidence changes the initial win to a draw. This demonstrates the instructional principle truthfully: the king must lead the pawn. Kc2 and Kd2 are valid winning alternatives and must never be described as chess mistakes. They are treated as accepted alternatives outside the bounded authored route. Kb1 and Kd1 also preserve the win but are passive relative to the selected lesson and are treated as recoverable authored-concept misses. At later nodes, every legal move is classified according to exact evidence. Winning alternatives receive truthful non-failure feedback. Moves that change the win to a draw or loss are chess-result failures. The maximum length is eight plies. Promotion, stalemate, repetition, uncovered states, and integrity failures cannot be inferred as success. Technical unavailability is always neutral. The third-stage next-move reveal removes independent-success eligibility. No result may create persistent scoring, Personal Best, leaderboard data, Training Memory, Mastery, Recommendations, account data, analytics, telemetry, or browser persistence. This approval is bound to the reviewed position, graph, engine evidence, and packet digests. Any change requires a new human-review revision.",
+  "reviewerReference": "reviewer:alexander:season-10.11b-activate-king-replacement",
+  "reviewRevision": 1,
+  "approvedObjectiveId": "activate-king",
+  "approvedObjectiveVersion": "1.0.0",
+  "approvedInitialFen": "8/7k/8/8/8/3P4/8/2K5 w - - 0 1",
+  "approvedLearnerSide": "white",
+  "approvedDesignatedTargets": {
+    "whiteKingRequiredSquare": "c4",
+    "whitePawnRequiredSquare": "d3",
+    "requiredTheoreticalResult": "win",
+    "requiredTerminalFen": "8/8/8/5k2/2K5/3P4/8/8 b - - 5 3",
+    "mission": "Bring the white king to c4 before advancing the d-pawn while preserving the verified win."
+  },
+  "approvedFirstMoves": ["c1b2"],
+  "approvedSubsequentLearnerMoves": {
+    "after:c1b2-h7g6": ["b2b3"],
+    "after:c1b2-h7g6-b2b3-g6f5": ["b3c4"]
+  },
+  "approvedOpponentPolicy": "authored-deterministic-tree@1.0.0",
+  "approvedTieBreakRule": "not-applicable; every opponent reply is explicitly authored",
+  "approvedSuccessCondition": {
+    "type": "approved-king-activation-board-event",
+    "requiredTerminalFen": "8/8/8/5k2/2K5/3P4/8/8 b - - 5 3",
+    "requirements": [
+      "the white king is on c4",
+      "the white pawn remains on d3",
+      "the verified win is preserved",
+      "the approved authored terminal is reached"
+    ],
+    "neverInferFromWinAlone": true
+  },
+  "approvedFailureCondition": {
+    "objectiveFailure": "The approved king-support mission is no longer reachable within the reviewed artifact.",
+    "chessResultFailure": "The verified win changes to a draw or loss.",
+    "technicalUnavailable": "The state cannot be classified safely because evidence, integrity, schema, transition, FEN, or artifact validation failed.",
+    "maximumPlyWithoutSuccess": "objective-failure only for a covered and safely classified state; otherwise technical-unavailable"
+  },
+  "approvedObjectiveMissSemantics": {
+    "initialMoveClassifications": {
+      "c1b2": "correct-progress",
+      "c1c2": "accepted-alternative-result-preserved",
+      "c1d2": "accepted-alternative-result-preserved",
+      "c1b1": "authored-concept-miss",
+      "c1d1": "authored-concept-miss",
+      "d3d4": "chess-result-failure"
+    },
+    "after:c1b2-h7g6": {
+      "b2b3": "correct-progress",
+      "b2c3": "accepted-alternative-result-preserved",
+      "b2a3": "authored-concept-miss",
+      "b2a2": "authored-concept-miss",
+      "b2c2": "authored-concept-miss",
+      "d3d4": "chess-result-failure",
+      "b2a1": "chess-result-failure",
+      "b2b1": "chess-result-failure",
+      "b2c1": "chess-result-failure"
+    },
+    "after:c1b2-h7g6-b2b3-g6f5": {
+      "b3c4": "success",
+      "b3b4": "accepted-alternative-result-preserved",
+      "b3c3": "authored-concept-miss",
+      "d3d4": "chess-result-failure",
+      "b3a2": "chess-result-failure",
+      "b3b2": "chess-result-failure",
+      "b3c2": "chess-result-failure",
+      "b3a3": "chess-result-failure",
+      "b3a4": "chess-result-failure"
+    },
+    "acceptedAlternativeRuntimeBehavior": "show truthful non-failure feedback, restore the previous reviewed node, allow retry, do not persist or score",
+    "authoredConceptMissRuntimeBehavior": "show truthful feedback, restore the previous reviewed node when no authored continuation exists, allow retry, do not persist or score"
+  },
+  "approvedPromotionSemantics": {
+    "promotionRequiredForSuccess": false,
+    "promotionInsideApprovedExercise": false,
+    "pawnMustRemainOnD3ForSuccess": true,
+    "coveredPrematurePawnAdvance": "classify according to exact reviewed evidence",
+    "uncoveredPromotionState": "technical-unavailable"
+  },
+  "approvedStalemateSemantics": {
+    "stalemateIsSuccess": false,
+    "coveredStalemate": "chess-result-failure because the initial position is a verified win",
+    "uncoveredStalemate": "technical-unavailable"
+  },
+  "approvedMaximumPly": 8,
+  "approvedTechnicalFailureBehavior": {
+    "classification": "technical-unavailable",
+    "learnerFailure": false,
+    "scoringEffect": "none",
+    "persistenceEffect": "none",
+    "allowedRecovery": ["safe-retry", "restart", "abort"],
+    "mustNotInferChessResult": true
+  },
+  "approvedHintStages": [
+    {
+      "stage": 1,
+      "text": "Let the king lead the pawn. Advancing the pawn now gives up the win.",
+      "independentSuccessEligibilityAfterUse": true,
+      "persistenceEffect": "none"
+    },
+    {
+      "stage": 2,
+      "text": "Guide the king along the b2-b3-c4 route while the pawn stays on d3.",
+      "independentSuccessEligibilityAfterUse": true,
+      "persistenceEffect": "none"
+    },
+    {
+      "stage": 3,
+      "text": "Reveal the approved learner move for the current node.",
+      "independentSuccessEligibilityAfterUse": false,
+      "persistenceEffect": "none"
+    }
+  ],
+  "approvedFeedback": {
+    "correctProgress": "Good. Your king is approaching the support square while the winning route remains intact.",
+    "acceptedAlternative": "That king route also keeps the position winning, but this exercise follows the b2-b3-c4 route.",
+    "authoredConceptMiss": "The position still wins, but this move leaves the approved activation route. Return to the previous position and continue.",
+    "objectiveMissResultPreserved": "The position remains winning, but the pawn advanced before the approved support event.",
+    "chessResultFailure": "That move gives up the verified win and allows a draw.",
+    "objectiveFailure": "The approved king-support mission can no longer be completed.",
+    "opponentReply": "Black's king approaches while your king continues toward the support square.",
+    "success": "King activated. You reached c4 with the pawn still on d3 and preserved the win.",
+    "technicalUnavailable": "The position could not be classified safely. This is not learner failure.",
+    "retry": "The last approved position has been restored.",
+    "summary": "You let the king lead the pawn and reached the support square before advancing."
+  },
+  "reviewedPositionDigest": "sha256-2300d646206254ff076ad829f368b6316fb44514802d3bfab1ff3f258eb8214f",
+  "reviewedTablebaseTreeDigest": "sha256-30bc29f005b681528a3858b5f1f648ac107a0f0d0b8e743926e62ec9c3993387",
+  "reviewedEngineEvidenceDigest": "sha256-bc41fcee494ef9d9711a2a07b2b82765df4f02a72e6b18c14a68b30cacf7d9f9",
+  "reviewedPacketDigest": "sha256-78f1d981fa283b6146bcd3ee65633fe9f2649617264891c234b2982e9cc3c596",
+  "humanApproved": true,
+  "cryptographicallySigned": false
+}

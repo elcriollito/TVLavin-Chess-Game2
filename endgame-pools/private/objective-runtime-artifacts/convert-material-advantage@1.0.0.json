@@ -1,0 +1,136 @@
+{
+  "artifactSchemaVersion": "1.0.0",
+  "artifactId": "convert-material-advantage@1.0.0",
+  "pilotId": "convert-material-advantage",
+  "pilotVersion": "1.0.0",
+  "positionId": "favorable-simplification-open-king-route",
+  "initialFen": "8/8/5k2/3p4/2P1P3/3K4/8/8 w - - 0 1",
+  "learnerSide": "white",
+  "mission": "Convert the material advantage with the c-pawn capture and king activation.",
+  "objective": {
+    "id": "convert-material-advantage",
+    "version": "1.0.0",
+    "label": "Convert the material advantage",
+    "maximumPly": 8
+  },
+  "opponentPolicy": {
+    "id": "authored-deterministic-tree@1.0.0",
+    "runtimeNetworkRequired": false,
+    "runtimeEngineRequired": false,
+    "runtimeTablebaseRequired": false,
+    "persistence": false,
+    "scoring": false
+  },
+  "branches": [
+    {
+      "branchId": "approved-route",
+      "firstMove": "cxd5",
+      "nodes": [
+        {
+          "approvedLearnerMove": {
+            "uci": "c4d5",
+            "san": "cxd5",
+            "resultingFen": "8/8/5k2/3P4/4P3/3K4/8/8 b - - 0 1"
+          },
+          "opponentReply": {
+            "uci": "f6e7",
+            "san": "Ke7",
+            "resultingFen": "8/4k3/8/3P4/4P3/3K4/8/8 w - - 1 2"
+          },
+          "deviationClassifications": {
+            "c4d5": "approved",
+            "e4d5": "objective-miss-result-preserved",
+            "c4c5": "chess-result-failure",
+            "e4e5": "chess-result-failure",
+            "d3c2": "authored-concept-miss",
+            "d3d2": "authored-concept-miss",
+            "d3e2": "authored-concept-miss",
+            "d3c3": "authored-concept-miss",
+            "d3e3": "authored-concept-miss"
+          },
+          "terminal": false
+        },
+        {
+          "approvedLearnerMove": {
+            "uci": "d3c4",
+            "san": "Kc4",
+            "resultingFen": "8/4k3/8/3P4/2K1P3/8/8/8 b - - 2 2"
+          },
+          "opponentReply": {
+            "uci": "e7d6",
+            "san": "Kd6",
+            "resultingFen": "8/8/3k4/3P4/2K1P3/8/8/8 w - - 3 3"
+          },
+          "deviationClassifications": {
+            "d3c4": "approved",
+            "d3c3": "authored-concept-miss",
+            "d3d4": "authored-concept-miss",
+            "d3e3": "authored-concept-miss",
+            "d3c2": "authored-concept-miss",
+            "d3d2": "authored-concept-miss",
+            "d3e2": "authored-concept-miss",
+            "e4e5": "authored-concept-miss"
+          },
+          "terminal": false
+        },
+        {
+          "approvedLearnerMove": {
+            "uci": "c4d4",
+            "san": "Kd4",
+            "resultingFen": "8/8/3k4/3P4/3KP3/8/8/8 b - - 4 3"
+          },
+          "opponentReply": {
+            "uci": "d6c7",
+            "san": "Kc7",
+            "resultingFen": "8/2k5/8/3P4/3KP3/8/8/8 w - - 5 4"
+          },
+          "deviationClassifications": {
+            "c4d4": "approved",
+            "c4b3": "authored-concept-miss",
+            "c4c3": "authored-concept-miss",
+            "c4d3": "authored-concept-miss",
+            "c4b4": "authored-concept-miss",
+            "c4b5": "authored-concept-miss",
+            "c4c5": "authored-concept-miss",
+            "e4e5": "authored-concept-miss"
+          },
+          "terminal": true
+        }
+      ]
+    }
+  ],
+  "terminalConditions": {
+    "requiredFen": "8/2k5/8/3P4/3KP3/8/8/8 w - - 5 4"
+  },
+  "feedback": {
+    "progress": "Good. The favorable exchange is complete and your king is entering the center.",
+    "acceptedAlternative": "That move also preserves the win, but this exercise follows the approved conversion route.",
+    "conceptMiss": "The position still wins, but this leaves the approved conversion route. Return to the previous position and continue.",
+    "objectiveMissResultPreserved": "The position remains winning, but the approved c-pawn capture and conversion mechanism was not demonstrated.",
+    "failure": "That move gives up the verified win.",
+    "objectiveFailure": "The approved conversion mission can no longer be completed.",
+    "opponent": "Black follows the reviewed defensive route while your king approaches the center.",
+    "success": "Material converted. You removed the central blocker, activated the king, and preserved the win.",
+    "technical": "The position could not be classified safely. This is not learner failure.",
+    "retry": "The last approved position has been restored.",
+    "summary": "You used the favorable pawn exchange to clear the center and activate the king."
+  },
+  "hints": [
+    "Look for a favorable pawn exchange that removes the central blocker.",
+    "Choose the capture that opens a direct route for your king toward the center.",
+    "Reveal the approved learner move for the current node."
+  ],
+  "humanApprovalBinding": {
+    "digest": "sha256-d85d14b5c333b92df5dd5a4509ab025e8022045fb74a9eb73d85e1063c269a28"
+  },
+  "sourceEvidenceBinding": [
+    "sha256-58c212529abfe98326f32b40de0ed1737302514b5bda04f47b567fc0ef19a8aa",
+    "sha256-9550b394b9b804dc935c6748d25676f2f1775f559c35a2006d00b3fd79512454",
+    "sha256-72411f7c2425c17cabb8aa2cd69102d13fe54e5d2e458f7d4fe9cd6477fa5533",
+    "sha256-fdc77958dd1f4adfb8fc531ab132ccc4cb66959e1fe892b90e508c36ef39589b"
+  ],
+  "privacy": "private-technical-inspector",
+  "runtimeEligibility": true,
+  "contentFingerprint": "eobjective-fnv1a32-796c6d4c",
+  "contentDigest": "sha256-85bb414f4cfd76ed43ddf0328f288d2abca2df33ff6c052cfd502bb3ef528db6"
+}

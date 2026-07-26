@@ -1,0 +1,116 @@
+{
+  "reviewDecision": "approve-with-objective-correction",
+  "reviewRationale": "The position is approved for a hidden hold-draw technical pilot with an objective correction. The exact tablebase evidence confirms that the initial position is drawn and that every legal initial learner move preserves the draw. Therefore, the exercise must not claim that a3 is the only drawing move or that alternative moves are chess mistakes. The original description of repeated opposition and key-square denial is not sufficiently demonstrated by the approved line. The white king remains on e4 while the white rook pawn advances and is captured on a6. The approved instructional mission is therefore draw preservation through safe rook-pawn liquidation. The authored deterministic line is 1.a3 Kd6 2.a4 Kc5 3.a5 Kb5 4.a6 Kxa6. Success requires the exact terminal with only both kings remaining and insufficient material. Preserving the draw after a single move is not sufficient for success because every legal initial move already does so. Legal moves that preserve the draw but leave the approved route must be described truthfully as objective-miss-result-preserved or authored-concept-miss, never as chess-result-failure. Chess-result-failure applies only when exact evidence shows that the learner draw becomes a loss. The opponent policy may use only authored replies that preserve the theoretical draw. Promotion and stalemate are not approved success conditions. Repetition, uncovered states, integrity failures, and unsafe classifications are technical-unavailable and always neutral. The maximum length is ten plies. The third-stage move reveal removes independent-success eligibility. No result may create persistent scoring, Personal Best, leaderboard data, Training Memory, Mastery, Recommendations, account data, analytics, telemetry, or browser persistence. This approval is bound to the reviewed position, graph, engine evidence, and packet digests. Any change requires a new human-review revision.",
+  "reviewerReference": "reviewer:alexander:season-10.11b-hold-draw",
+  "reviewRevision": 1,
+  "approvedObjectiveId": "hold-draw",
+  "approvedObjectiveVersion": "1.0.0",
+  "approvedInitialFen": "8/8/4k3/8/4K3/8/P7/8 w - - 0 1",
+  "approvedLearnerSide": "white",
+  "approvedDesignatedTargets": {
+    "internalSubconcept": "draw-preservation-through-safe-rook-pawn-liquidation",
+    "whitePawnRoute": ["a2", "a3", "a4", "a5", "a6"],
+    "requiredCapture": "black king captures the white pawn on a6",
+    "requiredTheoreticalResult": "draw",
+    "requiredRemainingMaterial": ["white king", "black king"],
+    "requiredTerminalFen": "8/8/k7/8/4K3/8/8/8 w - - 0 5"
+  },
+  "approvedFirstMoves": ["a2a3"],
+  "approvedSubsequentLearnerMoves": {
+    "after:a2a3-e6d6": ["a3a4"],
+    "after:a2a3-e6d6-a3a4-d6c5": ["a4a5"],
+    "after:a2a3-e6d6-a3a4-d6c5-a4a5-c5b5": ["a5a6"]
+  },
+  "approvedOpponentPolicy": "authored-deterministic-tree@1.0.0",
+  "approvedTieBreakRule": "not-applicable; every opponent reply is explicitly authored",
+  "approvedSuccessCondition": {
+    "type": "human-authored-terminal",
+    "requiredTerminalFen": "8/8/k7/8/4K3/8/8/8 w - - 0 5",
+    "requirements": [
+      "the white rook pawn followed the approved a3-a4-a5-a6 route",
+      "the black king captured the pawn on a6",
+      "the theoretical draw was preserved",
+      "only both kings remain",
+      "the terminal is insufficient material",
+      "the approved authored terminal is reached"
+    ],
+    "neverInferFromDrawAlone": true
+  },
+  "approvedFailureCondition": {
+    "objectiveFailure": "The approved liquidation route is no longer reachable within the reviewed artifact.",
+    "chessResultFailure": "The verified draw changes to a loss.",
+    "technicalUnavailable": "The state cannot be classified safely because evidence, integrity, schema, transition, FEN, or artifact validation failed.",
+    "maximumPlyWithoutSuccess": "objective-failure only for a covered and safely classified state; otherwise technical-unavailable"
+  },
+  "approvedObjectiveMissSemantics": {
+    "otherDrawingInitialMove": {
+      "classification": "objective-miss-result-preserved",
+      "meaning": "The position remains drawn, but the approved rook-pawn liquidation route was not demonstrated.",
+      "runtimeBehavior": "show truthful feedback, restore the initial reviewed node, allow retry, do not mark learner failure"
+    },
+    "drawingOffRouteMoveAtLaterNode": {
+      "classification": "authored-concept-miss",
+      "meaning": "The draw remains secure, but the learner leaves the bounded authored route.",
+      "runtimeBehavior": "show truthful feedback, restore the previous reviewed node when no authored continuation exists, allow retry"
+    }
+  },
+  "approvedPromotionSemantics": {
+    "promotionRequiredForSuccess": false,
+    "promotionInsideApprovedExercise": false,
+    "coveredPromotionState": "objective-miss-result-preserved when the draw remains exact; chess-result-failure if the draw becomes a loss",
+    "uncoveredPromotionState": "technical-unavailable"
+  },
+  "approvedStalemateSemantics": {
+    "stalemateIsSuccess": false,
+    "coveredStalemate": "objective-miss-result-preserved when the exact draw is preserved but the authored liquidation terminal is not reached",
+    "uncoveredStalemate": "technical-unavailable"
+  },
+  "approvedMaximumPly": 10,
+  "approvedTechnicalFailureBehavior": {
+    "classification": "technical-unavailable",
+    "learnerFailure": false,
+    "scoringEffect": "none",
+    "persistenceEffect": "none",
+    "allowedRecovery": ["safe-retry", "restart", "abort"],
+    "mustNotInferChessResult": true
+  },
+  "approvedHintStages": [
+    {
+      "stage": 1,
+      "text": "The position is already drawn. Look for a simple way to remove the last pawn without creating unnecessary complications.",
+      "independentSuccessEligibilityAfterUse": true,
+      "persistenceEffect": "none"
+    },
+    {
+      "stage": 2,
+      "text": "Advance the rook pawn one square at a time while keeping your king stable.",
+      "independentSuccessEligibilityAfterUse": true,
+      "persistenceEffect": "none"
+    },
+    {
+      "stage": 3,
+      "text": "Reveal the approved learner move for the current node.",
+      "independentSuccessEligibilityAfterUse": false,
+      "persistenceEffect": "none"
+    }
+  ],
+  "approvedFeedback": {
+    "correctProgress": "Good. The pawn advances while the draw remains secure.",
+    "acceptedAlternative": "That move also holds the draw, but this exercise follows the pawn-liquidation route.",
+    "authoredConceptMiss": "The position is still drawn, but this leaves the approved liquidation route. Return to the previous position and continue.",
+    "objectiveMissResultPreserved": "The draw remains intact, but the required rook-pawn liquidation was not demonstrated.",
+    "chessResultFailure": "That move gives up the verified draw.",
+    "objectiveFailure": "The approved liquidation route can no longer be completed.",
+    "opponentReply": "Black's king approaches the rook pawn while preserving the draw.",
+    "success": "Draw held. The rook pawn was liquidated safely, leaving insufficient material.",
+    "technicalUnavailable": "The position could not be classified safely. This is not learner failure.",
+    "retry": "The last approved position has been restored.",
+    "summary": "You preserved the draw and liquidated the rook pawn without disturbing the defensive balance."
+  },
+  "reviewedPositionDigest": "sha256-9cb54a040b9f403c41573210f5a463e53004dce066b209249e1db47a33580af1",
+  "reviewedTablebaseTreeDigest": "sha256-da2dcf8744dc5cd9f2a968ed23f4ebddac2cdfe6cf3325c2968bf331341eed48",
+  "reviewedEngineEvidenceDigest": "sha256-d64d360e8f9c16840d2b63053b008806dd95a8c1d8488639c2fc3a2d7b7d11ac",
+  "reviewedPacketDigest": "sha256-0d9f313349a135d92505ea8241a3fd4898eff8ca255e350ff4d6b6dff9599f39",
+  "humanApproved": true,
+  "cryptographicallySigned": false
+}

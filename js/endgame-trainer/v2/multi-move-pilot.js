@@ -1,6 +1,7 @@
 import { ChessRulesFacade } from '../chess-rules-facade.js';
 import { computeCompatibilityFingerprint } from './curated-pool-validator.js';
 import { sha256Digest } from './curated-pool-integrity.js';
+import { getPrivateObjectiveArtifact, PRIVATE_OBJECTIVE_ARTIFACT_IDS, PRIVATE_OBJECTIVE_APPROVAL_DIGESTS, PRIVATE_OBJECTIVE_CONTENT_INTEGRITY } from './private-objective-artifacts.js';
 
 export const PILOT_DESCRIPTOR = Object.freeze({
   pilotId: 'kp-coordinate-support-promote', pilotVersion: '1.0.0',
@@ -19,26 +20,51 @@ const DESCRIPTORS = new Map([
   [`${STOP_PROMOTION_PILOT_DESCRIPTOR.pilotId}@${STOP_PROMOTION_PILOT_DESCRIPTOR.pilotVersion}`, STOP_PROMOTION_PILOT_DESCRIPTOR]
 ]);
 const OBJECTIVES = new Set(['promote@1.0.0', 'stop-promotion@1.0.0']);
+const PRIVATE_OBJECTIVES = new Set(['convert-material-advantage@1.0.0', 'hold-draw@1.0.0', 'activate-king@1.0.0']);
 const TERMINAL = new Set(['objective-success','objective-failure','technical-unavailable','item-abandoned','item-error']);
 const clone = value => structuredClone(value);
 
 export function shouldActivateMultiMovePilot(search = '') {
   const params = new URLSearchParams(search);
   const selector = params.get('pilot');
+  const privateMode = params.has('objectiveArtifact');
   return params.get('trainerV2') === '1' && params.get('multiMovePilot') === '1' &&
     !params.has('endgameRun') &&
-    (!selector || DESCRIPTORS.has(selector)) &&
+    (privateMode || !selector || DESCRIPTORS.has(selector)) &&
     !['studyUnit','release','activity','reviewFrom'].some(key => params.has(key));
 }
 
 export function resolveMultiMovePilotDescriptor(search = '') {
-  const selector = new URLSearchParams(search).get('pilot');
+  const params = new URLSearchParams(search);
+  if (params.has('objectiveArtifact')) {
+    const values = params.getAll('objectiveArtifact');
+    const artifactId = values.length === 1 && values[0] ? values[0] : null;
+    return artifactId && PRIVATE_OBJECTIVE_ARTIFACT_IDS.includes(artifactId)
+      ? { pilotId: artifactId.split('@')[0], pilotVersion: artifactId.split('@')[1], artifactId, private: true }
+      : null;
+  }
+  const selector = params.get('pilot');
   return selector ? DESCRIPTORS.get(selector) ?? null : PILOT_DESCRIPTOR;
 }
 
 export async function loadMultiMovePilot({ fetchImpl = fetch, cryptoImpl = globalThis.crypto, search = '' } = {}) {
   const descriptor = resolveMultiMovePilotDescriptor(search);
   if (!descriptor) throw new Error('pilot-not-allowed');
+  if (descriptor.private) {
+    const artifact = getPrivateObjectiveArtifact(descriptor.artifactId);
+    const integrity = PRIVATE_OBJECTIVE_CONTENT_INTEGRITY[descriptor.artifactId];
+    if (!artifact || !PRIVATE_OBJECTIVES.has(`${artifact.objective?.id}@${artifact.objective?.version}`) ||
+        artifact.opponentPolicy?.runtimeNetworkRequired !== false ||
+        artifact.opponentPolicy?.runtimeEngineRequired !== false ||
+        artifact.opponentPolicy?.runtimeTablebaseRequired !== false ||
+        artifact.opponentPolicy?.persistence !== false ||
+        artifact.humanApprovalBinding?.digest !== PRIVATE_OBJECTIVE_APPROVAL_DIGESTS[artifact.artifactId] ||
+        computeCompatibilityFingerprint(artifact).replace('epool-', 'eobjective-') !== integrity?.fingerprint ||
+        await sha256Digest(artifact, cryptoImpl) !== integrity?.digest) {
+      throw new Error('pilot-integrity-failure');
+    }
+    return Object.freeze(artifact);
+  }
   const response = await fetchImpl(descriptor.url);
   if (!response.ok) throw new Error('pilot-unavailable');
   const artifact = await response.json();
@@ -58,8 +84,9 @@ export class MultiMovePilotController {
   #artifact; #onChange; #delay; #generation = 0; #pending = false;
   #state;
   constructor({ artifact, onChange = () => {}, delay = async () => {} } = {}) {
-    if (!artifact || !DESCRIPTORS.has(`${artifact.pilotId}@${artifact.pilotVersion}`) ||
-        !OBJECTIVES.has(`${artifact.objective?.id}@${artifact.objective?.version}`)) throw new TypeError('invalid-pilot');
+    if (!artifact || (!DESCRIPTORS.has(`${artifact.pilotId}@${artifact.pilotVersion}`) &&
+        (!PRIVATE_OBJECTIVES.has(`${artifact.objective?.id}@${artifact.objective?.version}`) ||
+         artifact.humanApprovalBinding?.digest !== PRIVATE_OBJECTIVE_APPROVAL_DIGESTS[artifact.artifactId]))) throw new TypeError('invalid-pilot');
     this.#artifact = artifact; this.#onChange = onChange; this.#delay = delay;
     this.#state = this.#fresh('item-configured');
   }
@@ -97,7 +124,13 @@ export class MultiMovePilotController {
       if (classification === 'authored-concept-miss') {
         this.#commit({ phase: 'learner-turn', feedback: this.#artifact.feedback.conceptMiss }); return false;
       }
-      if (classification === 'objective-failure') {
+      if (classification === 'accepted-alternative-result-preserved') {
+        this.#commit({ phase: 'learner-turn', feedback: this.#artifact.feedback.acceptedAlternative }); return false;
+      }
+      if (classification === 'objective-miss-result-preserved') {
+        this.#commit({ phase: 'learner-turn', feedback: this.#artifact.feedback.objectiveMissResultPreserved }); return false;
+      }
+      if (classification === 'objective-failure' || classification === 'chess-result-failure') {
         this.#commit({ phase: 'objective-failure', feedback: this.#artifact.feedback.failure, result: 'objective-failure' }); return true;
       }
       if (classification === 'objective-miss-while-drawing') {
@@ -109,9 +142,9 @@ export class MultiMovePilotController {
       const learnerFen = rules.fen(), ply = this.#state.ply + 1;
       this.#commit({ phase: 'objective-evaluating', fen: learnerFen, branchId: approvedBranch.branchId, history, ply,
         lastMove: { from: intent.from, to: intent.to, promotion: intent.promotion, flags: played.flags } });
-      const objectiveSuccess = this.#artifact.objective.id === 'promote'
+      const objectiveSuccess = classification === 'success' || (classification === 'approved' && (this.#artifact.objective.id === 'promote'
         ? uci.endsWith('q')
-        : played.captured === 'p';
+        : this.#artifact.objective.id === 'stop-promotion' && played.captured === 'p'));
       if (objectiveSuccess) {
         this.#commit({ phase: 'objective-success', feedback: this.#artifact.feedback.success,
           result: this.#state.independentEligible ? 'independent-success' : 'hint-assisted-success' });
@@ -129,6 +162,14 @@ export class MultiMovePilotController {
       const reply = opponentRules.move(node.opponentReply.uci);
       if (reply.san !== node.opponentReply.san || opponentRules.fen() !== node.opponentReply.resultingFen)
         throw new Error('opponent-reply-invalid');
+      if (node.terminal && opponentRules.fen() === this.#artifact.terminalConditions?.requiredFen) {
+        this.#commit({ phase: 'objective-success', fen: opponentRules.fen(), ply: ply + 1,
+          history: [...history, { side: 'black', uci: reply.lan, san: reply.san }],
+          feedback: this.#artifact.feedback.success,
+          result: this.#state.independentEligible ? 'independent-success' : 'hint-assisted-success',
+          lastMove: { from: reply.from, to: reply.to, flags: reply.flags } });
+        return true;
+      }
       if (this.#artifact.objective.id === 'stop-promotion' && reply.promotion) {
         this.#commit({ phase: 'objective-failure', fen: opponentRules.fen(), ply: ply + 1,
           history: [...history, { side: 'black', uci: reply.lan, san: reply.san }],

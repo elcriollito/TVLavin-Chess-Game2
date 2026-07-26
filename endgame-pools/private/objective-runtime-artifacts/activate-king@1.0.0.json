@@ -1,0 +1,131 @@
+{
+  "artifactSchemaVersion": "1.0.0",
+  "artifactId": "activate-king@1.0.0",
+  "pilotId": "activate-king",
+  "pilotVersion": "1.0.0",
+  "positionId": "king-leads-pawn-to-c4-support",
+  "initialFen": "8/7k/8/8/8/3P4/8/2K5 w - - 0 1",
+  "learnerSide": "white",
+  "mission": "Bring the white king to c4 before advancing the d-pawn while preserving the verified win.",
+  "objective": {
+    "id": "activate-king",
+    "version": "1.0.0",
+    "label": "Activate the king",
+    "maximumPly": 8
+  },
+  "opponentPolicy": {
+    "id": "authored-deterministic-tree@1.0.0",
+    "runtimeNetworkRequired": false,
+    "runtimeEngineRequired": false,
+    "runtimeTablebaseRequired": false,
+    "persistence": false,
+    "scoring": false
+  },
+  "branches": [
+    {
+      "branchId": "approved-route",
+      "firstMove": "Kb2",
+      "nodes": [
+        {
+          "approvedLearnerMove": {
+            "uci": "c1b2",
+            "san": "Kb2",
+            "resultingFen": "8/7k/8/8/8/3P4/1K6/8 b - - 1 1"
+          },
+          "opponentReply": {
+            "uci": "h7g6",
+            "san": "Kg6",
+            "resultingFen": "8/8/6k1/8/8/3P4/1K6/8 w - - 2 2"
+          },
+          "deviationClassifications": {
+            "c1b2": "approved",
+            "c1c2": "accepted-alternative-result-preserved",
+            "c1d2": "accepted-alternative-result-preserved",
+            "c1b1": "authored-concept-miss",
+            "c1d1": "authored-concept-miss",
+            "d3d4": "chess-result-failure"
+          },
+          "terminal": false
+        },
+        {
+          "approvedLearnerMove": {
+            "uci": "b2b3",
+            "san": "Kb3",
+            "resultingFen": "8/8/6k1/8/8/1K1P4/8/8 b - - 3 2"
+          },
+          "opponentReply": {
+            "uci": "g6f5",
+            "san": "Kf5",
+            "resultingFen": "8/8/8/5k2/8/1K1P4/8/8 w - - 4 3"
+          },
+          "deviationClassifications": {
+            "b2b3": "approved",
+            "b2c3": "accepted-alternative-result-preserved",
+            "b2a3": "authored-concept-miss",
+            "b2a2": "authored-concept-miss",
+            "b2c2": "authored-concept-miss",
+            "d3d4": "chess-result-failure",
+            "b2a1": "chess-result-failure",
+            "b2b1": "chess-result-failure",
+            "b2c1": "chess-result-failure"
+          },
+          "terminal": false
+        },
+        {
+          "approvedLearnerMove": {
+            "uci": "b3c4",
+            "san": "Kc4",
+            "resultingFen": "8/8/8/5k2/2K5/3P4/8/8 b - - 5 3"
+          },
+          "opponentReply": null,
+          "deviationClassifications": {
+            "b3c4": "success",
+            "b3b4": "accepted-alternative-result-preserved",
+            "b3c3": "authored-concept-miss",
+            "d3d4": "chess-result-failure",
+            "b3a2": "chess-result-failure",
+            "b3b2": "chess-result-failure",
+            "b3c2": "chess-result-failure",
+            "b3a3": "chess-result-failure",
+            "b3a4": "chess-result-failure"
+          },
+          "terminal": true
+        }
+      ]
+    }
+  ],
+  "terminalConditions": {
+    "requiredFen": "8/8/8/5k2/2K5/3P4/8/8 b - - 5 3"
+  },
+  "feedback": {
+    "progress": "Good. Your king is approaching the support square while the winning route remains intact.",
+    "acceptedAlternative": "That king route also keeps the position winning, but this exercise follows the b2-b3-c4 route.",
+    "conceptMiss": "The position still wins, but this move leaves the approved activation route. Return to the previous position and continue.",
+    "objectiveMissResultPreserved": "The position remains winning, but the pawn advanced before the approved support event.",
+    "failure": "That move gives up the verified win and allows a draw.",
+    "objectiveFailure": "The approved king-support mission can no longer be completed.",
+    "opponent": "Black's king approaches while your king continues toward the support square.",
+    "success": "King activated. You reached c4 with the pawn still on d3 and preserved the win.",
+    "technical": "The position could not be classified safely. This is not learner failure.",
+    "retry": "The last approved position has been restored.",
+    "summary": "You let the king lead the pawn and reached the support square before advancing."
+  },
+  "hints": [
+    "Let the king lead the pawn. Advancing the pawn now gives up the win.",
+    "Guide the king along the b2-b3-c4 route while the pawn stays on d3.",
+    "Reveal the approved learner move for the current node."
+  ],
+  "humanApprovalBinding": {
+    "digest": "sha256-f3f79097b81528f3e4e1ba9622ca1eba2242902f65355ea7b6667dafb79921e6"
+  },
+  "sourceEvidenceBinding": [
+    "sha256-2300d646206254ff076ad829f368b6316fb44514802d3bfab1ff3f258eb8214f",
+    "sha256-30bc29f005b681528a3858b5f1f648ac107a0f0d0b8e743926e62ec9c3993387",
+    "sha256-bc41fcee494ef9d9711a2a07b2b82765df4f02a72e6b18c14a68b30cacf7d9f9",
+    "sha256-78f1d981fa283b6146bcd3ee65633fe9f2649617264891c234b2982e9cc3c596"
+  ],
+  "privacy": "private-technical-inspector",
+  "runtimeEligibility": true,
+  "contentFingerprint": "eobjective-fnv1a32-f2b249ef",
+  "contentDigest": "sha256-cfb7e1708a5d3ba8c861408ce6c6be84476492607ecf555bde762e1413ccd50a"
+}

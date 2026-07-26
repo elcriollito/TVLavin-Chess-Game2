@@ -43,6 +43,7 @@
     "register:endgame-season-10-6b": "node scripts/register-season-10-6b-promote-pilot.mjs",
     "register:endgame-season-10-8b": "node scripts/register-season-10-8b-stop-promotion-pilot.mjs",
     "build:endgame-season-10-9": "node scripts/build-season-10-9-endgame-run.mjs",
+    "build:endgame-season-10-11c": "node scripts/build-season-10-11c-objective-artifacts.mjs",
     "test:endgame-remote-tablebase": "node --test tests/endgame-pools/remote-tablebase-evidence.test.js",
     "test:endgame-remote-tablebase:live": "node --test tests/endgame-pools/remote-tablebase-live.test.js",
     "test:endgame-pools": "node --test tests/endgame-pools/*.test.js",
