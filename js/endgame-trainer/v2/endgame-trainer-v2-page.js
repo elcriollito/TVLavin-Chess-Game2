@@ -5,6 +5,8 @@ import {
     DEFAULT_CURATED_POOL, loadCuratedPool, selectCuratedPositions
 } from './curated-pool-consumer.js';
 import { QuickChallengeOrchestrator } from './quick-challenge-orchestrator.js';
+import { shouldActivateMultiMovePilot } from './multi-move-pilot.js';
+import { mountMultiMovePilotPage, unmountMultiMovePilotPage } from './multi-move-pilot-page.js';
 
 let mounted = null;
 
@@ -21,6 +23,7 @@ function setAction(root, action, visible, disabled = false) {
 }
 
 export function mountEndgameTrainerV2Page({ document: doc = globalThis.document, window: win = globalThis } = {}) {
+    if (shouldActivateMultiMovePilot(win.location?.search ?? '')) return mountMultiMovePilotPage({ document: doc, window: win });
     if (mounted) return mounted;
     const root = doc?.querySelector('[data-endgame-trainer-page]');
     const boardElement = root?.querySelector('[data-board]');
@@ -169,6 +172,7 @@ export function mountEndgameTrainerV2Page({ document: doc = globalThis.document,
 }
 
 export function unmountEndgameTrainerV2Page() {
+    if (!mounted) return unmountMultiMovePilotPage();
     if (!mounted) return false;
     mounted.abort.abort();
     mounted.orchestrator?.abandon();

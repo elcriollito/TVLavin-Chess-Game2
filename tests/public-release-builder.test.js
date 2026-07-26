@@ -76,7 +76,7 @@ test('committed-tree audit has no protected paths and all required runtime files
   const files = trackedPublicFiles();
   const result = auditPublicFiles(files);
   assert.equal(result.protectedPaths, 0);
-  assert.equal(result.requiredPaths, 15);
+  assert.equal(result.requiredPaths, 16);
   assert.ok(result.files > 500);
 });
 

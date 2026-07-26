@@ -364,6 +364,8 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
 .endgame-v2__mode-grid em { font-style: normal; color: #f0c94a; font-weight: 700; }
 .endgame-v2__modes .endgame-trainer-page__kicker { color: #334e9a; }
 .endgame-v2 button, .endgame-v2__modes button, .endgame-v2__modes a { min-height: 44px; }
+.endgame-trainer-page.is-multi-move-pilot [data-v2-open-modes] { display: none; }
+.endgame-trainer-page.is-multi-move-pilot .endgame-v2__metrics { grid-template-columns: 1fr; }
 @media (prefers-reduced-motion: reduce) {
     .endgame-trainer-page.is-v2 *, .endgame-v2__modes * { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
