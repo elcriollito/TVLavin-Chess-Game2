@@ -1,0 +1,231 @@
+{
+  "packetSchemaVersion": "1.0.0",
+  "packetId": "caissa-review:caissa-king-pawn-decisions@1.0.0:kp-outside-passer-diversion",
+  "positionId": "kp-outside-passer-diversion",
+  "poolId": "caissa-king-pawn-decisions",
+  "poolVersion": "1.0.0",
+  "positionContentDigest": "sha256-39b739776c0dc1e721e3d619e7f9ca7904606518c0245383377fc74d465f76c1",
+  "authoredContent": {
+    "fen": "8/8/2k5/8/P2K1P2/8/8/8 w - - 0 1",
+    "sideToMove": "white",
+    "board": "8 . . . . . . . .\n7 . . . . . . . .\n6 . . k . . . . .\n5 . . . . . . . .\n4 P . . K . P . .\n3 . . . . . . . .\n2 . . . . . . . .\n1 . . . . . . . .\n  a b c d e f g h",
+    "currentObjective": {
+      "type": "only-move",
+      "evaluator": "authored-exact-legal-move",
+      "label": "Find the authored move."
+    },
+    "authoredExpectedMove": "a5",
+    "authoredExpectedMoveUci": "a4a5",
+    "acceptedAlternatives": [],
+    "acceptedAlternativesUci": [],
+    "hints": [
+      {
+        "stage": 1,
+        "text": "Advance the distant pawn to test the king’s route.",
+        "independenceImpact": "removes-independent",
+        "scorePercent": 50,
+        "answerReveal": false
+      }
+    ],
+    "feedback": {
+      "correct": "Correct. The outside pawn creates the authored diversion.",
+      "incorrect": "Compare which pawn can pull the king away first."
+    }
+  },
+  "knowledgeProvenance": {
+    "sourceType": "immutable-knowledge-activity",
+    "sourceReference": "ku:endgames:pawn-transformations:outside-passed-pawn/activity:outside-passer:independent-return",
+    "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+    "positionReference": "pos:outside-passer:defender-returns"
+  },
+  "engineEvidenceSummary": {
+    "engine": "Stockfish 18",
+    "policy": "caissa-engine-review-standard",
+    "classification": "requires-human-review",
+    "bestMove": "d4c4",
+    "multiPv": [
+      {
+        "move": "d4c4",
+        "score": {
+          "type": "cp",
+          "value": 702
+        },
+        "principalVariation": [
+          "d4c4",
+          "c6d6",
+          "c4d4",
+          "d6e6",
+          "a4a5",
+          "e6f5",
+          "d4e3",
+          "f5e6",
+          "a5a6",
+          "e6d6",
+          "a6a7",
+          "d6c7",
+          "f4f5",
+          "c7b7",
+          "f5f6",
+          "b7a8",
+          "f6f7",
+          "a8a7"
+        ]
+      },
+      {
+        "move": "f4f5",
+        "score": {
+          "type": "cp",
+          "value": 639
+        },
+        "principalVariation": [
+          "f4f5",
+          "c6d6",
+          "a4a5",
+          "d6c6",
+          "a5a6",
+          "c6b6",
+          "f5f6",
+          "b6a6",
+          "f6f7",
+          "a6b5",
+          "f7f8q",
+          "b5c6",
+          "d4c4",
+          "c6d7",
+          "c4d5",
+          "d7c7",
+          "f8h6",
+          "c7c8",
+          "h6h7",
+          "c8b8",
+          "d5c5",
+          "b8c8",
+          "h7e7",
+          "c8b8",
+          "e7d7",
+          "b8a8",
+          "d7h7",
+          "a8b8",
+          "c5b6",
+          "b8a8"
+        ]
+      },
+      {
+        "move": "a4a5",
+        "score": {
+          "type": "cp",
+          "value": 609
+        },
+        "principalVariation": [
+          "a4a5",
+          "c6b5",
+          "f4f5",
+          "b5a5",
+          "d4c5",
+          "a5a4",
+          "c5c4",
+          "a4a3",
+          "f5f6",
+          "a3b2",
+          "c4d3",
+          "b2a3",
+          "d3c3",
+          "a3a2"
+        ]
+      }
+    ],
+    "engineEvidenceDigest": "sha256-9fde01b1b265f8b9513ab417d3ae3309e51728557bd0dbcc335df85d54136fe8"
+  },
+  "tablebaseEligibility": {
+    "status": "eligible",
+    "canonicalFen": "8/8/2k5/8/P2K1P2/8/8/8 w - - 0 1",
+    "pieceCount": 4
+  },
+  "tablebaseEvidenceSummary": {
+    "status": "retrieved",
+    "provider": "lichess-syzygy-remote",
+    "category": "win",
+    "dtz": 1,
+    "wdlPreservingMoves": [
+      "a4a5",
+      "f4f5",
+      "d4e4",
+      "d4e5",
+      "d4c3",
+      "d4d3",
+      "d4e3",
+      "d4c4"
+    ],
+    "dtzOptimalMoves": [
+      "a4a5",
+      "f4f5",
+      "d4e4",
+      "d4e5",
+      "d4c3",
+      "d4d3",
+      "d4e3",
+      "d4c4"
+    ],
+    "remoteEvidenceDigest": "sha256-4048b7ec02a949f3560d81f289e9d4e55b51ae6bb36c030a9c55003c12a75d78",
+    "localTablebaseVerified": false,
+    "humanReviewedRemoteEvidence": false
+  },
+  "evidenceComparison": {
+    "technicalClassification": "only-move-claim-invalid",
+    "authoredMoveUci": "a4a5",
+    "authoredPreservesTheoreticalResult": true,
+    "stockfishMovePreservesTheoreticalResult": true,
+    "acceptedPreservingMoves": [
+      "a4a5"
+    ],
+    "tablebaseWdlPreservingMoves": [
+      "a4a5",
+      "f4f5",
+      "d4e4",
+      "d4e5",
+      "d4c3",
+      "d4d3",
+      "d4e3",
+      "d4c4"
+    ],
+    "tablebaseDtzOptimalMoves": [
+      "a4a5",
+      "f4f5",
+      "d4e4",
+      "d4e5",
+      "d4c3",
+      "d4d3",
+      "d4e3",
+      "d4c4"
+    ],
+    "currentOnlyMoveDefensibleTechnically": false,
+    "requiresHumanInterpretation": true
+  },
+  "openQuestions": [
+    "Does the authored move satisfy the intended pedagogical objective?",
+    "Is the current uniqueness claim defensible?",
+    "Should the position remain eligible for Quick Challenge?"
+  ],
+  "allowedReviewDecisions": [
+    "authored-answer-confirmed",
+    "accepted-alternative-required",
+    "objective-needs-rewording",
+    "hint-needs-revision",
+    "position-needs-correction",
+    "position-valid-but-not-only-move",
+    "position-not-suitable-for-quick-challenge",
+    "engine-result-inconclusive",
+    "requires-local-tablebase",
+    "retire-position"
+  ],
+  "reviewTemplate": {
+    "reviewDecision": null,
+    "reviewRationale": null,
+    "reviewerReference": null,
+    "reviewRevision": null,
+    "reviewedPositionDigest": "sha256-39b739776c0dc1e721e3d619e7f9ca7904606518c0245383377fc74d465f76c1",
+    "reviewedEngineEvidenceDigest": "sha256-9fde01b1b265f8b9513ab417d3ae3309e51728557bd0dbcc335df85d54136fe8",
+    "reviewedTablebaseEvidenceDigest": "sha256-4048b7ec02a949f3560d81f289e9d4e55b51ae6bb36c030a9c55003c12a75d78"
+  },
+  "packetDigest": "sha256-f92a5ebd2fccf5957c5896f397f79cf318b74422887b4b72b177887d94f6fa4b"
+}

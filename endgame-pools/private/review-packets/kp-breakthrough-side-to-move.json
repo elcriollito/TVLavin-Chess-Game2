@@ -1,0 +1,216 @@
+{
+  "packetSchemaVersion": "1.0.0",
+  "packetId": "caissa-review:caissa-king-pawn-decisions@1.0.0:kp-breakthrough-side-to-move",
+  "positionId": "kp-breakthrough-side-to-move",
+  "poolId": "caissa-king-pawn-decisions",
+  "poolVersion": "1.0.0",
+  "positionContentDigest": "sha256-da8f978676c0adf91f1bc56ae5e8e888f0991c10e51d2d4a73976f3794aca94a",
+  "authoredContent": {
+    "fen": "8/ppp5/8/PPP5/8/8/8/4K2k b - - 0 1",
+    "sideToMove": "black",
+    "board": "8 . . . . . . . .\n7 p p p . . . . .\n6 . . . . . . . .\n5 P P P . . . . .\n4 . . . . . . . .\n3 . . . . . . . .\n2 . . . . . . . .\n1 . . . . K . . k\n  a b c d e f g h",
+    "currentObjective": {
+      "type": "only-move",
+      "evaluator": "authored-exact-legal-move",
+      "label": "Find the authored move."
+    },
+    "authoredExpectedMove": "b6",
+    "authoredExpectedMoveUci": "b7b6",
+    "acceptedAlternatives": [],
+    "acceptedAlternativesUci": [],
+    "hints": [
+      {
+        "stage": 1,
+        "text": "Begin with the central pawn of the three-pawn front.",
+        "independenceImpact": "removes-independent",
+        "scorePercent": 50,
+        "answerReveal": false
+      }
+    ],
+    "feedback": {
+      "correct": "Correct. The breakthrough begins with the authored pawn move.",
+      "incorrect": "Recalculate the capture sequence from the side-to-move fact."
+    }
+  },
+  "knowledgeProvenance": {
+    "sourceType": "immutable-knowledge-activity",
+    "sourceReference": "ku:endgames:pawn-transformations:pawn-breakthrough/activity:pawn-breakthrough:independent-turn",
+    "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+    "positionReference": "pos:pawn-breakthrough:black-to-move-near-miss"
+  },
+  "engineEvidenceSummary": {
+    "engine": "Stockfish 18",
+    "policy": "caissa-engine-review-standard",
+    "classification": "authored-answer-questioned",
+    "bestMove": "h1g1",
+    "multiPv": [
+      {
+        "move": "h1g1",
+        "score": {
+          "type": "cp",
+          "value": -523
+        },
+        "principalVariation": [
+          "h1g1",
+          "e1e2",
+          "g1g2",
+          "e2e3",
+          "b7b6",
+          "a5b6",
+          "a7b6",
+          "c5b6",
+          "c7b6",
+          "e3e4",
+          "g2g3",
+          "e4d5",
+          "g3f4",
+          "d5c6",
+          "f4e5",
+          "c6b6",
+          "e5d5"
+        ]
+      },
+      {
+        "move": "h1h2",
+        "score": {
+          "type": "cp",
+          "value": -527
+        },
+        "principalVariation": [
+          "h1h2",
+          "e1f2",
+          "h2h1",
+          "f2e3",
+          "h1g2",
+          "e3e4",
+          "b7b6",
+          "a5b6",
+          "a7b6",
+          "c5c6",
+          "g2f1",
+          "e4d5",
+          "f1e2",
+          "d5e6",
+          "e2d3",
+          "e6d7",
+          "d3d4",
+          "d7c7",
+          "d4c5",
+          "c7b7",
+          "c5b5",
+          "c6c7",
+          "b5c4",
+          "b7b6",
+          "c4d5",
+          "b6b5",
+          "d5d6",
+          "c7c8q",
+          "d6e5",
+          "b5c5",
+          "e5f6",
+          "c8a8",
+          "f6f5"
+        ]
+      },
+      {
+        "move": "h1g2",
+        "score": {
+          "type": "cp",
+          "value": -527
+        },
+        "principalVariation": [
+          "h1g2",
+          "e1e2",
+          "b7b6",
+          "a5b6",
+          "a7b6",
+          "c5b6",
+          "c7b6",
+          "e2e3",
+          "g2g3",
+          "e3e4",
+          "g3g4",
+          "e4d5",
+          "g4f4",
+          "d5c6",
+          "f4e4",
+          "c6b6",
+          "e4d5",
+          "b6a7",
+          "d5d4"
+        ]
+      }
+    ],
+    "engineEvidenceDigest": "sha256-de891d78878e6a9d19cd5fbc94b61320ea59f160871df917cbe6fa4d40e8304c"
+  },
+  "tablebaseEligibility": {
+    "status": "eligible",
+    "canonicalFen": "8/ppp5/8/PPP5/8/8/8/4K2k b - - 0 1",
+    "pieceCount": 8
+  },
+  "tablebaseEvidenceSummary": {
+    "status": "retrieved",
+    "provider": "lichess-syzygy-remote",
+    "category": "maybe-loss",
+    "dtz": null,
+    "wdlPreservingMoves": [
+      "h1g1",
+      "h1g2",
+      "h1h2",
+      "a7a6",
+      "b7b6",
+      "c7c6"
+    ],
+    "dtzOptimalMoves": [],
+    "remoteEvidenceDigest": "sha256-a5c46e9e2c53f16c7148d81d1dd7765cf82513faceacd4de5bb72f6199df6f60",
+    "localTablebaseVerified": false,
+    "humanReviewedRemoteEvidence": false
+  },
+  "evidenceComparison": {
+    "technicalClassification": "only-move-claim-invalid",
+    "authoredMoveUci": "b7b6",
+    "authoredPreservesTheoreticalResult": true,
+    "stockfishMovePreservesTheoreticalResult": true,
+    "acceptedPreservingMoves": [
+      "b7b6"
+    ],
+    "tablebaseWdlPreservingMoves": [
+      "h1g1",
+      "h1g2",
+      "h1h2",
+      "a7a6",
+      "b7b6",
+      "c7c6"
+    ],
+    "tablebaseDtzOptimalMoves": [],
+    "currentOnlyMoveDefensibleTechnically": false,
+    "requiresHumanInterpretation": true
+  },
+  "openQuestions": [
+    "Does the authored move satisfy the intended pedagogical objective?",
+    "Is the current uniqueness claim defensible?",
+    "Should the position remain eligible for Quick Challenge?"
+  ],
+  "allowedReviewDecisions": [
+    "authored-answer-confirmed",
+    "accepted-alternative-required",
+    "objective-needs-rewording",
+    "hint-needs-revision",
+    "position-needs-correction",
+    "position-valid-but-not-only-move",
+    "position-not-suitable-for-quick-challenge",
+    "engine-result-inconclusive",
+    "requires-local-tablebase",
+    "retire-position"
+  ],
+  "reviewTemplate": {
+    "reviewDecision": null,
+    "reviewRationale": null,
+    "reviewerReference": null,
+    "reviewRevision": null,
+    "reviewedPositionDigest": "sha256-da8f978676c0adf91f1bc56ae5e8e888f0991c10e51d2d4a73976f3794aca94a",
+    "reviewedEngineEvidenceDigest": "sha256-de891d78878e6a9d19cd5fbc94b61320ea59f160871df917cbe6fa4d40e8304c",
+    "reviewedTablebaseEvidenceDigest": "sha256-a5c46e9e2c53f16c7148d81d1dd7765cf82513faceacd4de5bb72f6199df6f60"
+  },
+  "packetDigest": "sha256-91888138568587ab3a197188b042651631a5e358f80c1f4ab7be08eac8001e33"
+}

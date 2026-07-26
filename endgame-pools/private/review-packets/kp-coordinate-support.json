@@ -1,0 +1,202 @@
+{
+  "packetSchemaVersion": "1.0.0",
+  "packetId": "caissa-review:caissa-king-pawn-decisions@1.0.0:kp-coordinate-support",
+  "positionId": "kp-coordinate-support",
+  "poolId": "caissa-king-pawn-decisions",
+  "poolVersion": "1.0.0",
+  "positionContentDigest": "sha256-50d8e785332d770dd75862892b141dadc772a9523dea1f2f6767e16e8c6bca8d",
+  "authoredContent": {
+    "fen": "8/2k5/8/4K3/4P3/8/8/8 w - - 0 1",
+    "sideToMove": "white",
+    "board": "8 . . . . . . . .\n7 . . k . . . . .\n6 . . . . . . . .\n5 . . . . K . . .\n4 . . . . P . . .\n3 . . . . . . . .\n2 . . . . . . . .\n1 . . . . . . . .\n  a b c d e f g h",
+    "currentObjective": {
+      "type": "only-move",
+      "evaluator": "authored-exact-legal-move",
+      "label": "Find the authored move."
+    },
+    "authoredExpectedMove": "Kd5",
+    "authoredExpectedMoveUci": "e5d5",
+    "acceptedAlternatives": [],
+    "acceptedAlternativesUci": [],
+    "hints": [
+      {
+        "stage": 1,
+        "text": "Keep the king close enough to support the pawn’s route.",
+        "independenceImpact": "removes-independent",
+        "scorePercent": 50,
+        "answerReveal": false
+      }
+    ],
+    "feedback": {
+      "correct": "Correct. The king and pawn remain coordinated.",
+      "incorrect": "Look for the king move that keeps the support route connected."
+    }
+  },
+  "knowledgeProvenance": {
+    "sourceType": "immutable-knowledge-activity",
+    "sourceReference": "ku:endgames:pawn-foundations:convert-with-king-support/activity:king-support:independent-transfer",
+    "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+    "positionReference": "pos:king-support:transfer-side-entry"
+  },
+  "engineEvidenceSummary": {
+    "engine": "Stockfish 18",
+    "policy": "caissa-engine-review-standard",
+    "classification": "authored-answer-questioned",
+    "bestMove": "e5e6",
+    "multiPv": [
+      {
+        "move": "e5e6",
+        "score": {
+          "type": "cp",
+          "value": 505
+        },
+        "principalVariation": [
+          "e5e6",
+          "c7d8",
+          "e6f7",
+          "d8d7",
+          "e4e5",
+          "d7c6",
+          "f7e6",
+          "c6c5",
+          "e6f6",
+          "c5d4",
+          "e5e6",
+          "d4e4",
+          "f6e7",
+          "e4d5",
+          "e7d7",
+          "d5e5",
+          "e6e7",
+          "e5d5",
+          "d7c7",
+          "d5c5",
+          "c7d8",
+          "c5d6",
+          "d8e8",
+          "d6e5"
+        ]
+      },
+      {
+        "move": "e5f6",
+        "score": {
+          "type": "cp",
+          "value": 505
+        },
+        "principalVariation": [
+          "e5f6",
+          "c7d7",
+          "e4e5",
+          "d7e8",
+          "f6e6",
+          "e8f8",
+          "e6d7",
+          "f8g7",
+          "e5e6",
+          "g7f6",
+          "e6e7",
+          "f6e5",
+          "d7c6"
+        ]
+      },
+      {
+        "move": "e5f5",
+        "score": {
+          "type": "cp",
+          "value": 505
+        },
+        "principalVariation": [
+          "e5f5",
+          "c7d8",
+          "f5f6",
+          "d8d7",
+          "e4e5",
+          "d7e8",
+          "f6e6",
+          "e8f8",
+          "e6d7",
+          "f8g7",
+          "e5e6",
+          "g7f6",
+          "e6e7",
+          "f6e5",
+          "d7c6",
+          "e5d4",
+          "c6b5",
+          "d4e5"
+        ]
+      }
+    ],
+    "engineEvidenceDigest": "sha256-e5c4c7c1f200949c3ece104bb879f07c9f0910f55954c9df1b61887c609a1813"
+  },
+  "tablebaseEligibility": {
+    "status": "eligible",
+    "canonicalFen": "8/2k5/8/4K3/4P3/8/8/8 w - - 0 1",
+    "pieceCount": 3
+  },
+  "tablebaseEvidenceSummary": {
+    "status": "retrieved",
+    "provider": "lichess-syzygy-remote",
+    "category": "win",
+    "dtz": 3,
+    "wdlPreservingMoves": [
+      "e5e6",
+      "e5f6",
+      "e5f5",
+      "e5f4"
+    ],
+    "dtzOptimalMoves": [
+      "e5e6",
+      "e5f6"
+    ],
+    "remoteEvidenceDigest": "sha256-473231eb64958acdf2cd91664f4c3958e547641550216a1c3a67b7617777e27a",
+    "localTablebaseVerified": false,
+    "humanReviewedRemoteEvidence": false
+  },
+  "evidenceComparison": {
+    "technicalClassification": "authored-move-tablebase-invalid",
+    "authoredMoveUci": "e5d5",
+    "authoredPreservesTheoreticalResult": false,
+    "stockfishMovePreservesTheoreticalResult": true,
+    "acceptedPreservingMoves": [],
+    "tablebaseWdlPreservingMoves": [
+      "e5e6",
+      "e5f6",
+      "e5f5",
+      "e5f4"
+    ],
+    "tablebaseDtzOptimalMoves": [
+      "e5e6",
+      "e5f6"
+    ],
+    "currentOnlyMoveDefensibleTechnically": false,
+    "requiresHumanInterpretation": true
+  },
+  "openQuestions": [
+    "Does the authored move satisfy the intended pedagogical objective?",
+    "Is the current uniqueness claim defensible?",
+    "Should the position remain eligible for Quick Challenge?"
+  ],
+  "allowedReviewDecisions": [
+    "authored-answer-confirmed",
+    "accepted-alternative-required",
+    "objective-needs-rewording",
+    "hint-needs-revision",
+    "position-needs-correction",
+    "position-valid-but-not-only-move",
+    "position-not-suitable-for-quick-challenge",
+    "engine-result-inconclusive",
+    "requires-local-tablebase",
+    "retire-position"
+  ],
+  "reviewTemplate": {
+    "reviewDecision": null,
+    "reviewRationale": null,
+    "reviewerReference": null,
+    "reviewRevision": null,
+    "reviewedPositionDigest": "sha256-50d8e785332d770dd75862892b141dadc772a9523dea1f2f6767e16e8c6bca8d",
+    "reviewedEngineEvidenceDigest": "sha256-e5c4c7c1f200949c3ece104bb879f07c9f0910f55954c9df1b61887c609a1813",
+    "reviewedTablebaseEvidenceDigest": "sha256-473231eb64958acdf2cd91664f4c3958e547641550216a1c3a67b7617777e27a"
+  },
+  "packetDigest": "sha256-e4b23bfa2377971ed8df331f15d7b273b19fd64b5e6d682fd4a44868237f4dbe"
+}

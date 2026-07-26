@@ -1,0 +1,117 @@
+{
+  "packetIndexSchemaVersion": "1.0.0",
+  "poolId": "caissa-king-pawn-decisions",
+  "poolVersion": "1.0.0",
+  "provider": {
+    "providerId": "lichess-syzygy-remote",
+    "providerVersion": "1.0.0",
+    "baseUrl": "https://tablebase.lichess.ovh",
+    "supportedVariants": [
+      "standard"
+    ],
+    "maximumPieceCount": 8,
+    "completePieceCoverage": 7,
+    "eightPieceCoverage": "partial-provider-coverage",
+    "supportsWdl": true,
+    "supportsDtz": true,
+    "supportsDtm": true,
+    "supportsMoves": true,
+    "supportsMainline": true,
+    "networkRequired": true,
+    "runtimeEligibility": false,
+    "authoringEligibility": true,
+    "timeoutPolicy": {
+      "defaultMs": 12000,
+      "minimumMs": 1000,
+      "maximumMs": 30000
+    },
+    "retryPolicy": {
+      "maximumRetries": 2,
+      "backoffMs": 400
+    },
+    "cachePolicy": "private-content-and-request-digest"
+  },
+  "generatedAt": "2026-07-26T00:23:42.643Z",
+  "packets": [
+    {
+      "positionId": "kp-opposition-near-miss",
+      "packetId": "caissa-review:caissa-king-pawn-decisions@1.0.0:kp-opposition-near-miss",
+      "packetDigest": "sha256-b919d6e2f6fc32444eab7ee30da159c761bd4bd93d6b1d735748044233c0e64b",
+      "path": "kp-opposition-near-miss.json",
+      "tablebaseStatus": "retrieved",
+      "cacheStatus": "retrieved"
+    },
+    {
+      "positionId": "kp-key-square-approach",
+      "packetId": "caissa-review:caissa-king-pawn-decisions@1.0.0:kp-key-square-approach",
+      "packetDigest": "sha256-fbb7bc86d9b29eabf8bb4a4a30e3e366e5e21f3be2a3cfe73fdf1e20be99aae0",
+      "path": "kp-key-square-approach.json",
+      "tablebaseStatus": "retrieved",
+      "cacheStatus": "retrieved"
+    },
+    {
+      "positionId": "kp-coordinate-support",
+      "packetId": "caissa-review:caissa-king-pawn-decisions@1.0.0:kp-coordinate-support",
+      "packetDigest": "sha256-e4b23bfa2377971ed8df331f15d7b273b19fd64b5e6d682fd4a44868237f4dbe",
+      "path": "kp-coordinate-support.json",
+      "tablebaseStatus": "retrieved",
+      "cacheStatus": "retrieved"
+    },
+    {
+      "positionId": "kp-breakthrough-side-to-move",
+      "packetId": "caissa-review:caissa-king-pawn-decisions@1.0.0:kp-breakthrough-side-to-move",
+      "packetDigest": "sha256-91888138568587ab3a197188b042651631a5e358f80c1f4ab7be08eac8001e33",
+      "path": "kp-breakthrough-side-to-move.json",
+      "tablebaseStatus": "retrieved",
+      "cacheStatus": "retrieved"
+    },
+    {
+      "positionId": "kp-outside-passer-diversion",
+      "packetId": "caissa-review:caissa-king-pawn-decisions@1.0.0:kp-outside-passer-diversion",
+      "packetDigest": "sha256-f92a5ebd2fccf5957c5896f397f79cf318b74422887b4b72b177887d94f6fa4b",
+      "path": "kp-outside-passer-diversion.json",
+      "tablebaseStatus": "retrieved",
+      "cacheStatus": "retrieved"
+    },
+    {
+      "positionId": "kp-majority-improve-first",
+      "packetId": "caissa-review:caissa-king-pawn-decisions@1.0.0:kp-majority-improve-first",
+      "packetDigest": "sha256-ee3c6f2884a2c9afeea984ae11d277d26878f26e78674a15d647289aed2986ae",
+      "path": "kp-majority-improve-first.json",
+      "tablebaseStatus": "retrieved",
+      "cacheStatus": "retrieved"
+    },
+    {
+      "positionId": "kp-safe-king-approach",
+      "packetId": "caissa-review:caissa-king-pawn-decisions@1.0.0:kp-safe-king-approach",
+      "packetDigest": "sha256-dfe1b5643a563d32e8155fc2bd457a37fd179bf5676f07df2e47fc58326986c6",
+      "path": "kp-safe-king-approach.json",
+      "tablebaseStatus": "retrieved",
+      "cacheStatus": "retrieved"
+    },
+    {
+      "positionId": "kp-restrained-approach",
+      "packetId": "caissa-review:caissa-king-pawn-decisions@1.0.0:kp-restrained-approach",
+      "packetDigest": "sha256-f28aa60111469b27bce2dd67431e6e3f2ce3ca834a94f780562e749d3e184c64",
+      "path": "kp-restrained-approach.json",
+      "tablebaseStatus": "retrieved",
+      "cacheStatus": "retrieved"
+    }
+  ],
+  "stats": {
+    "networkRequests": 8,
+    "cacheHits": 0,
+    "providerFailures": 0,
+    "latenciesMs": [
+      439.65,
+      127.7,
+      125.18,
+      122.96,
+      135.88,
+      125.36,
+      123.54,
+      123.02
+    ]
+  },
+  "indexDigest": "sha256-3573cfa278560a0532a6a0e2045881d9b700fbe7cf8a802dea8c0a37886dcc7e"
+}

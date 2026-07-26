@@ -1,0 +1,215 @@
+{
+  "packetSchemaVersion": "1.0.0",
+  "packetId": "caissa-review:caissa-king-pawn-decisions@1.0.0:kp-restrained-approach",
+  "positionId": "kp-restrained-approach",
+  "poolId": "caissa-king-pawn-decisions",
+  "poolVersion": "1.0.0",
+  "positionContentDigest": "sha256-50358003e133d2a766b3680d669717eda9c08468f13354ce0dc7c3219c739c73",
+  "authoredContent": {
+    "fen": "8/8/3k4/3p4/3P4/2K5/8/8 w - - 0 1",
+    "sideToMove": "white",
+    "board": "8 . . . . . . . .\n7 . . . . . . . .\n6 . . . k . . . .\n5 . . . p . . . .\n4 . . . P . . . .\n3 . . K . . . . .\n2 . . . . . . . .\n1 . . . . . . . .\n  a b c d e f g h",
+    "currentObjective": {
+      "type": "authored-move",
+      "evaluator": "authored-exact-legal-move",
+      "label": "Find an authored move."
+    },
+    "authoredExpectedMove": "Kb4",
+    "authoredExpectedMoveUci": "c3b4",
+    "acceptedAlternatives": [
+      "Kb3"
+    ],
+    "acceptedAlternativesUci": [
+      "c3b3"
+    ],
+    "hints": [
+      {
+        "stage": 1,
+        "text": "Approach the fixed pawn without releasing the restraint.",
+        "independenceImpact": "removes-independent",
+        "scorePercent": 50,
+        "answerReveal": false
+      }
+    ],
+    "feedback": {
+      "correct": "Correct. This is an authored restrained approach.",
+      "incorrect": "Compare the king routes while keeping the pawn fixed."
+    }
+  },
+  "knowledgeProvenance": {
+    "sourceType": "immutable-knowledge-activity",
+    "sourceReference": "ku:endgames:pawn-weaknesses:fix-pawn-weakness/activity:fix-weakness:independent-route",
+    "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+    "positionReference": "pos:fix-weakness:restrained-target"
+  },
+  "engineEvidenceSummary": {
+    "engine": "Stockfish 18",
+    "policy": "caissa-engine-review-standard",
+    "classification": "requires-human-review",
+    "bestMove": "c3b3",
+    "multiPv": [
+      {
+        "move": "c3b3",
+        "score": {
+          "type": "cp",
+          "value": 6
+        },
+        "principalVariation": [
+          "c3b3",
+          "d6c7",
+          "b3a4",
+          "c7b6",
+          "a4b4",
+          "b6c6",
+          "b4a5",
+          "c6c7",
+          "a5b5",
+          "c7d6",
+          "b5b6",
+          "d6d7",
+          "b6c5",
+          "d7c7",
+          "c5d5",
+          "c7d7",
+          "d5e5",
+          "d7e7",
+          "d4d5",
+          "e7d7",
+          "e5f5"
+        ]
+      },
+      {
+        "move": "c3b4",
+        "score": {
+          "type": "cp",
+          "value": 6
+        },
+        "principalVariation": [
+          "c3b4",
+          "d6c6",
+          "b4a5",
+          "c6c7",
+          "a5b5",
+          "c7d6",
+          "b5b6",
+          "d6d7",
+          "b6c5",
+          "d7c7",
+          "c5d5",
+          "c7d7",
+          "d5e5",
+          "d7e7",
+          "d4d5",
+          "e7d7",
+          "e5f5",
+          "d7e7",
+          "f5e4",
+          "e7f8"
+        ]
+      },
+      {
+        "move": "c3d3",
+        "score": {
+          "type": "cp",
+          "value": 0
+        },
+        "principalVariation": [
+          "c3d3",
+          "d6c6",
+          "d3c3",
+          "c6b5",
+          "c3b3",
+          "b5a5",
+          "b3a3",
+          "a5b5"
+        ]
+      }
+    ],
+    "engineEvidenceDigest": "sha256-35bac4a28016dc88a4fdd734e686416ed08e0e80180c6e213aee4b83bae31fba"
+  },
+  "tablebaseEligibility": {
+    "status": "eligible",
+    "canonicalFen": "8/8/3k4/3p4/3P4/2K5/8/8 w - - 0 1",
+    "pieceCount": 4
+  },
+  "tablebaseEvidenceSummary": {
+    "status": "retrieved",
+    "provider": "lichess-syzygy-remote",
+    "category": "draw",
+    "dtz": 0,
+    "wdlPreservingMoves": [
+      "c3b2",
+      "c3c2",
+      "c3d2",
+      "c3b3",
+      "c3d3",
+      "c3b4"
+    ],
+    "dtzOptimalMoves": [
+      "c3b2",
+      "c3c2",
+      "c3d2",
+      "c3b3",
+      "c3d3",
+      "c3b4"
+    ],
+    "remoteEvidenceDigest": "sha256-c1f1db0a6752b5acc33792be39fd1ec9e07ae43fcb1a08efda9767a65d501549",
+    "localTablebaseVerified": false,
+    "humanReviewedRemoteEvidence": false
+  },
+  "evidenceComparison": {
+    "technicalClassification": "authored-valid-among-equivalents",
+    "authoredMoveUci": "c3b4",
+    "authoredPreservesTheoreticalResult": true,
+    "stockfishMovePreservesTheoreticalResult": true,
+    "acceptedPreservingMoves": [
+      "c3b4",
+      "c3b3"
+    ],
+    "tablebaseWdlPreservingMoves": [
+      "c3b2",
+      "c3c2",
+      "c3d2",
+      "c3b3",
+      "c3d3",
+      "c3b4"
+    ],
+    "tablebaseDtzOptimalMoves": [
+      "c3b2",
+      "c3c2",
+      "c3d2",
+      "c3b3",
+      "c3d3",
+      "c3b4"
+    ],
+    "currentOnlyMoveDefensibleTechnically": true,
+    "requiresHumanInterpretation": true
+  },
+  "openQuestions": [
+    "Does the authored move satisfy the intended pedagogical objective?",
+    "Is the current uniqueness claim defensible?",
+    "Should the position remain eligible for Quick Challenge?"
+  ],
+  "allowedReviewDecisions": [
+    "authored-answer-confirmed",
+    "accepted-alternative-required",
+    "objective-needs-rewording",
+    "hint-needs-revision",
+    "position-needs-correction",
+    "position-valid-but-not-only-move",
+    "position-not-suitable-for-quick-challenge",
+    "engine-result-inconclusive",
+    "requires-local-tablebase",
+    "retire-position"
+  ],
+  "reviewTemplate": {
+    "reviewDecision": null,
+    "reviewRationale": null,
+    "reviewerReference": null,
+    "reviewRevision": null,
+    "reviewedPositionDigest": "sha256-50358003e133d2a766b3680d669717eda9c08468f13354ce0dc7c3219c739c73",
+    "reviewedEngineEvidenceDigest": "sha256-35bac4a28016dc88a4fdd734e686416ed08e0e80180c6e213aee4b83bae31fba",
+    "reviewedTablebaseEvidenceDigest": "sha256-c1f1db0a6752b5acc33792be39fd1ec9e07ae43fcb1a08efda9767a65d501549"
+  },
+  "packetDigest": "sha256-f28aa60111469b27bce2dd67431e6e3f2ce3ca834a94f780562e749d3e184c64"
+}

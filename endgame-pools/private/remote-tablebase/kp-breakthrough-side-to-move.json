@@ -1,0 +1,103 @@
+{
+  "evidenceSchemaVersion": "1.0.0",
+  "evidenceType": "remote-tablebase",
+  "providerId": "lichess-syzygy-remote",
+  "providerVersion": "1.0.0",
+  "endpointType": "standard",
+  "positionId": "kp-breakthrough-side-to-move",
+  "positionFen": "8/ppp5/8/PPP5/8/8/8/4K2k b - - 0 1",
+  "positionContentDigest": "sha256-da8f978676c0adf91f1bc56ae5e8e888f0991c10e51d2d4a73976f3794aca94a",
+  "requestDigest": "sha256-9beeab4b2b90102cf41fd2dc389d3366a6c365e5592fd96657d37db30bc02c0f",
+  "responseDigest": "sha256-0ac26f0a4df7bfff491e74f9a97984fa4351f86ad6b177111d551b2106498da4",
+  "category": "maybe-loss",
+  "checkmate": false,
+  "stalemate": false,
+  "insufficientMaterial": false,
+  "fiftyMoveRule": true,
+  "moves": [
+    {
+      "uci": "h1g1",
+      "san": "Kg1",
+      "resultingFen": "8/ppp5/8/PPP5/8/8/8/4K1k1 w - - 1 2",
+      "resultingCategory": "maybe-win",
+      "wdlForMover": -2,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false
+    },
+    {
+      "uci": "h1g2",
+      "san": "Kg2",
+      "resultingFen": "8/ppp5/8/PPP5/8/8/6k1/4K3 w - - 1 2",
+      "resultingCategory": "maybe-win",
+      "wdlForMover": -2,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false
+    },
+    {
+      "uci": "h1h2",
+      "san": "Kh2",
+      "resultingFen": "8/ppp5/8/PPP5/8/8/7k/4K3 w - - 1 2",
+      "resultingCategory": "maybe-win",
+      "wdlForMover": -2,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false
+    },
+    {
+      "uci": "a7a6",
+      "san": "a6",
+      "resultingFen": "8/1pp5/p7/PPP5/8/8/8/4K2k w - - 0 2",
+      "resultingCategory": "win",
+      "wdlForMover": -2,
+      "dtz": 1,
+      "zeroing": true,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false
+    },
+    {
+      "uci": "b7b6",
+      "san": "b6",
+      "resultingFen": "8/p1p5/1p6/PPP5/8/8/8/4K2k w - - 0 2",
+      "resultingCategory": "win",
+      "wdlForMover": -2,
+      "dtz": 1,
+      "zeroing": true,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false
+    },
+    {
+      "uci": "c7c6",
+      "san": "c6",
+      "resultingFen": "8/pp6/2p5/PPP5/8/8/8/4K2k w - - 0 2",
+      "resultingCategory": "win",
+      "wdlForMover": -2,
+      "dtz": 1,
+      "zeroing": true,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false
+    }
+  ],
+  "wdlPreservingMoves": [
+    "h1g1",
+    "h1g2",
+    "h1h2",
+    "a7a6",
+    "b7b6",
+    "c7c6"
+  ],
+  "dtzOptimalMoves": [],
+  "retrievedAt": "2026-07-26T00:23:42.096Z",
+  "httpStatus": 200,
+  "remoteTablebaseEvidenceAvailable": true,
+  "localTablebaseVerified": false,
+  "humanReviewedRemoteEvidence": false,
+  "evidenceDigest": "sha256-a5c46e9e2c53f16c7148d81d1dd7765cf82513faceacd4de5bb72f6199df6f60"
+}

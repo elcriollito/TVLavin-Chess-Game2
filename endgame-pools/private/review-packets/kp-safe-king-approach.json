@@ -1,0 +1,233 @@
+{
+  "packetSchemaVersion": "1.0.0",
+  "packetId": "caissa-review:caissa-king-pawn-decisions@1.0.0:kp-safe-king-approach",
+  "positionId": "kp-safe-king-approach",
+  "poolId": "caissa-king-pawn-decisions",
+  "poolVersion": "1.0.0",
+  "positionContentDigest": "sha256-f48e37ab1bbc07c9e8d3dffc995f57e51af94f74d5299917833fdda8720f2976",
+  "authoredContent": {
+    "fen": "k7/8/8/8/8/4P3/5K2/8 w - - 0 1",
+    "sideToMove": "white",
+    "board": "8 k . . . . . . .\n7 . . . . . . . .\n6 . . . . . . . .\n5 . . . . . . . .\n4 . . . . . . . .\n3 . . . . P . . .\n2 . . . . . K . .\n1 . . . . . . . .\n  a b c d e f g h",
+    "currentObjective": {
+      "type": "authored-move",
+      "evaluator": "authored-exact-legal-move",
+      "label": "Find an authored move."
+    },
+    "authoredExpectedMove": "Kf3",
+    "authoredExpectedMoveUci": "f2f3",
+    "acceptedAlternatives": [
+      "Ke2"
+    ],
+    "acceptedAlternativesUci": [
+      "f2e2"
+    ],
+    "hints": [
+      {
+        "stage": 1,
+        "text": "Choose a safe king route that stays near the pawn.",
+        "independenceImpact": "removes-independent",
+        "scorePercent": 50,
+        "answerReveal": false
+      }
+    ],
+    "feedback": {
+      "correct": "Correct. This is an authored safe king approach.",
+      "incorrect": "Keep the king’s route coordinated with the pawn."
+    }
+  },
+  "knowledgeProvenance": {
+    "sourceType": "immutable-knowledge-activity",
+    "sourceReference": "ku:endgames:pawn-foundations:activate-the-king/activity:activate-king:independent-transfer",
+    "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+    "positionReference": "pos:activate-king:transfer-flank"
+  },
+  "engineEvidenceSummary": {
+    "engine": "Stockfish 18",
+    "policy": "caissa-engine-review-standard",
+    "classification": "requires-human-review",
+    "bestMove": "f2g2",
+    "multiPv": [
+      {
+        "move": "f2g2",
+        "score": {
+          "type": "cp",
+          "value": 526
+        },
+        "principalVariation": [
+          "f2g2",
+          "a8b7",
+          "g2f3",
+          "b7c7",
+          "f3e4",
+          "c7d6",
+          "e4f5",
+          "d6d5",
+          "e3e4",
+          "d5d4",
+          "e4e5",
+          "d4c5",
+          "f5f6",
+          "c5c6",
+          "e5e6",
+          "c6d6",
+          "e6e7",
+          "d6d5",
+          "f6f7",
+          "d5d4",
+          "f7e6",
+          "d4e4",
+          "e6d6",
+          "e4d4",
+          "d6d7"
+        ]
+      },
+      {
+        "move": "f2g3",
+        "score": {
+          "type": "cp",
+          "value": 517
+        },
+        "principalVariation": [
+          "f2g3",
+          "a8b7",
+          "g3f3",
+          "b7c6",
+          "f3e4",
+          "c6d6",
+          "e4f5",
+          "d6d5",
+          "e3e4",
+          "d5d6",
+          "f5f6",
+          "d6d7",
+          "e4e5",
+          "d7e8",
+          "f6e6",
+          "e8d8",
+          "e6f7",
+          "d8d7",
+          "e5e6",
+          "d7d6",
+          "e6e7",
+          "d6e5",
+          "f7g7",
+          "e5d5"
+        ]
+      },
+      {
+        "move": "f2f3",
+        "score": {
+          "type": "cp",
+          "value": 512
+        },
+        "principalVariation": [
+          "f2f3",
+          "a8b7",
+          "f3e4",
+          "b7c6",
+          "e4f5",
+          "c6d5",
+          "e3e4",
+          "d5d6",
+          "f5f6",
+          "d6d7",
+          "e4e5",
+          "d7e8",
+          "f6e6",
+          "e8d8",
+          "e6f7",
+          "d8d7",
+          "e5e6",
+          "d7d6",
+          "e6e7",
+          "d6d5"
+        ]
+      }
+    ],
+    "engineEvidenceDigest": "sha256-1e066c601a30b70ea109c32a673414cede9eb792af9a68626b276825088639bb"
+  },
+  "tablebaseEligibility": {
+    "status": "eligible",
+    "canonicalFen": "k7/8/8/8/8/4P3/5K2/8 w - - 0 1",
+    "pieceCount": 3
+  },
+  "tablebaseEvidenceSummary": {
+    "status": "retrieved",
+    "provider": "lichess-syzygy-remote",
+    "category": "win",
+    "dtz": 1,
+    "wdlPreservingMoves": [
+      "e3e4",
+      "f2f3",
+      "f2g3",
+      "f2e2",
+      "f2g2",
+      "f2e1",
+      "f2f1",
+      "f2g1"
+    ],
+    "dtzOptimalMoves": [
+      "e3e4",
+      "f2e2",
+      "f2g2"
+    ],
+    "remoteEvidenceDigest": "sha256-b60e0e35e8d7a323b2810d2791873287b340e1333d9cb3c1f48f2c79d6f7c42b",
+    "localTablebaseVerified": false,
+    "humanReviewedRemoteEvidence": false
+  },
+  "evidenceComparison": {
+    "technicalClassification": "authored-valid-among-equivalents",
+    "authoredMoveUci": "f2f3",
+    "authoredPreservesTheoreticalResult": true,
+    "stockfishMovePreservesTheoreticalResult": true,
+    "acceptedPreservingMoves": [
+      "f2f3",
+      "f2e2"
+    ],
+    "tablebaseWdlPreservingMoves": [
+      "e3e4",
+      "f2f3",
+      "f2g3",
+      "f2e2",
+      "f2g2",
+      "f2e1",
+      "f2f1",
+      "f2g1"
+    ],
+    "tablebaseDtzOptimalMoves": [
+      "e3e4",
+      "f2e2",
+      "f2g2"
+    ],
+    "currentOnlyMoveDefensibleTechnically": true,
+    "requiresHumanInterpretation": true
+  },
+  "openQuestions": [
+    "Does the authored move satisfy the intended pedagogical objective?",
+    "Is the current uniqueness claim defensible?",
+    "Should the position remain eligible for Quick Challenge?"
+  ],
+  "allowedReviewDecisions": [
+    "authored-answer-confirmed",
+    "accepted-alternative-required",
+    "objective-needs-rewording",
+    "hint-needs-revision",
+    "position-needs-correction",
+    "position-valid-but-not-only-move",
+    "position-not-suitable-for-quick-challenge",
+    "engine-result-inconclusive",
+    "requires-local-tablebase",
+    "retire-position"
+  ],
+  "reviewTemplate": {
+    "reviewDecision": null,
+    "reviewRationale": null,
+    "reviewerReference": null,
+    "reviewRevision": null,
+    "reviewedPositionDigest": "sha256-f48e37ab1bbc07c9e8d3dffc995f57e51af94f74d5299917833fdda8720f2976",
+    "reviewedEngineEvidenceDigest": "sha256-1e066c601a30b70ea109c32a673414cede9eb792af9a68626b276825088639bb",
+    "reviewedTablebaseEvidenceDigest": "sha256-b60e0e35e8d7a323b2810d2791873287b340e1333d9cb3c1f48f2c79d6f7c42b"
+  },
+  "packetDigest": "sha256-dfe1b5643a563d32e8155fc2bd457a37fd179bf5676f07df2e47fc58326986c6"
+}

@@ -1,0 +1,228 @@
+{
+  "packetSchemaVersion": "1.0.0",
+  "packetId": "caissa-review:caissa-king-pawn-decisions@1.0.0:kp-majority-improve-first",
+  "positionId": "kp-majority-improve-first",
+  "poolId": "caissa-king-pawn-decisions",
+  "poolVersion": "1.0.0",
+  "positionContentDigest": "sha256-07e68159f7980f378adad82110aee1e131eeb9bfcbc61d0335b236e35a9857cf",
+  "authoredContent": {
+    "fen": "8/8/6k1/5pp1/5PPP/6K1/8/8 w - - 0 1",
+    "sideToMove": "white",
+    "board": "8 . . . . . . . .\n7 . . . . . . . .\n6 . . . . . . k .\n5 . . . . . p p .\n4 . . . . . P P P\n3 . . . . . . K .\n2 . . . . . . . .\n1 . . . . . . . .\n  a b c d e f g h",
+    "currentObjective": {
+      "type": "only-move",
+      "evaluator": "authored-exact-legal-move",
+      "label": "Find the authored move."
+    },
+    "authoredExpectedMove": "Kf3",
+    "authoredExpectedMoveUci": "g3f3",
+    "acceptedAlternatives": [],
+    "acceptedAlternativesUci": [],
+    "hints": [
+      {
+        "stage": 1,
+        "text": "Improve the king before committing the pawn majority.",
+        "independenceImpact": "removes-independent",
+        "scorePercent": 50,
+        "answerReveal": false
+      }
+    ],
+    "feedback": {
+      "correct": "Correct. The king improves before the pawn structure changes.",
+      "incorrect": "Check whether a king improvement is available before a pawn push."
+    }
+  },
+  "knowledgeProvenance": {
+    "sourceType": "immutable-knowledge-activity",
+    "sourceReference": "ku:endgames:pawn-weaknesses:pawn-majority/activity:pawn-majority:independent-blocked",
+    "releaseId": "rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84",
+    "positionReference": "pos:pawn-majority:blocked-near-miss"
+  },
+  "engineEvidenceSummary": {
+    "engine": "Stockfish 18",
+    "policy": "caissa-engine-review-standard",
+    "classification": "authored-answer-questioned",
+    "bestMove": "h4g5",
+    "multiPv": [
+      {
+        "move": "h4g5",
+        "score": {
+          "type": "cp",
+          "value": 1496
+        },
+        "principalVariation": [
+          "h4g5",
+          "g6f7",
+          "g4f5",
+          "f7e7",
+          "g5g6",
+          "e7e8",
+          "g3g4",
+          "e8d7",
+          "f5f6",
+          "d7c6",
+          "f6f7",
+          "c6b6",
+          "g4g5",
+          "b6a6",
+          "f7f8q",
+          "a6a7",
+          "f4f5",
+          "a7b6",
+          "g6g7",
+          "b6a7",
+          "f8e7",
+          "a7a6",
+          "f5f6",
+          "a6a5",
+          "e7e6",
+          "a5a4",
+          "f6f7",
+          "a4a5",
+          "e6d6"
+        ]
+      },
+      {
+        "move": "g4f5",
+        "score": {
+          "type": "cp",
+          "value": 1047
+        },
+        "principalVariation": [
+          "g4f5",
+          "g6h5",
+          "g3g2",
+          "g5h4",
+          "g2h3",
+          "h5h6",
+          "h3h4",
+          "h6g7",
+          "h4g5",
+          "g7f7",
+          "f5f6",
+          "f7g8",
+          "g5g6",
+          "g8h8",
+          "g6f7",
+          "h8h7",
+          "f7e7",
+          "h7h6",
+          "f6f7",
+          "h6h5",
+          "f7f8q",
+          "h5g4",
+          "f4f5",
+          "g4f3",
+          "f8g8",
+          "f3e2",
+          "f5f6",
+          "e2d3"
+        ]
+      },
+      {
+        "move": "f4g5",
+        "score": {
+          "type": "cp",
+          "value": 865
+        },
+        "principalVariation": [
+          "f4g5",
+          "f5f4",
+          "g3f4",
+          "g6f7",
+          "f4f5",
+          "f7e7",
+          "g5g6",
+          "e7f8",
+          "g6g7",
+          "f8f7",
+          "g7g8q",
+          "f7g8",
+          "f5g5",
+          "g8g7"
+        ]
+      }
+    ],
+    "engineEvidenceDigest": "sha256-236ee62fe63ab9aa7d6675f6e6bdfd84863d00a1dd107929ee30a85f5939ffd1"
+  },
+  "tablebaseEligibility": {
+    "status": "eligible",
+    "canonicalFen": "8/8/6k1/5pp1/5PPP/6K1/8/8 w - - 0 1",
+    "pieceCount": 7
+  },
+  "tablebaseEvidenceSummary": {
+    "status": "retrieved",
+    "provider": "lichess-syzygy-remote",
+    "category": "win",
+    "dtz": 1,
+    "wdlPreservingMoves": [
+      "f4g5",
+      "h4g5",
+      "g4f5",
+      "g3f2",
+      "g3g2",
+      "g3h2"
+    ],
+    "dtzOptimalMoves": [
+      "f4g5",
+      "h4g5",
+      "g3f2",
+      "g3g2",
+      "g3h2"
+    ],
+    "remoteEvidenceDigest": "sha256-8354d317de963986736e8c6057c3001c1179f3d0e5d33442f55d490f9f6c48d5",
+    "localTablebaseVerified": false,
+    "humanReviewedRemoteEvidence": false
+  },
+  "evidenceComparison": {
+    "technicalClassification": "authored-move-tablebase-invalid",
+    "authoredMoveUci": "g3f3",
+    "authoredPreservesTheoreticalResult": false,
+    "stockfishMovePreservesTheoreticalResult": true,
+    "acceptedPreservingMoves": [],
+    "tablebaseWdlPreservingMoves": [
+      "f4g5",
+      "h4g5",
+      "g4f5",
+      "g3f2",
+      "g3g2",
+      "g3h2"
+    ],
+    "tablebaseDtzOptimalMoves": [
+      "f4g5",
+      "h4g5",
+      "g3f2",
+      "g3g2",
+      "g3h2"
+    ],
+    "currentOnlyMoveDefensibleTechnically": false,
+    "requiresHumanInterpretation": true
+  },
+  "openQuestions": [
+    "Does the authored move satisfy the intended pedagogical objective?",
+    "Is the current uniqueness claim defensible?",
+    "Should the position remain eligible for Quick Challenge?"
+  ],
+  "allowedReviewDecisions": [
+    "authored-answer-confirmed",
+    "accepted-alternative-required",
+    "objective-needs-rewording",
+    "hint-needs-revision",
+    "position-needs-correction",
+    "position-valid-but-not-only-move",
+    "position-not-suitable-for-quick-challenge",
+    "engine-result-inconclusive",
+    "requires-local-tablebase",
+    "retire-position"
+  ],
+  "reviewTemplate": {
+    "reviewDecision": null,
+    "reviewRationale": null,
+    "reviewerReference": null,
+    "reviewRevision": null,
+    "reviewedPositionDigest": "sha256-07e68159f7980f378adad82110aee1e131eeb9bfcbc61d0335b236e35a9857cf",
+    "reviewedEngineEvidenceDigest": "sha256-236ee62fe63ab9aa7d6675f6e6bdfd84863d00a1dd107929ee30a85f5939ffd1",
+    "reviewedTablebaseEvidenceDigest": "sha256-8354d317de963986736e8c6057c3001c1179f3d0e5d33442f55d490f9f6c48d5"
+  },
+  "packetDigest": "sha256-ee3c6f2884a2c9afeea984ae11d277d26878f26e78674a15d647289aed2986ae"
+}
