@@ -1,0 +1,131 @@
+{
+  "evidenceSchemaVersion": "1.0.0",
+  "evidenceType": "stockfish-secondary-comparison",
+  "positionId": "direct-opposition-hold-draw",
+  "fen": "8/8/4k3/8/4K3/8/P7/8 w - - 0 1",
+  "engineIdentity": {
+    "identitySchemaVersion": "1.0.0",
+    "engineId": "stockfish-18-windows-x64-avx2",
+    "engineName": "Stockfish 18",
+    "engineVersion": "18",
+    "sourceRelease": "official-stockfish/Stockfish@sf_18",
+    "license": "GPL-3.0",
+    "binaryPlatform": "windows",
+    "binaryArchitecture": "x86-64-avx2",
+    "nodePlatform": "win32",
+    "nodeArchitecture": "x64",
+    "archiveSha256": "6f6c272ebd6ea594377715235c8a7326f75940ef4f4f856f45106028fe6ae900",
+    "binarySha256": "c86215fa1977d53b82ed854540a4c7b025be4cd042276c85ba3de53fb9118911",
+    "uciOptions": {
+      "Threads": 1,
+      "Hash": 64,
+      "Ponder": false,
+      "MultiPV": 3
+    },
+    "analysisPolicyId": "caissa-engine-review-standard",
+    "analysisPolicyVersion": "1.0.0",
+    "repositoryPolicy": "binary-external-to-git-and-public-release"
+  },
+  "analysisPolicy": {
+    "policySchemaVersion": "1.0.0",
+    "policyId": "caissa-engine-review-standard",
+    "policyVersion": "1.0.0",
+    "depth": 18,
+    "multiPv": 3,
+    "timeoutMs": 30000,
+    "uciOptions": {
+      "Threads": 1,
+      "Hash": 64,
+      "Ponder": false,
+      "MultiPV": 3
+    },
+    "startupHandshake": [
+      "uci",
+      "uciok",
+      "setoption",
+      "isready",
+      "readyok"
+    ],
+    "analysisCutoff": "go depth 18",
+    "cleanup": "quit-after-bestmove; kill-on-error-or-timeout"
+  },
+  "bestMove": "e4d4",
+  "candidates": [
+    {
+      "multiPv": 1,
+      "depth": 18,
+      "selDepth": 23,
+      "nodes": 138552,
+      "score": {
+        "type": "cp",
+        "value": 4
+      },
+      "principalVariation": [
+        "e4d4",
+        "e6d6",
+        "d4d3",
+        "d6d5",
+        "d3c3",
+        "d5c5",
+        "c3b3",
+        "c5b5",
+        "b3c2",
+        "b5b6",
+        "c2d3",
+        "b6c7",
+        "d3e2"
+      ]
+    },
+    {
+      "multiPv": 2,
+      "depth": 18,
+      "selDepth": 19,
+      "nodes": 138552,
+      "score": {
+        "type": "cp",
+        "value": 4
+      },
+      "principalVariation": [
+        "e4e3",
+        "e6d6",
+        "e3d4",
+        "d6c6",
+        "d4c4",
+        "c6b6",
+        "c4d5",
+        "b6a5",
+        "d5d4",
+        "a5b4",
+        "d4e3",
+        "b4a4",
+        "e3f4"
+      ]
+    },
+    {
+      "multiPv": 3,
+      "depth": 18,
+      "selDepth": 19,
+      "nodes": 138552,
+      "score": {
+        "type": "cp",
+        "value": 3
+      },
+      "principalVariation": [
+        "e4f4",
+        "e6d5",
+        "f4f3",
+        "d5c5",
+        "a2a3",
+        "c5c4",
+        "f3g3",
+        "c4b3",
+        "g3g2",
+        "b3a3"
+      ]
+    }
+  ],
+  "authority": "secondary-only-tablebase-remains-theoretical-authority",
+  "pedagogicalUse": "identify natural alternatives and possible objective ambiguity",
+  "approvalStatus": "unapproved-human-review-required",
+  "evidenceDigest": "sha256-d64d360e8f9c16840d2b63053b008806dd95a8c1d8488639c2fc3a2d7b7d11ac"
+}

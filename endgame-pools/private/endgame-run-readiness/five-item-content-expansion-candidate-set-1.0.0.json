@@ -1,0 +1,86 @@
+{
+  "analysisSchemaVersion": "1.0.0",
+  "analysisId": "five-item-content-expansion-candidate-set-1.0.0",
+  "status": "unapproved-human-review-required",
+  "isRunArtifact": false,
+  "publicReleaseAuthorized": false,
+  "proposedItems": [
+    {
+      "id": "kp-coordinate-support-promote",
+      "objective": "promote",
+      "role": "offensive",
+      "learnerSide": "white",
+      "pieceCount": 3
+    },
+    {
+      "id": "rule-square-a-pawn-catch-stop-promotion",
+      "objective": "stop-promotion",
+      "role": "defensive",
+      "learnerSide": "white",
+      "pieceCount": 3
+    },
+    {
+      "id": "favorable-simplification-open-king-route",
+      "objective": "convert-material-advantage",
+      "role": "offensive-or-foundational",
+      "learnerSide": "white",
+      "pieceCount": 5
+    },
+    {
+      "id": "direct-opposition-hold-draw",
+      "objective": "hold-draw",
+      "role": "defensive",
+      "learnerSide": "white",
+      "pieceCount": 3
+    },
+    {
+      "id": "king-activation-support-region",
+      "objective": "activate-king",
+      "role": "offensive-or-foundational",
+      "learnerSide": "white",
+      "pieceCount": 3
+    }
+  ],
+  "objectiveCount": 5,
+  "offensiveDefensiveBalance": {
+    "offensiveOrFoundational": 3,
+    "defensive": 2
+  },
+  "conversionCoverage": "promote plus distinct favorable-simplification conversion candidate",
+  "foundationalTechniqueCoverage": "king activation and opposition",
+  "duplicateConcepts": [
+    "promotion remains adjacent to conversion but uses distinct five-piece simplification geometry"
+  ],
+  "duplicateFenGeometry": false,
+  "sideToMoveBalance": {
+    "white": 5,
+    "black": 0,
+    "concern": "future human review should consider learner-side diversity"
+  },
+  "learnerColorBalance": {
+    "white": 5,
+    "black": 0,
+    "concern": "not balanced"
+  },
+  "averagePieceCount": 3.4,
+  "averagePlyLengthEstimate": 10,
+  "difficultyDistribution": {
+    "foundational": 2,
+    "intermediate": 3
+  },
+  "hintDistribution": "three proposed stages on each new candidate; existing pilots unchanged",
+  "terminalDiversity": [
+    "queen promotion",
+    "opponent-pawn capture",
+    "winning simplification terminal",
+    "draw preservation",
+    "king support region"
+  ],
+  "mobileSuitability": "compact three-to-five-piece boards; no runtime work authorized",
+  "runtimeArtifactSizeEstimate": "small-to-medium if later approved and compiled",
+  "humanReviewWorkload": "three exact packets and bounded graphs",
+  "implementationWorkload": "future phase only; no runtime implementation in 10.11A",
+  "limitedPreviewReadinessIfApproved": "candidate set appears balanced by mission, but all three exact packets require human approval",
+  "currentRunIntegrity": "unchanged two-item run remains authoritative",
+  "analysisDigest": "sha256-52ad8211a7e161b61da326c4772d11c521fa6030f089d30e405c451dabf627f3"
+}

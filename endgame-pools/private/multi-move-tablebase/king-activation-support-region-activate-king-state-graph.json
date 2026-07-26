@@ -1,0 +1,5818 @@
+{
+  "graphSchemaVersion": "1.0.0",
+  "positionId": "king-activation-support-region",
+  "objectiveFamily": "activate-king",
+  "initialFen": "8/7k/8/8/8/3P4/2K5/8 w - - 0 1",
+  "maximumExploredPly": 14,
+  "pruningRules": [
+    "retain every legal provider move and its truthful WDL classification at each expanded node",
+    "expand one deterministic continuation per policy to bound breadth",
+    "stop at proposed objective terminal, repetition, unavailable move, or 14 plies",
+    "all proposed terminals and routes remain unapproved pending human review"
+  ],
+  "states": [
+    {
+      "evidenceSchemaVersion": "1.0.0",
+      "evidenceType": "remote-tablebase",
+      "providerId": "lichess-syzygy-remote",
+      "providerVersion": "1.0.0",
+      "endpointType": "standard",
+      "positionId": "king-activation-support-region:e050075934b3cdf0",
+      "positionFen": "8/2k5/4K3/8/8/3P4/8/8 b - - 11 6",
+      "positionContentDigest": "sha256-8952d1f92fa48bfe1dfd3101d49b3d75f6f3e14a0702e9b3ec664821a10f5650",
+      "requestDigest": "sha256-96fb68ed4206c043156dff92dc9eab54fdb1cf992bee8fb8d9dfd7b61e36362d",
+      "responseDigest": "sha256-242af4a46332784f7aea4c01ab4164b1787966111df9d85ca523bf767e0ab6bf",
+      "category": "loss",
+      "dtz": -2,
+      "dtm": -30,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false,
+      "fiftyMoveRule": true,
+      "moves": [
+        {
+          "uci": "c7c6",
+          "san": "Kc6",
+          "resultingFen": "8/8/2k1K3/8/8/3P4/8/8 w - - 12 7",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 29,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "c7d8",
+          "san": "Kd8",
+          "resultingFen": "3k4/8/4K3/8/8/3P4/8/8 w - - 12 7",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 29,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "c7b6",
+          "san": "Kb6",
+          "resultingFen": "8/8/1k2K3/8/8/3P4/8/8 w - - 12 7",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 27,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "c7b7",
+          "san": "Kb7",
+          "resultingFen": "8/1k6/4K3/8/8/3P4/8/8 w - - 12 7",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 27,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "c7b8",
+          "san": "Kb8",
+          "resultingFen": "1k6/8/4K3/8/8/3P4/8/8 w - - 12 7",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 27,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "c7c8",
+          "san": "Kc8",
+          "resultingFen": "2k5/8/4K3/8/8/3P4/8/8 w - - 12 7",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 27,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        }
+      ],
+      "wdlPreservingMoves": [
+        "c7c6",
+        "c7d8",
+        "c7b6",
+        "c7b7",
+        "c7b8",
+        "c7c8"
+      ],
+      "dtzOptimalMoves": [
+        "c7c6",
+        "c7d8",
+        "c7b6",
+        "c7b7",
+        "c7b8",
+        "c7c8"
+      ],
+      "retrievedAt": null,
+      "httpStatus": 200,
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "humanReviewedRemoteEvidence": false,
+      "evidenceDigest": "sha256-6613fc4dd3b200fcc546596ebd29bc0dc7e32027536b1f3e3db1210c70536b20"
+    },
+    {
+      "evidenceSchemaVersion": "1.0.0",
+      "evidenceType": "remote-tablebase",
+      "providerId": "lichess-syzygy-remote",
+      "providerVersion": "1.0.0",
+      "endpointType": "standard",
+      "positionId": "king-activation-support-region:d305c817fce77ddc",
+      "positionFen": "8/2k5/8/3K4/8/3P4/8/8 w - - 10 6",
+      "positionContentDigest": "sha256-7a9cd72f70e59dfbc4239e3a49aeae2455fc111d707f23853254eaa4070ee4dc",
+      "requestDigest": "sha256-ba9591494519c139d6b80a7bbb61f24e622c33eb74fa18605b5ff31d06cdc9e6",
+      "responseDigest": "sha256-e10ce8c98eb5a743c237b928e80dd079b82fab4a3380600706cf94df4c5eaa86",
+      "category": "win",
+      "dtz": 3,
+      "dtm": 31,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false,
+      "fiftyMoveRule": true,
+      "moves": [
+        {
+          "uci": "d5e6",
+          "san": "Ke6",
+          "resultingFen": "8/2k5/4K3/8/8/3P4/8/8 b - - 11 6",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -2,
+          "dtm": -30,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "d5c5",
+          "san": "Kc5",
+          "resultingFen": "8/2k5/8/2K5/8/3P4/8/8 b - - 11 6",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -6,
+          "dtm": -34,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "d5e5",
+          "san": "Ke5",
+          "resultingFen": "8/2k5/8/4K3/8/3P4/8/8 b - - 11 6",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -6,
+          "dtm": -34,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "d5e4",
+          "san": "Ke4",
+          "resultingFen": "8/2k5/8/8/4K3/3P4/8/8 b - - 11 6",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -10,
+          "dtm": -38,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "d3d4",
+          "san": "d4",
+          "resultingFen": "8/2k5/8/3K4/3P4/8/8/8 b - - 0 6",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": true,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "d5c4",
+          "san": "Kc4",
+          "resultingFen": "8/2k5/8/8/2K5/3P4/8/8 b - - 11 6",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "d5d4",
+          "san": "Kd4",
+          "resultingFen": "8/2k5/8/8/3K4/3P4/8/8 b - - 11 6",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        }
+      ],
+      "wdlPreservingMoves": [
+        "d5e6",
+        "d5c5",
+        "d5e5",
+        "d5e4"
+      ],
+      "dtzOptimalMoves": [
+        "d5e6"
+      ],
+      "retrievedAt": null,
+      "httpStatus": 200,
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "humanReviewedRemoteEvidence": false,
+      "evidenceDigest": "sha256-532d22c7f900e96043dd6df6ed1270d4697595bd8dd051a17d63b71d64c3e715"
+    },
+    {
+      "evidenceSchemaVersion": "1.0.0",
+      "evidenceType": "remote-tablebase",
+      "providerId": "lichess-syzygy-remote",
+      "providerVersion": "1.0.0",
+      "endpointType": "standard",
+      "positionId": "king-activation-support-region:8e5564b2a61bef53",
+      "positionFen": "8/3k4/8/2K5/8/3P4/8/8 w - - 8 5",
+      "positionContentDigest": "sha256-fbe462136b11edb5bdab47dbd47241ca0293636ce9b05b9f925973460dbd1209",
+      "requestDigest": "sha256-ebbfec4813a1314046416b4523dd9971debfd81d7ff261361bbde1ef07782329",
+      "responseDigest": "sha256-b469377e23b72e16ff2049bb1a7e5ec2ec7677fa5209c6b277be9dd268717954",
+      "category": "win",
+      "dtz": 5,
+      "dtm": 33,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false,
+      "fiftyMoveRule": true,
+      "moves": [
+        {
+          "uci": "c5d5",
+          "san": "Kd5",
+          "resultingFen": "8/3k4/8/3K4/8/3P4/8/8 b - - 9 5",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -4,
+          "dtm": -32,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "d3d4",
+          "san": "d4",
+          "resultingFen": "8/3k4/8/2K5/3P4/8/8/8 b - - 0 5",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": true,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "c5b4",
+          "san": "Kb4",
+          "resultingFen": "8/3k4/8/8/1K6/3P4/8/8 b - - 9 5",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "c5c4",
+          "san": "Kc4",
+          "resultingFen": "8/3k4/8/8/2K5/3P4/8/8 b - - 9 5",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "c5d4",
+          "san": "Kd4",
+          "resultingFen": "8/3k4/8/8/3K4/3P4/8/8 b - - 9 5",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "c5b5",
+          "san": "Kb5",
+          "resultingFen": "8/3k4/8/1K6/8/3P4/8/8 b - - 9 5",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "c5b6",
+          "san": "Kb6",
+          "resultingFen": "8/3k4/1K6/8/8/3P4/8/8 b - - 9 5",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        }
+      ],
+      "wdlPreservingMoves": [
+        "c5d5"
+      ],
+      "dtzOptimalMoves": [
+        "c5d5"
+      ],
+      "retrievedAt": null,
+      "httpStatus": 200,
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "humanReviewedRemoteEvidence": false,
+      "evidenceDigest": "sha256-24d918eb80e03c1d69cdbcf040b9292ee733281a3c76a9476e71cf403dfdeaf3"
+    },
+    {
+      "evidenceSchemaVersion": "1.0.0",
+      "evidenceType": "remote-tablebase",
+      "providerId": "lichess-syzygy-remote",
+      "providerVersion": "1.0.0",
+      "endpointType": "standard",
+      "positionId": "king-activation-support-region:899c17edd47c4821",
+      "positionFen": "8/3k4/8/3K4/8/3P4/8/8 b - - 9 5",
+      "positionContentDigest": "sha256-5ce6a5145e88705753b4987be0752a3390cdce1575818684e7286d658c13152f",
+      "requestDigest": "sha256-e345670555d36cb1cf2ca439d5ecd725cd0fa2a1051610bd6df4abb8d54fa774",
+      "responseDigest": "sha256-e5839087e925472f1598148f525fa2524ecb6c949a852ae5b82ed89244243c2a",
+      "category": "loss",
+      "dtz": -4,
+      "dtm": -32,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false,
+      "fiftyMoveRule": true,
+      "moves": [
+        {
+          "uci": "d7c7",
+          "san": "Kc7",
+          "resultingFen": "8/2k5/8/3K4/8/3P4/8/8 w - - 10 6",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 3,
+          "dtm": 31,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "d7e7",
+          "san": "Ke7",
+          "resultingFen": "8/4k3/8/3K4/8/3P4/8/8 w - - 10 6",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 3,
+          "dtm": 31,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "d7d8",
+          "san": "Kd8",
+          "resultingFen": "3k4/8/8/3K4/8/3P4/8/8 w - - 10 6",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 3,
+          "dtm": 29,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "d7e8",
+          "san": "Ke8",
+          "resultingFen": "4k3/8/8/3K4/8/3P4/8/8 w - - 10 6",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 3,
+          "dtm": 29,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "d7c8",
+          "san": "Kc8",
+          "resultingFen": "2k5/8/8/3K4/8/3P4/8/8 w - - 10 6",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 3,
+          "dtm": 27,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        }
+      ],
+      "wdlPreservingMoves": [
+        "d7c7",
+        "d7e7",
+        "d7d8",
+        "d7e8",
+        "d7c8"
+      ],
+      "dtzOptimalMoves": [
+        "d7c7",
+        "d7e7",
+        "d7d8",
+        "d7e8",
+        "d7c8"
+      ],
+      "retrievedAt": null,
+      "httpStatus": 200,
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "humanReviewedRemoteEvidence": false,
+      "evidenceDigest": "sha256-614ac9e5aba0812f632f68f8136cf7ea7c18501bd21176613b34f19642ec6e82"
+    },
+    {
+      "evidenceSchemaVersion": "1.0.0",
+      "evidenceType": "remote-tablebase",
+      "providerId": "lichess-syzygy-remote",
+      "providerVersion": "1.0.0",
+      "endpointType": "standard",
+      "positionId": "king-activation-support-region:246b417bd905af1c",
+      "positionFen": "8/7k/8/8/8/3P4/1K6/8 b - - 1 1",
+      "positionContentDigest": "sha256-b02b8ddc6bbaa6897d9f014f255ab3dba4ac11928fd82c690f38148418137f25",
+      "requestDigest": "sha256-f5740488547a845f0fe5edbd26ccf48bd69a49c35ea3f9803fc28b6a95240d80",
+      "responseDigest": "sha256-49dd4b5497bc791ffdedcea2e502157f491672b883042cd4a6170fbc40aaf379",
+      "category": "loss",
+      "dtz": -12,
+      "dtm": -40,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false,
+      "fiftyMoveRule": true,
+      "moves": [
+        {
+          "uci": "h7g6",
+          "san": "Kg6",
+          "resultingFen": "8/8/6k1/8/8/3P4/1K6/8 w - - 2 2",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 11,
+          "dtm": 39,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "h7g7",
+          "san": "Kg7",
+          "resultingFen": "8/6k1/8/8/8/3P4/1K6/8 w - - 2 2",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 11,
+          "dtm": 39,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "h7g8",
+          "san": "Kg8",
+          "resultingFen": "6k1/8/8/8/8/3P4/1K6/8 w - - 2 2",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 11,
+          "dtm": 39,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "h7h6",
+          "san": "Kh6",
+          "resultingFen": "8/8/7k/8/8/3P4/1K6/8 w - - 2 2",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 37,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "h7h8",
+          "san": "Kh8",
+          "resultingFen": "7k/8/8/8/8/3P4/1K6/8 w - - 2 2",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 37,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        }
+      ],
+      "wdlPreservingMoves": [
+        "h7g6",
+        "h7g7",
+        "h7g8",
+        "h7h6",
+        "h7h8"
+      ],
+      "dtzOptimalMoves": [
+        "h7g6",
+        "h7g7",
+        "h7g8"
+      ],
+      "retrievedAt": null,
+      "httpStatus": 200,
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "humanReviewedRemoteEvidence": false,
+      "evidenceDigest": "sha256-3ce1fe54d474c6975e683994a621597e34ff67f19596d9e9f9a853d3fa867d41"
+    },
+    {
+      "evidenceSchemaVersion": "1.0.0",
+      "evidenceType": "remote-tablebase",
+      "providerId": "lichess-syzygy-remote",
+      "providerVersion": "1.0.0",
+      "endpointType": "standard",
+      "positionId": "king-activation-support-region:64252bad1ae24534",
+      "positionFen": "8/7k/8/8/8/3P4/2K5/8 w - - 0 1",
+      "positionContentDigest": "sha256-e19449aebd9a648592b347f9a7950ef7c3c9d1280c7f95f06390669e38eb158a",
+      "requestDigest": "sha256-b3914a9ce6a12ef676524a4a4925b425390440c93944273c15b6e9650f045068",
+      "responseDigest": "sha256-fa00ef39901f68b62b84014f38d7c2464fba0e18ea65330627b9921bdbc281ce",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 37,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false,
+      "fiftyMoveRule": true,
+      "moves": [
+        {
+          "uci": "d3d4",
+          "san": "d4",
+          "resultingFen": "8/7k/8/8/3P4/8/2K5/8 b - - 0 1",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -12,
+          "dtm": -36,
+          "zeroing": true,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "c2b3",
+          "san": "Kb3",
+          "resultingFen": "8/7k/8/8/8/1K1P4/8/8 b - - 1 1",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -2,
+          "dtm": -36,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "c2c3",
+          "san": "Kc3",
+          "resultingFen": "8/7k/8/8/8/2KP4/8/8 b - - 1 1",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -2,
+          "dtm": -36,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "c2b2",
+          "san": "Kb2",
+          "resultingFen": "8/7k/8/8/8/3P4/1K6/8 b - - 1 1",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -12,
+          "dtm": -40,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "c2d2",
+          "san": "Kd2",
+          "resultingFen": "8/7k/8/8/8/3P4/3K4/8 b - - 1 1",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -12,
+          "dtm": -40,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "c2b1",
+          "san": "Kb1",
+          "resultingFen": "8/7k/8/8/8/3P4/8/1K6 b - - 1 1",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -16,
+          "dtm": -44,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "c2c1",
+          "san": "Kc1",
+          "resultingFen": "8/7k/8/8/8/3P4/8/2K5 b - - 1 1",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -16,
+          "dtm": -44,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "c2d1",
+          "san": "Kd1",
+          "resultingFen": "8/7k/8/8/8/3P4/8/3K4 b - - 1 1",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -16,
+          "dtm": -44,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        }
+      ],
+      "wdlPreservingMoves": [
+        "d3d4",
+        "c2b3",
+        "c2c3",
+        "c2b2",
+        "c2d2",
+        "c2b1",
+        "c2c1",
+        "c2d1"
+      ],
+      "dtzOptimalMoves": [
+        "d3d4",
+        "c2b2",
+        "c2d2"
+      ],
+      "retrievedAt": null,
+      "httpStatus": 200,
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "humanReviewedRemoteEvidence": false,
+      "evidenceDigest": "sha256-29fccdbb84a3dd9ed1cd3f39187cd0978933176c02c6737b7cec60b7c8688ccb"
+    },
+    {
+      "evidenceSchemaVersion": "1.0.0",
+      "evidenceType": "remote-tablebase",
+      "providerId": "lichess-syzygy-remote",
+      "providerVersion": "1.0.0",
+      "endpointType": "standard",
+      "positionId": "king-activation-support-region:8b76f74f04b26f57",
+      "positionFen": "8/7k/8/8/8/3P4/8/1K6 b - - 1 1",
+      "positionContentDigest": "sha256-c019f2aa9ba313c6cee6f9390ed40b11b6e41fbf2b15c35f9dd776808f4a4ec7",
+      "requestDigest": "sha256-591e51f555c2f52ee80d036475f848745b219915b24d05d6ca74fc9e4c8edba9",
+      "responseDigest": "sha256-bdf2b76e8963cfd0c5edbd42388bf8e62b3ec3a1a2df5b48f912b1f73aff8690",
+      "category": "loss",
+      "dtz": -16,
+      "dtm": -44,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false,
+      "fiftyMoveRule": true,
+      "moves": [
+        {
+          "uci": "h7g6",
+          "san": "Kg6",
+          "resultingFen": "8/8/6k1/8/8/3P4/8/1K6 w - - 2 2",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 15,
+          "dtm": 43,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "h7g7",
+          "san": "Kg7",
+          "resultingFen": "8/6k1/8/8/8/3P4/8/1K6 w - - 2 2",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 15,
+          "dtm": 43,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "h7g8",
+          "san": "Kg8",
+          "resultingFen": "6k1/8/8/8/8/3P4/8/1K6 w - - 2 2",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 15,
+          "dtm": 43,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "h7h6",
+          "san": "Kh6",
+          "resultingFen": "8/8/7k/8/8/3P4/8/1K6 w - - 2 2",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 13,
+          "dtm": 41,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "h7h8",
+          "san": "Kh8",
+          "resultingFen": "7k/8/8/8/8/3P4/8/1K6 w - - 2 2",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 13,
+          "dtm": 41,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        }
+      ],
+      "wdlPreservingMoves": [
+        "h7g6",
+        "h7g7",
+        "h7g8",
+        "h7h6",
+        "h7h8"
+      ],
+      "dtzOptimalMoves": [
+        "h7g6",
+        "h7g7",
+        "h7g8"
+      ],
+      "retrievedAt": null,
+      "httpStatus": 200,
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "humanReviewedRemoteEvidence": false,
+      "evidenceDigest": "sha256-aa231a015bcabb8c2f2450d69e70c4a18448205fb1d4074635539a478f0fbfd3"
+    },
+    {
+      "evidenceSchemaVersion": "1.0.0",
+      "evidenceType": "remote-tablebase",
+      "providerId": "lichess-syzygy-remote",
+      "providerVersion": "1.0.0",
+      "endpointType": "standard",
+      "positionId": "king-activation-support-region:2966c8241bdca681",
+      "positionFen": "8/8/1k2K3/8/3P4/8/8/8 b - - 0 7",
+      "positionContentDigest": "sha256-5c590a75b1c6f73082454dec81303327d550799d7131d4cec61f14243c76873f",
+      "requestDigest": "sha256-633b2a4a2caacc62003871487ecc808997e1c69ec982de66b420105906d72f60",
+      "responseDigest": "sha256-4c167874c27e72067f8d8d9bbf4db09a41a392d1372ce96c58c3da4e4e097901",
+      "category": "loss",
+      "dtz": -2,
+      "dtm": -28,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false,
+      "fiftyMoveRule": true,
+      "moves": [
+        {
+          "uci": "b6c7",
+          "san": "Kc7",
+          "resultingFen": "8/2k5/4K3/8/3P4/8/8/8 w - - 1 8",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 27,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b6a5",
+          "san": "Ka5",
+          "resultingFen": "8/8/4K3/k7/3P4/8/8/8 w - - 1 8",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 21,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b6b5",
+          "san": "Kb5",
+          "resultingFen": "8/8/4K3/1k6/3P4/8/8/8 w - - 1 8",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 21,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b6a6",
+          "san": "Ka6",
+          "resultingFen": "8/8/k3K3/8/3P4/8/8/8 w - - 1 8",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 21,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b6c6",
+          "san": "Kc6",
+          "resultingFen": "8/8/2k1K3/8/3P4/8/8/8 w - - 1 8",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 21,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b6a7",
+          "san": "Ka7",
+          "resultingFen": "8/k7/4K3/8/3P4/8/8/8 w - - 1 8",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 21,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b6b7",
+          "san": "Kb7",
+          "resultingFen": "8/1k6/4K3/8/3P4/8/8/8 w - - 1 8",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 21,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        }
+      ],
+      "wdlPreservingMoves": [
+        "b6c7",
+        "b6a5",
+        "b6b5",
+        "b6a6",
+        "b6c6",
+        "b6a7",
+        "b6b7"
+      ],
+      "dtzOptimalMoves": [
+        "b6c7",
+        "b6a5",
+        "b6b5",
+        "b6a6",
+        "b6c6",
+        "b6a7",
+        "b6b7"
+      ],
+      "retrievedAt": null,
+      "httpStatus": 200,
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "humanReviewedRemoteEvidence": false,
+      "evidenceDigest": "sha256-3f4387d04163d11dfd8fcdd224655314882fdd3ca5ad56a22babb91e17453c5b"
+    },
+    {
+      "evidenceSchemaVersion": "1.0.0",
+      "evidenceType": "remote-tablebase",
+      "providerId": "lichess-syzygy-remote",
+      "providerVersion": "1.0.0",
+      "endpointType": "standard",
+      "positionId": "king-activation-support-region:241726111c805ecc",
+      "positionFen": "8/8/1k2K3/8/8/3P4/8/8 w - - 12 7",
+      "positionContentDigest": "sha256-5b577b9403f0a720565ad885ebe79de474de394062d325f15ef0a917b34efe06",
+      "requestDigest": "sha256-88a4b631ed1c1ffaa11529d057cf880536e644eb9efd0bed4bc88c99c04cd4f3",
+      "responseDigest": "sha256-eb97f78ca20b1a62c1ca320ede71d612af44484d007dc75564fd1df1bc2422ce",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 27,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false,
+      "fiftyMoveRule": true,
+      "moves": [
+        {
+          "uci": "e6d6",
+          "san": "Kd6",
+          "resultingFen": "8/8/1k1K4/8/8/3P4/8/8 b - - 13 7",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -2,
+          "dtm": -26,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "d3d4",
+          "san": "d4",
+          "resultingFen": "8/8/1k2K3/8/3P4/8/8/8 b - - 0 7",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -2,
+          "dtm": -28,
+          "zeroing": true,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "e6e5",
+          "san": "Ke5",
+          "resultingFen": "8/8/1k6/4K3/8/3P4/8/8 b - - 13 7",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -2,
+          "dtm": -32,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "e6d5",
+          "san": "Kd5",
+          "resultingFen": "8/8/1k6/3K4/8/3P4/8/8 b - - 13 7",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -4,
+          "dtm": -32,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "e6f5",
+          "san": "Kf5",
+          "resultingFen": "8/8/1k6/5K2/8/3P4/8/8 b - - 13 7",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -6,
+          "dtm": -36,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "e6f6",
+          "san": "Kf6",
+          "resultingFen": "8/8/1k3K2/8/8/3P4/8/8 b - - 13 7",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -6,
+          "dtm": -36,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "e6d7",
+          "san": "Kd7",
+          "resultingFen": "8/3K4/1k6/8/8/3P4/8/8 b - - 13 7",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "e6e7",
+          "san": "Ke7",
+          "resultingFen": "8/4K3/1k6/8/8/3P4/8/8 b - - 13 7",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "e6f7",
+          "san": "Kf7",
+          "resultingFen": "8/5K2/1k6/8/8/3P4/8/8 b - - 13 7",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        }
+      ],
+      "wdlPreservingMoves": [
+        "e6d6",
+        "d3d4",
+        "e6e5",
+        "e6d5",
+        "e6f5",
+        "e6f6"
+      ],
+      "dtzOptimalMoves": [
+        "e6d6",
+        "d3d4",
+        "e6e5"
+      ],
+      "retrievedAt": null,
+      "httpStatus": 200,
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "humanReviewedRemoteEvidence": false,
+      "evidenceDigest": "sha256-e47a8b0dd44e3a05cfe8acbd315ce9cdcba1c145945726f3a54b280cb5db6b6d"
+    },
+    {
+      "evidenceSchemaVersion": "1.0.0",
+      "evidenceType": "remote-tablebase",
+      "providerId": "lichess-syzygy-remote",
+      "providerVersion": "1.0.0",
+      "endpointType": "standard",
+      "positionId": "king-activation-support-region:f4d5b040e95dd16c",
+      "positionFen": "8/8/4k3/2K5/8/3P4/8/8 b - - 7 4",
+      "positionContentDigest": "sha256-6ae55f4d9eacba3efd95a59bad9929f544b411a588402f934ee3d4c8b810be6c",
+      "requestDigest": "sha256-539f16f9e89975177cba74281455e79a9168a4da5df4abee64a7c291d6adef1c",
+      "responseDigest": "sha256-bf1c2f2f8510e29cfb060ece42aabda9d3c7adce298da9108f8f707010d73f5e",
+      "category": "loss",
+      "dtz": -6,
+      "dtm": -34,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false,
+      "fiftyMoveRule": true,
+      "moves": [
+        {
+          "uci": "e6d7",
+          "san": "Kd7",
+          "resultingFen": "8/3k4/8/2K5/8/3P4/8/8 w - - 8 5",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 5,
+          "dtm": 33,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "e6e5",
+          "san": "Ke5",
+          "resultingFen": "8/8/8/2K1k3/8/3P4/8/8 w - - 8 5",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 31,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "e6e7",
+          "san": "Ke7",
+          "resultingFen": "8/4k3/8/2K5/8/3P4/8/8 w - - 8 5",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 31,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "e6f5",
+          "san": "Kf5",
+          "resultingFen": "8/8/8/2K2k2/8/3P4/8/8 w - - 8 5",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 29,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "e6f6",
+          "san": "Kf6",
+          "resultingFen": "8/8/5k2/2K5/8/3P4/8/8 w - - 8 5",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 29,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "e6f7",
+          "san": "Kf7",
+          "resultingFen": "8/5k2/8/2K5/8/3P4/8/8 w - - 8 5",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 29,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        }
+      ],
+      "wdlPreservingMoves": [
+        "e6d7",
+        "e6e5",
+        "e6e7",
+        "e6f5",
+        "e6f6",
+        "e6f7"
+      ],
+      "dtzOptimalMoves": [
+        "e6d7"
+      ],
+      "retrievedAt": null,
+      "httpStatus": 200,
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "humanReviewedRemoteEvidence": false,
+      "evidenceDigest": "sha256-0b44fa3981be4dc841db56f528ea6005a52c967af41447b1242a6185b9cd30af"
+    },
+    {
+      "evidenceSchemaVersion": "1.0.0",
+      "evidenceType": "remote-tablebase",
+      "providerId": "lichess-syzygy-remote",
+      "providerVersion": "1.0.0",
+      "endpointType": "standard",
+      "positionId": "king-activation-support-region:d08218c617291431",
+      "positionFen": "8/8/4k3/8/1K6/3P4/8/8 w - - 6 4",
+      "positionContentDigest": "sha256-5bf3976f342df3b61eee77c6a13059335bebc09bb9784c5087accc5b5848ab35",
+      "requestDigest": "sha256-b7e65c8fdabe733c0fcd75ee787aa6bd218085ef4ac89f852a54f48bfde5215a",
+      "responseDigest": "sha256-574801dd20cf1b3a5731245720a887a5aa5833db50ece88c0ab59827156f4b88",
+      "category": "win",
+      "dtz": 7,
+      "dtm": 35,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false,
+      "fiftyMoveRule": true,
+      "moves": [
+        {
+          "uci": "b4c5",
+          "san": "Kc5",
+          "resultingFen": "8/8/4k3/2K5/8/3P4/8/8 b - - 7 4",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -6,
+          "dtm": -34,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b4c4",
+          "san": "Kc4",
+          "resultingFen": "8/8/4k3/8/2K5/3P4/8/8 b - - 7 4",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -10,
+          "dtm": -38,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "d3d4",
+          "san": "d4",
+          "resultingFen": "8/8/4k3/8/1K1P4/8/8/8 b - - 0 4",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": true,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b4a3",
+          "san": "Ka3",
+          "resultingFen": "8/8/4k3/8/8/K2P4/8/8 b - - 7 4",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b4b3",
+          "san": "Kb3",
+          "resultingFen": "8/8/4k3/8/8/1K1P4/8/8 b - - 7 4",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b4c3",
+          "san": "Kc3",
+          "resultingFen": "8/8/4k3/8/8/2KP4/8/8 b - - 7 4",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b4a4",
+          "san": "Ka4",
+          "resultingFen": "8/8/4k3/8/K7/3P4/8/8 b - - 7 4",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b4a5",
+          "san": "Ka5",
+          "resultingFen": "8/8/4k3/K7/8/3P4/8/8 b - - 7 4",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b4b5",
+          "san": "Kb5",
+          "resultingFen": "8/8/4k3/1K6/8/3P4/8/8 b - - 7 4",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        }
+      ],
+      "wdlPreservingMoves": [
+        "b4c5",
+        "b4c4"
+      ],
+      "dtzOptimalMoves": [
+        "b4c5"
+      ],
+      "retrievedAt": null,
+      "httpStatus": 200,
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "humanReviewedRemoteEvidence": false,
+      "evidenceDigest": "sha256-514cc9ba77cf550fd37cbc5bc7ff3ee6a542ff6638c4bd3e18544876d32754bb"
+    },
+    {
+      "evidenceSchemaVersion": "1.0.0",
+      "evidenceType": "remote-tablebase",
+      "providerId": "lichess-syzygy-remote",
+      "providerVersion": "1.0.0",
+      "endpointType": "standard",
+      "positionId": "king-activation-support-region:63678a7ed63c2b00",
+      "positionFen": "8/8/6k1/8/8/3P4/1K6/8 w - - 2 2",
+      "positionContentDigest": "sha256-b8bac0386719fa5e8ad7edc52003dec38f93b579780706f170829c0cf71fc8ab",
+      "requestDigest": "sha256-9912a1e2fc462eeb02d8fb440eef5d952748152744ce7fa7534d788e3501482b",
+      "responseDigest": "sha256-bf77d669e3608ea901d16260243b2c81b6d724a99d259e4ace5254736acc3a31",
+      "category": "win",
+      "dtz": 11,
+      "dtm": 39,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false,
+      "fiftyMoveRule": true,
+      "moves": [
+        {
+          "uci": "b2a3",
+          "san": "Ka3",
+          "resultingFen": "8/8/6k1/8/8/K2P4/8/8 b - - 3 2",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -10,
+          "dtm": -38,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b2b3",
+          "san": "Kb3",
+          "resultingFen": "8/8/6k1/8/8/1K1P4/8/8 b - - 3 2",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -10,
+          "dtm": -38,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b2c3",
+          "san": "Kc3",
+          "resultingFen": "8/8/6k1/8/8/2KP4/8/8 b - - 3 2",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -10,
+          "dtm": -38,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b2a2",
+          "san": "Ka2",
+          "resultingFen": "8/8/6k1/8/8/3P4/K7/8 b - - 3 2",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -14,
+          "dtm": -42,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b2c2",
+          "san": "Kc2",
+          "resultingFen": "8/8/6k1/8/8/3P4/2K5/8 b - - 3 2",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -14,
+          "dtm": -42,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "d3d4",
+          "san": "d4",
+          "resultingFen": "8/8/6k1/8/3P4/8/1K6/8 b - - 0 2",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": true,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b2a1",
+          "san": "Ka1",
+          "resultingFen": "8/8/6k1/8/8/3P4/8/K7 b - - 3 2",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b2b1",
+          "san": "Kb1",
+          "resultingFen": "8/8/6k1/8/8/3P4/8/1K6 b - - 3 2",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b2c1",
+          "san": "Kc1",
+          "resultingFen": "8/8/6k1/8/8/3P4/8/2K5 b - - 3 2",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        }
+      ],
+      "wdlPreservingMoves": [
+        "b2a3",
+        "b2b3",
+        "b2c3",
+        "b2a2",
+        "b2c2"
+      ],
+      "dtzOptimalMoves": [
+        "b2a3",
+        "b2b3",
+        "b2c3"
+      ],
+      "retrievedAt": null,
+      "httpStatus": 200,
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "humanReviewedRemoteEvidence": false,
+      "evidenceDigest": "sha256-cf9b767124ad2f608061d1fbe25cbe3052d16d58c4a1c18f361a73cc71838465"
+    },
+    {
+      "evidenceSchemaVersion": "1.0.0",
+      "evidenceType": "remote-tablebase",
+      "providerId": "lichess-syzygy-remote",
+      "providerVersion": "1.0.0",
+      "endpointType": "standard",
+      "positionId": "king-activation-support-region:daa2d47f0a3a4eb9",
+      "positionFen": "8/8/6k1/8/8/3P4/8/1K6 w - - 2 2",
+      "positionContentDigest": "sha256-a6053d17d7485888ce65546c8e73edf259231cd2b3cc7ef8522fbb23ec12068a",
+      "requestDigest": "sha256-25dc38399a728e5405d47bf3285a041f1e73a95df789fdf8fe9bc3cf4df27116",
+      "responseDigest": "sha256-b06f23b7db98eac3c193e28cf31cb0211372552330175cc8a88af35121880783",
+      "category": "win",
+      "dtz": 15,
+      "dtm": 43,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false,
+      "fiftyMoveRule": true,
+      "moves": [
+        {
+          "uci": "b1a2",
+          "san": "Ka2",
+          "resultingFen": "8/8/6k1/8/8/3P4/K7/8 b - - 3 2",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -14,
+          "dtm": -42,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b1b2",
+          "san": "Kb2",
+          "resultingFen": "8/8/6k1/8/8/3P4/1K6/8 b - - 3 2",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -14,
+          "dtm": -42,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b1c2",
+          "san": "Kc2",
+          "resultingFen": "8/8/6k1/8/8/3P4/2K5/8 b - - 3 2",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -14,
+          "dtm": -42,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "d3d4",
+          "san": "d4",
+          "resultingFen": "8/8/6k1/8/3P4/8/8/1K6 b - - 0 2",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": true,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b1a1",
+          "san": "Ka1",
+          "resultingFen": "8/8/6k1/8/8/3P4/8/K7 b - - 3 2",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "b1c1",
+          "san": "Kc1",
+          "resultingFen": "8/8/6k1/8/8/3P4/8/2K5 b - - 3 2",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        }
+      ],
+      "wdlPreservingMoves": [
+        "b1a2",
+        "b1b2",
+        "b1c2"
+      ],
+      "dtzOptimalMoves": [
+        "b1a2",
+        "b1b2",
+        "b1c2"
+      ],
+      "retrievedAt": null,
+      "httpStatus": 200,
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "humanReviewedRemoteEvidence": false,
+      "evidenceDigest": "sha256-7d9de20ea6dd6005763c8ff36f1cea6038b93a1612155721b62cc701b2c1691b"
+    },
+    {
+      "evidenceSchemaVersion": "1.0.0",
+      "evidenceType": "remote-tablebase",
+      "providerId": "lichess-syzygy-remote",
+      "providerVersion": "1.0.0",
+      "endpointType": "standard",
+      "positionId": "king-activation-support-region:8c8c2ca4d2a389ec",
+      "positionFen": "8/8/6k1/8/8/3P4/K7/8 b - - 3 2",
+      "positionContentDigest": "sha256-c3e651ee191ef1b130fc9ebc8bc83788fe2bdcad0c30a07156af2f6883eb11d1",
+      "requestDigest": "sha256-fbc0685d5fb86e811a3c5963f754db7e2d43e514fb529d5507354174ecde9735",
+      "responseDigest": "sha256-8c8b5c3129947fa658b77544a65ac711b12e7efec0ba0f480d7311831b467cc1",
+      "category": "loss",
+      "dtz": -14,
+      "dtm": -42,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false,
+      "fiftyMoveRule": true,
+      "moves": [
+        {
+          "uci": "g6f5",
+          "san": "Kf5",
+          "resultingFen": "8/8/8/5k2/8/3P4/K7/8 w - - 4 3",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 13,
+          "dtm": 41,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "g6f6",
+          "san": "Kf6",
+          "resultingFen": "8/8/5k2/8/8/3P4/K7/8 w - - 4 3",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 13,
+          "dtm": 41,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "g6f7",
+          "san": "Kf7",
+          "resultingFen": "8/5k2/8/8/8/3P4/K7/8 w - - 4 3",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 13,
+          "dtm": 41,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "g6g5",
+          "san": "Kg5",
+          "resultingFen": "8/8/8/6k1/8/3P4/K7/8 w - - 4 3",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 11,
+          "dtm": 39,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "g6g7",
+          "san": "Kg7",
+          "resultingFen": "8/6k1/8/8/8/3P4/K7/8 w - - 4 3",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 11,
+          "dtm": 39,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "g6h5",
+          "san": "Kh5",
+          "resultingFen": "8/8/8/7k/8/3P4/K7/8 w - - 4 3",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 37,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "g6h6",
+          "san": "Kh6",
+          "resultingFen": "8/8/7k/8/8/3P4/K7/8 w - - 4 3",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 37,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "g6h7",
+          "san": "Kh7",
+          "resultingFen": "8/7k/8/8/8/3P4/K7/8 w - - 4 3",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 37,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        }
+      ],
+      "wdlPreservingMoves": [
+        "g6f5",
+        "g6f6",
+        "g6f7",
+        "g6g5",
+        "g6g7",
+        "g6h5",
+        "g6h6",
+        "g6h7"
+      ],
+      "dtzOptimalMoves": [
+        "g6f5",
+        "g6f6",
+        "g6f7"
+      ],
+      "retrievedAt": null,
+      "httpStatus": 200,
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "humanReviewedRemoteEvidence": false,
+      "evidenceDigest": "sha256-128819bcf8f2894dba46b4e9517719b0c52fcb262ba2c0bbbf3173fde0bc461e"
+    },
+    {
+      "evidenceSchemaVersion": "1.0.0",
+      "evidenceType": "remote-tablebase",
+      "providerId": "lichess-syzygy-remote",
+      "providerVersion": "1.0.0",
+      "endpointType": "standard",
+      "positionId": "king-activation-support-region:7daf6edeac584721",
+      "positionFen": "8/8/6k1/8/8/K2P4/8/8 b - - 3 2",
+      "positionContentDigest": "sha256-6fad0b5236f3cf08a8157de14b1e534990410cba0ac94fcf98de80196a95f66c",
+      "requestDigest": "sha256-e66e922fa31f06dd9261e14f916fe04ffd826e127e9b10ac4577c4dc1023d172",
+      "responseDigest": "sha256-a02a9bb2099b180fcd5c25ef2bf8da1839a6c50a8f1de5f403478446277331b7",
+      "category": "loss",
+      "dtz": -10,
+      "dtm": -38,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false,
+      "fiftyMoveRule": true,
+      "moves": [
+        {
+          "uci": "g6f5",
+          "san": "Kf5",
+          "resultingFen": "8/8/8/5k2/8/K2P4/8/8 w - - 4 3",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 9,
+          "dtm": 37,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "g6f6",
+          "san": "Kf6",
+          "resultingFen": "8/8/5k2/8/8/K2P4/8/8 w - - 4 3",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 9,
+          "dtm": 37,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "g6f7",
+          "san": "Kf7",
+          "resultingFen": "8/5k2/8/8/8/K2P4/8/8 w - - 4 3",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 9,
+          "dtm": 37,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "g6g5",
+          "san": "Kg5",
+          "resultingFen": "8/8/8/6k1/8/K2P4/8/8 w - - 4 3",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 35,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "g6g7",
+          "san": "Kg7",
+          "resultingFen": "8/6k1/8/8/8/K2P4/8/8 w - - 4 3",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 35,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "g6h5",
+          "san": "Kh5",
+          "resultingFen": "8/8/8/7k/8/K2P4/8/8 w - - 4 3",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 33,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "g6h6",
+          "san": "Kh6",
+          "resultingFen": "8/8/7k/8/8/K2P4/8/8 w - - 4 3",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 33,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "g6h7",
+          "san": "Kh7",
+          "resultingFen": "8/7k/8/8/8/K2P4/8/8 w - - 4 3",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 33,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        }
+      ],
+      "wdlPreservingMoves": [
+        "g6f5",
+        "g6f6",
+        "g6f7",
+        "g6g5",
+        "g6g7",
+        "g6h5",
+        "g6h6",
+        "g6h7"
+      ],
+      "dtzOptimalMoves": [
+        "g6f5",
+        "g6f6",
+        "g6f7"
+      ],
+      "retrievedAt": null,
+      "httpStatus": 200,
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "humanReviewedRemoteEvidence": false,
+      "evidenceDigest": "sha256-816c745f1f2ded37e12f9e8768a1b888b846f60de15cd6d39c637894c9049b5f"
+    },
+    {
+      "evidenceSchemaVersion": "1.0.0",
+      "evidenceType": "remote-tablebase",
+      "providerId": "lichess-syzygy-remote",
+      "providerVersion": "1.0.0",
+      "endpointType": "standard",
+      "positionId": "king-activation-support-region:ba15f0caac43dd8f",
+      "positionFen": "8/8/8/5k2/1K6/3P4/8/8 b - - 5 3",
+      "positionContentDigest": "sha256-b6cba45476d81130feba417be9f1bc415251ae58c1d4638200a55db2cc926b39",
+      "requestDigest": "sha256-09280cc29546b971fb4750f43aa0a7168fe16684c1e42302c3cb3855cdddb15b",
+      "responseDigest": "sha256-81ceda7f595b48828ab7fcdaf9a76ca78096995ef478d33f9e54da2f27a51902",
+      "category": "loss",
+      "dtz": -8,
+      "dtm": -36,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false,
+      "fiftyMoveRule": true,
+      "moves": [
+        {
+          "uci": "f5e6",
+          "san": "Ke6",
+          "resultingFen": "8/8/4k3/8/1K6/3P4/8/8 w - - 6 4",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 7,
+          "dtm": 35,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "f5e5",
+          "san": "Ke5",
+          "resultingFen": "8/8/8/4k3/1K6/3P4/8/8 w - - 6 4",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 3,
+          "dtm": 33,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "f5f4",
+          "san": "Kf4",
+          "resultingFen": "8/8/8/8/1K3k2/3P4/8/8 w - - 6 4",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 33,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "f5f6",
+          "san": "Kf6",
+          "resultingFen": "8/8/5k2/8/1K6/3P4/8/8 w - - 6 4",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 33,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "f5g4",
+          "san": "Kg4",
+          "resultingFen": "8/8/8/8/1K4k1/3P4/8/8 w - - 6 4",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 31,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "f5g5",
+          "san": "Kg5",
+          "resultingFen": "8/8/8/6k1/1K6/3P4/8/8 w - - 6 4",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 31,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "f5g6",
+          "san": "Kg6",
+          "resultingFen": "8/8/6k1/8/1K6/3P4/8/8 w - - 6 4",
+          "resultingCategory": "win",
+          "wdlForMover": -2,
+          "dtz": 1,
+          "dtm": 31,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        }
+      ],
+      "wdlPreservingMoves": [
+        "f5e6",
+        "f5e5",
+        "f5f4",
+        "f5f6",
+        "f5g4",
+        "f5g5",
+        "f5g6"
+      ],
+      "dtzOptimalMoves": [
+        "f5e6"
+      ],
+      "retrievedAt": null,
+      "httpStatus": 200,
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "humanReviewedRemoteEvidence": false,
+      "evidenceDigest": "sha256-3aef73bd66ce49cf1d8ce0d4ce9bee91b3028ba2abf8491db683b02d4ab50ee1"
+    },
+    {
+      "evidenceSchemaVersion": "1.0.0",
+      "evidenceType": "remote-tablebase",
+      "providerId": "lichess-syzygy-remote",
+      "providerVersion": "1.0.0",
+      "endpointType": "standard",
+      "positionId": "king-activation-support-region:53cc6e1c73099077",
+      "positionFen": "8/8/8/5k2/8/3P4/K7/8 w - - 4 3",
+      "positionContentDigest": "sha256-4e38830741d2a41d70a3cbc95bf91d66329490347420562c13125432e6571255",
+      "requestDigest": "sha256-a2c49396142abfb34d46bbf99f7e904b1d6724681a30b2177d10ba2ce9e91c3c",
+      "responseDigest": "sha256-4fb41086113f57fc3e924b96dbb5f5b5c583cfbe2810530621ba2efe8d373fd9",
+      "category": "win",
+      "dtz": 13,
+      "dtm": 41,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false,
+      "fiftyMoveRule": true,
+      "moves": [
+        {
+          "uci": "a2b3",
+          "san": "Kb3",
+          "resultingFen": "8/8/8/5k2/8/1K1P4/8/8 b - - 5 3",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -12,
+          "dtm": -40,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "d3d4",
+          "san": "d4",
+          "resultingFen": "8/8/8/5k2/3P4/8/K7/8 b - - 0 3",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": true,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "a2a1",
+          "san": "Ka1",
+          "resultingFen": "8/8/8/5k2/8/3P4/8/K7 b - - 5 3",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "a2b1",
+          "san": "Kb1",
+          "resultingFen": "8/8/8/5k2/8/3P4/8/1K6 b - - 5 3",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "a2b2",
+          "san": "Kb2",
+          "resultingFen": "8/8/8/5k2/8/3P4/1K6/8 b - - 5 3",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "a2a3",
+          "san": "Ka3",
+          "resultingFen": "8/8/8/5k2/8/K2P4/8/8 b - - 5 3",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        }
+      ],
+      "wdlPreservingMoves": [
+        "a2b3"
+      ],
+      "dtzOptimalMoves": [
+        "a2b3"
+      ],
+      "retrievedAt": null,
+      "httpStatus": 200,
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "humanReviewedRemoteEvidence": false,
+      "evidenceDigest": "sha256-a67c18bcf4c23c6e33d8a1b4e1fe9fcb20ad0b6751d2dbf205c607f6452e68bb"
+    },
+    {
+      "evidenceSchemaVersion": "1.0.0",
+      "evidenceType": "remote-tablebase",
+      "providerId": "lichess-syzygy-remote",
+      "providerVersion": "1.0.0",
+      "endpointType": "standard",
+      "positionId": "king-activation-support-region:9545fbdca0165a8a",
+      "positionFen": "8/8/8/5k2/8/K2P4/8/8 w - - 4 3",
+      "positionContentDigest": "sha256-0ada818d0b236295dc1bac7da166e35f3bf16ff9b921a26cef9bc493c2304f86",
+      "requestDigest": "sha256-ccf97d391cf194c2e496b9c36947e7985f4ff0aeef3d3e2fe95ad11fbb310a17",
+      "responseDigest": "sha256-b671ed166923a0859b214955b5a0dfe057b089034a77653ce06462ae23f1daba",
+      "category": "win",
+      "dtz": 9,
+      "dtm": 37,
+      "checkmate": false,
+      "stalemate": false,
+      "insufficientMaterial": false,
+      "fiftyMoveRule": true,
+      "moves": [
+        {
+          "uci": "a3b4",
+          "san": "Kb4",
+          "resultingFen": "8/8/8/5k2/1K6/3P4/8/8 b - - 5 3",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -8,
+          "dtm": -36,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "a3b3",
+          "san": "Kb3",
+          "resultingFen": "8/8/8/5k2/8/1K1P4/8/8 b - - 5 3",
+          "resultingCategory": "loss",
+          "wdlForMover": 2,
+          "dtz": -12,
+          "dtm": -40,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "d3d4",
+          "san": "d4",
+          "resultingFen": "8/8/8/5k2/3P4/K7/8/8 b - - 0 3",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": true,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "a3a2",
+          "san": "Ka2",
+          "resultingFen": "8/8/8/5k2/8/3P4/K7/8 b - - 5 3",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "a3b2",
+          "san": "Kb2",
+          "resultingFen": "8/8/8/5k2/8/3P4/1K6/8 b - - 5 3",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        },
+        {
+          "uci": "a3a4",
+          "san": "Ka4",
+          "resultingFen": "8/8/8/5k2/K7/3P4/8/8 b - - 5 3",
+          "resultingCategory": "draw",
+          "wdlForMover": 0,
+          "dtz": 0,
+          "dtm": 0,
+          "zeroing": false,
+          "checkmate": false,
+          "stalemate": false,
+          "insufficientMaterial": false
+        }
+      ],
+      "wdlPreservingMoves": [
+        "a3b4",
+        "a3b3"
+      ],
+      "dtzOptimalMoves": [
+        "a3b4"
+      ],
+      "retrievedAt": null,
+      "httpStatus": 200,
+      "remoteTablebaseEvidenceAvailable": true,
+      "localTablebaseVerified": false,
+      "humanReviewedRemoteEvidence": false,
+      "evidenceDigest": "sha256-3fa4cd26409b88783de22a5397cc14984049f4a590d0452f14d5f7fb125b1405"
+    }
+  ],
+  "lines": [
+    {
+      "lineId": "king-activation-support-region:wdl-dtz-uci",
+      "policyId": "wdl-dtz-uci",
+      "plies": [
+        {
+          "ply": 1,
+          "normalizedFen": "8/7k/8/8/8/3P4/2K5/8 w - - 0 1",
+          "sideToMove": "white",
+          "theoreticalCategory": "win",
+          "legalMoves": [
+            {
+              "uci": "d3d4",
+              "san": "d4",
+              "resultingFen": "8/7k/8/8/3P4/8/2K5/8 b - - 0 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -12,
+              "dtm": -36,
+              "zeroing": true,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2b3",
+              "san": "Kb3",
+              "resultingFen": "8/7k/8/8/8/1K1P4/8/8 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -2,
+              "dtm": -36,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2c3",
+              "san": "Kc3",
+              "resultingFen": "8/7k/8/8/8/2KP4/8/8 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -2,
+              "dtm": -36,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2b2",
+              "san": "Kb2",
+              "resultingFen": "8/7k/8/8/8/3P4/1K6/8 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -12,
+              "dtm": -40,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2d2",
+              "san": "Kd2",
+              "resultingFen": "8/7k/8/8/8/3P4/3K4/8 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -12,
+              "dtm": -40,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2b1",
+              "san": "Kb1",
+              "resultingFen": "8/7k/8/8/8/3P4/8/1K6 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -16,
+              "dtm": -44,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2c1",
+              "san": "Kc1",
+              "resultingFen": "8/7k/8/8/8/3P4/8/2K5 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -16,
+              "dtm": -44,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2d1",
+              "san": "Kd1",
+              "resultingFen": "8/7k/8/8/8/3P4/8/3K4 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -16,
+              "dtm": -44,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "d3d4",
+            "c2b3",
+            "c2c3",
+            "c2b2",
+            "c2d2",
+            "c2b1",
+            "c2c1",
+            "c2d1"
+          ],
+          "candidateLearnerMoves": [
+            "d3d4",
+            "c2b3",
+            "c2c3",
+            "c2b2",
+            "c2d2",
+            "c2b1",
+            "c2c1",
+            "c2d1"
+          ],
+          "candidateOpponentReplies": [],
+          "moveClassifications": {
+            "d3d4": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/3P4/8/2K5/8 b - - 0 1"
+            },
+            "c2b3": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/1K1P4/8/8 b - - 1 1"
+            },
+            "c2c3": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/2KP4/8/8 b - - 1 1"
+            },
+            "c2b2": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/3P4/1K6/8 b - - 1 1"
+            },
+            "c2d2": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/3P4/3K4/8 b - - 1 1"
+            },
+            "c2b1": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/3P4/8/1K6 b - - 1 1"
+            },
+            "c2c1": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/3P4/8/2K5 b - - 1 1"
+            },
+            "c2d1": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/3P4/8/3K4 b - - 1 1"
+            }
+          },
+          "proposedMove": {
+            "uci": "c2b2",
+            "san": "Kb2",
+            "resultingFen": "8/7k/8/8/8/3P4/1K6/8 b - - 1 1",
+            "resultingCategory": "loss",
+            "wdlForMover": 2,
+            "dtz": -12,
+            "dtm": -40,
+            "zeroing": false,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-29fccdbb84a3dd9ed1cd3f39187cd0978933176c02c6737b7cec60b7c8688ccb"
+        },
+        {
+          "ply": 2,
+          "normalizedFen": "8/7k/8/8/8/3P4/1K6/8 b - - 1 1",
+          "sideToMove": "black",
+          "theoreticalCategory": "loss",
+          "legalMoves": [
+            {
+              "uci": "h7g6",
+              "san": "Kg6",
+              "resultingFen": "8/8/6k1/8/8/3P4/1K6/8 w - - 2 2",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 11,
+              "dtm": 39,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "h7g7",
+              "san": "Kg7",
+              "resultingFen": "8/6k1/8/8/8/3P4/1K6/8 w - - 2 2",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 11,
+              "dtm": 39,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "h7g8",
+              "san": "Kg8",
+              "resultingFen": "6k1/8/8/8/8/3P4/1K6/8 w - - 2 2",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 11,
+              "dtm": 39,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "h7h6",
+              "san": "Kh6",
+              "resultingFen": "8/8/7k/8/8/3P4/1K6/8 w - - 2 2",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 37,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "h7h8",
+              "san": "Kh8",
+              "resultingFen": "7k/8/8/8/8/3P4/1K6/8 w - - 2 2",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 37,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "h7g6",
+            "h7g7",
+            "h7g8",
+            "h7h6",
+            "h7h8"
+          ],
+          "candidateLearnerMoves": [],
+          "candidateOpponentReplies": [
+            "h7g6",
+            "h7g7",
+            "h7g8",
+            "h7h6",
+            "h7h8"
+          ],
+          "moveClassifications": {
+            "h7g6": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/6k1/8/8/3P4/1K6/8 w - - 2 2"
+            },
+            "h7g7": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/6k1/8/8/8/3P4/1K6/8 w - - 2 2"
+            },
+            "h7g8": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "6k1/8/8/8/8/3P4/1K6/8 w - - 2 2"
+            },
+            "h7h6": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/7k/8/8/3P4/1K6/8 w - - 2 2"
+            },
+            "h7h8": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "7k/8/8/8/8/3P4/1K6/8 w - - 2 2"
+            }
+          },
+          "proposedMove": {
+            "uci": "h7g6",
+            "san": "Kg6",
+            "resultingFen": "8/8/6k1/8/8/3P4/1K6/8 w - - 2 2",
+            "resultingCategory": "win",
+            "wdlForMover": -2,
+            "dtz": 11,
+            "dtm": 39,
+            "zeroing": false,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-3ce1fe54d474c6975e683994a621597e34ff67f19596d9e9f9a853d3fa867d41"
+        },
+        {
+          "ply": 3,
+          "normalizedFen": "8/8/6k1/8/8/3P4/1K6/8 w - - 2 2",
+          "sideToMove": "white",
+          "theoreticalCategory": "win",
+          "legalMoves": [
+            {
+              "uci": "b2a3",
+              "san": "Ka3",
+              "resultingFen": "8/8/6k1/8/8/K2P4/8/8 b - - 3 2",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -10,
+              "dtm": -38,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b2b3",
+              "san": "Kb3",
+              "resultingFen": "8/8/6k1/8/8/1K1P4/8/8 b - - 3 2",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -10,
+              "dtm": -38,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b2c3",
+              "san": "Kc3",
+              "resultingFen": "8/8/6k1/8/8/2KP4/8/8 b - - 3 2",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -10,
+              "dtm": -38,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b2a2",
+              "san": "Ka2",
+              "resultingFen": "8/8/6k1/8/8/3P4/K7/8 b - - 3 2",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -14,
+              "dtm": -42,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b2c2",
+              "san": "Kc2",
+              "resultingFen": "8/8/6k1/8/8/3P4/2K5/8 b - - 3 2",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -14,
+              "dtm": -42,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "d3d4",
+              "san": "d4",
+              "resultingFen": "8/8/6k1/8/3P4/8/1K6/8 b - - 0 2",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": true,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b2a1",
+              "san": "Ka1",
+              "resultingFen": "8/8/6k1/8/8/3P4/8/K7 b - - 3 2",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b2b1",
+              "san": "Kb1",
+              "resultingFen": "8/8/6k1/8/8/3P4/8/1K6 b - - 3 2",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b2c1",
+              "san": "Kc1",
+              "resultingFen": "8/8/6k1/8/8/3P4/8/2K5 b - - 3 2",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "b2a3",
+            "b2b3",
+            "b2c3",
+            "b2a2",
+            "b2c2"
+          ],
+          "candidateLearnerMoves": [
+            "b2a3",
+            "b2b3",
+            "b2c3",
+            "b2a2",
+            "b2c2"
+          ],
+          "candidateOpponentReplies": [],
+          "moveClassifications": {
+            "b2a3": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/8/6k1/8/8/K2P4/8/8 b - - 3 2"
+            },
+            "b2b3": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/8/6k1/8/8/1K1P4/8/8 b - - 3 2"
+            },
+            "b2c3": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/8/6k1/8/8/2KP4/8/8 b - - 3 2"
+            },
+            "b2a2": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/8/6k1/8/8/3P4/K7/8 b - - 3 2"
+            },
+            "b2c2": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/8/6k1/8/8/3P4/2K5/8 b - - 3 2"
+            },
+            "d3d4": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/6k1/8/3P4/8/1K6/8 b - - 0 2"
+            },
+            "b2a1": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/6k1/8/8/3P4/8/K7 b - - 3 2"
+            },
+            "b2b1": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/6k1/8/8/3P4/8/1K6 b - - 3 2"
+            },
+            "b2c1": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/6k1/8/8/3P4/8/2K5 b - - 3 2"
+            }
+          },
+          "proposedMove": {
+            "uci": "b2a3",
+            "san": "Ka3",
+            "resultingFen": "8/8/6k1/8/8/K2P4/8/8 b - - 3 2",
+            "resultingCategory": "loss",
+            "wdlForMover": 2,
+            "dtz": -10,
+            "dtm": -38,
+            "zeroing": false,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-cf9b767124ad2f608061d1fbe25cbe3052d16d58c4a1c18f361a73cc71838465"
+        },
+        {
+          "ply": 4,
+          "normalizedFen": "8/8/6k1/8/8/K2P4/8/8 b - - 3 2",
+          "sideToMove": "black",
+          "theoreticalCategory": "loss",
+          "legalMoves": [
+            {
+              "uci": "g6f5",
+              "san": "Kf5",
+              "resultingFen": "8/8/8/5k2/8/K2P4/8/8 w - - 4 3",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 9,
+              "dtm": 37,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "g6f6",
+              "san": "Kf6",
+              "resultingFen": "8/8/5k2/8/8/K2P4/8/8 w - - 4 3",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 9,
+              "dtm": 37,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "g6f7",
+              "san": "Kf7",
+              "resultingFen": "8/5k2/8/8/8/K2P4/8/8 w - - 4 3",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 9,
+              "dtm": 37,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "g6g5",
+              "san": "Kg5",
+              "resultingFen": "8/8/8/6k1/8/K2P4/8/8 w - - 4 3",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 35,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "g6g7",
+              "san": "Kg7",
+              "resultingFen": "8/6k1/8/8/8/K2P4/8/8 w - - 4 3",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 35,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "g6h5",
+              "san": "Kh5",
+              "resultingFen": "8/8/8/7k/8/K2P4/8/8 w - - 4 3",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 33,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "g6h6",
+              "san": "Kh6",
+              "resultingFen": "8/8/7k/8/8/K2P4/8/8 w - - 4 3",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 33,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "g6h7",
+              "san": "Kh7",
+              "resultingFen": "8/7k/8/8/8/K2P4/8/8 w - - 4 3",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 33,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "g6f5",
+            "g6f6",
+            "g6f7",
+            "g6g5",
+            "g6g7",
+            "g6h5",
+            "g6h6",
+            "g6h7"
+          ],
+          "candidateLearnerMoves": [],
+          "candidateOpponentReplies": [
+            "g6f5",
+            "g6f6",
+            "g6f7",
+            "g6g5",
+            "g6g7",
+            "g6h5",
+            "g6h6",
+            "g6h7"
+          ],
+          "moveClassifications": {
+            "g6f5": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/8/5k2/8/K2P4/8/8 w - - 4 3"
+            },
+            "g6f6": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/5k2/8/8/K2P4/8/8 w - - 4 3"
+            },
+            "g6f7": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/5k2/8/8/8/K2P4/8/8 w - - 4 3"
+            },
+            "g6g5": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/8/6k1/8/K2P4/8/8 w - - 4 3"
+            },
+            "g6g7": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/6k1/8/8/8/K2P4/8/8 w - - 4 3"
+            },
+            "g6h5": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/8/7k/8/K2P4/8/8 w - - 4 3"
+            },
+            "g6h6": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/7k/8/8/K2P4/8/8 w - - 4 3"
+            },
+            "g6h7": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/7k/8/8/8/K2P4/8/8 w - - 4 3"
+            }
+          },
+          "proposedMove": {
+            "uci": "g6f5",
+            "san": "Kf5",
+            "resultingFen": "8/8/8/5k2/8/K2P4/8/8 w - - 4 3",
+            "resultingCategory": "win",
+            "wdlForMover": -2,
+            "dtz": 9,
+            "dtm": 37,
+            "zeroing": false,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-816c745f1f2ded37e12f9e8768a1b888b846f60de15cd6d39c637894c9049b5f"
+        },
+        {
+          "ply": 5,
+          "normalizedFen": "8/8/8/5k2/8/K2P4/8/8 w - - 4 3",
+          "sideToMove": "white",
+          "theoreticalCategory": "win",
+          "legalMoves": [
+            {
+              "uci": "a3b4",
+              "san": "Kb4",
+              "resultingFen": "8/8/8/5k2/1K6/3P4/8/8 b - - 5 3",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -8,
+              "dtm": -36,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "a3b3",
+              "san": "Kb3",
+              "resultingFen": "8/8/8/5k2/8/1K1P4/8/8 b - - 5 3",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -12,
+              "dtm": -40,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "d3d4",
+              "san": "d4",
+              "resultingFen": "8/8/8/5k2/3P4/K7/8/8 b - - 0 3",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": true,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "a3a2",
+              "san": "Ka2",
+              "resultingFen": "8/8/8/5k2/8/3P4/K7/8 b - - 5 3",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "a3b2",
+              "san": "Kb2",
+              "resultingFen": "8/8/8/5k2/8/3P4/1K6/8 b - - 5 3",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "a3a4",
+              "san": "Ka4",
+              "resultingFen": "8/8/8/5k2/K7/3P4/8/8 b - - 5 3",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "a3b4",
+            "a3b3"
+          ],
+          "candidateLearnerMoves": [
+            "a3b4",
+            "a3b3"
+          ],
+          "candidateOpponentReplies": [],
+          "moveClassifications": {
+            "a3b4": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/8/8/5k2/1K6/3P4/8/8 b - - 5 3"
+            },
+            "a3b3": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/8/8/5k2/8/1K1P4/8/8 b - - 5 3"
+            },
+            "d3d4": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/8/5k2/3P4/K7/8/8 b - - 0 3"
+            },
+            "a3a2": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/8/5k2/8/3P4/K7/8 b - - 5 3"
+            },
+            "a3b2": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/8/5k2/8/3P4/1K6/8 b - - 5 3"
+            },
+            "a3a4": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/8/5k2/K7/3P4/8/8 b - - 5 3"
+            }
+          },
+          "proposedMove": {
+            "uci": "a3b4",
+            "san": "Kb4",
+            "resultingFen": "8/8/8/5k2/1K6/3P4/8/8 b - - 5 3",
+            "resultingCategory": "loss",
+            "wdlForMover": 2,
+            "dtz": -8,
+            "dtm": -36,
+            "zeroing": false,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-3fa4cd26409b88783de22a5397cc14984049f4a590d0452f14d5f7fb125b1405"
+        },
+        {
+          "ply": 6,
+          "normalizedFen": "8/8/8/5k2/1K6/3P4/8/8 b - - 5 3",
+          "sideToMove": "black",
+          "theoreticalCategory": "loss",
+          "legalMoves": [
+            {
+              "uci": "f5e6",
+              "san": "Ke6",
+              "resultingFen": "8/8/4k3/8/1K6/3P4/8/8 w - - 6 4",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 7,
+              "dtm": 35,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "f5e5",
+              "san": "Ke5",
+              "resultingFen": "8/8/8/4k3/1K6/3P4/8/8 w - - 6 4",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 3,
+              "dtm": 33,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "f5f4",
+              "san": "Kf4",
+              "resultingFen": "8/8/8/8/1K3k2/3P4/8/8 w - - 6 4",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 33,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "f5f6",
+              "san": "Kf6",
+              "resultingFen": "8/8/5k2/8/1K6/3P4/8/8 w - - 6 4",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 33,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "f5g4",
+              "san": "Kg4",
+              "resultingFen": "8/8/8/8/1K4k1/3P4/8/8 w - - 6 4",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 31,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "f5g5",
+              "san": "Kg5",
+              "resultingFen": "8/8/8/6k1/1K6/3P4/8/8 w - - 6 4",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 31,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "f5g6",
+              "san": "Kg6",
+              "resultingFen": "8/8/6k1/8/1K6/3P4/8/8 w - - 6 4",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 31,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "f5e6",
+            "f5e5",
+            "f5f4",
+            "f5f6",
+            "f5g4",
+            "f5g5",
+            "f5g6"
+          ],
+          "candidateLearnerMoves": [],
+          "candidateOpponentReplies": [
+            "f5e6",
+            "f5e5",
+            "f5f4",
+            "f5f6",
+            "f5g4",
+            "f5g5",
+            "f5g6"
+          ],
+          "moveClassifications": {
+            "f5e6": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/4k3/8/1K6/3P4/8/8 w - - 6 4"
+            },
+            "f5e5": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/8/4k3/1K6/3P4/8/8 w - - 6 4"
+            },
+            "f5f4": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/8/8/1K3k2/3P4/8/8 w - - 6 4"
+            },
+            "f5f6": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/5k2/8/1K6/3P4/8/8 w - - 6 4"
+            },
+            "f5g4": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/8/8/1K4k1/3P4/8/8 w - - 6 4"
+            },
+            "f5g5": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/8/6k1/1K6/3P4/8/8 w - - 6 4"
+            },
+            "f5g6": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/6k1/8/1K6/3P4/8/8 w - - 6 4"
+            }
+          },
+          "proposedMove": {
+            "uci": "f5e6",
+            "san": "Ke6",
+            "resultingFen": "8/8/4k3/8/1K6/3P4/8/8 w - - 6 4",
+            "resultingCategory": "win",
+            "wdlForMover": -2,
+            "dtz": 7,
+            "dtm": 35,
+            "zeroing": false,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-3aef73bd66ce49cf1d8ce0d4ce9bee91b3028ba2abf8491db683b02d4ab50ee1"
+        },
+        {
+          "ply": 7,
+          "normalizedFen": "8/8/4k3/8/1K6/3P4/8/8 w - - 6 4",
+          "sideToMove": "white",
+          "theoreticalCategory": "win",
+          "legalMoves": [
+            {
+              "uci": "b4c5",
+              "san": "Kc5",
+              "resultingFen": "8/8/4k3/2K5/8/3P4/8/8 b - - 7 4",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -6,
+              "dtm": -34,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b4c4",
+              "san": "Kc4",
+              "resultingFen": "8/8/4k3/8/2K5/3P4/8/8 b - - 7 4",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -10,
+              "dtm": -38,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "d3d4",
+              "san": "d4",
+              "resultingFen": "8/8/4k3/8/1K1P4/8/8/8 b - - 0 4",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": true,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b4a3",
+              "san": "Ka3",
+              "resultingFen": "8/8/4k3/8/8/K2P4/8/8 b - - 7 4",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b4b3",
+              "san": "Kb3",
+              "resultingFen": "8/8/4k3/8/8/1K1P4/8/8 b - - 7 4",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b4c3",
+              "san": "Kc3",
+              "resultingFen": "8/8/4k3/8/8/2KP4/8/8 b - - 7 4",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b4a4",
+              "san": "Ka4",
+              "resultingFen": "8/8/4k3/8/K7/3P4/8/8 b - - 7 4",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b4a5",
+              "san": "Ka5",
+              "resultingFen": "8/8/4k3/K7/8/3P4/8/8 b - - 7 4",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b4b5",
+              "san": "Kb5",
+              "resultingFen": "8/8/4k3/1K6/8/3P4/8/8 b - - 7 4",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "b4c5",
+            "b4c4"
+          ],
+          "candidateLearnerMoves": [
+            "b4c5",
+            "b4c4"
+          ],
+          "candidateOpponentReplies": [],
+          "moveClassifications": {
+            "b4c5": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/8/4k3/2K5/8/3P4/8/8 b - - 7 4"
+            },
+            "b4c4": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/8/4k3/8/2K5/3P4/8/8 b - - 7 4"
+            },
+            "d3d4": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/4k3/8/1K1P4/8/8/8 b - - 0 4"
+            },
+            "b4a3": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/4k3/8/8/K2P4/8/8 b - - 7 4"
+            },
+            "b4b3": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/4k3/8/8/1K1P4/8/8 b - - 7 4"
+            },
+            "b4c3": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/4k3/8/8/2KP4/8/8 b - - 7 4"
+            },
+            "b4a4": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/4k3/8/K7/3P4/8/8 b - - 7 4"
+            },
+            "b4a5": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/4k3/K7/8/3P4/8/8 b - - 7 4"
+            },
+            "b4b5": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/4k3/1K6/8/3P4/8/8 b - - 7 4"
+            }
+          },
+          "proposedMove": {
+            "uci": "b4c5",
+            "san": "Kc5",
+            "resultingFen": "8/8/4k3/2K5/8/3P4/8/8 b - - 7 4",
+            "resultingCategory": "loss",
+            "wdlForMover": 2,
+            "dtz": -6,
+            "dtm": -34,
+            "zeroing": false,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-514cc9ba77cf550fd37cbc5bc7ff3ee6a542ff6638c4bd3e18544876d32754bb"
+        },
+        {
+          "ply": 8,
+          "normalizedFen": "8/8/4k3/2K5/8/3P4/8/8 b - - 7 4",
+          "sideToMove": "black",
+          "theoreticalCategory": "loss",
+          "legalMoves": [
+            {
+              "uci": "e6d7",
+              "san": "Kd7",
+              "resultingFen": "8/3k4/8/2K5/8/3P4/8/8 w - - 8 5",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 5,
+              "dtm": 33,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "e6e5",
+              "san": "Ke5",
+              "resultingFen": "8/8/8/2K1k3/8/3P4/8/8 w - - 8 5",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 31,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "e6e7",
+              "san": "Ke7",
+              "resultingFen": "8/4k3/8/2K5/8/3P4/8/8 w - - 8 5",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 31,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "e6f5",
+              "san": "Kf5",
+              "resultingFen": "8/8/8/2K2k2/8/3P4/8/8 w - - 8 5",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 29,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "e6f6",
+              "san": "Kf6",
+              "resultingFen": "8/8/5k2/2K5/8/3P4/8/8 w - - 8 5",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 29,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "e6f7",
+              "san": "Kf7",
+              "resultingFen": "8/5k2/8/2K5/8/3P4/8/8 w - - 8 5",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 29,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "e6d7",
+            "e6e5",
+            "e6e7",
+            "e6f5",
+            "e6f6",
+            "e6f7"
+          ],
+          "candidateLearnerMoves": [],
+          "candidateOpponentReplies": [
+            "e6d7",
+            "e6e5",
+            "e6e7",
+            "e6f5",
+            "e6f6",
+            "e6f7"
+          ],
+          "moveClassifications": {
+            "e6d7": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/3k4/8/2K5/8/3P4/8/8 w - - 8 5"
+            },
+            "e6e5": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/8/2K1k3/8/3P4/8/8 w - - 8 5"
+            },
+            "e6e7": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/4k3/8/2K5/8/3P4/8/8 w - - 8 5"
+            },
+            "e6f5": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/8/2K2k2/8/3P4/8/8 w - - 8 5"
+            },
+            "e6f6": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/5k2/2K5/8/3P4/8/8 w - - 8 5"
+            },
+            "e6f7": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/5k2/8/2K5/8/3P4/8/8 w - - 8 5"
+            }
+          },
+          "proposedMove": {
+            "uci": "e6d7",
+            "san": "Kd7",
+            "resultingFen": "8/3k4/8/2K5/8/3P4/8/8 w - - 8 5",
+            "resultingCategory": "win",
+            "wdlForMover": -2,
+            "dtz": 5,
+            "dtm": 33,
+            "zeroing": false,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-0b44fa3981be4dc841db56f528ea6005a52c967af41447b1242a6185b9cd30af"
+        },
+        {
+          "ply": 9,
+          "normalizedFen": "8/3k4/8/2K5/8/3P4/8/8 w - - 8 5",
+          "sideToMove": "white",
+          "theoreticalCategory": "win",
+          "legalMoves": [
+            {
+              "uci": "c5d5",
+              "san": "Kd5",
+              "resultingFen": "8/3k4/8/3K4/8/3P4/8/8 b - - 9 5",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -4,
+              "dtm": -32,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "d3d4",
+              "san": "d4",
+              "resultingFen": "8/3k4/8/2K5/3P4/8/8/8 b - - 0 5",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": true,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c5b4",
+              "san": "Kb4",
+              "resultingFen": "8/3k4/8/8/1K6/3P4/8/8 b - - 9 5",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c5c4",
+              "san": "Kc4",
+              "resultingFen": "8/3k4/8/8/2K5/3P4/8/8 b - - 9 5",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c5d4",
+              "san": "Kd4",
+              "resultingFen": "8/3k4/8/8/3K4/3P4/8/8 b - - 9 5",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c5b5",
+              "san": "Kb5",
+              "resultingFen": "8/3k4/8/1K6/8/3P4/8/8 b - - 9 5",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c5b6",
+              "san": "Kb6",
+              "resultingFen": "8/3k4/1K6/8/8/3P4/8/8 b - - 9 5",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "c5d5"
+          ],
+          "candidateLearnerMoves": [
+            "c5d5"
+          ],
+          "candidateOpponentReplies": [],
+          "moveClassifications": {
+            "c5d5": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/3k4/8/3K4/8/3P4/8/8 b - - 9 5"
+            },
+            "d3d4": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/3k4/8/2K5/3P4/8/8/8 b - - 0 5"
+            },
+            "c5b4": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/3k4/8/8/1K6/3P4/8/8 b - - 9 5"
+            },
+            "c5c4": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/3k4/8/8/2K5/3P4/8/8 b - - 9 5"
+            },
+            "c5d4": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/3k4/8/8/3K4/3P4/8/8 b - - 9 5"
+            },
+            "c5b5": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/3k4/8/1K6/8/3P4/8/8 b - - 9 5"
+            },
+            "c5b6": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/3k4/1K6/8/8/3P4/8/8 b - - 9 5"
+            }
+          },
+          "proposedMove": {
+            "uci": "c5d5",
+            "san": "Kd5",
+            "resultingFen": "8/3k4/8/3K4/8/3P4/8/8 b - - 9 5",
+            "resultingCategory": "loss",
+            "wdlForMover": 2,
+            "dtz": -4,
+            "dtm": -32,
+            "zeroing": false,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-24d918eb80e03c1d69cdbcf040b9292ee733281a3c76a9476e71cf403dfdeaf3"
+        },
+        {
+          "ply": 10,
+          "normalizedFen": "8/3k4/8/3K4/8/3P4/8/8 b - - 9 5",
+          "sideToMove": "black",
+          "theoreticalCategory": "loss",
+          "legalMoves": [
+            {
+              "uci": "d7c7",
+              "san": "Kc7",
+              "resultingFen": "8/2k5/8/3K4/8/3P4/8/8 w - - 10 6",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 3,
+              "dtm": 31,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "d7e7",
+              "san": "Ke7",
+              "resultingFen": "8/4k3/8/3K4/8/3P4/8/8 w - - 10 6",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 3,
+              "dtm": 31,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "d7d8",
+              "san": "Kd8",
+              "resultingFen": "3k4/8/8/3K4/8/3P4/8/8 w - - 10 6",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 3,
+              "dtm": 29,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "d7e8",
+              "san": "Ke8",
+              "resultingFen": "4k3/8/8/3K4/8/3P4/8/8 w - - 10 6",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 3,
+              "dtm": 29,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "d7c8",
+              "san": "Kc8",
+              "resultingFen": "2k5/8/8/3K4/8/3P4/8/8 w - - 10 6",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 3,
+              "dtm": 27,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "d7c7",
+            "d7e7",
+            "d7d8",
+            "d7e8",
+            "d7c8"
+          ],
+          "candidateLearnerMoves": [],
+          "candidateOpponentReplies": [
+            "d7c7",
+            "d7e7",
+            "d7d8",
+            "d7e8",
+            "d7c8"
+          ],
+          "moveClassifications": {
+            "d7c7": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/2k5/8/3K4/8/3P4/8/8 w - - 10 6"
+            },
+            "d7e7": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/4k3/8/3K4/8/3P4/8/8 w - - 10 6"
+            },
+            "d7d8": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "3k4/8/8/3K4/8/3P4/8/8 w - - 10 6"
+            },
+            "d7e8": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "4k3/8/8/3K4/8/3P4/8/8 w - - 10 6"
+            },
+            "d7c8": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "2k5/8/8/3K4/8/3P4/8/8 w - - 10 6"
+            }
+          },
+          "proposedMove": {
+            "uci": "d7c7",
+            "san": "Kc7",
+            "resultingFen": "8/2k5/8/3K4/8/3P4/8/8 w - - 10 6",
+            "resultingCategory": "win",
+            "wdlForMover": -2,
+            "dtz": 3,
+            "dtm": 31,
+            "zeroing": false,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-614ac9e5aba0812f632f68f8136cf7ea7c18501bd21176613b34f19642ec6e82"
+        },
+        {
+          "ply": 11,
+          "normalizedFen": "8/2k5/8/3K4/8/3P4/8/8 w - - 10 6",
+          "sideToMove": "white",
+          "theoreticalCategory": "win",
+          "legalMoves": [
+            {
+              "uci": "d5e6",
+              "san": "Ke6",
+              "resultingFen": "8/2k5/4K3/8/8/3P4/8/8 b - - 11 6",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -2,
+              "dtm": -30,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "d5c5",
+              "san": "Kc5",
+              "resultingFen": "8/2k5/8/2K5/8/3P4/8/8 b - - 11 6",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -6,
+              "dtm": -34,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "d5e5",
+              "san": "Ke5",
+              "resultingFen": "8/2k5/8/4K3/8/3P4/8/8 b - - 11 6",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -6,
+              "dtm": -34,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "d5e4",
+              "san": "Ke4",
+              "resultingFen": "8/2k5/8/8/4K3/3P4/8/8 b - - 11 6",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -10,
+              "dtm": -38,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "d3d4",
+              "san": "d4",
+              "resultingFen": "8/2k5/8/3K4/3P4/8/8/8 b - - 0 6",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": true,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "d5c4",
+              "san": "Kc4",
+              "resultingFen": "8/2k5/8/8/2K5/3P4/8/8 b - - 11 6",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "d5d4",
+              "san": "Kd4",
+              "resultingFen": "8/2k5/8/8/3K4/3P4/8/8 b - - 11 6",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "d5e6",
+            "d5c5",
+            "d5e5",
+            "d5e4"
+          ],
+          "candidateLearnerMoves": [
+            "d5e6",
+            "d5c5",
+            "d5e5",
+            "d5e4"
+          ],
+          "candidateOpponentReplies": [],
+          "moveClassifications": {
+            "d5e6": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/2k5/4K3/8/8/3P4/8/8 b - - 11 6"
+            },
+            "d5c5": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/2k5/8/2K5/8/3P4/8/8 b - - 11 6"
+            },
+            "d5e5": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/2k5/8/4K3/8/3P4/8/8 b - - 11 6"
+            },
+            "d5e4": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/2k5/8/8/4K3/3P4/8/8 b - - 11 6"
+            },
+            "d3d4": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/2k5/8/3K4/3P4/8/8/8 b - - 0 6"
+            },
+            "d5c4": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/2k5/8/8/2K5/3P4/8/8 b - - 11 6"
+            },
+            "d5d4": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/2k5/8/8/3K4/3P4/8/8 b - - 11 6"
+            }
+          },
+          "proposedMove": {
+            "uci": "d5e6",
+            "san": "Ke6",
+            "resultingFen": "8/2k5/4K3/8/8/3P4/8/8 b - - 11 6",
+            "resultingCategory": "loss",
+            "wdlForMover": 2,
+            "dtz": -2,
+            "dtm": -30,
+            "zeroing": false,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-532d22c7f900e96043dd6df6ed1270d4697595bd8dd051a17d63b71d64c3e715"
+        },
+        {
+          "ply": 12,
+          "normalizedFen": "8/2k5/4K3/8/8/3P4/8/8 b - - 11 6",
+          "sideToMove": "black",
+          "theoreticalCategory": "loss",
+          "legalMoves": [
+            {
+              "uci": "c7c6",
+              "san": "Kc6",
+              "resultingFen": "8/8/2k1K3/8/8/3P4/8/8 w - - 12 7",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 29,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c7d8",
+              "san": "Kd8",
+              "resultingFen": "3k4/8/4K3/8/8/3P4/8/8 w - - 12 7",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 29,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c7b6",
+              "san": "Kb6",
+              "resultingFen": "8/8/1k2K3/8/8/3P4/8/8 w - - 12 7",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 27,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c7b7",
+              "san": "Kb7",
+              "resultingFen": "8/1k6/4K3/8/8/3P4/8/8 w - - 12 7",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 27,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c7b8",
+              "san": "Kb8",
+              "resultingFen": "1k6/8/4K3/8/8/3P4/8/8 w - - 12 7",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 27,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c7c8",
+              "san": "Kc8",
+              "resultingFen": "2k5/8/4K3/8/8/3P4/8/8 w - - 12 7",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 27,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "c7c6",
+            "c7d8",
+            "c7b6",
+            "c7b7",
+            "c7b8",
+            "c7c8"
+          ],
+          "candidateLearnerMoves": [],
+          "candidateOpponentReplies": [
+            "c7c6",
+            "c7d8",
+            "c7b6",
+            "c7b7",
+            "c7b8",
+            "c7c8"
+          ],
+          "moveClassifications": {
+            "c7c6": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/2k1K3/8/8/3P4/8/8 w - - 12 7"
+            },
+            "c7d8": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "3k4/8/4K3/8/8/3P4/8/8 w - - 12 7"
+            },
+            "c7b6": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/1k2K3/8/8/3P4/8/8 w - - 12 7"
+            },
+            "c7b7": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/1k6/4K3/8/8/3P4/8/8 w - - 12 7"
+            },
+            "c7b8": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "1k6/8/4K3/8/8/3P4/8/8 w - - 12 7"
+            },
+            "c7c8": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "2k5/8/4K3/8/8/3P4/8/8 w - - 12 7"
+            }
+          },
+          "proposedMove": {
+            "uci": "c7b6",
+            "san": "Kb6",
+            "resultingFen": "8/8/1k2K3/8/8/3P4/8/8 w - - 12 7",
+            "resultingCategory": "win",
+            "wdlForMover": -2,
+            "dtz": 1,
+            "dtm": 27,
+            "zeroing": false,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-6613fc4dd3b200fcc546596ebd29bc0dc7e32027536b1f3e3db1210c70536b20"
+        },
+        {
+          "ply": 13,
+          "normalizedFen": "8/8/1k2K3/8/8/3P4/8/8 w - - 12 7",
+          "sideToMove": "white",
+          "theoreticalCategory": "win",
+          "legalMoves": [
+            {
+              "uci": "e6d6",
+              "san": "Kd6",
+              "resultingFen": "8/8/1k1K4/8/8/3P4/8/8 b - - 13 7",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -2,
+              "dtm": -26,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "d3d4",
+              "san": "d4",
+              "resultingFen": "8/8/1k2K3/8/3P4/8/8/8 b - - 0 7",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -2,
+              "dtm": -28,
+              "zeroing": true,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "e6e5",
+              "san": "Ke5",
+              "resultingFen": "8/8/1k6/4K3/8/3P4/8/8 b - - 13 7",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -2,
+              "dtm": -32,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "e6d5",
+              "san": "Kd5",
+              "resultingFen": "8/8/1k6/3K4/8/3P4/8/8 b - - 13 7",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -4,
+              "dtm": -32,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "e6f5",
+              "san": "Kf5",
+              "resultingFen": "8/8/1k6/5K2/8/3P4/8/8 b - - 13 7",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -6,
+              "dtm": -36,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "e6f6",
+              "san": "Kf6",
+              "resultingFen": "8/8/1k3K2/8/8/3P4/8/8 b - - 13 7",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -6,
+              "dtm": -36,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "e6d7",
+              "san": "Kd7",
+              "resultingFen": "8/3K4/1k6/8/8/3P4/8/8 b - - 13 7",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "e6e7",
+              "san": "Ke7",
+              "resultingFen": "8/4K3/1k6/8/8/3P4/8/8 b - - 13 7",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "e6f7",
+              "san": "Kf7",
+              "resultingFen": "8/5K2/1k6/8/8/3P4/8/8 b - - 13 7",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "e6d6",
+            "d3d4",
+            "e6e5",
+            "e6d5",
+            "e6f5",
+            "e6f6"
+          ],
+          "candidateLearnerMoves": [
+            "e6d6",
+            "d3d4",
+            "e6e5",
+            "e6d5",
+            "e6f5",
+            "e6f6"
+          ],
+          "candidateOpponentReplies": [],
+          "moveClassifications": {
+            "e6d6": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/8/1k1K4/8/8/3P4/8/8 b - - 13 7"
+            },
+            "d3d4": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/8/1k2K3/8/3P4/8/8/8 b - - 0 7"
+            },
+            "e6e5": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/8/1k6/4K3/8/3P4/8/8 b - - 13 7"
+            },
+            "e6d5": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/8/1k6/3K4/8/3P4/8/8 b - - 13 7"
+            },
+            "e6f5": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/8/1k6/5K2/8/3P4/8/8 b - - 13 7"
+            },
+            "e6f6": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/8/1k3K2/8/8/3P4/8/8 b - - 13 7"
+            },
+            "e6d7": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/3K4/1k6/8/8/3P4/8/8 b - - 13 7"
+            },
+            "e6e7": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/4K3/1k6/8/8/3P4/8/8 b - - 13 7"
+            },
+            "e6f7": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/5K2/1k6/8/8/3P4/8/8 b - - 13 7"
+            }
+          },
+          "proposedMove": {
+            "uci": "d3d4",
+            "san": "d4",
+            "resultingFen": "8/8/1k2K3/8/3P4/8/8/8 b - - 0 7",
+            "resultingCategory": "loss",
+            "wdlForMover": 2,
+            "dtz": -2,
+            "dtm": -28,
+            "zeroing": true,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-e47a8b0dd44e3a05cfe8acbd315ce9cdcba1c145945726f3a54b280cb5db6b6d"
+        },
+        {
+          "ply": 14,
+          "normalizedFen": "8/8/1k2K3/8/3P4/8/8/8 b - - 0 7",
+          "sideToMove": "black",
+          "theoreticalCategory": "loss",
+          "legalMoves": [
+            {
+              "uci": "b6c7",
+              "san": "Kc7",
+              "resultingFen": "8/2k5/4K3/8/3P4/8/8/8 w - - 1 8",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 27,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b6a5",
+              "san": "Ka5",
+              "resultingFen": "8/8/4K3/k7/3P4/8/8/8 w - - 1 8",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 21,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b6b5",
+              "san": "Kb5",
+              "resultingFen": "8/8/4K3/1k6/3P4/8/8/8 w - - 1 8",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 21,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b6a6",
+              "san": "Ka6",
+              "resultingFen": "8/8/k3K3/8/3P4/8/8/8 w - - 1 8",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 21,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b6c6",
+              "san": "Kc6",
+              "resultingFen": "8/8/2k1K3/8/3P4/8/8/8 w - - 1 8",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 21,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b6a7",
+              "san": "Ka7",
+              "resultingFen": "8/k7/4K3/8/3P4/8/8/8 w - - 1 8",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 21,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b6b7",
+              "san": "Kb7",
+              "resultingFen": "8/1k6/4K3/8/3P4/8/8/8 w - - 1 8",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 21,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "b6c7",
+            "b6a5",
+            "b6b5",
+            "b6a6",
+            "b6c6",
+            "b6a7",
+            "b6b7"
+          ],
+          "candidateLearnerMoves": [],
+          "candidateOpponentReplies": [
+            "b6c7",
+            "b6a5",
+            "b6b5",
+            "b6a6",
+            "b6c6",
+            "b6a7",
+            "b6b7"
+          ],
+          "moveClassifications": {
+            "b6c7": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/2k5/4K3/8/3P4/8/8/8 w - - 1 8"
+            },
+            "b6a5": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/4K3/k7/3P4/8/8/8 w - - 1 8"
+            },
+            "b6b5": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/4K3/1k6/3P4/8/8/8 w - - 1 8"
+            },
+            "b6a6": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/k3K3/8/3P4/8/8/8 w - - 1 8"
+            },
+            "b6c6": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/2k1K3/8/3P4/8/8/8 w - - 1 8"
+            },
+            "b6a7": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/k7/4K3/8/3P4/8/8/8 w - - 1 8"
+            },
+            "b6b7": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/1k6/4K3/8/3P4/8/8/8 w - - 1 8"
+            }
+          },
+          "proposedMove": {
+            "uci": "b6a5",
+            "san": "Ka5",
+            "resultingFen": "8/8/4K3/k7/3P4/8/8/8 w - - 1 8",
+            "resultingCategory": "win",
+            "wdlForMover": -2,
+            "dtz": 1,
+            "dtm": 21,
+            "zeroing": false,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-3f4387d04163d11dfd8fcdd224655314882fdd3ca5ad56a22babb91e17453c5b"
+        }
+      ],
+      "terminal": "maximum-ply-boundary"
+    },
+    {
+      "lineId": "king-activation-support-region:maximum-resistance",
+      "policyId": "maximum-resistance",
+      "plies": [
+        {
+          "ply": 1,
+          "normalizedFen": "8/7k/8/8/8/3P4/2K5/8 w - - 0 1",
+          "sideToMove": "white",
+          "theoreticalCategory": "win",
+          "legalMoves": [
+            {
+              "uci": "d3d4",
+              "san": "d4",
+              "resultingFen": "8/7k/8/8/3P4/8/2K5/8 b - - 0 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -12,
+              "dtm": -36,
+              "zeroing": true,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2b3",
+              "san": "Kb3",
+              "resultingFen": "8/7k/8/8/8/1K1P4/8/8 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -2,
+              "dtm": -36,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2c3",
+              "san": "Kc3",
+              "resultingFen": "8/7k/8/8/8/2KP4/8/8 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -2,
+              "dtm": -36,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2b2",
+              "san": "Kb2",
+              "resultingFen": "8/7k/8/8/8/3P4/1K6/8 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -12,
+              "dtm": -40,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2d2",
+              "san": "Kd2",
+              "resultingFen": "8/7k/8/8/8/3P4/3K4/8 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -12,
+              "dtm": -40,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2b1",
+              "san": "Kb1",
+              "resultingFen": "8/7k/8/8/8/3P4/8/1K6 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -16,
+              "dtm": -44,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2c1",
+              "san": "Kc1",
+              "resultingFen": "8/7k/8/8/8/3P4/8/2K5 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -16,
+              "dtm": -44,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2d1",
+              "san": "Kd1",
+              "resultingFen": "8/7k/8/8/8/3P4/8/3K4 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -16,
+              "dtm": -44,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "d3d4",
+            "c2b3",
+            "c2c3",
+            "c2b2",
+            "c2d2",
+            "c2b1",
+            "c2c1",
+            "c2d1"
+          ],
+          "candidateLearnerMoves": [
+            "d3d4",
+            "c2b3",
+            "c2c3",
+            "c2b2",
+            "c2d2",
+            "c2b1",
+            "c2c1",
+            "c2d1"
+          ],
+          "candidateOpponentReplies": [],
+          "moveClassifications": {
+            "d3d4": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/3P4/8/2K5/8 b - - 0 1"
+            },
+            "c2b3": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/1K1P4/8/8 b - - 1 1"
+            },
+            "c2c3": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/2KP4/8/8 b - - 1 1"
+            },
+            "c2b2": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/3P4/1K6/8 b - - 1 1"
+            },
+            "c2d2": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/3P4/3K4/8 b - - 1 1"
+            },
+            "c2b1": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/3P4/8/1K6 b - - 1 1"
+            },
+            "c2c1": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/3P4/8/2K5 b - - 1 1"
+            },
+            "c2d1": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/3P4/8/3K4 b - - 1 1"
+            }
+          },
+          "proposedMove": {
+            "uci": "c2b1",
+            "san": "Kb1",
+            "resultingFen": "8/7k/8/8/8/3P4/8/1K6 b - - 1 1",
+            "resultingCategory": "loss",
+            "wdlForMover": 2,
+            "dtz": -16,
+            "dtm": -44,
+            "zeroing": false,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-29fccdbb84a3dd9ed1cd3f39187cd0978933176c02c6737b7cec60b7c8688ccb"
+        },
+        {
+          "ply": 2,
+          "normalizedFen": "8/7k/8/8/8/3P4/8/1K6 b - - 1 1",
+          "sideToMove": "black",
+          "theoreticalCategory": "loss",
+          "legalMoves": [
+            {
+              "uci": "h7g6",
+              "san": "Kg6",
+              "resultingFen": "8/8/6k1/8/8/3P4/8/1K6 w - - 2 2",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 15,
+              "dtm": 43,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "h7g7",
+              "san": "Kg7",
+              "resultingFen": "8/6k1/8/8/8/3P4/8/1K6 w - - 2 2",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 15,
+              "dtm": 43,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "h7g8",
+              "san": "Kg8",
+              "resultingFen": "6k1/8/8/8/8/3P4/8/1K6 w - - 2 2",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 15,
+              "dtm": 43,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "h7h6",
+              "san": "Kh6",
+              "resultingFen": "8/8/7k/8/8/3P4/8/1K6 w - - 2 2",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 13,
+              "dtm": 41,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "h7h8",
+              "san": "Kh8",
+              "resultingFen": "7k/8/8/8/8/3P4/8/1K6 w - - 2 2",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 13,
+              "dtm": 41,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "h7g6",
+            "h7g7",
+            "h7g8",
+            "h7h6",
+            "h7h8"
+          ],
+          "candidateLearnerMoves": [],
+          "candidateOpponentReplies": [
+            "h7g6",
+            "h7g7",
+            "h7g8",
+            "h7h6",
+            "h7h8"
+          ],
+          "moveClassifications": {
+            "h7g6": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/6k1/8/8/3P4/8/1K6 w - - 2 2"
+            },
+            "h7g7": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/6k1/8/8/8/3P4/8/1K6 w - - 2 2"
+            },
+            "h7g8": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "6k1/8/8/8/8/3P4/8/1K6 w - - 2 2"
+            },
+            "h7h6": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/7k/8/8/3P4/8/1K6 w - - 2 2"
+            },
+            "h7h8": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "7k/8/8/8/8/3P4/8/1K6 w - - 2 2"
+            }
+          },
+          "proposedMove": {
+            "uci": "h7g6",
+            "san": "Kg6",
+            "resultingFen": "8/8/6k1/8/8/3P4/8/1K6 w - - 2 2",
+            "resultingCategory": "win",
+            "wdlForMover": -2,
+            "dtz": 15,
+            "dtm": 43,
+            "zeroing": false,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-aa231a015bcabb8c2f2450d69e70c4a18448205fb1d4074635539a478f0fbfd3"
+        },
+        {
+          "ply": 3,
+          "normalizedFen": "8/8/6k1/8/8/3P4/8/1K6 w - - 2 2",
+          "sideToMove": "white",
+          "theoreticalCategory": "win",
+          "legalMoves": [
+            {
+              "uci": "b1a2",
+              "san": "Ka2",
+              "resultingFen": "8/8/6k1/8/8/3P4/K7/8 b - - 3 2",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -14,
+              "dtm": -42,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b1b2",
+              "san": "Kb2",
+              "resultingFen": "8/8/6k1/8/8/3P4/1K6/8 b - - 3 2",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -14,
+              "dtm": -42,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b1c2",
+              "san": "Kc2",
+              "resultingFen": "8/8/6k1/8/8/3P4/2K5/8 b - - 3 2",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -14,
+              "dtm": -42,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "d3d4",
+              "san": "d4",
+              "resultingFen": "8/8/6k1/8/3P4/8/8/1K6 b - - 0 2",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": true,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b1a1",
+              "san": "Ka1",
+              "resultingFen": "8/8/6k1/8/8/3P4/8/K7 b - - 3 2",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "b1c1",
+              "san": "Kc1",
+              "resultingFen": "8/8/6k1/8/8/3P4/8/2K5 b - - 3 2",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "b1a2",
+            "b1b2",
+            "b1c2"
+          ],
+          "candidateLearnerMoves": [
+            "b1a2",
+            "b1b2",
+            "b1c2"
+          ],
+          "candidateOpponentReplies": [],
+          "moveClassifications": {
+            "b1a2": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/8/6k1/8/8/3P4/K7/8 b - - 3 2"
+            },
+            "b1b2": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/8/6k1/8/8/3P4/1K6/8 b - - 3 2"
+            },
+            "b1c2": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/8/6k1/8/8/3P4/2K5/8 b - - 3 2"
+            },
+            "d3d4": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/6k1/8/3P4/8/8/1K6 b - - 0 2"
+            },
+            "b1a1": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/6k1/8/8/3P4/8/K7 b - - 3 2"
+            },
+            "b1c1": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/6k1/8/8/3P4/8/2K5 b - - 3 2"
+            }
+          },
+          "proposedMove": {
+            "uci": "b1a2",
+            "san": "Ka2",
+            "resultingFen": "8/8/6k1/8/8/3P4/K7/8 b - - 3 2",
+            "resultingCategory": "loss",
+            "wdlForMover": 2,
+            "dtz": -14,
+            "dtm": -42,
+            "zeroing": false,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-7d9de20ea6dd6005763c8ff36f1cea6038b93a1612155721b62cc701b2c1691b"
+        },
+        {
+          "ply": 4,
+          "normalizedFen": "8/8/6k1/8/8/3P4/K7/8 b - - 3 2",
+          "sideToMove": "black",
+          "theoreticalCategory": "loss",
+          "legalMoves": [
+            {
+              "uci": "g6f5",
+              "san": "Kf5",
+              "resultingFen": "8/8/8/5k2/8/3P4/K7/8 w - - 4 3",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 13,
+              "dtm": 41,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "g6f6",
+              "san": "Kf6",
+              "resultingFen": "8/8/5k2/8/8/3P4/K7/8 w - - 4 3",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 13,
+              "dtm": 41,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "g6f7",
+              "san": "Kf7",
+              "resultingFen": "8/5k2/8/8/8/3P4/K7/8 w - - 4 3",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 13,
+              "dtm": 41,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "g6g5",
+              "san": "Kg5",
+              "resultingFen": "8/8/8/6k1/8/3P4/K7/8 w - - 4 3",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 11,
+              "dtm": 39,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "g6g7",
+              "san": "Kg7",
+              "resultingFen": "8/6k1/8/8/8/3P4/K7/8 w - - 4 3",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 11,
+              "dtm": 39,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "g6h5",
+              "san": "Kh5",
+              "resultingFen": "8/8/8/7k/8/3P4/K7/8 w - - 4 3",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 37,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "g6h6",
+              "san": "Kh6",
+              "resultingFen": "8/8/7k/8/8/3P4/K7/8 w - - 4 3",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 37,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "g6h7",
+              "san": "Kh7",
+              "resultingFen": "8/7k/8/8/8/3P4/K7/8 w - - 4 3",
+              "resultingCategory": "win",
+              "wdlForMover": -2,
+              "dtz": 1,
+              "dtm": 37,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "g6f5",
+            "g6f6",
+            "g6f7",
+            "g6g5",
+            "g6g7",
+            "g6h5",
+            "g6h6",
+            "g6h7"
+          ],
+          "candidateLearnerMoves": [],
+          "candidateOpponentReplies": [
+            "g6f5",
+            "g6f6",
+            "g6f7",
+            "g6g5",
+            "g6g7",
+            "g6h5",
+            "g6h6",
+            "g6h7"
+          ],
+          "moveClassifications": {
+            "g6f5": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/8/5k2/8/3P4/K7/8 w - - 4 3"
+            },
+            "g6f6": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/5k2/8/8/3P4/K7/8 w - - 4 3"
+            },
+            "g6f7": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/5k2/8/8/8/3P4/K7/8 w - - 4 3"
+            },
+            "g6g5": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/8/6k1/8/3P4/K7/8 w - - 4 3"
+            },
+            "g6g7": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/6k1/8/8/8/3P4/K7/8 w - - 4 3"
+            },
+            "g6h5": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/8/7k/8/3P4/K7/8 w - - 4 3"
+            },
+            "g6h6": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/8/7k/8/8/3P4/K7/8 w - - 4 3"
+            },
+            "g6h7": {
+              "classification": "candidate-opponent-reply",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "win",
+              "resultingFen": "8/7k/8/8/8/3P4/K7/8 w - - 4 3"
+            }
+          },
+          "proposedMove": {
+            "uci": "g6f5",
+            "san": "Kf5",
+            "resultingFen": "8/8/8/5k2/8/3P4/K7/8 w - - 4 3",
+            "resultingCategory": "win",
+            "wdlForMover": -2,
+            "dtz": 13,
+            "dtm": 41,
+            "zeroing": false,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-128819bcf8f2894dba46b4e9517719b0c52fcb262ba2c0bbbf3173fde0bc461e"
+        },
+        {
+          "ply": 5,
+          "normalizedFen": "8/8/8/5k2/8/3P4/K7/8 w - - 4 3",
+          "sideToMove": "white",
+          "theoreticalCategory": "win",
+          "legalMoves": [
+            {
+              "uci": "a2b3",
+              "san": "Kb3",
+              "resultingFen": "8/8/8/5k2/8/1K1P4/8/8 b - - 5 3",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -12,
+              "dtm": -40,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "d3d4",
+              "san": "d4",
+              "resultingFen": "8/8/8/5k2/3P4/8/K7/8 b - - 0 3",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": true,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "a2a1",
+              "san": "Ka1",
+              "resultingFen": "8/8/8/5k2/8/3P4/8/K7 b - - 5 3",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "a2b1",
+              "san": "Kb1",
+              "resultingFen": "8/8/8/5k2/8/3P4/8/1K6 b - - 5 3",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "a2b2",
+              "san": "Kb2",
+              "resultingFen": "8/8/8/5k2/8/3P4/1K6/8 b - - 5 3",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "a2a3",
+              "san": "Ka3",
+              "resultingFen": "8/8/8/5k2/8/K2P4/8/8 b - - 5 3",
+              "resultingCategory": "draw",
+              "wdlForMover": 0,
+              "dtz": 0,
+              "dtm": 0,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "a2b3"
+          ],
+          "candidateLearnerMoves": [
+            "a2b3"
+          ],
+          "candidateOpponentReplies": [],
+          "moveClassifications": {
+            "a2b3": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/8/8/5k2/8/1K1P4/8/8 b - - 5 3"
+            },
+            "d3d4": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/8/5k2/3P4/8/K7/8 b - - 0 3"
+            },
+            "a2a1": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/8/5k2/8/3P4/8/K7 b - - 5 3"
+            },
+            "a2b1": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/8/5k2/8/3P4/8/1K6 b - - 5 3"
+            },
+            "a2b2": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/8/5k2/8/3P4/1K6/8 b - - 5 3"
+            },
+            "a2a3": {
+              "classification": "win-to-draw-or-loss-candidate",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "draw",
+              "resultingFen": "8/8/8/5k2/8/K2P4/8/8 b - - 5 3"
+            }
+          },
+          "proposedMove": {
+            "uci": "a2b3",
+            "san": "Kb3",
+            "resultingFen": "8/8/8/5k2/8/1K1P4/8/8 b - - 5 3",
+            "resultingCategory": "loss",
+            "wdlForMover": 2,
+            "dtz": -12,
+            "dtm": -40,
+            "zeroing": false,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-a67c18bcf4c23c6e33d8a1b4e1fe9fcb20ad0b6751d2dbf205c607f6452e68bb"
+        }
+      ],
+      "terminal": "candidate-success-terminal-unapproved"
+    },
+    {
+      "lineId": "king-activation-support-region:authored-deterministic-tree",
+      "policyId": "authored-deterministic-tree",
+      "plies": [
+        {
+          "ply": 1,
+          "normalizedFen": "8/7k/8/8/8/3P4/2K5/8 w - - 0 1",
+          "sideToMove": "white",
+          "theoreticalCategory": "win",
+          "legalMoves": [
+            {
+              "uci": "d3d4",
+              "san": "d4",
+              "resultingFen": "8/7k/8/8/3P4/8/2K5/8 b - - 0 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -12,
+              "dtm": -36,
+              "zeroing": true,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2b3",
+              "san": "Kb3",
+              "resultingFen": "8/7k/8/8/8/1K1P4/8/8 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -2,
+              "dtm": -36,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2c3",
+              "san": "Kc3",
+              "resultingFen": "8/7k/8/8/8/2KP4/8/8 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -2,
+              "dtm": -36,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2b2",
+              "san": "Kb2",
+              "resultingFen": "8/7k/8/8/8/3P4/1K6/8 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -12,
+              "dtm": -40,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2d2",
+              "san": "Kd2",
+              "resultingFen": "8/7k/8/8/8/3P4/3K4/8 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -12,
+              "dtm": -40,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2b1",
+              "san": "Kb1",
+              "resultingFen": "8/7k/8/8/8/3P4/8/1K6 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -16,
+              "dtm": -44,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2c1",
+              "san": "Kc1",
+              "resultingFen": "8/7k/8/8/8/3P4/8/2K5 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -16,
+              "dtm": -44,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            },
+            {
+              "uci": "c2d1",
+              "san": "Kd1",
+              "resultingFen": "8/7k/8/8/8/3P4/8/3K4 b - - 1 1",
+              "resultingCategory": "loss",
+              "wdlForMover": 2,
+              "dtz": -16,
+              "dtm": -44,
+              "zeroing": false,
+              "checkmate": false,
+              "stalemate": false,
+              "insufficientMaterial": false
+            }
+          ],
+          "wdlPreservingMoves": [
+            "d3d4",
+            "c2b3",
+            "c2c3",
+            "c2b2",
+            "c2d2",
+            "c2b1",
+            "c2c1",
+            "c2d1"
+          ],
+          "candidateLearnerMoves": [
+            "d3d4",
+            "c2b3",
+            "c2c3",
+            "c2b2",
+            "c2d2",
+            "c2b1",
+            "c2c1",
+            "c2d1"
+          ],
+          "candidateOpponentReplies": [],
+          "moveClassifications": {
+            "d3d4": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/3P4/8/2K5/8 b - - 0 1"
+            },
+            "c2b3": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/1K1P4/8/8 b - - 1 1"
+            },
+            "c2c3": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/2KP4/8/8 b - - 1 1"
+            },
+            "c2b2": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/3P4/1K6/8 b - - 1 1"
+            },
+            "c2d2": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/3P4/3K4/8 b - - 1 1"
+            },
+            "c2b1": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/3P4/8/1K6 b - - 1 1"
+            },
+            "c2c1": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/3P4/8/2K5 b - - 1 1"
+            },
+            "c2d1": {
+              "classification": "result-preserved-objective-status-requires-human-review",
+              "status": "unapproved-human-review-required",
+              "resultingCategory": "loss",
+              "resultingFen": "8/7k/8/8/8/3P4/8/3K4 b - - 1 1"
+            }
+          },
+          "proposedMove": {
+            "uci": "c2b3",
+            "san": "Kb3",
+            "resultingFen": "8/7k/8/8/8/1K1P4/8/8 b - - 1 1",
+            "resultingCategory": "loss",
+            "wdlForMover": 2,
+            "dtz": -2,
+            "dtm": -36,
+            "zeroing": false,
+            "checkmate": false,
+            "stalemate": false,
+            "insufficientMaterial": false
+          },
+          "terminalClassification": null,
+          "evidenceDigest": "sha256-29fccdbb84a3dd9ed1cd3f39187cd0978933176c02c6737b7cec60b7c8688ccb"
+        }
+      ],
+      "terminal": "candidate-success-terminal-unapproved"
+    }
+  ],
+  "approvalStatus": "unapproved-human-review-required",
+  "graphDigest": "sha256-949cd346baac5804d90abf79bd338cd80bbaa05865766eeab3cedc0978913b6e"
+}
