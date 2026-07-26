@@ -1,0 +1,1172 @@
+{
+  "packetSchemaVersion": "1.0.0",
+  "packetId": "endgame-run-public-readiness-1.0.0",
+  "runArtifactId": "endgame-run-technical-two-item",
+  "runArtifactVersion": "1.0.0",
+  "baselineCommit": "bffc171f4fdb83e6f0218f9664b6d1e87e93d123",
+  "currentState": {
+    "technicalFunctional": true,
+    "hidden": true,
+    "localOnly": true,
+    "ephemeral": true,
+    "deterministic": true,
+    "itemCount": 2,
+    "orderedItemIds": [
+      "kp-coordinate-support-promote@1.0.0",
+      "rule-square-a-pawn-catch-stop-promotion@1.0.0"
+    ],
+    "publicApproved": false,
+    "runtimeModifiedByPacket": false
+  },
+  "readinessDomains": [
+    {
+      "name": "product-clarity",
+      "status": "partial",
+      "evidence": "The hidden run has truthful local-session copy and fixed progression.",
+      "gap": "Public purpose, audience, naming, entry point, and beta promise are unapproved.",
+      "severity": "high",
+      "classification": "blocking",
+      "recommendedAction": "Approve a bounded product brief.",
+      "ownerCategory": "product",
+      "approvalRequired": "product-owner"
+    },
+    {
+      "name": "content-sufficiency",
+      "status": "not-ready",
+      "evidence": "Exactly two human-approved items cover one offensive and one defensive objective.",
+      "gap": "Below the proposed five-item, three-objective threshold; repetition is immediate.",
+      "severity": "critical",
+      "classification": "blocking",
+      "recommendedAction": "Author and human-review at least three additional distinct items.",
+      "ownerCategory": "chess-content",
+      "approvalRequired": "product-and-chess-review"
+    },
+    {
+      "name": "session-length",
+      "status": "partial",
+      "evidence": "A fixed two-item session is deterministic and compact.",
+      "gap": "No public session-length policy or completion research exists.",
+      "severity": "medium",
+      "classification": "blocking",
+      "recommendedAction": "Approve fixed five-item preview policy before public exposure.",
+      "ownerCategory": "product",
+      "approvalRequired": "product-owner"
+    },
+    {
+      "name": "objective-diversity",
+      "status": "not-ready",
+      "evidence": "Promote and stop-promotion demonstrate two objective contracts.",
+      "gap": "No third contract, second offensive item, second defensive item, or distinct conversion item.",
+      "severity": "high",
+      "classification": "blocking",
+      "recommendedAction": "Meet the proposed diversity floor.",
+      "ownerCategory": "chess-content",
+      "approvalRequired": "chess-review"
+    },
+    {
+      "name": "educational-value",
+      "status": "partial",
+      "evidence": "Each current item has reviewed hints, truthful feedback, and a bounded instructional objective.",
+      "gap": "The pair is too small to establish a coherent public learning progression.",
+      "severity": "high",
+      "classification": "blocking",
+      "recommendedAction": "Review a five-item instructional sequence.",
+      "ownerCategory": "education",
+      "approvalRequired": "educational-review"
+    },
+    {
+      "name": "hint-policy",
+      "status": "technical-ready",
+      "evidence": "Three stages exist and final reveal removes independent eligibility.",
+      "gap": "Public wording and reveal-confirmation policy are unapproved.",
+      "severity": "medium",
+      "classification": "nonblocking",
+      "recommendedAction": "Keep staged hints secondary and approve disclosure copy.",
+      "ownerCategory": "product-accessibility",
+      "approvalRequired": "product-owner"
+    },
+    {
+      "name": "result-semantics",
+      "status": "technical-ready",
+      "evidence": "Independent, assisted, objective failure, drawing miss, technical unavailable, and abandonment are distinct.",
+      "gap": "Internal names require user-facing terminology approval.",
+      "severity": "medium",
+      "classification": "nonblocking",
+      "recommendedAction": "Approve plain-language public labels.",
+      "ownerCategory": "product-education",
+      "approvalRequired": "product-owner"
+    },
+    {
+      "name": "retry-and-abandonment",
+      "status": "technical-ready",
+      "evidence": "Retry Item, Retry Run, Exit, and stale ownership are tested.",
+      "gap": "No approved exit-confirmation or pause policy.",
+      "severity": "medium",
+      "classification": "nonblocking",
+      "recommendedAction": "Keep ephemeral retry; approve confirmation rules.",
+      "ownerCategory": "product",
+      "approvalRequired": "product-owner"
+    },
+    {
+      "name": "accessibility",
+      "status": "not-reviewed",
+      "evidence": "Automated Axe, keyboard paths, responsive layouts, and focus transitions pass.",
+      "gap": "Required human screen-reader, high-contrast, zoom, touch, and device review is unset.",
+      "severity": "critical",
+      "classification": "blocking",
+      "recommendedAction": "Complete the human accessibility plan and resolve failures.",
+      "ownerCategory": "accessibility",
+      "approvalRequired": "accessibility-lead"
+    },
+    {
+      "name": "responsive-behavior",
+      "status": "automated-pass",
+      "evidence": "Automated 320–1920 px matrix passes in three browser engines.",
+      "gap": "Physical mobile devices, landscape, safe-area, browser chrome, and orientation changes are unreviewed.",
+      "severity": "high",
+      "classification": "blocking",
+      "recommendedAction": "Complete physical-device review for preview targets.",
+      "ownerCategory": "accessibility-qa",
+      "approvalRequired": "accessibility-lead"
+    },
+    {
+      "name": "privacy",
+      "status": "partial",
+      "evidence": "The run controller stores no cookies, localStorage, sessionStorage, account IDs, or results; it fetches three static artifacts.",
+      "gap": "Hosting request logs, third-party IP processing, retention, and site-level external-script behavior are not established by run code.",
+      "severity": "high",
+      "classification": "blocking",
+      "recommendedAction": "Complete infrastructure/privacy-owner audit and update notice if needed.",
+      "ownerCategory": "privacy-legal",
+      "approvalRequired": "privacy-owner"
+    },
+    {
+      "name": "observability",
+      "status": "absent",
+      "evidence": "No run telemetry, analytics events, or reporting service exists.",
+      "gap": "No operational failure-rate signal or approved event/retention policy.",
+      "severity": "medium",
+      "classification": "blocking",
+      "recommendedAction": "Choose no telemetry or minimal privacy-preserving operational events with legal review.",
+      "ownerCategory": "operations-privacy",
+      "approvalRequired": "product-and-privacy"
+    },
+    {
+      "name": "security",
+      "status": "technical-pass",
+      "evidence": "Exact gates, item allowlists, artifact hashes, stale guards, textContent rendering, and private-path exclusions are tested.",
+      "gap": "Public threat-model sign-off and cache/config review remain pending; no high issue is currently evidenced.",
+      "severity": "medium",
+      "classification": "blocking",
+      "recommendedAction": "Perform release threat-model review.",
+      "ownerCategory": "security",
+      "approvalRequired": "security-owner"
+    },
+    {
+      "name": "artifact-integrity",
+      "status": "pass",
+      "evidence": "Run and item artifacts have locked fingerprints and SHA-256 verification.",
+      "gap": "Artifacts remain unsigned.",
+      "severity": "medium",
+      "classification": "nonblocking",
+      "recommendedAction": "Allow unsigned invite-only preview only if approved; require signing decision for beta.",
+      "ownerCategory": "release-security",
+      "approvalRequired": "release-owner"
+    },
+    {
+      "name": "operational-rollback",
+      "status": "partial",
+      "evidence": "Removing the hidden flag or reverting the deployment returns normal V2 without migration.",
+      "gap": "No public runbook, alert threshold, owner roster, or communication template.",
+      "severity": "high",
+      "classification": "blocking",
+      "recommendedAction": "Approve and rehearse rollback runbook.",
+      "ownerCategory": "release-operations",
+      "approvalRequired": "release-owner"
+    },
+    {
+      "name": "kill-switch",
+      "status": "not-implemented",
+      "evidence": "Current hidden gate fails closed and can be removed by deployment.",
+      "gap": "No authenticated rapid server-side disable without redeploy.",
+      "severity": "high",
+      "classification": "blocking",
+      "recommendedAction": "Add an authenticated edge/environment kill switch with normal V2 fallback before preview.",
+      "ownerCategory": "operations-security",
+      "approvalRequired": "release-and-security"
+    },
+    {
+      "name": "performance",
+      "status": "technical-pass",
+      "evidence": "Artifacts total 14,530 bytes; one board and zero Workers are used.",
+      "gap": "No formal budgets, physical-device measurements, retry-run memory profile, or cache policy sign-off.",
+      "severity": "medium",
+      "classification": "nonblocking",
+      "recommendedAction": "Measure against proposed budgets on target devices.",
+      "ownerCategory": "performance-qa",
+      "approvalRequired": "engineering-lead"
+    },
+    {
+      "name": "browser-compatibility",
+      "status": "automated-pass",
+      "evidence": "Chromium, Firefox, and WebKit complete the run locally and in production.",
+      "gap": "No physical Edge, Android Chrome, or iOS Safari review; minimum versions unapproved.",
+      "severity": "high",
+      "classification": "blocking",
+      "recommendedAction": "Approve browser policy and test physical mobile targets.",
+      "ownerCategory": "qa",
+      "approvalRequired": "product-and-qa"
+    },
+    {
+      "name": "public-navigation-readiness",
+      "status": "intentionally-hidden",
+      "evidence": "No navigation or normal Modes exposure exists.",
+      "gap": "Entry point and information architecture are unapproved.",
+      "severity": "high",
+      "classification": "blocking",
+      "recommendedAction": "Keep hidden until tier and entry point receive approval.",
+      "ownerCategory": "product-ia",
+      "approvalRequired": "product-owner"
+    },
+    {
+      "name": "support-and-documentation",
+      "status": "not-ready",
+      "evidence": "Private architecture and technical QA exist.",
+      "gap": "No public help, FAQ, limitations, privacy explanation, or support escalation path.",
+      "severity": "high",
+      "classification": "blocking",
+      "recommendedAction": "Prepare and approve public support copy before preview.",
+      "ownerCategory": "support-content",
+      "approvalRequired": "product-and-support"
+    },
+    {
+      "name": "legal-and-provenance-boundary",
+      "status": "partial",
+      "evidence": "Reviewed artifacts publish safe contracts while reviewer/evidence materials remain private.",
+      "gap": "No legal review of preview terms, telemetry choice, accessibility claims, or support promises.",
+      "severity": "high",
+      "classification": "blocking",
+      "recommendedAction": "Obtain legal/privacy review without making guarantees.",
+      "ownerCategory": "legal-privacy",
+      "approvalRequired": "legal-review"
+    },
+    {
+      "name": "localization-readiness",
+      "status": "not-ready",
+      "evidence": "Current English copy is concise.",
+      "gap": "Runtime strings, counts, results, hints, errors, and announcements are hardcoded.",
+      "severity": "medium",
+      "classification": "nonblocking",
+      "recommendedAction": "Permit English-only invite preview; require extraction and pluralization before broader beta.",
+      "ownerCategory": "localization-engineering",
+      "approvalRequired": "product-owner"
+    },
+    {
+      "name": "public-naming",
+      "status": "unapproved",
+      "evidence": "Internal name Endgame Run is compact.",
+      "gap": "Potential confusion with Quick Challenge and competitive connotations has not been human-reviewed.",
+      "severity": "medium",
+      "classification": "blocking",
+      "recommendedAction": "Approve Endgame Practice as public candidate and retain technical internal ID.",
+      "ownerCategory": "product-marketing",
+      "approvalRequired": "product-owner"
+    },
+    {
+      "name": "beta-labeling",
+      "status": "unapproved",
+      "evidence": "Current shell says local technical session.",
+      "gap": "No approved expectation, limitations, or support copy.",
+      "severity": "high",
+      "classification": "blocking",
+      "recommendedAction": "Use Limited Preview only after approval; reserve Beta for full gates.",
+      "ownerCategory": "product-legal",
+      "approvalRequired": "product-owner"
+    },
+    {
+      "name": "production-support-burden",
+      "status": "not-ready",
+      "evidence": "Rollback is technically simple because sessions are ephemeral.",
+      "gap": "No ownership, incident severity, response targets, known-issues page, or escalation path.",
+      "severity": "high",
+      "classification": "blocking",
+      "recommendedAction": "Define support ownership and incident handling.",
+      "ownerCategory": "support-operations",
+      "approvalRequired": "product-and-operations"
+    }
+  ],
+  "contentModels": [
+    {
+      "model": "A-two-item-technical-demo",
+      "itemCount": 2,
+      "minimumObjectiveDiversity": 2,
+      "verificationWorkload": "complete",
+      "authoringWorkload": "none",
+      "humanReviewWorkload": "complete for items; product/accessibility pending",
+      "runtimeComplexity": "current",
+      "userValue": "low technical proof",
+      "repetitionRisk": "very-high",
+      "readiness": "invite-only-after-blockers",
+      "recommendation": "retain hidden for now"
+    },
+    {
+      "model": "B-five-item-limited-preview",
+      "itemCount": 5,
+      "minimumObjectiveDiversity": 3,
+      "verificationWorkload": "three new immutable artifacts",
+      "authoringWorkload": "medium",
+      "humanReviewWorkload": "three item reviews plus sequence review",
+      "runtimeComplexity": "low-to-medium",
+      "userValue": "moderate",
+      "repetitionRisk": "medium",
+      "readiness": "recommended preview target",
+      "recommendation": "preferred next target"
+    },
+    {
+      "model": "C-ten-item-public-beta",
+      "itemCount": 10,
+      "minimumObjectiveDiversity": 4,
+      "verificationWorkload": "eight additional artifacts",
+      "authoringWorkload": "high",
+      "humanReviewWorkload": "high plus complete run review",
+      "runtimeComplexity": "medium",
+      "userValue": "high",
+      "repetitionRisk": "low",
+      "readiness": "future beta target",
+      "recommendation": "do not begin until five-item preview evidence"
+    },
+    {
+      "model": "D-configurable-session",
+      "itemCount": "3/5/10",
+      "minimumObjectiveDiversity": 4,
+      "verificationWorkload": "large matrix",
+      "authoringWorkload": "very-high",
+      "humanReviewWorkload": "very-high",
+      "runtimeComplexity": "high",
+      "userValue": "potentially high",
+      "repetitionRisk": "selection-dependent",
+      "readiness": "not-ready",
+      "recommendation": "defer beyond beta"
+    }
+  ],
+  "minimumContentStandardCandidates": {
+    "proposedPreview": {
+      "minimumItems": 5,
+      "minimumObjectiveContracts": 3,
+      "offensiveItems": 2,
+      "defensiveItems": 2,
+      "conversionItems": 1,
+      "uniqueStartingFen": true,
+      "uniqueInstructionalIdea": true,
+      "humanApproved": true,
+      "immutable": true,
+      "integrityChecked": true,
+      "offlineSafe": true,
+      "accessible": true,
+      "browserTested": true,
+      "approvalStatus": "candidate-unapproved"
+    },
+    "proposedBeta": {
+      "minimumItems": 10,
+      "minimumObjectiveContracts": 4,
+      "approvalStatus": "candidate-unapproved"
+    }
+  },
+  "sessionLengthCandidates": [
+    {
+      "policy": "fixed-2",
+      "suitability": "technical-demo-only",
+      "risk": "repetition"
+    },
+    {
+      "policy": "fixed-5",
+      "suitability": "recommended-limited-preview",
+      "risk": "manageable cognitive load"
+    },
+    {
+      "policy": "fixed-10",
+      "suitability": "future-public-beta",
+      "risk": "higher abandonment and mobile load"
+    },
+    {
+      "policy": "time-based",
+      "suitability": "not-recommended",
+      "risk": "accessibility and competitive pressure"
+    },
+    {
+      "policy": "configurable",
+      "suitability": "future-production",
+      "risk": "content and test explosion"
+    }
+  ],
+  "selectionPolicyCandidates": [
+    {
+      "policy": "deterministic-fixed",
+      "preview": "recommended",
+      "beta": "acceptable-curated-sets",
+      "production": "low replay value"
+    },
+    {
+      "policy": "curated-rotation",
+      "preview": "future",
+      "beta": "recommended",
+      "production": "recommended"
+    },
+    {
+      "policy": "seeded-local-shuffle",
+      "preview": "not-recommended",
+      "beta": "conditional",
+      "production": "conditional"
+    },
+    {
+      "policy": "objective-balanced",
+      "preview": "content-insufficient",
+      "beta": "preferred",
+      "production": "preferred"
+    }
+  ],
+  "publicNameCandidates": [
+    {
+      "name": "Endgame Run",
+      "clarity": "medium",
+      "competitiveTone": "medium",
+      "recommendation": "internal continuity only"
+    },
+    {
+      "name": "Endgame Challenge",
+      "clarity": "medium",
+      "competitiveTone": "high",
+      "recommendation": "reject"
+    },
+    {
+      "name": "Endgame Sprint",
+      "clarity": "low",
+      "competitiveTone": "high",
+      "recommendation": "reject"
+    },
+    {
+      "name": "Endgame Practice",
+      "clarity": "high",
+      "competitiveTone": "low",
+      "recommendation": "preferred public candidate"
+    },
+    {
+      "name": "Endgame Course Run",
+      "clarity": "low",
+      "competitiveTone": "low",
+      "recommendation": "reject"
+    },
+    {
+      "name": "CAISSA Endgame Run",
+      "clarity": "medium",
+      "competitiveTone": "medium",
+      "recommendation": "not preferred"
+    }
+  ],
+  "entryPointCandidates": [
+    {
+      "entry": "invite-only-query",
+      "preview": "recommended",
+      "beta": "insufficient-discoverability",
+      "rollback": "immediate"
+    },
+    {
+      "entry": "modes-dialog",
+      "preview": "after approval",
+      "beta": "recommended",
+      "rollback": "simple"
+    },
+    {
+      "entry": "trainer-landing-card",
+      "preview": "not recommended",
+      "beta": "optional",
+      "rollback": "simple"
+    },
+    {
+      "entry": "endgame-library",
+      "preview": "not recommended",
+      "beta": "contextual option",
+      "rollback": "simple"
+    },
+    {
+      "entry": "academy",
+      "preview": "not recommended",
+      "beta": "future",
+      "rollback": "medium"
+    },
+    {
+      "entry": "primary-navigation",
+      "preview": "reject",
+      "beta": "reject until production maturity",
+      "rollback": "medium"
+    }
+  ],
+  "betaLabelCandidates": [
+    {
+      "label": "Technical Preview",
+      "use": "hidden technical validation"
+    },
+    {
+      "label": "Limited Preview",
+      "use": "invite-only preview"
+    },
+    {
+      "label": "Beta",
+      "use": "only after all beta gates"
+    },
+    {
+      "label": "Experimental",
+      "use": "not preferred; weak trust"
+    },
+    {
+      "label": "Early Access",
+      "use": "not preferred; implies product access program"
+    }
+  ],
+  "resultPolicyCandidates": {
+    "display": [
+      "objectives-completed",
+      "independent-completions",
+      "completed-with-hints",
+      "objectives-not-completed",
+      "technical-skips",
+      "concise-per-item-feedback"
+    ],
+    "hide": [
+      "internal-enum-names",
+      "rating",
+      "leaderboard",
+      "percentile",
+      "elo",
+      "competitive-score",
+      "global-rank",
+      "permanent-score"
+    ],
+    "recommendedWording": {
+      "independent": "Completed independently",
+      "assisted": "Completed with hints",
+      "failure": "Objective not completed",
+      "drawingMiss": "Game may remain drawn; training objective not completed",
+      "technical": "Technical issue — result not affected",
+      "abandoned": "Run ended without saving results"
+    }
+  },
+  "hintPolicyCandidates": {
+    "recommended": "staged-hints-secondary",
+    "finalReveal": "removes-independent-eligibility",
+    "penalties": false,
+    "confirmationForFinalReveal": "candidate-desirable-for-beta",
+    "currentBehaviorChanged": false
+  },
+  "skipPolicyCandidates": {
+    "preview": "technical-unavailable-only",
+    "beta": "technical-unavailable-only-unless-user-research-approves-voluntary-skip",
+    "voluntarySkipImplemented": false
+  },
+  "retryPolicyCandidates": {
+    "retryItem": "unlimited-local",
+    "retryRun": "from-summary",
+    "resetHints": true,
+    "firstAttemptHistoryPersistence": false,
+    "recommendedClassification": "success after retry must not be described as first-attempt independent"
+  },
+  "abandonmentPolicyCandidates": {
+    "preview": "exit-with-clear-ephemeral-warning",
+    "beta": "confirm-exit-after-progress",
+    "browserBack": "neutral-abandonment",
+    "refresh": "session-lost",
+    "pause": "none",
+    "persistence": false
+  },
+  "accessibilityReviewPlan": {
+    "allowedStatuses": [
+      "not-reviewed",
+      "pass",
+      "pass-with-notes",
+      "fail",
+      "not-available"
+    ],
+    "areas": [
+      {
+        "area": "windows-narrator",
+        "status": "not-reviewed",
+        "reviewer": null,
+        "notes": null
+      },
+      {
+        "area": "nvda",
+        "status": "not-reviewed",
+        "reviewer": null,
+        "notes": null
+      },
+      {
+        "area": "voiceover-macos-or-ios",
+        "status": "not-reviewed",
+        "reviewer": null,
+        "notes": null
+      },
+      {
+        "area": "keyboard-only-desktop",
+        "status": "not-reviewed",
+        "reviewer": null,
+        "notes": null
+      },
+      {
+        "area": "touch-only-mobile",
+        "status": "not-reviewed",
+        "reviewer": null,
+        "notes": null
+      },
+      {
+        "area": "zoom-200",
+        "status": "not-reviewed",
+        "reviewer": null,
+        "notes": null
+      },
+      {
+        "area": "zoom-400",
+        "status": "not-reviewed",
+        "reviewer": null,
+        "notes": null
+      },
+      {
+        "area": "high-contrast",
+        "status": "not-reviewed",
+        "reviewer": null,
+        "notes": null
+      },
+      {
+        "area": "reduced-motion",
+        "status": "not-reviewed",
+        "reviewer": null,
+        "notes": null
+      },
+      {
+        "area": "focus-after-item-transition",
+        "status": "not-reviewed",
+        "reviewer": null,
+        "notes": null
+      },
+      {
+        "area": "focus-after-summary",
+        "status": "not-reviewed",
+        "reviewer": null,
+        "notes": null
+      },
+      {
+        "area": "live-region-verbosity",
+        "status": "not-reviewed",
+        "reviewer": null,
+        "notes": null
+      },
+      {
+        "area": "chess-loss-vs-objective-miss",
+        "status": "not-reviewed",
+        "reviewer": null,
+        "notes": null
+      },
+      {
+        "area": "retry-item-vs-retry-run",
+        "status": "not-reviewed",
+        "reviewer": null,
+        "notes": null
+      },
+      {
+        "area": "board-square-identification",
+        "status": "not-reviewed",
+        "reviewer": null,
+        "notes": null
+      },
+      {
+        "area": "promotion-dialog",
+        "status": "not-reviewed",
+        "reviewer": null,
+        "notes": null
+      },
+      {
+        "area": "hint-reveal",
+        "status": "not-reviewed",
+        "reviewer": null,
+        "notes": null
+      },
+      {
+        "area": "technical-unavailable",
+        "status": "not-reviewed",
+        "reviewer": null,
+        "notes": null
+      }
+    ]
+  },
+  "accessibilityReleaseGateCandidates": {
+    "mandatory": [
+      "keyboard-only",
+      "one-windows-screen-reader",
+      "one-apple-screen-reader",
+      "zoom-200",
+      "zoom-400",
+      "high-contrast",
+      "reduced-motion",
+      "mobile-touch",
+      "axe",
+      "no-critical-wcag",
+      "all-terminal-states-accessible"
+    ],
+    "desirable": [
+      "second-screen-reader-combination",
+      "multiple-physical-mobile-devices"
+    ],
+    "approvalStatus": "candidate-unapproved"
+  },
+  "privacyAudit": {
+    "runDataCollectedByCode": "none beyond static HTTP requests needed to load page and three artifacts",
+    "notCollectedByRun": [
+      "cookies",
+      "localStorage",
+      "sessionStorage",
+      "account-id",
+      "email",
+      "move-history-logging",
+      "analytics-events",
+      "browser-fingerprint"
+    ],
+    "processorsKnownFromRunCode": [],
+    "processorsUnknown": [
+      "hosting/CDN request processing and retention",
+      "site-shell third-party behavior outside run modules"
+    ],
+    "consentRequirement": "unknown pending privacy/legal review of infrastructure and any future observability",
+    "privacyPolicyImpact": "no run-specific policy text exists"
+  },
+  "observabilityCandidates": [
+    {
+      "policy": "no-telemetry",
+      "privacyRisk": "lowest",
+      "operationalValue": "low",
+      "recommendation": "acceptable while hidden"
+    },
+    {
+      "policy": "aggregate-counters",
+      "privacyRisk": "low if server aggregation minimizes request data",
+      "operationalValue": "medium",
+      "recommendation": "candidate preview minimum"
+    },
+    {
+      "policy": "privacy-preserving-operational-events",
+      "privacyRisk": "medium",
+      "operationalValue": "high",
+      "recommendation": "preferred only after privacy/legal approval"
+    },
+    {
+      "policy": "full-analytics",
+      "privacyRisk": "high",
+      "operationalValue": "high",
+      "recommendation": "reject for current scope"
+    }
+  ],
+  "consentAnalysis": {
+    "currentRun": "no run telemetry and no run-specific consent needed by run code",
+    "futureMinimalEvents": "privacy notice or consent cannot be determined until processor, retention, IP handling, cookies, and jurisdiction are approved",
+    "legalReviewRequired": true,
+    "cookieBannerImplemented": false
+  },
+  "errorTaxonomy": {
+    "public": [
+      "This run is temporarily unavailable.",
+      "This item could not be loaded.",
+      "Your result was not affected.",
+      "Return to Endgame Trainer."
+    ],
+    "privateCodes": [
+      "RUN_ARTIFACT_LOAD_FAILED",
+      "RUN_ARTIFACT_INTEGRITY_FAILED",
+      "ITEM_ARTIFACT_LOAD_FAILED",
+      "ITEM_CONTROLLER_INIT_FAILED",
+      "STALE_CALLBACK_REJECTED",
+      "BOARD_STATE_MISMATCH",
+      "TRANSITION_FAILED",
+      "SUMMARY_FAILED"
+    ],
+    "exclusions": [
+      "private-digests",
+      "stack-traces",
+      "reviewer-data",
+      "private-evidence"
+    ]
+  },
+  "killSwitchCandidates": [
+    {
+      "mechanism": "deployment-revert",
+      "speed": "minutes",
+      "authenticated": true,
+      "redeploy": true,
+      "recommendation": "current fallback"
+    },
+    {
+      "mechanism": "vercel-environment-edge-gate",
+      "speed": "fast",
+      "authenticated": true,
+      "redeploy": "configuration-dependent",
+      "recommendation": "preferred candidate"
+    },
+    {
+      "mechanism": "static-public-config",
+      "speed": "cache-dependent",
+      "authenticated": false,
+      "redeploy": false,
+      "recommendation": "reject unless signed and fail-closed"
+    },
+    {
+      "mechanism": "client-query-override",
+      "speed": "fast",
+      "authenticated": false,
+      "recommendation": "reject"
+    }
+  ],
+  "rollbackPlan": [
+    {
+      "trigger": "UI exposure issue",
+      "owner": "product/release",
+      "action": "remove entry while retaining hidden route",
+      "verification": "navigation absent and V2 fallback works",
+      "communication": "status and support notice",
+      "restoration": "product sign-off"
+    },
+    {
+      "trigger": "artifact/controller/item integration failure",
+      "owner": "release/engineering",
+      "action": "disable route or revert deployment",
+      "verification": "normal V2 and standalone items pass",
+      "communication": "incident record",
+      "restoration": "root cause and regression pass"
+    },
+    {
+      "trigger": "accessibility or browser regression",
+      "owner": "accessibility/QA/release",
+      "action": "disable preview",
+      "verification": "affected path unavailable and fallback accessible",
+      "communication": "known issue",
+      "restoration": "human retest"
+    },
+    {
+      "trigger": "technical-unavailable spike",
+      "owner": "operations/release",
+      "action": "activate kill switch",
+      "verification": "fallback and error rate normalize",
+      "communication": "operations alert",
+      "restoration": "artifact/service verification"
+    }
+  ],
+  "signingReadiness": {
+    "current": "honestly-unsigned",
+    "limitedPreviewCandidate": "unsigned only with explicit approval and immutable hash checks",
+    "publicBetaRecommendation": "signed artifacts",
+    "requirements": [
+      "security-owned-key",
+      "rotation",
+      "revocation",
+      "CI-verification",
+      "public-key-distribution",
+      "compromised-key-runbook"
+    ],
+    "keysGenerated": false
+  },
+  "securityAudit": {
+    "critical": [],
+    "high": [],
+    "medium": [
+      "kill-switch-not-implemented",
+      "public-threat-model-not-approved",
+      "unsigned-artifacts"
+    ],
+    "low": [
+      "hardcoded-English-copy"
+    ],
+    "informational": [
+      "client-side integrity is tamper detection, not server attestation"
+    ],
+    "publicReleaseBlocked": true
+  },
+  "performanceAudit": {
+    "artifactBytes": {
+      "run": 1329,
+      "promote": 7659,
+      "stopPromotion": 5542,
+      "total": 14530
+    },
+    "boardMountCount": 1,
+    "workers": 0,
+    "expectedStaticRequests": 3,
+    "transitionModel": "same-board/local-controller",
+    "unmeasured": [
+      "physical-device-latency",
+      "retry-memory-profile",
+      "listener-count-in-production",
+      "CDN-cache-behavior"
+    ],
+    "budgets": {
+      "totalRunArtifactsBytes": 25000,
+      "boardMounts": 1,
+      "workers": 0,
+      "itemTransitionMs": 250,
+      "summaryMs": 100,
+      "duplicateDomNodes": 0,
+      "duplicateListeners": 0,
+      "technicalNetworkRequests": 3
+    }
+  },
+  "browserPolicyCandidates": {
+    "preview": "current stable Chromium, Firefox, Safari/WebKit plus physical Android Chrome and iOS Safari smoke",
+    "beta": "current and previous major for Chrome/Edge/Firefox/Safari where feasible; graceful normal-V2 fallback",
+    "olderBrowsers": "unsupported with truthful copy after policy approval",
+    "physicalDeviceTestingPerformed": false
+  },
+  "mobileReview": {
+    "emulatedWidthsPassed": [
+      320,
+      375,
+      390,
+      768,
+      820,
+      1024,
+      1280,
+      1440,
+      1920
+    ],
+    "physicalDeviceAreas": [
+      "mobile-landscape",
+      "ios-safe-area",
+      "android-browser-chrome",
+      "touch-promotion",
+      "soft-keyboard",
+      "orientation-change"
+    ],
+    "physicalDeviceStatus": "not-reviewed"
+  },
+  "localizationReadiness": {
+    "current": "hardcoded-English",
+    "gaps": [
+      "pluralization",
+      "dynamic-counts",
+      "results",
+      "objectives",
+      "hints",
+      "errors",
+      "buttons",
+      "announcements"
+    ],
+    "previewRecommendation": "English-only with explicit scope",
+    "betaRecommendation": "extract strings and validate pluralization before beta",
+    "initialLanguagesCandidate": [
+      "en"
+    ],
+    "approvedLanguages": null
+  },
+  "supportRequirements": {
+    "requiredTopics": [
+      "purpose",
+      "objectives",
+      "hints",
+      "chess-loss-vs-objective-miss",
+      "retry",
+      "neutral-technical-failure",
+      "no-saved-results",
+      "privacy",
+      "beta-limitations",
+      "problem-reporting"
+    ],
+    "placementCandidate": [
+      "concise-inline-help",
+      "first-class-Help-section",
+      "FAQ"
+    ],
+    "escalationOwner": null,
+    "responseTarget": null,
+    "ready": false
+  },
+  "scorecard": {
+    "domains": [
+      {
+        "name": "content-sufficiency",
+        "score": 6,
+        "maximum": 20,
+        "confidence": "high",
+        "evidence": "Exactly two human-approved items cover one offensive and one defensive objective.",
+        "blocker": true,
+        "remediation": "Author and human-review at least three additional distinct items."
+      },
+      {
+        "name": "accessibility",
+        "score": 5,
+        "maximum": 15,
+        "confidence": "high",
+        "evidence": "Automated Axe, keyboard paths, responsive layouts, and focus transitions pass.",
+        "blocker": true,
+        "remediation": "Complete the human accessibility plan and resolve failures."
+      },
+      {
+        "name": "product-clarity",
+        "score": 5,
+        "maximum": 10,
+        "confidence": "medium",
+        "evidence": "The hidden run has truthful local-session copy and fixed progression.",
+        "blocker": true,
+        "remediation": "Approve a bounded product brief."
+      },
+      {
+        "name": "security",
+        "score": 8,
+        "maximum": 10,
+        "confidence": "medium",
+        "evidence": "Exact gates, item allowlists, artifact hashes, stale guards, textContent rendering, and private-path exclusions are tested.",
+        "blocker": true,
+        "remediation": "Perform release threat-model review."
+      },
+      {
+        "name": "privacy",
+        "score": 5,
+        "maximum": 10,
+        "confidence": "medium",
+        "evidence": "The run controller stores no cookies, localStorage, sessionStorage, account IDs, or results; it fetches three static artifacts.",
+        "blocker": true,
+        "remediation": "Complete infrastructure/privacy-owner audit and update notice if needed."
+      },
+      {
+        "name": "observability",
+        "score": 1,
+        "maximum": 5,
+        "confidence": "high",
+        "evidence": "No run telemetry, analytics events, or reporting service exists.",
+        "blocker": true,
+        "remediation": "Choose no telemetry or minimal privacy-preserving operational events with legal review."
+      },
+      {
+        "name": "rollback-and-kill-switch",
+        "score": 4,
+        "maximum": 10,
+        "confidence": "high",
+        "evidence": "See related readiness domains.",
+        "blocker": true,
+        "remediation": "Complete owner review."
+      },
+      {
+        "name": "performance",
+        "score": 4,
+        "maximum": 5,
+        "confidence": "medium",
+        "evidence": "Artifacts total 14,530 bytes; one board and zero Workers are used.",
+        "blocker": false,
+        "remediation": "Measure against proposed budgets on target devices."
+      },
+      {
+        "name": "browser-mobile",
+        "score": 3,
+        "maximum": 5,
+        "confidence": "medium",
+        "evidence": "See related readiness domains.",
+        "blocker": true,
+        "remediation": "Complete owner review."
+      },
+      {
+        "name": "artifact-integrity",
+        "score": 5,
+        "maximum": 5,
+        "confidence": "high",
+        "evidence": "Run and item artifacts have locked fingerprints and SHA-256 verification.",
+        "blocker": false,
+        "remediation": "Allow unsigned invite-only preview only if approved; require signing decision for beta."
+      },
+      {
+        "name": "support-documentation",
+        "score": 1,
+        "maximum": 5,
+        "confidence": "high",
+        "evidence": "See related readiness domains.",
+        "blocker": true,
+        "remediation": "Complete owner review."
+      }
+    ],
+    "score": 47,
+    "maximum": 100,
+    "mandatoryBlockerOverride": true,
+    "numericalScoreIsApproval": false
+  },
+  "blockingIssues": [
+    "two-items-below-minimum-content-candidate",
+    "objective-diversity-below-candidate",
+    "human-accessibility-review-not-performed",
+    "physical-mobile-review-not-performed",
+    "privacy-infrastructure-unknowns",
+    "observability-policy-unapproved",
+    "kill-switch-not-implemented",
+    "public-product-name-entry-label-unapproved",
+    "support-materials-not-ready",
+    "human-product-approval-absent"
+  ],
+  "nonblockingIssues": [
+    "artifact-signing-before-limited-preview-candidate",
+    "localization-beyond-English",
+    "final-performance-budget-approval"
+  ],
+  "recommendedDecision": {
+    "primary": "defer-public-release",
+    "findings": [
+      "requires-more-content",
+      "requires-accessibility-review",
+      "requires-privacy-observability-work"
+    ],
+    "limitedPreview": "not-yet-approved",
+    "publicBeta": "not-approved",
+    "confidence": "high for repository evidence; manual, legal, privacy infrastructure, and product evidence remain unset"
+  },
+  "recommendedNextTasks": [
+    "Human product owner reviews this exact packet without inferred approval.",
+    "Define and review three or more additional verified items reaching the five-item/three-objective candidate floor.",
+    "Complete the human accessibility and physical-device plan.",
+    "Complete infrastructure privacy audit and approve observability/consent policy.",
+    "Design and approve an authenticated fail-closed kill switch and rollback drill.",
+    "Prepare public naming, preview labeling, help, limitations, and support ownership."
+  ],
+  "humanReviewTemplate": {
+    "reviewDecision": null,
+    "reviewRationale": null,
+    "reviewerReference": null,
+    "reviewRevision": null,
+    "approvedPublicName": null,
+    "approvedReleaseTier": null,
+    "approvedMinimumItemCount": null,
+    "approvedObjectiveDiversity": null,
+    "approvedSessionLength": null,
+    "approvedSelectionPolicy": null,
+    "approvedEntryPoint": null,
+    "approvedBetaLabel": null,
+    "approvedResultPolicy": null,
+    "approvedHintPolicy": null,
+    "approvedSkipPolicy": null,
+    "approvedRetryPolicy": null,
+    "approvedAbandonmentPolicy": null,
+    "approvedAccessibilityGate": null,
+    "approvedPrivacyPolicy": null,
+    "approvedObservabilityPolicy": null,
+    "approvedConsentModel": null,
+    "approvedKillSwitch": null,
+    "approvedRollbackPolicy": null,
+    "approvedSigningRequirement": null,
+    "approvedBrowserPolicy": null,
+    "approvedLocalizationScope": null,
+    "approvedSupportScope": null,
+    "reviewedRunArtifactDigest": null,
+    "reviewedReadinessPacketDigest": null
+  },
+  "allowedHumanDecisions": [
+    "approve-public-beta",
+    "approve-limited-preview",
+    "requires-more-content",
+    "requires-accessibility-review",
+    "requires-privacy-observability-work",
+    "approve-with-readiness-corrections",
+    "defer-public-release",
+    "reject-public-release",
+    "requires-new-run-design"
+  ],
+  "packetDigest": "sha256-6822221505dc0b8ab6106e8dc86b3324d892938c91b74d722df1694c339f824d"
+}
