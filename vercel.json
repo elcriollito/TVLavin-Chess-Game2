@@ -47,6 +47,7 @@
     { "source": "/manifest.json", "destination": "/public/manifest.json" },
     { "source": "/robots.txt", "destination": "/public/robots.txt" },
     { "source": "/sitemap.xml", "destination": "/public/sitemap.xml" },
+    { "source": "/caissa-indexnow-2026.txt", "destination": "/public/caissa-indexnow-2026.txt" },
     { "source": "/og-image.png", "destination": "/public/og-image.png" },
     { "source": "/favicon-test.html", "destination": "/public/favicon-test.html" }
   ],

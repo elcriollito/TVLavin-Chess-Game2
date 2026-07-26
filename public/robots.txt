@@ -1,14 +1,4 @@
-# robots.txt for CAISSA Chess
-# https://www.caissa-chess.org
-
 User-agent: *
 Allow: /
 
-# Sitemap location (for Bing, Google, and other crawlers)
 Sitemap: https://www.caissa-chess.org/sitemap.xml
-
-# IndexNow key verification
-# Key file: https://www.caissa-chess.org/caissa-indexnow-2026.txt
-
-# Crawl-delay recommendation (optional, respected by Bing)
-Crawl-delay: 1

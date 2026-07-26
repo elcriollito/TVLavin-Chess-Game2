@@ -159,19 +159,7 @@ npm run download-pgn-test     # Test mode (first 3 only)
 
 ---
 
-### 3. IndexNow Ping
-
-**File:** `indexnow-ping.mjs`
-
-Pings search engines (Bing, Yandex) when content is updated.
-
-```bash
-npm run indexnow-ping
-```
-
----
-
-### 4. Favicon Generator
+### 3. Favicon Generator
 
 **File:** `generate-favicons-sharp.mjs`
 
