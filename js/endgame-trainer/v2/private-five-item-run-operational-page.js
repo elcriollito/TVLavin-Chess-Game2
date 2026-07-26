@@ -3,16 +3,20 @@ import {
 } from './private-run-operational-config.js';
 
 let mounted;
-const ALLOWED_KEYS=new Set(['trainerV2','multiMovePilot','privateEndgameRun']);
+const REQUIRED_KEYS=new Set(['trainerV2','multiMovePilot','privateEndgameRun']);
+const ALLOWED_KEYS=new Set([...REQUIRED_KEYS,'previewEntry']);
 const text=(root,selector,value)=>{const node=root.querySelector(selector);if(node&&node.textContent!==value)node.textContent=value;};
 
 export function validatePrivateRunOperationalSearch(search=''){
   if(typeof search!=='string'||search.length>1024)throw new Error('private-run-selector-invalid');
   const params=new URLSearchParams(search);
   if([...params.keys()].some(key=>!ALLOWED_KEYS.has(key))||
-    [...ALLOWED_KEYS].some(key=>params.getAll(key).length!==1)||
+    [...REQUIRED_KEYS].some(key=>params.getAll(key).length!==1)||
+    params.getAll('previewEntry').length>1||
     params.get('trainerV2')!=='1'||params.get('multiMovePilot')!=='1'||
-    params.get('privateEndgameRun')!=='five-item')throw new Error('private-run-selector-invalid');
+    params.get('privateEndgameRun')!=='five-item'||
+    (params.has('previewEntry')&&params.get('previewEntry')!=='endgame-practice'))
+    throw new Error('private-run-selector-invalid');
   return true;
 }
 
@@ -52,6 +56,11 @@ export function mountPrivateFiveItemRunOperationalPage({
     let config;
     try{validatePrivateRunOperationalSearch(win.location?.search??'');config=await query();}
     catch{config=safeDisabledPrivateRunConfig('configuration-invalid');}
+    const previewEntry=new URLSearchParams(win.location?.search??'').has('previewEntry');
+    if(previewEntry && (!config.previewBoundary?.configurationValid ||
+      !['internal-preview','limited-preview'].includes(config.previewBoundary?.mode))){
+      render(safeDisabledPrivateRunConfig('configuration-invalid'));return false;
+    }
     if(!config.enabled){render(config);return false;}
     enabledModule=await import('./private-five-item-run-enabled-page.js');
     if(abort.signal.aborted)return false;
@@ -65,7 +74,7 @@ export function mountPrivateFiveItemRunOperationalPage({
   };
   panel.querySelector('[data-private-availability-retry]').addEventListener('click',()=>activate({focusStart:true}),{signal:abort.signal});
   mounted={root,panel,abort,retry:activate,dispose(){abort.abort();stopEnabled();panel.remove();mounted=null;}};
-  setSurface(false);void activate();return mounted;
+  setSurface(false);void activate({focusStart:true});return mounted;
 }
 
 export function unmountPrivateFiveItemRunOperationalPage(){

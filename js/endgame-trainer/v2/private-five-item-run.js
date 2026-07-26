@@ -11,7 +11,8 @@ export const PRIVATE_FIVE_ITEM_RUN_DESCRIPTOR = Object.freeze({
   canonicalByteLength: 2862
 });
 const MODE_KEYS = ['objectiveArtifact','endgameRun','privateEndgameRun'];
-const ALLOWED_KEYS = new Set(['trainerV2','multiMovePilot','privateEndgameRun']);
+const REQUIRED_KEYS = new Set(['trainerV2','multiMovePilot','privateEndgameRun']);
+const ALLOWED_KEYS = new Set([...REQUIRED_KEYS,'previewEntry']);
 const TERMINAL = new Set(['objective-success','objective-failure','technical-unavailable','item-error']);
 const clone = value => structuredClone(value);
 const itemKey = item => `${item.artifactId}@${item.artifactVersion}`;
@@ -26,9 +27,12 @@ const resolverSearch = Object.freeze({
 export function validatePrivateFiveItemRunSearch(search = '') {
   const params = new URLSearchParams(search);
   if ([...params.keys()].some(key => !ALLOWED_KEYS.has(key))) throw new Error('private-run-flags-invalid');
-  if ([...ALLOWED_KEYS].some(key => params.getAll(key).length !== 1)) throw new Error('private-run-flags-invalid');
+  if ([...REQUIRED_KEYS].some(key => params.getAll(key).length !== 1) ||
+      params.getAll('previewEntry').length > 1) throw new Error('private-run-flags-invalid');
   if (params.get('trainerV2') !== '1' || params.get('multiMovePilot') !== '1' ||
-      params.get('privateEndgameRun') !== 'five-item') throw new Error('private-run-flags-invalid');
+      params.get('privateEndgameRun') !== 'five-item' ||
+      (params.has('previewEntry') && params.get('previewEntry') !== 'endgame-practice'))
+    throw new Error('private-run-flags-invalid');
   return true;
 }
 

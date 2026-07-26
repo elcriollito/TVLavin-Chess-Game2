@@ -2,6 +2,9 @@ export const PRIVATE_RUN_FEATURE_ID = 'five-item-private-endgame-run';
 export const PRIVATE_RUN_CONFIG_SCHEMA_VERSION = '1.0.0';
 export const PRIVATE_RUN_AVAILABILITY_URL = '/api/endgame/private-run-availability';
 export const PRIVATE_RUN_AVAILABILITY_TIMEOUT_MS = 5000;
+export const ENDGAME_PRACTICE_RELEASE_MODES = Object.freeze([
+  'unreleased','internal-preview','limited-preview','paused'
+]);
 
 export const PRIVATE_RUN_MODES = Object.freeze(['enabled','disabled','maintenance','emergency-disabled']);
 export const PRIVATE_RUN_REASON_CODES = Object.freeze([
@@ -10,6 +13,27 @@ export const PRIVATE_RUN_REASON_CODES = Object.freeze([
   'manual-emergency-disable'
 ]);
 const PRIVATE_MODE_KEYS = ['objectiveArtifact','endgameRun','privateEndgameRun'];
+const RELEASE_MODE_SET = new Set(ENDGAME_PRACTICE_RELEASE_MODES);
+
+export function createEndgamePracticeReleaseBoundary(environment = {}) {
+  const raw=environment.CAISSA_ENDGAME_PRACTICE_RELEASE_MODE;
+  const defaulted=raw === undefined || raw === '';
+  const valid=defaulted || RELEASE_MODE_SET.has(raw);
+  return Object.freeze({
+    mode: valid && !defaulted ? raw : 'unreleased',
+    configurationValid: valid,
+    source: 'server-environment',
+    safeDefault: 'unreleased'
+  });
+}
+
+export function validateEndgamePracticeReleaseBoundary(value) {
+  if(!value || typeof value !== 'object' || Array.isArray(value) ||
+    !RELEASE_MODE_SET.has(value.mode) || typeof value.configurationValid !== 'boolean' ||
+    value.source !== 'server-environment' || value.safeDefault !== 'unreleased')
+    throw new Error('endgame-practice-boundary-invalid');
+  return Object.freeze(structuredClone(value));
+}
 
 export function shouldActivatePrivateFiveItemRun(search=''){
   const params=new URLSearchParams(search);
@@ -53,7 +77,8 @@ export function createPrivateRunOperationalConfig(environment = {}) {
     effectivePolicy: 'fail-closed-no-cache',
     configurationSource: 'server-environment',
     failClosed: true,
-    lastKnownSafeDefault: 'disabled'
+    lastKnownSafeDefault: 'disabled',
+    previewBoundary: createEndgamePracticeReleaseBoundary(environment)
   });
 }
 
@@ -68,17 +93,34 @@ export function validatePrivateRunOperationalConfig(value) {
       value.failClosed !== true || value.lastKnownSafeDefault !== 'disabled' ||
       ((value.mode === 'enabled') !== value.enabled))
     throw new Error('private-run-configuration-invalid');
+  if(value.previewBoundary !== undefined)validateEndgamePracticeReleaseBoundary(value.previewBoundary);
   return Object.freeze(structuredClone(value));
 }
 
 export function safeDisabledPrivateRunConfig(reasonCode = 'configuration-unavailable') {
+  const previewBoundary=reasonCode==='configuration-invalid'
+    ? Object.freeze({mode:'unreleased',configurationValid:false,source:'server-environment',safeDefault:'unreleased'})
+    : createEndgamePracticeReleaseBoundary();
   return Object.freeze({
     schemaVersion: PRIVATE_RUN_CONFIG_SCHEMA_VERSION, featureId: PRIVATE_RUN_FEATURE_ID,
     enabled: false, mode: 'disabled',
     reasonCode: REASON_SET.has(reasonCode) ? reasonCode : 'configuration-invalid',
     userMessage: SAFE_COPY.disabled, effectivePolicy: 'fail-closed-no-cache',
-    configurationSource: 'server-environment', failClosed: true, lastKnownSafeDefault: 'disabled'
+    configurationSource: 'server-environment', failClosed: true, lastKnownSafeDefault: 'disabled',
+    previewBoundary
   });
+}
+
+export function resolveEndgamePracticeAvailability(config) {
+  let boundary;
+  try{boundary=validateEndgamePracticeReleaseBoundary(config?.previewBoundary);}
+  catch{return Object.freeze({state:'configuration-failure',canStart:false});}
+  if(!boundary.configurationValid)return Object.freeze({state:'configuration-failure',canStart:false});
+  if(boundary.mode==='paused')return Object.freeze({state:'paused',canStart:false});
+  if(boundary.mode==='unreleased')return Object.freeze({state:'unreleased',canStart:false});
+  if(config.mode==='maintenance')return Object.freeze({state:'maintenance',canStart:false});
+  if(!config.enabled)return Object.freeze({state:'runtime-disabled',canStart:false});
+  return Object.freeze({state:boundary.mode,canStart:true});
 }
 
 export async function fetchPrivateRunOperationalConfig({

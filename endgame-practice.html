@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>CAISSA Endgame Practice — Limited Preview</title>
+  <link rel="stylesheet" href="/css/endgame-practice.css?v=1.0.0">
+  <script src="/js/caissa-clarity.js?v=1.0.0" defer></script>
+  <script type="module" src="/js/endgame-practice-page.js?v=1.0.0"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="practice-header">
+    <a class="brand" href="/" aria-label="CAISSA Chess home">CAISSA Chess</a>
+    <nav aria-label="On this page">
+      <a href="#overview">Overview</a><a href="#exercises">Exercises</a>
+      <a href="#privacy">Privacy</a><a href="#availability">Availability</a>
+    </nav>
+  </header>
+  <main id="main">
+    <section class="hero" id="overview" aria-labelledby="practice-title">
+      <p class="eyebrow">Limited Preview</p>
+      <h1 id="practice-title">CAISSA Endgame Practice</h1>
+      <p class="intro">Practice five focused endgame ideas through short, guided positions.</p>
+      <ul class="facts" aria-label="Preview facts">
+        <li><strong>5</strong> exercises</li><li>No account required</li>
+        <li>No saved progress</li><li>Private preview</li>
+      </ul>
+    </section>
+    <section id="exercises" aria-labelledby="exercise-title">
+      <h2 id="exercise-title">Exercises</h2>
+      <div class="exercise-grid">
+        <article><h3>Promote the Pawn</h3><p>Guide a passed pawn toward promotion with king support.</p></article>
+        <article><h3>Stop the Pawn</h3><p>Catch a dangerous pawn before it promotes.</p></article>
+        <article><h3>Trade to Simplify</h3><p>Use a favorable exchange to reach a clearer winning position.</p></article>
+        <article><h3>Hold the Draw</h3><p>Preserve the draw through a safe liquidation.</p></article>
+        <article><h3>Activate the King</h3><p>Bring the king forward before advancing the pawn.</p></article>
+      </div>
+    </section>
+    <section id="privacy" aria-labelledby="about-title">
+      <h2 id="about-title">About this preview</h2>
+      <p>This is a small, carefully reviewed set of five endgame exercises. It is not yet a complete training course.</p>
+      <p>Progress is kept only while this page is open. Refreshing or leaving clears the session.</p>
+      <p>No account is required, and this preview does not affect any rating.</p>
+      <h2>Privacy</h2>
+      <p>This preview does not save your moves, hints, results, or progress. Analytics are disabled inside the exercise session.</p>
+    </section>
+    <section class="status-card" id="availability" aria-labelledby="availability-title">
+      <p class="eyebrow" data-status-label>Not released</p>
+      <h2 id="availability-title" tabindex="-1" data-status-title>Limited Preview</h2>
+      <div aria-live="polite" aria-atomic="true">
+        <p data-status-message>This experience is not available yet. We are preparing the first set of guided endgame exercises.</p>
+        <p data-status-progress>No account is required. No progress is saved.</p>
+      </div>
+      <a class="primary" data-start hidden href="/endgame-trainer?trainerV2=1&amp;multiMovePilot=1&amp;privateEndgameRun=five-item&amp;previewEntry=endgame-practice">Start Limited Preview</a>
+      <button type="button" data-retry hidden>Retry availability check</button>
+    </section>
+    <nav class="return-links" aria-label="Continue with CAISSA">
+      <a href="/endgame-trainer">Return to Endgame Trainer</a>
+      <a href="/endgame-library">Explore the Endgame Library</a>
+    </nav>
+  </main>
+  <footer><p>CAISSA Chess</p></footer>
+</body>
+</html>

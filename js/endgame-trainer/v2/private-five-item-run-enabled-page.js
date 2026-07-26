@@ -266,7 +266,8 @@ export function mountPrivateFiveItemRunPage({
   };
   root.querySelector('[data-v2-action="skip"]').addEventListener('click',restart,{signal:abort.signal});
   const exit = event => {
-    const state=controller.getState(), leave=()=>{controller.exit();win.location.assign('/endgame-trainer?trainerV2=1');};
+    const state=controller.getState(), fromPractice=new URLSearchParams(win.location.search).get('previewEntry')==='endgame-practice';
+    const leave=()=>{controller.exit();win.location.replace(fromPractice?'/endgame-practice':'/endgame-trainer?trainerV2=1');};
     if(progressExists(state)&&state.status!=='run-success') openDialog({opener:event.currentTarget,title:'Exit this run?',body:'Your current progress will be cleared because this private session is not saved.',confirm:'Exit Run',action:leave});
     else leave();
   };
