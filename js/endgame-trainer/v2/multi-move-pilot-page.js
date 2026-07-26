@@ -1,6 +1,6 @@
 import { ChessRulesFacade } from '../chess-rules-facade.js';
 import { EndgameBoardView } from '../endgame-board-view.js';
-import { loadMultiMovePilot, MultiMovePilotController } from './multi-move-pilot.js';
+import { loadMultiMovePilot, MultiMovePilotController, resolveMultiMovePilotDescriptor } from './multi-move-pilot.js';
 let mounted;
 const text = (root, selector, value) => { const node = root.querySelector(selector); if (node) node.textContent = value; };
 const action = (root, name, show) => { const node = root.querySelector(`[data-v2-action="${name}"]`); if (node) node.hidden = !show; };
@@ -22,11 +22,16 @@ export function mountMultiMovePilotPage({ document: doc = globalThis.document, w
   root.querySelectorAll('[data-v2-score],[data-v2-streak],[data-v2-time]').forEach(node => node.closest('span').hidden = true);
   text(root, '#endgame-v2-title', 'Multi-Move Technical Pilot');
   text(root, '.endgame-v2__disclosure', 'Local technical practice. This hidden pilot is not saved and has no competitive score.');
-  text(root, '[data-v2-objective]', 'Promote the e-pawn');
+  const search = win.location?.search ?? '';
+  const descriptor = resolveMultiMovePilotDescriptor(search);
+  const isStopPromotion = descriptor?.pilotId === 'rule-square-a-pawn-catch-stop-promotion';
+  const objectiveLabel = isStopPromotion ? 'Stop the a-pawn' : 'Promote the e-pawn';
+  const maximumPly = isStopPromotion ? 10 : 12;
+  text(root, '[data-v2-objective]', objectiveLabel);
   text(root, '[data-v2-item-label]', 'Ready · White to move');
   const currentMode=root.querySelector('[data-v2-mode="quick-challenge"]');
   if(currentMode){currentMode.dataset.v2Mode='multi-move-pilot';currentMode.setAttribute('aria-current','true');
-    text(currentMode,'strong','Multi-Move Pilot');text(currentMode,'span','Promote with king coordination');text(currentMode,'em','Current hidden mode');}
+    text(currentMode,'strong','Multi-Move Pilot');text(currentMode,'span',isStopPromotion?'Stop promotion with the rule of the square':'Promote with king coordination');text(currentMode,'em','Current hidden mode');}
   const start = root.querySelector('[data-v2-action="start"]'); start.textContent = 'Start Pilot';
   action(root,'skip',false); action(root,'continue',false); action(root,'retry',false); action(root,'abandon',false);
   let controller;
@@ -39,7 +44,7 @@ export function mountMultiMovePilotPage({ document: doc = globalThis.document, w
     if (board.getPosition() !== state.fen) board.setPosition(state.fen, state.lastMove);
     const learner = state.phase === 'learner-turn';
     board.setInteractive(learner);
-    text(root,'[data-v2-progress]',`${state.ply} / 12`);
+    text(root,'[data-v2-progress]',`${state.ply} / ${maximumPly}`);
     text(root,'[data-v2-item-label]',`${state.result ? 'Pilot complete' : learner ? 'White to move' : 'Pilot in progress'} · ${state.history.length} plies`);
     text(root,'[data-v2-feedback]',state.feedback);
     action(root,'start',state.phase === 'item-configured');
@@ -48,11 +53,11 @@ export function mountMultiMovePilotPage({ document: doc = globalThis.document, w
     action(root,'abandon',!['item-configured','item-abandoned'].includes(state.phase));
     present(root,state.phase,state.feedback);
     const summary=root.querySelector('[data-v2-summary]'); summary.hidden=!['objective-success','objective-failure'].includes(state.phase);
-    if(!summary.hidden){text(root,'#v2-summary-title',state.result==='objective-failure'?'Objective not completed':'Promotion complete');
+    if(!summary.hidden){text(root,'#v2-summary-title',['objective-failure','objective-miss-while-drawing'].includes(state.result)?'Objective not completed':isStopPromotion?'Pawn stopped':'Promotion complete');
       summary.querySelector('dl').hidden=true; text(root,'.endgame-v2__summary > p',state.result?.replaceAll('-',' '));}
     root.dataset.state=`pilot-${state.phase}`;
   };
-  start.addEventListener('click',async()=>{start.disabled=true;try{const artifact=await loadMultiMovePilot({fetchImpl:win.fetch.bind(win)});controller=new MultiMovePilotController({artifact,onChange:render,
+  start.addEventListener('click',async()=>{start.disabled=true;try{const artifact=await loadMultiMovePilot({fetchImpl:win.fetch.bind(win),search});controller=new MultiMovePilotController({artifact,onChange:render,
       delay:()=>new Promise(resolve=>win.setTimeout(resolve,win.matchMedia?.('(prefers-reduced-motion: reduce)').matches?0:180))});
     mounted.controller=controller;render(controller.getState());await controller.start();}catch{text(root,'[data-v2-feedback]','The pilot is technically unavailable.');root.dataset.state='pilot-technical-unavailable';present(root,'technical-unavailable','The pilot is technically unavailable.');}finally{start.disabled=false;}},{signal:abort.signal});
   root.querySelector('[data-v2-action="hint"]').addEventListener('click',()=>controller?.hint(),{signal:abort.signal});

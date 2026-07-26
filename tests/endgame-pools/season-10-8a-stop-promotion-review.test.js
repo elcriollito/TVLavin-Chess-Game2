@@ -113,11 +113,11 @@ test('all Season 10.8A artifacts remain protected from public release', () => {
   ]) assert.equal(isProtectedPublicPath(path), true, path);
 });
 
-test('promote pilot, pools, manifest, runtime, and Season 10.7 visuals remain byte-identical', async () => {
+test('promote artifact, pools, manifest, and Season 10.7 visuals remain byte-identical while shared runtime has the reviewed 10.8B extension', async () => {
   const expected = {
     'public/data/endgame-pilots/kp-coordinate-support-promote/1.0.0.json': '4b3a0ef4560a1c0a46f0b6bdfc615ef8860cec2c8b0bf8de8261b2c67a6847e3',
-    'js/endgame-trainer/v2/multi-move-pilot.js': 'ebc34d5cde5a3018a755b5d783dac6545457e0c474f47e229df3095573fad70b',
-    'js/endgame-trainer/v2/multi-move-pilot-page.js': '9321095638a267c109079fa2489afac2de9910447479ebfd2d7ac17dd385da9f',
+    'js/endgame-trainer/v2/multi-move-pilot.js': '1b3c6e8b7d9b18f672c49ad4631a8bcd8b5b7f99fcbffeabc17e49cac543b416',
+    'js/endgame-trainer/v2/multi-move-pilot-page.js': '00d7b15f448964c056814ee51f9af39f9ecf5155b212a631873579610d51653c',
     'endgame-trainer.html': 'f4e29f79b755dfe332a4ab4e214c15960de192bd9be086526a10f1ef37a76744',
     'css/endgame-trainer.css': '88a8ff330231a42d5dce727fe1a3ecd325f8e0496c7f5c28bb7b8463f34efdb9',
     'public/data/endgame-pools/caissa-king-pawn-decisions/1.0.0.json': '7324ffada9e27a07a64a7e30960e1f69dadd110844f3ad97e4967364a2c91d23',

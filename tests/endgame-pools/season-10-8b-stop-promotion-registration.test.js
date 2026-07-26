@@ -1,0 +1,27 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { APPROVAL, registerAndBuild, validateApproval } from '../../scripts/register-season-10-8b-stop-promotion-pilot.mjs';
+const read = async path => JSON.parse(await readFile(new URL(path, import.meta.url), 'utf8'));
+const packet = await read('../../endgame-pools/private/multi-move-review-packets/rule-square-a-pawn-catch-stop-promotion.json');
+const graph = await read('../../endgame-pools/private/multi-move-tablebase/rule-square-a-pawn-catch-stop-promotion-state-graph.json');
+
+test('exact Season 10.8B approval registers against all four immutable bindings', () =>
+  assert.equal(validateApproval({ packet, graph }), true));
+test('missing rationale, wrong decision, and every stale digest fail closed', () => {
+  assert.throws(() => validateApproval({ packet, graph, approval: { ...APPROVAL, reviewRationale: '' } }), /missing-rationale/);
+  assert.throws(() => validateApproval({ packet, graph, approval: { ...APPROVAL, reviewDecision: 'defer' } }), /invalid-decision/);
+  for (const key of ['reviewedPositionDigest','reviewedTablebaseTreeDigest','reviewedEngineEvidenceDigest','reviewedPacketDigest'])
+    assert.throws(() => validateApproval({ packet, graph, approval: { ...APPROVAL, [key]: 'sha256-stale' } }), /stale-/);
+});
+test('public artifact is deterministic, bounded, and excludes private review data', async () => {
+  const a = await registerAndBuild({ write: false }), b = await registerAndBuild({ write: false });
+  assert.deepEqual(a, b);
+  const text = JSON.stringify(a.artifact);
+  assert.ok(!text.includes('reviewer:') && !text.includes('reviewRationale') && !text.includes('requestDigest'));
+  assert.equal(a.artifact.objective.id, 'stop-promotion');
+  assert.equal(a.artifact.objective.maximumPly, 10);
+  assert.equal(a.artifact.branches.length, 2);
+  assert.equal(a.artifact.branches[0].nodes[0].deviationClassifications.d1d2, 'objective-miss-while-drawing');
+  assert.deepEqual(a.artifact.objective.promotionFailurePieces, ['queen','rook','bishop','knight']);
+});

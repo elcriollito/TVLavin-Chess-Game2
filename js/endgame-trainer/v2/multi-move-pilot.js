@@ -8,27 +8,48 @@ export const PILOT_DESCRIPTOR = Object.freeze({
   contentFingerprint: 'epilot-fnv1a32-f5f5df1f',
   contentDigest: 'sha256-076a58b2983d66d7f8035ebfb2b52946cb88e92c444cb59bafc9c140455117c6'
 });
+export const STOP_PROMOTION_PILOT_DESCRIPTOR = Object.freeze({
+  pilotId: 'rule-square-a-pawn-catch-stop-promotion', pilotVersion: '1.0.0',
+  url: '/data/endgame-pilots/rule-square-a-pawn-catch-stop-promotion/1.0.0.json',
+  contentFingerprint: 'epilot-fnv1a32-52fddf30',
+  contentDigest: 'sha256-d0e482faf45c08a10db2d98f0328a2639292107c6ecf68ac56adf00505745f22'
+});
+const DESCRIPTORS = new Map([
+  [`${PILOT_DESCRIPTOR.pilotId}@${PILOT_DESCRIPTOR.pilotVersion}`, PILOT_DESCRIPTOR],
+  [`${STOP_PROMOTION_PILOT_DESCRIPTOR.pilotId}@${STOP_PROMOTION_PILOT_DESCRIPTOR.pilotVersion}`, STOP_PROMOTION_PILOT_DESCRIPTOR]
+]);
+const OBJECTIVES = new Set(['promote@1.0.0', 'stop-promotion@1.0.0']);
 const TERMINAL = new Set(['objective-success','objective-failure','technical-unavailable','item-abandoned','item-error']);
 const clone = value => structuredClone(value);
 
 export function shouldActivateMultiMovePilot(search = '') {
   const params = new URLSearchParams(search);
+  const selector = params.get('pilot');
   return params.get('trainerV2') === '1' && params.get('multiMovePilot') === '1' &&
+    (!selector || DESCRIPTORS.has(selector)) &&
     !['studyUnit','release','activity','reviewFrom'].some(key => params.has(key));
 }
 
-export async function loadMultiMovePilot({ fetchImpl = fetch, cryptoImpl = globalThis.crypto } = {}) {
-  const response = await fetchImpl(PILOT_DESCRIPTOR.url);
+export function resolveMultiMovePilotDescriptor(search = '') {
+  const selector = new URLSearchParams(search).get('pilot');
+  return selector ? DESCRIPTORS.get(selector) ?? null : PILOT_DESCRIPTOR;
+}
+
+export async function loadMultiMovePilot({ fetchImpl = fetch, cryptoImpl = globalThis.crypto, search = '' } = {}) {
+  const descriptor = resolveMultiMovePilotDescriptor(search);
+  if (!descriptor) throw new Error('pilot-not-allowed');
+  const response = await fetchImpl(descriptor.url);
   if (!response.ok) throw new Error('pilot-unavailable');
   const artifact = await response.json();
   const { contentFingerprint, contentDigest, ...base } = artifact;
-  if (artifact.pilotId !== PILOT_DESCRIPTOR.pilotId || artifact.pilotVersion !== PILOT_DESCRIPTOR.pilotVersion ||
-      contentFingerprint !== PILOT_DESCRIPTOR.contentFingerprint ||
-      contentDigest !== PILOT_DESCRIPTOR.contentDigest ||
+  if (artifact.pilotId !== descriptor.pilotId || artifact.pilotVersion !== descriptor.pilotVersion ||
+      contentFingerprint !== descriptor.contentFingerprint ||
+      contentDigest !== descriptor.contentDigest ||
       computeCompatibilityFingerprint(base).replace('epool-', 'epilot-') !== contentFingerprint ||
       await sha256Digest(base, cryptoImpl) !== contentDigest ||
       artifact.opponentPolicy?.runtimeNetworkRequired !== false ||
-      artifact.branches?.length !== 2) throw new Error('pilot-integrity-failure');
+      artifact.branches?.length !== 2 ||
+      !OBJECTIVES.has(`${artifact.objective?.id}@${artifact.objective?.version}`)) throw new Error('pilot-integrity-failure');
   return Object.freeze(clone(artifact));
 }
 
@@ -36,7 +57,8 @@ export class MultiMovePilotController {
   #artifact; #onChange; #delay; #generation = 0; #pending = false;
   #state;
   constructor({ artifact, onChange = () => {}, delay = async () => {} } = {}) {
-    if (!artifact || artifact.pilotId !== PILOT_DESCRIPTOR.pilotId) throw new TypeError('invalid-pilot');
+    if (!artifact || !DESCRIPTORS.has(`${artifact.pilotId}@${artifact.pilotVersion}`) ||
+        !OBJECTIVES.has(`${artifact.objective?.id}@${artifact.objective?.version}`)) throw new TypeError('invalid-pilot');
     this.#artifact = artifact; this.#onChange = onChange; this.#delay = delay;
     this.#state = this.#fresh('item-configured');
   }
@@ -49,7 +71,7 @@ export class MultiMovePilotController {
     this.#commit({ phase: 'item-loading' }); const generation = ++this.#generation;
     await Promise.resolve();
     if (generation !== this.#generation) return false;
-    this.#commit({ phase: 'learner-turn', feedback: 'White to move. Promote the e-pawn.' }); return true;
+    this.#commit({ phase: 'learner-turn', feedback: `White to move. ${this.#artifact.objective.label}.` }); return true;
   }
   async submitMove(intent) {
     if (this.#state.phase !== 'learner-turn' || this.#pending) return false;
@@ -77,12 +99,19 @@ export class MultiMovePilotController {
       if (classification === 'objective-failure') {
         this.#commit({ phase: 'objective-failure', feedback: this.#artifact.feedback.failure, result: 'objective-failure' }); return true;
       }
+      if (classification === 'objective-miss-while-drawing') {
+        this.#commit({ phase: 'objective-failure', feedback: this.#artifact.feedback.objectiveMissWhileDrawing,
+          result: 'objective-miss-while-drawing' }); return true;
+      }
       if (!approvedBranch) throw new Error('approved-branch-missing');
       const history = [...this.#state.history, { side: 'white', uci, san: played.san }];
       const learnerFen = rules.fen(), ply = this.#state.ply + 1;
       this.#commit({ phase: 'objective-evaluating', fen: learnerFen, branchId: approvedBranch.branchId, history, ply,
         lastMove: { from: intent.from, to: intent.to, promotion: intent.promotion, flags: played.flags } });
-      if (uci.endsWith('q')) {
+      const objectiveSuccess = this.#artifact.objective.id === 'promote'
+        ? uci.endsWith('q')
+        : played.captured === 'p';
+      if (objectiveSuccess) {
         this.#commit({ phase: 'objective-success', feedback: this.#artifact.feedback.success,
           result: this.#state.independentEligible ? 'independent-success' : 'hint-assisted-success' });
         return true;
@@ -99,6 +128,13 @@ export class MultiMovePilotController {
       const reply = opponentRules.move(node.opponentReply.uci);
       if (reply.san !== node.opponentReply.san || opponentRules.fen() !== node.opponentReply.resultingFen)
         throw new Error('opponent-reply-invalid');
+      if (this.#artifact.objective.id === 'stop-promotion' && reply.promotion) {
+        this.#commit({ phase: 'objective-failure', fen: opponentRules.fen(), ply: ply + 1,
+          history: [...history, { side: 'black', uci: reply.lan, san: reply.san }],
+          feedback: this.#artifact.feedback.objectiveMissWhileDrawing ?? this.#artifact.feedback.failure,
+          result: 'objective-failure', lastMove: { from: reply.from, to: reply.to, promotion: reply.promotion, flags: reply.flags } });
+        return true;
+      }
       this.#commit({ phase: 'learner-turn', fen: opponentRules.fen(), nodeIndex: this.#state.nodeIndex + 1,
         ply: ply + 1, history: [...history, { side: 'black', uci: reply.lan, san: reply.san }],
         feedback: `${this.#artifact.feedback.opponent} White to move.`,
@@ -114,7 +150,8 @@ export class MultiMovePilotController {
     if (this.#state.phase !== 'learner-turn') return false;
     const stage = Math.min(3, this.#state.hintStage + 1);
     const branch = this.#state.branchId && this.#artifact.branches.find(item => item.branchId === this.#state.branchId);
-    const reveal = stage === 3 ? ` Next move: ${branch?.nodes[this.#state.nodeIndex]?.approvedLearnerMove.san ?? 'Ke6 or Kf6'}.` : '';
+    const initialMoves = this.#artifact.branches.map(item => item.firstMove).join(' or ');
+    const reveal = stage === 3 ? ` Next move: ${branch?.nodes[this.#state.nodeIndex]?.approvedLearnerMove.san ?? initialMoves}.` : '';
     this.#commit({ hintStage: stage, independentEligible: stage < 3 && this.#state.independentEligible,
       feedback: `${this.#artifact.hints[stage - 1]}${reveal}` }); return true;
   }

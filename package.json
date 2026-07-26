@@ -39,6 +39,7 @@
     "verify:endgame-remote-tablebase": "node scripts/generate-endgame-review-packets.mjs",
     "register:endgame-season-10-5b": "node scripts/register-season-10-5b-adjudications.mjs",
     "register:endgame-season-10-6b": "node scripts/register-season-10-6b-promote-pilot.mjs",
+    "register:endgame-season-10-8b": "node scripts/register-season-10-8b-stop-promotion-pilot.mjs",
     "test:endgame-remote-tablebase": "node --test tests/endgame-pools/remote-tablebase-evidence.test.js",
     "test:endgame-remote-tablebase:live": "node --test tests/endgame-pools/remote-tablebase-live.test.js",
     "test:endgame-pools": "node --test tests/endgame-pools/*.test.js",
