@@ -9,7 +9,7 @@ const artifact = JSON.parse(await readFile(new URL(
 const byTitle = new Map(artifact.positions.map((position) => [position.title, position]));
 
 async function openV2(page) {
-    await page.goto('/endgame-trainer?trainerV2=1');
+    await page.goto('/endgame-trainer');
     await expect(page.locator('[data-endgame-trainer-page]')).toHaveClass(/is-v2/);
     await expect(page.locator('[data-v2-action="start"]')).toBeVisible();
 }
@@ -52,7 +52,7 @@ async function playLanWithKeyboard(page, lan, orientation) {
     await page.keyboard.press('Enter');
 }
 
-test('feature flag starts and completes a five-position curated challenge', async ({ page }) => {
+test('canonical default starts and completes a five-position curated challenge', async ({ page }) => {
     await openV2(page);
     await page.locator('[data-v2-action="start"]').click();
     await expect(page.locator('[data-endgame-trainer-page]')).toHaveAttribute('data-state', 'v2-active');
@@ -130,13 +130,50 @@ test('adjudicated accepted alternative succeeds with truthful live feedback', as
     throw new Error('selected session did not contain an approved alternative');
 });
 
-test('V1 default and Guided Study precedence remain intact', async ({ page }) => {
+test('explicit legacy, redundant V2 alias, and Guided Study precedence remain intact', async ({ page }) => {
     await page.goto('/endgame-trainer');
-    await expect(page.locator('[data-endgame-trainer-page]')).not.toHaveClass(/is-v2/);
+    await expect(page.locator('[data-endgame-trainer-page]')).toHaveClass(/is-v2/);
+    await page.goto('/endgame-trainer?trainerV2=1');
+    await expect(page.locator('[data-endgame-trainer-page]')).toHaveClass(/is-v2/);
+    await page.goto('/endgame-trainer?legacy=1');
+    await expect(page.locator('[data-endgame-trainer-page]')).toHaveClass(/is-legacy/);
     await expect(page.locator('[data-action="prepare"]')).toBeVisible();
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex, nofollow');
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://www.caissa-chess.org/endgame-trainer');
     await page.goto('/endgame-trainer?trainerV2=1&studyUnit=direct-opposition&release=rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84');
     await expect(page.locator('[data-endgame-trainer-page]')).not.toHaveClass(/is-v2/);
     await expect(page.locator('[data-library-study]')).toBeVisible();
+});
+
+test('invalid selectors fail closed without silently mounting legacy', async ({ page }) => {
+    await page.goto('/endgame-trainer?legacy=1&trainerV2=1');
+    await expect(page.locator('[data-endgame-trainer-page]')).toHaveAttribute('data-state', 'technical-unavailable');
+    await expect(page.locator('[data-trainer-load-error]')).toBeVisible();
+    await expect(page.locator('[data-trainer-load-error]')).toContainText('We could not load the trainer');
+    await expect(page.locator('[data-trainer-load-error] a[href="/endgame-trainer?legacy=1"]')).toBeVisible();
+    await expect(page.locator('[data-action="prepare"]')).not.toBeVisible();
+});
+
+test('historical run and objective inspector work without the redundant V2 alias', async ({ page }) => {
+    await page.goto('/endgame-trainer?multiMovePilot=1&endgameRun=1');
+    await expect(page.getByRole('region', { name: 'Endgame Run' })).toBeVisible();
+    await page.goto('/endgame-trainer?multiMovePilot=1&objectiveArtifact=activate-king@1.0.0');
+    await expect(page.getByRole('region', { name: 'Multi-Move Technical Pilot' })).toBeVisible();
+    await page.getByRole('button', { name: 'Start Pilot' }).click();
+    await expect(page.getByRole('heading', { name: 'Activate the king', exact: true })).toBeVisible();
+});
+
+test('no-JS load keeps a readable shell and functional navigation', async ({ browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    await page.goto('/endgame-trainer');
+    await expect(page.locator('[data-endgame-trainer-page]')).toBeVisible();
+    await expect(page.locator('.endgame-trainer-page__no-js')).toContainText(
+        'CAISSA Endgame Trainer requires JavaScript to load the interactive board.'
+    );
+    await expect(page.locator('.endgame-trainer-page__no-js a[href="/endgame-practice"]')).toBeVisible();
+    await expect(page.locator('[data-training-workspace]')).not.toBeVisible();
+    await context.close();
 });
 
 test('mobile, 200 percent zoom, touch targets, and reduced motion remain bounded', async ({ page }) => {

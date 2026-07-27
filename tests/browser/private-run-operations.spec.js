@@ -95,7 +95,7 @@ test('invalid and hostile selectors never consult availability or reveal private
   for(const url of hostile){
     let availability=0;await page.unroute('**/api/endgame/private-run-availability');
     await page.route('**/api/endgame/private-run-availability',route=>{availability++;return fulfill(config())(route);});
-    await page.goto(url);await expect(page.getByRole('heading',{name:'We could not verify this run'})).toBeVisible();
+    await page.goto(url);await expect(page.getByRole('heading',{name:'We could not load the trainer'})).toBeVisible();
     expect(availability).toBe(0);await expect(page.locator('.square-55d63')).toHaveCount(0);
   }
 });

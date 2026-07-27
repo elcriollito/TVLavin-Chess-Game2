@@ -215,8 +215,15 @@ function unlockScroll() {
 document.addEventListener('DOMContentLoaded', () => {
     debugLog('Initializing CAISSA Chess...');
 
-    // Check for embed mode
     const urlParams = new URLSearchParams(window.location.search);
+    const historicalEndgameAlias = urlParams.size === 1 &&
+        ['endgameTrainer', 'endgame'].includes(urlParams.get('section'));
+    if (historicalEndgameAlias) {
+        window.location.replace('/endgame-trainer');
+        return;
+    }
+
+    // Check for embed mode
     if (urlParams.get('embed') === '1') {
         document.querySelector('.app-container').classList.add('embed-mode');
     }

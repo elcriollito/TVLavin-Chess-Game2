@@ -708,16 +708,60 @@ export function mountEndgameTrainerPage(options = {}) {
 
 export function unmountEndgameTrainerPage() { if (!mounted) return false; mounted.abandon(); mounted.page.pilotSession?.dispose(); mounted.page.disposed = true; update(mounted.root, mounted.page, mounted.runtime?.binding.getState()); mounted.promo.cancel(); if (mounted.resetDialog?.open) mounted.resetDialog.close(); mounted.abort.abort(); mounted.closeNav(); mounted.runtime?.dispose(); mounted.page.progressStore.dispose(); mounted.page.runtimeAttached = false; mounted.page.mounted = false; mounted = null; return true; }
 export function getEndgameTrainerPageState() { return mounted ? publicPage(mounted.page) : { mounted: false, navOpen: false, runtimeAttached: false, operation: null, hint: null, error: null, disposed: true, controllerState: null, progress: null }; }
+
+function markQueryViewNonIndexable(doc = globalThis.document) {
+    const robots = doc?.head?.querySelector?.('meta[name="robots"]');
+    robots?.setAttribute('content', 'noindex, nofollow');
+}
+
+export function applyLegacyEndgameTrainerPresentation(doc = globalThis.document) {
+    markQueryViewNonIndexable(doc);
+    const root = doc?.body?.querySelector?.('[data-endgame-trainer-page]');
+    root?.classList?.add('is-legacy');
+    const note = root?.querySelector?.('[data-legacy-note]');
+    if (note) note.hidden = false;
+}
+
+export function renderEndgameTrainerLoadError(doc = globalThis.document, win = globalThis) {
+    markQueryViewNonIndexable(doc);
+    const root = doc?.body?.querySelector?.('[data-endgame-trainer-page]');
+    if (!root) return false;
+    root.classList.add('is-v2', 'has-load-error');
+    root.dataset.state = 'technical-unavailable';
+    root.querySelector('[data-endgame-v2-shell]')?.setAttribute('hidden', '');
+    const panel = root.querySelector('[data-trainer-load-error]');
+    if (panel) panel.hidden = false;
+    panel?.querySelector('[data-trainer-retry]')?.addEventListener('click', () => win.location?.reload?.(), { once: true });
+    panel?.querySelector('h1')?.focus?.();
+    return true;
+}
+
 if (globalThis.document) {
     const start = async () => {
-        const { shouldActivateEndgameV2 } = await import('./v2/endgame-v2-contracts.js');
-        if (shouldActivateEndgameV2(globalThis.location?.search ?? '')) {
+        const { resolveEndgameTrainerRoute } = await import('./v2/endgame-trainer-route.js');
+        const route = resolveEndgameTrainerRoute(globalThis.location?.search ?? '');
+        if (route.mode === 'technical-unavailable') {
+            renderEndgameTrainerLoadError();
+            return;
+        }
+        if (route.mode !== 'legacy' && route.mode !== 'guided-legacy') {
             const { mountEndgameTrainerV2Page, unmountEndgameTrainerV2Page } = await import('./v2/endgame-trainer-v2-page.js');
-            mountEndgameTrainerV2Page();
+            try {
+                await mountEndgameTrainerV2Page({ route });
+            } catch {
+                renderEndgameTrainerLoadError();
+                return;
+            }
             globalThis.addEventListener?.('pagehide', () => unmountEndgameTrainerV2Page(), { once: true });
             return;
         }
-        mountEndgameTrainerPage();
+        applyLegacyEndgameTrainerPresentation();
+        try {
+            await mountEndgameTrainerPage();
+        } catch {
+            renderEndgameTrainerLoadError();
+            return;
+        }
         globalThis.addEventListener?.('pagehide', () => unmountEndgameTrainerPage(), { once: true });
     };
     document.readyState === 'loading'

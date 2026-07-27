@@ -135,7 +135,7 @@ test('mixed selectors fail neutral and refresh clears all progress',async({page}
     '?trainerV2=1&multiMovePilot=1&privateEndgameRun=five-item&endgameRun=1'
   ]){
     await page.goto(`/endgame-trainer${search}`);
-    await expect(page.locator('#private-operational-title')).toHaveText('We could not verify this run');
-    await expect(page.locator('[data-private-operational-message]')).toContainText('technical issue');
+    await expect(page.getByRole('heading',{name:'We could not load the trainer'})).toBeVisible();
+    await expect(page.locator('[data-trainer-load-error]')).toContainText('technical issue');
   }
 });

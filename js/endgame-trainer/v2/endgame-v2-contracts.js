@@ -56,7 +56,7 @@ export const ENDGAME_V2_MODES = Object.freeze([
         positionSource: 'educational-generator', sessionLengthPolicy: Object.freeze({ type: 'existing-runtime' }),
         timerPolicy: 'existing-runtime', hintPolicy: 'existing-runtime', scoringPolicy: 'existing-runtime',
         evidencePolicy: 'v1-training-memory', persistencePolicy: 'v1-training-memory',
-        eligibility: 'existing-runtime', availability: 'route', href: '/endgame-trainer'
+        eligibility: 'existing-runtime', availability: 'route', href: '/endgame-trainer?legacy=1'
     })
 ]);
 
@@ -65,7 +65,7 @@ const GUIDED_STUDY_PARAMS = Object.freeze(['studyUnit', 'release', 'activity', '
 export function shouldActivateEndgameV2(search = '') {
     const params = new URLSearchParams(search);
     if (GUIDED_STUDY_PARAMS.some((name) => params.has(name))) return false;
-    return params.get(ENDGAME_V2_FLAG) === '1';
+    return !params.has(ENDGAME_V2_FLAG) || params.get(ENDGAME_V2_FLAG) === '1';
 }
 
 export function createQuickChallengeSession(items) {

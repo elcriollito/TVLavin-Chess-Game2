@@ -21,8 +21,8 @@ import {
     validateQuickChallengeFixturePool
 } from '../../js/endgame-trainer/v2/quick-challenge-fixture-pool.js';
 
-test('V2 activation is exact, opt-in, and never replaces Guided Study', () => {
-    assert.equal(shouldActivateEndgameV2(''), false);
+test('V2 activation is the default, keeps its exact alias, and never replaces Guided Study', () => {
+    assert.equal(shouldActivateEndgameV2(''), true);
     assert.equal(shouldActivateEndgameV2('?trainerV2=true'), false);
     assert.equal(shouldActivateEndgameV2('?trainerV2=1'), true);
     assert.equal(shouldActivateEndgameV2('?trainerV2=1&studyUnit=direct-opposition'), false);

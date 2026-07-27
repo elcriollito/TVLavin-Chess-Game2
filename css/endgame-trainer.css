@@ -342,6 +342,38 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
 .endgame-trainer-page.is-v2 [data-diagnostic-state],
 .endgame-trainer-page.is-v2 [data-action-group],
 .endgame-trainer-page.is-v2 [data-empty-board-overlay] { display: none !important; }
+.endgame-trainer-page__no-js,
+.endgame-trainer-page__load-error {
+    max-width: 760px;
+    margin: clamp(24px, 7vw, 80px) auto;
+    padding: clamp(24px, 4vw, 44px);
+    border: 1px solid rgba(148, 163, 184, .28);
+    border-radius: 18px;
+    background: rgba(15, 23, 42, .92);
+    box-shadow: 0 20px 55px rgba(0, 0, 0, .3);
+}
+.endgame-trainer-page__load-error[hidden] { display: none; }
+.endgame-trainer-page__load-error div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+}
+.endgame-trainer-page__load-error a,
+.endgame-trainer-page__load-error button,
+.endgame-trainer-page__no-js a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 1px solid rgba(148, 163, 184, .45);
+    border-radius: 9px;
+}
+.endgame-trainer-page.has-load-error .endgame-trainer-page__workspace { display: none !important; }
+.endgame-trainer-page__legacy-note {
+    color: #fbbf24;
+    font-weight: 700;
+}
 .endgame-trainer-page.is-v2 {
     --v2-surface: #111b2c;
     --v2-surface-raised: #17243a;

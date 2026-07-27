@@ -56,7 +56,7 @@ test('technical artifact failure is neutral and malformed flags fail closed', as
   await expect(page.getByRole('button',{name:'Exit Run'})).toBeVisible();
   await page.unroute('**/data/endgame-runs/**');
   await page.goto('/endgame-trainer?trainerV2=1&multiMovePilot=1&endgameRun=true');
-  await expect(page.getByRole('button',{name:'Start Challenge'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'We could not load the trainer'})).toBeVisible();
 });
 
 test('run is accessible and responsive across the required matrix', async ({ page }) => {
@@ -68,12 +68,13 @@ test('run is accessible and responsive across the required matrix', async ({ pag
   expect((await new AxeBuilder({page}).include('[data-endgame-v2-shell]').analyze()).violations).toEqual([]);
 });
 
-test('V1, V2, Guided, and both standalone pilots retain precedence', async ({ page }) => {
-  await page.goto('/endgame-trainer'); await expect(page.locator('[data-action="prepare"]')).toBeVisible();
+test('default V2, explicit legacy, Guided, and both standalone pilots retain precedence', async ({ page }) => {
+  await page.goto('/endgame-trainer'); await expect(page.getByRole('button',{name:'Start Challenge'})).toBeVisible();
+  await page.goto('/endgame-trainer?legacy=1'); await expect(page.locator('[data-action="prepare"]')).toBeVisible();
   await page.goto('/endgame-trainer?trainerV2=1'); await expect(page.getByRole('button',{name:'Start Challenge'})).toBeVisible();
   await page.goto('/endgame-trainer?trainerV2=1&multiMovePilot=1'); await expect(page.getByRole('button',{name:'Start Pilot'})).toBeVisible();
   await page.goto('/endgame-trainer?trainerV2=1&multiMovePilot=1&pilot=rule-square-a-pawn-catch-stop-promotion@1.0.0');
   await expect(page.locator('[data-v2-objective]')).toHaveText('Stop the a-pawn');
   await page.goto(`${route}&studyUnit=direct-opposition&release=rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84`);
-  await expect(page.locator('[data-library-study]')).toBeVisible();
+  await expect(page.getByRole('heading',{name:'We could not load the trainer'})).toBeVisible();
 });

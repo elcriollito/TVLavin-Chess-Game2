@@ -3,18 +3,19 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-    <title>CAISSA Endgame Trainer – Practice Chess Endgames Against Stockfish</title>
-    <meta name="description" content="Practice focused chess endgames with procedural positions, Stockfish training, mobile-friendly controls, and guided session feedback in CAISSA Chess.">
+    <title>CAISSA Endgame Trainer — Practice Chess Endgames</title>
+    <meta name="description" content="Practice essential chess endgames with guided positions, clear objectives, and immediate feedback in CAISSA Endgame Trainer.">
+    <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://www.caissa-chess.org/endgame-trainer">
-    <meta property="og:title" content="CAISSA Endgame Trainer – Practice Chess Endgames Against Stockfish">
-    <meta property="og:description" content="Practice focused chess endgames with procedural positions, Stockfish training, mobile-friendly controls, and guided session feedback in CAISSA Chess.">
+    <meta property="og:title" content="CAISSA Endgame Trainer — Practice Chess Endgames">
+    <meta property="og:description" content="Practice essential chess endgames with guided positions, clear objectives, and immediate feedback in CAISSA Endgame Trainer.">
     <meta property="og:url" content="https://www.caissa-chess.org/endgame-trainer">
     <meta property="og:image" content="https://www.caissa-chess.org/og-image.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/assets/css/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="/css/endgame-trainer.css">
     <script type="importmap">{"imports":{"chess.js":"https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm"}}</script>
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"CAISSA Endgame Trainer","url":"https://www.caissa-chess.org/endgame-trainer","description":"Practice focused endgames with guided session feedback.","provider":{"@type":"Organization","name":"CAISSA Chess"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free during beta"}}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"CAISSA Endgame Trainer","url":"https://www.caissa-chess.org/endgame-trainer","description":"Practice essential chess endgames with guided positions, clear objectives, and immediate feedback in CAISSA Endgame Trainer.","isPartOf":{"@type":"WebSite","name":"CAISSA Chess","url":"https://www.caissa-chess.org/"}}</script>
 <script src="/js/caissa-clarity.js?v=1.0.0" defer></script>
 </head>
 <body data-clarity-mask>
@@ -31,6 +32,19 @@
     </nav>
 
     <main class="endgame-trainer-page__main">
+        <noscript>
+            <section class="endgame-trainer-page__no-js" aria-labelledby="endgame-no-js-title">
+                <h1 id="endgame-no-js-title">CAISSA Endgame Trainer</h1>
+                <p>CAISSA Endgame Trainer requires JavaScript to load the interactive board.</p>
+                <p><a href="/endgame-practice">Return to Endgame Practice</a></p>
+            </section>
+            <style>.endgame-trainer-page__workspace,.endgame-trainer-page__header{display:none!important}</style>
+        </noscript>
+        <section class="endgame-trainer-page__load-error" data-trainer-load-error hidden aria-labelledby="trainer-load-error-title">
+            <h1 id="trainer-load-error-title" tabindex="-1">We could not load the trainer</h1>
+            <p>This is a technical issue. Try again or open the compatibility view.</p>
+            <div><button type="button" data-trainer-retry>Retry</button><a href="/endgame-trainer?legacy=1">Open Compatibility View</a><a href="/endgame-practice">Return to Endgame Practice</a></div>
+        </section>
         <header class="endgame-trainer-page__header">
             <p class="endgame-trainer-page__kicker">CAISSA Training</p>
             <div class="endgame-trainer-page__title-row">
@@ -38,6 +52,7 @@
                 <span class="endgame-trainer-page__badge">Beta</span>
                 <span class="endgame-trainer-page__free">Free during beta</span>
             </div>
+            <p class="endgame-trainer-page__legacy-note" data-legacy-note hidden>Legacy compatibility view</p>
             <p>Practice focused endgame positions against Stockfish.</p>
         </header>
 
@@ -47,7 +62,7 @@
             <section class="endgame-trainer-page__board-panel" aria-labelledby="board-title">
                 <section class="endgame-v2" data-endgame-v2-shell hidden aria-labelledby="endgame-v2-title">
                     <header class="endgame-v2__header">
-                        <div><p class="endgame-trainer-page__kicker">King and Pawn Endgames</p><h1 id="endgame-v2-title">Quick Challenge</h1></div>
+                        <div><p class="endgame-trainer-page__kicker">General training workspace · Quick Challenge</p><h1 id="endgame-v2-title">CAISSA Endgame Trainer</h1><p>Practice key endgame ideas with guided positions, clear goals, and immediate feedback.</p></div>
                         <button type="button" data-v2-open-modes aria-haspopup="dialog">Modes</button>
                     </header>
                     <p class="endgame-v2__disclosure">Solve five curated endgame positions. Your local practice results stay on this page and are not saved as learning evidence.</p>
@@ -84,7 +99,7 @@
                             <div><dt>Local elapsed time</dt><dd data-v2-summary-time>0:00</dd></div>
                         </dl>
                         <p>Not a rating, rank, Mastery result, or cloud-saved record.</p>
-                        <div><button type="button" data-v2-replay>Replay</button><a href="/endgame-trainer" data-v2-exit>Exit to Custom Lab</a></div>
+                        <div><button type="button" data-v2-replay>Replay</button><a href="/endgame-trainer?legacy=1" data-v2-exit>Exit to Custom Lab</a></div>
                     </section>
                 </section>
                 <h2 id="board-title">Training board</h2>
@@ -330,7 +345,7 @@
             <div class="endgame-v2__mode-grid">
                 <button type="button" data-v2-mode="quick-challenge" aria-current="true"><strong>Quick Challenge</strong><span>Five focused positions</span><em>Current mode</em></button>
                 <button type="button" data-v2-mode="knowledge-practice" data-v2-href="/endgame-library"><strong>Knowledge Practice</strong><span>Study released endgame lessons</span><em>Open Library</em></button>
-                <button type="button" data-v2-mode="custom-lab" data-v2-href="/endgame-trainer"><strong>Custom Lab</strong><span>Use the current configurable trainer</span><em>Open V1</em></button>
+                <button type="button" data-v2-mode="custom-lab" data-v2-href="/endgame-trainer?legacy=1"><strong>Custom Lab</strong><span>Use the configurable compatibility trainer</span><em>Open compatibility view</em></button>
             </div>
         </div>
         <section data-v2-leave-confirm hidden aria-labelledby="v2-leave-title">

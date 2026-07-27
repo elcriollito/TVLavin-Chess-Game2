@@ -5,12 +5,10 @@ import {
     DEFAULT_CURATED_POOL, loadCuratedPool, selectCuratedPositions
 } from './curated-pool-consumer.js';
 import { QuickChallengeOrchestrator } from './quick-challenge-orchestrator.js';
-import { shouldActivateMultiMovePilot } from './multi-move-pilot.js';
 import { mountMultiMovePilotPage, unmountMultiMovePilotPage } from './multi-move-pilot-page.js';
-import { shouldActivateEndgameRun } from './endgame-run.js';
 import { mountEndgameRunPage, unmountEndgameRunPage } from './endgame-run-page.js';
-import { shouldActivatePrivateFiveItemRun } from './private-five-item-run.js';
 import { mountPrivateFiveItemRunPage, unmountPrivateFiveItemRunPage } from './private-five-item-run-page.js';
+import { resolveEndgameTrainerRoute } from './endgame-trainer-route.js';
 
 let mounted = null;
 
@@ -24,6 +22,27 @@ function setAction(root, action, visible, disabled = false) {
     if (!button) return;
     button.hidden = !visible;
     button.disabled = disabled;
+}
+
+function withHistoricalV2Alias(win) {
+    const current = win.location?.search ?? '';
+    const params = new URLSearchParams(current);
+    if (params.has('trainerV2')) return win;
+    params.append('trainerV2', '1');
+    const location = new Proxy(win.location, {
+        get(target, property) {
+            if (property === 'search') return `?${params.toString()}`;
+            const value = Reflect.get(target, property, target);
+            return typeof value === 'function' ? value.bind(target) : value;
+        }
+    });
+    return new Proxy(win, {
+        get(target, property) {
+            if (property === 'location') return location;
+            const value = Reflect.get(target, property, target);
+            return typeof value === 'function' ? value.bind(target) : value;
+        }
+    });
 }
 
 function setPresentationState(root, phase, feedback = '') {
@@ -48,10 +67,12 @@ function setPresentationState(root, phase, feedback = '') {
         : (['unavailable', 'recovering', 'error'].includes(phase) ? 'technical' : 'neutral');
 }
 
-export function mountEndgameTrainerV2Page({ document: doc = globalThis.document, window: win = globalThis } = {}) {
-    if (shouldActivatePrivateFiveItemRun(win.location?.search ?? '')) return mountPrivateFiveItemRunPage({ document: doc, window: win });
-    if (shouldActivateEndgameRun(win.location?.search ?? '')) return mountEndgameRunPage({ document: doc, window: win });
-    if (shouldActivateMultiMovePilot(win.location?.search ?? '')) return mountMultiMovePilotPage({ document: doc, window: win });
+export function mountEndgameTrainerV2Page({ document: doc = globalThis.document, window: win = globalThis, route } = {}) {
+    const resolved = route ?? resolveEndgameTrainerRoute(win.location?.search ?? '');
+    const technicalWindow = withHistoricalV2Alias(win);
+    if (resolved.mode === 'private-run') return mountPrivateFiveItemRunPage({ document: doc, window: technicalWindow });
+    if (resolved.mode === 'historical-run') return mountEndgameRunPage({ document: doc, window: technicalWindow });
+    if (['objective-artifact', 'multi-move-pilot'].includes(resolved.mode)) return mountMultiMovePilotPage({ document: doc, window: technicalWindow });
     if (mounted) return mounted;
     const root = doc?.querySelector('[data-endgame-trainer-page]');
     const boardElement = root?.querySelector('[data-board]');

@@ -6,12 +6,14 @@ const html = await readFile(new URL('../../endgame-trainer.html', import.meta.ur
 const entry = await readFile(new URL('../../js/endgame-trainer/endgame-trainer-page.js', import.meta.url), 'utf8');
 const page = await readFile(new URL('../../js/endgame-trainer/v2/endgame-trainer-v2-page.js', import.meta.url), 'utf8');
 
-test('V2 shell is present but hidden for default and cold V1 loads', () => {
+test('V2 shell is progressively revealed for the canonical default while legacy stays explicit', () => {
     assert.match(html, /data-endgame-v2-shell hidden/);
     assert.match(html, />Start Challenge</);
     assert.doesNotMatch(html.match(/data-endgame-v2-shell[\s\S]*?<\/section>/)?.[0] || '', /Prepare Position/);
-    assert.match(entry, /shouldActivateEndgameV2/);
-    assert.match(entry, /mountEndgameTrainerPage\(\)/);
+    assert.match(entry, /resolveEndgameTrainerRoute/);
+    assert.match(entry, /route\.mode !== 'legacy'/);
+    assert.match(entry, /applyLegacyEndgameTrainerPresentation/);
+    assert.match(entry, /renderEndgameTrainerLoadError/);
 });
 
 test('accessible modes surface contains only available non-duplicated destinations and close control', () => {
