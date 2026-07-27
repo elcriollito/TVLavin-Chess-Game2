@@ -118,8 +118,8 @@ test('promote artifact and pools remain immutable while the Season 10.15 public 
     'public/data/endgame-pilots/kp-coordinate-support-promote/1.0.0.json': '4b3a0ef4560a1c0a46f0b6bdfc615ef8860cec2c8b0bf8de8261b2c67a6847e3',
     'js/endgame-trainer/v2/multi-move-pilot.js': '609a76496b6c52e7c12b23e376750da1f7ed36a285697c3885fbba41a483aa9e',
     'js/endgame-trainer/v2/multi-move-pilot-page.js': '2ed6f8f739de685b81f86256a37abcbaa001472583362e3e0d799f2684e399ac',
-    'endgame-trainer.html': 'b6ab5b2cb7555e2a9c2ed48936c31f902b8e64dd5ddbfd4bd47d4cd7f948c709',
-    'css/endgame-trainer.css': '41e821210cd6ee17ea4b8df66b785a2700bea45f5a0f665c8fc3af0dbf56012d',
+    'endgame-trainer.html': '1fbf3a48ed850ae43f5afc1b55ec5d716f40000c2f7ce69a9b36290f3093f747',
+    'css/endgame-trainer.css': 'a0fccabde8b43e15b718515452db546dff70a43d37e6b4bccb6f1ae3abfb9f5e',
     'public/data/endgame-pools/caissa-king-pawn-decisions/1.0.0.json': '7324ffada9e27a07a64a7e30960e1f69dadd110844f3ad97e4967364a2c91d23',
     'public/data/endgame-pools/caissa-king-pawn-decisions/1.1.0.json': 'b1c5b7aa638944793e4bca4900e4c88fdd8affb7943fc58d77934c7c68e8b514',
     'public/data/endgame-pools/manifest-1.0.0.json': '9af9d3c21760db2dc202fa6565e392a4208de44b9f867682f3755ba7505f2b03'

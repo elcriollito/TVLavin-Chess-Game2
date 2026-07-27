@@ -147,8 +147,8 @@ test('approved artifacts stay immutable while the Season 10.15 public shell base
     'public/data/endgame-pools/caissa-king-pawn-decisions/1.1.0.json': 'b1c5b7aa638944793e4bca4900e4c88fdd8affb7943fc58d77934c7c68e8b514',
     'public/data/endgame-pools/manifest-1.0.0.json': '9af9d3c21760db2dc202fa6565e392a4208de44b9f867682f3755ba7505f2b03',
     'js/endgame-trainer/v2/endgame-run.js': '7537d771bfb1c78267ef02d026ca407672505d31b434ad8cb643a0ef6ac460e3',
-    'endgame-trainer.html': 'b6ab5b2cb7555e2a9c2ed48936c31f902b8e64dd5ddbfd4bd47d4cd7f948c709',
-    'css/endgame-trainer.css': '41e821210cd6ee17ea4b8df66b785a2700bea45f5a0f665c8fc3af0dbf56012d',
+    'endgame-trainer.html': '1fbf3a48ed850ae43f5afc1b55ec5d716f40000c2f7ce69a9b36290f3093f747',
+    'css/endgame-trainer.css': 'a0fccabde8b43e15b718515452db546dff70a43d37e6b4bccb6f1ae3abfb9f5e',
     'knowledge/releases/rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84/release.json': '73a6138c39df72eb1a898e819b155f74c809e8b12d7cf3ee32f39914220b41da'
   };
   for (const [path, expectedDigest] of Object.entries(expected))

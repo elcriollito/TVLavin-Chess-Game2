@@ -722,12 +722,23 @@ export function applyLegacyEndgameTrainerPresentation(doc = globalThis.document)
     if (note) note.hidden = false;
 }
 
+export function revealEndgameTrainerPresentation(mode, doc = globalThis.document) {
+    const root = doc?.body?.querySelector?.('[data-endgame-trainer-page]');
+    if (!root || !['v2', 'legacy'].includes(mode)) return false;
+    root.classList.remove('trainer-mode-pending', 'trainer-mode-v2', 'trainer-mode-legacy');
+    root.classList.add(`trainer-mode-${mode}`);
+    root.querySelector('[data-trainer-bootstrap]')?.setAttribute('hidden', '');
+    return true;
+}
+
 export function renderEndgameTrainerLoadError(doc = globalThis.document, win = globalThis) {
     markQueryViewNonIndexable(doc);
     const root = doc?.body?.querySelector?.('[data-endgame-trainer-page]');
     if (!root) return false;
+    root.classList.remove('trainer-mode-pending', 'trainer-mode-v2', 'trainer-mode-legacy');
     root.classList.add('is-v2', 'has-load-error');
     root.dataset.state = 'technical-unavailable';
+    root.querySelector('[data-trainer-bootstrap]')?.setAttribute('hidden', '');
     root.querySelector('[data-endgame-v2-shell]')?.setAttribute('hidden', '');
     const panel = root.querySelector('[data-trainer-load-error]');
     if (panel) panel.hidden = false;
@@ -748,6 +759,7 @@ if (globalThis.document) {
             const { mountEndgameTrainerV2Page, unmountEndgameTrainerV2Page } = await import('./v2/endgame-trainer-v2-page.js');
             try {
                 await mountEndgameTrainerV2Page({ route });
+                revealEndgameTrainerPresentation('v2');
             } catch {
                 renderEndgameTrainerLoadError();
                 return;
@@ -758,6 +770,7 @@ if (globalThis.document) {
         applyLegacyEndgameTrainerPresentation();
         try {
             await mountEndgameTrainerPage();
+            revealEndgameTrainerPresentation('legacy');
         } catch {
             renderEndgameTrainerLoadError();
             return;
