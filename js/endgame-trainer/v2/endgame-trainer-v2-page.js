@@ -9,6 +9,7 @@ import { mountMultiMovePilotPage, unmountMultiMovePilotPage } from './multi-move
 import { mountEndgameRunPage, unmountEndgameRunPage } from './endgame-run-page.js';
 import { mountPrivateFiveItemRunPage, unmountPrivateFiveItemRunPage } from './private-five-item-run-page.js';
 import { resolveEndgameTrainerRoute } from './endgame-trainer-route.js';
+import { navigateToTrainerTarget } from './endgame-trainer-return-target.js';
 
 let mounted = null;
 
@@ -39,6 +40,7 @@ function withHistoricalV2Alias(win) {
     return new Proxy(win, {
         get(target, property) {
             if (property === 'location') return location;
+            if (property === '__caissaRealWindow') return target;
             const value = Reflect.get(target, property, target);
             return typeof value === 'function' ? value.bind(target) : value;
         }
@@ -172,7 +174,7 @@ export function mountEndgameTrainerV2Page({ document: doc = globalThis.document,
         } catch {
             poolPromise = null;
             startButton.disabled = false;
-            setText(root, '[data-v2-feedback]', 'Curated positions are unavailable. Return to Custom Lab or try again later.');
+            setText(root, '[data-v2-feedback]', 'Curated positions are unavailable. Return to Endgame Trainer or try again later.');
             root.dataset.state = 'v2-unavailable';
             setPresentationState(root, 'unavailable', 'Curated positions are unavailable.');
         }
@@ -182,7 +184,7 @@ export function mountEndgameTrainerV2Page({ document: doc = globalThis.document,
     root.querySelector('[data-v2-action="continue"]')?.addEventListener('click', () => orchestrator?.continue(), { signal });
     root.querySelector('[data-v2-action="retry"]')?.addEventListener('click', () => orchestrator?.retry(), { signal });
     root.querySelector('[data-v2-action="abandon"]')?.addEventListener('click', () => {
-        if (orchestrator?.abandon()) win.location.assign('/endgame-trainer');
+        if (orchestrator?.abandon()) navigateToTrainerTarget(win, 'public-v2');
     }, { signal });
     root.querySelector('[data-v2-replay]')?.addEventListener('click', () => win.location.reload(), { signal });
     const timer = win.setInterval?.(() => {

@@ -139,9 +139,9 @@ test('all Season 10.11A material is protected from public builds', () => {
 test('review artifacts stay immutable while the Season 10.15 public shell baseline is pinned', async () => {
   const expected = {
     'js/endgame-trainer/v2/endgame-run.js': '7537d771bfb1c78267ef02d026ca407672505d31b434ad8cb643a0ef6ac460e3',
-    'js/endgame-trainer/v2/endgame-run-page.js': '217f8184743dbdd6a3ff7a8ef56a2d66cf336c03081d9665d367868e63576bd1',
-    'js/endgame-trainer/v2/endgame-trainer-v2-page.js': '56f5f200ed826ba5b9f0ec7cf0cd3a397d227fac3e18914666b46d5f2d0bd8ad',
-    'endgame-trainer.html': 'd0eb90937635a47ef52f83c255df0d162767361e00ccb2652306de654ae5e9b8',
+    'js/endgame-trainer/v2/endgame-run-page.js': '1250501c82fee860ab9780c5c3ec48741fad688c18576af59dee25293ebee9b8',
+    'js/endgame-trainer/v2/endgame-trainer-v2-page.js': 'b3e10cc48ec048d1777f8681a094259749b874575cc6a521ad922fc47cd27833',
+    'endgame-trainer.html': 'b6ab5b2cb7555e2a9c2ed48936c31f902b8e64dd5ddbfd4bd47d4cd7f948c709',
     'css/endgame-trainer.css': '41e821210cd6ee17ea4b8df66b785a2700bea45f5a0f665c8fc3af0dbf56012d',
     'public/data/endgame-pools/caissa-king-pawn-decisions/1.0.0.json': '7324ffada9e27a07a64a7e30960e1f69dadd110844f3ad97e4967364a2c91d23',
     'public/data/endgame-pools/caissa-king-pawn-decisions/1.1.0.json': 'b1c5b7aa638944793e4bca4900e4c88fdd8affb7943fc58d77934c7c68e8b514',

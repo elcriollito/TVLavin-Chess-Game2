@@ -51,12 +51,12 @@ export const ENDGAME_V2_MODES = Object.freeze([
         availability: 'coming-soon'
     }),
     Object.freeze({
-        id: 'custom-lab', contractVersion: ENDGAME_MODE_CONTRACT_VERSION, label: 'Custom Lab',
+        id: 'custom-lab', contractVersion: ENDGAME_MODE_CONTRACT_VERSION, label: 'Endgame Trainer',
         description: 'Use the configurable trainer.', defaultConfiguration: Object.freeze({}),
         positionSource: 'educational-generator', sessionLengthPolicy: Object.freeze({ type: 'existing-runtime' }),
         timerPolicy: 'existing-runtime', hintPolicy: 'existing-runtime', scoringPolicy: 'existing-runtime',
         evidencePolicy: 'v1-training-memory', persistencePolicy: 'v1-training-memory',
-        eligibility: 'existing-runtime', availability: 'route', href: '/endgame-trainer?legacy=1'
+        eligibility: 'existing-runtime', availability: 'route', href: '/endgame-trainer'
     })
 ]);
 

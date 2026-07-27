@@ -53,7 +53,14 @@ async function playLanWithKeyboard(page, lan, orientation) {
 }
 
 test('canonical default starts and completes a five-position curated challenge', async ({ page }) => {
+    const requests = [];
+    page.on('request', request => requests.push(request.url()));
     await openV2(page);
+    const storageBefore = await page.evaluate(async () => ({
+        local: Object.entries(localStorage),
+        session: Object.entries(sessionStorage),
+        databases: indexedDB.databases ? (await indexedDB.databases()).map(({ name, version }) => ({ name, version })) : []
+    }));
     await page.locator('[data-v2-action="start"]').click();
     await expect(page.locator('[data-endgame-trainer-page]')).toHaveAttribute('data-state', 'v2-active');
     for (let index = 0; index < 5; index += 1) {
@@ -67,6 +74,18 @@ test('canonical default starts and completes a five-position curated challenge',
     await expect(page.locator('[data-v2-summary]')).toBeVisible();
     await expect(page.locator('[data-v2-summary-completed]')).toHaveText('5');
     await expect(page.locator('[data-v2-summary-score]')).toHaveText('500');
+    const storageAfter = await page.evaluate(async () => ({
+        local: Object.entries(localStorage),
+        session: Object.entries(sessionStorage),
+        databases: indexedDB.databases ? (await indexedDB.databases()).map(({ name, version }) => ({ name, version })) : []
+    }));
+    expect(storageAfter).toEqual(storageBefore);
+    expect(requests.filter(url => /\/api\/|analytics|collect|beacon/i.test(url) &&
+        /score|streak|timer|endgame[-_/]?event/i.test(url))).toEqual([]);
+    await expect(page.locator('[data-v2-exit]')).toHaveText('Return to Endgame Trainer');
+    await page.locator('[data-v2-exit]').click();
+    await expect(page).toHaveURL(/\/endgame-trainer$/);
+    await expect(page.getByRole('heading', { name: 'CAISSA Endgame Trainer' })).toBeVisible();
 });
 
 test('incorrect move, hint, reveal answer, and Continue are truthful', async ({ page }) => {
@@ -161,6 +180,20 @@ test('historical run and objective inspector work without the redundant V2 alias
     await expect(page.getByRole('region', { name: 'Multi-Move Technical Pilot' })).toBeVisible();
     await page.getByRole('button', { name: 'Start Pilot' }).click();
     await expect(page.getByRole('heading', { name: 'Activate the king', exact: true })).toBeVisible();
+});
+
+test('V2 returns, refresh, Back and Forward never synthesize legacy', async ({ page }) => {
+    await page.goto('/endgame-trainer?trainerV2=1');
+    await expect(page.locator('[data-v2-exit]')).toHaveAttribute('href', '/endgame-trainer');
+    await page.reload();
+    await expect(page.locator('[data-endgame-trainer-page]')).toHaveClass(/is-v2/);
+    await page.goto('/endgame-trainer?multiMovePilot=1&endgameRun=1');
+    await page.getByRole('button', { name: 'Exit Run' }).click();
+    await expect(page).toHaveURL(/\/endgame-trainer$/);
+    await page.goBack();
+    await expect(page).not.toHaveURL(/legacy=1/);
+    await page.goForward();
+    await expect(page).toHaveURL(/\/endgame-trainer$/);
 });
 
 test('no-JS load keeps a readable shell and functional navigation', async ({ browser }) => {

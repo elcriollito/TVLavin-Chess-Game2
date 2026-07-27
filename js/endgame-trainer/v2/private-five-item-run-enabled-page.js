@@ -1,6 +1,7 @@
 import { ChessRulesFacade } from '../chess-rules-facade.js';
 import { EndgameBoardView } from '../endgame-board-view.js';
 import { PrivateFiveItemRunController } from './private-five-item-run.js';
+import { navigateToTrainerTarget } from './endgame-trainer-return-target.js';
 
 let mounted; // Enabled implementation is dynamically imported only after availability succeeds.
 const EXPERIENCE = Object.freeze([
@@ -267,7 +268,7 @@ export function mountPrivateFiveItemRunPage({
   root.querySelector('[data-v2-action="skip"]').addEventListener('click',restart,{signal:abort.signal});
   const exit = event => {
     const state=controller.getState(), fromPractice=new URLSearchParams(win.location.search).get('previewEntry')==='endgame-practice';
-    const leave=()=>{controller.exit();win.location.replace(fromPractice?'/endgame-practice':'/endgame-trainer?trainerV2=1');};
+    const leave=()=>{controller.exit();navigateToTrainerTarget(win,'private-five-item-run',{fromPractice,replace:true});};
     if(progressExists(state)&&state.status!=='run-success') openDialog({opener:event.currentTarget,title:'Exit this run?',body:'Your current progress will be cleared because this private session is not saved.',confirm:'Exit Run',action:leave});
     else leave();
   };

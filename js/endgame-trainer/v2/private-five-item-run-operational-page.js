@@ -1,6 +1,7 @@
 import {
   fetchPrivateRunOperationalConfig, safeDisabledPrivateRunConfig
 } from './private-run-operational-config.js';
+import { getTrainerReturnTarget } from './endgame-trainer-return-target.js';
 
 let mounted;
 const REQUIRED_KEYS=new Set(['trainerV2','multiMovePilot','privateEndgameRun']);
@@ -35,7 +36,7 @@ export function mountPrivateFiveItemRunOperationalPage({
   const abort=new AbortController(),panel=doc.createElement('section');
   panel.className='endgame-v2 endgame-v2__operational';panel.dataset.privateOperational='';
   panel.setAttribute('aria-labelledby','private-operational-title');
-  panel.innerHTML='<h2 id="private-operational-title" tabindex="-1">Checking availability…</h2><p data-private-operational-message>Checking the private technical run.</p><p data-private-operational-progress>No progress was started or saved.</p><div><a href="/endgame-trainer?trainerV2=1">Return to Endgame Trainer</a><button type="button" data-private-availability-retry>Retry Availability Check</button></div>';
+  panel.innerHTML=`<h2 id="private-operational-title" tabindex="-1">Checking availability…</h2><p data-private-operational-message>Checking the private technical run.</p><p data-private-operational-progress>No progress was started or saved.</p><div><a href="${getTrainerReturnTarget('private-five-item-run')}">Return to Endgame Trainer</a><button type="button" data-private-availability-retry>Retry Availability Check</button></div>`;
   shell.parentNode.insertBefore(panel,shell);root.classList.add('is-v2','is-private-five-item-run');
   let enabledModule=null;
   const setSurface=available=>{panel.hidden=available;shell.hidden=!available;board.hidden=!available;if(overlay)overlay.hidden=true;};

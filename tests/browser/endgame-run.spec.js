@@ -46,7 +46,7 @@ test('Retry Item, drawing objective miss, Retry Run, and Exit remain distinct', 
   await page.getByRole('button',{name:'Retry Run'}).click();
   await expect(page.locator('[data-v2-objective]')).toHaveText('Promote the e-pawn');
   await page.getByRole('button',{name:'Exit Run'}).click();
-  await expect(page).toHaveURL(/trainerV2=1$/);
+  await expect(page).toHaveURL(/\/endgame-trainer$/);
 });
 
 test('technical artifact failure is neutral and malformed flags fail closed', async ({ page }) => {

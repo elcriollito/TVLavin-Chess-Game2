@@ -1,6 +1,7 @@
 import { ChessRulesFacade } from '../chess-rules-facade.js';
 import { EndgameBoardView } from '../endgame-board-view.js';
 import { EndgameRunController } from './endgame-run.js';
+import { navigateToTrainerTarget } from './endgame-trainer-return-target.js';
 
 let mounted;
 const text = (root, selector, value) => { const node = root.querySelector(selector); if (node) node.textContent = value; };
@@ -107,7 +108,7 @@ export function mountEndgameRunPage({ document: doc = globalThis.document, windo
     controller.getState().status === 'run-summary' ? controller.retryRun() : controller.retryItem();
   },{signal:abort.signal});
   root.querySelector('[data-v2-action="abandon"]').addEventListener('click',()=>{
-    controller.exit(); win.location.assign('/endgame-trainer?trainerV2=1');
+    controller.exit(); navigateToTrainerTarget(win, 'historical-run');
   },{signal:abort.signal});
   return mounted;
 }

@@ -1,6 +1,7 @@
 import { ChessRulesFacade } from '../chess-rules-facade.js';
 import { EndgameBoardView } from '../endgame-board-view.js';
 import { loadMultiMovePilot, MultiMovePilotController, resolveMultiMovePilotDescriptor } from './multi-move-pilot.js';
+import { navigateToTrainerTarget } from './endgame-trainer-return-target.js';
 let mounted;
 const text = (root, selector, value) => { const node = root.querySelector(selector); if (node) node.textContent = value; };
 const action = (root, name, show) => { const node = root.querySelector(`[data-v2-action="${name}"]`); if (node) node.hidden = !show; };
@@ -62,7 +63,7 @@ export function mountMultiMovePilotPage({ document: doc = globalThis.document, w
     mounted.controller=controller;render(controller.getState());await controller.start();}catch{text(root,'[data-v2-feedback]','The pilot is technically unavailable.');root.dataset.state='pilot-technical-unavailable';present(root,'technical-unavailable','The pilot is technically unavailable.');}finally{start.disabled=false;}},{signal:abort.signal});
   root.querySelector('[data-v2-action="hint"]').addEventListener('click',()=>controller?.hint(),{signal:abort.signal});
   root.querySelector('[data-v2-action="retry"]').addEventListener('click',()=>controller?.retry(),{signal:abort.signal});
-  root.querySelector('[data-v2-action="abandon"]').addEventListener('click',()=>{controller?.abandon();win.location.assign('/endgame-trainer?trainerV2=1');},{signal:abort.signal});
+  root.querySelector('[data-v2-action="abandon"]').addEventListener('click',()=>{controller?.abandon();navigateToTrainerTarget(win,descriptor?.private?'private-objective':'multi-move-pilot');},{signal:abort.signal});
   const dialog=root.querySelector('[data-v2-modes-dialog]'),modeList=dialog?.querySelector('[data-v2-mode-list]');
   let opener;
   const close=()=>{if(dialog?.open)dialog.close();};
