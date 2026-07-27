@@ -128,6 +128,54 @@ function engineNewGame(engine) {
     engineSend(engine, 'isready');
 }
 
+function createEngineIsolationRequest(purpose, fen, parameters = {}) {
+    const isolation = window.CaissaEngineRequestIsolation;
+    if (!isolation) return null;
+    if (!isolation.getCurrentSession()) isolation.createSession();
+    const session = isolation.getCurrentSession();
+    const positionToken = isolation.createPositionToken({
+        sessionId: session?.sessionId,
+        fen,
+        moveCount: App.moveHistory.length,
+        turn: App.game.turn()
+    });
+    const created = isolation.createRequest({
+        sessionId: session?.sessionId,
+        purpose,
+        positionToken,
+        fen,
+        moveCount: App.moveHistory.length,
+        turn: App.game.turn(),
+        parameters
+    });
+    if (!created.ok) return null;
+    const submitted = isolation.submit(created.request);
+    return submitted.ok ? created.request : null;
+}
+
+function acceptEngineIsolationResponse(request, message) {
+    if (!request || !window.CaissaEngineRequestIsolation) return true;
+    const isolation = window.CaissaEngineRequestIsolation;
+    const session = isolation.getCurrentSession();
+    const positionToken = isolation.createPositionToken({
+        sessionId: session?.sessionId,
+        fen: App.game.fen(),
+        moveCount: App.moveHistory.length,
+        turn: App.game.turn()
+    });
+    return isolation.acceptResponse({
+        requestId: request.requestId,
+        sessionId: request.sessionId,
+        purpose: request.purpose,
+        positionToken: request.positionToken,
+        message
+    }, {
+        sessionId: session?.sessionId,
+        purpose: request.purpose,
+        positionToken
+    }).ok;
+}
+
 function createEngineInstance(engineId) {
     if (window.EngineRegistry && typeof EngineRegistry.createEngine === 'function') {
         const instance = EngineRegistry.createEngine(engineId);
@@ -1143,7 +1191,16 @@ function makeEngineMove() {
 
     console.log(`🎯 Engine at FULL POWER using movetime: ${moveTime}ms`);
 
-    App.engine.getBestMove(currentFen, (bestMove) => {
+    const isolationRequest = createEngineIsolationRequest('opponent-move', currentFen, {
+        moveTimeMs: moveTime
+    });
+    App.engine.getBestMove(currentFen, (bestMove, ponder) => {
+        if (!acceptEngineIsolationResponse(isolationRequest, {
+            type: 'bestmove', bestMove, ponder
+        })) {
+            debugLog('Engine request isolation rejected stale opponent response');
+            return;
+        }
         console.log('[ENGINE] bestmove', bestMove); // HOTFIX 4: Verification log
         if (App.eveMode || App.eveRunning || App.gameMode === 'eve') {
             debugLog('Engine vs Engine active, ignoring normal engine move');
@@ -2234,7 +2291,21 @@ function startAnalysis() {
     updateEngineStatus('busy', 'Analyzing...');
 
     console.log('  - Calling App.engine.startAnalysis...');
-    App.engine.startAnalysis(App.game.fen(), (info) => {
+    const analysisFen = App.game.fen();
+    const isolationRequest = createEngineIsolationRequest('live-evaluation', analysisFen, {
+        depth: 20
+    });
+    App.engine.startAnalysis(analysisFen, (info) => {
+        if (!acceptEngineIsolationResponse(isolationRequest, {
+            type: 'info',
+            score: info.score,
+            mate: info.mate,
+            depth: info.depth,
+            pv: info.pv
+        })) {
+            debugLog('Engine request isolation rejected stale evaluation response');
+            return;
+        }
         console.log('🔄 Analysis callback received:', info);
         updateAnalysis(info);
     });
@@ -2249,6 +2320,7 @@ function stopAnalysis() {
     if (App.engine) {
         App.engine.stopAnalysis();
     }
+    window.CaissaEngineRequestIsolation?.cancelPurpose('live-evaluation');
     App.analyzing = false;
     updateEngineStatus('ready', 'Engine Ready');
 }
@@ -2496,6 +2568,7 @@ function updateEngineStatus(status, text) {
 
 // ===== NEW GAME =====
 function newGame(options = {}) {
+    window.CaissaEngineRequestIsolation?.createSession();
     // Exit edit mode if active (MUST be first to clean up state)
     if (App.editMode) {
         exitEditMode();
