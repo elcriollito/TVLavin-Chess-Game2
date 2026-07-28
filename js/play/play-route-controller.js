@@ -33,6 +33,13 @@
     let navigation = null;
     let listening = false;
     let current = null;
+    const subscribers = new Set();
+
+    function notify(route) {
+        subscribers.forEach(listener => {
+            try { listener(route); } catch (_) {}
+        });
+    }
 
     function frozenRoute(value) {
         const query = Object.freeze(Object.assign(Object.create(null), value.query || {}));
@@ -185,6 +192,7 @@
             routeForSection(target, options) : parse(target, { source: options.source || SOURCES.PROGRAMMATIC });
         if (options.history === false) { current = route; return route; }
         commit(route, options.replace ? 'replace' : 'push');
+        notify(route);
         return route;
     }
 
@@ -195,6 +203,7 @@
         if (navigation && navigation.currentSection !== route.section) {
             navigation.navigateToSection(route.section, { history: false, source: SOURCES.POPSTATE });
         }
+        notify(route);
         return route;
     }
 
@@ -206,6 +215,7 @@
         }
         current = parse(global.location, { source: SOURCES.COLD_LOAD });
         if (current.replace) commit(current, 'replace');
+        notify(current);
         return current;
     }
 
@@ -213,7 +223,7 @@
     function resetDiagnostics() { Object.keys(diagnostics).forEach(key => { diagnostics[key] = 0; }); }
     function dispose() {
         if (listening && global.removeEventListener) global.removeEventListener('popstate', handlePopState);
-        listening = false; navigation = null;
+        listening = false; navigation = null; subscribers.clear();
     }
 
     const api = Object.freeze({
@@ -223,6 +233,11 @@
         handlePopState, isPlayRoute: input => parse(input).section === 'play',
         isModeAvailable: mode => AVAILABILITY[mode] === true,
         getCanonicalPath: mode => mode && mode !== MODES.GAMES ? `/play/${mode}` : '/play',
+        subscribe(listener) {
+            if (typeof listener !== 'function') return () => {};
+            subscribers.add(listener);
+            return () => subscribers.delete(listener);
+        },
         inspect, resetDiagnostics, dispose, init
     });
     global.CaissaPlayRouteController = api;
