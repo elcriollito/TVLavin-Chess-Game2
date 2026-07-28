@@ -50,11 +50,14 @@
             const intervention = el('div', 'caissa-coach-panel__intervention', { 'data-coach-intervention': '', role: 'status', 'aria-live': 'polite', hidden: '' });
             const category = el('strong', '', { 'data-coach-category': '' });
             const interventionText = el('p', '', { 'data-coach-message': '' });
+            const knowledge = el('a', 'caissa-coach-panel__knowledge', {
+                'data-coach-knowledge': '', hidden: '', rel: 'noopener'
+            }); knowledge.textContent = 'Study this verified concept';
             const why = el('details', 'caissa-coach-panel__why', { 'data-coach-why': '', hidden: '' });
             const whySummary = el('summary', ''); whySummary.textContent = 'Why?';
             const whyText = el('p', '', { 'data-coach-explanation': '' }); why.append(whySummary, whyText);
             const dismiss = el('button', '', { type: 'button', 'data-coach-dismiss': '' }); dismiss.textContent = 'Dismiss';
-            intervention.append(category, interventionText, why, dismiss);
+            intervention.append(category, interventionText, why, knowledge, dismiss);
             const status = el('div', '', { role: 'status', 'aria-live': 'polite', 'data-coach-status': '' });
             const action = el('button', 'caissa-coach-panel__primary', { type: 'button', 'data-coach-primary': '' }); action.textContent = 'Play Coach';
             root.append(title, note, catalog, detail, optionsNode, goal, intervention, status, action); host.appendChild(root);
@@ -83,6 +86,13 @@
             const why = panel.querySelector('[data-coach-why]');
             why.querySelector('[data-coach-explanation]').textContent = detail.message.explanation || '';
             why.hidden = !detail.message.explanation; why.open = false;
+            const knowledge = panel.querySelector('[data-coach-knowledge]');
+            const mapping = detail.message.knowledge;
+            knowledge.hidden = !mapping; knowledge.removeAttribute('href');
+            if (mapping) {
+                knowledge.href = mapping.publicUrl;
+                knowledge.setAttribute('aria-label', `Study verified concept: ${mapping.unitId.split(':').at(-1).replace(/-/g, ' ')}`);
+            }
             panel.hidden = false; this.#diagnostics.messages += 1; return result(true, 'MESSAGE_SHOWN');
         }
         dismiss() { const node = this.#root?.querySelector('[data-coach-intervention]'); if (node) node.hidden = true; this.#diagnostics.dismissals += 1; return result(true, 'DISMISSED'); }

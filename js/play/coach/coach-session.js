@@ -1,6 +1,6 @@
 (function installCoachSession(global) {
     'use strict';
-    const SCHEMA_VERSION = '1.1.0';
+    const SCHEMA_VERSION = '1.2.0';
     const HISTORY_LIMIT = 8;
     let pending = null; let active = null; let sequence = 0;
     const diagnostics = { selections: 0, starts: 0, resets: 0, observations: 0, interventions: 0 };
@@ -55,7 +55,11 @@
             interventionCount: history.length, frequentCategory,
             practicedHabit: frequentCategory === 'tactical' ? 'Scan checks, captures, and threats.'
                 : frequentCategory === 'king-safety' ? 'Reassess king safety as lines open.'
-                : frequentCategory === 'development' ? 'Bring new pieces into the game.' : null,
+                : frequentCategory === 'development' ? 'Bring new pieces into the game.'
+                : frequentCategory === 'opposition' ? 'Check king geometry and the side to move.'
+                : frequentCategory === 'passed-pawn' ? 'Coordinate the king with passed pawns.'
+                : frequentCategory === 'pawn-race' ? 'Use pawn-square geometry before calculating.'
+                : frequentCategory === 'king-activity' ? 'Use the king actively in reduced material.' : null,
             quiet: history.length === 0 });
     }
     function reset() { pending = null; active = null; diagnostics.resets += 1; return freeze({ ok: true, reasonCode: 'COACH_RESET' }); }

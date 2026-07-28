@@ -7,8 +7,9 @@ import { Chess } from 'chess.js';
 const botFiles = ['bot-profile.js', 'bot-presets.js', 'bot-registry.js', 'bot-session.js']
     .map(name => `js/play/bots/${name}`);
 const coachFiles = [
-    'coach-profile.js', 'coach-intervention-policy.js', 'coach-registry.js',
-    'coach-session.js', 'coach-messages.js', 'coach-intervention-candidate.js', 'coach-observation-service.js'
+    'coach-profile.js', 'coach-intervention-policy.js', 'coach-messages.js', 'coach-intervention-candidate.js',
+    'endgame-phase-classifier.js', 'endgame-knowledge-map.js', 'endgame-detectors.js',
+    'endgame-publication-gate.js', 'coach-registry.js', 'coach-session.js', 'coach-observation-service.js'
 ].map(name => `js/play/coach/${name}`);
 const sources = [...botFiles, ...coachFiles].map(name =>
     fs.readFileSync(new URL(`../../${name}`, import.meta.url), 'utf8'));
@@ -20,17 +21,18 @@ function load() {
     return window;
 }
 
-test('Coach contracts are versioned, frozen, JSON-safe, and catalog two supported profiles', () => {
+test('Coach contracts are versioned, frozen, JSON-safe, and catalog supported profiles', () => {
     const w = load();
     for (const key of ['CaissaCoachProfile', 'CaissaCoachInterventionPolicy', 'CaissaCoachRegistry',
         'CaissaCoachSession', 'CaissaCoachMessages', 'CaissaCoachObservationService']) {
-        assert.match(w[key].schemaVersion, /^1\.[01]\.0$/);
+        assert.match(w[key].schemaVersion, /^1\.[0-2]\.0$/);
         assert.equal(Object.isFrozen(w[key]), true);
     }
     const profiles = w.CaissaCoachRegistry.list();
-    assert.deepEqual(plain(profiles.map(item => item.id)), ['caissa-foundations', 'caissa-tactical-awareness']);
+    assert.deepEqual(plain(profiles.map(item => item.id)),
+        ['caissa-foundations', 'caissa-tactical-awareness', 'caissa-endgame-guide']);
     assert.ok(profiles.every(item => item.availability.qaOnly && Object.isFrozen(item)));
-    assert.equal(profiles.some(item => item.id.includes('endgame')), false);
+    assert.equal(profiles.filter(item => item.id.includes('endgame')).length, 1);
 });
 
 test('profile validation rejects hostile, unsupported, duplicate, and executable profiles', () => {

@@ -10,11 +10,11 @@ async function openCoach(page, viewport = { width: 390, height: 844 }) {
 
 test.beforeEach(async ({ page }) => instrumentPlay(page));
 
-test('Coach is QA-only with two differentiated safe profiles and accessible controls', async ({ page }) => {
+test('Coach is QA-only with differentiated safe profiles and accessible controls', async ({ page }) => {
     await page.goto('/play/coach');
     expect(new URL(page.url()).pathname).toBe('/play/games');
     await openCoach(page);
-    await expect(page.locator('.caissa-coach-panel__card')).toHaveCount(2);
+    await expect(page.locator('.caissa-coach-panel__card')).toHaveCount(3);
     await expect(page.locator('.caissa-coach-panel')).toContainText('do not provide exact move answers');
     await expect(page.locator('.caissa-coach-panel')).not.toContainText(/AI Coach|Mentor|principal variation/i);
     await page.getByLabel(/Tactical Awareness/).check();

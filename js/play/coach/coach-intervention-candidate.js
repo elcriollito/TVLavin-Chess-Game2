@@ -4,7 +4,8 @@
     const CONFIDENCE = Object.freeze(['low', 'medium', 'high']);
     const SEVERITY = Object.freeze(['positive', 'notice', 'warning']);
     const PHASES = Object.freeze(['opening', 'middlegame', 'endgame']);
-    const GROUPS = Object.freeze(['tactical', 'development', 'king-safety', 'positive-reinforcement', 'endgame']);
+    const GROUPS = Object.freeze(['tactical', 'development', 'king-safety', 'positive-reinforcement',
+        'endgame', 'opposition', 'king-activity', 'passed-pawn', 'pawn-race']);
     const TRIGGER = /^[a-z][a-z0-9-]{2,47}$/;
     const FORBIDDEN = new Set(['__proto__', 'prototype', 'constructor']);
     const freeze = value => {
@@ -23,7 +24,7 @@
         const evidence = input.evidence;
         const valid = TRIGGER.test(input.triggerCode || '') && PHASES.includes(input.phase)
             && CONFIDENCE.includes(input.confidence) && SEVERITY.includes(input.severity)
-            && Number.isInteger(input.priority) && input.priority >= 1 && input.priority <= 7
+            && Number.isInteger(input.priority) && input.priority >= 1 && input.priority <= 8
             && evidence && typeof evidence === 'object' && !Array.isArray(evidence) && safe(evidence)
             && typeof input.messageTemplateId === 'string'
             && Array.isArray(input.eligibleAssistanceLevels)
@@ -47,7 +48,7 @@
     global.CaissaCoachInterventionCandidate = freeze({
         schemaVersion: SCHEMA_VERSION, confidenceBands: CONFIDENCE, priorities: freeze({
             immediateDanger: 1, hangingMaterial: 2, kingSafety: 3, development: 4,
-            tacticalAwareness: 5, positiveReinforcement: 6, endgame: 7
+            tacticalAwareness: 5, positiveReinforcement: 6, endgame: 7, endgamePositive: 8
         }), cooldownGroups: GROUPS, create
     });
 })(typeof window !== 'undefined' ? window : globalThis);

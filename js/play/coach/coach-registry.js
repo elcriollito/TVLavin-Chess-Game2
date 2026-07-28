@@ -1,6 +1,6 @@
 (function installCoachRegistry(global) {
     'use strict';
-    const SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
     const catalog = [
         {
             schemaVersion: '1.0.0', id: 'caissa-foundations', version: 2, name: 'CAISSA Foundations',
@@ -23,6 +23,20 @@
             availability: { enabled: true, qaOnly: true, locked: false }, metadata: { localeKey: 'coach.tactical' }
         }
     ];
+    if (global.CaissaEndgamePublicationGate?.snapshot?.canPublish) catalog.push({
+            schemaVersion: '1.0.0', id: 'caissa-endgame-guide', version: 1, name: 'Caissa Endgame Guide',
+            shortName: 'Endgame', description: 'Narrow session prompts for king activity, opposition, passed-pawn support, and simple pawn races.',
+            learnerLevel: 'intermediate', teachingFocus: 'endgames', communicationStyle: 'question-led',
+            engineFoundation: { botProfileId: 'caissa-grove', presetId: 'grove-depth-9' },
+            interventionPolicyId: 'endgame-bounded', feedbackPolicyId: 'template-post-move',
+            evaluationPolicy: 'hidden', presentation: {
+                tagline: 'Use your king actively and check whether passed pawns can be supported.',
+                strengths: ['Four deterministic pawn-ending lessons.'],
+                limitations: ['No rook or queen ending guidance.', 'No perfect-play or tablebase claims.'], avatar: 'E'
+            },
+            availability: { enabled: true, qaOnly: true, locked: false },
+            metadata: { localeKey: 'coach.endgame', publicationGate: 'endgame-foundation-1.0.0' }
+        });
     const entries = new Map(); const diagnostics = { registrations: 0, rejected: 0, reads: 0 };
     function register(value) {
         const normalized = global.CaissaCoachProfile.normalize(value);

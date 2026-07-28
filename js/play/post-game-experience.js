@@ -364,7 +364,9 @@
                 if (record.opponent.type === 'coach') {
                     const coachSummary = global.CaissaCoachSession?.getSummary?.();
                     rows.splice(4, 0, ['Coach session', coachSummary?.quiet
-                        ? 'The Coach remained quiet.'
+                        ? coachSummary?.focus === 'endgames'
+                            ? 'The Coach did not detect a supported endgame lesson.'
+                            : 'The Coach remained quiet.'
                         : `${coachSummary.interventionCount} prompts · ${coachSummary.frequentCategory || 'general'} · ${
                             coachSummary.practicedHabit || 'Review the position carefully.'}`]);
                 }

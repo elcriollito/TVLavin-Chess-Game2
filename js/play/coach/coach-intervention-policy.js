@@ -1,9 +1,10 @@
 (function installCoachInterventionPolicy(global) {
     'use strict';
-    const SCHEMA_VERSION = '1.1.0';
+    const SCHEMA_VERSION = '1.2.0';
     const ASSISTANCE = Object.freeze(['silent', 'light', 'guided', 'teaching']);
     const TRIGGERS = Object.freeze(['development-reminder', 'development-positive', 'tactical-awareness',
-        'immediate-danger', 'hanging-piece', 'king-safety']);
+        'immediate-danger', 'hanging-piece', 'king-safety', 'endgame-activate-king',
+        'endgame-opposition', 'endgame-support-passer', 'endgame-pawn-square']);
     const policies = new Map([
         ['foundations-bounded', {
             schemaVersion: SCHEMA_VERSION, id: 'foundations-bounded', version: 1,
@@ -18,6 +19,14 @@
             allowedPhases: ['opening', 'middlegame', 'endgame'], allowedTriggers: ['tactical-awareness', 'immediate-danger', 'hanging-piece'],
             revealEvaluation: false, revealBestMove: false, pauseClock: false,
             promptTypes: ['question', 'feedback'], constraints: { postMoveOnly: true }
+        }],
+        ['endgame-bounded', {
+            schemaVersion: SCHEMA_VERSION, id: 'endgame-bounded', version: 1,
+            minimumPlyGap: 3, cooldownPlies: 4, maximumInterventions: 4,
+            allowedPhases: ['endgame'], allowedTriggers: ['immediate-danger', 'hanging-piece',
+                'endgame-pawn-square', 'endgame-opposition', 'endgame-support-passer', 'endgame-activate-king'],
+            revealEvaluation: false, revealBestMove: false, pauseClock: false,
+            promptTypes: ['question', 'reminder'], constraints: { postMoveOnly: true }
         }]
     ].map(([id, value]) => [id, Object.freeze({ ...value, allowedPhases: Object.freeze(value.allowedPhases),
         allowedTriggers: Object.freeze(value.allowedTriggers), promptTypes: Object.freeze(value.promptTypes),

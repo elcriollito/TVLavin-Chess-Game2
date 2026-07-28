@@ -678,6 +678,13 @@ body.caissa-simplified-play-active .caissa-coach-panel__why summary {
     cursor: pointer;
     font-weight: 700;
 }
+body.caissa-simplified-play-active .caissa-coach-panel__knowledge {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    margin-inline-end: .75rem;
+}
+body.caissa-simplified-play-active .caissa-coach-panel__knowledge[hidden] { display: none; }
 
 @media (max-width: 359px) {
     body.caissa-simplified-play-active .caissa-coach-panel__catalog { grid-template-columns: 1fr; }

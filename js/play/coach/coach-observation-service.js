@@ -1,8 +1,9 @@
 (function installCoachObservationService(global) {
     'use strict';
-    const SCHEMA_VERSION = '1.1.0';
+    const SCHEMA_VERSION = '1.2.0';
     const VALUES = Object.freeze({ p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 });
     const PRIORITY = Object.freeze(['immediate-danger', 'hanging-piece', 'king-safety',
+        'endgame-pawn-square', 'endgame-opposition', 'endgame-support-passer', 'endgame-activate-king',
         'development-reminder', 'tactical-awareness', 'development-positive']);
     const freeze = value => {
         if (value && typeof value === 'object' && !Object.isFrozen(value)) {
@@ -99,6 +100,13 @@
                 confidence: 'high', severity: 'positive', priority: 6, evidence: baseEvidence,
                 messageTemplateId: 'development-positive', eligibleAssistanceLevels: ['teaching'],
                 cooldownGroup: 'positive-reinforcement', suppressible: true }));
+        if (profile.teachingFocus === 'endgames') {
+            const endgame = global.CaissaEndgameDetectors.evaluate({ fen: input.fen,
+                previousFen: input.previousFen || null, ply, playerColor: input.playerColor,
+                move: input.move, phase: global.CaissaEndgamePhaseClassifier.classify({ fen: input.fen, ply }),
+                tacticalFacts });
+            candidates.push(...endgame.candidates);
+        }
         const allowed = candidates.filter(item => policy.allowedTriggers.includes(item.triggerCode)
             && item.eligibleAssistanceLevels.includes(session.assistanceLevel));
         const selected = allowed.sort((a, b) => a.priority - b.priority || a.triggerCode.localeCompare(b.triggerCode))[0];
@@ -112,11 +120,13 @@
             return freeze({ eligible: false, reasonCode: 'GLOBAL_COOLDOWN', candidates: freeze(candidates), selectedCandidate: selected });
         const message = global.CaissaCoachMessages.create(selected.messageTemplateId,
             session.learnerLevel, session.assistanceLevel);
+        const knowledge = global.CaissaEndgameKnowledgeMap?.get?.(selected.triggerCode) || null;
         return freeze({ eligible: true, reasonCode: 'INTERVENTION', trigger: selected.triggerCode,
             triggerCode: selected.triggerCode, category: selected.category, confidence: selected.confidence,
             severity: selected.severity, priority: selected.priority, cooldownGroup: selected.cooldownGroup,
             messageTemplateId: selected.messageTemplateId, evidence: selected.evidence,
-            candidate: selected, candidates: freeze(candidates), ply, phase: currentPhase, message });
+            candidate: selected, candidates: freeze(candidates), knowledge,
+            ply, phase: currentPhase, message: message ? freeze({ ...message, knowledge }) : null });
     }
     global.CaissaCoachObservationService = freeze({ schemaVersion: SCHEMA_VERSION, priority: PRIORITY, observe });
 })(typeof window !== 'undefined' ? window : globalThis);

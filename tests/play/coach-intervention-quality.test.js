@@ -8,9 +8,11 @@ import { fixtureSuite } from './coach/coach-intervention-fixtures.js';
 
 const files = [
     'js/play/bots/bot-profile.js', 'js/play/bots/bot-presets.js', 'js/play/bots/bot-registry.js',
-    'js/play/coach/coach-profile.js', 'js/play/coach/coach-intervention-policy.js',
-    'js/play/coach/coach-registry.js', 'js/play/coach/coach-session.js', 'js/play/coach/coach-messages.js',
-    'js/play/coach/coach-intervention-candidate.js', 'js/play/coach/coach-observation-service.js'
+    'js/play/coach/coach-profile.js', 'js/play/coach/coach-intervention-policy.js', 'js/play/coach/coach-messages.js',
+    'js/play/coach/coach-intervention-candidate.js', 'js/play/coach/endgame-phase-classifier.js',
+    'js/play/coach/endgame-knowledge-map.js', 'js/play/coach/endgame-detectors.js',
+    'js/play/coach/endgame-publication-gate.js', 'js/play/coach/coach-registry.js',
+    'js/play/coach/coach-session.js', 'js/play/coach/coach-observation-service.js'
 ];
 const source = files.map(file => fs.readFileSync(new URL(`../../${file}`, import.meta.url), 'utf8'));
 function load() {
@@ -92,7 +94,7 @@ test('session history is bounded, immutable, reset on rematch, and produces fact
 
 test('trusted templates are bounded, level-aware, and contain no prohibited analysis content', () => {
     const w = load(); const serialized = JSON.stringify(w.CaissaCoachMessages.templates);
-    assert.equal(w.CaissaCoachMessages.templateVersion, 'coach-message-templates@1.1.0');
+    assert.equal(w.CaissaCoachMessages.templateVersion, 'coach-message-templates@1.2.0');
     assert.doesNotMatch(serialized, /centipawn|principal variation|\bPV\b|\b[a-h][1-8]\b|https?:|<\w+/i);
     for (const id of Object.keys(w.CaissaCoachMessages.templates)) {
         for (const level of ['beginner', 'novice']) {
