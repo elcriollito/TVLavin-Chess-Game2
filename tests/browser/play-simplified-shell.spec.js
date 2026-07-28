@@ -60,19 +60,18 @@ test('activate, deactivate, Back, and Forward preserve state, orientation, contr
     expect(after.isFlipped).toBe(true);
     expect(await page.evaluate(() => window.App.boardAdapter.getSnapshot().adapterId)).toBe(identity);
     expect(after.harness.boardConstructions).toBe(1);
-    await expect(page.getByRole('button', { name: 'Start New Game' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
+    await expect(page.locator('[data-games-primary]')).toBeVisible();
+    await expect(page.locator('.caissa-games-panel')).toBeVisible();
 });
 
-test('QA shell preserves move, New Game, flip, and Analyze handoff behavior', async ({ page }) => {
+test('QA shell preserves move, panel start, flip, and Analyze handoff behavior', async ({ page }) => {
     await openShell(page);
-    await startGame(page);
+    await page.locator('[data-games-primary]').click();
     expect(await playMove(page, 'e2', 'e4')).toBe(true);
     await page.evaluate(() => window.flipBoard());
     await expect(page.locator('#chessboard')).toHaveAttribute('data-orientation', 'black');
-    await page.getByRole('button', { name: 'Start New Game' }).click();
-    await expect(page.locator('#newGameModal')).toHaveClass(/show/);
-    await page.keyboard.press('Escape');
+    await page.locator('[data-games-primary]').click();
+    await expect.poll(() => page.evaluate(() => window.App.game.history().length)).toBe(0);
     await page.locator('[data-section="analyze"]').first().click();
     await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
     expect(new URL(page.url()).searchParams.get('handoff')).toBeTruthy();
@@ -94,14 +93,14 @@ test('QA shell is bounded and reachable across all required viewports', async ({
             const board = document.querySelector('#chessboard').getBoundingClientRect();
             const rail = document.querySelector('#evalBar').getBoundingClientRect();
             const context = document.querySelector('.caissa-simplified-shell__context').getBoundingClientRect();
-            const footer = document.querySelector('.caissa-simplified-shell__footer').getBoundingClientRect();
+            const primary = document.querySelector('[data-games-primary]').getBoundingClientRect();
             const modes = document.querySelector('.caissa-simplified-shell__modes').getBoundingClientRect();
             return {
                 board: { width: board.width, height: board.height },
                 overlap: !(rail.right <= board.left || rail.left >= board.right),
                 overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
                 context: context.width > 0 && context.height > 0,
-                footer: footer.width > 0 && footer.height > 0,
+                primary: primary.width > 0 && primary.height > 0,
                 modes: modes.width > 0 && modes.height > 0,
                 layout: window.CaissaSimplifiedPlayShellInstance.getSnapshot().layoutMode
             };
@@ -110,7 +109,7 @@ test('QA shell is bounded and reachable across all required viewports', async ({
         expect(geometry.board.width, `${width}x${height}`).toBeGreaterThan(180);
         expect(geometry.overlap, `${width}x${height}`).toBe(false);
         expect(geometry.overflow, `${width}x${height}`).toBeLessThanOrEqual(1);
-        expect(geometry.context && geometry.footer && geometry.modes).toBe(true);
+        expect(geometry.context && geometry.primary && geometry.modes).toBe(true);
         expect(geometry.layout).toBe(layout);
     }
 });

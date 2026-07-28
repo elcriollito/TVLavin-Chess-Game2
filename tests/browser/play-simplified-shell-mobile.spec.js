@@ -98,7 +98,7 @@ test('portrait landscape portrait preserves game identity and requests one resiz
     expect(after.harness.workersCreated).toBe(1);
 });
 
-test('drawer, promotion, New Game, Settings, Help, and Back coexist with the shell', async ({ page }) => {
+test('drawer, promotion, panel New Game, Settings, Help, and Back coexist with the shell', async ({ page }) => {
     await openShell(page, 390, 844);
     const toggle = page.locator('#mobileNavToggle');
     await toggle.click();
@@ -114,9 +114,9 @@ test('drawer, promotion, New Game, Settings, Help, and Back coexist with the she
     await expect(page.locator('#promotionModal')).toHaveClass(/show/);
     await page.evaluate(() => window.handlePromotion('q'));
 
-    await page.getByRole('button', { name: 'Start New Game' }).click();
-    await expect(page.locator('#newGameModal')).toHaveClass(/show/);
-    await page.keyboard.press('Escape');
+    await page.locator('[data-games-primary]').click();
+    await expect.poll(() => page.evaluate(() => window.App.game.history().length)).toBe(0);
+    await page.locator('.caissa-simplified-shell__advanced summary').click();
     await page.locator('#btnSettings').click();
     await expect(page.locator('#menuModal')).toHaveClass(/show/);
     await page.keyboard.press('Escape');

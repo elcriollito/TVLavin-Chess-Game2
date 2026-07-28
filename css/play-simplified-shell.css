@@ -180,6 +180,7 @@ body.caissa-simplified-play-active .caissa-simplified-shell__advanced-body {
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__context .right-panel,
+body.caissa-simplified-play-active .caissa-simplified-shell__advanced .right-panel,
 body.caissa-simplified-play-active .caissa-simplified-shell__advanced .left-panel {
     display: flex !important;
     width: 100%;
@@ -208,8 +209,7 @@ body.caissa-simplified-play-active .caissa-simplified-shell__status {
 
 body.caissa-simplified-play-active .caissa-simplified-shell__footer {
     grid-area: footer;
-    display: block;
-    min-height: 48px;
+    display: none;
     padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
@@ -233,6 +233,135 @@ body[data-caissa-section="play"].caissa-simplified-play-active .mobile-quick-act
 
 body[data-caissa-section="play"].caissa-simplified-play-active .content-area {
     padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__advanced #navNewGameBtn {
+    display: none !important;
+}
+
+body[data-caissa-section="play"].caissa-simplified-play-active #playSection .caissa-simplified-shell__advanced .right-panel,
+body[data-caissa-section="play"].caissa-simplified-play-active #playSection .caissa-simplified-shell__advanced .left-panel {
+    display: flex !important;
+    max-height: none;
+}
+
+body[data-caissa-section="play"].caissa-simplified-play-active #playSection .caissa-simplified-shell__advanced .right-controls {
+    display: block !important;
+}
+
+body[data-caissa-section="play"].caissa-simplified-play-active #playSection .caissa-simplified-shell__advanced .game-menu-panel {
+    display: block !important;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel {
+    display: grid;
+    gap: 14px;
+    padding: 14px;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__title {
+    margin: 0;
+    font-size: 21px;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__description,
+body.caissa-simplified-play-active .caissa-games-panel__note {
+    margin: 0;
+    color: var(--muted);
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__group {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__legend {
+    margin: 0 0 7px;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__options--color {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__option {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    min-height: 44px;
+    cursor: pointer;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__option input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__option span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    padding: 7px 9px;
+    overflow-wrap: anywhere;
+    border: 1px solid var(--panel-border);
+    border-radius: 9px;
+    background: rgba(255,255,255,.04);
+    text-align: center;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__option input:checked + span {
+    border-color: var(--accent-color);
+    background: rgba(255,140,0,.16);
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__option input:focus-visible + span {
+    outline: 3px solid var(--caissa-ui-focus, #60a5fa);
+    outline-offset: 2px;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__opponent-value {
+    margin: 0 0 3px;
+    font-weight: 700;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__status {
+    min-height: 20px;
+    color: var(--muted);
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 16px;
+    border: 1px solid var(--accent-color);
+    border-radius: 10px;
+    background: var(--accent-color);
+    color: #111;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__primary:disabled {
+    opacity: .55;
+    cursor: not-allowed;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="phone-compact"] .caissa-simplified-shell__workspace,

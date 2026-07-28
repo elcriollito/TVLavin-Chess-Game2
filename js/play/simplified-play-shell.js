@@ -1,8 +1,8 @@
 (function (global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.1.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.1.0';
+    const SCHEMA_VERSION = '1.2.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.2.0';
     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'error']);
     const REGIONS = Object.freeze([
         'mode-navigation', 'board-stage', 'opponent-header', 'evaluation-rail',
@@ -91,6 +91,7 @@
         #root = null; #active = false; #disposed = false; #status = 'loading';
         #mode = 'games'; #placements = []; #listeners = []; #unsubscribeRoute = null;
         #layoutMode = null; #geometry = null; #resizeCount = 0; #activationCount = 0; #statusNode = null;
+        #gamesPanel = null;
         #diagnostics = {
             layoutChanges: 0, orientationChanges: 0, safeAreaApplications: 0,
             boardResizeRequests: 0, drawerCycles: 0, restorationCycles: 0, rejectedGeometry: 0
@@ -177,11 +178,12 @@
             const boardWithEval = play.querySelector('.board-with-eval');
             const leftPanel = play.querySelector('.left-panel.cais-left-col');
             const rightPanel = play.querySelector('.right-panel.cais-right-col');
+            const gameMenu = play.querySelector('.game-menu-panel');
             const editor = play.querySelector('.board-editor-wrapper');
             const actions = play.querySelector('.right-controls');
             const names = [global.document.getElementById('playerBlackName'), global.document.getElementById('topClockBlack')];
             const currentNames = [global.document.getElementById('playerWhiteName'), global.document.getElementById('topClockWhite')];
-            if (![legacyGrid, boardWithEval, leftPanel, rightPanel, editor, actions, ...names, ...currentNames].every(Boolean))
+            if (![legacyGrid, boardWithEval, leftPanel, rightPanel, gameMenu, editor, actions, ...names, ...currentNames].every(Boolean))
                 return result(false, 'unavailable', REASONS.PLAY_UNAVAILABLE);
 
             const place = (node, host) => {
@@ -195,14 +197,27 @@
             const player = this.#root.querySelector('.caissa-simplified-shell__player--current');
             const contextBody = this.#root.querySelector('.caissa-simplified-shell__context-body');
             const advancedBody = this.#root.querySelector('.caissa-simplified-shell__advanced-body');
-            const footer = this.#root.querySelector('.caissa-simplified-shell__footer');
             names.forEach(node => place(node, opponent));
             currentNames.forEach(node => place(node, player));
             place(boardWithEval, boardRegion);
-            place(rightPanel, contextBody);
+            place(rightPanel, advancedBody);
             place(leftPanel, advancedBody);
+            place(gameMenu, advancedBody);
             place(editor, advancedBody);
-            place(actions, footer);
+            place(actions, advancedBody);
+            this.#gamesPanel = global.CaissaGamesPanel?.create?.();
+            const panelMount = this.#gamesPanel?.mount?.({
+                host: contextBody,
+                advancedDisclosure: this.#root.querySelector('.caissa-simplified-shell__advanced')
+            });
+            if (!panelMount?.ok) {
+                this.#gamesPanel?.dispose?.(); this.#gamesPanel = null;
+                [...this.#placements].reverse().forEach(({ node, marker }) => {
+                    marker.parentNode.insertBefore(node, marker); marker.remove();
+                });
+                this.#placements = [];
+                return result(false, 'unavailable', 'GAMES_PANEL_UNAVAILABLE');
+            }
             legacyGrid.hidden = true;
             topbar.hidden = true;
             this.#root.hidden = false;
@@ -228,6 +243,7 @@
         deactivate() {
             if (this.#disposed) return result(false, 'disposed', REASONS.DISPOSED);
             if (!this.#active) return result(true, 'unchanged', REASONS.ALREADY_INACTIVE);
+            this.#gamesPanel?.dispose?.(); this.#gamesPanel = null;
             [...this.#placements].reverse().forEach(({ node, marker }) => {
                 marker.parentNode.insertBefore(node, marker);
                 marker.remove();
@@ -262,8 +278,12 @@
             }
             return result(true, 'accepted', 'STATUS_SET', status);
         }
-        setPanelContent() { return result(false, 'unavailable', 'GAMES_PANEL_NOT_MIGRATED'); }
-        setPrimaryAction() { return result(false, 'unavailable', 'PRIMARY_ACTION_OWNED_BY_LEGACY_CONTROLS'); }
+        setPanelContent() {
+            return this.#gamesPanel
+                ? result(true, 'unchanged', 'GAMES_PANEL_OWNED', this.#gamesPanel.getSnapshot())
+                : result(false, 'unavailable', 'GAMES_PANEL_UNAVAILABLE');
+        }
+        setPrimaryAction() { return result(false, 'unavailable', 'PRIMARY_ACTION_OWNED_BY_GAMES_PANEL'); }
 
         resize() {
             if (!this.#root) return result(false, 'unavailable', REASONS.PLAY_UNAVAILABLE);
@@ -315,6 +335,7 @@
                 movedNodeCount: this.#placements.length, activationCount: this.#activationCount,
                 resizeCount: this.#resizeCount, listenerCount: this.#listeners.length,
                 boardAdapterId: global.App?.boardAdapter?.getSnapshot?.().adapterId || null,
+                gamesPanel: this.#gamesPanel?.getSnapshot?.() || null,
                 diagnostics: { ...this.#diagnostics }
             });
         }
