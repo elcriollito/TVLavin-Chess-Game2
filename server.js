@@ -409,6 +409,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/yahoo-classic') {
     filePath = './yahoo-classic.html';
   }
+  if (pathname === '/play' || pathname.startsWith('/play/')) {
+    filePath = './index.html';
+  }
   if (pathname === '/endgame-trainer' || pathname === '/endgame-trainer/') {
     filePath = './endgame-trainer.html';
   }

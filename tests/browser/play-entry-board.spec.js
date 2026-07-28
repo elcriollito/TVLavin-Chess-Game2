@@ -31,15 +31,13 @@ test('blocking: canonical navigation, repeated entry, leave, and return preserve
     expect(await page.locator('#playSection #chessboard .board-b72b1').count()).toBe(1);
 });
 
-test('characterization: ordinary section navigation leaves URL and browser history unchanged', async ({ page }) => {
-    await page.goto('/?section=academy');
+test('blocking: canonical section navigation creates history and Back restores Classic', async ({ page }) => {
     await page.goto('/');
-    const initial = page.url();
     await page.locator('[data-section="play"]').first().click();
-    expect(page.url()).toBe(initial);
+    expect(new URL(page.url()).pathname).toBe('/play');
     await page.goBack();
-    expect(page.url()).toContain('?section=academy');
-    await expect(page.locator('#academySection')).toHaveClass(/active/);
+    expect(new URL(page.url()).pathname).toBe('/');
+    await expect(page.locator('#yahooClassicSection')).toHaveClass(/active/);
 });
 
 test('blocking: legal move updates board state, history, and PGN; illegal move is rejected unchanged', async ({ page }) => {

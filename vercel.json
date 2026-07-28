@@ -30,6 +30,8 @@
     { "source": "/roadmap", "destination": "/roadmap.html" },
     { "source": "/yahoo-classic", "destination": "/yahoo-classic.html" },
     { "source": "/academy", "destination": "/index.html" },
+    { "source": "/play", "destination": "/index.html" },
+    { "source": "/play/:mode", "destination": "/index.html" },
     { "source": "/opening-database", "destination": "/opening-database.html" },
     { "source": "/opening-database/", "destination": "/opening-database.html" },
     { "source": "/openingdb/manifest.json", "destination": "https://downloads.caissa-chess.org/openingdb/manifest.json" },

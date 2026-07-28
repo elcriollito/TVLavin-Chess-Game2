@@ -35,6 +35,7 @@ const CaissaNavigation = {
     init() {
         console.log('[CAISSA Nav] Initializing...');
         this.cacheElements();
+        window.CaissaPlayRouteController?.init(this);
         this.bindEvents();
         this.restoreState();
         this.updateUI();
@@ -123,16 +124,6 @@ const CaissaNavigation = {
                 this.handleNavigationAction(event.currentTarget.dataset.navAction);
             });
         });
-        if (!this.historyHandler) {
-            this.historyHandler = () => {
-                const section = new URLSearchParams(window.location.search).get('section');
-                if (section && section !== this.currentSection && document.getElementById(`${section}Section`)) {
-                    this.navigateToSection(section, { history: false });
-                }
-            };
-            window.addEventListener('popstate', this.historyHandler);
-        }
-
         document.getElementById('closeAnalysisSheet')?.addEventListener('click', () => {
             this.closeMobileAnalysis();
         });
@@ -160,12 +151,7 @@ const CaissaNavigation = {
                 return false;
             }
             this.lastAnalyzeHandoffToken = handoff.value.token;
-            if (options.history !== false && window.history?.pushState) {
-                const url = new URL(window.location.href);
-                url.searchParams.set('section', 'analyze');
-                url.searchParams.set('handoff', handoff.value.token);
-                window.history.pushState({ section: 'analyze' }, '', `${url.pathname}${url.search}${url.hash}`);
-            }
+            options.query = Object.assign({}, options.query, { handoff: handoff.value.token });
         }
 
         // Special cases: Library, Mentor, and Premium
@@ -208,6 +194,13 @@ const CaissaNavigation = {
             return;
         }
         newEl.classList.add('active');
+
+        if (options.history !== false) {
+            window.CaissaPlayRouteController?.navigate(sectionId, {
+                source: options.source || 'primary-navigation',
+                query: options.query
+            });
+        }
 
         // Activate nav item
         this.elements.navItems.forEach(item => {
@@ -734,6 +727,14 @@ const CaissaNavigation = {
      */
     restoreState() {
         try {
+            const routed = window.CaissaPlayRouteController?.getCurrent();
+            if (routed?.section && document.getElementById(`${routed.section}Section`)) {
+                this.currentSection = routed.section;
+                const savedRouteState = localStorage.getItem('caissa_nav_state');
+                if (savedRouteState) this.isNavCollapsed = !!JSON.parse(savedRouteState).isNavCollapsed;
+                if (this.isNavCollapsed) this.elements.appContainer?.classList.add('nav-collapsed');
+                return;
+            }
             const saved = localStorage.getItem('caissa_nav_state');
             if (saved) {
                 const state = JSON.parse(saved);

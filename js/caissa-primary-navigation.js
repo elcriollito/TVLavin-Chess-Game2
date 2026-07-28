@@ -4,7 +4,7 @@
     const groups = Object.freeze([
         Object.freeze([
             { id: 'yahooClassic', label: 'CAISSA Classic', icon: 'fas fa-window-restore', section: 'yahooClassic', route: '/yahoo-classic' },
-            { id: 'play', label: 'Play', icon: 'fas fa-play-circle', section: 'play', route: '/?section=play' },
+            { id: 'play', label: 'Play', icon: 'fas fa-play-circle', section: 'play', route: '/play' },
             { id: 'mentor', label: 'Mentor', icon: 'fas fa-graduation-cap', section: 'mentor', route: '/?section=mentor', className: 'nav-item-tool' },
             { id: 'academy', label: 'Academy', icon: 'fas fa-graduation-cap', section: 'academy', route: '/?section=academy' },
             { id: 'endgame-trainer', label: 'Endgame Trainer', icon: 'fas fa-chess-pawn', route: '/endgame-trainer' },
