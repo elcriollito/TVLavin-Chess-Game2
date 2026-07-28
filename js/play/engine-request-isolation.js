@@ -106,7 +106,9 @@
     function createBoundary({
         now = Date.now,
         requestIdFactory,
-        sessionIdFactory
+        sessionIdFactory,
+        requirePolicy = false,
+        policyValidator = null
     } = {}) {
         let requestSequence = 0;
         let sessionSequence = 0;
@@ -227,7 +229,7 @@
             return operation(true, 'created', 'create-request', request);
         }
 
-        function submit(requestOrId) {
+        function submit(requestOrId, policyDecision = null) {
             if (disposed) return operation(false, 'failed', 'submit', null, null, 'disposed');
             const requestId = typeof requestOrId === 'string' ? requestOrId : requestOrId?.requestId;
             const state = requests.get(requestId);
@@ -236,6 +238,9 @@
                 transition(state, 'unsupported');
                 return operation(false, 'unsupported', 'submit', snapshot(state), null, 'unsupported-purpose');
             }
+            if (requirePolicy && (typeof policyValidator !== 'function'
+                || !policyValidator(policyDecision, state.request.purpose)))
+                return operation(false, 'unsupported', 'submit', snapshot(state), null, 'policy-authorization-required');
             if (state.status !== 'created')
                 return operation(false, TERMINAL.has(state.status) ? state.status : 'failed',
                     'submit', snapshot(state), null, 'invalid-status');
@@ -441,7 +446,11 @@
         });
     }
 
-    const boundary = createBoundary();
+    const boundary = createBoundary({
+        requirePolicy: true,
+        policyValidator: (decision, purpose) =>
+            global.CaissaFairPlayPolicy?.validateDecision(decision, purpose) === true
+    });
     const api = Object.freeze({
         schemaVersion: SCHEMA_VERSION,
         purposes: PURPOSES,

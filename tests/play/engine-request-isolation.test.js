@@ -310,7 +310,7 @@ test('static guard forbids worker ownership, App writes, settings, UI, clocks, s
         /\bnew\s+Worker\b/, /\bApp\b/, /\brequestAnimationFrame\s*\(/, /\bsetInterval\s*\(/,
         /\bsetTimeout\s*\(/, /\.addEventListener\s*\(/, /\blocalStorage\b/, /\bsessionStorage\b/,
         /\bdocument\b/, /createElement|innerHTML|textContent/, /setSkillLevel|setMultiPV/,
-        /\bgo\s*\(\s*\{/, /CaissaNavigation|AnalyzeSection|FairPlay|Mentor|Coach/
+        /\bgo\s*\(\s*\{/, /CaissaNavigation|AnalyzeSection|Mentor|Coach/
     ]) assert.doesNotMatch(source, pattern);
 });
 

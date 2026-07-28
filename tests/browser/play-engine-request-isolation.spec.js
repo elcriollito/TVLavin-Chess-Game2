@@ -110,6 +110,7 @@ test('stale evaluation is rejected and newer evaluation remains independent of o
     await openPlay(page);
     const proof = await page.evaluate(() => {
         const api = window.CaissaEngineRequestIsolation;
+        const policy = window.CaissaFairPlayPolicy;
         api.createSession({ sessionId: 'browser-session' });
         const sessionId = api.getCurrentSession().sessionId;
         const fenA = window.App.game.fen();
@@ -117,17 +118,20 @@ test('stale evaluation is rejected and newer evaluation remains independent of o
         const oldEval = api.createRequest({
             purpose: 'live-evaluation', sessionId, positionToken: tokenA, fen: fenA
         }).request;
-        api.submit(oldEval);
+        api.submit(oldEval, policy.evaluatePurpose('live-evaluation',
+            policy.createCurrentPlayContext('live-evaluation')));
         const opponent = api.createRequest({
             purpose: 'opponent-move', sessionId, positionToken: tokenA, fen: fenA
         }).request;
-        api.submit(opponent);
+        api.submit(opponent, policy.evaluatePurpose('opponent-move',
+            policy.createCurrentPlayContext('opponent-move')));
         const fenB = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1';
         const tokenB = api.createPositionToken({ sessionId, fen: fenB, moveCount: 1, turn: 'b' });
         const newEval = api.createRequest({
             purpose: 'live-evaluation', sessionId, positionToken: tokenB, fen: fenB, moveCount: 1, turn: 'b'
         }).request;
-        api.submit(newEval);
+        api.submit(newEval, policy.evaluatePurpose('live-evaluation',
+            policy.createCurrentPlayContext('live-evaluation')));
         const beforeScore = document.getElementById('evalScore').textContent;
         const stale = api.acceptResponse({
             requestId: oldEval.requestId,

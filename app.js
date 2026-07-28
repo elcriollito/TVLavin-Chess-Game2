@@ -130,7 +130,11 @@ function engineNewGame(engine) {
 
 function createEngineIsolationRequest(purpose, fen, parameters = {}) {
     const isolation = window.CaissaEngineRequestIsolation;
-    if (!isolation) return null;
+    const policy = window.CaissaFairPlayPolicy;
+    if (!isolation || !policy) return null;
+    const context = policy.createCurrentPlayContext(purpose);
+    const decision = policy.evaluatePurpose(purpose, context);
+    if (!decision.allowed) return null;
     if (!isolation.getCurrentSession()) isolation.createSession();
     const session = isolation.getCurrentSession();
     const positionToken = isolation.createPositionToken({
@@ -146,10 +150,16 @@ function createEngineIsolationRequest(purpose, fen, parameters = {}) {
         fen,
         moveCount: App.moveHistory.length,
         turn: App.game.turn(),
-        parameters
+        parameters,
+        metadata: {
+            policyVersion: decision.policyVersion,
+            decisionId: decision.decisionId,
+            reasonCode: decision.reasonCode,
+            evaluationMode: decision.capabilities.evaluationMode
+        }
     });
     if (!created.ok) return null;
-    const submitted = isolation.submit(created.request);
+    const submitted = isolation.submit(created.request, decision);
     return submitted.ok ? created.request : null;
 }
 
@@ -1194,6 +1204,11 @@ function makeEngineMove() {
     const isolationRequest = createEngineIsolationRequest('opponent-move', currentFen, {
         moveTimeMs: moveTime
     });
+    if (!isolationRequest) {
+        App.isPlayerTurn = true;
+        updateEngineStatus('ready', 'Engine Ready');
+        return;
+    }
     const requestBestMove = typeof App.engine.getBestMoveAttributed === 'function'
         ? App.engine.getBestMoveAttributed.bind(App.engine)
         : App.engine.getBestMove.bind(App.engine);
@@ -2298,6 +2313,11 @@ function startAnalysis() {
     const isolationRequest = createEngineIsolationRequest('live-evaluation', analysisFen, {
         depth: 20
     });
+    if (!isolationRequest) {
+        App.analyzing = false;
+        updateEngineStatus('ready', 'Engine Ready');
+        return;
+    }
     const requestAnalysis = typeof App.engine.startAnalysisAttributed === 'function'
         ? App.engine.startAnalysisAttributed.bind(App.engine)
         : App.engine.startAnalysis.bind(App.engine);
