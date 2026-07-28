@@ -1,6 +1,6 @@
 (function installCoachSession(global) {
     'use strict';
-    const SCHEMA_VERSION = '1.2.0';
+    const SCHEMA_VERSION = '1.3.0';
     const HISTORY_LIMIT = 8;
     let pending = null; let active = null; let sequence = 0;
     const diagnostics = { selections: 0, starts: 0, resets: 0, observations: 0, interventions: 0 };
@@ -50,9 +50,11 @@
         const history = active?.interventionHistory || []; const counts = {};
         history.forEach(item => { if (item.category) counts[item.category] = (counts[item.category] || 0) + 1; });
         const frequentCategory = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b))[0] || null;
+        const conceptIds = [...new Set(history.map(item => item.conceptId).filter(Boolean))];
         return freeze({ schemaVersion: SCHEMA_VERSION, coachId: active?.coachId || null,
             focus: active?.teachingFocus || null, assistanceLevel: active?.assistanceLevel || null,
-            interventionCount: history.length, frequentCategory,
+            interventionCount: history.length, frequentCategory, conceptIds: freeze(conceptIds),
+            conceptCount: conceptIds.length,
             practicedHabit: frequentCategory === 'tactical' ? 'Scan checks, captures, and threats.'
                 : frequentCategory === 'king-safety' ? 'Reassess king safety as lines open.'
                 : frequentCategory === 'development' ? 'Bring new pieces into the game.'

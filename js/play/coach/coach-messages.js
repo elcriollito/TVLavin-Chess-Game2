@@ -1,7 +1,7 @@
 (function installCoachMessages(global) {
     'use strict';
-    const SCHEMA_VERSION = '1.2.0';
-    const TEMPLATE_VERSION = 'coach-message-templates@1.2.0';
+    const SCHEMA_VERSION = '1.3.0';
+    const TEMPLATE_VERSION = 'coach-message-templates@1.3.0';
     const templates = Object.freeze({
         'development-reminder': Object.freeze({
             beginner: 'Several minor pieces are still at home. Can a new piece join the game?',
@@ -34,15 +34,15 @@
             why: 'An attacked piece becomes especially vulnerable when a legal capture cannot be answered at once.'
         }),
         'endgame-activate-king': Object.freeze({
-            beginner: 'With less material, your king can become an active piece. Can it move closer to the center or the pawns?',
-            novice: 'The position is simplified and your king remains distant. Consider how it can take a more active role.',
+            beginner: 'Your king is still far from the pawns. How could it take a more active role?',
+            novice: 'Your king has useful access to gain in this pawn ending. Consider its route toward the action.',
             intermediate: 'In this reduced position, assess whether your king can improve its access to the center or the pawns.',
             why: 'In reduced-material positions, the king often becomes an important attacking and defensive piece.'
         }),
         'endgame-opposition': Object.freeze({
-            novice: 'The kings are in direct opposition. Which king is required to give way?',
-            intermediate: 'Direct opposition is present. Account for the side to move before judging the king entry.',
-            why: 'With one square between aligned kings, the move obligation determines which king must yield.'
+            novice: 'The kings are in direct opposition. How does the side to move affect the entry squares?',
+            intermediate: 'Direct opposition is present. Compare the side to move with the entry squares each king controls.',
+            why: 'With one square between aligned kings, move timing affects which king must give way; a spare pawn move can alter it.'
         }),
         'endgame-support-passer': Object.freeze({
             novice: 'You have an unblocked passed pawn that is not yet supported by the king. Think about coordination.',
@@ -50,8 +50,8 @@
             why: 'A passed pawn is usually more useful when its king helps control the approach and promotion route.'
         }),
         'endgame-pawn-square': Object.freeze({
-            novice: 'A lone pawn race is present. Check whether the defending king is inside the pawn’s square.',
-            intermediate: 'Use the pawn’s square and the side to move to estimate whether the king can catch it.',
+            novice: 'Check the pawn’s square before calculating a long line. Is the king already inside it?',
+            intermediate: 'Use the pawn’s square, its possible first double step, and the side to move to compare the race.',
             why: 'The pawn’s square converts king distance and promotion distance into a quick geometric check.'
         })
     });

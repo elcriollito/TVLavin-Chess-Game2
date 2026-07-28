@@ -25,7 +25,7 @@ test('Coach contracts are versioned, frozen, JSON-safe, and catalog supported pr
     const w = load();
     for (const key of ['CaissaCoachProfile', 'CaissaCoachInterventionPolicy', 'CaissaCoachRegistry',
         'CaissaCoachSession', 'CaissaCoachMessages', 'CaissaCoachObservationService']) {
-        assert.match(w[key].schemaVersion, /^1\.[0-2]\.0$/);
+        assert.match(w[key].schemaVersion, /^1\.[0-3]\.0$/);
         assert.equal(Object.isFrozen(w[key]), true);
     }
     const profiles = w.CaissaCoachRegistry.list();

@@ -87,6 +87,8 @@ test('session history is bounded, immutable, reset on rematch, and produces fact
         evidence: { conceptId: 'local:tactical-scan' } });
     assert.equal(w.CaissaCoachSession.getInterventionHistory().length, 8);
     assert.equal(w.CaissaCoachSession.getSummary().frequentCategory, 'tactical');
+    assert.equal(w.CaissaCoachSession.getSummary().conceptIds.length, 1);
+    assert.equal(Object.isFrozen(w.CaissaCoachSession.getSummary().conceptIds), true);
     assert.equal(Object.isFrozen(w.CaissaCoachSession.getInterventionHistory()), true);
     w.CaissaCoachSession.beginGame();
     assert.equal(w.CaissaCoachSession.getInterventionHistory().length, 0);
@@ -94,7 +96,7 @@ test('session history is bounded, immutable, reset on rematch, and produces fact
 
 test('trusted templates are bounded, level-aware, and contain no prohibited analysis content', () => {
     const w = load(); const serialized = JSON.stringify(w.CaissaCoachMessages.templates);
-    assert.equal(w.CaissaCoachMessages.templateVersion, 'coach-message-templates@1.2.0');
+    assert.equal(w.CaissaCoachMessages.templateVersion, 'coach-message-templates@1.3.0');
     assert.doesNotMatch(serialized, /centipawn|principal variation|\bPV\b|\b[a-h][1-8]\b|https?:|<\w+/i);
     for (const id of Object.keys(w.CaissaCoachMessages.templates)) {
         for (const level of ['beginner', 'novice']) {

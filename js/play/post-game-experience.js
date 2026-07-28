@@ -367,7 +367,8 @@
                         ? coachSummary?.focus === 'endgames'
                             ? 'The Coach did not detect a supported endgame lesson.'
                             : 'The Coach remained quiet.'
-                        : `${coachSummary.interventionCount} prompts · ${coachSummary.frequentCategory || 'general'} · ${
+                        : `${coachSummary.interventionCount} prompts · ${coachSummary.conceptCount || 0} supported concepts · ${
+                            coachSummary.frequentCategory || 'general'} · ${
                             coachSummary.practicedHabit || 'Review the position carefully.'}`]);
                 }
                 summary.replaceChildren(...rows.flatMap(([term, description]) => {

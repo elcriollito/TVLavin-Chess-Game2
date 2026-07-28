@@ -40,7 +40,7 @@ test('king activity, opposition, passer support, and pawn-square detectors emit 
     const w = load();
     for (const fixture of endgameCoachFixtures.positive) {
         const result = w.CaissaEndgameDetectors.evaluate({ fen: fixture.fen, ply: 30,
-            playerColor: 'white', move: fixture.move });
+            playerColor: fixture.playerColor || 'white', move: fixture.move });
         assert.ok(result.candidates.some(item => item.triggerCode === fixture.expected), fixture.id);
         const selected = result.candidates.find(item => item.triggerCode === fixture.expected);
         assert.ok(selected.evidence.endgameFacts.phase.material);
@@ -72,6 +72,16 @@ test('passed-pawn classification rejects opposing adjacent pawns and blockers', 
     }
 });
 
+test('passer subtypes are factual and protected or connected passers do not use the unsupported-passer lesson', () => {
+    const w = load();
+    for (const id of ['connected-passers-specific', 'protected-passer-specific']) {
+        const fixture = endgameCoachFixtures.quiet.find(item => item.id === id);
+        const result = w.CaissaEndgameDetectors.evaluate({ fen: fixture.fen, playerColor: 'white' });
+        assert.equal(result.candidates.some(item => item.triggerCode === 'endgame-support-passer'), false, id);
+        assert.ok(result.facts.passed.some(item => ['connected', 'protected'].includes(item.subtype)), id);
+    }
+});
+
 test('pawn-square fact accounts for side to move and suppresses piece interference', () => {
     const w = load(); const fixture = endgameCoachFixtures.positive.find(item => item.id === 'pawn-square');
     const result = w.CaissaEndgameDetectors.evaluate({ fen: fixture.fen, playerColor: 'white' });
@@ -80,6 +90,56 @@ test('pawn-square fact accounts for side to move and suppresses piece interferen
     const interference = endgameCoachFixtures.quiet.find(item => item.id === 'extra-rook-interference');
     assert.equal(w.CaissaEndgameDetectors.evaluate({ fen: interference.fen,
         playerColor: 'white' }).candidates.some(item => item.triggerCode === 'endgame-pawn-square'), false);
+});
+
+test('pawn-square geometry records legal first-move acceleration and suppresses multi-pawn races', () => {
+    const w = load();
+    const doubleStep = endgameCoachFixtures.positive.find(item => item.id === 'pawn-square-double-step');
+    const result = w.CaissaEndgameDetectors.evaluate({ fen: doubleStep.fen, playerColor: 'white' });
+    const squareFact = result.candidates.find(item => item.triggerCode === 'endgame-pawn-square')
+        .evidence.endgameFacts.pawnSquare;
+    assert.equal(squareFact.legalDoubleStep, true);
+    assert.equal(squareFact.pawnSteps, squareFact.rawSteps - 1);
+    const race = endgameCoachFixtures.quiet.find(item => item.id === 'both-pawns-racing');
+    const quiet = w.CaissaEndgameDetectors.evaluate({ fen: race.fen, playerColor: 'white' });
+    assert.equal(quiet.candidates.some(item => item.triggerCode === 'endgame-pawn-square'), false);
+    assert.ok(quiet.suppressions.some(item => item.detector === 'pawn-square'
+        && item.reasonCode === 'TACTICAL_INTERFERENCE'));
+});
+
+test('specific endgame concepts suppress generic king activity with bounded reason codes', () => {
+    const w = load();
+    const fixture = endgameCoachFixtures.positive.find(item => item.id === 'vertical-opposition');
+    const result = w.CaissaEndgameDetectors.evaluate({ fen: fixture.fen, playerColor: 'white' });
+    assert.equal(result.candidates.some(item => item.triggerCode === 'endgame-opposition'), true);
+    assert.equal(result.candidates.some(item => item.triggerCode === 'endgame-activate-king'), false);
+    assert.ok(result.suppressions.some(item => item.detector === 'king-activity'
+        && item.reasonCode === 'SUPPRESSED_BY_HIGHER_PRIORITY'));
+    assert.ok(result.suppressions.length <= 8);
+});
+
+test('six deterministic multi-position session contracts remain bounded and exact-move free', () => {
+    const w = load();
+    assert.equal(endgameCoachFixtures.sessions.length, 6);
+    let totalMessages = 0;
+    for (const session of endgameCoachFixtures.sessions) {
+        assert.ok(session.initialFen);
+        assert.ok(session.observations.length >= 2);
+        let messages = 0;
+        session.observations.forEach((observation, index) => {
+            const result = w.CaissaEndgameDetectors.evaluate({ fen: observation.fen,
+                playerColor: 'white', ply: 30 + index, tacticalFacts: observation.tacticalFacts });
+            assert.ok(result.candidates.length <= 3);
+            if (observation.expectedAbsent)
+                assert.equal(result.candidates.some(item => item.triggerCode === observation.expectedAbsent), false);
+            if (observation.expected && result.candidates.some(item => item.triggerCode === observation.expected))
+                messages += 1;
+        });
+        assert.ok(messages <= 4);
+        totalMessages += messages;
+    }
+    assert.ok(totalMessages > 0);
+    assert.doesNotMatch(JSON.stringify(endgameCoachFixtures.sessions), /\b(best move|pv|centipawn)\b/i);
 });
 
 test('Knowledge mappings are exact, public, pinned, and validate against released manifest IDs', () => {
