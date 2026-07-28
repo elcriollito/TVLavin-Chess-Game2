@@ -1,7 +1,8 @@
 (function installBotsPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
+    const CALIBRATION_SUITE_VERSION = '1.0.0';
     const STATUSES = Object.freeze(['ready', 'busy', 'active', 'error', 'disposed']);
     let sequence = 0;
     function deepFreeze(value, seen = new WeakSet()) {
@@ -34,19 +35,30 @@
             const title = element('h2', 'caissa-bots-panel__title', { id: `${this.#id}-title` });
             title.textContent = 'Choose a CAISSA Bot';
             const note = element('p', 'caissa-bots-panel__note');
-            note.textContent = 'QA-only machine opponents. Difficulty is estimated or internally tested, not formal Elo.';
+            note.textContent = 'QA-only machine opponents. Difficulty is relative and position-suite tested, not a human rating.';
+            const ladder = element('ol', 'caissa-bots-panel__ladder', {
+                'aria-label': 'Relative difficulty, easiest to hardest'
+            });
             const list = element('div', 'caissa-bots-panel__catalog', { role: 'radiogroup', 'aria-label': 'Bot catalog' });
             global.CaissaBotRegistry.list({ enabled: true }).forEach(profile => {
-                const label = element('label', 'caissa-bots-panel__card');
+                const rung = element('li', 'caissa-bots-panel__rung', { 'data-bot-rung': profile.id });
+                rung.textContent = profile.shortName; ladder.appendChild(rung);
+                const label = element('label', 'caissa-bots-panel__card', { 'data-bot-card': profile.id });
                 const input = element('input', '', {
                     type: 'radio', name: `${this.#id}-bot`, value: profile.id, 'data-bot-id': profile.id
                 });
+                const emblem = element('span',
+                    `caissa-bots-panel__emblem caissa-bots-panel__emblem--${profile.shortName.toLowerCase()}`,
+                    { 'aria-hidden': 'true' });
+                emblem.textContent = profile.shortName.slice(0, 1);
                 const copy = element('span', 'caissa-bots-panel__card-copy');
                 const name = element('strong', ''); name.textContent = profile.name;
                 const metadata = element('span', '');
-                metadata.textContent = `${profile.difficultyBand} · ${profile.calibrationStatus}`;
-                const description = element('span', ''); description.textContent = profile.description;
-                copy.append(name, metadata, description); label.append(input, copy); list.appendChild(label);
+                metadata.textContent = profile.difficultyBand;
+                copy.append(name, metadata); label.append(input, emblem, copy); list.appendChild(label);
+            });
+            const detail = element('article', 'caissa-bots-panel__detail', {
+                'data-bot-detail': '', 'aria-live': 'polite', 'aria-atomic': 'true'
             });
             const settings = element('div', 'caissa-bots-panel__options');
             const color = element('label', ''); color.textContent = 'Play as ';
@@ -69,7 +81,7 @@
                 type: 'button', 'data-bot-primary': '', 'aria-describedby': `${this.#id}-status`
             });
             action.textContent = 'Play Bot';
-            this.#root.append(title, note, list, settings, status, action); host.appendChild(this.#root);
+            this.#root.append(title, note, ladder, list, detail, settings, status, action); host.appendChild(this.#root);
             this.#listen(this.#root, 'change', event => this.#change(event));
             this.#listen(action, 'click', () => this.submit());
             this.#render();
@@ -123,6 +135,29 @@
             this.#root.querySelectorAll('[data-bot-id]').forEach(input => input.checked = input.value === this.#selectedId);
             const status = this.#root.querySelector('[data-bot-status]');
             const profile = global.CaissaBotRegistry.get(this.#selectedId);
+            this.#root.querySelectorAll('[data-bot-rung]').forEach(rung => {
+                if (rung.dataset.botRung === this.#selectedId) rung.setAttribute('aria-current', 'step');
+                else rung.removeAttribute('aria-current');
+            });
+            const detail = this.#root.querySelector('[data-bot-detail]');
+            if (detail && profile) {
+                const preset = global.CaissaBotPresets.get(profile.enginePresetId);
+                detail.innerHTML = '';
+                const heading = element('h3', 'caissa-bots-panel__detail-title');
+                heading.textContent = profile.name;
+                const tagline = element('p', 'caissa-bots-panel__detail-tagline');
+                tagline.textContent = profile.presentation.tagline;
+                const description = element('p', 'caissa-bots-panel__detail-description');
+                description.textContent = profile.description;
+                const limitation = element('p', 'caissa-bots-panel__detail-limit');
+                limitation.textContent = `Known limit: ${profile.presentation.limitations.join(' ')}`;
+                const technical = element('details', 'caissa-bots-panel__technical');
+                const summary = element('summary', ''); summary.textContent = 'QA technical details';
+                const copy = element('p', '');
+                copy.textContent = `Bounded search depth ${preset.search.depth}. Calibration status: ${profile.calibrationStatus}. Position suite ${CALIBRATION_SUITE_VERSION}; relative ordering only.`;
+                technical.append(summary, copy);
+                detail.append(heading, tagline, description, limitation, technical);
+            }
             status.textContent = this.#status === 'active' ? `Game started against ${profile?.name}.`
                 : this.#status === 'error' ? 'The bot game could not be started.'
                     : profile ? `${profile.name} selected. ${profile.presentation.tagline}` : 'Choose a bot.';

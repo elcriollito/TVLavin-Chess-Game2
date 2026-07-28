@@ -16,7 +16,16 @@ test('Bots is QA-only and exposes four truthful differentiated profiles', async 
     await expect(page.locator('.caissa-bots-panel')).toHaveCount(0);
     await openBots(page);
     await expect(page.locator('.caissa-bots-panel__card')).toHaveCount(4);
-    await expect(page.getByText(/not formal Elo/i)).toBeVisible();
+    await expect(page.getByText(/relative and position-suite tested/i)).toBeVisible();
+    await expect(page.locator('.caissa-bots-panel')).not.toContainText(/\bElo\b/i);
+    await expect(page.locator('.caissa-bots-panel__emblem')).toHaveCount(4);
+    await expect(page.locator('.caissa-bots-panel__ladder')).toContainText('Seed');
+    await expect(page.locator('.caissa-bots-panel__ladder')).toContainText('Summit');
+    await expect(page.locator('[data-bot-detail]')).toContainText('Caissa Seed');
+    await expect(page.locator('.caissa-bots-panel__technical')).not.toHaveAttribute('open');
+    await page.getByLabel(/Caissa Summit/).check();
+    await expect(page.locator('[data-bot-detail]')).toContainText('Bounded search depth 14');
+    await expect(page.locator('[data-bot-rung="caissa-summit"]')).toHaveAttribute('aria-current', 'step');
     const proof = await page.evaluate(() => ({
         mode: window.CaissaSimplifiedPlayShellInstance.getSnapshot().mode,
         profiles: window.CaissaBotRegistry.list().map(profile => ({

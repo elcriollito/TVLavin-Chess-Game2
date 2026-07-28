@@ -509,14 +509,39 @@ body.caissa-simplified-play-active .caissa-bots-panel[hidden] { display: none; }
 body.caissa-simplified-play-active .caissa-bots-panel__title,
 body.caissa-simplified-play-active .caissa-bots-panel__note { margin-block: 0 .75rem; }
 
-body.caissa-simplified-play-active .caissa-bots-panel__catalog { display: grid; gap: .625rem; }
+body.caissa-simplified-play-active .caissa-bots-panel__ladder {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    margin: 0 0 .75rem;
+    padding: 0;
+    list-style: none;
+    color: var(--text-secondary, #667085);
+    font-size: .78rem;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__rung { display: flex; align-items: center; }
+body.caissa-simplified-play-active .caissa-bots-panel__rung:not(:last-child)::after {
+    content: "→";
+    margin-inline-start: .35rem;
+}
+body.caissa-simplified-play-active .caissa-bots-panel__rung[aria-current="step"] {
+    color: var(--primary-color, #2457a7);
+    font-weight: 700;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__catalog {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .5rem;
+}
 
 body.caissa-simplified-play-active .caissa-bots-panel__card {
     display: grid;
-    grid-template-columns: auto 1fr;
-    gap: .625rem;
-    align-items: start;
-    padding: .75rem;
+    grid-template-columns: auto auto 1fr;
+    gap: .5rem;
+    align-items: center;
+    padding: .625rem;
     border: 1px solid var(--border-color, #d0d5dd);
     border-radius: .625rem;
     cursor: pointer;
@@ -528,6 +553,45 @@ body.caissa-simplified-play-active .caissa-bots-panel__card:has(input:checked) {
 }
 
 body.caissa-simplified-play-active .caissa-bots-panel__card-copy { display: grid; gap: .2rem; min-width: 0; }
+
+body.caissa-simplified-play-active .caissa-bots-panel__emblem {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    aspect-ratio: 1;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    color: #426b3a;
+    background: color-mix(in srgb, currentColor 10%, transparent);
+    font-weight: 800;
+}
+body.caissa-simplified-play-active .caissa-bots-panel__emblem--trail {
+    color: #9a641f;
+    border-radius: 35% 65% 45% 55%;
+}
+body.caissa-simplified-play-active .caissa-bots-panel__emblem--grove {
+    color: #16705a;
+    border-radius: 30%;
+    transform: rotate(4deg);
+}
+body.caissa-simplified-play-active .caissa-bots-panel__emblem--summit {
+    color: #6955a5;
+    border-radius: 18%;
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+    padding-top: .45rem;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__detail {
+    margin-block-start: .75rem;
+    padding: .75rem;
+    border-inline-start: 3px solid var(--primary-color, #2457a7);
+    background: color-mix(in srgb, var(--primary-color, #2457a7) 5%, transparent);
+}
+body.caissa-simplified-play-active .caissa-bots-panel__detail h3,
+body.caissa-simplified-play-active .caissa-bots-panel__detail p { margin: 0 0 .35rem; }
+body.caissa-simplified-play-active .caissa-bots-panel__detail-tagline { font-weight: 650; }
+body.caissa-simplified-play-active .caissa-bots-panel__detail-limit { color: var(--text-secondary, #667085); }
+body.caissa-simplified-play-active .caissa-bots-panel__technical summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; }
 
 body.caissa-simplified-play-active .caissa-bots-panel__options {
     display: flex;
@@ -542,3 +606,9 @@ body.caissa-simplified-play-active .caissa-bots-panel__options select,
 body.caissa-simplified-play-active .caissa-bots-panel__primary { min-height: 44px; }
 
 body.caissa-simplified-play-active .caissa-bots-panel__primary { width: 100%; }
+
+@media (max-width: 359px) {
+    body.caissa-simplified-play-active .caissa-bots-panel__catalog { grid-template-columns: 1fr; }
+    body.caissa-simplified-play-active .caissa-bots-panel__ladder { font-size: .7rem; gap: .2rem; }
+    body.caissa-simplified-play-active .caissa-bots-panel__rung:not(:last-child)::after { margin-inline-start: .2rem; }
+}
