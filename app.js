@@ -187,6 +187,15 @@ function acceptEngineIsolationResponse(request, message) {
     }).ok;
 }
 
+function applyEvaluationRailPolicy() {
+    const policy = window.CaissaFairPlayPolicy;
+    const rail = window.CaissaEvaluationRailInstance;
+    if (!policy || !rail) return false;
+    const context = policy.createCurrentPlayContext('live-evaluation');
+    const decision = policy.evaluatePurpose('live-evaluation', context);
+    return rail.applyPolicy(decision).ok;
+}
+
 function createEngineInstance(engineId) {
     if (window.EngineRegistry && typeof EngineRegistry.createEngine === 'function') {
         const instance = EngineRegistry.createEngine(engineId);
@@ -326,6 +335,8 @@ document.addEventListener('DOMContentLoaded', () => {
     updateGameStatusConsole();
 
     // HOTFIX: Initialize eval bar orientation (white at bottom by default)
+    applyEvaluationRailPolicy();
+    window.CaissaEvaluationRailInstance?.reset();
     syncEvalOrientation();
     ensureEvalBarLayout();
 
@@ -604,6 +615,7 @@ function initializeEngine() {
 
     App.engine.onError = (error) => {
         console.error('❌ Engine error:', error);
+        window.CaissaEvaluationRailInstance?.setError();
         updateEngineStatus('error', 'Engine Error');
         showErrorNotification('Engine error. Please refresh the page.');
     };
@@ -2266,6 +2278,13 @@ function startAnalysis() {
         return;
     }
 
+    if (!applyEvaluationRailPolicy()
+        || window.CaissaEvaluationRailInstance?.getSnapshot?.().policy.allowed !== true) {
+        App.analyzing = false;
+        updateEngineStatus('ready', 'Engine Ready');
+        return;
+    }
+
     App.analyzing = true;
     console.log('  - Set App.analyzing = true');
     updateEngineStatus('busy', 'Analyzing...');
@@ -2490,57 +2509,16 @@ function formatNumber(num) {
 
 // ===== REFINEMENT 2: ENGINE EVAL BAR FUNCTIONS =====
 /**
- * Convert centipawns to ratio (0..1) for eval bar visualization
- * Uses sigmoid function for smooth scaling
- * @param {number} cp - Centipawns (-1500 to +1500)
- * @returns {number} - Ratio 0 (black winning) to 1 (white winning)
- */
-function cpToRatio(cp) {
-    const x = Math.max(-1500, Math.min(1500, cp)); // Clamp to reasonable bounds
-    const t = 1 / (1 + Math.exp(-x / 200)); // Sigmoid function
-    return t; // 0..1
-}
-
-/**
  * Update the engine evaluation bar (Lichess style)
  * @param {number} cp - Centipawns (-1500 to +1500)
  * @param {number|null} mate - Mate in X moves (null if not mate)
  */
 function updateEvalBar(cp, mate) {
-    const fill = document.getElementById("evalFill");
-    const badge = document.getElementById("evalScore");
-
-    if (!fill || !badge) return; // Elements not found (eval bar not rendered)
-
-    // Calculate white's advantage percentage
-    const t = cpToRatio(cp);
-    const whitePct = t * 100;
-
-    // White segment height comes from engine score.
-    // Its visual anchor (top vs bottom) is controlled by eval bar orientation classes.
-    fill.style.height = `${whitePct}%`;
-
-    // Update score badge
-    if (mate !== null && mate !== undefined) {
-        // Mate score
-        const mateText = mate > 0 ? `M${mate}` : `M${mate}`;
-        badge.textContent = mateText;
-        badge.className = 'eval-score-badge ' + (mate > 0 ? 'white-advantage' : 'black-advantage');
-    } else {
-        // Centipawn score (convert back to pawns)
-        const score = cp / 100;
-        const scoreText = score >= 0 ? `+${score.toFixed(1)}` : score.toFixed(1);
-        badge.textContent = scoreText;
-
-        // Color based on advantage
-        if (score > 1.5) {
-            badge.className = 'eval-score-badge white-advantage';
-        } else if (score < -1.5) {
-            badge.className = 'eval-score-badge black-advantage';
-        } else {
-            badge.className = 'eval-score-badge';
-        }
-    }
+    const rail = window.CaissaEvaluationRailInstance;
+    if (!rail || !applyEvaluationRailPolicy()) return false;
+    return mate !== null && mate !== undefined
+        ? rail.setMate(mate, { source: 'engine' }).ok
+        : rail.setEvaluation(cp, { source: 'engine' }).ok;
 }
 
 function updateEngineStatus(status, text) {
@@ -2589,6 +2567,8 @@ function newGame(options = {}) {
     App.currentMoveIndex = -1;
     App.isPlayerTurn = true;
     App.gameActive = true;
+    App.lastEvalCp = null;
+    App.lastEvalMate = null;
 
     // Clear loaded game info
     App.loadedGameInfo = null;
@@ -2610,6 +2590,8 @@ function newGame(options = {}) {
         });
         mirrorLocalClock();
     }
+    applyEvaluationRailPolicy();
+    window.CaissaEvaluationRailInstance?.reset();
     
     // Flip board if playing as black
     if (App.playerColor === 'black') {
@@ -2890,28 +2872,11 @@ function flipBoard() {
  * Flipped (black at bottom): white segment grows down from the top.
  */
 function syncEvalOrientation() {
-    const evalBar = document.getElementById('evalBar');
-    if (!evalBar) return;
-
-    const isFlipped = App.isFlipped;
-    evalBar.classList.toggle('eval-flipped', isFlipped);
-    evalBar.classList.toggle('eval-normal', !isFlipped);
+    return window.CaissaEvaluationRailInstance?.setOrientation(App.isFlipped ? 'black' : 'white');
 }
 
 function ensureEvalBarLayout() {
-    const evalBar = document.getElementById('evalBar');
-    const boardEl = document.getElementById('chessboard');
-    if (!evalBar || !boardEl) return;
-
-    const rect = boardEl.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-
-    const size = Math.floor(Math.min(rect.width, rect.height));
-    evalBar.style.height = `${size}px`;
-    evalBar.style.width = '16px';
-    evalBar.style.minWidth = '16px';
-    evalBar.style.visibility = 'visible';
-    evalBar.style.opacity = '1';
+    return window.CaissaEvaluationRailInstance?.resize();
 }
 
 function updateGameStatusPanel() {

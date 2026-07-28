@@ -95,6 +95,16 @@ test('issued decision identity prevents forgery and purpose substitution', () =>
     assert.equal(api.validateDecision(decision, 'opponent-move'), false);
 });
 
+test('presentation validator authenticates allowed and denied evaluation decisions once', () => {
+    const api = fixture();
+    const allowed = api.evaluatePurpose('live-evaluation', context());
+    const denied = api.evaluatePurpose('live-evaluation', context({ opponentType: 'human' }));
+    assert.equal(api.validateDisplayDecision(allowed, 'live-evaluation'), true);
+    assert.equal(api.validateDisplayDecision(allowed, 'live-evaluation'), false);
+    assert.equal(api.validateDisplayDecision(denied, 'live-evaluation'), true);
+    assert.equal(api.validateDisplayDecision({ ...denied }, 'live-evaluation'), false);
+});
+
 test('diagnostics are detached, bounded, and resettable', () => {
     const api = fixture();
     api.evaluatePurpose('live-evaluation', context());

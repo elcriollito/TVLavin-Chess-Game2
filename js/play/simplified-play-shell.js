@@ -335,6 +335,7 @@
                 movedNodeCount: this.#placements.length, activationCount: this.#activationCount,
                 resizeCount: this.#resizeCount, listenerCount: this.#listeners.length,
                 boardAdapterId: global.App?.boardAdapter?.getSnapshot?.().adapterId || null,
+                evaluationRail: global.CaissaEvaluationRailInstance?.getSnapshot?.() || null,
                 gamesPanel: this.#gamesPanel?.getSnapshot?.() || null,
                 diagnostics: { ...this.#diagnostics }
             });

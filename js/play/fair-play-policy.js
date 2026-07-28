@@ -167,6 +167,14 @@
         if (valid) issued.delete(decision);
         return valid;
     }
+    function validateDisplayDecision(decision, purpose) {
+        const valid = issued.has(decision) && decision?.purpose === purpose
+            && decision.policyVersion === POLICY_VERSION
+            && typeof decision.allowed === 'boolean'
+            && EVALUATION_MODES.includes(decision.capabilities?.evaluationMode);
+        if (valid) issued.delete(decision);
+        return valid;
+    }
     const api = freeze({
         schemaVersion: POLICY_VERSION,
         contextSchemaVersion: CONTEXT_VERSION,
@@ -174,7 +182,7 @@
         purposes: PURPOSES, statuses: STATUSES, reasonCodes: REASON_CODES,
         evaluationModes: EVALUATION_MODES, normalizeContext,
         evaluate: context => evaluatePurpose(context?.purpose, context),
-        evaluatePurpose, createCurrentPlayContext, validateDecision,
+        evaluatePurpose, createCurrentPlayContext, validateDecision, validateDisplayDecision,
         inspect: () => freeze({ counters: { ...counters }, lastReasonCode }),
         resetDiagnostics: () => {
             Object.keys(counters).forEach(key => { counters[key] = 0; });
