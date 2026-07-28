@@ -1,8 +1,8 @@
 (function (global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.0.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.1.0';
     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'error']);
     const REGIONS = Object.freeze([
         'mode-navigation', 'board-stage', 'opponent-header', 'evaluation-rail',
@@ -10,7 +10,11 @@
         'panel-header', 'panel-body', 'advanced-options', 'panel-status', 'action-footer'
     ]);
     const MODES = Object.freeze({ games: true, bots: false, coach: false, players: false });
-    const LAYOUT_MODES = Object.freeze(['desktop-split', 'tablet-stack', 'mobile-stack']);
+    const LAYOUT_MODES = Object.freeze([
+        'phone-compact', 'phone-standard', 'phone-landscape',
+        'tablet-portrait-stacked', 'tablet-landscape-split',
+        'desktop-split', 'constrained-height'
+    ]);
     const REASONS = Object.freeze({
         MOUNTED: 'MOUNTED', ALREADY_MOUNTED: 'ALREADY_MOUNTED', ACTIVATED: 'ACTIVATED',
         ALREADY_ACTIVE: 'ALREADY_ACTIVE', DEACTIVATED: 'DEACTIVATED', ALREADY_INACTIVE: 'ALREADY_INACTIVE',
@@ -34,12 +38,63 @@
         Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, value));
         return node;
     }
+    function selectLayoutMode(input = {}) {
+        const width = Number.isFinite(input.width) ? Math.max(0, input.width) : 0;
+        const height = Number.isFinite(input.height) ? Math.max(0, input.height) : 0;
+        const portrait = height >= width;
+        if (portrait && width <= 359) return 'phone-compact';
+        if (portrait && width <= 600) return 'phone-standard';
+        if (!portrait && width <= 932) return 'phone-landscape';
+        if (portrait && width <= 900) return 'tablet-portrait-stacked';
+        if (!portrait && width <= 1180) return 'tablet-landscape-split';
+        if (height <= 620) return 'constrained-height';
+        return 'desktop-split';
+    }
+    function calculateGeometry(input = {}) {
+        const width = Number.isFinite(input.width) ? Math.max(0, input.width) : 0;
+        const height = Number.isFinite(input.height) ? Math.max(0, input.height) : 0;
+        const safeLeft = Number.isFinite(input.safeLeft) ? Math.max(0, input.safeLeft) : 0;
+        const safeRight = Number.isFinite(input.safeRight) ? Math.max(0, input.safeRight) : 0;
+        const mode = LAYOUT_MODES.includes(input.mode) ? input.mode : selectLayoutMode({ width, height });
+        const phone = mode.startsWith('phone-');
+        const tablet = mode.startsWith('tablet-');
+        const compact = mode === 'phone-compact';
+        const inlinePadding = compact ? 4 : phone ? 6 : tablet ? 12 : 16;
+        const stagePadding = compact ? 4 : phone ? 6 : 10;
+        const railWidth = compact ? 10 : phone ? 12 : tablet ? 14 : 16;
+        const railGap = phone ? 4 : 6;
+        const usableWidth = Math.max(0, width - safeLeft - safeRight - (inlinePadding + stagePadding) * 2);
+        let columnWidth = usableWidth;
+        let heightLimit = Infinity;
+        if (mode === 'phone-landscape') {
+            columnWidth = usableWidth * .58;
+            heightLimit = Math.max(0, height - 112);
+        } else if (mode === 'tablet-landscape-split') {
+            columnWidth = usableWidth * .58;
+            heightLimit = Math.max(0, height - 150);
+        } else if (mode === 'desktop-split') {
+            columnWidth = usableWidth * .56;
+            heightLimit = Math.max(0, height - 190);
+        } else if (mode === 'constrained-height') {
+            columnWidth = usableWidth * .56;
+            heightLimit = Math.max(0, height - 112);
+        }
+        const boardSize = Math.max(0, Math.floor(Math.min(columnWidth - railWidth - railGap, heightLimit, 760)));
+        return deepFreeze({
+            mode, width, height, safeLeft, safeRight, inlinePadding, stagePadding,
+            railWidth, railGap, boardSize, squareSize: boardSize / 8
+        });
+    }
 
     class SimplifiedPlayShell {
         #id = `simplified-play-${++shellSequence}`;
         #root = null; #active = false; #disposed = false; #status = 'loading';
         #mode = 'games'; #placements = []; #listeners = []; #unsubscribeRoute = null;
-        #layoutMode = null; #resizeCount = 0; #activationCount = 0; #statusNode = null;
+        #layoutMode = null; #geometry = null; #resizeCount = 0; #activationCount = 0; #statusNode = null;
+        #diagnostics = {
+            layoutChanges: 0, orientationChanges: 0, safeAreaApplications: 0,
+            boardResizeRequests: 0, drawerCycles: 0, restorationCycles: 0, rejectedGeometry: 0
+        };
 
         mount() {
             if (this.#disposed) return result(false, 'disposed', REASONS.DISPOSED);
@@ -94,11 +149,11 @@
             const advancedBody = element('div', 'caissa-simplified-shell__advanced-body');
             advanced.append(summary, advancedBody);
             this.#statusNode = element('div', 'caissa-simplified-shell__status', { role: 'status', 'aria-live': 'polite' });
-            context.append(contextHeader, contextBody, advanced, this.#statusNode);
+            context.append(contextHeader, contextBody, this.#statusNode);
 
             const footer = element('footer', 'caissa-simplified-shell__footer', { 'aria-label': 'Primary game actions' });
-            workspace.append(boardStage, context);
-            root.append(preview, nav, workspace, footer);
+            workspace.append(boardStage, nav, context, footer, advanced);
+            root.append(preview, workspace);
             stage.appendChild(root);
             this.#root = root;
             this.#unsubscribeRoute = global.CaissaPlayRouteController?.subscribe?.(() => this.syncRoute()) || null;
@@ -153,9 +208,20 @@
             this.#root.hidden = false;
             global.document.body.classList.add('caissa-simplified-play-active');
             this.#active = true; this.#activationCount += 1;
-            if (!this.#listeners.length) this.#listen(global, 'resize', () => this.resize());
+            if (!this.#listeners.length) {
+                this.#listen(global, 'resize', () => this.resize());
+                this.#listen(global, 'orientationchange', () => {
+                    this.#diagnostics.orientationChanges += 1;
+                    this.resize();
+                });
+                if (global.visualViewport) this.#listen(global.visualViewport, 'resize', () => this.resize());
+                this.#listen(global.document, 'transitionend', event => {
+                    if (!event.target?.classList?.contains('main-navigation')) return;
+                    this.#diagnostics.drawerCycles += 1;
+                    this.resize();
+                });
+            }
             this.resize();
-            global.App.boardAdapter.resize();
             return result(true, 'accepted', REASONS.ACTIVATED, this.getSnapshot());
         }
 
@@ -174,6 +240,7 @@
             global.document.body.classList.remove('caissa-simplified-play-active');
             this.#removeListeners();
             this.#active = false;
+            this.#diagnostics.restorationCycles += 1;
             global.App?.boardAdapter?.resize?.();
             return result(true, 'accepted', REASONS.DEACTIVATED, this.getSnapshot());
         }
@@ -200,11 +267,34 @@
 
         resize() {
             if (!this.#root) return result(false, 'unavailable', REASONS.PLAY_UNAVAILABLE);
-            const width = global.innerWidth || 0;
-            this.#layoutMode = width <= 700 ? 'mobile-stack' : width <= 1180 ? 'tablet-stack' : 'desktop-split';
-            this.#root.dataset.layout = this.#layoutMode;
+            const width = global.innerWidth || global.visualViewport?.width || 0;
+            const layoutHeight = global.innerHeight || global.visualViewport?.height || 0;
+            const visualHeight = global.visualViewport?.height || layoutHeight;
+            const height = Math.min(layoutHeight, visualHeight);
+            const next = calculateGeometry({ width, height });
+            if (next.boardSize < 180) {
+                this.#diagnostics.rejectedGeometry += 1;
+                return result(false, 'rejected', 'GEOMETRY_UNUSABLE');
+            }
+            const unchanged = this.#geometry && Object.keys(next).every(key => next[key] === this.#geometry[key]);
+            if (unchanged) return result(true, 'unchanged', 'GEOMETRY_UNCHANGED', this.#layoutMode);
+            if (this.#layoutMode && this.#layoutMode !== next.mode) this.#diagnostics.layoutChanges += 1;
+            this.#layoutMode = next.mode;
+            this.#geometry = next;
+            this.#root.dataset.layout = next.mode;
+            this.#root.dataset.scrollOwner = next.mode.includes('split') || next.mode === 'desktop-split'
+                || next.mode === 'constrained-height' ? 'panel' : 'document';
+            this.#root.dataset.stickyAction = 'false';
+            this.#root.style.setProperty('--shell-inline-pad', `${next.inlinePadding}px`);
+            this.#root.style.setProperty('--shell-stage-pad', `${next.stagePadding}px`);
+            this.#root.style.setProperty('--shell-eval-width', `${next.railWidth}px`);
+            this.#root.style.setProperty('--shell-rail-gap', `${next.railGap}px`);
+            this.#root.style.setProperty('--play-board-size', `${next.boardSize}px`);
             this.#resizeCount += 1;
-            if (this.#active) global.App?.boardAdapter?.resize?.();
+            if (this.#active) {
+                this.#diagnostics.boardResizeRequests += 1;
+                global.App?.boardAdapter?.resize?.();
+            }
             return result(true, 'accepted', 'LAYOUT_RESIZED', this.#layoutMode);
         }
 
@@ -219,10 +309,13 @@
                 schemaVersion: SNAPSHOT_SCHEMA_VERSION, shellId: this.#id,
                 mounted: !!this.#root, active: this.#active, disposed: this.#disposed,
                 qaOnly: true, mode: this.#mode, status: this.#status,
-                layoutMode: this.#layoutMode, regionCount: this.#root?.querySelectorAll?.('[class*="caissa-simplified-shell__"]').length || 0,
+                layoutMode: this.#layoutMode, geometry: this.#geometry,
+                scrollOwner: this.#root?.dataset?.scrollOwner || null, stickyAction: false,
+                regionCount: this.#root?.querySelectorAll?.('[class*="caissa-simplified-shell__"]').length || 0,
                 movedNodeCount: this.#placements.length, activationCount: this.#activationCount,
                 resizeCount: this.#resizeCount, listenerCount: this.#listeners.length,
-                boardAdapterId: global.App?.boardAdapter?.getSnapshot?.().adapterId || null
+                boardAdapterId: global.App?.boardAdapter?.getSnapshot?.().adapterId || null,
+                diagnostics: { ...this.#diagnostics }
             });
         }
         inspect() { return this.getSnapshot(); }
@@ -250,7 +343,8 @@
     const api = Object.freeze({
         schemaVersion: SCHEMA_VERSION, snapshotSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
         statuses: STATUSES, regions: REGIONS, modes: MODES, layoutModes: LAYOUT_MODES,
-        reasonCodes: REASONS, create: () => new SimplifiedPlayShell()
+        reasonCodes: REASONS, selectLayoutMode, calculateGeometry,
+        create: () => new SimplifiedPlayShell()
     });
     global.CaissaSimplifiedPlayShell = api;
 

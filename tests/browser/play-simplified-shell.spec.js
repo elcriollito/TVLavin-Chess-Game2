@@ -37,7 +37,7 @@ test('shell has semantic regions, truthful modes, and exactly one set of runtime
         shell: window.CaissaSimplifiedPlayShellInstance.getSnapshot()
     }));
     expect(resources).toMatchObject({ boards: 1, squares: 64, rails: 1, clocks: 2, newGame: 1, workers: 1, adapters: 1 });
-    expect(resources.shell).toMatchObject({ active: true, qaOnly: true, mode: 'games', listenerCount: 1 });
+    expect(resources.shell).toMatchObject({ active: true, qaOnly: true, mode: 'games', listenerCount: 4 });
 });
 
 test('activate, deactivate, Back, and Forward preserve state, orientation, controls, and identity', async ({ page }) => {
@@ -81,8 +81,8 @@ test('QA shell preserves move, New Game, flip, and Analyze handoff behavior', as
 });
 
 const viewports = [
-    [320, 568, 'mobile-stack'], [375, 667, 'mobile-stack'], [390, 844, 'mobile-stack'],
-    [412, 915, 'mobile-stack'], [768, 1024, 'tablet-stack'], [1024, 768, 'tablet-stack'],
+    [320, 568, 'phone-compact'], [375, 667, 'phone-standard'], [390, 844, 'phone-standard'],
+    [412, 915, 'phone-standard'], [768, 1024, 'tablet-portrait-stacked'], [1024, 768, 'tablet-landscape-split'],
     [1366, 768, 'desktop-split'], [1440, 900, 'desktop-split'], [1920, 1080, 'desktop-split']
 ];
 

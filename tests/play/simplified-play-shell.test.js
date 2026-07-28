@@ -19,8 +19,8 @@ function load() {
 
 test('publishes frozen versioned shell and snapshot contracts', () => {
     const { api } = load();
-    assert.equal(api.schemaVersion, '1.0.0');
-    assert.equal(api.snapshotSchemaVersion, '1.0.0');
+    assert.equal(api.schemaVersion, '1.1.0');
+    assert.equal(api.snapshotSchemaVersion, '1.1.0');
     assert.ok(Object.isFrozen(api));
     assert.ok(Object.isFrozen(api.statuses));
     assert.ok(Object.isFrozen(api.regions));
@@ -30,6 +30,41 @@ test('publishes frozen versioned shell and snapshot contracts', () => {
 test('mode availability is truthful and inactive modes remain disabled', () => {
     const { api } = load();
     assert.deepEqual({ ...api.modes }, { games: true, bots: false, coach: false, players: false });
+});
+
+test('layout mode selection is deterministic across phone, tablet, desktop, and constrained height', () => {
+    const { api } = load();
+    const cases = [
+        [320, 568, 'phone-compact'], [390, 844, 'phone-standard'],
+        [844, 390, 'phone-landscape'], [768, 1024, 'tablet-portrait-stacked'],
+        [1024, 768, 'tablet-landscape-split'], [1440, 900, 'desktop-split'],
+        [1200, 560, 'constrained-height']
+    ];
+    for (const [width, height, expected] of cases)
+        assert.equal(api.selectLayoutMode({ width, height }), expected);
+});
+
+test('geometry subtracts rail, gaps, padding, and safe areas while preserving square size', () => {
+    const { api } = load();
+    const base = api.calculateGeometry({ width: 390, height: 844 });
+    const safe = api.calculateGeometry({ width: 390, height: 844, safeLeft: 20, safeRight: 10 });
+    assert.equal(base.mode, 'phone-standard');
+    assert.equal(base.railWidth, 12);
+    assert.equal(base.squareSize, base.boardSize / 8);
+    assert.equal(base.boardSize - safe.boardSize, 30);
+    assert.ok(safe.boardSize >= 180);
+    assert.ok(Object.isFrozen(safe));
+});
+
+test('malformed geometry inputs are bounded and cannot inject a layout class', () => {
+    const { api } = load();
+    const geometry = api.calculateGeometry({
+        width: -1, height: Number.NaN, mode: 'phone-standard\" onclick=\"alert(1)'
+    });
+    assert.equal(geometry.width, 0);
+    assert.equal(geometry.height, 0);
+    assert.equal(geometry.mode, 'phone-compact');
+    assert.equal(geometry.boardSize, 0);
 });
 
 test('module load is passive until DOM ready', () => {

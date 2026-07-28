@@ -1,16 +1,29 @@
-/* QA-only Simplified Play shell. Every layout selector is scoped to the explicit active body state. */
+/* QA-only Simplified Play shell. Layout is selected once by JS and expressed by data-layout. */
 .caissa-simplified-shell[hidden] { display: none !important; }
 
 body.caissa-simplified-play-active #playSection {
-    --play-board-size: min(72dvh, calc(100vw - 660px), 760px);
+    --board-size: var(--play-board-size);
+    overflow-x: clip;
+}
+
+body.caissa-simplified-play-active #playSection .cais-stage {
+    min-height: 100%;
+    padding: 0;
+    overflow: visible;
 }
 
 body.caissa-simplified-play-active #playSection .caissa-simplified-shell {
     display: grid;
-    gap: 12px;
     width: min(100%, 1560px);
+    min-width: 0;
     margin: 0 auto;
-    padding: 0 max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    padding:
+        max(var(--shell-inline-pad), env(safe-area-inset-top, 0px))
+        max(var(--shell-inline-pad), env(safe-area-inset-right, 0px))
+        max(var(--shell-inline-pad), env(safe-area-inset-bottom, 0px))
+        max(var(--shell-inline-pad), env(safe-area-inset-left, 0px));
+    gap: 8px;
+    overflow: visible;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__preview {
@@ -21,15 +34,35 @@ body.caissa-simplified-play-active .caissa-simplified-shell__preview {
     text-transform: uppercase;
 }
 
+body.caissa-simplified-play-active .caissa-simplified-shell__workspace {
+    display: grid;
+    grid-template-areas:
+        "modes modes"
+        "board context"
+        "board footer"
+        "board advanced";
+    grid-template-columns: minmax(0, 1.25fr) minmax(320px, .95fr);
+    gap: clamp(10px, 1.5vw, 24px);
+    min-width: 0;
+    align-items: start;
+}
+
 body.caissa-simplified-play-active .caissa-simplified-shell__modes {
+    grid-area: modes;
     display: flex;
-    gap: 8px;
+    gap: 6px;
+    max-width: 100%;
+    min-width: 0;
     overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__mode {
-    min-height: 40px;
-    padding: 8px 18px;
+    flex: 0 0 auto;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 7px 14px;
     border: 1px solid var(--panel-border);
     border-radius: 999px;
     background: rgba(255,255,255,.04);
@@ -42,30 +75,24 @@ body.caissa-simplified-play-active .caissa-simplified-shell__mode[aria-selected=
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__mode:disabled {
-    opacity: .46;
+    opacity: .52;
     cursor: not-allowed;
-}
-
-body.caissa-simplified-play-active .caissa-simplified-shell__workspace {
-    display: grid;
-    grid-template-columns: minmax(0, 1.25fr) minmax(320px, .95fr);
-    gap: clamp(14px, 2vw, 28px);
-    align-items: start;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__board-stage,
 body.caissa-simplified-play-active .caissa-simplified-shell__context {
     min-width: 0;
     border: 1px solid var(--panel-border);
-    border-radius: 16px;
+    border-radius: 14px;
     background: var(--panel-bg);
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__board-stage {
+    grid-area: board;
     display: grid;
     justify-items: center;
-    gap: 8px;
-    padding: clamp(10px, 1.4vw, 20px);
+    gap: 6px;
+    padding: var(--shell-stage-pad);
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__sr-heading {
@@ -74,15 +101,30 @@ body.caissa-simplified-play-active .caissa-simplified-shell__sr-heading {
     height: 1px;
     overflow: hidden;
     clip: rect(0 0 0 0);
+    white-space: nowrap;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__player {
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    width: min(calc(var(--play-board-size) + 28px), 100%);
+    gap: 8px;
+    width: min(calc(var(--play-board-size) + var(--shell-eval-width) + var(--shell-rail-gap)), 100%);
     min-height: 28px;
     color: var(--text);
     font-weight: 700;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__player > :first-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__player > :last-child {
+    flex: 0 0 auto;
+    white-space: nowrap;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__board-region,
@@ -93,6 +135,19 @@ body.caissa-simplified-play-active .caissa-simplified-shell__board-region .board
     min-width: 0;
 }
 
+body.caissa-simplified-play-active .caissa-simplified-shell__board-region .board-with-eval {
+    gap: var(--shell-rail-gap);
+    align-items: stretch;
+}
+
+body.caissa-simplified-play-active #playSection #evalBar {
+    width: var(--shell-eval-width) !important;
+    min-width: var(--shell-eval-width) !important;
+    flex: 0 0 var(--shell-eval-width) !important;
+    height: var(--play-board-size) !important;
+    min-height: var(--play-board-size) !important;
+}
+
 body.caissa-simplified-play-active #playSection #chessboard {
     width: var(--play-board-size) !important;
     height: var(--play-board-size) !important;
@@ -101,14 +156,16 @@ body.caissa-simplified-play-active #playSection #chessboard {
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__context {
+    grid-area: context;
     display: flex;
     flex-direction: column;
-    max-height: calc(100dvh - 185px);
-    overflow: auto;
+    max-height: calc(100dvh - 190px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__context-header {
-    padding: 14px 16px;
+    padding: 12px 14px;
     border-bottom: 1px solid var(--panel-border);
 }
 
@@ -119,23 +176,26 @@ body.caissa-simplified-play-active .caissa-simplified-shell__context-header h2 {
 
 body.caissa-simplified-play-active .caissa-simplified-shell__context-body,
 body.caissa-simplified-play-active .caissa-simplified-shell__advanced-body {
-    padding: 12px;
+    padding: 10px;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__context .right-panel,
 body.caissa-simplified-play-active .caissa-simplified-shell__advanced .left-panel {
+    display: flex !important;
     width: 100%;
     height: auto;
     overflow: visible;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__advanced {
-    margin: 0 12px 12px;
+    grid-area: advanced;
+    margin: 0;
     border: 1px solid var(--panel-border);
     border-radius: 12px;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__advanced summary {
+    min-height: 44px;
     padding: 12px;
     cursor: pointer;
 }
@@ -146,37 +206,83 @@ body.caissa-simplified-play-active .caissa-simplified-shell__status {
     font-size: 12px;
 }
 
+body.caissa-simplified-play-active .caissa-simplified-shell__footer {
+    grid-area: footer;
+    display: block;
+    min-height: 48px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 body.caissa-simplified-play-active .caissa-simplified-shell__footer .right-controls {
     display: block !important;
     width: 100%;
     margin: 0;
 }
 
-body.caissa-simplified-play-active .caissa-simplified-shell__footer {
-    display: block;
-    min-height: 48px;
-    padding-bottom: env(safe-area-inset-bottom);
-}
-
 body.caissa-simplified-play-active .caissa-simplified-shell__footer #navNewGameBtn {
     display: flex !important;
 }
 
-@media (max-width: 1180px) {
-    body.caissa-simplified-play-active #playSection { --play-board-size: min(68dvh, calc(100vw - 64px), 720px); }
-    body.caissa-simplified-play-active .caissa-simplified-shell__workspace { grid-template-columns: 1fr; }
-    body.caissa-simplified-play-active .caissa-simplified-shell__context { max-height: none; }
+body[data-caissa-section="play"].caissa-play-game-active.caissa-simplified-play-active #playSection .caissa-simplified-shell__footer .right-controls {
+    display: block !important;
 }
 
-@media (max-width: 700px) {
-    body.caissa-simplified-play-active #playSection {
-        --play-board-size: min(calc(100vw - 58px - env(safe-area-inset-left) - env(safe-area-inset-right)), 620px);
-    }
-    body.caissa-simplified-play-active #playSection .cais-stage { padding: 8px 0; }
-    body.caissa-simplified-play-active .caissa-simplified-shell { gap: 8px; }
-    body.caissa-simplified-play-active .caissa-simplified-shell__board-stage { padding: 8px; }
-    body.caissa-simplified-play-active .caissa-simplified-shell__player { font-size: 13px; }
-    body.caissa-simplified-play-active .caissa-simplified-shell__footer { position: static; }
+body[data-caissa-section="play"].caissa-simplified-play-active .mobile-quick-actions {
+    display: none !important;
+}
+
+body[data-caissa-section="play"].caissa-simplified-play-active .content-area {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="phone-compact"] .caissa-simplified-shell__workspace,
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="phone-standard"] .caissa-simplified-shell__workspace,
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="tablet-portrait-stacked"] .caissa-simplified-shell__workspace {
+    grid-template-areas:
+        "board"
+        "modes"
+        "context"
+        "footer"
+        "advanced";
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="phone-compact"] .caissa-simplified-shell__context,
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="phone-standard"] .caissa-simplified-shell__context,
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="tablet-portrait-stacked"] .caissa-simplified-shell__context {
+    max-height: none;
+    overflow: visible;
+    overscroll-behavior: auto;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="phone-landscape"] .caissa-simplified-shell__workspace,
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="tablet-landscape-split"] .caissa-simplified-shell__workspace,
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="constrained-height"] .caissa-simplified-shell__workspace {
+    grid-template-areas:
+        "board modes"
+        "board context"
+        "board footer"
+        "board advanced";
+    grid-template-columns: minmax(0, 1.3fr) minmax(240px, 1fr);
+    gap: 8px;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout^="phone-"] .caissa-simplified-shell__preview {
+    line-height: 1.2;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout^="phone-"] .caissa-simplified-shell__player {
+    min-height: 26px;
+    font-size: 13px;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout^="phone-"] .caissa-simplified-shell__mode {
+    padding-inline: 11px;
+}
+
+@supports not (overflow: clip) {
+    body.caissa-simplified-play-active #playSection { overflow-x: hidden; }
 }
 
 @media (prefers-reduced-motion: reduce) {
