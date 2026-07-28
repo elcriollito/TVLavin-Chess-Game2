@@ -198,7 +198,7 @@ test('static guard excludes result logic, automatic persistence, engines, resour
         /\bnew Worker\b|postMessage|requestAnimationFrame|setTimeout|setInterval/,
         /\bApp\b|new Chess|startAnalysis|getBestMove/,
         /accuracy|critical moment|opening name|rating/,
-        /FICS|Arena|Spectator|Bots|Coach/
+        /FICS|Arena|Spectator|Bots/
     ]) assert.doesNotMatch(source, forbidden);
     assert.doesNotMatch(source, /saveCompleted\s*\([^)]*\)[\s\S]*hydrateFromGame/);
 });

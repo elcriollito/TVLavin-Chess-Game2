@@ -229,6 +229,7 @@
             snapshot.clocks?.blackMilliseconds === null || snapshot.clocks?.blackMilliseconds === undefined)
             diagnostics.push(diagnostic('CLOCK_DATA_INCOMPLETE', 'warning', 'timing.finalClocks', 'Legacy clock data is incomplete.'));
 
+        const coachSession = global.CaissaCoachSession?.getSnapshot?.()?.active || null;
         const recordCore = {
             schemaVersion: SCHEMA_VERSION,
             capturedAt,
@@ -236,7 +237,7 @@
             source: 'local-play',
             mode,
             opponent: {
-                type: mode === 'human-vs-engine' ? 'engine' : mode === 'local' ? 'local-human' : null,
+                type: coachSession ? 'coach' : mode === 'human-vs-engine' ? 'engine' : mode === 'local' ? 'local-human' : null,
                 id: typeof snapshot.selectedOpponent === 'string' ? snapshot.selectedOpponent.slice(0, 120) : null,
                 name: null,
                 rating: null
@@ -284,7 +285,8 @@
                 mode: snapshot.evaluation?.available ? 'legacy' : 'unknown',
                 available: snapshot.evaluation?.available === true
             },
-            coach: { enabled: false, profileId: null, assistanceLevel: null },
+            coach: { enabled: !!coachSession, profileId: coachSession?.coachId || null,
+                assistanceLevel: coachSession?.assistanceLevel || null },
             mentor: { requested: false, mentorId: null },
             pendingPromotion: snapshot.game?.pendingPromotion
                 ? {

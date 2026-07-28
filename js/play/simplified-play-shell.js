@@ -1,15 +1,15 @@
 (function (global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.4.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.4.0';
+    const SCHEMA_VERSION = '1.5.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.5.0';
     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'error']);
     const REGIONS = Object.freeze([
         'mode-navigation', 'board-stage', 'opponent-header', 'evaluation-rail',
         'chessboard', 'player-header', 'board-actions', 'context-panel',
         'panel-header', 'panel-body', 'advanced-options', 'panel-status', 'action-footer'
     ]);
-    const MODES = Object.freeze({ games: true, bots: true, coach: false, players: false });
+    const MODES = Object.freeze({ games: true, bots: true, coach: true, players: false });
     const LAYOUT_MODES = Object.freeze([
         'phone-compact', 'phone-standard', 'phone-landscape',
         'tablet-portrait-stacked', 'tablet-landscape-split',
@@ -91,7 +91,7 @@
         #root = null; #active = false; #disposed = false; #status = 'loading';
         #mode = 'games'; #placements = []; #listeners = []; #unsubscribeRoute = null;
         #layoutMode = null; #geometry = null; #resizeCount = 0; #activationCount = 0; #statusNode = null;
-        #gamesPanel = null; #botsPanel = null; #postGame = null;
+        #gamesPanel = null; #botsPanel = null; #coachPanel = null; #postGame = null;
         #diagnostics = {
             layoutChanges: 0, orientationChanges: 0, safeAreaApplications: 0,
             boardResizeRequests: 0, drawerCycles: 0, restorationCycles: 0, rejectedGeometry: 0
@@ -229,9 +229,21 @@
                 this.#placements = [];
                 return result(false, 'unavailable', 'BOTS_PANEL_UNAVAILABLE');
             }
+            this.#coachPanel = global.CaissaCoachPanel?.create?.();
+            const coachMount = this.#coachPanel?.mount?.({ host: contextBody });
+            if (!coachMount?.ok) {
+                this.#coachPanel?.dispose?.(); this.#coachPanel = null;
+                this.#botsPanel?.dispose?.(); this.#botsPanel = null;
+                this.#gamesPanel?.dispose?.(); this.#gamesPanel = null;
+                [...this.#placements].reverse().forEach(({ node, marker }) => {
+                    marker.parentNode.insertBefore(node, marker); marker.remove();
+                });
+                this.#placements = [];
+                return result(false, 'unavailable', 'COACH_PANEL_UNAVAILABLE');
+            }
             this.#postGame = global.CaissaPostGameExperience?.create?.({
                 onVisibilityChange: visible => {
-                    if (visible) { this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.(); }
+                    if (visible) { this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.(); this.#coachPanel?.hide?.(); }
                     else this.#syncPanels();
                 }
             });
@@ -282,6 +294,7 @@
             this.#postGame?.dispose?.(); this.#postGame = null;
             if (global.CaissaPostGameExperienceInstance) global.CaissaPostGameExperienceInstance = null;
             this.#botsPanel?.dispose?.(); this.#botsPanel = null;
+            this.#coachPanel?.dispose?.(); this.#coachPanel = null;
             this.#gamesPanel?.dispose?.(); this.#gamesPanel = null;
             [...this.#placements].reverse().forEach(({ node, marker }) => {
                 marker.parentNode.insertBefore(node, marker);
@@ -408,9 +421,14 @@
         #syncPanels() {
             if (!this.#active || this.#postGame?.getSnapshot?.().visible) return;
             if (this.#mode === 'bots') {
-                this.#gamesPanel?.hide?.(); this.#botsPanel?.show?.();
+                global.CaissaCoachSession?.reset?.();
+                this.#gamesPanel?.hide?.(); this.#coachPanel?.hide?.(); this.#botsPanel?.show?.();
+            } else if (this.#mode === 'coach') {
+                global.CaissaBotSession?.resetToFullPower?.();
+                this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.(); this.#coachPanel?.show?.();
             } else {
-                this.#botsPanel?.hide?.(); this.#gamesPanel?.show?.();
+                global.CaissaCoachSession?.reset?.();
+                this.#botsPanel?.hide?.(); this.#coachPanel?.hide?.(); this.#gamesPanel?.show?.();
             }
         }
         #removeListeners() {

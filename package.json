@@ -63,6 +63,7 @@
     "test:play:post-game": "node --test tests/play/post-game-experience.test.js && playwright test --project=chromium tests/browser/play-post-game-experience.spec.js",
     "test:play:bots": "node --test tests/play/bots-foundation.test.js tests/play/play-route-controller.test.js && playwright test --project=chromium tests/browser/play-bots.spec.js",
     "test:play:bots:calibration": "node --test tests/play/bots/calibration-contract.test.js && playwright test --project=chromium bot-calibration.spec.js",
+    "test:play:coach": "node --test tests/play/coach-foundation.test.js tests/play/play-route-controller.test.js && playwright test --project=chromium tests/browser/play-coach.spec.js",
     "test:play:responsive": "playwright test --project=chromium tests/browser/play-responsive.spec.js",
     "test:play:compatibility": "node --test tests/play/legacy-play-compatibility.test.js && playwright test --project=chromium tests/browser/play-compatibility.spec.js",
     "test:play:records": "node --test tests/play/game-record.test.js && playwright test --project=chromium tests/browser/play-game-record.spec.js",

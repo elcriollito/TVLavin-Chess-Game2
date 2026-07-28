@@ -238,7 +238,8 @@
                 player: { color: record?.player?.color || null },
                 opponent: {
                     type: record?.opponent?.type || null,
-                    name: record?.opponent?.name || global.CaissaBotRegistry?.get?.(record?.opponent?.id)?.name
+                    name: record?.opponent?.name || global.CaissaCoachRegistry?.get?.(record?.opponent?.id)?.name
+                        || global.CaissaBotRegistry?.get?.(record?.opponent?.id)?.name
                         || (record?.opponent?.type === 'engine' ? 'CAISSA Engine' : null),
                     strengthLabel: global.CaissaBotRegistry?.get?.(record?.opponent?.id)?.difficultyBand
                         || (record?.opponent?.type === 'engine' ? 'Full Power' : null)
@@ -350,7 +351,9 @@
                     ['Result', record.result.value || 'Unknown'],
                     ['Termination', record.result.termination ? record.result.termination.replace(/-/g, ' ') : 'Unknown'],
                     ['Played as', record.player.color || 'Unknown'],
-                    ['Opponent', record.opponent.type === 'engine'
+                    ['Opponent', record.opponent.type === 'coach'
+                        ? `${global.CaissaCoachRegistry?.get?.(record.opponent.id)?.name || 'CAISSA Coach'} · session coaching`
+                        : record.opponent.type === 'engine'
                         ? `${global.CaissaBotRegistry?.get?.(record.opponent.id)?.name || 'CAISSA Engine'} · ${
                             global.CaissaBotRegistry?.get?.(record.opponent.id)?.difficultyBand || 'Full Power'}`
                         : 'Unknown'],

@@ -116,7 +116,9 @@
             active: section === 'play' && !!playElement()?.classList?.contains?.('active'),
             mode: typeof source?.gameMode === 'string' ? source.gameMode : null,
             playerColor: COLORS.includes(source?.playerColor) ? source.playerColor : null,
-            selectedOpponent: source?.gameMode === 'engine' && global.CaissaBotSession?.getActiveProfile?.()
+            selectedOpponent: source?.gameMode === 'engine' && global.CaissaCoachSession?.getActiveProfile?.()
+                ? global.CaissaCoachSession.getActiveProfile().id
+                : source?.gameMode === 'engine' && global.CaissaBotSession?.getActiveProfile?.()
                 ? global.CaissaBotSession.getActiveProfile().id
                 : source?.gameMode === 'engine' && typeof source?.engineId === 'string'
                     ? source.engineId : null,

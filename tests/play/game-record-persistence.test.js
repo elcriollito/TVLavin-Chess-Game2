@@ -438,6 +438,6 @@ test('both SPA pages register persistence once after GameRecord', () => {
     for (const page of ['index.html', 'yahoo-classic.html']) {
         const html = fs.readFileSync(new URL(`../../${page}`, import.meta.url), 'utf8');
         assert.equal((html.match(/js\/play\/game-record-persistence\.js/g) || []).length, 1);
-        assert.ok(html.indexOf('game-record.js?v=1.0.0') < html.indexOf('game-record-persistence.js?v=1.0.0'));
+        assert.ok(html.indexOf('game-record.js?v=1.1.0') < html.indexOf('game-record-persistence.js?v=1.0.0'));
     }
 });

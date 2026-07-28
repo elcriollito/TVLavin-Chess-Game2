@@ -318,6 +318,6 @@ test('both SPA pages load isolation once before App', () => {
     for (const page of ['index.html', 'yahoo-classic.html']) {
         const html = fs.readFileSync(new URL(`../../${page}`, import.meta.url), 'utf8');
         assert.equal((html.match(/js\/play\/engine-request-isolation\.js/g) || []).length, 1);
-        assert.ok(html.indexOf('engine-request-isolation.js?v=1.0.0') < html.indexOf('app.js?v=2.0.14'));
+        assert.ok(html.indexOf('engine-request-isolation.js?v=1.0.0') < html.indexOf('app.js?v=2.0.15'));
     }
 });

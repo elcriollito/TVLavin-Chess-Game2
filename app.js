@@ -992,6 +992,7 @@ function onSnapEnd() {
 
 // ===== MOVE HANDLING =====
 function onMoveMade(move) {
+    const moveActor = App.isPlayerTurn ? 'user' : 'engine';
     // Render only after the authoritative legacy chess state accepted the move.
     App.board.position(App.game.fen(), false);
     switchLocalClockAfterMove(move);
@@ -1009,6 +1010,25 @@ function onMoveMade(move) {
     // Notify CAISSA Mentor AI of the move (for hooks)
     if (typeof MentorAI !== 'undefined' && MentorAI.onMoveMade) {
         MentorAI.onMoveMade(move, App.game.fen());
+    }
+    const coachSnapshot = window.CaissaCoachSession?.getSnapshot?.();
+    if (moveActor === 'user' && coachSnapshot?.active) {
+        const policyDecision = window.CaissaFairPlayPolicy?.evaluatePurpose?.('coach-assistance', {
+            source: 'local-play', gameMode: 'engine', opponentType: 'coach',
+            authority: 'local-client', gameStatus: 'active', coachMode: true
+        });
+        if (policyDecision?.allowed) {
+            window.CaissaCoachSession.recordObservation();
+            const observation = window.CaissaCoachObservationService?.observe?.({
+                actor: moveActor, fen: App.game.fen(), ply: App.game.history().length,
+                playerColor: App.playerColor, session: coachSnapshot.active,
+                profile: coachSnapshot.activeProfile, move: { from: move.from, to: move.to }
+            });
+            if (observation?.eligible) {
+                window.CaissaCoachSession.recordIntervention(observation.ply);
+                window.dispatchEvent(new CustomEvent('caissa-coach-observation', { detail: observation }));
+            }
+        }
     }
 
     // Check game status
@@ -1192,7 +1212,8 @@ function makeEngineMove() {
     }
 
     // Bot sessions use bounded depth; Games preserves the existing Full Power movetime.
-    const botSearch = window.CaissaBotSession?.getSearchOptions?.() || null;
+    const botSearch = window.CaissaCoachSession?.getSearchOptions?.()
+        || window.CaissaBotSession?.getSearchOptions?.() || null;
     const engineSearch = botSearch || { movetime: 2000 };
 
     const isolationRequest = createEngineIsolationRequest('opponent-move', currentFen, {
@@ -2538,9 +2559,14 @@ function updateEngineStatus(status, text) {
 function newGame(options = {}) {
     window.CaissaPostGameExperienceInstance?.hide?.();
     const botRoute = window.CaissaPlayRouteController?.getCurrent?.();
-    if (botRoute?.mode === 'bots' && botRoute?.query?.simplified === '1') {
+    if (botRoute?.mode === 'coach' && botRoute?.query?.simplified === '1') {
+        window.CaissaBotSession?.resetToFullPower?.();
+        window.CaissaCoachSession?.beginGame?.();
+    } else if (botRoute?.mode === 'bots' && botRoute?.query?.simplified === '1') {
+        window.CaissaCoachSession?.reset?.();
         window.CaissaBotSession?.beginGame?.();
     } else {
+        window.CaissaCoachSession?.reset?.();
         window.CaissaBotSession?.resetToFullPower?.();
     }
     window.CaissaGameLifecycle?.rotateSession();

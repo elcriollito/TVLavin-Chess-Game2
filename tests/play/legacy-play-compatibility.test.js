@@ -266,7 +266,7 @@ test('both legacy SPA pages load the boundary exactly once after App', () => {
         const html = fs.readFileSync(new URL(`../../${page}`, import.meta.url), 'utf8');
         assert.equal((html.match(/js\/play\/legacy-play-compatibility\.js/g) || []).length, 1);
         assert.ok(
-            html.indexOf('app.js?v=2.0.14') < html.indexOf('js/play/legacy-play-compatibility.js?v=1.1.0'),
+            html.indexOf('app.js?v=2.0.15') < html.indexOf('js/play/legacy-play-compatibility.js?v=1.2.0'),
             `${page} must load compatibility after App`
         );
     }
