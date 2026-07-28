@@ -154,7 +154,7 @@ test('mutating returned data cannot replace App.game or change legacy state', as
     });
 });
 
-test('Analyze command preserves and exposes the known shared-state mutation risk', async ({ page }) => {
+test('Analyze command uses a tokenized handoff and preserves Play state', async ({ page }) => {
     await openPlay(page);
     await startGame(page);
     await playMove(page, 'e2', 'e4');
@@ -162,6 +162,7 @@ test('Analyze command preserves and exposes the known shared-state mutation risk
     const command = await page.evaluate(() => window.CaissaPlayCompatibility.execute('openAnalyze'));
     await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
     const after = await page.evaluate(() => window.CaissaPlayCompatibility.getCurrentFen());
-    expect(command).toMatchObject({ ok: true, status: 'accepted', reason: 'legacy-shared-state-risk' });
-    expect(after).not.toBe(before);
+    expect(command).toMatchObject({ ok: true, status: 'accepted', reason: null });
+    expect(command.value).toMatch(/^[A-Za-z0-9_-]{12,120}$/);
+    expect(after).toBe(before);
 });

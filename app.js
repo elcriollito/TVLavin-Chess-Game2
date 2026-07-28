@@ -903,7 +903,7 @@ function makeMoveFromSquares(source, target) {
 function handleMobileBoardTap(event) {
     if (!isMobilePlayInteraction() || App.editMode) return;
     const inPlayBoard = event.target.closest('#playSection #chessboard');
-    const inAnalyzeBoard = event.target.closest('#analyzeSection #chessboard');
+    const inAnalyzeBoard = event.target.closest('#analyzeSection #analyzeChessboard');
     if (!inPlayBoard && !inAnalyzeBoard) return;
     if (document.querySelector('.modal.show')) return;
     if (Date.now() - App.lastDragEndAt < 250) return;
@@ -3890,6 +3890,11 @@ function showPromotionDialog() {
 }
 
 function handlePromotion(piece) {
+    if (window.AnalyzeSection?.isAnalyzeActive?.() && window.AnalyzeSection?.pendingPromotion) {
+        window.AnalyzeSection.completePromotion(piece);
+        hideModal('promotionModal');
+        return;
+    }
     if (!App.pendingPromotion) return;
 
     const { from, to, context } = App.pendingPromotion;

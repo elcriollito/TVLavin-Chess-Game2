@@ -5,19 +5,35 @@ test.beforeEach(async ({ page }) => {
     await instrumentPlay(page, { autoReply: false });
 });
 
-test('blocking: Analyze transition exposes current shared-global mutation behavior', async ({ page }) => {
+test('blocking: Analyze transition preserves Play while Analyze owns independent state', async ({ page }) => {
     await openPlay(page);
     await startGame(page);
     await playMove(page, 'e2', 'e4');
-    const playFen = (await snapshot(page)).fen;
+    const before = await snapshot(page);
+    await page.evaluate(() => { window.__playGameIdentity = window.App.game; });
     await page.locator('[data-section="analyze"]').first().click();
     await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
-    await expect.poll(() => page.evaluate(() => window.App.gameMode)).toBe('analysis');
-    const analyzeFen = await page.evaluate(() => window.App.game.fen());
-    expect(analyzeFen).not.toBe(playFen);
-    await page.evaluate(() => window.CaissaNavigation.navigateToSection('play'));
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.getGame()?.fen())).toBe(before.fen);
+    await page.evaluate(() => window.AnalyzeSection.jumpToMove(-1));
+    const isolated = await page.evaluate(() => ({
+        samePlayGame: window.App.game === window.__playGameIdentity,
+        playFen: window.App.game.fen(),
+        analyzeFen: window.AnalyzeSection.getGame().fen(),
+        playBoardInPlay: !!document.querySelector('#playSection #chessboard'),
+        analyzeBoard: !!window.AnalyzeSection.board,
+        boards: window.__caissaPlayHarness.snapshot().boardConstructions,
+        workers: window.__caissaPlayHarness.snapshot().workersCreated
+    }));
+    expect(isolated).toMatchObject({
+        samePlayGame: true, playFen: before.fen, playBoardInPlay: true, analyzeBoard: true,
+        boards: 2, workers: 1
+    });
+    expect(isolated.analyzeFen).not.toBe(before.fen);
+    await page.goBack();
     await expect(page.locator('#playSection')).toHaveClass(/active/);
-    expect((await snapshot(page)).fen).toBe(analyzeFen);
+    const after = await snapshot(page);
+    expect(after.fen).toBe(before.fen);
+    expect(after.history).toEqual(before.history);
 });
 
 test('blocking: repeated Play cycles retain one board and one worker without duplicate moves', async ({ page }) => {
@@ -60,3 +76,40 @@ test('repeated entry does not increase observable event-listener registrations',
 });
 
 test.skip('modal focus trap and visible-focus styling — no reliable legacy focus-trap contract', async () => {});
+
+test('Analyze refresh replays the bounded session handoff without exposing raw game data', async ({ page }) => {
+    await openPlay(page);
+    await startGame(page);
+    await playMove(page, 'e2', 'e4');
+    const expectedFen = (await snapshot(page)).fen;
+    await page.locator('[data-section="analyze"]').first().click();
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.getGame()?.fen())).toBe(expectedFen);
+    const transport = await page.evaluate(() => ({
+        keys: Object.keys(sessionStorage),
+        token: sessionStorage.getItem('caissa:analyze:active:v1'),
+        url: location.href
+    }));
+    expect(transport.token).toMatch(/^[A-Za-z0-9_-]{12,120}$/);
+    expect(transport.keys.filter(key => key.startsWith('caissa:analyze:handoff:v1:')).length).toBe(1);
+    expect(transport.url).not.toContain('e4');
+    expect(transport.url).not.toContain('fen');
+    await page.reload();
+    await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.getGame()?.fen())).toBe(expectedFen);
+});
+
+test('corrupt handoff fails safely without changing Play', async ({ page }) => {
+    await openPlay(page);
+    await startGame(page);
+    await playMove(page, 'e2', 'e4');
+    const before = await snapshot(page);
+    await page.evaluate(() => {
+        sessionStorage.setItem('caissa:analyze:active:v1', 'corrupt_token_12');
+        sessionStorage.setItem('caissa:analyze:handoff:v1:corrupt_token_12', '{');
+        window.CaissaNavigation.navigateToSection('academy');
+        window.CaissaNavigation.navigateToSection('analyze');
+    });
+    await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
+    await page.evaluate(() => window.CaissaNavigation.navigateToSection('play'));
+    expect((await snapshot(page)).fen).toBe(before.fen);
+});

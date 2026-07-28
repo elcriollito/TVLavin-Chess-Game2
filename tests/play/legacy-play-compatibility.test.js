@@ -228,7 +228,7 @@ test('flip, resign, Analyze, and PGN commands route existing behavior', () => {
     assert.equal(api.execute('resign').status, 'accepted');
     const analyze = api.execute('openAnalyze');
     assert.equal(analyze.status, 'accepted');
-    assert.equal(analyze.reason, 'legacy-shared-state-risk');
+    assert.equal(analyze.reason, null);
     const pgn = api.execute('requestPgn');
     assert.equal(pgn.value, '1. e4');
     assert.deepEqual(calls, [['flip'], ['resign'], ['openAnalyze', 'analyze']]);

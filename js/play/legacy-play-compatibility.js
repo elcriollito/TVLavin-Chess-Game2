@@ -276,8 +276,10 @@
                     if (input !== undefined) return rejected(command, 'input-not-supported');
                     if (typeof global.CaissaNavigation?.navigateToSection !== 'function')
                         return unavailable(command, 'navigation-unavailable');
-                    global.CaissaNavigation.navigateToSection('analyze');
-                    return result(true, 'accepted', command, 'legacy-shared-state-risk');
+                    const navigated = global.CaissaNavigation.navigateToSection('analyze');
+                    if (navigated === false) return unavailable(command, 'handoff-unavailable');
+                    return result(true, 'accepted', command, null,
+                        global.CaissaNavigation.lastAnalyzeHandoffToken ?? null);
                 }
                 case 'requestPgn':
                     if (input !== undefined) return rejected(command, 'input-not-supported');

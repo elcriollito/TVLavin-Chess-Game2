@@ -123,6 +123,15 @@ const CaissaNavigation = {
                 this.handleNavigationAction(event.currentTarget.dataset.navAction);
             });
         });
+        if (!this.historyHandler) {
+            this.historyHandler = () => {
+                const section = new URLSearchParams(window.location.search).get('section');
+                if (section && section !== this.currentSection && document.getElementById(`${section}Section`)) {
+                    this.navigateToSection(section, { history: false });
+                }
+            };
+            window.addEventListener('popstate', this.historyHandler);
+        }
 
         document.getElementById('closeAnalysisSheet')?.addEventListener('click', () => {
             this.closeMobileAnalysis();
@@ -136,13 +145,28 @@ const CaissaNavigation = {
     /**
      * Navigate to a section
      */
-    navigateToSection(sectionId) {
+    navigateToSection(sectionId, options = {}) {
         if (this.currentSection === sectionId) {
             console.log('[CAISSA Nav] Already on section:', sectionId);
             return;
         }
 
         console.log('[CAISSA Nav] Navigating from', this.currentSection, 'to', sectionId);
+
+        if (sectionId === 'analyze' && this.currentSection === 'play' && window.CaissaAnalyzeHandoff) {
+            const handoff = window.CaissaAnalyzeHandoff.createFromPlay();
+            if (!handoff.ok) {
+                console.warn('[CAISSA Nav] Analyze handoff unavailable:', handoff.reasonCode);
+                return false;
+            }
+            this.lastAnalyzeHandoffToken = handoff.value.token;
+            if (options.history !== false && window.history?.pushState) {
+                const url = new URL(window.location.href);
+                url.searchParams.set('section', 'analyze');
+                url.searchParams.set('handoff', handoff.value.token);
+                window.history.pushState({ section: 'analyze' }, '', `${url.pathname}${url.search}${url.hash}`);
+            }
+        }
 
         // Special cases: Library, Mentor, and Premium
         if (sectionId === 'library') {
@@ -209,6 +233,7 @@ const CaissaNavigation = {
         }
 
         console.log('[CAISSA Nav] Navigation complete. Active section:', sectionId);
+        return true;
     },
 
     /**
@@ -241,7 +266,7 @@ const CaissaNavigation = {
         }
 
         // Special case: Sections that need the board
-        if (['play', 'analyze', 'arena'].includes(sectionId)) {
+        if (['play', 'arena'].includes(sectionId)) {
             this.syncBoardToSection(sectionId);
 
             // Resize boards after section becomes visible

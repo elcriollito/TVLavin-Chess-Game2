@@ -10,6 +10,10 @@ const AnalyzeSection = {
     // State
     currentSource: 'online',
     loadedGame: null,
+    session: null,
+    board: null,
+    activeHandoffId: null,
+    pendingPromotion: null,
     fetchedGames: [],
     selectedFetchedGameIndex: -1,
     currentMoveIndex: -1,
@@ -211,24 +215,55 @@ const AnalyzeSection = {
             || !!target.closest('input, select, textarea, [contenteditable="true"]');
     },
 
+    getGame() {
+        return this.loadedGame?.game || null;
+    },
+
+    ensureAnalyzeBoard() {
+        if (this.board || !window.Chessboard || !document.getElementById('analyzeChessboard')) return !!this.board;
+        this.board = Chessboard('analyzeChessboard', {
+            draggable: true,
+            position: this.getGame()?.fen?.() || 'start',
+            onDragStart: (source, piece) => this.canStartStudyMove(source, piece),
+            onDrop: (source, target) => this.handleBoardDrop(source, target),
+            onSnapEnd: () => this.board?.position(this.getGame()?.fen?.(), false),
+            pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
+            showNotation: true
+        });
+        return true;
+    },
+
+    handleBoardDrop(source, target) {
+        const move = this.getGame()?.moves({ verbose: true })
+            .find(candidate => candidate.from === source && candidate.to === target);
+        if (move?.flags?.includes('p')) {
+            this.pendingPromotion = { from: source, to: target };
+            window.showPromotionDialog?.();
+            return undefined;
+        }
+        return this.playStudyMove(source, target) ? undefined : 'snapback';
+    },
+
+    completePromotion(piece) {
+        if (!this.pendingPromotion) return false;
+        const { from, to } = this.pendingPromotion;
+        this.pendingPromotion = null;
+        return this.playStudyMove(from, to, piece);
+    },
+
     ensureStudyBoard() {
-        if (!window.App || !window.Chess) return false;
+        if (!window.Chess) return false;
 
         if (!this.loadedGame) {
             this.resetStudyBoard({ silent: true });
         }
 
-        App.game = this.loadedGame.game;
-        App.gameMode = 'analysis';
-        App.gameActive = false;
-        App.engineEnabled = false;
-        App.moveHistory = App.game.history({ verbose: true });
-        App.currentMoveIndex = App.moveHistory.length - 1;
-
-        if (App.board && typeof App.board.position === 'function') {
-            App.board.position(App.game.fen(), false);
-            App.board.orientation(this.boardFlipped ? 'black' : 'white');
-            App.board.resize?.();
+        const game = this.getGame();
+        this.ensureAnalyzeBoard();
+        if (this.board && game) {
+            this.board.position(game.fen(), false);
+            this.board.orientation(this.boardFlipped ? 'black' : 'white');
+            this.board.resize?.();
         }
 
         this.updateMetadata();
@@ -239,14 +274,14 @@ const AnalyzeSection = {
         return true;
     },
 
-    cloneGame(game = window.App?.game) {
+    cloneGame(game = this.getGame()) {
         if (!game || !window.Chess) return null;
         const clone = new Chess();
         game.history().forEach((san) => clone.move(san));
         return clone;
     },
 
-    syncLoadedMoveLine(game = window.App?.game) {
+    syncLoadedMoveLine(game = this.getGame()) {
         if (!this.loadedGame || !game?.history) return;
         this.loadedGame.movesSan = game.history().slice();
         this.loadedGame.movesVerbose = game.history({ verbose: true }).map((move) => ({ ...move }));
@@ -270,7 +305,9 @@ const AnalyzeSection = {
         this.livePositionAnalyses = {};
         this.liveCurrentFen = null;
         this.liveCurrentResult = null;
-        const game = new Chess();
+        const session = window.CaissaAnalyzeSession?.createSession?.() || null;
+        const game = session?.game || new Chess();
+        this.session = session;
         this.loadedGame = {
             pgn: '',
             game,
@@ -291,21 +328,9 @@ const AnalyzeSection = {
         this.positionAnalyses = [];
         this.clearTapSelection();
 
-        if (window.App) {
-            App.game = game;
-            App.gameMode = 'analysis';
-            App.gameActive = false;
-            App.engineEnabled = false;
-            window.CaissaClockService?.stop('analyze-enter');
-            App.moveHistory = [];
-            App.currentMoveIndex = -1;
-            App.pendingPromotion = null;
-            App.mobileTapSource = null;
-            App.mobileTapTargets = [];
-            if (App.board?.position) {
-                App.board.position(App.game.fen(), false);
-            }
-        }
+        window.CaissaClockService?.stop('analyze-enter');
+        this.ensureAnalyzeBoard();
+        this.board?.position(game.fen(), false);
 
         this.updateMetadata();
         this.updateMoveList();
@@ -323,26 +348,21 @@ const AnalyzeSection = {
     },
 
     canStartStudyMove(square) {
-        if (!this.isAnalyzeActive() || !this.loadedGame || !window.App?.game) return false;
-        const piece = App.game.get(square);
+        const game = this.getGame();
+        if (!this.isAnalyzeActive() || !game) return false;
+        const piece = game.get(square);
         if (!piece) return false;
-        return piece.color === App.game.turn() && !App.game.game_over();
+        return piece.color === game.turn() && !game.game_over();
     },
 
     playStudyMove(from, to, promotion) {
-        if (!this.isAnalyzeActive() || !this.loadedGame || !window.App?.game) return false;
-
-        const move = App.game.move({ from, to, promotion });
+        const game = this.getGame();
+        if (!this.isAnalyzeActive() || !game) return false;
+        const move = game.move({ from, to, promotion });
         if (!move) return false;
 
-        this.loadedGame.game = App.game;
-        this.syncLoadedMoveLine(App.game);
-        this.currentMoveIndex = App.game.history().length - 1;
-        App.moveHistory = App.game.history({ verbose: true });
-        App.currentMoveIndex = this.currentMoveIndex;
-        App.gameMode = 'analysis';
-        App.gameActive = false;
-        App.engineEnabled = false;
+        this.syncLoadedMoveLine(game);
+        this.currentMoveIndex = game.history().length - 1;
         this.analysisResults = [];
         this.positionAnalyses = [];
         this.clearTapSelection();
@@ -354,19 +374,17 @@ const AnalyzeSection = {
         this.refreshLiveEvaluation();
         this.updateReviewSummary();
         this.updateCriticalMoments();
-        this.setStatus(`${App.game.turn() === 'w' ? 'White' : 'Black'} to move`, 'ready');
+        this.setStatus(`${game.turn() === 'w' ? 'White' : 'Black'} to move`, 'ready');
         return true;
     },
 
     undoStudyMove() {
-        if (!this.loadedGame || !window.App?.game) return;
-        const move = App.game.undo();
+        const game = this.getGame();
+        if (!game) return;
+        const move = game.undo();
         if (!move) return;
-        this.loadedGame.game = App.game;
-        this.syncLoadedMoveLine(App.game);
-        this.currentMoveIndex = App.game.history().length - 1;
-        App.moveHistory = App.game.history({ verbose: true });
-        App.currentMoveIndex = this.currentMoveIndex;
+        this.syncLoadedMoveLine(game);
+        this.currentMoveIndex = game.history().length - 1;
         this.analysisResults = [];
         this.positionAnalyses = [];
         this.clearTapSelection();
@@ -378,7 +396,7 @@ const AnalyzeSection = {
         this.refreshLiveEvaluation();
         this.updateReviewSummary();
         this.updateCriticalMoments();
-        this.setStatus(`${App.game.turn() === 'w' ? 'White' : 'Black'} to move`, 'ready');
+        this.setStatus(`${game.turn() === 'w' ? 'White' : 'Black'} to move`, 'ready');
     },
 
     clearTapSelection() {
@@ -392,7 +410,7 @@ const AnalyzeSection = {
     markTapSource(square) {
         this.clearTapSelection();
         this.tapSource = square;
-        this.tapTargets = App.game.moves({ square, verbose: true }).map((move) => move.to);
+        this.tapTargets = this.getGame().moves({ square, verbose: true }).map((move) => move.to);
         document.querySelector(`#analyzeSection #chessboard .square-${square}`)?.classList.add('analyze-tap-source');
         this.tapTargets.forEach((target) => {
             document.querySelector(`#analyzeSection #chessboard .square-${target}`)?.classList.add('analyze-tap-target');
@@ -400,7 +418,7 @@ const AnalyzeSection = {
     },
 
     handleBoardTap(square) {
-        if (!square || !window.App?.game) return false;
+        if (!square || !this.getGame()) return false;
 
         if (!this.tapSource) {
             if (this.canStartStudyMove(square)) {
@@ -420,7 +438,7 @@ const AnalyzeSection = {
         if (!moved) {
             this.clearTapSelection();
             if (this.canStartStudyMove(square)) this.markTapSource(square);
-            else App.board?.position(App.game.fen(), false);
+            else this.board?.position(this.getGame().fen(), false);
         }
         return true;
     },
@@ -688,12 +706,12 @@ const AnalyzeSection = {
 
         try {
             // Use global Chess.js if available
-            const game = new Chess();
-            const loaded = game.load_pgn(pgn);
-
-            if (!loaded) {
+            const session = window.CaissaAnalyzeSession?.createSession?.({ pgn });
+            const game = session?.game;
+            if (!game) {
                 throw new Error('Invalid PGN format');
             }
+            this.session = session;
 
             // Extract headers
             const headers = game.header();
@@ -722,11 +740,8 @@ const AnalyzeSection = {
             // Update metadata display
             this.updateMetadata();
 
-            // Load into main board via App
-            if (window.App) {
-                App.game.load_pgn(pgn);
-                this.updateBoardAndUI();
-            }
+            this.ensureAnalyzeBoard();
+            this.updateBoardAndUI();
 
             // Update move list
             this.updateMoveList();
@@ -816,20 +831,21 @@ const AnalyzeSection = {
      * Jump to specific move
      */
     jumpToMove(index) {
-        if (!this.loadedGame || !window.App) return;
+        if (!this.loadedGame) return;
         const moves = this.getLoadedMoves();
+        const game = this.getGame();
         const safeIndex = Math.max(-1, Math.min(index, moves.length - 1));
 
         // Reset to the game's actual starting position.
         if (this.loadedGame.initialFen) {
-            App.game.load(this.loadedGame.initialFen);
+            game.load(this.loadedGame.initialFen);
         } else {
-            App.game.reset();
+            game.reset();
         }
 
         // Replay moves up to index
         for (let i = 0; i <= safeIndex && i < moves.length; i++) {
-            App.game.move(moves[i]);
+            game.move(moves[i]);
         }
 
         this.currentMoveIndex = safeIndex;
@@ -844,9 +860,10 @@ const AnalyzeSection = {
     },
 
     updateBoardAndUI() {
-        if (!window.App || !App.game) return;
-        if (App.board && typeof App.board.position === 'function') {
-            App.board.position(App.game.fen());
+        const game = this.getGame();
+        if (!game) return;
+        if (this.board && typeof this.board.position === 'function') {
+            this.board.position(game.fen());
         }
         if (typeof App.updateUI === 'function') {
             App.updateUI();
@@ -1076,11 +1093,11 @@ const AnalyzeSection = {
     },
 
     applyAnalyzeOrientation() {
-        if (!window.App?.board || typeof App.board.orientation !== 'function') return;
-        App.board.orientation(this.boardFlipped ? 'black' : 'white');
+        if (!this.board || typeof this.board.orientation !== 'function') return;
+        this.board.orientation(this.boardFlipped ? 'black' : 'white');
         this.elements.evalBar?.classList.toggle('eval-flipped', this.boardFlipped);
         this.elements.flipBoard?.classList.toggle('active', this.boardFlipped);
-        setTimeout(() => App.board?.resize?.(), 0);
+        setTimeout(() => this.board?.resize?.(), 0);
     },
 
     updateEvaluationBar() {
@@ -1173,7 +1190,7 @@ const AnalyzeSection = {
     },
 
     refreshLiveEvaluation({ immediate = false } = {}) {
-        if (!this.liveEngineEnabled || !this.loadedGame || !window.App?.game || this.isAnalyzing) return;
+        if (!this.liveEngineEnabled || !this.getGame() || this.isAnalyzing) return;
         clearTimeout(this.liveEngineTimer);
         const delay = immediate ? 0 : 180;
         this.liveEngineTimer = setTimeout(() => {
@@ -1182,9 +1199,9 @@ const AnalyzeSection = {
     },
 
     async runLiveEvaluation() {
-        if (!this.liveEngineEnabled || !this.loadedGame || !window.App?.game || this.isAnalyzing) return;
+        if (!this.liveEngineEnabled || !this.getGame() || this.isAnalyzing) return;
         const token = ++this.liveEngineToken;
-        const fen = App.game.fen();
+        const fen = this.getGame().fen();
         const positionIndex = Math.max(0, this.currentMoveIndex + 1);
         this.liveCurrentFen = fen;
         this.liveCurrentResult = null;
@@ -1722,6 +1739,29 @@ const AnalyzeSection = {
      */
     onEnter() {
         console.log('[Analyze] Section entered');
+        window.CaissaClockService?.stop('analyze-enter');
+        const requestedToken = new URLSearchParams(window.location.search).get('handoff');
+        const handoff = window.CaissaAnalyzeHandoff?.resolve?.(requestedToken);
+        if (handoff?.ok && handoff.value?.handoffId !== this.activeHandoffId) {
+            this.activeHandoffId = handoff.value.handoffId;
+            const payload = handoff.value.payload;
+            if (payload.pgn) {
+                this.loadGameFromPgn(payload.pgn, 'Play handoff');
+            } else if (payload.finalFen) {
+                const session = window.CaissaAnalyzeSession?.createSession?.({ initialFen: payload.finalFen });
+                const game = session?.game;
+                if (game) {
+                    this.session = session;
+                    this.loadedGame = {
+                        pgn: '', game, initialFen: payload.finalFen, source: 'Play position',
+                        white: 'White', black: 'Black', result: payload.result || '*',
+                        event: '', date: '', eco: '', opening: '', movesSan: [], movesVerbose: []
+                    };
+                    this.currentMoveIndex = -1;
+                }
+            }
+            this.boardFlipped = payload.boardOrientation === 'black';
+        }
         this.updateLiveEngineButton();
         if (!this.loadedGame) {
             this.resetStudyBoard({ silent: true });
@@ -1729,12 +1769,10 @@ const AnalyzeSection = {
             this.ensureStudyBoard();
         }
         setTimeout(() => {
-            if (!window.App?.board && typeof window.initializeBoard === 'function') {
-                window.initializeBoard();
-            }
+            this.ensureAnalyzeBoard();
             this.ensureStudyBoard();
             this.applyAnalyzeOrientation();
-            App.board?.resize?.();
+            this.board?.resize?.();
             if (this.liveEngineEnabled) {
                 this.refreshLiveEvaluation({ immediate: true });
             }
@@ -1755,19 +1793,9 @@ const AnalyzeSection = {
             }
             this.liveEngineOwner = null;
         }
-        if (this.loadedGame && window.App?.game) {
-            const clone = this.cloneGame(App.game);
-            if (clone) {
-                this.loadedGame.game = clone;
-                this.currentMoveIndex = clone.history().length - 1;
-            }
-        }
         // Stop analysis if running
         if (this.isAnalyzing) {
             this.stopAnalysis();
-        }
-        if (window.App?.board && typeof App.board.orientation === 'function') {
-            App.board.orientation(App.isFlipped ? 'black' : 'white');
         }
     }
 };
