@@ -46,7 +46,7 @@ export function installPlayHarness(scenario) {
             state.workerMessages.push(command);
             if (command === 'uci') emit(this, 'id name CAISSA deterministic fixture');
             if (command === 'uci') emit(this, 'uciok');
-            if (command === 'isready') emit(this, 'readyok');
+            if (command === 'isready' && config.autoReady !== false) emit(this, 'readyok');
             if (command.startsWith('go') && config.autoReply !== false) {
                 const score = config.mate == null ? `cp ${config.cp ?? 34}` : `mate ${config.mate}`;
                 emit(this, `info depth ${config.depth ?? 12} score ${score} nodes 128 time 1 pv ${config.bestMove ?? 'e7e5'}`, config.delayMs ?? 10);

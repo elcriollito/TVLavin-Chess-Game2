@@ -68,10 +68,14 @@ test('duplicate bestmove is rejected before a duplicate board mutation', async (
     });
     await expect.poll(async () => (await snapshot(page)).history).toEqual(['e4', 'e5']);
     await page.waitForTimeout(30);
-    const proof = await page.evaluate(() => window.CaissaEngineRequestIsolation.inspect());
+    const proof = await page.evaluate(() => ({
+        isolation: window.CaissaEngineRequestIsolation.inspect(),
+        attribution: window.App.engine.inspectAttribution()
+    }));
     expect((await snapshot(page)).history).toEqual(['e4', 'e5']);
-    expect(proof.counters.completed).toBe(1);
-    expect(proof.counters.staleResponses).toBeGreaterThanOrEqual(1);
+    expect(proof.isolation.counters.completed).toBe(1);
+    expect(proof.isolation.counters.staleResponses
+        + proof.attribution.diagnostics.rejectedRawMessages).toBeGreaterThanOrEqual(1);
 });
 
 test('New Game rotates session and rejects delayed prior bestmove', async ({ page }) => {
@@ -90,10 +94,14 @@ test('New Game rotates session and rejects delayed prior bestmove', async ({ pag
         window.CaissaEngineRequestIsolation.getCurrentSession().sessionId);
     await page.waitForTimeout(550);
     const state = await snapshot(page);
-    const diagnostics = await page.evaluate(() => window.CaissaEngineRequestIsolation.inspect());
+    const diagnostics = await page.evaluate(() => ({
+        isolation: window.CaissaEngineRequestIsolation.inspect(),
+        attribution: window.App.engine.inspectAttribution()
+    }));
     expect(secondSession).not.toBe(firstSession);
     expect(state.history).toEqual([]);
-    expect(diagnostics.counters.staleResponses).toBeGreaterThanOrEqual(1);
+    expect(diagnostics.isolation.counters.staleResponses
+        + diagnostics.attribution.diagnostics.rejectedRawMessages).toBeGreaterThanOrEqual(1);
     expect(state.harness.workersCreated).toBe(1);
 });
 
@@ -179,4 +187,49 @@ test('accepted live evaluation preserves score, mate, flip, worker retention, an
     expect(proof.harness.workersCreated).toBe(1);
     expect(proof.harness.workersTerminated).toBe(0);
     expect(sameStorage).toBe(true);
+});
+
+test('raw old bestmove cannot borrow a superseding opponent callback identity', async ({ page }) => {
+    await instrumentPlay(page, { autoReply: false });
+    await openPlay(page);
+    await page.evaluate(() => {
+        window.App.useOpeningBook = false;
+        window.newGame({ mode: 'engine', color: 'white', timeControl: 0 });
+    });
+    await playMove(page, 'e2', 'e4');
+    await page.waitForTimeout(300);
+    await page.evaluate(() => {
+        window.__caissaPlayHarness.configure({ autoReady: false });
+        window.makeEngineMove();
+        window.__caissaPlayHarness.emit(0, 'bestmove e7e5');
+    });
+    await page.waitForTimeout(20);
+    expect((await snapshot(page)).history).toEqual(['e4']);
+
+    await page.evaluate(() => {
+        window.__caissaPlayHarness.emit(0, 'readyok');
+        window.__caissaPlayHarness.emit(0, 'bestmove c7c5', 5);
+    });
+    await expect.poll(async () => (await snapshot(page)).history).toEqual(['e4', 'c5']);
+    expect((await snapshot(page)).harness.workersCreated).toBe(1);
+});
+
+test('raw old info cannot borrow a superseding evaluation callback identity', async ({ page }) => {
+    await instrumentPlay(page, { autoReply: false });
+    await openPlay(page);
+    await page.evaluate(() => {
+        window.startAnalysis();
+        window.__caissaPlayHarness.configure({ autoReady: false });
+        window.startAnalysis();
+        window.__caissaPlayHarness.emit(0, 'info depth 12 score cp 900 nodes 1 pv e2e4');
+    });
+    await page.waitForTimeout(20);
+    await expect(page.locator('#evalScore')).not.toHaveText('+9.0');
+
+    await page.evaluate(() => {
+        window.__caissaPlayHarness.emit(0, 'readyok');
+        window.__caissaPlayHarness.emit(0, 'info depth 12 score cp 125 nodes 1 pv e2e4', 5);
+    });
+    await expect(page.locator('#evalScore')).toHaveText('+1.3');
+    expect((await snapshot(page)).harness.workersCreated).toBe(1);
 });

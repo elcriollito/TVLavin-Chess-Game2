@@ -1194,7 +1194,10 @@ function makeEngineMove() {
     const isolationRequest = createEngineIsolationRequest('opponent-move', currentFen, {
         moveTimeMs: moveTime
     });
-    App.engine.getBestMove(currentFen, (bestMove, ponder) => {
+    const requestBestMove = typeof App.engine.getBestMoveAttributed === 'function'
+        ? App.engine.getBestMoveAttributed.bind(App.engine)
+        : App.engine.getBestMove.bind(App.engine);
+    requestBestMove(currentFen, (bestMove, ponder) => {
         if (!acceptEngineIsolationResponse(isolationRequest, {
             type: 'bestmove', bestMove, ponder
         })) {
@@ -2295,7 +2298,10 @@ function startAnalysis() {
     const isolationRequest = createEngineIsolationRequest('live-evaluation', analysisFen, {
         depth: 20
     });
-    App.engine.startAnalysis(analysisFen, (info) => {
+    const requestAnalysis = typeof App.engine.startAnalysisAttributed === 'function'
+        ? App.engine.startAnalysisAttributed.bind(App.engine)
+        : App.engine.startAnalysis.bind(App.engine);
+    requestAnalysis(analysisFen, (info) => {
         if (!acceptEngineIsolationResponse(isolationRequest, {
             type: 'info',
             score: info.score,

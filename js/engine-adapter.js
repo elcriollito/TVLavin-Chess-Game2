@@ -27,6 +27,18 @@
             this.searchId = 0;
             this.activeSearchId = 0;
             this.currentFen = null;
+            this.attributionGeneration = 0;
+            this.attributionEnabled = false;
+            this.attributionBarrierPending = false;
+            this.attributedActive = null;
+            this.attributedPending = null;
+            this.attributionDiagnostics = {
+                generations: 0,
+                superseded: 0,
+                rejectedRawMessages: 0,
+                completed: 0,
+                canceled: 0
+            };
 
             this.onReady = null;
             this.onBestMove = null;
@@ -109,17 +121,46 @@
             }
 
             if (message.includes('readyok')) {
-                // ready for commands
+                this.completeAttributionBarrier();
             }
 
             if (message.startsWith('bestmove')) {
                 this.analyzing = false;
                 const match = message.match(/bestmove ([a-h][1-8][a-h][1-8][qrbnQRBN]?)/);
+                if (this.attributionEnabled) {
+                    if (this.attributionBarrierPending || !this.attributedActive
+                        || this.attributedActive.kind !== 'bestmove') {
+                        this.attributionDiagnostics.rejectedRawMessages += 1;
+                        return;
+                    }
+                    const operation = this.attributedActive;
+                    this.attributedActive = null;
+                    operation.status = 'completed';
+                    this.attributionDiagnostics.completed += 1;
+                    if (match) {
+                        const move = match[1];
+                        const ponder = message.match(/ponder ([a-h][1-8][a-h][1-8][qrbnQRBN]?)/);
+                        operation.callback(move, ponder ? ponder[1] : null, operation.generationId);
+                    }
+                    return;
+                }
                 if (match && this.onBestMove) {
                     const move = match[1];
                     const ponder = message.match(/ponder ([a-h][1-8][a-h][1-8][qrbnQRBN]?)/);
                     this.onBestMove(move, ponder ? ponder[1] : null);
                 }
+            }
+
+            if (message.startsWith('info') && this.attributionEnabled) {
+                if (this.attributionBarrierPending || !this.attributedActive
+                    || this.attributedActive.kind !== 'analysis') {
+                    this.attributionDiagnostics.rejectedRawMessages += 1;
+                    return;
+                }
+                if (message.includes(' pv ') || (message.includes('depth') && message.includes('score'))) {
+                    this.parseInfo(message, this.attributedActive.callback);
+                }
+                return;
             }
 
             if (message.startsWith('info') && this.onInfo) {
@@ -133,7 +174,7 @@
             }
         }
 
-        parseInfo(message) {
+        parseInfo(message, callback = this.onInfo) {
             const info = {
                 depth: 0,
                 seldepth: 0,
@@ -194,9 +235,111 @@
                 info.pv = pvMatch[1].trim().split(/\s+/).filter(m => m.length > 0);
             }
 
-            if (this.onInfo && info.pv.length > 0) {
-                this.onInfo(info);
+            if (callback && info.pv.length > 0) {
+                callback(info, this.attributedActive?.generationId ?? null);
             }
+        }
+
+        createAttributedOperation(kind, fen, callback, options) {
+            const generated = this.config.generationIdFactory?.();
+            const sequence = ++this.attributionGeneration;
+            const generationId = typeof generated === 'string' && generated
+                ? `${generated}:${sequence}`
+                : `engine-generation:${sequence}`;
+            this.attributionDiagnostics.generations += 1;
+            return {
+                generationId,
+                kind,
+                fen,
+                callback,
+                options,
+                status: 'created'
+            };
+        }
+
+        invalidateAttributedOperation(operation, status) {
+            if (!operation || ['completed', 'superseded', 'canceled'].includes(operation.status)) return;
+            operation.status = status;
+            if (status === 'superseded') this.attributionDiagnostics.superseded += 1;
+            if (status === 'canceled') this.attributionDiagnostics.canceled += 1;
+        }
+
+        activateAttributedOperation(operation) {
+            if (!operation || operation.status !== 'created') return;
+            operation.status = 'active';
+            this.attributedActive = operation;
+            this.currentFen = operation.fen;
+            this.setPosition(operation.fen);
+            this.go(operation.options);
+        }
+
+        completeAttributionBarrier() {
+            if (!this.attributionBarrierPending) return;
+            this.attributionBarrierPending = false;
+            const pending = this.attributedPending;
+            this.attributedPending = null;
+            this.activateAttributedOperation(pending);
+        }
+
+        startAttributedOperation(kind, fen, callback, options = {}) {
+            if (!this.ready) {
+                if (this.onError) this.onError(new Error('Engine not ready'));
+                return null;
+            }
+            if (typeof callback !== 'function') return null;
+
+            this.attributionEnabled = true;
+            const operation = this.createAttributedOperation(kind, fen, callback, options);
+            const needsBarrier = this.attributionBarrierPending || this.attributionGeneration > 1
+                || this.attributedActive || this.analyzing;
+
+            this.invalidateAttributedOperation(this.attributedActive, 'superseded');
+            this.attributedActive = null;
+            this.invalidateAttributedOperation(this.attributedPending, 'superseded');
+            this.attributedPending = null;
+
+            if (!needsBarrier) {
+                this.activateAttributedOperation(operation);
+                return operation.generationId;
+            }
+
+            this.attributedPending = operation;
+            if (!this.attributionBarrierPending) {
+                if (this.analyzing) this.send('stop');
+                this.analyzing = false;
+                this.attributionBarrierPending = true;
+                this.send('isready');
+            }
+            return operation.generationId;
+        }
+
+        cancelAttributedSearch() {
+            if (!this.attributionEnabled) return false;
+            const hadOperation = Boolean(this.attributedActive || this.attributedPending || this.attributionBarrierPending);
+            const wasAnalyzing = this.analyzing;
+            this.invalidateAttributedOperation(this.attributedActive, 'canceled');
+            this.invalidateAttributedOperation(this.attributedPending, 'canceled');
+            this.attributedActive = null;
+            this.attributedPending = null;
+            if (this.analyzing) this.send('stop');
+            this.analyzing = false;
+            if (!this.attributionBarrierPending && (hadOperation || wasAnalyzing)) {
+                this.attributionBarrierPending = true;
+                this.send('isready');
+            }
+            return hadOperation;
+        }
+
+        inspectAttribution() {
+            return Object.freeze({
+                enabled: this.attributionEnabled,
+                barrierPending: this.attributionBarrierPending,
+                activeGenerationId: this.attributedActive?.generationId ?? null,
+                pendingGenerationId: this.attributedPending?.generationId ?? null,
+                activeOperationCount: Number(Boolean(this.attributedActive))
+                    + Number(Boolean(this.attributedPending)),
+                diagnostics: Object.freeze({ ...this.attributionDiagnostics })
+            });
         }
 
         normalizeScore(rawCp) {
@@ -263,7 +406,8 @@
         }
 
         newGame() {
-            this.stop();
+            if (this.attributionEnabled) this.cancelAttributedSearch();
+            else this.stop();
             this.send('ucinewgame');
             this.send('isready');
         }
@@ -346,6 +490,10 @@
             this.go(options);
         }
 
+        getBestMoveAttributed(fen, callback, options = {}) {
+            return this.startAttributedOperation('bestmove', fen, callback, options);
+        }
+
         startAnalysis(fen, infoCallback, depth = null) {
             if (!this.ready) {
                 if (this.onError) this.onError(new Error('Engine not ready'));
@@ -363,7 +511,16 @@
             this.go(options);
         }
 
+        startAnalysisAttributed(fen, infoCallback, depth = null) {
+            const options = depth ? { depth } : { depth: 20 };
+            return this.startAttributedOperation('analysis', fen, infoCallback, options);
+        }
+
         stopAnalysis() {
+            if (this.attributionEnabled) {
+                this.cancelAttributedSearch();
+                return;
+            }
             this.stop();
             this.onInfo = null;
         }
@@ -422,6 +579,11 @@
         }
 
         terminate() {
+            this.invalidateAttributedOperation(this.attributedActive, 'canceled');
+            this.invalidateAttributedOperation(this.attributedPending, 'canceled');
+            this.attributedActive = null;
+            this.attributedPending = null;
+            this.attributionBarrierPending = false;
             if (this.engine) {
                 this.engine.terminate();
                 this.engine = null;
