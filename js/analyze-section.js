@@ -296,7 +296,7 @@ const AnalyzeSection = {
             App.gameMode = 'analysis';
             App.gameActive = false;
             App.engineEnabled = false;
-            App.clockRunning = false;
+            window.CaissaClockService?.stop('analyze-enter');
             App.moveHistory = [];
             App.currentMoveIndex = -1;
             App.pendingPromotion = null;

@@ -1,6 +1,6 @@
 /**
  * Passive CAISSA Play lifecycle observer 1.0.0.
- * Legacy Play remains the sole authoritative writer.
+ * Legacy Play remains authoritative except for local clocks, owned by ClockService.
  */
 (function installGameLifecycle(global) {
     'use strict';
@@ -62,7 +62,8 @@
         moveCount: snapshot.moveCount, pendingPromotion: snapshot.pendingPromotion,
         gameStatus: snapshot.gameStatus, result: snapshot.result,
         engineBusy: snapshot.engineBusy, evaluationAvailable: snapshot.evaluationAvailable,
-        clocksRunning: snapshot.clocksRunning
+        clocksRunning: snapshot.clocksRunning, clockActiveColor: snapshot.clockActiveColor,
+        timedOutColor: snapshot.timedOutColor
     });
     function deriveState(snapshot, disposed = false) {
         if (disposed) return 'disposed';
@@ -101,6 +102,8 @@
             engineBusy: legacy?.engine?.busy === true,
             evaluationAvailable: legacy?.evaluation?.available === true,
             clocksRunning: legacy?.clocks?.running === true,
+            clockActiveColor: legacy?.clocks?.activeColor ?? null,
+            timedOutColor: legacy?.clocks?.timedOutColor ?? null,
             capturedAt: new Date(now()).toISOString(),
             legacySnapshotVersion: legacy?.schemaVersion ?? null
         });

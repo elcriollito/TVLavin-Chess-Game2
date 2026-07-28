@@ -60,6 +60,13 @@ test('changed snapshots create one transition and preserve detached reads', () =
     assert.equal(f.getHistory().length, 2);
     assert.equal(Object.isFrozen(f.getHistory()), true);
 });
+test('passively observes service-backed active color and timeout metadata', () => {
+    const f = fixture();
+    f.sync(snapshot({ clocks: { running: true, activeColor: 'black', timedOutColor: null } }));
+    assert.equal(f.getSnapshot().clockActiveColor, 'black');
+    f.sync(snapshot({ clocks: { running: false, activeColor: 'black', timedOutColor: 'black' } }));
+    assert.equal(f.getSnapshot().timedOutColor, 'black');
+});
 test('session identity is deterministic, stable, and rotates explicitly', () => {
     let id = 0;
     const f = fixture({ sessionIdFactory: () => `life:${++id}` });

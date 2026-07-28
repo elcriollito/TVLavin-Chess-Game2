@@ -104,7 +104,9 @@
             : { state: null, result: null, message: null };
         const cp = Number.isFinite(source?.lastEvalCp) ? source.lastEvalCp : null;
         const mate = Number.isFinite(source?.lastEvalMate) ? source.lastEvalMate : null;
-        const clockRunning = source?.clockRunning === true;
+        // Temporary legacy-field fallback supports staged script loading only.
+        const serviceClock = global.CaissaClockService?.getSnapshot?.() || null;
+        const clockRunning = serviceClock ? serviceClock.running === true : source?.clockRunning === true;
 
         return deepFreeze({
             schemaVersion: SCHEMA_VERSION,
@@ -136,15 +138,23 @@
                 pendingPromotion: normalizePromotion(source?.pendingPromotion)
             },
             clocks: {
-                whiteMilliseconds: Number.isFinite(source?.whiteTimeMs) ? source.whiteTimeMs : null,
-                blackMilliseconds: Number.isFinite(source?.blackTimeMs) ? source.blackTimeMs : null,
-                whiteSeconds: Number.isFinite(source?.whiteTime) ? source.whiteTime : null,
-                blackSeconds: Number.isFinite(source?.blackTime) ? source.blackTime : null,
-                timeControlSeconds: Number.isFinite(source?.timeControl) ? source.timeControl : null,
-                activeColor: clockRunning
-                    ? (turnCode === 'w' ? 'white' : turnCode === 'b' ? 'black' : null)
-                    : null,
-                running: clockRunning
+                whiteMilliseconds: serviceClock?.whiteRemainingMs
+                    ?? (Number.isFinite(source?.whiteTimeMs) ? source.whiteTimeMs : null),
+                blackMilliseconds: serviceClock?.blackRemainingMs
+                    ?? (Number.isFinite(source?.blackTimeMs) ? source.blackTimeMs : null),
+                whiteSeconds: serviceClock
+                    ? Math.max(0, Math.ceil(serviceClock.whiteRemainingMs / 1000))
+                    : (Number.isFinite(source?.whiteTime) ? source.whiteTime : null),
+                blackSeconds: serviceClock
+                    ? Math.max(0, Math.ceil(serviceClock.blackRemainingMs / 1000))
+                    : (Number.isFinite(source?.blackTime) ? source.blackTime : null),
+                timeControlSeconds: serviceClock
+                    ? serviceClock.initialTimeMs / 1000
+                    : (Number.isFinite(source?.timeControl) ? source.timeControl : null),
+                activeColor: serviceClock?.activeColor
+                    ?? (clockRunning ? (turnCode === 'w' ? 'white' : turnCode === 'b' ? 'black' : null) : null),
+                running: clockRunning,
+                timedOutColor: serviceClock?.timedOutColor ?? null
             },
             evaluation: {
                 available: cp !== null || mate !== null,

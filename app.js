@@ -82,7 +82,7 @@ const App = {
     // Loaded game metadata (from PGN)
     loadedGameInfo: null, // { white, black, date, result, event, ... }
 
-    // Timers
+    // Deprecated clock presentation mirrors. CaissaClockService is authoritative.
     whiteTime: 0,
     blackTime: 0,
     timerInterval: null,
@@ -1004,6 +1004,8 @@ function onSnapEnd() {
 
 // ===== MOVE HANDLING =====
 function onMoveMade(move) {
+    switchLocalClockAfterMove(move);
+
     // Add move to history
     App.moveHistory.push(move);
     App.currentMoveIndex = App.moveHistory.length - 1;
@@ -1164,6 +1166,7 @@ function makeEngineMove() {
                 const move = App.game.move({ from, to, promotion });
 
                 if (move) {
+                    switchLocalClockAfterMove(move);
                     // Update board and history
                     App.board.position(App.game.fen());
                     App.moveHistory.push(move);
@@ -1246,6 +1249,7 @@ function makeEngineMove() {
         });
 
         if (move) {
+            switchLocalClockAfterMove(move);
             App.board.position(App.game.fen());
 
             // Add to history
@@ -2184,7 +2188,21 @@ function navigateToMove(index) {
 }
 
 // ===== TIMERS =====
+function mirrorLocalClock(snapshot = window.CaissaClockService?.getSnapshot?.()) {
+    if (!snapshot) return null;
+    App.whiteTimeMs = snapshot.whiteRemainingMs;
+    App.blackTimeMs = snapshot.blackRemainingMs;
+    App.whiteTime = Math.max(0, Math.ceil(snapshot.whiteRemainingMs / 1000));
+    App.blackTime = Math.max(0, Math.ceil(snapshot.blackRemainingMs / 1000));
+    App.clockRunning = snapshot.running;
+    // Retained deprecated aliases; RAF identity remains private to ClockService.
+    App.clockLastTs = snapshot.lastTickMonotonic;
+    App.clockRafId = null;
+    return snapshot;
+}
+
 function updateTimers() {
+    const clockSnapshot = mirrorLocalClock();
     const topClockWhite = document.getElementById('topClockWhite');
     const topClockBlack = document.getElementById('topClockBlack');
 
@@ -2213,7 +2231,7 @@ function updateTimers() {
     if (topClockBlack) topClockBlack.textContent = formatTime(App.blackTime);
 
     // Check for time out
-    if (whiteMs <= 0 || blackMs <= 0) {
+    if (App.gameActive && (clockSnapshot?.timedOutColor || whiteMs <= 0 || blackMs <= 0)) {
         const winner = App.whiteTime <= 0 ? 'Black' : 'White';
         App.gameActive = false;
         stopTimerLoop();
@@ -2223,78 +2241,41 @@ function updateTimers() {
     }
 }
 
-function resolveActiveClockSide() {
-    if (App.timeControl <= 0 || !App.gameActive || App.game.game_over()) return null;
-    const side = App.game.turn(); // 'w' or 'b'
-    let role = 'human';
-    if (App.gameMode === 'engine') {
-        const playerSide = App.playerColor === 'white' ? 'w' : 'b';
-        role = side === playerSide ? 'human' : 'engine';
-    } else if (App.gameMode === 'eve') {
-        role = 'engine';
-    }
-    return { side, role };
-}
-
-function clockTick(nowTs) {
-    if (!App.clockRunning) return;
-    if (!App.clockLastTs) {
-        App.clockLastTs = nowTs;
-        App.clockRafId = requestAnimationFrame(clockTick);
-        return;
-    }
-
-    const deltaMs = Math.max(0, nowTs - App.clockLastTs);
-    App.clockLastTs = nowTs;
-    const active = resolveActiveClockSide();
-
-    if (active) {
-        if (active.side === 'w') {
-            App.whiteTimeMs = Math.max(0, App.whiteTimeMs - deltaMs);
-        } else {
-            App.blackTimeMs = Math.max(0, App.blackTimeMs - deltaMs);
-        }
-
-        if (window.CAISSA_DEBUG_CLOCK && nowTs - App.clockDebugLastLog > 1000) {
-            App.clockDebugLastLog = nowTs;
-            console.log('[Clock]', {
-                sideToMove: App.game.turn(),
-                activeTimerSide: active.side,
-                activeRole: active.role,
-                whiteTime: Math.ceil(App.whiteTimeMs / 1000),
-                blackTime: Math.ceil(App.blackTimeMs / 1000)
-            });
-        }
-    }
-
+function switchLocalClockAfterMove(move) {
+    if (!move || App.timeControl <= 0) return;
+    const movingColor = move.color === 'w' ? 'white' : move.color === 'b' ? 'black' : null;
+    if (!movingColor) return;
+    window.CaissaClockService?.switchTurn({
+        movingColor,
+        moveToken: `${App.moveHistory.length + 1}:${move.from}${move.to}${move.promotion || ''}`
+    });
     updateTimers();
-    if (App.gameActive && !App.game.game_over()) {
-        App.clockRafId = requestAnimationFrame(clockTick);
-    } else {
-        stopTimerLoop();
-    }
 }
 
 function startTimer() {
     if (App.timeControl === 0) return;
-    stopTimerLoop();
-    App.clockRunning = true;
-    App.clockLastTs = performance.now();
-    App.clockRafId = requestAnimationFrame(clockTick);
+    window.CaissaClockService?.start({
+        activeColor: App.game.turn() === 'w' ? 'white' : 'black'
+    });
+    mirrorLocalClock();
 }
 
 function stopTimerLoop() {
-    App.clockRunning = false;
-    App.clockLastTs = null;
-    if (App.clockRafId) {
-        cancelAnimationFrame(App.clockRafId);
-        App.clockRafId = null;
-    }
+    window.CaissaClockService?.stop('legacy-play-stop');
+    mirrorLocalClock();
     if (App.timerInterval) {
         clearInterval(App.timerInterval);
         App.timerInterval = null;
     }
 }
+
+window.CaissaClockService?.setBridge(() => {
+    updateTimers();
+    const compatibility = window.CaissaPlayCompatibility;
+    if (compatibility && window.CaissaGameLifecycle) {
+        window.CaissaGameLifecycle.sync(compatibility.getSnapshot(), 'CLOCK_UPDATED');
+    }
+});
 
 // ===== ANALYSIS =====
 function startAnalysis() {
@@ -2643,10 +2624,13 @@ function newGame(options = {}) {
     // No level setting - always full power
     if (options.timeControl !== undefined) {
         App.timeControl = options.timeControl;
-        App.whiteTime = options.timeControl;
-        App.blackTime = options.timeControl;
-        App.whiteTimeMs = options.timeControl * 1000;
-        App.blackTimeMs = options.timeControl * 1000;
+        window.CaissaClockService?.configure({
+            mode: App.gameMode,
+            initialTimeMs: options.timeControl * 1000,
+            incrementMs: 0,
+            activeColor: App.game.turn() === 'w' ? 'white' : 'black'
+        });
+        mirrorLocalClock();
     }
     
     // Flip board if playing as black
@@ -4384,6 +4368,7 @@ async function engineVsEngineLoop(invalidRetryCount = 0) {
                 const move = App.game.move({ from, to, promotion });
 
                 if (move) {
+                    switchLocalClockAfterMove(move);
                     // Update board and history
                     App.board.position(App.game.fen());
                     App.moveHistory.push(move);
