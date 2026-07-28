@@ -1,6 +1,7 @@
 (function installCoachSession(global) {
     'use strict';
-    const SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
+    const HISTORY_LIMIT = 8;
     let pending = null; let active = null; let sequence = 0;
     const diagnostics = { selections: 0, starts: 0, resets: 0, observations: 0, interventions: 0 };
     const freeze = value => {
@@ -24,14 +25,38 @@
         active = freeze({ schemaVersion: SCHEMA_VERSION, ...pending, coachVersion: profile.version,
             enginePresetId: profile.engineFoundation.presetId, lifecycleSessionId: null,
             sessionId: `coach-session-${++sequence}`, createdAt: sequence,
-            interventionCount: 0, lastInterventionPly: null, evaluationMode: profile.evaluationPolicy });
+            interventionCount: 0, lastInterventionPly: null, interventionHistory: freeze([]),
+            cooldowns: freeze({}), evaluationMode: profile.evaluationPolicy });
         diagnostics.starts += 1; return freeze({ ok: true, reasonCode: 'COACH_SESSION_STARTED', value: getSnapshot() });
     }
     function recordObservation() { diagnostics.observations += 1; }
-    function recordIntervention(ply) {
+    function recordIntervention(candidateOrPly) {
         if (!active) return false;
-        active = freeze({ ...active, interventionCount: active.interventionCount + 1, lastInterventionPly: ply });
+        const candidate = typeof candidateOrPly === 'object' ? candidateOrPly : null;
+        const ply = candidate?.ply ?? candidateOrPly;
+        const entry = freeze({ triggerCode: candidate?.triggerCode || candidate?.trigger || 'legacy',
+            category: candidate?.category || null, ply, messageTemplateId: candidate?.messageTemplateId || null,
+            confidence: candidate?.confidence || null, severity: candidate?.severity || null,
+            conceptId: candidate?.evidence?.conceptId || null, shownAtSequence: diagnostics.interventions + 1 });
+        const history = [...(active.interventionHistory || []), entry].slice(-HISTORY_LIMIT);
+        const cooldowns = { ...(active.cooldowns || {}) };
+        if (candidate?.cooldownGroup) cooldowns[candidate.cooldownGroup] = ply;
+        active = freeze({ ...active, interventionCount: active.interventionCount + 1, lastInterventionPly: ply,
+            interventionHistory: freeze(history), cooldowns: freeze(cooldowns) });
         diagnostics.interventions += 1; return true;
+    }
+    const getInterventionHistory = () => freeze([...(active?.interventionHistory || [])]);
+    function getSummary() {
+        const history = active?.interventionHistory || []; const counts = {};
+        history.forEach(item => { if (item.category) counts[item.category] = (counts[item.category] || 0) + 1; });
+        const frequentCategory = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b))[0] || null;
+        return freeze({ schemaVersion: SCHEMA_VERSION, coachId: active?.coachId || null,
+            focus: active?.teachingFocus || null, assistanceLevel: active?.assistanceLevel || null,
+            interventionCount: history.length, frequentCategory,
+            practicedHabit: frequentCategory === 'tactical' ? 'Scan checks, captures, and threats.'
+                : frequentCategory === 'king-safety' ? 'Reassess king safety as lines open.'
+                : frequentCategory === 'development' ? 'Bring new pieces into the game.' : null,
+            quiet: history.length === 0 });
     }
     function reset() { pending = null; active = null; diagnostics.resets += 1; return freeze({ ok: true, reasonCode: 'COACH_RESET' }); }
     const activeProfile = () => active ? global.CaissaCoachRegistry.get(active.coachId) : null;
@@ -39,5 +64,6 @@
     function getSnapshot() { return freeze({ schemaVersion: SCHEMA_VERSION, pending, active, activeProfile: activeProfile(),
         search: getSearchOptions(), diagnostics: freeze({ ...diagnostics }) }); }
     global.CaissaCoachSession = freeze({ schemaVersion: SCHEMA_VERSION, select, beginGame, reset, recordObservation,
-        recordIntervention, getActiveProfile: activeProfile, getSearchOptions, getSnapshot, inspect: getSnapshot });
+        recordIntervention, getInterventionHistory, getSummary, getActiveProfile: activeProfile,
+        getSearchOptions, getSnapshot, inspect: getSnapshot });
 })(typeof window !== 'undefined' ? window : globalThis);

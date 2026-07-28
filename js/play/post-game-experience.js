@@ -361,6 +361,13 @@
                     ['White clock', formatClock(record.timing.finalClocks.whiteMilliseconds)],
                     ['Black clock', formatClock(record.timing.finalClocks.blackMilliseconds)]
                 ];
+                if (record.opponent.type === 'coach') {
+                    const coachSummary = global.CaissaCoachSession?.getSummary?.();
+                    rows.splice(4, 0, ['Coach session', coachSummary?.quiet
+                        ? 'The Coach remained quiet.'
+                        : `${coachSummary.interventionCount} prompts · ${coachSummary.frequentCategory || 'general'} · ${
+                            coachSummary.practicedHabit || 'Review the position carefully.'}`]);
+                }
                 summary.replaceChildren(...rows.flatMap(([term, description]) => {
                     const dt = element('dt', ''); dt.textContent = term;
                     const dd = element('dd', ''); dd.textContent = description;

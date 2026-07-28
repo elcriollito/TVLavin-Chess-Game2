@@ -670,6 +670,14 @@ body.caissa-simplified-play-active .caissa-coach-panel__options select,
 body.caissa-simplified-play-active .caissa-coach-panel__primary,
 body.caissa-simplified-play-active [data-coach-dismiss] { min-height: 44px; }
 body.caissa-simplified-play-active .caissa-coach-panel__primary { width: 100%; margin-block-start: .75rem; }
+body.caissa-simplified-play-active .caissa-coach-panel__why { margin-block: .5rem; }
+body.caissa-simplified-play-active .caissa-coach-panel__why summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 700;
+}
 
 @media (max-width: 359px) {
     body.caissa-simplified-play-active .caissa-coach-panel__catalog { grid-template-columns: 1fr; }

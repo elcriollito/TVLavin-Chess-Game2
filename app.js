@@ -1025,7 +1025,7 @@ function onMoveMade(move) {
                 profile: coachSnapshot.activeProfile, move: { from: move.from, to: move.to }
             });
             if (observation?.eligible) {
-                window.CaissaCoachSession.recordIntervention(observation.ply);
+                window.CaissaCoachSession.recordIntervention(observation);
                 window.dispatchEvent(new CustomEvent('caissa-coach-observation', { detail: observation }));
             }
         }

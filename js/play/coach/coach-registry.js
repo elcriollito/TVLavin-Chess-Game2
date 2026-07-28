@@ -3,7 +3,7 @@
     const SCHEMA_VERSION = '1.0.0';
     const catalog = [
         {
-            schemaVersion: '1.0.0', id: 'caissa-foundations', version: 1, name: 'CAISSA Foundations',
+            schemaVersion: '1.0.0', id: 'caissa-foundations', version: 2, name: 'CAISSA Foundations',
             shortName: 'Foundations', description: 'Session guidance for development and king-safety habits.',
             learnerLevel: 'beginner', teachingFocus: 'opening-principles', communicationStyle: 'supportive',
             engineFoundation: { botProfileId: 'caissa-trail', presetId: 'trail-depth-5' },
@@ -13,7 +13,7 @@
             availability: { enabled: true, qaOnly: true, locked: false }, metadata: { localeKey: 'coach.foundations' }
         },
         {
-            schemaVersion: '1.0.0', id: 'caissa-tactical-awareness', version: 1, name: 'CAISSA Tactical Awareness',
+            schemaVersion: '1.0.0', id: 'caissa-tactical-awareness', version: 2, name: 'CAISSA Tactical Awareness',
             shortName: 'Tactical', description: 'Session prompts to recheck immediate checks, captures, and threats.',
             learnerLevel: 'novice', teachingFocus: 'tactical-awareness', communicationStyle: 'question-led',
             engineFoundation: { botProfileId: 'caissa-grove', presetId: 'grove-depth-9' },

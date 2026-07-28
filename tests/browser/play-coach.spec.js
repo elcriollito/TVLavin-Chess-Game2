@@ -15,7 +15,7 @@ test('Coach is QA-only with two differentiated safe profiles and accessible cont
     expect(new URL(page.url()).pathname).toBe('/play/games');
     await openCoach(page);
     await expect(page.locator('.caissa-coach-panel__card')).toHaveCount(2);
-    await expect(page.locator('.caissa-coach-panel')).toContainText('never reveal a best move');
+    await expect(page.locator('.caissa-coach-panel')).toContainText('do not provide exact move answers');
     await expect(page.locator('.caissa-coach-panel')).not.toContainText(/AI Coach|Mentor|principal variation/i);
     await page.getByLabel(/Tactical Awareness/).check();
     await expect(page.locator('[data-coach-detail]')).toContainText('immediate checks, captures, and threats');
@@ -60,6 +60,24 @@ test('bounded intervention presentation dismisses without engine request or cloc
     expect(await page.evaluate(() => window.__caissaPlayHarness.snapshot().workerMessages.filter(message => message.startsWith('go')).length)).toBe(before);
 });
 
+test('Teaching shows one bounded accessible Why explanation while Guided keeps it hidden', async ({ page }) => {
+    await openCoach(page);
+    await page.locator('[data-coach-assistance]').selectOption('teaching');
+    await page.locator('[data-coach-primary]').click();
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('caissa-coach-observation', {
+        detail: { category: 'tactical', message: {
+            message: 'A legal capture is available to your opponent. What changed in their forcing options?',
+            explanation: 'Legal captures are concrete tactical facts, but their consequences still need to be calculated.',
+            revealsMove: false, includesPv: false
+        } }
+    })));
+    const why = page.locator('[data-coach-why]');
+    await expect(why).toBeVisible();
+    await why.locator('summary').click();
+    await expect(page.locator('[data-coach-explanation]')).toContainText('consequences');
+    await expect(page.locator('[data-coach-intervention]')).toContainText('tactical guidance');
+});
+
 test('Games and Bots clear Coach, Games restores Full Power, and layout remains bounded', async ({ page }) => {
     await openCoach(page, { width: 320, height: 568 });
     await page.locator('[data-coach-primary]').click();
@@ -89,6 +107,7 @@ test('PostGame identifies Coach, Rematch retains it with reset interventions, an
     });
     await expect(page.locator('.caissa-post-game')).toBeVisible();
     await expect(page.locator('[data-post-game-summary]')).toContainText('CAISSA Foundations');
+    await expect(page.locator('[data-post-game-summary]')).toContainText('1 prompts');
     await page.locator('[data-post-game-action="rematch"]').click();
     let session = await page.evaluate(() => window.CaissaCoachSession.getSnapshot().active);
     expect(session.coachId).toBe('caissa-foundations');

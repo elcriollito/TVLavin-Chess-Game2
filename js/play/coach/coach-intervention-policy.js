@@ -1,20 +1,21 @@
 (function installCoachInterventionPolicy(global) {
     'use strict';
-    const SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
     const ASSISTANCE = Object.freeze(['silent', 'light', 'guided', 'teaching']);
-    const TRIGGERS = Object.freeze(['development-reminder', 'tactical-awareness', 'hanging-piece', 'king-safety']);
+    const TRIGGERS = Object.freeze(['development-reminder', 'development-positive', 'tactical-awareness',
+        'immediate-danger', 'hanging-piece', 'king-safety']);
     const policies = new Map([
         ['foundations-bounded', {
             schemaVersion: SCHEMA_VERSION, id: 'foundations-bounded', version: 1,
             minimumPlyGap: 4, cooldownPlies: 4, maximumInterventions: 3,
-            allowedPhases: ['opening', 'middlegame'], allowedTriggers: ['development-reminder', 'king-safety'],
+            allowedPhases: ['opening', 'middlegame'], allowedTriggers: ['development-reminder', 'development-positive', 'king-safety'],
             revealEvaluation: false, revealBestMove: false, pauseClock: false,
             promptTypes: ['reminder', 'question'], constraints: { postMoveOnly: true }
         }],
         ['tactical-bounded', {
             schemaVersion: SCHEMA_VERSION, id: 'tactical-bounded', version: 1,
             minimumPlyGap: 3, cooldownPlies: 3, maximumInterventions: 4,
-            allowedPhases: ['opening', 'middlegame', 'endgame'], allowedTriggers: ['tactical-awareness', 'hanging-piece'],
+            allowedPhases: ['opening', 'middlegame', 'endgame'], allowedTriggers: ['tactical-awareness', 'immediate-danger', 'hanging-piece'],
             revealEvaluation: false, revealBestMove: false, pauseClock: false,
             promptTypes: ['question', 'feedback'], constraints: { postMoveOnly: true }
         }]

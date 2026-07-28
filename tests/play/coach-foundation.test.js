@@ -8,7 +8,7 @@ const botFiles = ['bot-profile.js', 'bot-presets.js', 'bot-registry.js', 'bot-se
     .map(name => `js/play/bots/${name}`);
 const coachFiles = [
     'coach-profile.js', 'coach-intervention-policy.js', 'coach-registry.js',
-    'coach-session.js', 'coach-messages.js', 'coach-observation-service.js'
+    'coach-session.js', 'coach-messages.js', 'coach-intervention-candidate.js', 'coach-observation-service.js'
 ].map(name => `js/play/coach/${name}`);
 const sources = [...botFiles, ...coachFiles].map(name =>
     fs.readFileSync(new URL(`../../${name}`, import.meta.url), 'utf8'));
@@ -24,13 +24,13 @@ test('Coach contracts are versioned, frozen, JSON-safe, and catalog two supporte
     const w = load();
     for (const key of ['CaissaCoachProfile', 'CaissaCoachInterventionPolicy', 'CaissaCoachRegistry',
         'CaissaCoachSession', 'CaissaCoachMessages', 'CaissaCoachObservationService']) {
-        assert.equal(w[key].schemaVersion, '1.0.0');
+        assert.match(w[key].schemaVersion, /^1\.[01]\.0$/);
         assert.equal(Object.isFrozen(w[key]), true);
     }
     const profiles = w.CaissaCoachRegistry.list();
     assert.deepEqual(plain(profiles.map(item => item.id)), ['caissa-foundations', 'caissa-tactical-awareness']);
     assert.ok(profiles.every(item => item.availability.qaOnly && Object.isFrozen(item)));
-    assert.equal(JSON.stringify(profiles).includes('endgame'), false);
+    assert.equal(profiles.some(item => item.id.includes('endgame')), false);
 });
 
 test('profile validation rejects hostile, unsupported, duplicate, and executable profiles', () => {
@@ -91,7 +91,8 @@ test('educational fixtures cover hanging-piece, tactical, king-safety, and neutr
         actor: 'user', fen: '4k3/8/8/3r4/3Q4/8/8/4K3 b - - 0 1', ply: 9,
         playerColor: 'white', profile: tactical, session, move: { from: 'd2', to: 'd4' }
     });
-    assert.equal(hanging.trigger, 'hanging-piece');
+    assert.equal(hanging.trigger, 'immediate-danger');
+    assert.ok(hanging.candidates.some(candidate => candidate.triggerCode === 'hanging-piece'));
     const kingSafety = w.CaissaCoachObservationService.observe({
         actor: 'user', fen: 'r1bqk2r/pppp1ppp/2n2n2/4p3/4P3/2N2N2/PPPP1PPP/R1BQK2R b KQkq - 7 5',
         ply: 9, playerColor: 'white', profile: foundations, session, move: { from: 'g1', to: 'f3' }

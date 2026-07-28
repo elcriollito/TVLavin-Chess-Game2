@@ -1,6 +1,6 @@
 (function installCoachPanel(global) {
     'use strict';
-    const SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
     let sequence = 0;
     const freeze = value => {
         if (value && typeof value === 'object' && !Object.isFrozen(value)) { Object.values(value).forEach(freeze); Object.freeze(value); }
@@ -22,7 +22,7 @@
             const root = this.#root = el('section', 'caissa-coach-panel', { 'aria-labelledby': `${this.#id}-title` });
             const title = el('h2', '', { id: `${this.#id}-title` }); title.textContent = 'Play with a Coach';
             const note = el('p', 'caissa-coach-panel__note');
-            note.textContent = 'QA-only session coaching. Prompts never reveal a best move or pause the clock.';
+            note.textContent = 'QA-only session coaching. Prompts do not provide exact move answers or pause the clock.';
             const catalog = el('div', 'caissa-coach-panel__catalog', { role: 'radiogroup', 'aria-label': 'Coach catalog' });
             global.CaissaCoachRegistry.list().forEach(profile => {
                 const label = el('label', 'caissa-coach-panel__card');
@@ -48,9 +48,13 @@
             colorLabel.appendChild(color); optionsNode.append(assistanceLabel, colorLabel);
             const goal = el('p', 'caissa-coach-panel__goal', { 'data-coach-goal': '' });
             const intervention = el('div', 'caissa-coach-panel__intervention', { 'data-coach-intervention': '', role: 'status', 'aria-live': 'polite', hidden: '' });
+            const category = el('strong', '', { 'data-coach-category': '' });
             const interventionText = el('p', '', { 'data-coach-message': '' });
+            const why = el('details', 'caissa-coach-panel__why', { 'data-coach-why': '', hidden: '' });
+            const whySummary = el('summary', ''); whySummary.textContent = 'Why?';
+            const whyText = el('p', '', { 'data-coach-explanation': '' }); why.append(whySummary, whyText);
             const dismiss = el('button', '', { type: 'button', 'data-coach-dismiss': '' }); dismiss.textContent = 'Dismiss';
-            intervention.append(interventionText, dismiss);
+            intervention.append(category, interventionText, why, dismiss);
             const status = el('div', '', { role: 'status', 'aria-live': 'polite', 'data-coach-status': '' });
             const action = el('button', 'caissa-coach-panel__primary', { type: 'button', 'data-coach-primary': '' }); action.textContent = 'Play Coach';
             root.append(title, note, catalog, detail, optionsNode, goal, intervention, status, action); host.appendChild(root);
@@ -74,6 +78,11 @@
             const panel = this.#root?.querySelector('[data-coach-intervention]');
             if (!panel || !detail?.message?.message) return result(false, 'NO_MESSAGE');
             panel.querySelector('[data-coach-message]').textContent = detail.message.message;
+            panel.querySelector('[data-coach-category]').textContent =
+                `${String(detail.category || 'Coach').replace(/-/g, ' ')} guidance`;
+            const why = panel.querySelector('[data-coach-why]');
+            why.querySelector('[data-coach-explanation]').textContent = detail.message.explanation || '';
+            why.hidden = !detail.message.explanation; why.open = false;
             panel.hidden = false; this.#diagnostics.messages += 1; return result(true, 'MESSAGE_SHOWN');
         }
         dismiss() { const node = this.#root?.querySelector('[data-coach-intervention]'); if (node) node.hidden = true; this.#diagnostics.dismissals += 1; return result(true, 'DISMISSED'); }
@@ -95,7 +104,10 @@
                 const limits = el('p', ''); limits.textContent = `Limit: ${profile.presentation.limitations.join(' ')}`;
                 detail.append(heading, description, limits);
                 this.#root.querySelector('[data-coach-goal]').textContent = `Learning goal: ${profile.presentation.tagline}`;
-                this.#root.querySelector('[data-coach-status]').textContent = `${profile.name} selected with ${this.#assistance} assistance.`;
+                const active = global.CaissaCoachSession.getSnapshot().active;
+                const count = active?.coachId === profile.id ? ` ${active.interventionCount} prompts shown.` : '';
+                this.#root.querySelector('[data-coach-status]').textContent =
+                    `${profile.name} selected with ${this.#assistance} assistance.${count}`;
             }
         }
         getSnapshot() { return freeze({ schemaVersion: SCHEMA_VERSION, selectedCoachId: this.#selected,
