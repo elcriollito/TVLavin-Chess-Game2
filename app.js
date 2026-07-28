@@ -1814,6 +1814,9 @@ function normalizeBookMoveRows(rows) {
         d: Number(m.d) || 0,
         l: Number(m.l) || 0
     }));
+    if (window.CaissaGameLifecycle && window.CaissaPlayCompatibility) {
+        window.CaissaGameLifecycle.sync(window.CaissaPlayCompatibility.getSnapshot());
+    }
 }
 
 function isUsersTurnForCoach() {
@@ -2594,6 +2597,7 @@ function updateEngineStatus(status, text) {
 
 // ===== NEW GAME =====
 function newGame(options = {}) {
+    window.CaissaGameLifecycle?.rotateSession();
     window.CaissaEngineRequestIsolation?.createSession();
     // Exit edit mode if active (MUST be first to clean up state)
     if (App.editMode) {
