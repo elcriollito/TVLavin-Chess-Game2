@@ -340,6 +340,6 @@ test('both SPA pages load GameRecord exactly once after compatibility', () => {
     for (const page of ['index.html', 'yahoo-classic.html']) {
         const html = fs.readFileSync(new URL(`../../${page}`, import.meta.url), 'utf8');
         assert.equal((html.match(/js\/play\/game-record\.js/g) || []).length, 1);
-        assert.ok(html.indexOf('legacy-play-compatibility.js?v=1.0.0') < html.indexOf('game-record.js?v=1.0.0'));
+        assert.ok(html.indexOf('legacy-play-compatibility.js?v=1.1.0') < html.indexOf('game-record.js?v=1.0.0'));
     }
 });

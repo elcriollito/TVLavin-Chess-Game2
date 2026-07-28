@@ -503,3 +503,42 @@ body.caissa-simplified-play-active .caissa-simplified-shell[data-layout^="phone-
 @media (prefers-reduced-motion: reduce) {
     body.caissa-simplified-play-active .caissa-simplified-shell * { scroll-behavior: auto !important; }
 }
+
+body.caissa-simplified-play-active .caissa-bots-panel[hidden] { display: none; }
+
+body.caissa-simplified-play-active .caissa-bots-panel__title,
+body.caissa-simplified-play-active .caissa-bots-panel__note { margin-block: 0 .75rem; }
+
+body.caissa-simplified-play-active .caissa-bots-panel__catalog { display: grid; gap: .625rem; }
+
+body.caissa-simplified-play-active .caissa-bots-panel__card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: .625rem;
+    align-items: start;
+    padding: .75rem;
+    border: 1px solid var(--border-color, #d0d5dd);
+    border-radius: .625rem;
+    cursor: pointer;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__card:has(input:checked) {
+    border-color: var(--primary-color, #2457a7);
+    box-shadow: 0 0 0 1px var(--primary-color, #2457a7);
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__card-copy { display: grid; gap: .2rem; min-width: 0; }
+
+body.caissa-simplified-play-active .caissa-bots-panel__options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    margin-block: 1rem;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__options label { display: grid; gap: .25rem; flex: 1 1 9rem; }
+
+body.caissa-simplified-play-active .caissa-bots-panel__options select,
+body.caissa-simplified-play-active .caissa-bots-panel__primary { min-height: 44px; }
+
+body.caissa-simplified-play-active .caissa-bots-panel__primary { width: 100%; }

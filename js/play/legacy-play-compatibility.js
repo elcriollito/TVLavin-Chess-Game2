@@ -15,7 +15,7 @@
 (function installLegacyPlayCompatibility(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
     const EXISTING = global.CaissaPlayCompatibility;
     if (EXISTING?.schemaVersion === SCHEMA_VERSION) return;
 
@@ -116,9 +116,10 @@
             active: section === 'play' && !!playElement()?.classList?.contains?.('active'),
             mode: typeof source?.gameMode === 'string' ? source.gameMode : null,
             playerColor: COLORS.includes(source?.playerColor) ? source.playerColor : null,
-            selectedOpponent: source?.gameMode === 'engine' && typeof source?.engineId === 'string'
-                ? source.engineId
-                : null,
+            selectedOpponent: source?.gameMode === 'engine' && global.CaissaBotSession?.getActiveProfile?.()
+                ? global.CaissaBotSession.getActiveProfile().id
+                : source?.gameMode === 'engine' && typeof source?.engineId === 'string'
+                    ? source.engineId : null,
             position: {
                 fen: typeof fen === 'string' ? fen : null,
                 pgn: typeof pgn === 'string' ? pgn : null,

@@ -1,8 +1,8 @@
 (function installPostGameExperience(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.0.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.1.0';
     const STATUSES = Object.freeze(['idle', 'ready', 'visible', 'busy', 'error', 'disposed']);
     const ACTIONS = Object.freeze([
         'rematch', 'analyze', 'copy-pgn', 'download-pgn', 'save-game', 'new-game', 'mentor-review'
@@ -238,8 +238,10 @@
                 player: { color: record?.player?.color || null },
                 opponent: {
                     type: record?.opponent?.type || null,
-                    name: record?.opponent?.name || (record?.opponent?.type === 'engine' ? 'CAISSA Engine' : null),
-                    strengthLabel: record?.opponent?.type === 'engine' ? 'Full Power' : null
+                    name: record?.opponent?.name || global.CaissaBotRegistry?.get?.(record?.opponent?.id)?.name
+                        || (record?.opponent?.type === 'engine' ? 'CAISSA Engine' : null),
+                    strengthLabel: global.CaissaBotRegistry?.get?.(record?.opponent?.id)?.difficultyBand
+                        || (record?.opponent?.type === 'engine' ? 'Full Power' : null)
                 },
                 timing: {
                     durationMs: record?.timing?.durationMs ?? null,
@@ -348,7 +350,10 @@
                     ['Result', record.result.value || 'Unknown'],
                     ['Termination', record.result.termination ? record.result.termination.replace(/-/g, ' ') : 'Unknown'],
                     ['Played as', record.player.color || 'Unknown'],
-                    ['Opponent', record.opponent.type === 'engine' ? 'CAISSA Engine · Full Power' : 'Unknown'],
+                    ['Opponent', record.opponent.type === 'engine'
+                        ? `${global.CaissaBotRegistry?.get?.(record.opponent.id)?.name || 'CAISSA Engine'} · ${
+                            global.CaissaBotRegistry?.get?.(record.opponent.id)?.difficultyBand || 'Full Power'}`
+                        : 'Unknown'],
                     ['Moves', String(record.moves.count)],
                     ['White clock', formatClock(record.timing.finalClocks.whiteMilliseconds)],
                     ['Black clock', formatClock(record.timing.finalClocks.blackMilliseconds)]

@@ -23,7 +23,8 @@ test('shell has semantic regions, truthful modes, and exactly one set of runtime
     await openShell(page);
     await expect(page.getByRole('navigation', { name: 'Play modes' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Games' })).toHaveAttribute('aria-selected', 'true');
-    for (const mode of ['Bots', 'Coach', 'Players']) {
+    await expect(page.getByRole('tab', { name: 'Bots' })).toBeEnabled();
+    for (const mode of ['Coach', 'Players']) {
         await expect(page.getByRole('tab', { name: mode })).toBeDisabled();
     }
     const resources = await page.evaluate(() => ({
@@ -37,7 +38,7 @@ test('shell has semantic regions, truthful modes, and exactly one set of runtime
         shell: window.CaissaSimplifiedPlayShellInstance.getSnapshot()
     }));
     expect(resources).toMatchObject({ boards: 1, squares: 64, rails: 1, clocks: 2, newGame: 1, workers: 1, adapters: 1 });
-    expect(resources.shell).toMatchObject({ active: true, qaOnly: true, mode: 'games', listenerCount: 4 });
+    expect(resources.shell).toMatchObject({ active: true, qaOnly: true, mode: 'games', listenerCount: 5 });
 });
 
 test('activate, deactivate, Back, and Forward preserve state, orientation, controls, and identity', async ({ page }) => {

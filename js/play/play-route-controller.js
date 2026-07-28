@@ -1,7 +1,7 @@
 (function (global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
     const MODES = Object.freeze({ GAMES: 'games', BOTS: 'bots', COACH: 'coach', PLAYERS: 'players' });
     const STATUSES = Object.freeze({
         RESOLVED: 'resolved', CANONICALIZED: 'canonicalized', LEGACY_ADAPTED: 'legacy-adapted',
@@ -18,6 +18,7 @@
         CANONICAL_PLAY_ROUTE: 'CANONICAL_PLAY_ROUTE',
         LEGACY_PLAY_QUERY_ADAPTED: 'LEGACY_PLAY_QUERY_ADAPTED',
         GAMES_MODE_RESOLVED: 'GAMES_MODE_RESOLVED',
+        BOTS_MODE_RESOLVED: 'BOTS_MODE_RESOLVED',
         RESERVED_MODE_INACTIVE: 'RESERVED_MODE_INACTIVE',
         UNKNOWN_MODE_FALLBACK: 'UNKNOWN_MODE_FALLBACK',
         MALFORMED_ROUTE: 'MALFORMED_ROUTE',
@@ -26,7 +27,7 @@
         POPSTATE_RESTORED: 'POPSTATE_RESTORED',
         SAME_ROUTE_NOOP: 'SAME_ROUTE_NOOP'
     });
-    const AVAILABILITY = Object.freeze({ games: true, bots: false, coach: false, players: false });
+    const AVAILABILITY = Object.freeze({ games: true, bots: 'qa-only', coach: false, players: false });
     const SAFE_QUERY_LIMIT = 2048;
     const privateQuery = new WeakMap();
     const diagnostics = { parses: 0, navigations: 0, pushes: 0, replaces: 0, noops: 0, popstates: 0, malformed: 0 };
@@ -94,7 +95,8 @@
         if (playMatch) {
             const requestedMode = playMatch[1] || MODES.GAMES;
             const known = Object.values(MODES).includes(requestedMode);
-            const available = known && AVAILABILITY[requestedMode];
+            const available = known && (AVAILABILITY[requestedMode] === true
+                || (requestedMode === MODES.BOTS && query.simplified === '1'));
             const mode = available ? requestedMode : MODES.GAMES;
             const canonicalPath = mode === MODES.GAMES && !playMatch[1] ? '/play' : `/play/${mode}`;
             const inactive = known && !available;
@@ -105,7 +107,8 @@
                     (inactive ? STATUSES.INACTIVE_MODE : (changed ? STATUSES.CANONICALIZED : STATUSES.RESOLVED)),
                 source: options.source || SOURCES.DIRECT_PATH, canonicalPath, legacy: false, replace: changed,
                 available: true, reasonCode: !known ? REASONS.UNKNOWN_MODE_FALLBACK :
-                    (inactive ? REASONS.RESERVED_MODE_INACTIVE : REASONS.GAMES_MODE_RESOLVED),
+                    (inactive ? REASONS.RESERVED_MODE_INACTIVE :
+                        (mode === MODES.BOTS ? REASONS.BOTS_MODE_RESOLVED : REASONS.GAMES_MODE_RESOLVED)),
                 query, __privateQuery: protectedQuery, handoffToken: null, metadata: { requestedModeAvailable: available }
             });
         }
@@ -122,13 +125,15 @@
         if (section === 'play') {
             const requestedMode = String(query.mode || 'games').toLowerCase();
             const known = Object.values(MODES).includes(requestedMode);
+            const available = known && (AVAILABILITY[requestedMode] === true
+                || (requestedMode === MODES.BOTS && query.simplified === '1'));
             return frozenRoute({
                 schemaVersion: SCHEMA_VERSION, routeId: 'play:games', path, section: 'play', mode: MODES.GAMES,
-                requestedMode, status: known && !AVAILABILITY[requestedMode] ? STATUSES.INACTIVE_MODE : STATUSES.LEGACY_ADAPTED,
+                requestedMode, status: known && !available ? STATUSES.INACTIVE_MODE : STATUSES.LEGACY_ADAPTED,
                 source: options.source || SOURCES.LEGACY_SECTION, canonicalPath: '/play', legacy: true, replace: true,
-                available: true, reasonCode: known && !AVAILABILITY[requestedMode] ?
+                available: true, reasonCode: known && !available ?
                     REASONS.RESERVED_MODE_INACTIVE : REASONS.LEGACY_PLAY_QUERY_ADAPTED,
-                query, __privateQuery: protectedQuery, handoffToken: null, metadata: { requestedModeAvailable: !!AVAILABILITY[requestedMode] }
+                query, __privateQuery: protectedQuery, handoffToken: null, metadata: { requestedModeAvailable: available }
             });
         }
         const safeSection = /^[a-zA-Z][a-zA-Z0-9-]{0,31}$/.test(section || '') ? section : null;
@@ -231,7 +236,8 @@
         reasonCodes: REASONS, availability: AVAILABILITY, parse, resolve: parse, serialize,
         getCurrent: () => current || parse(), navigate, replace: (target, options = {}) => navigate(target, Object.assign({}, options, { replace: true })),
         handlePopState, isPlayRoute: input => parse(input).section === 'play',
-        isModeAvailable: mode => AVAILABILITY[mode] === true,
+        isModeAvailable: (mode, options = {}) => AVAILABILITY[mode] === true
+            || (mode === MODES.BOTS && options.qa === true),
         getCanonicalPath: mode => mode && mode !== MODES.GAMES ? `/play/${mode}` : '/play',
         subscribe(listener) {
             if (typeof listener !== 'function') return () => {};

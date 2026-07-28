@@ -74,7 +74,7 @@ test('public API is frozen, versioned, minimal, and supports stable repeated ins
     const before = value.api;
     vm.runInNewContext(source, { window: value.window, Date, Object, WeakSet, Number, Set });
     assert.equal(value.window.CaissaPlayCompatibility, before);
-    assert.equal(before.schemaVersion, '1.0.0');
+    assert.equal(before.schemaVersion, '1.1.0');
     assert.equal(Object.isFrozen(before), true);
     assert.deepEqual(
         Object.keys(before).sort(),
@@ -91,7 +91,7 @@ test('snapshot has deterministic JSON-safe shape without legacy object reference
     const { api, App, game, board } = fixture();
     const snapshot = api.getSnapshot();
     assert.doesNotThrow(() => JSON.stringify(snapshot));
-    assert.equal(snapshot.schemaVersion, '1.0.0');
+    assert.equal(snapshot.schemaVersion, '1.1.0');
     assert.equal(snapshot.position.fen, game.fen());
     assert.equal(snapshot.position.moveCount, 1);
     assert.equal(snapshot.board.available, true);
@@ -266,7 +266,7 @@ test('both legacy SPA pages load the boundary exactly once after App', () => {
         const html = fs.readFileSync(new URL(`../../${page}`, import.meta.url), 'utf8');
         assert.equal((html.match(/js\/play\/legacy-play-compatibility\.js/g) || []).length, 1);
         assert.ok(
-            html.indexOf('app.js?v=2.0.13') < html.indexOf('js/play/legacy-play-compatibility.js?v=1.0.0'),
+            html.indexOf('app.js?v=2.0.14') < html.indexOf('js/play/legacy-play-compatibility.js?v=1.1.0'),
             `${page} must load compatibility after App`
         );
     }

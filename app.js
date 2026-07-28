@@ -1137,8 +1137,10 @@ function makeEngineMove() {
 
     const currentFen = App.game.fen();
 
-    // CHECK OPENING BOOK FIRST
-    if (App.useOpeningBook && App.openingBook && App.openingBook.loaded) {
+    const activeBot = window.CaissaBotSession?.getActiveProfile?.() || null;
+
+    // CHECK OPENING BOOK FIRST (Bot presets intentionally use deterministic engine search.)
+    if (!activeBot && App.useOpeningBook && App.openingBook && App.openingBook.loaded) {
         const fenParts = currentFen.split(' ');
         const fullmove = parseInt(fenParts[5]);
 
@@ -1189,13 +1191,13 @@ function makeEngineMove() {
         }
     }
 
-    // No book move available, use engine at full power
-    const moveTime = 2000; // 2 seconds for full strength
-
-    console.log(`🎯 Engine at FULL POWER using movetime: ${moveTime}ms`);
+    // Bot sessions use bounded depth; Games preserves the existing Full Power movetime.
+    const botSearch = window.CaissaBotSession?.getSearchOptions?.() || null;
+    const engineSearch = botSearch || { movetime: 2000 };
 
     const isolationRequest = createEngineIsolationRequest('opponent-move', currentFen, {
-        moveTimeMs: moveTime
+        depth: botSearch?.depth || null,
+        moveTimeMs: botSearch ? null : 2000
     });
     if (!isolationRequest) {
         App.isPlayerTurn = true;
@@ -1263,7 +1265,7 @@ function makeEngineMove() {
         }
 
         updateEngineStatus('ready', 'Engine Ready');
-    }, { movetime: moveTime });
+    }, engineSearch);
 }
 
 // ===== GAME STATUS =====
@@ -2535,6 +2537,12 @@ function updateEngineStatus(status, text) {
 // ===== NEW GAME =====
 function newGame(options = {}) {
     window.CaissaPostGameExperienceInstance?.hide?.();
+    const botRoute = window.CaissaPlayRouteController?.getCurrent?.();
+    if (botRoute?.mode === 'bots' && botRoute?.query?.simplified === '1') {
+        window.CaissaBotSession?.beginGame?.();
+    } else {
+        window.CaissaBotSession?.resetToFullPower?.();
+    }
     window.CaissaGameLifecycle?.rotateSession();
     window.CaissaEngineRequestIsolation?.createSession();
     // Exit edit mode if active (MUST be first to clean up state)
