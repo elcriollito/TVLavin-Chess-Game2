@@ -1,8 +1,8 @@
 (function (global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.2.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.2.0';
+    const SCHEMA_VERSION = '1.3.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.3.0';
     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'error']);
     const REGIONS = Object.freeze([
         'mode-navigation', 'board-stage', 'opponent-header', 'evaluation-rail',
@@ -91,7 +91,7 @@
         #root = null; #active = false; #disposed = false; #status = 'loading';
         #mode = 'games'; #placements = []; #listeners = []; #unsubscribeRoute = null;
         #layoutMode = null; #geometry = null; #resizeCount = 0; #activationCount = 0; #statusNode = null;
-        #gamesPanel = null;
+        #gamesPanel = null; #postGame = null;
         #diagnostics = {
             layoutChanges: 0, orientationChanges: 0, safeAreaApplications: 0,
             boardResizeRequests: 0, drawerCycles: 0, restorationCycles: 0, rejectedGeometry: 0
@@ -218,11 +218,26 @@
                 this.#placements = [];
                 return result(false, 'unavailable', 'GAMES_PANEL_UNAVAILABLE');
             }
+            this.#postGame = global.CaissaPostGameExperience?.create?.({
+                onVisibilityChange: visible => visible ? this.#gamesPanel?.hide?.() : this.#gamesPanel?.show?.()
+            });
+            const postGameMount = this.#postGame?.mount?.({ host: contextBody });
+            if (!postGameMount?.ok) {
+                this.#postGame?.dispose?.(); this.#postGame = null;
+                this.#gamesPanel?.dispose?.(); this.#gamesPanel = null;
+                [...this.#placements].reverse().forEach(({ node, marker }) => {
+                    marker.parentNode.insertBefore(node, marker); marker.remove();
+                });
+                this.#placements = [];
+                return result(false, 'unavailable', 'POST_GAME_UNAVAILABLE');
+            }
+            global.CaissaPostGameExperienceInstance = this.#postGame;
             legacyGrid.hidden = true;
             topbar.hidden = true;
             this.#root.hidden = false;
             global.document.body.classList.add('caissa-simplified-play-active');
             this.#active = true; this.#activationCount += 1;
+            this.#postGame.syncFromPlay();
             if (!this.#listeners.length) {
                 this.#listen(global, 'resize', () => this.resize());
                 this.#listen(global, 'orientationchange', () => {
@@ -243,6 +258,8 @@
         deactivate() {
             if (this.#disposed) return result(false, 'disposed', REASONS.DISPOSED);
             if (!this.#active) return result(true, 'unchanged', REASONS.ALREADY_INACTIVE);
+            this.#postGame?.dispose?.(); this.#postGame = null;
+            if (global.CaissaPostGameExperienceInstance) global.CaissaPostGameExperienceInstance = null;
             this.#gamesPanel?.dispose?.(); this.#gamesPanel = null;
             [...this.#placements].reverse().forEach(({ node, marker }) => {
                 marker.parentNode.insertBefore(node, marker);
@@ -337,6 +354,7 @@
                 boardAdapterId: global.App?.boardAdapter?.getSnapshot?.().adapterId || null,
                 evaluationRail: global.CaissaEvaluationRailInstance?.getSnapshot?.() || null,
                 gamesPanel: this.#gamesPanel?.getSnapshot?.() || null,
+                postGame: this.#postGame?.getSnapshot?.() || null,
                 diagnostics: { ...this.#diagnostics }
             });
         }

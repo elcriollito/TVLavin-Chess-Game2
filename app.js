@@ -2534,6 +2534,7 @@ function updateEngineStatus(status, text) {
 
 // ===== NEW GAME =====
 function newGame(options = {}) {
+    window.CaissaPostGameExperienceInstance?.hide?.();
     window.CaissaGameLifecycle?.rotateSession();
     window.CaissaEngineRequestIsolation?.createSession();
     // Exit edit mode if active (MUST be first to clean up state)
@@ -2942,6 +2943,7 @@ function setGameStatus(state, result = '', message = '') {
     renderGameStatusPanel();
     updateGameStatusConsole();
     syncPlayMobileStateClasses();
+    window.CaissaPostGameExperienceInstance?.syncFromPlay?.();
 }
 
 function renderGameStatusPanel() {

@@ -259,6 +259,10 @@ body.caissa-simplified-play-active .caissa-games-panel {
     padding: 14px;
 }
 
+body.caissa-simplified-play-active .caissa-games-panel[hidden] {
+    display: none;
+}
+
 body.caissa-simplified-play-active .caissa-games-panel__title {
     margin: 0;
     font-size: 21px;
@@ -362,6 +366,88 @@ body.caissa-simplified-play-active .caissa-games-panel__primary {
 body.caissa-simplified-play-active .caissa-games-panel__primary:disabled {
     opacity: .55;
     cursor: not-allowed;
+}
+
+body.caissa-simplified-play-active .caissa-post-game {
+    display: grid;
+    gap: 14px;
+    padding: 14px;
+}
+
+body.caissa-simplified-play-active .caissa-post-game[hidden] {
+    display: none;
+}
+
+body.caissa-simplified-play-active .caissa-post-game__title,
+body.caissa-simplified-play-active .caissa-post-game__announcement,
+body.caissa-simplified-play-active .caissa-post-game__mentor-note,
+body.caissa-simplified-play-active .caissa-post-game__feedback {
+    margin: 0;
+}
+
+body.caissa-simplified-play-active .caissa-post-game__announcement {
+    font-size: 20px;
+    font-weight: 800;
+}
+
+body.caissa-simplified-play-active .caissa-post-game__summary {
+    display: grid;
+    grid-template-columns: minmax(90px, auto) minmax(0, 1fr);
+    gap: 6px 12px;
+    margin: 0;
+}
+
+body.caissa-simplified-play-active .caissa-post-game__summary dt {
+    color: var(--muted);
+    font-weight: 700;
+}
+
+body.caissa-simplified-play-active .caissa-post-game__summary dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+body.caissa-simplified-play-active .caissa-post-game__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+body.caissa-simplified-play-active .caissa-post-game__action {
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 10px;
+    border: 1px solid var(--panel-border);
+    border-radius: 9px;
+    overflow-wrap: anywhere;
+}
+
+body.caissa-simplified-play-active .caissa-post-game__action--primary {
+    grid-column: 1 / -1;
+    min-height: 48px;
+    border-color: var(--accent-color);
+    background: var(--accent-color);
+    color: #111;
+    font-weight: 800;
+}
+
+body.caissa-simplified-play-active .caissa-post-game__consent {
+    display: flex;
+    gap: 9px;
+    align-items: flex-start;
+    min-height: 44px;
+}
+
+body.caissa-simplified-play-active .caissa-post-game__consent input {
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+}
+
+body.caissa-simplified-play-active .caissa-post-game__mentor-note,
+body.caissa-simplified-play-active .caissa-post-game__feedback {
+    color: var(--muted);
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="phone-compact"] .caissa-simplified-shell__workspace,

@@ -1,8 +1,8 @@
 (function installGamesPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.0.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.1.0';
     const STATUSES = Object.freeze(['idle', 'ready', 'invalid', 'busy', 'active', 'error', 'disposed']);
     const EVENTS = Object.freeze(['hydrated', 'selection-changed', 'validated', 'submitted', 'started', 'advanced-changed']);
     const SECTIONS = Object.freeze(['game-type', 'time-control', 'color', 'opponent', 'primary-action', 'advanced-options']);
@@ -256,6 +256,14 @@
             });
         }
         inspect() { return this.getSnapshot(); }
+        show() {
+            if (this.#root) this.#root.hidden = false;
+            return result(true, 'accepted', 'SHOWN', this.getSnapshot());
+        }
+        hide() {
+            if (this.#root) this.#root.hidden = true;
+            return result(true, 'accepted', 'HIDDEN', this.getSnapshot());
+        }
         unmount() {
             this.#removeListeners(); this.#root?.remove(); this.#root = null; this.#host = null;
             return result(true, 'accepted', REASONS.UNMOUNTED);

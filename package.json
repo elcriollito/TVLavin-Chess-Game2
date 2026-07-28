@@ -60,6 +60,7 @@
     "test:play:shell-mobile": "node --test tests/play/simplified-play-shell.test.js && playwright test --project=chromium tests/browser/play-simplified-shell-mobile.spec.js",
     "test:play:games-panel": "node --test tests/play/games-panel.test.js && playwright test --project=chromium tests/browser/play-games-panel.spec.js",
     "test:play:evaluation-rail": "node --test tests/play/evaluation-rail.test.js && playwright test --project=chromium tests/browser/play-evaluation-rail.spec.js",
+    "test:play:post-game": "node --test tests/play/post-game-experience.test.js && playwright test --project=chromium tests/browser/play-post-game-experience.spec.js",
     "test:play:responsive": "playwright test --project=chromium tests/browser/play-responsive.spec.js",
     "test:play:compatibility": "node --test tests/play/legacy-play-compatibility.test.js && playwright test --project=chromium tests/browser/play-compatibility.spec.js",
     "test:play:records": "node --test tests/play/game-record.test.js && playwright test --project=chromium tests/browser/play-game-record.spec.js",
