@@ -127,8 +127,9 @@
                 moveHistory: moves
             },
             board: {
-                available: !!source?.board,
-                orientation: source?.board ? (source.isFlipped ? 'black' : 'white') : null
+                available: !!source?.boardAdapter || !!source?.board,
+                orientation: source?.boardAdapter?.getSnapshot?.().orientation
+                    ?? (source?.board ? (source.isFlipped ? 'black' : 'white') : null)
             },
             game: {
                 active: source?.gameActive === true,

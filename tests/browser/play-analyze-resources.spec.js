@@ -51,7 +51,7 @@ test('blocking: repeated Play cycles retain one board and one worker without dup
     expect(state.history).toEqual(['e4']);
 });
 
-test('accessibility characterization: primary controls are named and keyboard reachable', async ({ page }) => {
+test('accessibility foundation: controls and Play board are named and keyboard focusable', async ({ page }) => {
     await openPlay(page);
     for (const name of ['Start New Game', 'Resign', 'Undo', 'Hint', 'Download', 'Settings']) {
         await expect(page.getByRole('button', { name, exact: true }).first()).toBeAttached();
@@ -63,8 +63,12 @@ test('accessibility characterization: primary controls are named and keyboard re
         label: element.getAttribute('aria-label'),
         tabIndex: element.getAttribute('tabindex')
     }));
-    expect(boardSemantics).toEqual({ role: null, label: null, tabIndex: null });
+    expect(boardSemantics).toEqual({ role: 'application', label: 'Play chessboard', tabIndex: '0' });
+    await page.locator('#playSection #chessboard').focus();
+    await expect(page.locator('#playSection #chessboard')).toBeFocused();
 });
+
+test.skip('square-by-square keyboard chess play — adapter currently provides board-level focus only', async () => {});
 
 test('repeated entry does not increase observable event-listener registrations', async ({ page }) => {
     await openPlay(page);
@@ -91,8 +95,10 @@ test('Analyze refresh replays the bounded session handoff without exposing raw g
     }));
     expect(transport.token).toMatch(/^[A-Za-z0-9_-]{12,120}$/);
     expect(transport.keys.filter(key => key.startsWith('caissa:analyze:handoff:v1:')).length).toBe(1);
-    expect(transport.url).not.toContain('e4');
-    expect(transport.url).not.toContain('fen');
+    const analyzeUrl = new URL(transport.url);
+    expect([...analyzeUrl.searchParams.keys()].sort()).toEqual(['handoff', 'section']);
+    expect(analyzeUrl.searchParams.has('fen')).toBe(false);
+    expect(analyzeUrl.searchParams.has('pgn')).toBe(false);
     await page.reload();
     await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.getGame()?.fen())).toBe(expectedFen);

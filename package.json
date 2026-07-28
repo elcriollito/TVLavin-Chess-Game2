@@ -55,6 +55,7 @@
     "test:endgame-browser": "playwright test tests/browser/endgame-v2.spec.js",
     "test:play": "playwright test --project=chromium tests/browser/play-",
     "test:play:routing": "node --test tests/play/play-route-controller.test.js && playwright test --project=chromium tests/browser/play-routing.spec.js",
+    "test:play:board-adapter": "node --test tests/play/chessboard-adapter.test.js && playwright test --project=chromium tests/browser/play-chessboard-adapter.spec.js",
     "test:play:responsive": "playwright test --project=chromium tests/browser/play-responsive.spec.js",
     "test:play:compatibility": "node --test tests/play/legacy-play-compatibility.test.js && playwright test --project=chromium tests/browser/play-compatibility.spec.js",
     "test:play:records": "node --test tests/play/game-record.test.js && playwright test --project=chromium tests/browser/play-game-record.spec.js",

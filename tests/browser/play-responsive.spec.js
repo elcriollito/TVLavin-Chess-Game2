@@ -13,6 +13,8 @@ test('blocking: Play board and controls remain bounded across the required viewp
         await openPlay(page);
         const geometry = await page.evaluate(() => {
             const board = document.querySelector('#playSection #chessboard').getBoundingClientRect();
+            const squares = [...document.querySelectorAll('#playSection #chessboard .square-55d63')]
+                .map(element => element.getBoundingClientRect());
             const rail = document.querySelector('#evalBar').getBoundingClientRect();
             const controls = [...document.querySelectorAll('#playSection .ctrl-btn, .mobile-quick-btn')].filter(element => {
                 const style = getComputedStyle(element);
@@ -22,6 +24,8 @@ test('blocking: Play board and controls remain bounded across the required viewp
             const overlap = !(rail.right <= board.left || rail.left >= board.right || rail.bottom <= board.top || rail.top >= board.bottom);
             return {
                 board: { width: board.width, height: board.height, top: board.top, bottom: board.bottom },
+                squares: squares.length,
+                squareSize: squares[0] ? Math.min(squares[0].width, squares[0].height) : 0,
                 overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
                 railOverlap: overlap,
                 controls: controls.length,
@@ -30,6 +34,8 @@ test('blocking: Play board and controls remain bounded across the required viewp
         });
         expect(geometry.board.width, `${width}x${height} board width`).toBeGreaterThan(180);
         expect(geometry.board.height, `${width}x${height} board height`).toBeGreaterThan(180);
+        expect(geometry.squares, `${width}x${height} square count`).toBe(64);
+        expect(geometry.squareSize, `${width}x${height} square size`).toBeGreaterThan(0);
         expect(geometry.overflow, `${width}x${height} horizontal overflow`).toBeLessThanOrEqual(1);
         expect(geometry.railOverlap, `${width}x${height} rail overlap`).toBe(false);
         expect(geometry.controls).toBeGreaterThan(0);

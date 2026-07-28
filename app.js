@@ -96,6 +96,7 @@ const App = {
 
     // Pending promotion
     pendingPromotion: null,
+    boardAdapter: null,
 
     // Debug mode
     debug: false,
@@ -432,30 +433,11 @@ function cacheElements() {
 
 // ===== BOARD INITIALIZATION =====
 function initializeBoard() {
-    const config = {
-        draggable: !isTouchMoveDevice(),
-        position: 'start',
-        onDragStart: onDragStart,
-        onDrop: onDrop,
-        onSnapEnd: onSnapEnd,
-        // Use local piece images (required for file:// and better reliability)
-        pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
-        showNotation: true,
-        // CRITICAL: Disable spare pieces to prevent layout issues
-        sparePieces: false,
-        // CRITICAL: Ensure all squares are rendered
-        appearSpeed: 'fast',
-        moveSpeed: 'fast',
-        snapbackSpeed: 'fast',
-        snapSpeed: 'fast',
-        trashSpeed: 'fast'
-    };
-
     // Wait for board container to be ready with proper dimensions
-    initBoardWhenReady(config);
+    initBoardWhenReady();
 }
 
-function initBoardWhenReady(config) {
+function initBoardWhenReady() {
     const boardContainer = document.getElementById('chessboard');
 
     if (!boardContainer) {
@@ -481,8 +463,40 @@ function initBoardWhenReady(config) {
         const minBoardSize = getBoardReadyMinimum(rect);
 
         if (rect.width >= minBoardSize && rect.height >= minBoardSize) {
-            // Container is ready, create the board
-            App.board = Chessboard('chessboard', config);
+            // Container is ready. The adapter owns the widget; App.board remains
+            // a temporary method-only compatibility facade for legacy callers.
+            App.boardAdapter = window.CaissaChessboardAdapter.create({
+                position: 'start',
+                orientation: App.isFlipped ? 'black' : 'white',
+                draggable: !isTouchMoveDevice(),
+                onDragStart,
+                onDrop,
+                onSnapEnd,
+                onTap: handleMobileBoardTap,
+                onTouchCancel: clearMobileTapSource,
+                onOrientationChange: () => {
+                    clearMobileTapSource();
+                    schedulePlayBoardVisibility('orientation');
+                },
+                shouldPreventTouchMove: (event) =>
+                    App.dragScrollLocked && !!event.target.closest('.piece-417db, .square-55d63'),
+                onDocumentClick: (event) => {
+                    if (!isMobilePlayInteraction() || !App.mobileTapSource) return;
+                    if (document.querySelector('.modal.show')) return;
+                    if (!event.target.closest('#playSection #chessboard')) clearMobileTapSource();
+                },
+                getActiveColor: () => {
+                    const turn = App.game?.turn?.();
+                    return turn === 'w' ? 'white' : turn === 'b' ? 'black' : null;
+                }
+            });
+            const mounted = App.boardAdapter.mount(boardContainer);
+            if (!mounted.ok) {
+                console.error('Play board adapter mount failed:', mounted.reasonCode);
+                App.boardAdapter = null;
+                return;
+            }
+            App.board = App.boardAdapter.getLegacyFacade();
 
             // Ensure game state is initialized to starting position
             App.game.reset();
@@ -528,49 +542,6 @@ function initBoardWhenReady(config) {
                 }
             }, 150);
 
-            // Handle window resize with debouncing
-            const debouncedResize = debounce(() => {
-                if (App.board) {
-                    App.board.resize();
-                    ensureEvalBarLayout();
-                }
-            }, 250);
-
-            window.addEventListener('resize', debouncedResize);
-
-            // Handle orientation change (mobile devices)
-            window.addEventListener('orientationchange', () => {
-                if (App.board) {
-                    clearMobileTapSource();
-                    // Small delay to ensure viewport has updated
-                    setTimeout(() => {
-                        App.board.resize();
-                        ensureEvalBarLayout();
-                        schedulePlayBoardVisibility('orientation');
-                        console.log('Board resized after orientation change');
-                    }, 100);
-                }
-            });
-
-            // Prevent page scroll during touch drag on mobile (fallback)
-            const boardElement = document.getElementById('chessboard');
-            if (boardElement) {
-                boardElement.addEventListener('touchmove', (e) => {
-                    if (App.dragScrollLocked && (e.target.closest('.piece-417db') || e.target.closest('.square-55d63'))) {
-                        e.preventDefault();
-                    }
-                }, { passive: false });
-
-                boardElement.addEventListener('click', handleMobileBoardTap);
-                boardElement.addEventListener('touchcancel', clearMobileTapSource, { passive: true });
-                document.addEventListener('click', (event) => {
-                    if (!isMobilePlayInteraction() || !App.mobileTapSource) return;
-                    if (document.querySelector('.modal.show')) return;
-                    if (!event.target.closest('#playSection #chessboard')) {
-                        clearMobileTapSource();
-                    }
-                });
-            }
         } else {
             // Container not ready, wait and try again
             console.log('Board container not ready, retrying... (current width:', rect.width, 'height:', rect.height, ')');
@@ -799,6 +770,7 @@ function syncPlayMobileStateClasses() {
     const active = !!(App.gameActive && !hasResult);
     document.body?.classList.toggle('caissa-play-game-active', active);
     document.body?.classList.toggle('caissa-play-game-ended', hasResult);
+    App.boardAdapter?.setInteractionEnabled(active);
 }
 
 function isAnalyzeStudyActive() {
@@ -821,6 +793,8 @@ function getSquareFromEventTarget(target) {
 function clearMobileTapSource() {
     App.mobileTapSource = null;
     App.mobileTapTargets = [];
+    App.boardAdapter?.clearSelection();
+    App.boardAdapter?.clearLegalTargets();
     document.querySelectorAll('#chessboard .mobile-tap-source').forEach((el) => {
         el.classList.remove('mobile-tap-source');
     });
@@ -833,6 +807,8 @@ function markMobileTapSource(square) {
     clearMobileTapSource();
     App.mobileTapSource = square;
     App.mobileTapTargets = App.game.moves({ square, verbose: true }).map((move) => move.to);
+    App.boardAdapter?.setSelection(square);
+    App.boardAdapter?.setLegalTargets(App.mobileTapTargets);
     const squareEl = document.querySelector(`#chessboard .square-${square}`);
     squareEl?.classList.add('mobile-tap-source');
     App.mobileTapTargets.forEach((target) => {
@@ -1004,6 +980,8 @@ function onSnapEnd() {
 
 // ===== MOVE HANDLING =====
 function onMoveMade(move) {
+    // Render only after the authoritative legacy chess state accepted the move.
+    App.board.position(App.game.fen(), false);
     switchLocalClockAfterMove(move);
 
     // Add move to history
