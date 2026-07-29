@@ -4,6 +4,10 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const source = fs.readFileSync(new URL('../../js/play/post-game-experience.js', import.meta.url), 'utf8');
+const mentorSources = [
+    'mentor-capabilities.js', 'mentor-registry.js', 'mentor-selection-resolver.js',
+    'mentor-context.js', 'mentor-review-readiness.js', 'mentor-foundation.js'
+].map(file => fs.readFileSync(new URL(`../../js/mentor/${file}`, import.meta.url), 'utf8'));
 const plain = value => JSON.parse(JSON.stringify(value));
 
 class Element {
@@ -72,10 +76,13 @@ function fixture({ consent = 'unknown' } = {}) {
         setConsent: state => ({ ok: true, value: { state } }),
         saveCompleted: value => { calls.writes.push(value.recordId); return { ok: true, status: 'stored' }; }
     };
-    const window = { document };
-    vm.runInNewContext(source, { window, globalThis: window, Object, Set, WeakSet, Date });
+    const records = { validate: value => ({ valid: value === record }) };
+    const window = { document, CaissaGameRecord: records };
+    const context = { window, globalThis: window, Object, Set, Map, WeakSet, Date };
+    mentorSources.forEach(value => vm.runInNewContext(value, context));
+    vm.runInNewContext(source, context);
     const experience = window.CaissaPostGameExperience.create({
-        compatibility, records: { validate: () => ({ valid: true }) }, persistence, handoff, navigation,
+        compatibility, records, persistence, handoff, navigation,
         rail: { setMode() {}, reset() {} },
         clipboard: { writeText: text => { calls.copied = text; return Promise.resolve(); } },
         url: {
@@ -91,8 +98,8 @@ function fixture({ consent = 'unknown' } = {}) {
 
 test('publishes frozen versioned contract vocabularies', () => {
     const { api } = fixture();
-    assert.equal(api.schemaVersion, '1.1.0');
-    assert.equal(api.snapshotSchemaVersion, '1.1.0');
+    assert.equal(api.schemaVersion, '1.2.0');
+    assert.equal(api.snapshotSchemaVersion, '1.2.0');
     for (const value of [api, api.statuses, api.actions, api.resultTypes, api.reasonCodes])
         assert.ok(Object.isFrozen(value));
 });
@@ -171,13 +178,17 @@ test('persistence is unavailable without consent and explicit once when granted'
     assert.equal(granted.calls.writes.length, 1);
 });
 
-test('Mentor remains disabled and duplicate completion is unchanged', () => {
+test('Mentor creates a truthful foundation request and duplicate completion is unchanged', () => {
     const f = fixture();
     f.experience.mount({ host: f.host });
     f.experience.hydrateFromGame({ record, snapshot: {
         mode: 'engine', playerColor: 'white', clocks: { timeControlSeconds: 0 }
     } });
-    assert.equal(f.experience.execute('mentor-review').reasonCode, 'ACTION_UNAVAILABLE');
+    const requested = f.experience.requestMentorReview();
+    assert.equal(requested.reasonCode, 'MENTOR_REQUEST_CREATED');
+    assert.equal(requested.value.reviewImplemented, false);
+    assert.equal(f.experience.getSnapshot().mentor.selectedMentorId, 'academyMentorCaissa');
+    assert.doesNotMatch(JSON.stringify(requested), /critical moment|weakness|strength|recommendation/i);
     assert.equal(f.experience.hydrateFromGame({ record }).status, 'unchanged');
     assert.equal(f.experience.getSnapshot().diagnostics.displays, 1);
 });

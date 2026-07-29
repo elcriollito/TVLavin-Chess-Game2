@@ -1,8 +1,8 @@
 (function installPostGameExperience(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.1.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.1.0';
+    const SCHEMA_VERSION = '1.2.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.2.0';
     const STATUSES = Object.freeze(['idle', 'ready', 'visible', 'busy', 'error', 'disposed']);
     const ACTIONS = Object.freeze([
         'rematch', 'analyze', 'copy-pgn', 'download-pgn', 'save-game', 'new-game', 'mentor-review'
@@ -16,6 +16,7 @@
         REMATCH_STARTED: 'REMATCH_STARTED', NEW_GAME_STARTED: 'NEW_GAME_STARTED',
         ANALYZE_OPENED: 'ANALYZE_OPENED', PGN_COPIED: 'PGN_COPIED',
         PGN_DOWNLOADED: 'PGN_DOWNLOADED', GAME_SAVED: 'GAME_SAVED',
+        MENTOR_REQUEST_CREATED: 'MENTOR_REQUEST_CREATED',
         CONSENT_REQUIRED: 'CONSENT_REQUIRED', ACTION_FAILED: 'ACTION_FAILED',
         UNMOUNTED: 'UNMOUNTED', DISPOSED: 'DISPOSED', INVALID_HOST: 'INVALID_HOST'
     });
@@ -63,7 +64,7 @@
         #id = `post-game-${++sequence}`;
         #root = null; #host = null; #disposed = false; #visible = false; #busy = false;
         #status = 'idle'; #record = null; #configuration = null; #listeners = [];
-        #consent = 'unknown'; #saved = false; #feedback = '';
+        #consent = 'unknown'; #saved = false; #feedback = ''; #mentorRequest = null;
         #compatibility; #records; #persistence; #handoff; #navigation; #rail; #onVisibilityChange;
         #clipboard; #url; #Blob;
         #diagnostics = {
@@ -121,9 +122,9 @@
             const mentor = element('button', 'caissa-post-game__action', {
                 type: 'button', disabled: '', 'aria-disabled': 'true', 'data-post-game-action': 'mentor-review'
             });
-            mentor.textContent = 'Review with Mentor — Coming later';
+            mentor.textContent = 'Review with Mentor';
             const mentorNote = element('p', 'caissa-post-game__mentor-note');
-            mentorNote.textContent = 'Mentor review is not available yet. No analysis is performed.';
+            mentorNote.textContent = 'A review request can be prepared after the game. Educational analysis is not available yet.';
             const feedback = element('p', 'caissa-post-game__feedback', {
                 role: 'status', 'aria-live': 'polite', 'data-post-game-feedback': ''
             });
@@ -180,7 +181,8 @@
                     ? snapshot.clocks.timeControlSeconds : null
             };
             this.#consent = this.#persistence?.getConsent?.().value?.state || 'unknown';
-            this.#saved = false; this.#feedback = ''; this.#diagnostics.hydrations += 1;
+            this.#saved = false; this.#feedback = ''; this.#mentorRequest = null;
+            this.#diagnostics.hydrations += 1;
             this.show(); this.#rail?.setMode?.('post-game'); this.#render();
             return this.#recordOperation(result(true, 'accepted', REASONS.HYDRATED, this.getSnapshot()));
         }
@@ -210,6 +212,7 @@
                 else if (action === 'copy-pgn') operation = this.#copy();
                 else if (action === 'download-pgn') operation = this.#download();
                 else if (action === 'save-game') operation = this.#save();
+                else if (action === 'mentor-review') operation = this.#requestMentorReview();
                 else operation = result(false, 'unavailable', REASONS.ACTION_UNAVAILABLE);
             } catch (_) { operation = result(false, 'failed', REASONS.ACTION_FAILED); }
             if (operation && typeof operation.then === 'function') {
@@ -224,6 +227,7 @@
         downloadPgn() { return this.execute('download-pgn'); }
         saveGame() { return this.execute('save-game'); }
         startNewGame() { return this.execute('new-game'); }
+        requestMentorReview() { return this.execute('mentor-review'); }
         getSnapshot() {
             const record = this.#record;
             const mismatch = record?.notation?.hasResultMismatch === true;
@@ -254,6 +258,11 @@
                     resultMismatch: mismatch
                 },
                 actions: this.#actions(),
+                mentor: {
+                    selectedMentorId: this.#resolveMentor()?.mentor?.id || null,
+                    selectionSource: this.#resolveMentor()?.source || 'unavailable',
+                    request: this.#mentorRequest
+                },
                 persistence: { consent: this.#consent, saved: this.#saved },
                 listenerCount: this.#listeners.length, diagnostics: { ...this.#diagnostics }
             });
@@ -282,8 +291,38 @@
                 'download-pgn': actionState(pgn && !!this.#Blob && !!this.#url?.createObjectURL),
                 'save-game': actionState(valid && this.#consent === 'granted' && !this.#saved),
                 'new-game': actionState(valid && config),
-                'mentor-review': actionState(false, false, 'Coming later')
+                'mentor-review': actionState(this.#mentorReadiness().ready, false,
+                    this.#mentorReadiness().ready ? null : 'Requirements unavailable')
             };
+        }
+        #resolveMentor() {
+            return global.CaissaMentorSelectionResolver?.resolve?.({
+                academyMentorId: global.CaissaAcademySection?.getMentorSelection?.().mentorId
+            }) || null;
+        }
+        #mentorSource() {
+            if (this.#record?.opponent?.type === 'coach') return 'coach';
+            if (global.CaissaBotRegistry?.get?.(this.#record?.opponent?.id)) return 'bot';
+            return 'games';
+        }
+        #mentorReadiness() {
+            const selection = this.#resolveMentor();
+            return global.CaissaMentorReviewReadiness?.evaluate?.({
+                mentorId: selection?.mentor?.id, source: this.#mentorSource(), record: this.#record,
+                knowledgeReleaseId: global.CaissaMentorCapabilities?.releaseId
+            }) || { ready: false, missingRequirements: ['mentor-foundation'] };
+        }
+        #requestMentorReview() {
+            const selection = this.#resolveMentor();
+            const created = global.CaissaMentorFoundation?.createRequest?.({
+                mentorId: selection?.mentor?.id, source: this.#mentorSource(), record: this.#record,
+                playerLevel: 'novice', focus: 'general',
+                knowledgeReleaseId: global.CaissaMentorCapabilities?.releaseId
+            });
+            if (!created?.ok) return result(false, created?.status || 'unavailable',
+                created?.reasonCode || REASONS.ACTION_UNAVAILABLE);
+            this.#mentorRequest = created.value;
+            return result(true, 'accepted', REASONS.MENTOR_REQUEST_CREATED, created.value);
         }
         #start(action) {
             const started = this.#compatibility.execute('startNewGame', { ...this.#configuration });
@@ -331,7 +370,8 @@
             this.#feedback = operation?.ok ? {
                 REMATCH_STARTED: 'Rematch started.', NEW_GAME_STARTED: 'New game started.',
                 ANALYZE_OPENED: 'Opening Analyze.', PGN_COPIED: 'PGN copied.',
-                PGN_DOWNLOADED: 'PGN downloaded.', GAME_SAVED: 'Game saved locally.'
+                PGN_DOWNLOADED: 'PGN downloaded.', GAME_SAVED: 'Game saved locally.',
+                MENTOR_REQUEST_CREATED: 'Mentor review request prepared. Educational analysis is not available yet.'
             }[operation.reasonCode] || '' : operation?.reasonCode === REASONS.CONSENT_REQUIRED
                 ? 'Enable local game history before saving.' : 'That action is unavailable.';
             this.#render();
@@ -386,6 +426,13 @@
             const consent = this.#root.querySelector('[data-post-game-consent]');
             if (consent) {
                 consent.checked = this.#consent === 'granted';
+            }
+            const mentorNote = this.#root.querySelector('.caissa-post-game__mentor-note');
+            if (mentorNote) {
+                const selection = this.#resolveMentor();
+                mentorNote.textContent = this.#mentorRequest
+                    ? `${selection?.mentor?.name || 'Mentor'} request prepared. Educational analysis is not available yet.`
+                    : `${selection?.mentor?.name || 'Mentor'} can prepare a review request after this game. No analysis is performed yet.`;
             }
             this.#root.querySelector('[data-post-game-feedback]').textContent = this.#feedback;
         }

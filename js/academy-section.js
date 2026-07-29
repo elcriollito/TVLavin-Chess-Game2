@@ -183,6 +183,16 @@ const CaissaAcademySection = {
         this.renderSelections();
     },
 
+    getMentorSelection() {
+        const mentor = this.mentors[this.selections.mentor];
+        return Object.freeze({
+            schemaVersion: 'academy-mentor-selection@1.0.0',
+            mentorId: mentor ? this.selections.mentor : null,
+            name: mentor?.name || null,
+            source: mentor ? 'academy' : 'unavailable'
+        });
+    },
+
     selectCourse(courseId) {
         this.selections.course = courseId;
         const course = this.courses[courseId];
