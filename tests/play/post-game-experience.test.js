@@ -7,7 +7,9 @@ const source = fs.readFileSync(new URL('../../js/play/post-game-experience.js', 
 const mentorSources = [
     'mentor-capabilities.js', 'mentor-registry.js', 'mentor-selection-resolver.js',
     'mentor-context.js', 'mentor-review-readiness.js', 'mentor-review-request.js',
-    'mentor-review-request-registry.js', 'mentor-foundation.js'
+    'mentor-review-request-registry.js', 'mentor-foundation.js',
+    'critical-moment-contracts.js', 'critical-moment-signals.js',
+    'critical-moment-scoring.js', 'critical-moment-selector.js'
 ].map(file => fs.readFileSync(new URL(`../../js/mentor/${file}`, import.meta.url), 'utf8'));
 const plain = value => JSON.parse(JSON.stringify(value));
 
@@ -99,8 +101,8 @@ function fixture({ consent = 'unknown' } = {}) {
 
 test('publishes frozen versioned contract vocabularies', () => {
     const { api } = fixture();
-    assert.equal(api.schemaVersion, '1.4.0');
-    assert.equal(api.snapshotSchemaVersion, '1.4.0');
+    assert.equal(api.schemaVersion, '1.5.0');
+    assert.equal(api.snapshotSchemaVersion, '1.5.0');
     for (const value of [api, api.statuses, api.actions, api.resultTypes, api.reasonCodes])
         assert.ok(Object.isFrozen(value));
 });
@@ -194,6 +196,27 @@ test('Mentor creates a truthful foundation request and duplicate completion is u
     assert.doesNotMatch(JSON.stringify(requested), /"criticalMoments":\[|"recommendations":\[|weakness|strength/i);
     assert.equal(f.experience.hydrateFromGame({ record }).status, 'unchanged');
     assert.equal(f.experience.getSnapshot().diagnostics.displays, 1);
+});
+
+test('explicit Critical Moment selection stores a technical-only PostGame snapshot', () => {
+    const f = fixture(); f.experience.mount({ host: f.host });
+    f.experience.hydrateFromGame({ record });
+    assert.equal(f.experience.requestMentorReview().ok, true);
+    const requestId = f.experience.getSnapshot().mentor.request.requestId;
+    const base = (ply, cp, mover = null) => ({
+        positionId: `position:${ply}`, ply,
+        evaluation: { cp, mate: null, perspective: 'white' },
+        bestMove: { uci: 'e2e4' }, playedMove: ply ? { uci: 'd2d4', san: 'd4' } : null,
+        mover, phase: 'middlegame', material: { whiteMinusBlack: ply ? -3 : 0 }, terminal: false
+    });
+    const selected = f.experience.selectCriticalMoments({
+        schemaVersion: '1.0.0', runId: 'run:post-game-unit', requestId, status: 'complete',
+        summary: { partial: false }, positions: [base(0, 100), base(1, -200, 'white')]
+    });
+    assert.equal(selected.ok, true);
+    assert.equal(selected.value.selectedCount, 1);
+    assert.equal(f.experience.getSnapshot().mentor.criticalMomentSelection.selectedCount, 1);
+    assert.doesNotMatch(JSON.stringify(selected.value), /mentorText|moveGrade|knowledgeUnit/i);
 });
 
 test('unmount, remount, and disposal are bounded', () => {

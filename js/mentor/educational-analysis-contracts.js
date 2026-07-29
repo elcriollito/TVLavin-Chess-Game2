@@ -1,6 +1,6 @@
 (function installEducationalAnalysisContracts(global) {
     'use strict';
-    const SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
     const MAX_MOVES = 10000; const MAX_PGN = 1000000; const MAX_PV = 16;
     const freeze = value => {
         if (value && typeof value === 'object' && !Object.isFrozen(value)) {
@@ -57,11 +57,37 @@
             if (input.initialFen && game.load(input.initialFen) === false) return fail('POSITION_REPLAY_FAILED');
         } catch (_) { return fail('POSITION_REPLAY_FAILED'); }
         const all = [];
+        const material = () => {
+            const values = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+            let white = 0; let black = 0; let nonPawn = 0; let queens = 0;
+            const board = typeof game.board === 'function' ? game.board() : [];
+            board.flat().filter(Boolean).forEach(piece => {
+                const value = values[piece.type] || 0;
+                if (piece.color === 'w') white += value; else black += value;
+                if (!['p', 'k'].includes(piece.type)) nonPawn += value;
+                if (piece.type === 'q') queens += 1;
+            });
+            return { white, black, whiteMinusBlack: white - black, nonPawn, queens };
+        };
+        const classifyPhase = (ply, fen, tally) => {
+            if (tally.queens === 0 && tally.nonPawn <= 20) return 'endgame';
+            const castling = fen.split(' ')[2] || '-';
+            if (ply <= 20 && tally.nonPawn >= 52 && castling !== '-') return 'opening';
+            return 'middlegame';
+        };
         const add = (ply, move) => {
             const fen = game.fen();
+            const tally = material();
             all.push({ schemaVersion: SCHEMA_VERSION, positionId: `position:${ply}`,
-                ply, fen, move, sideToMove: fen.split(' ')[1] === 'b' ? 'black' : 'white',
-                phaseHint: null, isTerminal: !!(game.game_over?.() || game.isGameOver?.()) });
+                ply, fen, move: move?.san || move || null,
+                playedMove: move ? {
+                    uci: move.from && move.to ? `${move.from}${move.to}${move.promotion || ''}` : null,
+                    san: move.san || null
+                } : null,
+                mover: move?.color === 'b' ? 'black' : move?.color === 'w' ? 'white' : null,
+                sideToMove: fen.split(' ')[1] === 'b' ? 'black' : 'white',
+                phaseHint: classifyPhase(ply, fen, tally), material: tally,
+                isTerminal: !!(game.game_over?.() || game.isGameOver?.()) });
         };
         add(0, null);
         try {
@@ -71,7 +97,7 @@
                     from: move.from, to: move.to, promotion: move.promotion || undefined
                 });
                 if (!played) return fail('POSITION_REPLAY_FAILED');
-                add(index + 1, played.san || move.san || null);
+                add(index + 1, played);
             }
         } catch (_) { return fail('POSITION_REPLAY_FAILED'); }
         const limit = Math.max(1, policy.maximumPositions);
@@ -103,6 +129,12 @@
             principalVariation: freeze(pv), depthReached: Number.isInteger(raw.depth) ? raw.depth : null,
             nodes: Number.isSafeInteger(raw.nodes) ? raw.nodes : null,
             elapsedMs: Number.isFinite(raw.elapsedMs) ? Math.max(0, raw.elapsedMs) : null,
+            playedMove: correlation.playedMove ? freeze(copy(correlation.playedMove)) : null,
+            mover: ['white', 'black'].includes(correlation.mover) ? correlation.mover : null,
+            sideToMove: ['white', 'black'].includes(correlation.sideToMove) ? correlation.sideToMove : null,
+            phase: ['opening', 'middlegame', 'endgame'].includes(correlation.phase) ? correlation.phase : null,
+            material: correlation.material ? freeze(copy(correlation.material)) : null,
+            terminal: correlation.terminal === true,
             source: 'approved-engine-adapter', reasonCode: 'TECHNICAL_EVALUATION_AVAILABLE'
         }) });
     }

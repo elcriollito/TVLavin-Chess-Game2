@@ -1,7 +1,7 @@
 (function installEducationalAnalysisPipeline(global) {
     'use strict';
     const SCHEMA_VERSION = '1.0.0';
-    const RESULT_SCHEMA_VERSION = '1.0.0';
+    const RESULT_SCHEMA_VERSION = '1.1.0';
     const STAGES = Object.freeze(['request-validation', 'source-resolution', 'game-normalization',
         'policy-resolution', 'position-generation', 'engine-analysis', 'result-normalization',
         'result-envelope', 'completed']);
@@ -135,7 +135,8 @@
                 resultId: `analysis-result:${run.runId}`, runId: run.runId,
                 requestId: run.request.requestId, status,
                 source: freeze({ type: run.request.source.type, id: run.request.source.id,
-                    hasResultMismatch: run.source.hasResultMismatch }),
+                    hasResultMismatch: run.source.hasResultMismatch,
+                    result: run.source.result, termination: run.source.termination }),
                 policy: freeze({ id: run.policy.id, requestedDepth: run.policy.requestedDepth }),
                 summary: freeze({ positionsRequested: run.positions.length,
                     positionsCompleted: run.results.length,
@@ -183,7 +184,12 @@
                     analyzed?.reasonCode === 'ENGINE_TIMEOUT' ? 'timed-out' : 'failed',
                     analyzed?.reasonCode || 'ENGINE_UNAVAILABLE', 'engine-analysis');
                 const normalized = global.CaissaEducationalAnalysisContracts.normalizePositionResult(
-                    analyzed.value, { runId: run.runId, positionId: position.positionId, ply: position.ply });
+                    analyzed.value, { runId: run.runId, positionId: position.positionId, ply: position.ply,
+                        playedMove: position.playedMove, mover: position.mover,
+                        sideToMove: position.sideToMove, phase: position.phaseHint,
+                        material: position.material, terminal: position.isTerminal
+                            || (position === run.positions[run.positions.length - 1]
+                                && !!run.source.termination) });
                 if (!normalized.ok) return finishFailure(run, normalized.reasonCode === 'STALE_ENGINE_RESPONSE'
                     ? 'stale' : 'failed', normalized.reasonCode, 'result-normalization');
                 run.results.push(normalized.value); diagnostics.positionsAnalyzed += 1;

@@ -113,6 +113,10 @@ test('completed Games, Bot and Coach requests prepare and produce technical-only
         assert.equal(result.capabilities.recommendations, false);
         assert.doesNotMatch(JSON.stringify(result), /moveGrade|strengths|weaknesses|mentorText/i);
         assert.ok(Object.isFrozen(result.positions[0]));
+        assert.equal(result.positions[1].playedMove.uci, 'e2e4');
+        assert.equal(result.positions[1].mover, 'white');
+        assert.ok(['opening', 'middlegame', 'endgame'].includes(result.positions[1].phase));
+        assert.ok(Number.isFinite(result.positions[1].material.whiteMinusBlack));
     }
 });
 
