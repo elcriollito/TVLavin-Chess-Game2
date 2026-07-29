@@ -20,8 +20,8 @@ function load(actions = {}) {
 
 test('publishes frozen versioned contracts and bounded vocabularies', () => {
     const { api } = load();
-    assert.equal(api.schemaVersion, '1.0.0');
-    assert.equal(api.snapshotSchemaVersion, '1.0.0');
+    assert.equal(api.schemaVersion, '1.1.0');
+    assert.equal(api.snapshotSchemaVersion, '1.1.0');
     assert.ok(Object.isFrozen(api));
     assert.ok(Object.isFrozen(api.statuses));
     assert.ok(Object.isFrozen(api.reasonCodes));
@@ -110,6 +110,26 @@ test('providers are unique, immutable data and do not overclaim capabilities', (
     assert.equal(future.capabilities.matchmaking, false);
     const classic = api.providers.find(provider => provider.id === 'caissa-classic');
     assert.equal(classic.capabilities.proprietaryMatchmaking, false);
+});
+
+test('presence registry integration renders only active immutable records in snapshots', () => {
+    const active = Object.freeze({
+        presenceId: 'fics:real', provider: 'fics', displayName: 'Real',
+        status: 'available', rating: null
+    });
+    const registry = {
+        expire() {},
+        getProvider: () => Object.freeze({ provider: 'fics', status: 'connected' }),
+        list: () => Object.freeze([active])
+    };
+    const { api } = load();
+    const panel = api.create({ presenceRegistry: registry });
+    assert.equal(panel.refresh({ observedAt: 1000 }).reasonCode, 'PROVIDER_AVAILABLE');
+    const snapshot = panel.getSnapshot();
+    assert.equal(snapshot.sections.availablePlayers.status, 'available');
+    assert.equal(snapshot.sections.availablePlayers.itemCount, 1);
+    assert.equal(snapshot.diagnostics.playerItemCount, 1);
+    assert.ok(Object.isFrozen(snapshot));
 });
 
 test('static guard proves no runtime, connection, storage, game, or fixture ownership', () => {

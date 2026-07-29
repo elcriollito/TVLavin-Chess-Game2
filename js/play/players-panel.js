@@ -1,8 +1,8 @@
 (function installPlayersPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.0.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.1.0';
     const STATUSES = Object.freeze([
         'available', 'loading', 'empty', 'coming-later', 'unavailable',
         'disconnected', 'error', 'disabled'
@@ -191,6 +191,9 @@
         #activeSection = 'availablePlayers';
         #listeners = [];
         #actionInFlight = false;
+        #presenceRegistry;
+        #presenceRecords = [];
+        #presenceState = null;
         #handlers;
         #diagnostics = {
             refreshes: 0, sectionSelections: 0, actionsAttempted: 0,
@@ -207,6 +210,7 @@
                 'return-to-games': supplied?.returnToGames ||
                     (() => global.CaissaPlayRouteController?.navigate?.('/play/games?simplified=1'))
             };
+            this.#presenceRegistry = options?.presenceRegistry || global.CaissaPresenceRegistryInstance || null;
         }
 
         mount(options = {}) {
@@ -271,10 +275,17 @@
             return result(true, 'accepted', 'PROVIDER_AVAILABLE');
         }
 
-        refresh() {
+        refresh(options = {}) {
             if (this.#disposed) return result(false, 'disposed', 'DISPOSED');
             this.#diagnostics.refreshes += 1;
-            return result(true, 'unchanged', 'NO_REAL_DATA', this.getSnapshot());
+            if (Number.isFinite(options.observedAt)) this.#presenceRegistry?.expire?.(options.observedAt);
+            const provider = this.#presenceRegistry?.getProvider?.('fics') || null;
+            this.#presenceState = provider;
+            this.#presenceRecords = this.#presenceRegistry?.list?.() || [];
+            this.#diagnostics.displayedPlayerRows = this.#presenceRecords.length;
+            this.#renderAvailablePlayers();
+            const status = this.#presenceRecords.length ? 'accepted' : 'unchanged';
+            return result(true, status, this.#presenceRecords.length ? 'PROVIDER_AVAILABLE' : 'NO_REAL_DATA', this.getSnapshot());
         }
 
         selectSection(sectionId) {
@@ -320,6 +331,33 @@
         getSnapshot() {
             const sections = {};
             for (const id of SECTION_IDS) sections[id] = detached(SECTION_DEFINITIONS[id]);
+            if (this.#presenceRecords.length) {
+                sections.availablePlayers = {
+                    ...sections.availablePlayers,
+                    status: 'available', available: true,
+                    itemCount: this.#presenceRecords.length,
+                    reasonCode: 'PROVIDER_AVAILABLE',
+                    emptyState: null
+                };
+            } else if (this.#presenceState?.status === 'disconnected') {
+                sections.availablePlayers = {
+                    ...sections.availablePlayers,
+                    status: 'disconnected', reasonCode: 'CONNECTION_REQUIRED',
+                    emptyState: {
+                        title: 'FICS is disconnected',
+                        message: 'Open FICS to connect before requesting real player presence.'
+                    }
+                };
+            } else if (this.#presenceState?.status === 'stale') {
+                sections.availablePlayers = {
+                    ...sections.availablePlayers,
+                    status: 'unavailable', reasonCode: 'NO_REAL_DATA',
+                    emptyState: {
+                        title: 'Presence data is stale',
+                        message: 'No player is shown as available until FICS supplies a fresh snapshot.'
+                    }
+                };
+            }
             return deepFreeze({
                 schemaVersion: SNAPSHOT_SCHEMA_VERSION,
                 panelId: this.#id,
@@ -347,7 +385,7 @@
                     timerCount: 0,
                     socketCount: 0,
                     workerCount: 0,
-                    playerItemCount: 0
+                    playerItemCount: this.#presenceRecords.length
                 })
             });
         }
@@ -380,6 +418,13 @@
             const source = element('p', 'caissa-players-panel__source');
             source.textContent = `Source: ${definition.source}. Status: ${definition.status}.`;
             panel.append(heading, state, message, source);
+            if (id === 'availablePlayers') {
+                const list = element('div', 'caissa-players-panel__presence-list', {
+                    role: 'list', 'aria-label': 'Available players from real providers',
+                    'data-presence-list': ''
+                });
+                panel.appendChild(list);
+            }
             for (const actionId of definition.actions) {
                 const label = actionId === 'open-classic' ? 'Open CAISSA Classic' : 'Open FICS Lobby';
                 panel.appendChild(this.#createAction(actionId, label, actionId === 'open-fics'));
@@ -429,6 +474,53 @@
             this.#root.querySelectorAll('[data-players-panel-section]').forEach(panel => {
                 panel.hidden = panel.dataset.playersPanelSection !== this.#activeSection;
             });
+        }
+
+        #renderAvailablePlayers() {
+            const panel = this.#root?.querySelector?.('[data-players-panel-section="availablePlayers"]');
+            const list = panel?.querySelector?.('[data-presence-list]');
+            if (!panel || !list) return;
+            list.replaceChildren();
+            const state = panel.querySelector('.caissa-players-panel__state');
+            const message = panel.querySelector('.caissa-players-panel__message');
+            const source = panel.querySelector('.caissa-players-panel__source');
+            if (!this.#presenceRecords.length) {
+                const snapshot = this.getSnapshot().sections.availablePlayers;
+                state.textContent = snapshot.emptyState.title;
+                message.textContent = snapshot.emptyState.message;
+                source.textContent = `Source: ${snapshot.source}. Status: ${snapshot.status}.`;
+                return;
+            }
+            state.textContent = `${this.#presenceRecords.length} provider-reported player${this.#presenceRecords.length === 1 ? '' : 's'}`;
+            message.textContent = 'Only fresh, provider-qualified presence is shown.';
+            source.textContent = 'Source: validated provider registry. Status: available.';
+            for (const record of this.#presenceRecords) {
+                const row = element('article', 'caissa-players-panel__presence-row', {
+                    role: 'listitem', tabindex: '0', 'data-presence-row': '',
+                    'data-presence-id': record.presenceId,
+                    'aria-label': this.#presenceLabel(record)
+                });
+                const name = element('strong', 'caissa-players-panel__presence-name');
+                name.textContent = record.displayName;
+                const provider = element('span', 'caissa-players-panel__presence-provider');
+                provider.textContent = record.provider.toUpperCase();
+                const status = element('span', 'caissa-players-panel__presence-status');
+                status.textContent = record.status;
+                row.append(name, provider, status);
+                if (record.rating) {
+                    const rating = element('span', 'caissa-players-panel__presence-rating');
+                    rating.textContent = `${record.rating.value} ${record.rating.ratingType}${record.rating.provisional ? ' provisional' : ''}`;
+                    row.appendChild(rating);
+                }
+                list.appendChild(row);
+            }
+        }
+
+        #presenceLabel(record) {
+            const parts = [record.displayName, `provider ${record.provider}`, `status ${record.status}`];
+            if (record.rating) parts.push(`${record.rating.ratingType} rating ${record.rating.value}${record.rating.provisional ? ', provisional' : ''}`);
+            if (record.status === 'stale') parts.push('presence is stale and challenges are unavailable');
+            return parts.join(', ');
         }
 
         #listen(target, type, handler) {

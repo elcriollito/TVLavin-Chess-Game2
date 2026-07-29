@@ -18,6 +18,54 @@ test('QA route opens Players in the shared shell with five truthful sections', a
     await expect(page.locator('[data-player-id], [data-player-row]')).toHaveCount(0);
 });
 
+test('real injected provider snapshot renders typed rows while stale, expired, and disconnected fail closed', async ({ page }) => {
+    const result = await page.evaluate(() => {
+        const now = 1700000000000;
+        const snapshot = {
+            provider: 'fics', status: 'connected', authenticated: true,
+            observedAt: now, providerTimestamp: now,
+            source: 'browser-adapter-fixture',
+            records: [{
+                provider: 'fics', providerPlayerId: 'VerifiedUser', displayName: 'VerifiedUser',
+                rating: { value: 1812, ratingType: 'blitz', provisional: true },
+                title: null, status: 'available', preferredTimeControls: [],
+                country: null, friendState: 'unsupported', guest: false, lastSeenAt: null,
+                providerTimestamp: now, observedAt: now,
+                challengeAvailability: 'provider-only',
+                capabilities: { challengeEntry: true }, sourceConfidence: 'direct'
+            }]
+        };
+        const ingested = window.CaissaPresenceRegistryInstance.ingest(snapshot);
+        const refreshed = window.CaissaPlayersPanelInstance.refresh({ observedAt: now });
+        return { ingested, refreshed };
+    });
+    expect(result.ingested.ok).toBe(true);
+    expect(result.refreshed.ok).toBe(true);
+    const row = page.locator('[data-presence-row]');
+    await expect(row).toHaveCount(1);
+    await expect(row).toContainText('VerifiedUser');
+    await expect(row).toContainText('FICS');
+    await expect(row).toContainText('1812 blitz provisional');
+    await expect(row).toHaveAttribute('aria-label', /provider fics, status available, blitz rating 1812, provisional/);
+
+    await page.evaluate(() => window.CaissaPlayersPanelInstance.refresh({ observedAt: 1700000120000 }));
+    await expect(page.locator('[data-presence-row]')).toHaveCount(0);
+    await expect(page.locator('[data-players-panel-section="availablePlayers"]')).toContainText('Presence data is stale');
+
+    await page.evaluate(() => window.CaissaPlayersPanelInstance.refresh({ observedAt: 1700000200000 }));
+    await expect(page.locator('[data-presence-row]')).toHaveCount(0);
+
+    await page.evaluate(() => {
+        window.CaissaPresenceRegistryInstance.ingest({
+            provider: 'fics', status: 'disconnected', authenticated: false,
+            observedAt: 1700000200001, providerTimestamp: null, records: [], source: 'browser-adapter-fixture'
+        });
+        window.CaissaPlayersPanelInstance.refresh({ observedAt: 1700000200001 });
+    });
+    await expect(page.locator('[data-players-panel-section="availablePlayers"]')).toContainText('FICS is disconnected');
+    await expect(page.locator('[data-presence-row]')).toHaveCount(0);
+});
+
 test('Players viewing preserves the board, worker, lifecycle, FairPlay, and active game state', async ({ page }) => {
     const before = await page.evaluate(() => {
         window.__playersIsolation = {

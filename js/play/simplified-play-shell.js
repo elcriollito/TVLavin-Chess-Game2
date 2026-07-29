@@ -254,6 +254,7 @@
                 this.#placements = [];
                 return result(false, 'unavailable', 'PLAYERS_PANEL_UNAVAILABLE');
             }
+            global.CaissaPlayersPanelInstance = this.#playersPanel;
             this.#postGame = global.CaissaPostGameExperience?.create?.({
                 onVisibilityChange: visible => {
                     if (visible) {
@@ -314,6 +315,7 @@
             this.#botsPanel?.dispose?.(); this.#botsPanel = null;
             this.#coachPanel?.dispose?.(); this.#coachPanel = null;
             this.#playersPanel?.dispose?.(); this.#playersPanel = null;
+            if (global.CaissaPlayersPanelInstance) global.CaissaPlayersPanelInstance = null;
             this.#gamesPanel?.dispose?.(); this.#gamesPanel = null;
             [...this.#placements].reverse().forEach(({ node, marker }) => {
                 marker.parentNode.insertBefore(node, marker);
