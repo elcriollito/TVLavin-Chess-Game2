@@ -1,12 +1,12 @@
 (function installPostGameExperience(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.7.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.7.0';
+    const SCHEMA_VERSION = '1.8.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.8.0';
     const STATUSES = Object.freeze(['idle', 'ready', 'visible', 'busy', 'error', 'disposed']);
     const ACTIONS = Object.freeze([
         'rematch', 'analyze', 'copy-pgn', 'download-pgn', 'save-game', 'new-game',
-        'mentor-review', 'guided-replay'
+        'mentor-review', 'guided-replay', 'mentor-summary'
     ]);
     const RESULT_TYPES = Object.freeze(['white-win', 'black-win', 'draw', 'aborted', 'unknown']);
     const REASONS = Object.freeze({
@@ -66,8 +66,8 @@
         #root = null; #host = null; #disposed = false; #visible = false; #busy = false;
         #status = 'idle'; #record = null; #configuration = null; #listeners = [];
         #consent = 'unknown'; #saved = false; #feedback = ''; #mentorRequest = null;
-        #analysisRun = null; #criticalMomentSelection = null; #guidedReplaySession = null;
-        #knowledgeMapping = null;
+        #analysisRun = null; #analysisResult = null; #criticalMomentSelection = null;
+        #guidedReplaySession = null; #knowledgeMapping = null; #mentorSummary = null;
         #compatibility; #records; #persistence; #handoff; #navigation; #rail; #onVisibilityChange;
         #clipboard; #url; #Blob;
         #diagnostics = {
@@ -130,6 +130,15 @@
                 type: 'button', disabled: '', 'aria-disabled': 'true', 'data-post-game-action': 'guided-replay'
             });
             replay.textContent = 'Start Guided Replay';
+            const createSummary = element('button', 'caissa-post-game__action', {
+                type: 'button', disabled: '', 'aria-disabled': 'true',
+                'data-post-game-action': 'mentor-summary'
+            });
+            createSummary.textContent = 'Create Mentor Summary';
+            const mentorSummary = element('section', 'caissa-post-game__mentor-summary', {
+                'aria-label': 'Mentor Summary', 'data-mentor-summary': '', tabindex: '-1'
+            });
+            mentorSummary.hidden = true;
             const mentorNote = element('p', 'caissa-post-game__mentor-note');
             mentorNote.textContent = 'A review request can be prepared after the game. Educational analysis is not available yet.';
             const feedback = element('p', 'caissa-post-game__feedback', {
@@ -138,7 +147,8 @@
             const concepts = element('aside', 'caissa-post-game__concepts', {
                 'aria-label': 'Reviewed concepts', 'data-post-game-concepts': ''
             });
-            this.#root.append(title, announcement, summary, concepts, actions, consent, mentor, replay, mentorNote, feedback);
+            this.#root.append(title, announcement, summary, concepts, actions, consent, mentor,
+                replay, createSummary, mentorSummary, mentorNote, feedback);
             host.appendChild(this.#root);
             this.#listen(this.#root, 'click', event => {
                 const action = event.target?.closest?.('[data-post-game-action]')?.dataset?.postGameAction;
@@ -193,8 +203,8 @@
             this.#consent = this.#persistence?.getConsent?.().value?.state || 'unknown';
             this.#saved = false; this.#feedback = ''; this.#mentorRequest = null;
             global.CaissaGuidedReplayView?.unmount?.();
-            this.#analysisRun = null; this.#criticalMomentSelection = null; this.#guidedReplaySession = null;
-            this.#knowledgeMapping = null;
+            this.#analysisRun = null; this.#analysisResult = null; this.#criticalMomentSelection = null;
+            this.#guidedReplaySession = null; this.#knowledgeMapping = null; this.#mentorSummary = null;
             this.#diagnostics.hydrations += 1;
             this.show(); this.#rail?.setMode?.('post-game'); this.#render();
             return this.#recordOperation(result(true, 'accepted', REASONS.HYDRATED, this.getSnapshot()));
@@ -227,6 +237,7 @@
                 else if (action === 'save-game') operation = this.#save();
                 else if (action === 'mentor-review') operation = this.#requestMentorReview();
                 else if (action === 'guided-replay') operation = this.#startGuidedReplay();
+                else if (action === 'mentor-summary') operation = this.#createMentorSummary();
                 else operation = result(false, 'unavailable', REASONS.ACTION_UNAVAILABLE);
             } catch (_) { operation = result(false, 'failed', REASONS.ACTION_FAILED); }
             if (operation && typeof operation.then === 'function') {
@@ -242,6 +253,7 @@
         saveGame() { return this.execute('save-game'); }
         startNewGame() { return this.execute('new-game'); }
         requestMentorReview() { return this.execute('mentor-review'); }
+        createMentorSummary() { return this.execute('mentor-summary'); }
         prepareTechnicalAnalysis(options = {}) {
             if (!this.#mentorRequest?.requestId)
                 return this.#recordOperation(result(false, 'unavailable', REASONS.ACTION_UNAVAILABLE));
@@ -263,6 +275,7 @@
             if (!selected?.ok) return this.#recordOperation(result(false, 'unavailable',
                 selected?.reasonCode || REASONS.ACTION_UNAVAILABLE));
             this.#criticalMomentSelection = selected.value;
+            this.#analysisResult = technical;
             this.#feedback = `${selected.value.selectedCount} technical moment${selected.value.selectedCount === 1
                 ? '' : 's'} selected. Mentor explanations and guided replay are not available yet.`;
             this.#render();
@@ -345,7 +358,8 @@
                         ? global.CaissaMentorGuidedReplay?.getSnapshot?.(
                             this.#guidedReplaySession.sessionId) || this.#guidedReplaySession
                         : null,
-                    knowledgeMapping: this.#knowledgeMapping
+                    knowledgeMapping: this.#knowledgeMapping,
+                    summary: this.#mentorSummary
                 },
                 persistence: { consent: this.#consent, saved: this.#saved },
                 listenerCount: this.#listeners.length, diagnostics: { ...this.#diagnostics }
@@ -384,7 +398,10 @@
                 'guided-replay': actionState(!!replaySession
                     && ['prepared', 'active', 'awaiting-attempt', 'attempted', 'revealed']
                         .includes(replaySession.status),
-                    false, replaySession ? null : 'Prepare selected moments first')
+                    false, replaySession ? null : 'Prepare selected moments first'),
+                'mentor-summary': actionState(!!this.#mentorRequest && !!this.#analysisResult
+                    && !!this.#criticalMomentSelection, false,
+                    this.#criticalMomentSelection ? null : 'Select reviewed moments first')
             };
         }
         #resolveMentor() {
@@ -431,6 +448,23 @@
                 : global.CaissaGuidedReplayView?.mount?.(this.#root, started.value.sessionId);
             if (!mounted?.ok) return result(false, 'failed', mounted?.reasonCode || REASONS.ACTION_FAILED);
             return result(true, 'accepted', 'GUIDED_REPLAY_STARTED', started.value);
+        }
+        #createMentorSummary() {
+            const replay = this.#guidedReplaySession?.sessionId
+                ? global.CaissaMentorGuidedReplay?.getSnapshot?.(this.#guidedReplaySession.sessionId)
+                : this.#guidedReplaySession;
+            const generated = global.CaissaMentorSummary?.generate?.({
+                request: this.#mentorRequest, analysisResult: this.#analysisResult,
+                selection: this.#criticalMomentSelection, replaySession: replay || null,
+                mappingResult: this.#knowledgeMapping || null
+            }, {
+                mentorName: this.#resolveMentor()?.mentor?.name || null,
+                style: this.#mentorRequest?.review?.explanationStyle || 'balanced'
+            });
+            if (!generated?.ok) return result(false, 'unavailable',
+                generated?.reasonCode || REASONS.ACTION_UNAVAILABLE);
+            this.#mentorSummary = generated.value;
+            return result(true, 'accepted', 'MENTOR_SUMMARY_CREATED', generated.value);
         }
         #start(action) {
             const started = this.#compatibility.execute('startNewGame', { ...this.#configuration });
@@ -481,9 +515,12 @@
                 PGN_DOWNLOADED: 'PGN downloaded.', GAME_SAVED: 'Game saved locally.',
                 MENTOR_REQUEST_CREATED: 'Mentor review request prepared. Educational analysis is not available yet.',
                 GUIDED_REPLAY_STARTED: 'Guided Replay started. The engine reference stays hidden until your attempt.'
+                ,MENTOR_SUMMARY_CREATED: 'Mentor Summary created from the reviewed evidence.'
             }[operation.reasonCode] || '' : operation?.reasonCode === REASONS.CONSENT_REQUIRED
                 ? 'Enable local game history before saving.' : 'That action is unavailable.';
             this.#render();
+            if (operation?.reasonCode === 'MENTOR_SUMMARY_CREATED')
+                this.#root?.querySelector('[data-mentor-summary]')?.focus?.();
             return this.#recordOperation(operation || result(false, 'failed', REASONS.ACTION_FAILED));
         }
         #render() {
@@ -561,6 +598,60 @@
                         list.appendChild(item);
                     });
                     concepts.append(heading, list);
+                }
+            }
+            const mentorSummary = this.#root.querySelector('[data-mentor-summary]');
+            if (mentorSummary) {
+                mentorSummary.replaceChildren();
+                mentorSummary.hidden = !this.#mentorSummary;
+                if (this.#mentorSummary) {
+                    const title = element('h3', ''); title.textContent =
+                        `${this.#mentorSummary.mentor.name || 'Mentor'} Summary`;
+                    const status = element('p', 'caissa-post-game__mentor-status');
+                    status.textContent = `Evidence: ${this.#mentorSummary.evidenceStatus}`;
+                    mentorSummary.append(title, status);
+                    if (this.#mentorSummary.strength) {
+                        const heading = element('h4', ''); heading.textContent = 'Reviewed strength';
+                        const copy = element('p', '');
+                        copy.textContent = this.#mentorSummary.presentation.strengthTemplate.text;
+                        mentorSummary.append(heading, copy);
+                    }
+                    if (this.#mentorSummary.improvementArea) {
+                        const heading = element('h4', ''); heading.textContent = 'Improvement area';
+                        const copy = element('p', '');
+                        copy.textContent = this.#mentorSummary.presentation.improvementTemplate.text;
+                        mentorSummary.append(heading, copy);
+                    }
+                    if (!this.#mentorSummary.strength && !this.#mentorSummary.improvementArea) {
+                        const copy = element('p', '');
+                        copy.textContent = this.#mentorSummary.presentation.statusTemplate.text;
+                        mentorSummary.appendChild(copy);
+                    }
+                    if (this.#mentorSummary.moments.length) {
+                        const heading = element('h4', ''); heading.textContent = 'Reviewed moments';
+                        const list = element('ol', 'caissa-post-game__mentor-moments');
+                        this.#mentorSummary.moments.forEach(moment => {
+                            const item = element('li', '');
+                            item.textContent = `Move ${Math.ceil(moment.ply / 2)} · ${
+                                moment.category.replace(/-/g, ' ')} · ${moment.technicalImportance} importance`;
+                            list.appendChild(item);
+                        });
+                        mentorSummary.append(heading, list);
+                    }
+                    const nextHeading = element('h4', ''); nextHeading.textContent = 'Next action';
+                    const next = element('p', '');
+                    next.textContent = this.#mentorSummary.prioritizedAction.template.text;
+                    mentorSummary.append(nextHeading, next);
+                    const unit = this.#mentorSummary.prioritizedAction.knowledgeUnit;
+                    if (unit?.publicUrl) {
+                        const link = element('a', 'caissa-post-game__mentor-link', { href: unit.publicUrl });
+                        link.textContent = `Open ${unit.title}`;
+                        mentorSummary.appendChild(link);
+                    }
+                    const goalHeading = element('h4', ''); goalHeading.textContent = 'Rematch goal';
+                    const goal = element('p', '');
+                    goal.textContent = this.#mentorSummary.rematchGoal.template.text;
+                    mentorSummary.append(goalHeading, goal);
                 }
             }
             this.#root.querySelector('[data-post-game-feedback]').textContent = this.#feedback;

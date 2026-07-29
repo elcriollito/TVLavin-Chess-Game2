@@ -10,6 +10,12 @@
                 reasonCode: valid && mappingResult.mappings.length > 0 ? prerequisite : 'MAPPING_REQUIRED',
                 writes: 0, mutationAllowed: false });
         },
+        evaluateSummary(summary) {
+            const valid = global.CaissaMentorSummaryContracts?.validateSummary?.(summary)?.ok === true;
+            return freeze({ ready: valid && summary.evidenceStatus === 'complete',
+                reasonCode: valid ? prerequisite : 'SUMMARY_REQUIRED',
+                writes: 0, mutationAllowed: false, recommendationsAssigned: 0 });
+        },
         inspect: () => freeze({ writes: 0, mutationAllowed: false })
     });
     global.CaissaMentorTrainingMemoryAdapter = create('training-memory-readiness', 'CONSENT_AND_CONTRACT_REQUIRED');

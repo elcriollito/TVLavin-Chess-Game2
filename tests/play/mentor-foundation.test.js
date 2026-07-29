@@ -24,15 +24,17 @@ function load() {
     return window;
 }
 
-test('capability model is versioned, immutable, and never claims review intelligence is available', () => {
+test('capability model truthfully exposes bounded Mentor Summary while long-term intelligence stays gated', () => {
     const w = load(); const api = w.CaissaMentorCapabilities;
-    assert.equal(api.schemaVersion, '1.0.0');
+    assert.equal(api.schemaVersion, '1.1.0');
     assert.deepEqual(plain(api.statuses), ['available', 'foundation', 'disabled', 'unavailable', 'deferred']);
     assert.equal(api.get('post-game-review-request').status, 'foundation');
     assert.equal(api.get('critical-moment-review').status, 'disabled');
     assert.equal(api.get('training-recommendation').status, 'deferred');
+    assert.equal(api.get('mentor-summary').status, 'available');
+    assert.equal(api.get('mentor-summary').reasonCode, 'CAPABILITY_AVAILABLE');
     assert.equal(api.get('unknown').status, 'unavailable');
-    assert.equal(api.list().some(item => item.status === 'available'), false);
+    assert.equal(api.list().filter(item => item.status === 'available').length, 1);
     assert.ok(Object.isFrozen(api.snapshot));
 });
 

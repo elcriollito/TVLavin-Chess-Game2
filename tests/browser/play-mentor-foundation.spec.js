@@ -20,7 +20,8 @@ test('transversal Mentor foundation is truthful, immutable, and separate from Pl
     }));
     expect(JSON.stringify(proof.modes)).not.toMatch(/mentor/i);
     expect(proof.profiles).toHaveLength(8);
-    expect(proof.capabilities.capabilities.some(item => item.status === 'available')).toBe(false);
+    expect(proof.capabilities.capabilities.filter(item => item.status === 'available')
+        .map(item => item.id)).toEqual(['mentor-summary']);
     expect(proof.capabilities.capabilities.find(item => item.id === 'critical-moment-review').status).toBe('disabled');
 });
 

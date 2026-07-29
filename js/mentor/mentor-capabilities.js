@@ -1,6 +1,6 @@
 (function installMentorCapabilities(global) {
     'use strict';
-    const SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
     const RELEASE_ID = 'rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84';
     const STATUSES = Object.freeze(['available', 'foundation', 'disabled', 'unavailable', 'deferred']);
     const REASONS = Object.freeze([
@@ -15,6 +15,7 @@
         'analysis-guidance': 'deferred',
         'critical-moment-review': 'disabled',
         'knowledge-mapping': 'deferred',
+        'mentor-summary': 'available',
         'training-recommendation': 'deferred',
         'academy-integration': 'foundation',
         'training-memory-read': 'disabled',
@@ -31,7 +32,8 @@
     function get(id) {
         const status = definitions[id];
         if (!status) return freeze({ id: null, status: 'unavailable', reasonCode: 'INVALID_REQUEST' });
-        return freeze({ id, status, reasonCode: status === 'foundation' ? 'FOUNDATION_ONLY'
+        return freeze({ id, status, reasonCode: status === 'available' ? 'CAPABILITY_AVAILABLE'
+            : status === 'foundation' ? 'FOUNDATION_ONLY'
             : status === 'disabled' ? 'DISABLED_BY_PRODUCT' : 'PIPELINE_NOT_IMPLEMENTED' });
     }
     const snapshot = freeze({ schemaVersion: SCHEMA_VERSION, releaseId: RELEASE_ID,

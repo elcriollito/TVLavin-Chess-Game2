@@ -49,6 +49,29 @@
 .caissa-guided-replay__concept {
     text-transform: capitalize;
 }
+.caissa-post-game__mentor-summary {
+    display: grid;
+    gap: .45rem;
+    margin-block: .75rem;
+    padding: .9rem;
+    max-width: 48rem;
+    border: 1px solid var(--border-color, #4b5563);
+    border-radius: .75rem;
+    overflow-wrap: anywhere;
+}
+.caissa-post-game__mentor-summary[hidden] {
+    display: none;
+}
+.caissa-post-game__mentor-summary h3,
+.caissa-post-game__mentor-summary h4,
+.caissa-post-game__mentor-summary p {
+    margin: 0;
+}
+.caissa-post-game__mentor-link {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+}
 @media (max-width: 760px) {
     .caissa-guided-replay__layout { grid-template-columns: 1fr; }
     .caissa-guided-replay__board { margin-inline: auto; }
