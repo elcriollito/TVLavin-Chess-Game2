@@ -1,8 +1,8 @@
 (function installPostGameExperience(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.2.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.2.0';
+    const SCHEMA_VERSION = '1.3.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.3.0';
     const STATUSES = Object.freeze(['idle', 'ready', 'visible', 'busy', 'error', 'disposed']);
     const ACTIONS = Object.freeze([
         'rematch', 'analyze', 'copy-pgn', 'download-pgn', 'save-game', 'new-game', 'mentor-review'
@@ -316,7 +316,8 @@
             const selection = this.#resolveMentor();
             const created = global.CaissaMentorFoundation?.createRequest?.({
                 mentorId: selection?.mentor?.id, source: this.#mentorSource(), record: this.#record,
-                playerLevel: 'novice', focus: 'general',
+                playerLevel: 'novice', focus: 'general', analysisDepth: 'standard',
+                criticalMomentLimit: 3, explanationStyle: 'balanced', requestOrigin: 'post-game',
                 knowledgeReleaseId: global.CaissaMentorCapabilities?.releaseId
             });
             if (!created?.ok) return result(false, created?.status || 'unavailable',

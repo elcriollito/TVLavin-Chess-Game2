@@ -6,7 +6,8 @@ import vm from 'node:vm';
 const files = [
     'js/mentor/mentor-capabilities.js', 'js/mentor/mentor-registry.js',
     'js/mentor/mentor-selection-resolver.js', 'js/mentor/mentor-context.js',
-    'js/mentor/mentor-review-readiness.js', 'js/mentor/mentor-foundation.js'
+    'js/mentor/mentor-review-readiness.js', 'js/mentor/mentor-review-request.js',
+    'js/mentor/mentor-review-request-registry.js', 'js/mentor/mentor-foundation.js'
 ];
 const sources = files.map(file => fs.readFileSync(new URL(`../../${file}`, import.meta.url), 'utf8'));
 const plain = value => JSON.parse(JSON.stringify(value));
@@ -100,10 +101,11 @@ test('foundation creates one bounded request per source and contains no analysis
         knowledgeReleaseId: w.CaissaMentorCapabilities.releaseId
     };
     const created = w.CaissaMentorFoundation.createRequest(input);
-    assert.equal(created.ok, true); assert.equal(created.value.reviewImplemented, false);
+    assert.equal(created.ok, true); assert.equal(created.value.metadata.reviewImplemented, false);
     assert.equal(w.CaissaMentorFoundation.createRequest(input).status, 'unchanged');
     assert.equal(w.CaissaMentorFoundation.getSnapshot().diagnostics.requests, 1);
-    assert.doesNotMatch(JSON.stringify(created), /critical|weakness|strength|recommendation|evaluation|engine|pgn|fen/i);
+    assert.equal(created.value.capabilities.criticalMoments, 'disabled');
+    assert.doesNotMatch(JSON.stringify(created), /weakness|strength|evaluation|engine|\"pgn\"|\"initialFen\"|\"finalFen\"/i);
     assert.ok(Object.isFrozen(created.value));
     assert.equal(w.CaissaMentorFoundation.reset().status, 'idle');
 });

@@ -33,6 +33,7 @@ for (const scenario of [
         await complete(page, scenario.route, scenario.start);
         await expect(page.locator('[data-post-game-action="mentor-review"]')).toBeEnabled();
         await page.locator('[data-post-game-action="mentor-review"]').click();
+        await page.locator('[data-post-game-action="mentor-review"]').click();
         const proof = await page.evaluate(() => ({
             snapshot: window.CaissaPostGameExperienceInstance.getSnapshot(),
             mentor: window.CaissaMentorFoundation.getSnapshot(),
@@ -40,9 +41,11 @@ for (const scenario of [
             boards: document.querySelectorAll('#chessboard').length,
             workers: window.__playTestInstrumentation?.snapshot?.().workers
         }));
-        expect(proof.snapshot.mentor.request.sourceType).toBe(scenario.source);
-        expect(proof.snapshot.mentor.request.reviewImplemented).toBe(false);
+        const expectedSource = scenario.source === 'games' ? 'play-game' : `${scenario.source}-game`;
+        expect(proof.snapshot.mentor.request.source.type).toBe(expectedSource);
+        expect(proof.snapshot.mentor.request.metadata.reviewImplemented).toBe(false);
         expect(proof.mentor.diagnostics.requests).toBe(1);
+        expect(proof.mentor.diagnostics.duplicates).toBe(1);
         expect(proof.url).not.toMatch(/(?:fen|pgn|mentor-request)=/i);
         expect(proof.boards).toBe(1);
         await expect(page.locator('.caissa-post-game')).not.toContainText(

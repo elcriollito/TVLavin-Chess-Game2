@@ -6,7 +6,8 @@ import vm from 'node:vm';
 const source = fs.readFileSync(new URL('../../js/play/post-game-experience.js', import.meta.url), 'utf8');
 const mentorSources = [
     'mentor-capabilities.js', 'mentor-registry.js', 'mentor-selection-resolver.js',
-    'mentor-context.js', 'mentor-review-readiness.js', 'mentor-foundation.js'
+    'mentor-context.js', 'mentor-review-readiness.js', 'mentor-review-request.js',
+    'mentor-review-request-registry.js', 'mentor-foundation.js'
 ].map(file => fs.readFileSync(new URL(`../../js/mentor/${file}`, import.meta.url), 'utf8'));
 const plain = value => JSON.parse(JSON.stringify(value));
 
@@ -98,8 +99,8 @@ function fixture({ consent = 'unknown' } = {}) {
 
 test('publishes frozen versioned contract vocabularies', () => {
     const { api } = fixture();
-    assert.equal(api.schemaVersion, '1.2.0');
-    assert.equal(api.snapshotSchemaVersion, '1.2.0');
+    assert.equal(api.schemaVersion, '1.3.0');
+    assert.equal(api.snapshotSchemaVersion, '1.3.0');
     for (const value of [api, api.statuses, api.actions, api.resultTypes, api.reasonCodes])
         assert.ok(Object.isFrozen(value));
 });
@@ -186,9 +187,11 @@ test('Mentor creates a truthful foundation request and duplicate completion is u
     } });
     const requested = f.experience.requestMentorReview();
     assert.equal(requested.reasonCode, 'MENTOR_REQUEST_CREATED');
-    assert.equal(requested.value.reviewImplemented, false);
+    assert.equal(requested.value.metadata.reviewImplemented, false);
     assert.equal(f.experience.getSnapshot().mentor.selectedMentorId, 'academyMentorCaissa');
-    assert.doesNotMatch(JSON.stringify(requested), /critical moment|weakness|strength|recommendation/i);
+    assert.equal(requested.value.capabilities.criticalMoments, 'disabled');
+    assert.equal(requested.value.capabilities.recommendations, 'deferred');
+    assert.doesNotMatch(JSON.stringify(requested), /"criticalMoments":\[|"recommendations":\[|weakness|strength/i);
     assert.equal(f.experience.hydrateFromGame({ record }).status, 'unchanged');
     assert.equal(f.experience.getSnapshot().diagnostics.displays, 1);
 });

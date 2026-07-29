@@ -72,7 +72,15 @@ test.skip('square-by-square keyboard chess play — adapter currently provides b
 
 test('repeated entry does not increase observable event-listener registrations', async ({ page }) => {
     await openPlay(page);
-    const before = (await snapshot(page)).harness.listenerRegistrations;
+    let before = (await snapshot(page)).harness.listenerRegistrations;
+    let stableSamples = 0;
+    for (let attempt = 0; attempt < 40 && stableSamples < 4; attempt += 1) {
+        await page.waitForTimeout(50);
+        const current = (await snapshot(page)).harness.listenerRegistrations;
+        if (JSON.stringify(current) === JSON.stringify(before)) stableSamples += 1;
+        else stableSamples = 0;
+        before = current;
+    }
     await page.locator('[data-section="academy"]').first().click();
     await page.locator('[data-section="play"]').first().click();
     const after = (await snapshot(page)).harness.listenerRegistrations;

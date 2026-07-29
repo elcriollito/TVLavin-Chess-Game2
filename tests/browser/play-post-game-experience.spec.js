@@ -32,7 +32,7 @@ test('checkmate shows one truthful summary and suppresses competing GamesPanel a
         rail: 'post-game',
         state: { visible: true, notation: { resultMismatch: true },
             mentor: { selectedMentorId: 'academyMentorCaissa',
-                request: { status: 'request-created', reviewImplemented: false } } }
+                request: { status: 'registered', metadata: { reviewImplemented: false } } } }
     });
 });
 
