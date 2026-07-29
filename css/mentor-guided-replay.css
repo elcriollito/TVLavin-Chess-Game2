@@ -1,0 +1,46 @@
+.caissa-guided-replay {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--border-color, #4b5563);
+    border-radius: .75rem;
+    background: var(--card-bg, #171923);
+}
+.caissa-guided-replay__header,
+.caissa-guided-replay__controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+.caissa-guided-replay__layout {
+    display: grid;
+    grid-template-columns: minmax(240px, 420px) minmax(240px, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+.caissa-guided-replay__board {
+    width: min(100%, 420px);
+    aspect-ratio: 1;
+}
+.caissa-guided-replay__panel,
+.caissa-guided-replay__attempt {
+    display: grid;
+    gap: .75rem;
+}
+.caissa-guided-replay__move {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+}
+.caissa-guided-replay button {
+    min-height: 44px;
+}
+.caissa-guided-replay__feedback,
+.caissa-guided-replay__reference {
+    min-height: 1.5rem;
+}
+@media (max-width: 760px) {
+    .caissa-guided-replay__layout { grid-template-columns: 1fr; }
+    .caissa-guided-replay__board { margin-inline: auto; }
+}

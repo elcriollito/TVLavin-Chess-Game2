@@ -1,11 +1,12 @@
 (function installPostGameExperience(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.5.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.5.0';
+    const SCHEMA_VERSION = '1.6.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.6.0';
     const STATUSES = Object.freeze(['idle', 'ready', 'visible', 'busy', 'error', 'disposed']);
     const ACTIONS = Object.freeze([
-        'rematch', 'analyze', 'copy-pgn', 'download-pgn', 'save-game', 'new-game', 'mentor-review'
+        'rematch', 'analyze', 'copy-pgn', 'download-pgn', 'save-game', 'new-game',
+        'mentor-review', 'guided-replay'
     ]);
     const RESULT_TYPES = Object.freeze(['white-win', 'black-win', 'draw', 'aborted', 'unknown']);
     const REASONS = Object.freeze({
@@ -65,7 +66,7 @@
         #root = null; #host = null; #disposed = false; #visible = false; #busy = false;
         #status = 'idle'; #record = null; #configuration = null; #listeners = [];
         #consent = 'unknown'; #saved = false; #feedback = ''; #mentorRequest = null;
-        #analysisRun = null; #criticalMomentSelection = null;
+        #analysisRun = null; #criticalMomentSelection = null; #guidedReplaySession = null;
         #compatibility; #records; #persistence; #handoff; #navigation; #rail; #onVisibilityChange;
         #clipboard; #url; #Blob;
         #diagnostics = {
@@ -124,12 +125,16 @@
                 type: 'button', disabled: '', 'aria-disabled': 'true', 'data-post-game-action': 'mentor-review'
             });
             mentor.textContent = 'Review with Mentor';
+            const replay = element('button', 'caissa-post-game__action', {
+                type: 'button', disabled: '', 'aria-disabled': 'true', 'data-post-game-action': 'guided-replay'
+            });
+            replay.textContent = 'Start Guided Replay';
             const mentorNote = element('p', 'caissa-post-game__mentor-note');
             mentorNote.textContent = 'A review request can be prepared after the game. Educational analysis is not available yet.';
             const feedback = element('p', 'caissa-post-game__feedback', {
                 role: 'status', 'aria-live': 'polite', 'data-post-game-feedback': ''
             });
-            this.#root.append(title, announcement, summary, actions, consent, mentor, mentorNote, feedback);
+            this.#root.append(title, announcement, summary, actions, consent, mentor, replay, mentorNote, feedback);
             host.appendChild(this.#root);
             this.#listen(this.#root, 'click', event => {
                 const action = event.target?.closest?.('[data-post-game-action]')?.dataset?.postGameAction;
@@ -183,7 +188,8 @@
             };
             this.#consent = this.#persistence?.getConsent?.().value?.state || 'unknown';
             this.#saved = false; this.#feedback = ''; this.#mentorRequest = null;
-            this.#analysisRun = null; this.#criticalMomentSelection = null;
+            global.CaissaGuidedReplayView?.unmount?.();
+            this.#analysisRun = null; this.#criticalMomentSelection = null; this.#guidedReplaySession = null;
             this.#diagnostics.hydrations += 1;
             this.show(); this.#rail?.setMode?.('post-game'); this.#render();
             return this.#recordOperation(result(true, 'accepted', REASONS.HYDRATED, this.getSnapshot()));
@@ -215,6 +221,7 @@
                 else if (action === 'download-pgn') operation = this.#download();
                 else if (action === 'save-game') operation = this.#save();
                 else if (action === 'mentor-review') operation = this.#requestMentorReview();
+                else if (action === 'guided-replay') operation = this.#startGuidedReplay();
                 else operation = result(false, 'unavailable', REASONS.ACTION_UNAVAILABLE);
             } catch (_) { operation = result(false, 'failed', REASONS.ACTION_FAILED); }
             if (operation && typeof operation.then === 'function') {
@@ -256,6 +263,25 @@
             this.#render();
             return this.#recordOperation(result(true, 'selected', 'CRITICAL_MOMENTS_SELECTED', selected.value));
         }
+        prepareGuidedReplay(analysisResult = null, selection = null, options = {}) {
+            const technical = analysisResult || (this.#analysisRun?.runId
+                ? global.CaissaEducationalAnalysisPipeline?.getResult?.(this.#analysisRun.runId) : null);
+            const moments = selection || this.#criticalMomentSelection;
+            if (!this.#mentorRequest || !technical || !moments || !this.#record)
+                return this.#recordOperation(result(false, 'unavailable', REASONS.ACTION_UNAVAILABLE));
+            const prepared = global.CaissaMentorGuidedReplay?.prepare?.({
+                request: this.#mentorRequest, analysisResult: technical,
+                selection: moments, source: this.#record,
+                ChessFactory: options.ChessFactory
+            });
+            if (!prepared?.ok) return this.#recordOperation(result(false,
+                prepared?.status || 'failed', prepared?.reasonCode || REASONS.ACTION_FAILED));
+            this.#guidedReplaySession = prepared.value;
+            this.#feedback = `${prepared.value.totalSteps} guided replay step${
+                prepared.value.totalSteps === 1 ? '' : 's'} prepared.`;
+            this.#render();
+            return this.#recordOperation(result(true, 'prepared', 'GUIDED_REPLAY_PREPARED', prepared.value));
+        }
         getSnapshot() {
             const record = this.#record;
             const mismatch = record?.notation?.hasResultMismatch === true;
@@ -290,7 +316,11 @@
                     selectedMentorId: this.#resolveMentor()?.mentor?.id || null,
                     selectionSource: this.#resolveMentor()?.source || 'unavailable',
                     request: this.#mentorRequest, analysisRun: this.#analysisRun,
-                    criticalMomentSelection: this.#criticalMomentSelection
+                    criticalMomentSelection: this.#criticalMomentSelection,
+                    guidedReplaySession: this.#guidedReplaySession?.sessionId
+                        ? global.CaissaMentorGuidedReplay?.getSnapshot?.(
+                            this.#guidedReplaySession.sessionId) || this.#guidedReplaySession
+                        : null
                 },
                 persistence: { consent: this.#consent, saved: this.#saved },
                 listenerCount: this.#listeners.length, diagnostics: { ...this.#diagnostics }
@@ -303,6 +333,7 @@
         }
         dispose() {
             if (this.#disposed) return result(true, 'unchanged', REASONS.DISPOSED);
+            global.CaissaGuidedReplayView?.unmount?.();
             this.hide(); this.unmount(); this.#disposed = true; this.#status = 'disposed';
             return this.#recordOperation(result(true, 'accepted', REASONS.DISPOSED));
         }
@@ -313,6 +344,9 @@
             const config = this.#configuration?.mode === 'engine'
                 && ['white', 'black'].includes(this.#configuration.color)
                 && Number.isInteger(this.#configuration.timeControl);
+            const replaySession = this.#guidedReplaySession?.sessionId
+                ? global.CaissaMentorGuidedReplay?.getSnapshot?.(this.#guidedReplaySession.sessionId)
+                : this.#guidedReplaySession;
             return {
                 rematch: actionState(valid && config, true, config ? null : 'Configuration unavailable'),
                 analyze: actionState(valid && pgn && typeof this.#navigation?.navigateToSection === 'function'),
@@ -321,7 +355,11 @@
                 'save-game': actionState(valid && this.#consent === 'granted' && !this.#saved),
                 'new-game': actionState(valid && config),
                 'mentor-review': actionState(this.#mentorReadiness().ready, false,
-                    this.#mentorReadiness().ready ? null : 'Requirements unavailable')
+                    this.#mentorReadiness().ready ? null : 'Requirements unavailable'),
+                'guided-replay': actionState(!!replaySession
+                    && ['prepared', 'active', 'awaiting-attempt', 'attempted', 'revealed']
+                        .includes(replaySession.status),
+                    false, replaySession ? null : 'Prepare selected moments first')
             };
         }
         #resolveMentor() {
@@ -353,6 +391,21 @@
                 created?.reasonCode || REASONS.ACTION_UNAVAILABLE);
             this.#mentorRequest = created.value;
             return result(true, 'accepted', REASONS.MENTOR_REQUEST_CREATED, created.value);
+        }
+        #startGuidedReplay() {
+            const current = global.CaissaMentorGuidedReplay?.getSnapshot?.(
+                this.#guidedReplaySession?.sessionId);
+            const started = current?.status === 'prepared'
+                ? global.CaissaMentorGuidedReplay?.start?.(current.sessionId)
+                : { ok: !!current, status: current?.status, value: current };
+            if (!started?.ok) return result(false, started?.status || 'failed',
+                started?.reasonCode || REASONS.ACTION_FAILED);
+            this.#guidedReplaySession = started.value;
+            const mounted = global.CaissaGuidedReplayView?.getSnapshot?.().mounted
+                ? global.CaissaGuidedReplayView.show()
+                : global.CaissaGuidedReplayView?.mount?.(this.#root, started.value.sessionId);
+            if (!mounted?.ok) return result(false, 'failed', mounted?.reasonCode || REASONS.ACTION_FAILED);
+            return result(true, 'accepted', 'GUIDED_REPLAY_STARTED', started.value);
         }
         #start(action) {
             const started = this.#compatibility.execute('startNewGame', { ...this.#configuration });
@@ -401,7 +454,8 @@
                 REMATCH_STARTED: 'Rematch started.', NEW_GAME_STARTED: 'New game started.',
                 ANALYZE_OPENED: 'Opening Analyze.', PGN_COPIED: 'PGN copied.',
                 PGN_DOWNLOADED: 'PGN downloaded.', GAME_SAVED: 'Game saved locally.',
-                MENTOR_REQUEST_CREATED: 'Mentor review request prepared. Educational analysis is not available yet.'
+                MENTOR_REQUEST_CREATED: 'Mentor review request prepared. Educational analysis is not available yet.',
+                GUIDED_REPLAY_STARTED: 'Guided Replay started. The engine reference stays hidden until your attempt.'
             }[operation.reasonCode] || '' : operation?.reasonCode === REASONS.CONSENT_REQUIRED
                 ? 'Enable local game history before saving.' : 'That action is unavailable.';
             this.#render();
@@ -461,7 +515,7 @@
             if (mentorNote) {
                 const selection = this.#resolveMentor();
                 mentorNote.textContent = this.#mentorRequest
-                    ? `${selection?.mentor?.name || 'Mentor'} request prepared. Educational analysis is not available yet.`
+                    ? `${selection?.mentor?.name || 'Mentor'} request prepared. Guided Replay uses fixed technical templates; generated explanations are not available.`
                     : `${selection?.mentor?.name || 'Mentor'} can prepare a review request after this game. No analysis is performed yet.`;
             }
             this.#root.querySelector('[data-post-game-feedback]').textContent = this.#feedback;

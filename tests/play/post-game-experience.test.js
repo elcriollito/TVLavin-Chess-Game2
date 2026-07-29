@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { Chess } from 'chess.js';
 
 const source = fs.readFileSync(new URL('../../js/play/post-game-experience.js', import.meta.url), 'utf8');
 const mentorSources = [
@@ -9,7 +10,8 @@ const mentorSources = [
     'mentor-context.js', 'mentor-review-readiness.js', 'mentor-review-request.js',
     'mentor-review-request-registry.js', 'mentor-foundation.js',
     'critical-moment-contracts.js', 'critical-moment-signals.js',
-    'critical-moment-scoring.js', 'critical-moment-selector.js'
+    'critical-moment-scoring.js', 'critical-moment-selector.js',
+    'guided-replay-prompts.js', 'guided-replay-contracts.js', 'mentor-guided-replay.js'
 ].map(file => fs.readFileSync(new URL(`../../js/mentor/${file}`, import.meta.url), 'utf8'));
 const plain = value => JSON.parse(JSON.stringify(value));
 
@@ -55,7 +57,8 @@ const record = Object.freeze({
     timing: { durationMs: null, finalClocks: {
         whiteMilliseconds: 120000, blackMilliseconds: 90000, activeColor: null, running: false
     } },
-    moves: { count: 7 }, notation: { pgn: '1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7#', hasResultMismatch: true }
+    moves: { count: 7, history: ['e4', 'e5', 'Qh5', 'Nc6', 'Bc4', 'Nf6', 'Qxf7#'] },
+    notation: { pgn: '1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7#', hasResultMismatch: true }
 });
 
 function fixture({ consent = 'unknown' } = {}) {
@@ -80,7 +83,7 @@ function fixture({ consent = 'unknown' } = {}) {
         saveCompleted: value => { calls.writes.push(value.recordId); return { ok: true, status: 'stored' }; }
     };
     const records = { validate: value => ({ valid: value === record }) };
-    const window = { document, CaissaGameRecord: records };
+    const window = { document, Chess, CaissaGameRecord: records };
     const context = { window, globalThis: window, Object, Set, Map, WeakSet, Date };
     mentorSources.forEach(value => vm.runInNewContext(value, context));
     vm.runInNewContext(source, context);
@@ -101,8 +104,8 @@ function fixture({ consent = 'unknown' } = {}) {
 
 test('publishes frozen versioned contract vocabularies', () => {
     const { api } = fixture();
-    assert.equal(api.schemaVersion, '1.5.0');
-    assert.equal(api.snapshotSchemaVersion, '1.5.0');
+    assert.equal(api.schemaVersion, '1.6.0');
+    assert.equal(api.snapshotSchemaVersion, '1.6.0');
     for (const value of [api, api.statuses, api.actions, api.resultTypes, api.reasonCodes])
         assert.ok(Object.isFrozen(value));
 });
@@ -209,14 +212,20 @@ test('explicit Critical Moment selection stores a technical-only PostGame snapsh
         bestMove: { uci: 'e2e4' }, playedMove: ply ? { uci: 'd2d4', san: 'd4' } : null,
         mover, phase: 'middlegame', material: { whiteMinusBlack: ply ? -3 : 0 }, terminal: false
     });
-    const selected = f.experience.selectCriticalMoments({
+    const technical = {
         schemaVersion: '1.0.0', runId: 'run:post-game-unit', requestId, status: 'complete',
         summary: { partial: false }, positions: [base(0, 100), base(1, -200, 'white')]
-    });
+    };
+    const selected = f.experience.selectCriticalMoments(technical);
     assert.equal(selected.ok, true);
     assert.equal(selected.value.selectedCount, 1);
     assert.equal(f.experience.getSnapshot().mentor.criticalMomentSelection.selectedCount, 1);
     assert.doesNotMatch(JSON.stringify(selected.value), /mentorText|moveGrade|knowledgeUnit/i);
+    const replay = f.experience.prepareGuidedReplay(technical, selected.value);
+    assert.equal(replay.ok, true);
+    assert.equal(replay.value.totalSteps, 1);
+    assert.equal(f.experience.getSnapshot().actions['guided-replay'].enabled, true);
+    assert.equal(f.experience.getSnapshot().mentor.guidedReplaySession.currentStep.answer.referenceMove, null);
 });
 
 test('unmount, remount, and disposal are bounded', () => {
