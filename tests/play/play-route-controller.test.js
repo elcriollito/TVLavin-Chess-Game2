@@ -29,10 +29,12 @@ function load(href = 'https://caissa.test/') {
 
 test('publishes a frozen, versioned contract and availability vocabulary', () => {
     const { api } = load();
-    assert.equal(api.schemaVersion, '1.1.0');
+    assert.equal(api.schemaVersion, '1.2.0');
     assert.ok(Object.isFrozen(api));
     assert.ok(Object.isFrozen(api.modes));
-    assert.deepEqual({ ...api.availability }, { games: true, bots: 'qa-only', coach: 'qa-only', players: false });
+    assert.deepEqual({ ...api.availability }, {
+        games: true, bots: 'qa-only', coach: 'qa-only', players: 'qa-only'
+    });
 });
 
 test('parses canonical Play paths without matching partial site paths', () => {
@@ -61,7 +63,7 @@ test('normalizes inactive and unknown modes to truthful Games behavior', () => {
     assert.equal(unknown.canonicalPath, '/play/games');
 });
 
-test('Bots and Coach resolve only with the explicit simplified QA flag', () => {
+test('Bots, Coach, and Players resolve only with the explicit simplified QA flag', () => {
     const { api } = load();
     const qa = api.parse('/play/bots?simplified=1');
     assert.equal(qa.mode, 'bots');
@@ -70,8 +72,11 @@ test('Bots and Coach resolve only with the explicit simplified QA flag', () => {
     assert.equal(api.parse('/play/bots').mode, 'games');
     assert.equal(api.parse('/play/coach?simplified=1').mode, 'coach');
     assert.equal(api.parse('/play/coach').mode, 'games');
+    assert.equal(api.parse('/play/players?simplified=1').mode, 'players');
+    assert.equal(api.parse('/play/players').mode, 'games');
     assert.equal(api.isModeAvailable('bots'), false);
     assert.equal(api.isModeAvailable('bots', { qa: true }), true);
+    assert.equal(api.isModeAvailable('players', { qa: true }), true);
 });
 
 test('adapts legacy Play queries and preserves bounded safe setup data', () => {

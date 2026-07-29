@@ -24,9 +24,7 @@ test('shell has semantic regions, truthful modes, and exactly one set of runtime
     await expect(page.getByRole('navigation', { name: 'Play modes' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Games' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('tab', { name: 'Bots' })).toBeEnabled();
-    for (const mode of ['Players']) {
-        await expect(page.getByRole('tab', { name: mode })).toBeDisabled();
-    }
+    await expect(page.getByRole('tab', { name: 'Players' })).toBeEnabled();
     const resources = await page.evaluate(() => ({
         boards: document.querySelectorAll('#playSection #chessboard .board-b72b1').length,
         squares: document.querySelectorAll('#playSection #chessboard .square-55d63').length,

@@ -689,3 +689,87 @@ body.caissa-simplified-play-active .caissa-coach-panel__knowledge[hidden] { disp
 @media (max-width: 359px) {
     body.caissa-simplified-play-active .caissa-coach-panel__catalog { grid-template-columns: 1fr; }
 }
+
+body.caissa-simplified-play-active .caissa-players-panel[hidden],
+body.caissa-simplified-play-active .caissa-players-panel__section[hidden] { display: none; }
+
+body.caissa-simplified-play-active .caissa-players-panel {
+    display: grid;
+    gap: .85rem;
+    min-width: 0;
+    color: #e8eef7;
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__header h2,
+body.caissa-simplified-play-active .caissa-players-panel__header p,
+body.caissa-simplified-play-active .caissa-players-panel__section h3,
+body.caissa-simplified-play-active .caissa-players-panel__section p {
+    margin-block: 0 .45rem;
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__truth {
+    color: var(--text-secondary, #475467);
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__tabs {
+    display: flex;
+    gap: .4rem;
+    overflow-x: auto;
+    padding-block-end: .25rem;
+    scroll-snap-type: x proximity;
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__tab {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: .55rem .7rem;
+    border: 1px solid var(--border-color, #d0d5dd);
+    border-radius: .5rem;
+    background: #1c2a3b;
+    color: #e8eef7;
+    scroll-snap-align: start;
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__tab[aria-selected="true"] {
+    border-color: var(--primary-color, #2457a7);
+    background: color-mix(in srgb, var(--primary-color, #2457a7) 10%, transparent);
+    font-weight: 700;
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__section {
+    padding: 1rem;
+    border: 1px solid var(--border-color, #d0d5dd);
+    border-radius: .75rem;
+    background: #162235;
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__state { font-weight: 700; }
+body.caissa-simplified-play-active .caissa-players-panel__source,
+body.caissa-simplified-play-active .caissa-players-panel__status {
+    color: #c5cfdb;
+    font-size: .875rem;
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__action {
+    min-height: 44px;
+    padding: .6rem .85rem;
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__action--primary {
+    background: var(--primary-color, #2457a7);
+    color: #fff;
+}
+
+@media (max-width: 600px) {
+    body.caissa-simplified-play-active .caissa-players-panel__footer {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+    body.caissa-simplified-play-active .caissa-players-panel__action { width: 100%; }
+}

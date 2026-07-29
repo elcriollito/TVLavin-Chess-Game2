@@ -1,15 +1,15 @@
 (function (global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.5.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.5.0';
+    const SCHEMA_VERSION = '1.6.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.6.0';
     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'error']);
     const REGIONS = Object.freeze([
         'mode-navigation', 'board-stage', 'opponent-header', 'evaluation-rail',
         'chessboard', 'player-header', 'board-actions', 'context-panel',
         'panel-header', 'panel-body', 'advanced-options', 'panel-status', 'action-footer'
     ]);
-    const MODES = Object.freeze({ games: true, bots: true, coach: true, players: false });
+    const MODES = Object.freeze({ games: true, bots: true, coach: true, players: true });
     const LAYOUT_MODES = Object.freeze([
         'phone-compact', 'phone-standard', 'phone-landscape',
         'tablet-portrait-stacked', 'tablet-landscape-split',
@@ -91,7 +91,7 @@
         #root = null; #active = false; #disposed = false; #status = 'loading';
         #mode = 'games'; #placements = []; #listeners = []; #unsubscribeRoute = null;
         #layoutMode = null; #geometry = null; #resizeCount = 0; #activationCount = 0; #statusNode = null;
-        #gamesPanel = null; #botsPanel = null; #coachPanel = null; #postGame = null;
+        #gamesPanel = null; #botsPanel = null; #coachPanel = null; #playersPanel = null; #postGame = null;
         #diagnostics = {
             layoutChanges: 0, orientationChanges: 0, safeAreaApplications: 0,
             boardResizeRequests: 0, drawerCycles: 0, restorationCycles: 0, rejectedGeometry: 0
@@ -241,15 +241,33 @@
                 this.#placements = [];
                 return result(false, 'unavailable', 'COACH_PANEL_UNAVAILABLE');
             }
+            this.#playersPanel = global.CaissaPlayersPanel?.create?.();
+            const playersMount = this.#playersPanel?.mount?.({ host: contextBody });
+            if (!playersMount?.ok) {
+                this.#playersPanel?.dispose?.(); this.#playersPanel = null;
+                this.#coachPanel?.dispose?.(); this.#coachPanel = null;
+                this.#botsPanel?.dispose?.(); this.#botsPanel = null;
+                this.#gamesPanel?.dispose?.(); this.#gamesPanel = null;
+                [...this.#placements].reverse().forEach(({ node, marker }) => {
+                    marker.parentNode.insertBefore(node, marker); marker.remove();
+                });
+                this.#placements = [];
+                return result(false, 'unavailable', 'PLAYERS_PANEL_UNAVAILABLE');
+            }
             this.#postGame = global.CaissaPostGameExperience?.create?.({
                 onVisibilityChange: visible => {
-                    if (visible) { this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.(); this.#coachPanel?.hide?.(); }
+                    if (visible) {
+                        this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.();
+                        this.#coachPanel?.hide?.(); this.#playersPanel?.hide?.();
+                    }
                     else this.#syncPanels();
                 }
             });
             const postGameMount = this.#postGame?.mount?.({ host: contextBody });
             if (!postGameMount?.ok) {
                 this.#postGame?.dispose?.(); this.#postGame = null;
+                this.#playersPanel?.dispose?.(); this.#playersPanel = null;
+                this.#coachPanel?.dispose?.(); this.#coachPanel = null;
                 this.#botsPanel?.dispose?.(); this.#botsPanel = null;
                 this.#gamesPanel?.dispose?.(); this.#gamesPanel = null;
                 [...this.#placements].reverse().forEach(({ node, marker }) => {
@@ -295,6 +313,7 @@
             if (global.CaissaPostGameExperienceInstance) global.CaissaPostGameExperienceInstance = null;
             this.#botsPanel?.dispose?.(); this.#botsPanel = null;
             this.#coachPanel?.dispose?.(); this.#coachPanel = null;
+            this.#playersPanel?.dispose?.(); this.#playersPanel = null;
             this.#gamesPanel?.dispose?.(); this.#gamesPanel = null;
             [...this.#placements].reverse().forEach(({ node, marker }) => {
                 marker.parentNode.insertBefore(node, marker);
@@ -397,6 +416,7 @@
                 evaluationRail: global.CaissaEvaluationRailInstance?.getSnapshot?.() || null,
                 gamesPanel: this.#gamesPanel?.getSnapshot?.() || null,
                 botsPanel: this.#botsPanel?.getSnapshot?.() || null,
+                playersPanel: this.#playersPanel?.getSnapshot?.() || null,
                 postGame: this.#postGame?.getSnapshot?.() || null,
                 diagnostics: { ...this.#diagnostics }
             });
@@ -422,13 +442,19 @@
             if (!this.#active || this.#postGame?.getSnapshot?.().visible) return;
             if (this.#mode === 'bots') {
                 global.CaissaCoachSession?.reset?.();
-                this.#gamesPanel?.hide?.(); this.#coachPanel?.hide?.(); this.#botsPanel?.show?.();
+                this.#gamesPanel?.hide?.(); this.#coachPanel?.hide?.();
+                this.#playersPanel?.hide?.(); this.#botsPanel?.show?.();
             } else if (this.#mode === 'coach') {
                 global.CaissaBotSession?.resetToFullPower?.();
-                this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.(); this.#coachPanel?.show?.();
+                this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.();
+                this.#playersPanel?.hide?.(); this.#coachPanel?.show?.();
+            } else if (this.#mode === 'players') {
+                this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.();
+                this.#coachPanel?.hide?.(); this.#playersPanel?.show?.();
             } else {
                 global.CaissaCoachSession?.reset?.();
-                this.#botsPanel?.hide?.(); this.#coachPanel?.hide?.(); this.#gamesPanel?.show?.();
+                this.#botsPanel?.hide?.(); this.#coachPanel?.hide?.();
+                this.#playersPanel?.hide?.(); this.#gamesPanel?.show?.();
             }
         }
         #removeListeners() {

@@ -19,8 +19,8 @@ function load() {
 
 test('publishes frozen versioned shell and snapshot contracts', () => {
     const { api } = load();
-    assert.equal(api.schemaVersion, '1.5.0');
-    assert.equal(api.snapshotSchemaVersion, '1.5.0');
+    assert.equal(api.schemaVersion, '1.6.0');
+    assert.equal(api.snapshotSchemaVersion, '1.6.0');
     assert.ok(Object.isFrozen(api));
     assert.ok(Object.isFrozen(api.statuses));
     assert.ok(Object.isFrozen(api.regions));
@@ -29,7 +29,7 @@ test('publishes frozen versioned shell and snapshot contracts', () => {
 
 test('mode availability is truthful and inactive modes remain disabled', () => {
     const { api } = load();
-    assert.deepEqual({ ...api.modes }, { games: true, bots: true, coach: true, players: false });
+    assert.deepEqual({ ...api.modes }, { games: true, bots: true, coach: true, players: true });
 });
 
 test('layout mode selection is deterministic across phone, tablet, desktop, and constrained height', () => {
@@ -102,6 +102,6 @@ test('SPA pages register shell assets once and no sitemap entry or dependency wa
 
 test('route controller preserves the explicit QA flag without making it default', () => {
     const routeSource = fs.readFileSync(new URL('../../js/play/play-route-controller.js', import.meta.url), 'utf8');
-    assert.match(routeSource, /\[MODES\.BOTS, MODES\.COACH\]\.includes\(requestedMode\) && query\.simplified === '1'/);
+    assert.match(routeSource, /\[MODES\.BOTS, MODES\.COACH, MODES\.PLAYERS\]\.includes\(requestedMode\) && query\.simplified === '1'/);
     assert.match(source, /route\.query\?\.simplified === '1'/);
 });
