@@ -1,6 +1,6 @@
 (function installGuidedReplayView(global) {
     'use strict';
-    const SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
     const freeze = value => {
         if (value && typeof value === 'object' && !Object.isFrozen(value)) {
             Object.values(value).forEach(freeze); Object.freeze(value);
@@ -49,13 +49,15 @@
             const feedback = node('p', 'caissa-guided-replay__feedback');
             feedback.setAttribute('role', 'status'); feedback.setAttribute('aria-live', 'polite');
             const reference = node('div', 'caissa-guided-replay__reference');
+            const knowledge = node('aside', 'caissa-guided-replay__knowledge');
+            knowledge.setAttribute('aria-live', 'polite');
             const controls = node('div', 'caissa-guided-replay__controls');
             for (const [action, text] of [['previous', 'Previous'], ['reveal', 'Reveal reference'],
                 ['next', 'Next'], ['restart', 'Restart'], ['close', 'Back to game summary']]) {
                 const button = node('button', '', text); button.type = 'button';
                 button.dataset.guidedReplayAction = action; controls.appendChild(button);
             }
-            panel.append(prompt, form, acknowledge, feedback, reference, controls);
+            panel.append(prompt, form, acknowledge, feedback, reference, knowledge, controls);
             layout.append(boardHost, panel); root.append(header, layout); host.appendChild(root);
             listen(form, 'submit', event => {
                 event.preventDefault(); submitMove(input.value); input.value = '';
@@ -119,6 +121,23 @@
             reference.textContent = step && !step.answer.hidden
                 ? `Reference move: ${step.answer.referenceMove || 'No reference move'}`
                 : '';
+            const knowledge = root.querySelector('.caissa-guided-replay__knowledge');
+            knowledge.replaceChildren();
+            if (step?.knowledge && !step.answer.hidden) {
+                knowledge.appendChild(node('strong', 'caissa-guided-replay__concept',
+                    step.knowledge.conceptId.replace(/-/g, ' ')));
+                if (step.knowledge.scaffolding?.promptTemplateId) {
+                    knowledge.appendChild(node('p', 'caissa-guided-replay__scaffold',
+                        `Practice scaffold: ${step.knowledge.scaffolding.promptTemplateId
+                            .replace(/-v\d+$/, '').replace(/-/g, ' ')}`));
+                }
+                if (step.knowledge.knowledgeUnit?.publicUrl) {
+                    const link = node('a', 'caissa-guided-replay__knowledge-link',
+                        `Open ${step.knowledge.knowledgeUnit.title}`);
+                    link.href = step.knowledge.knowledgeUnit.publicUrl;
+                    knowledge.appendChild(link);
+                }
+            }
             const action = name => root.querySelector(`[data-guided-replay-action="${name}"]`);
             action('previous').disabled = session.currentStepIndex === 0 || ['completed', 'canceled'].includes(session.status);
             action('reveal').disabled = !['attempted', 'revealed'].includes(session.status)

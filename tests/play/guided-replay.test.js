@@ -43,7 +43,7 @@ function input(options = {}) {
 
 test('publishes immutable versioned statuses, prompt types and answer policies', () => {
     const w = load();
-    assert.equal(w.CaissaMentorGuidedReplay.schemaVersion, '1.0.0');
+    assert.equal(w.CaissaMentorGuidedReplay.schemaVersion, '1.1.0');
     assert.deepEqual(plain(w.CaissaGuidedReplayPrompts.promptTypes),
         ['play-move', 'choose-move', 'reflect']);
     assert.ok(w.CaissaMentorGuidedReplay.statuses.includes('awaiting-attempt'));

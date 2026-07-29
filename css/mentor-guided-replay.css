@@ -40,6 +40,15 @@
 .caissa-guided-replay__reference {
     min-height: 1.5rem;
 }
+.caissa-guided-replay__knowledge:not(:empty) {
+    display: grid;
+    gap: .4rem;
+    padding: .75rem;
+    border-inline-start: 3px solid var(--accent-color, #60a5fa);
+}
+.caissa-guided-replay__concept {
+    text-transform: capitalize;
+}
 @media (max-width: 760px) {
     .caissa-guided-replay__layout { grid-template-columns: 1fr; }
     .caissa-guided-replay__board { margin-inline: auto; }

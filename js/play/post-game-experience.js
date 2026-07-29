@@ -1,8 +1,8 @@
 (function installPostGameExperience(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.6.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.6.0';
+    const SCHEMA_VERSION = '1.7.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.7.0';
     const STATUSES = Object.freeze(['idle', 'ready', 'visible', 'busy', 'error', 'disposed']);
     const ACTIONS = Object.freeze([
         'rematch', 'analyze', 'copy-pgn', 'download-pgn', 'save-game', 'new-game',
@@ -67,6 +67,7 @@
         #status = 'idle'; #record = null; #configuration = null; #listeners = [];
         #consent = 'unknown'; #saved = false; #feedback = ''; #mentorRequest = null;
         #analysisRun = null; #criticalMomentSelection = null; #guidedReplaySession = null;
+        #knowledgeMapping = null;
         #compatibility; #records; #persistence; #handoff; #navigation; #rail; #onVisibilityChange;
         #clipboard; #url; #Blob;
         #diagnostics = {
@@ -134,7 +135,10 @@
             const feedback = element('p', 'caissa-post-game__feedback', {
                 role: 'status', 'aria-live': 'polite', 'data-post-game-feedback': ''
             });
-            this.#root.append(title, announcement, summary, actions, consent, mentor, replay, mentorNote, feedback);
+            const concepts = element('aside', 'caissa-post-game__concepts', {
+                'aria-label': 'Reviewed concepts', 'data-post-game-concepts': ''
+            });
+            this.#root.append(title, announcement, summary, concepts, actions, consent, mentor, replay, mentorNote, feedback);
             host.appendChild(this.#root);
             this.#listen(this.#root, 'click', event => {
                 const action = event.target?.closest?.('[data-post-game-action]')?.dataset?.postGameAction;
@@ -190,6 +194,7 @@
             this.#saved = false; this.#feedback = ''; this.#mentorRequest = null;
             global.CaissaGuidedReplayView?.unmount?.();
             this.#analysisRun = null; this.#criticalMomentSelection = null; this.#guidedReplaySession = null;
+            this.#knowledgeMapping = null;
             this.#diagnostics.hydrations += 1;
             this.show(); this.#rail?.setMode?.('post-game'); this.#render();
             return this.#recordOperation(result(true, 'accepted', REASONS.HYDRATED, this.getSnapshot()));
@@ -277,6 +282,25 @@
             if (!prepared?.ok) return this.#recordOperation(result(false,
                 prepared?.status || 'failed', prepared?.reasonCode || REASONS.ACTION_FAILED));
             this.#guidedReplaySession = prepared.value;
+            const evidence = moments.selectedMoments.map(moment =>
+                global.CaissaConceptEvidence?.fromCriticalMoment?.(moment, {
+                    requestId: this.#mentorRequest.requestId
+                })).filter(created => created?.ok).map(created => created.value);
+            const mappingRequest = global.CaissaKnowledgeMappingContracts?.createRequest?.({
+                mappingRequestId: `knowledge:${this.#mentorRequest.requestId}:${moments.selectionId}`,
+                mentorRequestId: this.#mentorRequest.requestId,
+                analysisResultId: technical.runId, selectionId: moments.selectionId,
+                replaySessionId: prepared.value.sessionId,
+                knowledgeReleaseId: this.#mentorRequest.knowledge.releaseId,
+                evidence, requestedConceptLimit: 3
+            });
+            const mapped = mappingRequest?.ok
+                ? global.CaissaEducationalConceptMapper?.map?.(mappingRequest) : null;
+            if (mapped?.ok) {
+                this.#knowledgeMapping = mapped.value;
+                global.CaissaKnowledgeMappingRegistry?.register?.(mapped.value);
+                global.CaissaMentorGuidedReplay?.enrichKnowledge?.(prepared.value.sessionId, mapped.value);
+            }
             this.#feedback = `${prepared.value.totalSteps} guided replay step${
                 prepared.value.totalSteps === 1 ? '' : 's'} prepared.`;
             this.#render();
@@ -320,7 +344,8 @@
                     guidedReplaySession: this.#guidedReplaySession?.sessionId
                         ? global.CaissaMentorGuidedReplay?.getSnapshot?.(
                             this.#guidedReplaySession.sessionId) || this.#guidedReplaySession
-                        : null
+                        : null,
+                    knowledgeMapping: this.#knowledgeMapping
                 },
                 persistence: { consent: this.#consent, saved: this.#saved },
                 listenerCount: this.#listeners.length, diagnostics: { ...this.#diagnostics }
@@ -517,6 +542,26 @@
                 mentorNote.textContent = this.#mentorRequest
                     ? `${selection?.mentor?.name || 'Mentor'} request prepared. Guided Replay uses fixed technical templates; generated explanations are not available.`
                     : `${selection?.mentor?.name || 'Mentor'} can prepare a review request after this game. No analysis is performed yet.`;
+            }
+            const concepts = this.#root.querySelector('[data-post-game-concepts]');
+            if (concepts) {
+                concepts.replaceChildren();
+                const mappings = this.#knowledgeMapping?.mappings || [];
+                if (mappings.length) {
+                    const heading = element('h3', ''); heading.textContent = 'Reviewed concepts';
+                    const list = element('ul', 'caissa-post-game__concept-list');
+                    mappings.forEach(mapping => {
+                        const item = element('li', '');
+                        item.append(global.document.createTextNode(mapping.conceptId.replace(/-/g, ' ')));
+                        if (mapping.knowledgeUnit?.publicUrl) {
+                            const link = element('a', '', { href: mapping.knowledgeUnit.publicUrl });
+                            link.textContent = ` Open ${mapping.knowledgeUnit.title}`;
+                            item.appendChild(link);
+                        }
+                        list.appendChild(item);
+                    });
+                    concepts.append(heading, list);
+                }
             }
             this.#root.querySelector('[data-post-game-feedback]').textContent = this.#feedback;
         }

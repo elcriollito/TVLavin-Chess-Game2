@@ -1,6 +1,6 @@
 (function installMentorGuidedReplay(global) {
     'use strict';
-    const SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
     const MAX_SESSIONS = 8; const MAX_ATTEMPTS = 5;
     const TERMINAL = new Set(['completed', 'canceled', 'failed', 'disposed']);
     const freeze = value => {
@@ -20,7 +20,8 @@
         const diagnostics = { prepared: 0, started: 0, attempts: 0, legalAttempts: 0,
             illegalAttempts: 0, reveals: 0, completions: 0, cancellations: 0,
             disposals: 0, engineRequests: 0, workers: 0, storageWrites: 0,
-            memoryWrites: 0, masteryWrites: 0, analyzeMutations: 0 };
+            memoryWrites: 0, masteryWrites: 0, analyzeMutations: 0,
+            knowledgeEnrichments: 0 };
         const id = () => `guided-replay:${now().toString(36)}:${(++sequence).toString(36)}`;
         function publicStep(session, index = session.currentStepIndex) {
             const step = session.steps[index]; if (!step) return null;
@@ -33,6 +34,7 @@
                     ? step.feedback.message
                     : 'Legal move recorded. You may reveal the stored reference.'
             }) : null;
+            const knowledge = session.knowledgeMappings?.get(step.stepId) || null;
             return freeze({
                 schemaVersion: SCHEMA_VERSION, stepId: step.stepId, sessionId: session.sessionId,
                 momentId: step.momentId, index: step.index, category: step.category,
@@ -47,7 +49,7 @@
                     mateBefore: revealed ? step.answer.mateBefore : null,
                     mateAfter: revealed ? step.answer.mateAfter : null,
                     principalVariation: revealed ? step.answer.principalVariation : freeze([]) }),
-                feedback
+                feedback, knowledge: revealed && knowledge ? knowledge : null
             });
         }
         function snapshot(session) {
@@ -72,6 +74,7 @@
                 completedSteps, startedAt: session.startedAt, completedAt: session.completedAt,
                 canceledAt: session.canceledAt,
                 diagnostics: freeze({ skippedMoments: session.skippedMoments,
+                    knowledgeMappings: session.knowledgeMappings?.size || 0,
                     engineRequests: 0, storageWrites: 0 })
             });
         }
@@ -121,6 +124,7 @@
                 selectionId: input.selection.selectionId, mentorId: input.request.mentor?.id
                     || input.request.mentorId || null, answerPolicy: 'hidden-until-attempt',
                 status: 'prepared', currentStepIndex: 0, steps, attempts: [], skippedMoments,
+                knowledgeMappings: new Map(),
                 startedAt: null, completedAt: null, canceledAt: null,
                 expiresAt: now() + sessionTtlMs };
             sessions.set(sessionId, session); diagnostics.prepared += 1;
@@ -210,6 +214,24 @@
             step.revealed = true; step.status = 'revealed'; session.status = 'revealed'; diagnostics.reveals += 1;
             return operation(true, 'revealed', 'ANSWER_REVEALED', snapshot(session));
         }
+        function enrichKnowledge(sessionId, mappingResult) {
+            const session = sessions.get(sessionId);
+            if (!session || TERMINAL.has(session.status))
+                return operation(false, session?.status || 'not-found', 'SESSION_NOT_AVAILABLE');
+            if (!global.CaissaKnowledgeMappingContracts?.validateResult?.(mappingResult)?.ok
+                || mappingResult.knowledgeReleaseId !== global.CaissaKnowledgeMappingPolicy?.releaseId)
+                return operation(false, session.status, 'INVALID_KNOWLEDGE_MAPPING_RESULT');
+            let attached = 0;
+            mappingResult.mappings.forEach(mapping => {
+                const step = session.steps.find(value => value.stepId === mapping.replayStepId
+                    || value.momentId === mapping.sourceMomentId);
+                if (!step) return;
+                session.knowledgeMappings.set(step.stepId, freeze(copy(mapping))); attached += 1;
+            });
+            diagnostics.knowledgeEnrichments += attached;
+            return operation(true, session.status, attached ? 'KNOWLEDGE_ENRICHED' : 'NO_MATCHING_REPLAY_STEP',
+                snapshot(session));
+        }
         function next(sessionId) {
             const session = sessions.get(sessionId);
             if (!session || !['attempted', 'revealed'].includes(session.status))
@@ -261,7 +283,7 @@
             return operation(true, 'disposed', 'DISPOSED');
         }
         return freeze({ schemaVersion: SCHEMA_VERSION, prepare, start, submitMove, submitChoice,
-            reveal, next, previous, restart, cancel, getSession: id => snapshot(sessions.get(id)),
+            reveal, enrichKnowledge, next, previous, restart, cancel, getSession: id => snapshot(sessions.get(id)),
             getStep: (id, index) => {
                 const session = sessions.get(id); return session ? publicStep(session, index) : null;
             },
@@ -277,6 +299,7 @@
         prepare: (...args) => replay.prepare(...args), start: (...args) => replay.start(...args),
         submitMove: (...args) => replay.submitMove(...args),
         submitChoice: (...args) => replay.submitChoice(...args),
+        enrichKnowledge: (...args) => replay.enrichKnowledge(...args),
         reveal: (...args) => replay.reveal(...args), next: (...args) => replay.next(...args),
         previous: (...args) => replay.previous(...args), restart: (...args) => replay.restart(...args),
         cancel: (...args) => replay.cancel(...args), getSession: id => replay.getSession(id),

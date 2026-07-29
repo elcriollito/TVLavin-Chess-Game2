@@ -104,8 +104,8 @@ function fixture({ consent = 'unknown' } = {}) {
 
 test('publishes frozen versioned contract vocabularies', () => {
     const { api } = fixture();
-    assert.equal(api.schemaVersion, '1.6.0');
-    assert.equal(api.snapshotSchemaVersion, '1.6.0');
+    assert.equal(api.schemaVersion, '1.7.0');
+    assert.equal(api.snapshotSchemaVersion, '1.7.0');
     for (const value of [api, api.statuses, api.actions, api.resultTypes, api.reasonCodes])
         assert.ok(Object.isFrozen(value));
 });

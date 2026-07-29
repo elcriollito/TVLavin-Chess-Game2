@@ -47,6 +47,9 @@ test('core Guided Replay flow hides the answer, validates moves, reveals, restar
     expect(prepared.selected.ok).toBe(true);
     expect(prepared.replay.ok).toBe(true);
     expect(prepared.replay.value.currentStep.answer.referenceMove).toBeNull();
+    expect(prepared.snapshot.mentor.knowledgeMapping.mappings).toHaveLength(1);
+    expect(prepared.snapshot.mentor.knowledgeMapping.mappings[0].conceptId).toBe('defensive-awareness');
+    await expect(page.locator('[data-post-game-concepts]')).toContainText('defensive awareness');
     await expect(replayAction).toBeEnabled();
     await replayAction.click();
     const view = page.locator('.caissa-guided-replay');
@@ -67,11 +70,14 @@ test('core Guided Replay flow hides the answer, validates moves, reveals, restar
     await view.locator('form').evaluate(form => form.requestSubmit());
     await expect(view.locator('.caissa-guided-replay__feedback'))
         .toContainText('Legal move recorded');
+    await expect(view.locator('.caissa-guided-replay__knowledge')).toBeEmpty();
     await expect(view).not.toContainText('Reference move: e2e4');
     await view.locator('[data-guided-replay-action="reveal"]').click();
     await expect(view.locator('.caissa-guided-replay__reference')).toContainText('Reference move: e2e4');
     await expect(view.locator('.caissa-guided-replay__feedback'))
         .toContainText('matches the stored engine reference');
+    await expect(view.locator('.caissa-guided-replay__knowledge')).toContainText('defensive awareness');
+    await expect(view.locator('.caissa-guided-replay__knowledge')).not.toContainText('Open ');
     await view.locator('[data-guided-replay-action="restart"]').click();
     await expect(view.locator('.caissa-guided-replay__feedback')).toHaveText('');
     await view.locator('[data-guided-replay-action="close"]').click();
@@ -83,6 +89,11 @@ test('core Guided Replay flow hides the answer, validates moves, reveals, restar
 
     const proof = await page.evaluate(() => ({
         replay: window.CaissaMentorGuidedReplay.inspect(),
+        mapping: window.CaissaEducationalConceptMapper.inspect(),
+        registry: window.CaissaKnowledgeMappingRegistry.inspect(),
+        memory: window.CaissaMentorTrainingMemoryAdapter.inspect(),
+        mastery: window.CaissaMentorMasteryAdapter.inspect(),
+        recommendation: window.CaissaMentorRecommendationAdapter.inspect(),
         view: window.CaissaGuidedReplayView.inspect(),
         analyzeBoard: !!window.CaissaAnalyzeSection?.board,
         playBoards: document.querySelectorAll('#chessboard').length,
@@ -92,6 +103,16 @@ test('core Guided Replay flow hides the answer, validates moves, reveals, restar
     expect(proof.replay.engineRequests).toBe(0);
     expect(proof.replay.storageWrites).toBe(0);
     expect(proof.replay.workers).toBe(0);
+    expect(proof.mapping.mappingRequests).toBe(1);
+    expect(proof.mapping.conceptsInferred).toBe(1);
+    expect(proof.mapping.storageWrites).toBe(0);
+    expect(proof.mapping.memoryWrites).toBe(0);
+    expect(proof.mapping.masteryWrites).toBe(0);
+    expect(proof.mapping.recommendationsCreated).toBe(0);
+    expect(proof.registry.entries).toBe(1);
+    expect(proof.memory.writes).toBe(0);
+    expect(proof.mastery.writes).toBe(0);
+    expect(proof.recommendation.writes).toBe(0);
     expect(proof.analyzeBoard).toBe(false);
     expect(proof.playBoards).toBe(1);
     expect(proof.replayBoards).toBe(1);
