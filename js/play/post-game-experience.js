@@ -1,8 +1,8 @@
 (function installPostGameExperience(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.3.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.3.0';
+    const SCHEMA_VERSION = '1.4.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.4.0';
     const STATUSES = Object.freeze(['idle', 'ready', 'visible', 'busy', 'error', 'disposed']);
     const ACTIONS = Object.freeze([
         'rematch', 'analyze', 'copy-pgn', 'download-pgn', 'save-game', 'new-game', 'mentor-review'
@@ -64,7 +64,7 @@
         #id = `post-game-${++sequence}`;
         #root = null; #host = null; #disposed = false; #visible = false; #busy = false;
         #status = 'idle'; #record = null; #configuration = null; #listeners = [];
-        #consent = 'unknown'; #saved = false; #feedback = ''; #mentorRequest = null;
+        #consent = 'unknown'; #saved = false; #feedback = ''; #mentorRequest = null; #analysisRun = null;
         #compatibility; #records; #persistence; #handoff; #navigation; #rail; #onVisibilityChange;
         #clipboard; #url; #Blob;
         #diagnostics = {
@@ -181,7 +181,7 @@
                     ? snapshot.clocks.timeControlSeconds : null
             };
             this.#consent = this.#persistence?.getConsent?.().value?.state || 'unknown';
-            this.#saved = false; this.#feedback = ''; this.#mentorRequest = null;
+            this.#saved = false; this.#feedback = ''; this.#mentorRequest = null; this.#analysisRun = null;
             this.#diagnostics.hydrations += 1;
             this.show(); this.#rail?.setMode?.('post-game'); this.#render();
             return this.#recordOperation(result(true, 'accepted', REASONS.HYDRATED, this.getSnapshot()));
@@ -228,6 +228,18 @@
         saveGame() { return this.execute('save-game'); }
         startNewGame() { return this.execute('new-game'); }
         requestMentorReview() { return this.execute('mentor-review'); }
+        prepareTechnicalAnalysis(options = {}) {
+            if (!this.#mentorRequest?.requestId)
+                return this.#recordOperation(result(false, 'unavailable', REASONS.ACTION_UNAVAILABLE));
+            const prepared = global.CaissaEducationalAnalysisPipeline?.prepare?.(
+                this.#mentorRequest.requestId, options);
+            if (!prepared?.ok) return this.#recordOperation(result(false,
+                prepared?.status || 'failed', prepared?.reasonCode || REASONS.ACTION_FAILED));
+            this.#analysisRun = prepared.value;
+            this.#feedback = 'Technical analysis is prepared to run. Mentor educational review is not available yet.';
+            this.#render();
+            return this.#recordOperation(result(true, 'prepared', 'TECHNICAL_ANALYSIS_PREPARED', prepared.value));
+        }
         getSnapshot() {
             const record = this.#record;
             const mismatch = record?.notation?.hasResultMismatch === true;
@@ -261,7 +273,7 @@
                 mentor: {
                     selectedMentorId: this.#resolveMentor()?.mentor?.id || null,
                     selectionSource: this.#resolveMentor()?.source || 'unavailable',
-                    request: this.#mentorRequest
+                    request: this.#mentorRequest, analysisRun: this.#analysisRun
                 },
                 persistence: { consent: this.#consent, saved: this.#saved },
                 listenerCount: this.#listeners.length, diagnostics: { ...this.#diagnostics }
