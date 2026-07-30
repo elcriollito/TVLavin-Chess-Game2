@@ -20,8 +20,8 @@ function load(actions = {}) {
 
 test('publishes frozen versioned contracts and bounded vocabularies', () => {
     const { api } = load();
-    assert.equal(api.schemaVersion, '1.1.0');
-    assert.equal(api.snapshotSchemaVersion, '1.1.0');
+    assert.equal(api.schemaVersion, '1.2.0');
+    assert.equal(api.snapshotSchemaVersion, '1.2.0');
     assert.ok(Object.isFrozen(api));
     assert.ok(Object.isFrozen(api.statuses));
     assert.ok(Object.isFrozen(api.reasonCodes));
@@ -130,6 +130,27 @@ test('presence registry integration renders only active immutable records in sna
     assert.equal(snapshot.sections.availablePlayers.itemCount, 1);
     assert.equal(snapshot.diagnostics.playerItemCount, 1);
     assert.ok(Object.isFrozen(snapshot));
+});
+
+test('challenge registry integration exposes truthful immutable row counts without starting games', () => {
+    const challenge = Object.freeze({
+        challengeId: 'fics:seek-1', provider: 'fics', direction: 'incoming',
+        challengerName: 'RealChallenger', challengedName: 'Me', state: 'pending',
+        rated: 'casual', colorPreference: 'random', timeControl: null,
+        availableActions: Object.freeze(['accept', 'decline'])
+    });
+    const challengeRegistry = {
+        expire() {}, list: () => Object.freeze([challenge]), get: () => challenge
+    };
+    const { api } = load();
+    const panel = api.create({ challengeRegistry });
+    const refreshed = panel.refresh({ observedAt: 1000 });
+    assert.equal(refreshed.reasonCode, 'PROVIDER_AVAILABLE');
+    const snapshot = panel.getSnapshot();
+    assert.equal(snapshot.sections.challenges.status, 'available');
+    assert.equal(snapshot.sections.challenges.itemCount, 1);
+    assert.equal(snapshot.diagnostics.challengeItemCount, 1);
+    assert.equal(snapshot.diagnostics.humanGamesStarted, 0);
 });
 
 test('static guard proves no runtime, connection, storage, game, or fixture ownership', () => {

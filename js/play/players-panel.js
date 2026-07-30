@@ -1,8 +1,8 @@
 (function installPlayersPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.1.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.1.0';
+    const SCHEMA_VERSION = '1.2.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.2.0';
     const STATUSES = Object.freeze([
         'available', 'loading', 'empty', 'coming-later', 'unavailable',
         'disconnected', 'error', 'disabled'
@@ -120,7 +120,7 @@
             reasonCode: 'CHALLENGE_PROVIDER_UNAVAILABLE',
             emptyState: {
                 title: 'No CAISSA challenge service',
-                message: 'FICS seeks remain inside FICS. A CAISSA challenge lifecycle has not been implemented.'
+                message: 'FICS challenges remain inside provider-owned flows. No safe normalized challenge source is available here.'
             },
             actions: ['open-fics']
         },
@@ -194,6 +194,10 @@
         #presenceRegistry;
         #presenceRecords = [];
         #presenceState = null;
+        #challengeRegistry;
+        #challengeRecords = [];
+        #challengeAdapters;
+        #challengeActionsInFlight = new Set();
         #handlers;
         #diagnostics = {
             refreshes: 0, sectionSelections: 0, actionsAttempted: 0,
@@ -211,6 +215,11 @@
                     (() => global.CaissaPlayRouteController?.navigate?.('/play/games?simplified=1'))
             };
             this.#presenceRegistry = options?.presenceRegistry || global.CaissaPresenceRegistryInstance || null;
+            this.#challengeRegistry = options?.challengeRegistry || global.CaissaChallengeRegistryInstance || null;
+            this.#challengeAdapters = options?.challengeAdapters || {
+                fics: global.CaissaFicsChallengeAdapter?.create?.(),
+                'future-caissa-network': global.CaissaChallengeAdapter?.create?.()
+            };
         }
 
         mount(options = {}) {
@@ -279,13 +288,18 @@
             if (this.#disposed) return result(false, 'disposed', 'DISPOSED');
             this.#diagnostics.refreshes += 1;
             if (Number.isFinite(options.observedAt)) this.#presenceRegistry?.expire?.(options.observedAt);
+            if (Number.isFinite(options.observedAt)) this.#challengeRegistry?.expire?.(options.observedAt);
             const provider = this.#presenceRegistry?.getProvider?.('fics') || null;
             this.#presenceState = provider;
             this.#presenceRecords = this.#presenceRegistry?.list?.() || [];
             this.#diagnostics.displayedPlayerRows = this.#presenceRecords.length;
+            this.#challengeRecords = this.#challengeRegistry?.list?.() || [];
             this.#renderAvailablePlayers();
-            const status = this.#presenceRecords.length ? 'accepted' : 'unchanged';
-            return result(true, status, this.#presenceRecords.length ? 'PROVIDER_AVAILABLE' : 'NO_REAL_DATA', this.getSnapshot());
+            this.#renderChallenges();
+            const hasData = this.#presenceRecords.length || this.#challengeRecords.length;
+            return result(true, hasData ? 'accepted' : 'unchanged',
+                this.#challengeRecords.length ? 'PROVIDER_AVAILABLE'
+                    : this.#presenceRecords.length ? 'PROVIDER_AVAILABLE' : 'NO_REAL_DATA', this.getSnapshot());
         }
 
         selectSection(sectionId) {
@@ -315,6 +329,54 @@
                 return result(false, 'error', 'INVALID_PROVIDER');
             } finally {
                 this.#actionInFlight = false;
+            }
+        }
+
+        async executeChallengeAction(challengeId, action) {
+            if (this.#disposed) return result(false, 'disposed', 'DISPOSED');
+            const record = this.#challengeRegistry?.get?.(challengeId);
+            if (!record || !record.availableActions?.includes?.(action))
+                return result(false, 'rejected', 'CHALLENGE_PROVIDER_UNAVAILABLE');
+            const key = `${challengeId}:${action}`;
+            if (this.#challengeActionsInFlight.has(key))
+                return result(false, 'rejected', 'CHALLENGE_PROVIDER_UNAVAILABLE');
+            const adapter = this.#challengeAdapters?.[record.provider];
+            const method = {
+                submit: 'createChallenge', accept: 'acceptChallenge',
+                decline: 'declineChallenge', cancel: 'cancelChallenge',
+                reconnect: 'reconnectChallenge', 'open-provider': 'openProvider'
+            }[action];
+            const capability = action === 'submit' ? 'create'
+                : action === 'open-provider' ? 'activeGame' : action;
+            if (!adapter?.isSupported?.() || adapter.getCapabilities?.()?.[capability] !== true ||
+                !method || typeof adapter[method] !== 'function')
+                return result(false, 'rejected', 'CHALLENGE_PROVIDER_UNAVAILABLE');
+            this.#challengeActionsInFlight.add(key);
+            this.#diagnostics.actionsAttempted += 1;
+            try {
+                const response = await adapter[method](record.challengeId);
+                this.#challengeRegistry?.noteAction?.(response?.ok === true);
+                if (!response?.ok || !response.providerUpdate ||
+                    response.providerUpdate.challengeId !== record.challengeId ||
+                    response.providerUpdate.provider !== record.provider ||
+                    response.providerUpdate.updatedAt < record.updatedAt) {
+                    this.#diagnostics.actionsRejected += 1;
+                    return result(false, 'error', 'CHALLENGE_PROVIDER_UNAVAILABLE');
+                }
+                const ingested = this.#challengeRegistry.ingest(response.providerUpdate);
+                if (!ingested.ok) {
+                    this.#diagnostics.actionsRejected += 1;
+                    return result(false, 'rejected', 'CHALLENGE_PROVIDER_UNAVAILABLE');
+                }
+                this.#diagnostics.actionsCompleted += 1;
+                this.refresh({ observedAt: response.providerUpdate.updatedAt });
+                return result(true, 'accepted', 'PROVIDER_AVAILABLE', ingested.value);
+            } catch (_) {
+                this.#challengeRegistry?.noteAction?.(false);
+                this.#diagnostics.actionsRejected += 1;
+                return result(false, 'error', 'CHALLENGE_PROVIDER_UNAVAILABLE');
+            } finally {
+                this.#challengeActionsInFlight.delete(key);
             }
         }
 
@@ -358,6 +420,14 @@
                     }
                 };
             }
+            if (this.#challengeRecords.length) {
+                sections.challenges = {
+                    ...sections.challenges,
+                    status: 'available', available: true,
+                    itemCount: this.#challengeRecords.length,
+                    reasonCode: 'PROVIDER_AVAILABLE', emptyState: null
+                };
+            }
             return deepFreeze({
                 schemaVersion: SNAPSHOT_SCHEMA_VERSION,
                 panelId: this.#id,
@@ -385,7 +455,9 @@
                     timerCount: 0,
                     socketCount: 0,
                     workerCount: 0,
-                    playerItemCount: this.#presenceRecords.length
+                    playerItemCount: this.#presenceRecords.length,
+                    challengeItemCount: this.#challengeRecords.length,
+                    challengeActionInFlightCount: this.#challengeActionsInFlight.size
                 })
             });
         }
@@ -425,6 +497,13 @@
                 });
                 panel.appendChild(list);
             }
+            if (id === 'challenges') {
+                const list = element('div', 'caissa-players-panel__challenge-list', {
+                    role: 'list', 'aria-label': 'Provider-owned challenges',
+                    'data-challenge-list': ''
+                });
+                panel.appendChild(list);
+            }
             for (const actionId of definition.actions) {
                 const label = actionId === 'open-classic' ? 'Open CAISSA Classic' : 'Open FICS Lobby';
                 panel.appendChild(this.#createAction(actionId, label, actionId === 'open-fics'));
@@ -449,7 +528,15 @@
                 return;
             }
             const actionId = event.target?.closest?.('[data-players-action]')?.dataset?.playersAction;
-            if (actionId) this.executeAction(actionId);
+            if (actionId) {
+                this.executeAction(actionId);
+                return;
+            }
+            const challengeButton = event.target?.closest?.('[data-challenge-action]');
+            if (challengeButton) {
+                const record = this.#challengeRecords[Number(challengeButton.dataset.challengeIndex)];
+                if (record) void this.executeChallengeAction(record.challengeId, challengeButton.dataset.challengeAction);
+            }
         }
 
         #handleKeydown(event) {
@@ -521,6 +608,72 @@
             if (record.rating) parts.push(`${record.rating.ratingType} rating ${record.rating.value}${record.rating.provisional ? ', provisional' : ''}`);
             if (record.status === 'stale') parts.push('presence is stale and challenges are unavailable');
             return parts.join(', ');
+        }
+
+        #renderChallenges() {
+            const panel = this.#root?.querySelector?.('[data-players-panel-section="challenges"]');
+            const list = panel?.querySelector?.('[data-challenge-list]');
+            if (!panel || !list) return;
+            const focused = global.document?.activeElement?.dataset;
+            const focusKey = focused?.challengeAction && focused?.challengeIndex
+                ? `${focused.challengeIndex}:${focused.challengeAction}` : null;
+            list.replaceChildren();
+            const state = panel.querySelector('.caissa-players-panel__state');
+            const message = panel.querySelector('.caissa-players-panel__message');
+            const source = panel.querySelector('.caissa-players-panel__source');
+            if (!this.#challengeRecords.length) {
+                const snapshot = this.getSnapshot().sections.challenges;
+                state.textContent = snapshot.emptyState.title;
+                message.textContent = snapshot.emptyState.message;
+                source.textContent = `Source: ${snapshot.source}. Status: ${snapshot.status}.`;
+                return;
+            }
+            state.textContent = `${this.#challengeRecords.length} provider-owned challenge${this.#challengeRecords.length === 1 ? '' : 's'}`;
+            message.textContent = 'Challenge state does not start or modify a Simplified Play game.';
+            source.textContent = 'Source: validated provider challenge registry. Status: available.';
+            this.#challengeRecords.forEach((record, index) => {
+                const opponent = record.direction === 'incoming' ? record.challengerName : record.challengedName;
+                const row = element('article', 'caissa-players-panel__challenge-row', {
+                    role: 'listitem', tabindex: '0', 'data-challenge-row': '',
+                    'aria-label': `${record.direction} challenge from provider ${record.provider}, opponent ${opponent}, state ${record.state}, ${record.rated}`
+                });
+                const name = element('strong', 'caissa-players-panel__challenge-name');
+                name.textContent = opponent;
+                const provider = element('span', 'caissa-players-panel__challenge-provider');
+                provider.textContent = record.provider.toUpperCase();
+                const direction = element('span', 'caissa-players-panel__challenge-direction');
+                direction.textContent = record.direction;
+                const status = element('span', 'caissa-players-panel__challenge-state');
+                status.textContent = record.state;
+                const details = element('span', 'caissa-players-panel__challenge-details');
+                details.textContent = record.timeControl
+                    ? `${record.timeControl.initialSeconds / 60}+${record.timeControl.incrementSeconds} · ${record.rated} · ${record.colorPreference}`
+                    : `Unknown time control · ${record.rated} · ${record.colorPreference}`;
+                row.append(name, provider, direction, status, details);
+                for (const action of record.availableActions) {
+                    const button = element('button', 'caissa-players-panel__challenge-action', {
+                        type: 'button', 'data-challenge-action': action,
+                        'data-challenge-index': String(index),
+                        'aria-label': `${this.#challengeActionLabel(action)} ${opponent} on ${record.provider}`
+                    });
+                    button.textContent = this.#challengeActionLabel(action);
+                    button.disabled = this.#challengeActionsInFlight.has(`${record.challengeId}:${action}`);
+                    row.appendChild(button);
+                }
+                list.appendChild(row);
+            });
+            if (focusKey) {
+                const [index, action] = focusKey.split(':');
+                list.querySelector(`[data-challenge-index="${index}"][data-challenge-action="${action}"]`)?.focus?.();
+            }
+        }
+
+        #challengeActionLabel(action) {
+            return {
+                submit: 'Submit', accept: 'Accept', decline: 'Decline',
+                cancel: 'Cancel', reconnect: 'Reconnect',
+                'open-provider': 'Open Provider', dismiss: 'Dismiss'
+            }[action] || 'Unavailable';
         }
 
         #listen(target, type, handler) {

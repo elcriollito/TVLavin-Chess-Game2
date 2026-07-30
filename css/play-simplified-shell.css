@@ -799,6 +799,49 @@ body.caissa-simplified-play-active .caissa-players-panel__presence-rating {
     grid-column: 1 / -1;
 }
 
+body.caissa-simplified-play-active .caissa-players-panel__challenge-list {
+    display: grid;
+    gap: .65rem;
+    margin-block: .75rem;
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__challenge-row {
+    display: grid;
+    grid-template-columns: minmax(7rem, 1fr) repeat(3, auto);
+    align-items: center;
+    gap: .45rem .75rem;
+    min-width: 0;
+    padding: .75rem;
+    border: 1px solid #52647a;
+    border-radius: .55rem;
+    background: #1c2a3b;
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__challenge-name {
+    overflow-wrap: anywhere;
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__challenge-provider,
+body.caissa-simplified-play-active .caissa-players-panel__challenge-direction,
+body.caissa-simplified-play-active .caissa-players-panel__challenge-state,
+body.caissa-simplified-play-active .caissa-players-panel__challenge-details {
+    color: #c5cfdb;
+    font-size: .8rem;
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__challenge-details {
+    grid-column: 1 / -1;
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__challenge-action {
+    min-height: 44px;
+    padding: .55rem .8rem;
+    border: 1px solid #7d91aa;
+    border-radius: .45rem;
+    color: #fff;
+    background: #283d55;
+}
+
 @media (max-width: 600px) {
     body.caissa-simplified-play-active .caissa-players-panel__footer {
         display: grid;
@@ -807,5 +850,12 @@ body.caissa-simplified-play-active .caissa-players-panel__presence-rating {
     body.caissa-simplified-play-active .caissa-players-panel__action { width: 100%; }
     body.caissa-simplified-play-active .caissa-players-panel__presence-row {
         grid-template-columns: 1fr auto;
+    }
+    body.caissa-simplified-play-active .caissa-players-panel__challenge-row {
+        grid-template-columns: 1fr auto;
+    }
+    body.caissa-simplified-play-active .caissa-players-panel__challenge-action {
+        width: 100%;
+        grid-column: 1 / -1;
     }
 }

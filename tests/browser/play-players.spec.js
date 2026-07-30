@@ -66,6 +66,116 @@ test('real injected provider snapshot renders typed rows while stale, expired, a
     await expect(page.locator('[data-presence-row]')).toHaveCount(0);
 });
 
+test('provider-owned challenge fixtures render and validated duplicate actions invoke the adapter once', async ({ page }) => {
+    const setup = await page.evaluate(() => {
+        const makeRequest = (direction, reference, capabilities) => ({
+            provider: 'fics', requestId: `request-${reference}`, direction,
+            challengerId: direction === 'incoming' ? 'fics:challenger' : 'fics:me',
+            challengedId: direction === 'incoming' ? 'fics:me' : 'fics:opponent',
+            challengerName: direction === 'incoming' ? 'RealChallenger' : 'Me',
+            challengedName: direction === 'incoming' ? 'Me' : 'RealOpponent',
+            timeControl: {
+                initialSeconds: 300, incrementSeconds: 3,
+                category: 'blitz', providerRepresentation: '5+3'
+            },
+            rated: 'casual', colorPreference: 'random', variant: 'standard',
+            createdAt: 1700000000000, expiresAt: 1700000060000,
+            providerReference: reference, capabilities
+        });
+        const incoming = window.CaissaChallengeLifecycle.createChallenge(makeRequest(
+            'incoming', 'challenge-1',
+            { submit: false, accept: true, decline: true, cancel: false, reconnect: false, activeGame: true }
+        )).value;
+        const pending = window.CaissaChallengeLifecycle.transition(incoming, {
+            challengeId: incoming.challengeId, provider: 'fics',
+            eventType: 'PROVIDER_PENDING', observedAt: 1700000001000,
+            providerTimestamp: 1700000001000, sourceConfidence: 'provider',
+            reasonCode: null, correlationId: 'provider-event-1'
+        }).value;
+        const registry = window.CaissaChallengeRegistry.create();
+        registry.ingest(pending);
+        let calls = 0;
+        const adapter = Object.freeze({
+            isSupported: () => true,
+            getCapabilities: () => Object.freeze({
+                create: false, accept: true, decline: true,
+                cancel: false, reconnect: false, activeGame: true
+            }),
+            acceptChallenge: () => new Promise(resolve => {
+                calls += 1;
+                setTimeout(() => {
+                    const current = registry.get(pending.challengeId);
+                    const transitioned = window.CaissaChallengeLifecycle.transition(current, {
+                        challengeId: current.challengeId, provider: 'fics',
+                        eventType: 'PROVIDER_ACCEPTED', observedAt: 1700000002000,
+                        providerTimestamp: 1700000002000, sourceConfidence: 'provider',
+                        reasonCode: null, correlationId: 'provider-event-2'
+                    });
+                    resolve({ ok: true, providerUpdate: transitioned.value });
+                }, 20);
+            }),
+            declineChallenge: () => Promise.resolve({ ok: false, providerUpdate: null })
+        });
+        const host = document.createElement('div');
+        host.dataset.challengeFixtureHost = '';
+        document.body.appendChild(host);
+        const panel = window.CaissaPlayersPanel.create({
+            challengeRegistry: registry, challengeAdapters: { fics: adapter }
+        });
+        panel.mount({ host });
+        panel.selectSection('challenges');
+        panel.refresh({ observedAt: 1700000001000 });
+        window.__challengeFixture = { panel, registry, calls: () => calls, engine: window.App?.engine };
+        return panel.getSnapshot();
+    });
+    expect(setup.sections.challenges.itemCount).toBe(1);
+    const host = page.locator('[data-challenge-fixture-host]');
+    const row = host.locator('[data-challenge-row]');
+    await expect(row).toHaveCount(1);
+    await expect(row).toContainText('RealChallenger');
+    await expect(row).toContainText('FICS');
+    await expect(row).toContainText('incoming');
+    await expect(row).toContainText('pending');
+    await expect(row).toContainText('5+3 · casual · random');
+    await expect(row.getByRole('button', { name: /Accept RealChallenger/ })).toHaveCount(1);
+    await expect(row.getByRole('button', { name: /Decline RealChallenger/ })).toHaveCount(1);
+
+    await row.getByRole('button', { name: /Accept RealChallenger/ }).dblclick();
+    await expect(row).toContainText('accepted');
+    await expect(row.getByRole('button')).toHaveCount(0);
+    expect(await page.evaluate(() => window.__challengeFixture.calls())).toBe(1);
+    const resources = await page.evaluate(() => ({
+        boards: document.querySelectorAll('#chessboard').length,
+        sameEngine: window.App?.engine === window.__challengeFixture.engine,
+        diagnostics: window.__challengeFixture.panel.inspect().diagnostics,
+        game: window.CaissaPlayCompatibility.getSnapshot()
+    }));
+    expect(resources.boards).toBe(1);
+    expect(resources.sameEngine).toBe(true);
+    expect(resources.diagnostics).toMatchObject({
+        humanGamesStarted: 0, providerConnectionsCreated: 0,
+        storageWrites: 0, timerCount: 0, socketCount: 0, workerCount: 0
+    });
+    expect(resources.game.game.active).toBe(false);
+    for (const [width, height] of [
+        [320, 568], [375, 667], [390, 844], [412, 915],
+        [768, 1024], [1024, 768], [1366, 768], [1440, 900]
+    ]) {
+        await page.setViewportSize({ width, height });
+        const geometry = await row.evaluate(node => {
+            const box = node.getBoundingClientRect();
+            return {
+                left: box.left, right: box.right,
+                viewport: document.documentElement.clientWidth,
+                scrollWidth: node.scrollWidth, clientWidth: node.clientWidth
+            };
+        });
+        expect(geometry.left).toBeGreaterThanOrEqual(0);
+        expect(geometry.right).toBeLessThanOrEqual(geometry.viewport + 1);
+        expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth + 1);
+    }
+});
+
 test('Players viewing preserves the board, worker, lifecycle, FairPlay, and active game state', async ({ page }) => {
     const before = await page.evaluate(() => {
         window.__playersIsolation = {
