@@ -112,16 +112,16 @@
             }
 
             if (message.includes('uciok')) {
-                this.ready = true;
-                setTimeout(() => {
-                    this.configureEngine();
-                    this.processCommandQueue();
-                    if (this.onReady) this.onReady();
-                }, 100);
+                // `uciok` confirms protocol identity, not search readiness.
+                this.configureEngine();
             }
 
             if (message.includes('readyok')) {
+                const firstReady = !this.ready;
+                this.ready = true;
+                this.processCommandQueue();
                 this.completeAttributionBarrier();
+                if (firstReady && this.onReady) this.onReady();
             }
 
             if (message.startsWith('bestmove')) {
