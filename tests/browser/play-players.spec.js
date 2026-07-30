@@ -10,11 +10,11 @@ test('QA route opens Players in the shared shell with five truthful sections', a
     await expect(page.locator('[data-shell-mode="players"]')).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('[data-players-section]')).toHaveCount(5);
     await expect(page.locator('[data-players-panel-section]')).toHaveCount(5);
-    await expect(page.locator('[data-players-panel-section="availablePlayers"]')).toContainText('Open the real FICS lobby');
-    await expect(page.locator('[data-players-panel-section="friendsOnline"]')).toContainText('Friends are coming later');
-    await expect(page.locator('[data-players-panel-section="challenges"]')).toContainText('No CAISSA challenge service');
-    await expect(page.locator('[data-players-panel-section="recentOpponents"]')).toContainText('No human game history');
-    await expect(page.locator('[data-players-panel-section="suggestedPlayers"]')).toContainText('Suggestions need real presence');
+    await expect(page.locator('[data-players-panel-section="availablePlayers"]')).toContainText('Player data is unavailable here');
+    await expect(page.locator('[data-players-panel-section="friendsOnline"]')).toContainText('CAISSA friends are coming later');
+    await expect(page.locator('[data-players-panel-section="challenges"]')).toContainText('Challenge events are unavailable here');
+    await expect(page.locator('[data-players-panel-section="recentOpponents"]')).toContainText('Human game history is unavailable');
+    await expect(page.locator('[data-players-panel-section="suggestedPlayers"]')).toContainText('Suggested Players are coming later');
     await expect(page.locator('[data-player-id], [data-player-row]')).toHaveCount(0);
 });
 

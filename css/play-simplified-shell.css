@@ -861,6 +861,33 @@ body.caissa-simplified-play-active .caissa-players-panel__fair-play-item {
     overflow-wrap: anywhere;
 }
 
+body.caissa-simplified-play-active .caissa-players-panel__infrastructure {
+    display: grid;
+    gap: .6rem;
+    margin-block-start: .85rem;
+    padding: .75rem;
+    border: 1px solid #52647a;
+    border-radius: .55rem;
+    background: #172434;
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__provider-list {
+    display: grid;
+    gap: .35rem;
+    margin: 0;
+    padding-inline-start: 1.25rem;
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__provider-item,
+body.caissa-simplified-play-active .caissa-players-panel__blocker {
+    overflow-wrap: anywhere;
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__infrastructure .caissa-players-panel__action {
+    justify-self: start;
+    min-height: 44px;
+}
+
 @media (max-width: 600px) {
     body.caissa-simplified-play-active .caissa-players-panel__footer {
         display: grid;

@@ -3,6 +3,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
+const infrastructureFiles = [
+    'human-play-infrastructure-contracts.js', 'human-play-provider-matrix.js',
+    'human-play-coming-later-policy.js', 'human-play-section-policy.js',
+    'human-play-block-readiness.js'
+];
+const infrastructureSources = infrastructureFiles.map(file => fs.readFileSync(
+    new URL(`../../js/play/players/${file}`, import.meta.url), 'utf8'));
 const source = fs.readFileSync(new URL('../../js/play/players-panel.js', import.meta.url), 'utf8');
 
 function load(actions = {}) {
@@ -11,6 +18,8 @@ function load(actions = {}) {
         CaissaNavigation: { navigateToSection() {} },
         CaissaPlayRouteController: { navigate() {} }
     };
+    for (const infrastructureSource of infrastructureSources)
+        vm.runInNewContext(infrastructureSource, { window, globalThis: window, WeakSet });
     vm.runInNewContext(source, { window, globalThis: window });
     return {
         api: window.CaissaPlayersPanel,
@@ -20,8 +29,8 @@ function load(actions = {}) {
 
 test('publishes frozen versioned contracts and bounded vocabularies', () => {
     const { api } = load();
-    assert.equal(api.schemaVersion, '1.3.0');
-    assert.equal(api.snapshotSchemaVersion, '1.3.0');
+    assert.equal(api.schemaVersion, '1.4.0');
+    assert.equal(api.snapshotSchemaVersion, '1.4.0');
     assert.ok(Object.isFrozen(api));
     assert.ok(Object.isFrozen(api.statuses));
     assert.ok(Object.isFrozen(api.reasonCodes));
@@ -41,12 +50,12 @@ test('default snapshot is detached, deeply frozen, JSON-safe, and truthful', () 
     assert.equal(snapshot.activeSection, 'availablePlayers');
     assert.equal(snapshot.sections.friendsOnline.status, 'coming-later');
     assert.equal(snapshot.sections.availablePlayers.status, 'unavailable');
-    assert.equal(snapshot.sections.availablePlayers.reasonCode, 'NO_REAL_DATA');
+    assert.equal(snapshot.sections.availablePlayers.reasonCode, 'PRESENCE_SOURCE_UNAVAILABLE');
     assert.equal(snapshot.sections.challenges.status, 'unavailable');
-    assert.equal(snapshot.sections.recentOpponents.status, 'empty');
+    assert.equal(snapshot.sections.recentOpponents.status, 'blocked');
     assert.equal(snapshot.sections.suggestedPlayers.status, 'coming-later');
-    assert.equal(snapshot.providers.find(item => item.id === 'future-caissa-network').connectionStatus, 'unavailable');
-    assert.equal(snapshot.providers.find(item => item.id === 'fics').ownership, 'external-fics');
+    assert.equal(snapshot.providers.find(item => item.id === 'future-caissa-network').qaAvailability, 'contract-ready');
+    assert.match(snapshot.providers.find(item => item.id === 'fics').ownership, /external provider/i);
     assert.equal(snapshot.diagnostics.playerItemCount, 0);
     assert.equal(snapshot.diagnostics.socketCount, 0);
     assert.equal(snapshot.diagnostics.workerCount, 0);
@@ -106,10 +115,10 @@ test('providers are unique, immutable data and do not overclaim capabilities', (
     assert.equal(new Set(ids).size, ids.length);
     assert.ok(api.providers.every(provider => Object.isFrozen(provider.capabilities)));
     const future = api.providers.find(provider => provider.id === 'future-caissa-network');
-    assert.equal(future.capabilities.presence, false);
-    assert.equal(future.capabilities.matchmaking, false);
+    assert.equal(future.capabilities.presence, 'coming-later');
+    assert.equal(future.capabilities.games, 'unsupported');
     const classic = api.providers.find(provider => provider.id === 'caissa-classic');
-    assert.equal(classic.capabilities.proprietaryMatchmaking, false);
+    assert.equal(classic.capabilities.games, 'presentation-only');
 });
 
 test('presence registry integration renders only active immutable records in snapshots', () => {

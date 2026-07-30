@@ -1,11 +1,12 @@
 (function installPlayersPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.3.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.3.0';
+    const SCHEMA_VERSION = '1.4.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.4.0';
+    const INFRASTRUCTURE = global.CaissaHumanPlayInfrastructure?.getSnapshot?.() || null;
     const STATUSES = Object.freeze([
         'available', 'loading', 'empty', 'coming-later', 'unavailable',
-        'disconnected', 'error', 'disabled'
+        'disconnected', 'error', 'disabled', 'blocked'
     ]);
     const REASON_CODES = Object.freeze([
         'PROVIDER_AVAILABLE', 'NO_ACTIVE_CONNECTION', 'NO_REAL_DATA',
@@ -21,142 +22,42 @@
     const ACTION_IDS = Object.freeze([
         'open-fics', 'connect-fics', 'open-classic', 'return-to-games'
     ]);
-    const PROVIDERS = deepFreeze([
-        {
-            id: 'fics',
-            name: 'Free Internet Chess Server',
-            ownership: 'external-fics',
-            connectionStatus: 'not-inspected',
-            qaAvailability: 'available',
-            capabilities: {
-                connectionEntry: true, playerList: true, seeks: true,
-                challenges: true, games: true, serverClocks: true
-            },
-            actionId: 'open-fics',
-            route: 'fics',
-            limitations: [
-                'External service with independent login, connection, game, and fair-play ownership.',
-                'PlayersPanel has no read-only FICS player snapshot and does not display FICS players.'
-            ]
-        },
-        {
-            id: 'caissa-classic',
-            name: 'CAISSA Classic',
-            ownership: 'classic-presentation-fics-runtime',
-            connectionStatus: 'not-inspected',
-            qaAvailability: 'available',
-            capabilities: {
-                connectionEntry: true, playerList: true, tables: true,
-                watch: true, localHumanGame: false, proprietaryMatchmaking: false
-            },
-            actionId: 'open-classic',
-            route: 'yahooClassic',
-            limitations: [
-                'Classic consumes the existing FICS client and is not a separate player network.',
-                'PlayersPanel does not create or join Classic tables.'
-            ]
-        },
-        {
-            id: 'local',
-            name: 'Local human play',
-            ownership: 'unassigned',
-            connectionStatus: 'unavailable',
-            qaAvailability: 'unavailable',
-            capabilities: {
-                connectionEntry: false, playerList: false, localHumanGame: false
-            },
-            actionId: null,
-            route: null,
-            limitations: ['No supported local human-versus-human lifecycle is available in Simplified Play.']
-        },
-        {
-            id: 'future-caissa-network',
-            name: 'CAISSA player network',
-            ownership: 'future',
-            connectionStatus: 'unavailable',
-            qaAvailability: 'coming-later',
-            capabilities: {
-                presence: false, friends: false, challenges: false,
-                matchmaking: false, ratings: false
-            },
-            actionId: null,
-            route: null,
-            limitations: ['No proprietary CAISSA presence or matchmaking backend exists.']
-        }
-    ]);
-    const SECTION_DEFINITIONS = deepFreeze({
-        friendsOnline: {
-            label: 'Friends Online',
-            status: 'coming-later',
-            source: 'future-caissa-network',
-            available: false,
-            itemCount: 0,
-            reasonCode: 'FRIEND_SYSTEM_UNAVAILABLE',
-            emptyState: {
-                title: 'Friends are coming later',
-                message: 'CAISSA does not have a friend relationship or presence service yet.'
-            },
-            actions: []
-        },
-        availablePlayers: {
-            label: 'Available Players',
-            status: 'unavailable',
-            source: 'fics',
-            available: false,
-            itemCount: 0,
-            reasonCode: 'NO_REAL_DATA',
-            emptyState: {
-                title: 'Open the real FICS lobby',
-                message: 'Live players are shown only inside the existing FICS experience after you connect. No player data is copied here.'
-            },
-            actions: ['open-fics', 'open-classic']
-        },
-        challenges: {
-            label: 'Challenges',
-            status: 'unavailable',
-            source: 'provider-specific',
-            available: false,
-            itemCount: 0,
-            reasonCode: 'CHALLENGE_PROVIDER_UNAVAILABLE',
-            emptyState: {
-                title: 'No CAISSA challenge service',
-                message: 'FICS challenges remain inside provider-owned flows. No safe normalized challenge source is available here.'
-            },
-            actions: ['open-fics']
-        },
-        recentOpponents: {
-            label: 'Recent Opponents',
-            status: 'empty',
-            source: 'completed-human-game-records',
-            available: false,
-            itemCount: 0,
-            reasonCode: 'HISTORY_UNAVAILABLE',
-            emptyState: {
-                title: 'No human game history available',
-                message: 'Recent opponents will appear only when real completed human GameRecords support this view.'
-            },
-            actions: []
-        },
-        suggestedPlayers: {
-            label: 'Suggested Players',
-            status: 'coming-later',
-            source: 'future-caissa-network',
-            available: false,
-            itemCount: 0,
-            reasonCode: 'PRESENCE_UNAVAILABLE',
-            emptyState: {
-                title: 'Suggestions need real presence',
-                message: 'CAISSA will not suggest players until a real, current presence source exists.'
-            },
-            actions: []
-        }
+    const PROVIDER_LABELS = Object.freeze({
+        fics: 'Free Internet Chess Server', 'caissa-classic': 'CAISSA Classic',
+        local: 'Local human play', 'future-caissa-network': 'CAISSA player network'
     });
+    const PROVIDERS = deepFreeze((INFRASTRUCTURE?.providers || []).map(provider => ({
+        id: provider.provider, name: PROVIDER_LABELS[provider.provider],
+        ownership: provider.relationship, connectionStatus: provider.support.reconnect,
+        qaAvailability: provider.productionReadiness, capabilities: provider.support,
+        actionId: provider.provider === 'fics' ? 'open-fics'
+            : provider.provider === 'caissa-classic' ? 'open-classic' : null,
+        route: provider.provider === 'fics' ? 'fics'
+            : provider.provider === 'caissa-classic' ? 'yahooClassic' : null,
+        limitations: [provider.relationship]
+    })));
+    const SECTION_DEFINITIONS = deepFreeze(Object.fromEntries(
+        (INFRASTRUCTURE?.sections || []).map(section => [sectionIdFor(section.label), {
+            label: section.label, status: section.category, source: section.source,
+            available: false, itemCount: section.itemCount, reasonCode: section.reasonCode,
+            emptyState: { title: section.title, message: section.message },
+            actions: [...section.actions]
+        }])
+    ));
     let sequence = 0;
 
     function deepFreeze(value) {
         if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
         Object.values(value).forEach(deepFreeze);
         return Object.freeze(value);
+    }
+
+    function sectionIdFor(label) {
+        return {
+            'Friends Online': 'friendsOnline', 'Available Players': 'availablePlayers',
+            Challenges: 'challenges', 'Recent Opponents': 'recentOpponents',
+            'Suggested Players': 'suggestedPlayers'
+        }[label];
     }
 
     function detached(value) {
@@ -245,6 +146,29 @@
             const truth = element('p', 'caissa-players-panel__truth');
             truth.textContent = 'CAISSA has no proprietary player network. Use the existing FICS service for real online play.';
             header.append(title, truth);
+            const infrastructure = element('section', 'caissa-players-panel__infrastructure', {
+                'data-infrastructure-status': '', 'aria-labelledby': `${this.#id}-infrastructure-title`
+            });
+            const infrastructureTitle = element('h3', '', { id: `${this.#id}-infrastructure-title` });
+            infrastructureTitle.textContent = 'Infrastructure status';
+            const readiness = element('p', 'caissa-players-panel__readiness');
+            readiness.textContent = 'Foundation complete · Design ready · Runtime incomplete · Production blocked';
+            const providers = element('ul', 'caissa-players-panel__provider-list');
+            for (const provider of PROVIDERS) {
+                const item = element('li', 'caissa-players-panel__provider-item');
+                item.textContent = `${provider.name}: ${provider.qaAvailability}. ${provider.ownership}`;
+                providers.appendChild(item);
+            }
+            const unavailableAction = element('button', 'caissa-players-panel__action', {
+                type: 'button', disabled: '', 'aria-describedby': `${this.#id}-find-match-blocker`
+            });
+            unavailableAction.textContent = 'Find Match';
+            const blocker = element('p', 'caissa-players-panel__blocker', {
+                id: `${this.#id}-find-match-blocker`
+            });
+            blocker.textContent = 'Unavailable: no CAISSA matchmaking backend exists. Open FICS for provider-owned live chess.';
+            infrastructure.append(infrastructureTitle, readiness, providers, unavailableAction, blocker);
+            header.appendChild(infrastructure);
 
             const tabs = element('div', 'caissa-players-panel__tabs', {
                 role: 'tablist', 'aria-label': 'Player sections'
@@ -328,11 +252,13 @@
             try {
                 this.#handlers[actionId](detached(options));
                 this.#diagnostics.actionsCompleted += 1;
+                global.CaissaHumanPlayInfrastructure?.noteAction?.(true, null);
                 const reasonCode = actionId === 'open-classic' ? 'CLASSIC_AVAILABLE'
                     : actionId === 'return-to-games' ? 'PROVIDER_AVAILABLE' : 'FICS_AVAILABLE';
                 return result(true, 'accepted', reasonCode, { actionId });
             } catch (_) {
                 this.#diagnostics.actionsRejected += 1;
+                global.CaissaHumanPlayInfrastructure?.noteAction?.(false, 'UNKNOWN');
                 return result(false, 'error', 'INVALID_PROVIDER');
             } finally {
                 this.#actionInFlight = false;
@@ -457,6 +383,7 @@
                     'FICS and CAISSA Classic retain independent runtime ownership.'
                 ],
                 humanFairPlayReadiness: detached(this.#humanFairPlayReadiness),
+                infrastructure: detached(INFRASTRUCTURE),
                 diagnostics: detached({
                     ...this.#diagnostics,
                     listenerCount: this.#listeners.length,
