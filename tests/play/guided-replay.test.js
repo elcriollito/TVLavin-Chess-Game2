@@ -271,11 +271,13 @@ test('UI boundary registers once, owns no engine/storage, and never places the a
     assert.doesNotMatch(view, /EngineAdapter|EngineRegistry|new\s+Worker|localStorage|sessionStorage|indexedDB/);
     assert.doesNotMatch(view, /dataset\.(?:answer|reference)|setAttribute\([^,]*(?:answer|reference)/i);
     assert.match(css, /@media \(max-width: 760px\)/);
+    const registry = fs.readFileSync(new URL('../../js/play/performance/play-load-registry.js', import.meta.url), 'utf8');
     for (const page of ['index.html', 'yahoo-classic.html']) {
         const html = fs.readFileSync(new URL(`../../${page}`, import.meta.url), 'utf8');
         for (const asset of ['guided-replay-prompts.js', 'guided-replay-contracts.js',
-            'mentor-guided-replay.js', 'guided-replay-view.js', 'mentor-guided-replay.css'])
-            assert.equal((html.match(new RegExp(asset.replace('.', '\\.'), 'g')) || []).length, 1);
-        assert.ok(html.indexOf('guided-replay-view.js') < html.indexOf('post-game-experience.js'));
+            'mentor-guided-replay.js', 'guided-replay-view.js', 'mentor-guided-replay.css']) {
+            assert.doesNotMatch(html, new RegExp(`<(?:script|link)[^>]+${asset.replace('.', '\\.')}`));
+            assert.match(registry, new RegExp(asset.replace('.', '\\.')));
+        }
     }
 });

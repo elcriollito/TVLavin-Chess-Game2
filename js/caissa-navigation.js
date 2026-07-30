@@ -137,6 +137,14 @@ const CaissaNavigation = {
      * Navigate to a section
      */
     navigateToSection(sectionId, options = {}) {
+        if (sectionId === 'analyze' && !window.AnalyzeSection?.onEnter
+            && window.CaissaPlayLazyLoader?.load && options.lazyReady !== true) {
+            const sourceSection = this.currentSection;
+            return window.CaissaPlayLazyLoader.load('analyze-deep', { retry: true }).then(() => {
+                if (this.currentSection !== sourceSection) return false;
+                return this.navigateToSection(sectionId, { ...options, lazyReady: true });
+            }).catch(() => false);
+        }
         if (this.currentSection === sectionId) {
             console.log('[CAISSA Nav] Already on section:', sectionId);
             return;
@@ -145,13 +153,18 @@ const CaissaNavigation = {
         console.log('[CAISSA Nav] Navigating from', this.currentSection, 'to', sectionId);
 
         if (sectionId === 'analyze' && this.currentSection === 'play' && window.CaissaAnalyzeHandoff) {
-            const handoff = window.CaissaAnalyzeHandoff.createFromPlay();
-            if (!handoff.ok) {
-                console.warn('[CAISSA Nav] Analyze handoff unavailable:', handoff.reasonCode);
-                return false;
+            if (options.handoffToken) {
+                this.lastAnalyzeHandoffToken = options.handoffToken;
+                options.query = Object.assign({}, options.query, { handoff: options.handoffToken });
+            } else {
+                const handoff = window.CaissaAnalyzeHandoff.createFromPlay();
+                if (!handoff.ok) {
+                    console.warn('[CAISSA Nav] Analyze handoff unavailable:', handoff.reasonCode);
+                    return false;
+                }
+                this.lastAnalyzeHandoffToken = handoff.value.token;
+                options.query = Object.assign({}, options.query, { handoff: handoff.value.token });
             }
-            this.lastAnalyzeHandoffToken = handoff.value.token;
-            options.query = Object.assign({}, options.query, { handoff: handoff.value.token });
         }
 
         // Special cases: Library, Mentor, and Premium
@@ -819,8 +832,17 @@ const CaissaNavigation = {
                 }
             });
 
-            // Call section enter hook
-            this.onSectionEnter(targetSection);
+            // Call section enter hook. Analyze owns its independently loaded route group.
+            if (targetSection === 'analyze' && !window.AnalyzeSection?.onEnter
+                && window.CaissaPlayLazyLoader?.load) {
+                window.CaissaPlayLazyLoader.load('analyze-deep', { retry: true }).then(() => {
+                    if (this.currentSection === targetSection) this.onSectionEnter(targetSection);
+                }).catch(() => {
+                    console.error('[CAISSA Nav] Analyze resources unavailable');
+                });
+            } else {
+                this.onSectionEnter(targetSection);
+            }
             this.updateMobileGameplayControls(targetSection);
         }
     }

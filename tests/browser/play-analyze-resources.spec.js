@@ -89,7 +89,7 @@ test('Analyze refresh replays the bounded session handoff without exposing raw g
     await playMove(page, 'e2', 'e4');
     const expectedFen = (await snapshot(page)).fen;
     await page.locator('[data-section="analyze"]').first().click();
-    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.getGame()?.fen())).toBe(expectedFen);
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection?.getGame?.()?.fen())).toBe(expectedFen);
     const transport = await page.evaluate(() => ({
         keys: Object.keys(sessionStorage),
         token: sessionStorage.getItem('caissa:analyze:active:v1'),
@@ -103,7 +103,7 @@ test('Analyze refresh replays the bounded session handoff without exposing raw g
     expect(analyzeUrl.searchParams.has('pgn')).toBe(false);
     await page.reload();
     await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
-    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.getGame()?.fen())).toBe(expectedFen);
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection?.getGame?.()?.fen())).toBe(expectedFen);
 });
 
 test('corrupt handoff fails safely without changing Play', async ({ page }) => {

@@ -69,7 +69,7 @@
         #analysisRun = null; #analysisResult = null; #criticalMomentSelection = null;
         #guidedReplaySession = null; #knowledgeMapping = null; #mentorSummary = null;
         #compatibility; #records; #persistence; #handoff; #navigation; #rail; #onVisibilityChange;
-        #clipboard; #url; #Blob;
+        #clipboard; #url; #Blob; #actionEpoch = 0; #pendingAction = null; #pendingPromise = null;
         #diagnostics = {
             hydrations: 0, displays: 0, duplicateCompletions: 0, actions: 0,
             rematches: 0, newGames: 0, handoffs: 0, copies: 0, downloads: 0,
@@ -199,6 +199,7 @@
             };
             this.#consent = this.#persistence?.getConsent?.().value?.state || 'unknown';
             this.#saved = false; this.#feedback = ''; this.#mentorRequest = null;
+            this.#actionEpoch += 1;
             global.CaissaGuidedReplayView?.unmount?.();
             this.#analysisRun = null; this.#analysisResult = null; this.#criticalMomentSelection = null;
             this.#guidedReplaySession = null; this.#knowledgeMapping = null; this.#mentorSummary = null;
@@ -222,6 +223,7 @@
         }
         execute(action) {
             if (!ACTIONS.includes(action)) return this.#recordOperation(result(false, 'rejected', REASONS.INVALID_ACTION));
+            if (this.#busy && this.#pendingAction === action && this.#pendingPromise) return this.#pendingPromise;
             if (this.#busy) return this.#recordOperation(result(false, 'rejected', REASONS.ACTION_BUSY));
             const availability = this.#actions()[action];
             if (!availability?.enabled) return this.#recordOperation(result(false, 'unavailable', REASONS.ACTION_UNAVAILABLE));
@@ -239,8 +241,15 @@
                 else operation = result(false, 'unavailable', REASONS.ACTION_UNAVAILABLE);
             } catch (_) { operation = result(false, 'failed', REASONS.ACTION_FAILED); }
             if (operation && typeof operation.then === 'function') {
-                return operation.then(value => this.#finish(value)).catch(() =>
-                    this.#finish(result(false, 'failed', REASONS.ACTION_FAILED)));
+                this.#pendingAction = action;
+                const pending = operation.then(value => this.#finish(value)).catch(() =>
+                    this.#finish(result(false, 'failed', REASONS.ACTION_FAILED))).finally(() => {
+                    if (this.#pendingPromise === pending) {
+                        this.#pendingAction = null; this.#pendingPromise = null;
+                    }
+                });
+                this.#pendingPromise = pending;
+                return pending;
             }
             return this.#finish(operation);
         }
@@ -265,6 +274,12 @@
             return this.#recordOperation(result(true, 'prepared', 'TECHNICAL_ANALYSIS_PREPARED', prepared.value));
         }
         selectCriticalMoments(analysisResult = null) {
+            if (!global.CaissaCriticalMoments?.select && global.CaissaPlayLazyLoader?.load) {
+                return this.#loadThen('mentor-critical-moments',
+                    () => !!global.CaissaCriticalMoments?.select,
+                    () => this.selectCriticalMoments(analysisResult),
+                    'Loading critical-moment review…');
+            }
             if (!this.#mentorRequest?.requestId)
                 return this.#recordOperation(result(false, 'unavailable', REASONS.ACTION_UNAVAILABLE));
             const technical = analysisResult || (this.#analysisRun?.runId
@@ -280,6 +295,14 @@
             return this.#recordOperation(result(true, 'selected', 'CRITICAL_MOMENTS_SELECTED', selected.value));
         }
         prepareGuidedReplay(analysisResult = null, selection = null, options = {}) {
+            if ((!global.CaissaMentorGuidedReplay?.prepare || !global.CaissaEducationalConceptMapper?.map)
+                && global.CaissaPlayLazyLoader?.load) {
+                return this.#loadThen('mentor-knowledge',
+                    () => !!global.CaissaMentorGuidedReplay?.prepare
+                        && !!global.CaissaEducationalConceptMapper?.map,
+                    () => this.prepareGuidedReplay(analysisResult, selection, options),
+                    'Loading Guided Replay and learning concepts…');
+            }
             const technical = analysisResult || (this.#analysisRun?.runId
                 ? global.CaissaEducationalAnalysisPipeline?.getResult?.(this.#analysisRun.runId) : null);
             const moments = selection || this.#criticalMomentSelection;
@@ -370,6 +393,7 @@
         }
         dispose() {
             if (this.#disposed) return result(true, 'unchanged', REASONS.DISPOSED);
+            this.#actionEpoch += 1;
             global.CaissaGuidedReplayView?.unmount?.();
             this.hide(); this.unmount(); this.#disposed = true; this.#status = 'disposed';
             return this.#recordOperation(result(true, 'accepted', REASONS.DISPOSED));
@@ -391,8 +415,9 @@
                 'download-pgn': actionState(pgn && !!this.#Blob && !!this.#url?.createObjectURL),
                 'save-game': actionState(valid && this.#consent === 'granted' && !this.#saved),
                 'new-game': actionState(valid && config),
-                'mentor-review': actionState(this.#mentorReadiness().ready, false,
-                    this.#mentorReadiness().ready ? null : 'Requirements unavailable'),
+                'mentor-review': actionState(this.#mentorReadiness().ready
+                    || (valid && !!global.CaissaPlayLazyLoader), false,
+                    valid ? null : 'Requirements unavailable'),
                 'guided-replay': actionState(!!replaySession
                     && ['prepared', 'active', 'awaiting-attempt', 'attempted', 'revealed']
                         .includes(replaySession.status),
@@ -420,6 +445,13 @@
             }) || { ready: false, missingRequirements: ['mentor-foundation'] };
         }
         #requestMentorReview() {
+            if ((!global.CaissaMentorFoundation?.createRequest
+                || !global.CaissaEducationalAnalysisPipeline?.prepare) && global.CaissaPlayLazyLoader?.load) {
+                return this.#loadThen('mentor-analysis',
+                    () => !!global.CaissaMentorFoundation?.createRequest
+                        && !!global.CaissaEducationalAnalysisPipeline?.prepare,
+                    () => this.#requestMentorReview(), 'Loading Mentor review…');
+            }
             const selection = this.#resolveMentor();
             const created = global.CaissaMentorFoundation?.createRequest?.({
                 mentorId: selection?.mentor?.id, source: this.#mentorSource(), record: this.#record,
@@ -433,6 +465,13 @@
             return result(true, 'accepted', REASONS.MENTOR_REQUEST_CREATED, created.value);
         }
         #startGuidedReplay() {
+            if ((!global.CaissaMentorGuidedReplay?.start || !global.CaissaGuidedReplayView?.mount)
+                && global.CaissaPlayLazyLoader?.load) {
+                return this.#loadThen('mentor-guided-replay',
+                    () => !!global.CaissaMentorGuidedReplay?.start
+                        && !!global.CaissaGuidedReplayView?.mount,
+                    () => this.#startGuidedReplay(), 'Loading Guided Replay…');
+            }
             const current = global.CaissaMentorGuidedReplay?.getSnapshot?.(
                 this.#guidedReplaySession?.sessionId);
             const started = current?.status === 'prepared'
@@ -448,6 +487,10 @@
             return result(true, 'accepted', 'GUIDED_REPLAY_STARTED', started.value);
         }
         #createMentorSummary() {
+            if (!global.CaissaMentorSummary?.generate && global.CaissaPlayLazyLoader?.load) {
+                return this.#loadThen('mentor-summary', () => !!global.CaissaMentorSummary?.generate,
+                    () => this.#createMentorSummary(), 'Loading Mentor Summary…');
+            }
             const replay = this.#guidedReplaySession?.sessionId
                 ? global.CaissaMentorGuidedReplay?.getSnapshot?.(this.#guidedReplaySession.sessionId)
                 : this.#guidedReplaySession;
@@ -474,12 +517,31 @@
         }
         #analyze() {
             if (!this.#handoff?.createFromPlay) return result(false, 'unavailable', REASONS.ACTION_UNAVAILABLE);
+            if (!global.AnalyzeSection?.onEnter && global.CaissaPlayLazyLoader?.load) {
+                return this.#loadThen('analyze-deep', () => !!global.AnalyzeSection?.onEnter,
+                    () => this.#analyze(), 'Loading Analyze…', false);
+            }
             const before = this.#handoff.createFromPlay;
             if (typeof before !== 'function') return result(false, 'unavailable', REASONS.ACTION_UNAVAILABLE);
             const navigated = this.#navigation.navigateToSection('analyze');
             if (navigated === false) return result(false, 'failed', REASONS.ACTION_FAILED);
             this.#diagnostics.handoffs += 1;
             return result(true, 'accepted', REASONS.ANALYZE_OPENED);
+        }
+        #loadThen(resourceId, readiness, resume, message, qa = true) {
+            const loader = global.CaissaPlayLazyLoader;
+            if (!loader?.load) return result(false, 'unavailable', REASONS.ACTION_UNAVAILABLE);
+            const epoch = this.#actionEpoch;
+            const recordId = this.#record?.recordId;
+            this.#feedback = message; this.#render();
+            return loader.load(resourceId, { qa, retry: true }).then(() => {
+                if (this.#disposed || epoch !== this.#actionEpoch
+                    || recordId !== this.#record?.recordId || !this.#visible) {
+                    return result(false, 'unavailable', REASONS.ACTION_UNAVAILABLE);
+                }
+                if (!readiness()) return result(false, 'failed', REASONS.ACTION_FAILED);
+                return resume();
+            });
         }
         async #copy() {
             if (!this.#clipboard?.writeText) return result(false, 'unavailable', REASONS.ACTION_UNAVAILABLE);

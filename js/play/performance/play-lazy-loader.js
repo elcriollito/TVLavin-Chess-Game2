@@ -1,0 +1,24 @@
+(function(root,factory){root.CaissaPlayLazyLoader=factory(root.CaissaPlayLazyLoadContracts,root.CaissaPlayLoadRegistry,root.CaissaPlayPrefetchPolicy,root);})(typeof globalThis!=='undefined'?globalThis:window,function(C,R,P,root){
+'use strict';const promises=new Map(),nodes=new Map();let disposed=false,active=0,peak=0;
+const readiness=Object.freeze({
+'bots-stack':()=>!!root.CaissaBotsPanel?.create,
+'coach-stack':()=>!!root.CaissaCoachPanel?.create,
+'players-stack':()=>!!root.CaissaPlayersPanel?.create,
+'mentor-foundation':()=>!!root.CaissaMentorFoundation?.createRequest,
+'mentor-analysis':()=>!!root.CaissaEducationalAnalysisPipeline?.prepare,
+'mentor-critical-moments':()=>!!root.CaissaCriticalMoments?.select,
+'mentor-guided-replay':()=>!!root.CaissaMentorGuidedReplay?.prepare&&!!root.CaissaGuidedReplayView?.mount,
+'mentor-knowledge':()=>!!root.CaissaEducationalConceptMapper?.map&&!!root.CaissaKnowledgeMappingRegistry?.register,
+'mentor-summary':()=>!!root.CaissaMentorSummary?.generate,
+'analyze-deep':()=>!!root.CaissaAnalyzeSession?.createSession&&!!root.AnalyzeSection?.onEnter
+});
+const loaderScript=root.document.currentScript;const applicationBase=loaderScript?new URL('../../../',loaderScript.src):new URL('/',root.location.href);
+const resolveSource=source=>new URL(source,applicationBase);const sameOrigin=source=>{const u=resolveSource(source);return u.origin===root.location.origin&&/\/(js|css)\//.test(u.pathname);};
+function node(source,type){if(!sameOrigin(source))return Promise.reject(new Error('SOURCE_NOT_ALLOWED'));if(nodes.has(source))return nodes.get(source);const url=resolveSource(source).href;const selector=type==='style'?'link[rel="stylesheet"][href]':'script[src]';if([...root.document.querySelectorAll(selector)].some(el=>el.href===url||el.src===url)){const existing=Promise.resolve();nodes.set(source,existing);return existing;}const promise=new Promise((resolve,reject)=>{const el=root.document.createElement(type==='style'?'link':'script');if(type==='style'){el.rel='stylesheet';el.href=url;}else{el.src=url;el.async=false;}el.dataset.caissaLazyResource='true';el.onload=()=>resolve();el.onerror=()=>reject(new Error('RESOURCE_LOAD_FAILED'));root.document.head.appendChild(el);});nodes.set(source,promise);return promise;}
+async function attempt(record,options){active++;peak=Math.max(peak,active);R.update(record.definition.resourceId,{state:record.state.state==='failed'?'retrying':'loading',errorCode:null});try{for(const dep of record.definition.dependencies)await load(dep,{qa:options.qa,retry:options.retry});for(const style of record.definition.styles||[])await node(style,'style');for(const source of record.definition.sources||[])await node(source,'script');if(!readiness[record.definition.resourceId]?.())throw new Error('RESOURCE_NOT_READY');return R.update(record.definition.resourceId,{state:'loaded',loadedAt:Date.now()});}catch(error){R.update(record.definition.resourceId,{state:'failed',errorCode:'load-failed'});throw error;}finally{active--;}}
+function load(id,options={}){if(disposed)return Promise.reject(new Error('LOADER_DISPOSED'));const record=R.get(id);if(!record)return Promise.reject(new Error('UNKNOWN_RESOURCE'));if(record.state.qaOnly&&!options.qa)return Promise.resolve(R.update(id,{state:'unavailable',errorCode:'qa-required'}));if(record.state.state==='loaded')return Promise.resolve(record.state);if(promises.has(id))return promises.get(id);const run=attempt(record,options).catch(error=>{if(options.retry===true&&record.state.retryCount<1){R.update(id,{retryCount:1,state:'retrying'});promises.delete(id);return load(id,{...options,retry:false});}throw error;});promises.set(id,run);return run;}
+function prefetch(id,options={}){if(!P.allows(options))return Promise.resolve(Object.freeze({status:'suppressed'}));return load(id,{qa:true,retry:false});}
+function dispose(){disposed=true;promises.clear();R.inspect().forEach(s=>{if(s.state!=='disposed'&&C.canTransition(s.state,'disposed'))R.update(s.resourceId,{state:'disposed'});});return inspect();}
+function inspect(){return Object.freeze({schemaVersion:'1.0.0',disposed,activeLoads:active,peakConcurrentLoads:peak,nodeCount:nodes.size,resources:R.inspect()});}
+return Object.freeze({VERSION:'1.0.0',load,prefetch,preload:load,getState:id=>R.get(id)?.state||null,getSnapshot:inspect,inspect,dispose});
+});

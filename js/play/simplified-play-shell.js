@@ -93,6 +93,7 @@
         #suppressedLive = [];
         #layoutMode = null; #geometry = null; #resizeCount = 0; #activationCount = 0; #statusNode = null;
         #gamesPanel = null; #botsPanel = null; #coachPanel = null; #playersPanel = null; #postGame = null;
+        #panelLoadToken = 0;
         #accessibility = null;
         #diagnostics = {
             layoutChanges: 0, orientationChanges: 0, safeAreaApplications: 0,
@@ -229,43 +230,6 @@
                 this.#placements = [];
                 return result(false, 'unavailable', 'GAMES_PANEL_UNAVAILABLE');
             }
-            this.#botsPanel = global.CaissaBotsPanel?.create?.();
-            const botsMount = this.#botsPanel?.mount?.({ host: contextBody });
-            if (!botsMount?.ok) {
-                this.#botsPanel?.dispose?.(); this.#botsPanel = null;
-                this.#gamesPanel?.dispose?.(); this.#gamesPanel = null;
-                [...this.#placements].reverse().forEach(({ node, marker }) => {
-                    marker.parentNode.insertBefore(node, marker); marker.remove();
-                });
-                this.#placements = [];
-                return result(false, 'unavailable', 'BOTS_PANEL_UNAVAILABLE');
-            }
-            this.#coachPanel = global.CaissaCoachPanel?.create?.();
-            const coachMount = this.#coachPanel?.mount?.({ host: contextBody });
-            if (!coachMount?.ok) {
-                this.#coachPanel?.dispose?.(); this.#coachPanel = null;
-                this.#botsPanel?.dispose?.(); this.#botsPanel = null;
-                this.#gamesPanel?.dispose?.(); this.#gamesPanel = null;
-                [...this.#placements].reverse().forEach(({ node, marker }) => {
-                    marker.parentNode.insertBefore(node, marker); marker.remove();
-                });
-                this.#placements = [];
-                return result(false, 'unavailable', 'COACH_PANEL_UNAVAILABLE');
-            }
-            this.#playersPanel = global.CaissaPlayersPanel?.create?.();
-            const playersMount = this.#playersPanel?.mount?.({ host: contextBody });
-            if (!playersMount?.ok) {
-                this.#playersPanel?.dispose?.(); this.#playersPanel = null;
-                this.#coachPanel?.dispose?.(); this.#coachPanel = null;
-                this.#botsPanel?.dispose?.(); this.#botsPanel = null;
-                this.#gamesPanel?.dispose?.(); this.#gamesPanel = null;
-                [...this.#placements].reverse().forEach(({ node, marker }) => {
-                    marker.parentNode.insertBefore(node, marker); marker.remove();
-                });
-                this.#placements = [];
-                return result(false, 'unavailable', 'PLAYERS_PANEL_UNAVAILABLE');
-            }
-            global.CaissaPlayersPanelInstance = this.#playersPanel;
             this.#postGame = global.CaissaPostGameExperience?.create?.({
                 onVisibilityChange: visible => {
                     if (visible) {
@@ -460,8 +424,41 @@
             target.addEventListener(type, handler);
             this.#listeners.push({ target, type, handler });
         }
-        #syncPanels() {
+        async #ensureDeferredPanel(mode, token) {
+            const map = {
+                bots: ['bots-stack', 'CaissaBotsPanel', '#botsPanel'],
+                coach: ['coach-stack', 'CaissaCoachPanel', '#coachPanel'],
+                players: ['players-stack', 'CaissaPlayersPanel', '#playersPanel']
+            };
+            const entry = map[mode];
+            if (!entry) return true;
+            const existing = mode === 'bots' ? this.#botsPanel : mode === 'coach' ? this.#coachPanel : this.#playersPanel;
+            if (existing) return true;
+            this.setStatus('loading');
+            try {
+                await global.CaissaPlayLazyLoader?.load?.(entry[0], { qa: true, retry: true });
+                if (token !== this.#panelLoadToken || this.#mode !== mode || !this.#active) return false;
+                const panel = global[entry[1]]?.create?.();
+                const mounted = panel?.mount?.({ host: this.#root.querySelector('.caissa-simplified-shell__context-body') });
+                if (!mounted?.ok) throw new Error('PANEL_MOUNT_FAILED');
+                if (mode === 'bots') this.#botsPanel = panel;
+                else if (mode === 'coach') this.#coachPanel = panel;
+                else {
+                    this.#playersPanel = panel;
+                    global.CaissaPlayersPanelInstance = panel;
+                }
+                this.setStatus('ready');
+                return true;
+            } catch (_) {
+                if (token === this.#panelLoadToken && this.#mode === mode) this.setStatus('unavailable');
+                return false;
+            }
+        }
+        async #syncPanels() {
             if (!this.#active || this.#postGame?.getSnapshot?.().visible) return;
+            const token = ++this.#panelLoadToken;
+            if (this.#mode !== 'games' && !(await this.#ensureDeferredPanel(this.#mode, token))) return;
+            if (token !== this.#panelLoadToken) return;
             if (this.#mode === 'bots') {
                 global.CaissaCoachSession?.reset?.();
                 this.#gamesPanel?.hide?.(); this.#coachPanel?.hide?.();

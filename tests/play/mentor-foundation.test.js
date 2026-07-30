@@ -120,10 +120,15 @@ test('static boundary owns no engine, worker, clock, DOM, storage, network, Memo
 });
 
 test('both SPA pages load the foundation once after GameRecord and before PostGame', () => {
+    const registry = fs.readFileSync(new URL('../../js/play/performance/play-load-registry.js', import.meta.url), 'utf8');
     for (const page of ['index.html', 'yahoo-classic.html']) {
         const html = fs.readFileSync(new URL(`../../${page}`, import.meta.url), 'utf8');
-        for (const file of files) assert.equal((html.match(new RegExp(file.split('/').pop().replace('.', '\\.'), 'g')) || []).length, 1);
-        assert.ok(html.indexOf('game-record.js') < html.indexOf('mentor-capabilities.js'));
-        assert.ok(html.indexOf('mentor-foundation.js') < html.indexOf('post-game-experience.js'));
+        for (const file of files) {
+            const name = file.split('/').pop().replace('.', '\\.');
+            assert.doesNotMatch(html, new RegExp(`<script[^>]+${name}`));
+            assert.match(registry, new RegExp(name));
+        }
+        assert.ok(html.indexOf('game-record.js') < html.indexOf('play-lazy-loader.js'));
+        assert.ok(html.indexOf('play-lazy-loader.js') < html.indexOf('post-game-experience.js'));
     }
 });

@@ -12,6 +12,7 @@ async function complete(page, route, startSelector) {
 
 test('transversal Mentor foundation is truthful, immutable, and separate from Play modes', async ({ page }) => {
     await page.goto('/play/games?simplified=1');
+    await page.evaluate(() => window.CaissaPlayLazyLoader.load('mentor-foundation', { qa: true }));
     const proof = await page.evaluate(() => ({
         modes: window.CaissaSimplifiedPlayShell.modes,
         capabilities: window.CaissaMentorCapabilities.snapshot,
@@ -56,7 +57,8 @@ for (const scenario of [
 
 test('Academy selection remains authoritative without automatic overwrite', async ({ page }) => {
     await page.goto('/?section=academy');
-    const result = await page.evaluate(() => {
+    const result = await page.evaluate(async () => {
+        await window.CaissaPlayLazyLoader.load('mentor-foundation', { qa: true });
         window.CaissaAcademySection.selectMentor('academyMentorCapablanca');
         const academy = window.CaissaAcademySection.getMentorSelection();
         const resolved = window.CaissaMentorSelectionResolver.resolve({ academyMentorId: academy.mentorId });

@@ -1,0 +1,1 @@
+(function(root){'use strict';root.CaissaPlayPrefetchPolicy=Object.freeze({VERSION:'1.0.0',allows(input={}){if(input.saveData===true||input.effectiveType==='2g'||input.effectiveType==='slow-2g')return false;return input.qa===true&&['idle','hover-intent','focus-intent'].includes(input.intent);},maxConcurrent:1});})(typeof globalThis!=='undefined'?globalThis:window);

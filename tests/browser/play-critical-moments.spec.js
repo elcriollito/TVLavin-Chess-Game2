@@ -12,7 +12,8 @@ for (const scenario of scenarios) {
     test(`${scenario.name} selector respects limits, chronology and technical-only boundaries`, async ({ page }) => {
         await page.setViewportSize(scenario.viewport);
         await page.goto('/play/games?simplified=1');
-        const proof = await page.evaluate(() => {
+        const proof = await page.evaluate(async () => {
+            await window.CaissaPlayLazyLoader.load('mentor-critical-moments', { qa: true });
             const ev = cp => ({ type: 'cp', cp, mate: null, perspective: 'white' });
             const positions = [
                 [0, 0, null], [1, -250, 'white'], [4, 200, 'black'],
@@ -63,7 +64,8 @@ for (const scenario of scenarios) {
 
 test('adjacent sequence deduplicates, weak evidence stays empty and partial result is honest', async ({ page }) => {
     await page.goto('/play/games?simplified=1');
-    const proof = await page.evaluate(() => {
+    const proof = await page.evaluate(async () => {
+        await window.CaissaPlayLazyLoader.load('mentor-critical-moments', { qa: true });
         const p = (ply, cp, options = {}) => ({
             schemaVersion: '1.0.0', positionId: `position:${ply}`, ply,
             evaluation: { type: options.mate == null ? 'cp' : 'mate',
@@ -103,7 +105,9 @@ test('PostGame explicitly selects from a completed envelope without changing Ana
     await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
     await expect(page.locator('.caissa-post-game')).toBeVisible();
     await page.locator('[data-post-game-action="mentor-review"]').click();
-    const proof = await page.evaluate(() => {
+    await expect.poll(() => page.evaluate(() =>
+        window.CaissaPostGameExperienceInstance.getSnapshot().mentor.request?.requestId)).toBeTruthy();
+    const proof = await page.evaluate(async () => {
         const requestId = window.CaissaPostGameExperienceInstance.getSnapshot().mentor.request.requestId;
         const result = {
             schemaVersion: '1.0.0', runId: 'run:post-game', requestId, status: 'complete',
@@ -119,7 +123,7 @@ test('PostGame explicitly selects from a completed envelope without changing Ana
                     material: { whiteMinusBlack: -3 }, terminal: false }
             ]
         };
-        const selected = window.CaissaPostGameExperienceInstance.selectCriticalMoments(result);
+        const selected = await window.CaissaPostGameExperienceInstance.selectCriticalMoments(result);
         const snapshot = window.CaissaPostGameExperienceInstance.getSnapshot();
         return {
             selected, snapshot, primary: document.querySelectorAll(

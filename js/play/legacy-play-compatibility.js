@@ -280,10 +280,14 @@
                     if (input !== undefined) return rejected(command, 'input-not-supported');
                     if (typeof global.CaissaNavigation?.navigateToSection !== 'function')
                         return unavailable(command, 'navigation-unavailable');
-                    const navigated = global.CaissaNavigation.navigateToSection('analyze');
+                    const handoffFactory = global.CaissaAnalyzeHandoff?.createFromPlay;
+                    const handoff = typeof handoffFactory === 'function' ? handoffFactory() : null;
+                    if (handoff && !handoff.ok) return unavailable(command, 'handoff-unavailable');
+                    const navigated = global.CaissaNavigation.navigateToSection('analyze',
+                        handoff?.value?.token ? { handoffToken: handoff.value.token } : undefined);
                     if (navigated === false) return unavailable(command, 'handoff-unavailable');
                     return result(true, 'accepted', command, null,
-                        global.CaissaNavigation.lastAnalyzeHandoffToken ?? null);
+                        handoff?.value?.token ?? global.CaissaNavigation.lastAnalyzeHandoffToken ?? null);
                 }
                 case 'requestPgn':
                     if (input !== undefined) return rejected(command, 'input-not-supported');

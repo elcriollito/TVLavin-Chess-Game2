@@ -251,13 +251,14 @@ test('static boundary owns no engine, Worker, DOM, storage, network, Academy, or
 });
 
 test('both SPA pages load summary modules once before PostGame without changing dependencies', () => {
+    const registry = fs.readFileSync(path.join(root, 'js/play/performance/play-load-registry.js'), 'utf8');
     for (const page of ['index.html', 'yahoo-classic.html']) {
         const html = fs.readFileSync(path.join(root, page), 'utf8');
         for (const file of sources.slice(2, 7)) {
             const src = file;
-            assert.equal((html.match(new RegExp(src.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'))
-                || []).length, 1);
-            assert.ok(html.indexOf(src) < html.indexOf('js/play/post-game-experience.js'));
+            const escaped = src.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            assert.doesNotMatch(html, new RegExp(`<script[^>]+${escaped}`));
+            assert.match(registry, new RegExp(escaped));
         }
     }
 });

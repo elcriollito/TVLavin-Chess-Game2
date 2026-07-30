@@ -17,7 +17,9 @@ test('core Guided Replay flow hides the answer, validates moves, reveals, restar
     await expect(replayAction).toBeDisabled();
     await expect(summaryAction).toBeDisabled();
     await page.locator('[data-post-game-action="mentor-review"]').click();
-    const prepared = await page.evaluate(() => {
+    await expect.poll(() => page.evaluate(() =>
+        window.CaissaPostGameExperienceInstance.getSnapshot().mentor.request?.requestId)).toBeTruthy();
+    const prepared = await page.evaluate(async () => {
         const postGame = window.CaissaPostGameExperienceInstance;
         const requestId = postGame.getSnapshot().mentor.request.requestId;
         const positions = [
@@ -42,8 +44,8 @@ test('core Guided Replay flow hides the answer, validates moves, reveals, restar
             runId: 'run:guided-browser', requestId, status: 'complete',
             summary: { partial: false }, positions
         };
-        const selected = postGame.selectCriticalMoments(technical);
-        const replay = postGame.prepareGuidedReplay(technical, selected.value);
+        const selected = await postGame.selectCriticalMoments(technical);
+        const replay = await postGame.prepareGuidedReplay(technical, selected.value);
         return { selected, replay, snapshot: postGame.getSnapshot() };
     });
     expect(prepared.selected.ok).toBe(true);
@@ -163,11 +165,14 @@ test('Guided Replay remains bounded at desktop and mobile widths with no answer 
     for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
         await page.setViewportSize(viewport);
         await page.goto('/play/games?simplified=1');
-        const layout = await page.evaluate(() => ({
+        const layout = await page.evaluate(async () => {
+            await window.CaissaPlayLazyLoader.load('mentor-guided-replay', { qa: true });
+            return ({
             promptTypes: window.CaissaGuidedReplayPrompts.promptTypes,
             answerPolicies: window.CaissaMentorGuidedReplay.answerPolicies,
             resources: window.CaissaMentorGuidedReplay.inspect()
-        }));
+            });
+        });
         expect(layout.promptTypes).toEqual(['play-move', 'choose-move', 'reflect']);
         expect(layout.answerPolicies).toContain('hidden-until-attempt');
         expect(layout.resources.maxReplayBoards).toBe(1);
@@ -177,7 +182,8 @@ test('Guided Replay remains bounded at desktop and mobile widths with no answer 
 
 test('Mentor Summary preserves one trusted exact Knowledge link and generic-only fallback', async ({ page }) => {
     await page.goto('/play/games?simplified=1');
-    const result = await page.evaluate(() => {
+    const result = await page.evaluate(async () => {
+        await window.CaissaPlayLazyLoader.load('mentor-summary', { qa: true });
         const requestId = 'mrr_browserexact123456';
         const request = {
             requestId, source: { type: 'bot-game', recordId: 'game:browser-exact' },

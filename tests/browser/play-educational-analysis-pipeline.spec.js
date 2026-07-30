@@ -9,6 +9,8 @@ async function complete(page, route, startSelector) {
     await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
     await expect(page.locator('.caissa-post-game')).toBeVisible();
     await page.locator('[data-post-game-action="mentor-review"]').click();
+    await expect.poll(() => page.evaluate(() =>
+        window.CaissaPostGameExperienceInstance.getSnapshot().mentor.request?.requestId)).toBeTruthy();
 }
 
 for (const scenario of [
@@ -58,6 +60,7 @@ for (const scenario of [
 test('imported boundary, cancellation, timeout and stale completion remain isolated from Analyze', async ({ page }) => {
     await page.goto('/play/games?simplified=1');
     const proof = await page.evaluate(async () => {
+        await window.CaissaPlayLazyLoader.load('mentor-analysis', { qa: true });
         const options = {
             mentorId: 'academyMentorCaissa', playerLevel: 'novice', focus: 'general',
             analysisDepth: 'quick', criticalMomentLimit: 3, explanationStyle: 'balanced',
