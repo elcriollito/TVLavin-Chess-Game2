@@ -1,29 +1,83 @@
 body.caissa-simplified-play-active .caissa-vc { box-sizing: border-box; color: var(--play-vc-text); }
-body.caissa-simplified-play-active .caissa-vc-tabs__list { display: flex; gap: var(--play-vc-space-1); overflow-x: auto; }
+body.caissa-simplified-play-active .caissa-vc-tabs {
+    padding: var(--play-vc-space-1); border-block: 1px solid var(--play-vc-border);
+    background: var(--play-vc-surface-inscribed);
+}
+body.caissa-simplified-play-active .caissa-vc-tabs__list {
+    display: flex; gap: var(--play-vc-space-1); overflow-x: auto; scrollbar-width: thin;
+}
 body.caissa-simplified-play-active .caissa-vc-tab,
 body.caissa-simplified-play-active .caissa-vc-button {
-    min-height: var(--play-vc-touch-target); border: 1px solid var(--play-vc-border);
-    border-radius: var(--play-vc-radius); padding: var(--play-vc-space-2) var(--play-vc-space-3);
+    position: relative; min-height: var(--play-vc-touch-target);
+    border: 1px solid transparent; border-radius: var(--play-vc-radius);
+    padding: var(--play-vc-space-2) var(--play-vc-space-3);
 }
-body.caissa-simplified-play-active .caissa-vc-tab[aria-selected="true"],
-body.caissa-simplified-play-active .caissa-vc-button--primary { background: var(--primary-color, #2457a7); color: #fff; }
+body.caissa-simplified-play-active .caissa-vc-tab {
+    background: transparent; color: var(--play-vc-text-muted);
+}
+body.caissa-simplified-play-active .caissa-vc-tab[aria-selected="true"] {
+    border-color: var(--play-vc-border); background: var(--play-vc-surface-raised);
+    color: var(--play-vc-text); box-shadow: inset .1875rem 0 0 var(--play-vc-edge);
+}
+body.caissa-simplified-play-active .caissa-vc-button--primary {
+    margin-inline-end: auto; border-color: var(--play-vc-edge);
+    background: var(--primary-color, #2457a7); color: #fff;
+    box-shadow: inset .1875rem 0 0 rgb(255 255 255 / 42%);
+}
 body.caissa-simplified-play-active .caissa-vc :focus-visible,
 body.caissa-simplified-play-active .caissa-vc:focus-visible { outline: 0; box-shadow: var(--play-vc-focus); }
 body.caissa-simplified-play-active .caissa-vc :disabled { opacity: var(--play-vc-disabled-opacity); }
 body.caissa-simplified-play-active .caissa-vc-card,
 body.caissa-simplified-play-active .caissa-vc-state,
 body.caissa-simplified-play-active .caissa-vc-game-over {
-    display: grid; gap: var(--play-vc-space-2); padding: var(--play-vc-panel-padding);
+    display: grid; gap: var(--play-vc-card-gap); padding: var(--play-vc-panel-padding);
     border: 1px solid var(--play-vc-border); border-radius: var(--play-vc-radius);
     background: var(--play-vc-surface-raised); box-shadow: var(--play-vc-shadow);
 }
+body.caissa-simplified-play-active .caissa-vc-card__title { margin-block: 0; letter-spacing: .025em; }
+body.caissa-simplified-play-active .caissa-vc-card__description { margin-block: 0; color: var(--play-vc-text-muted); }
 body.caissa-simplified-play-active .caissa-vc-badge,
-body.caissa-simplified-play-active .caissa-vc-country { display: inline-flex; width: fit-content; padding: .15rem .45rem; border-radius: 999px; background: var(--play-vc-surface); }
-body.caissa-simplified-play-active .caissa-vc-time-controls { display: grid; gap: var(--play-vc-space-2); border: 0; padding: 0; }
-body.caissa-simplified-play-active .caissa-vc-choice { min-height: var(--play-vc-touch-target); display: flex; align-items: center; gap: var(--play-vc-space-2); }
-body.caissa-simplified-play-active .caissa-vc-disclosure__summary { min-height: var(--play-vc-touch-target); display: flex; align-items: center; cursor: pointer; }
-body.caissa-simplified-play-active .caissa-vc-cta { display: flex; flex-wrap: wrap; gap: var(--play-vc-space-2); padding-bottom: max(var(--play-vc-space-2), env(safe-area-inset-bottom)); }
-body.caissa-simplified-play-active .caissa-vc-state--loading { min-height: 5rem; background: linear-gradient(90deg, var(--play-vc-surface), var(--play-vc-surface-raised), var(--play-vc-surface)); background-size: 200% 100%; animation: caissa-vc-loading 1.2s linear infinite; }
-@keyframes caissa-vc-loading { to { background-position: -200% 0; } }
-@media (prefers-reduced-motion: reduce) { body.caissa-simplified-play-active .caissa-vc { transition: none !important; animation: none !important; } }
-@media (max-width: 600px) { body.caissa-simplified-play-active .caissa-vc-cta { display: grid; } body.caissa-simplified-play-active .caissa-vc-button { width: 100%; } }
+body.caissa-simplified-play-active .caissa-vc-country {
+    display: inline-flex; width: fit-content; padding: .1875rem .5rem;
+    border: 1px solid var(--play-vc-border); border-radius: var(--play-vc-radius-small);
+    background: var(--play-vc-surface); font-variant-numeric: tabular-nums;
+}
+body.caissa-simplified-play-active .caissa-vc-time-controls {
+    display: grid; gap: var(--play-vc-space-1); border: 0; padding: 0;
+}
+body.caissa-simplified-play-active .caissa-vc-choice {
+    min-height: var(--play-vc-touch-target); display: flex; align-items: center;
+    gap: var(--play-vc-space-2); border-block-start: 1px solid var(--play-vc-border);
+}
+body.caissa-simplified-play-active .caissa-vc-choice:has(input:checked) {
+    box-shadow: inset .1875rem 0 0 var(--play-vc-edge);
+}
+body.caissa-simplified-play-active .caissa-vc-disclosure__summary {
+    min-height: var(--play-vc-touch-target); display: flex; align-items: center;
+    border-inline-start: .1875rem solid var(--play-vc-edge); padding-inline-start: var(--play-vc-space-2);
+    cursor: pointer;
+}
+body.caissa-simplified-play-active .caissa-vc-cta {
+    display: flex; flex-wrap: wrap; align-items: center; gap: var(--play-vc-space-2);
+    padding-block-end: max(var(--play-vc-space-2), env(safe-area-inset-bottom));
+}
+body.caissa-simplified-play-active .caissa-vc-game-over::after {
+    content: ""; height: 1px; background: linear-gradient(90deg, var(--play-vc-edge), transparent);
+}
+body.caissa-simplified-play-active .caissa-vc-state--locked {
+    border-inline-end-style: dashed; border-end-end-radius: 0;
+}
+body.caissa-simplified-play-active .caissa-vc-state--loading {
+    min-height: 5rem;
+    background: linear-gradient(115deg, var(--play-vc-surface) 20%, var(--play-vc-surface-raised) 42%, var(--play-vc-surface) 64%);
+    background-size: 240% 100%; animation: caissa-vc-ledger-wash 980ms ease-in-out infinite;
+}
+@keyframes caissa-vc-ledger-wash { to { background-position: -240% 0; } }
+@media (prefers-reduced-motion: reduce) {
+    body.caissa-simplified-play-active .caissa-vc { transition: none !important; animation: none !important; }
+}
+@media (max-width: 42rem) {
+    body.caissa-simplified-play-active .caissa-vc-cta { display: grid; }
+    body.caissa-simplified-play-active .caissa-vc-button { width: 100%; }
+    body.caissa-simplified-play-active .caissa-vc-button--primary { margin-inline-end: 0; }
+}

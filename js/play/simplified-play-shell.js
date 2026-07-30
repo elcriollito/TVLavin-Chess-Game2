@@ -113,7 +113,7 @@
             const preview = element('div', 'caissa-simplified-shell__preview', { role: 'status' });
             preview.textContent = 'QA Preview · Simplified Play';
             const nav = global.CaissaPlayVisualComponents?.createModeTabs?.({
-                variant: 'mobile-scroll', ariaLabel: 'Play modes',
+                variant: 'caissa-rail', ariaLabel: 'Play modes',
                 items: Object.entries(MODES).map(([mode, available]) => ({
                     id: mode, shellMode: mode, label: mode[0].toUpperCase() + mode.slice(1),
                     active: mode === 'games', disabled: !available

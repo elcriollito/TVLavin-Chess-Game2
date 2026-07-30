@@ -1,19 +1,22 @@
 body.caissa-simplified-play-active {
-    --play-vc-space-1: .35rem;
-    --play-vc-space-2: .6rem;
-    --play-vc-space-3: .85rem;
-    --play-vc-radius: .55rem;
+    --play-vc-space-1: .375rem;
+    --play-vc-space-2: .625rem;
+    --play-vc-space-3: 1rem;
+    --play-vc-radius: .625rem .1875rem;
+    --play-vc-radius-small: .25rem .125rem;
     --play-vc-border: #52647a;
+    --play-vc-edge: #d3a94d;
     --play-vc-surface: #172434;
     --play-vc-surface-raised: #1c2a3b;
+    --play-vc-surface-inscribed: #13202e;
     --play-vc-text: #f4f7fb;
     --play-vc-text-muted: #c5cfdb;
-    --play-vc-shadow: 0 .2rem .7rem rgb(0 0 0 / 20%);
+    --play-vc-shadow: inset .1875rem 0 0 rgb(211 169 77 / 72%), 0 .25rem .625rem rgb(3 9 18 / 24%);
     --play-vc-control-height: 2.75rem;
     --play-vc-touch-target: 44px;
-    --play-vc-panel-padding: .75rem;
-    --play-vc-card-gap: .65rem;
-    --play-vc-transition: 160ms;
-    --play-vc-focus: 0 0 0 3px rgb(104 164 255 / 55%);
+    --play-vc-panel-padding: .75rem 1rem;
+    --play-vc-card-gap: .625rem;
+    --play-vc-transition: 170ms;
+    --play-vc-focus: 0 0 0 .1875rem rgb(111 173 231 / 62%);
     --play-vc-disabled-opacity: .55;
 }

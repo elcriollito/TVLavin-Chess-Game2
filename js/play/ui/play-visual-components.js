@@ -1,7 +1,7 @@
 (function installPlayVisualComponents(global) {
     'use strict';
-    const VERSION = '1.0.0';
-    const VARIANTS = Object.freeze(['standard', 'compact', 'mobile-scroll']);
+    const VERSION = '1.1.0';
+    const VARIANTS = Object.freeze(['standard', 'compact', 'mobile-scroll', 'caissa-rail']);
     const STATES = Object.freeze(['default', 'selected', 'disabled', 'loading', 'empty', 'locked', 'coming-later', 'unavailable']);
     const TONES = Object.freeze(['neutral', 'info', 'positive', 'warning', 'danger']);
     const DENSITIES = Object.freeze(['compact', 'standard', 'large']);
@@ -44,7 +44,7 @@
     function createModeTabs(vm = {}) {
         const root = element('nav', `caissa-vc caissa-vc-tabs caissa-vc--${variant(vm.variant)}`, {
             'aria-label': text(vm.ariaLabel, 80) || 'Play modes',
-            'data-visual-component': 'mode-tabs'
+            'data-visual-component': 'mode-tabs', 'data-caissa-expression': 'inscribed-mode-rail'
         });
         const list = element('div', 'caissa-vc-tabs__list', { role: 'tablist' });
         root.appendChild(list);
@@ -81,7 +81,7 @@
         const value = Number.isFinite(vm.value) ? String(Math.round(vm.value))
             : text(vm.range, 30) || (vm.unrated ? 'Unrated' : 'Rating unknown');
         const node = element('span', `caissa-vc caissa-vc-badge caissa-vc-badge--${tone(vm.tone)}`, {
-            'data-visual-component': 'rating-badge'
+            'data-visual-component': 'rating-badge', 'data-caissa-expression': 'rating-ledger'
         });
         node.textContent = `${vm.approximate ? '≈' : ''}${value}${vm.provisional ? ' provisional' : ''}`
             + (text(vm.provider, 30) ? ` · ${vm.provider}` : '');
@@ -99,7 +99,7 @@
         const id = text(vm.id, 50) || `profile-${++sequence}`;
         const root = element('article', `caissa-vc caissa-vc-card caissa-vc-card--${density(vm.density)}`, {
             'data-visual-component': 'profile-card', 'data-state': state(vm.state),
-            'aria-labelledby': `${id}-title`
+            'aria-labelledby': `${id}-title`, 'data-caissa-expression': 'identity-first-profile'
         });
         const title = element('h3', 'caissa-vc-card__title', { id: `${id}-title` });
         title.textContent = text(vm.name, 80) || 'Profile';
@@ -113,7 +113,7 @@
     }
     function createTimeControlSelector(vm = {}) {
         const root = element('fieldset', 'caissa-vc caissa-vc-time-controls', {
-            'data-visual-component': 'time-control-selector'
+            'data-visual-component': 'time-control-selector', 'data-caissa-expression': 'score-sheet-controls'
         });
         const legend = element('legend', 'caissa-vc__legend'); legend.textContent = text(vm.label, 60) || 'Time control';
         root.appendChild(legend);
@@ -147,7 +147,8 @@
     }
     function createCtaFooter(vm = {}) {
         const root = element('footer', 'caissa-vc caissa-vc-cta', {
-            'data-visual-component': 'cta-footer', 'aria-label': text(vm.ariaLabel, 80) || 'Actions'
+            'data-visual-component': 'cta-footer', 'data-caissa-expression': 'separated-primary-command',
+            'aria-label': text(vm.ariaLabel, 80) || 'Actions'
         });
         const listeners = [];
         const actions = Array.isArray(vm.actions) ? vm.actions.slice(0, 5) : [];
@@ -167,7 +168,8 @@
     }
     function createGameOverCard(vm = {}) {
         const root = element('section', 'caissa-vc caissa-vc-game-over', {
-            'data-visual-component': 'game-over-card', 'aria-label': 'Game over'
+            'data-visual-component': 'game-over-card', 'data-caissa-expression': 'learning-continuation',
+            'aria-label': 'Game over'
         });
         const heading = element('h2', 'caissa-vc-card__title'); heading.textContent = text(vm.title, 80) || 'Game over';
         const result = element('p', 'caissa-vc-game-over__result'); result.textContent = text(vm.result, 120) || 'Result unavailable';
@@ -177,7 +179,9 @@
     function stateComponent(component, vm, defaultTitle) {
         const root = element('section', `caissa-vc caissa-vc-state caissa-vc-state--${state(vm.state)}`, {
             'data-visual-component': component, role: component === 'loading-skeleton' ? 'status' : null,
-            'aria-live': component === 'loading-skeleton' ? 'polite' : null
+            'aria-live': component === 'loading-skeleton' ? 'polite' : null,
+            'data-caissa-expression': component === 'locked-state' ? 'notched-readiness'
+                : component === 'loading-skeleton' ? 'ledger-wash' : 'open-file-state'
         });
         const title = element('h3', 'caissa-vc-state__title'); title.textContent = text(vm.title, 80) || defaultTitle;
         const message = element('p', 'caissa-vc-state__message'); message.textContent = text(vm.message, 240) || '';
