@@ -697,7 +697,7 @@ body.caissa-simplified-play-active .caissa-players-panel {
     display: grid;
     gap: .85rem;
     min-width: 0;
-    color: #e8eef7;
+    color: var(--play-theme-text);
 }
 
 body.caissa-simplified-play-active .caissa-players-panel__header h2,
@@ -725,8 +725,8 @@ body.caissa-simplified-play-active .caissa-players-panel__tab {
     padding: .55rem .7rem;
     border: 1px solid var(--border-color, #d0d5dd);
     border-radius: .5rem;
-    background: #1c2a3b;
-    color: #e8eef7;
+    background: var(--play-theme-card);
+    color: var(--play-theme-text);
     scroll-snap-align: start;
 }
 
@@ -740,13 +740,13 @@ body.caissa-simplified-play-active .caissa-players-panel__section {
     padding: 1rem;
     border: 1px solid var(--border-color, #d0d5dd);
     border-radius: .75rem;
-    background: #162235;
+    background: var(--play-theme-card);
 }
 
 body.caissa-simplified-play-active .caissa-players-panel__state { font-weight: 700; }
 body.caissa-simplified-play-active .caissa-players-panel__source,
 body.caissa-simplified-play-active .caissa-players-panel__status {
-    color: #c5cfdb;
+    color: var(--play-theme-text-muted);
     font-size: .875rem;
 }
 
@@ -763,7 +763,7 @@ body.caissa-simplified-play-active .caissa-players-panel__action {
 
 body.caissa-simplified-play-active .caissa-players-panel__action--primary {
     background: var(--primary-color, #2457a7);
-    color: #fff;
+    color: var(--play-theme-text);
 }
 
 body.caissa-simplified-play-active .caissa-players-panel__presence-list {
@@ -779,9 +779,9 @@ body.caissa-simplified-play-active .caissa-players-panel__presence-row {
     gap: .35rem .75rem;
     min-width: 0;
     padding: .75rem;
-    border: 1px solid #52647a;
+    border: 1px solid var(--play-theme-border);
     border-radius: .55rem;
-    background: #1c2a3b;
+    background: var(--play-theme-card);
 }
 
 body.caissa-simplified-play-active .caissa-players-panel__presence-name {
@@ -791,7 +791,7 @@ body.caissa-simplified-play-active .caissa-players-panel__presence-name {
 body.caissa-simplified-play-active .caissa-players-panel__presence-provider,
 body.caissa-simplified-play-active .caissa-players-panel__presence-status,
 body.caissa-simplified-play-active .caissa-players-panel__presence-rating {
-    color: #c5cfdb;
+    color: var(--play-theme-text-muted);
     font-size: .8rem;
 }
 
@@ -812,9 +812,9 @@ body.caissa-simplified-play-active .caissa-players-panel__challenge-row {
     gap: .45rem .75rem;
     min-width: 0;
     padding: .75rem;
-    border: 1px solid #52647a;
+    border: 1px solid var(--play-theme-border);
     border-radius: .55rem;
-    background: #1c2a3b;
+    background: var(--play-theme-card);
 }
 
 body.caissa-simplified-play-active .caissa-players-panel__challenge-name {
@@ -825,7 +825,7 @@ body.caissa-simplified-play-active .caissa-players-panel__challenge-provider,
 body.caissa-simplified-play-active .caissa-players-panel__challenge-direction,
 body.caissa-simplified-play-active .caissa-players-panel__challenge-state,
 body.caissa-simplified-play-active .caissa-players-panel__challenge-details {
-    color: #c5cfdb;
+    color: var(--play-theme-text-muted);
     font-size: .8rem;
 }
 
@@ -836,18 +836,18 @@ body.caissa-simplified-play-active .caissa-players-panel__challenge-details {
 body.caissa-simplified-play-active .caissa-players-panel__challenge-action {
     min-height: 44px;
     padding: .55rem .8rem;
-    border: 1px solid #7d91aa;
+    border: 1px solid var(--play-theme-border);
     border-radius: .45rem;
-    color: #fff;
-    background: #283d55;
+    color: var(--play-theme-text);
+    background: var(--play-theme-inset);
 }
 
 body.caissa-simplified-play-active .caissa-players-panel__fair-play {
     margin-block-start: 1rem;
     padding: .75rem;
-    border: 1px solid #52647a;
+    border: 1px solid var(--play-theme-border);
     border-radius: .55rem;
-    background: #172434;
+    background: var(--play-theme-panel);
 }
 
 body.caissa-simplified-play-active .caissa-players-panel__fair-play-list {
@@ -866,9 +866,9 @@ body.caissa-simplified-play-active .caissa-players-panel__infrastructure {
     gap: .6rem;
     margin-block-start: .85rem;
     padding: .75rem;
-    border: 1px solid #52647a;
+    border: 1px solid var(--play-theme-border);
     border-radius: .55rem;
-    background: #172434;
+    background: var(--play-theme-panel);
 }
 
 body.caissa-simplified-play-active .caissa-players-panel__provider-list {

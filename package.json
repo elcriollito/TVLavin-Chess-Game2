@@ -76,6 +76,7 @@
     "test:play:human-infrastructure": "node --test tests/play/human-play-infrastructure.test.js tests/play/players-panel.test.js && playwright test tests/browser/play-human-infrastructure.spec.js",
     "test:play:visual-components": "node --test tests/play/play-visual-components.test.js && playwright test tests/browser/play-visual-components.spec.js",
     "test:play:visual-identity": "node --test tests/play/play-visual-identity.test.js && playwright test tests/browser/play-visual-identity.spec.js",
+    "test:play:themes": "node --test tests/play/play-themes.test.js && playwright test tests/browser/play-themes.spec.js",
     "test:play:lifecycle": "node --test tests/play/game-lifecycle.test.js && playwright test --project=chromium tests/browser/play-game-lifecycle.spec.js",
     "test:play:clock": "node --test tests/play/clock-service.test.js && playwright test --project=chromium tests/browser/play-clock-service.spec.js",
     "test:play:analyze-handoff": "node --test tests/play/analyze-handoff.test.js tests/play/analyze-session.test.js && playwright test --project=chromium tests/browser/play-analyze-resources.spec.js",

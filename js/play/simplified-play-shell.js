@@ -175,6 +175,8 @@
             const play = global.document.getElementById('playSection');
             const legacyGrid = play.querySelector('.main-content.cais-grid');
             const topbar = play.querySelector('.cais-topbar');
+            if (!global.document.body.hasAttribute('data-caissa-play-theme'))
+                global.CaissaPlayThemes?.applyTheme?.('caissa-dark', global.document.body);
             const boardWithEval = play.querySelector('.board-with-eval');
             const leftPanel = play.querySelector('.left-panel.cais-left-col');
             const rightPanel = play.querySelector('.right-panel.cais-right-col');

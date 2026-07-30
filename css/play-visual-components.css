@@ -21,8 +21,8 @@ body.caissa-simplified-play-active .caissa-vc-tab[aria-selected="true"] {
 }
 body.caissa-simplified-play-active .caissa-vc-button--primary {
     margin-inline-end: auto; border-color: var(--play-vc-edge);
-    background: var(--primary-color, #2457a7); color: #fff;
-    box-shadow: inset .1875rem 0 0 rgb(255 255 255 / 42%);
+    background: var(--play-theme-selected); color: var(--play-theme-text);
+    box-shadow: inset .1875rem 0 0 color-mix(in srgb, var(--play-theme-text) 42%, transparent);
 }
 body.caissa-simplified-play-active .caissa-vc :focus-visible,
 body.caissa-simplified-play-active .caissa-vc:focus-visible { outline: 0; box-shadow: var(--play-vc-focus); }
@@ -69,7 +69,8 @@ body.caissa-simplified-play-active .caissa-vc-state--locked {
 }
 body.caissa-simplified-play-active .caissa-vc-state--loading {
     min-height: 5rem;
-    background: linear-gradient(115deg, var(--play-vc-surface) 20%, var(--play-vc-surface-raised) 42%, var(--play-vc-surface) 64%);
+    background: linear-gradient(115deg, var(--play-theme-skeleton-base) 20%,
+        var(--play-theme-skeleton-highlight) 42%, var(--play-theme-skeleton-base) 64%);
     background-size: 240% 100%; animation: caissa-vc-ledger-wash 980ms ease-in-out infinite;
 }
 @keyframes caissa-vc-ledger-wash { to { background-position: -240% 0; } }

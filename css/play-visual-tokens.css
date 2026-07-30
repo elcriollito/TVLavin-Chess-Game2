@@ -1,22 +1,124 @@
 body.caissa-simplified-play-active {
+    color-scheme: dark;
+    --play-theme-background: #101923;
+    --play-theme-panel: #172434;
+    --play-theme-card: #1c2a3b;
+    --play-theme-inset: #13202e;
+    --play-theme-border: #52647a;
+    --play-theme-edge: #d3a94d;
+    --play-theme-text: #f4f7fb;
+    --play-theme-text-secondary: #dbe3ec;
+    --play-theme-text-muted: #c5cfdb;
+    --play-theme-positive: #72c69a;
+    --play-theme-warning: #e3b966;
+    --play-theme-critical: #ed8080;
+    --play-theme-info: #6fade7;
+    --play-theme-focus: #6fade7;
+    --play-theme-selected: #245f9c;
+    --play-theme-disabled: #8b96a4;
+    --play-theme-skeleton-base: #172434;
+    --play-theme-skeleton-highlight: #26384d;
+    --play-theme-overlay: #07101acc;
+    --play-theme-shadow-color: #0309123d;
+    --play-theme-eval-neutral: #8b96a4;
+    --play-theme-eval-positive: #f1f3f5;
+    --play-theme-eval-negative: #17202b;
+    --play-theme-board-stage: #111d29;
     --play-vc-space-1: .375rem;
     --play-vc-space-2: .625rem;
     --play-vc-space-3: 1rem;
     --play-vc-radius: .625rem .1875rem;
     --play-vc-radius-small: .25rem .125rem;
-    --play-vc-border: #52647a;
-    --play-vc-edge: #d3a94d;
-    --play-vc-surface: #172434;
-    --play-vc-surface-raised: #1c2a3b;
-    --play-vc-surface-inscribed: #13202e;
-    --play-vc-text: #f4f7fb;
-    --play-vc-text-muted: #c5cfdb;
-    --play-vc-shadow: inset .1875rem 0 0 rgb(211 169 77 / 72%), 0 .25rem .625rem rgb(3 9 18 / 24%);
+    --play-vc-border: var(--play-theme-border);
+    --play-vc-edge: var(--play-theme-edge);
+    --play-vc-surface: var(--play-theme-panel);
+    --play-vc-surface-raised: var(--play-theme-card);
+    --play-vc-surface-inscribed: var(--play-theme-inset);
+    --play-vc-text: var(--play-theme-text);
+    --play-vc-text-muted: var(--play-theme-text-muted);
+    --play-vc-shadow: inset .1875rem 0 0 color-mix(in srgb, var(--play-theme-edge) 72%, transparent),
+        0 .25rem .625rem var(--play-theme-shadow-color);
     --play-vc-control-height: 2.75rem;
     --play-vc-touch-target: 44px;
     --play-vc-panel-padding: .75rem 1rem;
     --play-vc-card-gap: .625rem;
     --play-vc-transition: 170ms;
-    --play-vc-focus: 0 0 0 .1875rem rgb(111 173 231 / 62%);
+    --play-vc-focus: 0 0 0 .1875rem color-mix(in srgb, var(--play-theme-focus) 62%, transparent);
     --play-vc-disabled-opacity: .55;
+}
+
+body.caissa-simplified-play-active[data-caissa-play-theme="caissa-light"] {
+    color-scheme: light;
+    --play-theme-background: #eee8dc;
+    --play-theme-panel: #e6ddcd;
+    --play-theme-card: #faf6ed;
+    --play-theme-inset: #ddd2c1;
+    --play-theme-border: #80715e;
+    --play-theme-edge: #8a6727;
+    --play-theme-text: #211d18;
+    --play-theme-text-secondary: #403a31;
+    --play-theme-text-muted: #574f45;
+    --play-theme-positive: #2d704d;
+    --play-theme-warning: #805d17;
+    --play-theme-critical: #a13d3d;
+    --play-theme-info: #285f92;
+    --play-theme-focus: #185fa5;
+    --play-theme-selected: #d7e4ef;
+    --play-theme-disabled: #77736d;
+    --play-theme-skeleton-base: #e6ddcd;
+    --play-theme-skeleton-highlight: #fffaf0;
+    --play-theme-overlay: #2d271f99;
+    --play-theme-shadow-color: #3a2d1d2e;
+    --play-theme-eval-neutral: #68625a;
+    --play-theme-eval-positive: #fffdf7;
+    --play-theme-eval-negative: #2a2d31;
+    --play-theme-board-stage: #d9cfbf;
+}
+
+body.caissa-simplified-play-active #playSection {
+    --text: var(--play-theme-text);
+    --text-primary: var(--play-theme-text);
+    --text-secondary: var(--play-theme-text-secondary);
+    --muted: var(--play-theme-text-muted);
+    --panel-bg: var(--play-theme-panel);
+    --panel-border: var(--play-theme-border);
+    --border-color: var(--play-theme-border);
+    --accent-color: var(--play-theme-edge);
+    --primary-color: var(--play-theme-selected);
+    background: var(--play-theme-background);
+    color: var(--play-theme-text);
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__board-stage {
+    background: var(--play-theme-board-stage);
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__context,
+body.caissa-simplified-play-active .caissa-simplified-shell__footer,
+body.caissa-simplified-play-active .caissa-simplified-shell__advanced {
+    border-color: var(--play-theme-border);
+    background: var(--play-theme-panel);
+    color: var(--play-theme-text);
+}
+
+body.caissa-simplified-play-active #playSection #evalBar {
+    border-color: var(--play-theme-border);
+    background: var(--play-theme-eval-negative);
+}
+
+body.caissa-simplified-play-active #playSection #evalFill {
+    background: var(--play-theme-eval-positive);
+}
+
+body.caissa-simplified-play-active #playSection #evalScore {
+    border-color: var(--play-theme-border);
+    background: var(--play-theme-card);
+    color: var(--play-theme-text);
+}
+
+@media (forced-colors: active) {
+    body.caissa-simplified-play-active .caissa-vc,
+    body.caissa-simplified-play-active .caissa-simplified-shell {
+        forced-color-adjust: auto;
+    }
 }
