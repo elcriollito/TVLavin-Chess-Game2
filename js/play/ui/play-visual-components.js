@@ -1,6 +1,6 @@
 (function installPlayVisualComponents(global) {
     'use strict';
-    const VERSION = '1.1.0';
+    const VERSION = '1.2.0';
     const VARIANTS = Object.freeze(['standard', 'compact', 'mobile-scroll', 'caissa-rail']);
     const STATES = Object.freeze(['default', 'selected', 'disabled', 'loading', 'empty', 'locked', 'coming-later', 'unavailable']);
     const TONES = Object.freeze(['neutral', 'info', 'positive', 'warning', 'danger']);
@@ -73,6 +73,7 @@
             const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
                 : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
             tabs[next].focus();
+            tabs[next].click();
         };
         root.addEventListener('click', click); root.addEventListener('keydown', keydown);
         return register(root, 'mode-tabs', [[root, 'click', click], [root, 'keydown', keydown]]);
@@ -138,10 +139,14 @@
         });
         root.open = vm.open === true;
         const summary = element('summary', 'caissa-vc-disclosure__summary');
+        summary.setAttribute('aria-expanded', String(root.open));
         summary.textContent = text(vm.label, 80) || 'More options';
         const body = element('div', 'caissa-vc-disclosure__body'); body.textContent = text(vm.description, 240) || '';
         root.append(summary, body);
-        const toggle = () => emit(root, 'toggle-options', 'collapsible-options', text(vm.id, 40) || 'options');
+        const toggle = () => {
+            summary.setAttribute('aria-expanded', String(root.open));
+            emit(root, 'toggle-options', 'collapsible-options', text(vm.id, 40) || 'options');
+        };
         root.addEventListener('toggle', toggle);
         return register(root, 'collapsible-options', [[root, 'toggle', toggle]]);
     }
@@ -178,8 +183,7 @@
     }
     function stateComponent(component, vm, defaultTitle) {
         const root = element('section', `caissa-vc caissa-vc-state caissa-vc-state--${state(vm.state)}`, {
-            'data-visual-component': component, role: component === 'loading-skeleton' ? 'status' : null,
-            'aria-live': component === 'loading-skeleton' ? 'polite' : null,
+            'data-visual-component': component,
             'data-caissa-expression': component === 'locked-state' ? 'notched-readiness'
                 : component === 'loading-skeleton' ? 'ledger-wash' : 'open-file-state'
         });

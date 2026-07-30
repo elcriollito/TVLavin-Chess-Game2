@@ -24,6 +24,11 @@ body.caissa-simplified-play-active #playSection .caissa-simplified-shell {
         max(var(--shell-inline-pad), env(safe-area-inset-left, 0px));
     gap: 8px;
     overflow: visible;
+    color: var(--play-theme-text);
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell :where(h1, h2, h3, h4, p, li, dt, dd, strong) {
+    color: var(--play-theme-text) !important;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__preview {
@@ -903,5 +908,45 @@ body.caissa-simplified-play-active .caissa-players-panel__infrastructure .caissa
     body.caissa-simplified-play-active .caissa-players-panel__challenge-action {
         width: 100%;
         grid-column: 1 / -1;
+    }
+}
+
+body.caissa-simplified-play-active .caissa-play-a11y-live-regions {
+    position: absolute;
+}
+
+body.caissa-simplified-play-active .caissa-play-a11y-live {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell button,
+body.caissa-simplified-play-active .caissa-simplified-shell summary,
+body.caissa-simplified-play-active .caissa-simplified-shell a,
+body.caissa-simplified-play-active .caissa-simplified-shell input,
+body.caissa-simplified-play-active .caissa-guided-replay button,
+body.caissa-simplified-play-active .caissa-guided-replay input,
+body.caissa-simplified-play-active .caissa-guided-replay a {
+    min-height: 44px;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell :focus-visible,
+body.caissa-simplified-play-active .caissa-guided-replay :focus-visible {
+    outline: 3px solid var(--play-theme-focus);
+    outline-offset: 2px;
+}
+
+@media (forced-colors: active) {
+    body.caissa-simplified-play-active .caissa-simplified-shell :focus-visible,
+    body.caissa-simplified-play-active .caissa-guided-replay :focus-visible {
+        outline-color: Highlight;
+        box-shadow: none;
     }
 }

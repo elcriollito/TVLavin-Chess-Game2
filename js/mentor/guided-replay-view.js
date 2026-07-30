@@ -31,7 +31,6 @@
             const title = node('h3', '', 'Guided Replay');
             title.id = `${id.replace(/[^a-z0-9]/gi, '-')}-title`;
             const progress = node('p', 'caissa-guided-replay__progress');
-            progress.setAttribute('role', 'status'); progress.setAttribute('aria-live', 'polite');
             header.append(title, progress);
             const layout = node('div', 'caissa-guided-replay__layout');
             const boardHost = node('div', 'caissa-guided-replay__board guided-replay-board');
@@ -47,10 +46,9 @@
             const acknowledge = node('button', 'caissa-guided-replay__acknowledge', 'Continue reflection');
             acknowledge.type = 'button';
             const feedback = node('p', 'caissa-guided-replay__feedback');
-            feedback.setAttribute('role', 'status'); feedback.setAttribute('aria-live', 'polite');
+            feedback.setAttribute('aria-atomic', 'true');
             const reference = node('div', 'caissa-guided-replay__reference');
             const knowledge = node('aside', 'caissa-guided-replay__knowledge');
-            knowledge.setAttribute('aria-live', 'polite');
             const controls = node('div', 'caissa-guided-replay__controls');
             for (const [action, text] of [['previous', 'Previous'], ['reveal', 'Reveal reference'],
                 ['next', 'Next'], ['restart', 'Restart'], ['close', 'Back to game summary']]) {
@@ -68,8 +66,14 @@
             listen(controls, 'click', event => {
                 const action = event.target?.dataset?.guidedReplayAction;
                 if (!action) return;
-                if (action === 'close') { root.hidden = true; return; }
+                if (action === 'close') {
+                    root.hidden = true;
+                    root.parentElement?.querySelector?.('[data-post-game-action="guided-replay"]')?.focus?.();
+                    return;
+                }
                 replay[action]?.(sessionId); render();
+                if (action === 'reveal')
+                    global.CaissaPlayAnnouncementManager?.announce?.('REPLAY_REFERENCE_REVEALED');
             });
             board = global.CaissaChessboardAdapter?.create?.({
                 label: 'Guided Replay chessboard', position: replay.getSnapshot(id).currentStep?.position.fenBefore,
@@ -100,7 +104,9 @@
         }
         function submitMove(move) {
             const result = replay.submitMove(sessionId, move);
-            diagnostics.submissions += 1; render(); return result;
+            diagnostics.submissions += 1; render();
+            global.CaissaPlayAnnouncementManager?.announce?.('REPLAY_ATTEMPT_RECORDED');
+            return result;
         }
         function render() {
             if (!root || !sessionId) return;

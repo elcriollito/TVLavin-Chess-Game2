@@ -12,8 +12,8 @@ function load() {
 
 test('visual API is versioned, frozen, minimal, and publishes fixed vocabularies', () => {
     const api = load();
-    assert.equal(api.schemaVersion, '1.1.0');
-    assert.equal(api.componentSchemaVersion, '1.1.0');
+    assert.equal(api.schemaVersion, '1.2.0');
+    assert.equal(api.componentSchemaVersion, '1.2.0');
     assert.deepEqual([...api.variants], ['standard', 'compact', 'mobile-scroll', 'caissa-rail']);
     assert.deepEqual([...api.states], ['default', 'selected', 'disabled', 'loading',
         'empty', 'locked', 'coming-later', 'unavailable']);

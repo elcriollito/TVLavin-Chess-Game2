@@ -25,7 +25,11 @@ body.caissa-simplified-play-active .caissa-vc-button--primary {
     box-shadow: inset .1875rem 0 0 color-mix(in srgb, var(--play-theme-text) 42%, transparent);
 }
 body.caissa-simplified-play-active .caissa-vc :focus-visible,
-body.caissa-simplified-play-active .caissa-vc:focus-visible { outline: 0; box-shadow: var(--play-vc-focus); }
+body.caissa-simplified-play-active .caissa-vc:focus-visible {
+    outline: .1875rem solid var(--play-theme-focus);
+    outline-offset: .125rem;
+    box-shadow: var(--play-vc-focus);
+}
 body.caissa-simplified-play-active .caissa-vc :disabled { opacity: var(--play-vc-disabled-opacity); }
 body.caissa-simplified-play-active .caissa-vc-card,
 body.caissa-simplified-play-active .caissa-vc-state,
@@ -75,7 +79,27 @@ body.caissa-simplified-play-active .caissa-vc-state--loading {
 }
 @keyframes caissa-vc-ledger-wash { to { background-position: -240% 0; } }
 @media (prefers-reduced-motion: reduce) {
-    body.caissa-simplified-play-active .caissa-vc { transition: none !important; animation: none !important; }
+    body.caissa-simplified-play-active .caissa-vc,
+    body.caissa-simplified-play-active .caissa-simplified-shell *,
+    body.caissa-simplified-play-active .caissa-guided-replay * {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
+@media (forced-colors: active) {
+    body.caissa-simplified-play-active .caissa-vc :focus-visible,
+    body.caissa-simplified-play-active .caissa-vc:focus-visible {
+        outline: .1875rem solid Highlight;
+        box-shadow: none;
+    }
+    body.caissa-simplified-play-active .caissa-vc[aria-disabled="true"],
+    body.caissa-simplified-play-active .caissa-vc :disabled {
+        border-color: GrayText;
+        color: GrayText;
+        opacity: 1;
+    }
 }
 @media (max-width: 42rem) {
     body.caissa-simplified-play-active .caissa-vc-cta { display: grid; }

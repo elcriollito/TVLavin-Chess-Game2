@@ -102,9 +102,7 @@
             this.#root.hidden = true;
             const title = element('h2', 'caissa-post-game__title', { id: `${this.#id}-title` });
             title.textContent = 'Game Over';
-            const announcement = element('p', 'caissa-post-game__announcement', {
-                role: 'status', 'aria-live': 'assertive', 'data-post-game-result': ''
-            });
+            const announcement = element('p', 'caissa-post-game__announcement', { 'data-post-game-result': '' });
             const summary = element('dl', 'caissa-post-game__summary', { 'data-post-game-summary': '' });
             const actions = element('div', 'caissa-post-game__actions', { 'aria-label': 'Post-game actions' });
             const definitions = [
@@ -142,9 +140,7 @@
             mentorSummary.hidden = true;
             const mentorNote = element('p', 'caissa-post-game__mentor-note');
             mentorNote.textContent = 'A review request can be prepared after the game. Educational analysis is not available yet.';
-            const feedback = element('p', 'caissa-post-game__feedback', {
-                role: 'status', 'aria-live': 'polite', 'data-post-game-feedback': ''
-            });
+            const feedback = element('p', 'caissa-post-game__feedback', { 'data-post-game-feedback': '' });
             const concepts = element('aside', 'caissa-post-game__concepts', {
                 'aria-label': 'Reviewed concepts', 'data-post-game-concepts': ''
             });
@@ -215,6 +211,7 @@
             if (!this.#visible) this.#diagnostics.displays += 1;
             this.#visible = true; this.#status = 'visible'; this.#root.hidden = false;
             this.#onVisibilityChange?.(true); this.#render(); this.#root.focus?.();
+            global.CaissaPlayAnnouncementManager?.announce?.('GAME_OVER', { priority: 'assertive' });
             return this.#recordOperation(result(true, 'accepted', REASONS.SHOWN, this.getSnapshot()));
         }
         hide() {
@@ -522,6 +519,10 @@
             this.#render();
             if (operation?.reasonCode === 'MENTOR_SUMMARY_CREATED')
                 this.#root?.querySelector('[data-mentor-summary]')?.focus?.();
+            if (operation?.reasonCode === 'MENTOR_SUMMARY_CREATED')
+                global.CaissaPlayAnnouncementManager?.announce?.('MENTOR_SUMMARY_READY');
+            if (operation?.reasonCode === 'GUIDED_REPLAY_STARTED')
+                global.CaissaPlayAnnouncementManager?.announce?.('REPLAY_STARTED');
             return this.#recordOperation(operation || result(false, 'failed', REASONS.ACTION_FAILED));
         }
         #render() {

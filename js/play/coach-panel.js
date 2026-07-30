@@ -35,7 +35,7 @@
                 const meta = el('span', ''); meta.textContent = `${profile.learnerLevel} · ${profile.teachingFocus}`;
                 copy.append(name, meta); label.append(input, emblem, copy); catalog.appendChild(label);
             });
-            const detail = el('article', 'caissa-coach-panel__detail', { 'data-coach-detail': '', 'aria-live': 'polite' });
+            const detail = el('article', 'caissa-coach-panel__detail', { 'data-coach-detail': '' });
             const optionsNode = el('div', 'caissa-coach-panel__options');
             const assistanceLabel = el('label', ''); assistanceLabel.textContent = 'Assistance ';
             const assistance = el('select', '', { 'data-coach-assistance': '' });
@@ -49,7 +49,7 @@
             ['white', 'black'].forEach(value => { const option = el('option', '', { value }); option.textContent = value; color.appendChild(option); });
             colorLabel.appendChild(color); optionsNode.append(assistanceLabel, colorLabel);
             const goal = el('p', 'caissa-coach-panel__goal', { 'data-coach-goal': '' });
-            const intervention = el('div', 'caissa-coach-panel__intervention', { 'data-coach-intervention': '', role: 'status', 'aria-live': 'polite', hidden: '' });
+            const intervention = el('div', 'caissa-coach-panel__intervention', { 'data-coach-intervention': '', hidden: '' });
             const category = el('strong', '', { 'data-coach-category': '' });
             const interventionText = el('p', '', { 'data-coach-message': '' });
             const knowledge = el('a', 'caissa-coach-panel__knowledge', {
@@ -60,7 +60,7 @@
             const whyText = el('p', '', { 'data-coach-explanation': '' }); why.append(whySummary, whyText);
             const dismiss = el('button', '', { type: 'button', 'data-coach-dismiss': '' }); dismiss.textContent = 'Dismiss';
             intervention.append(category, interventionText, why, knowledge, dismiss);
-            const status = el('div', '', { role: 'status', 'aria-live': 'polite', 'data-coach-status': '' });
+            const status = el('div', '', { 'data-coach-status': '' });
             const action = el('button', 'caissa-coach-panel__primary', { type: 'button', 'data-coach-primary': '' }); action.textContent = 'Play Coach';
             root.append(title, note, catalog, detail, optionsNode, goal, intervention, status, action); host.appendChild(root);
             this.#listen(root, 'change', event => this.#change(event));

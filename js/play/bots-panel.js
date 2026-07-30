@@ -59,9 +59,7 @@
                 metadata.textContent = profile.difficultyBand;
                 copy.append(name, metadata); label.append(input, emblem, copy); list.appendChild(label);
             });
-            const detail = element('article', 'caissa-bots-panel__detail', {
-                'data-bot-detail': '', 'aria-live': 'polite', 'aria-atomic': 'true'
-            });
+            const detail = element('article', 'caissa-bots-panel__detail', { 'data-bot-detail': '' });
             const settings = element('div', 'caissa-bots-panel__options');
             const color = element('label', ''); color.textContent = 'Play as ';
             const colorSelect = element('select', '', { 'data-bot-color': '' });
@@ -77,7 +75,7 @@
             }
             time.appendChild(timeSelect); settings.append(color, time);
             const status = element('div', 'caissa-bots-panel__status', {
-                role: 'status', 'aria-live': 'polite', 'data-bot-status': '', id: `${this.#id}-status`
+                'data-bot-status': '', id: `${this.#id}-status`
             });
             const action = element('button', 'caissa-bots-panel__primary', {
                 type: 'button', 'data-bot-primary': '', 'aria-describedby': `${this.#id}-status`

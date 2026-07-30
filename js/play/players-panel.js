@@ -195,9 +195,7 @@
                 this.#createAction('open-classic', 'Open CAISSA Classic', false),
                 this.#createAction('return-to-games', 'Return to Games', false)
             );
-            const status = element('p', 'caissa-players-panel__status', {
-                role: 'status', 'aria-live': 'polite', 'data-players-status': ''
-            });
+            const status = element('p', 'caissa-players-panel__status', { 'data-players-status': '' });
             status.textContent = 'No player data loaded. No connections were created.';
             this.#root.append(header, tabs, sections, footer, status);
             host.appendChild(this.#root);
@@ -534,7 +532,7 @@
             source.textContent = 'Source: validated provider registry. Status: available.';
             for (const record of this.#presenceRecords) {
                 const row = element('article', 'caissa-players-panel__presence-row', {
-                    role: 'listitem', tabindex: '0', 'data-presence-row': '',
+                    role: 'listitem', 'data-presence-row': '',
                     'data-presence-id': record.presenceId,
                     'aria-label': this.#presenceLabel(record)
                 });
@@ -585,7 +583,7 @@
             this.#challengeRecords.forEach((record, index) => {
                 const opponent = record.direction === 'incoming' ? record.challengerName : record.challengedName;
                 const row = element('article', 'caissa-players-panel__challenge-row', {
-                    role: 'listitem', tabindex: '0', 'data-challenge-row': '',
+                    role: 'listitem', 'data-challenge-row': '',
                     'aria-label': `${record.direction} challenge from provider ${record.provider}, opponent ${opponent}, state ${record.state}, ${record.rated}`
                 });
                 const name = element('strong', 'caissa-players-panel__challenge-name');

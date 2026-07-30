@@ -1,8 +1,8 @@
 (function (global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.6.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.6.0';
+    const SCHEMA_VERSION = '1.7.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.7.0';
     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'error']);
     const REGIONS = Object.freeze([
         'mode-navigation', 'board-stage', 'opponent-header', 'evaluation-rail',
@@ -90,8 +90,10 @@
         #id = `simplified-play-${++shellSequence}`;
         #root = null; #active = false; #disposed = false; #status = 'loading';
         #mode = 'games'; #placements = []; #listeners = []; #unsubscribeRoute = null;
+        #suppressedLive = [];
         #layoutMode = null; #geometry = null; #resizeCount = 0; #activationCount = 0; #statusNode = null;
         #gamesPanel = null; #botsPanel = null; #coachPanel = null; #playersPanel = null; #postGame = null;
+        #accessibility = null;
         #diagnostics = {
             layoutChanges: 0, orientationChanges: 0, safeAreaApplications: 0,
             boardResizeRequests: 0, drawerCycles: 0, restorationCycles: 0, rejectedGeometry: 0
@@ -110,7 +112,7 @@
             });
             root.hidden = true;
 
-            const preview = element('div', 'caissa-simplified-shell__preview', { role: 'status' });
+            const preview = element('div', 'caissa-simplified-shell__preview');
             preview.textContent = 'QA Preview · Simplified Play';
             const nav = global.CaissaPlayVisualComponents?.createModeTabs?.({
                 variant: 'caissa-rail', ariaLabel: 'Play modes',
@@ -149,7 +151,7 @@
             const summary = element('summary', ''); summary.textContent = 'Advanced current controls';
             const advancedBody = element('div', 'caissa-simplified-shell__advanced-body');
             advanced.append(summary, advancedBody);
-            this.#statusNode = element('div', 'caissa-simplified-shell__status', { role: 'status', 'aria-live': 'polite' });
+            this.#statusNode = element('div', 'caissa-simplified-shell__status');
             context.append(contextHeader, contextBody, this.#statusNode);
 
             const footer = element('footer', 'caissa-simplified-shell__footer', { 'aria-label': 'Primary game actions' });
@@ -157,6 +159,8 @@
             root.append(preview, workspace);
             stage.appendChild(root);
             this.#root = root;
+            const accessibility = global.CaissaPlayAccessibility?.create?.(root);
+            if (accessibility?.schemaVersion) this.#accessibility = accessibility;
             this.#unsubscribeRoute = global.CaissaPlayRouteController?.subscribe?.(() => this.syncRoute()) || null;
             this.setStatus('ready');
             return result(true, 'accepted', REASONS.MOUNTED, this.getSnapshot());
@@ -207,6 +211,11 @@
             place(gameMenu, advancedBody);
             place(editor, advancedBody);
             place(actions, advancedBody);
+            this.#root.querySelectorAll('[aria-live]').forEach(node => {
+                if (node.closest('[data-caissa-accessibility-live-regions]')) return;
+                this.#suppressedLive.push({ node, value: node.getAttribute('aria-live') });
+                node.removeAttribute('aria-live');
+            });
             this.#gamesPanel = global.CaissaGamesPanel?.create?.();
             const panelMount = this.#gamesPanel?.mount?.({
                 host: contextBody,
@@ -287,6 +296,7 @@
             this.#active = true; this.#activationCount += 1;
             this.setMode(global.CaissaPlayRouteController?.getCurrent?.()?.mode || 'games');
             this.#postGame.syncFromPlay();
+            this.#accessibility?.announce?.('PLAY_READY');
             if (!this.#listeners.length) {
                 this.#listen(this.#root.querySelector('.caissa-simplified-shell__modes'), 'click', event => {
                     const mode = event.target?.dataset?.shellMode;
@@ -324,6 +334,9 @@
                 marker.remove();
             });
             this.#placements = [];
+            this.#suppressedLive.splice(0).forEach(({ node, value }) => {
+                if (node?.isConnected && value) node.setAttribute('aria-live', value);
+            });
             const play = global.document.getElementById('playSection');
             play.querySelector('.main-content.cais-grid').hidden = false;
             play.querySelector('.cais-topbar').hidden = false;
@@ -341,9 +354,12 @@
             if (!MODES[mode]) return result(false, 'rejected', REASONS.MODE_INACTIVE);
             this.#mode = mode;
             this.#root?.querySelectorAll?.('[data-shell-mode]').forEach(button => {
-                button.setAttribute('aria-selected', String(button.dataset.shellMode === mode));
+                const selected = button.dataset.shellMode === mode;
+                button.setAttribute('aria-selected', String(selected));
+                button.tabIndex = selected ? 0 : -1;
             });
             this.#syncPanels();
+            this.#accessibility?.announce?.(`MODE_${mode.toUpperCase()}`);
             return result(true, 'accepted', 'MODE_SET', mode);
         }
         setStatus(status) {
@@ -422,6 +438,7 @@
                 botsPanel: this.#botsPanel?.getSnapshot?.() || null,
                 playersPanel: this.#playersPanel?.getSnapshot?.() || null,
                 postGame: this.#postGame?.getSnapshot?.() || null,
+                accessibility: this.#accessibility?.inspect?.() || null,
                 diagnostics: { ...this.#diagnostics }
             });
         }
@@ -430,6 +447,7 @@
             this.deactivate();
             this.#removeListeners();
             this.#unsubscribeRoute?.(); this.#unsubscribeRoute = null;
+            this.#accessibility?.dispose?.(); this.#accessibility = null;
             this.#root?.remove(); this.#root = null;
             return result(true, 'accepted', 'UNMOUNTED');
         }

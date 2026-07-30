@@ -132,9 +132,7 @@
             opponentNote.textContent = 'Current Play uses its fixed maximum-strength engine setting.';
             opponent.append(opponentTitle, opponentValue, opponentNote);
 
-            const status = node('div', 'caissa-games-panel__status', {
-                role: 'status', 'aria-live': 'polite', 'data-games-status': ''
-            });
+            const status = node('div', 'caissa-games-panel__status', { 'data-games-status': '' });
             const action = node('button', 'caissa-games-panel__primary', {
                 type: 'button', 'data-games-primary': '', 'aria-describedby': `${this.#id}-status`
             });

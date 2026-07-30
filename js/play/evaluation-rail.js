@@ -110,7 +110,6 @@
             root.setAttribute('role', 'meter');
             root.setAttribute('aria-valuemin', '-15');
             root.setAttribute('aria-valuemax', '15');
-            root.setAttribute('aria-live', 'polite');
             root.removeAttribute('title');
             this.#diagnostics.mounts += 1; this.#status = 'ready'; this.#render();
             return this.#record(result(true, 'accepted', REASONS.MOUNTED, this.getSnapshot()));
@@ -202,10 +201,17 @@
         show() { return this.setMode(this.#policy.allowed ? 'live' : 'unavailable'); }
         setUnavailable(reason) {
             if (typeof reason === 'string') this.#policy.reasonCode = reason.slice(0, 120);
+            global.CaissaPlayAnnouncementManager?.announce?.('EVALUATION_UNAVAILABLE');
             return this.setMode('unavailable');
         }
-        setLoading() { return this.setMode('loading'); }
-        setError() { return this.setMode('error'); }
+        setLoading() {
+            global.CaissaPlayAnnouncementManager?.announce?.('EVALUATION_LOADING');
+            return this.setMode('loading');
+        }
+        setError() {
+            global.CaissaPlayAnnouncementManager?.announce?.('EVALUATION_UNAVAILABLE');
+            return this.setMode('error');
+        }
         resize() {
             if (!this.#root || !this.#board) return this.#record(result(false, 'rejected', REASONS.INVALID_HOST));
             const rect = this.#board.getBoundingClientRect();
@@ -229,7 +235,7 @@
         unmount() {
             if (this.#root) {
                 delete this.#root.dataset.evaluationRailOwner;
-                for (const name of ['role', 'aria-valuemin', 'aria-valuemax', 'aria-valuenow', 'aria-valuetext', 'aria-live'])
+                for (const name of ['role', 'aria-valuemin', 'aria-valuemax', 'aria-valuenow', 'aria-valuetext'])
                     this.#root.removeAttribute(name);
             }
             this.#root = null; this.#fill = null; this.#labelNode = null; this.#board = null;

@@ -97,7 +97,7 @@
     <link rel="stylesheet" href="styles.css?v=2.0.16">
     <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.6.0">
     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
-    <link rel="stylesheet" href="css/play-visual-components.css?v=1.1.0">
+    <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
     <link rel="stylesheet" href="css/mentor-guided-replay.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-ui-foundation.css?v=1.0.2">
     <link rel="stylesheet" href="caissa-library.css?v=1.1.0">
@@ -4153,10 +4153,10 @@
     </div>
 
     <!-- Promotion Modal -->
-    <div id="promotionModal" class="modal">
+    <div id="promotionModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="promotion-title">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Choose Promotion</h2>
+                <h2 id="promotion-title">Choose Promotion</h2>
             </div>
             <div class="modal-body">
                 <p>Promote your pawn to:</p>
@@ -5151,8 +5151,11 @@
     <script src="js/play/coach/coach-session.js?v=1.2.0"></script>
     <script src="js/play/coach/coach-observation-service.js?v=1.2.0"></script>
     <script src="js/play/ui/play-themes.js?v=1.0.0"></script>
+    <script src="js/play/ui/play-focus-manager.js?v=1.0.0"></script>
+    <script src="js/play/ui/play-announcement-manager.js?v=1.0.0"></script>
+    <script src="js/play/ui/play-accessibility.js?v=1.0.0"></script>
     <script src="js/play/ui/play-visual-identity.js?v=1.0.0"></script>
-    <script src="js/play/ui/play-visual-components.js?v=1.1.0"></script>
+    <script src="js/play/ui/play-visual-components.js?v=1.2.0"></script>
     <script src="js/play/games-panel.js?v=1.1.0"></script>
     <script src="js/play/bots-panel.js?v=1.1.0"></script>
     <script src="js/play/coach-panel.js?v=1.1.0"></script>
@@ -5185,7 +5188,7 @@
     <script src="js/play/players/human-play-block-readiness.js?v=1.0.0"></script>
     <script src="js/play/players-panel.js?v=1.4.0"></script>
     <script src="js/play/post-game-experience.js?v=1.8.0"></script>
-    <script src="js/play/simplified-play-shell.js?v=1.6.0"></script>
+    <script src="js/play/simplified-play-shell.js?v=1.7.0"></script>
 
     <!-- Auth Scripts -->
     <script src="js/auth-config.js?v=1.0.2"></script>
