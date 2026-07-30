@@ -1,8 +1,8 @@
 (function installPlayersPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.2.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.2.0';
+    const SCHEMA_VERSION = '1.3.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.3.0';
     const STATUSES = Object.freeze([
         'available', 'loading', 'empty', 'coming-later', 'unavailable',
         'disconnected', 'error', 'disabled'
@@ -197,6 +197,7 @@
         #challengeRegistry;
         #challengeRecords = [];
         #challengeAdapters;
+        #humanFairPlayReadiness;
         #challengeActionsInFlight = new Set();
         #handlers;
         #diagnostics = {
@@ -220,6 +221,12 @@
                 fics: global.CaissaFicsChallengeAdapter?.create?.(),
                 'future-caissa-network': global.CaissaChallengeAdapter?.create?.()
             };
+            this.#humanFairPlayReadiness = options?.humanFairPlayReadiness || [
+                global.CaissaFicsHumanFairPlayAdapter?.inspect?.(),
+                global.CaissaClassicHumanFairPlayAdapter?.inspect?.(),
+                global.CaissaHumanFairPlayUnavailableAdapter?.inspect?.(),
+                global.CaissaHumanFairPlayUnavailableAdapter?.inspect?.('local')
+            ].filter(Boolean);
         }
 
         mount(options = {}) {
@@ -449,6 +456,7 @@
                     'No proprietary CAISSA player network is available.',
                     'FICS and CAISSA Classic retain independent runtime ownership.'
                 ],
+                humanFairPlayReadiness: detached(this.#humanFairPlayReadiness),
                 diagnostics: detached({
                     ...this.#diagnostics,
                     listenerCount: this.#listeners.length,
@@ -503,6 +511,19 @@
                     'data-challenge-list': ''
                 });
                 panel.appendChild(list);
+                const readiness = element('aside', 'caissa-players-panel__fair-play', {
+                    'data-human-fair-play-readiness': '', 'aria-labelledby': `${this.#id}-fair-play-title`
+                });
+                const title = element('h4', '', { id: `${this.#id}-fair-play-title` });
+                title.textContent = 'Human Fair Play readiness';
+                const readinessList = element('ul', 'caissa-players-panel__fair-play-list');
+                for (const entry of this.#humanFairPlayReadiness) {
+                    const item = element('li', 'caissa-players-panel__fair-play-item');
+                    item.textContent = `${entry.provider}: ${entry.status}. ${entry.message}`;
+                    readinessList.appendChild(item);
+                }
+                readiness.append(title, readinessList);
+                panel.appendChild(readiness);
             }
             for (const actionId of definition.actions) {
                 const label = actionId === 'open-classic' ? 'Open CAISSA Classic' : 'Open FICS Lobby';

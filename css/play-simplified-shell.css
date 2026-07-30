@@ -842,6 +842,25 @@ body.caissa-simplified-play-active .caissa-players-panel__challenge-action {
     background: #283d55;
 }
 
+body.caissa-simplified-play-active .caissa-players-panel__fair-play {
+    margin-block-start: 1rem;
+    padding: .75rem;
+    border: 1px solid #52647a;
+    border-radius: .55rem;
+    background: #172434;
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__fair-play-list {
+    display: grid;
+    gap: .5rem;
+    margin: .5rem 0 0;
+    padding-inline-start: 1.25rem;
+}
+
+body.caissa-simplified-play-active .caissa-players-panel__fair-play-item {
+    overflow-wrap: anywhere;
+}
+
 @media (max-width: 600px) {
     body.caissa-simplified-play-active .caissa-players-panel__footer {
         display: grid;

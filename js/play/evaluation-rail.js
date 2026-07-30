@@ -139,6 +139,17 @@
             this.#render();
             return this.#record(result(true, 'accepted', REASONS.MODE_SET, this.getSnapshot()));
         }
+        applyHumanPolicy(decision) {
+            if (this.#disposed) return this.#record(result(false, 'disposed', REASONS.DISPOSED));
+            if (!global.CaissaHumanFairPlay?.validateDecision?.(decision) || decision.evaluationMode === 'post-game')
+                return this.#record(result(false, 'rejected', REASONS.INVALID_POLICY));
+            this.#policy = {
+                allowed: false, decisionId: decision.decisionId,
+                reasonCode: decision.reasonCodes?.[0] || 'HUMAN_EVALUATION_FROZEN'
+            };
+            this.#clear('unavailable', decision.evaluationMode === 'delayed' ? 'unavailable' : 'frozen');
+            return this.#record(result(true, 'accepted', REASONS.FROZEN, this.getSnapshot()));
+        }
         setEvaluation(value, options = {}) {
             if (!this.#canWrite()) return this.#record(result(false, 'rejected', REASONS.POLICY_DENIED));
             const cp = normalizeCp(value);
@@ -244,17 +255,21 @@
             this.#root.style.visibility = this.#visible ? 'visible' : 'hidden';
             this.#root.style.opacity = this.#visible ? '1' : '0';
             this.#fill.style.height = `${this.#state.whiteShare * 100}%`;
-            this.#labelNode.textContent = this.#mode === 'unavailable' ? '—' : this.#state.label;
+            const protectedHuman = this.#mode === 'frozen';
+            this.#labelNode.textContent = protectedHuman ? 'Evaluation available after the game.'
+                : this.#mode === 'unavailable' ? '—' : this.#state.label;
             this.#labelNode.className = 'eval-score-badge';
             if (this.#state.scoreType === 'mate' || Math.abs(this.#state.scorePawns || 0) > 1.5)
                 this.#labelNode.classList.add((this.#state.mate || this.#state.scoreCp) > 0 ? 'white-advantage' : 'black-advantage');
-            const accessible = this.#mode === 'unavailable' ? 'Live engine evaluation unavailable.'
+            const accessible = protectedHuman ? 'Evaluation available after the game.'
+                : this.#mode === 'unavailable' ? 'Live engine evaluation unavailable.'
                 : this.#mode === 'loading' ? 'Engine evaluation loading.'
                 : this.#mode === 'error' ? 'Engine evaluation unavailable because of an engine error.'
                 : this.#mode === 'post-game' ? `Post-game evaluation. ${this.#state.accessibleLabel}`
                 : this.#state.accessibleLabel;
             this.#root.setAttribute('aria-label', accessible);
-            this.#root.setAttribute('aria-valuenow', String((this.#state.scoreCp || 0) / 100));
+            if (protectedHuman || this.#mode === 'unavailable') this.#root.removeAttribute('aria-valuenow');
+            else this.#root.setAttribute('aria-valuenow', String((this.#state.scoreCp || 0) / 100));
             this.#root.setAttribute('aria-valuetext', accessible);
             this.#renderSequence += 1; this.#diagnostics.renders += 1;
         }

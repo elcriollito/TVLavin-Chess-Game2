@@ -20,8 +20,8 @@ function load(actions = {}) {
 
 test('publishes frozen versioned contracts and bounded vocabularies', () => {
     const { api } = load();
-    assert.equal(api.schemaVersion, '1.2.0');
-    assert.equal(api.snapshotSchemaVersion, '1.2.0');
+    assert.equal(api.schemaVersion, '1.3.0');
+    assert.equal(api.snapshotSchemaVersion, '1.3.0');
     assert.ok(Object.isFrozen(api));
     assert.ok(Object.isFrozen(api.statuses));
     assert.ok(Object.isFrozen(api.reasonCodes));
