@@ -89,7 +89,7 @@
     class SimplifiedPlayShell {
         #id = `simplified-play-${++shellSequence}`;
         #root = null; #active = false; #disposed = false; #status = 'loading';
-        #mode = 'games'; #placements = []; #listeners = []; #unsubscribeRoute = null;
+        #mode = 'games'; #placements = []; #listeners = []; #eventScopeId = null; #unsubscribeRoute = null;
         #suppressedLive = [];
         #layoutMode = null; #geometry = null; #resizeCount = 0; #activationCount = 0; #statusNode = null;
         #gamesPanel = null; #botsPanel = null; #coachPanel = null; #playersPanel = null; #postGame = null;
@@ -421,6 +421,14 @@
             return result(true, 'accepted', REASONS.DISPOSED);
         }
         #listen(target, type, handler) {
+            const lifecycle = global.CaissaEventLifecycle;
+            if (lifecycle?.createScope && lifecycle?.add) {
+                if (!this.#eventScopeId) this.#eventScopeId =
+                    lifecycle.createScope({ owner: 'shell' }).scopeId;
+                const registered = lifecycle.add(this.#eventScopeId, target, type, handler);
+                this.#listeners.push({ listenerId: registered.listenerId });
+                return;
+            }
             target.addEventListener(type, handler);
             this.#listeners.push({ target, type, handler });
         }
@@ -477,7 +485,13 @@
             }
         }
         #removeListeners() {
-            this.#listeners.splice(0).forEach(({ target, type, handler }) => target.removeEventListener(type, handler));
+            if (this.#eventScopeId && global.CaissaEventLifecycle?.disposeScope) {
+                global.CaissaEventLifecycle.disposeScope(this.#eventScopeId);
+                this.#eventScopeId = null; this.#listeners.length = 0;
+                return;
+            }
+            this.#listeners.splice(0).forEach(({ target, type, handler }) =>
+                target?.removeEventListener?.(type, handler));
         }
     }
 
