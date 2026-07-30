@@ -95,8 +95,9 @@
             const host = options.host || options;
             if (!host?.appendChild) return this.#recordOperation(result(false, 'rejected', REASONS.INVALID_HOST));
             this.#host = host;
-            this.#root = element('section', 'caissa-post-game', {
-                'data-caissa-post-game': '', 'aria-labelledby': `${this.#id}-title`, tabindex: '-1'
+            this.#root = element('section', 'caissa-post-game caissa-vc caissa-vc-game-over', {
+                'data-caissa-post-game': '', 'data-visual-component': 'game-over-card',
+                'aria-labelledby': `${this.#id}-title`, tabindex: '-1'
             });
             this.#root.hidden = true;
             const title = element('h2', 'caissa-post-game__title', { id: `${this.#id}-title` });

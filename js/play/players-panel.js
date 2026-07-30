@@ -187,7 +187,9 @@
 
             const sections = element('div', 'caissa-players-panel__sections');
             for (const id of SECTION_IDS) sections.appendChild(this.#createSection(id));
-            const footer = element('footer', 'caissa-players-panel__footer');
+            const footer = element('footer', 'caissa-players-panel__footer caissa-vc caissa-vc-cta', {
+                'data-visual-component': 'cta-footer'
+            });
             footer.append(
                 this.#createAction('open-fics', 'Open FICS Lobby', true),
                 this.#createAction('open-classic', 'Open CAISSA Classic', false),
@@ -411,8 +413,9 @@
 
         #createSection(id) {
             const definition = SECTION_DEFINITIONS[id];
-            const panel = element('section', 'caissa-players-panel__section', {
+            const panel = element('section', 'caissa-players-panel__section caissa-vc caissa-vc-state', {
                 role: 'tabpanel', id: `${this.#id}-section-${id}`,
+                'data-visual-component': 'empty-state',
                 'data-players-panel-section': id,
                 'aria-labelledby': `${this.#id}-tab-${id}`,
                 tabindex: '0'

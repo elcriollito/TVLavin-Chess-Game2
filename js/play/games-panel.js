@@ -88,7 +88,9 @@
             const description = node('p', 'caissa-games-panel__description');
             description.textContent = 'Start a local game against the current CAISSA engine.';
 
-            const time = node('fieldset', 'caissa-games-panel__group caissa-games-panel__time');
+            const time = node('fieldset', 'caissa-games-panel__group caissa-games-panel__time caissa-vc caissa-vc-time-controls', {
+                'data-visual-component': 'time-control-selector'
+            });
             const timeLegend = node('legend', 'caissa-games-panel__legend');
             timeLegend.textContent = 'Time control';
             const timeOptions = node('div', 'caissa-games-panel__options');

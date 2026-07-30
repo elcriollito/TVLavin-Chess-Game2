@@ -43,7 +43,9 @@
             global.CaissaBotRegistry.list({ enabled: true }).forEach(profile => {
                 const rung = element('li', 'caissa-bots-panel__rung', { 'data-bot-rung': profile.id });
                 rung.textContent = profile.shortName; ladder.appendChild(rung);
-                const label = element('label', 'caissa-bots-panel__card', { 'data-bot-card': profile.id });
+                const label = element('label', 'caissa-bots-panel__card caissa-vc caissa-vc-card', {
+                    'data-bot-card': profile.id, 'data-visual-component': 'profile-card'
+                });
                 const input = element('input', '', {
                     type: 'radio', name: `${this.#id}-bot`, value: profile.id, 'data-bot-id': profile.id
                 });

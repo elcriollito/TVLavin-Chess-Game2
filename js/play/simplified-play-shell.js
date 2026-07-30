@@ -112,18 +112,16 @@
 
             const preview = element('div', 'caissa-simplified-shell__preview', { role: 'status' });
             preview.textContent = 'QA Preview · Simplified Play';
-            const nav = element('nav', 'caissa-simplified-shell__modes', { 'aria-label': 'Play modes' });
-            Object.entries(MODES).forEach(([mode, available]) => {
-                const button = element('button', 'caissa-simplified-shell__mode', {
-                    type: 'button', role: 'tab', 'data-shell-mode': mode,
-                    'aria-selected': String(mode === 'games'),
-                    'aria-disabled': String(!available)
-                });
-                button.textContent = mode[0].toUpperCase() + mode.slice(1);
-                button.disabled = !available;
-                if (!available) button.title = 'Not available yet';
-                nav.appendChild(button);
-            });
+            const nav = global.CaissaPlayVisualComponents?.createModeTabs?.({
+                variant: 'mobile-scroll', ariaLabel: 'Play modes',
+                items: Object.entries(MODES).map(([mode, available]) => ({
+                    id: mode, shellMode: mode, label: mode[0].toUpperCase() + mode.slice(1),
+                    active: mode === 'games', disabled: !available
+                }))
+            }) || element('nav', 'caissa-simplified-shell__modes', { 'aria-label': 'Play modes' });
+            nav.classList.add('caissa-simplified-shell__modes');
+            nav.querySelectorAll?.('[data-shell-mode]').forEach(button =>
+                button.classList.add('caissa-simplified-shell__mode'));
 
             const workspace = element('div', 'caissa-simplified-shell__workspace');
             const boardStage = element('section', 'caissa-simplified-shell__board-stage', {
@@ -134,7 +132,9 @@
             const opponent = element('header', 'caissa-simplified-shell__player caissa-simplified-shell__player--opponent');
             const boardRegion = element('div', 'caissa-simplified-shell__board-region');
             const player = element('header', 'caissa-simplified-shell__player caissa-simplified-shell__player--current');
-            const boardActions = element('div', 'caissa-simplified-shell__board-actions', { 'aria-label': 'Board actions' });
+            const boardActions = element('div', 'caissa-simplified-shell__board-actions', {
+                role: 'group', 'aria-label': 'Board actions'
+            });
             boardStage.append(heading, opponent, boardRegion, player, boardActions);
 
             const context = element('aside', 'caissa-simplified-shell__context', {

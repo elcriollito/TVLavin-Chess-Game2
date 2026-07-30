@@ -25,7 +25,9 @@
             note.textContent = 'QA-only session coaching. Prompts do not provide exact move answers or pause the clock.';
             const catalog = el('div', 'caissa-coach-panel__catalog', { role: 'radiogroup', 'aria-label': 'Coach catalog' });
             global.CaissaCoachRegistry.list().forEach(profile => {
-                const label = el('label', 'caissa-coach-panel__card');
+                const label = el('label', 'caissa-coach-panel__card caissa-vc caissa-vc-card', {
+                    'data-visual-component': 'profile-card'
+                });
                 const input = el('input', '', { type: 'radio', name: `${this.#id}-coach`, value: profile.id, 'data-coach-id': profile.id });
                 const emblem = el('span', 'caissa-coach-panel__emblem', { 'aria-hidden': 'true' }); emblem.textContent = profile.presentation.avatar;
                 const copy = el('span', 'caissa-coach-panel__copy');

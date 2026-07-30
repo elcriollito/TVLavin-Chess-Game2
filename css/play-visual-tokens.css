@@ -1,0 +1,19 @@
+body.caissa-simplified-play-active {
+    --play-vc-space-1: .35rem;
+    --play-vc-space-2: .6rem;
+    --play-vc-space-3: .85rem;
+    --play-vc-radius: .55rem;
+    --play-vc-border: #52647a;
+    --play-vc-surface: #172434;
+    --play-vc-surface-raised: #1c2a3b;
+    --play-vc-text: #f4f7fb;
+    --play-vc-text-muted: #c5cfdb;
+    --play-vc-shadow: 0 .2rem .7rem rgb(0 0 0 / 20%);
+    --play-vc-control-height: 2.75rem;
+    --play-vc-touch-target: 44px;
+    --play-vc-panel-padding: .75rem;
+    --play-vc-card-gap: .65rem;
+    --play-vc-transition: 160ms;
+    --play-vc-focus: 0 0 0 3px rgb(104 164 255 / 55%);
+    --play-vc-disabled-opacity: .55;
+}
