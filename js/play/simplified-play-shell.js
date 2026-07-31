@@ -265,7 +265,7 @@
                 this.#listen(this.#root.querySelector('.caissa-simplified-shell__modes'), 'click', event => {
                     const mode = event.target?.dataset?.shellMode;
                     if (!mode || !MODES[mode]) return;
-                    global.CaissaPlayRouteController?.navigate?.(`/play/${mode}?simplified=1`);
+                    global.CaissaPlayRouteController?.navigate?.(`/play/${mode}?simplified=1`, { source: 'mode-tab' });
                 });
                 this.#listen(global, 'resize', () => this.resize());
                 this.#listen(global, 'orientationchange', () => {
