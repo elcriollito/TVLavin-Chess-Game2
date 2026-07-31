@@ -76,6 +76,8 @@
     "test:play:lazy-loading": "node --test tests/play/play-lazy-loader.test.js",
     "test:play:event-lifecycle": "node --test tests/play/event-lifecycle.test.js",
     "test:play:performance-budget": "node --test tests/play/play-performance-budget.test.js && playwright test tests/browser/play-performance-budget.spec.js",
+    "test:play:unit": "node --test tests/play/*.test.js tests/play/*/*.test.js",
+    "test:play:unit:consolidation": "node --test tests/play/unit-coverage-manifest.test.js",
     "test:play:fair-play": "node --test tests/play/fair-play-policy.test.js && playwright test --project=chromium tests/browser/play-fair-play-policy.spec.js",
     "test:play:human-fair-play": "node --test tests/play/human-fair-play.test.js && playwright test tests/browser/play-human-fair-play.spec.js",
     "test:play:human-infrastructure": "node --test tests/play/human-play-infrastructure.test.js tests/play/players-panel.test.js && playwright test tests/browser/play-human-infrastructure.spec.js",
