@@ -214,10 +214,15 @@
                 this.#diagnostics.rejectedStarts += 1;
                 return this.#record(result(false, 'rejected', REASONS.COMMAND_UNAVAILABLE));
             }
+            const startSource = this.#status === 'active' ? 'new-game' : 'primary-cta';
             this.#busy = true; this.#status = 'busy'; this.#render();
-            const command = this.#compatibility.execute('startNewGame', {
+            const start = () => this.#compatibility.execute('startNewGame', {
                 mode: 'engine', color: this.#color, timeControl: this.#preset.seconds
             });
+            const command = global.CaissaPlayGameStartAnalytics?.observePanelStart?.({ mode: 'games',
+                startSource, timeControlSeconds: this.#preset.seconds, color: this.#color,
+                opponentType: 'engine', assistanceCategory: 'engine-opponent', qaEligible: true,
+                productionEligible: true, actionKey: this.#id }, start) ?? start();
             this.#busy = false;
             if (!command?.ok) {
                 this.#status = 'error'; this.#diagnostics.commandFailures += 1;

@@ -75,7 +75,11 @@
                 teachingFocus: profile?.teachingFocus, assistanceLevel: this.#assistance, playerColor: this.#color, timeControl: this.#time });
             if (!selected.ok) return selected;
             global.CaissaBotSession?.resetToFullPower?.();
-            const command = this.#compatibility.execute('startNewGame', { mode: 'engine', color: this.#color, timeControl: this.#time });
+            const start = () => this.#compatibility.execute('startNewGame', { mode: 'engine', color: this.#color, timeControl: this.#time });
+            const command = global.CaissaPlayGameStartAnalytics?.observePanelStart?.({ mode: 'coach',
+                startSource: 'primary-cta', timeControlSeconds: this.#time, color: this.#color,
+                opponentType: 'coach-engine', assistanceCategory: 'coach-assisted', qaEligible: true,
+                productionEligible: false, actionKey: this.#id }, start) ?? start();
             if (!command?.ok) return result(false, 'COMMAND_FAILED');
             this.#diagnostics.starts += 1; this.#render(); return result(true, 'STARTED', this.getSnapshot());
         }

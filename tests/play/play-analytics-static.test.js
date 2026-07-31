@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
 const modules = ['play-analytics-contracts.js', 'play-analytics-privacy-policy.js',
-    'play-analytics-dispatcher.js', 'play-mode-selection-analytics.js'];
+    'play-analytics-dispatcher.js', 'play-mode-selection-analytics.js', 'play-game-start-analytics.js'];
 const sources = modules.map(file => [file, fs.readFileSync(`js/play/analytics/${file}`, 'utf8')]);
 
 test('analytics modules own no network, persistence, cookies, resources, game, or user interface', () => {

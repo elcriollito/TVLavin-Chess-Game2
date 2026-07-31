@@ -18,7 +18,7 @@ test('contracts publish exact frozen versions, IDs, enums, and JSON-safe events'
     const { CaissaPlayAnalyticsContracts: C } = load();
     assert.equal(C.VERSION, 'PlayAnalyticsEvent@1.0.0');
     assert.equal(C.PAYLOAD_VERSION, 'PlayModeSelectionPayload@1.0.0');
-    assert.deepEqual([...C.EVENT_IDS], ['play_mode_selected', 'play_mode_load_started', 'play_mode_load_succeeded',
+    assert.deepEqual([...C.MODE_EVENT_IDS], ['play_mode_selected', 'play_mode_load_started', 'play_mode_load_succeeded',
         'play_mode_load_failed', 'play_mode_selection_blocked', 'play_mode_route_normalized']);
     const event = C.createEvent('play_mode_selected', payload(), 1);
     assert(C.validateEvent(event)); assert(Object.isFrozen(event)); assert(Object.isFrozen(event.payload));
@@ -37,7 +37,7 @@ test('malformed, unknown, dangerous, executable, and arbitrary payload shapes fa
 
 test('privacy policy explicitly denies identity, chess content, URLs, persistence, and transport', () => {
     const { CaissaPlayAnalyticsPrivacyPolicy: P } = load();
-    assert.equal(P.VERSION, 'PlayAnalyticsPrivacyPolicy@1.0.0');
+    assert.equal(P.VERSION, 'PlayAnalyticsPrivacyPolicy@1.1.0');
     assert.equal(P.transport, 'none'); assert.equal(P.persistence, 'none'); assert.equal(P.preciseTime, false);
     for (const key of ['email', 'accountId', 'ip', 'url', 'query', 'referrer', 'moves', 'pgn', 'fen',
         'evaluation', 'pv', 'mentorContent', 'providerPayload', 'fingerprint', 'sessionId']) assert(P.prohibited.includes(key));

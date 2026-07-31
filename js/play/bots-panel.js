@@ -98,9 +98,13 @@
             const selected = global.CaissaBotSession.select(this.#selectedId);
             if (!selected.ok) return result(false, 'rejected', 'INVALID_SELECTION');
             this.#status = 'busy'; this.#render();
-            const command = this.#compatibility.execute('startNewGame', {
+            const start = () => this.#compatibility.execute('startNewGame', {
                 mode: 'engine', color: this.#color, timeControl: this.#timeControl
             });
+            const command = global.CaissaPlayGameStartAnalytics?.observePanelStart?.({ mode: 'bots',
+                startSource: 'primary-cta', timeControlSeconds: this.#timeControl, color: this.#color,
+                opponentType: 'bot-catalog', assistanceCategory: 'engine-opponent', qaEligible: true,
+                productionEligible: true, actionKey: this.#id }, start) ?? start();
             if (!command?.ok) {
                 this.#status = 'error'; this.#diagnostics.rejected += 1; this.#render();
                 return result(false, 'failed', 'COMMAND_FAILED');

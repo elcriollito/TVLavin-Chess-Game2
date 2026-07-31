@@ -508,7 +508,16 @@
             return result(true, 'accepted', 'MENTOR_SUMMARY_CREATED', generated.value);
         }
         #start(action) {
-            const started = this.#compatibility.execute('startNewGame', { ...this.#configuration });
+            const start = () => this.#compatibility.execute('startNewGame', { ...this.#configuration });
+            const opponent = this.#record?.opponent;
+            const mode = opponent?.type === 'coach' ? 'coach'
+                : opponent?.id && global.CaissaBotRegistry?.get?.(opponent.id) ? 'bots' : 'games';
+            const started = global.CaissaPlayGameStartAnalytics?.observePanelStart?.({ mode,
+                startSource: action === 'rematch' ? 'rematch' : 'new-game',
+                timeControlSeconds: this.#configuration.timeControl, color: this.#configuration.color,
+                opponentType: mode === 'coach' ? 'coach-engine' : mode === 'bots' ? 'bot-catalog' : 'engine',
+                assistanceCategory: mode === 'coach' ? 'coach-assisted' : 'engine-opponent', qaEligible: true,
+                productionEligible: true, actionKey: `post-game-${action}` }, start) ?? start();
             if (!started?.ok) return result(false, started?.status || 'failed', REASONS.ACTION_FAILED);
             if (action === 'rematch') this.#diagnostics.rematches += 1;
             else this.#diagnostics.newGames += 1;
