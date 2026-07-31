@@ -72,7 +72,7 @@
     "test:play:regression:smoke": "playwright test tests/browser/regression-play-smoke.spec.js",
     "test:play:static-guards": "node scripts/run-play-static-guards.mjs",
     "test:play:regression": "node scripts/run-play-regression.mjs",
-    "test:play:analytics": "node --test tests/play/play-analytics.test.js tests/play/play-mode-selection-analytics.test.js tests/play/play-game-start-analytics.test.js tests/play/play-analytics-static.test.js && playwright test tests/browser/play-mode-selection-analytics.spec.js tests/browser/play-game-start-analytics.spec.js",
+    "test:play:analytics": "node --test tests/play/play-analytics.test.js tests/play/play-mode-selection-analytics.test.js tests/play/play-game-start-analytics.test.js tests/play/play-completion-postgame-analytics.test.js tests/play/play-analytics-static.test.js && playwright test tests/browser/play-mode-selection-analytics.spec.js tests/browser/play-game-start-analytics.spec.js tests/browser/play-completion-postgame-analytics.spec.js",
     "test:play:compatibility": "node --test tests/play/legacy-play-compatibility.test.js && playwright test --project=chromium tests/browser/play-compatibility.spec.js",
     "test:play:records": "node --test tests/play/game-record.test.js && playwright test --project=chromium tests/browser/play-game-record.spec.js",
     "test:play:persistence": "node --test tests/play/game-record-persistence.test.js && playwright test --project=chromium tests/browser/play-game-record-persistence.spec.js",

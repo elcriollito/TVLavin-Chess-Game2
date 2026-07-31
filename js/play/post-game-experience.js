@@ -64,7 +64,7 @@
     class PostGameExperience {
         #id = `post-game-${++sequence}`;
         #root = null; #host = null; #disposed = false; #visible = false; #busy = false;
-        #status = 'idle'; #record = null; #configuration = null; #listeners = [];
+        #status = 'idle'; #record = null; #configuration = null; #listeners = []; #analyticsContext = null; #analyticsActionSequence = null;
         #consent = 'unknown'; #saved = false; #feedback = ''; #mentorRequest = null;
         #analysisRun = null; #analysisResult = null; #criticalMomentSelection = null;
         #guidedReplaySession = null; #knowledgeMapping = null; #mentorSummary = null;
@@ -204,7 +204,14 @@
             this.#analysisRun = null; this.#analysisResult = null; this.#criticalMomentSelection = null;
             this.#guidedReplaySession = null; this.#knowledgeMapping = null; this.#mentorSummary = null;
             this.#diagnostics.hydrations += 1;
-            this.show(); this.#rail?.setMode?.('post-game'); this.#render();
+            const completion = input.record.status === 'aborted'
+                ? global.CaissaPlayCompletionAnalytics?.observeAborted?.({ record: input.record })
+                : global.CaissaPlayCompletionAnalytics?.observeCompleted?.({ record: input.record });
+            this.#analyticsContext = completion?.ok ? { completionSequence: completion.completionSequence,
+                ...completion.categories, qaEligible: true, productionEligible: false } : null;
+            const shown = this.show();
+            if (shown?.ok && this.#analyticsContext) global.CaissaPlayPostGameAnalytics?.observeShown?.(this.#analyticsContext);
+            this.#rail?.setMode?.('post-game'); this.#render();
             return this.#recordOperation(result(true, 'accepted', REASONS.HYDRATED, this.getSnapshot()));
         }
         show() {
@@ -227,6 +234,9 @@
             if (this.#busy) return this.#recordOperation(result(false, 'rejected', REASONS.ACTION_BUSY));
             const availability = this.#actions()[action];
             if (!availability?.enabled) return this.#recordOperation(result(false, 'unavailable', REASONS.ACTION_UNAVAILABLE));
+            const observed = this.#analyticsContext && global.CaissaPlayPostGameAnalytics?.observeActionSelected?.({
+                ...this.#analyticsContext, action });
+            this.#analyticsActionSequence = observed?.actionSequence || null;
             this.#busy = true; this.#status = 'busy'; this.#diagnostics.actions += 1; this.#render();
             let operation;
             try {
@@ -576,6 +586,16 @@
             return result(true, 'accepted', REASONS.GAME_SAVED);
         }
         #finish(operation) {
+            if (this.#analyticsActionSequence) {
+                const context = { actionSequence: this.#analyticsActionSequence };
+                if (operation?.ok) global.CaissaPlayPostGameAnalytics?.observeActionSucceeded?.(context);
+                else if (operation?.status === 'unavailable' || operation?.status === 'rejected')
+                    global.CaissaPlayPostGameAnalytics?.observeActionBlocked?.({ ...context,
+                        failureReason: this.#actionFailureReason(this.#pendingAction) });
+                else global.CaissaPlayPostGameAnalytics?.observeActionFailed?.({ ...context,
+                    failureReason: this.#actionFailureReason(this.#pendingAction) });
+                this.#analyticsActionSequence = null;
+            }
             this.#busy = false; this.#status = this.#visible ? 'visible' : 'ready';
             if (!operation?.ok) this.#diagnostics.failures += 1;
             this.#feedback = operation?.ok ? {
@@ -595,6 +615,12 @@
             if (operation?.reasonCode === 'GUIDED_REPLAY_STARTED')
                 global.CaissaPlayAnnouncementManager?.announce?.('REPLAY_STARTED');
             return this.#recordOperation(operation || result(false, 'failed', REASONS.ACTION_FAILED));
+        }
+        #actionFailureReason(action) {
+            return ({ analyze: 'analyze-unavailable', 'copy-pgn': 'clipboard-unavailable',
+                'download-pgn': 'download-unavailable', 'mentor-review': 'mentor-unavailable',
+                'guided-replay': 'replay-unavailable', 'mentor-summary': 'summary-unavailable' })[action]
+                || 'dependency-unavailable';
         }
         #render() {
             if (!this.#root) return;
