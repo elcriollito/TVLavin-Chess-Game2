@@ -44,7 +44,7 @@
             surfaceFamily: 'warm-parchment',
             tokens: {
                 background: '#eee8dc', panelSurface: '#e6ddcd', cardSurface: '#faf6ed',
-                insetSurface: '#ddd2c1', border: '#80715e', engravedEdge: '#8a6727',
+                insetSurface: '#ddd2c1', border: '#80715e', engravedEdge: '#a27d35',
                 textPrimary: '#211d18', textSecondary: '#403a31', textMuted: '#574f45',
                 positive: '#2d704d', warning: '#805d17', critical: '#a13d3d',
                 informational: '#285f92', focusRing: '#185fa5', selected: '#d7e4ef',

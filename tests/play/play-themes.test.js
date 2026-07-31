@@ -102,6 +102,22 @@ test('semantic token layers cover dark and light while component CSS contains no
     assert.doesNotMatch(tokens, /(^|})\s*(?:html|body(?!\.caissa-simplified-play-active)|\*)\s*(?:,|\{)/m);
 });
 
+test('light primary edge maintains WCAG AA contrast with its fixed button text', () => {
+    const luminance = hex => {
+        const channels = [hex.slice(1, 3), hex.slice(3, 5), hex.slice(5, 7)]
+            .map(value => Number.parseInt(value, 16) / 255)
+            .map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4);
+        return .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2];
+    };
+    const contrast = (foreground, background) => {
+        const values = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
+        return (values[0] + .05) / (values[1] + .05);
+    };
+    const edge = tokens.match(/data-caissa-play-theme="caissa-light"[\s\S]*?--play-theme-edge:\s*(#[0-9a-f]{6})/i)?.[1];
+    assert.equal(edge, '#a27d35');
+    assert.ok(contrast('#111111', edge) >= 4.5);
+});
+
 test('SPA registration is ordered, unique, and Settings persistence is truthfully deferred', () => {
     for (const page of ['index.html', 'yahoo-classic.html']) {
         const html = fs.readFileSync(new URL(page, rootUrl), 'utf8');
