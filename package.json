@@ -67,7 +67,7 @@
     "test:play:coach": "node --test tests/play/coach-foundation.test.js tests/play/coach-intervention-quality.test.js tests/play/play-route-controller.test.js && playwright test --project=chromium tests/browser/play-coach.spec.js",
     "test:play:players": "node --test tests/play/presence-contracts.test.js tests/play/challenge-contracts.test.js tests/play/players-panel.test.js tests/play/play-route-controller.test.js tests/play/simplified-play-shell.test.js && playwright test tests/browser/play-players.spec.js",
     "test:play:coach:endgame": "node --test tests/play/endgame-coach-foundation.test.js && playwright test --project=chromium tests/browser/play-endgame-coach.spec.js",
-    "test:play:responsive": "playwright test --project=chromium tests/browser/play-responsive.spec.js",
+    "test:play:responsive": "node --test tests/play/responsive-profile-contract.test.js && playwright test tests/browser/responsive-play-consolidation.spec.js tests/browser/responsive-play-workflows.spec.js tests/browser/responsive-play-transitions.spec.js",
     "test:play:compatibility": "node --test tests/play/legacy-play-compatibility.test.js && playwright test --project=chromium tests/browser/play-compatibility.spec.js",
     "test:play:records": "node --test tests/play/game-record.test.js && playwright test --project=chromium tests/browser/play-game-record.spec.js",
     "test:play:persistence": "node --test tests/play/game-record-persistence.test.js && playwright test --project=chromium tests/browser/play-game-record-persistence.spec.js",
