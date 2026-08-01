@@ -8,7 +8,7 @@ test('readiness contract is frozen, JSON-safe, exact, and accounts for all local
     assert.equal(R.schemaVersion, 'Season10ReleaseReadiness@1.0.0'); assert(Object.isFrozen(R)); assert(Object.isFrozen(R.blockers));
     assert.doesNotThrow(() => JSON.stringify(R)); assert.equal(R.commitCount, 56); assert.equal(R.commitIds.length, 56);
     assert.equal(new Set(R.commitIds).size, 56); assert.equal(R.baseline, '1442b88562199fa23faf9f22884b9aa025216cf0');
-    const actual = execFileSync('git', ['log','--reverse','--format=%h','origin/main..1442b88562199fa23faf9f22884b9aa025216cf0'], { encoding: 'utf8' }).trim().split(/\r?\n/);
+    const actual = execFileSync('git', ['log','--reverse','--format=%h',`${R.originBaseline}..1442b88562199fa23faf9f22884b9aa025216cf0`], { encoding: 'utf8' }).trim().split(/\r?\n/);
     assert.deepEqual(actual, [...R.commitIds]);
 });
 

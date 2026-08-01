@@ -20,10 +20,10 @@ test('package manifest is exact, frozen, deterministic, JSON-safe, and Stage 0 o
 });
 
 test('all 57 baseline commits are complete, unique, chronological, non-merge records', () => {
-    const actual = execFileSync('git', ['log','--reverse','--format=%H|%s','origin/main..5132b34010339acf715e9359dfc239d861778755'], { encoding: 'utf8' }).trim().split(/\r?\n/);
+    const actual = execFileSync('git', ['log','--reverse','--format=%H|%s',`${P.originBaseline}..5132b34010339acf715e9359dfc239d861778755`], { encoding: 'utf8' }).trim().split(/\r?\n/);
     assert.equal(R.count, 57); assert.equal(R.commits.length, 57); assert.equal(new Set(R.commits.map(item => item.hash)).size, 57);
     assert.deepEqual(R.commits.map(item => `${item.hash}|${item.subject}`), actual);
-    assert.equal(execFileSync('git', ['rev-list','--count','--merges','origin/main..5132b34010339acf715e9359dfc239d861778755'], { encoding: 'utf8' }).trim(), '0');
+    assert.equal(execFileSync('git', ['rev-list','--count','--merges',`${P.originBaseline}..5132b34010339acf715e9359dfc239d861778755`], { encoding: 'utf8' }).trim(), '0');
     for (const item of R.commits) assert.deepEqual(Object.keys(item), ['hash','shortHash','subject','task','category','productionImpact','activationState','rollbackCoupling','testEvidence']);
 });
 
@@ -65,5 +65,7 @@ test('packaging has no runtime, dependency, environment, secret, tag, push, or d
     const sources = ['season-10-release-package-manifest.js','season-10-commit-range-manifest.js'].map(file => fs.readFileSync(`docs/releases/${file}`, 'utf8')).join('\n');
     assert.doesNotMatch(sources, /process\.env|document\.|localStorage|sessionStorage|fetch\s*\(|XMLHttpRequest|sendBeacon|WebSocket|https?:\/\//);
     assert.doesNotMatch(sources, /(?:token|secret|password)\s*:/i);
-    assert.equal(execFileSync('git', ['tag','--points-at','HEAD'], { encoding: 'utf8' }).trim(), '');
+    assert.equal(execFileSync('git', ['rev-parse','season-10.0.0^{}'], { encoding: 'utf8' }).trim(), '7cec9ea60289d32435849ffde736041f739126d6');
+    assert.equal(execFileSync('git', ['cat-file','-t','season-10.0.0'], { encoding: 'utf8' }).trim(), 'tag');
+    assert.equal(execFileSync('git', ['ls-remote','--tags','origin','refs/tags/season-10.0.0'], { encoding: 'utf8' }).trim(), '');
 });
