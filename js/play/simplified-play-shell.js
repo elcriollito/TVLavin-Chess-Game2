@@ -9,7 +9,9 @@
         'chessboard', 'player-header', 'board-actions', 'context-panel',
         'panel-header', 'panel-body', 'advanced-options', 'panel-status', 'action-footer'
     ]);
-    const MODES = Object.freeze({ games: true, bots: true, coach: true, players: false });
+    const productBoundary = global.CaissaPlayV2ProductBoundary;
+    const MODES = Object.freeze({ games: true, bots: true,
+        coach: productBoundary ? false : true, players: false });
     const LAYOUT_MODES = Object.freeze([
         'phone-compact', 'phone-standard', 'phone-landscape',
         'tablet-portrait-stacked', 'tablet-landscape-split',
@@ -117,7 +119,7 @@
             preview.textContent = 'QA Preview · Simplified Play';
             const nav = global.CaissaPlayVisualComponents?.createModeTabs?.({
                 variant: 'caissa-rail', ariaLabel: 'Play modes',
-                items: Object.entries(MODES).map(([mode, available]) => ({
+                items: Object.entries(MODES).filter(([, available]) => available).map(([mode, available]) => ({
                     id: mode, shellMode: mode, label: mode[0].toUpperCase() + mode.slice(1),
                     active: mode === 'games', disabled: !available
                 }))

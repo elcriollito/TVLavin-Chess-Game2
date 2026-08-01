@@ -8,8 +8,7 @@ test.beforeEach(async ({ page }) => {
 test('Players remains disabled and honest in the QA shell', async ({ page }) => {
     await page.goto('/play/games?simplified=1');
     const tab = page.locator('[data-shell-mode="players"]');
-    await expect(tab).toBeDisabled();
-    await expect(tab).toHaveText('Players');
+    await expect(tab).toHaveCount(0);
     await expect(page.locator('[data-players-panel]')).toHaveCount(0);
     expect(await page.evaluate(() => window.CaissaSimplifiedPlayShellInstance.getSnapshot().playersPanel)).toBeNull();
 });
@@ -23,7 +22,7 @@ test('Players route cannot be activated by query, storage, history, or configura
     await page.goto('/play/players?simplified=1&provider=fics&fallback=fics');
     await expect(page).toHaveURL(/\/play\/games\?simplified=1/);
     await expect(page.locator('[data-shell-mode="games"]')).toHaveAttribute('aria-selected', 'true');
-    await expect(page.locator('[data-shell-mode="players"]')).toBeDisabled();
+    await expect(page.locator('[data-shell-mode="players"]')).toHaveCount(0);
     expect(await page.evaluate(() => ({
         panel: !!window.CaissaPlayersPanel,
         group: window.CaissaPlayLoadRegistry.get('players-stack'),

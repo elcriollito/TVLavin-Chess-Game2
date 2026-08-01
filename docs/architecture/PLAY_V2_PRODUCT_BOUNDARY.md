@@ -296,3 +296,24 @@ Before separation, the shared entry eagerly downloaded the following protected r
 - legacy human-provider compatibility resources under `js/play/players/`
 
 Players remains blocked until CAISSA-native identity, presence, rating, challenge, matchmaking, authoritative game/clock/result, reconnect, moderation, privacy, and abuse infrastructure exists. This boundary creates none of that infrastructure and exposes no beta route.
+
+## 13. Enforced educational boundary â€” `PlayV2ProductBoundary@1.0.0`
+
+The dedicated QA entry installs a frozen playing-only contract before routing, navigation, lazy registration, and shell initialization. Its policy prohibits Academy/classes/lessons/courses/curriculum, Endgame product surfaces, Knowledge Units, Guided Replay, Mastery and Training Memory surfaces/writes, recommendations, educational promotions, current Coach, current Mentor, and Players. Analyze is admitted only as `external-post-game`; a future Mentor boundary is `optional-review-only`.
+
+The deterministic builder removes prohibited educational resource elements and DOM templates rather than hiding them after download. Runtime guards classify scripts, styles, dynamic groups, routes, transitions, PostGame actions, DOM text, and network destinations. The Play v2 lazy allowlist is exactly `bots-stack` and `analyze-deep`. FICS and product-boundary guards are both applied to every lazy group, style, and script.
+
+Current states:
+
+| Surface | Play v2 state | Protected ownership |
+|---|---|---|
+| Coach | Blocked and omitted from route, tab, registry and resources | Existing implementation remains in legacy entry/modules and unit ownership tests; future assisted-play Coach is separate work |
+| Mentor | Blocked; no action, auto-launch, resource group, adapter, panel or Analyze attachment | Existing Academy/Mentor/Guided Replay/Knowledge implementation remains in legacy entry/modules |
+| Players | Blocked and omitted | Requires CAISSA-native infrastructure |
+| PostGame | Result-first core actions only | Original educational PostGame remains outside dedicated Play v2 entry |
+| Analyze | Clean opaque external continuation | Independent Analyze state/resource ownership preserved |
+| Academy and Endgame products | No Play v2 resource, DOM or navigation ownership | Standalone/legacy documents and routes unchanged |
+
+Security/privacy evidence confirms no new cookie, storage system, analytics transport, identity/profile bridge, educational state transfer, PGN upload, external dependency, or network destination. Explicit local completed-game persistence remains consent-controlled; it is not a Training Memory or Mastery write. Analytics transport remains disabled.
+
+The boundary does not certify physical devices, VoiceOver, TalkBack, NVDA, or JAWS, and it does not make Play v2 public-beta ready.

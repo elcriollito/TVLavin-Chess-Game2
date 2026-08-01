@@ -28,7 +28,9 @@
         POPSTATE_RESTORED: 'POPSTATE_RESTORED',
         SAME_ROUTE_NOOP: 'SAME_ROUTE_NOOP'
     });
-    const AVAILABILITY = Object.freeze({ games: true, bots: 'qa-only', coach: 'qa-only', players: false });
+    const productBoundary = global.CaissaPlayV2ProductBoundary;
+    const AVAILABILITY = Object.freeze({ games: true, bots: 'qa-only',
+        coach: productBoundary ? false : 'qa-only', players: false });
     const SAFE_QUERY_LIMIT = 2048;
     const privateQuery = new WeakMap();
     const diagnostics = { parses: 0, navigations: 0, pushes: 0, replaces: 0, noops: 0, popstates: 0, malformed: 0 };
@@ -97,7 +99,7 @@
             const requestedMode = playMatch[1] || MODES.GAMES;
             const known = Object.values(MODES).includes(requestedMode);
             const available = known && (AVAILABILITY[requestedMode] === true
-                || ([MODES.BOTS, MODES.COACH].includes(requestedMode) && query.simplified === '1'));
+                || (AVAILABILITY[requestedMode] === 'qa-only' && query.simplified === '1'));
             const mode = available ? requestedMode : MODES.GAMES;
             const canonicalPath = mode === MODES.GAMES && !playMatch[1] ? '/play' : `/play/${mode}`;
             const inactive = known && !available;
@@ -128,7 +130,7 @@
             const requestedMode = String(query.mode || 'games').toLowerCase();
             const known = Object.values(MODES).includes(requestedMode);
             const available = known && (AVAILABILITY[requestedMode] === true
-                || ([MODES.BOTS, MODES.COACH].includes(requestedMode) && query.simplified === '1'));
+                || (AVAILABILITY[requestedMode] === 'qa-only' && query.simplified === '1'));
             return frozenRoute({
                 schemaVersion: SCHEMA_VERSION, routeId: 'play:games', path, section: 'play', mode: MODES.GAMES,
                 requestedMode, status: known && !available ? STATUSES.INACTIVE_MODE : STATUSES.LEGACY_ADAPTED,
@@ -239,7 +241,7 @@
         getCurrent: () => current || parse(), navigate, replace: (target, options = {}) => navigate(target, Object.assign({}, options, { replace: true })),
         handlePopState, isPlayRoute: input => parse(input).section === 'play',
         isModeAvailable: (mode, options = {}) => AVAILABILITY[mode] === true
-            || ([MODES.BOTS, MODES.COACH].includes(mode) && options.qa === true),
+            || (AVAILABILITY[mode] === 'qa-only' && options.qa === true),
         getCanonicalPath: mode => mode && mode !== MODES.GAMES ? `/play/${mode}` : '/play',
         subscribe(listener) {
             if (typeof listener !== 'function') return () => {};

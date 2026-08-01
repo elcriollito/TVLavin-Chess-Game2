@@ -1,7 +1,7 @@
 (function (global) {
     'use strict';
 
-    const groups = Object.freeze([
+    const allGroups = [
         Object.freeze([
             { id: 'yahooClassic', label: 'CAISSA Classic', icon: 'fas fa-window-restore', section: 'yahooClassic', route: '/yahoo-classic' },
             { id: 'play', label: 'Play', icon: 'fas fa-play-circle', section: 'play', route: '/play' },
@@ -31,7 +31,11 @@
             { id: 'vault', label: 'Vault', icon: 'fas fa-box-archive', route: '/vault', externalIndicator: true },
             { id: 'blog', label: 'Blog', icon: 'fas fa-rss', route: '/blog' }
         ])
-    ]);
+    ];
+    const prohibitedInPlayV2 = new Set(['mentor', 'academy', 'endgame-trainer', 'endgame-practice', 'endgame-library']);
+    const groups = Object.freeze(allGroups.map(group => Object.freeze(group.filter(item =>
+        !global.CaissaPlayV2ProductBoundary || !prohibitedInPlayV2.has(item.id)
+    ))));
     const groupLabels = Object.freeze([
         'Learning',
         'Play & Watch',

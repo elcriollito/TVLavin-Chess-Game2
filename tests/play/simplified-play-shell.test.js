@@ -102,7 +102,7 @@ test('SPA pages register shell assets once and no sitemap entry or dependency wa
 
 test('route controller preserves the explicit QA flag without making it default', () => {
     const routeSource = fs.readFileSync(new URL('../../js/play/play-route-controller.js', import.meta.url), 'utf8');
-    assert.match(routeSource, /\[MODES\.BOTS, MODES\.COACH\]\.includes\(requestedMode\) && query\.simplified === '1'/);
+    assert.match(routeSource, /AVAILABILITY\[requestedMode\] === 'qa-only' && query\.simplified === '1'/);
     assert.match(routeSource, /players: false/);
     assert.match(source, /route\.query\?\.simplified === '1'/);
 });

@@ -1,5 +1,5 @@
 (function installPlayLoadRegistry(root, factory) {
-    root.CaissaPlayLoadRegistry = factory(root.CaissaPlayLazyLoadContracts);
+    root.CaissaPlayLoadRegistry = factory(root.CaissaPlayLazyLoadContracts, root.CaissaPlayV2ProductBoundary);
 })(typeof globalThis !== 'undefined' ? globalThis : window, function createRegistry(contracts) {
     'use strict';
 
@@ -104,8 +104,13 @@
         })
     });
 
-    contracts.validateGraph(Object.values(definitions));
-    const records = new Map(Object.values(definitions).map(definition => [
+    const admittedDefinitions = arguments[1]
+        ? Object.values(definitions).filter(definition => arguments[1].authorize({
+            type: 'dynamic-group', value: definition.resourceId
+        }).allowed)
+        : Object.values(definitions);
+    contracts.validateGraph(admittedDefinitions);
+    const records = new Map(admittedDefinitions.map(definition => [
         definition.resourceId, { definition, state: contracts.snapshot(definition) }
     ]));
 

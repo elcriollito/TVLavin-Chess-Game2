@@ -20,9 +20,7 @@ test('checkmate shows one truthful summary and suppresses competing GamesPanel a
     await expect(page.locator('[data-post-game-summary]')).toContainText('checkmate');
     await expect(page.locator('.caissa-games-panel')).toBeHidden();
     await expect(page.locator('.caissa-post-game__action--primary:visible')).toHaveCount(1);
-    await expect(page.locator('[data-post-game-action="mentor-review"]')).toBeEnabled();
-    await page.locator('[data-post-game-action="mentor-review"]').click();
-    await expect(page.locator('[data-post-game-feedback]')).toContainText('Educational analysis is not available yet');
+    await expect(page.locator('[data-post-game-action="mentor-review"],[data-post-game-concepts],[data-mentor-summary]')).toHaveCount(0);
     expect(await page.evaluate(() => ({
         regions: document.querySelectorAll('.caissa-post-game').length,
         rail: window.CaissaEvaluationRailInstance.getSnapshot().displayMode,
@@ -30,9 +28,7 @@ test('checkmate shows one truthful summary and suppresses competing GamesPanel a
     }))).toMatchObject({
         regions: 1,
         rail: 'post-game',
-        state: { visible: true, notation: { resultMismatch: true },
-            mentor: { selectedMentorId: 'academyMentorCaissa',
-                request: { status: 'registered', metadata: { reviewImplemented: false } } } }
+        state: { visible: true, trainingMemoryWrites: 0, masteryWrites: 0 }
     });
 });
 

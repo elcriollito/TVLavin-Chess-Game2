@@ -23,7 +23,7 @@ test('Games boots first without deferred Play groups and preserves board/worker 
     expect(proof.loader.resources.filter(x => x.state === 'loaded')).toHaveLength(0);
 });
 
-test('PostGame loads Mentor incrementally and Analyze through its independent route group', async ({ page }) => {
+test('PostGame excludes Mentor and loads Analyze through its independent route group', async ({ page }) => {
     await instrumentPlay(page, { autoReply: false });
     await page.goto('/play/games?simplified=1');
     await page.locator('[data-games-primary]').click();
@@ -32,19 +32,9 @@ test('PostGame loads Mentor incrementally and Analyze through its independent ro
         window.confirm = () => true; window.resignGame();
     });
     await expect(page.locator('.caissa-post-game')).toBeVisible();
-    const review = page.locator('[data-post-game-action="mentor-review"]');
-    await Promise.all([review.click(), review.click({ force: true })]);
-    await expect.poll(() => page.evaluate(() =>
-        window.CaissaPostGameExperienceInstance.getSnapshot().mentor.request?.requestId)).toBeTruthy();
-    await expect.poll(() => page.evaluate(() =>
-        window.CaissaPostGameExperienceInstance.getSnapshot().status)).toBe('visible');
-    const mentor = await page.evaluate(() => Object.fromEntries(
-        window.CaissaPlayLazyLoader.inspect().resources.map(item => [item.resourceId, item.state])));
-    expect(mentor).toMatchObject({
-        'mentor-foundation': 'loaded', 'mentor-analysis': 'loaded',
-        'mentor-critical-moments': 'registered', 'mentor-guided-replay': 'registered',
-        'mentor-knowledge': 'registered', 'mentor-summary': 'registered'
-    });
+    await expect(page.locator('[data-post-game-action="mentor-review"]')).toHaveCount(0);
+    expect(await page.evaluate(() => window.CaissaPlayLoadRegistry.definitions().map(item => item.resourceId)))
+        .toEqual(['bots-stack', 'analyze-deep']);
     await page.locator('[data-post-game-action="analyze"]').click();
     await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
     await expect.poll(() => page.evaluate(() =>
@@ -64,7 +54,7 @@ test('mode groups load once, stale completion cannot replace route, and active r
     await page.evaluate(() => window.CaissaPlayRouteController.navigate('/play/bots?simplified=1'));
     await expect(page.locator('.caissa-bots-panel')).toBeVisible();
     await page.evaluate(() => window.CaissaPlayRouteController.navigate('/play/coach?simplified=1'));
-    await expect(page.locator('.caissa-coach-panel')).toBeVisible();
+    await expect(page).toHaveURL(/\/play\/games\?simplified=1/);
     await page.evaluate(() => window.CaissaPlayRouteController.navigate('/play/players?simplified=1'));
     await expect(page).toHaveURL(/\/play\/games\?simplified=1/);
     const proof = await page.evaluate(before => ({
@@ -77,7 +67,8 @@ test('mode groups load once, stale completion cannot replace route, and active r
     expect(proof.boardSame).toBe(true);
     expect(proof.workerCount).toBe(1);
     expect(new Set(proof.scripts).size).toBe(proof.scripts.length);
-    expect(proof.states).toMatchObject({ 'bots-stack': 'loaded', 'coach-stack': 'loaded' });
+    expect(proof.states).toMatchObject({ 'bots-stack': 'loaded' });
+    expect(proof.states['coach-stack']).toBeUndefined();
     expect(proof.states['players-stack']).toBeUndefined();
 });
 

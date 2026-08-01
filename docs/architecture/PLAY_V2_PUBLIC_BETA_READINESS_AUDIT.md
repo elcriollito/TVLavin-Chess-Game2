@@ -219,3 +219,17 @@ Local and Vercel routing select this document only for `/play` or `/play/:mode` 
 Chromium evidence confirms no FICS-owned request or loaded resource for the QA entry, including hostile provider/fallback queries and failed attempts to load `players-stack`. Games and Bots initialize with one board and one Worker. Classic, Legacy FICS, Legacy Play, homepage, and normal `/play` retain their legacy resources and defaults. Players is unavailable in routing, shell, and lazy registry and cannot be enabled by query, storage, history, configuration, or retry.
 
 **Season 11.1.1 is complete for FICS isolation only. Play v2 remains QA-only and NOT READY for public beta.** Educational isolation, Worker production certification, physical-device and assistive-technology validation, feedback, rollback operations, and the other readiness gates remain open.
+
+## Season 11.1.2 educational-isolation update (2026-08-01)
+
+`PlayV2ProductBoundary@1.0.0` now enforces the principle that Play is for playing. The dedicated QA document removes Academy markup/navigation/styles/scripts, current Mentor bootstrap and panels, the Analyze Mentor panel, educational help/promotion fragments, Endgame product navigation, and Mentor engagement registration. The runtime lazy registry exposes only `bots-stack` and `analyze-deep` when the product boundary is installed; current Coach and all Mentor/Guided Replay/Knowledge groups remain registered only for protected legacy/standalone ownership.
+
+Play v2 route and shell admission now omit Coach and Players rather than presenting disabled promotional tabs. Query, storage, configuration, history, recovery, retry, and direct lazy-load attempts cannot admit either mode or any current Mentor group. Coach is not rejected permanently as a product concept: its current lesson/Knowledge-aware implementation is excluded. A future Coach requires a separately bounded assisted-play design. Mentor may return only through a separately proven optional review-only boundary; none is implemented here.
+
+The contaminated PostGame module is replaced only in `play-v2.html` by `post-game-core.js`. The clean card contains result, termination reason, opponent where applicable, Rematch, New Game, Copy/Download/Save PGN, and external Analyze. It contains no Mentor action, Guided Replay, Knowledge mapping, recommendation, lesson card, Training Memory write, or Mastery write. Analyze continues through its opaque external handoff and does not expose PGN/FEN in the URL.
+
+Legacy `index.html` continues to own Academy, current Coach/Mentor modules, Guided Replay/Knowledge registrations, and the original PostGame implementation. Standalone Endgame Trainer and Endgame Library documents/routes are unchanged. Negative browser evidence covers resource requests, loaded resources, DOM, globals, registry definitions, hostile activation, zero learning writes, PostGame, Analyze, remaining keyboard tabs, one board, one Worker, and FICS preservation.
+
+Automated keyboard, focus, touch-target, reduced-motion, forced-colors, reflow, and Axe checks remain regression evidence only. No physical device or named screen reader has been certified.
+
+**Season 11.1.2 status: complete for educational isolation only. Play v2 remains QA-only and NOT READY for public beta.** Worker production certification, physical-device and assistive-technology testing, feedback, operational rollback, public enrollment/gating, and later release gates remain open.

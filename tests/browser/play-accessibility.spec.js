@@ -15,9 +15,8 @@ test('keyboard tabs activate routes, retain roving focus, and hide inactive pane
     await expect(page.getByRole('tab', { name: 'Bots' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('tab', { name: 'Bots' })).toHaveAttribute('tabindex', '0');
     await page.keyboard.press('End');
-    await expect(page).toHaveURL(/\/play\/players\?simplified=1/);
-    await expect(page.locator('.caissa-games-panel')).toBeHidden();
-    await expect(page.locator('.caissa-players-panel')).toBeVisible();
+    await expect(page).toHaveURL(/\/play\/bots\?simplified=1/);
+    await expect(page.getByRole('tab', { name: /Coach|Players/ })).toHaveCount(0);
 });
 
 test('one bounded manager owns two live regions and evaluation changes do not announce raw values', async ({ page }) => {
@@ -42,9 +41,9 @@ test('one bounded manager owns two live regions and evaluation changes do not an
     expect(proof.boardSame).toBe(true);
 });
 
-test('focus is visible, touch targets pass, and Players static rows do not add redundant tab stops', async ({ page }) => {
-    await page.goto('/play/players?simplified=1');
-    const tab = page.getByRole('tab', { name: 'Players', exact: true });
+test('focus is visible, touch targets pass, and blocked modes add no tab stops', async ({ page }) => {
+    await page.goto('/play/games?simplified=1');
+    const tab = page.getByRole('tab', { name: 'Games', exact: true });
     await tab.focus();
     const proof = await page.evaluate(() => {
         const focused = document.activeElement;
@@ -70,7 +69,7 @@ test('focus is visible, touch targets pass, and Players static rows do not add r
 test('dark, light, system, reduced motion, forced colors, zoom reflow, and Axe safeguards pass', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce', forcedColors: 'none', colorScheme: 'light' });
     await page.setViewportSize({ width: 640, height: 720 });
-    await page.goto('/play/players?simplified=1');
+    await page.goto('/play/games?simplified=1');
     const proof = await page.evaluate(() => {
         window.CaissaPlayThemes.applyTheme('system');
         document.documentElement.style.zoom = '2';
