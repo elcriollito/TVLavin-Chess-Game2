@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "Season10PackageIntegrity@1.0.0",
+  "algorithm": "sha256",
+  "releaseId": "rel-season-10-cb911f49e9fc8070",
+  "timestampPolicy": "none",
+  "artifacts": [
+    { "path": "docs/releases/season-10-release-package-manifest.js", "sha256": "ee4cdf175dfc93fd605fba77c6525d0cea921a50fd0988c42262f4f98b5ee0c5" },
+    { "path": "docs/releases/season-10-commit-range-manifest.js", "sha256": "ea17df1a027491e99417673692fe99ec501f5bea2a5960a81ac700fe74af027c" },
+    { "path": "docs/releases/SEASON_10_CHANGELOG.md", "sha256": "695456d27f5b6bd806ad1e7cc273a66d9d2a7c7216f77eee168a535a400eed7d" },
+    { "path": "docs/releases/SEASON_10_USER_RELEASE_NOTES.md", "sha256": "519316d18125cf28695d359a7f5e3d83157e632d0d46d449de260fccb972187d" },
+    { "path": "docs/releases/SEASON_10_TECHNICAL_RELEASE_NOTES.md", "sha256": "62d885d4f25169ef7e8546c51c1d22542432d61d046810574376857f0e62b87a" },
+    { "path": "docs/releases/SEASON_10_STAGE_0_DEPLOYMENT_PLAN.md", "sha256": "bced170fe08bfe558bc52d99f1a833af6f68b8fb2d68ccc6ee2ae939ab02691c" },
+    { "path": "docs/releases/SEASON_10_RELEASE_READINESS_AUDIT.md", "sha256": "79af91705dc260aeeecefa2055c9069c4082856d7a95aad4b733341a5c08ca50" },
+    { "path": "docs/releases/season-10-release-readiness-manifest.js", "sha256": "93002333f45d7cdd8ac4a8b33aac45b5cab4709603b9519a929e8b3e76d894f5" }
+  ]
+}
