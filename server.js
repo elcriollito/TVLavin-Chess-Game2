@@ -410,7 +410,7 @@ const server = http.createServer(async (req, res) => {
     filePath = './yahoo-classic.html';
   }
   if (pathname === '/play' || pathname.startsWith('/play/')) {
-    filePath = './index.html';
+    filePath = url.searchParams.get('simplified') === '1' ? './play-v2.html' : './index.html';
   }
   if (pathname === '/endgame-trainer' || pathname === '/endgame-trainer/') {
     filePath = './endgame-trainer.html';

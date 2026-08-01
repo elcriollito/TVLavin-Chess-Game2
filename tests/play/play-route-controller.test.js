@@ -33,7 +33,7 @@ test('publishes a frozen, versioned contract and availability vocabulary', () =>
     assert.ok(Object.isFrozen(api));
     assert.ok(Object.isFrozen(api.modes));
     assert.deepEqual({ ...api.availability }, {
-        games: true, bots: 'qa-only', coach: 'qa-only', players: 'qa-only'
+        games: true, bots: 'qa-only', coach: 'qa-only', players: false
     });
 });
 
@@ -63,7 +63,7 @@ test('normalizes inactive and unknown modes to truthful Games behavior', () => {
     assert.equal(unknown.canonicalPath, '/play/games');
 });
 
-test('Bots, Coach, and Players resolve only with the explicit simplified QA flag', () => {
+test('Bots and Coach resolve with QA while Players remains blocked for every query', () => {
     const { api } = load();
     const qa = api.parse('/play/bots?simplified=1');
     assert.equal(qa.mode, 'bots');
@@ -72,11 +72,11 @@ test('Bots, Coach, and Players resolve only with the explicit simplified QA flag
     assert.equal(api.parse('/play/bots').mode, 'games');
     assert.equal(api.parse('/play/coach?simplified=1').mode, 'coach');
     assert.equal(api.parse('/play/coach').mode, 'games');
-    assert.equal(api.parse('/play/players?simplified=1').mode, 'players');
+    assert.equal(api.parse('/play/players?simplified=1').mode, 'games');
     assert.equal(api.parse('/play/players').mode, 'games');
     assert.equal(api.isModeAvailable('bots'), false);
     assert.equal(api.isModeAvailable('bots', { qa: true }), true);
-    assert.equal(api.isModeAvailable('players', { qa: true }), true);
+    assert.equal(api.isModeAvailable('players', { qa: true }), false);
 });
 
 test('adapts legacy Play queries and preserves bounded safe setup data', () => {
@@ -150,9 +150,14 @@ test('local and production hosts narrowly cold-load Play routes with root-based 
     const vercel = JSON.parse(fs.readFileSync(new URL('../../vercel.json', import.meta.url), 'utf8'));
     const index = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
     assert.match(server, /pathname === '\/play' \|\| pathname\.startsWith\('\/play\/'\)/);
-    assert.deepEqual(vercel.rewrites.filter(({ source }) => source.startsWith('/play')), [
+    const playRules = vercel.rewrites.filter(({ source }) => source.startsWith('/play'));
+    assert.deepEqual(playRules.slice(-2), [
         { source: '/play', destination: '/index.html' },
         { source: '/play/:mode', destination: '/index.html' }
+    ]);
+    assert.deepEqual(playRules.slice(0, 2).map(({ source, destination, has }) => ({ source, destination, has })), [
+        { source: '/play', destination: '/play-v2.html', has: [{ type: 'query', key: 'simplified', value: '1' }] },
+        { source: '/play/:mode', destination: '/play-v2.html', has: [{ type: 'query', key: 'simplified', value: '1' }] }
     ]);
     assert.match(index, /<base href="\/">/);
 });

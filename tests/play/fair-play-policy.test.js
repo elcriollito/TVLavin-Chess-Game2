@@ -55,12 +55,12 @@ test('active rated, casual, and assisted human contexts deny live assistance', (
     assert.equal(api.evaluatePurpose('hint', context({ opponentType: 'human' })).allowed, false);
 });
 
-test('FICS and external authority deny live work but allow completed analysis', () => {
+test('provider-neutral external authority denies live work but allows completed analysis', () => {
     const api = fixture();
-    const fics = context({ source: 'fics', opponentType: 'external-human', authority: 'external-server' });
+    const external = context({ source: 'external-play', opponentType: 'external-human', authority: 'external-server' });
     for (const purpose of ['opponent-move', 'live-evaluation', 'hint'])
-        assert.equal(api.evaluatePurpose(purpose, fics).allowed, false);
-    assert.equal(api.evaluatePurpose('post-game-analysis', { ...fics, gameStatus: 'completed' }).allowed, true);
+        assert.equal(api.evaluatePurpose(purpose, external).allowed, false);
+    assert.equal(api.evaluatePurpose('post-game-analysis', { ...external, gameStatus: 'completed' }).allowed, true);
 });
 
 test('completed human and imported records allow analysis but active records do not', () => {

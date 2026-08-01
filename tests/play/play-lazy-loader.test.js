@@ -14,7 +14,6 @@ async function loadContext() {
         const path = node.src || node.href || '';
         if (path.includes('bots-panel')) context.CaissaBotsPanel = { create() {} };
         if (path.includes('coach-panel')) context.CaissaCoachPanel = { create() {} };
-        if (path.includes('players-panel')) context.CaissaPlayersPanel = { create() {} };
         if (path.includes('mentor-foundation')) context.CaissaMentorFoundation = { createRequest() {} };
         if (path.includes('educational-analysis-pipeline')) context.CaissaEducationalAnalysisPipeline = { prepare() {} };
         if (path.includes('critical-moment-selector')) context.CaissaCriticalMoments = { select() {} };
@@ -34,6 +33,7 @@ async function loadContext() {
     };
     context = vm.createContext({ globalThis: null, window: null, document, location: { href: 'https://caissa.test/play/games', origin: 'https://caissa.test' }, URL, Date, queueMicrotask });
     context.globalThis = context; context.window = context;
+    new vm.Script(await readFile(new URL('../../js/play/play-v2-fics-isolation.js', import.meta.url), 'utf8')).runInContext(context);
     for (const name of ['play-lazy-load-contracts.js','play-load-registry.js','play-prefetch-policy.js','play-lazy-loader.js'])
         new vm.Script(await source(name), { filename: name }).runInContext(context);
     return { context, appended };
@@ -55,14 +55,14 @@ test('contracts are versioned, immutable, bounded, hostile-safe and cycle transi
 test('production registry is fixed, ordered, QA-bounded, and contains no fixture', async () => {
     const { context } = await loadContext(); const definitions=context.CaissaPlayLoadRegistry.definitions();
     assert.equal(JSON.stringify(definitions.map(x=>x.resourceId)), JSON.stringify([
-        'bots-stack','coach-stack','players-stack','mentor-foundation','mentor-analysis',
+        'bots-stack','coach-stack','mentor-foundation','mentor-analysis',
         'mentor-critical-moments','mentor-guided-replay','mentor-knowledge','mentor-summary','analyze-deep'
     ]));
     assert.equal(definitions.filter(x=>x.resourceId!=='analyze-deep')
         .every(x=>Object.isFrozen(x)&&x.qaOnly&&!x.productionEligible), true);
     assert.equal(definitions.find(x=>x.resourceId==='analyze-deep').productionEligible, true);
     assert.equal(JSON.stringify(definitions).includes('fixture'), false);
-    assert.equal(definitions.find(x=>x.resourceId==='players-stack').sources.at(-1).includes('players-panel'), true);
+    assert.equal(definitions.some(x=>x.resourceId==='players-stack'), false);
 });
 
 test('duplicate loads reuse one promise and sequential scripts become loaded once', async () => {
@@ -76,7 +76,7 @@ test('duplicate loads reuse one promise and sequential scripts become loaded onc
 
 test('QA denial, save-data suppression, unknown IDs, and disposal are truthful', async () => {
     const { context } = await loadContext(); const loader=context.CaissaPlayLazyLoader;
-    assert.equal((await loader.load('players-stack')).state,'unavailable');
+    await assert.rejects(loader.load('players-stack',{qa:true}),/UNKNOWN_RESOURCE/);
     assert.equal((await loader.prefetch('coach-stack',{qa:true,saveData:true,intent:'idle'})).status,'suppressed');
     await assert.rejects(loader.load('missing',{qa:true}),/UNKNOWN_RESOURCE/);
     const disposed=loader.dispose(); assert.equal(disposed.disposed,true);

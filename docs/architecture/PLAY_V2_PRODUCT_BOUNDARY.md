@@ -279,3 +279,20 @@ The repository evidence supports isolation without modifying Classic or Legacy F
 **COMPLETE — AUDIT/CLASSIFICATION ONLY. PLAY V2 REMAINS NOT READY FOR PUBLIC BETA.**
 
 Every relevant semantic FICS and educational reference found in the Play v2-owned/reachable graph has a path-specific classification; literal occurrences are distinguished from dynamic reachability and false positives. Games, Bots, Coach, Mentor and Players have explicit admission decisions. Classic and Legacy FICS remain protected. No isolation, route, feature gate, UI, runtime, Worker, analytics, dependency, lockfile, tag, push or deployment change is authorized or implemented by this document.
+
+## 12. Enforced bootstrap boundary â€” `PlayV2FicsIsolation@1.0.0`
+
+Season 11.1.1 establishes a document-level resource boundary for the existing QA activation. Exact `simplified=1` Play requests resolve to generated `play-v2.html`; normal `/play`, the homepage, CAISSA Classic, and Legacy FICS retain their legacy entries and behavior.
+
+The Play v2 entry allowlists same-origin scripts/styles, approved dynamic groups, existing local Worker forms, native/local-machine providers, Play Games/Bots/Coach routes, and the external post-game Analyze transition. Ownership classification denies any FICS-named/owned resource, Players resource or group, Classic/Legacy/external provider resolution, provider route/fallback, and cross-origin network destination. The lazy loader enforces this contract only when the dedicated entry installs it, preserving legacy loader behavior.
+
+The generator fails closed if future executable script or stylesheet elements reference FICS or `js/play/players/`. Browser tests also inspect requests and post-load resources, submit hostile FICS provider/fallback inputs, attempt Players dynamic activation, and verify no identity, rating, presence, challenge, matchmaking, or Players panel surface appears.
+
+Before separation, the shared entry eagerly downloaded the following protected resources even when unused. Download is inclusion in the resource/network graph and creates future execution, security, privacy, caching, and fallback risk. After separation they remain solely in protected legacy entries:
+
+- `css/fics-client.css`
+- `js/fics-style12.js`
+- `js/fics-client.js`
+- legacy human-provider compatibility resources under `js/play/players/`
+
+Players remains blocked until CAISSA-native identity, presence, rating, challenge, matchmaking, authoritative game/clock/result, reconnect, moderation, privacy, and abuse infrastructure exists. This boundary creates none of that infrastructure and exposes no beta route.

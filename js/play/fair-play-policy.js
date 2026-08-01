@@ -24,7 +24,6 @@
         IMPORTED_ANALYSIS_ALLOWED: 'IMPORTED_ANALYSIS_ALLOWED',
         COMPLETED_GAME_ANALYSIS_ALLOWED: 'COMPLETED_GAME_ANALYSIS_ALLOWED',
         HUMAN_LIVE_ASSISTANCE_DENIED: 'HUMAN_LIVE_ASSISTANCE_DENIED',
-        FICS_LIVE_ASSISTANCE_DENIED: 'FICS_LIVE_ASSISTANCE_DENIED',
         EXTERNAL_AUTHORITY_DENIED: 'EXTERNAL_AUTHORITY_DENIED',
         UNKNOWN_HUMAN_CONTEXT_DENIED: 'UNKNOWN_HUMAN_CONTEXT_DENIED',
         ACTIVE_GAME_POST_ANALYSIS_DENIED: 'ACTIVE_GAME_POST_ANALYSIS_DENIED',
@@ -36,7 +35,7 @@
         SPECTATOR_LIVE_EVALUATION_DENIED: 'SPECTATOR_LIVE_EVALUATION_DENIED',
         COACH_CONTEXT_ALLOWED: 'COACH_CONTEXT_ALLOWED'
     });
-    const SOURCES = new Set(['local-play', 'fics', 'arena', 'spectator', 'training', 'imported', 'analyze', 'unknown']);
+    const SOURCES = new Set(['local-play', 'external-play', 'arena', 'spectator', 'training', 'imported', 'analyze', 'unknown']);
     const OPPONENTS = new Set(['engine', 'bot', 'coach', 'human', 'local-human', 'external-human', 'none', 'unknown']);
     const AUTHORITIES = new Set(['local-client', 'external-server', 'analysis-workspace', 'training-runtime', 'unknown']);
     const GAME_STATUSES = new Set(['idle', 'configuring', 'active', 'paused', 'completed', 'analyzing', 'reviewing', 'unknown']);
@@ -128,8 +127,6 @@
         }
         if (context.assisted && ['human', 'local-human', 'external-human'].includes(context.opponentType))
             return createDecision(context, false, 'agreement-required', REASON_CODES.ASSISTED_MODE_NOT_APPROVED);
-        if (context.source === 'fics')
-            return createDecision(context, false, 'denied', REASON_CODES.FICS_LIVE_ASSISTANCE_DENIED);
         if (context.authority === 'external-server')
             return createDecision(context, false, 'denied', REASON_CODES.EXTERNAL_AUTHORITY_DENIED);
         if (context.source === 'spectator' || context.spectator)

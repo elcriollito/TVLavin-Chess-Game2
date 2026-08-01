@@ -29,40 +29,6 @@
                 'js/play/coach/coach-observation-service.js?v=1.2.0', 'js/play/coach-panel.js?v=1.1.0'
             ])
         }),
-        'players-stack': Object.freeze({
-            resourceId: 'players-stack', type: 'module-group', trigger: 'mode', priority: 'low',
-            qaOnly: true, productionEligible: false, dependencies: Object.freeze([]),
-            sources: Object.freeze([
-                'js/play/players/presence-freshness-policy.js?v=1.0.0',
-                'js/play/players/player-presence.js?v=1.0.0',
-                'js/play/players/presence-snapshot.js?v=1.0.0',
-                'js/play/players/presence-registry.js?v=1.0.0',
-                'js/play/players/presence-provider-adapter.js?v=1.0.0',
-                'js/play/players/fics-presence-adapter.js?v=1.0.0',
-                'js/play/players/classic-presence-adapter.js?v=1.0.0',
-                'js/play/players/challenge-contracts.js?v=1.0.0',
-                'js/play/players/challenge-lifecycle.js?v=1.0.0',
-                'js/play/players/challenge-registry.js?v=1.0.0',
-                'js/play/players/challenge-provider-adapter.js?v=1.0.0',
-                'js/play/players/fics-challenge-adapter.js?v=1.0.0',
-                'js/play/players/classic-challenge-adapter.js?v=1.0.0',
-                'js/play/players/caissa-challenge-adapter.js?v=1.0.0',
-                'js/play/players/human-fair-play-contracts.js?v=1.0.0',
-                'js/play/players/human-runtime-authority.js?v=1.0.0',
-                'js/play/players/human-clock-authority.js?v=1.0.0',
-                'js/play/players/human-move-authority.js?v=1.0.0',
-                'js/play/players/human-game-readiness.js?v=1.0.0',
-                'js/play/players/fics-human-fair-play-adapter.js?v=1.0.0',
-                'js/play/players/classic-human-fair-play-adapter.js?v=1.0.0',
-                'js/play/players/caissa-human-fair-play-adapter.js?v=1.0.0',
-                'js/play/players/human-play-infrastructure-contracts.js?v=1.0.0',
-                'js/play/players/human-play-provider-matrix.js?v=1.0.0',
-                'js/play/players/human-play-coming-later-policy.js?v=1.0.0',
-                'js/play/players/human-play-section-policy.js?v=1.0.0',
-                'js/play/players/human-play-block-readiness.js?v=1.0.0',
-                'js/play/players-panel.js?v=1.4.0'
-            ])
-        }),
         'mentor-foundation': Object.freeze({
             resourceId: 'mentor-foundation', type: 'module-group', trigger: 'action', priority: 'normal',
             qaOnly: true, productionEligible: false, dependencies: Object.freeze([]),

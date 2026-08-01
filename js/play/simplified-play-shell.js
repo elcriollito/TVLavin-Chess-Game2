@@ -9,7 +9,7 @@
         'chessboard', 'player-header', 'board-actions', 'context-panel',
         'panel-header', 'panel-body', 'advanced-options', 'panel-status', 'action-footer'
     ]);
-    const MODES = Object.freeze({ games: true, bots: true, coach: true, players: true });
+    const MODES = Object.freeze({ games: true, bots: true, coach: true, players: false });
     const LAYOUT_MODES = Object.freeze([
         'phone-compact', 'phone-standard', 'phone-landscape',
         'tablet-portrait-stacked', 'tablet-landscape-split',
@@ -92,7 +92,7 @@
         #mode = 'games'; #placements = []; #listeners = []; #eventScopeId = null; #unsubscribeRoute = null;
         #suppressedLive = [];
         #layoutMode = null; #geometry = null; #resizeCount = 0; #activationCount = 0; #statusNode = null;
-        #gamesPanel = null; #botsPanel = null; #coachPanel = null; #playersPanel = null; #postGame = null;
+        #gamesPanel = null; #botsPanel = null; #coachPanel = null; #postGame = null;
         #panelLoadToken = 0;
         #accessibility = null;
         #diagnostics = {
@@ -234,7 +234,7 @@
                 onVisibilityChange: visible => {
                     if (visible) {
                         this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.();
-                        this.#coachPanel?.hide?.(); this.#playersPanel?.hide?.();
+                        this.#coachPanel?.hide?.();
                     }
                     else this.#syncPanels();
                 }
@@ -242,7 +242,6 @@
             const postGameMount = this.#postGame?.mount?.({ host: contextBody });
             if (!postGameMount?.ok) {
                 this.#postGame?.dispose?.(); this.#postGame = null;
-                this.#playersPanel?.dispose?.(); this.#playersPanel = null;
                 this.#coachPanel?.dispose?.(); this.#coachPanel = null;
                 this.#botsPanel?.dispose?.(); this.#botsPanel = null;
                 this.#gamesPanel?.dispose?.(); this.#gamesPanel = null;
@@ -290,7 +289,6 @@
             if (global.CaissaPostGameExperienceInstance) global.CaissaPostGameExperienceInstance = null;
             this.#botsPanel?.dispose?.(); this.#botsPanel = null;
             this.#coachPanel?.dispose?.(); this.#coachPanel = null;
-            this.#playersPanel?.dispose?.(); this.#playersPanel = null;
             if (global.CaissaPlayersPanelInstance) global.CaissaPlayersPanelInstance = null;
             this.#gamesPanel?.dispose?.(); this.#gamesPanel = null;
             [...this.#placements].reverse().forEach(({ node, marker }) => {
@@ -400,7 +398,7 @@
                 evaluationRail: global.CaissaEvaluationRailInstance?.getSnapshot?.() || null,
                 gamesPanel: this.#gamesPanel?.getSnapshot?.() || null,
                 botsPanel: this.#botsPanel?.getSnapshot?.() || null,
-                playersPanel: this.#playersPanel?.getSnapshot?.() || null,
+                playersPanel: null,
                 postGame: this.#postGame?.getSnapshot?.() || null,
                 accessibility: this.#accessibility?.inspect?.() || null,
                 diagnostics: { ...this.#diagnostics }
@@ -436,11 +434,10 @@
             const map = {
                 bots: ['bots-stack', 'CaissaBotsPanel', '#botsPanel'],
                 coach: ['coach-stack', 'CaissaCoachPanel', '#coachPanel'],
-                players: ['players-stack', 'CaissaPlayersPanel', '#playersPanel']
             };
             const entry = map[mode];
             if (!entry) return true;
-            const existing = mode === 'bots' ? this.#botsPanel : mode === 'coach' ? this.#coachPanel : this.#playersPanel;
+            const existing = mode === 'bots' ? this.#botsPanel : this.#coachPanel;
             if (existing) return true;
             this.setStatus('loading');
             try {
@@ -451,10 +448,6 @@
                 if (!mounted?.ok) throw new Error('PANEL_MOUNT_FAILED');
                 if (mode === 'bots') this.#botsPanel = panel;
                 else if (mode === 'coach') this.#coachPanel = panel;
-                else {
-                    this.#playersPanel = panel;
-                    global.CaissaPlayersPanelInstance = panel;
-                }
                 this.setStatus('ready');
                 return true;
             } catch (_) {
@@ -470,18 +463,15 @@
             if (this.#mode === 'bots') {
                 global.CaissaCoachSession?.reset?.();
                 this.#gamesPanel?.hide?.(); this.#coachPanel?.hide?.();
-                this.#playersPanel?.hide?.(); this.#botsPanel?.show?.();
+                this.#botsPanel?.show?.();
             } else if (this.#mode === 'coach') {
                 global.CaissaBotSession?.resetToFullPower?.();
                 this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.();
-                this.#playersPanel?.hide?.(); this.#coachPanel?.show?.();
-            } else if (this.#mode === 'players') {
-                this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.();
-                this.#coachPanel?.hide?.(); this.#playersPanel?.show?.();
+                this.#coachPanel?.show?.();
             } else {
                 global.CaissaCoachSession?.reset?.();
                 this.#botsPanel?.hide?.(); this.#coachPanel?.hide?.();
-                this.#playersPanel?.hide?.(); this.#gamesPanel?.show?.();
+                this.#gamesPanel?.show?.();
             }
         }
         #removeListeners() {

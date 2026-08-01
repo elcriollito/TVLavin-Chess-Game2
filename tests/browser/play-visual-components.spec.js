@@ -62,9 +62,7 @@ test('representative panels use shared presentation while retaining existing beh
     await expect(page.locator('.caissa-coach-panel__card[data-visual-component="profile-card"]')).toHaveCount(3);
     await page.locator('[data-shell-mode="games"]').click();
     await expect(page.locator('[data-visual-component="time-control-selector"]')).toBeVisible();
-    await page.locator('[data-shell-mode="players"]').click();
-    await expect(page.locator('[data-visual-component="cta-footer"]')).toBeVisible();
-    await expect(page.locator('[data-visual-component="empty-state"]')).toHaveCount(5);
+    await expect(page.locator('[data-shell-mode="players"]')).toBeDisabled();
 });
 
 test('components remain accessible and bounded across eight viewports and reduced motion', async ({ page }) => {
@@ -74,7 +72,7 @@ test('components remain accessible and bounded across eight viewports and reduce
         { width: 412, height: 915 }, { width: 768, height: 1024 }, { width: 1024, height: 768 },
         { width: 1366, height: 768 }, { width: 1440, height: 900 }
     ]) {
-        await page.setViewportSize(viewport); await page.goto('/play/players?simplified=1');
+        await page.setViewportSize(viewport); await page.goto('/play/games?simplified=1');
         await expect(page.locator('[data-visual-component="mode-tabs"]')).toBeVisible();
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
         const targets = await page.locator('[data-visual-component="mode-tabs"] button').evaluateAll(nodes =>

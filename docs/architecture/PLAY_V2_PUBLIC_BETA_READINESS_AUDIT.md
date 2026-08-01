@@ -201,3 +201,21 @@ Directly read or searched during this audit:
 ## Final recommendation
 
 Keep production exactly as it is. Treat Games as the only viable first public-beta mode, but do not expose it until the beta-specific graph is free of FICS and educational surfaces and all P1 gates close. Bots may follow Worker/device certification. Mentor follows only after review-only isolation. Coach, Players, `/play` migration, and analytics transport are explicitly outside this rollout.
+
+## Season 11.1.1A bootstrap-separation update (2026-08-01)
+
+Season 11.1.1 originally stopped before commit because the QA URL and protected legacy products shared `index.html`. `/play/games?simplified=1` therefore downloaded `css/fics-client.css`, `js/fics-style12.js`, and `js/fics-client.js`. Downloading unused provider code is still a failed isolation boundary: it expands the executable supply chain, permits future evaluation side effects, and makes a negative-network guarantee false.
+
+The recovery uses a dedicated generated `play-v2.html` bootstrap. `scripts/build-play-v2.mjs` derives it deterministically from the preserved legacy document, removes FICS-owned CSS/JavaScript and Play Players resources, removes legacy FICS WebSocket destinations from its CSP, installs `PlayV2FicsIsolation@1.0.0`, and fails generation if a prohibited resource element remains. Provider-neutral board, lifecycle, route, game state, engine, Worker, Analyze, and UI modules remain shared implementations; no second runtime owner exists.
+
+Local and Vercel routing select this document only for `/play` or `/play/:mode` with the existing exact `simplified=1` QA query. Normal `/play` still resolves to `index.html`; `/` remains Classic and `/yahoo-classic` retains its standalone legacy document. No `/play/beta` route or public navigation was added.
+
+| Owner | Entry and resources after separation |
+|---|---|
+| Play v2 QA | `play-v2.html`; provider-neutral shared runtime; isolation contract; no FICS/Players resource element or FICS WebSocket CSP destination |
+| Homepage / Legacy Play | Preserved `index.html`, including existing FICS CSS, Style12, client, and human-provider compatibility resources |
+| CAISSA Classic / Legacy FICS | Preserved legacy bootstraps and FICS internals |
+
+Chromium evidence confirms no FICS-owned request or loaded resource for the QA entry, including hostile provider/fallback queries and failed attempts to load `players-stack`. Games and Bots initialize with one board and one Worker. Classic, Legacy FICS, Legacy Play, homepage, and normal `/play` retain their legacy resources and defaults. Players is unavailable in routing, shell, and lazy registry and cannot be enabled by query, storage, history, configuration, or retry.
+
+**Season 11.1.1 is complete for FICS isolation only. Play v2 remains QA-only and NOT READY for public beta.** Educational isolation, Worker production certification, physical-device and assistive-technology validation, feedback, rollback operations, and the other readiness gates remain open.

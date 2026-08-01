@@ -66,7 +66,7 @@ test('mode groups load once, stale completion cannot replace route, and active r
     await page.evaluate(() => window.CaissaPlayRouteController.navigate('/play/coach?simplified=1'));
     await expect(page.locator('.caissa-coach-panel')).toBeVisible();
     await page.evaluate(() => window.CaissaPlayRouteController.navigate('/play/players?simplified=1'));
-    await expect(page.locator('[data-players-panel]')).toBeVisible();
+    await expect(page).toHaveURL(/\/play\/games\?simplified=1/);
     const proof = await page.evaluate(before => ({
         boardSame: window.App.boardAdapter.getSnapshot().adapterId === before.board,
         workerCount: window.__caissaPlayHarness.snapshot().workersCreated,
@@ -77,7 +77,8 @@ test('mode groups load once, stale completion cannot replace route, and active r
     expect(proof.boardSame).toBe(true);
     expect(proof.workerCount).toBe(1);
     expect(new Set(proof.scripts).size).toBe(proof.scripts.length);
-    expect(proof.states).toMatchObject({ 'bots-stack': 'loaded', 'coach-stack': 'loaded', 'players-stack': 'loaded' });
+    expect(proof.states).toMatchObject({ 'bots-stack': 'loaded', 'coach-stack': 'loaded' });
+    expect(proof.states['players-stack']).toBeUndefined();
 });
 
 test('save-data prefetch is suppressed and Classic/Legacy remain outside loader activation', async ({ page }) => {

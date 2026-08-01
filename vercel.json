@@ -30,6 +30,8 @@
     { "source": "/roadmap", "destination": "/roadmap.html" },
     { "source": "/yahoo-classic", "destination": "/yahoo-classic.html" },
     { "source": "/academy", "destination": "/index.html" },
+    { "source": "/play", "has": [{ "type": "query", "key": "simplified", "value": "1" }], "destination": "/play-v2.html" },
+    { "source": "/play/:mode", "has": [{ "type": "query", "key": "simplified", "value": "1" }], "destination": "/play-v2.html" },
     { "source": "/play", "destination": "/index.html" },
     { "source": "/play/:mode", "destination": "/index.html" },
     { "source": "/opening-database", "destination": "/opening-database.html" },
