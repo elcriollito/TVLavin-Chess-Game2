@@ -52,6 +52,8 @@ The Play v2 boundary can be isolated without breaking CAISSA Classic or Legacy F
 
 ## Every FICS reference in the Play v2 code boundary
 
+Season 11.0.2 expands this summary into the authoritative path-specific FICS, provider-contract, test, legacy-owner, classification, and activation inventory in [`PLAY_V2_PRODUCT_BOUNDARY.md`](./PLAY_V2_PRODUCT_BOUNDARY.md). That audit confirms 30 Play-owned/shared runtime file entries in the FICS/provider reachability graph: 17 contain literal FICS tokens and 13 are provider-neutral/native contract files reached through the contaminated Players stack.
+
 The following is the complete file-level inventory from case-insensitive search under `js/play` at the audit baseline. These are references, not proof of a live socket: the specific adapters are deliberately unsupported/resource-free today. They are nevertheless prohibited from the public Play v2 graph.
 
 | File | Reference and disposition |
@@ -77,6 +79,8 @@ The following is the complete file-level inventory from case-insensitive search 
 FICS references in `index.html`, `yahoo-classic.html`, `app.js`, FICS CSS/client/gateway/deployment sources, and their tests belong to CAISSA Classic or Legacy FICS and must remain operational. Their co-location in the monolithic SPA means public-beta verification must prove that the beta entry neither presents nor invokes those sections; a later packaging split is safer than deleting them.
 
 ## Every educational reference in the Play v2 product surface
+
+Season 11.0.2 expands this summary into the authoritative path-specific educational, lifecycle, hidden-answer/PV, write-capability, test, classification, and activation inventory in [`PLAY_V2_PRODUCT_BOUNDARY.md`](./PLAY_V2_PRODUCT_BOUNDARY.md). It confirms 52 Play/PostGame/lazy production file entries in the educational reachability graph, plus the separate Guided Replay stylesheet; current Training Memory, Mastery, and recommendation writes remain zero/disabled, but their reachable adapters and vocabulary are still contamination.
 
 False positives such as JavaScript `class`, CSS class names, and time-control `classical` are excluded. The material product references are:
 
