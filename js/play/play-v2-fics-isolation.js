@@ -71,7 +71,7 @@
         }
         if (type === 'route') {
             const path = value.split('?')[0].replace(/\/+$/, '') || '/';
-            const allowed = /^\/play(?:\/(?:games|bots|coach))?$/.test(path);
+            const allowed = /^\/play(?:\/(?:games|bots|coach)|\/beta(?:\/(?:games|bots))?)?$/.test(path);
             return result(allowed, type, allowed ? 'PLAY_ROUTE_ALLOWED' : 'ROUTE_PROHIBITED');
         }
         if (type === 'transition')

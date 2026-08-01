@@ -18,7 +18,7 @@
     });
     const TYPES = Object.freeze(['dynamic-group', 'script', 'style', 'route', 'transition', 'action', 'dom', 'network']);
     const GROUPS = Object.freeze(['bots-stack', 'analyze-deep']);
-    const ROUTES = Object.freeze(['/play', '/play/games', '/play/bots']);
+    const ROUTES = Object.freeze(['/play', '/play/games', '/play/bots', '/play/beta', '/play/beta/games', '/play/beta/bots']);
     const ACTIONS = Object.freeze(['rematch', 'new-game', 'copy-pgn', 'download-pgn', 'save-game', 'analyze']);
     const FORBIDDEN_RESOURCE = /(?:academy|coach|mentor|guided[-_/]?replay|educational|knowledge|training[-_/]?memory|mastery|endgame[-_/]?(?:trainer|library))/i;
     const FORBIDDEN_SURFACE = /(?:academy|class(?:es)?|lesson|course|curriculum|guided replay|knowledge unit|training memory|mastery|training recommendation|educational promotion|exercise|puzzle|review with mentor)/i;

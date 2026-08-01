@@ -317,3 +317,13 @@ Current states:
 Security/privacy evidence confirms no new cookie, storage system, analytics transport, identity/profile bridge, educational state transfer, PGN upload, external dependency, or network destination. Explicit local completed-game persistence remains consent-controlled; it is not a Training Memory or Mastery write. Analytics transport remains disabled.
 
 The boundary does not certify physical devices, VoiceOver, TalkBack, NVDA, or JAWS, and it does not make Play v2 public-beta ready.
+
+## 13. Season 11.2.1 controlled beta entry
+
+`PlayV2BetaEntry@1.0.0` adds the canonical future `/play/beta` namespace at the current `internal` stage. The server/build-time `beta-entry-gate` owns admission before document selection. Authorized local `/play/beta`, `/play/beta/games`, and `/play/beta/bots` requests select the dedicated `play-v2.html`; default hosting, disabled access, prohibited modes, and invalid descendants select a runtime-free unavailable document. Public navigation, enrollment, homepage replacement, default Play replacement, Legacy/FICS fallback, SEO exposure, Coach, Mentor, Players, and analytics transport remain prohibited.
+
+Both earlier contracts remain authoritative and now recognize only the bounded Games/Bots beta routes. The generated graph remains free of FICS and educational resources. Analyze remains an external post-game continuation. Bots is internal and uncertified. Players remains blocked until CAISSA-native identity, presence, rating, challenge, matchmaking, authoritative game/clock/result, reconnect, moderation, privacy, and abuse infrastructure exists.
+
+The exact local internal stage value is also the rollback switch: removing or changing it fails closed before runtime load while preserving `/play`, Classic, and Legacy FICS. The temporary `simplified=1` QA entry remains solely for regression compatibility and is not authorization. See [`PLAY_V2_BETA_ENTRY.md`](./PLAY_V2_BETA_ENTRY.md) for route, deep-link, rollback, accessibility, security, test, and remaining-gate evidence.
+
+**Season 11.2.1 is accepted locally only.** No public beta, deployment, public enrollment, navigation/SEO exposure, production verification, Worker/Bots certification, physical-device certification, or screen-reader certification is claimed.

@@ -94,6 +94,22 @@
         }
         const normalizedPath = path.replace(/\/+/g, '/').replace(/\/+$/, '') || '/';
         const lowerPath = normalizedPath.toLowerCase();
+        const betaMatch = /^\/play\/beta(?:\/([^/]+))?$/.exec(lowerPath);
+        if (betaMatch) {
+            const requestedMode = betaMatch[1] || MODES.GAMES;
+            const available = requestedMode === MODES.GAMES || requestedMode === MODES.BOTS;
+            const mode = available ? requestedMode : MODES.GAMES;
+            const canonicalPath = mode === MODES.GAMES && !betaMatch[1] ? '/play/beta' : `/play/beta/${mode}`;
+            return frozenRoute({
+                schemaVersion: SCHEMA_VERSION, routeId: `play:${mode}`, path, section: 'play', mode,
+                requestedMode, status: available ? (path === canonicalPath ? STATUSES.RESOLVED : STATUSES.CANONICALIZED) : STATUSES.INACTIVE_MODE,
+                source: options.source || SOURCES.DIRECT_PATH, canonicalPath, legacy: false, replace: !available || path !== canonicalPath,
+                available: true, reasonCode: available && mode === MODES.BOTS ? REASONS.BOTS_MODE_RESOLVED :
+                    (available ? REASONS.GAMES_MODE_RESOLVED : REASONS.RESERVED_MODE_INACTIVE),
+                query, __privateQuery: protectedQuery, handoffToken: null,
+                metadata: { requestedModeAvailable: available, betaEntry: true }
+            });
+        }
         const playMatch = /^\/play(?:\/([^/]+))?$/.exec(lowerPath);
         if (playMatch) {
             const requestedMode = playMatch[1] || MODES.GAMES;

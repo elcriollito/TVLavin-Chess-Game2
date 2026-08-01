@@ -266,7 +266,8 @@
                 this.#listen(this.#root.querySelector('.caissa-simplified-shell__modes'), 'click', event => {
                     const mode = event.target?.dataset?.shellMode;
                     if (!mode || !MODES[mode]) return;
-                    global.CaissaPlayRouteController?.navigate?.(`/play/${mode}?simplified=1`, { source: 'mode-tab' });
+                    const beta = global.location?.pathname?.toLowerCase().startsWith('/play/beta');
+                    global.CaissaPlayRouteController?.navigate?.(beta ? `/play/beta/${mode}` : `/play/${mode}?simplified=1`, { source: 'mode-tab' });
                 });
                 this.#listen(global, 'resize', () => this.resize());
                 this.#listen(global, 'orientationchange', () => {
@@ -379,7 +380,8 @@
 
         syncRoute() {
             const route = global.CaissaPlayRouteController?.getCurrent?.();
-            const enabled = route?.section === 'play' && route.query?.simplified === '1';
+            const enabled = route?.section === 'play'
+                && (route.query?.simplified === '1' || route.metadata?.betaEntry === true);
             if (!enabled) return this.deactivate();
             const activated = this.activate();
             if (activated.ok) this.setMode(route.mode || 'games');
@@ -500,7 +502,7 @@
         global.CaissaSimplifiedPlayShellInstance = shell;
         shell.mount();
         const route = global.CaissaPlayRouteController?.getCurrent?.();
-        if (route?.query?.simplified !== '1') {
+        if (route?.query?.simplified !== '1' && route?.metadata?.betaEntry !== true) {
             shell.syncRoute();
             return;
         }

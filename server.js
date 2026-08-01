@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createPrivateRunOperationalConfig } from './js/endgame-trainer/v2/private-run-operational-config.js';
+import { resolvePlayV2BetaEntry } from './js/play/play-v2-beta-entry-gate.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -409,7 +410,15 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/yahoo-classic') {
     filePath = './yahoo-classic.html';
   }
-  if (pathname === '/play' || pathname.startsWith('/play/')) {
+  const betaEntry = resolvePlayV2BetaEntry(pathname, process.env);
+  if (betaEntry.requested) {
+    filePath = `./${betaEntry.document}`;
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+  }
+  if (!betaEntry.requested && (pathname === '/play' || pathname.startsWith('/play/'))) {
     filePath = url.searchParams.get('simplified') === '1' ? './play-v2.html' : './index.html';
   }
   if (pathname === '/endgame-trainer' || pathname === '/endgame-trainer/') {

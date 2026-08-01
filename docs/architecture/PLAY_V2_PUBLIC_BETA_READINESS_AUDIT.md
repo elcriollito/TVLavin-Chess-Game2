@@ -233,3 +233,13 @@ Legacy `index.html` continues to own Academy, current Coach/Mentor modules, Guid
 Automated keyboard, focus, touch-target, reduced-motion, forced-colors, reflow, and Axe checks remain regression evidence only. No physical device or named screen reader has been certified.
 
 **Season 11.1.2 status: complete for educational isolation only. Play v2 remains QA-only and NOT READY for public beta.** Worker production certification, physical-device and assistive-technology testing, feedback, operational rollback, public enrollment/gating, and later release gates remain open.
+
+## Season 11.2.1 controlled-entry update (2026-08-01)
+
+`PlayV2BetaEntry@1.0.0` establishes `/play/beta` as the canonical future beta namespace without exposing it publicly. Authorized local internal requests for the root, Games, and Bots map only to `play-v2.html`; the exact server/build-time stage value owns admission before document selection. Default hosting and disabled/invalid access select a deterministic runtime-free, non-indexable unavailable document. There is no Legacy Play or FICS fallback and no invented invite or identity system.
+
+The client preserves authorized Games/Bots deep links, refresh, back/forward, queries and fragments without depending on `simplified=1`. Coach, Mentor, Players, unknown modes, encoded aliases and malformed descendants fail closed. Normal `/play`, `/`, Classic, and Legacy FICS ownership remains unchanged. The old exact QA query remains temporarily for regression compatibility and retires only after separately authorized migration.
+
+Rollback is deterministic: remove or change the exact internal stage value. This prevents Play v2 runtime loading without deleting the implementation or rewriting history. Gate details, route mapping, security/accessibility behavior, test scope, and retirement conditions are recorded in [`PLAY_V2_BETA_ENTRY.md`](./PLAY_V2_BETA_ENTRY.md).
+
+**Season 11.2.1 status: accepted locally for controlled internal entry only. Play v2 is still NOT a public beta.** Public authorization/entitlement, deployment, feedback, Worker/Bots production certification, physical-device and named-screen-reader validation remain open. No production verification is claimed.

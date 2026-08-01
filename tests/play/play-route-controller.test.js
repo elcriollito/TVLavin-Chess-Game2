@@ -79,6 +79,19 @@ test('Bots and Coach resolve with QA while Players remains blocked for every que
     assert.equal(api.isModeAvailable('players', { qa: true }), false);
 });
 
+test('canonical beta routes preserve their namespace and block prohibited modes', () => {
+    const { api } = load('https://caissa.test/play/beta');
+    assert.equal(api.parse('/play/beta').canonicalPath, '/play/beta');
+    assert.equal(api.parse('/play/beta/games').canonicalPath, '/play/beta/games');
+    assert.equal(api.parse('/play/beta/bots').mode, 'bots');
+    for (const mode of ['coach', 'mentor', 'players', 'unknown']) {
+        const route = api.parse(`/play/beta/${mode}`);
+        assert.equal(route.mode, 'games');
+        assert.equal(route.canonicalPath, '/play/beta/games');
+        assert.equal(route.metadata.requestedModeAvailable, false);
+    }
+});
+
 test('adapts legacy Play queries and preserves bounded safe setup data', () => {
     const { api } = load();
     const route = api.parse('/?section=play&fen=8%2F8%2F8%2F8%2F8%2F8%2F8%2FK6k+w+-+-+0+1&opponent=computer&empty=&__proto__=x');
@@ -150,7 +163,7 @@ test('local and production hosts narrowly cold-load Play routes with root-based 
     const vercel = JSON.parse(fs.readFileSync(new URL('../../vercel.json', import.meta.url), 'utf8'));
     const index = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
     assert.match(server, /pathname === '\/play' \|\| pathname\.startsWith\('\/play\/'\)/);
-    const playRules = vercel.rewrites.filter(({ source }) => source.startsWith('/play'));
+    const playRules = vercel.rewrites.filter(({ source }) => source === '/play' || source === '/play/:mode');
     assert.deepEqual(playRules.slice(-2), [
         { source: '/play', destination: '/index.html' },
         { source: '/play/:mode', destination: '/index.html' }

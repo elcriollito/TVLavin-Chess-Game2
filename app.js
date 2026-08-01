@@ -2559,10 +2559,11 @@ function updateEngineStatus(status, text) {
 function newGame(options = {}) {
     window.CaissaPostGameExperienceInstance?.hide?.();
     const botRoute = window.CaissaPlayRouteController?.getCurrent?.();
-    if (botRoute?.mode === 'coach' && botRoute?.query?.simplified === '1') {
+    const nativePlayEntry = botRoute?.query?.simplified === '1' || botRoute?.metadata?.betaEntry === true;
+    if (botRoute?.mode === 'coach' && nativePlayEntry) {
         window.CaissaBotSession?.resetToFullPower?.();
         window.CaissaCoachSession?.beginGame?.();
-    } else if (botRoute?.mode === 'bots' && botRoute?.query?.simplified === '1') {
+    } else if (botRoute?.mode === 'bots' && nativePlayEntry) {
         window.CaissaCoachSession?.reset?.();
         window.CaissaBotSession?.beginGame?.();
     } else {
