@@ -37,7 +37,7 @@ test('malformed, unknown, dangerous, executable, and arbitrary payload shapes fa
 
 test('privacy policy explicitly denies identity, chess content, URLs, persistence, and transport', () => {
     const { CaissaPlayAnalyticsPrivacyPolicy: P } = load();
-    assert.equal(P.VERSION, 'PlayAnalyticsPrivacyPolicy@1.2.0');
+    assert.equal(P.VERSION, 'PlayAnalyticsPrivacyPolicy@1.3.0');
     assert.equal(P.transport, 'none'); assert.equal(P.persistence, 'none'); assert.equal(P.preciseTime, false);
     for (const key of ['email', 'accountId', 'ip', 'url', 'query', 'referrer', 'moves', 'pgn', 'fen',
         'evaluation', 'pv', 'mentorContent', 'providerPayload', 'fingerprint', 'sessionId']) assert(P.prohibited.includes(key));

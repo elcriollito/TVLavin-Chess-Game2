@@ -17,6 +17,7 @@
         ? [event.eventId, event.payload.attemptSequence, event.payload.mode, event.payload.startState].join('|')
         : event.category === 'play-game-completion' ? [event.eventId, event.payload.completionSequence].join('|')
             : event.category === 'play-postgame' ? [event.eventId, event.payload.completionSequence, event.payload.actionSequence].join('|')
+                : event.category === 'play-mentor' ? [event.eventId, event.payload.completionSequence, event.payload.engagementSequence].join('|')
                 : [event.eventId, event.payload.selectionSequence, event.payload.mode, event.payload.loadState, event.payload.accessState].join('|');
     function reject(reason) { diagnostics.rejected += 1; diagnostics.lastReasonCode = reason; return Object.freeze({ ok: false, status: 'rejected', reason }); }
     function createEvent(eventId, payload) {
@@ -63,7 +64,7 @@
     }
     function getSnapshot(options = {}) {
         const events = options.qa === true && options.includeEvents === true ? buffer.map(event => event) : undefined;
-        return C.freeze({ schemaVersion: 'PlayAnalyticsDispatcher@1.2.0', disposed, sinkCount: sinks.size,
+        return C.freeze({ schemaVersion: 'PlayAnalyticsDispatcher@1.3.0', disposed, sinkCount: sinks.size,
             bufferSize: buffer.length, bufferLimit: LIMIT, diagnostics: { ...diagnostics }, ...(events ? { events } : {}) });
     }
     function dispose() {
@@ -71,6 +72,6 @@
         for (const [id, sink] of sinks) if (id !== 'local-diagnostics') try { sink.dispose?.(); } catch (_) { diagnostics.sinkFailures += 1; }
         sinks.clear(); buffer.length = 0; signatures.clear(); signatureOrder.length = 0; return getSnapshot();
     }
-    root.CaissaPlayAnalytics = Object.freeze({ VERSION: 'PlayAnalyticsDispatcher@1.2.0', createEvent, emit,
+    root.CaissaPlayAnalytics = Object.freeze({ VERSION: 'PlayAnalyticsDispatcher@1.3.0', createEvent, emit,
         registerSink, unregisterSink, getSnapshot, inspect: () => getSnapshot(), dispose });
 })(typeof window !== 'undefined' ? window : globalThis);

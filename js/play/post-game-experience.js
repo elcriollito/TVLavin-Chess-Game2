@@ -279,6 +279,8 @@
             if (!prepared?.ok) return this.#recordOperation(result(false,
                 prepared?.status || 'failed', prepared?.reasonCode || REASONS.ACTION_FAILED));
             this.#analysisRun = prepared.value;
+            global.CaissaPlayMentorEngagementAnalytics?.observeReviewReady?.(
+                this.#mentorAnalyticsContext());
             this.#feedback = 'Technical analysis is prepared to run. Mentor educational review is not available yet.';
             this.#render();
             return this.#recordOperation(result(true, 'prepared', 'TECHNICAL_ANALYSIS_PREPARED', prepared.value));
@@ -298,6 +300,8 @@
             if (!selected?.ok) return this.#recordOperation(result(false, 'unavailable',
                 selected?.reasonCode || REASONS.ACTION_UNAVAILABLE));
             this.#criticalMomentSelection = selected.value;
+            global.CaissaPlayMentorEngagementAnalytics?.observeCriticalMomentsOpened?.(
+                this.#mentorAnalyticsContext());
             this.#analysisResult = technical;
             this.#feedback = `${selected.value.selectedCount} technical moment${selected.value.selectedCount === 1
                 ? '' : 's'} selected. Mentor explanations and guided replay are not available yet.`;
@@ -469,9 +473,16 @@
                 criticalMomentLimit: 3, explanationStyle: 'balanced', requestOrigin: 'post-game',
                 knowledgeReleaseId: global.CaissaMentorCapabilities?.releaseId
             });
-            if (!created?.ok) return result(false, created?.status || 'unavailable',
-                created?.reasonCode || REASONS.ACTION_UNAVAILABLE);
+            if (!created?.ok) {
+                global.CaissaPlayMentorEngagementAnalytics?.observeReviewFailed?.({
+                    ...this.#mentorAnalyticsContext(), failureReason: 'dependency-unavailable'
+                });
+                return result(false, created?.status || 'unavailable',
+                    created?.reasonCode || REASONS.ACTION_UNAVAILABLE);
+            }
             this.#mentorRequest = created.value;
+            global.CaissaPlayMentorEngagementAnalytics?.observeReviewRequested?.(
+                this.#mentorAnalyticsContext());
             return result(true, 'accepted', REASONS.MENTOR_REQUEST_CREATED, created.value);
         }
         #startGuidedReplay() {
@@ -492,8 +503,11 @@
             this.#guidedReplaySession = started.value;
             const mounted = global.CaissaGuidedReplayView?.getSnapshot?.().mounted
                 ? global.CaissaGuidedReplayView.show()
-                : global.CaissaGuidedReplayView?.mount?.(this.#root, started.value.sessionId);
+                : global.CaissaGuidedReplayView?.mount?.(this.#root, started.value.sessionId,
+                    this.#mentorAnalyticsContext());
             if (!mounted?.ok) return result(false, 'failed', mounted?.reasonCode || REASONS.ACTION_FAILED);
+            global.CaissaPlayMentorEngagementAnalytics?.observeGuidedReplayStarted?.(
+                this.#mentorAnalyticsContext());
             return result(true, 'accepted', 'GUIDED_REPLAY_STARTED', started.value);
         }
         #createMentorSummary() {
@@ -501,6 +515,8 @@
                 return this.#loadThen('mentor-summary', () => !!global.CaissaMentorSummary?.generate,
                     () => this.#createMentorSummary(), 'Loading Mentor Summary…');
             }
+            global.CaissaPlayMentorEngagementAnalytics?.observeSummaryRequested?.(
+                this.#mentorAnalyticsContext());
             const replay = this.#guidedReplaySession?.sessionId
                 ? global.CaissaMentorGuidedReplay?.getSnapshot?.(this.#guidedReplaySession.sessionId)
                 : this.#guidedReplaySession;
@@ -512,10 +528,19 @@
                 mentorName: this.#resolveMentor()?.mentor?.name || null,
                 style: this.#mentorRequest?.review?.explanationStyle || 'balanced'
             });
-            if (!generated?.ok) return result(false, 'unavailable',
-                generated?.reasonCode || REASONS.ACTION_UNAVAILABLE);
+            if (!generated?.ok) {
+                global.CaissaPlayMentorEngagementAnalytics?.observeSummaryFailed?.({
+                    ...this.#mentorAnalyticsContext(), failureReason: 'summary-unavailable'
+                });
+                return result(false, 'unavailable', generated?.reasonCode || REASONS.ACTION_UNAVAILABLE);
+            }
             this.#mentorSummary = generated.value;
+            global.CaissaPlayMentorEngagementAnalytics?.observeSummaryReady?.(
+                this.#mentorAnalyticsContext());
             return result(true, 'accepted', 'MENTOR_SUMMARY_CREATED', generated.value);
+        }
+        #mentorAnalyticsContext() {
+            return { completionSequence: this.#analyticsContext?.completionSequence || 0 };
         }
         #start(action) {
             const start = () => this.#compatibility.execute('startNewGame', { ...this.#configuration });

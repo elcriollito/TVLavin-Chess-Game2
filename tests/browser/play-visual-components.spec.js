@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { navigateToReadyBotsPanel } from './helpers/play-responsive-readiness.js';
 
 test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
@@ -55,7 +56,7 @@ test('shared mode tabs preserve routing and keyboard navigation without rebuildi
 });
 
 test('representative panels use shared presentation while retaining existing behavior', async ({ page }) => {
-    await page.goto('/play/bots?simplified=1');
+    await navigateToReadyBotsPanel(page);
     await expect(page.locator('[data-bot-card][data-visual-component="profile-card"]')).toHaveCount(4);
     await page.locator('[data-shell-mode="coach"]').click();
     await expect(page.locator('.caissa-coach-panel__card[data-visual-component="profile-card"]')).toHaveCount(3);

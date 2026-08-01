@@ -3,6 +3,7 @@ import { instrumentPlay, loadPosition, playMove } from '../play/playwright-helpe
 import { positions } from '../play/fixtures/positions.js';
 import { REQUIRED_CROSS_BROWSER_PROFILE_IDS, PLAY_RESPONSIVE_PROFILES } from './fixtures/play-responsive-profiles.js';
 import { collectResponsiveGeometry, rectWithinViewport } from './helpers/play-responsive-geometry.js';
+import { ensureResponsivePanelReachable, navigateToReadySimplifiedPlay } from './helpers/play-responsive-readiness.js';
 
 const representative = PLAY_RESPONSIVE_PROFILES.filter(profile =>
     REQUIRED_CROSS_BROWSER_PROFILE_IDS.includes(profile.profileId));
@@ -13,10 +14,10 @@ test('Games, Bots, Coach, and production-blocked Players remain reachable after 
     for (const profile of representative) {
         await page.setViewportSize({ width: profile.width, height: profile.height });
         for (const mode of ['games', 'bots', 'coach', 'players']) {
-            await page.goto(`/play/${mode}?simplified=1`);
+            await navigateToReadySimplifiedPlay(page, `/play/${mode}?simplified=1`, mode);
             await expect(page.locator(`[data-shell-mode="${mode}"]`)).toHaveAttribute('aria-selected', 'true');
             const panel = page.locator('.caissa-simplified-shell__context');
-            await panel.scrollIntoViewIfNeeded();
+            await ensureResponsivePanelReachable(page);
             await expect(panel).toBeVisible();
             expect((await collectResponsiveGeometry(page)).overflowX, `${profile.profileId}/${mode}`).toBeLessThanOrEqual(2);
         }
@@ -27,7 +28,7 @@ test('Games, Bots, Coach, and production-blocked Players remain reachable after 
 test('PostGame and promotion fit representative cross-browser profiles', async ({ page }) => {
     for (const profile of representative) {
         await page.setViewportSize({ width: profile.width, height: profile.height });
-        await page.goto('/play/games?simplified=1');
+        await navigateToReadySimplifiedPlay(page, '/play/games?simplified=1', 'games');
         await page.locator('[data-games-primary]').click();
         await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
         const postGame = page.locator('.caissa-post-game');

@@ -5,6 +5,7 @@ import { profilesForBrowser } from './fixtures/play-responsive-profiles.js';
 import {
     collectResponsiveGeometry, isSquare, rectWithinViewport
 } from './helpers/play-responsive-geometry.js';
+import { navigateToReadySimplifiedPlay } from './helpers/play-responsive-readiness.js';
 
 test.beforeEach(async ({ page }) => instrumentPlay(page));
 
@@ -13,14 +14,13 @@ test('profile matrix preserves board-first geometry, reachability, accessibility
     for (const profile of profiles) {
         await test.step(profile.profileId, async () => {
             await page.setViewportSize({ width: profile.width, height: profile.height });
-            await page.goto('/play/games?simplified=1');
+            await navigateToReadySimplifiedPlay(page, '/play/games?simplified=1', 'games');
             await expect(page.locator('.caissa-simplified-shell')).toBeVisible();
             await expect.poll(() => page.evaluate(() =>
                 window.CaissaSimplifiedPlayShellInstance.getSnapshot().layoutMode))
                 .toBe(profile.expectedLayout);
 
             const primary = page.locator('[data-games-primary]');
-            await primary.scrollIntoViewIfNeeded();
             await primary.focus();
             await expect(primary).toBeFocused();
             const geometry = await collectResponsiveGeometry(page);

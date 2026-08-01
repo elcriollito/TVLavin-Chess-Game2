@@ -11,6 +11,7 @@
     function create(options = {}) {
         const replay = options.replay || global.CaissaMentorGuidedReplay;
         let root = null; let board = null; let sessionId = null; let selectedSquare = null;
+        let completionSequence = 0; let attemptSequence = 0;
         const listeners = []; const diagnostics = { mounts: 0, renders: 0, submissions: 0,
             listeners: 0, replayBoards: 0, engineRequests: 0, storageWrites: 0 };
         const listen = (target, type, handler) => {
@@ -21,11 +22,13 @@
             const value = global.document.createElement(tag); value.className = className;
             value.textContent = text; return value;
         };
-        function mount(host, id) {
+        function mount(host, id, analyticsContext = {}) {
             if (root) return operation(true, 'ALREADY_MOUNTED', getSnapshot());
             if (!host?.appendChild || !replay?.getSnapshot?.(id))
                 return operation(false, 'INVALID_REPLAY_HOST');
-            sessionId = id; root = node('section', 'caissa-guided-replay');
+            sessionId = id; completionSequence = Number.isSafeInteger(analyticsContext.completionSequence)
+                ? analyticsContext.completionSequence : 0; attemptSequence = 0;
+            root = node('section', 'caissa-guided-replay');
             root.setAttribute('aria-labelledby', `${id.replace(/[^a-z0-9]/gi, '-')}-title`);
             const header = node('div', 'caissa-guided-replay__header');
             const title = node('h3', '', 'Guided Replay');
@@ -61,19 +64,33 @@
                 event.preventDefault(); submitMove(input.value); input.value = '';
             });
             listen(acknowledge, 'click', () => {
-                replay.submitChoice(sessionId, 'acknowledge'); diagnostics.submissions += 1; render();
+                const result = replay.submitChoice(sessionId, 'acknowledge');
+                diagnostics.submissions += 1; observeAttempt(result); render();
+            });
+            listen(knowledge, 'click', event => {
+                const category = event.target?.closest?.('[data-mentor-concept-category]')
+                    ?.dataset?.mentorConceptCategory;
+                if (category) global.CaissaPlayMentorEngagementAnalytics?.observeKnowledgeOpened?.({
+                    completionSequence, conceptCategory: category,
+                    dedupKey: `knowledge-${attemptSequence}`
+                });
             });
             listen(controls, 'click', event => {
                 const action = event.target?.dataset?.guidedReplayAction;
                 if (!action) return;
                 if (action === 'close') {
                     root.hidden = true;
+                    global.CaissaPlayMentorEngagementAnalytics?.observeExited?.({ completionSequence });
                     root.parentElement?.querySelector?.('[data-post-game-action="guided-replay"]')?.focus?.();
                     return;
                 }
-                replay[action]?.(sessionId); render();
-                if (action === 'reveal')
+                const result = replay[action]?.(sessionId); render();
+                if (action === 'reveal' && result?.ok && result.reasonCode === 'ANSWER_REVEALED') {
+                    global.CaissaPlayMentorEngagementAnalytics?.observeReferenceRevealed?.({
+                        completionSequence, dedupKey: `reference-${attemptSequence}`
+                    });
                     global.CaissaPlayAnnouncementManager?.announce?.('REPLAY_REFERENCE_REVEALED');
+                }
             });
             board = global.CaissaChessboardAdapter?.create?.({
                 label: 'Guided Replay chessboard', position: replay.getSnapshot(id).currentStep?.position.fenBefore,
@@ -104,9 +121,18 @@
         }
         function submitMove(move) {
             const result = replay.submitMove(sessionId, move);
-            diagnostics.submissions += 1; render();
+            diagnostics.submissions += 1; observeAttempt(result); render();
             global.CaissaPlayAnnouncementManager?.announce?.('REPLAY_ATTEMPT_RECORDED');
             return result;
+        }
+        function observeAttempt(result) {
+            attemptSequence += 1;
+            const attemptCategory = result?.ok && result.reasonCode === 'ATTEMPT_ACCEPTED'
+                ? 'accepted' : result?.status === 'rejected' ? 'rejected'
+                    : result?.status === 'invalid' ? 'invalid' : 'unavailable';
+            global.CaissaPlayMentorEngagementAnalytics?.observeReplayAttempted?.({
+                completionSequence, attemptCategory, dedupKey: `attempt-${attemptSequence}`
+            });
         }
         function render() {
             if (!root || !sessionId) return;
@@ -141,6 +167,8 @@
                     const link = node('a', 'caissa-guided-replay__knowledge-link',
                         `Open ${step.knowledge.knowledgeUnit.title}`);
                     link.href = step.knowledge.knowledgeUnit.publicUrl;
+                    link.dataset.mentorConceptCategory = global.CaissaPlayMentorEngagementAnalytics
+                        ?.conceptCategory?.(step.knowledge.conceptId) || 'unknown';
                     knowledge.appendChild(link);
                 }
             }
@@ -171,7 +199,8 @@
             listeners.splice(0).forEach(({ target, type, handler }) =>
                 target.removeEventListener(type, handler));
             board?.dispose?.(); board = null; root?.remove?.(); root = null; sessionId = null;
-            selectedSquare = null; diagnostics.listeners = 0; diagnostics.replayBoards = 0;
+            selectedSquare = null; completionSequence = 0; attemptSequence = 0;
+            diagnostics.listeners = 0; diagnostics.replayBoards = 0;
             return operation(true, 'REPLAY_VIEW_UNMOUNTED');
         }
         return freeze({ schemaVersion: SCHEMA_VERSION, mount, show, render, getSnapshot,

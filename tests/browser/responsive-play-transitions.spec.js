@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { instrumentPlay, playMove, snapshot, startGame } from '../play/playwright-helpers.js';
+import { navigateToReadySimplifiedPlay } from './helpers/play-responsive-readiness.js';
 
 test.beforeEach(async ({ page }) => instrumentPlay(page, { autoReply: false }));
 
 test('portrait-landscape-reflow transition preserves game, board, focus, panel, and resources', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/play/games?simplified=1');
+    await navigateToReadySimplifiedPlay(page, '/play/games?simplified=1', 'games');
     await startGame(page);
     await playMove(page, 'e2', 'e4');
     const primary = page.locator('[data-games-primary]');

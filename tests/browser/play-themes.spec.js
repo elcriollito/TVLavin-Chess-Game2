@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { navigateToReadyBotsPanel } from './helpers/play-responsive-readiness.js';
 
 test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
@@ -49,7 +50,7 @@ test('system mode resolves media changes once and explicit override wins', async
 });
 
 test('switching preserves lifecycle, FairPlay, clocks, panel state, route, and resources', async ({ page }) => {
-    await page.goto('/play/bots?simplified=1');
+    await navigateToReadyBotsPanel(page);
     await page.locator('[data-bot-id]').first().check();
     const proof = await page.evaluate(() => {
         const before = {

@@ -12,7 +12,11 @@
     const COMPLETION_EVENT_IDS = values(['play_game_completed', 'play_game_aborted', 'play_game_completion_failed']);
     const POSTGAME_EVENT_IDS = values(['play_postgame_shown', 'play_postgame_action_selected',
         'play_postgame_action_succeeded', 'play_postgame_action_failed', 'play_postgame_action_blocked']);
-    const EVENT_IDS = values([...MODE_EVENT_IDS, ...GAME_START_EVENT_IDS, ...COMPLETION_EVENT_IDS, ...POSTGAME_EVENT_IDS]);
+    const MENTOR_EVENT_IDS = values(['play_mentor_review_requested', 'play_mentor_review_ready', 'play_mentor_review_failed',
+        'play_mentor_critical_moments_opened', 'play_mentor_guided_replay_started', 'play_mentor_replay_attempted',
+        'play_mentor_reference_revealed', 'play_mentor_knowledge_opened', 'play_mentor_summary_requested',
+        'play_mentor_summary_ready', 'play_mentor_summary_failed', 'play_mentor_exited']);
+    const EVENT_IDS = values([...MODE_EVENT_IDS, ...GAME_START_EVENT_IDS, ...COMPLETION_EVENT_IDS, ...POSTGAME_EVENT_IDS, ...MENTOR_EVENT_IDS]);
     const MODES = values(['games', 'bots', 'coach', 'players']);
     const PREVIOUS_MODES = values([...MODES, 'none', 'unknown']);
     const ROUTE_SOURCES = values(['direct', 'mode-tab', 'primary-navigation', 'browser-back', 'browser-forward',
@@ -50,6 +54,14 @@
         'completionSequence', 'startAttemptSequence', 'shellVersion']);
     const POSTGAME_PAYLOAD_KEYS = values(['mode', 'action', 'actionState', 'failureReason', 'resultCategory',
         'terminationCategory', 'source', 'qaEligible', 'productionEligible', 'completionSequence', 'actionSequence', 'shellVersion']);
+    const MENTOR_ENGAGEMENTS = values(['review', 'critical-moments', 'guided-replay', 'replay-attempt', 'reference-reveal', 'knowledge', 'summary', 'exit', 'unknown']);
+    const MENTOR_STAGES = values(['postgame', 'review-request', 'review-ready', 'critical-moments', 'guided-replay', 'replay-attempt', 'reference', 'knowledge', 'summary-request', 'summary-ready', 'exit', 'unknown']);
+    const MENTOR_STATES = values(['requested', 'ready', 'opened', 'started', 'attempted', 'revealed', 'succeeded', 'failed', 'blocked', 'stale', 'deduplicated', 'exited', 'unavailable', 'unknown']);
+    const ATTEMPT_CATEGORIES = values(['accepted', 'rejected', 'invalid', 'unavailable', 'unknown']);
+    const CONCEPT_CATEGORIES = values(['pawn-endgame', 'king-activity', 'opposition', 'passed-pawn', 'pawn-structure', 'simplification', 'calculation', 'tactical', 'strategic', 'general', 'unknown']);
+    const MENTOR_SOURCES = values(['postgame-cta', 'critical-moment-card', 'guided-replay-cta', 'replay-control', 'knowledge-link', 'summary-cta', 'back-action', 'close-action', 'unknown']);
+    const MENTOR_FAILURE_REASONS = values(['invalid-game-record', 'analysis-unavailable', 'dependency-unavailable', 'critical-moments-unavailable', 'replay-unavailable', 'replay-expired', 'knowledge-unavailable', 'summary-unavailable', 'stale-session', 'canceled', 'disposed', 'production-blocked', 'unknown']);
+    const MENTOR_PAYLOAD_KEYS = values(['engagement', 'stage', 'state', 'attemptCategory', 'conceptCategory', 'source', 'failureReason', 'qaEligible', 'productionEligible', 'completionSequence', 'engagementSequence', 'shellVersion']);
     const EVENT_KEYS = values(['schemaVersion', 'eventId', 'eventVersion', 'category', 'occurredAtBucket', 'sequence', 'source', 'payload']);
     const dangerous = key => ['__proto__', 'prototype', 'constructor'].includes(key);
     const exact = (object, keys) => object && typeof object === 'object' && !Array.isArray(object)
@@ -89,6 +101,13 @@
             && typeof payload.productionEligible === 'boolean' && integer(payload.completionSequence)
             && integer(payload.actionSequence) && /^SimplifiedPlayShell@\d+\.\d+\.\d+$/.test(payload.shellVersion);
     }
+    function validateMentorPayload(payload) { return exact(payload, MENTOR_PAYLOAD_KEYS)
+        && MENTOR_ENGAGEMENTS.includes(payload.engagement) && MENTOR_STAGES.includes(payload.stage)
+        && MENTOR_STATES.includes(payload.state) && ATTEMPT_CATEGORIES.includes(payload.attemptCategory)
+        && CONCEPT_CATEGORIES.includes(payload.conceptCategory) && MENTOR_SOURCES.includes(payload.source)
+        && MENTOR_FAILURE_REASONS.includes(payload.failureReason) && typeof payload.qaEligible === 'boolean'
+        && typeof payload.productionEligible === 'boolean' && (payload.completionSequence === 0 || integer(payload.completionSequence))
+        && integer(payload.engagementSequence) && /^SimplifiedPlayShell@\d+\.\d+\.\d+$/.test(payload.shellVersion); }
     function validateEvent(event) {
         return exact(event, EVENT_KEYS) && event.schemaVersion === 'PlayAnalyticsEvent@1.0.0'
             && EVENT_IDS.includes(event.eventId) && event.eventVersion === '1.0.0' && event.occurredAtBucket === null
@@ -98,25 +117,28 @@
                     ? event.category === 'play-game-start' && START_SOURCES.includes(event.source) && validateStartPayload(event.payload)
                     : COMPLETION_EVENT_IDS.includes(event.eventId)
                         ? event.category === 'play-game-completion' && event.source === 'game-record' && validateCompletionPayload(event.payload)
-                        : event.category === 'play-postgame' && event.source === 'postgame' && validatePostGamePayload(event.payload));
+                        : POSTGAME_EVENT_IDS.includes(event.eventId) ? event.category === 'play-postgame' && event.source === 'postgame' && validatePostGamePayload(event.payload)
+                            : event.category === 'play-mentor' && event.source === 'mentor' && validateMentorPayload(event.payload));
     }
     function createEvent(eventId, payload, sequence) {
         const modeEvent = MODE_EVENT_IDS.includes(eventId), startEvent = GAME_START_EVENT_IDS.includes(eventId);
-        const completionEvent = COMPLETION_EVENT_IDS.includes(eventId);
+        const completionEvent = COMPLETION_EVENT_IDS.includes(eventId), postGameEvent = POSTGAME_EVENT_IDS.includes(eventId);
         const valid = modeEvent ? validatePayload(payload) : startEvent ? validateStartPayload(payload)
-            : completionEvent ? validateCompletionPayload(payload) : validatePostGamePayload(payload);
+            : completionEvent ? validateCompletionPayload(payload) : postGameEvent ? validatePostGamePayload(payload) : validateMentorPayload(payload);
         if (!EVENT_IDS.includes(eventId) || !valid || !integer(sequence)) return null;
         return freeze({ schemaVersion: 'PlayAnalyticsEvent@1.0.0', eventId, eventVersion: '1.0.0',
-            category: modeEvent ? 'play-mode' : startEvent ? 'play-game-start' : completionEvent ? 'play-game-completion' : 'play-postgame',
+            category: modeEvent ? 'play-mode' : startEvent ? 'play-game-start' : completionEvent ? 'play-game-completion' : postGameEvent ? 'play-postgame' : 'play-mentor',
             occurredAtBucket: null, sequence, source: modeEvent ? payload.routeSource : startEvent ? payload.startSource
-                : completionEvent ? 'game-record' : 'postgame',
+                : completionEvent ? 'game-record' : postGameEvent ? 'postgame' : 'mentor',
             payload: { ...payload } });
     }
     root.CaissaPlayAnalyticsContracts = freeze({ VERSION: 'PlayAnalyticsEvent@1.0.0', PAYLOAD_VERSION: 'PlayModeSelectionPayload@1.0.0',
-        EVENT_IDS, MODE_EVENT_IDS, GAME_START_EVENT_IDS, COMPLETION_EVENT_IDS, POSTGAME_EVENT_IDS, MODES, PREVIOUS_MODES, ROUTE_SOURCES, ACCESS_STATES,
+        EVENT_IDS, MODE_EVENT_IDS, GAME_START_EVENT_IDS, COMPLETION_EVENT_IDS, POSTGAME_EVENT_IDS, MENTOR_EVENT_IDS, MODES, PREVIOUS_MODES, ROUTE_SOURCES, ACCESS_STATES,
         LOAD_STATES, FAILURE_REASONS, START_SOURCES, TIME_CONTROL_CATEGORIES, COLOR_CATEGORIES, OPPONENT_TYPES,
         ASSISTANCE_CATEGORIES, START_STATES, START_FAILURE_REASONS, PAYLOAD_KEYS, START_PAYLOAD_KEYS, EVENT_KEYS,
         COMPLETION_STATES, RESULT_CATEGORIES, TERMINATION_CATEGORIES, DURATION_BUCKETS, POSTGAME_ACTIONS,
         ACTION_STATES, ACTION_FAILURE_REASONS, COMPLETION_PAYLOAD_KEYS, POSTGAME_PAYLOAD_KEYS,
-        validatePayload, validateStartPayload, validateCompletionPayload, validatePostGamePayload, validateEvent, createEvent, freeze });
+        MENTOR_ENGAGEMENTS, MENTOR_STAGES, MENTOR_STATES, ATTEMPT_CATEGORIES, CONCEPT_CATEGORIES, MENTOR_SOURCES,
+        MENTOR_FAILURE_REASONS, MENTOR_PAYLOAD_KEYS, validatePayload, validateStartPayload, validateCompletionPayload,
+        validatePostGamePayload, validateMentorPayload, validateEvent, createEvent, freeze });
 })(typeof window !== 'undefined' ? window : globalThis);
