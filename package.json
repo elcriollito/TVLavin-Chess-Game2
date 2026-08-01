@@ -77,6 +77,7 @@
     "test:play:release-readiness": "node --test tests/play/season-10-release-readiness.test.js tests/play/regression-coverage-manifest.test.js",
     "test:play:release-package": "node --test tests/play/season-10-release-package.test.js tests/play/season-10-release-readiness.test.js",
     "test:play:post-deployment": "node --test tests/play/season-10-post-deployment.test.js && playwright test --project=chromium tests/browser/play-post-deployment.spec.js",
+    "test:play:season-closure": "node --test tests/play/season-10-closure.test.js tests/play/season-10-release-package.test.js tests/play/season-10-release-readiness.test.js tests/play/season-10-post-deployment.test.js",
     "test:play:compatibility": "node --test tests/play/legacy-play-compatibility.test.js && playwright test --project=chromium tests/browser/play-compatibility.spec.js",
     "test:play:records": "node --test tests/play/game-record.test.js && playwright test --project=chromium tests/browser/play-game-record.spec.js",
     "test:play:persistence": "node --test tests/play/game-record-persistence.test.js && playwright test --project=chromium tests/browser/play-game-record-persistence.spec.js",
