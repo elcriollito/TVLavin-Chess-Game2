@@ -1,6 +1,26 @@
 /* QA-only Simplified Play shell. Layout is selected once by JS and expressed by data-layout. */
 .caissa-simplified-shell[hidden] { display: none !important; }
 
+body.caissa-simplified-play-active.caissa-play-v2-beta-active .app-container {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+}
+
+body.caissa-simplified-play-active.caissa-play-v2-beta-active :where(.header-minimal, #mainNav, #mobileNavToggle) {
+    display: none !important;
+}
+
+body.caissa-simplified-play-active.caissa-play-v2-beta-active #playSection .cais-topbar {
+    display: none !important;
+}
+
+body.caissa-simplified-play-active.caissa-play-v2-beta-active .content-area {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    height: 100dvh;
+}
+
 body.caissa-simplified-play-active #playSection {
     --board-size: var(--play-board-size);
     overflow-x: clip;
@@ -39,6 +59,30 @@ body.caissa-simplified-play-active .caissa-simplified-shell__preview {
     text-transform: uppercase;
 }
 
+body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experience="beta"] .caissa-simplified-shell__preview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 36px;
+    text-transform: none;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__purpose {
+    margin: 0;
+    font-size: clamp(22px, 3vw, 30px);
+    letter-spacing: normal;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__stage {
+    padding: 4px 8px;
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: .04em;
+}
+
 body.caissa-simplified-play-active .caissa-simplified-shell__workspace {
     display: grid;
     grid-template-areas:
@@ -50,6 +94,16 @@ body.caissa-simplified-play-active .caissa-simplified-shell__workspace {
     gap: clamp(10px, 1.5vw, 24px);
     min-width: 0;
     align-items: start;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experience="beta"] .caissa-simplified-shell__workspace {
+    grid-template-areas:
+        "board modes"
+        "board context"
+        "board footer"
+        "board advanced";
+    grid-template-columns: minmax(0, 1.35fr) minmax(300px, .85fr);
+    gap: clamp(8px, 1.2vw, 18px);
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__modes {
@@ -303,6 +357,24 @@ body.caissa-simplified-play-active .caissa-games-panel__options--color {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experience="beta"] .caissa-games-panel {
+    gap: 9px;
+    padding: 10px;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experience="beta"] .caissa-games-panel__options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experience="beta"] .caissa-games-panel__status {
+    min-height: 18px;
+    font-size: 12px;
+}
+
+body.caissa-simplified-play-active.caissa-play-v2-beta-active:not(.caissa-play-game-active) .caissa-simplified-shell__advanced {
+    display: none;
+}
+
 body.caissa-simplified-play-active .caissa-games-panel__option {
     position: relative;
     display: flex;
@@ -466,6 +538,41 @@ body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="tablet-
         "advanced";
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experience="beta"][data-layout="phone-compact"] .caissa-simplified-shell__workspace,
+body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experience="beta"][data-layout="phone-standard"] .caissa-simplified-shell__workspace,
+body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experience="beta"][data-layout="tablet-portrait-stacked"] .caissa-simplified-shell__workspace {
+    grid-template-areas:
+        "board"
+        "modes"
+        "context"
+        "footer"
+        "advanced";
+    grid-template-columns: minmax(0, 1fr);
+}
+
+body.caissa-simplified-play-active.caissa-play-v2-beta-active:not(.caissa-play-game-active)
+    .caissa-simplified-shell[data-layout="phone-compact"],
+body.caissa-simplified-play-active.caissa-play-v2-beta-active:not(.caissa-play-game-active)
+    .caissa-simplified-shell[data-layout="phone-standard"],
+body.caissa-simplified-play-active.caissa-play-v2-beta-active:not(.caissa-play-game-active)
+    .caissa-simplified-shell[data-layout="tablet-portrait-stacked"] {
+    padding-bottom: max(72px, calc(58px + env(safe-area-inset-bottom, 0px)));
+}
+
+body.caissa-simplified-play-active.caissa-play-v2-beta-active:not(.caissa-play-game-active)
+    .caissa-simplified-shell[data-layout="phone-compact"] .caissa-games-panel__primary,
+body.caissa-simplified-play-active.caissa-play-v2-beta-active:not(.caissa-play-game-active)
+    .caissa-simplified-shell[data-layout="phone-standard"] .caissa-games-panel__primary,
+body.caissa-simplified-play-active.caissa-play-v2-beta-active:not(.caissa-play-game-active)
+    .caissa-simplified-shell[data-layout="tablet-portrait-stacked"] .caissa-games-panel__primary {
+    position: fixed;
+    z-index: 40;
+    inset-inline: max(12px, env(safe-area-inset-left, 0px)) max(12px, env(safe-area-inset-right, 0px));
+    bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    width: auto;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .32);
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="phone-compact"] .caissa-simplified-shell__context,

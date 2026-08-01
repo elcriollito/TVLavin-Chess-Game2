@@ -109,18 +109,29 @@
             const stage = play?.querySelector('.cais-stage');
             if (!stage) return result(false, 'unavailable', REASONS.PLAY_UNAVAILABLE);
 
+            const route = global.CaissaPlayRouteController?.getCurrent?.();
+            const betaEntry = route?.metadata?.betaEntry === true;
             const root = element('div', 'caissa-simplified-shell', {
-                'data-caissa-simplified-shell': '', 'data-qa-preview': 'true',
-                'aria-label': 'Simplified Play QA preview'
+                'data-caissa-simplified-shell': '',
+                'data-entry-experience': betaEntry ? 'beta' : 'qa',
+                'aria-label': betaEntry ? 'Play' : 'Simplified Play QA preview'
             });
+            if (!betaEntry) root.setAttribute('data-qa-preview', 'true');
             root.hidden = true;
 
-            const preview = element('div', 'caissa-simplified-shell__preview');
-            preview.textContent = 'QA Preview · Simplified Play';
+            const preview = element(betaEntry ? 'header' : 'div', 'caissa-simplified-shell__preview');
+            if (betaEntry) {
+                const purpose = element('h1', 'caissa-simplified-shell__purpose');
+                purpose.textContent = 'Play';
+                const stageLabel = element('span', 'caissa-simplified-shell__stage');
+                stageLabel.textContent = 'Internal preview';
+                preview.append(purpose, stageLabel);
+            } else preview.textContent = 'QA Preview · Simplified Play';
             const nav = global.CaissaPlayVisualComponents?.createModeTabs?.({
                 variant: 'caissa-rail', ariaLabel: 'Play modes',
                 items: Object.entries(MODES).filter(([, available]) => available).map(([mode, available]) => ({
-                    id: mode, shellMode: mode, label: mode[0].toUpperCase() + mode.slice(1),
+                    id: mode, shellMode: mode,
+                    label: betaEntry && mode === 'bots' ? 'Bots · Internal' : mode[0].toUpperCase() + mode.slice(1),
                     active: mode === 'games', disabled: !available
                 }))
             }) || element('nav', 'caissa-simplified-shell__modes', { 'aria-label': 'Play modes' });
@@ -147,11 +158,11 @@
             });
             const contextHeader = element('header', 'caissa-simplified-shell__context-header');
             const contextHeading = element('h2', '', { id: `${this.#id}-context-heading` });
-            contextHeading.textContent = 'Current Play Controls';
+            contextHeading.textContent = betaEntry ? 'Game setup' : 'Current Play Controls';
             contextHeader.appendChild(contextHeading);
             const contextBody = element('div', 'caissa-simplified-shell__context-body');
             const advanced = element('details', 'caissa-simplified-shell__advanced');
-            const summary = element('summary', ''); summary.textContent = 'Advanced current controls';
+            const summary = element('summary', ''); summary.textContent = betaEntry ? 'Game controls' : 'Advanced current controls';
             const advancedBody = element('div', 'caissa-simplified-shell__advanced-body');
             advanced.append(summary, advancedBody);
             this.#statusNode = element('div', 'caissa-simplified-shell__status');
@@ -219,7 +230,9 @@
                 this.#suppressedLive.push({ node, value: node.getAttribute('aria-live') });
                 node.removeAttribute('aria-live');
             });
-            this.#gamesPanel = global.CaissaGamesPanel?.create?.();
+            const betaEntry = this.#root.dataset.entryExperience === 'beta';
+            global.document.body.classList.toggle('caissa-play-v2-beta-active', betaEntry);
+            this.#gamesPanel = global.CaissaGamesPanel?.create?.({ minimalEntry: betaEntry });
             const panelMount = this.#gamesPanel?.mount?.({
                 host: contextBody,
                 advancedDisclosure: this.#root.querySelector('.caissa-simplified-shell__advanced')
@@ -307,6 +320,7 @@
             play.querySelector('.cais-topbar').hidden = false;
             this.#root.hidden = true;
             global.document.body.classList.remove('caissa-simplified-play-active');
+            global.document.body.classList.remove('caissa-play-v2-beta-active');
             this.#removeListeners();
             this.#active = false;
             this.#diagnostics.restorationCycles += 1;
@@ -332,7 +346,9 @@
             this.#status = status;
             if (this.#statusNode) {
                 this.#statusNode.dataset.status = status;
-                this.#statusNode.textContent = status === 'ready' ? 'Current Play runtime connected.' :
+                const betaEntry = this.#root?.dataset.entryExperience === 'beta';
+                this.#statusNode.hidden = betaEntry && status === 'ready';
+                this.#statusNode.textContent = betaEntry && status === 'ready' ? '' : status === 'ready' ? 'Current Play runtime connected.' :
                     status === 'loading' ? 'Loading Play preview…' :
                     status === 'inactive' ? 'This mode is not available.' : 'Play preview unavailable.';
             }
@@ -447,7 +463,9 @@
             try {
                 await global.CaissaPlayLazyLoader?.load?.(entry[0], { qa: true, retry: true });
                 if (token !== this.#panelLoadToken || this.#mode !== mode || !this.#active) return false;
-                const panel = global[entry[1]]?.create?.();
+                const panel = global[entry[1]]?.create?.({
+                    minimalEntry: mode === 'bots' && this.#root.dataset.entryExperience === 'beta'
+                });
                 const mounted = panel?.mount?.({ host: this.#root.querySelector('.caissa-simplified-shell__context-body') });
                 if (!mounted?.ok) throw new Error('PANEL_MOUNT_FAILED');
                 if (mode === 'bots') this.#botsPanel = panel;

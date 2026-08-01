@@ -5,8 +5,9 @@ import vm from 'node:vm';
 
 const source = fs.readFileSync(new URL('../../js/play/games-panel.js', import.meta.url), 'utf8');
 
-function load(snapshot = {}, commandResult = { ok: true, status: 'accepted' }) {
+function load(snapshot = {}, commandResult = { ok: true, status: 'accepted' }, options = {}) {
     const calls = [];
+    const microtasks = [];
     const compatibility = {
         getSnapshot: () => ({
             playerColor: 'white',
@@ -19,20 +20,27 @@ function load(snapshot = {}, commandResult = { ok: true, status: 'accepted' }) {
             return commandResult;
         }
     };
-    const window = { document: { createElement() { throw new Error('mount-only DOM access'); } } };
+    const window = {
+        document: { createElement() { throw new Error('mount-only DOM access'); } },
+        queueMicrotask(callback) { microtasks.push(callback); }
+    };
     vm.runInNewContext(source, { window, globalThis: window });
-    return { api: window.CaissaGamesPanel, panel: window.CaissaGamesPanel.create({ compatibility }), calls };
+    return {
+        api: window.CaissaGamesPanel,
+        panel: window.CaissaGamesPanel.create({ ...options, compatibility }),
+        calls, flushMicrotasks: () => microtasks.splice(0).forEach(callback => callback())
+    };
 }
 
 test('publishes a frozen versioned contract with truthful fixed vocabularies', () => {
     const { api } = load();
-    assert.equal(api.schemaVersion, '1.1.0');
-    assert.equal(api.snapshotSchemaVersion, '1.1.0');
+    assert.equal(api.schemaVersion, '1.2.0');
+    assert.equal(api.snapshotSchemaVersion, '1.2.0');
     assert.ok(Object.isFrozen(api));
     assert.ok(Object.isFrozen(api.timeControls));
     assert.ok(Object.isFrozen(api.colors));
     assert.ok(Object.isFrozen(api.opponentStrengths));
-    assert.deepEqual(JSON.parse(JSON.stringify(api.colors.map(item => item.value))), ['white', 'black']);
+    assert.deepEqual(JSON.parse(JSON.stringify(api.colors.map(item => item.value))), ['white', 'random', 'black']);
     assert.deepEqual(JSON.parse(JSON.stringify(api.opponentStrengths.map(item => item.value))), ['full-power']);
     assert.ok(api.timeControls.every(item => item.incrementSeconds === 0));
     assert.ok(api.timeControls.every(item => !Object.hasOwn(item, 'elo')));
@@ -61,7 +69,7 @@ test('unknown legacy configuration falls back without inventing a custom clock',
     });
     panel.hydrateFromLegacy();
     assert.equal(panel.getSnapshot().timeControl.presetId, 'unlimited');
-    assert.equal(panel.getSnapshot().color, 'white');
+    assert.equal(panel.getSnapshot().color, 'random');
 });
 
 test('every supported preset selects without starting a game and invalid input is rejected', () => {
@@ -75,12 +83,13 @@ test('every supported preset selects without starting a game and invalid input i
     assert.equal(calls.length, 0);
 });
 
-test('white and black are supported while random and fake strength are rejected', () => {
+test('white, random, and black are supported while fake colors and strength are rejected', () => {
     const { panel } = load();
     panel.hydrateFromLegacy();
     assert.equal(panel.setColor('white').ok, true);
     assert.equal(panel.setColor('black').ok, true);
-    assert.equal(panel.setColor('random').reasonCode, 'INVALID_COLOR');
+    assert.equal(panel.setColor('random').ok, true);
+    assert.equal(panel.setColor('blue').reasonCode, 'INVALID_COLOR');
     assert.equal(panel.setOpponentStrength('full-power').ok, true);
     assert.equal(panel.setOpponentStrength('beginner').reasonCode, 'INVALID_STRENGTH');
 });
@@ -97,6 +106,24 @@ test('valid submission calls the authoritative start command exactly once with m
     ]]);
     assert.equal(panel.getSnapshot().status, 'active');
     assert.equal(panel.getSnapshot().diagnostics.successfulStarts, 1);
+});
+
+test('random resolves exactly once at submission and immediate duplicate activation is rejected', () => {
+    let resolutions = 0;
+    const fixture = load({}, { ok: true, status: 'accepted' }, {
+        resolveRandomColor: () => { resolutions += 1; return 'black'; }
+    });
+    fixture.panel.hydrateFromLegacy();
+    fixture.panel.setColor('random');
+    assert.equal(fixture.panel.submit().ok, true);
+    assert.equal(fixture.panel.submit().reasonCode, 'BUSY');
+    assert.equal(resolutions, 1);
+    assert.deepEqual(JSON.parse(JSON.stringify(fixture.calls)), [[
+        'startNewGame', { mode: 'engine', color: 'black', timeControl: 0 }
+    ]]);
+    assert.equal(fixture.panel.getSnapshot().color, 'random');
+    fixture.flushMicrotasks();
+    assert.equal(fixture.panel.getSnapshot().primaryAction.busy, false);
 });
 
 test('unavailable or failed compatibility prevents a successful start', () => {

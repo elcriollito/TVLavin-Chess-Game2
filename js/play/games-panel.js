@@ -1,8 +1,8 @@
 (function installGamesPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.1.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.1.0';
+    const SCHEMA_VERSION = '1.2.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.2.0';
     const STATUSES = Object.freeze(['idle', 'ready', 'invalid', 'busy', 'active', 'error', 'disposed']);
     const EVENTS = Object.freeze(['hydrated', 'selection-changed', 'validated', 'submitted', 'started', 'advanced-changed']);
     const SECTIONS = Object.freeze(['game-type', 'time-control', 'color', 'opponent', 'primary-action', 'advanced-options']);
@@ -16,6 +16,7 @@
     ]);
     const COLORS = Object.freeze([
         Object.freeze({ value: 'white', label: 'White' }),
+        Object.freeze({ value: 'random', label: 'Random' }),
         Object.freeze({ value: 'black', label: 'Black' })
     ]);
     const STRENGTHS = Object.freeze([
@@ -59,7 +60,8 @@
 
     class GamesPanel {
         #id = `games-panel-${++sequence}`;
-        #compatibility; #root = null; #host = null; #advanced = null; #disposed = false;
+        #compatibility; #root = null; #host = null; #advanced = null; #disposed = false; #minimalEntry = false;
+        #resolveRandomColor;
         #status = 'idle'; #preset = TIME_CONTROLS[0]; #color = 'white'; #strength = STRENGTHS[0];
         #hydrated = false; #busy = false; #listeners = []; #validation = { valid: false, errors: [], warnings: [] };
         #diagnostics = {
@@ -71,6 +73,14 @@
         constructor(options = {}) {
             this.#compatibility = safeObject(options) && options.compatibility
                 ? options.compatibility : global.CaissaPlayCompatibility;
+            this.#minimalEntry = safeObject(options) && options.minimalEntry === true;
+            this.#resolveRandomColor = safeObject(options) && typeof options.resolveRandomColor === 'function'
+                ? options.resolveRandomColor : () => {
+                    const bytes = new Uint8Array(1);
+                    if (typeof global.crypto?.getRandomValues !== 'function') return null;
+                    global.crypto.getRandomValues(bytes);
+                    return bytes[0] % 2 === 0 ? 'white' : 'black';
+                };
         }
 
         mount(options = {}) {
@@ -84,7 +94,7 @@
                 'data-caissa-games-panel': '', 'aria-labelledby': `${this.#id}-title`
             });
             const title = node('h2', 'caissa-games-panel__title', { id: `${this.#id}-title` });
-            title.textContent = 'Play Computer';
+            title.textContent = this.#minimalEntry ? 'Games' : 'Play Computer';
             const description = node('p', 'caissa-games-panel__description');
             description.textContent = 'Start a local game against the current CAISSA engine.';
 
@@ -138,7 +148,11 @@
             });
             status.id = `${this.#id}-status`;
             action.textContent = 'Start Game';
-            this.#root.append(title, description, time, color, opponent, status, action);
+            if (this.#minimalEntry) this.#root.setAttribute('aria-label', 'Games setup');
+            else this.#root.append(title, description);
+            this.#root.append(time, color);
+            if (!this.#minimalEntry) this.#root.append(opponent);
+            this.#root.append(status, action);
             this.#host.appendChild(this.#root);
             this.#listen(this.#root, 'change', event => this.#handleChange(event));
             this.#listen(action, 'click', () => this.submit());
@@ -216,21 +230,32 @@
             }
             const startSource = this.#status === 'active' ? 'new-game' : 'primary-cta';
             this.#busy = true; this.#status = 'busy'; this.#render();
+            const resolvedColor = this.#color === 'random' ? this.#resolveRandomColor() : this.#color;
+            if (!['white', 'black'].includes(resolvedColor)) {
+                this.#busy = false; this.#status = 'error'; this.#diagnostics.commandFailures += 1;
+                this.#diagnostics.rejectedStarts += 1; this.#render();
+                return this.#record(result(false, 'failed', REASONS.COMMAND_FAILED));
+            }
             const start = () => this.#compatibility.execute('startNewGame', {
-                mode: 'engine', color: this.#color, timeControl: this.#preset.seconds
+                mode: 'engine', color: resolvedColor, timeControl: this.#preset.seconds
             });
             const command = global.CaissaPlayGameStartAnalytics?.observePanelStart?.({ mode: 'games',
-                startSource, timeControlSeconds: this.#preset.seconds, color: this.#color,
+                startSource, timeControlSeconds: this.#preset.seconds, color: resolvedColor,
                 opponentType: 'engine', assistanceCategory: 'engine-opponent', qaEligible: true,
                 productionEligible: true, actionKey: this.#id }, start) ?? start();
-            this.#busy = false;
             if (!command?.ok) {
+                this.#busy = false;
                 this.#status = 'error'; this.#diagnostics.commandFailures += 1;
                 this.#diagnostics.rejectedStarts += 1; this.#render();
                 return this.#record(result(false, command?.status || 'failed', REASONS.COMMAND_FAILED));
             }
             this.#status = 'active'; this.#diagnostics.successfulStarts += 1;
             this.#render();
+            const board = global.document?.getElementById?.('chessboard');
+            if (board?.focus) board.focus({ preventScroll: true });
+            const unlock = () => { if (!this.#disposed) { this.#busy = false; this.#render(); } };
+            if (typeof global.queueMicrotask === 'function') global.queueMicrotask(unlock);
+            else unlock();
             return this.#record(result(true, 'accepted', REASONS.STARTED, this.getSnapshot()));
         }
 
@@ -248,7 +273,7 @@
                 advancedExpanded: this.#advanced?.open === true,
                 primaryAction: {
                     available: this.#validation.valid && !this.#disposed,
-                    label: this.#status === 'active' ? 'New Game' : 'Start Game', busy: this.#busy
+                    label: this.#status === 'active' ? 'New Game' : 'Play', busy: this.#busy
                 },
                 validation: {
                     valid: this.#validation.valid,
@@ -299,13 +324,14 @@
             });
             const action = this.#root.querySelector('[data-games-primary]');
             action.disabled = !this.#validation.valid || this.#busy;
-            action.textContent = this.#status === 'active' ? 'New Game' : this.#busy ? 'Starting…' : 'Start Game';
+            action.textContent = this.#status === 'active' ? 'New Game' : this.#busy ? 'Starting…' : 'Play';
             action.setAttribute('aria-busy', String(this.#busy));
             const status = this.#root.querySelector('[data-games-status]');
             status.textContent = this.#status === 'active' ? 'Local machine game in progress.' :
                 this.#status === 'error' ? 'The game could not be started.' :
                 this.#status === 'invalid' ? this.#validation.errors.join(' ') :
-                'Choose your settings, then start the game.';
+                this.#minimalEntry ? `${this.#preset.label} · ${COLORS.find(item => item.value === this.#color)?.label} selected.` :
+                    'Choose your settings, then start the game.';
         }
         #record(operation) {
             this.#diagnostics.lastReasonCode = operation.reasonCode;

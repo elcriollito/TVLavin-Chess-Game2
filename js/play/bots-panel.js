@@ -22,8 +22,11 @@
     class BotsPanel {
         #id = `bots-panel-${++sequence}`; #root = null; #host = null; #disposed = false;
         #selectedId = null; #status = 'ready'; #timeControl = 0; #color = 'white'; #listeners = [];
-        #compatibility; #diagnostics = { selections: 0, starts: 0, rejected: 0 };
-        constructor(options = {}) { this.#compatibility = options.compatibility || global.CaissaPlayCompatibility; }
+        #compatibility; #minimalEntry = false; #diagnostics = { selections: 0, starts: 0, rejected: 0 };
+        constructor(options = {}) {
+            this.#compatibility = options.compatibility || global.CaissaPlayCompatibility;
+            this.#minimalEntry = options.minimalEntry === true;
+        }
         mount(options = {}) {
             const host = options.host || options;
             if (this.#disposed || !host?.appendChild) return result(false, 'rejected', 'INVALID_HOST');
@@ -35,7 +38,8 @@
             const title = element('h2', 'caissa-bots-panel__title', { id: `${this.#id}-title` });
             title.textContent = 'Choose a CAISSA Bot';
             const note = element('p', 'caissa-bots-panel__note');
-            note.textContent = 'QA-only machine opponents. Difficulty is relative and position-suite tested, not a human rating.';
+            note.textContent = this.#minimalEntry ? 'Internal preview. Bot play is not yet certified.' :
+                'QA-only machine opponents. Difficulty is relative and position-suite tested, not a human rating.';
             const ladder = element('ol', 'caissa-bots-panel__ladder', {
                 'aria-label': 'Relative difficulty, easiest to hardest'
             });

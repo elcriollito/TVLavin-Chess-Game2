@@ -79,5 +79,5 @@ test('dedicated entry contains the beta contract and no prohibited resource grap
     assert.match(html, /play-v2-beta-entry\.js\?v=1\.0\.0/);
     const resources = html.match(/<(?:script|link)\b[^>]*>/gi) || [];
     assert.equal(resources.filter(item => /fics/i.test(item) && !/play-v2-fics-isolation/i.test(item)).length, 0);
-    assert.equal(resources.filter(item => /academy|coach|mentor|guided[-_/]?replay|knowledge|training[-_/]?memory|mastery|endgame[-_/]?(?:trainer|library)|players/i.test(item)).length, 0);
+    assert.equal(resources.filter(item => /academy|coach|mentor|guided[-_/]?replay|knowledge|training[-_/]?memory|mastery|endgame[-_/]?(?:trainer|library)|players|onboarding/i.test(item)).length, 0);
 });

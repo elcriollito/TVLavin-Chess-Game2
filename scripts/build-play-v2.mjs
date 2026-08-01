@@ -15,6 +15,8 @@ const forbiddenElements = [
   /\s*<script[^>]+src="(?:mentor-prompts|mentor-ai)\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/academy-section\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/play\/analytics\/play-mentor-engagement-analytics\.js[^>]*><\/script>\r?\n/gi,
+  /\s*<link[^>]+href="css\/caissa-onboarding\.css[^>]*>\r?\n/gi,
+  /\s*<script[^>]+src="js\/caissa-onboarding\.js[^>]*><\/script>\r?\n/gi,
   /\s*<!-- Lazy manifest order \(inert\):[^>]*(?:coach-profile|endgame-phase-classifier)[^>]*-->\r?\n/gi
 ];
 
@@ -56,6 +58,7 @@ const prohibitedResources = resourceElements.filter(element =>
 if (prohibitedResources.length) throw new Error(`PROHIBITED_PLAY_V2_RESOURCE: ${prohibitedResources.join(', ')}`);
 if (/id="(?:academySection|mentorPanel|analyzeMentor)"|data-section="(?:academy|mentor)"|href="\/endgame-(?:trainer|practice|library)"/i.test(html))
   throw new Error('PROHIBITED_PLAY_V2_EDUCATIONAL_DOM');
+if (/caissa-onboarding/i.test(resourceElements.join('\n'))) throw new Error('PROHIBITED_PLAY_V2_ONBOARDING_RESOURCE');
 
 await writeFile(outputPath, html);
 console.log('Generated play-v2.html from index.html');
