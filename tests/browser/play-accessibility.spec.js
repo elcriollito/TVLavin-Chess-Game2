@@ -15,8 +15,9 @@ test('keyboard tabs activate routes, retain roving focus, and hide inactive pane
     await expect(page.getByRole('tab', { name: 'Bots' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('tab', { name: 'Bots' })).toHaveAttribute('tabindex', '0');
     await page.keyboard.press('End');
-    await expect(page).toHaveURL(/\/play\/bots\?simplified=1/);
-    await expect(page.getByRole('tab', { name: /Coach|Players/ })).toHaveCount(0);
+    await expect(page).toHaveURL(/\/play\/coach\?simplified=1/);
+    await expect(page.getByRole('tab', { name: 'Coach' })).toHaveCount(1);
+    await expect(page.getByRole('tab', { name: 'Players' })).toHaveCount(0);
 });
 
 test('bounded shell and readiness live regions do not announce raw evaluation values', async ({ page }) => {

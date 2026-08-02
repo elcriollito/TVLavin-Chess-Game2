@@ -22,7 +22,7 @@
         playersRuntime: 'blocked'
     });
     const ALLOWED_DYNAMIC_GROUPS = Object.freeze([
-        'bots-stack', 'coach-stack', 'mentor-foundation', 'mentor-analysis',
+        'bots-stack', 'coach-stack', 'native-coach-stack', 'mentor-foundation', 'mentor-analysis',
         'mentor-critical-moments', 'mentor-guided-replay', 'mentor-knowledge',
         'mentor-summary', 'analyze-deep'
     ]);
@@ -71,7 +71,7 @@
         }
         if (type === 'route') {
             const path = value.split('?')[0].replace(/\/+$/, '') || '/';
-            const allowed = /^\/play(?:\/(?:games|bots|coach)|\/beta(?:\/(?:games|bots))?)?$/.test(path);
+            const allowed = /^\/play(?:\/(?:games|bots|coach)|\/beta(?:\/(?:games|bots|coach))?)?$/.test(path);
             return result(allowed, type, allowed ? 'PLAY_ROUTE_ALLOWED' : 'ROUTE_PROHIBITED');
         }
         if (type === 'transition')

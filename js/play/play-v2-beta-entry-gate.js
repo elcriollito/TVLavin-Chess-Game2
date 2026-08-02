@@ -13,7 +13,8 @@ export const PLAY_V2_BETA_ENTRY = Object.freeze({
 const ALLOWED_PATHS = Object.freeze(new Map([
     ['/play/beta', 'games'],
     ['/play/beta/games', 'games'],
-    ['/play/beta/bots', 'bots']
+    ['/play/beta/bots', 'bots'],
+    ['/play/beta/coach', 'coach']
 ]));
 
 export function resolvePlayV2BetaEntry(pathname, environment = {}) {

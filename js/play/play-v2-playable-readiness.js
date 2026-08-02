@@ -15,10 +15,14 @@
         'recoverable-error': Object.freeze(['booting', 'unavailable']),
         unavailable: Object.freeze([])
     });
-    const CLASSIFICATIONS = Object.freeze({ games: 'required', bots: 'uncertified', coach: 'blocked', mentor: 'blocked', players: 'blocked' });
+    const CLASSIFICATIONS = Object.freeze({ games: 'required', bots: 'uncertified', coach: 'isolated-assistance-pending', mentor: 'blocked', players: 'blocked' });
     const BOTS_READINESS = Object.freeze({ internallySelectable: true, configurationValid: true,
         runtimeAvailable: true, workerRequiredAtStart: true, workerProductionCertification: 'local-production-build-ready',
         publicReady: false, inheritsGamesReadiness: false, fallback: 'none' });
+    const COACH_READINESS = Object.freeze({ internallySelectable: true, cleanResourcesRequired: true,
+        certifiedGamesOwnersRequired: true, validConfigurationRequired: true, boundedAssistanceRequired: true,
+        prohibitedResourcesAllowed: false, learningWriteOwnerAllowed: false, inheritsGamesReadiness: false,
+        assistanceCertification: 'pending-11.5.2', publicReady: false });
     const REQUIREMENTS = Object.freeze([
         'entryGate', 'shell', 'primaryBoardCount', 'board', 'mode', 'timeControl', 'color',
         'opponentProvider', 'opponentSession', 'clock', 'rulesAuthority', 'lifecycle',
@@ -144,6 +148,7 @@
 
     root.CaissaPlayV2PlayableReadiness = freeze({ schemaVersion: VERSION, contractId: CONTRACT_ID,
         states: STATES, transitions: TRANSITIONS, classifications: CLASSIFICATIONS, botsReadiness: BOTS_READINESS,
+        coachReadiness: COACH_READINESS,
         requirements: REQUIREMENTS, deadlines: freeze({ bootMs: DEADLINE_MS, startMs: DEADLINE_MS, pollMs: POLL_MS }),
         defaultProbe, create });
 })(typeof window !== 'undefined' ? window : globalThis);

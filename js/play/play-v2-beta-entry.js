@@ -18,7 +18,7 @@
         legacyPlayFallback: 'prohibited',
         ficsFallback: 'prohibited',
         playersRuntime: 'blocked',
-        coachRuntime: 'blocked',
+        coachRuntime: 'allowed-internal-assistance-pending',
         mentorRuntime: 'blocked',
         gamesRuntime: 'allowed-internal',
         botsRuntime: 'allowed-internal-uncertified',

@@ -11,7 +11,7 @@
     ]);
     const productBoundary = global.CaissaPlayV2ProductBoundary;
     const MODES = Object.freeze({ games: true, bots: true,
-        coach: productBoundary ? false : true, players: false });
+        coach: productBoundary ? productBoundary.isModeAllowed?.('coach') === true : true, players: false });
     const LAYOUT_MODES = Object.freeze([
         'phone-compact', 'phone-standard', 'phone-landscape',
         'tablet-portrait-stacked', 'tablet-landscape-split',
@@ -131,7 +131,7 @@
                 variant: 'caissa-rail', ariaLabel: 'Play modes',
                 items: Object.entries(MODES).filter(([, available]) => available).map(([mode, available]) => ({
                     id: mode, shellMode: mode,
-                    label: betaEntry && mode === 'bots' ? 'Bots · Internal' : mode[0].toUpperCase() + mode.slice(1),
+                    label: betaEntry && ['bots', 'coach'].includes(mode) ? `${mode[0].toUpperCase() + mode.slice(1)} · Internal` : mode[0].toUpperCase() + mode.slice(1),
                     active: mode === 'games', disabled: !available
                 }))
             }) || element('nav', 'caissa-simplified-shell__modes', { 'aria-label': 'Play modes' });
@@ -419,6 +419,7 @@
                 evaluationRail: global.CaissaEvaluationRailInstance?.getSnapshot?.() || null,
                 gamesPanel: this.#gamesPanel?.getSnapshot?.() || null,
                 botsPanel: this.#botsPanel?.getSnapshot?.() || null,
+                coachPanel: this.#coachPanel?.getSnapshot?.() || null,
                 playersPanel: null,
                 postGame: this.#postGame?.getSnapshot?.() || null,
                 accessibility: this.#accessibility?.inspect?.() || null,
@@ -454,7 +455,8 @@
         async #ensureDeferredPanel(mode, token) {
             const map = {
                 bots: ['bots-stack', 'CaissaBotsPanel', '#botsPanel'],
-                coach: ['coach-stack', 'CaissaCoachPanel', '#coachPanel'],
+                coach: productBoundary ? ['native-coach-stack', 'CaissaNativeCoachPanel', '#coachPanel']
+                    : ['coach-stack', 'CaissaCoachPanel', '#coachPanel'],
             };
             const entry = map[mode];
             if (!entry) return true;
@@ -465,7 +467,7 @@
                 await global.CaissaPlayLazyLoader?.load?.(entry[0], { qa: true, retry: true });
                 if (token !== this.#panelLoadToken || this.#mode !== mode || !this.#active) return false;
                 const panel = global[entry[1]]?.create?.({
-                    minimalEntry: mode === 'bots' && this.#root.dataset.entryExperience === 'beta'
+                    minimalEntry: ['bots', 'coach'].includes(mode) && this.#root.dataset.entryExperience === 'beta'
                 });
                 const mounted = panel?.mount?.({ host: this.#root.querySelector('.caissa-simplified-shell__context-body') });
                 if (!mounted?.ok) throw new Error('PANEL_MOUNT_FAILED');

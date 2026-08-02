@@ -6,7 +6,7 @@ Contract: `PlayV2BetaEntry@1.0.0`
 
 ## Decision
 
-`/play/beta` is the canonical future Play v2 beta namespace. It is independent of the temporary `simplified=1` QA switch and never replaces `/play` or `/`. Authorized internal requests for `/play/beta`, `/play/beta/games`, and `/play/beta/bots` select only `play-v2.html`. Bots remains internal and uncertified. Coach, Mentor, Players, unknown modes, encoded aliases, trailing/duplicate slash variants, and every other descendant fail closed.
+`/play/beta` is the canonical future Play v2 beta namespace. It is independent of the temporary `simplified=1` QA switch and never replaces `/play` or `/`. Authorized internal requests for `/play/beta`, `/play/beta/games`, `/play/beta/bots`, and `/play/beta/coach` select only `play-v2.html`. Bots remains internal and uncertified; Coach remains internal with assistance certification pending. Mentor, Players, unknown modes, encoded aliases, trailing/duplicate slash variants, and every other descendant fail closed.
 
 The gate owner is `beta-entry-gate`. `js/play/play-v2-beta-entry-gate.js` makes the document decision before static Play routing. Local authorization requires the exact build-time/server value `CAISSA_PLAY_V2_BETA_STAGE=internal`; missing, different, public-sounding, query, fragment, cookie, and storage values do not authorize entry. Default hosting rewrites send the whole beta namespace to the runtime-free `play-v2-unavailable.html`. No trustworthy internal identity system exists in this repository, so none was invented.
 
@@ -23,7 +23,7 @@ The unavailable document has a meaningful title, one heading, one keyboard-opera
 | `/play` and `/play/:mode` | existing legacy/QA resolution | unchanged |
 | `/`, Classic, `/yahoo-classic`, FICS | unchanged | unchanged |
 
-Direct navigation and refresh are server-owned. Once authorized, the client route controller preserves the beta namespace across Games/Bots tabs, browser back/forward, and canonicalization. Invalid descendants never silently enter Legacy Play, FICS, Coach, Mentor, or Players. Query parameters are setup data only and are never credentials.
+Direct navigation and refresh are server-owned. Once authorized, the client route controller preserves the beta namespace across Games/Bots/isolated-Coach tabs, browser back/forward, and canonicalization. Invalid descendants never silently enter Legacy Play, FICS, educational Coach, Mentor, or Players. Query parameters are setup data only and are never credentials.
 
 `/play/beta` is safer than `?simplified=1` because the beta namespace can be admitted or rejected before selecting a runtime document, its descendant allowlist is explicit, invalid modes stay within a fail-closed namespace, and normal Play rewrite semantics do not need to change. The QA query remains temporarily for regression compatibility. Retire it only after canonical beta authorization, QA callers, fixtures, and rollback exercises migrate; removal is separately authorized work.
 
@@ -33,13 +33,13 @@ Unset `CAISSA_PLAY_V2_BETA_STAGE` or set it to any value other than exact `inter
 
 ## Contract
 
-`PlayV2BetaEntry@1.0.0` declares: canonical route `/play/beta`; entry document `play-v2.html`; current stage `internal`; public navigation, public enrollment, default Play replacement, homepage replacement, Legacy Play fallback, and FICS fallback prohibited; Players, Coach, and Mentor blocked; Games allowed internally; Bots allowed internally but uncertified; analytics transport disabled; failure mode fail-closed; rollback owner `beta-entry-gate`.
+`PlayV2BetaEntry@1.0.0` declares: canonical route `/play/beta`; entry document `play-v2.html`; current stage `internal`; public navigation, public enrollment, default Play replacement, homepage replacement, Legacy Play fallback, and FICS fallback prohibited; Players and Mentor blocked; Games allowed internally; Bots allowed internally but uncertified; isolated Coach allowed internally with assistance certification pending; analytics transport disabled; failure mode fail-closed; rollback owner `beta-entry-gate`.
 
 The generated entry installs this contract alongside `PlayV2FicsIsolation@1.0.0` and `PlayV2ProductBoundary@1.0.0`. The latter contracts allow only the new Games/Bots beta paths and retain all resource, provider, educational, transition, persistence, and transport denials.
 
 ## Verification and limits
 
-Season 11.2.1 automated evidence covers contract shape, exact gate values, rollback, hosting fallback, route parsing, direct navigation, refresh, back/forward, invalid/prohibited/encoded paths, hostile query/fragment/storage values, no prohibited resource requests, one board, Games initialization, Bots foundation, absent Coach/Mentor/Players, unavailable semantics, navigation/sitemap absence, QA compatibility, and Classic/Legacy defaults.
+Season 11.2.1 automated evidence was point-in-time evidence with Coach absent. Season 11.5.1 supersedes only that Coach-admission assertion with the isolated native boundary; Mentor and Players remain absent and all other entry evidence remains applicable.
 
 Acceptance results: 527/527 current Play unit/contract tests; 33/33 focused Chromium Play tests; 16/16 navigation/accessibility unit tests; 5/5 static guards; deterministic `play-v2.html` regeneration; syntax validation; and clean `git diff --check`. There are no skips in the current Play unit corpus. Four frozen Season 10 snapshot suites are not current acceptance owners: 15/20 assertions still pass, while five point-in-time assertions intentionally reject the already-established Season 11 state (more than two commits ahead and later authorized changes to `server.js`/`vercel.json`). Those historical records were not weakened, edited, skipped, retried, or counted as Season 11.2.1 failures.
 
@@ -92,7 +92,7 @@ Automated evidence verifies one visible H1, logical landmarks, board-first initi
 
 ### Acceptance and remaining boundary
 
-Season 11.2.2 is accepted locally for entry experience only. The three isolation/entry contracts retain their meaning; no FICS, educational, Coach, Mentor, Players, onboarding, analytics transport, external destination, Training Memory write, or Mastery write is admitted. `/play`, `/`, Classic, Legacy FICS, public navigation, SEO, and the fail-closed gate remain unchanged.
+Season 11.2.2 remains historical entry evidence. Season 11.5.1 admits only isolated assisted-play Coach; no FICS, educational Coach graph, Mentor, Players, onboarding, analytics transport, external destination, Training Memory write, or Mastery write is admitted. `/play`, `/`, Classic, Legacy FICS, public navigation, SEO, and the fail-closed gate remain unchanged.
 
 Acceptance evidence: 528/528 current Play unit/contract tests; 40/40 consolidated Chromium flows; 5/5 static guards; 8/8 navigation checks; deterministic entry regeneration; syntax validation; and clean whitespace/path inspection. Chromium coverage includes the canonical beta route, unavailable/rollback behavior, hostile routes and storage, FICS and educational isolation, Games, Bots, one board/Worker owner, failure/retry, duplicate activation, accessibility automation, the full responsive profile matrix, and portrait/landscape transition.
 

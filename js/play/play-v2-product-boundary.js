@@ -12,13 +12,13 @@
         guidedReplay: 'prohibited', masterySurface: 'prohibited', masteryWrites: 'prohibited',
         trainingMemorySurface: 'prohibited', trainingMemoryWrites: 'prohibited',
         trainingRecommendations: 'prohibited', educationalPromotions: 'prohibited',
-        coachRuntime: 'blocked', mentorRuntime: 'blocked',
+        coachRuntime: 'allowed-internal-assistance-pending', mentorRuntime: 'blocked',
         analyzeHandoff: 'external-post-game', mentorFutureBoundary: 'optional-review-only',
         playersRuntime: 'blocked'
     });
     const TYPES = Object.freeze(['dynamic-group', 'script', 'style', 'route', 'transition', 'action', 'dom', 'network']);
-    const GROUPS = Object.freeze(['bots-stack', 'analyze-deep']);
-    const ROUTES = Object.freeze(['/play', '/play/games', '/play/bots', '/play/beta', '/play/beta/games', '/play/beta/bots']);
+    const GROUPS = Object.freeze(['bots-stack', 'native-coach-stack', 'analyze-deep']);
+    const ROUTES = Object.freeze(['/play', '/play/games', '/play/bots', '/play/coach', '/play/beta', '/play/beta/games', '/play/beta/bots', '/play/beta/coach']);
     const ACTIONS = Object.freeze(['rematch', 'new-game', 'copy-pgn', 'download-pgn', 'save-game', 'analyze']);
     const FORBIDDEN_RESOURCE = /(?:academy|coach|mentor|guided[-_/]?replay|educational|knowledge|training[-_/]?memory|mastery|endgame[-_/]?(?:trainer|library))/i;
     const FORBIDDEN_SURFACE = /(?:academy|class(?:es)?|lesson|course|curriculum|guided replay|knowledge unit|training memory|mastery|training recommendation|educational promotion|exercise|puzzle|review with mentor)/i;
@@ -38,13 +38,14 @@
         const type = String(input.type || ''); const value = String(input.value || '');
         if (!TYPES.includes(type) || !value || value.length > 2048)
             return decision(false, type || 'unknown', 'INVALID_BOUNDARY_INPUT');
-        if (FORBIDDEN_RESOURCE.test(value)) return decision(false, type, 'EDUCATIONAL_OWNERSHIP_PROHIBITED');
         if (type === 'dynamic-group') return decision(GROUPS.includes(value), type,
             GROUPS.includes(value) ? 'PLAY_GROUP_ALLOWED' : 'GROUP_NOT_ALLOWLISTED');
         if (type === 'route') {
             const path = value.split('?')[0].replace(/\/+$/, '') || '/';
             return decision(ROUTES.includes(path), type, ROUTES.includes(path) ? 'PLAY_ROUTE_ALLOWED' : 'ROUTE_PROHIBITED');
         }
+        if (FORBIDDEN_RESOURCE.test(value) && !/play-v2-coach-boundary|native-coach/i.test(value))
+            return decision(false, type, 'EDUCATIONAL_OWNERSHIP_PROHIBITED');
         if (type === 'transition') return decision(value === 'analyze', type,
             value === 'analyze' ? 'EXTERNAL_ANALYZE_ALLOWED' : 'TRANSITION_PROHIBITED');
         if (type === 'action') return decision(ACTIONS.includes(value), type,
@@ -68,7 +69,7 @@
         schemaVersion: VERSION, contractId: CONTRACT_ID, policy: POLICY, resourceTypes: TYPES,
         allowedDynamicGroups: GROUPS, allowedRoutes: ROUTES, allowedPostGameActions: ACTIONS,
         authorize, requireAllowed,
-        isModeAllowed: mode => ['games', 'bots'].includes(String(mode || '')),
+        isModeAllowed: mode => ['games', 'bots', 'coach'].includes(String(mode || '')),
         inspect: () => freeze({ contractId: CONTRACT_ID, counters: { ...counters } })
     });
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -30,7 +30,7 @@
     });
     const productBoundary = global.CaissaPlayV2ProductBoundary;
     const AVAILABILITY = Object.freeze({ games: true, bots: 'qa-only',
-        coach: productBoundary ? false : 'qa-only', players: false });
+        coach: productBoundary?.isModeAllowed?.('coach') ? 'qa-only' : (productBoundary ? false : 'qa-only'), players: false });
     const SAFE_QUERY_LIMIT = 2048;
     const privateQuery = new WeakMap();
     const diagnostics = { parses: 0, navigations: 0, pushes: 0, replaces: 0, noops: 0, popstates: 0, malformed: 0 };
@@ -97,14 +97,15 @@
         const betaMatch = /^\/play\/beta(?:\/([^/]+))?$/.exec(lowerPath);
         if (betaMatch) {
             const requestedMode = betaMatch[1] || MODES.GAMES;
-            const available = requestedMode === MODES.GAMES || requestedMode === MODES.BOTS;
+            const available = [MODES.GAMES, MODES.BOTS, MODES.COACH].includes(requestedMode)
+                && (!productBoundary || productBoundary.isModeAllowed?.(requestedMode) === true);
             const mode = available ? requestedMode : MODES.GAMES;
             const canonicalPath = mode === MODES.GAMES && !betaMatch[1] ? '/play/beta' : `/play/beta/${mode}`;
             return frozenRoute({
                 schemaVersion: SCHEMA_VERSION, routeId: `play:${mode}`, path, section: 'play', mode,
                 requestedMode, status: available ? (path === canonicalPath ? STATUSES.RESOLVED : STATUSES.CANONICALIZED) : STATUSES.INACTIVE_MODE,
                 source: options.source || SOURCES.DIRECT_PATH, canonicalPath, legacy: false, replace: !available || path !== canonicalPath,
-                available: true, reasonCode: available && mode === MODES.BOTS ? REASONS.BOTS_MODE_RESOLVED :
+                available: true, reasonCode: available && [MODES.BOTS, MODES.COACH].includes(mode) ? REASONS.BOTS_MODE_RESOLVED :
                     (available ? REASONS.GAMES_MODE_RESOLVED : REASONS.RESERVED_MODE_INACTIVE),
                 query, __privateQuery: protectedQuery, handoffToken: null,
                 metadata: { requestedModeAvailable: available, betaEntry: true }

@@ -19,7 +19,7 @@ test('PlayV2BetaEntry@1.0.0 declares the controlled internal contract', () => {
         entryDocument: 'play-v2.html', currentStage: 'internal', publicNavigation: 'prohibited',
         publicEnrollment: 'prohibited', defaultPlayReplacement: 'prohibited', homepageReplacement: 'prohibited',
         legacyPlayFallback: 'prohibited', ficsFallback: 'prohibited', playersRuntime: 'blocked',
-        coachRuntime: 'blocked', mentorRuntime: 'blocked', gamesRuntime: 'allowed-internal',
+        coachRuntime: 'allowed-internal-assistance-pending', mentorRuntime: 'blocked', gamesRuntime: 'allowed-internal',
         botsRuntime: 'allowed-internal-uncertified', analyticsTransport: 'disabled', failureMode: 'fail-closed',
         rollbackOwner: 'beta-entry-gate'
     });
@@ -28,12 +28,12 @@ test('PlayV2BetaEntry@1.0.0 declares the controlled internal contract', () => {
 
 test('gate admits only exact internal Games and Bots paths and rolls back fail closed', () => {
     const enabled = { [PLAY_V2_BETA_STAGE_ENV]: 'internal' };
-    for (const [path, mode] of [['/play/beta', 'games'], ['/play/beta/games', 'games'], ['/play/beta/bots', 'bots']]) {
+    for (const [path, mode] of [['/play/beta', 'games'], ['/play/beta/games', 'games'], ['/play/beta/bots', 'bots'], ['/play/beta/coach', 'coach']]) {
         assert.deepEqual({ ...resolvePlayV2BetaEntry(path, enabled) }, {
             requested: true, authorized: true, document: 'play-v2.html', mode, reasonCode: 'INTERNAL_ENTRY_ALLOWED'
         });
     }
-    for (const path of ['/play/beta/coach', '/play/beta/mentor', '/play/beta/players', '/play/beta/nope', '/play/beta/', '/play/beta//bots', '/play/beta/%62ots']) {
+    for (const path of ['/play/beta/mentor', '/play/beta/players', '/play/beta/nope', '/play/beta/', '/play/beta//bots', '/play/beta/%62ots']) {
         const result = resolvePlayV2BetaEntry(path, enabled);
         assert.equal(result.authorized, false);
         assert.equal(result.document, 'play-v2-unavailable.html');
@@ -79,5 +79,5 @@ test('dedicated entry contains the beta contract and no prohibited resource grap
     assert.match(html, /play-v2-beta-entry\.js\?v=1\.0\.0/);
     const resources = html.match(/<(?:script|link)\b[^>]*>/gi) || [];
     assert.equal(resources.filter(item => /fics/i.test(item) && !/play-v2-fics-isolation/i.test(item)).length, 0);
-    assert.equal(resources.filter(item => /academy|coach|mentor|guided[-_/]?replay|knowledge|training[-_/]?memory|mastery|endgame[-_/]?(?:trainer|library)|players|onboarding/i.test(item)).length, 0);
+    assert.equal(resources.filter(item => /academy|mentor|guided[-_/]?replay|knowledge|training[-_/]?memory|mastery|endgame[-_/]?(?:trainer|library)|players|onboarding|js\/play\/coach\//i.test(item)).length, 0);
 });

@@ -32,6 +32,15 @@
                 'js/play/coach/coach-observation-service.js?v=1.2.0', 'js/play/coach-panel.js?v=1.1.0'
             ])
         }),
+        'native-coach-stack': Object.freeze({
+            resourceId: 'native-coach-stack', type: 'module-group', trigger: 'mode', priority: 'normal',
+            qaOnly: true, productionEligible: false, dependencies: Object.freeze([]),
+            sources: Object.freeze([
+                'js/play/native-coach/coach-configuration.js?v=1.0.0',
+                'js/play/native-coach/coach-assistance.js?v=1.0.0',
+                'js/play/native-coach/coach-panel.js?v=1.0.0'
+            ])
+        }),
         'mentor-foundation': Object.freeze({
             resourceId: 'mentor-foundation', type: 'module-group', trigger: 'action', priority: 'normal',
             qaOnly: true, productionEligible: false, dependencies: Object.freeze([]),

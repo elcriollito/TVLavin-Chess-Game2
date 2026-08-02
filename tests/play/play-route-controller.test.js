@@ -84,7 +84,8 @@ test('canonical beta routes preserve their namespace and block prohibited modes'
     assert.equal(api.parse('/play/beta').canonicalPath, '/play/beta');
     assert.equal(api.parse('/play/beta/games').canonicalPath, '/play/beta/games');
     assert.equal(api.parse('/play/beta/bots').mode, 'bots');
-    for (const mode of ['coach', 'mentor', 'players', 'unknown']) {
+    assert.equal(api.parse('/play/beta/coach').mode, 'coach');
+    for (const mode of ['mentor', 'players', 'unknown']) {
         const route = api.parse(`/play/beta/${mode}`);
         assert.equal(route.mode, 'games');
         assert.equal(route.canonicalPath, '/play/beta/games');
