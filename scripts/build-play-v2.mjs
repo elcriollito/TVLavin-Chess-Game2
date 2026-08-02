@@ -32,6 +32,11 @@ html = html
   .replace(/\s*<a[^>]+href="\/endgame-(?:trainer|practice|library)"[^>]*>[\s\S]*?<\/a>/gi, '\n')
   .replace(/^.*data-section="academy".*\r?\n/gim, '')
   .replace(/\s+ws:\/\/localhost:8081 ws:\/\/127\.0\.0\.1:8081 wss:\/\/fics-gateway\.caissa-chess\.org/g, '')
+  .replace("script-src 'self' 'unsafe-eval'", "script-src 'self'")
+  .replace(" https://challenges.cloudflare.com blob:; script-src-elem", " https://challenges.cloudflare.com; script-src-elem")
+  .replace(" https://challenges.cloudflare.com blob:; style-src", " https://challenges.cloudflare.com; style-src")
+  .replace("worker-src 'self' blob:", "worker-src 'self'")
+  .replace(/connect-src 'self'[^;]+;/, "connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev;")
   .replace(
     '    <script src="js/play/play-route-controller.js?v=1.1.0"></script>',
     '    <script src="js/play/play-v2-fics-isolation.js?v=1.0.0"></script>\n' +
@@ -48,6 +53,9 @@ if (!html.includes('data-caissa-play-v2-entry="qa-only"')) throw new Error('PLAY
 if (!html.includes('js/play/play-v2-fics-isolation.js?v=1.0.0')) throw new Error('PLAY_V2_CONTRACT_MISSING');
 if (!html.includes('js/play/play-v2-product-boundary.js?v=1.0.0')) throw new Error('PLAY_V2_PRODUCT_BOUNDARY_MISSING');
 if (!html.includes('js/play/play-v2-beta-entry.js?v=1.0.0')) throw new Error('PLAY_V2_BETA_ENTRY_CONTRACT_MISSING');
+if (!html.includes("worker-src 'self';") || /worker-src[^;]*(?:blob:|https?:)/.test(html))
+  throw new Error('PLAY_V2_WORKER_CSP_INVALID');
+if (/script-src[^;]*'unsafe-eval'/.test(html)) throw new Error('PLAY_V2_UNSAFE_EVAL_CSP');
 const resourceElements = html.match(/<(?:script|link)\b[^>]*>/gi) || [];
 const prohibitedResources = resourceElements.filter(element =>
   /js\/play\/players\//i.test(element)

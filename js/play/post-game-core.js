@@ -126,8 +126,21 @@
                 this.#diagnostics.newGames += 1; this.hide(); this.#onNewGame?.();
                 return outcome(true, 'accepted', 'NEW_GAME_READY');
             }
+            if (root.CaissaBotSession?.getSnapshot?.()?.activeBotId && root.CaissaPlayV2BotWorkerReadiness) {
+                return root.CaissaPlayV2BotWorkerReadiness.begin({
+                    color: this.#configuration.color, timeControl: this.#configuration.timeControl
+                }).then(prepared => {
+                    if (!prepared.ok) return outcome(false, prepared.status || 'failed', 'ACTION_FAILED');
+                    const started = this.#compatibility?.execute?.('startNewGame', { ...this.#configuration });
+                    if (!started?.ok) return outcome(false, 'failed', 'ACTION_FAILED');
+                    root.CaissaPlayV2BotWorkerReadiness?.markPlaying?.();
+                    this.#diagnostics.rematches += 1; this.hide();
+                    return outcome(true, 'accepted', 'REMATCH_STARTED');
+                });
+            }
             const started = this.#compatibility?.execute?.('startNewGame', { ...this.#configuration });
             if (!started?.ok) return outcome(false, 'failed', 'ACTION_FAILED');
+            root.CaissaPlayV2BotWorkerReadiness?.markPlaying?.();
             this.#diagnostics.rematches += 1; this.hide(); return outcome(true, 'accepted', 'REMATCH_STARTED');
         }
         #analyze() {

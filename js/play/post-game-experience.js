@@ -546,13 +546,34 @@
             const start = () => this.#compatibility.execute('startNewGame', { ...this.#configuration });
             const opponent = this.#record?.opponent;
             const mode = opponent?.type === 'coach' ? 'coach'
-                : opponent?.id && global.CaissaBotRegistry?.get?.(opponent.id) ? 'bots' : 'games';
+                : (global.CaissaBotSession?.getSnapshot?.()?.activeBotId
+                    || (opponent?.id && global.CaissaBotRegistry?.get?.(opponent.id))) ? 'bots' : 'games';
+            const startWithWorker = () => {
+                if (mode === 'bots' && global.CaissaPlayV2BotWorkerReadiness) {
+                    return global.CaissaPlayV2BotWorkerReadiness.begin({
+                        color: this.#configuration.color, timeControl: this.#configuration.timeControl
+                    }).then(prepared => {
+                        if (!prepared.ok) return prepared;
+                        const started = start();
+                        if (started?.ok) global.CaissaPlayV2BotWorkerReadiness?.markPlaying?.();
+                        return started;
+                    });
+                }
+                return start();
+            };
             const started = global.CaissaPlayGameStartAnalytics?.observePanelStart?.({ mode,
                 startSource: action === 'rematch' ? 'rematch' : 'new-game',
                 timeControlSeconds: this.#configuration.timeControl, color: this.#configuration.color,
                 opponentType: mode === 'coach' ? 'coach-engine' : mode === 'bots' ? 'bot-catalog' : 'engine',
                 assistanceCategory: mode === 'coach' ? 'coach-assisted' : 'engine-opponent', qaEligible: true,
-                productionEligible: true, actionKey: `post-game-${action}` }, start) ?? start();
+                productionEligible: true, actionKey: `post-game-${action}` }, startWithWorker) ?? startWithWorker();
+            if (started && typeof started.then === 'function') return started.then(value => {
+                if (!value?.ok) return result(false, value?.status || 'failed', REASONS.ACTION_FAILED);
+                if (action === 'rematch') this.#diagnostics.rematches += 1;
+                else this.#diagnostics.newGames += 1;
+                this.hide(); this.#rail?.reset?.();
+                return result(true, 'accepted', action === 'rematch' ? REASONS.REMATCH_STARTED : REASONS.NEW_GAME_STARTED);
+            });
             if (!started?.ok) return result(false, started?.status || 'failed', REASONS.ACTION_FAILED);
             if (action === 'rematch') this.#diagnostics.rematches += 1;
             else this.#diagnostics.newGames += 1;

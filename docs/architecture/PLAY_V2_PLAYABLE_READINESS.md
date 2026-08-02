@@ -4,6 +4,13 @@ Status: **Season 11.3.2 accepted locally**
 
 Contract: `PlayV2PlayableReadiness@1.0.0`
 
+> Season 11.4.2A update: Bots Worker certification is now
+> `local-production-build-ready`. Play v2 bootstrap, readiness probes, setup and
+> profile selection create zero Workers; an accepted Bots Play action may create
+> one. This does not change `publicReady = false`, deployment status, or the
+> pending physical-device gate. Evidence is in
+> [`PLAY_V2_BOT_WORKER_READINESS.md`](./PLAY_V2_BOT_WORKER_READINESS.md).
+
 Public exposure: **none**. Games alone receives local readiness. Bots remains internal and uncertified; Coach, Mentor, and Players remain blocked.
 
 ## State model

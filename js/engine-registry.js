@@ -11,7 +11,7 @@
             author: 'Stockfish Team',
             license: 'GPLv3',
             execution: 'wasm',
-            workerPath: 'engine/stockfish-working.js',
+            workerPath: '/engine/stockfish-working.js',
             wasmPath: 'engine/stockfish-working.wasm',
             defaultOptions: { MultiPV: 1 },
             defaultDepth: 20,
@@ -26,7 +26,7 @@
             author: 'Stockfish Team',
             license: 'GPLv3',
             execution: 'wasm',
-            workerPath: 'engine/stockfish-working.js',
+            workerPath: '/engine/stockfish-working.js',
             wasmPath: 'engine/stockfish-working.wasm',
             defaultOptions: { MultiPV: 1 },
             defaultDepth: 12,
@@ -107,7 +107,7 @@
         getEnabled() {
             return Object.values(ENGINES).filter(e => e.enabled !== false);
         },
-        createEngine(id) {
+        createEngine(id, options = {}) {
             const config = this.get(id) || this.get('stockfish');
             if (!config) return null;
             if (config.enabled === false) {
@@ -118,7 +118,7 @@
                 console.warn('[EngineRegistry] EngineAdapter not loaded');
                 return null;
             }
-            return new window.EngineAdapter(config);
+            return new window.EngineAdapter({ ...config, ...options, workerPath: config.workerPath });
         }
     };
 

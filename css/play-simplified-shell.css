@@ -401,13 +401,14 @@ body.caissa-simplified-play-active .caissa-games-panel__option span {
     overflow-wrap: anywhere;
     border: 1px solid var(--panel-border);
     border-radius: 9px;
-    background: rgba(255,255,255,.04);
+    background: var(--play-theme-card);
+    color: var(--play-theme-text);
     text-align: center;
 }
 
 body.caissa-simplified-play-active .caissa-games-panel__option input:checked + span {
     border-color: var(--accent-color);
-    background: rgba(255,140,0,.16);
+    background: var(--play-theme-selected);
 }
 
 body.caissa-simplified-play-active .caissa-games-panel__option input:focus-visible + span {

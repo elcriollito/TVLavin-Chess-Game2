@@ -4,6 +4,12 @@ Season: **11.4.1A**
 
 Contract: `PlayV2BotPersonalityPolicy@1.0.0`
 
+> Season 11.4.2A update: Native Bots now uses the locally certified
+> `PlayV2BotWorkerReadiness@1.0.0` lifecycle. Profile selection remains passive;
+> the Play action creates at most one canonical same-origin Worker, and every
+> ownership exit terminates it. Calibration thresholds and unrated presentation
+> are unchanged. See [`PLAY_V2_BOT_WORKER_READINESS.md`](./PLAY_V2_BOT_WORKER_READINESS.md).
+
 Status: **accepted locally for internal, uncertified Bots only**
 
 ## Ownership

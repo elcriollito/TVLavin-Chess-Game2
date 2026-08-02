@@ -29,7 +29,7 @@ test('PlayV2PlayableReadiness@1.0.0 publishes frozen modes, states, transitions,
     assert.deepEqual(plain(api.states), ['booting', 'ready', 'starting', 'playing', 'postgame', 'recoverable-error', 'unavailable']);
     assert.deepEqual(plain(api.classifications), { games: 'required', bots: 'uncertified', coach: 'blocked', mentor: 'blocked', players: 'blocked' });
     assert.deepEqual(plain(api.botsReadiness), { internallySelectable: true, configurationValid: true,
-        runtimeAvailable: true, workerRequiredAtStart: true, workerProductionCertification: 'pending',
+        runtimeAvailable: true, workerRequiredAtStart: true, workerProductionCertification: 'local-production-build-ready',
         publicReady: false, inheritsGamesReadiness: false, fallback: 'none' });
     assert.equal(api.requirements.length, 22); assert.equal(api.deadlines.bootMs, 2000); assert.equal(api.deadlines.pollMs, 50);
     for (const value of [api, api.states, api.transitions, api.requirements, api.classifications, api.deadlines]) assert(Object.isFrozen(value));

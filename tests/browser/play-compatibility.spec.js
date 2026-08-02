@@ -16,7 +16,7 @@ test('public boundary loads after App with a frozen versioned API', async ({ pag
         frozen: Object.isFrozen(window.CaissaPlayCompatibility),
         json: JSON.stringify(window.CaissaPlayCompatibility.getSnapshot())
     }));
-    expect(contract).toMatchObject({ available: true, version: '1.1.0', frozen: true });
+    expect(contract).toMatchObject({ available: true, version: '1.2.0', frozen: true });
     expect(() => JSON.parse(contract.json)).not.toThrow();
 });
 

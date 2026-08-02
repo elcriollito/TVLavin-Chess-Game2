@@ -17,7 +17,7 @@
     });
     const CLASSIFICATIONS = Object.freeze({ games: 'required', bots: 'uncertified', coach: 'blocked', mentor: 'blocked', players: 'blocked' });
     const BOTS_READINESS = Object.freeze({ internallySelectable: true, configurationValid: true,
-        runtimeAvailable: true, workerRequiredAtStart: true, workerProductionCertification: 'pending',
+        runtimeAvailable: true, workerRequiredAtStart: true, workerProductionCertification: 'local-production-build-ready',
         publicReady: false, inheritsGamesReadiness: false, fallback: 'none' });
     const REQUIREMENTS = Object.freeze([
         'entryGate', 'shell', 'primaryBoardCount', 'board', 'mode', 'timeControl', 'color',

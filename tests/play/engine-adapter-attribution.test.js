@@ -38,7 +38,8 @@ function fixture(generationIds = []) {
         window,
         Worker: FakeWorker,
         WebAssembly: window.WebAssembly,
-        setTimeout: callback => callback(),
+        setTimeout: () => 1,
+        clearTimeout: () => {},
         console
     });
     let index = 0;

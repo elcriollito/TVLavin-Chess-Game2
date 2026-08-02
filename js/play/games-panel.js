@@ -258,26 +258,36 @@
                 mode: 'engine', color: resolvedColor, timeControl: this.#preset.seconds,
                 increment: this.#preset.incrementSeconds
             });
-            const command = global.CaissaPlayGameStartAnalytics?.observePanelStart?.({ mode: 'games',
+            const commit = () => {
+                const command = global.CaissaPlayGameStartAnalytics?.observePanelStart?.({ mode: 'games',
                 startSource, timeControlSeconds: this.#preset.seconds, color: resolvedColor,
                 opponentType: 'engine', assistanceCategory: 'engine-opponent', qaEligible: true,
                 productionEligible: true, actionKey: this.#id }, start) ?? start();
-            if (!command?.ok) {
-                this.#readiness?.completeStart?.(false);
-                this.#busy = false;
-                this.#status = 'error'; this.#diagnostics.commandFailures += 1;
-                this.#diagnostics.rejectedStarts += 1; this.#render();
-                return this.#record(result(false, command?.status || 'failed', REASONS.COMMAND_FAILED));
+                if (!command?.ok) {
+                    this.#readiness?.completeStart?.(false);
+                    this.#busy = false;
+                    this.#status = 'error'; this.#diagnostics.commandFailures += 1;
+                    this.#diagnostics.rejectedStarts += 1; this.#render();
+                    return this.#record(result(false, command?.status || 'failed', REASONS.COMMAND_FAILED));
+                }
+                this.#readiness?.completeStart?.(true);
+                this.#status = 'active'; this.#diagnostics.successfulStarts += 1;
+                this.#render();
+                const board = global.document?.getElementById?.('chessboard');
+                if (board?.focus) board.focus({ preventScroll: true });
+                const unlock = () => { if (!this.#disposed) { this.#busy = false; this.#render(); } };
+                if (typeof global.queueMicrotask === 'function') global.queueMicrotask(unlock);
+                else unlock();
+                return this.#record(result(true, 'accepted', REASONS.STARTED, this.getSnapshot()));
+            };
+            if (global.App?.engine && !global.App.engine.ready && typeof global.App.engine.start === 'function') {
+                return global.App.engine.start().then(commit).catch(() => {
+                    this.#readiness?.completeStart?.(false); this.#busy = false; this.#status = 'error';
+                    this.#diagnostics.commandFailures += 1; this.#render();
+                    return this.#record(result(false, 'failed', REASONS.COMMAND_FAILED));
+                });
             }
-            this.#readiness?.completeStart?.(true);
-            this.#status = 'active'; this.#diagnostics.successfulStarts += 1;
-            this.#render();
-            const board = global.document?.getElementById?.('chessboard');
-            if (board?.focus) board.focus({ preventScroll: true });
-            const unlock = () => { if (!this.#disposed) { this.#busy = false; this.#render(); } };
-            if (typeof global.queueMicrotask === 'function') global.queueMicrotask(unlock);
-            else unlock();
-            return this.#record(result(true, 'accepted', REASONS.STARTED, this.getSnapshot()));
+            return commit();
         }
 
         reset() {

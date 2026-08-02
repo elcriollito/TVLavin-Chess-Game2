@@ -197,9 +197,9 @@ function applyEvaluationRailPolicy() {
     return rail.applyPolicy(decision).ok;
 }
 
-function createEngineInstance(engineId) {
+function createEngineInstance(engineId, options = {}) {
     if (window.EngineRegistry && typeof EngineRegistry.createEngine === 'function') {
-        const instance = EngineRegistry.createEngine(engineId);
+        const instance = EngineRegistry.createEngine(engineId, options);
         if (instance) return instance;
     }
     if (window.EngineAdapter && window.EngineRegistry && typeof EngineRegistry.get === 'function') {
@@ -211,7 +211,7 @@ function createEngineInstance(engineId) {
             console.warn('[Engine] Engine disabled:', config.name);
             return null;
         }
-        if (config) return new EngineAdapter(config);
+        if (config) return new EngineAdapter({ ...config, ...options, workerPath: config.workerPath });
     }
     if (typeof StockfishEngine !== 'undefined') {
         return new StockfishEngine();
@@ -575,7 +575,8 @@ function initializeEngine() {
         }
     }
     App.engineId = engineId;
-    App.engine = createEngineInstance(engineId);
+    const nativePlayV2 = window.CaissaPlayV2ProductBoundary?.contractId === 'PlayV2ProductBoundary@1.0.0';
+    App.engine = createEngineInstance(engineId, nativePlayV2 ? { autoStart: false, owner: 'native-play-v2' } : {});
     if (window.localStorage) {
         localStorage.setItem('caissa.engineId', engineId);
     }
@@ -1292,6 +1293,8 @@ function makeEngineMove() {
                 profileId: botSearch.personalityPolicyId, seed: botSearch.seed });
             if (!selected?.ok) {
                 window.CaissaEngineRequestIsolation?.cancel?.(isolationRequest.requestId);
+                window.CaissaPlayV2BotWorkerReadiness?.teardown?.('search-failure');
+                stopTimerLoop(); App.gameActive = false;
                 App.isPlayerTurn = true; updateEngineStatus('error', 'Bot move unavailable'); return;
             }
             commitEngineMove(selected.move);
@@ -2585,7 +2588,9 @@ function newGame(options = {}) {
         window.CaissaCoachSession?.beginGame?.();
     } else if (botRoute?.mode === 'bots' && nativePlayEntry) {
         window.CaissaCoachSession?.reset?.();
-        window.CaissaBotSession?.beginGame?.();
+        if (!window.CaissaPlayV2BotWorkerReadiness?.consumePreparedSession?.()) {
+            window.CaissaBotSession?.beginGame?.();
+        }
     } else {
         window.CaissaCoachSession?.reset?.();
         window.CaissaBotSession?.resetToFullPower?.();
@@ -3005,6 +3010,10 @@ function setGameStatus(state, result = '', message = '') {
     renderGameStatusPanel();
     updateGameStatusConsole();
     syncPlayMobileStateClasses();
+    if (result && window.CaissaBotSession?.getSnapshot?.()?.activeBotId
+        && window.CaissaPlayV2BotWorkerReadiness?.getSnapshot?.().activeWorkerCount > 0) {
+        window.CaissaPlayV2BotWorkerReadiness.teardown('postgame');
+    }
     window.CaissaPostGameExperienceInstance?.syncFromPlay?.();
 }
 

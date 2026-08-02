@@ -14,8 +14,20 @@
             this.defaultOptions = this.config.defaultOptions || {};
             this.supportsChess960 = !!this.config.supportsChess960;
             this.notes = this.config.notes || '';
+            this.autoStart = this.config.autoStart !== false;
+            this.owner = this.config.owner || 'legacy';
+            this.handshakeTimeoutMs = Math.max(250, Math.min(10000,
+                Number(this.config.handshakeTimeoutMs) || 4000));
 
             this.engine = null;
+            this.workerGeneration = 0;
+            this.startPromise = null;
+            this.startResolve = null;
+            this.startReject = null;
+            this.handshakeTimer = null;
+            this.handshakePhase = 'absent';
+            this.searchTimeoutMs = Math.max(500, Math.min(30000, Number(this.config.searchTimeoutMs) || 10000));
+            this.searchTimer = null;
             this.ready = false;
             this.configured = false;
             this.analyzing = false;
@@ -49,7 +61,7 @@
             this.commandQueue = [];
             this.basePath = this.getBasePath();
 
-            this.start();
+            if (this.autoStart) this.start().catch(() => {});
         }
 
         getBasePath() {
@@ -73,58 +85,127 @@
             return this.basePath + path;
         }
 
+        clearHandshakeTimer() {
+            if (this.handshakeTimer !== null) {
+                clearTimeout(this.handshakeTimer);
+                this.handshakeTimer = null;
+            }
+        }
+
+        armHandshakeDeadline(phase, generation) {
+            this.clearHandshakeTimer();
+            this.handshakePhase = phase;
+            this.handshakeTimer = setTimeout(() => {
+                if (generation !== this.workerGeneration || this.ready) return;
+                this.failGeneration(generation, 'ENGINE_HANDSHAKE_TIMEOUT',
+                    'The chess engine did not become ready in time.');
+            }, this.handshakeTimeoutMs);
+        }
+
+        failGeneration(generation, code, message) {
+            if (generation !== this.workerGeneration) return false;
+            const error = new Error(message || 'The chess engine is unavailable.');
+            error.code = code;
+            const reject = this.startReject;
+            this.startReject = null;
+            this.terminate(code);
+            reject?.(error);
+            if (this.onError) this.onError(error);
+            window.dispatchEvent?.(new CustomEvent('caissa-engine-failure', { detail: { category: code } }));
+            return true;
+        }
+
+        clearSearchTimer() {
+            if (this.searchTimer !== null) { clearTimeout(this.searchTimer); this.searchTimer = null; }
+        }
+
+        armSearchDeadline(generation) {
+            this.clearSearchTimer();
+            this.searchTimer = setTimeout(() => {
+                if (generation !== this.workerGeneration || !this.analyzing) return;
+                this.failGeneration(generation, 'ENGINE_SEARCH_TIMEOUT', 'The bot move took too long.');
+            }, this.searchTimeoutMs);
+        }
+
         start() {
+            if (this.ready) return Promise.resolve(this);
+            if (this.startPromise) return this.startPromise;
+            this.startPromise = new Promise((resolve, reject) => {
+                this.startResolve = resolve;
+                this.startReject = reject;
+            });
+            const pending = this.startPromise;
             try {
                 const workerUrl = this.resolvePath(this.workerPath);
                 if (!workerUrl) {
                     throw new Error('Worker path is missing');
                 }
-
-                this.engine = new Worker(workerUrl);
-                this.engine.onmessage = (event) => {
+                if (workerUrl !== '/engine/stockfish-working.js') {
+                    throw new Error('Worker URL is not approved');
+                }
+                const generation = ++this.workerGeneration;
+                const worker = new Worker(workerUrl);
+                this.engine = worker;
+                worker.onmessage = (event) => {
+                    if (generation !== this.workerGeneration || worker !== this.engine) return;
                     const message = typeof event.data === 'string'
                         ? event.data
                         : (event.data?.data ?? String(event.data));
-                    this.handleMessage(message);
+                    this.handleMessage(message, generation);
                 };
-
-                this.engine.onerror = (error) => {
-                    if (this.onError) this.onError(error);
+                worker.onerror = () => {
+                    this.failGeneration(generation, 'ENGINE_WORKER_ERROR', 'The chess engine stopped unexpectedly.');
                 };
-
-                this.engine.onmessageerror = (error) => {
-                    if (window.CAISSA_DEBUG) {
-                        console.error('[EngineAdapter] message error:', error);
-                    }
+                worker.onmessageerror = () => {
+                    this.failGeneration(generation, 'ENGINE_MESSAGE_ERROR', 'The chess engine returned an unreadable response.');
                 };
-
                 this.send('uci');
+                this.armHandshakeDeadline('awaiting-uciok', generation);
             } catch (error) {
-                if (this.onError) {
-                    this.onError(new Error('Could not load chess engine.'));
-                }
+                const generation = this.workerGeneration;
+                const wrapped = new Error('Could not load chess engine.');
+                wrapped.code = 'ENGINE_CONSTRUCTION_FAILED';
+                const reject = this.startReject;
+                this.startReject = null;
+                this.terminate('constructor-failure');
+                reject?.(wrapped);
+                if (this.onError) this.onError(wrapped);
             }
+            return pending;
         }
 
-        handleMessage(message) {
+        handleMessage(message, generation = this.workerGeneration) {
+            if (generation !== this.workerGeneration || !this.engine || typeof message !== 'string') return;
             if (this.onLine) {
                 this.onLine(message);
             }
 
             if (message.includes('uciok')) {
+                if (this.handshakePhase !== 'awaiting-uciok') return;
+                this.clearHandshakeTimer();
                 // `uciok` confirms protocol identity, not search readiness.
                 this.configureEngine();
+                this.armHandshakeDeadline('awaiting-readyok', generation);
             }
 
             if (message.includes('readyok')) {
+                if (!this.ready && this.handshakePhase !== 'awaiting-readyok') return;
+                this.clearHandshakeTimer();
                 const firstReady = !this.ready;
                 this.ready = true;
+                this.handshakePhase = 'ready';
                 this.processCommandQueue();
                 this.completeAttributionBarrier();
-                if (firstReady && this.onReady) this.onReady();
+                if (firstReady) {
+                    const resolve = this.startResolve;
+                    this.startResolve = this.startReject = null;
+                    resolve?.(this);
+                    if (this.onReady) this.onReady();
+                }
             }
 
             if (message.startsWith('bestmove')) {
+                this.clearSearchTimer();
                 this.analyzing = false;
                 const match = message.match(/bestmove ([a-h][1-8][a-h][1-8][qrbnQRBN]?)/);
                 if (this.attributionEnabled) {
@@ -287,6 +368,7 @@
             if (operation.kind === 'candidates') this.send(`setoption name MultiPV value ${operation.candidateCount}`);
             this.setPosition(operation.fen);
             this.go(operation.options);
+            this.armSearchDeadline(this.workerGeneration);
         }
 
         completeAttributionBarrier() {
@@ -340,6 +422,7 @@
             this.attributedPending = null;
             if (restoreMultiPv) this.send(`setoption name MultiPV value ${this.multipv}`);
             if (this.analyzing) this.send('stop');
+            this.clearSearchTimer();
             this.analyzing = false;
             if (!this.attributionBarrierPending && (hadOperation || wasAnalyzing)) {
                 this.attributionBarrierPending = true;
@@ -478,6 +561,7 @@
             if (this.analyzing) {
                 this.send('stop');
                 this.analyzing = false;
+                this.clearSearchTimer();
             }
         }
 
@@ -605,15 +689,37 @@
             }
         }
 
-        terminate() {
+        terminate(reason = 'owner-exit') {
+            this.workerGeneration += 1;
+            this.clearHandshakeTimer();
+            this.clearSearchTimer();
             this.invalidateAttributedOperation(this.attributedActive, 'canceled');
             this.invalidateAttributedOperation(this.attributedPending, 'canceled');
             this.attributedActive = null;
             this.attributedPending = null;
             this.attributionBarrierPending = false;
+            this.ready = false;
+            this.configured = false;
+            this.analyzing = false;
+            this.handshakePhase = 'absent';
+            const worker = this.engine;
+            if (worker) {
+                worker.onmessage = null;
+                worker.onerror = null;
+                worker.onmessageerror = null;
+            }
             if (this.engine) {
                 this.engine.terminate();
                 this.engine = null;
+            }
+            this.commandQueue.length = 0;
+            const reject = this.startReject;
+            this.startResolve = this.startReject = null;
+            this.startPromise = null;
+            if (reject) {
+                const error = new Error('Chess engine ownership ended.');
+                error.code = 'ENGINE_OWNERSHIP_ENDED';
+                reject(error);
             }
         }
     }

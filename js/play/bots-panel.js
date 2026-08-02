@@ -2,7 +2,7 @@
     'use strict';
 
     const SCHEMA_VERSION = '1.2.0';
-    const STATUSES = Object.freeze(['ready', 'busy', 'active', 'error', 'disposed']);
+    const STATUSES = Object.freeze(['ready', 'busy', 'active', 'error', 'unavailable', 'disposed']);
     let sequence = 0;
     function deepFreeze(value, seen = new WeakSet()) {
         if (!value || typeof value !== 'object' || seen.has(value)) return value;
@@ -77,9 +77,14 @@
                 type: 'button', 'data-bot-primary': '', 'aria-describedby': `${this.#id}-status`
             });
             action.textContent = 'Play';
-            this.#root.append(title, note, list, settings, status, action); host.appendChild(this.#root);
+            const retry = element('button', 'caissa-bots-panel__retry', {
+                type: 'button', 'data-bot-retry': '', 'aria-describedby': `${this.#id}-status`
+            });
+            retry.textContent = 'Retry'; retry.hidden = true;
+            this.#root.append(title, note, list, settings, status, action, retry); host.appendChild(this.#root);
             this.#listen(this.#root, 'change', event => this.#change(event));
             this.#listen(action, 'click', () => this.submit());
+            this.#listen(retry, 'click', () => this.submit(true));
             this.#render();
             return result(true, 'accepted', 'MOUNTED', this.getSnapshot());
         }
@@ -89,11 +94,20 @@
             this.#selectedId = id; this.#diagnostics.selections += 1; this.#render();
             return result(true, 'accepted', 'SELECTED', this.getSnapshot());
         }
-        submit() {
+        async submit(isRetry = false) {
             if (this.#disposed || this.#status === 'busy') return result(false, 'rejected', 'UNAVAILABLE');
             const selected = global.CaissaBotSession.select(this.#selectedId);
             if (!selected.ok) return result(false, 'rejected', 'INVALID_SELECTION');
             this.#status = 'busy'; this.#render();
+            const options = { mode: 'engine', color: this.#color, timeControl: this.#timeControl };
+            const readiness = global.CaissaPlayV2BotWorkerReadiness;
+            const worker = isRetry ? await readiness?.retry?.(options) : await readiness?.begin?.(options);
+            if (!worker?.ok) {
+                this.#status = worker?.status === 'unavailable' ? 'unavailable' : 'error';
+                this.#diagnostics.rejected += 1; this.#render();
+                global.queueMicrotask?.(() => this.#root?.querySelector('[data-bot-retry]:not([hidden])')?.focus());
+                return result(false, 'failed', worker?.reasonCode || 'WORKER_UNAVAILABLE');
+            }
             const start = () => this.#compatibility.execute('startNewGame', {
                 mode: 'engine', color: this.#color, timeControl: this.#timeControl
             });
@@ -102,9 +116,11 @@
                 opponentType: 'bot-catalog', assistanceCategory: 'engine-opponent', qaEligible: true,
                 productionEligible: true, actionKey: this.#id }, start) ?? start();
             if (!command?.ok) {
+                readiness?.teardown?.('initialization-failure');
                 this.#status = 'error'; this.#diagnostics.rejected += 1; this.#render();
                 return result(false, 'failed', 'COMMAND_FAILED');
             }
+            readiness?.markPlaying?.();
             this.#status = 'active'; this.#diagnostics.starts += 1; this.#render();
             return result(true, 'accepted', 'STARTED', this.getSnapshot());
         }
@@ -136,11 +152,16 @@
             const status = this.#root.querySelector('[data-bot-status]');
             const profile = global.CaissaBotRegistry.get(this.#selectedId);
             status.textContent = this.#status === 'active' ? `Game started against ${profile?.name}.`
-                : this.#status === 'error' ? 'The bot game could not be started.'
+                : this.#status === 'busy' ? 'Preparing the bot game…'
+                : this.#status === 'error' ? 'The bot could not start. Retry once or choose another game.'
+                    : this.#status === 'unavailable' ? 'The bot is unavailable. Your selections are preserved.'
                     : profile ? `${profile.name} selected. ${profile.presentation.tagline}` : 'Choose a bot.';
             const action = this.#root.querySelector('[data-bot-primary]');
-            action.disabled = !profile || this.#status === 'busy';
+            action.disabled = !profile || ['busy', 'unavailable'].includes(this.#status);
             action.setAttribute('aria-busy', String(this.#status === 'busy'));
+            const retry = this.#root.querySelector('[data-bot-retry]');
+            retry.hidden = this.#status !== 'error';
+            retry.disabled = this.#status === 'busy';
         }
         #listen(target, type, handler) {
             target.addEventListener(type, handler); this.#listeners.push({ target, type, handler });

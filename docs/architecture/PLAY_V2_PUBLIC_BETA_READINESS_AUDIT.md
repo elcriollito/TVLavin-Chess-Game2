@@ -2,6 +2,14 @@
 
 > Season 11.4.1A update: `PlayV2BotPersonalityPolicy@1.0.0` adds four locally calibrated, deterministic personalities and a simplified internal selection surface. Evidence and limitations are recorded in [`PLAY_V2_BOT_PERSONALITIES.md`](./PLAY_V2_BOT_PERSONALITIES.md). Bots and the production Worker remain uncertified and not public-ready. Games certification, physical-device validation, feedback, and public rollout gates are unchanged.
 
+> Season 11.4.2A update: `PlayV2BotWorkerReadiness@1.0.0` locally certifies
+> Native Bots lazy Worker ownership, the canonical same-origin engine asset,
+> bounded generation-attributed handshake, teardown/Retry behavior, narrow CSP,
+> MIME and production-equivalent output. The prior “production Worker
+> uncertified” statement above is historical. Bots remains internal and not
+> public-ready; deployed and physical-device verification remain open. See
+> [`PLAY_V2_BOT_WORKER_READINESS.md`](./PLAY_V2_BOT_WORKER_READINESS.md).
+
 Audit date: 2026-08-01
 
 Architectural name: **CAISSA Native Play Experience**

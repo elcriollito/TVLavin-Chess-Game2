@@ -11,6 +11,7 @@
                 'js/play/bots/bot-profile.js?v=1.0.0', 'js/play/bots/bot-presets.js?v=1.0.0',
                 'js/play/bots/bot-personality-policy.js?v=1.0.0',
                 'js/play/bots/bot-registry.js?v=1.0.0', 'js/play/bots/bot-session.js?v=1.0.0',
+                'js/play/bots/bot-worker-readiness.js?v=1.0.0',
                 'js/play/bots-panel.js?v=1.2.0'
             ])
         }),

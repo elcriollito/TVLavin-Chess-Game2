@@ -61,6 +61,20 @@
   ],
   "headers": [
     {
+      "source": "/play/beta",
+      "headers": [
+        { "key": "Content-Security-Policy", "value": "worker-src 'self'; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev; object-src 'none'; base-uri 'self'" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
+      ]
+    },
+    {
+      "source": "/play/beta/:path*",
+      "headers": [
+        { "key": "Content-Security-Policy", "value": "worker-src 'self'; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev; object-src 'none'; base-uri 'self'" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
+      ]
+    },
+    {
       "source": "/(favicon.*|apple-touch-icon.*|icon-.*|manifest.json)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=86400" }

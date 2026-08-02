@@ -12,6 +12,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = 8000;
+const PLAY_V2_CSP = "worker-src 'self'; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev; object-src 'none'; base-uri 'self'";
 
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -417,6 +418,7 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Security-Policy', PLAY_V2_CSP);
   }
   if (!betaEntry.requested && (pathname === '/play' || pathname.startsWith('/play/'))) {
     filePath = url.searchParams.get('simplified') === '1' ? './play-v2.html' : './index.html';
