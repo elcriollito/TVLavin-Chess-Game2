@@ -279,3 +279,7 @@ Clean PostGame exits are locally certified by `PlayV2PostGameExitPolicy@1.0.0`. 
 ## Season 11.7.1 update
 
 [`PlayV2NativePlayersPolicy@1.0.0`](./PLAY_V2_NATIVE_PLAYERS_POLICY.md) freezes the only future provider as CAISSA-native and records all 16 native capability owners as missing with uncertified security, privacy, reliability, and testing gates. Static and runtime guards keep Players routes, tabs, DOM, resources, state bypasses, fictional data, and all FICS roles blocked. This is policy evidence only: Players remains not public-ready, no multiplayer infrastructure exists, and Season 11.7.2 presentation work has not begun.
+
+## Hotfix 11.6.2.1 update
+
+Mentor Review now has automation-backed zero-overflow reflow at 320, 360, 390, 768, and 1440 CSS pixels and at 200% zoom in Chromium and WebKit. The fix replaces clipped content-box board overflow with intrinsic shrink-safe sizing and makes workspace activation deterministic before measurement. All review controls and behavior remain present. This does not close physical-device or named-screen-reader gates and does not advance public readiness.

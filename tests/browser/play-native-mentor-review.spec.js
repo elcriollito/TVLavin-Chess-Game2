@@ -56,10 +56,38 @@ test('move navigation is bounded, announced, stale-safe, and Back restores exact
 test('browser Back, refresh without launch, accessibility and responsive layouts fail safe', async ({ page, browserName }) => {
     await completed(page);
     await page.locator('[data-post-game-action="mentor-review"]').click();
-    for (const viewport of [{ width: 320, height: 568 }, { width: 768, height: 1024 }, { width: 1440, height: 900 }]) {
+    await expect(page.locator('[data-native-mentor-review]')).toBeVisible();
+    for (const viewport of [{ width: 320, height: 568 }, { width: 360, height: 800 }, { width: 390, height: 844 },
+        { width: 768, height: 1024 }, { width: 1440, height: 900 }]) {
         await page.setViewportSize(viewport);
-        expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+        const geometry = await page.evaluate(() => {
+            const rect = selector => document.querySelector(selector).getBoundingClientRect();
+            const board = rect('.caissa-mentor-review__board'); const widget = rect('#mentor-review-board .board-b72b1');
+            const side = document.querySelector('.caissa-mentor-review__side');
+            const controls = [...document.querySelectorAll('[data-review-nav], [data-review-back]')].map(node => {
+                const box = node.getBoundingClientRect(); return { left: box.left, right: box.right, height: box.height };
+            });
+            return { overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+                board: { width: board.width, height: board.height }, widget: { left: widget.left, right: widget.right, width: widget.width },
+                sideOverflow: side.scrollWidth - side.clientWidth, controls };
+        });
+        expect(geometry.overflow, `${viewport.width}px document`).toBe(0);
+        expect(Math.abs(geometry.board.width - geometry.board.height), `${viewport.width}px board square`).toBeLessThanOrEqual(1);
+        expect(geometry.board.width, `${viewport.width}px practical board`).toBeGreaterThanOrEqual(viewport.width === 320 ? 280 : 300);
+        expect(geometry.widget.left, `${viewport.width}px board left`).toBeGreaterThanOrEqual(0);
+        expect(geometry.widget.right, `${viewport.width}px board right`).toBeLessThanOrEqual(viewport.width);
+        expect(geometry.sideOverflow, `${viewport.width}px side scroller`).toBeLessThanOrEqual(0);
+        expect(geometry.controls).toHaveLength(5);
+        for (const control of geometry.controls) {
+            expect(control.left, `${viewport.width}px control left`).toBeGreaterThanOrEqual(0);
+            expect(control.right, `${viewport.width}px control right`).toBeLessThanOrEqual(viewport.width);
+            expect(control.height, `${viewport.width}px touch target`).toBeGreaterThanOrEqual(44);
+        }
     }
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.addStyleTag({ content: 'html { zoom: 2; }' });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), '200% zoom').toBe(0);
+    await page.locator('[data-review-nav="next"]').focus(); await expect(page.locator('[data-review-nav="next"]')).toBeFocused();
     await page.emulateMedia({ reducedMotion: 'reduce', ...(browserName === 'chromium' ? { forcedColors: 'active' } : {}) });
     const axe = await new AxeBuilder({ page }).include('[data-native-mentor-review]').analyze();
     expect(axe.violations.filter(item => ['critical', 'serious'].includes(item.impact))).toEqual([]);
