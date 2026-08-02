@@ -4,36 +4,40 @@
     const SCHEMA_VERSION = '1.0.0';
     const catalog = [
         {
-            schemaVersion: '1.0.0', id: 'caissa-seed', version: 1, name: 'Caissa Seed',
-            shortName: 'Seed', description: 'A forgiving machine opponent with a very shallow search.',
+            schemaVersion: '1.0.0', id: 'beginner', version: 1, name: 'Beginner',
+            shortName: 'Beginner', description: 'Intentionally limited with bounded, legal inaccuracies.',
             difficultyBand: 'beginner', calibrationStatus: 'estimated', enginePresetId: 'seed-depth-2',
+            ratingStatus: 'Unrated · calibration pending', personalityPolicyId: 'beginner',
             availability: { enabled: true, qaOnly: true, locked: false },
-            presentation: { tagline: 'A gentle first machine game.', strengths: ['Always chooses a legal engine move.'],
-                limitations: ['Shallow search can miss tactics.'] }
+            presentation: { tagline: 'Forgiving, bounded choices.', strengths: ['Always chooses an allowed legal move.'],
+                limitations: ['Not calibrated to human ratings.'] }
         },
         {
-            schemaVersion: '1.0.0', id: 'caissa-trail', version: 1, name: 'Caissa Trail',
-            shortName: 'Trail', description: 'A casual machine opponent with a short bounded search.',
+            schemaVersion: '1.0.0', id: 'casual', version: 1, name: 'Casual',
+            shortName: 'Casual', description: 'Balanced recreational choices with limited variation.',
             difficultyBand: 'casual', calibrationStatus: 'estimated', enginePresetId: 'trail-depth-5',
+            ratingStatus: 'Unrated · calibration pending', personalityPolicyId: 'casual',
             availability: { enabled: true, qaOnly: true, locked: false },
-            presentation: { tagline: 'A short-search casual challenge.', strengths: ['Searches farther than Seed.'],
-                limitations: ['Still misses deeper combinations.'] }
+            presentation: { tagline: 'Balanced recreational play.', strengths: ['Favors stronger choices than Beginner.'],
+                limitations: ['Not calibrated to human ratings.'] }
         },
         {
-            schemaVersion: '1.0.0', id: 'caissa-grove', version: 1, name: 'Caissa Grove',
-            shortName: 'Grove', description: 'An intermediate machine opponent with a deeper bounded search.',
+            schemaVersion: '1.0.0', id: 'tactical', version: 1, name: 'Tactical',
+            shortName: 'Tactical', description: 'Prefers sound forcing choices inside a safe evaluation window.',
             difficultyBand: 'intermediate', calibrationStatus: 'internally-tested', enginePresetId: 'grove-depth-9',
+            ratingStatus: 'Unrated · calibration pending', personalityPolicyId: 'tactical',
             availability: { enabled: true, qaOnly: true, locked: false },
-            presentation: { tagline: 'More time to examine each position.', strengths: ['Deeper search than Trail.'],
-                limitations: ['Not formally human-rating calibrated.'] }
+            presentation: { tagline: 'Seeks sound forcing play.', strengths: ['Prefers safe checks, captures, and promotions.'],
+                limitations: ['Does not simulate a human personality.'] }
         },
         {
-            schemaVersion: '1.0.0', id: 'caissa-summit', version: 1, name: 'Caissa Summit',
-            shortName: 'Summit', description: 'The strongest initial bot preset with the deepest bounded search.',
+            schemaVersion: '1.0.0', id: 'solid', version: 1, name: 'Solid',
+            shortName: 'Solid', description: 'Prefers lower immediate tactical exposure among safe choices.',
             difficultyBand: 'advanced', calibrationStatus: 'internally-tested', enginePresetId: 'summit-depth-14',
+            ratingStatus: 'Unrated · calibration pending', personalityPolicyId: 'solid',
             availability: { enabled: true, qaOnly: true, locked: false },
-            presentation: { tagline: 'The deepest search in this QA catalog.', strengths: ['Deepest catalog search.'],
-                limitations: ['Difficulty is relative, not an official Elo.'] }
+            presentation: { tagline: 'Prefers stable, safe choices.', strengths: ['Reduces immediate forcing exposure.'],
+                limitations: ['Does not claim human positional understanding.'] }
         }
     ];
     const entries = new Map();
@@ -62,7 +66,7 @@
     global.CaissaBotRegistry = Object.freeze({
         schemaVersion: SCHEMA_VERSION, register, get, list,
         validate: profile => global.CaissaBotProfile.validate(profile),
-        has: id => entries.has(id), getDefault: () => get('caissa-seed'),
+        has: id => entries.has(id), getDefault: () => get('beginner'),
         inspect: () => Object.freeze({ schemaVersion: SCHEMA_VERSION, size: entries.size, ...diagnostics })
     });
 })(typeof window !== 'undefined' ? window : globalThis);

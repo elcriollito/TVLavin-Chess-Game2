@@ -3,10 +3,10 @@ import { BOT_CALIBRATION_FIXTURES, BOT_CALIBRATION_SUITE_VERSION } from '../play
 import { aggregateCalibration, inspectRelativeOrdering } from '../play/bots/calibration-harness.js';
 
 const bots = [
-    ['caissa-seed', 'seed-depth-2', 2],
-    ['caissa-trail', 'trail-depth-5', 5],
-    ['caissa-grove', 'grove-depth-9', 9],
-    ['caissa-summit', 'summit-depth-14', 14]
+    ['beginner', 3, 5],
+    ['casual', 7, 4],
+    ['tactical', 9, 5],
+    ['solid', 9, 5]
 ];
 
 test('real repository Stockfish position suite produces legal bounded bot calibration', async ({ page }, testInfo) => {
@@ -29,10 +29,10 @@ test('real repository Stockfish position suite produces legal bounded bot calibr
     await expect.poll(() => page.evaluate(() => window.App?.engine?.ready === true), { timeout: 20000 }).toBe(true);
 
     const reports = [];
-    for (const [botId, presetId, depth] of bots) {
+    for (const [botId, depth, candidateCount] of bots) {
         const observations = [];
         for (const item of BOT_CALIBRATION_FIXTURES) {
-            const observation = await page.evaluate(({ fen, depth, timeoutMs }) => new Promise(resolve => {
+            const observation = await page.evaluate(({ botId, fen, depth, candidateCount, timeoutMs }) => new Promise(resolve => {
                 const startedAt = performance.now();
                 let settled = false;
                 const timer = setTimeout(() => {
@@ -41,22 +41,25 @@ test('real repository Stockfish position suite produces legal bounded bot calibr
                     resolve({ completed: false, timeout: true, move: null,
                         latencyMs: Math.round(performance.now() - startedAt) });
                 }, timeoutMs);
-                window.App.engine.getBestMoveAttributed(fen, move => {
+                window.App.engine.getCandidatesAttributed(fen, candidates => {
                     if (settled) return; settled = true; clearTimeout(timer);
-                    resolve({ completed: true, timeout: false, move,
+                    const selected = window.CaissaBotPersonalityPolicy.select({
+                        profileId: botId, fen, candidates, seed: `calibration:${botId}:${fen}`
+                    });
+                    resolve({ completed: selected.ok, timeout: false, move: selected.move,
                         latencyMs: Math.round(performance.now() - startedAt) });
-                }, { depth });
-            }), { fen: item.fen, depth, timeoutMs: item.timeoutMs });
+                }, { depth, candidateCount });
+            }), { botId, fen: item.fen, depth, candidateCount, timeoutMs: item.timeoutMs });
             observations.push(observation);
         }
-        reports.push(aggregateCalibration(botId, presetId, observations));
+        reports.push(aggregateCalibration(botId, `personality-${botId}`, observations));
     }
-    const ordering = inspectRelativeOrdering(reports);
+    const ordering = inspectRelativeOrdering(reports, ['beginner', 'casual', 'tactical', 'solid']);
     const machineReport = {
         suiteVersion: BOT_CALIBRATION_SUITE_VERSION, profilesTested: bots.map(item => item[0]),
         presetsTested: bots.map(item => item[1]), reports, ordering,
         gamesReset: await page.evaluate(() => {
-            window.CaissaBotSession.select('caissa-summit'); window.CaissaBotSession.beginGame();
+            window.CaissaBotSession.select('solid'); window.CaissaBotSession.beginGame({ seed: 'calibration-reset' });
             window.CaissaBotSession.resetToFullPower();
             return window.CaissaBotSession.getSnapshot();
         }),

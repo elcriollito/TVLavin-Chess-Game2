@@ -16,6 +16,9 @@
         unavailable: Object.freeze([])
     });
     const CLASSIFICATIONS = Object.freeze({ games: 'required', bots: 'uncertified', coach: 'blocked', mentor: 'blocked', players: 'blocked' });
+    const BOTS_READINESS = Object.freeze({ internallySelectable: true, configurationValid: true,
+        runtimeAvailable: true, workerRequiredAtStart: true, workerProductionCertification: 'pending',
+        publicReady: false, inheritsGamesReadiness: false, fallback: 'none' });
     const REQUIREMENTS = Object.freeze([
         'entryGate', 'shell', 'primaryBoardCount', 'board', 'mode', 'timeControl', 'color',
         'opponentProvider', 'opponentSession', 'clock', 'rulesAuthority', 'lifecycle',
@@ -140,7 +143,7 @@
     }
 
     root.CaissaPlayV2PlayableReadiness = freeze({ schemaVersion: VERSION, contractId: CONTRACT_ID,
-        states: STATES, transitions: TRANSITIONS, classifications: CLASSIFICATIONS,
+        states: STATES, transitions: TRANSITIONS, classifications: CLASSIFICATIONS, botsReadiness: BOTS_READINESS,
         requirements: REQUIREMENTS, deadlines: freeze({ bootMs: DEADLINE_MS, startMs: DEADLINE_MS, pollMs: POLL_MS }),
         defaultProbe, create });
 })(typeof window !== 'undefined' ? window : globalThis);

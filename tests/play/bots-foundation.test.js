@@ -4,12 +4,13 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const files = [
-    'bot-profile.js', 'bot-presets.js', 'bot-registry.js', 'bot-session.js'
+    'bot-profile.js', 'bot-presets.js', 'bot-personality-policy.js', 'bot-registry.js', 'bot-session.js'
 ].map(name => fs.readFileSync(new URL(`../../js/play/bots/${name}`, import.meta.url), 'utf8'));
 
 function load() {
     const window = {};
-    for (const source of files) vm.runInNewContext(source, { window, globalThis: window, WeakSet, Set, Map, Object, JSON });
+    window.Chess = class {};
+    for (const source of files) vm.runInNewContext(source, { window, globalThis: window, WeakSet, Set, Map, Object, JSON, Uint32Array });
     return window;
 }
 const plain = value => JSON.parse(JSON.stringify(value));
@@ -24,7 +25,7 @@ test('publishes frozen versioned bot contracts and a four-profile catalog', () =
     assert.equal(catalog.length, 4);
     assert.ok(catalog.every(Object.isFrozen));
     assert.deepEqual(plain(catalog.map(item => item.id)), [
-        'caissa-seed', 'caissa-trail', 'caissa-grove', 'caissa-summit'
+        'beginner', 'casual', 'tactical', 'solid'
     ]);
 });
 
@@ -73,22 +74,26 @@ test('presets are declarative, bounded, one-worker, and disable unsupported pers
 
 test('pending selection cannot mutate the active game and rematch retains the bot', () => {
     const w = load();
-    w.CaissaBotSession.select('caissa-trail');
+    w.CaissaBotSession.select('casual');
     const first = w.CaissaBotSession.beginGame();
     assert.equal(first.ok, true);
-    assert.equal(w.CaissaBotSession.getSnapshot().activeBotId, 'caissa-trail');
-    w.CaissaBotSession.select('caissa-summit');
-    assert.equal(w.CaissaBotSession.getSnapshot().activeBotId, 'caissa-trail');
-    assert.deepEqual(plain(w.CaissaBotSession.getSearchOptions()), { depth: 5 });
+    assert.equal(w.CaissaBotSession.getSnapshot().activeBotId, 'casual');
+    w.CaissaBotSession.select('solid');
+    assert.equal(w.CaissaBotSession.getSnapshot().activeBotId, 'casual');
+    assert.deepEqual(plain(w.CaissaBotSession.getSearchOptions()), {
+        depth: 7, candidateCount: 4, personalityPolicyId: 'casual', seed: w.CaissaBotSession.getSnapshot().gameSeed
+    });
     w.CaissaBotSession.beginGame();
-    assert.equal(w.CaissaBotSession.getSnapshot().activeBotId, 'caissa-summit');
+    assert.equal(w.CaissaBotSession.getSnapshot().activeBotId, 'solid');
 });
 
 test('Games reset restores the original Full Power configuration', () => {
     const w = load();
-    w.CaissaBotSession.select('caissa-grove');
+    w.CaissaBotSession.select('tactical');
     w.CaissaBotSession.beginGame();
-    assert.deepEqual(plain(w.CaissaBotSession.getSearchOptions()), { depth: 9 });
+    assert.deepEqual(plain(w.CaissaBotSession.getSearchOptions()), {
+        depth: 9, candidateCount: 5, personalityPolicyId: 'tactical', seed: w.CaissaBotSession.getSnapshot().gameSeed
+    });
     assert.equal(w.CaissaBotSession.resetToFullPower().ok, true);
     assert.equal(w.CaissaBotSession.getSearchOptions(), null);
     assert.deepEqual(plain(w.CaissaBotPresets.fullPower), { depth: null, moveTimeMs: 2000 });
@@ -104,7 +109,7 @@ test('static boundary excludes workers, App writes, remote profiles, matchmaking
 test('both SPA pages register bot dependencies once and before the shell', () => {
     for (const name of ['index.html', 'yahoo-classic.html']) {
         const html = fs.readFileSync(new URL(`../../${name}`, import.meta.url), 'utf8');
-        for (const file of ['bot-profile.js', 'bot-presets.js', 'bot-registry.js', 'bot-session.js', 'bots-panel.js']) {
+        for (const file of ['bot-profile.js', 'bot-presets.js', 'bot-personality-policy.js', 'bot-registry.js', 'bot-session.js', 'bots-panel.js']) {
             assert.equal(html.split(file).length - 1, 1);
             assert.ok(html.indexOf(file) < html.indexOf('simplified-play-shell.js'));
         }

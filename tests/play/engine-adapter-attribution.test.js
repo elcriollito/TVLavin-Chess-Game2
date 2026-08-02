@@ -128,3 +128,26 @@ test('a completed generation cannot lend duplicate terminal output to the next g
     worker.emit('bestmove c7c5');
     assert.deepEqual(delivered, [['a', 'e7e5'], ['b', 'c7c5']]);
 });
+
+test('one attributed MultiPV operation returns a bounded scored candidate set and restores engine configuration', () => {
+    const { adapter, worker } = fixture(['candidates']);
+    const delivered = [];
+    assert.equal(adapter.getCandidatesAttributed('fen-a w', (candidates, generation) =>
+        delivered.push({ candidates: JSON.parse(JSON.stringify(candidates)), generation }),
+    { depth: 8, candidateCount: 3 }), 'candidates:1');
+    assert.deepEqual(worker.messages.slice(-3), [
+        'setoption name MultiPV value 3', 'position fen fen-a w', 'go depth 8'
+    ]);
+    worker.emit('info depth 8 multipv 2 score cp 20 pv d2d4 d7d5');
+    worker.emit('info depth 7 multipv 1 score cp 40 pv e2e4 e7e5');
+    worker.emit('info depth 8 multipv 1 score cp 45 pv e2e4 e7e5');
+    worker.emit('info depth 8 multipv 3 score mate 4 pv g1f3');
+    worker.emit('bestmove e2e4');
+    assert.deepEqual(delivered, [{ generation: 'candidates:1', candidates: [
+        { move: 'e2e4', multipv: 1, depth: 8, score: 0.45, mate: null },
+        { move: 'd2d4', multipv: 2, depth: 8, score: 0.2, mate: null },
+        { move: 'g1f3', multipv: 3, depth: 8, score: null, mate: 4 }
+    ] }]);
+    assert.equal(worker.messages.at(-1), 'setoption name MultiPV value 1');
+    assert.equal(adapter.inspectAttribution().activeOperationCount, 0);
+});

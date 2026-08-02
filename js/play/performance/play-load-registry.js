@@ -9,8 +9,9 @@
             qaOnly: true, productionEligible: false, dependencies: Object.freeze([]),
             sources: Object.freeze([
                 'js/play/bots/bot-profile.js?v=1.0.0', 'js/play/bots/bot-presets.js?v=1.0.0',
+                'js/play/bots/bot-personality-policy.js?v=1.0.0',
                 'js/play/bots/bot-registry.js?v=1.0.0', 'js/play/bots/bot-session.js?v=1.0.0',
-                'js/play/bots-panel.js?v=1.1.0'
+                'js/play/bots-panel.js?v=1.2.0'
             ])
         }),
         'coach-stack': Object.freeze({

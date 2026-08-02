@@ -1,6 +1,6 @@
 # Season 11.0.1 — Play v2 Public Beta Readiness Audit
 
-> Season 11.3.2 update: Games first-playable readiness is enforced locally by `PlayV2PlayableReadiness@1.0.0`. The bounded state model, passive probes, CTA gate, complete failure matrix, recovery rules, security/accessibility evidence, and non-claims are recorded in [`PLAY_V2_PLAYABLE_READINESS.md`](./PLAY_V2_PLAYABLE_READINESS.md). Games Quick Play certification remains in force. Physical-device validation, Bots/Worker certification, feedback, and public rollout remain open; production defaults are unchanged.
+> Season 11.4.1A update: `PlayV2BotPersonalityPolicy@1.0.0` adds four locally calibrated, deterministic personalities and a simplified internal selection surface. Evidence and limitations are recorded in [`PLAY_V2_BOT_PERSONALITIES.md`](./PLAY_V2_BOT_PERSONALITIES.md). Bots and the production Worker remain uncertified and not public-ready. Games certification, physical-device validation, feedback, and public rollout gates are unchanged.
 
 Audit date: 2026-08-01
 

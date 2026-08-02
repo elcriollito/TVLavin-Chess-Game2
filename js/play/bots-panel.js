@@ -1,8 +1,7 @@
 (function installBotsPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.1.0';
-    const CALIBRATION_SUITE_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.2.0';
     const STATUSES = Object.freeze(['ready', 'busy', 'active', 'error', 'disposed']);
     let sequence = 0;
     function deepFreeze(value, seen = new WeakSet()) {
@@ -40,30 +39,23 @@
             const note = element('p', 'caissa-bots-panel__note');
             note.textContent = this.#minimalEntry ? 'Internal preview. Bot play is not yet certified.' :
                 'QA-only machine opponents. Difficulty is relative and position-suite tested, not a human rating.';
-            const ladder = element('ol', 'caissa-bots-panel__ladder', {
-                'aria-label': 'Relative difficulty, easiest to hardest'
-            });
-            const list = element('div', 'caissa-bots-panel__catalog', { role: 'radiogroup', 'aria-label': 'Bot catalog' });
+            const list = element('div', 'caissa-bots-panel__catalog', { role: 'radiogroup',
+                'aria-label': 'Choose one internal bot profile' });
             global.CaissaBotRegistry.list({ enabled: true }).forEach(profile => {
-                const rung = element('li', 'caissa-bots-panel__rung', { 'data-bot-rung': profile.id });
-                rung.textContent = profile.shortName; ladder.appendChild(rung);
                 const label = element('label', 'caissa-bots-panel__card caissa-vc caissa-vc-card', {
                     'data-bot-card': profile.id, 'data-visual-component': 'profile-card'
                 });
                 const input = element('input', '', {
-                    type: 'radio', name: `${this.#id}-bot`, value: profile.id, 'data-bot-id': profile.id
+                    type: 'radio', name: `${this.#id}-bot`, value: profile.id, 'data-bot-id': profile.id,
+                    'aria-label': `${profile.name}, ${profile.ratingStatus}, ${profile.presentation.tagline}, ${profile.difficultyBand}`
                 });
-                const emblem = element('span',
-                    `caissa-bots-panel__emblem caissa-bots-panel__emblem--${profile.shortName.toLowerCase()}`,
-                    { 'aria-hidden': 'true' });
-                emblem.textContent = profile.shortName.slice(0, 1);
                 const copy = element('span', 'caissa-bots-panel__card-copy');
                 const name = element('strong', ''); name.textContent = profile.name;
-                const metadata = element('span', '');
-                metadata.textContent = profile.difficultyBand;
-                copy.append(name, metadata); label.append(input, emblem, copy); list.appendChild(label);
+                const rating = element('span', ''); rating.textContent = profile.ratingStatus;
+                const style = element('span', ''); style.textContent = profile.presentation.tagline;
+                const difficulty = element('span', ''); difficulty.textContent = `Difficulty: ${profile.difficultyBand}`;
+                copy.append(name, rating, style, difficulty); label.append(input, copy); list.appendChild(label);
             });
-            const detail = element('article', 'caissa-bots-panel__detail', { 'data-bot-detail': '' });
             const settings = element('div', 'caissa-bots-panel__options');
             const color = element('label', ''); color.textContent = 'Play as ';
             const colorSelect = element('select', '', { 'data-bot-color': '' });
@@ -84,8 +76,8 @@
             const action = element('button', 'caissa-bots-panel__primary', {
                 type: 'button', 'data-bot-primary': '', 'aria-describedby': `${this.#id}-status`
             });
-            action.textContent = 'Play Bot';
-            this.#root.append(title, note, ladder, list, detail, settings, status, action); host.appendChild(this.#root);
+            action.textContent = 'Play';
+            this.#root.append(title, note, list, settings, status, action); host.appendChild(this.#root);
             this.#listen(this.#root, 'change', event => this.#change(event));
             this.#listen(action, 'click', () => this.submit());
             this.#render();
@@ -122,7 +114,7 @@
             return deepFreeze({
                 schemaVersion: SCHEMA_VERSION, panelId: this.#id, mounted: !!this.#root,
                 status: this.#status, selectedBotId: this.#selectedId, color: this.#color,
-                timeControlSeconds: this.#timeControl, primaryAction: { label: 'Play Bot', available: !this.#disposed },
+                timeControlSeconds: this.#timeControl, primaryAction: { label: 'Play', available: !this.#disposed },
                 listenerCount: this.#listeners.length, diagnostics: { ...this.#diagnostics }
             });
         }
@@ -143,29 +135,6 @@
             this.#root.querySelectorAll('[data-bot-id]').forEach(input => input.checked = input.value === this.#selectedId);
             const status = this.#root.querySelector('[data-bot-status]');
             const profile = global.CaissaBotRegistry.get(this.#selectedId);
-            this.#root.querySelectorAll('[data-bot-rung]').forEach(rung => {
-                if (rung.dataset.botRung === this.#selectedId) rung.setAttribute('aria-current', 'step');
-                else rung.removeAttribute('aria-current');
-            });
-            const detail = this.#root.querySelector('[data-bot-detail]');
-            if (detail && profile) {
-                const preset = global.CaissaBotPresets.get(profile.enginePresetId);
-                detail.innerHTML = '';
-                const heading = element('h3', 'caissa-bots-panel__detail-title');
-                heading.textContent = profile.name;
-                const tagline = element('p', 'caissa-bots-panel__detail-tagline');
-                tagline.textContent = profile.presentation.tagline;
-                const description = element('p', 'caissa-bots-panel__detail-description');
-                description.textContent = profile.description;
-                const limitation = element('p', 'caissa-bots-panel__detail-limit');
-                limitation.textContent = `Known limit: ${profile.presentation.limitations.join(' ')}`;
-                const technical = element('details', 'caissa-bots-panel__technical');
-                const summary = element('summary', ''); summary.textContent = 'QA technical details';
-                const copy = element('p', '');
-                copy.textContent = `Bounded search depth ${preset.search.depth}. Calibration status: ${profile.calibrationStatus}. Position suite ${CALIBRATION_SUITE_VERSION}; relative ordering only.`;
-                technical.append(summary, copy);
-                detail.append(heading, tagline, description, limitation, technical);
-            }
             status.textContent = this.#status === 'active' ? `Game started against ${profile?.name}.`
                 : this.#status === 'error' ? 'The bot game could not be started.'
                     : profile ? `${profile.name} selected. ${profile.presentation.tagline}` : 'Choose a bot.';

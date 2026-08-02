@@ -1226,10 +1226,7 @@ function makeEngineMove() {
         updateEngineStatus('ready', 'Engine Ready');
         return;
     }
-    const requestBestMove = typeof App.engine.getBestMoveAttributed === 'function'
-        ? App.engine.getBestMoveAttributed.bind(App.engine)
-        : App.engine.getBestMove.bind(App.engine);
-    requestBestMove(currentFen, (bestMove, ponder) => {
+    const commitEngineMove = (bestMove, ponder = null) => {
         if (!acceptEngineIsolationResponse(isolationRequest, {
             type: 'bestmove', bestMove, ponder
         })) {
@@ -1287,7 +1284,23 @@ function makeEngineMove() {
         }
 
         updateEngineStatus('ready', 'Engine Ready');
-    }, engineSearch);
+    };
+    if (botSearch?.personalityPolicyId && typeof App.engine.getCandidatesAttributed === 'function') {
+        App.engine.getCandidatesAttributed(currentFen, candidates => {
+            if (!App.gameActive || App.game.fen() !== currentFen) return;
+            const selected = window.CaissaBotPersonalityPolicy?.select?.({ fen: currentFen, candidates,
+                profileId: botSearch.personalityPolicyId, seed: botSearch.seed });
+            if (!selected?.ok) {
+                window.CaissaEngineRequestIsolation?.cancel?.(isolationRequest.requestId);
+                App.isPlayerTurn = true; updateEngineStatus('error', 'Bot move unavailable'); return;
+            }
+            commitEngineMove(selected.move);
+        }, { depth: botSearch.depth, candidateCount: botSearch.candidateCount });
+    } else {
+        const requestBestMove = typeof App.engine.getBestMoveAttributed === 'function'
+            ? App.engine.getBestMoveAttributed.bind(App.engine) : App.engine.getBestMove.bind(App.engine);
+        requestBestMove(currentFen, commitEngineMove, engineSearch);
+    }
 }
 
 // ===== GAME STATUS =====

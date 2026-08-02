@@ -129,7 +129,7 @@
                 const match = message.match(/bestmove ([a-h][1-8][a-h][1-8][qrbnQRBN]?)/);
                 if (this.attributionEnabled) {
                     if (this.attributionBarrierPending || !this.attributedActive
-                        || this.attributedActive.kind !== 'bestmove') {
+                        || !['bestmove', 'candidates'].includes(this.attributedActive.kind)) {
                         this.attributionDiagnostics.rejectedRawMessages += 1;
                         return;
                     }
@@ -137,6 +137,13 @@
                     this.attributedActive = null;
                     operation.status = 'completed';
                     this.attributionDiagnostics.completed += 1;
+                    if (operation.kind === 'candidates') {
+                        this.send(`setoption name MultiPV value ${this.multipv}`);
+                        const candidates = [...operation.candidates.values()]
+                            .sort((a, b) => a.multipv - b.multipv).slice(0, operation.candidateCount);
+                        operation.callback(Object.freeze(candidates.map(Object.freeze)), operation.generationId);
+                        return;
+                    }
                     if (match) {
                         const move = match[1];
                         const ponder = message.match(/ponder ([a-h][1-8][a-h][1-8][qrbnQRBN]?)/);
@@ -153,12 +160,17 @@
 
             if (message.startsWith('info') && this.attributionEnabled) {
                 if (this.attributionBarrierPending || !this.attributedActive
-                    || this.attributedActive.kind !== 'analysis') {
+                    || !['analysis', 'candidates'].includes(this.attributedActive.kind)) {
                     this.attributionDiagnostics.rejectedRawMessages += 1;
                     return;
                 }
                 if (message.includes(' pv ') || (message.includes('depth') && message.includes('score'))) {
-                    this.parseInfo(message, this.attributedActive.callback);
+                    if (this.attributedActive.kind === 'candidates') {
+                        const info = this.parseInfo(message, null);
+                        if (info?.pv?.[0] && info.depth >= (this.attributedActive.candidates.get(info.multipv)?.depth || 0))
+                            this.attributedActive.candidates.set(info.multipv, Object.freeze({ move: info.pv[0],
+                                multipv: info.multipv, depth: info.depth, score: info.score, mate: info.mate }));
+                    } else this.parseInfo(message, this.attributedActive.callback);
                 }
                 return;
             }
@@ -238,6 +250,7 @@
             if (callback && info.pv.length > 0) {
                 callback(info, this.attributedActive?.generationId ?? null);
             }
+            return info;
         }
 
         createAttributedOperation(kind, fen, callback, options) {
@@ -253,6 +266,8 @@
                 fen,
                 callback,
                 options,
+                candidateCount: kind === 'candidates' ? options.candidateCount : null,
+                candidates: kind === 'candidates' ? new Map() : null,
                 status: 'created'
             };
         }
@@ -269,6 +284,7 @@
             operation.status = 'active';
             this.attributedActive = operation;
             this.currentFen = operation.fen;
+            if (operation.kind === 'candidates') this.send(`setoption name MultiPV value ${operation.candidateCount}`);
             this.setPosition(operation.fen);
             this.go(operation.options);
         }
@@ -317,10 +333,12 @@
             if (!this.attributionEnabled) return false;
             const hadOperation = Boolean(this.attributedActive || this.attributedPending || this.attributionBarrierPending);
             const wasAnalyzing = this.analyzing;
+            const restoreMultiPv = this.attributedActive?.kind === 'candidates';
             this.invalidateAttributedOperation(this.attributedActive, 'canceled');
             this.invalidateAttributedOperation(this.attributedPending, 'canceled');
             this.attributedActive = null;
             this.attributedPending = null;
+            if (restoreMultiPv) this.send(`setoption name MultiPV value ${this.multipv}`);
             if (this.analyzing) this.send('stop');
             this.analyzing = false;
             if (!this.attributionBarrierPending && (hadOperation || wasAnalyzing)) {
@@ -492,6 +510,15 @@
 
         getBestMoveAttributed(fen, callback, options = {}) {
             return this.startAttributedOperation('bestmove', fen, callback, options);
+        }
+
+        getCandidatesAttributed(fen, callback, options = {}) {
+            const candidateCount = Math.max(2, Math.min(5, Number(options.candidateCount) || 3));
+            const operationCallback = typeof callback === 'function' ? callback : null;
+            if (!operationCallback) return null;
+            const generationId = this.startAttributedOperation('candidates', fen, operationCallback,
+                { depth: Math.max(1, Math.min(20, Number(options.depth) || 8)), candidateCount });
+            return generationId;
         }
 
         startAnalysis(fen, infoCallback, depth = null) {

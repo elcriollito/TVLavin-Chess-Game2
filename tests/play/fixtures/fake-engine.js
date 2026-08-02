@@ -36,6 +36,7 @@ export function installPlayHarness(scenario) {
             this.onerror = null;
             this.onmessageerror = null;
             this.messages = [];
+            this.multiPv = 1;
             state.workersCreated += 1;
             state.workers.push(this);
         }
@@ -44,12 +45,18 @@ export function installPlayHarness(scenario) {
             const command = String(message);
             this.messages.push(command);
             state.workerMessages.push(command);
+            const multiPv = command.match(/^setoption name MultiPV value (\d+)$/);
+            if (multiPv) this.multiPv = Number(multiPv[1]);
             if (command === 'uci') emit(this, 'id name CAISSA deterministic fixture');
             if (command === 'uci') emit(this, 'uciok');
             if (command === 'isready' && config.autoReady !== false) emit(this, 'readyok');
             if (command.startsWith('go') && config.autoReply !== false) {
                 const score = config.mate == null ? `cp ${config.cp ?? 34}` : `mate ${config.mate}`;
-                emit(this, `info depth ${config.depth ?? 12} score ${score} nodes 128 time 1 pv ${config.bestMove ?? 'e7e5'}`, config.delayMs ?? 10);
+                const moves = config.candidateMoves || [config.bestMove ?? 'e7e5', 'c7c5', 'd7d5', 'g8f6', 'b8c6'];
+                for (let index = 0; index < this.multiPv; index += 1) {
+                    const candidateScore = config.mate == null ? `cp ${(config.cp ?? 34) - index * 10}` : score;
+                    emit(this, `info depth ${config.depth ?? 12} multipv ${index + 1} score ${candidateScore} nodes 128 time 1 pv ${moves[index]}`, config.delayMs ?? 10);
+                }
                 emit(this, `bestmove ${config.bestMove ?? 'e7e5'}`, (config.delayMs ?? 10) + 1);
             }
             if (command === '__fixture_error__') {

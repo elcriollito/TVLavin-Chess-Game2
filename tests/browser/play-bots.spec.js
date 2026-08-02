@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 import { instrumentPlay, playMove } from '../play/playwright-helpers.js';
 
 async function openBots(page, viewport = { width: 390, height: 844 }) {
@@ -10,37 +11,32 @@ async function openBots(page, viewport = { width: 390, height: 844 }) {
 
 test.beforeEach(async ({ page }) => instrumentPlay(page));
 
-test('Bots is QA-only and exposes four truthful differentiated profiles', async ({ page }) => {
+test('Bots is internal and exposes four unrated evidence-backed personality profiles', async ({ page }) => {
     await page.goto('/play/bots');
     expect(new URL(page.url()).pathname).toBe('/play/games');
     await expect(page.locator('.caissa-bots-panel')).toHaveCount(0);
     await openBots(page);
     await expect(page.locator('.caissa-bots-panel__card')).toHaveCount(4);
-    await expect(page.getByText(/relative and position-suite tested/i)).toBeVisible();
+    await expect(page.getByText(/QA-only machine opponents/i)).toBeVisible();
     await expect(page.locator('.caissa-bots-panel')).not.toContainText(/\bElo\b/i);
-    await expect(page.locator('.caissa-bots-panel__emblem')).toHaveCount(4);
-    await expect(page.locator('.caissa-bots-panel__ladder')).toContainText('Seed');
-    await expect(page.locator('.caissa-bots-panel__ladder')).toContainText('Summit');
-    await expect(page.locator('[data-bot-detail]')).toContainText('Caissa Seed');
-    await expect(page.locator('.caissa-bots-panel__technical')).not.toHaveAttribute('open');
-    await page.getByLabel(/Caissa Summit/).check();
-    await expect(page.locator('[data-bot-detail]')).toContainText('Bounded search depth 14');
-    await expect(page.locator('[data-bot-rung="caissa-summit"]')).toHaveAttribute('aria-current', 'step');
+    await expect(page.locator('.caissa-bots-panel')).not.toContainText(/depth|MultiPV|centipawn|Worker URL/i);
+    await expect(page.getByText(/Unrated · calibration pending/)).toHaveCount(4);
+    await page.getByLabel(/Solid, Unrated/).check();
     const proof = await page.evaluate(() => ({
         mode: window.CaissaSimplifiedPlayShellInstance.getSnapshot().mode,
         profiles: window.CaissaBotRegistry.list().map(profile => ({
             id: profile.id, calibration: profile.calibrationStatus,
-            depth: window.CaissaBotPresets.get(profile.enginePresetId).search.depth
+            policy: profile.personalityPolicyId
         }))
     }));
     expect(proof.mode).toBe('bots');
-    expect(proof.profiles.map(item => item.depth)).toEqual([2, 5, 9, 14]);
+    expect(proof.profiles.map(item => item.id)).toEqual(['beginner', 'casual', 'tactical', 'solid']);
     expect(proof.profiles.every(item => ['estimated', 'internally-tested'].includes(item.calibration))).toBe(true);
 });
 
-test('Play Bot starts once and sends the selected bounded depth through the existing worker', async ({ page }) => {
+test('Play starts once and sends one bounded personality candidate search through the existing worker', async ({ page }) => {
     await openBots(page);
-    await page.getByLabel(/Caissa Grove/).check();
+    await page.getByLabel(/Tactical, Unrated/).check();
     await page.locator('[data-bot-primary]').click();
     expect(await playMove(page, 'e2', 'e4')).toBe(true);
     await expect.poll(() => page.evaluate(() => window.App.game.history())).toEqual(['e4', 'e5']);
@@ -50,8 +46,9 @@ test('Play Bot starts once and sends the selected bounded depth through the exis
         harness: window.__caissaPlayHarness.snapshot(),
         isolation: window.CaissaEngineRequestIsolation.inspect()
     }));
-    expect(proof.session.activeBotId).toBe('caissa-grove');
-    expect(proof.session.search).toEqual({ depth: 9 });
+    expect(proof.session.activeBotId).toBe('tactical');
+    expect(proof.session.search.personalityPolicyId).toBe('tactical');
+    expect(proof.session.search.candidateCount).toBe(5);
     expect(proof.shell.botsPanel.diagnostics.starts).toBe(1);
     expect(proof.harness.workersCreated).toBe(1);
     expect(proof.harness.workerMessages).toContain('go depth 9');
@@ -60,10 +57,10 @@ test('Play Bot starts once and sends the selected bounded depth through the exis
 
 test('pending selection does not mutate an active bot; Games starts restore Full Power', async ({ page }) => {
     await openBots(page);
-    await page.getByLabel(/Caissa Trail/).check();
+    await page.getByLabel(/Casual, Unrated/).check();
     await page.locator('[data-bot-primary]').click();
-    await page.getByLabel(/Caissa Summit/).check();
-    expect(await page.evaluate(() => window.CaissaBotSession.getSnapshot().activeBotId)).toBe('caissa-trail');
+    await page.getByLabel(/Solid, Unrated/).check();
+    expect(await page.evaluate(() => window.CaissaBotSession.getSnapshot().activeBotId)).toBe('casual');
     await page.getByRole('tab', { name: 'Games' }).click();
     await expect(page.locator('.caissa-games-panel')).toBeVisible();
     await page.locator('[data-games-primary]').click();
@@ -73,15 +70,31 @@ test('pending selection does not mutate an active bot; Games starts restore Full
     expect(await page.evaluate(() => window.__caissaPlayHarness.snapshot().workerMessages.includes('go movetime 2000'))).toBe(true);
 });
 
+test('an invalid candidate set fails honestly, preserves the profile, and cancels the opponent request', async ({ page }) => {
+    await openBots(page);
+    await page.getByLabel(/Tactical, Unrated/).check();
+    await page.locator('[data-bot-primary]').click();
+    await page.evaluate(() => window.__caissaPlayHarness.configure({
+        candidateMoves: ['a1a8', 'a1a8', 'a1a8', 'a1a8', 'a1a8']
+    }));
+    expect(await playMove(page, 'e2', 'e4')).toBe(true);
+    await expect(page.locator('#engineStatusText')).toHaveText('Bot move unavailable');
+    const proof = await page.evaluate(() => ({
+        history: window.App.game.history(), selected: window.CaissaBotSession.getSnapshot().activeBotId,
+        request: window.CaissaEngineRequestIsolation.getActiveRequest('opponent-move')
+    }));
+    expect(proof.history).toEqual(['e4']); expect(proof.selected).toBe('tactical'); expect(proof.request).toBeNull();
+});
+
 test('post-game identity and rematch retain the selected bot', async ({ page }) => {
     await openBots(page);
-    await page.getByLabel(/Caissa Summit/).check();
+    await page.getByLabel(/Solid, Unrated/).check();
     await page.locator('[data-bot-primary]').click();
     await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
     await expect(page.locator('.caissa-post-game')).toBeVisible();
-    await expect(page.locator('[data-post-game-summary]')).toContainText('Caissa Summit');
+    await expect(page.locator('[data-post-game-summary]')).toContainText('Solid');
     await page.locator('[data-post-game-action="rematch"]').click();
-    expect(await page.evaluate(() => window.CaissaBotSession.getSnapshot().activeBotId)).toBe('caissa-summit');
+    expect(await page.evaluate(() => window.CaissaBotSession.getSnapshot().activeBotId)).toBe('solid');
 });
 
 test('catalog stays reachable and bounded across required viewports', async ({ page }) => {
@@ -104,4 +117,14 @@ test('catalog stays reachable and bounded across required viewports', async ({ p
         expect(proof.panelVisible).toBe(true);
         expect(proof.actionHeight).toBeGreaterThanOrEqual(44);
     }
+});
+
+test('Bots cards pass serious accessibility checks in forced colors and ordinary rendering', async ({ page }) => {
+    await openBots(page, { width: 390, height: 844 });
+    const results = await new AxeBuilder({ page }).include('.caissa-bots-panel').analyze();
+    expect(results.violations.filter(item => ['critical', 'serious'].includes(item.impact))).toEqual([]);
+    await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' });
+    await expect(page.getByLabel(/Tactical, Unrated/)).toBeVisible();
+    await page.getByLabel(/Tactical, Unrated/).focus();
+    expect(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle)).not.toBe('none');
 });

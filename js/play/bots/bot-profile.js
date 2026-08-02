@@ -25,7 +25,8 @@
         if (profile.schemaVersion !== SCHEMA_VERSION) errors.push('Unsupported profile schema.');
         if (!ID.test(profile.id || '')) errors.push('Invalid profile ID.');
         if (profile.version !== 1) errors.push('Unsupported profile version.');
-        for (const [key, max] of [['name', 60], ['shortName', 24], ['description', 240], ['enginePresetId', 40]]) {
+        for (const [key, max] of [['name', 60], ['shortName', 24], ['description', 240], ['enginePresetId', 40],
+            ['personalityPolicyId', 40], ['ratingStatus', 80]]) {
             if (!boundedText(profile[key], max)) errors.push(`Invalid ${key}.`);
         }
         if (!DIFFICULTIES.includes(profile.difficultyBand)) errors.push('Invalid difficulty band.');
