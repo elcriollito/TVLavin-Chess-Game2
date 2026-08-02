@@ -19,7 +19,10 @@ const ALLOWED_PATHS = Object.freeze(new Map([
 
 export function resolvePlayV2BetaEntry(pathname, environment = {}) {
     const path = String(pathname || '');
-    const requested = path === '/play/beta' || path.startsWith('/play/beta/');
+    let decodedPath = path;
+    try { decodedPath = decodeURIComponent(path); } catch (_) { /* malformed beta-shaped paths fail closed below */ }
+    const betaShape = decodedPath.replace(/\\/g, '/').replace(/\/{2,}/g, '/').toLowerCase();
+    const requested = betaShape === '/play/beta' || betaShape.startsWith('/play/beta/');
     if (!requested) return Object.freeze({ requested: false, authorized: false, document: null, mode: null });
 
     const mode = ALLOWED_PATHS.get(path) || null;

@@ -275,3 +275,7 @@ Optional review-only Mentor is locally QA-certified behind the existing Play v2 
 ## Season 11.6.3 update
 
 Clean PostGame exits are locally certified by `PlayV2PostGameExitPolicy@1.0.0`. This adds no routes, recommendations, public navigation, or fallback and does not change the existing public-readiness gates.
+
+## Season 11.7.1 update
+
+[`PlayV2NativePlayersPolicy@1.0.0`](./PLAY_V2_NATIVE_PLAYERS_POLICY.md) freezes the only future provider as CAISSA-native and records all 16 native capability owners as missing with uncertified security, privacy, reliability, and testing gates. Static and runtime guards keep Players routes, tabs, DOM, resources, state bypasses, fictional data, and all FICS roles blocked. This is policy evidence only: Players remains not public-ready, no multiplayer infrastructure exists, and Season 11.7.2 presentation work has not begun.

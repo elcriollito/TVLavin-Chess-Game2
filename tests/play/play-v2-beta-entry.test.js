@@ -33,7 +33,7 @@ test('gate admits only exact internal Games and Bots paths and rolls back fail c
             requested: true, authorized: true, document: 'play-v2.html', mode, reasonCode: 'INTERNAL_ENTRY_ALLOWED'
         });
     }
-    for (const path of ['/play/beta/mentor', '/play/beta/players', '/play/beta/nope', '/play/beta/', '/play/beta//bots', '/play/beta/%62ots']) {
+    for (const path of ['/play/beta/mentor', '/play/beta/players', '/play/beta/PLAYERS', '/play//beta//players', '/play/beta/nope', '/play/beta/', '/play/beta//bots', '/play/beta/%62ots']) {
         const result = resolvePlayV2BetaEntry(path, enabled);
         assert.equal(result.authorized, false);
         assert.equal(result.document, 'play-v2-unavailable.html');
@@ -80,5 +80,5 @@ test('dedicated entry contains the beta contract and no prohibited resource grap
     const resources = html.match(/<(?:script|link)\b[^>]*>/gi) || [];
     assert.equal(resources.filter(item => /fics/i.test(item) && !/play-v2-fics-isolation/i.test(item)).length, 0);
     assert.equal(resources.filter(item => /academy|mentor|guided[-_/]?replay|knowledge|training[-_/]?memory|mastery|endgame[-_/]?(?:trainer|library)|players|onboarding|js\/play\/coach\//i.test(item)
-        && !/play-v2-mentor-review-boundary/i.test(item)).length, 0);
+        && !/play-v2-(?:mentor-review-boundary|native-players-policy)/i.test(item)).length, 0);
 });

@@ -329,3 +329,7 @@ Both earlier contracts remain authoritative and now recognize only the bounded G
 The exact local internal stage value is also the rollback switch: removing or changing it fails closed before runtime load while preserving `/play`, Classic, and Legacy FICS. The temporary `simplified=1` QA entry remains solely for regression compatibility and is not authorization. See [`PLAY_V2_BETA_ENTRY.md`](./PLAY_V2_BETA_ENTRY.md) for route, deep-link, rollback, accessibility, security, test, and remaining-gate evidence.
 
 **Season 11.2.1 is accepted locally only.** No public beta, deployment, public enrollment, navigation/SEO exposure, production verification, Worker/Bots certification, physical-device certification, or screen-reader certification is claimed.
+
+## Season 11.7.1 native Players boundary
+
+[`PlayV2NativePlayersPolicy@1.0.0`](./PLAY_V2_NATIVE_PLAYERS_POLICY.md) makes CAISSA-native the only permitted future Players provider. Players remains route-blocked, tab-omitted, resource-omitted, and not public-ready; all 16 native capability owners are missing and every FICS role and fictional substitute is prohibited. Classic and Legacy FICS ownership is unchanged.

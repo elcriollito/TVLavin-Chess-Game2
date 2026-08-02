@@ -40,6 +40,7 @@ html = html
   .replace(
     '    <script src="js/play/play-route-controller.js?v=1.1.0"></script>',
     '    <script src="js/play/play-v2-fics-isolation.js?v=1.0.0"></script>\n' +
+    '    <script src="js/play/play-v2-native-players-policy.js?v=1.0.0"></script>\n' +
     '    <script src="js/play/play-v2-coach-boundary.js?v=1.0.0"></script>\n' +
     '    <script src="js/play/play-v2-mentor-review-boundary.js?v=1.0.0"></script>\n' +
     '    <script src="js/play/play-v2-post-game-exit-policy.js?v=1.0.0"></script>\n' +
@@ -55,6 +56,7 @@ html = html
 
 if (!html.includes('data-caissa-play-v2-entry="qa-only"')) throw new Error('PLAY_V2_BODY_MARKER_MISSING');
 if (!html.includes('js/play/play-v2-fics-isolation.js?v=1.0.0')) throw new Error('PLAY_V2_CONTRACT_MISSING');
+if (!html.includes('js/play/play-v2-native-players-policy.js?v=1.0.0')) throw new Error('PLAY_V2_NATIVE_PLAYERS_POLICY_MISSING');
 if (!html.includes('js/play/play-v2-product-boundary.js?v=1.0.0')) throw new Error('PLAY_V2_PRODUCT_BOUNDARY_MISSING');
 if (!html.includes('js/play/play-v2-coach-boundary.js?v=1.0.0')) throw new Error('PLAY_V2_COACH_BOUNDARY_MISSING');
 if (!html.includes('js/play/play-v2-mentor-review-boundary.js?v=1.0.0')) throw new Error('PLAY_V2_MENTOR_REVIEW_BOUNDARY_MISSING');
@@ -67,6 +69,7 @@ if (/script-src[^;]*'unsafe-eval'/.test(html)) throw new Error('PLAY_V2_UNSAFE_E
 const resourceElements = html.match(/<(?:script|link)\b[^>]*>/gi) || [];
 const prohibitedResources = resourceElements.filter(element =>
   /js\/play\/players\//i.test(element)
+  || /players-(?:panel|stack)/i.test(element)
   || (/fics/i.test(element) && !/play-v2-fics-isolation\.js/i.test(element))
   || (/(?:academy|coach|mentor|guided[-_/]?replay|educational|knowledge|training[-_/]?memory|mastery|endgame[-_/]?(?:trainer|library))/i.test(element)
     && !/play-v2-(?:product|coach|mentor-review)-boundary\.js/i.test(element))
@@ -74,6 +77,8 @@ const prohibitedResources = resourceElements.filter(element =>
 if (prohibitedResources.length) throw new Error(`PROHIBITED_PLAY_V2_RESOURCE: ${prohibitedResources.join(', ')}`);
 if (/id="(?:academySection|mentorPanel|analyzeMentor)"|data-section="(?:academy|mentor)"|href="\/endgame-(?:trainer|practice|library)"/i.test(html))
   throw new Error('PROHIBITED_PLAY_V2_EDUCATIONAL_DOM');
+if (/(?:id=["']playersPanel["']|data-play-mode=["']players["']|data-players-panel)/i.test(html))
+  throw new Error('PROHIBITED_PLAY_V2_PLAYERS_DOM');
 if (/caissa-onboarding/i.test(resourceElements.join('\n'))) throw new Error('PROHIBITED_PLAY_V2_ONBOARDING_RESOURCE');
 
 await writeFile(outputPath, html);
