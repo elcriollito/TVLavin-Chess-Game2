@@ -1,7 +1,9 @@
 # Play v2 Clean PostGame Exit Certification
 
-Season: **11.6.3**  
-Contract: `PlayV2PostGameExitPolicy@1.0.0`  
+Season: **11.6.3**
+
+Contract: `PlayV2PostGameExitPolicy@1.0.0`
+
 Status: **locally certified; public-ready false**
 
 ## Exit inventory
