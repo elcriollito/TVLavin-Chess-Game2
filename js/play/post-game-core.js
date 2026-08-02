@@ -2,7 +2,7 @@
     'use strict';
 
     const VERSION = '1.0.0';
-    const ACTIONS = Object.freeze(['rematch', 'analyze', 'copy-pgn', 'download-pgn', 'save-game', 'new-game']);
+    const ACTIONS = Object.freeze(['rematch', 'analyze', 'mentor-review', 'copy-pgn', 'download-pgn', 'save-game', 'new-game']);
     let sequence = 0; let retainedRecord = null; let retainedKey = null;
     const freeze = value => {
         if (value && typeof value === 'object' && !Object.isFrozen(value)) {
@@ -23,7 +23,7 @@
 
     class PostGameCore {
         #id = `play-v2-post-game-${++sequence}`; #root = null; #record = null; #visible = false;
-        #disposed = false; #listeners = []; #feedback = ''; #consent = 'unknown'; #saved = false; #configuration = null;
+        #disposed = false; #listeners = []; #feedback = ''; #consent = 'unknown'; #saved = false; #configuration = null; #reviewLaunching = false;
         #compatibility; #records; #persistence; #handoff; #navigation; #onVisibilityChange; #onNewGame;
         #clipboard; #url; #Blob;
         #diagnostics = { hydrations: 0, displays: 0, actions: 0, rematches: 0, newGames: 0,
@@ -53,7 +53,7 @@
             const reason = element('p', 'caissa-post-game__reason', { 'data-post-game-reason': '' });
             const summary = element('dl', 'caissa-post-game__summary', { 'data-post-game-summary': '' });
             const actions = element('div', 'caissa-post-game__actions', { 'aria-label': 'Post-game actions' });
-            [['rematch','Rematch','primary'],['new-game','New Game','next'],['analyze','Analyze This Game','analyze'],['copy-pgn','Copy PGN','pgn'],
+            [['rematch','Rematch','primary'],['new-game','New Game','next'],['analyze','Analyze This Game','analyze'],['mentor-review','Review with Mentor','mentor'],['copy-pgn','Copy PGN','pgn'],
                 ['download-pgn','Download PGN','pgn'],['save-game','Save PGN Locally','pgn']]
                 .forEach(([action, label, hierarchy]) => {
                     const button = element('button', `caissa-post-game__action caissa-post-game__action--${hierarchy}`,
@@ -117,6 +117,7 @@
                 let operation = null;
                 if (action === 'rematch' || action === 'new-game') operation = this.#start(action);
                 else if (action === 'analyze') operation = this.#analyze();
+                else if (action === 'mentor-review') operation = this.#mentorReview();
                 else if (action === 'copy-pgn') operation = this.#copy();
                 else if (action === 'download-pgn') operation = this.#download();
                 else if (action === 'save-game') operation = this.#save();
@@ -167,6 +168,20 @@
             if (opened === false || opened?.ok === false) return outcome(false, 'failed', 'ACTION_FAILED');
             this.#diagnostics.handoffs += 1; return outcome(true, 'accepted', 'ANALYZE_OPENED');
         }
+        #mentorReview() {
+            if (this.#reviewLaunching) return outcome(false, 'rejected', 'DUPLICATE_ACTIVATION');
+            if (!root.CaissaNativeMentorReviewWorkspace?.open && root.CaissaPlayLazyLoader?.load) {
+                this.#reviewLaunching = true; return root.CaissaPlayLazyLoader.load('native-mentor-review', { qa: true, retry: true })
+                    .then(() => { this.#reviewLaunching = false; return this.#mentorReview(); })
+                    .catch(() => { this.#reviewLaunching = false; return outcome(false, 'failed', 'ACTION_FAILED'); });
+            }
+            if (!root.CaissaNativeMentorReviewHandoff?.create || !root.CaissaNativeMentorReviewWorkspace?.open)
+                return outcome(false, 'unavailable', 'ACTION_UNAVAILABLE');
+            const handoff = root.CaissaNativeMentorReviewHandoff.create(this.#record); if (!handoff.ok) return outcome(false, 'failed', handoff.reasonCode);
+            const opened = root.CaissaNativeMentorReviewWorkspace.open({ token: handoff.value.token });
+            if (!opened.ok) { root.CaissaNativeMentorReviewHandoff.consume(handoff.value.token); return outcome(false, 'failed', opened.reasonCode); }
+            this.#diagnostics.handoffs += 1; return outcome(true, 'accepted', 'MENTOR_REVIEW_OPENED');
+        }
         #copy() {
             const operation = this.#clipboard?.writeText?.(this.#record.notation.pgn);
             if (operation?.then) return operation.then(() => { this.#diagnostics.copies += 1; this.#feedback = 'PGN copied.'; this.#render(); return outcome(true, 'accepted', 'PGN_COPIED'); });
@@ -191,7 +206,7 @@
         }
         #actions() {
             const ready = !!this.#record && this.#visible; const pgn = ready && !!this.#record?.notation?.pgn;
-            return freeze({ rematch: { enabled: ready, primary: true }, analyze: { enabled: ready },
+            return freeze({ rematch: { enabled: ready, primary: true }, analyze: { enabled: ready }, 'mentor-review': { enabled: ready, secondary: true },
                 'copy-pgn': { enabled: pgn }, 'download-pgn': { enabled: pgn },
                 'save-game': { enabled: pgn && this.#consent === 'granted' && !this.#saved }, 'new-game': { enabled: ready } });
         }

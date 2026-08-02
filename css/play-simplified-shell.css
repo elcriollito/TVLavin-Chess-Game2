@@ -522,6 +522,11 @@ body.caissa-simplified-play-active .caissa-post-game__action--analyze {
     font-weight: 800;
 }
 
+body.caissa-simplified-play-active .caissa-post-game__action--mentor {
+    grid-column: 1 / -1;
+    font-weight: 700;
+}
+
 body.caissa-simplified-play-active .caissa-post-game__action--pgn {
     color: var(--muted);
 }

@@ -55,7 +55,7 @@ test('contracts are versioned, immutable, bounded, hostile-safe and cycle transi
 test('production registry is fixed, ordered, QA-bounded, and contains no fixture', async () => {
     const { context } = await loadContext(); const definitions=context.CaissaPlayLoadRegistry.definitions();
     assert.equal(JSON.stringify(definitions.map(x=>x.resourceId)), JSON.stringify([
-        'bots-stack','coach-stack','native-coach-stack','mentor-foundation','mentor-analysis',
+        'bots-stack','coach-stack','native-coach-stack','native-mentor-review','mentor-foundation','mentor-analysis',
         'mentor-critical-moments','mentor-guided-replay','mentor-knowledge','mentor-summary','analyze-deep'
     ]));
     assert.equal(definitions.filter(x=>x.resourceId!=='analyze-deep')

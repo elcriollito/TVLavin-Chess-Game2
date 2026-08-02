@@ -22,7 +22,7 @@
         playersRuntime: 'blocked'
     });
     const ALLOWED_DYNAMIC_GROUPS = Object.freeze([
-        'bots-stack', 'coach-stack', 'native-coach-stack', 'mentor-foundation', 'mentor-analysis',
+        'bots-stack', 'coach-stack', 'native-coach-stack', 'native-mentor-review', 'mentor-foundation', 'mentor-analysis',
         'mentor-critical-moments', 'mentor-guided-replay', 'mentor-knowledge',
         'mentor-summary', 'analyze-deep'
     ]);

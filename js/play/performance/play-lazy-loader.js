@@ -4,6 +4,7 @@ const readiness=Object.freeze({
 'bots-stack':()=>!!root.CaissaBotsPanel?.create,
 'coach-stack':()=>!!root.CaissaCoachPanel?.create,
 'native-coach-stack':()=>!!root.CaissaNativeCoachPanel?.create&&!!root.CaissaNativeCoachAssistance?.create,
+'native-mentor-review':()=>!!root.CaissaNativeMentorReviewWorkspace?.open&&!!root.CaissaNativeMentorReviewHandoff?.create,
 'mentor-foundation':()=>!!root.CaissaMentorFoundation?.createRequest,
 'mentor-analysis':()=>!!root.CaissaEducationalAnalysisPipeline?.prepare,
 'mentor-critical-moments':()=>!!root.CaissaCriticalMoments?.select,

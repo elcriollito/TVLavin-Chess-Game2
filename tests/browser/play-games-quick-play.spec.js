@@ -35,7 +35,7 @@ test('resignation finalizes one valid Games record and clean PostGame', async ({
     await expect(page.locator('[data-post-game-reason]')).toHaveText('By Resignation');
     await expect(page.locator('[data-post-game-result]')).toBeFocused();
     await expect(page.locator('#chessboard .board-b72b1')).toBeVisible();
-    await expect(page.locator('[data-post-game-action]')).toHaveText(['Rematch','New Game','Analyze This Game','Copy PGN','Download PGN','Save PGN Locally']);
+    await expect(page.locator('[data-post-game-action]')).toHaveText(['Rematch','New Game','Analyze This Game','Review with Mentor','Copy PGN','Download PGN','Save PGN Locally']);
 });
 
 test('result-first actions preserve the record, fail recoverably, and Analyze uses an opaque handoff', async ({ page }) => {

@@ -43,6 +43,16 @@
                 'js/play/native-coach/coach-panel.js?v=1.0.0'
             ])
         }),
+        'native-mentor-review': Object.freeze({
+            resourceId: 'native-mentor-review', type: 'module-group', trigger: 'action', priority: 'normal',
+            qaOnly: true, productionEligible: false, dependencies: Object.freeze([]),
+            styles: Object.freeze(['css/play-native-mentor-review.css?v=1.0.0']),
+            sources: Object.freeze([
+                'js/play/native-mentor-review/mentor-review-handoff.js?v=1.0.0',
+                'js/play/native-mentor-review/mentor-review-analysis.js?v=1.0.0',
+                'js/play/native-mentor-review/mentor-review-workspace.js?v=1.0.0'
+            ])
+        }),
         'mentor-foundation': Object.freeze({
             resourceId: 'mentor-foundation', type: 'module-group', trigger: 'action', priority: 'normal',
             qaOnly: true, productionEligible: false, dependencies: Object.freeze([]),

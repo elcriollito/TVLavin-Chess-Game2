@@ -12,14 +12,14 @@
         guidedReplay: 'prohibited', masterySurface: 'prohibited', masteryWrites: 'prohibited',
         trainingMemorySurface: 'prohibited', trainingMemoryWrites: 'prohibited',
         trainingRecommendations: 'prohibited', educationalPromotions: 'prohibited',
-        coachRuntime: 'allowed-internal-assistance-pending', mentorRuntime: 'blocked',
+        coachRuntime: 'allowed-internal-assistance-pending', mentorRuntime: 'allowed-internal-review-only',
         analyzeHandoff: 'external-post-game', mentorFutureBoundary: 'optional-review-only',
         playersRuntime: 'blocked'
     });
     const TYPES = Object.freeze(['dynamic-group', 'script', 'style', 'route', 'transition', 'action', 'dom', 'network']);
-    const GROUPS = Object.freeze(['bots-stack', 'native-coach-stack', 'analyze-deep']);
+    const GROUPS = Object.freeze(['bots-stack', 'native-coach-stack', 'native-mentor-review', 'analyze-deep']);
     const ROUTES = Object.freeze(['/play', '/play/games', '/play/bots', '/play/coach', '/play/beta', '/play/beta/games', '/play/beta/bots', '/play/beta/coach']);
-    const ACTIONS = Object.freeze(['rematch', 'new-game', 'copy-pgn', 'download-pgn', 'save-game', 'analyze']);
+    const ACTIONS = Object.freeze(['rematch', 'new-game', 'copy-pgn', 'download-pgn', 'save-game', 'analyze', 'mentor-review']);
     const FORBIDDEN_RESOURCE = /(?:academy|coach|mentor|guided[-_/]?replay|educational|knowledge|training[-_/]?memory|mastery|endgame[-_/]?(?:trainer|library))/i;
     const FORBIDDEN_SURFACE = /(?:academy|class(?:es)?|lesson|course|curriculum|guided replay|knowledge unit|training memory|mastery|training recommendation|educational promotion|exercise|puzzle|review with mentor)/i;
     const counters = { checks: 0, allowed: 0, denied: 0 };
@@ -44,12 +44,12 @@
             const path = value.split('?')[0].replace(/\/+$/, '') || '/';
             return decision(ROUTES.includes(path), type, ROUTES.includes(path) ? 'PLAY_ROUTE_ALLOWED' : 'ROUTE_PROHIBITED');
         }
-        if (FORBIDDEN_RESOURCE.test(value) && !/play-v2-coach-boundary|native-coach/i.test(value))
+        if (type === 'action') return decision(ACTIONS.includes(value), type,
+            ACTIONS.includes(value) ? 'POSTGAME_ACTION_ALLOWED' : 'POSTGAME_ACTION_PROHIBITED');
+        if (FORBIDDEN_RESOURCE.test(value) && !/play-v2-(?:coach|mentor-review)-boundary|native-(?:coach|mentor-review)/i.test(value))
             return decision(false, type, 'EDUCATIONAL_OWNERSHIP_PROHIBITED');
         if (type === 'transition') return decision(value === 'analyze', type,
             value === 'analyze' ? 'EXTERNAL_ANALYZE_ALLOWED' : 'TRANSITION_PROHIBITED');
-        if (type === 'action') return decision(ACTIONS.includes(value), type,
-            ACTIONS.includes(value) ? 'POSTGAME_ACTION_ALLOWED' : 'POSTGAME_ACTION_PROHIBITED');
         if (type === 'dom') return decision(!FORBIDDEN_SURFACE.test(value), type,
             FORBIDDEN_SURFACE.test(value) ? 'EDUCATIONAL_SURFACE_PROHIBITED' : 'PLAY_SURFACE_ALLOWED');
         if (type === 'network') {

@@ -1,5 +1,7 @@
 # CAISSA Native Play Experience — Product Boundary
 
+> Season 11.6.2 addendum: internal Mentor use is permitted only through `PlayV2MentorReviewBoundary@1.0.0` and dependency-free `native-mentor-review` after explicit PostGame activation. Educational Mentor, Academy, Knowledge, Guided Replay, Training Memory/Mastery, recommendations, and active-game access remain prohibited.
+
 Status: **Season 11.0.2 product-contamination authority**
 
 Applies to: **Play v2 / CAISSA Native Play Experience**

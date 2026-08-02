@@ -1,5 +1,7 @@
 # Play v2 Result-First PostGame Certification
 
+> Season 11.6.2 addendum: PostGame retains result/reason first and Rematch as primary. `Review with Mentor` is optional and secondary, requires a finalized record, and opens the isolated QA-only workspace documented in `PLAY_V2_MENTOR_REVIEW_CERTIFICATION.md`. Analyze remains independent.
+
 Season: **11.6.1**  
 Contract: `PlayV2PostGamePolicy@1.0.0`  
 Status: **accepted locally under the internal Play v2 gate**

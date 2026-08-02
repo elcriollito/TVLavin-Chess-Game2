@@ -22,7 +22,7 @@ test('PlayV2ProductBoundary@1.0.0 declares the immutable playing-only policy', a
         endgameLibrary: 'prohibited', knowledgeUnits: 'prohibited', guidedReplay: 'prohibited',
         masterySurface: 'prohibited', masteryWrites: 'prohibited', trainingMemorySurface: 'prohibited',
         trainingMemoryWrites: 'prohibited', trainingRecommendations: 'prohibited',
-        educationalPromotions: 'prohibited', coachRuntime: 'allowed-internal-assistance-pending', mentorRuntime: 'blocked',
+        educationalPromotions: 'prohibited', coachRuntime: 'allowed-internal-assistance-pending', mentorRuntime: 'allowed-internal-review-only',
         analyzeHandoff: 'external-post-game', mentorFutureBoundary: 'optional-review-only', playersRuntime: 'blocked'
     });
     assert(Object.isFrozen(api)); assert(Object.isFrozen(api.policy));
@@ -34,14 +34,14 @@ test('resource, route, action, DOM, and network guards fail closed on educationa
         { type: 'dynamic-group', value: 'coach-stack' }, { type: 'dynamic-group', value: 'mentor-analysis' },
         { type: 'script', value: 'js/mentor/mentor-foundation.js?v=1.1.0' },
         { type: 'style', value: 'css/mentor-guided-replay.css?v=1.0.0' },
-        { type: 'route', value: '/play/mentor?simplified=1' }, { type: 'action', value: 'mentor-review' },
+        { type: 'route', value: '/play/mentor?simplified=1' },
         { type: 'dom', value: 'Recommended lesson card' },
         { type: 'network', value: 'https://academy.example/resource', baseOrigin: 'https://caissa.test' }
     ]) assert.equal(api.authorize(input).allowed, false, JSON.stringify(input));
     for (const input of [
-        { type: 'dynamic-group', value: 'bots-stack' }, { type: 'dynamic-group', value: 'native-coach-stack' }, { type: 'dynamic-group', value: 'analyze-deep' },
+        { type: 'dynamic-group', value: 'bots-stack' }, { type: 'dynamic-group', value: 'native-coach-stack' }, { type: 'dynamic-group', value: 'native-mentor-review' }, { type: 'dynamic-group', value: 'analyze-deep' },
         { type: 'script', value: 'js/play/post-game-core.js?v=1.0.0' },
-        { type: 'route', value: '/play/games?simplified=1' }, { type: 'route', value: '/play/coach?simplified=1' }, { type: 'action', value: 'analyze' },
+        { type: 'route', value: '/play/games?simplified=1' }, { type: 'route', value: '/play/coach?simplified=1' }, { type: 'action', value: 'analyze' }, { type: 'action', value: 'mentor-review' },
         { type: 'dom', value: 'Result Rematch New Game Save PGN Analyze' },
         { type: 'network', value: 'https://caissa.test/js/play/bots-panel.js', baseOrigin: 'https://caissa.test' }
     ]) assert.equal(api.authorize(input).allowed, true, JSON.stringify(input));
@@ -52,10 +52,11 @@ test('generated Play v2 entry excludes educational resources and DOM while stand
         read('play-v2.html'), read('index.html'), read('js/play/post-game-core.js'), read('js/play/performance/play-load-registry.js')
     ]);
     assert.match(play, /play-v2-product-boundary\.js/); assert.match(play, /post-game-core\.js/);
-    assert.doesNotMatch(play, /<(?:script|link)[^>]+(?:academy|mentor|guided[-_/]?replay|educational|knowledge|training[-_/]?memory|mastery|endgame[-_/]?(?:trainer|library)|js\/play\/coach\/)/i);
+    const resources=(play.match(/<(?:script|link)\b[^>]*>/gi)||[]).filter(value=>/(?:academy|mentor|guided[-_/]?replay|educational|knowledge|training[-_/]?memory|mastery|endgame[-_/]?(?:trainer|library)|js\/play\/coach\/)/i.test(value));
+    assert.deepEqual(resources.filter(value=>!/play-v2-mentor-review-boundary\.js/i.test(value)),[]);
     assert.match(play, /play-v2-coach-boundary\.js/);
     assert.doesNotMatch(play, /id="academySection"|data-section="academy"/i);
-    assert.doesNotMatch(core, /Academy|classes|lesson|curriculum|Guided Replay|Knowledge Unit|Review with Mentor|mentor-review/i);
+    assert.doesNotMatch(core, /Academy|classes|lesson|curriculum|Guided Replay|Knowledge Unit/i);
     assert.match(core, /trainingMemoryWrites:\s*0/); assert.match(core, /masteryWrites:\s*0/);
     assert.match(legacy, /id="academySection"/); assert.match(legacy, /post-game-experience\.js/);
     assert.match(registry, /'coach-stack'/); assert.match(registry, /'mentor-guided-replay'/);

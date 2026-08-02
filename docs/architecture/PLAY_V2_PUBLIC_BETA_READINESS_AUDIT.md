@@ -269,3 +269,6 @@ The client preserves authorized Games/Bots/isolated-Coach deep links, refresh, b
 Rollback is deterministic: remove or change the exact internal stage value. This prevents Play v2 runtime loading without deleting the implementation or rewriting history. Gate details, route mapping, security/accessibility behavior, test scope, and retirement conditions are recorded in [`PLAY_V2_BETA_ENTRY.md`](./PLAY_V2_BETA_ENTRY.md).
 
 **Season 11.2.1 status: accepted locally for controlled internal entry only. Play v2 is still NOT a public beta.** Public authorization/entitlement, deployment, feedback, Worker/Bots production certification, physical-device and named-screen-reader validation remain open. No production verification is claimed.
+## Season 11.6.2 update
+
+Optional review-only Mentor is locally QA-certified behind the existing Play v2 gate. It remains `publicReady: false`; human copy review, WebKit automation, physical-device, and named-screen-reader validation remain gates. No production route or navigation changed.
