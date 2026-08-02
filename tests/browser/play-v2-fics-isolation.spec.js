@@ -49,16 +49,18 @@ test('QA and legacy documents retain separate resource ownership', async ({ page
     expect(await page.evaluate(() => [...document.scripts].some(node => /js\/fics-client\.js/i.test(node.src)))).toBe(true);
 });
 
-test('Games and Bots retain one board and worker under the isolation boundary', async ({ page }) => {
+test('Games retains one board and Bots creates its Worker only after Play', async ({ page }) => {
     await instrumentPlay(page, { autoReply: false });
-    await page.goto('/play/games?simplified=1');
+    await page.goto('/play/beta/games');
     await expect(page.locator('.caissa-games-panel')).toBeVisible();
-    await page.locator('[data-shell-mode="bots"]').click();
+    await page.goto('/play/beta/bots');
     await expect(page.locator('.caissa-bots-panel')).toBeVisible();
     expect(await page.evaluate(() => ({
         boards: document.querySelectorAll('#playSection #chessboard .board-b72b1').length,
         workers: window.__caissaPlayHarness.snapshot().workersCreated,
         botsAllowed: window.CaissaPlayV2FicsIsolation.authorize({ type: 'dynamic-group', value: 'bots-stack' }).allowed,
         playersAllowed: window.CaissaPlayV2FicsIsolation.isModeAllowed('players')
-    }))).toEqual({ boards: 1, workers: 1, botsAllowed: true, playersAllowed: false });
+    }))).toEqual({ boards: 1, workers: 0, botsAllowed: true, playersAllowed: false });
+    await page.locator('[data-bot-primary]').click();
+    await expect.poll(() => page.evaluate(() => window.__caissaPlayHarness.snapshot().workersCreated)).toBe(1);
 });

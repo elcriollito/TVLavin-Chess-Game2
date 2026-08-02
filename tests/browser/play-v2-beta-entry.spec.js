@@ -7,7 +7,8 @@ test('authorized internal beta supports canonical Games, Bots, history, refresh,
     await expect(page.locator('#chessboard .board-b72b1')).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Games' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Bots' })).toBeVisible();
-    for (const blocked of ['Coach', 'Mentor', 'Players']) await expect(page.getByRole('tab', { name: blocked })).toHaveCount(0);
+    await expect(page.getByRole('tab', { name: 'Coach · Internal' })).toBeVisible();
+    for (const blocked of ['Mentor', 'Players']) await expect(page.getByRole('tab', { name: blocked })).toHaveCount(0);
 
     await page.getByRole('tab', { name: 'Bots' }).click();
     await expect(page).toHaveURL(/\/play\/beta\/bots$/);
@@ -28,13 +29,13 @@ test('query, fragment, and storage cannot admit prohibited modes or external res
     await page.goto('/play/beta/games?token=internal&mode=players&provider=fics#mentor');
     await expect(page.locator('#chessboard .board-b72b1')).toBeVisible();
     const urls = await page.evaluate(() => performance.getEntriesByType('resource').map(entry => entry.name));
-    expect(urls.filter(url => /fics|academy|coach|mentor|guided[-_/]?replay|knowledge|training[-_/]?memory|mastery|players/i.test(url)
+    expect(urls.filter(url => /fics-client|fics-style|academy|coach-stack|mentor-(?!review-boundary)|guided[-_/]?replay|knowledge|training[-_/]?memory|mastery|players-stack/i.test(url)
         && !/play-v2-fics-isolation\.js/i.test(url))).toEqual([]);
-    await expect(page.getByRole('tab', { name: /Coach|Mentor|Players/ })).toHaveCount(0);
+    await expect(page.getByRole('tab', { name: /Mentor|Players/ })).toHaveCount(0);
 });
 
 test('prohibited and malformed beta descendants fail closed without Play runtime', async ({ page }) => {
-    for (const path of ['/play/beta/coach', '/play/beta/mentor', '/play/beta/players', '/play/beta/unknown', '/play/beta//bots', '/play/beta/%62ots']) {
+    for (const path of ['/play/beta/mentor', '/play/beta/players', '/play/beta/unknown', '/play/beta//bots', '/play/beta/%62ots']) {
         await page.goto(path);
         await expect(page).toHaveTitle(/Play Beta Unavailable/);
         await expect(page.getByRole('heading', { name: 'Play beta is unavailable' })).toBeVisible();
@@ -95,7 +96,7 @@ test('minimal beta entry is board-first with one clear setup hierarchy at every 
 test('Games setup exposes only supported time, accessible color, and one Play action', async ({ page }) => {
     await page.goto('/play/beta');
     const shell = page.locator('[data-entry-experience="beta"]');
-    await expect(shell.getByRole('tab')).toHaveText(['Games', 'Bots · Internal']);
+    await expect(shell.getByRole('tab')).toHaveText(['Games', 'Bots · Internal', 'Coach · Internal']);
     await expect(shell.getByRole('radio', { name: /^1\+0/ })).toBeChecked();
     await expect(shell.getByRole('radio', { name: 'White', exact: true })).toBeChecked();
     await expect(shell.getByRole('radio', { name: 'Random', exact: true })).not.toBeChecked();
@@ -111,7 +112,7 @@ test('Games setup exposes only supported time, accessible color, and one Play ac
     await shell.getByRole('tab', { name: 'Bots · Internal' }).click();
     await expect(page).toHaveURL(/\/play\/beta\/bots$/);
     await expect(shell.getByText('Internal preview. Bot play is not yet certified.', { exact: true })).toBeVisible();
-    for (const blocked of ['Coach', 'Mentor', 'Players']) await expect(shell.getByRole('tab', { name: blocked })).toHaveCount(0);
+    for (const blocked of ['Mentor', 'Players']) await expect(shell.getByRole('tab', { name: blocked })).toHaveCount(0);
 });
 
 test('setup starts once, rejects immediate duplicate activation, and focuses the authoritative board', async ({ page }) => {
@@ -124,11 +125,12 @@ test('setup starts once, rejects immediate duplicate activation, and focuses the
         const games = window.CaissaGamesPanel;
         const action = document.querySelector('[data-games-primary]');
         action.click(); action.click();
-        return { first, snapshot: panel.getSnapshot(), apiVersion: games.schemaVersion, duplicateBlocked: action.disabled };
+        return { first, apiVersion: games.schemaVersion, duplicateBlocked: action.disabled };
     });
     expect(result.apiVersion).toBe('1.4.0');
-    expect(result.snapshot.gamesPanel.diagnostics.successfulStarts).toBe(1);
     expect(result.duplicateBlocked).toBe(true);
+    await expect.poll(() => page.evaluate(() =>
+        window.CaissaSimplifiedPlayShellInstance.getSnapshot().gamesPanel.diagnostics.successfulStarts)).toBe(1);
     await expect(page.locator('#chessboard')).toBeFocused();
     expect(await page.evaluate(() => ({
         boards: document.querySelectorAll('#chessboard .board-b72b1').length,
@@ -136,6 +138,21 @@ test('setup starts once, rejects immediate duplicate activation, and focuses the
         time: window.App.timeControl,
         active: document.body.classList.contains('caissa-play-game-active')
     }))).toEqual({ boards: 1, color: 'black', time: 180, active: true });
+});
+
+test('keyboard Play activation creates one accepted start and one lifecycle', async ({ page }) => {
+    await page.goto('/play/beta');
+    const before = await page.evaluate(() => window.CaissaGameLifecycle.inspect().counters.sessions);
+    const action = page.getByRole('button', { name: 'Play', exact: true });
+    await action.focus();
+    await page.keyboard.press('Enter');
+    await expect.poll(() => page.evaluate(() =>
+        window.CaissaSimplifiedPlayShellInstance.getSnapshot().gamesPanel.diagnostics.successfulStarts)).toBe(1);
+    expect(await page.evaluate(() => ({
+        starts: window.CaissaSimplifiedPlayShellInstance.getSnapshot().gamesPanel.diagnostics.successfulStarts,
+        lifecycleSessions: window.CaissaGameLifecycle.inspect().counters.sessions,
+        boards: document.querySelectorAll('#chessboard .board-b72b1').length
+    }))).toEqual({ starts: 1, lifecycleSessions: before + 1, boards: 1 });
 });
 
 test('failed initialization is honest, preserves setup, and supports one retry path', async ({ page }) => {

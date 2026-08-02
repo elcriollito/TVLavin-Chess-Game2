@@ -295,3 +295,9 @@ Mentor Review now has automation-backed zero-overflow reflow at 320, 360, 390, 7
 The local server now binds to loopback by default. The documented device architecture keeps CAISSA on loopback behind a user-provisioned private-LAN HTTPS reverse proxy with a trusted local certificate, private name resolution, and narrowly approved firewall access. No server, proxy, public tunnel, firewall rule, certificate, DNS mapping, analytics transport, deployment, or production gate was started or changed by this preparation.
 
 **Season 11.8.0 prepares QA; it does not certify a physical device.** Physical-device execution, named assistive-technology validation, evidence review, and public-beta authorization remain open gates. Play v2 remains internal-only and not publicly ready.
+
+## Season 11.8.0A automation reconciliation update
+
+[`PlayV2AutomationOwnerCatalog@1.0.0`](./PLAY_V2_AUTOMATION_OWNER_CATALOG.md) separates current Season 11 acceptance from preserved historical characterization. All 17 pre-physical-QA findings have evidence-based classifications. The beta entry now reflects isolated Coach and passive policy resources; Worker assertions reflect zero before Bots Play and one after; and current mobile ownership uses the gated beta document rather than the pre-Season-11 compatibility query.
+
+The start-counter finding was a test timing race, not duplicate runtime ownership: the snapshot preceded completion of the first asynchronous start while the second activation was already rejected. Runtime behavior was unchanged. Status remains **NOT PHYSICALLY TESTED**; physical-device, named assistive-technology, evidence-review, and public-release gates remain open.
