@@ -2,6 +2,8 @@
 
 > Season 11.4.1A update: `PlayV2BotPersonalityPolicy@1.0.0` adds four locally calibrated, deterministic personalities and a simplified internal selection surface. Evidence and limitations are recorded in [`PLAY_V2_BOT_PERSONALITIES.md`](./PLAY_V2_BOT_PERSONALITIES.md). Bots and the production Worker remain uncertified and not public-ready. Games certification, physical-device validation, feedback, and public rollout gates are unchanged.
 
+> Season 11.5.2: internal Coach is `locally-assistance-certified` by automation only. It remains a public-beta blocker until named human content review and physical-device and named-screen-reader gates pass. `publicReady` remains false; routes, navigation, defaults, analytics, Players, FICS isolation, and educational isolation are unchanged.
+
 > Season 11.4.2A update: `PlayV2BotWorkerReadiness@1.0.0` locally certifies
 > Native Bots lazy Worker ownership, the canonical same-origin engine asset,
 > bounded generation-attributed handshake, teardown/Retry behavior, narrow CSP,

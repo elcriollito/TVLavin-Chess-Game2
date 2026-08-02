@@ -15,14 +15,14 @@
         'recoverable-error': Object.freeze(['booting', 'unavailable']),
         unavailable: Object.freeze([])
     });
-    const CLASSIFICATIONS = Object.freeze({ games: 'required', bots: 'uncertified', coach: 'isolated-assistance-pending', mentor: 'blocked', players: 'blocked' });
+    const CLASSIFICATIONS = Object.freeze({ games: 'required', bots: 'uncertified', coach: 'locally-assistance-certified', mentor: 'blocked', players: 'blocked' });
     const BOTS_READINESS = Object.freeze({ internallySelectable: true, configurationValid: true,
         runtimeAvailable: true, workerRequiredAtStart: true, workerProductionCertification: 'local-production-build-ready',
         publicReady: false, inheritsGamesReadiness: false, fallback: 'none' });
     const COACH_READINESS = Object.freeze({ internallySelectable: true, cleanResourcesRequired: true,
         certifiedGamesOwnersRequired: true, validConfigurationRequired: true, boundedAssistanceRequired: true,
         prohibitedResourcesAllowed: false, learningWriteOwnerAllowed: false, inheritsGamesReadiness: false,
-        assistanceCertification: 'pending-11.5.2', publicReady: false });
+        assistanceCertification: 'local-automated-certified', humanContentReview: 'pending', physicalDeviceVerification: 'pending', namedScreenReaderVerification: 'pending', publicReady: false });
     const REQUIREMENTS = Object.freeze([
         'entryGate', 'shell', 'primaryBoardCount', 'board', 'mode', 'timeControl', 'color',
         'opponentProvider', 'opponentSession', 'clock', 'rulesAuthority', 'lifecycle',

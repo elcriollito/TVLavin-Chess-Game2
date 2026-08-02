@@ -9,14 +9,14 @@
     class Panel {
         #id = `native-coach-${++sequence}`; #root = null; #host = null; #disposed = false; #listeners = [];
         #configuration = { ...root.CaissaNativeCoachConfiguration.defaults }; #assistance = root.CaissaNativeCoachAssistance.create();
-        #status = 'ready'; #starts = 0;
+        #status = 'ready'; #starts = 0; #helpSequence = 0;
         mount(options = {}) {
             const host = options.host || options; if (this.#disposed || !host?.appendChild) return result(false, 'INVALID_HOST');
             this.#host = host; const section = this.#root = node('section', { class: 'caissa-games-panel caissa-native-coach-panel',
                 'data-caissa-native-coach-panel': '', 'aria-labelledby': `${this.#id}-title` });
             const title = node('h2', { id: `${this.#id}-title` }); title.textContent = 'Coach · Internal';
             const note = node('p', { 'data-coach-pending': '', role: 'status' });
-            note.textContent = 'Assistance certification pending. This remains a local chess game.';
+            note.textContent = 'Bounded assistance is locally certified. Human and device review remain pending.';
             const setup = node('div', { role: 'group', 'aria-label': 'Coach assisted-play setup' });
             for (const [key, label, values] of [['level', 'Assistance level', root.CaissaNativeCoachConfiguration.levels],
                 ['focus', 'Assistance focus', root.CaissaNativeCoachConfiguration.focuses],
@@ -31,10 +31,15 @@
             }
             const live = node('div', { 'data-coach-assistance-live': '', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' });
             const action = node('button', { type: 'button', class: 'caissa-games-panel__primary', 'data-coach-primary': '' }); action.textContent = 'Play';
-            section.append(title, note, setup, live, action); host.appendChild(section);
+            const help = node('button', { type: 'button', 'data-coach-help': '', disabled: '', 'aria-describedby': `${this.#id}-help-status` }); help.textContent = 'Help';
+            const dismiss = node('button', { type: 'button', 'data-coach-dismiss': '', disabled: '' }); dismiss.textContent = 'Dismiss assistance';
+            live.id = `${this.#id}-help-status`; section.append(title, note, setup, live, action, help, dismiss); host.appendChild(section);
             this.#listen(section, 'change', event => { const key = Object.keys(event.target.dataset || {})
-                .find(name => name.startsWith('coach')); if (key) this.#configuration[key.slice(5, 6).toLowerCase() + key.slice(6)] = event.target.value; });
-            this.#listen(action, 'click', () => this.submit()); return result(true, 'MOUNTED', this.getSnapshot());
+                .find(name => name.startsWith('coach')); if (key) { this.#configuration[key.slice(5, 6).toLowerCase() + key.slice(6)] = event.target.value;
+                    this.#assistance.configure(this.#configuration); } });
+            this.#listen(action, 'click', () => this.submit()); this.#listen(help, 'click', () => this.requestHelp());
+            this.#listen(dismiss, 'click', () => { this.#assistance.dismiss(); dismiss.disabled = true; this.#render('Assistance dismissed.'); });
+            this.#assistance.configure(this.#configuration); return result(true, 'MOUNTED', this.getSnapshot());
         }
         async submit() {
             const validation = root.CaissaNativeCoachConfiguration.validate(this.#configuration);
@@ -49,12 +54,23 @@
                 mode: 'engine', color: this.#configuration.color, timeControl: time.seconds
             });
             if (!command?.ok) { this.#status = 'error'; this.#render('The assisted-play game could not start.'); return result(false, 'COMMAND_FAILED'); }
-            this.#starts += 1; this.#status = 'active'; this.#assistance.observe({ type: 'game-start' });
-            this.#render('Game started. Bounded assistance is available.'); return result(true, 'STARTED', this.getSnapshot());
+            this.#starts += 1; this.#status = 'active'; this.#assistance.teardown(); this.#root.querySelector('[data-coach-help]').disabled = false;
+            this.#render('Game started. Bounded assistance is available on request.'); return result(true, 'STARTED', this.getSnapshot());
+        }
+        requestHelp() {
+            if (this.#status !== 'active' || this.#disposed) return result(false, 'HELP_UNAVAILABLE');
+            const game = root.App?.game; const history = game?.history?.() || []; const opponentWorking = root.App?.engine?.searching === true;
+            const promotionPending = !!root.document?.querySelector?.('.promotion-modal:not([hidden])');
+            const response = this.#assistance.requestHelp({ eventId: `help-${++this.#helpSequence}`, turnId: String(history.length), openingPly: history.length,
+                opponentWorking, promotionPending, terminal: game?.game_over?.() === true, lowTime: false });
+            const dismiss = this.#root.querySelector('[data-coach-dismiss]');
+            if (response.ok) { this.#render(response.presentation.message); dismiss.disabled = false; }
+            else { this.#render(response.reasonCode === 'COOLDOWN' ? 'Help is cooling down.' : 'Help is unavailable right now.'); }
+            return response;
         }
         #render(message) { const live = this.#root?.querySelector('[data-coach-assistance-live]'); if (live) live.textContent = message; }
         show() { if (this.#root) this.#root.hidden = false; return result(true, 'SHOWN'); }
-        hide() { if (this.#root) this.#root.hidden = true; return result(true, 'HIDDEN'); }
+        hide() { this.#assistance.teardown(); if (this.#root) this.#root.hidden = true; return result(true, 'HIDDEN'); }
         getSnapshot() { return freeze({ schemaVersion: '1.0.0', status: this.#status, configuration: { ...this.#configuration },
             starts: this.#starts, assistance: this.#assistance.inspect(), primaryAction: 'Play', publicReady: false }); }
         dispose() { this.#listeners.splice(0).forEach(item => item.target.removeEventListener(item.type, item.handler));

@@ -36,7 +36,9 @@
             resourceId: 'native-coach-stack', type: 'module-group', trigger: 'mode', priority: 'normal',
             qaOnly: true, productionEligible: false, dependencies: Object.freeze([]),
             sources: Object.freeze([
+                'js/play/native-coach/coach-assistance-policy.js?v=1.0.0',
                 'js/play/native-coach/coach-configuration.js?v=1.0.0',
+                'js/play/native-coach/coach-assistance-sanitizer.js?v=1.0.0',
                 'js/play/native-coach/coach-assistance.js?v=1.0.0',
                 'js/play/native-coach/coach-panel.js?v=1.0.0'
             ])

@@ -13,7 +13,7 @@
         masteryWrites: 'prohibited', recommendationEngine: 'prohibited', mentorDependency: 'prohibited',
         hiddenAnswerExposure: 'prohibited', automaticBestMove: 'prohibited', autoplay: 'prohibited',
         ficsDependency: 'prohibited', analyticsTransport: 'disabled', publicReady: false,
-        assistanceCertification: 'pending-11.5.2', observableEvents: EVENTS
+        assistanceCertification: 'locally-assistance-certified', observableEvents: EVENTS
     });
     root.CaissaPlayV2CoachBoundary = contract;
 })(typeof window !== 'undefined' ? window : globalThis);

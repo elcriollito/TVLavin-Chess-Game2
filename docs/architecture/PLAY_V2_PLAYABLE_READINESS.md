@@ -1,5 +1,7 @@
 # Play v2 First Playable State
 
+> Season 11.5.2: Coach is `locally-assistance-certified` by deterministic automation. Public exposure remains prohibited pending human content, physical-device, and named-screen-reader review. Games and Bots certification remain independent.
+
 Status: **Season 11.3.2 accepted locally**
 
 Contract: `PlayV2PlayableReadiness@1.0.0`

@@ -1,5 +1,7 @@
 # Play v2 Coach isolated assisted-play boundary
 
+> Season 11.5.2: bounded assistance is `locally-assistance-certified` under `PlayV2CoachAssistancePolicy@1.0.0`; see `PLAY_V2_COACH_ASSISTANCE_CERTIFICATION.md`. Coach remains internal and not public-ready. Human content, physical-device, and named-screen-reader review are pending.
+
 Season: **11.5.1**
 
 Contract: `PlayV2CoachBoundary@1.0.0`
@@ -10,7 +12,7 @@ Status: **accepted locally for internal assisted play; assistance certification 
 
 Coach is a real local chess game with optional bounded assistance. It reuses the certified Games board, chess.js rules authority, lifecycle, single clock, local opponent and engine, GameRecord, clean PostGame, and Analyze handoff. The isolated layer owns only fixed configuration, bounded event observation, and presentation. It creates no board, Worker, engine, clock, lifecycle, record, PostGame, or Analyze owner and cannot commit a user move.
 
-The contract declares assisted play as the primary purpose; one primary board; existing single clock/local opponent owners; and `isolated-play-v2-coach` as assistance owner. Academy, lessons, curriculum, Endgame Training, Guided Replay, Knowledge Units, Training Memory surfaces/writes, Mastery surfaces/writes, recommendations, Mentor, hidden answers, automatic best moves, autoplay, FICS, and analytics transport are prohibited. `publicReady` is false and content/frequency certification is explicitly `pending-11.5.2`.
+The contract declares assisted play as the primary purpose; one primary board; existing single clock/local opponent owners; and `isolated-play-v2-coach` as assistance owner. Academy, lessons, curriculum, Endgame Training, Guided Replay, Knowledge Units, Training Memory surfaces/writes, Mastery surfaces/writes, recommendations, Mentor, hidden answers, automatic best moves, autoplay, FICS, and analytics transport are prohibited. `publicReady` is false; automated assistance certification is local while named human and device gates remain pending.
 
 ## Current Coach graph audit
 
@@ -35,7 +37,7 @@ Authorized internal QA/beta entry may show `Coach · Internal`. Default hosting 
 
 ## Setup and event boundary
 
-The compact setup contains assistance level (`minimal` or `standard`), focus (`general` or `safety`), timing (`after move` or `on request`), 5+0/10+0, White/Black, and one `Play` CTA. These values configure the isolated boundary only; detailed message content and frequency remain deferred.
+The compact setup contains assistance level (`light`, `standard`, or `more-help`), focus (`balanced`, `tactics`, `safety`, or `time-awareness`), the truthful `on-request` timing, 5+0/10+0, White/Black, one primary `Play` CTA, and one secondary `Help` action. Each assistance option maps to the certified bounded behavior; no move answer is available.
 
 The observer accepts only game start, user turn, candidate user move where supported, committed user move, clock state, and terminal state. Its immutable diagnostics report zero move commits, hidden answers, Training Memory writes, and Mastery writes. Future opponent moves, unrestricted PV/best-move answers, unrelated history, identity, and educational profiles are outside its input contract.
 
