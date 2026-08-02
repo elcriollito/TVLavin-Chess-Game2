@@ -26,6 +26,7 @@ const App = {
     playerColor: 'white',
     gameMode: 'engine', // 'engine' or 'analysis'
     timeControl: 0, // seconds, 0 = no limit
+    timeIncrement: 0, // Fischer increment in seconds
     useOpeningBook: true, // Enable book moves
 
     // HOTFIX 4: Engine play control (independent of UI mode)
@@ -1365,6 +1366,11 @@ function handleGameOver() {
         state = 'Draw';
         result = '\u00BD-\u00BD';
         detailMessage = 'Draw by insufficient material.';
+    } else if (Number(App.game.fen().split(' ')[4]) >= 100) {
+        message = 'Draw by fifty-move rule';
+        state = 'Draw';
+        result = '\u00BD-\u00BD';
+        detailMessage = 'Draw by fifty-move rule.';
     } else if (App.game.in_draw()) {
         message = 'Game drawn';
         state = 'Draw';
@@ -2250,7 +2256,8 @@ function updateTimers() {
         stopTimerLoop();
         App.elements.gameResult.textContent = `Time out! ${winner} wins!`;
         App.elements.gameResult.classList.add('show');
-        setGameStatus('Timeout', winner === 'White' ? '1-0' : '0-1', `${winner} wins on time.`);
+        const result = winner === 'White' ? '1-0' : '0-1';
+        setGameStatus('Timeout', result, `${winner} wins on time.`);
     }
 }
 
@@ -2618,10 +2625,11 @@ function newGame(options = {}) {
     // No level setting - always full power
     if (options.timeControl !== undefined) {
         App.timeControl = options.timeControl;
+        App.timeIncrement = Number.isInteger(options.increment) ? options.increment : 0;
         window.CaissaClockService?.configure({
             mode: App.gameMode,
             initialTimeMs: options.timeControl * 1000,
-            incrementMs: 0,
+            incrementMs: App.timeIncrement * 1000,
             activeColor: App.game.turn() === 'w' ? 'white' : 'black'
         });
         mirrorLocalClock();
@@ -2725,6 +2733,10 @@ function newGame(options = {}) {
 
     console.log("[ENGINE CONFIG] enabled:", App.engineEnabled, "plays as:", App.enginePlaysAs);
 
+    if (window.CaissaPlayCompatibility && window.CaissaGameLifecycle) {
+        window.CaissaGameLifecycle.sync(window.CaissaPlayCompatibility.getSnapshot(), 'GAME_STARTED');
+    }
+
     // HOTFIX 4: Trigger engine move if it's engine's turn
     maybeTriggerEngineMove();
     schedulePlayBoardVisibility('new-game');
@@ -2757,6 +2769,7 @@ function resignGame() {
     // Determine winner based on player color
     const resigningSide = App.playerColor === 'white' ? 'White' : 'Black';
     const winner = resigningSide === 'White' ? 'Black' : 'White';
+    const result = winner === 'White' ? '1-0' : '0-1';
 
     // Stop game
     App.gameActive = false;
@@ -2772,7 +2785,7 @@ function resignGame() {
     App.elements.gameResult.style.background = winner === 'White' ? '#4caf50' : '#333';
     App.elements.gameResult.style.color = 'white';
 
-    setGameStatus(`${resigningSide} resigned`, winner === 'White' ? '1-0' : '0-1', `${winner} wins by resignation.`);
+    setGameStatus(`${resigningSide} resigned`, result, `${winner} wins by resignation.`);
 }
 
 // ===== FEN OPERATIONS =====
@@ -5290,6 +5303,7 @@ document.addEventListener('keydown', (e) => {
         const openModal = openModals.at(-1);
         if (openModal) {
             e.preventDefault();
+            if (openModal.id === 'promotionModal' && App.pendingPromotion) return;
             hideModal(openModal.id);
             return;
         }

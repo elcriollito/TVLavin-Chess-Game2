@@ -45,11 +45,12 @@ test('resignation and stalemate preserve authoritative result and termination', 
     await expect(page.locator('[data-post-game-summary]')).toContainText('stalemate');
 });
 
-test('Rematch and New Game each issue one start without duplicating runtime resources', async ({ page }) => {
+test('Rematch starts once while New Game returns to setup without duplicating runtime resources', async ({ page }) => {
     await openQa(page);
     await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
     const before = await page.evaluate(() => window.__caissaPlayHarness.snapshot());
     await page.locator('[data-post-game-action="rematch"]').click();
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     const rematch = await snapshot(page);
     expect(rematch.gameActive).toBe(true);
     expect(rematch.harness.workersCreated).toBe(before.workersCreated);
@@ -57,8 +58,9 @@ test('Rematch and New Game each issue one start without duplicating runtime reso
     expect(rematch.harness.activeRafs).toBeLessThanOrEqual(1);
     await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
     await page.locator('[data-post-game-action="new-game"]').click();
-    expect((await snapshot(page)).gameActive).toBe(true);
+    expect((await snapshot(page)).gameActive).toBe(false);
     await expect(page.locator('.caissa-games-panel')).toBeVisible();
+    await expect(page.locator('[data-games-primary]')).toHaveText('Play');
     expect(await page.evaluate(() =>
         window.CaissaPostGameExperienceInstance.getSnapshot().diagnostics.newGames)).toBe(1);
 });

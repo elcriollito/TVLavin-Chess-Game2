@@ -33,7 +33,7 @@
         INVALID_INPUT: 'INVALID_INPUT'
     });
     const TABLE = Object.freeze({
-        idle: Object.freeze(['configuring', 'starting', 'active', 'disposed', 'error']),
+        idle: Object.freeze(['configuring', 'starting', 'active', 'completed', 'disposed', 'error']),
         configuring: Object.freeze(['starting', 'idle', 'disposed', 'error']),
         starting: Object.freeze(['active', 'idle', 'error', 'disposed']),
         active: Object.freeze(['awaiting-promotion', 'ending', 'completed', 'idle', 'error', 'disposed']),

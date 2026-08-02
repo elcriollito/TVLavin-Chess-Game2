@@ -1,18 +1,19 @@
 (function installGamesPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.2.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.2.0';
+    const SCHEMA_VERSION = '1.3.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.3.0';
     const STATUSES = Object.freeze(['idle', 'ready', 'invalid', 'busy', 'active', 'error', 'disposed']);
     const EVENTS = Object.freeze(['hydrated', 'selection-changed', 'validated', 'submitted', 'started', 'advanced-changed']);
     const SECTIONS = Object.freeze(['game-type', 'time-control', 'color', 'opponent', 'primary-action', 'advanced-options']);
     const TIME_CONTROLS = Object.freeze([
-        Object.freeze({ presetId: 'unlimited', seconds: 0, minutes: 0, incrementSeconds: 0, label: 'No limit', category: 'Casual' }),
         Object.freeze({ presetId: 'bullet-1', seconds: 60, minutes: 1, incrementSeconds: 0, label: '1+0', category: 'Bullet' }),
+        Object.freeze({ presetId: 'bullet-2-1', seconds: 120, minutes: 2, incrementSeconds: 1, label: '2+1', category: 'Bullet' }),
         Object.freeze({ presetId: 'blitz-3', seconds: 180, minutes: 3, incrementSeconds: 0, label: '3+0', category: 'Blitz' }),
+        Object.freeze({ presetId: 'blitz-3-2', seconds: 180, minutes: 3, incrementSeconds: 2, label: '3+2', category: 'Blitz' }),
         Object.freeze({ presetId: 'blitz-5', seconds: 300, minutes: 5, incrementSeconds: 0, label: '5+0', category: 'Blitz' }),
         Object.freeze({ presetId: 'rapid-10', seconds: 600, minutes: 10, incrementSeconds: 0, label: '10+0', category: 'Rapid' }),
-        Object.freeze({ presetId: 'rapid-15', seconds: 900, minutes: 15, incrementSeconds: 0, label: '15+0', category: 'Rapid' })
+        Object.freeze({ presetId: 'rapid-15-10', seconds: 900, minutes: 15, incrementSeconds: 10, label: '15+10', category: 'Rapid' })
     ]);
     const COLORS = Object.freeze([
         Object.freeze({ value: 'white', label: 'White' }),
@@ -173,7 +174,8 @@
                 this.#status = 'error'; this.#hydrated = false;
                 return this.#record(result(false, 'unavailable', REASONS.COMMAND_UNAVAILABLE));
             }
-            this.#preset = presetForSeconds(snapshot.clocks?.timeControlSeconds) || TIME_CONTROLS[0];
+            this.#preset = TIME_CONTROLS.find(item => item.seconds === snapshot.clocks?.timeControlSeconds
+                && item.incrementSeconds === (snapshot.clocks?.incrementSeconds || 0)) || TIME_CONTROLS[0];
             this.#color = COLORS.some(item => item.value === snapshot.playerColor) ? snapshot.playerColor : 'white';
             this.#hydrated = true; this.#status = snapshot.game?.active ? 'active' : 'ready';
             this.#diagnostics.hydrations += 1;
@@ -237,7 +239,8 @@
                 return this.#record(result(false, 'failed', REASONS.COMMAND_FAILED));
             }
             const start = () => this.#compatibility.execute('startNewGame', {
-                mode: 'engine', color: resolvedColor, timeControl: this.#preset.seconds
+                mode: 'engine', color: resolvedColor, timeControl: this.#preset.seconds,
+                increment: this.#preset.incrementSeconds
             });
             const command = global.CaissaPlayGameStartAnalytics?.observePanelStart?.({ mode: 'games',
                 startSource, timeControlSeconds: this.#preset.seconds, color: resolvedColor,

@@ -38,9 +38,9 @@ test('derives idle, active, promotion, completed, analyzing, and unknown', () =>
 test('explicit transition table accepts supported paths and rejects invalid/disposed paths', () => {
     const f = fixture();
     for (const [from, to] of [['idle', 'starting'], ['starting', 'active'], ['active', 'awaiting-promotion'],
-        ['awaiting-promotion', 'completed'], ['completed', 'analyzing'], ['analyzing', 'idle']])
+        ['awaiting-promotion', 'completed'], ['idle', 'completed'], ['completed', 'analyzing'], ['analyzing', 'idle']])
         assert.equal(f.validateTransition(from, to), true);
-    assert.equal(f.validateTransition('idle', 'completed'), false);
+    assert.equal(f.validateTransition('configuring', 'completed'), false);
     assert.equal(f.validateTransition('disposed', 'idle'), false);
 });
 test('sync is immutable, serializable, and idempotent', () => {

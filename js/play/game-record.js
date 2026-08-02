@@ -113,6 +113,28 @@
         };
     }
 
+    function completedQuickPlayPgn(pgnValue, snapshot, resultValue, termination, capturedAt) {
+        if (typeof pgnValue !== 'string' || snapshot.mode !== 'engine'
+            || !Number.isFinite(snapshot.clocks?.timeControlSeconds)
+            || !Number.isFinite(snapshot.clocks?.incrementSeconds)
+            || !['1-0', '0-1', '1/2-1/2'].includes(resultValue)) return pgnValue;
+        const existing = inspectPgn(pgnValue).headers;
+        const date = capturedAt.slice(0, 10).replaceAll('-', '.');
+        const headers = {
+            Event: 'CAISSA Quick Play', Site: 'CAISSA Native Play', Date: date,
+            White: snapshot.playerColor === 'white' ? 'Player' : 'CAISSA Engine',
+            Black: snapshot.playerColor === 'black' ? 'Player' : 'CAISSA Engine',
+            Result: resultValue,
+            TimeControl: `${snapshot.clocks.timeControlSeconds}+${snapshot.clocks.incrementSeconds}`,
+            Termination: termination || 'unknown'
+        };
+        const added = Object.entries(headers).filter(([name]) => !Object.hasOwn(existing, name))
+            .map(([name, value]) => `[${name} "${String(value).replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"]`);
+        let body = pgnValue.trim();
+        if (!/(?:^|\s)(1-0|0-1|1\/2-1\/2|\*)\s*$/.test(body)) body = `${body}${body ? ' ' : ''}${resultValue}`;
+        return `${added.join('\n')}${added.length && body ? '\n' : ''}${body}`;
+    }
+
     function validateFenValue(fen) {
         if (typeof fen !== 'string' || !fen || fen.length > MAX_FEN_LENGTH || fen.includes('\0')) return false;
         if (typeof global.Chess !== 'function') return /^(\S+ ){5}\S+$/.test(fen);
@@ -149,13 +171,14 @@
 
     function terminationFrom(status) {
         const state = String(status?.state || '').toLowerCase();
+        const message = String(status?.message || '').toLowerCase();
         if (state === 'checkmate') return 'checkmate';
         if (state === 'stalemate') return 'stalemate';
         if (state === 'timeout') return 'timeout';
         if (state === 'white resigned' || state === 'black resigned') return 'resignation';
-        if (state.includes('threefold')) return 'repetition';
-        if (state.includes('insufficient')) return 'insufficient-material';
-        if (state.includes('fifty')) return 'fifty-move-rule';
+        if (state.includes('threefold') || message.includes('threefold')) return 'repetition';
+        if (state.includes('insufficient') || message.includes('insufficient')) return 'insufficient-material';
+        if (state.includes('fifty') || message.includes('fifty')) return 'fifty-move-rule';
         if (state === 'aborted') return 'aborted';
         return null;
     }
@@ -184,7 +207,6 @@
         if (!capturedAt) throw new TypeError('capturedAt must be a valid date');
 
         const pgnInput = options.pgn !== undefined ? options.pgn : snapshot.position?.pgn;
-        const pgn = inspectPgn(pgnInput);
         const finalFen = options.finalFen !== undefined ? options.finalFen : snapshot.position?.fen;
         const movesInput = Array.isArray(options.moveHistory) ? options.moveHistory
             : Array.isArray(snapshot.position?.moveHistory) ? snapshot.position.moveHistory : [];
@@ -197,6 +219,9 @@
         const resultValue = legacyResult;
         const complete = ['1-0', '0-1', '1/2-1/2'].includes(resultValue)
             && snapshot.game?.active === false;
+        const pgn = inspectPgn(complete
+            ? completedQuickPlayPgn(pgnInput, snapshot, resultValue, termination, capturedAt)
+            : pgnInput);
         const recordStatus = deriveStatus(snapshot, resultValue, termination, moves);
         const mode = modeFrom(snapshot.mode);
         const initialFromHeader = pgn.headers.SetUp === '1' && typeof pgn.headers.FEN === 'string'
@@ -252,7 +277,8 @@
                 timeControl: {
                     initialSeconds: Number.isFinite(snapshot.clocks?.timeControlSeconds)
                         ? snapshot.clocks.timeControlSeconds : null,
-                    incrementSeconds: null
+                    incrementSeconds: Number.isFinite(snapshot.clocks?.incrementSeconds)
+                        ? snapshot.clocks.incrementSeconds : null
                 },
                 finalClocks: {
                     whiteMilliseconds: Number.isFinite(snapshot.clocks?.whiteMilliseconds)

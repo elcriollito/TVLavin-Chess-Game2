@@ -11,7 +11,7 @@ function load(snapshot = {}, commandResult = { ok: true, status: 'accepted' }, o
     const compatibility = {
         getSnapshot: () => ({
             playerColor: 'white',
-            clocks: { timeControlSeconds: 0 },
+            clocks: { timeControlSeconds: 60, incrementSeconds: 0 },
             game: { active: false },
             ...snapshot
         }),
@@ -34,15 +34,17 @@ function load(snapshot = {}, commandResult = { ok: true, status: 'accepted' }, o
 
 test('publishes a frozen versioned contract with truthful fixed vocabularies', () => {
     const { api } = load();
-    assert.equal(api.schemaVersion, '1.2.0');
-    assert.equal(api.snapshotSchemaVersion, '1.2.0');
+    assert.equal(api.schemaVersion, '1.3.0');
+    assert.equal(api.snapshotSchemaVersion, '1.3.0');
     assert.ok(Object.isFrozen(api));
     assert.ok(Object.isFrozen(api.timeControls));
     assert.ok(Object.isFrozen(api.colors));
     assert.ok(Object.isFrozen(api.opponentStrengths));
     assert.deepEqual(JSON.parse(JSON.stringify(api.colors.map(item => item.value))), ['white', 'random', 'black']);
     assert.deepEqual(JSON.parse(JSON.stringify(api.opponentStrengths.map(item => item.value))), ['full-power']);
-    assert.ok(api.timeControls.every(item => item.incrementSeconds === 0));
+    assert.deepEqual(JSON.parse(JSON.stringify(api.timeControls.map(item => item.label))),
+        ['1+0', '2+1', '3+0', '3+2', '5+0', '10+0', '15+10']);
+    assert.equal(api.timeControls.some(item => item.seconds === 0), false);
     assert.ok(api.timeControls.every(item => !Object.hasOwn(item, 'elo')));
 });
 
@@ -68,7 +70,7 @@ test('unknown legacy configuration falls back without inventing a custom clock',
         clocks: { timeControlSeconds: 123 }
     });
     panel.hydrateFromLegacy();
-    assert.equal(panel.getSnapshot().timeControl.presetId, 'unlimited');
+    assert.equal(panel.getSnapshot().timeControl.presetId, 'bullet-1');
     assert.equal(panel.getSnapshot().color, 'random');
 });
 
@@ -97,12 +99,12 @@ test('white, random, and black are supported while fake colors and strength are 
 test('valid submission calls the authoritative start command exactly once with mapped settings', () => {
     const { panel, calls } = load();
     panel.hydrateFromLegacy();
-    panel.setTimeControl('rapid-15');
+    panel.setTimeControl('rapid-15-10');
     panel.setColor('black');
     const submitted = panel.submit();
     assert.equal(submitted.ok, true);
     assert.deepEqual(JSON.parse(JSON.stringify(calls)), [[
-        'startNewGame', { mode: 'engine', color: 'black', timeControl: 900 }
+        'startNewGame', { mode: 'engine', color: 'black', timeControl: 900, increment: 10 }
     ]]);
     assert.equal(panel.getSnapshot().status, 'active');
     assert.equal(panel.getSnapshot().diagnostics.successfulStarts, 1);
@@ -119,7 +121,7 @@ test('random resolves exactly once at submission and immediate duplicate activat
     assert.equal(fixture.panel.submit().reasonCode, 'BUSY');
     assert.equal(resolutions, 1);
     assert.deepEqual(JSON.parse(JSON.stringify(fixture.calls)), [[
-        'startNewGame', { mode: 'engine', color: 'black', timeControl: 0 }
+        'startNewGame', { mode: 'engine', color: 'black', timeControl: 60, increment: 0 }
     ]]);
     assert.equal(fixture.panel.getSnapshot().color, 'random');
     fixture.flushMicrotasks();

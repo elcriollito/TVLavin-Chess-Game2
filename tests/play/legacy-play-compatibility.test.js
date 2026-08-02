@@ -33,6 +33,7 @@ function fixture({ mounted = true } = {}) {
         gameStatus: { state: 'In Progress', result: '', message: '' },
         pendingPromotion: null,
         timeControl: 300,
+        timeIncrement: 0,
         whiteTime: 300,
         blackTime: 300,
         whiteTimeMs: 300000,
@@ -74,7 +75,7 @@ test('public API is frozen, versioned, minimal, and supports stable repeated ins
     const before = value.api;
     vm.runInNewContext(source, { window: value.window, Date, Object, WeakSet, Number, Set });
     assert.equal(value.window.CaissaPlayCompatibility, before);
-    assert.equal(before.schemaVersion, '1.1.0');
+    assert.equal(before.schemaVersion, '1.2.0');
     assert.equal(Object.isFrozen(before), true);
     assert.deepEqual(
         Object.keys(before).sort(),
@@ -91,7 +92,7 @@ test('snapshot has deterministic JSON-safe shape without legacy object reference
     const { api, App, game, board } = fixture();
     const snapshot = api.getSnapshot();
     assert.doesNotThrow(() => JSON.stringify(snapshot));
-    assert.equal(snapshot.schemaVersion, '1.1.0');
+    assert.equal(snapshot.schemaVersion, '1.2.0');
     assert.equal(snapshot.position.fen, game.fen());
     assert.equal(snapshot.position.moveCount, 1);
     assert.equal(snapshot.board.available, true);
@@ -188,7 +189,7 @@ test('startNewGame validates and routes exactly one legacy action', () => {
 test('resetGame routes once with current settings', () => {
     const { api, calls } = fixture();
     assert.equal(api.execute('resetGame').ok, true);
-    assert.deepEqual(JSON.parse(JSON.stringify(calls)), [['newGame', { mode: 'analysis', color: 'white', timeControl: 300 }]]);
+    assert.deepEqual(JSON.parse(JSON.stringify(calls)), [['newGame', { mode: 'analysis', color: 'white', timeControl: 300, increment: 0 }]]);
 });
 
 test('legal and illegal moves are normalized without duplicate submissions', () => {
@@ -207,6 +208,7 @@ test('malformed commands cannot reach legacy actions', () => {
         ['startNewGame', { mode: 'online' }],
         ['startNewGame', { color: 'random' }],
         ['startNewGame', { timeControl: -1 }],
+        ['startNewGame', { increment: -1 }],
         ['startNewGame', { mode: 'analysis', injected: true }],
         ['resetGame', { injected: true }],
         ['promote', { piece: 'q', injected: true }]

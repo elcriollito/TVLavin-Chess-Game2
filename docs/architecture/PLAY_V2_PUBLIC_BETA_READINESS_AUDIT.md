@@ -1,5 +1,7 @@
 # Season 11.0.1 — Play v2 Public Beta Readiness Audit
 
+> Season 11.3.1 update: Games Quick Play is locally certified under the unchanged internal gate. The lifecycle, ownership, presets, error behavior, automated evidence, and non-claims are recorded in [`PLAY_V2_GAMES_QUICK_PLAY_CERTIFICATION.md`](./PLAY_V2_GAMES_QUICK_PLAY_CERTIFICATION.md). Physical-device validation, Bots/Worker certification, feedback, and public rollout remain open; production defaults are unchanged.
+
 Audit date: 2026-08-01
 
 Architectural name: **CAISSA Native Play Experience**

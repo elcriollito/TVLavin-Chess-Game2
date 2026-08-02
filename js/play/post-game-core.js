@@ -22,7 +22,7 @@
     class PostGameCore {
         #id = `play-v2-post-game-${++sequence}`; #root = null; #record = null; #visible = false;
         #disposed = false; #listeners = []; #feedback = ''; #consent = 'unknown'; #saved = false; #configuration = null;
-        #compatibility; #records; #persistence; #handoff; #navigation; #onVisibilityChange;
+        #compatibility; #records; #persistence; #handoff; #navigation; #onVisibilityChange; #onNewGame;
         #clipboard; #url; #Blob;
         #diagnostics = { hydrations: 0, displays: 0, actions: 0, rematches: 0, newGames: 0,
             handoffs: 0, copies: 0, downloads: 0, saves: 0, failures: 0 };
@@ -34,6 +34,7 @@
             this.#handoff = options.handoff || root.CaissaAnalyzeHandoff;
             this.#navigation = options.navigation || root.CaissaNavigation;
             this.#onVisibilityChange = typeof options.onVisibilityChange === 'function' ? options.onVisibilityChange : null;
+            this.#onNewGame = typeof options.onNewGame === 'function' ? options.onNewGame : null;
             this.#clipboard = options.clipboard || root.navigator?.clipboard;
             this.#url = options.url || root.URL; this.#Blob = options.Blob || root.Blob;
         }
@@ -89,7 +90,8 @@
             this.#record = record; this.#configuration = {
                 mode: snapshot?.mode === 'engine' ? 'engine' : null,
                 color: ['white', 'black'].includes(snapshot?.playerColor) ? snapshot.playerColor : null,
-                timeControl: Number.isInteger(snapshot?.clocks?.timeControlSeconds) ? snapshot.clocks.timeControlSeconds : null
+                timeControl: Number.isInteger(snapshot?.clocks?.timeControlSeconds) ? snapshot.clocks.timeControlSeconds : null,
+                increment: Number.isInteger(snapshot?.clocks?.incrementSeconds) ? snapshot.clocks.incrementSeconds : 0
             };
             this.#consent = this.#persistence?.getConsent?.().value?.state || 'unknown';
             this.#saved = false; this.#feedback = ''; this.#diagnostics.hydrations += 1; this.show();
@@ -117,9 +119,15 @@
         copyPgn() { return this.execute('copy-pgn'); } downloadPgn() { return this.execute('download-pgn'); }
         saveGame() { return this.execute('save-game'); } startNewGame() { return this.execute('new-game'); }
         #start(action) {
+            if (action === 'new-game') {
+                root.CaissaClockService?.stop?.('new-game-setup');
+                root.CaissaEngineRequestIsolation?.createSession?.();
+                this.#diagnostics.newGames += 1; this.hide(); this.#onNewGame?.();
+                return outcome(true, 'accepted', 'NEW_GAME_READY');
+            }
             const started = this.#compatibility?.execute?.('startNewGame', { ...this.#configuration });
             if (!started?.ok) return outcome(false, 'failed', 'ACTION_FAILED');
-            this.#diagnostics[action === 'rematch' ? 'rematches' : 'newGames'] += 1; this.hide(); return outcome(true, 'accepted', action === 'rematch' ? 'REMATCH_STARTED' : 'NEW_GAME_STARTED');
+            this.#diagnostics.rematches += 1; this.hide(); return outcome(true, 'accepted', 'REMATCH_STARTED');
         }
         #analyze() {
             if (!root.AnalyzeSection?.onEnter && root.CaissaPlayLazyLoader?.load) {

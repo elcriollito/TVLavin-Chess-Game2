@@ -246,6 +246,7 @@
                 return result(false, 'unavailable', 'GAMES_PANEL_UNAVAILABLE');
             }
             this.#postGame = global.CaissaPostGameExperience?.create?.({
+                onNewGame: () => this.#gamesPanel?.reset?.(),
                 onVisibilityChange: visible => {
                     if (visible) {
                         this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.();

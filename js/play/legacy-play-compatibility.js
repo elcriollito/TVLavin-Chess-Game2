@@ -15,7 +15,7 @@
 (function installLegacyPlayCompatibility(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.1.0';
+    const SCHEMA_VERSION = '1.2.0';
     const EXISTING = global.CaissaPlayCompatibility;
     if (EXISTING?.schemaVersion === SCHEMA_VERSION) return;
 
@@ -155,6 +155,8 @@
                 timeControlSeconds: serviceClock
                     ? serviceClock.initialTimeMs / 1000
                     : (Number.isFinite(source?.timeControl) ? source.timeControl : null),
+                incrementSeconds: serviceClock ? serviceClock.incrementMs / 1000
+                    : (Number.isFinite(source?.timeIncrement) ? source.timeIncrement : 0),
                 activeColor: serviceClock?.activeColor
                     ?? (clockRunning ? (turnCode === 'w' ? 'white' : turnCode === 'b' ? 'black' : null) : null),
                 running: clockRunning,
@@ -200,7 +202,10 @@
         if (input.timeControl !== undefined &&
             (!Number.isInteger(input.timeControl) || input.timeControl < 0 || input.timeControl > 86400))
             return 'invalid-time-control';
-        const allowed = new Set(['mode', 'color', 'timeControl']);
+        if (input.increment !== undefined &&
+            (!Number.isInteger(input.increment) || input.increment < 0 || input.increment > 86400))
+            return 'invalid-increment';
+        const allowed = new Set(['mode', 'color', 'timeControl', 'increment']);
         if (Object.keys(input).some(key => !allowed.has(key))) return 'unknown-option';
         return null;
     }
@@ -232,6 +237,7 @@
                         mode: source.gameMode,
                         color: source.playerColor,
                         timeControl: source.timeControl,
+                        increment: source.timeIncrement || 0,
                         ...(input || {})
                     });
                     return result(true, 'accepted', command);

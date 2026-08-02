@@ -96,11 +96,12 @@ test('Games setup exposes only supported time, accessible color, and one Play ac
     await page.goto('/play/beta');
     const shell = page.locator('[data-entry-experience="beta"]');
     await expect(shell.getByRole('tab')).toHaveText(['Games', 'Bots · Internal']);
-    await expect(shell.getByRole('radio', { name: /No limit/ })).toBeChecked();
+    await expect(shell.getByRole('radio', { name: /^1\+0/ })).toBeChecked();
     await expect(shell.getByRole('radio', { name: 'White', exact: true })).toBeChecked();
     await expect(shell.getByRole('radio', { name: 'Random', exact: true })).not.toBeChecked();
     await expect(shell.getByRole('radio', { name: 'Black', exact: true })).not.toBeChecked();
-    await expect(shell.locator('[data-games-time]')).toHaveCount(6);
+    await expect(shell.locator('[data-games-time]')).toHaveCount(7);
+    await expect(shell).not.toContainText('No limit');
     await shell.getByRole('radio', { name: /^5\+0/ }).check();
     await shell.getByRole('radio', { name: 'Random', exact: true }).check();
     await expect(shell.getByText('5+0 · Random selected.', { exact: true })).toBeVisible();
@@ -125,7 +126,7 @@ test('setup starts once, rejects immediate duplicate activation, and focuses the
         action.click(); action.click();
         return { first, snapshot: panel.getSnapshot(), apiVersion: games.schemaVersion, duplicateBlocked: action.disabled };
     });
-    expect(result.apiVersion).toBe('1.2.0');
+    expect(result.apiVersion).toBe('1.3.0');
     expect(result.snapshot.gamesPanel.diagnostics.successfulStarts).toBe(1);
     expect(result.duplicateBlocked).toBe(true);
     await expect(page.locator('#chessboard')).toBeFocused();
