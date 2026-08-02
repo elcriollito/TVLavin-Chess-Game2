@@ -10,6 +10,10 @@ Contract: `PlayV2BotPersonalityPolicy@1.0.0`
 > ownership exit terminates it. Calibration thresholds and unrated presentation
 > are unchanged. See [`PLAY_V2_BOT_WORKER_READINESS.md`](./PLAY_V2_BOT_WORKER_READINESS.md).
 
+> Season 11.4.3 adds `PlayV2BotStrengthHonesty@1.0.0`. It freezes rating,
+> identity, likeness, and public-style boundaries and the future numeric-rating
+> evidence gate. See [`PLAY_V2_BOT_STRENGTH_HONESTY.md`](./PLAY_V2_BOT_STRENGTH_HONESTY.md).
+
 Status: **accepted locally for internal, uncertified Bots only**
 
 ## Ownership
@@ -41,4 +45,4 @@ The internal panel shows exactly Beginner, Casual, Tactical, and Solid with `Unr
 
 The stack remains lazy and local. Selection starts no Worker. Start uses the existing single Worker/session/lifecycle; cancellation and route teardown retain existing ownership. There is no network/profile service, identity data, cookie, personal storage, PGN upload, query-controlled engine option, arbitrary Worker URL, FICS, education, Coach, Mentor mode, Players, or analytics transport.
 
-Known gates: the production Worker, physical devices, named screen readers, human-rating calibration, and public beta remain uncertified. The previously observed WebKit contrast issue overlaps the shared Games/Bots option styling and remains a release gate unless separately verified fixed. Bots is not public-ready.
+Known gates: deployed production, physical devices, named screen readers, human-rating calibration, and public beta remain uncertified. The local production-equivalent Worker is certified, but actual deployment remains unverified. Bots is not public-ready.

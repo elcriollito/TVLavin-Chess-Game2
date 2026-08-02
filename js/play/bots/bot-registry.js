@@ -9,7 +9,7 @@
             difficultyBand: 'beginner', calibrationStatus: 'estimated', enginePresetId: 'seed-depth-2',
             ratingStatus: 'Unrated · calibration pending', personalityPolicyId: 'beginner',
             availability: { enabled: true, qaOnly: true, locked: false },
-            presentation: { tagline: 'Forgiving, bounded choices.', strengths: ['Always chooses an allowed legal move.'],
+            presentation: { tagline: 'Limited, with bounded inaccuracies.', strengths: ['Always chooses an allowed legal move.'],
                 limitations: ['Not calibrated to human ratings.'] }
         },
         {
@@ -18,7 +18,7 @@
             difficultyBand: 'casual', calibrationStatus: 'estimated', enginePresetId: 'trail-depth-5',
             ratingStatus: 'Unrated · calibration pending', personalityPolicyId: 'casual',
             availability: { enabled: true, qaOnly: true, locked: false },
-            presentation: { tagline: 'Balanced recreational play.', strengths: ['Favors stronger choices than Beginner.'],
+            presentation: { tagline: 'Balanced recreational behavior.', strengths: ['Favors stronger choices than Beginner.'],
                 limitations: ['Not calibrated to human ratings.'] }
         },
         {
@@ -27,7 +27,7 @@
             difficultyBand: 'intermediate', calibrationStatus: 'internally-tested', enginePresetId: 'grove-depth-9',
             ratingStatus: 'Unrated · calibration pending', personalityPolicyId: 'tactical',
             availability: { enabled: true, qaOnly: true, locked: false },
-            presentation: { tagline: 'Seeks sound forcing play.', strengths: ['Prefers safe checks, captures, and promotions.'],
+            presentation: { tagline: 'Prefers sound forcing candidates.', strengths: ['Prefers safe checks, captures, and promotions.'],
                 limitations: ['Does not simulate a human personality.'] }
         },
         {
@@ -36,7 +36,7 @@
             difficultyBand: 'advanced', calibrationStatus: 'internally-tested', enginePresetId: 'summit-depth-14',
             ratingStatus: 'Unrated · calibration pending', personalityPolicyId: 'solid',
             availability: { enabled: true, qaOnly: true, locked: false },
-            presentation: { tagline: 'Prefers stable, safe choices.', strengths: ['Reduces immediate forcing exposure.'],
+            presentation: { tagline: 'Prefers stable, lower-exposure candidates.', strengths: ['Reduces immediate forcing exposure.'],
                 limitations: ['Does not claim human positional understanding.'] }
         }
     ];

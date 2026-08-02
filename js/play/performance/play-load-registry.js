@@ -8,6 +8,7 @@
             resourceId: 'bots-stack', type: 'module-group', trigger: 'mode', priority: 'normal',
             qaOnly: true, productionEligible: false, dependencies: Object.freeze([]),
             sources: Object.freeze([
+                'js/play/bots/bot-strength-honesty.js?v=1.0.0',
                 'js/play/bots/bot-profile.js?v=1.0.0', 'js/play/bots/bot-presets.js?v=1.0.0',
                 'js/play/bots/bot-personality-policy.js?v=1.0.0',
                 'js/play/bots/bot-registry.js?v=1.0.0', 'js/play/bots/bot-session.js?v=1.0.0',

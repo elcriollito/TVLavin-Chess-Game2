@@ -242,6 +242,12 @@ Legacy `index.html` continues to own Academy, current Coach/Mentor modules, Guid
 
 Automated keyboard, focus, touch-target, reduced-motion, forced-colors, reflow, and Axe checks remain regression evidence only. No physical device or named screen reader has been certified.
 
+## Season 11.4.3 bot strength and identity honesty update (2026-08-01)
+
+`PlayV2BotStrengthHonesty@1.0.0` now fail-closes the internal Bots registry to the four fictional product profiles and the exact `Unrated · calibration pending` disclosure. Numeric/certified Elo, federation rating/title, human-equivalent strength, real-person identity/replica/likeness, and depth-as-rating remain prohibited. Short public style phrases are owned by the existing calibrated personality policy; the complete focused claim inventory and future numeric-rating evidence gate are recorded in [`PLAY_V2_BOT_STRENGTH_HONESTY.md`](./PLAY_V2_BOT_STRENGTH_HONESTY.md).
+
+This improves claim integrity but does not advance exposure. Bots remains internal, analytics transport remains disabled, and deployed production, physical-device, named-screen-reader, human-rating calibration, and public-beta gates remain open. Classic, Legacy Play, Legacy FICS, homepage, `/play`, Games readiness, FICS/product boundaries, and the one-CTA board-first experience are unchanged.
+
 **Season 11.1.2 status: complete for educational isolation only. Play v2 remains QA-only and NOT READY for public beta.** Worker production certification, physical-device and assistive-technology testing, feedback, operational rollback, public enrollment/gating, and later release gates remain open.
 
 ## Season 11.2.1 controlled-entry update (2026-08-01)

@@ -21,6 +21,10 @@ test('Bots is internal and exposes four unrated evidence-backed personality prof
     await expect(page.locator('.caissa-bots-panel')).not.toContainText(/\bElo\b/i);
     await expect(page.locator('.caissa-bots-panel')).not.toContainText(/depth|MultiPV|centipawn|Worker URL/i);
     await expect(page.getByText(/Unrated · calibration pending/)).toHaveCount(4);
+    await expect(page.getByLabel(/Beginner, Unrated · calibration pending, Limited, with bounded inaccuracies\., beginner/)).toBeVisible();
+    await expect(page.getByLabel(/Casual, Unrated · calibration pending, Balanced recreational behavior\., casual/)).toBeVisible();
+    await expect(page.getByLabel(/Tactical, Unrated · calibration pending, Prefers sound forcing candidates\., intermediate/)).toBeVisible();
+    await expect(page.getByLabel(/Solid, Unrated · calibration pending, Prefers stable, lower-exposure candidates\., advanced/)).toBeVisible();
     await page.getByLabel(/Solid, Unrated/).check();
     const proof = await page.evaluate(() => ({
         mode: window.CaissaSimplifiedPlayShellInstance.getSnapshot().mode,

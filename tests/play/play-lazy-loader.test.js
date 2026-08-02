@@ -69,8 +69,8 @@ test('duplicate loads reuse one promise and sequential scripts become loaded onc
     const { context, appended } = await loadContext(); const loader=context.CaissaPlayLazyLoader;
     const first=loader.load('bots-stack',{qa:true}), second=loader.load('bots-stack',{qa:true});
     assert.equal(first,second); const loaded=await first;
-    assert.equal(loaded.state,'loaded'); assert.equal(appended.length,7);
-    await loader.load('bots-stack',{qa:true}); assert.equal(appended.length,7);
+    assert.equal(loaded.state,'loaded'); assert.equal(appended.length,8);
+    await loader.load('bots-stack',{qa:true}); assert.equal(appended.length,8);
     assert.equal(loader.inspect().peakConcurrentLoads,1);
 });
 

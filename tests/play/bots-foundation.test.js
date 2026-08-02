@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const files = [
-    'bot-profile.js', 'bot-presets.js', 'bot-personality-policy.js', 'bot-registry.js', 'bot-session.js'
+    'bot-strength-honesty.js', 'bot-profile.js', 'bot-presets.js', 'bot-personality-policy.js', 'bot-registry.js', 'bot-session.js'
 ].map(name => fs.readFileSync(new URL(`../../js/play/bots/${name}`, import.meta.url), 'utf8'));
 
 function load() {

@@ -41,6 +41,8 @@
             || [...profile.presentation.strengths, ...profile.presentation.limitations]
                 .some(item => !boundedText(item, 100)))
             errors.push('Invalid presentation.');
+        const honesty = global.CaissaPlayV2BotStrengthHonesty?.validateProfile?.(profile);
+        if (!honesty?.valid) errors.push(...(honesty?.errors || ['Bot strength honesty policy unavailable.']));
         return deepFreeze({ valid: errors.length === 0, errors });
     }
     function normalize(profile) {
