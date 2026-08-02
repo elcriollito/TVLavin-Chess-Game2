@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 import { instrumentPlay } from '../play/playwright-helpers.js';
 
 test.beforeEach(async ({ page }) => instrumentPlay(page));
@@ -29,6 +30,62 @@ test('resignation finalizes one valid Games record and clean PostGame', async ({
     expect(proof.startSyncPresent).toBe(true);
     expect(proof.lifecycle.state, JSON.stringify(proof.lifecycleHistory)).toBe('completed');
     expect(proof.postGame.visible).toBe(true);
+    expect(proof.postGame.diagnostics.displays).toBe(1);
+    await expect(page.locator('[data-post-game-result]')).toHaveText('You Lost');
+    await expect(page.locator('[data-post-game-reason]')).toHaveText('By Resignation');
+    await expect(page.locator('[data-post-game-result]')).toBeFocused();
+    await expect(page.locator('#chessboard .board-b72b1')).toBeVisible();
+    await expect(page.locator('[data-post-game-action]')).toHaveText(['Rematch','New Game','Analyze This Game','Copy PGN','Download PGN','Save PGN Locally']);
+});
+
+test('result-first actions preserve the record, fail recoverably, and Analyze uses an opaque handoff', async ({ page }) => {
+    await page.goto('/play/games?simplified=1'); await page.locator('[data-games-primary]').click();
+    await page.evaluate(() => { window.confirm=()=>true; window.resignGame(); });
+    const before=await page.evaluate(()=>window.CaissaPostGameExperienceInstance.getSnapshot().gameRecordId);
+    await page.locator('[data-post-game-action="analyze"]').click(); await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
+    const analyzeUrl=new URL(page.url()); expect(analyzeUrl.search).not.toMatch(/fen|pgn/i); expect(analyzeUrl.searchParams.get('handoff')).toMatch(/^[a-f0-9]{32}$/);
+    const handoff=await page.evaluate(()=>window.CaissaAnalyzeHandoff.resolve()); expect(handoff.ok).toBe(true);
+    await page.goBack(); await expect(page.locator('[data-post-game-result]')).toHaveText('You Lost');
+    expect(await page.evaluate(()=>window.CaissaPostGameExperienceInstance.getSnapshot().gameRecordId)).toBe(before);
+    const failure=await page.evaluate(()=>{ const host=document.createElement('div'); document.body.appendChild(host); const source=window.CaissaPostGameExperience.create({
+        compatibility:{execute:()=>({ok:false})}, records:{validate:()=>({valid:true})}, persistence:{getConsent:()=>({value:{state:'denied'}})}, navigation:{} }); source.mount({host});
+        const record=window.CaissaGameRecord.buildFromPlay(); source.hydrateFromGame({record,snapshot:window.CaissaPlayCompatibility.getSnapshot()}); const owned=source.getSnapshot().gameRecordId; const result=source.rematch();
+        const proof={ok:result.ok,visible:source.getSnapshot().visible,recordPreserved:source.getSnapshot().gameRecordId===owned,feedback:host.querySelector('[data-post-game-feedback]').textContent}; source.dispose(); host.remove(); return proof; });
+    expect(failure).toMatchObject({ok:false,visible:true,recordPreserved:true}); expect(failure.feedback).toContain('try again');
+});
+
+test('New Game returns to clean setup without starting or changing product mode', async ({ page }) => {
+    await page.goto('/play/games?simplified=1'); await page.locator('[data-games-primary]').click(); await page.evaluate(()=>{window.confirm=()=>true;window.resignGame();});
+    await page.locator('[data-post-game-action="new-game"]').click(); await expect(page.locator('[data-games-primary]')).toBeVisible();
+    const state=await page.evaluate(()=>({active:window.App.gameActive,mode:window.CaissaSimplifiedPlayShellInstance.getSnapshot().mode,post:window.CaissaPostGameExperienceInstance.getSnapshot().visible}));
+    expect(state).toEqual({active:false,mode:'games',post:false});
+});
+
+test('result-first surface is responsive, forced-color safe, and serious-violation free', async ({ page }) => {
+    await page.setViewportSize({width:320,height:568}); await page.goto('/play/games?simplified=1'); await page.locator('[data-games-primary]').click();
+    await page.evaluate(()=>{window.confirm=()=>true;window.resignGame();}); const panel=page.locator('[data-play-v2-post-game-core]');
+    for(const viewport of [{width:320,height:568},{width:768,height:1024},{width:1440,height:900}]) { await page.setViewportSize(viewport); await expect(panel).toBeVisible();
+        expect(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth)).toBeLessThanOrEqual(1); await expect(page.locator('#chessboard .board-b72b1')).toBeVisible(); }
+    await page.emulateMedia({forcedColors:'active',reducedMotion:'reduce'}); await expect(panel).toBeVisible();
+    await page.evaluate(()=>{document.documentElement.style.zoom='2';}); expect(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+    const axe=await new AxeBuilder({page}).include('[data-play-v2-post-game-core]').analyze(); expect(axe.violations.filter(item=>['critical','serious'].includes(item.impact))).toEqual([]);
+});
+
+test('PGN actions share the finalized record and local save remains consent controlled', async ({ page }) => {
+    await page.goto('/play/games?simplified=1'); await page.locator('[data-games-primary]').click(); await page.evaluate(()=>{window.confirm=()=>true;window.resignGame();
+        window.__copiedPgn=null; navigator.clipboard.writeText=async value=>{window.__copiedPgn=value;}; });
+    await page.locator('[data-post-game-action="copy-pgn"]').click(); await expect(page.locator('[data-post-game-feedback]')).toHaveText('PGN copied.');
+    expect(await page.evaluate(()=>window.__copiedPgn)).toContain('[Result "0-1"]');
+    await page.evaluate(()=>{window.__download={clicked:false,revoked:null};URL.createObjectURL=()=> 'blob:caissa-test';URL.revokeObjectURL=value=>{window.__download.revoked=value;};
+        HTMLAnchorElement.prototype.click=function(){window.__download.clicked=true;window.__download.name=this.download;};});
+    await page.locator('[data-post-game-action="download-pgn"]').click(); expect(await page.evaluate(()=>window.__download)).toMatchObject({clicked:true,revoked:'blob:caissa-test'});
+    await expect(page.locator('[data-post-game-action="save-game"]')).toBeDisabled(); await page.locator('[data-post-game-consent]').check();
+    await expect(page.locator('[data-post-game-action="save-game"]')).toBeEnabled(); await page.locator('[data-post-game-action="save-game"]').click();
+    expect((await page.evaluate(()=>window.CaissaPostGameExperienceInstance.getSnapshot())).persistence.saved).toBe(true);
+    const failed=await page.evaluate(async()=>{const host=document.createElement('div');document.body.appendChild(host);const source=window.CaissaPostGameExperience.create({
+        clipboard:{writeText:()=>Promise.reject(new Error('denied'))},records:{validate:()=>({valid:true})},persistence:{getConsent:()=>({value:{state:'denied'}})}});source.mount({host});
+        source.hydrateFromGame({record:window.CaissaGameRecord.buildFromPlay(),snapshot:window.CaissaPlayCompatibility.getSnapshot()});const result=await source.copyPgn();const feedback=host.querySelector('[data-post-game-feedback]').textContent;source.dispose();host.remove();return {ok:result.ok,feedback};});
+    expect(failed.ok).toBe(false); expect(failed.feedback).toContain('try again');
 });
 
 test('promotion is choice-required and keyboard-selectable for every piece in both orientations', async ({ page }) => {

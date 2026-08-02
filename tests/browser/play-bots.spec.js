@@ -96,7 +96,9 @@ test('post-game identity and rematch retain the selected bot', async ({ page }) 
     await page.locator('[data-bot-primary]').click();
     await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
     await expect(page.locator('.caissa-post-game')).toBeVisible();
+    await expect(page.locator('[data-post-game-result]')).toHaveText('You Lost'); await expect(page.locator('[data-post-game-reason]')).toHaveText('By Resignation');
     await expect(page.locator('[data-post-game-summary]')).toContainText('Solid');
+    expect(await page.evaluate(() => window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(0);
     await page.locator('[data-post-game-action="rematch"]').click();
     expect(await page.evaluate(() => window.CaissaBotSession.getSnapshot().activeBotId)).toBe('solid');
 });

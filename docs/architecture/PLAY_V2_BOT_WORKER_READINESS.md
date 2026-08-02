@@ -1,5 +1,7 @@
 # Play v2 Bot Worker readiness
 
+> Season 11.6.1: shared result-first PostGame explicitly tears down active Bot Worker ownership and prepares a fresh Worker only for successful Rematch. Worker certification and public gates remain unchanged.
+
 Season 11.4.2A / 11.4.2 local certification record
 Contract: `PlayV2BotWorkerReadiness@1.0.0`
 

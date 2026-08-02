@@ -1,5 +1,7 @@
 # Play v2 Games Quick Play Certification
 
+> Season 11.6.1: Games uses the shared `PlayV2PostGamePolicy@1.0.0` result-first surface. Certified lifecycle, clock, record, Rematch, New Game, PGN, and Analyze ownership remains unchanged; see `PLAY_V2_RESULT_FIRST_POSTGAME_CERTIFICATION.md`.
+
 Status: **locally certified under the internal beta gate**  
 Season: **11.3.1**  
 Date: **2026-08-01**  

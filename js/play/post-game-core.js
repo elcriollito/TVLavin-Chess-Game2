@@ -3,7 +3,7 @@
 
     const VERSION = '1.0.0';
     const ACTIONS = Object.freeze(['rematch', 'analyze', 'copy-pgn', 'download-pgn', 'save-game', 'new-game']);
-    let sequence = 0;
+    let sequence = 0; let retainedRecord = null; let retainedKey = null;
     const freeze = value => {
         if (value && typeof value === 'object' && !Object.isFrozen(value)) {
             Object.values(value).forEach(freeze); Object.freeze(value);
@@ -18,6 +18,8 @@
     const resultType = record => record?.status === 'aborted' ? 'aborted'
         : record?.result?.value === '1-0' ? 'white-win' : record?.result?.value === '0-1' ? 'black-win'
             : record?.result?.value === '1/2-1/2' ? 'draw' : 'unknown';
+    const recordKey = record => JSON.stringify([record?.status, record?.result?.value, record?.result?.termination,
+        record?.position?.finalFen, record?.notation?.pgn]);
 
     class PostGameCore {
         #id = `play-v2-post-game-${++sequence}`; #root = null; #record = null; #visible = false;
@@ -47,14 +49,14 @@
                 'aria-labelledby': `${this.#id}-title`, tabindex: '-1'
             });
             this.#root.hidden = true;
-            const title = element('h2', 'caissa-post-game__title', { id: `${this.#id}-title` }); title.textContent = 'Game Over';
-            const result = element('p', 'caissa-post-game__announcement', { 'data-post-game-result': '' });
+            const title = element('h2', 'caissa-post-game__title caissa-post-game__announcement', { id: `${this.#id}-title`, 'data-post-game-result': '', tabindex: '-1' }); title.textContent = 'Game Over';
+            const reason = element('p', 'caissa-post-game__reason', { 'data-post-game-reason': '' });
             const summary = element('dl', 'caissa-post-game__summary', { 'data-post-game-summary': '' });
             const actions = element('div', 'caissa-post-game__actions', { 'aria-label': 'Post-game actions' });
-            [['rematch','Rematch',true],['analyze','Analyze This Game'],['copy-pgn','Copy PGN'],
-                ['download-pgn','Download PGN'],['save-game','Save Game'],['new-game','New Game']]
-                .forEach(([action, label, primary]) => {
-                    const button = element('button', `caissa-post-game__action${primary ? ' caissa-post-game__action--primary' : ''}`,
+            [['rematch','Rematch','primary'],['new-game','New Game','next'],['analyze','Analyze This Game','analyze'],['copy-pgn','Copy PGN','pgn'],
+                ['download-pgn','Download PGN','pgn'],['save-game','Save PGN Locally','pgn']]
+                .forEach(([action, label, hierarchy]) => {
+                    const button = element('button', `caissa-post-game__action caissa-post-game__action--${hierarchy}`,
                         { type: 'button', 'data-post-game-action': action }); button.textContent = label; actions.appendChild(button);
                 });
             const consent = element('label', 'caissa-post-game__consent');
@@ -62,7 +64,7 @@
             const consentText = element('span', ''); consentText.textContent = 'Allow this completed game to be stored in local game history.';
             consent.append(input, consentText);
             const feedback = element('p', 'caissa-post-game__feedback', { 'data-post-game-feedback': '' });
-            this.#root.append(title, result, summary, actions, consent, feedback); host.appendChild(this.#root);
+            this.#root.append(title, reason, summary, actions, consent, feedback); host.appendChild(this.#root);
             this.#listen(this.#root, 'click', event => {
                 const action = event.target?.closest?.('[data-post-game-action]')?.dataset?.postGameAction;
                 if (action) this.execute(action);
@@ -79,7 +81,8 @@
             root.CaissaGameLifecycle?.sync?.(snapshot,
                 snapshot.game?.active === false && snapshot.game?.result ? 'GAME_COMPLETED' : 'LEGACY_STATE_SYNCED');
             if (root.CaissaGameLifecycle?.getSnapshot?.().state !== 'completed') { this.hide(); return outcome(false, 'unchanged', 'INCOMPLETE'); }
-            try { return this.hydrateFromGame({ record: this.#records?.buildFromPlay?.(), snapshot }); }
+            try { const candidate = this.#records?.buildFromPlay?.(); const key = recordKey(candidate);
+                return this.hydrateFromGame({ record: retainedRecord && retainedKey === key ? retainedRecord : candidate, snapshot }); }
             catch (_) { return outcome(false, 'failed', 'INVALID_RECORD'); }
         }
         hydrateFromGame(input = {}) {
@@ -87,12 +90,16 @@
             if (!validation?.valid || !['completed', 'aborted'].includes(record?.status) || record?.result?.complete !== true)
                 return outcome(false, 'rejected', 'INVALID_RECORD');
             const snapshot = input.snapshot || this.#compatibility?.getSnapshot?.();
-            this.#record = record; this.#configuration = {
+            this.#record = record; retainedRecord = record; retainedKey = recordKey(record); this.#configuration = {
                 mode: snapshot?.mode === 'engine' ? 'engine' : null,
                 color: ['white', 'black'].includes(snapshot?.playerColor) ? snapshot.playerColor : null,
                 timeControl: Number.isInteger(snapshot?.clocks?.timeControlSeconds) ? snapshot.clocks.timeControlSeconds : null,
                 increment: Number.isInteger(snapshot?.clocks?.incrementSeconds) ? snapshot.clocks.incrementSeconds : 0
             };
+            root.CaissaClockService?.stop?.('postgame');
+            root.CaissaEngineRequestIsolation?.cancelSession?.();
+            const worker = root.CaissaPlayV2BotWorkerReadiness?.getSnapshot?.();
+            if (worker && ['initializing', 'ready', 'playing'].includes(worker.state)) root.CaissaPlayV2BotWorkerReadiness.teardown('postgame');
             this.#consent = this.#persistence?.getConsent?.().value?.state || 'unknown';
             this.#saved = false; this.#feedback = ''; this.#diagnostics.hydrations += 1; this.show();
             root.CaissaEvaluationRailInstance?.setMode?.('post-game'); this.#render();
@@ -100,19 +107,22 @@
         }
         show() { if (!this.#root || !this.#record) return outcome(false, 'rejected', 'INVALID_RECORD');
             if (!this.#visible) this.#diagnostics.displays += 1; this.#visible = true; this.#root.hidden = false;
-            this.#onVisibilityChange?.(true); this.#render(); this.#root.focus?.(); return outcome(true, 'accepted', 'SHOWN'); }
+            this.#onVisibilityChange?.(true); this.#render(); this.#root.querySelector('[data-post-game-result]')?.focus?.(); return outcome(true, 'accepted', 'SHOWN'); }
         hide() { this.#visible = false; if (this.#root) this.#root.hidden = true; this.#onVisibilityChange?.(false); return outcome(true, 'accepted', 'HIDDEN'); }
         execute(action) {
             if (!ACTIONS.includes(action) || !this.#actions()[action]?.enabled) return outcome(false, 'unavailable', 'ACTION_UNAVAILABLE');
             root.CaissaPlayV2ProductBoundary?.requireAllowed?.({ type: 'action', value: action });
             this.#diagnostics.actions += 1;
             try {
-                if (action === 'rematch' || action === 'new-game') return this.#start(action);
-                if (action === 'analyze') return this.#analyze();
-                if (action === 'copy-pgn') return this.#copy();
-                if (action === 'download-pgn') return this.#download();
-                if (action === 'save-game') return this.#save();
-            } catch (_) { this.#diagnostics.failures += 1; return outcome(false, 'failed', 'ACTION_FAILED'); }
+                let operation = null;
+                if (action === 'rematch' || action === 'new-game') operation = this.#start(action);
+                else if (action === 'analyze') operation = this.#analyze();
+                else if (action === 'copy-pgn') operation = this.#copy();
+                else if (action === 'download-pgn') operation = this.#download();
+                else if (action === 'save-game') operation = this.#save();
+                if (operation?.then) return operation.then(value => this.#finish(value, action)).catch(() => this.#finish(outcome(false, 'failed', 'ACTION_FAILED'), action));
+                if (operation) return this.#finish(operation, action);
+            } catch (_) { return this.#finish(outcome(false, 'failed', 'ACTION_FAILED'), action); }
             return outcome(false, 'unavailable', 'ACTION_UNAVAILABLE');
         }
         rematch() { return this.execute('rematch'); } analyze() { return this.execute('analyze'); }
@@ -123,7 +133,7 @@
                 root.CaissaClockService?.stop?.('new-game-setup');
                 root.CaissaEngineRequestIsolation?.createSession?.();
                 root.CaissaGameLifecycle?.rotateSession?.();
-                this.#diagnostics.newGames += 1; this.hide(); this.#onNewGame?.();
+                retainedRecord = null; retainedKey = null; this.#diagnostics.newGames += 1; this.hide(); this.#onNewGame?.();
                 return outcome(true, 'accepted', 'NEW_GAME_READY');
             }
             if (root.CaissaBotSession?.getSnapshot?.()?.activeBotId && root.CaissaPlayV2BotWorkerReadiness) {
@@ -134,14 +144,14 @@
                     const started = this.#compatibility?.execute?.('startNewGame', { ...this.#configuration });
                     if (!started?.ok) return outcome(false, 'failed', 'ACTION_FAILED');
                     root.CaissaPlayV2BotWorkerReadiness?.markPlaying?.();
-                    this.#diagnostics.rematches += 1; this.hide();
+                    retainedRecord = null; retainedKey = null; this.#diagnostics.rematches += 1; this.hide();
                     return outcome(true, 'accepted', 'REMATCH_STARTED');
                 });
             }
             const started = this.#compatibility?.execute?.('startNewGame', { ...this.#configuration });
             if (!started?.ok) return outcome(false, 'failed', 'ACTION_FAILED');
             root.CaissaPlayV2BotWorkerReadiness?.markPlaying?.();
-            this.#diagnostics.rematches += 1; this.hide(); return outcome(true, 'accepted', 'REMATCH_STARTED');
+            retainedRecord = null; retainedKey = null; this.#diagnostics.rematches += 1; this.hide(); return outcome(true, 'accepted', 'REMATCH_STARTED');
         }
         #analyze() {
             if (!root.AnalyzeSection?.onEnter && root.CaissaPlayLazyLoader?.load) {
@@ -149,6 +159,10 @@
                     .then(() => this.#analyze()).catch(() => outcome(false, 'failed', 'ACTION_FAILED'));
             }
             if (!this.#handoff?.createFromPlay) return outcome(false, 'unavailable', 'ACTION_UNAVAILABLE');
+            root.CaissaClockService?.stop?.('analyze'); root.CaissaEngineRequestIsolation?.cancelSession?.();
+            const worker = root.CaissaPlayV2BotWorkerReadiness?.getSnapshot?.();
+            if (worker && ['initializing', 'ready', 'playing'].includes(worker.state)) root.CaissaPlayV2BotWorkerReadiness.teardown('analyze');
+            const handoff = this.#handoff.createFromPlay(); if (!handoff?.ok) return outcome(false, 'failed', 'ACTION_FAILED');
             const opened = this.#navigation?.navigateToSection?.('analyze');
             if (opened === false || opened?.ok === false) return outcome(false, 'failed', 'ACTION_FAILED');
             this.#diagnostics.handoffs += 1; return outcome(true, 'accepted', 'ANALYZE_OPENED');
@@ -168,6 +182,13 @@
             const saved = this.#persistence?.saveCompleted?.(this.#record); if (!saved?.ok) return outcome(false, 'failed', 'ACTION_FAILED');
             this.#saved = true; this.#diagnostics.saves += 1; this.#feedback = 'Game saved.'; this.#render(); return outcome(true, 'accepted', 'GAME_SAVED');
         }
+        #finish(operation, action) {
+            if (!operation?.ok) { this.#diagnostics.failures += 1; this.#feedback = action === 'copy-pgn'
+                ? 'PGN could not be copied. You can try again.' : 'That action could not be completed. You can try again.';
+                this.#render(); this.#root?.querySelector(`[data-post-game-action="${action}"]`)?.focus?.(); }
+            else if (operation.reasonCode === 'PGN_DOWNLOADED') { this.#feedback = 'PGN downloaded.'; this.#render(); }
+            return operation;
+        }
         #actions() {
             const ready = !!this.#record && this.#visible; const pgn = ready && !!this.#record?.notation?.pgn;
             return freeze({ rematch: { enabled: ready, primary: true }, analyze: { enabled: ready },
@@ -175,14 +196,17 @@
                 'save-game': { enabled: pgn && this.#consent === 'granted' && !this.#saved }, 'new-game': { enabled: ready } });
         }
         #render() {
-            if (!this.#root) return; const type = resultType(this.#record);
-            const labels = { 'white-win': 'White wins.', 'black-win': 'Black wins.', draw: 'Draw.', aborted: 'Game ended.', unknown: 'Result unavailable.' };
-            this.#root.querySelector('[data-post-game-result]').textContent = labels[type];
+            if (!this.#root) return; const description = root.CaissaPlayV2PostGamePolicy?.describe?.(this.#record)
+                || { title: 'Result Unavailable', reason: 'Reason Unavailable' };
+            this.#root.querySelector('[data-post-game-result]').textContent = description.title;
+            this.#root.querySelector('[data-post-game-reason]').textContent = description.reason;
             const summary = this.#root.querySelector('[data-post-game-summary]'); summary.textContent = '';
             if (this.#record) {
-                const opponent = root.CaissaBotRegistry?.get?.(this.#record.opponent?.id)?.name
+                const shellMode = root.CaissaSimplifiedPlayShellInstance?.getSnapshot?.()?.mode;
+                const opponent = shellMode === 'coach' ? 'CAISSA Coach'
+                    : root.CaissaBotRegistry?.get?.(this.#record.opponent?.id)?.name
                     || (this.#record.opponent?.type === 'engine' ? 'CAISSA Engine' : this.#record.opponent?.name || null);
-                const entries = [['Result', this.#record.result.value], ['Reason', this.#record.result.termination || 'unknown']];
+                const entries = [];
                 if (opponent) entries.push(['Opponent', opponent]);
                 entries.forEach(([term, value]) => { const dt = element('dt', ''); dt.textContent = term; const dd = element('dd', ''); dd.textContent = value; summary.append(dt, dd); });
             }

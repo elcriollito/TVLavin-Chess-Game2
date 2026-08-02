@@ -1,5 +1,7 @@
 # Play v2 Coach Assistance Certification
 
+> Season 11.6.1: shared result-first PostGame hides Coach presentation and tears down its assistance generation at completion. Bounded-assistance certification remains valid; human/device gates remain pending.
+
 Status: `locally-assistance-certified` (automated, internal only). Contract: `PlayV2CoachAssistancePolicy@1.0.0`. Season 11.5.2 automated acceptance passes; human/device gates remain pending.
 
 ## Supported behavior

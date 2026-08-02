@@ -4,6 +4,8 @@
 
 > Season 11.5.2: internal Coach is `locally-assistance-certified` by automation only. It remains a public-beta blocker until named human content review and physical-device and named-screen-reader gates pass. `publicReady` remains false; routes, navigation, defaults, analytics, Players, FICS isolation, and educational isolation are unchanged.
 
+> Season 11.6.1: Games, Bots, and Coach share the internal `PlayV2PostGamePolicy@1.0.0` result-first PostGame owner. Mentor remains prohibited, production defaults are unchanged, and this does not authorize public beta.
+
 > Season 11.4.2A update: `PlayV2BotWorkerReadiness@1.0.0` locally certifies
 > Native Bots lazy Worker ownership, the canonical same-origin engine asset,
 > bounded generation-attributed handshake, teardown/Retry behavior, narrow CSP,
