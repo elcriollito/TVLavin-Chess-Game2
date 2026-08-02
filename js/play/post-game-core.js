@@ -122,6 +122,7 @@
             if (action === 'new-game') {
                 root.CaissaClockService?.stop?.('new-game-setup');
                 root.CaissaEngineRequestIsolation?.createSession?.();
+                root.CaissaGameLifecycle?.rotateSession?.();
                 this.#diagnostics.newGames += 1; this.hide(); this.#onNewGame?.();
                 return outcome(true, 'accepted', 'NEW_GAME_READY');
             }

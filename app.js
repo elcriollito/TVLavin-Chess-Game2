@@ -2602,7 +2602,7 @@ function newGame(options = {}) {
     if (!App.board) {
         initializeBoard();
         showNotification('Board is still loading. Please try Start Game again in a moment.');
-        return;
+        return false;
     }
     App.board.position('start');
     clearMobileTapSource();
@@ -2740,6 +2740,7 @@ function newGame(options = {}) {
     // HOTFIX 4: Trigger engine move if it's engine's turn
     maybeTriggerEngineMove();
     schedulePlayBoardVisibility('new-game');
+    return true;
 }
 
 function resignGame() {

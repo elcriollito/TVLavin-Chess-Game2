@@ -126,7 +126,7 @@ test('setup starts once, rejects immediate duplicate activation, and focuses the
         action.click(); action.click();
         return { first, snapshot: panel.getSnapshot(), apiVersion: games.schemaVersion, duplicateBlocked: action.disabled };
     });
-    expect(result.apiVersion).toBe('1.3.0');
+    expect(result.apiVersion).toBe('1.4.0');
     expect(result.snapshot.gamesPanel.diagnostics.successfulStarts).toBe(1);
     expect(result.duplicateBlocked).toBe(true);
     await expect(page.locator('#chessboard')).toBeFocused();
@@ -144,11 +144,12 @@ test('failed initialization is honest, preserves setup, and supports one retry p
     await page.getByRole('radio', { name: 'Black', exact: true }).check();
     await page.evaluate(() => { window.__originalNewGame = window.newGame; window.newGame = () => { throw new Error('controlled'); }; });
     await page.getByRole('button', { name: 'Play', exact: true }).click();
-    await expect(page.getByText('The game could not be started.', { exact: true })).toBeVisible();
+    await expect(page.getByText('Play could not be prepared. Retry when ready.', { exact: true })).toBeVisible();
     await expect(page.getByRole('radio', { name: /10\+0/ })).toBeChecked();
     await expect(page.getByRole('radio', { name: 'Black', exact: true })).toBeChecked();
     expect(await page.evaluate(() => window.App.gameStarted)).not.toBe(true);
     await page.evaluate(() => { window.newGame = window.__originalNewGame; delete window.__originalNewGame; });
+    await page.getByRole('button', { name: 'Retry', exact: true }).click();
     await page.getByRole('button', { name: 'Play', exact: true }).click();
     await expect(page.locator('#chessboard')).toBeFocused();
     expect(await page.evaluate(() => window.App.timeControl)).toBe(600);

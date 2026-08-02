@@ -19,7 +19,7 @@ test('keyboard tabs activate routes, retain roving focus, and hide inactive pane
     await expect(page.getByRole('tab', { name: /Coach|Players/ })).toHaveCount(0);
 });
 
-test('one bounded manager owns two live regions and evaluation changes do not announce raw values', async ({ page }) => {
+test('bounded shell and readiness live regions do not announce raw evaluation values', async ({ page }) => {
     await page.goto('/play/games?simplified=1');
     const proof = await page.evaluate(() => {
         const shell = document.querySelector('[data-caissa-simplified-shell]');
@@ -28,13 +28,15 @@ test('one bounded manager owns two live regions and evaluation changes do not an
         window.CaissaEvaluationRailInstance.setError();
         return {
             regions: shell.querySelectorAll('[aria-live]').length,
+            readinessRegions: shell.querySelectorAll('[data-games-status][aria-live]').length,
             railLive: document.querySelector('#evalBar').hasAttribute('aria-live'),
             text: [...shell.querySelectorAll('[aria-live]')].map(node => node.textContent),
             snapshot: window.CaissaSimplifiedPlayShellInstance.inspect().accessibility,
             boardSame: before.boardAdapterId === window.App.boardAdapter.getSnapshot().adapterId
         };
     });
-    expect(proof.regions).toBe(2);
+    expect(proof.regions).toBe(3);
+    expect(proof.readinessRegions).toBe(1);
     expect(proof.railLive).toBe(false);
     expect(proof.text.join(' ')).not.toMatch(/[+-]\d+\.\d|mate in \d/i);
     expect(proof.snapshot.announcements.queueDepth).toBeLessThanOrEqual(8);

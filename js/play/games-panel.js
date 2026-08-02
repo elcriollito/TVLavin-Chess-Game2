@@ -1,8 +1,8 @@
 (function installGamesPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.3.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.3.0';
+    const SCHEMA_VERSION = '1.4.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.4.0';
     const STATUSES = Object.freeze(['idle', 'ready', 'invalid', 'busy', 'active', 'error', 'disposed']);
     const EVENTS = Object.freeze(['hydrated', 'selection-changed', 'validated', 'submitted', 'started', 'advanced-changed']);
     const SECTIONS = Object.freeze(['game-type', 'time-control', 'color', 'opponent', 'primary-action', 'advanced-options']);
@@ -62,7 +62,7 @@
     class GamesPanel {
         #id = `games-panel-${++sequence}`;
         #compatibility; #root = null; #host = null; #advanced = null; #disposed = false; #minimalEntry = false;
-        #resolveRandomColor;
+        #resolveRandomColor; #readiness; #unsubscribeReadiness = null;
         #status = 'idle'; #preset = TIME_CONTROLS[0]; #color = 'white'; #strength = STRENGTHS[0];
         #hydrated = false; #busy = false; #listeners = []; #validation = { valid: false, errors: [], warnings: [] };
         #diagnostics = {
@@ -82,6 +82,8 @@
                     global.crypto.getRandomValues(bytes);
                     return bytes[0] % 2 === 0 ? 'white' : 'black';
                 };
+            this.#readiness = safeObject(options) && options.readiness
+                ? options.readiness : global.CaissaPlayV2PlayableReadiness?.create?.();
         }
 
         mount(options = {}) {
@@ -155,6 +157,7 @@
             if (!this.#minimalEntry) this.#root.append(opponent);
             this.#root.append(status, action);
             this.#host.appendChild(this.#root);
+            this.#unsubscribeReadiness = this.#readiness?.subscribe?.(() => this.#render()) || null;
             this.#listen(this.#root, 'change', event => this.#handleChange(event));
             this.#listen(action, 'click', () => this.submit());
             if (this.#advanced) this.#listen(this.#advanced, 'toggle', () => {
@@ -163,6 +166,7 @@
             });
             this.#diagnostics.mounts += 1;
             this.hydrateFromLegacy();
+            this.#bootReadiness();
             this.#render();
             return this.#record(result(true, 'accepted', REASONS.MOUNTED, this.getSnapshot()));
         }
@@ -225,8 +229,19 @@
                 this.#diagnostics.rejectedStarts += 1;
                 return this.#record(result(false, 'rejected', REASONS.BUSY));
             }
+            const readinessState = this.#readiness?.getSnapshot?.().state;
+            if (readinessState === 'recoverable-error') {
+                const retry = this.#readiness?.retry?.(); this.#render();
+                return this.#record(result(retry?.ok === true, retry?.status || 'rejected', retry?.reasonCode || 'RETRY_UNAVAILABLE'));
+            }
+            const starting = this.#readiness?.beginStart?.();
+            if (!starting?.ok) {
+                this.#diagnostics.rejectedStarts += 1;
+                return this.#record(result(false, 'rejected', REASONS.COMMAND_UNAVAILABLE));
+            }
             this.#diagnostics.submits += 1;
             if (!this.validate().ok) {
+                this.#readiness?.completeStart?.(false);
                 this.#diagnostics.rejectedStarts += 1;
                 return this.#record(result(false, 'rejected', REASONS.COMMAND_UNAVAILABLE));
             }
@@ -234,6 +249,7 @@
             this.#busy = true; this.#status = 'busy'; this.#render();
             const resolvedColor = this.#color === 'random' ? this.#resolveRandomColor() : this.#color;
             if (!['white', 'black'].includes(resolvedColor)) {
+                this.#readiness?.completeStart?.(false);
                 this.#busy = false; this.#status = 'error'; this.#diagnostics.commandFailures += 1;
                 this.#diagnostics.rejectedStarts += 1; this.#render();
                 return this.#record(result(false, 'failed', REASONS.COMMAND_FAILED));
@@ -247,11 +263,13 @@
                 opponentType: 'engine', assistanceCategory: 'engine-opponent', qaEligible: true,
                 productionEligible: true, actionKey: this.#id }, start) ?? start();
             if (!command?.ok) {
+                this.#readiness?.completeStart?.(false);
                 this.#busy = false;
                 this.#status = 'error'; this.#diagnostics.commandFailures += 1;
                 this.#diagnostics.rejectedStarts += 1; this.#render();
                 return this.#record(result(false, command?.status || 'failed', REASONS.COMMAND_FAILED));
             }
+            this.#readiness?.completeStart?.(true);
             this.#status = 'active'; this.#diagnostics.successfulStarts += 1;
             this.#render();
             const board = global.document?.getElementById?.('chessboard');
@@ -264,7 +282,7 @@
 
         reset() {
             this.#preset = TIME_CONTROLS[0]; this.#color = 'white'; this.#status = 'ready';
-            this.validate(); this.#render();
+            this.#readiness?.reset?.(); this.validate(); this.#bootReadiness(); this.#render();
             return result(true, 'accepted', 'RESET', this.getSnapshot());
         }
         getSnapshot() {
@@ -275,9 +293,12 @@
                 opponent: { type: 'local-engine', strength: this.#strength.value, label: this.#strength.label },
                 advancedExpanded: this.#advanced?.open === true,
                 primaryAction: {
-                    available: this.#validation.valid && !this.#disposed,
-                    label: this.#status === 'active' ? 'New Game' : 'Play', busy: this.#busy
+                    available: this.#validation.valid && !this.#disposed
+                        && ['ready', 'recoverable-error'].includes(this.#readiness?.getSnapshot?.().state),
+                    label: this.#readiness?.getSnapshot?.().state === 'recoverable-error' ? 'Retry'
+                        : this.#status === 'active' ? 'New Game' : 'Play', busy: this.#busy
                 },
+                playableReadiness: this.#readiness?.getSnapshot?.() || null,
                 validation: {
                     valid: this.#validation.valid,
                     errors: [...this.#validation.errors], warnings: [...this.#validation.warnings]
@@ -298,6 +319,7 @@
             return result(true, 'accepted', 'HIDDEN', this.getSnapshot());
         }
         unmount() {
+            this.#unsubscribeReadiness?.(); this.#unsubscribeReadiness = null; this.#readiness?.dispose?.();
             this.#removeListeners(); this.#root?.remove(); this.#root = null; this.#host = null;
             return result(true, 'accepted', REASONS.UNMOUNTED);
         }
@@ -308,7 +330,7 @@
         }
         #selection() {
             this.#diagnostics.selections += 1; this.#status = 'ready';
-            this.validate(); this.#render();
+            this.validate(); this.#bootReadiness(); this.#render();
             return this.#record(result(true, 'accepted', REASONS.SELECTION_CHANGED, this.getSnapshot()));
         }
         #handleChange(event) {
@@ -326,15 +348,26 @@
                 input.checked = input.value === this.#color;
             });
             const action = this.#root.querySelector('[data-games-primary]');
-            action.disabled = !this.#validation.valid || this.#busy;
+            const readiness = this.#readiness?.getSnapshot?.();
+            const retry = readiness?.state === 'recoverable-error';
+            action.disabled = !this.#validation.valid || this.#busy || !['ready', 'recoverable-error'].includes(readiness?.state);
             action.textContent = this.#status === 'active' ? 'New Game' : this.#busy ? 'Starting…' : 'Play';
             action.setAttribute('aria-busy', String(this.#busy));
             const status = this.#root.querySelector('[data-games-status]');
-            status.textContent = this.#status === 'active' ? 'Local machine game in progress.' :
+            status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
+            if (retry) action.textContent = 'Retry';
+            status.textContent = readiness?.state === 'booting' ? 'Preparing the local game...' :
+                retry ? 'Play could not be prepared. Retry when ready.' :
+                readiness?.state === 'unavailable' ? 'Play is unavailable in this session.' :
+                this.#status === 'active' ? 'Local machine game in progress.' :
                 this.#status === 'error' ? 'The game could not be started.' :
                 this.#status === 'invalid' ? this.#validation.errors.join(' ') :
                 this.#minimalEntry ? `${this.#preset.label} · ${COLORS.find(item => item.value === this.#color)?.label} selected.` :
                     'Choose your settings, then start the game.';
+        }
+        #bootReadiness() {
+            return this.#readiness?.boot?.({ mode: 'games', seconds: this.#preset.seconds,
+                incrementSeconds: this.#preset.incrementSeconds, color: this.#color });
         }
         #record(operation) {
             this.#diagnostics.lastReasonCode = operation.reasonCode;

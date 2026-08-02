@@ -24,18 +24,26 @@ function load(snapshot = {}, commandResult = { ok: true, status: 'accepted' }, o
         document: { createElement() { throw new Error('mount-only DOM access'); } },
         queueMicrotask(callback) { microtasks.push(callback); }
     };
+    const readiness = options.readiness || {
+        state: 'ready', subscribe() { return () => {}; }, boot() { this.state = 'ready'; return { ok: true }; },
+        retry() { this.state = 'ready'; return { ok: true, status: 'accepted', reasonCode: 'BOOT_STARTED' }; },
+        beginStart() { if (this.state !== 'ready') return { ok: false }; this.state = 'starting'; return { ok: true }; },
+        completeStart(ok) { this.state = ok ? 'playing' : 'recoverable-error'; return { ok }; },
+        reset() { this.state = 'ready'; }, dispose() {},
+        getSnapshot() { return { state: this.state, ready: this.state === 'ready' }; }
+    };
     vm.runInNewContext(source, { window, globalThis: window });
     return {
         api: window.CaissaGamesPanel,
-        panel: window.CaissaGamesPanel.create({ ...options, compatibility }),
+        panel: window.CaissaGamesPanel.create({ ...options, compatibility, readiness }),
         calls, flushMicrotasks: () => microtasks.splice(0).forEach(callback => callback())
     };
 }
 
 test('publishes a frozen versioned contract with truthful fixed vocabularies', () => {
     const { api } = load();
-    assert.equal(api.schemaVersion, '1.3.0');
-    assert.equal(api.snapshotSchemaVersion, '1.3.0');
+    assert.equal(api.schemaVersion, '1.4.0');
+    assert.equal(api.snapshotSchemaVersion, '1.4.0');
     assert.ok(Object.isFrozen(api));
     assert.ok(Object.isFrozen(api.timeControls));
     assert.ok(Object.isFrozen(api.colors));

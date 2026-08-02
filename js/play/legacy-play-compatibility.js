@@ -223,8 +223,9 @@
                     const reason = validateNewGame(input);
                     if (reason) return rejected(command, reason);
                     if (!hasFunction('newGame')) return unavailable(command, 'legacy-action-unavailable');
-                    global.newGame({ ...input });
-                    return result(true, 'accepted', command);
+                    const started = global.newGame({ ...input });
+                    return started === false ? result(false, 'failed', command, 'initialization-rejected')
+                        : result(true, 'accepted', command);
                 }
                 case 'resetGame': {
                     if (input !== undefined && (typeof input !== 'object' || Array.isArray(input)))
