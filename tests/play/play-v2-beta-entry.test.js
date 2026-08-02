@@ -80,5 +80,5 @@ test('dedicated entry contains the beta contract and no prohibited resource grap
     const resources = html.match(/<(?:script|link)\b[^>]*>/gi) || [];
     assert.equal(resources.filter(item => /fics/i.test(item) && !/play-v2-fics-isolation/i.test(item)).length, 0);
     assert.equal(resources.filter(item => /academy|mentor|guided[-_/]?replay|knowledge|training[-_/]?memory|mastery|endgame[-_/]?(?:trainer|library)|players|onboarding|js\/play\/coach\//i.test(item)
-        && !/play-v2-(?:mentor-review-boundary|native-players-policy)/i.test(item)).length, 0);
+        && !/play-v2-(?:mentor-review-boundary|native-players-policy|players-presentation-policy)/i.test(item)).length, 0);
 });

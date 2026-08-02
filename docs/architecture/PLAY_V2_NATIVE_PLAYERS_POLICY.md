@@ -76,3 +76,7 @@ Because Players is omitted, it has no tab, panel, `aria-controls` target, focus 
 The deterministic builder requires this policy, rejects Players scripts/resource groups and Players DOM, while its scoped exclusions preserve legitimate Classic/Legacy FICS assets. Contract tests freeze all declarations and 16 gates, reject route/resource/provider/state bypasses and fabricated data, verify a passive no-I/O policy, and preserve legacy ownership. Browser tests cover malformed routes, state/lazy bypasses, network/DOM omission, and accessible mode order. Existing Games, Bots, Coach, PostGame, Mentor, FICS, product-boundary, beta-entry, route, lazy-loader, and Worker suites remain regression authorities.
 
 Season 11.7.1 accepts policy enforcement only. Native multiplayer remains unimplemented, Players remains blocked, and public activation remains prohibited. Public presentation work is deferred to Season 11.7.2.
+
+## Season 11.7.2 presentation decision
+
+[`PlayV2PlayersPresentationPolicy@1.0.0`](./PLAY_V2_PLAYERS_PRESENTATION_POLICY.md) formally omits Players from the initial beta: no enabled or disabled tab, card, route, panel, lobby, accessible copy, layout slot, fallback, or analytics event. “Coming Soon” remains separately approval-gated and is not displayed. All native capability gates remain missing.

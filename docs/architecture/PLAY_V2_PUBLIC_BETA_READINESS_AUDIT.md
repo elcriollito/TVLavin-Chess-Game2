@@ -283,3 +283,7 @@ Clean PostGame exits are locally certified by `PlayV2PostGameExitPolicy@1.0.0`. 
 ## Hotfix 11.6.2.1 update
 
 Mentor Review now has automation-backed zero-overflow reflow at 320, 360, 390, 768, and 1440 CSS pixels and at 200% zoom in Chromium and WebKit. The fix replaces clipped content-box board overflow with intrinsic shrink-safe sizing and makes workspace activation deterministic before measurement. All review controls and behavior remain present. This does not close physical-device or named-screen-reader gates and does not advance public readiness.
+
+## Season 11.7.2 update
+
+[`PlayV2PlayersPresentationPolicy@1.0.0`](./PLAY_V2_PLAYERS_PRESENTATION_POLICY.md) certifies the honest initial-beta state: Players is completely omitted rather than disabled, promoted, fabricated, or handed to FICS/Legacy Play. The generated entry removes inherited Classic/FICS navigation and homepage promotion metadata; compatibility-required legacy roots remain explicitly hidden, inert, aria-hidden, resource-free, and unreachable while source owners remain unchanged. Routes, state, resources, accessible navigation, and layout fail closed. Native infrastructure, product approval for any future presentation, physical-device/named-screen-reader validation, and public exposure remain open gates.

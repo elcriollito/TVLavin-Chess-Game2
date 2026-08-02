@@ -4,86 +4,44 @@
     <base href="/">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- CSP: FICS WebSocket - local dev and the dedicated production WSS gateway only -->
+
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com; script-src-elem 'self' https://*.clarity.ms https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https://img.clerk.com https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self'; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://checkout.stripe.com https://js.stripe.com;">
 
     <!-- Primary Meta Tags -->
-    <title>CAISSA Chess – Play Online, Stockfish Analysis & Training</title>
-    <meta name="title" content="CAISSA Chess – Play Online, Stockfish Analysis & Training">
-    <meta name="description" content="Play chess online, connect to FICS, analyze games with Stockfish AI, replay PGNs, explore opening lines, and enjoy the Yahoo Chess Classic experience—all in one free chess platform.">
-    <link rel="canonical" href="https://www.caissa-chess.org/" />
+    <title>CAISSA Play v2 · Internal</title>
+    <meta name="title" content="CAISSA Play v2 · Internal">
+    <meta name="description" content="Internal CAISSA-native chess play preview.">
+    <link rel="canonical" href="/play/beta">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.caissa-chess.org/">
-    <meta property="og:title" content="CAISSA Chess – Play Online, Stockfish Analysis & Training">
-    <meta property="og:description" content="Play chess online, connect to FICS, analyze games with Stockfish AI, replay PGNs, explore opening lines, and enjoy the Yahoo Chess Classic experience—all in one free chess platform.">
+
+
     <meta property="og:image" content="https://www.caissa-chess.org/og-image.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:type" content="image/png">
-    <meta property="og:image:alt" content="CAISSA Chess online platform showing chess play, AI analysis, Stockfish tools, and Yahoo Chess Classic.">
+    <meta name="image:alt" content="CAISSA internal chess play preview.">
     <meta property="og:site_name" content="CAISSA Chess">
     <meta property="og:locale" content="en_US">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://www.caissa-chess.org/">
-    <meta name="twitter:title" content="CAISSA Chess – Play Online, Stockfish Analysis & Training">
-    <meta name="twitter:description" content="Play chess online, connect to FICS, analyze games with Stockfish AI, replay PGNs, explore opening lines, and enjoy the Yahoo Chess Classic experience—all in one free chess platform.">
+
+
     <meta name="twitter:image" content="https://www.caissa-chess.org/og-image.png">
-    <meta name="twitter:image:alt" content="CAISSA Chess online platform showing chess play, AI analysis, Stockfish tools, and Yahoo Chess Classic.">
+    <meta name="image:alt" content="CAISSA internal chess play preview.">
 
     <!-- Additional Meta Tags -->
-    <meta name="robots" content="index, follow">
+    <meta name="robots" content="noindex, nofollow">
     <meta name="language" content="English">
     <meta name="author" content="CAISSA Chess">
     <meta name="application-name" content="CAISSA Chess">
     <meta name="theme-color" content="#0b0f1a">
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "CAISSA Chess",
-      "url": "https://www.caissa-chess.org/",
-      "image": "https://www.caissa-chess.org/og-image.png",
-      "description": "Play chess online, connect to FICS, analyze games with Stockfish AI, replay PGNs, explore opening lines, and enjoy the Yahoo Chess Classic experience—all in one free chess platform.",
-      "applicationCategory": "GameApplication",
-      "operatingSystem": "Web",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      },
-      "featureList": [
-        "Play chess online",
-        "Connect to FICS",
-        "Analyze games with Stockfish AI",
-        "Replay PGN games",
-        "Explore opening lines",
-        "Yahoo Chess Classic experience"
-      ],
-      "publisher": {
-        "@type": "Organization",
-        "name": "CAISSA Chess",
-        "url": "https://www.caissa-chess.org/"
-      }
-    }
-    </script>
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "CAISSA Chess",
-      "url": "https://www.caissa-chess.org/",
-      "logo": "https://www.caissa-chess.org/favicon-512.png",
-      "image": "https://www.caissa-chess.org/og-image.png",
-      "sameAs": [
-        "https://www.facebook.com/CaissaChessOrg/",
-        "https://www.youtube.com/@CaissaChessOrg"
-      ]
-    }
-    </script>
+
+
 
     <!-- Favicon and App Icons (v4 for cache busting - new design from favicon_io) -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico?v=4">
@@ -203,10 +161,7 @@
             </div>
 
             <div class="nav-items" data-caissa-primary-groups data-navigation-mode="application" data-include-connect>
-                <button class="nav-item active" data-section="yahooClassic" aria-label="CAISSA Classic retro chess lounge">
-                    <i class="fas fa-window-restore"></i>
-                    <span class="nav-label">CAISSA Classic</span>
-                </button>
+
 
                 <button class="nav-item" data-section="play" aria-label="Play section">
                     <i class="fas fa-play-circle"></i>
@@ -221,20 +176,12 @@
                     <span class="nav-label">Insights</span>
                 </button>
 
-                <button class="nav-item" data-section="fics" aria-label="Play on FICS">
-                    <i class="fas fa-globe"></i>
-                    <span class="nav-label">FICS</span>
-                </button>
 
                 <button class="nav-item" data-section="analyze" aria-label="Analyze section">
                     <i class="fas fa-chart-line"></i>
                     <span class="nav-label">Analyze</span>
                 </button>
 
-                <button class="nav-item" data-section="spectator" aria-label="Spectator TV">
-                    <i class="fas fa-tv"></i>
-                    <span class="nav-label">Spectator TV</span>
-                </button>
 
                 <button class="nav-item" data-section="arena" aria-label="Arena section">
                     <i class="fas fa-robot"></i>
@@ -1512,7 +1459,7 @@
             </section>
 
             <!-- SECTION: CAISSA Classic (retro internet chess lounge) -->
-            <section id="yahooClassicSection" class="content-section active">
+            <section id="yahooClassicSection" class="content-section" hidden inert aria-hidden="true">
                 <div class="yc-page" aria-labelledby="ycPageTitle">
                     <div class="yc-shell" role="application" aria-label="CAISSA Classic retro chess lounge">
                         <header class="yc-header">
@@ -1783,7 +1730,7 @@
 
 
             <!-- SECTION: Spectator TV -->
-            <section id="spectatorSection" class="content-section">
+            <section id="spectatorSection" class="content-section" hidden inert aria-hidden="true">
                 <div class="spectator-layout">
                     <div class="spectator-header">
                         <div>
@@ -1941,7 +1888,7 @@
             </section>
 
             <!-- SECTION: FICS (Free Internet Chess Server) -->
-            <section id="ficsSection" class="content-section">
+            <section id="ficsSection" class="content-section" hidden inert aria-hidden="true">
                 <div class="fics-layout">
                     <!-- Header -->
                     <div class="fics-header">
@@ -3110,6 +3057,7 @@
     <script src="js/play/analytics/play-analytics-governance.js?v=1.0.0"></script>
     <script src="js/play/play-v2-fics-isolation.js?v=1.0.0"></script>
     <script src="js/play/play-v2-native-players-policy.js?v=1.0.0"></script>
+    <script src="js/play/play-v2-players-presentation-policy.js?v=1.0.0"></script>
     <script src="js/play/play-v2-coach-boundary.js?v=1.0.0"></script>
     <script src="js/play/play-v2-mentor-review-boundary.js?v=1.0.0"></script>
     <script src="js/play/play-v2-post-game-exit-policy.js?v=1.0.0"></script>
