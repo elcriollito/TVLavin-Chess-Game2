@@ -1,5 +1,7 @@
 # Play v2 Optional Mentor Review Certification
 
+> Season 11.6.3 addendum: the Mentor transition is inventoried by `PlayV2PostGameExitPolicy@1.0.0`; concurrent activation is rejected, cleanup precedes entry, and a consumed session cannot recreate or switch the completed record.
+
 Season 11.6.2 adds an optional, secondary `Review with Mentor` action after a finalized game. `PlayV2MentorReviewBoundary@1.0.0` remains QA-only and `publicReady: false`.
 
 ## Current Mentor audit and isolation

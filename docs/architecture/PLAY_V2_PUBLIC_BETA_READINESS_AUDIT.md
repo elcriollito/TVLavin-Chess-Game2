@@ -272,3 +272,6 @@ Rollback is deterministic: remove or change the exact internal stage value. This
 ## Season 11.6.2 update
 
 Optional review-only Mentor is locally QA-certified behind the existing Play v2 gate. It remains `publicReady: false`; human copy review, WebKit automation, physical-device, and named-screen-reader validation remain gates. No production route or navigation changed.
+## Season 11.6.3 update
+
+Clean PostGame exits are locally certified by `PlayV2PostGameExitPolicy@1.0.0`. This adds no routes, recommendations, public navigation, or fallback and does not change the existing public-readiness gates.

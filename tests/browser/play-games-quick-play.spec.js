@@ -75,6 +75,7 @@ test('PGN actions share the finalized record and local save remains consent cont
     await page.goto('/play/games?simplified=1'); await page.locator('[data-games-primary]').click(); await page.evaluate(()=>{window.confirm=()=>true;window.resignGame();
         window.__copiedPgn=null; navigator.clipboard.writeText=async value=>{window.__copiedPgn=value;}; });
     await page.locator('[data-post-game-action="copy-pgn"]').click(); await expect(page.locator('[data-post-game-feedback]')).toHaveText('PGN copied.');
+    await expect(page.locator('[data-post-game-action="download-pgn"]')).toBeEnabled();
     expect(await page.evaluate(()=>window.__copiedPgn)).toContain('[Result "0-1"]');
     await page.evaluate(()=>{window.__download={clicked:false,revoked:null};URL.createObjectURL=()=> 'blob:caissa-test';URL.revokeObjectURL=value=>{window.__download.revoked=value;};
         HTMLAnchorElement.prototype.click=function(){window.__download.clicked=true;window.__download.name=this.download;};});

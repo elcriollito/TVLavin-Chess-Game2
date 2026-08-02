@@ -505,6 +505,8 @@ body.caissa-simplified-play-active .caissa-post-game__action {
     padding: 8px 10px;
     border: 1px solid var(--panel-border);
     border-radius: 9px;
+    background: #202a38;
+    color: #fff;
     overflow-wrap: anywhere;
 }
 
@@ -528,7 +530,7 @@ body.caissa-simplified-play-active .caissa-post-game__action--mentor {
 }
 
 body.caissa-simplified-play-active .caissa-post-game__action--pgn {
-    color: var(--muted);
+    color: var(--text-primary, #fff);
 }
 
 body.caissa-simplified-play-active .caissa-post-game__consent {

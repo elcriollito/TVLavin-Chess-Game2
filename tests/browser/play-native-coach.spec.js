@@ -31,7 +31,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(page.locator('[data-post-game-result]')).toHaveText('You Lost'); await expect(page.locator('[data-post-game-reason]')).toHaveText('By Resignation');
     await expect(page.locator('[data-post-game-summary]')).toContainText('CAISSA Coach');
     expect((await page.evaluate(() => window.CaissaSimplifiedPlayShellInstance.getSnapshot().coachPanel.assistance)).active).toBeNull();
-    await expect(page.locator('.caissa-post-game')).not.toContainText(/lesson|academy|curriculum|mastery|mentor|knowledge/i);
+    await expect(page.locator('.caissa-post-game')).not.toContainText(/lesson|academy|curriculum|mastery|knowledge/i);
     await expect(page.locator('[data-post-game-action="analyze"]')).toBeVisible();
 });
 

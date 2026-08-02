@@ -23,7 +23,7 @@
 
     class PostGameCore {
         #id = `play-v2-post-game-${++sequence}`; #root = null; #record = null; #visible = false;
-        #disposed = false; #listeners = []; #feedback = ''; #consent = 'unknown'; #saved = false; #configuration = null; #reviewLaunching = false;
+        #disposed = false; #listeners = []; #feedback = ''; #consent = 'unknown'; #saved = false; #configuration = null; #reviewLaunching = false; #busyAction = null;
         #compatibility; #records; #persistence; #handoff; #navigation; #onVisibilityChange; #onNewGame;
         #clipboard; #url; #Blob;
         #diagnostics = { hydrations: 0, displays: 0, actions: 0, rematches: 0, newGames: 0,
@@ -110,8 +110,12 @@
             this.#onVisibilityChange?.(true); this.#render(); this.#root.querySelector('[data-post-game-result]')?.focus?.(); return outcome(true, 'accepted', 'SHOWN'); }
         hide() { this.#visible = false; if (this.#root) this.#root.hidden = true; this.#onVisibilityChange?.(false); return outcome(true, 'accepted', 'HIDDEN'); }
         execute(action) {
+            if (this.#busyAction) return outcome(false, 'rejected', 'ACTION_BUSY');
             if (!ACTIONS.includes(action) || !this.#actions()[action]?.enabled) return outcome(false, 'unavailable', 'ACTION_UNAVAILABLE');
             root.CaissaPlayV2ProductBoundary?.requireAllowed?.({ type: 'action', value: action });
+            const authorized = root.CaissaPlayV2PostGameExitPolicy?.authorize?.(action, this.#record);
+            if (authorized && !authorized.ok) return outcome(false, 'rejected', authorized.reasonCode);
+            this.#busyAction = action; this.#render();
             this.#diagnostics.actions += 1;
             try {
                 let operation = null;
@@ -130,6 +134,8 @@
         copyPgn() { return this.execute('copy-pgn'); } downloadPgn() { return this.execute('download-pgn'); }
         saveGame() { return this.execute('save-game'); } startNewGame() { return this.execute('new-game'); }
         #start(action) {
+            const prepared = root.CaissaPlayV2PostGameExitPolicy?.prepare?.(action, this.#record);
+            if (prepared && !prepared.ok) return outcome(false, 'failed', prepared.reasonCode);
             if (action === 'new-game') {
                 root.CaissaClockService?.stop?.('new-game-setup');
                 root.CaissaEngineRequestIsolation?.createSession?.();
@@ -160,6 +166,8 @@
                     .then(() => this.#analyze()).catch(() => outcome(false, 'failed', 'ACTION_FAILED'));
             }
             if (!this.#handoff?.createFromPlay) return outcome(false, 'unavailable', 'ACTION_UNAVAILABLE');
+            const prepared = root.CaissaPlayV2PostGameExitPolicy?.prepare?.('analyze', this.#record);
+            if (prepared && !prepared.ok) return outcome(false, 'failed', prepared.reasonCode);
             root.CaissaClockService?.stop?.('analyze'); root.CaissaEngineRequestIsolation?.cancelSession?.();
             const worker = root.CaissaPlayV2BotWorkerReadiness?.getSnapshot?.();
             if (worker && ['initializing', 'ready', 'playing'].includes(worker.state)) root.CaissaPlayV2BotWorkerReadiness.teardown('analyze');
@@ -177,6 +185,8 @@
             }
             if (!root.CaissaNativeMentorReviewHandoff?.create || !root.CaissaNativeMentorReviewWorkspace?.open)
                 return outcome(false, 'unavailable', 'ACTION_UNAVAILABLE');
+            const prepared = root.CaissaPlayV2PostGameExitPolicy?.prepare?.('mentor-review', this.#record);
+            if (prepared && !prepared.ok) return outcome(false, 'failed', prepared.reasonCode);
             const handoff = root.CaissaNativeMentorReviewHandoff.create(this.#record); if (!handoff.ok) return outcome(false, 'failed', handoff.reasonCode);
             const opened = root.CaissaNativeMentorReviewWorkspace.open({ token: handoff.value.token });
             if (!opened.ok) { root.CaissaNativeMentorReviewHandoff.consume(handoff.value.token); return outcome(false, 'failed', opened.reasonCode); }
@@ -198,10 +208,12 @@
             this.#saved = true; this.#diagnostics.saves += 1; this.#feedback = 'Game saved.'; this.#render(); return outcome(true, 'accepted', 'GAME_SAVED');
         }
         #finish(operation, action) {
+            this.#busyAction = null;
             if (!operation?.ok) { this.#diagnostics.failures += 1; this.#feedback = action === 'copy-pgn'
                 ? 'PGN could not be copied. You can try again.' : 'That action could not be completed. You can try again.';
                 this.#render(); this.#root?.querySelector(`[data-post-game-action="${action}"]`)?.focus?.(); }
             else if (operation.reasonCode === 'PGN_DOWNLOADED') { this.#feedback = 'PGN downloaded.'; this.#render(); }
+            this.#render();
             return operation;
         }
         #actions() {
@@ -226,8 +238,9 @@
                 entries.forEach(([term, value]) => { const dt = element('dt', ''); dt.textContent = term; const dd = element('dd', ''); dd.textContent = value; summary.append(dt, dd); });
             }
             const actions = this.#actions(); this.#root.querySelectorAll('[data-post-game-action]').forEach(button => {
-                const enabled = actions[button.dataset.postGameAction]?.enabled === true; button.disabled = !enabled; button.setAttribute('aria-disabled', String(!enabled));
+                const enabled = actions[button.dataset.postGameAction]?.enabled === true && !this.#busyAction; button.disabled = !enabled; button.setAttribute('aria-disabled', String(!enabled));
             });
+            this.#root.setAttribute('aria-busy', String(!!this.#busyAction));
             const consent = this.#root.querySelector('[data-post-game-consent]'); consent.checked = this.#consent === 'granted';
             this.#root.querySelector('[data-post-game-feedback]').textContent = this.#feedback;
         }
@@ -237,7 +250,7 @@
                 winner: this.#record.result.winner, termination: this.#record.result.termination, complete: true }
                 : { type: 'unknown', value: null, winner: null, termination: null, complete: false },
             actions: this.#actions(), persistence: { consent: this.#consent, saved: this.#saved },
-            trainingMemoryWrites: 0, masteryWrites: 0, listenerCount: this.#listeners.length,
+            trainingMemoryWrites: 0, masteryWrites: 0, listenerCount: this.#listeners.length, busyAction: this.#busyAction,
             diagnostics: { ...this.#diagnostics } }); }
         inspect() { return this.getSnapshot(); }
         dispose() { if (this.#disposed) return outcome(true, 'unchanged', 'DISPOSED'); this.hide();
