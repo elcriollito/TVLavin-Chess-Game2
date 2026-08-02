@@ -12,6 +12,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = 8000;
+const HOST = process.env.CAISSA_SERVER_HOST || '127.0.0.1';
 const PLAY_V2_CSP = "worker-src 'self'; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev; object-src 'none'; base-uri 'self'";
 
 const MIME_TYPES = {
@@ -475,13 +476,12 @@ const server = http.createServer(async (req, res) => {
   });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, HOST, () => {
   console.log('========================================');
   console.log('  TVLavin Chess - Server Running!');
   console.log('========================================');
   console.log('');
-  console.log(`  Local: http://localhost:${PORT}`);
-  console.log(`  Network: http://127.0.0.1:${PORT}`);
+  console.log(`  Bound: http://${HOST}:${PORT}`);
   console.log('');
   console.log('  Press Ctrl+C to stop the server');
   console.log('========================================');

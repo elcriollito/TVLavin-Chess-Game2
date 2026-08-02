@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "PlayV2PhysicalDeviceQAEvidence@1.0.0",
+  "title": "CAISSA Play v2 physical-device QA evidence",
+  "description": "Schema only. A human tester creates an evidence instance; this file contains no device result.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "session", "results", "issues", "certification"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sessionId", "testerId", "startedAt", "device", "browser", "viewport", "orientation", "networkContext", "build", "gateStage"],
+      "properties": {
+        "sessionId": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "testerId": { "type": "string", "minLength": 1, "maxLength": 80, "description": "Name or neutral tester identifier; never a device identifier." },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "device": {
+          "type": "object", "additionalProperties": false,
+          "required": ["manufacturer", "model", "physicalDeviceConfirmed", "osName", "osVersion"],
+          "properties": {
+            "manufacturer": { "type": "string", "minLength": 1, "maxLength": 80 },
+            "model": { "type": "string", "minLength": 1, "maxLength": 120 },
+            "physicalDeviceConfirmed": { "const": true },
+            "osName": { "type": "string", "minLength": 1, "maxLength": 80 },
+            "osVersion": { "type": "string", "minLength": 1, "maxLength": 80 }
+          }
+        },
+        "browser": {
+          "type": "object", "additionalProperties": false, "required": ["name", "version"],
+          "properties": { "name": { "type": "string", "minLength": 1, "maxLength": 80 }, "version": { "type": "string", "minLength": 1, "maxLength": 80 } }
+        },
+        "viewport": {
+          "type": "object", "additionalProperties": false, "required": ["cssWidth", "cssHeight", "devicePixelRatio"],
+          "properties": {
+            "cssWidth": { "type": "integer", "minimum": 240, "maximum": 5000 },
+            "cssHeight": { "type": "integer", "minimum": 240, "maximum": 5000 },
+            "devicePixelRatio": { "type": ["number", "null"], "exclusiveMinimum": 0, "maximum": 10, "description": "Null when not observable." }
+          }
+        },
+        "orientation": { "enum": ["portrait", "landscape", "split-view"] },
+        "networkContext": { "enum": ["private-lan-https", "usb-forwarded-loopback"] },
+        "build": {
+          "type": "object", "additionalProperties": false, "required": ["commit", "artifactSha256"],
+          "properties": {
+            "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+            "artifactSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+          }
+        },
+        "gateStage": { "const": "internal" }
+      }
+    },
+    "results": {
+      "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/result" }
+    },
+    "issues": {
+      "type": "array", "items": { "$ref": "#/$defs/issue" }
+    },
+    "certification": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "reviewerId", "reviewedAt", "blockingIssueIds"],
+      "properties": {
+        "status": { "enum": ["not-reviewed", "blocked", "passed"] },
+        "reviewerId": { "type": ["string", "null"], "maxLength": 80 },
+        "reviewedAt": { "type": ["string", "null"], "format": "date-time" },
+        "blockingIssueIds": { "type": "array", "items": { "type": "string", "maxLength": 80 }, "uniqueItems": true }
+      }
+    }
+  },
+  "$defs": {
+    "result": {
+      "type": "object", "additionalProperties": false,
+      "required": ["testCaseId", "status", "observedBehavior", "expectedBehavior", "evidenceFiles", "issueSeverity", "reproductionSteps", "retestStatus"],
+      "properties": {
+        "testCaseId": { "type": "string", "pattern": "^(IOS|AND|TAB|MODE|SEC)-[0-9]{3}$" },
+        "status": { "enum": ["pass", "fail", "blocked"] },
+        "observedBehavior": { "type": "string", "minLength": 1, "maxLength": 4000 },
+        "expectedBehavior": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "evidenceFiles": { "type": "array", "items": { "type": "string", "pattern": "^[^/\\]+\\.(png|jpg|jpeg|webp|mov|mp4)$" }, "uniqueItems": true },
+        "issueSeverity": { "enum": ["none", "P0", "P1", "P2", "P3"] },
+        "reproductionSteps": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 500 } },
+        "retestStatus": { "enum": ["not-required", "pending", "pass", "fail"] }
+      }
+    },
+    "issue": {
+      "type": "object", "additionalProperties": false,
+      "required": ["issueId", "testCaseIds", "severity", "summary", "reproductionSteps", "expectedBehavior", "observedBehavior", "evidenceFiles", "status"],
+      "properties": {
+        "issueId": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "testCaseIds": { "type": "array", "minItems": 1, "items": { "type": "string" }, "uniqueItems": true },
+        "severity": { "enum": ["P0", "P1", "P2", "P3"] },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "reproductionSteps": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1, "maxLength": 500 } },
+        "expectedBehavior": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "observedBehavior": { "type": "string", "minLength": 1, "maxLength": 4000 },
+        "evidenceFiles": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "status": { "enum": ["open", "fix-ready", "retest-pending", "closed", "accepted-limitation"] }
+      }
+    }
+  },
+  "examples": []
+}

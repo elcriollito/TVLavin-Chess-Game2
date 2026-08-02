@@ -287,3 +287,11 @@ Mentor Review now has automation-backed zero-overflow reflow at 320, 360, 390, 7
 ## Season 11.7.2 update
 
 [`PlayV2PlayersPresentationPolicy@1.0.0`](./PLAY_V2_PLAYERS_PRESENTATION_POLICY.md) certifies the honest initial-beta state: Players is completely omitted rather than disabled, promoted, fabricated, or handed to FICS/Legacy Play. The generated entry removes inherited Classic/FICS navigation and homepage promotion metadata; compatibility-required legacy roots remain explicitly hidden, inert, aria-hidden, resource-free, and unreachable while source owners remain unchanged. Routes, state, resources, accessible navigation, and layout fail closed. Native infrastructure, product approval for any future presentation, physical-device/named-screen-reader validation, and public exposure remain open gates.
+
+## Season 11.8.0 physical-device QA preparation update
+
+[`PlayV2PhysicalDeviceQAPlan@1.0.0`](./PLAY_V2_PHYSICAL_DEVICE_QA_PLAN.md) defines a secure, reproducible manual matrix for iPhone Safari, Android Chrome, and tablet portrait/landscape. The versioned evidence schema and issue template require exact build attribution, real-device confirmation, observed behavior, sanitized evidence references, severity, reproduction, and retest disposition. They contain no fabricated device results.
+
+The local server now binds to loopback by default. The documented device architecture keeps CAISSA on loopback behind a user-provisioned private-LAN HTTPS reverse proxy with a trusted local certificate, private name resolution, and narrowly approved firewall access. No server, proxy, public tunnel, firewall rule, certificate, DNS mapping, analytics transport, deployment, or production gate was started or changed by this preparation.
+
+**Season 11.8.0 prepares QA; it does not certify a physical device.** Physical-device execution, named assistive-technology validation, evidence review, and public-beta authorization remain open gates. Play v2 remains internal-only and not publicly ready.
