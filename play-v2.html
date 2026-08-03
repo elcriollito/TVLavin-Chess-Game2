@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com; script-src-elem 'self' https://*.clarity.ms https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https://img.clerk.com https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self'; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://checkout.stripe.com https://js.stripe.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; script-src-elem 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'self';">
 
     <!-- Primary Meta Tags -->
     <title>CAISSA Play v2 · Internal</title>
@@ -15,23 +15,23 @@
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://www.caissa-chess.org/">
 
 
-    <meta property="og:image" content="https://www.caissa-chess.org/og-image.png">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:image:type" content="image/png">
-    <meta name="image:alt" content="CAISSA internal chess play preview.">
+
+
+
+
+
+
     <meta property="og:site_name" content="CAISSA Chess">
     <meta property="og:locale" content="en_US">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://www.caissa-chess.org/">
 
 
-    <meta name="twitter:image" content="https://www.caissa-chess.org/og-image.png">
+
+
     <meta name="image:alt" content="CAISSA internal chess play preview.">
 
     <!-- Additional Meta Tags -->
@@ -56,7 +56,7 @@
 
     <!-- Stylesheets -->
     <link rel="stylesheet" href="./assets/css/chessboard-1.0.0.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="styles.css?v=2.0.16">
     <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.6.0">
     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
@@ -3044,9 +3044,9 @@
     </div>
 
     <!-- Scripts -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="/assets/vendor/jquery/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script src="/assets/vendor/chess.js/chess-0.10.3.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="/assets/vendor/chessboard.js/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="polyglot-book.js?v=2.0.1"></script>
     <script src="js/play/engine/worker-lifecycle-contracts.js?v=1.0.0"></script>
     <script src="js/play/engine/worker-fallback-policy.js?v=1.0.0"></script>

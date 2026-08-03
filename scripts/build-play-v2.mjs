@@ -25,11 +25,14 @@ for (const pattern of forbiddenElements) html = html.replace(pattern, '\n');
 html = html
   .replace(/\s*<script type="application\/ld\+json">[\s\S]*?<\/script>/gi, '\n')
   .replace(/\s*<!-- CSP: FICS WebSocket[^>]*-->/i, '\n')
+  .replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/i,
+    '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; script-src-elem \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data:; font-src \'self\'; worker-src \'self\'; connect-src \'self\'; frame-src \'self\'; object-src \'none\'; base-uri \'self\';">')
   .replace(/<title>[\s\S]*?<\/title>/i, '<title>CAISSA Play v2 · Internal</title>')
   .replace(/<meta name="title"[^>]*>/i, '<meta name="title" content="CAISSA Play v2 · Internal">')
   .replace(/<meta name="description"[^>]*>/i, '<meta name="description" content="Internal CAISSA-native chess play preview.">')
   .replace(/<meta property="og:(?:title|description)"[^>]*>/gi, '')
   .replace(/<meta name="twitter:(?:title|description)"[^>]*>/gi, '')
+  .replace(/<meta (?:property="og:(?:url|image(?::[^" ]+)?)"|name="twitter:(?:url|image)")[^>]*>/gi, '')
   .replace(/<meta (?:property="og:image:alt"|name="twitter:image:alt")[^>]*>/gi,
     '<meta name="image:alt" content="CAISSA internal chess play preview.">')
   .replace(/<meta name="robots"[^>]*>/i, '<meta name="robots" content="noindex, nofollow">')
@@ -55,6 +58,14 @@ html = html
   .replace(" https://challenges.cloudflare.com blob:; style-src", " https://challenges.cloudflare.com; style-src")
   .replace("worker-src 'self' blob:", "worker-src 'self'")
   .replace(/connect-src 'self'[^;]+;/, "connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev;")
+  .replace('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+    '/assets/vendor/font-awesome/css/all-6.4.0.min.css')
+  .replace('https://code.jquery.com/jquery-3.6.0.min.js',
+    '/assets/vendor/jquery/jquery-3.6.0.min.js')
+  .replace('https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js',
+    '/assets/vendor/chess.js/chess-0.10.3.min.js')
+  .replace('https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js',
+    '/assets/vendor/chessboard.js/chessboard-1.0.0.min.js')
   .replace(
     '    <script src="js/play/play-route-controller.js?v=1.1.0"></script>',
     '    <script src="js/play/play-v2-fics-isolation.js?v=1.0.0"></script>\n' +
@@ -109,6 +120,10 @@ for (const legacyId of ['yahooClassicSection', 'ficsSection', 'spectatorSection'
     throw new Error(`PLAY_V2_LEGACY_PRESENTATION_NOT_INERT: ${legacyId}`);
 }
 if (/caissa-onboarding/i.test(resourceElements.join('\n'))) throw new Error('PROHIBITED_PLAY_V2_ONBOARDING_RESOURCE');
+if (resourceElements.some(element => /(?:src|href)=["']https?:\/\//i.test(element)))
+  throw new Error('PROHIBITED_PLAY_V2_EXTERNAL_STATIC_RESOURCE');
+if (!/connect-src 'self';/.test(html) || /connect-src[^;]*https?:/.test(html))
+  throw new Error('PLAY_V2_CONNECT_CSP_NOT_SAME_ORIGIN');
 
 await writeFile(outputPath, html);
 console.log('Generated play-v2.html from index.html');

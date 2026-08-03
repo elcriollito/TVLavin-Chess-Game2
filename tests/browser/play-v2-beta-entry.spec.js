@@ -2,6 +2,60 @@ import { test, expect } from '@playwright/test';
 import { positions } from '../play/fixtures/positions.js';
 import { instrumentPlay, loadPosition, playMove } from '../play/playwright-helpers.js';
 
+test('internal beta loads every runtime resource from its own origin', async ({ page }) => {
+    const origins = new Set();
+    const vendorResponses = new Map();
+    const blockedAttempts = [];
+    await instrumentPlay(page);
+    await page.addInitScript(() => {
+        window.__caissaCspViolations = [];
+        document.addEventListener('securitypolicyviolation', event => {
+            window.__caissaCspViolations.push({ blockedURI: event.blockedURI, directive: event.effectiveDirective });
+        });
+    });
+    page.on('request', request => origins.add(new URL(request.url()).origin));
+    page.on('requestfailed', request => {
+        if (new URL(request.url()).origin !== new URL(page.url()).origin)
+            blockedAttempts.push(`${request.url()}: ${request.failure()?.errorText || 'failed'}`);
+    });
+    page.on('console', message => {
+        if (/content security policy|refused to (?:load|connect)/i.test(message.text())) blockedAttempts.push(message.text());
+    });
+    page.on('response', response => {
+        const url = new URL(response.url());
+        if (url.pathname.startsWith('/assets/vendor/')) vendorResponses.set(url.pathname, response.status());
+    });
+    await page.goto('/play/beta', { waitUntil: 'networkidle' });
+    const ownOrigin = new URL(page.url()).origin;
+    expect([...origins]).toEqual([ownOrigin]);
+    for (const path of [
+        '/assets/vendor/jquery/jquery-3.6.0.min.js',
+        '/assets/vendor/chess.js/chess-0.10.3.min.js',
+        '/assets/vendor/chessboard.js/chessboard-1.0.0.min.js',
+        '/assets/vendor/font-awesome/css/all-6.4.0.min.css',
+    ]) expect(vendorResponses.get(path), path).toBe(200);
+    await expect(page.locator('#chessboard .board-b72b1')).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Play Bots' }).click();
+    await expect(page.locator('.caissa-bots-panel')).toBeVisible();
+    await page.getByRole('tab', { name: 'Play Coach' }).click();
+    await expect(page.locator('[data-caissa-native-coach-panel]')).toBeVisible();
+    await page.getByRole('tab', { name: 'Play Game' }).click();
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await playMove(page, 'e2', 'e4');
+    page.once('dialog', dialog => dialog.accept());
+    await page.locator('[data-active-game-action="resign"]').click();
+    await page.locator('[data-post-game-action="mentor-review"]').click();
+    await expect(page.locator('[data-native-mentor-review]')).toBeVisible();
+    await page.getByRole('button', { name: 'Back to PostGame' }).click();
+    await page.locator('[data-post-game-action="analyze"]').click();
+    await expect(page.locator('#analyzeSection')).toHaveAttribute('aria-modal', 'true');
+
+    expect([...origins]).toEqual([ownOrigin]);
+    expect(blockedAttempts).toEqual([]);
+    expect(await page.evaluate(() => window.__caissaCspViolations)).toEqual([]);
+});
+
 test('authorized internal beta supports canonical Games, Bots, history, refresh, and one board', async ({ page }) => {
     await page.goto('/play/beta');
     await expect(page).toHaveTitle(/CAISSA/i);
