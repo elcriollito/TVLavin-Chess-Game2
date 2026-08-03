@@ -581,14 +581,14 @@
             return result(true, 'accepted', action === 'rematch' ? REASONS.REMATCH_STARTED : REASONS.NEW_GAME_STARTED);
         }
         #analyze() {
-            if (!this.#handoff?.createFromPlay) return result(false, 'unavailable', REASONS.ACTION_UNAVAILABLE);
+            if (!this.#handoff?.createFromCompletedPlayRecord) return result(false, 'unavailable', REASONS.ACTION_UNAVAILABLE);
             if (!global.AnalyzeSection?.onEnter && global.CaissaPlayLazyLoader?.load) {
                 return this.#loadThen('analyze-deep', () => !!global.AnalyzeSection?.onEnter,
                     () => this.#analyze(), 'Loading Analyze…', false);
             }
-            const before = this.#handoff.createFromPlay;
-            if (typeof before !== 'function') return result(false, 'unavailable', REASONS.ACTION_UNAVAILABLE);
-            const navigated = this.#navigation.navigateToSection('analyze');
+            const handoff = this.#handoff.createFromCompletedPlayRecord(this.#record);
+            if (!handoff?.ok) return result(false, 'failed', REASONS.ACTION_FAILED);
+            const navigated = this.#navigation.navigateToSection('analyze', { handoffToken: handoff.value.token });
             if (navigated === false) return result(false, 'failed', REASONS.ACTION_FAILED);
             this.#diagnostics.handoffs += 1;
             return result(true, 'accepted', REASONS.ANALYZE_OPENED);

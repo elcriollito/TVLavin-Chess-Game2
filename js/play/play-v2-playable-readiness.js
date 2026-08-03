@@ -71,7 +71,7 @@
             lifecycle: !!root.CaissaGameLifecycle && (!lifecycle || lifecycle.state === 'idle'),
             gameRecordOwner: typeof root.CaissaGameRecord?.buildFromPlay === 'function',
             postGameOwner: typeof root.CaissaPostGameExperience?.create === 'function',
-            analyzeHandoff: typeof root.CaissaAnalyzeHandoff?.createFromPlay === 'function',
+            analyzeHandoff: typeof root.CaissaAnalyzeHandoff?.createFromCompletedPlayRecord === 'function',
             primaryCTA: true,
             workerRequirement: true,
             fallback: true, ficsFallback: true, educationalFallback: true, playersFallback: true,

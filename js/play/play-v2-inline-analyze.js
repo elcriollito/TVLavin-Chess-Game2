@@ -50,7 +50,7 @@
         const section = root.document.getElementById('analyzeSection');
         if (!section || typeof root.AnalyzeSection?.onEnter !== 'function')
             return result(false, 'unavailable', 'ANALYZE_UNAVAILABLE');
-        const resolved = root.CaissaAnalyzeHandoff?.resolve?.(input.token);
+        const resolved = root.CaissaAnalyzeHandoff?.consume?.(input.token);
         if (!resolved?.ok) return result(false, 'rejected', 'INVALID_HANDOFF');
 
         const closeButton = root.document.createElement('button');

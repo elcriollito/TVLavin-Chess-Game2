@@ -2,6 +2,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
+import { Chess } from 'chess.js';
+class LegacyChess extends Chess {
+    load(fen) { try { super.load(fen); return true; } catch (_) { return false; } }
+    load_pgn(pgn) { try { this.loadPgn(pgn, { strict: false }); return true; } catch (_) { return false; } }
+}
 const source = fs.readFileSync(new URL('../../js/play/analyze-handoff.js', import.meta.url), 'utf8');
 function memoryStorage() {
     const data = new Map();
@@ -14,8 +19,8 @@ function memoryStorage() {
         data
     };
 }
-function fixture() {
-    const window = { sessionStorage: memoryStorage(), crypto: { randomUUID: () => '12345678-1234-1234-1234-123456789012' } };
+function fixture(overrides = {}) {
+    const window = { sessionStorage: memoryStorage(), crypto: { randomUUID: () => '12345678-1234-1234-1234-123456789012' }, ...overrides };
     vm.runInNewContext(source, { window, Object, JSON, Date, Number, Math });
     return window;
 }
@@ -74,6 +79,66 @@ test('cleanup is bounded and leaves unrelated session storage untouched', () => 
     const owned = [...storage.data.keys()].filter(key => key.startsWith(w.CaissaAnalyzeHandoff.keys.prefix));
     assert.ok(owned.length <= 5);
     assert.equal(storage.getItem('unrelated'), 'safe');
+});
+test('consumed handoff cannot be resolved or consumed twice', () => {
+    const w = fixture();
+    const created = w.CaissaAnalyzeHandoff.createTransport({
+        storage: w.sessionStorage, now: () => 1000, tokenFactory: () => 'consumed_token_123'
+    });
+    const handoff = created.create({ intent: 'analyze-game', payload: {} }).value;
+    created.store(handoff);
+    assert.equal(created.consume(handoff.token).status, 'consumed');
+    assert.equal(created.resolve(handoff.token).status, 'not-found');
+    assert.equal(created.consume(handoff.token).status, 'not-found');
+});
+
+function completedFixture() {
+    const game = new Chess(); game.move('e4');
+    const pgn = '[Result "0-1"]\n\n1. e4 0-1';
+    const record = {
+        schemaVersion: '1.0.0', status: 'completed', recordId: 'record-1', mode: 'games',
+        position: { initialFen: new Chess().fen(), finalFen: game.fen() },
+        moves: { count: 1 }, notation: { pgn }, player: { color: 'white' },
+        opponent: { type: 'engine', name: 'CAISSA Engine' }, coach: { enabled: false },
+        result: { complete: true, value: '0-1', termination: 'resignation' }
+    };
+    const w = fixture({ Chess: LegacyChess, CaissaGameRecord: { validate: () => ({ valid: true }) },
+        CaissaPlayCompatibility: { getSnapshot: () => ({ board: { orientation: 'white' }, schemaVersion: '1.2.0' }) } });
+    return { w, record };
+}
+
+test('completed record path requires final result, termination, moves and legal replay', () => {
+    const { w, record } = completedFixture();
+    assert.equal(w.CaissaAnalyzeHandoff.createFromCompletedPlayRecord(record).ok, true);
+    const rejected = [
+        { ...record, status: 'active' },
+        { ...record, result: { ...record.result, value: '*' } },
+        { ...record, result: { ...record.result, termination: null } },
+        { ...record, moves: { count: 0 } },
+        { ...record, notation: { pgn: 'malformed pgn' } },
+        { ...record, position: { ...record.position, finalFen: new Chess().fen() } },
+        { ...record, status: 'initialization-failed', result: { complete: false, value: null, termination: null } }
+    ];
+    for (const candidate of rejected)
+        assert.equal(w.CaissaAnalyzeHandoff.createFromCompletedPlayRecord(candidate).ok, false);
+});
+
+test('legacy active path is named, honest, replayable and context-gated', () => {
+    const active = new Chess(); active.move('e4');
+    const snapshot = { schemaVersion: '1.2.0', section: 'play', mounted: true, active: true,
+        mode: 'analysis', playerColor: 'white', position: { fen: active.fen(), pgn: '1. e4', moveCount: 1 },
+        board: { orientation: 'white' }, game: { active: true, result: null } };
+    const boundary = { getSnapshot: () => snapshot, isLegacyAnalyzeContext: () => true };
+    const w = fixture({ Chess: LegacyChess, CaissaPlayCompatibility: boundary });
+    const created = w.CaissaAnalyzeHandoff.createFromLegacyActivePlay();
+    assert.equal(created.ok, true);
+    assert.deepEqual(JSON.parse(JSON.stringify(created.value.payload)), {
+        recordId: null, initialFen: null, finalFen: active.fen(), pgn: '1. e4', selectedPly: 1,
+        playerColor: 'white', boardOrientation: 'white', result: null, termination: null,
+        whiteLabel: null, blackLabel: null, recordStatus: 'active', mode: 'analysis'
+    });
+    boundary.isLegacyAnalyzeContext = () => false;
+    assert.equal(w.CaissaAnalyzeHandoff.createFromLegacyActivePlay({ query: 'legacy', storage: true }).ok, false);
 });
 test('static guard excludes App, DOM, workers, timers, localStorage, engines, and lifecycle commands', () => {
     assert.doesNotMatch(source, /\bApp\b|document|new\s+Worker|setTimeout|setInterval|requestAnimationFrame|localStorage/);

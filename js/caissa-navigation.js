@@ -157,8 +157,8 @@ const CaissaNavigation = {
                 this.lastAnalyzeHandoffToken = options.handoffToken;
                 options.query = Object.assign({}, options.query, { handoff: options.handoffToken });
             } else {
-                const handoff = window.CaissaAnalyzeHandoff.createFromPlay();
-                if (!handoff.ok) {
+                const handoff = window.CaissaAnalyzeHandoff.createFromLegacyActivePlay?.();
+                if (!handoff?.ok) {
                     console.warn('[CAISSA Nav] Analyze handoff unavailable:', handoff.reasonCode);
                     return false;
                 }

@@ -73,10 +73,10 @@ function fixture({ consent = 'unknown' } = {}) {
             calls.commands.push([command, options]); return { ok: true, status: 'accepted' };
         }
     };
-    const handoff = { createFromPlay: () => { calls.handoffs += 1; return { ok: true, value: { token: 'opaque_token_123' } }; } };
-    const navigation = { navigateToSection: () => {
-        calls.navigation += 1; handoff.createFromPlay(); return true;
+    const handoff = { createFromCompletedPlayRecord: () => {
+        calls.handoffs += 1; return { ok: true, value: { token: 'opaque_token_123' } };
     } };
+    const navigation = { navigateToSection: () => { calls.navigation += 1; return true; } };
     const persistence = {
         getConsent: () => ({ ok: true, value: { state: consent } }),
         setConsent: state => ({ ok: true, value: { state } }),

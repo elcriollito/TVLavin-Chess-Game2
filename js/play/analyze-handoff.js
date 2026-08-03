@@ -141,7 +141,16 @@
                 return validate(parsed, now());
             } catch (_) { return result(false, 'unavailable', 'STORAGE_UNAVAILABLE'); }
         }
-        return freeze({ create, store, resolve, cleanup, validate: value => validate(value, now()) });
+        function consume(token = null) {
+            const resolved = resolve(token);
+            if (!resolved.ok) return resolved;
+            try {
+                storage.removeItem(key(resolved.value.token));
+                if (storage.getItem(ACTIVE_KEY) === resolved.value.token) storage.removeItem(ACTIVE_KEY);
+                return result(true, 'consumed', null, resolved.value);
+            } catch (_) { return result(false, 'unavailable', 'STORAGE_UNAVAILABLE'); }
+        }
+        return freeze({ create, store, resolve, consume, cleanup, validate: value => validate(value, now()) });
     }
     const transport = createTransport();
     function labelFor(record, color) {
@@ -154,12 +163,29 @@
             return /\bbot\b/i.test(record.opponent.name) ? record.opponent.name : `${record.opponent.name} Bot`;
         return record.opponent?.name || 'CAISSA Engine';
     }
-    function createFromRecord(record) {
+    function replayPgn(pgn, expectedMoves, expectedFen) {
+        if (typeof global.Chess !== 'function' || typeof pgn !== 'string' || !pgn.trim()) return false;
+        try {
+            const replay = new global.Chess();
+            if (!replay.load_pgn(pgn, { sloppy: false })) return false;
+            if (replay.history().length !== expectedMoves) return false;
+            return !expectedFen || replay.fen() === expectedFen;
+        } catch (_) { return false; }
+    }
+    function legalFen(fen) {
+        if (typeof global.Chess !== 'function' || typeof fen !== 'string') return false;
+        try { const game = new global.Chess(); return game.load(fen) === true; }
+        catch (_) { return false; }
+    }
+    function createFromCompletedPlayRecord(record) {
         const compatibility = global.CaissaPlayCompatibility?.getSnapshot?.();
         if (!compatibility || !record) return result(false, 'unavailable', 'PLAY_BOUNDARY_UNAVAILABLE');
         const checked = global.CaissaGameRecord?.validate?.(record);
+        const finalResult = ['1-0', '0-1', '1/2-1/2'].includes(record?.result?.value);
+        const termination = typeof record?.result?.termination === 'string' && !!record.result.termination.trim();
+        const replayable = replayPgn(record?.notation?.pgn, record?.moves?.count, record?.position?.finalFen);
         if (!checked?.valid || record.status !== 'completed' || record.result?.complete !== true
-            || !record.notation?.pgn || record.moves?.count < 1)
+            || !finalResult || !termination || record.moves?.count < 1 || !replayable)
             return result(false, 'invalid', 'INCOMPLETE_GAME_RECORD');
         const lifecycle = global.CaissaGameLifecycle?.getSnapshot?.();
         const clock = global.CaissaClockService?.getSnapshot?.();
@@ -193,18 +219,49 @@
         const stored = transport.store(created.value);
         return stored.ok ? result(true, 'ready', null, created.value) : stored;
     }
-    function createFromPlay() {
-        let record = null;
-        try { record = global.CaissaGameRecord?.buildFromPlay?.(); } catch (_) { record = null; }
-        return createFromRecord(record);
+    function createFromLegacyActivePlay() {
+        const boundary = global.CaissaPlayCompatibility;
+        if (boundary?.isLegacyAnalyzeContext?.() !== true)
+            return result(false, 'unavailable', 'LEGACY_ACTIVE_CONTEXT_REQUIRED');
+        const snapshot = boundary.getSnapshot?.();
+        if (!snapshot || snapshot.section !== 'play' || !snapshot.mounted || !snapshot.active
+            || snapshot.game?.active !== true || snapshot.game?.result
+            || !legalFen(snapshot.position?.fen))
+            return result(false, 'invalid', 'INVALID_ACTIVE_SNAPSHOT');
+        const moveCount = snapshot.position?.moveCount;
+        if (!Number.isSafeInteger(moveCount) || moveCount < 0) return result(false, 'invalid', 'INVALID_ACTIVE_SNAPSHOT');
+        const pgn = moveCount > 0 ? snapshot.position?.pgn : null;
+        if (moveCount > 0 && (!replayPgn(pgn, moveCount, snapshot.position.fen)
+            || /(?:1-0|0-1|1\/2-1\/2)\s*$/.test(pgn)))
+            return result(false, 'invalid', 'INVALID_ACTIVE_REPLAY');
+        const lifecycle = global.CaissaGameLifecycle?.getSnapshot?.();
+        const clock = global.CaissaClockService?.getSnapshot?.();
+        const created = transport.create({
+            intent: 'inspect-current-position', source: 'legacy-play',
+            payload: {
+                recordId: null, initialFen: null, finalFen: snapshot.position.fen,
+                pgn, selectedPly: moveCount, playerColor: snapshot.playerColor,
+                boardOrientation: snapshot.board?.orientation, result: null, termination: null,
+                whiteLabel: null, blackLabel: null, recordStatus: 'active', mode: snapshot.mode
+            },
+            provenance: {
+                sourceSection: 'play', compatibilitySchemaVersion: snapshot.schemaVersion,
+                lifecycleSessionId: lifecycle?.lifecycleSessionId ?? null,
+                clockSessionId: clock?.clockSessionId ?? null
+            }
+        });
+        if (!created.ok) return created;
+        const stored = transport.store(created.value);
+        return stored.ok ? result(true, 'ready', null, created.value) : stored;
     }
     global.CaissaAnalyzeHandoff = freeze({
         schemaVersion: VERSION, handoffSchemaVersion: VERSION,
         intents: INTENTS, ttlMs: TTL_MS, limits: freeze({ maxActive: MAX_ACTIVE, maxPgnLength: MAX_PGN }),
         keys: freeze({ prefix: PREFIX, active: ACTIVE_KEY }),
         createTransport, validate,
-        createFromPlay, createFromRecord,
+        createFromLegacyActivePlay, createFromCompletedPlayRecord,
         resolve: (...args) => transport.resolve(...args),
+        consume: (...args) => transport.consume(...args),
         cleanup: (...args) => transport.cleanup(...args)
     });
 })(window);

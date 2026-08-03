@@ -161,8 +161,18 @@ test('Analyze command uses a tokenized handoff and preserves Play state', async 
     const before = await page.evaluate(() => window.CaissaPlayCompatibility.getCurrentFen());
     const command = await page.evaluate(() => window.CaissaPlayCompatibility.execute('openAnalyze'));
     await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
+    await expect(page.locator('#analyzeSection')).toBeVisible();
+    await expect(page.locator('#analyzeSection')).not.toHaveClass(/caissa-play-v2-inline-analyze/);
     const after = await page.evaluate(() => window.CaissaPlayCompatibility.getCurrentFen());
+    const handoff = await page.evaluate(token => window.CaissaAnalyzeHandoff.resolve(token), command.value);
     expect(command).toMatchObject({ ok: true, status: 'accepted', reason: null });
     expect(command.value).toMatch(/^[A-Za-z0-9_-]{12,120}$/);
+    expect(handoff).toMatchObject({ ok: true, value: { intent: 'inspect-current-position', payload: {
+        recordId: null, result: null, termination: null, recordStatus: 'active'
+    } } });
     expect(after).toBe(before);
+    await page.evaluate(() => window.CaissaNavigation.navigateToSection('play'));
+    await expect(page.locator('#playSection')).toHaveClass(/active/);
+    expect(await page.evaluate(() => ({ active: window.App.gameActive,
+        fen: window.CaissaPlayCompatibility.getCurrentFen() }))).toEqual({ active: true, fen: before });
 });

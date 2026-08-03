@@ -34,6 +34,16 @@ test('query, fragment, and storage cannot admit prohibited modes or external res
     expect(urls.filter(url => /fics-client|fics-style|academy|coach-stack|mentor-(?!review-boundary)|guided[-_/]?replay|knowledge|training[-_/]?memory|mastery|players-stack/i.test(url)
         && !/play-v2-fics-isolation\.js/i.test(url))).toEqual([]);
     await expect(page.getByRole('tab', { name: /Mentor|Players/ })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await page.evaluate(() => history.replaceState({ legacy: true }, '', '/play/beta/games?legacy=1#openAnalyze'));
+    const legacyAttempt = await page.evaluate(() => window.CaissaAnalyzeHandoff.createFromLegacyActivePlay({
+        query: 'legacy', fragment: 'openAnalyze', storage: true, mode: 'analysis', retry: true
+    }));
+    expect(legacyAttempt).toMatchObject({ ok: false, reasonCode: 'LEGACY_ACTIVE_CONTEXT_REQUIRED' });
+    const completedAttempt = await page.evaluate(() => window.CaissaAnalyzeHandoff
+        .createFromCompletedPlayRecord(window.CaissaGameRecord.buildFromPlay()));
+    expect(completedAttempt).toMatchObject({ ok: false, reasonCode: 'INCOMPLETE_GAME_RECORD' });
+    await expect(page.locator('#analyzeSection')).not.toHaveClass(/active/);
 });
 
 test('prohibited and malformed beta descendants fail closed without Play runtime', async ({ page }) => {

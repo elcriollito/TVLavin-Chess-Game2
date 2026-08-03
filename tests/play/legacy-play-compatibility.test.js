@@ -83,9 +83,17 @@ test('public API is frozen, versioned, minimal, and supports stable repeated ins
             'commands', 'execute', 'getBoardOrientation', 'getClockSnapshot', 'getCurrentFen',
             'getCurrentPgn', 'getEvaluationSnapshot', 'getGameStatus', 'getMoveHistory',
             'getPendingPromotion', 'getSnapshot', 'getState', 'isAvailable', 'isGameActive',
-            'isPlayMounted', 'resultStatuses', 'schemaVersion'
+            'isLegacyAnalyzeContext', 'isPlayMounted', 'resultStatuses', 'schemaVersion'
         ].sort()
     );
+});
+
+test('legacy Analyze context fails closed for the Play v2 entry marker', () => {
+    const { api, window } = fixture();
+    window.document.body = { dataset: { caissaPlayV2Entry: 'qa-only' } };
+    assert.equal(api.isLegacyAnalyzeContext(), false);
+    window.document.body.dataset = {};
+    assert.equal(api.isLegacyAnalyzeContext(), true);
 });
 
 test('snapshot has deterministic JSON-safe shape without legacy object references', () => {

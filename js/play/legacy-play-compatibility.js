@@ -84,6 +84,13 @@
         return typeof active?.id === 'string' ? active.id.replace(/Section$/, '') : null;
     }
 
+    function isLegacyAnalyzeContext() {
+        const body = global.document?.body;
+        if (body?.dataset?.caissaPlayV2Entry === 'qa-only') return false;
+        const snapshot = getSnapshot();
+        return snapshot.section === 'play' && snapshot.mounted && snapshot.active && snapshot.game.active;
+    }
+
     function getSnapshot() {
         const source = app();
         const game = source?.game;
@@ -287,7 +294,7 @@
                     if (input !== undefined) return rejected(command, 'input-not-supported');
                     if (typeof global.CaissaNavigation?.navigateToSection !== 'function')
                         return unavailable(command, 'navigation-unavailable');
-                    const handoffFactory = global.CaissaAnalyzeHandoff?.createFromPlay;
+                    const handoffFactory = global.CaissaAnalyzeHandoff?.createFromLegacyActivePlay;
                     const handoff = typeof handoffFactory === 'function' ? handoffFactory() : null;
                     if (handoff && !handoff.ok) return unavailable(command, 'handoff-unavailable');
                     const navigated = global.CaissaNavigation.navigateToSection('analyze',
@@ -325,6 +332,7 @@
         getPendingPromotion: () => selector(snapshot => snapshot.game.pendingPromotion),
         isPlayMounted: () => selector(snapshot => snapshot.mounted),
         isGameActive: () => selector(snapshot => snapshot.game.active),
+        isLegacyAnalyzeContext,
         execute
     });
 

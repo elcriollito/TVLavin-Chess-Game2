@@ -165,15 +165,14 @@
                 return root.CaissaPlayLazyLoader.load('analyze-deep', { qa: false, retry: true })
                     .then(() => this.#analyze()).catch(() => outcome(false, 'failed', 'ACTION_FAILED'));
             }
-            if (!this.#handoff?.createFromPlay) return outcome(false, 'unavailable', 'ACTION_UNAVAILABLE');
+            if (!this.#handoff?.createFromCompletedPlayRecord) return outcome(false, 'unavailable', 'ACTION_UNAVAILABLE');
             const prepared = root.CaissaPlayV2PostGameExitPolicy?.prepare?.('analyze', this.#record);
             if (prepared && !prepared.ok) return outcome(false, 'failed', prepared.reasonCode);
             root.CaissaClockService?.stop?.('analyze'); root.CaissaEngineRequestIsolation?.cancelSession?.();
             const worker = root.CaissaPlayV2BotWorkerReadiness?.getSnapshot?.();
             if (worker && ['initializing', 'ready', 'playing'].includes(worker.state)) root.CaissaPlayV2BotWorkerReadiness.teardown('analyze');
             root.App?.engine?.terminate?.('post-game-analyze');
-            const handoff = this.#handoff.createFromRecord
-                ? this.#handoff.createFromRecord(this.#record) : this.#handoff.createFromPlay();
+            const handoff = this.#handoff.createFromCompletedPlayRecord(this.#record);
             if (!handoff?.ok) return outcome(false, 'failed', handoff?.reasonCode || 'ACTION_FAILED');
             const opened = root.CaissaPlayV2InlineAnalyze?.open
                 ? root.CaissaPlayV2InlineAnalyze.open({ token: handoff.value.token })
