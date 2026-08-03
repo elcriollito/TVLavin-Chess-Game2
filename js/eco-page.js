@@ -860,8 +860,9 @@
       bindEvents();
 
       const codeFromUrl = getCodeFromUrl();
-      if (codeFromUrl) {
-        selectCode(codeFromUrl, { pushHistory: false, scrollMobile: false });
+      const trustedCode = codeFromUrl && ecoCodes.some(row => row.code === codeFromUrl) ? codeFromUrl : null;
+      if (trustedCode) {
+        selectCode(trustedCode, { pushHistory: false, scrollMobile: false });
       } else {
         renderList();
         renderDefaultDetail();

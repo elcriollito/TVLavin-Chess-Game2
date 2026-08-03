@@ -132,7 +132,7 @@
             .map(([name, value]) => `[${name} "${String(value).replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"]`);
         let body = pgnValue.trim();
         if (!/(?:^|\s)(1-0|0-1|1\/2-1\/2|\*)\s*$/.test(body)) body = `${body}${body ? ' ' : ''}${resultValue}`;
-        return `${added.join('\n')}${added.length && body ? '\n' : ''}${body}`;
+        return `${added.join('\n')}${added.length && body ? '\n\n' : ''}${body}`;
     }
 
     function validateFenValue(fen) {
@@ -255,6 +255,9 @@
             diagnostics.push(diagnostic('CLOCK_DATA_INCOMPLETE', 'warning', 'timing.finalClocks', 'Legacy clock data is incomplete.'));
 
         const coachSession = global.CaissaCoachSession?.getSnapshot?.()?.active || null;
+        const nativeCoach = global.CaissaNativeCoachPanel?.getActiveSnapshot?.() || null;
+        const botProfile = global.CaissaBotSession?.getSnapshot?.()?.activeProfile || null;
+        const coachActive = !!coachSession || nativeCoach?.status === 'active';
         const recordCore = {
             schemaVersion: SCHEMA_VERSION,
             capturedAt,
@@ -262,9 +265,9 @@
             source: 'local-play',
             mode,
             opponent: {
-                type: coachSession ? 'coach' : mode === 'human-vs-engine' ? 'engine' : mode === 'local' ? 'local-human' : null,
-                id: typeof snapshot.selectedOpponent === 'string' ? snapshot.selectedOpponent.slice(0, 120) : null,
-                name: null,
+                type: coachActive ? 'coach' : botProfile ? 'bot' : mode === 'human-vs-engine' ? 'engine' : mode === 'local' ? 'local-human' : null,
+                id: coachActive ? 'caissa-native-coach' : botProfile?.id || (typeof snapshot.selectedOpponent === 'string' ? snapshot.selectedOpponent.slice(0, 120) : null),
+                name: coachActive ? 'Coach-assisted game' : botProfile?.name || null,
                 rating: null
             },
             player: {
@@ -311,8 +314,8 @@
                 mode: snapshot.evaluation?.available ? 'legacy' : 'unknown',
                 available: snapshot.evaluation?.available === true
             },
-            coach: { enabled: !!coachSession, profileId: coachSession?.coachId || null,
-                assistanceLevel: coachSession?.assistanceLevel || null },
+            coach: { enabled: coachActive, profileId: coachSession?.coachId || (coachActive ? 'caissa-native-coach' : null),
+                assistanceLevel: coachSession?.assistanceLevel || nativeCoach?.configuration?.level || null },
             mentor: { requested: false, mentorId: null },
             pendingPromotion: snapshot.game?.pendingPromotion
                 ? {

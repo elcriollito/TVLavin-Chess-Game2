@@ -123,7 +123,8 @@
             resourceId: 'analyze-deep', type: 'module-group', trigger: 'route', priority: 'high',
             qaOnly: false, productionEligible: true, dependencies: Object.freeze([]),
             sources: Object.freeze([
-                'js/analyze-session.js?v=1.0.0', 'js/analyze-section.js?v=1.3.0'
+                'js/analyze-session.js?v=1.0.0', 'js/play/analyze-review-policy.js?v=1.0.0',
+                'js/analyze-section.js?v=1.3.0'
             ])
         })
     });

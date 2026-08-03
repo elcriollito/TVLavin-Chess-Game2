@@ -24,14 +24,14 @@ function fixture(options = {}) {
     const root = new Element('chessboard');
     const document = new Element();
     document.getElementById = id => id === 'chessboard' ? root : null;
-    const log = { factories: 0, positions: [], orientations: [], resizes: 0, destroys: 0, config: null };
+    const log = { factories: 0, positions: [], animations: [], orientations: [], resizes: 0, destroys: 0, config: null };
     const boardFactory = (_, config) => {
         log.factories += 1; log.config = config;
         let widgetPosition = { e2: 'wP' };
         return {
-            position(value) {
+            position(value, animate) {
                 if (arguments.length === 0) return widgetPosition;
-                log.positions.push(value);
+                log.positions.push(value); log.animations.push(animate);
                 widgetPosition = typeof value === 'object' ? { ...value } : value;
             },
             orientation(value) { log.orientations.push(value); },
@@ -40,7 +40,8 @@ function fixture(options = {}) {
         };
     };
     const window = new Element();
-    Object.assign(window, { document, setTimeout, clearTimeout });
+    Object.assign(window, { document, setTimeout, clearTimeout,
+        matchMedia: query => ({ matches: options.reducedMotion === true && query.includes('reduced-motion') }) });
     vm.runInNewContext(source, { window, globalThis: window });
     const adapter = window.CaissaChessboardAdapter.create({ boardFactory, ...options });
     return { api: window.CaissaChessboardAdapter, adapter, root, document, window, log };
@@ -86,6 +87,15 @@ test('position rendering is presentation-only, validated, and idempotent', () =>
     assert.equal(f.adapter.setPosition('not-fen').status, 'rejected');
     assert.deepEqual(f.log.positions, [fen]);
     assert.equal(f.adapter.getSnapshot().renderSequence, 1);
+});
+
+test('programmatic placement is immediate by default and reduced motion rejects requested animation', () => {
+    const normal = fixture(); normal.adapter.mount(normal.root);
+    normal.adapter.setPosition('8/8/8/8/8/8/8/K6k w - - 0 1');
+    assert.deepEqual(normal.log.animations, [false]);
+    const reduced = fixture({ reducedMotion: true }); reduced.adapter.mount(reduced.root);
+    reduced.adapter.setPosition('8/8/8/8/8/8/8/K6k w - - 0 1', { animate: true });
+    assert.deepEqual(reduced.log.animations, [false]);
 });
 
 test('orientation, flip, interaction, resize and compatibility facade delegate once', () => {

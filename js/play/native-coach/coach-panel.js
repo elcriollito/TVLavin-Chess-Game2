@@ -1,6 +1,7 @@
 (function installNativeCoachPanel(root) {
     'use strict';
     let sequence = 0;
+    let activePanel = null;
     const freeze = value => { if (value && typeof value === 'object' && !Object.isFrozen(value)) {
         Object.values(value).forEach(freeze); Object.freeze(value); } return value; };
     const result = (ok, reasonCode, value = null) => freeze({ ok, reasonCode, value });
@@ -68,14 +69,29 @@
             else { this.#render(response.reasonCode === 'COOLDOWN' ? 'Help is cooling down.' : 'Help is unavailable right now.'); }
             return response;
         }
+        configure(changes = {}) {
+            if (this.#disposed || !changes || typeof changes !== 'object') return result(false, 'INVALID_CONFIGURATION');
+            const next = { ...this.#configuration, ...changes };
+            const validation = root.CaissaNativeCoachConfiguration.validate(next);
+            if (!validation.valid) return result(false, 'INVALID_CONFIGURATION');
+            this.#configuration = next; this.#assistance.configure(this.#configuration);
+            Object.entries(this.#configuration).forEach(([key, value]) => {
+                const control = this.#root?.querySelector(`[data-coach-${key}]`);
+                if (control) control.value = value;
+            });
+            this.#render('Assistance options updated for this Play session.');
+            return result(true, 'CONFIGURED', this.getSnapshot());
+        }
         #render(message) { const live = this.#root?.querySelector('[data-coach-assistance-live]'); if (live) live.textContent = message; }
         show() { if (this.#root) this.#root.hidden = false; return result(true, 'SHOWN'); }
         hide() { this.#assistance.teardown(); if (this.#root) this.#root.hidden = true; return result(true, 'HIDDEN'); }
         getSnapshot() { return freeze({ schemaVersion: '1.0.0', status: this.#status, configuration: { ...this.#configuration },
             starts: this.#starts, assistance: this.#assistance.inspect(), primaryAction: 'Play', publicReady: false }); }
-        dispose() { this.#listeners.splice(0).forEach(item => item.target.removeEventListener(item.type, item.handler));
+        dispose() { if (activePanel === this) activePanel = null;
+            this.#listeners.splice(0).forEach(item => item.target.removeEventListener(item.type, item.handler));
             this.#assistance.dispose(); this.#root?.remove(); this.#root = null; this.#disposed = true; return true; }
         #listen(target, type, handler) { target.addEventListener(type, handler); this.#listeners.push({ target, type, handler }); }
     }
-    root.CaissaNativeCoachPanel = freeze({ schemaVersion: '1.0.0', create: () => new Panel() });
+    root.CaissaNativeCoachPanel = freeze({ schemaVersion: '1.0.0', create: () => { const panel = new Panel(); activePanel = panel; return panel; },
+        getActiveSnapshot: () => activePanel?.getSnapshot?.() || null });
 })(typeof window !== 'undefined' ? window : globalThis);

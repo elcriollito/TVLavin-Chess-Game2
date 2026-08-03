@@ -1,16 +1,18 @@
 import { test, expect } from '@playwright/test';
+import { positions } from '../play/fixtures/positions.js';
+import { instrumentPlay, loadPosition, playMove } from '../play/playwright-helpers.js';
 
 test('authorized internal beta supports canonical Games, Bots, history, refresh, and one board', async ({ page }) => {
     await page.goto('/play/beta');
     await expect(page).toHaveTitle(/CAISSA/i);
     await expect(page.locator('[data-caissa-play-v2-entry="qa-only"]')).toHaveCount(1);
     await expect(page.locator('#chessboard .board-b72b1')).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Games' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Bots' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Coach · Internal' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Play Game' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Play Bots' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Play Coach' })).toBeVisible();
     for (const blocked of ['Mentor', 'Players']) await expect(page.getByRole('tab', { name: blocked })).toHaveCount(0);
 
-    await page.getByRole('tab', { name: 'Bots' }).click();
+    await page.getByRole('tab', { name: 'Play Bots' }).click();
     await expect(page).toHaveURL(/\/play\/beta\/bots$/);
     await expect(page.locator('.caissa-bots-panel')).toBeVisible();
     await page.reload();
@@ -96,7 +98,7 @@ test('minimal beta entry is board-first with one clear setup hierarchy at every 
 test('Games setup exposes only supported time, accessible color, and one Play action', async ({ page }) => {
     await page.goto('/play/beta');
     const shell = page.locator('[data-entry-experience="beta"]');
-    await expect(shell.getByRole('tab')).toHaveText(['Games', 'Bots · Internal', 'Coach · Internal']);
+    await expect(shell.getByRole('tab')).toHaveText(['Play Game', 'Play Bots', 'Play Coach']);
     await expect(shell.getByRole('radio', { name: /^1\+0/ })).toBeChecked();
     await expect(shell.getByRole('radio', { name: 'White', exact: true })).toBeChecked();
     await expect(shell.getByRole('radio', { name: 'Random', exact: true })).not.toBeChecked();
@@ -109,7 +111,7 @@ test('Games setup exposes only supported time, accessible color, and one Play ac
     await expect(shell.getByRole('button', { name: 'Play', exact: true })).toHaveCount(1);
     await expect(shell).not.toContainText(/QA Preview|Simplified Play|Current Play Controls|runtime connected|fixed maximum-strength/i);
 
-    await shell.getByRole('tab', { name: 'Bots · Internal' }).click();
+    await shell.getByRole('tab', { name: 'Play Bots' }).click();
     await expect(page).toHaveURL(/\/play\/beta\/bots$/);
     await expect(shell.getByText('Internal preview. Bot play is not yet certified.', { exact: true })).toBeVisible();
     for (const blocked of ['Mentor', 'Players']) await expect(shell.getByRole('tab', { name: blocked })).toHaveCount(0);
@@ -138,6 +140,32 @@ test('setup starts once, rejects immediate duplicate activation, and focuses the
         time: window.App.timeControl,
         active: document.body.classList.contains('caissa-play-game-active')
     }))).toEqual({ boards: 1, color: 'black', time: 180, active: true });
+});
+
+test('completed-game Analyze stays over Play v2 and returns to the same PostGame', async ({ page }) => {
+    await instrumentPlay(page, { autoReply: false });
+    await page.goto('/play/beta');
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await loadPosition(page, positions.checkmateInOne.fen);
+    await playMove(page, positions.checkmateInOne.from, positions.checkmateInOne.to);
+    await expect(page.locator('[data-play-v2-post-game-core]')).toBeVisible();
+    const playUrl = page.url();
+
+    await page.locator('[data-post-game-action="analyze"]').click();
+    const analyze = page.locator('#analyzeSection');
+    await expect(analyze).toHaveClass(/caissa-play-v2-inline-analyze/);
+    await expect(analyze).toHaveAttribute('role', 'dialog');
+    await expect(analyze).toHaveAttribute('aria-modal', 'true');
+    await expect(page.getByRole('button', { name: 'Back to game result' })).toBeFocused();
+    expect(page.url()).toBe(playUrl);
+    expect(new URL(page.url()).searchParams.has('handoff')).toBe(false);
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.getGame()?.pgn())).toBeTruthy();
+
+    await page.getByRole('button', { name: 'Back to game result' }).click();
+    await expect(analyze).not.toHaveClass(/caissa-play-v2-inline-analyze/);
+    await expect(page.locator('[data-play-v2-post-game-core]')).toBeVisible();
+    await expect(page.locator('[data-post-game-action="analyze"]')).toBeFocused();
+    expect(page.url()).toBe(playUrl);
 });
 
 test('keyboard Play activation creates one accepted start and one lifecycle', async ({ page }) => {

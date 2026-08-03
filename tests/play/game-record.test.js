@@ -137,6 +137,19 @@ test('completed checkmate derives only observable result, winner, and terminatio
     });
 });
 
+test('completed quick-play PGN separates headers from movetext and remains replayable', () => {
+    const record = fixture().api.buildFromSnapshot(baseSnapshot({
+        mode: 'engine', playerColor: 'white', selectedOpponent: 'stockfish',
+        position: { pgn: '1. e4', fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1',
+            moveCount: 1, moveHistory: [{ color:'w',from:'e2',to:'e4',san:'e4',flags:'b' }] },
+        game: { active:false,result:'0-1',status:{state:'White Resigned',result:'0-1'} },
+        clocks: { timeControlSeconds:60,incrementSeconds:0,whiteMilliseconds:50000,blackMilliseconds:60000 }
+    }), { capturedAt: NOW });
+    assert.match(record.notation.pgn, /\[Termination "resignation"\]\n\n1\. e4 0-1$/);
+    const replay = new Chess(); replay.loadPgn(record.notation.pgn);
+    assert.deepEqual(replay.history(), ['e4']);
+});
+
 test('stalemate and resignation normalize from explicit legacy state', () => {
     const api = fixture().api;
     const stalemate = api.buildFromSnapshot(baseSnapshot({

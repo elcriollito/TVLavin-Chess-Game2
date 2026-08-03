@@ -92,15 +92,22 @@
                     draggable: !!this.#options.draggable,
                     position: this.#position,
                     orientation: this.#orientation,
-                    onDragStart: (from, piece, position, orientation) =>
-                        this.#interactionEnabled && this.#options.onDragStart?.(from, piece, position, orientation),
+                    onDragStart: (from, piece, position, orientation) => {
+                        const accepted = this.#interactionEnabled
+                            && this.#options.onDragStart?.(from, piece, position, orientation) !== false;
+                        this.#setDragSource(from, accepted);
+                        return accepted;
+                    },
                     onDrop: (from, to, piece, newPosition, oldPosition, orientation) => {
                         if (!this.#interactionEnabled) return 'snapback';
                         this.#diagnostics.interactions += 1;
                         this.#emit({ type: 'move-requested', from, to, promotion: null, inputMethod: 'drag' });
                         return this.#options.onDrop?.(from, to, piece, newPosition, oldPosition, orientation);
                     },
-                    onSnapEnd: (...args) => this.#options.onSnapEnd?.(...args),
+                    onSnapEnd: (...args) => {
+                        this.#clearDragSource();
+                        this.#options.onSnapEnd?.(...args);
+                    },
                     pieceTheme: this.#options.pieceTheme,
                     showNotation: this.#options.showNotation !== false,
                     sparePieces: false,
@@ -135,7 +142,9 @@
             const currentComparable = typeof this.#position === 'string' ? this.#position : JSON.stringify(this.#position);
             if (comparable === currentComparable) return result(true, 'unchanged', REASONS.SAME_POSITION);
             if (!this.#widget) return result(false, 'unavailable', REASONS.NOT_MOUNTED);
-            try { this.#widget.position(position, options.animate); } catch (_) {
+            const reducedMotion = global.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
+            const animate = options.animate === true && !reducedMotion;
+            try { this.#widget.position(position, animate); } catch (_) {
                 return result(false, 'failed', 'POSITION_RENDER_FAILED');
             }
             this.#position = typeof position === 'object' ? Object.assign({}, position) : position;
@@ -263,6 +272,18 @@
             this.#legalTargets.forEach(value => square(value)?.classList.add('caissa-board-legal-target'));
             if (this.#lastMove) [this.#lastMove.from, this.#lastMove.to].forEach(value => square(value)?.classList.add('caissa-board-last-move'));
             square(this.#checkSquare)?.classList.add('caissa-board-check');
+        }
+
+        #setDragSource(square, active) {
+            this.#clearDragSource();
+            if (!active || !SQUARE.test(square || '')) return;
+            this.#container?.querySelector?.(`.square-${square} .piece-417db`)
+                ?.classList?.add?.('caissa-piece-drag-source');
+        }
+
+        #clearDragSource() {
+            this.#container?.querySelectorAll?.('.caissa-piece-drag-source')?.forEach?.(node =>
+                node.classList.remove('caissa-piece-drag-source'));
         }
 
         #listen(target, type, handler, options) {

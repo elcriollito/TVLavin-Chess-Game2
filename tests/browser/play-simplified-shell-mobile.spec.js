@@ -85,7 +85,7 @@ test('touch Play activation creates one accepted start and one clock owner', asy
 
 test('current mode, focus, promotion, PostGame and Mentor surfaces remain mobile-safe', async ({ page }) => {
     await openBeta(page, 390, 844);
-    await expect(page.getByRole('tab')).toHaveText(['Games', 'Bots · Internal', 'Coach · Internal']);
+    await expect(page.getByRole('tab')).toHaveText(['Play Game', 'Play Bots', 'Play Coach']);
     await expect(page.getByRole('tab', { name: /Players/ })).toHaveCount(0);
     await page.getByRole('button', { name: 'Play', exact: true }).click();
     await expect(page.locator('#chessboard')).toBeFocused();
@@ -102,7 +102,7 @@ test('Bots Worker is lazy, singular, and torn down on route exit', async ({ page
     expect(await page.evaluate(() => window.__caissaPlayHarness.snapshot().workersCreated)).toBe(0);
     await page.getByRole('button', { name: 'Play', exact: true }).click();
     await expect.poll(() => page.evaluate(() => window.__caissaPlayHarness.snapshot().workersCreated)).toBe(1);
-    await page.getByRole('tab', { name: 'Coach · Internal' }).click();
+    await page.getByRole('tab', { name: 'Play Coach' }).click();
     await expect(page).toHaveURL(/\/play\/beta\/coach$/);
     await expect.poll(() => page.evaluate(() => window.CaissaWorkerLifecycle?.inspect?.().activeWorkers || 0)).toBe(0);
 });

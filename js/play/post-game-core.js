@@ -171,8 +171,13 @@
             root.CaissaClockService?.stop?.('analyze'); root.CaissaEngineRequestIsolation?.cancelSession?.();
             const worker = root.CaissaPlayV2BotWorkerReadiness?.getSnapshot?.();
             if (worker && ['initializing', 'ready', 'playing'].includes(worker.state)) root.CaissaPlayV2BotWorkerReadiness.teardown('analyze');
-            const handoff = this.#handoff.createFromPlay(); if (!handoff?.ok) return outcome(false, 'failed', 'ACTION_FAILED');
-            const opened = this.#navigation?.navigateToSection?.('analyze');
+            root.App?.engine?.terminate?.('post-game-analyze');
+            const handoff = this.#handoff.createFromRecord
+                ? this.#handoff.createFromRecord(this.#record) : this.#handoff.createFromPlay();
+            if (!handoff?.ok) return outcome(false, 'failed', handoff?.reasonCode || 'ACTION_FAILED');
+            const opened = root.CaissaPlayV2InlineAnalyze?.open
+                ? root.CaissaPlayV2InlineAnalyze.open({ token: handoff.value.token })
+                : this.#navigation?.navigateToSection?.('analyze', { handoffToken: handoff.value.token });
             if (opened === false || opened?.ok === false) return outcome(false, 'failed', 'ACTION_FAILED');
             this.#diagnostics.handoffs += 1; return outcome(true, 'accepted', 'ANALYZE_OPENED');
         }

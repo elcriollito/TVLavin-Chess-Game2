@@ -58,6 +58,8 @@
         const safeLeft = Number.isFinite(input.safeLeft) ? Math.max(0, input.safeLeft) : 0;
         const safeRight = Number.isFinite(input.safeRight) ? Math.max(0, input.safeRight) : 0;
         const mode = LAYOUT_MODES.includes(input.mode) ? input.mode : selectLayoutMode({ width, height });
+        const viewportOwnedDesktop = input.viewportOwnedDesktop === true;
+        const activeGame = input.activeGame === true;
         const phone = mode.startsWith('phone-');
         const tablet = mode.startsWith('tablet-');
         const compact = mode === 'phone-compact';
@@ -68,7 +70,13 @@
         const usableWidth = Math.max(0, width - safeLeft - safeRight - (inlinePadding + stagePadding) * 2);
         let columnWidth = usableWidth;
         let heightLimit = Infinity;
-        if (mode === 'phone-landscape') {
+        let contextWidth = 0; let workspaceGap = 0;
+        if (viewportOwnedDesktop && mode === 'desktop-split') {
+            contextWidth = Math.min(560, Math.max(360, width * .28));
+            workspaceGap = Math.min(24, Math.max(12, width * .012));
+            columnWidth = Math.max(0, usableWidth - contextWidth - workspaceGap);
+            heightLimit = Math.max(0, height - (activeGame ? 250 : 200));
+        } else if (mode === 'phone-landscape') {
             columnWidth = usableWidth * .58;
             heightLimit = Math.max(0, height - 112);
         } else if (mode === 'tablet-landscape-split') {
@@ -81,10 +89,13 @@
             columnWidth = usableWidth * .56;
             heightLimit = Math.max(0, height - 112);
         }
-        const boardSize = Math.max(0, Math.floor(Math.min(columnWidth - railWidth - railGap, heightLimit, 760)));
+        const boardSize = Math.max(0, Math.floor(Math.min(columnWidth - railWidth - railGap, heightLimit,
+            viewportOwnedDesktop ? Infinity : 760)));
+        const boardOwnerSize = boardSize + railWidth + railGap + stagePadding * 2;
         return deepFreeze({
-            mode, width, height, safeLeft, safeRight, inlinePadding, stagePadding,
-            railWidth, railGap, boardSize, squareSize: boardSize / 8
+            mode, width, height, safeLeft, safeRight, inlinePadding, stagePadding, activeGame,
+            railWidth, railGap, boardSize, boardOwnerSize, contextWidth, workspaceGap,
+            squareSize: boardSize / 8
         });
     }
 
@@ -95,6 +106,7 @@
         #suppressedLive = [];
         #layoutMode = null; #geometry = null; #resizeCount = 0; #activationCount = 0; #statusNode = null;
         #gamesPanel = null; #botsPanel = null; #coachPanel = null; #postGame = null;
+        #activeContext = null; #assistance = null; #actionBar = null; #pgnDialog = null; #stateObserver = null; #panelObserver = null;
         #panelLoadToken = 0;
         #accessibility = null;
         #diagnostics = {
@@ -131,7 +143,8 @@
                 variant: 'caissa-rail', ariaLabel: 'Play modes',
                 items: Object.entries(MODES).filter(([, available]) => available).map(([mode, available]) => ({
                     id: mode, shellMode: mode,
-                    label: betaEntry && ['bots', 'coach'].includes(mode) ? `${mode[0].toUpperCase() + mode.slice(1)} · Internal` : mode[0].toUpperCase() + mode.slice(1),
+                    label: betaEntry ? ({ games: 'Play Game', bots: 'Play Bots', coach: 'Play Coach' }[mode])
+                        : mode[0].toUpperCase() + mode.slice(1),
                     active: mode === 'games', disabled: !available
                 }))
             }) || element('nav', 'caissa-simplified-shell__modes', { 'aria-label': 'Play modes' });
@@ -161,6 +174,25 @@
             contextHeading.textContent = betaEntry ? 'Game setup' : 'Current Play Controls';
             contextHeader.appendChild(contextHeading);
             const contextBody = element('div', 'caissa-simplified-shell__context-body');
+            this.#activeContext = element('section', 'caissa-simplified-shell__active-context', {
+                'data-active-game-context': '', 'aria-label': 'Active game status'
+            });
+            const activeTitle = element('h3', ''); activeTitle.textContent = 'Game in progress';
+            const activeStatus = element('p', '', { 'data-active-game-status': '', role: 'status' });
+            activeStatus.textContent = 'Use the board to play your move.';
+            this.#activeContext.append(activeTitle, activeStatus); this.#activeContext.hidden = true;
+            contextBody.appendChild(this.#activeContext);
+            this.#assistance = element('details', 'caissa-simplified-shell__assistance', {
+                'data-play-assistance': '', 'data-assistance-mode': 'none'
+            });
+            const assistanceSummary = element('summary', '');
+            assistanceSummary.textContent = 'Assistance';
+            const assistanceBody = element('div', 'caissa-simplified-shell__assistance-body', {
+                'data-assistance-body': '', role: 'group', 'aria-label': 'Assistance options'
+            });
+            this.#assistance.append(assistanceSummary, assistanceBody);
+            this.#assistance.hidden = true;
+            contextBody.appendChild(this.#assistance);
             const advanced = element('details', 'caissa-simplified-shell__advanced');
             const summary = element('summary', ''); summary.textContent = betaEntry ? 'Game controls' : 'Advanced current controls';
             const advancedBody = element('div', 'caissa-simplified-shell__advanced-body');
@@ -169,8 +201,23 @@
             context.append(contextHeader, contextBody, this.#statusNode);
 
             const footer = element('footer', 'caissa-simplified-shell__footer', { 'aria-label': 'Primary game actions' });
+            this.#actionBar = boardActions;
+            for (const [action, label] of [['resign', 'Resign'], ['coach-help', 'Coach help'], ['pgn', 'PGN'], ['menu', 'Menu']]) {
+                const button = element('button', `caissa-simplified-shell__active-action caissa-simplified-shell__active-action--${action}`, {
+                    type: 'button', 'data-active-game-action': action
+                });
+                button.textContent = label; boardActions.appendChild(button);
+            }
+            boardActions.hidden = true;
+            this.#pgnDialog = element('dialog', 'caissa-simplified-shell__pgn-dialog', {
+                'aria-labelledby': `${this.#id}-pgn-title`
+            });
+            const pgnTitle = element('h2', '', { id: `${this.#id}-pgn-title` }); pgnTitle.textContent = 'Current game PGN';
+            const pgnText = element('textarea', '', { readonly: '', 'data-active-game-pgn': '', rows: '14', 'aria-label': 'Current game PGN' });
+            const pgnClose = element('button', '', { type: 'button', 'data-active-game-action': 'close-pgn' }); pgnClose.textContent = 'Close';
+            this.#pgnDialog.append(pgnTitle, pgnText, pgnClose);
             workspace.append(boardStage, nav, context, footer, advanced);
-            root.append(preview, workspace);
+            root.append(preview, workspace, this.#pgnDialog);
             stage.appendChild(root);
             this.#root = root;
             const accessibility = global.CaissaPlayAccessibility?.create?.(root);
@@ -224,7 +271,6 @@
             place(leftPanel, advancedBody);
             place(gameMenu, advancedBody);
             place(editor, advancedBody);
-            place(actions, advancedBody);
             this.#root.querySelectorAll('[aria-live]').forEach(node => {
                 if (node.closest('[data-caissa-accessibility-live-regions]')) return;
                 this.#suppressedLive.push({ node, value: node.getAttribute('aria-live') });
@@ -253,6 +299,7 @@
                         this.#coachPanel?.hide?.();
                     }
                     else this.#syncPanels();
+                    this.#syncComposition();
                 }
             });
             const postGameMount = this.#postGame?.mount?.({ host: contextBody });
@@ -277,6 +324,9 @@
             this.#postGame.syncFromPlay();
             this.#accessibility?.announce?.('PLAY_READY');
             if (!this.#listeners.length) {
+                this.#listen(this.#actionBar, 'click', event => this.#handleActiveAction(event));
+                this.#listen(this.#pgnDialog, 'click', event => this.#handleActiveAction(event));
+                this.#listen(this.#assistance, 'change', event => this.#handleAssistanceChange(event));
                 this.#listen(this.#root.querySelector('.caissa-simplified-shell__modes'), 'click', event => {
                     const mode = event.target?.dataset?.shellMode;
                     if (!mode || !MODES[mode]) return;
@@ -294,7 +344,13 @@
                     this.#diagnostics.drawerCycles += 1;
                     this.resize();
                 });
+                this.#stateObserver = new global.MutationObserver(() => this.#syncComposition());
+                this.#stateObserver.observe(global.document.body, { attributes: true, attributeFilter: ['class'] });
+                this.#panelObserver = new global.MutationObserver(() => this.#syncComposition());
+                this.#panelObserver.observe(contextBody, { subtree: true, attributes: true,
+                    attributeFilter: ['disabled', 'aria-busy'] });
             }
+            this.#syncComposition();
             this.resize();
             return result(true, 'accepted', REASONS.ACTIVATED, this.getSnapshot());
         }
@@ -323,6 +379,8 @@
             global.document.body.classList.remove('caissa-simplified-play-active');
             global.document.body.classList.remove('caissa-play-v2-beta-active');
             this.#removeListeners();
+            this.#stateObserver?.disconnect?.(); this.#stateObserver = null;
+            this.#panelObserver?.disconnect?.(); this.#panelObserver = null;
             this.#active = false;
             this.#diagnostics.restorationCycles += 1;
             global.App?.boardAdapter?.resize?.();
@@ -333,6 +391,7 @@
             if (!Object.hasOwn(MODES, mode)) return result(false, 'rejected', REASONS.INVALID_MODE);
             if (!MODES[mode]) return result(false, 'rejected', REASONS.MODE_INACTIVE);
             this.#mode = mode;
+            if (this.#root) this.#root.dataset.mode = mode;
             this.#root?.querySelectorAll?.('[data-shell-mode]').forEach(button => {
                 const selected = button.dataset.shellMode === mode;
                 button.setAttribute('aria-selected', String(selected));
@@ -368,7 +427,9 @@
             const layoutHeight = global.innerHeight || global.visualViewport?.height || 0;
             const visualHeight = global.visualViewport?.height || layoutHeight;
             const height = Math.min(layoutHeight, visualHeight);
-            const next = calculateGeometry({ width, height });
+            const next = calculateGeometry({ width, height,
+                viewportOwnedDesktop: this.#root.dataset.entryExperience === 'beta',
+                activeGame: global.document.body.classList.contains('caissa-play-game-active') });
             if (next.boardSize < 180) {
                 this.#diagnostics.rejectedGeometry += 1;
                 return result(false, 'rejected', 'GEOMETRY_UNUSABLE');
@@ -387,6 +448,9 @@
             this.#root.style.setProperty('--shell-eval-width', `${next.railWidth}px`);
             this.#root.style.setProperty('--shell-rail-gap', `${next.railGap}px`);
             this.#root.style.setProperty('--play-board-size', `${next.boardSize}px`);
+            this.#root.style.setProperty('--play-board-owner-size', `${next.boardOwnerSize}px`);
+            if (next.contextWidth) this.#root.style.setProperty('--play-context-width', `${next.contextWidth}px`);
+            if (next.workspaceGap) this.#root.style.setProperty('--play-workspace-gap', `${next.workspaceGap}px`);
             this.#resizeCount += 1;
             if (this.#active) {
                 this.#diagnostics.boardResizeRequests += 1;
@@ -482,6 +546,9 @@
         }
         async #syncPanels() {
             if (!this.#active || this.#postGame?.getSnapshot?.().visible) return;
+            if (global.document.body.classList.contains('caissa-play-game-active')) {
+                this.#syncComposition(); return;
+            }
             const token = ++this.#panelLoadToken;
             if (this.#mode !== 'games' && !(await this.#ensureDeferredPanel(this.#mode, token))) return;
             if (token !== this.#panelLoadToken) return;
@@ -498,6 +565,112 @@
                 this.#botsPanel?.hide?.(); this.#coachPanel?.hide?.();
                 this.#gamesPanel?.show?.();
             }
+            this.#syncComposition();
+        }
+        #syncComposition() {
+            if (!this.#root) return;
+            const postGame = this.#postGame?.getSnapshot?.().visible === true;
+            const active = !postGame && global.document.body.classList.contains('caissa-play-game-active');
+            const primary = this.#root.querySelector('[data-games-primary]:not([hidden]),[data-bots-primary]:not([hidden]),[data-coach-primary]:not([hidden])');
+            const starting = !active && !postGame && primary?.disabled === true;
+            const state = postGame ? 'postgame' : active ? 'active' : starting ? 'starting' : 'setup';
+            const previousState = this.#root.dataset.uiState;
+            this.#root.dataset.uiState = state;
+            if (active) {
+                this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.(); this.#coachPanel?.hide?.();
+            } else if (!postGame) {
+                if (this.#mode === 'games') this.#gamesPanel?.show?.();
+                else if (this.#mode === 'bots') this.#botsPanel?.show?.();
+                else if (this.#mode === 'coach') this.#coachPanel?.show?.();
+            }
+            this.#activeContext.hidden = !active;
+            this.#actionBar.hidden = !active;
+            this.#syncAssistance(active, postGame);
+            const coachHelp = this.#actionBar.querySelector('[data-active-game-action="coach-help"]');
+            coachHelp.hidden = !(active && this.#mode === 'coach');
+            const heading = this.#root.querySelector('.caissa-simplified-shell__context-header h2');
+            if (heading) heading.textContent = postGame ? 'Game result' : active ? 'Game status' : starting ? 'Starting game' : 'Game setup';
+            if (this.#active && previousState !== state) this.resize();
+        }
+        #syncAssistance(active, postGame) {
+            if (!this.#assistance) return;
+            const admitted = ['bots', 'coach'].includes(this.#mode) && !postGame;
+            this.#assistance.hidden = !admitted;
+            if (!admitted) return;
+            const body = this.#assistance.querySelector('[data-assistance-body]');
+            const modeChanged = this.#assistance.dataset.assistanceMode !== this.#mode;
+            const coachOptionsReady = this.#mode === 'coach' && this.#coachPanel
+                && body.querySelectorAll('select option').length === 0;
+            if (modeChanged || coachOptionsReady) {
+                this.#assistance.dataset.assistanceMode = this.#mode;
+                body.replaceChildren();
+                if (this.#mode === 'bots') {
+                    const message = element('p', 'caissa-simplified-shell__assistance-note', {
+                        'data-assistance-empty': '', role: 'status'
+                    });
+                    message.textContent = 'No optional live assistance is currently approved for bot games.';
+                    body.appendChild(message);
+                } else {
+                    const snapshot = this.#coachPanel?.getSnapshot?.();
+                    const configuration = snapshot?.configuration || global.CaissaNativeCoachConfiguration?.defaults || {};
+                    const choices = [
+                        ['level', 'Assistance messages', global.CaissaNativeCoachConfiguration?.levels || []],
+                        ['focus', 'Guidance focus', global.CaissaNativeCoachConfiguration?.focuses || []],
+                        ['timing', 'Timing', global.CaissaNativeCoachConfiguration?.timings || []]
+                    ];
+                    choices.forEach(([key, label, values]) => {
+                        const wrapper = element('label', 'caissa-simplified-shell__assistance-option');
+                        const copy = element('span', ''); copy.textContent = label;
+                        const select = element('select', '', { [`data-assistance-${key}`]: '', 'aria-label': label });
+                        values.forEach(value => {
+                            const option = element('option', '', { value });
+                            option.textContent = value.replace(/-/g, ' ').replace(/^./, character => character.toUpperCase());
+                            select.appendChild(option);
+                        });
+                        select.value = configuration[key]; wrapper.append(copy, select); body.appendChild(wrapper);
+                    });
+                    const note = element('p', 'caissa-simplified-shell__assistance-note');
+                    note.textContent = 'Messages are bounded, sanitized, and available on request.';
+                    body.appendChild(note);
+                }
+            }
+            if (active) this.#activeContext.appendChild(this.#assistance);
+            else {
+                const panel = this.#mode === 'bots' ? this.#root.querySelector('[data-caissa-bots-panel]')
+                    : this.#root.querySelector('[data-caissa-native-coach-panel]');
+                const primary = panel?.querySelector(this.#mode === 'bots' ? '[data-bot-primary]' : '[data-coach-primary]');
+                if (panel && primary) panel.insertBefore(this.#assistance, primary);
+            }
+        }
+        #handleAssistanceChange(event) {
+            if (this.#mode !== 'coach') return;
+            const entry = Object.entries(event.target?.dataset || {}).find(([key]) => key.startsWith('assistance'));
+            if (!entry) return;
+            const key = entry[0].slice('assistance'.length);
+            const normalized = key[0]?.toLowerCase() + key.slice(1);
+            const response = this.#coachPanel?.configure?.({ [normalized]: event.target.value });
+            if (!response?.ok) event.target.value = this.#coachPanel?.getSnapshot?.().configuration?.[normalized] || event.target.value;
+        }
+        #handleActiveAction(event) {
+            const action = event.target?.closest?.('[data-active-game-action]')?.dataset?.activeGameAction;
+            if (!action) return;
+            if (action === 'resign') global.resignGame?.();
+            else if (action === 'coach-help' && this.#mode === 'coach') {
+                const response = this.#coachPanel?.requestHelp?.();
+                const status = this.#activeContext.querySelector('[data-active-game-status]');
+                status.textContent = response?.ok ? response.presentation?.message || 'Coach help is available.'
+                    : response?.reasonCode === 'COOLDOWN' ? 'Coach help is cooling down.' : 'Coach help is unavailable right now.';
+            }
+            else if (action === 'menu') {
+                if (typeof global.showModal === 'function') global.showModal('menuModal');
+                else global.document.getElementById('btnSettings')?.click?.();
+            } else if (action === 'pgn') {
+                let pgn = '';
+                try { pgn = global.CaissaGameRecord?.buildFromPlay?.()?.notation?.pgn || ''; } catch (_) { pgn = ''; }
+                this.#pgnDialog.querySelector('[data-active-game-pgn]').value = pgn;
+                if (typeof this.#pgnDialog.showModal === 'function') this.#pgnDialog.showModal();
+                else this.#pgnDialog.setAttribute('open', '');
+            } else if (action === 'close-pgn') this.#pgnDialog.close?.();
         }
         #removeListeners() {
             if (this.#eventScopeId && global.CaissaEventLifecycle?.disposeScope) {

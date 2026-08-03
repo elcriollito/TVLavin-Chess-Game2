@@ -79,6 +79,10 @@
                     playerColor: input.payload?.playerColor ?? null,
                     boardOrientation: input.payload?.boardOrientation ?? null,
                     result: input.payload?.result ?? null,
+                    termination: input.payload?.termination ?? null,
+                    whiteLabel: input.payload?.whiteLabel ?? null,
+                    blackLabel: input.payload?.blackLabel ?? null,
+                    recordStatus: input.payload?.recordStatus ?? null,
                     mode: input.payload?.mode ?? null
                 },
                 provenance: {
@@ -140,10 +144,23 @@
         return freeze({ create, store, resolve, cleanup, validate: value => validate(value, now()) });
     }
     const transport = createTransport();
-    function createFromPlay() {
+    function labelFor(record, color) {
+        const playerColor = record.player?.color;
+        if (color === playerColor) return 'You';
+        if (record.coach?.enabled || record.opponent?.type === 'coach') return 'Coach-assisted game';
+        const botLabels = { beginner: 'Beginner Bot', casual: 'Casual Bot', tactical: 'Tactical Bot', solid: 'Solid Bot' };
+        if (botLabels[record.opponent?.id]) return botLabels[record.opponent.id];
+        if (record.opponent?.type === 'bot' && record.opponent?.name)
+            return /\bbot\b/i.test(record.opponent.name) ? record.opponent.name : `${record.opponent.name} Bot`;
+        return record.opponent?.name || 'CAISSA Engine';
+    }
+    function createFromRecord(record) {
         const compatibility = global.CaissaPlayCompatibility?.getSnapshot?.();
-        const record = global.CaissaGameRecord?.buildFromPlay?.();
         if (!compatibility || !record) return result(false, 'unavailable', 'PLAY_BOUNDARY_UNAVAILABLE');
+        const checked = global.CaissaGameRecord?.validate?.(record);
+        if (!checked?.valid || record.status !== 'completed' || record.result?.complete !== true
+            || !record.notation?.pgn || record.moves?.count < 1)
+            return result(false, 'invalid', 'INCOMPLETE_GAME_RECORD');
         const lifecycle = global.CaissaGameLifecycle?.getSnapshot?.();
         const clock = global.CaissaClockService?.getSnapshot?.();
         const created = transport.create({
@@ -153,13 +170,17 @@
             payload: {
                 recordId: record.recordId,
                 initialFen: record.position?.initialFen,
-                finalFen: compatibility.position?.fen,
-                pgn: compatibility.position?.pgn || null,
-                selectedPly: compatibility.position?.moveCount ?? null,
-                playerColor: compatibility.playerColor,
+                finalFen: record.position?.finalFen,
+                pgn: record.notation.pgn,
+                selectedPly: record.moves.count,
+                playerColor: record.player?.color,
                 boardOrientation: compatibility.board?.orientation,
-                result: compatibility.game?.result || null,
-                mode: compatibility.mode
+                result: record.result.value,
+                termination: record.result.termination,
+                whiteLabel: labelFor(record, 'white'),
+                blackLabel: labelFor(record, 'black'),
+                recordStatus: record.status,
+                mode: record.mode
             },
             provenance: {
                 sourceSection: compatibility.section,
@@ -172,12 +193,17 @@
         const stored = transport.store(created.value);
         return stored.ok ? result(true, 'ready', null, created.value) : stored;
     }
+    function createFromPlay() {
+        let record = null;
+        try { record = global.CaissaGameRecord?.buildFromPlay?.(); } catch (_) { record = null; }
+        return createFromRecord(record);
+    }
     global.CaissaAnalyzeHandoff = freeze({
         schemaVersion: VERSION, handoffSchemaVersion: VERSION,
         intents: INTENTS, ttlMs: TTL_MS, limits: freeze({ maxActive: MAX_ACTIVE, maxPgnLength: MAX_PGN }),
         keys: freeze({ prefix: PREFIX, active: ACTIVE_KEY }),
         createTransport, validate,
-        createFromPlay,
+        createFromPlay, createFromRecord,
         resolve: (...args) => transport.resolve(...args),
         cleanup: (...args) => transport.cleanup(...args)
     });

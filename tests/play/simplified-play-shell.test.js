@@ -56,6 +56,20 @@ test('geometry subtracts rail, gaps, padding, and safe areas while preserving sq
     assert.ok(Object.isFrozen(safe));
 });
 
+test('desktop beta geometry uses viewport height instead of the former 760px ceiling', () => {
+    const { api } = load();
+    const targets = [[1440, 900, 700], [1920, 1080, 880], [2560, 1440, 1240], [3840, 2160, 1960]];
+    for (const [width, height, minimum] of targets) {
+        const setup = api.calculateGeometry({ width, height, viewportOwnedDesktop: true });
+        const active = api.calculateGeometry({ width, height, viewportOwnedDesktop: true, activeGame: true });
+        assert.ok(setup.boardSize >= minimum, `${width}x${height}`);
+        assert.ok(setup.boardSize > 760 || width === 1440, `${width}x${height} must defeat the old cap`);
+        assert.equal(setup.boardOwnerSize, setup.boardSize + setup.railWidth + setup.railGap + setup.stagePadding * 2);
+        assert.ok(active.boardSize <= setup.boardSize);
+        assert.ok(active.boardSize >= height * .70, `${width}x${height} active board remains viewport-dominant`);
+    }
+});
+
 test('malformed geometry inputs are bounded and cannot inject a layout class', () => {
     const { api } = load();
     const geometry = api.calculateGeometry({
@@ -86,7 +100,7 @@ test('shell CSS layout rules are scoped to the explicit QA body state', () => {
         !rule.trim().startsWith('@media') && !rule.trim().startsWith('@'));
     for (const rule of layoutRules) {
         const selector = rule.slice(0, rule.indexOf('{')).trim();
-        assert.match(selector, /caissa-simplified-play-active|caissa-simplified-shell\[hidden\]/);
+        assert.match(selector, /caissa-simplified-play-active|caissa-simplified-shell\[hidden\]|caissa-play-v2-inline-analyze/);
     }
 });
 

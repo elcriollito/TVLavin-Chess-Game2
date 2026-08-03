@@ -1,4 +1,156 @@
 /* QA-only Simplified Play shell. Layout is selected once by JS and expressed by data-layout. */
+
+/* chessboard.js retains its source image while a separate drag image owns
+   movement. The adapter marks that source so only one piece remains visible. */
+#playSection #chessboard .caissa-piece-drag-source,
+#analyzeSection #analyzeChessboard .caissa-piece-drag-source {
+    opacity: 0 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #playSection #chessboard .piece-417db,
+    #analyzeSection #analyzeChessboard .piece-417db {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* Completed-game Analyze evidence: use the full board owner horizontally. */
+#analyzeSection.caissa-play-v2-inline-analyze .analyze-evidence-panel {
+    width: min(100%, calc(var(--board-size) + 60px));
+    margin: 0;
+}
+
+#analyzeSection.caissa-play-v2-inline-analyze .analyze-evidence {
+    min-width: 0;
+}
+
+#analyzeSection.caissa-play-v2-inline-analyze .analyze-evidence__visual {
+    display: grid;
+    grid-template-columns: minmax(108px, .8fr) repeat(2, minmax(120px, 1fr)) minmax(150px, 1.25fr) minmax(84px, .7fr);
+    align-items: stretch;
+    gap: 0;
+    min-width: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    overflow: hidden;
+}
+
+#analyzeSection.caissa-play-v2-inline-analyze .analyze-evidence__visual.is-compact {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+#analyzeSection.caissa-play-v2-inline-analyze .analyze-evidence__visual.is-without-recommendation {
+    grid-template-columns: minmax(108px, .8fr) minmax(120px, 1fr) minmax(150px, 1.25fr) minmax(84px, .7fr);
+}
+
+#analyzeSection.caissa-play-v2-inline-analyze :is(.analyze-evidence__classification, .analyze-evidence__field) {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    min-height: 58px;
+    padding: 9px 12px;
+}
+
+#analyzeSection.caissa-play-v2-inline-analyze :is(.analyze-evidence__classification, .analyze-evidence__field) + * {
+    border-inline-start: 1px solid var(--border-color);
+}
+
+#analyzeSection.caissa-play-v2-inline-analyze .analyze-evidence__classification {
+    gap: 2px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+#analyzeSection.caissa-play-v2-inline-analyze .analyze-evidence__classification span {
+    font-size: 15px;
+}
+
+#analyzeSection.caissa-play-v2-inline-analyze .analyze-evidence__field span {
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+
+#analyzeSection.caissa-play-v2-inline-analyze .analyze-evidence__field strong {
+    margin-top: 3px;
+    overflow-wrap: anywhere;
+    color: var(--text-primary);
+    font-size: 15px;
+}
+
+#analyzeSection.caissa-play-v2-inline-analyze :is(.analyze-evidence__played, .analyze-evidence__recommendation) strong {
+    font-size: 17px;
+}
+
+#analyzeSection.caissa-play-v2-inline-analyze .analyze-position-note {
+    margin: 6px 2px 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+#analyzeSection.caissa-play-v2-inline-analyze .analyze-review-opening {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+#analyzeSection.caissa-play-v2-inline-analyze .analyze-review-opening__code {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: center;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#analyzeSection.caissa-play-v2-inline-analyze .analyze-review-opening__explore {
+    grid-column: 1 / -1;
+    width: fit-content;
+    margin-top: 4px;
+}
+
+@media (max-width: 1100px) {
+    #analyzeSection.caissa-play-v2-inline-analyze .analyze-evidence__visual {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    #analyzeSection.caissa-play-v2-inline-analyze .analyze-evidence__classification {
+        grid-column: 1 / -1;
+    }
+    #analyzeSection.caissa-play-v2-inline-analyze :is(.analyze-evidence__classification, .analyze-evidence__field) {
+        min-height: 52px;
+    }
+    #analyzeSection.caissa-play-v2-inline-analyze :is(.analyze-evidence__classification, .analyze-evidence__field) + * {
+        border-inline-start: 0;
+        border-top: 1px solid var(--border-color);
+    }
+    #analyzeSection.caissa-play-v2-inline-analyze .analyze-evidence__field:nth-child(even) {
+        border-inline-start: 1px solid var(--border-color);
+    }
+}
+
+@media (max-width: 600px) {
+    #analyzeSection.caissa-play-v2-inline-analyze .analyze-evidence-panel {
+        width: min(100%, calc(var(--analyze-mobile-board-size, var(--board-size)) + 42px));
+    }
+    #analyzeSection.caissa-play-v2-inline-analyze .analyze-evidence__visual {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    #analyzeSection.caissa-play-v2-inline-analyze .analyze-evidence__classification {
+        grid-column: auto;
+    }
+    #analyzeSection.caissa-play-v2-inline-analyze .analyze-evidence__field:nth-child(even) {
+        border-inline-start: 0;
+    }
+}
+
+@media (forced-colors: active) {
+    #analyzeSection.caissa-play-v2-inline-analyze .analyze-evidence__visual {
+        border-color: CanvasText;
+    }
+    #analyzeSection.caissa-play-v2-inline-analyze :is(.analyze-evidence__classification, .analyze-evidence__field) + * {
+        border-color: CanvasText;
+    }
+}
 .caissa-simplified-shell[hidden] { display: none !important; }
 
 body.caissa-simplified-play-active.caissa-play-v2-beta-active .app-container {
@@ -26,6 +178,10 @@ body.caissa-simplified-play-active #playSection {
     overflow-x: clip;
 }
 
+body.caissa-simplified-play-active.caissa-play-v2-beta-active {
+    overflow-x: clip;
+}
+
 body.caissa-simplified-play-active #playSection .cais-stage {
     min-height: 100%;
     padding: 0;
@@ -34,6 +190,7 @@ body.caissa-simplified-play-active #playSection .cais-stage {
 
 body.caissa-simplified-play-active #playSection .caissa-simplified-shell {
     display: grid;
+    box-sizing: border-box;
     width: min(100%, 1560px);
     min-width: 0;
     margin: 0 auto;
@@ -45,6 +202,11 @@ body.caissa-simplified-play-active #playSection .caissa-simplified-shell {
     gap: 8px;
     overflow: visible;
     color: var(--play-theme-text);
+}
+
+body.caissa-simplified-play-active #playSection .caissa-simplified-shell[data-entry-experience="beta"] {
+    width: 100%;
+    max-width: none;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell :where(h1, h2, h3, h4, p, li, dt, dd, strong) {
@@ -102,14 +264,14 @@ body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experienc
         "board context"
         "board footer"
         "board advanced";
-    grid-template-columns: minmax(0, 1.35fr) minmax(300px, .85fr);
-    gap: clamp(8px, 1.2vw, 18px);
+    grid-template-columns: minmax(0, var(--play-board-owner-size)) minmax(300px, var(--play-context-width, 520px));
+    justify-content: center;
+    gap: var(--play-workspace-gap, clamp(8px, 1.2vw, 18px));
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__modes {
     grid-area: modes;
-    display: flex;
-    gap: 6px;
+    display: block;
     max-width: 100%;
     min-width: 0;
     overflow-x: auto;
@@ -117,20 +279,100 @@ body.caissa-simplified-play-active .caissa-simplified-shell__modes {
     scrollbar-width: thin;
 }
 
+body.caissa-simplified-play-active .caissa-simplified-shell__modes .caissa-vc-tabs__list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+}
+
 body.caissa-simplified-play-active .caissa-simplified-shell__mode {
-    flex: 0 0 auto;
+    width: 100%;
     min-width: 44px;
-    min-height: 44px;
-    padding: 7px 14px;
+    min-height: 52px;
+    padding: 9px 12px;
     border: 1px solid var(--panel-border);
-    border-radius: 999px;
-    background: rgba(255,255,255,.04);
+    border-radius: 10px;
+    background: var(--play-theme-card);
     color: var(--text);
+    font-weight: 800;
+    line-height: 1.15;
+    text-align: center;
+    white-space: nowrap;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__mode[aria-selected="true"] {
     border-color: var(--accent-color);
     background: rgba(255,140,0,.16);
+    box-shadow: inset 0 -3px 0 var(--accent-color);
+}
+
+body.caissa-simplified-play-active.caissa-play-v2-analyze-open {
+    overflow: hidden;
+}
+
+body.caissa-simplified-play-active.caissa-play-v2-analyze-open #analyzeEngineToggle { display: none; }
+
+body.caissa-simplified-play-active.caissa-play-v2-analyze-open #analyzeSection.caissa-play-v2-inline-analyze {
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    display: block;
+    overflow: auto;
+    padding: max(64px, env(safe-area-inset-top, 0px))
+        max(16px, env(safe-area-inset-right, 0px))
+        max(16px, env(safe-area-inset-bottom, 0px))
+        max(16px, env(safe-area-inset-left, 0px));
+    background: var(--play-theme-page, #0f1720);
+}
+
+body.caissa-simplified-play-active.caissa-play-v2-analyze-open
+    #analyzeSection.caissa-play-v2-inline-analyze .analyze-layout {
+    grid-template-columns: minmax(420px, 1fr) minmax(300px, 360px);
+    max-width: 1220px;
+    margin: 0 auto;
+}
+
+body.caissa-simplified-play-active.caissa-play-v2-analyze-open
+    #analyzeSection.caissa-play-v2-inline-analyze .analyze-import-sidebar {
+    display: none;
+}
+
+body.caissa-simplified-play-active.caissa-play-v2-analyze-open
+    #analyzeSection.caissa-play-v2-inline-analyze .analyze-main {
+    grid-column: 1;
+}
+
+body.caissa-simplified-play-active.caissa-play-v2-analyze-open
+    #analyzeSection.caissa-play-v2-inline-analyze .context-panel {
+    grid-column: 2;
+}
+
+body.caissa-simplified-play-active .caissa-play-v2-inline-analyze__close {
+    position: fixed;
+    z-index: 1001;
+    top: max(12px, env(safe-area-inset-top, 0px));
+    right: max(16px, env(safe-area-inset-right, 0px));
+    min-height: 44px;
+    padding: 9px 16px;
+    border: 1px solid var(--accent-color);
+    border-radius: 9px;
+    background: var(--accent-color);
+    color: #111;
+    font-weight: 800;
+}
+
+@media (max-width: 800px) {
+    body.caissa-simplified-play-active.caissa-play-v2-analyze-open
+        #analyzeSection.caissa-play-v2-inline-analyze .analyze-layout {
+        grid-template-columns: minmax(0, 1fr);
+        padding-inline: 0;
+    }
+
+    body.caissa-simplified-play-active.caissa-play-v2-analyze-open
+        #analyzeSection.caissa-play-v2-inline-analyze .context-panel {
+        grid-column: 1;
+    }
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__mode:disabled {
@@ -152,6 +394,11 @@ body.caissa-simplified-play-active .caissa-simplified-shell__board-stage {
     justify-items: center;
     gap: 6px;
     padding: var(--shell-stage-pad);
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experience="beta"][data-layout="desktop-split"] .caissa-simplified-shell__board-stage {
+    box-sizing: border-box;
+    width: var(--play-board-owner-size);
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__sr-heading {
@@ -192,6 +439,118 @@ body.caissa-simplified-play-active .caissa-simplified-shell__board-region .board
     justify-content: center;
     width: 100%;
     min-width: 0;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__board-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    width: min(calc(var(--play-board-size) + var(--shell-eval-width) + var(--shell-rail-gap)), 100%);
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-mode="coach"] .caissa-simplified-shell__board-actions {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__board-actions[hidden] {
+    display: none;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__active-action {
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--panel-border);
+    border-radius: 9px;
+    background: var(--play-theme-card);
+    color: var(--play-theme-text);
+    font-weight: 800;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__active-action--resign {
+    border-color: #dc6b6b;
+    color: #ffd6d6;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__active-action[hidden] {
+    display: none;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__active-context {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__active-context[hidden] {
+    display: none;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__active-context :where(h3, p) {
+    margin: 0;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__assistance {
+    margin-block: .75rem;
+    border: 1px solid color-mix(in srgb, var(--border-color, #667085) 55%, transparent);
+    border-radius: .75rem;
+    background: color-mix(in srgb, var(--surface-color, #17202b) 88%, transparent);
+    overflow: clip;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__assistance[hidden] { display: none; }
+
+body.caissa-simplified-play-active .caissa-simplified-shell__assistance summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    padding: .65rem .8rem;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__assistance[open] summary {
+    border-block-end: 1px solid color-mix(in srgb, var(--border-color, #667085) 45%, transparent);
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__assistance-body {
+    display: grid;
+    gap: .7rem;
+    padding: .8rem;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__assistance-option {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(8.5rem, auto);
+    align-items: center;
+    gap: .75rem;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__assistance-option select { min-height: 44px; }
+body.caissa-simplified-play-active .caissa-simplified-shell__assistance-note { margin: 0; color: var(--text-secondary, #aeb8c5); }
+
+body.caissa-simplified-play-active .caissa-native-coach-panel label:has([data-coach-level]),
+body.caissa-simplified-play-active .caissa-native-coach-panel label:has([data-coach-focus]),
+body.caissa-simplified-play-active .caissa-native-coach-panel label:has([data-coach-timing]) { display: none; }
+
+body.caissa-simplified-play-active .caissa-simplified-shell__pgn-dialog {
+    width: min(680px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    padding: 18px;
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    background: var(--panel-bg);
+    color: var(--play-theme-text);
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__pgn-dialog::backdrop {
+    background: rgba(0, 0, 0, .72);
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__pgn-dialog textarea {
+    width: 100%;
+    margin-block: 12px;
+    resize: vertical;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__board-region .board-with-eval {
@@ -371,7 +730,7 @@ body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experienc
     font-size: 12px;
 }
 
-body.caissa-simplified-play-active.caissa-play-v2-beta-active:not(.caissa-play-game-active) .caissa-simplified-shell__advanced {
+body.caissa-simplified-play-active.caissa-play-v2-beta-active .caissa-simplified-shell__advanced {
     display: none;
 }
 

@@ -1,5 +1,7 @@
 # Season 11.0.1 — Play v2 Public Beta Readiness Audit
 
+> **Season 11 desktop product-acceptance update — 2026-08-02:** The product owner explicitly approved the Play v2 desktop product experience documented in [`PLAY_V2_DESKTOP_PRODUCT_ACCEPTANCE.md`](./PLAY_V2_DESKTOP_PRODUCT_ACCEPTANCE.md). This closes only the desktop visual and functional acceptance prerequisite. Physical-device certification remains **NOT CERTIFIED — PAUSED** and requires separate authorization to resume. Named assistive-technology review, the public opt-in gate, feedback and rollback operations, and production-equivalent verification remain open. Play v2 remains internal, `/play` continues to resolve to Legacy Play, and this update makes no public-readiness or Season 11 completion claim.
+
 > Season 11.4.1A update: `PlayV2BotPersonalityPolicy@1.0.0` adds four locally calibrated, deterministic personalities and a simplified internal selection surface. Evidence and limitations are recorded in [`PLAY_V2_BOT_PERSONALITIES.md`](./PLAY_V2_BOT_PERSONALITIES.md). Bots and the production Worker remain uncertified and not public-ready. Games certification, physical-device validation, feedback, and public rollout gates are unchanged.
 
 > Season 11.5.2: internal Coach is `locally-assistance-certified` by automation only. It remains a public-beta blocker until named human content review and physical-device and named-screen-reader gates pass. `publicReady` remains false; routes, navigation, defaults, analytics, Players, FICS isolation, and educational isolation are unchanged.

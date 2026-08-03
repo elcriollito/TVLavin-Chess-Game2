@@ -22,6 +22,9 @@ const AnalyzeSection = {
     positionAnalyses: [],
     analysisEngine: null,
     analysisToken: 0,
+    analysisPhase: 'idle',
+    analyzedPositions: 0,
+    totalPositions: 0,
     keyboardHandler: null,
     boardFlipped: false,
     studyModeInitialized: false,
@@ -95,6 +98,7 @@ const AnalyzeSection = {
             whitePlayer: document.getElementById('analyzeWhitePlayer'),
             blackPlayer: document.getElementById('analyzeBlackPlayer'),
             gameResult: document.getElementById('analyzeGameResult'),
+            termination: document.getElementById('analyzeTermination'),
             status: document.getElementById('analyzeStatus'),
 
             // Analysis controls
@@ -103,7 +107,7 @@ const AnalyzeSection = {
             progressBar: document.getElementById('analyzeProgressBar'),
             progressFill: document.getElementById('analyzeProgressFill'),
             progressText: document.getElementById('analyzeProgressText'),
-            mentor: document.getElementById('analyzeMentor'),
+            mentor: document.getElementById('analyzeMoveEvidence'),
             evalBar: document.getElementById('analyzeEvalBar'),
             evalFill: document.getElementById('analyzeEvalFill'),
             evalScore: document.getElementById('analyzeEvalScore'),
@@ -203,6 +207,7 @@ const AnalyzeSection = {
     },
 
     isAnalyzeActive() {
+        if (document.getElementById('analyzeSection')?.classList.contains('caissa-play-v2-inline-analyze')) return true;
         if (window.CaissaNavigation?.currentSection) {
             return CaissaNavigation.currentSection === 'analyze';
         }
@@ -724,10 +729,12 @@ const AnalyzeSection = {
                 white: metadata.white || headers.White || 'Unknown',
                 black: metadata.black || headers.Black || 'Unknown',
                 result: metadata.result || headers.Result || '*',
+                termination: metadata.termination || headers.Termination || null,
                 event: headers.Event || '',
                 date: headers.Date || '',
                 eco: metadata.eco || headers.ECO || '',
                 opening: metadata.opening || headers.Opening || '',
+                recordId: metadata.recordId || null,
                 movesSan: game.history().slice(),
                 movesVerbose: game.history({ verbose: true }).map((move) => ({ ...move }))
             };
@@ -777,6 +784,10 @@ const AnalyzeSection = {
         if (this.elements.gameResult) {
             this.elements.gameResult.textContent = this.loadedGame.result;
         }
+        if (this.elements.termination) {
+            const value = String(this.loadedGame.termination || '').replace(/-/g, ' ');
+            this.elements.termination.textContent = value ? value.replace(/^./, character => character.toUpperCase()) : 'Not recorded';
+        }
     },
 
     /**
@@ -801,16 +812,16 @@ const AnalyzeSection = {
             const moveNum = Math.floor(i / 2) + 1;
             const whiteMove = moves[i] || '';
             const blackMove = moves[i + 1] || '';
-            const whiteAnnotation = this.analysisResults[i]?.annotation || '';
-            const blackAnnotation = this.analysisResults[i + 1]?.annotation || '';
+            const whiteAnnotation = this.analysisPhase === 'complete' ? this.analysisResults[i]?.annotation || '' : '';
+            const blackAnnotation = this.analysisPhase === 'complete' ? this.analysisResults[i + 1]?.annotation || '' : '';
             const whiteAnnotationClass = this.getAnnotationClass(whiteAnnotation);
             const blackAnnotationClass = this.getAnnotationClass(blackAnnotation);
 
             html += `
                 <div class="move-row">
                     <span class="move-num">${moveNum}.</span>
-                    <span class="move-white${i === this.currentMoveIndex ? ' active' : ''}" data-index="${i}">${whiteMove}${whiteAnnotation ? `<strong class="analyze-move-annotation ${whiteAnnotationClass}">${whiteAnnotation}</strong>` : ''}</span>
-                    <span class="move-black${i + 1 === this.currentMoveIndex ? ' active' : ''}" data-index="${i + 1}">${blackMove}${blackAnnotation ? `<strong class="analyze-move-annotation ${blackAnnotationClass}">${blackAnnotation}</strong>` : ''}</span>
+                    <button type="button" class="move-white${i === this.currentMoveIndex ? ' active' : ''}" data-index="${i}" aria-label="${this.escapeHtml(this.getMoveAccessibleLabel(i, whiteMove))}">${whiteMove}${whiteAnnotation ? `<strong aria-hidden="true" class="analyze-move-annotation ${whiteAnnotationClass}">${whiteAnnotation}</strong>` : ''}</button>
+                    <button type="button" class="move-black${i + 1 === this.currentMoveIndex ? ' active' : ''}" data-index="${i + 1}" aria-label="${this.escapeHtml(this.getMoveAccessibleLabel(i + 1, blackMove))}">${blackMove}${blackAnnotation ? `<strong aria-hidden="true" class="analyze-move-annotation ${blackAnnotationClass}">${blackAnnotation}</strong>` : ''}</button>
                 </div>
             `;
         }
@@ -856,14 +867,25 @@ const AnalyzeSection = {
         this.updateEvaluationBar();
         this.refreshLiveEvaluation();
 
+        const selected = this.analysisPhase === 'complete' ? this.analysisResults[safeIndex] : null;
+        if (selected && ['Inaccuracy', 'Mistake', 'Blunder'].includes(selected.quality)) {
+            this.board?.position?.(selected.fenBefore, false);
+        }
+
         console.log('[Analyze] Jumped to move:', safeIndex + 1);
+    },
+
+    getMoveAccessibleLabel(index, san) {
+        const result = this.analysisPhase === 'complete' ? this.analysisResults[index] : null;
+        const quality = result?.quality || (result?.unavailable ? 'Analysis unavailable' : 'Not analyzed');
+        return `${san || 'Empty move'}, ${quality}`;
     },
 
     updateBoardAndUI() {
         const game = this.getGame();
         if (!game) return;
         if (this.board && typeof this.board.position === 'function') {
-            this.board.position(game.fen());
+            this.board.position(game.fen(), false);
         }
         if (typeof App.updateUI === 'function') {
             App.updateUI();
@@ -904,7 +926,7 @@ const AnalyzeSection = {
             return;
         }
 
-        const result = this.analysisResults[this.currentMoveIndex];
+        const result = this.analysisPhase === 'complete' ? this.analysisResults[this.currentMoveIndex] : null;
         const move = this.getLoadedMoves()[this.currentMoveIndex] || '';
         if (!result) {
             this.elements.mentor.innerHTML = `
@@ -925,24 +947,63 @@ const AnalyzeSection = {
             return;
         }
 
+        const negative = ['Inaccuracy', 'Mistake', 'Blunder'].includes(result.quality);
+        const recommendation = negative && result.recommendationAvailable;
+        const accessibleEvidence = this.buildMoveEvidenceDescription(result, recommendation);
         this.elements.mentor.innerHTML = `
-            <div class="analyze-mentor-heading">
-                <strong>${this.escapeHtml(move)}</strong>
-                <span class="analyze-annotation ${this.getAnnotationClass(result.annotation)}">${result.annotation}</span>
-                <span>${this.escapeHtml(result.label)}</span>
-            </div>
-            <p class="analyze-mentor-copy">${this.escapeHtml(result.mentorText)}</p>
-            <div class="analyze-eval-grid">
-                <div class="analyze-eval-item">Before<strong>${this.formatEvaluation(result.evalBefore, result.mateBefore)}</strong></div>
-                <div class="analyze-eval-item">After<strong>${this.formatEvaluation(result.evalAfter, result.mateAfter)}</strong></div>
-                <div class="analyze-eval-item">Eval loss<strong>${result.loss.toFixed(2)}</strong></div>
-                <div class="analyze-eval-item">Engine preferred<strong>${this.escapeHtml(result.bestMoveSan || result.bestMove || 'Played move')}</strong></div>
+            <div class="analyze-evidence" role="group" aria-label="${this.escapeHtml(accessibleEvidence)}">
+                <div class="analyze-evidence__visual ${negative ? 'is-comparison' : 'is-compact'}${negative && !recommendation ? ' is-without-recommendation' : ''}" aria-hidden="true">
+                    <div class="analyze-evidence__classification ${this.getAnnotationClass(result.annotation)}">
+                        <strong>${this.escapeHtml(result.quality)}</strong>
+                        ${result.annotation ? `<span>${this.escapeHtml(result.annotation)}</span>` : ''}
+                    </div>
+                    ${negative ? `<div class="analyze-evidence__field analyze-evidence__played"><span>Played</span><strong>${this.escapeHtml(result.move)}</strong></div>
+                    ${recommendation ? `<div class="analyze-evidence__field analyze-evidence__recommendation"><span>Engine recommends</span><strong>${this.escapeHtml(result.bestMoveSan)}</strong></div>` : ''}
+                    <div class="analyze-evidence__field analyze-evidence__evaluation"><span>Evaluation</span><strong>${this.formatEvaluation(result.beforePlayerEval, result.mateBefore)} → ${this.formatEvaluation(result.afterPlayerEval, result.mateAfter)}</strong></div>
+                    <div class="analyze-evidence__field analyze-evidence__loss"><span>Loss</span><strong>${result.loss.toFixed(2)}</strong></div>` : ''}
+                </div>
+                ${negative ? `<p class="analyze-position-note">Position shown: before ${this.escapeHtml(result.move)}.</p>` : ''}
             </div>
         `;
     },
 
+    describeSan(san) {
+        const clean = String(san || '').replace(/[+#?!]/g, '');
+        const names = { K: 'King', Q: 'Queen', R: 'Rook', B: 'Bishop', N: 'Knight' };
+        return `${names[clean[0]] ? `${names[clean[0]]} ` : ''}${clean}`.trim();
+    },
+
+    describeEvaluation(value, mate) {
+        if (mate !== null && mate !== undefined) return `mate ${mate}`;
+        if (!Number.isFinite(value)) return 'unavailable';
+        return `${value >= 0 ? 'plus' : 'minus'} ${Math.abs(value).toFixed(2)}`;
+    },
+
+    buildMoveEvidenceDescription(result, recommendation) {
+        const parts = [`${result.quality}.`];
+        if (!['Inaccuracy', 'Mistake', 'Blunder'].includes(result.quality))
+            return `${result.quality} move. ${this.describeSan(result.move)}.`;
+        parts.push(`Played ${this.describeSan(result.move)}.`);
+        if (recommendation) parts.push(`Engine recommends ${this.describeSan(result.bestMoveSan)}.`);
+        parts.push(`Evaluation changed from ${this.describeEvaluation(result.beforePlayerEval, result.mateBefore)} to ${this.describeEvaluation(result.afterPlayerEval, result.mateAfter)}.`);
+        parts.push(`Evaluation loss ${result.loss.toFixed(2)} pawns.`);
+        parts.push(`The board shows the position before ${this.describeSan(result.move)}.`);
+        return parts.join(' ');
+    },
+
     updateReviewSummary() {
         if (!this.elements.reviewSummary) return;
+        if (this.analysisPhase !== 'complete') {
+            const states = {
+                preparing: ['Preparing local engine.', 'Results will appear only after every position is evaluated.'],
+                analyzing: ['Analysis in progress.', `Analyzing position ${this.analyzedPositions} of ${this.totalPositions}.`],
+                failed: ['Analysis unavailable.', 'No accuracy or move-quality claims were produced. Retry when ready.'],
+                cancelled: ['Analysis cancelled.', 'The completed game is preserved and no partial results are shown.']
+            };
+            const copy = states[this.analysisPhase] || ['Ready to analyze.', 'Start local analysis to calculate evidence-backed results.'];
+            this.renderEmptyState(this.elements.reviewSummary, { icon: 'fa-chart-pie', title: copy[0], message: copy[1] });
+            return;
+        }
         const analyzed = this.analysisResults.filter((result) => result && !result.unavailable);
         if (analyzed.length === 0) {
             this.renderEmptyState(this.elements.reviewSummary, {
@@ -955,14 +1016,16 @@ const AnalyzeSection = {
 
         const white = this.buildSideReview(analyzed.filter((result) => result.moveIndex % 2 === 0));
         const black = this.buildSideReview(analyzed.filter((result) => result.moveIndex % 2 === 1));
-        const qualities = ['Brilliant', 'Great', 'Best', 'Good', 'Interesting', 'Dubious', 'Mistake', 'Blunder'];
+        const qualities = ['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder'];
         const opening = this.getAnalyzeOpening();
+        const trustedOpening = this.getTrustedEcoOpening(opening);
 
         this.elements.reviewSummary.innerHTML = `
             <div class="analyze-review-opening">
                 <span>Opening</span>
-                <strong>${this.escapeHtml(opening?.name || 'Opening not identified')}</strong>
-                ${opening?.eco ? `<a href="/eco/${this.escapeHtml(opening.eco)}">${this.escapeHtml(opening.eco)}</a>` : ''}
+                <strong>${this.escapeHtml(trustedOpening?.name || opening?.name || 'Opening not identified')}</strong>
+                ${trustedOpening ? `<span class="analyze-review-opening__code">${trustedOpening.eco}</span>
+                <a class="analyze-review-opening__explore" href="/eco/${trustedOpening.eco}" target="_blank" rel="noopener" aria-label="Explore ${this.escapeHtml(trustedOpening.name)} ${trustedOpening.eco} in ECO Database (opens in a new tab)">Explore in ECO Database <span aria-hidden="true">↗</span></a>` : ''}
             </div>
             <div class="analyze-accuracy-grid">
                 <div class="analyze-accuracy-card"><span>White accuracy</span><strong>${this.formatAccuracy(white.accuracy)}</strong></div>
@@ -1006,22 +1069,40 @@ const AnalyzeSection = {
         return null;
     },
 
+    getTrustedEcoOpening(opening) {
+        const code = String(opening?.eco || '').toUpperCase();
+        if (!/^[A-E]\d{2}$/.test(code)) return null;
+        const row = (window.App?.ecoCodeRows || []).find(item =>
+            String(item.eco || item.code || '').toUpperCase() === code);
+        if (!row || !String(row.name || '').trim()) return null;
+        if (opening?.name && String(opening.name).trim() !== String(row.name).trim()) return null;
+        return { eco: code, name: String(row.name).trim() };
+    },
+
+    isRecognizedBookPly(moveIndex) {
+        const played = this.getLoadedMoves().map((move) => this.normalizeEcoSan(move));
+        return (window.App?.openings || []).some(opening => {
+            const line = (Array.isArray(opening.moves) ? opening.moves : String(opening.moves || '').split(/\s+/))
+                .map(move => this.normalizeEcoSan(move)).filter(Boolean);
+            return line.length > moveIndex && line.slice(0, moveIndex + 1)
+                .every((move, index) => move === played[index]);
+        });
+    },
+
     normalizeEcoSan(move) {
         return String(move || '').replace(/[+#?!]/g, '').trim();
     },
 
     buildSideReview(results) {
-        const qualities = ['Brilliant', 'Great', 'Best', 'Good', 'Interesting', 'Dubious', 'Mistake', 'Blunder'];
+        const qualities = ['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder'];
         const counts = Object.fromEntries(qualities.map((quality) => [quality, 0]));
         if (results.length === 0) return { accuracy: null, counts };
 
-        let accuracyTotal = 0;
         results.forEach((result) => {
             counts[this.getMoveQuality(result)] += 1;
-            // Consistent, explainable estimate: each pawn of eval loss reduces move accuracy exponentially.
-            accuracyTotal += 100 * Math.exp(-0.55 * Math.max(0, result.loss || 0));
         });
-        return { accuracy: (accuracyTotal / results.length).toFixed(1), counts };
+        const accuracy = window.CaissaAnalyzeReviewPolicy?.accuracy?.(results);
+        return { accuracy: accuracy?.ok ? accuracy.value : null, counts };
     },
 
     formatAccuracy(accuracy) {
@@ -1029,21 +1110,19 @@ const AnalyzeSection = {
     },
 
     getMoveQuality(result) {
-        if (result.annotation === '!!') return 'Brilliant';
-        if (result.annotation === '!?') return 'Interesting';
-        if (result.annotation === '?!') return 'Dubious';
-        if (result.annotation === '?') return 'Mistake';
-        if (result.annotation === '??') return 'Blunder';
-        if (result.annotation === '!') {
-            if (result.isBestMove && result.gain >= 0.5) return 'Great';
-            if (result.isBestMove) return 'Best';
-            return 'Good';
-        }
-        return 'Good';
+        return result.quality || 'Acceptable';
     },
 
     updateCriticalMoments() {
         if (!this.elements.criticalMoments) return;
+        if (this.analysisPhase !== 'complete') {
+            this.renderEmptyState(this.elements.criticalMoments, {
+                icon: 'fa-exclamation-triangle',
+                title: this.analysisPhase === 'failed' ? 'Critical moments unavailable.' : 'Critical moments pending.',
+                message: 'Critical moments require a successfully completed analysis.'
+            });
+            return;
+        }
         const critical = this.analysisResults.filter((result) => result && !result.unavailable && this.isCriticalMoment(result));
         if (critical.length === 0) {
             this.renderEmptyState(this.elements.criticalMoments, {
@@ -1072,11 +1151,7 @@ const AnalyzeSection = {
     },
 
     isCriticalMoment(result) {
-        return result.annotation === '?'
-            || result.annotation === '??'
-            || result.mateSwing
-            || result.loss >= 1.5
-            || (result.beforePlayerEval >= 1.5 && result.afterPlayerEval < 0.5);
+        return window.CaissaAnalyzeReviewPolicy?.critical?.(result) === true;
     },
 
     getCriticalMomentText(result) {
@@ -1106,8 +1181,15 @@ const AnalyzeSection = {
         if (!fill || !score) return;
 
         const current = this.getCurrentEvaluation();
-        const evaluation = current.evaluation ?? 0;
+        const evaluation = current.evaluation;
         const mate = current.mate;
+        const available = Number.isFinite(evaluation) || Number.isFinite(mate);
+        if (!available) {
+            fill.style.height = '50%'; score.textContent = '\u2014';
+            score.classList.remove('white-advantage', 'black-advantage');
+            score.classList.toggle('engine-off', !this.liveEngineEnabled && !this.isAnalyzing);
+            return;
+        }
         const centipawns = mate !== null && mate !== undefined
             ? (mate > 0 ? 1500 : -1500)
             : evaluation * 100;
@@ -1133,12 +1215,12 @@ const AnalyzeSection = {
             return { evaluation: positionAnalysis.eval, mate: positionAnalysis.mate };
         }
 
-        if (this.currentMoveIndex < 0) return { evaluation: 0, mate: null };
+        if (this.currentMoveIndex < 0) return { evaluation: null, mate: null };
 
         const selected = this.analysisResults[this.currentMoveIndex];
         return selected && !selected.unavailable
             ? { evaluation: selected.evalAfter, mate: selected.mateAfter }
-            : { evaluation: 0, mate: null };
+            : { evaluation: null, mate: null };
     },
 
     formatEvalBarScore(evaluation, mate) {
@@ -1293,6 +1375,7 @@ const AnalyzeSection = {
      * Start Stockfish analysis
      */
     async startAnalysis() {
+        if (this.isAnalyzing || ['preparing', 'analyzing'].includes(this.analysisPhase)) return;
         if (!this.loadedGame) {
             this.showNotification('Load a game before starting analysis.', 'error');
             return;
@@ -1303,12 +1386,16 @@ const AnalyzeSection = {
         }
 
         console.log('[Analyze] Starting analysis...');
-        this.setStatus('Engine loading...', 'loading');
+        this.analysisPhase = 'preparing'; this.analyzedPositions = 0; this.totalPositions = 0;
+        this.updateReviewSummary(); this.updateCriticalMoments();
+        this.setStatus('Preparing local engine', 'loading');
         window.CaissaUI?.setButtonLoading(this.elements.startBtn, true, { label: 'Loading engine...' });
         const engine = await this.ensureAnalysisEngine();
         if (!engine) {
-            this.setStatus('Engine unavailable', 'error');
+            this.analysisPhase = 'failed'; this.setStatus('Analysis unavailable', 'error');
+            this.updateReviewSummary(); this.updateCriticalMoments();
             window.CaissaUI?.setButtonLoading(this.elements.startBtn, false);
+            this.elements.startBtn.lastChild.textContent = ' Retry analysis';
             this.showNotification('Analysis engine could not start. Try again.', 'error');
             return;
         }
@@ -1331,13 +1418,17 @@ const AnalyzeSection = {
 
         const moves = this.getLoadedMoves({ verbose: true });
         const totalMoves = moves.length;
+        this.totalPositions = totalMoves + 1;
         if (totalMoves === 0) {
             this.isAnalyzing = false;
+            this.analysisPhase = 'failed';
             this.setStatus('No moves to analyze', 'warning');
             this.elements.startBtn.style.display = 'block';
             this.elements.stopBtn.style.display = 'none';
             this.elements.progressBar.style.display = 'none';
             window.CaissaUI?.setButtonLoading(this.elements.startBtn, false);
+            this.updateReviewSummary(); this.updateCriticalMoments();
+            this.teardownAnalysisEngine('empty-game');
             return;
         }
 
@@ -1355,6 +1446,7 @@ const AnalyzeSection = {
             let skippedPositions = 0;
             for (let i = 0; i < positions.length && this.isAnalyzing && token === this.analysisToken; i++) {
                 const progress = Math.round((i / totalMoves) * 100);
+                this.analysisPhase = 'analyzing'; this.analyzedPositions = i;
                 this.updateProgress(progress, `Analyzing position ${i + 1}/${positions.length}`);
                 const analysis = await this.analyzePositionWithRetry(positions[i], token);
                 positionAnalyses.push(analysis);
@@ -1365,36 +1457,40 @@ const AnalyzeSection = {
                     this.analysisResults[i - 1] = positionAnalyses[i - 1] && positionAnalyses[i]
                         ? this.buildMoveAnalysis(i - 1, moves[i - 1], positions[i - 1], positionAnalyses[i - 1], positionAnalyses[i])
                         : this.buildUnavailableMoveAnalysis(i - 1, moves[i - 1]);
-                    this.updateMoveList();
-                    this.updateReviewSummary();
-                    this.updateCriticalMoments();
-                    if (this.currentMoveIndex === i - 1) {
-                        this.updateMentorPanel();
-                        this.updateEvaluationBar();
-                    }
                 }
             }
 
             if (this.isAnalyzing && token === this.analysisToken) {
                 this.updateProgress(100, `Analyzed ${totalMoves} moves`);
-                this.updateMoveList();
-                this.updateMentorPanel();
-                this.updateEvaluationBar();
-                this.updateReviewSummary();
-                this.updateCriticalMoments();
                 const analyzedPositions = positions.length - skippedPositions;
-                this.setAnalysisCompletionStatus(analyzedPositions, positions.length);
+                this.analyzedPositions = analyzedPositions;
+                if (analyzedPositions === positions.length) {
+                    this.analysisPhase = 'complete';
+                    this.updateMoveList(); this.updateMentorPanel(); this.updateEvaluationBar();
+                    this.updateReviewSummary(); this.updateCriticalMoments();
+                    this.setAnalysisCompletionStatus(analyzedPositions, positions.length);
+                } else {
+                    this.analysisPhase = 'failed'; this.analysisResults = []; this.positionAnalyses = [];
+                    this.updateMoveList(); this.updateReviewSummary(); this.updateCriticalMoments();
+                    this.setStatus(`Analysis unavailable Â· ${analyzedPositions}/${positions.length} positions evaluated`, 'error');
+                    this.elements.startBtn.lastChild.textContent = ' Retry analysis';
+                }
             }
 
         } catch (error) {
             console.error('[Analyze] Analysis error:', error);
-            this.setStatus('Analysis could not finish. Try again.', 'error');
+            this.analysisPhase = 'failed'; this.analysisResults = []; this.positionAnalyses = [];
+            this.updateMoveList(); this.updateReviewSummary(); this.updateCriticalMoments();
+            this.setStatus('Analysis unavailable. Try again.', 'error');
+            this.elements.startBtn.lastChild.textContent = ' Retry analysis';
         } finally {
             this.isAnalyzing = false;
             this.elements.startBtn.style.display = 'block';
             this.elements.stopBtn.style.display = 'none';
             this.elements.progressBar.style.display = 'none';
             window.CaissaUI?.setButtonLoading(this.elements.startBtn, false);
+            if (this.analysisPhase === 'failed') this.elements.startBtn.lastChild.textContent = ' Retry analysis';
+            this.teardownAnalysisEngine('analysis-finished');
         }
     },
 
@@ -1408,14 +1504,23 @@ const AnalyzeSection = {
         const loss = isBestMove ? 0 : Math.max(0, beforePlayerEval - afterPlayerEval);
         const gain = afterPlayerEval - beforePlayerEval;
         const mateSwing = this.hasMateSwing(before, after, move.color);
-        const classification = this.classifyMove(loss, gain, isBestMove, moveIndex, mateSwing, move.san);
+        const isBook = this.isRecognizedBookPly(moveIndex);
+        const classification = this.classifyMove(loss, mateSwing, isBook);
 
         return {
             moveIndex,
             move: move.san,
+            fenBefore,
             playedUci,
             bestMove,
             bestMoveSan,
+            recommendationAvailable: !!bestMoveSan && !!(this.loadedGame?.recordId || this.activeHandoffId)
+                && before.depth > 0 && this.isAnalyzing,
+            bestMoveEval: before.eval,
+            recordId: this.loadedGame?.recordId || this.activeHandoffId || null,
+            ply: moveIndex + 1,
+            generation: this.analysisToken,
+            depth: before.depth || 0,
             isBestMove,
             evalBefore: before.eval,
             evalAfter: after.eval,
@@ -1426,9 +1531,12 @@ const AnalyzeSection = {
             mateSwing,
             beforePlayerEval,
             afterPlayerEval,
+            quality: classification.quality,
+            accuracyIncluded: classification.accuracyIncluded !== false,
+            book: classification.quality === 'Book',
             annotation: classification.annotation,
             label: classification.label,
-            mentorText: this.buildMentorText(classification, loss, bestMoveSan, isBestMove)
+            mentorText: this.buildMentorText(classification, loss)
         };
     },
 
@@ -1447,7 +1555,8 @@ const AnalyzeSection = {
             const mateValue = analysis.mate > 0 ? 100 : -100;
             return color === 'w' ? mateValue : -mateValue;
         }
-        const evaluation = analysis.eval ?? 0;
+        const evaluation = analysis.eval;
+        if (!Number.isFinite(evaluation)) return null;
         return color === 'w' ? evaluation : -evaluation;
     },
 
@@ -1469,33 +1578,18 @@ const AnalyzeSection = {
         return allowedLosingMate || lostWinningMate;
     },
 
-    classifyMove(loss, gain, isBestMove, moveIndex = 0, mateSwing = false, san = '') {
-        const openingPhase = moveIndex < 16;
-        const commonFirstMove = moveIndex === 0 && ['d4', 'e4', 'Nf3', 'c4'].includes(san);
-        if (commonFirstMove && !mateSwing && loss <= 2) {
-            return { annotation: '!', label: 'Good opening move', commonOpeningChoice: true };
-        }
-        if (isBestMove && gain >= 1) return { annotation: '!!', label: 'Brilliant move' };
-        if (isBestMove || loss <= 0.5) return { annotation: '!', label: 'Excellent move' };
-        if (!openingPhase && loss <= 0.75) return { annotation: '!?', label: 'Interesting move' };
-        if (openingPhase && !mateSwing && loss <= 2) {
-            return { annotation: '!', label: 'Sound opening move', openingProtected: true };
-        }
-        if (mateSwing || loss > 2.5) return { annotation: '??', label: 'Blunder' };
-        if (loss > 1.25) return { annotation: '?', label: 'Mistake' };
-        return { annotation: '?!', label: 'Dubious move' };
+    classifyMove(loss, mateSwing = false, book = false) {
+        const classified = window.CaissaAnalyzeReviewPolicy?.classify?.({ loss, mateSwing, book });
+        if (!classified?.ok) return { annotation: '-', label: 'Analysis unavailable' };
+        return { ...classified, label: `${classified.quality} move` };
     },
 
-    buildMentorText(classification, loss, bestMoveSan, isBestMove) {
-        if (classification.commonOpeningChoice) return 'Good opening move. The engine may prefer another line, but this is a fully sound opening choice.';
-        if (classification.openingProtected) return `Sound opening move.${bestMoveSan ? ` The engine preferred ${bestMoveSan}, but this remains a reasonable opening choice.` : ' This remains a reasonable opening choice.'}`;
-        if (classification.annotation === '!!') return 'Brilliant move. You found the engine choice and created a major improvement.';
-        if (classification.annotation === '??') return `Blunder. This caused a decisive swing.${bestMoveSan ? ` Better was ${bestMoveSan}.` : ''}`;
-        if (classification.annotation === '?') return `Mistake. This lost about ${loss.toFixed(1)} pawns.${bestMoveSan ? ` Better was ${bestMoveSan}.` : ''}`;
-        if (classification.annotation === '?!') return `Dubious move. You gave up about ${loss.toFixed(1)} pawns of evaluation.${bestMoveSan ? ` The engine preferred ${bestMoveSan}.` : ''}`;
-        if (classification.annotation === '!?') return `Interesting choice.${bestMoveSan ? ` The engine slightly preferred ${bestMoveSan}, but this remains playable.` : ' This remains playable.'}`;
-        if (isBestMove) return 'Excellent move. You matched the engine choice and kept the position healthy.';
-        return 'Excellent move. It keeps the position healthy.';
+    buildMentorText(classification, loss) {
+        if (classification.quality === 'Blunder') return `Blunder. The evaluation loss was ${loss.toFixed(2)} pawns.`;
+        if (classification.quality === 'Mistake') return `Mistake. The evaluation loss was ${loss.toFixed(2)} pawns.`;
+        if (classification.quality === 'Inaccuracy') return `Inaccuracy. The evaluation loss was ${loss.toFixed(2)} pawns.`;
+        if (classification.quality === 'Book') return 'Book move from a repository-recognized opening line.';
+        return 'Acceptable move. No meaningful negative threshold was crossed.';
     },
 
     setAnalysisCompletionStatus(analyzedPositions, totalPositions) {
@@ -1553,8 +1647,17 @@ const AnalyzeSection = {
         console.log('[Analyze] Stopping analysis...');
         this.isAnalyzing = false;
         this.analysisToken += 1;
-        this.analysisEngine?.stop?.();
-        this.setStatus('Analysis stopped', 'warning');
+        this.analysisPhase = 'cancelled'; this.analysisResults = []; this.positionAnalyses = [];
+        this.teardownAnalysisEngine('analysis-cancelled');
+        this.updateMoveList(); this.updateReviewSummary(); this.updateCriticalMoments();
+        this.setStatus('Analysis cancelled', 'warning');
+    },
+
+    teardownAnalysisEngine(reason = 'owner-exit') {
+        if (!this.analysisEngine) return;
+        this.analysisEngine.onInfo = null; this.analysisEngine.onBestMove = null;
+        this.analysisEngine.stop?.(); this.analysisEngine.terminate?.(reason);
+        this.analysisEngine = null; this.liveEngineOwner = null;
     },
 
     /**
@@ -1563,15 +1666,14 @@ const AnalyzeSection = {
     async ensureAnalysisEngine() {
         if (this.analysisEngine?.isReady?.()) return this.analysisEngine;
         if (!this.analysisEngine && window.EngineRegistry?.createEngine) {
-            this.analysisEngine = EngineRegistry.createEngine('stockfish');
+            this.analysisEngine = EngineRegistry.createEngine('stockfish', {
+                autoStart: false, owner: 'play-v2-postgame-analyze', handshakeTimeoutMs: 4000, searchTimeoutMs: 12000
+            });
         }
         if (!this.analysisEngine) return null;
-
-        const started = Date.now();
-        while (!this.analysisEngine.isReady?.() && Date.now() - started < 8000) {
-            await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-        return this.analysisEngine.isReady?.() ? this.analysisEngine : null;
+        try { await this.analysisEngine.start?.(); }
+        catch (_) { this.teardownAnalysisEngine('handshake-failed'); return null; }
+        return this.analysisEngine?.isReady?.() ? this.analysisEngine : null;
     },
 
     async analyzePositionWithRetry(fen, token) {
@@ -1651,12 +1753,20 @@ const AnalyzeSection = {
             };
             engine.getBestMove(fen, (bestMove) => {
                 if (!this.isAnalyzeTokenActive(token, tokenType)) {
-                    finish({ eval: null, bestMove: null, depth: 0, pv: [] });
+                    clearTimeout(timeout); engine.onInfo = null; engine.onBestMove = null;
+                    reject(new Error('Stale analysis result rejected'));
+                    return;
+                }
+                const score = latestInfo?.score;
+                const mate = latestInfo?.mate;
+                if (!Number.isFinite(score) && !Number.isFinite(mate)) {
+                    clearTimeout(timeout); engine.onInfo = null; engine.onBestMove = null;
+                    reject(new Error('Stockfish returned no attributable evaluation'));
                     return;
                 }
                 finish({
-                    eval: latestInfo?.score ?? null,
-                    mate: latestInfo?.mate ?? null,
+                    eval: Number.isFinite(score) ? score : null,
+                    mate: Number.isFinite(mate) ? mate : null,
                     bestMove,
                     depth: latestInfo?.depth ?? 0,
                     pv: latestInfo?.pv ?? []
@@ -1684,6 +1794,8 @@ const AnalyzeSection = {
         if (!this.elements.status) return;
 
         this.elements.status.textContent = text;
+        this.elements.status.setAttribute('role', 'status');
+        this.elements.status.setAttribute('aria-live', 'polite');
         this.elements.status.className = 'metadata-value badge';
 
         switch (type) {
@@ -1737,16 +1849,22 @@ const AnalyzeSection = {
     /**
      * Section lifecycle: Enter
      */
-    onEnter() {
+    onEnter(options = {}) {
         console.log('[Analyze] Section entered');
         window.CaissaClockService?.stop('analyze-enter');
+        this.analysisPhase = 'idle'; this.analyzedPositions = 0; this.analysisResults = []; this.positionAnalyses = [];
         const requestedToken = new URLSearchParams(window.location.search).get('handoff');
-        const handoff = window.CaissaAnalyzeHandoff?.resolve?.(requestedToken);
+        const handoff = options.handoff ? { ok: true, value: options.handoff }
+            : window.CaissaAnalyzeHandoff?.resolve?.(requestedToken);
         if (handoff?.ok && handoff.value?.handoffId !== this.activeHandoffId) {
             this.activeHandoffId = handoff.value.handoffId;
             const payload = handoff.value.payload;
             if (payload.pgn) {
-                this.loadGameFromPgn(payload.pgn, 'Play handoff');
+                this.loadGameFromPgn(payload.pgn, 'Play handoff', {
+                    white: payload.whiteLabel || 'White', black: payload.blackLabel || 'Black',
+                    result: payload.result || '*', termination: payload.termination || null,
+                    recordId: payload.recordId
+                });
             } else if (payload.finalFen) {
                 const session = window.CaissaAnalyzeSession?.createSession?.({ initialFen: payload.finalFen });
                 const game = session?.game;
@@ -1762,6 +1880,10 @@ const AnalyzeSection = {
             }
             this.boardFlipped = payload.boardOrientation === 'black';
         }
+        this.analysisPhase = 'idle'; this.analyzedPositions = 0;
+        this.totalPositions = this.getLoadedMoves().length + 1;
+        this.analysisResults = []; this.positionAnalyses = [];
+        this.updateReviewSummary(); this.updateCriticalMoments(); this.updateEvaluationBar();
         this.updateLiveEngineButton();
         if (!this.loadedGame) {
             this.resetStudyBoard({ silent: true });
@@ -1797,6 +1919,7 @@ const AnalyzeSection = {
         if (this.isAnalyzing) {
             this.stopAnalysis();
         }
+        this.teardownAnalysisEngine('analyze-exit');
     }
 };
 

@@ -20,6 +20,7 @@ export function installPlayHarness(scenario) {
         rafCancelled: 0,
         activeRafs: new Set()
     };
+    let searchSequence = 0;
 
     const emit = (worker, data, delay = 0) => {
         const deliver = () => {
@@ -30,6 +31,7 @@ export function installPlayHarness(scenario) {
 
     class DeterministicWorker {
         constructor(url) {
+            if (config.workerConstructionFails === true) throw new Error('deterministic worker construction failure');
             this.url = String(url);
             this.terminated = false;
             this.onmessage = null;
@@ -51,13 +53,18 @@ export function installPlayHarness(scenario) {
             if (command === 'uci') emit(this, 'uciok');
             if (command === 'isready' && config.autoReady !== false) emit(this, 'readyok');
             if (command.startsWith('go') && config.autoReply !== false) {
-                const score = config.mate == null ? `cp ${config.cp ?? 34}` : `mate ${config.mate}`;
-                const moves = config.candidateMoves || [config.bestMove ?? 'e7e5', 'c7c5', 'd7d5', 'g8f6', 'b8c6'];
-                for (let index = 0; index < this.multiPv; index += 1) {
-                    const candidateScore = config.mate == null ? `cp ${(config.cp ?? 34) - index * 10}` : score;
+                const searchIndex = searchSequence++;
+                const cp = Array.isArray(config.scores) ? config.scores[searchIndex % config.scores.length] : config.cp;
+                const mateValue = Array.isArray(config.mates) ? config.mates[searchIndex % config.mates.length] : config.mate;
+                const bestMove = Array.isArray(config.bestMoves)
+                    ? config.bestMoves[searchIndex % config.bestMoves.length] : config.bestMove;
+                const score = mateValue == null ? `cp ${cp ?? 34}` : `mate ${mateValue}`;
+                const moves = config.candidateMoves || [bestMove ?? 'e7e5', 'c7c5', 'd7d5', 'g8f6', 'b8c6'];
+                for (let index = 0; config.emitInfo !== false && index < this.multiPv; index += 1) {
+                    const candidateScore = mateValue == null ? `cp ${(cp ?? 34) - index * 10}` : score;
                     emit(this, `info depth ${config.depth ?? 12} multipv ${index + 1} score ${candidateScore} nodes 128 time 1 pv ${moves[index]}`, config.delayMs ?? 10);
                 }
-                emit(this, `bestmove ${config.bestMove ?? 'e7e5'}`, (config.delayMs ?? 10) + 1);
+                emit(this, `bestmove ${bestMove ?? 'e7e5'}`, (config.delayMs ?? 10) + 1);
             }
             if (command === '__fixture_error__') {
                 setTimeout(() => this.onerror?.(new Error('deterministic worker failure')), config.delayMs ?? 0);
