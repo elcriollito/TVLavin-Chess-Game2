@@ -1,5 +1,21 @@
 # Play v2 automation owner catalog
 
+## Season 11.8.1A product-boundary characterization reconciliation
+
+Commit `4d5e57aab7a9e1bd68710d32745a402d7d1369bc` introduced the original runnable product-boundary owner when `PlayV2ProductBoundary@1.0.0` admitted only Games, Bots and Analyze. Its historical characterization expected hostile `/play/coach` activation to resolve to Games, only two keyboard mode tabs, no Mentor action, the pre-result-first `White wins.` copy and the original six-action PostGame.
+
+Those expectations remain historically valid for that commit but are not current acceptance owners. Commit `a0225a75f9b0211a2f18bd726479920bb3bb2e0f` intentionally admitted isolated native Coach through `PlayV2CoachBoundary@1.0.0`; commit `74017555715659fc7237b0b4675fc6c3b8e3a55f` bounded it through `PlayV2CoachAssistancePolicy@1.0.0`. The educational Coach stack remained prohibited. Commit `0af77a02a1622c8797723a2b3f35e303c9848898` introduced result-first `PlayV2PostGamePolicy@1.0.0` and its deterministic `You Won`/reason vocabulary; `55f5d98fe808df8ef534f9a00588876420d9e282` admitted optional post-game Mentor. Season 11.8.1A introduces the explicit 1.1.0 successor with Analyze primary while preserving the frozen 1.0.0 Rematch-primary declaration in policy history.
+
+The runnable owner now verifies Games, Bots and native Coach admission; legacy Coach, Players, FICS and educational-resource prohibition; optional post-game-only Mentor; completed-record-only Analyze; the 1.1 hierarchy; disabled analytics; zero Training Memory/Mastery writes; three-tab keyboard navigation; one board; and lazy zero-Worker behavior before explicit Bots Play. No old assertion is skipped, suppressed or silently deleted: its original meaning and superseding evidence are retained here.
+
+The PostGame exit owner also retains its earlier history-navigation characterization. Commit `42c64aa8d82794ce6d45d6ad9debff4fb4d532d9` intentionally made completed-game Analyze an inline Play v2 overlay. Its current Back owner is the explicit `Back to PostGame` action, which restores the identical retained record without a history forward cycle or handoff token in the URL.
+
+The Games quick-play owner likewise follows the completed-record Analyze boundary: `createFromCompletedPlayRecord` requires at least one legally replayable move. Its current scenario completes a played game, verifies that the opaque token remains out of the URL, and returns through the inline `Back to game result` control. Immediate zero-move resignation remains valid PostGame evidence but is not misrepresented as replayable analysis input.
+
+The same desktop-experience commit moved Coach level, focus and timing into the shell-owned Assistance disclosure while leaving time control and color in the compact Coach setup. It also moved in-game Help into the shell-owned active-game action bar. The original Coach browser owner's five-combobox-in-panel and panel-owned Help characterizations are preserved in its introducing revision; current ownership asserts the two setup controls, three separate Assistance controls and active-game Help without restoring the prohibited educational Coach stack.
+
+Beta mode navigation in that commit also adopted the explicit labels `Play Game`, `Play Bots` and `Play Coach`. Worker lifecycle ownership is unchanged; its runnable browser owner uses the current accessible tab name while the earlier `Games` label remains visible in repository history.
+
 **Catalog:** `PlayV2AutomationOwnerCatalog@1.0.0`
 
 **Season:** 11.8.0A

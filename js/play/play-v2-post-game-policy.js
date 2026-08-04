@@ -12,11 +12,16 @@
                 : winner === player ? 'You Won' : 'You Lost';
         return freeze({ valid: true, title, reason: reasons[record.result.termination] || reasons.unknown });
     }
-    root.CaissaPlayV2PostGamePolicy = freeze({ schemaVersion: '1.0.0', contractId: 'PlayV2PostGamePolicy@1.0.0', owner: 'post-game-core',
+    const historicalV1 = freeze({ schemaVersion: '1.0.0', contractId: 'PlayV2PostGamePolicy@1.0.0',
+        primaryAction: 'rematch', actionOrder: ['rematch', 'new-game', 'analyze', 'mentor-review', 'copy-pgn', 'download-pgn', 'save-game'] });
+    root.CaissaPlayV2PostGamePolicy = freeze({ schemaVersion: '1.1.0', contractId: 'PlayV2PostGamePolicy@1.1.0', owner: 'post-game-core',
         gameRecordRequired: true, finalizedRecordRequired: true, resultFirst: true, terminationReasonRequired: true, boardRemainsVisible: true,
         clocksStopped: true, opponentWorkStopped: true, rematch: 'allowed', newGame: 'allowed', analyze: 'external-continuation', copyPgn: 'allowed',
         downloadPgn: 'allowed', localSavePgn: 'consent-controlled', mentor: 'optional-review-only', academy: 'prohibited',
         educationalRecommendations: 'prohibited', ratingChange: 'prohibited-without-native-rating-authority', fictitiousRewards: 'prohibited',
         automaticNavigation: 'prohibited', analyticsTransport: 'disabled', resultTitles: ['You Won', 'You Lost', 'White Won', 'Black Won', 'Draw', 'Game Ended'],
-        terminationReasons: reasons, actionOrder: ['rematch', 'new-game', 'analyze', 'mentor-review', 'copy-pgn', 'download-pgn', 'save-game'], describe });
+        terminationReasons: reasons, primaryAction: 'analyze', strongSecondaryActions: ['rematch', 'new-game'],
+        optionalSecondaryActions: ['mentor-review'], utilityActions: ['copy-pgn', 'download-pgn', 'save-game'],
+        actionOrder: ['analyze', 'rematch', 'new-game', 'mentor-review', 'copy-pgn', 'download-pgn', 'save-game'],
+        automaticAnalyze: 'prohibited', automaticMentor: 'prohibited', remoteUpload: 'prohibited', history: [historicalV1], describe });
 })(typeof window !== 'undefined' ? window : globalThis);

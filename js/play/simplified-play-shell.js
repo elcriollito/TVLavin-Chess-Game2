@@ -444,6 +444,8 @@
                 || next.mode === 'constrained-height' ? 'panel' : 'document';
             this.#root.dataset.stickyAction = 'false';
             this.#root.style.setProperty('--shell-inline-pad', `${next.inlinePadding}px`);
+            this.#root.style.setProperty('--play-visual-viewport-height', `${visualHeight}px`);
+            this.#root.style.setProperty('--play-visual-viewport-offset-top', `${global.visualViewport?.offsetTop || 0}px`);
             this.#root.style.setProperty('--shell-stage-pad', `${next.stagePadding}px`);
             this.#root.style.setProperty('--shell-eval-width', `${next.railWidth}px`);
             this.#root.style.setProperty('--shell-rail-gap', `${next.railGap}px`);

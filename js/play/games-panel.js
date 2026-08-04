@@ -1,8 +1,8 @@
 (function installGamesPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.4.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.4.0';
+    const SCHEMA_VERSION = '1.5.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.5.0';
     const STATUSES = Object.freeze(['idle', 'ready', 'invalid', 'busy', 'active', 'error', 'disposed']);
     const EVENTS = Object.freeze(['hydrated', 'selection-changed', 'validated', 'submitted', 'started', 'advanced-changed']);
     const SECTIONS = Object.freeze(['game-type', 'time-control', 'color', 'opponent', 'primary-action', 'advanced-options']);
@@ -101,6 +101,17 @@
             const description = node('p', 'caissa-games-panel__description');
             description.textContent = 'Start a local game against the current CAISSA engine.';
 
+            const disclosure = node('details', 'caissa-games-panel__disclosure', { 'data-games-setup-disclosure': '' });
+            disclosure.open = !this.#minimalEntry || global.matchMedia?.('(min-width: 801px)').matches === true;
+            const disclosureSummary = node('summary', 'caissa-games-panel__disclosure-summary', {
+                'data-games-setup-summary': '', 'aria-label': 'Game setup selection'
+            });
+            const summaryValue = node('span', 'caissa-games-panel__summary-value', { 'data-games-summary-value': '' });
+            const summaryHint = node('span', 'caissa-games-panel__summary-hint');
+            summaryHint.textContent = 'Change';
+            disclosureSummary.append(summaryValue, summaryHint);
+            const setup = node('div', 'caissa-games-panel__setup', { 'data-games-setup-content': '' });
+
             const time = node('fieldset', 'caissa-games-panel__group caissa-games-panel__time caissa-vc caissa-vc-time-controls', {
                 'data-visual-component': 'time-control-selector'
             });
@@ -113,9 +124,10 @@
                     type: 'radio', name: `${this.#id}-time`, value: item.presetId,
                     'data-games-time': item.presetId
                 });
-                const text = node('span', '');
-                text.textContent = `${item.label} · ${item.category}`;
-                label.append(input, text); timeOptions.appendChild(label);
+                const text = node('span', 'caissa-games-panel__preset');
+                const value = node('strong', 'caissa-games-panel__preset-value'); value.textContent = item.label;
+                const category = node('small', 'caissa-games-panel__preset-category'); category.textContent = item.category;
+                text.append(value, category); label.append(input, text); timeOptions.appendChild(label);
             });
             time.append(timeLegend, timeOptions);
 
@@ -153,12 +165,15 @@
             action.textContent = 'Start Game';
             if (this.#minimalEntry) this.#root.setAttribute('aria-label', 'Games setup');
             else this.#root.append(title, description);
-            this.#root.append(time, color);
-            if (!this.#minimalEntry) this.#root.append(opponent);
+            setup.append(time, color);
+            if (!this.#minimalEntry) setup.append(opponent);
+            disclosure.append(disclosureSummary, setup);
+            this.#root.append(disclosure);
             this.#root.append(status, action);
             this.#host.appendChild(this.#root);
             this.#unsubscribeReadiness = this.#readiness?.subscribe?.(() => this.#render()) || null;
             this.#listen(this.#root, 'change', event => this.#handleChange(event));
+            this.#listen(disclosure, 'toggle', () => this.#render());
             this.#listen(action, 'click', () => this.submit());
             if (this.#advanced) this.#listen(this.#advanced, 'toggle', () => {
                 if (this.#advanced.open) this.#diagnostics.advancedExpansions += 1;
@@ -302,6 +317,7 @@
                 timeControl: { ...this.#preset }, color: this.#color,
                 opponent: { type: 'local-engine', strength: this.#strength.value, label: this.#strength.label },
                 advancedExpanded: this.#advanced?.open === true,
+                setupExpanded: this.#root?.querySelector?.('[data-games-setup-disclosure]')?.open === true,
                 primaryAction: {
                     available: this.#validation.valid && !this.#disposed
                         && ['ready', 'recoverable-error'].includes(this.#readiness?.getSnapshot?.().state),
@@ -357,6 +373,16 @@
             this.#root.querySelectorAll('[data-games-color]').forEach(input => {
                 input.checked = input.value === this.#color;
             });
+            const summary = this.#root.querySelector('[data-games-summary-value]');
+            const colorLabel = COLORS.find(item => item.value === this.#color)?.label || 'Unknown';
+            const summaryText = `${this.#preset.label} · ${this.#preset.category} · ${colorLabel}`;
+            if (summary) summary.textContent = summaryText;
+            const disclosure = this.#root.querySelector('[data-games-setup-disclosure]');
+            if (disclosure) {
+                disclosure.setAttribute('data-expanded', String(disclosure.open));
+                disclosure.querySelector('[data-games-setup-summary]')?.setAttribute('aria-label',
+                    `Game setup: ${summaryText}. ${disclosure.open ? 'Collapse' : 'Expand'} options.`);
+            }
             const action = this.#root.querySelector('[data-games-primary]');
             const readiness = this.#readiness?.getSnapshot?.();
             const retry = readiness?.state === 'recoverable-error';

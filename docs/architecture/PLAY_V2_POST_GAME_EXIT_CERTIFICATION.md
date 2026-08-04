@@ -1,5 +1,7 @@
 # Play v2 Clean PostGame Exit Certification
 
+> Season 11.8.1A presentation addendum: `POSTGAME-UX-001` changes presentation hierarchy, not exit ownership. Analyze This Game is the sole primary action under `PlayV2PostGamePolicy@1.1.0`; Rematch/New Game are strong secondary, Mentor optional secondary, and PGN actions utilities. The 1.0.0 Rematch-primary policy remains preserved as history.
+
 Season: **11.6.3**
 
 Contract: `PlayV2PostGameExitPolicy@1.0.0`
@@ -10,7 +12,7 @@ Status: **locally certified; public-ready false**
 
 | Path | Owner | Destination | Record / handoff | Cleanup and Back | Classification |
 |---|---|---|---|---|---|
-| Rematch | PostGame core | fresh Play v2 lifecycle | finalized record; no handoff | stop prior runtime; new lifecycle | allowed, primary |
+| Rematch | PostGame core | fresh Play v2 lifecycle | finalized record; no handoff | stop prior runtime; new lifecycle | allowed, strong secondary |
 | New Game | PostGame core | clean Play v2 setup | finalized record; no handoff | stop prior runtime; starts nothing | allowed, standard |
 | Analyze | PostGame core + Analyze handoff | Analyze | finalized record; opaque local token | stop clocks/search/Worker; Back restores record | allowed, explicit |
 | Review with Mentor | PostGame core + native review | isolated review workspace | finalized record; 128-bit local token | bounded analyzer; Back consumes token and restores record | allowed, explicit |
@@ -25,7 +27,7 @@ Status: **locally certified; public-ready false**
 
 ## Contract and hierarchy
 
-The frozen policy prohibits automatic navigation, silent fallback, Legacy Play and FICS fallback, completed-record mutation, PGN/FEN URLs, education recommendations, and analytics transport. Rematch remains the sole primary action. New Game, Analyze, and Review with Mentor are standard explicit actions. PGN operations remain secondary.
+The frozen policy prohibits automatic navigation, silent fallback, Legacy Play and FICS fallback, completed-record mutation, PGN/FEN URLs, education recommendations, and analytics transport. Under the 1.1.0 successor, Analyze is the sole primary action; Rematch and New Game are strong secondary actions, Review with Mentor is optional secondary, and PGN operations are utilities.
 
 ## Transition ownership
 

@@ -42,8 +42,8 @@ function load(snapshot = {}, commandResult = { ok: true, status: 'accepted' }, o
 
 test('publishes a frozen versioned contract with truthful fixed vocabularies', () => {
     const { api } = load();
-    assert.equal(api.schemaVersion, '1.4.0');
-    assert.equal(api.snapshotSchemaVersion, '1.4.0');
+    assert.equal(api.schemaVersion, '1.5.0');
+    assert.equal(api.snapshotSchemaVersion, '1.5.0');
     assert.ok(Object.isFrozen(api));
     assert.ok(Object.isFrozen(api.timeControls));
     assert.ok(Object.isFrozen(api.colors));

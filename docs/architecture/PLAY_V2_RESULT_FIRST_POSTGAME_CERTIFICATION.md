@@ -1,5 +1,7 @@
 # Play v2 Result-First PostGame Certification
 
+> Season 11.8.1A successor: `PlayV2PostGamePolicy@1.1.0` implements `POSTGAME-UX-001`. Analyze This Game is now the sole primary action; Rematch and New Game are strong secondary actions, Mentor is optional secondary, and PGN actions are utilities. The frozen 1.0.0 Rematch-primary declaration remains historical. No automatic Analyze/Mentor, education surface, upload, or analytics transport is introduced.
+
 > Season 11.6.3 addendum: every completed-state transition is governed by `PlayV2PostGameExitPolicy@1.0.0`. One shared busy owner rejects concurrent exits while preserving result-first hierarchy, failure focus, and the finalized record.
 
 > Season 11.6.2 addendum: PostGame retains result/reason first and Rematch as primary. `Review with Mentor` is optional and secondary, requires a finalized record, and opens the isolated QA-only workspace documented in `PLAY_V2_MENTOR_REVIEW_CERTIFICATION.md`. Analyze remains independent.
@@ -18,7 +20,7 @@ GameRecord maps checkmate, stalemate, repetition, insufficient material, fifty-m
 
 The player-relative title is `You Won`, `You Lost`, or `Draw`; unavailable perspective falls back to White/Black. The reason sits immediately beneath it. The board remains visible. There is no second board, duplicate move list, rating delta, reward, performance score, celebration, advertisement, or education surface.
 
-Action order is Rematch, New Game, Analyze This Game, then Copy PGN, Download PGN, and consent-controlled Save PGN Locally. Rematch is the sole primary action. Analyze is an external continuation and never opens automatically. Failures keep the record and PostGame visible and restore action focus.
+Action order under `PlayV2PostGamePolicy@1.1.0` is Analyze This Game, Rematch, New Game, optional Review with Mentor, then Copy PGN, Download PGN, and consent-controlled Save PGN Locally. Analyze is the sole primary action but remains an external continuation and never opens automatically. Failures keep the record and PostGame visible and restore action focus.
 
 Rematch preserves certified color/time configuration, starts once, and closes only after success. Bot rematch prepares a fresh Worker. New Game rotates lifecycle/request state, returns to clean setup, does not start automatically, and never falls back to Legacy/FICS.
 

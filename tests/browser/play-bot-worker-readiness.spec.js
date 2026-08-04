@@ -31,7 +31,7 @@ test.describe('instrumented Native Bots Worker ownership', () => {
         await page.locator('[data-post-game-action="rematch"]').click();
         await expect.poll(() => page.evaluate(() => window.__caissaPlayHarness.snapshot().workersCreated)).toBe(2);
         expect(await page.evaluate(() => window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(1);
-        await page.getByRole('tab', { name: 'Games' }).click();
+        await page.getByRole('tab', { name: 'Play Game' }).click();
         expect(await page.evaluate(() => window.__caissaPlayHarness.snapshot().workersTerminated)).toBe(2);
     });
 

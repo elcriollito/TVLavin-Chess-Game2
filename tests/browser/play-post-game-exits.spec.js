@@ -4,7 +4,7 @@ import { instrumentPlay, playMove } from '../play/playwright-helpers.js';
 
 test.beforeEach(async ({ page }) => instrumentPlay(page));
 async function completed(page) {
-    await page.goto('/play/games?simplified=1'); await page.locator('[data-games-primary]').click();
+    await page.goto('/play/beta'); await page.locator('[data-games-primary]').click();
     expect(await playMove(page, 'e2', 'e4')).toBe(true);
     await expect.poll(() => page.evaluate(() => window.App.game.history())).toEqual(['e4', 'e5']);
     await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
@@ -14,9 +14,11 @@ async function completed(page) {
 
 test('exit inventory and hierarchy are complete, explicit, and recommendation-free', async ({ page }) => {
     const recordId = await completed(page); const panel = page.locator('[data-play-v2-post-game-core]');
-    await expect(panel.locator('[data-post-game-action]')).toHaveText(['Rematch', 'New Game', 'Analyze This Game',
+    await expect(panel.locator('[data-post-game-action]')).toHaveText(['Analyze This Game', 'Rematch', 'New Game',
         'Review with Mentor', 'Copy PGN', 'Download PGN', 'Save PGN Locally']);
-    await expect(panel.locator('[data-post-game-action="rematch"]')).toHaveClass(/--primary/);
+    await expect(panel.locator('[data-post-game-action="analyze"]')).toHaveClass(/--primary/);
+    await expect(panel.locator('[data-post-game-action="rematch"]')).toHaveClass(/--secondary/);
+    await expect(panel.locator('[data-post-game-action="new-game"]')).toHaveClass(/--secondary/);
     await expect(panel).not.toContainText(/academy|puzzle|endgame|course|upgrade|rating|reward|fics|legacy/i);
     expect(await page.evaluate(() => ({ contract: window.CaissaPlayV2PostGameExitPolicy.contractId,
         automatic: window.CaissaPlayV2PostGameExitPolicy.automaticNavigation,
@@ -24,7 +26,7 @@ test('exit inventory and hierarchy are complete, explicit, and recommendation-fr
         .toEqual({ contract: 'PlayV2PostGameExitPolicy@1.0.0', automatic: 'prohibited', recordId });
 });
 
-test('Analyze rejects concurrent activation and Back/Forward preserves one completed record', async ({ page }) => {
+test('Analyze rejects concurrent activation and inline Back preserves one completed record', async ({ page }) => {
     const recordId = await completed(page);
     const result = await page.evaluate(async () => {
         const first = window.CaissaPostGameExperienceInstance.execute('analyze');
@@ -33,10 +35,13 @@ test('Analyze rejects concurrent activation and Back/Forward preserves one compl
     });
     expect(result.first.ok).toBe(true); expect(result.second.reasonCode).toBe('ACTION_BUSY');
     await expect(page.locator('#analyzeSection')).toHaveClass(/active/); expect(page.url()).not.toMatch(/(?:pgn|fen)=/i);
-    await page.goBack(); await expect(page.locator('[data-post-game-result]')).toBeVisible();
+    await page.getByRole('button', { name: 'Back to game result' }).click();
+    await expect(page.locator('[data-post-game-result]')).toBeVisible();
     expect(await page.evaluate(() => window.CaissaPostGameExperienceInstance.getSnapshot().gameRecordId)).toBe(recordId);
-    await page.goForward(); await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
-    await page.goBack(); await expect(page.locator('[data-post-game-result]')).toBeVisible();
+    await page.locator('[data-post-game-action="analyze"]').click();
+    await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
+    await page.getByRole('button', { name: 'Back to game result' }).click();
+    await expect(page.locator('[data-post-game-result]')).toBeVisible();
 });
 
 test('Mentor rejects concurrent activation, consumes its session, and restores exact PostGame', async ({ page }) => {

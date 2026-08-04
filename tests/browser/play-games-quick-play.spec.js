@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { instrumentPlay } from '../play/playwright-helpers.js';
+import { instrumentPlay, playMove } from '../play/playwright-helpers.js';
 
 test.beforeEach(async ({ page }) => instrumentPlay(page));
 
 test('resignation finalizes one valid Games record and clean PostGame', async ({ page }) => {
-    await page.goto('/play/games?simplified=1');
+    await page.goto('/play/beta');
     await page.locator('[data-games-primary]').click();
     const proof = await page.evaluate(() => {
         window.confirm = () => true;
@@ -35,17 +35,19 @@ test('resignation finalizes one valid Games record and clean PostGame', async ({
     await expect(page.locator('[data-post-game-reason]')).toHaveText('By Resignation');
     await expect(page.locator('[data-post-game-result]')).toBeFocused();
     await expect(page.locator('#chessboard .board-b72b1')).toBeVisible();
-    await expect(page.locator('[data-post-game-action]')).toHaveText(['Rematch','New Game','Analyze This Game','Review with Mentor','Copy PGN','Download PGN','Save PGN Locally']);
+    await expect(page.locator('[data-post-game-action]')).toHaveText(['Analyze This Game','Rematch','New Game','Review with Mentor','Copy PGN','Download PGN','Save PGN Locally']);
 });
 
 test('result-first actions preserve the record, fail recoverably, and Analyze uses an opaque handoff', async ({ page }) => {
-    await page.goto('/play/games?simplified=1'); await page.locator('[data-games-primary]').click();
+    await page.goto('/play/beta'); await page.locator('[data-games-primary]').click();
+    expect(await playMove(page, 'e2', 'e4')).toBe(true);
+    await expect.poll(() => page.evaluate(() => window.App.game.history())).toEqual(['e4', 'e5']);
     await page.evaluate(() => { window.confirm=()=>true; window.resignGame(); });
     const before=await page.evaluate(()=>window.CaissaPostGameExperienceInstance.getSnapshot().gameRecordId);
     await page.locator('[data-post-game-action="analyze"]').click(); await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
-    const analyzeUrl=new URL(page.url()); expect(analyzeUrl.search).not.toMatch(/fen|pgn/i); expect(analyzeUrl.searchParams.get('handoff')).toMatch(/^[a-f0-9]{32}$/);
-    const handoff=await page.evaluate(()=>window.CaissaAnalyzeHandoff.resolve()); expect(handoff.ok).toBe(true);
-    await page.goBack(); await expect(page.locator('[data-post-game-result]')).toHaveText('You Lost');
+    const analyzeUrl=new URL(page.url()); expect(analyzeUrl.search).not.toMatch(/fen|pgn|handoff/i);
+    await page.getByRole('button', { name: 'Back to game result' }).click();
+    await expect(page.locator('[data-post-game-result]')).toHaveText('You Lost');
     expect(await page.evaluate(()=>window.CaissaPostGameExperienceInstance.getSnapshot().gameRecordId)).toBe(before);
     const failure=await page.evaluate(()=>{ const host=document.createElement('div'); document.body.appendChild(host); const source=window.CaissaPostGameExperience.create({
         compatibility:{execute:()=>({ok:false})}, records:{validate:()=>({valid:true})}, persistence:{getConsent:()=>({value:{state:'denied'}})}, navigation:{} }); source.mount({host});
@@ -55,14 +57,14 @@ test('result-first actions preserve the record, fail recoverably, and Analyze us
 });
 
 test('New Game returns to clean setup without starting or changing product mode', async ({ page }) => {
-    await page.goto('/play/games?simplified=1'); await page.locator('[data-games-primary]').click(); await page.evaluate(()=>{window.confirm=()=>true;window.resignGame();});
+    await page.goto('/play/beta'); await page.locator('[data-games-primary]').click(); await page.evaluate(()=>{window.confirm=()=>true;window.resignGame();});
     await page.locator('[data-post-game-action="new-game"]').click(); await expect(page.locator('[data-games-primary]')).toBeVisible();
     const state=await page.evaluate(()=>({active:window.App.gameActive,mode:window.CaissaSimplifiedPlayShellInstance.getSnapshot().mode,post:window.CaissaPostGameExperienceInstance.getSnapshot().visible}));
     expect(state).toEqual({active:false,mode:'games',post:false});
 });
 
 test('result-first surface is responsive, forced-color safe, and serious-violation free', async ({ page }) => {
-    await page.setViewportSize({width:320,height:568}); await page.goto('/play/games?simplified=1'); await page.locator('[data-games-primary]').click();
+    await page.setViewportSize({width:320,height:568}); await page.goto('/play/beta'); await page.locator('[data-games-primary]').click();
     await page.evaluate(()=>{window.confirm=()=>true;window.resignGame();}); const panel=page.locator('[data-play-v2-post-game-core]');
     for(const viewport of [{width:320,height:568},{width:768,height:1024},{width:1440,height:900}]) { await page.setViewportSize(viewport); await expect(panel).toBeVisible();
         expect(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth)).toBeLessThanOrEqual(1); await expect(page.locator('#chessboard .board-b72b1')).toBeVisible(); }
@@ -72,7 +74,7 @@ test('result-first surface is responsive, forced-color safe, and serious-violati
 });
 
 test('PGN actions share the finalized record and local save remains consent controlled', async ({ page }) => {
-    await page.goto('/play/games?simplified=1'); await page.locator('[data-games-primary]').click(); await page.evaluate(()=>{window.confirm=()=>true;window.resignGame();
+    await page.goto('/play/beta'); await page.locator('[data-games-primary]').click(); await page.evaluate(()=>{window.confirm=()=>true;window.resignGame();
         window.__copiedPgn=null; navigator.clipboard.writeText=async value=>{window.__copiedPgn=value;}; });
     await page.locator('[data-post-game-action="copy-pgn"]').click(); await expect(page.locator('[data-post-game-feedback]')).toHaveText('PGN copied.');
     await expect(page.locator('[data-post-game-action="download-pgn"]')).toBeEnabled();
@@ -90,7 +92,7 @@ test('PGN actions share the finalized record and local save remains consent cont
 });
 
 test('promotion is choice-required and keyboard-selectable for every piece in both orientations', async ({ page }) => {
-    await page.goto('/play/games?simplified=1');
+    await page.goto('/play/beta');
     await page.locator('[data-games-primary]').click();
     const cases = [
         { color: 'white', fen: '7k/P7/8/8/8/8/8/7K w - - 0 1', from: 'a7', to: 'a8' },

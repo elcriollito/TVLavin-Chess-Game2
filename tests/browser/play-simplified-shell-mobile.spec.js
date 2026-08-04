@@ -87,6 +87,9 @@ test('current mode, focus, promotion, PostGame and Mentor surfaces remain mobile
     await openBeta(page, 390, 844);
     await expect(page.getByRole('tab')).toHaveText(['Play Game', 'Play Bots', 'Play Coach']);
     await expect(page.getByRole('tab', { name: /Players/ })).toHaveCount(0);
+    await page.getByRole('tab', { name: 'Play Coach' }).click();
+    await expect(page.getByText('Coach · Internal')).toBeVisible();
+    await page.getByRole('tab', { name: 'Play Game' }).click();
     await page.getByRole('button', { name: 'Play', exact: true }).click();
     await expect(page.locator('#chessboard')).toBeFocused();
     await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });

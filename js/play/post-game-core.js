@@ -53,7 +53,7 @@
             const reason = element('p', 'caissa-post-game__reason', { 'data-post-game-reason': '' });
             const summary = element('dl', 'caissa-post-game__summary', { 'data-post-game-summary': '' });
             const actions = element('div', 'caissa-post-game__actions', { 'aria-label': 'Post-game actions' });
-            [['rematch','Rematch','primary'],['new-game','New Game','next'],['analyze','Analyze This Game','analyze'],['mentor-review','Review with Mentor','mentor'],['copy-pgn','Copy PGN','pgn'],
+            [['analyze','Analyze This Game','primary'],['rematch','Rematch','secondary'],['new-game','New Game','secondary'],['mentor-review','Review with Mentor','mentor'],['copy-pgn','Copy PGN','pgn'],
                 ['download-pgn','Download PGN','pgn'],['save-game','Save PGN Locally','pgn']]
                 .forEach(([action, label, hierarchy]) => {
                     const button = element('button', `caissa-post-game__action caissa-post-game__action--${hierarchy}`,
@@ -222,9 +222,11 @@
         }
         #actions() {
             const ready = !!this.#record && this.#visible; const pgn = ready && !!this.#record?.notation?.pgn;
-            return freeze({ rematch: { enabled: ready, primary: true }, analyze: { enabled: ready }, 'mentor-review': { enabled: ready, secondary: true },
+            return freeze({ analyze: { enabled: ready, primary: true }, rematch: { enabled: ready, strongSecondary: true },
+                'mentor-review': { enabled: ready, secondary: true },
                 'copy-pgn': { enabled: pgn }, 'download-pgn': { enabled: pgn },
-                'save-game': { enabled: pgn && this.#consent === 'granted' && !this.#saved }, 'new-game': { enabled: ready } });
+                'save-game': { enabled: pgn && this.#consent === 'granted' && !this.#saved },
+                'new-game': { enabled: ready, strongSecondary: true } });
         }
         #render() {
             if (!this.#root) return; const description = root.CaissaPlayV2PostGamePolicy?.describe?.(this.#record)

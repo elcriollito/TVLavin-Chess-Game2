@@ -136,6 +136,7 @@ test('minimal beta entry is board-first with one clear setup hierarchy at every 
         for (const selector of ['#mainNav', '.header-minimal', '#mobileNavToggle'])
             await expect(page.locator(selector)).toBeHidden();
         await expect(page.locator('[data-games-primary]:visible')).toHaveCount(1);
+        await page.locator('[data-games-primary]').scrollIntoViewIfNeeded();
         const geometry = await page.evaluate(() => {
             const box = selector => document.querySelector(selector).getBoundingClientRect();
             const board = box('#chessboard'); const panel = box('.caissa-simplified-shell__context');
@@ -193,7 +194,7 @@ test('setup starts once, rejects immediate duplicate activation, and focuses the
         action.click(); action.click();
         return { first, apiVersion: games.schemaVersion, duplicateBlocked: action.disabled };
     });
-    expect(result.apiVersion).toBe('1.4.0');
+    expect(result.apiVersion).toBe('1.5.0');
     expect(result.duplicateBlocked).toBe(true);
     await expect.poll(() => page.evaluate(() =>
         window.CaissaSimplifiedPlayShellInstance.getSnapshot().gamesPanel.diagnostics.successfulStarts)).toBe(1);
@@ -268,6 +269,8 @@ test('beta setup preserves focus visibility, forced colors, reduced motion, and 
     await page.setViewportSize({ width: 640, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce', forcedColors: 'active' });
     await page.goto('/play/beta');
+    const disclosure = page.locator('[data-games-setup-disclosure]');
+    if (!(await disclosure.evaluate(node => node.open))) await page.locator('[data-games-setup-summary]').click();
     const random = page.getByRole('radio', { name: 'Random', exact: true });
     await random.focus();
     await expect(random).toBeFocused();
