@@ -12,6 +12,8 @@ const forbiddenElements = [
   /\s*<script[^>]+src="js\/play\/players\/[^">]+"[^>]*><\/script>\r?\n/gi,
   /\s*<!-- Lazy manifest order \(inert\):[^>]*players-panel\.js -->\r?\n/gi,
   /\s*<link[^>]+href="css\/academy\.css[^>]*>\r?\n/gi,
+  /\s*<link[^>]+href="css\/caissa-auth\.css[^>]*>\r?\n/gi,
+  /\s*<script[^>]+src="js\/(?:auth-config|caissa-auth|caissa-access|caissa-ui-auth)\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="(?:mentor-prompts|mentor-ai)\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/academy-section\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/play\/analytics\/play-mentor-engagement-analytics\.js[^>]*><\/script>\r?\n/gi,
@@ -122,6 +124,9 @@ for (const legacyId of ['yahooClassicSection', 'ficsSection', 'spectatorSection'
     throw new Error(`PLAY_V2_LEGACY_PRESENTATION_NOT_INERT: ${legacyId}`);
 }
 if (/caissa-onboarding/i.test(resourceElements.join('\n'))) throw new Error('PROHIBITED_PLAY_V2_ONBOARDING_RESOURCE');
+if (/(?:css\/caissa-auth\.css|js\/(?:auth-config|caissa-auth|caissa-access|caissa-ui-auth)\.js)/i.test(resourceElements.join('\n')))
+  throw new Error('PROHIBITED_PLAY_V2_AUTH_RESOURCE');
+if (/\/api\/public-auth-config/i.test(html)) throw new Error('PROHIBITED_PLAY_V2_AUTH_BOOTSTRAP');
 if (resourceElements.some(element => /(?:src|href)=["']https?:\/\//i.test(element)))
   throw new Error('PROHIBITED_PLAY_V2_EXTERNAL_STATIC_RESOURCE');
 if (!/connect-src 'self';/.test(html) || /connect-src[^;]*https?:/.test(html))

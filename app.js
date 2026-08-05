@@ -577,7 +577,7 @@ function initializeEngine() {
     App.engineId = engineId;
     const nativePlayV2 = window.CaissaPlayV2ProductBoundary?.contractId === 'PlayV2ProductBoundary@1.0.0';
     App.engine = createEngineInstance(engineId, nativePlayV2 ? { autoStart: false, owner: 'native-play-v2' } : {});
-    if (window.localStorage) {
+    if (window.localStorage && !nativePlayV2) {
         localStorage.setItem('caissa.engineId', engineId);
     }
     if (!App.engine) {
@@ -639,7 +639,8 @@ function updateChess960ToggleUI() {
     if (!supports) {
         toggle.checked = false;
         App.chess960Enabled = false;
-        if (window.localStorage) {
+        const nativePlayV2 = window.CaissaPlayV2ProductBoundary?.contractId === 'PlayV2ProductBoundary@1.0.0';
+        if (window.localStorage && !nativePlayV2) {
             localStorage.setItem('caissa.chess960', '0');
         }
     }
