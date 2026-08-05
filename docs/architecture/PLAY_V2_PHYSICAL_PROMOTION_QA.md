@@ -50,3 +50,11 @@ Physical evidence must distinguish modal observation from automated coverage. SA
 The product owner manually accepted the loopback harness on 2026-08-05. This is harness acceptance only and is not physical iPhone evidence.
 
 All eight fixed cases passed: White and Black promotion to Queen, Rook, Bishop, and Knight. The real promotion modal, selected piece and destination, verified result, single-board presentation, White/Black orientation, clean next-case reset, and absence of pre-start auto-play, echo, duplication, overflow, glitches, and errors were observed. Queen and Rook reached the real PostGame after explicit completion; Bishop and Knight reached the expected automatic insufficient-material final state. The 390×844 and 844×390 layouts both passed.
+
+## Physical iPhone fulfillment
+
+The product owner physically accepted all eight cases on an iPhone 17 Pro with Safari bundled with iOS 26.6 against CAISSA build `01c771a4d7ce2e6a1118a06c4feb44033c08f02d`. This is physical evidence, distinct from the earlier localhost acceptance.
+
+White and Black promotion to Queen, Rook, Bishop, and Knight each passed using tap-to-move and the real promotion modal. Each case produced exactly the selected piece on `a8` or `a1`, verified state, correct orientation, one board, no echo/duplication/overflow, and clean reset or terminal handling. The matrix included portrait and landscape, Safari chrome expanded and collapsed, and a stable return to portrait. These results close `IOS-016` and the promotion portion of `IOS-026` on the attributed device and build.
+
+During the internal harness session, Safari requested the same-origin `js/caissa-clarity.js` bootstrap once. It failed closed before initialization, storage, event emission, or network transport. Analytics activity and transport were zero, and no external analytics destination was contacted. This remains a non-blocking technical follow-up about omitting the passive bootstrap from the internal harness; it is not a physical defect and does not invalidate `SEC-001`.

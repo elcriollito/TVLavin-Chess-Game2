@@ -4,15 +4,15 @@
 
 **Season:** 11.8.0
 
-**Current status:** IPHONE PHYSICALLY TESTED; NOT CERTIFIED - PROMOTION PHYSICAL GATE OPEN. Android and tablet remain untested.
+**Current status:** IPHONE PHYSICALLY ACCEPTED - ALL REQUIRED DEVICE-AVAILABLE GATES PASSED. Android and tablet remain untested.
 
-Checklist and automation statements in this plan are not device evidence. The separately attributed Season 11.8.1F record linked below is the permanent iPhone evidence consolidation. Desktop automation, WebKit automation, viewport emulation, CSS inspection, and user-agent substitution remain pre-QA support only.
+Checklist and automation statements in this plan are not device evidence. The separately attributed Season 11.8.1 FINAL record linked below is the permanent iPhone evidence consolidation. Desktop automation, WebKit automation, viewport emulation, CSS inspection, and user-agent substitution remain pre-QA support only.
 
 ## Scope and certification boundary
 
 The human matrix is iPhone Safari, Android Chrome, tablet portrait, and tablet landscape. Each platform covers Games, Bots, Coach, PostGame, Analyze, optional Mentor review, and Players absence. Physical certification requires an attributed evidence instance conforming to [`PLAY_V2_PHYSICAL_DEVICE_QA_TEMPLATE.json`](./evidence/PLAY_V2_PHYSICAL_DEVICE_QA_TEMPLATE.json), real-device observations, disposition of every case, no open P0/P1, and review by a named or neutral reviewer independent of the execution record.
 
-This preparation does not certify iPhone, Android, tablets, VoiceOver, TalkBack, switch control, physical touch, browser chrome, safe areas, virtual keyboards, suspension, or device performance.
+The attributed final evidence certifies only its recorded iPhone, iOS, Safari, build, and device-available matrix. This plan does not certify Android, tablets, TalkBack, switch control, external-keyboard behavior, or any unobserved platform capability.
 
 ## Secure local testing architecture
 
@@ -215,14 +215,14 @@ The start-counter result was a synchronous test-read race: the first action was 
 
 The reconciled current browser catalog passes 90/90: 45/45 in Chromium and 45/45 in WebKit, including pointer, keyboard, touch, rapid-double, Retry, Back, Rematch, and mode-switch ownership. The current Games start, Worker, accessibility, and Classic/Legacy support group passes 23/23, and the focused current contract group passes 59/59. The repository-wide legacy-inclusive unit command reports 624/629 solely because five frozen Season 10 closure tests intentionally compare against the old release topology; they remain visible and are reported separately in the owner catalog.
 
-Status remains **NOT PHYSICALLY TESTED**. Automation reconciliation cannot satisfy any physical-device or named assistive-technology case.
+The automation-only reconciliation described above did not itself satisfy any physical-device or named assistive-technology case. The later attributed evidence below supplies the current physical disposition.
 
-## Season 11.8.1F iPhone evidence consolidation
+## Season 11.8.1 FINAL iPhone certification
 
-The attributed iPhone 17 Pro / iOS 26.6 / Safari session is consolidated in [`PLAY_V2_IPHONE_QA_11_8_1_CONSOLIDATED.md`](./evidence/PLAY_V2_IPHONE_QA_11_8_1_CONSOLIDATED.md). It preserves physical PASS, BLOCKED, partial, and NOT EXECUTED results; VoiceOver PASS; the technical `SEC-001` PASS; and laptop-side temporary-environment cleanup without retaining sensitive infrastructure details.
+The attributed iPhone 17 Pro / iOS 26.6 / Safari sessions are consolidated in [`PLAY_V2_IPHONE_QA_11_8_1_CONSOLIDATED.md`](./evidence/PLAY_V2_IPHONE_QA_11_8_1_CONSOLIDATED.md). The general matrix is attributed to build `bce7c7e94ba3c5f425ff41862b1ad90cf5a5f56f`; the physical promotion matrix is attributed to build `01c771a4d7ce2e6a1118a06c4feb44033c08f02d`.
 
-The iPhone verdict is **NOT CERTIFIED - PROMOTION PHYSICAL GATE OPEN**. Current Chromium/WebKit owners cover promotion rules, all four choices, orientation, responsive containment, lifecycle, clock, notation, semantics, and persistence through controlled fixtures. That evidence remains automated pre-QA and cannot replace `IOS-016`, which requires physical promotion for both colors and all four pieces. The promotion portion of `IOS-026` is likewise not executed. The schema has no `passed-with-gap` certification state, and the severity rules classify impossible promotion as P1; neither policy is weakened or reinterpreted.
+The iPhone verdict is **IPHONE PHYSICALLY ACCEPTED - ALL REQUIRED DEVICE-AVAILABLE GATES PASSED**. `IOS-016` physically passed White and Black promotion to Queen, Rook, Bishop, and Knight through the real modal and tap-to-move. Safari chrome, rotation, and promotion completed `IOS-026`. VoiceOver and `SEC-001` passed within their attributed matrices.
 
 Native drag and pinch zoom remain BLOCKED platform capabilities, with tap-to-move and 200% Page Zoom passing respectively. External-keyboard Tab order remains BLOCKED because the hardware was unavailable. These dispositions remain visible and are not converted to PASS or FAIL.
 
-iPad QA is permitted to begin only as an independent platform track with its own attribution and results. It cannot inherit iPhone evidence or close the iPhone promotion gate; `TAB-006` will independently keep tablet certification incomplete unless promotion is reached through an authorized public path.
+iPad QA is the recommended next physical platform track. It requires independent attribution and results and may not inherit iPhone evidence. Any use of the internal promotion harness requires a separately authorized, temporary, double-gated session.
