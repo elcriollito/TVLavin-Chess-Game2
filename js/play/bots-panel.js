@@ -126,6 +126,10 @@
         }
         show() { if (this.#root) this.#root.hidden = false; return result(true, 'accepted', 'SHOWN'); }
         hide() { if (this.#root) this.#root.hidden = true; return result(true, 'accepted', 'HIDDEN'); }
+        reset() {
+            this.#status = 'ready'; this.#render();
+            return result(true, 'accepted', 'RESET', this.getSnapshot());
+        }
         getSnapshot() {
             return deepFreeze({
                 schemaVersion: SCHEMA_VERSION, panelId: this.#id, mounted: !!this.#root,

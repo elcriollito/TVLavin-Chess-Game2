@@ -17,13 +17,13 @@ test('Games boots first without deferred Play groups and preserves board/worker 
         loader: window.CaissaPlayLazyLoader.inspect()
     }));
     expect(proof).toMatchObject({
-        workers: 1, games: true, bots: false, coach: false, players: false,
+        workers: 0, games: true, bots: false, coach: false, players: false,
         mentor: false, analyze: false, lazyNodes: 0
     });
     expect(proof.loader.resources.filter(x => x.state === 'loaded')).toHaveLength(0);
 });
 
-test('PostGame excludes Mentor and loads Analyze through its independent route group', async ({ page }) => {
+test('PostGame admits optional native Mentor and loads Analyze through its independent route group', async ({ page }) => {
     await instrumentPlay(page, { autoReply: false });
     await page.goto('/play/games?simplified=1');
     await page.locator('[data-games-primary]').click();
@@ -32,17 +32,18 @@ test('PostGame excludes Mentor and loads Analyze through its independent route g
         window.confirm = () => true; window.resignGame();
     });
     await expect(page.locator('.caissa-post-game')).toBeVisible();
-    await expect(page.locator('[data-post-game-action="mentor-review"]')).toHaveCount(0);
+    await expect(page.locator('[data-post-game-action="mentor-review"]')).toHaveCount(1);
     expect(await page.evaluate(() => window.CaissaPlayLoadRegistry.definitions().map(item => item.resourceId)))
-        .toEqual(['bots-stack', 'analyze-deep']);
+        .toEqual(['bots-stack', 'native-coach-stack', 'native-mentor-review', 'analyze-deep']);
     await page.locator('[data-post-game-action="analyze"]').click();
-    await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
+    await expect(page.getByRole('dialog', { name: 'Analyze completed game' })).toBeVisible();
     await expect.poll(() => page.evaluate(() =>
         window.CaissaPlayLazyLoader.getState('analyze-deep')?.state)).toBe('loaded');
-    expect(await page.evaluate(() => window.__caissaPlayHarness.snapshot().workersCreated)).toBe(1);
+    expect(await page.evaluate(() => { const state = window.__caissaPlayHarness.snapshot();
+        return state.workersCreated - state.workersTerminated; })).toBe(0);
 });
 
-test('mode groups load once, stale completion cannot replace route, and active resources remain stable', async ({ page }) => {
+test('native mode groups load once, Players remains blocked, and passive resources remain stable', async ({ page }) => {
     await instrumentPlay(page, { autoReply: false });
     await page.goto('/play/games?simplified=1');
     await expect(page.locator('.caissa-games-panel')).toBeVisible();
@@ -54,7 +55,8 @@ test('mode groups load once, stale completion cannot replace route, and active r
     await page.evaluate(() => window.CaissaPlayRouteController.navigate('/play/bots?simplified=1'));
     await expect(page.locator('.caissa-bots-panel')).toBeVisible();
     await page.evaluate(() => window.CaissaPlayRouteController.navigate('/play/coach?simplified=1'));
-    await expect(page).toHaveURL(/\/play\/games\?simplified=1/);
+    await expect(page).toHaveURL(/\/play\/coach\?simplified=1/);
+    await expect(page.locator('.caissa-native-coach-panel')).toBeVisible();
     await page.evaluate(() => window.CaissaPlayRouteController.navigate('/play/players?simplified=1'));
     await expect(page).toHaveURL(/\/play\/games\?simplified=1/);
     const proof = await page.evaluate(before => ({
@@ -65,9 +67,10 @@ test('mode groups load once, stale completion cannot replace route, and active r
         states: Object.fromEntries(window.CaissaPlayLazyLoader.inspect().resources.map(x => [x.resourceId, x.state]))
     }), { board: before.board });
     expect(proof.boardSame).toBe(true);
-    expect(proof.workerCount).toBe(1);
+    expect(proof.workerCount).toBe(0);
     expect(new Set(proof.scripts).size).toBe(proof.scripts.length);
     expect(proof.states).toMatchObject({ 'bots-stack': 'loaded' });
+    expect(proof.states['native-coach-stack']).toBe('loaded');
     expect(proof.states['coach-stack']).toBeUndefined();
     expect(proof.states['players-stack']).toBeUndefined();
 });

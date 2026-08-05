@@ -85,6 +85,12 @@
         #render(message) { const live = this.#root?.querySelector('[data-coach-assistance-live]'); if (live) live.textContent = message; }
         show() { if (this.#root) this.#root.hidden = false; return result(true, 'SHOWN'); }
         hide() { this.#assistance.teardown(); if (this.#root) this.#root.hidden = true; return result(true, 'HIDDEN'); }
+        reset() {
+            this.#status = 'ready'; this.#assistance.teardown(); this.#assistance.configure(this.#configuration);
+            const help = this.#root?.querySelector('[data-coach-help]'); if (help) help.disabled = true;
+            const dismiss = this.#root?.querySelector('[data-coach-dismiss]'); if (dismiss) dismiss.disabled = true;
+            this.#render(''); return result(true, 'RESET', this.getSnapshot());
+        }
         getSnapshot() { return freeze({ schemaVersion: '1.0.0', status: this.#status, configuration: { ...this.#configuration },
             starts: this.#starts, assistance: this.#assistance.inspect(), primaryAction: 'Play', publicReady: false }); }
         dispose() { if (activePanel === this) activePanel = null;

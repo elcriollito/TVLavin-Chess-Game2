@@ -3,7 +3,7 @@
 
     const SCHEMA_VERSION = '1.7.0';
     const SNAPSHOT_SCHEMA_VERSION = '1.7.0';
-    const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'error']);
+    const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'unavailable', 'error']);
     const REGIONS = Object.freeze([
         'mode-navigation', 'board-stage', 'opponent-header', 'evaluation-rail',
         'chessboard', 'player-header', 'board-actions', 'context-panel',
@@ -109,6 +109,8 @@
         #activeContext = null; #assistance = null; #actionBar = null; #pgnDialog = null; #stateObserver = null; #panelObserver = null;
         #panelLoadToken = 0;
         #accessibility = null;
+        #modeTransitionPending = false;
+        #lastPanelSync = Promise.resolve();
         #diagnostics = {
             layoutChanges: 0, orientationChanges: 0, safeAreaApplications: 0,
             boardResizeRequests: 0, drawerCycles: 0, restorationCycles: 0, rejectedGeometry: 0
@@ -330,6 +332,10 @@
                 this.#listen(this.#root.querySelector('.caissa-simplified-shell__modes'), 'click', event => {
                     const mode = event.target?.dataset?.shellMode;
                     if (!mode || !MODES[mode]) return;
+                    if (this.#postGame?.getSnapshot?.().visible === true && mode !== this.#mode) {
+                        event.preventDefault(); this.#transitionPostGameMode(mode); return;
+                    }
+                    if (this.#postGame?.getSnapshot?.().visible === true && mode === this.#mode) return;
                     const beta = global.location?.pathname?.toLowerCase().startsWith('/play/beta');
                     global.CaissaPlayRouteController?.navigate?.(beta ? `/play/beta/${mode}` : `/play/${mode}?simplified=1`, { source: 'mode-tab' });
                 });
@@ -337,6 +343,11 @@
                 this.#listen(global, 'orientationchange', () => {
                     this.#diagnostics.orientationChanges += 1;
                     this.resize();
+                });
+                this.#listen(global, 'caissa-play-load-terminal', event => {
+                    const expected = this.#mode === 'bots' ? 'bots-stack'
+                        : this.#mode === 'coach' ? 'native-coach-stack' : null;
+                    if (event.detail?.resourceId === expected) this.setStatus('unavailable');
                 });
                 if (global.visualViewport) this.#listen(global.visualViewport, 'resize', () => this.resize());
                 this.#listen(global.document, 'transitionend', event => {
@@ -397,12 +408,16 @@
                 button.setAttribute('aria-selected', String(selected));
                 button.tabIndex = selected ? 0 : -1;
             });
-            this.#syncPanels();
+            this.#lastPanelSync = this.#modeTransitionPending ? Promise.resolve() : this.#syncPanels();
             this.#accessibility?.announce?.(`MODE_${mode.toUpperCase()}`);
             return result(true, 'accepted', 'MODE_SET', mode);
         }
         setStatus(status) {
             if (!STATUSES.includes(status)) return result(false, 'rejected', REASONS.INVALID_STATUS);
+            const deferredId = this.#mode === 'bots' ? 'bots-stack'
+                : this.#mode === 'coach' ? 'native-coach-stack' : null;
+            if (status === 'loading' && deferredId
+                && global.CaissaPlayLazyLoader?.getState?.(deferredId)?.state === 'failed') status = 'unavailable';
             this.#status = status;
             if (this.#statusNode) {
                 this.#statusNode.dataset.status = status;
@@ -413,6 +428,58 @@
                     status === 'inactive' ? 'This mode is not available.' : 'Play preview unavailable.';
             }
             return result(true, 'accepted', 'STATUS_SET', status);
+        }
+        handleDeferredLoadFailure(resourceId) {
+            const expected = this.#mode === 'bots' ? 'bots-stack'
+                : this.#mode === 'coach' ? 'native-coach-stack' : null;
+            return resourceId === expected ? this.setStatus('unavailable')
+                : result(false, 'unchanged', 'STALE_LOAD_FAILURE');
+        }
+        async #transitionPostGameMode(targetMode) {
+            if (this.#modeTransitionPending) return result(false, 'rejected', 'MODE_TRANSITION_PENDING');
+            const authorized = global.CaissaPlayV2ModeTransitionPolicy?.authorize?.({
+                sourceState: 'postgame', sourceMode: this.#mode, targetMode
+            });
+            if (!authorized?.ok) return result(false, 'rejected', authorized?.reasonCode || 'MODE_TRANSITION_PROHIBITED');
+            this.#modeTransitionPending = true;
+            try {
+                global.CaissaClockService?.stop?.('postgame-mode-transition');
+                global.CaissaEngineRequestIsolation?.cancelSession?.();
+                global.CaissaPlayV2BotWorkerReadiness?.teardown?.('route-exit');
+                const prepared = global.CaissaPlayCompatibility?.execute?.('prepareNativeSetup');
+                if (!prepared?.ok) return result(false, 'failed', prepared?.reasonCode || 'SETUP_PREPARATION_FAILED');
+                const cleared = this.#postGame?.clearForModeTransition?.();
+                if (!cleared?.ok) return result(false, 'failed', cleared?.reasonCode || 'POSTGAME_CLEAR_FAILED');
+                global.CaissaCoachSession?.reset?.(); global.CaissaBotSession?.resetToFullPower?.();
+                global.CaissaGameLifecycle?.rotateSession?.(); global.CaissaEngineRequestIsolation?.createSession?.();
+                global.CaissaGameLifecycle?.sync?.(
+                    global.CaissaPlayCompatibility?.getSnapshot?.(), 'GAME_RESET');
+                const beta = global.location?.pathname?.toLowerCase().startsWith('/play/beta');
+                global.CaissaPlayRouteController?.navigate?.(
+                    beta ? `/play/beta/${targetMode}` : `/play/${targetMode}?simplified=1`,
+                    { source: 'postgame-mode-transition' });
+                this.#lastPanelSync = this.#syncPanels();
+                await this.#lastPanelSync;
+                if ((targetMode === 'bots' && !this.#botsPanel)
+                    || (targetMode === 'coach' && !this.#coachPanel)) {
+                    this.setStatus('unavailable');
+                    return result(false, 'failed', 'TARGET_SETUP_UNAVAILABLE');
+                }
+                if (targetMode === 'games') this.#gamesPanel?.reset?.();
+                else if (targetMode === 'bots') this.#botsPanel?.reset?.();
+                else this.#coachPanel?.reset?.();
+                this.#syncComposition();
+                const panel = targetMode === 'games' ? '[data-caissa-games-panel]'
+                    : targetMode === 'bots' ? '.caissa-bots-panel' : '.caissa-native-coach-panel';
+                const focusTarget = this.#root?.querySelector?.(`${panel} h2`)
+                    || this.#root?.querySelector?.(`${panel} [data-games-setup-summary]`)
+                    || this.#root?.querySelector?.(`${panel} input, ${panel} select, ${panel} button`);
+                focusTarget?.setAttribute?.('tabindex', '-1');
+                await new Promise(resolve => global.requestAnimationFrame?.(() => {
+                    focusTarget?.focus?.({ preventScroll: true }); resolve();
+                }) || resolve());
+                return result(true, 'accepted', 'POSTGAME_MODE_TRANSITION_COMPLETED', targetMode);
+            } finally { this.#modeTransitionPending = false; }
         }
         setPanelContent() {
             return this.#gamesPanel
@@ -542,7 +609,7 @@
                 this.setStatus('ready');
                 return true;
             } catch (_) {
-                if (token === this.#panelLoadToken && this.#mode === mode) this.setStatus('unavailable');
+                if (this.#mode === mode) this.setStatus('unavailable');
                 return false;
             }
         }
@@ -592,7 +659,20 @@
             coachHelp.hidden = !(active && this.#mode === 'coach');
             const heading = this.#root.querySelector('.caissa-simplified-shell__context-header h2');
             if (heading) heading.textContent = postGame ? 'Game result' : active ? 'Game status' : starting ? 'Starting game' : 'Game setup';
+            this.#syncIdentity();
             if (this.#active && previousState !== state) this.resize();
+        }
+        #syncIdentity() {
+            if (this.#root?.dataset?.entryExperience !== 'beta') return;
+            const playerColor = global.App?.playerColor === 'black' ? 'black' : 'white';
+            let opponent = null;
+            if (this.#mode === 'games') opponent = global.CaissaPlayV2IdentityPolicy?.gamesOpponentName?.() || 'CAISSA';
+            else if (this.#mode === 'bots') opponent = global.CaissaBotSession?.getSnapshot?.()?.activeProfile?.name || null;
+            else if (this.#mode === 'coach' && global.CaissaCoachSession?.getSnapshot?.()?.active) opponent = 'Coach-assisted game';
+            const white = global.document.getElementById('playerWhiteName');
+            const black = global.document.getElementById('playerBlackName');
+            if (white) white.textContent = playerColor === 'white' ? 'Player' : opponent || '';
+            if (black) black.textContent = playerColor === 'black' ? 'Player' : opponent || '';
         }
         #syncAssistance(active, postGame) {
             if (!this.#assistance) return;

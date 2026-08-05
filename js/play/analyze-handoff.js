@@ -153,7 +153,7 @@
         return freeze({ create, store, resolve, consume, cleanup, validate: value => validate(value, now()) });
     }
     const transport = createTransport();
-    function labelFor(record, color) {
+    function labelFor(record, color, identityContext = null) {
         const playerColor = record.player?.color;
         if (color === playerColor) return 'You';
         if (record.coach?.enabled || record.opponent?.type === 'coach') return 'Coach-assisted game';
@@ -161,6 +161,9 @@
         if (botLabels[record.opponent?.id]) return botLabels[record.opponent.id];
         if (record.opponent?.type === 'bot' && record.opponent?.name)
             return /\bbot\b/i.test(record.opponent.name) ? record.opponent.name : `${record.opponent.name} Bot`;
+        if (identityContext === 'play-v2')
+            return global.CaissaPlayV2IdentityPolicy?.normalizePlayV2Display?.(record.opponent?.name, record.opponent?.type)
+                || 'CAISSA';
         return record.opponent?.name || 'CAISSA Engine';
     }
     function replayPgn(pgn, expectedMoves, expectedFen) {
@@ -177,7 +180,7 @@
         try { const game = new global.Chess(); return game.load(fen) === true; }
         catch (_) { return false; }
     }
-    function createFromCompletedPlayRecord(record) {
+    function createFromCompletedPlayRecord(record, options = {}) {
         const compatibility = global.CaissaPlayCompatibility?.getSnapshot?.();
         if (!compatibility || !record) return result(false, 'unavailable', 'PLAY_BOUNDARY_UNAVAILABLE');
         const checked = global.CaissaGameRecord?.validate?.(record);
@@ -203,8 +206,8 @@
                 boardOrientation: compatibility.board?.orientation,
                 result: record.result.value,
                 termination: record.result.termination,
-                whiteLabel: labelFor(record, 'white'),
-                blackLabel: labelFor(record, 'black'),
+                whiteLabel: labelFor(record, 'white', options.identityContext),
+                blackLabel: labelFor(record, 'black', options.identityContext),
                 recordStatus: record.status,
                 mode: record.mode
             },

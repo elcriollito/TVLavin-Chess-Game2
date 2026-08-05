@@ -99,7 +99,7 @@
             const title = node('h2', 'caissa-games-panel__title', { id: `${this.#id}-title` });
             title.textContent = this.#minimalEntry ? 'Games' : 'Play Computer';
             const description = node('p', 'caissa-games-panel__description');
-            description.textContent = 'Start a local game against the current CAISSA engine.';
+            description.textContent = 'Start a local game against CAISSA.';
 
             const disclosure = node('details', 'caissa-games-panel__disclosure', { 'data-games-setup-disclosure': '' });
             disclosure.open = !this.#minimalEntry || global.matchMedia?.('(min-width: 801px)').matches === true;
@@ -122,11 +122,12 @@
                 const label = node('label', 'caissa-games-panel__option');
                 const input = node('input', '', {
                     type: 'radio', name: `${this.#id}-time`, value: item.presetId,
-                    'data-games-time': item.presetId
+                    'data-games-time': item.presetId,
+                    'aria-label': `${item.label} · ${item.category}`
                 });
                 const text = node('span', 'caissa-games-panel__preset');
                 const value = node('strong', 'caissa-games-panel__preset-value'); value.textContent = item.label;
-                const category = node('small', 'caissa-games-panel__preset-category'); category.textContent = item.category;
+                const category = node('small', 'caissa-games-panel__preset-category'); category.textContent = `· ${item.category}`;
                 text.append(value, category); label.append(input, text); timeOptions.appendChild(label);
             });
             time.append(timeLegend, timeOptions);

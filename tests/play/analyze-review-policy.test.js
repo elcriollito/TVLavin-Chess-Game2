@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
-const source = fs.readFileSync(new URL('../../js/play/analyze-review-policy.js', import.meta.url), 'utf8');
+const source = fs.readFileSync(new URL('../../js/play/analyze-review-policy-v1-1.js', import.meta.url), 'utf8');
 const load = () => { const window = {}; vm.runInNewContext(source, { window, globalThis: window, Object, Number, Math }); return window.CaissaAnalyzeReviewPolicy; };
 test('policy is versioned and exposes only evidence-backed categories', () => {
-    const p=load(); assert.equal(p.contractId,'AnalyzeReviewPolicy@1.0.0');
+    const p=load(); assert.equal(p.contractId,'AnalyzeReviewPolicy@1.1.0');
     assert.deepEqual([...p.classifications],['Book','Acceptable','Inaccuracy','Mistake','Blunder']);
 });
 test('loss thresholds and mate swing are deterministic', () => {
@@ -18,9 +18,12 @@ test('visible policy stays quiet for acceptable and recognized book moves', () =
     const p=load();
     assert.deepEqual({quality:p.classify({loss:0}).quality,annotation:p.classify({loss:0}).annotation},
         {quality:'Acceptable',annotation:''});
-    assert.deepEqual({quality:p.classify({loss:0.49,book:true}).quality,annotation:p.classify({loss:0.49,book:true}).annotation},
+    const bookEvidence={ok:true,book:true,eco:'D00',name:"Queen's Pawn Game"};
+    assert.deepEqual({quality:p.classify({loss:0.49,bookEvidence}).quality,annotation:p.classify({loss:0.49,bookEvidence}).annotation},
         {quality:'Book',annotation:''});
-    assert.equal(p.classify({loss:0.5,book:true}).quality,'Inaccuracy');
+    assert.equal(p.classify({loss:0.5,bookEvidence}).quality,'Book');
+    assert.equal(p.classify({loss:2.5,bookEvidence}).quality,'Blunder');
+    assert.equal(p.classify({loss:0,mateSwing:true,bookEvidence}).quality,'Blunder');
 });
 test('missing evidence cannot become a quality or accuracy', () => {
     const p=load(); assert.equal(p.classify({loss:null}).ok,false);

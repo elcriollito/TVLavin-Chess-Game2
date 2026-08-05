@@ -172,7 +172,7 @@
             const worker = root.CaissaPlayV2BotWorkerReadiness?.getSnapshot?.();
             if (worker && ['initializing', 'ready', 'playing'].includes(worker.state)) root.CaissaPlayV2BotWorkerReadiness.teardown('analyze');
             root.App?.engine?.terminate?.('post-game-analyze');
-            const handoff = this.#handoff.createFromCompletedPlayRecord(this.#record);
+            const handoff = this.#handoff.createFromCompletedPlayRecord(this.#record, { identityContext: 'play-v2' });
             if (!handoff?.ok) return outcome(false, 'failed', handoff?.reasonCode || 'ACTION_FAILED');
             const opened = root.CaissaPlayV2InlineAnalyze?.open
                 ? root.CaissaPlayV2InlineAnalyze.open({ token: handoff.value.token })
@@ -238,7 +238,9 @@
                 const shellMode = root.CaissaSimplifiedPlayShellInstance?.getSnapshot?.()?.mode;
                 const opponent = shellMode === 'coach' ? 'CAISSA Coach'
                     : root.CaissaBotRegistry?.get?.(this.#record.opponent?.id)?.name
-                    || (this.#record.opponent?.type === 'engine' ? 'CAISSA Engine' : this.#record.opponent?.name || null);
+                    || root.CaissaPlayV2IdentityPolicy?.normalizePlayV2Display?.(
+                        this.#record.opponent?.name, this.#record.opponent?.type)
+                    || this.#record.opponent?.name || null;
                 const entries = [];
                 if (opponent) entries.push(['Opponent', opponent]);
                 entries.forEach(([term, value]) => { const dt = element('dt', ''); dt.textContent = term; const dd = element('dd', ''); dd.textContent = value; summary.append(dt, dd); });
@@ -259,6 +261,12 @@
             trainingMemoryWrites: 0, masteryWrites: 0, listenerCount: this.#listeners.length, busyAction: this.#busyAction,
             diagnostics: { ...this.#diagnostics } }); }
         inspect() { return this.getSnapshot(); }
+        clearForModeTransition() {
+            if (this.#busyAction) return outcome(false, 'rejected', 'ACTION_BUSY');
+            retainedRecord = null; retainedKey = null; this.#record = null; this.#configuration = null;
+            this.#feedback = ''; this.#saved = false; this.hide(); this.#render();
+            return outcome(true, 'accepted', 'MODE_TRANSITION_CLEARED');
+        }
         dispose() { if (this.#disposed) return outcome(true, 'unchanged', 'DISPOSED'); this.hide();
             this.#listeners.splice(0).forEach(({ target, type, handler }) => target.removeEventListener(type, handler));
             this.#root?.remove(); this.#root = null; this.#disposed = true; return outcome(true, 'accepted', 'DISPOSED'); }

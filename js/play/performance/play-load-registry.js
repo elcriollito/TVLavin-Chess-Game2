@@ -1,6 +1,6 @@
 (function installPlayLoadRegistry(root, factory) {
-    root.CaissaPlayLoadRegistry = factory(root.CaissaPlayLazyLoadContracts, root.CaissaPlayV2ProductBoundary);
-})(typeof globalThis !== 'undefined' ? globalThis : window, function createRegistry(contracts) {
+    root.CaissaPlayLoadRegistry = factory(root.CaissaPlayLazyLoadContracts, root.CaissaPlayV2ProductBoundary, root);
+})(typeof globalThis !== 'undefined' ? globalThis : window, function createRegistry(contracts, boundary, runtime) {
     'use strict';
 
     const definitions = Object.freeze({
@@ -13,7 +13,7 @@
                 'js/play/bots/bot-personality-policy.js?v=1.0.0',
                 'js/play/bots/bot-registry.js?v=1.0.0', 'js/play/bots/bot-session.js?v=1.0.0',
                 'js/play/bots/bot-worker-readiness.js?v=1.0.0',
-                'js/play/bots-panel.js?v=1.2.0'
+                'js/play/bots-panel.js?v=1.2.1'
             ])
         }),
         'coach-stack': Object.freeze({
@@ -40,7 +40,7 @@
                 'js/play/native-coach/coach-configuration.js?v=1.0.0',
                 'js/play/native-coach/coach-assistance-sanitizer.js?v=1.0.0',
                 'js/play/native-coach/coach-assistance.js?v=1.0.0',
-                'js/play/native-coach/coach-panel.js?v=1.0.0'
+                'js/play/native-coach/coach-panel.js?v=1.0.1'
             ])
         }),
         'native-mentor-review': Object.freeze({
@@ -122,15 +122,18 @@
         'analyze-deep': Object.freeze({
             resourceId: 'analyze-deep', type: 'module-group', trigger: 'route', priority: 'high',
             qaOnly: false, productionEligible: true, dependencies: Object.freeze([]),
-            sources: Object.freeze([
+            sources: Object.freeze(boundary ? [
+                'js/analyze-session.js?v=1.0.0', 'js/play/analyze-opening-evidence.js?v=1.0.0',
+                'js/play/analyze-review-policy-v1-1.js?v=1.1.0', 'js/analyze-section.js?v=1.3.0'
+            ] : [
                 'js/analyze-session.js?v=1.0.0', 'js/play/analyze-review-policy.js?v=1.0.0',
                 'js/analyze-section.js?v=1.3.0'
             ])
         })
     });
 
-    const admittedDefinitions = arguments[1]
-        ? Object.values(definitions).filter(definition => arguments[1].authorize({
+    const admittedDefinitions = boundary
+        ? Object.values(definitions).filter(definition => boundary.authorize({
             type: 'dynamic-group', value: definition.resourceId
         }).allowed)
         : Object.values(definitions);
@@ -150,6 +153,18 @@
             record.state = contracts.snapshot({
                 ...record.state, ...patch, resourceId: id, schemaVersion: contracts.VERSION
             });
+            if (record.state.state === 'failed' && record.state.retryCount >= 1) {
+                runtime?.requestAnimationFrame?.(() => {
+                    const shell = runtime.CaissaSimplifiedPlayShellInstance;
+                    const mode = shell?.getSnapshot?.().mode;
+                    const expected = mode === 'bots' ? 'bots-stack'
+                        : mode === 'coach' ? 'native-coach-stack' : null;
+                    if (id === expected) shell?.setStatus?.('unavailable');
+                });
+                if (runtime?.CustomEvent) runtime.dispatchEvent?.(new runtime.CustomEvent('caissa-play-load-terminal', {
+                    detail: { resourceId: id, state: 'failed' }
+                }));
+            }
             return record.state;
         }
     });

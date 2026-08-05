@@ -59,12 +59,35 @@ test('Play starts once and sends one bounded personality candidate search throug
     expect(proof.isolation.counters.created).toBe(1);
 });
 
-test('pending selection does not mutate an active bot; Games starts restore Full Power', async ({ page }) => {
+test('active bot is immutable; New Game admits the next profile and Games restores Full Power', async ({ page }) => {
     await openBots(page);
+    expect(await page.evaluate(() => window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(0);
     await page.getByLabel(/Casual, Unrated/).check();
+    expect(await page.evaluate(() => window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(0);
     await page.locator('[data-bot-primary]').click();
-    await page.getByLabel(/Solid, Unrated/).check();
+    await expect(page.locator('.caissa-bots-panel')).toBeHidden();
+    await expect(page.getByRole('radio', { name: /Solid, Unrated/ })).toHaveCount(0);
+    await expect(page.locator('[data-bot-id="solid"]')).toBeHidden();
     expect(await page.evaluate(() => window.CaissaBotSession.getSnapshot().activeBotId)).toBe('casual');
+    expect(await page.evaluate(() => window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(1);
+
+    page.once('dialog', dialog => dialog.accept());
+    await page.locator('[data-active-game-action="resign"]').click();
+    await expect(page.locator('.caissa-post-game')).toBeVisible();
+    expect(await page.evaluate(() => window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(0);
+    await page.locator('[data-post-game-action="new-game"]').click();
+    await expect(page.locator('.caissa-bots-panel')).toBeVisible();
+    await page.getByLabel(/Solid, Unrated/).check();
+    expect(await page.evaluate(() => window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(0);
+    await page.locator('[data-bot-primary]').click();
+    expect(await page.evaluate(() => window.CaissaBotSession.getSnapshot().activeBotId)).toBe('solid');
+    expect(await page.evaluate(() => window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(1);
+
+    page.once('dialog', dialog => dialog.accept());
+    await page.locator('[data-active-game-action="resign"]').click();
+    await expect(page.locator('.caissa-post-game')).toBeVisible();
+    expect(await page.evaluate(() => window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(0);
+    await page.locator('[data-post-game-action="new-game"]').click();
     await page.getByRole('tab', { name: 'Games' }).click();
     await expect(page.locator('.caissa-games-panel')).toBeVisible();
     await page.locator('[data-games-primary]').click();

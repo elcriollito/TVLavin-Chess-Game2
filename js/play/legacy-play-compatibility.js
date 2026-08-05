@@ -15,12 +15,13 @@
 (function installLegacyPlayCompatibility(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.2.0';
+    const SCHEMA_VERSION = '1.3.0';
     const EXISTING = global.CaissaPlayCompatibility;
     if (EXISTING?.schemaVersion === SCHEMA_VERSION) return;
 
     const COMMANDS = Object.freeze([
         'startNewGame',
+        'prepareNativeSetup',
         'resetGame',
         'submitMove',
         'promote',
@@ -233,6 +234,13 @@
                     const started = global.newGame({ ...input });
                     return started === false ? result(false, 'failed', command, 'initialization-rejected')
                         : result(true, 'accepted', command);
+                }
+                case 'prepareNativeSetup': {
+                    if (input !== undefined) return rejected(command, 'options-not-supported');
+                    if (!hasFunction('prepareNativePlaySetup')) return unavailable(command, 'native-setup-action-unavailable');
+                    return global.prepareNativePlaySetup() === true
+                        ? result(true, 'accepted', command)
+                        : result(false, 'failed', command, 'native-setup-rejected');
                 }
                 case 'resetGame': {
                     if (input !== undefined && (typeof input !== 'object' || Array.isArray(input)))

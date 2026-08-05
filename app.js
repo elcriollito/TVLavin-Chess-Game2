@@ -2579,6 +2579,45 @@ function updateEngineStatus(status, text) {
 }
 
 // ===== NEW GAME =====
+function prepareNativePlaySetup() {
+    const route = window.CaissaPlayRouteController?.getCurrent?.();
+    const nativePlayV2 = route?.metadata?.betaEntry === true
+        && document.body?.classList?.contains('caissa-play-v2-beta-active');
+    if (!nativePlayV2 || !App.game || !App.board) return false;
+    if (App.analyzing) stopAnalysis();
+    stopTimerLoop();
+    window.CaissaClockService?.stop?.('postgame-mode-transition');
+    window.CaissaEngineRequestIsolation?.cancelSession?.();
+    if (typeof App.engine?.terminate === 'function') App.engine.terminate('postgame-mode-transition');
+    else App.engine?.stop?.();
+    App.game.reset();
+    App.board.position('start');
+    App.board.orientation('white');
+    clearMobileTapSource();
+    App.pendingPromotion = null;
+    document.getElementById('promotionModal')?.classList?.remove('show');
+    App.moveHistory = [];
+    App.currentMoveIndex = -1;
+    App.isPlayerTurn = true;
+    App.gameActive = false;
+    App.engineEnabled = false;
+    App.enginePlaysAs = null;
+    App.lastEvalCp = null;
+    App.lastEvalMate = null;
+    App.loadedGameInfo = null;
+    App.isFlipped = false;
+    App.elements.gameResult?.classList?.remove('show');
+    setGameStatus('Ready', '', 'Choose a Play mode and configuration.');
+    updateMoveHistory();
+    updateStatus();
+    updateTimers();
+    window.CaissaEvaluationRailInstance?.reset?.();
+    syncEvalOrientation();
+    syncPlayMobileStateClasses();
+    schedulePlayBoardVisibility('postgame-mode-transition');
+    return true;
+}
+
 function newGame(options = {}) {
     window.CaissaPostGameExperienceInstance?.hide?.();
     const botRoute = window.CaissaPlayRouteController?.getCurrent?.();

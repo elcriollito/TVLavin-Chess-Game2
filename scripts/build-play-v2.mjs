@@ -81,7 +81,7 @@ html = html
   .replace('    <script src="js/play/post-game-experience.js?v=1.8.0"></script>',
     '    <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>\n' +
     '    <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>\n' +
-    '    <script src="js/play/post-game-core.js?v=1.0.0"></script>')
+    '    <script src="js/play/post-game-core.js?v=1.1.0"></script>')
   .replace('<body data-clarity-mask>', '<body data-caissa-play-v2-entry="qa-only" data-clarity-mask>')
   .replace(/[ \t]+(?=\r?$)/gm, '');
 
@@ -95,6 +95,8 @@ if (!html.includes('js/play/play-v2-mentor-review-boundary.js?v=1.0.0')) throw n
 if (!html.includes('js/play/play-v2-post-game-exit-policy.js?v=1.0.0')) throw new Error('PLAY_V2_POST_GAME_EXIT_POLICY_MISSING');
 if (!html.includes('js/play/play-v2-beta-entry.js?v=1.0.0')) throw new Error('PLAY_V2_BETA_ENTRY_CONTRACT_MISSING');
 if (!html.includes('js/play/play-v2-post-game-policy.js?v=1.1.0')) throw new Error('PLAY_V2_POST_GAME_POLICY_MISSING');
+if (!html.includes('js/play/play-v2-identity-policy.js?v=1.0.0')) throw new Error('PLAY_V2_IDENTITY_POLICY_MISSING');
+if (!html.includes('js/play/play-v2-mode-transition-policy.js?v=1.0.0')) throw new Error('PLAY_V2_MODE_TRANSITION_POLICY_MISSING');
 if (!html.includes('js/play/play-v2-inline-analyze.js?v=1.0.0')) throw new Error('PLAY_V2_INLINE_ANALYZE_MISSING');
 if (!html.includes("worker-src 'self';") || /worker-src[^;]*(?:blob:|https?:)/.test(html))
   throw new Error('PLAY_V2_WORKER_CSP_INVALID');

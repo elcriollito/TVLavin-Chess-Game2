@@ -78,7 +78,7 @@ test('completed Games handoff runs one evidence-backed analysis and fails closed
     await page.locator('[data-post-game-action="analyze"]').click();
     await expect(page.locator('#analyzeSection')).toHaveAttribute('aria-modal', 'true');
     await expect(page.locator('#analyzeWhitePlayer')).toHaveText('You');
-    await expect(page.locator('#analyzeBlackPlayer')).toHaveText('CAISSA Engine');
+    await expect(page.locator('#analyzeBlackPlayer')).toHaveText('CAISSA');
     await expect(page.locator('#analyzeGameResult')).toHaveText('0-1');
     await expect(page.locator('#analyzeStatus')).toHaveText('Ready to analyze');
     await expect(page.locator('#analyzeEvalScore')).toHaveText('\u2014');
@@ -163,17 +163,16 @@ test('recognized book and acceptable moves remain quiet and book is excluded fro
 
 test('Acceptable, Inaccuracy and Mistake evidence use concise or complete responsive states', async ({ page }) => {
     const cases = [
-        { score: 0, quality: 'Acceptable', glyph: '', clearBook: true },
+        { score: 0, quality: 'Acceptable', glyph: '' },
         { score: 72, quality: 'Inaccuracy', glyph: '?!' },
         { score: 140, quality: 'Mistake', glyph: '?' }
     ];
     for (const item of cases) {
         await page.setViewportSize({ width: 1920, height: 1080 });
         await page.goto('/play/beta'); await page.getByRole('button', { name: 'Play', exact: true }).click();
-        await playMove(page, 'e2', 'e4'); page.once('dialog', dialog => dialog.accept());
+        await playMove(page, 'h2', 'h3'); page.once('dialog', dialog => dialog.accept());
         await page.locator('[data-active-game-action="resign"]').click();
         await page.locator('[data-post-game-action="analyze"]').click();
-        if (item.clearBook) await page.evaluate(() => { App.openings = []; App.ecoCodeRows = []; });
         await page.evaluate(({ score }) => __caissaPlayHarness.configure({ autoReply: true, emitInfo: true,
             delayMs: 10, scores: [0, score], bestMoves: ['d2d4', 'e7e5'] }), item);
         await page.locator('#analyzeStartBtn').click();

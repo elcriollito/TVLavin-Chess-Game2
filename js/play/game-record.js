@@ -120,10 +120,12 @@
             || !['1-0', '0-1', '1/2-1/2'].includes(resultValue)) return pgnValue;
         const existing = inspectPgn(pgnValue).headers;
         const date = capturedAt.slice(0, 10).replaceAll('-', '.');
+        const gamesOpponent = global.CaissaPlayV2IdentityPolicy?.isPlayV2?.()
+            ? global.CaissaPlayV2IdentityPolicy.gamesOpponentName() : 'CAISSA Engine';
         const headers = {
             Event: 'CAISSA Quick Play', Site: 'CAISSA Native Play', Date: date,
-            White: snapshot.playerColor === 'white' ? 'Player' : 'CAISSA Engine',
-            Black: snapshot.playerColor === 'black' ? 'Player' : 'CAISSA Engine',
+            White: snapshot.playerColor === 'white' ? 'Player' : gamesOpponent,
+            Black: snapshot.playerColor === 'black' ? 'Player' : gamesOpponent,
             Result: resultValue,
             TimeControl: `${snapshot.clocks.timeControlSeconds}+${snapshot.clocks.incrementSeconds}`,
             Termination: termination || 'unknown'
@@ -267,7 +269,9 @@
             opponent: {
                 type: coachActive ? 'coach' : botProfile ? 'bot' : mode === 'human-vs-engine' ? 'engine' : mode === 'local' ? 'local-human' : null,
                 id: coachActive ? 'caissa-native-coach' : botProfile?.id || (typeof snapshot.selectedOpponent === 'string' ? snapshot.selectedOpponent.slice(0, 120) : null),
-                name: coachActive ? 'Coach-assisted game' : botProfile?.name || null,
+                name: coachActive ? 'Coach-assisted game' : botProfile?.name
+                    || (mode === 'human-vs-engine' && global.CaissaPlayV2IdentityPolicy?.isPlayV2?.()
+                        ? global.CaissaPlayV2IdentityPolicy.gamesOpponentName() : null),
                 rating: null
             },
             player: {

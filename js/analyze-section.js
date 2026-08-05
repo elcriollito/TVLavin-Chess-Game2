@@ -948,6 +948,7 @@ const AnalyzeSection = {
         }
 
         const negative = ['Inaccuracy', 'Mistake', 'Blunder'].includes(result.quality);
+        const book = result.quality === 'Book' && result.bookEvidence;
         const recommendation = negative && result.recommendationAvailable;
         const accessibleEvidence = this.buildMoveEvidenceDescription(result, recommendation);
         this.elements.mentor.innerHTML = `
@@ -957,6 +958,9 @@ const AnalyzeSection = {
                         <strong>${this.escapeHtml(result.quality)}</strong>
                         ${result.annotation ? `<span>${this.escapeHtml(result.annotation)}</span>` : ''}
                     </div>
+                    ${book ? `<div class="analyze-evidence__field analyze-evidence__played"><span>Played</span><strong>${this.escapeHtml(result.move)}</strong></div>
+                    <div class="analyze-evidence__field analyze-evidence__opening"><span>Opening</span><strong>${this.escapeHtml(book.name)}</strong></div>
+                    <a class="analyze-review-opening__explore" href="/eco/${book.eco}" target="_blank" rel="noopener">Explore in ECO Database</a>` : ''}
                     ${negative ? `<div class="analyze-evidence__field analyze-evidence__played"><span>Played</span><strong>${this.escapeHtml(result.move)}</strong></div>
                     ${recommendation ? `<div class="analyze-evidence__field analyze-evidence__recommendation"><span>Engine recommends</span><strong>${this.escapeHtml(result.bestMoveSan)}</strong></div>` : ''}
                     <div class="analyze-evidence__field analyze-evidence__evaluation"><span>Evaluation</span><strong>${this.formatEvaluation(result.beforePlayerEval, result.mateBefore)} → ${this.formatEvaluation(result.afterPlayerEval, result.mateAfter)}</strong></div>
@@ -1455,7 +1459,7 @@ const AnalyzeSection = {
 
                 if (i > 0) {
                     this.analysisResults[i - 1] = positionAnalyses[i - 1] && positionAnalyses[i]
-                        ? this.buildMoveAnalysis(i - 1, moves[i - 1], positions[i - 1], positionAnalyses[i - 1], positionAnalyses[i])
+                        ? this.buildMoveAnalysis(i - 1, moves[i - 1], positions[i - 1], positions[i], positionAnalyses[i - 1], positionAnalyses[i])
                         : this.buildUnavailableMoveAnalysis(i - 1, moves[i - 1]);
                 }
             }
@@ -1494,23 +1498,35 @@ const AnalyzeSection = {
         }
     },
 
-    buildMoveAnalysis(moveIndex, move, fenBefore, before, after) {
+    buildMoveAnalysis(moveIndex, move, fenBefore, fenAfter, before, after) {
         const playedUci = `${move.from}${move.to}${move.promotion || ''}`;
         const bestMove = before.bestMove || before.pv?.[0] || null;
         const bestMoveSan = this.uciToSan(fenBefore, bestMove);
         const isBestMove = !!bestMove && playedUci.toLowerCase() === bestMove.toLowerCase();
         const beforePlayerEval = this.playerPerspectiveEval(before, move.color);
         const afterPlayerEval = this.playerPerspectiveEval(after, move.color);
+        const playV2Review = !!window.CaissaPlayV2ProductBoundary;
+        const samplesComparable = !playV2Review || Number.isFinite(beforePlayerEval) && Number.isFinite(afterPlayerEval)
+            && before.completed === true && after.completed === true
+            && before.requestedDepth === after.requestedDepth
+            && before.depth >= before.requestedDepth && after.depth >= after.requestedDepth;
+        if (!samplesComparable) return this.buildUnavailableMoveAnalysis(moveIndex, move, 'EVALUATION_NOT_COMPARABLE');
         const loss = isBestMove ? 0 : Math.max(0, beforePlayerEval - afterPlayerEval);
         const gain = afterPlayerEval - beforePlayerEval;
         const mateSwing = this.hasMateSwing(before, after, move.color);
-        const isBook = this.isRecognizedBookPly(moveIndex);
-        const classification = this.classifyMove(loss, mateSwing, isBook);
+        const bookEvidence = playV2Review ? window.CaissaAnalyzeOpeningEvidence?.lookup?.({
+            ply: moveIndex + 1, playedSan: move.san, playedUci, legal: true, fenAfter,
+            positionMap: window.App?.ecoPositionMap, lookupComplete: !!window.App?.ecoPositionMap,
+            recordId: this.loadedGame?.recordId || this.activeHandoffId || null,
+            generation: this.analysisToken, stale: !this.isAnalyzing
+        }) : null;
+        const classification = this.classifyMove(loss, mateSwing, bookEvidence, moveIndex);
 
         return {
             moveIndex,
             move: move.san,
             fenBefore,
+            fenAfter,
             playedUci,
             bestMove,
             bestMoveSan,
@@ -1534,17 +1550,19 @@ const AnalyzeSection = {
             quality: classification.quality,
             accuracyIncluded: classification.accuracyIncluded !== false,
             book: classification.quality === 'Book',
+            bookEvidence: classification.quality === 'Book' ? bookEvidence : null,
             annotation: classification.annotation,
             label: classification.label,
             mentorText: this.buildMentorText(classification, loss)
         };
     },
 
-    buildUnavailableMoveAnalysis(moveIndex, move) {
+    buildUnavailableMoveAnalysis(moveIndex, move, reasonCode = 'POSITION_ANALYSIS_UNAVAILABLE') {
         return {
             moveIndex,
             move: move.san,
             unavailable: true,
+            reasonCode,
             annotation: '-',
             label: 'Analysis unavailable'
         };
@@ -1578,8 +1596,11 @@ const AnalyzeSection = {
         return allowedLosingMate || lostWinningMate;
     },
 
-    classifyMove(loss, mateSwing = false, book = false) {
-        const classified = window.CaissaAnalyzeReviewPolicy?.classify?.({ loss, mateSwing, book });
+    classifyMove(loss, mateSwing = false, bookEvidence = null, moveIndex = -1) {
+        const input = window.CaissaPlayV2ProductBoundary
+            ? { loss, mateSwing, bookEvidence }
+            : { loss, mateSwing, book: this.isRecognizedBookPly(moveIndex) };
+        const classified = window.CaissaAnalyzeReviewPolicy?.classify?.(input);
         if (!classified?.ok) return { annotation: '-', label: 'Analysis unavailable' };
         return { ...classified, label: `${classified.quality} move` };
     },
@@ -1769,6 +1790,8 @@ const AnalyzeSection = {
                     mate: Number.isFinite(mate) ? mate : null,
                     bestMove,
                     depth: latestInfo?.depth ?? 0,
+                    requestedDepth: depth,
+                    completed: (latestInfo?.depth ?? 0) >= depth,
                     pv: latestInfo?.pv ?? []
                 });
             }, { depth });

@@ -13,13 +13,45 @@ async function openPanel(page, viewport = { width: 390, height: 844 }) {
 test('GamesPanel replaces the temporary controls host with one truthful primary action', async ({ page }) => {
     await openPanel(page);
     await expect(page.getByRole('heading', { name: 'Play Computer' })).toBeVisible();
-    await expect(page.getByText('Start a local game against the current CAISSA engine.')).toBeVisible();
+    await expect(page.getByText('Start a local game against CAISSA.')).toBeVisible();
     await expect(page.getByText('Full Power', { exact: true })).toBeVisible();
     await expect(page.getByText(/fixed maximum-strength engine setting/)).toBeVisible();
     await expect(page.locator('.caissa-simplified-shell__context .right-panel')).toHaveCount(0);
     await expect(page.locator('.caissa-simplified-shell__advanced .right-panel')).toHaveCount(1);
     await expect(page.locator('[data-games-primary]:visible')).toHaveCount(1);
     await expect(page.locator('#navNewGameBtn:visible')).toHaveCount(0);
+});
+
+test('beta setup disclosure owns truthful radio names and keyboard selection at every target width', async ({ page }) => {
+    const presets = ['1+0 · Bullet', '2+1 · Bullet', '3+0 · Blitz', '3+2 · Blitz',
+        '5+0 · Blitz', '10+0 · Rapid', '15+10 · Rapid'];
+    for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 },
+        { width: 430, height: 932 }, { width: 1024, height: 768 }]) {
+        await page.setViewportSize(viewport);
+        await page.goto('/play/beta');
+        const disclosure = page.locator('[data-games-setup-disclosure]');
+        const change = page.getByText('Change', { exact: true });
+        await expect(page.locator('[data-games-summary-value]')).toHaveText('1+0 · Bullet · White');
+        if (await disclosure.evaluate(element => element.open)) await change.click();
+        await expect(disclosure).not.toHaveAttribute('open', '');
+        await expect(disclosure.getByRole('radio')).toHaveCount(0);
+        await expect(disclosure.getByRole('radio', { includeHidden: true })).toHaveCount(10);
+        await change.click();
+        await expect(disclosure).toHaveAttribute('open', '');
+        for (const name of presets)
+            await expect(page.getByRole('radio', { name, exact: true })).toHaveCount(1);
+        for (const name of ['White', 'Random', 'Black'])
+            await expect(page.getByRole('radio', { name, exact: true })).toHaveCount(1);
+        const fiveMinute = page.getByRole('radio', { name: '5+0 · Blitz', exact: true });
+        await fiveMinute.focus();
+        await page.keyboard.press('Space');
+        await expect(fiveMinute).toBeChecked();
+        const black = page.getByRole('radio', { name: 'Black', exact: true });
+        await black.focus();
+        await page.keyboard.press('Space');
+        await expect(black).toBeChecked();
+        await expect(page.locator('[data-games-summary-value]')).toHaveText('5+0 · Blitz · Black');
+    }
 });
 
 test('time and color draft selections start exactly one authoritative local machine game', async ({ page }) => {
@@ -63,7 +95,7 @@ test('one legal move receives the existing deterministic engine response', async
     expect(resources).toEqual({ boards: 1, workers: 1, clocks: 2, rails: 1, actions: 1 });
 });
 
-test('Advanced Options preserves legacy controls, settings, and Analyze handoff', async ({ page }) => {
+test('Advanced Options preserves legacy controls while setup Analyze navigation remains blocked', async ({ page }) => {
     await openPanel(page);
     const advanced = page.locator('.caissa-simplified-shell__advanced');
     await advanced.locator('summary').click();
@@ -81,8 +113,8 @@ test('Advanced Options preserves legacy controls, settings, and Analyze handoff'
     await page.keyboard.press('Escape');
     await page.locator('#mobileNavToggle').click();
     await page.locator('[data-section="analyze"]').first().click();
-    await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
-    await page.goBack();
+    await expect(page.locator('#analyzeSection')).not.toHaveClass(/active/);
+    await expect(page.locator('#playSection')).toHaveClass(/active/);
     await expect(page.locator('.caissa-games-panel')).toBeVisible();
 });
 
