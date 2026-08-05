@@ -7,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createPrivateRunOperationalConfig } from './js/endgame-trainer/v2/private-run-operational-config.js';
 import { resolvePlayV2BetaEntry } from './js/play/play-v2-beta-entry-gate.js';
+import { resolvePlayV2PhysicalPromotionQA } from './js/play/play-v2-physical-promotion-qa-gate.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -412,7 +413,10 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/yahoo-classic') {
     filePath = './yahoo-classic.html';
   }
-  const betaEntry = resolvePlayV2BetaEntry(pathname, process.env);
+  const physicalPromotionQA = resolvePlayV2PhysicalPromotionQA(pathname, url.search, process.env);
+  const betaEntry = physicalPromotionQA.requested
+    ? physicalPromotionQA
+    : resolvePlayV2BetaEntry(pathname, process.env);
   if (betaEntry.requested) {
     filePath = `./${betaEntry.document}`;
     res.setHeader('Cache-Control', 'no-store, max-age=0');

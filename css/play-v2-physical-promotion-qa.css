@@ -1,0 +1,6 @@
+.caissa-promotion-qa { border: 2px solid var(--gold, #d5a021); border-radius: .75rem; padding: 1rem; margin-bottom: 1rem; }
+.caissa-promotion-qa h2 { margin: 0 0 .5rem; }
+.caissa-promotion-qa select { width: 100%; min-height: 44px; }
+.caissa-promotion-qa__actions { display: grid; gap: .5rem; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: .75rem 0; }
+.caissa-promotion-qa button { min-height: 44px; }
+@media (max-width: 480px) { .caissa-promotion-qa__actions { grid-template-columns: 1fr; } }

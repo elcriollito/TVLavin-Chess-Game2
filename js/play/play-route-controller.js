@@ -94,6 +94,19 @@
         }
         const normalizedPath = path.replace(/\/+/g, '/').replace(/\/+$/, '') || '/';
         const lowerPath = normalizedPath.toLowerCase();
+        const physicalPromotionQa = lowerPath === '/play/beta/qa/promotion'
+            && global.CaissaPlayV2PhysicalPromotionQAPolicy?.isAuthorizedLocation?.(loc) === true;
+        if (physicalPromotionQa) {
+            return frozenRoute({
+                schemaVersion: SCHEMA_VERSION, routeId: 'play:games:physical-promotion-qa', path,
+                section: 'play', mode: MODES.GAMES, requestedMode: MODES.GAMES,
+                status: STATUSES.RESOLVED, source: options.source || SOURCES.DIRECT_PATH,
+                canonicalPath: '/play/beta/qa/promotion', legacy: false, replace: false,
+                available: true, reasonCode: REASONS.GAMES_MODE_RESOLVED, query,
+                __privateQuery: protectedQuery, handoffToken: null,
+                metadata: { requestedModeAvailable: true, betaEntry: true, physicalPromotionQa: true }
+            });
+        }
         const betaMatch = /^\/play\/beta(?:\/([^/]+))?$/.exec(lowerPath);
         if (betaMatch) {
             const requestedMode = betaMatch[1] || MODES.GAMES;
