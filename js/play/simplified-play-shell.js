@@ -401,6 +401,12 @@
         setMode(mode) {
             if (!Object.hasOwn(MODES, mode)) return result(false, 'rejected', REASONS.INVALID_MODE);
             if (!MODES[mode]) return result(false, 'rejected', REASONS.MODE_INACTIVE);
+            const previousMode = this.#mode;
+            if (previousMode === 'coach' && mode !== 'coach') {
+                this.#coachPanel?.reset?.();
+                const sharedStatus = this.#activeContext?.querySelector?.('[data-active-game-status]');
+                if (sharedStatus) sharedStatus.textContent = '';
+            }
             this.#mode = mode;
             if (this.#root) this.#root.dataset.mode = mode;
             this.#root?.querySelectorAll?.('[data-shell-mode]').forEach(button => {
@@ -673,6 +679,27 @@
             const black = global.document.getElementById('playerBlackName');
             if (white) white.textContent = playerColor === 'white' ? 'Player' : opponent || '';
             if (black) black.textContent = playerColor === 'black' ? 'Player' : opponent || '';
+            this.#syncBoardEdges();
+        }
+        #syncBoardEdges() {
+            if (!this.#root) return;
+            const orientation = global.App?.boardAdapter?.getSnapshot?.().orientation
+                || (global.App?.isFlipped ? 'black' : 'white');
+            const top = this.#root.querySelector('.caissa-simplified-shell__player--opponent');
+            const bottom = this.#root.querySelector('.caissa-simplified-shell__player--current');
+            const white = [global.document.getElementById('playerWhiteName'), global.document.getElementById('topClockWhite')];
+            const black = [global.document.getElementById('playerBlackName'), global.document.getElementById('topClockBlack')];
+            if (!top || !bottom || [...white, ...black].some(node => !node)) return;
+            const bottomPair = orientation === 'black' ? black : white;
+            const topPair = orientation === 'black' ? white : black;
+            topPair.forEach(node => top.appendChild(node));
+            bottomPair.forEach(node => bottom.appendChild(node));
+            top.dataset.edgeColor = orientation === 'black' ? 'white' : 'black';
+            bottom.dataset.edgeColor = orientation;
+        }
+        syncBoardEdges() {
+            this.#syncIdentity();
+            return result(true, 'accepted', 'BOARD_EDGES_SYNCED');
         }
         #syncAssistance(active, postGame) {
             if (!this.#assistance) return;

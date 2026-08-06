@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { createPrivateRunOperationalConfig } from './js/endgame-trainer/v2/private-run-operational-config.js';
 import { resolvePlayV2BetaEntry } from './js/play/play-v2-beta-entry-gate.js';
 import { resolvePlayV2PhysicalPromotionQA } from './js/play/play-v2-physical-promotion-qa-gate.js';
+import { resolvePlayV2PhysicalIpadAnalyzeDiagnostic } from './js/play/play-v2-physical-ipad-analyze-diagnostic-gate.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +16,7 @@ const __dirname = path.dirname(__filename);
 const PORT = 8000;
 const HOST = process.env.CAISSA_SERVER_HOST || '127.0.0.1';
 const PLAY_V2_CSP = "worker-src 'self'; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev; object-src 'none'; base-uri 'self'";
+const PLAY_V2_DIAGNOSTIC_CSP = "worker-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'";
 
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -414,16 +416,17 @@ const server = http.createServer(async (req, res) => {
     filePath = './yahoo-classic.html';
   }
   const physicalPromotionQA = resolvePlayV2PhysicalPromotionQA(pathname, url.search, process.env);
-  const betaEntry = physicalPromotionQA.requested
-    ? physicalPromotionQA
-    : resolvePlayV2BetaEntry(pathname, process.env);
+  const ipadAnalyzeDiagnostic = resolvePlayV2PhysicalIpadAnalyzeDiagnostic(pathname, url.search, process.env);
+  const betaEntry = physicalPromotionQA.requested ? physicalPromotionQA
+    : ipadAnalyzeDiagnostic.requested ? ipadAnalyzeDiagnostic
+      : resolvePlayV2BetaEntry(pathname, process.env);
   if (betaEntry.requested) {
     filePath = `./${betaEntry.document}`;
     res.setHeader('Cache-Control', 'no-store, max-age=0');
     res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Content-Security-Policy', PLAY_V2_CSP);
+    res.setHeader('Content-Security-Policy', ipadAnalyzeDiagnostic.requested ? PLAY_V2_DIAGNOSTIC_CSP : PLAY_V2_CSP);
   }
   if (!betaEntry.requested && (pathname === '/play' || pathname.startsWith('/play/'))) {
     filePath = url.searchParams.get('simplified') === '1' ? './play-v2.html' : './index.html';

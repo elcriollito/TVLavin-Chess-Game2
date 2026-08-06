@@ -2695,13 +2695,12 @@ function newGame(options = {}) {
     applyEvaluationRailPolicy();
     window.CaissaEvaluationRailInstance?.reset();
     
-    // Flip board if playing as black
-    if (App.playerColor === 'black') {
-        App.board.flip();
-    } else {
-        App.board.orientation('white');
-    }
-    App.isFlipped = (App.playerColor === 'black');
+    // Session orientation is absolute. A relative flip leaks the previous
+    // session's orientation into Rematch and consecutive same-color games.
+    const sessionOrientation = App.playerColor === 'black' ? 'black' : 'white';
+    const orientationResult = App.boardAdapter?.setOrientation?.(sessionOrientation);
+    if (!orientationResult?.ok) App.board.orientation(sessionOrientation);
+    App.isFlipped = sessionOrientation === 'black';
     syncEvalOrientation();
     
     // Reset UI
@@ -2959,6 +2958,7 @@ function flipBoard() {
     // HOTFIX: Toggle flipped state and sync eval bar orientation
     App.isFlipped = !App.isFlipped;
     syncEvalOrientation();
+    window.CaissaSimplifiedPlayShellInstance?.syncBoardEdges?.();
 
     if (App.lastEvalMate !== null && App.lastEvalMate !== undefined) {
         updateEvalBar(App.lastEvalMate > 0 ? 1400 : -1400, App.lastEvalMate);

@@ -107,6 +107,19 @@
                 metadata: { requestedModeAvailable: true, betaEntry: true, physicalPromotionQa: true }
             });
         }
+        const ipadAnalyzeDiagnostic = lowerPath === '/play/beta/qa/ipad-analyze-diagnostic'
+            && global.CaissaPlayV2PhysicalIpadAnalyzeDiagnosticPolicy?.isAuthorizedLocation?.(loc) === true;
+        if (ipadAnalyzeDiagnostic) {
+            return frozenRoute({
+                schemaVersion: SCHEMA_VERSION, routeId: 'play:games:ipad-analyze-diagnostic', path,
+                section: 'play', mode: MODES.GAMES, requestedMode: MODES.GAMES,
+                status: STATUSES.RESOLVED, source: options.source || SOURCES.DIRECT_PATH,
+                canonicalPath: '/play/beta/qa/ipad-analyze-diagnostic', legacy: false, replace: false,
+                available: true, reasonCode: REASONS.GAMES_MODE_RESOLVED, query,
+                __privateQuery: protectedQuery, handoffToken: null,
+                metadata: { requestedModeAvailable: true, betaEntry: true, ipadAnalyzeDiagnostic: true }
+            });
+        }
         const betaMatch = /^\/play\/beta(?:\/([^/]+))?$/.exec(lowerPath);
         if (betaMatch) {
             const requestedMode = betaMatch[1] || MODES.GAMES;

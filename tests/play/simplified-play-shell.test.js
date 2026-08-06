@@ -86,13 +86,17 @@ test('module load is passive until DOM ready', () => {
     assert.deepEqual([...listeners.keys()], ['DOMContentLoaded']);
 });
 
-test('static guard excludes game, engine, clock, persistence, routing mutation, and other boards', () => {
+test('static guard excludes runtime ownership while allowing one canonical clock teardown call', () => {
     for (const forbidden of [
-        /\bApp\.game\s*=/, /\.move\s*\(/, /ClockService|switchLocalClock|startTimer/,
+        /\bApp\.game\s*=/, /\.move\s*\(/, /switchLocalClock|startTimer/,
+        /new\s+[A-Za-z0-9_$]*Clock|createClock\s*\(/,
+        /CaissaClockService\?*\.(?:create|configure|start|reset|update|switchTurn)/,
+        /CaissaClockService\s*=|CaissaClockService\.[A-Za-z0-9_$]+\s*=/,
         /EngineAdapter|engineSend|postMessage/, /localStorage|sessionStorage/,
         /pushState|replaceState/, /MentorAI|gameResult\s*=/,
         /analyzeChessboard|arenaBoard|fics|spectator/i
     ]) assert.doesNotMatch(source, forbidden);
+    assert.equal((source.match(/CaissaClockService\?\.stop\?\.\('postgame-mode-transition'\)/g) || []).length, 1);
 });
 
 test('shell CSS layout rules are scoped to the explicit QA body state', () => {

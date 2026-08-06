@@ -33,6 +33,7 @@
     { "source": "/play/beta", "destination": "/play-v2-unavailable.html" },
     { "source": "/play/beta/:path*", "destination": "/play-v2-unavailable.html" },
     { "source": "/play-v2-promotion-qa.html", "destination": "/play-v2-unavailable.html" },
+    { "source": "/play-v2-ipad-analyze-diagnostic.html", "destination": "/play-v2-unavailable.html" },
     { "source": "/play", "has": [{ "type": "query", "key": "simplified", "value": "1" }], "destination": "/play-v2.html" },
     { "source": "/play/:mode", "has": [{ "type": "query", "key": "simplified", "value": "1" }], "destination": "/play-v2.html" },
     { "source": "/play", "destination": "/index.html" },

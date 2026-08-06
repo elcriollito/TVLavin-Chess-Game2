@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { instrumentPlay, playMove, startGame } from '../play/playwright-helpers.js';
+
+test.beforeEach(async ({ page }) => instrumentPlay(page, { autoReply: false }));
 
 test('root remains Classic and direct canonical Play cold loads one board', async ({ page }) => {
     await page.goto('/');
@@ -39,16 +42,53 @@ test('Classic to Play to Back and Forward restores sections without duplicate en
     expect(page.url()).toBe(before);
 });
 
-test('Play to Analyze to Back preserves tokenized handoff and Play route', async ({ page }) => {
+test('Play v2 setup, active play, URL, storage, and history cannot manufacture Analyze', async ({ page }) => {
+    await page.goto('/play/beta?handoff=fabricated_token_123#analyze');
+    await page.evaluate(() => {
+        sessionStorage.setItem('caissa:analyze:active:v1', 'fabricated_token_123');
+        sessionStorage.setItem('caissa:analyze:handoff:v1:fabricated_token_123', '{}');
+        history.replaceState({ section: 'analyze', handoff: 'fabricated_token_123' }, '', location.href);
+        dispatchEvent(new PopStateEvent('popstate', { state: history.state }));
+    });
+    await expect(page.locator('#analyzeSection')).not.toHaveClass(/active/);
+    expect((await page.evaluate(() => window.CaissaPostGameExperienceInstance.execute('analyze'))).ok).toBe(false);
+    await page.locator('[data-games-primary]').click();
+    await expect.poll(() => page.evaluate(() => window.App.gameActive)).toBe(true);
+    expect((await page.evaluate(() => window.CaissaPostGameExperienceInstance.execute('analyze'))).ok).toBe(false);
+    await expect(page.locator('#analyzeSection')).not.toHaveClass(/active/);
+});
+
+test('completed Play v2 PostGame opens inline Analyze and Back restores the same record', async ({ page }) => {
+    await page.goto('/play/beta');
+    await page.locator('[data-games-primary]').click();
+    await playMove(page, 'e2', 'e4');
+    await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
+    const before = await page.evaluate(() => ({
+        recordId: window.CaissaPostGameExperienceInstance.getSnapshot().gameRecordId,
+        url: location.href
+    }));
+    await page.locator('[data-post-game-action="analyze"]').click();
+    await expect(page.locator('#analyzeSection')).toHaveClass(/active.*caissa-play-v2-inline-analyze|caissa-play-v2-inline-analyze.*active/);
+    expect(page.url()).toBe(before.url);
+    expect(new URL(page.url()).searchParams.has('handoff')).toBe(false);
+    expect(await page.evaluate(() => Array.from({ length: sessionStorage.length }, (_, index) => sessionStorage.key(index))
+        .some(key => key?.startsWith('caissa:analyze:handoff:v1:')))).toBe(false);
+    await page.getByRole('button', { name: 'Back to game result' }).click();
+    await expect(page.locator('[data-post-game-result]')).toBeVisible();
+    expect(await page.evaluate(() => window.CaissaPostGameExperienceInstance.getSnapshot().gameRecordId)).toBe(before.recordId);
+    expect((await page.evaluate(() => window.CaissaPlayV2InlineAnalyze.open({ token: 'consumed_token_123' }))).ok).toBe(false);
+});
+
+test('Legacy active-position Analyze retains its independent non-inline contract', async ({ page }) => {
     await page.goto('/play');
-    await page.locator('[data-section="analyze"]').first().click();
+    await startGame(page);
+    await playMove(page, 'e2', 'e4');
+    const command = await page.evaluate(() => window.CaissaPlayCompatibility.execute('openAnalyze'));
+    expect(command.ok).toBe(true);
     await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
-    const analyze = new URL(page.url());
-    expect(analyze.searchParams.get('section')).toBe('analyze');
-    expect(analyze.searchParams.get('handoff')).toBeTruthy();
-    await page.goBack();
+    await expect(page.locator('#analyzeSection')).not.toHaveClass(/caissa-play-v2-inline-analyze/);
+    await page.evaluate(() => window.CaissaNavigation.navigateToSection('play'));
     await expect(page.locator('#playSection')).toHaveClass(/active/);
-    expect(new URL(page.url()).pathname).toBe('/play');
 });
 
 test('controller owns one popstate strategy and adds no runtime resources', async ({ page }) => {

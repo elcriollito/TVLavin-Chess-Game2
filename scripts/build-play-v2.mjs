@@ -3,6 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 const sourcePath = new URL('../index.html', import.meta.url);
 const outputPath = new URL('../play-v2.html', import.meta.url);
 const promotionQaOutputPath = new URL('../play-v2-promotion-qa.html', import.meta.url);
+const ipadAnalyzeDiagnosticOutputPath = new URL('../play-v2-ipad-analyze-diagnostic.html', import.meta.url);
 
 let html = await readFile(sourcePath, 'utf8');
 
@@ -151,4 +152,21 @@ for (const required of ['Play v2 - Internal Promotion QA', 'play-v2-physical-pro
   if (!promotionQaHtml.includes(required)) throw new Error(`PLAY_V2_PHYSICAL_PROMOTION_QA_BUILD_MISSING: ${required}`);
 }
 await writeFile(promotionQaOutputPath, promotionQaHtml);
-console.log('Generated play-v2.html and play-v2-promotion-qa.html from index.html');
+const ipadAnalyzeDiagnosticHtml = html
+  .replace(/\s*<script[^>]+src="(?:\/js\/caissa-clarity\.js(?:\?[^\"]*)?|js\/play\/analytics\/[^\"]+)"[^>]*><\/script>\r?\n/gi, '\n')
+  .replace(/<title>CAISSA Play v2 .* Internal<\/title>/, '<title>CAISSA Play v2 - Internal iPad Analyze Diagnostic</title>')
+  .replace('<link rel="canonical" href="/play/beta">', '<link rel="canonical" href="/play/beta/qa/ipad-analyze-diagnostic">')
+  .replace('</head>', '    <link rel="stylesheet" href="css/play-v2-physical-ipad-analyze-diagnostic.css?v=1.0.0">\n' +
+    '    <script src="js/play/play-v2-physical-ipad-analyze-diagnostic-policy.js?v=1.0.0"></script>\n' +
+    '    <script src="js/play/play-v2-physical-ipad-analyze-diagnostic-boot.js?v=1.0.0"></script>\n</head>')
+  .replace('<body data-caissa-play-v2-entry="qa-only" data-clarity-mask>',
+    '<body data-caissa-play-v2-entry="qa-only" data-caissa-ipad-analyze-diagnostic="internal" data-clarity-mask>')
+  .replace('</body>', '    <script src="js/play/play-v2-physical-ipad-analyze-diagnostic.js?v=1.0.0"></script>\n</body>')
+  .replace(/[ \t]+(?=\r?$)/gm, '');
+for (const required of ['Internal iPad Analyze Diagnostic', 'physical-ipad-analyze-diagnostic-policy.js',
+  'physical-ipad-analyze-diagnostic-boot.js', 'physical-ipad-analyze-diagnostic.js',
+  'physical-ipad-analyze-diagnostic.css', 'data-caissa-ipad-analyze-diagnostic="internal"']) {
+  if (!ipadAnalyzeDiagnosticHtml.includes(required)) throw new Error(`PLAY_V2_IPAD_ANALYZE_DIAGNOSTIC_BUILD_MISSING: ${required}`);
+}
+await writeFile(ipadAnalyzeDiagnosticOutputPath, ipadAnalyzeDiagnosticHtml);
+console.log('Generated play-v2.html, play-v2-promotion-qa.html, and play-v2-ipad-analyze-diagnostic.html from index.html');
