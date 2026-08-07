@@ -157,11 +157,11 @@ const ipadAnalyzeDiagnosticHtml = html
   .replace(/<title>CAISSA Play v2 .* Internal<\/title>/, '<title>CAISSA Play v2 - Internal iPad Analyze Diagnostic</title>')
   .replace('<link rel="canonical" href="/play/beta">', '<link rel="canonical" href="/play/beta/qa/ipad-analyze-diagnostic">')
   .replace('</head>', '    <link rel="stylesheet" href="css/play-v2-physical-ipad-analyze-diagnostic.css?v=1.0.0">\n' +
-    '    <script src="js/play/play-v2-physical-ipad-analyze-diagnostic-policy.js?v=1.0.0"></script>\n' +
-    '    <script src="js/play/play-v2-physical-ipad-analyze-diagnostic-boot.js?v=1.0.0"></script>\n</head>')
+    '    <script src="js/play/play-v2-physical-ipad-analyze-diagnostic-policy.js?v=1.1.0"></script>\n' +
+    '    <script src="js/play/play-v2-physical-ipad-analyze-diagnostic-boot.js?v=1.1.0"></script>\n</head>')
   .replace('<body data-caissa-play-v2-entry="qa-only" data-clarity-mask>',
     '<body data-caissa-play-v2-entry="qa-only" data-caissa-ipad-analyze-diagnostic="internal" data-clarity-mask>')
-  .replace('</body>', '    <script src="js/play/play-v2-physical-ipad-analyze-diagnostic.js?v=1.0.0"></script>\n</body>')
+  .replace('</body>', '    <script src="js/play/play-v2-physical-ipad-analyze-diagnostic.js?v=1.1.0"></script>\n</body>')
   .replace(/[ \t]+(?=\r?$)/gm, '');
 for (const required of ['Internal iPad Analyze Diagnostic', 'physical-ipad-analyze-diagnostic-policy.js',
   'physical-ipad-analyze-diagnostic-boot.js', 'physical-ipad-analyze-diagnostic.js',

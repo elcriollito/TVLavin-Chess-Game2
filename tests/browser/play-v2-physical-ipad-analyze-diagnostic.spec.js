@@ -12,7 +12,10 @@ test('authorized diagnostic is opt-in, bounded, volatile, and exports sanitized 
     await expect(page.locator('[data-ipad-analyze-diagnostic]')).not.toHaveAttribute('open', '');
     await expect(page.locator('[data-diagnostic-launcher]')).toBeVisible();
     expect(await page.evaluate(() => window.__caissaPlayHarness.snapshot().workersCreated)).toBe(0);
-    expect(requests.filter(url => new URL(url).origin !== 'http://127.0.0.1:8000')).toEqual([]);
+    const documentOrigin = await page.evaluate(() => location.origin);
+    const offOrigin = urls => urls.filter(url => new URL(url).origin !== documentOrigin);
+    expect(offOrigin(requests)).toEqual([]);
+    expect(offOrigin([...requests, 'https://external.invalid/probe'])).toEqual(['https://external.invalid/probe']);
     expect(requests.filter(url => /auth|academy|lesson|curriculum|endgame|analytics|clarity/i.test(url))).toEqual([]);
     expect(requests.filter(url => /fics/i.test(url) && !/play-v2-fics-isolation\.js/i.test(url))).toEqual([]);
     expect(await page.evaluate(() => window.CaissaIpadAnalyzeDiagnostic.inspect())).toMatchObject({ capturing: false, count: 0, capacity: 512 });
@@ -39,18 +42,25 @@ test('authorized diagnostic is opt-in, bounded, volatile, and exports sanitized 
     await page.locator('[data-diagnostic-stop]').click();
     const exported = await page.evaluate(() => window.CaissaIpadAnalyzeDiagnostic.exportJson());
     const parsed = JSON.parse(exported);
-    expect(parsed.contractId).toBe('PlayV2PhysicalIpadAnalyzeDiagnosticPolicy@1.0.0');
+    expect(parsed.contractId).toBe('PlayV2PhysicalIpadAnalyzeDiagnosticPolicy@1.1.0');
     expect(parsed.records.length).toBeLessThanOrEqual(512);
     expect(parsed.captureCompleteness).toBe('complete');
     expect(parsed.missingRequiredEvents).toEqual([]);
+    expect(parsed.verdictSequence).toBe(parsed.lastRetainedSequence);
+    expect(parsed.requiredEventEvidence.generations.some(item => item.observed.analyzeOpen
+        && item.observed.analyzeSectionOnEnter && item.observed.hostVisible && item.observed.innerBoardVisible)).toBe(true);
     expect(new Set(parsed.records.map(item => item.surface))).toEqual(new Set(['play', 'postgame', 'analyze']));
     expect(exported).not.toMatch(/fen|pgn|moves|ssid|cookie|identity|thumbprint|certificate|127\.0\.0\.1/i);
     await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true,
         value: { writeText: async value => { window.__diagnosticClipboard = value; } } }));
     await page.locator('[data-diagnostic-copy]').click();
-    expect(JSON.parse(await page.evaluate(() => window.__diagnosticClipboard)).records.length).toBe(parsed.records.length);
+    const copied = JSON.parse(await page.evaluate(() => window.__diagnosticClipboard));
+    expect(copied.records.length).toBe(parsed.records.length);
+    expect(copied.captureCompleteness).toBe(parsed.captureCompleteness);
+    await expect(page.locator('[data-ipad-analyze-diagnostic]')).toHaveAttribute('data-capture-completeness', copied.captureCompleteness);
     const download = page.waitForEvent('download');
     await page.locator('[data-diagnostic-download]').click(); await download;
+    await expect(page.locator('[data-ipad-analyze-diagnostic]')).toHaveAttribute('data-capture-completeness', copied.captureCompleteness);
     await page.locator('[data-diagnostic-clear]').click();
     expect(await page.evaluate(() => window.CaissaIpadAnalyzeDiagnostic.inspect().count)).toBe(0);
 });
@@ -65,7 +75,7 @@ test('capture stopped before Analyze is explicitly partial', async ({ page }) =>
     const parsed = JSON.parse(await page.evaluate(() => window.CaissaIpadAnalyzeDiagnostic.exportJson()));
     expect(parsed.captureCompleteness).toBe('partial');
     expect(parsed.missingRequiredEvents).toEqual(expect.arrayContaining([
-        'surface:analyze', 'analyze-open', 'AnalyzeSection.onEnter', 'visible-analyze-board'
+        'analyze-open', 'AnalyzeSection.onEnter', 'visible-analyze-host', 'visible-analyze-board'
     ]));
 });
 
@@ -114,6 +124,84 @@ test('Analyze Back and reopen attributes two real Analyze generations', async ({
     expect(parsed.captureCompleteness).toBe('complete');
     expect(parsed.records.filter(item => item.eventType === 'analyze-open')).toHaveLength(2);
     expect(Math.max(...parsed.records.map(item => item.generation))).toBe(2);
+    expect(parsed.requiredEventEvidence.generations.map(item => item.generation)).toEqual([1, 2]);
+});
+
+test('eviction preserves required evidence and reports exact ring-buffer truncation', async ({ page }) => {
+    await page.goto('/play/beta/qa/ipad-analyze-diagnostic');
+    await page.locator('[data-diagnostic-launcher]').click();
+    await page.locator('[data-diagnostic-start]').click();
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await playMove(page, 'e2', 'e4');
+    page.once('dialog', dialog => dialog.accept());
+    await page.locator('[data-active-game-action="resign"]').click();
+    await page.locator('[data-post-game-action="analyze"]').click();
+    await expect(page.getByRole('dialog', { name: 'Analyze completed game' })).toBeVisible();
+    await page.evaluate(() => { for (let index = 0; index < 150; index += 1) dispatchEvent(new Event('resize')); });
+    await expect.poll(() => page.evaluate(() => JSON.parse(window.CaissaIpadAnalyzeDiagnostic.exportJson()).recordsDropped)).toBeGreaterThan(0);
+    await page.locator('[data-diagnostic-launcher]').click();
+    await page.locator('[data-diagnostic-stop]').click();
+    const parsed = JSON.parse(await page.evaluate(() => window.CaissaIpadAnalyzeDiagnostic.exportJson()));
+    expect(parsed.recordsRetained).toBe(512);
+    expect(parsed.recordsDropped).toBeGreaterThan(0);
+    expect(parsed.firstRetainedSequence).toBe(parsed.recordsDropped + 1);
+    expect(parsed.lastRetainedSequence).toBe(parsed.verdictSequence);
+    expect(parsed.captureCompleteness).toBe('complete');
+    expect(parsed.missingRequiredEvents).toEqual([]);
+    expect(parsed.requiredEventEvidence.generations[0].observed.analyzeOpen).toBe(true);
+});
+
+test('geometry applicability ignores hidden Analyze and uses scale-aware material thresholds', async ({ page }) => {
+    await page.goto('/play/beta/qa/ipad-analyze-diagnostic');
+    const assessment = await page.evaluate(() => ({
+        zoomRounding: window.CaissaIpadAnalyzeDiagnostic.assessBoardGeometry({ width: 417, height: 420,
+            devicePixelRatio: 2, scale: 1.626, applicable: true }),
+        strip: window.CaissaIpadAnalyzeDiagnostic.assessBoardGeometry({ width: 420, height: 40,
+            devicePixelRatio: 2, scale: 1, applicable: true }),
+        zeroVisible: window.CaissaIpadAnalyzeDiagnostic.assessBoardGeometry({ width: 420, height: 0,
+            devicePixelRatio: 2, scale: 1, applicable: true }),
+        zeroHidden: window.CaissaIpadAnalyzeDiagnostic.assessBoardGeometry({ width: 420, height: 0,
+            devicePixelRatio: 2, scale: 1, applicable: false })
+    }));
+    expect(assessment.zoomRounding.violations).toEqual([]);
+    expect(assessment.strip.violations).toContain('BOARD_MATERIAL_STRIP');
+    expect(assessment.zeroVisible.violations).toContain('BOARD_NON_POSITIVE');
+    expect(assessment.zeroHidden).toMatchObject({ applicable: false, violations: [] });
+
+    await page.locator('[data-diagnostic-launcher]').click();
+    await page.locator('[data-diagnostic-start]').click();
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await playMove(page, 'e2', 'e4');
+    page.once('dialog', dialog => dialog.accept());
+    await page.locator('[data-active-game-action="resign"]').click();
+    await page.locator('[data-post-game-action="analyze"]').click();
+    await page.locator('[data-play-v2-analyze-close]').click();
+    await page.locator('[data-diagnostic-launcher]').click();
+    await page.locator('[data-diagnostic-stop]').click();
+    const parsed = JSON.parse(await page.evaluate(() => window.CaissaIpadAnalyzeDiagnostic.exportJson()));
+    const hidden = parsed.records.filter(item => item.surface !== 'analyze');
+    expect(hidden.length).toBeGreaterThan(0);
+    expect(hidden.every(item => item.geometryApplicability.applicable === false
+        && !item.violations.includes('BOARD_NON_POSITIVE'))).toBe(true);
+});
+
+test('diagnostic mode routing retains gate, UI, capture, and never enters Classic', async ({ page }) => {
+    const requests = [];
+    page.on('request', request => requests.push(request.url()));
+    await page.goto('/play/beta/qa/ipad-analyze-diagnostic');
+    await page.locator('[data-diagnostic-launcher]').click();
+    await page.locator('[data-diagnostic-start]').click();
+    for (const [label, suffix] of [['Play Bots', '/bots'], ['Play Coach', '/coach'], ['Play Game', '']]) {
+        await page.getByRole('tab', { name: label }).click();
+        await expect(page).toHaveURL(new RegExp(`/play/beta/qa/ipad-analyze-diagnostic${suffix}$`));
+        await expect(page.locator('[data-diagnostic-launcher]')).toBeVisible();
+        expect(await page.evaluate(() => window.CaissaIpadAnalyzeDiagnostic.inspect().capturing)).toBe(true);
+        await expect(page).not.toHaveURL(/\/$/);
+    }
+    expect(requests.filter(url => /auth-config|fics-client|academy|caissa-clarity/i.test(url))).toEqual([]);
+    await page.goto('/play/beta/qa/ipad-analyze-diagnostic/players');
+    await expect(page).toHaveTitle(/Play Beta Unavailable/);
+    await expect(page.locator('script')).toHaveCount(0);
 });
 
 test('launcher exclusively owns dialog focus, close lifecycle, and one idempotent instance', async ({ page }) => {

@@ -337,7 +337,9 @@
                     }
                     if (this.#postGame?.getSnapshot?.().visible === true && mode === this.#mode) return;
                     const beta = global.location?.pathname?.toLowerCase().startsWith('/play/beta');
-                    global.CaissaPlayRouteController?.navigate?.(beta ? `/play/beta/${mode}` : `/play/${mode}?simplified=1`, { source: 'mode-tab' });
+                    const diagnostic = global.CaissaPlayRouteController?.getModeTarget?.(mode);
+                    global.CaissaPlayRouteController?.navigate?.(
+                        diagnostic || (beta ? `/play/beta/${mode}` : `/play/${mode}?simplified=1`), { source: 'mode-tab' });
                 });
                 this.#listen(global, 'resize', () => this.resize());
                 this.#listen(global, 'orientationchange', () => {
@@ -461,8 +463,9 @@
                 global.CaissaGameLifecycle?.sync?.(
                     global.CaissaPlayCompatibility?.getSnapshot?.(), 'GAME_RESET');
                 const beta = global.location?.pathname?.toLowerCase().startsWith('/play/beta');
+                const diagnostic = global.CaissaPlayRouteController?.getModeTarget?.(targetMode);
                 global.CaissaPlayRouteController?.navigate?.(
-                    beta ? `/play/beta/${targetMode}` : `/play/${targetMode}?simplified=1`,
+                    diagnostic || (beta ? `/play/beta/${targetMode}` : `/play/${targetMode}?simplified=1`),
                     { source: 'postgame-mode-transition' });
                 this.#lastPanelSync = this.#syncPanels();
                 await this.#lastPanelSync;

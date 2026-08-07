@@ -107,15 +107,17 @@
                 metadata: { requestedModeAvailable: true, betaEntry: true, physicalPromotionQa: true }
             });
         }
-        const ipadAnalyzeDiagnostic = lowerPath === '/play/beta/qa/ipad-analyze-diagnostic'
+        const ipadAnalyzeMatch = /^\/play\/beta\/qa\/ipad-analyze-diagnostic(?:\/(bots|coach))?$/.exec(lowerPath);
+        const ipadAnalyzeDiagnostic = !!ipadAnalyzeMatch
             && global.CaissaPlayV2PhysicalIpadAnalyzeDiagnosticPolicy?.isAuthorizedLocation?.(loc) === true;
         if (ipadAnalyzeDiagnostic) {
+            const mode = ipadAnalyzeMatch[1] || MODES.GAMES;
             return frozenRoute({
-                schemaVersion: SCHEMA_VERSION, routeId: 'play:games:ipad-analyze-diagnostic', path,
-                section: 'play', mode: MODES.GAMES, requestedMode: MODES.GAMES,
+                schemaVersion: SCHEMA_VERSION, routeId: `play:${mode}:ipad-analyze-diagnostic`, path,
+                section: 'play', mode, requestedMode: mode,
                 status: STATUSES.RESOLVED, source: options.source || SOURCES.DIRECT_PATH,
-                canonicalPath: '/play/beta/qa/ipad-analyze-diagnostic', legacy: false, replace: false,
-                available: true, reasonCode: REASONS.GAMES_MODE_RESOLVED, query,
+                canonicalPath: path, legacy: false, replace: false,
+                available: true, reasonCode: mode === MODES.GAMES ? REASONS.GAMES_MODE_RESOLVED : REASONS.BOTS_MODE_RESOLVED, query,
                 __privateQuery: protectedQuery, handoffToken: null,
                 metadata: { requestedModeAvailable: true, betaEntry: true, ipadAnalyzeDiagnostic: true }
             });
@@ -286,6 +288,8 @@
         isModeAvailable: (mode, options = {}) => AVAILABILITY[mode] === true
             || (AVAILABILITY[mode] === 'qa-only' && options.qa === true),
         getCanonicalPath: mode => mode && mode !== MODES.GAMES ? `/play/${mode}` : '/play',
+        getModeTarget: mode => current?.metadata?.ipadAnalyzeDiagnostic
+            ? global.CaissaPlayV2PhysicalIpadAnalyzeDiagnosticPolicy?.modeRoutes?.[mode] || null : null,
         subscribe(listener) {
             if (typeof listener !== 'function') return () => {};
             subscribers.add(listener);
