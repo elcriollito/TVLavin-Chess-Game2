@@ -1,5 +1,7 @@
 # Season 11.0.1 — Play v2 Public Beta Readiness Audit
 
+> **Season 11.8.2 FINAL iPad certification:** the sanitized independent record is [`PLAY_V2_IPAD_QA_11_8_2_CONSOLIDATED.md`](./evidence/PLAY_V2_IPAD_QA_11_8_2_CONSOLIDATED.md), attributed to iPad Pro 11-inch (4th generation), iPadOS 26.4.2, bundled Safari and build `c4eaba751c11ec3318457655c3c0c19386322877`. The verdict is **IPAD PHYSICALLY ACCEPTED — ALL REQUIRED DEVICE-AVAILABLE GATES PASSED WITH DECLARED P2 ANALYZE RESIDUAL RISK**. `IPAD-11.8.2-002` preserves the real historical collapse, absence of a specific fix and unknown root cause; its automatic P1 reopening conditions remain binding. Device-unavailable capabilities remain BLOCKED/N/A, `SEC-001` passed, and Mentor contrast remains nonblocking P3 polish. This certification does not activate or establish readiness for an invite-only or public beta.
+
 > **Season 11.8.1 FINAL iPhone certification:** the sanitized physical record is [`PLAY_V2_IPHONE_QA_11_8_1_CONSOLIDATED.md`](./evidence/PLAY_V2_IPHONE_QA_11_8_1_CONSOLIDATED.md). Findings `IPH-11.8.1-003` through `IPH-11.8.1-008`, `IOS-009` and `IOS-011` through `IOS-026`, VoiceOver, and `SEC-001` passed within their recorded scopes. The general matrix is attributed to build `bce7c7e94ba3c5f425ff41862b1ad90cf5a5f56f`; all eight White/Black promotion choices and the promotion portion of `IOS-026` are attributed to build `01c771a4d7ce2e6a1118a06c4feb44033c08f02d`. Native drag, pinch zoom, and external-keyboard Tab order retain honest BLOCKED dispositions. The authorized verdict is **IPHONE PHYSICALLY ACCEPTED - ALL REQUIRED DEVICE-AVAILABLE GATES PASSED**. A same-origin Clarity bootstrap was requested once in the internal harness but failed closed before initialization, storage, event, or network activity; analytics activity, transport, and external destinations remained zero. This does not advance public-beta readiness.
 
 > **Season 11.8.1D-A auth-bootstrap update:** `PLAYV2-11.8.1D-BOOT-001` traced an inherited, unused account bootstrap in the dedicated Play v2 document. Play v2 requires no account authentication for its admitted modes or completed-game continuations, so the deterministic builder now excludes the shared auth configuration, session, access, and account-UI resources only from `play-v2.html`. Classic, Legacy Play, Sign In/Sign Up, account and premium ownership remain unchanged. Architecture and secret boundaries are recorded in [`PLAY_V2_AUTH_BOOTSTRAP.md`](./PLAY_V2_AUTH_BOOTSTRAP.md). Clean laptop retest and physical iPhone retest remain required; this is not a public-readiness claim.
@@ -132,11 +134,10 @@ Analyze itself is permitted only as the external completed-game continuation def
 
 ## Physical-device gaps
 
-- Season 11.8.2J: `PlayV2IpadAnalyzeClosureDisposition@1.0.0` preserves the real historical intermittent portrait collapse in `IPAD-11.8.2-002`, the absence of a specific Inline Analyze fix, and the unknown root cause, owner and callback order. After four targeted physical openings and a final instrumented soak of 28 complete generations (15 landscape and 13 portrait) without reproduction, overflow, collapse or diagnostic geometry violation, formal review reclassified provisional P1 to an explicitly release-owner-accepted P2 residual risk. The issue is not fixed and must reopen as P1 under the documented recurrence or impact conditions. `IPAD-11.8.2-001` and `IPAD-11.8.2-003` physically passed. The iPad is **NOT YET INTEGRALLY CERTIFIED — REMAINING REQUIRED PHYSICAL CASES PENDING**, and this disposition does not advance public-beta readiness;
-- complete and independently review the remaining required iPad matrix and disclose the accepted `IPAD-11.8.2-002` residual risk;
-- real iOS Safari and Android Chrome phones, including small screens and notches;
-- real iPadOS and Android tablets in both orientations and split view;
-- safe-area insets, browser chrome collapse/expansion, standalone/PWA mode, and rotation during play;
+- Season 11.8.2 FINAL: the independently reviewed iPad matrix passed every required device-available gate. The sanitized record discloses the accepted `IPAD-11.8.2-002` P2 residual risk, BLOCKED/N/A capabilities and P3 Mentor polish; this closes the iPad physical-device gate only and does not advance public-beta readiness;
+- real Android Chrome phones and additional iOS Safari compatibility targets beyond the certified iPhone;
+- real Android tablets and additional iPadOS hardware; traditional Split View remained unavailable on the certified iPad interface;
+- standalone/PWA mode and safe-area, browser-chrome and rotation coverage on remaining untested device families;
 - tap-to-move, drag/drop, promotion, scrolling near the board, touch cancellation, latency, and accidental zoom;
 - virtual keyboard overlap for dialogs/feedback and hardware keyboard behavior;
 - low-memory Worker eviction, thermal throttling, battery impact, background/foreground restoration, and screen lock;
@@ -144,7 +145,7 @@ Analyze itself is permitted only as the external completed-game continuation def
 
 ## Accessibility gaps
 
-- named manual passes with NVDA/Firefox or Chrome, JAWS/Chrome, VoiceOver/Safari on macOS/iOS, and TalkBack/Chrome on Android;
+- named manual passes with NVDA/Firefox or Chrome, JAWS/Chrome, VoiceOver/Safari on macOS, and TalkBack/Chrome on Android; attributed VoiceOver sessions passed on the certified iPhone and iPad;
 - a documented non-pointer board interaction model: current board-level focus does not provide square-by-square keyboard chess;
 - spoken move, check, promotion, clock urgency/timeout, game result, error, reconnect/recovery, and PostGame action verification;
 - rotor/landmark order, focus restoration across Analyze/Back, mode changes, dialogs, and responsive reflow;

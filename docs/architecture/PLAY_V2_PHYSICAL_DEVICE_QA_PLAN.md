@@ -235,4 +235,10 @@ The iPhone verdict is **IPHONE PHYSICALLY ACCEPTED - ALL REQUIRED DEVICE-AVAILAB
 
 Native drag and pinch zoom remain BLOCKED platform capabilities, with tap-to-move and 200% Page Zoom passing respectively. External-keyboard Tab order remains BLOCKED because the hardware was unavailable. These dispositions remain visible and are not converted to PASS or FAIL.
 
-iPad QA is the recommended next physical platform track. It requires independent attribution and results and may not inherit iPhone evidence. Any use of the internal promotion harness requires a separately authorized, temporary, double-gated session.
+## Season 11.8.2 FINAL iPad certification
+
+The independently attributed iPad Pro 11-inch (4th generation) / iPadOS 26.4.2 / Safari session is consolidated in [`PLAY_V2_IPAD_QA_11_8_2_CONSOLIDATED.md`](./evidence/PLAY_V2_IPAD_QA_11_8_2_CONSOLIDATED.md) and is attributed to build `c4eaba751c11ec3318457655c3c0c19386322877`.
+
+The verdict is **IPAD PHYSICALLY ACCEPTED — ALL REQUIRED DEVICE-AVAILABLE GATES PASSED WITH DECLARED P2 ANALYZE RESIDUAL RISK**. `TAB-001` through `TAB-012`, `MODE-001` through `MODE-005`, VoiceOver `VO-1` through `VO-5`, and `SEC-001` are disposed in the consolidated record. Drag, traditional Split View and external-keyboard Tab order remain BLOCKED capabilities; the virtual-keyboard case is NOT APPLICABLE because no legitimate public text field exists. These limitations are not PASS or FAIL.
+
+`IPAD-11.8.2-002` remains a disclosed accepted P2 residual risk: the historical collapse was real, no specific Analyze fix exists and the root cause is unknown. Its four directed openings, 28 complete diagnostic generations and final matrix did not reproduce it. The automatic P1 reopening conditions above remain binding. `Review with Mentor — visual discoverability/contrast polish pending` remains a nonblocking P3 item grouped with future Rematch/New Game hierarchy polish.
