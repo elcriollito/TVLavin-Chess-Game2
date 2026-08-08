@@ -1,14 +1,29 @@
 # Play v2 iPad P1 remediation and Analyze diagnostic
 
-Status: diagnostic reliability remediation in progress; iPad not certified
+Status: accepted P2 residual risk; iPad not yet integrally certified
 
 Diagnostic contract: `PlayV2PhysicalIpadAnalyzeDiagnosticPolicy@1.1.0`
+
+Closure disposition: `PlayV2IpadAnalyzeClosureDisposition@1.0.0`
 
 ## Local manual acceptance
 
 The product owner accepted the localhost implementation for initial Black plus two Rematches, White, Random, explicit Flip, physical Player/CAISSA labels, clock ownership, Coach-to-Games/Bots isolation, closed initial diagnostic state, launcher/focus/Escape/Close/Start lifecycle, non-obstructive presentation, complete Analyze capture, `Surface: Analyze`, empty `missingRequiredEvents`, Copy/Download/Clear, one visible board, and zero overflow.
 
-The targeted physical retest subsequently passed `IPAD-11.8.2-001` and `IPAD-11.8.2-003`. `IPAD-11.8.2-002` was not reproduced across four physical Analyze openings, portrait, landscape, return to portrait, and ordinary Safari chrome. The original intermittent collapse was physically real and its root cause remains unresolved; absence in one retest does not close it. The iPad is not certified.
+The targeted physical retest subsequently passed `IPAD-11.8.2-001` and `IPAD-11.8.2-003`. `IPAD-11.8.2-002` was not reproduced across four physical Analyze openings, portrait, landscape, return to portrait, and ordinary Safari chrome. The original intermittent collapse was physically real. Its initial classification was provisional P1, its root cause remains unresolved, and no responsible owner or callback order has been demonstrated. No specific Inline Analyze runtime or CSS fix was implemented.
+
+A formal severity review applied the definitions owned by `PlayV2PhysicalDeviceQAPlan@1.0.0`. The observed failure affected one post-game Inline Analyze presentation intermittently; it did not prevent starting or completing a game, corrupt GameRecord or PGN, affect active-game clocks or promotion, or establish repeatable overflow hiding required controls. The behavior therefore matches the plan's P2 rotation/layout and intermittent-control category more closely than its P1 release-blocker cases. The release owner explicitly accepted the residual risk after the bounded evidence below. This disposition preserves rather than rewrites the original physical finding.
+
+## Final bounded physical soak
+
+The final instrumented physical soak retained 28 complete Analyze generations without reproducing the collapse, overflow or any diagnostic geometry violation:
+
+| Orientation | Evidence SHA-256 | Complete generations | Viewport | DPR | Analyze board | Result |
+| --- | --- | ---: | --- | ---: | --- | --- |
+| Landscape | `AC62C691CC5DBAA51B0B47D3AB388F53C9B421FBED7C35E2AE3F50BEEC752ACE` | 15 | 1194 × 740 | 2 | 420 × 420 | No collapse, overflow or violation |
+| Portrait | `F3A33439B2E26DDB631650C1190ED1DF599BDA1EFED5D00EE4E5D8F3DF668591` | 13 | 834 × 1100 | 2 | 420 × 420 | No collapse, overflow or violation |
+
+The four targeted openings and 28 complete soak generations are bounded mitigation evidence, not proof that recurrence is impossible and not evidence of a product fix. The source JSON remains externally controlled and is not part of this repository.
 
 ## Absolute orientation ownership
 
@@ -55,4 +70,17 @@ Browser same-origin evidence compares every request origin to the active documen
 6. Copy or download the sanitized JSON and provide it for root-cause analysis.
 7. Clear the buffer and execute the complete server, proxy, firewall, certificate, device-profile, and temporary-artifact rollback.
 
-The diagnostic does not correct Analyze. `IPAD-11.8.2-002` remains unresolved until a physical trace demonstrates the responsible owner and callback order.
+## Versioned closure disposition
+
+The original closure clause stated: "The diagnostic does not correct Analyze. `IPAD-11.8.2-002` remains unresolved until a physical trace demonstrates the responsible owner and callback order." That investigative requirement remains historical context but is superseded for closure by `PlayV2IpadAnalyzeClosureDisposition@1.0.0`; it is not silently ignored.
+
+`IPAD-11.8.2-002` preserves the original physically observed intermittent portrait collapse. No specific Inline Analyze runtime or CSS fix was implemented, and the root cause and responsible callback order remain unknown. Following four targeted physical openings and a final instrumented soak of 28 complete Analyze generations without reproduction, the issue is reclassified from provisional P1 to P2 residual risk. Closure does not mean fixed or root-cause resolved. Explicit release-owner risk acceptance has been recorded and the original evidence remains preserved. The issue must reopen immediately as P1 if the collapse recurs, becomes repeatable, blocks recovery, loses or corrupts GameRecord, PGN or completed-game state, hides essential controls persistently, affects active gameplay, or appears outside post-game Inline Analyze.
+
+iPad certification may proceed only after every other required device-available case is disposed and independently reviewed. Certification must disclose this residual risk and must not claim an Inline Analyze fix or known root cause.
+
+Current states:
+
+- `IPAD-11.8.2-001: PHYSICALLY PASSED`
+- `IPAD-11.8.2-003: PHYSICALLY PASSED`
+- `IPAD-11.8.2-002: CLOSED AS ACCEPTED P2 RESIDUAL RISK — HISTORICAL PHYSICAL FINDING PRESERVED; NOT FIXED; ROOT CAUSE UNKNOWN`
+- `IPAD: NOT YET INTEGRALLY CERTIFIED — REMAINING REQUIRED PHYSICAL CASES PENDING`

@@ -2,9 +2,11 @@
 
 **Plan:** `PlayV2PhysicalDeviceQAPlan@1.0.0`
 
+**Issue-specific amendment:** `PlayV2IpadAnalyzeClosureDisposition@1.0.0`
+
 **Season:** 11.8.0
 
-**Current status:** IPHONE PHYSICALLY ACCEPTED - ALL REQUIRED DEVICE-AVAILABLE GATES PASSED. Android and tablet remain untested.
+**Current status:** IPHONE PHYSICALLY ACCEPTED - ALL REQUIRED DEVICE-AVAILABLE GATES PASSED. Android remains untested. Targeted iPad findings and an Analyze soak have physical evidence, but the iPad is not yet integrally certified because the remaining required tablet matrix has not been disposed and independently reviewed.
 
 Checklist and automation statements in this plan are not device evidence. The separately attributed Season 11.8.1 FINAL record linked below is the permanent iPhone evidence consolidation. Desktop automation, WebKit automation, viewport emulation, CSS inspection, and user-agent substitution remain pre-QA support only.
 
@@ -194,6 +196,14 @@ For each session:
 - **P3:** cosmetic, minor spacing, or nonblocking copy defect.
 
 Any P0/P1 blocks certification and stops the affected session. P2 requires fix/retest or explicit risk acceptance by the release owner. P3 may be scheduled but must remain recorded. A failed retest remains open; a passed retest records the new commit/hash and never overwrites the original result.
+
+### iPad Analyze issue-specific severity disposition
+
+`PlayV2IpadAnalyzeClosureDisposition@1.0.0` applies the definitions above to `IPAD-11.8.2-002` without changing the general severity model. The original intermittent portrait collapse remains a real historical finding and was initially classified provisional P1. No specific Inline Analyze fix was implemented, and its root cause and responsible callback order remain unknown. Four targeted physical openings and a final instrumented soak of 28 complete Analyze generations—15 landscape and 13 portrait—did not reproduce collapse, overflow or geometry violations.
+
+Formal review determined that the observed scope aligns with P2: an intermittent post-game layout failure, with no demonstrated loss or corruption of completed-game state, no active-game impact, and no repeatable overflow hiding required controls. The release owner explicitly accepted that residual risk. The former issue-specific requirement that closure always await a trace identifying the responsible owner and callback order is preserved as historical investigation guidance and superseded by this versioned disposition; it is no longer an absolute closure condition.
+
+The closed P2 disposition does not mean fixed or root-cause resolved. `IPAD-11.8.2-002` reopens immediately as P1 if the collapse recurs, becomes repeatable, blocks recovery, loses or corrupts GameRecord, PGN or completed-game state, hides essential controls persistently, affects active gameplay, or appears outside post-game Inline Analyze. Integral iPad certification still requires disposition and independent review of every other required device-available case, and its certification record must disclose this residual risk.
 
 ## Automated pre-QA support
 

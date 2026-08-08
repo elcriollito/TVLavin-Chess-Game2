@@ -132,6 +132,8 @@ Analyze itself is permitted only as the external completed-game continuation def
 
 ## Physical-device gaps
 
+- Season 11.8.2J: `PlayV2IpadAnalyzeClosureDisposition@1.0.0` preserves the real historical intermittent portrait collapse in `IPAD-11.8.2-002`, the absence of a specific Inline Analyze fix, and the unknown root cause, owner and callback order. After four targeted physical openings and a final instrumented soak of 28 complete generations (15 landscape and 13 portrait) without reproduction, overflow, collapse or diagnostic geometry violation, formal review reclassified provisional P1 to an explicitly release-owner-accepted P2 residual risk. The issue is not fixed and must reopen as P1 under the documented recurrence or impact conditions. `IPAD-11.8.2-001` and `IPAD-11.8.2-003` physically passed. The iPad is **NOT YET INTEGRALLY CERTIFIED — REMAINING REQUIRED PHYSICAL CASES PENDING**, and this disposition does not advance public-beta readiness;
+- complete and independently review the remaining required iPad matrix and disclose the accepted `IPAD-11.8.2-002` residual risk;
 - real iOS Safari and Android Chrome phones, including small screens and notches;
 - real iPadOS and Android tablets in both orientations and split view;
 - safe-area insets, browser chrome collapse/expansion, standalone/PWA mode, and rotation during play;
