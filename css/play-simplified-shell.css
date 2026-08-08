@@ -1006,6 +1006,55 @@ body.caissa-simplified-play-active .caissa-post-game__action--pgn {
     color: var(--text-primary, #fff);
 }
 
+/* Play v2-only glance hierarchy. The shared Classic/Legacy document has no
+   data-caissa-play-v2-entry attribute and therefore retains its existing UI. */
+body[data-caissa-play-v2-entry] .caissa-post-game__action {
+    padding-inline: clamp(10px, 1.4vw, 16px);
+    color: #fff;
+    font-size: clamp(15px, 14px + 0.25vw, 17px);
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow-wrap: normal;
+}
+
+body[data-caissa-play-v2-entry] .caissa-post-game__action--primary {
+    min-height: 48px;
+    border-color: #d3a94d;
+    background: #d3a94d;
+    color: #111;
+    font-size: clamp(17px, 16px + 0.3vw, 19px);
+    font-weight: 800;
+}
+
+body[data-caissa-play-v2-entry] .caissa-post-game__action--secondary {
+    border-color: #7891af;
+    background: #344760;
+    color: #fff;
+    font-weight: 700;
+}
+
+body[data-caissa-play-v2-entry] .caissa-post-game__action--mentor {
+    border-color: #91a6c0;
+    background: #29384c;
+    color: #fff;
+    font-size: clamp(15px, 14.5px + 0.18vw, 16.5px);
+    font-weight: 700;
+}
+
+body[data-caissa-play-v2-entry] .caissa-post-game__action--pgn {
+    border-color: #52647a;
+    background: #202a38;
+    color: #f4f7fb;
+    font-size: clamp(13px, 12.5px + 0.15vw, 14px);
+    font-weight: 600;
+}
+
+body[data-caissa-play-v2-entry] .caissa-post-game__action:focus-visible {
+    outline: 3px solid var(--focus-ring, #8ec5ff);
+    outline-offset: 2px;
+}
+
 body.caissa-simplified-play-active .caissa-post-game__consent {
     display: flex;
     gap: 9px;
@@ -1128,6 +1177,17 @@ body.caissa-simplified-play-active .caissa-simplified-shell[data-layout^="phone-
     }
     body.caissa-simplified-play-active .caissa-post-game__action--primary {
         border: 3px solid Highlight;
+    }
+    body[data-caissa-play-v2-entry] .caissa-post-game__action {
+        border-color: ButtonText;
+        background: ButtonFace;
+        color: ButtonText;
+        forced-color-adjust: none;
+    }
+    body[data-caissa-play-v2-entry] .caissa-post-game__action--primary {
+        border-color: Highlight;
+        background: Highlight;
+        color: HighlightText;
     }
 }
 
