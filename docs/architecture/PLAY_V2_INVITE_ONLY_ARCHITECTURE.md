@@ -24,6 +24,10 @@ Direct `play-v2.html`, QA documents, invalid descendants, query, fragment, Histo
 
 Supabase owns an atomic five-submissions-per-session-per-hour limit and 90-day deletion date. No identity, IP, fingerprint, game record, cookie, token or secret is stored. The review owner uses the restricted Supabase table/view until a separately authorized private administration surface exists.
 
+`PlayV2InviteOnlyFeedbackSensitivePolicy@1.0.0` adds forward-only database defense in depth after the initial QA validation showed that a direct service-role RPC call could bypass the JavaScript validator. The corrective migration canonicalizes bounded feedback fields for matching, rejects contact/network, credential, game-record, spreadsheet-formula, markup and control-character shapes with the generic `FEEDBACK_REJECTED` code, and never stores or echoes rejected text. The API and PostgreSQL corpus share the same categories of evidence; real PostgreSQL behavior remains a required QA gate after the migration is applied.
+
+Detection is deliberately bounded, not a promise of perfect PII recognition. It does not attempt unlimited homoglyph, semantic-language or obfuscation analysis. Natural sentences mentioning words such as “token”, “email”, “cookie” or “password” remain admissible when they do not provide a labeled value. Accepted content is stored after the existing API sanitization; direct RPC calls receive validation but no silent text rewriting.
+
 ## Threat model
 
 | Threat | Control |

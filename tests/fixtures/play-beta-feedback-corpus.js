@@ -1,0 +1,42 @@
+export const rejectedFeedback = Object.freeze([
+    'tester@example.invalid',
+    'contact me at tester@example.com',
+    '192.0.2.10',
+    '2001:db8::10',
+    'https://example.invalid/contact',
+    'Authorization: Bearer qa_example_token',
+    'password=qa-example',
+    'passphrase: qa-example',
+    'api_key=qa-example',
+    'cookie: qa_session=example',
+    'device_id=qa-device-001',
+    'fingerprint: qa-fingerprint-001',
+    '8/8/8/8/8/8/4K3/7k w - - 0 1',
+    '[Event "Example"]',
+    '1. e4 e5 2. Nf3 Nc6',
+    '=HYPERLINK("https://example.invalid")',
+    '  +SUM(1,2)',
+    '-1+2',
+    '@IMPORTDATA("example")',
+    '<script>alert(1)</script>',
+    `control${String.fromCharCode(7)}character`,
+    '  EMAIL : tester@example.invalid  ',
+    'AUTHORIZATION:   BEARER qa_example_token'
+]);
+
+export const acceptedFeedback = Object.freeze([
+    'The board moved after rotation.',
+    'Rematch was difficult to find.',
+    'The bot responded twice.',
+    'The clock looked delayed.',
+    'Analyze opened correctly.',
+    'I could not find the feedback button.',
+    'The token label was confusing.',
+    'The email button was difficult to find.',
+    'The cookie notice covered the board.',
+    'The password wording was unclear.',
+    'The score changed by +1 after the move.',
+    'The clock showed -1 briefly.',
+    'I played e4 and then considered a knight move.',
+    'The opening name looked incorrect.'
+]);

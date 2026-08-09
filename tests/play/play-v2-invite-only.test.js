@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { createPlayBetaService } from '../../api/_lib/play-beta-service.js';
 import { PLAY_BETA, csrfFor, hashSecret, parseBetaPath } from '../../api/_lib/play-beta-policy.js';
+import { acceptedFeedback, rejectedFeedback } from '../fixtures/play-beta-feedback-corpus.js';
 
 const env = { CAISSA_PLAY_V2_BETA_STAGE: 'invite-only', CAISSA_PLAY_V2_SESSION_SECRET: 'test-session-secret-not-production', SUPABASE_URL: 'https://example.invalid', SUPABASE_SERVICE_ROLE_KEY: 'test-only' };
 const response = () => ({ statusCode: 200, headers: {}, body: null, setHeader(k,v){this.headers[k]=v;}, status(v){this.statusCode=v;return this;}, json(v){this.body=v;return this;}, send(v){this.body=v;return this;} });
@@ -99,6 +100,36 @@ test('feedback requires CSRF, consent and redacts prohibited payload classes', a
     req.body.comment='PGN: 1. e4 e5';const denied=response();await service.feedback(req,denied);assert.equal(denied.statusCode,400);
     for (const prohibited of ['1. e4 e5 2. Nf3', 'IP: 192.0.2.1', 'email: tester@example.test', '=HYPERLINK("https://invalid")']) {
         req.body.comment=prohibited; const rejected=response(); await service.feedback(req,rejected); assert.equal(rejected.statusCode,400,prohibited);
+    }
+    for (const prohibited of rejectedFeedback) {
+        req.body.comment=prohibited; const rejected=response(); await service.feedback(req,rejected); assert.equal(rejected.statusCode,400,prohibited);
+    }
+    for (const normal of acceptedFeedback) {
+        req.body.comment=normal; const accepted=response(); await service.feedback(req,accepted); assert.equal(accepted.statusCode,201,normal);
+    }
+});
+
+test('database sensitive rejection remains generic and never echoes submitted text', async () => {
+    const token='D'.repeat(43),store=storeFixture();store.seed(token);const service=createPlayBetaService({store,env,now:()=>1000});
+    const redeemed=response();await service.redeem(request('POST','/api/play-beta/redeem',{token}),redeemed);
+    const raw=decodeURIComponent(/__Host-caissa_play_beta=([^;]+)/.exec(redeemed.headers['Set-Cookie'])[1]);const cookie=`${PLAY_BETA.cookieName}=${raw}`;
+    store.feedback=async()=>({accepted:false,reason_code:'FEEDBACK_REJECTED',reference:null});
+    const submitted='ordinary text rejected by database defense';
+    const req=request('POST','/api/play-beta/feedback',{category:'Bug',mode:'games',comment:submitted,steps:'',device:'Safari',consent:true},cookie);
+    req.headers['x-caissa-beta-csrf']=csrfFor(hashSecret(raw),env.CAISSA_PLAY_V2_SESSION_SECRET);
+    const denied=response();await service.feedback(req,denied);
+    assert.equal(denied.statusCode,400);assert.deepEqual(denied.body,{error:'FEEDBACK_REJECTED'});
+    assert.doesNotMatch(JSON.stringify(denied.body),new RegExp(submitted));
+});
+
+test('feedback rejects missing consent, invalid allowlists, and field limits before the store', async () => {
+    const token='E'.repeat(43),store=storeFixture();store.seed(token);const service=createPlayBetaService({store,env,now:()=>1000});
+    const redeemed=response();await service.redeem(request('POST','/api/play-beta/redeem',{token}),redeemed);
+    const raw=decodeURIComponent(/__Host-caissa_play_beta=([^;]+)/.exec(redeemed.headers['Set-Cookie'])[1]);const cookie=`${PLAY_BETA.cookieName}=${raw}`;
+    const base={category:'Bug',mode:'games',comment:'Normal bounded observation.',steps:'',device:'Safari',consent:true};
+    for(const body of [{...base,consent:false},{...base,category:'Identity'},{...base,mode:'players'},{...base,comment:'x'.repeat(2001)},{...base,steps:'x'.repeat(2001)},{...base,device:'x'.repeat(161)}]){
+        const req=request('POST','/api/play-beta/feedback',body,cookie);req.headers['x-caissa-beta-csrf']=csrfFor(hashSecret(raw),env.CAISSA_PLAY_V2_SESSION_SECRET);
+        const denied=response();await service.feedback(req,denied);assert.equal(denied.statusCode,400);assert.deepEqual(denied.body,{error:'FEEDBACK_INVALID'});
     }
 });
 

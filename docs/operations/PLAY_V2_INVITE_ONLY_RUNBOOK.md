@@ -15,6 +15,10 @@ Set only in the intended Vercel environment, never in Git or a public client bun
 
 Public-beta remains closed because the policy accepts only exact `invite-only`. Apply `supabase/migrations/20260808_play_v2_invite_only.sql` only under a separate database-change authorization. Verify grants and RLS after application.
 
+The initial migration is immutable once applied. Apply `supabase/migrations/20260809_play_v2_feedback_sensitive_rejection.sql` only as a separately authorized forward-only correction and only after a dry-run lists that file alone. Revalidate the shared rejected/accepted corpus against PostgreSQL itself, effective helper/RPC grants, generic non-echoing rejection, atomic five-per-hour behavior, and final zero-data cleanup. Local Node/static results do not substitute for this database gate.
+
+If the corrective migration fails, stop after confirming transaction rollback; do not edit applied history or use migration repair. If it applies but validation fails, disable the program, remove synthetic rows, preserve both migration records, and prepare another reviewed forward-only migration. The next database phase may target only the explicitly authorized dedicated QA project; never infer or reuse another Supabase target.
+
 ## Local private CLI
 
 Run with process-only Supabase configuration:

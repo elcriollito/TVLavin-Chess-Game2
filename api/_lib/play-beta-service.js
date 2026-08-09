@@ -96,11 +96,12 @@ export function createPlayBetaService({ store = null, env = process.env, now = (
                 || String(body.steps || '').length > PLAY_BETA.feedback.steps
                 || String(body.device || '').length > PLAY_BETA.feedback.device)
                 return json(res, 400, { error: 'FEEDBACK_INVALID' });
+            if (containsProhibitedFeedback(`${String(body.comment || '')}\n${String(body.steps || '')}\n${String(body.device || '')}`))
+                return json(res, 400, { error: 'PROHIBITED_DATA' });
             const comment = sanitizeText(body.comment, PLAY_BETA.feedback.comment);
             const steps = sanitizeText(body.steps, PLAY_BETA.feedback.steps);
             const device = sanitizeText(body.device, PLAY_BETA.feedback.device);
             if (!category || !mode || !comment || body.consent !== true) return json(res, 400, { error: 'FEEDBACK_INVALID' });
-            if (containsProhibitedFeedback(`${comment}\n${steps}\n${device}`)) return json(res, 400, { error: 'PROHIBITED_DATA' });
             let value;
             try { value = await data().feedback({ p_session_hash: session.sessionHash, p_category: category,
                 p_mode: mode, p_comment: comment, p_steps: steps || null, p_device: device || null,
