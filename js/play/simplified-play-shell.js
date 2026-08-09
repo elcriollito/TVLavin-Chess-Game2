@@ -10,8 +10,11 @@
         'panel-header', 'panel-body', 'advanced-options', 'panel-status', 'action-footer'
     ]);
     const productBoundary = global.CaissaPlayV2ProductBoundary;
+    const inviteCoachAllowed = global.document?.body?.dataset?.caissaPlayV2Entry !== 'invite-only'
+        || global.document.body.dataset.caissaBetaCoach === 'true';
     const MODES = Object.freeze({ games: true, bots: true,
-        coach: productBoundary ? productBoundary.isModeAllowed?.('coach') === true : true, players: false });
+        coach: (productBoundary ? productBoundary.isModeAllowed?.('coach') === true : true) && inviteCoachAllowed,
+        players: false });
     const LAYOUT_MODES = Object.freeze([
         'phone-compact', 'phone-standard', 'phone-landscape',
         'tablet-portrait-stacked', 'tablet-landscape-split',

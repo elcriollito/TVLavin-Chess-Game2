@@ -159,7 +159,7 @@ test('production module contains no runtime ownership or persistence primitives'
     ]) assert.doesNotMatch(source, forbidden);
 });
 
-test('local and production hosts narrowly cold-load Play routes with root-based assets', () => {
+test('production Play remains Legacy and the former simplified query is not an invite bypass', () => {
     const server = fs.readFileSync(new URL('../../server.js', import.meta.url), 'utf8');
     const vercel = JSON.parse(fs.readFileSync(new URL('../../vercel.json', import.meta.url), 'utf8'));
     const index = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
@@ -169,9 +169,8 @@ test('local and production hosts narrowly cold-load Play routes with root-based 
         { source: '/play', destination: '/index.html' },
         { source: '/play/:mode', destination: '/index.html' }
     ]);
-    assert.deepEqual(playRules.slice(0, 2).map(({ source, destination, has }) => ({ source, destination, has })), [
-        { source: '/play', destination: '/play-v2.html', has: [{ type: 'query', key: 'simplified', value: '1' }] },
-        { source: '/play/:mode', destination: '/play-v2.html', has: [{ type: 'query', key: 'simplified', value: '1' }] }
-    ]);
+    assert.equal(playRules.length, 2);
+    assert.equal(vercel.rewrites.some(rule => rule.has?.some(item => item.key === 'simplified')), false);
+    assert.match(server, /internalQa && url\.searchParams\.get\('simplified'\) === '1'/);
     assert.match(index, /<base href="\/">/);
 });

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
+    "test:play:invite-only": "node --test tests/play/play-v2-invite-only.test.js && playwright test tests/browser/play-v2-invite-only.spec.js --project=chromium --project=webkit",
     "test:regression": "node scripts/run-self-contained-regression.mjs",
     "test:integration:worker": "node scripts/run-optional-integration.mjs worker",
     "test:integration:fics": "node scripts/run-optional-integration.mjs fics",
@@ -64,7 +65,7 @@
     "test:play:post-game": "node --test tests/play/post-game-experience.test.js && playwright test --project=chromium tests/browser/play-post-game-experience.spec.js",
     "test:play:bots": "node --test tests/play/bots-foundation.test.js tests/play/play-route-controller.test.js && playwright test --project=chromium tests/browser/play-bots.spec.js",
     "test:play:bots:calibration": "node --test tests/play/bots/calibration-contract.test.js && playwright test --project=chromium bot-calibration.spec.js",
-    "test:play:coach": "node --test tests/play/coach-foundation.test.js tests/play/coach-intervention-quality.test.js tests/play/play-route-controller.test.js && playwright test --project=chromium tests/browser/play-coach.spec.js",
+    "test:play:coach": "node --test tests/play/play-v2-coach-boundary.test.js tests/play/play-v2-coach-assistance.test.js tests/play/play-route-controller.test.js && playwright test tests/browser/play-native-coach.spec.js --project=chromium --project=webkit",
     "test:play:players": "node --test tests/play/presence-contracts.test.js tests/play/challenge-contracts.test.js tests/play/players-panel.test.js tests/play/play-route-controller.test.js tests/play/simplified-play-shell.test.js && playwright test tests/browser/play-players.spec.js",
     "test:play:coach:endgame": "node --test tests/play/endgame-coach-foundation.test.js && playwright test --project=chromium tests/browser/play-endgame-coach.spec.js",
     "test:play:responsive": "node --test tests/play/responsive-profile-contract.test.js && playwright test tests/browser/responsive-play-consolidation.spec.js tests/browser/responsive-play-workflows.spec.js tests/browser/responsive-play-transitions.spec.js",

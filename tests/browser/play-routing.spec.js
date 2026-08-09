@@ -15,9 +15,9 @@ test('legacy query canonicalizes with FEN preserved', async ({ page }) => {
     const fen = '8/8/8/8/8/8/8/K6k w - - 0 1';
     await page.goto(`/?section=play&fen=${encodeURIComponent(fen)}&opponent=computer`);
     await expect(page.locator('#playSection')).toHaveClass(/active/);
-    expect(new URL(page.url()).pathname).toBe('/play');
-    expect(new URL(page.url()).searchParams.get('fen')).toBe(fen);
-    expect(new URL(page.url()).searchParams.get('opponent')).toBe('computer');
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/play');
+    await expect.poll(() => new URL(page.url()).searchParams.get('fen')).toBe(fen);
+    await expect.poll(() => new URL(page.url()).searchParams.get('opponent')).toBe('computer');
 });
 
 for (const mode of ['bots', 'coach', 'players', 'unknown']) {

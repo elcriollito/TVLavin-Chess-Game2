@@ -39,6 +39,12 @@
     let current = null;
     const subscribers = new Set();
 
+    function inviteCapability(mode) {
+        const body = global.document?.body;
+        if (body?.dataset?.caissaPlayV2Entry !== 'invite-only') return true;
+        return mode !== MODES.COACH || body.dataset.caissaBetaCoach === 'true';
+    }
+
     function notify(route) {
         subscribers.forEach(listener => {
             try { listener(route); } catch (_) {}
@@ -126,7 +132,8 @@
         if (betaMatch) {
             const requestedMode = betaMatch[1] || MODES.GAMES;
             const available = [MODES.GAMES, MODES.BOTS, MODES.COACH].includes(requestedMode)
-                && (!productBoundary || productBoundary.isModeAllowed?.(requestedMode) === true);
+                && (!productBoundary || productBoundary.isModeAllowed?.(requestedMode) === true)
+                && inviteCapability(requestedMode);
             const mode = available ? requestedMode : MODES.GAMES;
             const canonicalPath = mode === MODES.GAMES && !betaMatch[1] ? '/play/beta' : `/play/beta/${mode}`;
             return frozenRoute({

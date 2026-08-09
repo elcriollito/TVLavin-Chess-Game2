@@ -2,6 +2,9 @@
   "functions": {
     "api/stripe/webhook.js": {
       "maxDuration": 10
+    },
+    "api/play-beta/entry.js": {
+      "includeFiles": ["play-v2.html", "play-v2-unavailable.html"]
     }
   },
   "redirects": [
@@ -30,12 +33,17 @@
     { "source": "/roadmap", "destination": "/roadmap.html" },
     { "source": "/yahoo-classic", "destination": "/yahoo-classic.html" },
     { "source": "/academy", "destination": "/index.html" },
-    { "source": "/play/beta", "destination": "/play-v2-unavailable.html" },
+    { "source": "/play/beta/invite", "destination": "/play-v2-invite.html" },
+    { "source": "/play/beta", "destination": "/api/play-beta/entry?mode=games" },
+    { "source": "/play/beta/games", "destination": "/api/play-beta/entry?mode=games" },
+    { "source": "/play/beta/bots", "destination": "/api/play-beta/entry?mode=bots" },
+    { "source": "/play/beta/coach", "destination": "/api/play-beta/entry?mode=coach" },
     { "source": "/play/beta/:path*", "destination": "/play-v2-unavailable.html" },
+    { "source": "/play-v2-invite.html", "destination": "/play-v2-unavailable.html" },
+    { "source": "/play-v2.html", "destination": "/play-v2-unavailable.html" },
     { "source": "/play-v2-promotion-qa.html", "destination": "/play-v2-unavailable.html" },
     { "source": "/play-v2-ipad-analyze-diagnostic.html", "destination": "/play-v2-unavailable.html" },
-    { "source": "/play", "has": [{ "type": "query", "key": "simplified", "value": "1" }], "destination": "/play-v2.html" },
-    { "source": "/play/:mode", "has": [{ "type": "query", "key": "simplified", "value": "1" }], "destination": "/play-v2.html" },
+    { "source": "/supabase/:path*", "destination": "/play-v2-unavailable.html" },
     { "source": "/play", "destination": "/index.html" },
     { "source": "/play/:mode", "destination": "/index.html" },
     { "source": "/opening-database", "destination": "/opening-database.html" },
@@ -65,15 +73,21 @@
     {
       "source": "/play/beta",
       "headers": [
-        { "key": "Content-Security-Policy", "value": "worker-src 'self'; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev; object-src 'none'; base-uri 'self'" },
-        { "key": "X-Content-Type-Options", "value": "nosniff" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Cache-Control", "value": "private, no-store, max-age=0" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" },
+        { "key": "Referrer-Policy", "value": "no-referrer" }
       ]
     },
     {
       "source": "/play/beta/:path*",
       "headers": [
-        { "key": "Content-Security-Policy", "value": "worker-src 'self'; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev; object-src 'none'; base-uri 'self'" },
-        { "key": "X-Content-Type-Options", "value": "nosniff" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Cache-Control", "value": "private, no-store, max-age=0" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" },
+        { "key": "Referrer-Policy", "value": "no-referrer" }
       ]
     },
     {

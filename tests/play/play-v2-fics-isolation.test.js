@@ -67,16 +67,14 @@ test('Play v2 reachable graph contains no FICS adapter, provider, route, or Play
     }
 });
 
-test('QA query alone selects the dedicated entry while production Play stays legacy', async () => {
+test('internal local QA remains explicit while production query routing stays Legacy', async () => {
     const [server, vercel, build] = await Promise.all([
         read('server.js'), read('vercel.json'), read('scripts/build-play-v2.mjs')
     ]);
-    assert.match(server, /searchParams\.get\('simplified'\) === '1' \? '\.\/play-v2\.html' : '\.\/index\.html'/);
+    assert.match(server, /internalQa && url\.searchParams\.get\('simplified'\) === '1'/);
     const config = JSON.parse(vercel);
     const qaRules = config.rewrites.filter(rule => rule.destination === '/play-v2.html');
-    assert.deepEqual(qaRules.map(rule => rule.source), ['/play', '/play/:mode']);
-    assert(qaRules.every(rule => rule.has?.some(condition =>
-        condition.type === 'query' && condition.key === 'simplified' && condition.value === '1')));
+    assert.deepEqual(qaRules, []);
     assert(config.rewrites.some(rule => rule.source === '/play' && rule.destination === '/index.html' && !rule.has));
     assert(config.rewrites.some(rule => rule.source === '/play/:mode' && rule.destination === '/index.html' && !rule.has));
     assert.match(build, /PROHIBITED_PLAY_V2_RESOURCE/);

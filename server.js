@@ -15,7 +15,7 @@ const __dirname = path.dirname(__filename);
 
 const PORT = 8000;
 const HOST = process.env.CAISSA_SERVER_HOST || '127.0.0.1';
-const PLAY_V2_CSP = "worker-src 'self'; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev; object-src 'none'; base-uri 'self'";
+const PLAY_V2_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'";
 const PLAY_V2_DIAGNOSTIC_CSP = "worker-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'";
 
 const MIME_TYPES = {
@@ -415,9 +415,17 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/yahoo-classic') {
     filePath = './yahoo-classic.html';
   }
-  const physicalPromotionQA = resolvePlayV2PhysicalPromotionQA(pathname, url.search, process.env);
+  const inviteLanding = pathname === '/play/beta/invite';
+  if (inviteLanding) {
+    filePath = './play-v2-invite.html';
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+  }
+  const physicalPromotionQA = inviteLanding ? { requested: false } : resolvePlayV2PhysicalPromotionQA(pathname, url.search, process.env);
   const ipadAnalyzeDiagnostic = resolvePlayV2PhysicalIpadAnalyzeDiagnostic(pathname, url.search, process.env);
-  const betaEntry = physicalPromotionQA.requested ? physicalPromotionQA
+  const betaEntry = inviteLanding ? { requested: false } : physicalPromotionQA.requested ? physicalPromotionQA
     : ipadAnalyzeDiagnostic.requested ? ipadAnalyzeDiagnostic
       : resolvePlayV2BetaEntry(pathname, process.env);
   if (betaEntry.requested) {
@@ -428,8 +436,13 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Content-Security-Policy', ipadAnalyzeDiagnostic.requested ? PLAY_V2_DIAGNOSTIC_CSP : PLAY_V2_CSP);
   }
-  if (!betaEntry.requested && (pathname === '/play' || pathname.startsWith('/play/'))) {
-    filePath = url.searchParams.get('simplified') === '1' ? './play-v2.html' : './index.html';
+  if (pathname === '/play-v2.html' || pathname === '/play-v2-invite.html' || pathname === '/play-v2-promotion-qa.html'
+      || pathname === '/play-v2-ipad-analyze-diagnostic.html') {
+    filePath = './play-v2-unavailable.html';
+  }
+  if (!inviteLanding && !betaEntry.requested && (pathname === '/play' || pathname.startsWith('/play/'))) {
+    const internalQa = process.env.CAISSA_PLAY_V2_BETA_STAGE === 'internal';
+    filePath = internalQa && url.searchParams.get('simplified') === '1' ? './play-v2.html' : './index.html';
   }
   if (pathname === '/endgame-trainer' || pathname === '/endgame-trainer/') {
     filePath = './endgame-trainer.html';

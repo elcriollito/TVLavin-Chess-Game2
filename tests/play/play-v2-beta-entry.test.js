@@ -46,14 +46,20 @@ test('gate admits only exact internal Games and Bots paths and rolls back fail c
     assert.equal(PLAY_V2_BETA_ENTRY.failureMode, 'fail-closed');
 });
 
-test('server and hosting select beta documents before legacy Play and default hosting stays disabled', () => {
+test('server preserves internal entry while hosting delegates invite-only authorization server-side', () => {
     const server = read('server.js');
     const vercel = JSON.parse(read('vercel.json'));
     assert.ok(server.indexOf('resolvePlayV2BetaEntry(pathname') < server.indexOf("pathname === '/play' || pathname.startsWith('/play/')"));
     assert.deepEqual(vercel.rewrites.filter(rule => rule.source.startsWith('/play/beta')), [
-        { source: '/play/beta', destination: '/play-v2-unavailable.html' },
+        { source: '/play/beta/invite', destination: '/play-v2-invite.html' },
+        { source: '/play/beta', destination: '/api/play-beta/entry?mode=games' },
+        { source: '/play/beta/games', destination: '/api/play-beta/entry?mode=games' },
+        { source: '/play/beta/bots', destination: '/api/play-beta/entry?mode=bots' },
+        { source: '/play/beta/coach', destination: '/api/play-beta/entry?mode=coach' },
         { source: '/play/beta/:path*', destination: '/play-v2-unavailable.html' }
     ]);
+    assert.ok(vercel.rewrites.some(rule => rule.source === '/play-v2.html' && rule.destination === '/play-v2-unavailable.html'));
+    assert.equal(vercel.rewrites.some(rule => rule.has?.some(item => item.key === 'simplified')), false);
     assert.ok(vercel.rewrites.some(rule => rule.source === '/play' && rule.destination === '/index.html'));
 });
 

@@ -1,0 +1,8 @@
+:root { color-scheme: dark; font-family: system-ui, sans-serif; background: #111820; color: #f7f3e8; }
+body { min-height: 100vh; margin: 0; display: grid; place-items: center; }
+.beta-entry { width: min(32rem, calc(100% - 2rem)); padding: clamp(1.5rem, 6vw, 3rem); border: 1px solid #53657a; border-radius: 1rem; background: #1b2633; box-sizing: border-box; }
+.beta-entry__eyebrow { color: #d3a94d; font-weight: 700; }
+h1 { font-size: clamp(2rem, 9vw, 3.5rem); line-height: 1; }
+a { color: #fff; display: inline-block; min-height: 44px; padding: .75rem 0; }
+a:focus-visible { outline: 3px solid #d3a94d; outline-offset: 3px; }
+@media (forced-colors: active) { .beta-entry { border: 1px solid CanvasText; } a:focus-visible { outline-color: Highlight; } }

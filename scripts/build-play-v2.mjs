@@ -16,6 +16,7 @@ const forbiddenElements = [
   /\s*<link[^>]+href="css\/academy\.css[^>]*>\r?\n/gi,
   /\s*<link[^>]+href="css\/caissa-auth\.css[^>]*>\r?\n/gi,
   /\s*<script[^>]+src="js\/(?:auth-config|caissa-auth|caissa-access|caissa-ui-auth)\.js[^>]*><\/script>\r?\n/gi,
+  /\s*<script[^>]+src="\/js\/caissa-clarity\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="(?:mentor-prompts|mentor-ai)\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/academy-section\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/play\/analytics\/play-mentor-engagement-analytics\.js[^>]*><\/script>\r?\n/gi,
@@ -80,6 +81,7 @@ html = html
     '    <script src="js/play/play-v2-post-game-exit-policy.js?v=1.0.0"></script>\n' +
     '    <script src="js/play/play-v2-product-boundary.js?v=1.0.0"></script>\n' +
     '    <script src="js/play/play-v2-beta-entry.js?v=1.0.0"></script>\n' +
+    '    <script src="js/play/play-v2-invite-policy.js?v=1.0.0"></script>\n' +
     '    <script src="js/play/play-route-controller.js?v=1.1.0"></script>'
   )
   .replace('    <script src="js/play/post-game-experience.js?v=1.8.0"></script>',
@@ -87,6 +89,8 @@ html = html
     '    <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>\n' +
     '    <script src="js/play/post-game-core.js?v=1.1.0"></script>')
   .replace('<body data-clarity-mask>', '<body data-caissa-play-v2-entry="qa-only" data-clarity-mask>')
+  .replace('</head>', '    <link rel="stylesheet" href="css/play-v2-invite-feedback.css?v=1.0.0">\n</head>')
+  .replace('</body>', '    <script src="js/play/play-v2-invite-client.js?v=1.0.0"></script>\n</body>')
   .replace(/[ \t]+(?=\r?$)/gm, '');
 
 if (!html.includes('data-caissa-play-v2-entry="qa-only"')) throw new Error('PLAY_V2_BODY_MARKER_MISSING');
@@ -98,6 +102,7 @@ if (!html.includes('js/play/play-v2-coach-boundary.js?v=1.0.0')) throw new Error
 if (!html.includes('js/play/play-v2-mentor-review-boundary.js?v=1.0.0')) throw new Error('PLAY_V2_MENTOR_REVIEW_BOUNDARY_MISSING');
 if (!html.includes('js/play/play-v2-post-game-exit-policy.js?v=1.0.0')) throw new Error('PLAY_V2_POST_GAME_EXIT_POLICY_MISSING');
 if (!html.includes('js/play/play-v2-beta-entry.js?v=1.0.0')) throw new Error('PLAY_V2_BETA_ENTRY_CONTRACT_MISSING');
+if (!html.includes('js/play/play-v2-invite-policy.js?v=1.0.0')) throw new Error('PLAY_V2_INVITE_POLICY_MISSING');
 if (!html.includes('js/play/play-v2-post-game-policy.js?v=1.1.0')) throw new Error('PLAY_V2_POST_GAME_POLICY_MISSING');
 if (!html.includes('js/play/play-v2-identity-policy.js?v=1.0.0')) throw new Error('PLAY_V2_IDENTITY_POLICY_MISSING');
 if (!html.includes('js/play/play-v2-mode-transition-policy.js?v=1.0.0')) throw new Error('PLAY_V2_MODE_TRANSITION_POLICY_MISSING');
@@ -129,6 +134,7 @@ if (/caissa-onboarding/i.test(resourceElements.join('\n'))) throw new Error('PRO
 if (/(?:css\/caissa-auth\.css|js\/(?:auth-config|caissa-auth|caissa-access|caissa-ui-auth)\.js)/i.test(resourceElements.join('\n')))
   throw new Error('PROHIBITED_PLAY_V2_AUTH_RESOURCE');
 if (/\/api\/public-auth-config/i.test(html)) throw new Error('PROHIBITED_PLAY_V2_AUTH_BOOTSTRAP');
+if (/caissa-clarity\.js/i.test(resourceElements.join('\n'))) throw new Error('PROHIBITED_PLAY_V2_CLARITY_RESOURCE');
 if (resourceElements.some(element => /(?:src|href)=["']https?:\/\//i.test(element)))
   throw new Error('PROHIBITED_PLAY_V2_EXTERNAL_STATIC_RESOURCE');
 if (!/connect-src 'self';/.test(html) || /connect-src[^;]*https?:/.test(html))

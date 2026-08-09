@@ -1,0 +1,12 @@
+body[data-caissa-play-v2-entry="invite-only"] .caissa-beta-feedback-launcher { position: fixed; inset-inline-end: max(1rem, env(safe-area-inset-right)); bottom: max(1rem, env(safe-area-inset-bottom)); z-index: 900; min-height: 44px; padding: .7rem 1rem; border: 1px solid #91a6c0; border-radius: .65rem; color: #fff; background: #29384c; font: 700 .9rem/1.2 system-ui,sans-serif; }
+.caissa-beta-feedback { width: min(34rem,calc(100% - 2rem)); max-height: min(44rem,calc(100dvh - 2rem)); overflow: auto; color: #f7f3e8; background: #1b2633; border: 1px solid #7891af; border-radius: .8rem; }
+.caissa-beta-feedback::backdrop { background: rgb(0 0 0 / .72); }
+.caissa-beta-feedback form,.caissa-beta-feedback label { display: grid; gap: .5rem; }
+.caissa-beta-feedback form { gap: 1rem; }
+.caissa-beta-feedback :is(textarea,input,select,button) { min-height: 44px; box-sizing: border-box; font: inherit; }
+.caissa-beta-feedback :is(textarea,input,select) { width: 100%; padding: .65rem; color: #fff; background: #111820; border: 1px solid #7891af; }
+.caissa-beta-feedback label:has(input[type="checkbox"]) { grid-template-columns: 1.5rem 1fr; align-items: center; }
+.caissa-beta-feedback__actions { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: end; }
+.caissa-beta-feedback button,.caissa-beta-feedback-launcher { touch-action: manipulation; }
+.caissa-beta-feedback :focus-visible,.caissa-beta-feedback-launcher:focus-visible { outline: 3px solid #d3a94d; outline-offset: 3px; }
+@media (forced-colors: active) { .caissa-beta-feedback,.caissa-beta-feedback-launcher { border: 1px solid ButtonText; } }
