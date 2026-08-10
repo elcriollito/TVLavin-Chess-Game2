@@ -20,7 +20,9 @@ The invite-only implementation and three Supabase migrations remain unmodified t
 
 ## Vercel Hobby deployment ownership
 
-`PlayV2BetaEntry@1.0.0` is enforced by the existing Vercel middleware rather than a new Serverless Function. The middleware matches only the beta namespace and the historical beta API namespace in addition to its pre-existing owners. It evaluates the exact case-sensitive deployment stage before selecting a document, returns the generated public document only for the four allowlisted routes, and returns the runtime-free unavailable document for every other stage or beta-shaped route. Direct generated-document rewrites remain unavailable.
+`PlayV2BetaEntry@1.0.0` is enforced by the existing Vercel middleware rather than a new Serverless Function. The middleware matches the beta namespace, the historical beta API namespace, and every generated Play v2 HTML filename in addition to its pre-existing owners. It evaluates the exact case-sensitive deployment stage before selecting a document, returns the generated public document only for the four allowlisted routes, and returns the runtime-free unavailable document for every other stage or beta-shaped route. Direct generated documents are always unavailable, independent of stage.
+
+Vercel filesystem routing can serve a root static asset before a rewrite. Direct filename interception must therefore remain in the middleware matcher rather than relying on the unavailable rewrites alone. Query, encoded-extension, trailing-path, and descendant variants do not authorize a document and do not redirect to or reveal the internal asset URL.
 
 The six former `api/play-beta/*.js` entrypoints are preserved unchanged under `history/play-v2-invite-only/api/play-beta/`. They remain reviewable version history but are excluded from Vercel upload and cannot become routes. The middleware returns a uniform 404 for the retired API namespace without loading the historical store, Supabase, cookies, sessions, or feedback transport. This restores the deployable inventory to the 12 production API functions that preceded invite-only work; middleware is not counted as an additional Serverless Function.
 

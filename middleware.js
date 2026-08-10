@@ -6,8 +6,22 @@ import {
 } from './api/_lib/play-v2-public-beta-document.js';
 
 export const config = {
-    matcher: ['/', '/api/endgame/private-run-availability', '/play/beta/:path*', '/api/play-beta/:path*']
+    matcher: [
+        '/',
+        '/api/endgame/private-run-availability',
+        '/play/beta/:path*',
+        '/api/play-beta/:path*',
+        '/play-v2(.*)'
+    ]
 };
+
+const directPlayV2Documents = Object.freeze(new Set([
+    '/play-v2.html',
+    '/play-v2-public-beta.html',
+    '/play-v2-invite.html',
+    '/play-v2-promotion-qa.html',
+    '/play-v2-ipad-analyze-diagnostic.html'
+]));
 
 const betaHeaders = Object.freeze({
     'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'",
@@ -22,6 +36,15 @@ const betaHeaders = Object.freeze({
 
 export default function middleware(request) {
     const url = new URL(request.url);
+    let decodedPath = url.pathname;
+    try { decodedPath = decodeURIComponent(decodedPath); } catch (_) { /* malformed paths remain fail-closed */ }
+    const normalizedPath = decodedPath.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
+    const directDocument = [...directPlayV2Documents].some(path =>
+        normalizedPath === path || normalizedPath.startsWith(`${path}/`)
+    );
+    if (directDocument) {
+        return new Response(PLAY_V2_UNAVAILABLE_DOCUMENT, { status: 404, headers: betaHeaders });
+    }
     if (url.pathname === '/api/play-beta' || url.pathname.startsWith('/api/play-beta/')) {
         return Response.json({ error: 'PLAY_BETA_ENDPOINT_UNAVAILABLE' }, {
             status: 404,

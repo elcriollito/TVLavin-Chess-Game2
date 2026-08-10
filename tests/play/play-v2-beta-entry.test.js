@@ -129,3 +129,28 @@ test('edge middleware owns the public document and fails closed for every other 
         else process.env.VERCEL_GIT_COMMIT_SHA = previousSha;
     }
 });
+
+test('edge middleware owns every direct Play v2 document before static filesystem routing', async () => {
+    const previousStage = process.env.CAISSA_PLAY_V2_BETA_STAGE;
+    const direct = ['/play-v2.html', '/play-v2-public-beta.html', '/play-v2-invite.html',
+        '/play-v2-promotion-qa.html', '/play-v2-ipad-analyze-diagnostic.html'];
+    try {
+        for (const stage of [undefined, 'disabled', 'internal', 'invite-only', 'public-beta', 'PUBLIC-BETA']) {
+            if (stage === undefined) delete process.env.CAISSA_PLAY_V2_BETA_STAGE;
+            else process.env.CAISSA_PLAY_V2_BETA_STAGE = stage;
+            for (const path of direct) {
+                for (const variant of [path, `${path}?token=fabricated`, `${path}/descendant`, path.replace('.html', '%2Ehtml')]) {
+                    const response = middleware(new Request(`https://www.caissa-chess.org${variant}`));
+                    assert.equal(response.status, 404, `${stage}:${variant}`);
+                    const body = await response.text();
+                    assert.match(body, /Play Beta Unavailable/);
+                    assert.doesNotMatch(body, /<script\b|data-caissa-play-v2-entry="public-beta"/i);
+                    assert.equal(response.headers.get('location'), null);
+                }
+            }
+        }
+    } finally {
+        if (previousStage === undefined) delete process.env.CAISSA_PLAY_V2_BETA_STAGE;
+        else process.env.CAISSA_PLAY_V2_BETA_STAGE = previousStage;
+    }
+});

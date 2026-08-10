@@ -12,7 +12,10 @@ test('direct public beta needs no invite, session, account, cookie, or Supabase'
 
 test('Games Bots Coach work while Players invite QA and direct HTML fail closed', async ({ page }) => {
   for(const [path,tab] of [['/play/beta','Play Game'],['/play/beta/games','Play Game'],['/play/beta/bots','Play Bots'],['/play/beta/coach','Play Coach']]){await page.goto(path);await expect(page.getByRole('tab',{name:tab})).toHaveAttribute('aria-selected','true');await expect(page.locator('#chessboard .board-b72b1')).toHaveCount(1);}
-  for(const path of ['/play/beta/players','/play/beta/invite','/play/beta/qa/promotion','/play/beta/qa/ipad-analyze-diagnostic','/play/beta/qa/bug-diary','/play-v2.html','/play-v2-public-beta.html']){await page.goto(path);await expect(page).toHaveTitle(/Play Beta Unavailable/);await expect(page.locator('script')).toHaveCount(0);}
+  const closed=['/play/beta/players','/play/beta/invite','/play/beta/qa/promotion','/play/beta/qa/ipad-analyze-diagnostic','/play/beta/qa/bug-diary'];
+  const documents=['/play-v2.html','/play-v2-public-beta.html','/play-v2-invite.html','/play-v2-promotion-qa.html','/play-v2-ipad-analyze-diagnostic.html'];
+  for(const document of documents)closed.push(document,`${document}?token=fabricated#authorize`,`${document}/descendant`,document.replace('.html','%2Ehtml'));
+  for(const path of closed){const response=await page.goto(path);expect([200,404],path).toContain(response.status());if(response.status()===200)await expect(page).toHaveTitle(/Play Beta Unavailable/);await expect(page.locator('script')).toHaveCount(0);await expect(page.locator('body[data-caissa-play-v2-entry]')).toHaveCount(0);}
 });
 
 test('real public document starts exactly one Games session and accepts one legal move', async ({ page }) => {
