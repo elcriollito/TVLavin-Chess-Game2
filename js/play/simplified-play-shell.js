@@ -128,6 +128,8 @@
 
             const route = global.CaissaPlayRouteController?.getCurrent?.();
             const betaEntry = route?.metadata?.betaEntry === true;
+            const officialEntry = route?.metadata?.officialEntry === true
+                && global.document.body?.dataset?.caissaPlayV2Entry === 'official';
             const root = element('div', 'caissa-simplified-shell', {
                 'data-caissa-simplified-shell': '',
                 'data-entry-experience': betaEntry ? 'beta' : 'qa',
@@ -140,9 +142,12 @@
             if (betaEntry) {
                 const purpose = element('h1', 'caissa-simplified-shell__purpose');
                 purpose.textContent = 'Play';
-                const stageLabel = element('span', 'caissa-simplified-shell__stage');
-                stageLabel.textContent = 'Internal preview';
-                preview.append(purpose, stageLabel);
+                preview.append(purpose);
+                if (!officialEntry) {
+                    const stageLabel = element('span', 'caissa-simplified-shell__stage');
+                    stageLabel.textContent = 'Internal preview';
+                    preview.append(stageLabel);
+                }
             } else preview.textContent = 'QA Preview · Simplified Play';
             const nav = global.CaissaPlayVisualComponents?.createModeTabs?.({
                 variant: 'caissa-rail', ariaLabel: 'Play modes',

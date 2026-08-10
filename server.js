@@ -399,7 +399,13 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Static file serving
+  if (pathname === '/' && (req.method === 'GET' || req.method === 'HEAD')) {
+    res.writeHead(308, { Location: '/play' });
+    res.end();
+    return;
+  }
   let filePath = '.' + pathname;
+  let responseStatus = 200;
   if (filePath === './') {
     filePath = './index.html';
   }
@@ -423,7 +429,7 @@ const server = http.createServer(async (req, res) => {
   ]);
   if (pathname === '/play/beta' || pathname.startsWith('/play/beta/')) {
     const destination = retiredBetaRedirects.get(pathname);
-    if (req.method === 'GET' && destination) { res.writeHead(308, { Location: destination }); res.end(); return; }
+    if ((req.method === 'GET' || req.method === 'HEAD') && destination) { res.writeHead(308, { Location: destination }); res.end(); return; }
     filePath = './play-v2-unavailable.html';
   }
   const betaEntry = physicalPromotionQA.requested ? physicalPromotionQA
@@ -440,6 +446,7 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/play-v2.html' || pathname === '/play-v2-public-beta.html' || pathname === '/play-v2-invite.html' || pathname === '/play-v2-promotion-qa.html'
       || pathname === '/play-v2-ipad-analyze-diagnostic.html') {
     filePath = './play-v2-unavailable.html';
+    responseStatus = 404;
   }
   if (pathname === '/endgame-trainer' || pathname === '/endgame-trainer/') {
     filePath = './endgame-trainer.html';
@@ -487,7 +494,7 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(500);
       res.end('Server Error: ' + error.code, 'utf-8');
     } else {
-      res.writeHead(200, { 'Content-Type': mimeType });
+      res.writeHead(responseStatus, { 'Content-Type': mimeType });
       res.end(content, 'utf-8');
     }
   });

@@ -107,6 +107,11 @@ const CaissaNavigation = {
 
         // Keyboard shortcut: Ctrl+B to toggle nav
         document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.navOpen) {
+                e.preventDefault();
+                this.closeNav();
+                return;
+            }
             if (e.ctrlKey && e.key === 'b') {
                 e.preventDefault();
                 this.toggleNavCollapse();
@@ -382,8 +387,11 @@ const CaissaNavigation = {
      * Close mobile nav
      */
     closeNav() {
+        const restoreOfficialPlayFocus = this.navOpen && window.innerWidth <= 768
+            && document.body?.dataset?.caissaPlayV2Entry === 'official';
         this.navOpen = false;
         this.elements.appContainer?.classList.remove('nav-open');
+        if (restoreOfficialPlayFocus) this.elements.mobileToggle?.focus({ preventScroll: true });
         console.log('[CAISSA Nav] Mobile nav closed');
     },
 

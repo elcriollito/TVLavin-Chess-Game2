@@ -153,26 +153,71 @@
 }
 .caissa-simplified-shell[hidden] { display: none !important; }
 
-body.caissa-simplified-play-active.caissa-play-v2-beta-active .app-container {
+body.caissa-simplified-play-active.caissa-play-v2-beta-active:not([data-caissa-play-v2-entry="official"]) .app-container {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
 }
 
-body.caissa-simplified-play-active.caissa-play-v2-beta-active :where(.header-minimal, #mainNav, #mobileNavToggle) {
+body.caissa-simplified-play-active.caissa-play-v2-beta-active .header-minimal,
+body.caissa-simplified-play-active.caissa-play-v2-beta-active:not([data-caissa-play-v2-entry="official"]) :where(#mainNav, #mobileNavToggle) {
     display: none !important;
+}
+
+body[data-caissa-play-v2-entry="official"].caissa-simplified-play-active .app-container {
+    grid-template-columns: minmax(72px, 232px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+}
+
+body[data-caissa-play-v2-entry="official"].caissa-simplified-play-active #mainNav {
+    grid-column: 1;
+    grid-row: 1;
 }
 
 body.caissa-simplified-play-active.caissa-play-v2-beta-active #playSection .cais-topbar {
     display: none !important;
 }
 
-body.caissa-simplified-play-active.caissa-play-v2-beta-active .content-area {
+body.caissa-simplified-play-active.caissa-play-v2-beta-active:not([data-caissa-play-v2-entry="official"]) .content-area {
     grid-column: 1;
     grid-row: 1;
     min-width: 0;
     height: 100dvh;
     padding-top: 0;
     padding-bottom: 0;
+}
+
+body[data-caissa-play-v2-entry="official"].caissa-simplified-play-active .content-area {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    height: 100dvh;
+    padding-block: 0;
+}
+
+@media (min-width: 769px) and (max-width: 1180px) {
+    body[data-caissa-play-v2-entry="official"].caissa-simplified-play-active .app-container {
+        grid-template-columns: 72px minmax(0, 1fr);
+    }
+    body[data-caissa-play-v2-entry="official"] #mainNav :where(.nav-logo-text, .nav-label, .nav-premium-badge, .nav-auth-details, .nav-auth-menu-caret, .nav-external-icon) {
+        display: none;
+    }
+    body[data-caissa-play-v2-entry="official"] #mainNav :where(.nav-header, .nav-logo, .nav-item, .nav-auth-btn, .nav-auth-user, .nav-premium-btn) {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    body[data-caissa-play-v2-entry="official"].caissa-simplified-play-active .app-container {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    body[data-caissa-play-v2-entry="official"].caissa-simplified-play-active #mainNav {
+        grid-column: 1;
+        grid-row: 1;
+    }
+    body[data-caissa-play-v2-entry="official"].caissa-simplified-play-active .content-area {
+        grid-column: 1;
+        grid-row: 1;
+    }
 }
 
 body.caissa-simplified-play-active #playSection {
@@ -1028,10 +1073,11 @@ body[data-caissa-play-v2-entry] .caissa-post-game__action--primary {
 }
 
 body[data-caissa-play-v2-entry] .caissa-post-game__action--secondary {
-    border-color: #7891af;
-    background: #344760;
+    border-color: #9ab3d1;
+    background: #405b7a;
     color: #fff;
-    font-weight: 700;
+    font-size: clamp(16px, 15px + 0.3vw, 18px);
+    font-weight: 800;
 }
 
 body[data-caissa-play-v2-entry] .caissa-post-game__action--mentor {

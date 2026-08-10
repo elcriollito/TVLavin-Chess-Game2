@@ -32,7 +32,10 @@
             { id: 'blog', label: 'Blog', icon: 'fas fa-rss', route: '/blog' }
         ])
     ];
-    const prohibitedInPlayV2 = new Set(['mentor', 'academy', 'endgame-trainer', 'endgame-practice', 'endgame-library']);
+    const prohibitedInPlayV2 = new Set([
+        'yahooClassic', 'fics', 'spectator',
+        'mentor', 'academy', 'endgame-trainer', 'endgame-practice', 'endgame-library'
+    ]);
     const groups = Object.freeze(allGroups.map(group => Object.freeze(group.filter(item =>
         !global.CaissaPlayV2ProductBoundary || !prohibitedInPlayV2.has(item.id)
     ))));

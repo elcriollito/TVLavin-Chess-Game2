@@ -47,6 +47,8 @@ html = html
   .replace(/<link rel="canonical"[^>]*>/i, '<link rel="canonical" href="/play/beta">')
   .replace('<section id="yahooClassicSection" class="content-section active">',
     '<section id="yahooClassicSection" class="content-section" hidden inert aria-hidden="true">')
+  .replace('<nav id="mainNav" class="main-navigation">',
+    '<nav id="mainNav" class="main-navigation" aria-label="CAISSA main navigation">')
   .replace('<section id="ficsSection" class="content-section">',
     '<section id="ficsSection" class="content-section" hidden inert aria-hidden="true">')
   .replace('<section id="spectatorSection" class="content-section">',

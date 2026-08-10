@@ -5,6 +5,7 @@
     }
   },
   "redirects": [
+    { "source": "/", "destination": "/play", "permanent": true },
     { "source": "/blog/", "destination": "/blog", "permanent": true },
     { "source": "/blog/:slug/", "destination": "/blog/:slug", "permanent": true },
     { "source": "/yahoo-classic/", "destination": "/yahoo-classic", "permanent": true },

@@ -46,6 +46,9 @@ const retiredBetaRedirects = Object.freeze(new Map([
 
 export default function middleware(request) {
     const url = new URL(request.url);
+    if (url.pathname === '/' && (request.method === 'GET' || request.method === 'HEAD')) {
+        return Response.redirect(new URL('/play', url), 308);
+    }
     let decodedPath = url.pathname;
     try { decodedPath = decodeURIComponent(decodedPath); } catch (_) { /* malformed paths remain fail-closed */ }
     const normalizedPath = decodedPath.replace(/\\/g, '/').replace(/\/{2,}/g, '/');

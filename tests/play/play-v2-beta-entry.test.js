@@ -96,7 +96,13 @@ test('edge middleware owns canonical Play, redirects retired beta, and fails clo
     const previousSha = process.env.VERCEL_GIT_COMMIT_SHA;
     try {
         process.env.CAISSA_PLAY_V2_BETA_STAGE = 'disabled';
-        let response = middleware(new Request('https://www.caissa-chess.org/play'));
+        let response;
+        response = middleware(new Request('https://www.caissa-chess.org/'));
+        assert.equal(response.status, 308);
+        assert.equal(new URL(response.headers.get('location')).pathname, '/play');
+        response = middleware(new Request('https://www.caissa-chess.org/', { method: 'HEAD' }));
+        assert.equal(response.status, 308);
+        response = middleware(new Request('https://www.caissa-chess.org/play'));
         assert.equal(response.status, 404);
         assert.match(await response.text(), /Play Beta Unavailable/);
 
