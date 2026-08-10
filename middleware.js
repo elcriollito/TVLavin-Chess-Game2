@@ -68,7 +68,8 @@ export default function middleware(request) {
     }
     if (url.pathname === '/play' || url.pathname.startsWith('/play/')) {
         const entry = resolvePlayV2BetaEntry(url.pathname, process.env);
-        if (request.method !== 'GET' || !entry.authorized) {
+        const readOnlyRequest = request.method === 'GET' || request.method === 'HEAD';
+        if (!readOnlyRequest || !entry.authorized) {
             return new Response(PLAY_V2_UNAVAILABLE_DOCUMENT, { status: 404, headers: unavailableHeaders });
         }
         const build = /^[a-f0-9]{7,40}$/i.test(process.env.VERCEL_GIT_COMMIT_SHA || '')
@@ -76,7 +77,7 @@ export default function middleware(request) {
         const document = PLAY_V2_PUBLIC_BETA_DOCUMENT.replace(
             '</head>', `    <meta name="caissa-build" content="${build}">\n</head>`
         );
-        return new Response(document, { status: 200, headers: playHeaders });
+        return new Response(request.method === 'HEAD' ? null : document, { status: 200, headers: playHeaders });
     }
     if (url.pathname === '/api/endgame/private-run-availability') {
         if (request.method !== 'GET') {

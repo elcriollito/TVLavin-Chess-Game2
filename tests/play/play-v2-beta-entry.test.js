@@ -110,6 +110,11 @@ test('edge middleware owns canonical Play, redirects retired beta, and fails clo
             assert.match(body, /name="caissa-build" content="8426d0371ff68d4afe81d5be9bc8cfa64f4507f1"/);
             assert.match(response.headers.get('Content-Security-Policy'), /connect-src 'self'/);
         }
+        response = middleware(new Request('https://www.caissa-chess.org/play', { method: 'HEAD' }));
+        assert.equal(response.status, 200);
+        assert.equal(await response.text(), '');
+        response = middleware(new Request('https://www.caissa-chess.org/play', { method: 'POST' }));
+        assert.equal(response.status, 404);
         for (const [path,destination] of [['/play/beta','/play'],['/play/beta/games','/play/games'],['/play/beta/bots','/play/bots'],['/play/beta/coach','/play/coach']]) {
             response = middleware(new Request(`https://www.caissa-chess.org${path}`));
             assert.equal(response.status, 308, path); assert.equal(new URL(response.headers.get('location')).pathname,destination);
