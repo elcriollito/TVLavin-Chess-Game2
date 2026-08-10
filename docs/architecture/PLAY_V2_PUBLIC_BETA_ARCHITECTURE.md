@@ -1,5 +1,9 @@
 # Play v2 direct public beta architecture
 
+> **Superseded by Season 11.10:** Play v2 is now the official experience at `/play`, `/play/games`, `/play/bots`, and `/play/coach`. The former four `/play/beta` routes redirect permanently to those canonical routes. The `public-beta` environment value remains only as the existing internal activation/rollback mechanism; it is not user-visible branding or a canonical URL. Players, invite, QA, unknown descendants, historical APIs, and direct generated HTML remain fail-closed.
+
+## Historical Season 11.9.3 record
+
 `PlayV2PublicBetaPolicy@1.0.0` admits exactly `/play/beta`, `/play/beta/games`, `/play/beta/bots` and `/play/beta/coach` only when `CAISSA_PLAY_V2_BETA_STAGE` equals the case-sensitive value `public-beta`. Access requires no account, invitation, cookie, beta session or Supabase runtime. Missing, disabled, internal, invite-only, unknown, differently cased or padded values fail closed.
 
 The deterministic `play-v2-public-beta.html` excludes the invite redemption/session client. Its direct URL, the invite route, Players, every QA harness and unknown descendant return the runtime-free unavailable document. Classic `/`, Legacy `/play`, production `simplified=1`, FICS and educational products retain their separate owners. The public document preserves same-origin Workers and CSP while excluding auth, Clarity, analytics transport, FICS, Players and educational resources.

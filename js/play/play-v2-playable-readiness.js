@@ -53,7 +53,7 @@
         const internalEntry = beta?.contractId === 'PlayV2BetaEntry@1.0.0'
             && (route?.metadata?.betaEntry === true || route?.query?.simplified === '1');
         const publicEntry = publicBeta?.contractId === 'PlayV2PublicBetaPolicy@1.0.0'
-            && root.document?.body?.dataset?.caissaPlayV2Entry === 'public-beta'
+            && ['public-beta','official'].includes(root.document?.body?.dataset?.caissaPlayV2Entry)
             && route?.metadata?.betaEntry === true;
         const timeValid = Number.isInteger(selection.seconds) && selection.seconds > 0
             && Number.isInteger(selection.incrementSeconds) && selection.incrementSeconds >= 0;

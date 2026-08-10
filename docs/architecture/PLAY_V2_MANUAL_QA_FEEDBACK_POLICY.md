@@ -1,8 +1,8 @@
 # Play v2 manual QA feedback policy
 
-`PlayV2ManualQaFeedbackPolicy@1.0.0` governs Public Beta issue reports. `PlayV2ManualQaReport@1.0.0` is the deterministic exported JSON schema. CAISSA constructs and validates a volatile snapshot in the browser; it does not store or transmit the report. The tester reviews the snapshot, copies or downloads it, and manually posts it to the allowlisted Discord channel.
+`PlayV2ManualQaFeedbackPolicy@1.0.0` governs issue reports from official Play. `PlayV2ManualQaReport@1.0.0` is the deterministic exported JSON schema. CAISSA constructs and validates a volatile snapshot in the browser; it does not store or transmit the report. The tester reviews the snapshot, copies or downloads it, and may manually post it to the allowlisted Discord channel when already a member.
 
-The control is mounted only by the exact `public-beta` document on the four admitted routes. It is absent from Classic, Legacy, internal QA harnesses, disabled/internal/invite-only stages and prohibited routes. Query strings, fragments, History and Web Storage cannot authorize it. No reviewer capability or in-product Bug Diary exists.
+The control is mounted only by the official document on `/play`, `/play/games`, `/play/bots`, and `/play/coach`. It is absent from Classic, internal QA harnesses, disabled/internal/invite-only stages and prohibited routes. Query strings, fragments, History and Web Storage cannot authorize it. No reviewer capability or in-product Bug Diary exists.
 
 ## Privacy boundary
 
@@ -12,6 +12,6 @@ Preview creates one atomic snapshot. Copy and Download consume that exact snapsh
 
 ## Manual Discord handoff
 
-The stable channel and the initial 30-day invitation are centralized in the versioned policy. Both open only after explicit action in a new tab with `noopener,noreferrer`; neither attaches or transmits the report. The release owner must replace or remove the invitation before expiry and verify both actions in Preview. Discord is not added to CSP `connect-src`, scripts, frames, Workers or static resources.
+The stable channel remains centralized in the versioned policy and opens only after explicit action in a new tab with `noopener,noreferrer`; it neither attaches nor transmits the report. The revoked invitation is `null` and no Join Discord action is rendered. The channel link is labeled for existing members and is not presented as enrollment. Discord is not added to CSP `connect-src`, scripts, frames, Workers or static resources.
 
 The historical `/api/play-beta/feedback` endpoint remains present for architectural history but returns `FEEDBACK_TRANSPORT_DISABLED` without reading a session or contacting Supabase. Existing migrations and completed PostgreSQL validation are preserved. The incomplete bounded concurrency exercise and the independent invitation, session, revocation and kill-switch gates remain open.

@@ -147,15 +147,19 @@ if (!/connect-src 'self';/.test(html) || /connect-src[^;]*https?:/.test(html))
 
 await writeFile(outputPath, html);
 const publicBetaHtml = html
-  .replace('<title>CAISSA Play v2 · Internal</title>', '<title>CAISSA Play v2 · Public Beta</title>')
-  .replace('<meta name="title" content="CAISSA Play v2 · Internal">', '<meta name="title" content="CAISSA Play v2 · Public Beta">')
-  .replace('data-caissa-play-v2-entry="qa-only"', 'data-caissa-play-v2-entry="public-beta"')
+  .replace('<title>CAISSA Play v2 · Internal</title>', '<title>Play Chess Online | CAISSA Chess</title>')
+  .replace('<meta name="title" content="CAISSA Play v2 · Internal">', '<meta name="title" content="Play Chess Online | CAISSA Chess">')
+  .replace('<meta name="description" content="Internal CAISSA-native chess play preview.">', '<meta name="description" content="Play chess online with CAISSA Games, Bots, and Coach modes.">')
+  .replace('<meta name="image:alt" content="CAISSA internal chess play preview.">', '<meta name="image:alt" content="CAISSA chess board and play controls.">')
+  .replace('<link rel="canonical" href="/play/beta">', '<link rel="canonical" href="https://www.caissa-chess.org/play">')
+  .replace('<meta name="robots" content="noindex, nofollow">', '<meta name="robots" content="index, follow">')
+  .replace('data-caissa-play-v2-entry="qa-only"', 'data-caissa-play-v2-entry="official"')
   .replace('<script src="js/play/play-v2-beta-entry.js?v=1.0.0"></script>',
     '<script src="js/play/play-v2-public-beta-policy.js?v=1.0.0"></script>')
   .replace(/\s*<script src="js\/play\/play-v2-invite-client\.js\?v=1\.0\.0"><\/script>/, '')
   .replace('</body>', '    <script src="js/play/play-v2-public-beta-ui.js?v=1.0.0"></script>\n</body>')
   .replace(/[ \t]+(?=\r?$)/gm, '');
-for (const required of ['data-caissa-play-v2-entry="public-beta"', 'play-v2-public-beta-policy.js',
+for (const required of ['data-caissa-play-v2-entry="official"', 'href="https://www.caissa-chess.org/play"', 'play-v2-public-beta-policy.js',
   'play-v2-public-beta-ui.js', 'play-v2-manual-qa-report.js']) {
   if (!publicBetaHtml.includes(required)) throw new Error(`PLAY_V2_PUBLIC_BETA_BUILD_MISSING: ${required}`);
 }

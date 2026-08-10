@@ -87,7 +87,7 @@
 
     function isLegacyAnalyzeContext() {
         const body = global.document?.body;
-        if (body?.dataset?.caissaPlayV2Entry === 'qa-only') return false;
+        if (body?.dataset?.caissaPlayV2Entry) return false;
         const snapshot = getSnapshot();
         return snapshot.section === 'play' && snapshot.mounted && snapshot.active && snapshot.game.active;
     }

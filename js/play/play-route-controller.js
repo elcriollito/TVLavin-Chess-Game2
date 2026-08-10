@@ -45,6 +45,12 @@
         return mode !== MODES.COACH || body.dataset.caissaBetaCoach === 'true';
     }
 
+    function officialCapability(mode) {
+        return global.document?.body?.dataset?.caissaPlayV2Entry === 'official'
+            && [MODES.GAMES, MODES.BOTS, MODES.COACH].includes(mode)
+            && (!productBoundary || productBoundary.isModeAllowed?.(mode) === true);
+    }
+
     function notify(route) {
         subscribers.forEach(listener => {
             try { listener(route); } catch (_) {}
@@ -150,7 +156,8 @@
         if (playMatch) {
             const requestedMode = playMatch[1] || MODES.GAMES;
             const known = Object.values(MODES).includes(requestedMode);
-            const available = known && (AVAILABILITY[requestedMode] === true
+            const officialEntry = officialCapability(requestedMode);
+            const available = known && (officialEntry || AVAILABILITY[requestedMode] === true
                 || (AVAILABILITY[requestedMode] === 'qa-only' && query.simplified === '1'));
             const mode = available ? requestedMode : MODES.GAMES;
             const canonicalPath = mode === MODES.GAMES && !playMatch[1] ? '/play' : `/play/${mode}`;
@@ -165,7 +172,8 @@
                     (inactive ? REASONS.RESERVED_MODE_INACTIVE :
                         (mode === MODES.BOTS ? REASONS.BOTS_MODE_RESOLVED :
                             mode === MODES.PLAYERS ? REASONS.PLAYERS_MODE_RESOLVED : REASONS.GAMES_MODE_RESOLVED)),
-                query, __privateQuery: protectedQuery, handoffToken: null, metadata: { requestedModeAvailable: available }
+                query, __privateQuery: protectedQuery, handoffToken: null,
+                metadata: { requestedModeAvailable: available, betaEntry: officialEntry, officialEntry }
             });
         }
         if (lowerPath.startsWith('/play/')) {

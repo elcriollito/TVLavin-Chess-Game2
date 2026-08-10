@@ -417,6 +417,15 @@ const server = http.createServer(async (req, res) => {
   }
   const physicalPromotionQA = resolvePlayV2PhysicalPromotionQA(pathname, url.search, process.env);
   const ipadAnalyzeDiagnostic = resolvePlayV2PhysicalIpadAnalyzeDiagnostic(pathname, url.search, process.env);
+  const retiredBetaRedirects = new Map([
+    ['/play/beta', '/play'], ['/play/beta/games', '/play/games'],
+    ['/play/beta/bots', '/play/bots'], ['/play/beta/coach', '/play/coach']
+  ]);
+  if (pathname === '/play/beta' || pathname.startsWith('/play/beta/')) {
+    const destination = retiredBetaRedirects.get(pathname);
+    if (req.method === 'GET' && destination) { res.writeHead(308, { Location: destination }); res.end(); return; }
+    filePath = './play-v2-unavailable.html';
+  }
   const betaEntry = physicalPromotionQA.requested ? physicalPromotionQA
     : ipadAnalyzeDiagnostic.requested ? ipadAnalyzeDiagnostic
       : resolvePlayV2BetaEntry(pathname, process.env);
@@ -431,10 +440,6 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/play-v2.html' || pathname === '/play-v2-public-beta.html' || pathname === '/play-v2-invite.html' || pathname === '/play-v2-promotion-qa.html'
       || pathname === '/play-v2-ipad-analyze-diagnostic.html') {
     filePath = './play-v2-unavailable.html';
-  }
-  if (!betaEntry.requested && (pathname === '/play' || pathname.startsWith('/play/'))) {
-    const internalQa = process.env.CAISSA_PLAY_V2_BETA_STAGE === 'internal';
-    filePath = internalQa && url.searchParams.get('simplified') === '1' ? './play-v2.html' : './index.html';
   }
   if (pathname === '/endgame-trainer' || pathname === '/endgame-trainer/') {
     filePath = './endgame-trainer.html';

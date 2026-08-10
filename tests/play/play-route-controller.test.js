@@ -159,18 +159,18 @@ test('production module contains no runtime ownership or persistence primitives'
     ]) assert.doesNotMatch(source, forbidden);
 });
 
-test('production Play remains Legacy and the former simplified query is not an invite bypass', () => {
+test('production Play is canonical v2 and the former simplified query is not a routing owner', () => {
     const server = fs.readFileSync(new URL('../../server.js', import.meta.url), 'utf8');
     const vercel = JSON.parse(fs.readFileSync(new URL('../../vercel.json', import.meta.url), 'utf8'));
     const index = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
-    assert.match(server, /pathname === '\/play' \|\| pathname\.startsWith\('\/play\/'\)/);
+    assert.match(server, /resolvePlayV2BetaEntry\(pathname, process\.env\)/);
     const playRules = vercel.rewrites.filter(({ source }) => source === '/play' || source === '/play/:mode');
     assert.deepEqual(playRules.slice(-2), [
-        { source: '/play', destination: '/index.html' },
-        { source: '/play/:mode', destination: '/index.html' }
+        { source: '/play', destination: '/play-v2-unavailable.html' },
+        { source: '/play/:mode', destination: '/play-v2-unavailable.html' }
     ]);
     assert.equal(playRules.length, 2);
     assert.equal(vercel.rewrites.some(rule => rule.has?.some(item => item.key === 'simplified')), false);
-    assert.match(server, /internalQa && url\.searchParams\.get\('simplified'\) === '1'/);
+    assert.doesNotMatch(server, /internalQa && url\.searchParams\.get\('simplified'\) === '1'/);
     assert.match(index, /<base href="\/">/);
 });

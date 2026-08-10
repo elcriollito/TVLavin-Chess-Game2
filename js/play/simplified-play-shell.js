@@ -339,10 +339,11 @@
                         event.preventDefault(); this.#transitionPostGameMode(mode); return;
                     }
                     if (this.#postGame?.getSnapshot?.().visible === true && mode === this.#mode) return;
+                    const official = global.document?.body?.dataset?.caissaPlayV2Entry === 'official';
                     const beta = global.location?.pathname?.toLowerCase().startsWith('/play/beta');
                     const diagnostic = global.CaissaPlayRouteController?.getModeTarget?.(mode);
                     global.CaissaPlayRouteController?.navigate?.(
-                        diagnostic || (beta ? `/play/beta/${mode}` : `/play/${mode}?simplified=1`), { source: 'mode-tab' });
+                        diagnostic || (official ? `/play/${mode}` : (beta ? `/play/beta/${mode}` : `/play/${mode}?simplified=1`)), { source: 'mode-tab' });
                 });
                 this.#listen(global, 'resize', () => this.resize());
                 this.#listen(global, 'orientationchange', () => {
@@ -465,10 +466,11 @@
                 global.CaissaGameLifecycle?.rotateSession?.(); global.CaissaEngineRequestIsolation?.createSession?.();
                 global.CaissaGameLifecycle?.sync?.(
                     global.CaissaPlayCompatibility?.getSnapshot?.(), 'GAME_RESET');
+                const official = global.document?.body?.dataset?.caissaPlayV2Entry === 'official';
                 const beta = global.location?.pathname?.toLowerCase().startsWith('/play/beta');
                 const diagnostic = global.CaissaPlayRouteController?.getModeTarget?.(targetMode);
                 global.CaissaPlayRouteController?.navigate?.(
-                    diagnostic || (beta ? `/play/beta/${targetMode}` : `/play/${targetMode}?simplified=1`),
+                    diagnostic || (official ? `/play/${targetMode}` : (beta ? `/play/beta/${targetMode}` : `/play/${targetMode}?simplified=1`)),
                     { source: 'postgame-mode-transition' });
                 this.#lastPanelSync = this.#syncPanels();
                 await this.#lastPanelSync;

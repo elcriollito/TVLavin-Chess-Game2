@@ -27,44 +27,40 @@ test('PlayV2BetaEntry@1.0.0 declares the controlled internal contract', () => {
     assert.ok(Object.isFrozen(contract));
 });
 
-test('gate admits only exact public-beta paths and every other stage rolls back fail closed', () => {
+test('gate admits only exact canonical Play paths and every other stage rolls back fail closed', () => {
     const enabled = { [PLAY_V2_BETA_STAGE_ENV]: 'public-beta' };
-    for (const [path, mode] of [['/play/beta', 'games'], ['/play/beta/games', 'games'], ['/play/beta/bots', 'bots'], ['/play/beta/coach', 'coach']]) {
+    for (const [path, mode] of [['/play', 'games'], ['/play/games', 'games'], ['/play/bots', 'bots'], ['/play/coach', 'coach']]) {
         assert.deepEqual({ ...resolvePlayV2BetaEntry(path, enabled) }, {
-            requested: true, authorized: true, document: 'play-v2-public-beta.html', mode, reasonCode: 'PUBLIC_BETA_ENTRY_ALLOWED'
+            requested: true, authorized: true, document: 'play-v2-public-beta.html', mode, reasonCode: 'CANONICAL_PLAY_ENTRY_ALLOWED'
         });
     }
-    for (const path of ['/play/beta/mentor', '/play/beta/players', '/play/beta/PLAYERS', '/play//beta//players', '/play/beta/nope', '/play/beta/', '/play/beta//bots', '/play/beta/%62ots']) {
+    for (const path of ['/play/mentor', '/play/players', '/play/PLAYERS', '/play//players', '/play/nope', '/play/', '/play//bots', '/play/%62ots']) {
         const result = resolvePlayV2BetaEntry(path, enabled);
         assert.equal(result.authorized, false);
         assert.equal(result.document, 'play-v2-unavailable.html');
     }
     for (const environment of [{}, { [PLAY_V2_BETA_STAGE_ENV]: 'disabled' }, { [PLAY_V2_BETA_STAGE_ENV]: 'internal' }, { [PLAY_V2_BETA_STAGE_ENV]: 'invite-only' }, { [PLAY_V2_BETA_STAGE_ENV]: 'PUBLIC-BETA' }, { [PLAY_V2_BETA_STAGE_ENV]: ' public-beta' }]) {
-        const result = resolvePlayV2BetaEntry(new URL('https://caissa.test/play/beta?token=secret#players').pathname, environment);
+        const result = resolvePlayV2BetaEntry(new URL('https://caissa.test/play?token=secret#players').pathname, environment);
         assert.equal(result.authorized, false);
         assert.equal(result.document, 'play-v2-unavailable.html');
     }
     assert.equal(PLAY_V2_BETA_ENTRY.failureMode, 'fail-closed');
 });
 
-test('server and hosting select direct public beta while invite landing and direct HTML fail closed', () => {
+test('server and hosting select canonical Play while retired beta and direct HTML stay controlled', () => {
     const server = read('server.js');
     const vercel = JSON.parse(read('vercel.json'));
-    assert.ok(server.indexOf('resolvePlayV2BetaEntry(pathname') < server.indexOf("pathname === '/play' || pathname.startsWith('/play/')"));
     assert.deepEqual(vercel.rewrites.filter(rule => rule.source.startsWith('/play/beta')), [
         { source: '/play/beta/invite', destination: '/play-v2-unavailable.html' },
-        { source: '/play/beta', destination: '/play-v2-unavailable.html' },
-        { source: '/play/beta/games', destination: '/play-v2-unavailable.html' },
-        { source: '/play/beta/bots', destination: '/play-v2-unavailable.html' },
-        { source: '/play/beta/coach', destination: '/play-v2-unavailable.html' },
         { source: '/play/beta/:path*', destination: '/play-v2-unavailable.html' }
     ]);
+    assert.equal(vercel.redirects.filter(rule => rule.source.startsWith('/play/beta')).length, 4);
     assert.match(read('middleware.js'), /resolvePlayV2BetaEntry\(url\.pathname, process\.env\)/);
     assert.match(read('middleware.js'), /PLAY_V2_PUBLIC_BETA_DOCUMENT/);
     assert.ok(vercel.rewrites.some(rule => rule.source === '/play-v2.html' && rule.destination === '/play-v2-unavailable.html'));
     assert.ok(vercel.rewrites.some(rule => rule.source === '/play-v2-public-beta.html' && rule.destination === '/play-v2-unavailable.html'));
     assert.equal(vercel.rewrites.some(rule => rule.has?.some(item => item.key === 'simplified')), false);
-    assert.ok(vercel.rewrites.some(rule => rule.source === '/play' && rule.destination === '/index.html'));
+    assert.ok(vercel.rewrites.some(rule => rule.source === '/play' && rule.destination === '/play-v2-unavailable.html'));
 });
 
 test('unavailable response is accessible, non-indexable, non-sensitive, and runtime-free', () => {
@@ -86,7 +82,7 @@ test('beta is absent from public navigation, sitemap, robots, and homepage promo
 
 test('dedicated public entry excludes invite runtime and prohibited resource graph', () => {
     const html = read('play-v2-public-beta.html');
-    assert.match(html,/data-caissa-play-v2-entry="public-beta"/);
+    assert.match(html,/data-caissa-play-v2-entry="official"/);
     assert.match(html,/play-v2-public-beta-policy\.js/);
     assert.doesNotMatch(html,/play-v2-invite-client\.js|play-v2-invite-redemption\.js/);
     const resources = html.match(/<(?:script|link)\b[^>]*>/gi) || [];
@@ -95,26 +91,30 @@ test('dedicated public entry excludes invite runtime and prohibited resource gra
         && !/play-v2-(?:mentor-review-boundary|native-players-policy|players-presentation-policy)/i.test(item)).length, 0);
 });
 
-test('edge middleware owns the public document and fails closed for every other stage and beta endpoint', async () => {
+test('edge middleware owns canonical Play, redirects retired beta, and fails closed elsewhere', async () => {
     const previousStage = process.env.CAISSA_PLAY_V2_BETA_STAGE;
     const previousSha = process.env.VERCEL_GIT_COMMIT_SHA;
     try {
         process.env.CAISSA_PLAY_V2_BETA_STAGE = 'disabled';
-        let response = middleware(new Request('https://www.caissa-chess.org/play/beta'));
+        let response = middleware(new Request('https://www.caissa-chess.org/play'));
         assert.equal(response.status, 404);
         assert.match(await response.text(), /Play Beta Unavailable/);
 
         process.env.CAISSA_PLAY_V2_BETA_STAGE = 'public-beta';
         process.env.VERCEL_GIT_COMMIT_SHA = '8426d0371ff68d4afe81d5be9bc8cfa64f4507f1';
-        for (const path of ['/play/beta', '/play/beta/games', '/play/beta/bots', '/play/beta/coach']) {
+        for (const path of ['/play', '/play/games', '/play/bots', '/play/coach']) {
             response = middleware(new Request(`https://www.caissa-chess.org${path}`));
             const body = await response.text();
             assert.equal(response.status, 200, path);
-            assert.match(body, /data-caissa-play-v2-entry="public-beta"/);
+            assert.match(body, /data-caissa-play-v2-entry="official"/);
             assert.match(body, /name="caissa-build" content="8426d0371ff68d4afe81d5be9bc8cfa64f4507f1"/);
             assert.match(response.headers.get('Content-Security-Policy'), /connect-src 'self'/);
         }
-        for (const path of ['/play/beta/players', '/play/beta/invite', '/play/beta/qa/promotion', '/play/beta/nope']) {
+        for (const [path,destination] of [['/play/beta','/play'],['/play/beta/games','/play/games'],['/play/beta/bots','/play/bots'],['/play/beta/coach','/play/coach']]) {
+            response = middleware(new Request(`https://www.caissa-chess.org${path}`));
+            assert.equal(response.status, 308, path); assert.equal(new URL(response.headers.get('location')).pathname,destination);
+        }
+        for (const path of ['/play/players', '/play/beta/players', '/play/beta/invite', '/play/beta/qa/promotion', '/play/beta/nope']) {
             response = middleware(new Request(`https://www.caissa-chess.org${path}`));
             assert.equal(response.status, 404, path);
             assert.match(await response.text(), /Play Beta Unavailable/);
