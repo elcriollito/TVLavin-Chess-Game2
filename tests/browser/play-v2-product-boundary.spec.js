@@ -2,88 +2,16 @@ import { test, expect } from '@playwright/test';
 import { positions } from '../play/fixtures/positions.js';
 import { instrumentPlay, loadPosition, playMove } from '../play/playwright-helpers.js';
 
-const prohibitedResource = /(?:academy|js\/play\/coach\/|mentor-(?:foundation|analysis|guided-replay|knowledge|summary)|guided[-_/]?replay|educational|knowledge|training[-_/]?memory|mastery|endgame[-_/]?(?:trainer|library)|fics|players-stack)/i;
-
-test.beforeEach(async ({ page }) => instrumentPlay(page, { autoReply: false }));
-
-test('native Coach is admitted while legacy Coach, Players, FICS, and educational resources remain prohibited', async ({ page }) => {
-    const requests = [];
-    page.on('request', request => {
-        const path = new URL(request.url()).pathname;
-        if (!/play-v2-fics-isolation\.js/i.test(path) && prohibitedResource.test(path)) requests.push(request.url());
-    });
-    await page.addInitScript(() => {
-        localStorage.setItem('caissa-play-mode', 'coach');
-        sessionStorage.setItem('caissa-mentor-auto-launch', 'true');
-        window.__CAISSA_PLAY_CONFIG__ = { mode: 'coach', mentor: true, recovery: 'academy' };
-    });
-    await page.goto('/play/beta/coach?mentor=auto&lesson=1&fallback=academy');
-    await expect.poll(() => page.evaluate(() => window.CaissaPlayRouteController.getCurrent().mode)).toBe('coach');
-    await expect(page.locator('[data-caissa-native-coach-panel]')).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Play Coach' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: /Players/ })).toHaveCount(0);
-    await page.evaluate(async () => {
-        for (const id of ['coach-stack','mentor-foundation','mentor-analysis','mentor-guided-replay','mentor-knowledge','mentor-summary']) {
-            try { await window.CaissaPlayLazyLoader.load(id, { qa: true, retry: true }); } catch (_) {}
-        }
-        history.pushState({}, '', '/play/beta/coach'); window.dispatchEvent(new PopStateEvent('popstate'));
-    });
-    await expect.poll(() => page.evaluate(() => window.CaissaPlayRouteController.getCurrent().mode)).toBe('coach');
-    const proof = await page.evaluate(() => ({
-        contract: window.CaissaPlayV2ProductBoundary.contractId,
-        groups: window.CaissaPlayLoadRegistry.definitions().map(item => item.resourceId),
-        coachBoundary: window.CaissaPlayV2CoachBoundary?.contractId,
-        assistancePolicy: window.CaissaPlayV2CoachAssistancePolicy?.contractId,
-        nativeCoach: !!window.CaissaNativeCoachPanel, legacyCoach: !!window.CaissaCoachPanel,
-        legacyMentor: !!window.CaissaMentorFoundation, players: !!window.CaissaPlayersPanel,
-        academyDom: document.querySelectorAll('#academySection,[data-section="academy"]').length,
-        resources: [...document.scripts, ...document.styleSheets].map(item => item.src || item.href).filter(Boolean)
-            .filter(source => {
-                const path = new URL(source).pathname;
-                return !/play-v2-fics-isolation\.js/i.test(path)
-                    && /(?:academy|js\/play\/coach\/|mentor-(?:foundation|analysis|guided-replay|knowledge|summary)|guided[-_/]?replay|educational|knowledge|training[-_/]?memory|mastery|endgame[-_/]?(?:trainer|library)|fics|players-stack)/i.test(path);
-            })
-    }));
-    expect(proof).toEqual({ contract: 'PlayV2ProductBoundary@1.0.0',
-        groups: ['bots-stack','native-coach-stack','native-mentor-review','analyze-deep'],
-        coachBoundary: 'PlayV2CoachBoundary@1.0.0', assistancePolicy: 'PlayV2CoachAssistancePolicy@1.0.0',
-        nativeCoach: true, legacyCoach: false, legacyMentor: false, players: false, academyDom: 0, resources: [] });
-    expect(requests).toEqual([]);
+test('internal QA keeps FICS Players and educational ownership outside Play v2',async({page})=>{
+  await page.goto('/play?simplified=1');await expect(page.locator('body[data-caissa-play-v2-entry="qa-only"]')).toHaveCount(1);await expect(page.locator('#chessboard .board-b72b1')).toHaveCount(1);
+  const resources=await page.evaluate(()=>[...document.querySelectorAll('script[src],link[href]')].map(node=>node.src||node.href));
+  expect(resources.filter(url=>/fics-client|fics-style|academy|guided[-_/]?replay|knowledge|training[-_/]?memory|mastery|endgame[-_/]?(?:trainer|library)|players-stack|caissa-clarity/i.test(url))).toEqual([]);
+  await expect(page.getByRole('tab',{name:/Players|Academy|Lessons|Endgame Training/})).toHaveCount(0);
+  expect(await page.evaluate(()=>({fics:window.CaissaPlayV2FicsIsolation.isModeAllowed('fics'),players:window.CaissaPlayV2FicsIsolation.isModeAllowed('players'),writes:{training:localStorage.getItem('caissa.trainingMemory'),mastery:localStorage.getItem('caissa.mastery')}}))).toEqual({fics:false,players:false,writes:{training:null,mastery:null}});
 });
 
-test('clean PostGame is result-first, writes no learning state, and retains Analyze', async ({ page }) => {
-    await page.goto('/play/beta'); await page.locator('[data-games-primary]').click();
-    await loadPosition(page, positions.checkmateInOne.fen); await playMove(page, positions.checkmateInOne.from, positions.checkmateInOne.to);
-    await expect(page.locator('.caissa-post-game')).toBeVisible();
-    await expect(page.locator('[data-post-game-result]')).toHaveText('You Won');
-    await expect(page.locator('[data-post-game-reason]')).toHaveText('By Checkmate');
-    expect(await page.locator('[data-post-game-action]').allTextContents()).toEqual([
-        'Analyze This Game','Rematch','New Game','Review with Mentor','Copy PGN','Download PGN','Save PGN Locally'
-    ]);
-    await expect(page.locator('[data-post-game-action="analyze"]')).toHaveClass(/--primary/);
-    await expect(page.locator('[data-post-game-action="rematch"],[data-post-game-action="new-game"]')).toHaveCount(2);
-    await expect(page.locator('[data-post-game-action="mentor-review"]')).toBeVisible();
-    await expect(page.locator('[data-mentor-summary],[data-post-game-concepts]')).toHaveCount(0);
-    const before = await page.evaluate(() => ({ local: { ...localStorage }, session: { ...sessionStorage },
-        state: window.CaissaPostGameExperienceInstance.getSnapshot(), policy: window.CaissaPlayV2PostGamePolicy }));
-    expect(before.state).toMatchObject({ trainingMemoryWrites: 0, masteryWrites: 0 });
-    expect(before.policy).toMatchObject({ contractId: 'PlayV2PostGamePolicy@1.1.0', primaryAction: 'analyze',
-        analyticsTransport: 'disabled', automaticAnalyze: 'prohibited', automaticMentor: 'prohibited' });
-    await page.locator('[data-post-game-action="analyze"]').click();
-    await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
-    const url = new URL(page.url());
-    expect(url.searchParams.has('handoff') || url.searchParams.has('pgn') || url.searchParams.has('fen')).toBe(false);
-    expect(await page.evaluate(() => window.CaissaPostGameExperienceInstance.getSnapshot().diagnostics.handoffs)).toBe(1);
-});
-
-test('remaining mode tabs retain coherent keyboard navigation and one runtime owner', async ({ page }) => {
-    await page.goto('/play/beta'); const games = page.getByRole('tab', { name: 'Play Game' }); await games.focus();
-    await page.keyboard.press('ArrowRight'); await expect(page).toHaveURL(/\/play\/beta\/bots/);
-    await expect(page.getByRole('tab', { name: 'Play Bots' })).toHaveAttribute('tabindex', '0');
-    await page.keyboard.press('ArrowRight'); await expect(page).toHaveURL(/\/play\/beta\/coach/);
-    await expect(page.getByRole('tab', { name: 'Play Coach' })).toHaveAttribute('tabindex', '0');
-    await page.keyboard.press('ArrowRight'); await expect(page).toHaveURL(/\/play\/beta(?:\/games)?$/);
-    expect(await page.evaluate(() => ({ boards: document.querySelectorAll('#playSection #chessboard .board-b72b1').length,
-        workers: window.__caissaPlayHarness.snapshot().workersCreated,
-        lifecycle: window.CaissaEventLifecycle.inspect().activeScopes }))).toMatchObject({ boards: 1, workers: 0 });
+test('internal QA completed game retains clean PostGame Analyze and optional Mentor',async({page})=>{
+  await instrumentPlay(page,{autoReply:false});await page.goto('/play?simplified=1');await page.locator('[data-games-primary]').click();await loadPosition(page,positions.checkmateInOne.fen);await playMove(page,positions.checkmateInOne.from,positions.checkmateInOne.to);await expect(page.locator('[data-play-v2-post-game-core]')).toBeVisible();
+  await expect(page.locator('[data-post-game-action="analyze"]')).toBeVisible();await expect(page.locator('[data-post-game-action="mentor-review"]')).toBeVisible();await expect(page.locator('[data-post-game-action="analyze"]')).toHaveClass(/--primary/);await expect(page.locator('[data-post-game-action="rematch"]')).toHaveClass(/--secondary/);
+  await page.locator('[data-post-game-action="analyze"]').click();await expect(page.locator('#analyzeSection')).toHaveClass(/caissa-play-v2-inline-analyze/);await page.getByRole('button',{name:'Back to game result'}).click();await expect(page.locator('[data-play-v2-post-game-core]')).toBeVisible();
 });

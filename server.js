@@ -415,17 +415,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/yahoo-classic') {
     filePath = './yahoo-classic.html';
   }
-  const inviteLanding = pathname === '/play/beta/invite';
-  if (inviteLanding) {
-    filePath = './play-v2-invite.html';
-    res.setHeader('Cache-Control', 'no-store, max-age=0');
-    res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
-    res.setHeader('Referrer-Policy', 'no-referrer');
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-  }
-  const physicalPromotionQA = inviteLanding ? { requested: false } : resolvePlayV2PhysicalPromotionQA(pathname, url.search, process.env);
+  const physicalPromotionQA = resolvePlayV2PhysicalPromotionQA(pathname, url.search, process.env);
   const ipadAnalyzeDiagnostic = resolvePlayV2PhysicalIpadAnalyzeDiagnostic(pathname, url.search, process.env);
-  const betaEntry = inviteLanding ? { requested: false } : physicalPromotionQA.requested ? physicalPromotionQA
+  const betaEntry = physicalPromotionQA.requested ? physicalPromotionQA
     : ipadAnalyzeDiagnostic.requested ? ipadAnalyzeDiagnostic
       : resolvePlayV2BetaEntry(pathname, process.env);
   if (betaEntry.requested) {
@@ -436,11 +428,11 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Content-Security-Policy', ipadAnalyzeDiagnostic.requested ? PLAY_V2_DIAGNOSTIC_CSP : PLAY_V2_CSP);
   }
-  if (pathname === '/play-v2.html' || pathname === '/play-v2-invite.html' || pathname === '/play-v2-promotion-qa.html'
+  if (pathname === '/play-v2.html' || pathname === '/play-v2-public-beta.html' || pathname === '/play-v2-invite.html' || pathname === '/play-v2-promotion-qa.html'
       || pathname === '/play-v2-ipad-analyze-diagnostic.html') {
     filePath = './play-v2-unavailable.html';
   }
-  if (!inviteLanding && !betaEntry.requested && (pathname === '/play' || pathname.startsWith('/play/'))) {
+  if (!betaEntry.requested && (pathname === '/play' || pathname.startsWith('/play/'))) {
     const internalQa = process.env.CAISSA_PLAY_V2_BETA_STAGE === 'internal';
     filePath = internalQa && url.searchParams.get('simplified') === '1' ? './play-v2.html' : './index.html';
   }

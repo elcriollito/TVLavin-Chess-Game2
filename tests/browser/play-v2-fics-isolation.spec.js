@@ -51,9 +51,9 @@ test('QA and legacy documents retain separate resource ownership', async ({ page
 
 test('Games retains one board and Bots creates its Worker only after Play', async ({ page }) => {
     await instrumentPlay(page, { autoReply: false });
-    await page.goto('/play/beta/games');
+    await page.goto('/play/games?simplified=1');
     await expect(page.locator('.caissa-games-panel')).toBeVisible();
-    await page.goto('/play/beta/bots');
+    await page.goto('/play/bots?simplified=1');
     await expect(page.locator('.caissa-bots-panel')).toBeVisible();
     expect(await page.evaluate(() => ({
         boards: document.querySelectorAll('#playSection #chessboard .board-b72b1').length,

@@ -1,5 +1,9 @@
 # Play v2 invite-only architecture
 
+> **Superseded for the direct Public Beta release path:** this architecture was implemented locally but not deployed. `PlayV2PublicBetaPolicy@1.0.0` removes invitations, beta sessions and Supabase from the active release graph. This document and its migrations remain technical history; unfinished concurrency validation is not represented as PASS.
+
+> **Manual QA feedback update:** [`PlayV2ManualQaFeedbackPolicy@1.0.0`](./PLAY_V2_MANUAL_QA_FEEDBACK_POLICY.md) replaces active automatic feedback transport with a local, sanitized JSON generator and explicit private Discord handoff. Supabase continues to own invitations, sessions and the kill switch. No Bug Diary or reviewer capability was introduced; `/api/play-beta/feedback` is fail-closed and the existing database history remains intact.
+
 Status: **Season 11.9.0 implemented locally; external configuration and review required**
 
 Contract: `PlayV2InviteOnlyPolicy@1.0.0`

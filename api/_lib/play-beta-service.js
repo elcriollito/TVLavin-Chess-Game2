@@ -1,7 +1,6 @@
 import {
     PLAY_BETA, applyPrivateHeaders, clearSessionCookie, csrfFor, environmentReady, exactOrigin,
-    containsProhibitedFeedback, hashSecret, isJsonRequest, parseBetaPath, parseCookies, randomSecret, safeEqual,
-    sanitizeText, sessionCookie
+    hashSecret, isJsonRequest, parseBetaPath, parseCookies, randomSecret, sessionCookie
 } from './play-beta-policy.js';
 import { createPlayBetaStore } from './play-beta-store.js';
 
@@ -51,6 +50,7 @@ export function createPlayBetaService({ store = null, env = process.env, now = (
         },
         async session(req, res) {
             applyPrivateHeaders(res);
+            if (env.CAISSA_PLAY_V2_BETA_STAGE !== PLAY_BETA.requiredStage) return stageClosed(res);
             if (req.method !== 'GET') return json(res, 405, { error: 'METHOD_NOT_ALLOWED' });
             const session = await validSession(req);
             if (session.reasonCode === 'STORE_UNAVAILABLE') return json(res, 503, { authorized: false, reasonCode: 'SERVICE_UNAVAILABLE' });
@@ -59,6 +59,7 @@ export function createPlayBetaService({ store = null, env = process.env, now = (
         },
         async logout(req, res) {
             applyPrivateHeaders(res);
+            if (env.CAISSA_PLAY_V2_BETA_STAGE !== PLAY_BETA.requiredStage) return stageClosed(res);
             if (req.method !== 'POST') return json(res, 405, { error: 'METHOD_NOT_ALLOWED' });
             if (!exactOrigin(req)) return json(res, 403, { error: 'ORIGIN_REJECTED' });
             const bodyPolicy = isJsonRequest(req);
@@ -74,6 +75,7 @@ export function createPlayBetaService({ store = null, env = process.env, now = (
         },
         async status(req, res) {
             applyPrivateHeaders(res);
+            if (env.CAISSA_PLAY_V2_BETA_STAGE !== PLAY_BETA.requiredStage) return stageClosed(res);
             if (req.method !== 'GET') return json(res, 405, { error: 'METHOD_NOT_ALLOWED' });
             const session = await validSession(req);
             if (session.reasonCode === 'STORE_UNAVAILABLE') return json(res, 503, { enabled: false, reasonCode: 'SERVICE_UNAVAILABLE' });
@@ -81,34 +83,7 @@ export function createPlayBetaService({ store = null, env = process.env, now = (
         },
         async feedback(req, res) {
             applyPrivateHeaders(res);
-            if (req.method !== 'POST') return json(res, 405, { error: 'METHOD_NOT_ALLOWED' });
-            if (!exactOrigin(req)) return json(res, 403, { error: 'ORIGIN_REJECTED' });
-            const bodyPolicy = isJsonRequest(req);
-            if (!bodyPolicy.ok) return json(res, bodyPolicyStatus(bodyPolicy.reasonCode), { error: bodyPolicy.reasonCode });
-            const session = await validSession(req);
-            if (session.reasonCode === 'STORE_UNAVAILABLE') return json(res, 503, { error: 'SERVICE_UNAVAILABLE' });
-            if (!session.ok) return json(res, 401, { error: session.reasonCode });
-            if (!safeEqual(req.headers['x-caissa-beta-csrf'], session.csrf)) return json(res, 403, { error: 'CSRF_REJECTED' });
-            let body; try { body = bodyOf(req); } catch (_) { return json(res, 400, { error: 'INVALID_BODY' }); }
-            const category = PLAY_BETA.feedbackCategories.includes(body.category) ? body.category : null;
-            const mode = PLAY_BETA.modes.includes(body.mode) ? body.mode : null;
-            if (String(body.comment || '').length > PLAY_BETA.feedback.comment
-                || String(body.steps || '').length > PLAY_BETA.feedback.steps
-                || String(body.device || '').length > PLAY_BETA.feedback.device)
-                return json(res, 400, { error: 'FEEDBACK_INVALID' });
-            if (containsProhibitedFeedback(`${String(body.comment || '')}\n${String(body.steps || '')}\n${String(body.device || '')}`))
-                return json(res, 400, { error: 'PROHIBITED_DATA' });
-            const comment = sanitizeText(body.comment, PLAY_BETA.feedback.comment);
-            const steps = sanitizeText(body.steps, PLAY_BETA.feedback.steps);
-            const device = sanitizeText(body.device, PLAY_BETA.feedback.device);
-            if (!category || !mode || !comment || body.consent !== true) return json(res, 400, { error: 'FEEDBACK_INVALID' });
-            let value;
-            try { value = await data().feedback({ p_session_hash: session.sessionHash, p_category: category,
-                p_mode: mode, p_comment: comment, p_steps: steps || null, p_device: device || null,
-                p_consent_version: 'PlayV2BetaFeedbackConsent@1.0.0', p_now: new Date(now()).toISOString() }); }
-            catch (_) { return json(res, 503, { error: 'SERVICE_UNAVAILABLE' }); }
-            if (!value?.accepted) return json(res, value?.reason_code === 'RATE_LIMITED' ? 429 : 400, { error: value?.reason_code || 'FEEDBACK_REJECTED' });
-            return json(res, 201, { ok: true, reference: value.reference });
+            return json(res, 404, { error: 'FEEDBACK_TRANSPORT_DISABLED' });
         },
         async authorizeEntry(req, requestedPath = req.url) {
             const route = parseBetaPath(requestedPath);

@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 const sourcePath = new URL('../index.html', import.meta.url);
 const outputPath = new URL('../play-v2.html', import.meta.url);
+const publicBetaOutputPath = new URL('../play-v2-public-beta.html', import.meta.url);
 const promotionQaOutputPath = new URL('../play-v2-promotion-qa.html', import.meta.url);
 const ipadAnalyzeDiagnosticOutputPath = new URL('../play-v2-ipad-analyze-diagnostic.html', import.meta.url);
 
@@ -90,7 +91,9 @@ html = html
     '    <script src="js/play/post-game-core.js?v=1.1.0"></script>')
   .replace('<body data-clarity-mask>', '<body data-caissa-play-v2-entry="qa-only" data-clarity-mask>')
   .replace('</head>', '    <link rel="stylesheet" href="css/play-v2-invite-feedback.css?v=1.0.0">\n</head>')
-  .replace('</body>', '    <script src="js/play/play-v2-invite-client.js?v=1.0.0"></script>\n</body>')
+  .replace('</body>', '    <script src="js/play/play-v2-manual-qa-feedback-policy.js?v=1.0.0"></script>\n' +
+    '    <script src="js/play/play-v2-manual-qa-report.js?v=1.0.0"></script>\n' +
+    '    <script src="js/play/play-v2-invite-client.js?v=1.0.0"></script>\n</body>')
   .replace(/[ \t]+(?=\r?$)/gm, '');
 
 if (!html.includes('data-caissa-play-v2-entry="qa-only"')) throw new Error('PLAY_V2_BODY_MARKER_MISSING');
@@ -141,6 +144,22 @@ if (!/connect-src 'self';/.test(html) || /connect-src[^;]*https?:/.test(html))
   throw new Error('PLAY_V2_CONNECT_CSP_NOT_SAME_ORIGIN');
 
 await writeFile(outputPath, html);
+const publicBetaHtml = html
+  .replace('<title>CAISSA Play v2 · Internal</title>', '<title>CAISSA Play v2 · Public Beta</title>')
+  .replace('<meta name="title" content="CAISSA Play v2 · Internal">', '<meta name="title" content="CAISSA Play v2 · Public Beta">')
+  .replace('data-caissa-play-v2-entry="qa-only"', 'data-caissa-play-v2-entry="public-beta"')
+  .replace('<script src="js/play/play-v2-beta-entry.js?v=1.0.0"></script>',
+    '<script src="js/play/play-v2-public-beta-policy.js?v=1.0.0"></script>')
+  .replace(/\s*<script src="js\/play\/play-v2-invite-client\.js\?v=1\.0\.0"><\/script>/, '')
+  .replace('</body>', '    <script src="js/play/play-v2-public-beta-ui.js?v=1.0.0"></script>\n</body>')
+  .replace(/[ \t]+(?=\r?$)/gm, '');
+for (const required of ['data-caissa-play-v2-entry="public-beta"', 'play-v2-public-beta-policy.js',
+  'play-v2-public-beta-ui.js', 'play-v2-manual-qa-report.js']) {
+  if (!publicBetaHtml.includes(required)) throw new Error(`PLAY_V2_PUBLIC_BETA_BUILD_MISSING: ${required}`);
+}
+if (/play-v2-beta-entry\.js|play-v2-invite-client\.js|play-v2-invite-redemption\.js/.test(publicBetaHtml))
+  throw new Error('PLAY_V2_PUBLIC_BETA_INVITE_RUNTIME_PRESENT');
+await writeFile(publicBetaOutputPath, publicBetaHtml);
 const promotionQaHtml = html
   .replace(/\s*<script[^>]+src="(?:\/js\/caissa-clarity\.js|js\/play\/analytics\/[^\"]+)"[^>]*><\/script>\r?\n/gi, '\n')
   .replace(/<title>CAISSA Play v2 .* Internal<\/title>/, '<title>CAISSA Play v2 - Internal Promotion QA</title>')
@@ -175,4 +194,4 @@ for (const required of ['Internal iPad Analyze Diagnostic', 'physical-ipad-analy
   if (!ipadAnalyzeDiagnosticHtml.includes(required)) throw new Error(`PLAY_V2_IPAD_ANALYZE_DIAGNOSTIC_BUILD_MISSING: ${required}`);
 }
 await writeFile(ipadAnalyzeDiagnosticOutputPath, ipadAnalyzeDiagnosticHtml);
-console.log('Generated play-v2.html, play-v2-promotion-qa.html, and play-v2-ipad-analyze-diagnostic.html from index.html');
+console.log('Generated Play v2 internal, public-beta, promotion, and iPad diagnostic HTML from index.html');

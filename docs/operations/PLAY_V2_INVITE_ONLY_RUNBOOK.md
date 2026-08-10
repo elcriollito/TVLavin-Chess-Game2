@@ -1,5 +1,13 @@
 # Play v2 invite-only operations runbook
 
+> **Historical only:** invite-only was superseded before deployment by direct Public Beta. Do not configure or validate Supabase invitations for the active release. Use the Public Beta stage and rollback procedure in [`PLAY_V2_PUBLIC_BETA_ARCHITECTURE.md`](../architecture/PLAY_V2_PUBLIC_BETA_ARCHITECTURE.md).
+
+## Manual issue reports
+
+Authorized testers use **Report an issue**, review the sanitized preview, then Copy or Download the JSON. They explicitly open the private feedback channel, create one message or thread per issue, and paste or attach the report. Screenshots are added only after manual privacy review. CAISSA never posts automatically and operators must not introduce a webhook, bot token, temporary Discord invite or automatic Supabase feedback call.
+
+The historical feedback endpoint is intentionally fail-closed. Do not interpret database feedback tables or RPCs as an active client transport. This change does not close the independent invitation, session, revocation, kill-switch, Preview deployment, NVDA or focal device-smoke gates.
+
 Owner: CAISSA release owner
 
 Incident backup: **REQUIRED BEFORE FIRST INVITATION**

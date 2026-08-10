@@ -4,7 +4,7 @@
       "maxDuration": 10
     },
     "api/play-beta/entry.js": {
-      "includeFiles": ["play-v2.html", "play-v2-unavailable.html"]
+      "includeFiles": ["play-v2-public-beta.html", "play-v2-unavailable.html"]
     }
   },
   "redirects": [
@@ -33,7 +33,7 @@
     { "source": "/roadmap", "destination": "/roadmap.html" },
     { "source": "/yahoo-classic", "destination": "/yahoo-classic.html" },
     { "source": "/academy", "destination": "/index.html" },
-    { "source": "/play/beta/invite", "destination": "/play-v2-invite.html" },
+    { "source": "/play/beta/invite", "destination": "/play-v2-unavailable.html" },
     { "source": "/play/beta", "destination": "/api/play-beta/entry?mode=games" },
     { "source": "/play/beta/games", "destination": "/api/play-beta/entry?mode=games" },
     { "source": "/play/beta/bots", "destination": "/api/play-beta/entry?mode=bots" },
@@ -41,6 +41,7 @@
     { "source": "/play/beta/:path*", "destination": "/play-v2-unavailable.html" },
     { "source": "/play-v2-invite.html", "destination": "/play-v2-unavailable.html" },
     { "source": "/play-v2.html", "destination": "/play-v2-unavailable.html" },
+    { "source": "/play-v2-public-beta.html", "destination": "/play-v2-unavailable.html" },
     { "source": "/play-v2-promotion-qa.html", "destination": "/play-v2-unavailable.html" },
     { "source": "/play-v2-ipad-analyze-diagnostic.html", "destination": "/play-v2-unavailable.html" },
     { "source": "/supabase/:path*", "destination": "/play-v2-unavailable.html" },

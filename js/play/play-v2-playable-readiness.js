@@ -49,15 +49,19 @@
         const game = root.App?.game;
         const engine = root.App?.engine;
         const beta = root.CaissaPlayV2BetaEntry;
+        const publicBeta = root.CaissaPlayV2PublicBetaPolicy;
         const internalEntry = beta?.contractId === 'PlayV2BetaEntry@1.0.0'
             && (route?.metadata?.betaEntry === true || route?.query?.simplified === '1');
+        const publicEntry = publicBeta?.contractId === 'PlayV2PublicBetaPolicy@1.0.0'
+            && root.document?.body?.dataset?.caissaPlayV2Entry === 'public-beta'
+            && route?.metadata?.betaEntry === true;
         const timeValid = Number.isInteger(selection.seconds) && selection.seconds > 0
             && Number.isInteger(selection.incrementSeconds) && selection.incrementSeconds >= 0;
         const modeValid = selection.mode === 'games'
             && root.CaissaPlayV2ProductBoundary?.isModeAllowed?.('games') === true
             && root.CaissaPlayV2FicsIsolation?.isModeAllowed?.('games') === true;
         const probes = {
-            entryGate: internalEntry,
+            entryGate: internalEntry || publicEntry,
             shell: !!root.document?.querySelector?.('[data-caissa-simplified-shell]'),
             primaryBoardCount: boardNodes.length === 1,
             board: !!board && ['position', 'orientation', 'resize'].every(name => typeof board[name] === 'function'),
@@ -75,7 +79,7 @@
             primaryCTA: true,
             workerRequirement: true,
             fallback: true, ficsFallback: true, educationalFallback: true, playersFallback: true,
-            analyticsTransport: beta?.analyticsTransport === 'disabled'
+            analyticsTransport: (publicEntry ? publicBeta : beta)?.analyticsTransport === 'disabled'
         };
         const failed = REQUIREMENTS.filter(name => probes[name] !== true);
         return freeze({ ready: failed.length === 0, probes, failed });

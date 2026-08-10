@@ -3,9 +3,9 @@ export const PLAY_V2_BETA_STAGE_ENV = 'CAISSA_PLAY_V2_BETA_STAGE';
 export const PLAY_V2_BETA_ENTRY = Object.freeze({
     contractId: 'PlayV2BetaEntry@1.0.0',
     canonicalRoute: '/play/beta',
-    entryDocument: 'play-v2.html',
+    entryDocument: 'play-v2-public-beta.html',
     unavailableDocument: 'play-v2-unavailable.html',
-    currentStage: 'internal',
+    currentStage: 'public-beta',
     failureMode: 'fail-closed',
     rollbackOwner: 'beta-entry-gate'
 });
@@ -33,6 +33,6 @@ export function resolvePlayV2BetaEntry(pathname, environment = {}) {
         authorized,
         document: authorized ? PLAY_V2_BETA_ENTRY.entryDocument : PLAY_V2_BETA_ENTRY.unavailableDocument,
         mode,
-        reasonCode: authorized ? 'INTERNAL_ENTRY_ALLOWED' : (enabled ? 'BETA_ROUTE_PROHIBITED' : 'BETA_ENTRY_DISABLED')
+        reasonCode: authorized ? 'PUBLIC_BETA_ENTRY_ALLOWED' : (enabled ? 'BETA_ROUTE_PROHIBITED' : 'BETA_ENTRY_DISABLED')
     });
 }
