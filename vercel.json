@@ -4,7 +4,7 @@
       "maxDuration": 10
     },
     "api/play-beta/entry.js": {
-      "includeFiles": ["play-v2-public-beta.html", "play-v2-unavailable.html"]
+      "includeFiles": "play-v2-{public-beta,unavailable}.html"
     }
   },
   "redirects": [
