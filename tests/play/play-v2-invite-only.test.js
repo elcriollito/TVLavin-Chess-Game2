@@ -123,6 +123,9 @@ test('administration is local-only, confirmation-gated, and never accepts an inv
     assert.match(source,/destructive\.has\(command\) && !flag\('confirm'\)/);
     assert.match(source,/command-line tokens are prohibited/);
     assert.doesNotMatch(source,/--token TOKEN/);
-    const endpoints=fs.readdirSync(new URL('../../api/play-beta/',import.meta.url));
-    assert.deepEqual(endpoints.sort(),['entry.js','feedback.js','logout.js','redeem.js','session.js','status.js']);
+    const deployedDirectory=new URL('../../api/play-beta/',import.meta.url);
+    const deployed=fs.existsSync(deployedDirectory)?fs.readdirSync(deployedDirectory).filter(name=>name.endsWith('.js')):[];
+    assert.deepEqual(deployed,[]);
+    const history=fs.readdirSync(new URL('../../history/play-v2-invite-only/api/play-beta/',import.meta.url));
+    assert.deepEqual(history.sort(),['entry.js','feedback.js','logout.js','redeem.js','session.js','status.js']);
 });

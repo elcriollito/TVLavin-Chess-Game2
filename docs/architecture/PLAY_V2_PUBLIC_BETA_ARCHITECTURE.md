@@ -17,3 +17,13 @@ The operational kill switch is a deployment with `CAISSA_PLAY_V2_BETA_STAGE=disa
 On page exit or reload, the public UI disposes clocks, engine requests, Worker ownership, lifecycle, board adapter and shell. The unavailable document contains no runtime. Release authority controls the Vercel environment and deployment/rollback operation; incident response records time, affected route, decision owner, verification and reopening evidence without report content or secrets.
 
 The invite-only implementation and three Supabase migrations remain unmodified technical history. They were not deployed for this release path. Incomplete invite concurrency work is preserved as historical, not a Public Beta gate.
+
+## Vercel Hobby deployment ownership
+
+`PlayV2BetaEntry@1.0.0` is enforced by the existing Vercel middleware rather than a new Serverless Function. The middleware matches only the beta namespace and the historical beta API namespace in addition to its pre-existing owners. It evaluates the exact case-sensitive deployment stage before selecting a document, returns the generated public document only for the four allowlisted routes, and returns the runtime-free unavailable document for every other stage or beta-shaped route. Direct generated-document rewrites remain unavailable.
+
+The six former `api/play-beta/*.js` entrypoints are preserved unchanged under `history/play-v2-invite-only/api/play-beta/`. They remain reviewable version history but are excluded from Vercel upload and cannot become routes. The middleware returns a uniform 404 for the retired API namespace without loading the historical store, Supabase, cookies, sessions, or feedback transport. This restores the deployable inventory to the 12 production API functions that preceded invite-only work; middleware is not counted as an additional Serverless Function.
+
+The generated module `api/_lib/play-v2-public-beta-document.js` is an implementation artifact owned by `scripts/build-play-v2.mjs`. It embeds the exact deterministic public and unavailable documents in the middleware bundle and is not an API entrypoint or static public route. Editing it directly is prohibited; deterministic generation must reproduce it byte-for-byte.
+
+The deployment-source boundary excludes historical code, repository-local Vercel output, test results, browser reports, coverage, logs, private keys, certificates, and QA artifacts. Local Vercel output must be audited from a clean deployment-source copy because the local CLI builds the supplied directory directly, whereas Git deployments apply `.vercelignore` before building. A recursive build from a developer worktree is not valid release-size evidence.

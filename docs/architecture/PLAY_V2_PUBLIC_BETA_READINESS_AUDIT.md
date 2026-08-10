@@ -316,3 +316,11 @@ The local server now binds to loopback by default. The documented device archite
 [`PlayV2AutomationOwnerCatalog@1.0.0`](./PLAY_V2_AUTOMATION_OWNER_CATALOG.md) separates current Season 11 acceptance from preserved historical characterization. All 17 pre-physical-QA findings have evidence-based classifications. The beta entry now reflects isolated Coach and passive policy resources; Worker assertions reflect zero before Bots Play and one after; and current mobile ownership uses the gated beta document rather than the pre-Season-11 compatibility query.
 
 The start-counter finding was a test timing race, not duplicate runtime ownership: the snapshot preceded completion of the first asynchronous start while the second activation was already rejected. Runtime behavior was unchanged. Status remains **NOT PHYSICALLY TESTED**; physical-device, named assistive-technology, evidence-review, and public-release gates remain open.
+
+## Season 11.9.3D Vercel Hobby remediation update
+
+The failed Production deployment `dpl_2GYYuLgGYMcXRipFUpeBfezga2PX` established the exact platform blocker: 18 Serverless Functions exceeded the Hobby limit of 12. The preceding schema failure had masked this deterministic quota rejection. Production remained disabled and its established aliases remained on the prior Ready deployment throughout the investigation and remediation.
+
+The direct Public Beta no longer adds a Serverless Function. The existing middleware owns exact `disabled`/`public-beta` document selection for `/play/beta`, `/play/beta/games`, `/play/beta/bots`, and `/play/beta/coach`; prohibited descendants and the retired API namespace fail closed without loading a store or transport. All six invite-only endpoint files remain unchanged as excluded architectural history. The resulting deployment inventory is 12 production API functions plus middleware.
+
+Deployment hygiene now explicitly excludes historical endpoint sources, recursive `.vercel` output, reports, coverage, logs, certificates, keys, and QA artifacts. Size verification uses a clean deployment-source copy rather than a developer worktree containing ignored local datasets. This remediation is local evidence only: Production remains `disabled`, and a release retry still requires separate authorization and a new closed-gate deployment verification.

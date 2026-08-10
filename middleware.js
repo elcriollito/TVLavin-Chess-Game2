@@ -1,11 +1,45 @@
 import { createPrivateRunOperationalConfig } from './js/endgame-trainer/v2/private-run-operational-config.js';
+import { resolvePlayV2BetaEntry } from './js/play/play-v2-beta-entry-gate.js';
+import {
+    PLAY_V2_PUBLIC_BETA_DOCUMENT,
+    PLAY_V2_UNAVAILABLE_DOCUMENT
+} from './api/_lib/play-v2-public-beta-document.js';
 
 export const config = {
-    matcher: ['/', '/api/endgame/private-run-availability']
+    matcher: ['/', '/api/endgame/private-run-availability', '/play/beta/:path*', '/api/play-beta/:path*']
 };
+
+const betaHeaders = Object.freeze({
+    'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'",
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': 'private, no-store, max-age=0',
+    'Pragma': 'no-cache',
+    'X-Robots-Tag': 'noindex, nofollow, noarchive',
+    'Referrer-Policy': 'no-referrer',
+    'X-Content-Type-Options': 'nosniff',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()'
+});
 
 export default function middleware(request) {
     const url = new URL(request.url);
+    if (url.pathname === '/api/play-beta' || url.pathname.startsWith('/api/play-beta/')) {
+        return Response.json({ error: 'PLAY_BETA_ENDPOINT_UNAVAILABLE' }, {
+            status: 404,
+            headers: { 'Cache-Control': 'private, no-store, max-age=0', 'Referrer-Policy': 'no-referrer' }
+        });
+    }
+    if (url.pathname === '/play/beta' || url.pathname.startsWith('/play/beta/')) {
+        const entry = resolvePlayV2BetaEntry(url.pathname, process.env);
+        if (request.method !== 'GET' || !entry.authorized) {
+            return new Response(PLAY_V2_UNAVAILABLE_DOCUMENT, { status: 404, headers: betaHeaders });
+        }
+        const build = /^[a-f0-9]{7,40}$/i.test(process.env.VERCEL_GIT_COMMIT_SHA || '')
+            ? process.env.VERCEL_GIT_COMMIT_SHA.toLowerCase() : 'unknown';
+        const document = PLAY_V2_PUBLIC_BETA_DOCUMENT.replace(
+            '</head>', `    <meta name="caissa-build" content="${build}">\n</head>`
+        );
+        return new Response(document, { status: 200, headers: betaHeaders });
+    }
     if (url.pathname === '/api/endgame/private-run-availability') {
         if (request.method !== 'GET') {
             return Response.json({ error: 'Method not allowed' }, {

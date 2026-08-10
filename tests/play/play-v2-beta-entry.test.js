@@ -6,6 +6,7 @@ import { load } from 'cheerio';
 import {
     PLAY_V2_BETA_ENTRY, PLAY_V2_BETA_STAGE_ENV, resolvePlayV2BetaEntry
 } from '../../js/play/play-v2-beta-entry-gate.js';
+import middleware from '../../middleware.js';
 
 const read = path => fs.readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 
@@ -52,12 +53,14 @@ test('server and hosting select direct public beta while invite landing and dire
     assert.ok(server.indexOf('resolvePlayV2BetaEntry(pathname') < server.indexOf("pathname === '/play' || pathname.startsWith('/play/')"));
     assert.deepEqual(vercel.rewrites.filter(rule => rule.source.startsWith('/play/beta')), [
         { source: '/play/beta/invite', destination: '/play-v2-unavailable.html' },
-        { source: '/play/beta', destination: '/api/play-beta/entry?mode=games' },
-        { source: '/play/beta/games', destination: '/api/play-beta/entry?mode=games' },
-        { source: '/play/beta/bots', destination: '/api/play-beta/entry?mode=bots' },
-        { source: '/play/beta/coach', destination: '/api/play-beta/entry?mode=coach' },
+        { source: '/play/beta', destination: '/play-v2-unavailable.html' },
+        { source: '/play/beta/games', destination: '/play-v2-unavailable.html' },
+        { source: '/play/beta/bots', destination: '/play-v2-unavailable.html' },
+        { source: '/play/beta/coach', destination: '/play-v2-unavailable.html' },
         { source: '/play/beta/:path*', destination: '/play-v2-unavailable.html' }
     ]);
+    assert.match(read('middleware.js'), /resolvePlayV2BetaEntry\(url\.pathname, process\.env\)/);
+    assert.match(read('middleware.js'), /PLAY_V2_PUBLIC_BETA_DOCUMENT/);
     assert.ok(vercel.rewrites.some(rule => rule.source === '/play-v2.html' && rule.destination === '/play-v2-unavailable.html'));
     assert.ok(vercel.rewrites.some(rule => rule.source === '/play-v2-public-beta.html' && rule.destination === '/play-v2-unavailable.html'));
     assert.equal(vercel.rewrites.some(rule => rule.has?.some(item => item.key === 'simplified')), false);
@@ -90,4 +93,39 @@ test('dedicated public entry excludes invite runtime and prohibited resource gra
     assert.equal(resources.filter(item => /fics/i.test(item) && !/play-v2-fics-isolation/i.test(item)).length, 0);
     assert.equal(resources.filter(item => /academy|mentor|guided[-_/]?replay|knowledge|training[-_/]?memory|mastery|endgame[-_/]?(?:trainer|library)|players|onboarding|js\/play\/coach\//i.test(item)
         && !/play-v2-(?:mentor-review-boundary|native-players-policy|players-presentation-policy)/i.test(item)).length, 0);
+});
+
+test('edge middleware owns the public document and fails closed for every other stage and beta endpoint', async () => {
+    const previousStage = process.env.CAISSA_PLAY_V2_BETA_STAGE;
+    const previousSha = process.env.VERCEL_GIT_COMMIT_SHA;
+    try {
+        process.env.CAISSA_PLAY_V2_BETA_STAGE = 'disabled';
+        let response = middleware(new Request('https://www.caissa-chess.org/play/beta'));
+        assert.equal(response.status, 404);
+        assert.match(await response.text(), /Play Beta Unavailable/);
+
+        process.env.CAISSA_PLAY_V2_BETA_STAGE = 'public-beta';
+        process.env.VERCEL_GIT_COMMIT_SHA = '8426d0371ff68d4afe81d5be9bc8cfa64f4507f1';
+        for (const path of ['/play/beta', '/play/beta/games', '/play/beta/bots', '/play/beta/coach']) {
+            response = middleware(new Request(`https://www.caissa-chess.org${path}`));
+            const body = await response.text();
+            assert.equal(response.status, 200, path);
+            assert.match(body, /data-caissa-play-v2-entry="public-beta"/);
+            assert.match(body, /name="caissa-build" content="8426d0371ff68d4afe81d5be9bc8cfa64f4507f1"/);
+            assert.match(response.headers.get('Content-Security-Policy'), /connect-src 'self'/);
+        }
+        for (const path of ['/play/beta/players', '/play/beta/invite', '/play/beta/qa/promotion', '/play/beta/nope']) {
+            response = middleware(new Request(`https://www.caissa-chess.org${path}`));
+            assert.equal(response.status, 404, path);
+            assert.match(await response.text(), /Play Beta Unavailable/);
+        }
+        response = middleware(new Request('https://www.caissa-chess.org/api/play-beta/status'));
+        assert.equal(response.status, 404);
+        assert.deepEqual(await response.json(), { error: 'PLAY_BETA_ENDPOINT_UNAVAILABLE' });
+    } finally {
+        if (previousStage === undefined) delete process.env.CAISSA_PLAY_V2_BETA_STAGE;
+        else process.env.CAISSA_PLAY_V2_BETA_STAGE = previousStage;
+        if (previousSha === undefined) delete process.env.VERCEL_GIT_COMMIT_SHA;
+        else process.env.VERCEL_GIT_COMMIT_SHA = previousSha;
+    }
 });

@@ -2,9 +2,6 @@
   "functions": {
     "api/stripe/webhook.js": {
       "maxDuration": 10
-    },
-    "api/play-beta/entry.js": {
-      "includeFiles": "play-v2-{public-beta,unavailable}.html"
     }
   },
   "redirects": [
@@ -34,10 +31,10 @@
     { "source": "/yahoo-classic", "destination": "/yahoo-classic.html" },
     { "source": "/academy", "destination": "/index.html" },
     { "source": "/play/beta/invite", "destination": "/play-v2-unavailable.html" },
-    { "source": "/play/beta", "destination": "/api/play-beta/entry?mode=games" },
-    { "source": "/play/beta/games", "destination": "/api/play-beta/entry?mode=games" },
-    { "source": "/play/beta/bots", "destination": "/api/play-beta/entry?mode=bots" },
-    { "source": "/play/beta/coach", "destination": "/api/play-beta/entry?mode=coach" },
+    { "source": "/play/beta", "destination": "/play-v2-unavailable.html" },
+    { "source": "/play/beta/games", "destination": "/play-v2-unavailable.html" },
+    { "source": "/play/beta/bots", "destination": "/play-v2-unavailable.html" },
+    { "source": "/play/beta/coach", "destination": "/play-v2-unavailable.html" },
     { "source": "/play/beta/:path*", "destination": "/play-v2-unavailable.html" },
     { "source": "/play-v2-invite.html", "destination": "/play-v2-unavailable.html" },
     { "source": "/play-v2.html", "destination": "/play-v2-unavailable.html" },

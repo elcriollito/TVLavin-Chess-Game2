@@ -48,6 +48,7 @@ const protectedDirectories = [
   'endgame-pools/private/',
   'experimental/',
   'gateway/',
+  'history/',
   'knowledge/authoring/',
   'knowledge/consumer/',
   'knowledge/domains/',

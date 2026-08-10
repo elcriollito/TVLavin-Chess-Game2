@@ -71,7 +71,9 @@ test('canonical route and legacy query state consolidate without sitemap duplica
   const middleware = read('middleware.js');
   // The original single-root matcher was replaced when the existing edge
   // middleware became the server-evaluated private availability endpoint.
-  assert.deepEqual(middlewareConfig.matcher, ['/', '/api/endgame/private-run-availability']);
+  assert.deepEqual(middlewareConfig.matcher, [
+    '/', '/api/endgame/private-run-availability', '/play/beta/:path*', '/api/play-beta/:path*'
+  ]);
   assert.match(middleware, /searchParams\.get\('section'\) !== 'yahooClassic'/);
   assert.match(server, /searchParams\.get\('section'\) === 'yahooClassic'/);
   assert.match(server, /pathname === '\/yahoo-classic'[\s\S]*filePath = '\.\/yahoo-classic\.html'/);
