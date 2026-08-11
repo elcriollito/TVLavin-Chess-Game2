@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-import mentorChatHandler from '../api/mentor/chat.js';
+import { createMentorChatHandler } from '../api/mentor/chat.js';
 
 const VALID_MESSAGES = [{ role: 'user', content: 'Test request' }];
 
@@ -21,15 +21,15 @@ function createResponse() {
 async function invoke(body, fetchImpl = async () => {
     throw new Error('Unexpected outbound fetch');
 }) {
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = fetchImpl;
     const res = createResponse();
-    try {
-        await mentorChatHandler({ method: 'POST', headers: {}, body }, res);
-        return res;
-    } finally {
-        globalThis.fetch = originalFetch;
-    }
+    const db = { async rpc(name) {
+        if (name === 'claim_mentor_capacity') return { data: [{ allowed: true, lease_id: '00000000-0000-4000-8000-000000000099', remaining: 5 }], error: null };
+        if (name === 'release_mentor_capacity') return { data: true, error: null };
+        throw new Error(`Unexpected RPC ${name}`);
+    } };
+    const handler = createMentorChatHandler({ authenticate: async () => ({ authenticated: true, userId: 'synthetic_user' }), db, fetchImpl, env: { MENTOR_RATE_LIMIT_SECRET: 's'.repeat(32) } });
+    await handler({ method: 'POST', headers: {}, body }, res);
+    return res;
 }
 
 for (const endpoint of [
@@ -48,7 +48,7 @@ for (const endpoint of [
         }, async () => { fetchCalls += 1; });
 
         assert.equal(res.statusCode, 400);
-        assert.equal(res.payload.code, 'CUSTOM_PROVIDER_DISABLED');
+        assert.ok(['INVALID_PROVIDER', 'UNKNOWN_FIELD'].includes(res.payload.code));
         assert.equal(fetchCalls, 0);
         assert.doesNotMatch(JSON.stringify(res.payload), /TEST_SECRET_DO_NOT_USE|example\.invalid|127\.0\.0\.1|169\.254\.169\.254|10\.0\.0\.1/);
     });
@@ -63,7 +63,7 @@ test('unknown provider is rejected without fallback or outbound fetch', async ()
     }, async () => { fetchCalls += 1; });
 
     assert.equal(res.statusCode, 400);
-    assert.equal(res.payload.code, 'UNKNOWN_PROVIDER');
+    assert.equal(res.payload.code, 'INVALID_PROVIDER');
     assert.equal(fetchCalls, 0);
 });
 
@@ -72,7 +72,7 @@ test('local provider cannot make a server-side loopback request', async () => {
     const res = await invoke({ provider: 'local', messages: VALID_MESSAGES }, async () => { fetchCalls += 1; });
 
     assert.equal(res.statusCode, 400);
-    assert.equal(res.payload.code, 'LOCAL_PROVIDER_DISABLED');
+    assert.equal(res.payload.code, 'INVALID_PROVIDER');
     assert.equal(fetchCalls, 0);
 });
 
@@ -80,8 +80,8 @@ test('OpenAI BYO maps to its fixed endpoint, ignores endpoint input, and rejects
     const calls = [];
     const res = await invoke({
         provider: 'openai',
-        endpoint: 'https://example.invalid/steal',
         apiKey: 'TEST_SECRET_DO_NOT_USE',
+        model: 'gpt-4o-mini',
         messages: VALID_MESSAGES
     }, async (...args) => {
         calls.push(args);
@@ -100,8 +100,8 @@ test('Anthropic BYO uses only the fixed endpoint and provider-specific key heade
     const calls = [];
     await invoke({
         provider: 'anthropic',
-        endpoint: 'http://10.0.0.1/',
         apiKey: 'TEST_SECRET_DO_NOT_USE',
+        model: 'claude-3-5-haiku-20241022',
         messages: VALID_MESSAGES
     }, async (...args) => {
         calls.push(args);
@@ -122,8 +122,8 @@ for (const [provider, expectedEndpoint] of [
         const calls = [];
         await invoke({
             provider,
-            endpoint: 'https://example.invalid/steal',
             apiKey: 'TEST_SECRET_DO_NOT_USE',
+            model: provider === 'together' ? 'meta-llama/Llama-3.3-70B-Instruct-Turbo' : 'llama-4-scout-17b-16e-instruct',
             messages: VALID_MESSAGES
         }, async (...args) => {
             calls.push(args);

@@ -1,0 +1,46 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { validateMentorRequest, MENTOR_LIMITS } from '../api/_lib/mentor-request-policy.js';
+import { createMentorChatHandler } from '../api/mentor/chat.js';
+
+const sharedModel = 'synthetic/shared-model';
+const valid = () => ({ provider: 'together', apiKey: null, messages: [{ role: 'user', content: 'Explain this position.' }], model: null, maxTokens: 500, temperature: 0.5, engineReport: null });
+const response = () => ({ statusCode: 200, headers: {}, setHeader(k,v){this.headers[k]=v;}, status(n){this.statusCode=n;return this;}, json(v){this.payload=v;return this;}, end(){return this;} });
+
+test('valid normal request is accepted and bounded', () => { const r=validateMentorRequest(valid(),sharedModel); assert.equal(r.ok,true); assert.equal(r.value.model,sharedModel); });
+test('message count limit is accepted', () => { const b=valid(); b.messages=Array.from({length:MENTOR_LIMITS.messages},()=>({role:'user',content:'x'})); assert.equal(validateMentorRequest(b,sharedModel).ok,true); });
+test('one message over limit is rejected', () => { const b=valid(); b.messages=Array.from({length:MENTOR_LIMITS.messages+1},()=>({role:'user',content:'x'})); assert.equal(validateMentorRequest(b,sharedModel).ok,false); });
+test('oversized message is rejected', () => { const b=valid(); b.messages[0].content='x'.repeat(MENTOR_LIMITS.messageChars+1); assert.equal(validateMentorRequest(b,sharedModel).code,'INVALID_MESSAGE'); });
+test('oversized aggregate is rejected', () => { const b=valid(); b.messages=Array.from({length:4},()=>({role:'user',content:'x'.repeat(11000)})); assert.equal(validateMentorRequest(b,sharedModel).status,413); });
+test('oversized engine report is rejected', () => { const b=valid(); b.engineReport='x'.repeat(MENTOR_LIMITS.engineReportBytes+1); assert.equal(validateMentorRequest(b,sharedModel).status,413); });
+test('invalid provider is rejected', () => { const b=valid(); b.provider='custom'; assert.equal(validateMentorRequest(b,sharedModel).code,'INVALID_PROVIDER'); });
+test('invalid BYO model is rejected', () => { const b=valid(); b.apiKey='synthetic'; b.model='expensive-unlisted-model'; assert.equal(validateMentorRequest(b,sharedModel).code,'INVALID_MODEL'); });
+test('extreme maxTokens is clamped', () => { const b=valid(); b.maxTokens=999999; assert.equal(validateMentorRequest(b,sharedModel).value.maxTokens,MENTOR_LIMITS.sharedMaxTokens); });
+for (const value of [-1, NaN, '1024']) test(`invalid maxTokens ${String(value)} is rejected`, () => { const b=valid(); b.maxTokens=value; assert.equal(validateMentorRequest(b,sharedModel).code,'INVALID_MAX_TOKENS'); });
+test('invalid temperature is rejected', () => { const b=valid(); b.temperature=9; assert.equal(validateMentorRequest(b,sharedModel).code,'INVALID_TEMPERATURE'); });
+test('unknown fields are rejected', () => { const b=valid(); b.endpoint='https://evil.example'; assert.equal(validateMentorRequest(b,sharedModel).code,'UNKNOWN_FIELD'); });
+test('one leading system message is allowed for current Mentor UX', () => { const b=valid(); b.messages.unshift({role:'system',content:'Synthetic chess guidance'}); assert.equal(validateMentorRequest(b,sharedModel).ok,true); });
+test('arbitrary roles are rejected', () => { for(const role of ['tool','admin']) { const b=valid(); b.messages[0].role=role; assert.equal(validateMentorRequest(b,sharedModel).code,'INVALID_MESSAGE'); } });
+test('system messages are limited to one leading entry', () => { const b=valid(); b.messages.push({role:'system',content:'late'}); assert.equal(validateMentorRequest(b,sharedModel).code,'INVALID_MESSAGE'); });
+test('malformed body is rejected', () => assert.equal(validateMentorRequest('{bad json',sharedModel).code,'INVALID_REQUEST'));
+test('proxied streaming request is rejected', () => { const b=valid(); b.stream=true; assert.equal(validateMentorRequest(b,sharedModel).code,'STREAMING_PROXY_DISABLED'); });
+
+function mockDb({ claim=true, credit=true, premium=false, calls=[] }={}) { return { async rpc(name) { calls.push(name); if(name==='claim_mentor_capacity') return claim ? {data:[{allowed:true,lease_id:'00000000-0000-4000-8000-000000000077',remaining:5}],error:null}:{data:null,error:new Error('down')}; if(name==='consume_credits') return {data:[credit?{success:true,new_balance:4,message:premium?'Premium user - no deduction':'Credits consumed'}:{success:false,new_balance:0,message:'Insufficient credits'}],error:null}; if(name==='release_mentor_capacity') return {data:true,error:null}; throw new Error(name); } }; }
+async function invoke({ body=valid(), authenticated=true, db=mockDb(), fetchImpl, env={} }={}) { const res=response(); const handler=createMentorChatHandler({authenticate:async()=>({authenticated,userId:'synthetic_user'}),db,fetchImpl:fetchImpl||(async()=>({ok:true,json:async()=>({choices:[{message:{content:'ok'}}]})})),env:{MENTOR_RATE_LIMIT_SECRET:'r'.repeat(32),TOGETHER_API_KEY:'synthetic-shared-key',...env}}); await handler({method:'POST',headers:{},body},res); return res; }
+
+for (const provider of ['together','openai','anthropic','llama']) test(`anonymous proxied ${provider} is denied`, async()=>{const b=valid();b.provider=provider;if(provider!=='together'){b.apiKey='synthetic';b.model={openai:'gpt-4o-mini',anthropic:'claude-3-5-haiku-20241022',llama:'llama-4-scout-17b-16e-instruct'}[provider];} assert.equal((await invoke({body:b,authenticated:false})).statusCode,401);});
+test('oversized HTTP body returns 413 before authentication', async()=>{let auth=0;const res=response();const h=createMentorChatHandler({authenticate:async()=>{auth++;return{authenticated:true}},db:null,env:{}});await h({method:'POST',headers:{'content-length':String(MENTOR_LIMITS.httpBodyBytes+1)},body:{}},res);assert.equal(res.statusCode,413);assert.equal(auth,0);});
+test('limiter database failure fails closed', async()=>assert.equal((await invoke({db:mockDb({claim:false})})).statusCode,503));
+test('rate-limited request does not consume credit', async()=>{const calls=[];const db={rpc:async(name)=>{calls.push(name);return name==='claim_mentor_capacity'?{data:[{allowed:false,code:'RATE_LIMITED',retry_after_seconds:9}],error:null}:{data:null,error:null};}};const r=await invoke({db});assert.equal(r.statusCode,429);assert.equal(r.headers['Retry-After'],'9');assert.doesNotMatch(calls.join(','),/consume_credits/);});
+test('invalid request does not consume credit or capacity', async()=>{const calls=[];const b=valid();b.extra=true;const r=await invoke({body:b,db:mockDb({calls})});assert.equal(r.statusCode,400);assert.deepEqual(calls,[]);});
+test('accepted shared request consumes exactly one credit after capacity', async()=>{const calls=[];const r=await invoke({db:mockDb({calls})});assert.equal(r.statusCode,200);assert.deepEqual(calls,['claim_mentor_capacity','consume_credits','release_mentor_capacity']);});
+test('provider is not invoked without credit', async()=>{let fetched=0;const r=await invoke({db:mockDb({credit:false}),fetchImpl:async()=>{fetched++;}});assert.equal(r.statusCode,402);assert.equal(fetched,0);});
+test('premium remains subject to capacity limit', async()=>{const calls=[];await invoke({db:mockDb({premium:true,calls})});assert.equal(calls[0],'claim_mentor_capacity');});
+test('BYO is authenticated and rate limited but consumes no credit', async()=>{const calls=[];const b=valid();b.provider='openai';b.apiKey='synthetic-byo';b.model='gpt-4o-mini';const r=await invoke({body:b,db:mockDb({calls})});assert.equal(r.statusCode,200);assert.deepEqual(calls,['claim_mentor_capacity','release_mentor_capacity']);});
+test('shared server kill switch fails before capacity', async()=>assert.equal((await invoke({env:{MENTOR_SHARED_AI_ENABLED:'false'}})).statusCode,503));
+test('server shared model configuration is also allowlisted', async()=>assert.equal((await invoke({env:{TOGETHER_MODEL:'unlisted-expensive-model'}})).statusCode,503));
+test('provider errors are generic and lease is released', async()=>{const calls=[];const r=await invoke({db:mockDb({calls}),fetchImpl:async()=>({ok:false,json:async()=>({error:{message:'secret upstream detail'}})})});assert.equal(r.statusCode,502);assert.equal(r.payload.code,'PROVIDER_ERROR');assert.doesNotMatch(JSON.stringify(r.payload),/secret upstream/);assert.equal(calls.at(-1),'release_mentor_capacity');});
+test('legacy executable Mentor proxy is retired',()=>{const source=fs.readFileSync('server.js','utf8');assert.match(source,/pathname === '\/api\/mentor\/chat'[\s\S]{0,300}MENTOR_PROXY_RETIRED/);});
+test('authoritative Mentor limiter has no process-local Map',()=>{const source=fs.readFileSync('api/mentor/chat.js','utf8')+fs.readFileSync('api/_lib/mentor-capacity.js','utf8');assert.doesNotMatch(source,/new Map\(|globalThis\.rateLimit|checkRateLimit/);});
+test('client model choices contain no models rejected by server policy',()=>{const source=fs.readFileSync('llm-provider.js','utf8');for(const pattern of [/['"]gpt-4o['"]/,/gpt-4-turbo/,/claude-sonnet-4-20250514/,/Llama-4-Maverick/])assert.doesNotMatch(source,pattern);});

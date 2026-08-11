@@ -49,7 +49,8 @@ Baseline: `0c3c1599ad47aae9477db863146bd3909020355d`
 - Evidence: Mentor imports rate limiting but never calls it; anonymous BYO is permitted; `maxTokens`, supported model choice and temperature pass through without numeric caps; aggregate content can approach 5 MB; limiter storage is a module `Map`.
 - Attack: anonymous or distributed clients submit repeated large proxy requests; authenticated shared clients request excessive output.
 - Impact: CAISSA serverless bandwidth/CPU exhaustion and potentially increased CAISSA provider spend in shared mode. BYO provider spend belongs to the user.
-- Remediation/task: authenticated or tightly rate-limited BYO, durable per-IP/user/provider budgets, body/concurrency limits, strict schemas, fixed/capped shared parameters.
+- Local remediation: all proxied shared and BYO Mentor modes require verified identity and pass a strict bounded schema. PostgreSQL UTC counters and expiring leases enforce user/global frequency and concurrency across serverless instances. Shared use remains behind SEC-006 credits; Premium and BYO remain abuse-limited. The legacy Node proxy is retired; direct browser-to-provider streaming is separately documented.
+- Remediation status: SEC-007, SEC-008 and SEC-009 remediated locally; migration deployment and production verification remain required. See `SEC-007_MENTOR_ANONYMOUS_ABUSE_CONTROLS.md`, `SEC-008_AI_INPUT_COST_CONTROLS.md`, and `SEC-009_DISTRIBUTED_RATE_LIMITING.md`.
 
 ### SEC-010 — Webhook idempotency race/fail-open
 

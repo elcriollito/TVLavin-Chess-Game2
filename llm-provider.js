@@ -35,7 +35,7 @@ const LLMProvider = {
         together: {
             name: 'Together.ai',
             endpoint: 'https://api.together.xyz/v1/chat/completions',
-            models: ['meta-llama/Llama-3.3-70B-Instruct-Turbo', 'meta-llama/Llama-4-Scout-17B-16E-Instruct', 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8'],
+            models: ['meta-llama/Llama-3.3-70B-Instruct-Turbo', 'meta-llama/Llama-4-Scout-17B-16E-Instruct'],
             defaultModel: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
             supportsSharedApi: true, // Only Together.ai supports shared API
             formatRequest: (messages, config) => ({
@@ -58,7 +58,7 @@ const LLMProvider = {
         llama: {
             name: 'Meta Llama',
             endpoint: 'https://api.llama.com/v1/chat/completions', // Meta's official API
-            models: ['llama-4-scout-17b-16e-instruct', 'llama-4-maverick-17b-128e-instruct', 'llama-3.3-70b-instruct'],
+            models: ['llama-4-scout-17b-16e-instruct', 'llama-3.3-70b-instruct'],
             defaultModel: 'llama-4-scout-17b-16e-instruct',
             supportsSharedApi: false,
             formatRequest: (messages, config) => ({
@@ -80,7 +80,7 @@ const LLMProvider = {
         openai: {
             name: 'OpenAI',
             endpoint: 'https://api.openai.com/v1/chat/completions',
-            models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+            models: ['gpt-4o-mini'],
             defaultModel: 'gpt-4o-mini', // Cost-effective default
             supportsSharedApi: false,
             formatRequest: (messages, config) => ({
@@ -102,8 +102,8 @@ const LLMProvider = {
         anthropic: {
             name: 'Anthropic Claude',
             endpoint: 'https://api.anthropic.com/v1/messages',
-            models: ['claude-sonnet-4-20250514', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'],
-            defaultModel: 'claude-sonnet-4-20250514', // Current recommended model
+            models: ['claude-3-5-haiku-20241022', 'claude-3-5-sonnet-20241022'],
+            defaultModel: 'claude-3-5-haiku-20241022',
             supportsSharedApi: false,
             formatRequest: (messages, config) => {
                 // Claude uses a different format - separate system from messages
@@ -271,7 +271,7 @@ const LLMProvider = {
         const temperature = options.temperature ?? this.config.temperature;
 
         // Get auth token if user is signed in
-        const authToken = window.CaissaAuth?.getToken?.() || null;
+        const authToken = await window.CAISSA_AUTH?.getToken?.() || null;
 
         try {
             const headers = { 'Content-Type': 'application/json' };
@@ -286,7 +286,7 @@ const LLMProvider = {
                     provider: this.config.provider,
                     apiKey: this.config.apiKey || null,
                     messages: messages,
-                    model: this.config.model,
+                    model: this.config.apiKey ? this.config.model : null,
                     maxTokens: this.config.maxTokens,
                     temperature: temperature,
                     engineReport: options.engineReport || null

@@ -122,7 +122,7 @@ function handleHealthCheck(res) {
   res.end(JSON.stringify({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    endpoints: ['/api/health', '/api/lichess/games', '/api/mentor/chat']
+    endpoints: ['/api/health', '/api/lichess/games']
   }));
 }
 
@@ -390,7 +390,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === '/api/mentor/chat') {
-    await handleMentorChat(req, res);
+    res.writeHead(410, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ code: 'MENTOR_PROXY_RETIRED', error: 'Use the authenticated serverless Mentor API.' }));
     return;
   }
 
