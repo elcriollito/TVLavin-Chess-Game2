@@ -1,0 +1,30 @@
+[
+  {
+    "clerk_id": "LEGACY_A",
+    "email": "updated@invalid.example",
+    "stripe_customer_id": "SYNTHETIC_CUSTOMER_A",
+    "is_premium": true,
+    "credits": 50
+  },
+  {
+    "clerk_id": "LEGACY_B",
+    "email": "free-user@invalid.example",
+    "stripe_customer_id": null,
+    "is_premium": false,
+    "credits": 3
+  },
+  {
+    "clerk_id": "LEGACY_C",
+    "email": "collision@invalid.example",
+    "stripe_customer_id": null,
+    "is_premium": false,
+    "credits": 5
+  },
+  {
+    "clerk_id": "PROD_D_SYNC",
+    "email": null,
+    "stripe_customer_id": null,
+    "is_premium": false,
+    "credits": 1
+  }
+]

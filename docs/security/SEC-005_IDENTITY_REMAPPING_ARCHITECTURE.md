@@ -20,7 +20,18 @@ Clerk authenticates the human; `users.id` owns the CAISSA account. Remapping cha
 | `resolve_clerk_identity_for_sync` | Classifies subjects as bound, migration-required, approved-new or unresolved. |
 | `provision_approved_clerk_identity` | Atomically creates a genuinely new account only after a server-side approval decision. |
 
-All tables use RLS without browser policies. Table access and function execution are revoked from `anon` and `authenticated`; RPC execution is granted only to `service_role`. The migration is additive and has not been applied.
+All tables use RLS without browser policies. Table access and function execution are revoked from `anon` and `authenticated`; RPC execution is granted only to `service_role`. The migration is additive and has not been applied to production.
+
+## PostgreSQL rehearsal evidence
+
+Task 12.2.2A applied the authoritative base and library schemas plus the SEC-005 migration to an explicitly isolated, empty Supabase PostgreSQL 17.6 database. Real RPC execution found two PostgreSQL compatibility defects, both corrected without weakening authorization or constraints:
+
+- Supabase installs `pgcrypto.digest` in `extensions`, which is intentionally absent from fixed `search_path=public`; hashing now uses schema-qualified built-in `pg_catalog.sha256(pg_catalog.convert_to(...))`.
+- The activation function's unqualified legacy-binding `user_id` conflicted with its `RETURNS TABLE` output parameter; the table reference is now explicitly aliased.
+
+After reapplication, 15/15 real-database checks passed. The corrected migration also reapplied successfully. PostgreSQL catalogs confirmed four identity tables with RLS enabled and zero policies, and five `SECURITY DEFINER` functions owned by `postgres`, fixed to `search_path=public`, denied to PUBLIC/`anon`/`authenticated`, and executable only by `service_role`.
+
+The rehearsal proved one-success/one-safe-failure concurrent activation, single-use challenge consumption, expiry/token/subject rejection, target collision atomicity, audit-failure rollback, UUID/economic/Stripe/child preservation, authorized rollback, unauthorized rollback denial, and migration-aware sync against real RPCs. Full evidence is in `SEC-005_MIGRATION_REHEARSAL_REPORT.md`.
 
 ## Binding states
 
@@ -136,10 +147,10 @@ It does not connect to production or print raw identifiers. No production data a
 ## Remaining prerequisites
 
 - review production count report and resolve constraint conflicts;
-- apply the migration in isolated staging, then production through an approved DB release;
+- apply the corrected migration to production only through an approved DB release;
 - implement independently configured legacy/production Clerk token verification endpoints;
 - implement privileged recovery tooling;
 - create production enrollment decisions from a trusted lifecycle process;
-- rehearse subject mapping, rollback and Stripe test-mode behavior;
+- rehearse Clerk verifier and Stripe test-mode network behavior after isolated credentials exist;
 - resolve SEC-011 redirect validation before live auth cutover;
 - install environment-specific live keys only in the later cutover release.

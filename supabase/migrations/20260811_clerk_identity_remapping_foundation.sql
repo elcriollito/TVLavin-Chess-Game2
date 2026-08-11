@@ -122,7 +122,7 @@ begin
     proof_method, expires_at
   ) values (
     p_user_id, v_binding.id, p_token_hash,
-    encode(digest(p_expected_new_subject, 'sha256'), 'hex'),
+    pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(p_expected_new_subject, 'UTF8')), 'hex'),
     p_proof_method, p_expires_at
   ) returning id into v_challenge_id;
 
@@ -167,7 +167,7 @@ begin
     return;
   end if;
 
-  if encode(digest(p_new_external_subject, 'sha256'), 'hex') <> v_challenge.expected_new_subject_hash then
+  if pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(p_new_external_subject, 'UTF8')), 'hex') <> v_challenge.expected_new_subject_hash then
     return query select false, 'NEW_SUBJECT_MISMATCH'::text, null::uuid, null::uuid;
     return;
   end if;
@@ -175,10 +175,10 @@ begin
   perform 1 from public.users where id = v_challenge.user_id for update;
 
   select * into v_legacy
-  from public.identity_bindings
-  where id = v_challenge.legacy_binding_id
-    and user_id = v_challenge.user_id
-    and status = 'ACTIVE'
+  from public.identity_bindings b
+  where b.id = v_challenge.legacy_binding_id
+    and b.user_id = v_challenge.user_id
+    and b.status = 'ACTIVE'
   for update;
 
   if v_legacy.id is null then
@@ -280,7 +280,7 @@ security definer
 set search_path = public
 as $$
 declare
-  v_subject_hash text := encode(digest(p_external_subject, 'sha256'), 'hex');
+  v_subject_hash text := pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(p_external_subject, 'UTF8')), 'hex');
 begin
   return query
   select 'BOUND'::text, b.user_id

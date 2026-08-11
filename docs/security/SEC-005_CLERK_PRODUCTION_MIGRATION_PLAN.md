@@ -68,7 +68,7 @@ old Clerk subject
 → proof method / approval / timestamp / rollback state
 ```
 
-The local foundation now provides the binding ledger, hashed single-use challenge, explicit new-user enrollment decision, audit ledger, atomic activation/rollback RPCs and a dormant migration-aware sync gate. Production application remains prohibited until the read-only data-quality report and isolated rehearsal pass.
+The local foundation now provides the binding ledger, hashed single-use challenge, explicit new-user enrollment decision, audit ledger, atomic activation/rollback RPCs and a dormant migration-aware sync gate. The core PostgreSQL rehearsal passed on isolated Supabase PostgreSQL 17.6 in Task 12.2.2A after two minimal compatibility fixes documented in `SEC-005_MIGRATION_REHEARSAL_REPORT.md`. Production application remains prohibited until the read-only data-quality report and all remaining cutover tooling gates pass.
 
 ## Strategy evaluation
 
@@ -153,11 +153,11 @@ Production must not be the first end-to-end migration test.
 | New signup | Creates exactly one new internal row | Pending |
 | Sign-in/sign-out | Correct redirects and session clearing | Pending |
 | Session refresh/revocation | Live token accepted; invalid token rejected | Pending |
-| Free user | Same credits, role and library | Pending mapping |
-| Premium user | Same premium flag and Stripe customer | Pending mapping |
-| User with credits | Exact balance/event ownership retained | Pending mapping |
-| Saved library data | Same internal UUID and all objects retained | Pending mapping |
-| Stripe subscriber | Renewal/deletion resolve same internal row | Pending test-mode webhook |
+| Free user | Same credits, role and library | PostgreSQL remap/concurrency passed; live verifier pending |
+| Premium user | Same premium flag and Stripe customer | PostgreSQL preservation passed |
+| User with credits | Exact balance/event ownership retained | PostgreSQL preservation passed |
+| Saved library data | Same internal UUID and all objects retained | PostgreSQL preservation passed |
+| Stripe subscriber | Renewal/deletion resolve same internal row | DB lookup continuity passed; Stripe test-mode webhook pending |
 | In-flight checkout | Old-subject metadata safely drained or resolved | Pending design choice |
 | Account deletion | Approved retention/deletion policy, no accidental cross-account deletion | Pending policy |
 | Backend APIs | New live JWT subject resolves correct row | Pending |
@@ -203,4 +203,4 @@ All gates are mandatory:
 
 ## Readiness verdict
 
-The local remapping foundation is implemented and tested, but production schema application, data classification, privileged recovery tooling, environment-specific token verification endpoints, rehearsal and operational mapping are not complete. Live credentials must not be switched yet. SEC-005 remains in remediation until Strategy B is rehearsed and production-verified.
+The corrected remapping foundation has passed a real isolated PostgreSQL rehearsal, including concurrency, RLS, rollback, collision and preservation checks. Production schema application, production data classification, privileged recovery tooling, independently configured Clerk token verification endpoints and trusted new-user enrollment authority remain incomplete. Live credentials must not be switched yet. SEC-005 remains in remediation until Strategy B is production-ready and production-verified.
