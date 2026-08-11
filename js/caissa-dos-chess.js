@@ -433,7 +433,7 @@ const CaissaDOSChess = {
 
             // Create Dos instance
             this.dosInstance = new this.Dos(canvasContainer, {
-                wdosboxUrl: 'https://cdn.jsdelivr.net/npm/js-dos@8/dist/wdosbox.wasm.js',
+                wdosboxUrl: 'https://cdn.jsdelivr.net/npm/js-dos@8.3.20/dist/wdosbox.wasm.js',
             });
 
             const bundleUrl = new URL(game.zipPath, window.location.origin).toString();

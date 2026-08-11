@@ -56,8 +56,8 @@ test('library rules factory honors the Board API empty-FEN contract', () => {
 });
 
 test('board assets use the proven trainer strategy in dependency order', () => {
-  const jquery = 'https://code.jquery.com/jquery-3.6.0.min.js';
-  const chessboard = 'https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js';
+  const jquery = '/assets/vendor/jquery/jquery-3.6.0.min.js';
+  const chessboard = '/assets/vendor/chessboard.js/chessboard-1.0.0.min.js';
   assert.match(html, /\/assets\/css\/chessboard-1\.0\.0\.min\.css/);
   assert.match(html, new RegExp(jquery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.match(html, new RegExp(chessboard.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));

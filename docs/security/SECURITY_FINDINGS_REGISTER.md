@@ -16,7 +16,7 @@ Baseline: `0c3c1599ad47aae9477db863146bd3909020355d`
 | SEC-010 | Medium | High | Stripe fulfillment idempotency is TOCTOU and fails open | CWE-367/CWE-841 | API6:2023 | REMEDIATED LOCALLY |
 | SEC-011 | Medium | High | Sign-in/sign-up accept unvalidated post-auth redirect URLs | CWE-601 | A01:2021 | CONFIRMED |
 | SEC-012 | Medium | High | CSP and security headers are inconsistent across production pages | CWE-693 | A05:2021 | REMEDIATED LOCALLY |
-| SEC-013 | Medium | High | Floating/unverified runtime scripts and known dependency advisories | CWE-1104 | A06/A08:2021 | CONFIRMED |
+| SEC-013 | Medium | High | Floating/unverified runtime scripts and known dependency advisories | CWE-1104 | A06/A08:2021 | REMEDIATED LOCALLY |
 | SEC-014 | Low | High | BYO keys lack explicit logout/provider-switch clearing | CWE-459 | A02:2021 | CONFIRMED |
 | SEC-015 | Medium | Medium | External-data HTML sinks require active XSS verification | CWE-79 | A03:2021 | REQUIRES ACTIVE VERIFICATION |
 | SEC-016 | Low | High | Wildcard API CORS is broader than required | CWE-942 | A05:2021 | REMEDIATED LOCALLY |
@@ -80,6 +80,8 @@ Baseline: `0c3c1599ad47aae9477db863146bd3909020355d`
 - Evidence: lockfile present; `npm audit --omit=dev` reports 3 High and 1 Moderate (`adm-zip` direct; `lodash`, `nanoid`, `qs` transitive). Multiple pages/`caissa-auth.js` load Clerk `@latest`; only the primary jQuery include visibly uses SRI, while other CDN scripts do not.
 - Impact: compromised/floating scripts execute with origin privileges; vulnerable archive tooling can process external ZIP content.
 - Remediation/task: pin/bundle Clerk, add SRI where CDN use remains, upgrade `adm-zip` after regression tests, and update supplier chains for transitive advisories.
+- Local remediation: Clerk is pinned to 6.28.1 with SHA-384 SRI where its static CDN asset is used; tenant Clerk UI and other dynamic vendor exceptions are exact-versioned and documented. Browser chess dependencies and Stockfish Worker loads were moved to reviewed local assets where available. `adm-zip`, `sharp`, and four transitive chains were patched with exact versions; the final npm audit reports zero vulnerabilities. A lock/provenance/runtime guard and reproducible security command prevent silent drift. See `SEC-013_SUPPLY_CHAIN_HARDENING.md`.
+- Remediation status: contained locally with mock/local regression evidence; production deployment and validation against separately authorized isolated Clerk authorities remain required.
 
 ### SEC-014 — BYO key lifecycle
 

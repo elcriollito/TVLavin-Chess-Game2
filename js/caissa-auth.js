@@ -8,6 +8,9 @@
 (function() {
     'use strict';
 
+    const CLERK_SDK_URL = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6.28.1/dist/clerk.browser.js';
+    const CLERK_SDK_INTEGRITY = 'sha384-hDYzybzZL06dXvUhFHr0WXKf/sBfpbnhOwxF4xa/m4/hOYAAgZrNpO1n6eJ5np47';
+
     // Global auth state object
     window.CAISSA_AUTH = {
         isSignedIn: false,
@@ -39,7 +42,8 @@
             const script = document.createElement('script');
             script.async = true;
             script.crossOrigin = 'anonymous';
-            script.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
+            script.integrity = CLERK_SDK_INTEGRITY;
+            script.src = CLERK_SDK_URL;
             script.dataset.clerkPublishableKey = publishableKey;
             script.onload = () => resolve(window.Clerk);
             script.onerror = () => reject(new Error('Clerk SDK failed to load'));

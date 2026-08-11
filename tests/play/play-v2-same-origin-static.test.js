@@ -29,9 +29,9 @@ test('vendored dependency bytes match the pinned manifest', async () => {
   assert.match(stdout, /Verified 16 Play v2 dependency assets/);
 });
 
-test('Classic retains its existing external dependency ownership', async () => {
+test('Classic uses the reviewed local chess dependency set', async () => {
   const html = await read('index.html');
-  assert.match(html, /https:\/\/code\.jquery\.com\/jquery-3\.6\.0\.min\.js/);
-  assert.match(html, /https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/chess\.js\/0\.10\.3\/chess\.min\.js/);
-  assert.match(html, /https:\/\/cdn\.jsdelivr\.net\/npm\/@chrisoakman\/chessboardjs@1\.0\.0/);
+  assert.match(html, /\/assets\/vendor\/jquery\/jquery-3\.6\.0\.min\.js/);
+  assert.match(html, /\/assets\/vendor\/chess\.js\/chess-0\.10\.3\.min\.js/);
+  assert.match(html, /\/assets\/vendor\/chessboard\.js\/chessboard-1\.0\.0\.min\.js/);
 });

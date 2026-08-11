@@ -48,7 +48,7 @@
             window.process.env.CLERK_TELEMETRY_DISABLED = '1';
 
             const clerkDomain = getClerkDomain(publishableKey);
-            await loadScript(`https://${clerkDomain}/npm/@clerk/ui@1/dist/ui.browser.js`);
+            await loadScript(`https://${clerkDomain}/npm/@clerk/ui@1.30.1/dist/ui.browser.js`);
             await loadScript(`https://${clerkDomain}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`, {
                 'data-clerk-publishable-key': publishableKey
             });

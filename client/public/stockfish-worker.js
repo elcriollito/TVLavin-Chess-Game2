@@ -8,7 +8,7 @@ let engine = null;
 function initEngine() {
   try {
     // Load Stockfish from CDN - try WASM first, fallback to JS
-    engine = new Worker('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js');
+    engine = new Worker('/engine/stockfish-working.js');
 
     engine.onmessage = function(e) {
       postMessage(e.data);
