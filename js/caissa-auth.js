@@ -307,6 +307,7 @@
      * Sign out the current user
      */
     async function signOut() {
+        window.dispatchEvent(new CustomEvent('caissa-byo-clear'));
         if (_clerkInstance) {
             try {
                 await _clerkInstance.signOut();

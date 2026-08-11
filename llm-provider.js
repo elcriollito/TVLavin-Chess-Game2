@@ -10,12 +10,13 @@
  * - Automatic fallback handling
  */
 
+let _byoApiKey = null;
+
 const LLMProvider = {
 
     // Current provider configuration
     config: {
         provider: 'together', // 'together', 'llama', 'openai', 'anthropic', 'local'
-        apiKey: null,
         model: null, // Will use provider default if not set
         maxTokens: 1024,
         temperature: 0.7
@@ -163,7 +164,12 @@ const LLMProvider = {
      * @param {Object} options - Configuration options
      */
     initialize(options = {}) {
-        this.config = { ...this.config, ...options };
+        const previousProvider = this.config.provider;
+        const permitted = {};
+        for (const field of ['provider', 'model', 'maxTokens', 'temperature']) {
+            if (Object.prototype.hasOwnProperty.call(options, field)) permitted[field] = options[field];
+        }
+        this.config = { ...this.config, ...permitted };
 
         // Validate provider
         if (!this.PROVIDERS[this.config.provider]) {
@@ -177,6 +183,8 @@ const LLMProvider = {
             this.config.model = provider.defaultModel;
         }
 
+        if (previousProvider !== this.config.provider) this.clearApiKey('provider-change');
+
         console.log(`LLM Provider initialized: ${provider.name} (${this.config.model})`);
     },
 
@@ -185,7 +193,19 @@ const LLMProvider = {
      * @param {string} apiKey - The API key
      */
     setApiKey(apiKey) {
-        this.config.apiKey = apiKey;
+        if (typeof apiKey !== 'string' || !apiKey.trim() || apiKey.length > 512) {
+            this.clearApiKey('invalid-key');
+            throw new Error('A valid API key is required.');
+        }
+        _byoApiKey = apiKey.trim();
+    },
+
+    clearApiKey() {
+        _byoApiKey = null;
+    },
+
+    hasApiKey() {
+        return _byoApiKey !== null;
     },
 
     /**
@@ -208,7 +228,7 @@ const LLMProvider = {
         // BYO key mode: require API key or local provider
         if (byoKeyEnabled) {
             if (this.config.provider === 'local') return true;
-            if (this.config.apiKey) return true;
+            if (_byoApiKey) return true;
             if (this.canUseSharedApi()) return true;
             return false;
         }
@@ -222,7 +242,7 @@ const LLMProvider = {
      * @returns {Object|null}
      */
     getRateLimitStatus() {
-        if (this.config.apiKey) {
+        if (_byoApiKey) {
             return null; // BYO key has no limits
         }
         return {
@@ -238,8 +258,7 @@ const LLMProvider = {
      * @param {Object} options - Additional options
      */
     switchProvider(providerName, options = {}) {
-        this.config.provider = providerName;
-        this.initialize(options);
+        this.initialize({ ...options, provider: providerName });
     },
 
     /**
@@ -260,7 +279,7 @@ const LLMProvider = {
         const byoKeyEnabled = window.CaissaFeatureFlags?.isEnabled('BYO_AI_KEY');
 
         // BYO key mode: require API key (except for local)
-        if (byoKeyEnabled && this.config.provider !== 'local' && !this.config.apiKey && !this.canUseSharedApi()) {
+        if (byoKeyEnabled && this.config.provider !== 'local' && !_byoApiKey && !this.canUseSharedApi()) {
             throw new Error('API key not set. Configure your API key in Settings.');
         }
 
@@ -284,9 +303,9 @@ const LLMProvider = {
                 headers,
                 body: JSON.stringify({
                     provider: this.config.provider,
-                    apiKey: this.config.apiKey || null,
+                    apiKey: _byoApiKey,
                     messages: messages,
-                    model: this.config.apiKey ? this.config.model : null,
+                    model: _byoApiKey ? this.config.model : null,
                     maxTokens: this.config.maxTokens,
                     temperature: temperature,
                     engineReport: options.engineReport || null
@@ -344,7 +363,7 @@ const LLMProvider = {
             };
 
         } catch (error) {
-            console.error('LLM Provider error:', error);
+            console.error('LLM Provider request failed.');
             throw error;
         }
     },
@@ -367,7 +386,8 @@ const LLMProvider = {
         }
 
         const endpoint = provider.endpoint;
-        const headers = provider.headers(this.config.apiKey);
+        if (this.config.provider !== 'local' && !_byoApiKey) throw new Error('API key not set.');
+        const headers = provider.headers(_byoApiKey);
         const body = {
             ...provider.formatRequest(messages, this.config),
             stream: true
@@ -415,7 +435,7 @@ const LLMProvider = {
             return { content: fullContent, usage: null };
 
         } catch (error) {
-            console.error('LLM Stream error:', error);
+            console.error('LLM stream request failed.');
             throw error;
         }
     },
@@ -439,7 +459,7 @@ const LLMProvider = {
             model: this.config.model,
             maxTokens: this.config.maxTokens,
             temperature: this.config.temperature,
-            hasApiKey: !!this.config.apiKey,
+            hasApiKey: this.hasApiKey(),
             canUseSharedApi: this.canUseSharedApi(),
             isReady: this.isReady()
         };
@@ -456,11 +476,19 @@ const LLMProvider = {
             ]);
             return result.content.toLowerCase().includes('ok');
         } catch (error) {
-            console.error('Connection test failed:', error);
+            this.clearApiKey('connection-failure');
+            console.error('Connection test failed.');
             return false;
         }
     }
 };
+
+if (typeof window !== 'undefined') {
+    const clearCredential = () => LLMProvider.clearApiKey();
+    window.addEventListener('caissa-auth-change', clearCredential);
+    window.addEventListener('caissa-byo-clear', clearCredential);
+    window.addEventListener('pagehide', clearCredential);
+}
 
 // Export for use in browser and Node.js
 if (typeof module !== 'undefined' && module.exports) {

@@ -5996,11 +5996,21 @@ function setupInsightModal() {
                 if (error.message === 'CORS_BLOCKED') {
                     // Show CORS fallback message
                     const providerLinks = {
-                        'chess.com': `<a href="https://www.chess.com/member/${username}" target="_blank">Chess.com</a>`,
-                        'lichess': `<a href="https://lichess.org/@/${username}/export" target="_blank">Lichess Export Page</a>`
+                        'chess.com': { base: 'https://www.chess.com/member/', label: 'Chess.com' },
+                        'lichess': { base: 'https://lichess.org/@/', suffix: '/export', label: 'Lichess Export Page' }
                     };
-
-                    corsProviderLink.innerHTML = providerLinks[provider] || provider;
+                    const selectedLink = providerLinks[provider];
+                    corsProviderLink.replaceChildren();
+                    if (selectedLink) {
+                        const link = document.createElement('a');
+                        link.href = `${selectedLink.base}${encodeURIComponent(username)}${selectedLink.suffix || ''}`;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        link.textContent = selectedLink.label;
+                        corsProviderLink.appendChild(link);
+                    } else {
+                        corsProviderLink.textContent = 'Import provider';
+                    }
                     importCorsMessage.style.display = 'block';
 
                     showErrorNotification('Direct fetching blocked by CORS. Please use the fallback method shown below.');

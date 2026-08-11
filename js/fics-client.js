@@ -2197,9 +2197,12 @@ const CaissaFICSClient = {
         if (this.elements.gameStatus) {
             // Handle multiline status messages
             if (status.includes('\n')) {
-                // Convert newlines to <br> for proper display
                 const lines = status.split('\n').map(line => line.trim()).filter(Boolean);
-                this.elements.gameStatus.innerHTML = lines.join('<br>');
+                this.elements.gameStatus.replaceChildren();
+                lines.forEach((line, index) => {
+                    if (index) this.elements.gameStatus.appendChild(document.createElement('br'));
+                    this.elements.gameStatus.appendChild(document.createTextNode(line));
+                });
             } else {
                 this.elements.gameStatus.textContent = status;
             }

@@ -17,8 +17,8 @@ Baseline: `0c3c1599ad47aae9477db863146bd3909020355d`
 | SEC-011 | Medium | High | Sign-in/sign-up accept unvalidated post-auth redirect URLs | CWE-601 | A01:2021 | CONFIRMED |
 | SEC-012 | Medium | High | CSP and security headers are inconsistent across production pages | CWE-693 | A05:2021 | REMEDIATED LOCALLY |
 | SEC-013 | Medium | High | Floating/unverified runtime scripts and known dependency advisories | CWE-1104 | A06/A08:2021 | REMEDIATED LOCALLY |
-| SEC-014 | Low | High | BYO keys lack explicit logout/provider-switch clearing | CWE-459 | A02:2021 | CONFIRMED |
-| SEC-015 | Medium | Medium | External-data HTML sinks require active XSS verification | CWE-79 | A03:2021 | REQUIRES ACTIVE VERIFICATION |
+| SEC-014 | Low | High | BYO keys lack explicit logout/provider-switch clearing | CWE-459 | A02:2021 | REMEDIATED LOCALLY |
+| SEC-015 | Medium | Medium | External-data HTML sinks require active XSS verification | CWE-79 | A03:2021 | REMEDIATED LOCALLY |
 | SEC-016 | Low | High | Wildcard API CORS is broader than required | CWE-942 | A05:2021 | REMEDIATED LOCALLY |
 
 ## Finding details
@@ -89,12 +89,16 @@ Baseline: `0c3c1599ad47aae9477db863146bd3909020355d`
 - Impact: key remains readable by same-origin JavaScript for the page lifetime and may carry across provider UI changes.
 - Mitigation: not intentionally written to localStorage/sessionStorage; server logs omit the key; fixed provider credential binding exists.
 - Remediation/task: explicit clear-on-logout, clear-on-provider-switch, zero DOM field after capture, and avoid direct streaming where possible.
+- Local remediation: the credential is now held only in lexical module scope; public configuration exposes a boolean only. Provider, explicit clear, failed test, sign-out/auth transition, disabled BYO and pagehide events remove reachable references, and the input is cleared after capture. Storage, reload, fixed-destination and sentinel-log tests pass. See `SEC-014_BYO_KEY_LIFECYCLE.md`.
+- Remediation status: remediated locally; JavaScript cannot guarantee physical memory zeroization and same-page code can theoretically observe an actively used browser secret.
 
 ### SEC-015 — XSS active verification set
 
 - Evidence: many `innerHTML` sinks exist. Mentor escapes raw HTML before markup conversion. FICS `updateGameStatus()` inserts newline-containing status without escaping; other external import/display paths need full runtime provenance tests.
 - Status rationale: source controllability and production reachability of the suspect strings are not fully established statically.
 - Remediation/task: taint-focused browser tests with inert canaries, replace status rendering with text nodes/`<br>` elements, and centralize sanitization. Do not use executable payloads in production.
+- Local remediation: Mentor errors and FICS multiline status now use text nodes; import fallback URLs use fixed HTTPS bases, encoded usernames and DOM properties. Existing limited Mentor Markdown escapes HTML before formatting. Fifteen active product-path cases passed in each of Chromium and WebKit with no marker execution, including PGN, FICS, URL, stored-like and combined BYO-sentinel paths. See `SEC-015_XSS_TAINT_VERIFICATION.md`.
+- Remediation status: remediated locally; future rich-content or new external-data features must extend the taint suite.
 
 ### SEC-016 — Wildcard CORS
 

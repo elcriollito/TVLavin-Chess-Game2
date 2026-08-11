@@ -51,9 +51,6 @@ const MentorAI = {
         analysisTimeout: 1500  // 1.5 seconds
     },
 
-    // Session-only API key (not persisted)
-    _sessionApiKey: null,
-
     /**
      * Initialize the Mentor AI module
      */
@@ -87,6 +84,7 @@ const MentorAI = {
             providerSelect: document.getElementById('mentorProvider'),
             modelSelect: document.getElementById('mentorModel'),
             apiKeyInput: document.getElementById('mentorApiKey'),
+            clearApiKeyBtn: document.getElementById('mentorClearApiKey'),
             saveSettingsBtn: document.getElementById('mentorSaveSettings'),
             stockfishToggle: document.getElementById('mentorStockfishToggle'),
             engineBadge: document.getElementById('mentorEngineBadge'),
@@ -118,9 +116,13 @@ const MentorAI = {
         // Settings
         this.elements.settingsToggle?.addEventListener('click', () => this.toggleSettings());
         this.elements.saveSettingsBtn?.addEventListener('click', () => this.saveSettings());
+        this.elements.clearApiKeyBtn?.addEventListener('click', () => this.clearApiKey());
 
         // Provider change updates model options
-        this.elements.providerSelect?.addEventListener('change', () => this.updateModelOptions());
+        this.elements.providerSelect?.addEventListener('change', () => {
+            this.clearApiKey(false);
+            this.updateModelOptions();
+        });
 
         // Close on escape
         document.addEventListener('keydown', (e) => {
@@ -153,6 +155,7 @@ const MentorAI = {
 
             // Hide API key UI unless feature flag is enabled
             if (!byoKeyEnabled) {
+                this.clearApiKey(false);
                 // Hide provider selection
                 const providerGroup = this.elements.providerSelect?.closest('.settings-group');
                 if (providerGroup) {
@@ -234,11 +237,6 @@ const MentorAI = {
                 useStockfishGuidance
             }));
 
-            // Store API key in memory only (session-based, not persisted)
-            if (apiKey) {
-                this._sessionApiKey = apiKey;
-            }
-
             // Initialize provider with new settings
             this.initializeProvider();
 
@@ -264,18 +262,24 @@ const MentorAI = {
     initializeProvider() {
         const provider = this.elements.providerSelect?.value || 'together';
         const model = this.elements.modelSelect?.value || '';
-        const apiKey = this.elements.apiKeyInput?.value?.trim() || this._sessionApiKey;
+        const apiKey = this.elements.apiKeyInput?.value?.trim();
 
         if (typeof LLMProvider !== 'undefined') {
             LLMProvider.initialize({ provider, model: model || undefined });
             if (apiKey) {
                 LLMProvider.setApiKey(apiKey);
-                this._sessionApiKey = apiKey; // Keep in memory
+                this.elements.apiKeyInput.value = '';
             }
 
             // Update UI to show if shared API is available
             this.updateApiKeyHelp(provider);
         }
+    },
+
+    clearApiKey(notify = true) {
+        if (typeof LLMProvider !== 'undefined') LLMProvider.clearApiKey();
+        if (this.elements.apiKeyInput) this.elements.apiKeyInput.value = '';
+        if (notify) this.showNotification('API key cleared from this page.');
     },
 
     /**
@@ -1152,7 +1156,7 @@ const MentorAI = {
      */
     formatMessageContent(content) {
         // Escape HTML
-        let formatted = content
+        let formatted = String(content ?? '')
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;');
@@ -1222,7 +1226,9 @@ const MentorAI = {
 
         const errorDiv = document.createElement('div');
         errorDiv.className = 'mentor-error';
-        errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${message}`;
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-exclamation-triangle';
+        errorDiv.append(icon, document.createTextNode(` ${String(message ?? 'Request failed')}`));
         messagesContainer.appendChild(errorDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
