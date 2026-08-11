@@ -8,6 +8,7 @@
 import { verifyAuth, setCorsHeaders } from '../_lib/auth.js';
 import { getSupabase } from '../_lib/supabase.js';
 import { logAction, logError } from '../_lib/logger.js';
+import { isIdentityMigrationEnforced, syncResolvedIdentity } from '../_lib/identity-resolution.js';
 
 export default async function handler(req, res) {
     setCorsHeaders(res);
@@ -28,7 +29,35 @@ export default async function handler(req, res) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const safeEmail = (emailVal && emailRegex.test(emailVal)) ? emailVal : auth.email || null;
 
-        // Upsert user by clerk_id
+        if (isIdentityMigrationEnforced()) {
+            const identityResult = await syncResolvedIdentity({
+                supabase,
+                externalSubject: auth.userId,
+                email: safeEmail
+            });
+
+            if (!identityResult.ok) {
+                const resolutionRequired = [
+                    'IDENTITY_MIGRATION_REQUIRED',
+                    'IDENTITY_RESOLUTION_REQUIRED',
+                    'NEW_ACCOUNT_NOT_APPROVED',
+                    'SUBJECT_ALREADY_BOUND'
+                ].includes(identityResult.code);
+                return res.status(resolutionRequired ? 409 : 503).json({
+                    error: resolutionRequired
+                        ? 'Account identity must be resolved before synchronization.'
+                        : 'User sync is temporarily unavailable',
+                    code: identityResult.code,
+                    recoverable: true
+                });
+            }
+
+            logAction('user_identity_synced', { userId: auth.userId });
+            return res.status(200).json({ user: formatUser(identityResult.user) });
+        }
+
+        // Normal operation outside an explicitly enabled migration window.
+        // Migration mode never reaches this upsert, preventing silent duplicates.
         const upsertData = {
             clerk_id: auth.userId,
             email: safeEmail,
@@ -54,15 +83,7 @@ export default async function handler(req, res) {
 
         logAction('user_synced', { userId: auth.userId });
 
-        return res.status(200).json({
-            user: {
-                clerkId: data.clerk_id,
-                email: data.email,
-                role: data.role,
-                isPremium: data.is_premium,
-                credits: data.credits
-            }
-        });
+        return res.status(200).json({ user: formatUser(data) });
 
     } catch (err) {
         logError('user_sync', err, { userId: auth.userId });
@@ -71,4 +92,14 @@ export default async function handler(req, res) {
             recoverable: true
         });
     }
+}
+
+function formatUser(data) {
+    return {
+        clerkId: data.clerk_id,
+        email: data.email,
+        role: data.role,
+        isPremium: data.is_premium,
+        credits: data.credits
+    };
 }

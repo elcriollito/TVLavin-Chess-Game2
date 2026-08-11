@@ -1,6 +1,6 @@
 # Security Findings Register
 
-Baseline: `6bcec62d5bb9306313ddf889198d98f1579ae37a`
+Baseline: `0c3c1599ad47aae9477db863146bd3909020355d`
 
 | ID | Severity | Confidence | Finding | CWE | OWASP | Status |
 | -- | -------- | ---------- | ------- | --- | ----- | ------ |
@@ -8,7 +8,7 @@ Baseline: `6bcec62d5bb9306313ddf889198d98f1579ae37a`
 | SEC-002 | High | High | BYO credential forwarding to arbitrary endpoint | CWE-918/CWE-200 | A10/A02 | REMEDIATED |
 | SEC-003 | High | High | Legacy Node Mentor arbitrary server destination | CWE-918 | A10:2021 SSRF | REMEDIATED |
 | SEC-004 | High | High | Authenticated arbitrary credit minting | CWE-862 | API5:2023 BFLA | REMEDIATED |
-| SEC-005 | Medium | High | Production origin uses Clerk development identity instance | CWE-16 | A05:2021 | CONFIRMED |
+| SEC-005 | Medium | High | Production origin uses Clerk development identity instance | CWE-16 | A05:2021 | REMEDIATION IN PROGRESS |
 | SEC-006 | High | High | Mentor credit deduction is non-atomic | CWE-362 | API6:2023 | REMEDIATED LOCALLY |
 | SEC-007 | Medium | High | Anonymous BYO proxy has no effective Mentor rate limit | CWE-770 | API4:2023 | CONFIRMED |
 | SEC-008 | Medium | High | AI token/model/temperature and aggregate payload controls are incomplete | CWE-20/CWE-770 | API4/API8 | CONFIRMED |
@@ -29,7 +29,10 @@ Baseline: `6bcec62d5bb9306313ddf889198d98f1579ae37a`
 - Trust boundary/attack: production identity lifecycle depends on a development Clerk tenant. The publishable key is not secret.
 - Impact: environment/user separation, domain restrictions, quotas and lifecycle controls may not meet production expectations.
 - Mitigation: server JWT verification still requires the matching server-only secret.
-- Remediation/task: migrate production to `pk_live_`/matching secret; validate allowed domains, redirect URLs, user migration and environment-specific webhook secrets. Active dashboard verification required.
+- Migration readiness: Clerk documents that development-instance user data cannot be transferred to the production instance. CAISSA child data is anchored to internal `users.id`, but current API lookups, browser profiles and Stripe checkout metadata use `clerk_id`. A live-key swap without an authoritative old-subject to internal-account to new-subject mapping would create duplicate user rows and orphan access to credits, premium state and library data.
+- Recommended strategy: Strategy B identity remapping, rehearsed in an isolated environment, with conflict-safe account proof, immutable audit mapping and explicit handling for in-flight Stripe checkout metadata. See `SEC-005_CLERK_PRODUCTION_MIGRATION_PLAN.md`.
+- Foundation status: additive service-role-only binding/challenge/enrollment/audit schema, atomic activation/rollback RPCs, dormant migration-aware sync, high-entropy handoff service, count-only readiness utility and deterministic security tests are implemented locally. The migration SQL has not been applied to production and migration mode is not enabled.
+- Status: remediation in progress until production data quality is reviewed, the migration is rehearsed, operational configuration is complete, and cutover is production-verified.
 
 ### SEC-006 — Non-atomic Mentor credit deduction
 
