@@ -77,7 +77,7 @@ function migrationStore({ expiresAt = Date.now() + 60_000 } = {}) {
                 return { data: [{ success: true, code: 'BINDING_ACTIVATED', user_id: user.id, binding_id: 'BNEW' }], error: null };
             }
 
-            if (name === 'rollback_clerk_identity_binding') {
+            if (name === 'rollback_clerk_identity_binding_confirmed') {
                 const user = state.users.get(params.p_user_id);
                 const legacy = [...state.bindings.values()].find((item) => item.userId === params.p_user_id && item.environment === 'legacy_development');
                 const production = [...state.bindings.values()].find((item) => item.userId === params.p_user_id && item.environment === 'production' && item.status === 'ACTIVE');
@@ -207,7 +207,12 @@ test('unknown legacy account fails closed', async () => {
 test('rollback restores retired legacy subject without changing the account row', async () => {
     const store = migrationStore();
     await createAndActivate(store);
-    const result = await rollbackIdentityBinding({ supabase: store, trustedUserId: 'U1', reason: 'verified rollback test' });
+    const result = await rollbackIdentityBinding({
+        supabase: store,
+        trustedUserId: 'U1',
+        reason: 'verified rollback test evidence',
+        confirmation: 'ROLLBACK U1'
+    });
     assert.equal(result.ok, true);
     assert.equal(store.state.users.get('U1').clerk_id, 'OLD1');
     assert.equal(store.state.users.get('U1').stripe_customer_id, 'CUS1');

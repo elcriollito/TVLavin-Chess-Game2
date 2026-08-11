@@ -65,7 +65,9 @@ Old identity history is retired, never deleted.
 4. **MANUAL_RECOVERY** — controlled backend/script workflow with privileged authorization, reason, confirmation and audit evidence.
 5. Email — supporting signal only and never an authority.
 
-The current helper accepts only server-derived `existingAccount` and `verifiedProductionSubject` values. A future route must implement explicit `verifyLegacyClerkToken()` and `verifyProductionClerkToken()` with separate fixed server secrets/issuers. No generic or client-selected verifier is permitted.
+The current helper accepts only server-derived `existingAccount` and `verifiedProductionSubject` values. The local cutover tooling now implements separate legacy and production verifiers using fixed server-side issuer and rotating PEM-key sets. It pins `RS256`/`JWT`, rejects embedded key URLs/material, and never accepts issuer, key, JWKS, API URL or environment from a request or token. Audience and authorized-party validation is enabled only when explicitly configured for the Clerk session-token deployment. Real cross-instance verification remains unvalidated until two isolated Clerk authorities are separately authorized and supplied.
+
+The challenge route requires both verified sessions and creates a `DUAL_AUTH` handoff. Activation requires the single-use handoff plus a fresh production verification. Both routes enforce POST/JSON/body limits, generic errors, no-store responses and PostgreSQL-backed throttling. Key rotation is handled by an operator-controlled `kid` to PEM allowlist; unknown keys fail closed and no token-derived network retrieval occurs.
 
 ## Token lifecycle
 
@@ -129,7 +131,7 @@ New checkout must remain disabled until binding resolution succeeds. Pre-cutover
 
 ## Conflict and manual recovery
 
-Duplicate target subjects, inactive/missing legacy bindings, mismatched production subjects, used/expired challenges, existing ambiguous accounts and unapproved new subjects fail closed. Email collisions never merge rows. Manual recovery is not exposed publicly and remains an operational prerequisite; use a controlled service-role tool with privileged operator authentication, reason, dry-run, explicit confirmation and audit output.
+Duplicate target subjects, inactive/missing legacy bindings, mismatched production subjects, used/expired challenges, existing ambiguous accounts and unapproved new subjects fail closed. Email collisions never merge rows. Manual recovery is not exposed publicly. `scripts/recover-clerk-identity.mjs` requires an explicit UUID, target subject, detailed reason and exact confirmation. Dry-run changes no account or binding; it writes only the short-lived locked preview and immutable audit evidence needed for stale-preview protection. Execution locks and revalidates the preview, binding, user and target before one atomic change. Confirmed rollback is mandatory, the old service-role rollback grant is revoked, and audit records are append-only.
 
 ## Data-quality utility
 
@@ -148,8 +150,8 @@ It does not connect to production or print raw identifiers. No production data a
 
 - review production count report and resolve constraint conflicts;
 - apply the corrected migration to production only through an approved DB release;
-- implement independently configured legacy/production Clerk token verification endpoints;
-- implement privileged recovery tooling;
+- validate the fixed legacy/production verifier endpoints against two authorized isolated Clerk authorities and their rotation keys;
+- approve production operator authentication, credential custody and recovery runbook use;
 - create production enrollment decisions from a trusted lifecycle process;
 - rehearse Clerk verifier and Stripe test-mode network behavior after isolated credentials exist;
 - resolve SEC-011 redirect validation before live auth cutover;

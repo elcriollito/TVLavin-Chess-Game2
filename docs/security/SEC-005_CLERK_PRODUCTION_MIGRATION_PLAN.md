@@ -148,7 +148,7 @@ Production must not be the first end-to-end migration test.
 
 | Case | Required result | Readiness |
 | --- | --- | --- |
-| Existing email/password user | Re-authenticates/claims same internal UUID | Pending rehearsal |
+| Existing email/password user | Re-authenticates/claims same internal UUID | Mock verifier + real PostgreSQL passed; isolated Clerk authorities pending |
 | Existing Google/OAuth user | Production OAuth identity maps without email-only merge | Pending OAuth setup |
 | New signup | Creates exactly one new internal row | Pending |
 | Sign-in/sign-out | Correct redirects and session clearing | Pending |
@@ -162,7 +162,7 @@ Production must not be the first end-to-end migration test.
 | Account deletion | Approved retention/deletion policy, no accidental cross-account deletion | Pending policy |
 | Backend APIs | New live JWT subject resolves correct row | Pending |
 | Mobile/desktop | Auth, refresh and redirects work on supported browsers | Pending |
-| Conflict/missing email | Fails closed to manual recovery without duplicate/merge | Pending |
+| Conflict/missing email | Fails closed to manual recovery without duplicate/merge | Recovery CLI + real PostgreSQL passed |
 
 ## Cutover gates
 
@@ -203,4 +203,4 @@ All gates are mandatory:
 
 ## Readiness verdict
 
-The corrected remapping foundation has passed a real isolated PostgreSQL rehearsal, including concurrency, RLS, rollback, collision and preservation checks. Production schema application, production data classification, privileged recovery tooling, independently configured Clerk token verification endpoints and trusted new-user enrollment authority remain incomplete. Live credentials must not be switched yet. SEC-005 remains in remediation until Strategy B is production-ready and production-verified.
+The corrected remapping foundation and local cutover tooling have passed isolated PostgreSQL rehearsal, including persistent throttling, locked/stale-safe recovery preview, atomic execution, confirmed rollback, immutable audit, concurrency, RLS, collision and preservation checks. Fixed dual-verifier routes pass synthetic cryptographic-boundary tests, but real cross-instance Clerk verification and rotation cannot be validated without two separately authorized isolated Clerk authorities. Production schema application, production data classification, recovery operator authorization, isolated Clerk/Stripe integration and trusted new-user enrollment authority remain incomplete. Live credentials must not be switched yet. SEC-005 remains in remediation until Strategy B is production-ready and production-verified.

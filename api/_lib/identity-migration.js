@@ -65,13 +65,15 @@ export async function activateMigrationHandoff({ supabase, token, verifiedProduc
     };
 }
 
-export async function rollbackIdentityBinding({ supabase, trustedUserId, reason }) {
-    if (!trustedUserId || typeof reason !== 'string' || reason.trim().length < 8) {
-        return { ok: false, code: 'ROLLBACK_REASON_REQUIRED' };
+export async function rollbackIdentityBinding({ supabase, trustedUserId, reason, confirmation }) {
+    if (!trustedUserId || typeof reason !== 'string' || reason.trim().length < 20
+        || confirmation !== `ROLLBACK ${trustedUserId}`) {
+        return { ok: false, code: 'ROLLBACK_CONFIRMATION_REQUIRED' };
     }
-    const { data, error } = await supabase.rpc('rollback_clerk_identity_binding', {
+    const { data, error } = await supabase.rpc('rollback_clerk_identity_binding_confirmed', {
         p_user_id: trustedUserId,
-        p_reason: reason.trim()
+        p_reason: reason.trim(),
+        p_confirmation: confirmation
     });
     if (error) return { ok: false, code: 'IDENTITY_SERVICE_UNAVAILABLE' };
     const result = data?.[0] || data;

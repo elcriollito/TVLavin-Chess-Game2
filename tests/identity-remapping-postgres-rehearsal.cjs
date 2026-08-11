@@ -191,7 +191,7 @@ check('two concurrent activations produce exactly one success', async db => {
 
 check('service rollback restores legacy identity and preserves state', async db => {
   const before = await db.query(`select id,credits,is_premium,role,stripe_customer_id from public.users where id=$1`, [ids.a]);
-  const result = await asService(db, `select * from public.rollback_clerk_identity_binding($1,$2)`, [ids.a, 'Synthetic rehearsal rollback']);
+  const result = await asService(db, `select * from public.rollback_clerk_identity_binding_confirmed($1,$2,$3)`, [ids.a, 'Synthetic rehearsal rollback evidence', `ROLLBACK ${ids.a}`]);
   assert.equal(result.rows[0].success, true);
   const after = await db.query(`select id,clerk_id,credits,is_premium,role,stripe_customer_id from public.users where id=$1`, [ids.a]);
   assert.equal(after.rows[0].clerk_id, 'LEGACY_A');
@@ -209,14 +209,14 @@ check('anon and authenticated cannot read tables or execute privileged RPCs', as
     await db.query('BEGIN');
     try {
       await db.query(`SET LOCAL ROLE ${role}`);
-      await assert.rejects(db.query(`select * from public.rollback_clerk_identity_binding($1,$2)`, [ids.b, 'Unauthorized rollback attempt']), /permission denied/i);
+      await assert.rejects(db.query(`select * from public.rollback_clerk_identity_binding_confirmed($1,$2,$3)`, [ids.b, 'Unauthorized rollback attempt evidence', `ROLLBACK ${ids.b}`]), /permission denied/i);
       await db.query('ROLLBACK');
     } catch (error) { await db.query('ROLLBACK'); throw error; }
   }
 });
 
 check('audit insertion failure rolls activation back atomically', async db => {
-  await asService(db, `select * from public.rollback_clerk_identity_binding($1,$2)`, [ids.b, 'Prepare audit failure rehearsal']);
+  await asService(db, `select * from public.rollback_clerk_identity_binding_confirmed($1,$2,$3)`, [ids.b, 'Prepare audit failure rehearsal evidence', `ROLLBACK ${ids.b}`]);
   const made = await challenge(db, ids.b, 'LEGACY_B', 'PROD_B_FAILURE', 'audit-failure-token');
   assert.equal(made.rows[0].success, true);
   await db.query('BEGIN');

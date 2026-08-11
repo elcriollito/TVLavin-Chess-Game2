@@ -364,6 +364,6 @@ revoke execute on function public.resolve_clerk_identity_for_sync(text) from pub
 revoke execute on function public.provision_approved_clerk_identity(text, text) from public, anon, authenticated;
 grant execute on function public.create_clerk_migration_challenge(uuid, text, text, text, timestamptz, text) to service_role;
 grant execute on function public.activate_clerk_identity_binding(text, text) to service_role;
-grant execute on function public.rollback_clerk_identity_binding(uuid, text) to service_role;
+revoke execute on function public.rollback_clerk_identity_binding(uuid, text) from service_role;
 grant execute on function public.resolve_clerk_identity_for_sync(text) to service_role;
 grant execute on function public.provision_approved_clerk_identity(text, text) to service_role;

@@ -59,7 +59,9 @@ All five SEC-005 functions are owned by `postgres`, use `SECURITY DEFINER`, set 
 
 The migration-aware sync helper was exercised against real database RPCs and rows. A mapped legacy subject and mapped production subject resolved existing accounts. A pending production subject was denied as migration-required. Unknown and forged-email-matching subjects were denied. Resolver failure failed closed. User count remained four.
 
-Approved-new provisioning requires an unconsumed server-side enrollment decision, but the authority that creates those decisions is not configured. This remains a live-cutover blocker. There is no dual-Clerk verifier route and no controlled manual-recovery CLI; both remain tooling blockers. No email-only or client-controlled enrollment substitute is acceptable.
+Approved-new provisioning requires an unconsumed server-side enrollment decision, but the authority that creates those decisions is not configured. This remains a live-cutover blocker. Local dual-verifier routes and a controlled manual-recovery CLI are now implemented. The verifier pins RS256, uses separate fixed issuers and server-controlled rotating PEM sets, rejects cross-authority and embedded-key inputs, and applies only explicitly configured Clerk-supported optional claims. Synthetic verifier tests passed; real cross-instance verification and rotation remain unvalidated because isolated Clerk authorities were not supplied. No email-only or client-controlled enrollment substitute is acceptable.
+
+The additive cutover-tooling migration passed 12/12 real PostgreSQL checks. Persistent throttling allowed exactly the configured attempts, then denied. Dry-run changed no account or binding and wrote only a locked short-lived preview plus immutable audit evidence. Recovery preview detected collision and stored hashes, execution rejected stale state and replay, two concurrent executions produced one success, and confirmed rollback restored the same UUID/economic state. The old unconfirmed rollback grant is revoked. Audit UPDATE/DELETE attempts fail through the append-only trigger. The actual CLI also completed preview, execution and rollback against synthetic rehearsal data without emitting target subject, reason or credentials.
 
 The selected legacy checkout policy is to pause new checkout, identify and drain/expire all pre-cutover Checkout Sessions, then activate production identities and resume checkout only for mapped users. Renewal and deletion remain keyed by unchanged `stripe_customer_id`. No Stripe network call occurred.
 
@@ -70,8 +72,8 @@ The aggregate-only CLI ran against four matching synthetic fixture records. It c
 ## Remaining blockers
 
 - authorize and run the separate production read-only aggregate data-quality audit;
-- implement and test fixed, cryptographically distinct legacy and production Clerk verifiers plus the dual-proof route;
-- implement a privileged non-public recovery CLI with dry-run, explicit UUID/subject/reason, confirmation, collision check and audit;
+- validate fixed, cryptographically distinct legacy and production Clerk verifiers against two authorized isolated Clerk authorities, including key rotation;
+- approve production operator authentication, recovery credential custody and two-person runbook controls;
 - define the trusted authority that creates new-user enrollment decisions;
 - perform isolated Clerk and Stripe test-mode end-to-end rehearsal;
 - complete domain, OAuth, redirect/SEC-011, session and operational cutover gates;
