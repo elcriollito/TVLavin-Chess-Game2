@@ -80,3 +80,7 @@ The aggregate-only CLI ran against four matching synthetic fixture records. It c
 - apply the migration to production only in a separately approved task.
 
 SEC-005 remains **REMEDIATION IN PROGRESS**.
+
+## Task 12.7.0A default-off gate evidence
+
+The separately authorized disposable non-production PostgreSQL rehearsal was rerun after adding the public-route gate. The base identity-remapping suite passed 15/15 and the cutover suite passed 13/13. The added cutover check captured real row counts for users, bindings, challenges, throttle state and audit evidence; calls to both public migration handlers with a non-exact mode returned generic `404` responses, never acquired the database dependency and left every count unchanged. The enforced-path synthetic migration and the existing atomic recovery, rollback, concurrency, RLS and audit checks also passed. No production database or credential was used.

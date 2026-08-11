@@ -33,6 +33,38 @@ check('fixture uses one synthetic UUID with owned economic and library data', as
   assert.equal((await db.query(`select count(*)::int n from public.users where id=$1`, [userId])).rows[0].n, 1);
 });
 
+check('default-off public routes make zero PostgreSQL mutations', async db => {
+  const { createChallengeHandler } = await import('../api/user/identity-migration/challenge.js');
+  const { createActivationHandler } = await import('../api/user/identity-migration/activate.js');
+  const snapshot = async () => (await db.query(`select
+    (select count(*)::int from public.users) users,
+    (select count(*)::int from public.identity_bindings) bindings,
+    (select count(*)::int from public.identity_migration_challenges) challenges,
+    (select count(*)::int from public.identity_migration_throttles) throttle,
+    (select count(*)::int from public.identity_migration_audit) audit`)).rows[0];
+  const before = await snapshot();
+  let databaseCalls = 0;
+  const dependencies = {
+    env: { CAISSA_IDENTITY_MIGRATION_MODE: 'true' },
+    getSupabase: () => { databaseCalls += 1; throw new Error('database access must remain unreachable'); }
+  };
+  const request = body => ({ method: 'POST', headers: { 'content-type': 'application/json' }, body });
+  const response = () => ({
+    statusCode: 0, body: null,
+    setHeader() {},
+    status(code) { this.statusCode = code; return this; },
+    json(body) { this.body = body; return this; }
+  });
+  for (const [factory, body] of [[createChallengeHandler, {}], [createActivationHandler, { challengeToken: 'synthetic' }]]) {
+    const res = response();
+    await factory(dependencies)(request(body), res);
+    assert.equal(res.statusCode, 404);
+    assert.deepEqual(res.body, { error: 'Not found' });
+  }
+  assert.equal(databaseCalls, 0);
+  assert.deepEqual(await snapshot(), before);
+});
+
 check('persistent database throttle permits five attempts and denies sixth', async db => {
   const scope = hash(`throttle-${Date.now()}`);
   const results = [];

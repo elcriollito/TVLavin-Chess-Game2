@@ -101,6 +101,8 @@ Any error rolls back all writes. Browser sequencing and process-local locks are 
 
 ## Duplicate prevention and sync
 
+The public `/api/user/identity-migration/challenge` and `/api/user/identity-migration/activate` entrypoints use the same exact server-only gate described below. Basic method, content-type and body-size framing runs first; when the mode is absent or differs in any way from lowercase `enforced`, the route returns a generic `404` before body semantics, database acquisition, persistent throttling, JWT verification, migration RPCs or audit writes. Request headers, query parameters, cookies and body fields cannot configure or override the gate.
+
 `/api/user/sync` retains existing behavior unless the server-only variable is exactly:
 
 ```text

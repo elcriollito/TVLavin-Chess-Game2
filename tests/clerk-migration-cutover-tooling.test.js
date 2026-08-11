@@ -204,10 +204,13 @@ const routeRequest = (body = {}) => ({
     body
 });
 
+const enforcedMigrationEnv = { CAISSA_IDENTITY_MIGRATION_MODE: 'enforced' };
+
 test('challenge route creates handoff only from verified server-derived subjects', async () => {
     let handoffInput;
     const supabase = { rpc: async () => ({ data: [{ resolution: 'BOUND', user_id: userId }], error: null }) };
     const handler = createChallengeHandler({
+        env: enforcedMigrationEnv,
         getSupabase: () => supabase,
         consumePersistentMigrationThrottle: async () => ({ ok: true }),
         verifyDualMigrationTokens: async () => ({ ok: true, legacySubject: 'LEGACY_VERIFIED', productionSubject: 'PROD_VERIFIED' }),
@@ -224,6 +227,7 @@ test('challenge route creates handoff only from verified server-derived subjects
 test('challenge route returns generic failure without invoking handoff', async () => {
     let called = false;
     const handler = createChallengeHandler({
+        env: enforcedMigrationEnv,
         getSupabase: () => ({}),
         consumePersistentMigrationThrottle: async () => ({ ok: true }),
         verifyDualMigrationTokens: async () => ({ ok: false }),
@@ -239,6 +243,7 @@ test('challenge route returns generic failure without invoking handoff', async (
 test('activation route binds challenge to freshly verified production subject', async () => {
     let activation;
     const handler = createActivationHandler({
+        env: enforcedMigrationEnv,
         getSupabase: () => ({}),
         consumePersistentMigrationThrottle: async () => ({ ok: true }),
         getFixedMigrationAuthority: () => ({ fixed: true }),
@@ -255,6 +260,7 @@ test('activation route binds challenge to freshly verified production subject', 
 test('routes fail closed on persistent throttle outage or denial', async () => {
     for (const throttle of [{ ok: false, unavailable: true }, { ok: false, retryAfter: 60 }]) {
         const handler = createChallengeHandler({
+            env: enforcedMigrationEnv,
             getSupabase: () => ({}),
             consumePersistentMigrationThrottle: async () => throttle
         });

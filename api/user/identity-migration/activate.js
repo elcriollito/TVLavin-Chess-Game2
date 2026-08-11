@@ -3,6 +3,7 @@ import { activateMigrationHandoff } from '../../_lib/identity-migration.js';
 import { getFixedMigrationAuthority, verifyMigrationToken } from '../../_lib/clerk-migration-verifiers.js';
 import { consumePersistentMigrationThrottle, fixedTokenHeader, prepareSensitiveJsonRoute, rejectSensitiveRoute } from '../../_lib/identity-migration-http.js';
 import { setCorsHeaders } from '../../_lib/auth.js';
+import { isIdentityMigrationEnforced } from '../../_lib/identity-resolution.js';
 
 export function createActivationHandler(dependencies = {}) {
     const getDatabase = dependencies.getSupabase || getSupabase;
@@ -10,11 +11,13 @@ export function createActivationHandler(dependencies = {}) {
     const verifyToken = dependencies.verifyMigrationToken || verifyMigrationToken;
     const activateHandoff = dependencies.activateMigrationHandoff || activateMigrationHandoff;
     const consumeThrottle = dependencies.consumePersistentMigrationThrottle || consumePersistentMigrationThrottle;
+    const environment = dependencies.env || process.env;
     return async function handler(req, res) {
     if (!setCorsHeaders(req, res, ['POST'])) return;
     if (req.method === 'OPTIONS') return res.status(200).end();
     const guard = prepareSensitiveJsonRoute(req, res);
     if (!guard.ok) return rejectSensitiveRoute(res, guard);
+    if (!isIdentityMigrationEnforced(environment)) return res.status(404).json({ error: 'Not found' });
     if (!req.body || Object.keys(req.body).some((key) => key !== 'challengeToken')
         || typeof req.body.challengeToken !== 'string' || req.body.challengeToken.length > 1024) {
         return res.status(400).json({ error: 'Request rejected' });

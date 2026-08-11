@@ -3,17 +3,20 @@ import { createMigrationHandoff } from '../../_lib/identity-migration.js';
 import { verifyDualMigrationTokens } from '../../_lib/clerk-migration-verifiers.js';
 import { consumePersistentMigrationThrottle, fixedTokenHeader, prepareSensitiveJsonRoute, rejectSensitiveRoute } from '../../_lib/identity-migration-http.js';
 import { setCorsHeaders } from '../../_lib/auth.js';
+import { isIdentityMigrationEnforced } from '../../_lib/identity-resolution.js';
 
 export function createChallengeHandler(dependencies = {}) {
     const getDatabase = dependencies.getSupabase || getSupabase;
     const verifyDual = dependencies.verifyDualMigrationTokens || verifyDualMigrationTokens;
     const createHandoff = dependencies.createMigrationHandoff || createMigrationHandoff;
     const consumeThrottle = dependencies.consumePersistentMigrationThrottle || consumePersistentMigrationThrottle;
+    const environment = dependencies.env || process.env;
     return async function handler(req, res) {
     if (!setCorsHeaders(req, res, ['POST'])) return;
     if (req.method === 'OPTIONS') return res.status(200).end();
     const guard = prepareSensitiveJsonRoute(req, res);
     if (!guard.ok) return rejectSensitiveRoute(res, guard);
+    if (!isIdentityMigrationEnforced(environment)) return res.status(404).json({ error: 'Not found' });
     if (Object.keys(req.body || {}).length !== 0) return res.status(400).json({ error: 'Request rejected' });
 
     try {
