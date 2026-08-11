@@ -316,7 +316,8 @@
      * Redirect to sign in page
      */
     function redirectToSignIn(returnUrl = null) {
-        const url = returnUrl || window.location.href;
+        const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        const url = window.CAISSA_REDIRECTS.sanitizeInternalRedirect(returnUrl || currentPath, '/');
         window.location.href = '/signin?redirect_url=' + encodeURIComponent(url);
     }
 
@@ -324,7 +325,8 @@
      * Redirect to sign up page
      */
     function redirectToSignUp(returnUrl = null) {
-        const url = returnUrl || window.location.href;
+        const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        const url = window.CAISSA_REDIRECTS.sanitizeInternalRedirect(returnUrl || currentPath, '/');
         window.location.href = '/signup?redirect_url=' + encodeURIComponent(url);
     }
 

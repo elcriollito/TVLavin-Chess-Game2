@@ -83,8 +83,8 @@ export default async function handler(req, res) {
                     type: 'subscription',
                     plan: plan
                 },
-                success_url: `${_getBaseUrl(req)}/premium?session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: `${_getBaseUrl(req)}/premium`
+                success_url: `${getCheckoutBaseUrl()}/premium?session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `${getCheckoutBaseUrl()}/premium`
             };
 
         } else {
@@ -110,8 +110,8 @@ export default async function handler(req, res) {
                     package: pkg,
                     caissa_user_id: userId
                 },
-                success_url: `${_getBaseUrl(req)}/premium?session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: `${_getBaseUrl(req)}/premium`
+                success_url: `${getCheckoutBaseUrl()}/premium?session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `${getCheckoutBaseUrl()}/premium`
             };
         }
 
@@ -161,10 +161,14 @@ async function _getOrCreateCustomer(stripe, auth) {
 }
 
 /**
- * Get base URL from request headers.
+ * Get the trusted application origin from server-controlled configuration.
  */
-function _getBaseUrl(req) {
-    const proto = req.headers['x-forwarded-proto'] || 'https';
-    const host = req.headers['x-forwarded-host'] || req.headers['host'];
-    return `${proto}://${host}`;
+export function getCheckoutBaseUrl() {
+    const configured = String(process.env.CAISSA_APP_ORIGIN || '').trim();
+    if (!configured) return 'https://www.caissa-chess.org';
+    const parsed = new URL(configured);
+    if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password || parsed.pathname !== '/' || parsed.search || parsed.hash) {
+        throw new Error('Invalid CAISSA_APP_ORIGIN');
+    }
+    return parsed.origin;
 }

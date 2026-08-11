@@ -63,7 +63,9 @@ Baseline: `0c3c1599ad47aae9477db863146bd3909020355d`
 
 - Evidence: `js/signin-page.js` and `js/signup-page.js` return query `redirect_url` verbatim and assign it to navigation/Clerk callback options.
 - Attack/impact: crafted CAISSA authentication links can redirect users to phishing origins after sign-in.
-- Remediation/task: accept same-origin relative paths only; reject schemes, protocol-relative URLs and encoded bypasses.
+- Local remediation: `sanitizeInternalRedirect` enforces a normalized root-relative application path before browser or Clerk navigation. Schemes, protocol-relative/multiple-slash paths, backslashes, controls, encoded/double-encoded separators, userinfo/lookalike hosts and sensitive route prefixes fall back to `/`. Auth helpers preserve only validated current paths. Checkout success/cancel URLs now use a canonical or server-controlled origin instead of request headers.
+- Credential escalation review: no session JWT, OAuth code, migration challenge, password-reset/verification token or Stripe secret enters redirect state.
+- Remediation status: remediated locally; production deployment and isolated Clerk/Stripe integration verification remain required. See `SEC-011_OPEN_REDIRECT_HARDENING.md`.
 
 ### SEC-012 — Headers/CSP
 

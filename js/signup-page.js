@@ -12,7 +12,7 @@
     // Get redirect URL from query params
     function getRedirectUrl() {
         const params = new URLSearchParams(window.location.search);
-        return params.get('redirect_url') || '/';
+        return window.CAISSA_REDIRECTS.sanitizeInternalRedirect(params.get('redirect_url'), '/');
     }
 
     function getClerkDomain(publishableKey) {

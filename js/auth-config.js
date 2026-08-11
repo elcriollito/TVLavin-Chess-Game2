@@ -12,6 +12,27 @@
  * 4. Copy the "Publishable Key" (starts with pk_test_ or pk_live_)
  */
 
+const BLOCKED_REDIRECT_PATHS = Object.freeze(['/api', '/internal', '/debug', '/qa', '/admin', '/auth']);
+
+function sanitizeInternalRedirect(candidate, fallback = '/') {
+    const normalize = value => {
+        if (typeof value !== 'string' || value.length === 0 || value.length > 2048) return null;
+        if (value !== value.trim() || /[\u0000-\u001f\u007f]/.test(value)) return null;
+        if (!/^\/(?![\\/])/.test(value) || value.includes('\\')) return null;
+        if (/%(?:0[0-9a-f]|1[0-9a-f]|7f|2f|5c|25)/i.test(value)) return null;
+        try {
+            const parsed = new URL(value, 'https://caissa.invalid');
+            if (parsed.origin !== 'https://caissa.invalid') return null;
+            const path = parsed.pathname.toLowerCase();
+            if (BLOCKED_REDIRECT_PATHS.some(prefix => path === prefix || path.startsWith(`${prefix}/`))) return null;
+            return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+        } catch (_) {
+            return null;
+        }
+    };
+    return normalize(candidate) || normalize(fallback) || '/';
+}
+
 const CAISSA_AUTH_CONFIG = {
     // Fallback only. Production should hydrate this from /api/public-auth-config.
     CLERK_PUBLISHABLE_KEY: 'pk_test_REPLACE_WITH_YOUR_KEY',
@@ -21,6 +42,7 @@ const CAISSA_AUTH_CONFIG = {
     REDIRECT_AFTER_SIGN_IN: '/',
     REDIRECT_AFTER_SIGN_UP: '/',
     REDIRECT_AFTER_SIGN_OUT: '/',
+    sanitizeInternalRedirect,
 
     // Feature flags (can be overridden by backend in future)
     FEATURES: {
@@ -43,6 +65,7 @@ const CAISSA_AUTH_CONFIG = {
 };
 
 window.CAISSA_AUTH_CONFIG = CAISSA_AUTH_CONFIG;
+window.CAISSA_REDIRECTS = Object.freeze({ sanitizeInternalRedirect });
 window.CAISSA_AUTH_CONFIG_READY = (async function loadPublicAuthConfig() {
     try {
         const response = await fetch('/api/public-auth-config', {
