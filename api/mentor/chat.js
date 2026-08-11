@@ -121,32 +121,6 @@ export default async function handler(req, res) {
         });
       }
 
-      // Get user from database
-      const { data: user, error: userError } = await supabase
-        .from('users')
-        .select('id, is_premium, credits')
-        .eq('clerk_id', auth.userId)
-        .single();
-
-      if (userError || !user) {
-        logError('mentor_chat', 'User not found', { detail: { userId: auth.userId } });
-        return res.status(404).json({
-          error: 'User not found. Please refresh and try again.',
-          code: 'USER_NOT_FOUND'
-        });
-      }
-
-      // Check if premium (bypass credits) or has enough credits
-      if (!user.is_premium && user.credits < MENTOR_CREDIT_COST) {
-        logAction('mentor_blocked', { detail: { userId: auth.userId, credits: user.credits } });
-        return res.status(402).json({
-          error: 'Insufficient credits. Purchase more credits or upgrade to Premium for unlimited AI access.',
-          code: 'INSUFFICIENT_CREDITS',
-          credits: user.credits,
-          required: MENTOR_CREDIT_COST
-        });
-      }
-
       // Input validation BEFORE consuming credits
       if (!messages || !Array.isArray(messages)) {
         return res.status(400).json({ error: 'Messages array is required' });
@@ -164,24 +138,42 @@ export default async function handler(req, res) {
         }
       }
 
-      // Consume credit for free users
-      if (!user.is_premium) {
-        const { error: consumeError } = await supabase
-          .from('users')
-          .update({ credits: user.credits - MENTOR_CREDIT_COST })
-          .eq('id', user.id);
+      // The database is the economic authorization boundary. consume_credits
+      // locks the authenticated user's row, checks trusted premium status and
+      // balance, and consumes at most one credit in the same transaction.
+      const creditDecision = await consumeMentorCredit(supabase, auth.userId);
 
-        if (consumeError) {
-          logError('mentor_chat', 'Failed to consume credit', { detail: { userId: auth.userId } });
-          return res.status(500).json({
-            error: 'Failed to process request. Please try again.'
-          });
-        }
-
-        logAction('mentor_credit_consumed', { userId: auth.userId, detail: { remaining: user.credits - MENTOR_CREDIT_COST } });
+      if (creditDecision.reason === 'user_not_found') {
+        logError('mentor_chat', 'User not found', { detail: { userId: auth.userId } });
+        return res.status(404).json({
+          error: 'User not found. Please refresh and try again.',
+          code: 'USER_NOT_FOUND'
+        });
       }
 
-      logAction('mentor_request', { userId: auth.userId, detail: { provider: 'together', model: TOGETHER_MODEL, messages: messages.length, premium: user.is_premium } });
+      if (creditDecision.reason === 'service_error') {
+        logError('mentor_chat', 'Atomic credit authorization failed', { detail: { userId: auth.userId } });
+        return res.status(503).json({
+          error: 'Service temporarily unavailable.',
+          code: 'SERVICE_UNAVAILABLE'
+        });
+      }
+
+      if (!creditDecision.authorized) {
+        logAction('mentor_blocked', { detail: { userId: auth.userId, credits: creditDecision.credits } });
+        return res.status(402).json({
+          error: 'Insufficient credits. Purchase more credits or upgrade to Premium for unlimited AI access.',
+          code: 'INSUFFICIENT_CREDITS',
+          credits: creditDecision.credits,
+          required: MENTOR_CREDIT_COST
+        });
+      }
+
+      if (!creditDecision.premium) {
+        logAction('mentor_credit_consumed', { userId: auth.userId, detail: { remaining: creditDecision.credits } });
+      }
+
+      logAction('mentor_request', { userId: auth.userId, detail: { provider: 'together', model: TOGETHER_MODEL, messages: messages.length, premium: creditDecision.premium } });
 
       // Use Together AI
       return await callTogetherAI(req, res, messages, TOGETHER_API_KEY, TOGETHER_MODEL, maxTokens, temperature);
@@ -321,6 +313,54 @@ export default async function handler(req, res) {
   } catch (error) {
     logError('mentor_chat', error);
     return res.status(500).json({ error: 'An error occurred processing your request.' });
+  }
+}
+
+/**
+ * Atomically authorize one shared Mentor operation for the authenticated user.
+ * Provider failures intentionally do not refund the consumed credit: the
+ * current schema has no request-scoped, idempotent refund primitive, and a
+ * generic add-credit compensation could mint credits on retry.
+ */
+export async function consumeMentorCredit(supabaseClient, authenticatedUserId) {
+  try {
+    const { data, error } = await supabaseClient.rpc('consume_credits', {
+      p_clerk_id: authenticatedUserId,
+      p_cost: MENTOR_CREDIT_COST,
+      p_action: 'mentor_chat'
+    });
+
+    if (error) {
+      return { authorized: false, premium: false, credits: 0, reason: 'service_error' };
+    }
+
+    const result = data?.[0] || data;
+    if (!result) {
+      return { authorized: false, premium: false, credits: 0, reason: 'service_error' };
+    }
+
+    const message = String(result.message || '');
+    if (!result.success && message === 'User not found') {
+      return { authorized: false, premium: false, credits: 0, reason: 'user_not_found' };
+    }
+
+    if (!result.success) {
+      return {
+        authorized: false,
+        premium: false,
+        credits: Number.isFinite(result.new_balance) ? result.new_balance : 0,
+        reason: 'insufficient_credits'
+      };
+    }
+
+    return {
+      authorized: true,
+      premium: message === 'Premium user - no deduction',
+      credits: Number.isFinite(result.new_balance) ? result.new_balance : 0,
+      reason: 'authorized'
+    };
+  } catch {
+    return { authorized: false, premium: false, credits: 0, reason: 'service_error' };
   }
 }
 
