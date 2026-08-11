@@ -130,16 +130,18 @@ function handleHealthCheck(res) {
 // MENTOR AI CHAT PROXY (for LLM API calls)
 // ============================================================================
 
-// Allowed providers for validation
-const ALLOWED_PROVIDERS = ['together', 'llama', 'openai', 'anthropic', 'local', 'custom'];
+// Remote callers may select a provider, never the server's network destination.
+const MENTOR_PROVIDER_ENDPOINTS = Object.freeze({
+  together: 'https://api.together.xyz/v1/chat/completions',
+  llama: 'https://api.llama.com/v1/chat/completions',
+  openai: 'https://api.openai.com/v1/chat/completions',
+  anthropic: 'https://api.anthropic.com/v1/messages'
+});
+const ALLOWED_PROVIDERS = new Set(Object.keys(MENTOR_PROVIDER_ENDPOINTS));
 
 // Input validation limits
 const MAX_MESSAGES = 50;
 const MAX_CONTENT_LENGTH = 100000; // 100KB per message
-
-// API base URLs (can be overridden via env vars)
-const LLAMA_API_BASE_URL = process.env.LLAMA_API_BASE_URL || 'https://api.llama.com';
-const TOGETHER_API_BASE_URL = process.env.TOGETHER_API_BASE_URL || 'https://api.together.xyz';
 
 async function handleMentorChat(req, res) {
   // Only accept POST requests
@@ -159,15 +161,33 @@ async function handleMentorChat(req, res) {
     const data = JSON.parse(body);
     const { provider, apiKey, messages, model, maxTokens, temperature } = data;
 
-    // Validate provider
-    if (!ALLOWED_PROVIDERS.includes(provider)) {
+    if (provider === 'custom') {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: `Unknown provider: ${provider}. Allowed: ${ALLOWED_PROVIDERS.join(', ')}` }));
+      res.end(JSON.stringify({
+        code: 'CUSTOM_PROVIDER_DISABLED',
+        error: 'Custom AI endpoints are temporarily unavailable.'
+      }));
       return;
     }
 
-    // API key required for non-local providers
-    if (provider !== 'local' && !apiKey) {
+    if (provider === 'local') {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        code: 'LOCAL_PROVIDER_DISABLED',
+        error: 'Local AI endpoints are unavailable through the server.'
+      }));
+      return;
+    }
+
+    // Validate provider
+    if (!ALLOWED_PROVIDERS.has(provider)) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ code: 'UNKNOWN_PROVIDER', error: 'Unknown AI provider.' }));
+      return;
+    }
+
+    // All supported legacy providers use a caller-supplied key.
+    if (!apiKey) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'API key is required' }));
       return;
@@ -197,13 +217,13 @@ async function handleMentorChat(req, res) {
 
     console.log(`🤖 Mentor Chat: provider=${provider}, model=${model}, messages=${messages.length}`);
 
-    let apiUrl, headers, requestBody;
+    const apiUrl = MENTOR_PROVIDER_ENDPOINTS[provider];
+    let headers, requestBody;
 
     // Configure request based on provider
     switch (provider) {
       case 'together':
         // Together.ai - cost-efficient LLaMA hosting
-        apiUrl = `${TOGETHER_API_BASE_URL}/v1/chat/completions`;
         headers = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
@@ -218,7 +238,6 @@ async function handleMentorChat(req, res) {
 
       case 'llama':
         // Meta Llama API - OpenAI-compatible chat completions format
-        apiUrl = `${LLAMA_API_BASE_URL}/v1/chat/completions`;
         headers = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
@@ -232,7 +251,6 @@ async function handleMentorChat(req, res) {
         break;
 
       case 'anthropic':
-        apiUrl = 'https://api.anthropic.com/v1/messages';
         headers = {
           'Content-Type': 'application/json',
           'x-api-key': apiKey,
@@ -249,19 +267,7 @@ async function handleMentorChat(req, res) {
         });
         break;
 
-      case 'local':
-        apiUrl = 'http://localhost:1234/v1/chat/completions';
-        headers = { 'Content-Type': 'application/json' };
-        requestBody = JSON.stringify({
-          model: model || 'local-model',
-          messages,
-          max_tokens: maxTokens || 1024,
-          temperature: temperature || 0.7
-        });
-        break;
-
       case 'openai':
-        apiUrl = 'https://api.openai.com/v1/chat/completions';
         headers = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
@@ -274,28 +280,18 @@ async function handleMentorChat(req, res) {
         });
         break;
 
-      case 'custom':
       default:
-        // Custom endpoint - use OpenAI-compatible format
-        apiUrl = data.endpoint || 'https://api.openai.com/v1/chat/completions';
-        headers = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        };
-        requestBody = JSON.stringify({
-          model: model || 'default',
-          messages,
-          max_tokens: maxTokens || 1024,
-          temperature: temperature || 0.7
-        });
-        break;
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ code: 'UNKNOWN_PROVIDER', error: 'Unknown AI provider.' }));
+        return;
     }
 
     // Make API request
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
       headers,
-      body: requestBody
+      body: requestBody,
+      redirect: 'error'
     });
 
     const responseData = await apiResponse.json();
@@ -320,7 +316,7 @@ async function handleMentorChat(req, res) {
         total_tokens: (responseData.usage?.input_tokens || 0) + (responseData.usage?.output_tokens || 0)
       };
     } else {
-      // OpenAI-compatible format (llama, openai, local, custom)
+      // OpenAI-compatible format (Together, Llama, OpenAI)
       content = responseData.choices?.[0]?.message?.content || '';
       usage = responseData.usage;
     }
@@ -531,3 +527,5 @@ server.listen(PORT, HOST, () => {
   console.log('========================================');
   console.log('');
 });
+
+export { handleMentorChat, server };
