@@ -18,7 +18,7 @@ export default defineConfig({
     },
     webServer: externalBaseUrl ? undefined : {
         command: 'node server.js',
-        env: { ...process.env, CAISSA_PLAY_V2_BETA_STAGE: 'internal' },
+        env: { ...process.env, CAISSA_PLAY_V2_BETA_STAGE: 'public-beta' },
         url: 'http://127.0.0.1:8000/endgame-trainer',
         reuseExistingServer: true,
         timeout: 30_000,

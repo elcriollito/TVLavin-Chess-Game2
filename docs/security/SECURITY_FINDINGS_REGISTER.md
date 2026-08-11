@@ -15,11 +15,11 @@ Baseline: `0c3c1599ad47aae9477db863146bd3909020355d`
 | SEC-009 | Medium | High | Rate limits are process-local and non-distributed | CWE-799 | API4:2023 | CONFIRMED |
 | SEC-010 | Medium | High | Stripe fulfillment idempotency is TOCTOU and fails open | CWE-367/CWE-841 | API6:2023 | REMEDIATED LOCALLY |
 | SEC-011 | Medium | High | Sign-in/sign-up accept unvalidated post-auth redirect URLs | CWE-601 | A01:2021 | CONFIRMED |
-| SEC-012 | Medium | High | CSP and security headers are inconsistent across production pages | CWE-693 | A05:2021 | HARDENING |
+| SEC-012 | Medium | High | CSP and security headers are inconsistent across production pages | CWE-693 | A05:2021 | REMEDIATED LOCALLY |
 | SEC-013 | Medium | High | Floating/unverified runtime scripts and known dependency advisories | CWE-1104 | A06/A08:2021 | CONFIRMED |
 | SEC-014 | Low | High | BYO keys lack explicit logout/provider-switch clearing | CWE-459 | A02:2021 | CONFIRMED |
 | SEC-015 | Medium | Medium | External-data HTML sinks require active XSS verification | CWE-79 | A03:2021 | REQUIRES ACTIVE VERIFICATION |
-| SEC-016 | Low | High | Wildcard API CORS is broader than required | CWE-942 | A05:2021 | HARDENING |
+| SEC-016 | Low | High | Wildcard API CORS is broader than required | CWE-942 | A05:2021 | REMEDIATED LOCALLY |
 
 ## Finding details
 
@@ -72,7 +72,8 @@ Baseline: `0c3c1599ad47aae9477db863146bd3909020355d`
 
 - Evidence: `vercel.json` gives strong CSP/nosniff/referrer controls mainly to `/play`; legacy HTML permits `unsafe-eval`, broad hosts, blobs and sometimes `unsafe-inline`. Global HSTS, Permissions-Policy, COOP and CORP are absent from repository configuration.
 - Impact: weaker defense-in-depth and larger impact from a future injection/dependency compromise.
-- Remediation/task: deploy a consistent header baseline; remove CSP exceptions per page using nonces/hashes/bundling.
+- Local remediation: `vercel.json` now supplies a coherent global CSP and security-header baseline while Play retains its stricter route policy. Global `unsafe-eval`, remote/blob Workers and universal source wildcards are absent. Legacy inline execution and external scripts remain documented debt. See `SEC-012_CSP_SECURITY_HEADERS.md`.
+- Remediation status: remediated locally with Chromium/WebKit and full local regression evidence; deployment verification remains required.
 
 ### SEC-013 — Supply chain
 
@@ -97,4 +98,5 @@ Baseline: `0c3c1599ad47aae9477db863146bd3909020355d`
 
 - Evidence: `api/_lib/auth.js` and several routes set `Access-Control-Allow-Origin: *` and allow Authorization headers.
 - Impact: any origin can invoke public APIs or authenticated APIs if it separately obtains a bearer token; credentials are not enabled, so this is not a direct auth bypass.
-- Remediation/task: restrict browser-facing APIs to production/development allowlists and omit CORS where cross-origin access is unnecessary.
+- Local remediation: wildcard CORS was replaced by exact canonical/server-controlled origin matching, route-specific methods, restricted preflight headers, `Vary: Origin`, no credentials, and generic rejection of null/unlisted origins. Stripe webhook and public auth config omit browser CORS. See `SEC-016_CORS_HARDENING.md`.
+- Remediation status: remediated locally with exact-origin/preflight regression evidence; deployment verification remains required.

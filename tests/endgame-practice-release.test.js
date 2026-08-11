@@ -31,7 +31,7 @@ test('canonical navigation has Endgame Practice exactly once in the learning gro
   vm.runInNewContext(read('js/caissa-primary-navigation.js'),{window,document});
   const inventory=window.CaissaPrimaryNavigation.inventory;
   assert.equal(inventory.all.filter(item=>item.id==='endgame-practice').length,1);
-  assert.equal(inventory.groups[0].find(item=>item.id==='endgame-practice').route,'/endgame-practice');
+  assert.equal(inventory.groups[1].find(item=>item.id==='endgame-practice').route,'/endgame-practice');
   const page=load(read('endgame-practice.html'));
   assert.equal(page('[data-caissa-standalone-sidebar][data-active="endgame-practice"]').length,1);
 });

@@ -47,6 +47,9 @@ const retiredBetaRedirects = Object.freeze(new Map([
 export default function middleware(request) {
     const url = new URL(request.url);
     if (url.pathname === '/' && (request.method === 'GET' || request.method === 'HEAD')) {
+        if (url.searchParams.get('section') === 'yahooClassic') {
+            return Response.redirect(new URL('/yahoo-classic', url), 308);
+        }
         return Response.redirect(new URL('/play', url), 308);
     }
     let decodedPath = url.pathname;
@@ -102,7 +105,5 @@ export default function middleware(request) {
     if (url.searchParams.get('action') === 'help') {
         return Response.redirect(new URL('/help', url), 308);
     }
-    if (url.searchParams.get('section') !== 'yahooClassic') return;
-
-    return Response.redirect(new URL('/yahoo-classic', url), 308);
+    return undefined;
 }

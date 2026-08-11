@@ -94,7 +94,10 @@ test('explicit section routing remains ahead of the Classic default', () => {
   const explicit = navigation.indexOf("urlParams.has('section')");
   const fallback = navigation.indexOf("|| 'yahooClassic'", explicit);
   assert.ok(explicit >= 0 && fallback > explicit);
-  assert.match(read('middleware.js'), /searchParams\.get\('section'\) !== 'yahooClassic'/);
+  const middleware = read('middleware.js');
+  const classicRedirect = middleware.indexOf("searchParams.get('section') === 'yahooClassic'");
+  const playRedirect = middleware.indexOf("new URL('/play', url)");
+  assert.ok(classicRedirect >= 0 && playRedirect > classicRedirect);
 });
 
 test('all standalone shell pages load the canonical source before the renderer', () => {

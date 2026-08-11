@@ -35,11 +35,12 @@ test('Play v2 build and hosting policy use self-only Worker CSP without unsafe e
     assert.match(html, /worker-src 'self';/);
     assert.doesNotMatch(html, /worker-src[^;]*(?:blob:|https?:|\*)/);
     assert.doesNotMatch(html, /script-src[^;]*'unsafe-eval'/);
-    assert.match(server, /PLAY_V2_CSP = "worker-src 'self';/);
+    assert.match(server, /PLAY_V2_CSP = "[^"]*worker-src 'self';/);
+    assert.doesNotMatch(server.match(/PLAY_V2_CSP = "[^"]+"/)?.[0] || '', /'unsafe-eval'|worker-src[^;]*(?:blob:|https?:|\*)/);
     const hosting = JSON.parse(vercel);
-    const betaHeaders = hosting.headers.filter(item => item.source.startsWith('/play/beta'));
-    assert.equal(betaHeaders.length, 2);
-    for (const item of betaHeaders) {
+    const playHeaders = hosting.headers.filter(item => item.source === '/play' || item.source === '/play/:path*');
+    assert.equal(playHeaders.length, 2);
+    for (const item of playHeaders) {
         const csp = item.headers.find(header => header.key === 'Content-Security-Policy')?.value || '';
         assert.match(csp, /worker-src 'self'/); assert.doesNotMatch(csp, /worker-src[^;]*(?:blob:|https?:|\*)/);
     }

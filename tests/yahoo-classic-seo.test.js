@@ -72,9 +72,10 @@ test('canonical route and legacy query state consolidate without sitemap duplica
   // The original single-root matcher was replaced when the existing edge
   // middleware became the server-evaluated private availability endpoint.
   assert.deepEqual(middlewareConfig.matcher, [
-    '/', '/api/endgame/private-run-availability', '/play/beta/:path*', '/api/play-beta/:path*'
+    '/', '/api/endgame/private-run-availability', '/play', '/play/:path*',
+    '/play/beta/:path*', '/api/play-beta/:path*', '/play-v2(.*)'
   ]);
-  assert.match(middleware, /searchParams\.get\('section'\) !== 'yahooClassic'/);
+  assert.match(middleware, /searchParams\.get\('section'\) === 'yahooClassic'/);
   assert.match(server, /searchParams\.get\('section'\) === 'yahooClassic'/);
   assert.match(server, /pathname === '\/yahoo-classic'[\s\S]*filePath = '\.\/yahoo-classic\.html'/);
 });
@@ -87,7 +88,9 @@ test('legacy query redirect returns a clean permanent canonical location', () =>
 
 test('routing middleware ignores every unrelated homepage state', () => {
   for (const section of ['play', 'fics', 'analyze', 'arena']) {
-    assert.equal(classicMiddleware(new Request(`${production}/?section=${section}`)), undefined);
+    const response = classicMiddleware(new Request(`${production}/?section=${section}`));
+    assert.equal(response.status, 308);
+    assert.equal(response.headers.get('location'), `${production}/play`);
   }
 });
 

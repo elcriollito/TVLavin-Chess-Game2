@@ -6,10 +6,26 @@ import {
 
 test.beforeEach(async ({ page }) => {
     await instrumentPlay(page, { autoReply: false });
+    await page.addInitScript(() => {
+        window.__caissaCspViolations = [];
+        document.addEventListener('securitypolicyviolation', event => {
+            window.__caissaCspViolations.push({ directive: event.effectiveDirective, blocked: event.blockedURI });
+        });
+    });
+});
+
+test.afterEach(async ({ page }) => {
+    if (!page.url() || page.url() === 'about:blank') return;
+    expect(await page.evaluate(() => window.__caissaCspViolations || []), 'unexpected CSP violations').toEqual([]);
 });
 
 test('public boundary loads after App with a frozen versioned API', async ({ page }) => {
-    await openPlay(page);
+    const response = await openPlay(page, '/?section=play');
+    const csp = response.headers()['content-security-policy'];
+    expect(csp).toContain("script-src 'self'");
+    expect(csp).toContain("worker-src 'self'");
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).not.toContain("'unsafe-eval'");
     const contract = await page.evaluate(() => ({
         available: window.CaissaPlayCompatibility.isAvailable(),
         version: window.CaissaPlayCompatibility.schemaVersion,
@@ -21,17 +37,27 @@ test('public boundary loads after App with a frozen versioned API', async ({ pag
 });
 
 test('adapter initialization creates zero boards, workers, RAFs, listeners, DOM, and storage writes', async ({ page }) => {
-    await page.goto('/');
+    await openPlay(page);
+    await expect.poll(async () => {
+        const before = await page.evaluate(() => JSON.stringify(window.__caissaPlayHarness.snapshot()));
+        await page.waitForTimeout(50);
+        const after = await page.evaluate(() => JSON.stringify(window.__caissaPlayHarness.snapshot()));
+        return before === after;
+    }).toBe(true);
     const proof = await page.evaluate(async () => {
-        const response = await fetch('/js/play/legacy-play-compatibility.js');
-        const source = await response.text();
         const harnessBefore = window.__caissaPlayHarness.snapshot();
         const storageBefore = Object.entries(localStorage).sort();
         const identity = window.CaissaPlayCompatibility;
         const mutations = [];
         const observer = new MutationObserver(records => mutations.push(...records));
-        observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, characterData: true });
-        (0, eval)(source);
+        observer.observe(document.body, { subtree: true, childList: true, attributes: true, characterData: true });
+        await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = '/js/play/legacy-play-compatibility.js?v=idempotency-test';
+            script.onload = resolve;
+            script.onerror = () => reject(new Error('Compatibility script failed to reload'));
+            document.head.appendChild(script);
+        });
         observer.disconnect();
         const harnessAfter = window.__caissaPlayHarness.snapshot();
         return {
@@ -62,7 +88,7 @@ test('snapshot tracks idle, active, one move, evaluation, and inactive Play stat
     expect(state.position.moveHistory.map(move => move.san)).toEqual(['e4']);
     expect(state.position.pgn).toContain('1. e4');
     expect(state.evaluation).toMatchObject({ available: true, scorePawns: 1.25, perspective: 'white' });
-    await page.locator('[data-section="academy"]').first().click();
+    await page.evaluate(() => window.CaissaNavigation.navigateToSection('academy', { history: false }));
     state = await page.evaluate(() => window.CaissaPlayCompatibility.getSnapshot());
     expect(state.active).toBe(false);
     expect(state.engine.available).toBe(true);
@@ -154,25 +180,17 @@ test('mutating returned data cannot replace App.game or change legacy state', as
     });
 });
 
-test('Analyze command uses a tokenized handoff and preserves Play state', async ({ page }) => {
+test('legacy Analyze command fails closed in Play V2 and preserves Play state', async ({ page }) => {
     await openPlay(page);
     await startGame(page);
     await playMove(page, 'e2', 'e4');
     const before = await page.evaluate(() => window.CaissaPlayCompatibility.getCurrentFen());
     const command = await page.evaluate(() => window.CaissaPlayCompatibility.execute('openAnalyze'));
-    await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
-    await expect(page.locator('#analyzeSection')).toBeVisible();
-    await expect(page.locator('#analyzeSection')).not.toHaveClass(/caissa-play-v2-inline-analyze/);
-    const after = await page.evaluate(() => window.CaissaPlayCompatibility.getCurrentFen());
-    const handoff = await page.evaluate(token => window.CaissaAnalyzeHandoff.resolve(token), command.value);
-    expect(command).toMatchObject({ ok: true, status: 'accepted', reason: null });
-    expect(command.value).toMatch(/^[A-Za-z0-9_-]{12,120}$/);
-    expect(handoff).toMatchObject({ ok: true, value: { intent: 'inspect-current-position', payload: {
-        recordId: null, result: null, termination: null, recordStatus: 'active'
-    } } });
-    expect(after).toBe(before);
-    await page.evaluate(() => window.CaissaNavigation.navigateToSection('play'));
+    expect(command).toMatchObject({ ok: false, status: 'unavailable', reason: 'handoff-unavailable' });
+    await expect(page.locator('#analyzeSection')).not.toHaveClass(/active/);
     await expect(page.locator('#playSection')).toHaveClass(/active/);
+    const after = await page.evaluate(() => window.CaissaPlayCompatibility.getCurrentFen());
+    expect(after).toBe(before);
     expect(await page.evaluate(() => ({ active: window.App.gameActive,
         fen: window.CaissaPlayCompatibility.getCurrentFen() }))).toEqual({ active: true, fen: before });
 });

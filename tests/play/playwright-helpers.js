@@ -35,11 +35,13 @@ export function monitorRuntime(page) {
     };
 }
 
-export async function openPlay(page, query = '?section=play') {
-    await page.goto(`/${query}`);
+export async function openPlay(page, route = '/play') {
+    const response = await page.goto(route);
+    expect(new URL(page.url()).pathname).toBe('/play');
     await expect(page.locator('#playSection')).toHaveClass(/active/);
     await expect(page.locator('#playSection #chessboard .board-b72b1')).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.App?.board ? 1 : 0)).toBe(1);
+    return response;
 }
 
 export async function startGame(page, options = {}) {

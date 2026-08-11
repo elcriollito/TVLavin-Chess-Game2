@@ -104,7 +104,7 @@ test('shell CSS layout rules are scoped to the explicit QA body state', () => {
         !rule.trim().startsWith('@media') && !rule.trim().startsWith('@'));
     for (const rule of layoutRules) {
         const selector = rule.slice(0, rule.indexOf('{')).trim();
-        assert.match(selector, /caissa-simplified-play-active|body\[data-caissa-play-v2-entry\]|caissa-simplified-shell\[hidden\]|caissa-play-v2-inline-analyze/);
+        assert.match(selector, /caissa-simplified-play-active|body\[data-caissa-play-v2-entry(?:=[^\]]+)?\]|caissa-simplified-shell\[hidden\]|caissa-play-v2-inline-analyze/);
     }
 });
 

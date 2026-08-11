@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { authenticateRequest } from '../_lib/auth.js';
+import { authenticateRequest, setCorsHeaders } from '../_lib/auth.js';
 import { logAction, logError } from '../_lib/logger.js';
 import { MENTOR_LIMITS, validateMentorRequest, exceedsMentorHttpBodyLimit, isAllowedSharedModel } from '../_lib/mentor-request-policy.js';
 import { claimMentorCapacity, releaseMentorCapacity } from '../_lib/mentor-capacity.js';
@@ -53,6 +53,7 @@ export function createMentorChatHandler(deps = {}) {
 
   return async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store');
+    if (!setCorsHeaders(req, res, ['POST'])) return;
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return reject(res, 405, 'INVALID_REQUEST', 'Request rejected.');
     if (exceedsMentorHttpBodyLimit(req)) return reject(res, 413, 'PAYLOAD_TOO_LARGE', 'Request is too large.');

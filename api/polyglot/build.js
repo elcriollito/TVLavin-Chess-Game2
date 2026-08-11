@@ -11,7 +11,7 @@ const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 const BUILD_TIMEOUT_MS = 90000;
 
 export default async function handler(req, res) {
-    setCorsHeaders(res);
+    if (!setCorsHeaders(req, res, ['POST'])) return;
 
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
