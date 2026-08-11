@@ -1359,10 +1359,12 @@ const LibraryUI = {
 };
 
 // Initialize when DOM is ready
+window.LibraryUI = LibraryUI;
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        LibraryUI.init();
-    }, 600);
+    window.CaissaLibraryUIReady = LibraryUI.init().then(() => {
+        window.dispatchEvent(new CustomEvent('caissa:library-ui-ready'));
+        return LibraryUI;
+    });
 });
 
 // Export for use in other modules

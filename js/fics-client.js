@@ -238,9 +238,6 @@ const CaissaFICSClient = {
 
     bindEvents() {
         // Connection
-        document.querySelector('[data-section="fics"]')?.addEventListener('click', () => {
-            setTimeout(() => this.onEnter(), 0);
-        });
         this.elements.connectBtn?.addEventListener('click', () => this.connect('guest'));
         this.elements.accountConnectBtn?.addEventListener('click', () => this.connect('account'));
         this.elements.disconnectBtn?.addEventListener('click', () => this.disconnect());
@@ -2260,13 +2257,16 @@ const CaissaFICSClient = {
     }
 };
 
+function initializeFicsSectionOwner() {
+    CaissaFICSClient.init();
+    window.CaissaNavigation?.registerSection?.('fics', CaissaFICSClient);
+}
+
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        CaissaFICSClient.init();
-    });
+    document.addEventListener('DOMContentLoaded', initializeFicsSectionOwner);
 } else {
-    CaissaFICSClient.init();
+    initializeFicsSectionOwner();
 }
 
 // Make globally accessible

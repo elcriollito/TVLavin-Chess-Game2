@@ -14,13 +14,26 @@ test('homepage enters official Play and canonical navigation is responsive', asy
   const root=await request.get('/',{maxRedirects:0});expect(root.status()).toBe(308);expect(root.headers().location).toBe('/play');
   await page.setViewportSize({width:1366,height:768});await page.goto('/');await expect(page).toHaveURL(/\/play$/);
   const nav=page.getByRole('navigation',{name:'CAISSA main navigation'});await expect(nav).toBeVisible();
-  await expect(nav.getByRole('button',{name:'Play',exact:true})).toHaveAttribute('aria-current','page');
+  await expect(nav.getByRole('link',{name:'Play',exact:true})).toHaveAttribute('aria-current','page');
   expect(await nav.locator('.nav-item').evaluateAll(nodes=>nodes.filter(node=>getComputedStyle(node).display!=='none')[0]?.textContent.trim())).toBe('Play');
-  await expect(nav.getByText(/FICS|Academy|Endgame|CAISSA Classic|Spectator TV/)).toHaveCount(0);
+  const restored=[['CAISSA Classic','/yahoo-classic'],['Academy','/academy'],['Endgame Trainer','/endgame-trainer'],['Endgame Practice','/endgame-practice'],['Endgame Library','/endgame-library'],['FICS','/fics'],['Spectator TV','/spectator-tv']];
+  for(const[label,href]of restored){const link=nav.getByRole('link',{name:label,exact:true});await expect(link).toHaveCount(1);await expect(link).toHaveAttribute('href',href);}
+  await expect(nav.getByRole('link',{name:'Mentor',exact:true})).toHaveCount(0);
   const desktopBoard=await page.locator('#chessboard').boundingBox();expect(Math.abs(desktopBoard.width-desktopBoard.height)).toBeLessThanOrEqual(1);expect(desktopBoard.width).toBeGreaterThan(400);
   await expect(page.getByText('Internal preview',{exact:true})).toHaveCount(0);await expect(page.getByText('Public Beta',{exact:true})).toHaveCount(0);
   await page.setViewportSize({width:390,height:844});const launcher=page.getByRole('button',{name:'Open navigation menu'});await expect(launcher).toBeVisible();await launcher.click();await expect(nav).toBeVisible();await page.keyboard.press('Escape');
   await expect(launcher).toBeFocused();expect(await nav.locator('.nav-item').evaluateAll(nodes=>nodes.filter(node=>getComputedStyle(node).display!=='none')[0]?.textContent.trim())).toBe('Play');const mobileBoard=await page.locator('#chessboard').boundingBox();expect(Math.abs(mobileBoard.width-mobileBoard.height)).toBeLessThanOrEqual(1);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+});
+
+test('restored global destinations remain lazy and Discord opens only by explicit click',async({page,context})=>{
+  await context.route('https://discord.gg/xbFpAtbUK',route=>route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><title>CAISSA Discord</title>'}));
+  const requests=[];page.on('request',request=>requests.push(request.url()));await page.goto('/play',{waitUntil:'networkidle'});const nav=page.getByRole('navigation',{name:'CAISSA main navigation'});
+  expect(requests.some(url=>/\/(?:academy|endgame-(?:trainer|practice|library)|yahoo-classic|fics|spectator-tv)(?:[/?#]|$)/.test(url))).toBe(false);expect(requests.some(url=>/(?:fics-client|fics-style|spectator-tv-)/i.test(url))).toBe(false);expect(requests.some(url=>/^wss?:/i.test(url))).toBe(false);expect(requests.some(url=>url==='https://discord.gg/xbFpAtbUK')).toBe(false);
+  const discord=nav.getByRole('link',{name:'CAISSA Discord',exact:true});await expect(discord).toHaveAttribute('href','https://discord.gg/xbFpAtbUK');await expect(discord).toHaveAttribute('target','_blank');await expect(discord).toHaveAttribute('rel',/noopener/);await expect(discord).toHaveAttribute('rel',/noreferrer/);
+  const popupPromise=context.waitForEvent('page');await discord.click();const popup=await popupPromise;expect(popup.url()).toBe('https://discord.gg/xbFpAtbUK');await popup.close();
+  for(const[label,route]of[['CAISSA Classic','/yahoo-classic'],['Academy','/academy'],['Endgame Trainer','/endgame-trainer'],['Endgame Practice','/endgame-practice'],['Endgame Library','/endgame-library']]){await nav.getByRole('link',{name:label,exact:true}).click();await expect(page).toHaveURL(new RegExp(`${route.replaceAll('/','\\/')}$`));await page.goBack();await expect(page).toHaveURL(/\/play$/);}
+  await nav.getByRole('link',{name:'FICS',exact:true}).click();await expect(page).toHaveURL(/\/fics$/);await expect(page.locator('#ficsSection')).toHaveClass(/active/);await expect(page.locator('#ficsConnectionStatus')).toBeVisible();await page.goBack();await expect(page).toHaveURL(/\/play$/);
+  await nav.getByRole('link',{name:'Spectator TV',exact:true}).click();await expect(page).toHaveURL(/\/spectator-tv$/);await expect(page.locator('#spectatorSection')).toHaveClass(/active/);await expect(page.locator('#spectatorSection')).toBeVisible();await page.goBack();await expect(page).toHaveURL(/\/play$/);
 });
 
 test('Games Bots Coach work while Players invite QA and direct HTML fail closed', async ({ page }) => {

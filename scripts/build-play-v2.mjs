@@ -14,6 +14,10 @@ const forbiddenElements = [
   /\s*<link[^>]+href="css\/fics-client\.css[^>]*>\r?\n/gi,
   /\s*<script[^>]+src="js\/fics-style12\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/fics-client\.js[^>]*><\/script>\r?\n/gi,
+  /\s*<script[^>]+src="js\/spectator-tv-state\.js[^>]*><\/script>\r?\n/gi,
+  /\s*<script[^>]+src="js\/spectator-tv-catalog\.js[^>]*><\/script>\r?\n/gi,
+  /\s*<script[^>]+src="js\/spectator-tv-section\.js[^>]*><\/script>\r?\n/gi,
+  /\s*<script[^>]+src="js\/legacy-canonical-section-route-policy\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/play\/players\/[^">]+"[^>]*><\/script>\r?\n/gi,
   /\s*<!-- Lazy manifest order \(inert\):[^>]*players-panel\.js -->\r?\n/gi,
   /\s*<link[^>]+href="css\/academy\.css[^>]*>\r?\n/gi,
@@ -156,6 +160,7 @@ const publicBetaHtml = html
   .replace('<link rel="canonical" href="/play/beta">', '<link rel="canonical" href="https://www.caissa-chess.org/play">')
   .replace('<meta name="robots" content="noindex, nofollow">', '<meta name="robots" content="index, follow">')
   .replace('data-caissa-play-v2-entry="qa-only"', 'data-caissa-play-v2-entry="official"')
+  .replaceAll('data-navigation-mode="application"', 'data-navigation-mode="routes"')
   .replace('<script src="js/play/play-v2-beta-entry.js?v=1.0.0"></script>',
     '<script src="js/play/play-v2-public-beta-policy.js?v=1.0.0"></script>')
   .replace(/\s*<script src="js\/play\/play-v2-invite-client\.js\?v=1\.0\.0"><\/script>/, '')

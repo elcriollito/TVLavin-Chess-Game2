@@ -15,7 +15,7 @@
             </button>
             <nav id="mainNav" class="main-navigation" aria-label="CAISSA main navigation">
                 <div class="nav-header">
-                    <a href="/" class="nav-logo" aria-label="CAISSA Chess home">
+                    <a href="/play" class="nav-logo" aria-label="CAISSA Chess — return to Play">
                         <i class="fas fa-chess-knight" aria-hidden="true"></i>
                         <span class="nav-logo-text">CAISSA</span>
                     </a>
@@ -55,6 +55,7 @@
                 </div>
             </nav>
             <div class="caissa-standalone-backdrop" aria-hidden="true"></div>`;
+        host.setAttribute('data-caissa-navigation-order-ready', navigation.contractId);
 
         const nav = host.querySelector('.main-navigation');
         const collapseButton = host.querySelector('.nav-collapse-btn');

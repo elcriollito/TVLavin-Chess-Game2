@@ -30,19 +30,19 @@ test('Play v2 emits no FICS request/resource/identity surface and cannot fall ba
     expect(requests).toEqual([]);
 });
 
-test('QA and legacy documents retain separate resource ownership', async ({ page }) => {
+test('official Play and canonical Legacy routes retain separate resource ownership', async ({ page }) => {
     await page.goto('/play/games?simplified=1');
-    expect(await page.locator('body').getAttribute('data-caissa-play-v2-entry')).toBe('qa-only');
+    expect(await page.locator('body').getAttribute('data-caissa-play-v2-entry')).toBe('official');
     expect(await page.evaluate(() => [...document.styleSheets, ...document.scripts]
         .map(resource => resource.href || resource.src)
         .filter(Boolean)
         .filter(source => /(?:css|js)\/fics|js\/play\/players\//i.test(new URL(source).pathname)))).toEqual([]);
 
     await page.goto('/play');
-    expect(await page.locator('body').getAttribute('data-caissa-play-v2-entry')).toBeNull();
-    expect(await page.evaluate(() => [...document.scripts].some(node => /js\/fics-client\.js/i.test(node.src)))).toBe(true);
+    expect(await page.locator('body').getAttribute('data-caissa-play-v2-entry')).toBe('official');
+    expect(await page.evaluate(() => [...document.scripts].some(node => /js\/fics-client\.js/i.test(node.src)))).toBe(false);
 
-    await page.goto('/');
+    await page.goto('/fics');
     expect(await page.evaluate(() => [...document.scripts].some(node => /js\/fics-style12\.js/i.test(node.src)))).toBe(true);
 
     await page.goto('/yahoo-classic');

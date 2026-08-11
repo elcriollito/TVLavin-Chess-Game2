@@ -16,6 +16,7 @@
         board: null,
         lastRenderedFen: null,
         pendingFeaturedWatch: false,
+        catalogLoadCompleted: false,
         unsubscribeFics: null,
         playerCardSnapshots: Object.create(null),
         contextSnapshot: '',
@@ -51,7 +52,8 @@
                 blackPlayerCard: document.getElementById('spectatorBlackPlayerCard'),
                 channelList: document.getElementById('spectatorChannelList'),
                 gameList: document.getElementById('spectatorGameList'),
-                gameCount: document.getElementById('spectatorGameCount')
+                gameCount: document.getElementById('spectatorGameCount'),
+                viewingState: document.getElementById('spectatorViewingState')
             };
         },
 
@@ -84,6 +86,7 @@
 
         onExit() {
             this.pendingFeaturedWatch = false;
+            this.catalogLoadCompleted = false;
         },
 
         handleFicsEvent(detail) {
@@ -150,6 +153,7 @@
             if (this.state?.status === states.DISCONNECTED) {
                 this.transition(states.CONNECTING);
             }
+            this.catalogLoadCompleted = false;
             this.transition(states.LOADING_GAMES);
         },
 
@@ -272,8 +276,10 @@
             this.catalog = window.CaissaSpectatorTVCatalog.updateCatalog(this.catalog, entries, {
                 selectedChannelId: this.state?.selectedChannelId || 'featured'
             });
+            this.catalogLoadCompleted = true;
             this.renderCatalogSummary();
             this.renderGameList();
+            this.renderViewingState();
         },
 
         isObservableGameTable(table) {
@@ -780,6 +786,33 @@
             this.renderChannels();
             this.renderGameList();
             this.renderCatalogSummary();
+            this.renderViewingState();
+        },
+
+        renderViewingState() {
+            const panel = this.elements.board?.closest('.spectator-board-panel');
+            const target = this.elements.viewingState;
+            if (!panel || !target) return;
+            const states = window.CaissaSpectatorTV?.STATES || {};
+            const status = this.state?.status;
+            const hasGame = !!(this.state?.currentObservedGameId || this.lastRenderedFen);
+            const loading = !hasGame && !this.catalogLoadCompleted
+                && [states.CONNECTING, states.LOADING_GAMES, states.SWITCHING_GAME].includes(status);
+            panel.classList.toggle('is-loading', loading);
+            panel.classList.toggle('is-empty', !loading && !hasGame);
+            target.hidden = hasGame;
+            const title = target.querySelector('.spectator-viewing-state__title');
+            const message = target.querySelector('.spectator-viewing-state__message');
+            const action = target.querySelector('.spectator-viewing-state__action');
+            if (loading) {
+                if (title) title.textContent = 'Loading live game\u2026';
+                if (message) message.textContent = 'Looking for an available game in this channel.';
+                if (action) action.hidden = true;
+            } else if (!hasGame) {
+                if (title) title.textContent = 'No live game available';
+                if (message) message.textContent = 'No live game is available in this channel right now. Choose another channel or return to Play.';
+                if (action) action.hidden = false;
+            }
         },
 
         showMessage(message, type = 'info') {

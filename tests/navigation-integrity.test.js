@@ -20,16 +20,23 @@ test('canonical primary navigation inventory is unique and stable', () => {
   assert.deepEqual(
     Array.from(inventory.primary, ({ id }) => id),
     [
-      'yahooClassic', 'play', 'mentor', 'academy', 'endgame-trainer', 'endgame-practice', 'endgame-library',
-      'insights', 'fics', 'analyze', 'spectator', 'arena',
+      'play', 'yahooClassic', 'fics',
+      'academy', 'endgame-trainer', 'endgame-practice', 'endgame-library',
+      'insights', 'analyze', 'spectator', 'arena',
       'cheater-insight', 'polyglot', 'opening-database', 'eco', 'library',
       'history', 'dosChess', 'vault', 'blog'
     ]
   );
+  assert.equal(inventory.primary.length, 20);
+  assert.equal(inventory.connect.length, 4);
   for (const label of ['Endgame Practice', 'Endgame Library', 'Analyze', 'Help', 'About']) {
     assert.ok(labels.includes(label), `${label} is missing`);
   }
   assert.ok(!labels.includes('Settings'), 'game-specific Settings must not be global navigation');
+  assert.equal(inventory.connect.find(({ id }) => id === 'discord').route, 'https://discord.gg/xbFpAtbUK');
+  assert.equal(inventory.connect.find(({ id }) => id === 'discord').newTab, true);
+  assert.equal(inventory.primary.find(({ id }) => id === 'fics').route, '/fics');
+  assert.equal(inventory.primary.find(({ id }) => id === 'spectator').route, '/spectator-tv');
 });
 
 test('main application and trainer consume the canonical inventory', () => {

@@ -1,0 +1,60 @@
+html[data-caissa-navigation-pending] .content-section {
+    visibility: hidden !important;
+}
+
+.caissa-navigation-transition {
+    position: fixed;
+    top: clamp(1rem, 4vh, 2.5rem);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20000;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    max-width: min(90vw, 32rem);
+    padding: 0.8rem 1rem;
+    border: 1px solid rgba(212, 175, 55, 0.42);
+    border-radius: 0.75rem;
+    background: rgba(18, 23, 36, 0.96);
+    box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.34);
+    color: #f5f0e6;
+    font: 700 1rem/1.4 system-ui, sans-serif;
+    pointer-events: none;
+}
+
+.caissa-navigation-transition__spinner {
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
+    border: 2px solid rgba(245, 240, 230, 0.32);
+    border-top-color: #d4af37;
+    border-radius: 50%;
+    animation: caissa-navigation-spin 0.8s linear infinite;
+}
+
+.caissa-navigation-transition.is-error {
+    flex-wrap: wrap;
+    pointer-events: auto;
+}
+
+.caissa-navigation-transition__action {
+    color: #f4d675;
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+}
+
+@keyframes caissa-navigation-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .caissa-navigation-transition__spinner { animation: none; }
+}
+
+@media (forced-colors: active) {
+    .caissa-navigation-transition {
+        background: Canvas;
+        color: CanvasText;
+        border: 1px solid CanvasText;
+    }
+}

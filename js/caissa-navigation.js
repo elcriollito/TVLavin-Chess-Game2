@@ -11,6 +11,8 @@ const CaissaNavigation = {
     currentSection: 'yahooClassic',
     isNavCollapsed: false,
     navOpen: false, // Mobile only
+    initialized: false,
+    shellGeneration: 0,
 
     // DOM cache
     elements: {},
@@ -33,6 +35,9 @@ const CaissaNavigation = {
      * Initialize navigation system
      */
     init() {
+        if (this.initialized) return false;
+        this.initialized = true;
+        this.shellGeneration += 1;
         console.log('[CAISSA Nav] Initializing...');
         this.cacheElements();
         window.CaissaPlayRouteController?.init(this);
@@ -40,7 +45,13 @@ const CaissaNavigation = {
         this.restoreState();
         this.updateUI();
         this.openRequestedAction();
+        window.dispatchEvent(new CustomEvent('caissa:legacy-shell-ready', { detail: Object.freeze({
+            contractId: 'LegacyCanonicalSectionRoutePolicy@1.0.0',
+            generation: this.shellGeneration,
+            section: this.currentSection
+        }) }));
         console.log('[CAISSA Nav] Ready. Current section:', this.currentSection);
+        return true;
     },
 
     /**
@@ -54,7 +65,7 @@ const CaissaNavigation = {
             newGameBtn: document.getElementById('navNewGameBtn'),
             mobileQuickActions: document.querySelector('.mobile-quick-actions'),
             mobileActionButtons: document.querySelectorAll('[data-mobile-action]'),
-            navItems: document.querySelectorAll('.nav-item[data-section]'),
+            navItems: document.querySelectorAll('.nav-item[data-section], .nav-item[data-nav-key]'),
             navActions: document.querySelectorAll('.nav-item[data-nav-action]'),
             sections: document.querySelectorAll('.content-section'),
             appContainer: document.querySelector('.app-container'),
@@ -72,6 +83,7 @@ const CaissaNavigation = {
     bindEvents() {
         // Nav item clicks
         this.elements.navItems.forEach(item => {
+            if (!item.dataset.section) return;
             item.addEventListener('click', (e) => {
                 const section = e.currentTarget.dataset.section;
                 this.navigateToSection(section);
@@ -199,7 +211,7 @@ const CaissaNavigation = {
 
         // Deactivate current nav item
         this.elements.navItems.forEach(item => {
-            if (item.dataset.section === this.currentSection) {
+            if ((item.dataset.section || item.dataset.navKey) === this.currentSection) {
                 item.classList.remove('active');
                 item.removeAttribute('aria-current');
             }
@@ -222,18 +234,20 @@ const CaissaNavigation = {
 
         // Activate nav item
         this.elements.navItems.forEach(item => {
-            if (item.dataset.section === sectionId) {
+            if ((item.dataset.section || item.dataset.navKey) === sectionId) {
                 item.classList.add('active');
                 item.setAttribute('aria-current', 'page');
             }
         });
 
-        // Call section lifecycle hooks
-        this.onSectionExit(this.currentSection);
+        // Commit the section before lifecycle callbacks so late module owners
+        // observe the canonical route rather than the section being exited.
+        const previousSection = this.currentSection;
+        this.currentSection = sectionId;
+        this.onSectionExit(previousSection);
         this.onSectionEnter(sectionId);
 
         // Update state
-        this.currentSection = sectionId;
         this.saveState();
         this.updateSectionName(sectionId);
         this.updateMobileGameplayControls(sectionId);
@@ -749,7 +763,7 @@ const CaissaNavigation = {
     restoreState() {
         try {
             const routed = window.CaissaPlayRouteController?.getCurrent();
-            if (routed?.section && document.getElementById(`${routed.section}Section`)) {
+            if (routed?.section && (routed.section === 'library' || document.getElementById(`${routed.section}Section`))) {
                 this.currentSection = routed.section;
                 const savedRouteState = localStorage.getItem('caissa_nav_state');
                 if (savedRouteState) this.isNavCollapsed = !!JSON.parse(savedRouteState).isNavCollapsed;
@@ -768,7 +782,9 @@ const CaissaNavigation = {
 
                 const pathSections = {
                     '/yahoo-classic': 'yahooClassic',
-                    '/academy': 'academy'
+                    '/academy': 'academy',
+                    '/fics': 'fics',
+                    '/spectator-tv': 'spectator'
                 };
                 const pathSection = pathSections[window.location.pathname];
 
@@ -793,7 +809,9 @@ const CaissaNavigation = {
                 // No saved state - fresh visit
                 const pathSections = {
                     '/yahoo-classic': 'yahooClassic',
-                    '/academy': 'academy'
+                    '/academy': 'academy',
+                    '/fics': 'fics',
+                    '/spectator-tv': 'spectator'
                 };
                 const urlParams = new URLSearchParams(window.location.search);
                 this.currentSection = pathSections[window.location.pathname]
@@ -822,16 +840,17 @@ const CaissaNavigation = {
         });
 
         // Activate the section directly
-        const sectionEl = document.getElementById(`${targetSection}Section`);
+        const isLibraryRoute = targetSection === 'library';
+        const sectionEl = document.getElementById(`${isLibraryRoute ? 'yahooClassic' : targetSection}Section`);
         if (sectionEl) {
-            if (targetSection !== 'yahooClassic') {
+            if (targetSection !== 'yahooClassic' && !isLibraryRoute) {
                 document.body?.classList.remove('yc-classic-active');
             }
             sectionEl.classList.add('active');
 
             // Activate nav item
             this.elements.navItems.forEach(item => {
-                if (item.dataset.section === targetSection) {
+                if ((item.dataset.section || item.dataset.navKey) === targetSection) {
                     item.classList.add('active');
                     item.setAttribute('aria-current', 'page');
                 } else {
@@ -841,7 +860,18 @@ const CaissaNavigation = {
             });
 
             // Call section enter hook. Analyze owns its independently loaded route group.
-            if (targetSection === 'analyze' && !window.AnalyzeSection?.onEnter
+            if (isLibraryRoute) {
+                const openLibrary = async () => {
+                    if (this.currentSection !== targetSection) return;
+                    await window.LibraryUI?.open?.();
+                    if (this.currentSection !== targetSection) return;
+                    const surface = window.LegacyCanonicalSectionRoutePolicy?.surfaceForSection?.(targetSection) || targetSection;
+                    const title = window.LegacyCanonicalSectionRoutePolicy?.titleForSection?.(targetSection);
+                    if (title) document.title = title;
+                    window.CaissaPrimaryNavigationTransitionPolicy?.confirm?.(surface);
+                };
+                Promise.resolve(window.CaissaLibraryUIReady).then(openLibrary);
+            } else if (targetSection === 'analyze' && !window.AnalyzeSection?.onEnter
                 && window.CaissaPlayLazyLoader?.load) {
                 window.CaissaPlayLazyLoader.load('analyze-deep', { retry: true }).then(() => {
                     if (this.currentSection === targetSection) this.onSectionEnter(targetSection);
@@ -852,6 +882,12 @@ const CaissaNavigation = {
                 this.onSectionEnter(targetSection);
             }
             this.updateMobileGameplayControls(targetSection);
+            if (!isLibraryRoute) {
+                const surface = window.LegacyCanonicalSectionRoutePolicy?.surfaceForSection?.(targetSection) || targetSection;
+                const title = window.LegacyCanonicalSectionRoutePolicy?.titleForSection?.(targetSection);
+                if (title) document.title = title;
+                window.CaissaPrimaryNavigationTransitionPolicy?.confirm?.(surface);
+            }
         }
     }
 };

@@ -12,6 +12,8 @@ Help and Settings links on route-based pages used nonexistent `section` values. 
 
 `js/caissa-primary-navigation.js` is the immutable ordered inventory and shared renderer input. It supports application sections, internal routes, external links, and actions. The application shell, generated Classic shell, Trainer, and standalone renderer consume it. Existing hard-coded application markup remains only as a non-JavaScript fallback and is replaced before navigation initialization; it is no longer authoritative.
 
+The deterministic public-route companion is [`CaissaPublicRouteInventory@1.0.0`](./CAISSA_PUBLIC_ROUTE_AND_NAVIGATION_INVENTORY.md). Any task that changes a public destination or its routing status must regenerate and validate that inventory before checkpoint.
+
 Endgame Library and About now use the existing standalone CAISSA shell. Library retains its filters, detail routing, pinned release consumer, instructional board, and read-only behavior.
 
 URL/path state remains authoritative for active items. Application sections use `?section=...`; standalone routes declare their active inventory key. Help and Settings use `?action=...`, opening the existing Help and game-menu/settings modals.

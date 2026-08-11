@@ -185,7 +185,13 @@
                 handoffToken: null, metadata: { requestedModeAvailable: false }
             });
         }
-        const section = query.section;
+        const canonicalSections = Object.freeze({
+            '/yahoo-classic': 'yahooClassic',
+            '/academy': 'academy'
+        });
+        const canonicalSection = global.LegacyCanonicalSectionRoutePolicy?.resolve?.(loc)?.section
+            || canonicalSections[lowerPath] || null;
+        const section = canonicalSection || query.section;
         if (section === 'play') {
             const requestedMode = String(query.mode || 'games').toLowerCase();
             const known = Object.values(MODES).includes(requestedMode);
@@ -205,7 +211,7 @@
             schemaVersion: SCHEMA_VERSION, routeId: `site:${safeSection || 'classic'}`, path,
             section: safeSection || 'yahooClassic', mode: null, requestedMode: null, status: STATUSES.RESOLVED,
             source: options.source || (safeSection ? SOURCES.QUERY : SOURCES.DIRECT_PATH),
-            canonicalPath: lowerPath === '/yahoo-classic' ? '/yahoo-classic' : (safeSection ? `/?section=${encodeURIComponent(safeSection)}` : '/'),
+            canonicalPath: canonicalSection ? lowerPath : (safeSection ? `/?section=${encodeURIComponent(safeSection)}` : '/'),
             legacy: false, replace: false, available: true,
             reasonCode: safeSection === 'analyze' && query.handoff ? REASONS.ANALYZE_HANDOFF_PRESERVED : REASONS.CLASSIC_DEFAULT_PRESERVED,
             query, __privateQuery: protectedQuery, handoffToken: safeSection === 'analyze' ? query.handoff || null : null, metadata: {}
@@ -232,13 +238,14 @@
             return parse(`${options.mode ? `/play/${options.mode}` : '/play'}${params.size ? `?${params}` : ''}`,
                 { source: options.source || SOURCES.PROGRAMMATIC });
         }
+        const canonicalLegacyPath = global.LegacyCanonicalSectionRoutePolicy?.routeForSection?.(section) || null;
         const query = Object.assign(Object.create(null), options.query || {});
         query.section = section;
         return frozenRoute({
             schemaVersion: SCHEMA_VERSION, routeId: `site:${section}`, path: global.location?.pathname || '/',
             section, mode: null, requestedMode: null, status: STATUSES.RESOLVED,
             source: options.source || SOURCES.PROGRAMMATIC,
-            canonicalPath: section === 'yahooClassic' ? '/yahoo-classic' : `/?section=${encodeURIComponent(section)}`,
+            canonicalPath: canonicalLegacyPath || (section === 'yahooClassic' ? '/yahoo-classic' : `/?section=${encodeURIComponent(section)}`),
             legacy: false, replace: false, available: true,
             reasonCode: section === 'analyze' && query.handoff ? REASONS.ANALYZE_HANDOFF_PRESERVED : REASONS.CANONICAL_PLAY_ROUTE,
             query, handoffToken: query.handoff || null, metadata: {}

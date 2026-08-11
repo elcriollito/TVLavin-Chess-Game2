@@ -488,14 +488,15 @@ const CaissaAcademySection = {
     }
 };
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => CaissaAcademySection.init());
-} else {
+function initializeAcademySectionOwner() {
     CaissaAcademySection.init();
+    window.CaissaNavigation?.registerSection?.('academy', CaissaAcademySection);
 }
 
-if (window.CaissaNavigation) {
-    window.CaissaNavigation.registerSection('academy', CaissaAcademySection);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAcademySectionOwner);
+} else {
+    initializeAcademySectionOwner();
 }
 
 window.CaissaAcademySection = CaissaAcademySection;

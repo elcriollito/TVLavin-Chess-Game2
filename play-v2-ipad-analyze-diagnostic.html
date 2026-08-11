@@ -70,6 +70,7 @@
     <link rel="stylesheet" href="css/yahoo-classic.css?v=1.0.1">
     <link rel="stylesheet" href="css/opening-book.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-mobile-foundation.css?v=1.0.6">
+    <link rel="stylesheet" href="css/caissa-primary-navigation-transition.css?v=1.0.0">
     <link rel="stylesheet" href="css/play-v2-invite-feedback.css?v=1.0.0">
     <link rel="stylesheet" href="css/play-v2-physical-ipad-analyze-diagnostic.css?v=1.0.0">
     <script src="js/play/play-v2-physical-ipad-analyze-diagnostic-policy.js?v=1.1.0"></script>
@@ -115,10 +116,10 @@
         <!-- Vertical Navigation Menu -->
         <nav id="mainNav" class="main-navigation" aria-label="CAISSA main navigation">
             <div class="nav-header">
-                <div class="nav-logo">
+                <a class="nav-logo" href="/play" aria-label="CAISSA Chess — return to Play">
                     <i class="fas fa-chess-knight"></i>
                     <span class="nav-logo-text">CAISSA</span>
-                </div>
+                </a>
                 <button id="navCollapseBtn" class="nav-collapse-btn" aria-label="Collapse navigation">
                     <i class="fas fa-chevron-left"></i>
                 </button>
@@ -1800,6 +1801,12 @@
                         </aside>
 
                         <main class="spectator-board-panel" aria-label="Featured live game board">
+                            <div id="spectatorViewingState" class="spectator-viewing-state" role="status" aria-live="polite" aria-atomic="true">
+                                <i class="fas fa-tv" aria-hidden="true"></i>
+                                <strong class="spectator-viewing-state__title">No live game available</strong>
+                                <p class="spectator-viewing-state__message">No live game is available in this channel right now. Choose another channel or return to Play.</p>
+                                <a class="fics-btn fics-btn-secondary spectator-viewing-state__action" href="/play">Return to Play</a>
+                            </div>
                             <div id="spectatorTopPlayer" class="spectator-player-bar black" role="group" aria-label="Top player">
                                 <span class="spectator-turn-led" aria-label="Black waiting"></span>
                                 <span class="spectator-color-dot" aria-hidden="true"></span>
@@ -3081,6 +3088,7 @@
     <script src="js/play/play-v2-invite-policy.js?v=1.0.0"></script>
     <script src="js/play/play-route-controller.js?v=1.1.0"></script>
     <script src="js/caissa-primary-navigation.js?v=1.0.0"></script>
+    <script src="js/caissa-primary-navigation-transition-policy.js?v=1.0.0"></script>
     <script src="js/caissa-navigation.js?v=1.0.7"></script>
     <script src="js/yahoo-classic-section.js?v=1.0.0"></script>
     <script src="js/caissa-ui-refactor.js?v=1.0.0"></script>
@@ -3145,9 +3153,6 @@
     <script src="js/caissa-notifications.js?v=1.0.0" defer></script>
     <script src="js/caissa-feature-flags.js?v=1.0.0" defer></script>
     <script src="js/caissa-dos-chess.js?v=1.0.0" defer></script>
-    <script src="js/spectator-tv-state.js?v=1.0.1" defer></script>
-    <script src="js/spectator-tv-catalog.js?v=1.0.0" defer></script>
-    <script src="js/spectator-tv-section.js?v=1.0.4" defer></script>
     <script src="js/opening-book-manager.js?v=1.0.0" defer></script>
 
     <style>

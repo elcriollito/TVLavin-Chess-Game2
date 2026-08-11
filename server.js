@@ -399,6 +399,16 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Static file serving
+  if (pathname === '/api/public-auth-config') {
+    if (req.method !== 'GET') {
+      res.writeHead(405, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ error: 'Method not allowed' }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ clerkPublishableKey: '', registrationTracking: false }));
+    return;
+  }
   if (pathname === '/' && (req.method === 'GET' || req.method === 'HEAD')) {
     res.writeHead(308, { Location: '/play' });
     res.end();
@@ -418,8 +428,18 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/help' || pathname === '/help/') {
     filePath = './help.html';
   }
+  if (pathname === '/vault' || pathname === '/vault/') {
+    filePath = './vault.html';
+  }
   if (pathname === '/yahoo-classic') {
     filePath = './yahoo-classic.html';
+  }
+  if (pathname === '/academy') {
+    filePath = './index.html';
+  }
+  if (['/insights', '/fics', '/analyze', '/spectator-tv', '/arena', '/cheater-insight',
+    '/game-library', '/history', '/dos-chess'].includes(pathname)) {
+    filePath = './index.html';
   }
   const physicalPromotionQA = resolvePlayV2PhysicalPromotionQA(pathname, url.search, process.env);
   const ipadAnalyzeDiagnostic = resolvePlayV2PhysicalIpadAnalyzeDiagnostic(pathname, url.search, process.env);

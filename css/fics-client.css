@@ -264,6 +264,25 @@
     padding: 14px;
 }
 
+.spectator-viewing-state {
+    display: grid;
+    justify-items: center;
+    gap: 0.7rem;
+    padding: clamp(1.5rem, 5vw, 3rem) 1rem;
+    border: 1px solid rgba(212, 175, 55, 0.28);
+    border-radius: 0.75rem;
+    background: rgba(18, 23, 36, 0.88);
+    color: #f5f0e6;
+    text-align: center;
+}
+
+.spectator-viewing-state[hidden] { display: none; }
+.spectator-viewing-state > i { color: #d4af37; font-size: 1.65rem; }
+.spectator-viewing-state__title { font-size: 1.05rem; }
+.spectator-viewing-state__message { max-width: 34rem; margin: 0; color: #c9ceda; }
+.spectator-viewing-state__action[hidden] { display: none !important; }
+.spectator-board-panel:is(.is-loading, .is-empty) > :not(.spectator-viewing-state) { display: none; }
+
 .spectator-board {
     width: min(68vh, 100%, 680px);
     max-width: 680px;

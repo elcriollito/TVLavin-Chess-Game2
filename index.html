@@ -117,6 +117,8 @@
     <link rel="stylesheet" href="css/opening-book.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-mobile-foundation.css?v=1.0.6">
     <script src="/js/caissa-clarity.js?v=1.0.0" defer></script>
+    <link rel="stylesheet" href="css/caissa-primary-navigation-transition.css?v=1.0.0">
+    <script src="js/legacy-canonical-section-route-policy.js?v=1.0.0"></script>
 </head>
 <body data-clarity-mask>
     <!-- Main Container -->
@@ -158,10 +160,10 @@
         <!-- Vertical Navigation Menu -->
         <nav id="mainNav" class="main-navigation">
             <div class="nav-header">
-                <div class="nav-logo">
+                <a class="nav-logo" href="/play" aria-label="CAISSA Chess — return to Play">
                     <i class="fas fa-chess-knight"></i>
                     <span class="nav-logo-text">CAISSA</span>
-                </div>
+                </a>
                 <button id="navCollapseBtn" class="nav-collapse-btn" aria-label="Collapse navigation">
                     <i class="fas fa-chevron-left"></i>
                 </button>
@@ -3539,6 +3541,12 @@
                         </aside>
 
                         <main class="spectator-board-panel" aria-label="Featured live game board">
+                            <div id="spectatorViewingState" class="spectator-viewing-state" role="status" aria-live="polite" aria-atomic="true">
+                                <i class="fas fa-tv" aria-hidden="true"></i>
+                                <strong class="spectator-viewing-state__title">No live game available</strong>
+                                <p class="spectator-viewing-state__message">No live game is available in this channel right now. Choose another channel or return to Play.</p>
+                                <a class="fics-btn fics-btn-secondary spectator-viewing-state__action" href="/play">Return to Play</a>
+                            </div>
                             <div id="spectatorTopPlayer" class="spectator-player-bar black" role="group" aria-label="Top player">
                                 <span class="spectator-turn-led" aria-label="Black waiting"></span>
                                 <span class="spectator-color-dot" aria-hidden="true"></span>
@@ -5074,6 +5082,7 @@
     <script src="js/play/analytics/play-analytics-governance.js?v=1.0.0"></script>
     <script src="js/play/play-route-controller.js?v=1.1.0"></script>
     <script src="js/caissa-primary-navigation.js?v=1.0.0"></script>
+    <script src="js/caissa-primary-navigation-transition-policy.js?v=1.0.0"></script>
     <script src="js/caissa-navigation.js?v=1.0.7"></script>
     <script src="js/academy-section.js?v=1.0.0"></script>
     <script src="js/yahoo-classic-section.js?v=1.0.0"></script>
