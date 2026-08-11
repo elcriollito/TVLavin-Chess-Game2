@@ -71,13 +71,14 @@ export default async function handler(req, res) {
             }
 
             // Look up or create Stripe customer
-            const customerId = await _getOrCreateCustomer(stripe, auth);
+            const { customerId, userId } = await _getOrCreateCustomer(stripe, auth);
 
             sessionParams = {
                 mode: 'subscription',
                 customer: customerId,
                 line_items: [{ price: priceId, quantity: 1 }],
                 metadata: {
+                    caissa_user_id: userId,
                     clerk_id: auth.userId,
                     type: 'subscription',
                     plan: plan
@@ -97,7 +98,7 @@ export default async function handler(req, res) {
                 return res.status(500).json({ error: `Price not configured for ${pkg} package` });
             }
 
-            const customerId = await _getOrCreateCustomer(stripe, auth);
+            const { customerId, userId } = await _getOrCreateCustomer(stripe, auth);
 
             sessionParams = {
                 mode: 'payment',
@@ -107,7 +108,7 @@ export default async function handler(req, res) {
                     clerk_id: auth.userId,
                     type: 'credits',
                     package: pkg,
-                    credits_amount: String(creditPkg.amount)
+                    caissa_user_id: userId
                 },
                 success_url: `${_getBaseUrl(req)}/premium?session_id={CHECKOUT_SESSION_ID}`,
                 cancel_url: `${_getBaseUrl(req)}/premium`
@@ -133,15 +134,14 @@ async function _getOrCreateCustomer(stripe, auth) {
     const supabase = getSupabase();
 
     // Check if user already has a Stripe customer ID
-    const { data: user } = await supabase
+    const { data: user, error: userError } = await supabase
         .from('users')
-        .select('stripe_customer_id, email')
+        .select('id, stripe_customer_id, email')
         .eq('clerk_id', auth.userId)
         .single();
 
-    if (user?.stripe_customer_id) {
-        return user.stripe_customer_id;
-    }
+    if (userError || !user?.id) throw new Error('CAISSA account required before checkout');
+    if (user.stripe_customer_id) return { customerId: user.stripe_customer_id, userId: user.id };
 
     // Create new Stripe customer
     const customer = await stripe.customers.create({
@@ -150,12 +150,14 @@ async function _getOrCreateCustomer(stripe, auth) {
     });
 
     // Store customer ID in Supabase
-    await supabase
+    const { error: updateError } = await supabase
         .from('users')
         .update({ stripe_customer_id: customer.id })
         .eq('clerk_id', auth.userId);
 
-    return customer.id;
+    if (updateError) throw new Error('Stripe customer linkage failed');
+
+    return { customerId: customer.id, userId: user.id };
 }
 
 /**

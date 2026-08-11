@@ -13,7 +13,7 @@ Baseline: `0c3c1599ad47aae9477db863146bd3909020355d`
 | SEC-007 | Medium | High | Anonymous BYO proxy has no effective Mentor rate limit | CWE-770 | API4:2023 | CONFIRMED |
 | SEC-008 | Medium | High | AI token/model/temperature and aggregate payload controls are incomplete | CWE-20/CWE-770 | API4/API8 | CONFIRMED |
 | SEC-009 | Medium | High | Rate limits are process-local and non-distributed | CWE-799 | API4:2023 | CONFIRMED |
-| SEC-010 | Medium | High | Stripe fulfillment idempotency is TOCTOU and fails open | CWE-367/CWE-841 | API6:2023 | CONFIRMED |
+| SEC-010 | Medium | High | Stripe fulfillment idempotency is TOCTOU and fails open | CWE-367/CWE-841 | API6:2023 | REMEDIATED LOCALLY |
 | SEC-011 | Medium | High | Sign-in/sign-up accept unvalidated post-auth redirect URLs | CWE-601 | A01:2021 | CONFIRMED |
 | SEC-012 | Medium | High | CSP and security headers are inconsistent across production pages | CWE-693 | A05:2021 | HARDENING |
 | SEC-013 | Medium | High | Floating/unverified runtime scripts and known dependency advisories | CWE-1104 | A06/A08:2021 | CONFIRMED |
@@ -53,11 +53,11 @@ Baseline: `0c3c1599ad47aae9477db863146bd3909020355d`
 
 ### SEC-010 — Webhook idempotency race/fail-open
 
-- Evidence: `api/stripe/webhook.js` checks `stripe_events`, performs fulfillment, then inserts the event; lookup/insert errors are non-blocking.
-- Attack: concurrent legitimate Stripe deliveries can both observe no row and both grant credits; missing/broken table disables protection.
-- Impact: duplicate economic grants from valid events. Attackers cannot forge events without the webhook secret.
-- Mitigation: Stripe signature, primary-key event table, event allowlist.
-- Remediation/task: atomically insert/claim event before fulfillment in a transaction or RPC, fail closed on claim failure, and make fulfillment recoverable/idempotent.
+- Original evidence: `api/stripe/webhook.js` checked `stripe_events`, fulfilled, then inserted the event; lookup/insert errors were non-blocking. Concurrent legitimate deliveries could both grant value before the second ledger insert conflicted.
+- Local remediation: the signature-verified route now derives a fixed entitlement command and calls one service-role-only PostgreSQL RPC. Event claim, UUID/customer resolution, credit/premium mutation, credit audit and completion are atomic. Event ID and event-specific business keys are unique. Transaction failure rolls back the claim and value; completed duplicates return safely without replay.
+- Economic authorization: credit packages map server-side to 25/75/200, renewal is fixed to 50, paid Checkout mode is required, email is never used, and UUID/legacy-subject correlation must also match the unique Stripe customer.
+- Rehearsal: isolated PostgreSQL 17.6 passed sequential, 2-way and 10-way duplicate delivery, cross-event business-key, independent-event, failure injection, renewal, deletion, forged-value, cross-user, RLS and privilege checks. See `SEC-010_STRIPE_WEBHOOK_IDEMPOTENCY.md`.
+- Remediation status: remediated locally; production data uniqueness review, database release, deployment and Stripe test/live verification remain separately controlled.
 
 ### SEC-011 — Post-auth open redirect
 
