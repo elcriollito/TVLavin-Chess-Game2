@@ -13,16 +13,18 @@ import { logAction, logError } from '../_lib/logger.js';
 import { authenticateRequest } from '../_lib/auth.js';
 import { createClient } from '@supabase/supabase-js';
 
-// Allowed providers for validation
-const ALLOWED_PROVIDERS = ['together', 'llama', 'openai', 'anthropic', 'local', 'custom'];
+// Server-side BYO requests may only use these fixed provider destinations.
+const PROVIDER_ENDPOINTS = Object.freeze({
+  together: 'https://api.together.xyz/v1/chat/completions',
+  llama: 'https://api.llama.com/v1/chat/completions',
+  openai: 'https://api.openai.com/v1/chat/completions',
+  anthropic: 'https://api.anthropic.com/v1/messages'
+});
+const ALLOWED_PROVIDERS = new Set(Object.keys(PROVIDER_ENDPOINTS));
 
 // Input validation limits
 const MAX_MESSAGES = 50;
 const MAX_CONTENT_LENGTH = 100000; // 100KB per message
-
-// API base URLs (can be overridden via env vars)
-const LLAMA_API_BASE_URL = process.env.LLAMA_API_BASE_URL || 'https://api.llama.com';
-const TOGETHER_API_BASE_URL = process.env.TOGETHER_BASE_URL || process.env.TOGETHER_API_BASE_URL || 'https://api.together.xyz';
 
 // Default Together AI configuration (credit-based for free users)
 const TOGETHER_API_KEY = process.env.TOGETHER_API_KEY; // Server-side only, never sent to client
@@ -56,14 +58,26 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { provider, apiKey, messages, model, maxTokens, temperature, endpoint } = req.body;
+    const { provider, apiKey, messages, model, maxTokens, temperature } = req.body || {};
 
-    // Check if Together AI is configured
-    if (!TOGETHER_API_ENABLED) {
-      logError('mentor_chat', 'Together AI not configured', { detail: 'TOGETHER_API_KEY missing' });
-      return res.status(503).json({
-        error: 'AI service temporarily unavailable. Please try again later.',
-        code: 'SERVICE_UNAVAILABLE'
+    if (provider === 'custom') {
+      return res.status(400).json({
+        code: 'CUSTOM_PROVIDER_DISABLED',
+        error: 'Custom AI endpoints are temporarily unavailable.'
+      });
+    }
+
+    if (provider === 'local') {
+      return res.status(400).json({
+        code: 'LOCAL_PROVIDER_DISABLED',
+        error: 'Local AI endpoints are unavailable through the server.'
+      });
+    }
+
+    if (!ALLOWED_PROVIDERS.has(provider)) {
+      return res.status(400).json({
+        code: 'UNKNOWN_PROVIDER',
+        error: 'Unknown AI provider.'
       });
     }
 
@@ -73,6 +87,22 @@ export default async function handler(req, res) {
 
     // Default mode: Together AI with credits (requires auth)
     if (isDefaultMode) {
+      if (provider !== 'together') {
+        return res.status(400).json({
+          code: 'API_KEY_REQUIRED',
+          error: 'An API key is required for this provider.'
+        });
+      }
+
+      // The CAISSA-owned Together key is required only for shared Together mode.
+      if (!TOGETHER_API_ENABLED) {
+        logError('mentor_chat', 'Together AI not configured', { detail: 'TOGETHER_API_KEY missing' });
+        return res.status(503).json({
+          error: 'AI service temporarily unavailable. Please try again later.',
+          code: 'SERVICE_UNAVAILABLE'
+        });
+      }
+
       // Authenticate user
       const auth = await authenticateRequest(req);
       if (!auth.authenticated) {
@@ -158,13 +188,7 @@ export default async function handler(req, res) {
     }
 
     // BYO key mode - validate and proceed
-    if (!ALLOWED_PROVIDERS.includes(provider)) {
-      return res.status(400).json({
-        error: `Unknown provider: ${provider}. Allowed: ${ALLOWED_PROVIDERS.join(', ')}`
-      });
-    }
-
-    if (provider !== 'local' && !apiKey) {
+    if (!apiKey) {
       return res.status(400).json({
         error: 'API key is required for this provider.'
       });
@@ -189,12 +213,12 @@ export default async function handler(req, res) {
 
     logAction('mentor_request_byo', { detail: { provider, model, messages: messages.length } });
 
-    let apiUrl, headers, requestBody;
+    const apiUrl = PROVIDER_ENDPOINTS[provider];
+    let headers, requestBody;
 
     // Configure request based on provider (BYO key mode)
     switch (provider) {
       case 'together':
-        apiUrl = `${TOGETHER_API_BASE_URL}/v1/chat/completions`;
         headers = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
@@ -208,7 +232,6 @@ export default async function handler(req, res) {
         break;
 
       case 'llama':
-        apiUrl = `${LLAMA_API_BASE_URL}/v1/chat/completions`;
         headers = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
@@ -222,7 +245,6 @@ export default async function handler(req, res) {
         break;
 
       case 'anthropic':
-        apiUrl = 'https://api.anthropic.com/v1/messages';
         headers = {
           'Content-Type': 'application/json',
           'x-api-key': apiKey,
@@ -238,19 +260,7 @@ export default async function handler(req, res) {
         });
         break;
 
-      case 'local':
-        apiUrl = 'http://localhost:1234/v1/chat/completions';
-        headers = { 'Content-Type': 'application/json' };
-        requestBody = JSON.stringify({
-          model: model || 'local-model',
-          messages,
-          max_tokens: maxTokens || 1024,
-          temperature: temperature || 0.7
-        });
-        break;
-
       case 'openai':
-        apiUrl = 'https://api.openai.com/v1/chat/completions';
         headers = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
@@ -263,27 +273,16 @@ export default async function handler(req, res) {
         });
         break;
 
-      case 'custom':
       default:
-        apiUrl = endpoint || 'https://api.openai.com/v1/chat/completions';
-        headers = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        };
-        requestBody = JSON.stringify({
-          model: model || 'default',
-          messages,
-          max_tokens: maxTokens || 1024,
-          temperature: temperature || 0.7
-        });
-        break;
+        return res.status(400).json({ code: 'UNKNOWN_PROVIDER', error: 'Unknown AI provider.' });
     }
 
     // Make API request (BYO key mode)
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
       headers,
-      body: requestBody
+      body: requestBody,
+      redirect: 'error'
     });
 
     const responseData = await apiResponse.json();
@@ -338,7 +337,7 @@ export default async function handler(req, res) {
  */
 async function callTogetherAI(req, res, messages, apiKey, model, maxTokens, temperature) {
   try {
-    const apiUrl = `${TOGETHER_API_BASE_URL}/v1/chat/completions`;
+    const apiUrl = PROVIDER_ENDPOINTS.together;
     const headers = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`
@@ -353,7 +352,8 @@ async function callTogetherAI(req, res, messages, apiKey, model, maxTokens, temp
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
       headers,
-      body: requestBody
+      body: requestBody,
+      redirect: 'error'
     });
 
     const responseData = await apiResponse.json();

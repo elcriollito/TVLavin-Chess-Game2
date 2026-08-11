@@ -2,7 +2,7 @@
  * CAISSA Mentor AI - LLM Provider Abstraction Layer
  *
  * This module provides a unified interface for different LLM providers.
- * Supports: Together.ai, Meta Llama, OpenAI, Anthropic Claude, Local models, Custom endpoints
+ * Supports: Together.ai, Meta Llama, OpenAI, Anthropic Claude, and local models
  *
  * Features:
  * - Shared API mode (no key required for Together.ai)
@@ -14,10 +14,9 @@ const LLMProvider = {
 
     // Current provider configuration
     config: {
-        provider: 'together', // 'together', 'llama', 'openai', 'anthropic', 'local', 'custom'
+        provider: 'together', // 'together', 'llama', 'openai', 'anthropic', 'local'
         apiKey: null,
         model: null, // Will use provider default if not set
-        endpoint: null, // For custom endpoints
         maxTokens: 1024,
         temperature: 0.7
     },
@@ -157,26 +156,6 @@ const LLMProvider = {
             })
         },
 
-        custom: {
-            name: 'Custom Endpoint',
-            endpoint: null, // Set via config
-            models: ['custom'],
-            defaultModel: 'custom',
-            supportsSharedApi: false,
-            formatRequest: (messages, config) => ({
-                messages: messages,
-                max_tokens: config.maxTokens,
-                temperature: config.temperature
-            }),
-            parseResponse: (response) => ({
-                content: response.content || response.choices?.[0]?.message?.content || 'No response',
-                usage: response.usage || { total_tokens: 0 }
-            }),
-            headers: (apiKey) => ({
-                'Content-Type': 'application/json',
-                ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {})
-            })
-        }
     },
 
     /**
@@ -377,13 +356,17 @@ const LLMProvider = {
      * @returns {Promise<Object>} - Final response
      */
     async chatStream(messages, onChunk) {
+        if (this.config.provider === 'custom') {
+            throw new Error('Custom AI endpoints are temporarily unavailable.');
+        }
+
         const provider = this.PROVIDERS[this.config.provider];
 
         if (!provider) {
             throw new Error(`Provider not configured: ${this.config.provider}`);
         }
 
-        const endpoint = this.config.endpoint || provider.endpoint;
+        const endpoint = provider.endpoint;
         const headers = provider.headers(this.config.apiKey);
         const body = {
             ...provider.formatRequest(messages, this.config),
