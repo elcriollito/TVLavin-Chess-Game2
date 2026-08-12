@@ -4,22 +4,22 @@
  * Returns wallet state for the authenticated user.
  */
 
-import { verifyAuth, setCorsHeaders } from './_lib/auth.js';
+import { verifyAuth, respondAuthFailure, setCorsHeaders } from './_lib/auth.js';
 import { getSupabase } from './_lib/supabase.js';
 import { logError } from './_lib/logger.js';
 
-export default async function handler(req, res) {
+export default async function handler(req, res, dependencies = {}) {
     if (!setCorsHeaders(req, res, ['GET'])) return;
 
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
     // Verify Clerk token
-    const auth = await verifyAuth(req);
-    if (auth.error) return res.status(auth.status).json({ error: auth.error });
+    const auth = await (dependencies.verifyAuth || verifyAuth)(req);
+    if (!auth.authenticated) return respondAuthFailure(res, auth);
 
     try {
-        const supabase = getSupabase();
+        const supabase = (dependencies.getSupabase || getSupabase)();
 
         const { data, error } = await supabase
             .from('users')

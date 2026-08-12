@@ -7,7 +7,7 @@
  */
 
 import Stripe from 'stripe';
-import { verifyAuth, setCorsHeaders } from '../_lib/auth.js';
+import { verifyAuth, respondAuthFailure, setCorsHeaders } from '../_lib/auth.js';
 import { getSupabase } from '../_lib/supabase.js';
 import { checkRateLimit } from '../_lib/rate-limit.js';
 import { logAction, logError } from '../_lib/logger.js';
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
 
     // Verify Clerk token
     const auth = await verifyAuth(req);
-    if (auth.error) return res.status(auth.status).json({ error: auth.error });
+    if (!auth.authenticated) return respondAuthFailure(res, auth);
 
     // Rate limit: 5 requests per 10 minutes per user
     const rl = checkRateLimit(auth.userId, { windowMs: 10 * 60 * 1000, max: 5, prefix: 'checkout' });

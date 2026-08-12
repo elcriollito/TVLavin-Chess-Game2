@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { authenticateRequest, setCorsHeaders } from '../_lib/auth.js';
+import { authenticateRequest, respondAuthFailure, setCorsHeaders } from '../_lib/auth.js';
 import { logAction, logError } from '../_lib/logger.js';
 import { MENTOR_LIMITS, validateMentorRequest, exceedsMentorHttpBodyLimit, isAllowedSharedModel } from '../_lib/mentor-request-policy.js';
 import { claimMentorCapacity, releaseMentorCapacity } from '../_lib/mentor-capacity.js';
@@ -59,7 +59,7 @@ export function createMentorChatHandler(deps = {}) {
     if (exceedsMentorHttpBodyLimit(req)) return reject(res, 413, 'PAYLOAD_TOO_LARGE', 'Request is too large.');
 
     const auth = await authenticate(req);
-    if (!auth.authenticated) return reject(res, 401, 'AUTH_REQUIRED', 'Sign in required to use AI Mentor.');
+    if (!auth.authenticated) return respondAuthFailure(res, auth);
     if (env.MENTOR_AI_ENABLED === 'false') return reject(res, 503, 'SERVICE_UNAVAILABLE', 'AI service temporarily unavailable.');
 
     const sharedModel = env.TOGETHER_MODEL || 'moonshotai/Kimi-K2.5';

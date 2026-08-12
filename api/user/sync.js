@@ -5,7 +5,7 @@
  * Called by frontend after Clerk auth state changes.
  */
 
-import { verifyAuth, setCorsHeaders } from '../_lib/auth.js';
+import { verifyAuth, respondAuthFailure, setCorsHeaders } from '../_lib/auth.js';
 import { getSupabase } from '../_lib/supabase.js';
 import { logAction, logError } from '../_lib/logger.js';
 import { isIdentityMigrationEnforced, syncResolvedIdentity } from '../_lib/identity-resolution.js';
@@ -18,7 +18,7 @@ export default async function handler(req, res) {
 
     // Verify Clerk token
     const auth = await verifyAuth(req);
-    if (auth.error) return res.status(auth.status || 401).json({ error: auth.error });
+    if (!auth.authenticated) return respondAuthFailure(res, auth);
 
     try {
         const supabase = getSupabase();
