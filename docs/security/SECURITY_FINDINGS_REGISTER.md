@@ -2,6 +2,8 @@
 
 Baseline: `0c3c1599ad47aae9477db863146bd3909020355d`
 
+Production schema bootstrap status (2026-08-11): the historical V1/V2 sources are not production authority. The separate transactional bootstrap `supabase/bootstrap/caissa-production-bootstrap.sql` is locally certified on isolated PostgreSQL with explicit RLS/grants, fixed-path service-role-only credit RPCs, economic bounds, partial-state rejection, zero content seeds, SEC-009/SEC-010 compatibility, and SEC-005 absence. Production remains unmodified; release order is new code first, bootstrap, SEC-009, then SEC-010 immediately. See `SECURE_PRODUCTION_SCHEMA_BOOTSTRAP.md`.
+
 | ID | Severity | Confidence | Finding | CWE | OWASP | Status |
 | -- | -------- | ---------- | ------- | --- | ----- | ------ |
 | SEC-001 | High | High | Vercel Mentor arbitrary server destination | CWE-918 | A10:2021 SSRF | REMEDIATED |
@@ -43,6 +45,7 @@ Baseline: `0c3c1599ad47aae9477db863146bd3909020355d`
 - Local remediation: shared Mentor now calls the row-locking `consume_credits` RPC with the verified Clerk subject before provider invocation. The provider is not called when atomic consumption fails or the database is unavailable. Trusted premium behavior remains inside the RPC. Deterministic tests cover 1/2/10-way concurrency, forged client fields, identity isolation and fail-closed database behavior.
 - Failure semantics: a provider failure consumes the already-authorized credit once and is not refunded. The current schema has no request-scoped idempotent refund primitive; adding credits as compensation would risk double refund/minting. Retry idempotency remains future hardening.
 - Remediation status: remediated locally; release and production verification remain required. No production concurrency test required.
+- Bootstrap integration: the authoritative secure bootstrap replaces reliance on the unsafe historical credit DDL. Isolated PostgreSQL proved negative/zero/bound rejection and exactly one success from two concurrent one-credit consumes at balance one.
 
 ### SEC-007/008/009 — AI/resource controls
 
@@ -59,6 +62,7 @@ Baseline: `0c3c1599ad47aae9477db863146bd3909020355d`
 - Economic authorization: credit packages map server-side to 25/75/200, renewal is fixed to 50, paid Checkout mode is required, email is never used, and UUID/legacy-subject correlation must also match the unique Stripe customer.
 - Rehearsal: isolated PostgreSQL 17.6 passed sequential, 2-way and 10-way duplicate delivery, cross-event business-key, independent-event, failure injection, renewal, deletion, forged-value, cross-user, RLS and privilege checks. See `SEC-010_STRIPE_WEBHOOK_IDEMPOTENCY.md`.
 - Remediation status: remediated locally; production data uniqueness review, database release, deployment and Stripe test/live verification remain separately controlled.
+- Bootstrap integration: the SEC-010 migration applies cleanly after the authoritative secure bootstrap. Before SEC-010, the certified RPC is absent and synthetic rehearsal produced zero value; after SEC-010, the full 15-case exactly-once PostgreSQL suite passed.
 
 ### SEC-011 — Post-auth open redirect
 

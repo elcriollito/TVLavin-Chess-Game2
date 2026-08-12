@@ -7,7 +7,13 @@ Audit target: `main` at `2923a72259f26465bc8afc1ee4e711421fda8b4c`
 Production code baseline: `0c3c1599ad47aae9477db863146bd3909020355d`
 Scope: design and read-only audit only; no production SQL, deployment, environment change, Stripe operation, Clerk cutover, or user migration.
 
-## Executive verdict
+## Resolution update — 2026-08-11
+
+The defects identified below were addressed by the new, separate authoritative artifact `supabase/bootstrap/caissa-production-bootstrap.sql` at bootstrap version `2026-08-11.1`. The historical V1/V2 files remain unchanged. The corrected bootstrap passed 13/13 isolated PostgreSQL foundation checks, SEC-009 10/10, and SEC-010 15/15, including RLS/privileges, input bounds, concurrency, retry/partial-state behavior, zero seeds, pre-SEC-010 fail-closed state, and SEC-005 absence. See `SECURE_PRODUCTION_SCHEMA_BOOTSTRAP.md`.
+
+This resolves the local schema-artifact blocker but does not mean production is bootstrapped. The mandatory production invariant is now code-first, then secure bootstrap, SEC-009, and SEC-010 immediately; SEC-005 remains deferred.
+
+## Historical audit verdict
 
 **STOP — PRODUCTION SCHEMA BOOTSTRAP IS NOT SAFE YET.**
 
@@ -262,7 +268,7 @@ A separate corrective task must create a reviewed, authoritative, transactional 
 
 ## Proposed release sequencing after correction
 
-Current recommendation: **CERTIFICATION BLOCKED — BASE SCHEMA REQUIRES CORRECTION**.
+Historical recommendation at audit time: **CERTIFICATION BLOCKED — BASE SCHEMA REQUIRES CORRECTION**. The separate correction is now locally certified as described in the resolution update; this historical analysis is retained as the rationale for not using V1/V2.
 
 The likely safe choreography to validate in the corrective task is:
 
