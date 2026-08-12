@@ -174,3 +174,9 @@ select
 ```
 
 Production remains unmodified. This document certifies the local artifact and isolated rehearsal, not production application.
+
+## Vercel deployment containment
+
+The repository is deployed with project output directory `.`. The production upload boundary therefore excludes `supabase/**` explicitly through `.vercelignore`; this bootstrap and every migration remain operator-only Git material and must never become a static web asset. Internal security documentation, tests, operational/recovery scripts, local environment files, credential-like files, database dumps, and local tool state are excluded as well. Static guards preserve the two default-off SEC-005 routes in `api/` while preventing deployment hardening from removing them.
+
+The certified architecture produces 14 API functions plus middleware. Vercel Hobby permits only 12 serverless functions for this project, so a platform capacity action remains required before a READY deployment. Artifact containment does not authorize route removal, consolidation, deployment, or database work.
