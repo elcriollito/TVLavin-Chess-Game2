@@ -1,5 +1,7 @@
 # Security Findings Register
 
+> Production closeout (2026-08-12): SEC-001–004 and SEC-006–016 are REMEDIATED / PRODUCTION VERIFIED. SEC-005 remains REMEDIATION IN PROGRESS and separately controlled. Authoritative evidence: `SECURITY_SEASON_12_PRODUCTION_CLOSEOUT.md`.
+
 Baseline: `0c3c1599ad47aae9477db863146bd3909020355d`
 
 Production schema bootstrap status (2026-08-11): the historical V1/V2 sources are not production authority. The separate transactional bootstrap `supabase/bootstrap/caissa-production-bootstrap.sql` is locally certified on isolated PostgreSQL with explicit RLS/grants, fixed-path service-role-only credit RPCs, economic bounds, partial-state rejection, zero content seeds, SEC-009/SEC-010 compatibility, and SEC-005 absence. Production remains unmodified; release order is new code first, bootstrap, SEC-009, then SEC-010 immediately. See `SECURE_PRODUCTION_SCHEMA_BOOTSTRAP.md`.

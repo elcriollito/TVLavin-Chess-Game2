@@ -1,5 +1,7 @@
 # Security Season 12 Controlled Release Runbook
 
+> Execution record (2026-08-12): EXECUTED AND PRODUCTION VERIFIED; SEC-005 DEFERRED. Runtime source `af77bc0ddaeaee780712af1eb87352470c98daf5`; deployment `dpl_CfspDMwDjLSCzQyQda49LMSRkSed`; bootstrap `2026-08-11.1`, SEC-009 and SEC-010 installed. The rollback boundary is crossed. Mentor remains intentionally disabled. See `SECURITY_SEASON_12_PRODUCTION_CLOSEOUT.md`.
+
 Status: **NOT EXECUTED — REQUIRES SEPARATE PRODUCTION AUTHORIZATION**
 Candidate: `b6336c4d9e9d60c93af3849584ba04a53982a24d`
 Strategy: **STRIPE CUTOVER IS CODE-FIRST / FAIL-CLOSED**

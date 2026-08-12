@@ -1,4 +1,6 @@
-# Security Season 12 Local Certification
+# Security Season 12 Production Certification
+
+Production addendum (2026-08-12): runtime source `af77bc0ddaeaee780712af1eb87352470c98daf5` served as READY deployment `dpl_CfspDMwDjLSCzQyQda49LMSRkSed`. Bootstrap `2026-08-11.1`, SEC-009 and SEC-010 are installed. Mentor remains intentionally disabled and SEC-005 remains deferred. This production addendum supersedes the pre-release/local status below; see `SECURITY_SEASON_12_PRODUCTION_CLOSEOUT.md`.
 
 Date: 2026-08-11
 Candidate: `b6336c4d9e9d60c93af3849584ba04a53982a24d`
