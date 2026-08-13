@@ -2267,6 +2267,10 @@ const CaissaFICSClient = {
     }
 };
 
+// Expose the existing singleton before lifecycle initialization so every
+// Classic consumer resolves the same object even if initialization fails.
+window.CaissaFICSClient = CaissaFICSClient;
+
 function initializeFicsSectionOwner() {
     CaissaFICSClient.init();
     window.CaissaNavigation?.registerSection?.('fics', CaissaFICSClient);
@@ -2278,6 +2282,3 @@ if (document.readyState === 'loading') {
 } else {
     initializeFicsSectionOwner();
 }
-
-// Make globally accessible
-window.CaissaFICSClient = CaissaFICSClient;

@@ -24,6 +24,7 @@ const source = fs.readFileSync(new URL('../js/fics-research-actions.js', import.
 const observerSource = fs.readFileSync(new URL('../js/fics-observability.js', import.meta.url), 'utf8');
 const clientSource = fs.readFileSync(new URL('../js/fics-client.js', import.meta.url), 'utf8');
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const classicSectionSource = fs.readFileSync(new URL('../js/yahoo-classic-section.js', import.meta.url), 'utf8');
 
 function fixture(overrides = {}) {
     const sent = [];
@@ -95,6 +96,43 @@ test('research actions reuse Classic client and own no connection, parser, stora
     const clientAt = html.indexOf('js/fics-client.js');
     const actionsAt = html.indexOf('js/fics-research-actions.js');
     assert.ok(observerAt > 0 && observerAt < clientAt && clientAt < actionsAt);
+});
+
+test('existing Classic singleton is globally bound by identity before lifecycle initialization', () => {
+    let socketConstructions = 0;
+    const root = { location: { hostname: 'example.test' }, addEventListener() {} };
+    const document = { readyState: 'complete' };
+    const instrumented = clientSource.replace(
+        'window.CaissaFICSClient = CaissaFICSClient;',
+        'window.CaissaFICSClient = CaissaFICSClient; window.__sameFicsReference = window.CaissaFICSClient === CaissaFICSClient;'
+    );
+    assert.throws(() => vm.runInNewContext(instrumented, {
+        window: root, document, console: { log() {}, warn() {}, error() {} },
+        WebSocket: class { constructor() { socketConstructions += 1; } }, Set, Object, String, Number, Math
+    }));
+    assert.equal(!!root.CaissaFICSClient, true);
+    assert.equal(root.__sameFicsReference, true);
+    assert.equal(socketConstructions, 0);
+    assert.ok(clientSource.indexOf('window.CaissaFICSClient = CaissaFICSClient;') < clientSource.indexOf('initializeFicsSectionOwner()'));
+});
+
+test('Yahoo Classic and ResearchActions resolve the same exposed singleton without sending', () => {
+    const ficsClient = { authenticated: true, ws: { readyState: 1 }, connect() {}, send() { throw new Error('AUTO_SEND'); } };
+    let registeredSection = null;
+    const root = {
+        CaissaFICSClient: ficsClient,
+        CaissaNavigation: { registerSection(name, section) { if (name === 'yahooClassic') registeredSection = section; } },
+        addEventListener() {}
+    };
+    vm.runInNewContext(classicSectionSource, { window: root, document: {}, console, Object, String, Number, Math, Set });
+    assert.strictEqual(registeredSection.getFicsClient(), ficsClient);
+
+    root.ClassicFicsObservability = { requestActivation: () => true, onAuthenticated: () => true, stop() {} };
+    vm.runInNewContext(source, { globalThis: root, window: root, Object, Set });
+    assert.equal(root.ClassicFicsResearchActions.authorize('WHO').ok, true);
+    assert.equal(root.ClassicFicsResearchActions.snapshot().state, 'AUTHORIZED');
+    root.ClassicFicsResearchActions.cancel();
+    assert.deepEqual(Array.from(root.ClassicFicsResearchActions.snapshot().sentActions), []);
 });
 
 test('R2 offline suite attempts no DNS, TCP, TLS, HTTP, HTTPS, fetch, or WebSocket', () => {
