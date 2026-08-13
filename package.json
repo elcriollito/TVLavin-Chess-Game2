@@ -9,6 +9,7 @@
     "test:regression": "node scripts/run-self-contained-regression.mjs",
     "test:integration:worker": "node scripts/run-optional-integration.mjs worker",
     "test:integration:fics": "node scripts/run-optional-integration.mjs fics",
+    "test:fics-observability": "node --test tests/fics-observability.test.js",
     "build:blog": "node scripts/build-blog.mjs",
     "build:yahoo-classic": "node scripts/build-yahoo-classic.mjs",
     "test:blog": "node --test tests/blog-foundation.test.js",

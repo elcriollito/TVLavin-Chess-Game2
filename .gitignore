@@ -46,6 +46,9 @@ tmp/
 .env.*.local
 .vercel
 
+# Operator-specific FICS lab metadata (handles only; never credentials)
+tools/fics-lab/accounts.local.json
+
 # Opening DB / local datasets (never commit)
 data/openingdb/
 data/openingdb_games/

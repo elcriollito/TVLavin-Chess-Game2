@@ -190,6 +190,8 @@ const CaissaFICSClient = {
     },
 
     notifySpectator(event, payload = {}) {
+        // Read-only side channel: observer failures must never enter the runtime path.
+        try { window.ClassicFicsObservability?.observeNormalizedEvent(event, payload); } catch {}
         const detail = {
             event,
             payload,
@@ -656,6 +658,8 @@ const CaissaFICSClient = {
     },
 
     handleRawGatewayData(text) {
+        // The observer receives a string copy and cannot transform parser input.
+        try { window.ClassicFicsObservability?.observeRawInbound(String(text)); } catch {}
         this.rawBuffer = `${this.rawBuffer}${text}`.slice(-16384);
         this.logToConsole(this.sanitizeFicsConsoleText(text));
 
@@ -711,6 +715,9 @@ const CaissaFICSClient = {
             const loginMatch = this.rawBuffer.match(/Starting FICS session as\s+([^\s(]+)/i);
             if (loginMatch) this.ficsUsername = loginMatch[1];
             this.authenticated = true;
+            // Explicit activation requests become ARMED only after auth confirmation.
+            // The auth-success frame was already offered while the observer was OFF.
+            try { window.ClassicFicsObservability?.onAuthenticated(); } catch {}
             this.reconnectAttempts = 0;
             this.setConnectionState('connected');
             const identity = this.loginMode === 'account'
