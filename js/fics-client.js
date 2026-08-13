@@ -14,6 +14,7 @@ const CaissaFICSClient = {
     ws: null,
     connected: false,
     authenticated: false,
+    sessionGeneration: 0,
     connectionState: 'disconnected',
     rawBuffer: '',
     lineBuffer: '',
@@ -674,6 +675,7 @@ const CaissaFICSClient = {
     handleRawGatewayData(text) {
         // The observer receives a string copy and cannot transform parser input.
         try { window.ClassicFicsObservability?.observeRawInbound(String(text)); } catch {}
+        try { window.ClassicFicsMatchResearch?.observeRawInbound(String(text)); } catch {}
         this.rawBuffer = `${this.rawBuffer}${text}`.slice(-16384);
         this.logToConsole(this.sanitizeFicsConsoleText(text));
 
@@ -729,6 +731,7 @@ const CaissaFICSClient = {
             const loginMatch = this.rawBuffer.match(/Starting FICS session as\s+([^\s(]+)/i);
             if (loginMatch) this.ficsUsername = loginMatch[1];
             this.authenticated = true;
+            this.sessionGeneration += 1;
             // Explicit activation requests become ARMED only after auth confirmation.
             // The auth-success frame was already offered while the observer was OFF.
             try { window.ClassicFicsObservability?.onAuthenticated(); } catch {}
@@ -835,6 +838,7 @@ const CaissaFICSClient = {
 
     handleAuthenticated(message) {
         this.authenticated = true;
+        this.sessionGeneration += 1;
         this.updateConnectionStatus(true, 'Connected as Guest');
         this.logToConsole('✅ ' + message.message);
         this.logToConsole('You can now seek games or type FICS commands');

@@ -5,10 +5,13 @@
     const SCHEMA_VERSION = '1';
     const AUTH_TEXT = /(?:^|\n)\s*(?:login:|password:)|Starting FICS session|Press return to enter the server/i;
     const FORBIDDEN_KEY = /password|credential|secret|raw/i;
-    const TYPED_ACTION_CLASS = Object.freeze({ WHO: 'WHO', WHO_FREE: 'WHO', WHO_AVAILABLE: 'WHO', PENDING: 'PENDING' });
+    const TYPED_ACTION_CLASS = Object.freeze({ WHO: 'WHO', WHO_FREE: 'WHO', WHO_AVAILABLE: 'WHO', PENDING: 'PENDING',
+        MATCH: 'MATCH', PENDING_BASELINE: 'PENDING', PENDING_POST_MATCH: 'PENDING', WITHDRAW_MATCH: 'WITHDRAW' });
     const DELIVERY_CODES = new Set(['SENT', 'SOCKET_NOT_OPEN', 'SEND_THROWN', 'COMMAND_UNAVAILABLE']);
     const SOCKET_STATES = new Set(['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED', 'UNAVAILABLE']);
     const DELIVERY_KEYS = new Set(['ok', 'code', 'socketState', 'webSocketSendInvoked', 'monotonicTimestamp']);
+    const MATCH_METADATA_KEYS = new Set(['targetHandle', 'minutes', 'increment', 'rated', 'color', 'variant', 'sessionGeneration']);
+    const WITHDRAW_METADATA_KEYS = new Set(['offerId', 'sessionGeneration']);
 
     function defaultSanitizer(value, maxPayloadChars) {
         let text = String(value ?? '').replace(/\r/g, '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '');
@@ -114,6 +117,32 @@
                     startedAtMonotonic = delivery.monotonicTimestamp;
                     return append({ kind: 'TYPED_OUTBOUND', monotonicTimestamp: delivery.monotonicTimestamp,
                         action, commandClass, socketStateAtSend: delivery.socketState,
+                        webSocketSendInvoked: delivery.webSocketSendInvoked, deliveryCode: delivery.code, truncated: false });
+                } catch { failOff('CAPTURE_FAILED'); return false; }
+            },
+            observeMatchResearchOutbound(action, commandClass, metadata, delivery) {
+                try {
+                    if (!Object.hasOwn(TYPED_ACTION_CLASS, action) || TYPED_ACTION_CLASS[action] !== commandClass ||
+                        !delivery || typeof delivery !== 'object' || !metadata || typeof metadata !== 'object') return false;
+                    if (state === STATES.ARMED) {
+                        if (activationAction !== action) return false;
+                    } else if (state !== STATES.ACTIVE) return false;
+                    if (Object.keys(delivery).some(key => !DELIVERY_KEYS.has(key)) ||
+                        !DELIVERY_CODES.has(delivery.code) || !SOCKET_STATES.has(delivery.socketState) ||
+                        typeof delivery.ok !== 'boolean' || typeof delivery.webSocketSendInvoked !== 'boolean' ||
+                        !Number.isFinite(delivery.monotonicTimestamp) || delivery.ok !== (delivery.code === 'SENT') ||
+                        delivery.webSocketSendInvoked !== ['SENT', 'SEND_THROWN'].includes(delivery.code)) return false;
+                    const allowed = action === 'MATCH' ? MATCH_METADATA_KEYS
+                        : action === 'WITHDRAW_MATCH' ? WITHDRAW_METADATA_KEYS : new Set(['sessionGeneration']);
+                    if (Object.keys(metadata).some(key => !allowed.has(key) || FORBIDDEN_KEY.test(key))) return false;
+                    if (!Number.isSafeInteger(metadata.sessionGeneration) || metadata.sessionGeneration < 1) return false;
+                    if (action === 'MATCH' && (!/^[A-Za-z][A-Za-z0-9]{0,16}$/.test(metadata.targetHandle) ||
+                        metadata.minutes !== 5 || metadata.increment !== 0 || metadata.rated !== 'UNRATED' ||
+                        metadata.color !== 'SERVER_ASSIGNED' || metadata.variant !== 'STANDARD')) return false;
+                    if (action === 'WITHDRAW_MATCH' && (!Number.isSafeInteger(metadata.offerId) || metadata.offerId < 1)) return false;
+                    if (state === STATES.ARMED) { state = STATES.ACTIVE; activationAction = null; startedAtMonotonic = delivery.monotonicTimestamp; }
+                    return append({ kind: 'TYPED_OUTBOUND', monotonicTimestamp: delivery.monotonicTimestamp,
+                        action, commandClass, ...metadata, socketStateAtSend: delivery.socketState,
                         webSocketSendInvoked: delivery.webSocketSendInvoked, deliveryCode: delivery.code, truncated: false });
                 } catch { failOff('CAPTURE_FAILED'); return false; }
             },
