@@ -74,18 +74,35 @@ test('failed delivery consumes MATCH with no retry', () => {
         webSocketSendInvoked: true, monotonicTimestamp: 20 }); };
     assert.equal(f.harness.sendMatch().ok, false); assert.equal(f.harness.sendMatch().ok, false);
     assert.equal(f.wire.filter(command => command.startsWith('match ')).length, 1);
+    assert.equal(f.harness.snapshot().matchDelivered, false); assert.equal(f.harness.authorizeWithdraw().ok, false);
 });
 
-test('offer id is unguessable by default and synthetic collector enables exactly one correlated WITHDRAW', () => {
-    const closed = fixture(); closed.harness.begin(closed.evidence, 'CurrentUser'); baseline(closed); closed.harness.authorizeMatch(); closed.harness.sendMatch();
-    closed.harness.sendPostMatchPending(); closed.harness.observePendingInbound('POST_MATCH', 'offer 73 ComputerOne\nfics%'); assert.equal(closed.harness.authorizeWithdraw().ok, false);
-    assert.equal(closed.wire.some(x => x.startsWith('withdraw ')), false);
+test('clean baseline and one delivered MATCH authorize exactly one immutable target-bound cleanup', () => {
+    const f = fixture(); f.harness.begin(f.evidence, 'CurrentUser'); baseline(f); f.harness.authorizeMatch(); f.harness.sendMatch();
+    assert.deepEqual({ ...f.harness.authorizeWithdraw() }, { ok: true, mode: 'TARGET' });
+    assert.equal(f.harness.snapshot().withdrawTarget, 'ComputerOne');
+    assert.equal(f.harness.sendWithdraw('InjectedOtherPlayer').ok, true);
+    assert.equal(f.harness.sendWithdraw().ok, false); assert.equal(f.harness.authorizeWithdraw().ok, false);
+    assert.deepEqual(f.wire, ['pending', 'match ComputerOne 5 0 unrated', 'withdraw ComputerOne']);
+    assert.equal(f.harness.snapshot().used.withdraw, true);
+});
 
+test('a safely observed offer ID takes precedence over target-bound cleanup', () => {
     const f = fixture({ extractObservedOffer: (raw, target) => raw.startsWith(`offer 73 ${target}\n`) ? 73 : null });
     f.harness.begin(f.evidence, 'CurrentUser'); baseline(f); f.harness.authorizeMatch(); f.harness.sendMatch();
-    f.harness.sendPostMatchPending(); f.harness.observePendingInbound('POST_MATCH', 'offer 73 ComputerOne\nfics%'); assert.equal(f.harness.authorizeWithdraw().ok, true);
+    f.harness.sendPostMatchPending(); f.harness.observePendingInbound('POST_MATCH', 'offer 73 ComputerOne\nfics%');
+    assert.deepEqual({ ...f.harness.authorizeWithdraw() }, { ok: true, mode: 'OFFER_ID' });
     assert.equal(f.harness.sendWithdraw().ok, true); assert.equal(f.harness.sendWithdraw().ok, false);
     assert.deepEqual(f.wire, ['pending', 'match ComputerOne 5 0 unrated', 'pending', 'withdraw 73']);
+});
+
+test('non-empty or incomplete baseline blocks MATCH and target cleanup', () => {
+    const nonempty = fixture(); nonempty.harness.begin(nonempty.evidence, 'CurrentUser'); nonempty.harness.sendBaselinePending();
+    assert.equal(nonempty.harness.observeRawInbound('1: offer to ExistingPlayer\nfics%').ok, false);
+    assert.equal(nonempty.harness.authorizeMatch().ok, false); assert.deepEqual(nonempty.wire, ['pending']);
+    const unknown = fixture(); unknown.harness.begin(unknown.evidence, 'CurrentUser'); unknown.harness.sendBaselinePending();
+    assert.equal(unknown.harness.observeRawInbound('There are no offers pending to other players.\n').complete, false);
+    assert.equal(unknown.harness.authorizeMatch().ok, false); assert.deepEqual(unknown.wire, ['pending']);
 });
 
 test('immediate Style12 uses existing event path and blocks PENDING and WITHDRAW', () => {
@@ -121,6 +138,7 @@ test('only explicit terminal classes block post-MATCH queries without speculativ
     for (const kind of ['REJECTED', 'DECLINED']) {
         const f = fixture(); f.harness.begin(f.evidence, 'CurrentUser'); baseline(f); f.harness.authorizeMatch(); f.harness.sendMatch();
         assert.equal(f.harness.recordExplicitTerminal(kind).ok, true); assert.equal(f.harness.sendPostMatchPending().ok, false);
+        assert.equal(f.harness.authorizeWithdraw().ok, false);
         assert.deepEqual(f.wire, ['pending', 'match ComputerOne 5 0 unrated']);
     }
     const f = fixture(); f.harness.begin(f.evidence, 'CurrentUser'); baseline(f); f.harness.authorizeMatch(); f.harness.sendMatch();
@@ -144,6 +162,17 @@ test('typed capture contains bounded metadata and no raw MATCH/WITHDRAW commands
     const records = JSON.parse(exported.json).records.filter(r => r.kind === 'TYPED_OUTBOUND');
     assert.deepEqual(records.map(r => r.action), ['PENDING_BASELINE', 'MATCH', 'PENDING_POST_MATCH', 'WITHDRAW_MATCH']);
     assert.equal(records[1].targetHandle, 'ComputerOne'); assert.equal(records[3].offerId, 12);
+});
+
+test('target cleanup emits typed bounded metadata without raw command text', () => {
+    const f = fixture(); f.harness.begin(f.evidence, 'CurrentUser'); baseline(f); f.harness.authorizeMatch(); f.harness.sendMatch();
+    f.harness.authorizeWithdraw(); f.harness.sendWithdraw();
+    const json = f.root.ClassicFicsObservability.exportCapture().json;
+    assert.doesNotMatch(json, /withdraw ComputerOne|password|credential|token/i);
+    const record = JSON.parse(json).records.find(item => item.action === 'WITHDRAW_MATCH_TARGET');
+    assert.deepEqual({ action: record.action, commandClass: record.commandClass, targetHandle: record.targetHandle,
+        sessionGeneration: record.sessionGeneration }, { action: 'WITHDRAW_MATCH_TARGET', commandClass: 'WITHDRAW',
+        targetHandle: 'ComputerOne', sessionGeneration: 7 });
 });
 
 test('numeric and metadata validators reject unsafe construction', () => {
