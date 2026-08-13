@@ -649,11 +649,25 @@ const CaissaFICSClient = {
     },
 
     send(message) {
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            const command = typeof message === 'string' ? message : message?.text;
-            if (command !== undefined) this.ws.send(command);
-        } else {
+        const socket = this.ws;
+        const readyState = socket?.readyState;
+        const socketState = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'][readyState] || 'UNAVAILABLE';
+        const monotonicTimestamp = performance.now();
+        if (!socket || readyState !== WebSocket.OPEN) {
             console.warn('[FICS Client] Cannot send, not connected');
+            return Object.freeze({ ok: false, code: 'SOCKET_NOT_OPEN', socketState,
+                webSocketSendInvoked: false, monotonicTimestamp });
+        }
+        const command = typeof message === 'string' ? message : message?.text;
+        if (command === undefined) return Object.freeze({ ok: false, code: 'COMMAND_UNAVAILABLE', socketState,
+            webSocketSendInvoked: false, monotonicTimestamp });
+        try {
+            socket.send(command);
+            return Object.freeze({ ok: true, code: 'SENT', socketState,
+                webSocketSendInvoked: true, monotonicTimestamp });
+        } catch {
+            return Object.freeze({ ok: false, code: 'SEND_THROWN', socketState,
+                webSocketSendInvoked: true, monotonicTimestamp });
         }
     },
 

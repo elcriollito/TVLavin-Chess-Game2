@@ -5,6 +5,10 @@
     const SCHEMA_VERSION = '1';
     const AUTH_TEXT = /(?:^|\n)\s*(?:login:|password:)|Starting FICS session|Press return to enter the server/i;
     const FORBIDDEN_KEY = /password|credential|secret|raw/i;
+    const TYPED_ACTION_CLASS = Object.freeze({ WHO: 'WHO', WHO_FREE: 'WHO', WHO_AVAILABLE: 'WHO', PENDING: 'PENDING' });
+    const DELIVERY_CODES = new Set(['SENT', 'SOCKET_NOT_OPEN', 'SEND_THROWN', 'COMMAND_UNAVAILABLE']);
+    const SOCKET_STATES = new Set(['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED', 'UNAVAILABLE']);
+    const DELIVERY_KEYS = new Set(['ok', 'code', 'socketState', 'webSocketSendInvoked', 'monotonicTimestamp']);
 
     function defaultSanitizer(value, maxPayloadChars) {
         let text = String(value ?? '').replace(/\r/g, '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '');
@@ -30,6 +34,7 @@
         });
         let state = STATES.OFF;
         let activationRequested = false;
+        let activationAction = null;
         let captureId = null;
         let startedAtMonotonic = null;
         let records = [];
@@ -38,10 +43,10 @@
         let bytes = 0;
         let failureCode = null;
 
-        const failOff = code => { state = STATES.FAILED; activationRequested = false; failureCode = code; };
+        const failOff = code => { state = STATES.FAILED; activationRequested = false; activationAction = null; failureCode = code; };
         const stopAtLimit = () => {
             if (records.length) records[records.length - 1] = Object.freeze({ ...records[records.length - 1], truncated: true });
-            state = STATES.STOPPED; activationRequested = false;
+            state = STATES.STOPPED; activationRequested = false; activationAction = null;
         };
         const withinDuration = now => {
             if (startedAtMonotonic !== null && now - startedAtMonotonic > limits.maxDurationMs) { stopAtLimit(); return false; }
@@ -70,10 +75,11 @@
             states: STATES,
             get state() { return state; },
             get failureCode() { return failureCode; },
-            requestActivation() {
+            requestActivation(action = null) {
                 if (![STATES.OFF, STATES.STOPPED].includes(state)) return false;
+                if (action !== null && !Object.hasOwn(TYPED_ACTION_CLASS, action)) return false;
                 activationRequested = true; state = STATES.OFF; failureCode = null; records = []; bytes = 0;
-                frameIndex = 0; eventIndex = 0; captureId = null; startedAtMonotonic = null; return true;
+                activationAction = action; frameIndex = 0; eventIndex = 0; captureId = null; startedAtMonotonic = null; return true;
             },
             onAuthenticated() {
                 if (!activationRequested || state !== STATES.OFF) return false;
@@ -81,6 +87,7 @@
             },
             observeRawInbound(originalText) {
                 try {
+                    if (state === STATES.ARMED && activationAction !== null) return false;
                     if (state === STATES.ARMED) { state = STATES.ACTIVE; startedAtMonotonic = clock(); }
                     if (state !== STATES.ACTIVE) return false;
                     const now = clock(); if (!withinDuration(now)) return false;
@@ -90,6 +97,24 @@
                     frameIndex += 1;
                     return append({ kind: 'RAW_INBOUND', monotonicTimestamp: now, frameIndex, sanitizedPayload,
                         truncated: sanitizedPayload.endsWith('[TRUNCATED]') });
+                } catch { failOff('CAPTURE_FAILED'); return false; }
+            },
+            observeTypedOutbound(action, commandClass, delivery) {
+                try {
+                    if (state !== STATES.ARMED || activationAction !== action || TYPED_ACTION_CLASS[action] !== commandClass ||
+                        !delivery || typeof delivery !== 'object') return false;
+                    if (Object.keys(delivery).some(key => !DELIVERY_KEYS.has(key))) return false;
+                    if (!DELIVERY_CODES.has(delivery.code) || !SOCKET_STATES.has(delivery.socketState)) return false;
+                    if (typeof delivery.ok !== 'boolean' || typeof delivery.webSocketSendInvoked !== 'boolean' ||
+                        !Number.isFinite(delivery.monotonicTimestamp)) return false;
+                    if (delivery.ok !== (delivery.code === 'SENT') ||
+                        delivery.webSocketSendInvoked !== ['SENT', 'SEND_THROWN'].includes(delivery.code)) return false;
+                    state = STATES.ACTIVE;
+                    activationAction = null;
+                    startedAtMonotonic = delivery.monotonicTimestamp;
+                    return append({ kind: 'TYPED_OUTBOUND', monotonicTimestamp: delivery.monotonicTimestamp,
+                        action, commandClass, socketStateAtSend: delivery.socketState,
+                        webSocketSendInvoked: delivery.webSocketSendInvoked, deliveryCode: delivery.code, truncated: false });
                 } catch { failOff('CAPTURE_FAILED'); return false; }
             },
             observeNormalizedEvent(eventType, payload = {}) {
@@ -105,7 +130,8 @@
                     return appended;
                 } catch { failOff('CAPTURE_FAILED'); return false; }
             },
-            stop() { if ([STATES.ARMED, STATES.ACTIVE].includes(state)) state = STATES.STOPPED; activationRequested = false; },
+            stop() { if ([STATES.ARMED, STATES.ACTIVE].includes(state)) state = STATES.STOPPED;
+                activationRequested = false; activationAction = null; },
             exportCapture() {
                 try {
                     if (![STATES.ACTIVE, STATES.STOPPED].includes(state)) return Object.freeze({ ok: false, code: 'EXPORT_REJECTED' });

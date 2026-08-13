@@ -59,6 +59,54 @@ test('raw capture is a side copy and normalized payload is copied without sensit
     assert.deepEqual(JSON.parse(JSON.stringify(exported.records[1].normalizedPayload)), { gameNumber: 7, nested: { clock: 30 } });
 });
 
+test('typed outbound starts the capture clock and records only approved metadata', () => {
+    let now = 50;
+    const { observer } = load({ clock: () => now });
+    observer.requestActivation('WHO_AVAILABLE'); observer.onAuthenticated();
+    now = 35; assert.equal(observer.observeRawInbound('unrelated pre-command seek\nfics%'), false);
+    const delivery = Object.freeze({ ok: true, code: 'SENT', socketState: 'OPEN',
+        webSocketSendInvoked: true, monotonicTimestamp: 40 });
+    assert.equal(observer.observeTypedOutbound('WHO_AVAILABLE', 'WHO', delivery), true);
+    now = 55; observer.observeRawInbound('synthetic available roster\nfics%');
+    const capture = JSON.parse(observer.exportCapture().json);
+    assert.equal(capture.startedAtMonotonic, 40);
+    assert.deepEqual(capture.records[0], {
+        kind: 'TYPED_OUTBOUND', monotonicTimestamp: 40, action: 'WHO_AVAILABLE', commandClass: 'WHO',
+        socketStateAtSend: 'OPEN', webSocketSendInvoked: true, deliveryCode: 'SENT', truncated: false
+    });
+    assert.equal(capture.records[1].monotonicTimestamp - capture.records[0].monotonicTimestamp, 15);
+    assert.doesNotMatch(observer.exportCapture().json, /who a/i);
+});
+
+test('typed outbound rejects arbitrary actions, raw commands, and secret-like metadata', () => {
+    const safe = { ok: true, code: 'SENT', socketState: 'OPEN', webSocketSendInvoked: true, monotonicTimestamp: 1 };
+    for (const [action, commandClass, delivery] of [
+        ['MATCH', 'WHO', safe], ['who a', 'WHO', safe], ['WHO_AVAILABLE', 'who a', safe],
+        ['WHO_AVAILABLE', 'WHO', { ...safe, rawCommand: 'who a' }],
+        ['WHO_AVAILABLE', 'WHO', { ...safe, password: 'synthetic' }],
+        ['WHO_AVAILABLE', 'WHO', { ...safe, credential: 'synthetic' }],
+        ['WHO_AVAILABLE', 'WHO', { ...safe, secret: 'synthetic' }],
+        ['WHO_AVAILABLE', 'WHO', { ...safe, token: 'synthetic' }]
+    ]) {
+        const { observer } = load(); observer.requestActivation('WHO_AVAILABLE'); observer.onAuthenticated();
+        assert.equal(observer.observeTypedOutbound(action, commandClass, delivery), false);
+        assert.equal(observer.state, 'ARMED'); assert.equal(observer.snapshot().recordCount, 0);
+    }
+});
+
+test('typed outbound records socket no-op and send-throw outcomes without retry behavior', () => {
+    for (const delivery of [
+        { ok: false, code: 'SOCKET_NOT_OPEN', socketState: 'CLOSING', webSocketSendInvoked: false, monotonicTimestamp: 10 },
+        { ok: false, code: 'SEND_THROWN', socketState: 'OPEN', webSocketSendInvoked: true, monotonicTimestamp: 20 }
+    ]) {
+        const { observer } = load(); observer.requestActivation('WHO_AVAILABLE'); observer.onAuthenticated();
+        assert.equal(observer.observeTypedOutbound('WHO_AVAILABLE', 'WHO', delivery), true);
+        const record = JSON.parse(observer.exportCapture().json).records[0];
+        assert.equal(record.deliveryCode, delivery.code);
+        assert.equal(record.webSocketSendInvoked, delivery.webSocketSendInvoked);
+    }
+});
+
 test('equivalent synthetic parser flow is identical with observer OFF and ACTIVE', () => {
     const run = observer => {
         const runtime = { rawBuffer: '', lineBuffer: '', parsed: [], liveGame: { gameNumber: null }, seeks: [], tables: [], events: [] };
@@ -140,14 +188,15 @@ test('architecture is one existing WebSocket owner and observer owns no socket, 
     assert.equal((connectBody.match(/new WebSocket\(this\.gatewayUrl\)/g) || []).length, 1);
     assert.equal((gatewayTestBody.match(/new WebSocket\(this\.gatewayUrl\)/g) || []).length, 1);
     assert.doesNotMatch(observerSource, /new\s+WebSocket|\.send\s*\(|fetch\s*\(|XMLHttpRequest|localStorage|sessionStorage|indexedDB|sendBeacon|parseStyle12|approved-fics-transport|run-b0-live/i);
+    assert.doesNotMatch(observerSource, /observeOutboundRaw|rawCommand|commandText/i);
     assert.doesNotMatch(observerSource, /pendingAccountPassword|accountPassword|loginMode|testGateway/);
     assert.match(clientSource, /observeRawInbound\(String\(text\)\)/);
     assert.match(clientSource, /onAuthenticated\(\)/);
     assert.match(clientSource, /observeNormalizedEvent\(event, payload\)/);
 });
 
-test('R0 adds no research command path and loads observer before existing client', () => {
-    assert.doesNotMatch(observerSource, /\b(?:who|match|seekinfo|sought|unseek|play)\b/i);
+test('observer adds no wire command path and loads before existing client', () => {
+    assert.doesNotMatch(observerSource, /['"`]\s*(?:who(?:\s+[af])?|pending|match|seekinfo|sought|unseek|play)\s*['"`]/);
     const observerAt = html.indexOf('js/fics-observability.js'); const clientAt = html.indexOf('js/fics-client.js');
     assert.ok(observerAt > 0 && observerAt < clientAt);
     assert.doesNotMatch(clientSource, /approved-fics-transport\.mjs|run-b0-live\.mjs/);

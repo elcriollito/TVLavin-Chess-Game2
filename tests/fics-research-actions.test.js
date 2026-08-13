@@ -26,13 +26,26 @@ const clientSource = fs.readFileSync(new URL('../js/fics-client.js', import.meta
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const classicSectionSource = fs.readFileSync(new URL('../js/yahoo-classic-section.js', import.meta.url), 'utf8');
 
+function loadClientSend() {
+    const match = clientSource.match(/\n    (send\(message\) \{[\s\S]*?\n    \}),\n\n    handleRawGatewayData/);
+    assert.ok(match, 'CaissaFICSClient.send method found');
+    const context = { result: null, WebSocket: { OPEN: 1 }, performance: { now: () => 4242 },
+        console: { warn() {} }, Object };
+    vm.runInNewContext(`result = ({ ${match[1]} }).send`, context);
+    return context.result;
+}
+
 function fixture(overrides = {}) {
     const sent = [];
+    let now = 100;
     const observer = { requested: 0, armed: 0, stopped: 0,
         requestActivation() { this.requested += 1; return true; },
         onAuthenticated() { this.armed += 1; return true; },
+        observeTypedOutbound(action, commandClass, delivery) { this.outbound = { action, commandClass, delivery }; return true; },
         stop() { this.stopped += 1; } };
-    const client = { authenticated: true, ws: { readyState: 1 }, send(command) { sent.push(command); } };
+    const client = { authenticated: true, ws: { readyState: 1 }, send(command) { sent.push(command); return Object.freeze({
+        ok: true, code: 'SENT', socketState: 'OPEN', webSocketSendInvoked: true, monotonicTimestamp: now++
+    }); } };
     const root = {};
     vm.runInNewContext(source, { globalThis: root, window: root, Object, Set });
     const actions = root.createClassicFicsResearchActions({ getClient: () => overrides.client || client,
@@ -46,9 +59,11 @@ test('each approved research action requires explicit authorization and sends ex
         assert.deepEqual({ ...f.actions.execute(action) }, { ok: false, code: 'EXACT_AUTHORIZATION_REQUIRED' });
         const g = fixture();
         assert.equal(g.actions.authorize(action).ok, true);
-        assert.deepEqual({ ...g.actions.execute(action) }, { ok: true, action, command });
+        assert.deepEqual({ ...g.actions.execute(action) }, { ok: true, action, command, deliveryCode: 'SENT' });
         assert.deepEqual(g.sent, [command]);
         assert.deepEqual(Array.from(g.actions.snapshot().sentActions), [action]);
+        assert.equal(g.observer.outbound.action, action);
+        assert.equal(g.observer.outbound.commandClass, action === 'PENDING' ? 'PENDING' : 'WHO');
     }
 });
 
@@ -74,6 +89,65 @@ test('authentication, existing open socket, observer activation, and arming are 
         { requestActivation: () => false, onAuthenticated: () => true },
         { requestActivation: () => true, onAuthenticated: () => false }
     ]) assert.equal(fixture({ observer }).actions.authorize('WHO').ok, false);
+});
+
+test('socket race is consumed once, records failed delivery, and never retries', () => {
+    let attempts = 0;
+    const delivery = Object.freeze({ ok: false, code: 'SOCKET_NOT_OPEN', socketState: 'CLOSING',
+        webSocketSendInvoked: false, monotonicTimestamp: 200 });
+    const client = { authenticated: true, ws: { readyState: 1 }, send() { attempts += 1; this.ws.readyState = 2; return delivery; } };
+    const f = fixture({ client });
+    assert.equal(f.actions.authorize('WHO_AVAILABLE').ok, true);
+    assert.deepEqual({ ...f.actions.execute('WHO_AVAILABLE') }, { ok: false, code: 'DELIVERY_SOCKET_NOT_OPEN' });
+    assert.equal(attempts, 1);
+    assert.equal(f.observer.outbound.delivery.webSocketSendInvoked, false);
+    assert.equal(f.actions.authorize('WHO_AVAILABLE').ok, false);
+    assert.equal(attempts, 1);
+});
+
+test('synchronous WebSocket send failure is observable and never retried', () => {
+    let attempts = 0;
+    const delivery = Object.freeze({ ok: false, code: 'SEND_THROWN', socketState: 'OPEN',
+        webSocketSendInvoked: true, monotonicTimestamp: 300 });
+    const client = { authenticated: true, ws: { readyState: 1 }, send() { attempts += 1; return delivery; } };
+    const f = fixture({ client });
+    f.actions.authorize('WHO_AVAILABLE');
+    assert.deepEqual({ ...f.actions.execute('WHO_AVAILABLE') }, { ok: false, code: 'DELIVERY_SEND_FAILED' });
+    assert.equal(attempts, 1);
+    assert.equal(f.observer.outbound.delivery.code, 'SEND_THROWN');
+    assert.equal(f.actions.authorize('WHO_AVAILABLE').ok, false);
+    assert.equal(attempts, 1);
+});
+
+test('CaissaFICSClient send boundary reports actual send, socket no-op, and synchronous throw truthfully', () => {
+    const send = loadClientSend();
+    const wire = [];
+    const open = { ws: { readyState: 1, send(command) { wire.push(command); } } };
+    assert.deepEqual({ ...send.call(open, 'who a') }, { ok: true, code: 'SENT', socketState: 'OPEN',
+        webSocketSendInvoked: true, monotonicTimestamp: 4242 });
+    assert.deepEqual(wire, ['who a']);
+
+    let closedCalls = 0;
+    const closing = { ws: { readyState: 2, send() { closedCalls += 1; } } };
+    assert.deepEqual({ ...send.call(closing, 'who a') }, { ok: false, code: 'SOCKET_NOT_OPEN', socketState: 'CLOSING',
+        webSocketSendInvoked: false, monotonicTimestamp: 4242 });
+    assert.equal(closedCalls, 0);
+
+    let throwCalls = 0;
+    const throwing = { ws: { readyState: 1, send() { throwCalls += 1; throw new Error('synthetic'); } } };
+    assert.deepEqual({ ...send.call(throwing, 'who a') }, { ok: false, code: 'SEND_THROWN', socketState: 'OPEN',
+        webSocketSendInvoked: true, monotonicTimestamp: 4242 });
+    assert.equal(throwCalls, 1);
+});
+
+test('ordinary Classic commands keep the same wire framing without ResearchActions', () => {
+    const send = loadClientSend(); const wire = [];
+    const client = { ws: { readyState: 1, send(command) { wire.push(command); } } };
+    for (const command of ['seek 5 0 unrated', 'play 17', 'observe 9']) {
+        assert.equal(send.call(client, command).code, 'SENT');
+    }
+    assert.equal(send.call(client, { type: 'command', text: 'resign' }).code, 'SENT');
+    assert.deepEqual(wire, ['seek 5 0 unrated', 'play 17', 'observe 9', 'resign']);
 });
 
 test('cancel is idempotent, stops capture, and consumes no command', () => {
