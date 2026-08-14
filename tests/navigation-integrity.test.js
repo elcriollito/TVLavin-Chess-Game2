@@ -20,14 +20,14 @@ test('canonical primary navigation inventory is unique and stable', () => {
   assert.deepEqual(
     Array.from(inventory.primary, ({ id }) => id),
     [
-      'play', 'yahooClassic', 'fics',
+      'play', 'yahooClassic', 'fics', 'playchess',
       'academy', 'endgame-trainer', 'endgame-practice', 'endgame-library',
       'insights', 'analyze', 'spectator', 'arena',
       'cheater-insight', 'polyglot', 'opening-database', 'eco', 'library',
       'history', 'dosChess', 'vault', 'blog'
     ]
   );
-  assert.equal(inventory.primary.length, 20);
+  assert.equal(inventory.primary.length, 21);
   assert.equal(inventory.connect.length, 4);
   for (const label of ['Endgame Practice', 'Endgame Library', 'Analyze', 'Help', 'About']) {
     assert.ok(labels.includes(label), `${label} is missing`);
@@ -110,7 +110,7 @@ test('explicit section routing remains ahead of the Classic default', () => {
 test('all standalone shell pages load the canonical source before the renderer', () => {
   const pages = [
     'endgame-library.html', 'about.html', 'help.html', 'eco.html', 'opening-database.html',
-    'polyglot.html', 'vault.html', 'blog/index.html'
+    'polyglot.html', 'vault.html', 'blog/index.html', 'playchess.html'
   ];
   for (const path of pages) {
     const html = read(path);

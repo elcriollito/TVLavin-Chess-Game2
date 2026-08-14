@@ -154,7 +154,7 @@ Any task that adds, removes, renames, redirects, protects, or reorders a public 
 
 The visible order remains owned only by \`CaissaPrimaryNavigation\`; adapters must never introduce private navigation arrays. Add or remove a route in its real routing owner first, then run \`node scripts/build-caissa-public-route-inventory.mjs\` and the inventory guard.
 
-\`PLAY & COMPETE\` conceptually permits a future position 4 named \`Play Online\`. It is not implemented: there is no current link, route, placeholder, control, page, or feature flag.
+\`PLAY & COMPETE\` includes the credited Playchess guest gateway at position 4. The route embeds the public ChessBase service without changing CAISSA Play, CAISSA Classic, or FICS behavior.
 `;
 
 fs.mkdirSync(path.join(root, 'config'), { recursive: true });

@@ -431,6 +431,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/yahoo-classic') {
     filePath = './yahoo-classic.html';
   }
+  if (pathname === '/play-online/playchess' || pathname === '/play-online/playchess/') {
+    filePath = './playchess.html';
+  }
   if (pathname === '/academy') {
     filePath = './index.html';
   }

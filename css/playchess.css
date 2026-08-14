@@ -1,0 +1,80 @@
+:root {
+  color-scheme: dark;
+}
+
+.playchess-page {
+  margin: 0;
+  overflow-x: hidden;
+  background: #080c14;
+  color: #eef3fb;
+}
+
+.playchess-main {
+  width: min(100%, 1440px);
+  margin: 0 auto;
+  padding: clamp(12px, 2vw, 28px);
+  box-sizing: border-box;
+}
+
+.playchess-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: clamp(18px, 3vw, 30px);
+  padding: 14px 18px;
+  border: 1px solid rgba(255, 183, 77, 0.42);
+  border-radius: 12px;
+  background: linear-gradient(120deg, rgba(255, 152, 0, 0.16), rgba(74, 158, 255, 0.08));
+}
+
+.playchess-banner strong { font-size: 1.05rem; }
+.playchess-banner p { margin: 4px 0 0; color: #c7d1df; }
+.playchess-banner a,
+.playchess-disclosure a,
+.playchess-footer a { color: #77b8ff; }
+.playchess-banner a { flex: 0 0 auto; font-weight: 700; }
+
+.playchess-heading { margin: 0 auto 18px; text-align: center; }
+.playchess-heading h1 { margin: 0 0 8px; font-size: clamp(1.65rem, 3vw, 2.45rem); }
+.playchess-heading p { margin: 0; color: #c7d1df; }
+
+.playchess-embed-shell {
+  width: 100%;
+  height: clamp(560px, calc(100vh - 210px), 900px);
+  min-height: 560px;
+  overflow: hidden;
+  border: 1px solid #26344a;
+  border-radius: 12px;
+  background: #111827;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.3);
+}
+
+.playchess-embed-shell iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.playchess-disclosure {
+  max-width: 980px;
+  margin: 18px auto 0;
+  color: #c7d1df;
+  line-height: 1.55;
+}
+
+.playchess-disclosure p { margin: 8px 0; }
+.playchess-fallback { font-size: 0.9rem; }
+.playchess-footer { padding: 22px 16px 32px; text-align: center; color: #9eabba; }
+.playchess-footer p { margin: 6px 0; }
+
+@media (max-width: 800px) {
+  .playchess-main { padding: 10px; }
+  .playchess-banner { align-items: flex-start; flex-direction: column; }
+  .playchess-embed-shell { height: max(560px, calc(100dvh - 170px)); min-height: 0; border-radius: 8px; }
+}
+
+@media (max-width: 480px) {
+  .playchess-embed-shell { height: max(520px, calc(100dvh - 150px)); }
+}
