@@ -30,7 +30,7 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | 1 | play-and-compete | Play | /play | internal-page | CaissaPrimaryNavigation |
 | 2 | play-and-compete | CAISSA Classic | /yahoo-classic | internal-page | CaissaPrimaryNavigation |
 | 3 | play-and-compete | FICS | /fics | internal-page | CaissaPrimaryNavigation |
-| 4 | play-and-compete | Playchess Guest | /play-online/playchess | internal-page | CaissaPrimaryNavigation |
+| 4 | play-and-compete | Playchess | /play-online/playchess | internal-page | CaissaPrimaryNavigation |
 | 5 | learn-and-improve | Academy | /academy | internal-page | CaissaPrimaryNavigation |
 | 6 | learn-and-improve | Endgame Trainer | /endgame-trainer | internal-page | CaissaPrimaryNavigation |
 | 7 | learn-and-improve | Endgame Practice | /endgame-practice | internal-page | CaissaPrimaryNavigation |

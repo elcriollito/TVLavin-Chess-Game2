@@ -1,13 +1,13 @@
 (function (global) {
     'use strict';
 
-    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.1.0';
+    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.2.0';
     const allGroups = [
         Object.freeze([
             { id: 'play', label: 'Play', icon: 'fas fa-play-circle', section: 'play', route: '/play', canonicalNavigation: true },
             { id: 'yahooClassic', label: 'CAISSA Classic', icon: 'fas fa-window-restore', section: 'yahooClassic', route: '/yahoo-classic', canonicalNavigation: true },
             { id: 'fics', label: 'FICS', icon: 'fas fa-globe', section: 'fics', route: '/fics', canonicalNavigation: true },
-            { id: 'playchess', label: 'Playchess Guest', icon: 'fas fa-chess-board', route: '/play-online/playchess' }
+            { id: 'playchess', label: 'Playchess', icon: 'fas fa-chess-board', route: '/play-online/playchess' }
         ]),
         Object.freeze([
             { id: 'academy', label: 'Academy', icon: 'fas fa-graduation-cap', section: 'academy', route: '/academy', canonicalNavigation: true },

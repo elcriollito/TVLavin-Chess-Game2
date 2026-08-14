@@ -69,7 +69,7 @@
     },
     {
       "id": "playchess",
-      "label": "Playchess Guest",
+      "label": "Playchess",
       "canonicalPath": "/play-online/playchess",
       "absoluteUrl": "https://www.caissa-chess.org/play-online/playchess",
       "type": "internal-page",
