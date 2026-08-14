@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- CSP: FICS WebSocket - local dev and the dedicated production WSS gateway only -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; script-src-elem 'self' https://*.clarity.ms https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https://img.clerk.com https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://*.clarity.ms https://c.bing.com ws://localhost:8081 ws://127.0.0.1:8081 wss://fics-gateway.caissa-chess.org https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://api.stripe.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://checkout.stripe.com https://js.stripe.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; script-src-elem 'self' https://*.clarity.ms https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https://img.clerk.com https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://*.clarity.ms https://c.bing.com ws://127.0.0.1:8787 wss://fics-gateway.caissa-chess.org https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://api.stripe.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://checkout.stripe.com https://js.stripe.com;">
 
     <!-- Primary Meta Tags -->
     <title>CAISSA Chess – Play Online, Stockfish Analysis & Training</title>
@@ -112,7 +112,7 @@
     <link rel="stylesheet" href="css/caissa-onboarding.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-dos-chess.css?v=1.0.1">
     <link rel="stylesheet" href="css/fics-client.css?v=1.2.5">
-    <link rel="stylesheet" href="css/yahoo-classic.css?v=1.0.1">
+    <link rel="stylesheet" href="css/yahoo-classic.css?v=1.1.0">
     <link rel="stylesheet" href="css/academy.css?v=1.0.0">
     <link rel="stylesheet" href="css/opening-book.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-mobile-foundation.css?v=1.0.6">
@@ -1717,8 +1717,8 @@
                                     <div class="yc-options-control yc-table-game-options" aria-label="Classic game options">
                                         <span class="yc-options-heading">Options</span>
                                         <label class="yc-check-control">
-                                            <input type="checkbox" checked disabled>
-                                            <span>Rated Game</span>
+                                            <input id="ycTableRatedStatus" type="checkbox" disabled>
+                                            <span id="ycTableRatedLabel">Mode from FICS</span>
                                         </label>
                                         <label class="yc-time-control" for="ycTableTimeSelect">
                                             <span>Set Time</span>
@@ -5086,7 +5086,7 @@
     <script src="js/caissa-primary-navigation-transition-policy.js?v=1.0.0"></script>
     <script src="js/caissa-navigation.js?v=1.0.7"></script>
     <script src="js/academy-section.js?v=1.0.0"></script>
-    <script src="js/yahoo-classic-section.js?v=1.0.0"></script>
+    <script src="js/yahoo-classic-section.js?v=1.1.0"></script>
     <script src="js/caissa-ui-refactor.js?v=1.0.0"></script>
     <script src="js/engine-adapter.js?v=1.0.0"></script>
     <script src="js/engine-registry.js?v=1.0.0"></script>
@@ -5161,9 +5161,10 @@
     <script src="js/spectator-tv-catalog.js?v=1.0.0" defer></script>
     <script src="js/fics-style12.js?v=1.0.0" defer></script>
 <script src="js/fics-observability.js?v=1.0.3" defer></script>
-<script src="js/fics-client.js?v=1.2.7" defer></script>
+<script src="js/fics-client.js?v=1.2.8" defer></script>
 <script src="js/fics-match-research.js?v=1.0.1" defer></script>
 <script src="js/fics-research-actions.js?v=1.0.1" defer></script>
+<script src="js/fics-computer-challenge.js?v=1.0.0" defer></script>
     <script src="js/spectator-tv-section.js?v=1.0.4" defer></script>
     <script src="js/opening-book-manager.js?v=1.0.0" defer></script>
 

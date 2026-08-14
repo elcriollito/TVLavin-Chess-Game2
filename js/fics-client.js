@@ -174,7 +174,7 @@ const CaissaFICSClient = {
             : '';
 
         if (isLocal) {
-            this.gatewayUrl = configuredUrl || 'ws://localhost:8081';
+            this.gatewayUrl = configuredUrl || 'ws://127.0.0.1:8787/ws';
             this.gatewayMode = this.gatewayUrl.startsWith('wss://') ? 'local wss' : 'local ws';
         } else {
             this.gatewayUrl = configuredUrl.startsWith('wss://')
@@ -193,6 +193,7 @@ const CaissaFICSClient = {
     notifySpectator(event, payload = {}) {
         // Read-only side channel: observer failures must never enter the runtime path.
         try { window.ClassicFicsObservability?.observeNormalizedEvent(event, payload); } catch {}
+        try { window.ClassicComputerChallenge?.handleClientEvent({ event, payload, client: this }); } catch {}
         const detail = {
             event,
             payload,
@@ -590,7 +591,9 @@ const CaissaFICSClient = {
             currentFen: null,
             gameActive: false,
             observedGame: false,
+            rated: null,
             result: null,
+            resultModel: null,
             status
         };
     },
@@ -676,6 +679,7 @@ const CaissaFICSClient = {
         // The observer receives a string copy and cannot transform parser input.
         try { window.ClassicFicsObservability?.observeRawInbound(String(text)); } catch {}
         try { window.ClassicFicsMatchResearch?.observeRawInbound(String(text)); } catch {}
+        try { window.ClassicComputerChallenge?.observeRawInbound(String(text)); } catch {}
         this.rawBuffer = `${this.rawBuffer}${text}`.slice(-16384);
         this.logToConsole(this.sanitizeFicsConsoleText(text));
 
@@ -874,13 +878,15 @@ const CaissaFICSClient = {
             this.updateGameStatus('Move rejected by FICS', 'error');
         }
 
-        // Detect game start
-        if (line.includes('Creating:') || line.includes('Game ') && line.includes('(') && line.includes(')')) {
+        const terminalGameLine = line.includes('Game ') && this.normalizeFicsGameResult(line).terminal;
+
+        // Detect game start only when the same frame is not server-terminal.
+        if (!terminalGameLine && (line.includes('Creating:') || line.includes('Game ') && line.includes('(') && line.includes(')'))) {
             this.handleGameStart(line);
         }
 
         // Detect game end
-        if (line.includes('Game ') && /resigns|checkmated|drawn|forfeits|flagged|aborted|adjourned|disconnect/i.test(line)) {
+        if (terminalGameLine) {
             this.handleGameEnd(line);
         }
 
@@ -916,22 +922,27 @@ const CaissaFICSClient = {
     },
 
     handleGameEnd(line) {
+        const resultModel = this.normalizeFicsGameResult(line);
+        if (!resultModel.terminal) return false;
         this.gameActive = false;
         this.liveGame.gameActive = false;
-        this.liveGame.result = line;
+        this.liveGame.result = resultModel.result;
+        this.liveGame.resultModel = resultModel;
         this.liveGame.status = 'ended';
         this.pendingMove = null;
         this.cancelPromotionSelection(false);
-        this.pgnResult = this.extractResult(line);
-        this.updateGameStatus(`Game ended: ${line}`, 'ended');
+        this.pgnResult = resultModel.result;
+        this.updateGameStatus(resultModel.summary, 'ended');
         this.updatePlayerBars();
         this.notifySpectator('game-ended', {
             resultLine: line,
             result: this.pgnResult,
+            resultModel,
             liveGame: { ...this.liveGame },
             moveHistory: this.moveHistory.map((move) => ({ ...move }))
         });
         this.logToConsole('🏁 ' + line);
+        return true;
     },
 
     handleMove(line) {
@@ -948,6 +959,20 @@ const CaissaFICSClient = {
         const userColor = state.userColor === 'w' ? 'white'
             : state.userColor === 'b' ? 'black'
                 : null;
+        const challengeIntent = window.ClassicComputerChallenge?.snapshot?.().pending || null;
+        const challengeTarget = String(challengeIntent?.targetHandle || '').toLowerCase();
+        const challengeMatches = !!challengeTarget
+            && (state.relation === 1 || state.relation === -1)
+            && [state.whiteName, state.blackName].some(name => String(name || '').toLowerCase() === challengeTarget);
+        const activeTable = this.getActiveTableForGame(state.gameNumber);
+        const activeLabel = String(activeTable?.label || '');
+        const rated = challengeMatches && typeof challengeIntent.rated === 'boolean'
+            ? challengeIntent.rated
+            : /\bunrated\b/i.test(activeLabel)
+                ? false
+                : /\brated\b/i.test(activeLabel)
+                    ? true
+                    : this.liveGame.rated;
 
         if (!this.chess || !this.chess.load(state.fen)) {
             console.warn('[FICS Client] Ignored invalid Style12 FEN:', state.fen);
@@ -973,7 +998,9 @@ const CaissaFICSClient = {
             currentFen: state.fen,
             gameActive: playing,
             observedGame: state.observedGame,
+            rated,
             result: null,
+            resultModel: null,
             status: playing ? 'playing' : state.observedGame ? 'observing' : 'examining'
         };
         this.gameActive = playing;
@@ -1784,8 +1811,43 @@ const CaissaFICSClient = {
     extractResult(line) {
         if (/1-0/.test(line)) return '1-0';
         if (/0-1/.test(line)) return '0-1';
-        if (/1\/2-1\/2|drawn|draw/i.test(line)) return '1/2-1/2';
+        if (/1\/2-1\/2|\bdrawn\b|\bdraw by\b|\bagreed draw\b|\bdraw agreed\b/i.test(line)) return '1/2-1/2';
         return '*';
+    },
+
+    normalizeFicsGameResult(line) {
+        const serverEvidence = String(line || '').trim();
+        const result = this.extractResult(serverEvidence);
+        let terminationReason = 'UNKNOWN';
+        if (/\b(?:flagged|forfeits? on time|ran out of time|time forfeit)\b/i.test(serverEvidence)) terminationReason = 'TIMEOUT';
+        else if (/\bcheckmat(?:e|ed)\b/i.test(serverEvidence)) terminationReason = 'CHECKMATE';
+        else if (/\b(?:resigns?|resignation)\b/i.test(serverEvidence)) terminationReason = 'RESIGNATION';
+        else if (/\b(?:drawn|draw by|agreed draw|draw agreed)\b/i.test(serverEvidence)) terminationReason = 'DRAW';
+        else if (/\babort(?:ed)?\b/i.test(serverEvidence)) terminationReason = 'ABORT';
+        else if (/\badjourn(?:ed)?\b/i.test(serverEvidence)) terminationReason = 'ADJOURNED';
+
+        const explicitTerminal = terminationReason !== 'UNKNOWN';
+        const scored = ['1-0', '0-1', '1/2-1/2'].includes(result);
+        const terminal = scored || explicitTerminal;
+        const winner = result === '1-0' ? this.liveGame.whiteName
+            : result === '0-1' ? this.liveGame.blackName
+                : null;
+        const loser = result === '1-0' ? this.liveGame.blackName
+            : result === '0-1' ? this.liveGame.whiteName
+                : null;
+        const reasonLabels = {
+            TIMEOUT: 'on time', CHECKMATE: 'by checkmate', RESIGNATION: 'by resignation',
+            DRAW: 'by agreement', DISCONNECT_FORFEIT: 'by disconnect forfeit'
+        };
+        let summary = `Game over${scored ? ` — ${result}` : ''}`;
+        if (terminationReason === 'ABORT') summary = 'Game aborted';
+        else if (terminationReason === 'ADJOURNED') summary = 'Game adjourned';
+        else if (result === '1/2-1/2') summary = `${terminationReason === 'DRAW' ? 'Draw by agreement' : 'Game drawn'} — ${result}`;
+        else if (winner && reasonLabels[terminationReason]) summary = `${winner} wins ${reasonLabels[terminationReason]} — ${result}`;
+        else if (winner) summary = `${winner} wins — ${result}`;
+
+        return Object.freeze({ result, winner: winner || null, loser: loser || null,
+            terminationReason, serverEvidence, terminal, summary });
     },
 
     escapeHtml(value) {

@@ -110,6 +110,8 @@
         lastRenderedFen: null,
         lastMoveSignature: '',
         lastHighlightedSquares: [],
+        boardResizeFrame: null,
+        lastBoardSize: null,
         recentlyLeftObservedGame: null,
         leaveTableInProgress: false,
         currentRoom: {
@@ -126,6 +128,9 @@
         soundUserActivated: false,
         boardStyle: 'classic',
         lastMoveHighlightEnabled: true,
+        selectedComputerTarget: '',
+        computerSelectionFailure: null,
+        computerHallView: null,
         systemMessages: ['Connect to FICS to receive lobby status.'],
 
         init() {
@@ -177,6 +182,8 @@
                 gameHeaderTime: document.getElementById('ycGameHeaderTime'),
                 gameHeaderPlayers: document.getElementById('ycGameHeaderPlayers'),
                 gameHeaderSpectators: document.getElementById('ycGameHeaderSpectators'),
+                tableRatedStatus: document.getElementById('ycTableRatedStatus'),
+                tableRatedLabel: document.getElementById('ycTableRatedLabel'),
                 gameInfoOpening: document.getElementById('ycGameInfoOpening'),
                 gameInfoEco: document.getElementById('ycGameInfoEco'),
                 gameInfoMove: document.getElementById('ycGameInfoMove'),
@@ -213,6 +220,9 @@
             window.addEventListener('caissa:fics:game-ended', (event) => this.handleFicsEvent(event.detail));
             window.addEventListener('caissa:fics:observer-left', (event) => this.handleFicsEvent(event.detail));
             window.addEventListener('caissa:fics:disconnected', (event) => this.handleFicsEvent(event.detail));
+            window.addEventListener('caissa:fics:computer-hall-updated', () => {
+                if (this.isComputerRoom()) this.render();
+            });
             this.elements.roomTabs?.forEach((button) => {
                 button.addEventListener('click', () => this.selectRoom(button));
             });
@@ -239,6 +249,7 @@
             };
             window.addEventListener('pointerdown', unlockSound, { once: true, passive: true });
             window.addEventListener('keydown', unlockSound, { once: true });
+            window.addEventListener('resize', () => this.scheduleClassicBoardResize(), { passive: true });
         },
 
         onEnter() {
@@ -282,6 +293,7 @@
                 this.addSystemMessage(`Loading ${CURRENT_ROOM}...`);
                 this.addActivity('Player session connected.', 'connect');
                 this.queueSoundCue('connect');
+                if (this.isComputerRoom()) this.ensureComputerDirectory();
             } else if (event === 'lobby-updated') {
                 const previousTables = new Set(this.activeTables.map((table) => String(table.number)));
                 const previousPlayers = new Set(this.getPlayers().map((player) => player.name.toLowerCase()));
@@ -296,14 +308,16 @@
                 this.handleStyle12(payload);
             } else if (event === 'game-ended') {
                 const result = this.normalizeGameResult(payload.result || payload.resultLine || payload.liveGame?.result || this.liveGame?.result);
+                const resultModel = payload.resultModel || payload.liveGame?.resultModel || null;
+                if (!this.isTerminalGameResult(result, resultModel)) return;
                 if (payload.liveGame) {
-                    this.liveGame = { ...payload.liveGame, result, status: 'ended' };
+                    this.liveGame = { ...payload.liveGame, result, resultModel, status: 'ended' };
                 } else if (this.liveGame) {
-                    this.liveGame = { ...this.liveGame, result, status: 'ended' };
+                    this.liveGame = { ...this.liveGame, result, resultModel, status: 'ended' };
                 }
-                const resultText = result && result !== '--' ? result : 'result received';
-                this.addSystemMessage(`Game finished: ${resultText}.`);
-                this.addActivity(`Game over: ${resultText}.`, 'gameover');
+                const summary = this.getGameResultSummary(result, resultModel);
+                this.addSystemMessage(`${summary}.`);
+                this.addActivity(summary, 'gameover');
                 this.queueSoundCue('gameover');
             } else if (event === 'observer-left') {
                 const leftGame = payload.gameNumber !== null && payload.gameNumber !== undefined ? String(payload.gameNumber) : '';
@@ -421,6 +435,7 @@
             });
             this.addActivity(`Entered ${this.currentRoom.name}.`, 'room');
             this.render();
+            if (this.isComputerRoom()) this.ensureComputerDirectory();
         },
 
         selectLobbyRoom() {
@@ -541,7 +556,8 @@
                 return;
             }
             if (this.isComputerRoom()) {
-                this.elements.roomSummary.textContent = `Current Room: Computer Hall - Players Online: ${players.length} - Engine Room: Offline`;
+                const computers = window.ClassicComputerChallenge?.snapshot?.().computers?.length || 0;
+                this.elements.roomSummary.textContent = `Current Room: Computer Hall - Players Online: ${players.length} - Computers Available: ${computers}`;
                 return;
             }
             if (this.isTeachingRoom()) {
@@ -658,45 +674,225 @@
         },
 
         renderComputerHall(container) {
+            const challenge = window.ClassicComputerChallenge;
+            const snapshot = challenge?.snapshot?.() || { state: 'IDLE', directoryState: 'EMPTY', computers: [], pending: null };
             container.setAttribute('role', 'region');
             container.setAttribute('aria-label', 'Classic Computer Hall');
-            container.replaceChildren(
-                this.createComputerHero(),
-                this.createComputerPanel('Engine Room', [
-                    ['Status', 'No bot backend connected'],
-                    ['Play Bots', 'Not Available'],
-                    ['Training Engines', 'Coming Soon']
-                ], 'Computer opponents will appear here only after a supported engine/bot pathway is connected.'),
-                this.createComputerPanel('Future Bot Tables', [
-                    ['Beginner Bots', 'Coming Soon'],
-                    ['Classic Engines', 'Coming Soon'],
-                    ['Training Partners', 'Coming Soon']
-                ], 'No playable bot tables are available in this phase. CAISSA Classic will not present fake engine games.'),
-                this.createComputerPanel('Training Support', [
-                    ['Coach Bots', 'Future Academy integration'],
-                    ['Engine Mapping', 'Coming Soon'],
-                    ['Analysis Rooms', 'Coming Soon']
-                ], 'Computer Hall is prepared as a retro shell for future safe engine and training support.'),
-                this.createComputerPanel('Room Notes', [
-                    ['Format', 'Classic engine-room shell'],
+            const viewIsCurrent = this.computerHallView?.container === container
+                && container.contains(this.computerHallView.challengePanel);
+            if (!viewIsCurrent) {
+                const hero = this.createComputerHero(snapshot.computers.length);
+                const challengePanel = this.createComputerChallengePanel(snapshot);
+                const directoryPanel = this.createComputerDirectoryPanel(snapshot);
+                const notesPanel = this.createComputerPanel('Room Notes', [
+                    ['Format', 'Classic FICS computer room'],
                     ['Live Tables', String(this.activeTables.length + this.seekActions.length)],
                     ['Players Online', String(this.getPlayers().length)]
-                ], 'Use CAISSA Lobby for live FICS play. Computer Hall does not create engine services or bot games yet.')
-            );
+                ], 'Existing FICS seeks and active games remain available through the Classic room runtime.');
+                container.replaceChildren(hero, challengePanel, directoryPanel, notesPanel);
+                this.computerHallView = { container, hero, challengePanel, directoryPanel, notesPanel };
+            }
+            this.updateComputerHall(snapshot);
         },
 
-        createComputerHero() {
+        updateComputerHall(snapshot) {
+            const view = this.computerHallView;
+            if (!view) return;
+            const badge = view.hero.querySelector('.yc-computer-badge');
+            if (badge) badge.textContent = `Computers Available: ${snapshot.computers.length}`;
+            this.updateComputerChallengePanel(view.challengePanel, snapshot);
+            this.updateComputerDirectoryPanel(view.directoryPanel, snapshot);
+            const noteValues = view.notesPanel.querySelectorAll('.yc-computer-list dd');
+            if (noteValues[1]) noteValues[1].textContent = String(this.activeTables.length + this.seekActions.length);
+            if (noteValues[2]) noteValues[2].textContent = String(this.getPlayers().length);
+        },
+
+        createComputerHero(count = 0) {
             const hero = document.createElement('div');
             hero.className = 'yc-computer-hero';
             const title = document.createElement('h4');
             title.textContent = 'Computer Hall';
             const summary = document.createElement('p');
-            summary.textContent = 'A classic engine room shell for future computer opponents, training partners, and bot tables.';
+            summary.textContent = 'Challenge real FICS computer accounts from the Classic room.';
             const badge = document.createElement('span');
             badge.className = 'yc-computer-badge';
-            badge.textContent = 'Engine backend not connected';
+            badge.textContent = `Computers Available: ${count}`;
             hero.append(title, summary, badge);
             return hero;
+        },
+
+        ensureComputerDirectory() {
+            const challenge = window.ClassicComputerChallenge;
+            const snapshot = challenge?.snapshot?.();
+            const client = window.CaissaFICSClient;
+            if (!this.authenticated || !client?.authenticated || !challenge || !snapshot) return;
+            if (snapshot.requestedGeneration === client.sessionGeneration || snapshot.directoryState === 'LOADING') return;
+            challenge.requestAvailableComputers();
+        },
+
+        createComputerChallengePanel(snapshot) {
+            const panel = document.createElement('section');
+            panel.className = 'yc-computer-panel yc-computer-challenge';
+            const heading = document.createElement('h4');
+            heading.textContent = 'Challenge Computer';
+            const form = document.createElement('form');
+            form.className = 'yc-computer-challenge-form';
+
+            const computerLabel = document.createElement('label');
+            computerLabel.textContent = 'Computer';
+            const computerSelect = document.createElement('select');
+            computerSelect.className = 'yc-classic-field';
+            computerSelect.name = 'computer';
+            computerSelect.required = true;
+            computerSelect.setAttribute('aria-label', 'Available FICS computer');
+            computerSelect.addEventListener('change', () => {
+                this.selectedComputerTarget = computerSelect.value;
+                this.computerSelectionFailure = null;
+            });
+            computerLabel.appendChild(computerSelect);
+
+            const timeLabel = document.createElement('label');
+            timeLabel.textContent = 'Time';
+            const timeSelect = document.createElement('select');
+            timeSelect.className = 'yc-classic-field';
+            timeSelect.name = 'time';
+            timeSelect.setAttribute('aria-label', 'Challenge time control');
+            (window.ClassicComputerChallenge?.timePresets || []).forEach(preset => {
+                const option = document.createElement('option');
+                option.value = preset.key;
+                option.textContent = preset.label;
+                option.selected = preset.key === '3+2';
+                timeSelect.appendChild(option);
+            });
+            timeLabel.appendChild(timeSelect);
+
+            const send = document.createElement('button');
+            send.type = 'submit';
+            send.className = 'yc-classic-button primary';
+            send.textContent = 'Send Challenge';
+
+            const status = document.createElement('p');
+            status.className = 'yc-computer-challenge-status';
+            status.setAttribute('role', 'status');
+            status.setAttribute('aria-live', 'polite');
+
+            form.addEventListener('submit', async event => {
+                event.preventDefault();
+                send.disabled = true;
+                send.textContent = 'Checking availability...';
+                const result = await window.ClassicComputerChallenge?.challenge(computerSelect.value, timeSelect.value);
+                if (result?.ok) {
+                    this.addSystemMessage(`Challenge sent to ${result.intent.targetHandle}.`);
+                    this.addActivity(`Challenge sent to ${result.intent.targetHandle}.`, 'challenge');
+                } else {
+                    this.addSystemMessage(result?.code === 'TARGET_NO_LONGER_AVAILABLE' || result?.code === 'REMOTE_CHALLENGE_UNAVAILABLE'
+                        ? 'Computer no longer available. Choose another.'
+                        : result?.code === 'AVAILABILITY_CONFIRMATION_TIMEOUT'
+                            ? 'Unable to confirm availability. Try again.'
+                            : 'Computer challenge could not be sent.');
+                }
+                this.render();
+            });
+            form.append(computerLabel, timeLabel, send, status);
+            panel.append(heading, form);
+            this.updateComputerChallengePanel(panel, snapshot);
+            return panel;
+        },
+
+        updateComputerChallengePanel(panel, snapshot) {
+            const computerSelect = panel.querySelector('select[name="computer"]');
+            const send = panel.querySelector('button[type="submit"]');
+            const status = panel.querySelector('.yc-computer-challenge-status');
+            if (!computerSelect || !send || !status) return;
+            const selected = this.selectedComputerTarget;
+            const selectedStillEligible = !!selected && snapshot.computers.some(computer => computer.handle === selected)
+                && this.isComputerTargetEligible(selected);
+            const loading = snapshot.directoryState === 'LOADING';
+            if (!loading) {
+                if (selected && !selectedStillEligible) {
+                    this.selectedComputerTarget = '';
+                    this.computerSelectionFailure = 'TARGET_NO_LONGER_AVAILABLE';
+                }
+                computerSelect.replaceChildren();
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = 'Choose a computer';
+                computerSelect.appendChild(placeholder);
+                snapshot.computers.forEach(computer => {
+                    const option = document.createElement('option');
+                    option.value = computer.handle;
+                    option.textContent = `${computer.handle} — ${computer.rating ?? 'Unrated'}`;
+                    computerSelect.appendChild(option);
+                });
+                computerSelect.value = selectedStillEligible ? selected : '';
+            }
+            const active = !!snapshot.pending || ['VALIDATING', 'SENDING', 'ISSUED', 'ACCEPTED'].includes(snapshot.state);
+            send.disabled = !this.authenticated || snapshot.directoryState !== 'READY' || !this.selectedComputerTarget || active;
+            send.setAttribute('aria-disabled', send.disabled ? 'true' : 'false');
+            send.textContent = snapshot.state === 'VALIDATING' ? 'Checking availability...' : 'Send Challenge';
+            if (snapshot.state === 'VALIDATING') status.textContent = 'Checking availability...';
+            else if (snapshot.failureCode === 'TARGET_NO_LONGER_AVAILABLE' || snapshot.failureCode === 'REMOTE_CHALLENGE_UNAVAILABLE'
+                || this.computerSelectionFailure === 'TARGET_NO_LONGER_AVAILABLE') status.textContent = 'Computer no longer available. Choose another.';
+            else if (snapshot.failureCode === 'AVAILABILITY_CONFIRMATION_TIMEOUT') status.textContent = 'Unable to confirm availability. Try again.';
+            else if (snapshot.directoryState === 'LOADING') status.textContent = 'Loading available computers...';
+            else if (snapshot.state === 'ACCEPTED') status.textContent = `${snapshot.pending?.targetHandle || 'Computer'} accepted. Starting game...`;
+            else if (snapshot.state === 'ISSUED') status.textContent = `Waiting for ${snapshot.pending?.targetHandle || 'computer'}...`;
+            else if (snapshot.state === 'GAME_STARTED') status.textContent = 'Game started.';
+            else if (snapshot.failureCode) status.textContent = 'Challenge unavailable. Refresh the FICS session to try again.';
+            else if (!snapshot.computers.length) status.textContent = this.authenticated ? 'No available computers reported.' : 'Connect to FICS to challenge a computer.';
+            else status.textContent = 'Guest challenges are unrated.';
+        },
+
+        isComputerTargetEligible(handle) {
+            const client = window.CaissaFICSClient;
+            const normalized = String(handle || '').toLowerCase();
+            const playing = (client?.activeTables || []).some(table => [table.white, table.black]
+                .some(name => String(name || '').toLowerCase() === normalized));
+            const seeking = (client?.seekActions || []).some(seek =>
+                String(seek?.details?.player || '').toLowerCase() === normalized);
+            return !playing && !seeking;
+        },
+
+        createComputerDirectoryPanel(snapshot) {
+            const panel = document.createElement('section');
+            panel.className = 'yc-computer-panel';
+            const heading = document.createElement('h4');
+            heading.textContent = 'Computers Available to Challenge';
+            const table = document.createElement('div');
+            table.className = 'yc-computer-directory';
+            table.setAttribute('role', 'table');
+            table.setAttribute('aria-label', 'Available FICS computers');
+            const header = document.createElement('div');
+            header.className = 'yc-computer-directory-row head';
+            header.setAttribute('role', 'row');
+            ['Computer', 'Rating', 'Status'].forEach(label => {
+                const cell = document.createElement('span'); cell.setAttribute('role', 'columnheader'); cell.textContent = label; header.appendChild(cell);
+            });
+            table.appendChild(header);
+            snapshot.computers.forEach(computer => {
+                const row = document.createElement('div'); row.className = 'yc-computer-directory-row'; row.setAttribute('role', 'row');
+                [computer.handle, computer.rating ?? '----', computer.status].forEach(value => {
+                    const cell = document.createElement('span'); cell.setAttribute('role', 'cell'); cell.textContent = String(value); row.appendChild(cell);
+                });
+                table.appendChild(row);
+            });
+            if (!snapshot.computers.length) {
+                const empty = document.createElement('p'); empty.className = 'yc-computer-empty';
+                empty.textContent = snapshot.directoryState === 'LOADING' ? 'Receiving current FICS availability...' : 'No available FICS computers are listed.';
+                panel.append(heading, table, empty);
+            } else panel.append(heading, table);
+            return panel;
+        },
+
+        updateComputerDirectoryPanel(panel, snapshot) {
+            if (snapshot.directoryState === 'LOADING') return;
+            const replacement = this.createComputerDirectoryPanel(snapshot);
+            const currentTable = panel.querySelector('.yc-computer-directory');
+            const replacementTable = replacement.querySelector('.yc-computer-directory');
+            if (currentTable && replacementTable) currentTable.replaceChildren(...replacementTable.childNodes);
+            panel.querySelector('.yc-computer-empty')?.remove();
+            const replacementEmpty = replacement.querySelector('.yc-computer-empty');
+            if (replacementEmpty) panel.appendChild(replacementEmpty);
         },
 
         createComputerPanel(title, rows, emptyText) {
@@ -1180,11 +1376,30 @@
                 && (playingRelation || color === 'white' || color === 'black');
         },
 
+        canExitTable() {
+            if (!this.tableOpen) return false;
+            const client = window.CaissaFICSClient;
+            const liveGame = client?.liveGame || this.liveGame || {};
+            if (liveGame.observedGame) return true;
+            if (this.canUsePlayerTableActions()) return false;
+            const status = String(liveGame.status || '').toLowerCase();
+            const result = this.normalizeGameResult(liveGame.result);
+            return liveGame.resultModel?.terminal === true
+                || this.isTerminalGameResult(result, liveGame.resultModel)
+                || /(?:ended|abort|adjourn|suspend|finished|stale)/.test(status);
+        },
+
         leaveTable() {
-            if (!this.tableOpen) return;
+            if (!this.tableOpen) return false;
+            if (!this.canExitTable()) {
+                this.addSystemMessage('Exit Table is available after the game ends. Use the explicit game controls while play is active.');
+                this.render();
+                return false;
+            }
             const client = window.CaissaFICSClient;
             const gameNumber = this.liveGame?.gameNumber || this.currentTableId;
             const wasObserved = !!this.liveGame?.observedGame;
+            const returnRoom = this.currentRoom?.name || CURRENT_ROOM;
             let sentUnobserve = false;
 
             if (wasObserved && client?.authenticated && gameNumber) {
@@ -1206,12 +1421,12 @@
             }
 
             this.closeTable(false);
-            this.selectLobbyRoom();
             this.addSystemMessage(gameNumber
                 ? `${sentUnobserve ? 'Stopped observing' : 'Left'} table ${gameNumber}.`
-                : 'Returned to CAISSA Lobby.');
-            this.addActivity('Returned to CAISSA Lobby.', 'room');
+                : `Returned to ${returnRoom}.`);
+            this.addActivity(`Returned to ${returnRoom}.`, 'room');
             this.render();
+            return true;
         },
 
         handleStyle12(payload = {}, render = true) {
@@ -1486,10 +1701,10 @@
             const time = table?.timeControl || this.liveGame?.initialTime || 'live';
             const game = table ? this.formatGameLabel(table) : 'Live';
             const gameType = this.getClassicGameType(time, game);
-            const rated = game === 'Unrated' || game === 'Casual' ? 'Casual' : 'Rated';
+            const rated = this.getLiveRatedLabel(table);
             const spectators = this.formatCount(this.getDisplaySpectatorCount(table));
             const result = this.normalizeGameResult(this.liveGame?.result || table?.result);
-            const finished = result !== '--' || this.liveGame?.status === 'ended';
+            const finished = this.isTerminalGameResult(result, this.liveGame?.resultModel);
             const readiness = this.getGameReadinessText({ side, result, finished });
             const role = this.getPlayerRoleText();
             const values = this.tableOpen && gameNumber
@@ -1514,6 +1729,7 @@
             this.renderClassicMoves();
             this.renderGameMeta();
             this.renderGameSystemLog();
+            this.renderGameOverStatus();
             this.renderLastMoveHighlightControl();
         },
 
@@ -1545,7 +1761,7 @@
             }
             this.applyBoardStyle();
             this.renderBoardStyleControls();
-            requestAnimationFrame(() => this.resizeClassicBoard());
+            this.scheduleClassicBoardResize();
         },
 
         loadLastMoveHighlightPreference() {
@@ -1618,31 +1834,42 @@
             }
             const playable = !!client?.canSubmitGraphicalMove?.();
             this.elements.classicBoard?.classList.toggle('yc-board-playable', playable);
-            requestAnimationFrame(() => this.resizeClassicBoard());
+            this.scheduleClassicBoardResize();
+        },
+
+        scheduleClassicBoardResize() {
+            if (this.boardResizeFrame !== null) return;
+            this.boardResizeFrame = requestAnimationFrame(() => {
+                this.boardResizeFrame = null;
+                this.resizeClassicBoard();
+            });
+        },
+
+        calculateClassicBoardSize({ availableWidth, availableHeight, maxSize = 620 }) {
+            const width = Math.max(0, Number(availableWidth) || 0);
+            const height = Math.max(0, Number(availableHeight) || 0);
+            const bounded = Math.max(0, Math.floor(Math.min(width, height, maxSize)));
+            return bounded - (bounded % 8);
         },
 
         resizeClassicBoard() {
             if (!this.elements.classicBoard) return;
             const panel = this.elements.classicBoard.closest('.yc-game-board-panel');
             if (!panel) return;
-            const reserved = [
-                this.elements.blackPlayerBar,
-                this.elements.whitePlayerBar,
-                this.elements.boardFeedback
-            ].reduce((total, element) => {
+            const reservedElements = [this.elements.boardFeedback].filter((element) => element && panel.contains(element));
+            const reserved = reservedElements.reduce((total, element) => {
                 if (!element || !panel.contains(element)) return total;
                 return total + element.offsetHeight;
             }, 0);
             const panelStyle = window.getComputedStyle(panel);
             const rowGap = parseFloat(panelStyle.rowGap || panelStyle.gap || '0') || 0;
-            const reservedRows = [
-                this.elements.blackPlayerBar,
-                this.elements.whitePlayerBar,
-                this.elements.boardFeedback
-            ].filter((element) => element && panel.contains(element)).length;
-            const availableHeight = panel.clientHeight - reserved - (rowGap * reservedRows) - 2;
-            const availableWidth = panel.clientWidth - 16;
-            const size = Math.max(160, Math.floor(Math.min(availableWidth, availableHeight, 760)));
+            const horizontalPadding = (parseFloat(panelStyle.paddingLeft) || 0) + (parseFloat(panelStyle.paddingRight) || 0);
+            const verticalPadding = (parseFloat(panelStyle.paddingTop) || 0) + (parseFloat(panelStyle.paddingBottom) || 0);
+            const availableHeight = panel.clientHeight - verticalPadding - reserved - (rowGap * reservedElements.length);
+            const availableWidth = panel.clientWidth - horizontalPadding;
+            const size = this.calculateClassicBoardSize({ availableWidth, availableHeight });
+            if (size < 120 || size === this.lastBoardSize) return;
+            this.lastBoardSize = size;
             this.elements.classicBoard.style.width = `${size}px`;
             this.board?.resize?.();
         },
@@ -1702,7 +1929,7 @@
                     ? `Last move: ${this.formatMoveLabel(latest)}${isCapture ? ' - Capture' : ''}`
                     : 'Board ready. Waiting for first move.';
             }
-            this.resizeClassicBoard();
+            this.scheduleClassicBoardResize();
             this.renderLastMoveSquares(showHighlight ? latest : null);
             const signature = hasMove
                 ? `${latest.moveNumber}:${latest.color}:${latest.san}:${this.liveGame?.currentFen || ''}`
@@ -1758,26 +1985,27 @@
             const localColor = this.getLocalPlayerColor();
             const blackSeat = this.getGameSeatData('black', table);
             const whiteSeat = this.getGameSeatData('white', table);
-            this.renderGamePlayerBar(this.elements.blackPlayerBar, {
-                color: 'black',
-                name: blackSeat.name,
-                rating: blackSeat.rating,
-                clock: this.formatClock(blackSeat.clockSeconds),
-                clockSeconds: blackSeat.clockSeconds,
-                active: this.liveGame?.sideToMove === 'b',
-                state: this.liveGame?.sideToMove === 'b' ? 'To move' : 'Waiting',
-                isLocal: localColor === 'black'
-            });
-            this.renderGamePlayerBar(this.elements.whitePlayerBar, {
-                color: 'white',
-                name: whiteSeat.name,
-                rating: whiteSeat.rating,
-                clock: this.formatClock(whiteSeat.clockSeconds),
-                clockSeconds: whiteSeat.clockSeconds,
-                active: this.liveGame?.sideToMove === 'w',
-                state: this.liveGame?.sideToMove === 'w' ? 'To move' : 'Waiting',
-                isLocal: localColor === 'white'
-            });
+            const players = { white: whiteSeat, black: blackSeat };
+            const mapping = this.getBoardSideMapping(localColor || 'white');
+            const renderSide = (element, position, color) => {
+                const seat = players[color];
+                this.renderGamePlayerBar(element, {
+                    color, position, name: seat.name, rating: seat.rating,
+                    clock: this.formatClock(seat.clockSeconds), clockSeconds: seat.clockSeconds,
+                    active: this.liveGame?.sideToMove === (color === 'white' ? 'w' : 'b'),
+                    state: this.liveGame?.sideToMove === (color === 'white' ? 'w' : 'b') ? 'To move' : 'Waiting',
+                    isLocal: localColor === color
+                });
+            };
+            renderSide(this.elements.blackPlayerBar, 'top', mapping.topColor);
+            renderSide(this.elements.whitePlayerBar, 'bottom', mapping.bottomColor);
+        },
+
+        getBoardSideMapping(orientation = 'white') {
+            const normalized = orientation === 'black' || orientation === 'b' ? 'black' : 'white';
+            return normalized === 'black'
+                ? Object.freeze({ orientation: normalized, topColor: 'white', bottomColor: 'black' })
+                : Object.freeze({ orientation: normalized, topColor: 'black', bottomColor: 'white' });
         },
 
         getGameSeatData(color, table = this.getCurrentTableMeta()) {
@@ -1841,6 +2069,7 @@
             element.dataset.ratingClass = ratingClass;
             element.dataset.turn = player.active ? 'active' : 'waiting';
             element.dataset.side = player.color;
+            element.dataset.position = player.position || '';
             element.dataset.local = player.isLocal ? 'true' : 'false';
             element.setAttribute('aria-label', `${player.isLocal ? 'You, ' : ''}${player.color} player ${player.name || player.color}, ${sideLabel}, ${player.state || 'Waiting'}, clock ${player.clock || '--:--'}`);
             const name = element.querySelector('.yc-player-name');
@@ -1954,14 +2183,14 @@
             const time = table?.timeControl || this.liveGame?.initialTime || 'live';
             const game = table ? this.formatGameLabel(table) : 'Live';
             const gameType = this.getClassicGameType(time, game);
-            const rated = game === 'Unrated' || game === 'Casual' ? 'Casual' : 'Rated';
+            const rated = this.getLiveRatedLabel(table);
             const spectators = this.formatCount(this.getDisplaySpectatorCount(table));
             const white = this.liveGame?.whiteName || table?.white || 'White';
             const black = this.liveGame?.blackName || table?.black || 'Black';
             const moveNumber = this.getCurrentMoveNumber();
             const phase = this.getGamePhase(moveNumber);
             const result = this.normalizeGameResult(this.liveGame?.result || table?.result);
-            const finished = result !== '--' || this.liveGame?.status === 'ended';
+            const finished = this.isTerminalGameResult(result, this.liveGame?.resultModel);
             const opening = this.liveGame?.openingName || this.liveGame?.opening || table?.opening || 'Unknown Opening';
             const eco = this.liveGame?.eco || table?.eco || '--';
             const turnText = finished
@@ -1990,6 +2219,11 @@
             this.setText(this.elements.gameHeaderTable, gameNumber ? `Table ${gameNumber}` : 'Table --');
             this.setText(this.elements.gameHeaderType, gameType);
             this.setText(this.elements.gameHeaderRated, rated);
+            if (this.elements.tableRatedStatus) {
+                this.elements.tableRatedStatus.checked = rated === 'Rated';
+                this.elements.tableRatedStatus.indeterminate = rated === 'Mode unknown';
+            }
+            this.setText(this.elements.tableRatedLabel, rated === 'Mode unknown' ? 'Mode from FICS' : `${rated} Game`);
             this.setText(this.elements.gameHeaderTime, this.formatClassicTime(time));
             this.setText(this.elements.gameHeaderPlayers, `${white} vs ${black}`);
             this.setText(this.elements.gameHeaderSpectators, `${spectators} spectators`);
@@ -2002,8 +2236,9 @@
             this.setText(this.elements.gameSpectatorState, spectatorText);
             this.elements.gameWindow?.setAttribute('aria-label', tableLabel);
             const playerActionsEnabled = this.canUsePlayerTableActions();
+            const exitTableEnabled = this.canExitTable();
             this.setButtonDisabled(this.elements.standBtn, !this.tableOpen);
-            this.setButtonDisabled(this.elements.leaveTableBtn, !this.tableOpen);
+            this.setButtonDisabled(this.elements.leaveTableBtn, !exitTableEnabled);
             this.setButtonDisabled(this.elements.sitBtn, !this.authenticated);
             this.setButtonDisabled(this.elements.drawBtn, !playerActionsEnabled);
             this.setButtonDisabled(this.elements.resignBtn, !playerActionsEnabled);
@@ -2017,6 +2252,11 @@
                 this.elements.resignBtn.title = playerActionsEnabled
                     ? 'Resign through the existing FICS game command'
                     : 'Resign is available only while you are playing a live game';
+            }
+            if (this.elements.leaveTableBtn) {
+                this.elements.leaveTableBtn.title = exitTableEnabled
+                    ? `Close this table and return to ${this.currentRoom?.name || CURRENT_ROOM}`
+                    : 'Exit Table becomes available after active play ends';
             }
             if (this.elements.takebackBtn) {
                 this.elements.takebackBtn.title = 'Undo Turn / takeback is disabled until the existing Core exposes a safe takeback command';
@@ -2104,8 +2344,51 @@
         normalizeGameResult(value) {
             const text = String(value || '').trim();
             if (!text) return '--';
-            const match = text.match(/\b(1-0|0-1|1\/2-1\/2|\*)\b/);
+            if (text === '*' || /(?:^|\s)\*(?:\s|$)/.test(text)) return '--';
+            const match = text.match(/\b(1-0|0-1|1\/2-1\/2)\b/);
             return match ? match[1] : text;
+        },
+
+        isTerminalGameResult(result, resultModel = null) {
+            return ['1-0', '0-1', '1/2-1/2'].includes(result) || resultModel?.terminal === true;
+        },
+
+        getGameResultSummary(result, resultModel = null) {
+            if (resultModel?.summary) return resultModel.summary;
+            return ['1-0', '0-1', '1/2-1/2'].includes(result) ? `Game over — ${result}` : 'Game over';
+        },
+
+        renderGameOverStatus() {
+            const panel = this.elements.moveList?.closest('.yc-move-panel');
+            if (!panel) return;
+            let status = panel.querySelector('.yc-game-over-status');
+            const result = this.normalizeGameResult(this.liveGame?.result);
+            const model = this.liveGame?.resultModel || null;
+            const terminal = this.isTerminalGameResult(result, model);
+            if (!terminal) {
+                status?.remove();
+                return;
+            }
+            if (!status) {
+                status = document.createElement('div');
+                status.className = 'yc-game-over-status';
+                status.setAttribute('role', 'status');
+                status.setAttribute('aria-live', 'polite');
+                this.elements.gameSystemLog?.closest('.yc-game-system-panel')?.insertAdjacentElement('beforebegin', status);
+            }
+            const title = document.createElement('strong');
+            title.textContent = 'Game Over';
+            const detail = document.createElement('span');
+            detail.textContent = this.getGameResultSummary(result, model);
+            status.replaceChildren(title, detail);
+        },
+
+        getLiveRatedLabel(table = this.getCurrentTableMeta()) {
+            if (typeof this.liveGame?.rated === 'boolean') return this.liveGame.rated ? 'Rated' : 'Unrated';
+            const tableLabel = table ? this.formatGameLabel(table) : '';
+            if (tableLabel === 'Rated') return 'Rated';
+            if (tableLabel === 'Unrated' || tableLabel === 'Casual') return 'Unrated';
+            return 'Mode unknown';
         },
 
         getCurrentTableMeta() {
