@@ -2,13 +2,14 @@ import { test, expect } from '@playwright/test';
 
 const routes = [
   ['/play', 'Play'], ['/yahoo-classic', 'CAISSA Classic'], ['/fics', 'FICS'],
+  ['/play-online/playchess', 'Playchess Guest'],
   ['/academy', 'Academy'], ['/endgame-trainer', 'Endgame Trainer'], ['/insights', 'Insights'],
   ['/analyze', 'Analyze'], ['/spectator-tv', 'Spectator TV'], ['/arena', 'Arena'],
   ['/game-library', 'Game Library'], ['/blog', 'Blog']
 ];
 
 const canonicalOrder = [
-  'Play', 'CAISSA Classic', 'FICS',
+  'Play', 'CAISSA Classic', 'FICS', 'Playchess Guest',
   'Academy', 'Endgame Trainer', 'Endgame Practice', 'Endgame Library',
   'Insights', 'Analyze', 'Spectator TV', 'Arena',
   'Cheater Insight', 'Polyglot Tool', 'Opening Database', 'ECO Codes',
@@ -18,16 +19,17 @@ const canonicalOrder = [
 
 async function assertOrderAndIdentity(page, activeLabel) {
   const nav = page.locator('#mainNav');
-  await expect.poll(() => page.evaluate(() => window.CaissaPrimaryNavigation?.contractId || '')).toBe('CaissaGlobalNavigationOrderPolicy@1.0.0');
+  await expect.poll(() => page.evaluate(() => window.CaissaPrimaryNavigation?.contractId || '')).toBe('CaissaGlobalNavigationOrderPolicy@1.1.0');
   const host = page.locator('[data-caissa-primary-groups], [data-caissa-standalone-sidebar]');
-  await expect(host).toHaveAttribute('data-caissa-navigation-order-ready', 'CaissaGlobalNavigationOrderPolicy@1.0.0');
+  await expect(host).toHaveAttribute('data-caissa-navigation-order-ready', 'CaissaGlobalNavigationOrderPolicy@1.1.0');
   const labels = await host.evaluate(node => {
     const scope = node.matches('.nav-items') ? node : node.querySelector('.nav-items') || node;
     return [...scope.querySelectorAll('.nav-item')].map(item => item.textContent.replace(/\s+/g, ' ').trim());
   });
   expect(labels).toEqual(canonicalOrder);
-  expect(labels.slice(0, 3)).toEqual(['Play', 'CAISSA Classic', 'FICS']);
+  expect(labels.slice(0, 4)).toEqual(['Play', 'CAISSA Classic', 'FICS', 'Playchess Guest']);
   expect(labels.filter(label => label === 'Play')).toHaveLength(1);
+  expect(labels.filter(label => label === 'Playchess Guest')).toHaveLength(1);
   const current = host.locator('[aria-current="page"]');
   await expect(current).toHaveCount(1);
   await expect(current).toContainText(activeLabel);
