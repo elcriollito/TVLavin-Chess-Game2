@@ -15,13 +15,13 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 
 ## Calculated summary
 
-- Primary navigation entries: 26
-- Internal primary pages: 22
+- Primary navigation entries: 27
+- Internal primary pages: 23
 - Public canonical routes not in primary navigation: 14
 - External destinations: 4
 - Redirects: 8
 - Protected route families: 5
-- Total inventoried records: 53
+- Total inventoried records: 54
 
 ## Primary navigation
 
@@ -32,27 +32,28 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | 3 | play-and-compete | FICS | /fics | internal-page | CaissaPrimaryNavigation |
 | 4 | play-and-compete | Playchess | /play-online/playchess | internal-page | CaissaPrimaryNavigation |
 | 5 | play-and-compete | Fritz | /play-online/fritz | internal-page | CaissaPrimaryNavigation |
-| 6 | learn-and-improve | Academy | /academy | internal-page | CaissaPrimaryNavigation |
-| 7 | learn-and-improve | Endgame Trainer | /endgame-trainer | internal-page | CaissaPrimaryNavigation |
-| 8 | learn-and-improve | Endgame Practice | /endgame-practice | internal-page | CaissaPrimaryNavigation |
-| 9 | learn-and-improve | Endgame Library | /endgame-library | internal-page | CaissaPrimaryNavigation |
-| 10 | analyze-and-watch | Insights | /insights | internal-page | CaissaPrimaryNavigation |
-| 11 | analyze-and-watch | Analyze | /analyze | internal-page | CaissaPrimaryNavigation |
-| 12 | analyze-and-watch | Spectator TV | /spectator-tv | internal-page | CaissaPrimaryNavigation |
-| 13 | analyze-and-watch | Arena | /arena | internal-page | CaissaPrimaryNavigation |
-| 14 | tools | Cheater Insight | /cheater-insight | internal-page | CaissaPrimaryNavigation |
-| 15 | tools | Polyglot Tool | /tools/polyglot | internal-page | CaissaPrimaryNavigation |
-| 16 | tools | Opening Database | /opening-database | internal-page | CaissaPrimaryNavigation |
-| 17 | tools | ECO Codes | /eco | internal-page | CaissaPrimaryNavigation |
-| 18 | tools | Game Library | /game-library | internal-page | CaissaPrimaryNavigation |
-| 19 | tools | History | /history | internal-page | CaissaPrimaryNavigation |
-| 20 | tools | DOS Chess | /dos-chess | internal-page | CaissaPrimaryNavigation |
-| 21 | tools | Vault | /vault | internal-page | CaissaPrimaryNavigation |
-| 22 | tools | Blog | /blog | internal-page | CaissaPrimaryNavigation |
-| 23 | connect-with-caissa-chess | Facebook | https://www.facebook.com/CaissaChessOrg/ | external-destination | CaissaPrimaryNavigation |
-| 24 | connect-with-caissa-chess | CAISSA Chess YouTube | https://www.youtube.com/@CaissaChessOrg | external-destination | CaissaPrimaryNavigation |
-| 25 | connect-with-caissa-chess | CAISSA Discord | https://discord.gg/TM7GJPUVfr | external-destination | CaissaPrimaryNavigation |
-| 26 | connect-with-caissa-chess | Share an Idea / Contact & Feedback | mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A | external-destination | CaissaPrimaryNavigation |
+| 6 | learn-and-improve | Tactics | /puzzles/chessbase-tactics | internal-page | CaissaPrimaryNavigation |
+| 7 | learn-and-improve | Academy | /academy | internal-page | CaissaPrimaryNavigation |
+| 8 | learn-and-improve | Endgame Trainer | /endgame-trainer | internal-page | CaissaPrimaryNavigation |
+| 9 | learn-and-improve | Endgame Practice | /endgame-practice | internal-page | CaissaPrimaryNavigation |
+| 10 | learn-and-improve | Endgame Library | /endgame-library | internal-page | CaissaPrimaryNavigation |
+| 11 | analyze-and-watch | Insights | /insights | internal-page | CaissaPrimaryNavigation |
+| 12 | analyze-and-watch | Analyze | /analyze | internal-page | CaissaPrimaryNavigation |
+| 13 | analyze-and-watch | Spectator TV | /spectator-tv | internal-page | CaissaPrimaryNavigation |
+| 14 | analyze-and-watch | Arena | /arena | internal-page | CaissaPrimaryNavigation |
+| 15 | tools | Cheater Insight | /cheater-insight | internal-page | CaissaPrimaryNavigation |
+| 16 | tools | Polyglot Tool | /tools/polyglot | internal-page | CaissaPrimaryNavigation |
+| 17 | tools | Opening Database | /opening-database | internal-page | CaissaPrimaryNavigation |
+| 18 | tools | ECO Codes | /eco | internal-page | CaissaPrimaryNavigation |
+| 19 | tools | Game Library | /game-library | internal-page | CaissaPrimaryNavigation |
+| 20 | tools | History | /history | internal-page | CaissaPrimaryNavigation |
+| 21 | tools | DOS Chess | /dos-chess | internal-page | CaissaPrimaryNavigation |
+| 22 | tools | Vault | /vault | internal-page | CaissaPrimaryNavigation |
+| 23 | tools | Blog | /blog | internal-page | CaissaPrimaryNavigation |
+| 24 | connect-with-caissa-chess | Facebook | https://www.facebook.com/CaissaChessOrg/ | external-destination | CaissaPrimaryNavigation |
+| 25 | connect-with-caissa-chess | CAISSA Chess YouTube | https://www.youtube.com/@CaissaChessOrg | external-destination | CaissaPrimaryNavigation |
+| 26 | connect-with-caissa-chess | CAISSA Discord | https://discord.gg/TM7GJPUVfr | external-destination | CaissaPrimaryNavigation |
+| 27 | connect-with-caissa-chess | Share an Idea / Contact & Feedback | mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A | external-destination | CaissaPrimaryNavigation |
 
 ## Public canonical routes outside primary navigation
 
@@ -111,4 +112,4 @@ Any task that adds, removes, renames, redirects, protects, or reorders a public 
 
 The visible order remains owned only by `CaissaPrimaryNavigation`; adapters must never introduce private navigation arrays. Add or remove a route in its real routing owner first, then run `node scripts/build-caissa-public-route-inventory.mjs` and the inventory guard.
 
-`PLAY & COMPETE` includes the credited Playchess and Fritz gateways at positions 4 and 5. These routes embed public ChessBase services without changing CAISSA Play, CAISSA Classic, or FICS behavior.
+`PLAY & COMPETE` includes the credited Playchess and Fritz gateways at positions 4 and 5. `LEARN & IMPROVE` begins with the credited ChessBase Tactics gateway. These routes embed public ChessBase services without changing native CAISSA learning, Play, CAISSA Classic, or FICS behavior.

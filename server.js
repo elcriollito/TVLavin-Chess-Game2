@@ -437,6 +437,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/play-online/fritz' || pathname === '/play-online/fritz/') {
     filePath = './fritz.html';
   }
+  if (pathname === '/puzzles/chessbase-tactics' || pathname === '/puzzles/chessbase-tactics/') {
+    filePath = './tactics.html';
+  }
   if (pathname === '/academy') {
     filePath = './index.html';
   }

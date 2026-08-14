@@ -8838,7 +8838,7 @@ body.debug-layout #arena-right {
         transition: none;
     }
 }
-/* CaissaGlobalNavigationOrderPolicy@1.3.0: never expose historical fallback order. */
+/* CaissaGlobalNavigationOrderPolicy@1.4.0: never expose historical fallback order. */
 [data-caissa-primary-groups]:not([data-caissa-navigation-order-ready]) {
     visibility: hidden;
 }

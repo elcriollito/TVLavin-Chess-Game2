@@ -12,15 +12,15 @@ function loadNavigation() {
   return window.CaissaPrimaryNavigation;
 }
 
-test('CaissaGlobalNavigationOrderPolicy@1.3.0 owns one immutable 26-destination order', () => {
+test('CaissaGlobalNavigationOrderPolicy@1.4.0 owns one immutable 27-destination order', () => {
   const navigation = loadNavigation();
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.3.0');
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.4.0');
   assert.deepEqual(Array.from(navigation.groupLabels), [
     'Play & Compete', 'Learn & Improve', 'Analyze & Watch', 'Tools'
   ]);
   assert.deepEqual(Array.from(navigation.inventory.primary, item => item.label), [
     'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
-    'Academy', 'Endgame Trainer', 'Endgame Practice', 'Endgame Library',
+    'Tactics', 'Academy', 'Endgame Trainer', 'Endgame Practice', 'Endgame Library',
     'Insights', 'Analyze', 'Spectator TV', 'Arena',
     'Cheater Insight', 'Polyglot Tool', 'Opening Database', 'ECO Codes',
     'Game Library', 'History', 'DOS Chess', 'Vault', 'Blog'
@@ -30,8 +30,12 @@ test('CaissaGlobalNavigationOrderPolicy@1.3.0 owns one immutable 26-destination 
   ]);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'play').length, 1);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'playchess').length, 1);
+  assert.equal(navigation.inventory.all.filter(item => item.id === 'tactics').length, 1);
   assert.deepEqual(Array.from(navigation.inventory.groups[0], item => item.label), [
     'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz'
+  ]);
+  assert.deepEqual(Array.from(navigation.inventory.groups[1], item => item.label), [
+    'Tactics', 'Academy', 'Endgame Trainer', 'Endgame Practice', 'Endgame Library'
   ]);
   assert.equal(navigation.inventory.all.some(item => item.label === 'Play Online' || item.id === 'play-online'), false);
 });
