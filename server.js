@@ -434,6 +434,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/play-online/playchess' || pathname === '/play-online/playchess/') {
     filePath = './playchess.html';
   }
+  if (pathname === '/play-online/fritz' || pathname === '/play-online/fritz/') {
+    filePath = './fritz.html';
+  }
   if (pathname === '/academy') {
     filePath = './index.html';
   }

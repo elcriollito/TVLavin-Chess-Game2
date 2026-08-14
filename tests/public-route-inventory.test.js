@@ -16,10 +16,10 @@ test('CaissaPublicRouteInventory@1.0.0 is complete, unique, and ordered', () => 
     return new RegExp(`^${pattern}$`).test(canonicalPath);
   });
   assert.equal(inventory.contractId, 'CaissaPublicRouteInventory@1.0.0');
-  assert.deepEqual(inventory.primaryNavigation.slice(0, 4).map(item => item.label), ['Play', 'CAISSA Classic', 'FICS', 'Playchess']);
-  assert.deepEqual(inventory.primaryNavigation.map(item => item.navigationPosition), Array.from({ length: 25 }, (_, index) => index + 1));
-  assert.equal(new Set(inventory.primaryNavigation.map(item => item.id)).size, 25);
-  assert.equal(new Set(inventory.primaryNavigation.map(item => item.navigationPosition)).size, 25);
+  assert.deepEqual(inventory.primaryNavigation.slice(0, 5).map(item => item.label), ['Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz']);
+  assert.deepEqual(inventory.primaryNavigation.map(item => item.navigationPosition), Array.from({ length: 26 }, (_, index) => index + 1));
+  assert.equal(new Set(inventory.primaryNavigation.map(item => item.id)).size, 26);
+  assert.equal(new Set(inventory.primaryNavigation.map(item => item.navigationPosition)).size, 26);
   const canonicalPages = [...inventory.primaryNavigation, ...inventory.publicCanonicalRoutes]
     .filter(item => item.type === 'internal-page');
   assert.equal(new Set(canonicalPages.map(item => item.canonicalPath)).size, canonicalPages.length,
