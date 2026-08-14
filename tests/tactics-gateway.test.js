@@ -6,7 +6,7 @@ import { load } from 'cheerio';
 
 const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const source = 'https://livetactics.chessbase.com';
-const title = 'Solve Chess Tactics Online Free | CAISSA Chess';
+const title = 'Free Chess Tactics and Puzzles | CAISSA Chess';
 const description = 'Solve free chess tactics and puzzles online with the ChessBase Tactics trainer, available directly in your browser through CAISSA Chess.';
 
 test('Tactics gateway exposes exact SEO, embed, attribution, and fallback', () => {
