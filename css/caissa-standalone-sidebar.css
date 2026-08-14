@@ -43,6 +43,12 @@
     gap: 2px;
 }
 
+.caissa-standalone-sidebar-host .nav-destination-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
 .caissa-standalone-sidebar-host .nav-group-heading {
     margin: 0;
     padding: 8px 14px 5px;
@@ -258,8 +264,8 @@
         display: grid;
         place-items: center;
         position: fixed;
-        top: 16px;
-        left: 16px;
+        top: calc(16px + env(safe-area-inset-top, 0px));
+        left: calc(16px + env(safe-area-inset-left, 0px));
         z-index: 1002;
     }
 
@@ -269,5 +275,13 @@
 
     .caissa-standalone-content {
         width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .caissa-standalone-sidebar-host,
+    .caissa-standalone-sidebar-host .main-navigation,
+    .caissa-standalone-mobile-toggle {
+        transition-duration: 0.01ms !important;
     }
 }

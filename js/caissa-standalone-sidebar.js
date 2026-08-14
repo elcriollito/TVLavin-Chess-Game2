@@ -4,9 +4,10 @@
     function renderSidebar(host) {
         const navigation = window.CaissaPrimaryNavigation;
         if (!navigation) throw new Error('CAISSA primary navigation inventory is unavailable.');
+        const adapter = navigation.adapters.modernStandalone;
         const activeKey = host.dataset.active || '';
-        const renderOptions = { activeKey, mode: 'routes', showHeadings: true };
-        const items = navigation.renderGroups(renderOptions);
+        const renderOptions = { activeKey };
+        const items = adapter.renderGroups(renderOptions);
 
         host.classList.add('caissa-standalone-sidebar-host');
         host.innerHTML = `
@@ -48,11 +49,11 @@
                         <span class="nav-premium-badge">Upgrade</span>
                     </a>
                 </div>
-                <div class="nav-items">${items}${navigation.renderConnect(renderOptions)}</div>
-                <div class="nav-footer">
-                    <h2 class="nav-group-heading nav-label">Support</h2>
-                    ${navigation.renderSupport(renderOptions)}
-                </div>
+                <div class="nav-items">${items}${adapter.renderConnect(renderOptions)}</div>
+                <section class="nav-footer" aria-labelledby="caissa-nav-support-heading">
+                    <h2 class="nav-group-heading nav-label" id="caissa-nav-support-heading">Support</h2>
+                    <div role="list">${adapter.renderSupport(renderOptions)}</div>
+                </section>
             </nav>
             <div class="caissa-standalone-backdrop" aria-hidden="true"></div>`;
         host.setAttribute('data-caissa-navigation-order-ready', navigation.contractId);
@@ -74,48 +75,12 @@
             collapseButton.querySelector('i').className = collapsed ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
         });
 
-        function closeMobileNav() {
-            host.classList.remove('is-open');
-            document.body.classList.remove('caissa-standalone-nav-open');
-            mobileToggle.setAttribute('aria-expanded', 'false');
-            mobileToggle.setAttribute('aria-label', 'Open navigation menu');
-        }
-
-        mobileToggle.addEventListener('click', () => {
-            const open = host.classList.toggle('is-open');
-            document.body.classList.toggle('caissa-standalone-nav-open', open);
-            mobileToggle.setAttribute('aria-expanded', String(open));
-            mobileToggle.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
-            if (open) nav.querySelector('a, button')?.focus();
-        });
-        backdrop.addEventListener('click', () => {
-            closeMobileNav();
-            mobileToggle.focus();
-        });
-        nav.addEventListener('click', (event) => {
-            if (event.target.closest('a') && window.innerWidth <= 768) closeMobileNav();
-        });
-        document.addEventListener('click', (event) => {
-            if (window.innerWidth <= 768 && host.classList.contains('is-open') && !host.contains(event.target)) closeMobileNav();
-        });
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && host.classList.contains('is-open')) {
-                closeMobileNav();
-                mobileToggle.focus();
-            }
-            if (event.key === 'Tab' && host.classList.contains('is-open')) {
-                const focusable = [mobileToggle, ...nav.querySelectorAll('a[href], button:not([hidden]):not([disabled])')]
-                    .filter((element) => element.getClientRects().length);
-                const first = focusable[0];
-                const last = focusable[focusable.length - 1];
-                if (event.shiftKey && document.activeElement === first) {
-                    event.preventDefault();
-                    last.focus();
-                } else if (!event.shiftKey && document.activeElement === last) {
-                    event.preventDefault();
-                    first.focus();
-                }
-            }
+        navigation.createDrawerController({
+            host,
+            nav,
+            toggle: mobileToggle,
+            backdrop,
+            bodyOpenClass: 'caissa-standalone-nav-open'
         });
     }
 

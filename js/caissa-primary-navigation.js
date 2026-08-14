@@ -83,11 +83,11 @@
         if (mode === 'application' && (item.section || item.action) && !item.canonicalNavigation) {
             const section = item.section ? ` data-section="${escapeAttribute(item.section)}"` : '';
             const action = item.action ? ` data-nav-action="${escapeAttribute(item.action)}"` : '';
-            return `<button type="button" class="${classes}"${section}${action} aria-label="${escapeAttribute(item.label)}"${current}>${icon}${label}${external}</button>`;
+            return `<div class="nav-list-item" role="listitem"><button type="button" class="${classes}"${section}${action} aria-label="${escapeAttribute(item.label)}"${current}>${icon}${label}${external}</button></div>`;
         }
 
         const target = item.newTab ? ' target="_blank" rel="noopener noreferrer"' : '';
-        return `<a href="${escapeAttribute(item.route)}" class="${classes}" data-nav-key="${escapeAttribute(item.id)}" aria-label="${escapeAttribute(item.label)}"${current}${target}>${icon}${label}${external}</a>`;
+        return `<div class="nav-list-item" role="listitem"><a href="${escapeAttribute(item.route)}" class="${classes}" data-nav-key="${escapeAttribute(item.id)}" aria-label="${escapeAttribute(item.label)}"${current}${target}>${icon}${label}${external}</a></div>`;
     }
 
     function renderGroups(options = {}) {
@@ -96,7 +96,7 @@
             if (!options.showHeadings) return items;
             return `<section class="nav-group" aria-labelledby="caissa-nav-group-${index}">
                 <h2 class="nav-group-heading nav-label" id="caissa-nav-group-${index}">${groupLabels[index]}</h2>
-                ${items}
+                <div class="nav-destination-list" role="list">${items}</div>
             </section>`;
         }).join('<div class="nav-divider" aria-hidden="true"></div>');
     }
@@ -106,7 +106,158 @@
     }
 
     function renderConnect(options = {}) {
-        return `<div class="nav-connect-label nav-label">Connect with CAISSA Chess</div>${connect.map((item) => renderItem(item, options)).join('')}`;
+        return `<section class="nav-connect" aria-labelledby="caissa-nav-connect-heading">
+            <div class="nav-connect-label nav-label" id="caissa-nav-connect-heading">Connect with CAISSA Chess</div>
+            <div class="nav-destination-list" role="list">${connect.map((item) => renderItem(item, options)).join('')}</div>
+        </section>`;
+    }
+
+    function createShellAdapter(id, defaults, slots) {
+        const definition = Object.freeze({ id, ...defaults, slots: Object.freeze({ ...slots }) });
+        return Object.freeze({
+            definition,
+            inventory,
+            groupLabels,
+            renderGroups: (options = {}) => renderGroups({ ...defaults, ...options }),
+            renderSupport: (options = {}) => renderSupport({ ...defaults, ...options }),
+            renderConnect: (options = {}) => renderConnect({ ...defaults, ...options })
+        });
+    }
+
+    const adapters = Object.freeze({
+        modernStandalone: createShellAdapter('modern-standalone',
+            { mode: 'routes', showHeadings: true },
+            { account: 'sidebar-auth-hooks', premium: 'sidebar-premium-hook', actions: 'route-support' }),
+        application: createShellAdapter('application-shell',
+            { mode: 'application', showHeadings: true },
+            { account: 'sidebar-auth-hooks', premium: 'sidebar-premium-hook', actions: 'application-owned' }),
+        trainer: createShellAdapter('trainer-board-first',
+            { mode: 'routes', showHeadings: true },
+            { account: 'omitted-by-shell', premium: 'trainer-premium-hook', actions: 'route-support' })
+    });
+
+    function renderFallbackNavigation({ adapter = adapters.modernStandalone, activeKey = '' } = {}) {
+        if (!adapter || adapter.inventory !== inventory) {
+            throw new Error('CAISSA fallback navigation requires a canonical shell adapter.');
+        }
+        const options = { activeKey };
+        return `<nav class="caissa-sidebar-fallback" aria-label="CAISSA main navigation">
+            <div class="nav-items">${adapter.renderGroups(options)}${adapter.renderConnect(options)}</div>
+            <section class="nav-footer" aria-labelledby="caissa-nav-support-heading">
+                <h2 class="nav-group-heading nav-label" id="caissa-nav-support-heading">Support</h2>
+                <div role="list">${adapter.renderSupport(options)}</div>
+            </section>
+        </nav>`;
+    }
+
+    function createDrawerController({
+        host,
+        nav,
+        toggle,
+        backdrop = null,
+        openClass = 'is-open',
+        bodyOpenClass = '',
+        mobileQuery = '(max-width: 768px)',
+        openLabel = 'Open navigation menu',
+        closeLabel = 'Close navigation menu'
+    } = {}) {
+        if (!host || !nav || !toggle || !nav.id) {
+            throw new Error('CAISSA drawer requires a host, named navigation, and toggle.');
+        }
+        const media = global.matchMedia ? global.matchMedia(mobileQuery) : { matches: false, addEventListener() {}, removeEventListener() {} };
+        let open = false;
+
+        toggle.setAttribute('aria-controls', nav.id);
+
+        function focusableElements() {
+            return [toggle, ...nav.querySelectorAll('a[href], button:not([hidden]):not([disabled])')]
+                .filter((element) => element.getClientRects().length);
+        }
+
+        function applyState({ returnFocus = false } = {}) {
+            const mobile = media.matches;
+            host.classList.toggle(openClass, mobile && open);
+            if (bodyOpenClass) document.body?.classList.toggle(bodyOpenClass, mobile && open);
+            toggle.setAttribute('aria-expanded', String(mobile && open));
+            toggle.setAttribute('aria-label', mobile && open ? closeLabel : openLabel);
+            nav.toggleAttribute('inert', mobile && !open);
+            nav.inert = mobile && !open;
+            if (mobile && !open) nav.setAttribute('aria-hidden', 'true');
+            else nav.removeAttribute('aria-hidden');
+            if (backdrop) backdrop.setAttribute('aria-hidden', String(!(mobile && open)));
+            if (returnFocus && toggle.getClientRects().length) toggle.focus();
+        }
+
+        function openDrawer() {
+            if (!media.matches) return;
+            open = true;
+            applyState();
+            nav.querySelector('a[href], button:not([hidden]):not([disabled])')?.focus();
+        }
+
+        function closeDrawer({ returnFocus = true } = {}) {
+            open = false;
+            applyState({ returnFocus });
+        }
+
+        function onToggle() {
+            if (open) closeDrawer();
+            else openDrawer();
+        }
+
+        function onBackdrop() {
+            closeDrawer();
+        }
+
+        function onNavClick(event) {
+            if (event.target.closest('a') && media.matches) closeDrawer({ returnFocus: false });
+        }
+
+        function onKeydown(event) {
+            if (!media.matches || !open) return;
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeDrawer();
+                return;
+            }
+            if (event.key !== 'Tab') return;
+            const focusable = focusableElements();
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last?.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first?.focus();
+            }
+        }
+
+        function onMediaChange() {
+            open = false;
+            applyState();
+        }
+
+        toggle.addEventListener('click', onToggle);
+        backdrop?.addEventListener('click', onBackdrop);
+        nav.addEventListener('click', onNavClick);
+        document.addEventListener('keydown', onKeydown);
+        media.addEventListener?.('change', onMediaChange);
+        applyState();
+
+        return Object.freeze({
+            open: openDrawer,
+            close: closeDrawer,
+            sync: onMediaChange,
+            destroy() {
+                closeDrawer({ returnFocus: false });
+                toggle.removeEventListener('click', onToggle);
+                backdrop?.removeEventListener('click', onBackdrop);
+                nav.removeEventListener('click', onNavClick);
+                document.removeEventListener('keydown', onKeydown);
+                media.removeEventListener?.('change', onMediaChange);
+            }
+        });
     }
 
     const api = Object.freeze({
@@ -114,9 +265,12 @@
         inventory,
         groupLabels,
         externalDestinations,
+        adapters,
         renderGroups,
         renderSupport,
-        renderConnect
+        renderConnect,
+        renderFallbackNavigation,
+        createDrawerController
     });
     global.CaissaPrimaryNavigation = api;
 
