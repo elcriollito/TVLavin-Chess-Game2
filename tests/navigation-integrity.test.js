@@ -33,8 +33,15 @@ test('canonical primary navigation inventory is unique and stable', () => {
     assert.ok(labels.includes(label), `${label} is missing`);
   }
   assert.ok(!labels.includes('Settings'), 'game-specific Settings must not be global navigation');
-  assert.equal(inventory.connect.find(({ id }) => id === 'discord').route, 'https://discord.gg/xbFpAtbUK');
-  assert.equal(inventory.connect.find(({ id }) => id === 'discord').newTab, true);
+  const discord = inventory.connect.find(({ id }) => id === 'discord');
+  assert.equal(discord.label, 'CAISSA Discord');
+  assert.equal(discord.route, 'https://discord.gg/TM7GJPUVfr');
+  assert.equal(discord.newTab, true);
+  const publicDiscordInvites = Array.from(inventory.connect, ({ route }) => (
+    route.match(/^https:\/\/(?:discord\.gg\/|discord\.com\/invite\/)([^/?#]+)/i)?.[0]
+  )).filter(Boolean);
+  assert.deepEqual(publicDiscordInvites, ['https://discord.gg/TM7GJPUVfr']);
+  assert.doesNotMatch(read('js/caissa-primary-navigation.js'), /g5vTsSrDA|qqhycag|xbFpAtbUK/);
   assert.equal(inventory.primary.find(({ id }) => id === 'fics').route, '/fics');
   assert.equal(inventory.primary.find(({ id }) => id === 'spectator').route, '/spectator-tv');
 });

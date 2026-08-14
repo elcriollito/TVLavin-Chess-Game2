@@ -49,7 +49,7 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | 20 | tools | Blog | /blog | internal-page | CaissaPrimaryNavigation |
 | 21 | connect-with-caissa-chess | Facebook | https://www.facebook.com/CaissaChessOrg/ | external-destination | CaissaPrimaryNavigation |
 | 22 | connect-with-caissa-chess | CAISSA Chess YouTube | https://www.youtube.com/@CaissaChessOrg | external-destination | CaissaPrimaryNavigation |
-| 23 | connect-with-caissa-chess | CAISSA Discord | https://discord.gg/xbFpAtbUK | external-destination | CaissaPrimaryNavigation |
+| 23 | connect-with-caissa-chess | CAISSA Discord | https://discord.gg/TM7GJPUVfr | external-destination | CaissaPrimaryNavigation |
 | 24 | connect-with-caissa-chess | Share an Idea / Contact & Feedback | mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A | external-destination | CaissaPrimaryNavigation |
 
 ## Public canonical routes outside primary navigation
@@ -100,7 +100,7 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | --- | --- | --- | --- | --- |
 | Facebook | https://www.facebook.com/CaissaChessOrg/ | _blank | noopener noreferrer | true |
 | CAISSA Chess YouTube | https://www.youtube.com/@CaissaChessOrg | _blank | noopener noreferrer | true |
-| CAISSA Discord | https://discord.gg/xbFpAtbUK | _blank | noopener noreferrer | true |
+| CAISSA Discord | https://discord.gg/TM7GJPUVfr | _blank | noopener noreferrer | true |
 | Share an Idea / Contact & Feedback | mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A | _self | — | true |
 
 ## Change rule

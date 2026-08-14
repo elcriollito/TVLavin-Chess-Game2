@@ -48,7 +48,7 @@
     ]);
 
     const externalDestinations = Object.freeze({
-        discord: 'https://discord.gg/xbFpAtbUK'
+        discord: 'https://discord.gg/TM7GJPUVfr'
     });
 
     const connect = Object.freeze([

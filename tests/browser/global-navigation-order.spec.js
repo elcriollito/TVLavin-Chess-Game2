@@ -33,7 +33,11 @@ async function assertOrderAndIdentity(page, activeLabel) {
   await expect(current).toContainText(activeLabel);
   const brand = page.locator('.nav-logo').first();
   if (await brand.count()) await expect(brand).toHaveAttribute('href', '/play');
-  await expect(host.getByRole('link', { name: 'CAISSA Discord' })).toHaveAttribute('href', 'https://discord.gg/xbFpAtbUK');
+  const discord = host.getByRole('link', { name: 'CAISSA Discord' });
+  await expect(discord).toHaveAttribute('href', 'https://discord.gg/TM7GJPUVfr');
+  await expect(discord).toHaveAttribute('target', '_blank');
+  await expect(discord).toHaveAttribute('rel', /noopener/);
+  await expect(discord).toHaveAttribute('rel', /noreferrer/);
 }
 
 test('desktop shells preserve immutable DOM order and route-derived active identity', async ({ page, request }) => {
