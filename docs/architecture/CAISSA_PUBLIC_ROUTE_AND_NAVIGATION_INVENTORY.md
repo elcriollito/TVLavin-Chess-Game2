@@ -15,13 +15,13 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 
 ## Calculated summary
 
-- Primary navigation entries: 27
-- Internal primary pages: 23
+- Primary navigation entries: 28
+- Internal primary pages: 24
 - Public canonical routes not in primary navigation: 14
 - External destinations: 4
 - Redirects: 8
 - Protected route families: 5
-- Total inventoried records: 54
+- Total inventoried records: 55
 
 ## Primary navigation
 
@@ -40,20 +40,21 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | 11 | analyze-and-watch | Insights | /insights | internal-page | CaissaPrimaryNavigation |
 | 12 | analyze-and-watch | Analyze | /analyze | internal-page | CaissaPrimaryNavigation |
 | 13 | analyze-and-watch | Spectator TV | /spectator-tv | internal-page | CaissaPrimaryNavigation |
-| 14 | analyze-and-watch | Arena | /arena | internal-page | CaissaPrimaryNavigation |
-| 15 | tools | Cheater Insight | /cheater-insight | internal-page | CaissaPrimaryNavigation |
-| 16 | tools | Polyglot Tool | /tools/polyglot | internal-page | CaissaPrimaryNavigation |
-| 17 | tools | Opening Database | /opening-database | internal-page | CaissaPrimaryNavigation |
-| 18 | tools | ECO Codes | /eco | internal-page | CaissaPrimaryNavigation |
-| 19 | tools | Game Library | /game-library | internal-page | CaissaPrimaryNavigation |
-| 20 | tools | History | /history | internal-page | CaissaPrimaryNavigation |
-| 21 | tools | DOS Chess | /dos-chess | internal-page | CaissaPrimaryNavigation |
-| 22 | tools | Vault | /vault | internal-page | CaissaPrimaryNavigation |
-| 23 | tools | Blog | /blog | internal-page | CaissaPrimaryNavigation |
-| 24 | connect-with-caissa-chess | Facebook | https://www.facebook.com/CaissaChessOrg/ | external-destination | CaissaPrimaryNavigation |
-| 25 | connect-with-caissa-chess | CAISSA Chess YouTube | https://www.youtube.com/@CaissaChessOrg | external-destination | CaissaPrimaryNavigation |
-| 26 | connect-with-caissa-chess | CAISSA Discord | https://discord.gg/TM7GJPUVfr | external-destination | CaissaPrimaryNavigation |
-| 27 | connect-with-caissa-chess | Share an Idea / Contact & Feedback | mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A | external-destination | CaissaPrimaryNavigation |
+| 14 | analyze-and-watch | Live Blitz | /watch/live-blitz | internal-page | CaissaPrimaryNavigation |
+| 15 | analyze-and-watch | Arena | /arena | internal-page | CaissaPrimaryNavigation |
+| 16 | tools | Cheater Insight | /cheater-insight | internal-page | CaissaPrimaryNavigation |
+| 17 | tools | Polyglot Tool | /tools/polyglot | internal-page | CaissaPrimaryNavigation |
+| 18 | tools | Opening Database | /opening-database | internal-page | CaissaPrimaryNavigation |
+| 19 | tools | ECO Codes | /eco | internal-page | CaissaPrimaryNavigation |
+| 20 | tools | Game Library | /game-library | internal-page | CaissaPrimaryNavigation |
+| 21 | tools | History | /history | internal-page | CaissaPrimaryNavigation |
+| 22 | tools | DOS Chess | /dos-chess | internal-page | CaissaPrimaryNavigation |
+| 23 | tools | Vault | /vault | internal-page | CaissaPrimaryNavigation |
+| 24 | tools | Blog | /blog | internal-page | CaissaPrimaryNavigation |
+| 25 | connect-with-caissa-chess | Facebook | https://www.facebook.com/CaissaChessOrg/ | external-destination | CaissaPrimaryNavigation |
+| 26 | connect-with-caissa-chess | CAISSA Chess YouTube | https://www.youtube.com/@CaissaChessOrg | external-destination | CaissaPrimaryNavigation |
+| 27 | connect-with-caissa-chess | CAISSA Discord | https://discord.gg/TM7GJPUVfr | external-destination | CaissaPrimaryNavigation |
+| 28 | connect-with-caissa-chess | Share an Idea / Contact & Feedback | mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A | external-destination | CaissaPrimaryNavigation |
 
 ## Public canonical routes outside primary navigation
 
@@ -112,4 +113,4 @@ Any task that adds, removes, renames, redirects, protects, or reorders a public 
 
 The visible order remains owned only by `CaissaPrimaryNavigation`; adapters must never introduce private navigation arrays. Add or remove a route in its real routing owner first, then run `node scripts/build-caissa-public-route-inventory.mjs` and the inventory guard.
 
-`PLAY & COMPETE` includes the credited Playchess and Fritz gateways at positions 4 and 5. `LEARN & IMPROVE` begins with the credited ChessBase Tactics gateway. These routes embed public ChessBase services without changing native CAISSA learning, Play, CAISSA Classic, or FICS behavior.
+`PLAY & COMPETE` includes the credited Playchess and Fritz gateways at positions 4 and 5. `LEARN & IMPROVE` begins with the credited ChessBase Tactics gateway. `ANALYZE & WATCH` includes the credited Live Blitz gateway after Spectator TV. These routes embed public ChessBase services without changing native CAISSA learning, Play, CAISSA Classic, FICS, Spectator TV, or Arena behavior.

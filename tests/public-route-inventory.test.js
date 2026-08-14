@@ -18,9 +18,10 @@ test('CaissaPublicRouteInventory@1.0.0 is complete, unique, and ordered', () => 
   assert.equal(inventory.contractId, 'CaissaPublicRouteInventory@1.0.0');
   assert.deepEqual(inventory.primaryNavigation.slice(0, 5).map(item => item.label), ['Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz']);
   assert.equal(inventory.primaryNavigation[5].label, 'Tactics');
-  assert.deepEqual(inventory.primaryNavigation.map(item => item.navigationPosition), Array.from({ length: 27 }, (_, index) => index + 1));
-  assert.equal(new Set(inventory.primaryNavigation.map(item => item.id)).size, 27);
-  assert.equal(new Set(inventory.primaryNavigation.map(item => item.navigationPosition)).size, 27);
+  assert.equal(inventory.primaryNavigation[13].label, 'Live Blitz');
+  assert.deepEqual(inventory.primaryNavigation.map(item => item.navigationPosition), Array.from({ length: 28 }, (_, index) => index + 1));
+  assert.equal(new Set(inventory.primaryNavigation.map(item => item.id)).size, 28);
+  assert.equal(new Set(inventory.primaryNavigation.map(item => item.navigationPosition)).size, 28);
   const canonicalPages = [...inventory.primaryNavigation, ...inventory.publicCanonicalRoutes]
     .filter(item => item.type === 'internal-page');
   assert.equal(new Set(canonicalPages.map(item => item.canonicalPath)).size, canonicalPages.length,

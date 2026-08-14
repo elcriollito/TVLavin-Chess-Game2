@@ -1,7 +1,7 @@
 (function (global) {
     'use strict';
 
-    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.4.0';
+    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.5.0';
     const allGroups = [
         Object.freeze([
             { id: 'play', label: 'Play', icon: 'fas fa-play-circle', section: 'play', route: '/play', canonicalNavigation: true },
@@ -21,6 +21,7 @@
             { id: 'insights', label: 'Insights', icon: 'fas fa-brain', section: 'insights', route: '/insights', canonicalNavigation: true },
             { id: 'analyze', label: 'Analyze', icon: 'fas fa-chart-line', section: 'analyze', route: '/analyze', canonicalNavigation: true },
             { id: 'spectator', label: 'Spectator TV', icon: 'fas fa-tv', section: 'spectator', route: '/spectator-tv', canonicalNavigation: true },
+            { id: 'live-blitz', label: 'Live Blitz', icon: 'fas fa-bolt', route: '/watch/live-blitz' },
             { id: 'arena', label: 'Arena', icon: 'fas fa-robot', section: 'arena', route: '/arena', canonicalNavigation: true }
         ]),
         Object.freeze([
