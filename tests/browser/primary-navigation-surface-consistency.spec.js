@@ -88,9 +88,14 @@ test('bounded navigation failure names the error and offers Return to Play', asy
     window.CaissaPrimaryNavigationTransitionPolicy.fail('Insights could not be opened.');
   });
   await expect(page.locator('body')).toHaveAttribute('data-caissa-surface', 'navigation-error');
-  await expect(page.locator('#caissaNavigationTransition')).toContainText('Insights could not be opened.');
-  await expect(page.getByRole('link', { name: 'Return to Play' })).toHaveAttribute('href', '/play');
+  const errorSurface = page.locator('#caissaNavigationTransition');
+  await expect(errorSurface).toContainText('Insights could not be opened.');
+  const returnToPlay = errorSurface.getByRole('link', { name: 'Return to Play', exact: true });
+  await expect(returnToPlay).toHaveCount(1);
+  await expect(returnToPlay).toHaveAttribute('href', '/play');
   await expect(page.locator('#playSection')).not.toBeVisible();
+  await returnToPlay.click();
+  await expect(page).toHaveURL(/\/play$/);
 });
 
 test('Spectator distinguishes loading from a stable accessible empty state', async ({ page }) => {
