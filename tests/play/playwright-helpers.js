@@ -14,6 +14,19 @@ export async function instrumentPlay(page, scenario = {}) {
     await page.addInitScript(installPlayHarness, { ...DEFAULT_ENGINE_SCENARIO, ...scenario });
 }
 
+export async function instrumentPlayAnalyticsDocument(page) {
+    await page.route(/\/play(?:\/(?:games|bots|coach))?(?:\?.*)?$/, async route => {
+        if (route.request().resourceType() !== 'document') return route.continue();
+        const response = await route.fetch();
+        const tags = '    <script src="js/play/analytics/play-mentor-engagement-analytics.js"></script>\n';
+        const body = (await response.text()).replace(
+            /(?=\s*<script src="js\/play\/post-game-core\.js[^>]*><\/script>)/,
+            tags
+        );
+        await route.fulfill({ response, body });
+    });
+}
+
 export function monitorRuntime(page) {
     const errors = [];
     const badResponses = [];
@@ -35,9 +48,10 @@ export function monitorRuntime(page) {
     };
 }
 
-export async function openPlay(page, route = '/play') {
+export async function openPlay(page, route = '/play?simplified=1') {
     const response = await page.goto(route);
-    expect(new URL(page.url()).pathname).toBe('/play');
+    const requestedPath = new URL(route, 'http://127.0.0.1:8000').pathname;
+    expect(new URL(page.url()).pathname).toBe(requestedPath === '/' ? '/play' : requestedPath);
     await expect(page.locator('#playSection')).toHaveClass(/active/);
     await expect(page.locator('#playSection #chessboard .board-b72b1')).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.App?.board ? 1 : 0)).toBe(1);

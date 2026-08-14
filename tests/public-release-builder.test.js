@@ -46,7 +46,8 @@ test('built artifact enforces disclosure boundaries on rendered public content',
   const premium = await readOutput('premium.html');
   const classic = await readOutput('yahoo-classic.html');
   const vault = await readOutput('vault.html');
-  assert.doesNotMatch(about, /Supabase|Vercel|serverless|open source|auditable on GitHub/i);
+  assert.doesNotMatch(about, /Supabase|serverless|open source|auditable on GitHub/i);
+  assert.match(about, /Vercel Web Analytics/);
   assert.doesNotMatch(roadmap, /schema|provider integration|season 9|API endpoint/i);
   assert.match(premium, /not currently available/i);
   assert.doesNotMatch(premium, /No tracking, no selling/i);

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; script-src-elem 'self' https://*.clarity.ms https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https://img.clerk.com https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://*.clarity.ms https://c.bing.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://api.chess.com https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://api.stripe.com; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://checkout.stripe.com https://js.stripe.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; script-src-elem 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https://img.clerk.com https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://c.bing.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://api.chess.com https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://api.stripe.com; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://checkout.stripe.com https://js.stripe.com;">
 
     <!-- Primary Meta Tags -->
     <title>About – CAISSA Chess</title>
@@ -42,7 +42,7 @@
     <link rel="stylesheet" href="css/caissa-auth.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-mobile-foundation.css?v=1.0.6">
     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.1.0">
-    <script src="/js/caissa-clarity.js?v=1.0.0" defer></script>
+    <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
 </head>
 <body class="library-page-body">
     <div class="caissa-standalone-layout">
@@ -168,15 +168,9 @@
                     <li><strong>Browser Storage</strong> – Some preferences, saved work, and training progress can be kept in your browser.</li>
                     <li><strong>Optional Accounts</strong> – Signing in can enable account and synchronization features where offered.</li>
                     <li><strong>Online Requests</strong> – Features such as account services, payments, game imports, downloads, and optional AI assistance may contact online services.</li>
-                    <li><strong>Optional Analytics</strong> – CAISSA uses Microsoft Clarity on selected public pages to understand aggregate navigation, clicks, scrolling, device behavior, and usability issues. Interactive areas that may contain personal or chess data are masked. Clarity may process limited interaction and device data outside your browser even when analytics cookies are declined.</li>
+                    <li><strong>Traffic Analytics</strong> – CAISSA uses Vercel Web Analytics for aggregate pageview measurement. Analytics receives the page pathname only; query parameters and URL fragments are removed before transmission, and private or credential-bearing contexts are blocked.</li>
                     <li><strong>Your Choices</strong> – Features that send information online are initiated through the related product action.</li>
                 </ul>
-                <div class="about-analytics-choice" aria-labelledby="analyticsChoiceHeading">
-                    <h3 id="analyticsChoiceHeading">Optional analytics cookies</h3>
-                    <p data-caissa-analytics-status aria-live="polite">Optional analytics cookies are not allowed on this device.</p>
-                    <button type="button" class="btn btn-primary" data-caissa-analytics-consent="granted">Allow analytics cookies</button>
-                    <button type="button" class="btn btn-secondary" data-caissa-analytics-consent="denied">Decline or withdraw</button>
-                </div>
             </div>
         </section>
 

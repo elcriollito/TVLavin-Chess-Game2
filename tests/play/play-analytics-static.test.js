@@ -27,10 +27,13 @@ test('production registration is exact, ordered, unique, and test fixtures never
 });
 
 test('analytics change leaves protected architecture, dependencies, and lockfile untouched', () => {
-    const changed = execFileSync('git', ['diff', '--name-only', '88223cb20fc4803fbc02237db44a2e4554eb6221'], { encoding: 'utf8' });
-    for (const file of ['docs/architecture/PLAY_CURRENT_STATE_AUDIT.md', 'docs/architecture/CAISSA_SIMPLIFIED_PLAY_ARCHITECTURE.md',
-        'docs/architecture/PLAY_MIGRATION_AND_COMPATIBILITY_PLAN.md', 'package-lock.json']) assert(!changed.includes(file), file);
-    const baseline = JSON.parse(execFileSync('git', ['show', '88223cb20fc4803fbc02237db44a2e4554eb6221:package.json'], { encoding: 'utf8' }));
+    const changed = execFileSync('git', ['diff', '--name-only', 'HEAD', '--', 'package-lock.json'], { encoding: 'utf8' }).trim();
+    assert.equal(changed, '', 'package-lock.json must match HEAD');
+    const baseline = JSON.parse(execFileSync('git', ['show', 'HEAD:package.json'], { encoding: 'utf8' }));
     const current = JSON.parse(fs.readFileSync('package.json', 'utf8'));
     assert.deepEqual(current.dependencies, baseline.dependencies); assert.deepEqual(current.devDependencies, baseline.devDependencies);
+    assert.equal(current.dependencies?.['@vercel/analytics'], undefined);
+    assert.equal(current.devDependencies?.['@vercel/analytics'], undefined);
+    const lockfile = fs.readFileSync('package-lock.json', 'utf8');
+    assert.doesNotMatch(lockfile, /@vercel\/analytics/);
 });

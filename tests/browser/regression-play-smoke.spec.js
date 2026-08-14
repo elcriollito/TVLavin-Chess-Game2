@@ -16,21 +16,22 @@ test('compact final regression smoke crosses every critical Play handoff', async
     await expect(page.locator('[data-post-game-action="analyze"]')).toBeEnabled();
     await page.locator('[data-post-game-action="analyze"]').click();
     await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
-    expect(new URL(page.url()).searchParams.get('handoff')).toBeTruthy();
-    await page.goBack();
+    expect(new URL(page.url()).searchParams.has('handoff')).toBe(false);
+    await page.getByRole('button', { name: 'Back to game result' }).click();
     await expect(page.locator('.caissa-post-game')).toBeVisible();
     await page.locator('[data-post-game-action="mentor-review"]').click();
-    await expect.poll(() => page.evaluate(() =>
-        window.CaissaPostGameExperienceInstance.getSnapshot().mentor.request?.requestId)).toBeTruthy();
+    await expect(page.locator('[data-native-mentor-review]')).toBeVisible();
+    await page.getByRole('button', { name: 'Back to PostGame' }).click();
+    await expect(page.locator('.caissa-post-game')).toBeVisible();
 
     await page.evaluate(() => window.newGame({ mode: 'analysis', color: 'white', timeControl: 0 }));
 
-    for (const mode of ['bots', 'coach', 'players']) {
+    for (const mode of ['bots', 'coach']) {
         await page.evaluate(value => window.CaissaPlayRouteController.navigate(`/play/${value}?simplified=1`), mode);
         await expect(page.locator(`[data-shell-mode="${mode}"]`)).toHaveAttribute('aria-selected', 'true');
         await expect(page.locator('.caissa-simplified-shell__context')).toBeVisible();
     }
-    await expect(page.locator('[data-players-panel]')).toContainText('unavailable');
+    await expect(page.locator('[data-shell-mode="players"],[data-players-panel]')).toHaveCount(0);
 
     await page.evaluate(() => window.CaissaPlayRouteController.navigate('/play/games?simplified=1'));
     await loadPosition(page, positions.whitePromotion.fen);
@@ -45,9 +46,9 @@ test('compact final regression smoke crosses every critical Play handoff', async
         liveRegions: document.querySelectorAll('.caissa-simplified-shell [aria-live]').length,
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
         theme: document.body.dataset.caissaPlayTheme,
-        humanGames: window.CaissaHumanPlayInfrastructure.getSnapshot().diagnostics.humanGamesStarted
+        humanInfrastructure: Boolean(window.CaissaHumanPlayInfrastructure)
     }));
-    expect(proof).toMatchObject({ boards: 1, workers: 1, liveRegions: 2, theme: 'caissa-light', humanGames: 0 });
+    expect(proof).toMatchObject({ boards: 1, workers: 1, liveRegions: 3, theme: 'caissa-light', humanInfrastructure: false });
     expect(proof.overflow, browserName).toBeLessThanOrEqual(2);
     const axe = await new AxeBuilder({ page }).include('.caissa-simplified-shell').analyze();
     expect(axe.violations).toEqual([]);

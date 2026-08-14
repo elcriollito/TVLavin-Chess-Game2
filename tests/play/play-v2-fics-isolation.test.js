@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const root = new URL('../../', import.meta.url);
 const read = path => readFile(new URL(path, root), 'utf8');
@@ -64,6 +67,43 @@ test('Play v2 reachable graph contains no FICS adapter, provider, route, or Play
         assert.match(html, /css\/fics-client\.css/);
         assert.match(html, /js\/fics-style12\.js/);
         assert.match(html, /js\/fics-client\.js/);
+    }
+});
+
+test('generator explicitly strips known legacy FICS resources while preserving the strict boundary guard', async () => {
+    const known = [
+        'fics-observability', 'fics-match-research', 'fics-research-actions', 'fics-computer-challenge'
+    ];
+    const [source, play, publicPlay, builder] = await Promise.all([
+        read('index.html'), read('play-v2.html'), read('play-v2-public-beta.html'), read('scripts/build-play-v2.mjs')
+    ]);
+    for (const name of known) {
+        assert.match(source, new RegExp(`js/${name}\\.js`), `${name} remains owned by the legacy source`);
+        assert.doesNotMatch(play, new RegExp(`js/${name}\\.js`), `${name} excluded from internal Play`);
+        assert.doesNotMatch(publicPlay, new RegExp(`js/${name}\\.js`), `${name} excluded from public Play`);
+    }
+    assert.match(builder, /fics-\(\?:observability\|match-research\|research-actions\|computer-challenge\)/);
+    assert.match(builder, /PROHIBITED_PLAY_V2_RESOURCE/);
+});
+
+test('an unclassified FICS script still fails generation', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'caissa-play-v2-boundary-'));
+    try {
+        await mkdir(join(directory, 'scripts'), { recursive: true });
+        await mkdir(join(directory, 'api', '_lib'), { recursive: true });
+        await writeFile(join(directory, 'scripts', 'build-play-v2.mjs'), await read('scripts/build-play-v2.mjs'));
+        await writeFile(join(directory, 'play-v2-unavailable.html'), await read('play-v2-unavailable.html'));
+        const source = (await read('index.html')).replace(
+            '</body>', '<script src="js/fics-unclassified-boundary-probe.js"></script>\n</body>'
+        );
+        await writeFile(join(directory, 'index.html'), source);
+        const result = spawnSync(process.execPath, [join(directory, 'scripts', 'build-play-v2.mjs')], {
+            cwd: directory, encoding: 'utf8'
+        });
+        assert.notEqual(result.status, 0);
+        assert.match(`${result.stdout}\n${result.stderr}`, /PROHIBITED_PLAY_V2_RESOURCE:[\s\S]*fics-unclassified-boundary-probe/);
+    } finally {
+        await rm(directory, { recursive: true, force: true });
     }
 });
 

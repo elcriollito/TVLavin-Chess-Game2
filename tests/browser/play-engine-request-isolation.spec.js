@@ -3,6 +3,13 @@ import {
     instrumentPlay, openPlay, playMove, snapshot
 } from '../play/playwright-helpers.js';
 
+async function startGamesLifecycle(page) {
+    await openPlay(page);
+    await page.evaluate(() => { window.App.useOpeningBook = false; });
+    await page.locator('[data-games-primary]').click();
+    await expect.poll(() => page.evaluate(() => window.__caissaPlayHarness.snapshot().workersCreated)).toBe(1);
+}
+
 test('isolation API is passive and existing namespaces and resources remain stable', async ({ page }) => {
     await instrumentPlay(page, { autoReply: false });
     await openPlay(page);
@@ -28,7 +35,7 @@ test('isolation API is passive and existing namespaces and resources remain stab
     expect(proof.available).toBe(true);
     expect(proof.schemaVersion).toBe('1.0.0');
     expect(proof.after).toEqual(proof.before);
-    expect(proof.before.workersCreated).toBe(1);
+    expect(proof.before.workersCreated).toBe(0);
     expect(proof.before.boardConstructions).toBe(1);
     expect(proof).toMatchObject({
         compatibilitySame: true,
@@ -39,11 +46,7 @@ test('isolation API is passive and existing namespaces and resources remain stab
 
 test('one human move produces one accepted deterministic opponent response', async ({ page }) => {
     await instrumentPlay(page, { bestMove: 'e7e5', cp: 75, delayMs: 5 });
-    await openPlay(page);
-    await page.evaluate(() => {
-        window.App.useOpeningBook = false;
-        window.newGame({ mode: 'engine', color: 'white', timeControl: 0 });
-    });
+    await startGamesLifecycle(page);
     await playMove(page, 'e2', 'e4');
     await expect.poll(async () => (await snapshot(page)).history).toEqual(['e4', 'e5']);
     const proof = await page.evaluate(() => window.CaissaEngineRequestIsolation.inspect());
@@ -55,11 +58,7 @@ test('one human move produces one accepted deterministic opponent response', asy
 
 test('duplicate bestmove is rejected before a duplicate board mutation', async ({ page }) => {
     await instrumentPlay(page, { autoReply: false });
-    await openPlay(page);
-    await page.evaluate(() => {
-        window.App.useOpeningBook = false;
-        window.newGame({ mode: 'engine', color: 'white', timeControl: 0 });
-    });
+    await startGamesLifecycle(page);
     await playMove(page, 'e2', 'e4');
     await page.waitForTimeout(300);
     await page.evaluate(() => {
@@ -80,11 +79,7 @@ test('duplicate bestmove is rejected before a duplicate board mutation', async (
 
 test('New Game rotates session and rejects delayed prior bestmove', async ({ page }) => {
     await instrumentPlay(page, { bestMove: 'e7e5', delayMs: 500 });
-    await openPlay(page);
-    await page.evaluate(() => {
-        window.App.useOpeningBook = false;
-        window.newGame({ mode: 'engine', color: 'white', timeControl: 0 });
-    });
+    await startGamesLifecycle(page);
     const firstSession = await page.evaluate(() =>
         window.CaissaEngineRequestIsolation.getCurrentSession().sessionId);
     await playMove(page, 'e2', 'e4');
@@ -166,7 +161,7 @@ test('stale evaluation is rejected and newer evaluation remains independent of o
 
 test('accepted live evaluation preserves score, mate, flip, worker retention, and storage', async ({ page }) => {
     await instrumentPlay(page, { autoReply: false });
-    await openPlay(page);
+    await startGamesLifecycle(page);
     const storageBefore = await page.evaluate(() => JSON.stringify(Object.entries(localStorage).sort()));
     await page.evaluate(() => window.startAnalysis());
     await page.waitForTimeout(20);
@@ -184,7 +179,7 @@ test('accepted live evaluation preserves score, mate, flip, worker retention, an
     await expect(page.locator('#evalBar')).toHaveClass(/eval-flipped/);
     const sameStorage = await page.evaluate(before =>
         before === JSON.stringify(Object.entries(localStorage).sort()), storageBefore);
-    await page.locator('[data-section="academy"]').first().click();
+    await page.evaluate(() => window.CaissaPlayRouteController.navigate('/play/coach?simplified=1'));
     const proof = await page.evaluate(() => ({
         harness: window.__caissaPlayHarness.snapshot()
     }));
@@ -195,11 +190,7 @@ test('accepted live evaluation preserves score, mate, flip, worker retention, an
 
 test('raw old bestmove cannot borrow a superseding opponent callback identity', async ({ page }) => {
     await instrumentPlay(page, { autoReply: false });
-    await openPlay(page);
-    await page.evaluate(() => {
-        window.App.useOpeningBook = false;
-        window.newGame({ mode: 'engine', color: 'white', timeControl: 0 });
-    });
+    await startGamesLifecycle(page);
     await playMove(page, 'e2', 'e4');
     await page.waitForTimeout(300);
     await page.evaluate(() => {
@@ -220,7 +211,7 @@ test('raw old bestmove cannot borrow a superseding opponent callback identity', 
 
 test('raw old info cannot borrow a superseding evaluation callback identity', async ({ page }) => {
     await instrumentPlay(page, { autoReply: false });
-    await openPlay(page);
+    await startGamesLifecycle(page);
     await page.evaluate(() => {
         window.startAnalysis();
         window.__caissaPlayHarness.configure({ autoReady: false });

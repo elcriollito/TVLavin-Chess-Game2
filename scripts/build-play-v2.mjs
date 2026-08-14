@@ -14,6 +14,7 @@ const forbiddenElements = [
   /\s*<link[^>]+href="css\/fics-client\.css[^>]*>\r?\n/gi,
   /\s*<script[^>]+src="js\/fics-style12\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/fics-client\.js[^>]*><\/script>\r?\n/gi,
+  /\s*<script[^>]+src="js\/fics-(?:observability|match-research|research-actions|computer-challenge)\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/spectator-tv-state\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/spectator-tv-catalog\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/spectator-tv-section\.js[^>]*><\/script>\r?\n/gi,
@@ -23,7 +24,7 @@ const forbiddenElements = [
   /\s*<link[^>]+href="css\/academy\.css[^>]*>\r?\n/gi,
   /\s*<link[^>]+href="css\/caissa-auth\.css[^>]*>\r?\n/gi,
   /\s*<script[^>]+src="js\/(?:auth-config|caissa-auth|caissa-access|caissa-ui-auth)\.js[^>]*><\/script>\r?\n/gi,
-  /\s*<script[^>]+src="\/js\/caissa-clarity\.js[^>]*><\/script>\r?\n/gi,
+  /\s*<script[^>]+src="\/js\/(?:caissa-clarity|caissa-vercel-analytics)\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="(?:mentor-prompts|mentor-ai)\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/academy-section\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/play\/analytics\/play-mentor-engagement-analytics\.js[^>]*><\/script>\r?\n/gi,
@@ -164,6 +165,7 @@ const publicBetaHtml = html
   .replace('<script src="js/play/play-v2-beta-entry.js?v=1.0.0"></script>',
     '<script src="js/play/play-v2-public-beta-policy.js?v=1.0.0"></script>')
   .replace(/\s*<script src="js\/play\/play-v2-invite-client\.js\?v=1\.0\.0"><\/script>/, '')
+  .replace('</head>', '    <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>\n</head>')
   .replace('</body>', '    <script src="js/play/play-v2-public-beta-ui.js?v=1.0.0"></script>\n</body>')
   .replace(/[ \t]+(?=\r?$)/gm, '');
 for (const required of ['data-caissa-play-v2-entry="official"', 'href="https://www.caissa-chess.org/play"', 'play-v2-public-beta-policy.js',

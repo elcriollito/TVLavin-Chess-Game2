@@ -67,7 +67,7 @@
     <link rel="stylesheet" href="position-forge.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-sync.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-dos-chess.css?v=1.0.1">
-    <link rel="stylesheet" href="css/yahoo-classic.css?v=1.0.1">
+    <link rel="stylesheet" href="css/yahoo-classic.css?v=1.1.0">
     <link rel="stylesheet" href="css/opening-book.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-mobile-foundation.css?v=1.0.6">
     <link rel="stylesheet" href="css/caissa-primary-navigation-transition.css?v=1.0.0">
@@ -1648,8 +1648,8 @@
                                     <div class="yc-options-control yc-table-game-options" aria-label="Classic game options">
                                         <span class="yc-options-heading">Options</span>
                                         <label class="yc-check-control">
-                                            <input type="checkbox" checked disabled>
-                                            <span>Rated Game</span>
+                                            <input id="ycTableRatedStatus" type="checkbox" disabled>
+                                            <span id="ycTableRatedLabel">Mode from FICS</span>
                                         </label>
                                         <label class="yc-time-control" for="ycTableTimeSelect">
                                             <span>Set Time</span>
@@ -3053,9 +3053,9 @@
     </div>
 
     <!-- Scripts -->
-    <script src="/assets/vendor/jquery/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
-    <script src="/assets/vendor/chess.js/chess-0.10.3.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="/assets/vendor/chessboard.js/chessboard-1.0.0.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="/assets/vendor/jquery/jquery-3.6.0.min.js"></script>
+    <script src="/assets/vendor/chess.js/chess-0.10.3.min.js"></script>
+    <script src="/assets/vendor/chessboard.js/chessboard-1.0.0.min.js"></script>
     <script src="polyglot-book.js?v=2.0.1"></script>
     <script src="js/play/engine/worker-lifecycle-contracts.js?v=1.0.0"></script>
     <script src="js/play/engine/worker-fallback-policy.js?v=1.0.0"></script>
@@ -3090,7 +3090,7 @@
     <script src="js/caissa-primary-navigation.js?v=1.0.0"></script>
     <script src="js/caissa-primary-navigation-transition-policy.js?v=1.0.0"></script>
     <script src="js/caissa-navigation.js?v=1.0.7"></script>
-    <script src="js/yahoo-classic-section.js?v=1.0.0"></script>
+    <script src="js/yahoo-classic-section.js?v=1.1.0"></script>
     <script src="js/caissa-ui-refactor.js?v=1.0.0"></script>
     <script src="js/engine-adapter.js?v=1.0.0"></script>
     <script src="js/engine-registry.js?v=1.0.0"></script>

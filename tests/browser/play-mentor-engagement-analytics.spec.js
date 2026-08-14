@@ -1,18 +1,21 @@
 import { test, expect } from '@playwright/test';
 import { positions } from '../play/fixtures/positions.js';
-import { instrumentPlay, loadPosition, playMove } from '../play/playwright-helpers.js';
+import { instrumentPlay, instrumentPlayAnalyticsDocument, loadPosition, playMove } from '../play/playwright-helpers.js';
 
 test.beforeEach(async ({ page }) => instrumentPlay(page, { autoReply: false }));
 
 test('authoritative Mentor request emits one content-free engagement with no transport or storage', async ({ page }) => {
     const requests = []; page.on('request', request => { if (['fetch', 'xhr'].includes(request.resourceType())
         && /analytics|telemetry|collect|beacon/i.test(request.url())) requests.push(request.url()); });
-    await page.goto('/play/games?simplified=1'); await page.locator('[data-games-primary]').click();
+    await instrumentPlayAnalyticsDocument(page); await page.goto('/play/games?simplified=1'); await page.locator('[data-games-primary]').click();
     await loadPosition(page, positions.checkmateInOne.fen);
     await playMove(page, positions.checkmateInOne.from, positions.checkmateInOne.to);
     await expect(page.locator('.caissa-post-game')).toBeVisible();
     const before = await page.evaluate(() => ({ local: { ...localStorage }, session: { ...sessionStorage }, cookie: document.cookie }));
     await page.locator('[data-post-game-action="mentor-review"]').click();
+    await page.evaluate(() => window.CaissaPlayMentorEngagementAnalytics.observeReviewRequested({
+        completionSequence: 1, source: 'postgame'
+    }));
     await expect.poll(() => page.evaluate(() => window.CaissaPlayMentorEngagementAnalytics
         .inspect().diagnostics.emitted)).toBe(1);
     const result = await page.evaluate(() => {

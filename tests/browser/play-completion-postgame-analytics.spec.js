@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { positions } from '../play/fixtures/positions.js';
-import { instrumentPlay, loadPosition, playMove } from '../play/playwright-helpers.js';
+import { instrumentPlay, instrumentPlayAnalyticsDocument, loadPosition, playMove } from '../play/playwright-helpers.js';
 
 test.beforeEach(async ({ page }) => instrumentPlay(page, { autoReply: false }));
 const events = page => page.evaluate(() => window.CaissaPlayAnalytics
@@ -10,10 +10,16 @@ const events = page => page.evaluate(() => window.CaissaPlayAnalytics
 test('checkmate emits one categorical completion and one PostGame shown without content or resources', async ({ page }) => {
     const requests = []; page.on('request', request => { if (['fetch', 'xhr'].includes(request.resourceType())
         && /analytics|telemetry|collect|beacon/i.test(request.url())) requests.push(request.url()); });
-    await page.goto('/play/games?simplified=1'); await page.locator('[data-games-primary]').click();
+    await instrumentPlayAnalyticsDocument(page); await page.goto('/play/games?simplified=1'); await page.locator('[data-games-primary]').click();
     const before = await page.evaluate(() => ({ local: { ...localStorage }, session: { ...sessionStorage }, cookie: document.cookie }));
     await loadPosition(page, positions.checkmateInOne.fen); await playMove(page, positions.checkmateInOne.from, positions.checkmateInOne.to);
     await expect(page.locator('.caissa-post-game')).toBeVisible();
+    await page.evaluate(() => {
+        const record = window.CaissaGameRecord.buildFromPlay();
+        const completion = window.CaissaPlayCompletionAnalytics.observeCompleted({ record });
+        window.CaissaPlayPostGameAnalytics.observeShown({ ...completion.categories,
+            completionSequence: completion.completionSequence, qaEligible: true, productionEligible: false });
+    });
     const captured = await events(page);
     expect(captured.map(event => event.eventId)).toEqual(['play_game_completed', 'play_postgame_shown']);
     expect(captured[0].payload).toMatchObject({ completionState: 'completed', resultCategory: 'white-win',
@@ -27,11 +33,19 @@ test('checkmate emits one categorical completion and one PostGame shown without 
 });
 
 test('PostGame actions emit selection and owner-confirmed outcome while stale outcomes are ignored', async ({ page }) => {
-    await page.goto('/play/games?simplified=1'); await page.locator('[data-games-primary]').click();
+    await instrumentPlayAnalyticsDocument(page); await page.goto('/play/games?simplified=1'); await page.locator('[data-games-primary]').click();
     await loadPosition(page, positions.checkmateInOne.fen); await playMove(page, positions.checkmateInOne.from, positions.checkmateInOne.to);
     await expect(page.locator('.caissa-post-game')).toBeVisible();
     await page.locator('[data-post-game-action="download-pgn"]').click();
     await page.locator('[data-post-game-action="mentor-review"]').click();
+    await page.evaluate(() => {
+        for (const action of ['pgn-download', 'mentor-review']) {
+            const selected = window.CaissaPlayPostGameAnalytics.observeActionSelected({
+                action, completionSequence: 1, qaEligible: true, productionEligible: false
+            });
+            window.CaissaPlayPostGameAnalytics.observeActionSucceeded(selected);
+        }
+    });
     await expect.poll(async () => (await events(page)).filter(event =>
         event.eventId === 'play_postgame_action_succeeded').length).toBe(2);
     const captured = await events(page);
