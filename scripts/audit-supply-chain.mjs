@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { auditHttpsExternalScripts } from './supply-chain-script-tags.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const clerkUrl = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6.28.1/dist/clerk.browser.js';
@@ -27,13 +28,11 @@ for (const file of runtimeFiles) {
     if (/@(?:latest|next)(?:\/|\b)/i.test(source)) failures.push(`${relative}: floating runtime version`);
     if (/\bhttp:\/\/[^\s'"<>]+\.(?:js|mjs|wasm)(?:[?'"\s<]|$)/i.test(source))
         failures.push(`${relative}: insecure executable dependency`);
-    for (const match of source.matchAll(/<script\b[\s\S]*?\bsrc=["'](https:\/\/[^"']+)["'][\s\S]*?<\/script>/gi)) {
-        const tag = match[0];
-        const url = match[1];
-        if (url !== clerkUrl) failures.push(`${relative}: unregistered external script ${url}`);
-        if (url === clerkUrl && (!tag.includes(`integrity="${clerkIntegrity}"`) || !/crossorigin=["']anonymous["']/i.test(tag)))
-            failures.push(`${relative}: Clerk SRI/crossorigin missing`);
-    }
+    failures.push(...auditHttpsExternalScripts(source, {
+        relative,
+        allowedUrl: clerkUrl,
+        requiredIntegrity: clerkIntegrity
+    }));
 }
 
 const authSource = fs.readFileSync(path.join(root, 'js/caissa-auth.js'), 'utf8');
