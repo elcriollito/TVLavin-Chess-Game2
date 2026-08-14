@@ -21,14 +21,21 @@ test('production and rollback identity match verified release evidence', async (
     assert.equal(C.productionDeploymentId, V.deployment.id); assert.equal(C.rollbackDeploymentId, V.rollback.previousDeploymentId);
 });
 
-test('Git chain, divergence, and local-only annotated tag remain truthful before or after closure commit', () => {
+test('frozen Git chain and local-only annotated tag remain truthful after later commits and pushes', () => {
+    const closureCommit = 'f38c323c6274894491c4f0cacdeba76c9b3282b1';
+    const tag = 'season-10.0.0';
     assert.equal(git('rev-list','--count','eb0511043dd397ac6ff50f05b4e67a84144b5d78..543f4691e3624d8093153e35292f49a9fbba29e3'), '59');
     assert.equal(git('rev-list','--count','--merges','eb0511043dd397ac6ff50f05b4e67a84144b5d78..543f4691e3624d8093153e35292f49a9fbba29e3'), '0');
-    assert.equal(git('rev-parse','season-10.0.0^{}'), C.productionCommit); assert.equal(git('cat-file','-t','season-10.0.0'), 'tag');
-    assert.equal(git('ls-remote','--tags','origin','refs/tags/season-10.0.0'), '');
-    const ahead = Number(git('rev-list','--count','origin/main..HEAD')); const behind = Number(git('rev-list','--count','HEAD..origin/main'));
-    assert([1, 2].includes(ahead)); assert.equal(behind, 0);
-    if (ahead === 2) assert.equal(git('log','-1','--format=%s'), C.closureCommitPolicy.message);
+    assert.equal(git('cat-file','-t',closureCommit), 'commit');
+    assert.equal(git('log','-1','--format=%s',closureCommit), 'docs(play): close season 10');
+    assert.equal(git('rev-parse',`${closureCommit}^`), C.localVerificationCommit);
+    assert.doesNotThrow(() => git('merge-base','--is-ancestor',closureCommit,'HEAD'));
+    assert.equal(C.closureCommitPolicy.message, 'docs(play): close season 10');
+    assert.equal(C.closureCommitPolicy.localOnly, true);
+    assert.equal(git('cat-file','-t',tag), 'tag');
+    assert.equal(git('rev-parse',`${tag}^{}`), C.productionCommit);
+    assert.equal(git('for-each-ref',`refs/tags/${tag}`,'--format=%(contents)'), 'CAISSA Simplified Play Season 10.0.0 — Stage 0 package');
+    assert.equal(git('ls-remote','--tags','origin',`refs/tags/${tag}`), '');
 });
 
 test('defaults, gates, native multiplayer, FICS separation, and risks fail closed', () => {
