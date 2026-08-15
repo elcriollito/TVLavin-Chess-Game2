@@ -5,7 +5,8 @@ const gateways = [
   ['/play-online/playchess', 'Playchess'],
   ['/play-online/fritz', 'Fritz'],
   ['/puzzles/chessbase-tactics', 'Tactics'],
-  ['/watch/live-blitz', 'Live Blitz']
+  ['/watch/live-blitz', 'Live Blitz'],
+  ['/watch/live-tournaments', 'Live Tournaments']
 ];
 
 for (const [route, label] of gateways) {

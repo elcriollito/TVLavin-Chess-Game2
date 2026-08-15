@@ -443,6 +443,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/watch/live-blitz' || pathname === '/watch/live-blitz/') {
     filePath = './live-blitz.html';
   }
+  if (pathname === '/watch/live-tournaments' || pathname === '/watch/live-tournaments/') {
+    filePath = './live-tournaments.html';
+  }
   if (pathname === '/watch/game-replayer' || pathname === '/watch/game-replayer/') {
     filePath = './game-replayer.html';
   }

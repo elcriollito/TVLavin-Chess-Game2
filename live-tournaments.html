@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; frame-src https://live.chessbase.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'">
+  <title>Watch Live Chess Tournaments | CAISSA Chess</title>
+  <meta name="description" content="Watch a featured live chess tournament through the official ChessBase broadcast viewer, available from CAISSA Chess.">
+  <link rel="canonical" href="https://www.caissa-chess.org/watch/live-tournaments">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.caissa-chess.org/watch/live-tournaments">
+  <meta property="og:title" content="Watch Live Chess Tournaments | CAISSA Chess">
+  <meta property="og:description" content="Watch a featured live chess tournament through the official ChessBase broadcast viewer, available from CAISSA Chess.">
+  <meta property="og:image" content="https://www.caissa-chess.org/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Watch Live Chess Tournaments | CAISSA Chess">
+  <meta name="twitter:description" content="Watch a featured live chess tournament through the official ChessBase broadcast viewer, available from CAISSA Chess.">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0b0f1a">
+  <link rel="icon" href="/favicon.ico?v=4">
+  <link rel="stylesheet" href="/styles.css?v=2.0.16">
+  <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.1.0">
+  <link rel="stylesheet" href="/css/live-tournaments.css?v=1.0.0">
+  <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
+</head>
+<body class="live-tournaments-page">
+  <div class="caissa-standalone-layout">
+    <div data-caissa-standalone-sidebar data-active="live-tournaments"></div>
+    <div class="caissa-standalone-content">
+      <main class="live-tournaments-main">
+        <aside class="live-tournaments-banner" aria-label="CAISSA tournament announcement">
+          <div><strong>CAISSA Weekend Tournament — Coming Soon</strong><p>Registered CAISSA players will be able to compete in our future weekly tournament.</p></div>
+          <a href="/academy">Explore CAISSA Chess</a>
+        </aside>
+        <header class="live-tournaments-heading">
+          <h1>Watch a Featured Live Chess Tournament</h1>
+          <p>Follow the featured Esports World Cup Chess Playoff broadcast through the official ChessBase live tournament viewer.</p>
+        </header>
+        <section class="live-tournaments-shell" data-live-tournaments-shell aria-label="Featured ChessBase live tournament broadcast">
+          <div class="live-tournaments-status" data-live-tournaments-status role="status" aria-live="polite">Loading the featured tournament broadcast…</div>
+          <iframe
+            src="https://live.chessbase.com/frame/Esports-World-Cup-Chess-Playoff-2026"
+            data-live-tournaments-frame
+            title="Featured Esports World Cup Chess Playoff broadcast from ChessBase"
+            referrerpolicy="no-referrer"
+            loading="eager"
+            allowfullscreen></iframe>
+          <div class="live-tournaments-error" data-live-tournaments-error role="alert" hidden>
+            <p>The featured ChessBase tournament broadcast could not be displayed.</p>
+            <button type="button" data-live-tournaments-retry>Retry</button>
+            <a href="https://live.chessbase.com/en/Watch?id=Esports-World-Cup-Chess-Playoff-2026" target="_blank" rel="noopener noreferrer">Open the official tournament page</a>
+          </div>
+        </section>
+        <noscript><p class="live-tournaments-noscript">JavaScript is required for loading status and retry controls. <a href="https://live.chessbase.com/en/Watch?id=Esports-World-Cup-Chess-Playoff-2026" target="_blank" rel="noopener noreferrer">Open the official tournament page.</a></p></noscript>
+        <section class="live-tournaments-disclosure" aria-label="ChessBase live tournament attribution">
+          <p><strong>Broadcast attribution:</strong> The tournament viewer and live broadcast are provided and operated by ChessBase. CAISSA Chess selects and embeds the official public event frame but does not operate the tournament, pairings, players, boards, clocks, moves, results, or broadcast data.</p>
+          <p>The event may be live, delayed, between rounds, or completed depending on the ChessBase feed. ChessBase controls availability and its own privacy and cookie behavior.</p>
+          <p><a href="https://live.chessbase.com/en/Watch?id=Esports-World-Cup-Chess-Playoff-2026" target="_blank" rel="noopener noreferrer">Open the official Esports World Cup Chess Playoff broadcast</a></p>
+          <p><a href="https://play.chessbase.com/en/howto/embedlivechess" target="_blank" rel="noopener noreferrer">View the official ChessBase live tournament embed documentation</a></p>
+        </section>
+      </main>
+      <footer class="live-tournaments-footer"><p>&copy; 2026 CAISSA Chess. All rights reserved.</p><p><a href="/play">Play</a> · <a href="/about">About CAISSA Chess</a></p></footer>
+    </div>
+  </div>
+  <script src="/js/caissa-primary-navigation.js?v=1.0.0"></script>
+  <script src="/js/caissa-standalone-sidebar.js?v=1.1.0"></script>
+  <script src="/js/live-tournaments-parent.js?v=1.0.0"></script>
+</body>
+</html>

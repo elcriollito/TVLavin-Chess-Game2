@@ -154,7 +154,7 @@ Any task that adds, removes, renames, redirects, protects, or reorders a public 
 
 The visible order remains owned only by \`CaissaPrimaryNavigation\`; adapters must never introduce private navigation arrays. Add or remove a route in its real routing owner first, then run \`node scripts/build-caissa-public-route-inventory.mjs\` and the inventory guard.
 
-\`PLAY & COMPETE\` includes the credited Playchess and Fritz gateways at positions 4 and 5. \`LEARN & IMPROVE\` begins with the credited ChessBase Tactics gateway. \`ANALYZE & WATCH\` includes the credited Live Blitz gateway after Spectator TV and the credited Game Replayer before Arena. These routes embed public ChessBase services without changing native CAISSA learning, Play, CAISSA Classic, FICS, Spectator TV, or Arena behavior.
+\`PLAY & COMPETE\` includes the credited Playchess and Fritz gateways at positions 4 and 5. \`LEARN & IMPROVE\` begins with the credited ChessBase Tactics gateway. \`ANALYZE & WATCH\` includes the credited Live Blitz gateway after Spectator TV, the credited Live Tournaments gateway, and the credited Game Replayer before Arena. These routes embed public ChessBase services without changing native CAISSA learning, Play, CAISSA Classic, FICS, Spectator TV, or Arena behavior.
 `;
 
 fs.mkdirSync(path.join(root, 'config'), { recursive: true });

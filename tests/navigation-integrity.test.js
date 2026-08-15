@@ -22,12 +22,12 @@ test('canonical primary navigation inventory is unique and stable', () => {
     [
       'play', 'yahooClassic', 'fics', 'playchess', 'fritz',
       'tactics', 'academy', 'endgame-trainer', 'endgame-practice', 'endgame-library',
-      'insights', 'analyze', 'spectator', 'live-blitz', 'game-replayer', 'arena',
+      'insights', 'analyze', 'spectator', 'live-blitz', 'live-tournaments', 'game-replayer', 'arena',
       'cheater-insight', 'polyglot', 'opening-database', 'eco', 'library',
       'history', 'dosChess', 'vault', 'blog'
     ]
   );
-  assert.equal(inventory.primary.length, 25);
+  assert.equal(inventory.primary.length, 26);
   assert.equal(inventory.connect.length, 4);
   for (const label of ['Endgame Practice', 'Endgame Library', 'Analyze', 'Help', 'About']) {
     assert.ok(labels.includes(label), `${label} is missing`);
@@ -110,7 +110,8 @@ test('explicit section routing remains ahead of the Classic default', () => {
 test('all standalone shell pages load the canonical source before the renderer', () => {
   const pages = [
     'endgame-library.html', 'about.html', 'help.html', 'eco.html', 'opening-database.html',
-    'polyglot.html', 'vault.html', 'blog/index.html', 'playchess.html', 'fritz.html', 'tactics.html', 'live-blitz.html'
+    'polyglot.html', 'vault.html', 'blog/index.html', 'playchess.html', 'fritz.html', 'tactics.html', 'live-blitz.html',
+    'live-tournaments.html'
   ];
   for (const path of pages) {
     const html = read(path);

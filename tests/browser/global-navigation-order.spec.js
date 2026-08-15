@@ -6,14 +6,14 @@ const routes = [
   ['/play-online/fritz', 'Fritz'],
   ['/puzzles/chessbase-tactics', 'Tactics'],
   ['/academy', 'Academy'], ['/endgame-trainer', 'Endgame Trainer'], ['/insights', 'Insights'],
-  ['/analyze', 'Analyze'], ['/spectator-tv', 'Spectator TV'], ['/watch/live-blitz', 'Live Blitz'], ['/watch/game-replayer', 'Game Replayer'], ['/arena', 'Arena'],
+  ['/analyze', 'Analyze'], ['/spectator-tv', 'Spectator TV'], ['/watch/live-blitz', 'Live Blitz'], ['/watch/live-tournaments', 'Live Tournaments'], ['/watch/game-replayer', 'Game Replayer'], ['/arena', 'Arena'],
   ['/game-library', 'Game Library'], ['/blog', 'Blog']
 ];
 
 const canonicalOrder = [
   'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
   'Tactics', 'Academy', 'Endgame Trainer', 'Endgame Practice', 'Endgame Library',
-  'Insights', 'Analyze', 'Spectator TV', 'Live Blitz', 'Game Replayer', 'Arena',
+  'Insights', 'Analyze', 'Spectator TV', 'Live Blitz', 'Live Tournaments', 'Game Replayer', 'Arena',
   'Cheater Insight', 'Polyglot Tool', 'Opening Database', 'ECO Codes',
   'Game Library', 'History', 'DOS Chess', 'Vault', 'Blog',
   'Facebook', 'CAISSA Chess YouTube', 'CAISSA Discord', 'Share an Idea / Contact & Feedback'
@@ -21,9 +21,9 @@ const canonicalOrder = [
 
 async function assertOrderAndIdentity(page, activeLabel) {
   const nav = page.locator('#mainNav');
-  await expect.poll(() => page.evaluate(() => window.CaissaPrimaryNavigation?.contractId || '')).toBe('CaissaGlobalNavigationOrderPolicy@1.6.0');
+  await expect.poll(() => page.evaluate(() => window.CaissaPrimaryNavigation?.contractId || '')).toBe('CaissaGlobalNavigationOrderPolicy@1.7.0');
   const host = page.locator('[data-caissa-primary-groups], [data-caissa-standalone-sidebar]');
-  await expect(host).toHaveAttribute('data-caissa-navigation-order-ready', 'CaissaGlobalNavigationOrderPolicy@1.6.0');
+  await expect(host).toHaveAttribute('data-caissa-navigation-order-ready', 'CaissaGlobalNavigationOrderPolicy@1.7.0');
   const labels = await host.evaluate(node => {
     const scope = node.matches('.nav-items') ? node : node.querySelector('.nav-items') || node;
     return [...scope.querySelectorAll('.nav-item')].map(item => item.textContent.replace(/\s+/g, ' ').trim());
@@ -36,6 +36,7 @@ async function assertOrderAndIdentity(page, activeLabel) {
   expect(labels.filter(label => label === 'Fritz')).toHaveLength(1);
   expect(labels.filter(label => label === 'Tactics')).toHaveLength(1);
   expect(labels.filter(label => label === 'Live Blitz')).toHaveLength(1);
+  expect(labels.filter(label => label === 'Live Tournaments')).toHaveLength(1);
   const current = host.locator('[aria-current="page"]');
   await expect(current).toHaveCount(1);
   await expect(current).toContainText(activeLabel);
