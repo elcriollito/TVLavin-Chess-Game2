@@ -65,7 +65,6 @@ html = html
   .replace(/\s*<!-- CAISSA Mentor AI Panel[\s\S]*?(?=\s*<!-- CAISSA Library Panel)/i, '\n')
   .replace(/\s*<button[^>]+data-section="(?:mentor|academy)"[^>]*>[\s\S]*?<\/button>/gi, '\n')
   .replace(/\s*<(?:button|a)[^>]+data-section="(?:yahooClassic|fics|spectator)"[^>]*>[\s\S]*?<\/(?:button|a)>/gi, '\n')
-  .replace(/\s*<a[^>]+href="\/endgame-(?:trainer|practice|library)"[^>]*>[\s\S]*?<\/a>/gi, '\n')
   .replace(/^.*data-section="academy".*\r?\n/gim, '')
   .replace(/\s+ws:\/\/localhost:8081 ws:\/\/127\.0\.0\.1:8081 wss:\/\/fics-gateway\.caissa-chess\.org/g, '')
   .replace("script-src 'self' 'unsafe-eval'", "script-src 'self'")
@@ -131,7 +130,8 @@ const prohibitedResources = resourceElements.filter(element =>
     && !/play-v2-(?:product|coach|mentor-review)-boundary\.js/i.test(element))
 );
 if (prohibitedResources.length) throw new Error(`PROHIBITED_PLAY_V2_RESOURCE: ${prohibitedResources.join(', ')}`);
-if (/id="(?:academySection|mentorPanel|analyzeMentor)"|data-section="(?:academy|mentor)"|href="\/endgame-(?:trainer|practice|library)"/i.test(html))
+const playProductHtml = html.replace(/<nav\b[^>]*\bid="mainNav"[\s\S]*?<\/nav>/i, '');
+if (/id="(?:academySection|mentorPanel|analyzeMentor)"|data-section="(?:academy|mentor)"|href="\/endgame-(?:trainer|practice|library)"/i.test(playProductHtml))
   throw new Error('PROHIBITED_PLAY_V2_EDUCATIONAL_DOM');
 if (/(?:id=["']playersPanel["']|data-(?:play|shell)-mode=["']players["']|data-players-panel)/i.test(html))
   throw new Error('PROHIBITED_PLAY_V2_PLAYERS_DOM');

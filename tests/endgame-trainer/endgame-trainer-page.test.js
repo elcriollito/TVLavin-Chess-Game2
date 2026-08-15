@@ -11,7 +11,15 @@ function fixture(search = '') {
     const doc = new EventTarget(); doc.querySelector = () => root; const win = new EventTarget(); win.location = { search }; win.innerWidth = 390;
     return { root, doc, win, toggle, nav, state, preview, cta, items, controls, actions };
 }
-function mount(search = '') { unmountEndgameTrainerPage(); const f = fixture(search); mountEndgameTrainerPage({ root: f.root, document: f.doc, window: f.win }); return f; }
+function drawerControllerFactory({ host, toggle, document, window, onStateChange }) {
+    let open = false;
+    const apply = (next, focus = false) => { open = next; host.classList.toggle('is-nav-open', open); toggle.setAttribute('aria-expanded', String(open)); onStateChange?.(open); if (focus) toggle.focus(); };
+    const click = () => apply(!open); const key = event => { if (event.key === 'Escape' && open) apply(false, true); }; const outside = event => { if (open && event.target !== toggle) apply(false); }; const resize = () => { if (open && window.innerWidth > 768) apply(false); };
+    toggle.addEventListener('click', click); document.addEventListener('keydown', key); document.addEventListener('click', outside); window.addEventListener('resize', resize);
+    apply(false);
+    return { open: () => apply(true), close: ({ returnFocus = false } = {}) => apply(false, returnFocus), destroy() { toggle.removeEventListener('click', click); document.removeEventListener('keydown', key); document.removeEventListener('click', outside); window.removeEventListener('resize', resize); } };
+}
+function mount(search = '') { unmountEndgameTrainerPage(); const f = fixture(search); mountEndgameTrainerPage({ root: f.root, document: f.doc, window: f.win, drawerControllerFactory }); return f; }
 const click = el => el.dispatchEvent(new Event('click'));
 const escape = doc => { const event = new Event('keydown'); Object.defineProperty(event, 'key', { value: 'Escape' }); doc.dispatchEvent(event); };
 
@@ -33,14 +41,14 @@ test('18 page state separates operation and controller', () => { mount(); const 
 test('19 controls disabled contract is static markup concern', () => { const f = mount(); assert.equal(f.controls.length, 1); });
 test('20 unmount', () => { mount(); assert.equal(unmountEndgameTrainerPage(), true); });
 test('21 unmount idempotent', () => { mount(); unmountEndgameTrainerPage(); assert.equal(unmountEndgameTrainerPage(), false); });
-test('22 remount no duplicate listeners', () => { const f = mount(); unmountEndgameTrainerPage(); mountEndgameTrainerPage({ root: f.root, document: f.doc, window: f.win }); click(f.toggle); assert.equal(getEndgameTrainerPageState().navOpen, true); });
+test('22 remount no duplicate listeners', () => { const f = mount(); unmountEndgameTrainerPage(); mountEndgameTrainerPage({ root: f.root, document: f.doc, window: f.win, drawerControllerFactory }); click(f.toggle); assert.equal(getEndgameTrainerPageState().navOpen, true); });
 test('23 snapshot immutable', () => { mount(); const s = getEndgameTrainerPageState(); s.mounted = false; assert.equal(getEndgameTrainerPageState().mounted, true); });
 test('24 approved runtime import only', async () => { const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../../js/endgame-trainer/endgame-trainer-page.js', import.meta.url), 'utf8')); assert.match(source, /createEndgameTrainerRuntime/); assert.doesNotMatch(source, /app\.js|CaissaNavigation|localStorage|sessionStorage/); });
 test('25 root-scoped product queries', async () => { const source = await import('node:fs/promises').then(fs => fs.readFile(new URL('../../js/endgame-trainer/endgame-trainer-page.js', import.meta.url), 'utf8')); assert.equal((source.match(/doc\?\.querySelector/g) ?? []).length, 1); });
 test('26 metadata and canonical contract', async () => { const html = await import('node:fs/promises').then(fs => fs.readFile(new URL('../../endgame-trainer.html', import.meta.url), 'utf8')); assert.match(html, /<link rel="canonical" href="https:\/\/www\.caissa-chess\.org\/endgame-trainer">/); assert.equal((html.match(/<title>/g) ?? []).length, 1); });
-test('27 complete standalone links', async () => { const html = await import('node:fs/promises').then(fs => fs.readFile(new URL('../../endgame-trainer.html', import.meta.url), 'utf8')); for (const label of ['Mentor','Insights','Spectator TV','Cheater Insight','Polyglot Tool','Opening Database','ECO Codes','Game Library','History','DOS Chess','Vault','Blog','CAISSA Chess YouTube','Share an Idea / Contact &amp; Feedback']) assert.match(html, new RegExp(`>${label}<`)); });
+test('27 complete standalone links', async () => { const html = await import('node:fs/promises').then(fs => fs.readFile(new URL('../../endgame-trainer.html', import.meta.url), 'utf8')); for (const label of ['Playchess','Fritz','Tactics','Insights','Spectator TV','Live Blitz','Cheater Insight','Polyglot Tool','Opening Database','ECO Codes','Game Library','History','DOS Chess','Vault','Blog','CAISSA Chess YouTube','Share an Idea / Contact & Feedback']) assert.match(html, new RegExp(`>${label}<`)); });
 test('28 assets are root-relative', async () => { const html = await import('node:fs/promises').then(fs => fs.readFile(new URL('../../endgame-trainer.html', import.meta.url), 'utf8')); assert.match(html, /href="\/css\/endgame-trainer\.css"/); assert.match(html, /src="\/js\/endgame-trainer\/endgame-trainer-page\.js"/); });
-test('29 auth uses real sign-in destination', async () => { const html = await import('node:fs/promises').then(fs => fs.readFile(new URL('../../endgame-trainer.html', import.meta.url), 'utf8')); assert.match(html, /class="endgame-trainer-page__auth" href="\/signin"/); });
+test('29 auth uses real sign-in destination', async () => { const html = await import('node:fs/promises').then(fs => fs.readFile(new URL('../../endgame-trainer.html', import.meta.url), 'utf8')); assert.match(html, /class="[^"]*endgame-trainer-page__auth[^"]*" href="\/signin"/); });
 test('30 resize to desktop closes mobile nav', () => { const f = mount(); click(f.toggle); f.win.innerWidth = 1024; f.win.dispatchEvent(new Event('resize')); assert.equal(getEndgameTrainerPageState().navOpen, false); });
 test('31 unmount disables every static product action', () => { const f = mount(); unmountEndgameTrainerPage(); assert.equal(f.actions.every(action => action.disabled), true); });
 const blankProgress = () => ({ version: 1, totals: { positionsPrepared: 0, sessionsStarted: 0, sessionsCompleted: 0, checkmates: 0, stalemates: 0, draws: 0, resignations: 0, abandoned: 0, hintsUsed: 0, undosUsed: 0, attempts: 0 }, categories: Object.fromEntries(['KQK','KRK','KPK','KPKP'].map(id => [id, { sessionsStarted: 0, sessionsCompleted: 0, checkmates: 0 }])), recentSessions: [], completionRate: 0, persistence: { available: true, errorCode: null } });

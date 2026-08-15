@@ -13,6 +13,7 @@ const CaissaNavigation = {
     navOpen: false, // Mobile only
     initialized: false,
     shellGeneration: 0,
+    drawerController: null,
 
     // DOM cache
     elements: {},
@@ -95,35 +96,26 @@ const CaissaNavigation = {
             this.toggleNavCollapse();
         });
 
-        // Mobile nav toggle button
-        this.elements.mobileToggle?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.toggleMobileNav();
-        });
+        const drawerFactory = window.CaissaPrimaryNavigation?.createDrawerController;
+        if (drawerFactory && this.elements.appContainer && this.elements.nav && this.elements.mobileToggle) {
+            this.drawerController = drawerFactory({
+                host: this.elements.appContainer,
+                nav: this.elements.nav,
+                toggle: this.elements.mobileToggle,
+                backdrop: this.elements.appContainer.querySelector('.caissa-application-backdrop'),
+                openClass: 'nav-open',
+                bodyOpenClass: 'caissa-application-nav-open',
+                onStateChange: open => { this.navOpen = open; }
+            });
+        }
 
         // New Game button in sidebar
         this.elements.newGameBtn?.addEventListener('click', () => {
             this.openNewGameModal();
         });
 
-        // Mobile: Close nav when clicking outside
-        document.addEventListener('click', (e) => {
-            if (window.innerWidth <= 768 && this.navOpen) {
-                const isMobileToggle = e.target.closest('#mobileNavToggle');
-                const isNavClick = this.elements.nav.contains(e.target);
-                if (!isMobileToggle && !isNavClick) {
-                    this.closeNav();
-                }
-            }
-        });
-
         // Keyboard shortcut: Ctrl+B to toggle nav
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.navOpen) {
-                e.preventDefault();
-                this.closeNav();
-                return;
-            }
             if (e.ctrlKey && e.key === 'b') {
                 e.preventDefault();
                 this.toggleNavCollapse();
@@ -368,6 +360,8 @@ const CaissaNavigation = {
     toggleNavCollapse() {
         this.isNavCollapsed = !this.isNavCollapsed;
         this.elements.appContainer?.classList.toggle('nav-collapsed', this.isNavCollapsed);
+        this.elements.collapseBtn?.setAttribute('aria-expanded', String(!this.isNavCollapsed));
+        this.elements.collapseBtn?.setAttribute('aria-label', this.isNavCollapsed ? 'Expand navigation' : 'Collapse navigation');
 
         // Rotate collapse button icon
         const icon = this.elements.collapseBtn?.querySelector('i');
@@ -392,8 +386,7 @@ const CaissaNavigation = {
      * Open mobile nav
      */
     openNav() {
-        this.navOpen = true;
-        this.elements.appContainer?.classList.add('nav-open');
+        this.drawerController?.open();
         console.log('[CAISSA Nav] Mobile nav opened');
     },
 
@@ -401,11 +394,7 @@ const CaissaNavigation = {
      * Close mobile nav
      */
     closeNav() {
-        const restoreOfficialPlayFocus = this.navOpen && window.innerWidth <= 768
-            && document.body?.dataset?.caissaPlayV2Entry === 'official';
-        this.navOpen = false;
-        this.elements.appContainer?.classList.remove('nav-open');
-        if (restoreOfficialPlayFocus) this.elements.mobileToggle?.focus({ preventScroll: true });
+        this.drawerController?.close({ returnFocus: this.navOpen && window.innerWidth <= 768 });
         console.log('[CAISSA Nav] Mobile nav closed');
     },
 

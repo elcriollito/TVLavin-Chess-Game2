@@ -159,7 +159,8 @@
         bodyOpenClass = '',
         mobileQuery = '(max-width: 768px)',
         openLabel = 'Open navigation menu',
-        closeLabel = 'Close navigation menu'
+        closeLabel = 'Close navigation menu',
+        onStateChange = null
     } = {}) {
         if (!host || !nav || !toggle || !nav.id) {
             throw new Error('CAISSA drawer requires a host, named navigation, and toggle.');
@@ -185,6 +186,7 @@
             if (mobile && !open) nav.setAttribute('aria-hidden', 'true');
             else nav.removeAttribute('aria-hidden');
             if (backdrop) backdrop.setAttribute('aria-hidden', String(!(mobile && open)));
+            onStateChange?.(mobile && open);
             if (returnFocus && toggle.getClientRects().length) toggle.focus();
         }
 
@@ -274,6 +276,19 @@
     });
     global.CaissaPrimaryNavigation = api;
 
+    function adapterFor(host) {
+        const requested = host.dataset.caissaSidebarAdapter;
+        if (requested && adapters[requested]) return adapters[requested];
+        return host.dataset.navigationMode === 'application' ? adapters.application : null;
+    }
+
+    function markAdoptedShell(host) {
+        const nav = host.closest?.('nav');
+        nav?.classList.add('caissa-shared-sidebar');
+        if (nav && !nav.hasAttribute('aria-label')) nav.setAttribute('aria-label', 'CAISSA main navigation');
+        nav?.closest?.('.app-container, .endgame-trainer-page')?.classList.add('caissa-sidebar-adopted');
+    }
+
     document.querySelectorAll('.nav-logo').forEach((brand) => {
         if (brand.tagName === 'A') {
             brand.setAttribute('href', '/play');
@@ -290,11 +305,15 @@
 
     document.querySelectorAll('[data-caissa-primary-groups]').forEach((host) => {
         const options = { activeKey: host.dataset.active || '', mode: host.dataset.navigationMode || 'routes' };
-        host.innerHTML = `${renderGroups(options)}${host.hasAttribute('data-include-connect') ? renderConnect(options) : ''}`;
+        const adapter = adapterFor(host);
+        host.innerHTML = `${adapter ? adapter.renderGroups(options) : renderGroups(options)}${host.hasAttribute('data-include-connect') ? (adapter ? adapter.renderConnect(options) : renderConnect(options)) : ''}`;
         host.setAttribute('data-caissa-navigation-order-ready', contractId);
+        markAdoptedShell(host);
     });
     document.querySelectorAll('[data-caissa-primary-support]').forEach((host) => {
         const options = { activeKey: host.dataset.active || '', mode: host.dataset.navigationMode || 'routes' };
-        host.innerHTML = renderSupport(options);
+        const adapter = adapterFor(host);
+        host.innerHTML = adapter ? adapter.renderSupport(options) : renderSupport(options);
+        markAdoptedShell(host);
     });
 })(window);

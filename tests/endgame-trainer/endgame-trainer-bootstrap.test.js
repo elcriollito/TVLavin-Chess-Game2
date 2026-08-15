@@ -7,7 +7,7 @@ const css = await readFile(new URL('../../css/endgame-trainer.css', import.meta.
 const entry = await readFile(new URL('../../js/endgame-trainer/endgame-trainer-page.js', import.meta.url), 'utf8');
 
 test('document begins in a neutral pending mode before any script can run', () => {
-    assert.match(html, /class="endgame-trainer-page is-empty trainer-mode-pending"/);
+    assert.match(html, /class="endgame-trainer-page is-empty trainer-mode-pending caissa-trainer-sidebar-host"/);
     assert.match(html, /data-state="pending"/);
     assert.match(html, /data-trainer-bootstrap/);
     assert.match(html, /Loading Endgame Trainer…/);

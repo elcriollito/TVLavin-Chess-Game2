@@ -598,10 +598,20 @@ export function mountEndgameTrainerPage(options = {}) {
     if (board) { runtime = runtimeFactory({ boardElement: board, promotionResolver: promo.resolve, callbacks: { onStateChange: snap => update(root, page, snap), onAnnouncement: value => text(root.querySelector('[data-announcement]'), value), onError: error => { if (error.code !== 'stale-operation') { page.error = { code: error.code }; text(root.querySelector('[data-error-message]'), PUBLIC_ERRORS[error.code] || 'The trainer encountered an error.'); } } } }).initialize(); page.runtimeAttached = true; page.runtime = runtime; }
     const nav = root.querySelector('[data-mobile-nav]'), toggle = root.querySelector('[data-mobile-nav-toggle]');
     root.querySelectorAll('[data-nav-key]').forEach(item => { const active = item.dataset.navKey === 'endgame-trainer'; item.classList.toggle('is-active', active); active ? item.setAttribute('aria-current', 'page') : item.removeAttribute('aria-current'); });
-    const closeNav = focus => { page.navOpen = false; root.classList.remove('is-nav-open'); toggle?.setAttribute('aria-expanded', 'false'); if (focus) toggle?.focus?.(); };
-    toggle?.addEventListener('click', () => { page.navOpen = !page.navOpen; root.classList.toggle('is-nav-open', page.navOpen); toggle.setAttribute('aria-expanded', String(page.navOpen)); }, { signal });
-    doc.addEventListener('keydown', e => { if (e.key === 'Escape' && page.navOpen) closeNav(true); }, { signal }); doc.addEventListener('click', e => { if (page.navOpen && !nav?.contains(e.target) && !toggle?.contains(e.target)) closeNav(); }, { signal });
-    win.addEventListener?.('resize', () => { if (page.navOpen && win.innerWidth > 768) closeNav(); }, { signal });
+    const drawerFactory = options.drawerControllerFactory ?? globalThis.CaissaPrimaryNavigation?.createDrawerController;
+    const drawer = drawerFactory?.({
+        host: root,
+        nav,
+        toggle,
+        backdrop: root.querySelector('.caissa-trainer-backdrop'),
+        document: doc,
+          window: win,
+          mobileQuery: '(max-width: 900px)',
+          openClass: 'is-nav-open',
+        bodyOpenClass: 'caissa-trainer-nav-open',
+        onStateChange: open => { page.navOpen = open; }
+    }) ?? null;
+    const closeNav = focus => drawer?.close({ returnFocus: Boolean(focus) });
     const abandon = () => { const owner = page.progressOwner; if (owner?.started && !owner.terminal) { const now = page.now(), entry = sessionEntry(owner.state, owner, now); localProgress(page, () => page.progressStore.recordSessionAbandoned(entry)); if (owner.lesson) { localProgress(page, () => page.progressStore.recordCurriculumTerminal({ ...entry, result: 'abandoned', pathId: owner.lesson.pathId, lessonId: owner.lesson.id, trainingRole: owner.lesson.trainingRole, completionRule: owner.lesson.completionRule })); localProgress(page, () => page.progressStore.recordTrainingSession?.(trainingEntry(owner.state, owner, now, 'abandoned')) ?? false); } owner.terminal = true; renderProgress(root, page); } };
     win.addEventListener?.('pagehide', abandon, { signal });
     const resetDialog = root.querySelector('[data-reset-dialog]'), resetButton = root.querySelector('[data-reset-progress]'); let resetReturnFocus = null;
@@ -701,12 +711,12 @@ export function mountEndgameTrainerPage(options = {}) {
     syncSetup('mount');
     act('prepare', () => { const seed = nextSeed(); return runtime.binding.prepare({ categoryId: category(seed), userColor: 'white', betaWhiteOnly: true, seed, candidateCount: 24, generatorOptions: { strongSide: 'white', sideToMove: 'white' }, engineOptions: STRENGTH[root.querySelector('[data-setup="strength"]')?.value] }); });
     act('start', () => runtime.binding.start()); act('hint', () => runtime.binding.requestHint()); act('undo', () => runtime.binding.undo(), true); act('restart', () => runtime.binding.restart(), true); act('new', () => runtime.binding.newPosition({ seed: nextSeed() }), true); act('resign', () => runtime.binding.resign(), true); act('flip', () => runtime.binding.flip());
-    mounted = { root, page, runtime, abort, promo, closeNav, abandon, resetDialog }; update(root, page, runtime?.binding.getState()); if (diagnosticState) root.dataset.state = diagnosticState;
+    mounted = { root, page, runtime, abort, promo, drawer, closeNav, abandon, resetDialog }; update(root, page, runtime?.binding.getState()); if (diagnosticState) root.dataset.state = diagnosticState;
     void initializeLibraryStudy({ root, page, runtime, search: win.location?.search ?? '', fetchImpl: options.fetchImpl ?? win.fetch?.bind(win) });
     return publicPage(page);
 }
 
-export function unmountEndgameTrainerPage() { if (!mounted) return false; mounted.abandon(); mounted.page.pilotSession?.dispose(); mounted.page.disposed = true; update(mounted.root, mounted.page, mounted.runtime?.binding.getState()); mounted.promo.cancel(); if (mounted.resetDialog?.open) mounted.resetDialog.close(); mounted.abort.abort(); mounted.closeNav(); mounted.runtime?.dispose(); mounted.page.progressStore.dispose(); mounted.page.runtimeAttached = false; mounted.page.mounted = false; mounted = null; return true; }
+export function unmountEndgameTrainerPage() { if (!mounted) return false; mounted.abandon(); mounted.page.pilotSession?.dispose(); mounted.page.disposed = true; update(mounted.root, mounted.page, mounted.runtime?.binding.getState()); mounted.promo.cancel(); if (mounted.resetDialog?.open) mounted.resetDialog.close(); mounted.abort.abort(); mounted.drawer?.destroy(); mounted.runtime?.dispose(); mounted.page.progressStore.dispose(); mounted.page.runtimeAttached = false; mounted.page.mounted = false; mounted = null; return true; }
 export function getEndgameTrainerPageState() { return mounted ? publicPage(mounted.page) : { mounted: false, navOpen: false, runtimeAttached: false, operation: null, hint: null, error: null, disposed: true, controllerState: null, progress: null }; }
 
 function markQueryViewNonIndexable(doc = globalThis.document) {
@@ -756,6 +766,16 @@ if (globalThis.document) {
             return;
         }
         if (route.mode !== 'legacy' && route.mode !== 'guided-legacy') {
+            const root = document.querySelector('[data-endgame-trainer-page]');
+            const drawer = globalThis.CaissaPrimaryNavigation?.createDrawerController?.({
+                host: root,
+                nav: root?.querySelector('[data-mobile-nav]'),
+                toggle: root?.querySelector('[data-mobile-nav-toggle]'),
+                  backdrop: root?.querySelector('.caissa-trainer-backdrop'),
+                  mobileQuery: '(max-width: 900px)',
+                  openClass: 'is-nav-open',
+                bodyOpenClass: 'caissa-trainer-nav-open'
+            });
             const { mountEndgameTrainerV2Page, unmountEndgameTrainerV2Page } = await import('./v2/endgame-trainer-v2-page.js');
             try {
                 await mountEndgameTrainerV2Page({ route });
@@ -764,7 +784,7 @@ if (globalThis.document) {
                 renderEndgameTrainerLoadError();
                 return;
             }
-            globalThis.addEventListener?.('pagehide', () => unmountEndgameTrainerV2Page(), { once: true });
+            globalThis.addEventListener?.('pagehide', () => { drawer?.destroy(); unmountEndgameTrainerV2Page(); }, { once: true });
             return;
         }
         applyLegacyEndgameTrainerPresentation();

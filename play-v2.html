@@ -58,6 +58,7 @@
     <link rel="stylesheet" href="./assets/css/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="styles.css?v=2.0.16">
+    <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
     <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.6.0">
     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
@@ -75,7 +76,7 @@
 </head>
 <body data-caissa-play-v2-entry="qa-only" data-clarity-mask>
     <!-- Main Container -->
-    <div id="app" class="app-container">
+    <div id="app" class="app-container caissa-application-sidebar-host">
 
         <!-- Minimal Header (auth only - navigation lives in left sidebar) -->
         <header class="header header-minimal">
@@ -106,18 +107,18 @@
         </div>
 
         <!-- Mobile Navigation Toggle (visible only on mobile) -->
-        <button id="mobileNavToggle" class="mobile-nav-toggle" aria-label="Open navigation menu">
+        <button id="mobileNavToggle" class="mobile-nav-toggle" aria-label="Open navigation menu" aria-controls="mainNav" aria-expanded="false">
             <i class="fas fa-bars"></i>
         </button>
 
         <!-- Vertical Navigation Menu -->
-        <nav id="mainNav" class="main-navigation" aria-label="CAISSA main navigation">
+        <nav id="mainNav" class="main-navigation caissa-shared-sidebar" aria-label="CAISSA main navigation">
             <div class="nav-header">
                 <a class="nav-logo" href="/play" aria-label="CAISSA Chess — return to Play">
                     <i class="fas fa-chess-knight"></i>
                     <span class="nav-logo-text">CAISSA</span>
                 </a>
-                <button id="navCollapseBtn" class="nav-collapse-btn" aria-label="Collapse navigation">
+                <button id="navCollapseBtn" class="nav-collapse-btn" aria-label="Collapse navigation" aria-expanded="true">
                     <i class="fas fa-chevron-left"></i>
                 </button>
             </div>
@@ -160,102 +161,29 @@
                 </a>
             </div>
 
-            <div class="nav-items" data-caissa-primary-groups data-navigation-mode="application" data-include-connect>
+            <div class="nav-items" data-caissa-primary-groups data-caissa-sidebar-adapter="application" data-navigation-mode="application" data-include-connect><section class="nav-group" aria-labelledby="caissa-nav-group-0">
+                <h2 class="nav-group-heading nav-label" id="caissa-nav-group-0">Play & Compete</h2>
+                <div class="nav-destination-list" role="list"><div class="nav-list-item" role="listitem"><a href="/play" class="nav-item" data-nav-key="play" aria-label="Play"><i class="fas fa-play-circle" aria-hidden="true"></i><span class="nav-label">Play</span></a></div><div class="nav-list-item" role="listitem"><a href="/yahoo-classic" class="nav-item" data-nav-key="yahooClassic" aria-label="CAISSA Classic"><i class="fas fa-window-restore" aria-hidden="true"></i><span class="nav-label">CAISSA Classic</span></a></div><div class="nav-list-item" role="listitem"><a href="/fics" class="nav-item" data-nav-key="fics" aria-label="FICS"><i class="fas fa-globe" aria-hidden="true"></i><span class="nav-label">FICS</span></a></div><div class="nav-list-item" role="listitem"><a href="/play-online/playchess" class="nav-item" data-nav-key="playchess" aria-label="Playchess"><i class="fas fa-chess-board" aria-hidden="true"></i><span class="nav-label">Playchess</span></a></div><div class="nav-list-item" role="listitem"><a href="/play-online/fritz" class="nav-item" data-nav-key="fritz" aria-label="Fritz"><i class="fas fa-chess-knight" aria-hidden="true"></i><span class="nav-label">Fritz</span></a></div></div>
+            </section><div class="nav-divider" aria-hidden="true"></div><section class="nav-group" aria-labelledby="caissa-nav-group-1">
+                <h2 class="nav-group-heading nav-label" id="caissa-nav-group-1">Learn & Improve</h2>
+                <div class="nav-destination-list" role="list"><div class="nav-list-item" role="listitem"><a href="/puzzles/chessbase-tactics" class="nav-item" data-nav-key="tactics" aria-label="Tactics"><i class="fas fa-crosshairs" aria-hidden="true"></i><span class="nav-label">Tactics</span></a></div><div class="nav-list-item" role="listitem"><a href="/academy" class="nav-item" data-nav-key="academy" aria-label="Academy"><i class="fas fa-graduation-cap" aria-hidden="true"></i><span class="nav-label">Academy</span></a></div><div class="nav-list-item" role="listitem"><a href="/endgame-trainer" class="nav-item" data-nav-key="endgame-trainer" aria-label="Endgame Trainer"><i class="fas fa-chess-pawn" aria-hidden="true"></i><span class="nav-label">Endgame Trainer</span></a></div><div class="nav-list-item" role="listitem"><a href="/endgame-practice" class="nav-item" data-nav-key="endgame-practice" aria-label="Endgame Practice"><i class="fas fa-chess-board" aria-hidden="true"></i><span class="nav-label">Endgame Practice</span></a></div><div class="nav-list-item" role="listitem"><a href="/endgame-library" class="nav-item" data-nav-key="endgame-library" aria-label="Endgame Library"><i class="fas fa-book-reader" aria-hidden="true"></i><span class="nav-label">Endgame Library</span></a></div></div>
+            </section><div class="nav-divider" aria-hidden="true"></div><section class="nav-group" aria-labelledby="caissa-nav-group-2">
+                <h2 class="nav-group-heading nav-label" id="caissa-nav-group-2">Analyze & Watch</h2>
+                <div class="nav-destination-list" role="list"><div class="nav-list-item" role="listitem"><a href="/insights" class="nav-item" data-nav-key="insights" aria-label="Insights"><i class="fas fa-brain" aria-hidden="true"></i><span class="nav-label">Insights</span></a></div><div class="nav-list-item" role="listitem"><a href="/analyze" class="nav-item" data-nav-key="analyze" aria-label="Analyze"><i class="fas fa-chart-line" aria-hidden="true"></i><span class="nav-label">Analyze</span></a></div><div class="nav-list-item" role="listitem"><a href="/spectator-tv" class="nav-item" data-nav-key="spectator" aria-label="Spectator TV"><i class="fas fa-tv" aria-hidden="true"></i><span class="nav-label">Spectator TV</span></a></div><div class="nav-list-item" role="listitem"><a href="/watch/live-blitz" class="nav-item" data-nav-key="live-blitz" aria-label="Live Blitz"><i class="fas fa-bolt" aria-hidden="true"></i><span class="nav-label">Live Blitz</span></a></div><div class="nav-list-item" role="listitem"><a href="/arena" class="nav-item" data-nav-key="arena" aria-label="Arena"><i class="fas fa-robot" aria-hidden="true"></i><span class="nav-label">Arena</span></a></div></div>
+            </section><div class="nav-divider" aria-hidden="true"></div><section class="nav-group" aria-labelledby="caissa-nav-group-3">
+                <h2 class="nav-group-heading nav-label" id="caissa-nav-group-3">Tools</h2>
+                <div class="nav-destination-list" role="list"><div class="nav-list-item" role="listitem"><a href="/cheater-insight" class="nav-item" data-nav-key="cheater-insight" aria-label="Cheater Insight"><i class="fas fa-user-shield" aria-hidden="true"></i><span class="nav-label">Cheater Insight</span></a></div><div class="nav-list-item" role="listitem"><a href="/tools/polyglot" class="nav-item" data-nav-key="polyglot" aria-label="Polyglot Tool"><i class="fas fa-book-open" aria-hidden="true"></i><span class="nav-label">Polyglot Tool</span><i class="fas fa-external-link-alt nav-external-icon" aria-hidden="true"></i></a></div><div class="nav-list-item" role="listitem"><a href="/opening-database" class="nav-item" data-nav-key="opening-database" aria-label="Opening Database"><i class="fas fa-chess-board" aria-hidden="true"></i><span class="nav-label">Opening Database</span></a></div><div class="nav-list-item" role="listitem"><a href="/eco" class="nav-item" data-nav-key="eco" aria-label="ECO Codes"><i class="fas fa-book" aria-hidden="true"></i><span class="nav-label">ECO Codes</span></a></div><div class="nav-list-item" role="listitem"><a href="/game-library" class="nav-item nav-item-tool" data-nav-key="library" aria-label="Game Library"><i class="fas fa-database" aria-hidden="true"></i><span class="nav-label">Game Library</span></a></div><div class="nav-list-item" role="listitem"><a href="/history" class="nav-item" data-nav-key="history" aria-label="History"><i class="fas fa-history" aria-hidden="true"></i><span class="nav-label">History</span></a></div><div class="nav-list-item" role="listitem"><a href="/dos-chess" class="nav-item" data-nav-key="dosChess" aria-label="DOS Chess"><i class="fas fa-desktop" aria-hidden="true"></i><span class="nav-label">DOS Chess</span></a></div><div class="nav-list-item" role="listitem"><a href="/vault" class="nav-item" data-nav-key="vault" aria-label="Vault"><i class="fas fa-box-archive" aria-hidden="true"></i><span class="nav-label">Vault</span><i class="fas fa-external-link-alt nav-external-icon" aria-hidden="true"></i></a></div><div class="nav-list-item" role="listitem"><a href="/blog" class="nav-item" data-nav-key="blog" aria-label="Blog"><i class="fas fa-rss" aria-hidden="true"></i><span class="nav-label">Blog</span></a></div></div>
+            </section><section class="nav-connect" aria-labelledby="caissa-nav-connect-heading">
+            <div class="nav-connect-label nav-label" id="caissa-nav-connect-heading">Connect with CAISSA Chess</div>
+            <div class="nav-destination-list" role="list"><div class="nav-list-item" role="listitem"><a href="https://www.facebook.com/CaissaChessOrg/" class="nav-item" data-nav-key="facebook" aria-label="Facebook" target="_blank" rel="noopener noreferrer"><i class="fab fa-facebook" aria-hidden="true"></i><span class="nav-label">Facebook</span><i class="fas fa-external-link-alt nav-external-icon" aria-hidden="true"></i></a></div><div class="nav-list-item" role="listitem"><a href="https://www.youtube.com/@CaissaChessOrg" class="nav-item" data-nav-key="youtube" aria-label="CAISSA Chess YouTube" target="_blank" rel="noopener noreferrer"><i class="fas fa-video" aria-hidden="true"></i><span class="nav-label">CAISSA Chess YouTube</span><i class="fas fa-external-link-alt nav-external-icon" aria-hidden="true"></i></a></div><div class="nav-list-item" role="listitem"><a href="https://discord.gg/TM7GJPUVfr" class="nav-item" data-nav-key="discord" aria-label="CAISSA Discord" target="_blank" rel="noopener noreferrer"><i class="fab fa-discord" aria-hidden="true"></i><span class="nav-label">CAISSA Discord</span><i class="fas fa-external-link-alt nav-external-icon" aria-hidden="true"></i></a></div><div class="nav-list-item" role="listitem"><a href="mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&amp;body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A" class="nav-item" data-nav-key="feedback" aria-label="Share an Idea / Contact &amp; Feedback"><i class="fas fa-comment-dots" aria-hidden="true"></i><span class="nav-label">Share an Idea / Contact & Feedback</span></a></div></div>
+        </section></div>
 
-
-                <button class="nav-item" data-section="play" aria-label="Play section">
-                    <i class="fas fa-play-circle"></i>
-                    <span class="nav-label">Play</span>
-                </button>
-
-
-                <div class="nav-divider"></div>
-
-                <button class="nav-item" data-section="insights" aria-label="Insights section">
-                    <i class="fas fa-brain"></i>
-                    <span class="nav-label">Insights</span>
-                </button>
-
-
-                <button class="nav-item" data-section="analyze" aria-label="Analyze section">
-                    <i class="fas fa-chart-line"></i>
-                    <span class="nav-label">Analyze</span>
-                </button>
-
-
-                <button class="nav-item" data-section="arena" aria-label="Arena section">
-                    <i class="fas fa-robot"></i>
-                    <span class="nav-label">Arena</span>
-                </button>
-
-                <div class="nav-divider"></div>
-
-                <button class="nav-item" data-section="cheater-insight" aria-label="Cheater Insight">
-                    <i class="fas fa-user-shield"></i>
-                    <span class="nav-label">Cheater Insight</span>
-                </button>
-
-                <a href="/tools/polyglot" class="nav-item nav-item-external" aria-label="CAISSA Polyglot Book Creator">
-                    <i class="fas fa-book-open"></i>
-                    <span class="nav-label">Polyglot Tool</span>
-                    <i class="fas fa-external-link-alt nav-external-icon"></i>
-                </a>
-
-                <a href="/opening-database" class="nav-item nav-item-external" aria-label="Chess Opening Database">
-                    <i class="fas fa-chess-board"></i>
-                    <span class="nav-label">Opening Database</span>
-                </a>
-
-                <a href="/eco" class="nav-item nav-item-external" aria-label="ECO Chess Opening Codes">
-                    <i class="fas fa-book"></i>
-                    <span class="nav-label">ECO Codes</span>
-                </a>
-
-                <button class="nav-item nav-item-tool" data-section="library" aria-label="Open Game Library">
-                    <i class="fas fa-database"></i>
-                    <span class="nav-label">Game Library</span>
-                </button>
-
-                <div class="nav-divider"></div>
-
-                <button class="nav-item" data-section="history" aria-label="History section">
-                    <i class="fas fa-history"></i>
-                    <span class="nav-label">History</span>
-                </button>
-
-                <button class="nav-item" data-section="dosChess" aria-label="DOS Chess Games">
-                    <i class="fas fa-desktop"></i>
-                    <span class="nav-label">DOS Chess</span>
-                </button>
-
-                <a href="/vault" class="nav-item nav-item-external" aria-label="CAISSA Vault - Downloads">
-                    <i class="fas fa-box-archive"></i>
-                    <span class="nav-label">Vault</span>
-                    <i class="fas fa-external-link-alt nav-external-icon"></i>
-                </a>
-                <a href="/blog" class="nav-item nav-item-external" aria-label="Visit the CAISSA Chess Blog">
-                    <i class="fas fa-rss"></i>
-                    <span class="nav-label">Blog</span>
-                </a>
-                <div class="nav-connect-label nav-label">Connect with CAISSA Chess</div>
-                <a href="https://www.facebook.com/CaissaChessOrg/" target="_blank" rel="noopener noreferrer" class="nav-item nav-item-external" aria-label="CAISSA Chess on Facebook (opens in a new tab)">
-                    <i class="fab fa-facebook" aria-hidden="true"></i>
-                    <span class="nav-label">Facebook</span>
-                    <i class="fas fa-external-link-alt nav-external-icon" aria-hidden="true"></i>
-                </a>
-                <a href="https://www.youtube.com/@CaissaChessOrg" target="_blank" rel="noopener noreferrer" class="nav-item nav-item-external" aria-label="CAISSA Chess YouTube (opens in a new tab)">
-                    <i class="fas fa-video"></i>
-                    <span class="nav-label">CAISSA Chess YouTube</span>
-                    <i class="fas fa-external-link-alt nav-external-icon" aria-hidden="true"></i>
-                </a>
-                <a href="mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&amp;body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A" class="nav-item nav-item-external" aria-label="Send feedback about CAISSA Chess">
-                    <i class="fas fa-comment-dots"></i>
-                    <span class="nav-label">Share an Idea / Contact &amp; Feedback</span>
-                </a>
-            </div>
-
-            <div class="nav-footer" data-caissa-primary-support data-navigation-mode="application"></div>
+            <section class="nav-footer" aria-labelledby="caissa-nav-support-heading">
+                <h2 class="nav-group-heading nav-label" id="caissa-nav-support-heading">Support</h2>
+                <div role="list" data-caissa-primary-support data-caissa-sidebar-adapter="application" data-navigation-mode="application"><div class="nav-list-item" role="listitem"><a href="/help" class="nav-item" data-nav-key="help" aria-label="Help"><i class="fas fa-question-circle" aria-hidden="true"></i><span class="nav-label">Help</span></a></div><div class="nav-list-item" role="listitem"><a href="/about" class="nav-item" data-nav-key="about" aria-label="About"><i class="fas fa-info-circle" aria-hidden="true"></i><span class="nav-label">About</span></a></div></div>
+            </section>
         </nav>
+        <div class="caissa-application-backdrop" aria-hidden="true"></div>
 
         <!-- Content Area (replaces main-content) -->
         <main id="mainContent" class="content-area">
