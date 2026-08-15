@@ -48,5 +48,7 @@ async function build(file, adapterName, activeKey) {
 }
 
 await build('index.html', 'application', '');
+await build('yahoo-classic.html', 'application', 'yahooClassic');
+await build('play-v2-public-beta.html', 'application', 'play');
 await build('endgame-trainer.html', 'trainer', 'endgame-trainer');
 console.log(checkOnly ? 'Navigation fallbacks are current' : 'Generated navigation fallbacks');

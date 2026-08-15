@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'">
+  <title>Replay Chess Games Online | CAISSA Chess</title>
+  <meta name="description" content="Replay and study classic chess games online with an interactive board and a curated PGN collection from CAISSA Chess.">
+  <link rel="canonical" href="https://www.caissa-chess.org/watch/game-replayer">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.caissa-chess.org/watch/game-replayer">
+  <meta property="og:title" content="Replay Chess Games Online | CAISSA Chess">
+  <meta property="og:description" content="Replay and study classic chess games online with an interactive board and a curated PGN collection from CAISSA Chess.">
+  <meta property="og:image" content="https://www.caissa-chess.org/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Replay Chess Games Online | CAISSA Chess">
+  <meta name="twitter:description" content="Replay and study classic chess games online with an interactive board and a curated PGN collection from CAISSA Chess.">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0b0f1a">
+  <link rel="icon" href="/favicon.ico?v=4">
+  <link rel="stylesheet" href="/styles.css?v=2.0.16">
+  <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.1.0">
+  <link rel="stylesheet" href="/css/game-replayer.css?v=1.0.0">
+  <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
+</head>
+<body class="game-replayer-page">
+  <div class="caissa-standalone-layout">
+    <div data-caissa-standalone-sidebar data-active="game-replayer"></div>
+    <div class="caissa-standalone-content">
+      <main class="game-replayer-main">
+        <aside class="game-replayer-banner" aria-label="CAISSA tournament announcement">
+          <div><strong>CAISSA Weekend Tournament — Coming Soon</strong><p>Registered CAISSA players will be able to compete in our future weekly tournament.</p></div>
+          <a href="/academy">Explore CAISSA Chess</a>
+        </aside>
+        <header class="game-replayer-heading">
+          <h1>Replay and Study Chess Games</h1>
+          <p>Explore 597 classic games played by José Raúl Capablanca from 1901 through 1941 on an interactive board.</p>
+        </header>
+        <section class="game-replayer-shell" data-game-replayer-shell aria-label="Capablanca chess game replayer">
+          <div class="game-replayer-status" data-game-replayer-status role="status" aria-live="polite">Loading the game replayer…</div>
+          <iframe src="/integrations/chessbase-pgn-replayer.html" title="Chess game replayer for the Capablanca collection" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer" loading="eager"></iframe>
+          <div class="game-replayer-error" data-game-replayer-error role="alert" hidden>
+            <p data-game-replayer-error-copy>The game replayer could not be loaded.</p>
+            <button type="button" data-game-replayer-retry>Retry</button>
+            <a href="/data/pgn/capablanca-games-1901-1941.pgn" download>Download the Capablanca PGN collection</a>
+          </div>
+        </section>
+        <noscript><p class="game-replayer-noscript">JavaScript is required for the interactive replayer. <a href="/data/pgn/capablanca-games-1901-1941.pgn" download>Download the PGN collection instead.</a></p></noscript>
+        <section class="game-replayer-disclosure" aria-label="ChessBase replayer and collection attribution">
+          <p><strong>Technology attribution:</strong> Interactive game replayer technology is provided and operated by ChessBase. CAISSA Chess supplies the displayed PGN collection and does not operate ChessBase.</p>
+          <p><strong>Collection provenance:</strong> This owner-authorized, user-supplied collection contains 597 factual Capablanca game scores dated 1901–1941. It contained no prose comments or editorial annotations; only line endings were normalized for publication.</p>
+          <p><a href="https://play.chessbase.com/en/howto/embedpgn" target="_blank" rel="noopener noreferrer">View the official ChessBase PGN Replayer documentation</a></p>
+          <p><a href="/data/pgn/capablanca-games-1901-1941.pgn" download>Download the Capablanca PGN collection</a></p>
+        </section>
+      </main>
+      <footer class="game-replayer-footer"><p>&copy; 2026 CAISSA Chess. All rights reserved.</p><p><a href="/play">Play</a> · <a href="/about">About CAISSA Chess</a></p></footer>
+    </div>
+  </div>
+  <script src="/js/caissa-primary-navigation.js?v=1.0.0"></script>
+  <script src="/js/caissa-standalone-sidebar.js?v=1.1.0"></script>
+  <script src="/js/game-replayer-parent.js?v=1.0.0"></script>
+</body>
+</html>

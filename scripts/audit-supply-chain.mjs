@@ -7,6 +7,11 @@ import { auditHttpsExternalScripts } from './supply-chain-script-tags.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const clerkUrl = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6.28.1/dist/clerk.browser.js';
 const clerkIntegrity = 'sha384-hDYzybzZL06dXvUhFHr0WXKf/sBfpbnhOwxF4xa/m4/hOYAAgZrNpO1n6eJ5np47';
+const externalScriptRegistry = Object.freeze(new Map([
+    [clerkUrl, clerkIntegrity],
+    ['https://pgn.chessbase.com/jquery-3.0.0.min.js', 'sha384-THPy051/pYDQGanwU6poAc/hOdQxjnOEXzbT+OuUAFqNqFjL+4IGLBgCJC3ZOShY'],
+    ['https://pgn.chessbase.com/cbreplay.js', 'sha384-z0jdjKWWyB3ocje/Y6yELBaAqgMK4JZD8VNzvISMneMW7j9Uhw+2DKhD9/h60WN5']
+]));
 const failures = [];
 
 function walk(directory) {
@@ -28,11 +33,7 @@ for (const file of runtimeFiles) {
     if (/@(?:latest|next)(?:\/|\b)/i.test(source)) failures.push(`${relative}: floating runtime version`);
     if (/\bhttp:\/\/[^\s'"<>]+\.(?:js|mjs|wasm)(?:[?'"\s<]|$)/i.test(source))
         failures.push(`${relative}: insecure executable dependency`);
-    failures.push(...auditHttpsExternalScripts(source, {
-        relative,
-        allowedUrl: clerkUrl,
-        requiredIntegrity: clerkIntegrity
-    }));
+    failures.push(...auditHttpsExternalScripts(source, { relative, registry: externalScriptRegistry }));
 }
 
 const authSource = fs.readFileSync(path.join(root, 'js/caissa-auth.js'), 'utf8');

@@ -8,12 +8,13 @@ export function findHttpsExternalScriptTags(source) {
     return scripts;
 }
 
-export function auditHttpsExternalScripts(source, { relative, allowedUrl, requiredIntegrity }) {
+export function auditHttpsExternalScripts(source, { relative, allowedUrl, requiredIntegrity, registry = null }) {
     const failures = [];
     for (const { tag, url } of findHttpsExternalScriptTags(source)) {
-        if (url !== allowedUrl) failures.push(`${relative}: unregistered external script ${url}`);
-        if (url === allowedUrl && (!tag.includes(`integrity="${requiredIntegrity}"`) || !/crossorigin=["']anonymous["']/i.test(tag)))
-            failures.push(`${relative}: Clerk SRI/crossorigin missing`);
+        const expectedIntegrity = registry ? registry.get(url) : (url === allowedUrl ? requiredIntegrity : null);
+        if (!expectedIntegrity) failures.push(`${relative}: unregistered external script ${url}`);
+        if (expectedIntegrity && (!tag.includes(`integrity="${expectedIntegrity}"`) || !/crossorigin=["']anonymous["']/i.test(tag)))
+            failures.push(`${relative}: registered script SRI/crossorigin missing for ${url}`);
     }
     return failures;
 }

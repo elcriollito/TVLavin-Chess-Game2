@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "CaissaPgnCollectionProvenance@1.0.0",
+  "collectionId": "capablanca-games-1901-1941",
+  "publicFilename": "capablanca-games-1901-1941.pgn",
+  "originalFilename": "Capablanca.pgn",
+  "originalSha256": "fb5d46cd1ce78665b2d2ea3df03b5bbea72b6ddb643a0c930f66a686a8723a8a",
+  "publicDerivativeSha256": "33cbbea9421f14f51bf55dbd772fed3031e855235fedf05d9247886a9d96f71f",
+  "gameCount": 597,
+  "collectionSubject": "Games played by José Raúl Capablanca, dated 1901 through 1941",
+  "source": "User-supplied CAISSA collection",
+  "acquisitionDate": "2026-08-14",
+  "annotationsStatus": "No comments, variations, or NAG symbols were present in the supplied album.",
+  "sanitizationSummary": "No chess content was removed or repaired. The public derivative normalizes CRLF line endings to LF and preserves game ordering and scores.",
+  "publicUseAuthorization": "The repository owner supplied and authorized this collection for the CAISSA Game Replayer implementation.",
+  "validationStatus": "approved-with-disclosed-incomplete-metadata",
+  "validationSummary": {
+    "legalGames": 597,
+    "duplicateGames": 0,
+    "parserErrors": 0,
+    "illegalMoveSequences": 0,
+    "unknownRounds": 247,
+    "unfinishedResults": 1,
+    "eloTaggedGames": 0,
+    "ecoTaggedGames": 597,
+    "unsafeMarkupFindings": 0,
+    "privateInformationFindings": 0
+  }
+}

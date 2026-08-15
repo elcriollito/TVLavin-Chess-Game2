@@ -52,7 +52,7 @@ test('unregistered scripts fail while the registered script remains SRI-governed
         'fixture.html: unregistered external script https://evil.example/app.js'
     ]);
     assert.deepEqual(auditHttpsExternalScripts(`<script src="${clerk}"></script>`, options), [
-        'fixture.html: Clerk SRI/crossorigin missing'
+        `fixture.html: registered script SRI/crossorigin missing for ${clerk}`
     ]);
     assert.deepEqual(auditHttpsExternalScripts(
         `<script crossorigin="anonymous" integrity="sha384-required" src="${clerk}"></script>`, options
@@ -80,7 +80,8 @@ test('production audit still scans public HTML and rejects no iframe as a script
 
 test('production audit retains exact allowlist and SRI policy', () => {
     const source = fs.readFileSync(path.join(root, 'scripts/audit-supply-chain.mjs'), 'utf8');
-    assert.match(source, /allowedUrl: clerkUrl/);
-    assert.match(source, /requiredIntegrity: clerkIntegrity/);
-    assert.doesNotMatch(source, /fritz\.chessbase\.com|play\.chessbase\.com/);
+    assert.match(source, /externalScriptRegistry/);
+    assert.match(source, /pgn\.chessbase\.com\/jquery-3\.0\.0\.min\.js/);
+    assert.match(source, /pgn\.chessbase\.com\/cbreplay\.js/);
+    assert.doesNotMatch(source, /\*\.chessbase\.com|fritz\.chessbase\.com|play\.chessbase\.com/);
 });

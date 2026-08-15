@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-eval' https://pgn.chessbase.com; style-src 'self' 'unsafe-inline' https://pgn.chessbase.com; img-src data: blob: https://pgn.chessbase.com; connect-src https://www.caissa-chess.org http://127.0.0.1:8000; font-src data: https://pgn.chessbase.com https://fonts.gstatic.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
+  <title>CAISSA Chess Game Replayer</title>
+  <link rel="stylesheet" href="https://pgn.chessbase.com/CBReplay.css" integrity="sha384-NOy0TliUwlH5JC2t5CYXOsZzaglvzFTB3qoKTR1ZHUohAZvsNYsW7LJnpGVDmGCt" crossorigin="anonymous">
+  <link rel="stylesheet" href="/css/chessbase-pgn-replayer-wrapper.css?v=1.0.0">
+  <script src="https://pgn.chessbase.com/jquery-3.0.0.min.js" integrity="sha384-THPy051/pYDQGanwU6poAc/hOdQxjnOEXzbT+OuUAFqNqFjL+4IGLBgCJC3ZOShY" crossorigin="anonymous" defer></script>
+  <script src="https://pgn.chessbase.com/cbreplay.js" integrity="sha384-z0jdjKWWyB3ocje/Y6yELBaAqgMK4JZD8VNzvISMneMW7j9Uhw+2DKhD9/h60WN5" crossorigin="anonymous" defer></script>
+  <script src="/js/chessbase-pgn-replayer-wrapper.js?v=1.0.0" defer></script>
+</head>
+<body>
+  <main>
+    <div class="wrapper-status" data-wrapper-status role="status">Loading the Capablanca collection…</div>
+    <div class="cbreplay" data-url="/data/pgn/capablanca-games-1901-1941.pgn"></div>
+    <div class="wrapper-failure" data-wrapper-failure role="alert" hidden>
+      <p>The interactive replayer is unavailable.</p>
+      <a href="/data/pgn/capablanca-games-1901-1941.pgn" target="_blank" rel="noopener">Open the PGN collection</a>
+    </div>
+  </main>
+</body>
+</html>

@@ -38,6 +38,7 @@
     { "source": "/play-online/fritz", "destination": "/fritz.html" },
     { "source": "/puzzles/chessbase-tactics", "destination": "/tactics.html" },
     { "source": "/watch/live-blitz", "destination": "/live-blitz.html" },
+    { "source": "/watch/game-replayer", "destination": "/game-replayer.html" },
     { "source": "/academy", "destination": "/index.html" },
     { "source": "/insights", "destination": "/index.html" },
     { "source": "/fics", "destination": "/index.html" },
@@ -93,6 +94,23 @@
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
         { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" },
         { "key": "Cross-Origin-Resource-Policy", "value": "same-site" }
+      ]
+    },
+    {
+      "source": "/integrations/chessbase-pgn-replayer.html",
+      "headers": [
+        { "key": "Content-Security-Policy", "value": "default-src 'none'; script-src 'self' 'unsafe-eval' https://pgn.chessbase.com; style-src 'self' 'unsafe-inline' https://pgn.chessbase.com; img-src data: blob: https://pgn.chessbase.com; connect-src https://www.caissa-chess.org; font-src data: https://pgn.chessbase.com https://fonts.gstatic.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; frame-ancestors 'self'; upgrade-insecure-requests" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" },
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=(), clipboard-read=(), clipboard-write=()" }
+      ]
+    },
+    {
+      "source": "/data/pgn/capablanca-games-1901-1941.pgn",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Cache-Control", "value": "public, max-age=86400" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
       ]
     },
     {

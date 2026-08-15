@@ -144,8 +144,8 @@ test('public disclosure documents the pathname-only contract without obsolete co
 
 test('CSP remains same-origin compatible without Clarity allowances', () => {
   const config = JSON.parse(read('vercel.json'));
-  const globalCsp = config.headers[0].headers.find(header => header.key === 'Content-Security-Policy').value;
-  const playCsp = config.headers[1].headers.find(header => header.key === 'Content-Security-Policy').value;
+  const globalCsp = config.headers.find(rule => rule.source === '/(.*)').headers.find(header => header.key === 'Content-Security-Policy').value;
+  const playCsp = config.headers.find(rule => rule.source === '/play').headers.find(header => header.key === 'Content-Security-Policy').value;
   assert.match(globalCsp, /script-src 'self'/);
   assert.match(globalCsp, /connect-src 'self'/);
   assert.doesNotMatch(globalCsp, /clarity\.ms/);

@@ -51,8 +51,9 @@ test('lockfile has registry provenance, integrity, and exact security overrides'
 test('SEC-005 tokens remain independent of nanoid and SEC-012 stays strict', () => {
     const migration = read('api/_lib/identity-migration.js') + read('api/_lib/clerk-migration-verifiers.js');
     assert.doesNotMatch(migration, /nanoid/i);
-    const vercel = read('vercel.json');
-    assert.doesNotMatch(vercel, /'unsafe-eval'/);
-    assert.match(vercel, /worker-src 'self'/);
-    assert.doesNotMatch(vercel, /worker-src[^;]*blob:/);
+    const vercel = JSON.parse(read('vercel.json'));
+    const globalCsp = vercel.headers.find(rule => rule.source === '/(.*)').headers.find(header => header.key === 'Content-Security-Policy').value;
+    assert.doesNotMatch(globalCsp, /'unsafe-eval'/);
+    assert.match(globalCsp, /worker-src 'self'/);
+    assert.doesNotMatch(globalCsp, /worker-src[^;]*blob:/);
 });
