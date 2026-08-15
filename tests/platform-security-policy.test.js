@@ -65,7 +65,7 @@ test('allowed preflight advertises only route methods and required headers', () 
     });
     assert.equal(allowed, true);
     assert.equal(res.getHeader('Access-Control-Allow-Methods'), 'POST, OPTIONS');
-    assert.equal(res.getHeader('Access-Control-Allow-Headers'), 'Authorization, Content-Type');
+    assert.equal(res.getHeader('Access-Control-Allow-Headers'), 'Authorization, Content-Type, Idempotency-Key');
 });
 
 test('preflight rejects forbidden methods', () => {

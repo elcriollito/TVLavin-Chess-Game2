@@ -294,6 +294,10 @@ const LLMProvider = {
 
         try {
             const headers = { 'Content-Type': 'application/json' };
+            headers['Idempotency-Key'] = window.crypto?.randomUUID?.() || 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, marker => {
+                const value = Math.floor(Math.random() * 16);
+                return (marker === 'x' ? value : (value & 3) | 8).toString(16);
+            });
             if (authToken) {
                 headers['Authorization'] = `Bearer ${authToken}`;
             }

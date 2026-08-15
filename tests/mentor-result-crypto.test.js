@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import { decryptMentorResult, encryptMentorResult, mentorResultEncryptionReady } from '../api/_lib/mentor-result-crypto.js';
+const env={CAISSA_MENTOR_RESULT_ENCRYPTION_KEY:crypto.randomBytes(32).toString('base64')};
+const binding={operationId:crypto.randomUUID(),userId:crypto.randomUUID()};
+test('AES-GCM result round trips and ciphertext excludes plaintext',()=>{const encrypted=encryptMentorResult({content:'private answer'},binding,env);assert.doesNotMatch(encrypted.ciphertext.toString(),/private answer/);assert.deepEqual(decryptMentorResult({schema_version:encrypted.schemaVersion,ciphertext:encrypted.ciphertext,iv:encrypted.iv,auth_tag:encrypted.authTag},binding,env),{content:'private answer'});});
+test('ciphertext is bound to operation and user',()=>{const encrypted=encryptMentorResult({content:'private'},binding,env);assert.throws(()=>decryptMentorResult({schema_version:encrypted.schemaVersion,ciphertext:encrypted.ciphertext,iv:encrypted.iv,auth_tag:encrypted.authTag},{...binding,userId:crypto.randomUUID()},env));});
+test('missing or malformed secret fails safely',()=>{assert.equal(mentorResultEncryptionReady({}),false);assert.throws(()=>encryptMentorResult({content:'x'},binding,{}),/RESULT_ENCRYPTION_UNAVAILABLE/);});
+test('plaintext limit is enforced',()=>assert.throws(()=>encryptMentorResult({content:'x'.repeat(321*1024)},binding,env),/RESULT_TOO_LARGE/));

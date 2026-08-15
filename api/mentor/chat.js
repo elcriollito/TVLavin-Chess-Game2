@@ -3,6 +3,8 @@ import { authenticateRequest, respondAuthFailure, setCorsHeaders } from '../_lib
 import { logAction, logError } from '../_lib/logger.js';
 import { MENTOR_LIMITS, validateMentorRequest, exceedsMentorHttpBodyLimit, isAllowedSharedModel } from '../_lib/mentor-request-policy.js';
 import { claimMentorCapacity, releaseMentorCapacity } from '../_lib/mentor-capacity.js';
+import { MentorEconomicService, validOperationId } from '../_lib/mentor-economic-service.js';
+import { mentorResultEncryptionReady } from '../_lib/mentor-result-crypto.js';
 
 const PROVIDER_ENDPOINTS = Object.freeze({
   together: 'https://api.together.xyz/v1/chat/completions', llama: 'https://api.llama.com/v1/chat/completions',
@@ -68,6 +70,11 @@ export function createMentorChatHandler(deps = {}) {
     if (!validation.ok) return reject(res, validation.status, validation.code, validation.status === 413 ? 'Request is too large.' : 'Invalid AI request.');
     const command = validation.value;
     if (!command.byo && (env.MENTOR_SHARED_AI_ENABLED === 'false' || !env.TOGETHER_API_KEY)) return reject(res, 503, 'SERVICE_UNAVAILABLE', 'AI service temporarily unavailable.');
+    const reservationsEnabled = !command.byo && env.CAISSA_MENTOR_RESERVATIONS_ENABLED === 'true';
+    const operationId = req.headers?.['idempotency-key'];
+    if (reservationsEnabled && (!validOperationId(operationId) || !mentorResultEncryptionReady(env))) {
+      return reject(res, 503, 'ECONOMIC_UNAVAILABLE', 'AI service temporarily unavailable.');
+    }
 
     const capacity = await claimMentorCapacity(db, auth.userId, env.MENTOR_RATE_LIMIT_SECRET);
     if (!capacity.ok) {
@@ -78,6 +85,42 @@ export function createMentorChatHandler(deps = {}) {
     res.setHeader('X-RateLimit-Remaining', String(capacity.remaining));
 
     try {
+      if (reservationsEnabled) {
+        const economic = new MentorEconomicService({ db, env });
+        const reservation = await economic.reserve({ clerkId: auth.userId, operationId });
+        if (!reservation.ok) return reject(res, reservation.code === 'INSUFFICIENT_CREDITS' ? 402 : 503, reservation.code || 'ECONOMIC_UNAVAILABLE', reservation.code === 'INSUFFICIENT_CREDITS' ? 'Insufficient credits.' : 'AI service temporarily unavailable.');
+        res.setHeader('Idempotency-Key', operationId);
+        if (reservation.state === 'CONSUMED') {
+          const replay = await economic.replay({ operationId, clerkId: auth.userId });
+          return replay.ok ? res.status(200).json({ ...replay.result, replayed: true }) : reject(res, 503, 'RESULT_UNAVAILABLE', 'AI result temporarily unavailable.');
+        }
+        const attempt = await economic.markProviderAttempt(reservation.reservation_id);
+        if (!attempt.ok || !attempt.should_call_provider) return res.status(202).json({ code: 'OPERATION_IN_PROGRESS', operationId });
+        command.apiKey = env.TOGETHER_API_KEY;
+        const started = Date.now();
+        try {
+          const result = await callProvider(command, fetchImpl);
+          const responseBody = { ...result, provider: command.provider, model: command.model, isSharedApi: true };
+          const persisted = await economic.persistResult({ reservationId: reservation.reservation_id, operationId, userId: reservation.user_id, result: responseBody });
+          if (!persisted.ok) {
+            await economic.release(reservation.reservation_id, 'INTERNAL_FAILED');
+            return reject(res, 503, 'ECONOMIC_UNAVAILABLE', 'AI service temporarily unavailable.');
+          }
+          const metered = await economic.recordUsage({ reservationId: reservation.reservation_id, operationId, userId: reservation.user_id, provider: command.provider, model: command.model, usage: result.usage, durationMs: Date.now() - started, resultCode: 'SUCCESS', valueDeliveryState: 'VALUE_AVAILABLE' });
+          if (!metered.ok || !(await economic.markResultAvailable(reservation.reservation_id)).ok) {
+            await economic.discardResult(operationId, reservation.user_id);
+            await economic.release(reservation.reservation_id, 'INTERNAL_FAILED');
+            return reject(res, 503, 'ECONOMIC_UNAVAILABLE', 'AI service temporarily unavailable.');
+          }
+          const consumed = await economic.consume(reservation.reservation_id);
+          if (!consumed.ok) return reject(res, 503, 'ECONOMIC_UNAVAILABLE', 'AI service temporarily unavailable.');
+          return res.status(200).json(responseBody);
+        } catch (error) {
+          await economic.recordUsage({ reservationId: reservation.reservation_id, operationId, userId: reservation.user_id, provider: command.provider, model: command.model, usage: null, durationMs: Date.now() - started, resultCode: error?.name === 'AbortError' ? 'PROVIDER_TIMEOUT' : 'PROVIDER_FAILED', valueDeliveryState: 'VALUE_UNDELIVERED' });
+          await economic.release(reservation.reservation_id, error?.name === 'AbortError' ? 'PROVIDER_TIMEOUT' : 'PROVIDER_FAILED');
+          throw error;
+        }
+      }
       if (!command.byo) {
         const credit = await consumeMentorCredit(db, auth.userId);
         if (credit.reason === 'service_error' || credit.reason === 'user_not_found') return reject(res, 503, 'SERVICE_UNAVAILABLE', 'AI service temporarily unavailable.');

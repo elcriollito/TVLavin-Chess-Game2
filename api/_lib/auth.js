@@ -98,13 +98,13 @@ export function setCorsHeaders(req, res, methods) {
     const requestedMethod = String(req.headers?.['access-control-request-method'] || '').toUpperCase();
     const requestedHeaders = String(req.headers?.['access-control-request-headers'] || '').toLowerCase().split(',').map(value => value.trim()).filter(Boolean);
     if (req.method === 'OPTIONS' && ((requestedMethod && !methods.includes(requestedMethod))
-        || requestedHeaders.some(value => !['authorization', 'content-type'].includes(value)))) {
+        || requestedHeaders.some(value => !['authorization', 'content-type', 'idempotency-key'].includes(value)))) {
         res.status(403).json({ error: 'Request rejected' });
         return false;
     }
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Methods', allowedMethods.join(', '));
-    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, Idempotency-Key');
     res.setHeader('Vary', 'Origin');
     return true;
 }
