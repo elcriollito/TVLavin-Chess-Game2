@@ -34,28 +34,32 @@
         </aside>
         <header class="live-tournaments-heading">
           <h1>Watch a Featured Live Chess Tournament</h1>
-          <p>Follow the featured Esports World Cup Chess Playoff broadcast through the official ChessBase live tournament viewer.</p>
+          <p>Follow a featured external tournament through the official ChessBase tournament viewer.</p>
         </header>
+        <section class="live-tournaments-event" aria-labelledby="live-tournaments-event-name">
+          <h2 id="live-tournaments-event-name" data-live-tournaments-name>Featured tournament</h2>
+          <p><strong>Status:</strong> <span data-live-tournaments-event-status role="status" aria-live="polite">Checking the published schedule…</span></p>
+          <p><strong>Organizer:</strong> <span data-live-tournaments-organizer>External tournament organizer</span></p>
+          <p><strong>Location:</strong> <span data-live-tournaments-location>See official event information</span></p>
+          <p><strong>Published coverage window:</strong> <span data-live-tournaments-schedule>See official event information</span> (<span data-live-tournaments-timezone>event local time</span>)</p>
+          <p>Coverage window reflects the published event schedule; it does not guarantee that a game is in progress at this exact moment.</p>
+        </section>
         <section class="live-tournaments-shell" data-live-tournaments-shell aria-label="Featured ChessBase live tournament broadcast">
-          <div class="live-tournaments-status" data-live-tournaments-status role="status" aria-live="polite">Loading the featured tournament broadcast…</div>
-          <iframe
-            src="https://live.chessbase.com/frame/Esports-World-Cup-Chess-Playoff-2026"
-            data-live-tournaments-frame
-            title="Featured Esports World Cup Chess Playoff broadcast from ChessBase"
-            referrerpolicy="no-referrer"
-            loading="eager"
-            allowfullscreen></iframe>
+          <div class="live-tournaments-status" data-live-tournaments-loading role="status">Loading the featured tournament viewer…</div>
+          <div data-live-tournaments-frame-mount></div>
           <div class="live-tournaments-error" data-live-tournaments-error role="alert" hidden>
             <p>The featured ChessBase tournament broadcast could not be displayed.</p>
             <button type="button" data-live-tournaments-retry>Retry</button>
-            <a href="https://live.chessbase.com/en/Watch?id=Esports-World-Cup-Chess-Playoff-2026" target="_blank" rel="noopener noreferrer">Open the official tournament page</a>
+            <a href="https://live.chessbase.com" data-live-tournaments-fallback target="_blank" rel="noopener noreferrer">Open ChessBase Live</a>
           </div>
         </section>
-        <noscript><p class="live-tournaments-noscript">JavaScript is required for loading status and retry controls. <a href="https://live.chessbase.com/en/Watch?id=Esports-World-Cup-Chess-Playoff-2026" target="_blank" rel="noopener noreferrer">Open the official tournament page.</a></p></noscript>
+        <noscript><p class="live-tournaments-noscript">JavaScript is required to validate and load the featured viewer. <a href="https://live.chessbase.com" target="_blank" rel="noopener noreferrer">Open ChessBase Live.</a></p></noscript>
         <section class="live-tournaments-disclosure" aria-label="ChessBase live tournament attribution">
-          <p><strong>Broadcast attribution:</strong> The tournament viewer and live broadcast are provided and operated by ChessBase. CAISSA Chess selects and embeds the official public event frame but does not operate the tournament, pairings, players, boards, clocks, moves, results, or broadcast data.</p>
-          <p>The event may be live, delayed, between rounds, or completed depending on the ChessBase feed. ChessBase controls availability and its own privacy and cookie behavior.</p>
-          <p><a href="https://live.chessbase.com/en/Watch?id=Esports-World-Cup-Chess-Playoff-2026" target="_blank" rel="noopener noreferrer">Open the official Esports World Cup Chess Playoff broadcast</a></p>
+          <p><strong>Provider:</strong> ChessBase operates the embedded viewer. <span data-live-tournaments-organizer>the named external organizer</span> operates the external tournament. CAISSA Chess is an independent credited gateway and does not organize, score, arbitrate, broadcast, schedule, or control the event, its players, boards, clocks, moves, results, or data.</p>
+          <p>The future CAISSA Weekend Tournament announced above is separate from this external event. ChessBase controls viewer availability and its own privacy and cookie behavior.</p>
+          <p><a href="https://live.chessbase.com" data-live-tournaments-provider-link target="_blank" rel="noopener noreferrer">Open ChessBase Live</a></p>
+          <p><a data-live-tournaments-organizer-link target="_blank" rel="noopener noreferrer">Visit the external tournament organizer</a></p>
+          <p>Event information last verified: <time data-live-tournaments-verified>pending</time>.</p>
           <p><a href="https://play.chessbase.com/en/howto/embedlivechess" target="_blank" rel="noopener noreferrer">View the official ChessBase live tournament embed documentation</a></p>
         </section>
       </main>
@@ -64,6 +68,6 @@
   </div>
   <script src="/js/caissa-primary-navigation.js?v=1.0.0"></script>
   <script src="/js/caissa-standalone-sidebar.js?v=1.1.0"></script>
-  <script src="/js/live-tournaments-parent.js?v=1.0.0"></script>
+  <script type="module" src="/js/live-tournaments-parent.js?v=1.1.0"></script>
 </body>
 </html>
