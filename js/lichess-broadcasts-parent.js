@@ -29,10 +29,15 @@ export function initializeLichessBroadcasts(root = document, config = FEATURED_L
   const timeoutMs = options.timeoutMs ?? 15000;
   let availability = 'available', frame = null, timer = 0, generation = 0;
   const renderStatus = () => { const state = lichessBroadcastStatus(config, now, availability); status.textContent = LICHESS_BROADCAST_STATUS_COPY[state]; status.dataset.status = state; return state; };
+  function focusStatus() {
+    try { status.focus({ preventScroll: true }); }
+    catch { status.focus(); }
+  }
   function clearAttempt() { window.clearTimeout(timer); timer = 0; frame?.remove(); frame = null; }
   function fail(attempt) { if (attempt !== generation) return; window.clearTimeout(timer); availability = 'unavailable'; loading.hidden = true; error.hidden = false; shell.classList.remove('is-ready'); renderStatus(); }
-  function createFrame() {
+  function createFrame({ restoreFocus = false } = {}) {
     clearAttempt(); generation += 1; const attempt = generation; availability = 'available'; error.hidden = true; loading.hidden = false; shell.classList.remove('is-ready'); renderStatus();
+    if (restoreFocus) { status.textContent = 'Reloading the Lichess broadcast viewer'; status.dataset.status = 'loading'; focusStatus(); }
     const next = root.createElement('iframe');
     next.src = config.frameUrl; next.title = `${config.displayName} official Lichess tournament viewer`; next.loading = 'eager'; next.referrerPolicy = 'no-referrer'; next.setAttribute('sandbox', LICHESS_BROADCAST_SANDBOX); next.dataset.lichessBroadcastsFrame = '';
     next.addEventListener('load', () => { if (attempt !== generation) return; window.clearTimeout(timer); loading.hidden = true; error.hidden = true; shell.classList.add('is-ready'); renderStatus(); }, { once: true });
@@ -42,7 +47,7 @@ export function initializeLichessBroadcasts(root = document, config = FEATURED_L
   if (!validation.ok) { loading.hidden = true; error.hidden = false; retry.hidden = true; renderStatus(); return Object.freeze({ state: 'configuration-error', retry: () => false }); }
   setText(root, '[data-lichess-broadcasts-name]', config.displayName); setText(root, '[data-lichess-broadcasts-organizer]', config.organizerName); setText(root, '[data-lichess-broadcasts-location]', config.location); setText(root, '[data-lichess-broadcasts-schedule]', scheduleText(config)); setText(root, '[data-lichess-broadcasts-timezone]', config.eventTimezone); setText(root, '[data-lichess-broadcasts-schedule-note]', config.scheduleNote); setText(root, '[data-lichess-broadcasts-verified]', new Date(config.verifiedAt).toISOString().slice(0, 10));
   setLink(root, '[data-lichess-broadcasts-provider-link]', config.providerEventUrl, 'Open the official Lichess broadcast'); setLink(root, '[data-lichess-broadcasts-organizer-link]', config.organizerUrl, `Visit ${config.organizerName}`); setLink(root, '[data-lichess-broadcasts-schedule-link]', config.scheduleUrl, 'View the organizer schedule');
-  shell.querySelector('[data-lichess-broadcasts-fallback]').href = config.providerEventUrl; retry.addEventListener('click', createFrame); createFrame();
-  const controller = Object.freeze({ get state() { return lichessBroadcastStatus(config, now, availability); }, get frame() { return frame; }, retry() { createFrame(); return true; } }); shell.__caissaLichessBroadcastsController = controller; return controller;
+  shell.querySelector('[data-lichess-broadcasts-fallback]').href = config.providerEventUrl; retry.addEventListener('click', event => { event.preventDefault(); createFrame({ restoreFocus: true }); }); createFrame();
+  const controller = Object.freeze({ get state() { return lichessBroadcastStatus(config, now, availability); }, get frame() { return frame; }, retry() { createFrame({ restoreFocus: true }); return true; } }); shell.__caissaLichessBroadcastsController = controller; return controller;
 }
 if (typeof document !== 'undefined') initializeLichessBroadcasts();
