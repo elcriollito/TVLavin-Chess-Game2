@@ -40,6 +40,23 @@ for (const [route, selector] of [['/play', '#mainNav'], ['/endgame-trainer', '#e
   });
 }
 
+test('Classic mobile drawer locks the long document behind its backdrop', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/yahoo-classic', { waitUntil: 'domcontentloaded' });
+  await page.evaluate(() => window.scrollTo(0, 400));
+  const before = await page.evaluate(() => window.scrollY);
+  expect(before).toBeGreaterThan(0);
+
+  const toggle = page.locator('#mobileNavToggle');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  expect(await page.evaluate(() => getComputedStyle(document.body).overflow)).toBe('hidden');
+
+  await page.mouse.wheel(0, 600);
+  await page.waitForTimeout(100);
+  expect(await page.evaluate(() => window.scrollY)).toBe(before);
+});
+
 test('sign-in remains outside the sidebar family', async ({ page }) => {
   await page.goto('/signin', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.caissa-shared-sidebar, [data-caissa-primary-groups]')).toHaveCount(0);

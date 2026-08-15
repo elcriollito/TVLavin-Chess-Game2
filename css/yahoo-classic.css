@@ -36,6 +36,13 @@ body.yc-standalone-page #yahooClassicSection.active {
     background: #222716;
 }
 
+@media (max-width: 768px) {
+    html:has(> body.yc-standalone-page.yc-classic-active.caissa-application-nav-open),
+    body.yc-standalone-page.yc-classic-active.caissa-application-nav-open {
+        overflow: hidden;
+    }
+}
+
 .yc-landing-intro,
 .yc-landing-support {
     width: min(1120px, calc(100% - 32px));
