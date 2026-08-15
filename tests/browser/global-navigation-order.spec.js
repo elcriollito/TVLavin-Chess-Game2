@@ -6,14 +6,14 @@ const routes = [
   ['/play-online/fritz', 'Fritz'],
   ['/puzzles/chessbase-tactics', 'Tactics'],
   ['/academy', 'Academy'], ['/endgame-trainer', 'Endgame Trainer'], ['/insights', 'Insights'],
-  ['/analyze', 'Analyze'], ['/spectator-tv', 'Spectator TV'], ['/watch/lichess-tv', 'Lichess TV'], ['/watch/live-blitz', 'Live Blitz'], ['/watch/live-tournaments', 'Live Tournaments'], ['/watch/game-replayer', 'Game Replayer'], ['/arena', 'Arena'],
+  ['/analyze', 'Analyze'], ['/spectator-tv', 'Spectator TV'], ['/watch/lichess-tv', 'Lichess TV'], ['/watch/live-blitz', 'Live Blitz'], ['/watch/live-tournaments', 'Live Tournaments'], ['/watch/lichess-broadcasts', 'Lichess Broadcasts'], ['/watch/game-replayer', 'Game Replayer'], ['/arena', 'Arena'],
   ['/game-library', 'Game Library'], ['/blog', 'Blog']
 ];
 
 const canonicalOrder = [
   'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
   'Tactics', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Practice', 'Endgame Library',
-  'Insights', 'Analyze', 'Spectator TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Game Replayer', 'Arena',
+  'Insights', 'Analyze', 'Spectator TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Arena',
   'Cheater Insight', 'Polyglot Tool', 'Opening Database', 'ECO Codes',
   'Game Library', 'History', 'DOS Chess', 'Vault', 'Blog',
   'Facebook', 'CAISSA Chess YouTube', 'CAISSA Discord', 'Share an Idea / Contact & Feedback'

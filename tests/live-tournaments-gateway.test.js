@@ -97,9 +97,9 @@ test('route, sitemap, and canonical navigation remain unchanged', () => {
   const window = {};
   vm.runInNewContext(read('js/caissa-primary-navigation.js'), { window, document: { querySelectorAll: () => [] } });
   const navigation = window.CaissaPrimaryNavigation;
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.9.0');
-  assert.equal(navigation.inventory.primary.length + navigation.inventory.connect.length, 32);
-  assert.deepEqual(Array.from(navigation.inventory.groups[2], item => item.label), ['Insights', 'Analyze', 'Spectator TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Game Replayer', 'Arena']);
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.10.0');
+  assert.equal(navigation.inventory.primary.length + navigation.inventory.connect.length, 33);
+  assert.deepEqual(Array.from(navigation.inventory.groups[2], item => item.label), ['Insights', 'Analyze', 'Spectator TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Arena']);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'live-tournaments').length, 1);
   const vercel = JSON.parse(read('vercel.json'));
   assert.ok(vercel.rewrites.some(rule => rule.source === '/watch/live-tournaments' && rule.destination === '/live-tournaments.html'));

@@ -452,6 +452,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/watch/live-tournaments' || pathname === '/watch/live-tournaments/') {
     filePath = './live-tournaments.html';
   }
+  if (pathname === '/watch/lichess-broadcasts' || pathname === '/watch/lichess-broadcasts/') {
+    filePath = './lichess-broadcasts.html';
+  }
   if (pathname === '/watch/game-replayer' || pathname === '/watch/game-replayer/') {
     filePath = './game-replayer.html';
   }

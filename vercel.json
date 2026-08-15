@@ -40,6 +40,7 @@
     { "source": "/watch/lichess-tv", "destination": "/lichess-tv.html" },
     { "source": "/watch/live-blitz", "destination": "/live-blitz.html" },
     { "source": "/watch/live-tournaments", "destination": "/live-tournaments.html" },
+    { "source": "/watch/lichess-broadcasts", "destination": "/lichess-broadcasts.html" },
     { "source": "/watch/game-replayer", "destination": "/game-replayer.html" },
     { "source": "/learn/interactive-diagrams", "destination": "/interactive-diagrams.html" },
     { "source": "/academy", "destination": "/index.html" },

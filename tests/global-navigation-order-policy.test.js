@@ -12,16 +12,16 @@ function loadNavigation() {
   return window.CaissaPrimaryNavigation;
 }
 
-test('CaissaGlobalNavigationOrderPolicy@1.9.0 owns one immutable 32-destination order', () => {
+test('CaissaGlobalNavigationOrderPolicy@1.10.0 owns one immutable 33-destination order', () => {
   const navigation = loadNavigation();
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.9.0');
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.10.0');
   assert.deepEqual(Array.from(navigation.groupLabels), [
     'Play & Compete', 'Learn & Improve', 'Analyze & Watch', 'Tools'
   ]);
   assert.deepEqual(Array.from(navigation.inventory.primary, item => item.label), [
     'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
     'Tactics', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Practice', 'Endgame Library',
-    'Insights', 'Analyze', 'Spectator TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Game Replayer', 'Arena',
+    'Insights', 'Analyze', 'Spectator TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Arena',
     'Cheater Insight', 'Polyglot Tool', 'Opening Database', 'ECO Codes',
     'Game Library', 'History', 'DOS Chess', 'Vault', 'Blog'
   ]);

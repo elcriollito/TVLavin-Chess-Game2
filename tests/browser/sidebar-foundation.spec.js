@@ -8,7 +8,8 @@ const gateways = [
   ['/learn/interactive-diagrams', 'Interactive Diagrams'],
   ['/watch/lichess-tv', 'Lichess TV'],
   ['/watch/live-blitz', 'Live Blitz'],
-  ['/watch/live-tournaments', 'Live Tournaments']
+  ['/watch/live-tournaments', 'Live Tournaments'],
+  ['/watch/lichess-broadcasts', 'Lichess Broadcasts']
 ];
 
 for (const [route, label] of gateways) {

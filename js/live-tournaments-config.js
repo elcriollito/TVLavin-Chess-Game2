@@ -1,3 +1,5 @@
+import { externalTournamentStatus } from './featured-external-tournament-status.js';
+
 export const FEATURED_TOURNAMENT_SCHEMA = 'CaissaFeaturedExternalTournament@1.0.0';
 
 const record = {
@@ -79,10 +81,5 @@ export function validateFeaturedTournament(candidate) {
 
 export function featuredTournamentStatus(candidate, now, availability = 'available') {
   if (!validateFeaturedTournament(candidate).ok) return 'configuration-error';
-  if (availability === 'unavailable') return 'unavailable';
-  const instant = now instanceof Date ? now.getTime() : Date.parse(now);
-  if (!Number.isFinite(instant)) return 'configuration-error';
-  if (instant < Date.parse(candidate.startsAt)) return 'upcoming';
-  if (instant < Date.parse(candidate.endsAt)) return 'coverage-window';
-  return 'completed';
+  return externalTournamentStatus(candidate, now, availability);
 }

@@ -1,7 +1,7 @@
 (function (global) {
     'use strict';
 
-    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.9.0';
+    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.10.0';
     const allGroups = [
         Object.freeze([
             { id: 'play', label: 'Play', icon: 'fas fa-play-circle', section: 'play', route: '/play', canonicalNavigation: true },
@@ -25,6 +25,7 @@
             { id: 'lichess-tv', label: 'Lichess TV', icon: 'fas fa-tv', route: '/watch/lichess-tv' },
             { id: 'live-blitz', label: 'Live Blitz', icon: 'fas fa-bolt', route: '/watch/live-blitz' },
             { id: 'live-tournaments', label: 'Live Tournaments', icon: 'fas fa-trophy', route: '/watch/live-tournaments' },
+            { id: 'lichess-broadcasts', label: 'Lichess Broadcasts', icon: 'fas fa-satellite-dish', route: '/watch/lichess-broadcasts' },
             { id: 'game-replayer', label: 'Game Replayer', icon: 'fas fa-chess-board', route: '/watch/game-replayer' },
             { id: 'arena', label: 'Arena', icon: 'fas fa-robot', section: 'arena', route: '/arena', canonicalNavigation: true }
         ]),

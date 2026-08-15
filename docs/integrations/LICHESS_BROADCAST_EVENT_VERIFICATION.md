@@ -1,0 +1,7 @@
+# Lichess featured broadcast verification (LBC-0.2)
+
+Verified 2026-08-15 at 16:00 UTC. The official Lichess Broadcast directory listed **GCT: Sinquefield Cup 2026** and linked the stable tournament page `https://lichess.org/broadcast/gct-sinquefield-cup-2026/2sMqschv`. Its official tournament-level embed is `https://lichess.org/embed/broadcast/gct-sinquefield-cup-2026/2sMqschv`.
+
+The official organizer is Grand Chess Tour. Its event page is `https://grandchesstour.org/tours/2026/tournaments/2026-sinquefield-cup/`; its schedule is `https://grandchesstour.org/tours/2026/tournaments/2026-sinquefield-cup/visit/`. The published location is Saint Louis, Missouri, USA. The schedule gives Round 1 on August 10 at noon and a departure date of August 21. The immutable configuration represents noon in the location's IANA zone, `America/Chicago`, as 17:00 UTC. Because no precise event-end instant is published, the end is the conservative start-of-departure-day boundary, August 21 00:00 local / 05:00 UTC. The page labels this as a coverage window and never infers that a game is live.
+
+The selected tournament was current and on its published rest day on August 15, with Round 6 scheduled for August 16. The configuration is intentionally manual, event-specific, query-independent, and replay-capable; replacement requires re-verifying all URLs, provenance, schedule, timezone, and mobile embed behavior.
