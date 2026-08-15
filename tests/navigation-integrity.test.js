@@ -21,13 +21,13 @@ test('canonical primary navigation inventory is unique and stable', () => {
     Array.from(inventory.primary, ({ id }) => id),
     [
       'play', 'yahooClassic', 'fics', 'playchess', 'fritz',
-      'tactics', 'academy', 'endgame-trainer', 'endgame-practice', 'endgame-library',
+      'tactics', 'interactive-diagrams', 'academy', 'endgame-trainer', 'endgame-practice', 'endgame-library',
       'insights', 'analyze', 'spectator', 'live-blitz', 'live-tournaments', 'game-replayer', 'arena',
       'cheater-insight', 'polyglot', 'opening-database', 'eco', 'library',
       'history', 'dosChess', 'vault', 'blog'
     ]
   );
-  assert.equal(inventory.primary.length, 26);
+  assert.equal(inventory.primary.length, 27);
   assert.equal(inventory.connect.length, 4);
   for (const label of ['Endgame Practice', 'Endgame Library', 'Analyze', 'Help', 'About']) {
     assert.ok(labels.includes(label), `${label} is missing`);

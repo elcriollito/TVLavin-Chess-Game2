@@ -440,6 +440,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/puzzles/chessbase-tactics' || pathname === '/puzzles/chessbase-tactics/') {
     filePath = './tactics.html';
   }
+  if (pathname === '/learn/interactive-diagrams' || pathname === '/learn/interactive-diagrams/') {
+    filePath = './interactive-diagrams.html';
+  }
   if (pathname === '/watch/live-blitz' || pathname === '/watch/live-blitz/') {
     filePath = './live-blitz.html';
   }

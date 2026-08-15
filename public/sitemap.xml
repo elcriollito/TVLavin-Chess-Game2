@@ -121,6 +121,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://www.caissa-chess.org/learn/interactive-diagrams</loc>
+    <lastmod>2026-08-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://www.caissa-chess.org/watch/live-blitz</loc>
     <lastmod>2026-08-14</lastmod>
     <changefreq>daily</changefreq>

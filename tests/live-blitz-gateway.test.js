@@ -38,10 +38,10 @@ test('Live Blitz is fourth in Analyze & Watch and route ownership is determinist
   const window = {};
   vm.runInNewContext(read('js/caissa-primary-navigation.js'), { window, document: { querySelectorAll: () => [] } });
   const navigation = window.CaissaPrimaryNavigation;
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.7.0');
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.8.0');
   assert.deepEqual(Array.from(navigation.inventory.groups[2], item => item.label), ['Insights', 'Analyze', 'Spectator TV', 'Live Blitz', 'Live Tournaments', 'Game Replayer', 'Arena']);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'live-blitz').length, 1);
-  assert.equal(navigation.inventory.primary.length, 26);
+  assert.equal(navigation.inventory.primary.length, 27);
   const vercel = JSON.parse(read('vercel.json'));
   assert.ok(vercel.rewrites.some(rule => rule.source === '/watch/live-blitz' && rule.destination === '/live-blitz.html'));
   assert.match(read('server.js'), /pathname === '\/watch\/live-blitz'/);

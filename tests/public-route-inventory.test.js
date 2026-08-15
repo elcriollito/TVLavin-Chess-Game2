@@ -18,12 +18,13 @@ test('CaissaPublicRouteInventory@1.0.0 is complete, unique, and ordered', () => 
   assert.equal(inventory.contractId, 'CaissaPublicRouteInventory@1.0.0');
   assert.deepEqual(inventory.primaryNavigation.slice(0, 5).map(item => item.label), ['Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz']);
   assert.equal(inventory.primaryNavigation[5].label, 'Tactics');
-  assert.equal(inventory.primaryNavigation[13].label, 'Live Blitz');
-  assert.equal(inventory.primaryNavigation[14].label, 'Live Tournaments');
-  assert.equal(inventory.primaryNavigation[15].label, 'Game Replayer');
-  assert.deepEqual(inventory.primaryNavigation.map(item => item.navigationPosition), Array.from({ length: 30 }, (_, index) => index + 1));
-  assert.equal(new Set(inventory.primaryNavigation.map(item => item.id)).size, 30);
-  assert.equal(new Set(inventory.primaryNavigation.map(item => item.navigationPosition)).size, 30);
+  assert.equal(inventory.primaryNavigation[6].label, 'Interactive Diagrams');
+  assert.equal(inventory.primaryNavigation[14].label, 'Live Blitz');
+  assert.equal(inventory.primaryNavigation[15].label, 'Live Tournaments');
+  assert.equal(inventory.primaryNavigation[16].label, 'Game Replayer');
+  assert.deepEqual(inventory.primaryNavigation.map(item => item.navigationPosition), Array.from({ length: 31 }, (_, index) => index + 1));
+  assert.equal(new Set(inventory.primaryNavigation.map(item => item.id)).size, 31);
+  assert.equal(new Set(inventory.primaryNavigation.map(item => item.navigationPosition)).size, 31);
   const canonicalPages = [...inventory.primaryNavigation, ...inventory.publicCanonicalRoutes]
     .filter(item => item.type === 'internal-page');
   assert.equal(new Set(canonicalPages.map(item => item.canonicalPath)).size, canonicalPages.length,

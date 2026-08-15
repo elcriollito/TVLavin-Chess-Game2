@@ -1,7 +1,7 @@
 (function (global) {
     'use strict';
 
-    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.7.0';
+    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.8.0';
     const allGroups = [
         Object.freeze([
             { id: 'play', label: 'Play', icon: 'fas fa-play-circle', section: 'play', route: '/play', canonicalNavigation: true },
@@ -12,6 +12,7 @@
         ]),
         Object.freeze([
             { id: 'tactics', label: 'Tactics', icon: 'fas fa-crosshairs', route: '/puzzles/chessbase-tactics' },
+            { id: 'interactive-diagrams', label: 'Interactive Diagrams', icon: 'fas fa-chess-board', route: '/learn/interactive-diagrams' },
             { id: 'academy', label: 'Academy', icon: 'fas fa-graduation-cap', section: 'academy', route: '/academy', canonicalNavigation: true },
             { id: 'endgame-trainer', label: 'Endgame Trainer', icon: 'fas fa-chess-pawn', route: '/endgame-trainer' },
             { id: 'endgame-practice', label: 'Endgame Practice', icon: 'fas fa-chess-board', route: '/endgame-practice' },
