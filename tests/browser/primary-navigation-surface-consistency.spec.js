@@ -22,7 +22,8 @@ const standalone = [
   ['Opening Database', '/opening-database', 'h1', /Opening Database/],
   ['ECO Codes', '/eco', 'h1', /ECO Codes/],
   ['Vault', '/vault', 'h1', /Vault/],
-  ['Blog', '/blog', 'h1', /Blog/]
+  ['Blog', '/blog', 'h1', /Blog/],
+  ['Lichess TV', '/watch/lichess-tv', 'h1', /Watch Lichess TV Live/]
 ];
 
 for (const [label, route, surface, marker] of legacy) {

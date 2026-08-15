@@ -133,6 +133,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://www.caissa-chess.org/watch/lichess-tv</loc>
+    <lastmod>2026-08-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://www.caissa-chess.org/watch/live-tournaments</loc>
     <lastmod>2026-08-14</lastmod>
     <changefreq>daily</changefreq>

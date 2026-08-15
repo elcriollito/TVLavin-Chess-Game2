@@ -13,10 +13,10 @@ function navigation() {
   return window.CaissaPrimaryNavigation;
 }
 
-test('one immutable 1.8.0 model is shared by every shell adapter', () => {
+test('one immutable 1.9.0 model is shared by every shell adapter', () => {
   const api = navigation();
-  assert.equal(api.contractId, 'CaissaGlobalNavigationOrderPolicy@1.8.0');
-  assert.equal(api.inventory.primary.length + api.inventory.connect.length, 31);
+  assert.equal(api.contractId, 'CaissaGlobalNavigationOrderPolicy@1.9.0');
+  assert.equal(api.inventory.primary.length + api.inventory.connect.length, 32);
   assert.deepEqual(Object.keys(api.adapters), ['modernStandalone', 'application', 'trainer']);
   for (const adapter of Object.values(api.adapters)) {
     assert.equal(adapter.inventory, api.inventory);
@@ -36,7 +36,7 @@ test('shared group rendering is labelled, non-interactive and has one exact acti
   assert.deepEqual($('.nav-group-heading').map((_, element) => $(element).text().trim()).get(),
     ['Play & Compete', 'Learn & Improve', 'Analyze & Watch', 'Tools']);
   assert.equal($('.nav-group-heading').is('a,button,[tabindex]'), false);
-  assert.equal($('[role="listitem"]').length, 27);
+  assert.equal($('[role="listitem"]').length, 28);
   assert.equal($('[aria-current="page"]').length, 1);
   assert.equal($('[aria-current="page"]').text().trim(), 'Fritz');
   assert.equal(api.adapters.modernStandalone.renderGroups({ activeKey: 'unknown' }).includes('aria-current'), false);
@@ -60,7 +60,7 @@ test('canonical fallback seam is accessible and byte deterministic', () => {
   assert.equal(first, second);
   const $ = load(first);
   assert.equal($('nav[aria-label="CAISSA main navigation"]').length, 1);
-  assert.equal($('[role="listitem"]').length, 33);
+  assert.equal($('[role="listitem"]').length, 34);
   assert.equal($('[aria-current="page"]').length, 1);
   assert.equal($('[aria-current="page"]').text().trim(), 'Academy');
   assert.throws(() => api.renderFallbackNavigation({ adapter: {}, activeKey: 'play' }), /canonical shell adapter/);

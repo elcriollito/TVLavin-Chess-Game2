@@ -36,10 +36,10 @@ test('Tactics is first in Learn & Improve and route ownership is deterministic',
   const window = {};
   vm.runInNewContext(read('js/caissa-primary-navigation.js'), { window, document: { querySelectorAll: () => [] } });
   const navigation = window.CaissaPrimaryNavigation;
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.8.0');
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.9.0');
   assert.deepEqual(Array.from(navigation.inventory.groups[1], item => item.label), ['Tactics', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Practice', 'Endgame Library']);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'tactics').length, 1);
-  assert.equal(navigation.inventory.primary.length, 27);
+  assert.equal(navigation.inventory.primary.length, 28);
   const vercel = JSON.parse(read('vercel.json'));
   assert.ok(vercel.rewrites.some(rule => rule.source === '/puzzles/chessbase-tactics' && rule.destination === '/tactics.html'));
   assert.match(read('server.js'), /pathname === '\/puzzles\/chessbase-tactics'/);

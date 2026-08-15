@@ -1,0 +1,22 @@
+:root { color-scheme: dark; }
+.lichess-tv-page { margin: 0; overflow-x: hidden; background: #080c14; color: #eef3fb; }
+.lichess-tv-main { width: min(100%, 1180px); margin: 0 auto; padding: clamp(12px, 2vw, 28px); box-sizing: border-box; }
+.lichess-tv-banner { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: clamp(18px, 3vw, 30px); padding: 14px 18px; border: 1px solid rgba(255, 183, 77, .42); border-radius: 12px; background: linear-gradient(120deg, rgba(255, 152, 0, .16), rgba(74, 158, 255, .08)); }
+.lichess-tv-banner p { margin: 4px 0 0; color: #c7d1df; }
+.lichess-tv-banner a, .lichess-tv-disclosure a, .lichess-tv-footer a, .lichess-tv-error a, .lichess-tv-noscript a { color: #77b8ff; }
+.lichess-tv-heading { max-width: 900px; margin: 0 auto 18px; text-align: center; }
+.lichess-tv-heading h1 { margin: 0 0 8px; font-size: clamp(1.65rem, 3vw, 2.45rem); }
+.lichess-tv-heading p { margin: 0; color: #c7d1df; line-height: 1.5; }
+.lichess-tv-shell { position: relative; width: min(100%, 56.25rem, max(18rem, calc(90.909dvh - 11.82rem))); aspect-ratio: 10 / 11; margin: 0 auto; overflow: hidden; border: 1px solid #26344a; border-radius: 12px; background: #101827; color: #eef3fb; box-shadow: 0 18px 48px rgba(0, 0, 0, .3); }
+.lichess-tv-shell [data-lichess-tv-frame-mount], .lichess-tv-shell iframe { display: block; width: 100%; height: 100%; border: 0; }
+.lichess-tv-status, .lichess-tv-error { position: absolute; inset: 0; z-index: 2; display: grid; place-content: center; gap: 12px; padding: 24px; box-sizing: border-box; text-align: center; background: #101827; color: #eef3fb; }
+.lichess-tv-shell.is-document-loaded .lichess-tv-status, .lichess-tv-error[hidden] { display: none; }
+.lichess-tv-error button { justify-self: center; min-height: 44px; padding: 10px 18px; border: 2px solid transparent; border-radius: 7px; font: inherit; font-weight: 700; cursor: pointer; }
+.lichess-tv-error button:focus-visible, .lichess-tv-disclosure a:focus-visible, .lichess-tv-banner a:focus-visible { outline: 3px solid #ffca6b; outline-offset: 3px; }
+.lichess-tv-disclosure, .lichess-tv-noscript { max-width: 900px; margin: 18px auto 0; color: #c7d1df; line-height: 1.55; }
+.lichess-tv-disclosure p { margin: 8px 0; }
+.lichess-tv-broadcast-boundary { font-size: .9rem; }
+.lichess-tv-footer { padding: 22px 16px 32px; text-align: center; color: #9eabba; }
+.lichess-tv-footer p { margin: 6px 0; }
+@media (max-width: 800px) { .lichess-tv-main { padding: 10px; } .lichess-tv-banner { align-items: flex-start; flex-direction: column; } .lichess-tv-shell { border-radius: 8px; } }
+@media (prefers-reduced-motion: reduce) { .lichess-tv-page *, .lichess-tv-page *::before, .lichess-tv-page *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }

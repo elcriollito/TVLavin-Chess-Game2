@@ -70,6 +70,12 @@ test('valid external script and iframe coexist without resource confusion', () =
     assert.deepEqual(urls(source), [clerk]);
 });
 
+test('official Lichess TV iframe remains an iframe and never becomes a script dependency', () => {
+  const source = '<script src="/js/lichess-tv-parent.js"></script><iframe src="https://lichess.org/tv/frame?theme=brown&amp;bg=dark"></iframe>';
+  assert.deepEqual(urls(source), []);
+  assert.match(source, /<iframe[^>]+https:\/\/lichess\.org\/tv\/frame/);
+});
+
 test('production audit still scans public HTML and rejects no iframe as a script', () => {
     const audit = spawnSync(process.execPath, ['scripts/audit-supply-chain.mjs'], { cwd: root, encoding: 'utf8' });
     assert.equal(audit.status, 0, `${audit.stdout}\n${audit.stderr}`);

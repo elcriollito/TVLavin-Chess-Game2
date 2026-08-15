@@ -6,6 +6,7 @@ const gateways = [
   ['/play-online/fritz', 'Fritz'],
   ['/puzzles/chessbase-tactics', 'Tactics'],
   ['/learn/interactive-diagrams', 'Interactive Diagrams'],
+  ['/watch/lichess-tv', 'Lichess TV'],
   ['/watch/live-blitz', 'Live Blitz'],
   ['/watch/live-tournaments', 'Live Tournaments']
 ];
