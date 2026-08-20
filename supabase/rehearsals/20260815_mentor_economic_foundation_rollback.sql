@@ -7,6 +7,7 @@ end $$;
 
 drop function if exists public.reconcile_mentor_reservations(integer);
 drop function if exists public.cleanup_mentor_economic_state(integer);
+drop function if exists public.inspect_mentor_economic_maintenance(integer);
 drop function if exists public.confirm_mentor_result_delivery(uuid,text);
 drop function if exists public.get_mentor_result_for_replay(uuid,text);
 drop function if exists public.mark_mentor_result_available(uuid);

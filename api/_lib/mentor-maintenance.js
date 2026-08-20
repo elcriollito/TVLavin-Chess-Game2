@@ -30,28 +30,15 @@ export function maintenanceDestinationReady(env = process.env) {
   catch { return false; }
 }
 
-export async function inspectMentorMaintenance(db, batch, now = new Date()) {
-  const nowIso = now.toISOString();
-  const stale = await db.from('credit_reservations')
-    .select('id,state,value_delivery_state').in('state', ['RESERVED', 'CONSUMED'])
-    .neq('value_delivery_state', 'VALUE_DELIVERED').lte('expires_at', nowIso)
-    .order('expires_at', { ascending: true }).limit(batch);
-  if (stale.error) throw new Error('MAINTENANCE_INSPECTION_FAILED');
-  const candidates = stale.data || [];
-  const reservationIds = candidates.map(row => row.id);
-  let liveResults = new Set();
-  if (reservationIds.length) {
-    const results = await db.from('mentor_operation_results').select('reservation_id').in('reservation_id', reservationIds).gt('expires_at', nowIso);
-    if (results.error) throw new Error('MAINTENANCE_INSPECTION_FAILED');
-    liveResults = new Set((results.data || []).map(row => row.reservation_id));
-  }
-  const expired = await db.from('mentor_operation_results').select('operation_id', { count: 'exact', head: true }).lte('expires_at', nowIso);
-  if (expired.error) throw new Error('MAINTENANCE_INSPECTION_FAILED');
-  const plan = { release: 0, consume: 0, compensate: 0, cleanup: Math.min(expired.count || 0, batch) };
-  for (const row of candidates) {
-    if (row.state === 'RESERVED') plan[liveResults.has(row.id) ? 'consume' : 'release'] += 1;
-    else if (row.state === 'CONSUMED' && row.value_delivery_state !== 'VALUE_DELIVERED' && !liveResults.has(row.id)) plan.compensate += 1;
-  }
+export async function inspectMentorMaintenance(db, batch) {
+  const inspected = await db.rpc('inspect_mentor_economic_maintenance', { p_batch_size: batch });
+  const row = inspected.data?.[0] || inspected.data;
+  if (inspected.error || !row) throw new Error('MAINTENANCE_INSPECTION_FAILED');
+  const plan = {
+    release: Number(row.release_count), consume: Number(row.consume_count),
+    compensate: Number(row.compensate_count), cleanup: Number(row.cleanup_count)
+  };
+  if (Object.values(plan).some(value => !Number.isSafeInteger(value) || value < 0 || value > batch)) throw new Error('MAINTENANCE_INSPECTION_FAILED');
   return Object.freeze(plan);
 }
 
@@ -69,7 +56,7 @@ export async function executeMentorMaintenance(db, batch) {
   return Object.freeze({ ...actions, cleaned: Number(cleaned.data) || 0 });
 }
 
-export function createMentorMaintenanceHandler({ db, env = process.env, now = () => new Date(), inspect = inspectMentorMaintenance, execute = executeMentorMaintenance } = {}) {
+export function createMentorMaintenanceHandler({ db, env = process.env, inspect = inspectMentorMaintenance, execute = executeMentorMaintenance } = {}) {
   return async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store');
     if (req.method !== 'GET') return res.status(405).json({ code: 'METHOD_NOT_ALLOWED' });
@@ -79,7 +66,7 @@ export function createMentorMaintenanceHandler({ db, env = process.env, now = ()
     if (!batch || !['dry-run', 'execute'].includes(mode)) return res.status(400).json({ code: 'INVALID_REQUEST' });
     if (!db || !maintenanceDestinationReady(env)) return res.status(503).json({ code: 'DESTINATION_GUARD_FAILED' });
     try {
-      const planned = await inspect(db, batch, now());
+      const planned = await inspect(db, batch);
       if (mode === 'dry-run') return res.status(200).json({ ok: true, mode, batch, planned });
       if (env.CAISSA_MENTOR_MAINTENANCE_EXECUTE_ENABLED !== 'true') return res.status(409).json({ code: 'EXECUTION_DISABLED' });
       const actions = await execute(db, batch);
