@@ -62,8 +62,8 @@ The SEC-010 unique index on non-null `users.stripe_customer_id` is transactional
 | Variable/control | Action | Missing or malformed behavior |
 | --- | --- | --- |
 | `MENTOR_RATE_LIMIT_SECRET` | GENERATE AND SET BEFORE DEPLOY; at least 32 secret characters | Mentor fails closed/unavailable |
-| `MENTOR_AI_ENABLED` | SET `false` for initial release; enable only after DB/security smoke | Missing means enabled; explicit false is safer during rollout |
-| `MENTOR_SHARED_AI_ENABLED` | SET `false` initially; enable after capacity and provider smoke | Shared mode unavailable when false |
+| `MENTOR_AI_ENABLED` | SET exact `true` only after DB/security smoke | Shared mode is disabled unless the value is exact lowercase ASCII `true` |
+| `MENTOR_SHARED_AI_ENABLED` | SET exact `true` only after capacity and provider smoke | Shared mode is disabled unless the value is exact lowercase ASCII `true` |
 | `CAISSA_BROWSER_ORIGINS` | SET/CONFIRM exact approved origins | Unlisted browser origins denied |
 | `CAISSA_APP_ORIGIN` | SET/CONFIRM exact canonical HTTPS origin | Checkout rejects malformed configuration |
 | Existing Supabase service configuration | CONFIRM before deploy | APIs fail closed or become unavailable |

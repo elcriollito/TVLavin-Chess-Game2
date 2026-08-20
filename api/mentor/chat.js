@@ -6,6 +6,7 @@ import { claimMentorCapacity, releaseMentorCapacity } from '../_lib/mentor-capac
 import { MentorEconomicService, validOperationId } from '../_lib/mentor-economic-service.js';
 import { mentorResultEncryptionReady } from '../_lib/mentor-result-crypto.js';
 import { evaluateMentorReservationEligibility } from '../_lib/mentor-canary-policy.js';
+import { sharedMentorGatesEnabled } from '../_lib/mentor-feature-gates.js';
 
 const PROVIDER_ENDPOINTS = Object.freeze({
   together: 'https://api.together.xyz/v1/chat/completions', llama: 'https://api.llama.com/v1/chat/completions',
@@ -63,14 +64,12 @@ export function createMentorChatHandler(deps = {}) {
 
     const auth = await authenticate(req);
     if (!auth.authenticated) return respondAuthFailure(res, auth);
-    if (env.MENTOR_AI_ENABLED === 'false') return reject(res, 503, 'SERVICE_UNAVAILABLE', 'AI service temporarily unavailable.');
-
     const sharedModel = env.TOGETHER_MODEL || 'moonshotai/Kimi-K2.5';
     if (!isAllowedSharedModel(sharedModel)) return reject(res, 503, 'SERVICE_UNAVAILABLE', 'AI service temporarily unavailable.');
     const validation = validateMentorRequest(req.body, sharedModel);
     if (!validation.ok) return reject(res, validation.status, validation.code, validation.status === 413 ? 'Request is too large.' : 'Invalid AI request.');
     const command = validation.value;
-    if (!command.byo && (env.MENTOR_SHARED_AI_ENABLED === 'false' || !env.TOGETHER_API_KEY)) return reject(res, 503, 'SERVICE_UNAVAILABLE', 'AI service temporarily unavailable.');
+    if (!command.byo && (!sharedMentorGatesEnabled(env) || !env.TOGETHER_API_KEY)) return reject(res, 503, 'SERVICE_UNAVAILABLE', 'AI service temporarily unavailable.');
     const eligibility = await evaluateMentorReservationEligibility({ db, env, clerkId: auth.userId, byo: command.byo });
     if (!eligibility.ok) return reject(res, 503, 'ECONOMIC_UNAVAILABLE', 'AI service temporarily unavailable.');
     const reservationsEnabled = eligibility.enabled;
