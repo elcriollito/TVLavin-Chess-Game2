@@ -10,24 +10,25 @@ import { getSupabase } from '../_lib/supabase.js';
 import { logAction, logError } from '../_lib/logger.js';
 import { isIdentityMigrationEnforced, syncResolvedIdentity } from '../_lib/identity-resolution.js';
 
-export default async function handler(req, res) {
+export default async function handler(req, res, dependencies = {}) {
     if (!setCorsHeaders(req, res, ['POST'])) return;
 
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     // Verify Clerk token
-    const auth = await verifyAuth(req);
+    const authenticate = dependencies.verifyAuth || verifyAuth;
+    const createSupabase = dependencies.getSupabase || getSupabase;
+    const auth = await authenticate(req);
     if (!auth.authenticated) return respondAuthFailure(res, auth);
 
     try {
-        const supabase = getSupabase();
-        const { email } = req.body || {};
+        const supabase = createSupabase();
 
-        // Validate email format (non-critical — Clerk is source of truth)
-        const emailVal = (email || auth.email || '').trim();
+        // Identity attributes come only from the verified Clerk session.
+        const emailVal = (auth.email || '').trim();
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const safeEmail = (emailVal && emailRegex.test(emailVal)) ? emailVal : auth.email || null;
+        const safeEmail = (emailVal && emailRegex.test(emailVal)) ? emailVal : null;
 
         if (isIdentityMigrationEnforced()) {
             const identityResult = await syncResolvedIdentity({

@@ -80,6 +80,7 @@
     { "source": "/gamesearch/:path*", "destination": "https://downloads.caissa-chess.org/gamesearch/:path*" },
     { "source": "/signin", "destination": "/signin.html" },
     { "source": "/signup", "destination": "/signup.html" },
+    { "source": "/auth/complete", "destination": "/auth-complete.html" },
     { "source": "/data/:path*", "destination": "/public/data/:path*" },
     { "source": "/favicon.ico", "destination": "/public/favicon.ico" },
     { "source": "/favicon-16.png", "destination": "/public/favicon-16.png" },

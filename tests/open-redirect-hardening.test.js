@@ -55,22 +55,22 @@ async function authPageDestination(script, search, signedIn = false) {
 }
 
 test('normal sign-in falls back internally', async () => {
-    assert.equal((await authPageDestination('js/signin-page.js', '')).mounted.afterSignInUrl, '/');
+    assert.equal((await authPageDestination('js/signin-page.js', '')).mounted.afterSignInUrl, '/auth/complete?redirect_url=%2F');
 });
 test('sign-in preserves a valid internal return', async () => {
-    assert.equal((await authPageDestination('js/signin-page.js', '?redirect_url=%2Faccount')).mounted.afterSignInUrl, '/account');
+    assert.equal((await authPageDestination('js/signin-page.js', '?redirect_url=%2Faccount')).mounted.afterSignInUrl, '/auth/complete?redirect_url=%2Faccount');
 });
 test('sign-in rejects an external return before Clerk', async () => {
-    assert.equal((await authPageDestination('js/signin-page.js', '?redirect_url=https%3A%2F%2Fevil.example')).mounted.afterSignInUrl, '/');
+    assert.equal((await authPageDestination('js/signin-page.js', '?redirect_url=https%3A%2F%2Fevil.example')).mounted.afterSignInUrl, '/auth/complete?redirect_url=%2F');
 });
 test('signup preserves a valid premium return', async () => {
-    assert.equal((await authPageDestination('js/signup-page.js', '?redirect_url=%2Fpremium')).mounted.afterSignUpUrl, '/premium');
+    assert.equal((await authPageDestination('js/signup-page.js', '?redirect_url=%2Fpremium')).mounted.afterSignUpUrl, '/auth/complete?redirect_url=%2Fpremium');
 });
 test('signup rejects a malicious return before Clerk', async () => {
-    assert.equal((await authPageDestination('js/signup-page.js', '?redirect_url=%2F%2Fevil.example')).mounted.afterSignUpUrl, '/');
+    assert.equal((await authPageDestination('js/signup-page.js', '?redirect_url=%2F%2Fevil.example')).mounted.afterSignUpUrl, '/auth/complete?redirect_url=%2F');
 });
 test('already authenticated navigation uses the sanitized destination', async () => {
-    assert.equal((await authPageDestination('js/signin-page.js', '?redirect_url=https%3A%2F%2Fevil.example', true)).href, '/');
+    assert.equal((await authPageDestination('js/signin-page.js', '?redirect_url=https%3A%2F%2Fevil.example', true)).href, '/auth/complete?redirect_url=%2F');
 });
 
 test('auth entry helpers sanitize explicit and current-page return state', () => {

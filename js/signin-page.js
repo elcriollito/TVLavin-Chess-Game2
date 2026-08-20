@@ -15,6 +15,10 @@
         return window.CAISSA_REDIRECTS.sanitizeInternalRedirect(params.get('redirect_url'), '/');
     }
 
+    function getCompletionUrl() {
+        return '/auth/complete?redirect_url=' + encodeURIComponent(getRedirectUrl());
+    }
+
     function getClerkDomain(publishableKey) {
         try {
             return atob(publishableKey.split('_')[2]).slice(0, -1);
@@ -100,14 +104,14 @@
 
             // Check if already signed in
             if (Clerk.user) {
-                window.location.href = getRedirectUrl();
+                window.location.href = getCompletionUrl();
                 return;
             }
 
             // Mount Sign In component
             Clerk.mountSignIn(container, {
-                afterSignInUrl: getRedirectUrl(),
-                afterSignUpUrl: getRedirectUrl(),
+                afterSignInUrl: getCompletionUrl(),
+                afterSignUpUrl: getCompletionUrl(),
                 signUpUrl: '/signup',
                 appearance: {
                     variables: {

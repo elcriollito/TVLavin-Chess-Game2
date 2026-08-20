@@ -15,6 +15,10 @@
         return window.CAISSA_REDIRECTS.sanitizeInternalRedirect(params.get('redirect_url'), '/');
     }
 
+    function getCompletionUrl() {
+        return '/auth/complete?redirect_url=' + encodeURIComponent(getRedirectUrl());
+    }
+
     function getClerkDomain(publishableKey) {
         try {
             return atob(publishableKey.split('_')[2]).slice(0, -1);
@@ -100,14 +104,14 @@
 
             // Check if already signed in
             if (Clerk.user) {
-                window.location.href = getRedirectUrl();
+                window.location.href = getCompletionUrl();
                 return;
             }
 
             // Mount Sign Up component
             Clerk.mountSignUp(container, {
-                afterSignInUrl: getRedirectUrl(),
-                afterSignUpUrl: getRedirectUrl(),
+                afterSignInUrl: getCompletionUrl(),
+                afterSignUpUrl: getCompletionUrl(),
                 signInUrl: '/signin',
                 appearance: {
                     variables: {
@@ -156,7 +160,40 @@
                             fontWeight: '700',
                             letterSpacing: '0.04em',
                             textTransform: 'uppercase'
-                        }
+                        },
+                        headerTitle: { color: '#f3f6fb' },
+                        headerSubtitle: { color: '#c2cad7' },
+                        formFieldLabel: { color: '#dce3ed' },
+                        formFieldInput: {
+                            backgroundColor: '#202838',
+                            border: '1px solid #667085',
+                            color: '#f8fafc',
+                            caretColor: '#4ecdc4',
+                            '&:hover': { borderColor: '#8b98aa', backgroundColor: '#252f42' },
+                            '&:focus': { borderColor: '#4ecdc4', boxShadow: '0 0 0 3px rgba(78, 205, 196, 0.28)' },
+                            '&:focus-visible': { outline: '3px solid #4ecdc4', outlineOffset: '2px' },
+                            '&[aria-invalid="true"]': { borderColor: '#ff8a80', boxShadow: '0 0 0 2px rgba(255, 138, 128, 0.28)' },
+                            '&:disabled': { backgroundColor: '#151b27', borderColor: '#465064', color: '#8993a4', opacity: '1' }
+                        },
+                        otpCodeFieldInput: {
+                            minWidth: '42px', minHeight: '52px',
+                            backgroundColor: '#202838', border: '1px solid #667085', color: '#f8fafc',
+                            fontSize: '20px', fontWeight: '700',
+                            '&:hover': { borderColor: '#8b98aa', backgroundColor: '#252f42' },
+                            '&:focus': { borderColor: '#4ecdc4', boxShadow: '0 0 0 3px rgba(78, 205, 196, 0.28)' },
+                            '&:focus-visible': { outline: '3px solid #4ecdc4', outlineOffset: '2px' },
+                            '&[aria-invalid="true"]': { borderColor: '#ff8a80' },
+                            '&:disabled': { backgroundColor: '#151b27', color: '#8993a4', opacity: '1' }
+                        },
+                        identityPreviewText: { color: '#dce3ed' },
+                        identityPreviewEditButton: { color: '#63ddd5' },
+                        formFieldHintText: { color: '#b6c0cf' },
+                        formFieldErrorText: { color: '#ffaaa3', fontWeight: '600' },
+                        footerActionText: { color: '#c2cad7' },
+                        footerActionLink: { color: '#63ddd5', fontWeight: '700' },
+                        formResendCodeLink: { color: '#63ddd5', fontWeight: '700' },
+                        formResendCodeLinkDisabled: { color: '#99a5b7', opacity: '1' },
+                        footer: { color: '#aeb8c8' }
                     }
                 }
             });
