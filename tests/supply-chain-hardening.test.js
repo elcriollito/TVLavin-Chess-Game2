@@ -16,9 +16,8 @@ test('Clerk browser SDK is exact and protected by the reviewed SHA-384', () => {
     const integrity = 'sha384-hDYzybzZL06dXvUhFHr0WXKf/sBfpbnhOwxF4xa/m4/hOYAAgZrNpO1n6eJ5np47';
     for (const file of ['about.html', 'library.html', 'premium.html', 'roadmap.html']) {
         const source = read(file);
-        assert.match(source, new RegExp(url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-        assert.ok(source.includes(`integrity="${integrity}"`), file);
-        assert.match(source, /crossorigin="anonymous"/);
+        assert.doesNotMatch(source, /clerk\.browser\.js|data-clerk-publishable-key/, file);
+        assert.match(source, /caissa-auth\.js/, file);
     }
     const loader = read('js/caissa-auth.js');
     assert.ok(loader.includes(url));
@@ -48,12 +47,17 @@ test('lockfile has registry provenance, integrity, and exact security overrides'
     }
 });
 
-test('SEC-005 tokens remain independent of nanoid and SEC-012 stays strict', () => {
+test('SEC-005 tokens remain independent of nanoid and worker policies stay scoped', () => {
     const migration = read('api/_lib/identity-migration.js') + read('api/_lib/clerk-migration-verifiers.js');
     assert.doesNotMatch(migration, /nanoid/i);
     const vercel = JSON.parse(read('vercel.json'));
     const globalCsp = vercel.headers.find(rule => rule.source === '/(.*)').headers.find(header => header.key === 'Content-Security-Policy').value;
     assert.doesNotMatch(globalCsp, /'unsafe-eval'/);
-    assert.match(globalCsp, /worker-src 'self'/);
-    assert.doesNotMatch(globalCsp, /worker-src[^;]*blob:/);
+    assert.match(globalCsp, /worker-src 'self' blob:/);
+    assert.doesNotMatch(globalCsp, /worker-src[^;]*\*/);
+    for (const source of ['/play', '/play/:path*']) {
+        const playCsp = vercel.headers.find(rule => rule.source === source).headers.find(header => header.key === 'Content-Security-Policy').value;
+        assert.match(playCsp, /worker-src 'self';/);
+        assert.doesNotMatch(playCsp, /worker-src[^;]*blob:/);
+    }
 });

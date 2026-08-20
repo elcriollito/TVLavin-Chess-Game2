@@ -33,6 +33,10 @@ function sanitizeInternalRedirect(candidate, fallback = '/') {
     return normalize(candidate) || normalize(fallback) || '/';
 }
 
+function isValidClerkPublishableKey(value) {
+    return typeof value === 'string' && value.length >= 24 && value.length <= 512 && /^pk_(?:test|live)_[A-Za-z0-9_-]+$/.test(value);
+}
+
 const CAISSA_AUTH_CONFIG = {
     // Fallback only. Production should hydrate this from /api/public-auth-config.
     CLERK_PUBLISHABLE_KEY: 'pk_test_REPLACE_WITH_YOUR_KEY',
@@ -66,6 +70,7 @@ const CAISSA_AUTH_CONFIG = {
 
 window.CAISSA_AUTH_CONFIG = CAISSA_AUTH_CONFIG;
 window.CAISSA_REDIRECTS = Object.freeze({ sanitizeInternalRedirect });
+window.CAISSA_AUTH_CONFIG_UTILS = Object.freeze({ isValidClerkPublishableKey });
 window.CAISSA_AUTH_CONFIG_READY = (async function loadPublicAuthConfig() {
     try {
         const response = await fetch('/api/public-auth-config', {
@@ -81,7 +86,7 @@ window.CAISSA_AUTH_CONFIG_READY = (async function loadPublicAuthConfig() {
 
         const data = await response.json();
         const publishableKey = String(data.clerkPublishableKey || '').trim();
-        if (publishableKey && !publishableKey.includes('REPLACE')) {
+        if (isValidClerkPublishableKey(publishableKey)) {
             CAISSA_AUTH_CONFIG.CLERK_PUBLISHABLE_KEY = publishableKey;
             if (window.location.hostname === 'www.caissa-chess.org' && publishableKey.startsWith('pk_test_')) {
                 console.warn('[Auth Config] Production is using a Clerk development publishable key. Configure NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY with a pk_live_ key in Vercel.');

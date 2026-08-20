@@ -53,7 +53,7 @@ export default async function handler(req, res, dependencies = {}) {
                 });
             }
 
-            logAction('user_identity_synced', { userId: auth.userId });
+            logAction('user_identity_synced');
             return res.status(200).json({ user: formatUser(identityResult.user) });
         }
 
@@ -75,19 +75,19 @@ export default async function handler(req, res, dependencies = {}) {
             .single();
 
         if (error) {
-            logError('user_sync', error, { userId: auth.userId });
+            logError('user_sync', error);
             return res.status(503).json({
                 error: 'User sync is temporarily unavailable',
                 recoverable: true
             });
         }
 
-        logAction('user_synced', { userId: auth.userId });
+        logAction('user_synced');
 
         return res.status(200).json({ user: formatUser(data) });
 
     } catch (err) {
-        logError('user_sync', err, { userId: auth.userId });
+        logError('user_sync', err);
         return res.status(503).json({
             error: 'User sync is temporarily unavailable',
             recoverable: true

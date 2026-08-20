@@ -30,7 +30,7 @@
 
     function _getConfiguredPublishableKey() {
         const key = String(window.CAISSA_AUTH_CONFIG?.CLERK_PUBLISHABLE_KEY || '').trim();
-        if (!key || key.includes('REPLACE')) return '';
+        if (!window.CAISSA_AUTH_CONFIG_UTILS?.isValidClerkPublishableKey?.(key)) return '';
         return key;
     }
 

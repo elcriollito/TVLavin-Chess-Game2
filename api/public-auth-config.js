@@ -12,7 +12,7 @@ export default function handler(req, res) {
     const clerkPublishableKeyCandidates = [
         process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
         process.env.CLERK_PUBLISHABLE_KEY
-    ].filter(Boolean);
+    ].map(value => String(value || '').trim()).filter(isValidClerkPublishableKey);
 
     const clerkPublishableKey =
         clerkPublishableKeyCandidates.find((key) => String(key).startsWith('pk_live_')) ||
@@ -32,4 +32,8 @@ export default function handler(req, res) {
             process.env.SUPABASE_SERVICE_ROLE_KEY
         )
     });
+}
+
+export function isValidClerkPublishableKey(value) {
+    return typeof value === 'string' && value.length >= 24 && value.length <= 512 && /^pk_(?:test|live)_[A-Za-z0-9_-]+$/.test(value);
 }
