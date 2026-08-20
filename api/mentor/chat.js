@@ -5,6 +5,7 @@ import { MENTOR_LIMITS, validateMentorRequest, exceedsMentorHttpBodyLimit, isAll
 import { claimMentorCapacity, releaseMentorCapacity } from '../_lib/mentor-capacity.js';
 import { MentorEconomicService, validOperationId } from '../_lib/mentor-economic-service.js';
 import { mentorResultEncryptionReady } from '../_lib/mentor-result-crypto.js';
+import { evaluateMentorReservationEligibility } from '../_lib/mentor-canary-policy.js';
 
 const PROVIDER_ENDPOINTS = Object.freeze({
   together: 'https://api.together.xyz/v1/chat/completions', llama: 'https://api.llama.com/v1/chat/completions',
@@ -70,7 +71,9 @@ export function createMentorChatHandler(deps = {}) {
     if (!validation.ok) return reject(res, validation.status, validation.code, validation.status === 413 ? 'Request is too large.' : 'Invalid AI request.');
     const command = validation.value;
     if (!command.byo && (env.MENTOR_SHARED_AI_ENABLED === 'false' || !env.TOGETHER_API_KEY)) return reject(res, 503, 'SERVICE_UNAVAILABLE', 'AI service temporarily unavailable.');
-    const reservationsEnabled = !command.byo && env.CAISSA_MENTOR_RESERVATIONS_ENABLED === 'true';
+    const eligibility = await evaluateMentorReservationEligibility({ db, env, clerkId: auth.userId, byo: command.byo });
+    if (!eligibility.ok) return reject(res, 503, 'ECONOMIC_UNAVAILABLE', 'AI service temporarily unavailable.');
+    const reservationsEnabled = eligibility.enabled;
     const operationId = req.headers?.['idempotency-key'];
     if (reservationsEnabled && (!validOperationId(operationId) || !mentorResultEncryptionReady(env))) {
       return reject(res, 503, 'ECONOMIC_UNAVAILABLE', 'AI service temporarily unavailable.');

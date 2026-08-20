@@ -2,8 +2,17 @@
   "functions": {
     "api/stripe/webhook.js": {
       "maxDuration": 10
+    },
+    "api/cron/mentor-economic-maintenance.js": {
+      "maxDuration": 10
     }
   },
+  "crons": [
+    {
+      "path": "/api/cron/mentor-economic-maintenance?mode=execute&batch=100",
+      "schedule": "17 4 * * *"
+    }
+  ],
   "redirects": [
     { "source": "/", "destination": "/play", "permanent": true },
     { "source": "/blog/", "destination": "/blog", "permanent": true },

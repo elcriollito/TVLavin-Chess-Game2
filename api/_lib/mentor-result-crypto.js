@@ -8,9 +8,9 @@ const bytes = value => Buffer.isBuffer(value) ? value
 
 function keyFromEnv(env) {
   const encoded = env.CAISSA_MENTOR_RESULT_ENCRYPTION_KEY;
-  if (typeof encoded !== 'string') throw new Error('RESULT_ENCRYPTION_UNAVAILABLE');
+  if (typeof encoded !== 'string' || !/^[A-Za-z0-9+/]{43}=$/.test(encoded)) throw new Error('RESULT_ENCRYPTION_UNAVAILABLE');
   const key = Buffer.from(encoded, 'base64');
-  if (key.length !== 32) throw new Error('RESULT_ENCRYPTION_UNAVAILABLE');
+  if (key.length !== 32 || key.toString('base64') !== encoded) throw new Error('RESULT_ENCRYPTION_UNAVAILABLE');
   return key;
 }
 export function mentorResultEncryptionReady(env = process.env) {
