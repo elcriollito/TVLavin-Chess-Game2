@@ -27,7 +27,7 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
 }
 .endgame-trainer-page__logo { font-size: 1.35rem; font-weight: 800; text-decoration: none; }
 .endgame-trainer-page__auth { padding: 12px; border: 1px solid var(--et-line); border-radius: 10px; color: var(--et-muted); }
-.endgame-trainer-page__premium { padding: 11px; border-radius: 10px; background: #8058df; text-decoration: none; font-weight: 700; }
+.endgame-trainer-page__premium { padding: 11px; border-radius: 10px; background: linear-gradient(135deg, var(--caissa-premium-start, #ff9800), var(--caissa-premium-end, #f57c00)); text-decoration: none; font-weight: 700; }
 .endgame-trainer-page__nav-items { display: grid; gap: 4px; }
 .endgame-trainer-page__nav-items a, .endgame-trainer-page__nav-footer a { min-height: 44px; padding: 10px 12px; border-radius: 8px; text-decoration: none; }
 .endgame-trainer-page__nav-items a.is-active, .endgame-trainer-page__nav-items a.active { background: var(--et-accent); color: #08101f; font-weight: 800; }

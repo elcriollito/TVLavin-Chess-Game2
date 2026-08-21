@@ -887,3 +887,21 @@
 .premium-final-cta {
     animation: fadeIn 0.4s ease-out;
 }
+/* Current product inventory: truthful until paid entitlement enforcement is certified. */
+.pricing-inventory-heading { max-width: 760px; margin: 0 auto 28px; text-align: center; }
+.pricing-inventory-heading h2 { margin: 6px 0 10px; }
+.pricing-inventory-eyebrow { color: #b66a00; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.pricing-tier-map, .pricing-inventory-grid { display: grid; gap: 16px; }
+.pricing-tier-map { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 24px; }
+.pricing-tier-map article, .pricing-inventory-grid section { border: 1px solid #d9dee8; border-radius: 14px; background: #fff; padding: 20px; }
+.pricing-tier-map article { display: grid; gap: 6px; text-align: center; }
+.pricing-tier-map strong { font-size: 1.15rem; }
+.pricing-tier-map em { color: #8a5700; font-style: normal; font-size: .82rem; font-weight: 700; }
+.pricing-inventory-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pricing-inventory-grid h3 { margin-top: 0; }
+.pricing-inventory-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.pricing-inventory-list li { display: flex; align-items: flex-start; gap: 9px; line-height: 1.45; }
+.pricing-inventory-list i { color: #b66a00; margin-top: 3px; }
+.pricing-inventory-note, .pricing-inventory-boundary { line-height: 1.5; }
+.pricing-inventory-boundary { margin: 22px 0 0; text-align: center; }
+@media (max-width: 760px) { .pricing-tier-map { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pricing-inventory-grid { grid-template-columns: 1fr; } }

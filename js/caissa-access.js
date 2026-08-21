@@ -137,6 +137,7 @@
                 const wallet = {
                     credits: data.credits ?? 0,
                     isPremium: data.isPremium ?? false,
+                    membershipTier: data.membershipTier ?? null,
                     role: data.role ?? 'member',
                     updatedAt: Date.now()
                 };
@@ -145,7 +146,7 @@
 
                 // Dispatch event so UI updates
                 window.dispatchEvent(new CustomEvent('caissa-credits-changed', {
-                    detail: { credits: wallet.credits, isPremium: wallet.isPremium, role: wallet.role }
+                    detail: { credits: wallet.credits, isPremium: wallet.isPremium, membershipTier: wallet.membershipTier, role: wallet.role }
                 }));
 
                 console.log('CAISSA Access: Wallet hydrated from backend', wallet.credits, 'credits');
@@ -356,6 +357,11 @@
         getRole: function() {
             const wallet = getWallet();
             return wallet?.role || 'member';
+        },
+
+        getMembershipTier: function() {
+            const wallet = getWallet();
+            return wallet?.membershipTier || null;
         },
 
         /**

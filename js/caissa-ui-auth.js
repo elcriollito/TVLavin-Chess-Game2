@@ -113,6 +113,7 @@
          */
         _updateSidebarAuth: function(authState) {
             const signInBtn = document.getElementById('sidebarSignIn');
+            const createAccountBtn = this._ensureCreateAccountAction(signInBtn);
             const userInfo = document.getElementById('sidebarUserInfo');
             const userName = document.getElementById('sidebarUserName');
             const userTier = document.getElementById('sidebarUserTier');
@@ -125,7 +126,9 @@
 
             if (authState?.isLoaded !== true) {
                 signInBtn.style.display = 'none';
+                if (createAccountBtn) createAccountBtn.style.display = 'none';
                 userInfo.style.display = 'none';
+                userInfo.hidden = true;
                 this.closeSidebarMenu();
                 if (sidebarMenu) {
                     sidebarMenu.hidden = true;
@@ -137,7 +140,9 @@
             if (authState.isSignedIn) {
                 // Hide sign in button, show user info
                 signInBtn.style.display = 'none';
+                if (createAccountBtn) createAccountBtn.style.display = 'none';
                 userInfo.style.display = 'flex';
+                userInfo.hidden = false;
                 userInfo.setAttribute('aria-expanded', 'false');
 
                 // Update user details
@@ -145,14 +150,11 @@
                     userName.textContent = authState.fullName || authState.email?.split('@')[0] || 'User';
                 }
 
-                // Determine tier from CAISSA_ACCESS or auth state
-                const hasAccess = typeof window.CAISSA_ACCESS !== 'undefined';
-                const isPremium = hasAccess ? window.CAISSA_ACCESS.isPremium() : false;
-                const tier = isPremium ? 'Premium' : 'Free';
+                const membership = this._getMembershipPresentation(authState);
 
                 if (userTier) {
-                    userTier.textContent = tier;
-                    userTier.classList.toggle('premium', isPremium);
+                    userTier.textContent = membership.label;
+                    userTier.classList.toggle('premium', membership.isPaid);
                 }
 
                 // Update avatar
@@ -192,13 +194,39 @@
             } else {
                 // Show sign in button, hide user info
                 signInBtn.style.display = 'flex';
+                if (createAccountBtn) createAccountBtn.style.display = 'flex';
                 userInfo.style.display = 'none';
+                userInfo.hidden = true;
                 this.closeSidebarMenu();
                 if (sidebarMenu) {
                     sidebarMenu.hidden = true;
                     sidebarMenu.setAttribute('aria-hidden', 'true');
                 }
             }
+        },
+
+        _ensureCreateAccountAction: function(signInBtn) {
+            if (!signInBtn) return null;
+            let action = document.getElementById('sidebarCreateAccount');
+            if (action) return action;
+            action = document.createElement('a');
+            action.id = 'sidebarCreateAccount';
+            action.href = '/signup';
+            action.className = 'nav-auth-btn nav-auth-signup';
+            action.setAttribute('aria-label', 'Create Account');
+            action.innerHTML = '<i class="fas fa-user-plus" aria-hidden="true"></i><span class="nav-label">Create Account</span>';
+            signInBtn.insertAdjacentElement('afterend', action);
+            return action;
+        },
+
+        _getMembershipPresentation: function(authState) {
+            const access = window.CAISSA_ACCESS;
+            const explicitTier = access?.getMembershipTier?.() || authState?.membershipTier;
+            const normalized = typeof explicitTier === 'string' ? explicitTier.trim().toLowerCase() : '';
+            const labels = { free: 'Free', silver: 'Silver', gold: 'Gold', platinum: 'Platinum' };
+            if (labels[normalized]) return { label: labels[normalized], isPaid: normalized !== 'free' };
+            const isPremium = access?.isPremium?.() === true;
+            return { label: isPremium ? 'Premium' : 'Free', isPaid: isPremium };
         },
 
         _bindSidebarSignInGuard: function() {
@@ -260,6 +288,10 @@
                     <i class="fas fa-sign-in-alt"></i>
                     <span class="auth-btn-text">Sign In</span>
                 </a>
+                <a href="/signup" class="btn btn-auth-signup" aria-label="Create Account">
+                    <i class="fas fa-user-plus"></i>
+                    <span class="auth-btn-text">Create Account</span>
+                </a>
             `;
         },
 
@@ -278,6 +310,7 @@
             const hasAccess = typeof window.CAISSA_ACCESS !== 'undefined';
             const credits = hasAccess ? window.CAISSA_ACCESS.getCredits() : 0;
             const isPremium = hasAccess ? window.CAISSA_ACCESS.isPremium() : false;
+            const membership = this._getMembershipPresentation(authState);
 
             // Create avatar image or initials
             let avatarContent;
@@ -307,7 +340,7 @@
                             </div>
                             <div class="auth-stat">
                                 <span class="auth-stat-label">Status</span>
-                                <span class="auth-stat-value ${isPremium ? 'premium' : ''}">${isPremium ? 'Premium' : 'Free'}</span>
+                                <span class="auth-stat-value ${membership.isPaid ? 'premium' : ''}">${membership.label}</span>
                             </div>
                         </div>
                         <div class="auth-dropdown-actions">
@@ -501,8 +534,17 @@
 
             const statusStat = container.querySelectorAll('.auth-stat-value')[1];
             if (statusStat) {
-                statusStat.textContent = isPremium ? 'Premium' : 'Free';
-                statusStat.classList.toggle('premium', isPremium);
+                const normalized = typeof detail?.membershipTier === 'string' ? detail.membershipTier.trim().toLowerCase() : '';
+                const labels = { free: 'Free', silver: 'Silver', gold: 'Gold', platinum: 'Platinum' };
+                statusStat.textContent = labels[normalized] || (isPremium ? 'Premium' : 'Free');
+                statusStat.classList.toggle('premium', normalized ? normalized !== 'free' : isPremium);
+            }
+
+            const sidebarTier = document.getElementById('sidebarUserTier');
+            if (sidebarTier) {
+                const membership = this._getMembershipPresentation({ membershipTier: detail?.membershipTier });
+                sidebarTier.textContent = membership.label;
+                sidebarTier.classList.toggle('premium', membership.isPaid);
             }
 
             // Update premium crown badge

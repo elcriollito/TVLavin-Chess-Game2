@@ -18,7 +18,8 @@
    SIGN IN BUTTON
    ======================================== */
 
-.btn-auth-signin {
+.btn-auth-signin,
+.btn-auth-signup {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -34,21 +35,25 @@
     transition: all 0.2s ease;
 }
 
-.btn-auth-signin:hover {
+.btn-auth-signin:hover,
+.btn-auth-signup:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(78, 205, 196, 0.3);
 }
 
-.btn-auth-signin i {
+.btn-auth-signin i,
+.btn-auth-signup i {
     font-size: 14px;
 }
 
 /* Hide text on small screens */
 @media (max-width: 640px) {
-    .btn-auth-signin .auth-btn-text {
+    .btn-auth-signin .auth-btn-text,
+    .btn-auth-signup .auth-btn-text {
         display: none;
     }
-    .btn-auth-signin {
+    .btn-auth-signin,
+    .btn-auth-signup {
         padding: 8px 12px;
     }
 }

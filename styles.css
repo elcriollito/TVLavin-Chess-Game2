@@ -4048,6 +4048,11 @@ button:focus,
 }
 
 /* ===== PREMIUM CTA IN SIDEBAR ===== */
+:root {
+    --caissa-premium-start: #ff9800;
+    --caissa-premium-end: #f57c00;
+    --caissa-premium-hover: #ffb74d;
+}
 .nav-premium-cta {
     padding: 8px 12px;
 }
@@ -4059,7 +4064,7 @@ button:focus,
     width: 100%;
     padding: 10px 14px;
     border-radius: 8px;
-    background: linear-gradient(135deg, #ff9800, #f57c00);
+    background: linear-gradient(135deg, var(--caissa-premium-start), var(--caissa-premium-end));
     color: white;
     text-decoration: none;
     font-size: 13px;
@@ -4069,7 +4074,7 @@ button:focus,
 }
 
 .nav-premium-btn:hover {
-    background: linear-gradient(135deg, #ffb74d, #ff9800);
+    background: linear-gradient(135deg, var(--caissa-premium-hover), var(--caissa-premium-start));
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
 }
