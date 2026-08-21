@@ -5,7 +5,7 @@ import { prohibitedEconomicFieldName, validateEconomicUsageEvent } from '../api/
 
 const base = () => ({
   eventId: crypto.randomUUID(), operationId: crypto.randomUUID(), reservationId: crypto.randomUUID(), userId: crypto.randomUUID(),
-  capabilityId: 'mentor.shared_response', provider: 'TOGETHER', model: 'moonshotai/Kimi-K2.6', unit: 'INPUT_TOKEN', quantity: 12,
+  capabilityId: 'mentor.shared_response', provider: 'TOGETHER', model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', unit: 'INPUT_TOKEN', quantity: 12,
   usageAvailable: true, durationMs: 20, resultCode: 'SUCCESS', valueDeliveryState: 'VALUE_AVAILABLE',
   catalogRevision: 'mentor-economic-v1', schemaVersion: 1, occurredAt: new Date().toISOString()
 });

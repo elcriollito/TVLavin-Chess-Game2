@@ -24,7 +24,7 @@ export const DEFAULT_MODELS = Object.freeze({
   together: PROVIDER_MODELS.together[0], llama: PROVIDER_MODELS.llama[0],
   openai: PROVIDER_MODELS.openai[0], anthropic: PROVIDER_MODELS.anthropic[0]
 });
-export const SHARED_MODELS = Object.freeze(['moonshotai/Kimi-K2.6', 'meta-llama/Llama-3.3-70B-Instruct-Turbo']);
+export const SHARED_MODELS = Object.freeze(['meta-llama/Llama-3.3-70B-Instruct-Turbo']);
 export const isAllowedSharedModel = model => SHARED_MODELS.includes(model);
 
 const FIELDS = new Set(['provider', 'apiKey', 'messages', 'model', 'maxTokens', 'temperature', 'engineReport', 'stream']);

@@ -29,18 +29,7 @@ function providerRequest(command) {
   }
   headers.Authorization = `Bearer ${command.apiKey}`;
   const tokenField = command.provider === 'llama' ? 'max_completion_tokens' : 'max_tokens';
-  return {
-    headers,
-    body: {
-      model: command.model,
-      messages: command.messages,
-      [tokenField]: command.maxTokens,
-      temperature: command.temperature,
-      ...(command.provider === 'together' && !command.byo && command.model === 'moonshotai/Kimi-K2.6'
-        ? { reasoning: { enabled: false } }
-        : {})
-    }
-  };
+  return { headers, body: { model: command.model, messages: command.messages, [tokenField]: command.maxTokens, temperature: command.temperature } };
 }
 
 async function callProvider(command, fetchImpl) {
@@ -75,7 +64,7 @@ export function createMentorChatHandler(deps = {}) {
 
     const auth = await authenticate(req);
     if (!auth.authenticated) return respondAuthFailure(res, auth);
-    const sharedModel = env.TOGETHER_MODEL || 'moonshotai/Kimi-K2.6';
+    const sharedModel = env.TOGETHER_MODEL || 'meta-llama/Llama-3.3-70B-Instruct-Turbo';
     if (!isAllowedSharedModel(sharedModel)) return reject(res, 503, 'SERVICE_UNAVAILABLE', 'AI service temporarily unavailable.');
     const validation = validateMentorRequest(req.body, sharedModel);
     if (!validation.ok) return reject(res, validation.status, validation.code, validation.status === 413 ? 'Request is too large.' : 'Invalid AI request.');
