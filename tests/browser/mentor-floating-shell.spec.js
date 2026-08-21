@@ -2,6 +2,66 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { instrumentPlay } from '../play/playwright-helpers.js';
 
+const longMentorAnswer = [
+    'A long answer should remain readable inside the conversation region.',
+    ...Array.from({ length: 18 }, (_, index) => `Paragraph ${index + 1}: Improve the position patiently, compare candidate moves, and verify forcing replies before committing. **Plan** ${index + 1}.`),
+    '- Control the center\n- Improve the least active piece\n- Check tactical replies',
+    'Spanish: La respuesta debe conservarse dentro del historial sin cubrir los controles.',
+    `Notation: 1.e4 e5 2.Nf3 Nc6. URL: https://example.invalid/mentor/layout. ${'unbroken'.repeat(30)}`
+].join('\n\n');
+
+async function assertLongResponseLayout(page, viewport) {
+    await page.setViewportSize(viewport);
+    const mentorRequests = [];
+    page.on('request', request => { if (/\/api\/mentor\//.test(request.url())) mentorRequests.push(request.url()); });
+    await instrumentPlay(page);
+    await page.goto('/play?simplified=1');
+    await page.locator('[data-caissa-mentor-launcher]').click();
+    await page.evaluate(answer => {
+        const messages = document.querySelector('.caissa-mentor-shell__messages');
+        const response = document.createElement('p');
+        response.className = 'caissa-mentor-shell__message caissa-mentor-shell__message--mentor';
+        response.dataset.testLongMentorResponse = '';
+        response.textContent = answer;
+        messages.append(response);
+        messages.scrollTop = messages.scrollHeight;
+    }, longMentorAnswer);
+    const geometry = await page.evaluate(() => {
+        const rect = selector => document.querySelector(selector).getBoundingClientRect();
+        const bodyNode = document.querySelector('.caissa-mentor-shell__body');
+        const messageNode = document.querySelector('.caissa-mentor-shell__messages');
+        const bodyScrolls = bodyNode.scrollHeight > bodyNode.clientHeight;
+        if (bodyScrolls) bodyNode.scrollTop = bodyNode.scrollHeight;
+        const shell = rect('[data-caissa-mentor-shell]');
+        const body = rect('.caissa-mentor-shell__body');
+        const messages = rect('.caissa-mentor-shell__messages');
+        const response = rect('[data-test-long-mentor-response]');
+        const form = rect('.caissa-mentor-shell__form');
+        const local = rect('.caissa-mentor-shell__local');
+        const auth = rect('.caissa-mentor-shell__auth:not([hidden])');
+        return { shell, body, messages, response, form, local, auth, bodyScrolls,
+            messageScrolls: messageNode.scrollHeight > messageNode.clientHeight,
+            pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+    });
+    expect(geometry.messageScrolls || geometry.bodyScrolls).toBe(true);
+    if (geometry.bodyScrolls) expect(geometry.response.bottom).toBeLessThanOrEqual(geometry.form.top + 1);
+    else {
+        expect(geometry.response.bottom).toBeLessThanOrEqual(geometry.messages.bottom + 1);
+        expect(geometry.messages.bottom).toBeLessThanOrEqual(geometry.form.top + 1);
+    }
+    expect(geometry.form.bottom).toBeLessThanOrEqual(geometry.local.top + 1);
+    expect(geometry.local.bottom).toBeLessThanOrEqual(geometry.auth.top + 1);
+    expect(geometry.auth.bottom).toBeLessThanOrEqual(Math.min(geometry.body.bottom, geometry.shell.bottom) + 1);
+    expect(geometry.response.left).toBeGreaterThanOrEqual(geometry.messages.left - 1);
+    expect(geometry.response.right).toBeLessThanOrEqual(geometry.messages.right + 1);
+    expect(geometry.pageOverflow).toBeLessThanOrEqual(2);
+    await page.setViewportSize({ width: Math.max(320, viewport.width - 80), height: Math.max(480, viewport.height - 100) });
+    await page.getByRole('button', { name: 'Minimize CAISSA Mentor' }).click();
+    await page.locator('[data-caissa-mentor-launcher]').click();
+    await expect(page.locator('[data-test-long-mentor-response]')).toBeVisible();
+    expect(mentorRequests).toEqual([]);
+}
+
 test('Play exposes Mentor with zero auto-call, keyboard-safe lifecycle, and no issue-control collision', async ({ page }) => {
     await instrumentPlay(page);
     const mentorRequests = [];
@@ -63,4 +123,17 @@ test('Mentor reacts to authoritative auth changes without submitting or caching 
     await expect(signedOutCopy).toBeVisible();
     expect(mentorRequests).toEqual([]);
     expect(await page.evaluate(() => [...Object.keys(localStorage), ...Object.keys(sessionStorage)].filter(key => /token/i.test(key)))).toEqual([]);
+});
+
+for (const [name, viewport] of [
+    ['desktop 1920x1080', { width: 1920, height: 1080 }],
+    ['desktop 1440x900', { width: 1440, height: 900 }],
+    ['desktop 1280x720', { width: 1280, height: 720 }],
+    ['short desktop', { width: 1248, height: 617 }],
+    ['narrow tablet', { width: 820, height: 900 }],
+    ['iPhone portrait', { width: 390, height: 844 }],
+    ['Android portrait', { width: 412, height: 915 }],
+    ['mobile landscape', { width: 844, height: 390 }]
+]) test(`long Mentor response remains contained at ${name} with zero AI calls`, async ({ page }) => {
+    await assertLongResponseLayout(page, viewport);
 });
