@@ -85,4 +85,10 @@
     }
 
     document.querySelectorAll('[data-caissa-standalone-sidebar]').forEach(renderSidebar);
+    if (!document.querySelector('script[data-caissa-standalone-auth-runtime]')) {
+        const authRuntime = document.createElement('script');
+        authRuntime.src = '/js/caissa-standalone-auth-runtime.js?v=1.0.0';
+        authRuntime.dataset.caissaStandaloneAuthRuntime = 'true';
+        document.head.appendChild(authRuntime);
+    }
 })();

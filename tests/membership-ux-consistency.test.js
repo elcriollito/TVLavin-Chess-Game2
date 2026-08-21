@@ -39,3 +39,11 @@ test('registration retains the single server-authoritative provisioning path', (
   assert.match(completion, /fetch\('\/api\/user\/sync'/);
   assert.match(sync, /onConflict: 'clerk_id'/);
 });
+
+test('every standalone sidebar obtains the same auth runtime from its shared renderer', () => {
+  const renderer = read('js/caissa-standalone-sidebar.js');
+  const runtime = read('js/caissa-standalone-auth-runtime.js');
+  assert.match(renderer, /caissa-standalone-auth-runtime\.js/);
+  for (const asset of ['auth-config.js', 'caissa-auth.js', 'caissa-access.js', 'caissa-ui-auth.js']) assert.match(runtime, new RegExp(asset));
+  assert.match(runtime, /data-caissa-auth-runtime/);
+});

@@ -161,13 +161,13 @@
     text-decoration: none;
 }
 
-.caissa-trainer-sidebar-host .nav-auth-area {
+:is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-area {
     position: relative;
     display: grid;
     gap: 6px;
 }
 
-.caissa-trainer-sidebar-host .nav-auth-user {
+:is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-user {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -181,7 +181,7 @@
     text-align: left;
 }
 
-.caissa-trainer-sidebar-host .nav-auth-avatar {
+:is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-avatar {
     display: grid;
     place-items: center;
     flex: 0 0 32px;
@@ -194,13 +194,13 @@
     font-weight: 800;
 }
 
-.caissa-trainer-sidebar-host .nav-auth-details { display: grid; min-width: 0; }
-.caissa-trainer-sidebar-host .nav-auth-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
-.caissa-trainer-sidebar-host .nav-auth-tier { color: rgba(255, 255, 255, 0.72); font-size: .78rem; }
-.caissa-trainer-sidebar-host .nav-auth-tier.premium { color: #ffb74d; }
-.caissa-trainer-sidebar-host .nav-auth-menu { display: grid; gap: 4px; padding: 6px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 8px; background: #151b25; }
-.caissa-trainer-sidebar-host .nav-auth-menu[hidden] { display: none; }
-.caissa-trainer-sidebar-host .nav-auth-menu-item { min-height: 40px; border: 0; border-radius: 6px; color: #fff; background: transparent; text-align: left; }
+:is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-details { display: grid; min-width: 0; }
+:is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+:is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-tier { color: rgba(255, 255, 255, 0.72); font-size: .78rem; }
+:is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-tier.premium { color: #ffb74d; }
+:is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-menu { display: grid; gap: 4px; padding: 6px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 8px; background: #151b25; }
+:is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-menu[hidden] { display: none; }
+:is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-menu-item { min-height: 40px; border: 0; border-radius: 6px; color: #fff; background: transparent; text-align: left; }
 
 .caissa-trainer-sidebar-host .nav-logo {
     color: #fff;
