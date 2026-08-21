@@ -1,5 +1,6 @@
 (function () {
     'use strict';
+    const ownsAuthRuntime = document.currentScript?.dataset.caissaAuthRuntime === 'external';
 
     function renderSidebar(host) {
         const navigation = window.CaissaPrimaryNavigation;
@@ -24,7 +25,7 @@
                         <i class="fas fa-chevron-left" aria-hidden="true"></i>
                     </button>
                 </div>
-                <div class="nav-auth-area" id="sidebarAuthArea">
+                <div class="nav-auth-area" id="sidebarAuthArea" data-auth-state="loading" aria-busy="true">
                     <a href="/signin" class="nav-auth-btn nav-auth-signin" id="sidebarSignIn">
                         <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
                         <span class="nav-label">Sign In</span>
@@ -85,7 +86,7 @@
     }
 
     document.querySelectorAll('[data-caissa-standalone-sidebar]').forEach(renderSidebar);
-    if (!document.querySelector('script[data-caissa-standalone-auth-runtime]')) {
+    if (!ownsAuthRuntime && !document.querySelector('script[data-caissa-standalone-auth-runtime]')) {
         const authRuntime = document.createElement('script');
         authRuntime.src = '/js/caissa-standalone-auth-runtime.js?v=1.0.0';
         authRuntime.dataset.caissaStandaloneAuthRuntime = 'true';

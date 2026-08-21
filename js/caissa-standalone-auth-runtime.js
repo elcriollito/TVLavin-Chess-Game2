@@ -24,11 +24,10 @@
             document.head.appendChild(stylesheet);
         }
         try {
-            await loadScriptOnce('/js/auth-config.js?v=1.0.5', () => Boolean(window.CAISSA_CONFIG));
+            await loadScriptOnce('/js/auth-config.js?v=1.0.5', () => Boolean(window.CAISSA_AUTH_CONFIG));
             await loadScriptOnce('/js/caissa-auth.js?v=1.0.4', () => Boolean(window.CAISSA_AUTH));
             await loadScriptOnce('/js/caissa-access.js?v=1.0.3', () => Boolean(window.CAISSA_ACCESS));
             await loadScriptOnce('/js/caissa-ui-auth.js?v=1.0.3', () => Boolean(window.CaissaUIAuth));
-            window.CaissaUIAuth?.init?.();
         } catch (error) {
             console.warn('CAISSA sidebar auth runtime unavailable; anonymous navigation remains available.');
         }

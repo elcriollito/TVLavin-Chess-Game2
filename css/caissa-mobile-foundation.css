@@ -445,7 +445,8 @@
 
     :where(
         #navCollapseBtn,
-        #sidebarSignIn,
+        .nav-auth-area[data-auth-state="anonymous"] #sidebarSignIn,
+        .nav-auth-area[data-auth-state="anonymous"] #sidebarCreateAccount,
         #mentorCloseBtn,
         #libraryCloseBtn,
         .quick-eval-toggle,

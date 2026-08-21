@@ -19,14 +19,17 @@
         email: null,
         fullName: null,
         imageUrl: null,
-        clerk: null
+        clerk: null,
+        status: 'loading'
     };
 
     // Private state
     let _clerkInstance = null;
     let _sessionListeners = [];
     let _clerkLoadPromise = null;
+    let _initializePromise = null;
     let _lastAuthSignature = '';
+    let _lastBootstrappedUserId = null;
 
     function _getConfiguredPublishableKey() {
         const key = String(window.CAISSA_AUTH_CONFIG?.CLERK_PUBLISHABLE_KEY || '').trim();
@@ -56,7 +59,7 @@
     /**
      * Initialize Clerk and set up session watching
      */
-    async function initializeAuth() {
+    async function _initializeAuthOnce() {
         const config = window.CAISSA_AUTH_CONFIG;
         if (window.CAISSA_AUTH_CONFIG_READY) {
             try {
@@ -71,6 +74,7 @@
         if (!config || !publishableKey) {
             console.warn('[Auth] Clerk disabled: missing publishableKey');
             window.CAISSA_AUTH.isLoaded = true;
+            window.CAISSA_AUTH.status = 'unavailable';
             _notifyListeners();
             return;
         }
@@ -102,9 +106,15 @@
         } catch (error) {
             console.warn('CAISSA Auth: Initialization failed - running without authentication', error);
             window.CAISSA_AUTH.isLoaded = true;
+            window.CAISSA_AUTH.status = 'unavailable';
         }
 
         _notifyListeners();
+    }
+
+    function initializeAuth() {
+        if (!_initializePromise) _initializePromise = _initializeAuthOnce();
+        return _initializePromise;
     }
 
     /**
@@ -124,6 +134,7 @@
             window.CAISSA_AUTH.email = user.primaryEmailAddress?.emailAddress || null;
             window.CAISSA_AUTH.fullName = user.fullName || user.firstName || 'User';
             window.CAISSA_AUTH.imageUrl = user.imageUrl || null;
+            window.CAISSA_AUTH.status = 'authenticated';
 
             // Bootstrap local profile
             _bootstrapUserProfile(user);
@@ -134,6 +145,7 @@
             window.CAISSA_AUTH.email = null;
             window.CAISSA_AUTH.fullName = null;
             window.CAISSA_AUTH.imageUrl = null;
+            window.CAISSA_AUTH.status = 'anonymous';
 
             // Clear active session state but keep profile
             _clearSessionState();
@@ -147,6 +159,8 @@
      * Creates profile if doesn't exist, preserves existing data
      */
     function _bootstrapUserProfile(user) {
+        if (_lastBootstrappedUserId === user.id) return getUserProfile();
+        _lastBootstrappedUserId = user.id;
         const config = window.CAISSA_AUTH_CONFIG;
         const storageKey = config.STORAGE_KEYS.USER_PROFILE;
 
@@ -373,7 +387,8 @@
             userId: window.CAISSA_AUTH.userId,
             email: window.CAISSA_AUTH.email,
             fullName: window.CAISSA_AUTH.fullName,
-            imageUrl: window.CAISSA_AUTH.imageUrl
+            imageUrl: window.CAISSA_AUTH.imageUrl,
+            status: window.CAISSA_AUTH.status
         });
 
         if (signature === _lastAuthSignature) return;

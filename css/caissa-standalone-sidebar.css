@@ -167,6 +167,16 @@
     gap: 6px;
 }
 
+:is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-area[data-auth-state="loading"] > :is(.nav-auth-btn, .nav-auth-user, .nav-auth-menu),
+:is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-area[data-auth-state="unavailable"] > :is(.nav-auth-btn, .nav-auth-user, .nav-auth-menu) {
+    display: none !important;
+}
+
+:is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-area[data-auth-state="authenticated"] > .nav-auth-btn,
+:is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-area[data-auth-state="anonymous"] > .nav-auth-user {
+    display: none !important;
+}
+
 :is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-user {
     display: flex;
     align-items: center;
@@ -201,6 +211,8 @@
 :is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-menu { display: grid; gap: 4px; padding: 6px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 8px; background: #151b25; }
 :is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-menu[hidden] { display: none; }
 :is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-menu-item { min-height: 40px; border: 0; border-radius: 6px; color: #fff; background: transparent; text-align: left; }
+:is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-unavailable { margin: 0; padding: 10px 8px; color: rgba(255, 255, 255, .72); font-size: .78rem; text-align: center; }
+:is(.caissa-trainer-sidebar-host, .caissa-standalone-sidebar-host) .nav-auth-unavailable[hidden] { display: none; }
 
 .caissa-trainer-sidebar-host .nav-logo {
     color: #fff;

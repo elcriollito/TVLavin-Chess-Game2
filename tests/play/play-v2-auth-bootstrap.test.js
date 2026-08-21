@@ -4,15 +4,15 @@ import test from 'node:test';
 import handler from '../../api/public-auth-config.js';
 
 const read = path => fs.readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
-const prohibitedAuthResources = /(?:css\/caissa-auth\.css|js\/(?:caissa-access|caissa-ui-auth)\.js)/i;
-
-test('Play v2 reuses only the token-capable auth core while protected owners retain full account UI', () => {
+test('Play v2 reuses the canonical auth core and account identity renderer', () => {
     const play = read('play-v2.html');
     const source = read('index.html');
     const classic = read('yahoo-classic.html');
     assert.match(play, /js\/auth-config\.js/);
     assert.match(play, /js\/caissa-auth\.js/);
-    assert.doesNotMatch(play, prohibitedAuthResources);
+    assert.match(play, /css\/caissa-auth\.css/);
+    assert.match(play, /js\/caissa-access\.js/);
+    assert.match(play, /js\/caissa-ui-auth\.js/);
     for (const document of [source, classic]) {
         assert.match(document, /js\/auth-config\.js/);
         assert.match(document, /js\/caissa-auth\.js/);
@@ -21,11 +21,11 @@ test('Play v2 reuses only the token-capable auth core while protected owners ret
     }
 });
 
-test('builder preserves the auth core and continues to exclude account authority/UI resources', () => {
+test('builder preserves the canonical auth core and account identity UI', () => {
     const builder = read('scripts/build-play-v2.mjs');
-    assert.match(builder, /PROHIBITED_PLAY_V2_AUTH_RESOURCE/);
+    assert.doesNotMatch(builder, /PROHIBITED_PLAY_V2_AUTH_RESOURCE/);
     assert.doesNotMatch(builder, /PROHIBITED_PLAY_V2_AUTH_BOOTSTRAP/);
-    assert.match(builder, /caissa-access\|caissa-ui-auth/);
+    assert.doesNotMatch(builder, /caissa-access\|caissa-ui-auth/);
 });
 
 test('passive native Play initialization does not materialize default preferences', () => {

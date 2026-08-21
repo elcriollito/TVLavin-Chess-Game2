@@ -17,11 +17,18 @@
 
         // State
         isDropdownOpen: false,
+        isInitialized: false,
 
         /**
          * Initialize the auth UI
          */
         init: function() {
+            if (this.isInitialized) {
+                this._findOrCreateContainer();
+                this.render(window.CAISSA_AUTH || { isLoaded: false, isSignedIn: false });
+                return;
+            }
+            this.isInitialized = true;
             // Find or create auth container
             this._findOrCreateContainer();
             this._bindSidebarSignInGuard();
@@ -89,10 +96,16 @@
          */
         render: function(authState) {
             const container = this.elements.container;
+            const lifecycle = authState?.status === 'unavailable'
+                ? 'unavailable'
+                : authState?.isLoaded !== true
+                    ? 'loading'
+                    : authState.isSignedIn ? 'authenticated' : 'anonymous';
+            this._setLifecycle(lifecycle);
 
-            if (authState?.isLoaded !== true) {
+            if (lifecycle === 'loading' || lifecycle === 'unavailable') {
                 if (container) this._renderPending();
-                this._updateSidebarAuth({ isLoaded: false, isSignedIn: false });
+                this._updateSidebarAuth(authState || { isLoaded: false, isSignedIn: false });
                 return;
             }
 
@@ -106,6 +119,23 @@
 
             // Also update sidebar auth area
             this._updateSidebarAuth(authState);
+        },
+
+        _setLifecycle: function(state) {
+            const area = document.getElementById('sidebarAuthArea');
+            if (!area) return;
+            area.dataset.authState = state;
+            area.setAttribute('aria-busy', String(state === 'loading'));
+            let unavailable = document.getElementById('sidebarAuthUnavailable');
+            if (!unavailable) {
+                unavailable = document.createElement('p');
+                unavailable.id = 'sidebarAuthUnavailable';
+                unavailable.className = 'nav-auth-unavailable';
+                unavailable.textContent = 'Account unavailable';
+                unavailable.hidden = true;
+                area.appendChild(unavailable);
+            }
+            unavailable.hidden = state !== 'unavailable';
         },
 
         /**
@@ -134,6 +164,14 @@
                     sidebarMenu.hidden = true;
                     sidebarMenu.setAttribute('aria-hidden', 'true');
                 }
+                return;
+            }
+
+            if (authState.status === 'unavailable') {
+                signInBtn.style.display = 'none';
+                if (createAccountBtn) createAccountBtn.style.display = 'none';
+                userInfo.style.display = 'none';
+                userInfo.hidden = true;
                 return;
             }
 
@@ -216,7 +254,15 @@
             action.setAttribute('aria-label', 'Create Account');
             action.innerHTML = '<i class="fas fa-user-plus" aria-hidden="true"></i><span class="nav-label">Create Account</span>';
             signInBtn.insertAdjacentElement('afterend', action);
+            this._setAnonymousEntryHrefs(signInBtn, action);
             return action;
+        },
+
+        _setAnonymousEntryHrefs: function(signIn, signup) {
+            const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+            const safe = window.CAISSA_REDIRECTS?.sanitizeInternalRedirect?.(current, '/') || '/';
+            signIn.href = '/signin?redirect_url=' + encodeURIComponent(safe);
+            signup.href = '/signup?redirect_url=' + encodeURIComponent(safe);
         },
 
         _getMembershipPresentation: function(authState) {

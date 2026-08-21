@@ -4667,6 +4667,26 @@ button:focus,
     position: relative;
 }
 
+.nav-auth-area[data-auth-state="loading"]::after {
+    content: '';
+    display: block;
+    width: 32px;
+    height: 32px;
+    margin: 4px auto;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.nav-auth-unavailable {
+    margin: 0;
+    padding: 10px 8px;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 12px;
+    text-align: center;
+}
+
+.nav-auth-unavailable[hidden] { display: none; }
+
 .nav-connect-label {
     padding: 14px 16px 5px;
     color: #9aa7bd;
