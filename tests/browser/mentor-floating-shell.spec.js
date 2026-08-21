@@ -125,6 +125,73 @@ test('Mentor reacts to authoritative auth changes without submitting or caching 
     expect(await page.evaluate(() => [...Object.keys(localStorage), ...Object.keys(sessionStorage)].filter(key => /token/i.test(key)))).toEqual([]);
 });
 
+async function prepareDeliveryAckFixture(page, confirmStatuses, shared = true) {
+    await instrumentPlay(page);
+    const requests = [];
+    let tokenCalls = 0;
+    await page.route('**/api/mentor/chat', route => {
+        requests.push({ path: '/api/mentor/chat', authorization: route.request().headers().authorization || null });
+        return route.fulfill({ status: 200, contentType: 'application/json',
+            headers: { 'Idempotency-Key': '30000000-0000-4000-8000-000000000001' },
+            body: JSON.stringify({ content: 'Synthetic Mentor success.', usage: {}, isSharedApi: shared }) });
+    });
+    await page.route('**/api/mentor/result/*/confirm', route => {
+        requests.push({ path: new URL(route.request().url()).pathname, authorization: route.request().headers().authorization || null });
+        const status = confirmStatuses.shift() ?? 200;
+        return route.fulfill({ status, contentType: 'application/json', body: JSON.stringify({ code: status === 200 ? 'DELIVERY_CONFIRMED' : 'SYNTHETIC_FAILURE' }) });
+    });
+    await page.goto('/play?simplified=1');
+    await page.evaluate(() => {
+        let calls = 0;
+        window.CAISSA_AUTH = { isLoaded: true, isSignedIn: true, whenReady: async function () { return this; },
+            getToken: async () => { calls += 1; window.__ackTokenCalls = calls; return `fresh-token-${calls}`; } };
+    });
+    return { requests, tokenCalls: () => page.evaluate(() => window.__ackTokenCalls || 0) };
+}
+
+async function submitSyntheticMentor(page) {
+    await page.locator('[data-caissa-mentor-launcher]').click();
+    await page.locator('#caissaMentorInput').fill('Synthetic question.');
+    await page.getByRole('button', { name: 'Send to Mentor' }).click();
+    return page.locator('.caissa-mentor-shell__message--mentor');
+}
+
+test('Shared success renders once then confirms once with a fresh Bearer token', async ({ page }) => {
+    const fixture = await prepareDeliveryAckFixture(page, [200]);
+    const answer = await submitSyntheticMentor(page);
+    await expect(answer).toHaveText('Synthetic Mentor success.');
+    await expect(answer).toHaveAttribute('data-delivery-ack', 'confirmed');
+    expect(fixture.requests.map(item => item.path)).toEqual(['/api/mentor/chat', '/api/mentor/result/30000000-0000-4000-8000-000000000001/confirm']);
+    expect(fixture.requests[0].authorization).toBe('Bearer fresh-token-1');
+    expect(fixture.requests[1].authorization).toBe('Bearer fresh-token-2');
+    expect(await fixture.tokenCalls()).toBe(2);
+});
+
+test('transient acknowledgement failure retries boundedly without repeating answer or chat', async ({ page }) => {
+    const fixture = await prepareDeliveryAckFixture(page, [503, 200]);
+    const answer = await submitSyntheticMentor(page);
+    await expect(answer).toHaveAttribute('data-delivery-ack', 'confirmed');
+    expect(await page.locator('.caissa-mentor-shell__message--mentor').count()).toBe(1);
+    expect(fixture.requests.filter(item => item.path === '/api/mentor/chat')).toHaveLength(1);
+    expect(fixture.requests.filter(item => item.path.endsWith('/confirm'))).toHaveLength(2);
+});
+
+test('permanent acknowledgement failure stays bounded and leaves the answer visible', async ({ page }) => {
+    const fixture = await prepareDeliveryAckFixture(page, [403]);
+    const answer = await submitSyntheticMentor(page);
+    await expect(answer).toBeVisible();
+    await expect(answer).toHaveAttribute('data-delivery-ack', 'pending');
+    expect(fixture.requests.filter(item => item.path.endsWith('/confirm'))).toHaveLength(1);
+    await expect(page.locator('.caissa-mentor-shell__status')).toHaveText('Mentor replied.');
+});
+
+test('BYO-shaped success never invokes Shared delivery confirmation', async ({ page }) => {
+    const fixture = await prepareDeliveryAckFixture(page, [200], false);
+    const answer = await submitSyntheticMentor(page);
+    await expect(answer).toHaveAttribute('data-delivery-ack', 'not-applicable');
+    expect(fixture.requests.map(item => item.path)).toEqual(['/api/mentor/chat']);
+});
+
 for (const [name, viewport] of [
     ['desktop 1920x1080', { width: 1920, height: 1080 }],
     ['desktop 1440x900', { width: 1440, height: 900 }],

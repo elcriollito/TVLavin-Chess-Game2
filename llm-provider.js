@@ -11,6 +11,7 @@
  */
 
 let _byoApiKey = null;
+const CAISSA_OPERATION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const LLMProvider = {
 
@@ -357,6 +358,9 @@ const LLMProvider = {
             }
 
             const data = await response.json();
+            const operationReference = response.headers.get('Idempotency-Key');
+            const operationId = data.isSharedApi === true && CAISSA_OPERATION_ID.test(operationReference || '')
+                ? operationReference : null;
 
             // Track if using shared API
             if (data.isSharedApi) {
@@ -366,7 +370,8 @@ const LLMProvider = {
             return {
                 content: data.content,
                 usage: data.usage,
-                isSharedApi: data.isSharedApi || false
+                isSharedApi: data.isSharedApi || false,
+                ...(operationId ? { operationId } : {})
             };
 
         } catch (error) {

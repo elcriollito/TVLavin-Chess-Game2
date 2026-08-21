@@ -23,7 +23,8 @@ test('Mentor context route policy is explicit, immutable, and honest', () => {
 test('floating shell reuses LLMProvider only inside explicit submit and owns no economic authority', () => {
     const source = read('js/mentor/mentor-floating-shell.js');
     assert.match(source, /form\.addEventListener\('submit'[\s\S]*provider\.chat/);
-    assert.doesNotMatch(source, /\bfetch\s*\(|XMLHttpRequest|WebSocket|Worker\s*\(|localStorage|sessionStorage|indexedDB/);
+    assert.match(source, /\/api\/mentor\/result\/\$\{encodeURIComponent\(result\.operationId\)\}\/confirm/);
+    assert.doesNotMatch(source, /XMLHttpRequest|WebSocket|Worker\s*\(|localStorage|sessionStorage|indexedDB/);
     assert.doesNotMatch(source, /credits?\s*=|premium\s*=|CAISSA_MENTOR_RESERVATIONS_ENABLED|reserve_credits|consume_credits/);
     assert.match(source, /textContent = value/);
     assert.doesNotMatch(source, /innerHTML/);
@@ -48,6 +49,8 @@ test('Shared provider awaits CAISSA auth readiness and attaches only a current t
     assert.match(provider, /auth\?\.getToken/);
     assert.match(provider, /headers\['Authorization'\] = `Bearer \$\{authToken\}`/);
     assert.doesNotMatch(provider, /localStorage[\s\S]{0,120}(?:token|Authorization)|sessionStorage[\s\S]{0,120}(?:token|Authorization)/i);
+    assert.match(provider, /response\.headers\.get\('Idempotency-Key'\)/);
+    assert.match(provider, /CAISSA_OPERATION_ID\.test/);
 });
 
 test('local review remains explicitly local and report launcher joins one floating stack', () => {

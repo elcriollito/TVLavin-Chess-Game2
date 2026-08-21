@@ -48,6 +48,33 @@
     renderAuth(root.CAISSA_AUTH);
     root.CAISSA_AUTH?.onAuthStateChange?.(renderAuth);
     root.addEventListener('caissa-auth-change', event => renderAuth(event.detail));
+    const operationIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const transientConfirmationStatus = statusCode => statusCode === 408 || statusCode === 425 || statusCode === 429 || statusCode >= 500;
+    const wait = delayMs => new Promise(resolve => root.setTimeout(resolve, delayMs));
+    const confirmRenderedDelivery = async result => {
+        if (result?.isSharedApi !== true || !operationIdPattern.test(result.operationId || '')) return 'not-applicable';
+        const readyAuth = await root.CAISSA_AUTH?.whenReady?.() || root.CAISSA_AUTH;
+        const token = await readyAuth?.getToken?.() || null;
+        if (!token) return 'pending';
+        const endpoint = `/api/mentor/result/${encodeURIComponent(result.operationId)}/confirm`;
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+            try {
+                const response = await root.fetch(endpoint, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${token}` },
+                    credentials: 'same-origin',
+                    cache: 'no-store',
+                    keepalive: true
+                });
+                if (response.ok) return 'confirmed';
+                if (!transientConfirmationStatus(response.status)) return 'pending';
+            } catch {
+                // A bounded retry covers transient transport interruption only.
+            }
+            if (attempt < 2) await wait(125 * (attempt + 1));
+        }
+        return 'pending';
+    };
     let open = false;
     const setOpen = (value, returnFocus = false) => { open = value; panel.hidden = !value; panel.setAttribute('aria-hidden', String(!value));
         launcher.setAttribute('aria-expanded', String(value)); document.body.classList.toggle('caissa-mentor-open', value);
@@ -61,7 +88,9 @@
         try { const provider = typeof LLMProvider !== 'undefined' ? LLMProvider : root.LLMProvider;
             if (!provider?.chat) throw new Error('Mentor is temporarily unavailable.');
             const result = await provider.chat([{ role: 'system', content: 'You are CAISSA Mentor, a concise chess learning assistant.' }, { role: 'user', content: prompt }]);
-            messages.append(text('p', 'caissa-mentor-shell__message caissa-mentor-shell__message--mentor', result.content)); input.value = ''; status.textContent = 'Mentor replied.';
+            const answer = text('p', 'caissa-mentor-shell__message caissa-mentor-shell__message--mentor', result.content);
+            messages.append(answer); input.value = ''; status.textContent = 'Mentor replied.';
+            answer.dataset.deliveryAck = await confirmRenderedDelivery(result);
         } catch (error) { status.textContent = /sign in|required|credits|temporarily unavailable/i.test(error?.message || '') ? error.message : 'Mentor is temporarily unavailable. Please try again later.';
         } finally { submit.disabled = false; input.focus(); } });
     stack.prepend(launcher); document.body.appendChild(panel);
