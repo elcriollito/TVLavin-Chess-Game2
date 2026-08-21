@@ -53,7 +53,9 @@ test('generated Play v2 entry excludes educational resources and DOM while stand
     ]);
     assert.match(play, /play-v2-product-boundary\.js/); assert.match(play, /post-game-core\.js/);
     const resources=(play.match(/<(?:script|link)\b[^>]*>/gi)||[]).filter(value=>/(?:academy|mentor|guided[-_/]?replay|educational|knowledge|training[-_/]?memory|mastery|endgame[-_/]?(?:trainer|library)|js\/play\/coach\/)/i.test(value));
-    assert.deepEqual(resources.filter(value=>!/play-v2-mentor-review-boundary\.js/i.test(value)),[]);
+    const allowedMentorShellResources = /(?:play-v2-mentor-review-boundary\.js|mentor-context-contract\.js|mentor-floating-shell\.(?:js|css))/i;
+    assert.deepEqual(resources.filter(value=>!allowedMentorShellResources.test(value)),[]);
+    assert.doesNotMatch(play, /(?:mentor-ai|mentor-prompts|mentor-foundation|mentor-guided-replay)\.js/i);
     assert.match(play, /play-v2-coach-boundary\.js/);
     assert.doesNotMatch(play, /id="academySection"|data-section="academy"/i);
     assert.doesNotMatch(core, /Academy|classes|lesson|curriculum|Guided Replay|Knowledge Unit/i);

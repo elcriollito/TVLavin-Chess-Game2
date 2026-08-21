@@ -127,7 +127,7 @@ const prohibitedResources = resourceElements.filter(element =>
   || /players-(?:panel|stack)/i.test(element)
   || (/fics/i.test(element) && !/play-v2-fics-isolation\.js/i.test(element))
   || (/(?:academy|coach|mentor|guided[-_/]?replay|educational|knowledge|training[-_/]?memory|mastery|endgame[-_/]?(?:trainer|library))/i.test(element)
-    && !/play-v2-(?:product|coach|mentor-review)-boundary\.js/i.test(element))
+    && !/(?:play-v2-(?:product|coach|mentor-review)-boundary\.js|js\/mentor\/mentor-(?:context-contract|floating-shell)\.js|css\/mentor-floating-shell\.css)/i.test(element))
 );
 if (prohibitedResources.length) throw new Error(`PROHIBITED_PLAY_V2_RESOURCE: ${prohibitedResources.join(', ')}`);
 const playProductHtml = html.replace(/<nav\b[^>]*\bid="mainNav"[\s\S]*?<\/nav>/i, '');
