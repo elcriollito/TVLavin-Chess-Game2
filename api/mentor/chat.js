@@ -64,7 +64,7 @@ export function createMentorChatHandler(deps = {}) {
 
     const auth = await authenticate(req);
     if (!auth.authenticated) return respondAuthFailure(res, auth);
-    const sharedModel = env.TOGETHER_MODEL || 'moonshotai/Kimi-K2.5';
+    const sharedModel = env.TOGETHER_MODEL || 'moonshotai/Kimi-K2.6';
     if (!isAllowedSharedModel(sharedModel)) return reject(res, 503, 'SERVICE_UNAVAILABLE', 'AI service temporarily unavailable.');
     const validation = validateMentorRequest(req.body, sharedModel);
     if (!validation.ok) return reject(res, validation.status, validation.code, validation.status === 413 ? 'Request is too large.' : 'Invalid AI request.');

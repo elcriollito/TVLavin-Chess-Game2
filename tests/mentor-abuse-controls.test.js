@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { validateMentorRequest, MENTOR_LIMITS } from '../api/_lib/mentor-request-policy.js';
+import { validateMentorRequest, MENTOR_LIMITS, isAllowedSharedModel } from '../api/_lib/mentor-request-policy.js';
 import { createMentorChatHandler } from '../api/mentor/chat.js';
 
 const sharedModel = 'synthetic/shared-model';
@@ -44,6 +44,7 @@ test('missing global gate disables Shared Mentor', async()=>assert.equal((await 
 test('malformed Shared gate disables Shared Mentor', async()=>assert.equal((await invoke({env:{MENTOR_SHARED_AI_ENABLED:'true '}})).statusCode,503));
 test('BYO remains independent of Shared Mentor feature gates', async()=>{const calls=[];const b=valid();b.provider='openai';b.apiKey='synthetic-byo';b.model='gpt-4o-mini';const r=await invoke({body:b,db:mockDb({calls}),env:{MENTOR_AI_ENABLED:undefined,MENTOR_SHARED_AI_ENABLED:'false'}});assert.equal(r.statusCode,200);assert.deepEqual(calls,['claim_mentor_capacity','release_mentor_capacity']);});
 test('server shared model configuration is also allowlisted', async()=>assert.equal((await invoke({env:{TOGETHER_MODEL:'unlisted-expensive-model'}})).statusCode,503));
+test('current Kimi successor is allowlisted and retired K2.5 fails closed',()=>{assert.equal(isAllowedSharedModel('moonshotai/Kimi-K2.6'),true);assert.equal(isAllowedSharedModel('moonshotai/Kimi-K2.5'),false);});
 test('provider errors are generic and lease is released', async()=>{const calls=[];const r=await invoke({db:mockDb({calls}),fetchImpl:async()=>({ok:false,json:async()=>({error:{message:'secret upstream detail'}})})});assert.equal(r.statusCode,502);assert.equal(r.payload.code,'PROVIDER_ERROR');assert.doesNotMatch(JSON.stringify(r.payload),/secret upstream/);assert.equal(calls.at(-1),'release_mentor_capacity');});
 test('legacy executable Mentor proxy is retired',()=>{const source=fs.readFileSync('server.js','utf8');assert.match(source,/pathname === '\/api\/mentor\/chat'[\s\S]{0,300}MENTOR_PROXY_RETIRED/);});
 test('authoritative Mentor limiter has no process-local Map',()=>{const source=fs.readFileSync('api/mentor/chat.js','utf8')+fs.readFileSync('api/_lib/mentor-capacity.js','utf8');assert.doesNotMatch(source,/new Map\(|globalThis\.rateLimit|checkRateLimit/);});
