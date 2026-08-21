@@ -9,7 +9,7 @@ import { evaluateMentorReservationEligibility } from '../_lib/mentor-canary-poli
 import { sharedMentorGatesEnabled } from '../_lib/mentor-feature-gates.js';
 
 const PROVIDER_ENDPOINTS = Object.freeze({
-  together: 'https://api.together.xyz/v1/chat/completions', llama: 'https://api.llama.com/v1/chat/completions',
+  together: 'https://api.together.ai/v1/chat/completions', llama: 'https://api.llama.com/v1/chat/completions',
   openai: 'https://api.openai.com/v1/chat/completions', anthropic: 'https://api.anthropic.com/v1/messages'
 });
 const MENTOR_CREDIT_COST = 1;
@@ -29,7 +29,18 @@ function providerRequest(command) {
   }
   headers.Authorization = `Bearer ${command.apiKey}`;
   const tokenField = command.provider === 'llama' ? 'max_completion_tokens' : 'max_tokens';
-  return { headers, body: { model: command.model, messages: command.messages, [tokenField]: command.maxTokens, temperature: command.temperature } };
+  return {
+    headers,
+    body: {
+      model: command.model,
+      messages: command.messages,
+      [tokenField]: command.maxTokens,
+      temperature: command.temperature,
+      ...(command.provider === 'together' && !command.byo && command.model === 'moonshotai/Kimi-K2.6'
+        ? { reasoning: { enabled: false } }
+        : {})
+    }
+  };
 }
 
 async function callProvider(command, fetchImpl) {

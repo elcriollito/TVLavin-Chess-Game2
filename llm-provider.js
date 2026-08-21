@@ -35,7 +35,7 @@ const LLMProvider = {
         // Together.ai - cost-efficient LLaMA hosting (recommended)
         together: {
             name: 'Together.ai',
-            endpoint: 'https://api.together.xyz/v1/chat/completions',
+            endpoint: 'https://api.together.ai/v1/chat/completions',
             models: ['meta-llama/Llama-3.3-70B-Instruct-Turbo', 'meta-llama/Llama-4-Scout-17B-16E-Instruct'],
             defaultModel: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
             supportsSharedApi: true, // Only Together.ai supports shared API

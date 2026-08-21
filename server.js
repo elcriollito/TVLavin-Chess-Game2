@@ -132,7 +132,7 @@ function handleHealthCheck(res) {
 
 // Remote callers may select a provider, never the server's network destination.
 const MENTOR_PROVIDER_ENDPOINTS = Object.freeze({
-  together: 'https://api.together.xyz/v1/chat/completions',
+  together: 'https://api.together.ai/v1/chat/completions',
   llama: 'https://api.llama.com/v1/chat/completions',
   openai: 'https://api.openai.com/v1/chat/completions',
   anthropic: 'https://api.anthropic.com/v1/messages'

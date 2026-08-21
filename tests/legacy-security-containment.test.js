@@ -90,7 +90,7 @@ test('legacy local provider cannot trigger a server loopback fetch', async () =>
 });
 
 for (const [provider, expectedUrl, keyHeader] of [
-    ['together', 'https://api.together.xyz/v1/chat/completions', 'Authorization'],
+    ['together', 'https://api.together.ai/v1/chat/completions', 'Authorization'],
     ['llama', 'https://api.llama.com/v1/chat/completions', 'Authorization'],
     ['openai', 'https://api.openai.com/v1/chat/completions', 'Authorization'],
     ['anthropic', 'https://api.anthropic.com/v1/messages', 'x-api-key']

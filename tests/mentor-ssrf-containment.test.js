@@ -115,7 +115,7 @@ test('Anthropic BYO uses only the fixed endpoint and provider-specific key heade
 });
 
 for (const [provider, expectedEndpoint] of [
-    ['together', 'https://api.together.xyz/v1/chat/completions'],
+    ['together', 'https://api.together.ai/v1/chat/completions'],
     ['llama', 'https://api.llama.com/v1/chat/completions']
 ]) {
     test(`${provider} BYO maps to its fixed endpoint`, async () => {
