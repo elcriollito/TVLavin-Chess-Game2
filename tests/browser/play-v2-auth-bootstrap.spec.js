@@ -3,8 +3,16 @@ import { test, expect } from '@playwright/test';
 const routes = ['/play/beta', '/play/beta/games', '/play/beta/bots', '/play/beta/coach'];
 
 for (const route of routes) {
-    test(`fresh ${route} bootstrap owns no auth request, identity, cookie, or storage`, async ({ browser }) => {
+    test(`fresh ${route} bootstrap exposes only the shared CAISSA auth core`, async ({ browser }) => {
         const context = await browser.newContext();
+        await context.addInitScript(() => Object.defineProperty(HTMLScriptElement.prototype, 'integrity', {
+            configurable: true, get: () => '', set: () => {}
+        }));
+        await context.route('**/api/public-auth-config', route => route.fulfill({ status: 200, contentType: 'application/json',
+            body: JSON.stringify({ clerkPublishableKey: 'pk_test_browser_contract_123456789', registrationTracking: true }) }));
+        await context.route('https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6.28.1/dist/clerk.browser.js', route => route.fulfill({
+            status: 200, contentType: 'text/javascript', body: `window.Clerk={user:null,session:null,load:async()=>{},addListener:()=>{}};`
+        }));
         const page = await context.newPage();
         const requests = [];
         const failures = [];
@@ -21,11 +29,15 @@ for (const route of routes) {
             authConfig: typeof window.CAISSA_AUTH_CONFIG,
             auth: typeof window.CAISSA_AUTH
         }));
-        expect(requests.filter(url => /\/api\/public-auth-config(?:[?#]|$)/.test(url))).toEqual([]);
-        expect(requests.filter(url => /(?:clerk|supabase)/i.test(url))).toEqual([]);
+        expect(requests.filter(url => /\/api\/public-auth-config(?:[?#]|$)/.test(url))).toHaveLength(1);
+        expect(requests.filter(url => /\/api\/mentor\//.test(url))).toEqual([]);
+        expect(requests.filter(url => /supabase/i.test(url))).toEqual([]);
         expect(failures).toEqual([]);
         expect(errors).toEqual([]);
-        expect(proof).toEqual({ local: [], session: [], authConfig: 'undefined', auth: 'undefined' });
+        expect(proof.authConfig).toBe('object');
+        expect(proof.auth).toBe('object');
+        expect(proof.local.filter(key => /token/i.test(key))).toEqual([]);
+        expect(proof.session.filter(key => /token/i.test(key))).toEqual([]);
         expect(await context.cookies()).toEqual(beforeCookies);
         await context.close();
     });

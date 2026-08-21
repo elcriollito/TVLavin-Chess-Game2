@@ -27,6 +27,9 @@ test('floating shell reuses LLMProvider only inside explicit submit and owns no 
     assert.doesNotMatch(source, /credits?\s*=|premium\s*=|CAISSA_MENTOR_RESERVATIONS_ENABLED|reserve_credits|consume_credits/);
     assert.match(source, /textContent = value/);
     assert.doesNotMatch(source, /innerHTML/);
+    assert.match(source, /caissa-auth-change/);
+    assert.match(source, /redirect_url=/);
+    assert.match(source, /input\.value = ''; status\.textContent = 'Mentor replied\.'/);
 });
 
 test('generated public Play contains one lightweight Mentor shell and excludes legacy Mentor runtime', () => {
@@ -35,6 +38,16 @@ test('generated public Play contains one lightweight Mentor shell and excludes l
         assert.equal(html.split(resource).length - 1, 1, resource);
     assert.doesNotMatch(html, /mentor-ai\.js|mentor-prompts\.js|id="mentorPanel"/);
     assert.match(html, /llm-provider\.js/);
+    assert.match(html, /js\/auth-config\.js/);
+    assert.match(html, /js\/caissa-auth\.js/);
+});
+
+test('Shared provider awaits CAISSA auth readiness and attaches only a current token', () => {
+    const provider = read('llm-provider.js');
+    assert.match(provider, /CAISSA_AUTH\?\.whenReady/);
+    assert.match(provider, /auth\?\.getToken/);
+    assert.match(provider, /headers\['Authorization'\] = `Bearer \$\{authToken\}`/);
+    assert.doesNotMatch(provider, /localStorage[\s\S]{0,120}(?:token|Authorization)|sessionStorage[\s\S]{0,120}(?:token|Authorization)/i);
 });
 
 test('local review remains explicitly local and report launcher joins one floating stack', () => {

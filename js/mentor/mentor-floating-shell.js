@@ -36,9 +36,18 @@
     form.append(label, input, submit, status);
     const local = el('aside', 'caissa-mentor-shell__local', { 'aria-label': 'Local Game Review' });
     local.append(text('h3', '', 'Local Game Review'), text('p', '', 'Post-game review uses CAISSA’s local analysis and does not use Shared AI credits.'));
+    const redirect = encodeURIComponent(`${location.pathname}${location.search}${location.hash}`);
     const auth = el('p', 'caissa-mentor-shell__auth'); auth.append(document.createTextNode('Shared AI requires an account. '),
-        text('a', '', 'Sign in', { href: '/signin' }), document.createTextNode(' · '), text('a', '', 'Create account', { href: '/signup' }));
-    body.append(contextLabel, mode, messages, form, local, auth); panel.append(header, body);
+        text('a', '', 'Sign in', { href: `/signin?redirect_url=${redirect}` }), document.createTextNode(' · '),
+        text('a', '', 'Create account', { href: `/signup?redirect_url=${redirect}` }));
+    const authenticated = text('p', 'caissa-mentor-shell__auth', 'Signed in · Shared AI is available under your account rules.');
+    authenticated.hidden = true;
+    body.append(contextLabel, mode, messages, form, local, auth, authenticated); panel.append(header, body);
+    const renderAuth = state => { const signedIn = state?.isLoaded === true && state?.isSignedIn === true;
+        auth.hidden = signedIn; authenticated.hidden = !signedIn; };
+    renderAuth(root.CAISSA_AUTH);
+    root.CAISSA_AUTH?.onAuthStateChange?.(renderAuth);
+    root.addEventListener('caissa-auth-change', event => renderAuth(event.detail));
     let open = false;
     const setOpen = (value, returnFocus = false) => { open = value; panel.hidden = !value; panel.setAttribute('aria-hidden', String(!value));
         launcher.setAttribute('aria-expanded', String(value)); document.body.classList.toggle('caissa-mentor-open', value);
@@ -48,11 +57,11 @@
     document.addEventListener('keydown', event => { if (event.key === 'Escape' && open) { event.preventDefault(); setOpen(false, true); } });
     form.addEventListener('submit', async event => { event.preventDefault(); const prompt = input.value.trim();
         if (!prompt || prompt.length > 12000 || submit.disabled) return; messages.append(text('p', 'caissa-mentor-shell__message caissa-mentor-shell__message--user', prompt));
-        input.value = ''; submit.disabled = true; status.textContent = 'Mentor is thinking…';
+        submit.disabled = true; status.textContent = 'Mentor is thinking…';
         try { const provider = typeof LLMProvider !== 'undefined' ? LLMProvider : root.LLMProvider;
             if (!provider?.chat) throw new Error('Mentor is temporarily unavailable.');
             const result = await provider.chat([{ role: 'system', content: 'You are CAISSA Mentor, a concise chess learning assistant.' }, { role: 'user', content: prompt }]);
-            messages.append(text('p', 'caissa-mentor-shell__message caissa-mentor-shell__message--mentor', result.content)); status.textContent = 'Mentor replied.';
+            messages.append(text('p', 'caissa-mentor-shell__message caissa-mentor-shell__message--mentor', result.content)); input.value = ''; status.textContent = 'Mentor replied.';
         } catch (error) { status.textContent = /sign in|required|credits|temporarily unavailable/i.test(error?.message || '') ? error.message : 'Mentor is temporarily unavailable. Please try again later.';
         } finally { submit.disabled = false; input.focus(); } });
     stack.prepend(launcher); document.body.appendChild(panel);

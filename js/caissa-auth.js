@@ -345,7 +345,22 @@
             if (window.CAISSA_AUTH.isLoaded) {
                 callback(window.CAISSA_AUTH);
             }
+            return () => {
+                _sessionListeners = _sessionListeners.filter(listener => listener !== callback);
+            };
         }
+        return () => {};
+    }
+
+    function whenReady() {
+        if (window.CAISSA_AUTH.isLoaded) return Promise.resolve(window.CAISSA_AUTH);
+        return new Promise(resolve => {
+            const unsubscribe = onAuthStateChange(auth => {
+                if (!auth.isLoaded) return;
+                unsubscribe();
+                resolve(auth);
+            });
+        });
     }
 
     /**
@@ -403,6 +418,7 @@
     window.CAISSA_AUTH.redirectToSignIn = redirectToSignIn;
     window.CAISSA_AUTH.redirectToSignUp = redirectToSignUp;
     window.CAISSA_AUTH.onAuthStateChange = onAuthStateChange;
+    window.CAISSA_AUTH.whenReady = whenReady;
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initializeAuth);

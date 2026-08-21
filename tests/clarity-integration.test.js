@@ -149,7 +149,7 @@ test('CSP remains same-origin compatible without Clarity allowances', () => {
   assert.match(globalCsp, /script-src 'self'/);
   assert.match(globalCsp, /connect-src 'self'/);
   assert.doesNotMatch(globalCsp, /clarity\.ms/);
-  assert.match(playCsp, /script-src 'self';/);
-  assert.match(playCsp, /connect-src 'self';/);
+  assert.match(playCsp, /script-src 'self' https:\/\/cdn\.jsdelivr\.net;/);
+  assert.match(playCsp, /connect-src 'self'[^;]*https:\/\/\*\.clerk\.accounts\.dev/);
   assert.match(playCsp, /worker-src 'self';/);
 });

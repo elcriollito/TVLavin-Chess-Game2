@@ -290,7 +290,8 @@ const LLMProvider = {
         const temperature = options.temperature ?? this.config.temperature;
 
         // Get auth token if user is signed in
-        const authToken = await window.CAISSA_AUTH?.getToken?.() || null;
+        const auth = await window.CAISSA_AUTH?.whenReady?.() || window.CAISSA_AUTH || null;
+        const authToken = await auth?.getToken?.() || null;
 
         try {
             const headers = { 'Content-Type': 'application/json' };
@@ -330,8 +331,10 @@ const LLMProvider = {
                 const errorData = await response.json().catch(() => ({}));
 
                 // Handle specific error codes
-                if (response.status === 401 && errorData.code === 'AUTH_REQUIRED') {
-                    throw new Error('Sign in required to use AI Mentor. Click the sign-in button to continue.');
+                if (response.status === 401) {
+                    throw new Error(authToken
+                        ? 'Your session needs to be refreshed. Sign in again to continue.'
+                        : 'Sign in required to use AI Mentor. Click the sign-in button to continue.');
                 }
 
                 if (response.status === 402 && errorData.code === 'INSUFFICIENT_CREDITS') {

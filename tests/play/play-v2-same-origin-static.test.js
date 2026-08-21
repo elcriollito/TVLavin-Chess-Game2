@@ -8,7 +8,7 @@ const root = new URL('../../', import.meta.url);
 const read = path => readFile(new URL(path, root), 'utf8');
 const exec = promisify(execFile);
 
-test('generated Play v2 owns every executable static dependency', async () => {
+test('generated Play v2 owns static dependencies and limits its dynamic auth exception to Clerk', async () => {
   const html = await read('play-v2.html');
   const resources = html.match(/<(?:script|link)\b[^>]*>/gi) || [];
   assert.equal(resources.filter(element => /(?:src|href)=["']https?:\/\//i.test(element)).length, 0);
@@ -18,8 +18,9 @@ test('generated Play v2 owns every executable static dependency', async () => {
     '/assets/vendor/chessboard.js/chessboard-1.0.0.min.js',
     '/assets/vendor/font-awesome/css/all-6.4.0.min.css',
   ]) assert(html.includes(path), path);
-  assert.match(html, /connect-src 'self';/);
-  assert.doesNotMatch(html, /connect-src[^;]*https?:/);
+  assert.match(html, /script-src 'self' https:\/\/cdn\.jsdelivr\.net;/);
+  assert.match(html, /connect-src 'self'[^;]*https:\/\/\*\.clerk\.accounts\.dev/);
+  assert.doesNotMatch(html, /connect-src[^;]*https:\/\/(?!api\.chess\.com|lichess\.org|caissa-game-fetcher\.elcriollito\.workers\.dev|\*\.clerk\.accounts\.dev|api\.clerk\.com|clerk-telemetry\.com)/);
 });
 
 test('vendored dependency bytes match the pinned manifest', async () => {

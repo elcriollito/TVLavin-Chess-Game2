@@ -26,7 +26,7 @@ const directPlayV2Documents = Object.freeze(new Set([
 ]));
 
 const playHeaders = Object.freeze({
-    'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'",
+    'Content-Security-Policy': "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; script-src-elem 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https://img.clerk.com data:; font-src 'self'; worker-src 'self'; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'",
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'private, no-store, max-age=0',
     'Pragma': 'no-cache',

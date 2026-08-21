@@ -23,7 +23,7 @@ const forbiddenElements = [
   /\s*<!-- Lazy manifest order \(inert\):[^>]*players-panel\.js -->\r?\n/gi,
   /\s*<link[^>]+href="css\/academy\.css[^>]*>\r?\n/gi,
   /\s*<link[^>]+href="css\/caissa-auth\.css[^>]*>\r?\n/gi,
-  /\s*<script[^>]+src="js\/(?:auth-config|caissa-auth|caissa-access|caissa-ui-auth)\.js[^>]*><\/script>\r?\n/gi,
+  /\s*<script[^>]+src="js\/(?:caissa-access|caissa-ui-auth)\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="\/js\/(?:caissa-clarity|caissa-vercel-analytics)\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="(?:mentor-prompts|mentor-ai)\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/academy-section\.js[^>]*><\/script>\r?\n/gi,
@@ -39,7 +39,7 @@ html = html
   .replace(/\s*<script type="application\/ld\+json">[\s\S]*?<\/script>/gi, '\n')
   .replace(/\s*<!-- CSP: FICS WebSocket[^>]*-->/i, '\n')
   .replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/i,
-    '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; script-src-elem \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data:; font-src \'self\'; worker-src \'self\'; connect-src \'self\'; frame-src \'self\'; object-src \'none\'; base-uri \'self\';">')
+    '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\' https://cdn.jsdelivr.net; script-src-elem \'self\' https://cdn.jsdelivr.net; style-src \'self\' \'unsafe-inline\'; img-src \'self\' https://img.clerk.com data:; font-src \'self\'; worker-src \'self\'; connect-src \'self\' https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src \'self\' https://*.clerk.accounts.dev; object-src \'none\'; base-uri \'self\';">')
   .replace(/<title>[\s\S]*?<\/title>/i, '<title>CAISSA Play v2 · Internal</title>')
   .replace(/<meta name="title"[^>]*>/i, '<meta name="title" content="CAISSA Play v2 · Internal">')
   .replace(/<meta name="description"[^>]*>/i, '<meta name="description" content="Internal CAISSA-native chess play preview.">')
@@ -71,7 +71,7 @@ html = html
   .replace(" https://challenges.cloudflare.com blob:; script-src-elem", " https://challenges.cloudflare.com; script-src-elem")
   .replace(" https://challenges.cloudflare.com blob:; style-src", " https://challenges.cloudflare.com; style-src")
   .replace("worker-src 'self' blob:", "worker-src 'self'")
-  .replace(/connect-src 'self'[^;]+;/, "connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev;")
+  .replace(/connect-src 'self'[^;]+;/, "connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com;")
   .replace('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
     '/assets/vendor/font-awesome/css/all-6.4.0.min.css')
   .replace('https://code.jquery.com/jquery-3.6.0.min.js',
@@ -143,14 +143,13 @@ for (const legacyId of ['yahooClassicSection', 'ficsSection', 'spectatorSection'
     throw new Error(`PLAY_V2_LEGACY_PRESENTATION_NOT_INERT: ${legacyId}`);
 }
 if (/caissa-onboarding/i.test(resourceElements.join('\n'))) throw new Error('PROHIBITED_PLAY_V2_ONBOARDING_RESOURCE');
-if (/(?:css\/caissa-auth\.css|js\/(?:auth-config|caissa-auth|caissa-access|caissa-ui-auth)\.js)/i.test(resourceElements.join('\n')))
+if (/(?:css\/caissa-auth\.css|js\/(?:caissa-access|caissa-ui-auth)\.js)/i.test(resourceElements.join('\n')))
   throw new Error('PROHIBITED_PLAY_V2_AUTH_RESOURCE');
-if (/\/api\/public-auth-config/i.test(html)) throw new Error('PROHIBITED_PLAY_V2_AUTH_BOOTSTRAP');
 if (/caissa-clarity\.js/i.test(resourceElements.join('\n'))) throw new Error('PROHIBITED_PLAY_V2_CLARITY_RESOURCE');
 if (resourceElements.some(element => /(?:src|href)=["']https?:\/\//i.test(element)))
   throw new Error('PROHIBITED_PLAY_V2_EXTERNAL_STATIC_RESOURCE');
-if (!/connect-src 'self';/.test(html) || /connect-src[^;]*https?:/.test(html))
-  throw new Error('PLAY_V2_CONNECT_CSP_NOT_SAME_ORIGIN');
+if (!/connect-src 'self'[^;]*https:\/\/\*\.clerk\.accounts\.dev/.test(html))
+  throw new Error('PLAY_V2_AUTH_CONNECT_CSP_MISSING');
 
 await writeFile(outputPath, html);
 const publicBetaHtml = html

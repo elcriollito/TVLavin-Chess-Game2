@@ -41,3 +41,26 @@ test('mobile Mentor is a board-safe bottom sheet with no horizontal clipping or 
     expect(boardBefore?.width || 0).toBeGreaterThan(200); expect(mentorRequests).toEqual([]);
     await page.getByRole('button', { name: 'Close CAISSA Mentor' }).click(); await expect(shell).toBeHidden(); expect(mentorRequests).toEqual([]);
 });
+
+test('Mentor reacts to authoritative auth changes without submitting or caching a token', async ({ page }) => {
+    await instrumentPlay(page);
+    const mentorRequests = [];
+    page.on('request', request => { if (/\/api\/mentor\//.test(request.url())) mentorRequests.push(request.url()); });
+    await page.goto('/play?simplified=1');
+    await page.locator('[data-caissa-mentor-launcher]').click();
+    const shell = page.locator('[data-caissa-mentor-shell]');
+    const signedOutCopy = shell.getByText(/Shared AI requires an account\./);
+    const signedInCopy = shell.getByText('Signed in · Shared AI is available under your account rules.');
+    await expect(signedOutCopy).toBeVisible();
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('caissa-auth-change', {
+        detail: { isLoaded: true, isSignedIn: true }
+    })));
+    await expect(signedInCopy).toBeVisible();
+    await expect(signedOutCopy).toBeHidden();
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('caissa-auth-change', {
+        detail: { isLoaded: true, isSignedIn: false }
+    })));
+    await expect(signedOutCopy).toBeVisible();
+    expect(mentorRequests).toEqual([]);
+    expect(await page.evaluate(() => [...Object.keys(localStorage), ...Object.keys(sessionStorage)].filter(key => /token/i.test(key)))).toEqual([]);
+});
