@@ -107,7 +107,11 @@ export class PgnAnalysisEngine {
             try {
                 this.worker = new this.WorkerConstructor(this.workerUrl, { name: 'caissa-pgn-stockfish' });
                 this.worker.addEventListener('message', event => this.handleMessage(typeof event.data === 'string' ? event.data.trim() : ''));
-                this.worker.addEventListener('error', () => this.fail('engine-load-failed'), { once: true });
+                this.worker.addEventListener('error', event => this.fail('engine-load-failed', {
+                    message: String(event?.message || '').slice(0, 200),
+                    filename: String(event?.filename || '').split('/').pop().slice(0, 80),
+                    line: Number(event?.lineno) || 0
+                }), { once: true });
                 this.worker.postMessage('uci');
             } catch (_) {
                 this.fail('engine-load-failed');
@@ -175,7 +179,7 @@ export class PgnAnalysisEngine {
         this.searchTimer = globalThis.setTimeout(() => this.fail('engine-search-timeout'), this.moveTimeMs + 5000);
     }
 
-    fail(code) {
+    fail(code, diagnostic = null) {
         const handshake = this.handshake;
         this.handshake = null;
         if (handshake) {
@@ -189,7 +193,7 @@ export class PgnAnalysisEngine {
         this.pendingFen = null;
         this.lines.clear();
         this.onLines(Object.freeze([]));
-        this.setState('error', code);
+        this.setState('error', diagnostic ? { code, ...diagnostic } : code);
     }
 
     disable() {
