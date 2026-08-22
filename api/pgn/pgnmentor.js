@@ -1,15 +1,19 @@
+import { PGN_MENTOR_EVENT_FILES, PGN_MENTOR_OPENING_FILES } from './pgnmentor-allowlist.js';
+
 const SOURCES = Object.freeze({
     event: Object.freeze({
         baseUrl: 'https://www.pgnmentor.com/events/',
         extension: '.pgn',
         maxBytes: 12 * 1024 * 1024,
-        contentType: 'application/x-chess-pgn; charset=utf-8'
+        contentType: 'application/x-chess-pgn; charset=utf-8',
+        allowlist: PGN_MENTOR_EVENT_FILES
     }),
     opening: Object.freeze({
         baseUrl: 'https://www.pgnmentor.com/openings/',
         extension: '.zip',
         maxBytes: 32 * 1024 * 1024,
-        contentType: 'application/zip'
+        contentType: 'application/zip',
+        allowlist: PGN_MENTOR_OPENING_FILES
     })
 });
 
@@ -19,13 +23,14 @@ function firstQueryValue(value) {
     return Array.isArray(value) ? value[0] : value;
 }
 
-function validFileName(file, extension) {
+function validFileName(file, source) {
     return typeof file === 'string'
-        && file.endsWith(extension)
+        && file.endsWith(source.extension)
         && !file.includes('..')
         && !file.includes('/')
         && !file.includes('\\')
-        && SAFE_FILE_RE.test(file);
+        && SAFE_FILE_RE.test(file)
+        && source.allowlist.has(file);
 }
 
 function sourceUnavailable(res, status = 502) {
@@ -42,9 +47,10 @@ export default async function handler(req, res) {
     const file = firstQueryValue(req.query?.file);
     const source = SOURCES[kind];
 
-    // Deliberately no `player` source: CAISSA player albums are physically archived
-    // and PGN Mentor's player directory is not exposed through this gateway.
-    if (!source || !validFileName(file, source.extension)) {
+    // Deliberately no `player` source: CAISSA player albums are physically archived.
+    // Event/opening filenames must also exist in the generated PGN Mentor snapshot,
+    // so the gateway cannot be turned into an arbitrary upstream fetcher.
+    if (!source || !validFileName(file, source)) {
         return res.status(404).json({ error: 'Unknown PGN collection' });
     }
 
