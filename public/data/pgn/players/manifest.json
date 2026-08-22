@@ -1,0 +1,662 @@
+{
+  "schemaVersion": 1,
+  "collection": "CAISSA Player PGN Archive",
+  "sourceDirectory": "https://www.smallchess.com/Games/",
+  "importedAt": "2026-08-22T06:29:03+00:00",
+  "collectionCount": 65,
+  "totalBytes": 94302681,
+  "runtimeDependencyOnSource": false,
+  "provenanceNote": "Archived from the public SmallChess /Games directory. CAISSA serves these local copies at runtime. Verify source/reuse rights separately before monetization.",
+  "albums": [
+    {
+      "id": "smallchess-adolf-anderssen",
+      "title": "Adolf Anderssen",
+      "sourceFile": "Adolf Anderssen.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Adolf%20Anderssen.pgn",
+      "localPath": "/data/pgn/players/adolf-anderssen.pgn",
+      "bytes": 561431,
+      "games": 848,
+      "sha256": "2b063e96dcd01a5c7fa43bcc26352023c9f5404f0a34a5fdf1b006af729b2e7d"
+    },
+    {
+      "id": "smallchess-alexander-alekhine",
+      "title": "Alexander Alekhine",
+      "sourceFile": "Alexander Alekhine.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Alexander%20Alekhine.pgn",
+      "localPath": "/data/pgn/players/alexander-alekhine.pgn",
+      "bytes": 576342,
+      "games": 785,
+      "sha256": "2c2a58dc760cbe8ec0bfaf8a6b6793acf8e5a8ea6523bbf3c677d1bfeefd6f10"
+    },
+    {
+      "id": "smallchess-alexander-grischuk",
+      "title": "Alexander Grischuk",
+      "sourceFile": "Alexander Grischuk.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Alexander%20Grischuk.pgn",
+      "localPath": "/data/pgn/players/alexander-grischuk.pgn",
+      "bytes": 2385962,
+      "games": 3051,
+      "sha256": "78010132a1384676a35b16b15d93ec3371cfbb36561a5f954ef793fdf9aaed10"
+    },
+    {
+      "id": "smallchess-alexander-morozevich",
+      "title": "Alexander Morozevich",
+      "sourceFile": "Alexander Morozevich.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Alexander%20Morozevich.pgn",
+      "localPath": "/data/pgn/players/alexander-morozevich.pgn",
+      "bytes": 514478,
+      "games": 655,
+      "sha256": "7ab87415884ceb3f66154af689a928a9cc59722b9e2dc0330920b4dd4817624f"
+    },
+    {
+      "id": "smallchess-alexandra-kosteniuk",
+      "title": "Alexandra Kosteniuk",
+      "sourceFile": "Alexandra Kosteniuk.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Alexandra%20Kosteniuk.pgn",
+      "localPath": "/data/pgn/players/alexandra-kosteniuk.pgn",
+      "bytes": 1951758,
+      "games": 2315,
+      "sha256": "2474e0877767f0a31c91e8109b0fdcfdd43ebf3e286492fc838bd4d9377f1ce0"
+    },
+    {
+      "id": "smallchess-alexey-shirov",
+      "title": "Alexey Shirov",
+      "sourceFile": "Alexey Shirov.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Alexey%20Shirov.pgn",
+      "localPath": "/data/pgn/players/alexey-shirov.pgn",
+      "bytes": 2570077,
+      "games": 3527,
+      "sha256": "b30c8b16dae41e7c638c9c5285620c8dba552be98d40824900ff2148bdf73ce3"
+    },
+    {
+      "id": "smallchess-alireza-firouzja",
+      "title": "Alireza Firouzja",
+      "sourceFile": "Alireza Firouzja.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Alireza%20Firouzja.pgn",
+      "localPath": "/data/pgn/players/alireza-firouzja.pgn",
+      "bytes": 1394342,
+      "games": 1628,
+      "sha256": "8209460939f8fe4f043b17f2ade1a1cf937aa21e1bd3f30a45376190d350293f"
+    },
+    {
+      "id": "smallchess-anatoly-karpov",
+      "title": "Anatoly Karpov",
+      "sourceFile": "Anatoly Karpov.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Anatoly%20Karpov.pgn",
+      "localPath": "/data/pgn/players/anatoly-karpov.pgn",
+      "bytes": 839371,
+      "games": 1105,
+      "sha256": "81dcf59ba00d02a7b669a488c75907e610c9e014dd56eb3a445133bfbc2c85d0"
+    },
+    {
+      "id": "smallchess-anish-giri",
+      "title": "Anish Giri",
+      "sourceFile": "Anish Giri.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Anish%20Giri.pgn",
+      "localPath": "/data/pgn/players/anish-giri.pgn",
+      "bytes": 827397,
+      "games": 1031,
+      "sha256": "768359f5a55f1195d35cea1b81a45f8a8c050b97814305c0401c874bbdcc0fe5"
+    },
+    {
+      "id": "smallchess-arjun-erigaisi",
+      "title": "Arjun Erigaisi",
+      "sourceFile": "Arjun Erigaisi.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Arjun%20Erigaisi.pgn",
+      "localPath": "/data/pgn/players/arjun-erigaisi.pgn",
+      "bytes": 1135533,
+      "games": 1370,
+      "sha256": "4a73813e9509ddeadf5b5be19cfa6f4273baa76770e2103eb39152d60edd37af"
+    },
+    {
+      "id": "smallchess-bobby-fischer",
+      "title": "Bobby Fischer",
+      "sourceFile": "Bobby Fischer.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Bobby%20Fischer.pgn",
+      "localPath": "/data/pgn/players/bobby-fischer.pgn",
+      "bytes": 806308,
+      "games": 1101,
+      "sha256": "dace08700df3b66aafdd56ef42324f7030eb0ba9b209522655f0b3b193e019fe"
+    },
+    {
+      "id": "smallchess-boris-gelfand",
+      "title": "Boris Gelfand",
+      "sourceFile": "Boris Gelfand.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Boris%20Gelfand.pgn",
+      "localPath": "/data/pgn/players/boris-gelfand.pgn",
+      "bytes": 2664821,
+      "games": 3546,
+      "sha256": "8e57bd8cc112864b7921b8fb5d0d29ee8d8deb4f1235897ea705196b5f8fd72d"
+    },
+    {
+      "id": "smallchess-boris-spassky",
+      "title": "Boris Spassky",
+      "sourceFile": "Boris Spassky.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Boris%20Spassky.pgn",
+      "localPath": "/data/pgn/players/boris-spassky.pgn",
+      "bytes": 1625935,
+      "games": 2499,
+      "sha256": "30041fdba649e42289419f3854da4675504d430193068d34abfc7701e2aa6e82"
+    },
+    {
+      "id": "smallchess-daniil-dubov",
+      "title": "Daniil Dubov",
+      "sourceFile": "Daniil Dubov.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Daniil%20Dubov.pgn",
+      "localPath": "/data/pgn/players/daniil-dubov.pgn",
+      "bytes": 1275332,
+      "games": 1656,
+      "sha256": "3cca27efc98b3bff4b5479d7461f7d0525c2b03613974938bc5b8a94f96c3399"
+    },
+    {
+      "id": "smallchess-david-janowski",
+      "title": "David Janowski",
+      "sourceFile": "David Janowski.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/David%20Janowski.pgn",
+      "localPath": "/data/pgn/players/david-janowski.pgn",
+      "bytes": 765510,
+      "games": 914,
+      "sha256": "4b3b2916546e53bfdf8dd8d09c2424e7bf7174e727b9216ac59fa80d4d35446c"
+    },
+    {
+      "id": "smallchess-ding-liren",
+      "title": "Ding Liren",
+      "sourceFile": "Ding Liren.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Ding%20Liren.pgn",
+      "localPath": "/data/pgn/players/ding-liren.pgn",
+      "bytes": 505051,
+      "games": 635,
+      "sha256": "d49d883e86df79e10eac113a6054f8d6fbb371a657c181f2a708aa4d817243a2"
+    },
+    {
+      "id": "smallchess-dommaraju-gukesh",
+      "title": "Dommaraju Gukesh",
+      "sourceFile": "Dommaraju Gukesh.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Dommaraju%20Gukesh.pgn",
+      "localPath": "/data/pgn/players/dommaraju-gukesh.pgn",
+      "bytes": 1227926,
+      "games": 1514,
+      "sha256": "7661bf7ec1ce70886dcbc0642f7262574d6e1420a0ddfca02b4ac492f27fcb4e"
+    },
+    {
+      "id": "smallchess-emanuel-lasker",
+      "title": "Emanuel Lasker",
+      "sourceFile": "Emanuel Lasker.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Emanuel%20Lasker.pgn",
+      "localPath": "/data/pgn/players/emanuel-lasker.pgn",
+      "bytes": 320518,
+      "games": 378,
+      "sha256": "b84638b77776ecdb3c02c686c1dac8fe7cad8fb97737690f25c8666be9b2fea1"
+    },
+    {
+      "id": "smallchess-fabiano-caruana",
+      "title": "Fabiano Caruana",
+      "sourceFile": "Fabiano Caruana.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Fabiano%20Caruana.pgn",
+      "localPath": "/data/pgn/players/fabiano-caruana.pgn",
+      "bytes": 1951399,
+      "games": 2354,
+      "sha256": "ac87f17e082d9e7d49e5ec054fbfc57f245810c0f1b61f9aa290d03dcb1b885e"
+    },
+    {
+      "id": "smallchess-frank-marshall",
+      "title": "Frank Marshall",
+      "sourceFile": "Frank Marshall.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Frank%20Marshall.pgn",
+      "localPath": "/data/pgn/players/frank-marshall.pgn",
+      "bytes": 1136343,
+      "games": 1512,
+      "sha256": "105454c35c90b2b6149e652fa2b7c0cab9ac67bc0120afb46aa86549bbfefc4e"
+    },
+    {
+      "id": "smallchess-garry-kasparov",
+      "title": "Garry Kasparov",
+      "sourceFile": "Garry Kasparov.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Garry%20Kasparov.pgn",
+      "localPath": "/data/pgn/players/garry-kasparov.pgn",
+      "bytes": 1181677,
+      "games": 1669,
+      "sha256": "73e67990e99bb45f9b26e1eff7ac843fe5802dfa3b03657dc5a99b5e30f04b6d"
+    },
+    {
+      "id": "smallchess-gata-kamsky",
+      "title": "Gata Kamsky",
+      "sourceFile": "Gata Kamsky.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Gata%20Kamsky.pgn",
+      "localPath": "/data/pgn/players/gata-kamsky.pgn",
+      "bytes": 1731527,
+      "games": 2173,
+      "sha256": "99f784190639c23068a026779a3aad50c92e180e4fc5b230ddbfde72c3bba1f5"
+    },
+    {
+      "id": "smallchess-hans-niemann",
+      "title": "Hans Niemann",
+      "sourceFile": "Hans Niemann.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Hans%20Niemann.pgn",
+      "localPath": "/data/pgn/players/hans-niemann.pgn",
+      "bytes": 1075278,
+      "games": 1286,
+      "sha256": "4fe2f5e5df89385dfc5d126dfeb9e158df0d31c07abba6b1366d9eb6376ec8f0"
+    },
+    {
+      "id": "smallchess-hikaru-nakamura",
+      "title": "Hikaru Nakamura",
+      "sourceFile": "Hikaru Nakamura.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Hikaru%20Nakamura.pgn",
+      "localPath": "/data/pgn/players/hikaru-nakamura.pgn",
+      "bytes": 1913006,
+      "games": 2280,
+      "sha256": "d11b1d7d0abcc92ae7e475a72c7048446a92da9367d86ba6483b69e384d9420b"
+    },
+    {
+      "id": "smallchess-hou-yifan",
+      "title": "Hou Yifan",
+      "sourceFile": "Hou Yifan.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Hou%20Yifan.pgn",
+      "localPath": "/data/pgn/players/hou-yifan.pgn",
+      "bytes": 1505371,
+      "games": 1849,
+      "sha256": "a84ebd15f62233d1fbaaf6522f9465a758641fd0bd515ebc6ebb5bc7e101a107"
+    },
+    {
+      "id": "smallchess-ian-nepomniachtchi",
+      "title": "Ian Nepomniachtchi",
+      "sourceFile": "Ian Nepomniachtchi.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Ian%20Nepomniachtchi.pgn",
+      "localPath": "/data/pgn/players/ian-nepomniachtchi.pgn",
+      "bytes": 2497526,
+      "games": 3058,
+      "sha256": "2557088a9b2c08150bbaac087c7c847814d13c69dacd9d12edb73f1e968858ff"
+    },
+    {
+      "id": "smallchess-jan-krzysztof-duda",
+      "title": "Jan-Krzysztof Duda",
+      "sourceFile": "Jan-Krzysztof Duda.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Jan-Krzysztof%20Duda.pgn",
+      "localPath": "/data/pgn/players/jan-krzysztof-duda.pgn",
+      "bytes": 1554814,
+      "games": 1840,
+      "sha256": "d3ca84545586b6d9bf1b84e353586d720259bcbf2d74b5743ff044466c1d666f"
+    },
+    {
+      "id": "smallchess-johannes-zukertort",
+      "title": "Johannes Zukertort",
+      "sourceFile": "Johannes Zukertort.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Johannes%20Zukertort.pgn",
+      "localPath": "/data/pgn/players/johannes-zukertort.pgn",
+      "bytes": 488580,
+      "games": 693,
+      "sha256": "b8d17be6491219a305aa0a4cdade63620b20d70712a3669c021a58dde2175789"
+    },
+    {
+      "id": "smallchess-ju-wenjun",
+      "title": "Ju Wenjun",
+      "sourceFile": "Ju Wenjun.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Ju%20Wenjun.pgn",
+      "localPath": "/data/pgn/players/ju-wenjun.pgn",
+      "bytes": 1442681,
+      "games": 1740,
+      "sha256": "ad8bd0b938c69ed79dc2e8b8576e76163584dbcfe56864de5be044ef4f5b533e"
+    },
+    {
+      "id": "smallchess-judit-polgar",
+      "title": "Judit Polgar",
+      "sourceFile": "Judit Polgar.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Judit%20Polgar.pgn",
+      "localPath": "/data/pgn/players/judit-polgar.pgn",
+      "bytes": 1393460,
+      "games": 1818,
+      "sha256": "1fbfb949b2b5879d30dcb2ee92e7da9f869f13b3eb60cd230f51e7b7335df7b6"
+    },
+    {
+      "id": "smallchess-levon-aronian",
+      "title": "Levon Aronian",
+      "sourceFile": "Levon Aronian.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Levon%20Aronian.pgn",
+      "localPath": "/data/pgn/players/levon-aronian.pgn",
+      "bytes": 3405388,
+      "games": 4302,
+      "sha256": "8350dcaef7d94e51f420b58193e5044270beb4f60fc45a757f2343c4b5026720"
+    },
+    {
+      "id": "smallchess-loek-van-wely",
+      "title": "Loek van Wely",
+      "sourceFile": "Loek van Wely.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Loek%20van%20Wely.pgn",
+      "localPath": "/data/pgn/players/loek-van-wely.pgn",
+      "bytes": 2696656,
+      "games": 3530,
+      "sha256": "6bc96b891ac831827248393832897e1fd2eb9182cb77bcfcf424a32826a6c7d9"
+    },
+    {
+      "id": "smallchess-magnus-carlsen",
+      "title": "Magnus Carlsen",
+      "sourceFile": "Magnus Carlsen.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Magnus%20Carlsen.pgn",
+      "localPath": "/data/pgn/players/magnus-carlsen.pgn",
+      "bytes": 4117173,
+      "games": 5097,
+      "sha256": "ce5085d485fbbe5aa34ef244758f25617791ee47abf85c910ed52d80b20068c1"
+    },
+    {
+      "id": "smallchess-max-euwe",
+      "title": "Max Euwe",
+      "sourceFile": "Max Euwe.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Max%20Euwe.pgn",
+      "localPath": "/data/pgn/players/max-euwe.pgn",
+      "bytes": 1213985,
+      "games": 1759,
+      "sha256": "f98b705d1eaf10f76e6e6f54e5761b356878b5bd874135ae966343f929bfe7a3"
+    },
+    {
+      "id": "smallchess-maxime-vachier-lagrave",
+      "title": "Maxime Vachier-Lagrave",
+      "sourceFile": "Maxime Vachier-Lagrave.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Maxime%20Vachier-Lagrave.pgn",
+      "localPath": "/data/pgn/players/maxime-vachier-lagrave.pgn",
+      "bytes": 832543,
+      "games": 1006,
+      "sha256": "66b5279c0f0ab7687b7eded3343099cfe0bd61ac4bd3b6069c2b5f64992f2c46"
+    },
+    {
+      "id": "smallchess-michael-adams",
+      "title": "Michael Adams",
+      "sourceFile": "Michael Adams.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Michael%20Adams.pgn",
+      "localPath": "/data/pgn/players/michael-adams.pgn",
+      "bytes": 873066,
+      "games": 1186,
+      "sha256": "124e860bc0caebc5dbcea3c1252177f421a553c0679d118583714172dda9f995"
+    },
+    {
+      "id": "smallchess-mikhail-botvinnik",
+      "title": "Mikhail Botvinnik",
+      "sourceFile": "Mikhail Botvinnik.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Mikhail%20Botvinnik.pgn",
+      "localPath": "/data/pgn/players/mikhail-botvinnik.pgn",
+      "bytes": 902610,
+      "games": 1201,
+      "sha256": "a8d17d490e3f9fa04b49592a66ee3df74d0f934db43e6642e81e10b887737a5d"
+    },
+    {
+      "id": "smallchess-mikhail-tal",
+      "title": "Mikhail Tal",
+      "sourceFile": "Mikhail Tal.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Mikhail%20Tal.pgn",
+      "localPath": "/data/pgn/players/mikhail-tal.pgn",
+      "bytes": 1945679,
+      "games": 2960,
+      "sha256": "be9e336a125b5ff31de63fe75bfd5da093e8f449cff0749c82fd1ec70081314f"
+    },
+    {
+      "id": "smallchess-nigel-short",
+      "title": "Nigel Short",
+      "sourceFile": "Nigel Short.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Nigel%20Short.pgn",
+      "localPath": "/data/pgn/players/nigel-short.pgn",
+      "bytes": 2253145,
+      "games": 3076,
+      "sha256": "3e1a4d61869667d4c9d06c242cb6b53feed12214c3a63e2a2a85c62bd2c4eecd"
+    },
+    {
+      "id": "smallchess-nodirbek-abdusattorov",
+      "title": "Nodirbek Abdusattorov",
+      "sourceFile": "Nodirbek Abdusattorov.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Nodirbek%20Abdusattorov.pgn",
+      "localPath": "/data/pgn/players/nodirbek-abdusattorov.pgn",
+      "bytes": 1368395,
+      "games": 1561,
+      "sha256": "fe9c8dc02477198a7d807475941d8bca996174a654d30465179e63d867235336"
+    },
+    {
+      "id": "smallchess-paul-keres",
+      "title": "Paul Keres",
+      "sourceFile": "Paul Keres.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Paul%20Keres.pgn",
+      "localPath": "/data/pgn/players/paul-keres.pgn",
+      "bytes": 1425986,
+      "games": 2064,
+      "sha256": "f48b3a5bee702cf9a08fa42cd714f1199bbc2dbbaf9ae3d8290eef40dbb78974"
+    },
+    {
+      "id": "smallchess-paul-morphy",
+      "title": "Paul Morphy",
+      "sourceFile": "Paul Morphy.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Paul%20Morphy.pgn",
+      "localPath": "/data/pgn/players/paul-morphy.pgn",
+      "bytes": 323462,
+      "games": 456,
+      "sha256": "1182761521414a6fc1dc4dd5e1ae4433479f13578ea051baae10ca0da78ba4a4"
+    },
+    {
+      "id": "smallchess-peter-leko",
+      "title": "Peter Leko",
+      "sourceFile": "Peter Leko.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Peter%20Leko.pgn",
+      "localPath": "/data/pgn/players/peter-leko.pgn",
+      "bytes": 1979777,
+      "games": 2567,
+      "sha256": "dfb45a78e70c00c213660c49bce7f7efd675d909d8f00f8772537424e92aaff1"
+    },
+    {
+      "id": "smallchess-peter-svidler",
+      "title": "Peter Svidler",
+      "sourceFile": "Peter Svidler.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Peter%20Svidler.pgn",
+      "localPath": "/data/pgn/players/peter-svidler.pgn",
+      "bytes": 1018594,
+      "games": 1467,
+      "sha256": "66ecbd41d3e204fbd27701f897a2a62f5c138ef6ad95969b447904676e226653"
+    },
+    {
+      "id": "smallchess-rameshbabu-praggnanandhaa",
+      "title": "Rameshbabu Praggnanandhaa",
+      "sourceFile": "Rameshbabu Praggnanandhaa.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Rameshbabu%20Praggnanandhaa.pgn",
+      "localPath": "/data/pgn/players/rameshbabu-praggnanandhaa.pgn",
+      "bytes": 1455137,
+      "games": 1726,
+      "sha256": "51d99647d9343038746a1b4954c91cd898131b2b3d66e9f6e7f409465798e071"
+    },
+    {
+      "id": "smallchess-richard-rapport",
+      "title": "Richard Rapport",
+      "sourceFile": "Richard Rapport.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Richard%20Rapport.pgn",
+      "localPath": "/data/pgn/players/richard-rapport.pgn",
+      "bytes": 1360908,
+      "games": 1697,
+      "sha256": "c85e3364b9d2c0fe2c8d3085b6c6584a6a78454ff4b95dbc0651249c5ec875a7"
+    },
+    {
+      "id": "smallchess-samuel-reshevsky",
+      "title": "Samuel Reshevsky",
+      "sourceFile": "Samuel Reshevsky.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Samuel%20Reshevsky.pgn",
+      "localPath": "/data/pgn/players/samuel-reshevsky.pgn",
+      "bytes": 1146727,
+      "games": 1634,
+      "sha256": "af8f580d4715ad72ee300255b0d0b80ebd1d3507527107bf525c76c796ec28be"
+    },
+    {
+      "id": "smallchess-samuel-shankland",
+      "title": "Samuel Shankland",
+      "sourceFile": "Samuel Shankland.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Samuel%20Shankland.pgn",
+      "localPath": "/data/pgn/players/samuel-shankland.pgn",
+      "bytes": 963044,
+      "games": 1223,
+      "sha256": "4c18be0aaf4a130ae9703a50c7c1966bb32f235964fdd4a3312a6ad036700d1d"
+    },
+    {
+      "id": "smallchess-sergey-karjakin",
+      "title": "Sergey Karjakin",
+      "sourceFile": "Sergey Karjakin.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Sergey%20Karjakin.pgn",
+      "localPath": "/data/pgn/players/sergey-karjakin.pgn",
+      "bytes": 954439,
+      "games": 1192,
+      "sha256": "7a1374ffbce08e9be25d5c1c75c17bf849846f46cd1c13d7207c2eec3eaacdaf"
+    },
+    {
+      "id": "smallchess-shakhriyar-mamedyarov",
+      "title": "Shakhriyar Mamedyarov",
+      "sourceFile": "Shakhriyar Mamedyarov.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Shakhriyar%20Mamedyarov.pgn",
+      "localPath": "/data/pgn/players/shakhriyar-mamedyarov.pgn",
+      "bytes": 2763614,
+      "games": 3619,
+      "sha256": "c31efc89961ad2f36b9c6af74026699dcb0a60dc7afa2229f0e659c1222c8517"
+    },
+    {
+      "id": "smallchess-siegbert-tarrasch",
+      "title": "Siegbert Tarrasch",
+      "sourceFile": "Siegbert Tarrasch.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Siegbert%20Tarrasch.pgn",
+      "localPath": "/data/pgn/players/siegbert-tarrasch.pgn",
+      "bytes": 725990,
+      "games": 970,
+      "sha256": "65bd9fd3da27691713774ffd17717ee55ac08c338ecabe2ae10c090d88710bf6"
+    },
+    {
+      "id": "smallchess-teimour-radjabov",
+      "title": "Teimour Radjabov",
+      "sourceFile": "Teimour Radjabov.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Teimour%20Radjabov.pgn",
+      "localPath": "/data/pgn/players/teimour-radjabov.pgn",
+      "bytes": 956444,
+      "games": 1288,
+      "sha256": "da6499b0b4d5e98f0d376df9df2060bcd9bc3f1fe2b3fd5a39dc483609ad7e61"
+    },
+    {
+      "id": "smallchess-tigran-petrosian",
+      "title": "Tigran Petrosian",
+      "sourceFile": "Tigran Petrosian.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Tigran%20Petrosian.pgn",
+      "localPath": "/data/pgn/players/tigran-petrosian.pgn",
+      "bytes": 1483330,
+      "games": 2159,
+      "sha256": "31b9bcffbe70d2e609d430a0c6fb90e9764c92aa075d2093e71b353343665d9e"
+    },
+    {
+      "id": "smallchess-vasily-smyslov",
+      "title": "Vasily Smyslov",
+      "sourceFile": "Vasily Smyslov.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Vasily%20Smyslov.pgn",
+      "localPath": "/data/pgn/players/vasily-smyslov.pgn",
+      "bytes": 1048405,
+      "games": 1478,
+      "sha256": "8837e66b3ddd4c09c6ca8aec84dd75394e2a46e5c144056bb8cda72b09ed6294"
+    },
+    {
+      "id": "smallchess-vassily-ivanchuk",
+      "title": "Vassily Ivanchuk",
+      "sourceFile": "Vassily Ivanchuk.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Vassily%20Ivanchuk.pgn",
+      "localPath": "/data/pgn/players/vassily-ivanchuk.pgn",
+      "bytes": 858552,
+      "games": 1139,
+      "sha256": "b29d67c9817ae7d06d21963b0741003a84be8f5c276f8b0cded0336b5e2f2c0f"
+    },
+    {
+      "id": "smallchess-veselin-topalov",
+      "title": "Veselin Topalov",
+      "sourceFile": "Veselin Topalov.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Veselin%20Topalov.pgn",
+      "localPath": "/data/pgn/players/veselin-topalov.pgn",
+      "bytes": 1021267,
+      "games": 1358,
+      "sha256": "3ab3283fd52ff25601717953d87d1055db7ee5005ef48783146602880a7529d9"
+    },
+    {
+      "id": "smallchess-viktor-korchnoi",
+      "title": "Viktor Korchnoi",
+      "sourceFile": "Viktor Korchnoi.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Viktor%20Korchnoi.pgn",
+      "localPath": "/data/pgn/players/viktor-korchnoi.pgn",
+      "bytes": 3579170,
+      "games": 4876,
+      "sha256": "4274e1ce72655447e17088326e1c6a3fc1c3782230f1184f568c54081e5ee07e"
+    },
+    {
+      "id": "smallchess-vincent-keymer",
+      "title": "Vincent Keymer",
+      "sourceFile": "Vincent Keymer.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Vincent%20Keymer.pgn",
+      "localPath": "/data/pgn/players/vincent-keymer.pgn",
+      "bytes": 861817,
+      "games": 1008,
+      "sha256": "ccc0af1c117648f7067cb1306b6da07e8e1fb3acc220e17cd68b379ca3720682"
+    },
+    {
+      "id": "smallchess-viswanathan-anand",
+      "title": "Viswanathan Anand",
+      "sourceFile": "Viswanathan Anand.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Viswanathan%20Anand.pgn",
+      "localPath": "/data/pgn/players/viswanathan-anand.pgn",
+      "bytes": 2997061,
+      "games": 4079,
+      "sha256": "6117917e03ea166580d03b3270d0665961d94e8733e4de8c2aa9c1af1f6c7002"
+    },
+    {
+      "id": "smallchess-vladimir-kramnik",
+      "title": "Vladimir Kramnik",
+      "sourceFile": "Vladimir Kramnik.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Vladimir%20Kramnik.pgn",
+      "localPath": "/data/pgn/players/vladimir-kramnik.pgn",
+      "bytes": 2042275,
+      "games": 2763,
+      "sha256": "96ab279e92fdb9165c1eb9be2df5f2cd9da0455ffb704ad3c1155d38d4850eaf"
+    },
+    {
+      "id": "smallchess-wang-hao",
+      "title": "Wang Hao",
+      "sourceFile": "Wang Hao.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Wang%20Hao.pgn",
+      "localPath": "/data/pgn/players/wang-hao.pgn",
+      "bytes": 1219309,
+      "games": 1564,
+      "sha256": "b5c6181472cf4e441d4251deb779029504c68b98943b80a72f1ccad0d722d3f6"
+    },
+    {
+      "id": "smallchess-wei-yi",
+      "title": "Wei Yi",
+      "sourceFile": "Wei Yi.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Wei%20Yi.pgn",
+      "localPath": "/data/pgn/players/wei-yi.pgn",
+      "bytes": 915746,
+      "games": 1161,
+      "sha256": "f8f4da2f1b223e73b05f6872b970179ce0b8ae7caf6cb52ed905c5ace9b83c64"
+    },
+    {
+      "id": "smallchess-wesley-so",
+      "title": "Wesley So",
+      "sourceFile": "Wesley So.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Wesley%20So.pgn",
+      "localPath": "/data/pgn/players/wesley-so.pgn",
+      "bytes": 1600562,
+      "games": 2065,
+      "sha256": "3cf5a01ef2cac8dfa3e953117a806e3b55f2c031a13babc079f5423ec7377ebc"
+    },
+    {
+      "id": "smallchess-wilhelm-steinitz",
+      "title": "Wilhelm Steinitz",
+      "sourceFile": "Wilhelm Steinitz.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Wilhelm%20Steinitz.pgn",
+      "localPath": "/data/pgn/players/wilhelm-steinitz.pgn",
+      "bytes": 784034,
+      "games": 1089,
+      "sha256": "294be324798bad5c8f2744b3f11603f9b42319f67152894fe5ad03f8ecab861e"
+    },
+    {
+      "id": "smallchess-yu-yangyi",
+      "title": "Yu Yangyi",
+      "sourceFile": "Yu Yangyi.pgn",
+      "sourceUrl": "https://www.smallchess.com/Games/Yu%20Yangyi.pgn",
+      "localPath": "/data/pgn/players/yu-yangyi.pgn",
+      "bytes": 1388637,
+      "games": 1696,
+      "sha256": "883c0f262b9b2c0e04fa745eac610a3de82b8d572f559c2f16bd112c9fffd12d"
+    }
+  ]
+}

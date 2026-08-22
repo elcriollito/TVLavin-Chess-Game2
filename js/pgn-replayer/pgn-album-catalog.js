@@ -135,7 +135,8 @@
         renderCatalog();
         card.disabled = true;
         try {
-            const response = await fetch(`/api/pgn/smallchess?file=${encodeURIComponent(album.file)}`, { credentials: 'same-origin', cache: 'force-cache', headers: { Accept: 'text/plain' } });
+            const localSource = `/data/pgn/players/${album.id.replace(/^smallchess-/, '')}.pgn`;
+            const response = await fetch(localSource, { credentials: 'same-origin', cache: 'force-cache', headers: { Accept: 'text/plain' } });
             if (!response.ok) throw new Error('The collection is temporarily unavailable.');
             const bytes = await response.arrayBuffer();
             if (bytes.byteLength > 10 * 1024 * 1024) throw new Error('This collection exceeds the 10 MiB safety limit.');
