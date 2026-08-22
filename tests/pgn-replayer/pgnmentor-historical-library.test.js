@@ -119,8 +119,23 @@ test('keeps the five approved library families visible without flattening their 
   assert.deepEqual(families, ['players', 'world-championships', 'qualifiers', 'tournaments', 'openings']);
   assert.match(html, />World Championships</);
   assert.match(html, />Candidates &amp; World Cups</);
-  assert.match(html, /pgn-mentor-historical-library\.js\?v=1\.0\.0/);
+  assert.match(html, /pgn-mentor-historical-library\.js\?v=1\.0\.1/);
   assert.match(read('css/pgn-replayer.css'), /\.pgn-library-nav/);
   assert.match(read('css/pgn-replayer.css'), /\.pgn-library-search/);
   assert.match(read('js/pgn-replayer/pgn-mentor-historical-library.js'), /enrichment source updated/);
+});
+
+test('integrates the added player albums alphabetically with the same visual description', () => {
+  const mentorCatalog = read('js/pgn-replayer/pgn-mentor-player-catalog.js');
+  const controller = read('js/pgn-replayer/pgn-mentor-historical-library.js');
+  const titles = [...mentorCatalog.matchAll(/title: "([^"]+)"/g)].map(match => match[1]);
+  const expected = [...titles].sort((left, right) => left.localeCompare(right, 'en', { sensitivity: 'base' }));
+
+  assert.equal(titles.length, 16);
+  assert.deepEqual(titles, expected);
+  assert.equal((mentorCatalog.match(/details: "Player game collection · PGN"/g) || []).length, 16);
+  assert.doesNotMatch(mentorCatalog, /physical archive/i);
+  assert.match(controller, /function sortPlayerCollections\(\)/);
+  assert.match(controller, /localeCompare\(rightTitle, 'en', \{ sensitivity: 'base' \}\)/);
+  assert.doesNotMatch(controller, /physical CAISSA archives/i);
 });

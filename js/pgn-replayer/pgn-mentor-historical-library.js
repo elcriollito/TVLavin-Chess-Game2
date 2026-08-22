@@ -136,6 +136,19 @@
         }
     }
 
+    function sortPlayerCollections() {
+        const items = [...albumRoot.querySelectorAll(':scope > [data-library-family="players"]')];
+        const sorted = [...items].sort((left, right) => {
+            const leftTitle = left.querySelector('.pgn-album-card strong')?.textContent.trim() || '';
+            const rightTitle = right.querySelector('.pgn-album-card strong')?.textContent.trim() || '';
+            return leftTitle.localeCompare(rightTitle, 'en', { sensitivity: 'base' });
+        });
+        if (items.every((item, index) => item === sorted[index])) return;
+        const fragment = document.createDocumentFragment();
+        for (const item of sorted) fragment.append(item);
+        albumRoot.append(fragment);
+    }
+
     function familyItems(family) {
         return [...albumRoot.querySelectorAll(`:scope > [data-library-family="${family}"]`)];
     }
@@ -163,7 +176,7 @@
 
         if (state.activeFamily === 'players') {
             const playerUpdate = state.catalog?.sourceUpdates?.players;
-            summary.textContent = `${familyItems('players').length} physical CAISSA archives${playerUpdate ? ` · enrichment source updated ${playerUpdate}` : ''} · no remote Player dependency`;
+            summary.textContent = `${familyItems('players').length} player game collections${playerUpdate ? ` · enrichment source updated ${playerUpdate}` : ''} · stored by CAISSA`;
         } else if (state.activeFamily === 'world-championships') {
             summary.textContent = `${familyItems('world-championships').length} free archives · ${formatCheckedDate(state.catalog?.updatedAt)}`;
         } else if (state.activeFamily === 'qualifiers') {
@@ -190,6 +203,7 @@
         state.renderQueued = false;
         appendHistoricalCollections();
         classifyExistingCollections();
+        sortPlayerCollections();
         const normalizedQuery = state.query.trim().toLocaleLowerCase();
         let visibleCount = 0;
         for (const item of albumRoot.querySelectorAll(':scope > [role="listitem"]')) {

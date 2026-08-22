@@ -103,13 +103,13 @@ def js_string(value: str) -> str:
 
 def write_client_catalog(records: list[dict]) -> None:
     entries = []
-    for record in records:
+    for record in sorted(records, key=lambda item: item["title"].casefold()):
         entries.append(
             "        { id: %s, title: %s, details: %s, games: %d, source: %s }"
             % (
                 js_string(record["id"]),
                 js_string(record["title"]),
-                js_string(f'{record["games"]:,} games · CAISSA physical archive'),
+                js_string("Player game collection · PGN"),
                 record["games"],
                 js_string(record["localPath"]),
             )
