@@ -1,0 +1,42 @@
+name: Verify large PGN collections
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-large-pgn-collections.yml'
+      - 'js/pgn-replayer/pgn-core.js'
+      - 'scripts/verify-large-pgn-collections.mjs'
+      - 'public/data/pgn/players/manifest.json'
+      - 'public/data/pgn/players/*.pgn'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-large-pgn-collections
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install parser dependencies
+        run: npm ci --ignore-scripts
+
+      - name: PGN core regression tests
+        run: node --test tests/pgn-replayer/pgn-core.test.js tests/pgn-replayer/pgn-worker.test.js
+
+      - name: Verify every archived album above 2,000 games
+        run: node scripts/verify-large-pgn-collections.mjs
