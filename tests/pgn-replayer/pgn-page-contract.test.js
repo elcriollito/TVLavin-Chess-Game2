@@ -37,6 +37,9 @@ test('uses Games, Notation, Albums order and a board-first accessible shell', ()
   assert.doesNotMatch(page('meta[http-equiv="Content-Security-Policy"]').attr('content'), /frame-ancestors/);
   const vercel = JSON.parse(read('vercel.json'));
   assert.ok(vercel.headers.some(rule => rule.headers?.some(header => header.key === 'Content-Security-Policy' && /frame-ancestors 'self'/.test(header.value))));
+  const routeHeaders = vercel.headers.find(rule => rule.source === '/pgn-replayer')?.headers || [];
+  assert.equal(routeHeaders.find(header => header.key === 'Cross-Origin-Opener-Policy')?.value, 'same-origin');
+  assert.equal(routeHeaders.find(header => header.key === 'Cross-Origin-Embedder-Policy')?.value, 'require-corp');
 });
 
 test('replaces redundant Change PGN with a lazy local engine that defaults off', () => {
