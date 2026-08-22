@@ -3,8 +3,8 @@
 
     const LIMITS = Object.freeze({
         maxBytes: 10 * 1024 * 1024,
-        maxGames: 2000,
-        maxNodes: 250000,
+        maxGames: 6000,
+        maxNodes: 750000,
         maxLinePlies: 1024,
         maxVariationDepth: 24,
         maxCommentBytes: 16 * 1024,
