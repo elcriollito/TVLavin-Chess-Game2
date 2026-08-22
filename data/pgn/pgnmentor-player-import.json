@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "source": "https://www.pgnmentor.com/players/",
+  "policy": {
+    "purpose": "CAISSA physical archive additions for historically important players missing from the existing player library",
+    "runtimeDependencyOnSourceAfterImport": false,
+    "credits": 1,
+    "commercialRightsStatus": "unverified"
+  },
+  "albums": [
+    {"id":"pgnmentor-david-bronstein","title":"David Bronstein","file":"Bronstein.pgn","zip":"Bronstein.zip"},
+    {"id":"pgnmentor-aron-nimzowitsch","title":"Aron Nimzowitsch","file":"Nimzowitsch.pgn","zip":"Nimzowitsch.zip"},
+    {"id":"pgnmentor-akiba-rubinstein","title":"Akiba Rubinstein","file":"Rubinstein.pgn","zip":"Rubinstein.zip"},
+    {"id":"pgnmentor-bent-larsen","title":"Bent Larsen","file":"Larsen.pgn","zip":"Larsen.zip"},
+    {"id":"pgnmentor-richard-reti","title":"Richard Réti","file":"Reti.pgn","zip":"Reti.zip"},
+    {"id":"pgnmentor-miguel-najdorf","title":"Miguel Najdorf","file":"Najdorf.pgn","zip":"Najdorf.zip"},
+    {"id":"pgnmentor-svetozar-gligoric","title":"Svetozar Gligorić","file":"Gligoric.pgn","zip":"Gligoric.zip"},
+    {"id":"pgnmentor-efim-geller","title":"Efim Geller","file":"Geller.pgn","zip":"Geller.zip"},
+    {"id":"pgnmentor-ruslan-ponomariov","title":"Ruslan Ponomariov","file":"Ponomariov.pgn","zip":"Ponomariov.zip"},
+    {"id":"pgnmentor-alexander-khalifman","title":"Alexander Khalifman","file":"Khalifman.pgn","zip":"Khalifman.zip"},
+    {"id":"pgnmentor-rustam-kasimdzhanov","title":"Rustam Kasimdzhanov","file":"Kasimdzhanov.pgn","zip":"Kasimdzhanov.zip"},
+    {"id":"pgnmentor-nona-gaprindashvili","title":"Nona Gaprindashvili","file":"Gaprindashvili.pgn","zip":"Gaprindashvili.zip"},
+    {"id":"pgnmentor-maia-chiburdanidze","title":"Maia Chiburdanidze","file":"Chiburdanidze.pgn","zip":"Chiburdanidze.zip"},
+    {"id":"pgnmentor-xie-jun","title":"Xie Jun","file":"Xie.pgn","zip":"Xie.zip"},
+    {"id":"pgnmentor-susan-polgar","title":"Susan (Zsuzsa) Polgar","file":"PolgarZ.pgn","zip":"PolgarZ.zip"},
+    {"id":"pgnmentor-antoaneta-stefanova","title":"Antoaneta Stefanova","file":"Stefanova.pgn","zip":"Stefanova.zip"}
+  ]
+}
