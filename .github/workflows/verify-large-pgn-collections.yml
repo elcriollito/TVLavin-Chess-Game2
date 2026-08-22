@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: verify-large-pgn-collections
@@ -25,6 +25,9 @@ jobs:
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: Use Node.js 20
         uses: actions/setup-node@v4
@@ -39,4 +42,28 @@ jobs:
         run: node --test tests/pgn-replayer/pgn-core.test.js tests/pgn-replayer/pgn-worker.test.js
 
       - name: Verify every archived album above 2,000 games
-        run: node scripts/verify-large-pgn-collections.mjs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p docs/qa
+          {
+            echo "CAISSA large PGN collection verification"
+            echo "source_commit=$GITHUB_SHA"
+            echo "verified_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            node scripts/verify-large-pgn-collections.mjs
+          } | tee docs/qa/LARGE_PGN_COLLECTION_VERIFICATION.txt
+
+      - name: Persist verification evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/qa/LARGE_PGN_COLLECTION_VERIFICATION.txt
+          if git diff --cached --quiet; then
+            echo 'Verification evidence is unchanged.'
+            exit 0
+          fi
+          git commit -m 'test(pgn): certify large archived collections'
+          git pull --rebase origin main
+          git push origin HEAD:main
