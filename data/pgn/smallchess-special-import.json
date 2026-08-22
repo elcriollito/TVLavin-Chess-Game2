@@ -1,0 +1,101 @@
+{
+  "source": "https://www.smallchess.com/Games/",
+  "albums": [
+    {
+      "id": "smallchess-world-championship",
+      "title": "World Championship",
+      "file": "World Championship.pgn",
+      "access": "free",
+      "credits": 0,
+      "runtime": "public"
+    },
+    {
+      "id": "smallchess-world-rapid-blitz-2021",
+      "title": "World Rapid and Blitz — 2021",
+      "file": "World Rapid and Blitz - 2021.pgn",
+      "access": "free",
+      "credits": 0,
+      "runtime": "public"
+    },
+    {
+      "id": "smallchess-stockfish",
+      "title": "Stockfish Games",
+      "file": "Stockfish.pgn",
+      "access": "free",
+      "credits": 0,
+      "runtime": "public"
+    },
+    {
+      "id": "smallchess-tal-memorial",
+      "title": "Tal Memorial",
+      "file": "Tal Memorial.pgn",
+      "access": "free",
+      "credits": 0,
+      "runtime": "public"
+    },
+    {
+      "id": "smallchess-tata-chess",
+      "title": "Tata Chess",
+      "file": "Tata Chess.pgn",
+      "access": "free",
+      "credits": 0,
+      "runtime": "public"
+    },
+    {
+      "id": "smallchess-game-of-the-century",
+      "title": "Game of the Century",
+      "file": "Game of the Century.pgn",
+      "access": "free",
+      "credits": 0,
+      "runtime": "public"
+    },
+    {
+      "id": "smallchess-dortmund-chess",
+      "title": "Dortmund Chess",
+      "file": "Dortmund Chess.pgn",
+      "access": "free",
+      "credits": 0,
+      "runtime": "public"
+    },
+    {
+      "id": "smallchess-deep-blue-kasparov-1996-game-1",
+      "title": "Deep Blue vs Kasparov — 1996 Game 1",
+      "file": "Deep Blue vs Kasparov 1996 (Game 1).pgn",
+      "access": "free",
+      "credits": 0,
+      "runtime": "public"
+    },
+    {
+      "id": "smallchess-deep-fritz-kramnik-game-2",
+      "title": "Deep Fritz vs Kramnik — Game 2",
+      "file": "Deep Fritz - Kramnik (Game 2).pgn",
+      "access": "free",
+      "credits": 0,
+      "runtime": "public"
+    },
+    {
+      "id": "smallchess-deep-thought",
+      "title": "Deep Thought",
+      "file": "Deep Thought.pgn",
+      "access": "free",
+      "credits": 0,
+      "runtime": "public"
+    },
+    {
+      "id": "smallchess-sample",
+      "title": "Sample PGN",
+      "file": "Sample.pgn",
+      "access": "free",
+      "credits": 0,
+      "runtime": "public"
+    },
+    {
+      "id": "smallchess-master-database",
+      "title": "Master Database",
+      "file": "MasterDatabase.pgn",
+      "access": "available",
+      "credits": 5,
+      "runtime": "archive-only"
+    }
+  ]
+}
