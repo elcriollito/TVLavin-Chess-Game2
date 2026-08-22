@@ -13,7 +13,7 @@ const routes = [
 const canonicalOrder = [
   'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
   'Tactics', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Practice', 'Endgame Library',
-  'Insights', 'Analyze', 'Spectator TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Arena',
+  'Insights', 'Analyze', 'CAISSA PGN Replayer', 'Spectator TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Arena',
   'Cheater Insight', 'Polyglot Tool', 'Opening Database', 'ECO Codes',
   'Game Library', 'History', 'DOS Chess', 'Vault', 'Blog',
   'Facebook', 'CAISSA Chess YouTube', 'CAISSA Discord', 'Share an Idea / Contact & Feedback'

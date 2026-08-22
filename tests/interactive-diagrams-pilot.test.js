@@ -83,7 +83,7 @@ test('route, sitemap, navigation and wrapper CSP are coherent without global exp
   const sitemap = read('public/sitemap.xml');
   assert.equal((sitemap.match(/<loc>https:\/\/www\.caissa-chess\.org\/learn\/interactive-diagrams<\/loc>/g) || []).length, 1);
   const window = {}; vm.runInNewContext(read('js/caissa-primary-navigation.js'), { window, document: { querySelectorAll: () => [] } });
-  assert.equal(window.CaissaPrimaryNavigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.11.0');
+  assert.equal(window.CaissaPrimaryNavigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.12.0');
   assert.deepEqual(Array.from(window.CaissaPrimaryNavigation.inventory.groups[1], item => item.label), ['Tactics', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Practice', 'Endgame Library']);
   assert.equal(window.CaissaPrimaryNavigation.inventory.primary.length + window.CaissaPrimaryNavigation.inventory.connect.length, 34);
   const headers = vercel.headers.find(item => item.source === '/integrations/chessbase-interactive-diagrams.html').headers;

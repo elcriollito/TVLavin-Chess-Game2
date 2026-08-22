@@ -22,8 +22,8 @@ test('canonical primary navigation inventory is unique and stable', () => {
     [
       'play', 'yahooClassic', 'fics', 'playchess', 'fritz',
       'tactics', 'interactive-diagrams', 'academy', 'endgame-trainer', 'endgame-practice', 'endgame-library',
-      'insights', 'analyze', 'spectator', 'lichess-tv', 'live-blitz', 'live-tournaments', 'lichess-broadcasts', 'game-replayer', 'arena',
-      'cheater-insight', 'pgn-replayer', 'polyglot', 'opening-database', 'eco', 'library',
+      'insights', 'analyze', 'pgn-replayer', 'spectator', 'lichess-tv', 'live-blitz', 'live-tournaments', 'lichess-broadcasts', 'game-replayer', 'arena',
+      'cheater-insight', 'polyglot', 'opening-database', 'eco', 'library',
       'history', 'dosChess', 'vault', 'blog'
     ]
   );

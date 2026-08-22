@@ -36,7 +36,7 @@ test('Tactics is first in Learn & Improve and route ownership is deterministic',
   const window = {};
   vm.runInNewContext(read('js/caissa-primary-navigation.js'), { window, document: { querySelectorAll: () => [] } });
   const navigation = window.CaissaPrimaryNavigation;
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.11.0');
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.12.0');
   assert.deepEqual(Array.from(navigation.inventory.groups[1], item => item.label), ['Tactics', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Practice', 'Endgame Library']);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'tactics').length, 1);
   assert.equal(navigation.inventory.primary.length, 30);

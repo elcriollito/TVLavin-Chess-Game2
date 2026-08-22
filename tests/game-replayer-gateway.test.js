@@ -71,9 +71,9 @@ test('navigation, routes, sitemap, CSP, and wrapper exclusion are coherent', () 
   const window = {};
   vm.runInNewContext(read('js/caissa-primary-navigation.js'), { window, document: { querySelectorAll: () => [] } });
   const navigation = window.CaissaPrimaryNavigation;
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.11.0');
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.12.0');
   assert.equal(navigation.inventory.primary.length + navigation.inventory.connect.length, 34);
-  assert.deepEqual(Array.from(navigation.inventory.groups[2], item => item.label), ['Insights', 'Analyze', 'Spectator TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Arena']);
+  assert.deepEqual(Array.from(navigation.inventory.groups[2], item => item.label), ['Insights', 'Analyze', 'CAISSA PGN Replayer', 'Spectator TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Arena']);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'game-replayer').length, 1);
   const vercel = JSON.parse(read('vercel.json'));
   assert.ok(vercel.rewrites.some(rule => rule.source === '/watch/game-replayer' && rule.destination === '/game-replayer.html'));

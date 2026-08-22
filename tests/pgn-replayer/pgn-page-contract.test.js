@@ -12,6 +12,8 @@ test('owns a distinct canonical route and keeps the classic free replayer intact
   assert.equal(page('title').text(), 'Open and Replay PGN Files | CAISSA Chess');
   assert.equal(page('link[rel="canonical"]').attr('href'), 'https://www.caissa-chess.org/pgn-replayer');
   assert.equal(page('[data-caissa-standalone-sidebar][data-active="pgn-replayer"]').length, 1);
+  assert.equal(page('link[href^="/styles.css"]').length, 1);
+  assert.equal(page('link[href^="/styles.css"]').index() < page('link[href^="/css/caissa-standalone-sidebar.css"]').index(), true);
   assert.equal(page('h1').text(), 'PGN Replayer');
   assert.equal(page('iframe').length, 0);
   assert.doesNotMatch(read('pgn-replayer.html'), /pgn\.chessbase\.com|Credits:|checkout/i);
@@ -116,6 +118,8 @@ test('navigation publishes the new tool once without replacing the classic route
   const inventory = window.CaissaPrimaryNavigation.inventory;
   assert.equal(inventory.primary.filter(item => item.id === 'pgn-replayer').length, 1);
   assert.equal(inventory.primary.find(item => item.id === 'pgn-replayer').route, '/pgn-replayer');
+  assert.equal(Array.from(inventory.groups[2], item => item.id).includes('pgn-replayer'), true);
+  assert.equal(Array.from(inventory.groups[3], item => item.id).includes('pgn-replayer'), false);
   assert.equal(inventory.primary.filter(item => item.id === 'game-replayer').length, 1);
   assert.equal(inventory.primary.find(item => item.id === 'game-replayer').route, '/watch/game-replayer');
 });

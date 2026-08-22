@@ -19,11 +19,12 @@ test('CaissaPublicRouteInventory@1.0.0 is complete, unique, and ordered', () => 
   assert.deepEqual(inventory.primaryNavigation.slice(0, 5).map(item => item.label), ['Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz']);
   assert.equal(inventory.primaryNavigation[5].label, 'Tactics');
   assert.equal(inventory.primaryNavigation[6].label, 'Interactive Diagrams');
-  assert.equal(inventory.primaryNavigation[14].label, 'Lichess TV');
-  assert.equal(inventory.primaryNavigation[15].label, 'Live Blitz');
-  assert.equal(inventory.primaryNavigation[16].label, 'Live Tournaments');
-  assert.equal(inventory.primaryNavigation[17].label, 'Lichess Broadcasts');
-  assert.equal(inventory.primaryNavigation[18].label, 'Game Replayer');
+  assert.equal(inventory.primaryNavigation[13].label, 'CAISSA PGN Replayer');
+  assert.equal(inventory.primaryNavigation[15].label, 'Lichess TV');
+  assert.equal(inventory.primaryNavigation[16].label, 'Live Blitz');
+  assert.equal(inventory.primaryNavigation[17].label, 'Live Tournaments');
+  assert.equal(inventory.primaryNavigation[18].label, 'Lichess Broadcasts');
+  assert.equal(inventory.primaryNavigation[19].label, 'Game Replayer');
   assert.deepEqual(inventory.primaryNavigation.map(item => item.navigationPosition), Array.from({ length: 34 }, (_, index) => index + 1));
   assert.equal(new Set(inventory.primaryNavigation.map(item => item.id)).size, 34);
   assert.equal(new Set(inventory.primaryNavigation.map(item => item.navigationPosition)).size, 34);

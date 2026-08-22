@@ -34,12 +34,12 @@ test('Live Blitz gateway exposes exact SEO, embed, attribution, and fallback', (
   assert.equal(page(`a[href="${source}"]`).length, 2);
 });
 
-test('Live Blitz is fourth in Analyze & Watch and route ownership is deterministic', () => {
+test('Live Blitz follows Lichess TV in Analyze & Watch and route ownership is deterministic', () => {
   const window = {};
   vm.runInNewContext(read('js/caissa-primary-navigation.js'), { window, document: { querySelectorAll: () => [] } });
   const navigation = window.CaissaPrimaryNavigation;
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.11.0');
-  assert.deepEqual(Array.from(navigation.inventory.groups[2], item => item.label), ['Insights', 'Analyze', 'Spectator TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Arena']);
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.12.0');
+  assert.deepEqual(Array.from(navigation.inventory.groups[2], item => item.label), ['Insights', 'Analyze', 'CAISSA PGN Replayer', 'Spectator TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Arena']);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'live-blitz').length, 1);
   assert.equal(navigation.inventory.primary.length, 30);
   const vercel = JSON.parse(read('vercel.json'));
