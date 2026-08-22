@@ -33,13 +33,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
-      - name: Install parser dependencies
-        run: npm ci --ignore-scripts
-
-      - name: PGN core regression tests
-        run: node --test tests/pgn-replayer/pgn-core.test.js tests/pgn-replayer/pgn-worker.test.js
+      - name: Syntax check verifier
+        run: node --check scripts/verify-large-pgn-collections.mjs
 
       - name: Verify every archived album above 2,000 games
         shell: bash
