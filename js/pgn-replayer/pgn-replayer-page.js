@@ -389,10 +389,6 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
                 if (status === 'error' && state.engineEnabled) {
                     state.engineEnabled = false;
                     const errorCode = typeof detail === 'string' ? detail : detail?.code;
-                    elements.enginePanel.dataset.errorCode = errorCode || 'engine-load-failed';
-                    elements.enginePanel.dataset.errorMessage = detail?.message || '';
-                    elements.enginePanel.dataset.errorFile = detail?.filename || '';
-                    elements.enginePanel.dataset.errorLine = String(detail?.line || 0);
                     updateEngineUi('error');
                     const message = errorCode === 'engine-initialization-timeout'
                         ? 'The local engine took too long to start. You can try turning it on again.'

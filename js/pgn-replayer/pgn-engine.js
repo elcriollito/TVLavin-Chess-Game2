@@ -1,6 +1,6 @@
 import { Chess } from '../../assets/vendor/chess.js/chess-1.4.0.esm.js';
 
-const DEFAULT_WORKER_URL = '/public/engines/fairy-stockfish/engine-worker.js';
+const DEFAULT_WORKER_URL = '/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js';
 const DEFAULT_INITIALIZATION_TIMEOUT_MS = 60000;
 const MAX_PV_PLIES = 12;
 
@@ -127,7 +127,6 @@ export class PgnAnalysisEngine {
         }
         if (this.handshake?.phase === 'uci' && message === 'uciok') {
             this.worker.postMessage('setoption name MultiPV value 2');
-            this.worker.postMessage('setoption name Threads value 1');
             this.worker.postMessage('setoption name Hash value 16');
             this.handshake.phase = 'ready';
             this.worker.postMessage('isready');

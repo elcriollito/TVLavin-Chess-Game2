@@ -81,7 +81,7 @@ test('opens the existing Capablanca collection as a free album', async ({ page }
 });
 
 test('engine defaults off and renders exactly two local analysis lines', async ({ page }) => {
-  await page.route('**/engine/stockfish-working.js', route => route.fulfill({
+  await page.route('**/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js', route => route.fulfill({
     contentType: 'application/javascript',
     body: `onmessage = event => {
       if (event.data === 'uci') postMessage('uciok');

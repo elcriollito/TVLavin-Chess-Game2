@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
@@ -37,9 +38,6 @@ test('uses Games, Notation, Albums order and a board-first accessible shell', ()
   assert.doesNotMatch(page('meta[http-equiv="Content-Security-Policy"]').attr('content'), /frame-ancestors/);
   const vercel = JSON.parse(read('vercel.json'));
   assert.ok(vercel.headers.some(rule => rule.headers?.some(header => header.key === 'Content-Security-Policy' && /frame-ancestors 'self'/.test(header.value))));
-  const routeHeaders = vercel.headers.find(rule => rule.source === '/pgn-replayer')?.headers || [];
-  assert.equal(routeHeaders.find(header => header.key === 'Cross-Origin-Opener-Policy')?.value, 'same-origin');
-  assert.equal(routeHeaders.find(header => header.key === 'Cross-Origin-Embedder-Policy')?.value, 'require-corp');
 });
 
 test('replaces redundant Change PGN with a lazy local engine that defaults off', () => {
@@ -56,18 +54,26 @@ test('replaces redundant Change PGN with a lazy local engine that defaults off',
   assert.equal(page('script[src*="pgn-replayer-page.js"]').attr('type'), 'module');
   assert.match(runtime, /new PgnAnalysisEngine/);
   assert.doesNotMatch(runtime, /caissa_pgn_engine|localStorage.*engine/i);
-  assert.match(engine, /DEFAULT_WORKER_URL = '\/public\/engines\/fairy-stockfish\/engine-worker\.js'/);
+  assert.match(engine, /DEFAULT_WORKER_URL = '\/assets\/vendor\/stockfish\/18\.0\.0\/stockfish-18-lite-single\.js'/);
   assert.match(engine, /setoption name MultiPV value 2/);
-  assert.match(engine, /setoption name Threads value 1/);
+  assert.doesNotMatch(engine, /setoption name Threads/);
   assert.match(engine, /workerUrl\.origin !== baseUrl\.origin/);
   const vercel = JSON.parse(read('vercel.json'));
-  const workerHeaders = vercel.headers.find(rule => rule.source === '/public/engines/fairy-stockfish/:path*')?.headers || [];
+  const workerHeaders = vercel.headers.find(rule => rule.source === '/assets/vendor/stockfish/18.0.0/:path*')?.headers || [];
   const workerCsp = workerHeaders.find(header => header.key === 'Content-Security-Policy')?.value || '';
   assert.match(workerCsp, /script-src 'self' 'wasm-unsafe-eval'/);
   assert.doesNotMatch(workerCsp, /script-src[^;]*'unsafe-eval'/);
   assert.equal(page('#pgn-panel-notation > .pgn-notation-scroll').length, 1);
   assert.equal(page('#pgn-panel-notation > [data-pgn-engine-panel]').length, 1);
   assert.match(read('css/pgn-replayer.css'), /\.pgn-engine-panel \{[^}]*height: 123px;[^}]*flex: 0 0 123px/);
+});
+
+test('pins the local single-threaded Stockfish 18 browser distribution', () => {
+  const digest = path => createHash('sha256').update(fs.readFileSync(new URL(`../../${path}`, import.meta.url))).digest('hex');
+  assert.equal(digest('assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js'), '2278005057f381491f1c9bb3e44c9f5920b3a00bef9759e33cc6582769a1f1fe');
+  assert.equal(digest('assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.wasm'), 'a8fbc05ec6920b56d7485826dcb02c5ffd2826bcbf751cf973046f237a9096f1');
+  assert.match(read('assets/vendor/stockfish/18.0.0/Copying.txt'), /GNU GENERAL PUBLIC LICENSE[\s\S]*Version 3/);
+  assert.match(read('engine/STOCKFISH-NOTICE.md'), /Stockfish\.js 18 lite single-threaded/);
 });
 
 test('keeps game information above notation and reserves safe album access states', () => {

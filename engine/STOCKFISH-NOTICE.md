@@ -14,3 +14,16 @@ and introduced in repository commit `f8659abcf87ba914a7bafe7e04cb15b8a0625018`.
 
 The copyright and license header remains embedded at the beginning of the
 distributed Worker. CAISSA does not download this engine from a CDN at runtime.
+
+## PGN Replayer engine
+
+The PGN Replayer uses the official Stockfish.js 18 lite single-threaded browser
+distribution from the `nmrugg/stockfish.js` `v18.0.0` release. Both files are
+served locally from `assets/vendor/stockfish/18.0.0/`; no runtime CDN is used.
+
+- JavaScript SHA-256: `2278005057f381491f1c9bb3e44c9f5920b3a00bef9759e33cc6582769a1f1fe`
+- WebAssembly SHA-256: `a8fbc05ec6920b56d7485826dcb02c5ffd2826bcbf751cf973046f237a9096f1`
+- Upstream browser distribution: <https://github.com/nmrugg/stockfish.js/releases/tag/v18.0.0>
+- Upstream engine: <https://github.com/official-stockfish/Stockfish>
+- License: GNU General Public License version 3
+- Local license text: `assets/vendor/stockfish/18.0.0/Copying.txt`
