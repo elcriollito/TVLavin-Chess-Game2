@@ -3,7 +3,7 @@ name: Import PGN Mentor player additions
 on:
   workflow_dispatch:
   push:
-    branches: [feat/pgnmentor-library-foundation]
+    branches: [main, feat/pgnmentor-library-foundation]
     paths:
       - 'data/pgn/pgnmentor-player-additions.json'
       - 'scripts/import-pgnmentor-player-additions.py'
@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: import-pgnmentor-player-additions
+  group: import-pgnmentor-player-additions-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -21,10 +21,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout branch
+      - name: Checkout current branch
         uses: actions/checkout@v4
         with:
-          ref: feat/pgnmentor-library-foundation
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
 
       - name: Archive and verify PGN Mentor additions
@@ -49,5 +49,5 @@ jobs:
             exit 0
           fi
           git commit -m 'feat(pgn): vendor PGN Mentor player additions'
-          git pull --rebase origin feat/pgnmentor-library-foundation
-          git push origin HEAD:feat/pgnmentor-library-foundation
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
