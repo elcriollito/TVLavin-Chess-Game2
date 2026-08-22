@@ -6,7 +6,10 @@ on:
     paths:
       - '.github/workflows/verify-large-pgn-collections.yml'
       - 'js/pgn-replayer/pgn-core.js'
+      - 'js/pgn-replayer/pgn-worker.js'
+      - 'pgn-replayer.html'
       - 'scripts/verify-large-pgn-collections.mjs'
+      - 'tests/pgn-replayer/large-collection-runtime-contract.test.js'
       - 'public/data/pgn/players/manifest.json'
       - 'public/data/pgn/players/*.pgn'
   workflow_dispatch:
@@ -36,6 +39,9 @@ jobs:
 
       - name: Syntax check verifier
         run: node --check scripts/verify-large-pgn-collections.mjs
+
+      - name: Verify local archive and runtime capacity contract
+        run: node --test tests/pgn-replayer/large-collection-runtime-contract.test.js
 
       - name: Verify every archived album above 2,000 games
         shell: bash
