@@ -1,0 +1,61 @@
+name: Update PGN Mentor remote catalog
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/update-pgnmentor-remote-catalog.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-pgnmentor-remote-catalog
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Snapshot event and opening names
+        run: python3 scripts/update-pgnmentor-remote-catalog.py
+
+      - name: Verify no player exposure
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          catalog = json.loads(Path('data/pgn/pgnmentor-remote-catalog.json').read_text(encoding='utf-8'))
+          assert catalog['playerDirectoryExposed'] is False
+          assert catalog['eventCount'] >= 100
+          assert catalog['openingCount'] >= 100
+          allowlist = Path('api/pgn/pgnmentor-allowlist.js').read_text(encoding='utf-8')
+          assert 'players/' not in allowlist
+          assert 'PGN_MENTOR_EVENT_FILES' in allowlist
+          assert 'PGN_MENTOR_OPENING_FILES' in allowlist
+          PY
+
+      - name: Commit remote catalog snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/pgn/pgnmentor-remote-catalog.json api/pgn/pgnmentor-allowlist.js
+          if git diff --cached --quiet; then
+            echo 'No PGN Mentor remote catalog changes to commit.'
+            exit 0
+          fi
+          git commit -m 'chore(pgn): snapshot PGN Mentor event and opening catalog'
+          git pull --rebase origin main
+          git push origin HEAD:main
