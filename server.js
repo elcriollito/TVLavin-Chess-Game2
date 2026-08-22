@@ -458,6 +458,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/watch/game-replayer' || pathname === '/watch/game-replayer/') {
     filePath = './game-replayer.html';
   }
+  if (pathname === '/pgn-replayer' || pathname === '/pgn-replayer/') {
+    filePath = './pgn-replayer.html';
+  }
   if (pathname === '/academy') {
     filePath = './index.html';
   }

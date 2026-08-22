@@ -24,9 +24,9 @@ test('CaissaPublicRouteInventory@1.0.0 is complete, unique, and ordered', () => 
   assert.equal(inventory.primaryNavigation[16].label, 'Live Tournaments');
   assert.equal(inventory.primaryNavigation[17].label, 'Lichess Broadcasts');
   assert.equal(inventory.primaryNavigation[18].label, 'Game Replayer');
-  assert.deepEqual(inventory.primaryNavigation.map(item => item.navigationPosition), Array.from({ length: 33 }, (_, index) => index + 1));
-  assert.equal(new Set(inventory.primaryNavigation.map(item => item.id)).size, 33);
-  assert.equal(new Set(inventory.primaryNavigation.map(item => item.navigationPosition)).size, 33);
+  assert.deepEqual(inventory.primaryNavigation.map(item => item.navigationPosition), Array.from({ length: 34 }, (_, index) => index + 1));
+  assert.equal(new Set(inventory.primaryNavigation.map(item => item.id)).size, 34);
+  assert.equal(new Set(inventory.primaryNavigation.map(item => item.navigationPosition)).size, 34);
   const canonicalPages = [...inventory.primaryNavigation, ...inventory.publicCanonicalRoutes]
     .filter(item => item.type === 'internal-page');
   assert.equal(new Set(canonicalPages.map(item => item.canonicalPath)).size, canonicalPages.length,

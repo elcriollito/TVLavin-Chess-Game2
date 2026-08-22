@@ -15,13 +15,13 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 
 ## Calculated summary
 
-- Primary navigation entries: 33
-- Internal primary pages: 29
+- Primary navigation entries: 34
+- Internal primary pages: 30
 - Public canonical routes not in primary navigation: 14
 - External destinations: 4
 - Redirects: 8
 - Protected route families: 5
-- Total inventoried records: 60
+- Total inventoried records: 61
 
 ## Primary navigation
 
@@ -48,18 +48,19 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | 19 | analyze-and-watch | Game Replayer | /watch/game-replayer | internal-page | CaissaPrimaryNavigation |
 | 20 | analyze-and-watch | Arena | /arena | internal-page | CaissaPrimaryNavigation |
 | 21 | tools | Cheater Insight | /cheater-insight | internal-page | CaissaPrimaryNavigation |
-| 22 | tools | Polyglot Tool | /tools/polyglot | internal-page | CaissaPrimaryNavigation |
-| 23 | tools | Opening Database | /opening-database | internal-page | CaissaPrimaryNavigation |
-| 24 | tools | ECO Codes | /eco | internal-page | CaissaPrimaryNavigation |
-| 25 | tools | Game Library | /game-library | internal-page | CaissaPrimaryNavigation |
-| 26 | tools | History | /history | internal-page | CaissaPrimaryNavigation |
-| 27 | tools | DOS Chess | /dos-chess | internal-page | CaissaPrimaryNavigation |
-| 28 | tools | Vault | /vault | internal-page | CaissaPrimaryNavigation |
-| 29 | tools | Blog | /blog | internal-page | CaissaPrimaryNavigation |
-| 30 | connect-with-caissa-chess | Facebook | https://www.facebook.com/CaissaChessOrg/ | external-destination | CaissaPrimaryNavigation |
-| 31 | connect-with-caissa-chess | CAISSA Chess YouTube | https://www.youtube.com/@CaissaChessOrg | external-destination | CaissaPrimaryNavigation |
-| 32 | connect-with-caissa-chess | CAISSA Discord | https://discord.gg/TM7GJPUVfr | external-destination | CaissaPrimaryNavigation |
-| 33 | connect-with-caissa-chess | Share an Idea / Contact & Feedback | mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A | external-destination | CaissaPrimaryNavigation |
+| 22 | tools | CAISSA PGN Replayer | /pgn-replayer | internal-page | CaissaPrimaryNavigation |
+| 23 | tools | Polyglot Tool | /tools/polyglot | internal-page | CaissaPrimaryNavigation |
+| 24 | tools | Opening Database | /opening-database | internal-page | CaissaPrimaryNavigation |
+| 25 | tools | ECO Codes | /eco | internal-page | CaissaPrimaryNavigation |
+| 26 | tools | Game Library | /game-library | internal-page | CaissaPrimaryNavigation |
+| 27 | tools | History | /history | internal-page | CaissaPrimaryNavigation |
+| 28 | tools | DOS Chess | /dos-chess | internal-page | CaissaPrimaryNavigation |
+| 29 | tools | Vault | /vault | internal-page | CaissaPrimaryNavigation |
+| 30 | tools | Blog | /blog | internal-page | CaissaPrimaryNavigation |
+| 31 | connect-with-caissa-chess | Facebook | https://www.facebook.com/CaissaChessOrg/ | external-destination | CaissaPrimaryNavigation |
+| 32 | connect-with-caissa-chess | CAISSA Chess YouTube | https://www.youtube.com/@CaissaChessOrg | external-destination | CaissaPrimaryNavigation |
+| 33 | connect-with-caissa-chess | CAISSA Discord | https://discord.gg/TM7GJPUVfr | external-destination | CaissaPrimaryNavigation |
+| 34 | connect-with-caissa-chess | Share an Idea / Contact & Feedback | mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A | external-destination | CaissaPrimaryNavigation |
 
 ## Public canonical routes outside primary navigation
 

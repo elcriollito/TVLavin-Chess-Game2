@@ -23,11 +23,11 @@ test('canonical primary navigation inventory is unique and stable', () => {
       'play', 'yahooClassic', 'fics', 'playchess', 'fritz',
       'tactics', 'interactive-diagrams', 'academy', 'endgame-trainer', 'endgame-practice', 'endgame-library',
       'insights', 'analyze', 'spectator', 'lichess-tv', 'live-blitz', 'live-tournaments', 'lichess-broadcasts', 'game-replayer', 'arena',
-      'cheater-insight', 'polyglot', 'opening-database', 'eco', 'library',
+      'cheater-insight', 'pgn-replayer', 'polyglot', 'opening-database', 'eco', 'library',
       'history', 'dosChess', 'vault', 'blog'
     ]
   );
-  assert.equal(inventory.primary.length, 29);
+  assert.equal(inventory.primary.length, 30);
   assert.equal(inventory.connect.length, 4);
   for (const label of ['Endgame Practice', 'Endgame Library', 'Analyze', 'Help', 'About']) {
     assert.ok(labels.includes(label), `${label} is missing`);
@@ -111,7 +111,7 @@ test('all standalone shell pages load the canonical source before the renderer',
   const pages = [
     'endgame-library.html', 'about.html', 'help.html', 'eco.html', 'opening-database.html',
     'polyglot.html', 'vault.html', 'blog/index.html', 'playchess.html', 'fritz.html', 'tactics.html', 'live-blitz.html',
-    'live-tournaments.html', 'lichess-tv.html', 'lichess-broadcasts.html'
+    'live-tournaments.html', 'lichess-tv.html', 'lichess-broadcasts.html', 'pgn-replayer.html'
   ];
   for (const path of pages) {
     const html = read(path);
