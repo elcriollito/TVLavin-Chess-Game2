@@ -1,6 +1,6 @@
 import '/assets/vendor/pgn-parser/pgn-parser-1.4.19.umd.js';
 import { Chess } from '/assets/vendor/chess.js/chess-1.4.0.esm.js';
-import '/js/pgn-replayer/pgn-core.js';
+import '/js/pgn-replayer/pgn-core.js?v=1.1.1';
 
 self.addEventListener('message', event => {
     const request = event.data || {};
