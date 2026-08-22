@@ -34,6 +34,7 @@
         queued = false;
         setPrice(albumRoot.querySelector('[data-album-id="capablanca-games-1901-1941"]'), policy.capablancaCredits);
         albumRoot.querySelectorAll('[data-catalog-album-id]').forEach(card => setPrice(card, policy.playerAlbumCredits));
+        albumRoot.querySelectorAll('[data-mentor-player-album-id]').forEach(card => setPrice(card, policy.playerAlbumCredits));
         albumRoot.querySelectorAll('[data-special-album-id][data-album-kind="seo-free"]').forEach(card => setPrice(card, policy.freeSpecialCredits));
         setPrice(albumRoot.querySelector('[data-special-album-id="smallchess-master-database"]'), policy.masterDatabaseCredits);
     }
