@@ -45,7 +45,7 @@ test('loads the existing same-origin Worker lazily with two analysis lines', asy
   const snapshots = [];
   const states = [];
   const engine = create({ onLines: lines => snapshots.push(lines), onState: state => states.push(state) });
-  assert.equal(engine.initializationTimeoutMs, 30000);
+  assert.equal(engine.initializationTimeoutMs, 60000);
   assert.equal(FakeWorker.instances.length, 0);
   const initialization = engine.enable(START_FEN);
   const worker = FakeWorker.instances[0];
@@ -107,5 +107,5 @@ test('rejects cross-origin engine assets', () => {
 test('bounds a custom initialization timeout to a safe range', () => {
   assert.equal(create({ initializationTimeoutMs: 100 }).initializationTimeoutMs, 12000);
   assert.equal(create({ initializationTimeoutMs: 45000 }).initializationTimeoutMs, 45000);
-  assert.equal(create({ initializationTimeoutMs: 120000 }).initializationTimeoutMs, 60000);
+  assert.equal(create({ initializationTimeoutMs: 240000 }).initializationTimeoutMs, 120000);
 });

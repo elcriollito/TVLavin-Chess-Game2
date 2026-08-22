@@ -1,7 +1,7 @@
 import { Chess } from '../../assets/vendor/chess.js/chess-1.4.0.esm.js';
 
 const DEFAULT_WORKER_URL = '/engine/stockfish-working.js';
-const DEFAULT_INITIALIZATION_TIMEOUT_MS = 30000;
+const DEFAULT_INITIALIZATION_TIMEOUT_MS = 60000;
 const MAX_PV_PLIES = 12;
 
 function engineError(code) {
@@ -62,7 +62,7 @@ export class PgnAnalysisEngine {
         this.workerUrl = workerUrl.href;
         this.WorkerConstructor = options.WorkerConstructor || globalThis.Worker;
         this.moveTimeMs = Math.max(250, Math.min(3000, Number(options.moveTimeMs) || 900));
-        this.initializationTimeoutMs = Math.max(12000, Math.min(60000, Number(options.initializationTimeoutMs) || DEFAULT_INITIALIZATION_TIMEOUT_MS));
+        this.initializationTimeoutMs = Math.max(12000, Math.min(120000, Number(options.initializationTimeoutMs) || DEFAULT_INITIALIZATION_TIMEOUT_MS));
         this.onState = typeof options.onState === 'function' ? options.onState : () => {};
         this.onLines = typeof options.onLines === 'function' ? options.onLines : () => {};
         this.worker = null;
