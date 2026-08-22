@@ -83,7 +83,7 @@ test('keeps game information above notation and reserves safe album access state
   assert.equal(page('#pgn-panel-notation [data-pgn-game-info]').length, 1);
   assert.equal(page('#pgn-panel-notation [data-pgn-game-info]').index() < page('#pgn-panel-notation [data-pgn-notation]').index(), true);
   assert.equal(page('#pgn-panel-albums [data-pgn-albums]').length, 1);
-  assert.deepEqual(page('.pgn-album-status-key [data-access]').map((_, node) => page(node).text()).get(), ['1 credit', 'Owned']);
+  assert.deepEqual(page('.pgn-album-status-key [data-access]').map((_, node) => page(node).text()).get(), ['Free', '1 credit', 'Owned']);
   const runtime = read('js/pgn-replayer/pgn-replayer-page.js');
   assert.match(runtime, /album\.access === 'owned'/);
   assert.match(runtime, /album\.access === 'available'/);

@@ -591,6 +591,15 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
 
     elements.openButtons.forEach(button => button.addEventListener('click', () => elements.file.click()));
     elements.file.addEventListener('change', () => loadFile(elements.file.files?.[0]));
+    root.addEventListener('caissa:pgn-load-text', event => {
+        const detail = event.detail || {};
+        if (root.hasAttribute('aria-busy') || typeof detail.text !== 'string' || !detail.text.trim()) return;
+        if (new Blob([detail.text]).size > 10 * 1024 * 1024) {
+            showMessage('This PGN is larger than the 10 MiB safety limit.', 'error', false);
+            return;
+        }
+        parseText(detail.text, detail.sourceLabel || 'CAISSA collection', detail.albumId || null);
+    });
     elements.pasteButton.addEventListener('click', () => {
         elements.dialog.showModal();
         window.setTimeout(() => elements.pasteInput.focus(), 0);

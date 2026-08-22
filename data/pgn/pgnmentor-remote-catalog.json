@@ -1,8 +1,12 @@
 {
   "schemaVersion": 1,
   "sourcePage": "https://www.pgnmentor.com/files.html",
-  "generatedAt": "2026-08-22T15:49:38+00:00",
+  "generatedAt": "2026-08-22T16:46:07+00:00",
   "sourcePageSha256": "da2204b8c4234030e7a6ae9dbcdc9af8a7cbcac068ae89f369c9dda72f4eeaaf",
+  "sourceUpdates": {
+    "players": "July 2026",
+    "openings": "January 2026"
+  },
   "playerDirectoryExposed": false,
   "policy": {
     "events": "remote-through-caissa-gateway",

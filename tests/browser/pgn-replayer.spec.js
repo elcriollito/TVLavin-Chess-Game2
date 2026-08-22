@@ -80,6 +80,44 @@ test('opens the existing Capablanca collection as a free album', async ({ page }
   await expect(album).toHaveAttribute('aria-current', 'true');
 });
 
+test('navigates the historical families and loads the 1972 championship through CAISSA', async ({ page }) => {
+  const fischerSpassky = `[Event "World Championship 1972"]
+[Site "Reykjavik"]
+[Date "1972.07.11"]
+[White "Fischer, Robert James"]
+[Black "Spassky, Boris V"]
+[Result "0-1"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 0-1`;
+  await page.route('**/api/pgn/pgnmentor?kind=event&file=WorldChamp1972.pgn', route => route.fulfill({
+    contentType: 'application/x-chess-pgn',
+    body: fischerSpassky
+  }));
+  await page.goto('/pgn-replayer');
+  await page.getByRole('tab', { name: 'Albums' }).click();
+
+  const championships = page.locator('[data-pgn-library-family="world-championships"]');
+  await championships.click();
+  await expect(championships).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-pgn-library-summary]')).toContainText('Source catalog checked Aug 22, 2026');
+  await expect(page.locator('[data-mentor-historical-album-id]')).toHaveCount(59);
+
+  await page.locator('[data-pgn-library-search]').fill('Fischer');
+  const match = page.locator('[data-mentor-historical-album-id="world-championship-worldchamp1972"]');
+  await expect(match).toBeVisible();
+  await expect(page.locator('[data-library-family="world-championships"]:visible')).toHaveCount(1);
+  await match.click();
+  await expect(page.locator('[data-pgn-message]')).toContainText('1 game loaded locally');
+  await expect(page.locator('[data-pgn-title]')).toHaveText('Fischer, Robert James — Spassky, Boris V');
+
+  await page.getByRole('tab', { name: 'Albums' }).click();
+  await page.locator('[data-pgn-library-family="qualifiers"]').click();
+  await expect(page.locator('[data-mentor-historical-album-id]:visible')).toHaveCount(58);
+  await page.locator('[data-pgn-library-family="openings"]').click();
+  await expect(page.locator('[data-pgn-library-notice]')).toContainText('Opening Library is the next indexed phase');
+  await expect(page.locator('[data-pgn-albums]')).toBeHidden();
+});
+
 test('engine defaults off and renders exactly two local analysis lines', async ({ page }) => {
   await page.route('**/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js', route => route.fulfill({
     contentType: 'application/javascript',

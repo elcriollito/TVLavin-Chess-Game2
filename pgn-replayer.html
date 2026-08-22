@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css">
   <link rel="stylesheet" href="/styles.css?v=2.0.16">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.1.0">
-  <link rel="stylesheet" href="/css/pgn-replayer.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/pgn-replayer.css?v=1.1.0">
   <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
 </head>
 <body class="pgn-replayer-page">
@@ -83,7 +83,19 @@
                 <section class="pgn-engine-panel" data-pgn-engine-panel data-state="off" aria-labelledby="pgn-engine-title"><div class="pgn-engine-heading"><div><span class="pgn-engine-dot" aria-hidden="true"></span><strong id="pgn-engine-title">Stockfish analysis</strong></div><small data-pgn-engine-summary>Off</small></div><div class="pgn-engine-lines" data-pgn-engine-lines aria-live="polite"></div></section>
               </section>
               <section role="tabpanel" id="pgn-panel-albums" aria-labelledby="pgn-tab-albums" data-pgn-tabpanel="albums" hidden>
-                <div class="pgn-album-status-key" aria-label="Album access statuses"><span class="pgn-album-badge" data-access="free">Free</span><small>Open collection</small><span class="pgn-album-badge" data-access="available">1 credit</span><small>Player collection</small><span class="pgn-album-badge" data-access="owned">Owned</span><small>Unlocked collection</small></div>
+                <nav class="pgn-library-nav" aria-label="Chess game library families" data-pgn-library-nav>
+                  <button type="button" data-pgn-library-family="players" aria-pressed="true"><i class="fas fa-chess-king" aria-hidden="true"></i><span>Players</span><small data-pgn-library-count="players">—</small></button>
+                  <button type="button" data-pgn-library-family="world-championships" aria-pressed="false"><i class="fas fa-crown" aria-hidden="true"></i><span>World Championships</span><small data-pgn-library-count="world-championships">—</small></button>
+                  <button type="button" data-pgn-library-family="qualifiers" aria-pressed="false"><i class="fas fa-medal" aria-hidden="true"></i><span>Candidates &amp; World Cups</span><small data-pgn-library-count="qualifiers">—</small></button>
+                  <button type="button" data-pgn-library-family="tournaments" aria-pressed="false"><i class="fas fa-trophy" aria-hidden="true"></i><span>Tournaments</span><small data-pgn-library-count="tournaments">—</small></button>
+                  <button type="button" data-pgn-library-family="openings" aria-pressed="false"><i class="fas fa-book-open" aria-hidden="true"></i><span>Openings</span><small>Next</small></button>
+                </nav>
+                <div class="pgn-library-toolbar">
+                  <div class="pgn-library-heading"><strong data-pgn-library-title>Players</strong><small data-pgn-library-summary>Physical CAISSA archives</small></div>
+                  <label class="pgn-library-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i><span class="pgn-visually-hidden">Search this library family</span><input type="search" data-pgn-library-search placeholder="Search players" autocomplete="off"></label>
+                </div>
+                <div class="pgn-album-status-key" aria-label="Album access statuses"><span class="pgn-album-badge" data-access="free">Free</span><small>Historical archive</small><span class="pgn-album-badge" data-access="available">1 credit</span><small>Player collection</small><span class="pgn-album-badge" data-access="owned">Owned</span><small>Unlocked collection</small></div>
+                <div class="pgn-library-notice" data-pgn-library-notice hidden><i class="fas fa-circle-info" aria-hidden="true"></i><strong data-pgn-library-notice-title></strong><span data-pgn-library-notice-copy></span></div>
                 <div class="pgn-panel-empty pgn-albums-intro" data-pgn-albums-empty><i class="fas fa-layer-group" aria-hidden="true"></i><strong>Your CAISSA albums will appear here</strong><span>Player collections you unlock will stay organized in this space.</span></div>
                 <div class="pgn-album-list" data-pgn-albums role="list"></div>
               </section>
@@ -105,7 +117,8 @@
   <script src="/js/pgn-replayer/pgn-album-catalog.js?v=1.0.0"></script>
   <script src="/js/pgn-replayer/pgn-mentor-player-catalog.js?v=1.0.0"></script>
   <script src="/js/pgn-replayer/pgn-special-album-catalog.js?v=1.0.0"></script>
-  <script src="/js/pgn-replayer/pgn-album-pricing.js?v=1.0.1"></script>
-  <script type="module" src="/js/pgn-replayer/pgn-replayer-page.js?v=1.1.1"></script>
+  <script src="/js/pgn-replayer/pgn-mentor-historical-library.js?v=1.0.0"></script>
+  <script src="/js/pgn-replayer/pgn-album-pricing.js?v=1.0.2"></script>
+  <script type="module" src="/js/pgn-replayer/pgn-replayer-page.js?v=1.2.0"></script>
 </body>
 </html>

@@ -36,6 +36,7 @@
         albumRoot.querySelectorAll('[data-catalog-album-id]').forEach(card => setPrice(card, policy.playerAlbumCredits));
         albumRoot.querySelectorAll('[data-mentor-player-album-id]').forEach(card => setPrice(card, policy.playerAlbumCredits));
         albumRoot.querySelectorAll('[data-special-album-id][data-album-kind="seo-free"]').forEach(card => setPrice(card, policy.freeSpecialCredits));
+        albumRoot.querySelectorAll('[data-mentor-historical-album-id]').forEach(card => setPrice(card, policy.freeSpecialCredits));
         setPrice(albumRoot.querySelector('[data-special-album-id="smallchess-master-database"]'), policy.masterDatabaseCredits);
     }
 
