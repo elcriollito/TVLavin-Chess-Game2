@@ -36,7 +36,8 @@ export async function inspectMentorMaintenance(db, batch) {
   if (inspected.error || !row) throw new Error('MAINTENANCE_INSPECTION_FAILED');
   const plan = {
     release: Number(row.release_count), consume: Number(row.consume_count),
-    compensate: Number(row.compensate_count), cleanup: Number(row.cleanup_count)
+    compensate: Number(row.compensate_count), cleanup: Number(row.cleanup_count),
+    deliveryAckReview: Number(row.pending_delivery_ack_review)
   };
   if (Object.values(plan).some(value => !Number.isSafeInteger(value) || value < 0 || value > batch)) throw new Error('MAINTENANCE_INSPECTION_FAILED');
   return Object.freeze(plan);
