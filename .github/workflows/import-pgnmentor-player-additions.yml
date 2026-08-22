@@ -1,0 +1,53 @@
+name: Import PGN Mentor player additions
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, feat/pgnmentor-library-foundation]
+    paths:
+      - 'data/pgn/pgnmentor-player-additions.json'
+      - 'scripts/import-pgnmentor-player-additions.py'
+      - '.github/workflows/import-pgnmentor-player-additions.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: import-pgnmentor-player-additions-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Archive and verify PGN Mentor additions
+        run: python3 scripts/import-pgnmentor-player-additions.py
+
+      - name: Verify local archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find public/data/pgn/players-mentor -maxdepth 1 -type f -name '*.pgn' | wc -l | tr -d ' ')" = "16"
+          test -s public/data/pgn/players-mentor/manifest.json
+
+      - name: Commit archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/data/pgn/players-mentor
+          if git diff --cached --quiet; then
+            echo 'No archive changes to commit.'
+            exit 0
+          fi
+          git commit -m 'feat(pgn): vendor PGN Mentor player additions'
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
