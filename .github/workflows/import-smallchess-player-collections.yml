@@ -1,0 +1,56 @@
+name: Import SmallChess player collections
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/import-smallchess-player-collections.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: import-smallchess-player-collections
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Archive and verify curated player PGNs
+        run: python3 scripts/import-smallchess-player-collections.py
+
+      - name: Verify local archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find public/data/pgn/players -maxdepth 1 -type f -name '*.pgn' | wc -l | tr -d ' ')" = "65"
+          test -s public/data/pgn/players/manifest.json
+          grep -q '/data/pgn/players/' js/pgn-replayer/pgn-album-catalog.js
+          if grep -q '/api/pgn/smallchess?file=' js/pgn-replayer/pgn-album-catalog.js; then
+            echo 'Runtime catalog still depends on SmallChess proxy' >&2
+            exit 1
+          fi
+
+      - name: Commit CAISSA-owned archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/data/pgn/players js/pgn-replayer/pgn-album-catalog.js
+          if git diff --cached --quiet; then
+            echo 'No archive changes to commit.'
+            exit 0
+          fi
+          git commit -m 'feat(pgn): vendor player game collections locally'
+          git pull --rebase origin main
+          git push origin HEAD:main
