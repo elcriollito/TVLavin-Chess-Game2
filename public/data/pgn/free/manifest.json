@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "collection": "CAISSA Free PGN Collections",
+  "importedAt": "2026-08-22T15:15:38+00:00",
+  "collectionCount": 11,
+  "albums": [
+    {
+      "id": "smallchess-world-championship",
+      "title": "World Championship",
+      "runtimePath": "/data/pgn/free/world-championship.pgn",
+      "bytes": 744930,
+      "games": 985,
+      "sha256": "98e25290587fcafd7745aba12a4a1344d581ab546cd0fec6cf39e6b437073ff4"
+    },
+    {
+      "id": "smallchess-world-rapid-blitz-2021",
+      "title": "World Rapid and Blitz — 2021",
+      "runtimePath": "/data/pgn/free/world-rapid-blitz-2021.pgn",
+      "bytes": 2804542,
+      "games": 2977,
+      "sha256": "d9acf5825ca88dfcf931ff127d0629f27e1234006fdf0dee3076f88aab78d5d3"
+    },
+    {
+      "id": "smallchess-stockfish",
+      "title": "Stockfish Games",
+      "runtimePath": "/data/pgn/free/stockfish.pgn",
+      "bytes": 572353,
+      "games": 373,
+      "sha256": "0b322734d8cafaeb64f05fdcf45433e1f6b6454be8d05ec9f969dbb16cee1ac5"
+    },
+    {
+      "id": "smallchess-tal-memorial",
+      "title": "Tal Memorial",
+      "runtimePath": "/data/pgn/free/tal-memorial.pgn",
+      "bytes": 76056,
+      "games": 47,
+      "sha256": "bcdcf78331a29790f91860ccc14611ac09c5b329b9435af96350869f92ee8097"
+    },
+    {
+      "id": "smallchess-tata-chess",
+      "title": "Tata Chess",
+      "runtimePath": "/data/pgn/free/tata-chess.pgn",
+      "bytes": 1229848,
+      "games": 1375,
+      "sha256": "6140471aacb7d02ee97ab813a2d8432e8cd3c5c979c7785da3f213753d730be7"
+    },
+    {
+      "id": "smallchess-game-of-the-century",
+      "title": "Game of the Century",
+      "runtimePath": "/data/pgn/free/game-of-the-century.pgn",
+      "bytes": 2003,
+      "games": 1,
+      "sha256": "f604219b1eb22eb380029fb65adfe57384d0a037bb6389be7ffb4a4cc626291e"
+    },
+    {
+      "id": "smallchess-dortmund-chess",
+      "title": "Dortmund Chess",
+      "runtimePath": "/data/pgn/free/dortmund-chess.pgn",
+      "bytes": 436455,
+      "games": 480,
+      "sha256": "633a37143049929cb12e0ae8571ac893613a3e09deead73cb0f374ae3bacaaf5"
+    },
+    {
+      "id": "smallchess-deep-blue-kasparov-1996-game-1",
+      "title": "Deep Blue vs Kasparov — 1996 Game 1",
+      "runtimePath": "/data/pgn/free/deep-blue-kasparov-1996-game-1.pgn",
+      "bytes": 644,
+      "games": 1,
+      "sha256": "0d27dcef3fd894d605f8d642c590455e66e3ba95f3dc42f515e149d50fe156ac"
+    },
+    {
+      "id": "smallchess-deep-fritz-kramnik-game-2",
+      "title": "Deep Fritz vs Kramnik — Game 2",
+      "runtimePath": "/data/pgn/free/deep-fritz-kramnik-game-2.pgn",
+      "bytes": 636,
+      "games": 1,
+      "sha256": "8898e3516f9606a7e428b7017e3c51c77043712dcca20b3f3733eb58f15025f8"
+    },
+    {
+      "id": "smallchess-deep-thought",
+      "title": "Deep Thought",
+      "runtimePath": "/data/pgn/free/deep-thought.pgn",
+      "bytes": 88099,
+      "games": 115,
+      "sha256": "a5324207de7d01b4c966819f10f4a7c98cfd0d8453cad1ff78ab70939648cd19"
+    },
+    {
+      "id": "smallchess-sample",
+      "title": "Sample PGN",
+      "runtimePath": "/data/pgn/free/sample.pgn",
+      "bytes": 906,
+      "games": 1,
+      "sha256": "0106625750cf9e42219d47f00bee63d9e9062984a516ace74f7746568596f3a7"
+    }
+  ]
+}
