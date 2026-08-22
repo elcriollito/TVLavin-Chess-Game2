@@ -49,7 +49,7 @@ test('loads the existing same-origin Worker lazily with two analysis lines', asy
   assert.equal(FakeWorker.instances.length, 0);
   const initialization = engine.enable(START_FEN);
   const worker = FakeWorker.instances[0];
-  assert.equal(worker.url, 'https://caissa.test/engine/stockfish-working.js');
+  assert.equal(worker.url, 'https://caissa.test/public/engines/fairy-stockfish/engine-worker.js');
   assert.equal(worker.options.name, 'caissa-pgn-stockfish');
   assert.deepEqual(worker.commands, ['uci']);
   worker.emit('uciok');

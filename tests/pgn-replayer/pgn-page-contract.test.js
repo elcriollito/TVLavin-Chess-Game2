@@ -53,10 +53,15 @@ test('replaces redundant Change PGN with a lazy local engine that defaults off',
   assert.equal(page('script[src*="pgn-replayer-page.js"]').attr('type'), 'module');
   assert.match(runtime, /new PgnAnalysisEngine/);
   assert.doesNotMatch(runtime, /caissa_pgn_engine|localStorage.*engine/i);
-  assert.match(engine, /DEFAULT_WORKER_URL = '\/engine\/stockfish-working\.js'/);
+  assert.match(engine, /DEFAULT_WORKER_URL = '\/public\/engines\/fairy-stockfish\/engine-worker\.js'/);
   assert.match(engine, /setoption name MultiPV value 2/);
   assert.match(engine, /setoption name Threads value 1/);
   assert.match(engine, /workerUrl\.origin !== baseUrl\.origin/);
+  const vercel = JSON.parse(read('vercel.json'));
+  const workerHeaders = vercel.headers.find(rule => rule.source === '/public/engines/fairy-stockfish/:path*')?.headers || [];
+  const workerCsp = workerHeaders.find(header => header.key === 'Content-Security-Policy')?.value || '';
+  assert.match(workerCsp, /script-src 'self' 'wasm-unsafe-eval'/);
+  assert.doesNotMatch(workerCsp, /script-src[^;]*'unsafe-eval'/);
   assert.equal(page('#pgn-panel-notation > .pgn-notation-scroll').length, 1);
   assert.equal(page('#pgn-panel-notation > [data-pgn-engine-panel]').length, 1);
   assert.match(read('css/pgn-replayer.css'), /\.pgn-engine-panel \{[^}]*height: 123px;[^}]*flex: 0 0 123px/);
