@@ -1,0 +1,65 @@
+name: Import PGN Mentor player additions
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/import-pgnmentor-player-collections.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: import-pgnmentor-player-collections
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Archive selected PGN Mentor player ZIPs
+        run: python3 scripts/import-pgnmentor-player-collections.py
+
+      - name: Verify CAISSA physical archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find public/data/pgn/players/pgnmentor -maxdepth 1 -type f -name '*.pgn' | wc -l | tr -d ' ')" = "16"
+          test -s public/data/pgn/players/pgnmentor/manifest.json
+          test -s js/pgn-replayer/pgn-mentor-player-catalog.js
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path('public/data/pgn/players/pgnmentor/manifest.json').read_text(encoding='utf-8'))
+          assert manifest['collectionCount'] == 16
+          assert manifest['runtimeDependencyOnSource'] is False
+          assert all(item['games'] > 0 for item in manifest['albums'])
+          assert all(item['credits'] == 1 for item in manifest['albums'])
+          catalog = Path('js/pgn-replayer/pgn-mentor-player-catalog.js').read_text(encoding='utf-8')
+          assert catalog.count("id: \"pgnmentor-") == 16
+          assert '/data/pgn/players/pgnmentor/' in catalog
+          assert 'https://www.pgnmentor.com/players/' not in catalog
+          PY
+
+      - name: Commit CAISSA-owned player additions
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/data/pgn/players/pgnmentor js/pgn-replayer/pgn-mentor-player-catalog.js
+          if git diff --cached --quiet; then
+            echo 'No PGN Mentor player archive changes to commit.'
+            exit 0
+          fi
+          git commit -m 'feat(pgn): vendor selected PGN Mentor player archives'
+          git pull --rebase origin main
+          git push origin HEAD:main
