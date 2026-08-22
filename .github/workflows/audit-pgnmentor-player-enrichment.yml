@@ -1,0 +1,68 @@
+name: Audit PGN Mentor player enrichment
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-pgnmentor-player-enrichment.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: audit-pgnmentor-player-enrichment
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Compare remote player archives without merging
+        run: python3 scripts/audit-pgnmentor-player-enrichment.py
+
+      - name: Verify report-only boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report_path = Path('data/pgn/pgnmentor-player-enrichment-report.json')
+          report = json.loads(report_path.read_text(encoding='utf-8'))
+          assert report['targetCount'] == 12
+          assert report['mergePerformed'] is False
+          assert report['remotePlayerRuntimeExposure'] is False
+          assert len(report['players']) == 12
+          assert all(item['mergePerformed'] is False for item in report['players'])
+          assert all(item['mentorOnlyCandidateAdditions'] >= 0 for item in report['players'])
+          assert all(item['local']['records'] > 0 and item['mentor']['records'] > 0 for item in report['players'])
+          assert all('/data/pgn/players/' in item['localPath'] for item in report['players'])
+          PY
+          test "$(git status --short | awk '$2 ~ /public\/data\/pgn\/players/ {count++} END {print count+0}')" = "0"
+
+      - name: Commit enrichment audit report only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/pgn/pgnmentor-player-enrichment-report.json
+          if git diff --cached --quiet; then
+            echo 'No enrichment report changes to commit.'
+            exit 0
+          fi
+          if git diff --cached --name-only | grep -v '^data/pgn/pgnmentor-player-enrichment-report.json$'; then
+            echo 'Audit attempted to stage files outside the report boundary.' >&2
+            exit 1
+          fi
+          git commit -m 'chore(pgn): record PGN Mentor player enrichment audit'
+          git pull --rebase origin main
+          git push origin HEAD:main
