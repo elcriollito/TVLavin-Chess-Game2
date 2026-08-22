@@ -1,0 +1,56 @@
+name: Import SmallChess special collections
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/import-smallchess-special-collections.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: import-smallchess-special-collections
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Archive and verify special PGNs
+        run: python3 scripts/import-smallchess-special-collections.py
+
+      - name: Verify archive boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find public/data/pgn/free -maxdepth 1 -type f -name '*.pgn' | wc -l | tr -d ' ')" = "11"
+          test -s public/data/pgn/free/manifest.json
+          test -s data/pgn/premium-archive/master-database.pgn
+          test -s data/pgn/special-collections-manifest.json
+          test ! -e public/data/pgn/free/master-database.pgn
+          grep -q '"masterDatabase": 5' data/pgn/special-collections-manifest.json
+          grep -q '"capablanca": 1' data/pgn/special-collections-manifest.json
+
+      - name: Commit CAISSA special archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/data/pgn/free data/pgn/premium-archive data/pgn/special-collections-manifest.json
+          if git diff --cached --quiet; then
+            echo 'No special archive changes to commit.'
+            exit 0
+          fi
+          git commit -m 'feat(pgn): vendor free and premium special collections'
+          git pull --rebase origin main
+          git push origin HEAD:main
