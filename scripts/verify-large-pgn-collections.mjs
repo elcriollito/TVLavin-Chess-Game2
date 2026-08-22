@@ -4,19 +4,20 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
-import { createRequire } from 'node:module';
-import { Chess } from 'chess.js';
+import { Chess } from '../assets/vendor/chess.js/chess-1.4.0.esm.js';
 
-const require = createRequire(import.meta.url);
-const parser = require('@mliebelt/pgn-parser');
 const root = new URL('../', import.meta.url);
 const manifestUrl = new URL('public/data/pgn/players/manifest.json', root);
 const coreUrl = new URL('js/pgn-replayer/pgn-core.js', root);
+const parserUrl = new URL('assets/vendor/pgn-parser/pgn-parser-1.4.19.umd.js', root);
 
-function loadCore() {
+function loadRuntime() {
   const context = vm.createContext({ TextEncoder, console });
+  vm.runInContext(fs.readFileSync(parserUrl, 'utf8'), context);
   vm.runInContext(fs.readFileSync(coreUrl, 'utf8'), context);
-  return context.CaissaPgnCore;
+  assert.equal(typeof context.PgnParser?.parse, 'function', 'Vendored PGN parser did not initialize');
+  assert.equal(typeof context.CaissaPgnCore?.parseCollection, 'function', 'PGN core did not initialize');
+  return { core: context.CaissaPgnCore, parser: context.PgnParser };
 }
 
 function sha256(data) {
@@ -30,7 +31,7 @@ function verifyOne(album) {
   assert.equal(data.byteLength, album.bytes, `${album.title}: byte size differs from manifest`);
   assert.equal(sha256(data), album.sha256, `${album.title}: SHA-256 differs from manifest`);
 
-  const core = loadCore();
+  const { core, parser } = loadRuntime();
   const collection = core.parseCollection(data.toString('utf8'), { parse: parser.parse, Chess });
   assert.equal(collection.warnings.length, 0, `${album.title}: parser skipped ${collection.warnings.length} game(s)`);
   assert.equal(collection.games.length, album.games, `${album.title}: playable game count differs from manifest`);
