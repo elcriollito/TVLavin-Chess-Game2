@@ -77,13 +77,13 @@
               <section role="tabpanel" id="pgn-panel-notation" aria-labelledby="pgn-tab-notation" data-pgn-tabpanel="notation" hidden>
                 <div class="pgn-notation-scroll">
                   <div class="pgn-panel-empty" data-pgn-notation-empty><i class="fas fa-list-ol" aria-hidden="true"></i><strong>Notation will appear here</strong><span>Select any move to update the board.</span></div>
-                  <section class="pgn-game-info" data-pgn-game-info-shell hidden aria-labelledby="pgn-game-info-title"><div class="pgn-game-info-heading"><i class="fas fa-circle-info" aria-hidden="true"></i><h2 id="pgn-game-info-title">Game information</h2></div><dl data-pgn-game-info></dl></section>
+                  <section class="pgn-game-info" data-pgn-game-info-shell hidden aria-labelledby="pgn-game-info-title"><div class="pgn-game-info-heading"><div><span class="pgn-engine-dot" aria-hidden="true"></span><strong id="pgn-game-info-title">Game information</strong></div></div><dl data-pgn-game-info></dl></section>
                   <div class="pgn-notation" data-pgn-notation></div>
                 </div>
                 <section class="pgn-engine-panel" data-pgn-engine-panel data-state="off" aria-labelledby="pgn-engine-title"><div class="pgn-engine-heading"><div><span class="pgn-engine-dot" aria-hidden="true"></span><strong id="pgn-engine-title">Stockfish analysis</strong></div><small data-pgn-engine-summary>Off</small></div><div class="pgn-engine-lines" data-pgn-engine-lines aria-live="polite"></div></section>
               </section>
               <section role="tabpanel" id="pgn-panel-albums" aria-labelledby="pgn-tab-albums" data-pgn-tabpanel="albums" hidden>
-                <div class="pgn-album-status-key" aria-label="Album access statuses"><span class="pgn-album-badge" data-access="available">1 credit</span><small>New collection</small><span class="pgn-album-badge" data-access="owned">Owned</span><small>Unlocked collection</small></div>
+                <div class="pgn-album-status-key" aria-label="Album access statuses"><span class="pgn-album-badge" data-access="free">Free</span><small>Open collection</small><span class="pgn-album-badge" data-access="available">1 credit</span><small>Player collection</small><span class="pgn-album-badge" data-access="owned">Owned</span><small>Unlocked collection</small></div>
                 <div class="pgn-panel-empty pgn-albums-intro" data-pgn-albums-empty><i class="fas fa-layer-group" aria-hidden="true"></i><strong>Your CAISSA albums will appear here</strong><span>Player collections you unlock will stay organized in this space.</span></div>
                 <div class="pgn-album-list" data-pgn-albums role="list"></div>
               </section>
@@ -103,6 +103,8 @@
   <script src="/js/caissa-standalone-sidebar.js?v=1.1.0"></script>
   <script src="/js/pgn-replayer/pgn-board.js?v=1.0.0"></script>
   <script src="/js/pgn-replayer/pgn-album-catalog.js?v=1.0.0"></script>
+  <script src="/js/pgn-replayer/pgn-special-album-catalog.js?v=1.0.0"></script>
+  <script src="/js/pgn-replayer/pgn-album-pricing.js?v=1.0.0"></script>
   <script type="module" src="/js/pgn-replayer/pgn-replayer-page.js?v=1.1.1"></script>
 </body>
 </html>
