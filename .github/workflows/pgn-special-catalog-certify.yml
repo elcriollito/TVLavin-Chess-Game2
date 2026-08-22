@@ -1,0 +1,66 @@
+name: Certify PGN special album catalog
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/pgn-special-catalog-certify.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Restore game-info heading and certify catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('pgn-replayer.html')
+          text = path.read_text(encoding='utf-8')
+          wrong = '<section class="pgn-game-info" data-pgn-game-info-shell hidden aria-labelledby="pgn-game-info-title"><div class="pgn-game-info-heading"><div><span class="pgn-engine-dot" aria-hidden="true"></span><strong id="pgn-game-info-title">Game information</strong></div></div><dl data-pgn-game-info></dl></section>'
+          right = '<section class="pgn-game-info" data-pgn-game-info-shell hidden aria-labelledby="pgn-game-info-title"><div class="pgn-game-info-heading"><i class="fas fa-circle-info" aria-hidden="true"></i><h2 id="pgn-game-info-title">Game information</h2></div><dl data-pgn-game-info></dl></section>'
+          if wrong in text:
+              text = text.replace(wrong, right, 1)
+              path.write_text(text, encoding='utf-8', newline='\n')
+          elif right not in text:
+              raise SystemExit('Game-info heading is not in a recognized state')
+          PY
+          node --check js/pgn-replayer/pgn-album-catalog.js
+          node --check js/pgn-replayer/pgn-special-album-catalog.js
+          node --check js/pgn-replayer/pgn-album-pricing.js
+          python3 -m py_compile scripts/import-smallchess-special-collections.py
+          test "$(find public/data/pgn/free -maxdepth 1 -type f -name '*.pgn' | wc -l | tr -d ' ')" = "11"
+          test -s data/pgn/premium-archive/master-database.pgn
+          grep -q '20,236 games' js/pgn-replayer/pgn-special-album-catalog.js
+          grep -q 'masterDatabaseCredits: 5' js/pgn-replayer/pgn-album-pricing.js
+          grep -q 'capablancaCredits: 1' js/pgn-replayer/pgn-album-pricing.js
+          grep -q 'data-access="free">Free' pgn-replayer.html
+          grep -q 'pgn-special-album-catalog.js' pgn-replayer.html
+          grep -q 'pgn-album-pricing.js' pgn-replayer.html
+
+      - name: Commit repair and remove one-time workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/pgn-special-catalog-certify.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add pgn-replayer.html .github/workflows/pgn-special-catalog-certify.yml
+          if git diff --cached --quiet; then
+            echo 'No certification repair changes to commit.'
+            exit 0
+          fi
+          git commit -m 'fix(pgn): preserve game info while adding album catalog'
+          git pull --rebase origin main
+          git push origin HEAD:main
