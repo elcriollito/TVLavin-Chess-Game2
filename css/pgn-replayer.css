@@ -38,7 +38,7 @@ button, select { touch-action: manipulation; }
 :is(.pgn-button, .pgn-icon-button, .pgn-control):disabled { cursor: not-allowed; opacity: .42; }
 .pgn-workspace { display: grid; grid-template-columns: minmax(420px, 1.55fr) minmax(360px, .95fr); gap: 16px; align-items: start; }
 .pgn-board-column, .pgn-panel { min-width: 0; }
-.pgn-board-column { display: grid; justify-items: center; }
+.pgn-board-column { display: grid; justify-items: center; overflow-anchor: none; }
 .pgn-player-card { display: flex; width: min(100%, var(--pgn-board-max)); min-height: 42px; align-items: center; gap: 9px; padding: 7px 10px; color: var(--pgn-muted); }
 .pgn-player-card strong { overflow: hidden; color: var(--pgn-text); text-overflow: ellipsis; white-space: nowrap; }
 .pgn-player-card span:last-child { margin-left: auto; }
@@ -68,7 +68,9 @@ button, select { touch-action: manipulation; }
 .pgn-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); width: min(100%, var(--pgn-board-max)); gap: 10px; align-items: center; margin-top: 10px; padding: 10px; border: 1px solid var(--pgn-border); border-radius: 12px; background: var(--pgn-surface); }
 .pgn-toolbar-playback { justify-content: center; }
 .pgn-toolbar-view { justify-content: flex-end; }
+.pgn-toolbar-imports-mobile { display: none; }
 .pgn-control--labeled { display: inline-flex; width: auto; align-items: center; gap: 7px; padding: 0 11px; }
+.pgn-control-label { display: none; }
 .pgn-control--play { border-color: #4f9ce9; color: #fff; background: #225f9d; }
 .pgn-control-glyph { min-width: 1em; font: 700 1rem/1 system-ui, sans-serif; text-align: center; }
 .pgn-control-glyph--large { font-size: 1.8rem; font-weight: 400; }
@@ -87,7 +89,7 @@ button, select { touch-action: manipulation; }
 .pgn-panel-body { min-height: 0; flex: 1; overflow: hidden; }
 .pgn-panel-body [role="tabpanel"] { height: 100%; overflow: auto; overscroll-behavior: contain; scrollbar-color: #52657e #111a28; }
 #pgn-panel-notation { display: flex; min-height: 0; flex-direction: column; overflow: hidden; }
-.pgn-notation-scroll { min-height: 0; flex: 1; overflow: auto; overscroll-behavior: contain; scrollbar-color: #52657e #111a28; }
+.pgn-notation-scroll { min-height: 0; flex: 1; overflow: auto; overflow-anchor: none; overscroll-behavior: contain; scrollbar-color: #52657e #111a28; }
 .pgn-panel-empty { display: grid; min-height: 310px; place-content: center; justify-items: center; gap: 8px; padding: 24px; color: var(--pgn-muted); text-align: center; }
 .pgn-panel-empty i { color: #6b85a5; font-size: 1.7rem; }
 .pgn-panel-empty strong { color: var(--pgn-text); }
@@ -203,14 +205,29 @@ body.pgn-focus-mode .pgn-player-card, body.pgn-focus-mode .pgn-toolbar { width: 
 }
 @media (max-width: 620px) {
   .pgn-app { padding-right: max(8px, env(safe-area-inset-right)); padding-left: max(8px, env(safe-area-inset-left)); }
-  .pgn-topbar { gap: 10px; padding: 9px 10px; }
-  .pgn-source-actions .pgn-button span { display: none; }
-  .pgn-source-actions .pgn-button { width: 44px; padding: 0; }
+  .pgn-topbar { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 9px 10px; }
+  .pgn-source-actions { display: none; }
+  .pgn-game-heading { grid-column: 1; }
   .pgn-player-card { min-height: 36px; padding: 4px 7px; }
-  .pgn-toolbar { grid-template-columns: 1fr; }
-  .pgn-toolbar-playback { grid-row: 1; }
-  .pgn-toolbar-source { grid-row: 2; justify-content: center; }
-  .pgn-toolbar-view { grid-row: 3; justify-content: center; }
+  .pgn-toolbar { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; padding: 8px; }
+  .pgn-toolbar-imports-mobile, .pgn-toolbar-playback { display: contents; }
+  .pgn-toolbar-imports-mobile .pgn-control, .pgn-toolbar-playback .pgn-control { width: 100%; min-width: 0; grid-row: 1; }
+  .pgn-toolbar-imports-mobile [data-pgn-open] { grid-column: 1; }
+  .pgn-toolbar-imports-mobile [data-pgn-paste] { grid-column: 2; }
+  .pgn-toolbar-playback [data-pgn-first] { grid-column: 3; }
+  .pgn-toolbar-playback [data-pgn-previous] { grid-column: 4; }
+  .pgn-toolbar-playback [data-pgn-play] { grid-column: 5; }
+  .pgn-toolbar-playback [data-pgn-next] { grid-column: 6; }
+  .pgn-toolbar-playback [data-pgn-last] { grid-column: 7; }
+  .pgn-control--mobile-import { grid-template-rows: auto auto; gap: 2px; line-height: 1; }
+  .pgn-control--mobile-import small { color: var(--pgn-muted); font-size: .58rem; font-weight: 750; }
+  .pgn-toolbar-source { grid-row: 2; grid-column: 1 / span 3; display: block; min-width: 0; }
+  .pgn-toolbar-source .pgn-engine-toggle { width: 100%; min-width: 0; padding-inline: 7px; }
+  .pgn-toolbar-view { grid-row: 2; grid-column: 4 / -1; display: grid; grid-template-columns: minmax(52px, 1fr) repeat(2, 44px); min-width: 0; gap: 6px; justify-content: stretch; }
+  .pgn-toolbar-view .pgn-control { width: 100%; grid-template-rows: auto auto; gap: 1px; }
+  .pgn-control-label { display: block; color: var(--pgn-muted); font-size: .58rem; font-weight: 750; line-height: 1; }
+  .pgn-speed { min-width: 0; }
+  .pgn-speed select { width: 100%; min-width: 0; }
   .pgn-speed span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .pgn-panel { max-height: 68dvh; border-radius: 11px; }
   .pgn-tabs button { min-height: 52px; font-size: .82rem; }
@@ -225,9 +242,12 @@ body.pgn-focus-mode .pgn-player-card, body.pgn-focus-mode .pgn-toolbar { width: 
   .pgn-engine-line { grid-template-columns: 20px 52px minmax(0, 1fr) 30px; padding-inline: 8px; }
 }
 @media (max-width: 350px) {
-  .pgn-toolbar { padding: 8px 4px; }
-  .pgn-toolbar-group { gap: 4px; }
-  .pgn-control, .pgn-icon-button { width: 42px; min-height: 42px; }
+  .pgn-app { padding-right: max(3px, env(safe-area-inset-right)); padding-left: max(3px, env(safe-area-inset-left)); }
+  .pgn-toolbar { gap: 2px; padding: 2px; }
+  .pgn-toolbar-group { gap: 2px; }
+  .pgn-control, .pgn-icon-button { min-height: 42px; }
+  .pgn-toolbar-view { grid-template-columns: minmax(48px, 1fr) repeat(2, 42px); gap: 2px; }
+  .pgn-toolbar-source .pgn-engine-toggle { padding-inline: 5px; }
   .pgn-game-info dl { grid-template-columns: 1fr; }
   .pgn-game-info-pair:nth-child(odd) { border-right: 0; }
 }

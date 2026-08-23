@@ -70,7 +70,8 @@
 ]);
     const albumRoot = document.querySelector('[data-pgn-albums]');
     const fileInput = document.querySelector('[data-pgn-file]');
-    if (!albumRoot || !fileInput) return;
+    const iconography = window.CaissaPgnPlayerIconography;
+    if (!albumRoot || !fileInput || !iconography) return;
 
     let selectedAlbumId = null;
     let syntheticImport = false;
@@ -86,8 +87,7 @@
         card.dataset.catalogAlbumId = album.id;
         card.setAttribute('aria-current', String(album.id === selectedAlbumId));
         const icon = document.createElement('i');
-        icon.className = 'fas fa-chess-king';
-        icon.setAttribute('aria-hidden', 'true');
+        iconography.decorate(icon, card, album.title);
         const copy = document.createElement('div');
         const title = document.createElement('strong');
         title.textContent = album.title;

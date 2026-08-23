@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css">
   <link rel="stylesheet" href="/styles.css?v=2.0.16">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.1.0">
-  <link rel="stylesheet" href="/css/pgn-replayer.css?v=1.1.0">
+  <link rel="stylesheet" href="/css/pgn-replayer.css?v=1.2.0">
   <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
 </head>
 <body class="pgn-replayer-page">
@@ -47,6 +47,10 @@
             </div>
             <div class="pgn-player-card pgn-player-card--white"><span class="pgn-player-color" aria-hidden="true"></span><strong data-pgn-white>White</strong><span data-pgn-white-elo>—</span></div>
             <div class="pgn-toolbar" role="toolbar" aria-label="Replay controls">
+              <div class="pgn-toolbar-group pgn-toolbar-imports-mobile" aria-label="PGN import controls">
+                <button class="pgn-control pgn-control--mobile-import" type="button" data-pgn-open aria-label="Open PGN file" title="Open PGN file"><i class="fas fa-folder-open" aria-hidden="true"></i><small>Open</small></button>
+                <button class="pgn-control pgn-control--mobile-import" type="button" data-pgn-paste aria-label="Paste PGN text" title="Paste PGN text"><i class="fas fa-clipboard" aria-hidden="true"></i><small>Paste</small></button>
+              </div>
               <div class="pgn-toolbar-group pgn-toolbar-source"><button class="pgn-control pgn-control--labeled pgn-engine-toggle" type="button" data-pgn-engine aria-pressed="false" aria-label="Turn engine on" title="Turn engine on" disabled><span class="pgn-control-glyph" aria-hidden="true">⚙</span><span>Engine</span><small data-pgn-engine-state>Off</small></button></div>
               <div class="pgn-toolbar-group pgn-toolbar-playback">
                 <button class="pgn-control" type="button" data-pgn-first aria-label="Go to starting position" title="Starting position"><span class="pgn-control-glyph" aria-hidden="true">⏮</span></button>
@@ -57,8 +61,8 @@
               </div>
               <div class="pgn-toolbar-group pgn-toolbar-view">
                 <label class="pgn-speed"><span>Speed</span><select data-pgn-speed aria-label="Autoplay speed"><option value="1400">0.75×</option><option value="1000" selected>1×</option><option value="650">1.5×</option><option value="400">2×</option></select></label>
-                <button class="pgn-control" type="button" data-pgn-flip aria-label="Flip board" title="Flip board"><span class="pgn-control-glyph pgn-control-glyph--large" aria-hidden="true">↻</span></button>
-                <button class="pgn-control" type="button" data-pgn-focus aria-label="Enter focus view" title="Focus view"><span class="pgn-control-glyph" data-pgn-focus-icon aria-hidden="true">⛶</span></button>
+                <button class="pgn-control" type="button" data-pgn-flip aria-label="Flip board" title="Flip board"><span class="pgn-control-glyph pgn-control-glyph--large" aria-hidden="true">↻</span><small class="pgn-control-label">Flip</small></button>
+                <button class="pgn-control" type="button" data-pgn-focus aria-label="Enter focus view" title="Focus view"><span class="pgn-control-glyph" data-pgn-focus-icon aria-hidden="true">⛶</span><small class="pgn-control-label">Zoom</small></button>
               </div>
             </div>
           </section>
@@ -91,7 +95,7 @@
                   <button type="button" data-pgn-library-family="openings" aria-pressed="false"><i class="fas fa-book-open" aria-hidden="true"></i><span>Openings</span><small>Next</small></button>
                 </nav>
                 <div class="pgn-library-toolbar">
-                  <div class="pgn-library-heading"><strong data-pgn-library-title>Players</strong><small data-pgn-library-summary>Physical CAISSA archives</small></div>
+                  <div class="pgn-library-heading"><strong data-pgn-library-title>Players</strong><small data-pgn-library-summary>Player game collections</small></div>
                   <label class="pgn-library-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i><span class="pgn-visually-hidden">Search this library family</span><input type="search" data-pgn-library-search placeholder="Search players" autocomplete="off"></label>
                 </div>
                 <div class="pgn-album-status-key" aria-label="Album access statuses"><span class="pgn-album-badge" data-access="free">Free</span><small>Historical archive</small><span class="pgn-album-badge" data-access="available">1 credit</span><small>Player collection</small><span class="pgn-album-badge" data-access="owned">Owned</span><small>Unlocked collection</small></div>
@@ -114,11 +118,12 @@
   <script src="/js/caissa-primary-navigation.js?v=1.0.0"></script>
   <script src="/js/caissa-standalone-sidebar.js?v=1.1.0"></script>
   <script src="/js/pgn-replayer/pgn-board.js?v=1.0.0"></script>
-  <script src="/js/pgn-replayer/pgn-album-catalog.js?v=1.0.0"></script>
-  <script src="/js/pgn-replayer/pgn-mentor-player-catalog.js?v=1.0.1"></script>
+  <script src="/js/pgn-replayer/pgn-player-iconography.js?v=1.0.0"></script>
+  <script src="/js/pgn-replayer/pgn-album-catalog.js?v=1.1.0"></script>
+  <script src="/js/pgn-replayer/pgn-mentor-player-catalog.js?v=1.1.0"></script>
   <script src="/js/pgn-replayer/pgn-special-album-catalog.js?v=1.0.0"></script>
   <script src="/js/pgn-replayer/pgn-mentor-historical-library.js?v=1.0.1"></script>
   <script src="/js/pgn-replayer/pgn-album-pricing.js?v=1.0.2"></script>
-  <script type="module" src="/js/pgn-replayer/pgn-replayer-page.js?v=1.2.0"></script>
+  <script type="module" src="/js/pgn-replayer/pgn-replayer-page.js?v=1.3.0"></script>
 </body>
 </html>

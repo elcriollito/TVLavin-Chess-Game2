@@ -73,11 +73,29 @@ test('opens the existing Capablanca collection as a free album', async ({ page }
   await page.getByRole('tab', { name: 'Albums' }).click();
   const album = page.locator('[data-album-id="capablanca-games-1901-1941"]');
   await expect(album).toContainText('José Raúl Capablanca');
+  await expect(album).toContainText('Player game collection · PGN');
+  await expect(album).toHaveAttribute('data-player-distinction', 'open-world-champion');
+  await expect(album.locator('.fa-chess-king')).toHaveCount(1);
   await expect(album.locator('[data-access="free"]')).toHaveText('Free');
   await album.click();
   await expect(page.locator('[data-pgn-message]')).toContainText('597 games loaded locally', { timeout: 30_000 });
   await expect(page.locator('[data-pgn-games] [data-game-index]')).toHaveCount(597);
   await expect(album).toHaveAttribute('aria-current', 'true');
+});
+
+test('classifies all 82 Players with historical chess-piece icons', async ({ page }) => {
+  await page.goto('/pgn-replayer');
+  await page.getByRole('tab', { name: 'Albums' }).click();
+  await expect(page.locator('[data-library-family="players"]')).toHaveCount(82);
+  await expect(page.locator('[data-player-distinction="open-world-champion"]')).toHaveCount(22);
+  await expect(page.locator('[data-player-distinction="womens-world-champion"]')).toHaveCount(8);
+  await expect(page.locator('[data-player-distinction="world-championship-challenger"]')).toHaveCount(16);
+  await expect(page.locator('[data-player-distinction="player"]')).toHaveCount(36);
+
+  await expect(page.getByRole('button', { name: /Ding Liren/ }).locator('.fa-chess-king')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: /Nona Gaprindashvili/ }).locator('.fa-chess-queen')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: /David Bronstein/ }).locator('.fa-chess-rook')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: /Efim Geller/ }).locator('.fa-chess-knight')).toHaveCount(1);
 });
 
 test('navigates the historical families and loads the 1972 championship through CAISSA', async ({ page }) => {
@@ -186,4 +204,22 @@ test('stays board-first without horizontal page overflow on mobile', async ({ pa
     expect(box.width).toBeGreaterThanOrEqual(42);
     expect(box.height).toBeGreaterThanOrEqual(42);
   }
+
+  const firstRow = await page.locator('.pgn-toolbar-imports-mobile button, .pgn-toolbar-playback button').evaluateAll(nodes => nodes.map(node => ({
+    name: node.hasAttribute('data-pgn-open') ? 'open' : node.hasAttribute('data-pgn-paste') ? 'paste' : [...node.attributes].find(attribute => attribute.name.startsWith('data-pgn-'))?.name.replace('data-pgn-', ''),
+    top: Math.round(node.getBoundingClientRect().top)
+  })));
+  expect(firstRow.map(control => control.name)).toEqual(['open', 'paste', 'first', 'previous', 'play', 'next', 'last']);
+  expect(new Set(firstRow.map(control => control.top)).size).toBe(1);
+
+  const secondRow = await page.locator('[data-pgn-engine], [data-pgn-speed], [data-pgn-flip], [data-pgn-focus]').evaluateAll(nodes => nodes.map(node => Math.round(node.getBoundingClientRect().top)));
+  expect(Math.max(...secondRow) - Math.min(...secondRow)).toBeLessThanOrEqual(2);
+  expect(secondRow[0]).toBeGreaterThan(firstRow[0].top);
+
+  await page.getByRole('tab', { name: 'Notation' }).click();
+  await page.locator('[data-pgn-speed]').selectOption('400');
+  await page.locator('[data-pgn-play]').click();
+  const autoplayScrollY = await page.evaluate(() => window.scrollY);
+  await page.waitForTimeout(1200);
+  expect(Math.abs(await page.evaluate(() => window.scrollY) - autoplayScrollY)).toBeLessThanOrEqual(1);
 });

@@ -33,8 +33,10 @@ test('uses Games, Notation, Albums order and a board-first accessible shell', ()
     assert.equal(control.length, 1, `${key} control missing`);
     assert.ok(control.attr('aria-label'), `${key} accessible name missing`);
   }
-  assert.equal(page('[data-pgn-open]').length, 1);
-  assert.equal(page('[data-pgn-paste]').length, 1);
+  assert.equal(page('[data-pgn-open]').length, 2);
+  assert.equal(page('[data-pgn-paste]').length, 2);
+  assert.equal(page('.pgn-toolbar-imports-mobile [data-pgn-open]').length, 1);
+  assert.equal(page('.pgn-toolbar-imports-mobile [data-pgn-paste]').length, 1);
   assert.match(page('meta[http-equiv="Content-Security-Policy"]').attr('content'), /worker-src 'self'/);
   assert.doesNotMatch(page('meta[http-equiv="Content-Security-Policy"]').attr('content'), /unsafe-eval|unsafe-inline/);
   assert.doesNotMatch(page('meta[http-equiv="Content-Security-Policy"]').attr('content'), /frame-ancestors/);
@@ -98,6 +100,7 @@ test('publishes the authorized Capablanca collection as a free same-origin album
   assert.match(runtime, /games: 597/);
   assert.match(runtime, /access: 'free'/);
   assert.match(runtime, /source: '\/data\/pgn\/capablanca-games-1901-1941\.pgn'/);
+  assert.match(runtime, /details: 'Player game collection · PGN'/);
   assert.equal(provenance.gameCount, 597);
   assert.match(provenance.publicUseAuthorization, /repository owner supplied and authorized/i);
   assert.equal(provenance.validationSummary.legalGames, 597);
@@ -156,6 +159,26 @@ test('board geometry keeps all eight ranks and files at every responsive size', 
   assert.match(styles, /body\.pgn-replayer-page > \.piece-417db \{[^}]*display: none !important/);
   assert.match(board, /this\.widget\.position\(fen \|\| 'start', false\)/);
   assert.match(board, /querySelectorAll\('body\.pgn-replayer-page > \.piece-417db'\)/);
+});
+
+test('mobile controls stay in two compact rows without viewport-scrolling notation', () => {
+  const page = load(read('pgn-replayer.html'));
+  const runtime = read('js/pgn-replayer/pgn-replayer-page.js');
+  const styles = read('css/pgn-replayer.css');
+  const firstRow = page('.pgn-toolbar-imports-mobile button, .pgn-toolbar-playback button')
+    .map((_, node) => page(node).attr('data-pgn-open') !== undefined ? 'open'
+      : page(node).attr('data-pgn-paste') !== undefined ? 'paste'
+        : Object.keys(node.attribs).find(key => key.startsWith('data-pgn-'))?.replace('data-pgn-', ''))
+    .get();
+
+  assert.deepEqual(firstRow, ['open', 'paste', 'first', 'previous', 'play', 'next', 'last']);
+  assert.equal(page('.pgn-toolbar-source [data-pgn-engine]').length, 1);
+  assert.equal(page('.pgn-toolbar-view [data-pgn-speed]').length, 1);
+  assert.equal(page('.pgn-toolbar-view [data-pgn-flip]').length, 1);
+  assert.equal(page('.pgn-toolbar-view [data-pgn-focus] .pgn-control-label').text(), 'Zoom');
+  assert.match(styles, /grid-template-columns: repeat\(7, minmax\(0, 1fr\)\)/);
+  assert.match(runtime, /function keepActiveMoveVisible\(selected\)/);
+  assert.doesNotMatch(runtime, /scrollIntoView/);
 });
 
 test('vendored parser is pinned, licensed, and isolated to the Worker', () => {
