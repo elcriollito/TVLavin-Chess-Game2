@@ -2,22 +2,22 @@
     'use strict';
 
     const MENTOR_PLAYER_ALBUMS = Object.freeze([
-        { id: "pgnmentor-akiba-rubinstein", title: "Akiba Rubinstein", details: "Player game collection · PGN", games: 797, source: "/data/pgn/players/pgnmentor/akiba-rubinstein.pgn" },
-        { id: "pgnmentor-alexander-khalifman", title: "Alexander Khalifman", details: "Player game collection · PGN", games: 2348, source: "/data/pgn/players/pgnmentor/alexander-khalifman.pgn" },
-        { id: "pgnmentor-antoaneta-stefanova", title: "Antoaneta Stefanova", details: "Player game collection · PGN", games: 3668, source: "/data/pgn/players/pgnmentor/antoaneta-stefanova.pgn" },
-        { id: "pgnmentor-aron-nimzowitsch", title: "Aron Nimzowitsch", details: "Player game collection · PGN", games: 512, source: "/data/pgn/players/pgnmentor/aron-nimzowitsch.pgn" },
-        { id: "pgnmentor-bent-larsen", title: "Bent Larsen", details: "Player game collection · PGN", games: 2383, source: "/data/pgn/players/pgnmentor/bent-larsen.pgn" },
-        { id: "pgnmentor-david-bronstein", title: "David Bronstein", details: "Player game collection · PGN", games: 1930, source: "/data/pgn/players/pgnmentor/david-bronstein.pgn" },
-        { id: "pgnmentor-efim-geller", title: "Efim Geller", details: "Player game collection · PGN", games: 2198, source: "/data/pgn/players/pgnmentor/efim-geller.pgn" },
-        { id: "pgnmentor-maia-chiburdanidze", title: "Maia Chiburdanidze", details: "Player game collection · PGN", games: 1346, source: "/data/pgn/players/pgnmentor/maia-chiburdanidze.pgn" },
-        { id: "pgnmentor-miguel-najdorf", title: "Miguel Najdorf", details: "Player game collection · PGN", games: 1604, source: "/data/pgn/players/pgnmentor/miguel-najdorf.pgn" },
-        { id: "pgnmentor-nona-gaprindashvili", title: "Nona Gaprindashvili", details: "Player game collection · PGN", games: 1256, source: "/data/pgn/players/pgnmentor/nona-gaprindashvili.pgn" },
-        { id: "pgnmentor-richard-reti", title: "Richard Réti", details: "Player game collection · PGN", games: 646, source: "/data/pgn/players/pgnmentor/richard-reti.pgn" },
-        { id: "pgnmentor-ruslan-ponomariov", title: "Ruslan Ponomariov", details: "Player game collection · PGN", games: 2714, source: "/data/pgn/players/pgnmentor/ruslan-ponomariov.pgn" },
-        { id: "pgnmentor-rustam-kasimdzhanov", title: "Rustam Kasimdzhanov", details: "Player game collection · PGN", games: 1858, source: "/data/pgn/players/pgnmentor/rustam-kasimdzhanov.pgn" },
-        { id: "pgnmentor-susan-polgar", title: "Susan (Zsuzsa) Polgar", details: "Player game collection · PGN", games: 909, source: "/data/pgn/players/pgnmentor/susan-polgar.pgn" },
-        { id: "pgnmentor-svetozar-gligoric", title: "Svetozar Gligorić", details: "Player game collection · PGN", games: 2898, source: "/data/pgn/players/pgnmentor/svetozar-gligoric.pgn" },
-        { id: "pgnmentor-xie-jun", title: "Xie Jun", details: "Player game collection · PGN", games: 701, source: "/data/pgn/players/pgnmentor/xie-jun.pgn" }
+        { id: "pgnmentor-akiba-rubinstein", title: "Akiba Rubinstein", details: "Player game collection · PGN", games: 797 },
+        { id: "pgnmentor-alexander-khalifman", title: "Alexander Khalifman", details: "Player game collection · PGN", games: 2348 },
+        { id: "pgnmentor-antoaneta-stefanova", title: "Antoaneta Stefanova", details: "Player game collection · PGN", games: 3668 },
+        { id: "pgnmentor-aron-nimzowitsch", title: "Aron Nimzowitsch", details: "Player game collection · PGN", games: 512 },
+        { id: "pgnmentor-bent-larsen", title: "Bent Larsen", details: "Player game collection · PGN", games: 2383 },
+        { id: "pgnmentor-david-bronstein", title: "David Bronstein", details: "Player game collection · PGN", games: 1930 },
+        { id: "pgnmentor-efim-geller", title: "Efim Geller", details: "Player game collection · PGN", games: 2198 },
+        { id: "pgnmentor-maia-chiburdanidze", title: "Maia Chiburdanidze", details: "Player game collection · PGN", games: 1346 },
+        { id: "pgnmentor-miguel-najdorf", title: "Miguel Najdorf", details: "Player game collection · PGN", games: 1604 },
+        { id: "pgnmentor-nona-gaprindashvili", title: "Nona Gaprindashvili", details: "Player game collection · PGN", games: 1256 },
+        { id: "pgnmentor-richard-reti", title: "Richard Réti", details: "Player game collection · PGN", games: 646 },
+        { id: "pgnmentor-ruslan-ponomariov", title: "Ruslan Ponomariov", details: "Player game collection · PGN", games: 2714 },
+        { id: "pgnmentor-rustam-kasimdzhanov", title: "Rustam Kasimdzhanov", details: "Player game collection · PGN", games: 1858 },
+        { id: "pgnmentor-susan-polgar", title: "Susan (Zsuzsa) Polgar", details: "Player game collection · PGN", games: 909 },
+        { id: "pgnmentor-svetozar-gligoric", title: "Svetozar Gligorić", details: "Player game collection · PGN", games: 2898 },
+        { id: "pgnmentor-xie-jun", title: "Xie Jun", details: "Player game collection · PGN", games: 701 }
     ]);
     const albumRoot = document.querySelector('[data-pgn-albums]');
     const fileInput = document.querySelector('[data-pgn-file]');
@@ -88,10 +88,9 @@
         renderCatalog();
         card.disabled = true;
         try {
-            const response = await fetch(album.source, { credentials: 'same-origin', cache: 'force-cache', headers: { Accept: 'text/plain' } });
-            if (!response.ok) throw new Error('The collection is temporarily unavailable.');
-            const bytes = await response.arrayBuffer();
-            if (bytes.byteLength > 10 * 1024 * 1024) throw new Error('This collection exceeds the 10 MiB replayer safety limit.');
+            if (!window.CaissaPgnEntitlements) throw new Error('Protected album access is unavailable.');
+            const bytes = await window.CaissaPgnEntitlements.fetchAlbum(album);
+            if (!bytes) { selectedAlbumId = null; renderCatalog(); return; }
             const transfer = new DataTransfer();
             transfer.items.add(new File([bytes], `${album.title}.pgn`, { type: 'application/x-chess-pgn' }));
             syntheticImport = true;

@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
@@ -9,8 +8,8 @@ const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'ut
 const bytes = path => fs.readFileSync(new URL(`../${path}`, import.meta.url));
 const title = 'Replay Chess Games Online | CAISSA Chess';
 const description = 'Replay and study classic chess games online with an interactive board and a curated PGN collection from CAISSA Chess.';
-const pgnPath = 'public/data/pgn/capablanca-games-1901-1941.pgn';
-const pgnUrl = '/data/pgn/capablanca-games-1901-1941.pgn';
+const pgnPath = 'public/data/pgn/free/world-championship.pgn';
+const pgnUrl = '/data/pgn/free/world-championship.pgn';
 
 test('Game Replayer parent owns exact SEO, accessible isolation, fallback, and disclosure', () => {
   const page = load(read('game-replayer.html'));
@@ -28,13 +27,13 @@ test('Game Replayer parent owns exact SEO, accessible isolation, fallback, and d
   assert.equal(page('h1').text(), 'Replay and Study Chess Games');
   const frame = page('iframe');
   assert.equal(frame.attr('src'), '/integrations/chessbase-pgn-replayer.html');
-  assert.equal(frame.attr('title'), 'Chess game replayer for the Capablanca collection');
+  assert.equal(frame.attr('title'), 'Chess game replayer for the World Championship collection');
   assert.equal(frame.attr('sandbox'), 'allow-scripts allow-same-origin');
   assert.equal(frame.attr('referrerpolicy'), 'no-referrer');
   assert.match(page('.game-replayer-banner').text(), /CAISSA Weekend Tournament — Coming Soon/);
   assert.match(page('.game-replayer-disclosure').text(), /provided and operated by ChessBase/);
   assert.match(page('.game-replayer-disclosure').text(), /CAISSA Chess supplies the displayed PGN collection and does not operate ChessBase/);
-  assert.match(page('.game-replayer-disclosure').text(), /no prose comments or editorial annotations/);
+  assert.match(page('.game-replayer-disclosure').text(), /985 factual game scores from World Championship matches/);
   assert.ok(page(`a[href="${pgnUrl}"]`).length >= 2);
 });
 
@@ -54,17 +53,15 @@ test('wrapper is minimal, SRI-pinned, sandbox-compatible, and not navigation-vis
   assert.doesNotMatch(read('js/caissa-primary-navigation.js'), /integrations\/chessbase-pgn-replayer/);
 });
 
-test('Capablanca derivative and provenance are exact, safe, and deterministic', () => {
+test('World Championship collection is exact, safe, and deterministic', () => {
   const pgn = bytes(pgnPath);
-  const provenance = JSON.parse(read('public/data/pgn/capablanca-games-1901-1941.provenance.json'));
-  assert.equal(crypto.createHash('sha256').update(pgn).digest('hex'), provenance.publicDerivativeSha256);
-  assert.equal(provenance.originalSha256, 'fb5d46cd1ce78665b2d2ea3df03b5bbea72b6ddb643a0c930f66a686a8723a8a');
-  assert.equal(provenance.gameCount, 597);
-  assert.equal((pgn.toString('utf8').match(/^\[Event /gm) || []).length, 597);
+  const manifest = JSON.parse(read('public/data/pgn/free/manifest.json'));
+  const album = manifest.albums.find(item => item.id === 'smallchess-world-championship');
+  assert.equal(album.games, 985);
+  assert.equal(album.runtimePath, pgnUrl);
+  assert.equal((pgn.toString('utf8').match(/^\[Event /gm) || []).length, 985);
   assert.equal(pgn.includes(Buffer.from('\r')), false);
   assert.doesNotMatch(pgn.toString('utf8'), /<\s*script|javascript:|onerror\s*=|https?:\/\//i);
-  assert.equal(provenance.validationSummary.illegalMoveSequences, 0);
-  assert.equal(provenance.validationSummary.unfinishedResults, 1);
 });
 
 test('navigation, routes, sitemap, CSP, and wrapper exclusion are coherent', () => {

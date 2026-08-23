@@ -22,7 +22,7 @@ button, select { touch-action: manipulation; }
 .pgn-skip-link:focus { transform: none; }
 .pgn-app { width: min(100%, 1540px); min-height: 100dvh; margin: 0 auto; padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); }
 .pgn-topbar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 18px; min-height: 68px; margin-bottom: 14px; padding: 10px 14px; border: 1px solid var(--pgn-border); border-radius: 14px; background: linear-gradient(135deg, #182335, #101825); box-shadow: 0 10px 30px rgb(0 0 0 / .2); }
-.pgn-brand h1, .pgn-paste-dialog h2 { margin: 0; font-size: clamp(1.2rem, 2vw, 1.65rem); line-height: 1.1; }
+.pgn-brand h1, .pgn-paste-dialog h2, .pgn-unlock-dialog h2 { margin: 0; font-size: clamp(1.2rem, 2vw, 1.65rem); line-height: 1.1; }
 .pgn-eyebrow { display: block; margin-bottom: 3px; color: var(--pgn-gold); font-size: .72rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
 .pgn-game-heading { min-width: 0; text-align: center; }
 .pgn-game-heading strong, .pgn-game-heading span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -184,9 +184,11 @@ button, select { touch-action: manipulation; }
 .pgn-message[data-tone="error"] { border-color: var(--pgn-danger); }
 .pgn-paste-dialog { width: min(680px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); margin: auto; padding: 0; overflow: auto; border: 1px solid #52657e; border-radius: 14px; color: var(--pgn-text); background: var(--pgn-surface); }
 .pgn-options-dialog { width: min(880px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); margin: auto; padding: 0; overflow: auto; border: 1px solid #52657e; border-radius: 14px; color: var(--pgn-text); background: var(--pgn-surface); }
-.pgn-paste-dialog::backdrop, .pgn-options-dialog::backdrop { background: rgb(0 0 0 / .72); backdrop-filter: blur(3px); }
+.pgn-unlock-dialog { width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); margin: auto; padding: 0; overflow: auto; border: 1px solid #52657e; border-radius: 14px; color: var(--pgn-text); background: var(--pgn-surface); }
+.pgn-paste-dialog::backdrop, .pgn-options-dialog::backdrop, .pgn-unlock-dialog::backdrop { background: rgb(0 0 0 / .72); backdrop-filter: blur(3px); }
 .pgn-paste-shell { display: grid; gap: 12px; padding: 18px; }
 .pgn-options-shell { display: grid; gap: 14px; padding: 20px; }
+.pgn-unlock-shell { display: grid; gap: 16px; padding: 20px; }
 .pgn-dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .pgn-options-dialog h2, .pgn-options-dialog h3, .pgn-options-dialog p { margin: 0; }
 .pgn-options-dialog h3 { font-size: .98rem; }
@@ -206,7 +208,12 @@ button, select { touch-action: manipulation; }
 .pgn-guide-card dd { margin-top: 8px; color: var(--pgn-muted); font-size: .8rem; line-height: 1.45; }
 .pgn-guide-note { display: flex; gap: 8px; align-items: flex-start; padding: 10px; border-left: 3px solid var(--pgn-gold); background: #171b23; }
 .pgn-guide-note i { margin-top: 3px; color: var(--pgn-gold); }
-.pgn-guide-card--credits > .pgn-button { margin-top: 11px; text-decoration: none; }
+.pgn-guide-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 11px; }
+.pgn-guide-actions .pgn-button, .pgn-dialog-actions .pgn-button { text-decoration: none; }
+.pgn-unlock-hero { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; padding: 15px; border: 1px solid #315071; border-radius: 11px; background: #101d2d; }
+.pgn-unlock-hero i { color: var(--pgn-blue); font-size: 1.35rem; }
+.pgn-unlock-hero p, .pgn-unlock-balance { margin: 0; color: var(--pgn-muted); line-height: 1.55; }
+.pgn-unlock-balance { padding: 10px 12px; border-left: 3px solid var(--pgn-gold); background: #171b23; font-weight: 750; }
 .pgn-paste-shell label { font-weight: 800; }
 .pgn-paste-shell textarea { width: 100%; resize: vertical; padding: 12px; border: 1px solid #4a5f7b; border-radius: 9px; color: var(--pgn-text); background: #0b131f; font: 400 16px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
 .pgn-paste-shell p { margin: 0; color: var(--pgn-muted); }

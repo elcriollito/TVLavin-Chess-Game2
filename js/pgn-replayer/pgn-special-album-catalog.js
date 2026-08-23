@@ -69,8 +69,10 @@
             card.dataset.albumKind = 'player-premium';
             const badge = card.querySelector('.pgn-album-badge');
             if (!badge) return;
-            if (badge.dataset.access !== 'available') badge.dataset.access = 'available';
-            if (badge.textContent !== '1 credit') badge.textContent = '1 credit';
+            const albumId = card.dataset.catalogAlbumId || '';
+            const owned = window.CaissaPgnEntitlements?.isOwned?.(albumId) === true;
+            if (badge.dataset.access !== (owned ? 'owned' : 'available')) badge.dataset.access = owned ? 'owned' : 'available';
+            if (badge.textContent !== (owned ? 'Owned' : '1 credit')) badge.textContent = owned ? 'Owned' : '1 credit';
         });
     }
 

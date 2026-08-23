@@ -11,7 +11,7 @@ const sizes = [
 test('Game Replayer stays contained and usable across the release matrix', async ({ page }) => {
   await page.goto('/watch/game-replayer');
   const shell = page.locator('[data-game-replayer-shell]');
-  const frame = page.frameLocator('iframe[title="Chess game replayer for the Capablanca collection"]');
+  const frame = page.frameLocator('iframe[title="Chess game replayer for the World Championship collection"]');
   await expect(shell).toHaveClass(/is-ready/, { timeout: 20_000 });
   await expect(frame.getByRole('button', { name: 'Games', exact: true })).toBeVisible();
   await expect(frame.getByRole('button', { name: 'Notation', exact: true })).toBeVisible();
@@ -43,7 +43,7 @@ test('Game Replayer stays contained and usable across the release matrix', async
   await frame.getByRole('button', { name: 'Games', exact: true }).click();
   await frame.getByRole('button', { name: 'Notation', exact: true }).click();
   await frame.getByRole('button', { name: 'Next Game', exact: true }).click();
-  await expect(frame.locator('.cbreplay')).toContainText('Capablanca');
+  await expect(frame.locator('.cbreplay')).toContainText(/World Championship|Steinitz|Carlsen|Gukesh/i);
 
   const toggle = page.locator('.caissa-standalone-mobile-toggle');
   await toggle.click();
@@ -60,5 +60,5 @@ test('blocked provider runtime resolves to a stable retry/download fallback', as
   await expect(error).toBeVisible({ timeout: 18_000 });
   await expect(error).toContainText(/could not be loaded|blocked|unavailable/i);
   await expect(error.getByRole('button', { name: 'Retry' })).toBeVisible();
-  await expect(error.getByRole('link', { name: 'Download the Capablanca PGN collection' })).toHaveAttribute('href', '/data/pgn/capablanca-games-1901-1941.pgn');
+  await expect(error.getByRole('link', { name: 'Download the World Championship PGN collection' })).toHaveAttribute('href', '/data/pgn/free/world-championship.pgn');
 });

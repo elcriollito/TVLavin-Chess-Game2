@@ -6,7 +6,7 @@ The repository owner supplied `Capablanca.pgn` for GPR-0.2 and authorized its us
 | --- | --- |
 | Original SHA-256 | `fb5d46cd1ce78665b2d2ea3df03b5bbea72b6ddb643a0c930f66a686a8723a8a` |
 | Original size/encoding | 385,341 bytes; UTF-8 with CRLF |
-| Public derivative | `public/data/pgn/capablanca-games-1901-1941.pgn` |
+| Protected derivative | `api/_private/pgn/capablanca-games-1901-1941.pgn` (served only after entitlement verification) |
 | Derivative SHA-256 | `33cbbea9421f14f51bf55dbd772fed3031e855235fedf05d9247886a9d96f71f` |
 | Games | 597, stable original order |
 | Subject/date range | José Raúl Capablanca games, 1901–1941 |

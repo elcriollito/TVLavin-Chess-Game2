@@ -135,17 +135,18 @@
         renderCatalog();
         card.disabled = true;
         try {
-            const localSource = `/data/pgn/players/${album.id.replace(/^smallchess-/, '')}.pgn`;
-            const response = await fetch(localSource, { credentials: 'same-origin', cache: 'force-cache', headers: { Accept: 'text/plain' } });
-            if (!response.ok) throw new Error('The collection is temporarily unavailable.');
-            const bytes = await response.arrayBuffer();
-            if (bytes.byteLength > 10 * 1024 * 1024) throw new Error('This collection exceeds the 10 MiB safety limit.');
+            if (!window.CaissaPgnEntitlements) throw new Error('Protected album access is unavailable.');
+            const bytes = await window.CaissaPgnEntitlements.fetchAlbum(album);
+            if (!bytes) { selectedAlbumId = null; renderCatalog(); return; }
             const transfer = new DataTransfer();
             transfer.items.add(new File([bytes], album.file, { type: 'application/x-chess-pgn' }));
             syntheticImport = true;
-            fileInput.files = transfer.files;
-            fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-            syntheticImport = false;
+            try {
+                fileInput.files = transfer.files;
+                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+            } finally {
+                syntheticImport = false;
+            }
         } catch (error) {
             selectedAlbumId = null;
             renderCatalog();

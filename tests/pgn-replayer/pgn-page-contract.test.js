@@ -16,8 +16,8 @@ test('owns a distinct canonical route and keeps the classic free replayer intact
   assert.equal(page('link[href^="/styles.css"]').index() < page('link[href^="/css/caissa-standalone-sidebar.css"]').index(), true);
   assert.equal(page('h1').text(), 'PGN Replayer');
   assert.equal(page('iframe').length, 0);
-  assert.doesNotMatch(read('pgn-replayer.html'), /pgn\.chessbase\.com|Credits:|checkout/i);
-  assert.match(read('game-replayer.html'), /capablanca-games-1901-1941\.pgn/);
+  assert.doesNotMatch(read('pgn-replayer.html'), /pgn\.chessbase\.com|Credits:/i);
+  assert.match(read('game-replayer.html'), /free\/world-championship\.pgn/);
   const vercel = JSON.parse(read('vercel.json'));
   assert.ok(vercel.rewrites.some(rule => rule.source === '/pgn-replayer' && rule.destination === '/pgn-replayer.html'));
   assert.ok(vercel.rewrites.some(rule => rule.source === '/watch/game-replayer' && rule.destination === '/game-replayer.html'));
@@ -84,7 +84,7 @@ test('pins the local single-threaded Stockfish 18 browser distribution', () => {
   assert.match(read('engine/STOCKFISH-NOTICE.md'), /Stockfish\.js 18 lite single-threaded/);
 });
 
-test('keeps game information above notation and reserves safe album access states', () => {
+test('keeps game information above notation and publishes protected album access states', () => {
   const page = load(read('pgn-replayer.html'));
   assert.equal(page('#pgn-panel-notation [data-pgn-game-info]').length, 1);
   assert.equal(page('#pgn-panel-notation [data-pgn-game-info]').index() < page('#pgn-panel-notation [data-pgn-notation]').index(), true);
@@ -93,10 +93,11 @@ test('keeps game information above notation and reserves safe album access state
   const runtime = read('js/pgn-replayer/pgn-replayer-page.js');
   assert.match(runtime, /album\.access === 'owned'/);
   assert.match(runtime, /album\.access === 'available'/);
-  assert.doesNotMatch(runtime, /debit|checkout|purchase|reserve.*credit/i);
+  assert.match(read('js/pgn-replayer/pgn-entitlements.js'), /\/api\/pgn\/unlock/);
+  assert.match(read('js/pgn-replayer/pgn-entitlements.js'), /Idempotency-Key/);
 });
 
-test('Options and About explains the catalog without pretending purchases are active', () => {
+test('Options and About explains protected ownership and the paused commerce boundary', () => {
   const page = load(read('pgn-replayer.html'));
   const runtime = read('js/pgn-replayer/pgn-replayer-page.js');
   const styles = read('css/pgn-replayer.css');
@@ -108,8 +109,10 @@ test('Options and About explains the catalog without pretending purchases are ac
   assert.match(guide.text(), /Rook\s*World Championship match or final challenger/);
   assert.match(guide.text(), /Knight\s*Other featured player collection/);
   assert.match(guide.text(), /capa.*José Raúl Capablanca/s);
-  assert.match(guide.text(), /does not deduct credits or sell collections yet/);
-  assert.match(guide.text(), /secure CAISSA Credit Store in the final economy phase/);
+  assert.match(guide.text(), /Permanent Player game collection unlock/);
+  assert.match(guide.text(), /delivery is protected server-side/);
+  assert.match(guide.text(), /commerce remains paused/i);
+  assert.equal(guide.find('a[href="/store"]').length, 1);
   assert.equal(guide.find('a[href="/signup?redirect_url=%2Fpgn-replayer"]').length, 1);
   assert.match(runtime, /optionsDialog\.showModal\(\)/);
   assert.match(styles, /\.pgn-library-search input:focus, \.pgn-library-search input:focus-visible \{ outline: 0; box-shadow: none; \}/);
@@ -117,14 +120,15 @@ test('Options and About explains the catalog without pretending purchases are ac
   assert.equal(page('[data-pgn-library-search]').attr('autocorrect'), 'off');
 });
 
-test('publishes the authorized Capablanca collection as a free same-origin album', () => {
+test('keeps Capablanca as a protected one-credit player album', () => {
   const runtime = read('js/pgn-replayer/pgn-replayer-page.js');
   const provenance = JSON.parse(read('public/data/pgn/capablanca-games-1901-1941.provenance.json'));
   assert.match(runtime, /id: 'capablanca-games-1901-1941'/);
   assert.match(runtime, /title: 'José Raúl Capablanca'/);
   assert.match(runtime, /games: 597/);
-  assert.match(runtime, /access: 'free'/);
-  assert.match(runtime, /source: '\/data\/pgn\/capablanca-games-1901-1941\.pgn'/);
+  assert.match(runtime, /access: 'available'/);
+  assert.match(runtime, /credits: 1/);
+  assert.match(runtime, /source: 'protected-player-album'/);
   assert.match(runtime, /details: 'Player game collection · PGN'/);
   assert.equal(provenance.gameCount, 597);
   assert.match(provenance.publicUseAuthorization, /repository owner supplied and authorized/i);

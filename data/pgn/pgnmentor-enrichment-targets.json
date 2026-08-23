@@ -5,17 +5,17 @@
   "mergePolicy": "never-merge-during-audit",
   "commercialRightsStatus": "unverified",
   "targets": [
-    {"id":"magnus-carlsen","title":"Magnus Carlsen","localPath":"public/data/pgn/players/magnus-carlsen.pgn","mentorZip":"Carlsen.zip"},
-    {"id":"hikaru-nakamura","title":"Hikaru Nakamura","localPath":"public/data/pgn/players/hikaru-nakamura.pgn","mentorZip":"Nakamura.zip"},
-    {"id":"alexander-grischuk","title":"Alexander Grischuk","localPath":"public/data/pgn/players/alexander-grischuk.pgn","mentorZip":"Grischuk.zip"},
-    {"id":"fabiano-caruana","title":"Fabiano Caruana","localPath":"public/data/pgn/players/fabiano-caruana.pgn","mentorZip":"Caruana.zip"},
-    {"id":"viswanathan-anand","title":"Viswanathan Anand","localPath":"public/data/pgn/players/viswanathan-anand.pgn","mentorZip":"Anand.zip"},
-    {"id":"garry-kasparov","title":"Garry Kasparov","localPath":"public/data/pgn/players/garry-kasparov.pgn","mentorZip":"Kasparov.zip"},
-    {"id":"bobby-fischer","title":"Bobby Fischer","localPath":"public/data/pgn/players/bobby-fischer.pgn","mentorZip":"Fischer.zip"},
-    {"id":"anatoly-karpov","title":"Anatoly Karpov","localPath":"public/data/pgn/players/anatoly-karpov.pgn","mentorZip":"Karpov.zip"},
-    {"id":"mikhail-tal","title":"Mikhail Tal","localPath":"public/data/pgn/players/mikhail-tal.pgn","mentorZip":"Tal.zip"},
-    {"id":"vladimir-kramnik","title":"Vladimir Kramnik","localPath":"public/data/pgn/players/vladimir-kramnik.pgn","mentorZip":"Kramnik.zip"},
-    {"id":"ian-nepomniachtchi","title":"Ian Nepomniachtchi","localPath":"public/data/pgn/players/ian-nepomniachtchi.pgn","mentorZip":"Nepomniachtchi.zip"},
-    {"id":"levon-aronian","title":"Levon Aronian","localPath":"public/data/pgn/players/levon-aronian.pgn","mentorZip":"Aronian.zip"}
+    {"id":"magnus-carlsen","title":"Magnus Carlsen","localPath":"api/_private/pgn/players/magnus-carlsen.pgn","mentorZip":"Carlsen.zip"},
+    {"id":"hikaru-nakamura","title":"Hikaru Nakamura","localPath":"api/_private/pgn/players/hikaru-nakamura.pgn","mentorZip":"Nakamura.zip"},
+    {"id":"alexander-grischuk","title":"Alexander Grischuk","localPath":"api/_private/pgn/players/alexander-grischuk.pgn","mentorZip":"Grischuk.zip"},
+    {"id":"fabiano-caruana","title":"Fabiano Caruana","localPath":"api/_private/pgn/players/fabiano-caruana.pgn","mentorZip":"Caruana.zip"},
+    {"id":"viswanathan-anand","title":"Viswanathan Anand","localPath":"api/_private/pgn/players/viswanathan-anand.pgn","mentorZip":"Anand.zip"},
+    {"id":"garry-kasparov","title":"Garry Kasparov","localPath":"api/_private/pgn/players/garry-kasparov.pgn","mentorZip":"Kasparov.zip"},
+    {"id":"bobby-fischer","title":"Bobby Fischer","localPath":"api/_private/pgn/players/bobby-fischer.pgn","mentorZip":"Fischer.zip"},
+    {"id":"anatoly-karpov","title":"Anatoly Karpov","localPath":"api/_private/pgn/players/anatoly-karpov.pgn","mentorZip":"Karpov.zip"},
+    {"id":"mikhail-tal","title":"Mikhail Tal","localPath":"api/_private/pgn/players/mikhail-tal.pgn","mentorZip":"Tal.zip"},
+    {"id":"vladimir-kramnik","title":"Vladimir Kramnik","localPath":"api/_private/pgn/players/vladimir-kramnik.pgn","mentorZip":"Kramnik.zip"},
+    {"id":"ian-nepomniachtchi","title":"Ian Nepomniachtchi","localPath":"api/_private/pgn/players/ian-nepomniachtchi.pgn","mentorZip":"Nepomniachtchi.zip"},
+    {"id":"levon-aronian","title":"Levon Aronian","localPath":"api/_private/pgn/players/levon-aronian.pgn","mentorZip":"Aronian.zip"}
   ]
 }

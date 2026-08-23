@@ -75,14 +75,14 @@ test('opens an honest Options and About guide from the desktop source bar', asyn
   await expect(guide).toContainText('Player figurines');
   await expect(guide).toContainText('Find a player quickly');
   await expect(guide).toContainText('Credits and album access');
-  await expect(guide).toContainText('does not deduct credits or sell collections yet');
+  await expect(guide).toContainText('delivery is protected server-side');
+  await expect(guide.getByRole('link', { name: 'Open Credit Store' })).toHaveAttribute('href', '/store');
   await guide.getByRole('button', { name: 'Done' }).click();
   await expect(guide).toBeHidden();
   await expect(page.locator('[data-pgn-options]')).toBeFocused();
 });
 
-test('opens the existing Capablanca collection as a free album', async ({ page }) => {
-  test.setTimeout(45_000);
+test('keeps Capablanca behind registered permanent ownership', async ({ page }) => {
   await page.goto('/pgn-replayer');
   await page.getByRole('tab', { name: 'Albums' }).click();
   const album = page.locator('[data-album-id="capablanca-games-1901-1941"]');
@@ -90,11 +90,12 @@ test('opens the existing Capablanca collection as a free album', async ({ page }
   await expect(album).toContainText('Player game collection · PGN');
   await expect(album).toHaveAttribute('data-player-distinction', 'open-world-champion');
   await expect(album.locator('.fa-chess-king')).toHaveCount(1);
-  await expect(album.locator('[data-access="free"]')).toHaveText('Free');
+  await expect(album.locator('[data-access="available"]')).toHaveText('1 credit');
   await album.click();
-  await expect(page.locator('[data-pgn-message]')).toContainText('597 games loaded locally', { timeout: 30_000 });
-  await expect(page.locator('[data-pgn-games] [data-game-index]')).toHaveCount(597);
-  await expect(album).toHaveAttribute('aria-current', 'true');
+  const unlock = page.locator('[data-pgn-unlock-dialog]');
+  await expect(unlock).toBeVisible();
+  await expect(unlock).toContainText('Register to unlock player albums');
+  await expect(unlock.getByRole('link', { name: 'Create a CAISSA account' })).toHaveAttribute('href', '/signup?redirect_url=%2Fpgn-replayer');
 });
 
 test('classifies all 82 Players with historical chess-piece icons', async ({ page }) => {

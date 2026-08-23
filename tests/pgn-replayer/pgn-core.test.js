@@ -99,7 +99,7 @@ test('supports a legal custom starting FEN', () => {
 });
 
 test('parses the bundled Capablanca album as 597 playable games', { timeout: 20_000 }, () => {
-  const source = fs.readFileSync(new URL('../../public/data/pgn/capablanca-games-1901-1941.pgn', import.meta.url), 'utf8');
+  const source = fs.readFileSync(new URL('../../api/_private/pgn/capablanca-games-1901-1941.pgn', import.meta.url), 'utf8');
   const collection = parse(source);
   assert.equal(collection.games.length, 597);
   assert.equal(collection.warnings.length, 0);

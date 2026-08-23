@@ -11,8 +11,9 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         title: 'José Raúl Capablanca',
         details: 'Player game collection · PGN',
         games: 597,
-        access: 'free',
-        source: '/data/pgn/capablanca-games-1901-1941.pgn'
+        access: 'available',
+        credits: 1,
+        source: 'protected-player-album'
     });
 
     const elements = {
@@ -544,14 +545,19 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         if (!album?.source || root.hasAttribute('aria-busy')) return;
         setBusy(true, `Opening ${album.title}…`);
         try {
-            const response = await fetch(album.source, {
-                credentials: 'same-origin',
-                cache: 'force-cache',
-                headers: { Accept: 'text/plain' }
-            });
-            if (!response.ok) throw new Error('The collection is temporarily unavailable.');
-            const bytes = await response.arrayBuffer();
-            if (bytes.byteLength > 10 * 1024 * 1024) throw new Error('This collection exceeds the 10 MiB safety limit.');
+            let bytes;
+            if (album.id === CAPABLANCA_ALBUM.id) {
+                if (!window.CaissaPgnEntitlements) throw new Error('Protected album access is unavailable.');
+                bytes = await window.CaissaPgnEntitlements.fetchAlbum(album);
+                if (!bytes) { setBusy(false); return; }
+            } else {
+                const response = await fetch(album.source, {
+                    credentials: 'same-origin', cache: 'force-cache', headers: { Accept: 'text/plain' }
+                });
+                if (!response.ok) throw new Error('The collection is temporarily unavailable.');
+                bytes = await response.arrayBuffer();
+                if (bytes.byteLength > 10 * 1024 * 1024) throw new Error('This collection exceeds the 10 MiB safety limit.');
+            }
             parseText(new TextDecoder().decode(bytes), album.title, album.id);
         } catch (error) {
             state.pendingAlbumId = null;

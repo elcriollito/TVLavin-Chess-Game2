@@ -6,7 +6,7 @@
         playerAlbumCredits: 1,
         capablancaCredits: 1,
         masterDatabaseCredits: 5,
-        enforcement: 'catalog-only'
+        enforcement: 'server-entitlement'
     });
     window.CaissaPgnAlbumPricing = policy;
 
@@ -25,9 +25,12 @@
             if (badge.textContent !== 'Free') badge.textContent = 'Free';
             return;
         }
-        badge.dataset.access = 'available';
+        const albumId = card.dataset.albumId || card.dataset.catalogAlbumId || card.dataset.mentorPlayerAlbumId || '';
+        const owned = window.CaissaPgnEntitlements?.isOwned?.(albumId) === true;
+        badge.dataset.access = owned ? 'owned' : 'available';
         const label = `${credits} credit${credits === 1 ? '' : 's'}`;
-        if (badge.textContent !== label) badge.textContent = label;
+        const finalLabel = owned ? 'Owned' : label;
+        if (badge.textContent !== finalLabel) badge.textContent = finalLabel;
     }
 
     function applyPolicy() {
@@ -47,5 +50,6 @@
     }
 
     new MutationObserver(queuePolicy).observe(albumRoot, { childList: true, subtree: true });
+    document.addEventListener('caissa:pgn-entitlements-changed', queuePolicy);
     applyPolicy();
 })();

@@ -1,0 +1,74 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import test from 'node:test';
+import { load } from 'cheerio';
+import { CREDIT_OFFERS } from '../../api/_lib/credit-offers.js';
+import { PGN_PLAYER_OFFERS } from '../../api/_lib/pgn-player-offers.js';
+
+const read = path => fs.readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
+
+test('server player offer catalog owns exactly 82 allowlisted physical collections', () => {
+  const offers = Object.values(PGN_PLAYER_OFFERS);
+  assert.equal(offers.length, 82);
+  assert.equal(new Set(offers.map(offer => offer.id)).size, 82);
+  assert.ok(offers.every(offer => offer.credits === 1));
+  assert.ok(offers.every(offer => fs.existsSync(offer.filePath)));
+  assert.ok(offers.every(offer => offer.filePath.includes('/api/_private/pgn/')));
+});
+
+test('player PGNs are physically private and only bundled with the entitlement endpoint', () => {
+  const vercel = JSON.parse(read('vercel.json'));
+  assert.equal(fs.existsSync(new URL('../../public/data/pgn/capablanca-games-1901-1941.pgn', import.meta.url)), false);
+  const publicPlayerRoot = new URL('../../public/data/pgn/players', import.meta.url);
+  const publicPlayerPgns = fs.existsSync(publicPlayerRoot)
+    ? fs.readdirSync(publicPlayerRoot, { recursive: true }).filter(name => String(name).endsWith('.pgn'))
+    : [];
+  assert.deepEqual(publicPlayerPgns, []);
+  assert.equal(vercel.functions['api/pgn/player.js'].includeFiles, 'api/_private/pgn/**');
+  assert.equal(vercel.rewrites.some(rule => String(rule.destination).includes('/api/pgn/legacy')), false);
+  assert.equal(fs.existsSync(new URL('../../api/pgn/legacy.js', import.meta.url)), false);
+});
+
+test('unlock migration makes ownership permanent, atomic, one-credit, and server-only', () => {
+  const sql = read('supabase/migrations/20260823021500_player_album_entitlements.sql');
+  assert.match(sql, /unique \(user_id, album_id\)/i);
+  assert.match(sql, /unique \(user_id, operation_id\)/i);
+  assert.match(sql, /for update;/i);
+  assert.match(sql, /v_balance := v_user\.credits - 1/);
+  assert.match(sql, /insert into public\.player_album_entitlements/);
+  assert.match(sql, /insert into public\.credit_events/);
+  assert.match(sql, /security definer\s+set search_path = ''/i);
+  assert.match(sql, /revoke execute[\s\S]*from public, anon, authenticated, service_role/i);
+  assert.match(sql, /grant execute[\s\S]*to service_role/i);
+  assert.match(sql, /enable row level security/i);
+});
+
+test('Credit Store renders only internal offer keys and obtains currency prices from the server', () => {
+  assert.deepEqual(Object.fromEntries(Object.entries(CREDIT_OFFERS).map(([key, offer]) => [key, offer.credits])), {
+    starter: 25, standard: 75, pro: 200
+  });
+  const page = load(read('credit-store.html'));
+  assert.equal(page('[data-store-package]').length, 3);
+  assert.deepEqual(page('[data-store-buy]').map((_, node) => page(node).attr('data-store-buy')).get(), ['starter', 'standard', 'pro']);
+  assert.equal(page('[data-caissa-standalone-sidebar]').length, 1);
+  assert.match(page('link[rel="canonical"]').attr('href'), /\/store$/);
+  assert.doesNotMatch(read('credit-store.html') + read('js/credit-store.js'), /price_[A-Za-z0-9]+/);
+  assert.match(read('js/credit-store.js'), /\/api\/store\/offers/);
+  assert.match(read('js/credit-store.js'), /type: 'credits', package: packageKey/);
+});
+
+test('commerce activation is fail-closed and Stripe fulfillment shares the canonical offers', () => {
+  const checkout = read('api/checkout/session.js');
+  const fulfillment = read('api/_lib/stripe-webhook-fulfillment.js');
+  const unlock = read('api/pgn/unlock.js');
+  const player = read('api/pgn/player.js');
+  assert.match(checkout, /isCreditStoreEnabled\(\)/);
+  assert.match(checkout, /CREDIT_STORE_NOT_ENABLED/);
+  assert.match(fulfillment, /import \{ CREDIT_OFFERS \}/);
+  assert.match(unlock, /isPlayerAlbumCommerceEnabled\(\)/);
+  assert.match(unlock, /PLAYER_ALBUM_COMMERCE_NOT_ENABLED/);
+  assert.match(unlock, /Idempotency|idempotency-key/i);
+  assert.match(player, /player_album_entitlements/);
+  assert.match(player, /Cache-Control', 'private, no-store/);
+  assert.doesNotMatch(player, /is_premium|premium.*bypass/i);
+});
