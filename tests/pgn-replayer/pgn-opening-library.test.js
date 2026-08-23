@@ -99,6 +99,7 @@ test('opening UI keeps the family visible and exposes page navigation in Games',
   assert.match(html, /data-pgn-opening-next/);
   assert.match(controller, /catalog\.openings\.length !== 233/);
   assert.match(controller, /caissa:pgn-load-text/);
+  assert.match(controller, /new MutationObserver\(queueCatalogRender\)\.observe\(albumRoot, \{ childList: true \}\)/);
   assert.match(controller, /openingPage: true/);
   assert.match(styles, /\.pgn-opening-pagebar/);
   assert.match(styles, /\.pgn-library-nav \{[^}]*position: sticky;[^}]*width: 100%;[^}]*flex: 0 0 auto/);

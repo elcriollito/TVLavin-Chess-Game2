@@ -25,6 +25,7 @@
         totalGames: 0,
         busy: false
     };
+    let renderQueued = false;
 
     function showMessage(text, tone = 'info') {
         if (!message) return;
@@ -83,6 +84,15 @@
         if (fragment.childNodes.length) albumRoot.append(fragment);
         albumRoot.querySelectorAll('[data-opening-album-id]').forEach(card => {
             card.setAttribute('aria-current', String(card.dataset.openingAlbumId === state.selected?.id));
+        });
+    }
+
+    function queueCatalogRender() {
+        if (renderQueued || !state.catalog.length) return;
+        renderQueued = true;
+        queueMicrotask(() => {
+            renderQueued = false;
+            renderCatalog();
         });
     }
 
@@ -176,6 +186,7 @@
         resetPager();
     });
     fileInput?.addEventListener('change', resetPager);
+    new MutationObserver(queueCatalogRender).observe(albumRoot, { childList: true });
 
     fetch(CATALOG_URL, {
         credentials: 'same-origin',

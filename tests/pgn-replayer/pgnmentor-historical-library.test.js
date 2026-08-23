@@ -120,7 +120,7 @@ test('keeps the five approved library families visible without flattening their 
   assert.match(html, />World Championships</);
   assert.match(html, />Candidates &amp; World Cups</);
   assert.match(html, /pgn-mentor-historical-library\.js\?v=1\.1\.0/);
-  assert.match(html, /pgn-opening-library\.js\?v=1\.0\.0/);
+  assert.match(html, /pgn-opening-library\.js\?v=1\.0\.1/);
   assert.match(read('css/pgn-replayer.css'), /\.pgn-library-nav/);
   assert.match(read('css/pgn-replayer.css'), /\.pgn-library-search/);
   assert.match(read('js/pgn-replayer/pgn-mentor-historical-library.js'), /enrichment source updated/);
