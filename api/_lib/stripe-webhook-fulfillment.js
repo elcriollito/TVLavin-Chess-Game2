@@ -1,4 +1,8 @@
-const CREDIT_PACKAGES = Object.freeze({ starter: 25, standard: 75, pro: 200 });
+import { CREDIT_OFFERS } from './credit-offers.js';
+
+const CREDIT_PACKAGES = Object.freeze(Object.fromEntries(
+    Object.entries(CREDIT_OFFERS).map(([key, offer]) => [key, offer.credits])
+));
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function requiredString(value, name) {

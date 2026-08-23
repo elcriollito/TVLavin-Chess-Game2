@@ -11,6 +11,7 @@ import { verifyAuth, respondAuthFailure, setCorsHeaders } from '../_lib/auth.js'
 import { getSupabase } from '../_lib/supabase.js';
 import { checkRateLimit } from '../_lib/rate-limit.js';
 import { logAction, logError } from '../_lib/logger.js';
+import { getCreditOffer, isCreditStoreEnabled } from '../_lib/credit-offers.js';
 
 // Price ID mapping from env vars
 function getPriceMap() {
@@ -19,11 +20,7 @@ function getPriceMap() {
             monthly: process.env.STRIPE_PRICE_MONTHLY,
             annual: process.env.STRIPE_PRICE_ANNUAL
         },
-        credits: {
-            starter: { priceId: process.env.STRIPE_PRICE_CREDITS_25, amount: 25 },
-            standard: { priceId: process.env.STRIPE_PRICE_CREDITS_75, amount: 75 },
-            pro: { priceId: process.env.STRIPE_PRICE_CREDITS_200, amount: 200 }
-        }
+        credits: Object.fromEntries(['starter', 'standard', 'pro'].map(key => [key, getCreditOffer(key)]))
     };
 }
 
@@ -89,6 +86,9 @@ export default async function handler(req, res) {
 
         } else {
             // credits
+            if (!isCreditStoreEnabled()) {
+                return res.status(503).json({ code: 'CREDIT_STORE_NOT_ENABLED', error: 'The CAISSA Credit Store is not enabled yet.' });
+            }
             if (!pkg || !['starter', 'standard', 'pro'].includes(pkg)) {
                 return res.status(400).json({ error: 'Invalid package. Must be "starter", "standard", or "pro".' });
             }
@@ -110,8 +110,8 @@ export default async function handler(req, res) {
                     package: pkg,
                     caissa_user_id: userId
                 },
-                success_url: `${getCheckoutBaseUrl()}/premium?session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: `${getCheckoutBaseUrl()}/premium`
+                success_url: `${getCheckoutBaseUrl()}/store?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `${getCheckoutBaseUrl()}/store?checkout=cancelled`
             };
         }
 

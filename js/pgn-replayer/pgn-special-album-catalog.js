@@ -66,11 +66,12 @@
 
     function normalizePlayerPricing() {
         albumRoot.querySelectorAll('[data-catalog-album-id]').forEach(card => {
-            card.dataset.albumKind = 'player-premium';
+            card.dataset.albumKind = 'player-free';
+            card.dataset.creditCost = '0';
             const badge = card.querySelector('.pgn-album-badge');
             if (!badge) return;
-            if (badge.dataset.access !== 'available') badge.dataset.access = 'available';
-            if (badge.textContent !== '1 credit') badge.textContent = '1 credit';
+            if (badge.dataset.access !== 'free') badge.dataset.access = 'free';
+            if (badge.textContent !== 'Free') badge.textContent = 'Free';
         });
     }
 

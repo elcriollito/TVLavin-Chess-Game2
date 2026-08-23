@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' https://img.clerk.com data:; font-src 'self'; connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev https://checkout.stripe.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>CAISSA Credit Store | Recharge Chess Credits</title>
+  <meta name="description" content="Recharge credits securely for permanent CAISSA player album unlocks and other credit-based chess tools.">
+  <link rel="canonical" href="https://www.caissa-chess.org/store">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0b111b">
+  <link rel="icon" href="/favicon.ico?v=4">
+  <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css">
+  <link rel="stylesheet" href="/styles.css?v=2.0.16">
+  <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.1.0">
+  <link rel="stylesheet" href="/css/credit-store.css?v=1.0.0">
+</head>
+<body class="credit-store-page">
+  <div class="caissa-standalone-layout">
+    <div data-caissa-standalone-sidebar></div>
+    <div class="caissa-standalone-content">
+      <main class="credit-store-main" data-credit-store>
+        <header class="credit-store-hero">
+          <div><span class="credit-store-eyebrow">CAISSA account wallet</span><h1>Credit Store</h1><p>Recharge once, then use credits across permanent player collections and eligible CAISSA tools.</p></div>
+          <section class="credit-wallet" aria-label="Current credit balance"><i class="fas fa-coins" aria-hidden="true"></i><div><small>Your balance</small><strong data-store-balance>Sign in</strong></div></section>
+        </header>
+
+        <div class="credit-store-status" data-store-status role="status" aria-live="polite"><i class="fas fa-shield-halved" aria-hidden="true"></i><span>Sign in to see secure checkout availability and your current balance.</span></div>
+
+        <section class="credit-package-grid" aria-labelledby="credit-packages-title">
+          <div class="credit-section-heading"><span>Secure recharge</span><h2 id="credit-packages-title">Choose a credit package</h2><p>Prices come directly from CAISSA’s server-controlled Stripe catalog.</p></div>
+          <article class="credit-package" data-store-package="starter"><span class="credit-package-label">Starter</span><strong>25 credits</strong><div class="credit-package-price" data-store-price>—</div><p>Begin a focused player collection.</p><button type="button" data-store-buy="starter" disabled>Sign in to buy</button></article>
+          <article class="credit-package credit-package--featured" data-store-package="standard"><span class="credit-package-label">Standard</span><strong>75 credits</strong><div class="credit-package-price" data-store-price>—</div><p>Build a broad historical library.</p><button type="button" data-store-buy="standard" disabled>Sign in to buy</button></article>
+          <article class="credit-package" data-store-package="pro"><span class="credit-package-label">Archive</span><strong>200 credits</strong><div class="credit-package-price" data-store-price>—</div><p>For long-term study and collecting.</p><button type="button" data-store-buy="pro" disabled>Sign in to buy</button></article>
+        </section>
+
+        <section class="credit-store-guide" aria-label="How CAISSA credits work">
+          <article><i class="fas fa-user-shield" aria-hidden="true"></i><div><h2>Account protected</h2><p>Credits and album ownership live on your registered CAISSA account, not in browser storage.</p></div></article>
+          <article><i class="fas fa-lock" aria-hidden="true"></i><div><h2>Permanent albums</h2><p>A player album costs 1 credit. Once unlocked, it appears as <strong>Owned</strong> for that account.</p></div></article>
+          <article><i class="fab fa-stripe" aria-hidden="true"></i><div><h2>Stripe checkout</h2><p>CAISSA never accepts a price or credit amount supplied by the browser; checkout uses a server allowlist.</p></div></article>
+        </section>
+
+        <section class="credit-store-account" data-store-account>
+          <div><h2>New to CAISSA?</h2><p>Create a free account to receive the current welcome balance and keep future purchases attached to one identity.</p></div>
+          <div><a href="/signup?redirect_url=%2Fstore" class="credit-store-button">Create account</a><a href="/signin?redirect_url=%2Fstore" class="credit-store-button credit-store-button--quiet">Sign in</a></div>
+        </section>
+
+        <p class="credit-store-legal">Credit purchases are fulfilled only after Stripe confirms payment through CAISSA’s signature-verified webhook. Player-album commerce remains paused until catalog rights and release controls are certified.</p>
+      </main>
+    </div>
+  </div>
+  <script src="/js/caissa-primary-navigation.js?v=1.0.0"></script>
+  <script src="/js/caissa-standalone-sidebar.js?v=1.1.0"></script>
+  <script src="/js/credit-store.js?v=1.0.0"></script>
+</body>
+</html>

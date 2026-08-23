@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const read = relative => fs.readFileSync(path.join(ROOT, relative), 'utf8');
-const manifest = JSON.parse(read('public/data/pgn/players/manifest.json'));
+const manifest = JSON.parse(read('api/_private/pgn/players/manifest.json'));
 const largeAlbums = manifest.albums.filter(album => album.games > 2000);
 
 test('all archived player collections above 2,000 games are physically present and complete', () => {
@@ -15,7 +15,7 @@ test('all archived player collections above 2,000 games are physically present a
   assert.equal(largeAlbums.length, 22);
 
   for (const album of largeAlbums) {
-    const relative = `public${album.localPath}`;
+    const relative = album.localPath.replace(/^\/data\/pgn\/players\//, 'api/_private/pgn/players/');
     const absolute = path.join(ROOT, relative);
     assert.equal(fs.existsSync(absolute), true, `${album.title}: local PGN missing`);
     assert.equal(fs.statSync(absolute).size, album.bytes, `${album.title}: byte count mismatch`);
@@ -38,6 +38,6 @@ test('PGN runtime capacity covers the largest archived player collection', () =>
 test('large-collection parser fixes are cache-busted through the page and Worker chain', () => {
   const page = read('pgn-replayer.html');
   const worker = read('js/pgn-replayer/pgn-worker.js');
-  assert.match(page, /pgn-replayer-page\.js\?v=1\.1\.1/);
+  assert.match(page, /pgn-replayer-page\.js\?v=1\.4\.0/);
   assert.match(worker, /pgn-core\.js\?v=1\.1\.1/);
 });

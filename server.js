@@ -461,6 +461,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/pgn-replayer' || pathname === '/pgn-replayer/') {
     filePath = './pgn-replayer.html';
   }
+  if (pathname === '/store' || pathname === '/store/') {
+    filePath = './credit-store.html';
+  }
   if (pathname === '/academy') {
     filePath = './index.html';
   }
@@ -520,9 +523,19 @@ const server = http.createServer(async (req, res) => {
     filePath = './polyglot.html';
   }
 
+  const protectedPlayerPgn = pathname === '/data/pgn/capablanca-games-1901-1941.pgn'
+    || pathname === '/public/data/pgn/capablanca-games-1901-1941.pgn'
+    || pathname.startsWith('/data/pgn/players/')
+    || pathname.startsWith('/public/data/pgn/players/')
+    || pathname.startsWith('/api/_private/pgn/');
+  if (protectedPlayerPgn) {
+    res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store' });
+    res.end(JSON.stringify({ code: 'AUTH_REQUIRED', error: 'Protected player album access requires the CAISSA API.' }));
+    return;
+  }
+
   const extname = String(path.extname(filePath)).toLowerCase();
   const mimeType = MIME_TYPES[extname] || 'application/octet-stream';
-  const publicPgn = pathname === '/data/pgn/capablanca-games-1901-1941.pgn';
 
   // Try to read from root first, then from public/ folder
   fs.readFile(filePath, (error, content) => {
@@ -534,7 +547,7 @@ const server = http.createServer(async (req, res) => {
           res.writeHead(404, { 'Content-Type': 'text/html' });
           res.end('<h1>404 - File Not Found</h1>', 'utf-8');
         } else {
-          res.writeHead(200, { 'Content-Type': mimeType, ...(publicPgn ? { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=86400' } : {}) });
+          res.writeHead(200, { 'Content-Type': mimeType });
           res.end(content2, 'utf-8');
         }
       });

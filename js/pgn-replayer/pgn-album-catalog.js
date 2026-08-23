@@ -70,7 +70,8 @@
 ]);
     const albumRoot = document.querySelector('[data-pgn-albums]');
     const fileInput = document.querySelector('[data-pgn-file]');
-    if (!albumRoot || !fileInput) return;
+    const iconography = window.CaissaPgnPlayerIconography;
+    if (!albumRoot || !fileInput || !iconography) return;
 
     let selectedAlbumId = null;
     let syntheticImport = false;
@@ -86,8 +87,7 @@
         card.dataset.catalogAlbumId = album.id;
         card.setAttribute('aria-current', String(album.id === selectedAlbumId));
         const icon = document.createElement('i');
-        icon.className = 'fas fa-chess-king';
-        icon.setAttribute('aria-hidden', 'true');
+        iconography.decorate(icon, card, album.title);
         const copy = document.createElement('div');
         const title = document.createElement('strong');
         title.textContent = album.title;
@@ -135,17 +135,18 @@
         renderCatalog();
         card.disabled = true;
         try {
-            const localSource = `/data/pgn/players/${album.id.replace(/^smallchess-/, '')}.pgn`;
-            const response = await fetch(localSource, { credentials: 'same-origin', cache: 'force-cache', headers: { Accept: 'text/plain' } });
-            if (!response.ok) throw new Error('The collection is temporarily unavailable.');
-            const bytes = await response.arrayBuffer();
-            if (bytes.byteLength > 10 * 1024 * 1024) throw new Error('This collection exceeds the 10 MiB safety limit.');
+            if (!window.CaissaPgnEntitlements) throw new Error('Player collection access is unavailable.');
+            const bytes = await window.CaissaPgnEntitlements.fetchAlbum(album);
+            if (!bytes) { selectedAlbumId = null; renderCatalog(); return; }
             const transfer = new DataTransfer();
             transfer.items.add(new File([bytes], album.file, { type: 'application/x-chess-pgn' }));
             syntheticImport = true;
-            fileInput.files = transfer.files;
-            fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-            syntheticImport = false;
+            try {
+                fileInput.files = transfer.files;
+                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+            } finally {
+                syntheticImport = false;
+            }
         } catch (error) {
             selectedAlbumId = null;
             renderCatalog();

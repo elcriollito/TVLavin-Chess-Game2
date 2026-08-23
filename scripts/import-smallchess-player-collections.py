@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """One-time archival import of curated SmallChess player PGN collections.
 
-Downloads the allowlisted source catalog into CAISSA-owned static storage,
-validates every file, writes hashes/provenance metadata, and switches the
-PGN album catalog from the temporary runtime proxy to local CAISSA paths.
+Downloads the allowlisted source catalog into CAISSA-owned private storage,
+validates every file, and writes hashes/provenance metadata. The browser
+catalog must continue to use CAISSA's authenticated entitlement API.
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG_PATH = ROOT / "data/pgn/smallchess-player-import.json"
-OUTPUT_DIR = ROOT / "public/data/pgn/players"
+OUTPUT_DIR = ROOT / "api/_private/pgn/players"
 MANIFEST_PATH = OUTPUT_DIR / "manifest.json"
 ALBUM_JS = ROOT / "js/pgn-replayer/pgn-album-catalog.js"
 MAX_BYTES = 10 * 1024 * 1024
@@ -69,15 +69,12 @@ def local_filename(album_id: str) -> str:
     return f"{slug}.pgn"
 
 
-def switch_catalog_to_local() -> None:
+def verify_catalog_uses_entitlements() -> None:
     text = ALBUM_JS.read_text(encoding="utf-8")
-    proxy_line = "const response = await fetch(`/api/pgn/smallchess?file=${encodeURIComponent(album.file)}`, { credentials: 'same-origin', cache: 'force-cache', headers: { Accept: 'text/plain' } });"
-    local_lines = "const localSource = `/data/pgn/players/${album.id.replace(/^smallchess-/, '')}.pgn`;\n            const response = await fetch(localSource, { credentials: 'same-origin', cache: 'force-cache', headers: { Accept: 'text/plain' } });"
-    if proxy_line in text:
-        text = text.replace(proxy_line, local_lines, 1)
-        ALBUM_JS.write_text(text, encoding="utf-8", newline="\n")
-    elif "const localSource = `/data/pgn/players/" not in text:
-        raise RuntimeError("album catalog did not contain the expected proxy or local source code")
+    if "CaissaPgnEntitlements.fetchAlbum(album)" not in text:
+        raise RuntimeError("album catalog is not using the authenticated entitlement API")
+    if "fetch(`/data/pgn/players/" in text or "const localSource = `/data/pgn/players/" in text:
+        raise RuntimeError("album catalog exposes a direct public player PGN path")
 
 
 def main() -> None:
@@ -143,10 +140,10 @@ def main() -> None:
             shutil.copy2(file, OUTPUT_DIR / file.name)
         MANIFEST_PATH.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
 
-    switch_catalog_to_local()
+    verify_catalog_uses_entitlements()
     print(f"Imported {len(records)} collections ({total_bytes:,} bytes) into {OUTPUT_DIR}")
     print(f"Manifest: {MANIFEST_PATH}")
-    print("PGN Replayer album catalog switched to CAISSA-local runtime paths.")
+    print("PGN Replayer album catalog verified against the authenticated entitlement API.")
 
 
 if __name__ == "__main__":

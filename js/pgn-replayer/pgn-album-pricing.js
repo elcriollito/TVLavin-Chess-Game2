@@ -3,10 +3,10 @@
 
     const policy = Object.freeze({
         freeSpecialCredits: 0,
-        playerAlbumCredits: 1,
-        capablancaCredits: 1,
+        playerAlbumCredits: 0,
+        capablancaCredits: 0,
         masterDatabaseCredits: 5,
-        enforcement: 'catalog-only'
+        enforcement: 'server-entitlement'
     });
     window.CaissaPgnAlbumPricing = policy;
 
@@ -25,9 +25,12 @@
             if (badge.textContent !== 'Free') badge.textContent = 'Free';
             return;
         }
-        badge.dataset.access = 'available';
+        const albumId = card.dataset.albumId || card.dataset.catalogAlbumId || card.dataset.mentorPlayerAlbumId || '';
+        const owned = window.CaissaPgnEntitlements?.isOwned?.(albumId) === true;
+        badge.dataset.access = owned ? 'owned' : 'available';
         const label = `${credits} credit${credits === 1 ? '' : 's'}`;
-        if (badge.textContent !== label) badge.textContent = label;
+        const finalLabel = owned ? 'Owned' : label;
+        if (badge.textContent !== finalLabel) badge.textContent = finalLabel;
     }
 
     function applyPolicy() {
@@ -36,6 +39,7 @@
         albumRoot.querySelectorAll('[data-catalog-album-id]').forEach(card => setPrice(card, policy.playerAlbumCredits));
         albumRoot.querySelectorAll('[data-mentor-player-album-id]').forEach(card => setPrice(card, policy.playerAlbumCredits));
         albumRoot.querySelectorAll('[data-special-album-id][data-album-kind="seo-free"]').forEach(card => setPrice(card, policy.freeSpecialCredits));
+        albumRoot.querySelectorAll('[data-mentor-historical-album-id]').forEach(card => setPrice(card, policy.freeSpecialCredits));
         setPrice(albumRoot.querySelector('[data-special-album-id="smallchess-master-database"]'), policy.masterDatabaseCredits);
     }
 
@@ -46,5 +50,6 @@
     }
 
     new MutationObserver(queuePolicy).observe(albumRoot, { childList: true, subtree: true });
+    document.addEventListener('caissa:pgn-entitlements-changed', queuePolicy);
     applyPolicy();
 })();

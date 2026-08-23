@@ -9,10 +9,11 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
     const CAPABLANCA_ALBUM = Object.freeze({
         id: 'capablanca-games-1901-1941',
         title: 'José Raúl Capablanca',
-        details: '597 games · 1901–1941 · CAISSA collection',
+        details: 'Player game collection · PGN',
         games: 597,
         access: 'free',
-        source: '/data/pgn/capablanca-games-1901-1941.pgn'
+        credits: 0,
+        source: 'protected-player-album'
     });
 
     const elements = {
@@ -27,9 +28,11 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         dropZone: root.querySelector('[data-pgn-drop-zone]'),
         dropOverlay: root.querySelector('[data-pgn-drop-overlay]'),
         openButtons: root.querySelectorAll('[data-pgn-open]'),
-        pasteButton: root.querySelector('[data-pgn-paste]'),
+        pasteButtons: root.querySelectorAll('[data-pgn-paste]'),
         file: root.querySelector('[data-pgn-file]'),
         dialog: root.querySelector('[data-pgn-dialog]'),
+        optionsButton: root.querySelector('[data-pgn-options]'),
+        optionsDialog: root.querySelector('[data-pgn-options-dialog]'),
         pasteInput: root.querySelector('[data-pgn-paste-input]'),
         loadPaste: root.querySelector('[data-pgn-load-paste]'),
         tabs: root.querySelectorAll('[data-pgn-tab]'),
@@ -38,6 +41,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         games: root.querySelector('[data-pgn-games]'),
         gamesEmpty: root.querySelector('[data-pgn-games-empty]'),
         notation: root.querySelector('[data-pgn-notation]'),
+        notationScroller: root.querySelector('.pgn-notation-scroll'),
         notationEmpty: root.querySelector('[data-pgn-notation-empty]'),
         gameInfo: root.querySelector('[data-pgn-game-info]'),
         gameInfoShell: root.querySelector('[data-pgn-game-info-shell]'),
@@ -58,9 +62,9 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         speed: root.querySelector('[data-pgn-speed]'),
         engine: root.querySelector('[data-pgn-engine]'),
         engineState: root.querySelector('[data-pgn-engine-state]'),
-        enginePanel: root.querySelector('[data-pgn-engine-panel]'),
-        engineSummary: root.querySelector('[data-pgn-engine-summary]'),
-        engineLines: root.querySelector('[data-pgn-engine-lines]')
+        enginePanels: root.querySelectorAll('[data-pgn-engine-panel]'),
+        engineSummaries: root.querySelectorAll('[data-pgn-engine-summary]'),
+        engineLineGroups: root.querySelectorAll('[data-pgn-engine-lines]')
     };
 
     function readPreference(key) {
@@ -129,7 +133,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
     function setBusy(busy, label = '') {
         root.toggleAttribute('aria-busy', busy);
         elements.openButtons.forEach(button => { button.disabled = busy; });
-        elements.pasteButton.disabled = busy;
+        elements.pasteButtons.forEach(button => { button.disabled = busy; });
         elements.albums.querySelectorAll('[data-album-id]').forEach(button => { button.disabled = busy; });
         if (busy) showMessage(label || 'Reading PGN…', 'info', false);
     }
@@ -276,8 +280,12 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
             card.setAttribute('aria-current', String(album.id === state.activeAlbumId));
             card.dataset.albumId = album.id;
             const icon = document.createElement('i');
-            icon.className = album.access === 'free' ? 'fas fa-chess-king' : 'fas fa-folder-open';
-            icon.setAttribute('aria-hidden', 'true');
+            if (album.id === CAPABLANCA_ALBUM.id && window.CaissaPgnPlayerIconography) {
+                window.CaissaPgnPlayerIconography.decorate(icon, card, album.title);
+            } else {
+                icon.className = album.access === 'free' ? 'fas fa-chess-knight' : 'fas fa-folder-open';
+                icon.setAttribute('aria-hidden', 'true');
+            }
             const copy = document.createElement('div');
             const title = document.createElement('strong');
             title.textContent = album.title;
@@ -317,26 +325,28 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
     }
 
     function renderEngineLines(lines, placeholder = 'Calculating…') {
-        elements.engineLines.replaceChildren();
-        for (let index = 0; index < 2; index += 1) {
-            const line = lines[index];
-            const row = document.createElement('div');
-            row.className = 'pgn-engine-line';
-            const rank = document.createElement('span');
-            rank.className = 'pgn-engine-rank';
-            rank.textContent = String(index + 1);
-            const score = document.createElement('strong');
-            score.className = 'pgn-engine-score';
-            score.textContent = line ? engineScore(line) : '—';
-            score.title = 'Evaluation from White’s perspective';
-            const moves = document.createElement('span');
-            moves.className = 'pgn-engine-pv';
-            moves.textContent = line?.san?.length ? line.san.join(' ') : placeholder;
-            const depth = document.createElement('small');
-            depth.textContent = line ? `d${line.depth}` : '';
-            row.append(rank, score, moves, depth);
-            elements.engineLines.append(row);
-        }
+        elements.engineLineGroups.forEach(group => {
+            group.replaceChildren();
+            for (let index = 0; index < 2; index += 1) {
+                const line = lines[index];
+                const row = document.createElement('div');
+                row.className = 'pgn-engine-line';
+                const rank = document.createElement('span');
+                rank.className = 'pgn-engine-rank';
+                rank.textContent = String(index + 1);
+                const score = document.createElement('strong');
+                score.className = 'pgn-engine-score';
+                score.textContent = line ? engineScore(line) : '—';
+                score.title = 'Evaluation from White’s perspective';
+                const moves = document.createElement('span');
+                moves.className = 'pgn-engine-pv';
+                moves.textContent = line?.san?.length ? line.san.join(' ') : placeholder;
+                const depth = document.createElement('small');
+                depth.textContent = line ? `d${line.depth}` : '';
+                row.append(rank, score, moves, depth);
+                group.append(row);
+            }
+        });
     }
 
     function updateEngineUi(status) {
@@ -345,14 +355,15 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         elements.engine.setAttribute('aria-label', on ? 'Turn engine off' : 'Turn engine on');
         elements.engine.title = on ? 'Turn engine off' : 'Turn engine on';
         elements.engineState.textContent = status === 'loading' ? 'Loading' : on ? 'On' : 'Off';
-        elements.engineSummary.textContent = ({
+        const summary = ({
             loading: 'Starting locally…',
             ready: 'Ready · 2 lines',
             analyzing: 'Analyzing · 2 lines',
             stopping: 'Updating position…',
             error: 'Unavailable'
         })[status] || 'Off';
-        elements.enginePanel.dataset.state = status;
+        elements.engineSummaries.forEach(element => { element.textContent = summary; });
+        elements.enginePanels.forEach(panel => { panel.dataset.state = status; });
         if (status === 'off') renderEngineLines([], 'Turn Engine on to analyze');
         if (status === 'error') renderEngineLines([], 'Engine unavailable · try again');
     }
@@ -417,10 +428,23 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         if (node) {
             const selected = root.querySelector(`[data-node-id="${node.id}"]`);
             selected?.classList.add('is-active');
-            selected?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+            keepActiveMoveVisible(selected);
         }
         requestEngineAnalysis();
         updateControls();
+    }
+
+    function keepActiveMoveVisible(selected) {
+        const scroller = elements.notationScroller;
+        if (!selected || !scroller || scroller.offsetParent === null) return;
+        const scrollerBox = scroller.getBoundingClientRect();
+        const selectedBox = selected.getBoundingClientRect();
+        const safeInset = 10;
+        if (selectedBox.top < scrollerBox.top + safeInset) {
+            scroller.scrollTop -= scrollerBox.top + safeInset - selectedBox.top;
+        } else if (selectedBox.bottom > scrollerBox.bottom - safeInset) {
+            scroller.scrollTop += selectedBox.bottom - scrollerBox.bottom + safeInset;
+        }
     }
 
     function updateControls() {
@@ -521,14 +545,19 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         if (!album?.source || root.hasAttribute('aria-busy')) return;
         setBusy(true, `Opening ${album.title}…`);
         try {
-            const response = await fetch(album.source, {
-                credentials: 'same-origin',
-                cache: 'force-cache',
-                headers: { Accept: 'text/plain' }
-            });
-            if (!response.ok) throw new Error('The collection is temporarily unavailable.');
-            const bytes = await response.arrayBuffer();
-            if (bytes.byteLength > 10 * 1024 * 1024) throw new Error('This collection exceeds the 10 MiB safety limit.');
+            let bytes;
+            if (album.id === CAPABLANCA_ALBUM.id) {
+                if (!window.CaissaPgnEntitlements) throw new Error('Player collection access is unavailable.');
+                bytes = await window.CaissaPgnEntitlements.fetchAlbum(album);
+                if (!bytes) { setBusy(false); return; }
+            } else {
+                const response = await fetch(album.source, {
+                    credentials: 'same-origin', cache: 'force-cache', headers: { Accept: 'text/plain' }
+                });
+                if (!response.ok) throw new Error('The collection is temporarily unavailable.');
+                bytes = await response.arrayBuffer();
+                if (bytes.byteLength > 10 * 1024 * 1024) throw new Error('This collection exceeds the 10 MiB safety limit.');
+            }
             parseText(new TextDecoder().decode(bytes), album.title, album.id);
         } catch (error) {
             state.pendingAlbumId = null;
@@ -591,10 +620,20 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
 
     elements.openButtons.forEach(button => button.addEventListener('click', () => elements.file.click()));
     elements.file.addEventListener('change', () => loadFile(elements.file.files?.[0]));
-    elements.pasteButton.addEventListener('click', () => {
+    root.addEventListener('caissa:pgn-load-text', event => {
+        const detail = event.detail || {};
+        if (root.hasAttribute('aria-busy') || typeof detail.text !== 'string' || !detail.text.trim()) return;
+        if (new Blob([detail.text]).size > 10 * 1024 * 1024) {
+            showMessage('This PGN is larger than the 10 MiB safety limit.', 'error', false);
+            return;
+        }
+        parseText(detail.text, detail.sourceLabel || 'CAISSA collection', detail.albumId || null);
+    });
+    elements.pasteButtons.forEach(button => button.addEventListener('click', () => {
         elements.dialog.showModal();
         window.setTimeout(() => elements.pasteInput.focus(), 0);
-    });
+    }));
+    elements.optionsButton.addEventListener('click', () => elements.optionsDialog.showModal());
     elements.loadPaste.addEventListener('click', () => {
         if (!elements.pasteInput.value.trim()) { showMessage('Paste PGN text before loading.', 'error'); return; }
         const text = elements.pasteInput.value;
@@ -657,7 +696,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
     });
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape' && state.focusMode) { toggleFocus(); elements.focus.focus(); return; }
-        if (!state.game || elements.dialog.open || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)) return;
+        if (!state.game || elements.dialog.open || elements.optionsDialog.open || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)) return;
         if (event.key === 'ArrowLeft') { event.preventDefault(); goTo(activeNode()?.previousId || null); }
         if (event.key === 'ArrowRight') { event.preventDefault(); goNext(); }
         if (event.key === 'Home') { event.preventDefault(); goTo(null); }

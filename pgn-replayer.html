@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>Open and Replay PGN Files | CAISSA Chess</title>
   <meta name="description" content="Open, explore, and replay single games or complete PGN collections privately in your browser with CAISSA Chess.">
   <link rel="canonical" href="https://www.caissa-chess.org/pgn-replayer">
@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css">
   <link rel="stylesheet" href="/styles.css?v=2.0.16">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.1.0">
-  <link rel="stylesheet" href="/css/pgn-replayer.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/pgn-replayer.css?v=1.3.0">
   <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
 </head>
 <body class="pgn-replayer-page">
@@ -34,6 +34,7 @@
           <div class="pgn-game-heading" aria-live="polite"><strong data-pgn-title>No game loaded</strong><span data-pgn-subtitle>Open a PGN file to begin</span></div>
           <div class="pgn-source-actions">
             <button class="pgn-button pgn-button--primary" type="button" data-pgn-open><i class="fas fa-folder-open" aria-hidden="true"></i><span>Open PGN</span></button>
+            <button class="pgn-button" type="button" data-pgn-options aria-haspopup="dialog" aria-controls="pgn-options-dialog"><i class="fas fa-sliders" aria-hidden="true"></i><span>Options</span></button>
             <button class="pgn-icon-button" type="button" data-pgn-paste aria-label="Paste PGN text" title="Paste PGN text"><i class="fas fa-clipboard" aria-hidden="true"></i></button>
           </div>
         </header>
@@ -47,6 +48,10 @@
             </div>
             <div class="pgn-player-card pgn-player-card--white"><span class="pgn-player-color" aria-hidden="true"></span><strong data-pgn-white>White</strong><span data-pgn-white-elo>—</span></div>
             <div class="pgn-toolbar" role="toolbar" aria-label="Replay controls">
+              <div class="pgn-toolbar-group pgn-toolbar-imports-mobile" aria-label="PGN import controls">
+                <button class="pgn-control pgn-control--mobile-import" type="button" data-pgn-open aria-label="Open PGN file" title="Open PGN file"><i class="fas fa-folder-open" aria-hidden="true"></i><small>Open</small></button>
+                <button class="pgn-control pgn-control--mobile-import" type="button" data-pgn-paste aria-label="Paste PGN text" title="Paste PGN text"><i class="fas fa-clipboard" aria-hidden="true"></i><small>Paste</small></button>
+              </div>
               <div class="pgn-toolbar-group pgn-toolbar-source"><button class="pgn-control pgn-control--labeled pgn-engine-toggle" type="button" data-pgn-engine aria-pressed="false" aria-label="Turn engine on" title="Turn engine on" disabled><span class="pgn-control-glyph" aria-hidden="true">⚙</span><span>Engine</span><small data-pgn-engine-state>Off</small></button></div>
               <div class="pgn-toolbar-group pgn-toolbar-playback">
                 <button class="pgn-control" type="button" data-pgn-first aria-label="Go to starting position" title="Starting position"><span class="pgn-control-glyph" aria-hidden="true">⏮</span></button>
@@ -57,10 +62,11 @@
               </div>
               <div class="pgn-toolbar-group pgn-toolbar-view">
                 <label class="pgn-speed"><span>Speed</span><select data-pgn-speed aria-label="Autoplay speed"><option value="1400">0.75×</option><option value="1000" selected>1×</option><option value="650">1.5×</option><option value="400">2×</option></select></label>
-                <button class="pgn-control" type="button" data-pgn-flip aria-label="Flip board" title="Flip board"><span class="pgn-control-glyph pgn-control-glyph--large" aria-hidden="true">↻</span></button>
-                <button class="pgn-control" type="button" data-pgn-focus aria-label="Enter focus view" title="Focus view"><span class="pgn-control-glyph" data-pgn-focus-icon aria-hidden="true">⛶</span></button>
+                <button class="pgn-control" type="button" data-pgn-flip aria-label="Flip board" title="Flip board"><span class="pgn-control-glyph pgn-control-glyph--large" aria-hidden="true">↻</span><small class="pgn-control-label">Flip</small></button>
+                <button class="pgn-control" type="button" data-pgn-focus aria-label="Enter focus view" title="Focus view"><span class="pgn-control-glyph" data-pgn-focus-icon aria-hidden="true">⛶</span><small class="pgn-control-label">Zoom</small></button>
               </div>
             </div>
+            <section class="pgn-engine-panel pgn-engine-panel--mobile" data-pgn-engine-panel data-state="off" aria-labelledby="pgn-engine-mobile-title"><div class="pgn-engine-heading"><div><span class="pgn-engine-dot" aria-hidden="true"></span><strong id="pgn-engine-mobile-title">Stockfish analysis</strong></div><small data-pgn-engine-summary>Off</small></div><div class="pgn-engine-lines" data-pgn-engine-lines aria-live="polite"></div></section>
           </section>
           <section class="pgn-panel" aria-label="Games, notation, and game information">
             <div class="pgn-tabs" role="tablist" aria-label="PGN information">
@@ -70,6 +76,11 @@
             </div>
             <div class="pgn-panel-body">
               <section role="tabpanel" id="pgn-panel-games" aria-labelledby="pgn-tab-games" data-pgn-tabpanel="games">
+                <div class="pgn-opening-pagebar" data-pgn-opening-pagebar hidden>
+                  <button type="button" class="pgn-icon-button" data-pgn-opening-previous aria-label="Previous opening game page" title="Previous 100 games"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                  <div><strong data-pgn-opening-page-title>Opening collection</strong><small data-pgn-opening-page-summary></small></div>
+                  <button type="button" class="pgn-icon-button" data-pgn-opening-next aria-label="Next opening game page" title="Next 100 games"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+                </div>
                 <label class="pgn-game-filter" hidden data-pgn-filter-wrap><i class="fas fa-magnifying-glass" aria-hidden="true"></i><span class="pgn-visually-hidden">Filter games</span><input type="search" data-pgn-filter placeholder="Filter by player or event" autocomplete="off"></label>
                 <div class="pgn-panel-empty" data-pgn-games-empty><i class="fas fa-layer-group" aria-hidden="true"></i><strong>Your games will appear here</strong><span>Files containing one or many games are supported.</span></div>
                 <div class="pgn-game-list" data-pgn-games role="list"></div>
@@ -80,11 +91,23 @@
                   <section class="pgn-game-info" data-pgn-game-info-shell hidden aria-labelledby="pgn-game-info-title"><div class="pgn-game-info-heading"><i class="fas fa-circle-info" aria-hidden="true"></i><h2 id="pgn-game-info-title">Game information</h2></div><dl data-pgn-game-info></dl></section>
                   <div class="pgn-notation" data-pgn-notation></div>
                 </div>
-                <section class="pgn-engine-panel" data-pgn-engine-panel data-state="off" aria-labelledby="pgn-engine-title"><div class="pgn-engine-heading"><div><span class="pgn-engine-dot" aria-hidden="true"></span><strong id="pgn-engine-title">Stockfish analysis</strong></div><small data-pgn-engine-summary>Off</small></div><div class="pgn-engine-lines" data-pgn-engine-lines aria-live="polite"></div></section>
+                <section class="pgn-engine-panel pgn-engine-panel--desktop" data-pgn-engine-panel data-state="off" aria-labelledby="pgn-engine-title"><div class="pgn-engine-heading"><div><span class="pgn-engine-dot" aria-hidden="true"></span><strong id="pgn-engine-title">Stockfish analysis</strong></div><small data-pgn-engine-summary>Off</small></div><div class="pgn-engine-lines" data-pgn-engine-lines aria-live="polite"></div></section>
               </section>
               <section role="tabpanel" id="pgn-panel-albums" aria-labelledby="pgn-tab-albums" data-pgn-tabpanel="albums" hidden>
-                <div class="pgn-album-status-key" aria-label="Album access statuses"><span class="pgn-album-badge" data-access="free">Free</span><small>Open collection</small><span class="pgn-album-badge" data-access="available">1 credit</span><small>Player collection</small><span class="pgn-album-badge" data-access="owned">Owned</span><small>Unlocked collection</small></div>
-                <div class="pgn-panel-empty pgn-albums-intro" data-pgn-albums-empty><i class="fas fa-layer-group" aria-hidden="true"></i><strong>Your CAISSA albums will appear here</strong><span>Player collections you unlock will stay organized in this space.</span></div>
+                <nav class="pgn-library-nav" aria-label="Chess game library families" data-pgn-library-nav>
+                  <button type="button" data-pgn-library-family="players" aria-pressed="true"><i class="fas fa-chess-king" aria-hidden="true"></i><span>Players</span><small data-pgn-library-count="players">—</small></button>
+                  <button type="button" data-pgn-library-family="world-championships" aria-pressed="false"><i class="fas fa-crown" aria-hidden="true"></i><span>World Championships</span><small data-pgn-library-count="world-championships">—</small></button>
+                  <button type="button" data-pgn-library-family="qualifiers" aria-pressed="false"><i class="fas fa-medal" aria-hidden="true"></i><span>Candidates &amp; World Cups</span><small data-pgn-library-count="qualifiers">—</small></button>
+                  <button type="button" data-pgn-library-family="tournaments" aria-pressed="false"><i class="fas fa-trophy" aria-hidden="true"></i><span>Tournaments</span><small data-pgn-library-count="tournaments">—</small></button>
+                  <button type="button" data-pgn-library-family="openings" aria-pressed="false"><i class="fas fa-book-open" aria-hidden="true"></i><span>Openings</span><small data-pgn-library-count="openings">—</small></button>
+                </nav>
+                <div class="pgn-library-toolbar">
+                  <div class="pgn-library-heading"><strong data-pgn-library-title>Players</strong><small data-pgn-library-summary>Player game collections</small></div>
+                  <label class="pgn-library-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i><span class="pgn-visually-hidden">Search this library family</span><input type="search" data-pgn-library-search placeholder="Search players" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"></label>
+                </div>
+                <div class="pgn-album-status-key" aria-label="Album access statuses"><span class="pgn-album-badge" data-access="free">Free</span><small>Collections available without an account or credits</small></div>
+                <div class="pgn-library-notice" data-pgn-library-notice hidden><i class="fas fa-circle-info" aria-hidden="true"></i><strong data-pgn-library-notice-title></strong><span data-pgn-library-notice-copy></span></div>
+                <div class="pgn-panel-empty pgn-albums-intro" data-pgn-albums-empty><i class="fas fa-layer-group" aria-hidden="true"></i><strong>Your CAISSA collections will appear here</strong><span>Choose a library family above or search for a collection.</span></div>
                 <div class="pgn-album-list" data-pgn-albums role="list"></div>
               </section>
             </div>
@@ -94,6 +117,18 @@
         <div class="pgn-message" data-pgn-message role="status" aria-live="polite" hidden></div>
         <input type="file" accept=".pgn,application/x-chess-pgn,application/vnd.chess-pgn,text/plain" data-pgn-file hidden>
         <dialog class="pgn-paste-dialog" data-pgn-dialog aria-labelledby="pgn-paste-title"><form method="dialog" class="pgn-paste-shell"><div class="pgn-dialog-heading"><div><span class="pgn-eyebrow">Local import</span><h2 id="pgn-paste-title">Paste PGN text</h2></div><button class="pgn-icon-button" value="cancel" aria-label="Close paste dialog"><i class="fas fa-xmark" aria-hidden="true"></i></button></div><label for="pgn-paste-input">PGN</label><textarea id="pgn-paste-input" data-pgn-paste-input rows="14" spellcheck="false" placeholder="[Event &quot;My game&quot;]&#10;[White &quot;White player&quot;]&#10;[Black &quot;Black player&quot;]&#10;&#10;1. e4 e5 2. Nf3 Nc6"></textarea><p>Your text is processed locally and is not saved to your account.</p><div class="pgn-dialog-actions"><button class="pgn-button" value="cancel">Cancel</button><button class="pgn-button pgn-button--primary" type="button" data-pgn-load-paste>Load PGN</button></div></form></dialog>
+        <dialog id="pgn-options-dialog" class="pgn-options-dialog" data-pgn-options-dialog aria-labelledby="pgn-options-title">
+          <form method="dialog" class="pgn-options-shell">
+            <div class="pgn-dialog-heading"><div><span class="pgn-eyebrow">Replayer guide</span><h2 id="pgn-options-title">Options &amp; About</h2></div><button class="pgn-icon-button" value="close" aria-label="Close Options and About"><i class="fas fa-xmark" aria-hidden="true"></i></button></div>
+            <section class="pgn-about-intro" aria-labelledby="pgn-about-heading"><i class="fas fa-circle-info" aria-hidden="true"></i><div><h3 id="pgn-about-heading">About CAISSA PGN Replayer</h3><p>Replay your PGN files privately, browse historical chess archives, study complete player collections, explore openings in safe pages, and analyze positions with the local Stockfish engine.</p></div></section>
+            <div class="pgn-guide-grid">
+              <section class="pgn-guide-card" aria-labelledby="pgn-figurines-heading"><h3 id="pgn-figurines-heading">Player figurines</h3><ul class="pgn-figurine-guide"><li><i class="fas fa-chess-king" aria-hidden="true"></i><span><strong>King</strong>Open World Champion</span></li><li><i class="fas fa-chess-queen" aria-hidden="true"></i><span><strong>Queen</strong>Women’s World Champion</span></li><li><i class="fas fa-chess-rook" aria-hidden="true"></i><span><strong>Rook</strong>World Championship match or final challenger</span></li><li><i class="fas fa-chess-knight" aria-hidden="true"></i><span><strong>Knight</strong>Other featured player collection</span></li></ul></section>
+              <section class="pgn-guide-card" aria-labelledby="pgn-search-guide-heading"><h3 id="pgn-search-guide-heading">Find a collection quickly</h3><p>Open <strong>Albums</strong>, choose Players, Championships, Candidates, Tournaments, or Openings, and type any part of a name. For example, <strong>capa</strong> finds José Raúl Capablanca.</p></section>
+              <section class="pgn-guide-card pgn-guide-card--credits" aria-labelledby="pgn-credit-guide-heading"><h3 id="pgn-credit-guide-heading">Free library access</h3><p><span class="pgn-album-badge" data-access="free">Free</span> All 82 Player game collections are currently free, together with the historical, tournament, and opening archives. No account or credit is required to replay them.</p><p>Credits are reserved for future CAISSA-created study packs, server analysis, and other original services—not for these raw player PGN collections.</p><p class="pgn-guide-note"><i class="fas fa-seedling" aria-hidden="true"></i><span>CAISSA will replace the current player files progressively with independently built, provenance-tracked collections in a future Season.</span></p></section>
+            </div>
+            <div class="pgn-dialog-actions"><button class="pgn-button pgn-button--primary" value="close">Done</button></div>
+          </form>
+        </dialog>
       </main>
     </div>
   </div>
@@ -102,10 +137,14 @@
   <script src="/js/caissa-primary-navigation.js?v=1.0.0"></script>
   <script src="/js/caissa-standalone-sidebar.js?v=1.1.0"></script>
   <script src="/js/pgn-replayer/pgn-board.js?v=1.0.0"></script>
-  <script src="/js/pgn-replayer/pgn-album-catalog.js?v=1.0.0"></script>
-  <script src="/js/pgn-replayer/pgn-mentor-player-catalog.js?v=1.0.0"></script>
-  <script src="/js/pgn-replayer/pgn-special-album-catalog.js?v=1.0.0"></script>
-  <script src="/js/pgn-replayer/pgn-album-pricing.js?v=1.0.1"></script>
-  <script type="module" src="/js/pgn-replayer/pgn-replayer-page.js?v=1.1.1"></script>
+  <script src="/js/pgn-replayer/pgn-player-iconography.js?v=1.0.0"></script>
+  <script src="/js/pgn-replayer/pgn-entitlements.js?v=1.1.0"></script>
+  <script src="/js/pgn-replayer/pgn-album-catalog.js?v=1.2.0"></script>
+  <script src="/js/pgn-replayer/pgn-mentor-player-catalog.js?v=1.2.0"></script>
+  <script src="/js/pgn-replayer/pgn-special-album-catalog.js?v=1.1.0"></script>
+  <script src="/js/pgn-replayer/pgn-mentor-historical-library.js?v=1.1.0"></script>
+  <script src="/js/pgn-replayer/pgn-opening-library.js?v=1.0.0"></script>
+  <script src="/js/pgn-replayer/pgn-album-pricing.js?v=1.1.0"></script>
+  <script type="module" src="/js/pgn-replayer/pgn-replayer-page.js?v=1.4.0"></script>
 </body>
 </html>

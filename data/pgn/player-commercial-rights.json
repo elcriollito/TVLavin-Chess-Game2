@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-08-23",
+  "catalogAlbumCount": 82,
+  "commerciallyCertifiedAlbumCount": 0,
+  "activationPolicy": {
+    "default": "blocked",
+    "requiredStatus": "certified",
+    "requiredScope": [
+      "store-local-copies",
+      "authenticated-display-and-delivery",
+      "commercial-credit-paywall",
+      "worldwide-use",
+      "format-normalization"
+    ],
+    "note": "A public download or a statement that a file is free does not, by itself, certify CAISSA paid redistribution. Written permission or an explicit compatible license must be retained before activation."
+  },
+  "sources": {
+    "pgnmentor": {
+      "provider": "PGN Mentor / 64 Squares",
+      "albumCount": 17,
+      "commercialRightsStatus": "permission-required",
+      "catalogUse": "16 imported player ZIP archives plus the separately supplied Capablanca archive",
+      "sourceUrl": "https://www.pgnmentor.com/files.html",
+      "contactUrl": "https://www.pgnmentor.com/cont.html",
+      "contactEmail": "sales@pgnmentor.com",
+      "publicEvidence": "The provider states that its PGN files are available to download completely free, but the reviewed pages do not publish an explicit license for commercial redistribution or paid access.",
+      "evidenceDocument": null,
+      "certifiedScope": []
+    },
+    "smallchess": {
+      "provider": "SmallChess / Ted Wong",
+      "albumCount": 65,
+      "commercialRightsStatus": "permission-required",
+      "catalogUse": "65 player PGN files from the public /Games directory",
+      "sourceUrl": "https://www.smallchess.com/Games/",
+      "contactUrl": "https://www.smallchess.com/",
+      "contactEmail": "tedwong@smallchess.com",
+      "publicEvidence": "The reviewed public directory permits direct downloads but publishes no license or terms granting commercial redistribution or paid access to the PGN collections.",
+      "evidenceDocument": null,
+      "certifiedScope": []
+    }
+  }
+}

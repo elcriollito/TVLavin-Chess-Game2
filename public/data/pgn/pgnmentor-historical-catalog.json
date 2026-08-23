@@ -1,0 +1,1077 @@
+{
+  "schemaVersion": 1,
+  "sourcePage": "https://www.pgnmentor.com/files.html",
+  "updatedAt": "2026-08-22T16:46:07+00:00",
+  "sourceUpdates": {
+    "players": "July 2026",
+    "openings": "January 2026"
+  },
+  "playerDirectoryExposed": false,
+  "runtimePolicy": {
+    "events": "remote-through-caissa-gateway",
+    "players": "physical-caissa-archives-only"
+  },
+  "families": {
+    "worldChampionships": [
+      {
+        "id": "world-championship-worldchamp2024",
+        "year": 2024,
+        "title": "2024 — Gukesh vs Ding Liren",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp2024.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp2023",
+        "year": 2023,
+        "title": "2023 — Ding Liren vs Nepomniachtchi",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp2023.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp2021",
+        "year": 2021,
+        "title": "2021 — Carlsen vs Nepomniachtchi",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp2021.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp2018",
+        "year": 2018,
+        "title": "2018 — Carlsen vs Caruana",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp2018.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp2016",
+        "year": 2016,
+        "title": "2016 — Carlsen vs Karjakin",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp2016.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp2014",
+        "year": 2014,
+        "title": "2014 — Carlsen vs Anand",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp2014.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp2013",
+        "year": 2013,
+        "title": "2013 — Carlsen vs Anand",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp2013.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp2012",
+        "year": 2012,
+        "title": "2012 — Anand vs Gelfand",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp2012.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp2010",
+        "year": 2010,
+        "title": "2010 — Anand vs Topalov",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp2010.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp2008",
+        "year": 2008,
+        "title": "2008 — Anand vs Kramnik",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp2008.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp2007",
+        "year": 2007,
+        "title": "2007 — World Championship Tournament",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp2007.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp2006",
+        "year": 2006,
+        "title": "2006 — Kramnik vs Topalov",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp2006.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-fidechamp2005",
+        "year": 2005,
+        "title": "2005 — FIDE World Championship Tournament",
+        "details": "FIDE World Championship · Remote PGN · Free",
+        "file": "FideChamp2005.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-fidechamp2004",
+        "year": 2004,
+        "title": "2004 — FIDE Knockout Championship",
+        "details": "FIDE World Championship · Remote PGN · Free",
+        "file": "FideChamp2004.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp2004",
+        "year": 2004,
+        "title": "2004 — Kramnik vs Leko",
+        "details": "Classical World Championship · Remote PGN · Free",
+        "file": "WorldChamp2004.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-fidechamp2002",
+        "year": 2002,
+        "title": "2002 — FIDE Knockout Championship",
+        "details": "FIDE World Championship · Remote PGN · Free",
+        "file": "FideChamp2002.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-fidechamp2000",
+        "year": 2000,
+        "title": "2000 — FIDE Knockout Championship",
+        "details": "FIDE World Championship · Remote PGN · Free",
+        "file": "FideChamp2000.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp2000",
+        "year": 2000,
+        "title": "2000 — Kramnik vs Kasparov",
+        "details": "Classical World Championship · Remote PGN · Free",
+        "file": "WorldChamp2000.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-fidechamp1999",
+        "year": 1999,
+        "title": "1999 — FIDE Knockout Championship",
+        "details": "FIDE World Championship · Remote PGN · Free",
+        "file": "FideChamp1999.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-fidechamp1998",
+        "year": 1998,
+        "title": "1998 — Karpov vs Anand",
+        "details": "FIDE World Championship · Remote PGN · Free",
+        "file": "FideChamp1998.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-fidechamp1996",
+        "year": 1996,
+        "title": "1996 — Karpov vs Kamsky",
+        "details": "FIDE World Championship · Remote PGN · Free",
+        "file": "FideChamp1996.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-pcachamp1995",
+        "year": 1995,
+        "title": "1995 — Kasparov vs Anand",
+        "details": "PCA World Championship · Remote PGN · Free",
+        "file": "PCAChamp1995.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-fidechamp1993",
+        "year": 1993,
+        "title": "1993 — Karpov vs Timman",
+        "details": "FIDE World Championship · Remote PGN · Free",
+        "file": "FideChamp1993.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-pcachamp1993",
+        "year": 1993,
+        "title": "1993 — Kasparov vs Short",
+        "details": "PCA World Championship · Remote PGN · Free",
+        "file": "PCAChamp1993.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1990",
+        "year": 1990,
+        "title": "1990 — Kasparov vs Karpov",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1990.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1987",
+        "year": 1987,
+        "title": "1987 — Kasparov vs Karpov",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1987.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1986",
+        "year": 1986,
+        "title": "1986 — Kasparov vs Karpov",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1986.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1985",
+        "year": 1985,
+        "title": "1985 — Kasparov vs Karpov",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1985.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1984",
+        "year": 1984,
+        "title": "1984 — Karpov vs Kasparov",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1984.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1981",
+        "year": 1981,
+        "title": "1981 — Karpov vs Korchnoi",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1981.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1978",
+        "year": 1978,
+        "title": "1978 — Karpov vs Korchnoi",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1978.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1972",
+        "year": 1972,
+        "title": "1972 — Fischer vs Spassky",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1972.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1969",
+        "year": 1969,
+        "title": "1969 — Spassky vs Petrosian",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1969.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1966",
+        "year": 1966,
+        "title": "1966 — Petrosian vs Spassky",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1966.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1963",
+        "year": 1963,
+        "title": "1963 — Petrosian vs Botvinnik",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1963.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1961",
+        "year": 1961,
+        "title": "1961 — Botvinnik vs Tal",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1961.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1960",
+        "year": 1960,
+        "title": "1960 — Tal vs Botvinnik",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1960.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1958",
+        "year": 1958,
+        "title": "1958 — Botvinnik vs Smyslov",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1958.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1957",
+        "year": 1957,
+        "title": "1957 — Smyslov vs Botvinnik",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1957.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1954",
+        "year": 1954,
+        "title": "1954 — Botvinnik vs Smyslov",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1954.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1951",
+        "year": 1951,
+        "title": "1951 — Botvinnik vs Bronstein",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1951.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1948",
+        "year": 1948,
+        "title": "1948 — World Championship Tournament",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1948.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1937",
+        "year": 1937,
+        "title": "1937 — Alekhine vs Euwe",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1937.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1935",
+        "year": 1935,
+        "title": "1935 — Euwe vs Alekhine",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1935.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1934",
+        "year": 1934,
+        "title": "1934 — Alekhine vs Bogoljubow",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1934.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1929",
+        "year": 1929,
+        "title": "1929 — Alekhine vs Bogoljubow",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1929.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1927",
+        "year": 1927,
+        "title": "1927 — Alekhine vs Capablanca",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1927.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1921",
+        "year": 1921,
+        "title": "1921 — Capablanca vs Lasker",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1921.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1910a",
+        "year": 1910,
+        "title": "1910 — Lasker vs Schlechter",
+        "details": "Undisputed World Championship · Match A · Remote PGN · Free",
+        "file": "WorldChamp1910a.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1910b",
+        "year": 1910,
+        "title": "1910 — Lasker vs Janowski",
+        "details": "Undisputed World Championship · Match B · Remote PGN · Free",
+        "file": "WorldChamp1910b.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1909",
+        "year": 1909,
+        "title": "1909 — Lasker vs Janowski",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1909.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1908",
+        "year": 1908,
+        "title": "1908 — Lasker vs Tarrasch",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1908.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1907",
+        "year": 1907,
+        "title": "1907 — Lasker vs Marshall",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1907.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1896",
+        "year": 1896,
+        "title": "1896 — Lasker vs Steinitz",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1896.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1894",
+        "year": 1894,
+        "title": "1894 — Lasker vs Steinitz",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1894.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1892",
+        "year": 1892,
+        "title": "1892 — Steinitz vs Chigorin",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1892.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1890",
+        "year": 1890,
+        "title": "1890 — Steinitz vs Gunsberg",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1890.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1889",
+        "year": 1889,
+        "title": "1889 — Steinitz vs Chigorin",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1889.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      },
+      {
+        "id": "world-championship-worldchamp1886",
+        "year": 1886,
+        "title": "1886 — Steinitz vs Zukertort",
+        "details": "Undisputed World Championship · Remote PGN · Free",
+        "file": "WorldChamp1886.pgn",
+        "kind": "world-championship",
+        "access": "free"
+      }
+    ],
+    "qualifiers": [
+      {
+        "id": "qualifier-candidates2024",
+        "year": 2024,
+        "title": "2024 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates2024.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-worldcup2023",
+        "year": 2023,
+        "title": "2023 — FIDE World Cup",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "WorldCup2023.pgn",
+        "kind": "world-cup",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates2022",
+        "year": 2022,
+        "title": "2022 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates2022.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-worldcup2021",
+        "year": 2021,
+        "title": "2021 — FIDE World Cup",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "WorldCup2021.pgn",
+        "kind": "world-cup",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates2020",
+        "year": 2020,
+        "title": "2020 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates2020.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates2018",
+        "year": 2018,
+        "title": "2018 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates2018.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates2016",
+        "year": 2016,
+        "title": "2016 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates2016.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-worldcup2015",
+        "year": 2015,
+        "title": "2015 — FIDE World Cup",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "WorldCup2015.pgn",
+        "kind": "world-cup",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates2014",
+        "year": 2014,
+        "title": "2014 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates2014.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates2013",
+        "year": 2013,
+        "title": "2013 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates2013.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-worldcup2013",
+        "year": 2013,
+        "title": "2013 — FIDE World Cup",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "WorldCup2013.pgn",
+        "kind": "world-cup",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates2011",
+        "year": 2011,
+        "title": "2011 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates2011.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-worldcup2011",
+        "year": 2011,
+        "title": "2011 — FIDE World Cup",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "WorldCup2011.pgn",
+        "kind": "world-cup",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-worldcup2009",
+        "year": 2009,
+        "title": "2009 — FIDE World Cup",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "WorldCup2009.pgn",
+        "kind": "world-cup",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-worldcup2007",
+        "year": 2007,
+        "title": "2007 — FIDE World Cup",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "WorldCup2007.pgn",
+        "kind": "world-cup",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-worldcup2005",
+        "year": 2005,
+        "title": "2005 — FIDE World Cup",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "WorldCup2005.pgn",
+        "kind": "world-cup",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates1994",
+        "year": 1994,
+        "title": "1994 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates1994.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1993",
+        "year": 1993,
+        "title": "1993 — Interzonal",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1993.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates1990",
+        "year": 1990,
+        "title": "1990 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates1990.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1990",
+        "year": 1990,
+        "title": "1990 — Interzonal",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1990.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates1988",
+        "year": 1988,
+        "title": "1988 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates1988.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1987a",
+        "year": 1987,
+        "title": "1987 — Interzonal · Group A",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1987a.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1987b",
+        "year": 1987,
+        "title": "1987 — Interzonal · Group B",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1987b.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1987c",
+        "year": 1987,
+        "title": "1987 — Interzonal · Group C",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1987c.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates1985",
+        "year": 1985,
+        "title": "1985 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates1985.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates1985r",
+        "year": 1985,
+        "title": "1985 — Candidates Tournament · R",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates1985r.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1985a",
+        "year": 1985,
+        "title": "1985 — Interzonal · Group A",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1985a.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1985b",
+        "year": 1985,
+        "title": "1985 — Interzonal · Group B",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1985b.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1985c",
+        "year": 1985,
+        "title": "1985 — Interzonal · Group C",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1985c.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates1983",
+        "year": 1983,
+        "title": "1983 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates1983.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1982a",
+        "year": 1982,
+        "title": "1982 — Interzonal · Group A",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1982a.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1982b",
+        "year": 1982,
+        "title": "1982 — Interzonal · Group B",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1982b.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1982c",
+        "year": 1982,
+        "title": "1982 — Interzonal · Group C",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1982c.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates1980",
+        "year": 1980,
+        "title": "1980 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates1980.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1979a",
+        "year": 1979,
+        "title": "1979 — Interzonal · Group A",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1979a.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1979b",
+        "year": 1979,
+        "title": "1979 — Interzonal · Group B",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1979b.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates1977",
+        "year": 1977,
+        "title": "1977 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates1977.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1976a",
+        "year": 1976,
+        "title": "1976 — Interzonal · Group A",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1976a.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1976b",
+        "year": 1976,
+        "title": "1976 — Interzonal · Group B",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1976b.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates1974",
+        "year": 1974,
+        "title": "1974 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates1974.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1973a",
+        "year": 1973,
+        "title": "1973 — Interzonal · Group A",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1973a.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1973b",
+        "year": 1973,
+        "title": "1973 — Interzonal · Group B",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1973b.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates1971",
+        "year": 1971,
+        "title": "1971 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates1971.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1970",
+        "year": 1970,
+        "title": "1970 — Interzonal",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1970.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates1968",
+        "year": 1968,
+        "title": "1968 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates1968.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1967",
+        "year": 1967,
+        "title": "1967 — Interzonal",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1967.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates1965",
+        "year": 1965,
+        "title": "1965 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates1965.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1964",
+        "year": 1964,
+        "title": "1964 — Interzonal",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1964.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates1962",
+        "year": 1962,
+        "title": "1962 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates1962.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1962",
+        "year": 1962,
+        "title": "1962 — Interzonal",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1962.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates1959",
+        "year": 1959,
+        "title": "1959 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates1959.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1958",
+        "year": 1958,
+        "title": "1958 — Interzonal",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1958.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates1956",
+        "year": 1956,
+        "title": "1956 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates1956.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1955",
+        "year": 1955,
+        "title": "1955 — Interzonal",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1955.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates1953",
+        "year": 1953,
+        "title": "1953 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates1953.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1952",
+        "year": 1952,
+        "title": "1952 — Interzonal",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1952.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-candidates1950",
+        "year": 1950,
+        "title": "1950 — Candidates Tournament",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Candidates1950.pgn",
+        "kind": "candidates",
+        "access": "free"
+      },
+      {
+        "id": "qualifier-interzonal1948",
+        "year": 1948,
+        "title": "1948 — Interzonal",
+        "details": "World Championship qualification archive · Remote PGN · Free",
+        "file": "Interzonal1948.pgn",
+        "kind": "interzonal",
+        "access": "free"
+      }
+    ]
+  },
+  "counts": {
+    "worldChampionships": 59,
+    "qualifiers": 58
+  }
+}

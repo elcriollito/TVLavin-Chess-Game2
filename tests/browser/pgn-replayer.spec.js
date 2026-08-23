@@ -67,17 +67,116 @@ test('supports game selection, notation metadata, Albums, flip, focus, and keybo
   await expect(page.locator('[data-pgn-focus]')).toBeFocused();
 });
 
-test('opens the existing Capablanca collection as a free album', async ({ page }) => {
-  test.setTimeout(45_000);
+test('opens an honest Options and About guide from the desktop source bar', async ({ page }) => {
+  await page.goto('/pgn-replayer');
+  await page.locator('[data-pgn-options]').click();
+  const guide = page.locator('[data-pgn-options-dialog]');
+  await expect(guide).toBeVisible();
+  await expect(guide).toContainText('Player figurines');
+  await expect(guide).toContainText('Find a collection quickly');
+  await expect(guide).toContainText('Free library access');
+  await expect(guide).toContainText('All 82 Player game collections are currently free');
+  await expect(guide).toContainText('independently built, provenance-tracked collections');
+  await guide.getByRole('button', { name: 'Done' }).click();
+  await expect(guide).toBeHidden();
+  await expect(page.locator('[data-pgn-options]')).toBeFocused();
+});
+
+test('loads Capablanca as one of the 82 temporary free player collections', async ({ page }) => {
+  await page.route('**/api/pgn/player?album=capablanca-games-1901-1941', route => route.fulfill({
+    contentType: 'application/x-chess-pgn',
+    body: annotated
+  }));
   await page.goto('/pgn-replayer');
   await page.getByRole('tab', { name: 'Albums' }).click();
   const album = page.locator('[data-album-id="capablanca-games-1901-1941"]');
   await expect(album).toContainText('José Raúl Capablanca');
+  await expect(album).toContainText('Player game collection · PGN');
+  await expect(album).toHaveAttribute('data-player-distinction', 'open-world-champion');
+  await expect(album.locator('.fa-chess-king')).toHaveCount(1);
   await expect(album.locator('[data-access="free"]')).toHaveText('Free');
   await album.click();
-  await expect(page.locator('[data-pgn-message]')).toContainText('597 games loaded locally', { timeout: 30_000 });
-  await expect(page.locator('[data-pgn-games] [data-game-index]')).toHaveCount(597);
-  await expect(album).toHaveAttribute('aria-current', 'true');
+  await expect(page.locator('[data-pgn-message]')).toContainText('2 games loaded locally');
+  await expect(page.locator('[data-pgn-title]')).toHaveText('Alpha — Beta');
+  await expect(page.locator('[data-pgn-unlock-dialog]')).toBeHidden();
+});
+
+test('classifies all 82 Players with historical chess-piece icons', async ({ page }) => {
+  await page.goto('/pgn-replayer');
+  await page.getByRole('tab', { name: 'Albums' }).click();
+  await expect(page.locator('[data-library-family="players"]')).toHaveCount(82);
+  await expect(page.locator('[data-player-distinction="open-world-champion"]')).toHaveCount(22);
+  await expect(page.locator('[data-player-distinction="womens-world-champion"]')).toHaveCount(8);
+  await expect(page.locator('[data-player-distinction="world-championship-challenger"]')).toHaveCount(16);
+  await expect(page.locator('[data-player-distinction="player"]')).toHaveCount(36);
+
+  await expect(page.getByRole('button', { name: /Ding Liren/ }).locator('.fa-chess-king')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: /Nona Gaprindashvili/ }).locator('.fa-chess-queen')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: /David Bronstein/ }).locator('.fa-chess-rook')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: /Efim Geller/ }).locator('.fa-chess-knight')).toHaveCount(1);
+});
+
+test('navigates the historical families and loads the 1972 championship through CAISSA', async ({ page }) => {
+  const fischerSpassky = `[Event "World Championship 1972"]
+[Site "Reykjavik"]
+[Date "1972.07.11"]
+[White "Fischer, Robert James"]
+[Black "Spassky, Boris V"]
+[Result "0-1"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 0-1`;
+  const openingCatalog = Array.from({ length: 233 }, (_, index) => ({
+    id: index === 0 ? 'opening-vienna' : `opening-test-${index}`,
+    title: index === 0 ? 'Vienna Game' : `Test Opening ${String(index).padStart(3, '0')}`,
+    file: index === 0 ? 'Vienna.zip' : `Opening${String(index).padStart(3, '0')}.zip`
+  }));
+  await page.route('**/api/pgn/opening', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ access: 'free', pageSize: 100, count: 233, openings: openingCatalog })
+  }));
+  await page.route('**/api/pgn/opening?file=Vienna.zip&page=1', route => route.fulfill({
+    contentType: 'application/x-chess-pgn',
+    headers: {
+      'X-CAISSA-Opening-Page': '1',
+      'X-CAISSA-Opening-Pages': '3',
+      'X-CAISSA-Opening-Games': '205',
+      'X-CAISSA-Opening-Page-Games': '100'
+    },
+    body: fischerSpassky
+  }));
+  await page.route('**/api/pgn/pgnmentor?kind=event&file=WorldChamp1972.pgn', route => route.fulfill({
+    contentType: 'application/x-chess-pgn',
+    body: fischerSpassky
+  }));
+  await page.goto('/pgn-replayer');
+  await page.getByRole('tab', { name: 'Albums' }).click();
+
+  const championships = page.locator('[data-pgn-library-family="world-championships"]');
+  await championships.click();
+  await expect(championships).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-pgn-library-summary]')).toContainText('Source catalog checked Aug 22, 2026');
+  await expect(page.locator('[data-mentor-historical-album-id]')).toHaveCount(59);
+
+  await page.locator('[data-pgn-library-search]').fill('Fischer');
+  const match = page.locator('[data-mentor-historical-album-id="world-championship-worldchamp1972"]');
+  await expect(match).toBeVisible();
+  await expect(page.locator('[data-library-family="world-championships"]:visible')).toHaveCount(1);
+  await match.click();
+  await expect(page.locator('[data-pgn-message]')).toContainText('1 game loaded locally');
+  await expect(page.locator('[data-pgn-title]')).toHaveText('Fischer, Robert James — Spassky, Boris V');
+
+  await page.getByRole('tab', { name: 'Albums' }).click();
+  await page.locator('[data-pgn-library-family="qualifiers"]').click();
+  await expect(page.locator('[data-mentor-historical-album-id]:visible')).toHaveCount(58);
+  await page.locator('[data-pgn-library-family="openings"]').click();
+  await expect(page.locator('[data-pgn-library-count="openings"]')).toHaveText('233');
+  await expect(page.locator('[data-opening-album-id]:visible')).toHaveCount(233);
+  await page.locator('[data-pgn-library-search]').fill('Vienna');
+  await expect(page.locator('[data-opening-album-id]:visible')).toHaveCount(1);
+  await page.locator('[data-opening-album-id="opening-vienna"]').click();
+  await expect(page.locator('[data-pgn-message]')).toContainText('1 game loaded locally');
+  await expect(page.locator('[data-pgn-opening-pagebar]')).toBeVisible();
+  await expect(page.locator('[data-pgn-opening-page-summary]')).toContainText('Games 1–100 of 205 · Page 1 of 3');
 });
 
 test('engine defaults off and renders exactly two local analysis lines', async ({ page }) => {
@@ -96,24 +195,25 @@ test('engine defaults off and renders exactly two local analysis lines', async (
   }));
   await page.goto('/pgn-replayer');
   await loadPgn(page);
+  await page.getByRole('tab', { name: 'Notation' }).click();
   const toggle = page.locator('[data-pgn-engine]');
   await expect(toggle).toContainText('Off');
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.locator('[data-pgn-engine-panel]')).toBeVisible();
-  const reservedHeight = await page.locator('[data-pgn-engine-panel]').evaluate(node => node.getBoundingClientRect().height);
+  const visiblePanel = page.locator('[data-pgn-engine-panel]:visible');
+  await expect(visiblePanel).toHaveCount(1);
+  const reservedHeight = await visiblePanel.evaluate(node => node.getBoundingClientRect().height);
   await toggle.click();
   await expect(toggle).toContainText('On');
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('[data-pgn-engine-panel]')).toBeVisible();
-  await expect(page.locator('.pgn-engine-line')).toHaveCount(2);
-  await expect(page.locator('.pgn-engine-line').first()).toContainText('+0.35');
-  await expect(page.locator('.pgn-engine-line').first()).toContainText('e4 e5 Nf3');
-  await expect(page.locator('[data-pgn-engine-panel]')).toHaveCSS('height', `${reservedHeight}px`);
+  await expect(visiblePanel).toHaveCount(1);
+  await expect(visiblePanel.locator('.pgn-engine-line')).toHaveCount(2);
+  await expect(visiblePanel.locator('.pgn-engine-line').first()).toContainText('+0.35');
+  await expect(visiblePanel.locator('.pgn-engine-line').first()).toContainText('e4 e5 Nf3');
+  await expect(visiblePanel).toHaveCSS('height', `${reservedHeight}px`);
   await toggle.click();
   await expect(toggle).toContainText('Off');
-  await expect(page.locator('[data-pgn-engine-panel]')).toBeVisible();
-  await expect(page.locator('[data-pgn-engine-panel]')).toHaveAttribute('data-state', 'off');
-  await expect(page.locator('.pgn-engine-line').first()).toContainText('Turn Engine on to analyze');
+  await expect(visiblePanel).toHaveAttribute('data-state', 'off');
+  await expect(visiblePanel.locator('.pgn-engine-line').first()).toContainText('Turn Engine on to analyze');
 });
 
 test('renders active-looking PGN content as text and reports invalid PGN safely', async ({ page }) => {
@@ -148,4 +248,34 @@ test('stays board-first without horizontal page overflow on mobile', async ({ pa
     expect(box.width).toBeGreaterThanOrEqual(42);
     expect(box.height).toBeGreaterThanOrEqual(42);
   }
+
+  const firstRow = await page.locator('.pgn-toolbar-imports-mobile button, .pgn-toolbar-playback button').evaluateAll(nodes => nodes.map(node => ({
+    name: node.hasAttribute('data-pgn-open') ? 'open' : node.hasAttribute('data-pgn-paste') ? 'paste' : [...node.attributes].find(attribute => attribute.name.startsWith('data-pgn-'))?.name.replace('data-pgn-', ''),
+    top: Math.round(node.getBoundingClientRect().top)
+  })));
+  expect(firstRow.map(control => control.name)).toEqual(['open', 'paste', 'first', 'previous', 'play', 'next', 'last']);
+  expect(new Set(firstRow.map(control => control.top)).size).toBe(1);
+
+  const secondRow = await page.locator('[data-pgn-engine], [data-pgn-speed], [data-pgn-flip], [data-pgn-focus]').evaluateAll(nodes => nodes.map(node => Math.round(node.getBoundingClientRect().top)));
+  expect(Math.max(...secondRow) - Math.min(...secondRow)).toBeLessThanOrEqual(2);
+  expect(secondRow[0]).toBeGreaterThan(firstRow[0].top);
+
+  const mobileStack = await page.locator('.pgn-toolbar, .pgn-engine-panel--mobile, .pgn-panel').evaluateAll(nodes => nodes.map(node => ({
+    className: node.className,
+    top: Math.round(node.getBoundingClientRect().top),
+    visible: node.getBoundingClientRect().height > 0
+  })).filter(item => item.visible));
+  expect(mobileStack).toHaveLength(3);
+  expect(mobileStack[0].className).toContain('pgn-toolbar');
+  expect(mobileStack[1].className).toContain('pgn-engine-panel--mobile');
+  expect(mobileStack[2].className).toContain('pgn-panel');
+  expect(mobileStack[0].top).toBeLessThan(mobileStack[1].top);
+  expect(mobileStack[1].top).toBeLessThan(mobileStack[2].top);
+
+  await page.getByRole('tab', { name: 'Notation' }).click();
+  await page.locator('[data-pgn-speed]').selectOption('400');
+  await page.locator('[data-pgn-play]').click();
+  const autoplayScrollY = await page.evaluate(() => window.scrollY);
+  await page.waitForTimeout(1200);
+  expect(Math.abs(await page.evaluate(() => window.scrollY) - autoplayScrollY)).toBeLessThanOrEqual(1);
 });

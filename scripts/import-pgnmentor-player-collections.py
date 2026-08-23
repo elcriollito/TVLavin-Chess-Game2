@@ -4,7 +4,7 @@
 The upstream player downloads are ZIP files. This importer downloads only the
 explicitly allowlisted players in data/pgn/pgnmentor-player-import.json,
 validates/extracts one PGN from each ZIP, writes immutable-ish provenance
-metadata, and generates the browser catalog against CAISSA-local paths.
+metadata, and generates a browser catalog that uses CAISSA entitlements.
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG_PATH = ROOT / "data/pgn/pgnmentor-player-import.json"
-OUTPUT_DIR = ROOT / "public/data/pgn/players/pgnmentor"
+OUTPUT_DIR = ROOT / "api/_private/pgn/players/pgnmentor"
 MANIFEST_PATH = OUTPUT_DIR / "manifest.json"
 CLIENT_CATALOG = ROOT / "js/pgn-replayer/pgn-mentor-player-catalog.js"
 MAX_ZIP_BYTES = 20 * 1024 * 1024
@@ -103,15 +103,14 @@ def js_string(value: str) -> str:
 
 def write_client_catalog(records: list[dict]) -> None:
     entries = []
-    for record in records:
+    for record in sorted(records, key=lambda item: item["title"].casefold()):
         entries.append(
-            "        { id: %s, title: %s, details: %s, games: %d, source: %s }"
+            "        { id: %s, title: %s, details: %s, games: %d }"
             % (
                 js_string(record["id"]),
                 js_string(record["title"]),
-                js_string(f'{record["games"]:,} games · CAISSA physical archive'),
+                js_string("Player game collection · PGN"),
                 record["games"],
-                js_string(record["localPath"]),
             )
         )
     array_text = ",\n".join(entries)
@@ -121,7 +120,8 @@ def write_client_catalog(records: list[dict]) -> None:
     const MENTOR_PLAYER_ALBUMS = Object.freeze([\n{array_text}\n    ]);
     const albumRoot = document.querySelector('[data-pgn-albums]');
     const fileInput = document.querySelector('[data-pgn-file]');
-    if (!albumRoot || !fileInput) return;
+    const iconography = window.CaissaPgnPlayerIconography;
+    if (!albumRoot || !fileInput || !iconography) return;
 
     let selectedAlbumId = null;
     let syntheticImport = false;
@@ -139,8 +139,7 @@ def write_client_catalog(records: list[dict]) -> None:
         card.dataset.creditCost = '1';
         card.setAttribute('aria-current', String(album.id === selectedAlbumId));
         const icon = document.createElement('i');
-        icon.className = 'fas fa-chess-knight';
-        icon.setAttribute('aria-hidden', 'true');
+        iconography.decorate(icon, card, album.title);
         const copy = document.createElement('div');
         const title = document.createElement('strong');
         title.textContent = album.title;
@@ -188,10 +187,9 @@ def write_client_catalog(records: list[dict]) -> None:
         renderCatalog();
         card.disabled = true;
         try {{
-            const response = await fetch(album.source, {{ credentials: 'same-origin', cache: 'force-cache', headers: {{ Accept: 'text/plain' }} }});
-            if (!response.ok) throw new Error('The collection is temporarily unavailable.');
-            const bytes = await response.arrayBuffer();
-            if (bytes.byteLength > 10 * 1024 * 1024) throw new Error('This collection exceeds the 10 MiB replayer safety limit.');
+            if (!window.CaissaPgnEntitlements) throw new Error('Protected album access is unavailable.');
+            const bytes = await window.CaissaPgnEntitlements.fetchAlbum(album);
+            if (!bytes) {{ selectedAlbumId = null; renderCatalog(); return; }}
             const transfer = new DataTransfer();
             transfer.items.add(new File([bytes], `${{album.title}}.pgn`, {{ type: 'application/x-chess-pgn' }}));
             syntheticImport = true;

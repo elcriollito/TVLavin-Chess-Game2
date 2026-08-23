@@ -16,8 +16,8 @@ test('owns a distinct canonical route and keeps the classic free replayer intact
   assert.equal(page('link[href^="/styles.css"]').index() < page('link[href^="/css/caissa-standalone-sidebar.css"]').index(), true);
   assert.equal(page('h1').text(), 'PGN Replayer');
   assert.equal(page('iframe').length, 0);
-  assert.doesNotMatch(read('pgn-replayer.html'), /pgn\.chessbase\.com|Credits:|checkout/i);
-  assert.match(read('game-replayer.html'), /capablanca-games-1901-1941\.pgn/);
+  assert.doesNotMatch(read('pgn-replayer.html'), /pgn\.chessbase\.com|Credits:/i);
+  assert.match(read('game-replayer.html'), /free\/world-championship\.pgn/);
   const vercel = JSON.parse(read('vercel.json'));
   assert.ok(vercel.rewrites.some(rule => rule.source === '/pgn-replayer' && rule.destination === '/pgn-replayer.html'));
   assert.ok(vercel.rewrites.some(rule => rule.source === '/watch/game-replayer' && rule.destination === '/game-replayer.html'));
@@ -33,8 +33,12 @@ test('uses Games, Notation, Albums order and a board-first accessible shell', ()
     assert.equal(control.length, 1, `${key} control missing`);
     assert.ok(control.attr('aria-label'), `${key} accessible name missing`);
   }
-  assert.equal(page('[data-pgn-open]').length, 1);
-  assert.equal(page('[data-pgn-paste]').length, 1);
+  assert.equal(page('[data-pgn-open]').length, 2);
+  assert.equal(page('[data-pgn-paste]').length, 2);
+  assert.equal(page('.pgn-toolbar-imports-mobile [data-pgn-open]').length, 1);
+  assert.equal(page('.pgn-toolbar-imports-mobile [data-pgn-paste]').length, 1);
+  assert.equal(page('.pgn-source-actions [data-pgn-open] + [data-pgn-options]').length, 1);
+  assert.equal(page('[data-pgn-options]').attr('aria-controls'), 'pgn-options-dialog');
   assert.match(page('meta[http-equiv="Content-Security-Policy"]').attr('content'), /worker-src 'self'/);
   assert.doesNotMatch(page('meta[http-equiv="Content-Security-Policy"]').attr('content'), /unsafe-eval|unsafe-inline/);
   assert.doesNotMatch(page('meta[http-equiv="Content-Security-Policy"]').attr('content'), /frame-ancestors/);
@@ -51,8 +55,9 @@ test('replaces redundant Change PGN with a lazy local engine that defaults off',
   assert.equal(page('[data-pgn-engine]').attr('aria-pressed'), 'false');
   assert.equal(page('[data-pgn-engine-state]').text(), 'Off');
   assert.equal(page('#pgn-engine-title').text(), 'Stockfish analysis');
-  assert.equal(page('[data-pgn-engine-panel]').attr('hidden'), undefined);
-  assert.equal(page('[data-pgn-engine-panel]').attr('data-state'), 'off');
+  assert.equal(page('#pgn-engine-mobile-title').text(), 'Stockfish analysis');
+  assert.equal(page('[data-pgn-engine-panel]').length, 2);
+  assert.equal(page('[data-pgn-engine-panel][data-state="off"]').length, 2);
   assert.equal(page('script[src*="pgn-replayer-page.js"]').attr('type'), 'module');
   assert.match(runtime, /new PgnAnalysisEngine/);
   assert.doesNotMatch(runtime, /caissa_pgn_engine|localStorage.*engine/i);
@@ -66,7 +71,8 @@ test('replaces redundant Change PGN with a lazy local engine that defaults off',
   assert.match(workerCsp, /script-src 'self' 'wasm-unsafe-eval'/);
   assert.doesNotMatch(workerCsp, /script-src[^;]*'unsafe-eval'/);
   assert.equal(page('#pgn-panel-notation > .pgn-notation-scroll').length, 1);
-  assert.equal(page('#pgn-panel-notation > [data-pgn-engine-panel]').length, 1);
+  assert.equal(page('#pgn-panel-notation > .pgn-engine-panel--desktop').length, 1);
+  assert.equal(page('.pgn-board-column > .pgn-toolbar + .pgn-engine-panel--mobile').length, 1);
   assert.match(read('css/pgn-replayer.css'), /\.pgn-engine-panel \{[^}]*height: 123px;[^}]*flex: 0 0 123px/);
 });
 
@@ -78,26 +84,52 @@ test('pins the local single-threaded Stockfish 18 browser distribution', () => {
   assert.match(read('engine/STOCKFISH-NOTICE.md'), /Stockfish\.js 18 lite single-threaded/);
 });
 
-test('keeps game information above notation and reserves safe album access states', () => {
+test('keeps game information above notation and publishes the unified free-library state', () => {
   const page = load(read('pgn-replayer.html'));
   assert.equal(page('#pgn-panel-notation [data-pgn-game-info]').length, 1);
   assert.equal(page('#pgn-panel-notation [data-pgn-game-info]').index() < page('#pgn-panel-notation [data-pgn-notation]').index(), true);
   assert.equal(page('#pgn-panel-albums [data-pgn-albums]').length, 1);
-  assert.deepEqual(page('.pgn-album-status-key [data-access]').map((_, node) => page(node).text()).get(), ['1 credit', 'Owned']);
+  assert.deepEqual(page('.pgn-album-status-key [data-access]').map((_, node) => page(node).text()).get(), ['Free']);
   const runtime = read('js/pgn-replayer/pgn-replayer-page.js');
   assert.match(runtime, /album\.access === 'owned'/);
   assert.match(runtime, /album\.access === 'available'/);
-  assert.doesNotMatch(runtime, /debit|checkout|purchase|reserve.*credit/i);
+  assert.match(read('js/pgn-replayer/pgn-entitlements.js'), /\/api\/pgn\/player\?album=/);
+  assert.doesNotMatch(read('js/pgn-replayer/pgn-entitlements.js'), /\/api\/pgn\/unlock|Idempotency-Key/);
 });
 
-test('publishes the authorized Capablanca collection as a free same-origin album', () => {
+test('Options and About explains free access and future provenance replacement', () => {
+  const page = load(read('pgn-replayer.html'));
+  const runtime = read('js/pgn-replayer/pgn-replayer-page.js');
+  const styles = read('css/pgn-replayer.css');
+  const guide = page('[data-pgn-options-dialog]');
+  assert.equal(guide.length, 1);
+  assert.equal(guide.find('#pgn-options-title').text(), 'Options & About');
+  assert.match(guide.text(), /King\s*Open World Champion/);
+  assert.match(guide.text(), /Queen\s*Women’s World Champion/);
+  assert.match(guide.text(), /Rook\s*World Championship match or final challenger/);
+  assert.match(guide.text(), /Knight\s*Other featured player collection/);
+  assert.match(guide.text(), /capa.*José Raúl Capablanca/s);
+  assert.match(guide.text(), /All 82 Player game collections are currently free/);
+  assert.match(guide.text(), /No account or credit is required/);
+  assert.match(guide.text(), /provenance-tracked collections/);
+  assert.equal(guide.find('a[href="/store"]').length, 0);
+  assert.equal(guide.find('a[href="/signup?redirect_url=%2Fpgn-replayer"]').length, 0);
+  assert.match(runtime, /optionsDialog\.showModal\(\)/);
+  assert.match(styles, /\.pgn-library-search input:focus, \.pgn-library-search input:focus-visible \{ outline: 0; box-shadow: none; \}/);
+  assert.equal(page('[data-pgn-library-search]').attr('spellcheck'), 'false');
+  assert.equal(page('[data-pgn-library-search]').attr('autocorrect'), 'off');
+});
+
+test('keeps Capablanca as a free player album with the common visual description', () => {
   const runtime = read('js/pgn-replayer/pgn-replayer-page.js');
   const provenance = JSON.parse(read('public/data/pgn/capablanca-games-1901-1941.provenance.json'));
   assert.match(runtime, /id: 'capablanca-games-1901-1941'/);
   assert.match(runtime, /title: 'José Raúl Capablanca'/);
   assert.match(runtime, /games: 597/);
   assert.match(runtime, /access: 'free'/);
-  assert.match(runtime, /source: '\/data\/pgn\/capablanca-games-1901-1941\.pgn'/);
+  assert.match(runtime, /credits: 0/);
+  assert.match(runtime, /source: 'protected-player-album'/);
+  assert.match(runtime, /details: 'Player game collection · PGN'/);
   assert.equal(provenance.gameCount, 597);
   assert.match(provenance.publicUseAuthorization, /repository owner supplied and authorized/i);
   assert.equal(provenance.validationSummary.legalGames, 597);
@@ -156,6 +188,32 @@ test('board geometry keeps all eight ranks and files at every responsive size', 
   assert.match(styles, /body\.pgn-replayer-page > \.piece-417db \{[^}]*display: none !important/);
   assert.match(board, /this\.widget\.position\(fen \|\| 'start', false\)/);
   assert.match(board, /querySelectorAll\('body\.pgn-replayer-page > \.piece-417db'\)/);
+});
+
+test('mobile controls stay in two compact rows without viewport-scrolling notation', () => {
+  const page = load(read('pgn-replayer.html'));
+  const runtime = read('js/pgn-replayer/pgn-replayer-page.js');
+  const styles = read('css/pgn-replayer.css');
+  const firstRow = page('.pgn-toolbar-imports-mobile button, .pgn-toolbar-playback button')
+    .map((_, node) => page(node).attr('data-pgn-open') !== undefined ? 'open'
+      : page(node).attr('data-pgn-paste') !== undefined ? 'paste'
+        : Object.keys(node.attribs).find(key => key.startsWith('data-pgn-'))?.replace('data-pgn-', ''))
+    .get();
+
+  assert.deepEqual(firstRow, ['open', 'paste', 'first', 'previous', 'play', 'next', 'last']);
+  assert.equal(page('.pgn-toolbar-source [data-pgn-engine]').length, 1);
+  assert.equal(page('.pgn-toolbar-view [data-pgn-speed]').length, 1);
+  assert.equal(page('.pgn-toolbar-view [data-pgn-flip]').length, 1);
+  assert.equal(page('.pgn-toolbar-view [data-pgn-focus] .pgn-control-label').text(), 'Zoom');
+  assert.equal(page('.pgn-board-column > .pgn-toolbar + .pgn-engine-panel--mobile').length, 1);
+  assert.equal(page('.pgn-board-column + .pgn-panel').length, 1);
+  assert.match(styles, /grid-template-columns: repeat\(7, minmax\(0, 1fr\)\)/);
+  assert.match(styles, /\.pgn-engine-panel--desktop \{ display: none; \}/);
+  assert.match(styles, /\.pgn-engine-panel--mobile \{ display: block;[^}]*width: min\(100%, 760px\)/);
+  assert.match(runtime, /enginePanels: root\.querySelectorAll/);
+  assert.match(runtime, /engineLineGroups: root\.querySelectorAll/);
+  assert.match(runtime, /function keepActiveMoveVisible\(selected\)/);
+  assert.doesNotMatch(runtime, /scrollIntoView/);
 });
 
 test('vendored parser is pinned, licensed, and isolated to the Worker', () => {

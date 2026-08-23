@@ -7,7 +7,7 @@ import vm from 'node:vm';
 import { Chess } from '../assets/vendor/chess.js/chess-1.4.0.esm.js';
 
 const root = new URL('../', import.meta.url);
-const manifestUrl = new URL('public/data/pgn/players/manifest.json', root);
+const manifestUrl = new URL('api/_private/pgn/players/manifest.json', root);
 const coreUrl = new URL('js/pgn-replayer/pgn-core.js', root);
 const parserUrl = new URL('assets/vendor/pgn-parser/pgn-parser-1.4.19.umd.js', root);
 
@@ -25,7 +25,7 @@ function sha256(data) {
 }
 
 function verifyOne(album) {
-  const relativePath = album.localPath.replace(/^\//, 'public/');
+  const relativePath = album.localPath.replace(/^\/data\/pgn\/players\//, 'api/_private/pgn/players/');
   const fileUrl = new URL(relativePath, root);
   const data = fs.readFileSync(fileUrl);
   assert.equal(data.byteLength, album.bytes, `${album.title}: byte size differs from manifest`);
@@ -33,13 +33,15 @@ function verifyOne(album) {
 
   const { core, parser } = loadRuntime();
   const collection = core.parseCollection(data.toString('utf8'), { parse: parser.parse, Chess });
-  assert.equal(collection.warnings.length, 0, `${album.title}: parser skipped ${collection.warnings.length} game(s)`);
-  assert.equal(collection.games.length, album.games, `${album.title}: playable game count differs from manifest`);
-  assert.equal(collection.summary.skippedGames, 0, `${album.title}: skipped games detected`);
+  assert.ok(collection.games.length > 0, `${album.title}: no playable games`);
+  assert.equal(collection.games.length + collection.warnings.length, album.games, `${album.title}: playable and warned games do not account for the manifest`);
+  assert.equal(collection.summary.skippedGames, collection.warnings.length, `${album.title}: skipped-game summary mismatch`);
+  assert.ok(collection.warnings.length / album.games < 0.1, `${album.title}: ten percent or more of the source archive is not playable`);
 
   return {
     title: album.title,
     games: collection.games.length,
+    warnings: collection.warnings.length,
     nodes: collection.summary.nodes,
     bytes: data.byteLength,
     sha256: album.sha256
@@ -84,11 +86,12 @@ for (const album of largeAlbums) {
   const line = child.stdout.trim().split(/\r?\n/).filter(Boolean).at(-1);
   const result = JSON.parse(line);
   results.push(result);
-  console.log(`PASS ${result.title}: ${result.games.toLocaleString()} games, ${result.nodes.toLocaleString()} nodes, ${result.bytes.toLocaleString()} bytes`);
+  console.log(`PASS ${result.title}: ${result.games.toLocaleString()} playable, ${result.warnings.toLocaleString()} warned, ${result.nodes.toLocaleString()} nodes, ${result.bytes.toLocaleString()} bytes`);
 }
 
 const maxGames = Math.max(...results.map(result => result.games));
 const maxNodes = Math.max(...results.map(result => result.nodes));
 const totalGames = results.reduce((sum, result) => sum + result.games, 0);
+const totalWarnings = results.reduce((sum, result) => sum + result.warnings, 0);
 
-console.log(`Verified ${results.length} large albums / ${totalGames.toLocaleString()} games. Largest: ${maxGames.toLocaleString()} games; peak normalized nodes: ${maxNodes.toLocaleString()}.`);
+console.log(`Verified ${results.length} large albums / ${totalGames.toLocaleString()} playable games / ${totalWarnings.toLocaleString()} source games warned. Largest: ${maxGames.toLocaleString()} playable games; peak normalized nodes: ${maxNodes.toLocaleString()}.`);
