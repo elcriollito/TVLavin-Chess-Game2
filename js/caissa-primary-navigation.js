@@ -21,7 +21,7 @@
         Object.freeze([
             { id: 'insights', label: 'Insights', icon: 'fas fa-brain', section: 'insights', route: '/insights', canonicalNavigation: true },
             { id: 'analyze', label: 'Analyze', icon: 'fas fa-chart-line', section: 'analyze', route: '/analyze', canonicalNavigation: true },
-            { id: 'pgn-replayer', label: 'CAISSA PGN Replayer', icon: 'fas fa-file-lines', route: '/pgn-replayer' },
+            { id: 'pgn-replayer', label: 'CAISSA PGN Reader', icon: 'fas fa-file-lines', route: '/pgn-replayer' },
             { id: 'spectator', label: 'Spectator TV', icon: 'fas fa-tv', section: 'spectator', route: '/spectator-tv', canonicalNavigation: true },
             { id: 'lichess-tv', label: 'Lichess TV', icon: 'fas fa-tv', route: '/watch/lichess-tv' },
             { id: 'live-blitz', label: 'Live Blitz', icon: 'fas fa-bolt', route: '/watch/live-blitz' },

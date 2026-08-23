@@ -79,7 +79,7 @@ test('navigation, route, sitemap, inventory, and CSP expose exactly one bounded 
   const api = navigation();
   assert.equal(api.contractId, 'CaissaGlobalNavigationOrderPolicy@1.12.0');
   assert.deepEqual(Array.from(api.inventory.groups[2], item => item.label), [
-    'Insights', 'Analyze', 'CAISSA PGN Replayer', 'Spectator TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Arena'
+    'Insights', 'Analyze', 'CAISSA PGN Reader', 'Spectator TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Arena'
   ]);
   const matches = api.inventory.all.filter(item => item.id === 'lichess-tv');
   assert.equal(matches.length, 1);

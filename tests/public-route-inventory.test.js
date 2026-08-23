@@ -19,7 +19,7 @@ test('CaissaPublicRouteInventory@1.0.0 is complete, unique, and ordered', () => 
   assert.deepEqual(inventory.primaryNavigation.slice(0, 5).map(item => item.label), ['Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz']);
   assert.equal(inventory.primaryNavigation[5].label, 'Tactics');
   assert.equal(inventory.primaryNavigation[6].label, 'Interactive Diagrams');
-  assert.equal(inventory.primaryNavigation[13].label, 'CAISSA PGN Replayer');
+  assert.equal(inventory.primaryNavigation[13].label, 'CAISSA PGN Reader');
   assert.equal(inventory.primaryNavigation[15].label, 'Lichess TV');
   assert.equal(inventory.primaryNavigation[16].label, 'Live Blitz');
   assert.equal(inventory.primaryNavigation[17].label, 'Live Tournaments');

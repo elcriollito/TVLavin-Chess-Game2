@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev; object-src 'none'; base-uri 'self'; form-action 'self'">
-  <title>Open and Replay PGN Files | CAISSA Chess</title>
-  <meta name="description" content="Open, explore, and replay single games or complete PGN collections privately in your browser with CAISSA Chess.">
+  <title>CAISSA PGN Reader | Open and Analyze Chess PGN Files</title>
+  <meta name="description" content="Read, replay, search, and analyze individual games or complete PGN collections privately with CAISSA PGN Reader.">
   <link rel="canonical" href="https://www.caissa-chess.org/pgn-replayer">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://www.caissa-chess.org/pgn-replayer">
-  <meta property="og:title" content="Open and Replay PGN Files | CAISSA Chess">
-  <meta property="og:description" content="Replay your PGN files locally with a clear chessboard, notation, variations, comments, and multi-game navigation.">
+  <meta property="og:title" content="CAISSA PGN Reader | Open and Analyze Chess PGN Files">
+  <meta property="og:description" content="Read and replay PGN files locally with a clear chessboard, notation, variations, comments, multi-game navigation, and Stockfish analysis.">
   <meta property="og:image" content="https://www.caissa-chess.org/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="robots" content="index, follow">
@@ -24,13 +24,13 @@
   <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
 </head>
 <body class="pgn-replayer-page">
-  <a class="pgn-skip-link" href="#pgn-main">Skip to PGN replayer</a>
+  <a class="pgn-skip-link" href="#pgn-main">Skip to PGN reader</a>
   <div class="caissa-standalone-layout">
     <div data-caissa-standalone-sidebar data-active="pgn-replayer"></div>
     <div class="caissa-standalone-content">
       <main id="pgn-main" class="pgn-app" data-pgn-app>
         <header class="pgn-topbar">
-          <div class="pgn-brand"><span class="pgn-eyebrow">CAISSA Chess</span><h1>PGN Replayer</h1></div>
+          <div class="pgn-brand"><span class="pgn-eyebrow">CAISSA Chess</span><h1>PGN Reader</h1></div>
           <div class="pgn-game-heading" aria-live="polite"><strong data-pgn-title>No game loaded</strong><span data-pgn-subtitle>Open a PGN file to begin</span></div>
           <div class="pgn-source-actions">
             <button class="pgn-button pgn-button--primary" type="button" data-pgn-open><i class="fas fa-folder-open" aria-hidden="true"></i><span>Open PGN</span></button>
@@ -120,8 +120,8 @@
         <dialog class="pgn-paste-dialog" data-pgn-dialog aria-labelledby="pgn-paste-title"><form method="dialog" class="pgn-paste-shell"><div class="pgn-dialog-heading"><div><span class="pgn-eyebrow">Local import</span><h2 id="pgn-paste-title">Paste PGN text</h2></div><button class="pgn-icon-button" value="cancel" aria-label="Close paste dialog"><i class="fas fa-xmark" aria-hidden="true"></i></button></div><label for="pgn-paste-input">PGN</label><textarea id="pgn-paste-input" data-pgn-paste-input rows="14" spellcheck="false" placeholder="[Event &quot;My game&quot;]&#10;[White &quot;White player&quot;]&#10;[Black &quot;Black player&quot;]&#10;&#10;1. e4 e5 2. Nf3 Nc6"></textarea><p>Your text is processed locally and is not saved to your account.</p><div class="pgn-dialog-actions"><button class="pgn-button" value="cancel">Cancel</button><button class="pgn-button pgn-button--primary" type="button" data-pgn-load-paste>Load PGN</button></div></form></dialog>
         <dialog id="pgn-options-dialog" class="pgn-options-dialog" data-pgn-options-dialog aria-labelledby="pgn-options-title">
           <form method="dialog" class="pgn-options-shell">
-            <div class="pgn-dialog-heading"><div><span class="pgn-eyebrow">Replayer guide</span><h2 id="pgn-options-title">Options &amp; About</h2></div><button class="pgn-icon-button" value="close" aria-label="Close Options and About"><i class="fas fa-xmark" aria-hidden="true"></i></button></div>
-            <section class="pgn-about-intro" aria-labelledby="pgn-about-heading"><i class="fas fa-circle-info" aria-hidden="true"></i><div><h3 id="pgn-about-heading">About CAISSA PGN Replayer</h3><p>Replay your PGN files privately, browse historical chess archives, study complete player collections, explore openings in safe pages, and analyze positions with the local Stockfish engine.</p></div></section>
+            <div class="pgn-dialog-heading"><div><span class="pgn-eyebrow">Reader guide</span><h2 id="pgn-options-title">Options &amp; About</h2></div><button class="pgn-icon-button" value="close" aria-label="Close Options and About"><i class="fas fa-xmark" aria-hidden="true"></i></button></div>
+            <section class="pgn-about-intro" aria-labelledby="pgn-about-heading"><i class="fas fa-circle-info" aria-hidden="true"></i><div><h3 id="pgn-about-heading">About CAISSA PGN Reader</h3><p>Read and replay your PGN files privately, browse historical chess archives, study complete player collections, explore openings in safe pages, and analyze positions with the local Stockfish engine.</p></div></section>
             <div class="pgn-guide-grid">
               <section class="pgn-guide-card" aria-labelledby="pgn-figurines-heading"><h3 id="pgn-figurines-heading">Player figurines</h3><ul class="pgn-figurine-guide"><li><i class="fas fa-chess-king" aria-hidden="true"></i><span><strong>King</strong>Open World Champion</span></li><li><i class="fas fa-chess-queen" aria-hidden="true"></i><span><strong>Queen</strong>Women’s World Champion</span></li><li><i class="fas fa-chess-rook" aria-hidden="true"></i><span><strong>Rook</strong>World Championship match or final challenger</span></li><li><i class="fas fa-chess-knight" aria-hidden="true"></i><span><strong>Knight</strong>Other featured player collection</span></li></ul></section>
               <section class="pgn-guide-card" aria-labelledby="pgn-search-guide-heading"><h3 id="pgn-search-guide-heading">Find a collection quickly</h3><p>Open <strong>Albums</strong>, choose Players, Championships, Candidates, Tournaments, or Openings, and type any part of a name. For example, <strong>capa</strong> finds José Raúl Capablanca.</p></section>
@@ -135,7 +135,7 @@
   </div>
   <script src="/assets/vendor/jquery/jquery-3.6.0.min.js"></script>
   <script src="/assets/vendor/chessboard.js/chessboard-1.0.0.min.js"></script>
-  <script src="/js/caissa-primary-navigation.js?v=1.0.0"></script>
+  <script src="/js/caissa-primary-navigation.js?v=1.0.2"></script>
   <script src="/js/caissa-standalone-sidebar.js?v=1.1.0"></script>
   <script src="/js/pgn-replayer/pgn-board.js?v=1.0.0"></script>
   <script src="/js/pgn-replayer/pgn-player-iconography.js?v=1.0.0"></script>

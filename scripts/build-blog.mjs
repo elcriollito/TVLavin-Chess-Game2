@@ -111,7 +111,7 @@ function renderArticle(article) {
   <nav class="blog-breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/">CAISSA Chess</a></li><li><a href="/blog">Blog</a></li><li aria-current="page">${escape(article.title)}</li></ol></nav>
   <article><header class="blog-article-header"><p class="blog-kicker">${escape(article.category)}</p><h1>${escape(article.title)}</h1><p class="blog-deck">${escape(article.excerpt)}</p><div class="blog-byline"><span>By ${escape(article.author)}</span><span>Published <time datetime="${article.publishedDate}">${displayDate(article.publishedDate)}</time></span>${modified}</div><img src="${escape(article.featuredImage)}" alt="${escape(article.featuredImageAlt)}" width="${article.featuredImageWidth}" height="${article.featuredImageHeight}" decoding="async"></header>
   <div class="blog-prose">${introduction}${sections}${cta}${relatedHtml}</div></article>
-  <footer class="blog-footer"><p>&copy; 2026 CAISSA Chess.</p><p><a href="/blog">Back to the blog</a></p></footer></main></div><script src="/js/caissa-primary-navigation.js?v=1.0.0"></script><script src="/js/caissa-standalone-sidebar.js?v=1.1.0"></script></body></html>`;
+  <footer class="blog-footer"><p>&copy; 2026 CAISSA Chess.</p><p><a href="/blog">Back to the blog</a></p></footer></main></div><script src="/js/caissa-primary-navigation.js?v=1.0.2"></script><script src="/js/caissa-standalone-sidebar.js?v=1.1.0"></script></body></html>`;
   const directory = path.join(root, 'blog', article.slug);
   fs.mkdirSync(directory, { recursive: true });
   fs.writeFileSync(path.join(directory, 'index.html'), html);

@@ -27,7 +27,7 @@ async function loadPgn(page, pgn = annotated) {
 
 test('loads multiple games locally and replays mainline, comments, NAGs, and variations', async ({ page }) => {
   await page.goto('/pgn-replayer');
-  await expect(page.getByRole('heading', { name: 'PGN Replayer' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'PGN Reader' })).toBeVisible();
   await expect(page.locator('[data-pgn-empty]')).toContainText('Your PGN stays on this device');
   expect(await page.evaluate(() => localStorage.getItem('caissa_pgn_welcome_seen'))).toBe('1');
   await loadPgn(page);

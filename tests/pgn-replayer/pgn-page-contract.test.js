@@ -9,12 +9,12 @@ const read = path => fs.readFileSync(new URL(`../../${path}`, import.meta.url), 
 
 test('owns a distinct canonical route and keeps the classic free replayer intact', () => {
   const page = load(read('pgn-replayer.html'));
-  assert.equal(page('title').text(), 'Open and Replay PGN Files | CAISSA Chess');
+  assert.equal(page('title').text(), 'CAISSA PGN Reader | Open and Analyze Chess PGN Files');
   assert.equal(page('link[rel="canonical"]').attr('href'), 'https://www.caissa-chess.org/pgn-replayer');
   assert.equal(page('[data-caissa-standalone-sidebar][data-active="pgn-replayer"]').length, 1);
   assert.equal(page('link[href^="/styles.css"]').length, 1);
   assert.equal(page('link[href^="/styles.css"]').index() < page('link[href^="/css/caissa-standalone-sidebar.css"]').index(), true);
-  assert.equal(page('h1').text(), 'PGN Replayer');
+  assert.equal(page('h1').text(), 'PGN Reader');
   assert.equal(page('iframe').length, 0);
   assert.doesNotMatch(read('pgn-replayer.html'), /pgn\.chessbase\.com|Credits:/i);
   assert.match(read('game-replayer.html'), /free\/world-championship\.pgn/);

@@ -143,7 +143,7 @@ def main() -> None:
     verify_catalog_uses_entitlements()
     print(f"Imported {len(records)} collections ({total_bytes:,} bytes) into {OUTPUT_DIR}")
     print(f"Manifest: {MANIFEST_PATH}")
-    print("PGN Replayer album catalog verified against the authenticated entitlement API.")
+    print("PGN Reader album catalog verified against the authenticated entitlement API.")
 
 
 if __name__ == "__main__":

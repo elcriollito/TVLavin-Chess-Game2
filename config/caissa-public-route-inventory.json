@@ -229,7 +229,7 @@
     },
     {
       "id": "pgn-replayer",
-      "label": "CAISSA PGN Replayer",
+      "label": "CAISSA PGN Reader",
       "canonicalPath": "/pgn-replayer",
       "absoluteUrl": "https://www.caissa-chess.org/pgn-replayer",
       "type": "internal-page",

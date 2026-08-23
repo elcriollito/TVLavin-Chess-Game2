@@ -40,7 +40,7 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | 11 | learn-and-improve | Endgame Library | /endgame-library | internal-page | CaissaPrimaryNavigation |
 | 12 | analyze-and-watch | Insights | /insights | internal-page | CaissaPrimaryNavigation |
 | 13 | analyze-and-watch | Analyze | /analyze | internal-page | CaissaPrimaryNavigation |
-| 14 | analyze-and-watch | CAISSA PGN Replayer | /pgn-replayer | internal-page | CaissaPrimaryNavigation |
+| 14 | analyze-and-watch | CAISSA PGN Reader | /pgn-replayer | internal-page | CaissaPrimaryNavigation |
 | 15 | analyze-and-watch | Spectator TV | /spectator-tv | internal-page | CaissaPrimaryNavigation |
 | 16 | analyze-and-watch | Lichess TV | /watch/lichess-tv | internal-page | CaissaPrimaryNavigation |
 | 17 | analyze-and-watch | Live Blitz | /watch/live-blitz | internal-page | CaissaPrimaryNavigation |
@@ -119,4 +119,4 @@ Any task that adds, removes, renames, redirects, protects, or reorders a public 
 
 The visible order remains owned only by `CaissaPrimaryNavigation`; adapters must never introduce private navigation arrays. Add or remove a route in its real routing owner first, then run `node scripts/build-caissa-public-route-inventory.mjs` and the inventory guard.
 
-`PLAY & COMPETE` includes the credited Playchess and Fritz gateways at positions 4 and 5. `LEARN & IMPROVE` begins with the credited ChessBase Tactics gateway. `ANALYZE & WATCH` places the native CAISSA PGN Replayer directly after Analyze, then includes the credited Lichess TV gateway after Spectator TV, followed by the credited Live Blitz, Live Tournaments, and Game Replayer gateways before Arena. These routes embed public provider services without changing native CAISSA learning, Play, CAISSA Classic, FICS, Spectator TV, or Arena behavior.
+`PLAY & COMPETE` includes the credited Playchess and Fritz gateways at positions 4 and 5. `LEARN & IMPROVE` begins with the credited ChessBase Tactics gateway. `ANALYZE & WATCH` places the native CAISSA PGN Reader directly after Analyze, then includes the credited Lichess TV gateway after Spectator TV, followed by the credited Live Blitz, Live Tournaments, and Game Replayer gateways before Arena. These routes embed public provider services without changing native CAISSA learning, Play, CAISSA Classic, FICS, Spectator TV, or Arena behavior.
