@@ -25,6 +25,7 @@ test('player PGNs are physically private and only bundled with the entitlement e
     : [];
   assert.deepEqual(publicPlayerPgns, []);
   assert.equal(vercel.functions['api/pgn/player.js'].includeFiles, 'api/_private/pgn/**');
+  assert.equal(vercel.functions['api/pgn/unlock.js'].includeFiles, 'api/_private/pgn/players/{manifest.json,pgnmentor/manifest.json}');
   assert.equal(vercel.rewrites.some(rule => String(rule.destination).includes('/api/pgn/legacy')), false);
   assert.equal(fs.existsSync(new URL('../../api/pgn/legacy.js', import.meta.url)), false);
 });

@@ -7,7 +7,7 @@
       "includeFiles": "api/_private/pgn/**"
     },
     "api/pgn/unlock.js": {
-      "includeFiles": ["api/_private/pgn/players/manifest.json", "api/_private/pgn/players/pgnmentor/manifest.json"]
+      "includeFiles": "api/_private/pgn/players/{manifest.json,pgnmentor/manifest.json}"
     },
     "api/cron/mentor-economic-maintenance.js": {
       "maxDuration": 10
