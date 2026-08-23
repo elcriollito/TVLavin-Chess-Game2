@@ -137,7 +137,7 @@
     "upload:openingdb:games:r2": "node scripts/upload-openingdb-games-r2.js --dir data/openingdb_games --version v1 --manifest data/openingdb_games/manifest.json",
     "test:opening-known-lines": "node scripts/verify-known-lines.js",
     "test:pgn-replayer": "node --test tests/pgn-replayer/*.test.js && playwright test tests/browser/pgn-replayer.spec.js --project=chromium --project=firefox --project=webkit",
-    "lint:pgn-replayer": "node --check js/pgn-replayer/pgn-core.js && node --check js/pgn-replayer/pgn-worker.js && node --check js/pgn-replayer/pgn-board.js && node --check js/pgn-replayer/pgn-player-iconography.js && node --check js/pgn-replayer/pgn-mentor-historical-library.js && node --check js/pgn-replayer/pgn-replayer-page.js && node --check tests/pgn-replayer/*.test.js",
+    "lint:pgn-replayer": "node --check js/pgn-replayer/pgn-core.js && node --check js/pgn-replayer/pgn-worker.js && node --check js/pgn-replayer/pgn-board.js && node --check js/pgn-replayer/pgn-player-iconography.js && node --check js/pgn-replayer/pgn-mentor-historical-library.js && node --check js/pgn-replayer/pgn-opening-library.js && node --check js/pgn-replayer/pgn-replayer-page.js && node --check api/pgn/opening.js && node --check tests/pgn-replayer/*.test.js",
     "fics:gateway": "node gateway/fics-local-node/fics-gateway.cjs",
     "fics:dev": "node gateway/fics-local-node/fics-gateway.cjs",
     "security:dependencies": "node scripts/audit-supply-chain.mjs && npm audit --audit-level=high"

@@ -1,8 +1,8 @@
 # CAISSA player-album commercial-rights audit
 
 Review date: 2026-08-23  
-Catalog: 82 protected player PGN albums  
-Decision: **0 of 82 albums are certified for paid commercial delivery. Commerce remains fail-closed.**
+Catalog: 82 privately stored player PGN albums
+Decision: **0 of 82 albums are certified for paid commercial delivery. Commerce remains fail-closed; the current files are temporarily presented as free research collections while CAISSA replaces them with independently built, provenance-tracked albums.**
 
 This is a product release-control audit, not a legal opinion. It records the evidence CAISSA currently has and the permission still required before the credit paywall can be activated.
 
@@ -20,6 +20,12 @@ The 17 PGN Mentor albums consist of the 16 explicitly imported additions plus Jo
 The intended CAISSA use is not merely downloading and studying a file. It stores local copies, delivers complete collections to authenticated accounts, and charges credits for permanent access. That commercial redistribution scope must be explicit.
 
 Individual chess moves and factual metadata may receive different legal treatment from creative text, but a database can have protectable selection or arrangement. In addition, 54 of the 65 SmallChess player files contain brace comments and the set includes source/annotator metadata. CAISSA therefore does not infer commercial permission from the factual nature of game scores.
+
+## Interim free-library product decision
+
+The 82 player albums do not consume credits and do not create account entitlements in the current release. They are labeled `Free` and can be replayed without registration. This is a product decision, not a certification of commercial redistribution rights. The source permission requests remain active, the provenance registry remains unchanged, and paid delivery stays technically disabled.
+
+In a future Season, CAISSA will replace these files progressively with independently assembled collections whose per-game provenance, source URL, retrieval date, license, checksum, and mechanical transformations are retained. Credits will be reserved for CAISSA-created study packs, server analysis, and other original services rather than access to the raw interim PGN files.
 
 Primary references reviewed:
 
@@ -73,6 +79,6 @@ Thank you.
 ## Release decision
 
 - Keep `CAISSA_PLAYER_ALBUM_COMMERCE_ENABLED` disabled in every environment.
-- Do not apply paid player-album entitlements to production.
+- Serve the 82 current player albums only through the free-library path; do not debit credits or create player-album entitlements.
 - Credit-package checkout can be configured and tested separately in Preview after this audit, but credits must not unlock these 82 albums until both source records are certified.
 - World Championship and other historical event collections remain on the separate free-library path; they are not evidence of permission to sell player compilations.

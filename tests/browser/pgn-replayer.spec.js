@@ -73,16 +73,20 @@ test('opens an honest Options and About guide from the desktop source bar', asyn
   const guide = page.locator('[data-pgn-options-dialog]');
   await expect(guide).toBeVisible();
   await expect(guide).toContainText('Player figurines');
-  await expect(guide).toContainText('Find a player quickly');
-  await expect(guide).toContainText('Credits and album access');
-  await expect(guide).toContainText('delivery is protected server-side');
-  await expect(guide.getByRole('link', { name: 'Open Credit Store' })).toHaveAttribute('href', '/store');
+  await expect(guide).toContainText('Find a collection quickly');
+  await expect(guide).toContainText('Free library access');
+  await expect(guide).toContainText('All 82 Player game collections are currently free');
+  await expect(guide).toContainText('independently built, provenance-tracked collections');
   await guide.getByRole('button', { name: 'Done' }).click();
   await expect(guide).toBeHidden();
   await expect(page.locator('[data-pgn-options]')).toBeFocused();
 });
 
-test('keeps Capablanca behind registered permanent ownership', async ({ page }) => {
+test('loads Capablanca as one of the 82 temporary free player collections', async ({ page }) => {
+  await page.route('**/api/pgn/player?album=capablanca-games-1901-1941', route => route.fulfill({
+    contentType: 'application/x-chess-pgn',
+    body: annotated
+  }));
   await page.goto('/pgn-replayer');
   await page.getByRole('tab', { name: 'Albums' }).click();
   const album = page.locator('[data-album-id="capablanca-games-1901-1941"]');
@@ -90,12 +94,11 @@ test('keeps Capablanca behind registered permanent ownership', async ({ page }) 
   await expect(album).toContainText('Player game collection · PGN');
   await expect(album).toHaveAttribute('data-player-distinction', 'open-world-champion');
   await expect(album.locator('.fa-chess-king')).toHaveCount(1);
-  await expect(album.locator('[data-access="available"]')).toHaveText('1 credit');
+  await expect(album.locator('[data-access="free"]')).toHaveText('Free');
   await album.click();
-  const unlock = page.locator('[data-pgn-unlock-dialog]');
-  await expect(unlock).toBeVisible();
-  await expect(unlock).toContainText('Register to unlock player albums');
-  await expect(unlock.getByRole('link', { name: 'Create a CAISSA account' })).toHaveAttribute('href', '/signup?redirect_url=%2Fpgn-replayer');
+  await expect(page.locator('[data-pgn-message]')).toContainText('2 games loaded locally');
+  await expect(page.locator('[data-pgn-title]')).toHaveText('Alpha — Beta');
+  await expect(page.locator('[data-pgn-unlock-dialog]')).toBeHidden();
 });
 
 test('classifies all 82 Players with historical chess-piece icons', async ({ page }) => {
@@ -122,6 +125,25 @@ test('navigates the historical families and loads the 1972 championship through 
 [Result "0-1"]
 
 1. d4 Nf6 2. c4 e6 3. Nf3 d5 0-1`;
+  const openingCatalog = Array.from({ length: 233 }, (_, index) => ({
+    id: index === 0 ? 'opening-vienna' : `opening-test-${index}`,
+    title: index === 0 ? 'Vienna Game' : `Test Opening ${String(index).padStart(3, '0')}`,
+    file: index === 0 ? 'Vienna.zip' : `Opening${String(index).padStart(3, '0')}.zip`
+  }));
+  await page.route('**/api/pgn/opening', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ access: 'free', pageSize: 100, count: 233, openings: openingCatalog })
+  }));
+  await page.route('**/api/pgn/opening?file=Vienna.zip&page=1', route => route.fulfill({
+    contentType: 'application/x-chess-pgn',
+    headers: {
+      'X-CAISSA-Opening-Page': '1',
+      'X-CAISSA-Opening-Pages': '3',
+      'X-CAISSA-Opening-Games': '205',
+      'X-CAISSA-Opening-Page-Games': '100'
+    },
+    body: fischerSpassky
+  }));
   await page.route('**/api/pgn/pgnmentor?kind=event&file=WorldChamp1972.pgn', route => route.fulfill({
     contentType: 'application/x-chess-pgn',
     body: fischerSpassky
@@ -147,8 +169,14 @@ test('navigates the historical families and loads the 1972 championship through 
   await page.locator('[data-pgn-library-family="qualifiers"]').click();
   await expect(page.locator('[data-mentor-historical-album-id]:visible')).toHaveCount(58);
   await page.locator('[data-pgn-library-family="openings"]').click();
-  await expect(page.locator('[data-pgn-library-notice]')).toContainText('Opening Library is the next indexed phase');
-  await expect(page.locator('[data-pgn-albums]')).toBeHidden();
+  await expect(page.locator('[data-pgn-library-count="openings"]')).toHaveText('233');
+  await expect(page.locator('[data-opening-album-id]:visible')).toHaveCount(233);
+  await page.locator('[data-pgn-library-search]').fill('Vienna');
+  await expect(page.locator('[data-opening-album-id]:visible')).toHaveCount(1);
+  await page.locator('[data-opening-album-id="opening-vienna"]').click();
+  await expect(page.locator('[data-pgn-message]')).toContainText('1 game loaded locally');
+  await expect(page.locator('[data-pgn-opening-pagebar]')).toBeVisible();
+  await expect(page.locator('[data-pgn-opening-page-summary]')).toContainText('Games 1–100 of 205 · Page 1 of 3');
 });
 
 test('engine defaults off and renders exactly two local analysis lines', async ({ page }) => {

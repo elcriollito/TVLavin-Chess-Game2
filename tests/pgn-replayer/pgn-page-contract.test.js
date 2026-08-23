@@ -84,20 +84,20 @@ test('pins the local single-threaded Stockfish 18 browser distribution', () => {
   assert.match(read('engine/STOCKFISH-NOTICE.md'), /Stockfish\.js 18 lite single-threaded/);
 });
 
-test('keeps game information above notation and publishes protected album access states', () => {
+test('keeps game information above notation and publishes the unified free-library state', () => {
   const page = load(read('pgn-replayer.html'));
   assert.equal(page('#pgn-panel-notation [data-pgn-game-info]').length, 1);
   assert.equal(page('#pgn-panel-notation [data-pgn-game-info]').index() < page('#pgn-panel-notation [data-pgn-notation]').index(), true);
   assert.equal(page('#pgn-panel-albums [data-pgn-albums]').length, 1);
-  assert.deepEqual(page('.pgn-album-status-key [data-access]').map((_, node) => page(node).text()).get(), ['Free', '1 credit', 'Owned']);
+  assert.deepEqual(page('.pgn-album-status-key [data-access]').map((_, node) => page(node).text()).get(), ['Free']);
   const runtime = read('js/pgn-replayer/pgn-replayer-page.js');
   assert.match(runtime, /album\.access === 'owned'/);
   assert.match(runtime, /album\.access === 'available'/);
-  assert.match(read('js/pgn-replayer/pgn-entitlements.js'), /\/api\/pgn\/unlock/);
-  assert.match(read('js/pgn-replayer/pgn-entitlements.js'), /Idempotency-Key/);
+  assert.match(read('js/pgn-replayer/pgn-entitlements.js'), /\/api\/pgn\/player\?album=/);
+  assert.doesNotMatch(read('js/pgn-replayer/pgn-entitlements.js'), /\/api\/pgn\/unlock|Idempotency-Key/);
 });
 
-test('Options and About explains protected ownership and the paused commerce boundary', () => {
+test('Options and About explains free access and future provenance replacement', () => {
   const page = load(read('pgn-replayer.html'));
   const runtime = read('js/pgn-replayer/pgn-replayer-page.js');
   const styles = read('css/pgn-replayer.css');
@@ -109,25 +109,25 @@ test('Options and About explains protected ownership and the paused commerce bou
   assert.match(guide.text(), /Rook\s*World Championship match or final challenger/);
   assert.match(guide.text(), /Knight\s*Other featured player collection/);
   assert.match(guide.text(), /capa.*José Raúl Capablanca/s);
-  assert.match(guide.text(), /Permanent Player game collection unlock/);
-  assert.match(guide.text(), /delivery is protected server-side/);
-  assert.match(guide.text(), /commerce remains paused/i);
-  assert.equal(guide.find('a[href="/store"]').length, 1);
-  assert.equal(guide.find('a[href="/signup?redirect_url=%2Fpgn-replayer"]').length, 1);
+  assert.match(guide.text(), /All 82 Player game collections are currently free/);
+  assert.match(guide.text(), /No account or credit is required/);
+  assert.match(guide.text(), /provenance-tracked collections/);
+  assert.equal(guide.find('a[href="/store"]').length, 0);
+  assert.equal(guide.find('a[href="/signup?redirect_url=%2Fpgn-replayer"]').length, 0);
   assert.match(runtime, /optionsDialog\.showModal\(\)/);
   assert.match(styles, /\.pgn-library-search input:focus, \.pgn-library-search input:focus-visible \{ outline: 0; box-shadow: none; \}/);
   assert.equal(page('[data-pgn-library-search]').attr('spellcheck'), 'false');
   assert.equal(page('[data-pgn-library-search]').attr('autocorrect'), 'off');
 });
 
-test('keeps Capablanca as a protected one-credit player album', () => {
+test('keeps Capablanca as a free player album with the common visual description', () => {
   const runtime = read('js/pgn-replayer/pgn-replayer-page.js');
   const provenance = JSON.parse(read('public/data/pgn/capablanca-games-1901-1941.provenance.json'));
   assert.match(runtime, /id: 'capablanca-games-1901-1941'/);
   assert.match(runtime, /title: 'José Raúl Capablanca'/);
   assert.match(runtime, /games: 597/);
-  assert.match(runtime, /access: 'available'/);
-  assert.match(runtime, /credits: 1/);
+  assert.match(runtime, /access: 'free'/);
+  assert.match(runtime, /credits: 0/);
   assert.match(runtime, /source: 'protected-player-album'/);
   assert.match(runtime, /details: 'Player game collection · PGN'/);
   assert.equal(provenance.gameCount, 597);

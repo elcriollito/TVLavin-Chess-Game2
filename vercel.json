@@ -12,6 +12,9 @@
     "api/pgn/entitlements.js": {
       "includeFiles": "data/pgn/player-commercial-rights.json"
     },
+    "api/pgn/opening.js": {
+      "maxDuration": 30
+    },
     "api/cron/mentor-economic-maintenance.js": {
       "maxDuration": 10
     }

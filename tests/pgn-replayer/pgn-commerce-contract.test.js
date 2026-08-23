@@ -11,7 +11,7 @@ test('server player offer catalog owns exactly 82 allowlisted physical collectio
   const offers = Object.values(PGN_PLAYER_OFFERS);
   assert.equal(offers.length, 82);
   assert.equal(new Set(offers.map(offer => offer.id)).size, 82);
-  assert.ok(offers.every(offer => offer.credits === 1));
+  assert.ok(offers.every(offer => offer.credits === 0));
   assert.ok(offers.every(offer => fs.existsSync(offer.filePath)));
   assert.ok(offers.every(offer => offer.filePath.includes('/api/_private/pgn/')));
 });
@@ -33,7 +33,7 @@ test('commercial rights registry blocks all player sales until both source grant
   assert.match(read('docs/legal/PGN_PLAYER_COMMERCIAL_RIGHTS_AUDIT.md'), /0 of 82 albums are certified/);
 });
 
-test('player PGNs are physically private and only bundled with the entitlement endpoint', () => {
+test('player PGNs stay outside the public tree and are bundled only with controlled PGN endpoints', () => {
   const vercel = JSON.parse(read('vercel.json'));
   assert.equal(fs.existsSync(new URL('../../public/data/pgn/capablanca-games-1901-1941.pgn', import.meta.url)), false);
   const publicPlayerRoot = new URL('../../public/data/pgn/players', import.meta.url);
@@ -78,7 +78,7 @@ test('Credit Store renders only internal offer keys and obtains currency prices 
   assert.match(read('js/credit-store.js'), /type: 'credits', package: packageKey/);
 });
 
-test('commerce activation is fail-closed and Stripe fulfillment shares the canonical offers', () => {
+test('commerce stays fail-closed while free player delivery bypasses auth and entitlements', () => {
   const checkout = read('api/checkout/session.js');
   const fulfillment = read('api/_lib/stripe-webhook-fulfillment.js');
   const unlock = read('api/pgn/unlock.js');
@@ -89,9 +89,8 @@ test('commerce activation is fail-closed and Stripe fulfillment shares the canon
   assert.match(unlock, /isPlayerAlbumCommerceEnabled\(\)/);
   assert.match(unlock, /PLAYER_ALBUM_COMMERCE_NOT_ENABLED/);
   assert.match(unlock, /Idempotency|idempotency-key/i);
-  assert.match(player, /player_album_entitlements/);
-  assert.match(player, /commercialRightsCertified/);
-  assert.match(player, /PLAYER_ALBUM_RIGHTS_NOT_CERTIFIED/);
-  assert.match(player, /Cache-Control', 'private, no-store/);
+  assert.doesNotMatch(player, /player_album_entitlements|commercialRightsCertified|PLAYER_ALBUM_RIGHTS_NOT_CERTIFIED/);
+  assert.match(player, /Cache-Control', 'public, s-maxage=86400/);
+  assert.match(player, /X-CAISSA-PGN-Access', 'free-player-library'/);
   assert.doesNotMatch(player, /is_premium|premium.*bypass/i);
 });

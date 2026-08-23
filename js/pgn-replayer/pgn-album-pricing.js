@@ -3,8 +3,8 @@
 
     const policy = Object.freeze({
         freeSpecialCredits: 0,
-        playerAlbumCredits: 1,
-        capablancaCredits: 1,
+        playerAlbumCredits: 0,
+        capablancaCredits: 0,
         masterDatabaseCredits: 5,
         enforcement: 'server-entitlement'
     });

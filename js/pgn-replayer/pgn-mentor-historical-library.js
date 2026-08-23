@@ -10,7 +10,7 @@
         'world-championships': Object.freeze({ title: 'World Championships', placeholder: 'Search year or player' }),
         qualifiers: Object.freeze({ title: 'Candidates & World Cups', placeholder: 'Search year or event' }),
         tournaments: Object.freeze({ title: 'Tournaments', placeholder: 'Search tournaments' }),
-        openings: Object.freeze({ title: 'Openings', placeholder: 'Opening search is coming next' })
+        openings: Object.freeze({ title: 'Openings', placeholder: 'Search opening or variation' })
     });
 
     const root = document.querySelector('[data-pgn-app]');
@@ -154,7 +154,7 @@
     }
 
     function updateCounts() {
-        for (const family of ['players', 'world-championships', 'qualifiers', 'tournaments']) {
+        for (const family of ['players', 'world-championships', 'qualifiers', 'tournaments', 'openings']) {
             const counter = nav.querySelector(`[data-pgn-library-count="${family}"]`);
             if (counter) counter.textContent = String(familyItems(family).length);
         }
@@ -170,9 +170,9 @@
         const metadata = FAMILY_COPY[state.activeFamily];
         title.textContent = metadata.title;
         search.placeholder = metadata.placeholder;
-        search.disabled = state.activeFamily === 'openings';
-        statusKey.hidden = state.activeFamily === 'openings';
-        albumRoot.hidden = state.activeFamily === 'openings';
+        search.disabled = false;
+        statusKey.hidden = false;
+        albumRoot.hidden = false;
 
         if (state.activeFamily === 'players') {
             const playerUpdate = state.catalog?.sourceUpdates?.players;
@@ -184,12 +184,11 @@
         } else if (state.activeFamily === 'tournaments') {
             summary.textContent = `${familyItems('tournaments').length} featured collections · full historical expansion follows this phase`;
         } else {
-            summary.textContent = 'Large opening databases will use indexed search instead of full browser downloads';
+            summary.textContent = `${familyItems('openings').length} free opening collections · paged in groups of 100 games · source updated ${state.catalog?.sourceUpdates?.openings || 'recently'}`;
         }
 
-        if (state.activeFamily === 'openings') {
-            const openingUpdate = state.catalog?.sourceUpdates?.openings;
-            setNotice('Opening Library is the next indexed phase', `The source catalog${openingUpdate ? ` (updated ${openingUpdate})` : ''} is ready, but CAISSA will search and page these large databases instead of downloading entire ZIP archives into your browser.`);
+        if (state.activeFamily === 'openings' && !visibleCount && !state.query) {
+            setNotice('Loading the Opening Library', 'CAISSA is preparing the searchable opening catalog.');
         } else if (state.catalogError && ['world-championships', 'qualifiers'].includes(state.activeFamily)) {
             setNotice('Historical catalog temporarily unavailable', 'Player albums remain local and unaffected. Try the historical archive again shortly.');
         } else if (!visibleCount && state.query) {
@@ -220,7 +219,7 @@
         });
         updateCounts();
         updateFamilyHeader(visibleCount);
-        if (albumEmpty) albumEmpty.hidden = state.activeFamily === 'openings' || visibleCount > 0 || Boolean(state.query);
+        if (albumEmpty) albumEmpty.hidden = visibleCount > 0 || Boolean(state.query) || state.activeFamily === 'openings';
     }
 
     function queueSync() {
@@ -235,7 +234,7 @@
         state.query = '';
         search.value = '';
         syncLibrary();
-        if (focusSearch && family !== 'openings') search.focus();
+        if (focusSearch) search.focus();
     }
 
     function findHistoricalAlbum(id) {

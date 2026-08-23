@@ -135,7 +135,7 @@
         renderCatalog();
         card.disabled = true;
         try {
-            if (!window.CaissaPgnEntitlements) throw new Error('Protected album access is unavailable.');
+            if (!window.CaissaPgnEntitlements) throw new Error('Player collection access is unavailable.');
             const bytes = await window.CaissaPgnEntitlements.fetchAlbum(album);
             if (!bytes) { selectedAlbumId = null; renderCatalog(); return; }
             const transfer = new DataTransfer();

@@ -11,8 +11,8 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         title: 'José Raúl Capablanca',
         details: 'Player game collection · PGN',
         games: 597,
-        access: 'available',
-        credits: 1,
+        access: 'free',
+        credits: 0,
         source: 'protected-player-album'
     });
 
@@ -547,7 +547,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         try {
             let bytes;
             if (album.id === CAPABLANCA_ALBUM.id) {
-                if (!window.CaissaPgnEntitlements) throw new Error('Protected album access is unavailable.');
+                if (!window.CaissaPgnEntitlements) throw new Error('Player collection access is unavailable.');
                 bytes = await window.CaissaPgnEntitlements.fetchAlbum(album);
                 if (!bytes) { setBusy(false); return; }
             } else {

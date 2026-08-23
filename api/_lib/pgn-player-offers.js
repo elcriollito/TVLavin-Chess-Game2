@@ -39,7 +39,7 @@ function manifestOffer(album) {
     return Object.freeze({
         id: String(album.id),
         title: String(album.title),
-        credits: 1,
+        credits: 0,
         sourceKey,
         commercialRightsCertified: isSourceCommerciallyCertified(sourceKey),
         legacyPath: localPath.replace('/data/pgn/players/', ''),
@@ -52,7 +52,7 @@ const offers = [
     Object.freeze({
         id: 'capablanca-games-1901-1941',
         title: 'José Raúl Capablanca',
-        credits: 1,
+        credits: 0,
         sourceKey: 'pgnmentor',
         commercialRightsCertified: isSourceCommerciallyCertified('pgnmentor'),
         legacyPath: 'capablanca-games-1901-1941.pgn',

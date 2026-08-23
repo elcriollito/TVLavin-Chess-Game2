@@ -36,8 +36,8 @@
         card.type = 'button';
         card.className = 'pgn-album-card';
         card.dataset.mentorPlayerAlbumId = album.id;
-        card.dataset.albumKind = 'player-premium';
-        card.dataset.creditCost = '1';
+        card.dataset.albumKind = 'player-free';
+        card.dataset.creditCost = '0';
         card.setAttribute('aria-current', String(album.id === selectedAlbumId));
         const icon = document.createElement('i');
         iconography.decorate(icon, card, album.title);
@@ -49,8 +49,8 @@
         copy.append(title, details);
         const badge = document.createElement('span');
         badge.className = 'pgn-album-badge';
-        badge.dataset.access = 'available';
-        badge.textContent = '1 credit';
+        badge.dataset.access = 'free';
+        badge.textContent = 'Free';
         card.append(icon, copy, badge);
         item.append(card);
         return item;
@@ -88,7 +88,7 @@
         renderCatalog();
         card.disabled = true;
         try {
-            if (!window.CaissaPgnEntitlements) throw new Error('Protected album access is unavailable.');
+            if (!window.CaissaPgnEntitlements) throw new Error('Player collection access is unavailable.');
             const bytes = await window.CaissaPgnEntitlements.fetchAlbum(album);
             if (!bytes) { selectedAlbumId = null; renderCatalog(); return; }
             const transfer = new DataTransfer();

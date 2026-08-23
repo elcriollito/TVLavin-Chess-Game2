@@ -16,7 +16,7 @@ function loadCore() {
   return context.CaissaPgnCore;
 }
 
-test('all 82 protected player albums contain a game the CAISSA runtime can replay', { timeout: 20_000 }, () => {
+test('all 82 free player albums contain a game the CAISSA runtime can replay', { timeout: 20_000 }, () => {
   const core = loadCore();
   const offers = Object.values(PGN_PLAYER_OFFERS);
   assert.equal(offers.length, 82);
