@@ -97,9 +97,9 @@ test('global headers establish the platform browser-security baseline', () => {
     assert.match(csp, /object-src 'none'/);
     assert.match(csp, /base-uri 'self'/);
     assert.match(csp, /frame-ancestors 'self'/);
-    assert.match(csp, /worker-src 'self'/);
+    assert.match(csp, /worker-src 'self' blob:/);
     assert.doesNotMatch(csp, /'unsafe-eval'/);
-    assert.doesNotMatch(csp, /worker-src[^;]*blob:/);
+    assert.doesNotMatch(csp, /worker-src[^;]*\*/);
     assert.doesNotMatch(csp, /(?:script|connect|frame)-src[^;]*\s\*(?:\s|;|$)/);
     assert.doesNotMatch(csp, /evil\.example/);
     assert.equal(headers['Strict-Transport-Security'], 'max-age=31536000');

@@ -140,3 +140,11 @@ test('integrates the added player albums alphabetically with the same visual des
   assert.match(controller, /localeCompare\(rightTitle, 'en', \{ sensitivity: 'base' \}\)/);
   assert.doesNotMatch(controller, /physical CAISSA archives/i);
 });
+
+test('player and archive searches ignore accents without weakening the catalog boundary', () => {
+  const controller = read('js/pgn-replayer/pgn-mentor-historical-library.js');
+  assert.match(controller, /function normalizeSearchText\(value\)/);
+  assert.match(controller, /\.normalize\('NFD'\)/);
+  assert.match(controller, /\.replace\(\/\\p\{M\}\/gu, ''\)/);
+  assert.match(controller, /normalizeSearchText\(item\.textContent\)\.includes\(normalizedQuery\)/);
+});

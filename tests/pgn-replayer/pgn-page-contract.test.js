@@ -40,7 +40,8 @@ test('uses Games, Notation, Albums order and a board-first accessible shell', ()
   assert.equal(page('.pgn-source-actions [data-pgn-open] + [data-pgn-options]').length, 1);
   assert.equal(page('[data-pgn-options]').attr('aria-controls'), 'pgn-options-dialog');
   const pageCsp = page('meta[http-equiv="Content-Security-Policy"]').attr('content');
-  assert.match(pageCsp, /worker-src 'self'/);
+  assert.match(pageCsp, /worker-src 'self' blob:/);
+  assert.match(pageCsp, /img-src 'self' data: https:\/\/img\.clerk\.com https:\/\/images\.clerk\.dev/);
   assert.match(pageCsp, /style-src-elem 'self'/);
   assert.match(pageCsp, /style-src-attr 'unsafe-inline'/);
   assert.doesNotMatch(pageCsp, /unsafe-eval|script-src[^;]*unsafe-inline/);
@@ -50,6 +51,8 @@ test('uses Games, Notation, Albums order and a board-first accessible shell', ()
     ?.headers.find(header => header.key === 'Content-Security-Policy')?.value || '';
   assert.match(responseCsp, /style-src-elem 'self'/);
   assert.match(responseCsp, /style-src-attr 'unsafe-inline'/);
+  assert.match(responseCsp, /worker-src 'self' blob:/);
+  assert.match(responseCsp, /img-src 'self' data: https:\/\/img\.clerk\.com https:\/\/images\.clerk\.dev/);
   assert.match(responseCsp, /frame-ancestors 'self'/);
 });
 

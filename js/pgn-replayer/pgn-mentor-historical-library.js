@@ -153,6 +153,13 @@
         return [...albumRoot.querySelectorAll(`:scope > [data-library-family="${family}"]`)];
     }
 
+    function normalizeSearchText(value) {
+        return String(value || '')
+            .normalize('NFD')
+            .replace(/\p{M}/gu, '')
+            .toLocaleLowerCase();
+    }
+
     function updateCounts() {
         for (const family of ['players', 'world-championships', 'qualifiers', 'tournaments', 'openings']) {
             const counter = nav.querySelector(`[data-pgn-library-count="${family}"]`);
@@ -203,11 +210,11 @@
         appendHistoricalCollections();
         classifyExistingCollections();
         sortPlayerCollections();
-        const normalizedQuery = state.query.trim().toLocaleLowerCase();
+        const normalizedQuery = normalizeSearchText(state.query.trim());
         let visibleCount = 0;
         for (const item of albumRoot.querySelectorAll(':scope > [role="listitem"]')) {
             const familyMatches = item.dataset.libraryFamily === state.activeFamily;
-            const queryMatches = !normalizedQuery || item.textContent.toLocaleLowerCase().includes(normalizedQuery);
+            const queryMatches = !normalizedQuery || normalizeSearchText(item.textContent).includes(normalizedQuery);
             item.hidden = !(familyMatches && queryMatches);
             if (!item.hidden) visibleCount += 1;
         }
