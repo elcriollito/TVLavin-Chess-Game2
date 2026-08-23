@@ -1,6 +1,6 @@
 CAISSA large PGN collection verification
-source_commit=41f8d86ca3c67acf797053b4888076b8a234e27f
-verified_at=2026-08-23T04:35:03Z
+source_commit=0e774e8b5d3888582d080d3426efc1c29a21dc10
+verified_at=2026-08-23T04:58:37Z
 Verifying 22 archived albums above 2,000 games with the production PGN core...
 PASS Alexander Grischuk: 3,047 playable, 4 warned, 266,226 nodes, 2,385,962 bytes
 PASS Alexandra Kosteniuk: 2,313 playable, 2 warned, 221,746 nodes, 1,951,758 bytes
