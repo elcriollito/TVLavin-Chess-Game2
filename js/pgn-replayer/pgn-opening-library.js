@@ -11,11 +11,16 @@
     const pagebar = document.querySelector('[data-pgn-opening-pagebar]');
     const pageTitle = document.querySelector('[data-pgn-opening-page-title]');
     const pageSummary = document.querySelector('[data-pgn-opening-page-summary]');
+    const backButton = document.querySelector('[data-pgn-opening-back]');
     const previousButton = document.querySelector('[data-pgn-opening-previous]');
     const nextButton = document.querySelector('[data-pgn-opening-next]');
+    const albumsTab = document.querySelector('[data-pgn-tab="albums"]');
+    const openingsButton = document.querySelector('[data-pgn-library-family="openings"]');
+    const librarySearch = document.querySelector('[data-pgn-library-search]');
     const message = document.querySelector('[data-pgn-message]');
     const fileInput = document.querySelector('[data-pgn-file]');
-    if (!root || !albumRoot || !pagebar || !pageTitle || !pageSummary || !previousButton || !nextButton) return;
+    if (!root || !albumRoot || !pagebar || !pageTitle || !pageSummary || !backButton || !previousButton || !nextButton
+        || !albumsTab || !openingsButton || !librarySearch) return;
 
     const state = {
         catalog: [],
@@ -171,6 +176,14 @@
         renderCatalog();
     }
 
+    function returnToOpeningLibrary() {
+        albumsTab.click();
+        openingsButton.click();
+        const albumsPanel = librarySearch.closest('[role="tabpanel"]');
+        if (albumsPanel) albumsPanel.scrollTop = 0;
+        librarySearch.focus({ preventScroll: true });
+    }
+
     albumRoot.addEventListener('click', event => {
         const card = event.target.closest('[data-opening-album-id]');
         if (!card) return;
@@ -179,6 +192,7 @@
         const opening = state.catalog.find(item => item.id === card.dataset.openingAlbumId);
         loadPage(opening, 1);
     }, true);
+    backButton.addEventListener('click', returnToOpeningLibrary);
     previousButton.addEventListener('click', () => loadPage(state.selected, state.page - 1));
     nextButton.addEventListener('click', () => loadPage(state.selected, state.page + 1));
     root.addEventListener('caissa:pgn-load-text', event => {

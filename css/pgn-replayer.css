@@ -95,9 +95,10 @@ button, select { touch-action: manipulation; }
 .pgn-panel-empty strong { color: var(--pgn-text); }
 .pgn-game-filter { position: sticky; z-index: 2; top: 0; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px; padding: 10px; background: #111a29; }
 .pgn-game-filter input { width: 100%; min-height: 42px; padding: 8px 10px; border: 1px solid var(--pgn-border); border-radius: 8px; color: var(--pgn-text); background: #0c1420; }
-.pgn-opening-pagebar { position: sticky; z-index: 4; top: 0; display: grid; min-height: 58px; grid-template-columns: 38px minmax(0, 1fr) 38px; align-items: center; gap: 9px; padding: 8px 10px; border-bottom: 1px solid #34506f; background: #132238; box-shadow: 0 8px 18px rgb(0 0 0 / .18); }
+.pgn-opening-pagebar { position: sticky; z-index: 4; top: 0; display: grid; min-height: 58px; grid-template-columns: auto 38px minmax(0, 1fr) 38px; align-items: center; gap: 9px; padding: 8px 10px; border-bottom: 1px solid #34506f; background: #132238; box-shadow: 0 8px 18px rgb(0 0 0 / .18); }
 .pgn-opening-pagebar[hidden] { display: none; }
 .pgn-opening-pagebar > div { display: grid; min-width: 0; gap: 2px; text-align: center; }
+.pgn-opening-back { min-height: 38px; padding: 6px 10px; border-color: #4b78a8; color: #dcecff; background: #173455; font-size: .72rem; }
 .pgn-opening-pagebar strong, .pgn-opening-pagebar small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pgn-opening-pagebar strong { color: #eef7ff; font-size: .82rem; }
 .pgn-opening-pagebar small { color: #a9bed5; font-size: .7rem; }
@@ -290,6 +291,9 @@ body.pgn-focus-mode .pgn-player-card, body.pgn-focus-mode .pgn-toolbar { width: 
   .pgn-control, .pgn-icon-button { min-height: 42px; }
   .pgn-toolbar-view { grid-template-columns: minmax(48px, 1fr) repeat(2, 42px); gap: 2px; }
   .pgn-toolbar-source .pgn-engine-toggle { padding-inline: 5px; }
+  .pgn-opening-pagebar { grid-template-columns: 42px 38px minmax(0, 1fr) 38px; gap: 4px; padding-inline: 4px; }
+  .pgn-opening-back { width: 42px; padding-inline: 0; }
+  .pgn-opening-back span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .pgn-game-info dl { grid-template-columns: 1fr; }
   .pgn-game-info-pair:nth-child(odd) { border-right: 0; }
 }

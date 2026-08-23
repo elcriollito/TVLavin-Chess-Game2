@@ -95,12 +95,15 @@ test('opening UI keeps the family visible and exposes page navigation in Games',
   const styles = read('css/pgn-replayer.css');
   assert.match(html, /data-pgn-library-count="openings"/);
   assert.match(html, /data-pgn-opening-pagebar/);
+  assert.match(html, /data-pgn-opening-back/);
   assert.match(html, /data-pgn-opening-previous/);
   assert.match(html, /data-pgn-opening-next/);
   assert.match(controller, /catalog\.openings\.length !== 233/);
   assert.match(controller, /caissa:pgn-load-text/);
   assert.match(controller, /new MutationObserver\(queueCatalogRender\)\.observe\(albumRoot, \{ childList: true \}\)/);
   assert.match(controller, /openingPage: true/);
+  assert.match(controller, /backButton\.addEventListener\('click', returnToOpeningLibrary\)/);
+  assert.match(controller, /librarySearch\.focus\(\{ preventScroll: true \}\)/);
   assert.match(styles, /\.pgn-opening-pagebar/);
   assert.match(styles, /\.pgn-library-nav \{[^}]*position: sticky;[^}]*width: 100%;[^}]*flex: 0 0 auto/);
 });

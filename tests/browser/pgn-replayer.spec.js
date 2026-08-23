@@ -177,6 +177,12 @@ test('navigates the historical families and loads the 1972 championship through 
   await expect(page.locator('[data-pgn-message]')).toContainText('1 game loaded locally');
   await expect(page.locator('[data-pgn-opening-pagebar]')).toBeVisible();
   await expect(page.locator('[data-pgn-opening-page-summary]')).toContainText('Games 1–100 of 205 · Page 1 of 3');
+  await page.locator('[data-pgn-opening-back]').click();
+  await expect(page.getByRole('tab', { name: 'Albums' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('[data-pgn-library-family="openings"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-pgn-library-search]')).toBeFocused();
+  await expect(page.locator('[data-pgn-library-search]')).toHaveValue('');
+  await expect(page.locator('[data-opening-album-id]:visible')).toHaveCount(233);
 });
 
 test('engine defaults off and renders exactly two local analysis lines', async ({ page }) => {
