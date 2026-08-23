@@ -1,0 +1,27 @@
+CAISSA large PGN collection verification
+source_commit=bd16629f5623f81a4b85dc6a3d92bec62a109e5a
+verified_at=2026-08-23T04:16:37Z
+Verifying 22 archived albums above 2,000 games with the production PGN core...
+PASS Alexander Grischuk: 3,047 playable, 4 warned, 266,226 nodes, 2,385,962 bytes
+PASS Alexandra Kosteniuk: 2,313 playable, 2 warned, 221,746 nodes, 1,951,758 bytes
+PASS Alexey Shirov: 3,527 playable, 0 warned, 285,104 nodes, 2,570,077 bytes
+PASS Boris Gelfand: 3,546 playable, 0 warned, 298,022 nodes, 2,664,821 bytes
+PASS Boris Spassky: 2,499 playable, 0 warned, 171,517 nodes, 1,625,935 bytes
+PASS Fabiano Caruana: 2,288 playable, 66 warned, 215,397 nodes, 1,951,399 bytes
+PASS Gata Kamsky: 2,164 playable, 9 warned, 198,775 nodes, 1,731,527 bytes
+PASS Hikaru Nakamura: 2,241 playable, 39 warned, 214,439 nodes, 1,913,006 bytes
+PASS Ian Nepomniachtchi: 2,996 playable, 62 warned, 275,764 nodes, 2,497,526 bytes
+PASS Levon Aronian: 4,233 playable, 69 warned, 378,713 nodes, 3,405,388 bytes
+PASS Loek van Wely: 3,530 playable, 0 warned, 306,335 nodes, 2,696,656 bytes
+PASS Magnus Carlsen: 5,002 playable, 95 warned, 458,015 nodes, 4,117,173 bytes
+PASS Mikhail Tal: 2,960 playable, 0 warned, 209,910 nodes, 1,945,679 bytes
+PASS Nigel Short: 3,076 playable, 0 warned, 253,545 nodes, 2,253,145 bytes
+PASS Paul Keres: 2,064 playable, 0 warned, 158,466 nodes, 1,425,986 bytes
+PASS Peter Leko: 2,566 playable, 1 warned, 221,456 nodes, 1,979,777 bytes
+PASS Shakhriyar Mamedyarov: 3,608 playable, 11 warned, 301,275 nodes, 2,763,614 bytes
+PASS Tigran Petrosian: 2,159 playable, 0 warned, 151,798 nodes, 1,483,330 bytes
+PASS Viktor Korchnoi: 4,876 playable, 0 warned, 401,360 nodes, 3,579,170 bytes
+PASS Viswanathan Anand: 4,079 playable, 0 warned, 329,112 nodes, 2,997,061 bytes
+PASS Vladimir Kramnik: 2,763 playable, 0 warned, 220,843 nodes, 2,042,275 bytes
+PASS Wesley So: 2,035 playable, 30 warned, 174,303 nodes, 1,600,562 bytes
+Verified 22 large albums / 67,572 playable games / 388 source games warned. Largest: 5,002 playable games; peak normalized nodes: 458,015.
