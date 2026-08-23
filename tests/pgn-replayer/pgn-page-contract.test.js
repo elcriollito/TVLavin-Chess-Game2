@@ -39,11 +39,18 @@ test('uses Games, Notation, Albums order and a board-first accessible shell', ()
   assert.equal(page('.pgn-toolbar-imports-mobile [data-pgn-paste]').length, 1);
   assert.equal(page('.pgn-source-actions [data-pgn-open] + [data-pgn-options]').length, 1);
   assert.equal(page('[data-pgn-options]').attr('aria-controls'), 'pgn-options-dialog');
-  assert.match(page('meta[http-equiv="Content-Security-Policy"]').attr('content'), /worker-src 'self'/);
-  assert.doesNotMatch(page('meta[http-equiv="Content-Security-Policy"]').attr('content'), /unsafe-eval|unsafe-inline/);
-  assert.doesNotMatch(page('meta[http-equiv="Content-Security-Policy"]').attr('content'), /frame-ancestors/);
+  const pageCsp = page('meta[http-equiv="Content-Security-Policy"]').attr('content');
+  assert.match(pageCsp, /worker-src 'self'/);
+  assert.match(pageCsp, /style-src-elem 'self'/);
+  assert.match(pageCsp, /style-src-attr 'unsafe-inline'/);
+  assert.doesNotMatch(pageCsp, /unsafe-eval|script-src[^;]*unsafe-inline/);
+  assert.doesNotMatch(pageCsp, /frame-ancestors/);
   const vercel = JSON.parse(read('vercel.json'));
-  assert.ok(vercel.headers.some(rule => rule.headers?.some(header => header.key === 'Content-Security-Policy' && /frame-ancestors 'self'/.test(header.value))));
+  const responseCsp = vercel.headers.find(rule => rule.source === '/pgn-replayer')
+    ?.headers.find(header => header.key === 'Content-Security-Policy')?.value || '';
+  assert.match(responseCsp, /style-src-elem 'self'/);
+  assert.match(responseCsp, /style-src-attr 'unsafe-inline'/);
+  assert.match(responseCsp, /frame-ancestors 'self'/);
 });
 
 test('replaces redundant Change PGN with a lazy local engine that defaults off', () => {

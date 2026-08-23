@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { validateHeaderValue } from 'node:http';
 import test from 'node:test';
 import { load } from 'cheerio';
 import { CREDIT_OFFERS } from '../../api/_lib/credit-offers.js';
+import { inlineContentDisposition } from '../../api/_lib/http-content-disposition.js';
 import { PGN_PLAYER_OFFERS, isPlayerAlbumCommerceEnabled } from '../../api/_lib/pgn-player-offers.js';
 
 const read = path => fs.readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
@@ -14,6 +16,25 @@ test('server player offer catalog owns exactly 82 allowlisted physical collectio
   assert.ok(offers.every(offer => offer.credits === 0));
   assert.ok(offers.every(offer => fs.existsSync(offer.filePath)));
   assert.ok(offers.every(offer => offer.filePath.includes('/api/_private/pgn/')));
+});
+
+test('all 82 player download names produce valid RFC 5987 response headers', () => {
+  const offers = Object.values(PGN_PLAYER_OFFERS);
+  for (const offer of offers) {
+    const value = inlineContentDisposition(offer.fileName);
+    assert.doesNotThrow(() => validateHeaderValue('Content-Disposition', value), offer.id);
+    assert.match(value, /^inline; filename="[\x20-\x7E]+"; filename\*=UTF-8''[\x20-\x7E]+$/);
+  }
+  const gligoric = inlineContentDisposition(PGN_PLAYER_OFFERS['pgnmentor-svetozar-gligoric'].fileName);
+  assert.match(gligoric, /filename="Svetozar Gligoric\.pgn"/);
+  assert.match(gligoric, /filename\*=UTF-8''Svetozar%20Gligori%C4%87\.pgn/);
+});
+
+test('player download headers reject response splitting through encoded filenames', () => {
+  const value = inlineContentDisposition('game\r\nX-Injected: yes.pgn');
+  assert.doesNotThrow(() => validateHeaderValue('Content-Disposition', value));
+  assert.doesNotMatch(value, /[\r\n]/);
+  assert.match(value, /filename\*=UTF-8''gameX-Injected%3A%20yes\.pgn/);
 });
 
 test('commercial rights registry blocks all player sales until both source grants are retained', () => {
@@ -92,5 +113,6 @@ test('commerce stays fail-closed while free player delivery bypasses auth and en
   assert.doesNotMatch(player, /player_album_entitlements|commercialRightsCertified|PLAYER_ALBUM_RIGHTS_NOT_CERTIFIED/);
   assert.match(player, /Cache-Control', 'public, s-maxage=86400/);
   assert.match(player, /X-CAISSA-PGN-Access', 'free-player-library'/);
+  assert.match(player, /inlineContentDisposition\(offer\.fileName\)/);
   assert.doesNotMatch(player, /is_premium|premium.*bypass/i);
 });

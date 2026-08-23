@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { setCorsHeaders } from '../_lib/auth.js';
 import { checkRateLimit } from '../_lib/rate-limit.js';
+import { inlineContentDisposition } from '../_lib/http-content-disposition.js';
 import { getPgnPlayerOffer } from '../_lib/pgn-player-offers.js';
 
 function requestKey(req) {
@@ -25,7 +26,7 @@ export default async function handler(req, res) {
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/x-chess-pgn; charset=utf-8');
     res.setHeader('Content-Length', String(stat.size));
-    res.setHeader('Content-Disposition', `inline; filename="${offer.fileName.replace(/["\\]/g, '')}"`);
+    res.setHeader('Content-Disposition', inlineContentDisposition(offer.fileName));
     res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
     res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
     res.setHeader('X-CAISSA-PGN-Access', 'free-player-library');
