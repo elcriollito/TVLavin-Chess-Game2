@@ -67,6 +67,20 @@ test('supports game selection, notation metadata, Albums, flip, focus, and keybo
   await expect(page.locator('[data-pgn-focus]')).toBeFocused();
 });
 
+test('opens an honest Options and About guide from the desktop source bar', async ({ page }) => {
+  await page.goto('/pgn-replayer');
+  await page.locator('[data-pgn-options]').click();
+  const guide = page.locator('[data-pgn-options-dialog]');
+  await expect(guide).toBeVisible();
+  await expect(guide).toContainText('Player figurines');
+  await expect(guide).toContainText('Find a player quickly');
+  await expect(guide).toContainText('Credits and album access');
+  await expect(guide).toContainText('does not deduct credits or sell collections yet');
+  await guide.getByRole('button', { name: 'Done' }).click();
+  await expect(guide).toBeHidden();
+  await expect(page.locator('[data-pgn-options]')).toBeFocused();
+});
+
 test('opens the existing Capablanca collection as a free album', async ({ page }) => {
   test.setTimeout(45_000);
   await page.goto('/pgn-replayer');

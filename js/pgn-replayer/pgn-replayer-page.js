@@ -30,6 +30,8 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         pasteButtons: root.querySelectorAll('[data-pgn-paste]'),
         file: root.querySelector('[data-pgn-file]'),
         dialog: root.querySelector('[data-pgn-dialog]'),
+        optionsButton: root.querySelector('[data-pgn-options]'),
+        optionsDialog: root.querySelector('[data-pgn-options-dialog]'),
         pasteInput: root.querySelector('[data-pgn-paste-input]'),
         loadPaste: root.querySelector('[data-pgn-load-paste]'),
         tabs: root.querySelectorAll('[data-pgn-tab]'),
@@ -625,6 +627,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         elements.dialog.showModal();
         window.setTimeout(() => elements.pasteInput.focus(), 0);
     }));
+    elements.optionsButton.addEventListener('click', () => elements.optionsDialog.showModal());
     elements.loadPaste.addEventListener('click', () => {
         if (!elements.pasteInput.value.trim()) { showMessage('Paste PGN text before loading.', 'error'); return; }
         const text = elements.pasteInput.value;
@@ -687,7 +690,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
     });
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape' && state.focusMode) { toggleFocus(); elements.focus.focus(); return; }
-        if (!state.game || elements.dialog.open || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)) return;
+        if (!state.game || elements.dialog.open || elements.optionsDialog.open || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)) return;
         if (event.key === 'ArrowLeft') { event.preventDefault(); goTo(activeNode()?.previousId || null); }
         if (event.key === 'ArrowRight') { event.preventDefault(); goNext(); }
         if (event.key === 'Home') { event.preventDefault(); goTo(null); }

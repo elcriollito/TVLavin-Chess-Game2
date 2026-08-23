@@ -37,6 +37,8 @@ test('uses Games, Notation, Albums order and a board-first accessible shell', ()
   assert.equal(page('[data-pgn-paste]').length, 2);
   assert.equal(page('.pgn-toolbar-imports-mobile [data-pgn-open]').length, 1);
   assert.equal(page('.pgn-toolbar-imports-mobile [data-pgn-paste]').length, 1);
+  assert.equal(page('.pgn-source-actions [data-pgn-open] + [data-pgn-options]').length, 1);
+  assert.equal(page('[data-pgn-options]').attr('aria-controls'), 'pgn-options-dialog');
   assert.match(page('meta[http-equiv="Content-Security-Policy"]').attr('content'), /worker-src 'self'/);
   assert.doesNotMatch(page('meta[http-equiv="Content-Security-Policy"]').attr('content'), /unsafe-eval|unsafe-inline/);
   assert.doesNotMatch(page('meta[http-equiv="Content-Security-Policy"]').attr('content'), /frame-ancestors/);
@@ -92,6 +94,27 @@ test('keeps game information above notation and reserves safe album access state
   assert.match(runtime, /album\.access === 'owned'/);
   assert.match(runtime, /album\.access === 'available'/);
   assert.doesNotMatch(runtime, /debit|checkout|purchase|reserve.*credit/i);
+});
+
+test('Options and About explains the catalog without pretending purchases are active', () => {
+  const page = load(read('pgn-replayer.html'));
+  const runtime = read('js/pgn-replayer/pgn-replayer-page.js');
+  const styles = read('css/pgn-replayer.css');
+  const guide = page('[data-pgn-options-dialog]');
+  assert.equal(guide.length, 1);
+  assert.equal(guide.find('#pgn-options-title').text(), 'Options & About');
+  assert.match(guide.text(), /King\s*Open World Champion/);
+  assert.match(guide.text(), /Queen\s*Women’s World Champion/);
+  assert.match(guide.text(), /Rook\s*World Championship match or final challenger/);
+  assert.match(guide.text(), /Knight\s*Other featured player collection/);
+  assert.match(guide.text(), /capa.*José Raúl Capablanca/s);
+  assert.match(guide.text(), /does not deduct credits or sell collections yet/);
+  assert.match(guide.text(), /secure CAISSA Credit Store in the final economy phase/);
+  assert.equal(guide.find('a[href="/signup?redirect_url=%2Fpgn-replayer"]').length, 1);
+  assert.match(runtime, /optionsDialog\.showModal\(\)/);
+  assert.match(styles, /\.pgn-library-search input:focus, \.pgn-library-search input:focus-visible \{ outline: 0; box-shadow: none; \}/);
+  assert.equal(page('[data-pgn-library-search]').attr('spellcheck'), 'false');
+  assert.equal(page('[data-pgn-library-search]').attr('autocorrect'), 'off');
 });
 
 test('publishes the authorized Capablanca collection as a free same-origin album', () => {

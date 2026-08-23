@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css">
   <link rel="stylesheet" href="/styles.css?v=2.0.16">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.1.0">
-  <link rel="stylesheet" href="/css/pgn-replayer.css?v=1.2.1">
+  <link rel="stylesheet" href="/css/pgn-replayer.css?v=1.2.2">
   <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
 </head>
 <body class="pgn-replayer-page">
@@ -34,6 +34,7 @@
           <div class="pgn-game-heading" aria-live="polite"><strong data-pgn-title>No game loaded</strong><span data-pgn-subtitle>Open a PGN file to begin</span></div>
           <div class="pgn-source-actions">
             <button class="pgn-button pgn-button--primary" type="button" data-pgn-open><i class="fas fa-folder-open" aria-hidden="true"></i><span>Open PGN</span></button>
+            <button class="pgn-button" type="button" data-pgn-options aria-haspopup="dialog" aria-controls="pgn-options-dialog"><i class="fas fa-sliders" aria-hidden="true"></i><span>Options</span></button>
             <button class="pgn-icon-button" type="button" data-pgn-paste aria-label="Paste PGN text" title="Paste PGN text"><i class="fas fa-clipboard" aria-hidden="true"></i></button>
           </div>
         </header>
@@ -97,7 +98,7 @@
                 </nav>
                 <div class="pgn-library-toolbar">
                   <div class="pgn-library-heading"><strong data-pgn-library-title>Players</strong><small data-pgn-library-summary>Player game collections</small></div>
-                  <label class="pgn-library-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i><span class="pgn-visually-hidden">Search this library family</span><input type="search" data-pgn-library-search placeholder="Search players" autocomplete="off"></label>
+                  <label class="pgn-library-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i><span class="pgn-visually-hidden">Search this library family</span><input type="search" data-pgn-library-search placeholder="Search players" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"></label>
                 </div>
                 <div class="pgn-album-status-key" aria-label="Album access statuses"><span class="pgn-album-badge" data-access="free">Free</span><small>Historical archive</small><span class="pgn-album-badge" data-access="available">1 credit</span><small>Player collection</small><span class="pgn-album-badge" data-access="owned">Owned</span><small>Unlocked collection</small></div>
                 <div class="pgn-library-notice" data-pgn-library-notice hidden><i class="fas fa-circle-info" aria-hidden="true"></i><strong data-pgn-library-notice-title></strong><span data-pgn-library-notice-copy></span></div>
@@ -111,6 +112,7 @@
         <div class="pgn-message" data-pgn-message role="status" aria-live="polite" hidden></div>
         <input type="file" accept=".pgn,application/x-chess-pgn,application/vnd.chess-pgn,text/plain" data-pgn-file hidden>
         <dialog class="pgn-paste-dialog" data-pgn-dialog aria-labelledby="pgn-paste-title"><form method="dialog" class="pgn-paste-shell"><div class="pgn-dialog-heading"><div><span class="pgn-eyebrow">Local import</span><h2 id="pgn-paste-title">Paste PGN text</h2></div><button class="pgn-icon-button" value="cancel" aria-label="Close paste dialog"><i class="fas fa-xmark" aria-hidden="true"></i></button></div><label for="pgn-paste-input">PGN</label><textarea id="pgn-paste-input" data-pgn-paste-input rows="14" spellcheck="false" placeholder="[Event &quot;My game&quot;]&#10;[White &quot;White player&quot;]&#10;[Black &quot;Black player&quot;]&#10;&#10;1. e4 e5 2. Nf3 Nc6"></textarea><p>Your text is processed locally and is not saved to your account.</p><div class="pgn-dialog-actions"><button class="pgn-button" value="cancel">Cancel</button><button class="pgn-button pgn-button--primary" type="button" data-pgn-load-paste>Load PGN</button></div></form></dialog>
+        <dialog id="pgn-options-dialog" class="pgn-options-dialog" data-pgn-options-dialog aria-labelledby="pgn-options-title"><form method="dialog" class="pgn-options-shell"><div class="pgn-dialog-heading"><div><span class="pgn-eyebrow">Replayer guide</span><h2 id="pgn-options-title">Options &amp; About</h2></div><button class="pgn-icon-button" value="close" aria-label="Close Options and About"><i class="fas fa-xmark" aria-hidden="true"></i></button></div><section class="pgn-about-intro" aria-labelledby="pgn-about-heading"><i class="fas fa-circle-info" aria-hidden="true"></i><div><h3 id="pgn-about-heading">About CAISSA PGN Replayer</h3><p>Replay your PGN files privately, browse historical chess archives, study complete player collections, and analyze positions with the local Stockfish engine.</p></div></section><div class="pgn-guide-grid"><section class="pgn-guide-card" aria-labelledby="pgn-figurines-heading"><h3 id="pgn-figurines-heading">Player figurines</h3><ul class="pgn-figurine-guide"><li><i class="fas fa-chess-king" aria-hidden="true"></i><span><strong>King</strong>Open World Champion</span></li><li><i class="fas fa-chess-queen" aria-hidden="true"></i><span><strong>Queen</strong>Women’s World Champion</span></li><li><i class="fas fa-chess-rook" aria-hidden="true"></i><span><strong>Rook</strong>World Championship match or final challenger</span></li><li><i class="fas fa-chess-knight" aria-hidden="true"></i><span><strong>Knight</strong>Other featured player collection</span></li></ul></section><section class="pgn-guide-card" aria-labelledby="pgn-search-guide-heading"><h3 id="pgn-search-guide-heading">Find a player quickly</h3><p>Open <strong>Albums → Players</strong> and type any part of a name in the search bar. For example, <strong>capa</strong> finds José Raúl Capablanca. Clear the field to show all 82 players again.</p></section><section class="pgn-guide-card pgn-guide-card--credits" aria-labelledby="pgn-credit-guide-heading"><h3 id="pgn-credit-guide-heading">Credits and album access</h3><dl><div><dt><span class="pgn-album-badge" data-access="free">Free</span></dt><dd>Historical archive that opens without using credits.</dd></div><div><dt><span class="pgn-album-badge" data-access="available">1 credit</span></dt><dd>Planned unlock price for a Player game collection.</dd></div><div><dt><span class="pgn-album-badge" data-access="owned">Owned</span></dt><dd>Collection already unlocked for that CAISSA account.</dd></div></dl><p>Credits belong to a registered CAISSA account. New members receive the current welcome balance when their account is created. Additional credits will be offered through the secure CAISSA Credit Store in the final economy phase.</p><p class="pgn-guide-note"><i class="fas fa-shield-halved" aria-hidden="true"></i><span>This Preview displays the catalog prices only. It does not deduct credits or sell collections yet.</span></p><a class="pgn-button" href="/signup?redirect_url=%2Fpgn-replayer"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Create a CAISSA account</span></a></section></div><div class="pgn-dialog-actions"><button class="pgn-button pgn-button--primary" value="close">Done</button></div></form></dialog>
       </main>
     </div>
   </div>
@@ -125,6 +127,6 @@
   <script src="/js/pgn-replayer/pgn-special-album-catalog.js?v=1.0.0"></script>
   <script src="/js/pgn-replayer/pgn-mentor-historical-library.js?v=1.0.1"></script>
   <script src="/js/pgn-replayer/pgn-album-pricing.js?v=1.0.2"></script>
-  <script type="module" src="/js/pgn-replayer/pgn-replayer-page.js?v=1.3.1"></script>
+  <script type="module" src="/js/pgn-replayer/pgn-replayer-page.js?v=1.3.2"></script>
 </body>
 </html>
