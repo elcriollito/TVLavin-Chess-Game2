@@ -124,6 +124,7 @@ button, select { touch-action: manipulation; }
 .pgn-variation summary { min-height: 36px; padding: 7px 9px; color: var(--pgn-blue); cursor: pointer; }
 .pgn-variation .pgn-notation-line { padding: 4px 8px 4px 10px; }
 .pgn-engine-panel { height: 123px; min-height: 123px; max-height: 123px; flex: 0 0 123px; overflow: hidden; border-top: 1px solid #30445f; background: #0c1522; box-shadow: 0 -12px 28px rgb(0 0 0 / .18); }
+.pgn-engine-panel--mobile { display: none; }
 .pgn-engine-heading { display: flex; min-height: 38px; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 12px; border-bottom: 1px solid #22344c; }
 .pgn-engine-heading > div { display: flex; align-items: center; gap: 8px; }
 .pgn-engine-heading strong { font-size: .8rem; letter-spacing: .02em; }
@@ -189,7 +190,7 @@ button, select { touch-action: manipulation; }
 .pgn-paste-shell p { margin: 0; color: var(--pgn-muted); }
 .pgn-dialog-actions { justify-content: flex-end; }
 .pgn-visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-body.pgn-focus-mode .caissa-standalone-sidebar-host, body.pgn-focus-mode .pgn-topbar, body.pgn-focus-mode .pgn-panel { display: none; }
+body.pgn-focus-mode .caissa-standalone-sidebar-host, body.pgn-focus-mode .pgn-topbar, body.pgn-focus-mode .pgn-panel, body.pgn-focus-mode .pgn-engine-panel--mobile { display: none; }
 body.pgn-focus-mode .caissa-standalone-content { margin: 0 !important; }
 body.pgn-focus-mode .pgn-app { width: 100%; padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
 body.pgn-focus-mode .pgn-workspace { display: block; }
@@ -229,6 +230,8 @@ body.pgn-focus-mode .pgn-player-card, body.pgn-focus-mode .pgn-toolbar { width: 
   .pgn-speed { min-width: 0; }
   .pgn-speed select { width: 100%; min-width: 0; }
   .pgn-speed span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .pgn-engine-panel--desktop { display: none; }
+  .pgn-engine-panel--mobile { display: block; width: min(100%, 760px); margin-top: 10px; border: 1px solid #30445f; border-radius: 11px; box-shadow: 0 14px 34px rgb(0 0 0 / .24); }
   .pgn-panel { max-height: 68dvh; border-radius: 11px; }
   .pgn-tabs button { min-height: 52px; font-size: .82rem; }
   .pgn-library-nav { padding-inline: 8px; }

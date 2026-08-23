@@ -53,8 +53,9 @@ test('replaces redundant Change PGN with a lazy local engine that defaults off',
   assert.equal(page('[data-pgn-engine]').attr('aria-pressed'), 'false');
   assert.equal(page('[data-pgn-engine-state]').text(), 'Off');
   assert.equal(page('#pgn-engine-title').text(), 'Stockfish analysis');
-  assert.equal(page('[data-pgn-engine-panel]').attr('hidden'), undefined);
-  assert.equal(page('[data-pgn-engine-panel]').attr('data-state'), 'off');
+  assert.equal(page('#pgn-engine-mobile-title').text(), 'Stockfish analysis');
+  assert.equal(page('[data-pgn-engine-panel]').length, 2);
+  assert.equal(page('[data-pgn-engine-panel][data-state="off"]').length, 2);
   assert.equal(page('script[src*="pgn-replayer-page.js"]').attr('type'), 'module');
   assert.match(runtime, /new PgnAnalysisEngine/);
   assert.doesNotMatch(runtime, /caissa_pgn_engine|localStorage.*engine/i);
@@ -68,7 +69,8 @@ test('replaces redundant Change PGN with a lazy local engine that defaults off',
   assert.match(workerCsp, /script-src 'self' 'wasm-unsafe-eval'/);
   assert.doesNotMatch(workerCsp, /script-src[^;]*'unsafe-eval'/);
   assert.equal(page('#pgn-panel-notation > .pgn-notation-scroll').length, 1);
-  assert.equal(page('#pgn-panel-notation > [data-pgn-engine-panel]').length, 1);
+  assert.equal(page('#pgn-panel-notation > .pgn-engine-panel--desktop').length, 1);
+  assert.equal(page('.pgn-board-column > .pgn-toolbar + .pgn-engine-panel--mobile').length, 1);
   assert.match(read('css/pgn-replayer.css'), /\.pgn-engine-panel \{[^}]*height: 123px;[^}]*flex: 0 0 123px/);
 });
 
@@ -176,7 +178,13 @@ test('mobile controls stay in two compact rows without viewport-scrolling notati
   assert.equal(page('.pgn-toolbar-view [data-pgn-speed]').length, 1);
   assert.equal(page('.pgn-toolbar-view [data-pgn-flip]').length, 1);
   assert.equal(page('.pgn-toolbar-view [data-pgn-focus] .pgn-control-label').text(), 'Zoom');
+  assert.equal(page('.pgn-board-column > .pgn-toolbar + .pgn-engine-panel--mobile').length, 1);
+  assert.equal(page('.pgn-board-column + .pgn-panel').length, 1);
   assert.match(styles, /grid-template-columns: repeat\(7, minmax\(0, 1fr\)\)/);
+  assert.match(styles, /\.pgn-engine-panel--desktop \{ display: none; \}/);
+  assert.match(styles, /\.pgn-engine-panel--mobile \{ display: block;[^}]*width: min\(100%, 760px\)/);
+  assert.match(runtime, /enginePanels: root\.querySelectorAll/);
+  assert.match(runtime, /engineLineGroups: root\.querySelectorAll/);
   assert.match(runtime, /function keepActiveMoveVisible\(selected\)/);
   assert.doesNotMatch(runtime, /scrollIntoView/);
 });

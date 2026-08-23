@@ -152,24 +152,25 @@ test('engine defaults off and renders exactly two local analysis lines', async (
   }));
   await page.goto('/pgn-replayer');
   await loadPgn(page);
+  await page.getByRole('tab', { name: 'Notation' }).click();
   const toggle = page.locator('[data-pgn-engine]');
   await expect(toggle).toContainText('Off');
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.locator('[data-pgn-engine-panel]')).toBeVisible();
-  const reservedHeight = await page.locator('[data-pgn-engine-panel]').evaluate(node => node.getBoundingClientRect().height);
+  const visiblePanel = page.locator('[data-pgn-engine-panel]:visible');
+  await expect(visiblePanel).toHaveCount(1);
+  const reservedHeight = await visiblePanel.evaluate(node => node.getBoundingClientRect().height);
   await toggle.click();
   await expect(toggle).toContainText('On');
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('[data-pgn-engine-panel]')).toBeVisible();
-  await expect(page.locator('.pgn-engine-line')).toHaveCount(2);
-  await expect(page.locator('.pgn-engine-line').first()).toContainText('+0.35');
-  await expect(page.locator('.pgn-engine-line').first()).toContainText('e4 e5 Nf3');
-  await expect(page.locator('[data-pgn-engine-panel]')).toHaveCSS('height', `${reservedHeight}px`);
+  await expect(visiblePanel).toHaveCount(1);
+  await expect(visiblePanel.locator('.pgn-engine-line')).toHaveCount(2);
+  await expect(visiblePanel.locator('.pgn-engine-line').first()).toContainText('+0.35');
+  await expect(visiblePanel.locator('.pgn-engine-line').first()).toContainText('e4 e5 Nf3');
+  await expect(visiblePanel).toHaveCSS('height', `${reservedHeight}px`);
   await toggle.click();
   await expect(toggle).toContainText('Off');
-  await expect(page.locator('[data-pgn-engine-panel]')).toBeVisible();
-  await expect(page.locator('[data-pgn-engine-panel]')).toHaveAttribute('data-state', 'off');
-  await expect(page.locator('.pgn-engine-line').first()).toContainText('Turn Engine on to analyze');
+  await expect(visiblePanel).toHaveAttribute('data-state', 'off');
+  await expect(visiblePanel.locator('.pgn-engine-line').first()).toContainText('Turn Engine on to analyze');
 });
 
 test('renders active-looking PGN content as text and reports invalid PGN safely', async ({ page }) => {
@@ -215,6 +216,18 @@ test('stays board-first without horizontal page overflow on mobile', async ({ pa
   const secondRow = await page.locator('[data-pgn-engine], [data-pgn-speed], [data-pgn-flip], [data-pgn-focus]').evaluateAll(nodes => nodes.map(node => Math.round(node.getBoundingClientRect().top)));
   expect(Math.max(...secondRow) - Math.min(...secondRow)).toBeLessThanOrEqual(2);
   expect(secondRow[0]).toBeGreaterThan(firstRow[0].top);
+
+  const mobileStack = await page.locator('.pgn-toolbar, .pgn-engine-panel--mobile, .pgn-panel').evaluateAll(nodes => nodes.map(node => ({
+    className: node.className,
+    top: Math.round(node.getBoundingClientRect().top),
+    visible: node.getBoundingClientRect().height > 0
+  })).filter(item => item.visible));
+  expect(mobileStack).toHaveLength(3);
+  expect(mobileStack[0].className).toContain('pgn-toolbar');
+  expect(mobileStack[1].className).toContain('pgn-engine-panel--mobile');
+  expect(mobileStack[2].className).toContain('pgn-panel');
+  expect(mobileStack[0].top).toBeLessThan(mobileStack[1].top);
+  expect(mobileStack[1].top).toBeLessThan(mobileStack[2].top);
 
   await page.getByRole('tab', { name: 'Notation' }).click();
   await page.locator('[data-pgn-speed]').selectOption('400');

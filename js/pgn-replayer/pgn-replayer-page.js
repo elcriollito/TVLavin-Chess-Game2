@@ -59,9 +59,9 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         speed: root.querySelector('[data-pgn-speed]'),
         engine: root.querySelector('[data-pgn-engine]'),
         engineState: root.querySelector('[data-pgn-engine-state]'),
-        enginePanel: root.querySelector('[data-pgn-engine-panel]'),
-        engineSummary: root.querySelector('[data-pgn-engine-summary]'),
-        engineLines: root.querySelector('[data-pgn-engine-lines]')
+        enginePanels: root.querySelectorAll('[data-pgn-engine-panel]'),
+        engineSummaries: root.querySelectorAll('[data-pgn-engine-summary]'),
+        engineLineGroups: root.querySelectorAll('[data-pgn-engine-lines]')
     };
 
     function readPreference(key) {
@@ -322,26 +322,28 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
     }
 
     function renderEngineLines(lines, placeholder = 'Calculating…') {
-        elements.engineLines.replaceChildren();
-        for (let index = 0; index < 2; index += 1) {
-            const line = lines[index];
-            const row = document.createElement('div');
-            row.className = 'pgn-engine-line';
-            const rank = document.createElement('span');
-            rank.className = 'pgn-engine-rank';
-            rank.textContent = String(index + 1);
-            const score = document.createElement('strong');
-            score.className = 'pgn-engine-score';
-            score.textContent = line ? engineScore(line) : '—';
-            score.title = 'Evaluation from White’s perspective';
-            const moves = document.createElement('span');
-            moves.className = 'pgn-engine-pv';
-            moves.textContent = line?.san?.length ? line.san.join(' ') : placeholder;
-            const depth = document.createElement('small');
-            depth.textContent = line ? `d${line.depth}` : '';
-            row.append(rank, score, moves, depth);
-            elements.engineLines.append(row);
-        }
+        elements.engineLineGroups.forEach(group => {
+            group.replaceChildren();
+            for (let index = 0; index < 2; index += 1) {
+                const line = lines[index];
+                const row = document.createElement('div');
+                row.className = 'pgn-engine-line';
+                const rank = document.createElement('span');
+                rank.className = 'pgn-engine-rank';
+                rank.textContent = String(index + 1);
+                const score = document.createElement('strong');
+                score.className = 'pgn-engine-score';
+                score.textContent = line ? engineScore(line) : '—';
+                score.title = 'Evaluation from White’s perspective';
+                const moves = document.createElement('span');
+                moves.className = 'pgn-engine-pv';
+                moves.textContent = line?.san?.length ? line.san.join(' ') : placeholder;
+                const depth = document.createElement('small');
+                depth.textContent = line ? `d${line.depth}` : '';
+                row.append(rank, score, moves, depth);
+                group.append(row);
+            }
+        });
     }
 
     function updateEngineUi(status) {
@@ -350,14 +352,15 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         elements.engine.setAttribute('aria-label', on ? 'Turn engine off' : 'Turn engine on');
         elements.engine.title = on ? 'Turn engine off' : 'Turn engine on';
         elements.engineState.textContent = status === 'loading' ? 'Loading' : on ? 'On' : 'Off';
-        elements.engineSummary.textContent = ({
+        const summary = ({
             loading: 'Starting locally…',
             ready: 'Ready · 2 lines',
             analyzing: 'Analyzing · 2 lines',
             stopping: 'Updating position…',
             error: 'Unavailable'
         })[status] || 'Off';
-        elements.enginePanel.dataset.state = status;
+        elements.engineSummaries.forEach(element => { element.textContent = summary; });
+        elements.enginePanels.forEach(panel => { panel.dataset.state = status; });
         if (status === 'off') renderEngineLines([], 'Turn Engine on to analyze');
         if (status === 'error') renderEngineLines([], 'Engine unavailable · try again');
     }

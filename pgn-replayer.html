@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css">
   <link rel="stylesheet" href="/styles.css?v=2.0.16">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.1.0">
-  <link rel="stylesheet" href="/css/pgn-replayer.css?v=1.2.0">
+  <link rel="stylesheet" href="/css/pgn-replayer.css?v=1.2.1">
   <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
 </head>
 <body class="pgn-replayer-page">
@@ -65,6 +65,7 @@
                 <button class="pgn-control" type="button" data-pgn-focus aria-label="Enter focus view" title="Focus view"><span class="pgn-control-glyph" data-pgn-focus-icon aria-hidden="true">⛶</span><small class="pgn-control-label">Zoom</small></button>
               </div>
             </div>
+            <section class="pgn-engine-panel pgn-engine-panel--mobile" data-pgn-engine-panel data-state="off" aria-labelledby="pgn-engine-mobile-title"><div class="pgn-engine-heading"><div><span class="pgn-engine-dot" aria-hidden="true"></span><strong id="pgn-engine-mobile-title">Stockfish analysis</strong></div><small data-pgn-engine-summary>Off</small></div><div class="pgn-engine-lines" data-pgn-engine-lines aria-live="polite"></div></section>
           </section>
           <section class="pgn-panel" aria-label="Games, notation, and game information">
             <div class="pgn-tabs" role="tablist" aria-label="PGN information">
@@ -84,7 +85,7 @@
                   <section class="pgn-game-info" data-pgn-game-info-shell hidden aria-labelledby="pgn-game-info-title"><div class="pgn-game-info-heading"><i class="fas fa-circle-info" aria-hidden="true"></i><h2 id="pgn-game-info-title">Game information</h2></div><dl data-pgn-game-info></dl></section>
                   <div class="pgn-notation" data-pgn-notation></div>
                 </div>
-                <section class="pgn-engine-panel" data-pgn-engine-panel data-state="off" aria-labelledby="pgn-engine-title"><div class="pgn-engine-heading"><div><span class="pgn-engine-dot" aria-hidden="true"></span><strong id="pgn-engine-title">Stockfish analysis</strong></div><small data-pgn-engine-summary>Off</small></div><div class="pgn-engine-lines" data-pgn-engine-lines aria-live="polite"></div></section>
+                <section class="pgn-engine-panel pgn-engine-panel--desktop" data-pgn-engine-panel data-state="off" aria-labelledby="pgn-engine-title"><div class="pgn-engine-heading"><div><span class="pgn-engine-dot" aria-hidden="true"></span><strong id="pgn-engine-title">Stockfish analysis</strong></div><small data-pgn-engine-summary>Off</small></div><div class="pgn-engine-lines" data-pgn-engine-lines aria-live="polite"></div></section>
               </section>
               <section role="tabpanel" id="pgn-panel-albums" aria-labelledby="pgn-tab-albums" data-pgn-tabpanel="albums" hidden>
                 <nav class="pgn-library-nav" aria-label="Chess game library families" data-pgn-library-nav>
@@ -124,6 +125,6 @@
   <script src="/js/pgn-replayer/pgn-special-album-catalog.js?v=1.0.0"></script>
   <script src="/js/pgn-replayer/pgn-mentor-historical-library.js?v=1.0.1"></script>
   <script src="/js/pgn-replayer/pgn-album-pricing.js?v=1.0.2"></script>
-  <script type="module" src="/js/pgn-replayer/pgn-replayer-page.js?v=1.3.0"></script>
+  <script type="module" src="/js/pgn-replayer/pgn-replayer-page.js?v=1.3.1"></script>
 </body>
 </html>
