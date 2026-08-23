@@ -182,8 +182,8 @@ button, select { touch-action: manipulation; }
 .pgn-panel-footer { display: flex; min-height: 42px; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; border-top: 1px solid var(--pgn-border); color: var(--pgn-muted); background: #0f1825; font-size: .82rem; }
 .pgn-message { position: fixed; z-index: 1100; right: max(18px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); max-width: min(420px, calc(100vw - 36px)); padding: 12px 15px; border: 1px solid #5d7593; border-radius: 10px; color: var(--pgn-text); background: #18263a; box-shadow: 0 15px 40px rgb(0 0 0 / .35); }
 .pgn-message[data-tone="error"] { border-color: var(--pgn-danger); }
-.pgn-paste-dialog { width: min(680px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0; overflow: auto; border: 1px solid #52657e; border-radius: 14px; color: var(--pgn-text); background: var(--pgn-surface); }
-.pgn-options-dialog { width: min(880px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0; overflow: auto; border: 1px solid #52657e; border-radius: 14px; color: var(--pgn-text); background: var(--pgn-surface); }
+.pgn-paste-dialog { width: min(680px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); margin: auto; padding: 0; overflow: auto; border: 1px solid #52657e; border-radius: 14px; color: var(--pgn-text); background: var(--pgn-surface); }
+.pgn-options-dialog { width: min(880px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); margin: auto; padding: 0; overflow: auto; border: 1px solid #52657e; border-radius: 14px; color: var(--pgn-text); background: var(--pgn-surface); }
 .pgn-paste-dialog::backdrop, .pgn-options-dialog::backdrop { background: rgb(0 0 0 / .72); backdrop-filter: blur(3px); }
 .pgn-paste-shell { display: grid; gap: 12px; padding: 18px; }
 .pgn-options-shell { display: grid; gap: 14px; padding: 20px; }
