@@ -1,6 +1,7 @@
 import { verifyAuth, respondAuthFailure, setCorsHeaders } from '../_lib/auth.js';
 import { getSupabase } from '../_lib/supabase.js';
 import { checkRateLimit } from '../_lib/rate-limit.js';
+import { isPlayerAlbumCommerceEnabled } from '../_lib/pgn-player-offers.js';
 
 export default async function handler(req, res, dependencies = {}) {
     if (!setCorsHeaders(req, res, ['GET'])) return;
@@ -25,6 +26,6 @@ export default async function handler(req, res, dependencies = {}) {
     return res.status(200).json({
         credits: user.credits,
         ownedAlbumIds: (data || []).map(row => row.album_id),
-        commerceEnabled: process.env.CAISSA_PLAYER_ALBUM_COMMERCE_ENABLED === 'true'
+        commerceEnabled: isPlayerAlbumCommerceEnabled()
     });
 }

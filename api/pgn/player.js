@@ -17,6 +17,9 @@ export default async function handler(req, res, dependencies = {}) {
     const albumId = Array.isArray(req.query?.album) ? '' : String(req.query?.album || '');
     const offer = getPgnPlayerOffer(albumId);
     if (!offer) return res.status(404).json({ code: 'UNKNOWN_PLAYER_ALBUM', error: 'Player album not found.' });
+    if (!offer.commercialRightsCertified) {
+        return res.status(503).json({ code: 'PLAYER_ALBUM_RIGHTS_NOT_CERTIFIED', error: 'Player album delivery is paused pending catalog certification.' });
+    }
 
     const supabase = (dependencies.getSupabase || getSupabase)();
     const { data: user, error: userError } = await supabase

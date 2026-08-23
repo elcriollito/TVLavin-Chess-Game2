@@ -4,10 +4,13 @@
       "maxDuration": 10
     },
     "api/pgn/player.js": {
-      "includeFiles": "api/_private/pgn/**"
+      "includeFiles": "{api/_private/pgn/**,data/pgn/player-commercial-rights.json}"
     },
     "api/pgn/unlock.js": {
-      "includeFiles": "api/_private/pgn/players/{manifest.json,pgnmentor/manifest.json}"
+      "includeFiles": "{api/_private/pgn/players/{manifest.json,pgnmentor/manifest.json},data/pgn/player-commercial-rights.json}"
+    },
+    "api/pgn/entitlements.js": {
+      "includeFiles": "data/pgn/player-commercial-rights.json"
     },
     "api/cron/mentor-economic-maintenance.js": {
       "maxDuration": 10

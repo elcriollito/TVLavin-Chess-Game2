@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import { load } from 'cheerio';
 import { CREDIT_OFFERS } from '../../api/_lib/credit-offers.js';
-import { PGN_PLAYER_OFFERS } from '../../api/_lib/pgn-player-offers.js';
+import { PGN_PLAYER_OFFERS, isPlayerAlbumCommerceEnabled } from '../../api/_lib/pgn-player-offers.js';
 
 const read = path => fs.readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 
@@ -16,6 +16,23 @@ test('server player offer catalog owns exactly 82 allowlisted physical collectio
   assert.ok(offers.every(offer => offer.filePath.includes('/api/_private/pgn/')));
 });
 
+test('commercial rights registry blocks all player sales until both source grants are retained', () => {
+  const rights = JSON.parse(read('data/pgn/player-commercial-rights.json'));
+  const offers = Object.values(PGN_PLAYER_OFFERS);
+  assert.equal(rights.catalogAlbumCount, 82);
+  assert.equal(rights.commerciallyCertifiedAlbumCount, 0);
+  assert.deepEqual(Object.fromEntries(Object.entries(rights.sources).map(([key, value]) => [key, value.albumCount])), {
+    pgnmentor: 17,
+    smallchess: 65
+  });
+  assert.equal(offers.filter(offer => offer.sourceKey === 'pgnmentor').length, 17);
+  assert.equal(offers.filter(offer => offer.sourceKey === 'smallchess').length, 65);
+  assert.ok(offers.every(offer => offer.commercialRightsCertified === false));
+  assert.equal(isPlayerAlbumCommerceEnabled({ CAISSA_PLAYER_ALBUM_COMMERCE_ENABLED: 'true' }), false);
+  assert.equal(isPlayerAlbumCommerceEnabled({ CAISSA_PLAYER_ALBUM_COMMERCE_ENABLED: 'false' }), false);
+  assert.match(read('docs/legal/PGN_PLAYER_COMMERCIAL_RIGHTS_AUDIT.md'), /0 of 82 albums are certified/);
+});
+
 test('player PGNs are physically private and only bundled with the entitlement endpoint', () => {
   const vercel = JSON.parse(read('vercel.json'));
   assert.equal(fs.existsSync(new URL('../../public/data/pgn/capablanca-games-1901-1941.pgn', import.meta.url)), false);
@@ -24,8 +41,11 @@ test('player PGNs are physically private and only bundled with the entitlement e
     ? fs.readdirSync(publicPlayerRoot, { recursive: true }).filter(name => String(name).endsWith('.pgn'))
     : [];
   assert.deepEqual(publicPlayerPgns, []);
-  assert.equal(vercel.functions['api/pgn/player.js'].includeFiles, 'api/_private/pgn/**');
-  assert.equal(vercel.functions['api/pgn/unlock.js'].includeFiles, 'api/_private/pgn/players/{manifest.json,pgnmentor/manifest.json}');
+  assert.match(vercel.functions['api/pgn/player.js'].includeFiles, /api\/_private\/pgn\/\*\*/);
+  assert.match(vercel.functions['api/pgn/player.js'].includeFiles, /player-commercial-rights\.json/);
+  assert.match(vercel.functions['api/pgn/unlock.js'].includeFiles, /api\/_private\/pgn\/players/);
+  assert.match(vercel.functions['api/pgn/unlock.js'].includeFiles, /player-commercial-rights\.json/);
+  assert.match(vercel.functions['api/pgn/entitlements.js'].includeFiles, /player-commercial-rights\.json/);
   assert.equal(vercel.rewrites.some(rule => String(rule.destination).includes('/api/pgn/legacy')), false);
   assert.equal(fs.existsSync(new URL('../../api/pgn/legacy.js', import.meta.url)), false);
 });
@@ -70,6 +90,8 @@ test('commerce activation is fail-closed and Stripe fulfillment shares the canon
   assert.match(unlock, /PLAYER_ALBUM_COMMERCE_NOT_ENABLED/);
   assert.match(unlock, /Idempotency|idempotency-key/i);
   assert.match(player, /player_album_entitlements/);
+  assert.match(player, /commercialRightsCertified/);
+  assert.match(player, /PLAYER_ALBUM_RIGHTS_NOT_CERTIFIED/);
   assert.match(player, /Cache-Control', 'private, no-store/);
   assert.doesNotMatch(player, /is_premium|premium.*bypass/i);
 });
