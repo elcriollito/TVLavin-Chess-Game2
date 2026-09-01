@@ -143,7 +143,8 @@ test('each CORS route advertises the method enforced by its handler', () => {
         'api/checkout/session.js', 'api/credits/add.js', 'api/library/push.js',
         'api/library/delete.js', 'api/library/pull.js', 'api/user/sync.js',
         'api/mentor/chat.js', 'api/user/identity-migration/challenge.js',
-        'api/user/identity-migration/activate.js'
+        'api/user/identity-migration/activate.js', 'api/account/downloads.js',
+        'api/account/products/[productId]/releases.js'
     ];
     for (const route of routes) {
         const source = fs.readFileSync(route, 'utf8');

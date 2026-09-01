@@ -1,3 +1,8 @@
+import {
+    buildMarketReaderCheckoutFulfillment,
+    fulfillMarketReaderCheckout
+} from './market-reader-checkout.js';
+
 const CREDIT_PACKAGES = Object.freeze({ starter: 25, standard: 75, pro: 200 });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -18,6 +23,8 @@ export function buildStripeFulfillmentCommand(event) {
         const metadata = object.metadata || {};
         const userId = UUID.test(metadata.caissa_user_id || '') ? metadata.caissa_user_id : null;
         const legacySubject = typeof metadata.clerk_id === 'string' ? metadata.clerk_id : null;
+        const marketCommand = buildMarketReaderCheckoutFulfillment(event);
+        if (marketCommand) return marketCommand;
         if (!userId && !legacySubject) throw new Error('IDENTITY_MAPPING_REQUIRED');
 
         if (metadata.type === 'credits') {
@@ -96,6 +103,9 @@ export function buildStripeFulfillmentCommand(event) {
 export async function fulfillVerifiedStripeEvent(supabase, event) {
     const command = buildStripeFulfillmentCommand(event);
     if (!command) return { ok: true, code: 'IGNORED' };
+    if (command.operation === 'PRODUCT_ENTITLEMENT_GRANT') {
+        return fulfillMarketReaderCheckout(supabase, command);
+    }
     const { data, error } = await supabase.rpc('fulfill_stripe_webhook_event', {
         p_event_id: command.eventId,
         p_event_type: command.eventType,
