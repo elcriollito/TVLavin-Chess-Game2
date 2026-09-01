@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-labelledby="title description">
+  <title id="title">CAISSA PGN Reader</title>
+  <desc id="description">A chess notation document beside a stylized knight.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#17233c"/>
+      <stop offset="1" stop-color="#090d16"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9dc1ff"/>
+      <stop offset="1" stop-color="#5f8fe6"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="480" rx="48" fill="url(#background)"/>
+  <path d="M82 88h306l92 92v212H82z" fill="#111a2b" stroke="#5f7398" stroke-width="10"/>
+  <path d="M388 88v92h92" fill="none" stroke="#5f7398" stroke-width="10"/>
+  <rect x="126" y="140" width="158" height="48" rx="14" fill="url(#accent)"/>
+  <text x="205" y="174" fill="#07101e" font-family="Arial, sans-serif" font-size="30" font-weight="700" text-anchor="middle">PGN</text>
+  <g fill="none" stroke="#8291aa" stroke-linecap="round" stroke-width="12">
+    <path d="M128 236h208"/>
+    <path d="M128 282h164"/>
+    <path d="M128 328h190"/>
+  </g>
+  <circle cx="468" cy="324" r="116" fill="#0d1422" stroke="#78a9ff" stroke-width="10"/>
+  <path d="M430 378h112v28H388v-28h22c4-34 16-62 38-84-17-2-32-11-43-26 28-5 48-18 60-39 27 8 48 27 61 56 14 31 19 62 16 93h20v-1H430zm35-104c10 0 18-8 18-18s-8-18-18-18-18 8-18 18 8 18 18 18z" fill="url(#accent)"/>
+</svg>

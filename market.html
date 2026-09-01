@@ -3,61 +3,94 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CAISSA PGN Reader — CAISSA Market</title>
-    <meta name="description" content="CAISSA PGN Reader for Windows. Prelaunch staging listing; production purchase is not enabled.">
+    <title>Software — CAISSA Market</title>
+    <meta name="description" content="Software created by CAISSA Chess. CAISSA PGN Reader is the first prelaunch product.">
     <meta name="robots" content="noindex, nofollow, noarchive">
     <link rel="icon" href="/favicon.ico?v=4">
     <link rel="stylesheet" href="/styles.css?v=2.0.1">
     <link rel="stylesheet" href="/css/caissa-auth.css?v=1.0.1">
     <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.1.0">
-    <link rel="stylesheet" href="/css/caissa-market.css?v=1.0.0">
+    <link rel="stylesheet" href="/css/caissa-market.css?v=2.0.0">
 </head>
 <body class="market-page">
     <div class="caissa-standalone-layout">
         <div data-caissa-standalone-sidebar></div>
         <div class="caissa-standalone-content">
             <header class="market-header">
-                <a class="market-brand" href="/play">CAISSA Chess</a>
-                <nav aria-label="Market account navigation">
-                    <a href="/market/caissa-pgn-reader" aria-current="page">Market</a>
+                <a class="market-brand" href="/market" aria-label="CAISSA Market home">
+                    <span class="market-brand-mark" aria-hidden="true">C</span>
+                    <span>CAISSA Market</span>
+                </a>
+                <nav class="market-nav" aria-label="Market navigation">
+                    <a href="/market/software" aria-current="page">Software</a>
+                    <a href="/market/books">Books &amp; PDFs</a>
+                    <a href="/market/recommendations">Recommendations</a>
                     <a href="/account/downloads">My Downloads</a>
                 </nav>
             </header>
             <main class="market-main">
-                <p class="market-eyebrow">CAISSA Market · staging preview</p>
-                <section class="market-product" aria-labelledby="reader-title">
-                    <div class="market-product-copy">
-                        <span class="market-status">Prelaunch</span>
-                        <h1 id="reader-title">CAISSA PGN Reader</h1>
-                        <p class="market-lead">Read, organize and replay PGN chess games in a focused Windows desktop workspace.</p>
-                        <ul class="market-features">
-                            <li>Portable Windows x64 release candidate</li>
-                            <li>Local PGN reading and replay</li>
-                            <li>Local Stockfish analysis by user action</li>
-                            <li>English and Spanish interface</li>
-                        </ul>
-                        <div class="market-actions">
-                            <button type="button" disabled aria-describedby="buy-gate">Buy — not enabled</button>
-                            <a class="market-secondary-action" href="/account/downloads">Open My Downloads</a>
-                        </div>
-                        <p id="buy-gate" class="market-note">No production checkout or trial is active. Access in staging uses fixture entitlements only.</p>
+                <section class="market-hero" aria-labelledby="software-title">
+                    <div>
+                        <p class="market-eyebrow">CAISSA products · Software</p>
+                        <h1 id="software-title">Chess tools with a clear purpose.</h1>
+                        <p class="market-lead">Focused desktop software designed to keep study, replay and analysis close to the board.</p>
                     </div>
-                    <aside class="market-release-card" aria-labelledby="rc1-heading">
-                        <h2 id="rc1-heading">Staging release</h2>
-                        <dl>
-                            <div><dt>Version</dt><dd>1.0.0-rc1</dd></div>
-                            <div><dt>Format</dt><dd>Portable ZIP</dd></div>
-                            <div><dt>Platform</dt><dd>Windows x64</dd></div>
-                            <div><dt>Authenticode</dt><dd>Unsigned RC1 baseline</dd></div>
-                        </dl>
-                        <p>RC1 is preserved as the historical unsigned candidate. Signing will apply only to a later final candidate.</p>
-                    </aside>
+                    <div class="market-hero-note" aria-label="Market status">
+                        <span class="market-status">Prelaunch</span>
+                        <strong>Software is the first active section.</strong>
+                        <span>Production purchases remain disabled.</span>
+                    </div>
+                </section>
+
+                <section class="market-section" aria-labelledby="software-catalog-title">
+                    <div class="market-section-heading">
+                        <div>
+                            <p class="market-kicker">Made by CAISSA</p>
+                            <h2 id="software-catalog-title">Software</h2>
+                        </div>
+                        <p>CAISSA products use entitlement-protected delivery through My Downloads.</p>
+                    </div>
+
+                    <article class="market-software-card" aria-labelledby="reader-card-title">
+                        <div class="market-product-visual">
+                            <img src="/public/market/caissa-pgn-reader.svg" alt="CAISSA PGN Reader notation document and chess knight">
+                            <span>Windows x64</span>
+                        </div>
+                        <div class="market-software-copy">
+                            <div class="market-card-labels">
+                                <span class="market-owner-badge">CAISSA product</span>
+                                <span class="market-version">1.0.0-rc1</span>
+                            </div>
+                            <h3 id="reader-card-title">CAISSA PGN Reader</h3>
+                            <p>Read, organize and replay PGN games in a focused Windows desktop workspace.</p>
+                            <ul class="market-inline-features" aria-label="Principal features">
+                                <li>Portable</li>
+                                <li>Local-first</li>
+                                <li>English &amp; Spanish</li>
+                            </ul>
+                            <div class="market-actions">
+                                <a class="market-primary-action" href="/market/caissa-pgn-reader">View product</a>
+                                <a class="market-secondary-action" href="/account/downloads">My Downloads</a>
+                                <button type="button" disabled aria-describedby="software-buy-gate">Buy — not enabled</button>
+                            </div>
+                            <p id="software-buy-gate" class="market-note">The production checkout is not active and no public price is being offered.</p>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="market-platform-note" aria-labelledby="platform-ready-title">
+                    <div class="market-platform-icon" aria-hidden="true">+</div>
+                    <div>
+                        <p class="market-kicker">Extensible by design</p>
+                        <h2 id="platform-ready-title">Ready for future CAISSA software.</h2>
+                        <p>New applications can join the same catalog, entitlement and private-delivery model without changing the certified Reader flow.</p>
+                    </div>
                 </section>
             </main>
         </div>
     </div>
     <script src="/js/caissa-primary-navigation.js?v=1.10.0"></script>
     <script src="/js/caissa-standalone-sidebar.js?v=1.1.0"></script>
-    <script src="/js/caissa-market.js?v=1.0.0"></script>
+    <script src="/js/caissa-market.js?v=2.0.0"></script>
 </body>
 </html>

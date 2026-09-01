@@ -10,23 +10,28 @@
     <link rel="stylesheet" href="/styles.css?v=2.0.1">
     <link rel="stylesheet" href="/css/caissa-auth.css?v=1.0.1">
     <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.1.0">
-    <link rel="stylesheet" href="/css/caissa-market.css?v=1.0.0">
+    <link rel="stylesheet" href="/css/caissa-market.css?v=2.0.0">
 </head>
 <body class="market-page">
     <div class="caissa-standalone-layout">
         <div data-caissa-standalone-sidebar></div>
         <div class="caissa-standalone-content">
             <header class="market-header">
-                <a class="market-brand" href="/play">CAISSA Chess</a>
-                <nav aria-label="Market account navigation">
-                    <a href="/market/caissa-pgn-reader">Market</a>
+                <a class="market-brand" href="/market" aria-label="CAISSA Market home">
+                    <span class="market-brand-mark" aria-hidden="true">C</span>
+                    <span>CAISSA Market</span>
+                </a>
+                <nav class="market-nav" aria-label="Market navigation">
+                    <a href="/market/software">Software</a>
+                    <a href="/market/books">Books &amp; PDFs</a>
+                    <a href="/market/recommendations">Recommendations</a>
                     <a href="/account/downloads" aria-current="page">My Downloads</a>
                 </nav>
             </header>
             <main class="market-main market-downloads-main">
                 <p class="market-eyebrow">Account</p>
                 <h1>My Downloads</h1>
-                <p class="market-lead">Your entitled CAISSA desktop releases appear here.</p>
+                <p class="market-lead">Your entitled CAISSA software and future digital releases appear here. External recommendations never appear in this account area.</p>
                 <section id="marketDownloads" class="market-downloads" aria-live="polite" aria-busy="true">
                     <p class="market-state">Checking your account…</p>
                 </section>
