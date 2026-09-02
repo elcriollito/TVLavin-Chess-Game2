@@ -45,6 +45,9 @@ test('Coach evaluation, hint and undo remain local to the existing engine game',
     assert.match(app, /turn === App\.playerColor/);
     assert.match(app, /caissa-simplified-shell\[data-mode="coach"\]/);
     assert.match(app, /attempt < 8/);
+    assert.match(app, /function settleCoachLiveEvaluation\(\)/);
+    assert.match(app, /info\.depth >= 12/);
+    assert.match(app, /App\.engine\.start\(\)\.then/);
     assert.match(app, /App\.currentEvaluation\?\.fen === fen/);
     assert.match(app, /App\.boardAdapter\?\.setSelection/);
     assert.match(app, /App\.boardAdapter\?\.setLegalTargets/);

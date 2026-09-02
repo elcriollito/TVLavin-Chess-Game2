@@ -63,6 +63,7 @@ const App = {
     currentEvaluation: null,
     pendingCoachHint: false,
     coachOpeningKey: '',
+    engineRestartPending: false,
     selectedEditorPiece: 'erase', // Piece to place in editor mode
     editorMoveSource: null, // Source square for move/adjust tool
 
@@ -1148,6 +1149,14 @@ function scheduleCoachLiveEvaluation(attempt = 0) {
     return true;
 }
 
+function settleCoachLiveEvaluation() {
+    if (!isNativeCoachGame() || !App.analyzing) return false;
+    setTimeout(() => {
+        if (isNativeCoachGame() && App.analyzing) stopAnalysis();
+    }, 0);
+    return true;
+}
+
 function dispatchCoachNarration(message, detail = {}) {
     if (!isNativeCoachGame() || typeof message !== 'string' || !message.trim()) return false;
     window.dispatchEvent(new CustomEvent('caissa-coach-narration-request', {
@@ -1196,6 +1205,7 @@ function presentCoachHint(bestMove) {
     App.pendingCoachHint = false;
     const message = `Hint: consider ${san}. Follow the dark dots from ${from} to ${to}.`;
     window.dispatchEvent(new CustomEvent('caissa-coach-hint', { detail: { message, from, to, san } }));
+    settleCoachLiveEvaluation();
     return true;
 }
 
@@ -1275,6 +1285,22 @@ function makeEngineMove() {
     // Verify game is still active and at current position
     if (!App.gameActive || App.game.game_over()) {
         updateEngineStatus('ready', 'Engine Ready');
+        return;
+    }
+
+    if (!App.engine?.ready && typeof App.engine?.start === 'function') {
+        if (App.engineRestartPending) return;
+        const retryFen = App.game.fen();
+        App.engineRestartPending = true;
+        updateEngineStatus('busy', 'Engine loading...');
+        App.engine.start().then(() => {
+            App.engineRestartPending = false;
+            if (App.gameActive && App.game.fen() === retryFen) makeEngineMove();
+        }).catch(() => {
+            App.engineRestartPending = false;
+            App.isPlayerTurn = true;
+            updateEngineStatus('error', 'Engine unavailable');
+        });
         return;
     }
 
@@ -2579,6 +2605,7 @@ function updateAnalysis(info) {
         App.lastEvalMate = null;
     }
     if (App.pendingCoachHint && App.currentEvaluation.bestMove) presentCoachHint(App.currentEvaluation.bestMove);
+    else if (isNativeCoachGame() && info.depth >= 12) settleCoachLiveEvaluation();
 
     if (typeof MentorAI !== 'undefined' && MentorAI.onEvaluationUpdate) {
         MentorAI.onEvaluationUpdate(App.currentEvaluation);
@@ -2771,6 +2798,7 @@ function prepareNativePlaySetup() {
     App.currentEvaluation = null;
     App.pendingCoachHint = false;
     App.coachOpeningKey = '';
+    App.engineRestartPending = false;
     document.body?.classList?.remove('caissa-coach-hint-active');
     App.loadedGameInfo = null;
     App.isFlipped = false;
@@ -2847,6 +2875,7 @@ function newGame(options = {}) {
     App.currentEvaluation = null;
     App.pendingCoachHint = false;
     App.coachOpeningKey = '';
+    App.engineRestartPending = false;
     document.body?.classList?.remove('caissa-coach-hint-active');
 
     // Clear loaded game info
