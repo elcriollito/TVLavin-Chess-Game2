@@ -15,7 +15,7 @@
 (function installLegacyPlayCompatibility(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.3.0';
+    const SCHEMA_VERSION = '1.4.0';
     const EXISTING = global.CaissaPlayCompatibility;
     if (EXISTING?.schemaVersion === SCHEMA_VERSION) return;
 
@@ -213,7 +213,9 @@
         if (input.increment !== undefined &&
             (!Number.isInteger(input.increment) || input.increment < 0 || input.increment > 86400))
             return 'invalid-increment';
-        const allowed = new Set(['mode', 'color', 'timeControl', 'increment']);
+        if (input.targetElo !== undefined && global.CaissaOpponentStrength?.isValid?.(input.targetElo) !== true)
+            return 'invalid-target-elo';
+        const allowed = new Set(['mode', 'color', 'timeControl', 'increment', 'targetElo']);
         if (Object.keys(input).some(key => !allowed.has(key))) return 'unknown-option';
         return null;
     }

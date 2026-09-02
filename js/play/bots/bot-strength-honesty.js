@@ -1,7 +1,7 @@
 (function installBotStrengthHonesty(global) {
     'use strict';
 
-    const VERSION = '1.0.0';
+    const VERSION = '1.1.0';
     const PERSONALITY_NAMES = Object.freeze(['Beginner', 'Casual', 'Tactical', 'Solid']);
     const PERSONALITY_IDS = Object.freeze(['beginner', 'casual', 'tactical', 'solid']);
     const PROHIBITED_FIELDS = Object.freeze(['elo', 'rating', 'federationRating', 'federationTitle',
@@ -16,12 +16,13 @@
     const contract = Object.freeze({
         schemaVersion: VERSION, contractId: `PlayV2BotStrengthHonesty@${VERSION}`,
         currentRatingStatus: 'unrated-calibration-pending', ratingStatusLabel: 'Unrated · calibration pending',
-        numericEloDisplay: 'prohibited', certifiedEloClaim: 'prohibited', federationRatingClaim: 'prohibited',
+        numericEloDisplay: 'target-label-only', certifiedEloClaim: 'prohibited', federationRatingClaim: 'prohibited',
         exactHumanStrengthClaim: 'prohibited', realPersonReplica: 'prohibited', realPersonIdentity: 'prohibited',
         realPersonLikeness: 'prohibited', depthAsElo: 'prohibited', styleClaimRequiresCalibrationEvidence: true,
         difficultyClaimRequiresRelativeEvidence: true, personalityNames: 'allowlisted',
         personalityNameAllowlist: PERSONALITY_NAMES, personalityIdAllowlist: PERSONALITY_IDS,
-        publicRatingActivationRequiresVersionedCalibration: true, analyticsTransport: 'disabled',
+        targetStrengthLabel: 'Elo target', publicRatingActivationRequiresVersionedCalibration: true,
+        analyticsTransport: 'disabled',
         futureNumericRatingLabel: 'Estimated', futureNumericRatingGate: FUTURE_NUMERIC_RATING_GATE
     });
 

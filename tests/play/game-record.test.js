@@ -78,6 +78,19 @@ function fixture(snapshot = baseSnapshot()) {
 
 const plain = value => JSON.parse(JSON.stringify(value));
 
+test('modelled Classic bot records preserve character identity without claiming a rating', () => {
+    const { api, window } = fixture(baseSnapshot({ mode: 'human-vs-engine' }));
+    window.CaissaBotSession = { getSnapshot: () => ({
+        activeProfile: null,
+        activePresentation: { id: 'pip', name: 'Pip', targetStrength: 100 }
+    }) };
+    const record = api.buildFromPlay();
+    assert.equal(record.opponent.type, 'bot');
+    assert.equal(record.opponent.id, 'pip');
+    assert.equal(record.opponent.name, 'Pip');
+    assert.equal(record.opponent.rating, null);
+});
+
 test('public API is versioned, frozen, minimal, and idempotent', () => {
     const { api, window } = fixture();
     const before = api;

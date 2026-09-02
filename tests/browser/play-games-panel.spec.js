@@ -14,12 +14,32 @@ test('GamesPanel replaces the temporary controls host with one truthful primary 
     await openPanel(page);
     await expect(page.getByRole('heading', { name: 'Play Computer' })).toBeVisible();
     await expect(page.getByText('Start a local game against CAISSA.')).toBeVisible();
-    await expect(page.getByText('Full Power', { exact: true })).toBeVisible();
-    await expect(page.getByText(/fixed maximum-strength engine setting/)).toBeVisible();
+    await expect(page.getByRole('slider', { name: 'Opponent strength in Elo' })).toBeVisible();
+    await expect(page.getByText('1500 Elo · Advanced', { exact: true })).toBeVisible();
+    await expect(page.getByText(/Target strength is approximate/)).toBeVisible();
     await expect(page.locator('.caissa-simplified-shell__context .right-panel')).toHaveCount(0);
     await expect(page.locator('.caissa-simplified-shell__advanced .right-panel')).toHaveCount(1);
     await expect(page.locator('[data-games-primary]:visible')).toHaveCount(1);
     await expect(page.locator('#navNewGameBtn:visible')).toHaveCount(0);
+});
+
+test('opponent strength supports keyboard bounds, labels, and persisted preference', async ({ page }) => {
+    await openPanel(page);
+    const slider = page.getByRole('slider', { name: 'Opponent strength in Elo' });
+    await expect(slider).toHaveAttribute('min', '250');
+    await expect(slider).toHaveAttribute('max', '3200');
+    await expect(slider).toHaveAttribute('step', '50');
+    await slider.focus();
+    await page.keyboard.press('Home');
+    await expect(slider).toHaveValue('250');
+    await expect(page.getByText('250 Elo · Beginner', { exact: true })).toBeVisible();
+    await page.keyboard.press('End');
+    await expect(slider).toHaveValue('3200');
+    await expect(page.getByText('3200 Elo · Elite', { exact: true })).toBeVisible();
+    await slider.fill('1450');
+    await expect(page.getByText('1450 Elo · Intermediate', { exact: true })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole('slider', { name: 'Opponent strength in Elo' })).toHaveValue('1450');
 });
 
 test('beta setup disclosure owns truthful radio names and keyboard selection at every target width', async ({ page }) => {
@@ -74,6 +94,7 @@ test('time and color draft selections start exactly one authoritative local mach
     expect(state.clock.initialTimeMs).toBe(300000);
     expect(state.clock.incrementMs).toBe(0);
     expect(state.shell.gamesPanel.status).toBe('active');
+    expect(state.shell.gamesPanel.opponent.targetElo).toBe(1500);
     expect(state.shell.gamesPanel.diagnostics.successfulStarts - before).toBe(1);
     await expect(page.locator('[data-games-primary]')).toHaveText('New Game');
 });

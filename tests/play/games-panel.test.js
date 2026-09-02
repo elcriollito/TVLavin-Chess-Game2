@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
+const strengthSource = fs.readFileSync(new URL('../../js/play/opponent-strength.js', import.meta.url), 'utf8');
 const source = fs.readFileSync(new URL('../../js/play/games-panel.js', import.meta.url), 'utf8');
 
 function load(snapshot = {}, commandResult = { ok: true, status: 'accepted' }, options = {}) {
@@ -22,6 +23,7 @@ function load(snapshot = {}, commandResult = { ok: true, status: 'accepted' }, o
     };
     const window = {
         document: { createElement() { throw new Error('mount-only DOM access'); } },
+        localStorage: { getItem: () => null, setItem: () => {} },
         queueMicrotask(callback) { microtasks.push(callback); }
     };
     const readiness = options.readiness || {
@@ -32,6 +34,7 @@ function load(snapshot = {}, commandResult = { ok: true, status: 'accepted' }, o
         reset() { this.state = 'ready'; }, dispose() {},
         getSnapshot() { return { state: this.state, ready: this.state === 'ready' }; }
     };
+    vm.runInNewContext(strengthSource, { window, globalThis: window });
     vm.runInNewContext(source, { window, globalThis: window });
     return {
         api: window.CaissaGamesPanel,
@@ -42,14 +45,14 @@ function load(snapshot = {}, commandResult = { ok: true, status: 'accepted' }, o
 
 test('publishes a frozen versioned contract with truthful fixed vocabularies', () => {
     const { api } = load();
-    assert.equal(api.schemaVersion, '1.5.0');
-    assert.equal(api.snapshotSchemaVersion, '1.5.0');
+    assert.equal(api.schemaVersion, '1.6.0');
+    assert.equal(api.snapshotSchemaVersion, '1.6.0');
     assert.ok(Object.isFrozen(api));
     assert.ok(Object.isFrozen(api.timeControls));
     assert.ok(Object.isFrozen(api.colors));
     assert.ok(Object.isFrozen(api.opponentStrengths));
     assert.deepEqual(JSON.parse(JSON.stringify(api.colors.map(item => item.value))), ['white', 'random', 'black']);
-    assert.deepEqual(JSON.parse(JSON.stringify(api.opponentStrengths.map(item => item.value))), ['full-power']);
+    assert.deepEqual(JSON.parse(JSON.stringify(api.opponentStrengths)), { min: 250, max: 3200, step: 50 });
     assert.deepEqual(JSON.parse(JSON.stringify(api.timeControls.map(item => item.label))),
         ['1+0', '2+1', '3+0', '3+2', '5+0', '10+0', '15+10']);
     assert.equal(api.timeControls.some(item => item.seconds === 0), false);
@@ -66,7 +69,8 @@ test('hydrates current base time, color, active state, and fixed strength', () =
     const snapshot = panel.getSnapshot();
     assert.equal(snapshot.timeControl.presetId, 'blitz-5');
     assert.equal(snapshot.color, 'black');
-    assert.equal(snapshot.opponent.strength, 'full-power');
+    assert.equal(snapshot.opponent.targetElo, 1500);
+    assert.equal(snapshot.opponent.bandLabel, 'Advanced');
     assert.equal(snapshot.status, 'active');
     assert.ok(Object.isFrozen(snapshot));
     assert.ok(Object.isFrozen(snapshot.validation.errors));
@@ -93,15 +97,19 @@ test('every supported preset selects without starting a game and invalid input i
     assert.equal(calls.length, 0);
 });
 
-test('white, random, and black are supported while fake colors and strength are rejected', () => {
+test('white, random, black, and bounded target strengths are supported', () => {
     const { panel } = load();
     panel.hydrateFromLegacy();
     assert.equal(panel.setColor('white').ok, true);
     assert.equal(panel.setColor('black').ok, true);
     assert.equal(panel.setColor('random').ok, true);
     assert.equal(panel.setColor('blue').reasonCode, 'INVALID_COLOR');
-    assert.equal(panel.setOpponentStrength('full-power').ok, true);
-    assert.equal(panel.setOpponentStrength('beginner').reasonCode, 'INVALID_STRENGTH');
+    assert.equal(panel.setOpponentStrength(250).ok, true);
+    assert.equal(panel.setOpponentStrength(1450).ok, true);
+    assert.equal(panel.getSnapshot().opponent.bandLabel, 'Intermediate');
+    assert.equal(panel.setOpponentStrength(249).reasonCode, 'INVALID_STRENGTH');
+    assert.equal(panel.setOpponentStrength(1475).reasonCode, 'INVALID_STRENGTH');
+    assert.equal(panel.setOpponentStrength(3250).reasonCode, 'INVALID_STRENGTH');
 });
 
 test('valid submission calls the authoritative start command exactly once with mapped settings', () => {
@@ -112,7 +120,7 @@ test('valid submission calls the authoritative start command exactly once with m
     const submitted = panel.submit();
     assert.equal(submitted.ok, true);
     assert.deepEqual(JSON.parse(JSON.stringify(calls)), [[
-        'startNewGame', { mode: 'engine', color: 'black', timeControl: 900, increment: 10 }
+        'startNewGame', { mode: 'engine', color: 'black', timeControl: 900, increment: 10, targetElo: 1500 }
     ]]);
     assert.equal(panel.getSnapshot().status, 'active');
     assert.equal(panel.getSnapshot().diagnostics.successfulStarts, 1);
@@ -129,7 +137,7 @@ test('random resolves exactly once at submission and immediate duplicate activat
     assert.equal(fixture.panel.submit().reasonCode, 'BUSY');
     assert.equal(resolutions, 1);
     assert.deepEqual(JSON.parse(JSON.stringify(fixture.calls)), [[
-        'startNewGame', { mode: 'engine', color: 'black', timeControl: 60, increment: 0 }
+        'startNewGame', { mode: 'engine', color: 'black', timeControl: 60, increment: 0, targetElo: 1500 }
     ]]);
     assert.equal(fixture.panel.getSnapshot().color, 'random');
     fixture.flushMicrotasks();

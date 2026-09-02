@@ -49,6 +49,7 @@ function fixture({ mounted = true } = {}) {
     const window = {
         App,
         document,
+        CaissaOpponentStrength: { isValid: value => Number.isInteger(value) && value >= 250 && value <= 3200 && (value - 250) % 50 === 0 },
         CaissaNavigation: {
             currentSection: 'play',
             navigateToSection: section => calls.push(['openAnalyze', section])
@@ -76,7 +77,7 @@ test('public API is frozen, versioned, minimal, and supports stable repeated ins
     const before = value.api;
     vm.runInNewContext(source, { window: value.window, Date, Object, WeakSet, Number, Set });
     assert.equal(value.window.CaissaPlayCompatibility, before);
-    assert.equal(before.schemaVersion, '1.3.0');
+    assert.equal(before.schemaVersion, '1.4.0');
     assert.equal(Object.isFrozen(before), true);
     assert.deepEqual(
         Object.keys(before).sort(),
@@ -101,7 +102,7 @@ test('snapshot has deterministic JSON-safe shape without legacy object reference
     const { api, App, game, board } = fixture();
     const snapshot = api.getSnapshot();
     assert.doesNotThrow(() => JSON.stringify(snapshot));
-    assert.equal(snapshot.schemaVersion, '1.3.0');
+    assert.equal(snapshot.schemaVersion, '1.4.0');
     assert.equal(snapshot.position.fen, game.fen());
     assert.equal(snapshot.position.moveCount, 1);
     assert.equal(snapshot.board.available, true);
@@ -188,11 +189,11 @@ test('evaluation and clock snapshots expose evidence-backed legacy state', () =>
 
 test('startNewGame validates and routes exactly one legacy action', () => {
     const { api, calls } = fixture();
-    const accepted = api.execute('startNewGame', { mode: 'analysis', color: 'black', timeControl: 300 });
+    const accepted = api.execute('startNewGame', { mode: 'analysis', color: 'black', timeControl: 300, targetElo: 1450 });
     assert.deepEqual(JSON.parse(JSON.stringify(accepted)), {
         ok: true, status: 'accepted', command: 'startNewGame', reason: null, value: null
     });
-    assert.deepEqual(JSON.parse(JSON.stringify(calls)), [['newGame', { mode: 'analysis', color: 'black', timeControl: 300 }]]);
+    assert.deepEqual(JSON.parse(JSON.stringify(calls)), [['newGame', { mode: 'analysis', color: 'black', timeControl: 300, targetElo: 1450 }]]);
 });
 
 test('resetGame routes once with current settings', () => {
@@ -225,6 +226,7 @@ test('malformed commands cannot reach legacy actions', () => {
         ['startNewGame', { color: 'random' }],
         ['startNewGame', { timeControl: -1 }],
         ['startNewGame', { increment: -1 }],
+        ['startNewGame', { targetElo: 1475 }],
         ['startNewGame', { mode: 'analysis', injected: true }],
         ['resetGame', { injected: true }],
         ['promote', { piece: 'q', injected: true }]
@@ -284,7 +286,7 @@ test('both legacy SPA pages load the boundary exactly once after App', () => {
         const html = fs.readFileSync(new URL(`../../${page}`, import.meta.url), 'utf8');
         assert.equal((html.match(/js\/play\/legacy-play-compatibility\.js/g) || []).length, 1);
         assert.ok(
-            html.indexOf('app.js?v=2.0.16') < html.indexOf('js/play/legacy-play-compatibility.js?v=1.3.0'),
+            html.indexOf('app.js?v=2.0.16') < html.indexOf('js/play/legacy-play-compatibility.js?v=1.4.0'),
             `${page} must load compatibility after App`
         );
     }

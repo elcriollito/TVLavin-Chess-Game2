@@ -1,8 +1,8 @@
 (function installBotPersonalityPolicy(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.0.0';
-    const CONTRACT_ID = 'PlayV2BotPersonalityPolicy@1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
+    const CONTRACT_ID = 'PlayV2BotPersonalityPolicy@1.1.0';
     const POLICIES = Object.freeze({
         beginner: Object.freeze({ id: 'beginner', candidateCount: 5, depth: 3, lossBoundaryCp: 260,
             errorRatePercent: 60, tacticalPreference: 0, stabilityPreference: 0 }),
@@ -14,7 +14,8 @@
             errorRatePercent: 0, tacticalPreference: 0, stabilityPreference: 3 })
     });
     const GLOBAL_POLICIES = Object.freeze({ legalMovesOnly: true, realPersonSimulation: 'prohibited',
-        certifiedEloClaim: 'prohibited', numericRatingUntilCalibrated: 'prohibited', ficsFallback: 'prohibited',
+        certifiedEloClaim: 'prohibited', numericRatingUntilCalibrated: 'prohibited', modelledTargetLabelRequired: true,
+        ficsFallback: 'prohibited',
         remoteProvider: 'prohibited', arbitraryQueryConfiguration: 'prohibited', workerOwner: 'existing-single-owner',
         gameCommitOwner: 'existing-lifecycle', analyticsTransport: 'disabled' });
     const THRESHOLDS = Object.freeze({ legalMoveRate: 1, staleCommits: 0, duplicateCommits: 0,
@@ -54,8 +55,9 @@
                 promotion: Boolean(move.promotion), exposure, san: move.san });
         }).filter(Boolean).sort((a, b) => b.quality - a.quality || a.rank - b.rank);
     }
+    function policyFor(id) { return POLICIES[id] || global.CaissaBotStrengthLayer?.getPolicy?.(id) || null; }
     function select(input = {}) {
-        const policy = POLICIES[input.profileId];
+        const policy = policyFor(input.profileId);
         const normalized = normalize(input.fen, input.candidates);
         if (!policy || !normalized.length || typeof input.seed !== 'string' || !input.seed) {
             return Object.freeze({ ok: false, reasonCode: 'NO_SAFE_CANDIDATE', move: null });
@@ -69,7 +71,14 @@
             return Object.freeze({ ok: true, reasonCode: 'FORCED_SAFETY_PRIORITY', move: best.move });
         const safe = viable.filter(item => best.quality - item.quality <= policy.lossBoundaryCp);
         let chosen = best; let reasonCode = 'BEST_SAFE_FALLBACK';
-        if (policy.id === 'beginner' || policy.id === 'casual') {
+        if (policy.selectionStyle === 'strength-model') {
+            const roll = hash(`${input.seed}|${input.fen}|${policy.id}`) % 100;
+            if (roll < policy.errorRatePercent && safe.length > 1) {
+                const spread = Math.min(safe.length - 1, Math.max(1, Math.ceil(policy.errorRatePercent / 25)));
+                chosen = safe[1 + (hash(`${input.seed}|${input.fen}|candidate`) % spread)];
+                reasonCode = 'MODELLED_STRENGTH_VARIATION';
+            }
+        } else if (policy.id === 'beginner' || policy.id === 'casual') {
             const roll = hash(`${input.seed}|${input.fen}|${policy.id}`) % 100;
             if (roll < policy.errorRatePercent && safe.length > 1) {
                 chosen = safe[1 + (hash(`${input.seed}|candidate`) % (safe.length - 1))]; reasonCode = 'CONTROLLED_VARIATION';
@@ -87,5 +96,6 @@
     }
 
     global.CaissaBotPersonalityPolicy = Object.freeze({ schemaVersion: SCHEMA_VERSION, contractId: CONTRACT_ID,
-        profiles: POLICIES, globalPolicies: GLOBAL_POLICIES, thresholds: THRESHOLDS, normalizeCandidates: normalize, select });
+        profiles: POLICIES, getProfile: policyFor, globalPolicies: GLOBAL_POLICIES, thresholds: THRESHOLDS,
+        normalizeCandidates: normalize, select });
 })(typeof window !== 'undefined' ? window : globalThis);

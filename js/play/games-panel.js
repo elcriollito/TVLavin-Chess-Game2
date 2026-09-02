@@ -1,8 +1,8 @@
 (function installGamesPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.5.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.5.0';
+    const SCHEMA_VERSION = '1.6.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.6.0';
     const STATUSES = Object.freeze(['idle', 'ready', 'invalid', 'busy', 'active', 'error', 'disposed']);
     const EVENTS = Object.freeze(['hydrated', 'selection-changed', 'validated', 'submitted', 'started', 'advanced-changed']);
     const SECTIONS = Object.freeze(['game-type', 'time-control', 'color', 'opponent', 'primary-action', 'advanced-options']);
@@ -20,9 +20,7 @@
         Object.freeze({ value: 'random', label: 'Random' }),
         Object.freeze({ value: 'black', label: 'Black' })
     ]);
-    const STRENGTHS = Object.freeze([
-        Object.freeze({ value: 'full-power', label: 'Full Power', legacyMapping: 'fixed-current-engine-setting' })
-    ]);
+    const STRENGTH = global.CaissaOpponentStrength;
     const REASONS = Object.freeze({
         MOUNTED: 'MOUNTED', ALREADY_MOUNTED: 'ALREADY_MOUNTED', UNMOUNTED: 'UNMOUNTED',
         HYDRATED: 'HYDRATED', SELECTION_CHANGED: 'SELECTION_CHANGED', VALID: 'VALID',
@@ -63,7 +61,8 @@
         #id = `games-panel-${++sequence}`;
         #compatibility; #root = null; #host = null; #advanced = null; #disposed = false; #minimalEntry = false;
         #resolveRandomColor; #readiness; #unsubscribeReadiness = null;
-        #status = 'idle'; #preset = TIME_CONTROLS[0]; #color = 'white'; #strength = STRENGTHS[0];
+        #status = 'idle'; #preset = TIME_CONTROLS[0]; #color = 'white';
+        #targetElo = STRENGTH?.readPreference?.() ?? 1500;
         #hydrated = false; #busy = false; #listeners = []; #validation = { valid: false, errors: [], warnings: [] };
         #diagnostics = {
             mounts: 0, hydrations: 0, selections: 0, validations: 0, submits: 0,
@@ -151,12 +150,22 @@
                 'aria-labelledby': `${this.#id}-opponent`
             });
             const opponentTitle = node('h3', 'caissa-games-panel__legend', { id: `${this.#id}-opponent` });
-            opponentTitle.textContent = 'Machine opponent';
-            const opponentValue = node('p', 'caissa-games-panel__opponent-value');
-            opponentValue.textContent = 'Full Power';
+            opponentTitle.textContent = 'Opponent Strength';
+            const range = node('input', 'caissa-games-panel__strength-range', {
+                type: 'range', min: String(STRENGTH.min), max: String(STRENGTH.max), step: String(STRENGTH.step),
+                value: String(this.#targetElo), 'data-games-strength': '',
+                'aria-label': 'Opponent strength in Elo', 'aria-describedby': `${this.#id}-strength-value`
+            });
+            const scale = node('div', 'caissa-games-panel__strength-scale', { 'aria-hidden': 'true' });
+            const minimum = node('span', ''); minimum.textContent = String(STRENGTH.min);
+            const maximum = node('span', ''); maximum.textContent = String(STRENGTH.max);
+            scale.append(minimum, maximum);
+            const opponentValue = node('p', 'caissa-games-panel__opponent-value', {
+                id: `${this.#id}-strength-value`, 'data-games-strength-value': ''
+            });
             const opponentNote = node('p', 'caissa-games-panel__note');
-            opponentNote.textContent = 'Current Play uses its fixed maximum-strength engine setting.';
-            opponent.append(opponentTitle, opponentValue, opponentNote);
+            opponentNote.textContent = 'Target strength is approximate while CAISSA calibration continues.';
+            opponent.append(opponentTitle, range, scale, opponentValue, opponentNote);
 
             const status = node('div', 'caissa-games-panel__status', { 'data-games-status': '' });
             const action = node('button', 'caissa-games-panel__primary', {
@@ -166,8 +175,7 @@
             action.textContent = 'Start Game';
             if (this.#minimalEntry) this.#root.setAttribute('aria-label', 'Games setup');
             else this.#root.append(title, description);
-            setup.append(time, color);
-            if (!this.#minimalEntry) setup.append(opponent);
+            setup.append(time, color, opponent);
             disclosure.append(disclosureSummary, setup);
             this.#root.append(disclosure);
             this.#root.append(status, action);
@@ -214,9 +222,11 @@
             this.#color = value; return this.#selection();
         }
         setOpponentStrength(value) {
-            if (value !== this.#strength.value)
+            const numeric = Number(value);
+            if (!STRENGTH?.isValid?.(numeric))
                 return this.#record(result(false, 'rejected', REASONS.INVALID_STRENGTH));
-            return result(true, 'unchanged', REASONS.SELECTION_CHANGED, this.getSnapshot());
+            this.#targetElo = numeric; STRENGTH.writePreference(numeric);
+            return this.#selection();
         }
         setAdvancedExpanded(expanded) {
             if (this.#advanced) this.#advanced.open = expanded === true;
@@ -227,7 +237,7 @@
             const errors = [];
             if (!byPreset(this.#preset?.presetId)) errors.push('Unsupported time control.');
             if (!COLORS.some(item => item.value === this.#color)) errors.push('Unsupported color.');
-            if (this.#strength?.value !== 'full-power') errors.push('Unsupported engine strength.');
+            if (!STRENGTH?.isValid?.(this.#targetElo)) errors.push('Unsupported opponent strength.');
             if (typeof this.#compatibility?.execute !== 'function') errors.push('Play command is unavailable.');
             this.#validation = { valid: errors.length === 0, errors, warnings: [] };
             this.#diagnostics.validations += 1;
@@ -272,7 +282,7 @@
             }
             const start = () => this.#compatibility.execute('startNewGame', {
                 mode: 'engine', color: resolvedColor, timeControl: this.#preset.seconds,
-                increment: this.#preset.incrementSeconds
+                increment: this.#preset.incrementSeconds, targetElo: this.#targetElo
             });
             const commit = () => {
                 const command = global.CaissaPlayGameStartAnalytics?.observePanelStart?.({ mode: 'games',
@@ -307,7 +317,8 @@
         }
 
         reset() {
-            this.#preset = TIME_CONTROLS[0]; this.#color = 'white'; this.#status = 'ready';
+            this.#preset = TIME_CONTROLS[0]; this.#color = 'white';
+            this.#targetElo = STRENGTH?.readPreference?.() ?? 1500; this.#status = 'ready';
             this.#readiness?.reset?.(); this.validate(); this.#bootReadiness(); this.#render();
             return result(true, 'accepted', 'RESET', this.getSnapshot());
         }
@@ -316,7 +327,7 @@
                 schemaVersion: SNAPSHOT_SCHEMA_VERSION, panelId: this.#id,
                 mounted: !!this.#root, disposed: this.#disposed, status: this.#status,
                 timeControl: { ...this.#preset }, color: this.#color,
-                opponent: { type: 'local-engine', strength: this.#strength.value, label: this.#strength.label },
+                opponent: { type: 'local-engine', ...STRENGTH.describe(this.#targetElo).value },
                 advancedExpanded: this.#advanced?.open === true,
                 setupExpanded: this.#root?.querySelector?.('[data-games-setup-disclosure]')?.open === true,
                 primaryAction: {
@@ -363,8 +374,10 @@
         #handleChange(event) {
             const time = event.target?.dataset?.gamesTime;
             const color = event.target?.dataset?.gamesColor;
+            const strength = event.target?.hasAttribute?.('data-games-strength') ? event.target.value : null;
             if (time) this.setTimeControl(time);
             if (color) this.setColor(color);
+            if (strength !== null) this.setOpponentStrength(strength);
         }
         #render() {
             if (!this.#root) return;
@@ -374,6 +387,17 @@
             this.#root.querySelectorAll('[data-games-color]').forEach(input => {
                 input.checked = input.value === this.#color;
             });
+            const strength = this.#root.querySelector('[data-games-strength]');
+            if (strength) {
+                const description = STRENGTH.describe(this.#targetElo).value;
+                strength.value = String(this.#targetElo);
+                strength.setAttribute('aria-valuetext', `${this.#targetElo} Elo, ${description.bandLabel}`);
+            }
+            const strengthValue = this.#root.querySelector('[data-games-strength-value]');
+            if (strengthValue) {
+                const description = STRENGTH.describe(this.#targetElo).value;
+                strengthValue.textContent = `${description.targetElo} Elo · ${description.bandLabel}`;
+            }
             const summary = this.#root.querySelector('[data-games-summary-value]');
             const colorLabel = COLORS.find(item => item.value === this.#color)?.label || 'Unknown';
             const summaryText = `${this.#preset.label} · ${this.#preset.category} · ${colorLabel}`;
@@ -422,7 +446,8 @@
     global.CaissaGamesPanel = Object.freeze({
         schemaVersion: SCHEMA_VERSION, snapshotSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
         statuses: STATUSES, events: EVENTS, reasonCodes: REASONS, sections: SECTIONS,
-        timeControls: TIME_CONTROLS, colors: COLORS, opponentStrengths: STRENGTHS,
+        timeControls: TIME_CONTROLS, colors: COLORS,
+        opponentStrengths: Object.freeze({ min: STRENGTH.min, max: STRENGTH.max, step: STRENGTH.step }),
         create: options => new GamesPanel(options)
     });
 })(typeof window !== 'undefined' ? window : globalThis);

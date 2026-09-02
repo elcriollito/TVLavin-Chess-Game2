@@ -237,7 +237,8 @@
             if (this.#record) {
                 const shellMode = root.CaissaSimplifiedPlayShellInstance?.getSnapshot?.()?.mode;
                 const opponent = shellMode === 'coach' ? 'CAISSA Coach'
-                    : root.CaissaBotRegistry?.get?.(this.#record.opponent?.id)?.name
+                    : this.#record.opponent?.name
+                    || root.CaissaBotRegistry?.get?.(this.#record.opponent?.id)?.name
                     || root.CaissaPlayV2IdentityPolicy?.normalizePlayV2Display?.(
                         this.#record.opponent?.name, this.#record.opponent?.type)
                     || this.#record.opponent?.name || null;

@@ -8,18 +8,22 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await page.goto('/play/beta/coach');
     await expect(page.getByRole('tab', { name: /Coach/ })).toHaveAttribute('aria-selected', 'true');
     const panel = page.locator('[data-caissa-native-coach-panel]');
-    await expect(panel).toBeVisible(); await expect(panel.getByText('Coach · Internal')).toBeVisible();
-    await expect(panel.getByText(/locally certified/)).toBeVisible();
-    await expect(panel.getByRole('combobox')).toHaveCount(2);
-    await expect(panel.getByLabel('Time control')).toBeVisible();
-    await expect(panel.getByLabel('Play as')).toBeVisible();
+    await expect(panel).toBeVisible(); await expect(panel.getByText('Play Coach')).toBeVisible();
+    await expect(panel.getByAltText('Caissa, goddess of chess')).toBeVisible();
+    await expect(panel.locator('[data-coach-narration]')).toContainText("Let's play");
+    await expect(panel).not.toContainText(/Internal|locally certified|bounded assistance/i);
+    await expect(panel.getByRole('combobox')).toHaveCount(1);
+    await expect(panel.getByLabel('Coach level')).toHaveValue('casual');
+    await expect(panel.getByLabel('White')).toBeChecked();
+    await expect(panel.getByLabel('Random')).toBeVisible();
+    await expect(panel.getByLabel('Black')).toBeVisible();
     const assistance = page.locator('[data-play-assistance]');
     await assistance.locator('summary').click();
     await expect(assistance.getByRole('combobox')).toHaveCount(3);
-    await expect(panel.getByRole('button', { name: 'Play' })).toHaveCount(1); await expect(panel.getByRole('button', { name: 'Help' })).toBeDisabled();
+    await expect(panel.getByRole('button', { name: 'Play' })).toHaveCount(1);
     await expect(panel).not.toContainText(/lesson|curriculum|academy|mentor|mastery|knowledge|best move/i);
     await panel.getByRole('button', { name: 'Play' }).click();
-    await expect(panel.locator('[data-coach-assistance-live]')).toContainText('Game started');
+    await expect(panel.locator('[data-coach-narration]')).toContainText('game is ready');
     const help = page.locator('[data-active-game-action="coach-help"]');
     await expect(help).toBeVisible(); await help.click();
     await expect(page.locator('[data-active-game-status]')).toContainText('opponent');
@@ -43,9 +47,9 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
 test('Coach setup is keyboard accessible, responsive, and serious-violation free', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 568 }); await page.goto('/play/beta/coach');
     const panel = page.locator('[data-caissa-native-coach-panel]');
-    await expect(panel.getByRole('combobox')).toHaveCount(2);
-    await panel.getByLabel('Time control').selectOption('rapid-10');
-    await panel.getByLabel('Play as').selectOption('white');
+    await expect(panel.getByRole('combobox')).toHaveCount(1);
+    await panel.getByLabel('Coach level').selectOption('casual');
+    await panel.getByLabel('Random').check();
     await panel.getByRole('button', { name: 'Play' }).focus();
     expect(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle)).not.toBe('none');
     const axe = await new AxeBuilder({ page }).include('[data-caissa-native-coach-panel]').analyze();
@@ -56,5 +60,5 @@ test('Coach setup is keyboard accessible, responsive, and serious-violation free
 });
 
 test('public navigation does not advertise internal Coach', async ({ page }) => {
-    await page.goto('/'); await expect(page.getByRole('link', { name: /Coach · Internal/ })).toHaveCount(0);
+    await page.goto('/'); await expect(page.getByRole('link', { name: /Play Coach/ })).toHaveCount(0);
 });

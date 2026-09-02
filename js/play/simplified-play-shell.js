@@ -686,7 +686,10 @@
             const playerColor = global.App?.playerColor === 'black' ? 'black' : 'white';
             let opponent = null;
             if (this.#mode === 'games') opponent = global.CaissaPlayV2IdentityPolicy?.gamesOpponentName?.() || 'CAISSA';
-            else if (this.#mode === 'bots') opponent = global.CaissaBotSession?.getSnapshot?.()?.activeProfile?.name || null;
+            else if (this.#mode === 'bots') {
+                const bot = global.CaissaBotSession?.getSnapshot?.();
+                opponent = bot?.activePresentation?.name || bot?.activeProfile?.name || null;
+            }
             else if (this.#mode === 'coach' && global.CaissaCoachSession?.getSnapshot?.()?.active) opponent = 'Coach-assisted game';
             const white = global.document.getElementById('playerWhiteName');
             const black = global.document.getElementById('playerBlackName');

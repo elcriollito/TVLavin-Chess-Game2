@@ -258,7 +258,9 @@
 
         const coachSession = global.CaissaCoachSession?.getSnapshot?.()?.active || null;
         const nativeCoach = global.CaissaNativeCoachPanel?.getActiveSnapshot?.() || null;
-        const botProfile = global.CaissaBotSession?.getSnapshot?.()?.activeProfile || null;
+        const botSession = global.CaissaBotSession?.getSnapshot?.() || null;
+        const botProfile = botSession?.activeProfile || null;
+        const botPresentation = botSession?.activePresentation || null;
         const coachActive = !!coachSession || nativeCoach?.status === 'active';
         const recordCore = {
             schemaVersion: SCHEMA_VERSION,
@@ -267,9 +269,10 @@
             source: 'local-play',
             mode,
             opponent: {
-                type: coachActive ? 'coach' : botProfile ? 'bot' : mode === 'human-vs-engine' ? 'engine' : mode === 'local' ? 'local-human' : null,
-                id: coachActive ? 'caissa-native-coach' : botProfile?.id || (typeof snapshot.selectedOpponent === 'string' ? snapshot.selectedOpponent.slice(0, 120) : null),
-                name: coachActive ? 'Coach-assisted game' : botProfile?.name
+                type: coachActive ? 'coach' : botProfile || botPresentation ? 'bot' : mode === 'human-vs-engine' ? 'engine' : mode === 'local' ? 'local-human' : null,
+                id: coachActive ? 'caissa-native-coach' : botPresentation?.id || botProfile?.id
+                    || (typeof snapshot.selectedOpponent === 'string' ? snapshot.selectedOpponent.slice(0, 120) : null),
+                name: coachActive ? 'Coach-assisted game' : botPresentation?.name || botProfile?.name
                     || (mode === 'human-vs-engine' && global.CaissaPlayV2IdentityPolicy?.isPlayV2?.()
                         ? global.CaissaPlayV2IdentityPolicy.gamesOpponentName() : null),
                 rating: null

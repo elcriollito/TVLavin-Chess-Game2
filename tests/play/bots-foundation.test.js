@@ -17,10 +17,12 @@ const plain = value => JSON.parse(JSON.stringify(value));
 
 test('publishes frozen versioned bot contracts and a four-profile catalog', () => {
     const w = load();
-    for (const key of ['CaissaBotProfile', 'CaissaBotPresets', 'CaissaBotRegistry', 'CaissaBotSession']) {
+    for (const key of ['CaissaBotProfile', 'CaissaBotPresets', 'CaissaBotRegistry']) {
         assert.equal(w[key].schemaVersion, '1.0.0');
         assert.ok(Object.isFrozen(w[key]));
     }
+    assert.equal(w.CaissaBotSession.schemaVersion, '1.2.0');
+    assert.ok(Object.isFrozen(w.CaissaBotSession));
     const catalog = w.CaissaBotRegistry.list({ enabled: true });
     assert.equal(catalog.length, 4);
     assert.ok(catalog.every(Object.isFrozen));

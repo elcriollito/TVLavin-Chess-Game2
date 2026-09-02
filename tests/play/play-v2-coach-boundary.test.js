@@ -58,3 +58,14 @@ test('static runtime owns no board, Worker, engine, clock, lifecycle, storage, t
     assert.doesNotMatch(source, /new\s+Worker|createBoard|Chessboard\s*\(|CaissaClockService\.(?:create|configure)|CaissaGameLifecycle\.(?:create|sync)|\.move\s*\(|commitMove|fetch\s*\(|WebSocket|XMLHttpRequest|sendBeacon|localStorage|sessionStorage|indexedDB|document\.cookie/i);
     assert.doesNotMatch(source, /Academy|Knowledge Unit|Training Memory|Guided Replay|Mentor|FICS/i);
 });
+
+test('Play Coach presentation uses the original Caissa portrait and hides engineering language', () => {
+    const panel = read('js/play/native-coach/coach-panel.js');
+    const asset = fs.readFileSync(new URL('../../assets/play/caissa-coach-goddess.png', import.meta.url));
+    assert.match(panel, /Play Coach/);
+    assert.match(panel, /Caissa, goddess of chess/);
+    assert.match(panel, /caissa-coach-goddess\.png/);
+    assert.doesNotMatch(panel, /Coach · Internal|locally certified|bounded assistance|Game setup/i);
+    assert.ok(asset.length > 10000 && asset.length < 150000);
+    assert.equal(asset.subarray(1, 4).toString(), 'PNG');
+});

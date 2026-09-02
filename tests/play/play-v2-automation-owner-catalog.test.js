@@ -25,7 +25,7 @@ test('historical mobile assumptions are executable metadata, not a hidden Playwr
 test('current mobile owner uses canonical beta and current mode and Worker contracts', () => {
     const source = read('tests/browser/play-simplified-shell-mobile.spec.js');
     assert.match(source, /\/play\/beta/);
-    assert.match(source, /Coach · Internal/);
+    assert.match(source, /Play Coach/);
     assert.match(source, /workersCreated\)\)\.toBe\(0\)/);
     assert.match(source, /workersCreated\)\)\.toBe\(1\)/);
     assert.doesNotMatch(source, /\/play\/games\?simplified=1|e4.*e5/s);

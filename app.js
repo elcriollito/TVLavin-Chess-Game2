@@ -1161,9 +1161,10 @@ function makeEngineMove() {
     const currentFen = App.game.fen();
 
     const activeBot = window.CaissaBotSession?.getActiveProfile?.() || null;
+    const targetStrength = window.CaissaOpponentStrengthSession?.getSearchOptions?.() || null;
 
     // CHECK OPENING BOOK FIRST (Bot presets intentionally use deterministic engine search.)
-    if (!activeBot && App.useOpeningBook && App.openingBook && App.openingBook.loaded) {
+    if (!activeBot && !targetStrength && App.useOpeningBook && App.openingBook && App.openingBook.loaded) {
         const fenParts = currentFen.split(' ');
         const fullmove = parseInt(fenParts[5]);
 
@@ -1216,7 +1217,7 @@ function makeEngineMove() {
 
     // Bot sessions use bounded depth; Games preserves the existing Full Power movetime.
     const botSearch = window.CaissaCoachSession?.getSearchOptions?.()
-        || window.CaissaBotSession?.getSearchOptions?.() || null;
+        || window.CaissaBotSession?.getSearchOptions?.() || targetStrength;
     const engineSearch = botSearch || { movetime: 2000 };
 
     const isolationRequest = createEngineIsolationRequest('opponent-move', currentFen, {
@@ -2635,6 +2636,13 @@ function newGame(options = {}) {
         window.CaissaCoachSession?.reset?.();
         window.CaissaBotSession?.resetToFullPower?.();
     }
+    if (botRoute?.mode === 'games' && nativePlayEntry) {
+        const strength = window.CaissaOpponentStrengthSession?.beginGame?.(options.targetElo);
+        if (!strength?.ok) return false;
+    } else if (botRoute?.mode === 'coach' && nativePlayEntry) {
+        const strength = window.CaissaOpponentStrengthSession?.beginGame?.(options.targetElo);
+        if (!strength?.ok) return false;
+    } else window.CaissaOpponentStrengthSession?.reset?.();
     window.CaissaGameLifecycle?.rotateSession();
     window.CaissaEngineRequestIsolation?.createSession();
     // Exit edit mode if active (MUST be first to clean up state)

@@ -637,9 +637,159 @@ body.caissa-simplified-play-active .caissa-simplified-shell__assistance-option {
 body.caissa-simplified-play-active .caissa-simplified-shell__assistance-option select { min-height: 44px; }
 body.caissa-simplified-play-active .caissa-simplified-shell__assistance-note { margin: 0; color: var(--text-secondary, #aeb8c5); }
 
-body.caissa-simplified-play-active .caissa-native-coach-panel label:has([data-coach-level]),
-body.caissa-simplified-play-active .caissa-native-coach-panel label:has([data-coach-focus]),
-body.caissa-simplified-play-active .caissa-native-coach-panel label:has([data-coach-timing]) { display: none; }
+body.caissa-simplified-play-active .caissa-native-coach-panel {
+    --coach-gold: #e5b84e;
+    display: grid;
+    min-height: min(620px, calc(100dvh - 230px));
+    color: var(--play-theme-text, var(--text-primary));
+}
+
+body.caissa-simplified-play-active .caissa-native-coach-panel[hidden],
+body.caissa-simplified-play-active .caissa-native-coach-panel [hidden] { display: none; }
+
+body.caissa-simplified-play-active .caissa-native-coach-panel__title {
+    margin: 0 0 .75rem;
+    font-size: 1.35rem;
+}
+
+body.caissa-simplified-play-active .caissa-native-coach-panel__persona {
+    display: grid;
+    grid-template-columns: minmax(110px, 34%) minmax(0, 1fr);
+    align-items: center;
+    gap: .75rem;
+    min-height: 220px;
+    padding: .75rem;
+    border: 1px solid var(--panel-border);
+    border-radius: .85rem;
+    background:
+        radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--coach-gold) 13%, transparent), transparent 42%),
+        color-mix(in srgb, var(--play-theme-card, #17202b) 94%, transparent);
+    overflow: hidden;
+}
+
+body.caissa-simplified-play-active .caissa-native-coach-panel__portrait {
+    align-self: end;
+    width: min(100%, 190px);
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .32));
+}
+
+body.caissa-simplified-play-active .caissa-native-coach-panel__speech {
+    position: relative;
+    padding: 1rem;
+    border: 1px solid color-mix(in srgb, var(--coach-gold) 34%, var(--panel-border));
+    border-radius: .9rem .9rem .9rem .25rem;
+    background: color-mix(in srgb, var(--play-theme-card, #17202b) 82%, white 8%);
+    font-size: 1rem;
+    line-height: 1.45;
+}
+
+body.caissa-simplified-play-active .caissa-native-coach-panel__speech::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: -9px;
+    inset-block-end: 22px;
+    width: 16px;
+    height: 16px;
+    border-inline-start: 1px solid color-mix(in srgb, var(--coach-gold) 34%, var(--panel-border));
+    border-block-end: 1px solid color-mix(in srgb, var(--coach-gold) 34%, var(--panel-border));
+    background: inherit;
+    transform: rotate(45deg);
+}
+
+body.caissa-simplified-play-active .caissa-native-coach-panel__controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: .75rem;
+    align-items: end;
+    margin-block-start: auto;
+    padding-block: 1rem .75rem;
+}
+
+body.caissa-simplified-play-active .caissa-native-coach-panel__experience { display: grid; gap: .35rem; }
+body.caissa-simplified-play-active .caissa-native-coach-panel__control-label {
+    color: var(--play-theme-text-muted, var(--text-secondary));
+    font-size: .8rem;
+    font-weight: 700;
+}
+
+body.caissa-simplified-play-active .caissa-native-coach-panel__experience select {
+    min-height: 44px;
+    padding-inline: .75rem;
+    border: 1px solid var(--panel-border);
+    border-radius: .55rem;
+    background: var(--play-theme-card, #17202b);
+    color: var(--play-theme-text, #fff);
+    font-size: .95rem;
+}
+
+body.caissa-simplified-play-active .caissa-native-coach-panel__color { min-width: 0; margin: 0; padding: 0; border: 0; }
+body.caissa-simplified-play-active .caissa-native-coach-panel__color-options { display: flex; gap: .35rem; margin-block-start: .35rem; }
+body.caissa-simplified-play-active .caissa-native-coach-panel__color-choice { position: relative; cursor: pointer; }
+body.caissa-simplified-play-active .caissa-native-coach-panel__color-choice input { position: absolute; opacity: 0; }
+body.caissa-simplified-play-active .caissa-native-coach-panel__color-choice span {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    min-height: 44px;
+    border: 1px solid var(--panel-border);
+    border-radius: .55rem;
+    background: var(--play-theme-card, #17202b);
+    font-size: 1.45rem;
+}
+
+body.caissa-simplified-play-active .caissa-native-coach-panel__color-choice input:checked + span {
+    border-color: var(--coach-gold);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--coach-gold) 70%, transparent);
+}
+
+body.caissa-simplified-play-active .caissa-native-coach-panel__color-choice input:focus-visible + span {
+    outline: 3px solid color-mix(in srgb, var(--coach-gold) 82%, white);
+    outline-offset: 2px;
+}
+
+body.caissa-simplified-play-active .caissa-native-coach-panel__primary {
+    min-height: 52px;
+    border: 1px solid color-mix(in srgb, var(--coach-gold) 70%, #9a7420);
+    border-radius: .7rem;
+    background: linear-gradient(180deg, #edc45d, #d9a83c);
+    color: #18130a;
+    font-size: 1.05rem;
+    font-weight: 850;
+}
+
+body.caissa-simplified-play-active .caissa-native-coach-panel__primary:disabled { opacity: .48; cursor: not-allowed; }
+body.caissa-simplified-play-active .caissa-native-coach-panel__access {
+    min-height: 1.25rem;
+    color: var(--play-theme-text-muted, var(--text-secondary));
+    font-size: .82rem;
+}
+body.caissa-simplified-play-active .caissa-native-coach-panel__premium {
+    width: fit-content;
+    min-height: 44px;
+    color: var(--coach-gold);
+    font-weight: 750;
+}
+
+@media (max-width: 420px) {
+    body.caissa-simplified-play-active .caissa-native-coach-panel { min-height: 540px; }
+    body.caissa-simplified-play-active .caissa-native-coach-panel__persona {
+        grid-template-columns: 108px minmax(0, 1fr);
+        min-height: 178px;
+        padding: .5rem;
+    }
+    body.caissa-simplified-play-active .caissa-native-coach-panel__speech { padding: .75rem; font-size: .92rem; }
+    body.caissa-simplified-play-active .caissa-native-coach-panel__controls { grid-template-columns: 1fr; }
+    body.caissa-simplified-play-active .caissa-native-coach-panel__color-choice { flex: 1; }
+    body.caissa-simplified-play-active .caissa-native-coach-panel__color-choice span { width: 100%; }
+}
+
+@media (forced-colors: active) {
+    body.caissa-simplified-play-active .caissa-native-coach-panel__speech,
+    body.caissa-simplified-play-active .caissa-native-coach-panel__color-choice input:checked + span { border: 3px solid Highlight; box-shadow: none; }
+    body.caissa-simplified-play-active .caissa-native-coach-panel__primary { background: ButtonFace; color: ButtonText; }
+}
 
 body.caissa-simplified-play-active .caissa-simplified-shell__pgn-dialog {
     width: min(680px, calc(100vw - 32px));
@@ -940,8 +1090,30 @@ body.caissa-simplified-play-active .caissa-games-panel__option input:focus-visib
 }
 
 body.caissa-simplified-play-active .caissa-games-panel__opponent-value {
-    margin: 0 0 3px;
+    margin: 8px 0 3px;
     font-weight: 700;
+    color: var(--play-theme-text);
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__strength-range {
+    width: 100%;
+    min-height: 44px;
+    margin: 4px 0 0;
+    accent-color: var(--accent-color);
+    cursor: pointer;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__strength-range:focus-visible {
+    outline: 3px solid var(--caissa-ui-focus, #60a5fa);
+    outline-offset: 2px;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__strength-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: -8px;
+    color: var(--muted);
+    font-size: 12px;
 }
 
 body.caissa-simplified-play-active .caissa-games-panel__status {
@@ -1239,111 +1411,364 @@ body.caissa-simplified-play-active .caissa-simplified-shell[data-layout^="phone-
 
 body.caissa-simplified-play-active .caissa-bots-panel[hidden] { display: none; }
 
-body.caissa-simplified-play-active .caissa-bots-panel__title,
-body.caissa-simplified-play-active .caissa-bots-panel__note { margin-block: 0 .75rem; }
+body.caissa-simplified-play-active .caissa-bots-panel {
+    --bot-accent: #e5b84e;
+    display: grid;
+    gap: .875rem;
+    color: var(--play-theme-text, var(--text-primary));
+}
 
-body.caissa-simplified-play-active .caissa-bots-panel__ladder {
+body.caissa-simplified-play-active .caissa-bots-panel__header {
     display: flex;
     align-items: center;
-    gap: .35rem;
-    margin: 0 0 .75rem;
-    padding: 0;
-    list-style: none;
-    color: var(--text-secondary, #667085);
-    font-size: .78rem;
+    justify-content: space-between;
+    gap: .75rem;
 }
 
-body.caissa-simplified-play-active .caissa-bots-panel__rung { display: flex; align-items: center; }
-body.caissa-simplified-play-active .caissa-bots-panel__rung:not(:last-child)::after {
-    content: "→";
-    margin-inline-start: .35rem;
-}
-body.caissa-simplified-play-active .caissa-bots-panel__rung[aria-current="step"] {
-    color: var(--primary-color, #2457a7);
+body.caissa-simplified-play-active .caissa-bots-panel__title { margin: 0; font-size: 1.35rem; }
+
+body.caissa-simplified-play-active .caissa-bots-panel__collection {
+    padding: .3rem .6rem;
+    border: 1px solid color-mix(in srgb, var(--bot-accent) 52%, transparent);
+    border-radius: 999px;
+    color: var(--bot-accent);
+    font-size: .78rem;
     font-weight: 700;
 }
 
-body.caissa-simplified-play-active .caissa-bots-panel__catalog {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: .5rem;
+body.caissa-simplified-play-active .caissa-bots-panel__selected {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    min-height: 72px;
+    padding: .55rem .75rem;
+    border: 1px solid color-mix(in srgb, var(--bot-accent) 65%, var(--panel-border));
+    border-radius: .7rem;
+    background: color-mix(in srgb, var(--bot-accent) 9%, var(--play-theme-card, transparent));
+    font-size: 1rem;
+    font-weight: 750;
 }
 
-body.caissa-simplified-play-active .caissa-bots-panel__card {
+body.caissa-simplified-play-active .caissa-bots-panel__selected-piece {
     display: grid;
-    grid-template-columns: auto auto 1fr;
-    gap: .5rem;
+    flex: 0 0 58px;
+    inline-size: 58px;
+    block-size: 58px;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--bot-accent) 60%, var(--panel-border));
+    border-radius: .7rem;
+    background: radial-gradient(circle at 50% 28%, color-mix(in srgb, var(--bot-accent) 22%, white),
+        color-mix(in srgb, var(--play-theme-card, #17202b) 94%, black));
+    box-shadow: 0 8px 20px rgb(0 0 0 / .22);
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__selected-piece img {
+    display: block;
+    inline-size: 52px;
+    block-size: 52px;
+    object-fit: contain;
+    filter: drop-shadow(0 5px 5px rgb(0 0 0 / .35));
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__selected-copy { display: grid; gap: .12rem; min-width: 0; }
+body.caissa-simplified-play-active .caissa-bots-panel__selected-copy strong { font-size: 1.05rem; }
+body.caissa-simplified-play-active .caissa-bots-panel__selected-copy span {
+    color: var(--play-theme-text-muted, var(--text-secondary));
+    font-size: .78rem;
+    font-weight: 650;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__selected.is-planned {
+    border-color: var(--panel-border);
+    color: var(--play-theme-text-muted, var(--text-secondary));
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__catalog { display: grid; gap: .9rem; }
+
+body.caissa-simplified-play-active .caissa-bots-panel__category-nav {
+    display: flex;
+    gap: .45rem;
+    max-inline-size: 100%;
+    padding: .15rem .05rem .55rem;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-color: var(--bot-accent) color-mix(in srgb, var(--panel-border) 70%, transparent);
+    scrollbar-width: thin;
+    scroll-snap-type: inline proximity;
+    -webkit-overflow-scrolling: touch;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__category-nav::-webkit-scrollbar { block-size: 7px; }
+body.caissa-simplified-play-active .caissa-bots-panel__category-nav::-webkit-scrollbar-track {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--panel-border) 70%, transparent);
+}
+body.caissa-simplified-play-active .caissa-bots-panel__category-nav::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: var(--bot-accent);
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__category-tab {
+    display: flex;
+    flex: 0 0 auto;
     align-items: center;
-    padding: .625rem;
-    border: 1px solid var(--border-color, #d0d5dd);
-    border-radius: .625rem;
+    gap: .42rem;
+    min-block-size: 48px;
+    padding: .4rem .65rem;
+    border: 1px solid var(--panel-border);
+    border-radius: .65rem;
+    background: color-mix(in srgb, var(--play-theme-card, #17202b) 92%, transparent);
+    color: var(--play-theme-text, #fff);
+    cursor: pointer;
+    scroll-snap-align: start;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__category-tab[aria-selected="true"] {
+    border-color: var(--bot-accent);
+    background: color-mix(in srgb, var(--bot-accent) 15%, var(--play-theme-card, #17202b));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bot-accent) 75%, transparent);
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__category-tab:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--bot-accent) 82%, white);
+    outline-offset: 2px;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__category-tab-piece { font-size: 1.35rem; line-height: 1; }
+body.caissa-simplified-play-active .caissa-bots-panel__category-tab-copy { display: grid; gap: .05rem; text-align: start; }
+body.caissa-simplified-play-active .caissa-bots-panel__category-tab-copy strong { font-size: .78rem; white-space: nowrap; }
+body.caissa-simplified-play-active .caissa-bots-panel__category-tab-copy small {
+    color: var(--play-theme-text-muted, var(--text-secondary));
+    font-size: .66rem;
+    white-space: nowrap;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__collection-group { display: grid; gap: .9rem; }
+
+body.caissa-simplified-play-active .caissa-bots-panel__collection-group + .caissa-bots-panel__collection-group {
+    padding-block-start: 1rem;
+    border-top: 1px solid var(--panel-border);
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__collection-title {
+    margin: 0;
+    color: var(--bot-accent);
+    font-size: 1rem;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__category {
+    display: grid;
+    gap: .45rem;
+    min-width: 0;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__category[hidden] { display: none; }
+
+body.caissa-simplified-play-active .caissa-bots-panel__category-title {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    margin: 0;
+    color: var(--play-theme-text-muted, var(--text-secondary));
+    font-size: .86rem;
+    letter-spacing: .015em;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__category[data-selected-category] .caissa-bots-panel__category-title {
+    color: var(--bot-accent);
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__category-piece { font-size: 1.15rem; line-height: 1; }
+
+body.caissa-simplified-play-active .caissa-bots-panel__bot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(68px, 1fr));
+    gap: .4rem;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__bot {
+    position: relative;
+    display: grid;
+    place-items: center;
+    gap: .15rem;
+    min-width: 0;
+    min-height: 108px;
+    padding: .45rem .3rem .5rem;
+    border: 1px solid var(--panel-border);
+    border-radius: .65rem;
+    background: color-mix(in srgb, var(--play-theme-card, #17202b) 92%, transparent);
     cursor: pointer;
 }
 
-body.caissa-simplified-play-active .caissa-bots-panel__card:has(input:checked) {
-    border-color: var(--primary-color, #2457a7);
-    box-shadow: 0 0 0 1px var(--primary-color, #2457a7);
+body.caissa-simplified-play-active .caissa-bots-panel__bot input {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    opacity: 0;
 }
 
-body.caissa-simplified-play-active .caissa-bots-panel__card-copy { display: grid; gap: .2rem; min-width: 0; }
+body.caissa-simplified-play-active .caissa-bots-panel__bot:has(input:checked) {
+    border-color: var(--bot-accent);
+    background: color-mix(in srgb, var(--bot-accent) 13%, var(--play-theme-card, #17202b));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bot-accent) 78%, transparent);
+}
 
-body.caissa-simplified-play-active .caissa-bots-panel__emblem {
+body.caissa-simplified-play-active .caissa-bots-panel__bot:has(input:focus-visible) {
+    outline: 3px solid color-mix(in srgb, var(--bot-accent) 82%, white);
+    outline-offset: 2px;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__bot.is-planned { opacity: .58; }
+body.caissa-simplified-play-active .caissa-bots-panel__bot-piece {
+    display: grid;
+    inline-size: 62px;
+    block-size: 62px;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--bot-accent) 40%, var(--panel-border));
+    border-radius: .68rem;
+    background: radial-gradient(circle at 50% 25%, color-mix(in srgb, var(--bot-accent) 18%, white),
+        color-mix(in srgb, var(--play-theme-card, #17202b) 95%, black));
+    box-shadow: 0 7px 14px rgb(0 0 0 / .2);
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__bot-piece img {
+    display: block;
+    inline-size: 56px;
+    block-size: 56px;
+    object-fit: contain;
+    filter: drop-shadow(0 5px 4px rgb(0 0 0 / .32));
+}
+body.caissa-simplified-play-active .caissa-bots-panel__bot-name {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: .78rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__bot-meta {
+    position: absolute;
+    z-index: 4;
+    inset-block-end: calc(100% + 6px);
+    inset-inline-start: 50%;
+    width: max-content;
+    max-width: 180px;
+    padding: .35rem .5rem;
+    border: 1px solid var(--panel-border);
+    border-radius: .4rem;
+    background: var(--play-theme-card, #17202b);
+    color: var(--play-theme-text, #fff);
+    font-size: .72rem;
+    font-weight: 650;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 4px);
+    transition: opacity 120ms ease, transform 120ms ease;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__bot:is(:hover, :focus-within) .caissa-bots-panel__bot-meta {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__category-empty {
+    margin: 0;
+    padding: .55rem .7rem;
+    border: 1px dashed var(--panel-border);
+    border-radius: .55rem;
+    color: var(--play-theme-text-muted, var(--text-secondary));
+    font-size: .8rem;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: .75rem;
+    align-items: end;
+    padding-block-start: .85rem;
+    border-top: 1px solid var(--panel-border);
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__time { display: grid; gap: .35rem; }
+body.caissa-simplified-play-active .caissa-bots-panel__control-label {
+    color: var(--play-theme-text-muted, var(--text-secondary));
+    font-size: .78rem;
+    font-weight: 700;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__time select {
+    min-height: 44px;
+    padding-inline: .7rem;
+    border: 1px solid var(--panel-border);
+    border-radius: .55rem;
+    background: var(--play-theme-card, #17202b);
+    color: var(--play-theme-text, #fff);
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__color { min-width: 0; margin: 0; padding: 0; border: 0; }
+body.caissa-simplified-play-active .caissa-bots-panel__color-options { display: flex; gap: .35rem; margin-block-start: .35rem; }
+body.caissa-simplified-play-active .caissa-bots-panel__color-choice { position: relative; cursor: pointer; }
+body.caissa-simplified-play-active .caissa-bots-panel__color-choice input { position: absolute; opacity: 0; }
+body.caissa-simplified-play-active .caissa-bots-panel__color-choice span {
     display: grid;
     place-items: center;
-    width: 2.25rem;
-    aspect-ratio: 1;
-    border: 2px solid currentColor;
-    border-radius: 50%;
-    color: #426b3a;
-    background: color-mix(in srgb, currentColor 10%, transparent);
+    width: 44px;
+    min-height: 44px;
+    border: 1px solid var(--panel-border);
+    border-radius: .55rem;
+    background: var(--play-theme-card, #17202b);
+    font-size: 1.45rem;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__color-choice input:checked + span {
+    border-color: var(--bot-accent);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bot-accent) 70%, transparent);
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__color-choice input:focus-visible + span {
+    outline: 3px solid color-mix(in srgb, var(--bot-accent) 82%, white);
+    outline-offset: 2px;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__status {
+    min-height: 1.15rem;
+    color: var(--play-theme-text-muted, var(--text-secondary));
+    font-size: .78rem;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__primary,
+body.caissa-simplified-play-active .caissa-bots-panel__retry {
+    min-height: 48px;
+    border: 1px solid color-mix(in srgb, var(--bot-accent) 70%, #9a7420);
+    border-radius: .65rem;
+    background: linear-gradient(180deg, #edc45d, #d9a83c);
+    color: #18130a;
+    font-size: 1rem;
     font-weight: 800;
 }
-body.caissa-simplified-play-active .caissa-bots-panel__emblem--trail {
-    color: #9a641f;
-    border-radius: 35% 65% 45% 55%;
-}
-body.caissa-simplified-play-active .caissa-bots-panel__emblem--grove {
-    color: #16705a;
-    border-radius: 30%;
-    transform: rotate(4deg);
-}
-body.caissa-simplified-play-active .caissa-bots-panel__emblem--summit {
-    color: #6955a5;
-    border-radius: 18%;
-    clip-path: polygon(50% 0, 100% 100%, 0 100%);
-    padding-top: .45rem;
-}
-
-body.caissa-simplified-play-active .caissa-bots-panel__detail {
-    margin-block-start: .75rem;
-    padding: .75rem;
-    border-inline-start: 3px solid var(--primary-color, #2457a7);
-    background: color-mix(in srgb, var(--primary-color, #2457a7) 5%, transparent);
-}
-body.caissa-simplified-play-active .caissa-bots-panel__detail h3,
-body.caissa-simplified-play-active .caissa-bots-panel__detail p { margin: 0 0 .35rem; }
-body.caissa-simplified-play-active .caissa-bots-panel__detail-tagline { font-weight: 650; }
-body.caissa-simplified-play-active .caissa-bots-panel__detail-limit { color: var(--text-secondary, #667085); }
-body.caissa-simplified-play-active .caissa-bots-panel__technical summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; }
-
-body.caissa-simplified-play-active .caissa-bots-panel__options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .75rem;
-    margin-block: 1rem;
-}
-
-body.caissa-simplified-play-active .caissa-bots-panel__options label { display: grid; gap: .25rem; flex: 1 1 9rem; }
-
-body.caissa-simplified-play-active .caissa-bots-panel__options select,
-body.caissa-simplified-play-active .caissa-bots-panel__primary { min-height: 44px; }
 
 body.caissa-simplified-play-active .caissa-bots-panel__primary { width: 100%; }
+body.caissa-simplified-play-active .caissa-bots-panel__primary:disabled { opacity: .42; cursor: not-allowed; }
 
-@media (max-width: 359px) {
-    body.caissa-simplified-play-active .caissa-bots-panel__catalog { grid-template-columns: 1fr; }
-    body.caissa-simplified-play-active .caissa-bots-panel__ladder { font-size: .7rem; gap: .2rem; }
-    body.caissa-simplified-play-active .caissa-bots-panel__rung:not(:last-child)::after { margin-inline-start: .2rem; }
+@media (max-width: 420px) {
+    body.caissa-simplified-play-active .caissa-bots-panel__bot-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    body.caissa-simplified-play-active .caissa-bots-panel__controls { grid-template-columns: 1fr; }
+    body.caissa-simplified-play-active .caissa-bots-panel__color-options { justify-content: stretch; }
+    body.caissa-simplified-play-active .caissa-bots-panel__color-choice { flex: 1; }
+    body.caissa-simplified-play-active .caissa-bots-panel__color-choice span { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.caissa-simplified-play-active .caissa-bots-panel__bot-meta { transition: none; }
+}
+
+@media (forced-colors: active) {
+    body.caissa-simplified-play-active .caissa-bots-panel__bot:has(input:checked),
+    body.caissa-simplified-play-active .caissa-bots-panel__color-choice input:checked + span,
+    body.caissa-simplified-play-active .caissa-bots-panel__selected { border: 3px solid Highlight; box-shadow: none; }
+    body.caissa-simplified-play-active .caissa-bots-panel__primary { background: ButtonFace; color: ButtonText; }
 }
 
 body.caissa-simplified-play-active .caissa-coach-panel[hidden],

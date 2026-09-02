@@ -67,10 +67,12 @@ test('production registry is fixed, ordered, QA-bounded, and contains no fixture
 
 test('duplicate loads reuse one promise and sequential scripts become loaded once', async () => {
     const { context, appended } = await loadContext(); const loader=context.CaissaPlayLazyLoader;
+    const expected=context.CaissaPlayLoadRegistry.definitions()
+        .find(definition => definition.resourceId === 'bots-stack').sources.length;
     const first=loader.load('bots-stack',{qa:true}), second=loader.load('bots-stack',{qa:true});
     assert.equal(first,second); const loaded=await first;
-    assert.equal(loaded.state,'loaded'); assert.equal(appended.length,8);
-    await loader.load('bots-stack',{qa:true}); assert.equal(appended.length,8);
+    assert.equal(loaded.state,'loaded'); assert.equal(appended.length,expected);
+    await loader.load('bots-stack',{qa:true}); assert.equal(appended.length,expected);
     assert.equal(loader.inspect().peakConcurrentLoads,1);
 });
 

@@ -371,7 +371,10 @@
                     name: record?.opponent?.name || global.CaissaCoachRegistry?.get?.(record?.opponent?.id)?.name
                         || global.CaissaBotRegistry?.get?.(record?.opponent?.id)?.name
                         || (record?.opponent?.type === 'engine' ? 'CAISSA Engine' : null),
-                    strengthLabel: global.CaissaBotRegistry?.get?.(record?.opponent?.id)?.difficultyBand
+                    strengthLabel: (record?.opponent?.type === 'bot'
+                        ? global.CaissaBotSession?.getSnapshot?.()?.activePresentation?.targetStrength
+                            ? `${global.CaissaBotSession.getSnapshot().activePresentation.targetStrength} Elo target` : null
+                        : null) || global.CaissaBotRegistry?.get?.(record?.opponent?.id)?.difficultyBand
                         || (record?.opponent?.type === 'engine' ? 'Full Power' : null)
                 },
                 timing: {
@@ -448,7 +451,8 @@
         }
         #mentorSource() {
             if (this.#record?.opponent?.type === 'coach') return 'coach';
-            if (global.CaissaBotRegistry?.get?.(this.#record?.opponent?.id)) return 'bot';
+            if (this.#record?.opponent?.type === 'bot'
+                || global.CaissaBotRegistry?.get?.(this.#record?.opponent?.id)) return 'bot';
             return 'games';
         }
         #mentorReadiness() {
@@ -684,8 +688,13 @@
                     ['Played as', record.player.color || 'Unknown'],
                     ['Opponent', record.opponent.type === 'coach'
                         ? `${global.CaissaCoachRegistry?.get?.(record.opponent.id)?.name || 'CAISSA Coach'} · session coaching`
+                        : record.opponent.type === 'bot'
+                        ? `${record.opponent.name || 'CAISSA Bot'} · ${
+                            global.CaissaBotSession?.getSnapshot?.()?.activePresentation?.targetStrength
+                                ? `${global.CaissaBotSession.getSnapshot().activePresentation.targetStrength} Elo target`
+                                : 'modelled strength'}`
                         : record.opponent.type === 'engine'
-                        ? `${global.CaissaBotRegistry?.get?.(record.opponent.id)?.name || 'CAISSA Engine'} · ${
+                        ? `${record.opponent.name || global.CaissaBotRegistry?.get?.(record.opponent.id)?.name || 'CAISSA Engine'} · ${
                             global.CaissaBotRegistry?.get?.(record.opponent.id)?.difficultyBand || 'Full Power'}`
                         : 'Unknown'],
                     ['Moves', String(record.moves.count)],

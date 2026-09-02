@@ -8,9 +8,9 @@ const source = fs.readFileSync(new URL('../../js/play/bots/bot-personality-polic
 function load() { const window = { Chess }; vm.runInNewContext(source, { window, globalThis: window, Object, Math }); return window.CaissaBotPersonalityPolicy; }
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
-test('publishes the frozen PlayV2BotPersonalityPolicy@1.0.0 contract and predeclared thresholds', () => {
+test('publishes the frozen PlayV2BotPersonalityPolicy@1.1.0 contract and predeclared thresholds', () => {
     const policy = load();
-    assert.equal(policy.contractId, 'PlayV2BotPersonalityPolicy@1.0.0');
+    assert.equal(policy.contractId, 'PlayV2BotPersonalityPolicy@1.1.0');
     assert.deepEqual(Object.keys(policy.profiles), ['beginner', 'casual', 'tactical', 'solid']);
     assert.equal(policy.globalPolicies.legalMovesOnly, true);
     assert.equal(policy.globalPolicies.workerOwner, 'existing-single-owner');

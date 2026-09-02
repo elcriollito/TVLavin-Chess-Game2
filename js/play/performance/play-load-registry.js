@@ -8,12 +8,17 @@
             resourceId: 'bots-stack', type: 'module-group', trigger: 'mode', priority: 'normal',
             qaOnly: true, productionEligible: false, dependencies: Object.freeze([]),
             sources: Object.freeze([
-                'js/play/bots/bot-strength-honesty.js?v=1.0.0',
+                'js/play/bots/bot-strength-honesty.js?v=1.1.0',
                 'js/play/bots/bot-profile.js?v=1.0.0', 'js/play/bots/bot-presets.js?v=1.0.0',
-                'js/play/bots/bot-personality-policy.js?v=1.0.0',
-                'js/play/bots/bot-registry.js?v=1.0.0', 'js/play/bots/bot-session.js?v=1.0.0',
+                'js/play/bots/bot-personality-policy.js?v=1.1.0',
+                'js/play/bots/bot-strength-layer.js?v=1.0.0',
+                'js/play/bots/bot-registry.js?v=1.0.0', 'js/play/bots/bot-session.js?v=1.2.0',
+                'js/play/bots/bot-collections.js?v=1.1.0',
+                'js/play/bots/bot-seasonal-manifest.js?v=1.0.0',
+                'js/play/bots/bot-collection-registry.js?v=1.0.0',
+                'js/play/bots/bot-collection-loader.js?v=1.0.0',
                 'js/play/bots/bot-worker-readiness.js?v=1.0.0',
-                'js/play/bots-panel.js?v=1.2.1'
+                'js/play/bots-panel.js?v=2.1.0'
             ])
         }),
         'coach-stack': Object.freeze({
@@ -38,9 +43,12 @@
             sources: Object.freeze([
                 'js/play/native-coach/coach-assistance-policy.js?v=1.0.0',
                 'js/play/native-coach/coach-configuration.js?v=1.0.0',
+                'js/play/native-coach/coach-levels.js?v=1.0.0',
+                'js/play/native-coach/coach-entitlement-client.js?v=1.0.0',
                 'js/play/native-coach/coach-assistance-sanitizer.js?v=1.0.0',
                 'js/play/native-coach/coach-assistance.js?v=1.0.0',
-                'js/play/native-coach/coach-panel.js?v=1.0.1'
+                'js/play/native-coach/coach-dialogue.js?v=1.1.0',
+                'js/play/native-coach/coach-panel.js?v=2.3.0'
             ])
         }),
         'native-mentor-review': Object.freeze({

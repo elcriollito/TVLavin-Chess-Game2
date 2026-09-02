@@ -13,11 +13,13 @@ function loadPolicy() {
     return window.CaissaPlayV2BotStrengthHonesty;
 }
 
-test('publishes PlayV2BotStrengthHonesty@1.0.0 with every mandatory denial', () => {
+test('publishes PlayV2BotStrengthHonesty@1.1.0 with every mandatory denial', () => {
     const policy = loadPolicy();
-    assert.equal(policy.contractId, 'PlayV2BotStrengthHonesty@1.0.0');
+    assert.equal(policy.contractId, 'PlayV2BotStrengthHonesty@1.1.0');
     assert.equal(policy.currentRatingStatus, 'unrated-calibration-pending');
-    for (const key of ['numericEloDisplay', 'certifiedEloClaim', 'federationRatingClaim',
+    assert.equal(policy.numericEloDisplay, 'target-label-only');
+    assert.equal(policy.targetStrengthLabel, 'Elo target');
+    for (const key of ['certifiedEloClaim', 'federationRatingClaim',
         'exactHumanStrengthClaim', 'realPersonReplica', 'realPersonIdentity', 'realPersonLikeness', 'depthAsElo'])
         assert.equal(policy[key], 'prohibited');
     assert.equal(policy.styleClaimRequiresCalibrationEvidence, true);
@@ -52,14 +54,15 @@ test('profile gate rejects missing disclosure, unapproved identity, rating field
     ]) assert.equal(policy.validateProfile({ ...valid, ...mutation }).valid, false);
 });
 
-test('focused bot surfaces disclose unrated status and contain no public numeric or identity claim', () => {
+test('focused bot surfaces keep profile ratings unrated and label every numeric value as a target', () => {
     const registry = read('js/play/bots/bot-registry.js');
     const panel = read('js/play/bots-panel.js');
     assert.equal((registry.match(/ratingStatus: 'Unrated · calibration pending'/g) || []).length, 4);
-    assert.doesNotMatch(registry + panel, /\b\d{3,4}\s*(?:elo|rating)\b/i);
+    assert.doesNotMatch(registry, /\b\d{3,4}\s*(?:elo|rating)\b/i);
+    assert.doesNotMatch(panel, /\b\d{3,4}\s+Elo(?!\s+target)/i);
     assert.doesNotMatch(registry + panel, /\b(?:grandmaster|professional|unbeatable|replica of|plays exactly like)\b/i);
-    assert.match(panel, /profile\.ratingStatus/);
-    assert.match(panel, /aria-label.*profile\.name.*profile\.ratingStatus.*tagline.*difficultyBand/s);
+    assert.match(panel, /targetStrength.*Elo target/s);
+    assert.match(panel, /aria-label.*bot\.name.*bot\.targetStrength.*Elo target/s);
 });
 
 test('style phrases and relative difficulty remain owned by calibrated policy profiles', () => {
