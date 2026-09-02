@@ -1,8 +1,8 @@
 (function (global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.8.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.8.0';
+    const SCHEMA_VERSION = '1.9.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.9.0';
     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'unavailable', 'error']);
     const REGIONS = Object.freeze([
         'mode-navigation', 'board-stage', 'opponent-header', 'evaluation-rail',
@@ -109,7 +109,8 @@
         #suppressedLive = [];
         #layoutMode = null; #geometry = null; #resizeCount = 0; #activationCount = 0; #statusNode = null;
         #gamesPanel = null; #botsPanel = null; #coachPanel = null; #postGame = null;
-        #activeContext = null; #assistance = null; #actionBar = null; #pgnDialog = null; #stateObserver = null; #panelObserver = null;
+        #activeContext = null; #assistance = null; #actionBar = null; #pgnDialog = null; #settingsDialog = null;
+        #stateObserver = null; #panelObserver = null;
         #panelLoadToken = 0;
         #accessibility = null;
         #modeTransitionPending = false;
@@ -216,10 +217,24 @@
                 'data-active-game-opening': ''
             });
             activeOpening.textContent = 'Opening not identified yet';
+            const referenceTools = element('nav', 'caissa-simplified-shell__reference-tools', {
+                'aria-label': 'Position resources'
+            });
+            const openingLink = element('a', 'caissa-simplified-shell__reference-tool', {
+                href: '/opening-database', target: '_blank', rel: 'noopener',
+                'data-active-opening-link': '', 'aria-label': 'Open CAISSA Opening Database in a new tab',
+                title: 'Opening Database'
+            });
+            openingLink.innerHTML = '<i class="fas fa-book-open" aria-hidden="true"></i><span>Opening</span>';
+            const explorer = element('button', 'caissa-simplified-shell__reference-tool', {
+                type: 'button', disabled: '', 'aria-label': 'Explorer coming soon', title: 'Explorer · Coming soon'
+            });
+            explorer.innerHTML = '<i class="fas fa-compass" aria-hidden="true"></i><span>Explorer</span>';
+            referenceTools.append(openingLink, explorer);
             const activeMoves = element('ol', 'caissa-simplified-shell__active-moves', {
                 'data-active-game-moves': '', 'aria-label': 'Moves played'
             });
-            activeNotation.append(activeOpening, activeMoves);
+            activeNotation.append(activeOpening, referenceTools, activeMoves);
             this.#activeContext.append(activeTitle, activeStatus, activeNotation); this.#activeContext.hidden = true;
             contextBody.appendChild(this.#activeContext);
             this.#assistance = element('details', 'caissa-simplified-shell__assistance', {
@@ -248,6 +263,20 @@
                 });
                 button.textContent = label; boardActions.appendChild(button);
             }
+            const utilityBar = element('div', 'caissa-simplified-shell__utility-bar', {
+                role: 'group', 'aria-label': 'Game utilities', 'data-active-game-utilities': '', hidden: ''
+            });
+            for (const [action, icon, label] of [
+                ['share', 'fa-share-alt', 'Share'], ['download', 'fa-download', 'Download'], ['settings', 'fa-cog', 'Settings']
+            ]) {
+                const button = element(action === 'settings' ? 'a' : 'button', 'caissa-simplified-shell__utility-action',
+                    action === 'settings'
+                        ? { href: `#${this.#id}-settings`, 'aria-label': label, title: label }
+                        : { type: 'button', 'data-active-game-action': action, 'aria-label': label, title: label });
+                button.innerHTML = `<i class="fas ${icon}" aria-hidden="true"></i><span>${label}</span>`;
+                utilityBar.appendChild(button);
+            }
+            this.#activeContext.appendChild(utilityBar);
             boardActions.hidden = true;
             this.#pgnDialog = element('dialog', 'caissa-simplified-shell__pgn-dialog', {
                 'aria-labelledby': `${this.#id}-pgn-title`
@@ -256,8 +285,35 @@
             const pgnText = element('textarea', '', { readonly: '', 'data-active-game-pgn': '', rows: '14', 'aria-label': 'Current game PGN' });
             const pgnClose = element('button', '', { type: 'button', 'data-active-game-action': 'close-pgn' }); pgnClose.textContent = 'Close';
             this.#pgnDialog.append(pgnTitle, pgnText, pgnClose);
+            this.#settingsDialog = element('div', 'caissa-simplified-shell__settings-dialog', {
+                id: `${this.#id}-settings`, role: 'dialog', 'aria-modal': 'true',
+                'aria-labelledby': `${this.#id}-settings-title`
+            });
+            const settingsTitle = element('h2', '', { id: `${this.#id}-settings-title` });
+            settingsTitle.textContent = 'Board Settings';
+            const settingsGrid = element('div', 'caissa-simplified-shell__settings-grid');
+            const fixedSetting = (label, value) => {
+                const row = element('div', 'caissa-simplified-shell__settings-row');
+                const name = element('span', ''); name.textContent = label;
+                const current = element('strong', ''); current.textContent = value;
+                row.append(name, current); return row;
+            };
+            settingsGrid.append(fixedSetting('Pieces', 'Classic'), fixedSetting('Board', 'CAISSA Brown'));
+            for (const [setting, label] of [['legal-moves', 'Show legal moves'], ['last-move', 'Highlight last move']]) {
+                const row = element('label', 'caissa-simplified-shell__settings-toggle');
+                const copy = element('span', ''); copy.textContent = label;
+                const input = element('input', '', { type: 'checkbox', checked: '', 'data-play-setting': setting });
+                row.append(copy, input); settingsGrid.appendChild(row);
+            }
+            const settingsActions = element('div', 'caissa-simplified-shell__settings-actions');
+            const flip = element('button', '', { type: 'button', 'data-active-game-action': 'flip-board' });
+            flip.textContent = 'Flip board';
+            const settingsClose = element('a', '', { href: '#', 'aria-label': 'Close board settings' });
+            settingsClose.textContent = 'Done';
+            settingsActions.append(flip, settingsClose);
+            this.#settingsDialog.append(settingsTitle, settingsGrid, settingsActions);
             workspace.append(boardStage, nav, context, footer, advanced);
-            root.append(preview, workspace, this.#pgnDialog);
+            root.append(preview, workspace, this.#pgnDialog, this.#settingsDialog);
             stage.appendChild(root);
             this.#root = root;
             const accessibility = global.CaissaPlayAccessibility?.create?.(root);
@@ -364,8 +420,8 @@
             this.#postGame.syncFromPlay();
             this.#accessibility?.announce?.('PLAY_READY');
             if (!this.#listeners.length) {
-                this.#listen(this.#actionBar, 'click', event => this.#handleActiveAction(event));
-                this.#listen(this.#pgnDialog, 'click', event => this.#handleActiveAction(event));
+                this.#listen(this.#root, 'click', event => this.#handleActiveAction(event));
+                this.#listen(this.#settingsDialog, 'change', event => this.#handleActiveAction(event));
                 this.#listen(this.#assistance, 'change', event => this.#handleAssistanceChange(event));
                 this.#listen(this.#root.querySelector('.caissa-simplified-shell__modes'), 'click', event => {
                     const mode = event.target?.dataset?.shellMode;
@@ -743,6 +799,8 @@
             }
             this.#activeContext.hidden = !active;
             this.#actionBar.hidden = !active;
+            const utilityBar = this.#activeContext.querySelector('[data-active-game-utilities]');
+            if (utilityBar) utilityBar.hidden = !(active && ['bots', 'coach'].includes(this.#mode));
             this.#syncAssistance(active, postGame);
             const coachMode = active && this.#mode === 'coach';
             const narrator = this.#root.querySelector('[data-active-coach-narrator]');
@@ -786,6 +844,8 @@
                 else if (!coachMode && narrator && boardStage && narrator.parentNode !== boardStage)
                     boardStage.insertBefore(narrator, opponent);
                 if (this.#actionBar.parentNode !== this.#activeContext) this.#activeContext.appendChild(this.#actionBar);
+                const utilityBar = this.#activeContext.querySelector('[data-active-game-utilities]');
+                if (utilityBar) this.#activeContext.appendChild(utilityBar);
                 return;
             }
             if (narrator && boardStage && narrator.parentNode !== boardStage) boardStage.insertBefore(narrator, opponent);
@@ -799,6 +859,14 @@
             const current = global.App?.currentOpening;
             opening.textContent = current?.name
                 ? `📖 ${current.name}${current.eco ? ` · ${current.eco}` : ''}` : 'Opening not identified yet';
+            const openingLink = this.#activeContext.querySelector('[data-active-opening-link]');
+            if (openingLink) {
+                openingLink.href = current?.eco && /^[A-E]\d{2}$/i.test(current.eco)
+                    ? `/eco/${current.eco.toUpperCase()}` : '/opening-database';
+                openingLink.setAttribute('aria-label', current?.eco
+                    ? `Open ${current.name || 'opening'} ${current.eco.toUpperCase()} in the CAISSA ECO Database (new tab)`
+                    : 'Open CAISSA Opening Database in a new tab');
+            }
             let history = [];
             try { history = global.App?.game?.history?.() || []; } catch (_) { history = []; }
             moves.replaceChildren();
@@ -851,7 +919,7 @@
         }
         #syncAssistance(active, postGame) {
             if (!this.#assistance) return;
-            const admitted = ['bots', 'coach'].includes(this.#mode) && !active && !postGame;
+            const admitted = false;
             this.#assistance.hidden = !admitted;
             if (!admitted) return;
             const body = this.#assistance.querySelector('[data-assistance-body]');
@@ -909,6 +977,13 @@
             if (!response?.ok) event.target.value = this.#coachPanel?.getSnapshot?.().configuration?.[normalized] || event.target.value;
         }
         #handleActiveAction(event) {
+            const setting = event.target?.closest?.('[data-play-setting]')?.dataset?.playSetting;
+            if (setting === 'legal-moves') {
+                this.#root.classList.toggle('caissa-hide-legal-moves', !event.target.checked); return;
+            }
+            if (setting === 'last-move') {
+                this.#root.classList.toggle('caissa-hide-last-move', !event.target.checked); return;
+            }
             const action = event.target?.closest?.('[data-active-game-action]')?.dataset?.activeGameAction;
             if (!action) return;
             if (action === 'resign') global.resignGame?.();
@@ -925,7 +1000,22 @@
             else if (action === 'menu') {
                 if (typeof global.showModal === 'function') global.showModal('menuModal');
                 else global.document.getElementById('btnSettings')?.click?.();
-            } else if (action === 'pgn') {
+            } else if (action === 'settings') {
+                this.#settingsDialog.hidden = false;
+            }
+            else if (action === 'download') global.document.getElementById('btnDownload')?.click?.();
+            else if (action === 'share') {
+                let pgn = '';
+                try { pgn = global.CaissaGameRecord?.buildFromPlay?.()?.notation?.pgn || global.App?.game?.pgn?.() || ''; }
+                catch (_) { pgn = ''; }
+                if (!pgn) return;
+                if (typeof global.navigator?.share === 'function')
+                    global.navigator.share({ title: 'CAISSA Chess game', text: pgn }).catch(() => {});
+                else global.navigator?.clipboard?.writeText?.(pgn)
+                    .then(() => global.showNotification?.('PGN copied for sharing.')).catch(() => {});
+            } else if (action === 'flip-board') global.document.getElementById('menuFlipBoard')?.click?.();
+            else if (action === 'close-settings') this.#settingsDialog.hidden = true;
+            else if (action === 'pgn') {
                 let pgn = '';
                 try { pgn = global.CaissaGameRecord?.buildFromPlay?.()?.notation?.pgn || ''; } catch (_) { pgn = ''; }
                 this.#pgnDialog.querySelector('[data-active-game-pgn]').value = pgn;

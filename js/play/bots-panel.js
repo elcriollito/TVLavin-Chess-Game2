@@ -11,7 +11,7 @@
         Object.freeze({ value: 600, label: '10+0' })
     ]);
     const COLORS = Object.freeze([
-        Object.freeze({ value: 'white', label: 'White', symbol: '♔' }),
+        Object.freeze({ value: 'white', label: 'White', symbol: '♚' }),
         Object.freeze({ value: 'random', label: 'Random', symbol: '?' }),
         Object.freeze({ value: 'black', label: 'Black', symbol: '♚' })
     ]);
@@ -151,7 +151,9 @@
                     type: 'radio', name: `${this.#id}-color`, value: item.value,
                     'data-bot-color': item.value, 'aria-label': item.label
                 });
-                const symbol = element('span', '', { 'aria-hidden': 'true' }); symbol.textContent = item.symbol;
+                const symbol = element('span', `caissa-color-token caissa-color-token--${item.value}`, {
+                    'aria-hidden': 'true', 'data-color-token': item.value
+                }); symbol.textContent = item.symbol;
                 label.append(input, symbol); colorOptions.appendChild(label);
             });
             color.append(colorLegend, colorOptions); controls.append(time, color);

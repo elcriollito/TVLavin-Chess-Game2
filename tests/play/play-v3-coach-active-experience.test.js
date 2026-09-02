@@ -41,6 +41,28 @@ test('Bots and Coach share only Resign, Hint and Undo', () => {
     assert.match(shell, /previous\.textContent = ''/);
 });
 
+test('assisted games expose honest CAISSA resources and utility actions', () => {
+    const shell = read('js/play/simplified-play-shell.js');
+    const bots = read('js/play/bots-panel.js');
+    const coach = read('js/play/native-coach/coach-panel.js');
+    const css = read('css/play-simplified-shell.css');
+    assert.match(shell, /data-active-opening-link/);
+    assert.match(shell, /`\/eco\/\$\{current\.eco\.toUpperCase\(\)\}`/);
+    assert.match(shell, /Explorer · Coming soon/);
+    assert.match(shell, /disabled: ''/);
+    for (const action of ['share', 'download', 'settings'])
+        assert.match(shell, new RegExp(`\\['${action}'`));
+    assert.match(shell, /caissa-simplified-shell__settings-dialog/);
+    assert.match(shell, /Show legal moves/);
+    assert.match(shell, /Highlight last move/);
+    assert.match(shell, /btnDownload/);
+    assert.match(css, /caissa-simplified-shell__utility-bar/);
+    assert.match(bots, /caissa-color-token--\$\{item\.value\}/);
+    assert.match(coach, /caissa-color-token--\$\{item\.value\}/);
+    assert.match(css, /caissa-color-token--white/);
+    assert.match(css, /caissa-color-token--black/);
+});
+
 test('Coach evaluation, hint and undo remain local to the existing engine game', () => {
     const app = read('app.js');
     assert.match(app, /function scheduleCoachLiveEvaluation\(attempt = 0\)/);
