@@ -77,6 +77,11 @@
             this.#listen(dismiss, 'click', () => { this.#assistance.dismiss(); dismiss.disabled = true;
                 this.#renderDialogue(this.#dialogue.silence()); });
             this.#listen(root, 'caissa-turn-change', event => this.#handleTurn(event.detail));
+            this.#listen(root, 'caissa-coach-observation', event => {
+                const message = event.detail?.message?.message;
+                if (this.#status === 'active' && typeof message === 'string' && message.length <= 220) this.#render(message);
+            });
+            this.#listen(root, 'caissa-coach-hint', event => this.#render(event.detail?.message || 'Take another look at the position.'));
             this.#listen(root, 'caissa-game-end', () => this.#renderDialogue(this.#dialogue.observe({ type: 'game-complete',
                 category: 'completion', messageKey: 'GAME_COMPLETE', ply: 0, requested: true })));
             this.#assistance.configure(this.#configuration); this.#renderSelection();
@@ -217,7 +222,11 @@
             if (experience) experience.value = this.#experience;
             this.#root?.querySelectorAll('[data-coach-color-choice]').forEach(input => input.checked = input.value === this.#color);
         }
-        #render(message) { const speech = this.#root?.querySelector('[data-coach-narration]'); if (speech) speech.textContent = message; }
+        #render(message) {
+            const speech = this.#root?.querySelector('[data-coach-narration]');
+            if (speech) speech.textContent = message;
+            root.dispatchEvent?.(new CustomEvent('caissa-coach-narration', { detail: { message } }));
+        }
         #renderDialogue(outcome) { if (outcome?.ok && outcome.message) this.#render(outcome.message); return outcome; }
         show() { if (this.#root) this.#root.hidden = false; return result(true, 'SHOWN'); }
         hide() { this.#assistance.teardown(); if (this.#root) this.#root.hidden = true; return result(true, 'HIDDEN'); }

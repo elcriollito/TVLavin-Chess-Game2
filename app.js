@@ -996,6 +996,9 @@ function onSnapEnd() {
 // ===== MOVE HANDLING =====
 function onMoveMade(move) {
     const moveActor = App.isPlayerTurn ? 'user' : 'engine';
+    App.boardAdapter?.clearSelection?.();
+    App.boardAdapter?.clearLegalTargets?.();
+    App.currentEvaluation = null;
     // Render only after the authoritative legacy chess state accepted the move.
     App.board.position(App.game.fen(), false);
     switchLocalClockAfterMove(move);
@@ -1042,6 +1045,7 @@ function onMoveMade(move) {
 
     // HOTFIX 4: Trigger the normal player-engine reply outside Engine vs Engine.
     if (!App.eveMode && !App.eveRunning && App.gameMode !== 'eve') {
+        if (App.analyzing) stopAnalysis();
         maybeTriggerEngineMove();
     }
 
@@ -1052,7 +1056,10 @@ function onMoveMade(move) {
 }
 
 function undoMove() {
-    if (!App.game) return;
+    if (!App.game) return false;
+    if (App.analyzing) stopAnalysis();
+    window.CaissaEngineRequestIsolation?.cancelPurpose?.('opponent-move');
+    window.CaissaEngineRequestIsolation?.cancelPurpose?.('live-evaluation');
 
     const isEngineGame = App.gameMode === 'engine' || App.engineEnabled;
     let undone = false;
@@ -1070,7 +1077,7 @@ function undoMove() {
         undoOnce();
     }
 
-    if (!undone) return;
+    if (!undone) return false;
 
     App.currentMoveIndex = App.moveHistory.length - 1;
     App.board.position(App.game.fen(), false);
@@ -1083,11 +1090,56 @@ function undoMove() {
         engineSend(App.engine, `position fen ${fen}`);
         engineSend(App.engine, 'isready');
     }
-
-    if (App.analyzing) {
-        startAnalysis();
-    }
+    App.isPlayerTurn = true;
+    window.dispatchEvent(new CustomEvent('caissa-coach-hint', {
+        detail: { message: 'We took that turn back. Try a different idea.' }
+    }));
+    scheduleCoachLiveEvaluation();
+    return true;
 }
+
+function isNativeCoachGame() {
+    const route = window.CaissaPlayRouteController?.getCurrent?.();
+    return route?.mode === 'coach' && App.gameMode === 'engine'
+        && App.gameActive && window.CaissaCoachSession?.getSnapshot?.()?.active;
+}
+
+function scheduleCoachLiveEvaluation() {
+    if (!isNativeCoachGame() || !App.isPlayerTurn || App.game?.game_over?.()) return false;
+    setTimeout(() => {
+        if (!isNativeCoachGame() || !App.isPlayerTurn || App.analyzing || !App.engine?.ready) return;
+        App.analyzing = true;
+        startAnalysis();
+    }, 180);
+    return true;
+}
+
+function requestCoachHint() {
+    if (!isNativeCoachGame() || !App.isPlayerTurn) return { ok: false, reasonCode: 'HINT_UNAVAILABLE' };
+    const fen = App.game.fen();
+    const bestMove = App.currentEvaluation?.fen === fen ? App.currentEvaluation.bestMove : null;
+    if (!bestMove || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(bestMove)) {
+        scheduleCoachLiveEvaluation();
+        window.dispatchEvent(new CustomEvent('caissa-coach-hint', {
+            detail: { message: 'I’m studying the position. Tap Hint again in a moment.' }
+        }));
+        return { ok: false, reasonCode: 'HINT_LOADING' };
+    }
+    const from = bestMove.slice(0, 2); const to = bestMove.slice(2, 4);
+    const promotion = bestMove.length > 4 ? bestMove[4] : undefined;
+    let san = bestMove;
+    try {
+        const copy = new Chess(fen);
+        san = copy.move({ from, to, promotion })?.san || bestMove;
+    } catch (_) {}
+    App.boardAdapter?.setSelection?.(from);
+    App.boardAdapter?.setLegalTargets?.([to]);
+    const message = `Hint: consider ${san}. Look at what it attacks and protects.`;
+    window.dispatchEvent(new CustomEvent('caissa-coach-hint', { detail: { message, from, to, san } }));
+    return { ok: true, reasonCode: 'HINT_PRESENTED', move: san };
+}
+
+window.requestCoachHint = requestCoachHint;
 
 /**
  * HOTFIX 4: Single source of truth for engine move triggering
@@ -1125,6 +1177,7 @@ function maybeTriggerEngineMove() {
 
     if (!engineTurn) {
         console.log("[ENGINE] waiting for player move");
+        scheduleCoachLiveEvaluation();
         return;
     }
 
@@ -1156,6 +1209,7 @@ function makeEngineMove() {
         return;
     }
 
+    if (App.analyzing) stopAnalysis();
     updateEngineStatus('busy', 'Engine thinking at FULL POWER...');
 
     const currentFen = App.game.fen();
@@ -1200,6 +1254,7 @@ function makeEngineMove() {
                     } else {
                         App.isPlayerTurn = true;
                         updateEngineStatus('ready', 'Engine Ready');
+                        scheduleCoachLiveEvaluation();
                     }
 
                     schedulePlayBoardVisibility('engine-book-move');
@@ -1282,6 +1337,7 @@ function makeEngineMove() {
             } else {
                 App.isPlayerTurn = true;
                 updateStatus();
+                scheduleCoachLiveEvaluation();
             }
             schedulePlayBoardVisibility('engine-move');
         }
@@ -2405,6 +2461,7 @@ function toggleAnalysis() {
 
 function updateAnalysis(info) {
     App.currentEvaluation = {
+        fen: App.game.fen(),
         score: info.score,
         depth: info.depth,
         mate: info.mate,
@@ -2606,6 +2663,7 @@ function prepareNativePlaySetup() {
     App.enginePlaysAs = null;
     App.lastEvalCp = null;
     App.lastEvalMate = null;
+    App.currentEvaluation = null;
     App.loadedGameInfo = null;
     App.isFlipped = false;
     App.elements.gameResult?.classList?.remove('show');
@@ -2678,6 +2736,7 @@ function newGame(options = {}) {
     App.gameActive = true;
     App.lastEvalCp = null;
     App.lastEvalMate = null;
+    App.currentEvaluation = null;
 
     // Clear loaded game info
     App.loadedGameInfo = null;

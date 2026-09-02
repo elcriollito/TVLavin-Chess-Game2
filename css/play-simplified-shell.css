@@ -529,6 +529,44 @@ body.caissa-simplified-play-active .caissa-simplified-shell__player {
     font-weight: 700;
 }
 
+body.caissa-simplified-play-active .caissa-simplified-shell__coach-narrator {
+    display: grid;
+    grid-template-columns: 68px minmax(0, 1fr);
+    align-items: end;
+    gap: 10px;
+    width: min(calc(var(--play-board-size) + var(--shell-eval-width) + var(--shell-rail-gap)), 100%);
+    padding: 8px 10px 0;
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--play-theme-card, #17202b) 94%, #e5b84e 6%);
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__coach-narrator[hidden] { display: none; }
+
+body.caissa-simplified-play-active .caissa-simplified-shell__coach-portrait {
+    width: 68px;
+    height: 76px;
+    overflow: hidden;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__coach-portrait img {
+    width: 68px;
+    height: 76px;
+    object-fit: cover;
+    object-position: top;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__coach-speech {
+    position: relative;
+    align-self: center;
+    min-height: 48px;
+    padding: 10px 12px;
+    border: 1px solid color-mix(in srgb, #e5b84e 42%, var(--panel-border));
+    border-radius: 11px 11px 11px 3px;
+    background: var(--play-theme-card, #17202b);
+    line-height: 1.35;
+}
+
 body.caissa-simplified-play-active .caissa-simplified-shell__player > :first-child {
     min-width: 0;
     overflow: hidden;
@@ -557,7 +595,7 @@ body.caissa-simplified-play-active .caissa-simplified-shell__board-actions {
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell[data-mode="coach"] .caissa-simplified-shell__board-actions {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__board-actions[hidden] {

@@ -168,13 +168,24 @@
             });
             const heading = element('h2', 'caissa-simplified-shell__sr-heading', { id: `${this.#id}-board-heading` });
             heading.textContent = 'Game board';
+            const coachNarrator = element('section', 'caissa-simplified-shell__coach-narrator', {
+                'data-active-coach-narrator': '', 'aria-label': 'Caissa Coach', hidden: ''
+            });
+            const coachPortrait = element('div', 'caissa-simplified-shell__coach-portrait', {
+                'data-active-coach-portrait': '', 'aria-hidden': 'true'
+            });
+            const coachSpeech = element('div', 'caissa-simplified-shell__coach-speech', {
+                'data-active-coach-speech': '', role: 'status'
+            });
+            coachSpeech.textContent = "Let's play. I'll help you along the way.";
+            coachNarrator.append(coachPortrait, coachSpeech);
             const opponent = element('header', 'caissa-simplified-shell__player caissa-simplified-shell__player--opponent');
             const boardRegion = element('div', 'caissa-simplified-shell__board-region');
             const player = element('header', 'caissa-simplified-shell__player caissa-simplified-shell__player--current');
             const boardActions = element('div', 'caissa-simplified-shell__board-actions', {
                 role: 'group', 'aria-label': 'Board actions'
             });
-            boardStage.append(heading, opponent, boardRegion, player, boardActions);
+            boardStage.append(heading, coachNarrator, opponent, boardRegion, player, boardActions);
 
             const context = element('aside', 'caissa-simplified-shell__context', {
                 'aria-labelledby': `${this.#id}-context-heading`
@@ -212,7 +223,7 @@
 
             const footer = element('footer', 'caissa-simplified-shell__footer', { 'aria-label': 'Primary game actions' });
             this.#actionBar = boardActions;
-            for (const [action, label] of [['resign', 'Resign'], ['coach-help', 'Coach help'], ['pgn', 'PGN'], ['menu', 'Menu']]) {
+            for (const [action, label] of [['resign', 'Resign'], ['coach-hint', '💡 Hint'], ['coach-undo', '↶ Undo'], ['pgn', 'PGN'], ['menu', 'Menu']]) {
                 const button = element('button', `caissa-simplified-shell__active-action caissa-simplified-shell__active-action--${action}`, {
                     type: 'button', 'data-active-game-action': action
                 });
@@ -359,6 +370,10 @@
                     const expected = this.#mode === 'bots' ? 'bots-stack'
                         : this.#mode === 'coach' ? 'native-coach-stack' : null;
                     if (event.detail?.resourceId === expected) this.setStatus('unavailable');
+                });
+                this.#listen(global, 'caissa-coach-narration', event => {
+                    const speech = this.#root?.querySelector('[data-active-coach-speech]');
+                    if (speech && typeof event.detail?.message === 'string') speech.textContent = event.detail.message;
                 });
                 if (global.visualViewport) this.#listen(global.visualViewport, 'resize', () => this.resize());
                 this.#listen(global.document, 'transitionend', event => {
@@ -674,8 +689,23 @@
             this.#activeContext.hidden = !active;
             this.#actionBar.hidden = !active;
             this.#syncAssistance(active, postGame);
-            const coachHelp = this.#actionBar.querySelector('[data-active-game-action="coach-help"]');
-            coachHelp.hidden = !(active && this.#mode === 'coach');
+            const coachMode = active && this.#mode === 'coach';
+            const narrator = this.#root.querySelector('[data-active-coach-narrator]');
+            if (narrator) {
+                narrator.hidden = !coachMode;
+                const portraitHost = narrator.querySelector('[data-active-coach-portrait]');
+                const sourcePortrait = this.#root.querySelector('[data-caissa-native-coach-panel] .caissa-native-coach-panel__portrait');
+                if (coachMode && portraitHost && sourcePortrait && !portraitHost.firstChild)
+                    portraitHost.appendChild(sourcePortrait.cloneNode(true));
+            }
+            for (const action of ['coach-hint', 'coach-undo']) {
+                const button = this.#actionBar.querySelector(`[data-active-game-action="${action}"]`);
+                if (button) button.hidden = !coachMode;
+            }
+            const pgn = this.#actionBar.querySelector('[data-active-game-action="pgn"]');
+            if (pgn) pgn.hidden = coachMode;
+            const menu = this.#actionBar.querySelector('[data-active-game-action="menu"]');
+            if (menu) menu.hidden = coachMode;
             const heading = this.#root.querySelector('.caissa-simplified-shell__context-header h2');
             if (heading) heading.textContent = postGame ? 'Game result' : active ? 'Game status' : starting ? 'Starting game' : 'Game setup';
             this.#syncIdentity();
@@ -780,11 +810,15 @@
             const action = event.target?.closest?.('[data-active-game-action]')?.dataset?.activeGameAction;
             if (!action) return;
             if (action === 'resign') global.resignGame?.();
-            else if (action === 'coach-help' && this.#mode === 'coach') {
-                const response = this.#coachPanel?.requestHelp?.();
+            else if (action === 'coach-hint' && this.#mode === 'coach') {
+                const response = global.requestCoachHint?.();
                 const status = this.#activeContext.querySelector('[data-active-game-status]');
-                status.textContent = response?.ok ? response.presentation?.message || 'Coach help is available.'
-                    : response?.reasonCode === 'COOLDOWN' ? 'Coach help is cooling down.' : 'Coach help is unavailable right now.';
+                status.textContent = response?.ok ? 'Caissa highlighted a suggested move.' : 'Caissa is studying the position…';
+            }
+            else if (action === 'coach-undo' && this.#mode === 'coach') {
+                const undone = global.undoMove?.();
+                const status = this.#activeContext.querySelector('[data-active-game-status]');
+                status.textContent = undone === false ? 'There is no move to undo.' : 'The last turn was taken back.';
             }
             else if (action === 'menu') {
                 if (typeof global.showModal === 'function') global.showModal('menuModal');
