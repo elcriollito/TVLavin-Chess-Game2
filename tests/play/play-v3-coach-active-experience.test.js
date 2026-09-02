@@ -41,6 +41,9 @@ test('Coach active controls are Resign, Hint and Undo while PGN and Menu are hid
 test('Coach evaluation, hint and undo remain local to the existing engine game', () => {
     const app = read('app.js');
     assert.match(app, /function scheduleCoachLiveEvaluation\(attempt = 0\)/);
+    assert.match(app, /function isCoachPlayerTurn\(\)/);
+    assert.match(app, /turn === App\.playerColor/);
+    assert.match(app, /caissa-simplified-shell\[data-mode="coach"\]/);
     assert.match(app, /attempt < 8/);
     assert.match(app, /App\.currentEvaluation\?\.fen === fen/);
     assert.match(app, /App\.boardAdapter\?\.setSelection/);

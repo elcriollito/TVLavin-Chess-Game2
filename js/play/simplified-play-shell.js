@@ -400,6 +400,10 @@
                         speech.textContent = event.detail.message;
                     }
                 });
+                this.#listen(global, 'caissa-coach-hint', event => {
+                    const speech = this.#root?.querySelector('[data-active-coach-speech]');
+                    if (speech && typeof event.detail?.message === 'string') speech.textContent = event.detail.message;
+                });
                 this.#listen(global, 'caissa-coach-opening', event => {
                     const badge = this.#root?.querySelector('[data-active-coach-opening]');
                     if (!badge) return;

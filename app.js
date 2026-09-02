@@ -1111,14 +1111,22 @@ function undoMove() {
 
 function isNativeCoachGame() {
     const route = window.CaissaPlayRouteController?.getCurrent?.();
-    return route?.mode === 'coach' && App.gameMode === 'engine'
-        && App.gameActive && window.CaissaCoachSession?.getSnapshot?.()?.active;
+    const shellCoach = document.querySelector('.caissa-simplified-shell[data-mode="coach"]');
+    const coachSurfaceActive = route?.mode === 'coach' || !!shellCoach;
+    const coachSessionActive = window.CaissaCoachSession?.getSnapshot?.()?.active === true || !!shellCoach;
+    return coachSurfaceActive && App.gameMode === 'engine' && App.gameActive && coachSessionActive;
+}
+
+function isCoachPlayerTurn() {
+    if (!App.gameActive || App.game?.game_over?.()) return false;
+    const turn = App.game?.turn?.() === 'b' ? 'black' : 'white';
+    return turn === App.playerColor;
 }
 
 function scheduleCoachLiveEvaluation(attempt = 0) {
-    if (!isNativeCoachGame() || !App.isPlayerTurn || App.game?.game_over?.()) return false;
+    if (!isNativeCoachGame() || !isCoachPlayerTurn()) return false;
     setTimeout(() => {
-        if (!isNativeCoachGame() || !App.isPlayerTurn || App.game?.game_over?.()) return;
+        if (!isNativeCoachGame() || !isCoachPlayerTurn()) return;
         if (!App.engine?.ready) {
             if (attempt < 8) scheduleCoachLiveEvaluation(attempt + 1);
             else if (App.pendingCoachHint) {
@@ -1192,7 +1200,7 @@ function presentCoachHint(bestMove) {
 }
 
 function requestCoachHint() {
-    if (!isNativeCoachGame() || !App.isPlayerTurn) return { ok: false, reasonCode: 'HINT_UNAVAILABLE' };
+    if (!isNativeCoachGame() || !isCoachPlayerTurn()) return { ok: false, reasonCode: 'HINT_UNAVAILABLE' };
     const fen = App.game.fen();
     const bestMove = App.currentEvaluation?.fen === fen ? App.currentEvaluation.bestMove : null;
     if (!bestMove || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(bestMove)) {
