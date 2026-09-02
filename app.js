@@ -1115,11 +1115,26 @@ function isNativeCoachGame() {
         && App.gameActive && window.CaissaCoachSession?.getSnapshot?.()?.active;
 }
 
-function scheduleCoachLiveEvaluation() {
+function scheduleCoachLiveEvaluation(attempt = 0) {
     if (!isNativeCoachGame() || !App.isPlayerTurn || App.game?.game_over?.()) return false;
     setTimeout(() => {
-        if (!isNativeCoachGame() || !App.isPlayerTurn || App.analyzing || !App.engine?.ready) return;
-        App.analyzing = true;
+        if (!isNativeCoachGame() || !App.isPlayerTurn || App.game?.game_over?.()) return;
+        if (!App.engine?.ready) {
+            if (attempt < 8) scheduleCoachLiveEvaluation(attempt + 1);
+            else if (App.pendingCoachHint) {
+                App.pendingCoachHint = false;
+                window.dispatchEvent(new CustomEvent('caissa-coach-hint', {
+                    detail: { message: 'The engine is still loading. Please try Hint once more.' }
+                }));
+            }
+            return;
+        }
+        const fen = App.game.fen();
+        if (App.currentEvaluation?.fen === fen) {
+            if (App.pendingCoachHint && App.currentEvaluation.bestMove) presentCoachHint(App.currentEvaluation.bestMove);
+            return;
+        }
+        if (App.analyzing) stopAnalysis();
         startAnalysis();
     }, 180);
     return true;

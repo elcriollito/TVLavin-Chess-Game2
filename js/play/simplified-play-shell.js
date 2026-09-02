@@ -174,6 +174,9 @@
             const coachPortrait = element('div', 'caissa-simplified-shell__coach-portrait', {
                 'data-active-coach-portrait': '', 'aria-hidden': 'true'
             });
+            const coachPreviousSpeech = element('div', 'caissa-simplified-shell__coach-speech caissa-simplified-shell__coach-speech--previous', {
+                'data-active-coach-previous-speech': '', hidden: ''
+            });
             const coachSpeech = element('div', 'caissa-simplified-shell__coach-speech', {
                 'data-active-coach-speech': '', role: 'status'
             });
@@ -182,7 +185,7 @@
             const openingBadge = element('div', 'caissa-simplified-shell__opening-badge', {
                 'data-active-coach-opening': '', hidden: ''
             });
-            coachCopy.append(openingBadge, coachSpeech);
+            coachCopy.append(openingBadge, coachPreviousSpeech, coachSpeech);
             coachNarrator.append(coachPortrait, coachCopy);
             const opponent = element('header', 'caissa-simplified-shell__player caissa-simplified-shell__player--opponent');
             const boardRegion = element('div', 'caissa-simplified-shell__board-region');
@@ -206,7 +209,18 @@
             const activeTitle = element('h3', ''); activeTitle.textContent = 'Game in progress';
             const activeStatus = element('p', '', { 'data-active-game-status': '', role: 'status' });
             activeStatus.textContent = 'Use the board to play your move.';
-            this.#activeContext.append(activeTitle, activeStatus); this.#activeContext.hidden = true;
+            const activeNotation = element('section', 'caissa-simplified-shell__active-notation', {
+                'data-active-game-notation': '', 'aria-label': 'Opening and moves'
+            });
+            const activeOpening = element('div', 'caissa-simplified-shell__active-opening', {
+                'data-active-game-opening': ''
+            });
+            activeOpening.textContent = 'Opening not identified yet';
+            const activeMoves = element('ol', 'caissa-simplified-shell__active-moves', {
+                'data-active-game-moves': '', 'aria-label': 'Moves played'
+            });
+            activeNotation.append(activeOpening, activeMoves);
+            this.#activeContext.append(activeTitle, activeStatus, activeNotation); this.#activeContext.hidden = true;
             contextBody.appendChild(this.#activeContext);
             this.#assistance = element('details', 'caissa-simplified-shell__assistance', {
                 'data-play-assistance': '', 'data-assistance-mode': 'none'
@@ -378,7 +392,13 @@
                 });
                 this.#listen(global, 'caissa-coach-narration', event => {
                     const speech = this.#root?.querySelector('[data-active-coach-speech]');
-                    if (speech && typeof event.detail?.message === 'string') speech.textContent = event.detail.message;
+                    const previous = this.#root?.querySelector('[data-active-coach-previous-speech]');
+                    if (speech && previous && typeof event.detail?.message === 'string'
+                        && event.detail.message !== speech.textContent) {
+                        previous.textContent = speech.textContent;
+                        previous.hidden = !previous.textContent;
+                        speech.textContent = event.detail.message;
+                    }
                 });
                 this.#listen(global, 'caissa-coach-opening', event => {
                     const badge = this.#root?.querySelector('[data-active-coach-opening]');
@@ -387,7 +407,9 @@
                     badge.hidden = !active;
                     badge.textContent = active
                         ? `📖 ${event.detail.name}${event.detail.eco ? ` · ${event.detail.eco}` : ''}` : '';
+                    this.#renderActiveNotation();
                 });
+                this.#listen(global, 'caissa-turn-change', () => this.#renderActiveNotation());
                 if (global.visualViewport) this.#listen(global.visualViewport, 'resize', () => this.resize());
                 this.#listen(global.document, 'transitionend', event => {
                     if (!event.target?.classList?.contains('main-navigation')) return;
@@ -571,6 +593,7 @@
             if (this.#active) {
                 this.#diagnostics.boardResizeRequests += 1;
                 global.App?.boardAdapter?.resize?.();
+                this.#syncComposition();
             }
             return result(true, 'accepted', 'LAYOUT_RESIZED', this.#layoutMode);
         }
@@ -720,9 +743,52 @@
             const menu = this.#actionBar.querySelector('[data-active-game-action="menu"]');
             if (menu) menu.hidden = coachMode;
             const heading = this.#root.querySelector('.caissa-simplified-shell__context-header h2');
-            if (heading) heading.textContent = postGame ? 'Game result' : active ? 'Game status' : starting ? 'Starting game' : 'Game setup';
+            if (heading) heading.textContent = postGame ? 'Game result' : active
+                ? ({ games: 'Play Game', bots: 'Play Bots', coach: 'Play Coach' }[this.#mode] || 'Game status')
+                : starting ? 'Starting game' : 'Game setup';
+            this.#syncActivePlacement(active, coachMode);
+            this.#renderActiveNotation();
             this.#syncIdentity();
             if (this.#active && previousState !== state) this.resize();
+        }
+        #syncActivePlacement(active, coachMode) {
+            if (!this.#root || !this.#activeContext || !this.#actionBar) return;
+            const boardStage = this.#root.querySelector('.caissa-simplified-shell__board-stage');
+            const opponent = this.#root.querySelector('.caissa-simplified-shell__player--opponent');
+            const narrator = this.#root.querySelector('[data-active-coach-narrator]');
+            const desktopActive = active && this.#root.dataset.layout === 'desktop-split';
+            if (desktopActive) {
+                if (coachMode && narrator && narrator.parentNode !== this.#activeContext)
+                    this.#activeContext.insertBefore(narrator, this.#activeContext.firstChild);
+                else if (!coachMode && narrator && boardStage && narrator.parentNode !== boardStage)
+                    boardStage.insertBefore(narrator, opponent);
+                if (this.#actionBar.parentNode !== this.#activeContext) this.#activeContext.appendChild(this.#actionBar);
+                return;
+            }
+            if (narrator && boardStage && narrator.parentNode !== boardStage) boardStage.insertBefore(narrator, opponent);
+            if (boardStage && this.#actionBar.parentNode !== boardStage) boardStage.appendChild(this.#actionBar);
+        }
+        #renderActiveNotation() {
+            if (!this.#root || !this.#activeContext) return;
+            const opening = this.#activeContext.querySelector('[data-active-game-opening]');
+            const moves = this.#activeContext.querySelector('[data-active-game-moves]');
+            if (!opening || !moves) return;
+            const current = global.App?.currentOpening;
+            opening.textContent = current?.name
+                ? `📖 ${current.name}${current.eco ? ` · ${current.eco}` : ''}` : 'Opening not identified yet';
+            let history = [];
+            try { history = global.App?.game?.history?.() || []; } catch (_) { history = []; }
+            moves.replaceChildren();
+            for (let index = 0; index < history.length; index += 2) {
+                const row = element('li', 'caissa-simplified-shell__active-move-row');
+                const number = element('span', 'caissa-simplified-shell__active-move-number');
+                const white = element('span', 'caissa-simplified-shell__active-move');
+                const black = element('span', 'caissa-simplified-shell__active-move');
+                number.textContent = `${Math.floor(index / 2) + 1}.`;
+                white.textContent = history[index] || '';
+                black.textContent = history[index + 1] || '';
+                row.append(number, white, black); moves.appendChild(row);
+            }
         }
         #syncIdentity() {
             if (this.#root?.dataset?.entryExperience !== 'beta') return;

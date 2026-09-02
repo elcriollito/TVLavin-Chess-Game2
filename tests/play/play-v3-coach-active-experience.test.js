@@ -5,7 +5,7 @@ import fs from 'node:fs';
 const root = process.cwd();
 const read = file => fs.readFileSync(`${root}/${file}`, 'utf8');
 
-test('active Coach presents Caissa above the board and keeps narration synchronized', () => {
+test('active Coach presents Caissa responsively and keeps narration synchronized', () => {
     const shell = read('js/play/simplified-play-shell.js');
     const panel = read('js/play/native-coach/coach-panel.js');
     const css = read('css/play-simplified-shell.css');
@@ -18,6 +18,13 @@ test('active Coach presents Caissa above the board and keeps narration synchroni
     assert.match(panel, /caissa-coach-narration-request/);
     assert.match(panel, /caissa-coach-observation/);
     assert.match(css, /caissa-simplified-shell__coach-narrator/);
+    assert.match(shell, /#syncActivePlacement\(active, coachMode\)/);
+    assert.match(shell, /this\.#root\.dataset\.layout === 'desktop-split'/);
+    assert.match(shell, /this\.#activeContext\.appendChild\(this\.#actionBar\)/);
+    assert.match(shell, /boardStage\.appendChild\(this\.#actionBar\)/);
+    assert.match(shell, /data-active-game-opening/);
+    assert.match(shell, /data-active-game-moves/);
+    assert.match(css, /data-layout="desktop-split"[\s\S]*caissa-simplified-shell__active-context/);
 });
 
 test('Coach active controls are Resign, Hint and Undo while PGN and Menu are hidden', () => {
@@ -33,7 +40,8 @@ test('Coach active controls are Resign, Hint and Undo while PGN and Menu are hid
 
 test('Coach evaluation, hint and undo remain local to the existing engine game', () => {
     const app = read('app.js');
-    assert.match(app, /function scheduleCoachLiveEvaluation\(\)/);
+    assert.match(app, /function scheduleCoachLiveEvaluation\(attempt = 0\)/);
+    assert.match(app, /attempt < 8/);
     assert.match(app, /App\.currentEvaluation\?\.fen === fen/);
     assert.match(app, /App\.boardAdapter\?\.setSelection/);
     assert.match(app, /App\.boardAdapter\?\.setLegalTargets/);

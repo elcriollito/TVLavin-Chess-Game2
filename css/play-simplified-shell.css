@@ -587,6 +587,23 @@ body.caissa-simplified-play-active .caissa-simplified-shell__coach-speech {
     line-height: 1.35;
 }
 
+body.caissa-simplified-play-active .caissa-simplified-shell__coach-speech--previous {
+    color: var(--play-theme-text-muted, #c1c8d2);
+    background: color-mix(in srgb, var(--play-theme-card, #17202b) 88%, white 4%);
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop-split"] .caissa-simplified-shell__coach-narrator {
+    grid-template-columns: 92px minmax(0, 1fr);
+    align-items: center;
+    padding: 12px;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop-split"]
+    :is(.caissa-simplified-shell__coach-portrait, .caissa-simplified-shell__coach-portrait img) {
+    width: 92px;
+    height: 112px;
+}
+
 body.caissa-simplified-play-active.caissa-coach-hint-active #playSection #chessboard .caissa-board-selected::after,
 body.caissa-simplified-play-active.caissa-coach-hint-active #playSection #chessboard .caissa-board-legal-target::after {
     content: "";
@@ -683,6 +700,91 @@ body.caissa-simplified-play-active .caissa-simplified-shell__active-context[hidd
 
 body.caissa-simplified-play-active .caissa-simplified-shell__active-context :where(h3, p) {
     margin: 0;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__active-notation {
+    display: grid;
+    align-content: start;
+    gap: 8px;
+    min-height: 110px;
+    padding-block: 8px;
+    border-block: 1px solid color-mix(in srgb, var(--panel-border) 65%, transparent);
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__active-opening {
+    color: var(--play-theme-text-muted, #b6c0cc);
+    font-size: .9rem;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__active-moves {
+    display: grid;
+    gap: 3px;
+    max-height: 260px;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__active-move-row {
+    display: grid;
+    grid-template-columns: 2.2rem repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 5px 7px;
+    border-radius: 6px;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__active-move-row:nth-child(odd) {
+    background: color-mix(in srgb, var(--play-theme-card, #17202b) 75%, transparent);
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__active-move-number {
+    color: var(--play-theme-text-muted, #9ca8b6);
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__active-move {
+    color: var(--play-theme-text, #fff);
+    font-weight: 750;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop-split"] .caissa-simplified-shell__context-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop-split"] .caissa-simplified-shell__active-context {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: min(680px, calc(100dvh - 235px));
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop-split"] .caissa-simplified-shell__active-context[hidden] {
+    display: none;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop-split"] .caissa-simplified-shell__active-notation {
+    flex: 1;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop-split"] .caissa-simplified-shell__active-moves {
+    max-height: min(320px, 38dvh);
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop-split"] .caissa-simplified-shell__active-context > .caissa-simplified-shell__board-actions {
+    margin-top: auto;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop-split"][data-mode="coach"]
+    .caissa-simplified-shell__active-context > :is(h3, [data-active-game-status]) {
+    display: none;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop-split"]
+    .caissa-simplified-shell__active-context > .caissa-simplified-shell__coach-narrator {
+    width: 100%;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__assistance {
@@ -1456,6 +1558,11 @@ body.caissa-simplified-play-active .caissa-simplified-shell[data-layout^="phone-
 
 body.caissa-simplified-play-active .caissa-simplified-shell[data-layout^="phone-"] .caissa-simplified-shell__mode {
     padding-inline: 11px;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout^="phone-"]
+    .caissa-simplified-shell__coach-speech--previous {
+    display: none;
 }
 
 @supports not (overflow: clip) {
