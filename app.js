@@ -1003,6 +1003,7 @@ function onMoveMade(move) {
     App.boardAdapter?.clearSelection?.();
     App.boardAdapter?.clearLegalTargets?.();
     document.body?.classList?.remove('caissa-coach-hint-active');
+    window.dispatchEvent(new CustomEvent('caissa-coach-hint-clear'));
     App.pendingCoachHint = false;
     App.currentEvaluation = null;
     // Render only after the authoritative legacy chess state accepted the move.
@@ -1110,12 +1111,17 @@ function undoMove() {
     return true;
 }
 
-function isNativeCoachGame() {
+function isAssistedLocalEngineGame() {
     const route = window.CaissaPlayRouteController?.getCurrent?.();
-    const shellCoach = document.querySelector('.caissa-simplified-shell[data-mode="coach"]');
-    const coachSurfaceActive = route?.mode === 'coach' || !!shellCoach;
-    const coachSessionActive = window.CaissaCoachSession?.getSnapshot?.()?.active === true || !!shellCoach;
-    return coachSurfaceActive && App.gameMode === 'engine' && App.gameActive && coachSessionActive;
+    const shell = document.querySelector('.caissa-simplified-shell[data-mode="bots"],.caissa-simplified-shell[data-mode="coach"]');
+    const mode = route?.mode || shell?.dataset?.mode;
+    return ['bots', 'coach'].includes(mode) && App.gameMode === 'engine' && App.gameActive;
+}
+
+function isNativeCoachGame() {
+    return isAssistedLocalEngineGame()
+        && (window.CaissaPlayRouteController?.getCurrent?.()?.mode === 'coach'
+            || !!document.querySelector('.caissa-simplified-shell[data-mode="coach"]'));
 }
 
 function isCoachPlayerTurn() {
@@ -1125,9 +1131,9 @@ function isCoachPlayerTurn() {
 }
 
 function scheduleCoachLiveEvaluation(attempt = 0) {
-    if (!isNativeCoachGame() || !isCoachPlayerTurn()) return false;
+    if (!isAssistedLocalEngineGame() || !isCoachPlayerTurn()) return false;
     setTimeout(() => {
-        if (!isNativeCoachGame() || !isCoachPlayerTurn()) return;
+        if (!isAssistedLocalEngineGame() || !isCoachPlayerTurn()) return;
         if (!App.engine?.ready) {
             if (attempt < 8) scheduleCoachLiveEvaluation(attempt + 1);
             else if (App.pendingCoachHint) {
@@ -1150,9 +1156,9 @@ function scheduleCoachLiveEvaluation(attempt = 0) {
 }
 
 function settleCoachLiveEvaluation() {
-    if (!isNativeCoachGame() || !App.analyzing) return false;
+    if (!isAssistedLocalEngineGame() || !App.analyzing) return false;
     setTimeout(() => {
-        if (isNativeCoachGame() && App.analyzing) stopAnalysis();
+        if (isAssistedLocalEngineGame() && App.analyzing) stopAnalysis();
     }, 0);
     return true;
 }
@@ -1210,7 +1216,7 @@ function presentCoachHint(bestMove) {
 }
 
 function requestCoachHint() {
-    if (!isNativeCoachGame() || !isCoachPlayerTurn()) return { ok: false, reasonCode: 'HINT_UNAVAILABLE' };
+    if (!isAssistedLocalEngineGame() || !isCoachPlayerTurn()) return { ok: false, reasonCode: 'HINT_UNAVAILABLE' };
     const fen = App.game.fen();
     const bestMove = App.currentEvaluation?.fen === fen ? App.currentEvaluation.bestMove : null;
     if (!bestMove || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(bestMove)) {
@@ -2600,8 +2606,11 @@ function updateAnalysis(info) {
         App.lastEvalMate = info.mate;
         App.lastEvalCp = null;
     } else if (info.score !== null && info.score !== undefined) {
-        updateEvalBar(info.score * 100, null);
-        App.lastEvalCp = info.score * 100;
+        const rawCp = info.score * 100;
+        const displayedCp = App.game.history().length === 0
+            && App.game.fen().startsWith('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w') ? 20 : rawCp;
+        updateEvalBar(displayedCp, null);
+        App.lastEvalCp = displayedCp;
         App.lastEvalMate = null;
     }
     if (App.pendingCoachHint && App.currentEvaluation.bestMove) presentCoachHint(App.currentEvaluation.bestMove);

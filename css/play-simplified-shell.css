@@ -316,6 +316,13 @@ body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experienc
     gap: var(--play-workspace-gap, clamp(8px, 1.2vw, 18px));
 }
 
+body.caissa-simplified-play-active.caissa-play-game-active
+    .caissa-simplified-shell[data-entry-experience="beta"][data-layout="desktop-split"] .caissa-simplified-shell__context {
+    grid-row: 2 / -1;
+    align-self: stretch;
+    max-height: none;
+}
+
 body.caissa-simplified-play-active .caissa-simplified-shell__modes {
     grid-area: modes;
     display: block;
@@ -758,7 +765,7 @@ body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop
     display: flex;
     flex: 1;
     flex-direction: column;
-    min-height: min(680px, calc(100dvh - 235px));
+    min-height: 0;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop-split"] .caissa-simplified-shell__active-context[hidden] {

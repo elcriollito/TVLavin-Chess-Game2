@@ -1,8 +1,8 @@
 (function (global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.7.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.7.0';
+    const SCHEMA_VERSION = '1.8.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.8.0';
     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'unavailable', 'error']);
     const REGIONS = Object.freeze([
         'mode-navigation', 'board-stage', 'opponent-header', 'evaluation-rail',
@@ -398,11 +398,26 @@
                         previous.textContent = speech.textContent;
                         previous.hidden = !previous.textContent;
                         speech.textContent = event.detail.message;
+                        delete speech.dataset.messageKind;
                     }
                 });
                 this.#listen(global, 'caissa-coach-hint', event => {
                     const speech = this.#root?.querySelector('[data-active-coach-speech]');
-                    if (speech && typeof event.detail?.message === 'string') speech.textContent = event.detail.message;
+                    const previous = this.#root?.querySelector('[data-active-coach-previous-speech]');
+                    if (previous) { previous.textContent = ''; previous.hidden = true; }
+                    if (speech && typeof event.detail?.message === 'string') {
+                        speech.dataset.messageKind = 'hint';
+                        speech.textContent = event.detail.message;
+                    }
+                });
+                this.#listen(global, 'caissa-coach-hint-clear', () => {
+                    const speech = this.#root?.querySelector('[data-active-coach-speech]');
+                    const previous = this.#root?.querySelector('[data-active-coach-previous-speech]');
+                    if (previous) { previous.textContent = ''; previous.hidden = true; }
+                    if (speech?.dataset?.messageKind === 'hint') {
+                        speech.textContent = '';
+                        delete speech.dataset.messageKind;
+                    }
                 });
                 this.#listen(global, 'caissa-coach-opening', event => {
                     const badge = this.#root?.querySelector('[data-active-coach-opening]');
@@ -738,18 +753,22 @@
                 if (coachMode && portraitHost && sourcePortrait && !portraitHost.firstChild)
                     portraitHost.appendChild(sourcePortrait.cloneNode(true));
             }
+            const assistedMode = active && ['bots', 'coach'].includes(this.#mode);
             for (const action of ['coach-hint', 'coach-undo']) {
                 const button = this.#actionBar.querySelector(`[data-active-game-action="${action}"]`);
-                if (button) button.hidden = !coachMode;
+                if (button) button.hidden = !assistedMode;
             }
             const pgn = this.#actionBar.querySelector('[data-active-game-action="pgn"]');
-            if (pgn) pgn.hidden = coachMode;
+            if (pgn) pgn.hidden = assistedMode;
             const menu = this.#actionBar.querySelector('[data-active-game-action="menu"]');
-            if (menu) menu.hidden = coachMode;
+            if (menu) menu.hidden = assistedMode;
             const heading = this.#root.querySelector('.caissa-simplified-shell__context-header h2');
-            if (heading) heading.textContent = postGame ? 'Game result' : active
-                ? ({ games: 'Play Game', bots: 'Play Bots', coach: 'Play Coach' }[this.#mode] || 'Game status')
-                : starting ? 'Starting game' : 'Game setup';
+            if (heading) {
+                heading.hidden = !active && !postGame && !starting && ['bots', 'coach'].includes(this.#mode);
+                heading.textContent = postGame ? 'Game result' : active
+                    ? ({ games: 'Play Game', bots: 'Play Bots', coach: 'Play Coach' }[this.#mode] || 'Game status')
+                    : starting ? 'Starting game' : 'Game setup';
+            }
             this.#syncActivePlacement(active, coachMode);
             this.#renderActiveNotation();
             this.#syncIdentity();
@@ -832,7 +851,7 @@
         }
         #syncAssistance(active, postGame) {
             if (!this.#assistance) return;
-            const admitted = ['bots', 'coach'].includes(this.#mode) && !postGame;
+            const admitted = ['bots', 'coach'].includes(this.#mode) && !active && !postGame;
             this.#assistance.hidden = !admitted;
             if (!admitted) return;
             const body = this.#assistance.querySelector('[data-assistance-body]');
@@ -893,12 +912,12 @@
             const action = event.target?.closest?.('[data-active-game-action]')?.dataset?.activeGameAction;
             if (!action) return;
             if (action === 'resign') global.resignGame?.();
-            else if (action === 'coach-hint' && this.#mode === 'coach') {
+            else if (action === 'coach-hint' && ['bots', 'coach'].includes(this.#mode)) {
                 const response = global.requestCoachHint?.();
                 const status = this.#activeContext.querySelector('[data-active-game-status]');
                 status.textContent = response?.ok ? 'Caissa highlighted a suggested move.' : 'Caissa is studying the position…';
             }
-            else if (action === 'coach-undo' && this.#mode === 'coach') {
+            else if (action === 'coach-undo' && ['bots', 'coach'].includes(this.#mode)) {
                 const undone = global.undoMove?.();
                 const status = this.#activeContext.querySelector('[data-active-game-status]');
                 status.textContent = undone === false ? 'There is no move to undo.' : 'The last turn was taken back.';

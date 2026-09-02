@@ -27,15 +27,18 @@ test('active Coach presents Caissa responsively and keeps narration synchronized
     assert.match(css, /data-layout="desktop-split"[\s\S]*caissa-simplified-shell__active-context/);
 });
 
-test('Coach active controls are Resign, Hint and Undo while PGN and Menu are hidden', () => {
+test('Bots and Coach share only Resign, Hint and Undo', () => {
     const shell = read('js/play/simplified-play-shell.js');
     assert.match(shell, /\['resign', 'Resign'\]/);
     assert.match(shell, /\['coach-hint', '💡 Hint'\]/);
     assert.match(shell, /\['coach-undo', '↶ Undo'\]/);
-    assert.match(shell, /if \(pgn\) pgn\.hidden = coachMode/);
-    assert.match(shell, /if \(menu\) menu\.hidden = coachMode/);
+    assert.match(shell, /if \(pgn\) pgn\.hidden = assistedMode/);
+    assert.match(shell, /if \(menu\) menu\.hidden = assistedMode/);
     assert.match(shell, /global\.requestCoachHint/);
     assert.match(shell, /global\.undoMove/);
+    assert.match(shell, /\['bots', 'coach'\]\.includes\(this\.#mode\)/);
+    assert.match(shell, /caissa-coach-hint-clear/);
+    assert.match(shell, /previous\.textContent = ''/);
 });
 
 test('Coach evaluation, hint and undo remain local to the existing engine game', () => {
@@ -59,5 +62,9 @@ test('Coach evaluation, hint and undo remain local to the existing engine game',
     assert.match(read('css/play-simplified-shell.css'), /caissa-coach-hint-active[\s\S]*caissa-board-legal-target::after/);
     assert.match(app, /window\.CaissaEngineRequestIsolation\?\.cancelPurpose\?\.\('opponent-move'\)/);
     assert.match(app, /window\.requestCoachHint = requestCoachHint/);
+    assert.match(app, /function isAssistedLocalEngineGame\(\)/);
+    assert.match(app, /caissa-coach-hint-clear/);
+    assert.match(app, /App\.game\.history\(\)\.length === 0/);
+    assert.match(app, /\? 20 : rawCp/);
     assert.doesNotMatch(app, /requestCoachHint[\s\S]{0,1200}(?:fetch\(|WebSocket|localStorage|sessionStorage)/);
 });

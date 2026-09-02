@@ -19,8 +19,8 @@ function load() {
 
 test('publishes frozen versioned shell and snapshot contracts', () => {
     const { api } = load();
-    assert.equal(api.schemaVersion, '1.7.0');
-    assert.equal(api.snapshotSchemaVersion, '1.7.0');
+    assert.equal(api.schemaVersion, '1.8.0');
+    assert.equal(api.snapshotSchemaVersion, '1.8.0');
     assert.ok(Object.isFrozen(api));
     assert.ok(Object.isFrozen(api.statuses));
     assert.ok(Object.isFrozen(api.regions));
