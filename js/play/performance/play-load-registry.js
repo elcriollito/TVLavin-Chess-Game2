@@ -48,7 +48,7 @@
                 'js/play/native-coach/coach-assistance-sanitizer.js?v=1.0.0',
                 'js/play/native-coach/coach-assistance.js?v=1.0.0',
                 'js/play/native-coach/coach-dialogue.js?v=1.1.0',
-                'js/play/native-coach/coach-panel.js?v=2.4.0'
+                'js/play/native-coach/coach-panel.js?v=2.5.0'
             ])
         }),
         'native-mentor-review': Object.freeze({

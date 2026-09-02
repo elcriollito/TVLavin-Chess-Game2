@@ -39,7 +39,7 @@ test('Coach panel sends its selected opponent target into the game boundary', ()
     assert.match(panel, /CaissaNativeCoachLevels\.get\(this\.#experience\)/);
     assert.match(panel, /targetElo: level\.opponentStrength\.targetElo/);
     assert.match(app, /botRoute\?\.mode === 'coach'[\s\S]*?CaissaOpponentStrengthSession\?\.beginGame/);
-    assert.ok(registry.indexOf('coach-levels.js?v=1.0.0') < registry.indexOf('coach-panel.js?v=2.4.0'));
+    assert.ok(registry.indexOf('coach-levels.js?v=1.0.0') < registry.indexOf('coach-panel.js?v=2.5.0'));
 });
 
 test('Coach level contract owns no UI, storage, network, board, Worker, or moves', () => {

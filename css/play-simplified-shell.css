@@ -556,6 +556,26 @@ body.caissa-simplified-play-active .caissa-simplified-shell__coach-portrait img 
     object-position: top;
 }
 
+body.caissa-simplified-play-active .caissa-simplified-shell__coach-copy {
+    display: grid;
+    align-self: center;
+    gap: 5px;
+    min-width: 0;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__opening-badge {
+    width: fit-content;
+    max-width: 100%;
+    overflow: hidden;
+    color: #f4cf68;
+    font-size: .78rem;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__opening-badge[hidden] { display: none; }
+
 body.caissa-simplified-play-active .caissa-simplified-shell__coach-speech {
     position: relative;
     align-self: center;
@@ -565,6 +585,35 @@ body.caissa-simplified-play-active .caissa-simplified-shell__coach-speech {
     border-radius: 11px 11px 11px 3px;
     background: var(--play-theme-card, #17202b);
     line-height: 1.35;
+}
+
+body.caissa-simplified-play-active.caissa-coach-hint-active #playSection #chessboard .caissa-board-selected::after,
+body.caissa-simplified-play-active.caissa-coach-hint-active #playSection #chessboard .caissa-board-legal-target::after {
+    content: "";
+    position: absolute;
+    z-index: 8;
+    top: 50%;
+    left: 50%;
+    width: clamp(12px, 24%, 20px);
+    aspect-ratio: 1;
+    border: 3px solid rgba(255, 255, 255, .88);
+    border-radius: 50%;
+    background: #101010;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, .65);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+}
+
+body.caissa-simplified-play-active.caissa-coach-hint-active #playSection #chessboard .caissa-board-legal-target::after {
+    width: clamp(15px, 30%, 24px);
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-mode="coach"] #evalBar {
+    overflow: visible;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-mode="coach"] #evalFill {
+    border-radius: 0 0 5px 5px;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__player > :first-child {

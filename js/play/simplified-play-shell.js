@@ -178,7 +178,12 @@
                 'data-active-coach-speech': '', role: 'status'
             });
             coachSpeech.textContent = "Let's play. I'll help you along the way.";
-            coachNarrator.append(coachPortrait, coachSpeech);
+            const coachCopy = element('div', 'caissa-simplified-shell__coach-copy');
+            const openingBadge = element('div', 'caissa-simplified-shell__opening-badge', {
+                'data-active-coach-opening': '', hidden: ''
+            });
+            coachCopy.append(openingBadge, coachSpeech);
+            coachNarrator.append(coachPortrait, coachCopy);
             const opponent = element('header', 'caissa-simplified-shell__player caissa-simplified-shell__player--opponent');
             const boardRegion = element('div', 'caissa-simplified-shell__board-region');
             const player = element('header', 'caissa-simplified-shell__player caissa-simplified-shell__player--current');
@@ -374,6 +379,14 @@
                 this.#listen(global, 'caissa-coach-narration', event => {
                     const speech = this.#root?.querySelector('[data-active-coach-speech]');
                     if (speech && typeof event.detail?.message === 'string') speech.textContent = event.detail.message;
+                });
+                this.#listen(global, 'caissa-coach-opening', event => {
+                    const badge = this.#root?.querySelector('[data-active-coach-opening]');
+                    if (!badge) return;
+                    const active = event.detail?.active === true && typeof event.detail?.name === 'string';
+                    badge.hidden = !active;
+                    badge.textContent = active
+                        ? `📖 ${event.detail.name}${event.detail.eco ? ` · ${event.detail.eco}` : ''}` : '';
                 });
                 if (global.visualViewport) this.#listen(global.visualViewport, 'resize', () => this.resize());
                 this.#listen(global.document, 'transitionend', event => {

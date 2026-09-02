@@ -82,6 +82,9 @@
                 if (this.#status === 'active' && typeof message === 'string' && message.length <= 220) this.#render(message);
             });
             this.#listen(root, 'caissa-coach-hint', event => this.#render(event.detail?.message || 'Take another look at the position.'));
+            this.#listen(root, 'caissa-coach-narration-request', event => {
+                if (this.#status === 'active' && typeof event.detail?.message === 'string') this.#render(event.detail.message);
+            });
             this.#listen(root, 'caissa-game-end', () => this.#renderDialogue(this.#dialogue.observe({ type: 'game-complete',
                 category: 'completion', messageKey: 'GAME_COMPLETE', ply: 0, requested: true })));
             this.#assistance.configure(this.#configuration); this.#renderSelection();

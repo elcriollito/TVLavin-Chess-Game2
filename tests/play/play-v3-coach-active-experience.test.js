@@ -13,7 +13,9 @@ test('active Coach presents Caissa above the board and keeps narration synchroni
     assert.match(shell, /sourcePortrait\.cloneNode\(true\)/);
     assert.match(panel, /caissa-coach-goddess\.png/);
     assert.match(shell, /caissa-coach-narration/);
+    assert.match(shell, /data-active-coach-opening/);
     assert.match(panel, /caissa-coach-narration/);
+    assert.match(panel, /caissa-coach-narration-request/);
     assert.match(panel, /caissa-coach-observation/);
     assert.match(css, /caissa-simplified-shell__coach-narrator/);
 });
@@ -35,6 +37,12 @@ test('Coach evaluation, hint and undo remain local to the existing engine game',
     assert.match(app, /App\.currentEvaluation\?\.fen === fen/);
     assert.match(app, /App\.boardAdapter\?\.setSelection/);
     assert.match(app, /App\.boardAdapter\?\.setLegalTargets/);
+    assert.match(app, /App\.pendingCoachHint = true/);
+    assert.match(app, /if \(App\.pendingCoachHint && App\.currentEvaluation\.bestMove\) presentCoachHint/);
+    assert.match(app, /function announceCoachOpening\(opening\)/);
+    assert.match(app, /function narrateCoachMove\(move, actor\)/);
+    assert.match(app, /updateEvalBar\(info\.score \* 100, null\)/);
+    assert.match(read('css/play-simplified-shell.css'), /caissa-coach-hint-active[\s\S]*caissa-board-legal-target::after/);
     assert.match(app, /window\.CaissaEngineRequestIsolation\?\.cancelPurpose\?\.\('opponent-move'\)/);
     assert.match(app, /window\.requestCoachHint = requestCoachHint/);
     assert.doesNotMatch(app, /requestCoachHint[\s\S]{0,1200}(?:fetch\(|WebSocket|localStorage|sessionStorage)/);

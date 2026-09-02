@@ -60,6 +60,9 @@ const App = {
     ecoHistoryNotes: {},
     lastEvalCp: null,
     lastEvalMate: null,
+    currentEvaluation: null,
+    pendingCoachHint: false,
+    coachOpeningKey: '',
     selectedEditorPiece: 'erase', // Piece to place in editor mode
     editorMoveSource: null, // Source square for move/adjust tool
 
@@ -998,6 +1001,8 @@ function onMoveMade(move) {
     const moveActor = App.isPlayerTurn ? 'user' : 'engine';
     App.boardAdapter?.clearSelection?.();
     App.boardAdapter?.clearLegalTargets?.();
+    document.body?.classList?.remove('caissa-coach-hint-active');
+    App.pendingCoachHint = false;
     App.currentEvaluation = null;
     // Render only after the authoritative legacy chess state accepted the move.
     App.board.position(App.game.fen(), false);
@@ -1018,6 +1023,7 @@ function onMoveMade(move) {
         MentorAI.onMoveMade(move, App.game.fen());
     }
     const coachSnapshot = window.CaissaCoachSession?.getSnapshot?.();
+    let coachIntervened = false;
     if (moveActor === 'user' && coachSnapshot?.active) {
         const policyDecision = window.CaissaFairPlayPolicy?.evaluatePurpose?.('coach-assistance', {
             source: 'local-play', gameMode: 'engine', opponentType: 'coach',
@@ -1031,11 +1037,13 @@ function onMoveMade(move) {
                 profile: coachSnapshot.activeProfile, move: { from: move.from, to: move.to }
             });
             if (observation?.eligible) {
+                coachIntervened = true;
                 window.CaissaCoachSession.recordIntervention(observation);
                 window.dispatchEvent(new CustomEvent('caissa-coach-observation', { detail: observation }));
             }
         }
     }
+    if (coachSnapshot?.active && !coachIntervened) narrateCoachMove(move, moveActor);
 
     // Check game status
     if (App.game.game_over()) {
@@ -1080,6 +1088,9 @@ function undoMove() {
     if (!undone) return false;
 
     App.currentMoveIndex = App.moveHistory.length - 1;
+    App.currentEvaluation = null;
+    App.pendingCoachHint = false;
+    document.body?.classList?.remove('caissa-coach-hint-active');
     App.board.position(App.game.fen(), false);
     updateMoveHistory();
     updateStatus();
@@ -1114,17 +1125,41 @@ function scheduleCoachLiveEvaluation() {
     return true;
 }
 
-function requestCoachHint() {
-    if (!isNativeCoachGame() || !App.isPlayerTurn) return { ok: false, reasonCode: 'HINT_UNAVAILABLE' };
-    const fen = App.game.fen();
-    const bestMove = App.currentEvaluation?.fen === fen ? App.currentEvaluation.bestMove : null;
-    if (!bestMove || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(bestMove)) {
-        scheduleCoachLiveEvaluation();
-        window.dispatchEvent(new CustomEvent('caissa-coach-hint', {
-            detail: { message: 'I’m studying the position. Tap Hint again in a moment.' }
-        }));
-        return { ok: false, reasonCode: 'HINT_LOADING' };
+function dispatchCoachNarration(message, detail = {}) {
+    if (!isNativeCoachGame() || typeof message !== 'string' || !message.trim()) return false;
+    window.dispatchEvent(new CustomEvent('caissa-coach-narration-request', {
+        detail: { ...detail, message: message.trim().slice(0, 220) }
+    }));
+    return true;
+}
+
+function narrateCoachMove(move, actor) {
+    if (!move?.san) return false;
+    const san = move.san;
+    const isCapture = String(move.flags || '').includes('c');
+    const isCastle = String(move.flags || '').includes('k') || String(move.flags || '').includes('q');
+    const isCheck = /[+#]/.test(san);
+    const developsMinor = /^[NB]/.test(san) && App.game.history().length <= 16;
+    let message = '';
+    if (actor === 'engine') {
+        if (isCheck) message = `I played ${san} to create an immediate threat against your king.`;
+        else if (isCapture) message = `I played ${san} to change the material balance. Check whether you can recapture.`;
+        else if (isCastle) message = `I castled with ${san} to make my king safer and connect my rooks.`;
+        else if (developsMinor) message = `I played ${san} to develop a piece and improve my control of the center.`;
+        else message = `I chose ${san}. Look at which squares and pieces this move now influences.`;
+    } else {
+        if (isCastle) message = `Good practical choice: ${san} improves your king safety and activates a rook.`;
+        else if (developsMinor) message = `Nice development with ${san}. Your piece is entering the game.`;
+        else if (isCheck) message = `${san} gives check. Now verify your follow-up if the king moves or the check is blocked.`;
+        else if (isCapture) message = `You played ${san}. Before relaxing, check whether that piece can be recaptured.`;
+        else message = `You played ${san}. Good habit: check your opponent’s threats before the next move.`;
     }
+    return dispatchCoachNarration(message, { actor, san, category: 'move-feedback' });
+}
+
+function presentCoachHint(bestMove) {
+    if (!bestMove || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(bestMove)) return false;
+    const fen = App.game.fen();
     const from = bestMove.slice(0, 2); const to = bestMove.slice(2, 4);
     const promotion = bestMove.length > 4 ? bestMove[4] : undefined;
     let san = bestMove;
@@ -1134,9 +1169,27 @@ function requestCoachHint() {
     } catch (_) {}
     App.boardAdapter?.setSelection?.(from);
     App.boardAdapter?.setLegalTargets?.([to]);
-    const message = `Hint: consider ${san}. Look at what it attacks and protects.`;
+    document.body?.classList?.add('caissa-coach-hint-active');
+    App.pendingCoachHint = false;
+    const message = `Hint: consider ${san}. Follow the dark dots from ${from} to ${to}.`;
     window.dispatchEvent(new CustomEvent('caissa-coach-hint', { detail: { message, from, to, san } }));
-    return { ok: true, reasonCode: 'HINT_PRESENTED', move: san };
+    return true;
+}
+
+function requestCoachHint() {
+    if (!isNativeCoachGame() || !App.isPlayerTurn) return { ok: false, reasonCode: 'HINT_UNAVAILABLE' };
+    const fen = App.game.fen();
+    const bestMove = App.currentEvaluation?.fen === fen ? App.currentEvaluation.bestMove : null;
+    if (!bestMove || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(bestMove)) {
+        App.pendingCoachHint = true;
+        scheduleCoachLiveEvaluation();
+        window.dispatchEvent(new CustomEvent('caissa-coach-hint', {
+            detail: { message: 'I’m studying the position. I’ll mark the suggestion automatically.' }
+        }));
+        return { ok: true, reasonCode: 'HINT_PENDING' };
+    }
+    presentCoachHint(bestMove);
+    return { ok: true, reasonCode: 'HINT_PRESENTED', move: bestMove };
 }
 
 window.requestCoachHint = requestCoachHint;
@@ -1247,6 +1300,7 @@ function makeEngineMove() {
                     updateStatus();
                     updateTimers();
                     detectOpening();
+                    if (window.CaissaCoachSession?.getSnapshot?.()?.active) narrateCoachMove(move, 'engine');
 
                     // Check game status
                     if (App.game.game_over()) {
@@ -1330,6 +1384,7 @@ function makeEngineMove() {
             updateStatus();
             updateTimers();
             detectOpening();
+            if (window.CaissaCoachSession?.getSnapshot?.()?.active) narrateCoachMove(move, 'engine');
 
             // Check game status
             if (App.game.game_over()) {
@@ -1676,6 +1731,7 @@ function detectOpening() {
             source: mapHit.source || ''
         });
         renderEcoOpeningPanels(mapped);
+        announceCoachOpening(mapped);
         updateCoachPanel();
         updateGameStatusConsole();
         return;
@@ -1720,8 +1776,29 @@ function detectOpening() {
         fallbackName: best ? best.name : ''
     });
     renderEcoOpeningPanels(normalizedBest);
+    announceCoachOpening(normalizedBest);
     updateCoachPanel();
     updateGameStatusConsole();
+}
+
+function announceCoachOpening(opening) {
+    if (!isNativeCoachGame()) return false;
+    if (!opening?.name) {
+        window.dispatchEvent(new CustomEvent('caissa-coach-opening', { detail: { active: false } }));
+        return false;
+    }
+    const eco = String(opening.eco || opening.code || '').toUpperCase();
+    const key = `${eco}:${opening.name}`;
+    window.dispatchEvent(new CustomEvent('caissa-coach-opening', {
+        detail: { active: true, eco, name: opening.name, matchedDepth: opening.matchedDepth || 0 }
+    }));
+    if (App.coachOpeningKey === key) return true;
+    App.coachOpeningKey = key;
+    setTimeout(() => dispatchCoachNarration(
+        `We’re playing the ${opening.name}${eco ? ` (${eco})` : ''}. The book symbol means our moves still match known opening theory.`,
+        { category: 'opening', eco, opening: opening.name }
+    ), 0);
+    return true;
 }
 
 function renderFallbackOpening(opening) {
@@ -2469,6 +2546,17 @@ function updateAnalysis(info) {
         pv: info.pv?.slice(0, 10)?.join(' ') || null
     };
 
+    if (info.mate !== null && info.mate !== undefined) {
+        updateEvalBar(info.mate > 0 ? 1400 : -1400, info.mate);
+        App.lastEvalMate = info.mate;
+        App.lastEvalCp = null;
+    } else if (info.score !== null && info.score !== undefined) {
+        updateEvalBar(info.score * 100, null);
+        App.lastEvalCp = info.score * 100;
+        App.lastEvalMate = null;
+    }
+    if (App.pendingCoachHint && App.currentEvaluation.bestMove) presentCoachHint(App.currentEvaluation.bestMove);
+
     if (typeof MentorAI !== 'undefined' && MentorAI.onEvaluationUpdate) {
         MentorAI.onEvaluationUpdate(App.currentEvaluation);
     }
@@ -2489,21 +2577,15 @@ function updateAnalysis(info) {
         const mateText = `M${info.mate}`;
         evalElem.textContent = mateText;
         evalElem.style.color = info.mate > 0 ? '#4caf50' : '#f44336';
-        updateEvalBar(info.mate > 0 ? 1400 : -1400, info.mate);
         if (evalNumeric) evalNumeric.textContent = mateText;
-        App.lastEvalMate = info.mate;
-        App.lastEvalCp = null;
     } else if (info.score !== null && info.score !== undefined) {
         const score = info.score.toFixed(2);
         evalElem.textContent = score >= 0 ? `+${score}` : score;
         evalElem.style.color = score > 0 ? '#4caf50' : score < 0 ? '#f44336' : '#2c5f9e';
-        updateEvalBar(info.score * 100, null);
         if (evalNumeric) {
             const scoreNum = parseFloat(score);
             evalNumeric.textContent = scoreNum >= 0 ? `+${scoreNum.toFixed(1)}` : scoreNum.toFixed(1);
         }
-        App.lastEvalCp = info.score * 100;
-        App.lastEvalMate = null;
     }
 
     if (evalEngineInfo && info.depth) {
@@ -2664,6 +2746,9 @@ function prepareNativePlaySetup() {
     App.lastEvalCp = null;
     App.lastEvalMate = null;
     App.currentEvaluation = null;
+    App.pendingCoachHint = false;
+    App.coachOpeningKey = '';
+    document.body?.classList?.remove('caissa-coach-hint-active');
     App.loadedGameInfo = null;
     App.isFlipped = false;
     App.elements.gameResult?.classList?.remove('show');
@@ -2737,6 +2822,9 @@ function newGame(options = {}) {
     App.lastEvalCp = null;
     App.lastEvalMate = null;
     App.currentEvaluation = null;
+    App.pendingCoachHint = false;
+    App.coachOpeningKey = '';
+    document.body?.classList?.remove('caissa-coach-hint-active');
 
     // Clear loaded game info
     App.loadedGameInfo = null;
