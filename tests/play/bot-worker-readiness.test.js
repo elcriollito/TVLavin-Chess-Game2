@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 
 const source = await readFile(new URL('../../js/play/bots/bot-worker-readiness.js', import.meta.url), 'utf8');
 
-function fixture() {
+function fixture({ strengthOnly = false } = {}) {
     const listeners = new Map(); const routeListeners = [];
     let resolveStart; let rejectStart; let starts = 0; let terminations = 0; let session = 0;
     const engine = {
@@ -17,11 +17,12 @@ function fixture() {
             rejectStart?.(Object.assign(new Error('ended'), { code: 'ENGINE_OWNERSHIP_ENDED' })); rejectStart = null; }
     };
     let route = { section: 'play', mode: 'bots', query: { simplified: '1' }, metadata: {} };
-    const selectedProfile = { id: 'casual' };
+    const selectedProfile = strengthOnly ? null : { id: 'casual' };
+    const selectedStrengthProfile = strengthOnly ? { id: 'strength-1500', targetStrength: 1500 } : null;
     const global = {
         App: { engine },
         CaissaBotSession: {
-            getSnapshot: () => ({ selectedProfile, sessionId: session ? `bot-session-${session}` : null }),
+            getSnapshot: () => ({ selectedProfile, selectedStrengthProfile, sessionId: session ? `bot-session-${session}` : null }),
             beginGame: () => ({ ok: true, value: { sessionId: `bot-session-${++session}` } })
         },
         CaissaPlayRouteController: {
@@ -63,6 +64,15 @@ test('passive state owns zero Workers and one valid Play creates one only after 
     f.resolve(); assert.equal((await pending).ok, true);
     assert.equal(f.api.markPlaying(), true);
     assert.equal(f.api.getSnapshot().diagnostics.maximumActiveWorkers, 1);
+});
+
+test('v3 strength-profile bots pass readiness and create one Worker', async () => {
+    const f = fixture({ strengthOnly: true });
+    const pending = f.api.begin({ color: 'white', timeControl: 180 });
+    assert.equal(f.api.getSnapshot().state, 'initializing');
+    f.resolve();
+    assert.equal((await pending).ok, true);
+    assert.equal(f.api.getSnapshot().activeWorkerCount, 1);
 });
 
 test('route, game-end, and pagehide exits terminate ownership and leave zero Workers', async () => {

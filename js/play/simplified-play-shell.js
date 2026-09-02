@@ -660,7 +660,7 @@
             const postGame = this.#postGame?.getSnapshot?.().visible === true;
             const active = !postGame && global.document.body.classList.contains('caissa-play-game-active');
             const primary = this.#root.querySelector('[data-games-primary]:not([hidden]),[data-bots-primary]:not([hidden]),[data-coach-primary]:not([hidden])');
-            const starting = !active && !postGame && primary?.disabled === true;
+            const starting = !active && !postGame && primary?.getAttribute('aria-busy') === 'true';
             const state = postGame ? 'postgame' : active ? 'active' : starting ? 'starting' : 'setup';
             const previousState = this.#root.dataset.uiState;
             this.#root.dataset.uiState = state;

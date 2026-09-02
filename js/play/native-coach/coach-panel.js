@@ -87,8 +87,14 @@
         async submit() {
             if (this.#disposed) return result(false, 'INVALID_CONFIGURATION');
             if (this.#submitting) return result(false, 'START_IN_PROGRESS');
+            const currentAccess = this.#entitlement.inspect();
+            if (currentAccess?.code === 'AUTH_REQUIRED') {
+                root.CAISSA_AUTH?.redirectToSignIn?.('/play/coach');
+                return result(false, 'AUTH_REQUIRED');
+            }
             this.#submitting = true;
-            const primary = this.#root?.querySelector('[data-coach-primary]'); if (primary) primary.disabled = true;
+            const primary = this.#root?.querySelector('[data-coach-primary]');
+            if (primary) { primary.disabled = true; primary.setAttribute('aria-busy', 'true'); }
             try {
                 const resolvedColor = this.#color === 'random' ? this.#randomColor() : this.#color;
                 const level = root.CaissaNativeCoachLevels.get(this.#experience);
@@ -129,6 +135,7 @@
                 return result(true, 'STARTED', this.getSnapshot());
             } finally {
                 this.#submitting = false;
+                if (primary) primary.setAttribute('aria-busy', 'false');
                 if (this.#status !== 'active' && !this.#disposed) this.#refreshEntitlement();
             }
         }
@@ -199,7 +206,9 @@
                 COACH_ACCESS_UNAVAILABLE: 'Coach access is temporarily unavailable.'
             };
             status.textContent = messages[access?.code] || 'Coach access is temporarily unavailable.';
-            action.disabled = access?.allowed !== true;
+            action.textContent = access?.code === 'AUTH_REQUIRED' ? 'Sign in to play' : 'Play';
+            action.disabled = access?.allowed !== true && access?.code !== 'AUTH_REQUIRED';
+            action.setAttribute('aria-busy', String(this.#submitting));
             premium.hidden = access?.code !== 'COACH_TRIAL_USED';
         }
         #renderSelection() {

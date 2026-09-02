@@ -64,7 +64,8 @@
     async function begin(options = {}) {
         if (disposed || !isAuthorizedBotsRoute()) return outcome(false, 'rejected', 'BOTS_ROUTE_NOT_AUTHORIZED');
         if (pending || state === 'initializing') { diagnostics.duplicateStarts += 1; return outcome(false, 'rejected', 'START_IN_PROGRESS'); }
-        const profile = global.CaissaBotSession?.getSnapshot?.()?.selectedProfile;
+        const selection = global.CaissaBotSession?.getSnapshot?.();
+        const profile = selection?.selectedProfile || selection?.selectedStrengthProfile;
         if (!profile || !['white', 'black'].includes(options.color)
             || !Number.isInteger(options.timeControl) || options.timeControl < 0) {
             return outcome(false, 'rejected', 'INVALID_SELECTION');

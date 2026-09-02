@@ -17,7 +17,7 @@
                 'js/play/bots/bot-seasonal-manifest.js?v=1.0.0',
                 'js/play/bots/bot-collection-registry.js?v=1.0.0',
                 'js/play/bots/bot-collection-loader.js?v=1.0.0',
-                'js/play/bots/bot-worker-readiness.js?v=1.0.0',
+                'js/play/bots/bot-worker-readiness.js?v=1.0.1',
                 'js/play/bots-panel.js?v=2.1.0'
             ])
         }),
@@ -48,7 +48,7 @@
                 'js/play/native-coach/coach-assistance-sanitizer.js?v=1.0.0',
                 'js/play/native-coach/coach-assistance.js?v=1.0.0',
                 'js/play/native-coach/coach-dialogue.js?v=1.1.0',
-                'js/play/native-coach/coach-panel.js?v=2.3.0'
+                'js/play/native-coach/coach-panel.js?v=2.3.1'
             ])
         }),
         'native-mentor-review': Object.freeze({
