@@ -21,42 +21,57 @@ const getDb = user => ({ from(name) { assert.equal(name, 'users'); return {
     async single() { return { data: user, error: user ? null : { code: 'missing' } }; }
 }; } });
 
-test('GET returns server-authoritative Premium, free-trial, and used states', async () => {
+test('temporary Play v3 feedback window is open and never consumes the free trial', async () => {
+    let authCalls = 0; let dbCalls = 0;
+    for (const method of ['GET', 'POST']) {
+        const res = response();
+        await handler({ method, headers: {} }, res, {
+            verifyAuth: async () => { authCalls += 1; return { authenticated: false }; },
+            getSupabase: () => { dbCalls += 1; return {}; }
+        });
+        assert.equal(res.statusCode, 200);
+        assert.deepEqual(res.payload, { allowed: true, code: 'OPEN_PREVIEW_ACCESS', coachAccess: 'preview',
+            coachTrialGamesRemaining: 0, coachGameConsumed: false });
+    }
+    assert.equal(authCalls, 0); assert.equal(dbCalls, 0);
+});
+
+test('GET returns server-authoritative Premium, free-trial, and used states when preview closes', async () => {
     for (const [user, expected] of [
         [{ is_premium: true, coach_trial_consumed_at: null }, ['PREMIUM_ACCESS', true, 0]],
         [{ is_premium: false, coach_trial_consumed_at: null }, ['TRIAL_AVAILABLE', true, 1]],
         [{ is_premium: false, coach_trial_consumed_at: '2026-09-02T00:00:00Z' }, ['COACH_TRIAL_USED', false, 0]]
     ]) {
         const res = response();
-        await handler({ method: 'GET', headers: {} }, res, { verifyAuth: auth, checkRateLimit: rate, getSupabase: () => getDb(user) });
+        await handler({ method: 'GET', headers: {} }, res, { openPreview: false, verifyAuth: auth, checkRateLimit: rate, getSupabase: () => getDb(user) });
         assert.deepEqual([res.payload.code, res.payload.allowed, res.payload.coachTrialGamesRemaining], expected);
         assert.equal(res.headers['Cache-Control'], 'private, no-store, max-age=0');
     }
 });
 
-test('POST requires idempotency and maps the atomic RPC without trusting client claims', async () => {
+test('POST requires idempotency and maps the atomic RPC without trusting client claims when preview closes', async () => {
     const calls = [];
     const db = { async rpc(name, params) { calls.push([name, params]); return { data: [{ allowed: true,
         code: 'TRIAL_CONSUMED', coach_access: 'trial', coach_trial_games_remaining: 0, coach_game_consumed: true }], error: null }; } };
     const missing = response();
-    await handler({ method: 'POST', headers: {} }, missing, { verifyAuth: auth, checkRateLimit: rate, getSupabase: () => db });
+    await handler({ method: 'POST', headers: {} }, missing, { openPreview: false, verifyAuth: auth, checkRateLimit: rate, getSupabase: () => db });
     assert.equal(missing.statusCode, 400); assert.equal(calls.length, 0);
     const accepted = response();
     await handler({ method: 'POST', headers: { 'idempotency-key': operationId }, body: { isPremium: true, remaining: 99 } },
-        accepted, { verifyAuth: auth, checkRateLimit: rate, getSupabase: () => db });
+        accepted, { openPreview: false, verifyAuth: auth, checkRateLimit: rate, getSupabase: () => db });
     assert.equal(accepted.statusCode, 200);
     assert.deepEqual(calls[0], ['consume_coach_game_access', { p_clerk_id: 'user_clerk_1', p_operation_id: operationId }]);
     assert.equal(accepted.payload.coachGameConsumed, true);
 });
 
-test('used trial is denied and database failure is fail-closed', async () => {
+test('used trial is denied and database failure is fail-closed when preview closes', async () => {
     const denied = response();
-    await handler({ method: 'POST', headers: { 'idempotency-key': operationId } }, denied, { verifyAuth: auth, checkRateLimit: rate,
+    await handler({ method: 'POST', headers: { 'idempotency-key': operationId } }, denied, { openPreview: false, verifyAuth: auth, checkRateLimit: rate,
         getSupabase: () => ({ rpc: async () => ({ data: [{ allowed: false, code: 'COACH_TRIAL_USED', coach_access: 'locked',
             coach_trial_games_remaining: 0, coach_game_consumed: false }], error: null }) }) });
     assert.equal(denied.statusCode, 403); assert.equal(denied.payload.allowed, false);
     const unavailable = response();
-    await handler({ method: 'POST', headers: { 'idempotency-key': operationId } }, unavailable, { verifyAuth: auth, checkRateLimit: rate,
+    await handler({ method: 'POST', headers: { 'idempotency-key': operationId } }, unavailable, { openPreview: false, verifyAuth: auth, checkRateLimit: rate,
         getSupabase: () => ({ rpc: async () => ({ data: null, error: new Error('down') }) }) });
     assert.equal(unavailable.statusCode, 503); assert.equal(unavailable.payload.code, 'COACH_ACCESS_UNAVAILABLE');
 });
@@ -82,7 +97,11 @@ test('browser entitlement client uses Clerk bearer auth and keeps no local entit
                 coachAccess: 'trial', coachTrialGamesRemaining: options.method === 'GET' ? 1 : 0, coachGameConsumed: options.method === 'POST' })
         }; } };
     vm.runInNewContext(read('js/play/native-coach/coach-entitlement-client.js'), { window, globalThis: window, Object, Set });
-    const client = window.CaissaCoachEntitlementClient.create();
+    const preview = window.CaissaCoachEntitlementClient.create();
+    assert.deepEqual(JSON.parse(JSON.stringify(await preview.refresh())), { verified: true, allowed: true,
+        code: 'OPEN_PREVIEW_ACCESS', coachAccess: 'preview', coachTrialGamesRemaining: 0, coachGameConsumed: false });
+    assert.equal(calls.length, 0);
+    const client = window.CaissaCoachEntitlementClient.create({ openPreview: false });
     assert.equal((await client.refresh()).code, 'TRIAL_AVAILABLE');
     assert.equal((await client.consume()).code, 'TRIAL_CONSUMED');
     assert.equal(calls[1][1].headers.Authorization, 'Bearer token');
@@ -104,5 +123,5 @@ test('Coach remains visible when locked and only server admission can enable Pla
     assert.match(panel, /setAttribute\('aria-busy', 'true'\)/);
     const shell = read('js/play/simplified-play-shell.js');
     assert.match(shell, /getAttribute\('aria-busy'\) === 'true'/);
-    assert.ok(registry.indexOf('coach-entitlement-client.js?v=1.0.0') < registry.indexOf('coach-panel.js?v=2.3.1'));
+    assert.ok(registry.indexOf('coach-entitlement-client.js?v=1.1.0') < registry.indexOf('coach-panel.js?v=2.3.2'));
 });

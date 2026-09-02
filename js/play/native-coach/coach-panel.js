@@ -196,6 +196,7 @@
             const premium = this.#root?.querySelector('[data-coach-premium-link]');
             if (!status || !action || !premium) return;
             const messages = {
+                OPEN_PREVIEW_ACCESS: 'Coach is open during the Play v3 feedback preview.',
                 PREMIUM_ACCESS: 'Coach access is included with your plan.',
                 TRIAL_AVAILABLE: '1 complimentary Coach game is available.',
                 TRIAL_CONSUMED: 'Your complimentary Coach game is now in progress.',

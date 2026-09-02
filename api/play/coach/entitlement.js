@@ -4,7 +4,13 @@ import { checkRateLimit } from '../../_lib/rate-limit.js';
 import { logError } from '../../_lib/logger.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// Temporary Play v3 feedback window. Turn off to restore the preserved Premium/trial boundary.
+const TEMPORARY_OPEN_PREVIEW = true;
 const noStore = res => res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+const openPreviewState = () => ({
+    allowed: true, code: 'OPEN_PREVIEW_ACCESS', coachAccess: 'preview',
+    coachTrialGamesRemaining: 0, coachGameConsumed: false
+});
 const state = user => user.is_premium ? {
     allowed: true, code: 'PREMIUM_ACCESS', coachAccess: 'premium', coachTrialGamesRemaining: 0, coachGameConsumed: false
 } : user.coach_trial_consumed_at ? {
@@ -17,6 +23,10 @@ export default async function handler(req, res, dependencies = {}) {
     if (!setCorsHeaders(req, res, ['GET', 'POST'])) return;
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (!['GET', 'POST'].includes(req.method)) return res.status(405).json({ code: 'METHOD_NOT_ALLOWED', error: 'Method not allowed.' });
+    if ((dependencies.openPreview ?? TEMPORARY_OPEN_PREVIEW) === true) {
+        noStore(res);
+        return res.status(200).json(openPreviewState());
+    }
 
     const auth = await (dependencies.verifyAuth || verifyAuth)(req);
     if (!auth.authenticated) return respondAuthFailure(res, auth);

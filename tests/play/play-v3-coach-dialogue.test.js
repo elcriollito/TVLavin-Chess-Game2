@@ -61,7 +61,7 @@ test('panel and lazy stack consume the bounded dialogue owner', () => {
     assert.match(panel, /CaissaNativeCoachDialogue\.create/);
     assert.match(panel, /caissa-turn-change/);
     assert.match(panel, /caissa-game-end/);
-    assert.ok(registry.indexOf('coach-dialogue.js?v=1.1.0') < registry.indexOf('coach-panel.js?v=2.3.1'));
+    assert.ok(registry.indexOf('coach-dialogue.js?v=1.1.0') < registry.indexOf('coach-panel.js?v=2.3.2'));
 });
 
 test('dialogue module owns no board, worker, network, storage, or move execution', () => {

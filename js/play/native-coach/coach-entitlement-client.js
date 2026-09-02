@@ -1,8 +1,12 @@
 (function installCoachEntitlementClient(root) {
     'use strict';
-    const SCHEMA_VERSION = '1.0.0';
-    const ALLOWED_ACCESS = new Set(['none', 'trial', 'premium', 'locked']);
+    const SCHEMA_VERSION = '1.1.0';
+    // Temporary Play v3 feedback window. The server preserves the same explicit switch.
+    const TEMPORARY_OPEN_PREVIEW = true;
+    const ALLOWED_ACCESS = new Set(['none', 'trial', 'premium', 'locked', 'preview']);
     const freeze = value => Object.freeze(value);
+    const openPreview = () => freeze({ verified: true, allowed: true, code: 'OPEN_PREVIEW_ACCESS',
+        coachAccess: 'preview', coachTrialGamesRemaining: 0, coachGameConsumed: false });
     const initial = () => freeze({ verified: false, allowed: false, code: 'UNVERIFIED', coachAccess: 'none',
         coachTrialGamesRemaining: 0, coachGameConsumed: false });
     const normalize = (value, fallbackCode = 'COACH_ACCESS_UNAVAILABLE') => {
@@ -16,6 +20,7 @@
     };
     function create(options = {}) {
         const request = options.fetch || root.fetch?.bind(root);
+        const previewOpen = options.openPreview ?? TEMPORARY_OPEN_PREVIEW;
         let current = initial(); let operationId = null; let disposed = false;
         const auth = async () => {
             const owner = root.CAISSA_AUTH;
@@ -25,6 +30,7 @@
             return owner.getToken?.() || null;
         };
         const call = async (method, id = null) => {
+            if (previewOpen) { current = openPreview(); return current; }
             if (disposed || typeof request !== 'function') return normalize(null);
             const token = await auth();
             if (!token) { current = freeze({ ...initial(), verified: true, code: 'AUTH_REQUIRED' }); return current; }
