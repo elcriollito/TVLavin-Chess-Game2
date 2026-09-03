@@ -286,3 +286,33 @@ logic remain present and loaded for future recovery. The boundary removes no
 nodes and performs no data migration. Other routes retain the existing internal
 library behavior. No pricing, Premium promotion, form, tracking, or launch date
 was added.
+
+## UX-007 certification scope
+
+The final certification adds no product feature. It locks the UX-001 IDs,
+destinations, and order; verifies all internal destinations remain routable; and
+covers 320, 360, 375, 390, 412, 430, 768, 1024, and 1440 px. Protected route
+coverage includes Classic, Play, Games, Bots, Coach, PGN Reader, and Game
+Library. Locale coverage includes first visit, explicit English over a Spanish
+browser, Spanish selection, reload persistence, Unicode catalogs, missing-key
+fallback, and unknown/disabled locale fallback.
+
+### Final result
+
+- accumulated Season 1 browser certification: 41/41 PASS;
+- integrated i18n, first-visit, Game Library, navigation, and inventory tests:
+  31/31 PASS;
+- Classic SEO plus immutable navigation policy: 10/10 PASS;
+- navigation fallback check: PASS;
+- public route inventory: PASS, 61 records;
+- public release audit: PASS, 1,123 committed files and 18 required paths;
+- regressions caused by this season: **0**.
+
+Pre-existing debt remains separate from this season: Windows/POSIX private-PGN
+path assertions, stale PGN NAG and catalog-date expectations, the existing Play
+Resign contrast finding, Git/CRLF sensitivity in the vendored Stockfish hash,
+the optional local `/api/pgn/opening` 404, and a public-release-builder assertion
+that expects obsolete `premium.html` wording (`not currently available`). The
+last condition is present at certified UX-002 HEAD `89336d8`; UX-003 through
+UX-007 do not modify `premium.html`. None was changed to manufacture a green
+Season 1 result.
