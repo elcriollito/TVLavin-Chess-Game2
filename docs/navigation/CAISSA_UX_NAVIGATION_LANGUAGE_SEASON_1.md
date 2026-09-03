@@ -166,3 +166,85 @@ therefore changes no production behavior. Its only test change updates the
 browser assertion from obsolete contract `1.9.0` to the runtime's already
 released `1.12.0`; focused tests establish that routing and runtime behavior are
 unchanged.
+
+## UX-002 — internationalization foundation
+
+`CaissaI18nFoundation@1.0.0` is a small browser-side presentation service loaded
+before the canonical navigation owner. It provides locale normalization,
+semantic-key catalogs, per-key English fallback, locale subscriptions, safe DOM
+translation attributes, explicit preference persistence, browser-language
+detection, and native-language metadata. It does not own routes or business
+logic.
+
+### Locale policy
+
+- Supported locale metadata: `en`, `es`, `ru`, `hi`, `de`, `pt`, and `fr`.
+- Publicly enabled locales in UX-002: `en` and `es` only.
+- Future locale names are stored as Unicode native names. Disabled locales never
+  appear in the public selector.
+- Locale tags normalize to their base language for current matching (`es-MX` to
+  `es`, for example), while the input remains suitable for future variant-aware
+  policy.
+
+The implemented precedence is explicit local preference, then browser language,
+then English fallback. The current account/profile model has no locale
+preference, so no false profile integration or backend migration was added.
+There is also no existing safe regional locale signal in the CAISSA client shell;
+UX-002 performs no GeoIP request, GPS access, IP storage, fingerprinting, or
+regional logging.
+
+Browser detection is advisory on a first visit. English remains the initial UI.
+When the best enabled browser language is Spanish, the selector shows a compact
+`🌐 Español` suggestion. Accepting it changes the shared shell immediately and
+persists `es` under the encapsulated `caissa.locale` key. A later explicit
+English choice remains authoritative even under a Spanish browser.
+
+### Presentation boundary
+
+The shared navigation renders translated labels and accessible names while its
+English inventory labels, IDs, routes, sections, order, and active-state keys
+remain unchanged. The application, standalone, and trainer adapters use the same
+catalog and N-language selector. Safe shell strings cover navigation headings,
+drawer/collapse controls, sign-in/account actions, Premium, support, and the
+mobile section name. Individual page bodies, chess data, Play behavior, PGN
+content, engines, authentication, economy, APIs, and backend remain out of scope.
+
+The application is static client-rendered HTML rather than an SSR/hydration
+framework. English fallback markup remains immediately usable; the locale module
+runs synchronously before navigation rendering, avoiding a translated-navigation
+flash for a stored preference without adding fragile boot complexity.
+
+### Extension rule
+
+Adding a locale requires approved catalog coverage and changing its metadata to
+enabled. The selector derives options from enabled metadata and displays each
+language in its own language; it is not an EN/ES toggle. Missing selected-locale
+keys resolve to English, then a caller-supplied safe fallback, then an empty
+string—never a technical key or JavaScript sentinel.
+
+### Verification record
+
+Passing UX-002 gates:
+
+- i18n syntax and unit suite: 11/11;
+- navigation integrity unit suite: 8/8;
+- integrated navigation/i18n/surface browser suite: 23/23;
+- focused i18n browser suite after final generation: 5/5;
+- Classic SEO and application-preservation suite: 8/8;
+- public release audit: PASS (1,122 committed files and 18 required paths);
+- deterministic navigation fallback and 61-record route inventory checks: PASS;
+- focused Play routing plus PGN core, Worker, opening-library, and commerce
+  behavior: 38/40, with the two failures described below;
+- focused PGN Reader and Play browser run: 7/10, with the three failures
+  described below.
+
+The broader protected-surface runs exposed baseline test debt unrelated to the
+i18n diff: a POSIX-only assertion against Windows private PGN paths; PGN browser
+assertions that assume a single NAG and an Aug 22 catalog date while the released
+surface has two NAGs and an Aug 23 date; and the pre-existing Play Resign-button
+contrast violation. A vendored Stockfish text-file hash also differs after Git's
+Windows line-ending conversion. The PGN page additionally makes its existing
+optional `/api/pgn/opening` request, which returns 404 in the local server; the
+i18n console gate permits only that known request and rejects all other console
+or page errors. No affected engine, PGN, Play lifecycle, or commercial source was
+changed to force these unrelated tests to pass.

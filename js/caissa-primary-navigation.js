@@ -2,6 +2,21 @@
     'use strict';
 
     const contractId = 'CaissaGlobalNavigationOrderPolicy@1.12.0';
+    const i18n = global.CaissaI18n || Object.freeze({
+        enabledLocales: Object.freeze(['en']),
+        supportedLocales: Object.freeze({ en: Object.freeze({ code: 'en', name: 'English', enabled: true }) }),
+        getLocale: () => 'en',
+        getSuggestedLocale: () => '',
+        t: (_key, fallback = '') => fallback,
+        apply: () => {},
+        subscribe: () => () => {}
+    });
+    const groupMessageKeys = Object.freeze([
+        'nav.group.playAndCompete',
+        'nav.group.learnAndImprove',
+        'nav.group.analyzeAndWatch',
+        'nav.group.tools'
+    ]);
     const allGroups = [
         Object.freeze([
             { id: 'play', label: 'Play', icon: 'fas fa-play-circle', section: 'play', route: '/play', canonicalNavigation: true },
@@ -81,27 +96,32 @@
     function renderItem(item, { activeKey = '', mode = 'routes' } = {}) {
         const active = item.id === activeKey;
         const classes = ['nav-item', item.className, active ? 'active' : ''].filter(Boolean).join(' ');
+        const messageKey = `nav.item.${item.id}`;
+        const translatedLabel = i18n.t(messageKey, item.label);
         const icon = `<i class="${item.icon}" aria-hidden="true"></i>`;
-        const label = `<span class="nav-label">${item.label}</span>`;
+        const label = `<span class="nav-label" data-caissa-i18n="${escapeAttribute(messageKey)}">${translatedLabel}</span>`;
         const external = item.externalIndicator ? '<i class="fas fa-external-link-alt nav-external-icon" aria-hidden="true"></i>' : '';
         const current = active ? ' aria-current="page"' : '';
+        const accessibleLabel = ` aria-label="${escapeAttribute(translatedLabel)}" data-caissa-i18n-aria-label="${escapeAttribute(messageKey)}"`;
 
         if (mode === 'application' && (item.section || item.action) && !item.canonicalNavigation) {
             const section = item.section ? ` data-section="${escapeAttribute(item.section)}"` : '';
             const action = item.action ? ` data-nav-action="${escapeAttribute(item.action)}"` : '';
-            return `<div class="nav-list-item" role="listitem"><button type="button" class="${classes}"${section}${action} aria-label="${escapeAttribute(item.label)}"${current}>${icon}${label}${external}</button></div>`;
+            return `<div class="nav-list-item" role="listitem"><button type="button" class="${classes}"${section}${action}${accessibleLabel}${current}>${icon}${label}${external}</button></div>`;
         }
 
         const target = item.newTab ? ' target="_blank" rel="noopener noreferrer"' : '';
-        return `<div class="nav-list-item" role="listitem"><a href="${escapeAttribute(item.route)}" class="${classes}" data-nav-key="${escapeAttribute(item.id)}" aria-label="${escapeAttribute(item.label)}"${current}${target}>${icon}${label}${external}</a></div>`;
+        return `<div class="nav-list-item" role="listitem"><a href="${escapeAttribute(item.route)}" class="${classes}" data-nav-key="${escapeAttribute(item.id)}"${accessibleLabel}${current}${target}>${icon}${label}${external}</a></div>`;
     }
 
     function renderGroups(options = {}) {
         return groups.map((group, index) => {
             const items = group.map((item) => renderItem(item, options)).join('');
             if (!options.showHeadings) return items;
+            const messageKey = groupMessageKeys[index];
+            const heading = i18n.t(messageKey, groupLabels[index]);
             return `<section class="nav-group" aria-labelledby="caissa-nav-group-${index}">
-                <h2 class="nav-group-heading nav-label" id="caissa-nav-group-${index}">${groupLabels[index]}</h2>
+                <h2 class="nav-group-heading nav-label" id="caissa-nav-group-${index}" data-caissa-i18n="${messageKey}">${heading}</h2>
                 <div class="nav-destination-list" role="list">${items}</div>
             </section>`;
         }).join('<div class="nav-divider" aria-hidden="true"></div>');
@@ -113,9 +133,28 @@
 
     function renderConnect(options = {}) {
         return `<section class="nav-connect" aria-labelledby="caissa-nav-connect-heading">
-            <div class="nav-connect-label nav-label" id="caissa-nav-connect-heading">Connect with CAISSA Chess</div>
+            <div class="nav-connect-label nav-label" id="caissa-nav-connect-heading" data-caissa-i18n="nav.connect">${i18n.t('nav.connect', 'Connect with CAISSA Chess')}</div>
             <div class="nav-destination-list" role="list">${connect.map((item) => renderItem(item, options)).join('')}</div>
         </section>`;
+    }
+
+    function renderLanguageControl() {
+        const currentLocale = i18n.getLocale();
+        const suggestion = i18n.getSuggestedLocale();
+        const options = i18n.enabledLocales.map(code => {
+            const locale = i18n.supportedLocales[code];
+            return `<option value="${escapeAttribute(code)}"${code === currentLocale ? ' selected' : ''}>${locale.name}</option>`;
+        }).join('');
+        const suggestionName = suggestion ? i18n.supportedLocales[suggestion].name : '';
+        const suggestionLabel = i18n.t('language.suggestion', 'Use CAISSA in {language}', { language: suggestionName });
+        const suggestionButton = suggestion ? `<button type="button" class="nav-language-suggestion" data-caissa-locale-suggestion="${escapeAttribute(suggestion)}" aria-label="${escapeAttribute(suggestionLabel)}"><span aria-hidden="true">🌐</span> ${suggestionName}</button>` : '';
+        return `<div class="nav-language-control" role="listitem">
+            <label class="nav-language-field">
+                <span class="nav-language-label nav-label" data-caissa-i18n="language.title">${i18n.t('language.title', 'Language')}</span>
+                <select data-caissa-locale-select data-caissa-i18n-aria-label="language.selectorLabel" aria-label="${escapeAttribute(i18n.t('language.selectorLabel', 'Interface language'))}">${options}</select>
+            </label>
+            ${suggestionButton}
+        </div>`;
     }
 
     function createShellAdapter(id, defaults, slots) {
@@ -150,7 +189,7 @@
         return `<nav class="caissa-sidebar-fallback" aria-label="CAISSA main navigation">
             <div class="nav-items">${adapter.renderGroups(options)}${adapter.renderConnect(options)}</div>
             <section class="nav-footer" aria-labelledby="caissa-nav-support-heading">
-                <h2 class="nav-group-heading nav-label" id="caissa-nav-support-heading">Support</h2>
+                <h2 class="nav-group-heading nav-label" id="caissa-nav-support-heading" data-caissa-i18n="nav.support">${i18n.t('nav.support', 'Support')}</h2>
                 <div role="list">${adapter.renderSupport(options)}</div>
             </section>
         </nav>`;
@@ -164,8 +203,8 @@
         openClass = 'is-open',
         bodyOpenClass = '',
         mobileQuery = '(max-width: 768px)',
-        openLabel = 'Open navigation menu',
-        closeLabel = 'Close navigation menu',
+        openLabel = '',
+        closeLabel = '',
         onStateChange = null
     } = {}) {
         if (!host || !nav || !toggle || !nav.id) {
@@ -186,7 +225,11 @@
             host.classList.toggle(openClass, mobile && open);
             if (bodyOpenClass) document.body?.classList.toggle(bodyOpenClass, mobile && open);
             toggle.setAttribute('aria-expanded', String(mobile && open));
-            toggle.setAttribute('aria-label', mobile && open ? closeLabel : openLabel);
+            const labelKey = mobile && open ? 'shell.closeNavigation' : 'shell.openNavigation';
+            toggle.dataset.caissaI18nAriaLabel = labelKey;
+            toggle.setAttribute('aria-label', mobile && open
+                ? (closeLabel || i18n.t(labelKey, 'Close navigation menu'))
+                : (openLabel || i18n.t(labelKey, 'Open navigation menu')));
             nav.toggleAttribute('inert', mobile && !open);
             nav.inert = mobile && !open;
             if (mobile && !open) nav.setAttribute('aria-hidden', 'true');
@@ -274,9 +317,11 @@
         groupLabels,
         externalDestinations,
         adapters,
+        i18n,
         renderGroups,
         renderSupport,
         renderConnect,
+        renderLanguageControl,
         renderFallbackNavigation,
         createDrawerController
     });
@@ -291,20 +336,25 @@
     function markAdoptedShell(host) {
         const nav = host.closest?.('nav');
         nav?.classList.add('caissa-shared-sidebar');
-        if (nav && !nav.hasAttribute('aria-label')) nav.setAttribute('aria-label', 'CAISSA main navigation');
+        if (nav) {
+            nav.dataset.caissaI18nAriaLabel = 'shell.mainNavigation';
+            nav.setAttribute('aria-label', i18n.t('shell.mainNavigation', 'CAISSA main navigation'));
+        }
         nav?.closest?.('.app-container, .endgame-trainer-page')?.classList.add('caissa-sidebar-adopted');
     }
 
     document.querySelectorAll('.nav-logo').forEach((brand) => {
         if (brand.tagName === 'A') {
             brand.setAttribute('href', '/play');
-            brand.setAttribute('aria-label', 'CAISSA Chess — return to Play');
+            brand.dataset.caissaI18nAriaLabel = 'shell.returnToPlay';
+            brand.setAttribute('aria-label', i18n.t('shell.returnToPlay', 'CAISSA Chess — return to Play'));
             return;
         }
         const link = document.createElement('a');
         link.className = brand.className;
         link.href = '/play';
-        link.setAttribute('aria-label', 'CAISSA Chess — return to Play');
+        link.dataset.caissaI18nAriaLabel = 'shell.returnToPlay';
+        link.setAttribute('aria-label', i18n.t('shell.returnToPlay', 'CAISSA Chess — return to Play'));
         while (brand.firstChild) link.appendChild(brand.firstChild);
         brand.replaceWith(link);
     });
@@ -319,7 +369,38 @@
     document.querySelectorAll('[data-caissa-primary-support]').forEach((host) => {
         const options = { activeKey: host.dataset.active || '', mode: host.dataset.navigationMode || 'routes' };
         const adapter = adapterFor(host);
-        host.innerHTML = adapter ? adapter.renderSupport(options) : renderSupport(options);
+        host.innerHTML = `${adapter ? adapter.renderSupport(options) : renderSupport(options)}${renderLanguageControl()}`;
         markAdoptedShell(host);
     });
+    document.querySelectorAll('#caissa-nav-support-heading').forEach(heading => {
+        heading.dataset.caissaI18n = 'nav.support';
+    });
+    const shellTextBindings = [
+        ['#sidebarSignIn .nav-label', 'shell.signIn'],
+        ['#sidebarAccountBtn span', 'shell.account'],
+        ['#sidebarSignOutBtn span', 'shell.signOut'],
+        ['.nav-premium-btn .nav-label', 'shell.premium'],
+        ['.nav-premium-btn .nav-premium-badge', 'shell.upgrade']
+    ];
+    shellTextBindings.forEach(([selector, key]) => {
+        document.querySelectorAll(selector).forEach(element => { element.dataset.caissaI18n = key; });
+    });
+    const shellAriaBindings = [
+        ['#sidebarUserInfo', 'shell.accountMenu'],
+        ['.nav-premium-btn', 'shell.upgradePremium']
+    ];
+    shellAriaBindings.forEach(([selector, key]) => {
+        document.querySelectorAll(selector).forEach(element => { element.dataset.caissaI18nAriaLabel = key; });
+    });
+    document.querySelectorAll('.nav-collapse-btn').forEach(button => {
+        button.dataset.caissaI18nAriaLabel = button.getAttribute('aria-expanded') === 'false'
+            ? 'shell.expandNavigation'
+            : 'shell.collapseNavigation';
+    });
+    document.querySelectorAll('.mobile-nav-toggle, [data-mobile-nav-toggle]').forEach(button => {
+        button.dataset.caissaI18nAriaLabel = button.getAttribute('aria-expanded') === 'true'
+            ? 'shell.closeNavigation'
+            : 'shell.openNavigation';
+    });
+    i18n.apply(document);
 })(window);

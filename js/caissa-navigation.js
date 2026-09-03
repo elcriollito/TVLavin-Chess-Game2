@@ -133,6 +133,9 @@ const CaissaNavigation = {
                 this.handleNavigationAction(event.currentTarget.dataset.navAction);
             });
         });
+        window.CaissaI18n?.subscribe?.(() => {
+            this.updateSectionName(this.currentSection);
+        });
         document.getElementById('closeAnalysisSheet')?.addEventListener('click', () => {
             this.closeMobileAnalysis();
         });
@@ -361,7 +364,14 @@ const CaissaNavigation = {
         this.isNavCollapsed = !this.isNavCollapsed;
         this.elements.appContainer?.classList.toggle('nav-collapsed', this.isNavCollapsed);
         this.elements.collapseBtn?.setAttribute('aria-expanded', String(!this.isNavCollapsed));
-        this.elements.collapseBtn?.setAttribute('aria-label', this.isNavCollapsed ? 'Expand navigation' : 'Collapse navigation');
+        const collapseLabelKey = this.isNavCollapsed ? 'shell.expandNavigation' : 'shell.collapseNavigation';
+        if (this.elements.collapseBtn) {
+            this.elements.collapseBtn.dataset.caissaI18nAriaLabel = collapseLabelKey;
+            this.elements.collapseBtn.setAttribute('aria-label', window.CaissaI18n?.t(
+                collapseLabelKey,
+                this.isNavCollapsed ? 'Expand navigation' : 'Collapse navigation'
+            ) || (this.isNavCollapsed ? 'Expand navigation' : 'Collapse navigation'));
+        }
 
         // Rotate collapse button icon
         const icon = this.elements.collapseBtn?.querySelector('i');
@@ -718,17 +728,18 @@ const CaissaNavigation = {
     updateSectionName(sectionId) {
         if (this.elements.sectionNameDisplay) {
             const names = {
-                play: 'Play',
-                analyze: 'Analyze',
-                insights: 'Insights',
-                history: 'History',
-                arena: 'Arena',
-                spectator: 'Spectator TV',
-                'cheater-insight': 'Cheater Insight',
-                yahooClassic: 'Yahoo Classic',
-                academy: 'Academy'
+                play: ['nav.item.play', 'Play'],
+                analyze: ['nav.item.analyze', 'Analyze'],
+                insights: ['nav.item.insights', 'Insights'],
+                history: ['nav.item.history', 'History'],
+                arena: ['nav.item.arena', 'Arena'],
+                spectator: ['nav.item.spectator', 'Spectator TV'],
+                'cheater-insight': ['nav.item.cheater-insight', 'Cheater Insight'],
+                yahooClassic: ['nav.item.yahooClassic', 'CAISSA Classic'],
+                academy: ['nav.item.academy', 'Academy']
             };
-            this.elements.sectionNameDisplay.textContent = names[sectionId] || 'CAISSA';
+            const [key, fallback] = names[sectionId] || ['', 'CAISSA'];
+            this.elements.sectionNameDisplay.textContent = window.CaissaI18n?.t(key, fallback) || fallback;
         }
     },
 

@@ -29,7 +29,7 @@ html = html
   .replace(/<meta name="twitter:image" content="[^"]+">/, `<meta name="twitter:image" content="${image}">`)
   .replace(/<meta name="twitter:image:alt" content="[^"]+">/, '<meta name="twitter:image:alt" content="An original retro online chess room illustration created for CAISSA Classic.">')
   .replace('<body data-clarity-mask>', '<body class="yc-standalone-page" data-clarity-mask>')
-  .replace('                                    <a class="yc-story-link" href="/blog/yahoo-chess-spirit-caissa-classic">Read the story behind CAISSA Classic</a>\n', '');
+  .replace(/\s*<a class="yc-story-link" href="\/blog\/yahoo-chess-spirit-caissa-classic">Read the story behind CAISSA Classic<\/a>\r?\n/, '\n');
 
 const schemaPattern = /\s*<script type="application\/ld\+json">[\s\S]*?<\/script>\s*/g;
 html = html.replace(schemaPattern, '');
