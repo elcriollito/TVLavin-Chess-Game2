@@ -73,9 +73,23 @@ test('manual English remains authoritative over a Spanish browser', () => {
 test('translation resolution falls back per key to English and never exposes technical values', () => {
     const { api } = boot({ stored: 'es' });
     assert.equal(api.t('nav.item.play'), 'Jugar');
-    assert.equal(api.t('common.close'), 'Close');
+    assert.equal(api.t('common.close'), 'Cerrar');
     assert.equal(api.t('missing.key', 'Safe fallback'), 'Safe fallback');
     assert.equal(api.t('missing.key'), '');
+});
+
+test('UX-009 first-party interface catalogs have complete English and Spanish parity', () => {
+    const { api } = boot();
+    const namespaces = /^(?:common|play|bots|coach|pgn|library)\./;
+    const englishKeys = Object.keys(api.catalogs.en).filter(key => namespaces.test(key)).sort();
+    const spanishKeys = Object.keys(api.catalogs.es).filter(key => namespaces.test(key)).sort();
+    assert.deepEqual(spanishKeys, englishKeys);
+    assert.ok(englishKeys.length >= 190);
+    for (const key of englishKeys) {
+        assert.ok(api.catalogs.en[key], `missing English ${key}`);
+        assert.ok(api.catalogs.es[key], `missing Spanish ${key}`);
+        assert.notEqual(api.catalogs.es[key], key);
+    }
 });
 
 test('supported and enabled locales are separate and preserve future Unicode names', () => {

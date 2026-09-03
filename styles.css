@@ -4852,6 +4852,14 @@ button:focus,
 /* Collapsed nav auth */
 .nav-collapsed .nav-auth-area {
     padding: 12px 8px;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.nav-collapsed .nav-auth-unavailable {
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .nav-collapsed .nav-auth-btn .nav-label {
@@ -6525,6 +6533,10 @@ button:focus,
     .nav-item {
         justify-content: center;
         padding: 16px 8px;
+    }
+
+    .caissa-application-sidebar-host .nav-auth-unavailable {
+        display: none;
     }
 }
 
