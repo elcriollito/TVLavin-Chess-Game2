@@ -328,85 +328,42 @@ test('Bots and Coach expose only truthful active actions at 1920 and 3840', asyn
         await page.getByRole('button', { name: 'Play', exact: true }).click();
         await expect.poll(() => page.evaluate(() => window.__caissaPlayHarness.snapshot().workersCreated)).toBe(1);
         await expect(page.locator('.caissa-simplified-shell__board-actions')).toContainText('Resign');
-        await expect(page.locator('[data-active-game-action="coach-help"]')).toBeHidden();
+        await expect(page.locator('[data-active-game-action="coach-hint"]')).toBeVisible();
+        await expect(page.locator('[data-active-game-action="coach-undo"]')).toBeVisible();
+        await expect(page.locator('[data-active-game-action="pgn"]')).toBeHidden();
+        await expect(page.locator('[data-active-game-action="menu"]')).toBeHidden();
         page.once('dialog', dialog => dialog.accept()); await page.locator('[data-active-game-action="resign"]').click();
         await expect(page.locator('[data-post-game-result]')).toBeVisible();
         await expect.poll(() => page.evaluate(() => window.CaissaWorkerLifecycle?.inspect?.().activeWorkers || 0)).toBe(0);
 
         await page.goto('/play/beta/coach'); await page.getByRole('button', { name: 'Play', exact: true }).click();
-        const help = page.locator('[data-active-game-action="coach-help"]'); await expect(help).toBeVisible(); await help.click();
+        const help = page.locator('[data-active-game-action="coach-hint"]'); await expect(help).toBeVisible(); await help.click();
         await expect(page.locator('[data-active-game-status]')).not.toContainText(/best move|principal variation|\bPV\b/i);
         expect(await page.evaluate(() => window.CaissaSimplifiedPlayShellInstance.getSnapshot().coachPanel
             && window.CaissaNativeCoachAssistance?.schemaVersion)).toBeTruthy();
     }
 });
 
-test('Assistance admits only owned options and changes Coach configuration without restarting play', async ({ page }) => {
+test('redundant Assistance disclosure stays hidden in all Play v3 modes', async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
     await page.goto('/play/beta');
     await expect(page.locator('[data-play-assistance]')).toBeHidden();
-
     await page.goto('/play/beta/bots');
-    const botsAssistance = page.locator('[data-play-assistance]');
-    await expect(botsAssistance).toBeVisible();
-    await expect(botsAssistance).not.toHaveAttribute('open', '');
-    await botsAssistance.locator('summary').click();
-    await expect(botsAssistance.locator('[data-assistance-empty]')).toContainText('No optional live assistance');
-    await expect(botsAssistance.locator('input, select')).toHaveCount(0);
-    await expect(botsAssistance).not.toContainText(/Evaluation Bar|Threat Indicators|Move Feedback|best move|centipawn|PV/i);
-    await page.getByRole('button', { name: 'Play', exact: true }).click();
-    await expect(botsAssistance).toBeVisible();
-    expect(await page.evaluate(() => window.__caissaPlayHarness.snapshot().workersCreated)).toBe(1);
-
+    await expect(page.locator('[data-play-assistance]')).toBeHidden();
     await page.goto('/play/beta/coach');
-    const assistance = page.locator('[data-play-assistance]');
-    await assistance.locator('summary').click();
-    const level = assistance.locator('[data-assistance-level]');
-    const focus = assistance.locator('[data-assistance-focus]');
-    const timing = assistance.locator('[data-assistance-timing]');
-    await expect(level).toHaveValue('standard'); await expect(focus).toHaveValue('balanced');
-    await expect(timing).toHaveValue('on-request');
-    await expect(assistance.locator('select')).toHaveCount(3);
-    await level.selectOption('more-help'); await focus.selectOption('safety');
-    expect(await page.evaluate(() => window.CaissaSimplifiedPlayShellInstance.getSnapshot().coachPanel.configuration))
-        .toMatchObject({ level: 'more-help', focus: 'safety', timing: 'on-request' });
-
-    await page.getByRole('button', { name: 'Play', exact: true }).click();
-    const before = await page.evaluate(() => ({
-        boardCount: document.querySelectorAll('#chessboard').length,
-        history: window.App.game.history().length,
-        workers: window.__caissaPlayHarness.snapshot().workersCreated
-    }));
-    await expect(assistance).toBeVisible();
-    await focus.selectOption('time-awareness');
-    const after = await page.evaluate(() => ({
-        boardCount: document.querySelectorAll('#chessboard').length,
-        history: window.App.game.history().length,
-        workers: window.__caissaPlayHarness.snapshot().workersCreated,
-        configuration: window.CaissaSimplifiedPlayShellInstance.getSnapshot().coachPanel.configuration
-    }));
-    expect(after).toMatchObject({ boardCount: before.boardCount, history: before.history,
-        workers: before.workers, configuration: { focus: 'time-awareness' } });
-    await expect(page.locator('[data-active-game-action="resign"]')).toBeVisible();
-    await expect(page.locator('[data-active-game-action="coach-help"]')).toBeVisible();
-    expect(await page.evaluate(() => ({
-        trainingMemoryWrites: window.CaissaSimplifiedPlayShellInstance.getSnapshot().coachPanel.assistance.trainingMemoryWrites,
-        masteryWrites: window.CaissaSimplifiedPlayShellInstance.getSnapshot().coachPanel.assistance.masteryWrites
-    }))).toEqual({ trainingMemoryWrites: 0, masteryWrites: 0 });
+    await expect(page.locator('[data-play-assistance]')).toBeHidden();
 });
 
-test('Assistance disclosure preserves certified desktop geometry and keyboard reflow', async ({ page }) => {
+test('hidden Assistance preserves certified desktop geometry', async ({ page }) => {
     for (const target of targets) {
         await page.setViewportSize(target); await page.goto('/play/beta/coach');
         const assistance = page.locator('[data-play-assistance]');
-        const summary = assistance.locator('summary');
-        await summary.focus(); await page.keyboard.press('Enter');
-        await expect(assistance).toHaveAttribute('open', '');
-        const expanded = await geometry(page);
-        expect(expanded.board.width).toBeGreaterThanOrEqual(target.setup);
-        expect(expanded.overflowX).toBeLessThanOrEqual(1);
+        await expect(assistance).toBeHidden();
+        const setup = await geometry(page);
+        expect(setup.board.width).toBeGreaterThanOrEqual(target.setup);
+        expect(setup.overflowX).toBeLessThanOrEqual(1);
         await page.getByRole('button', { name: 'Play', exact: true }).click();
-        await expect(assistance).toBeVisible();
+        await expect(assistance).toBeHidden();
         const active = await geometry(page);
         expect(active.board.width).toBeGreaterThanOrEqual(target.active);
         expect(active.actions.bottom).toBeLessThanOrEqual(target.height);

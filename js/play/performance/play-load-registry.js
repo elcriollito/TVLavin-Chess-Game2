@@ -47,6 +47,7 @@
                 'js/play/native-coach/coach-entitlement-client.js?v=1.1.0',
                 'js/play/native-coach/coach-assistance-sanitizer.js?v=1.0.0',
                 'js/play/native-coach/coach-assistance.js?v=1.0.0',
+                'js/play/native-coach/coach-move-review.js?v=1.2.0',
                 'js/play/native-coach/coach-dialogue.js?v=1.1.0',
                 'js/play/native-coach/coach-panel.js?v=2.5.0'
             ])

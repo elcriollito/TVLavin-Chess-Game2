@@ -1,8 +1,8 @@
 (function (global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.7.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.7.0';
+    const SCHEMA_VERSION = '1.12.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.12.0';
     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'unavailable', 'error']);
     const REGIONS = Object.freeze([
         'mode-navigation', 'board-stage', 'opponent-header', 'evaluation-rail',
@@ -75,7 +75,7 @@
         let heightLimit = Infinity;
         let contextWidth = 0; let workspaceGap = 0;
         if (viewportOwnedDesktop && mode === 'desktop-split') {
-            contextWidth = Math.min(560, Math.max(360, width * .28));
+            contextWidth = Math.min(600, Math.max(380, width * .30));
             workspaceGap = Math.min(24, Math.max(12, width * .012));
             columnWidth = Math.max(0, usableWidth - contextWidth - workspaceGap);
             heightLimit = Math.max(0, height - (activeGame ? 250 : 200));
@@ -109,7 +109,10 @@
         #suppressedLive = [];
         #layoutMode = null; #geometry = null; #resizeCount = 0; #activationCount = 0; #statusNode = null;
         #gamesPanel = null; #botsPanel = null; #coachPanel = null; #postGame = null;
-        #activeContext = null; #assistance = null; #actionBar = null; #pgnDialog = null; #stateObserver = null; #panelObserver = null;
+        #activeContext = null; #assistance = null; #actionBar = null; #pgnDialog = null; #settingsDialog = null;
+        #settingsTrigger = null;
+        #shareDialog = null;
+        #stateObserver = null; #panelObserver = null;
         #panelLoadToken = 0;
         #accessibility = null;
         #modeTransitionPending = false;
@@ -216,10 +219,24 @@
                 'data-active-game-opening': ''
             });
             activeOpening.textContent = 'Opening not identified yet';
+            const referenceTools = element('nav', 'caissa-simplified-shell__reference-tools', {
+                'aria-label': 'Position resources'
+            });
+            const openingLink = element('a', 'caissa-simplified-shell__reference-tool', {
+                href: '/opening-database', target: '_blank', rel: 'noopener',
+                'data-active-opening-link': '', 'aria-label': 'Open CAISSA Opening Database in a new tab',
+                title: 'Opening Database'
+            });
+            openingLink.innerHTML = '<i class="fas fa-book-open" aria-hidden="true"></i><span>Opening</span>';
+            const explorer = element('button', 'caissa-simplified-shell__reference-tool', {
+                type: 'button', disabled: '', 'aria-label': 'Explorer coming soon', title: 'Explorer · Coming soon'
+            });
+            explorer.innerHTML = '<i class="fas fa-compass" aria-hidden="true"></i><span>Explorer</span>';
+            referenceTools.append(openingLink, explorer);
             const activeMoves = element('ol', 'caissa-simplified-shell__active-moves', {
                 'data-active-game-moves': '', 'aria-label': 'Moves played'
             });
-            activeNotation.append(activeOpening, activeMoves);
+            activeNotation.append(activeOpening, referenceTools, activeMoves);
             this.#activeContext.append(activeTitle, activeStatus, activeNotation); this.#activeContext.hidden = true;
             contextBody.appendChild(this.#activeContext);
             this.#assistance = element('details', 'caissa-simplified-shell__assistance', {
@@ -248,6 +265,19 @@
                 });
                 button.textContent = label; boardActions.appendChild(button);
             }
+            const utilityBar = element('div', 'caissa-simplified-shell__utility-bar', {
+                role: 'group', 'aria-label': 'Game utilities', 'data-active-game-utilities': '', hidden: ''
+            });
+            for (const [action, icon, label] of [
+                ['share', 'fa-share-alt', 'Share'], ['download', 'fa-download', 'Download'], ['settings', 'fa-cog', 'Settings']
+            ]) {
+                const button = element('button', 'caissa-simplified-shell__utility-action', {
+                    type: 'button', 'data-active-game-action': action, 'aria-label': label, title: label
+                });
+                button.innerHTML = `<i class="fas ${icon}" aria-hidden="true"></i><span>${label}</span>`;
+                utilityBar.appendChild(button);
+            }
+            this.#activeContext.appendChild(utilityBar);
             boardActions.hidden = true;
             this.#pgnDialog = element('dialog', 'caissa-simplified-shell__pgn-dialog', {
                 'aria-labelledby': `${this.#id}-pgn-title`
@@ -256,10 +286,42 @@
             const pgnText = element('textarea', '', { readonly: '', 'data-active-game-pgn': '', rows: '14', 'aria-label': 'Current game PGN' });
             const pgnClose = element('button', '', { type: 'button', 'data-active-game-action': 'close-pgn' }); pgnClose.textContent = 'Close';
             this.#pgnDialog.append(pgnTitle, pgnText, pgnClose);
+            this.#settingsDialog = element('div', 'caissa-simplified-shell__settings-dialog', {
+                id: `${this.#id}-settings`, role: 'dialog', 'aria-modal': 'true',
+                'aria-labelledby': `${this.#id}-settings-title`, 'data-active-game-settings': '', hidden: ''
+            });
+            const settingsTitle = element('h2', '', { id: `${this.#id}-settings-title` });
+            settingsTitle.textContent = 'Board Settings';
+            const settingsGrid = element('div', 'caissa-simplified-shell__settings-grid');
+            const fixedSetting = (label, value) => {
+                const row = element('div', 'caissa-simplified-shell__settings-row');
+                const name = element('span', ''); name.textContent = label;
+                const current = element('strong', ''); current.textContent = value;
+                row.append(name, current); return row;
+            };
+            settingsGrid.append(fixedSetting('Pieces', 'Classic'), fixedSetting('Board', 'CAISSA Brown'));
+            for (const [setting, label] of [['legal-moves', 'Show legal moves'], ['last-move', 'Highlight last move']]) {
+                const row = element('label', 'caissa-simplified-shell__settings-toggle');
+                const copy = element('span', ''); copy.textContent = label;
+                const input = element('input', '', { type: 'checkbox', checked: '', 'data-play-setting': setting });
+                row.append(copy, input); settingsGrid.appendChild(row);
+            }
+            const settingsActions = element('div', 'caissa-simplified-shell__settings-actions');
+            const flip = element('button', '', { type: 'button', 'data-active-game-action': 'flip-board' });
+            flip.textContent = 'Flip board';
+            const settingsClose = element('button', '', {
+                type: 'button', 'data-active-game-action': 'close-settings',
+                'aria-label': 'Close board settings'
+            });
+            settingsClose.textContent = 'Done';
+            settingsActions.append(flip, settingsClose);
+            this.#settingsDialog.append(settingsTitle, settingsGrid, settingsActions);
             workspace.append(boardStage, nav, context, footer, advanced);
-            root.append(preview, workspace, this.#pgnDialog);
+            root.append(preview, workspace, this.#pgnDialog, this.#settingsDialog);
             stage.appendChild(root);
             this.#root = root;
+            this.#shareDialog = global.CaissaPlayShareDialog?.create?.() || null;
+            this.#shareDialog?.mount?.({ host: root });
             const accessibility = global.CaissaPlayAccessibility?.create?.(root);
             if (accessibility?.schemaVersion) this.#accessibility = accessibility;
             this.#unsubscribeRoute = global.CaissaPlayRouteController?.subscribe?.(() => this.syncRoute()) || null;
@@ -288,9 +350,10 @@
             const gameMenu = play.querySelector('.game-menu-panel');
             const editor = play.querySelector('.board-editor-wrapper');
             const actions = play.querySelector('.right-controls');
+            const evalScore = global.document.getElementById('evalScore');
             const names = [global.document.getElementById('playerBlackName'), global.document.getElementById('topClockBlack')];
             const currentNames = [global.document.getElementById('playerWhiteName'), global.document.getElementById('topClockWhite')];
-            if (![legacyGrid, boardWithEval, leftPanel, rightPanel, gameMenu, editor, actions, ...names, ...currentNames].every(Boolean))
+            if (![legacyGrid, boardWithEval, leftPanel, rightPanel, gameMenu, editor, actions, evalScore, ...names, ...currentNames].every(Boolean))
                 return result(false, 'unavailable', REASONS.PLAY_UNAVAILABLE);
 
             const place = (node, host) => {
@@ -304,7 +367,9 @@
             const player = this.#root.querySelector('.caissa-simplified-shell__player--current');
             const contextBody = this.#root.querySelector('.caissa-simplified-shell__context-body');
             const advancedBody = this.#root.querySelector('.caissa-simplified-shell__advanced-body');
-            names.forEach(node => place(node, opponent));
+            place(names[0], opponent);
+            place(evalScore, opponent);
+            place(names[1], opponent);
             currentNames.forEach(node => place(node, player));
             place(boardWithEval, boardRegion);
             place(rightPanel, advancedBody);
@@ -364,8 +429,8 @@
             this.#postGame.syncFromPlay();
             this.#accessibility?.announce?.('PLAY_READY');
             if (!this.#listeners.length) {
-                this.#listen(this.#actionBar, 'click', event => this.#handleActiveAction(event));
-                this.#listen(this.#pgnDialog, 'click', event => this.#handleActiveAction(event));
+                this.#listen(this.#root, 'click', event => this.#handleActiveAction(event));
+                this.#listen(this.#settingsDialog, 'change', event => this.#handleActiveAction(event));
                 this.#listen(this.#assistance, 'change', event => this.#handleAssistanceChange(event));
                 this.#listen(this.#root.querySelector('.caissa-simplified-shell__modes'), 'click', event => {
                     const mode = event.target?.dataset?.shellMode;
@@ -398,11 +463,26 @@
                         previous.textContent = speech.textContent;
                         previous.hidden = !previous.textContent;
                         speech.textContent = event.detail.message;
+                        delete speech.dataset.messageKind;
                     }
                 });
                 this.#listen(global, 'caissa-coach-hint', event => {
                     const speech = this.#root?.querySelector('[data-active-coach-speech]');
-                    if (speech && typeof event.detail?.message === 'string') speech.textContent = event.detail.message;
+                    const previous = this.#root?.querySelector('[data-active-coach-previous-speech]');
+                    if (previous) { previous.textContent = ''; previous.hidden = true; }
+                    if (speech && typeof event.detail?.message === 'string') {
+                        speech.dataset.messageKind = 'hint';
+                        speech.textContent = event.detail.message;
+                    }
+                });
+                this.#listen(global, 'caissa-coach-hint-clear', () => {
+                    const speech = this.#root?.querySelector('[data-active-coach-speech]');
+                    const previous = this.#root?.querySelector('[data-active-coach-previous-speech]');
+                    if (previous) { previous.textContent = ''; previous.hidden = true; }
+                    if (speech?.dataset?.messageKind === 'hint') {
+                        speech.textContent = '';
+                        delete speech.dataset.messageKind;
+                    }
                 });
                 this.#listen(global, 'caissa-coach-opening', event => {
                     const badge = this.#root?.querySelector('[data-active-coach-opening]');
@@ -413,6 +493,7 @@
                         ? `📖 ${event.detail.name}${event.detail.eco ? ` · ${event.detail.eco}` : ''}` : '';
                     this.#renderActiveNotation();
                 });
+                this.#listen(global, 'caissa-coach-move-annotation', () => this.#renderActiveNotation());
                 this.#listen(global, 'caissa-turn-change', () => this.#renderActiveNotation());
                 if (global.visualViewport) this.#listen(global.visualViewport, 'resize', () => this.resize());
                 this.#listen(global.document, 'transitionend', event => {
@@ -563,7 +644,9 @@
 
         resize() {
             if (!this.#root) return result(false, 'unavailable', REASONS.PLAY_UNAVAILABLE);
-            const width = global.innerWidth || global.visualViewport?.width || 0;
+            const viewportWidth = global.innerWidth || global.visualViewport?.width || 0;
+            const rootWidth = this.#root.getBoundingClientRect?.().width || 0;
+            const width = rootWidth > 0 ? Math.min(viewportWidth, rootWidth) : viewportWidth;
             const layoutHeight = global.innerHeight || global.visualViewport?.height || 0;
             const visualHeight = global.visualViewport?.height || layoutHeight;
             const height = Math.min(layoutHeight, visualHeight);
@@ -639,6 +722,7 @@
             this.#removeListeners();
             this.#unsubscribeRoute?.(); this.#unsubscribeRoute = null;
             this.#accessibility?.dispose?.(); this.#accessibility = null;
+            this.#shareDialog?.dispose?.(); this.#shareDialog = null;
             this.#root?.remove(); this.#root = null;
             return result(true, 'accepted', 'UNMOUNTED');
         }
@@ -728,6 +812,8 @@
             }
             this.#activeContext.hidden = !active;
             this.#actionBar.hidden = !active;
+            const utilityBar = this.#activeContext.querySelector('[data-active-game-utilities]');
+            if (utilityBar) utilityBar.hidden = !active;
             this.#syncAssistance(active, postGame);
             const coachMode = active && this.#mode === 'coach';
             const narrator = this.#root.querySelector('[data-active-coach-narrator]');
@@ -738,18 +824,24 @@
                 if (coachMode && portraitHost && sourcePortrait && !portraitHost.firstChild)
                     portraitHost.appendChild(sourcePortrait.cloneNode(true));
             }
+            const assistedMode = active && ['bots', 'coach'].includes(this.#mode);
             for (const action of ['coach-hint', 'coach-undo']) {
                 const button = this.#actionBar.querySelector(`[data-active-game-action="${action}"]`);
-                if (button) button.hidden = !coachMode;
+                if (button) button.hidden = !assistedMode;
             }
             const pgn = this.#actionBar.querySelector('[data-active-game-action="pgn"]');
-            if (pgn) pgn.hidden = coachMode;
+            if (pgn) pgn.hidden = assistedMode;
             const menu = this.#actionBar.querySelector('[data-active-game-action="menu"]');
-            if (menu) menu.hidden = coachMode;
+            if (menu) menu.hidden = assistedMode;
             const heading = this.#root.querySelector('.caissa-simplified-shell__context-header h2');
-            if (heading) heading.textContent = postGame ? 'Game result' : active
-                ? ({ games: 'Play Game', bots: 'Play Bots', coach: 'Play Coach' }[this.#mode] || 'Game status')
-                : starting ? 'Starting game' : 'Game setup';
+            if (heading) {
+                const redundantAssistedHeading = !postGame && !starting && ['bots', 'coach'].includes(this.#mode);
+                heading.hidden = redundantAssistedHeading;
+                heading.parentElement.hidden = redundantAssistedHeading;
+                heading.textContent = postGame ? 'Game result' : active
+                    ? ({ games: 'Play Game', bots: 'Play Bots', coach: 'Play Coach' }[this.#mode] || 'Game status')
+                    : starting ? 'Starting game' : 'Game setup';
+            }
             this.#syncActivePlacement(active, coachMode);
             this.#renderActiveNotation();
             this.#syncIdentity();
@@ -767,10 +859,37 @@
                 else if (!coachMode && narrator && boardStage && narrator.parentNode !== boardStage)
                     boardStage.insertBefore(narrator, opponent);
                 if (this.#actionBar.parentNode !== this.#activeContext) this.#activeContext.appendChild(this.#actionBar);
+                const utilityBar = this.#activeContext.querySelector('[data-active-game-utilities]');
+                if (utilityBar) this.#activeContext.appendChild(utilityBar);
                 return;
             }
             if (narrator && boardStage && narrator.parentNode !== boardStage) boardStage.insertBefore(narrator, opponent);
             if (boardStage && this.#actionBar.parentNode !== boardStage) boardStage.appendChild(this.#actionBar);
+        }
+        #renderCoachBoardAnnotation() {
+            const board = this.#root?.querySelector('#chessboard');
+            if (!board) return;
+            board.querySelectorAll('[data-caissa-coach-move-annotation]').forEach(node => node.remove());
+            if (this.#mode !== 'coach') return;
+            const annotations = Array.isArray(global.App?.coachMoveAnnotations)
+                ? global.App.coachMoveAnnotations : [];
+            const historyLength = Array.isArray(global.App?.moveHistory)
+                ? global.App.moveHistory.length : 0;
+            let current = null;
+            for (let index = Math.min(historyLength, annotations.length) - 1; index >= 0; index -= 1) {
+                if (annotations[index]?.square) { current = annotations[index]; break; }
+            }
+            if (!current || !/^[a-h][1-8]$/.test(current.square)
+                || !/^(?:book|best|precise|good|inaccuracy|mistake|blunder)$/.test(current.key || '')) return;
+            const square = board.querySelector(`.square-${current.square}`);
+            if (!square) return;
+            const badge = element('span',
+                `caissa-coach-move-annotation caissa-coach-move-annotation--${current.key}`, {
+                    'data-caissa-coach-move-annotation': '', role: 'img',
+                    'aria-label': `${current.label}: ${current.san}`, title: current.label
+                });
+            badge.textContent = current.symbol;
+            square.appendChild(badge);
         }
         #renderActiveNotation() {
             if (!this.#root || !this.#activeContext) return;
@@ -780,19 +899,42 @@
             const current = global.App?.currentOpening;
             opening.textContent = current?.name
                 ? `📖 ${current.name}${current.eco ? ` · ${current.eco}` : ''}` : 'Opening not identified yet';
+            const openingLink = this.#activeContext.querySelector('[data-active-opening-link]');
+            if (openingLink) {
+                openingLink.href = current?.eco && /^[A-E]\d{2}$/i.test(current.eco)
+                    ? `/eco/${current.eco.toUpperCase()}` : '/opening-database';
+                openingLink.setAttribute('aria-label', current?.eco
+                    ? `Open ${current.name || 'opening'} ${current.eco.toUpperCase()} in the CAISSA ECO Database (new tab)`
+                    : 'Open CAISSA Opening Database in a new tab');
+            }
             let history = [];
             try { history = global.App?.game?.history?.() || []; } catch (_) { history = []; }
             moves.replaceChildren();
+            const annotations = Array.isArray(global.App?.coachMoveAnnotations)
+                ? global.App.coachMoveAnnotations : [];
+            const renderMove = (node, san, index) => {
+                node.textContent = san || '';
+                const annotation = annotations[index];
+                if (!san || this.#mode !== 'coach' || !annotation
+                    || !/^(?:book|best|precise|good|inaccuracy|mistake|blunder)$/.test(annotation.key || '')) return;
+                const badge = element('span',
+                    `caissa-coach-move-symbol caissa-coach-move-symbol--${annotation.key}`, {
+                        role: 'img', 'aria-label': `${annotation.label}: ${san}`, title: annotation.label
+                    });
+                badge.textContent = annotation.symbol;
+                node.appendChild(badge);
+            };
             for (let index = 0; index < history.length; index += 2) {
                 const row = element('li', 'caissa-simplified-shell__active-move-row');
                 const number = element('span', 'caissa-simplified-shell__active-move-number');
                 const white = element('span', 'caissa-simplified-shell__active-move');
                 const black = element('span', 'caissa-simplified-shell__active-move');
                 number.textContent = `${Math.floor(index / 2) + 1}.`;
-                white.textContent = history[index] || '';
-                black.textContent = history[index + 1] || '';
+                renderMove(white, history[index], index);
+                renderMove(black, history[index + 1], index + 1);
                 row.append(number, white, black); moves.appendChild(row);
             }
+            this.#renderCoachBoardAnnotation();
         }
         #syncIdentity() {
             if (this.#root?.dataset?.entryExperience !== 'beta') return;
@@ -803,7 +945,7 @@
                 const bot = global.CaissaBotSession?.getSnapshot?.();
                 opponent = bot?.activePresentation?.name || bot?.activeProfile?.name || null;
             }
-            else if (this.#mode === 'coach' && global.CaissaCoachSession?.getSnapshot?.()?.active) opponent = 'Coach-assisted game';
+            else if (this.#mode === 'coach') opponent = 'Engine';
             const white = global.document.getElementById('playerWhiteName');
             const black = global.document.getElementById('playerBlackName');
             if (white) white.textContent = playerColor === 'white' ? 'Player' : opponent || '';
@@ -818,10 +960,11 @@
             const bottom = this.#root.querySelector('.caissa-simplified-shell__player--current');
             const white = [global.document.getElementById('playerWhiteName'), global.document.getElementById('topClockWhite')];
             const black = [global.document.getElementById('playerBlackName'), global.document.getElementById('topClockBlack')];
-            if (!top || !bottom || [...white, ...black].some(node => !node)) return;
+            const evalScore = global.document.getElementById('evalScore');
+            if (!top || !bottom || !evalScore || [...white, ...black].some(node => !node)) return;
             const bottomPair = orientation === 'black' ? black : white;
             const topPair = orientation === 'black' ? white : black;
-            topPair.forEach(node => top.appendChild(node));
+            top.append(topPair[0], evalScore, topPair[1]);
             bottomPair.forEach(node => bottom.appendChild(node));
             top.dataset.edgeColor = orientation === 'black' ? 'white' : 'black';
             bottom.dataset.edgeColor = orientation;
@@ -832,7 +975,7 @@
         }
         #syncAssistance(active, postGame) {
             if (!this.#assistance) return;
-            const admitted = ['bots', 'coach'].includes(this.#mode) && !postGame;
+            const admitted = false;
             this.#assistance.hidden = !admitted;
             if (!admitted) return;
             const body = this.#assistance.querySelector('[data-assistance-body]');
@@ -890,15 +1033,22 @@
             if (!response?.ok) event.target.value = this.#coachPanel?.getSnapshot?.().configuration?.[normalized] || event.target.value;
         }
         #handleActiveAction(event) {
+            const setting = event.target?.closest?.('[data-play-setting]')?.dataset?.playSetting;
+            if (setting === 'legal-moves') {
+                this.#root.classList.toggle('caissa-hide-legal-moves', !event.target.checked); return;
+            }
+            if (setting === 'last-move') {
+                this.#root.classList.toggle('caissa-hide-last-move', !event.target.checked); return;
+            }
             const action = event.target?.closest?.('[data-active-game-action]')?.dataset?.activeGameAction;
             if (!action) return;
             if (action === 'resign') global.resignGame?.();
-            else if (action === 'coach-hint' && this.#mode === 'coach') {
+            else if (action === 'coach-hint' && ['bots', 'coach'].includes(this.#mode)) {
                 const response = global.requestCoachHint?.();
                 const status = this.#activeContext.querySelector('[data-active-game-status]');
                 status.textContent = response?.ok ? 'Caissa highlighted a suggested move.' : 'Caissa is studying the position…';
             }
-            else if (action === 'coach-undo' && this.#mode === 'coach') {
+            else if (action === 'coach-undo' && ['bots', 'coach'].includes(this.#mode)) {
                 const undone = global.undoMove?.();
                 const status = this.#activeContext.querySelector('[data-active-game-status]');
                 status.textContent = undone === false ? 'There is no move to undo.' : 'The last turn was taken back.';
@@ -906,7 +1056,37 @@
             else if (action === 'menu') {
                 if (typeof global.showModal === 'function') global.showModal('menuModal');
                 else global.document.getElementById('btnSettings')?.click?.();
-            } else if (action === 'pgn') {
+            } else if (action === 'settings') {
+                this.#settingsTrigger = event.target?.closest?.('[data-active-game-action="settings"]') || null;
+                this.#settingsDialog.hidden = false;
+                this.#settingsDialog.querySelector('[data-active-game-action="close-settings"]')?.focus?.();
+            }
+            else if (action === 'download') global.document.getElementById('btnDownload')?.click?.();
+            else if (action === 'share') {
+                let pgn = '';
+                try { pgn = global.CaissaGameRecord?.buildFromPlay?.()?.notation?.pgn || global.App?.game?.pgn?.() || ''; }
+                catch (_) { pgn = ''; }
+                let fen = '';
+                try { fen = global.App?.game?.fen?.() || ''; } catch (_) { fen = ''; }
+                const activeBot = global.CaissaBotSession?.getSnapshot?.()?.activePresentation;
+                const opponent = this.#mode === 'coach' ? 'Caissa Coach'
+                    : this.#mode === 'bots' ? activeBot?.name || 'CAISSA Bot' : 'CAISSA Engine';
+                this.#shareDialog?.open?.({
+                    pgn, fen, mode: this.#mode,
+                    opening: global.App?.currentOpening?.name || '',
+                    opponent, playerColor: global.App?.playerColor,
+                    result: global.App?.gameStatus?.result,
+                    date: new Date().toISOString().slice(0, 10).replaceAll('-', '.'),
+                    orientation: global.App?.boardAdapter?.getSnapshot?.().orientation
+                        || (global.App?.isFlipped ? 'black' : 'white')
+                });
+            } else if (action === 'flip-board') global.document.getElementById('menuFlipBoard')?.click?.();
+            else if (action === 'close-settings') {
+                this.#settingsDialog.hidden = true;
+                this.#settingsTrigger?.focus?.();
+                this.#settingsTrigger = null;
+            }
+            else if (action === 'pgn') {
                 let pgn = '';
                 try { pgn = global.CaissaGameRecord?.buildFromPlay?.()?.notation?.pgn || ''; } catch (_) { pgn = ''; }
                 this.#pgnDialog.querySelector('[data-active-game-pgn]').value = pgn;

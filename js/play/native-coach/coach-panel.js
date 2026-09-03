@@ -2,7 +2,7 @@
     'use strict';
     const SCHEMA_VERSION = '2.3.0';
     const COLORS = Object.freeze([
-        Object.freeze({ value: 'white', label: 'White', symbol: '♔' }),
+        Object.freeze({ value: 'white', label: 'White', symbol: '♚' }),
         Object.freeze({ value: 'random', label: 'Random', symbol: '?' }),
         Object.freeze({ value: 'black', label: 'Black', symbol: '♚' })
     ]);
@@ -25,9 +25,7 @@
             if (this.#disposed || !host?.appendChild) return result(false, 'INVALID_HOST');
             this.#host = host;
             const section = this.#root = node('section', { class: 'caissa-native-coach-panel',
-                'data-caissa-native-coach-panel': '', 'aria-labelledby': `${this.#id}-title` });
-            const title = node('h2', { id: `${this.#id}-title`, class: 'caissa-native-coach-panel__title' });
-            title.textContent = 'Play Coach';
+                'data-caissa-native-coach-panel': '', 'aria-label': 'Play Coach setup' });
 
             const persona = node('div', { class: 'caissa-native-coach-panel__persona' });
             const portrait = node('img', { class: 'caissa-native-coach-panel__portrait',
@@ -55,7 +53,8 @@
                 const label = node('label', { class: 'caissa-native-coach-panel__color-choice' });
                 const input = node('input', { type: 'radio', name: `${this.#id}-color`, value: item.value,
                     'data-coach-color-choice': item.value, 'aria-label': item.label });
-                const symbol = node('span', { 'aria-hidden': 'true' }); symbol.textContent = item.symbol;
+                const symbol = node('span', { class: `caissa-color-token caissa-color-token--${item.value}`,
+                    'aria-hidden': 'true', 'data-color-token': item.value }); symbol.textContent = item.symbol;
                 label.append(input, symbol); colorOptions.appendChild(label);
             });
             color.append(legend, colorOptions); controls.append(experience, color);
@@ -71,7 +70,7 @@
             const help = node('button', { type: 'button', 'data-coach-help': '', hidden: '', disabled: '' }); help.textContent = 'Help';
             const dismiss = node('button', { type: 'button', 'data-coach-dismiss': '', hidden: '', disabled: '' });
             dismiss.textContent = 'Dismiss assistance';
-            section.append(title, persona, controls, access, premium, action, help, dismiss); host.appendChild(section);
+            section.append(persona, controls, access, premium, action, help, dismiss); host.appendChild(section);
             this.#listen(section, 'change', event => this.#change(event));
             this.#listen(action, 'click', () => this.submit()); this.#listen(help, 'click', () => this.requestHelp());
             this.#listen(dismiss, 'click', () => { this.#assistance.dismiss(); dismiss.disabled = true;

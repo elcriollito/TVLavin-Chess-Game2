@@ -8,7 +8,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await page.goto('/play/beta/coach');
     await expect(page.getByRole('tab', { name: /Coach/ })).toHaveAttribute('aria-selected', 'true');
     const panel = page.locator('[data-caissa-native-coach-panel]');
-    await expect(panel).toBeVisible(); await expect(panel.getByText('Play Coach')).toBeVisible();
+    await expect(panel).toBeVisible(); await expect(panel.locator('.caissa-native-coach-panel__title')).toHaveCount(0);
     await expect(panel.getByAltText('Caissa, goddess of chess')).toBeVisible();
     await expect(panel.locator('[data-coach-narration]')).toContainText("Let's play");
     await expect(panel).not.toContainText(/Internal|locally certified|bounded assistance/i);
@@ -24,7 +24,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(panel).not.toContainText(/lesson|curriculum|academy|mentor|mastery|knowledge|best move/i);
     await panel.getByRole('button', { name: 'Play' }).click();
     await expect(panel.locator('[data-coach-narration]')).toContainText('game is ready');
-    const help = page.locator('[data-active-game-action="coach-help"]');
+    const help = page.locator('[data-active-game-action="coach-hint"]');
     await expect(help).toBeVisible(); await help.click();
     await expect(page.locator('[data-active-game-status]')).toContainText('opponent');
     expect(await playMove(page, 'e2', 'e4')).toBe(true);
