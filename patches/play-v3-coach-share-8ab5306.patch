@@ -1,0 +1,1402 @@
+diff --git a/app.js b/app.js
+index 06774c6..c27316e 100644
+--- a/app.js
++++ b/app.js
+@@ -62,6 +62,7 @@ const App = {
+     lastEvalMate: null,
+     currentEvaluation: null,
+     pendingCoachHint: false,
++    pendingCoachMoveReview: null,
+     coachOpeningKey: '',
+     engineRestartPending: false,
+     selectedEditorPiece: 'erase', // Piece to place in editor mode
+@@ -1000,6 +1001,8 @@ function onSnapEnd() {
+ // ===== MOVE HANDLING =====
+ function onMoveMade(move) {
+     const moveActor = App.isPlayerTurn ? 'user' : 'engine';
++    const preMoveEvaluation = moveActor === 'user' && App.currentEvaluation
++        ? { ...App.currentEvaluation } : null;
+     App.boardAdapter?.clearSelection?.();
+     App.boardAdapter?.clearLegalTargets?.();
+     document.body?.classList?.remove('caissa-coach-hint-active');
+@@ -1025,8 +1028,10 @@ function onMoveMade(move) {
+         MentorAI.onMoveMade(move, App.game.fen());
+     }
+     const coachSnapshot = window.CaissaCoachSession?.getSnapshot?.();
++    const coachReviewState = moveActor === 'user'
++        ? scheduleCoachMoveReview(move, preMoveEvaluation) : null;
+     let coachIntervened = false;
+-    if (moveActor === 'user' && coachSnapshot?.active) {
++    if (moveActor === 'user' && coachSnapshot?.active && !coachReviewState) {
+         const policyDecision = window.CaissaFairPlayPolicy?.evaluatePurpose?.('coach-assistance', {
+             source: 'local-play', gameMode: 'engine', opponentType: 'coach',
+             authority: 'local-client', gameStatus: 'active', coachMode: true
+@@ -1045,7 +1050,7 @@ function onMoveMade(move) {
+             }
+         }
+     }
+-    if (coachSnapshot?.active && !coachIntervened) narrateCoachMove(move, moveActor);
++    if (coachSnapshot?.active && !coachIntervened && !coachReviewState) narrateCoachMove(move, moveActor);
+ 
+     // Check game status
+     if (App.game.game_over()) {
+@@ -1056,7 +1061,7 @@ function onMoveMade(move) {
+     // HOTFIX 4: Trigger the normal player-engine reply outside Engine vs Engine.
+     if (!App.eveMode && !App.eveRunning && App.gameMode !== 'eve') {
+         if (App.analyzing) stopAnalysis();
+-        maybeTriggerEngineMove();
++        if (coachReviewState !== 'pending') maybeTriggerEngineMove();
+     }
+ 
+     // If analysis is on, update it
+@@ -1067,6 +1072,7 @@ function onMoveMade(move) {
+ 
+ function undoMove() {
+     if (!App.game) return false;
++    cancelCoachMoveReview('undo');
+     if (App.analyzing) stopAnalysis();
+     window.CaissaEngineRequestIsolation?.cancelPurpose?.('opponent-move');
+     window.CaissaEngineRequestIsolation?.cancelPurpose?.('live-evaluation');
+@@ -1171,6 +1177,105 @@ function dispatchCoachNarration(message, detail = {}) {
+     return true;
+ }
+ 
++function coachMoveToUci(move) {
++    if (!move?.from || !move?.to) return '';
++    return `${move.from}${move.to}${move.promotion || ''}`.toLowerCase();
++}
++
++function coachBestMoveSan(fen, uci) {
++    if (typeof fen !== 'string' || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci || '')) return '';
++    try {
++        const copy = new Chess(fen);
++        return copy.move({ from: uci.slice(0, 2), to: uci.slice(2, 4),
++            promotion: uci.length > 4 ? uci[4] : undefined })?.san || '';
++    } catch (_) { return ''; }
++}
++
++function coachEvaluationMatchesMove(fen, move, afterFen) {
++    if (typeof fen !== 'string' || typeof afterFen !== 'string' || !move) return false;
++    try {
++        const copy = new Chess(fen);
++        const applied = copy.move({ from: move.from, to: move.to, promotion: move.promotion });
++        return !!applied && copy.fen() === afterFen;
++    } catch (_) { return false; }
++}
++
++function cancelCoachMoveReview() {
++    const pending = App.pendingCoachMoveReview;
++    if (!pending) return false;
++    clearTimeout(pending.timeoutId);
++    App.pendingCoachMoveReview = null;
++    return true;
++}
++
++function finishCoachMoveReview(info = null) {
++    const pending = App.pendingCoachMoveReview;
++    if (!pending) return false;
++    if (App.game?.fen?.() !== pending.afterFen) {
++        cancelCoachMoveReview('stale-position');
++        return false;
++    }
++    clearTimeout(pending.timeoutId);
++    App.pendingCoachMoveReview = null;
++    if (App.analyzing) stopAnalysis();
++    const review = window.CaissaCoachMoveReview?.createReview?.({
++        playedUci: pending.playedUci,
++        playedSan: pending.playedSan,
++        bestUci: pending.bestUci,
++        bestSan: pending.bestSan,
++        playerColor: App.playerColor,
++        beforeScore: pending.beforeScore,
++        beforeMate: pending.beforeMate,
++        afterScore: info?.score,
++        afterMate: info?.mate
++    });
++    if (review?.ok) dispatchCoachNarration(review.message, {
++        actor: 'user', san: pending.playedSan, category: 'stockfish-move-review',
++        quality: review.quality, reasonCode: review.reasonCode
++    });
++    if (App.gameActive && !App.game.game_over()) maybeTriggerEngineMove();
++    return true;
++}
++
++function scheduleCoachMoveReview(move, evaluation) {
++    if (!isNativeCoachGame() || !window.CaissaCoachMoveReview || !evaluation
++        || !Number.isFinite(evaluation.depth) || evaluation.depth < 10
++        || !coachEvaluationMatchesMove(evaluation.fen, move, App.game.fen())) return null;
++    const playedUci = coachMoveToUci(move);
++    const bestUci = String(evaluation.bestMove || '').toLowerCase();
++    const bestSan = coachBestMoveSan(evaluation.fen, bestUci);
++    if (!playedUci || !bestSan) return null;
++    const immediate = window.CaissaCoachMoveReview.createReview({
++        playedUci, playedSan: move.san, bestUci, bestSan, playerColor: App.playerColor,
++        beforeScore: evaluation.score, beforeMate: evaluation.mate,
++        afterScore: evaluation.score, afterMate: evaluation.mate
++    });
++    if (playedUci === bestUci) {
++        if (immediate?.ok) dispatchCoachNarration(immediate.message, {
++            actor: 'user', san: move.san, category: 'stockfish-move-review', quality: immediate.quality
++        });
++        return 'complete';
++    }
++
++    cancelCoachMoveReview('superseded');
++    const afterFen = App.game.fen();
++    const pending = {
++        afterFen, playedUci, playedSan: move.san, bestUci, bestSan,
++        beforeScore: evaluation.score, beforeMate: evaluation.mate,
++        timeoutId: null
++    };
++    pending.timeoutId = setTimeout(() => {
++        if (App.pendingCoachMoveReview === pending) finishCoachMoveReview();
++    }, 1800);
++    App.pendingCoachMoveReview = pending;
++    setTimeout(() => {
++        if (App.pendingCoachMoveReview !== pending || !App.gameActive || App.game.fen() !== afterFen) return;
++        if (!App.engine?.ready) { finishCoachMoveReview(); return; }
++        startAnalysis();
++    }, 60);
++    return 'pending';
++}
++
+ function narrateCoachMove(move, actor) {
+     if (!move?.san) return false;
+     const san = move.san;
+@@ -1522,6 +1627,7 @@ function updateStatus() {
+ 
+ function handleGameOver() {
+     App.gameActive = false;
++    cancelCoachMoveReview('game-over');
+     stopTimerLoop();
+ 
+     let message = '';
+@@ -2613,8 +2719,11 @@ function updateAnalysis(info) {
+         App.lastEvalCp = displayedCp;
+         App.lastEvalMate = null;
+     }
+-    if (App.pendingCoachHint && App.currentEvaluation.bestMove) presentCoachHint(App.currentEvaluation.bestMove);
+-    else if (isNativeCoachGame() && info.depth >= 12) settleCoachLiveEvaluation();
++    const moveReviewCompleted = App.pendingCoachMoveReview && info.depth >= 11
++        ? finishCoachMoveReview(info) : false;
++    if (!moveReviewCompleted && App.pendingCoachHint && App.currentEvaluation.bestMove)
++        presentCoachHint(App.currentEvaluation.bestMove);
++    else if (!moveReviewCompleted && isNativeCoachGame() && info.depth >= 12) settleCoachLiveEvaluation();
+ 
+     if (typeof MentorAI !== 'undefined' && MentorAI.onEvaluationUpdate) {
+         MentorAI.onEvaluationUpdate(App.currentEvaluation);
+@@ -2784,6 +2893,7 @@ function prepareNativePlaySetup() {
+     const nativePlayV2 = route?.metadata?.betaEntry === true
+         && document.body?.classList?.contains('caissa-play-v2-beta-active');
+     if (!nativePlayV2 || !App.game || !App.board) return false;
++    cancelCoachMoveReview('setup');
+     if (App.analyzing) stopAnalysis();
+     stopTimerLoop();
+     window.CaissaClockService?.stop?.('postgame-mode-transition');
+@@ -2806,6 +2916,7 @@ function prepareNativePlaySetup() {
+     App.lastEvalMate = null;
+     App.currentEvaluation = null;
+     App.pendingCoachHint = false;
++    App.pendingCoachMoveReview = null;
+     App.coachOpeningKey = '';
+     App.engineRestartPending = false;
+     document.body?.classList?.remove('caissa-coach-hint-active');
+@@ -2861,6 +2972,7 @@ function newGame(options = {}) {
+ 
+     // Stop any ongoing operations
+     // ONLY stop analysis if it's actually running
++    cancelCoachMoveReview('new-game');
+     if (App.analyzing) {
+         stopAnalysis();
+     }
+@@ -2883,6 +2995,7 @@ function newGame(options = {}) {
+     App.lastEvalMate = null;
+     App.currentEvaluation = null;
+     App.pendingCoachHint = false;
++    App.pendingCoachMoveReview = null;
+     App.coachOpeningKey = '';
+     App.engineRestartPending = false;
+     document.body?.classList?.remove('caissa-coach-hint-active');
+diff --git a/css/play-simplified-shell.css b/css/play-simplified-shell.css
+index 764c98f..a86f1f5 100644
+--- a/css/play-simplified-shell.css
++++ b/css/play-simplified-shell.css
+@@ -316,7 +316,7 @@ body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experienc
+     gap: var(--play-workspace-gap, clamp(8px, 1.2vw, 18px));
+ }
+ 
+-body.caissa-simplified-play-active.caissa-play-game-active
++body.caissa-simplified-play-active
+     .caissa-simplified-shell[data-entry-experience="beta"][data-layout="desktop-split"] .caissa-simplified-shell__context {
+     grid-row: 2 / -1;
+     align-self: stretch;
+@@ -959,7 +959,10 @@ body.caissa-simplified-play-active .caissa-simplified-shell__assistance-note { m
+ 
+ body.caissa-simplified-play-active .caissa-native-coach-panel {
+     --coach-gold: #e5b84e;
+-    display: grid;
++    display: flex;
++    flex-direction: column;
++    align-content: flex-start;
++    height: 100%;
+     min-height: min(620px, calc(100dvh - 230px));
+     color: var(--play-theme-text, var(--text-primary));
+ }
+@@ -980,6 +983,7 @@ body.caissa-simplified-play-active .caissa-native-coach-panel__persona {
+         radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--coach-gold) 13%, transparent), transparent 42%),
+         color-mix(in srgb, var(--play-theme-card, #17202b) 94%, transparent);
+     overflow: hidden;
++    flex: 0 0 auto;
+ }
+ 
+ body.caissa-simplified-play-active .caissa-native-coach-panel__portrait {
+@@ -1154,6 +1158,186 @@ body.caissa-simplified-play-active .caissa-simplified-shell__pgn-dialog textarea
+     resize: vertical;
+ }
+ 
++body.caissa-simplified-play-active .caissa-play-share {
++    width: min(700px, calc(100vw - 24px));
++    max-height: min(820px, calc(100dvh - 24px));
++    padding: 0;
++    overflow: hidden;
++    border: 1px solid var(--panel-border);
++    border-radius: 16px;
++    background: var(--panel-bg);
++    color: var(--play-theme-text, #f8fafc);
++    box-shadow: 0 24px 70px rgba(0, 0, 0, .55);
++}
++
++body.caissa-simplified-play-active .caissa-play-share::backdrop {
++    background: rgba(4, 8, 14, .78);
++    backdrop-filter: blur(3px);
++}
++
++body.caissa-simplified-play-active .caissa-play-share__header {
++    display: flex;
++    align-items: center;
++    justify-content: space-between;
++    gap: 12px;
++    min-height: 66px;
++    padding: 14px 18px;
++    border-bottom: 1px solid var(--panel-border);
++}
++
++body.caissa-simplified-play-active .caissa-play-share__header h2 {
++    margin: 0;
++    font-size: 1.25rem;
++}
++
++body.caissa-simplified-play-active .caissa-play-share__close,
++body.caissa-simplified-play-active .caissa-play-share__copy {
++    display: grid;
++    place-items: center;
++    width: 44px;
++    min-width: 44px;
++    height: 44px;
++    padding: 0;
++    border: 1px solid transparent;
++    border-radius: 9px;
++    background: transparent;
++    color: var(--play-theme-text-muted, #c8d0dc);
++    cursor: pointer;
++}
++
++body.caissa-simplified-play-active .caissa-play-share__close:hover,
++body.caissa-simplified-play-active .caissa-play-share__copy:hover {
++    border-color: var(--panel-border);
++    background: var(--play-theme-card, #1b2532);
++    color: var(--play-theme-text, #fff);
++}
++
++body.caissa-simplified-play-active .caissa-play-share__tabs {
++    display: grid;
++    grid-template-columns: repeat(4, minmax(0, 1fr));
++    border-bottom: 1px solid var(--panel-border);
++}
++
++body.caissa-simplified-play-active .caissa-play-share__tab {
++    position: relative;
++    min-height: 58px;
++    padding: 10px 6px;
++    border: 0;
++    background: transparent;
++    color: var(--play-theme-text-muted, #b8c2cf);
++    font-size: .96rem;
++    font-weight: 800;
++    cursor: pointer;
++}
++
++body.caissa-simplified-play-active .caissa-play-share__tab[aria-selected="true"] {
++    color: var(--play-theme-text, #fff);
++}
++
++body.caissa-simplified-play-active .caissa-play-share__tab[aria-selected="true"]::after {
++    content: "";
++    position: absolute;
++    inset-inline: 14%;
++    inset-block-end: 0;
++    height: 3px;
++    border-radius: 999px 999px 0 0;
++    background: #e5b84e;
++}
++
++body.caissa-simplified-play-active .caissa-play-share__panels {
++    max-height: calc(100dvh - 150px);
++    overflow-y: auto;
++}
++
++body.caissa-simplified-play-active .caissa-play-share__panel {
++    display: grid;
++    gap: 16px;
++    padding: 20px;
++}
++
++body.caissa-simplified-play-active .caissa-play-share__panel[hidden] { display: none; }
++
++body.caissa-simplified-play-active .caissa-play-share__panel h3,
++body.caissa-simplified-play-active .caissa-play-share__note { margin: 0; }
++
++body.caissa-simplified-play-active .caissa-play-share__note {
++    color: var(--play-theme-text-muted, #b8c2cf);
++    line-height: 1.45;
++}
++
++body.caissa-simplified-play-active .caissa-play-share__field {
++    display: grid;
++    gap: 8px;
++}
++
++body.caissa-simplified-play-active .caissa-play-share__label {
++    color: var(--play-theme-text-muted, #c8d0dc);
++    font-size: .88rem;
++    font-weight: 800;
++}
++
++body.caissa-simplified-play-active .caissa-play-share__field-row {
++    display: flex;
++    align-items: stretch;
++    gap: 6px;
++}
++
++body.caissa-simplified-play-active :is(.caissa-play-share__input, .caissa-play-share__textarea) {
++    width: 100%;
++    min-width: 0;
++    padding: 12px;
++    border: 1px solid var(--panel-border);
++    border-radius: 9px;
++    background: color-mix(in srgb, var(--play-theme-card, #17202b) 86%, black 6%);
++    color: var(--play-theme-text, #fff);
++    font: 500 .88rem/1.45 'Roboto Mono', monospace;
++}
++
++body.caissa-simplified-play-active .caissa-play-share__textarea {
++    min-height: 190px;
++    resize: vertical;
++}
++
++body.caissa-simplified-play-active .caissa-play-share__textarea--embed { min-height: 120px; }
++
++body.caissa-simplified-play-active .caissa-play-share__primary {
++    display: inline-flex;
++    align-items: center;
++    justify-content: center;
++    gap: 9px;
++    width: 100%;
++    min-height: 52px;
++    padding: 10px 16px;
++    border: 1px solid #bd9230;
++    border-radius: 10px;
++    background: linear-gradient(180deg, #edc45d, #d9a83c);
++    color: #18130a;
++    font-weight: 850;
++    cursor: pointer;
++}
++
++body.caissa-simplified-play-active .caissa-play-share__canvas {
++    display: block;
++    width: min(100%, 480px);
++    height: auto;
++    margin-inline: auto;
++    border: 1px solid var(--panel-border);
++    border-radius: 10px;
++    background: #101721;
++}
++
++@media (max-width: 520px) {
++    body.caissa-simplified-play-active .caissa-play-share {
++        width: calc(100vw - 12px);
++        max-height: calc(100dvh - 12px);
++        border-radius: 12px;
++    }
++    body.caissa-simplified-play-active .caissa-play-share__header { min-height: 56px; padding: 8px 12px; }
++    body.caissa-simplified-play-active .caissa-play-share__tab { min-height: 52px; font-size: .86rem; }
++    body.caissa-simplified-play-active .caissa-play-share__panel { gap: 12px; padding: 14px; }
++    body.caissa-simplified-play-active .caissa-play-share__textarea { min-height: 160px; }
++}
++
+ body.caissa-simplified-play-active .caissa-simplified-shell__board-region .board-with-eval {
+     gap: var(--shell-rail-gap);
+     align-items: stretch;
+@@ -1167,6 +1351,11 @@ body.caissa-simplified-play-active #playSection #evalBar {
+     min-height: var(--play-board-size) !important;
+ }
+ 
++body.caissa-simplified-play-active #playSection .eval-score-badge {
++    top: 8px;
++    transform: none;
++}
++
+ body.caissa-simplified-play-active #playSection #chessboard {
+     width: var(--play-board-size) !important;
+     height: var(--play-board-size) !important;
+diff --git a/index.html b/index.html
+index 6e0c80f..4ae2570 100644
+--- a/index.html
++++ b/index.html
+@@ -101,7 +101,7 @@
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.16.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.17.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -5006,7 +5006,7 @@
+     <script src="js/play/clock-service.js?v=1.0.0"></script>
+     <script src="js/play/chessboard-adapter.js?v=1.0.0"></script>
+     <script src="js/play/evaluation-rail.js?v=1.0.0"></script>
+-    <script src="app.js?v=2.0.22"></script>
++    <script src="app.js?v=2.0.23"></script>
+     <script src="js/play/opponent-strength.js?v=1.0.0"></script>
+     <script src="js/play/legacy-play-compatibility.js?v=1.4.0"></script>
+     <script src="js/play/play-v2-identity-policy.js?v=1.0.0"></script>
+@@ -5042,7 +5042,7 @@
+     <script src="js/play/performance/play-performance-budget.js?v=1.0.0"></script>
+     <script src="js/play/performance/play-performance-probe.js?v=1.0.0"></script>
+     <script src="js/play/performance/play-lazy-load-contracts.js?v=1.0.0"></script>
+-    <script src="js/play/performance/play-load-registry.js?v=1.1.5"></script>
++    <script src="js/play/performance/play-load-registry.js?v=1.1.6"></script>
+     <script src="js/play/performance/play-prefetch-policy.js?v=1.0.0"></script>
+     <script src="js/play/performance/play-lazy-loader.js?v=1.0.2"></script>
+     <script src="js/play/analytics/play-mode-selection-analytics.js?v=1.0.0"></script>
+@@ -5051,7 +5051,8 @@
+     <script src="js/play/analytics/play-postgame-analytics.js?v=1.0.0"></script>
+     <script src="js/play/analytics/play-mentor-engagement-analytics.js?v=1.0.0"></script>
+     <script src="js/play/post-game-experience.js?v=1.8.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.20.0"></script>
++    <script src="js/play/play-share-dialog.js?v=1.0.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.21.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/js/play/native-coach/coach-move-review.js b/js/play/native-coach/coach-move-review.js
+new file mode 100644
+index 0000000..12262a1
+--- /dev/null
++++ b/js/play/native-coach/coach-move-review.js
+@@ -0,0 +1,66 @@
++(function installCoachMoveReview(root) {
++    'use strict';
++
++    const SCHEMA_VERSION = '1.0.0';
++    const COLORS = Object.freeze(['white', 'black']);
++    const UCI = /^[a-h][1-8][a-h][1-8][qrbn]?$/;
++    const MAX_TEXT = 32;
++
++    const freeze = value => {
++        if (value && typeof value === 'object' && !Object.isFrozen(value)) {
++            Object.values(value).forEach(freeze);
++            Object.freeze(value);
++        }
++        return value;
++    };
++    const finite = value => typeof value === 'number' && Number.isFinite(value);
++    const clean = value => typeof value === 'string' ? value.trim().slice(0, MAX_TEXT) : '';
++    const playerValue = (score, color) => color === 'white' ? score : -score;
++    const mateValue = (mate, color) => {
++        if (!finite(mate) || mate === 0) return null;
++        const whiteValue = mate > 0 ? 100 : -100;
++        return color === 'white' ? whiteValue : -whiteValue;
++    };
++    const positionValue = (score, mate, color) => mateValue(mate, color)
++        ?? (finite(score) ? playerValue(score, color) : null);
++
++    function createReview(input = {}) {
++        const playedUci = clean(input.playedUci).toLowerCase();
++        const bestUci = clean(input.bestUci).toLowerCase();
++        const playedSan = clean(input.playedSan);
++        const bestSan = clean(input.bestSan);
++        const playerColor = input.playerColor;
++        if (!COLORS.includes(playerColor) || !UCI.test(playedUci) || !UCI.test(bestUci)
++            || !playedSan || !bestSan) return freeze({ ok: false, reasonCode: 'INVALID_REVIEW' });
++
++        if (playedUci === bestUci) return freeze({
++            ok: true, reasonCode: 'BEST_MOVE', quality: 'best', loss: 0,
++            message: `Excellent: ${playedSan} matches Stockfish’s best choice.`
++        });
++
++        const before = positionValue(input.beforeScore, input.beforeMate, playerColor);
++        const after = positionValue(input.afterScore, input.afterMate, playerColor);
++        const loss = finite(before) && finite(after) ? Math.max(0, before - after) : null;
++        if (loss === null) return freeze({
++            ok: true, reasonCode: 'PREFERRED_MOVE', quality: 'unscored', loss: null,
++            message: `You played ${playedSan}. Stockfish preferred ${bestSan}; compare what that move improves.`
++        });
++        if (loss < 0.25) return freeze({
++            ok: true, reasonCode: 'STRONG_ALTERNATIVE', quality: 'strong', loss,
++            message: `${playedSan} keeps the position healthy. Stockfish’s first choice was ${bestSan}.`
++        });
++        if (loss < 0.7) return freeze({
++            ok: true, reasonCode: 'MORE_PRECISE_MOVE', quality: 'inaccuracy', loss,
++            message: `You played ${playedSan}. A more precise choice was ${bestSan}.`
++        });
++        return freeze({
++            ok: true, reasonCode: 'BETTER_MOVE', quality: 'mistake', loss,
++            message: `You played ${playedSan}. Better was ${bestSan}; it would have kept your position stronger.`
++        });
++    }
++
++    root.CaissaCoachMoveReview = freeze({
++        schemaVersion: SCHEMA_VERSION,
++        createReview
++    });
++})(typeof window !== 'undefined' ? window : globalThis);
+diff --git a/js/play/performance/play-load-registry.js b/js/play/performance/play-load-registry.js
+index e22a1fd..0215585 100644
+--- a/js/play/performance/play-load-registry.js
++++ b/js/play/performance/play-load-registry.js
+@@ -47,6 +47,7 @@
+                 'js/play/native-coach/coach-entitlement-client.js?v=1.1.0',
+                 'js/play/native-coach/coach-assistance-sanitizer.js?v=1.0.0',
+                 'js/play/native-coach/coach-assistance.js?v=1.0.0',
++                'js/play/native-coach/coach-move-review.js?v=1.0.0',
+                 'js/play/native-coach/coach-dialogue.js?v=1.1.0',
+                 'js/play/native-coach/coach-panel.js?v=2.5.0'
+             ])
+diff --git a/js/play/play-share-dialog.js b/js/play/play-share-dialog.js
+new file mode 100644
+index 0000000..afebaaa
+--- /dev/null
++++ b/js/play/play-share-dialog.js
+@@ -0,0 +1,297 @@
++(function installPlayShareDialog(root) {
++    'use strict';
++
++    const SCHEMA_VERSION = '1.0.0';
++    const TABS = Object.freeze(['pgn', 'image', 'gif', 'embed']);
++    const PIECE = /^[prnbqkPRNBQK]$/;
++    const DEFAULT_ORIGIN = 'https://www.caissa-chess.org';
++    const freeze = value => {
++        if (value && typeof value === 'object' && !Object.isFrozen(value)) {
++            Object.values(value).forEach(freeze); Object.freeze(value);
++        }
++        return value;
++    };
++    const node = (tag, className = '', attributes = {}) => {
++        const item = root.document.createElement(tag); item.className = className;
++        Object.entries(attributes).forEach(([key, value]) => item.setAttribute(key, value));
++        return item;
++    };
++    const clean = (value, limit = 100000) => typeof value === 'string' ? value.slice(0, limit) : '';
++    const safeOrigin = value => {
++        try {
++            const url = new URL(value || DEFAULT_ORIGIN);
++            return /^https?:$/.test(url.protocol) ? url.origin : DEFAULT_ORIGIN;
++        } catch (_) { return DEFAULT_ORIGIN; }
++    };
++    function buildEmbedCode(fen, origin = DEFAULT_ORIGIN) {
++        const position = clean(fen, 180).trim();
++        if (!position) return '';
++        const src = `${safeOrigin(origin)}/analyze?fen=${encodeURIComponent(position)}&embed=1`;
++        return `<iframe src="${src}" title="CAISSA Chess position" width="720" height="720" loading="lazy"></iframe>`;
++    }
++    const escapeHeader = value => clean(String(value || ''), 160)
++        .replaceAll('\\', '\\\\').replaceAll('"', '\\"');
++    function buildSharePgn(input = {}) {
++        const source = clean(input.pgn).trim();
++        if (/^\s*\[[A-Za-z][A-Za-z0-9_]*\s+"/m.test(source)) return source;
++        const mode = clean(input.mode, 24).trim();
++        const event = mode === 'coach' ? 'CAISSA Play Coach'
++            : mode === 'bots' ? 'CAISSA Play Bots' : 'CAISSA Play Game';
++        const playerColor = input.playerColor === 'black' ? 'black' : 'white';
++        const opponent = clean(input.opponent, 80).trim() || (mode === 'coach' ? 'Caissa Coach'
++            : mode === 'bots' ? 'CAISSA Bot' : 'CAISSA Engine');
++        const result = ['1-0', '0-1', '1/2-1/2'].includes(input.result) ? input.result : '*';
++        const date = /^\d{4}\.\d{2}\.\d{2}$/.test(input.date || '') ? input.date : '????.??.??';
++        const headers = [
++            ['Event', event], ['Site', 'CAISSA Chess'], ['Date', date], ['Round', '?'],
++            ['White', playerColor === 'white' ? 'Player' : opponent],
++            ['Black', playerColor === 'black' ? 'Player' : opponent], ['Result', result]
++        ];
++        const opening = clean(input.opening, 120).trim();
++        if (opening) headers.push(['Opening', opening]);
++        let body = source;
++        if (body && !/(?:^|\s)(?:1-0|0-1|1\/2-1\/2|\*)\s*$/.test(body)) body = `${body} ${result}`;
++        else if (!body) body = result;
++        return `${headers.map(([name, value]) => `[${name} "${escapeHeader(value)}"]`).join('\n')}\n\n${body}`;
++    }
++    function parseFenPieces(fen, orientation = 'white') {
++        const placement = clean(fen, 180).trim().split(/\s+/)[0] || '';
++        const ranks = placement.split('/');
++        if (ranks.length !== 8) return freeze([]);
++        const pieces = [];
++        for (let rankIndex = 0; rankIndex < 8; rankIndex += 1) {
++            let fileIndex = 0;
++            for (const token of ranks[rankIndex]) {
++                if (/^[1-8]$/.test(token)) { fileIndex += Number(token); continue; }
++                if (!PIECE.test(token) || fileIndex > 7) return freeze([]);
++                const white = token === token.toUpperCase();
++                pieces.push({
++                    code: `${white ? 'w' : 'b'}${token.toUpperCase()}`,
++                    column: orientation === 'black' ? 7 - fileIndex : fileIndex,
++                    row: orientation === 'black' ? 7 - rankIndex : rankIndex
++                });
++                fileIndex += 1;
++            }
++            if (fileIndex !== 8) return freeze([]);
++        }
++        return freeze(pieces);
++    }
++    function normalizeData(input = {}) {
++        const orientation = input.orientation === 'black' ? 'black' : 'white';
++        return freeze({
++            pgn: buildSharePgn(input), fen: clean(input.fen, 180).trim(), orientation,
++            opening: clean(input.opening, 120).trim(), mode: clean(input.mode, 24).trim()
++        });
++    }
++
++    class ShareDialog {
++        #dialog = null; #data = normalizeData(); #canvas = null; #listeners = []; #renderId = 0;
++
++        mount(options = {}) {
++            if (this.#dialog) return freeze({ ok: true, reasonCode: 'ALREADY_MOUNTED' });
++            const host = options.host;
++            if (!host?.appendChild) return freeze({ ok: false, reasonCode: 'INVALID_HOST' });
++            const dialog = this.#dialog = node('dialog', 'caissa-play-share', {
++                'aria-labelledby': 'caissa-play-share-title', 'data-caissa-play-share': ''
++            });
++            const header = node('header', 'caissa-play-share__header');
++            const title = node('h2', '', { id: 'caissa-play-share-title' }); title.textContent = 'Share game';
++            const close = node('button', 'caissa-play-share__close', {
++                type: 'button', 'data-share-action': 'close', 'aria-label': 'Close share window'
++            }); close.innerHTML = '<i class="fas fa-times" aria-hidden="true"></i>';
++            header.append(title, close);
++
++            const tabs = node('div', 'caissa-play-share__tabs', { role: 'tablist', 'aria-label': 'Share formats' });
++            const panels = node('div', 'caissa-play-share__panels');
++            for (const [id, label] of [['pgn', 'PGN'], ['image', 'Image'], ['gif', 'GIF'], ['embed', 'Embed']]) {
++                const tab = node('button', 'caissa-play-share__tab', {
++                    type: 'button', role: 'tab', 'data-share-tab': id,
++                    id: `caissa-share-tab-${id}`, 'aria-controls': `caissa-share-panel-${id}`,
++                    'aria-selected': String(id === 'pgn')
++                });
++                tab.textContent = label; tabs.appendChild(tab);
++                const panel = node('section', 'caissa-play-share__panel', {
++                    role: 'tabpanel', 'data-share-panel': id, id: `caissa-share-panel-${id}`,
++                    'aria-labelledby': `caissa-share-tab-${id}`
++                });
++                panel.hidden = id !== 'pgn'; panels.appendChild(panel);
++            }
++            this.#buildPgnPanel(panels.querySelector('[data-share-panel="pgn"]'));
++            this.#buildImagePanel(panels.querySelector('[data-share-panel="image"]'));
++            this.#buildComingSoonPanel(panels.querySelector('[data-share-panel="gif"]'));
++            this.#buildEmbedPanel(panels.querySelector('[data-share-panel="embed"]'));
++            dialog.append(header, tabs, panels); host.appendChild(dialog);
++            this.#listen(dialog, 'click', event => this.#handleClick(event));
++            this.#listen(dialog, 'close', () => { this.#renderId += 1; });
++            return freeze({ ok: true, reasonCode: 'MOUNTED' });
++        }
++        #field(labelText, control, action, actionLabel) {
++            const field = node('div', 'caissa-play-share__field');
++            const label = node('label', 'caissa-play-share__label'); label.textContent = labelText;
++            const row = node('div', 'caissa-play-share__field-row');
++            const copy = node('button', 'caissa-play-share__copy', {
++                type: 'button', 'data-share-action': action, 'aria-label': actionLabel, title: actionLabel
++            }); copy.innerHTML = '<i class="fas fa-copy" aria-hidden="true"></i>';
++            row.append(control, copy); field.append(label, row); return field;
++        }
++        #buildPgnPanel(panel) {
++            const fen = node('input', 'caissa-play-share__input', {
++                readonly: '', 'data-share-fen': '', 'aria-label': 'FEN position'
++            });
++            const pgn = node('textarea', 'caissa-play-share__textarea', {
++                readonly: '', 'data-share-pgn': '', rows: '11', 'aria-label': 'PGN game'
++            });
++            const download = node('button', 'caissa-play-share__primary', {
++                type: 'button', 'data-share-action': 'download-pgn'
++            }); download.innerHTML = '<i class="fas fa-download" aria-hidden="true"></i><span>Download PGN</span>';
++            panel.append(this.#field('FEN', fen, 'copy-fen', 'Copy FEN'),
++                this.#field('PGN', pgn, 'copy-pgn', 'Copy PGN'), download);
++        }
++        #buildImagePanel(panel) {
++            const copy = node('p', 'caissa-play-share__note');
++            copy.textContent = 'A branded image of the current position, ready to post or save.';
++            this.#canvas = node('canvas', 'caissa-play-share__canvas', {
++                width: '760', height: '850', 'aria-label': 'Preview of the current chess position'
++            });
++            const status = node('p', 'caissa-play-share__note', { 'data-share-image-status': '', role: 'status' });
++            const download = node('button', 'caissa-play-share__primary', {
++                type: 'button', 'data-share-action': 'download-image'
++            }); download.innerHTML = '<i class="fas fa-image" aria-hidden="true"></i><span>Download image</span>';
++            panel.append(copy, this.#canvas, status, download);
++        }
++        #buildComingSoonPanel(panel) {
++            const title = node('h3', ''); title.textContent = 'Animated game sharing';
++            const copy = node('p', 'caissa-play-share__note');
++            copy.textContent = 'GIF export is being prepared. PGN and Image are available now.';
++            panel.append(title, copy);
++        }
++        #buildEmbedPanel(panel) {
++            const copy = node('p', 'caissa-play-share__note');
++            copy.textContent = 'Embed the current position with a CAISSA analysis board.';
++            const code = node('textarea', 'caissa-play-share__textarea caissa-play-share__textarea--embed', {
++                readonly: '', 'data-share-embed': '', rows: '6', 'aria-label': 'Embed code'
++            });
++            panel.append(copy, this.#field('Embed code', code, 'copy-embed', 'Copy embed code'));
++        }
++        open(input = {}) {
++            if (!this.#dialog) return freeze({ ok: false, reasonCode: 'NOT_MOUNTED' });
++            this.#data = normalizeData(input);
++            if (!this.#data.fen || !this.#data.pgn) return freeze({ ok: false, reasonCode: 'GAME_UNAVAILABLE' });
++            this.#dialog.querySelector('[data-share-fen]').value = this.#data.fen;
++            this.#dialog.querySelector('[data-share-pgn]').value = this.#data.pgn;
++            this.#dialog.querySelector('[data-share-embed]').value = buildEmbedCode(this.#data.fen,
++                root.location?.origin || DEFAULT_ORIGIN);
++            this.#activateTab('pgn');
++            if (typeof this.#dialog.showModal === 'function') this.#dialog.showModal();
++            else this.#dialog.setAttribute('open', '');
++            this.#renderImage();
++            return freeze({ ok: true, reasonCode: 'OPENED' });
++        }
++        close() {
++            if (!this.#dialog) return false;
++            if (typeof this.#dialog.close === 'function') this.#dialog.close();
++            else this.#dialog.removeAttribute('open');
++            return true;
++        }
++        #activateTab(tabId) {
++            if (!TABS.includes(tabId) || !this.#dialog) return false;
++            this.#dialog.querySelectorAll('[data-share-tab]').forEach(tab => {
++                const active = tab.dataset.shareTab === tabId;
++                tab.setAttribute('aria-selected', String(active)); tab.tabIndex = active ? 0 : -1;
++            });
++            this.#dialog.querySelectorAll('[data-share-panel]').forEach(panel => {
++                panel.hidden = panel.dataset.sharePanel !== tabId;
++            });
++            if (tabId === 'image') this.#renderImage();
++            return true;
++        }
++        async #copy(value, label) {
++            if (!value || typeof root.navigator?.clipboard?.writeText !== 'function') return false;
++            try {
++                await root.navigator.clipboard.writeText(value);
++                root.showNotification?.(`${label} copied.`); return true;
++            } catch (_) { root.showErrorNotification?.(`Could not copy ${label}.`); return false; }
++        }
++        #download(content, type, extension) {
++            if (!content || !root.Blob || !root.URL?.createObjectURL) return false;
++            const url = root.URL.createObjectURL(new root.Blob([content], { type }));
++            const link = node('a'); link.href = url; link.download = `caissa-game-${Date.now()}.${extension}`;
++            link.click(); root.URL.revokeObjectURL(url); return true;
++        }
++        async #handleClick(event) {
++            const tab = event.target?.closest?.('[data-share-tab]')?.dataset?.shareTab;
++            if (tab) { this.#activateTab(tab); return; }
++            const action = event.target?.closest?.('[data-share-action]')?.dataset?.shareAction;
++            if (!action) return;
++            if (action === 'close') this.close();
++            else if (action === 'copy-fen') this.#copy(this.#data.fen, 'FEN');
++            else if (action === 'copy-pgn') this.#copy(this.#data.pgn, 'PGN');
++            else if (action === 'copy-embed') this.#copy(buildEmbedCode(this.#data.fen,
++                root.location?.origin || DEFAULT_ORIGIN), 'Embed code');
++            else if (action === 'download-pgn') this.#download(this.#data.pgn, 'application/x-chess-pgn', 'pgn');
++            else if (action === 'download-image') this.#downloadImage();
++        }
++        #loadPiece(code) {
++            return new Promise(resolve => {
++                if (typeof root.Image !== 'function') { resolve(null); return; }
++                const image = new root.Image();
++                image.onload = () => resolve(image); image.onerror = () => resolve(null);
++                image.src = `/img/chesspieces/wikipedia/${code}.png`;
++            });
++        }
++        async #renderImage() {
++            if (!this.#canvas || !this.#data.fen) return false;
++            const renderId = ++this.#renderId;
++            const status = this.#dialog?.querySelector('[data-share-image-status]');
++            if (status) status.textContent = 'Preparing image…';
++            const context = this.#canvas.getContext?.('2d');
++            if (!context) { if (status) status.textContent = 'Image preview is unavailable.'; return false; }
++            const pieces = parseFenPieces(this.#data.fen, this.#data.orientation);
++            const size = 720; const offset = 20; const square = size / 8;
++            context.fillStyle = '#101721'; context.fillRect(0, 0, 760, 850);
++            for (let row = 0; row < 8; row += 1) for (let column = 0; column < 8; column += 1) {
++                context.fillStyle = (row + column) % 2 === 0 ? '#ead9b8' : '#ad8d6c';
++                context.fillRect(offset + column * square, offset + row * square, square, square);
++            }
++            const images = await Promise.all(pieces.map(piece => this.#loadPiece(piece.code)));
++            if (renderId !== this.#renderId) return false;
++            pieces.forEach((piece, index) => {
++                const image = images[index]; if (!image) return;
++                context.drawImage(image, offset + piece.column * square + 5,
++                    offset + piece.row * square + 5, square - 10, square - 10);
++            });
++            context.fillStyle = '#f5cd69'; context.font = '700 29px Arial, sans-serif';
++            context.fillText('CAISSA CHESS', 24, 786);
++            context.fillStyle = '#d8dee8'; context.font = '20px Arial, sans-serif';
++            const subtitle = this.#data.opening || 'Current game position';
++            context.fillText(subtitle.slice(0, 58), 24, 821);
++            context.textAlign = 'right'; context.fillStyle = '#9eabb9'; context.font = '17px Arial, sans-serif';
++            context.fillText('caissa-chess.org', 736, 815); context.textAlign = 'left';
++            if (status) status.textContent = 'Image ready.';
++            return true;
++        }
++        async #downloadImage() {
++            await this.#renderImage();
++            if (!this.#canvas?.toBlob) return false;
++            this.#canvas.toBlob(blob => {
++                if (!blob || !root.URL?.createObjectURL) return;
++                const url = root.URL.createObjectURL(blob); const link = node('a');
++                link.href = url; link.download = `caissa-position-${Date.now()}.png`; link.click();
++                root.URL.revokeObjectURL(url);
++            }, 'image/png');
++            return true;
++        }
++        dispose() {
++            this.#listeners.splice(0).forEach(({ target, type, handler }) => target.removeEventListener(type, handler));
++            this.#dialog?.remove(); this.#dialog = null; this.#canvas = null; this.#renderId += 1; return true;
++        }
++        #listen(target, type, handler) {
++            target.addEventListener(type, handler); this.#listeners.push({ target, type, handler });
++        }
++    }
++
++    root.CaissaPlayShareDialog = freeze({
++        schemaVersion: SCHEMA_VERSION, tabs: TABS, buildEmbedCode, buildSharePgn, parseFenPieces, normalizeData,
++        create: () => new ShareDialog()
++    });
++})(typeof window !== 'undefined' ? window : globalThis);
+diff --git a/js/play/simplified-play-shell.js b/js/play/simplified-play-shell.js
+index 83b9473..3b23dac 100644
+--- a/js/play/simplified-play-shell.js
++++ b/js/play/simplified-play-shell.js
+@@ -1,8 +1,8 @@
+ (function (global) {
+     'use strict';
+ 
+-    const SCHEMA_VERSION = '1.9.0';
+-    const SNAPSHOT_SCHEMA_VERSION = '1.9.0';
++    const SCHEMA_VERSION = '1.10.0';
++    const SNAPSHOT_SCHEMA_VERSION = '1.10.0';
+     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'unavailable', 'error']);
+     const REGIONS = Object.freeze([
+         'mode-navigation', 'board-stage', 'opponent-header', 'evaluation-rail',
+@@ -110,6 +110,7 @@
+         #layoutMode = null; #geometry = null; #resizeCount = 0; #activationCount = 0; #statusNode = null;
+         #gamesPanel = null; #botsPanel = null; #coachPanel = null; #postGame = null;
+         #activeContext = null; #assistance = null; #actionBar = null; #pgnDialog = null; #settingsDialog = null;
++        #shareDialog = null;
+         #stateObserver = null; #panelObserver = null;
+         #panelLoadToken = 0;
+         #accessibility = null;
+@@ -316,6 +317,8 @@
+             root.append(preview, workspace, this.#pgnDialog, this.#settingsDialog);
+             stage.appendChild(root);
+             this.#root = root;
++            this.#shareDialog = global.CaissaPlayShareDialog?.create?.() || null;
++            this.#shareDialog?.mount?.({ host: root });
+             const accessibility = global.CaissaPlayAccessibility?.create?.(root);
+             if (accessibility?.schemaVersion) this.#accessibility = accessibility;
+             this.#unsubscribeRoute = global.CaissaPlayRouteController?.subscribe?.(() => this.syncRoute()) || null;
+@@ -712,6 +715,7 @@
+             this.#removeListeners();
+             this.#unsubscribeRoute?.(); this.#unsubscribeRoute = null;
+             this.#accessibility?.dispose?.(); this.#accessibility = null;
++            this.#shareDialog?.dispose?.(); this.#shareDialog = null;
+             this.#root?.remove(); this.#root = null;
+             return result(true, 'accepted', 'UNMOUNTED');
+         }
+@@ -1012,11 +1016,20 @@
+                 let pgn = '';
+                 try { pgn = global.CaissaGameRecord?.buildFromPlay?.()?.notation?.pgn || global.App?.game?.pgn?.() || ''; }
+                 catch (_) { pgn = ''; }
+-                if (!pgn) return;
+-                if (typeof global.navigator?.share === 'function')
+-                    global.navigator.share({ title: 'CAISSA Chess game', text: pgn }).catch(() => {});
+-                else global.navigator?.clipboard?.writeText?.(pgn)
+-                    .then(() => global.showNotification?.('PGN copied for sharing.')).catch(() => {});
++                let fen = '';
++                try { fen = global.App?.game?.fen?.() || ''; } catch (_) { fen = ''; }
++                const activeBot = global.CaissaBotSession?.getSnapshot?.()?.activePresentation;
++                const opponent = this.#mode === 'coach' ? 'Caissa Coach'
++                    : this.#mode === 'bots' ? activeBot?.name || 'CAISSA Bot' : 'CAISSA Engine';
++                this.#shareDialog?.open?.({
++                    pgn, fen, mode: this.#mode,
++                    opening: global.App?.currentOpening?.name || '',
++                    opponent, playerColor: global.App?.playerColor,
++                    result: global.App?.gameStatus?.result,
++                    date: new Date().toISOString().slice(0, 10).replaceAll('-', '.'),
++                    orientation: global.App?.boardAdapter?.getSnapshot?.().orientation
++                        || (global.App?.isFlipped ? 'black' : 'white')
++                });
+             } else if (action === 'flip-board') global.document.getElementById('menuFlipBoard')?.click?.();
+             else if (action === 'close-settings') this.#settingsDialog.hidden = true;
+             else if (action === 'pgn') {
+diff --git a/play-v2-ipad-analyze-diagnostic.html b/play-v2-ipad-analyze-diagnostic.html
+index d530ae1..1419baa 100644
+--- a/play-v2-ipad-analyze-diagnostic.html
++++ b/play-v2-ipad-analyze-diagnostic.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.16.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.17.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3036,7 +3036,7 @@
+     <script src="js/play/clock-service.js?v=1.0.0"></script>
+     <script src="js/play/chessboard-adapter.js?v=1.0.0"></script>
+     <script src="js/play/evaluation-rail.js?v=1.0.0"></script>
+-    <script src="app.js?v=2.0.22"></script>
++    <script src="app.js?v=2.0.23"></script>
+     <script src="js/play/opponent-strength.js?v=1.0.0"></script>
+     <script src="js/play/legacy-play-compatibility.js?v=1.4.0"></script>
+     <script src="js/play/play-v2-identity-policy.js?v=1.0.0"></script>
+@@ -3069,7 +3069,7 @@
+     <script src="js/play/performance/play-performance-budget.js?v=1.0.0"></script>
+     <script src="js/play/performance/play-performance-probe.js?v=1.0.0"></script>
+     <script src="js/play/performance/play-lazy-load-contracts.js?v=1.0.0"></script>
+-    <script src="js/play/performance/play-load-registry.js?v=1.1.5"></script>
++    <script src="js/play/performance/play-load-registry.js?v=1.1.6"></script>
+     <script src="js/play/performance/play-prefetch-policy.js?v=1.0.0"></script>
+     <script src="js/play/performance/play-lazy-loader.js?v=1.0.2"></script>
+ 
+@@ -3078,7 +3078,8 @@
+     <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.20.0"></script>
++    <script src="js/play/play-share-dialog.js?v=1.0.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.21.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/play-v2-promotion-qa.html b/play-v2-promotion-qa.html
+index 60a1bbb..2d1dbbe 100644
+--- a/play-v2-promotion-qa.html
++++ b/play-v2-promotion-qa.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.16.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.17.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3036,7 +3036,7 @@
+     <script src="js/play/clock-service.js?v=1.0.0"></script>
+     <script src="js/play/chessboard-adapter.js?v=1.0.0"></script>
+     <script src="js/play/evaluation-rail.js?v=1.0.0"></script>
+-    <script src="app.js?v=2.0.22"></script>
++    <script src="app.js?v=2.0.23"></script>
+     <script src="js/play/opponent-strength.js?v=1.0.0"></script>
+     <script src="js/play/legacy-play-compatibility.js?v=1.4.0"></script>
+     <script src="js/play/play-v2-identity-policy.js?v=1.0.0"></script>
+@@ -3069,7 +3069,7 @@
+     <script src="js/play/performance/play-performance-budget.js?v=1.0.0"></script>
+     <script src="js/play/performance/play-performance-probe.js?v=1.0.0"></script>
+     <script src="js/play/performance/play-lazy-load-contracts.js?v=1.0.0"></script>
+-    <script src="js/play/performance/play-load-registry.js?v=1.1.5"></script>
++    <script src="js/play/performance/play-load-registry.js?v=1.1.6"></script>
+     <script src="js/play/performance/play-prefetch-policy.js?v=1.0.0"></script>
+     <script src="js/play/performance/play-lazy-loader.js?v=1.0.2"></script>
+ 
+@@ -3078,7 +3078,8 @@
+     <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.20.0"></script>
++    <script src="js/play/play-share-dialog.js?v=1.0.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.21.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/play-v2-public-beta.html b/play-v2-public-beta.html
+index 5919942..f2715e5 100644
+--- a/play-v2-public-beta.html
++++ b/play-v2-public-beta.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.16.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.17.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3035,7 +3035,7 @@
+     <script src="js/play/clock-service.js?v=1.0.0"></script>
+     <script src="js/play/chessboard-adapter.js?v=1.0.0"></script>
+     <script src="js/play/evaluation-rail.js?v=1.0.0"></script>
+-    <script src="app.js?v=2.0.22"></script>
++    <script src="app.js?v=2.0.23"></script>
+     <script src="js/play/opponent-strength.js?v=1.0.0"></script>
+     <script src="js/play/legacy-play-compatibility.js?v=1.4.0"></script>
+     <script src="js/play/play-v2-identity-policy.js?v=1.0.0"></script>
+@@ -3068,7 +3068,7 @@
+     <script src="js/play/performance/play-performance-budget.js?v=1.0.0"></script>
+     <script src="js/play/performance/play-performance-probe.js?v=1.0.0"></script>
+     <script src="js/play/performance/play-lazy-load-contracts.js?v=1.0.0"></script>
+-    <script src="js/play/performance/play-load-registry.js?v=1.1.5"></script>
++    <script src="js/play/performance/play-load-registry.js?v=1.1.6"></script>
+     <script src="js/play/performance/play-prefetch-policy.js?v=1.0.0"></script>
+     <script src="js/play/performance/play-lazy-loader.js?v=1.0.2"></script>
+     <script src="js/play/analytics/play-mode-selection-analytics.js?v=1.0.0"></script>
+@@ -3078,7 +3078,8 @@
+     <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.20.0"></script>
++    <script src="js/play/play-share-dialog.js?v=1.0.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.21.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/play-v2.html b/play-v2.html
+index 15b6bc0..642455a 100644
+--- a/play-v2.html
++++ b/play-v2.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.16.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.17.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3034,7 +3034,7 @@
+     <script src="js/play/clock-service.js?v=1.0.0"></script>
+     <script src="js/play/chessboard-adapter.js?v=1.0.0"></script>
+     <script src="js/play/evaluation-rail.js?v=1.0.0"></script>
+-    <script src="app.js?v=2.0.22"></script>
++    <script src="app.js?v=2.0.23"></script>
+     <script src="js/play/opponent-strength.js?v=1.0.0"></script>
+     <script src="js/play/legacy-play-compatibility.js?v=1.4.0"></script>
+     <script src="js/play/play-v2-identity-policy.js?v=1.0.0"></script>
+@@ -3067,7 +3067,7 @@
+     <script src="js/play/performance/play-performance-budget.js?v=1.0.0"></script>
+     <script src="js/play/performance/play-performance-probe.js?v=1.0.0"></script>
+     <script src="js/play/performance/play-lazy-load-contracts.js?v=1.0.0"></script>
+-    <script src="js/play/performance/play-load-registry.js?v=1.1.5"></script>
++    <script src="js/play/performance/play-load-registry.js?v=1.1.6"></script>
+     <script src="js/play/performance/play-prefetch-policy.js?v=1.0.0"></script>
+     <script src="js/play/performance/play-lazy-loader.js?v=1.0.2"></script>
+     <script src="js/play/analytics/play-mode-selection-analytics.js?v=1.0.0"></script>
+@@ -3077,7 +3077,8 @@
+     <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.20.0"></script>
++    <script src="js/play/play-share-dialog.js?v=1.0.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.21.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/tests/browser/play-coach-stockfish-share.spec.js b/tests/browser/play-coach-stockfish-share.spec.js
+new file mode 100644
+index 0000000..b57f3dd
+--- /dev/null
++++ b/tests/browser/play-coach-stockfish-share.spec.js
+@@ -0,0 +1,92 @@
++import { test, expect } from '@playwright/test';
++import { instrumentPlay, playMove } from '../play/playwright-helpers.js';
++
++test.beforeEach(async ({ page }) => {
++    await instrumentPlay(page, {
++        bestMoves: ['e2e4', 'e7e5', 'e7e5'],
++        scores: [20, 120, 34],
++        depth: 12,
++        delayMs: 10
++    });
++    await page.addInitScript(() => {
++        window.__caissaCoachNarrations = [];
++        window.addEventListener('caissa-coach-narration', event => {
++            if (typeof event.detail?.message === 'string') window.__caissaCoachNarrations.push(event.detail.message);
++        });
++    });
++});
++
++async function startCoach(page) {
++    await page.goto('/play/coach');
++    const panel = page.locator('[data-caissa-native-coach-panel]');
++    await expect(panel).toBeVisible();
++    await panel.getByRole('button', { name: 'Play' }).click();
++    await expect.poll(() => page.evaluate(() => window.App.currentEvaluation?.bestMove || null))
++        .toBe('e2e4');
++    return panel;
++}
++
++test('Coach explains a meaningful Stockfish deviation without evaluation numbers', async ({ page }) => {
++    await startCoach(page);
++    expect(await playMove(page, 'a2', 'a3')).toBe(true);
++
++    await expect.poll(() => page.evaluate(() => window.__caissaCoachNarrations.find(message =>
++        /Better was e4/.test(message)) || null)).toContain('Better was e4');
++    const review = await page.evaluate(() => window.__caissaCoachNarrations.find(message =>
++        /Better was e4/.test(message)));
++    expect(review).not.toMatch(/[+-]\d|\d+\.\d+/);
++    await expect.poll(() => page.evaluate(() => window.App.game.history())).toEqual(['a3', 'e5']);
++    expect(await page.evaluate(() => window.App.pendingCoachMoveReview)).toBeNull();
++});
++
++test('Share stays inside CAISSA and Coach layout remains bounded on desktop and phone', async ({ page }) => {
++    await page.setViewportSize({ width: 1440, height: 900 });
++    const panel = await startCoach(page);
++    const desktop = await page.evaluate(() => {
++        const board = document.querySelector('.caissa-simplified-shell__board-stage').getBoundingClientRect();
++        const context = document.querySelector('.caissa-simplified-shell__context').getBoundingClientRect();
++        const rail = document.querySelector('#evalBar').getBoundingClientRect();
++        const badge = document.querySelector('.eval-score-badge').getBoundingClientRect();
++        const coach = document.querySelector('[data-caissa-native-coach-panel]').getBoundingClientRect();
++        const persona = document.querySelector('.caissa-native-coach-panel__persona').getBoundingClientRect();
++        return {
++            contextBottomDelta: Math.abs(context.bottom - board.bottom),
++            badgeTopDelta: badge.top - rail.top,
++            personaTopDelta: persona.top - coach.top
++        };
++    });
++    expect(desktop.contextBottomDelta).toBeLessThanOrEqual(3);
++    expect(desktop.badgeTopDelta).toBeGreaterThanOrEqual(0);
++    expect(desktop.badgeTopDelta).toBeLessThanOrEqual(16);
++    expect(desktop.personaTopDelta).toBeLessThanOrEqual(16);
++
++    await page.locator('[data-active-game-action="share"]').click();
++    const dialog = page.locator('[data-caissa-play-share]');
++    await expect(dialog).toBeVisible();
++    await expect(dialog.getByRole('tab')).toHaveCount(4);
++    await expect(dialog.getByRole('tab', { name: 'PGN' })).toHaveAttribute('aria-selected', 'true');
++    await expect(dialog.locator('[data-share-fen]')).not.toHaveValue('');
++    await expect(dialog.locator('[data-share-pgn]')).toHaveValue(/\[Event/);
++    await dialog.getByRole('tab', { name: 'Image' }).click();
++    await expect(dialog.locator('[data-share-image-status]')).toHaveText('Image ready.');
++    await dialog.getByRole('tab', { name: 'GIF' }).click();
++    await expect(dialog).toContainText('being prepared');
++    await dialog.getByRole('tab', { name: 'Embed' }).click();
++    await expect(dialog.locator('[data-share-embed]')).toHaveValue(/CAISSA Chess position/);
++
++    await page.setViewportSize({ width: 390, height: 844 });
++    const mobile = await page.evaluate(() => {
++        const dialog = document.querySelector('[data-caissa-play-share]').getBoundingClientRect();
++        const board = document.querySelector('.caissa-simplified-shell__board-region').getBoundingClientRect();
++        const context = document.querySelector('.caissa-simplified-shell__context').getBoundingClientRect();
++        return {
++            overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
++            dialogInside: dialog.left >= 0 && dialog.right <= innerWidth && dialog.top >= 0 && dialog.bottom <= innerHeight,
++            boardBeforeContext: board.top < context.top
++        };
++    });
++    expect(mobile.overflow).toBeLessThanOrEqual(1);
++    expect(mobile.dialogInside).toBe(true);
++    expect(mobile.boardBeforeContext).toBe(true);
++    await expect(panel).toBeVisible();
++});
+diff --git a/tests/play/play-share-dialog.test.js b/tests/play/play-share-dialog.test.js
+new file mode 100644
+index 0000000..aabf708
+--- /dev/null
++++ b/tests/play/play-share-dialog.test.js
+@@ -0,0 +1,66 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import fs from 'node:fs';
++import vm from 'node:vm';
++
++const root = process.cwd();
++const context = vm.createContext({ globalThis: null, URL, encodeURIComponent }); context.globalThis = context;
++vm.runInContext(fs.readFileSync(`${root}/js/play/play-share-dialog.js`, 'utf8'), context);
++const share = context.CaissaPlayShareDialog;
++
++test('share surface exposes CAISSA-owned PGN, image, GIF and embed tabs', () => {
++    assert.equal(share.schemaVersion, '1.0.0');
++    assert.deepEqual(Array.from(share.tabs), ['pgn', 'image', 'gif', 'embed']);
++    const source = fs.readFileSync(`${root}/js/play/play-share-dialog.js`, 'utf8');
++    for (const label of ['PGN', 'Image', 'GIF', 'Embed']) assert.match(source, new RegExp(`'${label}'`));
++    assert.match(source, /Download PGN/);
++    assert.match(source, /Download image/);
++});
++
++test('embed code points to CAISSA Analyze with encoded FEN and embed mode', () => {
++    const fen = '8/8/8/8/8/8/8/K6k w - - 0 1';
++    const code = share.buildEmbedCode(fen, 'https://www.caissa-chess.org/path');
++    assert.match(code, /https:\/\/www\.caissa-chess\.org\/analyze\?fen=/);
++    assert.match(code, /embed=1/);
++    assert.match(code, /title="CAISSA Chess position"/);
++});
++
++test('share PGN adds CAISSA headers and preserves existing headers', () => {
++    const pgn = share.buildSharePgn({
++        pgn: '1. a3 e5', mode: 'coach', playerColor: 'white', opponent: 'Caissa Coach',
++        opening: 'King Pawn Game', date: '2026.09.03'
++    });
++    assert.match(pgn, /^\[Event "CAISSA Play Coach"\]/);
++    assert.match(pgn, /\[White "Player"\]/);
++    assert.match(pgn, /\[Black "Caissa Coach"\]/);
++    assert.match(pgn, /\[Opening "King Pawn Game"\]/);
++    assert.match(pgn, /1\. a3 e5 \*$/);
++    assert.equal(share.buildSharePgn({ pgn: '[Event "Imported"]\n\n1. e4 *' }),
++        '[Event "Imported"]\n\n1. e4 *');
++});
++
++test('FEN image parser preserves and flips piece coordinates', () => {
++    const fen = '7k/8/8/8/8/8/8/K7 w - - 0 1';
++    const white = share.parseFenPieces(fen, 'white');
++    const black = share.parseFenPieces(fen, 'black');
++    assert.deepEqual({ ...white.find(item => item.code === 'wK') }, { code: 'wK', column: 0, row: 7 });
++    assert.deepEqual({ ...black.find(item => item.code === 'wK') }, { code: 'wK', column: 7, row: 0 });
++});
++
++test('Share button opens the internal dialog instead of the operating-system share sheet', () => {
++    const shell = fs.readFileSync(`${root}/js/play/simplified-play-shell.js`, 'utf8');
++    assert.match(shell, /CaissaPlayShareDialog/);
++    assert.match(shell, /this\.#shareDialog\?\.open/);
++    assert.doesNotMatch(shell, /navigator\?\.share|navigator\.share/);
++    const html = fs.readFileSync(`${root}/play-v2-public-beta.html`, 'utf8');
++    assert.match(html, /play-share-dialog\.js\?v=1\.0\.0/);
++});
++
++test('share layout has responsive dialog, tab, canvas and accessible touch-target styles', () => {
++    const css = fs.readFileSync(`${root}/css/play-simplified-shell.css`, 'utf8');
++    assert.match(css, /caissa-play-share::backdrop/);
++    assert.match(css, /caissa-play-share__tabs/);
++    assert.match(css, /grid-template-columns:\s*repeat\(4/);
++    assert.match(css, /caissa-play-share__canvas/);
++    assert.match(css, /@media \(max-width: 520px\)/);
++});
+diff --git a/tests/play/play-v3-coach-move-review.test.js b/tests/play/play-v3-coach-move-review.test.js
+new file mode 100644
+index 0000000..3c6baa8
+--- /dev/null
++++ b/tests/play/play-v3-coach-move-review.test.js
+@@ -0,0 +1,61 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import fs from 'node:fs';
++import vm from 'node:vm';
++
++const root = process.cwd();
++const context = vm.createContext({ globalThis: null }); context.globalThis = context;
++vm.runInContext(fs.readFileSync(`${root}/js/play/native-coach/coach-move-review.js`, 'utf8'), context);
++const review = input => context.CaissaCoachMoveReview.createReview(input);
++const base = {
++    playedUci: 'g1f3', playedSan: 'Nf3', bestUci: 'g1f3', bestSan: 'Nf3',
++    playerColor: 'white', beforeScore: 0.3, afterScore: 0.3
++};
++
++test('Coach move review is versioned, immutable and identifies the engine choice', () => {
++    assert.equal(context.CaissaCoachMoveReview.schemaVersion, '1.0.0');
++    assert.equal(Object.isFrozen(context.CaissaCoachMoveReview), true);
++    const result = review(base);
++    assert.equal(result.reasonCode, 'BEST_MOVE');
++    assert.match(result.message, /Stockfish.*best choice/i);
++});
++
++test('Coach says the better SAN move without exposing evaluation numbers', () => {
++    const result = review({ ...base, playedUci: 'a2a3', playedSan: 'a3', bestUci: 'g1f3',
++        bestSan: 'Nf3', beforeScore: 0.4, afterScore: -0.8 });
++    assert.equal(result.reasonCode, 'BETTER_MOVE');
++    assert.match(result.message, /Better was Nf3/);
++    assert.doesNotMatch(result.message, /[+-]\d|evaluation|centipawn|depth/i);
++});
++
++test('near-equivalent choices are described without calling them mistakes', () => {
++    const result = review({ ...base, playedUci: 'e2e4', playedSan: 'e4', bestUci: 'd2d4',
++        bestSan: 'd4', beforeScore: 0.25, afterScore: 0.12 });
++    assert.equal(result.reasonCode, 'STRONG_ALTERNATIVE');
++    assert.doesNotMatch(result.message, /mistake|blunder|better was/i);
++});
++
++test('loss is measured from the player perspective when playing Black', () => {
++    const result = review({ ...base, playerColor: 'black', playedUci: 'a7a6', playedSan: 'a6',
++        bestUci: 'g8f6', bestSan: 'Nf6', beforeScore: -0.2, afterScore: 0.8 });
++    assert.equal(result.reasonCode, 'BETTER_MOVE');
++});
++
++test('malformed engine review data fails closed', () => {
++    assert.equal(review({ ...base, bestUci: 'Nf3' }).reasonCode, 'INVALID_REVIEW');
++    assert.equal(review({ ...base, playerColor: 'random' }).reasonCode, 'INVALID_REVIEW');
++});
++
++test('Play orchestration reviews before the opponent search and preserves local boundaries', () => {
++    const app = fs.readFileSync(`${root}/app.js`, 'utf8');
++    const registry = fs.readFileSync(`${root}/js/play/performance/play-load-registry.js`, 'utf8');
++    assert.match(app, /const preMoveEvaluation/);
++    assert.match(app, /scheduleCoachMoveReview\(move, preMoveEvaluation\)/);
++    assert.match(app, /info\.depth >= 11[\s\S]*finishCoachMoveReview\(info\)/);
++    assert.match(app, /if \(coachReviewState !== 'pending'\) maybeTriggerEngineMove\(\)/);
++    assert.match(registry, /coach-move-review\.js\?v=1\.0\.0/);
++    const reviewSource = fs.readFileSync(`${root}/js/play/native-coach/coach-move-review.js`, 'utf8');
++    assert.match(reviewSource, /Better was/);
++    for (const forbidden of [/fetch\s*\(/, /WebSocket/, /localStorage/, /sessionStorage/, /new\s+Worker/])
++        assert.doesNotMatch(reviewSource, forbidden);
++});
+diff --git a/tests/play/simplified-play-shell.test.js b/tests/play/simplified-play-shell.test.js
+index 0223e0a..7696427 100644
+--- a/tests/play/simplified-play-shell.test.js
++++ b/tests/play/simplified-play-shell.test.js
+@@ -19,8 +19,8 @@ function load() {
+ 
+ test('publishes frozen versioned shell and snapshot contracts', () => {
+     const { api } = load();
+-    assert.equal(api.schemaVersion, '1.9.0');
+-    assert.equal(api.snapshotSchemaVersion, '1.9.0');
++    assert.equal(api.schemaVersion, '1.10.0');
++    assert.equal(api.snapshotSchemaVersion, '1.10.0');
+     assert.ok(Object.isFrozen(api));
+     assert.ok(Object.isFrozen(api.statuses));
+     assert.ok(Object.isFrozen(api.regions));
+diff --git a/yahoo-classic.html b/yahoo-classic.html
+index 3c142b1..837908e 100644
+--- a/yahoo-classic.html
++++ b/yahoo-classic.html
+@@ -97,7 +97,7 @@
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.16.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.17.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/caissa-ui-foundation.css?v=1.0.2">
+@@ -5021,7 +5021,7 @@
+     <script src="js/play/clock-service.js?v=1.0.0"></script>
+     <script src="js/play/chessboard-adapter.js?v=1.0.0"></script>
+     <script src="js/play/evaluation-rail.js?v=1.0.0"></script>
+-    <script src="app.js?v=2.0.22"></script>
++    <script src="app.js?v=2.0.23"></script>
+     <script src="js/play/legacy-play-compatibility.js?v=1.4.0"></script>
+     <script src="js/play/play-v2-identity-policy.js?v=1.0.0"></script>
+     <script src="js/play/play-v2-mode-transition-policy.js?v=1.0.0"></script>
+@@ -5056,7 +5056,7 @@
+     <script src="js/play/performance/play-performance-budget.js?v=1.0.0"></script>
+     <script src="js/play/performance/play-performance-probe.js?v=1.0.0"></script>
+     <script src="js/play/performance/play-lazy-load-contracts.js?v=1.0.0"></script>
+-    <script src="js/play/performance/play-load-registry.js?v=1.1.3"></script>
++    <script src="js/play/performance/play-load-registry.js?v=1.1.6"></script>
+     <script src="js/play/performance/play-prefetch-policy.js?v=1.0.0"></script>
+     <script src="js/play/performance/play-lazy-loader.js?v=1.0.2"></script>
+     <script src="js/play/analytics/play-mode-selection-analytics.js?v=1.0.0"></script>
+@@ -5065,7 +5065,8 @@
+     <script src="js/play/analytics/play-postgame-analytics.js?v=1.0.0"></script>
+     <script src="js/play/analytics/play-mentor-engagement-analytics.js?v=1.0.0"></script>
+     <script src="js/play/post-game-experience.js?v=1.8.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.20.0"></script>
++    <script src="js/play/play-share-dialog.js?v=1.0.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.21.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
