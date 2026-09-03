@@ -150,7 +150,7 @@
         const suggestionButton = suggestion ? `<button type="button" class="nav-language-suggestion" data-caissa-locale-suggestion="${escapeAttribute(suggestion)}" aria-label="${escapeAttribute(suggestionLabel)}"><span aria-hidden="true">🌐</span> ${suggestionName}</button>` : '';
         return `<div class="nav-language-control" role="listitem">
             <label class="nav-language-field">
-                <span class="nav-language-label nav-label" data-caissa-i18n="language.title">${i18n.t('language.title', 'Language')}</span>
+                <span class="nav-language-label nav-label"><span class="nav-language-icon" aria-hidden="true">🌐</span><span data-caissa-i18n="language.title">${i18n.t('language.title', 'Language')}</span></span>
                 <select data-caissa-locale-select data-caissa-i18n-aria-label="language.selectorLabel" aria-label="${escapeAttribute(i18n.t('language.selectorLabel', 'Interface language'))}">${options}</select>
             </label>
             ${suggestionButton}

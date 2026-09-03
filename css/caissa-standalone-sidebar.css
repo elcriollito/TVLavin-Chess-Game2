@@ -119,11 +119,19 @@
 }
 
 .nav-language-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     color: #9aa7bd;
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+}
+
+.nav-language-icon {
+    font-size: 0.9rem;
+    line-height: 1;
 }
 
 .nav-language-field select,
@@ -480,6 +488,11 @@
     body.caissa-application-nav-open,
     body.caissa-trainer-nav-open {
         overflow: hidden;
+    }
+
+    .nav-language-field select,
+    .nav-language-suggestion {
+        min-height: 44px;
     }
 
     .caissa-application-sidebar-host .mobile-nav-toggle,
