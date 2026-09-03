@@ -1,0 +1,822 @@
+diff --git a/app.js b/app.js
+index c27316e..a108cf2 100644
+--- a/app.js
++++ b/app.js
+@@ -63,6 +63,7 @@ const App = {
+     currentEvaluation: null,
+     pendingCoachHint: false,
+     pendingCoachMoveReview: null,
++    coachMoveAnnotations: [],
+     coachOpeningKey: '',
+     engineRestartPending: false,
+     selectedEditorPiece: 'erase', // Piece to place in editor mode
+@@ -994,6 +995,9 @@ function onDrop(source, target) {
+ function onSnapEnd() {
+     App.board.position(App.game.fen());
+     clearMobileTapSource();
++    window.dispatchEvent(new CustomEvent('caissa-coach-move-annotation', {
++        detail: { active: false, reason: 'board-render' }
++    }));
+     // Unlock scroll after snap animation completes
+     unlockScroll();
+ }
+@@ -1096,6 +1100,7 @@ function undoMove() {
+     if (!undone) return false;
+ 
+     App.currentMoveIndex = App.moveHistory.length - 1;
++    trimCoachMoveAnnotations(App.moveHistory.length);
+     App.currentEvaluation = null;
+     App.pendingCoachHint = false;
+     document.body?.classList?.remove('caissa-coach-hint-active');
+@@ -1208,6 +1213,54 @@ function cancelCoachMoveReview() {
+     return true;
+ }
+ 
++function isCurrentCoachBookPosition() {
++    const ply = App.game?.history?.().length || 0;
++    const matchedDepth = Number(App.currentOpening?.matchedDepth) || 0;
++    return ply > 0 && !!App.currentOpening?.name && matchedDepth >= ply;
++}
++
++function recordCoachMoveAnnotation(move, review, ply = App.game?.history?.().length || 0) {
++    const annotation = review?.annotation;
++    const allowed = ['book', 'best', 'precise', 'good', 'inaccuracy', 'mistake', 'blunder'];
++    if (!isNativeCoachGame() || !move?.to || !/^[a-h][1-8]$/.test(move.to)
++        || !Number.isInteger(ply) || ply < 1 || !allowed.includes(annotation?.key)) return false;
++    const entry = Object.freeze({
++        ply, square: move.to, san: String(move.san || '').slice(0, 16),
++        key: annotation.key, symbol: annotation.symbol, label: annotation.label,
++        quality: review.quality, reasonCode: review.reasonCode
++    });
++    App.coachMoveAnnotations[ply - 1] = entry;
++    window.dispatchEvent(new CustomEvent('caissa-coach-move-annotation', {
++        detail: { active: true, annotation: entry }
++    }));
++    return true;
++}
++
++function trimCoachMoveAnnotations(length = App.moveHistory?.length || 0) {
++    if (!Array.isArray(App.coachMoveAnnotations)) App.coachMoveAnnotations = [];
++    App.coachMoveAnnotations.length = Math.max(0, Number.isInteger(length) ? length : 0);
++    window.dispatchEvent(new CustomEvent('caissa-coach-move-annotation', {
++        detail: { active: false, reason: 'history-change' }
++    }));
++}
++
++function clearCoachMoveAnnotations(reason = 'reset') {
++    App.coachMoveAnnotations = [];
++    window.dispatchEvent(new CustomEvent('caissa-coach-move-annotation', {
++        detail: { active: false, reason }
++    }));
++}
++
++function publishCoachMoveReview(move, review, ply) {
++    if (!review?.ok) return false;
++    recordCoachMoveAnnotation(move, review, ply);
++    return dispatchCoachNarration(review.message, {
++        actor: 'user', san: move.san, category: 'stockfish-move-review',
++        quality: review.quality, reasonCode: review.reasonCode,
++        annotation: review.annotation || null
++    });
++}
++
+ function finishCoachMoveReview(info = null) {
+     const pending = App.pendingCoachMoveReview;
+     if (!pending) return false;
+@@ -1229,19 +1282,25 @@ function finishCoachMoveReview(info = null) {
+         afterScore: info?.score,
+         afterMate: info?.mate
+     });
+-    if (review?.ok) dispatchCoachNarration(review.message, {
+-        actor: 'user', san: pending.playedSan, category: 'stockfish-move-review',
+-        quality: review.quality, reasonCode: review.reasonCode
+-    });
++    publishCoachMoveReview({ san: pending.playedSan, to: pending.to }, review, pending.ply);
+     if (App.gameActive && !App.game.game_over()) maybeTriggerEngineMove();
+     return true;
+ }
+ 
+ function scheduleCoachMoveReview(move, evaluation) {
+-    if (!isNativeCoachGame() || !window.CaissaCoachMoveReview || !evaluation
++    if (!isNativeCoachGame() || !window.CaissaCoachMoveReview) return null;
++    const playedUci = coachMoveToUci(move);
++    const ply = App.game?.history?.().length || 0;
++    if (playedUci && isCurrentCoachBookPosition()) {
++        const bookReview = window.CaissaCoachMoveReview.createReview({
++            playedUci, playedSan: move.san, playerColor: App.playerColor, bookMove: true
++        });
++        publishCoachMoveReview(move, bookReview, ply);
++        return 'complete';
++    }
++    if (!evaluation
+         || !Number.isFinite(evaluation.depth) || evaluation.depth < 10
+         || !coachEvaluationMatchesMove(evaluation.fen, move, App.game.fen())) return null;
+-    const playedUci = coachMoveToUci(move);
+     const bestUci = String(evaluation.bestMove || '').toLowerCase();
+     const bestSan = coachBestMoveSan(evaluation.fen, bestUci);
+     if (!playedUci || !bestSan) return null;
+@@ -1251,16 +1310,14 @@ function scheduleCoachMoveReview(move, evaluation) {
+         afterScore: evaluation.score, afterMate: evaluation.mate
+     });
+     if (playedUci === bestUci) {
+-        if (immediate?.ok) dispatchCoachNarration(immediate.message, {
+-            actor: 'user', san: move.san, category: 'stockfish-move-review', quality: immediate.quality
+-        });
++        publishCoachMoveReview(move, immediate, ply);
+         return 'complete';
+     }
+ 
+     cancelCoachMoveReview('superseded');
+     const afterFen = App.game.fen();
+     const pending = {
+-        afterFen, playedUci, playedSan: move.san, bestUci, bestSan,
++        afterFen, playedUci, playedSan: move.san, to: move.to, ply, bestUci, bestSan,
+         beforeScore: evaluation.score, beforeMate: evaluation.mate,
+         timeoutId: null
+     };
+@@ -2917,6 +2974,7 @@ function prepareNativePlaySetup() {
+     App.currentEvaluation = null;
+     App.pendingCoachHint = false;
+     App.pendingCoachMoveReview = null;
++    clearCoachMoveAnnotations('setup');
+     App.coachOpeningKey = '';
+     App.engineRestartPending = false;
+     document.body?.classList?.remove('caissa-coach-hint-active');
+@@ -2996,6 +3054,7 @@ function newGame(options = {}) {
+     App.currentEvaluation = null;
+     App.pendingCoachHint = false;
+     App.pendingCoachMoveReview = null;
++    clearCoachMoveAnnotations('new-game');
+     App.coachOpeningKey = '';
+     App.engineRestartPending = false;
+     document.body?.classList?.remove('caissa-coach-hint-active');
+diff --git a/css/play-simplified-shell.css b/css/play-simplified-shell.css
+index a86f1f5..3570875 100644
+--- a/css/play-simplified-shell.css
++++ b/css/play-simplified-shell.css
+@@ -874,10 +874,64 @@ body.caissa-simplified-play-active .caissa-simplified-shell__active-move-number
+ }
+ 
+ body.caissa-simplified-play-active .caissa-simplified-shell__active-move {
++    display: inline-flex;
++    align-items: center;
++    gap: 5px;
+     color: var(--play-theme-text, #fff);
+     font-weight: 750;
+ }
+ 
++body.caissa-simplified-play-active .caissa-coach-move-symbol,
++body.caissa-simplified-play-active #chessboard .caissa-coach-move-annotation {
++    --caissa-move-mark: #617087;
++    display: inline-grid;
++    place-items: center;
++    flex: 0 0 auto;
++    min-width: 1.45em;
++    height: 1.45em;
++    padding: 0 .2em;
++    border: 1px solid color-mix(in srgb, white 42%, transparent);
++    border-radius: 999px;
++    background: var(--caissa-move-mark);
++    color: #fff;
++    font-size: .72rem;
++    font-weight: 900;
++    line-height: 1;
++    box-shadow: 0 2px 7px rgb(0 0 0 / .32);
++    box-sizing: border-box;
++}
++
++body.caissa-simplified-play-active .caissa-coach-move-symbol--book,
++body.caissa-simplified-play-active #chessboard .caissa-coach-move-annotation--book { --caissa-move-mark: #9b7457; }
++body.caissa-simplified-play-active .caissa-coach-move-symbol--best,
++body.caissa-simplified-play-active #chessboard .caissa-coach-move-annotation--best { --caissa-move-mark: #3c9469; }
++body.caissa-simplified-play-active .caissa-coach-move-symbol--precise,
++body.caissa-simplified-play-active #chessboard .caissa-coach-move-annotation--precise { --caissa-move-mark: #347fa7; }
++body.caissa-simplified-play-active .caissa-coach-move-symbol--good,
++body.caissa-simplified-play-active #chessboard .caissa-coach-move-annotation--good { --caissa-move-mark: #6b9847; }
++body.caissa-simplified-play-active .caissa-coach-move-symbol--inaccuracy,
++body.caissa-simplified-play-active #chessboard .caissa-coach-move-annotation--inaccuracy { --caissa-move-mark: #c58d26; }
++body.caissa-simplified-play-active .caissa-coach-move-symbol--mistake,
++body.caissa-simplified-play-active #chessboard .caissa-coach-move-annotation--mistake { --caissa-move-mark: #cf7134; }
++body.caissa-simplified-play-active .caissa-coach-move-symbol--blunder,
++body.caissa-simplified-play-active #chessboard .caissa-coach-move-annotation--blunder { --caissa-move-mark: #c44046; }
++
++body.caissa-simplified-play-active #chessboard .square-55d63 {
++    position: relative;
++}
++
++body.caissa-simplified-play-active #chessboard .caissa-coach-move-annotation {
++    position: absolute;
++    right: 4%;
++    bottom: 4%;
++    z-index: 8;
++    min-width: clamp(18px, 29%, 32px);
++    height: clamp(18px, 29%, 32px);
++    padding: 0 .18em;
++    font-size: clamp(.64rem, 1.05vw, 1.05rem);
++    pointer-events: none;
++}
++
+ body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop-split"] .caissa-simplified-shell__context-body {
+     display: flex;
+     flex: 1;
+@@ -1351,9 +1405,11 @@ body.caissa-simplified-play-active #playSection #evalBar {
+     min-height: var(--play-board-size) !important;
+ }
+ 
+-body.caissa-simplified-play-active #playSection .eval-score-badge {
+-    top: 8px;
++body.caissa-simplified-play-active #playSection .caissa-simplified-shell__player .eval-score-badge {
++    position: static;
++    inset: auto;
+     transform: none;
++    margin-right: auto;
+ }
+ 
+ body.caissa-simplified-play-active #playSection #chessboard {
+diff --git a/index.html b/index.html
+index 4ae2570..88d98a8 100644
+--- a/index.html
++++ b/index.html
+@@ -101,7 +101,7 @@
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.17.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.19.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -5006,7 +5006,7 @@
+     <script src="js/play/clock-service.js?v=1.0.0"></script>
+     <script src="js/play/chessboard-adapter.js?v=1.0.0"></script>
+     <script src="js/play/evaluation-rail.js?v=1.0.0"></script>
+-    <script src="app.js?v=2.0.23"></script>
++    <script src="app.js?v=2.0.24"></script>
+     <script src="js/play/opponent-strength.js?v=1.0.0"></script>
+     <script src="js/play/legacy-play-compatibility.js?v=1.4.0"></script>
+     <script src="js/play/play-v2-identity-policy.js?v=1.0.0"></script>
+@@ -5052,7 +5052,7 @@
+     <script src="js/play/analytics/play-mentor-engagement-analytics.js?v=1.0.0"></script>
+     <script src="js/play/post-game-experience.js?v=1.8.0"></script>
+     <script src="js/play/play-share-dialog.js?v=1.0.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.21.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.23.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/js/play/native-coach/coach-move-review.js b/js/play/native-coach/coach-move-review.js
+index 12262a1..15a672e 100644
+--- a/js/play/native-coach/coach-move-review.js
++++ b/js/play/native-coach/coach-move-review.js
+@@ -1,7 +1,7 @@
+ (function installCoachMoveReview(root) {
+     'use strict';
+ 
+-    const SCHEMA_VERSION = '1.0.0';
++    const SCHEMA_VERSION = '1.1.1';
+     const COLORS = Object.freeze(['white', 'black']);
+     const UCI = /^[a-h][1-8][a-h][1-8][qrbn]?$/;
+     const MAX_TEXT = 32;
+@@ -23,6 +23,16 @@
+     };
+     const positionValue = (score, mate, color) => mateValue(mate, color)
+         ?? (finite(score) ? playerValue(score, color) : null);
++    const annotation = (key, symbol, label) => freeze({ key, symbol, label });
++    const ANNOTATIONS = freeze({
++        book: annotation('book', '📖', 'Book move'),
++        best: annotation('best', '★', 'Best move'),
++        precise: annotation('precise', '!', 'Precise move'),
++        good: annotation('good', '✓', 'Good move'),
++        inaccuracy: annotation('inaccuracy', '?!', 'Imprecise move'),
++        mistake: annotation('mistake', '?', 'Mistake'),
++        blunder: annotation('blunder', '??', 'Blunder')
++    });
+ 
+     function createReview(input = {}) {
+         const playedUci = clean(input.playedUci).toLowerCase();
+@@ -30,12 +40,22 @@
+         const playedSan = clean(input.playedSan);
+         const bestSan = clean(input.bestSan);
+         const playerColor = input.playerColor;
+-        if (!COLORS.includes(playerColor) || !UCI.test(playedUci) || !UCI.test(bestUci)
+-            || !playedSan || !bestSan) return freeze({ ok: false, reasonCode: 'INVALID_REVIEW' });
++        if (!COLORS.includes(playerColor) || !UCI.test(playedUci) || !playedSan)
++            return freeze({ ok: false, reasonCode: 'INVALID_REVIEW' });
++
++        if (input.bookMove === true) return freeze({
++            ok: true, reasonCode: 'BOOK_MOVE', quality: 'book', loss: 0,
++            annotation: ANNOTATIONS.book,
++            message: `${playedSan} follows known opening theory.`
++        });
++
++        if (!UCI.test(bestUci) || !bestSan)
++            return freeze({ ok: false, reasonCode: 'INVALID_REVIEW' });
+ 
+         if (playedUci === bestUci) return freeze({
+             ok: true, reasonCode: 'BEST_MOVE', quality: 'best', loss: 0,
+-            message: `Excellent: ${playedSan} matches Stockfish’s best choice.`
++            annotation: ANNOTATIONS.best,
++            message: `Excellent: ${playedSan} matches my favorite move in this position.`
+         });
+ 
+         const before = positionValue(input.beforeScore, input.beforeMate, playerColor);
+@@ -43,24 +63,39 @@
+         const loss = finite(before) && finite(after) ? Math.max(0, before - after) : null;
+         if (loss === null) return freeze({
+             ok: true, reasonCode: 'PREFERRED_MOVE', quality: 'unscored', loss: null,
+-            message: `You played ${playedSan}. Stockfish preferred ${bestSan}; compare what that move improves.`
++            annotation: null,
++            message: `You played ${playedSan}. I preferred ${bestSan}; compare what that move improves.`
+         });
+-        if (loss < 0.25) return freeze({
+-            ok: true, reasonCode: 'STRONG_ALTERNATIVE', quality: 'strong', loss,
+-            message: `${playedSan} keeps the position healthy. Stockfish’s first choice was ${bestSan}.`
++        if (loss < 0.12) return freeze({
++            ok: true, reasonCode: 'PRECISE_MOVE', quality: 'precise', loss,
++            annotation: ANNOTATIONS.precise,
++            message: `${playedSan} is precise. My first choice was ${bestSan}.`
++        });
++        if (loss < 0.3) return freeze({
++            ok: true, reasonCode: 'STRONG_ALTERNATIVE', quality: 'good', loss,
++            annotation: ANNOTATIONS.good,
++            message: `${playedSan} keeps the position healthy. My first choice was ${bestSan}.`
+         });
+         if (loss < 0.7) return freeze({
+             ok: true, reasonCode: 'MORE_PRECISE_MOVE', quality: 'inaccuracy', loss,
+-            message: `You played ${playedSan}. A more precise choice was ${bestSan}.`
++            annotation: ANNOTATIONS.inaccuracy,
++            message: `You played ${playedSan}. I preferred ${bestSan} as a more precise choice.`
+         });
+-        return freeze({
++        if (loss < 1.5) return freeze({
+             ok: true, reasonCode: 'BETTER_MOVE', quality: 'mistake', loss,
+-            message: `You played ${playedSan}. Better was ${bestSan}; it would have kept your position stronger.`
++            annotation: ANNOTATIONS.mistake,
++            message: `You played ${playedSan}. I would have chosen ${bestSan}; it would have kept your position stronger.`
++        });
++        return freeze({
++            ok: true, reasonCode: 'BLUNDER', quality: 'blunder', loss,
++            annotation: ANNOTATIONS.blunder,
++            message: `You played ${playedSan}. I would have chosen ${bestSan}; that alternative avoided a serious setback.`
+         });
+     }
+ 
+     root.CaissaCoachMoveReview = freeze({
+         schemaVersion: SCHEMA_VERSION,
++        annotations: ANNOTATIONS,
+         createReview
+     });
+ })(typeof window !== 'undefined' ? window : globalThis);
+diff --git a/js/play/performance/play-load-registry.js b/js/play/performance/play-load-registry.js
+index 0215585..44a1e71 100644
+--- a/js/play/performance/play-load-registry.js
++++ b/js/play/performance/play-load-registry.js
+@@ -47,7 +47,7 @@
+                 'js/play/native-coach/coach-entitlement-client.js?v=1.1.0',
+                 'js/play/native-coach/coach-assistance-sanitizer.js?v=1.0.0',
+                 'js/play/native-coach/coach-assistance.js?v=1.0.0',
+-                'js/play/native-coach/coach-move-review.js?v=1.0.0',
++                'js/play/native-coach/coach-move-review.js?v=1.1.1',
+                 'js/play/native-coach/coach-dialogue.js?v=1.1.0',
+                 'js/play/native-coach/coach-panel.js?v=2.5.0'
+             ])
+diff --git a/js/play/simplified-play-shell.js b/js/play/simplified-play-shell.js
+index 3b23dac..6de4d7d 100644
+--- a/js/play/simplified-play-shell.js
++++ b/js/play/simplified-play-shell.js
+@@ -1,8 +1,8 @@
+ (function (global) {
+     'use strict';
+ 
+-    const SCHEMA_VERSION = '1.10.0';
+-    const SNAPSHOT_SCHEMA_VERSION = '1.10.0';
++    const SCHEMA_VERSION = '1.11.0';
++    const SNAPSHOT_SCHEMA_VERSION = '1.11.0';
+     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'unavailable', 'error']);
+     const REGIONS = Object.freeze([
+         'mode-navigation', 'board-stage', 'opponent-header', 'evaluation-rail',
+@@ -347,9 +347,10 @@
+             const gameMenu = play.querySelector('.game-menu-panel');
+             const editor = play.querySelector('.board-editor-wrapper');
+             const actions = play.querySelector('.right-controls');
++            const evalScore = global.document.getElementById('evalScore');
+             const names = [global.document.getElementById('playerBlackName'), global.document.getElementById('topClockBlack')];
+             const currentNames = [global.document.getElementById('playerWhiteName'), global.document.getElementById('topClockWhite')];
+-            if (![legacyGrid, boardWithEval, leftPanel, rightPanel, gameMenu, editor, actions, ...names, ...currentNames].every(Boolean))
++            if (![legacyGrid, boardWithEval, leftPanel, rightPanel, gameMenu, editor, actions, evalScore, ...names, ...currentNames].every(Boolean))
+                 return result(false, 'unavailable', REASONS.PLAY_UNAVAILABLE);
+ 
+             const place = (node, host) => {
+@@ -363,7 +364,9 @@
+             const player = this.#root.querySelector('.caissa-simplified-shell__player--current');
+             const contextBody = this.#root.querySelector('.caissa-simplified-shell__context-body');
+             const advancedBody = this.#root.querySelector('.caissa-simplified-shell__advanced-body');
+-            names.forEach(node => place(node, opponent));
++            place(names[0], opponent);
++            place(evalScore, opponent);
++            place(names[1], opponent);
+             currentNames.forEach(node => place(node, player));
+             place(boardWithEval, boardRegion);
+             place(rightPanel, advancedBody);
+@@ -487,6 +490,7 @@
+                         ? `📖 ${event.detail.name}${event.detail.eco ? ` · ${event.detail.eco}` : ''}` : '';
+                     this.#renderActiveNotation();
+                 });
++                this.#listen(global, 'caissa-coach-move-annotation', () => this.#renderActiveNotation());
+                 this.#listen(global, 'caissa-turn-change', () => this.#renderActiveNotation());
+                 if (global.visualViewport) this.#listen(global.visualViewport, 'resize', () => this.resize());
+                 this.#listen(global.document, 'transitionend', event => {
+@@ -859,6 +863,31 @@
+             if (narrator && boardStage && narrator.parentNode !== boardStage) boardStage.insertBefore(narrator, opponent);
+             if (boardStage && this.#actionBar.parentNode !== boardStage) boardStage.appendChild(this.#actionBar);
+         }
++        #renderCoachBoardAnnotation() {
++            const board = this.#root?.querySelector('#chessboard');
++            if (!board) return;
++            board.querySelectorAll('[data-caissa-coach-move-annotation]').forEach(node => node.remove());
++            if (this.#mode !== 'coach') return;
++            const annotations = Array.isArray(global.App?.coachMoveAnnotations)
++                ? global.App.coachMoveAnnotations : [];
++            const historyLength = Array.isArray(global.App?.moveHistory)
++                ? global.App.moveHistory.length : 0;
++            let current = null;
++            for (let index = Math.min(historyLength, annotations.length) - 1; index >= 0; index -= 1) {
++                if (annotations[index]?.square) { current = annotations[index]; break; }
++            }
++            if (!current || !/^[a-h][1-8]$/.test(current.square)
++                || !/^(?:book|best|precise|good|inaccuracy|mistake|blunder)$/.test(current.key || '')) return;
++            const square = board.querySelector(`.square-${current.square}`);
++            if (!square) return;
++            const badge = element('span',
++                `caissa-coach-move-annotation caissa-coach-move-annotation--${current.key}`, {
++                    'data-caissa-coach-move-annotation': '', role: 'img',
++                    'aria-label': `${current.label}: ${current.san}`, title: current.label
++                });
++            badge.textContent = current.symbol;
++            square.appendChild(badge);
++        }
+         #renderActiveNotation() {
+             if (!this.#root || !this.#activeContext) return;
+             const opening = this.#activeContext.querySelector('[data-active-game-opening]');
+@@ -878,16 +907,31 @@
+             let history = [];
+             try { history = global.App?.game?.history?.() || []; } catch (_) { history = []; }
+             moves.replaceChildren();
++            const annotations = Array.isArray(global.App?.coachMoveAnnotations)
++                ? global.App.coachMoveAnnotations : [];
++            const renderMove = (node, san, index) => {
++                node.textContent = san || '';
++                const annotation = annotations[index];
++                if (!san || this.#mode !== 'coach' || !annotation
++                    || !/^(?:book|best|precise|good|inaccuracy|mistake|blunder)$/.test(annotation.key || '')) return;
++                const badge = element('span',
++                    `caissa-coach-move-symbol caissa-coach-move-symbol--${annotation.key}`, {
++                        role: 'img', 'aria-label': `${annotation.label}: ${san}`, title: annotation.label
++                    });
++                badge.textContent = annotation.symbol;
++                node.appendChild(badge);
++            };
+             for (let index = 0; index < history.length; index += 2) {
+                 const row = element('li', 'caissa-simplified-shell__active-move-row');
+                 const number = element('span', 'caissa-simplified-shell__active-move-number');
+                 const white = element('span', 'caissa-simplified-shell__active-move');
+                 const black = element('span', 'caissa-simplified-shell__active-move');
+                 number.textContent = `${Math.floor(index / 2) + 1}.`;
+-                white.textContent = history[index] || '';
+-                black.textContent = history[index + 1] || '';
++                renderMove(white, history[index], index);
++                renderMove(black, history[index + 1], index + 1);
+                 row.append(number, white, black); moves.appendChild(row);
+             }
++            this.#renderCoachBoardAnnotation();
+         }
+         #syncIdentity() {
+             if (this.#root?.dataset?.entryExperience !== 'beta') return;
+diff --git a/play-v2-ipad-analyze-diagnostic.html b/play-v2-ipad-analyze-diagnostic.html
+index 1419baa..2b124b1 100644
+--- a/play-v2-ipad-analyze-diagnostic.html
++++ b/play-v2-ipad-analyze-diagnostic.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.17.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.19.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3036,7 +3036,7 @@
+     <script src="js/play/clock-service.js?v=1.0.0"></script>
+     <script src="js/play/chessboard-adapter.js?v=1.0.0"></script>
+     <script src="js/play/evaluation-rail.js?v=1.0.0"></script>
+-    <script src="app.js?v=2.0.23"></script>
++    <script src="app.js?v=2.0.24"></script>
+     <script src="js/play/opponent-strength.js?v=1.0.0"></script>
+     <script src="js/play/legacy-play-compatibility.js?v=1.4.0"></script>
+     <script src="js/play/play-v2-identity-policy.js?v=1.0.0"></script>
+@@ -3079,7 +3079,7 @@
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+     <script src="js/play/play-share-dialog.js?v=1.0.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.21.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.23.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/play-v2-promotion-qa.html b/play-v2-promotion-qa.html
+index 2d1dbbe..08d5667 100644
+--- a/play-v2-promotion-qa.html
++++ b/play-v2-promotion-qa.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.17.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.19.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3036,7 +3036,7 @@
+     <script src="js/play/clock-service.js?v=1.0.0"></script>
+     <script src="js/play/chessboard-adapter.js?v=1.0.0"></script>
+     <script src="js/play/evaluation-rail.js?v=1.0.0"></script>
+-    <script src="app.js?v=2.0.23"></script>
++    <script src="app.js?v=2.0.24"></script>
+     <script src="js/play/opponent-strength.js?v=1.0.0"></script>
+     <script src="js/play/legacy-play-compatibility.js?v=1.4.0"></script>
+     <script src="js/play/play-v2-identity-policy.js?v=1.0.0"></script>
+@@ -3079,7 +3079,7 @@
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+     <script src="js/play/play-share-dialog.js?v=1.0.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.21.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.23.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/play-v2-public-beta.html b/play-v2-public-beta.html
+index f2715e5..5463d9e 100644
+--- a/play-v2-public-beta.html
++++ b/play-v2-public-beta.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.17.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.19.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3035,7 +3035,7 @@
+     <script src="js/play/clock-service.js?v=1.0.0"></script>
+     <script src="js/play/chessboard-adapter.js?v=1.0.0"></script>
+     <script src="js/play/evaluation-rail.js?v=1.0.0"></script>
+-    <script src="app.js?v=2.0.23"></script>
++    <script src="app.js?v=2.0.24"></script>
+     <script src="js/play/opponent-strength.js?v=1.0.0"></script>
+     <script src="js/play/legacy-play-compatibility.js?v=1.4.0"></script>
+     <script src="js/play/play-v2-identity-policy.js?v=1.0.0"></script>
+@@ -3079,7 +3079,7 @@
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+     <script src="js/play/play-share-dialog.js?v=1.0.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.21.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.23.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/play-v2.html b/play-v2.html
+index 642455a..6db044b 100644
+--- a/play-v2.html
++++ b/play-v2.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.17.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.19.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3034,7 +3034,7 @@
+     <script src="js/play/clock-service.js?v=1.0.0"></script>
+     <script src="js/play/chessboard-adapter.js?v=1.0.0"></script>
+     <script src="js/play/evaluation-rail.js?v=1.0.0"></script>
+-    <script src="app.js?v=2.0.23"></script>
++    <script src="app.js?v=2.0.24"></script>
+     <script src="js/play/opponent-strength.js?v=1.0.0"></script>
+     <script src="js/play/legacy-play-compatibility.js?v=1.4.0"></script>
+     <script src="js/play/play-v2-identity-policy.js?v=1.0.0"></script>
+@@ -3078,7 +3078,7 @@
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+     <script src="js/play/play-share-dialog.js?v=1.0.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.21.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.23.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/tests/browser/play-coach-stockfish-share.spec.js b/tests/browser/play-coach-stockfish-share.spec.js
+index b57f3dd..25256a4 100644
+--- a/tests/browser/play-coach-stockfish-share.spec.js
++++ b/tests/browser/play-coach-stockfish-share.spec.js
+@@ -26,15 +26,22 @@ async function startCoach(page) {
+     return panel;
+ }
+ 
+-test('Coach explains a meaningful Stockfish deviation without evaluation numbers', async ({ page }) => {
++test('Coach explains an engine-backed deviation in her own voice without evaluation numbers', async ({ page }) => {
+     await startCoach(page);
+     expect(await playMove(page, 'a2', 'a3')).toBe(true);
+ 
+     await expect.poll(() => page.evaluate(() => window.__caissaCoachNarrations.find(message =>
+-        /Better was e4/.test(message)) || null)).toContain('Better was e4');
++        /I would have chosen e4/.test(message)) || null)).toContain('I would have chosen e4');
+     const review = await page.evaluate(() => window.__caissaCoachNarrations.find(message =>
+-        /Better was e4/.test(message)));
++        /I would have chosen e4/.test(message)));
+     expect(review).not.toMatch(/[+-]\d|\d+\.\d+/);
++    expect(review).not.toMatch(/Stockfish/i);
++    await expect.poll(() => page.evaluate(() => window.App.coachMoveAnnotations[0] || null))
++        .toMatchObject({ ply: 1, square: 'a3', key: 'mistake', symbol: '?' });
++    await expect(page.locator('[data-active-game-moves] .caissa-coach-move-symbol--mistake'))
++        .toHaveText('?');
++    await expect(page.locator('#chessboard .square-a3 [data-caissa-coach-move-annotation]'))
++        .toHaveText('?');
+     await expect.poll(() => page.evaluate(() => window.App.game.history())).toEqual(['a3', 'e5']);
+     expect(await page.evaluate(() => window.App.pendingCoachMoveReview)).toBeNull();
+ });
+@@ -44,20 +51,23 @@ test('Share stays inside CAISSA and Coach layout remains bounded on desktop and
+     const panel = await startCoach(page);
+     const desktop = await page.evaluate(() => {
+         const board = document.querySelector('.caissa-simplified-shell__board-stage').getBoundingClientRect();
++        const chessboard = document.querySelector('#chessboard').getBoundingClientRect();
+         const context = document.querySelector('.caissa-simplified-shell__context').getBoundingClientRect();
+-        const rail = document.querySelector('#evalBar').getBoundingClientRect();
+         const badge = document.querySelector('.eval-score-badge').getBoundingClientRect();
++        const engine = document.querySelector('#playerBlackName').getBoundingClientRect();
++        const clock = document.querySelector('#topClockBlack').getBoundingClientRect();
+         const coach = document.querySelector('[data-caissa-native-coach-panel]').getBoundingClientRect();
+         const persona = document.querySelector('.caissa-native-coach-panel__persona').getBoundingClientRect();
+         return {
+             contextBottomDelta: Math.abs(context.bottom - board.bottom),
+-            badgeTopDelta: badge.top - rail.top,
++            badgeOutsideBoard: badge.bottom <= chessboard.top,
++            badgeBesideEngine: badge.left >= engine.right - 1 && badge.right <= clock.left + 1,
+             personaTopDelta: persona.top - coach.top
+         };
+     });
+     expect(desktop.contextBottomDelta).toBeLessThanOrEqual(3);
+-    expect(desktop.badgeTopDelta).toBeGreaterThanOrEqual(0);
+-    expect(desktop.badgeTopDelta).toBeLessThanOrEqual(16);
++    expect(desktop.badgeOutsideBoard).toBe(true);
++    expect(desktop.badgeBesideEngine).toBe(true);
+     expect(desktop.personaTopDelta).toBeLessThanOrEqual(16);
+ 
+     await page.locator('[data-active-game-action="share"]').click();
+diff --git a/tests/play/play-v3-coach-active-experience.test.js b/tests/play/play-v3-coach-active-experience.test.js
+index 4820846..e4be474 100644
+--- a/tests/play/play-v3-coach-active-experience.test.js
++++ b/tests/play/play-v3-coach-active-experience.test.js
+@@ -29,6 +29,7 @@ test('active Coach presents Caissa responsively and keeps narration synchronized
+ 
+ test('Bots and Coach share only Resign, Hint and Undo', () => {
+     const shell = read('js/play/simplified-play-shell.js');
++    const css = read('css/play-simplified-shell.css');
+     assert.match(shell, /\['resign', 'Resign'\]/);
+     assert.match(shell, /\['coach-hint', '💡 Hint'\]/);
+     assert.match(shell, /\['coach-undo', '↶ Undo'\]/);
+@@ -39,6 +40,14 @@ test('Bots and Coach share only Resign, Hint and Undo', () => {
+     assert.match(shell, /\['bots', 'coach'\]\.includes\(this\.#mode\)/);
+     assert.match(shell, /caissa-coach-hint-clear/);
+     assert.match(shell, /previous\.textContent = ''/);
++    assert.match(shell, /caissa-coach-move-annotation/);
++    assert.match(shell, /#renderCoachBoardAnnotation\(\)/);
++    assert.match(shell, /caissa-coach-move-symbol--\$\{annotation\.key\}/);
++    assert.match(shell, /place\(evalScore, opponent\)/);
++    assert.match(css, /caissa-simplified-shell__player \.eval-score-badge/);
++    assert.match(css, /position: static/);
++    assert.match(css, /#chessboard \.caissa-coach-move-annotation/);
++    assert.match(css, /caissa-coach-move-symbol--blunder/);
+ });
+ 
+ test('assisted games expose honest CAISSA resources and utility actions', () => {
+diff --git a/tests/play/play-v3-coach-move-review.test.js b/tests/play/play-v3-coach-move-review.test.js
+index 3c6baa8..beff10a 100644
+--- a/tests/play/play-v3-coach-move-review.test.js
++++ b/tests/play/play-v3-coach-move-review.test.js
+@@ -13,18 +13,28 @@ const base = {
+ };
+ 
+ test('Coach move review is versioned, immutable and identifies the engine choice', () => {
+-    assert.equal(context.CaissaCoachMoveReview.schemaVersion, '1.0.0');
++    assert.equal(context.CaissaCoachMoveReview.schemaVersion, '1.1.1');
+     assert.equal(Object.isFrozen(context.CaissaCoachMoveReview), true);
+     const result = review(base);
+     assert.equal(result.reasonCode, 'BEST_MOVE');
+-    assert.match(result.message, /Stockfish.*best choice/i);
++    assert.deepEqual({ ...result.annotation }, { key: 'best', symbol: '★', label: 'Best move' });
++    assert.equal(Object.isFrozen(result.annotation), true);
++    assert.match(result.message, /matches my favorite move/i);
++    assert.doesNotMatch(result.message, /Stockfish/i);
++});
++
++test('known opening theory receives a book mark without requiring an engine alternative', () => {
++    const result = review({ playedUci: 'e2e4', playedSan: 'e4', playerColor: 'white', bookMove: true });
++    assert.equal(result.reasonCode, 'BOOK_MOVE');
++    assert.equal(result.annotation.key, 'book');
++    assert.equal(result.annotation.symbol, '📖');
+ });
+ 
+ test('Coach says the better SAN move without exposing evaluation numbers', () => {
+     const result = review({ ...base, playedUci: 'a2a3', playedSan: 'a3', bestUci: 'g1f3',
+         bestSan: 'Nf3', beforeScore: 0.4, afterScore: -0.8 });
+     assert.equal(result.reasonCode, 'BETTER_MOVE');
+-    assert.match(result.message, /Better was Nf3/);
++    assert.match(result.message, /I would have chosen Nf3/);
+     assert.doesNotMatch(result.message, /[+-]\d|evaluation|centipawn|depth/i);
+ });
+ 
+@@ -32,9 +42,21 @@ test('near-equivalent choices are described without calling them mistakes', () =
+     const result = review({ ...base, playedUci: 'e2e4', playedSan: 'e4', bestUci: 'd2d4',
+         bestSan: 'd4', beforeScore: 0.25, afterScore: 0.12 });
+     assert.equal(result.reasonCode, 'STRONG_ALTERNATIVE');
++    assert.equal(result.annotation.symbol, '✓');
+     assert.doesNotMatch(result.message, /mistake|blunder|better was/i);
+ });
+ 
++test('Stockfish loss thresholds produce conservative standard chess symbols', () => {
++    const input = loss => ({ ...base, playedUci: 'a2a3', playedSan: 'a3', bestUci: 'g1f3',
++        bestSan: 'Nf3', beforeScore: 0.5, afterScore: 0.5 - loss });
++    assert.equal(review(input(0.08)).annotation.symbol, '!');
++    assert.equal(review(input(0.2)).annotation.symbol, '✓');
++    assert.equal(review(input(0.5)).annotation.symbol, '?!');
++    assert.equal(review(input(1.0)).annotation.symbol, '?');
++    assert.equal(review(input(2.0)).annotation.symbol, '??');
++    assert.equal(review(input(2.0)).reasonCode, 'BLUNDER');
++});
++
+ test('loss is measured from the player perspective when playing Black', () => {
+     const result = review({ ...base, playerColor: 'black', playedUci: 'a7a6', playedSan: 'a6',
+         bestUci: 'g8f6', bestSan: 'Nf6', beforeScore: -0.2, afterScore: 0.8 });
+@@ -53,9 +75,12 @@ test('Play orchestration reviews before the opponent search and preserves local
+     assert.match(app, /scheduleCoachMoveReview\(move, preMoveEvaluation\)/);
+     assert.match(app, /info\.depth >= 11[\s\S]*finishCoachMoveReview\(info\)/);
+     assert.match(app, /if \(coachReviewState !== 'pending'\) maybeTriggerEngineMove\(\)/);
+-    assert.match(registry, /coach-move-review\.js\?v=1\.0\.0/);
++    assert.match(registry, /coach-move-review\.js\?v=1\.1\.1/);
+     const reviewSource = fs.readFileSync(`${root}/js/play/native-coach/coach-move-review.js`, 'utf8');
+-    assert.match(reviewSource, /Better was/);
++    assert.match(reviewSource, /I would have chosen/);
++    assert.match(app, /isCurrentCoachBookPosition\(\)/);
++    assert.match(app, /caissa-coach-move-annotation/);
++    assert.match(app, /coachMoveAnnotations/);
+     for (const forbidden of [/fetch\s*\(/, /WebSocket/, /localStorage/, /sessionStorage/, /new\s+Worker/])
+         assert.doesNotMatch(reviewSource, forbidden);
+ });
+diff --git a/tests/play/simplified-play-shell.test.js b/tests/play/simplified-play-shell.test.js
+index 7696427..15437f4 100644
+--- a/tests/play/simplified-play-shell.test.js
++++ b/tests/play/simplified-play-shell.test.js
+@@ -19,8 +19,8 @@ function load() {
+ 
+ test('publishes frozen versioned shell and snapshot contracts', () => {
+     const { api } = load();
+-    assert.equal(api.schemaVersion, '1.10.0');
+-    assert.equal(api.snapshotSchemaVersion, '1.10.0');
++    assert.equal(api.schemaVersion, '1.11.0');
++    assert.equal(api.snapshotSchemaVersion, '1.11.0');
+     assert.ok(Object.isFrozen(api));
+     assert.ok(Object.isFrozen(api.statuses));
+     assert.ok(Object.isFrozen(api.regions));
+diff --git a/yahoo-classic.html b/yahoo-classic.html
+index 837908e..ab3e63b 100644
+--- a/yahoo-classic.html
++++ b/yahoo-classic.html
+@@ -97,7 +97,7 @@
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.17.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.19.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/caissa-ui-foundation.css?v=1.0.2">
+@@ -5021,7 +5021,7 @@
+     <script src="js/play/clock-service.js?v=1.0.0"></script>
+     <script src="js/play/chessboard-adapter.js?v=1.0.0"></script>
+     <script src="js/play/evaluation-rail.js?v=1.0.0"></script>
+-    <script src="app.js?v=2.0.23"></script>
++    <script src="app.js?v=2.0.24"></script>
+     <script src="js/play/legacy-play-compatibility.js?v=1.4.0"></script>
+     <script src="js/play/play-v2-identity-policy.js?v=1.0.0"></script>
+     <script src="js/play/play-v2-mode-transition-policy.js?v=1.0.0"></script>
+@@ -5066,7 +5066,7 @@
+     <script src="js/play/analytics/play-mentor-engagement-analytics.js?v=1.0.0"></script>
+     <script src="js/play/post-game-experience.js?v=1.8.0"></script>
+     <script src="js/play/play-share-dialog.js?v=1.0.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.21.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.23.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
