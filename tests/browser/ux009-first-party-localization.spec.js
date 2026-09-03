@@ -53,21 +53,52 @@ test('locale changes live, survives reload, and persists through navigation', as
     await page.goto('/pgn-replayer');
     await expect(page.getByRole('heading', { name: 'Lector PGN' })).toBeVisible();
     await expect(page.locator('[data-caissa-locale-select]').first()).toHaveValue('es');
+    await page.locator('[data-caissa-locale-select]').first().selectOption('en');
+    await expect(page.getByRole('heading', { name: 'PGN Reader' })).toBeVisible();
+    await page.goto('/play');
+    await expect(page.getByText('Game setup', { exact: true })).toBeVisible();
+    await expect(page.locator('[data-caissa-locale-select]').first()).toHaveValue('en');
 });
 
 test('Spanish priority surfaces reject known English residual UI copy', async ({ page }) => {
     await prepare(page, 'es');
-    const forbidden = /\b(?:Game setup|Time control|Play as|Opponent Strength|New Game|Choose a bot|No Timer|Checking Coach access|Open PGN|Notation will appear|Start position|Under Construction)\b/i;
+    const forbidden = /\b(?:Create Account|Account unavailable|Game setup|Time control|Play as|Opponent Strength|New Game|Start Game|Play Computer|Games setup|White selected|Black selected|Random selected|Choose a bot|No Timer|Checking Coach access|Coach access|Sign in to play|Open PGN|Notation will appear|Start position|Under Construction|Coming soon|Preview ready)\b/i;
     for (const route of routes) {
         await page.goto(route);
         const surface = await visibleSurface(page, route);
         await expect(surface).toBeVisible();
-        expect(await surface.innerText(), route).not.toMatch(forbidden);
+        const presentation = await page.locator(`${route === '/game-library' ? '[data-caissa-library-public-presentation]' : route === '/pgn-replayer' ? '[data-pgn-app]' : '[data-caissa-simplified-shell]'}, #sidebarAuthArea`)
+            .evaluateAll(elements => elements.flatMap(element => [
+                element.innerText,
+                ...[...element.querySelectorAll('[aria-label], [title], [placeholder], [alt]')]
+                    .filter(node => node.getClientRects().length > 0 && !node.closest('[hidden], [aria-hidden="true"]'))
+                    .flatMap(node => ['aria-label', 'title', 'placeholder', 'alt'].map(name => node.getAttribute(name)).filter(Boolean))
+            ]).join('\n'));
+        expect(presentation, route).not.toMatch(forbidden);
     }
     await page.goto('/play');
+    await expect(page.locator('#sidebarCreateAccount')).toHaveText('Crear cuenta');
+    await expect(page.locator('#sidebarCreateAccount')).toHaveAttribute('aria-label', 'Crear cuenta');
+    await page.locator('[data-games-time="blitz-5"]').click();
+    for (const [color, expected] of [
+        ['white', '5+0 · Blancas seleccionadas.'],
+        ['black', '5+0 · Negras seleccionadas.'],
+        ['random', '5+0 · Aleatorio seleccionado.']
+    ]) {
+        await page.locator(`[data-games-color="${color}"]`).click();
+        await expect(page.locator('[data-games-status]')).toHaveText(expected);
+    }
     expect(await page.locator('[data-active-game-settings]').innerText()).toContain('Configuración del tablero');
     expect(await page.locator('[data-caissa-play-share]').innerText()).toContain('Compartir partida');
     expect(await page.locator('[data-caissa-post-game]').innerText()).toContain('Analizar esta partida');
+    await page.goto('/play/bots');
+    await page.locator('[data-bot-color="black"]').check({ force: true });
+    await page.locator('[data-bot-time]').selectOption({ index: 1 });
+    expect(await page.locator('[data-caissa-bots-panel]').innerText()).not.toMatch(forbidden);
+    await page.goto('/play/coach');
+    await page.locator('[data-coach-color-choice="black"]').check({ force: true });
+    await page.locator('[data-coach-experience]').selectOption({ index: 1 });
+    expect(await page.locator('[data-caissa-native-coach-panel]').innerText()).not.toMatch(forbidden);
     await page.goto('/pgn-replayer');
     await page.locator('[data-pgn-options]').click();
     const guide = await page.locator('[data-pgn-options-dialog]').innerText();

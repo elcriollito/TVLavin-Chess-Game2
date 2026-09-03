@@ -131,9 +131,11 @@
                 unavailable = document.createElement('p');
                 unavailable.id = 'sidebarAuthUnavailable';
                 unavailable.className = 'nav-auth-unavailable';
+                unavailable.dataset.caissaI18n = 'shell.accountUnavailable';
                 unavailable.textContent = 'Account unavailable';
                 unavailable.hidden = true;
                 area.appendChild(unavailable);
+                window.CaissaI18n?.apply?.(unavailable);
             }
             unavailable.hidden = state !== 'unavailable';
         },
@@ -251,9 +253,11 @@
             action.id = 'sidebarCreateAccount';
             action.href = '/signup';
             action.className = 'nav-auth-btn nav-auth-signup';
+            action.dataset.caissaI18nAriaLabel = 'shell.createAccount';
             action.setAttribute('aria-label', 'Create Account');
-            action.innerHTML = '<i class="fas fa-user-plus" aria-hidden="true"></i><span class="nav-label">Create Account</span>';
+            action.innerHTML = '<i class="fas fa-user-plus" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="shell.createAccount">Create Account</span>';
             signInBtn.insertAdjacentElement('afterend', action);
+            window.CaissaI18n?.apply?.(action);
             this._setAnonymousEntryHrefs(signInBtn, action);
             return action;
         },
@@ -330,15 +334,16 @@
         _renderSignedOut: function() {
             const container = this.elements.container;
             container.innerHTML = `
-                <a href="/signin" class="btn btn-auth-signin" aria-label="Sign In" title="Unlock AI analysis, cloud sync, and more">
+                <a href="/signin" class="btn btn-auth-signin" aria-label="Sign In" title="Unlock AI analysis, cloud sync, and more" data-caissa-i18n-aria-label="shell.signIn" data-caissa-i18n-title="shell.signInTitle">
                     <i class="fas fa-sign-in-alt"></i>
-                    <span class="auth-btn-text">Sign In</span>
+                    <span class="auth-btn-text" data-caissa-i18n="shell.signIn">Sign In</span>
                 </a>
-                <a href="/signup" class="btn btn-auth-signup" aria-label="Create Account">
+                <a href="/signup" class="btn btn-auth-signup" aria-label="Create Account" data-caissa-i18n-aria-label="shell.createAccount">
                     <i class="fas fa-user-plus"></i>
-                    <span class="auth-btn-text">Create Account</span>
+                    <span class="auth-btn-text" data-caissa-i18n="shell.createAccount">Create Account</span>
                 </a>
             `;
+            window.CaissaI18n?.apply?.(container);
         },
 
         _renderPending: function() {
@@ -369,10 +374,10 @@
 
             container.innerHTML = `
                 <div class="caissa-auth-user">
-                    <button type="button" class="auth-user-button" aria-label="Account menu" aria-expanded="false">
+                    <button type="button" class="auth-user-button" aria-label="Account menu" aria-expanded="false" data-caissa-i18n-aria-label="shell.accountMenu">
                         <span class="auth-avatar">${avatarContent}</span>
                         ${isPremium ? '<span class="auth-premium-badge"><i class="fas fa-crown"></i></span>' : ''}
-                        <span class="auth-credits-badge" title="Insight Credits">${credits}</span>
+                        <span class="auth-credits-badge" title="Insight Credits" data-caissa-i18n-title="shell.insightCredits">${credits}</span>
                     </button>
                     <div class="auth-dropdown" role="menu" aria-hidden="true">
                         <div class="auth-dropdown-header">
@@ -381,22 +386,23 @@
                         </div>
                         <div class="auth-dropdown-stats">
                             <div class="auth-stat">
-                                <span class="auth-stat-label">Credits</span>
+                                <span class="auth-stat-label" data-caissa-i18n="shell.credits">Credits</span>
                                 <span class="auth-stat-value">${credits}</span>
                             </div>
                             <div class="auth-stat">
-                                <span class="auth-stat-label">Status</span>
+                                <span class="auth-stat-label" data-caissa-i18n="shell.status">Status</span>
                                 <span class="auth-stat-value ${membership.isPaid ? 'premium' : ''}">${membership.label}</span>
                             </div>
                         </div>
                         <div class="auth-dropdown-actions">
-                            ${!isPremium ? '<a href="/premium" class="auth-dropdown-item upgrade"><i class="fas fa-crown"></i> Upgrade to Premium</a>' : ''}
-                            <a href="/premium" class="auth-dropdown-item"><i class="fas fa-bolt"></i> Buy Credits</a>
-                            <button type="button" class="auth-dropdown-item signout"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+                            ${!isPremium ? '<a href="/premium" class="auth-dropdown-item upgrade"><i class="fas fa-crown"></i><span data-caissa-i18n="shell.upgradePremium">Upgrade to Premium</span></a>' : ''}
+                            <a href="/premium" class="auth-dropdown-item"><i class="fas fa-bolt"></i><span data-caissa-i18n="shell.buyCredits">Buy Credits</span></a>
+                            <button type="button" class="auth-dropdown-item signout"><i class="fas fa-sign-out-alt"></i><span data-caissa-i18n="shell.signOut">Sign Out</span></button>
                         </div>
                     </div>
                 </div>
             `;
+            window.CaissaI18n?.apply?.(container);
 
             // Bind events
             this._bindDropdownEvents();

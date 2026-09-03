@@ -5,7 +5,7 @@
     if (!i18n || !global.document) return;
 
     const contractId = 'CaissaFirstPartyLocalization@1.0.0';
-    const namespaces = /^(?:common|play|bots|coach|pgn)\./;
+    const namespaces = /^(?:common|play|bots|coach|pgn|shell)\./;
     const keyByEnglish = new Map(Object.entries(i18n.catalogs.en)
         .filter(([key, value]) => namespaces.test(key) && typeof value === 'string')
         .map(([key, value]) => [value, key]));
@@ -15,14 +15,25 @@
 
     function activeRoots() {
         const path = global.location?.pathname || '';
+        const sharedRoots = [
+            global.document.querySelector('#sidebarAuthArea'),
+            global.document.querySelector('.caissa-auth-container')
+        ].filter(Boolean);
         if (path === '/pgn-replayer' || global.document.body?.classList.contains('pgn-replayer-page')) {
-            return [global.document.querySelector('[data-pgn-app]')].filter(Boolean);
+            return [
+                global.document.querySelector('[data-pgn-app]'),
+                ...sharedRoots
+            ].filter(Boolean);
         }
         if (path === '/play' || path.startsWith('/play/')) {
             return [
                 global.document.querySelector('[data-caissa-simplified-shell]'),
+                ...sharedRoots,
                 ...global.document.querySelectorAll('[data-caissa-play-share], [data-caissa-play-dialog]')
             ].filter(Boolean);
+        }
+        if (path === '/game-library') {
+            return [global.document.querySelector('[data-caissa-library-public-presentation]'), ...sharedRoots].filter(Boolean);
         }
         return [];
     }
@@ -58,15 +69,26 @@
         match = value.match(/^(.+) · (\d+) Elo target$/);
         if (match) return i18n.t('bots.categoryTargetTemplate', value,
             { category: translatedToken(match[1]), elo: match[2] });
+        match = value.match(/^(.+) · (\d+) Elo target · (Preview ready|Coming soon)$/);
+        if (match) return i18n.t('bots.cardTitleTemplate', value,
+            { name: match[1], elo: match[2], status: translatedToken(match[3]) });
+        match = value.match(/^(.+), (\d+) Elo target, (.+), (preview ready|coming soon)$/);
+        if (match) return i18n.t('bots.cardAriaTemplate', value, {
+            name: match[1], elo: match[2], category: translatedToken(match[3]),
+            status: i18n.t(`bots.${match[4] === 'preview ready' ? 'previewReadyLower' : 'comingSoonLower'}`, match[4])
+        });
         match = value.match(/^(\d+) Elo · (.+)$/);
         if (match) return `${match[1]} Elo · ${translatedToken(match[2])}`;
         match = value.match(/^(\d+\+\d+) · (Bullet|Blitz|Rapid) · (White|Random|Black)$/);
         if (match) return `${match[1]} · ${translatedToken(match[2])} · ${translatedToken(match[3])}`;
         match = value.match(/^· (Bullet|Blitz|Rapid)$/);
         if (match) return `· ${translatedToken(match[1])}`;
-        match = value.match(/^(White|Random|Black) selected\.$/);
-        if (match) return match[1] === 'Random' ? 'Aleatorio seleccionado.'
-            : `${translatedToken(match[1])} seleccionadas.`;
+        match = value.match(/^(.*?)(White|Random|Black) selected\.$/);
+        if (match) return `${match[1]}${i18n.t(`play.${match[2].toLowerCase()}Selected`, `${match[2]} selected.`)}`;
+        match = value.match(/^Game setup: (.+)\. (Collapse|Expand) options\.$/);
+        if (match) return i18n.t('play.setupAriaTemplate', value, {
+            summary: dynamicText(match[1]), action: i18n.t(`play.${match[2].toLowerCase()}`, match[2])
+        });
         match = value.match(/^Game started against (.+)\.$/);
         if (match) return i18n.t('bots.startedTemplate', value, { name: match[1] });
         match = value.match(/^Preparing (.+)…$/);
@@ -111,17 +133,17 @@
             const key = keyByEnglish.get(trimmed) || '';
             const translated = dynamicText(trimmed);
             if (!key && translated === trimmed) return;
-            binding = { key, english: trimmed };
+            binding = { key, english: trimmed, rendered: current.trim() };
             textBindings.set(node, binding);
-        } else if (current.trim() !== i18n.t(binding.key, binding.english)
-            && current.trim() !== dynamicText(binding.english)) {
+        } else if (current.trim() !== binding.rendered) {
             const key = keyByEnglish.get(trimmed) || '';
             const translated = dynamicText(trimmed);
             if (!key && translated === trimmed) return;
-            binding = { key, english: trimmed };
+            binding = { key, english: trimmed, rendered: current.trim() };
             textBindings.set(node, binding);
         }
         const output = binding.key ? i18n.t(binding.key, binding.english) : dynamicText(binding.english);
+        binding.rendered = output;
         const leading = current.match(/^\s*/)?.[0] || '';
         const trailing = current.match(/\s*$/)?.[0] || '';
         const next = `${leading}${output}${trailing}`;
@@ -130,22 +152,22 @@
 
     function translateAttributes(element) {
         if (!(element instanceof global.Element)) return;
-        const attributes = ['aria-label', 'title', 'placeholder'];
+        const attributes = ['aria-label', 'title', 'placeholder', 'alt'];
         let bindings = attributeBindings.get(element);
         if (!bindings) { bindings = new Map(); attributeBindings.set(element, bindings); }
         attributes.forEach(name => {
             const current = element.getAttribute(name);
             if (!current) return;
             let binding = bindings.get(name);
-            const rendered = binding && (binding.key ? i18n.t(binding.key, binding.english) : dynamicText(binding.english));
-            if (!binding || current !== rendered) {
+            if (!binding || current !== binding.rendered) {
                 const key = keyByEnglish.get(current) || '';
                 const translated = dynamicText(current);
                 if (!key && translated === current) return;
-                binding = { key, english: current };
+                binding = { key, english: current, rendered: current };
                 bindings.set(name, binding);
             }
             const output = binding.key ? i18n.t(binding.key, binding.english) : dynamicText(binding.english);
+            binding.rendered = output;
             if (current !== output) element.setAttribute(name, output);
         });
     }
@@ -178,7 +200,7 @@
     applyAll();
     observer.observe(global.document.documentElement, {
         subtree: true, childList: true, characterData: true, attributes: true,
-        attributeFilter: ['aria-label', 'title', 'placeholder']
+        attributeFilter: ['aria-label', 'title', 'placeholder', 'alt']
     });
 
     global.CaissaFirstPartyLocalization = Object.freeze({ contractId, apply: applyAll });

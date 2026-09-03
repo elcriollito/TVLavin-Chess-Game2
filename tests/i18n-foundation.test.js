@@ -92,6 +92,17 @@ test('UX-009 first-party interface catalogs have complete English and Spanish pa
     }
 });
 
+test('UX-010 dynamic Play and authentication residuals resolve through the shared catalog', () => {
+    const { api } = boot({ stored: 'es' });
+    assert.equal(api.t('shell.createAccount'), 'Crear cuenta');
+    assert.equal(api.t('shell.accountUnavailable'), 'Cuenta no disponible');
+    assert.equal(api.t('play.whiteSelected'), 'Blancas seleccionadas.');
+    assert.equal(api.t('play.blackSelected'), 'Negras seleccionadas.');
+    assert.equal(api.t('play.randomSelected'), 'Aleatorio seleccionado.');
+    assert.deepEqual(Object.keys(api.catalogs.es).sort(), Object.keys(api.catalogs.en).sort());
+    assert.ok(Object.keys(api.catalogs.en).length > 421);
+});
+
 test('supported and enabled locales are separate and preserve future Unicode names', () => {
     const { api } = boot();
     assert.deepEqual(Array.from(api.enabledLocales), ['en', 'es']);
