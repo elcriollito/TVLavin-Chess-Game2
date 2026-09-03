@@ -29,6 +29,7 @@ test('active Coach presents Caissa responsively and keeps narration synchronized
 
 test('Bots and Coach share only Resign, Hint and Undo', () => {
     const shell = read('js/play/simplified-play-shell.js');
+    const css = read('css/play-simplified-shell.css');
     assert.match(shell, /\['resign', 'Resign'\]/);
     assert.match(shell, /\['coach-hint', '💡 Hint'\]/);
     assert.match(shell, /\['coach-undo', '↶ Undo'\]/);
@@ -39,6 +40,14 @@ test('Bots and Coach share only Resign, Hint and Undo', () => {
     assert.match(shell, /\['bots', 'coach'\]\.includes\(this\.#mode\)/);
     assert.match(shell, /caissa-coach-hint-clear/);
     assert.match(shell, /previous\.textContent = ''/);
+    assert.match(shell, /caissa-coach-move-annotation/);
+    assert.match(shell, /#renderCoachBoardAnnotation\(\)/);
+    assert.match(shell, /caissa-coach-move-symbol--\$\{annotation\.key\}/);
+    assert.match(shell, /place\(evalScore, opponent\)/);
+    assert.match(css, /caissa-simplified-shell__player \.eval-score-badge/);
+    assert.match(css, /position: static/);
+    assert.match(css, /#chessboard \.caissa-coach-move-annotation/);
+    assert.match(css, /caissa-coach-move-symbol--blunder/);
 });
 
 test('assisted games expose honest CAISSA resources and utility actions', () => {

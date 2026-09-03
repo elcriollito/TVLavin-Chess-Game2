@@ -8,7 +8,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await page.goto('/play/beta/coach');
     await expect(page.getByRole('tab', { name: /Coach/ })).toHaveAttribute('aria-selected', 'true');
     const panel = page.locator('[data-caissa-native-coach-panel]');
-    await expect(panel).toBeVisible(); await expect(panel.getByText('Play Coach')).toBeVisible();
+    await expect(panel).toBeVisible(); await expect(panel.locator('.caissa-native-coach-panel__title')).toHaveCount(0);
     await expect(panel.getByAltText('Caissa, goddess of chess')).toBeVisible();
     await expect(panel.locator('[data-coach-narration]')).toContainText("Let's play");
     await expect(panel).not.toContainText(/Internal|locally certified|bounded assistance/i);

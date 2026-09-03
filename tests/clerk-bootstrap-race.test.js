@@ -33,8 +33,8 @@ test('slow config prevents Clerk construction until valid config resolves', asyn
   window.CAISSA_AUTH_CONFIG.CLERK_PUBLISHABLE_KEY=validKey; resolveReady();
 });
 
-test('missing and malformed config never construct Clerk', async()=>{
-  for(const key of ['', 'pk_test_bad!', 'pk_live_short']) { const run=loadAuth({resolveConfig:false,key}); run.window.CAISSA_AUTH_CONFIG.CLERK_PUBLISHABLE_KEY=key; await new Promise(r=>setTimeout(r,0)); assert.equal(run.counts().appended,0); }
+test('missing, malformed, and placeholder config never construct Clerk', async()=>{
+  for(const key of ['', 'pk_test_bad!', 'pk_live_short', 'pk_test_REPLACE_WITH_YOUR_KEY', 'pk_live_placeholder_value_12345']) { const run=loadAuth({resolveConfig:false,key}); run.window.CAISSA_AUTH_CONFIG.CLERK_PUBLISHABLE_KEY=key; await new Promise(r=>setTimeout(r,0)); assert.equal(run.counts().appended,0); }
 });
 
 test('valid config initializes exactly one owned Clerk instance', async()=>{
@@ -51,7 +51,7 @@ test('no HTML page preconstructs Clerk without resolved configuration',()=>{
 
 test('public endpoint rejects malformed key candidates',()=>{
   assert.equal(isValidClerkPublishableKey(validKey),true);
-  for(const value of ['', 'pk_test_bad!', 'pk_live_short', ['sk', 'test', 'never_public'].join('_')]) assert.equal(isValidClerkPublishableKey(value),false);
+  for(const value of ['', 'pk_test_bad!', 'pk_live_short', 'pk_test_REPLACE_WITH_YOUR_KEY', 'pk_live_placeholder_value_12345', ['sk', 'test', 'never_public'].join('_')]) assert.equal(isValidClerkPublishableKey(value),false);
 });
 
 test('global and Reader CSP add only Clerk-required resources while Play stays self-only',()=>{

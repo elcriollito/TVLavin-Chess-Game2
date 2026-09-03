@@ -25,9 +25,7 @@
             if (this.#disposed || !host?.appendChild) return result(false, 'INVALID_HOST');
             this.#host = host;
             const section = this.#root = node('section', { class: 'caissa-native-coach-panel',
-                'data-caissa-native-coach-panel': '', 'aria-labelledby': `${this.#id}-title` });
-            const title = node('h2', { id: `${this.#id}-title`, class: 'caissa-native-coach-panel__title' });
-            title.textContent = 'Play Coach';
+                'data-caissa-native-coach-panel': '', 'aria-label': 'Play Coach setup' });
 
             const persona = node('div', { class: 'caissa-native-coach-panel__persona' });
             const portrait = node('img', { class: 'caissa-native-coach-panel__portrait',
@@ -72,7 +70,7 @@
             const help = node('button', { type: 'button', 'data-coach-help': '', hidden: '', disabled: '' }); help.textContent = 'Help';
             const dismiss = node('button', { type: 'button', 'data-coach-dismiss': '', hidden: '', disabled: '' });
             dismiss.textContent = 'Dismiss assistance';
-            section.append(title, persona, controls, access, premium, action, help, dismiss); host.appendChild(section);
+            section.append(persona, controls, access, premium, action, help, dismiss); host.appendChild(section);
             this.#listen(section, 'change', event => this.#change(event));
             this.#listen(action, 'click', () => this.submit()); this.#listen(help, 'click', () => this.requestHelp());
             this.#listen(dismiss, 'click', () => { this.#assistance.dismiss(); dismiss.disabled = true;

@@ -19,8 +19,8 @@ function load() {
 
 test('publishes frozen versioned shell and snapshot contracts', () => {
     const { api } = load();
-    assert.equal(api.schemaVersion, '1.9.0');
-    assert.equal(api.snapshotSchemaVersion, '1.9.0');
+    assert.equal(api.schemaVersion, '1.12.0');
+    assert.equal(api.snapshotSchemaVersion, '1.12.0');
     assert.ok(Object.isFrozen(api));
     assert.ok(Object.isFrozen(api.statuses));
     assert.ok(Object.isFrozen(api.regions));
@@ -68,6 +68,11 @@ test('desktop beta geometry uses viewport height instead of the former 760px cei
         assert.ok(active.boardSize <= setup.boardSize);
         assert.ok(active.boardSize >= height * .70, `${width}x${height} active board remains viewport-dominant`);
     }
+});
+
+test('resize uses the effective Play width so the sidebar cannot overlap the context column', () => {
+    assert.match(source, /rootWidth = this\.#root\.getBoundingClientRect\?\.\(\)\.width/);
+    assert.match(source, /Math\.min\(viewportWidth, rootWidth\)/);
 });
 
 test('malformed geometry inputs are bounded and cannot inject a layout class', () => {
@@ -123,4 +128,17 @@ test('route controller preserves the explicit QA flag without making it default'
     assert.match(routeSource, /AVAILABILITY\[requestedMode\] === 'qa-only' && query\.simplified === '1'/);
     assert.match(routeSource, /players: false/);
     assert.match(source, /route\.query\?\.simplified === '1'/);
+});
+
+test('Settings uses internal buttons, closes without navigation, and restores focus', () => {
+    assert.match(source, /'data-active-game-action': action/);
+    assert.match(source, /'data-active-game-action': 'close-settings'/);
+    assert.doesNotMatch(source, /href: `#\$\{this\.#id\}-settings`/);
+    assert.doesNotMatch(source, /href: '#', 'aria-label': 'Close board settings'/);
+    assert.match(source, /this\.#settingsDialog\.hidden = true;[\s\S]*this\.#settingsTrigger\?\.focus\?\.\(\)/);
+    assert.doesNotMatch(source, /history\.(?:pushState|replaceState)/);
+});
+
+test('Coach annotation badge is anchored to the destination square top-right corner', () => {
+    assert.match(css, /#chessboard \.caissa-coach-move-annotation\s*\{[\s\S]*top:\s*5%;[\s\S]*right:\s*5%;[\s\S]*bottom:\s*auto/);
 });

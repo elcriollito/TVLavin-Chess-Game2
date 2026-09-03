@@ -66,15 +66,8 @@
             this.#selectedId = first.collection.id === 'classic' ? first.bot.id : `${first.collection.id}:${first.bot.id}`;
             this.#selectedCategoryId = first.bot.categoryId;
             this.#root = element('section', 'caissa-bots-panel', {
-                'data-caissa-bots-panel': '', 'aria-labelledby': `${this.#id}-title`
+                'data-caissa-bots-panel': '', 'aria-label': 'Play Bots setup'
             });
-
-            const header = element('header', 'caissa-bots-panel__header');
-            const title = element('h2', 'caissa-bots-panel__title', { id: `${this.#id}-title` });
-            title.textContent = 'Play Bots';
-            const collection = element('span', 'caissa-bots-panel__collection');
-            collection.textContent = active.length === 1 ? active[0].collection.title : `${active.length} Active Collections`;
-            header.append(title, collection);
 
             const selected = element('div', 'caissa-bots-panel__selected', { 'data-bot-selected': '' });
             const categoryNav = element('div', 'caissa-bots-panel__category-nav', {
@@ -169,7 +162,7 @@
                 type: 'button', 'data-bot-retry': '', 'aria-describedby': `${this.#id}-status`
             });
             retry.textContent = 'Retry'; retry.hidden = true;
-            this.#root.append(header, selected, categoryNav, catalog, controls, status, action, retry); host.appendChild(this.#root);
+            this.#root.append(selected, categoryNav, catalog, controls, status, action, retry); host.appendChild(this.#root);
             this.#listen(this.#root, 'change', event => this.#change(event));
             this.#listen(this.#root, 'click', event => {
                 const tab = event.target?.closest?.('[data-bot-category-tab]');

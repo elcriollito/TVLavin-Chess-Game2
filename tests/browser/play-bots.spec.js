@@ -22,8 +22,8 @@ test('Bots is internal and exposes the Classic piece ladder without engine inter
     await openBots(page);
     await expect(page.locator('[data-bot-card]')).toHaveCount(44);
     await expect(page.locator('.caissa-bots-panel__bot.is-preview-ready')).toHaveCount(44);
-    await expect(page.getByRole('heading', { name: 'Play Bots' })).toBeVisible();
-    await expect(page.getByText('Classic Bots', { exact: true })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Play Bots' })).toBeVisible();
+    await expect(page.locator('.caissa-bots-panel__title,.caissa-bots-panel__collection')).toHaveCount(0);
     await expect(page.locator('.caissa-bots-panel')).not.toContainText(/depth|MultiPV|centipawn|Worker URL/i);
     await expect(page.getByLabel(/Pip, 100 Elo target, New to Chess, preview ready/)).toBeVisible();
     await expect(page.locator('[data-bot-category-nav]')).toBeVisible();

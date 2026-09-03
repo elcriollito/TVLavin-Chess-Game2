@@ -35,5 +35,8 @@ export default function handler(req, res) {
 }
 
 export function isValidClerkPublishableKey(value) {
-    return typeof value === 'string' && value.length >= 24 && value.length <= 512 && /^pk_(?:test|live)_[A-Za-z0-9_-]+$/.test(value);
+    if (typeof value !== 'string') return false;
+    const key = value.trim();
+    if (key.length < 24 || key.length > 512 || !/^pk_(?:test|live)_[A-Za-z0-9_-]+$/.test(key)) return false;
+    return !/(?:replace(?:_with)?_your_key|placeholder|change(?:me|_me)|dummy|example)/i.test(key);
 }

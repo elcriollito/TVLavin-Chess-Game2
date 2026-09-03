@@ -59,10 +59,11 @@ test('static runtime owns no board, Worker, engine, clock, lifecycle, storage, t
     assert.doesNotMatch(source, /Academy|Knowledge Unit|Training Memory|Guided Replay|Mentor|FICS/i);
 });
 
-test('Play Coach presentation uses the original Caissa portrait and hides engineering language', () => {
+test('Play Coach presentation uses the original Caissa portrait without a redundant inner title', () => {
     const panel = read('js/play/native-coach/coach-panel.js');
     const asset = fs.readFileSync(new URL('../../assets/play/caissa-coach-goddess.png', import.meta.url));
-    assert.match(panel, /Play Coach/);
+    assert.match(panel, /aria-label': 'Play Coach setup'/);
+    assert.doesNotMatch(panel, /textContent = 'Play Coach'/);
     assert.match(panel, /Caissa, goddess of chess/);
     assert.match(panel, /caissa-coach-goddess\.png/);
     assert.doesNotMatch(panel, /Coach · Internal|locally certified|bounded assistance|Game setup/i);

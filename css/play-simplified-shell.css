@@ -316,7 +316,7 @@ body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experienc
     gap: var(--play-workspace-gap, clamp(8px, 1.2vw, 18px));
 }
 
-body.caissa-simplified-play-active.caissa-play-game-active
+body.caissa-simplified-play-active
     .caissa-simplified-shell[data-entry-experience="beta"][data-layout="desktop-split"] .caissa-simplified-shell__context {
     grid-row: 2 / -1;
     align-self: stretch;
@@ -683,6 +683,7 @@ body.caissa-simplified-play-active .caissa-simplified-shell__active-action {
     border-radius: 9px;
     background: var(--play-theme-card);
     color: var(--play-theme-text);
+    font-size: .95rem;
     font-weight: 800;
 }
 
@@ -699,6 +700,7 @@ body.caissa-simplified-play-active .caissa-simplified-shell__active-context {
     display: grid;
     gap: 8px;
     padding: 14px;
+    font-size: 16px;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__active-context[hidden] {
@@ -720,7 +722,8 @@ body.caissa-simplified-play-active .caissa-simplified-shell__active-notation {
 
 body.caissa-simplified-play-active .caissa-simplified-shell__active-opening {
     color: var(--play-theme-text-muted, #b6c0cc);
-    font-size: .9rem;
+    font-size: 16px;
+    line-height: 1.4;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__reference-tools {
@@ -742,7 +745,7 @@ body.caissa-simplified-play-active .caissa-simplified-shell__reference-tool {
     background: transparent;
     color: var(--play-theme-text-muted, #b6c0cc);
     font: inherit;
-    font-size: .78rem;
+    font-size: 14px;
     text-decoration: none;
 }
 
@@ -775,7 +778,7 @@ body.caissa-simplified-play-active .caissa-simplified-shell__utility-action {
     border-radius: 9px;
     background: transparent;
     color: var(--play-theme-text-muted, #b6c0cc);
-    font-size: .74rem;
+    font-size: 14px;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__utility-action i { font-size: 1.05rem; }
@@ -800,7 +803,7 @@ body.caissa-simplified-play-active .caissa-simplified-shell__settings-dialog {
     box-shadow: 0 0 0 100vmax rgb(0 0 0 / .68), 0 18px 50px rgb(0 0 0 / .45);
 }
 
-body.caissa-simplified-play-active .caissa-simplified-shell__settings-dialog:target { display: block; }
+body.caissa-simplified-play-active .caissa-simplified-shell__settings-dialog:not([hidden]) { display: block; }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__settings-dialog::backdrop { background: rgb(0 0 0 / .68); }
 body.caissa-simplified-play-active .caissa-simplified-shell__settings-dialog h2 { margin: 0 0 14px; }
@@ -831,17 +834,6 @@ body.caissa-simplified-play-active .caissa-simplified-shell__settings-actions bu
     color: var(--play-theme-text, #fff);
     font-weight: 750;
 }
-body.caissa-simplified-play-active .caissa-simplified-shell__settings-actions a {
-    display: grid;
-    place-items: center;
-    min-height: 44px;
-    border: 1px solid var(--panel-border);
-    border-radius: 9px;
-    background: var(--play-theme-card, #17202b);
-    color: var(--play-theme-text, #fff);
-    font-weight: 750;
-    text-decoration: none;
-}
 body.caissa-simplified-play-active .caissa-simplified-shell.caissa-hide-legal-moves
     #chessboard .caissa-board-legal-target::after { display: none !important; }
 body.caissa-simplified-play-active .caissa-simplified-shell.caissa-hide-last-move
@@ -871,11 +863,68 @@ body.caissa-simplified-play-active .caissa-simplified-shell__active-move-row:nth
 
 body.caissa-simplified-play-active .caissa-simplified-shell__active-move-number {
     color: var(--play-theme-text-muted, #9ca8b6);
+    font-size: 15px;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__active-move {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     color: var(--play-theme-text, #fff);
+    font-size: 16px;
     font-weight: 750;
+}
+
+body.caissa-simplified-play-active .caissa-coach-move-symbol,
+body.caissa-simplified-play-active #chessboard .caissa-coach-move-annotation {
+    --caissa-move-mark: #617087;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    min-width: 1.45em;
+    height: 1.45em;
+    padding: 0 .2em;
+    border: 1px solid color-mix(in srgb, white 42%, transparent);
+    border-radius: 999px;
+    background: var(--caissa-move-mark);
+    color: #fff;
+    font-size: .72rem;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 2px 7px rgb(0 0 0 / .32);
+    box-sizing: border-box;
+}
+
+body.caissa-simplified-play-active .caissa-coach-move-symbol--book,
+body.caissa-simplified-play-active #chessboard .caissa-coach-move-annotation--book { --caissa-move-mark: #9b7457; }
+body.caissa-simplified-play-active .caissa-coach-move-symbol--best,
+body.caissa-simplified-play-active #chessboard .caissa-coach-move-annotation--best { --caissa-move-mark: #3c9469; }
+body.caissa-simplified-play-active .caissa-coach-move-symbol--precise,
+body.caissa-simplified-play-active #chessboard .caissa-coach-move-annotation--precise { --caissa-move-mark: #347fa7; }
+body.caissa-simplified-play-active .caissa-coach-move-symbol--good,
+body.caissa-simplified-play-active #chessboard .caissa-coach-move-annotation--good { --caissa-move-mark: #6b9847; }
+body.caissa-simplified-play-active .caissa-coach-move-symbol--inaccuracy,
+body.caissa-simplified-play-active #chessboard .caissa-coach-move-annotation--inaccuracy { --caissa-move-mark: #c58d26; }
+body.caissa-simplified-play-active .caissa-coach-move-symbol--mistake,
+body.caissa-simplified-play-active #chessboard .caissa-coach-move-annotation--mistake { --caissa-move-mark: #cf7134; }
+body.caissa-simplified-play-active .caissa-coach-move-symbol--blunder,
+body.caissa-simplified-play-active #chessboard .caissa-coach-move-annotation--blunder { --caissa-move-mark: #c44046; }
+
+body.caissa-simplified-play-active #chessboard .square-55d63 {
+    position: relative;
+}
+
+body.caissa-simplified-play-active #chessboard .caissa-coach-move-annotation {
+    position: absolute;
+    top: 5%;
+    right: 5%;
+    bottom: auto;
+    z-index: 7;
+    min-width: clamp(18px, 27%, 29px);
+    height: clamp(18px, 27%, 29px);
+    padding: 0 .18em;
+    font-size: clamp(.64rem, 1.05vw, 1.05rem);
+    pointer-events: none;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop-split"] .caissa-simplified-shell__context-body {
@@ -883,6 +932,13 @@ body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop
     flex: 1;
     flex-direction: column;
     min-height: 0;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop-split"][data-mode="coach"]
+    .caissa-simplified-shell__context-body,
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop-split"][data-mode="coach"]
+    .caissa-simplified-shell__active-context {
+    padding-block-start: 0;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop-split"] .caissa-simplified-shell__active-context {
@@ -916,6 +972,12 @@ body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop
 body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop-split"]
     .caissa-simplified-shell__active-context > .caissa-simplified-shell__coach-narrator {
     width: 100%;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop-split"]
+    .caissa-simplified-shell__coach-speech {
+    font-size: 16px;
+    line-height: 1.5;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__assistance {
@@ -959,18 +1021,16 @@ body.caissa-simplified-play-active .caissa-simplified-shell__assistance-note { m
 
 body.caissa-simplified-play-active .caissa-native-coach-panel {
     --coach-gold: #e5b84e;
-    display: grid;
+    display: flex;
+    flex-direction: column;
+    align-content: flex-start;
+    height: 100%;
     min-height: min(620px, calc(100dvh - 230px));
     color: var(--play-theme-text, var(--text-primary));
 }
 
 body.caissa-simplified-play-active .caissa-native-coach-panel[hidden],
 body.caissa-simplified-play-active .caissa-native-coach-panel [hidden] { display: none; }
-
-body.caissa-simplified-play-active .caissa-native-coach-panel__title {
-    margin: 0 0 .75rem;
-    font-size: 1.35rem;
-}
 
 body.caissa-simplified-play-active .caissa-native-coach-panel__persona {
     display: grid;
@@ -985,6 +1045,7 @@ body.caissa-simplified-play-active .caissa-native-coach-panel__persona {
         radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--coach-gold) 13%, transparent), transparent 42%),
         color-mix(in srgb, var(--play-theme-card, #17202b) 94%, transparent);
     overflow: hidden;
+    flex: 0 0 auto;
 }
 
 body.caissa-simplified-play-active .caissa-native-coach-panel__portrait {
@@ -1159,6 +1220,186 @@ body.caissa-simplified-play-active .caissa-simplified-shell__pgn-dialog textarea
     resize: vertical;
 }
 
+body.caissa-simplified-play-active .caissa-play-share {
+    width: min(700px, calc(100vw - 24px));
+    max-height: min(820px, calc(100dvh - 24px));
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    background: var(--panel-bg);
+    color: var(--play-theme-text, #f8fafc);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, .55);
+}
+
+body.caissa-simplified-play-active .caissa-play-share::backdrop {
+    background: rgba(4, 8, 14, .78);
+    backdrop-filter: blur(3px);
+}
+
+body.caissa-simplified-play-active .caissa-play-share__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 66px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--panel-border);
+}
+
+body.caissa-simplified-play-active .caissa-play-share__header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+body.caissa-simplified-play-active .caissa-play-share__close,
+body.caissa-simplified-play-active .caissa-play-share__copy {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--play-theme-text-muted, #c8d0dc);
+    cursor: pointer;
+}
+
+body.caissa-simplified-play-active .caissa-play-share__close:hover,
+body.caissa-simplified-play-active .caissa-play-share__copy:hover {
+    border-color: var(--panel-border);
+    background: var(--play-theme-card, #1b2532);
+    color: var(--play-theme-text, #fff);
+}
+
+body.caissa-simplified-play-active .caissa-play-share__tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-bottom: 1px solid var(--panel-border);
+}
+
+body.caissa-simplified-play-active .caissa-play-share__tab {
+    position: relative;
+    min-height: 58px;
+    padding: 10px 6px;
+    border: 0;
+    background: transparent;
+    color: var(--play-theme-text-muted, #b8c2cf);
+    font-size: .96rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+body.caissa-simplified-play-active .caissa-play-share__tab[aria-selected="true"] {
+    color: var(--play-theme-text, #fff);
+}
+
+body.caissa-simplified-play-active .caissa-play-share__tab[aria-selected="true"]::after {
+    content: "";
+    position: absolute;
+    inset-inline: 14%;
+    inset-block-end: 0;
+    height: 3px;
+    border-radius: 999px 999px 0 0;
+    background: #e5b84e;
+}
+
+body.caissa-simplified-play-active .caissa-play-share__panels {
+    max-height: calc(100dvh - 150px);
+    overflow-y: auto;
+}
+
+body.caissa-simplified-play-active .caissa-play-share__panel {
+    display: grid;
+    gap: 16px;
+    padding: 20px;
+}
+
+body.caissa-simplified-play-active .caissa-play-share__panel[hidden] { display: none; }
+
+body.caissa-simplified-play-active .caissa-play-share__panel h3,
+body.caissa-simplified-play-active .caissa-play-share__note { margin: 0; }
+
+body.caissa-simplified-play-active .caissa-play-share__note {
+    color: var(--play-theme-text-muted, #b8c2cf);
+    line-height: 1.45;
+}
+
+body.caissa-simplified-play-active .caissa-play-share__field {
+    display: grid;
+    gap: 8px;
+}
+
+body.caissa-simplified-play-active .caissa-play-share__label {
+    color: var(--play-theme-text-muted, #c8d0dc);
+    font-size: .88rem;
+    font-weight: 800;
+}
+
+body.caissa-simplified-play-active .caissa-play-share__field-row {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+}
+
+body.caissa-simplified-play-active :is(.caissa-play-share__input, .caissa-play-share__textarea) {
+    width: 100%;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--panel-border);
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--play-theme-card, #17202b) 86%, black 6%);
+    color: var(--play-theme-text, #fff);
+    font: 500 .88rem/1.45 'Roboto Mono', monospace;
+}
+
+body.caissa-simplified-play-active .caissa-play-share__textarea {
+    min-height: 190px;
+    resize: vertical;
+}
+
+body.caissa-simplified-play-active .caissa-play-share__textarea--embed { min-height: 120px; }
+
+body.caissa-simplified-play-active .caissa-play-share__primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    width: 100%;
+    min-height: 52px;
+    padding: 10px 16px;
+    border: 1px solid #bd9230;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #edc45d, #d9a83c);
+    color: #18130a;
+    font-weight: 850;
+    cursor: pointer;
+}
+
+body.caissa-simplified-play-active .caissa-play-share__canvas {
+    display: block;
+    width: min(100%, 480px);
+    height: auto;
+    margin-inline: auto;
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    background: #101721;
+}
+
+@media (max-width: 520px) {
+    body.caissa-simplified-play-active .caissa-play-share {
+        width: calc(100vw - 12px);
+        max-height: calc(100dvh - 12px);
+        border-radius: 12px;
+    }
+    body.caissa-simplified-play-active .caissa-play-share__header { min-height: 56px; padding: 8px 12px; }
+    body.caissa-simplified-play-active .caissa-play-share__tab { min-height: 52px; font-size: .86rem; }
+    body.caissa-simplified-play-active .caissa-play-share__panel { gap: 12px; padding: 14px; }
+    body.caissa-simplified-play-active .caissa-play-share__textarea { min-height: 160px; }
+}
+
 body.caissa-simplified-play-active .caissa-simplified-shell__board-region .board-with-eval {
     gap: var(--shell-rail-gap);
     align-items: stretch;
@@ -1170,6 +1411,13 @@ body.caissa-simplified-play-active #playSection #evalBar {
     flex: 0 0 var(--shell-eval-width) !important;
     height: var(--play-board-size) !important;
     min-height: var(--play-board-size) !important;
+}
+
+body.caissa-simplified-play-active #playSection .caissa-simplified-shell__player .eval-score-badge {
+    position: static;
+    inset: auto;
+    transform: none;
+    margin-right: auto;
 }
 
 body.caissa-simplified-play-active #playSection #chessboard {
@@ -1769,24 +2017,6 @@ body.caissa-simplified-play-active .caissa-bots-panel {
     display: grid;
     gap: .875rem;
     color: var(--play-theme-text, var(--text-primary));
-}
-
-body.caissa-simplified-play-active .caissa-bots-panel__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: .75rem;
-}
-
-body.caissa-simplified-play-active .caissa-bots-panel__title { margin: 0; font-size: 1.35rem; }
-
-body.caissa-simplified-play-active .caissa-bots-panel__collection {
-    padding: .3rem .6rem;
-    border: 1px solid color-mix(in srgb, var(--bot-accent) 52%, transparent);
-    border-radius: 999px;
-    color: var(--bot-accent);
-    font-size: .78rem;
-    font-weight: 700;
 }
 
 body.caissa-simplified-play-active .caissa-bots-panel__selected {
