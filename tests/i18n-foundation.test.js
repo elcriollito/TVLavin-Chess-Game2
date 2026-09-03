@@ -105,11 +105,20 @@ test('UX-010 dynamic Play and authentication residuals resolve through the share
 
 test('supported and enabled locales are separate and preserve future Unicode names', () => {
     const { api } = boot();
+    assert.deepEqual(Object.keys(api.supportedLocales), ['en', 'es', 'pt', 'fr', 'de', 'ru', 'hi']);
+    assert.deepEqual(Object.fromEntries(Object.entries(api.localeFamilies)), {
+        en: 'en', es: 'es', pt: 'pt', fr: 'fr', de: 'de', ru: 'ru', hi: 'hi'
+    });
     assert.deepEqual(Array.from(api.enabledLocales), ['en', 'es']);
+    assert.equal(api.supportedLocales.pt.name, 'Português');
+    assert.equal(api.supportedLocales.fr.name, 'Français');
+    assert.equal(api.supportedLocales.de.name, 'Deutsch');
     assert.equal(api.supportedLocales.ru.name, 'Русский');
     assert.equal(api.supportedLocales.hi.name, 'हिन्दी');
-    assert.equal(api.supportedLocales.ru.enabled, false);
-    assert.equal(api.supportedLocales.hi.enabled, false);
+    for (const locale of ['pt', 'fr', 'de', 'ru', 'hi']) assert.equal(api.supportedLocales[locale].enabled, false);
+    for (const locale of ['en-US', 'es-MX', 'pt-BR', 'pt-PT', 'fr-CA', 'de-DE', 'ru-RU', 'hi-IN']) {
+        assert.equal(api.normalizeLocale(locale), locale.slice(0, 2));
+    }
 });
 
 test('canonical navigation translates presentation while preserving routes, IDs, and active identity', () => {
@@ -147,6 +156,7 @@ test('language control exposes only enabled locales by their native names', () =
     assert.equal($('[data-caissa-locale-suggestion="es"]').text().replace(/\s+/g, ' ').trim(), '🌐 Español');
     assert.equal($('option').text().includes('Русский'), false);
     assert.equal($('option').text().includes('हिन्दी'), false);
+    for (const code of ['pt', 'fr', 'de', 'ru', 'hi']) assert.equal($(`option[value="${code}"]`).length, 0);
 });
 
 test('every shared-navigation HTML consumer loads i18n before the navigation owner', () => {

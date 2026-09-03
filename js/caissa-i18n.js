@@ -1,19 +1,20 @@
 (function (global) {
     'use strict';
 
-    const contractId = 'CaissaI18nFoundation@1.0.0';
+    const contractId = 'CaissaI18nFoundation@2.0.0';
     const storageKey = 'caissa.locale';
     const defaultLocale = 'en';
 
     const supportedLocales = Object.freeze({
         en: Object.freeze({ code: 'en', name: 'English', enabled: true }),
         es: Object.freeze({ code: 'es', name: 'Español', enabled: true }),
-        ru: Object.freeze({ code: 'ru', name: 'Русский', enabled: false }),
-        hi: Object.freeze({ code: 'hi', name: 'हिन्दी', enabled: false }),
-        de: Object.freeze({ code: 'de', name: 'Deutsch', enabled: false }),
         pt: Object.freeze({ code: 'pt', name: 'Português', enabled: false }),
-        fr: Object.freeze({ code: 'fr', name: 'Français', enabled: false })
+        fr: Object.freeze({ code: 'fr', name: 'Français', enabled: false }),
+        de: Object.freeze({ code: 'de', name: 'Deutsch', enabled: false }),
+        ru: Object.freeze({ code: 'ru', name: 'Русский', enabled: false }),
+        hi: Object.freeze({ code: 'hi', name: 'हिन्दी', enabled: false })
     });
+    const localeFamilies = Object.freeze({ en: 'en', es: 'es', pt: 'pt', fr: 'fr', de: 'de', ru: 'ru', hi: 'hi' });
     const enabledLocales = Object.freeze(Object.keys(supportedLocales).filter(code => supportedLocales[code].enabled));
 
     // UX-009 extends the UX-002 catalog; the global locale remains the only source of truth.
@@ -617,7 +618,7 @@
 
     function normalizeLocale(value) {
         const normalized = String(value || '').trim().replaceAll('_', '-').toLowerCase().split('-')[0];
-        return supportedLocales[normalized] ? normalized : '';
+        return localeFamilies[normalized] || '';
     }
 
     function enabledLocale(value) {
@@ -711,6 +712,7 @@
         storageKey,
         defaultLocale,
         supportedLocales,
+        localeFamilies,
         enabledLocales,
         catalogs,
         normalizeLocale,
