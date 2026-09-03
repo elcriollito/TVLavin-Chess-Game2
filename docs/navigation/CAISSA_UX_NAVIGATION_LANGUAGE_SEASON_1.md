@@ -248,3 +248,19 @@ optional `/api/pgn/opening` request, which returns 404 in the local server; the
 i18n console gate permits only that known request and rejects all other console
 or page errors. No affected engine, PGN, Play lifecycle, or commercial source was
 changed to force these unrelated tests to pass.
+
+## UX-003 and UX-004 continuation audit
+
+UX-003 makes the existing N-language control visually recognizable as
+`🌐 Language` / `🌐 Idioma`, preserves native option names, and raises mobile
+selector and suggestion targets to 44 px. Focus-visible, accessible naming,
+selected-state, keyboard, desktop containment, and mobile behavior have focused
+browser coverage.
+
+UX-004 required no second detection service. The UX-002 service already keeps
+browser detection advisory, persists explicit selection, suppresses future
+suggestions after either English or Spanish is chosen, ignores disabled/unknown
+browser locales, and performs no regional request or tracking. Focused tests now
+certify the requested Spanish variants and the complete first-visit/reload flow.
+There is no account locale field or safe regional signal in the current shell,
+so those precedence slots remain intentionally inactive rather than simulated.
