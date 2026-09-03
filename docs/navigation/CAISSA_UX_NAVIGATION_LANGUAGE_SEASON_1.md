@@ -264,3 +264,14 @@ browser locales, and performs no regional request or tracking. Focused tests now
 certify the requested Spanish variants and the complete first-visit/reload flow.
 There is no account locale field or safe regional signal in the current shell,
 so those precedence slots remain intentionally inactive rather than simulated.
+
+## UX-005 mobile icon and label contract
+
+The canonical UX-001 inventory remains the sole source for mobile destinations.
+At the mobile breakpoint each real destination explicitly lays out its existing
+icon, translated `.nav-label`, and optional external indicator as a bounded flex
+row. No route, ID, permission, order, icon, or desktop collapse rule changes.
+The responsive matrix covers 320, 360, 375, 390, 412, and 430 px in alternating
+English and Spanish, including all 36 rendered primary/connect/support links,
+horizontal overflow, overlap, `/game-library` route identity, and desktop
+expanded/collapsed behavior.
