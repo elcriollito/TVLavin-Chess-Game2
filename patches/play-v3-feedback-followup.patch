@@ -1,0 +1,272 @@
+diff --git a/css/play-simplified-shell.css b/css/play-simplified-shell.css
+index 814edcd..764c98f 100644
+--- a/css/play-simplified-shell.css
++++ b/css/play-simplified-shell.css
+@@ -967,11 +967,6 @@ body.caissa-simplified-play-active .caissa-native-coach-panel {
+ body.caissa-simplified-play-active .caissa-native-coach-panel[hidden],
+ body.caissa-simplified-play-active .caissa-native-coach-panel [hidden] { display: none; }
+ 
+-body.caissa-simplified-play-active .caissa-native-coach-panel__title {
+-    margin: 0 0 .75rem;
+-    font-size: 1.35rem;
+-}
+-
+ body.caissa-simplified-play-active .caissa-native-coach-panel__persona {
+     display: grid;
+     grid-template-columns: minmax(110px, 34%) minmax(0, 1fr);
+@@ -1771,24 +1766,6 @@ body.caissa-simplified-play-active .caissa-bots-panel {
+     color: var(--play-theme-text, var(--text-primary));
+ }
+ 
+-body.caissa-simplified-play-active .caissa-bots-panel__header {
+-    display: flex;
+-    align-items: center;
+-    justify-content: space-between;
+-    gap: .75rem;
+-}
+-
+-body.caissa-simplified-play-active .caissa-bots-panel__title { margin: 0; font-size: 1.35rem; }
+-
+-body.caissa-simplified-play-active .caissa-bots-panel__collection {
+-    padding: .3rem .6rem;
+-    border: 1px solid color-mix(in srgb, var(--bot-accent) 52%, transparent);
+-    border-radius: 999px;
+-    color: var(--bot-accent);
+-    font-size: .78rem;
+-    font-weight: 700;
+-}
+-
+ body.caissa-simplified-play-active .caissa-bots-panel__selected {
+     display: flex;
+     align-items: center;
+diff --git a/js/play/bots-panel.js b/js/play/bots-panel.js
+index 2fa568f..8603bc5 100644
+--- a/js/play/bots-panel.js
++++ b/js/play/bots-panel.js
+@@ -66,16 +66,9 @@
+             this.#selectedId = first.collection.id === 'classic' ? first.bot.id : `${first.collection.id}:${first.bot.id}`;
+             this.#selectedCategoryId = first.bot.categoryId;
+             this.#root = element('section', 'caissa-bots-panel', {
+-                'data-caissa-bots-panel': '', 'aria-labelledby': `${this.#id}-title`
++                'data-caissa-bots-panel': '', 'aria-label': 'Play Bots setup'
+             });
+ 
+-            const header = element('header', 'caissa-bots-panel__header');
+-            const title = element('h2', 'caissa-bots-panel__title', { id: `${this.#id}-title` });
+-            title.textContent = 'Play Bots';
+-            const collection = element('span', 'caissa-bots-panel__collection');
+-            collection.textContent = active.length === 1 ? active[0].collection.title : `${active.length} Active Collections`;
+-            header.append(title, collection);
+-
+             const selected = element('div', 'caissa-bots-panel__selected', { 'data-bot-selected': '' });
+             const categoryNav = element('div', 'caissa-bots-panel__category-nav', {
+                 role: 'tablist', 'aria-label': 'Bot strength categories', 'data-bot-category-nav': ''
+@@ -169,7 +162,7 @@
+                 type: 'button', 'data-bot-retry': '', 'aria-describedby': `${this.#id}-status`
+             });
+             retry.textContent = 'Retry'; retry.hidden = true;
+-            this.#root.append(header, selected, categoryNav, catalog, controls, status, action, retry); host.appendChild(this.#root);
++            this.#root.append(selected, categoryNav, catalog, controls, status, action, retry); host.appendChild(this.#root);
+             this.#listen(this.#root, 'change', event => this.#change(event));
+             this.#listen(this.#root, 'click', event => {
+                 const tab = event.target?.closest?.('[data-bot-category-tab]');
+diff --git a/js/play/native-coach/coach-panel.js b/js/play/native-coach/coach-panel.js
+index 2e2a903..d58ad4a 100644
+--- a/js/play/native-coach/coach-panel.js
++++ b/js/play/native-coach/coach-panel.js
+@@ -25,9 +25,7 @@
+             if (this.#disposed || !host?.appendChild) return result(false, 'INVALID_HOST');
+             this.#host = host;
+             const section = this.#root = node('section', { class: 'caissa-native-coach-panel',
+-                'data-caissa-native-coach-panel': '', 'aria-labelledby': `${this.#id}-title` });
+-            const title = node('h2', { id: `${this.#id}-title`, class: 'caissa-native-coach-panel__title' });
+-            title.textContent = 'Play Coach';
++                'data-caissa-native-coach-panel': '', 'aria-label': 'Play Coach setup' });
+ 
+             const persona = node('div', { class: 'caissa-native-coach-panel__persona' });
+             const portrait = node('img', { class: 'caissa-native-coach-panel__portrait',
+@@ -72,7 +70,7 @@
+             const help = node('button', { type: 'button', 'data-coach-help': '', hidden: '', disabled: '' }); help.textContent = 'Help';
+             const dismiss = node('button', { type: 'button', 'data-coach-dismiss': '', hidden: '', disabled: '' });
+             dismiss.textContent = 'Dismiss assistance';
+-            section.append(title, persona, controls, access, premium, action, help, dismiss); host.appendChild(section);
++            section.append(persona, controls, access, premium, action, help, dismiss); host.appendChild(section);
+             this.#listen(section, 'change', event => this.#change(event));
+             this.#listen(action, 'click', () => this.submit()); this.#listen(help, 'click', () => this.requestHelp());
+             this.#listen(dismiss, 'click', () => { this.#assistance.dismiss(); dismiss.disabled = true;
+diff --git a/js/play/simplified-play-shell.js b/js/play/simplified-play-shell.js
+index 77c880d..83b9473 100644
+--- a/js/play/simplified-play-shell.js
++++ b/js/play/simplified-play-shell.js
+@@ -634,7 +634,9 @@
+ 
+         resize() {
+             if (!this.#root) return result(false, 'unavailable', REASONS.PLAY_UNAVAILABLE);
+-            const width = global.innerWidth || global.visualViewport?.width || 0;
++            const viewportWidth = global.innerWidth || global.visualViewport?.width || 0;
++            const rootWidth = this.#root.getBoundingClientRect?.().width || 0;
++            const width = rootWidth > 0 ? Math.min(viewportWidth, rootWidth) : viewportWidth;
+             const layoutHeight = global.innerHeight || global.visualViewport?.height || 0;
+             const visualHeight = global.visualViewport?.height || layoutHeight;
+             const height = Math.min(layoutHeight, visualHeight);
+@@ -822,7 +824,9 @@
+             if (menu) menu.hidden = assistedMode;
+             const heading = this.#root.querySelector('.caissa-simplified-shell__context-header h2');
+             if (heading) {
+-                heading.hidden = !active && !postGame && !starting && ['bots', 'coach'].includes(this.#mode);
++                const redundantAssistedHeading = !postGame && !starting && ['bots', 'coach'].includes(this.#mode);
++                heading.hidden = redundantAssistedHeading;
++                heading.parentElement.hidden = redundantAssistedHeading;
+                 heading.textContent = postGame ? 'Game result' : active
+                     ? ({ games: 'Play Game', bots: 'Play Bots', coach: 'Play Coach' }[this.#mode] || 'Game status')
+                     : starting ? 'Starting game' : 'Game setup';
+diff --git a/play-v2-ipad-analyze-diagnostic.html b/play-v2-ipad-analyze-diagnostic.html
+index d50a684..d530ae1 100644
+--- a/play-v2-ipad-analyze-diagnostic.html
++++ b/play-v2-ipad-analyze-diagnostic.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.15.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.16.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3078,7 +3078,7 @@
+     <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.19.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.20.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/play-v2-promotion-qa.html b/play-v2-promotion-qa.html
+index 68c76ad..60a1bbb 100644
+--- a/play-v2-promotion-qa.html
++++ b/play-v2-promotion-qa.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.15.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.16.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3078,7 +3078,7 @@
+     <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.19.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.20.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/play-v2-public-beta.html b/play-v2-public-beta.html
+index 309436d..5919942 100644
+--- a/play-v2-public-beta.html
++++ b/play-v2-public-beta.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.15.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.16.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3078,7 +3078,7 @@
+     <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.19.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.20.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/play-v2.html b/play-v2.html
+index c43e73d..15b6bc0 100644
+--- a/play-v2.html
++++ b/play-v2.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.15.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.16.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3077,7 +3077,7 @@
+     <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.19.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.20.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/tests/browser/play-bots.spec.js b/tests/browser/play-bots.spec.js
+index d1ab1f8..ccdb1cf 100644
+--- a/tests/browser/play-bots.spec.js
++++ b/tests/browser/play-bots.spec.js
+@@ -22,8 +22,8 @@ test('Bots is internal and exposes the Classic piece ladder without engine inter
+     await openBots(page);
+     await expect(page.locator('[data-bot-card]')).toHaveCount(44);
+     await expect(page.locator('.caissa-bots-panel__bot.is-preview-ready')).toHaveCount(44);
+-    await expect(page.getByRole('heading', { name: 'Play Bots' })).toBeVisible();
+-    await expect(page.getByText('Classic Bots', { exact: true })).toBeVisible();
++    await expect(page.getByRole('tab', { name: 'Play Bots' })).toBeVisible();
++    await expect(page.locator('.caissa-bots-panel__title,.caissa-bots-panel__collection')).toHaveCount(0);
+     await expect(page.locator('.caissa-bots-panel')).not.toContainText(/depth|MultiPV|centipawn|Worker URL/i);
+     await expect(page.getByLabel(/Pip, 100 Elo target, New to Chess, preview ready/)).toBeVisible();
+     await expect(page.locator('[data-bot-category-nav]')).toBeVisible();
+diff --git a/tests/browser/play-native-coach.spec.js b/tests/browser/play-native-coach.spec.js
+index 6486f07..b0fef77 100644
+--- a/tests/browser/play-native-coach.spec.js
++++ b/tests/browser/play-native-coach.spec.js
+@@ -8,7 +8,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
+     await page.goto('/play/beta/coach');
+     await expect(page.getByRole('tab', { name: /Coach/ })).toHaveAttribute('aria-selected', 'true');
+     const panel = page.locator('[data-caissa-native-coach-panel]');
+-    await expect(panel).toBeVisible(); await expect(panel.getByText('Play Coach')).toBeVisible();
++    await expect(panel).toBeVisible(); await expect(panel.locator('.caissa-native-coach-panel__title')).toHaveCount(0);
+     await expect(panel.getByAltText('Caissa, goddess of chess')).toBeVisible();
+     await expect(panel.locator('[data-coach-narration]')).toContainText("Let's play");
+     await expect(panel).not.toContainText(/Internal|locally certified|bounded assistance/i);
+diff --git a/tests/play/play-v2-coach-boundary.test.js b/tests/play/play-v2-coach-boundary.test.js
+index 56c7abe..c83bd6c 100644
+--- a/tests/play/play-v2-coach-boundary.test.js
++++ b/tests/play/play-v2-coach-boundary.test.js
+@@ -59,10 +59,11 @@ test('static runtime owns no board, Worker, engine, clock, lifecycle, storage, t
+     assert.doesNotMatch(source, /Academy|Knowledge Unit|Training Memory|Guided Replay|Mentor|FICS/i);
+ });
+ 
+-test('Play Coach presentation uses the original Caissa portrait and hides engineering language', () => {
++test('Play Coach presentation uses the original Caissa portrait without a redundant inner title', () => {
+     const panel = read('js/play/native-coach/coach-panel.js');
+     const asset = fs.readFileSync(new URL('../../assets/play/caissa-coach-goddess.png', import.meta.url));
+-    assert.match(panel, /Play Coach/);
++    assert.match(panel, /aria-label': 'Play Coach setup'/);
++    assert.doesNotMatch(panel, /textContent = 'Play Coach'/);
+     assert.match(panel, /Caissa, goddess of chess/);
+     assert.match(panel, /caissa-coach-goddess\.png/);
+     assert.doesNotMatch(panel, /Coach · Internal|locally certified|bounded assistance|Game setup/i);
+diff --git a/tests/play/simplified-play-shell.test.js b/tests/play/simplified-play-shell.test.js
+index 567361f..0223e0a 100644
+--- a/tests/play/simplified-play-shell.test.js
++++ b/tests/play/simplified-play-shell.test.js
+@@ -70,6 +70,11 @@ test('desktop beta geometry uses viewport height instead of the former 760px cei
+     }
+ });
+ 
++test('resize uses the effective Play width so the sidebar cannot overlap the context column', () => {
++    assert.match(source, /rootWidth = this\.#root\.getBoundingClientRect\?\.\(\)\.width/);
++    assert.match(source, /Math\.min\(viewportWidth, rootWidth\)/);
++});
++
+ test('malformed geometry inputs are bounded and cannot inject a layout class', () => {
+     const { api } = load();
+     const geometry = api.calculateGeometry({
