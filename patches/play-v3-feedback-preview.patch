@@ -1,0 +1,1136 @@
+From d1f3ec60cfc976ba36f0987df80f65ab35c6b817 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Wed, 2 Sep 2026 13:45:40 -0700
+Subject: [PATCH 1/2] fix(play): align Coach and Bots active experience
+
+---
+ app.js                                        | 33 ++++++++------
+ css/play-simplified-shell.css                 |  9 +++-
+ js/play/simplified-play-shell.js              | 43 +++++++++++++------
+ play-v2-ipad-analyze-diagnostic.html          |  6 +--
+ play-v2-promotion-qa.html                     |  6 +--
+ play-v2-public-beta.html                      |  6 +--
+ play-v2.html                                  |  6 +--
+ tests/browser/play-native-coach.spec.js       |  2 +-
+ ...play-v2-desktop-product-acceptance.spec.js | 18 ++++----
+ .../play-v3-coach-active-experience.test.js   | 13 ++++--
+ tests/play/simplified-play-shell.test.js      |  4 +-
+ 11 files changed, 95 insertions(+), 51 deletions(-)
+
+diff --git a/app.js b/app.js
+index 62a80ea..06774c6 100644
+--- a/app.js
++++ b/app.js
+@@ -1003,6 +1003,7 @@ function onMoveMade(move) {
+     App.boardAdapter?.clearSelection?.();
+     App.boardAdapter?.clearLegalTargets?.();
+     document.body?.classList?.remove('caissa-coach-hint-active');
++    window.dispatchEvent(new CustomEvent('caissa-coach-hint-clear'));
+     App.pendingCoachHint = false;
+     App.currentEvaluation = null;
+     // Render only after the authoritative legacy chess state accepted the move.
+@@ -1110,12 +1111,17 @@ function undoMove() {
+     return true;
+ }
+ 
+-function isNativeCoachGame() {
++function isAssistedLocalEngineGame() {
+     const route = window.CaissaPlayRouteController?.getCurrent?.();
+-    const shellCoach = document.querySelector('.caissa-simplified-shell[data-mode="coach"]');
+-    const coachSurfaceActive = route?.mode === 'coach' || !!shellCoach;
+-    const coachSessionActive = window.CaissaCoachSession?.getSnapshot?.()?.active === true || !!shellCoach;
+-    return coachSurfaceActive && App.gameMode === 'engine' && App.gameActive && coachSessionActive;
++    const shell = document.querySelector('.caissa-simplified-shell[data-mode="bots"],.caissa-simplified-shell[data-mode="coach"]');
++    const mode = route?.mode || shell?.dataset?.mode;
++    return ['bots', 'coach'].includes(mode) && App.gameMode === 'engine' && App.gameActive;
++}
++
++function isNativeCoachGame() {
++    return isAssistedLocalEngineGame()
++        && (window.CaissaPlayRouteController?.getCurrent?.()?.mode === 'coach'
++            || !!document.querySelector('.caissa-simplified-shell[data-mode="coach"]'));
+ }
+ 
+ function isCoachPlayerTurn() {
+@@ -1125,9 +1131,9 @@ function isCoachPlayerTurn() {
+ }
+ 
+ function scheduleCoachLiveEvaluation(attempt = 0) {
+-    if (!isNativeCoachGame() || !isCoachPlayerTurn()) return false;
++    if (!isAssistedLocalEngineGame() || !isCoachPlayerTurn()) return false;
+     setTimeout(() => {
+-        if (!isNativeCoachGame() || !isCoachPlayerTurn()) return;
++        if (!isAssistedLocalEngineGame() || !isCoachPlayerTurn()) return;
+         if (!App.engine?.ready) {
+             if (attempt < 8) scheduleCoachLiveEvaluation(attempt + 1);
+             else if (App.pendingCoachHint) {
+@@ -1150,9 +1156,9 @@ function scheduleCoachLiveEvaluation(attempt = 0) {
+ }
+ 
+ function settleCoachLiveEvaluation() {
+-    if (!isNativeCoachGame() || !App.analyzing) return false;
++    if (!isAssistedLocalEngineGame() || !App.analyzing) return false;
+     setTimeout(() => {
+-        if (isNativeCoachGame() && App.analyzing) stopAnalysis();
++        if (isAssistedLocalEngineGame() && App.analyzing) stopAnalysis();
+     }, 0);
+     return true;
+ }
+@@ -1210,7 +1216,7 @@ function presentCoachHint(bestMove) {
+ }
+ 
+ function requestCoachHint() {
+-    if (!isNativeCoachGame() || !isCoachPlayerTurn()) return { ok: false, reasonCode: 'HINT_UNAVAILABLE' };
++    if (!isAssistedLocalEngineGame() || !isCoachPlayerTurn()) return { ok: false, reasonCode: 'HINT_UNAVAILABLE' };
+     const fen = App.game.fen();
+     const bestMove = App.currentEvaluation?.fen === fen ? App.currentEvaluation.bestMove : null;
+     if (!bestMove || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(bestMove)) {
+@@ -2600,8 +2606,11 @@ function updateAnalysis(info) {
+         App.lastEvalMate = info.mate;
+         App.lastEvalCp = null;
+     } else if (info.score !== null && info.score !== undefined) {
+-        updateEvalBar(info.score * 100, null);
+-        App.lastEvalCp = info.score * 100;
++        const rawCp = info.score * 100;
++        const displayedCp = App.game.history().length === 0
++            && App.game.fen().startsWith('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w') ? 20 : rawCp;
++        updateEvalBar(displayedCp, null);
++        App.lastEvalCp = displayedCp;
+         App.lastEvalMate = null;
+     }
+     if (App.pendingCoachHint && App.currentEvaluation.bestMove) presentCoachHint(App.currentEvaluation.bestMove);
+diff --git a/css/play-simplified-shell.css b/css/play-simplified-shell.css
+index d1cadda..d6de084 100644
+--- a/css/play-simplified-shell.css
++++ b/css/play-simplified-shell.css
+@@ -316,6 +316,13 @@ body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experienc
+     gap: var(--play-workspace-gap, clamp(8px, 1.2vw, 18px));
+ }
+ 
++body.caissa-simplified-play-active.caissa-play-game-active
++    .caissa-simplified-shell[data-entry-experience="beta"][data-layout="desktop-split"] .caissa-simplified-shell__context {
++    grid-row: 2 / -1;
++    align-self: stretch;
++    max-height: none;
++}
++
+ body.caissa-simplified-play-active .caissa-simplified-shell__modes {
+     grid-area: modes;
+     display: block;
+@@ -758,7 +765,7 @@ body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop
+     display: flex;
+     flex: 1;
+     flex-direction: column;
+-    min-height: min(680px, calc(100dvh - 235px));
++    min-height: 0;
+ }
+ 
+ body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="desktop-split"] .caissa-simplified-shell__active-context[hidden] {
+diff --git a/js/play/simplified-play-shell.js b/js/play/simplified-play-shell.js
+index bd81fc6..dfe5873 100644
+--- a/js/play/simplified-play-shell.js
++++ b/js/play/simplified-play-shell.js
+@@ -1,8 +1,8 @@
+ (function (global) {
+     'use strict';
+ 
+-    const SCHEMA_VERSION = '1.7.0';
+-    const SNAPSHOT_SCHEMA_VERSION = '1.7.0';
++    const SCHEMA_VERSION = '1.8.0';
++    const SNAPSHOT_SCHEMA_VERSION = '1.8.0';
+     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'unavailable', 'error']);
+     const REGIONS = Object.freeze([
+         'mode-navigation', 'board-stage', 'opponent-header', 'evaluation-rail',
+@@ -398,11 +398,26 @@
+                         previous.textContent = speech.textContent;
+                         previous.hidden = !previous.textContent;
+                         speech.textContent = event.detail.message;
++                        delete speech.dataset.messageKind;
+                     }
+                 });
+                 this.#listen(global, 'caissa-coach-hint', event => {
+                     const speech = this.#root?.querySelector('[data-active-coach-speech]');
+-                    if (speech && typeof event.detail?.message === 'string') speech.textContent = event.detail.message;
++                    const previous = this.#root?.querySelector('[data-active-coach-previous-speech]');
++                    if (previous) { previous.textContent = ''; previous.hidden = true; }
++                    if (speech && typeof event.detail?.message === 'string') {
++                        speech.dataset.messageKind = 'hint';
++                        speech.textContent = event.detail.message;
++                    }
++                });
++                this.#listen(global, 'caissa-coach-hint-clear', () => {
++                    const speech = this.#root?.querySelector('[data-active-coach-speech]');
++                    const previous = this.#root?.querySelector('[data-active-coach-previous-speech]');
++                    if (previous) { previous.textContent = ''; previous.hidden = true; }
++                    if (speech?.dataset?.messageKind === 'hint') {
++                        speech.textContent = '';
++                        delete speech.dataset.messageKind;
++                    }
+                 });
+                 this.#listen(global, 'caissa-coach-opening', event => {
+                     const badge = this.#root?.querySelector('[data-active-coach-opening]');
+@@ -738,18 +753,22 @@
+                 if (coachMode && portraitHost && sourcePortrait && !portraitHost.firstChild)
+                     portraitHost.appendChild(sourcePortrait.cloneNode(true));
+             }
++            const assistedMode = active && ['bots', 'coach'].includes(this.#mode);
+             for (const action of ['coach-hint', 'coach-undo']) {
+                 const button = this.#actionBar.querySelector(`[data-active-game-action="${action}"]`);
+-                if (button) button.hidden = !coachMode;
++                if (button) button.hidden = !assistedMode;
+             }
+             const pgn = this.#actionBar.querySelector('[data-active-game-action="pgn"]');
+-            if (pgn) pgn.hidden = coachMode;
++            if (pgn) pgn.hidden = assistedMode;
+             const menu = this.#actionBar.querySelector('[data-active-game-action="menu"]');
+-            if (menu) menu.hidden = coachMode;
++            if (menu) menu.hidden = assistedMode;
+             const heading = this.#root.querySelector('.caissa-simplified-shell__context-header h2');
+-            if (heading) heading.textContent = postGame ? 'Game result' : active
+-                ? ({ games: 'Play Game', bots: 'Play Bots', coach: 'Play Coach' }[this.#mode] || 'Game status')
+-                : starting ? 'Starting game' : 'Game setup';
++            if (heading) {
++                heading.hidden = !active && !postGame && !starting && ['bots', 'coach'].includes(this.#mode);
++                heading.textContent = postGame ? 'Game result' : active
++                    ? ({ games: 'Play Game', bots: 'Play Bots', coach: 'Play Coach' }[this.#mode] || 'Game status')
++                    : starting ? 'Starting game' : 'Game setup';
++            }
+             this.#syncActivePlacement(active, coachMode);
+             this.#renderActiveNotation();
+             this.#syncIdentity();
+@@ -832,7 +851,7 @@
+         }
+         #syncAssistance(active, postGame) {
+             if (!this.#assistance) return;
+-            const admitted = ['bots', 'coach'].includes(this.#mode) && !postGame;
++            const admitted = ['bots', 'coach'].includes(this.#mode) && !active && !postGame;
+             this.#assistance.hidden = !admitted;
+             if (!admitted) return;
+             const body = this.#assistance.querySelector('[data-assistance-body]');
+@@ -893,12 +912,12 @@
+             const action = event.target?.closest?.('[data-active-game-action]')?.dataset?.activeGameAction;
+             if (!action) return;
+             if (action === 'resign') global.resignGame?.();
+-            else if (action === 'coach-hint' && this.#mode === 'coach') {
++            else if (action === 'coach-hint' && ['bots', 'coach'].includes(this.#mode)) {
+                 const response = global.requestCoachHint?.();
+                 const status = this.#activeContext.querySelector('[data-active-game-status]');
+                 status.textContent = response?.ok ? 'Caissa highlighted a suggested move.' : 'Caissa is studying the position…';
+             }
+-            else if (action === 'coach-undo' && this.#mode === 'coach') {
++            else if (action === 'coach-undo' && ['bots', 'coach'].includes(this.#mode)) {
+                 const undone = global.undoMove?.();
+                 const status = this.#activeContext.querySelector('[data-active-game-status]');
+                 status.textContent = undone === false ? 'There is no move to undo.' : 'The last turn was taken back.';
+diff --git a/play-v2-ipad-analyze-diagnostic.html b/play-v2-ipad-analyze-diagnostic.html
+index d6ef828..66f03c6 100644
+--- a/play-v2-ipad-analyze-diagnostic.html
++++ b/play-v2-ipad-analyze-diagnostic.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.10.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.11.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3036,7 +3036,7 @@
+     <script src="js/play/clock-service.js?v=1.0.0"></script>
+     <script src="js/play/chessboard-adapter.js?v=1.0.0"></script>
+     <script src="js/play/evaluation-rail.js?v=1.0.0"></script>
+-    <script src="app.js?v=2.0.21"></script>
++    <script src="app.js?v=2.0.22"></script>
+     <script src="js/play/opponent-strength.js?v=1.0.0"></script>
+     <script src="js/play/legacy-play-compatibility.js?v=1.4.0"></script>
+     <script src="js/play/play-v2-identity-policy.js?v=1.0.0"></script>
+@@ -3078,7 +3078,7 @@
+     <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.12.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.13.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/play-v2-promotion-qa.html b/play-v2-promotion-qa.html
+index 9cd2996..cd757e4 100644
+--- a/play-v2-promotion-qa.html
++++ b/play-v2-promotion-qa.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.10.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.11.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3036,7 +3036,7 @@
+     <script src="js/play/clock-service.js?v=1.0.0"></script>
+     <script src="js/play/chessboard-adapter.js?v=1.0.0"></script>
+     <script src="js/play/evaluation-rail.js?v=1.0.0"></script>
+-    <script src="app.js?v=2.0.21"></script>
++    <script src="app.js?v=2.0.22"></script>
+     <script src="js/play/opponent-strength.js?v=1.0.0"></script>
+     <script src="js/play/legacy-play-compatibility.js?v=1.4.0"></script>
+     <script src="js/play/play-v2-identity-policy.js?v=1.0.0"></script>
+@@ -3078,7 +3078,7 @@
+     <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.12.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.13.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/play-v2-public-beta.html b/play-v2-public-beta.html
+index 66c686c..8dc6ce0 100644
+--- a/play-v2-public-beta.html
++++ b/play-v2-public-beta.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.10.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.11.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3035,7 +3035,7 @@
+     <script src="js/play/clock-service.js?v=1.0.0"></script>
+     <script src="js/play/chessboard-adapter.js?v=1.0.0"></script>
+     <script src="js/play/evaluation-rail.js?v=1.0.0"></script>
+-    <script src="app.js?v=2.0.21"></script>
++    <script src="app.js?v=2.0.22"></script>
+     <script src="js/play/opponent-strength.js?v=1.0.0"></script>
+     <script src="js/play/legacy-play-compatibility.js?v=1.4.0"></script>
+     <script src="js/play/play-v2-identity-policy.js?v=1.0.0"></script>
+@@ -3078,7 +3078,7 @@
+     <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.12.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.13.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/play-v2.html b/play-v2.html
+index 829fc42..73e0a8a 100644
+--- a/play-v2.html
++++ b/play-v2.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.10.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.11.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3034,7 +3034,7 @@
+     <script src="js/play/clock-service.js?v=1.0.0"></script>
+     <script src="js/play/chessboard-adapter.js?v=1.0.0"></script>
+     <script src="js/play/evaluation-rail.js?v=1.0.0"></script>
+-    <script src="app.js?v=2.0.21"></script>
++    <script src="app.js?v=2.0.22"></script>
+     <script src="js/play/opponent-strength.js?v=1.0.0"></script>
+     <script src="js/play/legacy-play-compatibility.js?v=1.4.0"></script>
+     <script src="js/play/play-v2-identity-policy.js?v=1.0.0"></script>
+@@ -3077,7 +3077,7 @@
+     <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.12.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.13.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/tests/browser/play-native-coach.spec.js b/tests/browser/play-native-coach.spec.js
+index 90370ed..6486f07 100644
+--- a/tests/browser/play-native-coach.spec.js
++++ b/tests/browser/play-native-coach.spec.js
+@@ -24,7 +24,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
+     await expect(panel).not.toContainText(/lesson|curriculum|academy|mentor|mastery|knowledge|best move/i);
+     await panel.getByRole('button', { name: 'Play' }).click();
+     await expect(panel.locator('[data-coach-narration]')).toContainText('game is ready');
+-    const help = page.locator('[data-active-game-action="coach-help"]');
++    const help = page.locator('[data-active-game-action="coach-hint"]');
+     await expect(help).toBeVisible(); await help.click();
+     await expect(page.locator('[data-active-game-status]')).toContainText('opponent');
+     expect(await playMove(page, 'e2', 'e4')).toBe(true);
+diff --git a/tests/browser/play-v2-desktop-product-acceptance.spec.js b/tests/browser/play-v2-desktop-product-acceptance.spec.js
+index 04b84be..021bff5 100644
+--- a/tests/browser/play-v2-desktop-product-acceptance.spec.js
++++ b/tests/browser/play-v2-desktop-product-acceptance.spec.js
+@@ -328,13 +328,16 @@ test('Bots and Coach expose only truthful active actions at 1920 and 3840', asyn
+         await page.getByRole('button', { name: 'Play', exact: true }).click();
+         await expect.poll(() => page.evaluate(() => window.__caissaPlayHarness.snapshot().workersCreated)).toBe(1);
+         await expect(page.locator('.caissa-simplified-shell__board-actions')).toContainText('Resign');
+-        await expect(page.locator('[data-active-game-action="coach-help"]')).toBeHidden();
++        await expect(page.locator('[data-active-game-action="coach-hint"]')).toBeVisible();
++        await expect(page.locator('[data-active-game-action="coach-undo"]')).toBeVisible();
++        await expect(page.locator('[data-active-game-action="pgn"]')).toBeHidden();
++        await expect(page.locator('[data-active-game-action="menu"]')).toBeHidden();
+         page.once('dialog', dialog => dialog.accept()); await page.locator('[data-active-game-action="resign"]').click();
+         await expect(page.locator('[data-post-game-result]')).toBeVisible();
+         await expect.poll(() => page.evaluate(() => window.CaissaWorkerLifecycle?.inspect?.().activeWorkers || 0)).toBe(0);
+ 
+         await page.goto('/play/beta/coach'); await page.getByRole('button', { name: 'Play', exact: true }).click();
+-        const help = page.locator('[data-active-game-action="coach-help"]'); await expect(help).toBeVisible(); await help.click();
++        const help = page.locator('[data-active-game-action="coach-hint"]'); await expect(help).toBeVisible(); await help.click();
+         await expect(page.locator('[data-active-game-status]')).not.toContainText(/best move|principal variation|\bPV\b/i);
+         expect(await page.evaluate(() => window.CaissaSimplifiedPlayShellInstance.getSnapshot().coachPanel
+             && window.CaissaNativeCoachAssistance?.schemaVersion)).toBeTruthy();
+@@ -355,7 +358,7 @@ test('Assistance admits only owned options and changes Coach configuration witho
+     await expect(botsAssistance.locator('input, select')).toHaveCount(0);
+     await expect(botsAssistance).not.toContainText(/Evaluation Bar|Threat Indicators|Move Feedback|best move|centipawn|PV/i);
+     await page.getByRole('button', { name: 'Play', exact: true }).click();
+-    await expect(botsAssistance).toBeVisible();
++    await expect(botsAssistance).toBeHidden();
+     expect(await page.evaluate(() => window.__caissaPlayHarness.snapshot().workersCreated)).toBe(1);
+ 
+     await page.goto('/play/beta/coach');
+@@ -377,8 +380,7 @@ test('Assistance admits only owned options and changes Coach configuration witho
+         history: window.App.game.history().length,
+         workers: window.__caissaPlayHarness.snapshot().workersCreated
+     }));
+-    await expect(assistance).toBeVisible();
+-    await focus.selectOption('time-awareness');
++    await expect(assistance).toBeHidden();
+     const after = await page.evaluate(() => ({
+         boardCount: document.querySelectorAll('#chessboard').length,
+         history: window.App.game.history().length,
+@@ -386,9 +388,9 @@ test('Assistance admits only owned options and changes Coach configuration witho
+         configuration: window.CaissaSimplifiedPlayShellInstance.getSnapshot().coachPanel.configuration
+     }));
+     expect(after).toMatchObject({ boardCount: before.boardCount, history: before.history,
+-        workers: before.workers, configuration: { focus: 'time-awareness' } });
++        workers: before.workers, configuration: { focus: 'safety' } });
+     await expect(page.locator('[data-active-game-action="resign"]')).toBeVisible();
+-    await expect(page.locator('[data-active-game-action="coach-help"]')).toBeVisible();
++    await expect(page.locator('[data-active-game-action="coach-hint"]')).toBeVisible();
+     expect(await page.evaluate(() => ({
+         trainingMemoryWrites: window.CaissaSimplifiedPlayShellInstance.getSnapshot().coachPanel.assistance.trainingMemoryWrites,
+         masteryWrites: window.CaissaSimplifiedPlayShellInstance.getSnapshot().coachPanel.assistance.masteryWrites
+@@ -406,7 +408,7 @@ test('Assistance disclosure preserves certified desktop geometry and keyboard re
+         expect(expanded.board.width).toBeGreaterThanOrEqual(target.setup);
+         expect(expanded.overflowX).toBeLessThanOrEqual(1);
+         await page.getByRole('button', { name: 'Play', exact: true }).click();
+-        await expect(assistance).toBeVisible();
++        await expect(assistance).toBeHidden();
+         const active = await geometry(page);
+         expect(active.board.width).toBeGreaterThanOrEqual(target.active);
+         expect(active.actions.bottom).toBeLessThanOrEqual(target.height);
+diff --git a/tests/play/play-v3-coach-active-experience.test.js b/tests/play/play-v3-coach-active-experience.test.js
+index 0eaa4d1..6a4d967 100644
+--- a/tests/play/play-v3-coach-active-experience.test.js
++++ b/tests/play/play-v3-coach-active-experience.test.js
+@@ -27,15 +27,18 @@ test('active Coach presents Caissa responsively and keeps narration synchronized
+     assert.match(css, /data-layout="desktop-split"[\s\S]*caissa-simplified-shell__active-context/);
+ });
+ 
+-test('Coach active controls are Resign, Hint and Undo while PGN and Menu are hidden', () => {
++test('Bots and Coach share only Resign, Hint and Undo', () => {
+     const shell = read('js/play/simplified-play-shell.js');
+     assert.match(shell, /\['resign', 'Resign'\]/);
+     assert.match(shell, /\['coach-hint', '💡 Hint'\]/);
+     assert.match(shell, /\['coach-undo', '↶ Undo'\]/);
+-    assert.match(shell, /if \(pgn\) pgn\.hidden = coachMode/);
+-    assert.match(shell, /if \(menu\) menu\.hidden = coachMode/);
++    assert.match(shell, /if \(pgn\) pgn\.hidden = assistedMode/);
++    assert.match(shell, /if \(menu\) menu\.hidden = assistedMode/);
+     assert.match(shell, /global\.requestCoachHint/);
+     assert.match(shell, /global\.undoMove/);
++    assert.match(shell, /\['bots', 'coach'\]\.includes\(this\.#mode\)/);
++    assert.match(shell, /caissa-coach-hint-clear/);
++    assert.match(shell, /previous\.textContent = ''/);
+ });
+ 
+ test('Coach evaluation, hint and undo remain local to the existing engine game', () => {
+@@ -59,5 +62,9 @@ test('Coach evaluation, hint and undo remain local to the existing engine game',
+     assert.match(read('css/play-simplified-shell.css'), /caissa-coach-hint-active[\s\S]*caissa-board-legal-target::after/);
+     assert.match(app, /window\.CaissaEngineRequestIsolation\?\.cancelPurpose\?\.\('opponent-move'\)/);
+     assert.match(app, /window\.requestCoachHint = requestCoachHint/);
++    assert.match(app, /function isAssistedLocalEngineGame\(\)/);
++    assert.match(app, /caissa-coach-hint-clear/);
++    assert.match(app, /App\.game\.history\(\)\.length === 0/);
++    assert.match(app, /\? 20 : rawCp/);
+     assert.doesNotMatch(app, /requestCoachHint[\s\S]{0,1200}(?:fetch\(|WebSocket|localStorage|sessionStorage)/);
+ });
+diff --git a/tests/play/simplified-play-shell.test.js b/tests/play/simplified-play-shell.test.js
+index 0b4be51..0007b66 100644
+--- a/tests/play/simplified-play-shell.test.js
++++ b/tests/play/simplified-play-shell.test.js
+@@ -19,8 +19,8 @@ function load() {
+ 
+ test('publishes frozen versioned shell and snapshot contracts', () => {
+     const { api } = load();
+-    assert.equal(api.schemaVersion, '1.7.0');
+-    assert.equal(api.snapshotSchemaVersion, '1.7.0');
++    assert.equal(api.schemaVersion, '1.8.0');
++    assert.equal(api.snapshotSchemaVersion, '1.8.0');
+     assert.ok(Object.isFrozen(api));
+     assert.ok(Object.isFrozen(api.statuses));
+     assert.ok(Object.isFrozen(api.regions));
+-- 
+2.51.1
+
+
+From 4ce070da26392988a7d8096c939c966f0d256088 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Wed, 2 Sep 2026 19:52:22 -0400
+Subject: [PATCH 2/2] feat(play): add assisted game resources and settings
+
+---
+ css/play-simplified-shell.css                 | 152 ++++++++++++++++++
+ js/play/bots-panel.js                         |   6 +-
+ js/play/native-coach/coach-panel.js           |   5 +-
+ js/play/simplified-play-shell.js              | 108 +++++++++++--
+ play-v2-ipad-analyze-diagnostic.html          |   4 +-
+ play-v2-promotion-qa.html                     |   4 +-
+ play-v2-public-beta.html                      |   4 +-
+ play-v2.html                                  |   4 +-
+ ...play-v2-desktop-product-acceptance.spec.js |  61 +------
+ .../play-v3-coach-active-experience.test.js   |  22 +++
+ tests/play/simplified-play-shell.test.js      |   4 +-
+ 11 files changed, 298 insertions(+), 76 deletions(-)
+
+diff --git a/css/play-simplified-shell.css b/css/play-simplified-shell.css
+index d6de084..814edcd 100644
+--- a/css/play-simplified-shell.css
++++ b/css/play-simplified-shell.css
+@@ -723,6 +723,130 @@ body.caissa-simplified-play-active .caissa-simplified-shell__active-opening {
+     font-size: .9rem;
+ }
+ 
++body.caissa-simplified-play-active .caissa-simplified-shell__reference-tools {
++    display: flex;
++    justify-content: flex-end;
++    gap: 6px;
++    margin-top: -32px;
++    min-height: 30px;
++}
++
++body.caissa-simplified-play-active .caissa-simplified-shell__reference-tool {
++    display: inline-flex;
++    align-items: center;
++    gap: 6px;
++    min-height: 32px;
++    padding: 5px 8px;
++    border: 1px solid transparent;
++    border-radius: 7px;
++    background: transparent;
++    color: var(--play-theme-text-muted, #b6c0cc);
++    font: inherit;
++    font-size: .78rem;
++    text-decoration: none;
++}
++
++body.caissa-simplified-play-active .caissa-simplified-shell__reference-tool:not(:disabled):hover {
++    border-color: var(--panel-border);
++    color: var(--play-theme-text, #fff);
++}
++
++body.caissa-simplified-play-active .caissa-simplified-shell__reference-tool:disabled {
++    opacity: .42;
++    cursor: not-allowed;
++}
++
++body.caissa-simplified-play-active .caissa-simplified-shell__utility-bar {
++    display: grid;
++    grid-template-columns: repeat(3, minmax(0, 1fr));
++    gap: 8px;
++    padding-top: 4px;
++}
++
++body.caissa-simplified-play-active .caissa-simplified-shell__utility-bar[hidden] { display: none; }
++
++body.caissa-simplified-play-active .caissa-simplified-shell__utility-action {
++    display: grid;
++    place-items: center;
++    gap: 4px;
++    min-height: 48px;
++    padding: 6px;
++    border: 1px solid transparent;
++    border-radius: 9px;
++    background: transparent;
++    color: var(--play-theme-text-muted, #b6c0cc);
++    font-size: .74rem;
++}
++
++body.caissa-simplified-play-active .caissa-simplified-shell__utility-action i { font-size: 1.05rem; }
++body.caissa-simplified-play-active .caissa-simplified-shell__utility-action:hover {
++    border-color: var(--panel-border);
++    background: color-mix(in srgb, var(--play-theme-card, #17202b) 70%, transparent);
++    color: var(--play-theme-text, #fff);
++}
++
++body.caissa-simplified-play-active .caissa-simplified-shell__settings-dialog {
++    display: none;
++    position: fixed;
++    z-index: 10020;
++    inset: 50% auto auto 50%;
++    transform: translate(-50%, -50%);
++    width: min(480px, calc(100vw - 28px));
++    padding: 18px;
++    border: 1px solid var(--panel-border);
++    border-radius: 14px;
++    background: var(--play-theme-panel, #111923);
++    color: var(--play-theme-text, #fff);
++    box-shadow: 0 0 0 100vmax rgb(0 0 0 / .68), 0 18px 50px rgb(0 0 0 / .45);
++}
++
++body.caissa-simplified-play-active .caissa-simplified-shell__settings-dialog:target { display: block; }
++
++body.caissa-simplified-play-active .caissa-simplified-shell__settings-dialog::backdrop { background: rgb(0 0 0 / .68); }
++body.caissa-simplified-play-active .caissa-simplified-shell__settings-dialog h2 { margin: 0 0 14px; }
++body.caissa-simplified-play-active .caissa-simplified-shell__settings-grid { display: grid; gap: 8px; }
++body.caissa-simplified-play-active .caissa-simplified-shell__settings-row,
++body.caissa-simplified-play-active .caissa-simplified-shell__settings-toggle {
++    display: flex;
++    align-items: center;
++    justify-content: space-between;
++    min-height: 48px;
++    padding: 10px 12px;
++    border: 1px solid var(--panel-border);
++    border-radius: 9px;
++    background: var(--play-theme-card, #17202b);
++}
++body.caissa-simplified-play-active .caissa-simplified-shell__settings-toggle input { width: 22px; height: 22px; }
++body.caissa-simplified-play-active .caissa-simplified-shell__settings-actions {
++    display: grid;
++    grid-template-columns: 1fr 1fr;
++    gap: 8px;
++    margin-top: 14px;
++}
++body.caissa-simplified-play-active .caissa-simplified-shell__settings-actions button {
++    min-height: 44px;
++    border: 1px solid var(--panel-border);
++    border-radius: 9px;
++    background: var(--play-theme-card, #17202b);
++    color: var(--play-theme-text, #fff);
++    font-weight: 750;
++}
++body.caissa-simplified-play-active .caissa-simplified-shell__settings-actions a {
++    display: grid;
++    place-items: center;
++    min-height: 44px;
++    border: 1px solid var(--panel-border);
++    border-radius: 9px;
++    background: var(--play-theme-card, #17202b);
++    color: var(--play-theme-text, #fff);
++    font-weight: 750;
++    text-decoration: none;
++}
++body.caissa-simplified-play-active .caissa-simplified-shell.caissa-hide-legal-moves
++    #chessboard .caissa-board-legal-target::after { display: none !important; }
++body.caissa-simplified-play-active .caissa-simplified-shell.caissa-hide-last-move
++    #chessboard .caissa-board-last-move { box-shadow: none !important; }
++
+ body.caissa-simplified-play-active .caissa-simplified-shell__active-moves {
+     display: grid;
+     gap: 3px;
+@@ -935,6 +1059,34 @@ body.caissa-simplified-play-active .caissa-native-coach-panel__color-choice span
+     font-size: 1.45rem;
+ }
+ 
++body.caissa-simplified-play-active .caissa-color-token {
++    position: relative;
++    isolation: isolate;
++    color: #111827;
++    text-shadow: none;
++}
++
++body.caissa-simplified-play-active .caissa-color-token::before {
++    content: "";
++    position: absolute;
++    z-index: -1;
++    width: 30px;
++    height: 30px;
++    border: 2px solid #d8dee8;
++    border-radius: 50%;
++    background: #f8fafc;
++}
++
++body.caissa-simplified-play-active .caissa-color-token--black { color: #050608; }
++body.caissa-simplified-play-active .caissa-color-token--white {
++    color: #fff;
++    text-shadow: 0 1px 2px #000, 1px 0 1px #000, -1px 0 1px #000;
++}
++body.caissa-simplified-play-active .caissa-color-token--white::before { background: #475569; }
++body.caissa-simplified-play-active .caissa-color-token--random::before {
++    background: linear-gradient(90deg, #f8fafc 0 50%, #111827 50% 100%);
++}
++
+ body.caissa-simplified-play-active .caissa-native-coach-panel__color-choice input:checked + span {
+     border-color: var(--coach-gold);
+     box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--coach-gold) 70%, transparent);
+diff --git a/js/play/bots-panel.js b/js/play/bots-panel.js
+index dc4764d..2fa568f 100644
+--- a/js/play/bots-panel.js
++++ b/js/play/bots-panel.js
+@@ -11,7 +11,7 @@
+         Object.freeze({ value: 600, label: '10+0' })
+     ]);
+     const COLORS = Object.freeze([
+-        Object.freeze({ value: 'white', label: 'White', symbol: '♔' }),
++        Object.freeze({ value: 'white', label: 'White', symbol: '♚' }),
+         Object.freeze({ value: 'random', label: 'Random', symbol: '?' }),
+         Object.freeze({ value: 'black', label: 'Black', symbol: '♚' })
+     ]);
+@@ -151,7 +151,9 @@
+                     type: 'radio', name: `${this.#id}-color`, value: item.value,
+                     'data-bot-color': item.value, 'aria-label': item.label
+                 });
+-                const symbol = element('span', '', { 'aria-hidden': 'true' }); symbol.textContent = item.symbol;
++                const symbol = element('span', `caissa-color-token caissa-color-token--${item.value}`, {
++                    'aria-hidden': 'true', 'data-color-token': item.value
++                }); symbol.textContent = item.symbol;
+                 label.append(input, symbol); colorOptions.appendChild(label);
+             });
+             color.append(colorLegend, colorOptions); controls.append(time, color);
+diff --git a/js/play/native-coach/coach-panel.js b/js/play/native-coach/coach-panel.js
+index 6561ff8..2e2a903 100644
+--- a/js/play/native-coach/coach-panel.js
++++ b/js/play/native-coach/coach-panel.js
+@@ -2,7 +2,7 @@
+     'use strict';
+     const SCHEMA_VERSION = '2.3.0';
+     const COLORS = Object.freeze([
+-        Object.freeze({ value: 'white', label: 'White', symbol: '♔' }),
++        Object.freeze({ value: 'white', label: 'White', symbol: '♚' }),
+         Object.freeze({ value: 'random', label: 'Random', symbol: '?' }),
+         Object.freeze({ value: 'black', label: 'Black', symbol: '♚' })
+     ]);
+@@ -55,7 +55,8 @@
+                 const label = node('label', { class: 'caissa-native-coach-panel__color-choice' });
+                 const input = node('input', { type: 'radio', name: `${this.#id}-color`, value: item.value,
+                     'data-coach-color-choice': item.value, 'aria-label': item.label });
+-                const symbol = node('span', { 'aria-hidden': 'true' }); symbol.textContent = item.symbol;
++                const symbol = node('span', { class: `caissa-color-token caissa-color-token--${item.value}`,
++                    'aria-hidden': 'true', 'data-color-token': item.value }); symbol.textContent = item.symbol;
+                 label.append(input, symbol); colorOptions.appendChild(label);
+             });
+             color.append(legend, colorOptions); controls.append(experience, color);
+diff --git a/js/play/simplified-play-shell.js b/js/play/simplified-play-shell.js
+index dfe5873..77c880d 100644
+--- a/js/play/simplified-play-shell.js
++++ b/js/play/simplified-play-shell.js
+@@ -1,8 +1,8 @@
+ (function (global) {
+     'use strict';
+ 
+-    const SCHEMA_VERSION = '1.8.0';
+-    const SNAPSHOT_SCHEMA_VERSION = '1.8.0';
++    const SCHEMA_VERSION = '1.9.0';
++    const SNAPSHOT_SCHEMA_VERSION = '1.9.0';
+     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'unavailable', 'error']);
+     const REGIONS = Object.freeze([
+         'mode-navigation', 'board-stage', 'opponent-header', 'evaluation-rail',
+@@ -109,7 +109,8 @@
+         #suppressedLive = [];
+         #layoutMode = null; #geometry = null; #resizeCount = 0; #activationCount = 0; #statusNode = null;
+         #gamesPanel = null; #botsPanel = null; #coachPanel = null; #postGame = null;
+-        #activeContext = null; #assistance = null; #actionBar = null; #pgnDialog = null; #stateObserver = null; #panelObserver = null;
++        #activeContext = null; #assistance = null; #actionBar = null; #pgnDialog = null; #settingsDialog = null;
++        #stateObserver = null; #panelObserver = null;
+         #panelLoadToken = 0;
+         #accessibility = null;
+         #modeTransitionPending = false;
+@@ -216,10 +217,24 @@
+                 'data-active-game-opening': ''
+             });
+             activeOpening.textContent = 'Opening not identified yet';
++            const referenceTools = element('nav', 'caissa-simplified-shell__reference-tools', {
++                'aria-label': 'Position resources'
++            });
++            const openingLink = element('a', 'caissa-simplified-shell__reference-tool', {
++                href: '/opening-database', target: '_blank', rel: 'noopener',
++                'data-active-opening-link': '', 'aria-label': 'Open CAISSA Opening Database in a new tab',
++                title: 'Opening Database'
++            });
++            openingLink.innerHTML = '<i class="fas fa-book-open" aria-hidden="true"></i><span>Opening</span>';
++            const explorer = element('button', 'caissa-simplified-shell__reference-tool', {
++                type: 'button', disabled: '', 'aria-label': 'Explorer coming soon', title: 'Explorer · Coming soon'
++            });
++            explorer.innerHTML = '<i class="fas fa-compass" aria-hidden="true"></i><span>Explorer</span>';
++            referenceTools.append(openingLink, explorer);
+             const activeMoves = element('ol', 'caissa-simplified-shell__active-moves', {
+                 'data-active-game-moves': '', 'aria-label': 'Moves played'
+             });
+-            activeNotation.append(activeOpening, activeMoves);
++            activeNotation.append(activeOpening, referenceTools, activeMoves);
+             this.#activeContext.append(activeTitle, activeStatus, activeNotation); this.#activeContext.hidden = true;
+             contextBody.appendChild(this.#activeContext);
+             this.#assistance = element('details', 'caissa-simplified-shell__assistance', {
+@@ -248,6 +263,20 @@
+                 });
+                 button.textContent = label; boardActions.appendChild(button);
+             }
++            const utilityBar = element('div', 'caissa-simplified-shell__utility-bar', {
++                role: 'group', 'aria-label': 'Game utilities', 'data-active-game-utilities': '', hidden: ''
++            });
++            for (const [action, icon, label] of [
++                ['share', 'fa-share-alt', 'Share'], ['download', 'fa-download', 'Download'], ['settings', 'fa-cog', 'Settings']
++            ]) {
++                const button = element(action === 'settings' ? 'a' : 'button', 'caissa-simplified-shell__utility-action',
++                    action === 'settings'
++                        ? { href: `#${this.#id}-settings`, 'aria-label': label, title: label }
++                        : { type: 'button', 'data-active-game-action': action, 'aria-label': label, title: label });
++                button.innerHTML = `<i class="fas ${icon}" aria-hidden="true"></i><span>${label}</span>`;
++                utilityBar.appendChild(button);
++            }
++            this.#activeContext.appendChild(utilityBar);
+             boardActions.hidden = true;
+             this.#pgnDialog = element('dialog', 'caissa-simplified-shell__pgn-dialog', {
+                 'aria-labelledby': `${this.#id}-pgn-title`
+@@ -256,8 +285,35 @@
+             const pgnText = element('textarea', '', { readonly: '', 'data-active-game-pgn': '', rows: '14', 'aria-label': 'Current game PGN' });
+             const pgnClose = element('button', '', { type: 'button', 'data-active-game-action': 'close-pgn' }); pgnClose.textContent = 'Close';
+             this.#pgnDialog.append(pgnTitle, pgnText, pgnClose);
++            this.#settingsDialog = element('div', 'caissa-simplified-shell__settings-dialog', {
++                id: `${this.#id}-settings`, role: 'dialog', 'aria-modal': 'true',
++                'aria-labelledby': `${this.#id}-settings-title`
++            });
++            const settingsTitle = element('h2', '', { id: `${this.#id}-settings-title` });
++            settingsTitle.textContent = 'Board Settings';
++            const settingsGrid = element('div', 'caissa-simplified-shell__settings-grid');
++            const fixedSetting = (label, value) => {
++                const row = element('div', 'caissa-simplified-shell__settings-row');
++                const name = element('span', ''); name.textContent = label;
++                const current = element('strong', ''); current.textContent = value;
++                row.append(name, current); return row;
++            };
++            settingsGrid.append(fixedSetting('Pieces', 'Classic'), fixedSetting('Board', 'CAISSA Brown'));
++            for (const [setting, label] of [['legal-moves', 'Show legal moves'], ['last-move', 'Highlight last move']]) {
++                const row = element('label', 'caissa-simplified-shell__settings-toggle');
++                const copy = element('span', ''); copy.textContent = label;
++                const input = element('input', '', { type: 'checkbox', checked: '', 'data-play-setting': setting });
++                row.append(copy, input); settingsGrid.appendChild(row);
++            }
++            const settingsActions = element('div', 'caissa-simplified-shell__settings-actions');
++            const flip = element('button', '', { type: 'button', 'data-active-game-action': 'flip-board' });
++            flip.textContent = 'Flip board';
++            const settingsClose = element('a', '', { href: '#', 'aria-label': 'Close board settings' });
++            settingsClose.textContent = 'Done';
++            settingsActions.append(flip, settingsClose);
++            this.#settingsDialog.append(settingsTitle, settingsGrid, settingsActions);
+             workspace.append(boardStage, nav, context, footer, advanced);
+-            root.append(preview, workspace, this.#pgnDialog);
++            root.append(preview, workspace, this.#pgnDialog, this.#settingsDialog);
+             stage.appendChild(root);
+             this.#root = root;
+             const accessibility = global.CaissaPlayAccessibility?.create?.(root);
+@@ -364,8 +420,8 @@
+             this.#postGame.syncFromPlay();
+             this.#accessibility?.announce?.('PLAY_READY');
+             if (!this.#listeners.length) {
+-                this.#listen(this.#actionBar, 'click', event => this.#handleActiveAction(event));
+-                this.#listen(this.#pgnDialog, 'click', event => this.#handleActiveAction(event));
++                this.#listen(this.#root, 'click', event => this.#handleActiveAction(event));
++                this.#listen(this.#settingsDialog, 'change', event => this.#handleActiveAction(event));
+                 this.#listen(this.#assistance, 'change', event => this.#handleAssistanceChange(event));
+                 this.#listen(this.#root.querySelector('.caissa-simplified-shell__modes'), 'click', event => {
+                     const mode = event.target?.dataset?.shellMode;
+@@ -743,6 +799,8 @@
+             }
+             this.#activeContext.hidden = !active;
+             this.#actionBar.hidden = !active;
++            const utilityBar = this.#activeContext.querySelector('[data-active-game-utilities]');
++            if (utilityBar) utilityBar.hidden = !(active && ['bots', 'coach'].includes(this.#mode));
+             this.#syncAssistance(active, postGame);
+             const coachMode = active && this.#mode === 'coach';
+             const narrator = this.#root.querySelector('[data-active-coach-narrator]');
+@@ -786,6 +844,8 @@
+                 else if (!coachMode && narrator && boardStage && narrator.parentNode !== boardStage)
+                     boardStage.insertBefore(narrator, opponent);
+                 if (this.#actionBar.parentNode !== this.#activeContext) this.#activeContext.appendChild(this.#actionBar);
++                const utilityBar = this.#activeContext.querySelector('[data-active-game-utilities]');
++                if (utilityBar) this.#activeContext.appendChild(utilityBar);
+                 return;
+             }
+             if (narrator && boardStage && narrator.parentNode !== boardStage) boardStage.insertBefore(narrator, opponent);
+@@ -799,6 +859,14 @@
+             const current = global.App?.currentOpening;
+             opening.textContent = current?.name
+                 ? `📖 ${current.name}${current.eco ? ` · ${current.eco}` : ''}` : 'Opening not identified yet';
++            const openingLink = this.#activeContext.querySelector('[data-active-opening-link]');
++            if (openingLink) {
++                openingLink.href = current?.eco && /^[A-E]\d{2}$/i.test(current.eco)
++                    ? `/eco/${current.eco.toUpperCase()}` : '/opening-database';
++                openingLink.setAttribute('aria-label', current?.eco
++                    ? `Open ${current.name || 'opening'} ${current.eco.toUpperCase()} in the CAISSA ECO Database (new tab)`
++                    : 'Open CAISSA Opening Database in a new tab');
++            }
+             let history = [];
+             try { history = global.App?.game?.history?.() || []; } catch (_) { history = []; }
+             moves.replaceChildren();
+@@ -851,7 +919,7 @@
+         }
+         #syncAssistance(active, postGame) {
+             if (!this.#assistance) return;
+-            const admitted = ['bots', 'coach'].includes(this.#mode) && !active && !postGame;
++            const admitted = false;
+             this.#assistance.hidden = !admitted;
+             if (!admitted) return;
+             const body = this.#assistance.querySelector('[data-assistance-body]');
+@@ -909,6 +977,13 @@
+             if (!response?.ok) event.target.value = this.#coachPanel?.getSnapshot?.().configuration?.[normalized] || event.target.value;
+         }
+         #handleActiveAction(event) {
++            const setting = event.target?.closest?.('[data-play-setting]')?.dataset?.playSetting;
++            if (setting === 'legal-moves') {
++                this.#root.classList.toggle('caissa-hide-legal-moves', !event.target.checked); return;
++            }
++            if (setting === 'last-move') {
++                this.#root.classList.toggle('caissa-hide-last-move', !event.target.checked); return;
++            }
+             const action = event.target?.closest?.('[data-active-game-action]')?.dataset?.activeGameAction;
+             if (!action) return;
+             if (action === 'resign') global.resignGame?.();
+@@ -925,7 +1000,22 @@
+             else if (action === 'menu') {
+                 if (typeof global.showModal === 'function') global.showModal('menuModal');
+                 else global.document.getElementById('btnSettings')?.click?.();
+-            } else if (action === 'pgn') {
++            } else if (action === 'settings') {
++                this.#settingsDialog.hidden = false;
++            }
++            else if (action === 'download') global.document.getElementById('btnDownload')?.click?.();
++            else if (action === 'share') {
++                let pgn = '';
++                try { pgn = global.CaissaGameRecord?.buildFromPlay?.()?.notation?.pgn || global.App?.game?.pgn?.() || ''; }
++                catch (_) { pgn = ''; }
++                if (!pgn) return;
++                if (typeof global.navigator?.share === 'function')
++                    global.navigator.share({ title: 'CAISSA Chess game', text: pgn }).catch(() => {});
++                else global.navigator?.clipboard?.writeText?.(pgn)
++                    .then(() => global.showNotification?.('PGN copied for sharing.')).catch(() => {});
++            } else if (action === 'flip-board') global.document.getElementById('menuFlipBoard')?.click?.();
++            else if (action === 'close-settings') this.#settingsDialog.hidden = true;
++            else if (action === 'pgn') {
+                 let pgn = '';
+                 try { pgn = global.CaissaGameRecord?.buildFromPlay?.()?.notation?.pgn || ''; } catch (_) { pgn = ''; }
+                 this.#pgnDialog.querySelector('[data-active-game-pgn]').value = pgn;
+diff --git a/play-v2-ipad-analyze-diagnostic.html b/play-v2-ipad-analyze-diagnostic.html
+index 66f03c6..d50a684 100644
+--- a/play-v2-ipad-analyze-diagnostic.html
++++ b/play-v2-ipad-analyze-diagnostic.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.11.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.15.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3078,7 +3078,7 @@
+     <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.13.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.19.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/play-v2-promotion-qa.html b/play-v2-promotion-qa.html
+index cd757e4..68c76ad 100644
+--- a/play-v2-promotion-qa.html
++++ b/play-v2-promotion-qa.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.11.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.15.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3078,7 +3078,7 @@
+     <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.13.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.19.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/play-v2-public-beta.html b/play-v2-public-beta.html
+index 8dc6ce0..309436d 100644
+--- a/play-v2-public-beta.html
++++ b/play-v2-public-beta.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.11.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.15.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3078,7 +3078,7 @@
+     <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.13.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.19.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/play-v2.html b/play-v2.html
+index 73e0a8a..c43e73d 100644
+--- a/play-v2.html
++++ b/play-v2.html
+@@ -59,7 +59,7 @@
+     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+     <link rel="stylesheet" href="styles.css?v=2.0.16">
+     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
+-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.11.0">
++    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.15.0">
+     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
+     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
+@@ -3077,7 +3077,7 @@
+     <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>
+     <script src="js/play/play-v2-inline-analyze.js?v=1.0.0"></script>
+     <script src="js/play/post-game-core.js?v=1.1.0"></script>
+-    <script src="js/play/simplified-play-shell.js?v=1.13.0"></script>
++    <script src="js/play/simplified-play-shell.js?v=1.19.0"></script>
+ 
+     <!-- Auth Scripts -->
+     <script src="js/auth-config.js?v=1.0.2"></script>
+diff --git a/tests/browser/play-v2-desktop-product-acceptance.spec.js b/tests/browser/play-v2-desktop-product-acceptance.spec.js
+index 021bff5..ae71469 100644
+--- a/tests/browser/play-v2-desktop-product-acceptance.spec.js
++++ b/tests/browser/play-v2-desktop-product-acceptance.spec.js
+@@ -344,69 +344,24 @@ test('Bots and Coach expose only truthful active actions at 1920 and 3840', asyn
+     }
+ });
+ 
+-test('Assistance admits only owned options and changes Coach configuration without restarting play', async ({ page }) => {
++test('redundant Assistance disclosure stays hidden in all Play v3 modes', async ({ page }) => {
+     await page.setViewportSize({ width: 1920, height: 1080 });
+     await page.goto('/play/beta');
+     await expect(page.locator('[data-play-assistance]')).toBeHidden();
+-
+     await page.goto('/play/beta/bots');
+-    const botsAssistance = page.locator('[data-play-assistance]');
+-    await expect(botsAssistance).toBeVisible();
+-    await expect(botsAssistance).not.toHaveAttribute('open', '');
+-    await botsAssistance.locator('summary').click();
+-    await expect(botsAssistance.locator('[data-assistance-empty]')).toContainText('No optional live assistance');
+-    await expect(botsAssistance.locator('input, select')).toHaveCount(0);
+-    await expect(botsAssistance).not.toContainText(/Evaluation Bar|Threat Indicators|Move Feedback|best move|centipawn|PV/i);
+-    await page.getByRole('button', { name: 'Play', exact: true }).click();
+-    await expect(botsAssistance).toBeHidden();
+-    expect(await page.evaluate(() => window.__caissaPlayHarness.snapshot().workersCreated)).toBe(1);
+-
++    await expect(page.locator('[data-play-assistance]')).toBeHidden();
+     await page.goto('/play/beta/coach');
+-    const assistance = page.locator('[data-play-assistance]');
+-    await assistance.locator('summary').click();
+-    const level = assistance.locator('[data-assistance-level]');
+-    const focus = assistance.locator('[data-assistance-focus]');
+-    const timing = assistance.locator('[data-assistance-timing]');
+-    await expect(level).toHaveValue('standard'); await expect(focus).toHaveValue('balanced');
+-    await expect(timing).toHaveValue('on-request');
+-    await expect(assistance.locator('select')).toHaveCount(3);
+-    await level.selectOption('more-help'); await focus.selectOption('safety');
+-    expect(await page.evaluate(() => window.CaissaSimplifiedPlayShellInstance.getSnapshot().coachPanel.configuration))
+-        .toMatchObject({ level: 'more-help', focus: 'safety', timing: 'on-request' });
+-
+-    await page.getByRole('button', { name: 'Play', exact: true }).click();
+-    const before = await page.evaluate(() => ({
+-        boardCount: document.querySelectorAll('#chessboard').length,
+-        history: window.App.game.history().length,
+-        workers: window.__caissaPlayHarness.snapshot().workersCreated
+-    }));
+-    await expect(assistance).toBeHidden();
+-    const after = await page.evaluate(() => ({
+-        boardCount: document.querySelectorAll('#chessboard').length,
+-        history: window.App.game.history().length,
+-        workers: window.__caissaPlayHarness.snapshot().workersCreated,
+-        configuration: window.CaissaSimplifiedPlayShellInstance.getSnapshot().coachPanel.configuration
+-    }));
+-    expect(after).toMatchObject({ boardCount: before.boardCount, history: before.history,
+-        workers: before.workers, configuration: { focus: 'safety' } });
+-    await expect(page.locator('[data-active-game-action="resign"]')).toBeVisible();
+-    await expect(page.locator('[data-active-game-action="coach-hint"]')).toBeVisible();
+-    expect(await page.evaluate(() => ({
+-        trainingMemoryWrites: window.CaissaSimplifiedPlayShellInstance.getSnapshot().coachPanel.assistance.trainingMemoryWrites,
+-        masteryWrites: window.CaissaSimplifiedPlayShellInstance.getSnapshot().coachPanel.assistance.masteryWrites
+-    }))).toEqual({ trainingMemoryWrites: 0, masteryWrites: 0 });
++    await expect(page.locator('[data-play-assistance]')).toBeHidden();
+ });
+ 
+-test('Assistance disclosure preserves certified desktop geometry and keyboard reflow', async ({ page }) => {
++test('hidden Assistance preserves certified desktop geometry', async ({ page }) => {
+     for (const target of targets) {
+         await page.setViewportSize(target); await page.goto('/play/beta/coach');
+         const assistance = page.locator('[data-play-assistance]');
+-        const summary = assistance.locator('summary');
+-        await summary.focus(); await page.keyboard.press('Enter');
+-        await expect(assistance).toHaveAttribute('open', '');
+-        const expanded = await geometry(page);
+-        expect(expanded.board.width).toBeGreaterThanOrEqual(target.setup);
+-        expect(expanded.overflowX).toBeLessThanOrEqual(1);
++        await expect(assistance).toBeHidden();
++        const setup = await geometry(page);
++        expect(setup.board.width).toBeGreaterThanOrEqual(target.setup);
++        expect(setup.overflowX).toBeLessThanOrEqual(1);
+         await page.getByRole('button', { name: 'Play', exact: true }).click();
+         await expect(assistance).toBeHidden();
+         const active = await geometry(page);
+diff --git a/tests/play/play-v3-coach-active-experience.test.js b/tests/play/play-v3-coach-active-experience.test.js
+index 6a4d967..4820846 100644
+--- a/tests/play/play-v3-coach-active-experience.test.js
++++ b/tests/play/play-v3-coach-active-experience.test.js
+@@ -41,6 +41,28 @@ test('Bots and Coach share only Resign, Hint and Undo', () => {
+     assert.match(shell, /previous\.textContent = ''/);
+ });
+ 
++test('assisted games expose honest CAISSA resources and utility actions', () => {
++    const shell = read('js/play/simplified-play-shell.js');
++    const bots = read('js/play/bots-panel.js');
++    const coach = read('js/play/native-coach/coach-panel.js');
++    const css = read('css/play-simplified-shell.css');
++    assert.match(shell, /data-active-opening-link/);
++    assert.match(shell, /`\/eco\/\$\{current\.eco\.toUpperCase\(\)\}`/);
++    assert.match(shell, /Explorer · Coming soon/);
++    assert.match(shell, /disabled: ''/);
++    for (const action of ['share', 'download', 'settings'])
++        assert.match(shell, new RegExp(`\\['${action}'`));
++    assert.match(shell, /caissa-simplified-shell__settings-dialog/);
++    assert.match(shell, /Show legal moves/);
++    assert.match(shell, /Highlight last move/);
++    assert.match(shell, /btnDownload/);
++    assert.match(css, /caissa-simplified-shell__utility-bar/);
++    assert.match(bots, /caissa-color-token--\$\{item\.value\}/);
++    assert.match(coach, /caissa-color-token--\$\{item\.value\}/);
++    assert.match(css, /caissa-color-token--white/);
++    assert.match(css, /caissa-color-token--black/);
++});
++
+ test('Coach evaluation, hint and undo remain local to the existing engine game', () => {
+     const app = read('app.js');
+     assert.match(app, /function scheduleCoachLiveEvaluation\(attempt = 0\)/);
+diff --git a/tests/play/simplified-play-shell.test.js b/tests/play/simplified-play-shell.test.js
+index 0007b66..567361f 100644
+--- a/tests/play/simplified-play-shell.test.js
++++ b/tests/play/simplified-play-shell.test.js
+@@ -19,8 +19,8 @@ function load() {
+ 
+ test('publishes frozen versioned shell and snapshot contracts', () => {
+     const { api } = load();
+-    assert.equal(api.schemaVersion, '1.8.0');
+-    assert.equal(api.snapshotSchemaVersion, '1.8.0');
++    assert.equal(api.schemaVersion, '1.9.0');
++    assert.equal(api.snapshotSchemaVersion, '1.9.0');
+     assert.ok(Object.isFrozen(api));
+     assert.ok(Object.isFrozen(api.statuses));
+     assert.ok(Object.isFrozen(api.regions));
+-- 
+2.51.1
+
