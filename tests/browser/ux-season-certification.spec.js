@@ -78,3 +78,13 @@ test('every internal UX-001 destination remains locally routable', async ({ page
         expect(response.status(), route).toBeLessThan(400);
     }
 });
+
+test('DOS Chess catalog alias serves the authoritative versioned asset', async ({ request }) => {
+    const response = await request.get('/dos/dos_chess_games.json');
+    expect(response.status()).toBe(200);
+    expect(response.headers()['content-type']).toContain('application/json');
+    const catalog = await response.json();
+    expect(Array.isArray(catalog)).toBe(true);
+    expect(catalog).toHaveLength(25);
+    expect(catalog.every(game => game.id && game.name && game.sourceUrl)).toBe(true);
+});

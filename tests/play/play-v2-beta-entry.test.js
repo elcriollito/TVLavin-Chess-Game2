@@ -55,7 +55,7 @@ test('server and hosting select canonical Play while retired beta and direct HTM
         { source: '/play/beta/:path*', destination: '/play-v2-unavailable.html' }
     ]);
     assert.equal(vercel.redirects.filter(rule => rule.source.startsWith('/play/beta')).length, 4);
-    assert.match(read('middleware.js'), /resolvePlayV2BetaEntry\(url\.pathname, process\.env\)/);
+    assert.match(read('middleware.js'), /resolveVercelPlayEnvironment\(process\.env\)/);
     assert.match(read('middleware.js'), /PLAY_V2_PUBLIC_BETA_DOCUMENT/);
     assert.ok(vercel.rewrites.some(rule => rule.source === '/play-v2.html' && rule.destination === '/play-v2-unavailable.html'));
     assert.ok(vercel.rewrites.some(rule => rule.source === '/play-v2-public-beta.html' && rule.destination === '/play-v2-unavailable.html'));
@@ -94,7 +94,9 @@ test('dedicated public entry excludes invite runtime and prohibited resource gra
 test('edge middleware owns canonical Play, redirects retired beta, and fails closed elsewhere', async () => {
     const previousStage = process.env.CAISSA_PLAY_V2_BETA_STAGE;
     const previousSha = process.env.VERCEL_GIT_COMMIT_SHA;
+    const previousVercelEnvironment = process.env.VERCEL_ENV;
     try {
+        process.env.VERCEL_ENV = 'production';
         process.env.CAISSA_PLAY_V2_BETA_STAGE = 'disabled';
         let response;
         response = middleware(new Request('https://www.caissa-chess.org/'));
@@ -106,6 +108,18 @@ test('edge middleware owns canonical Play, redirects retired beta, and fails clo
         assert.equal(response.status, 404);
         assert.match(await response.text(), /Play Beta Unavailable/);
 
+        delete process.env.CAISSA_PLAY_V2_BETA_STAGE;
+        process.env.VERCEL_ENV = 'preview';
+        for (const path of ['/play', '/play/games', '/play/bots', '/play/coach']) {
+            response = middleware(new Request(`https://preview.caissa.test${path}`));
+            assert.equal(response.status, 200, path);
+            assert.match(await response.text(), /data-caissa-play-v2-entry="official"/);
+        }
+        process.env.CAISSA_PLAY_V2_BETA_STAGE = 'disabled';
+        response = middleware(new Request('https://preview.caissa.test/play'));
+        assert.equal(response.status, 404, 'an explicit Preview stage must keep its fail-closed override');
+
+        process.env.VERCEL_ENV = 'production';
         process.env.CAISSA_PLAY_V2_BETA_STAGE = 'public-beta';
         process.env.VERCEL_GIT_COMMIT_SHA = '8426d0371ff68d4afe81d5be9bc8cfa64f4507f1';
         for (const path of ['/play', '/play/games', '/play/bots', '/play/coach']) {
@@ -138,7 +152,20 @@ test('edge middleware owns canonical Play, redirects retired beta, and fails clo
         else process.env.CAISSA_PLAY_V2_BETA_STAGE = previousStage;
         if (previousSha === undefined) delete process.env.VERCEL_GIT_COMMIT_SHA;
         else process.env.VERCEL_GIT_COMMIT_SHA = previousSha;
+        if (previousVercelEnvironment === undefined) delete process.env.VERCEL_ENV;
+        else process.env.VERCEL_ENV = previousVercelEnvironment;
     }
+});
+
+test('DOS catalog has one authoritative file with local and Vercel aliases', () => {
+    const server = read('server.js');
+    const vercel = JSON.parse(read('vercel.json'));
+    const catalog = JSON.parse(read('public/dos/dos_chess_games.json'));
+    assert.ok(Array.isArray(catalog));
+    assert.ok(catalog.length > 0);
+    assert.match(server, /pathname === '\/dos\/dos_chess_games\.json'[\s\S]*filePath = '\.\/public\/dos\/dos_chess_games\.json'/);
+    assert.ok(vercel.rewrites.some(rule => rule.source === '/dos/dos_chess_games.json'
+        && rule.destination === '/public/dos/dos_chess_games.json'));
 });
 
 test('edge middleware owns every direct Play v2 document before static filesystem routing', async () => {

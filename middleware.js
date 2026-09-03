@@ -1,5 +1,9 @@
 import { createPrivateRunOperationalConfig } from './js/endgame-trainer/v2/private-run-operational-config.js';
-import { resolvePlayV2BetaEntry } from './js/play/play-v2-beta-entry-gate.js';
+import {
+    PLAY_V2_BETA_ENTRY,
+    PLAY_V2_BETA_STAGE_ENV,
+    resolvePlayV2BetaEntry
+} from './js/play/play-v2-beta-entry-gate.js';
 import {
     PLAY_V2_PUBLIC_BETA_DOCUMENT,
     PLAY_V2_UNAVAILABLE_DOCUMENT
@@ -44,6 +48,13 @@ const retiredBetaRedirects = Object.freeze(new Map([
     ['/play/beta/coach', '/play/coach']
 ]));
 
+function resolveVercelPlayEnvironment(environment) {
+    if (environment.VERCEL_ENV !== 'preview' || environment[PLAY_V2_BETA_STAGE_ENV] !== undefined) {
+        return environment;
+    }
+    return { [PLAY_V2_BETA_STAGE_ENV]: PLAY_V2_BETA_ENTRY.currentStage };
+}
+
 export default function middleware(request) {
     const url = new URL(request.url);
     if (url.pathname === '/' && (request.method === 'GET' || request.method === 'HEAD')) {
@@ -73,7 +84,7 @@ export default function middleware(request) {
         return new Response(PLAY_V2_UNAVAILABLE_DOCUMENT, { status: 404, headers: unavailableHeaders });
     }
     if (url.pathname === '/play' || url.pathname.startsWith('/play/')) {
-        const entry = resolvePlayV2BetaEntry(url.pathname, process.env);
+        const entry = resolvePlayV2BetaEntry(url.pathname, resolveVercelPlayEnvironment(process.env));
         const readOnlyRequest = request.method === 'GET' || request.method === 'HEAD';
         if (!readOnlyRequest || !entry.authorized) {
             return new Response(PLAY_V2_UNAVAILABLE_DOCUMENT, { status: 404, headers: unavailableHeaders });

@@ -95,6 +95,7 @@
     { "source": "/signup", "destination": "/signup.html" },
     { "source": "/auth/complete", "destination": "/auth-complete.html" },
     { "source": "/store", "destination": "/credit-store.html" },
+    { "source": "/dos/dos_chess_games.json", "destination": "/public/dos/dos_chess_games.json" },
     { "source": "/data/:path*", "destination": "/public/data/:path*" },
     { "source": "/favicon.ico", "destination": "/public/favicon.ico" },
     { "source": "/favicon-16.png", "destination": "/public/favicon-16.png" },

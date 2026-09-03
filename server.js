@@ -471,6 +471,9 @@ const server = http.createServer(async (req, res) => {
     '/game-library', '/history', '/dos-chess'].includes(pathname)) {
     filePath = './index.html';
   }
+  if (pathname === '/dos/dos_chess_games.json') {
+    filePath = './public/dos/dos_chess_games.json';
+  }
   const physicalPromotionQA = resolvePlayV2PhysicalPromotionQA(pathname, url.search, process.env);
   const ipadAnalyzeDiagnostic = resolvePlayV2PhysicalIpadAnalyzeDiagnostic(pathname, url.search, process.env);
   const retiredBetaRedirects = new Map([
