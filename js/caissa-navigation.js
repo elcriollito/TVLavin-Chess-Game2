@@ -863,11 +863,16 @@ const CaissaNavigation = {
             if (isLibraryRoute) {
                 const openLibrary = async () => {
                     if (this.currentSection !== targetSection) return;
-                    await window.LibraryUI?.open?.();
+                    const usesPublicPresentation = window.CaissaGameLibraryPresentation?.shouldPresent?.();
+                    if (usesPublicPresentation) {
+                        await window.CaissaGameLibraryPresentation.open();
+                    } else {
+                        await window.LibraryUI?.open?.();
+                    }
                     if (this.currentSection !== targetSection) return;
                     const surface = window.LegacyCanonicalSectionRoutePolicy?.surfaceForSection?.(targetSection) || targetSection;
                     const title = window.LegacyCanonicalSectionRoutePolicy?.titleForSection?.(targetSection);
-                    if (title) document.title = title;
+                    if (title && !usesPublicPresentation) document.title = title;
                     window.CaissaPrimaryNavigationTransitionPolicy?.confirm?.(surface);
                 };
                 Promise.resolve(window.CaissaLibraryUIReady).then(openLibrary);

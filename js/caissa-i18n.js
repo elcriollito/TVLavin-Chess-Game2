@@ -76,7 +76,14 @@
             'shell.signOut': 'Sign Out',
             'shell.premium': 'Premium',
             'shell.upgrade': 'Upgrade',
-            'shell.upgradePremium': 'Upgrade to Premium'
+            'shell.upgradePremium': 'Upgrade to Premium',
+            'library.presentationLabel': 'Game Library under construction',
+            'library.title': 'Game Library',
+            'library.status': 'Under Construction',
+            'library.copyPrimary': 'We’re building your personal chess library.',
+            'library.copySecondary': 'Soon you’ll be able to save positions, games and analysis here.',
+            'library.backToPlay': 'Back to Play',
+            'library.metaTitle': 'Game Library — Under Construction | CAISSA Chess'
         }),
         es: Object.freeze({
             'nav.group.playAndCompete': 'Jugar y competir',
@@ -136,7 +143,14 @@
             'shell.signOut': 'Cerrar sesión',
             'shell.premium': 'Premium',
             'shell.upgrade': 'Mejorar plan',
-            'shell.upgradePremium': 'Mejorar a Premium'
+            'shell.upgradePremium': 'Mejorar a Premium',
+            'library.presentationLabel': 'Biblioteca de partidas en construcción',
+            'library.title': 'Biblioteca de partidas',
+            'library.status': 'En construcción',
+            'library.copyPrimary': 'Estamos creando tu biblioteca personal de ajedrez.',
+            'library.copySecondary': 'Próximamente podrás guardar posiciones, partidas y análisis aquí.',
+            'library.backToPlay': 'Volver a Jugar',
+            'library.metaTitle': 'Biblioteca de partidas — En construcción | CAISSA Chess'
         })
     });
 

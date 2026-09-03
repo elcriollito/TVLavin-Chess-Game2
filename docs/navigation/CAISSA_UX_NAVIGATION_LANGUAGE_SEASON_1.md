@@ -275,3 +275,14 @@ The responsive matrix covers 320, 360, 375, 390, 412, and 430 px in alternating
 English and Spanish, including all 36 rendered primary/connect/support links,
 horizontal overflow, overlap, `/game-library` route identity, and desktop
 expanded/collapsed behavior.
+
+## UX-006 Game Library presentation boundary
+
+`/game-library` now activates a localized CAISSA construction presentation with
+the approved meaning and a route-safe return to `/play`. The boundary is a CSS
+and controller mode on the existing `#libraryPanel`; all prior tabs, lists,
+search, import/export controls, database scripts, UI controller, and storage
+logic remain present and loaded for future recovery. The boundary removes no
+nodes and performs no data migration. Other routes retain the existing internal
+library behavior. No pricing, Premium promotion, form, tracking, or launch date
+was added.
