@@ -43,7 +43,7 @@ const LibraryUI = {
                 const { results } = e.detail || {};
                 if (results && this.elements.positionList) {
                     this.elements.positionList.style.display = 'block';
-                    if (this.elements.emptyState) this.elements.emptyState.style.display = results.length === 0 ? 'block' : 'none';
+                    this._setVisible(this.elements.emptyState, results.length === 0);
                     this.elements.positionList.innerHTML = results.map(pos => this._renderPositionItem(pos)).join('');
                     this._bindPositionItemEvents();
                 }
@@ -87,6 +87,8 @@ const LibraryUI = {
             // Tabs
             tabPositions: document.getElementById('libraryTabPositions'),
             tabGames: document.getElementById('libraryTabGames'),
+            positionsPanel: document.getElementById('libraryPositionsPanel'),
+            gamesPanel: document.getElementById('libraryGamesPanel'),
             // Collection detail
             collectionDetail: document.getElementById('libraryCollectionDetail'),
             backBtn: document.getElementById('libraryBackBtn'),
@@ -247,6 +249,12 @@ const LibraryUI = {
         // Update tab UI
         this.elements.tabPositions?.classList.toggle('active', tab === 'positions');
         this.elements.tabGames?.classList.toggle('active', tab === 'games');
+        this.elements.tabPositions?.setAttribute('aria-selected', String(tab === 'positions'));
+        this.elements.tabGames?.setAttribute('aria-selected', String(tab === 'games'));
+        if (this.elements.tabPositions) this.elements.tabPositions.tabIndex = tab === 'positions' ? 0 : -1;
+        if (this.elements.tabGames) this.elements.tabGames.tabIndex = tab === 'games' ? 0 : -1;
+        this._setVisible(this.elements.positionsPanel, tab === 'positions');
+        this._setVisible(this.elements.gamesPanel, tab === 'games');
 
         // Show/hide appropriate sections
         if (tab === 'positions') {
@@ -254,7 +262,7 @@ const LibraryUI = {
             this.elements.positionList.style.display = 'block';
             this.elements.collectionList.style.display = 'none';
             this.elements.collectionDetail.style.display = 'none';
-            this.elements.emptyGames.style.display = 'none';
+            this._setVisible(this.elements.emptyGames, false);
             await this.renderPositionList();
             await this.renderTagFilter();
         } else {
@@ -262,7 +270,7 @@ const LibraryUI = {
             this.elements.positionList.style.display = 'none';
             this.elements.collectionList.style.display = 'block';
             this.elements.collectionDetail.style.display = 'none';
-            this.elements.emptyState.style.display = 'none';
+            this._setVisible(this.elements.emptyState, false);
             this.elements.pagination.style.display = 'none';
             await this.renderCollectionList();
         }
@@ -287,7 +295,7 @@ const LibraryUI = {
         this.elements.collectionList.style.display = 'none';
         this.elements.searchSection.style.display = 'none';
         this.elements.positionList.style.display = 'block';
-        this.elements.emptyGames.style.display = 'none';
+        this._setVisible(this.elements.emptyGames, false);
 
         // Render positions in this collection
         await this.renderCollectionPositions(collectionId);
@@ -317,12 +325,12 @@ const LibraryUI = {
 
             if (collections.length === 0) {
                 listEl.style.display = 'none';
-                emptyEl.style.display = 'block';
+                this._setVisible(emptyEl, true);
                 return;
             }
 
             listEl.style.display = 'block';
-            emptyEl.style.display = 'none';
+            this._setVisible(emptyEl, false);
 
             listEl.innerHTML = collections.map(col => this._renderCollectionItem(col)).join('');
             this._bindCollectionItemEvents();
@@ -613,13 +621,13 @@ const LibraryUI = {
             // Show/hide empty state
             if (total === 0) {
                 listEl.style.display = 'none';
-                if (emptyEl) emptyEl.style.display = 'block';
+                this._setVisible(emptyEl, true);
                 this.elements.pagination.style.display = 'none';
                 return;
             }
 
             listEl.style.display = 'block';
-            if (emptyEl) emptyEl.style.display = 'none';
+            this._setVisible(emptyEl, false);
 
             // Render positions
             listEl.innerHTML = positions.map(pos => this._renderPositionItem(pos)).join('');
@@ -1329,6 +1337,13 @@ const LibraryUI = {
             clearTimeout(timeout);
             timeout = setTimeout(() => fn.apply(this, args), delay);
         };
+    },
+
+    /** Keep `hidden` and legacy inline display state aligned across both hosts. */
+    _setVisible(element, visible, display = 'block') {
+        if (!element) return;
+        element.hidden = !visible;
+        element.style.display = visible ? display : 'none';
     },
 
     /**

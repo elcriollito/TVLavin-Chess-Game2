@@ -11,6 +11,9 @@
   <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css">
   <link rel="stylesheet" href="/styles.css?v=2.0.16">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.1.0">
+  <link rel="stylesheet" href="/caissa-library.css?v=1.1.0">
+  <link rel="stylesheet" href="/query-engine.css?v=1.0.0">
+  <link rel="stylesheet" href="/position-forge.css?v=1.0.0">
   <link rel="stylesheet" href="/css/game-library-page.css?v=1.0.0">
   <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
 </head>
@@ -34,11 +37,112 @@
           <span data-caissa-i18n="library.backToPlay">Back to Play</span>
         </a>
       </section>
+      <section id="libraryPanel" class="library-panel game-library-workspace" data-game-library-workspace hidden
+        aria-labelledby="game-library-workspace-title">
+        <header class="game-library-heading">
+          <div>
+            <p class="game-library-eyebrow">CAISSA Chess</p>
+            <h1 id="game-library-workspace-title">Game Library</h1>
+            <p>Save and organize your games and positions for review.</p>
+          </div>
+          <div class="library-header-actions">
+            <div id="librarySyncIndicator" class="library-sync-indicator" hidden>
+              <i class="fas fa-cloud-check" aria-hidden="true"></i><span>Synced</span>
+            </div>
+            <button id="librarySyncNow" class="library-button" type="button" hidden>
+              <i class="fas fa-sync" aria-hidden="true"></i><span>Sync</span>
+            </button>
+          </div>
+        </header>
+
+        <div class="library-tabs" role="tablist" aria-label="Game Library sections">
+          <button id="libraryTabPositions" class="library-tab active" type="button" role="tab"
+            aria-selected="true" aria-controls="libraryPositionsPanel" data-tab="positions">
+            <i class="fas fa-chess-board" aria-hidden="true"></i><span>Positions</span>
+          </button>
+          <button id="libraryTabGames" class="library-tab" type="button" role="tab" tabindex="-1"
+            aria-selected="false" aria-controls="libraryGamesPanel" data-tab="games">
+            <i class="fas fa-chess" aria-hidden="true"></i><span>Games</span>
+          </button>
+        </div>
+
+        <div class="game-library-card">
+          <div class="game-library-toolbar">
+            <div id="librarySearchSection" class="library-search-section">
+              <label class="game-library-search" for="librarySearch">
+                <i class="fas fa-search" aria-hidden="true"></i>
+                <span class="game-library-visually-hidden">Search positions</span>
+                <input type="search" id="librarySearch" class="library-search-input"
+                  placeholder="Search positions…" aria-label="Search positions" autocomplete="off">
+              </label>
+              <div id="queryEngineMount"></div>
+              <div id="libraryTagFilter" class="library-tag-filter" aria-label="Position tags"></div>
+            </div>
+            <div class="library-actions-bar" aria-label="Library data actions">
+              <button id="libraryExportJson" class="library-button" type="button" title="Export as JSON backup">
+                <i class="fas fa-download" aria-hidden="true"></i><span>Backup</span>
+              </button>
+              <button id="libraryImportBtn" class="library-button" type="button" title="Import from backup">
+                <i class="fas fa-upload" aria-hidden="true"></i><span>Import</span>
+              </button>
+              <input type="file" id="libraryImportInput" class="library-import-input" accept=".json,application/json" hidden>
+            </div>
+          </div>
+
+          <div id="libraryCollectionDetail" class="library-collection-detail-header" hidden>
+            <button id="libraryBackBtn" class="library-back-btn" type="button" aria-label="Back to games">
+              <i class="fas fa-arrow-left" aria-hidden="true"></i>
+            </button>
+            <span id="libraryCollectionDetailTitle" class="library-collection-detail-title"></span>
+            <span id="libraryCollectionDetailCount" class="library-collection-detail-count"></span>
+          </div>
+
+          <section id="libraryPositionsPanel" class="game-library-results" role="tabpanel" aria-labelledby="libraryTabPositions">
+            <div id="libraryPositionList" class="library-position-list"></div>
+            <div id="libraryEmptyState" class="library-empty-state" role="status" hidden>
+              <span class="library-empty-icon" aria-hidden="true"><i class="fas fa-chess-board"></i></span>
+              <h2>No positions saved</h2>
+              <p>Save positions from analysis to build your library.</p>
+            </div>
+          </section>
+
+          <section id="libraryGamesPanel" class="game-library-results" role="tabpanel" aria-labelledby="libraryTabGames" hidden>
+            <div id="libraryCollectionList" class="library-collection-list"></div>
+            <div id="libraryEmptyGames" class="library-empty-state" role="status" hidden>
+              <span class="library-empty-icon" aria-hidden="true"><i class="fas fa-chess"></i></span>
+              <h2>No games saved</h2>
+              <p>Save a game from analysis to build your library.</p>
+            </div>
+          </section>
+
+          <nav id="libraryPagination" class="library-pagination" aria-label="Library pages" hidden>
+            <button id="libraryPrevPage" class="library-button" type="button" aria-label="Previous page">
+              <i class="fas fa-chevron-left" aria-hidden="true"></i>
+            </button>
+            <span id="libraryPageInfo" class="library-page-info" aria-live="polite">Page 1 of 1</span>
+            <button id="libraryNextPage" class="library-button" type="button" aria-label="Next page">
+              <i class="fas fa-chevron-right" aria-hidden="true"></i>
+            </button>
+          </nav>
+        </div>
+        <p class="game-library-privacy"><i class="fas fa-shield-halved" aria-hidden="true"></i>
+          Your local Library stays on this device unless you choose cloud sync.
+          <span id="libraryStats" class="library-stats" aria-live="polite"></span>
+        </p>
+      </section>
     </main>
   </div>
   <script src="/js/caissa-i18n.js?v=1.1.0"></script>
   <script src="/js/caissa-primary-navigation.js?v=1.0.2"></script>
   <script src="/js/caissa-standalone-sidebar.js?v=1.1.0"></script>
+  <script src="/caissa-library-db.js?v=1.0.0"></script>
+  <script src="/caissa-library.js?v=1.1.0"></script>
+  <script src="/js/caissa-sync.js?v=1.0.0"></script>
+  <script src="/query-engine.js?v=1.0.0"></script>
+  <script src="/query-engine-ui.js?v=1.0.0"></script>
+  <script src="/position-forge.js?v=1.0.0"></script>
+  <script src="/position-forge-ui.js?v=1.0.0"></script>
+  <script src="/caissa-library-ui.js?v=1.1.0"></script>
   <script src="/js/game-library-page.js?v=1.0.0"></script>
 </body>
 </html>
