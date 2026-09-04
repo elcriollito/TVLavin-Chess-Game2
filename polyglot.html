@@ -65,13 +65,13 @@
             <div data-caissa-standalone-sidebar data-active="polyglot"></div>
 
             <main class="polyglot-content-area caissa-standalone-content">
-                <div class="polyglot-card">
-                    <section class="polyglot-main">
+                <div class="polyglot-workspace">
+                    <section class="polyglot-tool-column" aria-labelledby="polyglot-page-title">
                         <div class="polyglot-banner">PGN files are sent to the CAISSA builder service to generate the downloadable BIN file.</div>
 
                         <section class="poly-main">
                             <section class="poly-hero poly-container">
-                                <h1>Polyglot Opening Book Creator</h1>
+                                <h1 id="polyglot-page-title">Polyglot Opening Book Creator</h1>
                                 <p class="poly-intro">Create Polyglot-compatible BIN opening books from PGN game files for use with compatible chess engines and interfaces. Choose how many plies to include, set a minimum move frequency, select one or both sides, and download the generated book. The tool prepares opening-book data; it does not analyze positions or replace an engine.</p>
                             </section>
 
@@ -127,7 +127,10 @@
                                     </div>
                                 </div>
                             </section>
+                        </section>
+                    </section>
 
+                    <aside class="polyglot-help-column" aria-label="Polyglot opening book guide">
                             <section class="poly-card poly-container poly-education" aria-label="Polyglot opening book guide">
                                 <section aria-labelledby="polyglot-book-heading">
                                     <h2 id="polyglot-book-heading">What Is a Polyglot Opening Book?</h2>
@@ -167,8 +170,7 @@
                                     <a href="/blog">Learn more from the CAISSA Chess blog</a>
                                 </nav>
                             </section>
-                        </section>
-                    </section>
+                    </aside>
                 </div>
             </main>
         </div>
