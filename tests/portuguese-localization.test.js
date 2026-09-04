@@ -23,7 +23,7 @@ const placeholders = value => [...String(value).matchAll(/\{[a-zA-Z][\w]*\}/g)].
 test('Portuguese is complete, enabled, and has exact EN/ES key and placeholder parity', () => {
     const { api } = boot();
     const keys = Object.keys(api.catalogs.en).sort();
-    assert.equal(keys.length, 446);
+    assert.equal(keys.length, 607);
     assert.deepEqual(Object.keys(api.catalogs.es).sort(), keys);
     assert.deepEqual(Object.keys(api.catalogs.pt).sort(), keys);
     assert.deepEqual(Array.from(api.enabledLocales), ['en', 'es', 'pt']);

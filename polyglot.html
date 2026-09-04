@@ -20,7 +20,7 @@
     <meta name="twitter:image" content="https://www.caissa-chess.org/og-image.png">
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.0.0">
-    <link rel="stylesheet" href="/css/polyglot-tool.css?v=1.1.0">
+    <link rel="stylesheet" href="/css/polyglot-tool.css?v=1.2.0">
     <link rel="stylesheet" href="/css/caissa-mobile-foundation.css?v=1.0.6">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script type="application/ld+json">
@@ -66,108 +66,108 @@
 
             <main class="polyglot-content-area caissa-standalone-content">
                 <div class="polyglot-workspace">
-                    <section class="polyglot-tool-column" aria-labelledby="polyglot-page-title">
-                        <div class="polyglot-banner">PGN files are sent to the CAISSA builder service to generate the downloadable BIN file.</div>
+                    <section class="polyglot-tool-column" aria-labelledby="polyglot-page-title" data-caissa-i18n-aria-label="polyglot.toolAria">
+                        <div class="polyglot-banner" data-caissa-i18n="polyglot.banner">PGN files are sent to the CAISSA builder service to generate the downloadable BIN file.</div>
 
                         <section class="poly-main">
                             <section class="poly-hero poly-container">
-                                <h1 id="polyglot-page-title">Polyglot Opening Book Creator</h1>
-                                <p class="poly-intro">Create Polyglot-compatible BIN opening books from PGN game files for use with compatible chess engines and interfaces. Choose how many plies to include, set a minimum move frequency, select one or both sides, and download the generated book. The tool prepares opening-book data; it does not analyze positions or replace an engine.</p>
+                                <h1 id="polyglot-page-title" data-caissa-i18n="polyglot.title">Polyglot Opening Book Creator</h1>
+                                <p class="poly-intro" data-caissa-i18n="polyglot.intro">Create Polyglot-compatible BIN opening books from PGN game files for use with compatible chess engines and interfaces. Choose how many plies to include, set a minimum move frequency, select one or both sides, and download the generated book. The tool prepares opening-book data; it does not analyze positions or replace an engine.</p>
                             </section>
 
                             <section class="poly-card poly-container">
-                                <h2>Download v0.2.0</h2>
+                                <h2 data-caissa-i18n="polyglot.downloadTitle">Download v0.2.0</h2>
                                 <div class="poly-download-actions">
-                                    <a class="poly-btn poly-btn-primary" href="https://downloads.caissa-chess.org/apps/caissa-book-creator/v0.2.0/CAISSA-Book-Creator-v0.2.0-portable.zip" target="_blank" rel="noopener">
+                                    <a class="poly-btn poly-btn-primary" href="https://downloads.caissa-chess.org/apps/caissa-book-creator/v0.2.0/CAISSA-Book-Creator-v0.2.0-portable.zip" target="_blank" rel="noopener" data-caissa-i18n-aria-label="polyglot.downloadPortable">
                                         <i class="fas fa-download"></i>
-                                        Download CAISSA Book Creator v0.2.0 (Portable ZIP)
+                                        <span data-caissa-i18n="polyglot.downloadPortable">Download CAISSA Book Creator v0.2.0 (Portable ZIP)</span>
                                     </a>
                                 </div>
                             </section>
 
                             <section class="poly-card poly-container">
-                                <h2>Online PGN &rarr; BIN Service</h2>
-                                <p class="poly-note">Choose a <code>.pgn</code> file of up to 25 MB, apply the available options, and generate a Polyglot <code>.bin</code> file. The file is uploaded to the CAISSA builder service for processing.</p>
+                                <h2 data-caissa-i18n="polyglot.serviceTitle">Online PGN &rarr; BIN Service</h2>
+                                <p class="poly-note" data-caissa-i18n="polyglot.serviceNote">Choose a .pgn file of up to 25 MB, apply the available options, and generate a Polyglot .bin file. The file is uploaded to the CAISSA builder service for processing.</p>
 
                                 <form id="polyForm" class="poly-form">
-                                    <label for="pgnFile">Choose PGN file</label>
+                                    <label for="pgnFile" data-caissa-i18n="polyglot.fileLabel">Choose PGN file</label>
                                     <input id="pgnFile" name="pgnFile" type="file" accept=".pgn,text/plain,application/x-chess-pgn" required>
 
                                     <div class="poly-grid">
                                         <label>
-                                            Maximum plies
+                                            <span data-caissa-i18n="polyglot.maxPly">Maximum plies</span>
                                             <input id="maxPly" type="number" min="1" max="1024" value="160">
                                         </label>
                                         <label>
-                                            Minimum occurrence count
+                                            <span data-caissa-i18n="polyglot.minCount">Minimum occurrence count</span>
                                             <input id="minCount" type="number" min="1" max="1000" value="1">
                                         </label>
                                         <label>
-                                            Side
+                                            <span data-caissa-i18n="polyglot.side">Side</span>
                                             <select id="side">
-                                                <option value="both" selected>Both</option>
-                                                <option value="white">White</option>
-                                                <option value="black">Black</option>
+                                                <option value="both" selected data-caissa-i18n="polyglot.sideBoth">Both</option>
+                                                <option value="white" data-caissa-i18n="polyglot.sideWhite">White</option>
+                                                <option value="black" data-caissa-i18n="polyglot.sideBlack">Black</option>
                                             </select>
                                         </label>
                                     </div>
 
-                                    <button id="generateBtn" class="poly-btn poly-btn-primary poly-generate-btn" type="submit">
+                                    <button id="generateBtn" class="poly-btn poly-btn-primary poly-generate-btn" type="submit" data-caissa-i18n-aria-label="polyglot.generate">
                                         <i class="fas fa-gears"></i>
-                                        Generate opening book
+                                        <span data-caissa-i18n="polyglot.generate">Generate opening book</span>
                                     </button>
                                 </form>
 
                                 <div class="poly-output">
-                                    <h3>Build Log</h3>
-                                    <pre id="buildLog" class="poly-log">[ready] Waiting for PGN upload...</pre>
+                                    <h3 id="polyglot-build-log-heading" data-caissa-i18n="polyglot.buildLog">Build Log</h3>
+                                    <pre id="buildLog" class="poly-log" role="log" aria-live="polite" aria-relevant="additions text" aria-labelledby="polyglot-build-log-heading" tabindex="0">[ready] Waiting for PGN upload...</pre>
                                     <div id="resultRow" class="poly-result-row" hidden>
                                         <span id="outputSize"></span>
-                                        <a id="downloadOutputBtn" class="poly-btn poly-btn-primary" download>Download BIN</a>
+                                        <a id="downloadOutputBtn" class="poly-btn poly-btn-primary" download data-caissa-i18n="polyglot.downloadBin" data-caissa-i18n-aria-label="polyglot.downloadBin">Download BIN</a>
                                     </div>
                                 </div>
                             </section>
                         </section>
                     </section>
 
-                    <aside class="polyglot-help-column" aria-label="Polyglot opening book guide">
-                            <section class="poly-card poly-container poly-education" aria-label="Polyglot opening book guide">
+                    <aside class="polyglot-help-column" aria-label="Polyglot opening book help" data-caissa-i18n-aria-label="polyglot.helpAria">
+                            <section class="poly-card poly-container poly-education">
                                 <section aria-labelledby="polyglot-book-heading">
-                                    <h2 id="polyglot-book-heading">What Is a Polyglot Opening Book?</h2>
-                                    <p>A Polyglot opening book is a binary opening-book format used by compatible chess engines and interfaces. It connects board positions with candidate moves and associated book data such as move weights. During the opening phase, compatible software can consult these stored choices before relying fully on engine search. The book is not a chess engine: it does not evaluate positions, calculate variations, or choose moves outside the entries it contains.</p>
+                                    <h2 id="polyglot-book-heading" data-caissa-i18n="polyglot.bookHeading">What Is a Polyglot Opening Book?</h2>
+                                    <p data-caissa-i18n="polyglot.bookCopy">A Polyglot opening book is a binary opening-book format used by compatible chess engines and interfaces. It connects board positions with candidate moves and associated book data such as move weights. During the opening phase, compatible software can consult these stored choices before relying fully on engine search. The book is not a chess engine: it does not evaluate positions, calculate variations, or choose moves outside the entries it contains.</p>
                                 </section>
 
                                 <section aria-labelledby="bin-file-heading">
-                                    <h2 id="bin-file-heading">What Is a BIN File?</h2>
-                                    <p><code>.bin</code> is the usual filename extension for a Polyglot opening book. The data is compact and machine-oriented, so it is not intended to be read or edited like a text document. Test the generated file in software that explicitly supports the Polyglot book format. A BIN extension alone does not guarantee that an unrelated application will understand the file.</p>
+                                    <h2 id="bin-file-heading" data-caissa-i18n="polyglot.binHeading">What Is a BIN File?</h2>
+                                    <p data-caissa-i18n="polyglot.binCopy">.bin is the usual filename extension for a Polyglot opening book. The data is compact and machine-oriented, so it is not intended to be read or edited like a text document. Test the generated file in software that explicitly supports the Polyglot book format. A BIN extension alone does not guarantee that an unrelated application will understand the file.</p>
                                 </section>
 
                                 <section aria-labelledby="pgn-bin-heading">
-                                    <h2 id="pgn-bin-heading">PGN vs Polyglot BIN</h2>
-                                    <p>PGN is human-readable text commonly used to store complete chess games, headers, and move sequences. Polyglot BIN is an engine-oriented opening-book format that stores positions and candidate moves efficiently. This tool reads supported PGN game files, counts the moves reached from each position under your selected limits, and writes those results as a downloadable Polyglot BIN book. The generated book does not preserve the PGN as a collection of readable games.</p>
+                                    <h2 id="pgn-bin-heading" data-caissa-i18n="polyglot.compareHeading">PGN vs Polyglot BIN</h2>
+                                    <p data-caissa-i18n="polyglot.compareCopy">PGN is human-readable text commonly used to store complete chess games, headers, and move sequences. Polyglot BIN is an engine-oriented opening-book format that stores positions and candidate moves efficiently. This tool reads supported PGN game files, counts the moves reached from each position under your selected limits, and writes those results as a downloadable Polyglot BIN book. The generated book does not preserve the PGN as a collection of readable games.</p>
                                 </section>
 
                                 <section aria-labelledby="polyglot-steps-heading">
-                                    <h2 id="polyglot-steps-heading">How to Use the CAISSA Polyglot Tool</h2>
+                                    <h2 id="polyglot-steps-heading" data-caissa-i18n="polyglot.stepsHeading">How to Use the CAISSA Polyglot Tool</h2>
                                     <ol class="poly-steps">
-                                        <li>Choose a <code>.pgn</code> file no larger than 25 MB.</li>
-                                        <li>Set the maximum plies, minimum occurrence count, and side to include.</li>
-                                        <li>Select <strong>Generate opening book</strong>. CAISSA uploads the PGN to its builder service and validates the games it can parse.</li>
-                                        <li>When the build succeeds, the BIN downloads automatically and a <strong>Download BIN</strong> link remains beside the output summary.</li>
-                                        <li>Load the file in a compatible engine or chess interface and test its opening choices.</li>
+                                        <li data-caissa-i18n="polyglot.step1">Choose a .pgn file no larger than 25 MB.</li>
+                                        <li data-caissa-i18n="polyglot.step2">Set the maximum plies, minimum occurrence count, and side to include.</li>
+                                        <li data-caissa-i18n="polyglot.step3">Select Generate opening book. CAISSA uploads the PGN to its builder service and validates the games it can parse.</li>
+                                        <li data-caissa-i18n="polyglot.step4">When the build succeeds, the BIN downloads automatically and a Download BIN link remains beside the output summary.</li>
+                                        <li data-caissa-i18n="polyglot.step5">Load the file in a compatible engine or chess interface and test its opening choices.</li>
                                     </ol>
                                 </section>
 
                                 <section aria-labelledby="polyglot-compatibility-heading">
-                                    <h2 id="polyglot-compatibility-heading">Important Compatibility Notes</h2>
-                                    <p>Polyglot support and configuration vary between engines and graphical interfaces. Keep the original PGN and backups of any existing book before replacing files. Book behavior depends on its entries and weights as well as the receiving software’s book settings. Test the result before using it for a tournament, automated match, or other production workflow.</p>
+                                    <h2 id="polyglot-compatibility-heading" data-caissa-i18n="polyglot.compatibilityHeading">Important Compatibility Notes</h2>
+                                    <p data-caissa-i18n="polyglot.compatibilityCopy">Polyglot support and configuration vary between engines and graphical interfaces. Keep the original PGN and backups of any existing book before replacing files. Book behavior depends on its entries and weights as well as the receiving software’s book settings. Test the result before using it for a tournament, automated match, or other production workflow.</p>
                                 </section>
 
-                                <nav class="poly-related" aria-label="Related CAISSA chess resources">
-                                    <a href="/blog/what-is-a-polyglot-opening-book">Learn how Polyglot opening books work</a>
-                                    <a href="/opening-database">Explore the CAISSA Opening Database</a>
-                                    <a href="/eco">Browse Chess ECO Codes</a>
-                                    <a href="/blog">Learn more from the CAISSA Chess blog</a>
+                                <nav class="poly-related" aria-label="Related CAISSA chess resources" data-caissa-i18n-aria-label="polyglot.relatedAria">
+                                    <a href="/blog/what-is-a-polyglot-opening-book" data-caissa-i18n="polyglot.linkGuide">Learn how Polyglot opening books work</a>
+                                    <a href="/opening-database" data-caissa-i18n="polyglot.linkDatabase">Explore the CAISSA Opening Database</a>
+                                    <a href="/eco" data-caissa-i18n="polyglot.linkEco">Browse Chess ECO Codes</a>
+                                    <a href="/blog" data-caissa-i18n="polyglot.linkBlog">Learn more from the CAISSA Chess blog</a>
                                 </nav>
                             </section>
                     </aside>
@@ -182,6 +182,6 @@
     <script src="/js/caissa-auth.js?v=1.0.2" defer></script>
     <script src="/js/caissa-access.js?v=1.0.2" defer></script>
     <script src="/js/caissa-ui-auth.js?v=1.0.2" defer></script>
-    <script type="module" src="/js/polyglot-tool.js"></script>
+    <script type="module" src="/js/polyglot-tool.js?v=1.1.0"></script>
 </body>
 </html>

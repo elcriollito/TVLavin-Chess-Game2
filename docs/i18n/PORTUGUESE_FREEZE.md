@@ -12,6 +12,7 @@ Status: **FROZEN / APPROVED**
 - Approval date: **2026-09-03**
 - Physically certified HEAD: `5fe129bf0b0315a34c79d1908e5e6bde06bb7d7f`
 - Catalogs: **EN 446 / ES 446 / PT 446**
+- Current shared catalogs after documented product additions: **EN 607 / ES 607 / PT 607**
 - Exact parity: **PASS**
 - Physical certification: **PASS**
 - UX-012 mobile navigation: **PASS**
@@ -55,6 +56,12 @@ Two legitimate dynamic keys were added to EN, ES, and PT: `pgn.resultTemplate` a
 LIB-004 adds 98 necessary shared `library.*` keys to EN, ES, and PT, raising all three catalogs from 446 to 544 keys with exact parity. The additions cover the new standalone Game Library shell, Positions/Games controls, search, advanced filters, Backup/Import, empty states, pagination, local-storage notice, accessible labels/placeholders, saved-item actions, dialogs, notifications, errors, and sync states.
 
 This is an allowed frozen-catalog change under rule 2 (“a necessary new shared key”). No previously approved Portuguese value or terminology decision was changed. The public Game Library remains Under Construction; these strings also preserve the future functional surface without exposing it as released.
+
+### PGT-004 — Polyglot Opening Book Creator
+
+PGT-004 adds 63 necessary shared `polyglot.*` keys to EN, ES, and PT, raising all three catalogs from 544 to 607 keys with exact parity. The additions cover the creator title and description, upload and build controls, side options, build-log states, output summary, safe validation and service errors, the five Help sections, compatibility guidance, related links, metadata, and accessible labels.
+
+This is an allowed frozen-catalog change under rule 2 (“a necessary new shared key”). The Portuguese text follows the approved practical international/Brazilian UI preference, preserves Polyglot, PGN, BIN, CAISSA, Stockfish, and Elo, and does not change any previously approved Portuguese key or terminology decision.
 
 ## Automated QA
 

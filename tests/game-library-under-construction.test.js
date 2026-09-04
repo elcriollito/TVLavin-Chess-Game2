@@ -71,7 +71,7 @@ test('recoverable first-party workspace preserves Library behavior and storage b
 test('EN ES PT catalogs remain exactly equal after the documented shared additions', () => {
     const values = catalogs();
     const keys = Object.fromEntries(['en', 'es', 'pt'].map(locale => [locale, Object.keys(values[locale]).sort()]));
-    assert.equal(keys.en.length, 544);
+    assert.equal(keys.en.length, 607);
     assert.deepEqual(keys.es, keys.en);
     assert.deepEqual(keys.pt, keys.en);
     for (const key of ['library.title', 'library.positions', 'library.games', 'library.advancedFilters', 'library.backup', 'library.import', 'library.noPositions', 'library.syncFailed']) {
