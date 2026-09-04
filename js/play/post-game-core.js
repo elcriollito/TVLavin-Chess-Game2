@@ -174,8 +174,15 @@
             root.App?.engine?.terminate?.('post-game-analyze');
             const handoff = this.#handoff.createFromCompletedPlayRecord(this.#record, { identityContext: 'play-v2' });
             if (!handoff?.ok) return outcome(false, 'failed', handoff?.reasonCode || 'ACTION_FAILED');
+            const sourceMode = root.CaissaSimplifiedPlayShellInstance?.getSnapshot?.()?.mode || null;
+            const coachContext = root.CaissaCoachReviewContext?.create?.({
+                owner: 'post-game-core', sourceMode
+            });
             const opened = root.CaissaPlayV2InlineAnalyze?.open
-                ? root.CaissaPlayV2InlineAnalyze.open({ token: handoff.value.token })
+                ? root.CaissaPlayV2InlineAnalyze.open({
+                    token: handoff.value.token,
+                    reviewContext: coachContext?.ok ? coachContext.value : null
+                })
                 : this.#navigation?.navigateToSection?.('analyze', { handoffToken: handoff.value.token });
             if (opened === false || opened?.ok === false) return outcome(false, 'failed', 'ACTION_FAILED');
             this.#diagnostics.handoffs += 1; return outcome(true, 'accepted', 'ANALYZE_OPENED');

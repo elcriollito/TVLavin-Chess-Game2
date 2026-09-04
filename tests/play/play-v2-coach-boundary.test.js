@@ -48,7 +48,7 @@ test('assistance observes only bounded events and cannot commit or retain hidden
 
 test('native resource group is isolated while educational Coach remains standalone', () => {
     const registry = read('js/play/performance/play-load-registry.js');
-    const nativeBlock = registry.match(/'native-coach-stack':[\s\S]*?\n\s*}\),\n/)[0];
+    const nativeBlock = registry.match(/'native-coach-stack':[\s\S]*?\r?\n\s*}\),\r?\n/)[0];
     assert.doesNotMatch(nativeBlock, /js\/play\/coach\/|academy|mentor|guided|knowledge|memory|mastery|recommend|endgame/i);
     assert.match(registry, /'coach-stack'/); assert.match(registry, /endgame-knowledge-map/);
 });

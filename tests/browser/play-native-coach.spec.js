@@ -12,21 +12,28 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(panel.getByAltText('Caissa, goddess of chess')).toBeVisible();
     await expect(panel.locator('[data-coach-narration]')).toContainText("Let's play");
     await expect(panel).not.toContainText(/Internal|locally certified|bounded assistance/i);
-    await expect(panel.getByRole('combobox')).toHaveCount(1);
-    await expect(panel.getByLabel('Coach level')).toHaveValue('casual');
+    await expect(panel.getByRole('combobox')).toHaveCount(0);
+    await expect(panel.getByLabel('Casual')).toBeChecked();
+    await expect(panel.getByLabel('Balanced')).toBeVisible();
+    await expect(panel.getByLabel('Challenging')).toBeVisible();
+    await expect(panel.getByRole('button', { name: 'Show All Levels ↓' })).toBeVisible();
+    await expect(panel.getByLabel('Beginner')).toBeHidden();
+    await panel.getByRole('button', { name: 'Show All Levels ↓' }).click();
+    await expect(panel.getByLabel('Beginner')).toBeVisible();
+    await expect(panel.getByLabel('Grandmaster')).toBeVisible();
+    await panel.getByRole('button', { name: 'Show Fewer Levels ↑' }).click();
     await expect(panel.getByLabel('White')).toBeChecked();
     await expect(panel.getByLabel('Random')).toBeVisible();
     await expect(panel.getByLabel('Black')).toBeVisible();
     const assistance = page.locator('[data-play-assistance]');
-    await assistance.locator('summary').click();
-    await expect(assistance.getByRole('combobox')).toHaveCount(3);
+    await expect(assistance).toBeHidden();
     await expect(panel.getByRole('button', { name: 'Play' })).toHaveCount(1);
     await expect(panel).not.toContainText(/lesson|curriculum|academy|mentor|mastery|knowledge|best move/i);
     await panel.getByRole('button', { name: 'Play' }).click();
     await expect(panel.locator('[data-coach-narration]')).toContainText('game is ready');
     const help = page.locator('[data-active-game-action="coach-hint"]');
     await expect(help).toBeVisible(); await help.click();
-    await expect(page.locator('[data-active-game-status]')).toContainText('opponent');
+    await expect(page.locator('[data-active-game-status]')).toContainText(/highlighted|opponent/);
     expect(await playMove(page, 'e2', 'e4')).toBe(true);
     await expect.poll(() => page.evaluate(() => window.App.game.history())).toEqual(['e4', 'e5']);
     const proof = await page.evaluate(() => ({ snapshot: window.CaissaSimplifiedPlayShellInstance.getSnapshot(),
@@ -41,15 +48,31 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(page.locator('[data-post-game-summary]')).toContainText('CAISSA Coach');
     expect((await page.evaluate(() => window.CaissaSimplifiedPlayShellInstance.getSnapshot().coachPanel.assistance)).active).toBeNull();
     await expect(page.locator('.caissa-post-game')).not.toContainText(/lesson|academy|curriculum|mastery|knowledge/i);
-    await expect(page.locator('[data-post-game-action="analyze"]')).toBeVisible();
+    const analyze = page.locator('[data-post-game-action="analyze"]');
+    await expect(analyze).toBeVisible(); await analyze.click();
+    await expect(page.locator('[data-caissa-coach-review-shell]')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Coach Review' })).toBeVisible();
+    const review = await page.evaluate(() => ({
+        path: location.pathname,
+        context: document.querySelector('#analyzeSection')?.dataset.caissaReviewContext,
+        phase: document.querySelector('#analyzeSection')?.dataset.coachReviewPhase,
+        plyOwner: window.CaissaCoachReviewPresentation.getSnapshot().activePlyOwner,
+        authoritativePly: window.AnalyzeSection.currentMoveIndex,
+        duplicatePly: 'reviewMoveIndex' in window || 'reviewMoveIndex' in window.CaissaCoachReviewPresentation.getSnapshot()
+    }));
+    expect(review).toMatchObject({ path: '/play/coach', context: 'coach', phase: 'shell',
+        plyOwner: 'AnalyzeSection.currentMoveIndex', duplicatePly: false });
+    expect(Number.isInteger(review.authoritativePly)).toBe(true);
 });
 
 test('Coach setup is keyboard accessible, responsive, and serious-violation free', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 568 }); await page.goto('/play/beta/coach');
     const panel = page.locator('[data-caissa-native-coach-panel]');
-    await expect(panel.getByRole('combobox')).toHaveCount(1);
-    await panel.getByLabel('Coach level').selectOption('casual');
-    await panel.getByLabel('Random').check();
+    await expect(panel.getByRole('combobox')).toHaveCount(0);
+    await panel.getByLabel('Casual').check();
+    await panel.getByLabel('Random').focus();
+    await page.keyboard.press('Space');
+    await expect(panel.getByLabel('Random')).toBeChecked();
     await panel.getByRole('button', { name: 'Play' }).focus();
     expect(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle)).not.toBe('none');
     const axe = await new AxeBuilder({ page }).include('[data-caissa-native-coach-panel]').analyze();

@@ -8,13 +8,14 @@
 
     function restore() {
         if (!openState) return result(true, 'unchanged', 'ALREADY_CLOSED');
-        const { section, playSection, closeButton, previous, copyObserver,
+        const { section, playSection, closeButton, previous, copyObserver, reviewPresentation,
             viewport, scrollPosition } = openState;
         copyObserver.disconnect();
         viewport?.removeEventListener?.('resize', updateViewportGeometry);
         viewport?.removeEventListener?.('scroll', updateViewportGeometry);
         root.removeEventListener('resize', updateViewportGeometry);
         root.AnalyzeSection?.onExit?.();
+        reviewPresentation?.unmount?.();
         closeButton.remove();
         section.classList.remove('caissa-play-v2-inline-analyze');
         section.classList.toggle('active', previous.active);
@@ -117,8 +118,10 @@
         const copyObserver = new root.MutationObserver(normalizeCopy);
         const viewport = root.visualViewport;
         const scrollPosition = { x: root.scrollX, y: root.scrollY };
+        const reviewPresentation = root.CaissaCoachReviewContext?.isCoachReview?.(input.reviewContext) === true
+            ? root.CaissaCoachReviewPresentation : null;
         openState = { section, playSection, closeButton, previous, copyObserver,
-            viewport, scrollPosition };
+            reviewPresentation, viewport, scrollPosition };
         if (playSection) {
             playSection.inert = true;
             playSection.setAttribute('aria-hidden', 'true');
@@ -130,6 +133,7 @@
         section.setAttribute('aria-label', 'Analyze completed game');
         section.setAttribute('tabindex', '-1');
         root.document.body.classList.add('caissa-play-v2-analyze-open');
+        reviewPresentation?.mount?.({ section, context: input.reviewContext });
         updateViewportGeometry();
         viewport?.addEventListener?.('resize', updateViewportGeometry);
         viewport?.addEventListener?.('scroll', updateViewportGeometry);

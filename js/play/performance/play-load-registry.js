@@ -40,6 +40,7 @@
         'native-coach-stack': Object.freeze({
             resourceId: 'native-coach-stack', type: 'module-group', trigger: 'mode', priority: 'normal',
             qaOnly: true, productionEligible: false, dependencies: Object.freeze([]),
+            styles: Object.freeze(['css/play-coach-review.css?v=1.0.0']),
             sources: Object.freeze([
                 'js/play/native-coach/coach-assistance-policy.js?v=1.0.0',
                 'js/play/native-coach/coach-configuration.js?v=1.0.0',
@@ -49,6 +50,8 @@
                 'js/play/native-coach/coach-assistance.js?v=1.0.0',
                 'js/play/native-coach/coach-move-review.js?v=1.2.0',
                 'js/play/native-coach/coach-dialogue.js?v=1.1.0',
+                'js/play/native-coach/coach-review-context.js?v=1.0.0',
+                'js/play/native-coach/coach-review-presentation.js?v=1.0.0',
                 'js/play/native-coach/coach-panel.js?v=2.5.0'
             ])
         }),

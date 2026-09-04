@@ -6,6 +6,11 @@
         Object.freeze({ value: 'random', label: 'Random', symbol: '?' }),
         Object.freeze({ value: 'black', label: 'Black', symbol: '♚' })
     ]);
+    const FEATURED_LEVELS = Object.freeze([
+        Object.freeze({ id: 'casual', label: 'Casual', description: 'A relaxed game with more room to explore.' }),
+        Object.freeze({ id: 'intermediate', label: 'Balanced', description: 'A steady challenge with balanced guidance.' }),
+        Object.freeze({ id: 'advanced', label: 'Challenging', description: 'A stronger test that rewards careful play.' })
+    ]);
     let sequence = 0; let activePanel = null;
     const freeze = value => { if (value && typeof value === 'object' && !Object.isFrozen(value)) {
         Object.values(value).forEach(freeze); Object.freeze(value); } return value; };
@@ -36,15 +41,33 @@
 
             const controls = node('div', { class: 'caissa-native-coach-panel__controls',
                 role: 'group', 'aria-label': 'Coach game choices' });
-            const experience = node('label', { class: 'caissa-native-coach-panel__experience' });
-            const experienceLabel = node('span', { class: 'caissa-native-coach-panel__control-label' });
-            experienceLabel.textContent = 'Level';
-            const experienceSelect = node('select', { 'data-coach-experience': '', 'aria-label': 'Coach level' });
-            root.CaissaNativeCoachLevels.publicOptions.forEach(item => {
-                const option = node('option', { value: item.id }); option.textContent = item.label;
-                experienceSelect.appendChild(option);
+            const experience = node('fieldset', { class: 'caissa-native-coach-panel__level-picker' });
+            const experienceLabel = node('legend', { class: 'caissa-native-coach-panel__control-label' });
+            experienceLabel.textContent = 'Choose your level';
+            const featuredLevels = node('div', { class: 'caissa-native-coach-panel__featured-levels' });
+            FEATURED_LEVELS.forEach(item => {
+                const label = node('label', { class: 'caissa-native-coach-panel__level-card' });
+                const input = node('input', { type: 'radio', name: `${this.#id}-experience`, value: item.id,
+                    'data-coach-experience': item.id, 'aria-label': item.label });
+                const name = node('span', { class: 'caissa-native-coach-panel__level-name' }); name.textContent = item.label;
+                const description = node('span', { class: 'caissa-native-coach-panel__level-description' });
+                description.textContent = item.description;
+                label.append(input, name, description); featuredLevels.appendChild(label);
             });
-            experience.append(experienceLabel, experienceSelect);
+            const showLevels = node('button', { type: 'button', class: 'caissa-native-coach-panel__show-levels',
+                'data-coach-show-levels': '', 'aria-expanded': 'false', 'aria-controls': `${this.#id}-more-levels` });
+            showLevels.textContent = 'Show All Levels ↓';
+            const moreLevels = node('div', { id: `${this.#id}-more-levels`, class: 'caissa-native-coach-panel__more-levels',
+                'data-coach-more-levels': '', hidden: '' });
+            const featuredIds = new Set(FEATURED_LEVELS.map(item => item.id));
+            root.CaissaNativeCoachLevels.publicOptions.filter(item => !featuredIds.has(item.id)).forEach(item => {
+                const label = node('label', { class: 'caissa-native-coach-panel__level-row' });
+                const input = node('input', { type: 'radio', name: `${this.#id}-experience`, value: item.id,
+                    'data-coach-experience': item.id, 'aria-label': item.label });
+                const name = node('span', { class: 'caissa-native-coach-panel__level-name' }); name.textContent = item.label;
+                label.append(input, name); moreLevels.appendChild(label);
+            });
+            experience.append(experienceLabel, featuredLevels, showLevels, moreLevels);
 
             const color = node('fieldset', { class: 'caissa-native-coach-panel__color' });
             const legend = node('legend', { class: 'caissa-native-coach-panel__control-label' }); legend.textContent = 'Play As';
@@ -72,6 +95,7 @@
             dismiss.textContent = 'Dismiss assistance';
             section.append(persona, controls, access, premium, action, help, dismiss); host.appendChild(section);
             this.#listen(section, 'change', event => this.#change(event));
+            this.#listen(showLevels, 'click', () => this.#toggleLevels());
             this.#listen(action, 'click', () => this.submit()); this.#listen(help, 'click', () => this.requestHelp());
             this.#listen(dismiss, 'click', () => { this.#assistance.dismiss(); dismiss.disabled = true;
                 this.#renderDialogue(this.#dialogue.silence()); });
@@ -178,6 +202,15 @@
             if (event.target?.hasAttribute?.('data-coach-color-choice')) this.#color = event.target.value;
             this.#renderSelection();
         }
+        #toggleLevels() {
+            const button = this.#root?.querySelector('[data-coach-show-levels]');
+            const levels = this.#root?.querySelector('[data-coach-more-levels]');
+            if (!button || !levels) return;
+            const expanded = button.getAttribute('aria-expanded') !== 'true';
+            button.setAttribute('aria-expanded', String(expanded));
+            button.textContent = expanded ? 'Show Fewer Levels ↑' : 'Show All Levels ↓';
+            levels.hidden = !expanded;
+        }
         #handleTurn(detail = {}) {
             if (this.#status !== 'active' || this.#disposed || detail.turn !== this.#configuration.color) return;
             const ply = root.App?.game?.history?.().length || 0;
@@ -220,8 +253,7 @@
             premium.hidden = access?.code !== 'COACH_TRIAL_USED';
         }
         #renderSelection() {
-            const experience = this.#root?.querySelector('[data-coach-experience]');
-            if (experience) experience.value = this.#experience;
+            this.#root?.querySelectorAll('[data-coach-experience]').forEach(input => input.checked = input.value === this.#experience);
             this.#root?.querySelectorAll('[data-coach-color-choice]').forEach(input => input.checked = input.value === this.#color);
         }
         #render(message) {
