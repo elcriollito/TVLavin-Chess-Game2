@@ -726,6 +726,51 @@ body.caissa-simplified-play-active .caissa-simplified-shell__active-opening {
     line-height: 1.4;
 }
 
+/* Board-assistance precedence: last move < selection < legal target < Coach Hint < quality badge. */
+body.caissa-simplified-play-active #playSection #chessboard .caissa-board-last-move {
+    position: relative;
+}
+
+body.caissa-simplified-play-active #playSection #chessboard .caissa-board-last-move::before {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    background: rgba(211, 171, 73, .22);
+    pointer-events: none;
+}
+
+body.caissa-simplified-play-active #playSection #chessboard .caissa-board-selected {
+    box-shadow: inset 0 0 0 3px rgba(63, 130, 196, .86),
+        inset 0 0 0 100vmax rgba(63, 130, 196, .14) !important;
+}
+
+body.caissa-simplified-play-active #playSection #chessboard .caissa-board-legal-target {
+    position: relative;
+}
+
+body.caissa-simplified-play-active #playSection #chessboard .caissa-board-legal-target::after {
+    content: "";
+    position: absolute;
+    z-index: 7;
+    top: 50%;
+    left: 50%;
+    width: clamp(8px, 18%, 14px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: rgba(28, 36, 48, .5);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, .24);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+}
+
+body.caissa-simplified-play-active #playSection #chessboard .caissa-board-legal-capture::after {
+    width: 74%;
+    background: transparent;
+    border: clamp(2px, .35vw, 4px) solid rgba(28, 36, 48, .48);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, .18);
+}
+
 body.caissa-simplified-play-active .caissa-simplified-shell[data-mode="coach"]
     [data-caissa-coach-body] .caissa-simplified-shell__active-opening {
     padding-inline-end: 9.5rem;
@@ -840,9 +885,9 @@ body.caissa-simplified-play-active .caissa-simplified-shell__settings-actions bu
     font-weight: 750;
 }
 body.caissa-simplified-play-active .caissa-simplified-shell.caissa-hide-legal-moves
-    #chessboard .caissa-board-legal-target::after { display: none !important; }
+    #chessboard :is(.caissa-board-legal-target, .caissa-board-legal-capture)::after { display: none !important; }
 body.caissa-simplified-play-active .caissa-simplified-shell.caissa-hide-last-move
-    #chessboard .caissa-board-last-move { box-shadow: none !important; }
+    #chessboard .caissa-board-last-move::before { display: none !important; }
 
 body.caissa-simplified-play-active .caissa-simplified-shell__active-moves {
     display: grid;

@@ -126,11 +126,12 @@ test('highlight state validates squares and remains presentation-only', () => {
     const f = fixture();
     f.adapter.mount(f.root);
     assert.equal(f.adapter.setSelection('e2').ok, true);
-    assert.equal(f.adapter.setLegalTargets(['e3', 'e4']).ok, true);
+    assert.equal(f.adapter.setLegalTargets(['e3', 'e4'], { captureTargets: ['e4'] }).ok, true);
     assert.equal(f.adapter.setLastMove({ from: 'a2', to: 'a4' }).ok, true);
     assert.equal(f.adapter.setCheckSquare('e8').ok, true);
     assert.equal(f.adapter.setSelection('__proto__').ok, false);
     assert.deepEqual([...f.adapter.getSnapshot().legalTargets], ['e3', 'e4']);
+    assert.deepEqual([...f.adapter.getSnapshot().legalCaptureTargets], ['e4']);
     f.adapter.clearHighlights();
     assert.equal(f.adapter.getSnapshot().selectedSquare, null);
 });

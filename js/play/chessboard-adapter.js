@@ -41,7 +41,7 @@
     class ChessboardAdapter {
         #id; #options; #widget = null; #container = null; #disposed = false;
         #position = null; #orientation = 'white'; #interactionEnabled = true;
-        #selectedSquare = null; #legalTargets = []; #lastMove = null; #checkSquare = null;
+        #selectedSquare = null; #legalTargets = []; #legalCaptureTargets = []; #lastMove = null; #checkSquare = null;
         #resizeSequence = 0; #renderSequence = 0; #listeners = []; #resizeTimer = null;
         #diagnostics = { mounts: 0, unmounts: 0, renders: 0, resizes: 0, interactions: 0, rejected: 0 };
         #legacyFacade;
@@ -193,13 +193,21 @@
             this.#selectedSquare = square; this.#applyHighlights(); return result(true, 'accepted', 'SELECTION_SET');
         }
         clearSelection() { return this.setSelection(null); }
-        setLegalTargets(squares) {
+        setLegalTargets(squares, options = {}) {
             if (!Array.isArray(squares) || squares.length > 64 || squares.some(square => !SQUARE.test(square)))
                 return result(false, 'rejected', 'INVALID_LEGAL_TARGETS');
-            this.#legalTargets = [...new Set(squares)]; this.#applyHighlights();
+            const captures = Array.isArray(options.captureTargets) ? options.captureTargets : [];
+            if (captures.length > 64 || captures.some(square => !SQUARE.test(square) || !squares.includes(square)))
+                return result(false, 'rejected', 'INVALID_LEGAL_CAPTURE_TARGETS');
+            this.#legalTargets = [...new Set(squares)];
+            this.#legalCaptureTargets = [...new Set(captures)];
+            this.#applyHighlights();
             return result(true, 'accepted', 'LEGAL_TARGETS_SET');
         }
-        clearLegalTargets() { this.#legalTargets = []; this.#applyHighlights(); return result(true, 'accepted', 'LEGAL_TARGETS_CLEARED'); }
+        clearLegalTargets() {
+            this.#legalTargets = []; this.#legalCaptureTargets = []; this.#applyHighlights();
+            return result(true, 'accepted', 'LEGAL_TARGETS_CLEARED');
+        }
         setLastMove(move) {
             if (move !== null && (!move || !SQUARE.test(move.from || '') || !SQUARE.test(move.to || '')))
                 return result(false, 'rejected', 'INVALID_LAST_MOVE');
@@ -211,7 +219,8 @@
             this.#checkSquare = square; this.#applyHighlights(); return result(true, 'accepted', 'CHECK_SQUARE_SET');
         }
         clearHighlights() {
-            this.#selectedSquare = null; this.#legalTargets = []; this.#lastMove = null; this.#checkSquare = null;
+            this.#selectedSquare = null; this.#legalTargets = []; this.#legalCaptureTargets = [];
+            this.#lastMove = null; this.#checkSquare = null;
             this.#applyHighlights(); return result(true, 'accepted', 'HIGHLIGHTS_CLEARED');
         }
         focus() {
@@ -230,6 +239,7 @@
                 orientation: this.#orientation, interactionEnabled: this.#interactionEnabled,
                 draggable: !!this.#options.draggable, tapToMoveEnabled: !!this.#options.tapToMoveEnabled,
                 selectedSquare: this.#selectedSquare, legalTargets: [...this.#legalTargets],
+                legalCaptureTargets: [...this.#legalCaptureTargets],
                 lastMove: this.#lastMove ? { ...this.#lastMove } : null, checkSquare: this.#checkSquare,
                 width, height, squareSize: Math.min(width, height) / 8,
                 resizeSequence: this.#resizeSequence, renderSequence: this.#renderSequence,
@@ -264,12 +274,19 @@
 
         #applyHighlights() {
             if (!this.#container?.querySelectorAll) return;
-            const classes = ['caissa-board-selected', 'caissa-board-legal-target', 'caissa-board-last-move', 'caissa-board-check'];
+            // Presentation precedence is defined in play-simplified-shell.css:
+            // last move -> selection -> legal target -> Coach Hint -> move-quality badge.
+            const classes = ['caissa-board-selected', 'caissa-board-legal-target', 'caissa-board-legal-capture',
+                'caissa-board-last-move', 'caissa-board-check'];
             this.#container.querySelectorAll(classes.map(name => `.${name}`).join(',')).forEach(node =>
                 classes.forEach(name => node.classList.remove(name)));
             const square = value => this.#container.querySelector(`.square-${value}`);
             square(this.#selectedSquare)?.classList.add('caissa-board-selected');
-            this.#legalTargets.forEach(value => square(value)?.classList.add('caissa-board-legal-target'));
+            this.#legalTargets.forEach(value => {
+                const target = square(value);
+                target?.classList.add('caissa-board-legal-target');
+                if (this.#legalCaptureTargets.includes(value)) target?.classList.add('caissa-board-legal-capture');
+            });
             if (this.#lastMove) [this.#lastMove.from, this.#lastMove.to].forEach(value => square(value)?.classList.add('caissa-board-last-move'));
             square(this.#checkSquare)?.classList.add('caissa-board-check');
         }
@@ -304,14 +321,16 @@
             this.#listen(this.#container, 'touchmove', event => {
                 if (this.#options.shouldPreventTouchMove?.(event)) event.preventDefault();
             }, { passive: false });
-            this.#listen(this.#container, 'click', event => {
+            // Capture pointer-down before chessboard.js begins a possible drag so
+            // click selection and drag selection share the same source event.
+            this.#listen(this.#container, 'pointerdown', event => {
                 if (this.#interactionEnabled) {
                     const squareNode = event.target?.closest?.('[class*="square-"]');
                     const squareClass = squareNode ? [...squareNode.classList].find(name => /^square-[a-h][1-8]$/.test(name)) : null;
                     if (squareClass) this.#emit({ type: 'square-selected', square: squareClass.slice(7), inputMethod: 'tap' });
                     this.#options.onTap?.(event);
                 }
-            });
+            }, true);
             this.#listen(this.#container, 'touchcancel', () => this.#options.onTouchCancel?.(), { passive: true });
             this.#listen(this.#container, 'focus', () => this.#emit({ type: 'board-focused' }));
             this.#listen(global.document, 'click', event => this.#options.onDocumentClick?.(event));

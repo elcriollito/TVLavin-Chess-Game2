@@ -1050,10 +1050,18 @@
         #handleActiveAction(event) {
             const setting = event.target?.closest?.('[data-play-setting]')?.dataset?.playSetting;
             if (setting === 'legal-moves') {
-                this.#root.classList.toggle('caissa-hide-legal-moves', !event.target.checked); return;
+                this.#root.classList.toggle('caissa-hide-legal-moves', !event.target.checked);
+                global.dispatchEvent(new CustomEvent('caissa-play-visual-assistance-setting', {
+                    detail: { setting, enabled: event.target.checked === true }
+                }));
+                return;
             }
             if (setting === 'last-move') {
-                this.#root.classList.toggle('caissa-hide-last-move', !event.target.checked); return;
+                this.#root.classList.toggle('caissa-hide-last-move', !event.target.checked);
+                global.dispatchEvent(new CustomEvent('caissa-play-visual-assistance-setting', {
+                    detail: { setting, enabled: event.target.checked === true }
+                }));
+                return;
             }
             const action = event.target?.closest?.('[data-active-game-action]')?.dataset?.activeGameAction;
             if (!action) return;

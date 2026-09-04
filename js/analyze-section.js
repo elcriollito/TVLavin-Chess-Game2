@@ -749,6 +749,7 @@ const AnalyzeSection = {
 
             this.ensureAnalyzeBoard();
             this.updateBoardAndUI();
+            this.projectCoachReviewBoardAssistance();
 
             // Update move list
             this.updateMoveList();
@@ -871,8 +872,24 @@ const AnalyzeSection = {
         if (selected && ['Inaccuracy', 'Mistake', 'Blunder'].includes(selected.quality)) {
             this.board?.position?.(selected.fenBefore, false);
         }
+        this.projectCoachReviewBoardAssistance();
 
         console.log('[Analyze] Jumped to move:', safeIndex + 1);
+    },
+
+    projectCoachReviewBoardAssistance() {
+        if (!document.body?.classList?.contains('caissa-coach-review-summary-active')) return false;
+        const game = this.getGame();
+        if (!game) return false;
+        const selected = this.analysisPhase === 'complete' ? this.analysisResults[this.currentMoveIndex] : null;
+        const showsFenBefore = selected && ['Inaccuracy', 'Mistake', 'Blunder'].includes(selected.quality)
+            && typeof selected.fenBefore === 'string';
+        const displayedMoveIndex = showsFenBefore ? this.currentMoveIndex - 1 : this.currentMoveIndex;
+        const move = displayedMoveIndex >= 0 ? this.getLoadedMoves({ verbose: true })[displayedMoveIndex] : null;
+        return window.App?.projectCoachReviewBoardAssistance?.({
+            fen: showsFenBefore ? selected.fenBefore : game.fen(),
+            move: move?.from && move?.to ? { from: move.from, to: move.to } : null
+        }) === true;
     },
 
     getMoveAccessibleLabel(index, san) {
@@ -1928,6 +1945,9 @@ const AnalyzeSection = {
      * Section lifecycle: Exit
      */
     onExit() {
+        if (document.body?.classList?.contains('caissa-coach-review-summary-active')) {
+            window.App?.restorePlayBoardAfterCoachReview?.();
+        }
         if (this.liveEngineEnabled) {
             clearTimeout(this.liveEngineTimer);
             this.liveEngineToken += 1;
