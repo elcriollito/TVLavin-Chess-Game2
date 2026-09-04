@@ -181,10 +181,8 @@ const CaissaNavigation = {
 
         // Special cases: Library, Mentor, and Premium
         if (sectionId === 'library') {
-            // Open library panel instead of switching section
-            if (window.LibraryUI && typeof window.LibraryUI.toggle === 'function') {
-                window.LibraryUI.toggle();
-            }
+            // Game Library owns a standalone first-party route.
+            window.location.href = '/game-library';
             return;
         }
 
@@ -840,10 +838,9 @@ const CaissaNavigation = {
         });
 
         // Activate the section directly
-        const isLibraryRoute = targetSection === 'library';
-        const sectionEl = document.getElementById(`${isLibraryRoute ? 'yahooClassic' : targetSection}Section`);
+        const sectionEl = document.getElementById(`${targetSection}Section`);
         if (sectionEl) {
-            if (targetSection !== 'yahooClassic' && !isLibraryRoute) {
+            if (targetSection !== 'yahooClassic') {
                 document.body?.classList.remove('yc-classic-active');
             }
             sectionEl.classList.add('active');
@@ -860,23 +857,7 @@ const CaissaNavigation = {
             });
 
             // Call section enter hook. Analyze owns its independently loaded route group.
-            if (isLibraryRoute) {
-                const openLibrary = async () => {
-                    if (this.currentSection !== targetSection) return;
-                    const usesPublicPresentation = window.CaissaGameLibraryPresentation?.shouldPresent?.();
-                    if (usesPublicPresentation) {
-                        await window.CaissaGameLibraryPresentation.open();
-                    } else {
-                        await window.LibraryUI?.open?.();
-                    }
-                    if (this.currentSection !== targetSection) return;
-                    const surface = window.LegacyCanonicalSectionRoutePolicy?.surfaceForSection?.(targetSection) || targetSection;
-                    const title = window.LegacyCanonicalSectionRoutePolicy?.titleForSection?.(targetSection);
-                    if (title && !usesPublicPresentation) document.title = title;
-                    window.CaissaPrimaryNavigationTransitionPolicy?.confirm?.(surface);
-                };
-                Promise.resolve(window.CaissaLibraryUIReady).then(openLibrary);
-            } else if (targetSection === 'analyze' && !window.AnalyzeSection?.onEnter
+            if (targetSection === 'analyze' && !window.AnalyzeSection?.onEnter
                 && window.CaissaPlayLazyLoader?.load) {
                 window.CaissaPlayLazyLoader.load('analyze-deep', { retry: true }).then(() => {
                     if (this.currentSection === targetSection) this.onSectionEnter(targetSection);
@@ -887,12 +868,10 @@ const CaissaNavigation = {
                 this.onSectionEnter(targetSection);
             }
             this.updateMobileGameplayControls(targetSection);
-            if (!isLibraryRoute) {
-                const surface = window.LegacyCanonicalSectionRoutePolicy?.surfaceForSection?.(targetSection) || targetSection;
-                const title = window.LegacyCanonicalSectionRoutePolicy?.titleForSection?.(targetSection);
-                if (title) document.title = title;
-                window.CaissaPrimaryNavigationTransitionPolicy?.confirm?.(surface);
-            }
+            const surface = window.LegacyCanonicalSectionRoutePolicy?.surfaceForSection?.(targetSection) || targetSection;
+            const title = window.LegacyCanonicalSectionRoutePolicy?.titleForSection?.(targetSection);
+            if (title) document.title = title;
+            window.CaissaPrimaryNavigationTransitionPolicy?.confirm?.(surface);
         }
     }
 };

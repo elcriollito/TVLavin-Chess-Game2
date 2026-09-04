@@ -72,7 +72,7 @@
     { "source": "/spectator-tv", "destination": "/index.html" },
     { "source": "/arena", "destination": "/index.html" },
     { "source": "/cheater-insight", "destination": "/index.html" },
-    { "source": "/game-library", "destination": "/index.html" },
+    { "source": "/game-library", "destination": "/game-library.html" },
     { "source": "/history", "destination": "/index.html" },
     { "source": "/dos-chess", "destination": "/index.html" },
     { "source": "/play/beta/invite", "destination": "/play-v2-unavailable.html" },

@@ -468,8 +468,11 @@ const server = http.createServer(async (req, res) => {
     filePath = './index.html';
   }
   if (['/insights', '/fics', '/analyze', '/spectator-tv', '/arena', '/cheater-insight',
-    '/game-library', '/history', '/dos-chess'].includes(pathname)) {
+    '/history', '/dos-chess'].includes(pathname)) {
     filePath = './index.html';
+  }
+  if (pathname === '/game-library' || pathname === '/game-library/') {
+    filePath = './game-library.html';
   }
   if (pathname === '/dos/dos_chess_games.json') {
     filePath = './public/dos/dos_chess_games.json';
