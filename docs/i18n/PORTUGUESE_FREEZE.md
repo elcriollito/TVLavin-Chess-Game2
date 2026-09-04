@@ -6,7 +6,7 @@ Status: **FROZEN / APPROVED**
 
 - Locale: `pt`
 - Public native name: **Português**
-- Catalog: 446 keys, with exact EN/ES/PT parity
+- Frozen baseline catalog: 446 keys, with exact EN/ES/PT parity
 - Checkpoint commit: `feat(i18n): add complete portuguese localization`
 - Visual-polish checkpoint: `fix(i18n): prevent mid-word breaks in multilingual ui`
 - Approval date: **2026-09-03**
@@ -49,6 +49,12 @@ GL-002.1 replaces arbitrary mid-word breaks in Play mode tabs and shared navigat
 ## Shared catalog additions
 
 Two legitimate dynamic keys were added to EN, ES, and PT: `pgn.resultTemplate` and `pgn.moveTemplate`. They replace Spanish-only runtime string construction and raise every catalog from 444 to 446 keys.
+
+### LIB-004 — first-party Game Library
+
+LIB-004 adds 98 necessary shared `library.*` keys to EN, ES, and PT, raising all three catalogs from 446 to 544 keys with exact parity. The additions cover the new standalone Game Library shell, Positions/Games controls, search, advanced filters, Backup/Import, empty states, pagination, local-storage notice, accessible labels/placeholders, saved-item actions, dialogs, notifications, errors, and sync states.
+
+This is an allowed frozen-catalog change under rule 2 (“a necessary new shared key”). No previously approved Portuguese value or terminology decision was changed. The public Game Library remains Under Construction; these strings also preserve the future functional surface without exposing it as released.
 
 ## Automated QA
 

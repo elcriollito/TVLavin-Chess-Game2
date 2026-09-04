@@ -13,17 +13,24 @@
     if (available) {
       global.LibraryUI?.open?.();
     }
+    localize();
     return available ? 'available' : 'under-construction';
   }
 
   function localize() {
     i18n?.apply?.(global.document);
-    global.document.title = i18n?.t?.('library.metaTitle', 'Game Library — Under Construction | CAISSA Chess')
-      || 'Game Library — Under Construction | CAISSA Chess';
+    const available = global.document.body?.dataset.gameLibraryRelease === 'available';
+    global.document.title = available
+      ? `${i18n?.t?.('library.title', 'Game Library') || 'Game Library'} | CAISSA Chess`
+      : i18n?.t?.('library.metaTitle', 'Game Library — Under Construction | CAISSA Chess')
+        || 'Game Library — Under Construction | CAISSA Chess';
+    if (available) {
+      global.LibraryUI?.renderTagFilter?.();
+      global.LibraryUI?.updateStats?.();
+    }
   }
 
   global.CaissaGameLibraryPage = Object.freeze({ render });
   render();
-  localize();
   i18n?.subscribe?.(localize);
 })(window);

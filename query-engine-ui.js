@@ -17,6 +17,7 @@
 
     let _panel = null;
     let _lastResults = null;
+    const tr = (key, fallback, variables = {}) => window.CaissaI18n?.t?.(key, fallback, variables) || fallback;
 
     // ========================================
     // PANEL HTML TEMPLATE
@@ -24,10 +25,10 @@
 
     function _buildPanelHTML() {
         return `
-            <button type="button" class="qe-toggle">
+            <button type="button" class="qe-toggle" aria-expanded="false">
                 <span class="qe-toggle-label">
-                    <i class="fas fa-filter"></i> Advanced Filters
-                    <span class="qe-active-badge" id="qeActiveBadge">Active</span>
+                    <i class="fas fa-filter" aria-hidden="true"></i> <span data-caissa-i18n="library.advancedFilters">Advanced Filters</span>
+                    <span class="qe-active-badge" id="qeActiveBadge" data-caissa-i18n="library.active">Active</span>
                 </span>
                 <i class="fas fa-chevron-down qe-toggle-chevron"></i>
             </button>
@@ -35,33 +36,33 @@
             <div class="qe-body">
                 <!-- Side to Move -->
                 <div class="qe-row">
-                    <span class="qe-label">Side to move</span>
+                    <span class="qe-label" data-caissa-i18n="library.sideToMove">Side to move</span>
                     <select class="qe-select" id="qeSideToMove">
-                        <option value="">Any</option>
-                        <option value="w">White</option>
-                        <option value="b">Black</option>
+                        <option value="" data-caissa-i18n="library.any">Any</option>
+                        <option value="w" data-caissa-i18n="common.white">White</option>
+                        <option value="b" data-caissa-i18n="common.black">Black</option>
                     </select>
                 </div>
 
                 <!-- Piece Count Range -->
                 <div class="qe-row">
-                    <span class="qe-label">Piece count</span>
-                    <input type="number" class="qe-input" id="qePieceMin" min="2" max="32" placeholder="Min">
+                    <span class="qe-label" data-caissa-i18n="library.pieceCount">Piece count</span>
+                    <input type="number" class="qe-input" id="qePieceMin" min="2" max="32" placeholder="Min" data-caissa-i18n-placeholder="library.minimum">
                     <span class="qe-range-sep">&ndash;</span>
-                    <input type="number" class="qe-input" id="qePieceMax" min="2" max="32" placeholder="Max">
+                    <input type="number" class="qe-input" id="qePieceMax" min="2" max="32" placeholder="Max" data-caissa-i18n-placeholder="library.maximum">
                 </div>
 
                 <!-- Eval Range -->
                 <div class="qe-row">
-                    <span class="qe-label">Eval (cp)</span>
-                    <input type="number" class="qe-input" id="qeEvalMin" placeholder="Min">
+                    <span class="qe-label" data-caissa-i18n="library.evaluation">Eval (cp)</span>
+                    <input type="number" class="qe-input" id="qeEvalMin" placeholder="Min" data-caissa-i18n-placeholder="library.minimum">
                     <span class="qe-range-sep">&ndash;</span>
-                    <input type="number" class="qe-input" id="qeEvalMax" placeholder="Max">
+                    <input type="number" class="qe-input" id="qeEvalMax" placeholder="Max" data-caissa-i18n-placeholder="library.maximum">
                 </div>
 
                 <!-- Material (White pieces) -->
                 <div class="qe-row">
-                    <span class="qe-label">White</span>
+                    <span class="qe-label" data-caissa-i18n="common.white">White</span>
                     <div class="qe-material-grid">
                         ${_materialInputs('Q', 'R', 'B', 'N', 'P')}
                     </div>
@@ -69,7 +70,7 @@
 
                 <!-- Material (Black pieces) -->
                 <div class="qe-row">
-                    <span class="qe-label">Black</span>
+                    <span class="qe-label" data-caissa-i18n="common.black">Black</span>
                     <div class="qe-material-grid">
                         ${_materialInputs('q', 'r', 'b', 'n', 'p')}
                     </div>
@@ -77,21 +78,21 @@
 
                 <!-- Checkboxes row -->
                 <div class="qe-row">
-                    <span class="qe-label">Filters</span>
+                    <span class="qe-label" data-caissa-i18n="library.filters">Filters</span>
                     <div class="qe-checkbox-row">
                         <input type="checkbox" class="qe-checkbox" id="qeHasAnnotation">
-                        <label class="qe-checkbox-label" for="qeHasAnnotation">Has annotations</label>
+                        <label class="qe-checkbox-label" for="qeHasAnnotation" data-caissa-i18n="library.hasAnnotations">Has annotations</label>
                     </div>
                     <div class="qe-checkbox-row" style="margin-left: 12px;">
                         <input type="checkbox" class="qe-checkbox" id="qeHasEngine">
-                        <label class="qe-checkbox-label" for="qeHasEngine">Analyzed</label>
+                        <label class="qe-checkbox-label" for="qeHasEngine" data-caissa-i18n="library.analyzed">Analyzed</label>
                     </div>
                 </div>
 
                 <!-- Tags -->
                 <div class="qe-row">
-                    <span class="qe-label">Tags</span>
-                    <input type="text" class="qe-input" id="qeTags" placeholder="tag1, tag2, ...">
+                    <span class="qe-label" data-caissa-i18n="library.tags">Tags</span>
+                    <input type="text" class="qe-input" id="qeTags" placeholder="tag1, tag2, ..." data-caissa-i18n-placeholder="library.tagsPlaceholder">
                     <select class="qe-select" id="qeTagMode" style="max-width: 70px;">
                         <option value="OR">OR</option>
                         <option value="AND">AND</option>
@@ -101,10 +102,10 @@
                 <!-- Actions -->
                 <div class="qe-actions">
                     <button type="button" class="qe-btn secondary" id="qeClearBtn">
-                        <i class="fas fa-times"></i> Clear
+                        <i class="fas fa-times" aria-hidden="true"></i> <span data-caissa-i18n="library.clear">Clear</span>
                     </button>
                     <button type="button" class="qe-btn primary" id="qeSearchBtn">
-                        <i class="fas fa-search"></i> Search
+                        <i class="fas fa-search" aria-hidden="true"></i> <span data-caissa-i18n="library.searchAction">Search</span>
                     </button>
                 </div>
 
@@ -224,7 +225,7 @@
         const el = document.getElementById('qeResultsCount');
         if (el) {
             el.style.display = 'block';
-            el.innerHTML = `<strong>${count}</strong> of ${total} positions match`;
+            el.textContent = tr('library.resultsTemplate', `${count} of ${total} positions match`, { count: `${count} / ${total}` });
         }
     }
 
@@ -283,7 +284,7 @@
         } finally {
             if (searchBtn) {
                 searchBtn.disabled = false;
-                searchBtn.innerHTML = '<i class="fas fa-search"></i> Search';
+                searchBtn.innerHTML = `<i class="fas fa-search" aria-hidden="true"></i> <span data-caissa-i18n="library.searchAction">${tr('library.searchAction', 'Search')}</span>`;
             }
         }
     }
@@ -327,12 +328,14 @@
             _panel.className = 'qe-panel';
             _panel.innerHTML = _buildPanelHTML();
             mountPoint.appendChild(_panel);
+            window.CaissaI18n?.apply?.(_panel);
 
             // Bind events
             const toggle = _panel.querySelector('.qe-toggle');
             if (toggle) {
                 toggle.addEventListener('click', () => {
                     _panel.classList.toggle('expanded');
+                    toggle.setAttribute('aria-expanded', String(_panel.classList.contains('expanded')));
                 });
             }
 

@@ -5,6 +5,8 @@
  * Follows the same pattern as MentorAI panel.
  */
 
+const libraryText = (key, fallback, variables = {}) => window.CaissaI18n?.t?.(key, fallback, variables) || fallback;
+
 const LibraryUI = {
 
     // State
@@ -111,6 +113,19 @@ const LibraryUI = {
         // Tab switching
         this.elements.tabPositions?.addEventListener('click', () => this.switchTab('positions'));
         this.elements.tabGames?.addEventListener('click', () => this.switchTab('games'));
+        [this.elements.tabPositions, this.elements.tabGames].filter(Boolean).forEach(tab => {
+            tab.addEventListener('keydown', event => {
+                const nextTab = ['ArrowLeft', 'ArrowUp', 'Home'].includes(event.key)
+                    ? this.elements.tabPositions
+                    : ['ArrowRight', 'ArrowDown', 'End'].includes(event.key)
+                        ? this.elements.tabGames
+                        : null;
+                if (!nextTab) return;
+                event.preventDefault();
+                nextTab.focus();
+                this.switchTab(nextTab.dataset.tab);
+            });
+        });
 
         // Back button (from collection detail)
         this.elements.backBtn?.addEventListener('click', () => this.exitCollectionView());
@@ -337,7 +352,7 @@ const LibraryUI = {
 
         } catch (error) {
             console.error('LibraryUI: Failed to render collections', error);
-            listEl.innerHTML = '<div class="library-error">Failed to load games</div>';
+            listEl.innerHTML = `<div class="library-error">${libraryText('library.failedGames', 'Failed to load games')}</div>`;
         }
     },
 
@@ -355,28 +370,28 @@ const LibraryUI = {
             <div class="library-collection-item${activeClass}" data-id="${col.id}">
                 <div class="library-collection-header">
                     <span class="library-collection-name">${this._escapeHtml(col.name)}</span>
-                    ${isActive ? '<span class="library-active-badge" title="Active game - new positions link here"><i class="fas fa-link"></i> Active</span>' : ''}
+                    ${isActive ? `<span class="library-active-badge" title="${this._escapeHtml(libraryText('library.activeGameTitle', 'Active game — new positions link here'))}"><i class="fas fa-link"></i> ${this._escapeHtml(libraryText('library.activeGame', 'Active'))}</span>` : ''}
                     <span class="library-collection-type game">
                         <i class="fas fa-chess"></i>
                     </span>
                 </div>
                 <div class="library-collection-meta">
                     <span>${dateDisplay}${resultDisplay}</span>
-                    <span>${col.positionCount || 0} positions</span>
+                    <span>${this._escapeHtml(libraryText('library.positionsCount', `${col.positionCount || 0} positions`, { count: col.positionCount || 0 }))}</span>
                 </div>
                 <div class="library-collection-actions">
-                    <button class="btn btn-small" data-action="view" title="View positions">
+                    <button class="btn btn-small" data-action="view" title="${this._escapeHtml(libraryText('library.viewPositions', 'View positions'))}">
                         <i class="fas fa-eye"></i>
                     </button>
                     ${isActive
-                        ? `<button class="btn btn-small btn-warning" data-action="clear-active" title="Clear active game">
+                        ? `<button class="btn btn-small btn-warning" data-action="clear-active" title="${this._escapeHtml(libraryText('library.clearActiveGame', 'Clear active game'))}">
                                <i class="fas fa-unlink"></i>
                            </button>`
-                        : `<button class="btn btn-small" data-action="set-active" title="Set as active game">
+                        : `<button class="btn btn-small" data-action="set-active" title="${this._escapeHtml(libraryText('library.setActiveGame', 'Set as active game'))}">
                                <i class="fas fa-play"></i>
                            </button>`
                     }
-                    <button class="btn btn-small btn-danger" data-action="delete" title="Delete game">
+                    <button class="btn btn-small btn-danger" data-action="delete" title="${this._escapeHtml(libraryText('library.deleteGame', 'Delete game'))}">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -436,10 +451,10 @@ const LibraryUI = {
             const positions = await CaissaLibrary.getCollectionPositions(collectionId);
 
             // Update count display
-            this.elements.collectionDetailCount.textContent = `${positions.length} positions`;
+            this.elements.collectionDetailCount.textContent = libraryText('library.positionsCount', `${positions.length} positions`, { count: positions.length });
 
             if (positions.length === 0) {
-                listEl.innerHTML = '<div class="library-empty-state"><p>No positions saved in this game yet.</p></div>';
+                listEl.innerHTML = `<div class="library-empty-state"><p>${libraryText('library.gamePositionEmpty', 'No positions saved in this game yet.')}</p></div>`;
                 this.elements.pagination.style.display = 'none';
                 return;
             }
@@ -451,7 +466,7 @@ const LibraryUI = {
 
         } catch (error) {
             console.error('LibraryUI: Failed to render collection positions', error);
-            listEl.innerHTML = '<div class="library-error">Failed to load positions</div>';
+            listEl.innerHTML = `<div class="library-error">${libraryText('library.failedPositions', 'Failed to load positions')}</div>`;
         }
     },
 
@@ -466,9 +481,9 @@ const LibraryUI = {
             <div class="library-position-item library-collection-position" data-id="${pos.id}">
                 <div class="library-position-header">
                     ${moveLabel ? `<span class="library-move-label">${moveLabel}</span>` : ''}
-                    <span class="library-position-title">${this._escapeHtml(pos.title || 'Untitled')}</span>
+                    <span class="library-position-title">${this._escapeHtml(pos.title || libraryText('library.untitled', 'Untitled'))}</span>
                     <button class="library-position-favorite ${pos.isFavorite ? 'active' : ''}"
-                            data-action="favorite" title="Toggle favorite">
+                            data-action="favorite" title="${this._escapeHtml(libraryText('library.toggleFavorite', 'Toggle favorite'))}">
                         <i class="fas fa-star"></i>
                     </button>
                 </div>
@@ -478,22 +493,22 @@ const LibraryUI = {
                     ${pos.engineReport ? '<span class="library-position-badge"><i class="fas fa-microchip"></i></span>' : ''}
                 </div>
                 <div class="library-position-actions">
-                    <button class="btn btn-small" data-action="load" title="Load position">
+                    <button class="btn btn-small" data-action="load" title="${this._escapeHtml(libraryText('library.loadPosition', 'Load position'))}">
                         <i class="fas fa-chess-board"></i>
                     </button>
-                    <button class="btn btn-small" data-action="copy-fen" title="Copy FEN to clipboard">
+                    <button class="btn btn-small" data-action="copy-fen" title="${this._escapeHtml(libraryText('library.copyFen', 'Copy FEN to clipboard'))}">
                         <i class="fas fa-copy"></i>
                     </button>
-                    <button class="btn btn-small" data-action="share-link" title="Copy shareable CAISSA link">
+                    <button class="btn btn-small" data-action="share-link" title="${this._escapeHtml(libraryText('library.copyLink', 'Copy shareable CAISSA link'))}">
                         <i class="fas fa-link"></i>
                     </button>
-                    <button class="btn btn-small" data-action="forge" title="Open in Forge">
+                    <button class="btn btn-small" data-action="forge" title="${this._escapeHtml(libraryText('library.openForge', 'Open in Forge'))}">
                         <i class="fas fa-hammer"></i>
                     </button>
-                    <button class="btn btn-small" data-action="find-similar" title="Find Similar (coming soon)" disabled>
+                    <button class="btn btn-small" data-action="find-similar" title="${this._escapeHtml(libraryText('library.findSimilar', 'Find Similar (coming soon)'))}" disabled>
                         <i class="fas fa-search"></i>
                     </button>
-                    <button class="btn btn-small btn-danger" data-action="delete" title="Delete">
+                    <button class="btn btn-small btn-danger" data-action="delete" title="${this._escapeHtml(libraryText('library.delete', 'Delete'))}">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -509,7 +524,9 @@ const LibraryUI = {
 
         const moveNum = pos.moveNumber;
         const isBlack = pos.turn === 'b';
-        const colorLabel = isBlack ? 'Black' : 'White';
+        const colorLabel = isBlack
+            ? libraryText('common.black', 'Black')
+            : libraryText('common.white', 'White');
         const dots = isBlack ? '...' : '.';
 
         return `${moveNum}${dots} (${colorLabel})`;
@@ -525,7 +542,9 @@ const LibraryUI = {
         this.updateSaveGameButton();
 
         const collection = await CaissaLibrary.getCollection(collectionId);
-        this.showNotification(`Active game: ${collection?.name || 'Unknown'}`);
+        this.showNotification(libraryText('library.activeGameTemplate', `Active game: ${collection?.name || 'Unknown'}`, {
+            name: collection?.name || libraryText('library.unknown', 'Unknown')
+        }));
 
         // Refresh collection list to show active indicator
         if (this.isOpen && this.currentTab === 'games' && !this.viewingCollectionId) {
@@ -539,7 +558,7 @@ const LibraryUI = {
     clearActiveGame() {
         CaissaLibrary.setActiveGameCollection(null);
         this.updateSaveGameButton();
-        this.showNotification('Active game cleared');
+        this.showNotification(libraryText('library.activeGameCleared', 'Active game cleared'));
 
         // Refresh collection list to remove active indicator
         if (this.isOpen && this.currentTab === 'games' && !this.viewingCollectionId) {
@@ -581,14 +600,14 @@ const LibraryUI = {
      * Delete a collection
      */
     async deleteCollection(id) {
-        if (!confirm('Delete this game? Positions will be moved to Unsorted.')) {
+        if (!confirm(libraryText('library.deleteGameConfirm', 'Delete this game? Positions will be moved to Unsorted.'))) {
             return;
         }
 
         try {
             await CaissaLibrary.deleteCollection(id);
             await this.renderCollectionList();
-            this.showNotification('Game deleted');
+            this.showNotification(libraryText('library.gameDeleted', 'Game deleted'));
 
             // Clear active if it was this one
             if (CaissaLibrary.getActiveGameCollectionId() === id) {
@@ -597,7 +616,7 @@ const LibraryUI = {
             }
         } catch (error) {
             console.error('LibraryUI: Failed to delete collection', error);
-            this.showNotification('Failed to delete game', 'error');
+            this.showNotification(libraryText('library.gameDeleteFailed', 'Failed to delete game'), 'error');
         }
     },
 
@@ -640,7 +659,7 @@ const LibraryUI = {
 
         } catch (error) {
             console.error('LibraryUI: Failed to render positions', error);
-            listEl.innerHTML = '<div class="library-error">Failed to load positions</div>';
+            listEl.innerHTML = `<div class="library-error">${libraryText('library.failedPositions', 'Failed to load positions')}</div>`;
         }
     },
 
@@ -657,9 +676,9 @@ const LibraryUI = {
         return `
             <div class="library-position-item" data-id="${pos.id}">
                 <div class="library-position-header">
-                    <span class="library-position-title">${this._escapeHtml(pos.title || 'Untitled')}</span>
+                    <span class="library-position-title">${this._escapeHtml(pos.title || libraryText('library.untitled', 'Untitled'))}</span>
                     <button class="library-position-favorite ${pos.isFavorite ? 'active' : ''}"
-                            data-action="favorite" title="Toggle favorite">
+                            data-action="favorite" title="${this._escapeHtml(libraryText('library.toggleFavorite', 'Toggle favorite'))}">
                         <i class="fas fa-star"></i>
                     </button>
                 </div>
@@ -670,22 +689,22 @@ const LibraryUI = {
                 </div>
                 ${tagsHtml ? `<div class="library-position-tags">${tagsHtml}</div>` : ''}
                 <div class="library-position-actions">
-                    <button class="btn btn-small" data-action="load" title="Load position">
+                    <button class="btn btn-small" data-action="load" title="${this._escapeHtml(libraryText('library.loadPosition', 'Load position'))}">
                         <i class="fas fa-chess-board"></i>
                     </button>
-                    <button class="btn btn-small" data-action="copy-fen" title="Copy FEN to clipboard">
+                    <button class="btn btn-small" data-action="copy-fen" title="${this._escapeHtml(libraryText('library.copyFen', 'Copy FEN to clipboard'))}">
                         <i class="fas fa-copy"></i>
                     </button>
-                    <button class="btn btn-small" data-action="share-link" title="Copy shareable CAISSA link">
+                    <button class="btn btn-small" data-action="share-link" title="${this._escapeHtml(libraryText('library.copyLink', 'Copy shareable CAISSA link'))}">
                         <i class="fas fa-link"></i>
                     </button>
-                    <button class="btn btn-small" data-action="forge" title="Open in Forge">
+                    <button class="btn btn-small" data-action="forge" title="${this._escapeHtml(libraryText('library.openForge', 'Open in Forge'))}">
                         <i class="fas fa-hammer"></i>
                     </button>
-                    <button class="btn btn-small" data-action="find-similar" title="Find Similar (coming soon)" disabled>
+                    <button class="btn btn-small" data-action="find-similar" title="${this._escapeHtml(libraryText('library.findSimilar', 'Find Similar (coming soon)'))}" disabled>
                         <i class="fas fa-search"></i>
                     </button>
-                    <button class="btn btn-small btn-danger" data-action="delete" title="Delete">
+                    <button class="btn btn-small btn-danger" data-action="delete" title="${this._escapeHtml(libraryText('library.delete', 'Delete'))}">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -768,7 +787,7 @@ const LibraryUI = {
         }
 
         if (this.elements.pageInfo) {
-            this.elements.pageInfo.textContent = `Page ${this.currentPage + 1} of ${totalPages}`;
+            this.elements.pageInfo.textContent = libraryText('library.pageTemplate', `Page ${this.currentPage + 1} of ${totalPages}`, { page: this.currentPage + 1, total: totalPages });
         }
     },
 
@@ -783,7 +802,7 @@ const LibraryUI = {
             const tags = await CaissaLibrary.listTags();
 
             if (tags.length === 0) {
-                containerEl.innerHTML = '<span class="library-no-tags">No tags yet</span>';
+                containerEl.innerHTML = `<span class="library-no-tags">${libraryText('library.noTags', 'No tags yet')}</span>`;
                 return;
             }
 
@@ -834,7 +853,7 @@ const LibraryUI = {
 
         try {
             const stats = await CaissaLibrary.getStats();
-            statsEl.textContent = `${stats.positions} positions`;
+            statsEl.textContent = libraryText('library.positionsCount', `${stats.positions} positions`, { count: stats.positions });
         } catch (error) {
             statsEl.textContent = '';
         }
@@ -851,14 +870,14 @@ const LibraryUI = {
         try {
             const position = await CaissaLibrary.getPosition(id);
             if (!position) {
-                this.showNotification('Position not found', 'error');
+                this.showNotification(libraryText('library.positionNotFound', 'Position not found'), 'error');
                 return;
             }
 
             // Load into App (assuming App.loadFEN exists)
             if (typeof App !== 'undefined' && App.loadFEN) {
                 App.loadFEN(position.fen);
-                this.showNotification('Position loaded');
+                this.showNotification(libraryText('library.positionLoaded', 'Position loaded'));
                 this.close();
             } else if (typeof App !== 'undefined' && App.game) {
                 // Fallback: load directly into chess.js
@@ -866,12 +885,12 @@ const LibraryUI = {
                 if (App.board) {
                     App.board.position(position.fen);
                 }
-                this.showNotification('Position loaded');
+                this.showNotification(libraryText('library.positionLoaded', 'Position loaded'));
                 this.close();
             }
         } catch (error) {
             console.error('LibraryUI: Failed to load position', error);
-            this.showNotification('Failed to load position', 'error');
+            this.showNotification(libraryText('library.positionLoadFailed', 'Failed to load position'), 'error');
         }
     },
 
@@ -882,10 +901,10 @@ const LibraryUI = {
         try {
             const fen = await CaissaLibrary.exportAsFEN(id);
             await navigator.clipboard.writeText(fen);
-            this.showNotification('FEN copied to clipboard');
+            this.showNotification(libraryText('library.fenCopied', 'FEN copied to clipboard'));
         } catch (error) {
             console.error('LibraryUI: Failed to copy FEN', error);
-            this.showNotification('Failed to copy FEN', 'error');
+            this.showNotification(libraryText('library.fenCopyFailed', 'Failed to copy FEN'), 'error');
         }
     },
 
@@ -901,10 +920,10 @@ const LibraryUI = {
             const shareUrl = `${baseUrl}?fen=${encodedFen}`;
 
             await navigator.clipboard.writeText(shareUrl);
-            this.showNotification('CAISSA link copied to clipboard');
+            this.showNotification(libraryText('library.linkCopied', 'CAISSA link copied to clipboard'));
         } catch (error) {
             console.error('LibraryUI: Failed to copy share link', error);
-            this.showNotification('Failed to copy link', 'error');
+            this.showNotification(libraryText('library.linkCopyFailed', 'Failed to copy link'), 'error');
         }
     },
 
@@ -912,7 +931,7 @@ const LibraryUI = {
      * Delete a position
      */
     async deletePosition(id) {
-        if (!confirm('Delete this position from your library?')) {
+        if (!confirm(libraryText('library.deletePositionConfirm', 'Delete this position from your library?'))) {
             return;
         }
 
@@ -920,10 +939,10 @@ const LibraryUI = {
             await CaissaLibrary.deletePosition(id);
             await this.renderPositionList();
             await this.updateStats();
-            this.showNotification('Position deleted');
+            this.showNotification(libraryText('library.positionDeleted', 'Position deleted'));
         } catch (error) {
             console.error('LibraryUI: Failed to delete position', error);
-            this.showNotification('Failed to delete position', 'error');
+            this.showNotification(libraryText('library.positionDeleteFailed', 'Failed to delete position'), 'error');
         }
     },
 
@@ -934,7 +953,9 @@ const LibraryUI = {
         try {
             const newStatus = await CaissaLibrary.toggleFavorite(id);
             await this.renderPositionList();
-            this.showNotification(newStatus ? 'Added to favorites' : 'Removed from favorites');
+            this.showNotification(newStatus
+                ? libraryText('library.addedFavorites', 'Added to favorites')
+                : libraryText('library.removedFavorites', 'Removed from favorites'));
         } catch (error) {
             console.error('LibraryUI: Failed to toggle favorite', error);
         }
@@ -946,7 +967,7 @@ const LibraryUI = {
      */
     async saveCurrentPosition() {
         if (typeof App === 'undefined' || !App.game) {
-            this.showNotification('No position to save', 'error');
+            this.showNotification(libraryText('library.noPositionToSave', 'No position to save'), 'error');
             return;
         }
 
@@ -992,8 +1013,10 @@ const LibraryUI = {
 
             const position = await CaissaLibrary.savePosition(positionData);
 
-            const gameName = activeGameId ? ' (linked to game)' : '';
-            this.showNotification(`Position saved: ${position.title}${gameName}`);
+            const gameName = activeGameId ? libraryText('library.linkedToGame', ' (linked to game)') : '';
+            this.showNotification(libraryText('library.positionSavedTemplate', `Position saved: ${position.title}${gameName}`, {
+                title: position.title, game: gameName
+            }));
 
             // Refresh if panel is open
             if (this.isOpen) {
@@ -1006,7 +1029,7 @@ const LibraryUI = {
             }
         } catch (error) {
             console.error('LibraryUI: Failed to save position', error);
-            this.showNotification(error.message || 'Failed to save position', 'error');
+            this.showNotification(error.message || libraryText('library.positionSaveFailed', 'Failed to save position'), 'error');
         }
     },
 
@@ -1016,7 +1039,7 @@ const LibraryUI = {
      */
     async saveCurrentGame() {
         if (typeof App === 'undefined' || !App.game) {
-            this.showNotification('No game to save', 'error');
+            this.showNotification(libraryText('library.noGameToSave', 'No game to save'), 'error');
             return;
         }
 
@@ -1031,7 +1054,7 @@ const LibraryUI = {
             CaissaLibrary.setActiveGameCollection(collection.id);
             this.updateSaveGameButton();
 
-            this.showNotification(`Game saved: ${collection.name}`);
+            this.showNotification(libraryText('library.gameSavedTemplate', `Game saved: ${collection.name}`, { name: collection.name }));
 
             // Refresh if panel is open on games tab
             if (this.isOpen && this.currentTab === 'games') {
@@ -1039,7 +1062,7 @@ const LibraryUI = {
             }
         } catch (error) {
             console.error('LibraryUI: Failed to save game', error);
-            this.showNotification('Failed to save game', 'error');
+            this.showNotification(libraryText('library.gameSaveFailed', 'Failed to save game'), 'error');
         }
     },
 
@@ -1106,10 +1129,10 @@ const LibraryUI = {
 
             const json = await CaissaLibrary.exportAsJSON(ids);
             this._downloadFile(json, 'caissa-library-backup.json', 'application/json');
-            this.showNotification('Library exported');
+            this.showNotification(libraryText('library.libraryExported', 'Library exported'));
         } catch (error) {
             console.error('LibraryUI: Export failed', error);
-            this.showNotification('Export failed', 'error');
+            this.showNotification(libraryText('library.exportFailed', 'Export failed'), 'error');
         }
     },
 
@@ -1132,10 +1155,10 @@ const LibraryUI = {
                 this._downloadFile(fens, 'caissa-positions.fen', 'text/plain');
             }
 
-            this.showNotification('FEN list exported');
+            this.showNotification(libraryText('library.fenExported', 'FEN list exported'));
         } catch (error) {
             console.error('LibraryUI: FEN export failed', error);
-            this.showNotification('Export failed', 'error');
+            this.showNotification(libraryText('library.exportFailed', 'Export failed'), 'error');
         }
     },
 
@@ -1150,14 +1173,14 @@ const LibraryUI = {
             const content = await file.text();
             const result = await CaissaLibrary.importFromJSON(content);
 
-            this.showNotification(`Imported ${result.imported} positions (${result.skipped} skipped)`);
+            this.showNotification(libraryText('library.importTemplate', `Imported ${result.imported} positions (${result.skipped} skipped)`, result));
 
             await this.renderPositionList();
             await this.renderTagFilter();
             await this.updateStats();
         } catch (error) {
             console.error('LibraryUI: Import failed', error);
-            this.showNotification('Import failed: ' + error.message, 'error');
+            this.showNotification(`${libraryText('library.importFailed', 'Import failed')}: ${error.message}`, 'error');
         }
 
         // Clear input
@@ -1194,19 +1217,19 @@ const LibraryUI = {
 
         if (!isEnabled) {
             icon = 'cloud-slash';
-            text = 'Sync disabled';
+            text = libraryText('library.syncDisabled', 'Sync disabled');
             statusClass = 'disabled';
         } else if (status === 'syncing') {
             icon = 'sync fa-spin';
-            text = 'Syncing...';
+            text = libraryText('library.syncing', 'Syncing…');
             statusClass = 'syncing';
         } else if (status === 'error') {
             icon = 'exclamation-triangle';
-            text = 'Sync error';
+            text = libraryText('library.syncError', 'Sync error');
             statusClass = 'error';
         } else {
             icon = 'cloud-check';
-            text = `Last sync: ${lastSyncText}`;
+            text = libraryText('library.lastSyncTemplate', `Last sync: ${lastSyncText}`, { time: lastSyncText });
             statusClass = 'idle';
         }
 
@@ -1230,12 +1253,12 @@ const LibraryUI = {
      */
     async handleSyncNow() {
         if (!window.CaissaSync) {
-            this.showNotification('Sync not available', 'error');
+            this.showNotification(libraryText('library.syncUnavailable', 'Sync not available'), 'error');
             return;
         }
 
         if (!window.CaissaAuth?.isAuthenticated()) {
-            this.showNotification('Sign in to sync your library', 'error');
+            this.showNotification(libraryText('library.signInSync', 'Sign in to sync your library'), 'error');
             return;
         }
 
@@ -1248,8 +1271,8 @@ const LibraryUI = {
             if (result.success) {
                 const { pushed, pulled } = result;
                 const msg = pushed > 0 || pulled > 0
-                    ? `Synced: ${pushed} sent, ${pulled} received`
-                    : 'Library is up to date';
+                    ? libraryText('library.syncedTemplate', `Synced: ${pushed} sent, ${pulled} received`, { pushed, pulled })
+                    : libraryText('library.upToDate', 'Library is up to date');
                 this.showNotification(msg);
 
                 // Refresh lists if changes were pulled
@@ -1262,11 +1285,11 @@ const LibraryUI = {
                     await this.updateStats();
                 }
             } else {
-                this.showNotification(result.error || 'Sync failed', 'error');
+                this.showNotification(result.error || libraryText('library.syncFailed', 'Sync failed'), 'error');
             }
         } catch (error) {
             console.error('LibraryUI: Sync failed', error);
-            this.showNotification('Sync failed', 'error');
+            this.showNotification(libraryText('library.syncFailed', 'Sync failed'), 'error');
         }
 
         // Update indicator

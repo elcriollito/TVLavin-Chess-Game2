@@ -461,7 +461,101 @@
         })
     });
 
+    const libraryRuntimeCatalogs = Object.freeze({
+        en: Object.freeze({
+            'library.untitled': 'Untitled', 'library.activeGame': 'Active',
+            'library.activeGameTitle': 'Active game — new positions link here', 'library.viewPositions': 'View positions',
+            'library.clearActiveGame': 'Clear active game', 'library.setActiveGame': 'Set as active game',
+            'library.deleteGame': 'Delete game', 'library.gamePositionEmpty': 'No positions saved in this game yet.',
+            'library.loadPosition': 'Load position', 'library.copyFen': 'Copy FEN to clipboard',
+            'library.copyLink': 'Copy shareable CAISSA link', 'library.openForge': 'Open in Forge',
+            'library.findSimilar': 'Find Similar (coming soon)', 'library.delete': 'Delete',
+            'library.toggleFavorite': 'Toggle favorite', 'library.failedGames': 'Failed to load games',
+            'library.failedPositions': 'Failed to load positions', 'library.positionNotFound': 'Position not found',
+            'library.positionLoaded': 'Position loaded', 'library.fenCopied': 'FEN copied to clipboard',
+            'library.linkCopied': 'CAISSA link copied to clipboard', 'library.positionDeleted': 'Position deleted',
+            'library.addedFavorites': 'Added to favorites', 'library.removedFavorites': 'Removed from favorites',
+            'library.libraryExported': 'Library exported', 'library.exportFailed': 'Export failed',
+            'library.fenExported': 'FEN list exported', 'library.importTemplate': 'Imported {imported} positions ({skipped} skipped)',
+            'library.syncUnavailable': 'Sync not available', 'library.signInSync': 'Sign in to sync your library',
+            'library.syncFailed': 'Sync failed', 'library.unknown': 'Unknown',
+            'library.activeGameTemplate': 'Active game: {name}', 'library.activeGameCleared': 'Active game cleared',
+            'library.deleteGameConfirm': 'Delete this game? Positions will be moved to Unsorted.', 'library.gameDeleted': 'Game deleted',
+            'library.positionLoadFailed': 'Failed to load position', 'library.fenCopyFailed': 'Failed to copy FEN',
+            'library.linkCopyFailed': 'Failed to copy link', 'library.deletePositionConfirm': 'Delete this position from your library?',
+            'library.positionDeleteFailed': 'Failed to delete position', 'library.noPositionToSave': 'No position to save',
+            'library.positionSavedTemplate': 'Position saved: {title}{game}', 'library.linkedToGame': ' (linked to game)',
+            'library.positionSaveFailed': 'Failed to save position', 'library.noGameToSave': 'No game to save',
+            'library.gameSavedTemplate': 'Game saved: {name}', 'library.gameSaveFailed': 'Failed to save game',
+            'library.importFailed': 'Import failed', 'library.gameDeleteFailed': 'Failed to delete game',
+            'library.syncDisabled': 'Sync disabled', 'library.syncing': 'Syncing…', 'library.syncError': 'Sync error',
+            'library.lastSyncTemplate': 'Last sync: {time}', 'library.syncedTemplate': 'Synced: {pushed} sent, {pulled} received',
+            'library.upToDate': 'Library is up to date'
+        }),
+        es: Object.freeze({
+            'library.untitled': 'Sin título', 'library.activeGame': 'Activa',
+            'library.activeGameTitle': 'Partida activa — las posiciones nuevas se vinculan aquí', 'library.viewPositions': 'Ver posiciones',
+            'library.clearActiveGame': 'Quitar partida activa', 'library.setActiveGame': 'Establecer como partida activa',
+            'library.deleteGame': 'Eliminar partida', 'library.gamePositionEmpty': 'Aún no hay posiciones guardadas en esta partida.',
+            'library.loadPosition': 'Cargar posición', 'library.copyFen': 'Copiar FEN al portapapeles',
+            'library.copyLink': 'Copiar enlace compartible de CAISSA', 'library.openForge': 'Abrir en Forge',
+            'library.findSimilar': 'Buscar similares (próximamente)', 'library.delete': 'Eliminar',
+            'library.toggleFavorite': 'Alternar favorito', 'library.failedGames': 'No se pudieron cargar las partidas',
+            'library.failedPositions': 'No se pudieron cargar las posiciones', 'library.positionNotFound': 'Posición no encontrada',
+            'library.positionLoaded': 'Posición cargada', 'library.fenCopied': 'FEN copiado al portapapeles',
+            'library.linkCopied': 'Enlace de CAISSA copiado al portapapeles', 'library.positionDeleted': 'Posición eliminada',
+            'library.addedFavorites': 'Añadida a favoritos', 'library.removedFavorites': 'Eliminada de favoritos',
+            'library.libraryExported': 'Biblioteca exportada', 'library.exportFailed': 'Error al exportar',
+            'library.fenExported': 'Lista FEN exportada', 'library.importTemplate': 'Se importaron {imported} posiciones ({skipped} omitidas)',
+            'library.syncUnavailable': 'Sincronización no disponible', 'library.signInSync': 'Inicia sesión para sincronizar tu biblioteca',
+            'library.syncFailed': 'Error de sincronización', 'library.unknown': 'Desconocida',
+            'library.activeGameTemplate': 'Partida activa: {name}', 'library.activeGameCleared': 'Se quitó la partida activa',
+            'library.deleteGameConfirm': '¿Eliminar esta partida? Las posiciones se moverán a Sin clasificar.', 'library.gameDeleted': 'Partida eliminada',
+            'library.positionLoadFailed': 'No se pudo cargar la posición', 'library.fenCopyFailed': 'No se pudo copiar el FEN',
+            'library.linkCopyFailed': 'No se pudo copiar el enlace', 'library.deletePositionConfirm': '¿Eliminar esta posición de tu biblioteca?',
+            'library.positionDeleteFailed': 'No se pudo eliminar la posición', 'library.noPositionToSave': 'No hay ninguna posición para guardar',
+            'library.positionSavedTemplate': 'Posición guardada: {title}{game}', 'library.linkedToGame': ' (vinculada a la partida)',
+            'library.positionSaveFailed': 'No se pudo guardar la posición', 'library.noGameToSave': 'No hay ninguna partida para guardar',
+            'library.gameSavedTemplate': 'Partida guardada: {name}', 'library.gameSaveFailed': 'No se pudo guardar la partida',
+            'library.importFailed': 'Error al importar', 'library.gameDeleteFailed': 'No se pudo eliminar la partida',
+            'library.syncDisabled': 'Sincronización desactivada', 'library.syncing': 'Sincronizando…', 'library.syncError': 'Error de sincronización',
+            'library.lastSyncTemplate': 'Última sincronización: {time}', 'library.syncedTemplate': 'Sincronizado: {pushed} enviados, {pulled} recibidos',
+            'library.upToDate': 'La biblioteca está actualizada'
+        }),
+        pt: Object.freeze({
+            'library.untitled': 'Sem título', 'library.activeGame': 'Ativa',
+            'library.activeGameTitle': 'Partida ativa — novas posições são vinculadas aqui', 'library.viewPositions': 'Ver posições',
+            'library.clearActiveGame': 'Remover partida ativa', 'library.setActiveGame': 'Definir como partida ativa',
+            'library.deleteGame': 'Excluir partida', 'library.gamePositionEmpty': 'Ainda não há posições salvas nesta partida.',
+            'library.loadPosition': 'Carregar posição', 'library.copyFen': 'Copiar FEN para a área de transferência',
+            'library.copyLink': 'Copiar link compartilhável da CAISSA', 'library.openForge': 'Abrir no Forge',
+            'library.findSimilar': 'Encontrar semelhantes (em breve)', 'library.delete': 'Excluir',
+            'library.toggleFavorite': 'Alternar favorito', 'library.failedGames': 'Não foi possível carregar as partidas',
+            'library.failedPositions': 'Não foi possível carregar as posições', 'library.positionNotFound': 'Posição não encontrada',
+            'library.positionLoaded': 'Posição carregada', 'library.fenCopied': 'FEN copiado para a área de transferência',
+            'library.linkCopied': 'Link da CAISSA copiado para a área de transferência', 'library.positionDeleted': 'Posição excluída',
+            'library.addedFavorites': 'Adicionada aos favoritos', 'library.removedFavorites': 'Removida dos favoritos',
+            'library.libraryExported': 'Biblioteca exportada', 'library.exportFailed': 'Falha ao exportar',
+            'library.fenExported': 'Lista FEN exportada', 'library.importTemplate': '{imported} posições importadas ({skipped} ignoradas)',
+            'library.syncUnavailable': 'Sincronização indisponível', 'library.signInSync': 'Entre para sincronizar sua biblioteca',
+            'library.syncFailed': 'Falha na sincronização', 'library.unknown': 'Desconhecida',
+            'library.activeGameTemplate': 'Partida ativa: {name}', 'library.activeGameCleared': 'Partida ativa removida',
+            'library.deleteGameConfirm': 'Excluir esta partida? As posições serão movidas para Não classificadas.', 'library.gameDeleted': 'Partida excluída',
+            'library.positionLoadFailed': 'Não foi possível carregar a posição', 'library.fenCopyFailed': 'Não foi possível copiar o FEN',
+            'library.linkCopyFailed': 'Não foi possível copiar o link', 'library.deletePositionConfirm': 'Excluir esta posição da sua biblioteca?',
+            'library.positionDeleteFailed': 'Não foi possível excluir a posição', 'library.noPositionToSave': 'Não há posição para salvar',
+            'library.positionSavedTemplate': 'Posição salva: {title}{game}', 'library.linkedToGame': ' (vinculada à partida)',
+            'library.positionSaveFailed': 'Não foi possível salvar a posição', 'library.noGameToSave': 'Não há partida para salvar',
+            'library.gameSavedTemplate': 'Partida salva: {name}', 'library.gameSaveFailed': 'Não foi possível salvar a partida',
+            'library.importFailed': 'Falha ao importar', 'library.gameDeleteFailed': 'Não foi possível excluir a partida',
+            'library.syncDisabled': 'Sincronização desativada', 'library.syncing': 'Sincronizando…', 'library.syncError': 'Erro de sincronização',
+            'library.lastSyncTemplate': 'Última sincronização: {time}', 'library.syncedTemplate': 'Sincronizado: {pushed} enviados, {pulled} recebidos',
+            'library.upToDate': 'A biblioteca está atualizada'
+        })
+    });
+
     const portugueseCatalog = Object.freeze({
+        ...libraryRuntimeCatalogs.pt,
         'common.play': 'Jogar', 'common.games': 'Partidas', 'common.game': 'Partida',
         'common.white': 'Brancas', 'common.black': 'Pretas', 'common.random': 'Aleatório',
         'common.player': 'Jogador', 'common.engine': 'Motor', 'common.options': 'Opções',
@@ -718,12 +812,31 @@
         'library.copyPrimary': 'Estamos criando sua biblioteca pessoal de xadrez.',
         'library.copySecondary': 'Em breve, você poderá salvar posições, partidas e análises aqui.',
         'library.backToPlay': 'Voltar para Jogar',
-        'library.metaTitle': 'Biblioteca de partidas — Em construção | CAISSA Chess'
+        'library.metaTitle': 'Biblioteca de partidas — Em construção | CAISSA Chess',
+        'library.skip': 'Ir para a Biblioteca de partidas', 'library.workspaceSubtitle': 'Salve e organize suas partidas e posições para revisar.',
+        'library.sections': 'Seções da Biblioteca de partidas', 'library.positions': 'Posições', 'library.games': 'Partidas',
+        'library.searchPositions': 'Pesquisar posições', 'library.positionTags': 'Etiquetas de posições',
+        'library.dataActions': 'Ações de dados da biblioteca', 'library.synced': 'Sincronizado', 'library.sync': 'Sincronizar',
+        'library.backup': 'Cópia de segurança', 'library.import': 'Importar',
+        'library.exportTitle': 'Exportar como cópia de segurança JSON', 'library.importTitle': 'Importar de uma cópia de segurança',
+        'library.backToGames': 'Voltar às partidas', 'library.noPositions': 'Nenhuma posição salva',
+        'library.noPositionsCopy': 'Salve posições da análise para criar sua biblioteca.', 'library.noGames': 'Nenhuma partida salva',
+        'library.noGamesCopy': 'Salve uma partida da análise para criar sua biblioteca.', 'library.pages': 'Páginas da biblioteca',
+        'library.previousPage': 'Página anterior', 'library.nextPage': 'Próxima página', 'library.pageTemplate': 'Página {page} de {total}',
+        'library.privacy': 'Sua Biblioteca local permanece neste dispositivo, a menos que você escolha a sincronização na nuvem.',
+        'library.positionsCount': '{count} posições', 'library.advancedFilters': 'Filtros avançados', 'library.active': 'Ativo',
+        'library.sideToMove': 'Lado a jogar', 'library.any': 'Qualquer', 'library.pieceCount': 'Quantidade de peças',
+        'library.minimum': 'Mín.', 'library.maximum': 'Máx.', 'library.evaluation': 'Avaliação (cp)',
+        'library.filters': 'Filtros', 'library.hasAnnotations': 'Tem anotações', 'library.analyzed': 'Analisada',
+        'library.tags': 'Etiquetas', 'library.tagsPlaceholder': 'etiqueta1, etiqueta2, ...', 'library.clear': 'Limpar',
+        'library.searchAction': 'Pesquisar', 'library.noTags': 'Ainda não há etiquetas',
+        'library.resultsTemplate': '{count} posição(ões) encontrada(s)'
     });
 
     const catalogs = Object.freeze({
         en: Object.freeze({
             ...interfaceCatalogs.en,
+            ...libraryRuntimeCatalogs.en,
             'nav.group.playAndCompete': 'Play & Compete',
             'nav.group.learnAndImprove': 'Learn & Improve',
             'nav.group.analyzeAndWatch': 'Analyze & Watch',
@@ -798,10 +911,29 @@
             'library.copyPrimary': 'We’re building your personal chess library.',
             'library.copySecondary': 'Soon you’ll be able to save positions, games and analysis here.',
             'library.backToPlay': 'Back to Play',
-            'library.metaTitle': 'Game Library — Under Construction | CAISSA Chess'
+            'library.metaTitle': 'Game Library — Under Construction | CAISSA Chess',
+            'library.skip': 'Skip to Game Library', 'library.workspaceSubtitle': 'Save and organize your games and positions for review.',
+            'library.sections': 'Game Library sections', 'library.positions': 'Positions', 'library.games': 'Games',
+            'library.searchPositions': 'Search positions', 'library.positionTags': 'Position tags',
+            'library.dataActions': 'Library data actions', 'library.synced': 'Synced', 'library.sync': 'Sync',
+            'library.backup': 'Backup', 'library.import': 'Import', 'library.exportTitle': 'Export as JSON backup',
+            'library.importTitle': 'Import from backup', 'library.backToGames': 'Back to games',
+            'library.noPositions': 'No positions saved', 'library.noPositionsCopy': 'Save positions from analysis to build your library.',
+            'library.noGames': 'No games saved', 'library.noGamesCopy': 'Save a game from analysis to build your library.',
+            'library.pages': 'Library pages', 'library.previousPage': 'Previous page', 'library.nextPage': 'Next page',
+            'library.pageTemplate': 'Page {page} of {total}',
+            'library.privacy': 'Your local Library stays on this device unless you choose cloud sync.',
+            'library.positionsCount': '{count} positions', 'library.advancedFilters': 'Advanced Filters', 'library.active': 'Active',
+            'library.sideToMove': 'Side to move', 'library.any': 'Any', 'library.pieceCount': 'Piece count',
+            'library.minimum': 'Min', 'library.maximum': 'Max', 'library.evaluation': 'Eval (cp)',
+            'library.filters': 'Filters', 'library.hasAnnotations': 'Has annotations', 'library.analyzed': 'Analyzed',
+            'library.tags': 'Tags', 'library.tagsPlaceholder': 'tag1, tag2, ...', 'library.clear': 'Clear',
+            'library.searchAction': 'Search', 'library.noTags': 'No tags yet',
+            'library.resultsTemplate': '{count} position(s) found'
         }),
         es: Object.freeze({
             ...interfaceCatalogs.es,
+            ...libraryRuntimeCatalogs.es,
             'nav.group.playAndCompete': 'Jugar y competir',
             'nav.group.learnAndImprove': 'Aprender y mejorar',
             'nav.group.analyzeAndWatch': 'Analizar y observar',
@@ -875,7 +1007,26 @@
             'library.copyPrimary': 'Estamos creando tu biblioteca personal de ajedrez.',
             'library.copySecondary': 'Próximamente podrás guardar posiciones, partidas y análisis aquí.',
             'library.backToPlay': 'Volver a Jugar',
-            'library.metaTitle': 'Biblioteca de partidas — En construcción | CAISSA Chess'
+            'library.metaTitle': 'Biblioteca de partidas — En construcción | CAISSA Chess',
+            'library.skip': 'Ir a la Biblioteca de partidas', 'library.workspaceSubtitle': 'Guarda y organiza tus partidas y posiciones para revisarlas.',
+            'library.sections': 'Secciones de la Biblioteca de partidas', 'library.positions': 'Posiciones', 'library.games': 'Partidas',
+            'library.searchPositions': 'Buscar posiciones', 'library.positionTags': 'Etiquetas de posiciones',
+            'library.dataActions': 'Acciones de datos de la biblioteca', 'library.synced': 'Sincronizado', 'library.sync': 'Sincronizar',
+            'library.backup': 'Copia de seguridad', 'library.import': 'Importar',
+            'library.exportTitle': 'Exportar como copia de seguridad JSON', 'library.importTitle': 'Importar desde una copia de seguridad',
+            'library.backToGames': 'Volver a partidas', 'library.noPositions': 'No hay posiciones guardadas',
+            'library.noPositionsCopy': 'Guarda posiciones desde el análisis para crear tu biblioteca.',
+            'library.noGames': 'No hay partidas guardadas', 'library.noGamesCopy': 'Guarda una partida desde el análisis para crear tu biblioteca.',
+            'library.pages': 'Páginas de la biblioteca', 'library.previousPage': 'Página anterior', 'library.nextPage': 'Página siguiente',
+            'library.pageTemplate': 'Página {page} de {total}',
+            'library.privacy': 'Tu Biblioteca local permanece en este dispositivo, salvo que elijas la sincronización en la nube.',
+            'library.positionsCount': '{count} posiciones', 'library.advancedFilters': 'Filtros avanzados', 'library.active': 'Activo',
+            'library.sideToMove': 'Lado al turno', 'library.any': 'Cualquiera', 'library.pieceCount': 'Cantidad de piezas',
+            'library.minimum': 'Mín.', 'library.maximum': 'Máx.', 'library.evaluation': 'Evaluación (cp)',
+            'library.filters': 'Filtros', 'library.hasAnnotations': 'Tiene anotaciones', 'library.analyzed': 'Analizada',
+            'library.tags': 'Etiquetas', 'library.tagsPlaceholder': 'etiqueta1, etiqueta2, ...', 'library.clear': 'Limpiar',
+            'library.searchAction': 'Buscar', 'library.noTags': 'Aún no hay etiquetas',
+            'library.resultsTemplate': '{count} posición(es) encontrada(s)'
         }),
         pt: portugueseCatalog
     });
@@ -927,18 +1078,20 @@
         const textKey = element.dataset?.caissaI18n;
         const ariaKey = element.dataset?.caissaI18nAriaLabel;
         const titleKey = element.dataset?.caissaI18nTitle;
+        const placeholderKey = element.dataset?.caissaI18nPlaceholder;
         if (textKey) element.textContent = t(textKey, element.textContent || '');
         if (ariaKey) element.setAttribute('aria-label', t(ariaKey, element.getAttribute('aria-label') || ''));
         if (titleKey) element.setAttribute('title', t(titleKey, element.getAttribute('title') || ''));
+        if (placeholderKey) element.setAttribute('placeholder', t(placeholderKey, element.getAttribute('placeholder') || ''));
     }
 
     function apply(root = global.document) {
         if (!root) return;
         if (root.documentElement) root.documentElement.lang = locale;
-        if (root.matches?.('[data-caissa-i18n], [data-caissa-i18n-aria-label], [data-caissa-i18n-title]')) {
+        if (root.matches?.('[data-caissa-i18n], [data-caissa-i18n-aria-label], [data-caissa-i18n-title], [data-caissa-i18n-placeholder]')) {
             translateElement(root);
         }
-        root.querySelectorAll?.('[data-caissa-i18n], [data-caissa-i18n-aria-label], [data-caissa-i18n-title]')
+        root.querySelectorAll?.('[data-caissa-i18n], [data-caissa-i18n-aria-label], [data-caissa-i18n-title], [data-caissa-i18n-placeholder]')
             ?.forEach(translateElement);
         root.querySelectorAll?.('[data-caissa-locale-select]')?.forEach(select => { select.value = locale; });
         root.querySelectorAll?.('[data-caissa-locale-suggestion]')?.forEach(button => {

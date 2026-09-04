@@ -42,27 +42,27 @@
         <header class="game-library-heading">
           <div>
             <p class="game-library-eyebrow">CAISSA Chess</p>
-            <h1 id="game-library-workspace-title">Game Library</h1>
-            <p>Save and organize your games and positions for review.</p>
+            <h1 id="game-library-workspace-title" data-caissa-i18n="library.title">Game Library</h1>
+            <p data-caissa-i18n="library.workspaceSubtitle">Save and organize your games and positions for review.</p>
           </div>
           <div class="library-header-actions">
             <div id="librarySyncIndicator" class="library-sync-indicator" hidden>
-              <i class="fas fa-cloud-check" aria-hidden="true"></i><span>Synced</span>
+              <i class="fas fa-cloud-check" aria-hidden="true"></i><span data-caissa-i18n="library.synced">Synced</span>
             </div>
             <button id="librarySyncNow" class="library-button" type="button" hidden>
-              <i class="fas fa-sync" aria-hidden="true"></i><span>Sync</span>
+              <i class="fas fa-sync" aria-hidden="true"></i><span data-caissa-i18n="library.sync">Sync</span>
             </button>
           </div>
         </header>
 
-        <div class="library-tabs" role="tablist" aria-label="Game Library sections">
+        <div class="library-tabs" role="tablist" aria-label="Game Library sections" data-caissa-i18n-aria-label="library.sections">
           <button id="libraryTabPositions" class="library-tab active" type="button" role="tab"
             aria-selected="true" aria-controls="libraryPositionsPanel" data-tab="positions">
-            <i class="fas fa-chess-board" aria-hidden="true"></i><span>Positions</span>
+            <i class="fas fa-chess-board" aria-hidden="true"></i><span data-caissa-i18n="library.positions">Positions</span>
           </button>
           <button id="libraryTabGames" class="library-tab" type="button" role="tab" tabindex="-1"
             aria-selected="false" aria-controls="libraryGamesPanel" data-tab="games">
-            <i class="fas fa-chess" aria-hidden="true"></i><span>Games</span>
+            <i class="fas fa-chess" aria-hidden="true"></i><span data-caissa-i18n="library.games">Games</span>
           </button>
         </div>
 
@@ -71,26 +71,27 @@
             <div id="librarySearchSection" class="library-search-section">
               <label class="game-library-search" for="librarySearch">
                 <i class="fas fa-search" aria-hidden="true"></i>
-                <span class="game-library-visually-hidden">Search positions</span>
+                <span class="game-library-visually-hidden" data-caissa-i18n="library.searchPositions">Search positions</span>
                 <input type="search" id="librarySearch" class="library-search-input"
-                  placeholder="Search positions…" aria-label="Search positions" autocomplete="off">
+                  placeholder="Search positions…" aria-label="Search positions" autocomplete="off"
+                  data-caissa-i18n-placeholder="library.searchPositions" data-caissa-i18n-aria-label="library.searchPositions">
               </label>
               <div id="queryEngineMount"></div>
-              <div id="libraryTagFilter" class="library-tag-filter" aria-label="Position tags"></div>
+              <div id="libraryTagFilter" class="library-tag-filter" aria-label="Position tags" data-caissa-i18n-aria-label="library.positionTags"></div>
             </div>
-            <div class="library-actions-bar" aria-label="Library data actions">
-              <button id="libraryExportJson" class="library-button" type="button" title="Export as JSON backup">
-                <i class="fas fa-download" aria-hidden="true"></i><span>Backup</span>
+            <div class="library-actions-bar" aria-label="Library data actions" data-caissa-i18n-aria-label="library.dataActions">
+              <button id="libraryExportJson" class="library-button" type="button" title="Export as JSON backup" data-caissa-i18n-title="library.exportTitle">
+                <i class="fas fa-download" aria-hidden="true"></i><span data-caissa-i18n="library.backup">Backup</span>
               </button>
-              <button id="libraryImportBtn" class="library-button" type="button" title="Import from backup">
-                <i class="fas fa-upload" aria-hidden="true"></i><span>Import</span>
+              <button id="libraryImportBtn" class="library-button" type="button" title="Import from backup" data-caissa-i18n-title="library.importTitle">
+                <i class="fas fa-upload" aria-hidden="true"></i><span data-caissa-i18n="library.import">Import</span>
               </button>
               <input type="file" id="libraryImportInput" class="library-import-input" accept=".json,application/json" hidden>
             </div>
           </div>
 
           <div id="libraryCollectionDetail" class="library-collection-detail-header" hidden>
-            <button id="libraryBackBtn" class="library-back-btn" type="button" aria-label="Back to games">
+            <button id="libraryBackBtn" class="library-back-btn" type="button" aria-label="Back to games" data-caissa-i18n-aria-label="library.backToGames">
               <i class="fas fa-arrow-left" aria-hidden="true"></i>
             </button>
             <span id="libraryCollectionDetailTitle" class="library-collection-detail-title"></span>
@@ -101,8 +102,8 @@
             <div id="libraryPositionList" class="library-position-list"></div>
             <div id="libraryEmptyState" class="library-empty-state" role="status" hidden>
               <span class="library-empty-icon" aria-hidden="true"><i class="fas fa-chess-board"></i></span>
-              <h2>No positions saved</h2>
-              <p>Save positions from analysis to build your library.</p>
+              <h2 data-caissa-i18n="library.noPositions">No positions saved</h2>
+              <p data-caissa-i18n="library.noPositionsCopy">Save positions from analysis to build your library.</p>
             </div>
           </section>
 
@@ -110,23 +111,23 @@
             <div id="libraryCollectionList" class="library-collection-list"></div>
             <div id="libraryEmptyGames" class="library-empty-state" role="status" hidden>
               <span class="library-empty-icon" aria-hidden="true"><i class="fas fa-chess"></i></span>
-              <h2>No games saved</h2>
-              <p>Save a game from analysis to build your library.</p>
+              <h2 data-caissa-i18n="library.noGames">No games saved</h2>
+              <p data-caissa-i18n="library.noGamesCopy">Save a game from analysis to build your library.</p>
             </div>
           </section>
 
-          <nav id="libraryPagination" class="library-pagination" aria-label="Library pages" hidden>
-            <button id="libraryPrevPage" class="library-button" type="button" aria-label="Previous page">
+          <nav id="libraryPagination" class="library-pagination" aria-label="Library pages" data-caissa-i18n-aria-label="library.pages" hidden>
+            <button id="libraryPrevPage" class="library-button" type="button" aria-label="Previous page" data-caissa-i18n-aria-label="library.previousPage">
               <i class="fas fa-chevron-left" aria-hidden="true"></i>
             </button>
             <span id="libraryPageInfo" class="library-page-info" aria-live="polite">Page 1 of 1</span>
-            <button id="libraryNextPage" class="library-button" type="button" aria-label="Next page">
+            <button id="libraryNextPage" class="library-button" type="button" aria-label="Next page" data-caissa-i18n-aria-label="library.nextPage">
               <i class="fas fa-chevron-right" aria-hidden="true"></i>
             </button>
           </nav>
         </div>
         <p class="game-library-privacy"><i class="fas fa-shield-halved" aria-hidden="true"></i>
-          Your local Library stays on this device unless you choose cloud sync.
+          <span data-caissa-i18n="library.privacy">Your local Library stays on this device unless you choose cloud sync.</span>
           <span id="libraryStats" class="library-stats" aria-live="polite"></span>
         </p>
       </section>
