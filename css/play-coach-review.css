@@ -1,45 +1,183 @@
 /* CAISSA Play v3.1 Coach setup and review presentation. Strictly Coach-context scoped. */
 
-.caissa-coach-review-context .caissa-coach-review-shell {
-    display: grid;
-    grid-template-columns: 4.5rem minmax(0, 1fr);
-    gap: 1rem;
-    align-items: center;
-    width: min(100%, 72rem);
-    margin: 0 auto 1rem;
-    padding: .9rem 1rem;
-    border: 1px solid color-mix(in srgb, var(--primary-color) 38%, var(--border-color));
-    border-radius: 14px;
-    background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color) 12%, var(--bg-secondary)), var(--bg-secondary));
+.caissa-coach-review-context .analyze-import-sidebar { display: none; }
+body.caissa-simplified-play-active.caissa-play-v2-analyze-open
+    #analyzeSection.caissa-coach-review-context .analyze-layout {
+    grid-template-columns: minmax(420px, 1fr) minmax(20rem, 23rem);
+    width: min(100%, 76rem);
+    align-items: start;
 }
+body.caissa-simplified-play-active.caissa-play-v2-analyze-open
+    #analyzeSection.caissa-coach-review-context .analyze-main { grid-column: 1; }
+body.caissa-simplified-play-active.caissa-play-v2-analyze-open
+    #analyzeSection.caissa-coach-review-context .context-panel { grid-column: 2; }
+.caissa-coach-review-context [hidden] { display: none !important; }
+body.caissa-coach-review-summary-active [data-caissa-floating-controls] { display: none !important; }
 
-.caissa-coach-review-shell__avatar {
-    width: 4.5rem;
-    height: 4.5rem;
+.caissa-coach-review-summary {
+    display: grid;
+    gap: .85rem;
+    padding: 1rem;
+    border: 1px solid color-mix(in srgb, var(--coach-gold, #d7b96d) 38%, var(--panel-border));
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--play-theme-card, #17202b) 97%, transparent);
+    box-shadow: 0 18px 42px rgb(0 0 0 / 30%);
+}
+.caissa-coach-review-summary__header {
+    display: flex;
+    gap: .75rem;
+    align-items: center;
+    justify-content: space-between;
+}
+.caissa-coach-review-summary__eyebrow {
+    display: block;
+    color: var(--coach-gold, #d7b96d);
+    font-size: .68rem;
+    font-weight: 850;
+    letter-spacing: .14em;
+}
+.caissa-coach-review-summary__title { margin: .05rem 0 0; font-size: clamp(1.4rem, 2.5vw, 1.85rem); }
+body.caissa-simplified-play-active .caissa-play-v2-inline-analyze__close.caissa-coach-review-summary__back {
+    position: static;
+    z-index: auto;
+    min-height: 44px;
+    margin: 0;
+    padding: .45rem .7rem;
+    border-color: var(--panel-border);
+    background: transparent;
+    color: var(--play-theme-muted, var(--text-secondary));
+    font-size: .82rem;
+    font-weight: 750;
+}
+.caissa-coach-review-summary__message {
+    display: grid;
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+    gap: .7rem;
+    align-items: center;
+    padding: .7rem;
+    border: 1px solid color-mix(in srgb, var(--coach-gold, #d7b96d) 22%, var(--panel-border));
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--play-theme-surface, #1d2a39) 90%, transparent);
+}
+.caissa-coach-review-summary__message-avatar,
+.caissa-coach-review-summary__profile-avatar,
+.caissa-coach-review-summary__player-avatar {
+    width: 3.5rem;
+    height: 3.5rem;
     border-radius: 50%;
     object-fit: cover;
     object-position: 50% 20%;
 }
-
-.caissa-coach-review-shell__copy { min-width: 0; }
-.caissa-coach-review-shell__eyebrow {
-    display: block;
-    color: var(--primary-color);
-    font-size: .72rem;
-    font-weight: 800;
-    letter-spacing: .13em;
+.caissa-coach-review-summary__player-avatar {
+    display: grid;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--coach-gold, #d7b96d) 40%, var(--panel-border));
+    background: #263346;
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 850;
 }
-.caissa-coach-review-shell__title { margin: .1rem 0 .25rem; font-size: clamp(1.25rem, 2vw, 1.7rem); }
-.caissa-coach-review-shell__speech { margin: 0; color: var(--text-secondary); line-height: 1.45; }
-
-.caissa-coach-review-context .analyze-import-sidebar { display: none; }
-.caissa-coach-review-context .analyze-layout {
-    grid-template-columns: minmax(0, 1.7fr) minmax(19rem, 1fr);
-    width: min(100%, 76rem);
+.caissa-coach-review-summary__message-copy,
+.caissa-coach-review-summary__loading-copy,
+.caissa-coach-review-summary__placeholder-copy { margin: 0; line-height: 1.42; }
+.caissa-coach-review-summary__message-copy { font-size: .88rem; }
+.caissa-coach-review-summary__loading,
+.caissa-coach-review-summary__placeholder {
+    display: grid;
+    gap: .65rem;
+    min-height: 13rem;
+    place-content: center;
+    padding: 1.25rem;
+    text-align: center;
+}
+.caissa-coach-review-summary__loading-title,
+.caissa-coach-review-summary__placeholder-title { font-size: 1.05rem; }
+.caissa-coach-review-summary__loading-avatar {
+    width: 3.75rem;
+    height: 3.75rem;
     margin-inline: auto;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: 50% 20%;
 }
-.caissa-coach-review-context .analyze-main { grid-column: 1; }
-.caissa-coach-review-context .context-panel { grid-column: 2; }
+.caissa-coach-review-summary__loading-copy,
+.caissa-coach-review-summary__placeholder-copy,
+.caissa-coach-review-summary__progress-text { color: var(--play-theme-muted, var(--text-secondary)); font-size: .82rem; }
+.caissa-coach-review-summary__progress {
+    width: 100%;
+    height: .35rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #263346;
+}
+.caissa-coach-review-summary__progress-fill {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--coach-gold, #d7b96d);
+    transition: width 160ms ease;
+}
+.caissa-coach-review-summary__comparison { display: grid; gap: .7rem; }
+.caissa-coach-review-summary__profiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .65rem;
+}
+.caissa-coach-review-summary__profile {
+    display: grid;
+    justify-items: center;
+    gap: .15rem;
+    min-width: 0;
+    text-align: center;
+}
+.caissa-coach-review-summary__role {
+    margin-top: .15rem;
+    color: var(--play-theme-text, #fff);
+    font-size: .74rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+.caissa-coach-review-summary__name {
+    overflow: hidden;
+    width: 100%;
+    color: var(--play-theme-muted, var(--text-secondary));
+    font-size: .72rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.caissa-coach-review-summary__accuracy,
+.caissa-coach-review-summary__row {
+    display: grid;
+    grid-template-columns: minmax(6.5rem, 1fr) repeat(2, minmax(3.5rem, .65fr));
+    align-items: center;
+    text-align: center;
+}
+.caissa-coach-review-summary__accuracy {
+    padding: .7rem .55rem;
+    border-block: 1px solid var(--panel-border);
+}
+.caissa-coach-review-summary__accuracy-label { text-align: left; font-size: .8rem; font-weight: 800; }
+.caissa-coach-review-summary__accuracy-value { color: var(--coach-gold, #d7b96d); font-size: 1.35rem; }
+.caissa-coach-review-summary__table { display: grid; gap: .1rem; }
+.caissa-coach-review-summary__row { min-height: 2rem; padding: .25rem .55rem; border-radius: 7px; }
+.caissa-coach-review-summary__row:nth-child(odd) { background: rgb(255 255 255 / 3.5%); }
+.caissa-coach-review-summary__quality { color: var(--play-theme-muted, var(--text-secondary)); font-size: .78rem; text-align: left; }
+.caissa-coach-review-summary__count { font-size: .86rem; }
+.caissa-coach-review-summary__action {
+    min-height: 48px;
+    width: 100%;
+    border: 1px solid var(--coach-gold, #d7b96d);
+    border-radius: 10px;
+    background: var(--coach-gold, #d7b96d);
+    color: #111;
+    font-size: 1rem;
+    font-weight: 850;
+    cursor: pointer;
+}
+.caissa-coach-review-summary__action:hover { filter: brightness(1.06); }
+.caissa-coach-review-summary__action:focus-visible,
+.caissa-coach-review-summary__back:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 
 body.caissa-simplified-play-active .caissa-native-coach-panel__level-picker {
     display: grid;
@@ -177,12 +315,16 @@ body[data-caissa-play-v2-entry] .caissa-coach-game-over-context .caissa-post-gam
     font-size: .95rem;
 }
 
-@media (max-width: 768px) {
-    .caissa-coach-review-context .caissa-coach-review-shell { grid-template-columns: 3.5rem minmax(0, 1fr); margin-inline: .5rem; width: calc(100% - 1rem); }
-    .caissa-coach-review-shell__avatar { width: 3.5rem; height: 3.5rem; }
-    .caissa-coach-review-context .analyze-layout { grid-template-columns: minmax(0, 1fr); }
-    .caissa-coach-review-context .analyze-main { grid-column: 1; order: 1; }
-    .caissa-coach-review-context .context-panel { grid-column: 1; order: 2; }
+@media (max-width: 900px) {
+    body.caissa-simplified-play-active.caissa-play-v2-analyze-open
+        #analyzeSection.caissa-coach-review-context .analyze-layout { grid-template-columns: minmax(0, 1fr); }
+    body.caissa-simplified-play-active.caissa-play-v2-analyze-open
+        #analyzeSection.caissa-coach-review-context .analyze-main { grid-column: 1; order: 1; }
+    body.caissa-simplified-play-active.caissa-play-v2-analyze-open
+        #analyzeSection.caissa-coach-review-context .context-panel { grid-column: 1; order: 2; }
+    .caissa-coach-review-summary { width: 100%; margin-top: .35rem; padding: .85rem; }
+    .caissa-coach-review-summary__message { grid-template-columns: 3.1rem minmax(0, 1fr); }
+    .caissa-coach-review-summary__message-avatar { width: 3.1rem; height: 3.1rem; }
     body.caissa-simplified-play-active .caissa-post-game.caissa-coach-game-over-context {
         width: 100%;
         padding: .85rem;
@@ -195,6 +337,7 @@ body[data-caissa-play-v2-entry] .caissa-coach-game-over-context .caissa-post-gam
 @media (prefers-reduced-motion: reduce) {
     .caissa-native-coach-panel__level-card,
     .caissa-native-coach-panel__level-row { scroll-behavior: auto; }
+    .caissa-coach-review-summary__progress-fill { transition: none; }
 }
 
 @media (forced-colors: active) {

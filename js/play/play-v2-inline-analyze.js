@@ -133,13 +133,14 @@
         section.setAttribute('aria-label', 'Analyze completed game');
         section.setAttribute('tabindex', '-1');
         root.document.body.classList.add('caissa-play-v2-analyze-open');
-        reviewPresentation?.mount?.({ section, context: input.reviewContext });
+        reviewPresentation?.mount?.({ section, context: input.reviewContext, handoff: resolved.value });
         updateViewportGeometry();
         viewport?.addEventListener?.('resize', updateViewportGeometry);
         viewport?.addEventListener?.('scroll', updateViewportGeometry);
         root.addEventListener('resize', updateViewportGeometry);
         root.addEventListener('keydown', onKeydown);
         root.AnalyzeSection.onEnter({ handoff: resolved.value, owner: 'play-v2-postgame' });
+        reviewPresentation?.begin?.({ analyze: root.AnalyzeSection });
         normalizeCopy();
         copyObserver.observe(section, { childList: true, subtree: true, characterData: true });
         closeButton.focus();

@@ -59,20 +59,131 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     expect((await page.evaluate(() => window.CaissaSimplifiedPlayShellInstance.getSnapshot().coachPanel.assistance)).active).toBeNull();
     await expect(page.locator('.caissa-post-game')).not.toContainText(/lesson|academy|curriculum|mastery|knowledge|Stockfish|nodes|NPS|depth|threads/i);
     const analyze = page.locator('[data-post-game-action="analyze"]');
-    await expect(analyze).toBeVisible(); await analyze.click();
-    await expect(page.locator('[data-caissa-coach-review-shell]')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Coach Review' })).toBeVisible();
+    await expect(analyze).toBeVisible();
+    const activation = await page.evaluate(async () => {
+        const instance = window.CaissaPostGameExperienceInstance;
+        const first = instance.execute('analyze');
+        const second = instance.execute('analyze');
+        return { first: await first, second };
+    });
+    expect(activation.first.ok).toBe(true);
+    expect(activation.second.reasonCode).toBe('ACTION_BUSY');
+    const summary = page.locator('[data-caissa-coach-review-summary]');
+    await expect(summary).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Game Review' })).toBeVisible();
+    await expect(page.locator('#analyzeStartBtn')).toBeHidden();
+    await expect(page.locator('#analyzeCriticalMoments').locator('..')).toBeHidden();
+    await expect(page.locator('.analyze-evidence-panel')).toBeHidden();
+    await expect(page.getByRole('dialog', { name: 'Coach game review' })
+        .getByText('Stockfish 16', { exact: true })).toBeHidden();
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.analysisPhase), { timeout: 30_000 }).toBe('complete');
+    await expect(page.locator('[data-coach-review-comparison]')).toBeVisible();
+    await expect(summary.getByText('Player', { exact: true })).toBeVisible();
+    await expect(summary.getByText('Coach', { exact: true })).toBeVisible();
+    const comparison = await page.evaluate(() => {
+        const results = window.AnalyzeSection.analysisResults.filter(item => item && !item.unavailable);
+        const side = parity => {
+            const values = results.filter(item => item.moveIndex % 2 === parity);
+            const counts = Object.fromEntries(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']
+                .map(label => [label, values.filter(item => item.quality === label).length]));
+            counts.Best = values.filter(item => item.isBestMove === true).length;
+            return { accuracy: window.CaissaAnalyzeReviewPolicy.accuracy(values).value, counts };
+        };
+        const rendered = [...document.querySelectorAll('[data-coach-review-classifications] [data-quality]')]
+            .map(row => ({ label: row.dataset.quality,
+                player: row.querySelector('[data-side="player"]').textContent,
+                coach: row.querySelector('[data-side="coach"]').textContent }));
+        return { white: side(0), black: side(1), rendered,
+            playerAccuracy: document.querySelector('[data-coach-review-player-accuracy]').textContent,
+            coachAccuracy: document.querySelector('[data-coach-review-coach-accuracy]').textContent };
+    });
+    expect(comparison.playerAccuracy).toBe(comparison.white.accuracy === null ? '\u2014' : `${comparison.white.accuracy}%`);
+    expect(comparison.coachAccuracy).toBe(comparison.black.accuracy === null ? '\u2014' : `${comparison.black.accuracy}%`);
+    for (const row of comparison.rendered) {
+        expect(row.player).toBe(comparison.white.counts[row.label] ? String(comparison.white.counts[row.label]) : '\u2014');
+        expect(row.coach).toBe(comparison.black.counts[row.label] ? String(comparison.black.counts[row.label]) : '\u2014');
+    }
+    await expect(summary).not.toContainText(/Brilliant|Great|Miss/);
+    await page.evaluate(() => window.AnalyzeSection.jumpToMove(0));
+    await expect(page.locator('#analyzeEvalBar')).toBeVisible();
     const review = await page.evaluate(() => ({
         path: location.pathname,
         context: document.querySelector('#analyzeSection')?.dataset.caissaReviewContext,
         phase: document.querySelector('#analyzeSection')?.dataset.coachReviewPhase,
         plyOwner: window.CaissaCoachReviewPresentation.getSnapshot().activePlyOwner,
+        analysisStartRequests: window.CaissaCoachReviewPresentation.getSnapshot().analysisStartRequests,
         authoritativePly: window.AnalyzeSection.currentMoveIndex,
         duplicatePly: 'reviewMoveIndex' in window || 'reviewMoveIndex' in window.CaissaCoachReviewPresentation.getSnapshot()
     }));
-    expect(review).toMatchObject({ path: '/play/coach', context: 'coach', phase: 'shell',
-        plyOwner: 'AnalyzeSection.currentMoveIndex', duplicatePly: false });
-    expect(Number.isInteger(review.authoritativePly)).toBe(true);
+    expect(review).toMatchObject({ path: '/play/coach', context: 'coach', phase: 'summary',
+        plyOwner: 'AnalyzeSection.currentMoveIndex', analysisStartRequests: 1,
+        authoritativePly: 0, duplicatePly: false });
+    await summary.getByRole('button', { name: 'Review Game' }).click();
+    await expect(page.locator('[data-coach-review-guided-placeholder]')).toBeVisible();
+    await expect(page.locator('#analyzeStartBtn')).toBeHidden();
+    await expect(page.locator('.analyze-evidence-panel')).toBeHidden();
+    await page.getByRole('button', { name: 'Back to game result' }).click();
+    await expect(page.locator('.caissa-post-game')).toBeVisible();
+});
+
+test('Coach Review Summary is board-first, responsive, keyboard ordered, and accessible', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.goto('/play/beta/coach');
+    await page.locator('[data-caissa-native-coach-panel]').getByRole('button', { name: 'Play' }).click();
+    expect(await playMove(page, 'e2', 'e4')).toBe(true);
+    await expect.poll(() => page.evaluate(() => window.App.game.history())).toEqual(['e4', 'e5']);
+    await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
+    await page.locator('[data-post-game-action="analyze"]').click();
+    const summary = page.locator('[data-caissa-coach-review-summary]');
+    await expect(summary).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.analysisPhase), { timeout: 30_000 }).toBe('complete');
+    for (const viewport of [{ width: 320, height: 568 }, { width: 1440, height: 900 }]) {
+        await page.setViewportSize(viewport);
+        const geometry = await page.evaluate(() => {
+            const board = document.querySelector('#analyzeChessboard').getBoundingClientRect();
+            const panel = document.querySelector('[data-caissa-coach-review-summary]').getBoundingClientRect();
+            const evalRail = document.querySelector('#analyzeEvalBar').getBoundingClientRect();
+            const actions = [...document.querySelectorAll('[data-play-v2-analyze-close], [data-coach-review-guided-action]')]
+                .filter(node => getComputedStyle(node).display !== 'none');
+            return {
+                overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+                board: { left: board.left, right: board.right, top: board.top, bottom: board.bottom, width: board.width },
+                panel: { left: panel.left, top: panel.top, width: panel.width },
+                evalRailWidth: evalRail.width,
+                touchTargets: actions.every(node => node.getBoundingClientRect().height >= 44)
+            };
+        });
+        expect(geometry.overflow, JSON.stringify(viewport)).toBeLessThanOrEqual(1);
+        expect(geometry.board.width).toBeGreaterThan(180);
+        expect(geometry.evalRailWidth).toBeGreaterThan(0);
+        expect(geometry.touchTargets).toBe(true);
+        if (viewport.width <= 900) expect(geometry.board.bottom).toBeLessThanOrEqual(geometry.panel.top + 1);
+        else expect(geometry.board.right).toBeLessThanOrEqual(geometry.panel.left + 1);
+    }
+    await page.setViewportSize({ width: 320, height: 568 });
+    const back = page.getByRole('button', { name: 'Back to game result' });
+    await back.focus();
+    await page.keyboard.press('Tab');
+    await expect(summary.getByRole('button', { name: 'Review Game' })).toBeFocused();
+    const axe = await new AxeBuilder({ page }).include('#analyzeSection').analyze();
+    expect(axe.violations.filter(item => ['critical', 'serious'].includes(item.impact))).toEqual([]);
+});
+
+test('Games-origin Analyze retains the generic technical presentation', async ({ page }) => {
+    await page.goto('/play/games?simplified=1');
+    await page.locator('[data-games-primary]').click();
+    await loadPosition(page, positions.checkmateInOne.fen);
+    await playMove(page, positions.checkmateInOne.from, positions.checkmateInOne.to);
+    await page.locator('[data-post-game-action="analyze"]').click();
+    await expect(page.getByRole('dialog', { name: 'Analyze completed game' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Game Info' })).toBeVisible();
+    await expect(page.locator('#analyzeStartBtn')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Critical Moments' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Move evidence' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Analyze completed game' })
+        .getByText('Stockfish 16', { exact: true })).toBeVisible();
+    await expect(page.locator('[data-caissa-coach-review-summary]')).toHaveCount(0);
+    expect(await page.evaluate(() => window.AnalyzeSection.analysisPhase)).toBe('idle');
 });
 
 test('Coach game-over preserves player wins, draws, timeouts, and the existing New Game reset', async ({ page }) => {
