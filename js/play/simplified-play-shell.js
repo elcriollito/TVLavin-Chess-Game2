@@ -1,8 +1,8 @@
 (function (global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.13.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.13.0';
+    const SCHEMA_VERSION = '1.14.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.14.0';
     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'unavailable', 'error']);
     const REGIONS = Object.freeze([
         'mode-navigation', 'board-stage', 'opponent-header', 'evaluation-rail',
@@ -109,7 +109,8 @@
         #suppressedLive = [];
         #layoutMode = null; #geometry = null; #resizeCount = 0; #activationCount = 0; #statusNode = null;
         #gamesPanel = null; #botsPanel = null; #coachPanel = null; #postGame = null;
-        #activeContext = null; #assistance = null; #actionBar = null; #pgnDialog = null; #settingsDialog = null;
+        #activeContext = null; #activeFoot = null; #assistance = null; #actionBar = null; #utilityBar = null;
+        #pgnDialog = null; #settingsDialog = null;
         #settingsTrigger = null;
         #shareDialog = null;
         #stateObserver = null; #panelObserver = null;
@@ -277,7 +278,11 @@
                 button.innerHTML = `<i class="fas ${icon}" aria-hidden="true"></i><span>${label}</span>`;
                 utilityBar.appendChild(button);
             }
-            this.#activeContext.appendChild(utilityBar);
+            this.#utilityBar = utilityBar;
+            this.#activeFoot = element('div', 'caissa-native-coach-panel__foot-content caissa-native-coach-panel__foot-content--active', {
+                'data-caissa-coach-active-foot': ''
+            });
+            this.#activeFoot.append(boardActions, utilityBar);
             boardActions.hidden = true;
             this.#pgnDialog = element('dialog', 'caissa-simplified-shell__pgn-dialog', {
                 'aria-labelledby': `${this.#id}-pgn-title`
@@ -813,7 +818,7 @@
             }
             this.#activeContext.hidden = !active;
             this.#actionBar.hidden = !active;
-            const utilityBar = this.#activeContext.querySelector('[data-active-game-utilities]');
+            const utilityBar = this.#utilityBar;
             if (utilityBar) utilityBar.hidden = !active;
             this.#syncAssistance(active, postGame);
             const coachMode = this.#mode === 'coach';
@@ -843,7 +848,8 @@
                 && ['review-summary', 'guided-review'].includes(coachShellState?.phase);
             if (coachMode && this.#coachPanel && !transientReview) {
                 const content = postGame ? this.#root.querySelector('.caissa-post-game') : active ? this.#activeContext : null;
-                this.#coachPanel.present({ phase: postGame ? 'game-over' : active ? 'active-game' : 'setup', content });
+                const foot = active ? this.#activeFoot : null;
+                this.#coachPanel.present({ phase: postGame ? 'game-over' : active ? 'active-game' : 'setup', content, foot });
             } else if (!coachMode && this.#coachPanel && contextBody) {
                 this.#coachPanel.releasePhaseContent(contextBody);
                 this.#coachPanel.hide();
@@ -859,16 +865,21 @@
             const opponent = this.#root.querySelector('.caissa-simplified-shell__player--opponent');
             const narrator = this.#root.querySelector('[data-active-coach-narrator]');
             const desktopActive = active && this.#root.dataset.layout === 'desktop-split';
+            if (active && coachMode && this.#activeFoot) {
+                if (this.#actionBar.parentNode !== this.#activeFoot) this.#activeFoot.appendChild(this.#actionBar);
+                if (this.#utilityBar?.parentNode !== this.#activeFoot) this.#activeFoot.appendChild(this.#utilityBar);
+                return;
+            }
             if (desktopActive) {
                 if (narrator && boardStage && narrator.parentNode !== boardStage)
                     boardStage.insertBefore(narrator, opponent);
                 if (this.#actionBar.parentNode !== this.#activeContext) this.#activeContext.appendChild(this.#actionBar);
-                const utilityBar = this.#activeContext.querySelector('[data-active-game-utilities]');
-                if (utilityBar) this.#activeContext.appendChild(utilityBar);
+                if (this.#utilityBar) this.#activeContext.appendChild(this.#utilityBar);
                 return;
             }
             if (narrator && boardStage && narrator.parentNode !== boardStage) boardStage.insertBefore(narrator, opponent);
             if (boardStage && this.#actionBar.parentNode !== boardStage) boardStage.appendChild(this.#actionBar);
+            if (this.#utilityBar?.parentNode !== this.#activeContext) this.#activeContext.appendChild(this.#utilityBar);
         }
         #renderCoachBoardAnnotation() {
             const board = this.#root?.querySelector('#chessboard');

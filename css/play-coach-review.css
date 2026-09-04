@@ -211,23 +211,6 @@ body.caissa-simplified-play-active .caissa-play-v2-inline-analyze__close.caissa-
 .caissa-coach-review-summary__action:hover { filter: brightness(1.06); }
 .caissa-coach-review-summary__action:focus-visible,
 .caissa-coach-review-summary__back:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
-.caissa-coach-review-summary > .analyze-board-navigation {
-    grid-template-columns: repeat(5, minmax(44px, 1fr));
-    gap: .45rem;
-    margin-top: -.15rem;
-}
-.caissa-coach-review-summary > .analyze-board-navigation :is(.analyze-study-action, .analyze-engine-toggle) {
-    display: none !important;
-}
-.caissa-coach-review-summary > .analyze-board-navigation .nav-btn-sm {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: auto;
-    min-width: 44px;
-    min-height: 44px;
-}
-
 body.caissa-simplified-play-active .caissa-native-coach-panel__level-picker {
     display: grid;
     grid-column: 1 / -1;
@@ -331,11 +314,11 @@ body.caissa-simplified-play-active .caissa-coach-game-over-context .caissa-post-
     text-transform: uppercase;
 }
 .caissa-coach-game-over__quality-count { margin: 0; color: #fff; font-weight: 800; }
-body.caissa-simplified-play-active .caissa-coach-game-over-context .caissa-post-game__actions {
+body.caissa-simplified-play-active [data-caissa-coach-game-over-foot] .caissa-post-game__actions {
     grid-template-columns: minmax(0, 1fr);
     margin-top: .15rem;
 }
-body[data-caissa-play-v2-entry] .caissa-coach-game-over-context .caissa-post-game__action--secondary {
+body[data-caissa-play-v2-entry] [data-caissa-coach-game-over-foot] .caissa-post-game__action--secondary {
     border-color: var(--panel-border);
     background: #202a38;
     font-size: .95rem;
@@ -363,7 +346,6 @@ body[data-caissa-play-v2-entry] .caissa-coach-game-over-context .caissa-post-gam
     }
     .caissa-coach-review-summary__profile-avatar { width: 4.25rem; height: 4.25rem; }
     .caissa-coach-review-summary__player-avatar { width: 4.25rem; height: 4.25rem; }
-    .caissa-coach-review-summary > .analyze-board-navigation { grid-template-columns: repeat(5, minmax(44px, 1fr)); }
     body.caissa-simplified-play-active .caissa-post-game.caissa-coach-game-over-context {
         width: 100%;
         padding: .85rem;

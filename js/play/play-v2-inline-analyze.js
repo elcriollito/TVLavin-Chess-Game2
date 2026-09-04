@@ -128,7 +128,7 @@
             return result(false, 'unavailable', 'PLAY_COACH_HOST_UNAVAILABLE');
         openState = { section, playSection, closeButton, previous, copyObserver,
             reviewPresentation, viewport, scrollPosition, coachReview,
-            focusRoot: coachReview ? phaseHost : section };
+            focusRoot: coachReview ? (phaseHost.closest?.('[data-caissa-coach-shell]') || phaseHost) : section };
         if (!coachReview && playSection) {
             playSection.inert = true;
             playSection.setAttribute('aria-hidden', 'true');

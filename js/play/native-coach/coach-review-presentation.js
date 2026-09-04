@@ -1,7 +1,7 @@
 (function installCoachReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.3.0';
+    const SCHEMA_VERSION = '1.4.0';
     const QUALITY_ORDER = Object.freeze(['Book', 'Best', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const CLASSIFICATIONS = Object.freeze(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const QUALITY_ICONS = Object.freeze({
@@ -86,7 +86,7 @@
         }));
     }
 
-    function createStructure(host, close, navigation) {
+    function createStructure(host, close) {
         if (!host?.appendChild) return null;
         const panel = element('section', 'caissa-coach-review-summary', {
             'data-caissa-coach-review-shell': '',
@@ -150,6 +150,10 @@
             type: 'button', 'data-coach-review-guided-action': ''
         });
         action.textContent = 'Review Game';
+        const foot = element('div',
+            'caissa-native-coach-panel__foot-content caissa-native-coach-panel__foot-content--review',
+            { 'data-caissa-coach-review-foot': '' });
+        foot.append(action);
         const placeholder = element('div', 'caissa-coach-review-summary__placeholder', {
             'data-coach-review-guided-placeholder': '', role: 'status', tabindex: '-1'
         });
@@ -168,12 +172,11 @@
             mounted.placeholder.focus?.();
         });
 
-        panel.append(header, loading, comparison, action, placeholder);
-        if (navigation) panel.append(navigation);
+        panel.append(header, loading, comparison, placeholder);
         host.append(panel);
         return { panel, close, loading, progressTrack, progressFill, progressText,
             comparison, playerAvatar, playerName, coachName, playerAccuracy, coachAccuracy, table, action, placeholder,
-            navigation };
+            foot };
     }
 
     function displayCount(value) { return value > 0 ? String(value) : '\u2014'; }
@@ -248,10 +251,7 @@
             || !options.handoff?.payload) {
             return result(false, 'rejected', 'INVALID_COACH_REVIEW_CONTEXT');
         }
-        const navigation = section.querySelector('.analyze-board-navigation');
-        const navigationState = navigation
-            ? { parent: navigation.parentNode, next: navigation.nextSibling } : null;
-        const structure = createStructure(host, options.close, navigation);
+        const structure = createStructure(host, options.close);
         if (!structure) return result(false, 'rejected', 'INVALID_PLAY_COACH_HOST');
         if (structure.close) {
             structure.close.textContent = '\u2190 Back';
@@ -259,16 +259,17 @@
             structure.close.classList.add('caissa-coach-review-summary__back');
         }
         const shell = root.CaissaNativeCoachPanel?.present?.({
-            phase: 'review-summary', content: structure.panel, message: 'Reviewing your game...', transient: true });
+            phase: 'review-summary', content: structure.panel, foot: structure.foot,
+            message: 'Reviewing your game...', transient: true });
         if (!shell?.ok) {
             structure.panel.remove();
-            if (navigationState) navigationState.parent?.insertBefore?.(navigation, navigationState.next);
+            structure.foot.remove();
             return result(false, 'rejected', 'COACH_SHELL_UNAVAILABLE');
         }
         structure.panel.dataset.caissaReviewContext = 'coach';
         structure.panel.dataset.coachReviewPhase = 'loading';
         root.document.body?.classList?.add('caissa-coach-review-summary-active');
-        mounted = { section, host, context, handoff: options.handoff, navigationState,
+        mounted = { section, host, context, handoff: options.handoff,
             ...structure, analyze: null, model: null, fingerprint: null, analysisStartRequests: 0, timer: null };
         renderModel({ phase: 'loading', progress: 0, progressText: 'Preparing your review' });
         return result(true, 'accepted', 'COACH_REVIEW_SUMMARY_MOUNTED', getSnapshot());
@@ -295,10 +296,8 @@
     function unmount() {
         if (!mounted) return result(true, 'unchanged', 'ALREADY_UNMOUNTED');
         if (mounted.timer) root.clearInterval(mounted.timer);
-        if (mounted.navigation && mounted.navigationState) {
-            mounted.navigationState.parent?.insertBefore?.(mounted.navigation, mounted.navigationState.next);
-        }
         mounted.panel.remove();
+        mounted.foot.remove();
         root.CaissaNativeCoachPanel?.restorePresentation?.();
         root.document.body?.classList?.remove('caissa-coach-review-summary-active');
         mounted = null;

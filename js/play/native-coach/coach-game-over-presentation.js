@@ -1,7 +1,7 @@
 (function installCoachGameOverPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.1.0';
+    const SCHEMA_VERSION = '1.2.0';
     const OWNER = 'post-game-core';
     const CATEGORY_ORDER = Object.freeze(['blunder', 'mistake', 'inaccuracy', 'best', 'precise', 'good', 'book']);
     const CATEGORY_LABELS = Object.freeze({
@@ -76,7 +76,9 @@
         });
         state.preview.hidden = model.categories.length === 0;
         state.model = model;
-        root.CaissaNativeCoachPanel?.present?.({ phase: 'game-over', content: state.section, message: model.message });
+        root.CaissaNativeCoachPanel?.present?.({
+            phase: 'game-over', content: state.section, foot: state.foot, message: model.message
+        });
         return result(true, 'COACH_GAME_OVER_RENDERED', getSnapshot());
     }
 
@@ -89,12 +91,25 @@
             const reason = section.querySelector('[data-post-game-reason]');
             const summary = section.querySelector('[data-post-game-summary]');
             const actions = [...section.querySelectorAll('[data-post-game-action]')];
-            if (!title || !reason || !summary || !actions.length) return result(false, 'INVALID_POST_GAME_HOST');
+            const actionsContainer = section.querySelector('.caissa-post-game__actions');
+            if (!title || !reason || !summary || !actions.length || !actionsContainer)
+                return result(false, 'INVALID_POST_GAME_HOST');
             const eyebrow = element('p', 'caissa-coach-game-over__eyebrow'); eyebrow.textContent = 'GAME RESULT';
             const preview = element('dl', 'caissa-coach-game-over__qualities', {
                 'data-coach-game-over-qualities': '', 'aria-label': 'Move quality preview'
             });
             section.insertBefore(eyebrow, title); section.insertBefore(preview, summary);
+            const actionsState = { parent: actionsContainer.parentNode, next: actionsContainer.nextSibling };
+            const foot = element('div',
+                'caissa-native-coach-panel__foot-content caissa-native-coach-panel__foot-content--game-over',
+                { 'data-caissa-coach-game-over-foot': '' });
+            foot.appendChild(actionsContainer);
+            const forwardAction = event => {
+                const action = event.target?.closest?.('[data-post-game-action]')?.dataset?.postGameAction;
+                if (!action || !foot.contains(event.target)) return;
+                root.CaissaPostGameExperienceInstance?.execute?.(action);
+            };
+            foot.addEventListener('click', forwardAction);
             const actionStates = actions.map(node => ({ node, hidden: node.hidden, text: node.textContent }));
             actions.forEach(node => {
                 const action = node.dataset.postGameAction;
@@ -108,7 +123,8 @@
             section.classList.add('caissa-coach-game-over-context');
             section.dataset.caissaGameOverContext = 'coach';
             root.document.body?.classList?.add('caissa-coach-game-over-active');
-            mounted = { section, title, reason, eyebrow, preview, actionStates, concealed, model: null };
+            mounted = { section, title, reason, eyebrow, preview, actionsContainer, actionsState,
+                foot, forwardAction, actionStates, concealed, model: null };
         }
         return render(input);
     }
@@ -118,6 +134,9 @@
         if (input.section && input.section !== mounted.section) return result(false, 'POST_GAME_HOST_MISMATCH');
         mounted.actionStates.forEach(item => { item.node.hidden = item.hidden; item.node.textContent = item.text; });
         mounted.concealed.forEach(item => { item.node.hidden = item.hidden; });
+        mounted.foot.removeEventListener('click', mounted.forwardAction);
+        mounted.actionsState.parent?.insertBefore?.(mounted.actionsContainer, mounted.actionsState.next);
+        mounted.foot.remove();
         mounted.eyebrow.remove(); mounted.preview.remove();
         mounted.section.classList.remove('caissa-coach-game-over-context');
         delete mounted.section.dataset.caissaGameOverContext;

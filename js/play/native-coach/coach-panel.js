@@ -1,6 +1,6 @@
 (function installNativeCoachPanel(root) {
     'use strict';
-    const SCHEMA_VERSION = '2.4.0';
+    const SCHEMA_VERSION = '2.7.0';
     const PHASES = Object.freeze(['setup', 'active-game', 'game-over', 'review-summary', 'guided-review']);
     const COLORS = Object.freeze([
         Object.freeze({ value: 'white', label: 'White', symbol: '♚' }),
@@ -21,7 +21,8 @@
 
     class Panel {
         #id = `native-coach-${++sequence}`; #root = null; #host = null; #homeHost = null;
-        #phaseHost = null; #setupContent = null; #phaseContent = new Map(); #phase = 'setup';
+        #phaseHost = null; #footHost = null; #setupContent = null; #setupFoot = null;
+        #phaseContent = new Map(); #phaseFootContent = new Map(); #phase = 'setup';
         #presentationStack = []; #disposed = false; #listeners = [];
         #configuration = { ...root.CaissaNativeCoachConfiguration.defaults };
         #assistance = root.CaissaNativeCoachAssistance.create(); #status = 'ready'; #starts = 0; #helpSequence = 0;
@@ -36,16 +37,18 @@
                 'data-caissa-native-coach-panel': '', 'data-caissa-coach-shell': '',
                 'data-coach-shell-phase': 'setup', 'aria-label': 'Play Coach' });
 
-            const persona = node('div', { class: 'caissa-native-coach-panel__persona',
-                'data-caissa-coach-persistent': '' });
+            const persona = node('div', { class: 'caissa-native-coach-panel__persona caissa-native-coach-panel__head',
+                'data-caissa-coach-persistent': '', 'data-caissa-coach-head': '' });
             const portrait = node('img', { class: 'caissa-native-coach-panel__portrait',
                 src: '/assets/play/caissa-coach-goddess.png', alt: 'Caissa, goddess of chess', width: '512', height: '512' });
             const speech = node('div', { class: 'caissa-native-coach-panel__speech', 'data-coach-narration': '' });
             speech.textContent = root.CaissaNativeCoachDialogue.messages.WELCOME;
             persona.append(portrait, speech);
 
-            const phaseHost = this.#phaseHost = node('div', { class: 'caissa-native-coach-panel__phase',
-                'data-caissa-coach-phase-host': '' });
+            const phaseHost = this.#phaseHost = node('div', { class: 'caissa-native-coach-panel__phase caissa-native-coach-panel__body',
+                'data-caissa-coach-phase-host': '', 'data-caissa-coach-body': '' });
+            const footHost = this.#footHost = node('footer', { class: 'caissa-native-coach-panel__foot',
+                'data-caissa-coach-foot': '', 'aria-label': 'Coach phase actions' });
             const setupContent = this.#setupContent = node('div', { class: 'caissa-native-coach-panel__setup',
                 'data-caissa-coach-phase-content': 'setup' });
             const controls = node('div', { class: 'caissa-native-coach-panel__controls',
@@ -102,8 +105,13 @@
             const help = node('button', { type: 'button', 'data-coach-help': '', hidden: '', disabled: '' }); help.textContent = 'Help';
             const dismiss = node('button', { type: 'button', 'data-coach-dismiss': '', hidden: '', disabled: '' });
             dismiss.textContent = 'Dismiss assistance';
-            setupContent.append(controls, access, premium, action, help, dismiss);
-            phaseHost.appendChild(setupContent); section.append(persona, phaseHost); host.appendChild(section);
+            setupContent.append(controls, access, premium, help, dismiss);
+            const setupFoot = this.#setupFoot = node('div', { class: 'caissa-native-coach-panel__foot-content',
+                'data-caissa-coach-foot-content': 'setup' });
+            setupFoot.appendChild(action);
+            this.#phaseFootContent.set('setup', setupFoot);
+            phaseHost.appendChild(setupContent); footHost.appendChild(setupFoot);
+            section.append(persona, phaseHost, footHost); host.appendChild(section);
             this.#listen(section, 'change', event => this.#change(event));
             this.#listen(showLevels, 'click', () => this.#toggleLevels());
             this.#listen(action, 'click', () => this.submit()); this.#listen(help, 'click', () => this.requestHelp());
@@ -278,17 +286,26 @@
             if (options.transient === true) this.#presentationStack.push({
                 host: this.#root.parentNode, phase: this.#phase,
                 content: this.#phaseContent.get(this.#phase) || null,
+                foot: this.#phaseFootContent.get(this.#phase) || null,
                 message: this.#root.querySelector('[data-coach-narration]')?.textContent || ''
             });
             if (options.host?.appendChild && this.#root.parentNode !== options.host) options.host.appendChild(this.#root);
             const content = options.content?.nodeType === 1 ? options.content : null;
+            const foot = options.foot?.nodeType === 1 ? options.foot : null;
             if (content) {
                 this.#phaseContent.set(phase, content);
                 content.setAttribute('data-caissa-coach-phase-content', phase);
                 if (content.parentNode !== this.#phaseHost) this.#phaseHost.appendChild(content);
             }
+            if (foot) {
+                this.#phaseFootContent.set(phase, foot);
+                foot.setAttribute('data-caissa-coach-foot-content', phase);
+                if (foot.parentNode !== this.#footHost) this.#footHost.appendChild(foot);
+            }
             this.#setupContent.hidden = phase !== 'setup';
             this.#phaseContent.forEach((item, key) => { item.hidden = key !== phase; });
+            this.#phaseFootContent.forEach((item, key) => { item.hidden = key !== phase; });
+            this.#footHost.hidden = !this.#phaseFootContent.has(phase);
             this.#phase = phase;
             this.#root.dataset.coachShellPhase = phase;
             this.#root.setAttribute('aria-label', `Play Coach ${phase.replaceAll('-', ' ')}`);
@@ -299,12 +316,21 @@
         restorePresentation() {
             const previous = this.#presentationStack.pop();
             if (!previous) return result(false, 'NO_COACH_PRESENTATION_TO_RESTORE');
-            return this.present({ ...previous, phase: previous.phase, content: previous.content, transient: false });
+            return this.present({ ...previous, phase: previous.phase, content: previous.content,
+                foot: previous.foot, transient: false });
         }
         releasePhaseContent(host = this.#homeHost) {
             if (!host?.appendChild) return result(false, 'INVALID_PHASE_RELEASE_HOST');
             this.#phaseContent.forEach(item => { if (item.parentNode === this.#phaseHost) host.appendChild(item); });
             this.#phaseContent.clear();
+            this.#phaseFootContent.forEach((item, key) => {
+                if (key !== 'setup' && item.parentNode === this.#footHost) host.appendChild(item);
+            });
+            this.#phaseFootContent.clear();
+            this.#phaseFootContent.set('setup', this.#setupFoot);
+            if (this.#setupFoot.parentNode !== this.#footHost) this.#footHost.appendChild(this.#setupFoot);
+            this.#setupFoot.hidden = false;
+            this.#footHost.hidden = false;
             this.#setupContent.hidden = false;
             this.#phase = 'setup';
             this.#root.dataset.coachShellPhase = 'setup';
@@ -329,6 +355,8 @@
             shell: { owner: 'CaissaNativeCoachPanel', phase: this.#phase,
                 persistentAvatarCount: this.#root?.querySelectorAll?.('[data-caissa-coach-persistent] img').length || 0,
                 phaseContentCount: this.#phaseHost?.children?.length || 0,
+                structuralRegionCount: this.#root?.querySelectorAll?.(':scope > [data-caissa-coach-head], :scope > [data-caissa-coach-body], :scope > [data-caissa-coach-foot]').length || 0,
+                footPhase: this.#footHost?.querySelector?.('[data-caissa-coach-foot-content]:not([hidden])')?.getAttribute('data-caissa-coach-foot-content') || null,
                 transientDepth: this.#presentationStack.length } }); }
         dispose() { if (activePanel === this) activePanel = null;
             this.#listeners.splice(0).forEach(item => item.target.removeEventListener(item.type, item.handler));

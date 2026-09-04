@@ -726,6 +726,11 @@ body.caissa-simplified-play-active .caissa-simplified-shell__active-opening {
     line-height: 1.4;
 }
 
+body.caissa-simplified-play-active .caissa-simplified-shell[data-mode="coach"]
+    [data-caissa-coach-body] .caissa-simplified-shell__active-opening {
+    padding-inline-end: 9.5rem;
+}
+
 body.caissa-simplified-play-active .caissa-simplified-shell__reference-tools {
     display: flex;
     justify-content: flex-end;
@@ -1024,7 +1029,8 @@ body.caissa-simplified-play-active .caissa-native-coach-panel {
     display: flex;
     flex-direction: column;
     align-content: flex-start;
-    height: auto;
+    flex: 1 1 auto;
+    height: 100%;
     max-height: 100%;
     min-height: 0;
     color: var(--play-theme-text, var(--text-primary));
@@ -1069,7 +1075,7 @@ body.caissa-simplified-play-active .caissa-native-coach-panel__speech {
 
 body.caissa-simplified-play-active .caissa-native-coach-panel__phase {
     display: flex;
-    flex: 0 1 auto;
+    flex: 1 1 auto;
     flex-direction: column;
     min-height: 0;
     margin-top: .65rem;
@@ -1079,6 +1085,26 @@ body.caissa-simplified-play-active .caissa-native-coach-panel__phase {
     overflow-x: hidden;
     overscroll-behavior: contain;
     scrollbar-gutter: stable;
+}
+
+body.caissa-simplified-play-active .caissa-native-coach-panel__foot {
+    display: block;
+    flex: 0 0 auto;
+    min-height: 0;
+    margin-top: .65rem;
+    padding-top: .65rem;
+    border-top: 1px solid color-mix(in srgb, var(--coach-gold) 28%, var(--panel-border));
+}
+
+body.caissa-simplified-play-active .caissa-native-coach-panel__foot-content {
+    display: grid;
+    gap: .55rem;
+    width: 100%;
+}
+
+body.caissa-simplified-play-active .caissa-native-coach-panel__foot-content > .caissa-simplified-shell__board-actions,
+body.caissa-simplified-play-active .caissa-native-coach-panel__foot-content > .caissa-simplified-shell__utility-bar {
+    width: 100%;
 }
 
 body.caissa-simplified-play-active .caissa-native-coach-panel__phase > [data-caissa-coach-phase-content]:not([hidden]) {
@@ -1211,7 +1237,7 @@ body.caissa-simplified-play-active .caissa-native-coach-panel__premium {
 }
 
 @media (max-width: 420px) {
-    body.caissa-simplified-play-active .caissa-native-coach-panel { min-height: 0; }
+    body.caissa-simplified-play-active .caissa-native-coach-panel { flex: 0 0 auto; height: auto; min-height: 0; }
     body.caissa-simplified-play-active .caissa-native-coach-panel__persona {
         grid-template-columns: 96px minmax(0, 1fr);
         min-height: 150px;
