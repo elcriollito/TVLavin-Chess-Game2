@@ -78,6 +78,14 @@ test('Endgame Library uses the standard sidebar shell and keeps its content cont
   }
 });
 
+test('Game Library uses the standard sidebar shell without a Classic host', () => {
+  const page = load(read('game-library.html'));
+  assert.equal(page('.caissa-standalone-layout').length, 1);
+  assert.equal(page('[data-caissa-standalone-sidebar][data-active="library"]').length, 1);
+  assert.equal(page('#game-library-main.caissa-standalone-content').length, 1);
+  assert.equal(page('#yahooClassicSection, #yc-classic-root, iframe').length, 0);
+});
+
 test('About reuses its approved destination inside the standard shell', () => {
   const page = load(read('about.html'));
   assert.equal(page('[data-caissa-standalone-sidebar][data-active="about"]').length, 1);
@@ -109,7 +117,7 @@ test('explicit section routing remains ahead of the Classic default', () => {
 
 test('all standalone shell pages load the canonical source before the renderer', () => {
   const pages = [
-    'endgame-library.html', 'about.html', 'help.html', 'eco.html', 'opening-database.html',
+    'endgame-library.html', 'game-library.html', 'about.html', 'help.html', 'eco.html', 'opening-database.html',
     'polyglot.html', 'vault.html', 'blog/index.html', 'playchess.html', 'fritz.html', 'tactics.html', 'live-blitz.html',
     'live-tournaments.html', 'lichess-tv.html', 'lichess-broadcasts.html', 'pgn-replayer.html'
   ];

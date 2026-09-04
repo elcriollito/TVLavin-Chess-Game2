@@ -13,7 +13,7 @@ const publicEntrypoints = [
   'blog/who-is-caissa-goddess-of-chess/index.html',
   'blog/yahoo-chess-spirit-caissa-classic/index.html',
   'eco.html', 'database.html', 'opening-database.html', 'polyglot.html', 'vault.html',
-  'premium.html', 'roadmap.html', 'signin.html', 'signup.html', 'library.html',
+  'premium.html', 'roadmap.html', 'signin.html', 'signup.html', 'library.html', 'game-library.html',
   'endgame-library.html', 'endgame-trainer.html', 'endgame-practice.html',
   'play-v2-public-beta.html'
 ];
