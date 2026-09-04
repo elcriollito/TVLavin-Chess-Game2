@@ -45,3 +45,11 @@ test('primary Coach choices remain vertically stacked at every breakpoint', () =
     assert.doesNotMatch(css, /caissa-native-coach-panel__featured-levels[^}]*repeat\(3/);
     assert.doesNotMatch(css, /@media[\s\S]*caissa-native-coach-panel__featured-levels[^}]*grid-template-columns:\s*(?:repeat\(|[^;]*fr\s+[^;]*fr)/);
 });
+
+test('expanded Coach levels use compact full-width rows in one vertical stack', () => {
+    const css = read('css/play-coach-review.css');
+    const expandedRule = css.match(/\.caissa-native-coach-panel__more-levels\s*\{[^}]+\}/)?.[0] || '';
+    assert.match(expandedRule, /display:\s*flex/);
+    assert.match(expandedRule, /flex-direction:\s*column/);
+    assert.doesNotMatch(css, /caissa-native-coach-panel__more-levels[^}]*grid-template-columns/);
+});

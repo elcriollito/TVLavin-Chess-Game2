@@ -73,6 +73,21 @@ test('Coach setup is keyboard accessible, responsive, and serious-violation free
     await panel.getByLabel('Random').focus();
     await page.keyboard.press('Space');
     await expect(panel.getByLabel('Random')).toBeChecked();
+    await panel.getByRole('button', { name: 'Show All Levels ↓' }).click();
+    await expect(panel.getByLabel('Grandmaster')).toBeVisible();
+    await page.setViewportSize({ width: 1440, height: 600 });
+    await expect.poll(() => page.locator('.caissa-simplified-shell').getAttribute('data-layout')).toBe('constrained-height');
+    const scrollState = await page.locator('.caissa-simplified-shell__context').evaluate(element => ({
+        overflowY: getComputedStyle(element).overflowY,
+        clientHeight: element.clientHeight,
+        scrollHeight: element.scrollHeight
+    }));
+    expect(scrollState.overflowY).toBe('auto');
+    expect(scrollState.scrollHeight).toBeGreaterThan(scrollState.clientHeight);
+    await page.locator('.caissa-simplified-shell__context').evaluate(element => { element.scrollTop = element.scrollHeight; });
+    await expect(panel.getByRole('button', { name: 'Play' })).toBeVisible();
+    await panel.getByRole('button', { name: 'Show Fewer Levels ↑' }).click();
+    await page.setViewportSize({ width: 320, height: 568 });
     await panel.getByRole('button', { name: 'Play' }).focus();
     expect(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle)).not.toBe('none');
     const axe = await new AxeBuilder({ page }).include('[data-caissa-native-coach-panel]').analyze();
