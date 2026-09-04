@@ -63,7 +63,28 @@
 
 :is(.caissa-standalone-sidebar-host, .caissa-application-sidebar-host, .caissa-trainer-sidebar-host) .nav-label {
     min-width: 0;
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
+}
+
+:is(.caissa-standalone-sidebar-host, .caissa-application-sidebar-host, .caissa-trainer-sidebar-host) .nav-premium-btn {
+    flex-wrap: wrap;
+}
+
+:is(.caissa-standalone-sidebar-host, .caissa-application-sidebar-host, .caissa-trainer-sidebar-host) .nav-premium-btn .nav-label {
+    flex: 0 0 auto;
+}
+
+:is(.caissa-standalone-sidebar-host, .caissa-application-sidebar-host, .caissa-trainer-sidebar-host) .nav-premium-badge {
+    min-width: min-content;
+    flex: 0 1 auto;
+    line-height: 1.15;
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
 }
 
 :is(.caissa-standalone-sidebar-host, .caissa-application-sidebar-host, .caissa-trainer-sidebar-host) .nav-item[aria-current="page"] {
@@ -546,7 +567,9 @@
         visibility: visible;
         transform: none;
         white-space: normal;
-        overflow-wrap: anywhere;
+        overflow-wrap: normal;
+        word-break: normal;
+        hyphens: none;
     }
 
     .caissa-application-sidebar-host.nav-open.nav-collapsed .caissa-shared-sidebar .nav-premium-badge,

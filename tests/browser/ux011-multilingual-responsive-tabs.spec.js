@@ -73,7 +73,12 @@ test('QA-only 40 percent text expansion remains readable at effective panel widt
         await page.goto('/play');
         await page.locator('[data-shell-mode]').evaluateAll(tabs => tabs.forEach(tab => {
             const source = tab.textContent.trim();
-            tab.textContent = `${source} ${'W'.repeat(Math.ceil(source.length * .4))}`;
+            const words = source.split(/\s+/u);
+            let suffix = '';
+            for (let index = 0; suffix.length < Math.ceil(source.length * .4); index += 1) {
+                suffix += ` ${words[index % words.length]}`;
+            }
+            tab.textContent = `${source}${suffix}`;
             tab.dataset.qaExpandedLabel = 'true';
         }));
         expectBounded(await tabGeometry(page), `pseudo-expanded /play ${width}px`);

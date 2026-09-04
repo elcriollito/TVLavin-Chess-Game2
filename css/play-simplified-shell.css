@@ -357,8 +357,9 @@ body.caissa-simplified-play-active .caissa-simplified-shell__mode {
     line-height: 1.15;
     text-align: center;
     white-space: normal;
-    overflow-wrap: break-word;
-    hyphens: auto;
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
     text-wrap: balance;
 }
 

@@ -1,6 +1,6 @@
 # Portuguese localization checkpoint
 
-Status: **PENDING PHYSICAL CERTIFICATION**
+Status: **PENDING FINAL PHYSICAL CERTIFICATION**
 
 ## Identity
 
@@ -8,9 +8,16 @@ Status: **PENDING PHYSICAL CERTIFICATION**
 - Public native name: **Português**
 - Catalog: 446 keys, with exact EN/ES/PT parity
 - Checkpoint commit: `feat(i18n): add complete portuguese localization`
-- Preview: assigned after the GL-002 checkpoint deployment
+- Visual-polish checkpoint: `fix(i18n): prevent mid-word breaks in multilingual ui`
+- Preview: assigned after the GL-002.1 checkpoint deployment
 
-This file records a freeze candidate. Portuguese is not `FROZEN / APPROVED` until Alexander completes physical certification.
+This file records a freeze candidate. Portuguese is not `FROZEN / APPROVED` until Alexander completes final physical certification.
+
+## Physical certification result
+
+Alexander physically confirmed that the Portuguese infrastructure, navigation, authentication, Play setup, and representative chess terminology work correctly. The remaining finding was responsive word fragmentation rather than a linguistic defect.
+
+GL-002.1 replaces arbitrary mid-word breaks in Play mode tabs and shared navigation controls with natural wrapping at spaces. `Premium` remains whole, while `Melhorar plano` may occupy two lines without splitting either word. The policy is locale-neutral and applies equally to English, Spanish, Portuguese, and future languages.
 
 ## Certified surfaces
 
@@ -48,9 +55,11 @@ Two legitimate dynamic keys were added to EN, ES, and PT: `pgn.resultTemplate` a
 - Effective desktop panel with expanded and compact sidebar
 - Chromium and WebKit
 - UX-011 pseudo-expanded copy regression
+- Whole-word geometry checks for Play tabs, authentication labels, Premium, and the upgrade badge
+- Narrow effective desktop panels and locale-neutral 40% pseudo-expansion
 
 ## Exceptions and next action
 
 No visible English fallback is accepted on the certified Portuguese surfaces. Proper names and the established terms listed above are intentional exceptions. French, German, Russian, and Hindi have not been started.
 
-Alexander must physically certify the GL-002 Preview before this status can become `FROZEN / APPROVED` and before GL-003 begins.
+Alexander must complete final physical certification of the GL-002.1 Preview before this status can become `FROZEN / APPROVED` and before GL-003 begins.
