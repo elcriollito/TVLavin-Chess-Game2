@@ -1,7 +1,7 @@
 (function installCoachGameOverPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
     const OWNER = 'post-game-core';
     const CATEGORY_ORDER = Object.freeze(['blunder', 'mistake', 'inaccuracy', 'best', 'precise', 'good', 'book']);
     const CATEGORY_LABELS = Object.freeze({
@@ -67,7 +67,6 @@
         const model = modelResult.value; const state = mounted;
         state.title.textContent = model.title;
         state.reason.textContent = model.reason;
-        state.message.textContent = model.message;
         state.preview.replaceChildren();
         model.categories.forEach(category => {
             const item = element('div', 'caissa-coach-game-over__quality');
@@ -77,6 +76,7 @@
         });
         state.preview.hidden = model.categories.length === 0;
         state.model = model;
+        root.CaissaNativeCoachPanel?.present?.({ phase: 'game-over', content: state.section, message: model.message });
         return result(true, 'COACH_GAME_OVER_RENDERED', getSnapshot());
     }
 
@@ -91,16 +91,10 @@
             const actions = [...section.querySelectorAll('[data-post-game-action]')];
             if (!title || !reason || !summary || !actions.length) return result(false, 'INVALID_POST_GAME_HOST');
             const eyebrow = element('p', 'caissa-coach-game-over__eyebrow'); eyebrow.textContent = 'GAME RESULT';
-            const identity = element('div', 'caissa-coach-game-over__identity');
-            const avatar = element('img', 'caissa-coach-game-over__avatar', {
-                src: '/assets/play/caissa-coach-goddess.png', alt: 'Caissa, goddess of chess', width: '512', height: '512'
-            });
-            const message = element('p', 'caissa-coach-game-over__message', { 'data-coach-game-over-message': '' });
-            identity.append(avatar, message);
             const preview = element('dl', 'caissa-coach-game-over__qualities', {
                 'data-coach-game-over-qualities': '', 'aria-label': 'Move quality preview'
             });
-            section.insertBefore(eyebrow, title); section.insertBefore(identity, summary); section.insertBefore(preview, summary);
+            section.insertBefore(eyebrow, title); section.insertBefore(preview, summary);
             const actionStates = actions.map(node => ({ node, hidden: node.hidden, text: node.textContent }));
             actions.forEach(node => {
                 const action = node.dataset.postGameAction;
@@ -114,7 +108,7 @@
             section.classList.add('caissa-coach-game-over-context');
             section.dataset.caissaGameOverContext = 'coach';
             root.document.body?.classList?.add('caissa-coach-game-over-active');
-            mounted = { section, title, reason, eyebrow, identity, message, preview, actionStates, concealed, model: null };
+            mounted = { section, title, reason, eyebrow, preview, actionStates, concealed, model: null };
         }
         return render(input);
     }
@@ -124,7 +118,7 @@
         if (input.section && input.section !== mounted.section) return result(false, 'POST_GAME_HOST_MISMATCH');
         mounted.actionStates.forEach(item => { item.node.hidden = item.hidden; item.node.textContent = item.text; });
         mounted.concealed.forEach(item => { item.node.hidden = item.hidden; });
-        mounted.eyebrow.remove(); mounted.identity.remove(); mounted.preview.remove();
+        mounted.eyebrow.remove(); mounted.preview.remove();
         mounted.section.classList.remove('caissa-coach-game-over-context');
         delete mounted.section.dataset.caissaGameOverContext;
         root.document.body?.classList?.remove('caissa-coach-game-over-active');

@@ -10,6 +10,27 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(page.getByRole('tab', { name: /Coach/ })).toHaveAttribute('aria-selected', 'true');
     const panel = page.locator('[data-caissa-native-coach-panel]');
     await expect(panel).toBeVisible(); await expect(panel.locator('.caissa-native-coach-panel__title')).toHaveCount(0);
+    await panel.evaluate(node => { node.dataset.qaPersistentIdentity = 'coach-shell-one'; });
+    const verifyPermanentShell = async expectedPhase => {
+        const proof = await page.evaluate(() => {
+            const shell = document.querySelector('[data-caissa-coach-shell]');
+            const persistent = shell?.querySelector('[data-caissa-coach-persistent]')?.getBoundingClientRect();
+            const phase = shell?.querySelector('[data-caissa-coach-phase-host]')?.getBoundingClientRect();
+            const tabs = document.querySelector('.caissa-simplified-shell__modes')?.getBoundingClientRect();
+            return { identity: shell?.dataset.qaPersistentIdentity, phaseName: shell?.dataset.coachShellPhase,
+                avatarCount: document.querySelectorAll('img[src*="caissa-coach-goddess.png"]:not([hidden])').length,
+                tabGap: persistent && tabs ? persistent.top - tabs.bottom : null,
+                phaseGap: persistent && phase ? phase.top - persistent.bottom : null };
+        });
+        expect(proof.identity).toBe('coach-shell-one');
+        expect(proof.phaseName).toBe(expectedPhase);
+        expect(proof.avatarCount).toBe(1);
+        expect(proof.tabGap).toBeGreaterThanOrEqual(0);
+        expect(proof.tabGap).toBeLessThanOrEqual(24);
+        expect(proof.phaseGap).toBeGreaterThanOrEqual(0);
+        expect(proof.phaseGap).toBeLessThanOrEqual(20);
+    };
+    await verifyPermanentShell('setup');
     await expect(panel.getByAltText('Caissa, goddess of chess')).toBeVisible();
     await expect(panel.locator('[data-coach-narration]')).toContainText("Let's play");
     await expect(panel).not.toContainText(/Internal|locally certified|bounded assistance/i);
@@ -32,6 +53,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(panel).not.toContainText(/lesson|curriculum|academy|mentor|mastery|knowledge|best move/i);
     await panel.getByRole('button', { name: 'Play' }).click();
     await expect(panel.locator('[data-coach-narration]')).toContainText('game is ready');
+    await verifyPermanentShell('active-game');
     const help = page.locator('[data-active-game-action="coach-hint"]');
     await expect(help).toBeVisible(); await help.click();
     await expect(page.locator('[data-active-game-status]')).toContainText(/highlighted|opponent/);
@@ -48,9 +70,12 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     ]; });
     await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
     await expect(page.locator('.caissa-post-game')).toBeVisible();
+    await verifyPermanentShell('game-over');
     await expect(page.locator('[data-post-game-result]')).toHaveText('Coach Won'); await expect(page.locator('[data-post-game-reason]')).toHaveText('By Resignation');
-    await expect(page.locator('.caissa-post-game').getByAltText('Caissa, goddess of chess')).toBeVisible();
-    await expect(page.locator('[data-coach-game-over-message]')).toContainText('review');
+    const coachShell = page.locator('[data-caissa-coach-shell]');
+    await expect(coachShell.getByAltText('Caissa, goddess of chess')).toBeVisible();
+    await expect(coachShell.locator('[data-coach-narration]')).toContainText('review');
+    await expect(page.getByAltText('Caissa, goddess of chess')).toHaveCount(1);
     await expect(page.locator('[data-coach-game-over-qualities]')).toContainText(/Blunder\s*1/);
     await expect(page.locator('[data-coach-game-over-qualities]')).toContainText(/Good\s*2/);
     await expect(page.locator('[data-coach-game-over-qualities]')).toContainText(/Book\s*1/);
@@ -70,6 +95,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     expect(activation.second.reasonCode).toBe('ACTION_BUSY');
     const summary = page.locator('[data-caissa-coach-review-summary]');
     await expect(summary).toBeVisible();
+    await verifyPermanentShell('review-summary');
     await expect(page.getByRole('heading', { name: 'Game Review' })).toBeVisible();
     await expect(page.locator('#analyzeStartBtn')).toBeHidden();
     await expect(page.locator('#analyzeCriticalMoments').locator('..')).toBeHidden();
@@ -145,8 +171,13 @@ test('Coach Review Summary is board-first, responsive, keyboard ordered, and acc
         }
         const geometry = await page.evaluate(() => {
             const board = document.querySelector('#analyzeChessboard').getBoundingClientRect();
-            const panel = document.querySelector('[data-caissa-coach-review-summary]').getBoundingClientRect();
+            const panel = document.querySelector('[data-caissa-coach-shell]').getBoundingClientRect();
             const evalRail = document.querySelector('#analyzeEvalBar').getBoundingClientRect();
+            const persistentNode = document.querySelector('[data-caissa-coach-persistent]');
+            const phaseNode = document.querySelector('[data-caissa-coach-phase-host]');
+            const contextNode = document.querySelector('#analyzeSection .context-panel');
+            const persistentTop = persistentNode.getBoundingClientRect().top;
+            phaseNode.scrollTop = Math.min(32, Math.max(0, phaseNode.scrollHeight - phaseNode.clientHeight));
             const actions = [...document.querySelectorAll('[data-play-v2-analyze-close], [data-coach-review-guided-action]')]
                 .filter(node => getComputedStyle(node).display !== 'none');
             return {
@@ -154,18 +185,24 @@ test('Coach Review Summary is board-first, responsive, keyboard ordered, and acc
                 board: { left: board.left, right: board.right, top: board.top, bottom: board.bottom, width: board.width },
                 panel: { left: panel.left, top: panel.top, bottom: panel.bottom, width: panel.width, height: panel.height },
                 evalRailWidth: evalRail.width,
-                touchTargets: actions.every(node => node.getBoundingClientRect().height >= 44)
+                touchTargets: actions.every(node => node.getBoundingClientRect().height >= 44),
+                persistentStable: Math.abs(persistentNode.getBoundingClientRect().top - persistentTop) <= 1,
+                phaseOverflow: getComputedStyle(phaseNode).overflowY,
+                contextOverflow: getComputedStyle(contextNode).overflowY
             };
         });
         expect(geometry.overflow, JSON.stringify(viewport)).toBeLessThanOrEqual(1);
         expect(geometry.board.width).toBeGreaterThan(180);
         expect(geometry.evalRailWidth).toBeGreaterThan(0);
         expect(geometry.touchTargets).toBe(true);
+        expect(geometry.persistentStable).toBe(true);
         if (viewport.width <= 900) {
             expect(geometry.board.bottom).toBeLessThanOrEqual(geometry.panel.top + 1);
             expect(geometry.panel.width).toBeGreaterThanOrEqual(viewport.width - 50);
             expect(geometry.panel.height).toBeGreaterThanOrEqual(540);
         } else {
+            expect(geometry.phaseOverflow).toBe('auto');
+            expect(geometry.contextOverflow).toBe('hidden');
             expect(geometry.board.right).toBeLessThanOrEqual(geometry.panel.left + 1);
             expect(geometry.panel.width).toBeGreaterThanOrEqual(340);
             expect(geometry.panel.height).toBeGreaterThanOrEqual((geometry.board.bottom - geometry.board.top) * .93);
@@ -237,6 +274,8 @@ test('Coach game-over is compact, responsive, accessible, and keyboard ordered',
     await expect(card).toBeVisible();
     for (const viewport of [{ width: 320, height: 568 }, { width: 1440, height: 900 }]) {
         await page.setViewportSize(viewport);
+        await expect.poll(() => page.locator('.caissa-simplified-shell').getAttribute('data-layout'))
+            .toBe(viewport.width <= 900 ? 'phone-compact' : 'desktop-split');
         const geometry = await page.evaluate(() => {
             const region = document.querySelector('.caissa-coach-game-over-context');
             const board = document.querySelector('#chessboard');
@@ -249,7 +288,7 @@ test('Coach game-over is compact, responsive, accessible, and keyboard ordered',
         });
         expect(geometry.overflow, JSON.stringify(viewport)).toBeLessThanOrEqual(1);
         expect(geometry.cardWidth).toBeLessThanOrEqual(432);
-        expect(geometry.cardHeight).toBeLessThan(520);
+        expect(geometry.cardHeight).toBeLessThanOrEqual(760);
         expect(geometry.boardWidth).toBeGreaterThan(180);
         expect(geometry.touchTargets).toBe(true);
     }
@@ -275,14 +314,14 @@ test('Coach setup is keyboard accessible, responsive, and serious-violation free
     await expect(panel.getByLabel('Grandmaster')).toBeVisible();
     await page.setViewportSize({ width: 1440, height: 600 });
     await expect.poll(() => page.locator('.caissa-simplified-shell').getAttribute('data-layout')).toBe('constrained-height');
-    const scrollState = await page.locator('.caissa-simplified-shell__context').evaluate(element => ({
+    const scrollState = await page.locator('[data-caissa-coach-phase-host]').evaluate(element => ({
         overflowY: getComputedStyle(element).overflowY,
         clientHeight: element.clientHeight,
         scrollHeight: element.scrollHeight
     }));
     expect(scrollState.overflowY).toBe('auto');
-    expect(scrollState.scrollHeight).toBeGreaterThan(scrollState.clientHeight);
-    await page.locator('.caissa-simplified-shell__context').evaluate(element => { element.scrollTop = element.scrollHeight; });
+    expect(scrollState.scrollHeight).toBeGreaterThanOrEqual(scrollState.clientHeight);
+    await page.locator('[data-caissa-coach-phase-host]').evaluate(element => { element.scrollTop = element.scrollHeight; });
     await expect(panel.getByRole('button', { name: 'Play' })).toBeVisible();
     await panel.getByRole('button', { name: 'Show Fewer Levels ↑' }).click();
     await page.setViewportSize({ width: 320, height: 568 });

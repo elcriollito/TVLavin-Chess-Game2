@@ -62,7 +62,9 @@ test('static runtime owns no board, Worker, engine, clock, lifecycle, storage, t
 test('Play Coach presentation uses the original Caissa portrait without a redundant inner title', () => {
     const panel = read('js/play/native-coach/coach-panel.js');
     const asset = fs.readFileSync(new URL('../../assets/play/caissa-coach-goddess.png', import.meta.url));
-    assert.match(panel, /aria-label': 'Play Coach setup'/);
+    assert.match(panel, /aria-label': 'Play Coach'/);
+    assert.match(panel, /data-caissa-coach-persistent/);
+    assert.match(panel, /data-caissa-coach-phase-host/);
     assert.doesNotMatch(panel, /textContent = 'Play Coach'/);
     assert.match(panel, /Caissa, goddess of chess/);
     assert.match(panel, /caissa-coach-goddess\.png/);

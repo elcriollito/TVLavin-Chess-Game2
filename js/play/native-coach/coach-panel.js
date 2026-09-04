@@ -1,6 +1,7 @@
 (function installNativeCoachPanel(root) {
     'use strict';
-    const SCHEMA_VERSION = '2.3.0';
+    const SCHEMA_VERSION = '2.4.0';
+    const PHASES = Object.freeze(['setup', 'active-game', 'game-over', 'review-summary', 'guided-review']);
     const COLORS = Object.freeze([
         Object.freeze({ value: 'white', label: 'White', symbol: '♚' }),
         Object.freeze({ value: 'random', label: 'Random', symbol: '?' }),
@@ -19,7 +20,9 @@
         Object.entries(attrs).forEach(([key, value]) => item.setAttribute(key, value)); return item; };
 
     class Panel {
-        #id = `native-coach-${++sequence}`; #root = null; #host = null; #disposed = false; #listeners = [];
+        #id = `native-coach-${++sequence}`; #root = null; #host = null; #homeHost = null;
+        #phaseHost = null; #setupContent = null; #phaseContent = new Map(); #phase = 'setup';
+        #presentationStack = []; #disposed = false; #listeners = [];
         #configuration = { ...root.CaissaNativeCoachConfiguration.defaults };
         #assistance = root.CaissaNativeCoachAssistance.create(); #status = 'ready'; #starts = 0; #helpSequence = 0;
         #dialogue = root.CaissaNativeCoachDialogue.create(); #experience = 'casual'; #color = 'white';
@@ -28,17 +31,23 @@
         mount(options = {}) {
             const host = options.host || options;
             if (this.#disposed || !host?.appendChild) return result(false, 'INVALID_HOST');
-            this.#host = host;
+            this.#host = this.#homeHost = host;
             const section = this.#root = node('section', { class: 'caissa-native-coach-panel',
-                'data-caissa-native-coach-panel': '', 'aria-label': 'Play Coach setup' });
+                'data-caissa-native-coach-panel': '', 'data-caissa-coach-shell': '',
+                'data-coach-shell-phase': 'setup', 'aria-label': 'Play Coach' });
 
-            const persona = node('div', { class: 'caissa-native-coach-panel__persona' });
+            const persona = node('div', { class: 'caissa-native-coach-panel__persona',
+                'data-caissa-coach-persistent': '' });
             const portrait = node('img', { class: 'caissa-native-coach-panel__portrait',
                 src: '/assets/play/caissa-coach-goddess.png', alt: 'Caissa, goddess of chess', width: '512', height: '512' });
             const speech = node('div', { class: 'caissa-native-coach-panel__speech', 'data-coach-narration': '' });
             speech.textContent = root.CaissaNativeCoachDialogue.messages.WELCOME;
             persona.append(portrait, speech);
 
+            const phaseHost = this.#phaseHost = node('div', { class: 'caissa-native-coach-panel__phase',
+                'data-caissa-coach-phase-host': '' });
+            const setupContent = this.#setupContent = node('div', { class: 'caissa-native-coach-panel__setup',
+                'data-caissa-coach-phase-content': 'setup' });
             const controls = node('div', { class: 'caissa-native-coach-panel__controls',
                 role: 'group', 'aria-label': 'Coach game choices' });
             const experience = node('fieldset', { class: 'caissa-native-coach-panel__level-picker' });
@@ -93,7 +102,8 @@
             const help = node('button', { type: 'button', 'data-coach-help': '', hidden: '', disabled: '' }); help.textContent = 'Help';
             const dismiss = node('button', { type: 'button', 'data-coach-dismiss': '', hidden: '', disabled: '' });
             dismiss.textContent = 'Dismiss assistance';
-            section.append(persona, controls, access, premium, action, help, dismiss); host.appendChild(section);
+            setupContent.append(controls, access, premium, action, help, dismiss);
+            phaseHost.appendChild(setupContent); section.append(persona, phaseHost); host.appendChild(section);
             this.#listen(section, 'change', event => this.#change(event));
             this.#listen(showLevels, 'click', () => this.#toggleLevels());
             this.#listen(action, 'click', () => this.submit()); this.#listen(help, 'click', () => this.requestHelp());
@@ -262,6 +272,44 @@
             root.dispatchEvent?.(new CustomEvent('caissa-coach-narration', { detail: { message } }));
         }
         #renderDialogue(outcome) { if (outcome?.ok && outcome.message) this.#render(outcome.message); return outcome; }
+        present(options = {}) {
+            const phase = PHASES.includes(options.phase) ? options.phase : 'setup';
+            if (!this.#root || this.#disposed) return result(false, 'INVALID_COACH_SHELL');
+            if (options.transient === true) this.#presentationStack.push({
+                host: this.#root.parentNode, phase: this.#phase,
+                content: this.#phaseContent.get(this.#phase) || null,
+                message: this.#root.querySelector('[data-coach-narration]')?.textContent || ''
+            });
+            if (options.host?.appendChild && this.#root.parentNode !== options.host) options.host.appendChild(this.#root);
+            const content = options.content?.nodeType === 1 ? options.content : null;
+            if (content) {
+                this.#phaseContent.set(phase, content);
+                content.setAttribute('data-caissa-coach-phase-content', phase);
+                if (content.parentNode !== this.#phaseHost) this.#phaseHost.appendChild(content);
+            }
+            this.#setupContent.hidden = phase !== 'setup';
+            this.#phaseContent.forEach((item, key) => { item.hidden = key !== phase; });
+            this.#phase = phase;
+            this.#root.dataset.coachShellPhase = phase;
+            this.#root.setAttribute('aria-label', `Play Coach ${phase.replaceAll('-', ' ')}`);
+            this.#root.hidden = false;
+            if (typeof options.message === 'string' && options.message.trim()) this.#render(options.message.trim());
+            return result(true, 'COACH_SHELL_PRESENTED', this.getSnapshot());
+        }
+        restorePresentation() {
+            const previous = this.#presentationStack.pop();
+            if (!previous) return result(false, 'NO_COACH_PRESENTATION_TO_RESTORE');
+            return this.present({ ...previous, phase: previous.phase, content: previous.content, transient: false });
+        }
+        releasePhaseContent(host = this.#homeHost) {
+            if (!host?.appendChild) return result(false, 'INVALID_PHASE_RELEASE_HOST');
+            this.#phaseContent.forEach(item => { if (item.parentNode === this.#phaseHost) host.appendChild(item); });
+            this.#phaseContent.clear();
+            this.#setupContent.hidden = false;
+            this.#phase = 'setup';
+            this.#root.dataset.coachShellPhase = 'setup';
+            return result(true, 'COACH_PHASE_CONTENT_RELEASED', this.getSnapshot());
+        }
         show() { if (this.#root) this.#root.hidden = false; return result(true, 'SHOWN'); }
         hide() { this.#assistance.teardown(); if (this.#root) this.#root.hidden = true; return result(true, 'HIDDEN'); }
         reset() {
@@ -277,14 +325,21 @@
             experience: this.#experience, selectedColor: this.#color, configuration: { ...this.#configuration },
             level: root.CaissaNativeCoachLevels.get(this.#experience),
             starts: this.#starts, assistance: this.#assistance.inspect(), dialogue: this.#dialogue.inspect(),
-            entitlement: this.#entitlement.inspect(), primaryAction: 'Play', publicReady: false }); }
+            entitlement: this.#entitlement.inspect(), primaryAction: 'Play', publicReady: false,
+            shell: { owner: 'CaissaNativeCoachPanel', phase: this.#phase,
+                persistentAvatarCount: this.#root?.querySelectorAll?.('[data-caissa-coach-persistent] img').length || 0,
+                phaseContentCount: this.#phaseHost?.children?.length || 0,
+                transientDepth: this.#presentationStack.length } }); }
         dispose() { if (activePanel === this) activePanel = null;
             this.#listeners.splice(0).forEach(item => item.target.removeEventListener(item.type, item.handler));
             this.#assistance.dispose(); this.#dialogue.dispose(); this.#entitlement.dispose();
             this.#root?.remove(); this.#root = null; this.#disposed = true; return true; }
         #listen(target, type, handler) { target.addEventListener(type, handler); this.#listeners.push({ target, type, handler }); }
     }
-    root.CaissaNativeCoachPanel = freeze({ schemaVersion: SCHEMA_VERSION, colors: COLORS,
+    root.CaissaNativeCoachPanel = freeze({ schemaVersion: SCHEMA_VERSION, colors: COLORS, phases: PHASES,
         create: () => { const panel = new Panel(); activePanel = panel; return panel; },
-        getActiveSnapshot: () => activePanel?.getSnapshot?.() || null });
+        getActiveSnapshot: () => activePanel?.getSnapshot?.() || null,
+        present: options => activePanel?.present?.(options) || result(false, 'COACH_SHELL_UNAVAILABLE'),
+        restorePresentation: () => activePanel?.restorePresentation?.() || result(false, 'COACH_SHELL_UNAVAILABLE'),
+        releasePhaseContent: host => activePanel?.releasePhaseContent?.(host) || result(false, 'COACH_SHELL_UNAVAILABLE') });
 })(typeof window !== 'undefined' ? window : globalThis);

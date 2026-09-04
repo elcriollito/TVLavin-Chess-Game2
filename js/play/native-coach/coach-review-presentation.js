@@ -1,7 +1,7 @@
 (function installCoachReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.1.0';
+    const SCHEMA_VERSION = '1.2.0';
     const QUALITY_ORDER = Object.freeze(['Book', 'Best', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const CLASSIFICATIONS = Object.freeze(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const QUALITY_ICONS = Object.freeze({
@@ -105,30 +105,16 @@
         header.append(heading);
         if (close) header.append(close);
 
-        const coachMessage = element('div', 'caissa-coach-review-summary__message');
-        const messageAvatar = element('img', 'caissa-coach-review-summary__message-avatar', {
-            src: '/assets/play/caissa-coach-goddess.png', alt: 'Caissa, goddess of chess', width: '512', height: '512'
-        });
-        const message = element('p', 'caissa-coach-review-summary__message-copy', { 'data-coach-review-message': '' });
-        coachMessage.append(messageAvatar, message);
-
         const loading = element('div', 'caissa-coach-review-summary__loading', {
             'data-coach-review-loading': '', role: 'status', 'aria-live': 'polite'
         });
-        const loadingAvatar = element('img', 'caissa-coach-review-summary__loading-avatar', {
-            src: '/assets/play/caissa-coach-goddess.png', alt: '', width: '512', height: '512'
-        });
-        const loadingTitle = element('strong', 'caissa-coach-review-summary__loading-title');
-        loadingTitle.textContent = 'Reviewing your game...';
-        const loadingCopy = element('p', 'caissa-coach-review-summary__loading-copy');
-        loadingCopy.textContent = 'Looking for the decisions that shaped the game.';
         const progressTrack = element('div', 'caissa-coach-review-summary__progress', {
             role: 'progressbar', 'aria-label': 'Game review progress', 'aria-valuemin': '0', 'aria-valuemax': '100'
         });
         const progressFill = element('span', 'caissa-coach-review-summary__progress-fill');
         progressTrack.append(progressFill);
         const progressText = element('span', 'caissa-coach-review-summary__progress-text');
-        loading.append(loadingAvatar, loadingTitle, loadingCopy, progressTrack, progressText);
+        loading.append(progressTrack, progressText);
 
         const comparison = element('div', 'caissa-coach-review-summary__comparison', {
             'data-coach-review-comparison': ''
@@ -143,9 +129,10 @@
         const playerName = element('span', 'caissa-coach-review-summary__name', { 'data-coach-review-player-name': '' });
         playerProfile.append(playerAvatar, playerRole, playerName);
         const coachProfile = element('div', 'caissa-coach-review-summary__profile');
-        const coachAvatar = element('img', 'caissa-coach-review-summary__profile-avatar', {
-            src: '/assets/play/caissa-coach-goddess.png', alt: 'Caissa Coach', width: '512', height: '512'
+        const coachAvatar = element('span', 'caissa-coach-review-summary__profile-avatar', {
+            role: 'img', 'aria-label': 'Caissa Coach avatar'
         });
+        coachAvatar.textContent = '\u265b';
         const coachRole = element('strong', 'caissa-coach-review-summary__role'); coachRole.textContent = 'Coach';
         const coachName = element('span', 'caissa-coach-review-summary__name', { 'data-coach-review-coach-name': '' });
         coachProfile.append(coachAvatar, coachRole, coachName);
@@ -177,16 +164,15 @@
         action.addEventListener('click', () => {
             if (!mounted) return;
             mounted.comparison.hidden = true;
-            mounted.coachMessage.hidden = true;
             mounted.action.hidden = true;
             mounted.placeholder.hidden = false;
             mounted.section.dataset.coachReviewPhase = 'guided-placeholder';
             mounted.placeholder.focus?.();
         });
 
-        panel.append(header, coachMessage, loading, comparison, action, placeholder);
+        panel.append(header, loading, comparison, action, placeholder);
         contextPanel.append(panel);
-        return { panel, close, coachMessage, message, loading, progressTrack, progressFill, progressText,
+        return { panel, close, loading, progressTrack, progressFill, progressText,
             comparison, playerAvatar, playerName, coachName, playerAccuracy, coachAccuracy, table, action, placeholder };
     }
 
@@ -196,11 +182,11 @@
         if (!mounted || !model) return;
         mounted.section.dataset.coachReviewPhase = model.phase;
         mounted.loading.hidden = model.phase !== 'loading';
-        mounted.coachMessage.hidden = model.phase !== 'summary';
         mounted.comparison.hidden = model.phase !== 'summary';
         mounted.action.hidden = model.phase !== 'summary';
         mounted.placeholder.hidden = true;
         if (model.phase === 'loading') {
+            root.CaissaNativeCoachPanel?.present?.({ phase: 'review-summary', message: 'Reviewing your game...' });
             mounted.progressFill.style.width = `${model.progress}%`;
             mounted.progressTrack.setAttribute('aria-valuenow', String(model.progress));
             mounted.progressText.textContent = model.progressText;
@@ -208,13 +194,14 @@
         }
         if (model.phase === 'unavailable') {
             mounted.loading.hidden = false;
-            mounted.loading.querySelector('.caissa-coach-review-summary__loading-title').textContent = 'Review unavailable';
-            mounted.loading.querySelector('.caissa-coach-review-summary__loading-copy').textContent = 'Your game result is preserved. Return to the result and try again when ready.';
+            root.CaissaNativeCoachPanel?.present?.({ phase: 'review-summary',
+                message: 'Review unavailable. Your game result is preserved.' });
             mounted.progressTrack.hidden = true;
-            mounted.progressText.hidden = true;
+            mounted.progressText.hidden = false;
+            mounted.progressText.textContent = 'Return to the result and try again when ready.';
             return;
         }
-        mounted.message.textContent = model.message;
+        root.CaissaNativeCoachPanel?.present?.({ phase: 'review-summary', message: model.message });
         mounted.playerName.textContent = model.playerLabel;
         mounted.playerAvatar.textContent = model.playerLabel.slice(0, 1).toUpperCase() || 'P';
         mounted.coachName.textContent = model.coachLabel;
@@ -269,10 +256,28 @@
         concealed.forEach(item => { item.node.hidden = true; });
         const structure = createStructure(section);
         if (!structure) return result(false, 'rejected', 'INVALID_ANALYZE_HOST');
+        const tabs = root.document.querySelector('.caissa-simplified-shell__modes');
+        const tabsState = tabs ? { node: tabs, parent: tabs.parentNode, next: tabs.nextSibling } : null;
+        if (tabs) section.querySelector('.context-panel')?.insertBefore(tabs, structure.panel);
         if (structure.close) {
             structure.close.textContent = '\u2190 Back';
             structure.close.setAttribute('aria-label', 'Back to game result');
             structure.close.classList.add('caissa-coach-review-summary__back');
+        }
+        const shell = root.CaissaNativeCoachPanel?.present?.({ host: section.querySelector('.context-panel'),
+            phase: 'review-summary', content: structure.panel, message: 'Reviewing your game...', transient: true });
+        if (!shell?.ok) {
+            concealed.forEach(item => { item.node.hidden = item.hidden; });
+            structure.panel.remove();
+            if (tabsState) tabsState.parent?.insertBefore?.(tabsState.node, tabsState.next);
+            if (structure.close && closeState) {
+                structure.close.textContent = closeState.text;
+                if (closeState.ariaLabel === null) structure.close.removeAttribute('aria-label');
+                else structure.close.setAttribute('aria-label', closeState.ariaLabel);
+                structure.close.className = closeState.className;
+                closeState.parent?.insertBefore?.(structure.close, closeState.next);
+            }
+            return result(false, 'rejected', 'COACH_SHELL_UNAVAILABLE');
         }
         const previousAriaLabel = section.getAttribute('aria-label');
         section.setAttribute('aria-label', 'Coach game review');
@@ -280,7 +285,7 @@
         section.dataset.caissaReviewContext = 'coach';
         section.dataset.coachReviewPhase = 'loading';
         root.document.body?.classList?.add('caissa-coach-review-summary-active');
-        mounted = { section, context, handoff: options.handoff, concealed, closeState, previousAriaLabel,
+        mounted = { section, context, handoff: options.handoff, concealed, closeState, tabsState, previousAriaLabel,
             ...structure, analyze: null, model: null, fingerprint: null, analysisStartRequests: 0, timer: null };
         renderModel({ phase: 'loading', progress: 0, progressText: 'Preparing your review' });
         return result(true, 'accepted', 'COACH_REVIEW_SUMMARY_MOUNTED', getSnapshot());
@@ -316,6 +321,8 @@
             mounted.closeState.parent?.insertBefore?.(mounted.close, mounted.closeState.next);
         }
         mounted.panel.remove();
+        root.CaissaNativeCoachPanel?.restorePresentation?.();
+        if (mounted.tabsState) mounted.tabsState.parent?.insertBefore?.(mounted.tabsState.node, mounted.tabsState.next);
         mounted.section.classList.remove('caissa-coach-review-context');
         delete mounted.section.dataset.caissaReviewContext;
         delete mounted.section.dataset.coachReviewPhase;

@@ -1,8 +1,8 @@
 (function (global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.12.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.12.0';
+    const SCHEMA_VERSION = '1.13.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.13.0';
     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'unavailable', 'error']);
     const REGIONS = Object.freeze([
         'mode-navigation', 'board-stage', 'opponent-header', 'evaluation-rail',
@@ -401,7 +401,7 @@
                 onVisibilityChange: visible => {
                     if (visible) {
                         this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.();
-                        this.#coachPanel?.hide?.();
+                        if (this.#mode !== 'coach') this.#coachPanel?.hide?.();
                     }
                     else this.#syncPanels();
                     this.#syncComposition();
@@ -804,7 +804,8 @@
             const previousState = this.#root.dataset.uiState;
             this.#root.dataset.uiState = state;
             if (active) {
-                this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.(); this.#coachPanel?.hide?.();
+                this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.();
+                if (this.#mode !== 'coach') this.#coachPanel?.hide?.();
             } else if (!postGame) {
                 if (this.#mode === 'games') this.#gamesPanel?.show?.();
                 else if (this.#mode === 'bots') this.#botsPanel?.show?.();
@@ -815,15 +816,9 @@
             const utilityBar = this.#activeContext.querySelector('[data-active-game-utilities]');
             if (utilityBar) utilityBar.hidden = !active;
             this.#syncAssistance(active, postGame);
-            const coachMode = active && this.#mode === 'coach';
+            const coachMode = this.#mode === 'coach';
             const narrator = this.#root.querySelector('[data-active-coach-narrator]');
-            if (narrator) {
-                narrator.hidden = !coachMode;
-                const portraitHost = narrator.querySelector('[data-active-coach-portrait]');
-                const sourcePortrait = this.#root.querySelector('[data-caissa-native-coach-panel] .caissa-native-coach-panel__portrait');
-                if (coachMode && portraitHost && sourcePortrait && !portraitHost.firstChild)
-                    portraitHost.appendChild(sourcePortrait.cloneNode(true));
-            }
+            if (narrator) narrator.hidden = true;
             const assistedMode = active && ['bots', 'coach'].includes(this.#mode);
             for (const action of ['coach-hint', 'coach-undo']) {
                 const button = this.#actionBar.querySelector(`[data-active-game-action="${action}"]`);
@@ -842,6 +837,17 @@
                     ? ({ games: 'Play Game', bots: 'Play Bots', coach: 'Play Coach' }[this.#mode] || 'Game status')
                     : starting ? 'Starting game' : 'Game setup';
             }
+            const contextBody = this.#root.querySelector('.caissa-simplified-shell__context-body');
+            const coachShellState = this.#coachPanel?.getSnapshot?.().shell;
+            const transientReview = (coachShellState?.transientDepth || 0) > 0
+                && ['review-summary', 'guided-review'].includes(coachShellState?.phase);
+            if (coachMode && this.#coachPanel && !transientReview) {
+                const content = postGame ? this.#root.querySelector('.caissa-post-game') : active ? this.#activeContext : null;
+                this.#coachPanel.present({ phase: postGame ? 'game-over' : active ? 'active-game' : 'setup', content });
+            } else if (!coachMode && this.#coachPanel && contextBody) {
+                this.#coachPanel.releasePhaseContent(contextBody);
+                this.#coachPanel.hide();
+            }
             this.#syncActivePlacement(active, coachMode);
             this.#renderActiveNotation();
             this.#syncIdentity();
@@ -854,9 +860,7 @@
             const narrator = this.#root.querySelector('[data-active-coach-narrator]');
             const desktopActive = active && this.#root.dataset.layout === 'desktop-split';
             if (desktopActive) {
-                if (coachMode && narrator && narrator.parentNode !== this.#activeContext)
-                    this.#activeContext.insertBefore(narrator, this.#activeContext.firstChild);
-                else if (!coachMode && narrator && boardStage && narrator.parentNode !== boardStage)
+                if (narrator && boardStage && narrator.parentNode !== boardStage)
                     boardStage.insertBefore(narrator, opponent);
                 if (this.#actionBar.parentNode !== this.#activeContext) this.#activeContext.appendChild(this.#actionBar);
                 const utilityBar = this.#activeContext.querySelector('[data-active-game-utilities]');
