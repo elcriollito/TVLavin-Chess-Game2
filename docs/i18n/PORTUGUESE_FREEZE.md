@@ -1,6 +1,6 @@
 # Portuguese localization checkpoint
 
-Status: **PENDING FINAL PHYSICAL CERTIFICATION**
+Status: **FROZEN / APPROVED**
 
 ## Identity
 
@@ -9,9 +9,16 @@ Status: **PENDING FINAL PHYSICAL CERTIFICATION**
 - Catalog: 446 keys, with exact EN/ES/PT parity
 - Checkpoint commit: `feat(i18n): add complete portuguese localization`
 - Visual-polish checkpoint: `fix(i18n): prevent mid-word breaks in multilingual ui`
-- Preview: assigned after the GL-002.1 checkpoint deployment
+- Approval date: **2026-09-03**
+- Physically certified HEAD: `5fe129bf0b0315a34c79d1908e5e6bde06bb7d7f`
+- Catalogs: **EN 446 / ES 446 / PT 446**
+- Exact parity: **PASS**
+- Physical certification: **PASS**
+- UX-012 mobile navigation: **PASS**
+- GL-002.1 visual polish: **PASS**
+- New regressions: **0**
 
-This file records a freeze candidate. Portuguese is not `FROZEN / APPROVED` until Alexander completes final physical certification.
+Alexander formally approved and froze the Portuguese localization after completing final physical certification.
 
 ## Physical certification result
 
@@ -62,4 +69,12 @@ Two legitimate dynamic keys were added to EN, ES, and PT: `pgn.resultTemplate` a
 
 No visible English fallback is accepted on the certified Portuguese surfaces. Proper names and the established terms listed above are intentional exceptions. French, German, Russian, and Hindi have not been started.
 
-Alexander must complete final physical certification of the GL-002.1 Preview before this status can become `FROZEN / APPROVED` and before GL-003 begins.
+Portuguese is frozen. Later work must not modify the PT catalog or the approved terminology decisions except for:
+
+1. A confirmed bug.
+2. A necessary new shared key, added with exact catalog parity.
+3. A change explicitly authorized by Alexander.
+
+Every future Portuguese change must be documented.
+
+Global Languages expansion is voluntarily paused with English, Spanish, and Portuguese certified. French, German, Russian, and Hindi remain unstarted.
