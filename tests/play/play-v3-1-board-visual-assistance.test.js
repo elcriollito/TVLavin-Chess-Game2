@@ -49,4 +49,6 @@ test('settings dispatch immediate presentation updates and styles define determi
     assert.match(css, /last move < selection < legal target < Coach Hint < quality badge/);
     assert.match(css, /caissa-hide-legal-moves[\s\S]*display: none !important/);
     assert.match(css, /caissa-hide-last-move[\s\S]*display: none !important/);
+    assert.match(css, /\.caissa-board-last-move::before[\s\S]*background: rgba\(235, 180, 39, \.44\)/);
+    assert.match(css, /\.caissa-board-last-move::before[\s\S]*box-shadow: inset 0 0 0 2px rgba\(255, 223, 122, \.72\)/);
 });
