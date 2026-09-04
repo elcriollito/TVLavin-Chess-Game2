@@ -95,8 +95,13 @@ test('boundary integration starts the existing lifecycle once and owns no ply, b
     const inline = read('js/play/play-v2-inline-analyze.js');
     const presentation = read('js/play/native-coach/coach-review-presentation.js');
     assert.match(postGame, /sourceMode[\s\S]*CaissaCoachReviewContext\?\.create/);
-    assert.match(inline, /reviewPresentation\?\.mount\?\.\(\{ section, context: input\.reviewContext, handoff: resolved\.value \}\)/);
+    assert.match(inline, /reviewPresentation\.mount\(\{ section, host: phaseHost, close: closeButton,[\s\S]*context: input\.reviewContext, handoff: resolved\.value \}\)/);
+    assert.match(inline, /if \(!coachReview && playSection\)[\s\S]*playSection\.inert = true/);
+    assert.match(inline, /if \(coachReview\)[\s\S]*reviewPresentation\.mount[\s\S]*else \{[\s\S]*section\.classList\.add\('active', 'caissa-play-v2-inline-analyze'\)/);
     assert.match(inline, /AnalyzeSection\.onEnter[\s\S]*reviewPresentation\?\.begin\?\.\(\{ analyze: root\.AnalyzeSection \}\)/);
+    assert.match(presentation, /createStructure\(host, close, navigation\)[\s\S]*host\.append\(panel\)/);
+    assert.match(presentation, /section\.querySelector\('\.analyze-board-navigation'\)[\s\S]*navigationState/);
+    assert.doesNotMatch(presentation, /contextPanel\.append|tabsState|caissa-coach-review-context/);
     assert.match(presentation, /analysisStartRequests > 0[\s\S]*ANALYSIS_ALREADY_REQUESTED/);
     assert.match(presentation, /options\.analyze\.startAnalysis\(\)/);
     assert.match(presentation, /activePlyOwner: 'AnalyzeSection\.currentMoveIndex'/);

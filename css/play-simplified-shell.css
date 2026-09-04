@@ -1024,7 +1024,8 @@ body.caissa-simplified-play-active .caissa-native-coach-panel {
     display: flex;
     flex-direction: column;
     align-content: flex-start;
-    height: 100%;
+    height: auto;
+    max-height: 100%;
     min-height: 0;
     color: var(--play-theme-text, var(--text-primary));
 }
@@ -1068,7 +1069,7 @@ body.caissa-simplified-play-active .caissa-native-coach-panel__speech {
 
 body.caissa-simplified-play-active .caissa-native-coach-panel__phase {
     display: flex;
-    flex: 1;
+    flex: 0 1 auto;
     flex-direction: column;
     min-height: 0;
     margin-top: .65rem;
@@ -1081,14 +1082,14 @@ body.caissa-simplified-play-active .caissa-native-coach-panel__phase {
 }
 
 body.caissa-simplified-play-active .caissa-native-coach-panel__phase > [data-caissa-coach-phase-content]:not([hidden]) {
-    flex: 1 0 auto;
-    min-height: 100%;
+    flex: 0 0 auto;
+    min-height: 0;
 }
 
 body.caissa-simplified-play-active .caissa-native-coach-panel__setup {
     display: flex;
     flex-direction: column;
-    min-height: 100%;
+    min-height: 0;
 }
 
 body.caissa-simplified-play-active .caissa-native-coach-panel__setup[hidden],

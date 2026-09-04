@@ -1,7 +1,7 @@
 (function installCoachReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.2.0';
+    const SCHEMA_VERSION = '1.3.0';
     const QUALITY_ORDER = Object.freeze(['Book', 'Best', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const CLASSIFICATIONS = Object.freeze(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const QUALITY_ICONS = Object.freeze({
@@ -86,9 +86,8 @@
         }));
     }
 
-    function createStructure(section) {
-        const contextPanel = section.querySelector('.context-panel');
-        if (!contextPanel) return null;
+    function createStructure(host, close, navigation) {
+        if (!host?.appendChild) return null;
         const panel = element('section', 'caissa-coach-review-summary', {
             'data-caissa-coach-review-shell': '',
             'data-caissa-coach-review-summary': '',
@@ -101,7 +100,6 @@
         const title = element('h1', 'caissa-coach-review-summary__title', { id: 'caissa-coach-review-title' });
         title.textContent = 'Game Review';
         heading.append(eyebrow, title);
-        const close = section.querySelector('[data-play-v2-analyze-close]');
         header.append(heading);
         if (close) header.append(close);
 
@@ -166,21 +164,23 @@
             mounted.comparison.hidden = true;
             mounted.action.hidden = true;
             mounted.placeholder.hidden = false;
-            mounted.section.dataset.coachReviewPhase = 'guided-placeholder';
+            mounted.panel.dataset.coachReviewPhase = 'guided-placeholder';
             mounted.placeholder.focus?.();
         });
 
         panel.append(header, loading, comparison, action, placeholder);
-        contextPanel.append(panel);
+        if (navigation) panel.append(navigation);
+        host.append(panel);
         return { panel, close, loading, progressTrack, progressFill, progressText,
-            comparison, playerAvatar, playerName, coachName, playerAccuracy, coachAccuracy, table, action, placeholder };
+            comparison, playerAvatar, playerName, coachName, playerAccuracy, coachAccuracy, table, action, placeholder,
+            navigation };
     }
 
     function displayCount(value) { return value > 0 ? String(value) : '\u2014'; }
 
     function renderModel(model) {
         if (!mounted || !model) return;
-        mounted.section.dataset.coachReviewPhase = model.phase;
+        mounted.panel.dataset.coachReviewPhase = model.phase;
         mounted.loading.hidden = model.phase !== 'loading';
         mounted.comparison.hidden = model.phase !== 'summary';
         mounted.action.hidden = model.phase !== 'summary';
@@ -241,51 +241,34 @@
     function mount(options = {}) {
         if (mounted) return result(true, 'unchanged', 'ALREADY_MOUNTED', getSnapshot());
         const section = options.section;
+        const host = options.host;
         const context = options.context;
-        if (!section?.querySelector || root.CaissaCoachReviewContext?.isCoachReview?.(context) !== true
+        if (!section?.querySelector || !host?.appendChild
+            || root.CaissaCoachReviewContext?.isCoachReview?.(context) !== true
             || !options.handoff?.payload) {
             return result(false, 'rejected', 'INVALID_COACH_REVIEW_CONTEXT');
         }
-        const close = section.querySelector('[data-play-v2-analyze-close]');
-        const closeState = close ? {
-            parent: close.parentNode, next: close.nextSibling, text: close.textContent,
-            ariaLabel: close.getAttribute('aria-label'), className: close.className
-        } : null;
-        const concealed = [...section.querySelectorAll('.context-panel > .panel, .analyze-evidence-panel, .analyze-study-action, .analyze-engine-toggle')]
-            .map(node => ({ node, hidden: node.hidden }));
-        concealed.forEach(item => { item.node.hidden = true; });
-        const structure = createStructure(section);
-        if (!structure) return result(false, 'rejected', 'INVALID_ANALYZE_HOST');
-        const tabs = root.document.querySelector('.caissa-simplified-shell__modes');
-        const tabsState = tabs ? { node: tabs, parent: tabs.parentNode, next: tabs.nextSibling } : null;
-        if (tabs) section.querySelector('.context-panel')?.insertBefore(tabs, structure.panel);
+        const navigation = section.querySelector('.analyze-board-navigation');
+        const navigationState = navigation
+            ? { parent: navigation.parentNode, next: navigation.nextSibling } : null;
+        const structure = createStructure(host, options.close, navigation);
+        if (!structure) return result(false, 'rejected', 'INVALID_PLAY_COACH_HOST');
         if (structure.close) {
             structure.close.textContent = '\u2190 Back';
             structure.close.setAttribute('aria-label', 'Back to game result');
             structure.close.classList.add('caissa-coach-review-summary__back');
         }
-        const shell = root.CaissaNativeCoachPanel?.present?.({ host: section.querySelector('.context-panel'),
+        const shell = root.CaissaNativeCoachPanel?.present?.({
             phase: 'review-summary', content: structure.panel, message: 'Reviewing your game...', transient: true });
         if (!shell?.ok) {
-            concealed.forEach(item => { item.node.hidden = item.hidden; });
             structure.panel.remove();
-            if (tabsState) tabsState.parent?.insertBefore?.(tabsState.node, tabsState.next);
-            if (structure.close && closeState) {
-                structure.close.textContent = closeState.text;
-                if (closeState.ariaLabel === null) structure.close.removeAttribute('aria-label');
-                else structure.close.setAttribute('aria-label', closeState.ariaLabel);
-                structure.close.className = closeState.className;
-                closeState.parent?.insertBefore?.(structure.close, closeState.next);
-            }
+            if (navigationState) navigationState.parent?.insertBefore?.(navigation, navigationState.next);
             return result(false, 'rejected', 'COACH_SHELL_UNAVAILABLE');
         }
-        const previousAriaLabel = section.getAttribute('aria-label');
-        section.setAttribute('aria-label', 'Coach game review');
-        section.classList.add('caissa-coach-review-context');
-        section.dataset.caissaReviewContext = 'coach';
-        section.dataset.coachReviewPhase = 'loading';
+        structure.panel.dataset.caissaReviewContext = 'coach';
+        structure.panel.dataset.coachReviewPhase = 'loading';
         root.document.body?.classList?.add('caissa-coach-review-summary-active');
-        mounted = { section, context, handoff: options.handoff, concealed, closeState, tabsState, previousAriaLabel,
+        mounted = { section, host, context, handoff: options.handoff, navigationState,
             ...structure, analyze: null, model: null, fingerprint: null, analysisStartRequests: 0, timer: null };
         renderModel({ phase: 'loading', progress: 0, progressText: 'Preparing your review' });
         return result(true, 'accepted', 'COACH_REVIEW_SUMMARY_MOUNTED', getSnapshot());
@@ -312,22 +295,11 @@
     function unmount() {
         if (!mounted) return result(true, 'unchanged', 'ALREADY_UNMOUNTED');
         if (mounted.timer) root.clearInterval(mounted.timer);
-        mounted.concealed.forEach(item => { item.node.hidden = item.hidden; });
-        if (mounted.close && mounted.closeState) {
-            mounted.close.textContent = mounted.closeState.text;
-            if (mounted.closeState.ariaLabel === null) mounted.close.removeAttribute('aria-label');
-            else mounted.close.setAttribute('aria-label', mounted.closeState.ariaLabel);
-            mounted.close.className = mounted.closeState.className;
-            mounted.closeState.parent?.insertBefore?.(mounted.close, mounted.closeState.next);
+        if (mounted.navigation && mounted.navigationState) {
+            mounted.navigationState.parent?.insertBefore?.(mounted.navigation, mounted.navigationState.next);
         }
         mounted.panel.remove();
         root.CaissaNativeCoachPanel?.restorePresentation?.();
-        if (mounted.tabsState) mounted.tabsState.parent?.insertBefore?.(mounted.tabsState.node, mounted.tabsState.next);
-        mounted.section.classList.remove('caissa-coach-review-context');
-        delete mounted.section.dataset.caissaReviewContext;
-        delete mounted.section.dataset.coachReviewPhase;
-        if (mounted.previousAriaLabel === null) mounted.section.removeAttribute('aria-label');
-        else mounted.section.setAttribute('aria-label', mounted.previousAriaLabel);
         root.document.body?.classList?.remove('caissa-coach-review-summary-active');
         mounted = null;
         return result(true, 'accepted', 'COACH_REVIEW_SUMMARY_UNMOUNTED');
@@ -339,7 +311,7 @@
             mounted: !!mounted,
             contextId: mounted?.context?.contextId || null,
             sourceMode: mounted?.context?.sourceMode || null,
-            phase: mounted?.section?.dataset?.coachReviewPhase || null,
+            phase: mounted?.panel?.dataset?.coachReviewPhase || null,
             analysisStartRequests: mounted?.analysisStartRequests || 0,
             renderedRows: mounted?.model?.rows?.map(row => row.label) || [],
             activePlyOwner: 'AnalyzeSection.currentMoveIndex'
