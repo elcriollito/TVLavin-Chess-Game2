@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
 import { load } from 'cheerio';
 import {
   buildPolyglotBookFromPgn,
@@ -14,6 +15,16 @@ const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 const canonical = 'https://www.caissa-chess.org/tools/polyglot';
 const title = 'Polyglot Opening Book Creator for Chess Engines | CAISSA';
 const description = 'Turn PGN game files into Polyglot BIN opening books for compatible chess engines, with clear controls for maximum plies, move frequency, side and download.';
+
+function catalogs() {
+  const document = { documentElement: { lang: 'en' }, querySelectorAll: () => [], addEventListener() {} };
+  const window = {
+    document, navigator: { languages: ['en-US'], language: 'en-US' },
+    localStorage: { getItem: () => null, setItem() {} }, dispatchEvent() {}, CustomEvent: class CustomEvent {}
+  };
+  vm.runInNewContext(read('js/caissa-i18n.js'), { window, document });
+  return window.CaissaI18n.catalogs;
+}
 
 test('Polyglot page exposes unique aligned metadata and valid structured data', () => {
   const $ = load(read('polyglot.html'));
@@ -58,6 +69,60 @@ test('Polyglot page provides one H1, accurate guidance and crawlable related lin
   assert.match(visibleText, /uploaded to the CAISSA builder service/);
   assert.equal($('#normalize').length, 0, 'page must not expose a no-op weight option');
   assert.doesNotMatch(visibleText, /works with every chess engine|official Polyglot implementation|guaranteed tournament-ready|convert any PGN/i);
+});
+
+test('Polyglot Help is one independent sibling and every core form control remains in the tool column', () => {
+  const $ = load(read('polyglot.html'));
+  const workspace = $('.polyglot-workspace');
+  const tool = workspace.children('.polyglot-tool-column');
+  const help = workspace.children('.polyglot-help-column');
+
+  assert.equal(workspace.length, 1);
+  assert.equal(tool.length, 1);
+  assert.equal(help.length, 1);
+  assert.equal($('.poly-education').length, 1);
+  assert.equal(tool.find('.poly-education').length, 0, 'Help must not return below the tool');
+  assert.equal(help.find('.poly-education').length, 1);
+  for (const id of ['polyForm', 'pgnFile', 'maxPly', 'minCount', 'side', 'generateBtn', 'buildLog', 'downloadOutputBtn']) {
+    assert.equal(tool.find(`#${id}`).length, 1, id);
+  }
+  assert.equal($('#buildLog').attr('role'), 'log');
+  assert.equal($('#buildLog').attr('aria-live'), 'polite');
+});
+
+test('Polyglot layout uses bounded grid columns and a container-driven stacked fallback', () => {
+  const css = read('css/polyglot-tool.css');
+  assert.match(css, /\.polyglot-workspace\s*\{[^}]*display:\s*grid/s);
+  assert.match(css, /grid-template-columns:\s*minmax\(0,\s*2fr\)\s*minmax\(320px,\s*0\.92fr\)/);
+  assert.match(css, /container-type:\s*inline-size/);
+  assert.match(css, /@container\s*\(max-width:\s*880px\)[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+  assert.match(css, /overflow-x:\s*clip/);
+  assert.doesNotMatch(css, /\.polyglot-help-column[^}]*position:\s*(?:absolute|fixed)/s);
+});
+
+test('Polyglot page and dynamic states have exact EN ES PT catalog parity', () => {
+  const values = catalogs();
+  const keys = Object.fromEntries(['en', 'es', 'pt'].map(locale => [locale, Object.keys(values[locale]).sort()]));
+  assert.equal(keys.en.length, 607);
+  assert.deepEqual(keys.es, keys.en);
+  assert.deepEqual(keys.pt, keys.en);
+  const polyglotKeys = keys.en.filter(key => key.startsWith('polyglot.'));
+  assert.equal(polyglotKeys.length, 63);
+  for (const key of polyglotKeys) {
+    for (const locale of ['en', 'es', 'pt']) assert.ok(values[locale][key], `${locale}:${key}`);
+  }
+  assert.equal(values.es['polyglot.generate'], 'Generar libro de aperturas');
+  assert.equal(values.pt['polyglot.generate'], 'Gerar livro de aberturas');
+  assert.match(values.pt['polyglot.bookCopy'], /Polyglot/);
+});
+
+test('Polyglot client localizes live logs, errors, result summary, metadata, and busy state', () => {
+  const source = read('js/polyglot-tool.js');
+  for (const token of ['i18n?.subscribe', 'renderLog()', 'renderOutputSummary()', 'localizeBuildError', 'polyglot.log.buildFailed', 'polyglot.outputSummary']) {
+    assert.match(source, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), token);
+  }
+  assert.match(source, /generateBtn\.disabled = pending/);
+  assert.match(source, /generateBtn\.setAttribute\('aria-busy'/);
 });
 
 test('Polyglot route is represented once in sitemap and reciprocal link is present', () => {
