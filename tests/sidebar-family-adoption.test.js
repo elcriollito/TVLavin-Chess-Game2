@@ -30,12 +30,12 @@ test('application, Classic, Play, and Trainer adopt the shared sidebar family', 
     assert.deepEqual($('.nav-group-heading').slice(0, 4).map((_, el) => $(el).text().trim()).get(), expectedHeadings, file);
     assert.deepEqual($('[data-caissa-primary-groups] .nav-item .nav-label').map((_, el) => $(el).text().trim()).get(), expectedLabels, file);
     assert.equal($('[data-caissa-primary-groups] .nav-label').filter((_, el) => $(el).text().trim() === 'Settings').length, 0, file);
-    assert.equal($('[data-caissa-primary-support] .nav-label').map((_, el) => $(el).text().trim()).get().join('|'), 'Help|About', file);
+    assert.equal($('[data-caissa-primary-support] .nav-label').map((_, el) => $(el).text().trim()).get().join('|'), 'Support CAISSA|Help|About', file);
   }
 });
 
-test('fallbacks are deterministic and generated from the canonical 1.12.0 contract', async () => {
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.12.0');
+test('fallbacks are deterministic and generated from the canonical 1.13.0 contract', async () => {
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.13.0');
   assert.equal(expectedLabels.length, 34);
   assert.deepEqual(Array.from(navigation.inventory.primary.slice(-2), item => item.label), ['Vault', 'Blog']);
   assert.deepEqual(Array.from(navigation.inventory.connect, item => item.label), ['Facebook', 'CAISSA Chess YouTube', 'CAISSA Discord', 'Share an Idea / Contact & Feedback']);

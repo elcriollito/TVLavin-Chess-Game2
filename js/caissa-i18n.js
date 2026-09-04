@@ -752,8 +752,60 @@
         })
     });
 
+    const supportCatalogs = Object.freeze({
+        en: Object.freeze({
+            'nav.item.support': 'Support CAISSA',
+            'support.metaTitle': 'Support CAISSA | CAISSA Chess',
+            'support.metaDescription': 'Make an optional contribution through PayPal to support the continued development and maintenance of CAISSA Chess.',
+            'support.skip': 'Skip to Support CAISSA',
+            'support.eyebrow': 'Voluntary support',
+            'support.title': 'Support CAISSA',
+            'support.intro': 'If you enjoy CAISSA and would like to support its continued development and maintenance, you can make a voluntary contribution through PayPal.',
+            'support.paymentHeading': 'Contribute through PayPal',
+            'support.paymentRegion': 'PayPal voluntary contribution',
+            'support.loading': 'Loading PayPal…',
+            'support.unavailable': 'PayPal is temporarily unavailable. Please try again later.',
+            'support.optional': 'Support is optional and does not unlock Premium features or affect your CAISSA account.',
+            'support.paypalBoundary': 'Payment details and checkout are handled securely by PayPal.',
+            'support.backToPlay': 'Back to Play'
+        }),
+        es: Object.freeze({
+            'nav.item.support': 'Apoya a CAISSA',
+            'support.metaTitle': 'Apoya a CAISSA | CAISSA Chess',
+            'support.metaDescription': 'Realiza una contribución opcional a través de PayPal para apoyar el desarrollo y mantenimiento de CAISSA Chess.',
+            'support.skip': 'Ir a Apoya a CAISSA',
+            'support.eyebrow': 'Apoyo voluntario',
+            'support.title': 'Apoya a CAISSA',
+            'support.intro': 'Si disfrutas CAISSA y deseas apoyar su desarrollo y mantenimiento, puedes realizar una contribución voluntaria a través de PayPal.',
+            'support.paymentHeading': 'Contribuye a través de PayPal',
+            'support.paymentRegion': 'Contribución voluntaria mediante PayPal',
+            'support.loading': 'Cargando PayPal…',
+            'support.unavailable': 'PayPal no está disponible temporalmente. Inténtalo de nuevo más tarde.',
+            'support.optional': 'El apoyo es opcional y no desbloquea funciones Premium ni afecta tu cuenta de CAISSA.',
+            'support.paypalBoundary': 'PayPal gestiona de forma segura los datos de pago y el proceso de contribución.',
+            'support.backToPlay': 'Volver a Jugar'
+        }),
+        pt: Object.freeze({
+            'nav.item.support': 'Apoie a CAISSA',
+            'support.metaTitle': 'Apoie a CAISSA | CAISSA Chess',
+            'support.metaDescription': 'Faça uma contribuição opcional pelo PayPal para apoiar o desenvolvimento e a manutenção da CAISSA Chess.',
+            'support.skip': 'Ir para Apoie a CAISSA',
+            'support.eyebrow': 'Apoio voluntário',
+            'support.title': 'Apoie a CAISSA',
+            'support.intro': 'Se você gosta da CAISSA e deseja apoiar seu desenvolvimento e manutenção, pode fazer uma contribuição voluntária através do PayPal.',
+            'support.paymentHeading': 'Contribua através do PayPal',
+            'support.paymentRegion': 'Contribuição voluntária através do PayPal',
+            'support.loading': 'Carregando o PayPal…',
+            'support.unavailable': 'O PayPal está temporariamente indisponível. Tente novamente mais tarde.',
+            'support.optional': 'O apoio é opcional e não desbloqueia recursos Premium nem afeta sua conta CAISSA.',
+            'support.paypalBoundary': 'Os dados de pagamento e a contribuição são processados com segurança pelo PayPal.',
+            'support.backToPlay': 'Voltar para Jogar'
+        })
+    });
+
     const portugueseCatalog = Object.freeze({
         ...polyglotCatalogs.pt,
+        ...supportCatalogs.pt,
         ...libraryRuntimeCatalogs.pt,
         'common.play': 'Jogar', 'common.games': 'Partidas', 'common.game': 'Partida',
         'common.white': 'Brancas', 'common.black': 'Pretas', 'common.random': 'Aleatório',
@@ -1037,6 +1089,7 @@
             ...interfaceCatalogs.en,
             ...libraryRuntimeCatalogs.en,
             ...polyglotCatalogs.en,
+            ...supportCatalogs.en,
             'nav.group.playAndCompete': 'Play & Compete',
             'nav.group.learnAndImprove': 'Learn & Improve',
             'nav.group.analyzeAndWatch': 'Analyze & Watch',
@@ -1135,6 +1188,7 @@
             ...interfaceCatalogs.es,
             ...libraryRuntimeCatalogs.es,
             ...polyglotCatalogs.es,
+            ...supportCatalogs.es,
             'nav.group.playAndCompete': 'Jugar y competir',
             'nav.group.learnAndImprove': 'Aprender y mejorar',
             'nav.group.analyzeAndWatch': 'Analizar y observar',

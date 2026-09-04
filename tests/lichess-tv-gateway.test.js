@@ -77,7 +77,7 @@ test('controller accepts only the exact Top Rated frame and owns conservative st
 
 test('navigation, route, sitemap, inventory, and CSP expose exactly one bounded gateway', () => {
   const api = navigation();
-  assert.equal(api.contractId, 'CaissaGlobalNavigationOrderPolicy@1.12.0');
+  assert.equal(api.contractId, 'CaissaGlobalNavigationOrderPolicy@1.13.0');
   assert.deepEqual(Array.from(api.inventory.groups[2], item => item.label), [
     'Insights', 'Analyze', 'CAISSA PGN Reader', 'Spectator TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Arena'
   ]);

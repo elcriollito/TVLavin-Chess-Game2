@@ -72,7 +72,7 @@ test('every internal UX-001 destination remains locally routable', async ({ page
     const routes = await page.evaluate(() => window.CaissaPrimaryNavigation.inventory.all
         .map(item => item.route)
         .filter(route => route.startsWith('/')));
-    expect(routes).toHaveLength(32);
+    expect(routes).toHaveLength(33);
     for (const route of routes) {
         const response = await page.request.get(route);
         expect(response.status(), route).toBeLessThan(400);

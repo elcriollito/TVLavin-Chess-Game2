@@ -1,0 +1,158 @@
+:root {
+  --support-accent: #ff9d1d;
+  --support-text: #edf3fb;
+  --support-muted: #b9c5d5;
+  --support-border: rgba(148, 163, 184, 0.26);
+  --support-panel: rgba(10, 18, 30, 0.94);
+}
+
+.support-page {
+  min-height: 100vh;
+  margin: 0;
+  color: var(--support-text);
+  background: #07101b url('/assets/wallpapers/chess-terminal-server.jpg') center / cover fixed;
+}
+
+.support-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: rgba(3, 9, 18, 0.78);
+  pointer-events: none;
+}
+
+.support-page .caissa-standalone-layout { position: relative; z-index: 1; }
+
+.support-main {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: clamp(32px, 5vw, 72px) clamp(16px, 4vw, 56px);
+  box-sizing: border-box;
+}
+
+.support-card {
+  display: grid;
+  width: min(720px, 100%);
+  justify-items: center;
+  gap: 14px;
+  padding: clamp(28px, 5vw, 54px);
+  border: 1px solid var(--support-border);
+  border-radius: 20px;
+  background: var(--support-panel);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.support-symbol {
+  position: relative;
+  display: grid;
+  width: 82px;
+  height: 82px;
+  place-items: center;
+  margin-bottom: 4px;
+  border: 1px solid rgba(255, 157, 29, 0.48);
+  border-radius: 24px;
+  color: var(--support-accent);
+  background: rgba(255, 157, 29, 0.09);
+  font-size: 34px;
+}
+
+.support-symbol .fa-chess-knight {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 50%;
+  color: #111827;
+  background: var(--support-accent);
+  font-size: 17px;
+}
+
+.support-card :is(h1, h2, p) { margin: 0; }
+.support-card h1 { font-size: clamp(2rem, 6vw, 3.35rem); line-height: 1.05; }
+.support-card h2 { font-size: clamp(1.15rem, 3vw, 1.4rem); }
+.support-eyebrow { color: var(--support-accent); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.support-intro { max-width: 580px; color: var(--support-muted); font-size: 1.02rem; line-height: 1.68; }
+
+.support-payment-card {
+  display: grid;
+  width: min(520px, 100%);
+  gap: 18px;
+  margin-top: 14px;
+  padding: clamp(20px, 4vw, 30px);
+  border: 1px solid var(--support-border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.045);
+  box-sizing: border-box;
+}
+
+.support-paypal-region,
+.support-paypal-container { width: 100%; min-width: 0; }
+.support-paypal-container { min-height: 46px; overflow: clip; }
+.support-paypal-status { color: var(--support-muted); font-size: 0.9rem; line-height: 1.5; }
+.support-paypal-status[hidden] { display: none; }
+
+.support-optional,
+.support-boundary {
+  display: flex;
+  max-width: 580px;
+  align-items: flex-start;
+  gap: 9px;
+  color: var(--support-muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  text-align: left;
+}
+
+.support-optional { margin-top: 8px !important; }
+.support-optional i { margin-top: 3px; color: var(--support-accent); }
+.support-boundary i { margin-top: 3px; color: #7dd3fc; }
+
+.support-back {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 8px;
+  padding: 10px 18px;
+  border: 1px solid rgba(255, 157, 29, 0.58);
+  border-radius: 9px;
+  color: #fff;
+  background: rgba(255, 157, 29, 0.1);
+  text-decoration: none;
+}
+
+.support-back:hover { background: rgba(255, 157, 29, 0.18); }
+.support-back:focus-visible,
+.support-skip-link:focus-visible { outline: 3px solid #ffd08a; outline-offset: 3px; }
+
+.support-skip-link {
+  position: fixed;
+  top: 8px;
+  left: 50%;
+  z-index: 1200;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: #111827;
+  background: #fff;
+  transform: translate(-50%, -160%);
+}
+
+.support-skip-link:focus { transform: translate(-50%, 0); }
+
+@media (max-width: 768px) {
+  .support-main { min-height: 100svh; padding: 76px 12px 24px; }
+  .support-card { padding: 28px 16px; border-radius: 16px; }
+  .support-payment-card { padding: 18px 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .support-skip-link { transition: none; }
+}

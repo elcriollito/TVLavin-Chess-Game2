@@ -34,7 +34,7 @@ for (const width of widths) {
             };
         });
 
-        expect(result.count).toBe(36);
+        expect(result.count).toBe(37);
         expect(result.failures).toEqual([]);
         expect(result.navOverflow).toBe(false);
         expect(result.documentOverflow).toBe(false);

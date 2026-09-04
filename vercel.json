@@ -53,6 +53,7 @@
     { "source": "/vault", "destination": "/vault.html" },
     { "source": "/about", "destination": "/about.html" },
     { "source": "/help", "destination": "/help.html" },
+    { "source": "/support", "destination": "/support.html" },
     { "source": "/roadmap", "destination": "/roadmap.html" },
     { "source": "/yahoo-classic", "destination": "/yahoo-classic.html" },
     { "source": "/play-online/playchess", "destination": "/playchess.html" },

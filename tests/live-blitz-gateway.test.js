@@ -38,7 +38,7 @@ test('Live Blitz follows Lichess TV in Analyze & Watch and route ownership is de
   const window = {};
   vm.runInNewContext(read('js/caissa-primary-navigation.js'), { window, document: { querySelectorAll: () => [] } });
   const navigation = window.CaissaPrimaryNavigation;
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.12.0');
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.13.0');
   assert.deepEqual(Array.from(navigation.inventory.groups[2], item => item.label), ['Insights', 'Analyze', 'CAISSA PGN Reader', 'Spectator TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Arena']);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'live-blitz').length, 1);
   assert.equal(navigation.inventory.primary.length, 30);

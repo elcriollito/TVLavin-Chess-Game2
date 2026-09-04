@@ -13,9 +13,9 @@ function navigation() {
   return window.CaissaPrimaryNavigation;
 }
 
-test('one immutable 1.12.0 model is shared by every shell adapter', () => {
+test('one immutable 1.13.0 model is shared by every shell adapter', () => {
   const api = navigation();
-  assert.equal(api.contractId, 'CaissaGlobalNavigationOrderPolicy@1.12.0');
+  assert.equal(api.contractId, 'CaissaGlobalNavigationOrderPolicy@1.13.0');
   assert.equal(api.inventory.primary.length + api.inventory.connect.length, 34);
   assert.deepEqual(Object.keys(api.adapters), ['modernStandalone', 'application', 'trainer']);
   for (const adapter of Object.values(api.adapters)) {
@@ -60,7 +60,7 @@ test('canonical fallback seam is accessible and byte deterministic', () => {
   assert.equal(first, second);
   const $ = load(first);
   assert.equal($('nav[aria-label="CAISSA main navigation"]').length, 1);
-  assert.equal($('[role="listitem"]').length, 36);
+  assert.equal($('[role="listitem"]').length, 37);
   assert.equal($('[aria-current="page"]').length, 1);
   assert.equal($('[aria-current="page"]').text().trim(), 'Academy');
   assert.throws(() => api.renderFallbackNavigation({ adapter: {}, activeKey: 'play' }), /canonical shell adapter/);

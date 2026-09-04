@@ -464,6 +464,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/store' || pathname === '/store/') {
     filePath = './credit-store.html';
   }
+  if (pathname === '/support' || pathname === '/support/') {
+    filePath = './support.html';
+  }
   if (pathname === '/academy') {
     filePath = './index.html';
   }

@@ -12,9 +12,13 @@ function loadNavigation() {
   return window.CaissaPrimaryNavigation;
 }
 
-test('CaissaGlobalNavigationOrderPolicy@1.12.0 owns one immutable 34-destination order', () => {
+test('CaissaGlobalNavigationOrderPolicy@1.13.0 owns one immutable 34-destination order', () => {
   const navigation = loadNavigation();
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.12.0');
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.13.0');
+  assert.deepEqual(
+    Array.from(navigation.inventory.support, (item) => item.label),
+    ['Support CAISSA', 'Help', 'About']
+  );
   assert.deepEqual(Array.from(navigation.groupLabels), [
     'Play & Compete', 'Learn & Improve', 'Analyze & Watch', 'Tools'
   ]);

@@ -19,7 +19,7 @@ const canonicalOrder = [
   'Facebook', 'CAISSA Chess YouTube', 'CAISSA Discord', 'Share an Idea / Contact & Feedback'
 ];
 
-const navigationContract = 'CaissaGlobalNavigationOrderPolicy@1.12.0';
+const navigationContract = 'CaissaGlobalNavigationOrderPolicy@1.13.0';
 
 async function assertOrderAndIdentity(page, activeLabel) {
   const nav = page.locator('#mainNav');

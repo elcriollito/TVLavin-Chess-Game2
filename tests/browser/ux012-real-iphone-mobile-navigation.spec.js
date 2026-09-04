@@ -106,7 +106,7 @@ for (const locale of locales) {
 
                 const result = await drawerPresentation(page);
                 expect(result.appCollapsed).toBe(true);
-                expect(result.destinations).toBe(36);
+                expect(result.destinations).toBe(37);
                 expect(result.drawer.left).toBeGreaterThanOrEqual(-1);
                 expect(result.drawer.right).toBeLessThanOrEqual(width);
                 expect(result.drawer.width).toBeLessThan(width);

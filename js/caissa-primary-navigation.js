@@ -1,7 +1,7 @@
 (function (global) {
     'use strict';
 
-    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.12.0';
+    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.13.0';
     const i18n = global.CaissaI18n || Object.freeze({
         enabledLocales: Object.freeze(['en']),
         supportedLocales: Object.freeze({ en: Object.freeze({ code: 'en', name: 'English', enabled: true }) }),
@@ -66,6 +66,7 @@
     ]);
 
     const support = Object.freeze([
+        { id: 'support', label: 'Support CAISSA', icon: 'fas fa-heart', route: '/support' },
         { id: 'help', label: 'Help', icon: 'fas fa-question-circle', route: '/help' },
         { id: 'about', label: 'About', icon: 'fas fa-info-circle', route: '/about' }
     ]);

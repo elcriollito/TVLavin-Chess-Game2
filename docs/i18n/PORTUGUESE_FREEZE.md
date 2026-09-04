@@ -12,7 +12,7 @@ Status: **FROZEN / APPROVED**
 - Approval date: **2026-09-03**
 - Physically certified HEAD: `5fe129bf0b0315a34c79d1908e5e6bde06bb7d7f`
 - Catalogs: **EN 446 / ES 446 / PT 446**
-- Current shared catalogs after documented product additions: **EN 607 / ES 607 / PT 607**
+- Current shared catalogs after documented product additions: **EN 621 / ES 621 / PT 621**
 - Exact parity: **PASS**
 - Physical certification: **PASS**
 - UX-012 mobile navigation: **PASS**
@@ -62,6 +62,19 @@ This is an allowed frozen-catalog change under rule 2 (“a necessary new shared
 PGT-004 adds 63 necessary shared `polyglot.*` keys to EN, ES, and PT, raising all three catalogs from 544 to 607 keys with exact parity. The additions cover the creator title and description, upload and build controls, side options, build-log states, output summary, safe validation and service errors, the five Help sections, compatibility guidance, related links, metadata, and accessible labels.
 
 This is an allowed frozen-catalog change under rule 2 (“a necessary new shared key”). The Portuguese text follows the approved practical international/Brazilian UI preference, preserves Polyglot, PGN, BIN, CAISSA, Stockfish, and Elo, and does not change any previously approved Portuguese key or terminology decision.
+
+### SUP-002 — Support CAISSA
+
+SUP-002 adds 14 necessary shared `support.*` and `nav.item.support` keys to EN,
+ES, and PT, raising all three catalogs from 607 to 621 keys with exact parity.
+The additions cover the first-party page metadata, navigation label, heading,
+voluntary-support explanation, PayPal region and status, optional-support
+disclaimer, payment boundary, and return action.
+
+This is an allowed frozen-catalog change under rule 2 (“a necessary new shared
+key”). The Portuguese copy uses natural Brazilian-oriented international
+Portuguese, preserves CAISSA, PayPal, and Premium, and changes no previously
+approved Portuguese key or terminology decision.
 
 ## Automated QA
 
