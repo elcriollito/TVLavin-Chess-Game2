@@ -139,6 +139,10 @@ test('Coach Review Summary is board-first, responsive, keyboard ordered, and acc
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.analysisPhase), { timeout: 30_000 }).toBe('complete');
     for (const viewport of [{ width: 320, height: 568 }, { width: 1440, height: 900 }]) {
         await page.setViewportSize(viewport);
+        if (viewport.width > 900) {
+            await expect.poll(() => page.locator('#analyzeChessboard').evaluate(node => node.getBoundingClientRect().width))
+                .toBeGreaterThan(500);
+        }
         const geometry = await page.evaluate(() => {
             const board = document.querySelector('#analyzeChessboard').getBoundingClientRect();
             const panel = document.querySelector('[data-caissa-coach-review-summary]').getBoundingClientRect();
@@ -148,7 +152,7 @@ test('Coach Review Summary is board-first, responsive, keyboard ordered, and acc
             return {
                 overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
                 board: { left: board.left, right: board.right, top: board.top, bottom: board.bottom, width: board.width },
-                panel: { left: panel.left, top: panel.top, width: panel.width },
+                panel: { left: panel.left, top: panel.top, bottom: panel.bottom, width: panel.width, height: panel.height },
                 evalRailWidth: evalRail.width,
                 touchTargets: actions.every(node => node.getBoundingClientRect().height >= 44)
             };
@@ -157,8 +161,18 @@ test('Coach Review Summary is board-first, responsive, keyboard ordered, and acc
         expect(geometry.board.width).toBeGreaterThan(180);
         expect(geometry.evalRailWidth).toBeGreaterThan(0);
         expect(geometry.touchTargets).toBe(true);
-        if (viewport.width <= 900) expect(geometry.board.bottom).toBeLessThanOrEqual(geometry.panel.top + 1);
-        else expect(geometry.board.right).toBeLessThanOrEqual(geometry.panel.left + 1);
+        if (viewport.width <= 900) {
+            expect(geometry.board.bottom).toBeLessThanOrEqual(geometry.panel.top + 1);
+            expect(geometry.panel.width).toBeGreaterThanOrEqual(viewport.width - 50);
+            expect(geometry.panel.height).toBeGreaterThanOrEqual(540);
+        } else {
+            expect(geometry.board.right).toBeLessThanOrEqual(geometry.panel.left + 1);
+            expect(geometry.panel.width).toBeGreaterThanOrEqual(340);
+            expect(geometry.panel.height).toBeGreaterThanOrEqual((geometry.board.bottom - geometry.board.top) * .93);
+            const reviewShare = geometry.panel.width / (geometry.board.width + geometry.evalRailWidth + geometry.panel.width);
+            expect(reviewShare).toBeGreaterThanOrEqual(.34);
+            expect(reviewShare).toBeLessThanOrEqual(.38);
+        }
     }
     await page.setViewportSize({ width: 320, height: 568 });
     const back = page.getByRole('button', { name: 'Back to game result' });

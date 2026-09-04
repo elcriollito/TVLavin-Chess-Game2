@@ -4,6 +4,10 @@
     const SCHEMA_VERSION = '1.1.0';
     const QUALITY_ORDER = Object.freeze(['Book', 'Best', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const CLASSIFICATIONS = Object.freeze(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
+    const QUALITY_ICONS = Object.freeze({
+        Book: 'fa-book-open', Best: 'fa-star', Acceptable: 'fa-check',
+        Inaccuracy: 'fa-question', Mistake: 'fa-exclamation', Blunder: 'fa-bolt'
+    });
     let mounted = null;
     const freeze = value => Object.freeze(value);
     const result = (ok, status, reasonCode, value = null) => freeze({ ok, status, reasonCode, value });
@@ -221,9 +225,12 @@
             const line = element('div', 'caissa-coach-review-summary__row', { role: 'row', 'data-quality': row.label });
             const label = element('span', 'caissa-coach-review-summary__quality', { role: 'rowheader' }); label.textContent = row.label;
             const player = element('strong', 'caissa-coach-review-summary__count', { role: 'cell', 'data-side': 'player' });
+            const icon = element('span', 'caissa-coach-review-summary__quality-icon', { 'aria-hidden': 'true' });
+            const iconGlyph = element('i', `fas ${QUALITY_ICONS[row.label] || 'fa-circle'}`);
             const coach = element('strong', 'caissa-coach-review-summary__count', { role: 'cell', 'data-side': 'coach' });
+            icon.append(iconGlyph);
             player.textContent = displayCount(row.player); coach.textContent = displayCount(row.coach);
-            line.append(label, player, coach); mounted.table.append(line);
+            line.append(label, player, icon, coach); mounted.table.append(line);
         });
     }
 
@@ -263,7 +270,7 @@
         const structure = createStructure(section);
         if (!structure) return result(false, 'rejected', 'INVALID_ANALYZE_HOST');
         if (structure.close) {
-            structure.close.textContent = 'Back';
+            structure.close.textContent = '\u2190 Back';
             structure.close.setAttribute('aria-label', 'Back to game result');
             structure.close.classList.add('caissa-coach-review-summary__back');
         }
