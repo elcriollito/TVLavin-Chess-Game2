@@ -25,45 +25,7 @@
 }
 
 .poly-container {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 0 16px;
-}
-
-.poly-header {
-    border-bottom: 1px solid var(--panel-border);
-    background: var(--header-bg);
-}
-
-.poly-header-inner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    min-height: 64px;
-}
-
-.poly-logo {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--logo-text);
-    text-decoration: none;
-    font-weight: 700;
-}
-
-.poly-nav {
-    display: flex;
-    gap: 16px;
-}
-
-.poly-nav a {
-    color: var(--nav-text);
-    text-decoration: none;
-    font-weight: 600;
-}
-
-.poly-nav a.active {
-    color: #1d4ed8;
+    min-width: 0;
 }
 
 .poly-main {
@@ -82,17 +44,37 @@
 
 .polyglot-content-area {
     flex: 1;
-    display: flex;
-    justify-content: center;
-    padding: 48px 24px;
+    display: block;
+    min-width: 0;
+    padding: 32px clamp(16px, 2.4vw, 36px) 48px;
+    container-type: inline-size;
 }
 
-.polyglot-main {
-    width: 100%;
+.polyglot-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(320px, 0.92fr);
+    align-items: start;
+    gap: clamp(18px, 2vw, 28px);
+    width: min(1440px, 100%);
+    margin: 0 auto;
+}
+
+.polyglot-tool-column,
+.polyglot-help-column {
+    min-width: 0;
+}
+
+.polyglot-tool-column {
+    padding: clamp(20px, 2.2vw, 32px);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.93);
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.32);
+    backdrop-filter: blur(8px);
 }
 
 .polyglot-banner {
-    margin: 4px 16px 14px;
+    margin: 0 0 18px;
     padding: 14px 16px;
     border-radius: 12px;
     border: 1px solid rgba(148, 163, 184, 0.35);
@@ -116,7 +98,6 @@
 }
 
 .poly-intro {
-    max-width: 860px;
     line-height: 1.65;
 }
 
@@ -178,6 +159,11 @@
     transform: translateY(1px);
 }
 
+.poly-btn:disabled {
+    cursor: progress;
+    opacity: 0.7;
+}
+
 .poly-btn-primary:hover {
     background: #1e40af;
     border-color: #1e40af;
@@ -234,6 +220,8 @@
 .poly-form input[type="file"],
 .poly-form input[type="number"],
 .poly-form select {
+    width: 100%;
+    max-width: 100%;
     padding: 10px;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
@@ -253,8 +241,8 @@
 
 .poly-grid {
     display: grid;
-    gap: 10px;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .poly-generate-btn {
@@ -289,16 +277,23 @@
     align-items: center;
     flex-wrap: wrap;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--text);
 }
 
 .poly-education {
     display: grid;
-    gap: 22px;
+    gap: 0;
+    margin-top: 0;
+    padding: clamp(20px, 2vw, 28px);
+    background: rgba(255, 255, 255, 0.93);
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(8px);
 }
 
-.poly-education section {
-    max-width: 820px;
+.poly-education section + section {
+    margin-top: 22px;
+    padding-top: 22px;
+    border-top: 1px solid var(--panel-border);
 }
 
 .poly-education h2 {
@@ -310,7 +305,8 @@
 .poly-education p,
 .poly-steps {
     margin: 0;
-    line-height: 1.65;
+    line-height: 1.62;
+    overflow-wrap: anywhere;
 }
 
 .poly-steps {
@@ -323,10 +319,10 @@
 }
 
 .poly-related {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px 18px;
-    padding-top: 18px;
+    display: grid;
+    gap: 12px;
+    margin-top: 22px;
+    padding-top: 22px;
     border-top: 1px solid var(--panel-border);
 }
 
@@ -341,7 +337,7 @@
     min-height: 100vh;
     padding: 0;
     background: transparent;
-    overflow: hidden;
+    overflow-x: clip;
 }
 
 .polyglot-page::before {
@@ -366,21 +362,9 @@
     pointer-events: none;
 }
 
-.polyglot-card {
-    position: relative;
-    z-index: 2;
-    width: min(1050px, 100%);
-    margin: 0;
-    background: rgba(255, 255, 255, 0.92);
-    border: 1px solid rgba(255, 255, 255, 0.45);
-    border-radius: 16px;
-    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
-    backdrop-filter: blur(6px);
-    padding: 28px;
-}
-
 @media (prefers-color-scheme: dark) {
-    .polyglot-card {
+    .polyglot-tool-column,
+    .poly-education {
         background: rgba(2, 6, 23, 0.94);
         border-color: rgba(148, 163, 184, 0.28);
     }
@@ -390,17 +374,24 @@
     background: rgba(0, 0, 0, 0.15);
 }
 
-@media (max-width: 900px) {
+@container (max-width: 880px) {
+    .polyglot-workspace {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .polyglot-help-column {
+        grid-row: 2;
+    }
+}
+
+@container (max-width: 640px) {
     .polyglot-content-area {
         padding: 16px 12px 24px;
     }
 
-    .polyglot-card {
+    .polyglot-tool-column,
+    .poly-education {
         padding: 16px;
-    }
-
-    .polyglot-banner {
-        margin: 4px 0 14px;
     }
 
     .poly-main {
@@ -411,12 +402,21 @@
         padding: 0;
     }
 
-    .poly-form input[type="file"] {
-        width: 100%;
-        max-width: 100%;
+    .poly-grid {
+        grid-template-columns: minmax(0, 1fr);
     }
 
-    .poly-related {
-        display: grid;
+    .poly-generate-btn,
+    .poly-download-actions .poly-btn,
+    .poly-result-row .poly-btn {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .polyglot-content-area {
+        padding: 16px 12px 24px;
     }
 }
