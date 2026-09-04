@@ -535,6 +535,68 @@
         left: 0;
     }
 
+    /* A desktop compact preference may be restored from localStorage on a phone.
+       The open mobile drawer is always the expanded presentation. */
+    .caissa-application-sidebar-host.nav-open.nav-collapsed .caissa-shared-sidebar .nav-logo-text,
+    .caissa-application-sidebar-host.nav-open.nav-collapsed .caissa-shared-sidebar .nav-label {
+        display: block;
+        min-width: 0;
+        max-width: none;
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .caissa-application-sidebar-host.nav-open.nav-collapsed .caissa-shared-sidebar .nav-premium-badge,
+    .caissa-application-sidebar-host.nav-open.nav-collapsed .caissa-shared-sidebar .nav-external-icon,
+    .caissa-application-sidebar-host.nav-open.nav-collapsed .caissa-shared-sidebar .nav-auth-menu-caret {
+        display: inline-block;
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .caissa-application-sidebar-host.nav-open.nav-collapsed .caissa-shared-sidebar .nav-auth-details {
+        display: grid;
+        min-width: 0;
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .caissa-application-sidebar-host.nav-open.nav-collapsed .caissa-shared-sidebar :is(
+        .nav-header,
+        .nav-logo,
+        .nav-item,
+        .nav-auth-btn,
+        .nav-auth-user,
+        .nav-premium-btn
+    ) {
+        justify-content: flex-start;
+    }
+
+    .caissa-application-sidebar-host.nav-open.nav-collapsed .caissa-shared-sidebar .nav-header {
+        flex-direction: row;
+        padding: 20px 16px;
+    }
+
+    .caissa-application-sidebar-host.nav-open.nav-collapsed .caissa-shared-sidebar :is(
+        .nav-items,
+        .nav-footer,
+        .nav-auth-area,
+        .nav-premium-cta
+    ) {
+        padding-inline: 12px;
+    }
+
+    .caissa-application-sidebar-host.nav-open.nav-collapsed .caissa-shared-sidebar :is(
+        .nav-item,
+        .nav-auth-btn,
+        .nav-premium-btn
+    ) {
+        padding-inline: 14px;
+    }
+
     .caissa-standalone-sidebar-host.is-collapsed .nav-logo-text,
     .caissa-standalone-sidebar-host.is-collapsed .nav-label,
     .caissa-standalone-sidebar-host.is-collapsed .nav-premium-badge,

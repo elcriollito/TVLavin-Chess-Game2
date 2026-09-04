@@ -55,6 +55,6 @@ test('all public locale catalogs resolve navigation and construction keys', () =
         'library.title', 'library.status', 'library.copyPrimary',
         'library.copySecondary', 'library.backToPlay', 'library.metaTitle'
     ]) {
-        assert.equal((source.match(new RegExp(`'${key.replace('.', '\\.')}':`, 'g')) || []).length, 2, key);
+        assert.equal((source.match(new RegExp(`'${key.replace('.', '\\.')}':`, 'g')) || []).length, 3, key);
     }
 });
