@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { instrumentPlay, playMove } from '../play/playwright-helpers.js';
+import { instrumentPlay, loadPosition, playMove } from '../play/playwright-helpers.js';
+import { positions } from '../play/fixtures/positions.js';
 
 test.beforeEach(async ({ page }) => instrumentPlay(page));
 
@@ -42,12 +43,21 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
         educational: !!window.CaissaCoachRegistry || !!window.CaissaCoachSession }));
     expect(proof.boards).toBe(1); expect(proof.workers).toBe(1); expect(proof.educational).toBe(false);
     expect(proof.snapshot.coachPanel.assistance).toMatchObject({ moveCommits: 0, hiddenAnswers: 0, trainingMemoryWrites: 0, masteryWrites: 0 });
+    await page.evaluate(() => { window.App.coachMoveAnnotations = [
+        { key: 'good' }, { key: 'good' }, { key: 'book' }, { key: 'blunder' }
+    ]; });
     await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
     await expect(page.locator('.caissa-post-game')).toBeVisible();
-    await expect(page.locator('[data-post-game-result]')).toHaveText('You Lost'); await expect(page.locator('[data-post-game-reason]')).toHaveText('By Resignation');
+    await expect(page.locator('[data-post-game-result]')).toHaveText('Coach Won'); await expect(page.locator('[data-post-game-reason]')).toHaveText('By Resignation');
+    await expect(page.locator('.caissa-post-game').getByAltText('Caissa, goddess of chess')).toBeVisible();
+    await expect(page.locator('[data-coach-game-over-message]')).toContainText('review');
+    await expect(page.locator('[data-coach-game-over-qualities]')).toContainText(/Blunder\s*1/);
+    await expect(page.locator('[data-coach-game-over-qualities]')).toContainText(/Good\s*2/);
+    await expect(page.locator('[data-coach-game-over-qualities]')).toContainText(/Book\s*1/);
+    await expect(page.locator('.caissa-post-game [data-post-game-action]:visible')).toHaveText(['Review Game', 'New Game']);
     await expect(page.locator('[data-post-game-summary]')).toContainText('CAISSA Coach');
     expect((await page.evaluate(() => window.CaissaSimplifiedPlayShellInstance.getSnapshot().coachPanel.assistance)).active).toBeNull();
-    await expect(page.locator('.caissa-post-game')).not.toContainText(/lesson|academy|curriculum|mastery|knowledge/i);
+    await expect(page.locator('.caissa-post-game')).not.toContainText(/lesson|academy|curriculum|mastery|knowledge|Stockfish|nodes|NPS|depth|threads/i);
     const analyze = page.locator('[data-post-game-action="analyze"]');
     await expect(analyze).toBeVisible(); await analyze.click();
     await expect(page.locator('[data-caissa-coach-review-shell]')).toBeVisible();
@@ -63,6 +73,69 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     expect(review).toMatchObject({ path: '/play/coach', context: 'coach', phase: 'shell',
         plyOwner: 'AnalyzeSection.currentMoveIndex', duplicatePly: false });
     expect(Number.isInteger(review.authoritativePly)).toBe(true);
+});
+
+test('Coach game-over preserves player wins, draws, timeouts, and the existing New Game reset', async ({ page }) => {
+    await page.goto('/play/beta/coach');
+    const panel = page.locator('[data-caissa-native-coach-panel]');
+    await panel.getByRole('button', { name: 'Play' }).click();
+    await loadPosition(page, positions.checkmateInOne.fen);
+    await playMove(page, positions.checkmateInOne.from, positions.checkmateInOne.to);
+    await expect(page.locator('[data-post-game-result]')).toHaveText('You Won');
+    await expect(page.locator('[data-post-game-reason]')).toHaveText('By Checkmate');
+    await page.locator('[data-post-game-action="new-game"]').click();
+    await expect(panel).toBeVisible();
+    await expect(page.locator('.caissa-post-game')).toBeHidden();
+
+    await panel.getByRole('button', { name: 'Play' }).click();
+    await loadPosition(page, positions.stalemate);
+    await page.evaluate(() => window.handleGameOver());
+    await expect(page.locator('[data-post-game-result]')).toHaveText('Draw');
+    await expect(page.locator('[data-post-game-reason]')).toHaveText('By Stalemate');
+    await page.locator('[data-post-game-action="new-game"]').click();
+
+    await panel.getByRole('button', { name: 'Play' }).click();
+    await page.evaluate(() => { window.App.gameActive = false;
+        window.setGameStatus('Timeout', '0-1', 'Black wins on time.'); });
+    await expect(page.locator('.caissa-post-game')).toBeVisible();
+    await expect(page.locator('[data-post-game-result]')).toHaveText('Coach Won');
+    await expect(page.locator('[data-post-game-reason]')).toHaveText('On Time');
+    await expect(page).toHaveURL(/\/play\/coach$/);
+});
+
+test('Coach game-over is compact, responsive, accessible, and keyboard ordered', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.goto('/play/beta/coach');
+    await page.locator('[data-caissa-native-coach-panel]').getByRole('button', { name: 'Play' }).click();
+    await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
+    const card = page.locator('.caissa-coach-game-over-context');
+    await expect(card).toBeVisible();
+    for (const viewport of [{ width: 320, height: 568 }, { width: 1440, height: 900 }]) {
+        await page.setViewportSize(viewport);
+        const geometry = await page.evaluate(() => {
+            const region = document.querySelector('.caissa-coach-game-over-context');
+            const board = document.querySelector('#chessboard');
+            const actions = [...region.querySelectorAll('[data-post-game-action]:not([hidden])')];
+            region.scrollIntoView({ block: 'center' });
+            const box = region.getBoundingClientRect();
+            return { overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+                cardWidth: box.width, cardHeight: box.height, boardWidth: board.getBoundingClientRect().width,
+                touchTargets: actions.every(action => action.getBoundingClientRect().height >= 44) };
+        });
+        expect(geometry.overflow, JSON.stringify(viewport)).toBeLessThanOrEqual(1);
+        expect(geometry.cardWidth).toBeLessThanOrEqual(432);
+        expect(geometry.cardHeight).toBeLessThan(520);
+        expect(geometry.boardWidth).toBeGreaterThan(180);
+        expect(geometry.touchTargets).toBe(true);
+    }
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.locator('[data-post-game-result]').focus();
+    await page.keyboard.press('Tab');
+    await expect(page.locator('[data-post-game-action="analyze"]')).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.locator('[data-post-game-action="new-game"]')).toBeFocused();
+    const axe = await new AxeBuilder({ page }).include('[data-play-v2-post-game-core]').analyze();
+    expect(axe.violations.filter(item => ['critical', 'serious'].includes(item.impact))).toEqual([]);
 });
 
 test('Coach setup is keyboard accessible, responsive, and serious-violation free', async ({ page }) => {

@@ -50,6 +50,7 @@
                 'js/play/native-coach/coach-assistance.js?v=1.0.0',
                 'js/play/native-coach/coach-move-review.js?v=1.2.0',
                 'js/play/native-coach/coach-dialogue.js?v=1.1.0',
+                'js/play/native-coach/coach-game-over-presentation.js?v=1.0.0',
                 'js/play/native-coach/coach-review-context.js?v=1.0.0',
                 'js/play/native-coach/coach-review-presentation.js?v=1.0.0',
                 'js/play/native-coach/coach-panel.js?v=2.5.0'
