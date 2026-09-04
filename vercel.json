@@ -127,6 +127,16 @@
       ]
     },
     {
+      "source": "/support",
+      "headers": [
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com https://*.paypal.com https://*.paypalobjects.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://*.paypal.com https://*.paypalobjects.com https://*.venmo.com; img-src 'self' data: blob: https://img.clerk.com https://images.clerk.dev https://cdn.jsdelivr.net https://chessboardjs.com https://c.bing.com https://*.paypal.com https://*.paypalobjects.com https://*.venmo.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com https://*.paypal.com https://*.paypalobjects.com https://*.venmo.com; worker-src 'self' blob:; child-src 'self' https://*.paypal.com https://*.paypalobjects.com https://*.venmo.com; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://*.paypal.com https://*.paypalobjects.com https://*.venmo.com; object-src 'none'; base-uri 'self'; form-action 'self' https://*.paypal.com; frame-ancestors 'self'; upgrade-insecure-requests" },
+        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), usb=(), serial=(), hid=()" }
+      ]
+    },
+    {
       "source": "/integrations/chessbase-pgn-replayer.html",
       "headers": [
         { "key": "Content-Security-Policy", "value": "default-src 'none'; script-src 'self' 'unsafe-eval' https://pgn.chessbase.com; style-src 'self' 'unsafe-inline' https://pgn.chessbase.com; img-src data: blob: https://pgn.chessbase.com; connect-src https://www.caissa-chess.org; font-src data: https://pgn.chessbase.com https://fonts.gstatic.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; frame-ancestors 'self'; upgrade-insecure-requests" },
