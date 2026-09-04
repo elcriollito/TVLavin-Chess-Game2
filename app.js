@@ -5842,7 +5842,9 @@ window.addEventListener('caissa-play-visual-assistance-setting', (event) => {
     const setting = event.detail?.setting;
     const enabled = event.detail?.enabled === true;
     if (setting === 'legal-moves') {
-        if (!enabled) clearLegalMovePresentation();
+        if (!enabled && !document.body?.classList?.contains('caissa-coach-hint-active')) {
+            clearLegalMovePresentation();
+        }
         else if (App.mobileTapSource) {
             const legalMoves = App.game.moves({ square: App.mobileTapSource, verbose: true });
             const targets = legalMoves.map((move) => move.to);

@@ -43,6 +43,7 @@ test('settings dispatch immediate presentation updates and styles define determi
     assert.match(shell, /caissa-play-visual-assistance-setting/g);
     assert.match(app, /clearLegalMovePresentation\(\)/);
     assert.match(app, /else if \(setting === 'last-move' && enabled\)/);
+    assert.match(app, /!document\.body\?\.classList\?\.contains\('caissa-coach-hint-active'\)/);
     assert.match(css, /last move < selection < legal target < Coach Hint < quality badge/);
     assert.match(css, /caissa-hide-legal-moves[\s\S]*display: none !important/);
     assert.match(css, /caissa-hide-last-move[\s\S]*display: none !important/);

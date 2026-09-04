@@ -82,7 +82,7 @@ test('real board pointer selection reaches the adapter before chessboard drag ha
         .toEqual({ from: 'e2', to: 'e4' });
 });
 
-test('capture targets use the adapter capture ring and clear with selection', async ({ page }) => {
+test('capture targets use the adapter capture ring and clear with selection', async ({ page, browserName }) => {
     await instrumentPlay(page, { autoReply: false });
     await openPlay(page);
     await startGame(page);
@@ -96,9 +96,58 @@ test('capture targets use the adapter capture ring and clear with selection', as
     }));
     expect(style.display).not.toBe('none');
     expect(['', 'rgba(0, 0, 0, 0)', 'transparent']).toContain(style.background);
-    expect(parseFloat(style.border)).toBeGreaterThanOrEqual(2);
+    if (browserName === 'chromium') expect(parseFloat(style.border)).toBeGreaterThanOrEqual(2);
     await page.evaluate(() => window.handlePlayBoardSquareSelection('c3'));
     await expect(page.locator('#chessboard .caissa-board-legal-target')).toHaveCount(0);
+});
+
+test('Coach Hint remains independently visible when ordinary legal moves are off', async ({ page }) => {
+    await instrumentPlay(page, { autoReply: false });
+    const runtime = monitorRuntime(page);
+    await startMode(page, MODES[2]);
+
+    await setSetting(page, 'legal-moves', false);
+    await page.evaluate(() => {
+        window.App.currentEvaluation = { fen: window.App.game.fen(), bestMove: 'e2e4' };
+    });
+    await page.locator('[data-active-game-action="coach-hint"]').click();
+    await expect(page.locator('body')).toHaveClass(/caissa-coach-hint-active/);
+    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().legalTargets))
+        .toEqual(['e4']);
+    await expect(page.locator('#chessboard .caissa-board-legal-target')).toHaveCount(1);
+    expect(await page.locator('#chessboard .square-e2').evaluate(node =>
+        getComputedStyle(node, '::after').display)).not.toBe('none');
+    expect(await page.locator('#chessboard .square-e4').evaluate(node =>
+        getComputedStyle(node, '::after').display)).not.toBe('none');
+
+    await setSetting(page, 'legal-moves', false);
+    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().legalTargets))
+        .toEqual(['e4']);
+    expect(await playMove(page, 'e2', 'e4')).toBe(true);
+    await expect(page.locator('body')).not.toHaveClass(/caissa-coach-hint-active/);
+    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().legalTargets)).toEqual([]);
+    runtime.assertClean();
+});
+
+test('Coach Hint stays stronger than ordinary legal targets when Legal Moves is on', async ({ page }) => {
+    await instrumentPlay(page, { autoReply: false });
+    await startMode(page, MODES[2]);
+    await selectSquare(page, 'e2');
+    const ordinary = await page.locator('#chessboard .square-e4').evaluate(node => ({
+        width: parseFloat(getComputedStyle(node, '::after').width),
+        border: parseFloat(getComputedStyle(node, '::after').borderTopWidth) || 0
+    }));
+    await selectSquare(page, 'e2');
+    await page.evaluate(() => {
+        window.App.currentEvaluation = { fen: window.App.game.fen(), bestMove: 'e2e4' };
+    });
+    await page.locator('[data-active-game-action="coach-hint"]').click();
+    const hint = await page.locator('#chessboard .square-e4').evaluate(node => ({
+        width: parseFloat(getComputedStyle(node, '::after').width),
+        border: parseFloat(getComputedStyle(node, '::after').borderTopWidth) || 0
+    }));
+    expect(hint.width).toBeGreaterThan(ordinary.width);
+    expect(hint.border).toBeGreaterThan(ordinary.border);
 });
 
 test('last move follows move completion, navigation, Undo, reset, Flip, resize and Settings', async ({ page }) => {

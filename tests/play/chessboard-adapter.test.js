@@ -149,6 +149,19 @@ test('drag and drop callbacks are forwarded once and disabled input snaps back',
     assert.equal(drops, 1);
 });
 
+test('snap completion reconciles a fast opponent render and reapplies highlights', () => {
+    const f = fixture({ onSnapEnd: () => {} });
+    f.adapter.mount(f.root);
+    const fen = '8/8/8/4p3/8/8/8/K6k w - - 0 1';
+    f.adapter.setPosition(fen);
+    f.adapter.setLastMove({ from: 'e7', to: 'e5' });
+    assert.deepEqual(f.log.positions, [fen]);
+    f.log.config.onSnapEnd();
+    assert.deepEqual(f.log.positions, [fen, fen]);
+    assert.equal(f.adapter.getSnapshot().lastMove.from, 'e7');
+    assert.equal(f.adapter.getSnapshot().lastMove.to, 'e5');
+});
+
 test('unmount cleans listeners, remount works, and dispose is terminal and idempotent', () => {
     const f = fixture();
     f.adapter.mount(f.root);

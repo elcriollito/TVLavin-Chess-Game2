@@ -107,7 +107,14 @@
                     onSnapEnd: (...args) => {
                         this.#clearDragSource();
                         this.#options.onSnapEnd?.(...args);
+                        // A fast opponent reply can commit while the player's
+                        // snap animation is still finishing. Reconcile the
+                        // widget with the adapter's latest position, then
+                        // restore presentation classes erased by that redraw.
+                        try { this.#widget?.position?.(this.#position, false); } catch (_) {}
+                        this.#applyHighlights();
                     },
+                    onMoveEnd: () => this.#applyHighlights(),
                     pieceTheme: this.#options.pieceTheme,
                     showNotation: this.#options.showNotation !== false,
                     sparePieces: false,

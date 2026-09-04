@@ -884,7 +884,8 @@ body.caissa-simplified-play-active .caissa-simplified-shell__settings-actions bu
     color: var(--play-theme-text, #fff);
     font-weight: 750;
 }
-body.caissa-simplified-play-active .caissa-simplified-shell.caissa-hide-legal-moves
+body.caissa-simplified-play-active:not(.caissa-coach-hint-active)
+    .caissa-simplified-shell.caissa-hide-legal-moves
     #chessboard :is(.caissa-board-legal-target, .caissa-board-legal-capture)::after { display: none !important; }
 body.caissa-simplified-play-active .caissa-simplified-shell.caissa-hide-last-move
     #chessboard .caissa-board-last-move::before { display: none !important; }
