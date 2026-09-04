@@ -138,15 +138,19 @@ test('Coach Hint stays stronger than ordinary legal targets when Legal Moves is 
     }));
     await selectSquare(page, 'e2');
     await page.evaluate(() => {
+        window.App.boardAdapter.setLastMove({ from: 'e2', to: 'e4' });
         window.App.currentEvaluation = { fen: window.App.game.fen(), bestMove: 'e2e4' };
     });
     await page.locator('[data-active-game-action="coach-hint"]').click();
     const hint = await page.locator('#chessboard .square-e4').evaluate(node => ({
         width: parseFloat(getComputedStyle(node, '::after').width),
-        border: parseFloat(getComputedStyle(node, '::after').borderTopWidth) || 0
+        border: parseFloat(getComputedStyle(node, '::after').borderTopWidth) || 0,
+        zIndex: Number(getComputedStyle(node, '::after').zIndex),
+        lastMoveZIndex: Number(getComputedStyle(node, '::before').zIndex)
     }));
     if (Number.isFinite(ordinary.width)) expect(hint.width).toBeGreaterThan(ordinary.width);
     expect(hint.border).toBeGreaterThan(ordinary.border);
+    expect(hint.zIndex).toBeGreaterThan(hint.lastMoveZIndex);
 });
 
 test('opponent last move follows active play, navigation, Undo, reset, Flip, resize and Settings', async ({ page }) => {
@@ -226,6 +230,17 @@ for (const mode of MODES.slice(1)) {
         });
         await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove))
             .toEqual(expected);
+        const destination = page.locator(`#chessboard .square-${expected.to}`);
+        const destinationPiece = destination.locator('.piece-417db');
+        await expect(destinationPiece).toBeVisible();
+        const squareZ = await destination.evaluate(node => Number(getComputedStyle(node, '::before').zIndex));
+        const pieceStyle = await destinationPiece.evaluate(node => {
+            const style = getComputedStyle(node);
+            return { zIndex: Number(style.zIndex), opacity: style.opacity, filter: style.filter };
+        });
+        expect(pieceStyle.zIndex).toBeGreaterThan(squareZ);
+        expect(pieceStyle.opacity).toBe('1');
+        expect(['none', '']).toContain(pieceStyle.filter);
     });
 }
 
