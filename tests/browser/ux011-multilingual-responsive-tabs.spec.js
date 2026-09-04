@@ -50,8 +50,8 @@ function expectBounded(geometry, context) {
     }
 }
 
-test('EN and ES Play tabs remain bounded at the certified viewport matrix', async ({ page }) => {
-    for (const locale of ['en', 'es']) {
+test('EN, ES, and PT Play tabs remain bounded at the certified viewport matrix', async ({ page }) => {
+    for (const locale of ['en', 'es', 'pt']) {
         await prepare(page, locale);
         for (const width of widths) {
             await page.setViewportSize({ width, height: width <= 430 ? 844 : 900 });

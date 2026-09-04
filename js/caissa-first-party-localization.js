@@ -61,7 +61,7 @@
     }
 
     function dynamicText(value) {
-        if (i18n.getLocale() !== 'es') return value;
+        if (i18n.getLocale() === i18n.defaultLocale) return value;
         let match = value.match(/^(\d+) Elo target$/);
         if (match) return i18n.t('bots.targetTemplate', value, { elo: match[1] });
         match = value.match(/^(\d+) Elo target · Coming soon$/);
@@ -117,9 +117,10 @@
                     collection: i18n.t(`pgn.collection.${collections[match[3]]}`) });
         }
         match = value.match(/^Result (.+)$/);
-        if (match) return `Resultado ${match[1]}`;
+        if (match) return i18n.t('pgn.resultTemplate', value, { result: match[1] });
         match = value.match(/^Move (\d+)(\.?|…)(.*)$/);
-        if (match) return `Jugada ${match[1]}${match[2]}${match[3]}`;
+        if (match) return i18n.t('pgn.moveTemplate', value,
+            { number: match[1], suffix: match[2], detail: match[3] });
         return value;
     }
 
