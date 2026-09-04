@@ -37,3 +37,11 @@ test('color choices and Coach start boundary remain unchanged', () => {
     assert.match(panel, /targetElo: level\.opponentStrength\.targetElo/);
     assert.doesNotMatch(panel, /reviewMoveIndex|new\s+Chess|Stockfish|classification/i);
 });
+
+test('primary Coach choices remain vertically stacked at every breakpoint', () => {
+    const css = read('css/play-coach-review.css');
+    const featuredRule = css.match(/\.caissa-native-coach-panel__featured-levels\s*\{[^}]+\}/)?.[0] || '';
+    assert.match(featuredRule, /grid-template-columns:\s*minmax\(0, 1fr\)/);
+    assert.doesNotMatch(css, /caissa-native-coach-panel__featured-levels[^}]*repeat\(3/);
+    assert.doesNotMatch(css, /@media[\s\S]*caissa-native-coach-panel__featured-levels[^}]*grid-template-columns:\s*(?:repeat\(|[^;]*fr\s+[^;]*fr)/);
+});

@@ -50,7 +50,11 @@ body.caissa-simplified-play-active .caissa-native-coach-panel__level-picker {
     border: 0;
 }
 .caissa-native-coach-panel__level-picker > legend { padding: 0; }
-.caissa-native-coach-panel__featured-levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem; }
+.caissa-native-coach-panel__featured-levels {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .5rem;
+}
 .caissa-native-coach-panel__level-card,
 .caissa-native-coach-panel__level-row {
     position: relative;
@@ -61,7 +65,7 @@ body.caissa-simplified-play-active .caissa-native-coach-panel__level-picker {
     background: color-mix(in srgb, var(--play-theme-surface, var(--bg-secondary)) 88%, transparent);
     cursor: pointer;
 }
-.caissa-native-coach-panel__level-card { min-height: 8rem; padding: .85rem; border-radius: 12px; }
+.caissa-native-coach-panel__level-card { min-height: 0; padding: .7rem .85rem; border-radius: 12px; }
 .caissa-native-coach-panel__level-row { padding: .65rem .75rem; border-radius: 9px; }
 .caissa-native-coach-panel__level-card input,
 .caissa-native-coach-panel__level-row input { position: absolute; opacity: 0; pointer-events: none; }
@@ -94,8 +98,6 @@ body.caissa-simplified-play-active .caissa-native-coach-panel__level-picker {
     .caissa-coach-review-context .analyze-layout { grid-template-columns: minmax(0, 1fr); }
     .caissa-coach-review-context .analyze-main { grid-column: 1; order: 1; }
     .caissa-coach-review-context .context-panel { grid-column: 1; order: 2; }
-    .caissa-native-coach-panel__featured-levels { grid-template-columns: 1fr; }
-    .caissa-native-coach-panel__level-card { min-height: 0; }
 }
 
 @media (max-width: 420px) {
