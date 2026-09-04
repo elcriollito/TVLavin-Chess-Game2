@@ -25,7 +25,9 @@ test('last move comes from authoritative history and review keeps AnalyzeSection
     const app = read('app.js');
     const analyze = read('js/analyze-section.js');
 
-    assert.match(app, /const move = Number\.isInteger\(index\).*App\.moveHistory\[index\]/);
+    assert.match(app, /function authoritativeOpponentLastMove\(index = App\.currentMoveIndex\)/);
+    assert.match(app, /App\.playerColor === 'black' \? 'b' : App\.playerColor === 'white' \? 'w'/);
+    assert.match(app, /for \(let moveIndex = Math\.min\(index, App\.moveHistory\.length - 1\); moveIndex >= 0;/);
     assert.match(app, /syncLastMovePresentation\(\)/);
     assert.match(app, /App\.boardAdapter\?\.setLastMove\(null\)/);
     assert.match(analyze, /displayedMoveIndex = showsFenBefore \? this\.currentMoveIndex - 1 : this\.currentMoveIndex/);

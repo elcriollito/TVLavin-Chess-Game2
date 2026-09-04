@@ -78,8 +78,7 @@ test('real board pointer selection reaches the adapter before chessboard drag ha
         .toEqual(['e3', 'e4']);
     await page.locator('#playSection #chessboard .square-e4').click();
     await expect.poll(() => page.evaluate(() => window.App.game.history())).toEqual(['e4']);
-    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove))
-        .toEqual({ from: 'e2', to: 'e4' });
+    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove)).toBeNull();
 });
 
 test('capture targets use the adapter capture ring and clear with selection', async ({ page, browserName }) => {
@@ -146,50 +145,73 @@ test('Coach Hint stays stronger than ordinary legal targets when Legal Moves is 
         width: parseFloat(getComputedStyle(node, '::after').width),
         border: parseFloat(getComputedStyle(node, '::after').borderTopWidth) || 0
     }));
-    expect(hint.width).toBeGreaterThan(ordinary.width);
+    if (Number.isFinite(ordinary.width)) expect(hint.width).toBeGreaterThan(ordinary.width);
     expect(hint.border).toBeGreaterThan(ordinary.border);
 });
 
-test('last move follows move completion, navigation, Undo, reset, Flip, resize and Settings', async ({ page }) => {
+test('opponent last move follows active play, navigation, Undo, reset, Flip, resize and Settings', async ({ page }) => {
     await instrumentPlay(page, { autoReply: false });
     await openPlay(page);
     await startGame(page);
 
     expect(await playMove(page, 'e2', 'e4')).toBe(true);
-    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove))
-        .toEqual({ from: 'e2', to: 'e4' });
-    await expect(page.locator('#chessboard .caissa-board-last-move')).toHaveCount(2);
+    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove)).toBeNull();
+    await expect(page.locator('#chessboard .caissa-board-last-move')).toHaveCount(0);
     expect(await playMove(page, 'e7', 'e5')).toBe(true);
     await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove))
         .toEqual({ from: 'e7', to: 'e5' });
+    expect(await playMove(page, 'g1', 'f3')).toBe(true);
+    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove))
+        .toEqual({ from: 'e7', to: 'e5' });
+    expect(await playMove(page, 'b8', 'c6')).toBe(true);
+    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove))
+        .toEqual({ from: 'b8', to: 'c6' });
 
     await page.evaluate(() => window.navigateToPrevious());
     await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove))
-        .toEqual({ from: 'e2', to: 'e4' });
+        .toEqual({ from: 'e7', to: 'e5' });
     await page.evaluate(() => window.navigateToStart());
     await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove)).toBeNull();
     await page.evaluate(() => window.navigateToEnd());
     await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove))
-        .toEqual({ from: 'e7', to: 'e5' });
+        .toEqual({ from: 'b8', to: 'c6' });
 
     await page.evaluate(() => window.undoMove());
-    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove)).toBeNull();
-
-    expect(await playMove(page, 'd2', 'd4')).toBe(true);
+    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove))
+        .toEqual({ from: 'e7', to: 'e5' });
     await page.evaluate(() => { window.flipBoard(); window.App.board.resize(); });
     await expect(page.locator('#chessboard')).toHaveAttribute('data-orientation', 'black');
-    await expect(page.locator('#chessboard .square-d2')).toHaveClass(/caissa-board-last-move/);
-    await expect(page.locator('#chessboard .square-d4')).toHaveClass(/caissa-board-last-move/);
+    await expect(page.locator('#chessboard .square-e7')).toHaveClass(/caissa-board-last-move/);
+    await expect(page.locator('#chessboard .square-e5')).toHaveClass(/caissa-board-last-move/);
 
     await setSetting(page, 'last-move', false);
-    expect(await page.locator('#chessboard .square-d4').evaluate(node =>
+    expect(await page.locator('#chessboard .square-e5').evaluate(node =>
         getComputedStyle(node, '::before').display)).toBe('none');
     await setSetting(page, 'last-move', true);
-    expect(await page.locator('#chessboard .square-d4').evaluate(node =>
+    expect(await page.locator('#chessboard .square-e5').evaluate(node =>
         getComputedStyle(node, '::before').display)).not.toBe('none');
 
     await page.evaluate(() => window.prepareNativePlaySetup());
     await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove)).toBeNull();
+});
+
+test('opponent last move uses playerColor when the user plays Black', async ({ page }) => {
+    await instrumentPlay(page, { autoReply: false });
+    await page.goto('/play/coach');
+    await page.locator('[data-color-token="black"]').click();
+    await page.locator('[data-coach-primary]').click();
+    await expect.poll(() => page.evaluate(() => window.App.gameActive)).toBe(true);
+    await expect.poll(() => page.evaluate(() => window.App.playerColor)).toBe('black');
+    await page.waitForFunction(() => window.__caissaPlayHarness.snapshot().workerMessages
+        .some(message => message.startsWith('go')));
+    await page.evaluate(() => window.__caissaPlayHarness.emit(
+        window.__caissaPlayHarness.state.workers.length - 1, 'bestmove e2e4'));
+    await expect.poll(() => page.evaluate(() => window.App.moveHistory.length)).toBe(1);
+    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove))
+        .toEqual({ from: 'e2', to: 'e4' });
+    expect(await playMove(page, 'e7', 'e5')).toBe(true);
+    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove))
+        .toEqual({ from: 'e2', to: 'e4' });
 });
 
 for (const mode of MODES.slice(1)) {

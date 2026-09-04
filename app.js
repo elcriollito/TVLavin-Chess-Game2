@@ -839,13 +839,20 @@ function shouldShowLegalMoves() {
     return !document.querySelector('.caissa-simplified-shell')?.classList?.contains('caissa-hide-legal-moves');
 }
 
-function authoritativeLastMove(index = App.currentMoveIndex) {
-    const move = Number.isInteger(index) && index >= 0 ? App.moveHistory[index] : null;
-    return move?.from && move?.to ? { from: move.from, to: move.to } : null;
+function authoritativeOpponentLastMove(index = App.currentMoveIndex) {
+    const playerMoveColor = App.playerColor === 'black' ? 'b' : App.playerColor === 'white' ? 'w' : null;
+    if (!playerMoveColor || !Number.isInteger(index) || index < 0) return null;
+    for (let moveIndex = Math.min(index, App.moveHistory.length - 1); moveIndex >= 0; moveIndex -= 1) {
+        const move = App.moveHistory[moveIndex];
+        if (move?.color !== playerMoveColor && move?.from && move?.to) {
+            return { from: move.from, to: move.to };
+        }
+    }
+    return null;
 }
 
 function syncLastMovePresentation(index = App.currentMoveIndex) {
-    App.boardAdapter?.setLastMove(authoritativeLastMove(index));
+    App.boardAdapter?.setLastMove(authoritativeOpponentLastMove(index));
 }
 
 function clearLegalMovePresentation() {
