@@ -308,6 +308,8 @@ test('post-game identity and simplified Foot retain the selected bot and owned c
     await expect(page.locator('[data-post-game-summary]')).toContainText('Vera');
     await expect(page.locator('[data-post-game-summary]')).toBeHidden();
     await expect(page.locator('[data-caissa-floating-controls]')).toBeHidden();
+    const menu = shell.locator('.caissa-bots-panel__post-game-menu');
+    const menuToggle = menu.locator('summary');
     for (const [viewport, expectedHeadHeight] of [[{ width: 1600, height: 1000 }, 150],
         [{ width: 1366, height: 768 }, 150], [{ width: 390, height: 844 }, 112]]) {
         await page.setViewportSize(viewport);
@@ -316,6 +318,7 @@ test('post-game identity and simplified Foot retain the selected bot and owned c
             const tabs = document.querySelector('.caissa-simplified-shell__modes').getBoundingClientRect();
             return { headHeight: head.height, tabToHead: head.top - tabs.bottom };
         })).toEqual({ headHeight: expectedHeadHeight, tabToHead: 8 });
+        await menuToggle.scrollIntoViewIfNeeded();
         const geometry = await shell.evaluate(node => {
             const rect = selector => node.querySelector(selector).getBoundingClientRect();
             const head = rect(':scope > [data-caissa-bots-head]');
@@ -323,10 +326,14 @@ test('post-game identity and simplified Foot retain the selected bot and owned c
             const foot = rect(':scope > [data-caissa-bots-foot]');
             const tabs = document.querySelector('.caissa-simplified-shell__modes').getBoundingClientRect();
             const analyze = rect(':scope > [data-caissa-bots-body] [data-post-game-action="analyze"]');
+            const board = document.querySelector('#chessboard .board-b72b1').getBoundingClientRect();
+            const rounded = value => Math.round(value * 100) / 100;
             return { headHeight: head.height, tabToHead: head.top - tabs.bottom,
                 separated: body.bottom <= foot.top, analyzeInBody: analyze.top >= body.top && analyze.bottom <= body.bottom,
                 bodyOverflow: getComputedStyle(node.querySelector(':scope > [data-caissa-bots-body]')).overflowY,
-                overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+                overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+                fixed: [head.top, head.height, body.top, body.height, foot.top, foot.height,
+                    board.top, board.left, board.width, board.height].map(rounded) };
         });
         expect(geometry).toMatchObject({ headHeight: expectedHeadHeight, tabToHead: 8, separated: true,
             analyzeInBody: true, bodyOverflow: 'auto', overflow: 0 });
@@ -338,12 +345,39 @@ test('post-game identity and simplified Foot retain the selected bot and owned c
                 return hit === node || node.contains(hit);
             })).toBe(true);
         }
+        await menuToggle.click();
+        await expect(menuToggle).toHaveAttribute('aria-expanded', 'true');
+        await expect(menu.locator('.caissa-bots-panel__post-game-menu-items')).toBeVisible();
+        const openGeometry = await shell.evaluate(node => {
+            const rect = selector => node.querySelector(selector).getBoundingClientRect();
+            const head = rect(':scope > [data-caissa-bots-head]');
+            const body = rect(':scope > [data-caissa-bots-body]');
+            const foot = rect(':scope > [data-caissa-bots-foot]');
+            const board = document.querySelector('#chessboard .board-b72b1').getBoundingClientRect();
+            const toggle = rect('.caissa-bots-panel__post-game-menu-toggle');
+            const popover = rect('.caissa-bots-panel__post-game-menu-items');
+            const rounded = value => Math.round(value * 100) / 100;
+            return { fixed: [head.top, head.height, body.top, body.height, foot.top, foot.height,
+                board.top, board.left, board.width, board.height].map(rounded),
+                opensUp: popover.bottom <= toggle.top,
+                rightAligned: Math.abs(popover.right - toggle.right) <= 1,
+                inViewport: popover.left >= 0 && popover.top >= 0 && popover.right <= innerWidth,
+                overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+        });
+        expect(openGeometry).toMatchObject({ fixed: geometry.fixed, opensUp: true,
+            rightAligned: true, inViewport: true, overflow: 0 });
+        await menu.locator('[data-post-game-action="copy-pgn"]').focus();
+        await page.keyboard.press('Escape');
+        await expect(menuToggle).toHaveAttribute('aria-expanded', 'false');
+        await expect(menuToggle).toBeFocused();
+        await menuToggle.click();
+        await page.locator('#chessboard .board-b72b1').click({ position: { x: 8, y: 8 } });
+        await expect(menuToggle).toHaveAttribute('aria-expanded', 'false');
     }
     expect(await page.evaluate(() => window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(0);
     await expect(page.locator('[data-post-game-action="analyze"]')).toBeEnabled();
     expect(await page.evaluate(() => window.CaissaPostGameExperienceInstance.getSnapshot().actions.analyze.enabled)).toBe(true);
-    const menu = shell.locator('.caissa-bots-panel__post-game-menu');
-    await menu.locator('summary').click();
+    await menuToggle.click();
     await expect(menu).toHaveAttribute('open', '');
     await expect(menu.locator('[data-post-game-action]')).toHaveText(['Copy PGN', 'Download PGN', 'Save PGN Locally']);
     await expect(menu.locator('.caissa-post-game__consent')).toBeVisible();

@@ -1,7 +1,7 @@
 (function installBotsPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '2.6.0';
+    const SCHEMA_VERSION = '2.7.0';
     const STATUSES = Object.freeze(['ready', 'planned', 'busy', 'active', 'error', 'unavailable', 'disposed']);
     const TIME_CONTROLS = Object.freeze([
         Object.freeze({ value: 0, label: 'No Timer' }),
@@ -328,13 +328,14 @@
             });
             const menu = element('details', 'caissa-bots-panel__post-game-menu');
             const menuToggle = element('summary', 'caissa-bots-panel__post-game-menu-toggle', {
-                'aria-label': 'PGN actions menu'
+                'aria-label': 'PGN actions menu', 'aria-haspopup': 'true', 'aria-expanded': 'false',
+                'aria-controls': `${this.#id}-post-game-menu`
             });
             const menuMark = element('span', 'caissa-bots-panel__post-game-menu-mark', { 'aria-hidden': 'true' });
             menuMark.textContent = '•••';
             const menuLabel = element('span', ''); menuLabel.textContent = 'Menu';
             const menuItems = element('div', 'caissa-bots-panel__post-game-menu-items', {
-                'aria-label': 'PGN actions'
+                id: `${this.#id}-post-game-menu`, 'aria-label': 'PGN actions'
             });
             menuToggle.append(menuMark, menuLabel);
             menuItems.append(...pgnActions);
@@ -350,7 +351,19 @@
             wrapper.appendChild(foot);
             if (consent) menuItems.appendChild(consent);
             if (feedback) menuItems.appendChild(feedback);
+            const syncMenuState = () => menuToggle.setAttribute('aria-expanded', String(menu.open));
+            const dismissMenu = event => {
+                if (menu.open && !menu.contains(event.target)) menu.open = false;
+            };
+            const closeMenuFromKeyboard = event => {
+                if (event.key !== 'Escape' || !menu.open) return;
+                event.preventDefault(); menu.open = false; menuToggle.focus();
+            };
+            menu.addEventListener('toggle', syncMenuState);
+            menu.addEventListener('keydown', closeMenuFromKeyboard);
+            global.document.addEventListener('pointerdown', dismissMenu, true);
             this.#postGamePlacement = { content, foot, actionOrder, primary, rematch, consent, feedback, wrapper, menu,
+                syncMenuState, dismissMenu, closeMenuFromKeyboard,
                 contentMarker, footMarker, primaryMarker, consentMarker, feedbackMarker };
             return wrapper;
         }
@@ -359,6 +372,9 @@
             const placement = this.#postGamePlacement;
             if (!placement) return;
             this.#postGamePlacement = null;
+            placement.menu.removeEventListener('toggle', placement.syncMenuState);
+            placement.menu.removeEventListener('keydown', placement.closeMenuFromKeyboard);
+            global.document.removeEventListener('pointerdown', placement.dismissMenu, true);
             if (placement.primary) placement.primaryMarker.parentNode?.insertBefore(placement.primary, placement.primaryMarker);
             placement.primaryMarker.remove();
             placement.primary?.removeAttribute('data-bots-primary-post-game-action');
