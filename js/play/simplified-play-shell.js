@@ -1,8 +1,8 @@
 (function (global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.12.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.12.0';
+    const SCHEMA_VERSION = '1.14.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.14.0';
     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'unavailable', 'error']);
     const REGIONS = Object.freeze([
         'mode-navigation', 'board-stage', 'opponent-header', 'evaluation-rail',
@@ -109,7 +109,8 @@
         #suppressedLive = [];
         #layoutMode = null; #geometry = null; #resizeCount = 0; #activationCount = 0; #statusNode = null;
         #gamesPanel = null; #botsPanel = null; #coachPanel = null; #postGame = null;
-        #activeContext = null; #assistance = null; #actionBar = null; #pgnDialog = null; #settingsDialog = null;
+        #activeContext = null; #activeFoot = null; #assistance = null; #actionBar = null; #utilityBar = null;
+        #pgnDialog = null; #settingsDialog = null;
         #settingsTrigger = null;
         #shareDialog = null;
         #stateObserver = null; #panelObserver = null;
@@ -277,7 +278,11 @@
                 button.innerHTML = `<i class="fas ${icon}" aria-hidden="true"></i><span>${label}</span>`;
                 utilityBar.appendChild(button);
             }
-            this.#activeContext.appendChild(utilityBar);
+            this.#utilityBar = utilityBar;
+            this.#activeFoot = element('div', 'caissa-native-coach-panel__foot-content caissa-native-coach-panel__foot-content--active', {
+                'data-caissa-coach-active-foot': ''
+            });
+            this.#activeFoot.append(boardActions, utilityBar);
             boardActions.hidden = true;
             this.#pgnDialog = element('dialog', 'caissa-simplified-shell__pgn-dialog', {
                 'aria-labelledby': `${this.#id}-pgn-title`
@@ -401,7 +406,7 @@
                 onVisibilityChange: visible => {
                     if (visible) {
                         this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.();
-                        this.#coachPanel?.hide?.();
+                        if (this.#mode !== 'coach') this.#coachPanel?.hide?.();
                     }
                     else this.#syncPanels();
                     this.#syncComposition();
@@ -495,6 +500,7 @@
                 });
                 this.#listen(global, 'caissa-coach-move-annotation', () => this.#renderActiveNotation());
                 this.#listen(global, 'caissa-turn-change', () => this.#renderActiveNotation());
+                this.#listen(global, 'caissa:coach-review-ply-change', () => this.#renderCoachBoardAnnotation());
                 if (global.visualViewport) this.#listen(global.visualViewport, 'resize', () => this.resize());
                 this.#listen(global.document, 'transitionend', event => {
                     if (!event.target?.classList?.contains('main-navigation')) return;
@@ -804,7 +810,8 @@
             const previousState = this.#root.dataset.uiState;
             this.#root.dataset.uiState = state;
             if (active) {
-                this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.(); this.#coachPanel?.hide?.();
+                this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.();
+                if (this.#mode !== 'coach') this.#coachPanel?.hide?.();
             } else if (!postGame) {
                 if (this.#mode === 'games') this.#gamesPanel?.show?.();
                 else if (this.#mode === 'bots') this.#botsPanel?.show?.();
@@ -812,18 +819,12 @@
             }
             this.#activeContext.hidden = !active;
             this.#actionBar.hidden = !active;
-            const utilityBar = this.#activeContext.querySelector('[data-active-game-utilities]');
+            const utilityBar = this.#utilityBar;
             if (utilityBar) utilityBar.hidden = !active;
             this.#syncAssistance(active, postGame);
-            const coachMode = active && this.#mode === 'coach';
+            const coachMode = this.#mode === 'coach';
             const narrator = this.#root.querySelector('[data-active-coach-narrator]');
-            if (narrator) {
-                narrator.hidden = !coachMode;
-                const portraitHost = narrator.querySelector('[data-active-coach-portrait]');
-                const sourcePortrait = this.#root.querySelector('[data-caissa-native-coach-panel] .caissa-native-coach-panel__portrait');
-                if (coachMode && portraitHost && sourcePortrait && !portraitHost.firstChild)
-                    portraitHost.appendChild(sourcePortrait.cloneNode(true));
-            }
+            if (narrator) narrator.hidden = true;
             const assistedMode = active && ['bots', 'coach'].includes(this.#mode);
             for (const action of ['coach-hint', 'coach-undo']) {
                 const button = this.#actionBar.querySelector(`[data-active-game-action="${action}"]`);
@@ -842,6 +843,18 @@
                     ? ({ games: 'Play Game', bots: 'Play Bots', coach: 'Play Coach' }[this.#mode] || 'Game status')
                     : starting ? 'Starting game' : 'Game setup';
             }
+            const contextBody = this.#root.querySelector('.caissa-simplified-shell__context-body');
+            const coachShellState = this.#coachPanel?.getSnapshot?.().shell;
+            const transientReview = (coachShellState?.transientDepth || 0) > 0
+                && ['review-summary', 'guided-review'].includes(coachShellState?.phase);
+            if (coachMode && this.#coachPanel && !transientReview) {
+                const content = postGame ? this.#root.querySelector('.caissa-post-game') : active ? this.#activeContext : null;
+                const foot = active ? this.#activeFoot : null;
+                this.#coachPanel.present({ phase: postGame ? 'game-over' : active ? 'active-game' : 'setup', content, foot });
+            } else if (!coachMode && this.#coachPanel && contextBody) {
+                this.#coachPanel.releasePhaseContent(contextBody);
+                this.#coachPanel.hide();
+            }
             this.#syncActivePlacement(active, coachMode);
             this.#renderActiveNotation();
             this.#syncIdentity();
@@ -853,31 +866,48 @@
             const opponent = this.#root.querySelector('.caissa-simplified-shell__player--opponent');
             const narrator = this.#root.querySelector('[data-active-coach-narrator]');
             const desktopActive = active && this.#root.dataset.layout === 'desktop-split';
+            if (active && coachMode && this.#activeFoot) {
+                if (this.#actionBar.parentNode !== this.#activeFoot) this.#activeFoot.appendChild(this.#actionBar);
+                if (this.#utilityBar?.parentNode !== this.#activeFoot) this.#activeFoot.appendChild(this.#utilityBar);
+                return;
+            }
             if (desktopActive) {
-                if (coachMode && narrator && narrator.parentNode !== this.#activeContext)
-                    this.#activeContext.insertBefore(narrator, this.#activeContext.firstChild);
-                else if (!coachMode && narrator && boardStage && narrator.parentNode !== boardStage)
+                if (narrator && boardStage && narrator.parentNode !== boardStage)
                     boardStage.insertBefore(narrator, opponent);
                 if (this.#actionBar.parentNode !== this.#activeContext) this.#activeContext.appendChild(this.#actionBar);
-                const utilityBar = this.#activeContext.querySelector('[data-active-game-utilities]');
-                if (utilityBar) this.#activeContext.appendChild(utilityBar);
+                if (this.#utilityBar) this.#activeContext.appendChild(this.#utilityBar);
                 return;
             }
             if (narrator && boardStage && narrator.parentNode !== boardStage) boardStage.insertBefore(narrator, opponent);
             if (boardStage && this.#actionBar.parentNode !== boardStage) boardStage.appendChild(this.#actionBar);
+            if (this.#utilityBar?.parentNode !== this.#activeContext) this.#activeContext.appendChild(this.#utilityBar);
         }
         #renderCoachBoardAnnotation() {
             const board = this.#root?.querySelector('#chessboard');
             if (!board) return;
             board.querySelectorAll('[data-caissa-coach-move-annotation]').forEach(node => node.remove());
             if (this.#mode !== 'coach') return;
-            const annotations = Array.isArray(global.App?.coachMoveAnnotations)
-                ? global.App.coachMoveAnnotations : [];
-            const historyLength = Array.isArray(global.App?.moveHistory)
-                ? global.App.moveHistory.length : 0;
             let current = null;
-            for (let index = Math.min(historyLength, annotations.length) - 1; index >= 0; index -= 1) {
-                if (annotations[index]?.square) { current = annotations[index]; break; }
+            if (global.document.body?.classList?.contains('caissa-coach-review-summary-active')) {
+                const analyze = global.AnalyzeSection;
+                const index = Number.isInteger(analyze?.currentMoveIndex) ? analyze.currentMoveIndex : -1;
+                const result = index >= 0 && analyze?.analysisPhase === 'complete'
+                    ? analyze.analysisResults?.[index] : null;
+                const move = index >= 0 ? analyze?.getLoadedMoves?.({ verbose: true })?.[index] : null;
+                const key = result?.isBestMove === true ? 'best' : String(result?.quality || '').toLowerCase();
+                if (move?.to && result?.unavailable !== true && result?.annotation
+                    && result.annotation !== '-' && /^(?:book|best|inaccuracy|mistake|blunder)$/.test(key)) {
+                    current = { square: move.to, san: move.san, key, symbol: result.annotation,
+                        label: result.isBestMove === true ? 'Best' : result.quality };
+                }
+            } else {
+                const annotations = Array.isArray(global.App?.coachMoveAnnotations)
+                    ? global.App.coachMoveAnnotations : [];
+                const historyLength = Array.isArray(global.App?.moveHistory)
+                    ? global.App.moveHistory.length : 0;
+                for (let index = Math.min(historyLength, annotations.length) - 1; index >= 0; index -= 1) {
+                    if (annotations[index]?.square) { current = annotations[index]; break; }
+                }
             }
             if (!current || !/^[a-h][1-8]$/.test(current.square)
                 || !/^(?:book|best|precise|good|inaccuracy|mistake|blunder)$/.test(current.key || '')) return;
@@ -1035,10 +1065,18 @@
         #handleActiveAction(event) {
             const setting = event.target?.closest?.('[data-play-setting]')?.dataset?.playSetting;
             if (setting === 'legal-moves') {
-                this.#root.classList.toggle('caissa-hide-legal-moves', !event.target.checked); return;
+                this.#root.classList.toggle('caissa-hide-legal-moves', !event.target.checked);
+                global.dispatchEvent(new CustomEvent('caissa-play-visual-assistance-setting', {
+                    detail: { setting, enabled: event.target.checked === true }
+                }));
+                return;
             }
             if (setting === 'last-move') {
-                this.#root.classList.toggle('caissa-hide-last-move', !event.target.checked); return;
+                this.#root.classList.toggle('caissa-hide-last-move', !event.target.checked);
+                global.dispatchEvent(new CustomEvent('caissa-play-visual-assistance-setting', {
+                    detail: { setting, enabled: event.target.checked === true }
+                }));
+                return;
             }
             const action = event.target?.closest?.('[data-active-game-action]')?.dataset?.activeGameAction;
             if (!action) return;

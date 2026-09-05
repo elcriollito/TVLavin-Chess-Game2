@@ -126,11 +126,12 @@ test('highlight state validates squares and remains presentation-only', () => {
     const f = fixture();
     f.adapter.mount(f.root);
     assert.equal(f.adapter.setSelection('e2').ok, true);
-    assert.equal(f.adapter.setLegalTargets(['e3', 'e4']).ok, true);
+    assert.equal(f.adapter.setLegalTargets(['e3', 'e4'], { captureTargets: ['e4'] }).ok, true);
     assert.equal(f.adapter.setLastMove({ from: 'a2', to: 'a4' }).ok, true);
     assert.equal(f.adapter.setCheckSquare('e8').ok, true);
     assert.equal(f.adapter.setSelection('__proto__').ok, false);
     assert.deepEqual([...f.adapter.getSnapshot().legalTargets], ['e3', 'e4']);
+    assert.deepEqual([...f.adapter.getSnapshot().legalCaptureTargets], ['e4']);
     f.adapter.clearHighlights();
     assert.equal(f.adapter.getSnapshot().selectedSquare, null);
 });
@@ -146,6 +147,19 @@ test('drag and drop callbacks are forwarded once and disabled input snaps back',
     assert.equal(f.log.config.onDragStart('e2', 'wP'), false);
     assert.equal(f.log.config.onDrop('e2', 'e4'), 'snapback');
     assert.equal(drops, 1);
+});
+
+test('snap completion reconciles a fast opponent render and reapplies highlights', () => {
+    const f = fixture({ onSnapEnd: () => {} });
+    f.adapter.mount(f.root);
+    const fen = '8/8/8/4p3/8/8/8/K6k w - - 0 1';
+    f.adapter.setPosition(fen);
+    f.adapter.setLastMove({ from: 'e7', to: 'e5' });
+    assert.deepEqual(f.log.positions, [fen]);
+    f.log.config.onSnapEnd();
+    assert.deepEqual(f.log.positions, [fen, fen]);
+    assert.equal(f.adapter.getSnapshot().lastMove.from, 'e7');
+    assert.equal(f.adapter.getSnapshot().lastMove.to, 'e5');
 });
 
 test('unmount cleans listeners, remount works, and dispose is terminal and idempotent', () => {

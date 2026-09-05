@@ -10,7 +10,10 @@ test('active Coach presents Caissa responsively and keeps narration synchronized
     const panel = read('js/play/native-coach/coach-panel.js');
     const css = read('css/play-simplified-shell.css');
     assert.match(shell, /data-active-coach-narrator/);
-    assert.match(shell, /sourcePortrait\.cloneNode\(true\)/);
+    assert.doesNotMatch(shell, /sourcePortrait\.cloneNode\(true\)/);
+    assert.match(shell, /this\.#coachPanel\.present\(/);
+    assert.match(panel, /data-caissa-coach-persistent/);
+    assert.match(panel, /data-caissa-coach-phase-host/);
     assert.match(panel, /caissa-coach-goddess\.png/);
     assert.match(shell, /caissa-coach-narration/);
     assert.match(shell, /data-active-coach-opening/);

@@ -18,8 +18,9 @@ test('all archived player collections above 2,000 games are physically present a
     const relative = album.localPath.replace(/^\/data\/pgn\/players\//, 'api/_private/pgn/players/');
     const absolute = path.join(ROOT, relative);
     assert.equal(fs.existsSync(absolute), true, `${album.title}: local PGN missing`);
-    assert.equal(fs.statSync(absolute).size, album.bytes, `${album.title}: byte count mismatch`);
     const source = fs.readFileSync(absolute, 'utf8');
+    const canonicalBytes = Buffer.byteLength(source.replace(/\r\n/g, '\n'), 'utf8');
+    assert.equal(canonicalBytes, album.bytes, `${album.title}: byte count mismatch`);
     const detectedGames = (source.match(/^\[Event\s+"/gm) || []).length;
     assert.equal(detectedGames, album.games, `${album.title}: game count mismatch`);
   }
@@ -38,6 +39,6 @@ test('PGN runtime capacity covers the largest archived player collection', () =>
 test('large-collection parser fixes are cache-busted through the page and Worker chain', () => {
   const page = read('pgn-replayer.html');
   const worker = read('js/pgn-replayer/pgn-worker.js');
-  assert.match(page, /pgn-replayer-page\.js\?v=1\.5\.2/);
+  assert.match(page, /pgn-replayer-page\.js\?v=1\.5\.4/);
   assert.match(worker, /pgn-core\.js\?v=1\.1\.1/);
 });

@@ -89,8 +89,12 @@ test('keeps one lazy local engine in Analysis and defaults it off', () => {
 });
 
 test('pins the local single-threaded Stockfish 18 browser distribution', () => {
-  const digest = path => createHash('sha256').update(fs.readFileSync(new URL(`../../${path}`, import.meta.url))).digest('hex');
-  assert.equal(digest('assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js'), '2278005057f381491f1c9bb3e44c9f5920b3a00bef9759e33cc6582769a1f1fe');
+  const digest = (path, normalizeText = false) => {
+    const buffer = fs.readFileSync(new URL(`../../${path}`, import.meta.url));
+    const content = normalizeText ? buffer.toString('utf8').replace(/\r\n/g, '\n') : buffer;
+    return createHash('sha256').update(content).digest('hex');
+  };
+  assert.equal(digest('assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js', true), '2278005057f381491f1c9bb3e44c9f5920b3a00bef9759e33cc6582769a1f1fe');
   assert.equal(digest('assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.wasm'), 'a8fbc05ec6920b56d7485826dcb02c5ffd2826bcbf751cf973046f237a9096f1');
   assert.match(read('assets/vendor/stockfish/18.0.0/Copying.txt'), /GNU GENERAL PUBLIC LICENSE[\s\S]*Version 3/);
   assert.match(read('engine/STOCKFISH-NOTICE.md'), /Stockfish\.js 18 lite single-threaded/);

@@ -15,7 +15,7 @@ test('server player offer catalog owns exactly 82 allowlisted physical collectio
   assert.equal(new Set(offers.map(offer => offer.id)).size, 82);
   assert.ok(offers.every(offer => offer.credits === 0));
   assert.ok(offers.every(offer => fs.existsSync(offer.filePath)));
-  assert.ok(offers.every(offer => offer.filePath.includes('/api/_private/pgn/')));
+  assert.ok(offers.every(offer => offer.filePath.replaceAll('\\', '/').includes('/api/_private/pgn/')));
 });
 
 test('all 82 player download names produce valid RFC 5987 response headers', () => {

@@ -98,5 +98,6 @@ test('Share stays inside CAISSA and Coach layout remains bounded on desktop and 
     expect(mobile.overflow).toBeLessThanOrEqual(1);
     expect(mobile.dialogInside).toBe(true);
     expect(mobile.boardBeforeContext).toBe(true);
-    await expect(page.locator('[data-active-coach-narrator]')).toBeVisible();
+    await expect(page.locator('[data-caissa-coach-persistent]')).toBeVisible();
+    await expect(page.locator('[data-active-coach-narrator]')).toBeHidden();
 });

@@ -41,6 +41,7 @@ test('resource, route, action, DOM, and network guards fail closed on educationa
     for (const input of [
         { type: 'dynamic-group', value: 'bots-stack' }, { type: 'dynamic-group', value: 'native-coach-stack' }, { type: 'dynamic-group', value: 'native-mentor-review' }, { type: 'dynamic-group', value: 'analyze-deep' },
         { type: 'script', value: 'js/play/post-game-core.js?v=1.0.0' },
+        { type: 'style', value: 'css/play-coach-review.css?v=1.0.0' },
         { type: 'route', value: '/play/games?simplified=1' }, { type: 'route', value: '/play/coach?simplified=1' }, { type: 'action', value: 'analyze' }, { type: 'action', value: 'mentor-review' },
         { type: 'dom', value: 'Result Rematch New Game Save PGN Analyze' },
         { type: 'network', value: 'https://caissa.test/js/play/bots-panel.js', baseOrigin: 'https://caissa.test' }

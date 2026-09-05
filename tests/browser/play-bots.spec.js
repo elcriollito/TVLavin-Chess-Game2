@@ -15,10 +15,10 @@ async function openCategory(page, name) {
 
 test.beforeEach(async ({ page }) => instrumentPlay(page));
 
-test('Bots is internal and exposes the Classic piece ladder without engine internals', async ({ page }) => {
+test('Bots is canonical and exposes the Classic piece ladder without engine internals', async ({ page }) => {
     await page.goto('/play/bots');
-    expect(new URL(page.url()).pathname).toBe('/play/games');
-    await expect(page.locator('.caissa-bots-panel')).toHaveCount(0);
+    expect(new URL(page.url()).pathname).toBe('/play/bots');
+    await expect(page.locator('.caissa-bots-panel')).toBeVisible();
     await openBots(page);
     await expect(page.locator('[data-bot-card]')).toHaveCount(44);
     await expect(page.locator('.caissa-bots-panel__bot.is-preview-ready')).toHaveCount(44);

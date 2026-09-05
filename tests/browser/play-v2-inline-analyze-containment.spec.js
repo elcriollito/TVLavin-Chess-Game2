@@ -36,7 +36,7 @@ for (const profile of profiles) {
                 }, { once: true });
             });
         }
-        await openPlay(page, 'play/beta');
+        await openPlay(page, '/play');
         await loadPosition(page, positions.checkmateInOne.fen);
         await playMove(page, positions.checkmateInOne.from, positions.checkmateInOne.to);
         const completed = await snapshot(page);
@@ -122,7 +122,7 @@ for (const profile of profiles) {
 
 test('inline Analyze traps focus, closes with Escape, and restores PostGame', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await openPlay(page, 'play/beta');
+    await openPlay(page, '/play');
     await loadPosition(page, positions.checkmateInOne.fen);
     await playMove(page, positions.checkmateInOne.from, positions.checkmateInOne.to);
     await page.locator('[data-post-game-action="analyze"]').click();

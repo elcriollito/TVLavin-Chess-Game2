@@ -46,7 +46,7 @@
         }
         if (type === 'action') return decision(ACTIONS.includes(value), type,
             ACTIONS.includes(value) ? 'POSTGAME_ACTION_ALLOWED' : 'POSTGAME_ACTION_PROHIBITED');
-        if (FORBIDDEN_RESOURCE.test(value) && !/play-v2-(?:coach|mentor-review)-boundary|native-(?:coach|mentor-review)/i.test(value))
+        if (FORBIDDEN_RESOURCE.test(value) && !/play-v2-(?:coach|mentor-review)-boundary|native-(?:coach|mentor-review)|play-coach-review\.css/i.test(value))
             return decision(false, type, 'EDUCATIONAL_OWNERSHIP_PROHIBITED');
         if (type === 'transition') return decision(value === 'analyze', type,
             value === 'analyze' ? 'EXTERNAL_ANALYZE_ALLOWED' : 'TRANSITION_PROHIBITED');

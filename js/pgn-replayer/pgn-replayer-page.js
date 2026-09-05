@@ -157,6 +157,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         engineEnabled: false,
         activeAlbumId: null,
         pendingAlbumId: null,
+        pendingTab: null,
         albums: [{ ...CAPABLANCA_ALBUM }]
     };
 
@@ -791,6 +792,8 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
             state.albums.push({ id: 'local-import', title: sourceLabel || 'Imported PGN', games: collection.games.length, access: 'local' });
         }
         state.pendingAlbumId = null;
+        const destinationTab = state.pendingTab || (collection.games.length > 1 ? 'games' : 'notation');
+        state.pendingTab = null;
         elements.filter.value = '';
         elements.empty.hidden = true;
         elements.gamesEmpty.hidden = true;
@@ -799,7 +802,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         elements.gameCount.textContent = `(${collection.games.length})`;
         elements.filterWrap.hidden = collection.games.length <= 20;
         selectGame(0, false);
-        selectTab(collection.games.length > 1 ? 'games' : 'notation');
+        selectTab(destinationTab);
         const warning = collection.warnings.length ? ` ${collection.warnings.length} damaged game${collection.warnings.length === 1 ? ' was' : 's were'} skipped.` : '';
         showMessage(`${collection.games.length} game${collection.games.length === 1 ? '' : 's'} loaded locally.${warning}`, collection.warnings.length ? 'warning' : 'info', !collection.warnings.length);
     }
@@ -815,24 +818,27 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
             if (response.type === 'parsed') applyCollection(response.collection, state.sourceLabel);
             else {
                 state.pendingAlbumId = null;
+                state.pendingTab = null;
                 showMessage(response.error?.message || 'The PGN could not be read.', 'error', false);
             }
         });
         worker.addEventListener('error', () => {
             setBusy(false);
             state.pendingAlbumId = null;
+            state.pendingTab = null;
             showMessage('The local PGN reader stopped unexpectedly. Try a smaller file.', 'error', false);
         }, { once: true });
         return worker;
     }
 
-    function parseText(text, sourceLabel, albumId = null) {
+    function parseText(text, sourceLabel, albumId = null, destinationTab = null) {
         stopAutoplay();
         const worker = ensureWorker();
         state.requestId += 1;
         state.sourceLabel = sourceLabel;
         state.sourceText = text;
         state.pendingAlbumId = albumId;
+        state.pendingTab = destinationTab;
         setBusy(true, 'Reading PGN locally…');
         worker.postMessage({ type: 'parse', requestId: state.requestId, text });
     }
@@ -858,6 +864,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
             parseText(new TextDecoder().decode(bytes), album.title, album.id);
         } catch (error) {
             state.pendingAlbumId = null;
+            state.pendingTab = null;
             setBusy(false);
             showMessage(error?.message || 'The collection could not be opened.', 'error', false);
         }
@@ -927,7 +934,12 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
             showMessage('This PGN is larger than the 10 MiB safety limit.', 'error', false);
             return;
         }
-        parseText(detail.text, detail.sourceLabel || 'CAISSA collection', detail.albumId || null);
+        parseText(
+            detail.text,
+            detail.sourceLabel || 'CAISSA collection',
+            detail.albumId || null,
+            detail.openingPage ? 'games' : null
+        );
     });
     elements.pasteButtons.forEach(button => button.addEventListener('click', () => {
         elements.openMenu.open = false;
@@ -939,6 +951,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         updateEngineUi(state.engineEnabled ? 'ready' : 'off');
     });
     elements.optionsButton.addEventListener('click', () => elements.optionsDialog.showModal());
+    elements.optionsDialog.addEventListener('close', () => elements.optionsButton.focus());
     elements.loadPaste.addEventListener('click', () => {
         if (!elements.pasteInput.value.trim()) { showMessage('Paste PGN text before loading.', 'error'); return; }
         const text = elements.pasteInput.value;

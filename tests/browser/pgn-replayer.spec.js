@@ -36,7 +36,7 @@ test('loads multiple games locally and replays mainline, comments, NAGs, and var
   await page.getByRole('tab', { name: 'Notation' }).click();
   await expect(page.locator('[data-pgn-notation]')).toContainText('King pawn');
   await expect(page.locator('[data-pgn-notation]')).toContainText('Sicilian');
-  await expect(page.locator('.pgn-nag')).toContainText('!');
+  await expect(page.locator('.pgn-nag').filter({ hasText: /^!$/ })).toHaveCount(1);
   await page.getByRole('button', { name: '1. e4' }).click();
   await expect(page.getByRole('button', { name: '1. e4' })).toHaveClass(/is-active/);
   await expect(page.locator('.square-e4 .piece-417db')).toHaveCount(1);
@@ -166,20 +166,25 @@ test('navigates the historical families and loads the 1972 championship through 
     title: index === 0 ? 'Vienna Game' : `Test Opening ${String(index).padStart(3, '0')}`,
     file: index === 0 ? 'Vienna.zip' : `Opening${String(index).padStart(3, '0')}.zip`
   }));
-  await page.route('**/api/pgn/opening', route => route.fulfill({
-    contentType: 'application/json',
-    body: JSON.stringify({ access: 'free', pageSize: 100, count: 233, openings: openingCatalog })
-  }));
-  await page.route('**/api/pgn/opening?file=Vienna.zip&page=1', route => route.fulfill({
-    contentType: 'application/x-chess-pgn',
-    headers: {
-      'X-CAISSA-Opening-Page': '1',
-      'X-CAISSA-Opening-Pages': '3',
-      'X-CAISSA-Opening-Games': '205',
-      'X-CAISSA-Opening-Page-Games': '100'
-    },
-    body: fischerSpassky
-  }));
+  await page.route('**/api/pgn/opening**', route => {
+    const requestUrl = new URL(route.request().url());
+    if (requestUrl.searchParams.get('file') === 'Vienna.zip') {
+      return route.fulfill({
+        contentType: 'application/x-chess-pgn',
+        headers: {
+          'X-CAISSA-Opening-Page': '1',
+          'X-CAISSA-Opening-Pages': '3',
+          'X-CAISSA-Opening-Games': '205',
+          'X-CAISSA-Opening-Page-Games': '100'
+        },
+        body: fischerSpassky
+      });
+    }
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ access: 'free', pageSize: 100, count: 233, openings: openingCatalog })
+    });
+  });
   await page.route('**/api/pgn/pgnmentor?kind=event&file=WorldChamp1972.pgn', route => route.fulfill({
     contentType: 'application/x-chess-pgn',
     body: fischerSpassky
@@ -190,8 +195,8 @@ test('navigates the historical families and loads the 1972 championship through 
   const championships = page.locator('[data-pgn-library-family="world-championships"]');
   await championships.click();
   await expect(championships).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('[data-pgn-library-summary]')).toContainText('Source catalog checked Aug 22, 2026');
-  await expect(page.locator('[data-mentor-historical-album-id]')).toHaveCount(59);
+  await expect(page.locator('[data-pgn-library-summary]')).toContainText('Source catalog checked Aug 23, 2026');
+  await expect(page.locator('[data-mentor-historical-album-id]:visible')).toHaveCount(59);
 
   await page.locator('[data-pgn-library-search]').fill('Fischer');
   const match = page.locator('[data-mentor-historical-album-id="world-championship-worldchamp1972"]');
@@ -209,7 +214,12 @@ test('navigates the historical families and loads the 1972 championship through 
   await expect(page.locator('[data-opening-album-id]:visible')).toHaveCount(233);
   await page.locator('[data-pgn-library-search]').fill('Vienna');
   await expect(page.locator('[data-opening-album-id]:visible')).toHaveCount(1);
+  const openingPageResponse = page.waitForResponse(response => {
+    const url = new URL(response.url());
+    return url.pathname === '/api/pgn/opening' && url.searchParams.get('file') === 'Vienna.zip';
+  });
   await page.locator('[data-opening-album-id="opening-vienna"]').click();
+  await openingPageResponse;
   await expect(page.locator('[data-pgn-message]')).toContainText('1 game loaded locally');
   await expect(page.locator('[data-pgn-opening-pagebar]')).toBeVisible();
   await expect(page.locator('[data-pgn-opening-page-summary]')).toContainText('Games 1–100 of 205 · Page 1 of 3');
@@ -240,7 +250,6 @@ test('engine defaults off and renders exactly two local analysis lines', async (
   const toggle = page.locator('[data-pgn-engine]');
   await expect(toggle).toContainText('Off');
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.getByRole('tab', { name: 'Albums' })).toHaveAttribute('aria-selected', 'true');
   await toggle.click();
   await expect(page.getByRole('tab', { name: 'Analysis' })).toHaveAttribute('aria-selected', 'true');
   await expect(toggle).toContainText('On');

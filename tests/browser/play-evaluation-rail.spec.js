@@ -28,10 +28,16 @@ test('legacy and QA layouts share one versioned rail owner and one value', async
 
 test('equal, positive, negative, mate, and orientation preserve White perspective', async ({ page }) => {
     await openPlay(page);
-    for (const [cp, text] of [[0, '+0.0'], [300, '+3.0'], [-225, '-2.3']]) {
+    const geometry = [];
+    for (const [cp, text] of [[0, '+0.0'], [50, '+0.5'], [300, '+3.0'], [-50, '-0.5'], [-300, '-3.0']]) {
         await page.evaluate(value => window.updateEvalBar(value, null), cp);
         await expect(page.locator('#evalScore')).toHaveText(text);
+        geometry.push(await page.locator('#evalFill').evaluate(node => Number.parseFloat(node.style.height)));
     }
+    expect(geometry[2]).toBeGreaterThan(geometry[1]);
+    expect(geometry[1]).toBeGreaterThan(geometry[0]);
+    expect(geometry[0]).toBeGreaterThan(geometry[3]);
+    expect(geometry[3]).toBeGreaterThan(geometry[4]);
     await page.evaluate(() => window.updateEvalBar(null, -4));
     await expect(page.locator('#evalScore')).toHaveText('M-4');
     const before = await page.evaluate(() => window.CaissaEvaluationRailInstance.getSnapshot());
@@ -46,11 +52,17 @@ test('equal, positive, negative, mate, and orientation preserve White perspectiv
 test('New Game resets score and engine failure exposes a stable accessible error', async ({ page }) => {
     await openPlay(page);
     await page.evaluate(() => window.updateEvalBar(500, null));
-    await page.evaluate(() => window.newGame({ mode: 'engine', color: 'white', timeControl: 0 }));
+    await page.evaluate(() => window.newGame({
+        mode: 'engine', color: 'white', timeControl: 0, targetElo: 1500
+    }));
     let snapshot = await page.evaluate(() => window.CaissaEvaluationRailInstance.getSnapshot());
     expect(snapshot.scoreType).toBe('neutral');
     expect(snapshot.displayMode).toBe('live');
-    await page.evaluate(() => window.__caissaPlayHarness.fail());
+    await page.evaluate(async () => {
+        const harness = window.__caissaPlayHarness;
+        await window.App.engine.start();
+        harness.fail(harness.state.workers.length - 1);
+    });
     snapshot = await page.evaluate(() => window.CaissaEvaluationRailInstance.getSnapshot());
     expect(snapshot.displayMode).toBe('error');
     await expect(page.locator('#evalBar')).toHaveAttribute('aria-label', /engine error/i);

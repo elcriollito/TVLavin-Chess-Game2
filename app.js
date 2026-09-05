@@ -450,6 +450,8 @@ function cacheElements() {
 }
 
 // ===== BOARD INITIALIZATION =====
+let playBoardPointerSelectionAt = 0;
+
 function initializeBoard() {
     // Wait for board container to be ready with proper dimensions
     initBoardWhenReady();
@@ -490,7 +492,12 @@ function initBoardWhenReady() {
                 onDragStart,
                 onDrop,
                 onSnapEnd,
-                onTap: handleMobileBoardTap,
+                onInteraction: (event) => {
+                    if (event.type === 'square-selected') {
+                        playBoardPointerSelectionAt = Date.now();
+                        handlePlayBoardSquareSelection(event.square);
+                    }
+                },
                 onTouchCancel: clearMobileTapSource,
                 onOrientationChange: () => {
                     clearMobileTapSource();
@@ -499,7 +506,11 @@ function initBoardWhenReady() {
                 shouldPreventTouchMove: (event) =>
                     App.dragScrollLocked && !!event.target.closest('.piece-417db, .square-55d63'),
                 onDocumentClick: (event) => {
-                    if (!isMobilePlayInteraction() || !App.mobileTapSource) return;
+                    if (!App.mobileTapSource) return;
+                    // chessboard.js may finish a same-square drag with its
+                    // synthetic piece outside the board. Keep the selection
+                    // produced by the immediately preceding pointer-down.
+                    if (Date.now() - playBoardPointerSelectionAt < 350) return;
                     if (document.querySelector('.modal.show')) return;
                     if (!event.target.closest('#playSection #chessboard')) clearMobileTapSource();
                 },
@@ -798,6 +809,10 @@ function isAnalyzeStudyActive() {
     return window.AnalyzeSection?.isAnalyzeActive?.() && !!window.AnalyzeSection?.loadedGame;
 }
 
+function isCoachReviewExplorationActive() {
+    return window.CaissaCoachReviewExploration?.isActive?.() === true;
+}
+
 function getSquareFromEventTarget(target) {
     let current = target;
     const board = document.getElementById('chessboard');
@@ -824,26 +839,58 @@ function clearMobileTapSource() {
     });
 }
 
+function shouldShowLegalMoves() {
+    return !document.querySelector('.caissa-simplified-shell')?.classList?.contains('caissa-hide-legal-moves');
+}
+
+function authoritativeOpponentLastMove(index = App.currentMoveIndex) {
+    const playerMoveColor = App.playerColor === 'black' ? 'b' : App.playerColor === 'white' ? 'w' : null;
+    if (!playerMoveColor || !Number.isInteger(index) || index < 0) return null;
+    for (let moveIndex = Math.min(index, App.moveHistory.length - 1); moveIndex >= 0; moveIndex -= 1) {
+        const move = App.moveHistory[moveIndex];
+        if (move?.color !== playerMoveColor && move?.from && move?.to) {
+            return { from: move.from, to: move.to };
+        }
+    }
+    return null;
+}
+
+function syncLastMovePresentation(index = App.currentMoveIndex) {
+    App.boardAdapter?.setLastMove(authoritativeOpponentLastMove(index));
+}
+
+function clearLegalMovePresentation() {
+    App.boardAdapter?.clearLegalTargets();
+    document.querySelectorAll('#chessboard .mobile-tap-target').forEach((el) => {
+        el.classList.remove('mobile-tap-target');
+    });
+}
+
 function markMobileTapSource(square) {
     clearMobileTapSource();
     App.mobileTapSource = square;
-    App.mobileTapTargets = App.game.moves({ square, verbose: true }).map((move) => move.to);
+    const legalMoves = isCoachReviewExplorationActive()
+        ? window.CaissaCoachReviewExploration.movesFrom(square)
+        : App.game.moves({ square, verbose: true });
+    App.mobileTapTargets = legalMoves.map((move) => move.to);
     App.boardAdapter?.setSelection(square);
-    App.boardAdapter?.setLegalTargets(App.mobileTapTargets);
-    const squareEl = document.querySelector(`#chessboard .square-${square}`);
-    squareEl?.classList.add('mobile-tap-source');
-    App.mobileTapTargets.forEach((target) => {
-        const targetEl = document.querySelector(`#chessboard .square-${target}`);
-        targetEl?.classList.add('mobile-tap-target');
+    App.boardAdapter?.setLegalTargets(shouldShowLegalMoves() ? App.mobileTapTargets : [], {
+        captureTargets: shouldShowLegalMoves()
+            ? legalMoves.filter((move) => move.captured).map((move) => move.to) : []
     });
 }
 
 function getPieceCodeAt(square) {
-    const piece = App.game.get(square);
+    const piece = isCoachReviewExplorationActive()
+        ? window.CaissaCoachReviewExploration.pieceAt(square)
+        : App.game.get(square);
     return piece ? `${piece.color}${piece.type.toUpperCase()}` : '';
 }
 
 function canStartMoveFrom(source, piece) {
+    if (isCoachReviewExplorationActive()) {
+        return window.CaissaCoachReviewExploration.canStartMove(source);
+    }
     if (isAnalyzeStudyActive()) {
         return window.AnalyzeSection.canStartStudyMove(source);
     }
@@ -871,6 +918,16 @@ function canStartMoveFrom(source, piece) {
 }
 
 function makeMoveFromSquares(source, target) {
+    if (isCoachReviewExplorationActive()) {
+        const move = window.CaissaCoachReviewExploration.movesFrom(source)
+            .find(candidate => candidate.to === target);
+        if (move?.flags?.includes('p')) {
+            App.pendingPromotion = { from: source, to: target, context: 'coach-review-exploration' };
+            showPromotionDialog();
+            return true;
+        }
+        return window.CaissaCoachReviewExploration.playMove(source, target);
+    }
     if (isAnalyzeStudyActive()) {
         const move = App.game.moves({ verbose: true }).find((m) => m.from === source && m.to === target);
         if (move && move.flags.includes('p')) {
@@ -897,8 +954,34 @@ function makeMoveFromSquares(source, target) {
     return true;
 }
 
+function handlePlayBoardSquareSelection(square) {
+    if (!square || App.editMode || document.querySelector('.modal.show')) return false;
+    const piece = getPieceCodeAt(square);
+    if (!App.mobileTapSource) {
+        if (piece && canStartMoveFrom(square, piece)) {
+            markMobileTapSource(square);
+            return true;
+        }
+        return false;
+    }
+
+    const source = App.mobileTapSource;
+    if (source === square) {
+        clearMobileTapSource();
+        return true;
+    }
+
+    const moved = makeMoveFromSquares(source, square);
+    clearMobileTapSource();
+    if (!moved) {
+        if (piece && canStartMoveFrom(square, piece)) markMobileTapSource(square);
+        else if (App.board) App.board.position(App.game.fen());
+    }
+    return true;
+}
+
 function handleMobileBoardTap(event) {
-    if (!isMobilePlayInteraction() || App.editMode) return;
+    if (App.editMode) return;
     const inPlayBoard = event.target.closest('#playSection #chessboard');
     const inAnalyzeBoard = event.target.closest('#analyzeSection #analyzeChessboard');
     if (!inPlayBoard && !inAnalyzeBoard) return;
@@ -915,32 +998,8 @@ function handleMobileBoardTap(event) {
     }
 
     if (!inPlayBoard) return;
-
-    const piece = getPieceCodeAt(square);
-    if (!App.mobileTapSource) {
-        if (piece && canStartMoveFrom(square, piece)) {
-            event.preventDefault();
-            markMobileTapSource(square);
-        }
-        return;
-    }
-
     event.preventDefault();
-    const source = App.mobileTapSource;
-    if (source === square) {
-        clearMobileTapSource();
-        return;
-    }
-
-    const moved = makeMoveFromSquares(source, square);
-    clearMobileTapSource();
-    if (!moved) {
-        if (piece && canStartMoveFrom(square, piece)) {
-            markMobileTapSource(square);
-        } else if (App.board) {
-            App.board.position(App.game.fen());
-        }
-    }
+    handlePlayBoardSquareSelection(square);
 }
 
 function onDragStart(source, piece, position, orientation) {
@@ -951,6 +1010,19 @@ function onDragStart(source, piece, position, orientation) {
 }
 
 function onDrop(source, target) {
+    if (isCoachReviewExplorationActive()) {
+        const move = window.CaissaCoachReviewExploration.movesFrom(source)
+            .find(candidate => candidate.to === target);
+        if (move?.flags?.includes('p')) {
+            App.pendingPromotion = { from: source, to: target, context: 'coach-review-exploration' };
+            showPromotionDialog();
+            unlockScroll();
+            return;
+        }
+        const moved = window.CaissaCoachReviewExploration.playMove(source, target);
+        unlockScroll();
+        return moved ? undefined : 'snapback';
+    }
     if (isAnalyzeStudyActive()) {
         const move = App.game.moves({ verbose: true }).find((m) => m.from === source && m.to === target);
         if (move && move.flags.includes('p')) {
@@ -962,6 +1034,11 @@ function onDrop(source, target) {
         const moved = window.AnalyzeSection.playStudyMove(source, target);
         unlockScroll();
         return moved ? undefined : 'snapback';
+    }
+
+    if (source === target) {
+        unlockScroll();
+        return 'snapback';
     }
 
     // Check if it's a promotion move
@@ -993,8 +1070,12 @@ function onDrop(source, target) {
 }
 
 function onSnapEnd() {
+    if (isCoachReviewExplorationActive()) {
+        window.CaissaCoachReviewExploration.restoreBoard();
+        unlockScroll();
+        return;
+    }
     App.board.position(App.game.fen());
-    clearMobileTapSource();
     window.dispatchEvent(new CustomEvent('caissa-coach-move-annotation', {
         detail: { active: false, reason: 'board-render' }
     }));
@@ -1020,6 +1101,7 @@ function onMoveMade(move) {
     // Add move to history
     App.moveHistory.push(move);
     App.currentMoveIndex = App.moveHistory.length - 1;
+    syncLastMovePresentation();
 
     // Update UI
     updateMoveHistory();
@@ -1105,6 +1187,7 @@ function undoMove() {
     App.pendingCoachHint = false;
     document.body?.classList?.remove('caissa-coach-hint-active');
     App.board.position(App.game.fen(), false);
+    syncLastMovePresentation();
     updateMoveHistory();
     updateStatus();
     detectOpening();
@@ -1512,6 +1595,7 @@ function makeEngineMove() {
                     App.board.position(App.game.fen());
                     App.moveHistory.push(move);
                     App.currentMoveIndex = App.moveHistory.length - 1;
+                    syncLastMovePresentation();
 
                     // Update UI
                     updateMoveHistory();
@@ -1596,6 +1680,7 @@ function makeEngineMove() {
             // Add to history
             App.moveHistory.push(move);
             App.currentMoveIndex = App.moveHistory.length - 1;
+            syncLastMovePresentation();
 
             // Update UI
             updateMoveHistory();
@@ -2503,6 +2588,7 @@ function navigateToStart() {
     App.game.reset();
     App.currentMoveIndex = -1;
     App.board.position(App.game.fen());
+    syncLastMovePresentation();
     updateStatus();
     updateMoveHistory();
     detectOpening();
@@ -2519,6 +2605,7 @@ function navigateToPrevious() {
         App.game.undo();
         App.currentMoveIndex--;
         App.board.position(App.game.fen());
+        syncLastMovePresentation();
         updateStatus();
         updateMoveHistory();
         detectOpening();
@@ -2535,6 +2622,7 @@ function navigateToNext() {
         App.game.move(nextMove);
         App.currentMoveIndex++;
         App.board.position(App.game.fen());
+        syncLastMovePresentation();
         updateStatus();
         updateMoveHistory();
         detectOpening();
@@ -2552,6 +2640,7 @@ function navigateToEnd() {
         App.currentMoveIndex++;
     }
     App.board.position(App.game.fen());
+    syncLastMovePresentation();
     updateStatus();
     updateMoveHistory();
     detectOpening();
@@ -2573,6 +2662,7 @@ function navigateToMove(index) {
     }
     
     App.board.position(App.game.fen());
+    syncLastMovePresentation();
     updateStatus();
     updateMoveHistory();
     detectOpening();
@@ -2968,6 +3058,7 @@ function prepareNativePlaySetup() {
     App.board.position('start');
     App.board.orientation('white');
     clearMobileTapSource();
+    App.boardAdapter?.setLastMove(null);
     App.pendingPromotion = null;
     document.getElementById('promotionModal')?.classList?.remove('show');
     App.moveHistory = [];
@@ -3052,6 +3143,7 @@ function newGame(options = {}) {
     }
     App.board.position('start');
     clearMobileTapSource();
+    App.boardAdapter?.setLastMove(null);
     App.moveHistory = [];
     App.currentMoveIndex = -1;
     App.isPlayerTurn = true;
@@ -3288,6 +3380,7 @@ function loadFEN(fen, setAnalysisMode = true) {
 
         // Update board to match chess.js state
         App.board.position(App.game.fen());
+        App.boardAdapter?.setLastMove(null);
 
         // Reset move history
         App.moveHistory = [];
@@ -3377,10 +3470,12 @@ function flipBoard() {
     syncEvalOrientation();
     window.CaissaSimplifiedPlayShellInstance?.syncBoardEdges?.();
 
-    if (App.lastEvalMate !== null && App.lastEvalMate !== undefined) {
-        updateEvalBar(App.lastEvalMate > 0 ? 1400 : -1400, App.lastEvalMate);
-    } else if (App.lastEvalCp !== null && App.lastEvalCp !== undefined) {
-        updateEvalBar(App.lastEvalCp, null);
+    if (!document.body?.classList?.contains('caissa-coach-review-summary-active')) {
+        if (App.lastEvalMate !== null && App.lastEvalMate !== undefined) {
+            updateEvalBar(App.lastEvalMate > 0 ? 1400 : -1400, App.lastEvalMate);
+        } else if (App.lastEvalCp !== null && App.lastEvalCp !== undefined) {
+            updateEvalBar(App.lastEvalCp, null);
+        }
     }
 
     setTimeout(() => {
@@ -4371,6 +4466,14 @@ function handlePromotion(piece) {
     if (!App.pendingPromotion) return;
 
     const { from, to, context } = App.pendingPromotion;
+
+    if (context === 'coach-review-exploration' && isCoachReviewExplorationActive()) {
+        const moved = window.CaissaCoachReviewExploration.playMove(from, to, piece);
+        if (!moved) window.CaissaCoachReviewExploration.restoreBoard();
+        App.pendingPromotion = null;
+        hideModal('promotionModal');
+        return;
+    }
 
     if (context === 'analyze' && window.AnalyzeSection?.isAnalyzeActive?.()) {
         const moved = window.AnalyzeSection.playStudyMove(from, to, piece);
@@ -5775,6 +5878,46 @@ function updateUI() {
         OpeningBookManager.onPositionChange();
     }
 }
+
+function projectCoachReviewBoardAssistance({ fen, move } = {}) {
+    if (!document.body?.classList?.contains('caissa-coach-review-summary-active')) return false;
+    if (fen) App.board?.position?.(fen, false);
+    clearMobileTapSource();
+    App.boardAdapter?.setLastMove(move?.from && move?.to ? { from: move.from, to: move.to } : null);
+    return true;
+}
+
+function restorePlayBoardAfterCoachReview() {
+    if (!App.game || !App.board) return false;
+    App.board.position(App.game.fen(), false);
+    syncLastMovePresentation();
+    return true;
+}
+
+window.addEventListener('caissa-play-visual-assistance-setting', (event) => {
+    const setting = event.detail?.setting;
+    const enabled = event.detail?.enabled === true;
+    if (setting === 'legal-moves') {
+        if (!enabled && !document.body?.classList?.contains('caissa-coach-hint-active')) {
+            clearLegalMovePresentation();
+        }
+        else if (App.mobileTapSource) {
+            const legalMoves = isCoachReviewExplorationActive()
+                ? window.CaissaCoachReviewExploration.movesFrom(App.mobileTapSource)
+                : App.game.moves({ square: App.mobileTapSource, verbose: true });
+            const targets = legalMoves.map((move) => move.to);
+            App.mobileTapTargets = targets;
+            App.boardAdapter?.setLegalTargets(targets, {
+                captureTargets: legalMoves.filter((move) => move.captured).map((move) => move.to)
+            });
+        }
+    } else if (setting === 'last-move' && enabled) {
+        syncLastMovePresentation();
+    }
+});
+
+App.projectCoachReviewBoardAssistance = projectCoachReviewBoardAssistance;
+App.restorePlayBoardAfterCoachReview = restorePlayBoardAfterCoachReview;
 
 // ===== KEYBOARD SHORTCUTS =====
 document.addEventListener('keydown', (e) => {

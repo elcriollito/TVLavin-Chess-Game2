@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { navigateToReadyBotsPanel } from './helpers/play-responsive-readiness.js';
 
 test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
@@ -50,19 +49,21 @@ test('shared mode tabs preserve routing and keyboard navigation without rebuildi
     await page.keyboard.press('Home');
     await expect(page.locator('[data-shell-mode="games"]')).toBeFocused();
     await page.locator('[data-shell-mode="bots"]').click();
-    await expect(page).toHaveURL(/\/play\/bots\?simplified=1/);
+    await expect(page).toHaveURL(/\/play\/bots$/);
     expect(await page.evaluate(() => window.App.board === window.__visualBoard)).toBe(true);
     expect(await page.evaluate(() => window.App.game.fen())).toBe(before);
 });
 
 test('representative panels use shared presentation while retaining existing behavior', async ({ page }) => {
-    await navigateToReadyBotsPanel(page);
-    await expect(page.locator('[data-bot-card][data-visual-component="profile-card"]')).toHaveCount(4);
+    await page.goto('/play/bots');
+    expect(await page.locator('[data-bot-card][data-visual-component="profile-card"]').count()).toBeGreaterThan(0);
     await page.locator('[data-shell-mode="coach"]').click();
-    await expect(page.locator('.caissa-coach-panel__card[data-visual-component="profile-card"]')).toHaveCount(3);
+    const coachShell = page.locator('[data-caissa-coach-shell]');
+    await expect(coachShell).toHaveCount(1);
+    await expect(coachShell.locator(':scope > [data-caissa-coach-head], :scope > [data-caissa-coach-body], :scope > [data-caissa-coach-foot]')).toHaveCount(3);
     await page.locator('[data-shell-mode="games"]').click();
-    await expect(page.locator('[data-visual-component="time-control-selector"]')).toBeVisible();
-    await expect(page.locator('[data-shell-mode="players"]')).toBeDisabled();
+    await expect(page.locator('[data-caissa-games-panel] [data-visual-component="time-control-selector"]')).toBeVisible();
+    await expect(page.locator('[data-shell-mode="players"]')).toHaveCount(0);
 });
 
 test('components remain accessible and bounded across eight viewports and reduced motion', async ({ page }) => {

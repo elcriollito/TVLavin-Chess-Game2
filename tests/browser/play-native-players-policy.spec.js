@@ -36,7 +36,7 @@ test('route controller, storage, history, configuration and lazy recovery cannot
 
 test('accessible mode order omits Players and leaves no focusable or announced surface', async ({ page, browserName }) => {
     await page.goto('/play/games?simplified=1'); const tabs = page.locator('.caissa-vc-tabs__list > [role="tab"]');
-    await expect(tabs).toHaveText(['Games', 'Bots', 'Coach']); await expect(page.getByRole('tab', { name: /players/i })).toHaveCount(0);
+    await expect(tabs).toHaveText(['Play Game', 'Play Bots', 'Play Coach']); await expect(page.getByRole('tab', { name: /players/i })).toHaveCount(0);
     await expect(page.locator('[aria-controls*="players" i],[data-players-panel] button,[data-players-panel] a,[data-players-panel] input')).toHaveCount(0);
     for (let index = 0; index < 3; index += 1) { await tabs.nth(index).focus(); await page.keyboard.press('ArrowRight'); }
     await expect(tabs.nth(0)).toBeFocused();
