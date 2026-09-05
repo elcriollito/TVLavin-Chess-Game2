@@ -94,7 +94,7 @@ html = html
   .replace('    <script src="js/play/post-game-experience.js?v=1.8.0"></script>',
     '    <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>\n' +
     '    <script src="js/play/play-v2-inline-analyze.js?v=1.2.0"></script>\n' +
-    '    <script src="js/play/post-game-core.js?v=1.1.0"></script>')
+    '    <script src="js/play/post-game-core.js?v=1.2.0"></script>')
   .replace('<body data-clarity-mask>', '<body data-caissa-play-v2-entry="qa-only" data-clarity-mask>')
   .replace('</head>', '    <link rel="stylesheet" href="css/play-v2-invite-feedback.css?v=1.0.0">\n</head>')
   .replace('</body>', '    <script src="js/play/play-v2-manual-qa-feedback-policy.js?v=1.0.0"></script>\n' +

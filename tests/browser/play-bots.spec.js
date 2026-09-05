@@ -13,6 +13,29 @@ async function openCategory(page, name) {
     await page.getByRole('tab', { name: new RegExp(`^.*${name}`) }).click();
 }
 
+async function activeBotsGeometry(page) {
+    return page.locator('[data-caissa-bots-shell]').evaluate(shell => {
+        const rect = selector => shell.querySelector(selector).getBoundingClientRect();
+        const rounded = value => Math.round(value * 100) / 100;
+        const head = rect(':scope > [data-caissa-bots-head]');
+        const body = rect(':scope > [data-caissa-bots-body]');
+        const foot = rect(':scope > [data-caissa-bots-foot]');
+        const shellRect = shell.getBoundingClientRect();
+        const tabs = document.querySelector('.caissa-simplified-shell__modes').getBoundingClientRect();
+        const resources = rect('.caissa-simplified-shell__reference-tools');
+        const moves = rect('[data-active-game-moves]');
+        return {
+            fixed: [head.top - shellRect.top, head.height, body.top - shellRect.top,
+                foot.top - shellRect.top, foot.bottom - shellRect.top, shellRect.height].map(rounded),
+            headHeight: rounded(head.height), tabToHead: rounded(head.top - tabs.bottom),
+            footAnchored: Math.abs(foot.bottom - shellRect.bottom) <= 1,
+            bodyOverflow: getComputedStyle(shell.querySelector(':scope > [data-caissa-bots-body]')).overflowY,
+            resourcesClearMoves: resources.bottom <= moves.top + 1,
+            overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+        };
+    });
+}
+
 test.beforeEach(async ({ page }) => instrumentPlay(page));
 
 test('Bots is canonical and exposes the Classic piece ladder without engine internals', async ({ page }) => {
@@ -76,6 +99,37 @@ test('Play starts once and sends one bounded personality candidate search throug
     expect(proof.harness.workersCreated).toBe(1);
     expect(proof.harness.workerMessages).toContain('go depth 6');
     expect(proof.isolation.counters.created).toBe(1);
+});
+
+test('active Head Body Foot geometry is frozen through moves, Hint, Undo, and required viewports', async ({ page }) => {
+    await openBots(page, { width: 1600, height: 1000 });
+    await page.locator('[data-bot-primary]').click();
+    const baseline = await activeBotsGeometry(page);
+    expect(baseline).toMatchObject({ headHeight: 150, tabToHead: 8, footAnchored: true, bodyOverflow: 'auto',
+        resourcesClearMoves: true, overflow: 0 });
+
+    for (let turn = 0; turn < 4; turn += 1) {
+        const count = await page.evaluate(() => window.App.game.history().length);
+        const move = await page.evaluate(() => window.App.game.moves({ verbose: true })[0]);
+        expect(move).toBeTruthy();
+        expect(await playMove(page, move.from, move.to)).toBe(true);
+        await expect.poll(() => page.evaluate(() => window.App.game.history().length)).toBe(count + 2);
+    }
+    expect((await activeBotsGeometry(page)).fixed).toEqual(baseline.fixed);
+
+    await page.locator('[data-active-game-action="coach-hint"]').click();
+    expect((await activeBotsGeometry(page)).fixed).toEqual(baseline.fixed);
+    await page.locator('[data-active-game-action="coach-undo"]').click();
+    expect((await activeBotsGeometry(page)).fixed).toEqual(baseline.fixed);
+
+    for (const [viewport, expectedHeight] of [[{ width: 1366, height: 768 }, 150], [{ width: 390, height: 844 }, 112]]) {
+        await page.setViewportSize(viewport);
+        const geometry = await activeBotsGeometry(page);
+        expect(geometry).toMatchObject({ headHeight: expectedHeight, tabToHead: 8, footAnchored: true, bodyOverflow: 'auto',
+            resourcesClearMoves: true, overflow: 0 });
+    }
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    expect((await activeBotsGeometry(page)).fixed).toEqual(baseline.fixed);
 });
 
 test('active bot is immutable; New Game admits the next profile and Games restores Full Power', async ({ page }) => {
@@ -173,6 +227,13 @@ test('post-game identity and rematch retain the selected bot', async ({ page }) 
     await page.locator('[data-bot-primary]').click();
     await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
     await expect(page.locator('.caissa-post-game')).toBeVisible();
+    const shell = page.locator('[data-caissa-bots-shell]');
+    await expect(shell).toHaveAttribute('data-bot-shell-phase', 'game-over');
+    await expect(shell.locator(':scope > [data-caissa-bots-head]')).toContainText('Vera');
+    await expect(shell.locator(':scope > [data-caissa-bots-head]')).toContainText('ELO 1500');
+    await expect(shell.locator(':scope > [data-caissa-bots-body] > .caissa-post-game')).toBeVisible();
+    await expect(shell.locator(':scope > [data-caissa-bots-foot] > .caissa-post-game__actions')).toBeVisible();
+    await expect(shell.locator(':scope > [data-caissa-bots-foot] [data-active-game-action]')).toHaveCount(0);
     await expect(page.locator('[data-post-game-result]')).toHaveText('You Lost'); await expect(page.locator('[data-post-game-reason]')).toHaveText('By Resignation');
     await expect(page.locator('[data-post-game-summary]')).toContainText('Vera');
     expect(await page.evaluate(() => window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(0);

@@ -1,7 +1,7 @@
 (function installBotsPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '2.2.0';
+    const SCHEMA_VERSION = '2.3.0';
     const STATUSES = Object.freeze(['ready', 'planned', 'busy', 'active', 'error', 'unavailable', 'disposed']);
     const TIME_CONTROLS = Object.freeze([
         Object.freeze({ value: 0, label: 'No Timer' }),
@@ -43,6 +43,7 @@
         #id = `bots-panel-${++sequence}`; #root = null; #host = null; #disposed = false;
         #selectedId = null; #selectedCategoryId = null; #status = 'ready'; #timeControl = 0; #color = 'white'; #listeners = [];
         #bodyHost = null; #footHost = null; #setupContent = null; #setupFoot = null; #phase = 'setup';
+        #postGamePlacement = null;
         #compatibility; #resolveRandomColor; #diagnostics = { selections: 0, starts: 0, rejected: 0 };
 
         constructor(options = {}) {
@@ -182,6 +183,12 @@
             this.#root.append(head, body, foot); host.appendChild(this.#root);
             this.#listen(this.#root, 'change', event => this.#change(event));
             this.#listen(this.#root, 'click', event => {
+                const postGameAction = event.target?.closest?.('[data-post-game-action]');
+                if (this.#phase === 'game-over' && postGameAction && this.#footHost.contains(postGameAction)) {
+                    event.preventDefault();
+                    global.CaissaPostGameExperienceInstance?.execute?.(postGameAction.dataset.postGameAction);
+                    return;
+                }
                 const tab = event.target?.closest?.('[data-bot-category-tab]');
                 if (tab) this.#activateCategory(tab.dataset.botCategoryTab);
             });
@@ -240,27 +247,31 @@
         hide() { if (this.#root) this.#root.hidden = true; return result(true, 'accepted', 'HIDDEN'); }
         present(options = {}) {
             if (!this.#root || this.#disposed) return result(false, 'rejected', 'UNAVAILABLE');
-            const phase = options.phase === 'active-game' ? 'active-game' : 'setup';
+            const phase = ['active-game', 'game-over'].includes(options.phase) ? options.phase : 'setup';
+            if (phase !== 'game-over') this.#restorePostGamePlacement();
             this.#phase = phase; this.#root.dataset.botShellPhase = phase;
             this.#setupContent.hidden = phase !== 'setup'; this.#setupFoot.hidden = phase !== 'setup';
-            this.#bodyHost.querySelectorAll('[data-bots-phase-content="active-game"]').forEach(node => node.hidden = true);
-            this.#footHost.querySelectorAll('[data-bots-foot-content="active-game"]').forEach(node => node.hidden = true);
-            if (phase === 'active-game') {
+            this.#bodyHost.querySelectorAll('[data-bots-phase-content]:not([data-bots-phase-content="setup"])')
+                .forEach(node => node.hidden = true);
+            this.#footHost.querySelectorAll('[data-bots-foot-content]:not([data-bots-foot-content="setup"])')
+                .forEach(node => node.hidden = true);
+            if (phase !== 'setup') {
                 const content = options.content;
                 const foot = options.foot;
+                if (phase === 'game-over') this.#rememberPostGamePlacement(content, foot);
                 if (content?.nodeType === 1) {
-                    content.setAttribute('data-bots-phase-content', 'active-game'); content.hidden = false;
+                    content.setAttribute('data-bots-phase-content', phase); content.hidden = false;
                     if (content.parentNode !== this.#bodyHost) this.#bodyHost.appendChild(content);
                 }
                 if (foot?.nodeType === 1) {
-                    foot.setAttribute('data-bots-foot-content', 'active-game'); foot.hidden = false;
+                    foot.setAttribute('data-bots-foot-content', phase); foot.hidden = false;
                     if (foot.parentNode !== this.#footHost) this.#footHost.appendChild(foot);
                 }
             }
             const record = this.#selectedRecord();
             const meta = this.#root.querySelector('.caissa-bots-panel__selected-copy span');
             const category = record?.bot ? global.CaissaBotCollections.category(record.bot.categoryId) : null;
-            if (meta && record?.bot && category) meta.textContent = phase === 'active-game'
+            if (meta && record?.bot && category) meta.textContent = phase !== 'setup'
                 ? `ELO ${record.bot.targetStrength}` : `${category.label} · ${record.bot.targetStrength} Elo target`;
             this.show();
             return result(true, 'accepted', 'PHASE_PRESENTED', this.getSnapshot());
@@ -285,9 +296,31 @@
         }
         inspect() { return this.getSnapshot(); }
         dispose() {
+            this.#restorePostGamePlacement();
             this.#listeners.splice(0).forEach(({ target, type, handler }) => target.removeEventListener(type, handler));
             this.#root?.remove(); this.#root = null; this.#disposed = true; this.#status = 'disposed';
             return result(true, 'accepted', 'DISPOSED');
+        }
+
+        #rememberPostGamePlacement(content, foot) {
+            if (this.#postGamePlacement || content?.nodeType !== 1 || foot?.nodeType !== 1) return;
+            const contentMarker = global.document.createComment('caissa-bots-post-game-content-home');
+            const footMarker = global.document.createComment('caissa-bots-post-game-foot-home');
+            content.parentNode?.insertBefore(contentMarker, content);
+            foot.parentNode?.insertBefore(footMarker, foot);
+            this.#postGamePlacement = { content, foot, contentMarker, footMarker };
+        }
+
+        #restorePostGamePlacement() {
+            const placement = this.#postGamePlacement;
+            if (!placement) return;
+            this.#postGamePlacement = null;
+            placement.footMarker.parentNode?.insertBefore(placement.foot, placement.footMarker);
+            placement.footMarker.remove();
+            placement.contentMarker.parentNode?.insertBefore(placement.content, placement.contentMarker);
+            placement.contentMarker.remove();
+            placement.content.removeAttribute('data-bots-phase-content');
+            placement.foot.removeAttribute('data-bots-foot-content');
         }
 
         #botChoice(bot, category, collection) {

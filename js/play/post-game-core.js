@@ -1,7 +1,7 @@
 (function installPlayV2PostGameCore(root) {
     'use strict';
 
-    const VERSION = '1.0.0';
+    const VERSION = '1.1.0';
     const ACTIONS = Object.freeze(['rematch', 'analyze', 'mentor-review', 'copy-pgn', 'download-pgn', 'save-game', 'new-game']);
     let sequence = 0; let retainedRecord = null; let retainedKey = null;
     const freeze = value => {
@@ -22,7 +22,8 @@
         record?.position?.finalFen, record?.notation?.pgn]);
 
     class PostGameCore {
-        #id = `play-v2-post-game-${++sequence}`; #root = null; #record = null; #visible = false;
+        #id = `play-v2-post-game-${++sequence}`; #root = null; #actionsContainer = null; #actionButtons = [];
+        #record = null; #visible = false;
         #disposed = false; #listeners = []; #feedback = ''; #consent = 'unknown'; #saved = false; #configuration = null; #reviewLaunching = false; #busyAction = null;
         #compatibility; #records; #persistence; #handoff; #navigation; #onVisibilityChange; #onNewGame;
         #clipboard; #url; #Blob;
@@ -53,6 +54,7 @@
             const reason = element('p', 'caissa-post-game__reason', { 'data-post-game-reason': '' });
             const summary = element('dl', 'caissa-post-game__summary', { 'data-post-game-summary': '' });
             const actions = element('div', 'caissa-post-game__actions', { 'aria-label': 'Post-game actions' });
+            this.#actionsContainer = actions;
             [['analyze','Analyze This Game','primary'],['rematch','Rematch','secondary'],['new-game','New Game','secondary'],['mentor-review','Review with Mentor','mentor'],['copy-pgn','Copy PGN','pgn'],
                 ['download-pgn','Download PGN','pgn'],['save-game','Save PGN Locally','pgn']]
                 .forEach(([action, label, hierarchy]) => {
@@ -64,7 +66,9 @@
             const consentText = element('span', ''); consentText.textContent = 'Allow this completed game to be stored in local game history.';
             consent.append(input, consentText);
             const feedback = element('p', 'caissa-post-game__feedback', { 'data-post-game-feedback': '' });
-            this.#root.append(title, reason, summary, actions, consent, feedback); host.appendChild(this.#root);
+            this.#root.append(title, reason, summary, actions, consent, feedback);
+            this.#actionButtons = [...actions.querySelectorAll('[data-post-game-action]')];
+            host.appendChild(this.#root);
             this.#listen(this.#root, 'click', event => {
                 const action = event.target?.closest?.('[data-post-game-action]')?.dataset?.postGameAction;
                 if (action) this.execute(action);
@@ -260,7 +264,7 @@
                 if (opponent) entries.push(['Opponent', opponent]);
                 entries.forEach(([term, value]) => { const dt = element('dt', ''); dt.textContent = term; const dd = element('dd', ''); dd.textContent = value; summary.append(dt, dd); });
             }
-            const actions = this.#actions(); this.#root.querySelectorAll('[data-post-game-action]').forEach(button => {
+            const actions = this.#actions(); this.#actionButtons.forEach(button => {
                 const enabled = actions[button.dataset.postGameAction]?.enabled === true && !this.#busyAction; button.disabled = !enabled; button.setAttribute('aria-disabled', String(!enabled));
             });
             this.#root.setAttribute('aria-busy', String(!!this.#busyAction));
@@ -291,7 +295,9 @@
         }
         dispose() { if (this.#disposed) return outcome(true, 'unchanged', 'DISPOSED'); this.hide();
             this.#listeners.splice(0).forEach(({ target, type, handler }) => target.removeEventListener(type, handler));
-            this.#root?.remove(); this.#root = null; this.#disposed = true; return outcome(true, 'accepted', 'DISPOSED'); }
+            if (this.#actionsContainer && !this.#root?.contains(this.#actionsContainer)) this.#actionsContainer.remove();
+            this.#root?.remove(); this.#root = null; this.#actionsContainer = null; this.#actionButtons = [];
+            this.#disposed = true; return outcome(true, 'accepted', 'DISPOSED'); }
         #listen(target, type, handler) { target.addEventListener(type, handler); this.#listeners.push({ target, type, handler }); }
     }
 

@@ -405,7 +405,8 @@
                 onNewGame: () => this.#gamesPanel?.reset?.(),
                 onVisibilityChange: visible => {
                     if (visible) {
-                        this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.();
+                        this.#gamesPanel?.hide?.();
+                        if (this.#mode !== 'bots') this.#botsPanel?.hide?.();
                         if (this.#mode !== 'coach') this.#coachPanel?.hide?.();
                     }
                     else this.#syncPanels();
@@ -857,9 +858,13 @@
                 this.#coachPanel.hide();
             }
             const botsMode = this.#mode === 'bots';
-            if (botsMode && this.#botsPanel && !postGame) {
-                this.#botsPanel.present({ phase: active ? 'active-game' : 'setup',
-                    content: active ? this.#activeContext : null, foot: active ? this.#activeFoot : null });
+            if (botsMode && this.#botsPanel) {
+                const content = postGame ? this.#root.querySelector('.caissa-post-game')
+                    : active ? this.#activeContext : null;
+                const foot = postGame ? this.#root.querySelector('.caissa-post-game__actions')
+                    : active ? this.#activeFoot : null;
+                this.#botsPanel.present({ phase: postGame ? 'game-over' : active ? 'active-game' : 'setup',
+                    content, foot });
             }
             this.#syncActivePlacement(active, coachMode || botsMode);
             this.#renderActiveNotation();

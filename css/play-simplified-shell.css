@@ -2240,7 +2240,8 @@ body.caissa-simplified-play-active .caissa-bots-panel__selected {
     font-weight: 750;
 }
 
-body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
+body.caissa-simplified-play-active .caissa-bots-panel:is(
+    [data-bot-shell-phase="active-game"], [data-bot-shell-phase="game-over"])
     .caissa-bots-panel__selected {
     justify-content: center;
     gap: 1.15rem;
@@ -2252,20 +2253,23 @@ body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="acti
         color-mix(in srgb, var(--play-theme-card, #17202b) 94%, transparent);
 }
 
-body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
+body.caissa-simplified-play-active .caissa-bots-panel:is(
+    [data-bot-shell-phase="active-game"], [data-bot-shell-phase="game-over"])
     .caissa-bots-panel__selected-piece {
     flex-basis: 112px;
     inline-size: 112px;
     block-size: 112px;
 }
 
-body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
+body.caissa-simplified-play-active .caissa-bots-panel:is(
+    [data-bot-shell-phase="active-game"], [data-bot-shell-phase="game-over"])
     .caissa-bots-panel__selected-piece img {
     inline-size: 100px;
     block-size: 100px;
 }
 
-body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
+body.caissa-simplified-play-active .caissa-bots-panel:is(
+    [data-bot-shell-phase="active-game"], [data-bot-shell-phase="game-over"])
     .caissa-bots-panel__selected-copy {
     flex: 0 1 auto;
     align-content: center;
@@ -2273,7 +2277,8 @@ body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="acti
     max-width: calc(100% - 132px);
 }
 
-body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
+body.caissa-simplified-play-active .caissa-bots-panel:is(
+    [data-bot-shell-phase="active-game"], [data-bot-shell-phase="game-over"])
     .caissa-bots-panel__selected-copy strong {
     font-size: clamp(1.75rem, 2.1vw, 2.15rem);
     font-weight: 850;
@@ -2281,7 +2286,8 @@ body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="acti
     overflow-wrap: anywhere;
 }
 
-body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
+body.caissa-simplified-play-active .caissa-bots-panel:is(
+    [data-bot-shell-phase="active-game"], [data-bot-shell-phase="game-over"])
     .caissa-bots-panel__selected-copy span {
     color: var(--play-theme-text-muted, var(--text-secondary));
     font-size: .92rem;
@@ -2609,15 +2615,20 @@ body.caissa-simplified-play-active .caissa-bots-panel__primary { width: 100%; }
 body.caissa-simplified-play-active .caissa-bots-panel__primary:disabled { opacity: .42; cursor: not-allowed; }
 
 @media (max-width: 420px) {
-    body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
+    body.caissa-simplified-play-active .caissa-bots-panel:is(
+        [data-bot-shell-phase="active-game"], [data-bot-shell-phase="game-over"])
         .caissa-bots-panel__selected { gap: 1rem; min-height: 112px; padding: .55rem 1rem; }
-    body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
+    body.caissa-simplified-play-active .caissa-bots-panel:is(
+        [data-bot-shell-phase="active-game"], [data-bot-shell-phase="game-over"])
         .caissa-bots-panel__selected-piece { flex-basis: 82px; inline-size: 82px; block-size: 82px; }
-    body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
+    body.caissa-simplified-play-active .caissa-bots-panel:is(
+        [data-bot-shell-phase="active-game"], [data-bot-shell-phase="game-over"])
         .caissa-bots-panel__selected-piece img { inline-size: 74px; block-size: 74px; }
-    body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
+    body.caissa-simplified-play-active .caissa-bots-panel:is(
+        [data-bot-shell-phase="active-game"], [data-bot-shell-phase="game-over"])
         .caissa-bots-panel__selected-copy strong { font-size: 1.5rem; }
-    body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
+    body.caissa-simplified-play-active .caissa-bots-panel:is(
+        [data-bot-shell-phase="active-game"], [data-bot-shell-phase="game-over"])
         .caissa-bots-panel__selected-copy span { font-size: .82rem; }
     body.caissa-simplified-play-active .caissa-bots-panel__bot-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     body.caissa-simplified-play-active .caissa-bots-panel__bot:nth-child(3n + 1) .caissa-bots-panel__bot-meta {
