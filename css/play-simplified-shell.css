@@ -2243,7 +2243,8 @@ body.caissa-simplified-play-active .caissa-bots-panel__selected {
 body.caissa-simplified-play-active .caissa-bots-panel:is(
     [data-bot-shell-phase="active-game"], [data-bot-shell-phase="game-over"])
     .caissa-bots-panel__selected {
-    justify-content: center;
+    align-items: flex-start;
+    justify-content: flex-start;
     gap: 1.15rem;
     min-height: 150px;
     padding: .75rem 1.35rem;
@@ -2271,6 +2272,7 @@ body.caissa-simplified-play-active .caissa-bots-panel:is(
 body.caissa-simplified-play-active .caissa-bots-panel:is(
     [data-bot-shell-phase="active-game"], [data-bot-shell-phase="game-over"])
     .caissa-bots-panel__selected-copy {
+    align-self: center;
     flex: 0 1 auto;
     align-content: center;
     gap: .3rem;

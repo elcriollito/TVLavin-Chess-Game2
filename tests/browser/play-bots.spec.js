@@ -24,12 +24,21 @@ async function activeBotsGeometry(page) {
         const tabs = document.querySelector('.caissa-simplified-shell__modes').getBoundingClientRect();
         const resources = rect('.caissa-simplified-shell__reference-tools');
         const moves = rect('[data-active-game-moves]');
+        const portrait = rect('.caissa-bots-panel__selected-piece');
+        const portraitImage = rect('.caissa-bots-panel__selected-piece img');
+        const identity = rect('.caissa-bots-panel__selected-copy');
         return {
             fixed: [head.top - shellRect.top, head.height, body.top - shellRect.top,
                 foot.top - shellRect.top, foot.bottom - shellRect.top, shellRect.height].map(rounded),
             headHeight: rounded(head.height), tabToHead: rounded(head.top - tabs.bottom),
             footAnchored: Math.abs(foot.bottom - shellRect.bottom) <= 1,
             bodyOverflow: getComputedStyle(shell.querySelector(':scope > [data-caissa-bots-body]')).overflowY,
+            identity: {
+                leftInset: rounded(portrait.left - head.left),
+                topInset: rounded(portrait.top - head.top),
+                imageSize: [rounded(portraitImage.width), rounded(portraitImage.height)],
+                textCenterDelta: rounded((identity.top + identity.height / 2) - (head.top + head.height / 2))
+            },
             resourcesClearMoves: resources.bottom <= moves.top + 1,
             overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
         };
@@ -106,7 +115,10 @@ test('active Head Body Foot geometry is frozen through moves, Hint, Undo, and re
     await page.locator('[data-bot-primary]').click();
     const baseline = await activeBotsGeometry(page);
     expect(baseline).toMatchObject({ headHeight: 150, tabToHead: 8, footAnchored: true, bodyOverflow: 'auto',
+        identity: { imageSize: [100, 100], textCenterDelta: 0 },
         resourcesClearMoves: true, overflow: 0 });
+    expect(baseline.identity.leftInset).toBeLessThanOrEqual(24);
+    expect(baseline.identity.topInset).toBeLessThanOrEqual(14);
 
     for (let turn = 0; turn < 4; turn += 1) {
         const count = await page.evaluate(() => window.App.game.history().length);
@@ -127,9 +139,13 @@ test('active Head Body Foot geometry is frozen through moves, Hint, Undo, and re
         const geometry = await activeBotsGeometry(page);
         expect(geometry).toMatchObject({ headHeight: expectedHeight, tabToHead: 8, footAnchored: true, bodyOverflow: 'auto',
             resourcesClearMoves: true, overflow: 0 });
+        expect(geometry.identity.imageSize).toEqual(viewport.width === 390 ? [74, 74] : [100, 100]);
+        expect(Math.abs(geometry.identity.textCenterDelta)).toBeLessThanOrEqual(1);
+        expect(geometry.identity.leftInset).toBeLessThanOrEqual(viewport.width === 390 ? 18 : 24);
+        expect(geometry.identity.topInset).toBeLessThanOrEqual(14);
     }
     await page.setViewportSize({ width: 1600, height: 1000 });
-    expect((await activeBotsGeometry(page)).fixed).toEqual(baseline.fixed);
+    await expect.poll(async () => (await activeBotsGeometry(page)).fixed).toEqual(baseline.fixed);
 });
 
 test('active bot is immutable; New Game admits the next profile and Games restores Full Power', async ({ page }) => {
