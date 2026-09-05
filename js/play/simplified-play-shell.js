@@ -542,6 +542,7 @@
             this.#root.hidden = true;
             global.document.body.classList.remove('caissa-simplified-play-active');
             global.document.body.classList.remove('caissa-play-v2-beta-active');
+            global.document.body.classList.remove('caissa-bots-game-over-active');
             this.#removeListeners();
             this.#stateObserver?.disconnect?.(); this.#stateObserver = null;
             this.#panelObserver?.disconnect?.(); this.#panelObserver = null;
@@ -825,6 +826,8 @@
             if (utilityBar) utilityBar.hidden = !active;
             this.#syncAssistance(active, postGame);
             const coachMode = this.#mode === 'coach';
+            global.document.body.classList.toggle('caissa-bots-game-over-active',
+                postGame && this.#mode === 'bots');
             const narrator = this.#root.querySelector('[data-active-coach-narrator]');
             if (narrator) narrator.hidden = true;
             const assistedMode = active && ['bots', 'coach'].includes(this.#mode);
@@ -839,8 +842,9 @@
             const heading = this.#root.querySelector('.caissa-simplified-shell__context-header h2');
             if (heading) {
                 const redundantAssistedHeading = !postGame && !starting && ['bots', 'coach'].includes(this.#mode);
-                heading.hidden = redundantAssistedHeading;
-                heading.parentElement.hidden = redundantAssistedHeading;
+                const redundantBotsResultHeading = postGame && this.#mode === 'bots';
+                heading.hidden = redundantAssistedHeading || redundantBotsResultHeading;
+                heading.parentElement.hidden = redundantAssistedHeading || redundantBotsResultHeading;
                 heading.textContent = postGame ? 'Game result' : active
                     ? ({ games: 'Play Game', bots: 'Play Bots', coach: 'Play Coach' }[this.#mode] || 'Game status')
                     : starting ? 'Starting game' : 'Game setup';

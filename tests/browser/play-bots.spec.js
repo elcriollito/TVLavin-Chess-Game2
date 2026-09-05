@@ -248,13 +248,54 @@ test('post-game identity and rematch retain the selected bot', async ({ page }) 
     await expect(shell.locator(':scope > [data-caissa-bots-head]')).toContainText('Vera');
     await expect(shell.locator(':scope > [data-caissa-bots-head]')).toContainText('ELO 1500');
     await expect(shell.locator(':scope > [data-caissa-bots-body] > .caissa-post-game')).toBeVisible();
-    await expect(shell.locator(':scope > [data-caissa-bots-foot] > .caissa-post-game__actions')).toBeVisible();
+    await expect(shell.locator(':scope > [data-caissa-bots-body] [data-post-game-action="analyze"]')).toBeVisible();
+    await expect(shell.locator(':scope > [data-caissa-bots-foot] [data-post-game-action="analyze"]')).toHaveCount(0);
+    await expect(shell.locator(':scope > [data-caissa-bots-foot] > .caissa-bots-panel__post-game-foot')).toBeVisible();
+    await expect(shell.locator(':scope > [data-caissa-bots-foot] .caissa-post-game__actions')).toBeVisible();
+    await expect(shell.locator(':scope > [data-caissa-bots-foot] .caissa-post-game__consent')).toBeVisible();
+    await expect(shell.locator(':scope > [data-caissa-bots-foot] [data-post-game-action]')).toHaveCount(6);
     await expect(shell.locator(':scope > [data-caissa-bots-foot] [data-active-game-action]')).toHaveCount(0);
     await expect(page.locator('[data-post-game-result]')).toHaveText('You Lost'); await expect(page.locator('[data-post-game-reason]')).toHaveText('By Resignation');
     await expect(page.locator('[data-post-game-summary]')).toContainText('Vera');
+    await expect(page.locator('[data-post-game-summary]')).toBeHidden();
+    await expect(page.locator('[data-caissa-floating-controls]')).toBeHidden();
+    for (const [viewport, expectedHeadHeight] of [[{ width: 1600, height: 1000 }, 150],
+        [{ width: 1366, height: 768 }, 150], [{ width: 390, height: 844 }, 112]]) {
+        await page.setViewportSize(viewport);
+        await expect.poll(() => shell.evaluate(node => {
+            const head = node.querySelector(':scope > [data-caissa-bots-head]').getBoundingClientRect();
+            const tabs = document.querySelector('.caissa-simplified-shell__modes').getBoundingClientRect();
+            return { headHeight: head.height, tabToHead: head.top - tabs.bottom };
+        })).toEqual({ headHeight: expectedHeadHeight, tabToHead: 8 });
+        const geometry = await shell.evaluate(node => {
+            const rect = selector => node.querySelector(selector).getBoundingClientRect();
+            const head = rect(':scope > [data-caissa-bots-head]');
+            const body = rect(':scope > [data-caissa-bots-body]');
+            const foot = rect(':scope > [data-caissa-bots-foot]');
+            const tabs = document.querySelector('.caissa-simplified-shell__modes').getBoundingClientRect();
+            const analyze = rect(':scope > [data-caissa-bots-body] [data-post-game-action="analyze"]');
+            return { headHeight: head.height, tabToHead: head.top - tabs.bottom,
+                separated: body.bottom <= foot.top, analyzeInBody: analyze.top >= body.top && analyze.bottom <= body.bottom,
+                bodyOverflow: getComputedStyle(node.querySelector(':scope > [data-caissa-bots-body]')).overflowY,
+                overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+        });
+        expect(geometry).toMatchObject({ headHeight: expectedHeadHeight, tabToHead: 8, separated: true,
+            analyzeInBody: true, bodyOverflow: 'auto', overflow: 0 });
+        for (const action of await shell.locator(':scope > [data-caissa-bots-foot] [data-post-game-action]').all()) {
+            await action.scrollIntoViewIfNeeded();
+            expect(await action.evaluate(node => {
+                const box = node.getBoundingClientRect();
+                const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+                return hit === node || node.contains(hit);
+            })).toBe(true);
+        }
+    }
     expect(await page.evaluate(() => window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(0);
+    await expect(page.locator('[data-post-game-action="analyze"]')).toBeEnabled();
+    expect(await page.evaluate(() => window.CaissaPostGameExperienceInstance.getSnapshot().actions.analyze.enabled)).toBe(true);
     await page.locator('[data-post-game-action="rematch"]').click();
     expect(await page.evaluate(() => window.CaissaBotSession.getSnapshot().activeBotId)).toBe('vera');
+    await expect(page.locator('body')).not.toHaveClass(/caissa-bots-game-over-active/);
 });
 
 test('catalog stays reachable and bounded across required viewports', async ({ page }) => {

@@ -2222,6 +2222,90 @@ body.caissa-simplified-play-active .caissa-bots-panel__foot
     width: 100%;
 }
 
+body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="game-over"]
+    .caissa-bots-panel__body > [data-bots-phase-content="game-over"] {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: center;
+    align-self: stretch;
+    width: 100%;
+    min-height: 100%;
+    padding: clamp(1rem, 3vh, 2rem) clamp(.75rem, 2vw, 1.35rem);
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="game-over"]
+    .caissa-post-game__announcement {
+    font-size: clamp(1.75rem, 4vw, 2.4rem);
+    line-height: 1.05;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="game-over"]
+    .caissa-post-game__reason {
+    margin: -.25rem 0 .55rem;
+    font-size: 1rem;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="game-over"]
+    .caissa-post-game__summary {
+    display: none;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="game-over"]
+    [data-bots-primary-post-game-action] {
+    width: 100%;
+    min-height: 56px;
+    margin-top: .25rem;
+    font-size: clamp(1.05rem, 1rem + .3vw, 1.25rem);
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-foot {
+    display: grid;
+    gap: .65rem;
+    width: 100%;
+    max-height: min(320px, 42vh);
+    padding-right: .2rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+body.caissa-bots-game-over-active [data-caissa-floating-controls] {
+    display: none !important;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-foot
+    .caissa-post-game__actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .55rem;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-foot
+    :is([data-post-game-action="mentor-review"], [data-post-game-action="save-game"]) {
+    grid-column: 1 / -1;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-foot
+    .caissa-post-game__consent {
+    margin: 0;
+    padding: .15rem .2rem 0;
+    color: var(--play-theme-text-muted, var(--text-secondary));
+    font-size: .82rem;
+    line-height: 1.35;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-foot
+    .caissa-post-game__consent span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-foot
+    .caissa-post-game__feedback:empty {
+    display: none;
+}
+
 body.caissa-simplified-play-active .caissa-bots-panel__foot
     :is(.caissa-simplified-shell__board-actions, .caissa-simplified-shell__utility-bar) {
     width: 100%;
@@ -2632,6 +2716,7 @@ body.caissa-simplified-play-active .caissa-bots-panel__primary:disabled { opacit
     body.caissa-simplified-play-active .caissa-bots-panel:is(
         [data-bot-shell-phase="active-game"], [data-bot-shell-phase="game-over"])
         .caissa-bots-panel__selected-copy span { font-size: .82rem; }
+    body.caissa-simplified-play-active .caissa-bots-panel__post-game-foot { max-height: none; }
     body.caissa-simplified-play-active .caissa-bots-panel__bot-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     body.caissa-simplified-play-active .caissa-bots-panel__bot:nth-child(3n + 1) .caissa-bots-panel__bot-meta {
         inset-inline-start: 0;

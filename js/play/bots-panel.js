@@ -1,7 +1,7 @@
 (function installBotsPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '2.3.0';
+    const SCHEMA_VERSION = '2.4.0';
     const STATUSES = Object.freeze(['ready', 'planned', 'busy', 'active', 'error', 'unavailable', 'disposed']);
     const TIME_CONTROLS = Object.freeze([
         Object.freeze({ value: 0, label: 'No Timer' }),
@@ -257,8 +257,8 @@
                 .forEach(node => node.hidden = true);
             if (phase !== 'setup') {
                 const content = options.content;
-                const foot = options.foot;
-                if (phase === 'game-over') this.#rememberPostGamePlacement(content, foot);
+                let foot = options.foot;
+                if (phase === 'game-over') foot = this.#rememberPostGamePlacement(content, foot) || foot;
                 if (content?.nodeType === 1) {
                     content.setAttribute('data-bots-phase-content', phase); content.hidden = false;
                     if (content.parentNode !== this.#bodyHost) this.#bodyHost.appendChild(content);
@@ -303,24 +303,53 @@
         }
 
         #rememberPostGamePlacement(content, foot) {
-            if (this.#postGamePlacement || content?.nodeType !== 1 || foot?.nodeType !== 1) return;
+            if (this.#postGamePlacement) return this.#postGamePlacement.wrapper;
+            if (content?.nodeType !== 1 || foot?.nodeType !== 1) return null;
+            const primary = foot.querySelector('[data-post-game-action="analyze"]');
+            const consent = content.querySelector('.caissa-post-game__consent');
+            const feedback = content.querySelector('.caissa-post-game__feedback');
             const contentMarker = global.document.createComment('caissa-bots-post-game-content-home');
             const footMarker = global.document.createComment('caissa-bots-post-game-foot-home');
+            const primaryMarker = global.document.createComment('caissa-bots-post-game-primary-home');
+            const consentMarker = global.document.createComment('caissa-bots-post-game-consent-home');
+            const feedbackMarker = global.document.createComment('caissa-bots-post-game-feedback-home');
             content.parentNode?.insertBefore(contentMarker, content);
             foot.parentNode?.insertBefore(footMarker, foot);
-            this.#postGamePlacement = { content, foot, contentMarker, footMarker };
+            primary?.parentNode?.insertBefore(primaryMarker, primary);
+            consent?.parentNode?.insertBefore(consentMarker, consent);
+            feedback?.parentNode?.insertBefore(feedbackMarker, feedback);
+            const wrapper = element('div', 'caissa-bots-panel__post-game-foot', {
+                'data-bots-foot-content': 'game-over'
+            });
+            if (primary) {
+                primary.setAttribute('data-bots-primary-post-game-action', '');
+                content.querySelector('.caissa-post-game__reason')?.after(primary);
+            }
+            wrapper.appendChild(foot);
+            if (consent) wrapper.appendChild(consent);
+            if (feedback) wrapper.appendChild(feedback);
+            this.#postGamePlacement = { content, foot, primary, consent, feedback, wrapper,
+                contentMarker, footMarker, primaryMarker, consentMarker, feedbackMarker };
+            return wrapper;
         }
 
         #restorePostGamePlacement() {
             const placement = this.#postGamePlacement;
             if (!placement) return;
             this.#postGamePlacement = null;
+            if (placement.primary) placement.primaryMarker.parentNode?.insertBefore(placement.primary, placement.primaryMarker);
+            placement.primaryMarker.remove();
+            placement.primary?.removeAttribute('data-bots-primary-post-game-action');
             placement.footMarker.parentNode?.insertBefore(placement.foot, placement.footMarker);
             placement.footMarker.remove();
+            if (placement.consent) placement.consentMarker.parentNode?.insertBefore(placement.consent, placement.consentMarker);
+            placement.consentMarker.remove();
+            if (placement.feedback) placement.feedbackMarker.parentNode?.insertBefore(placement.feedback, placement.feedbackMarker);
+            placement.feedbackMarker.remove();
             placement.contentMarker.parentNode?.insertBefore(placement.content, placement.contentMarker);
             placement.contentMarker.remove();
+            placement.wrapper.remove();
             placement.content.removeAttribute('data-bots-phase-content');
-            placement.foot.removeAttribute('data-bots-foot-content');
         }
 
         #botChoice(bot, category, collection) {

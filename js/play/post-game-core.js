@@ -1,7 +1,7 @@
 (function installPlayV2PostGameCore(root) {
     'use strict';
 
-    const VERSION = '1.1.0';
+    const VERSION = '1.2.0';
     const ACTIONS = Object.freeze(['rematch', 'analyze', 'mentor-review', 'copy-pgn', 'download-pgn', 'save-game', 'new-game']);
     let sequence = 0; let retainedRecord = null; let retainedKey = null;
     const freeze = value => {
@@ -23,6 +23,7 @@
 
     class PostGameCore {
         #id = `play-v2-post-game-${++sequence}`; #root = null; #actionsContainer = null; #actionButtons = [];
+        #consentInput = null; #feedbackNode = null;
         #record = null; #visible = false;
         #disposed = false; #listeners = []; #feedback = ''; #consent = 'unknown'; #saved = false; #configuration = null; #reviewLaunching = false; #busyAction = null;
         #compatibility; #records; #persistence; #handoff; #navigation; #onVisibilityChange; #onNewGame;
@@ -63,9 +64,11 @@
                 });
             const consent = element('label', 'caissa-post-game__consent');
             const input = element('input', '', { type: 'checkbox', 'data-post-game-consent': '' });
+            this.#consentInput = input;
             const consentText = element('span', ''); consentText.textContent = 'Allow this completed game to be stored in local game history.';
             consent.append(input, consentText);
             const feedback = element('p', 'caissa-post-game__feedback', { 'data-post-game-feedback': '' });
+            this.#feedbackNode = feedback;
             this.#root.append(title, reason, summary, actions, consent, feedback);
             this.#actionButtons = [...actions.querySelectorAll('[data-post-game-action]')];
             host.appendChild(this.#root);
@@ -268,8 +271,8 @@
                 const enabled = actions[button.dataset.postGameAction]?.enabled === true && !this.#busyAction; button.disabled = !enabled; button.setAttribute('aria-disabled', String(!enabled));
             });
             this.#root.setAttribute('aria-busy', String(!!this.#busyAction));
-            const consent = this.#root.querySelector('[data-post-game-consent]'); consent.checked = this.#consent === 'granted';
-            this.#root.querySelector('[data-post-game-feedback]').textContent = this.#feedback;
+            if (this.#consentInput) this.#consentInput.checked = this.#consent === 'granted';
+            if (this.#feedbackNode) this.#feedbackNode.textContent = this.#feedback;
             if (this.#visible && this.#record && sourceMode === 'coach') {
                 root.CaissaCoachGameOverPresentation?.mount?.({
                     section: this.#root, owner: 'post-game-core', sourceMode, record: this.#record,
@@ -297,6 +300,7 @@
             this.#listeners.splice(0).forEach(({ target, type, handler }) => target.removeEventListener(type, handler));
             if (this.#actionsContainer && !this.#root?.contains(this.#actionsContainer)) this.#actionsContainer.remove();
             this.#root?.remove(); this.#root = null; this.#actionsContainer = null; this.#actionButtons = [];
+            this.#consentInput = null; this.#feedbackNode = null;
             this.#disposed = true; return outcome(true, 'accepted', 'DISPOSED'); }
         #listen(target, type, handler) { target.addEventListener(type, handler); this.#listeners.push({ target, type, handler }); }
     }

@@ -104,12 +104,12 @@ test('static guard excludes runtime ownership while allowing one canonical clock
     assert.equal((source.match(/CaissaClockService\?\.stop\?\.\('postgame-mode-transition'\)/g) || []).length, 1);
 });
 
-test('shell CSS layout rules are scoped to the explicit QA body state', () => {
+test('shell CSS layout rules are scoped to explicit Play body states', () => {
     const layoutRules = css.split('}').filter(rule => rule.includes('{') && !rule.trim().startsWith('/*') &&
         !rule.trim().startsWith('@media') && !rule.trim().startsWith('@'));
     for (const rule of layoutRules) {
         const selector = rule.slice(0, rule.indexOf('{')).trim();
-        assert.match(selector, /caissa-simplified-play-active|body\[data-caissa-play-v2-entry(?:=[^\]]+)?\]|caissa-simplified-shell\[hidden\]|caissa-play-v2-inline-analyze/);
+        assert.match(selector, /caissa-simplified-play-active|caissa-bots-game-over-active|body\[data-caissa-play-v2-entry(?:=[^\]]+)?\]|caissa-simplified-shell\[hidden\]|caissa-play-v2-inline-analyze/);
     }
 });
 
