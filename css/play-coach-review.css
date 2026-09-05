@@ -392,6 +392,20 @@ body.caissa-simplified-play-active .caissa-coach-guided__navigation-host .nav-bt
 .caissa-coach-exploration__pv { overflow-wrap: anywhere; color: var(--play-theme-text, #fff); line-height: 1.5; }
 .caissa-coach-exploration__note { margin-top: auto; color: var(--play-theme-muted, var(--text-secondary)); font-size: .78rem; }
 .caissa-coach-guided__engine[aria-pressed="true"] { border-color: var(--coach-gold, #d7b96d); color: var(--coach-gold, #d7b96d); }
+.caissa-coach-guided__engine-led {
+    width: .72rem;
+    height: .72rem;
+    flex: 0 0 .72rem;
+    border: 1px solid rgb(255 255 255 / 20%);
+    border-radius: 50%;
+    background: #667085;
+    box-shadow: inset 0 0 0 2px rgb(0 0 0 / 18%);
+}
+.caissa-coach-guided__engine[aria-pressed="true"] .caissa-coach-guided__engine-led {
+    border-color: #86efac;
+    background: #38c976;
+    box-shadow: 0 0 0 3px rgb(56 201 118 / 16%), inset 0 0 0 1px rgb(255 255 255 / 24%);
+}
 body.caissa-simplified-play-active .caissa-native-coach-panel__level-picker {
     display: grid;
     grid-column: 1 / -1;
@@ -503,6 +517,27 @@ body[data-caissa-play-v2-entry] [data-caissa-coach-game-over-foot] .caissa-post-
     border-color: var(--panel-border);
     background: #202a38;
     font-size: .95rem;
+}
+body.caissa-simplified-play-active [data-caissa-coach-game-over-foot]
+    .caissa-post-game__action--secondary[data-post-game-action="new-game"] {
+    width: 100%;
+    min-height: 64px !important;
+    border-color: #50b97b;
+    background: #1f6843;
+    color: #fff;
+    font-size: 1.16rem;
+    font-weight: 850;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%);
+}
+body.caissa-simplified-play-active [data-caissa-coach-game-over-foot]
+    .caissa-post-game__action--secondary[data-post-game-action="new-game"]:hover {
+    border-color: #67cf91;
+    background: #26764c;
+}
+body.caissa-simplified-play-active [data-caissa-coach-game-over-foot]
+    .caissa-post-game__action--secondary[data-post-game-action="new-game"]:focus-visible {
+    outline: 3px solid color-mix(in srgb, #67cf91 72%, #fff);
+    outline-offset: 3px;
 }
 
 @media (max-width: 900px) {

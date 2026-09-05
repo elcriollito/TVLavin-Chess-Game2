@@ -1,7 +1,7 @@
 (function installCoachReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.6.1';
+    const SCHEMA_VERSION = '1.6.2';
     const QUALITY_ORDER = Object.freeze(['Book', 'Best', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const CLASSIFICATIONS = Object.freeze(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const REVIEW_WORTHY_CLASSIFICATIONS = Object.freeze(['Inaccuracy', 'Mistake', 'Blunder']);
@@ -81,6 +81,10 @@
     function findNextReviewMoment(analyze) {
         const current = Number.isInteger(analyze?.currentMoveIndex) ? analyze.currentMoveIndex : -1;
         return findReviewMoments(analyze).find(position => position > current) ?? null;
+    }
+
+    function isReviewComplete(analyze) {
+        return findNextReviewMoment(analyze) === null;
     }
 
     function createGuidedModel(analyze, expanded = false, handoff = null) {
@@ -214,8 +218,9 @@
         const back = element('button', 'caissa-coach-guided__back-review', { type: 'button', 'data-coach-exploration-back': '' });
         back.innerHTML = '<i class="fas fa-arrow-left" aria-hidden="true"></i><span>Back to Review</span>';
         const engine = element('button', 'caissa-coach-guided__engine', { type: 'button',
-            'data-coach-exploration-engine': '', 'aria-pressed': 'true' });
-        engine.innerHTML = '<i class="fas fa-brain" aria-hidden="true"></i><span>Engine On</span>';
+            'data-coach-exploration-engine': '', 'aria-pressed': 'false', 'aria-label': 'Engine Off' });
+        engine.innerHTML = '<span class="caissa-coach-guided__engine-led" aria-hidden="true"></span>'
+            + '<span data-coach-exploration-engine-label>Engine Off</span>';
         explorationTools.append(back, engine); foot.append(reviewTools, explorationTools);
         return { content, guided, actions, explain, next, detail, notation, exploration, status, evalValue,
             pvValue, foot, reviewTools, navigation, secondaryActions, analysis, newGame,
@@ -276,9 +281,7 @@
         mounted.guided.detail.textContent = model.detail;
         mounted.guided.detail.hidden = !mounted.explanationExpanded || !model.detail;
         mounted.guided.explain.setAttribute('aria-expanded', String(mounted.explanationExpanded));
-        const moments = findReviewMoments(mounted.analyze);
-        const finalMoment = moments.at(-1) ?? null;
-        const complete = mounted.reviewComplete || (finalMoment !== null && model.index === finalMoment);
+        const complete = isReviewComplete(mounted.analyze);
         mounted.guided.next.disabled = complete;
         mounted.guided.next.querySelector('span').textContent = complete ? 'Review Complete' : 'Next Moment';
         mounted.guided.newGame.hidden = !complete;
@@ -327,13 +330,21 @@
         mounted.guided.pvValue.textContent = info.pv?.length ? info.pv.join(' ') : 'No principal variation available yet.';
     }
 
+    function syncExplorationEngineControl() {
+        if (!mounted?.guided?.engine) return;
+        const enabled = root.CaissaCoachReviewExploration?.getSnapshot?.().engineEnabled === true;
+        const label = enabled ? 'Engine On' : 'Engine Off';
+        mounted.guided.engine.setAttribute('aria-pressed', String(enabled));
+        mounted.guided.engine.setAttribute('aria-label', label);
+        mounted.guided.engine.querySelector('[data-coach-exploration-engine-label]').textContent = label;
+    }
+
     function enterExploration() {
         if (!mounted?.analyze || mounted.phase !== 'guided-review') return;
         const projection = mounted.analyze.getCoachReviewProjection?.(); if (!projection?.fen) return;
         mounted.phase = 'analysis-exploration'; mounted.summary.panel.dataset.coachReviewPhase = 'analysis-exploration';
         mounted.guided.guided.hidden = true; mounted.guided.exploration.hidden = false;
         mounted.guided.reviewTools.hidden = true; mounted.guided.explorationTools.hidden = false;
-        mounted.guided.engine.setAttribute('aria-pressed', 'true'); mounted.guided.engine.querySelector('span').textContent = 'Engine On';
         renderCoachHead({ eyebrow: 'ANALYSIS', title: 'Explore this position', evaluation: '',
             message: 'Try legal continuations here. Your reviewed game remains unchanged.' });
         const entered = root.CaissaCoachReviewExploration?.enter?.({ fen: projection.fen, analyze: mounted.analyze,
@@ -342,12 +353,13 @@
         if (!entered?.ok) { mounted.phase = 'guided-review'; mounted.guided.guided.hidden = false;
             mounted.guided.exploration.hidden = true; mounted.guided.reviewTools.hidden = false;
             mounted.guided.explorationTools.hidden = true; updateGuided(); return; }
+        syncExplorationEngineControl();
         mounted.guided.back.focus?.();
     }
 
     function leaveExploration() {
         if (!mounted || mounted.phase !== 'analysis-exploration') return;
-        root.CaissaCoachReviewExploration?.leave?.(); mounted.phase = 'guided-review';
+        root.CaissaCoachReviewExploration?.leave?.(); syncExplorationEngineControl(); mounted.phase = 'guided-review';
         mounted.summary.panel.dataset.coachReviewPhase = 'guided-review'; mounted.guided.guided.hidden = false;
         mounted.guided.exploration.hidden = true; mounted.guided.reviewTools.hidden = false;
         mounted.guided.explorationTools.hidden = true; updateGuided(); mounted.guided.analysis.focus?.();
@@ -381,15 +393,15 @@
         mounted = { section: options.section, host: options.host, context: options.context, handoff: options.handoff,
             summary, guided, analyze: null, model: null, phase: 'review-summary', fingerprint: null,
             analysisStartRequests: 0, timer: null, moveList: null, navigation: null, flipTool: null,
-            explanationExpanded: false, reviewComplete: false };
+            explanationExpanded: false };
         summary.action.addEventListener('click', enterGuidedReview);
         guided.explain.addEventListener('click', () => { if (!mounted) return;
             mounted.explanationExpanded = !mounted.explanationExpanded; updateGuided(); });
         guided.next.addEventListener('click', () => { if (!mounted?.analyze) return;
             const destination = findNextReviewMoment(mounted.analyze);
             mounted.explanationExpanded = false;
-            if (destination === null) { mounted.reviewComplete = true; updateGuided(); return; }
-            mounted.reviewComplete = false; mounted.analyze.jumpToMove(destination); updateGuided(); });
+            if (destination === null) { updateGuided(); return; }
+            mounted.analyze.jumpToMove(destination); updateGuided(); });
         guided.newGame.addEventListener('click', () => {
             if (!mounted || guided.newGame.disabled) return;
             guided.newGame.disabled = true;
@@ -399,10 +411,11 @@
             }).catch(() => { if (mounted) guided.newGame.disabled = false; });
         });
         guided.analysis.addEventListener('click', enterExploration); guided.back.addEventListener('click', leaveExploration);
-        guided.engine.addEventListener('click', () => { const enabled = guided.engine.getAttribute('aria-pressed') !== 'true';
-            const changed = root.CaissaCoachReviewExploration?.setEngineEnabled?.(enabled); if (!changed?.ok) return;
-            guided.engine.setAttribute('aria-pressed', String(enabled));
-            guided.engine.querySelector('span').textContent = enabled ? 'Engine On' : 'Engine Off'; });
+        guided.engine.addEventListener('click', () => {
+            const enabled = root.CaissaCoachReviewExploration?.getSnapshot?.().engineEnabled === true;
+            const changed = root.CaissaCoachReviewExploration?.setEngineEnabled?.(!enabled); if (!changed?.ok) return;
+            syncExplorationEngineControl();
+        });
         root.addEventListener('caissa:coach-review-ply-change', updateGuided);
         renderModel({ phase: 'loading', progress: 0, progressText: 'Preparing your review' });
         return result(true, 'accepted', 'COACH_REVIEW_SUMMARY_MOUNTED', getSnapshot());
@@ -448,5 +461,6 @@
 
     root.CaissaCoachReviewPresentation = freeze({ schemaVersion: SCHEMA_VERSION, classifications: CLASSIFICATIONS,
         reviewWorthyClassifications: REVIEW_WORTHY_CLASSIFICATIONS, qualityOrder: QUALITY_ORDER,
-        findReviewMoments, findNextReviewMoment, createSummaryModel, createGuidedModel, mount, begin, unmount, getSnapshot });
+        findReviewMoments, findNextReviewMoment, isReviewComplete,
+        createSummaryModel, createGuidedModel, mount, begin, unmount, getSnapshot });
 })(typeof window !== 'undefined' ? window : globalThis);

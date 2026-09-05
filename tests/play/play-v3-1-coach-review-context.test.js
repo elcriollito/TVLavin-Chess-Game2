@@ -153,6 +153,23 @@ test('Guided Review Next selects interleaved two-sided moments chronologically w
     assert.match(narration.message, /Nf6 was the stronger continuation available to them/);
 });
 
+test('Review Complete persists after the final negative moment and reopens only before it', () => {
+    const window = fixture();
+    const analyze = { currentMoveIndex: 9, analysisResults: Array.from({ length: 14 }, (_, moveIndex) => ({
+        moveIndex, quality: moveIndex === 10 ? 'Inaccuracy' : 'Acceptable', unavailable: false
+    })) };
+    const review = window.CaissaCoachReviewPresentation;
+    assert.equal(review.isReviewComplete(analyze), false);
+    assert.equal(review.findNextReviewMoment(analyze), 10);
+    for (const ply of [10, 11, 12, 13]) {
+        analyze.currentMoveIndex = ply;
+        assert.equal(review.isReviewComplete(analyze), true, `ply ${ply}`);
+        assert.equal(review.findNextReviewMoment(analyze), null, `ply ${ply}`);
+    }
+    analyze.currentMoveIndex = 9;
+    assert.equal(review.isReviewComplete(analyze), false);
+});
+
 test('exploration is a separate temporary branch and never declares another review ply owner', () => {
     const presentation = read('js/play/native-coach/coach-review-presentation.js');
     const exploration = read('js/play/native-coach/coach-review-exploration.js');
@@ -160,6 +177,8 @@ test('exploration is a separate temporary branch and never declares another revi
     assert.match(exploration, /const game = new root\.Chess\(\)/);
     assert.match(exploration, /baseFen: options\.fen, moves: \[\]/);
     assert.match(exploration, /reviewPlyOwner: 'AnalyzeSection\.currentMoveIndex'/);
+    assert.match(presentation, /getSnapshot\?\.\(\)\.engineEnabled === true/);
+    assert.match(presentation, /data-coach-exploration-engine-label/);
     assert.match(app, /isCoachReviewExplorationActive\(\)[\s\S]*CaissaCoachReviewExploration\.playMove/);
     assert.doesNotMatch(exploration, /App\.(?:game|moveHistory|currentMoveIndex)\s*=/);
     assert.doesNotMatch(presentation + exploration, /guidedMoveIndex|reviewStepIndex|coachReviewMoveIndex/);

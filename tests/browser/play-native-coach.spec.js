@@ -175,9 +175,10 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
         authoritativePly: 0, duplicatePly: false, playInert: false, analyzeTakeover: false,
         visibleBoards: 1, belowBoardChrome: 0 });
     await page.evaluate(() => {
-        window.AnalyzeSection.analysisResults.forEach(item => {
+        window.AnalyzeSection.analysisResults.forEach((item, index) => {
             if (!item) return;
-            item.quality = 'Acceptable'; item.isBestMove = false; item.annotation = '';
+            item.quality = index === 0 ? 'Inaccuracy' : 'Acceptable';
+            item.isBestMove = false; item.annotation = index === 0 ? '?!' : '';
         });
         window.AnalyzeSection.updateMoveList();
     });
@@ -205,7 +206,6 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(page.locator('.caissa-simplified-shell__board-stage .analyze-board-navigation')).toHaveCount(0);
     await page.locator('[data-coach-guided-explain]').click();
     await expect(page.locator('[data-coach-guided-detail]')).toBeVisible();
-    await page.locator('[data-coach-guided-next]').click();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(0);
     await expect(page.locator('[data-coach-guided-next]')).toContainText('Review Complete');
     await expect(page.locator('[data-coach-guided-new-game]')).toBeVisible();
@@ -218,12 +218,19 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     expect(finalActions).toEqual(['New Game', 'Flip board', 'Analysis']);
     await page.locator('#analyzeNavFirst').click();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(-1);
+    await expect(page.locator('[data-coach-guided-next]')).toContainText('Next Moment');
+    await expect(page.locator('[data-coach-guided-next]')).toBeEnabled();
+    await expect(page.locator('[data-coach-guided-new-game]')).toBeHidden();
     await page.locator('#analyzeNavNext').click();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(0);
+    await expect(page.locator('[data-coach-guided-next]')).toContainText('Review Complete');
+    await expect(page.locator('[data-coach-guided-new-game]')).toBeVisible();
     await expect(page.locator('[data-coach-guided-notation] [data-index="0"]')).toHaveClass(/active/);
     await expect(page.locator('[data-caissa-coach-guided-review]')).toHaveAttribute('data-authoritative-ply', '0');
     await page.locator('#analyzeNavLast').click();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(1);
+    await expect(page.locator('[data-coach-guided-next]')).toContainText('Review Complete');
+    await expect(page.locator('[data-coach-guided-new-game]')).toBeVisible();
     await page.locator('#analyzeNavPrev').click();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(0);
     const orientation = await page.locator('#playSection #chessboard').evaluate(node => node.innerHTML);
@@ -234,15 +241,28 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await page.locator('[data-coach-guided-analysis]').click();
     await expect(page.locator('[data-coach-analysis-exploration]')).toBeVisible();
     await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-pressed', 'true');
-    await page.evaluate(() => window.handlePlayBoardSquareSelection('g8'));
+    await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-label', 'Engine On');
+    await expect(page.locator('.caissa-coach-guided__engine-led')).toBeVisible();
+    await expect(page.locator('.caissa-coach-guided__engine-led')).toHaveCSS('background-color', 'rgb(56, 201, 118)');
+    await page.evaluate(() => window.handlePlayBoardSquareSelection('e2'));
     await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().legalTargets.length)).toBeGreaterThan(0);
-    expect(await playMove(page, 'g8', 'f6')).toBe(true);
+    expect(await playMove(page, 'e2', 'e4')).toBe(true);
     await expect.poll(() => page.evaluate(() => window.CaissaCoachReviewExploration.getSnapshot().temporaryPlyCount)).toBe(1);
+    await expect.poll(() => page.evaluate(() => ({
+        authoritative: window.CaissaCoachReviewExploration.getSnapshot().engineEnabled,
+        presented: document.querySelector('[data-coach-exploration-engine]')?.getAttribute('aria-pressed')
+    }))).toEqual({ authoritative: true, presented: 'true' });
     await page.locator('[data-coach-exploration-engine]').click();
     await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-label', 'Engine Off');
+    await expect(page.locator('.caissa-coach-guided__engine-led')).toHaveCSS('background-color', 'rgb(102, 112, 133)');
+    expect(await page.evaluate(() => window.CaissaCoachReviewExploration.getSnapshot().engineEnabled)).toBe(false);
     await expect(page.locator('[data-coach-exploration-status]')).toContainText('Engine is off');
     await page.locator('[data-coach-exploration-engine]').click();
     await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-label', 'Engine On');
+    await expect(page.locator('.caissa-coach-guided__engine-led')).toHaveCSS('background-color', 'rgb(56, 201, 118)');
+    expect(await page.evaluate(() => window.CaissaCoachReviewExploration.getSnapshot().engineEnabled)).toBe(true);
     const during = await page.evaluate(() => ({
         pgn: window.AnalyzeSection.loadedGame.pgn,
         moves: window.App.moveHistory.map(move => ({ ...move })),
@@ -254,7 +274,9 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(page.locator('[data-coach-guided-view]')).toBeVisible();
     expect(await page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(entryPly);
     expect(await page.evaluate(() => window.CaissaCoachReviewExploration.isActive())).toBe(false);
-    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove)).toEqual({ from: 'e2', to: 'e4' });
+    await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-label', 'Engine Off');
+    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove)).toBeNull();
     await expect(page.locator('#analyzeStartBtn')).toBeHidden();
     await expect(page.locator('.analyze-evidence-panel')).toBeHidden();
     await page.locator('[data-coach-guided-new-game]').click();
@@ -464,17 +486,28 @@ test('Coach game-over is compact, responsive, accessible, and keyboard ordered',
             const region = document.querySelector('.caissa-coach-game-over-context');
             const board = document.querySelector('#chessboard');
             const actions = [...document.querySelectorAll('[data-caissa-coach-game-over-foot] [data-post-game-action]:not([hidden])')];
+            const reviewGame = document.querySelector('[data-caissa-coach-game-over-foot] [data-post-game-action="analyze"]');
+            const newGame = document.querySelector('[data-caissa-coach-game-over-foot] [data-post-game-action="new-game"]');
             region.scrollIntoView({ block: 'center' });
             const box = region.getBoundingClientRect();
             return { overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
                 cardWidth: box.width, cardHeight: box.height, boardWidth: board.getBoundingClientRect().width,
-                touchTargets: actions.every(action => action.getBoundingClientRect().height >= 44) };
+                touchTargets: actions.every(action => action.getBoundingClientRect().height >= 44),
+                reviewWidth: reviewGame.getBoundingClientRect().width,
+                newGameWidth: newGame.getBoundingClientRect().width,
+                newGameHeight: newGame.getBoundingClientRect().height,
+                newGameBackground: getComputedStyle(newGame).backgroundColor,
+                newGameFontSize: parseFloat(getComputedStyle(newGame).fontSize) };
         });
         expect(geometry.overflow, JSON.stringify(viewport)).toBeLessThanOrEqual(1);
         expect(geometry.cardWidth).toBeLessThanOrEqual(432);
         expect(geometry.cardHeight).toBeLessThanOrEqual(760);
         expect(geometry.boardWidth).toBeGreaterThan(180);
         expect(geometry.touchTargets).toBe(true);
+        expect(geometry.newGameWidth).toBeGreaterThanOrEqual(geometry.reviewWidth - 1);
+        expect(geometry.newGameHeight, JSON.stringify(geometry)).toBeGreaterThanOrEqual(64);
+        expect(['rgb(31, 104, 67)', 'rgb(38, 118, 76)']).toContain(geometry.newGameBackground);
+        expect(geometry.newGameFontSize).toBeGreaterThanOrEqual(16);
     }
     await page.setViewportSize({ width: 320, height: 568 });
     await page.locator('[data-post-game-result]').focus();
