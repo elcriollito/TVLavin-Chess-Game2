@@ -183,3 +183,56 @@ test('exploration is a separate temporary branch and never declares another revi
     assert.doesNotMatch(exploration, /App\.(?:game|moveHistory|currentMoveIndex)\s*=/);
     assert.doesNotMatch(presentation + exploration, /guidedMoveIndex|reviewStepIndex|coachReviewMoveIndex/);
 });
+
+test('Review Settings reuses the authoritative PGN export and exposes only human effort presets', () => {
+    const presentation = read('js/play/native-coach/coach-review-presentation.js');
+    const exploration = read('js/play/native-coach/coach-review-exploration.js');
+    const postGame = read('js/play/post-game-core.js');
+    assert.match(presentation, /downloadPgn\?\.\(\{ preservePresentation: true \}\)/);
+    assert.match(postGame, /new this\.#Blob\(\[this\.#record\.notation\.pgn\]/);
+    assert.match(postGame, /preservePresentation !== true[\s\S]*this\.execute\('download-pgn'\)/);
+    assert.match(presentation, /data-coach-guided-settings/);
+    assert.match(presentation, /data-coach-review-save-pgn/);
+    assert.match(presentation, /\['quick', 'balanced', 'deep'\]/);
+    assert.match(exploration, /quick:[\s\S]*depth: 10/);
+    assert.match(exploration, /balanced:[\s\S]*depth: 14/);
+    assert.match(exploration, /deep:[\s\S]*depth: 18/);
+    assert.match(exploration, /startAnalysis\(fen,[\s\S]*EFFORT_PRESETS\[effortPresetId\]\.depth/);
+    assert.doesNotMatch(presentation, />\s*(?:Threads|Hash|Nodes|NPS|UCI|Depth)\s*</i);
+});
+
+test('interactive Analysis effort is session-only and leaves Balanced at the existing depth', async () => {
+    const depths = [];
+    class Chess {
+        load(fen) { this.position = fen; return true; }
+        fen() { return this.position; }
+        moves() { return []; }
+        get() { return null; }
+        game_over() { return false; }
+    }
+    const window = {
+        Chess,
+        document: { body: { classList: { add() {}, remove() {} } } },
+        App: { board: { position() {} }, boardAdapter: {
+            setLastMove() {}, setInteractionEnabled() {}, clearSelection() {}, clearLegalTargets() {}
+        } }
+    };
+    const context = vm.createContext({ window, globalThis: window, Object, Promise });
+    vm.runInContext(read('js/play/native-coach/coach-review-exploration.js'), context,
+        { filename: 'coach-review-exploration.js' });
+    const engine = { stopAnalysis() {}, startAnalysis(_fen, _callback, depth) { depths.push(depth); } };
+    const analyze = { ensureAnalysisEngine: async () => engine, analysisEngine: engine, teardownAnalysisEngine() {} };
+    const api = window.CaissaCoachReviewExploration;
+    assert.deepEqual({ preset: api.getSnapshot().effortPresetId, depth: api.getSnapshot().analysisDepth },
+        { preset: 'balanced', depth: 14 });
+    assert.equal(api.setEffortPreset('quick').ok, true);
+    assert.equal(api.enter({ fen: 'review-fen', analyze }).ok, true);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(depths.at(-1), 10);
+    assert.equal(api.setEffortPreset('deep').ok, true);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(depths.at(-1), 18);
+    assert.equal(api.getSnapshot().reviewPlyOwner, 'AnalyzeSection.currentMoveIndex');
+    api.leave();
+    assert.equal(api.getSnapshot().effortPresetId, 'deep');
+});

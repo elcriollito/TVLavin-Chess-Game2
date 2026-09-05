@@ -1,10 +1,16 @@
 (function installCoachReviewExploration(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
+    const freeze = value => Object.freeze(value);
+    const EFFORT_PRESETS = freeze({
+        quick: freeze({ id: 'quick', label: 'Quick', depth: 10 }),
+        balanced: freeze({ id: 'balanced', label: 'Balanced', depth: 14 }),
+        deep: freeze({ id: 'deep', label: 'Deep', depth: 18 })
+    });
+    let effortPresetId = 'balanced';
     let active = null;
     let engineToken = 0;
-    const freeze = value => Object.freeze(value);
     const result = (ok, status, reasonCode, value = null) => freeze({ ok, status, reasonCode, value });
 
     function snapshot() {
@@ -15,6 +21,8 @@
             currentFen: active?.game?.fen?.() || null,
             temporaryPlyCount: active?.moves?.length || 0,
             engineEnabled: active?.engineEnabled === true,
+            effortPresetId,
+            analysisDepth: EFFORT_PRESETS[effortPresetId].depth,
             reviewPlyOwner: 'AnalyzeSection.currentMoveIndex'
         });
     }
@@ -68,7 +76,17 @@
                 mate: Number.isFinite(info?.mate) ? info.mate : null,
                 pv: freeze(toReadablePv(fen, info?.pv))
             }));
-        }, 14);
+        }, EFFORT_PRESETS[effortPresetId].depth);
+    }
+
+    function setEffortPreset(presetId) {
+        if (!Object.hasOwn(EFFORT_PRESETS, presetId))
+            return result(false, 'rejected', 'INVALID_EFFORT_PRESET', snapshot());
+        if (effortPresetId === presetId)
+            return result(true, 'unchanged', 'EFFORT_PRESET_UNCHANGED', snapshot());
+        effortPresetId = presetId;
+        if (active?.engineEnabled) analyzeCurrentPosition();
+        return result(true, 'accepted', 'EFFORT_PRESET_CHANGED', snapshot());
     }
 
     function setEngineEnabled(enabled) {
@@ -157,7 +175,8 @@
     }
 
     root.CaissaCoachReviewExploration = freeze({
-        schemaVersion: SCHEMA_VERSION, enter, leave, setEngineEnabled, analyzeCurrentPosition,
+        schemaVersion: SCHEMA_VERSION, effortPresets: EFFORT_PRESETS,
+        enter, leave, setEngineEnabled, setEffortPreset, analyzeCurrentPosition,
         movesFrom, pieceAt, canStartMove, playMove, restoreBoard, getFen: () => active?.game?.fen?.() || null,
         isActive: () => !!active, getSnapshot: snapshot
     });

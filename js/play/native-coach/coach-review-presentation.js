@@ -1,7 +1,7 @@
 (function installCoachReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.6.2';
+    const SCHEMA_VERSION = '1.7.0';
     const QUALITY_ORDER = Object.freeze(['Book', 'Best', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const CLASSIFICATIONS = Object.freeze(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const REVIEW_WORTHY_CLASSIFICATIONS = Object.freeze(['Inaccuracy', 'Mistake', 'Blunder']);
@@ -209,10 +209,13 @@
         });
         const analysis = element('button', 'caissa-coach-guided__analysis', { type: 'button', 'data-coach-guided-analysis': '' });
         analysis.innerHTML = '<span>Analysis</span><i class="fas fa-search" aria-hidden="true"></i>';
+        const settings = element('button', 'caissa-coach-guided__settings', { type: 'button',
+            'data-coach-guided-settings': '', 'aria-haspopup': 'dialog' });
+        settings.innerHTML = '<i class="fas fa-cog" aria-hidden="true"></i><span>Settings</span>';
         const newGame = element('button', 'caissa-coach-guided__new-game', { type: 'button',
             'data-coach-guided-new-game': '' });
         newGame.innerHTML = '<i class="fas fa-plus" aria-hidden="true"></i><span>New Game</span>'; newGame.hidden = true;
-        secondaryActions.append(analysis, newGame); reviewTools.append(navigation, secondaryActions);
+        secondaryActions.append(analysis, settings, newGame); reviewTools.append(navigation, secondaryActions);
         const explorationTools = element('div', 'caissa-coach-guided__exploration-tools', { 'data-coach-exploration-foot': '' });
         explorationTools.hidden = true;
         const back = element('button', 'caissa-coach-guided__back-review', { type: 'button', 'data-coach-exploration-back': '' });
@@ -222,9 +225,51 @@
         engine.innerHTML = '<span class="caissa-coach-guided__engine-led" aria-hidden="true"></span>'
             + '<span data-coach-exploration-engine-label>Engine Off</span>';
         explorationTools.append(back, engine); foot.append(reviewTools, explorationTools);
+        const settingsDialog = element('dialog', 'caissa-coach-review-settings', {
+            'data-coach-review-settings-dialog': '', 'aria-labelledby': 'caissaCoachReviewSettingsTitle'
+        });
+        const settingsHeader = element('header', 'caissa-coach-review-settings__header');
+        const settingsTitle = element('h2', 'caissa-coach-review-settings__title', { id: 'caissaCoachReviewSettingsTitle' });
+        settingsTitle.textContent = 'Review Settings';
+        const settingsClose = element('button', 'caissa-coach-review-settings__close', { type: 'button',
+            'data-coach-review-settings-close': '', 'aria-label': 'Close review settings' });
+        settingsClose.innerHTML = '<i class="fas fa-times" aria-hidden="true"></i>';
+        settingsHeader.append(settingsTitle, settingsClose);
+        const gameSection = element('section', 'caissa-coach-review-settings__section', { 'aria-labelledby': 'caissaReviewGameSettings' });
+        const gameTitle = element('h3', 'caissa-coach-review-settings__section-title', { id: 'caissaReviewGameSettings' });
+        gameTitle.textContent = 'Game';
+        const savePgn = element('button', 'caissa-coach-review-settings__save', { type: 'button',
+            'data-coach-review-save-pgn': '' });
+        savePgn.innerHTML = '<i class="fas fa-download" aria-hidden="true"></i><span>Save PGN</span>';
+        const saveCopy = element('p', 'caissa-coach-review-settings__copy');
+        saveCopy.textContent = 'Download the original completed game.';
+        const saveStatus = element('p', 'caissa-coach-review-settings__status', {
+            'data-coach-review-save-status': '', role: 'status', 'aria-live': 'polite'
+        });
+        gameSection.append(gameTitle, savePgn, saveCopy, saveStatus);
+        const analysisSection = element('section', 'caissa-coach-review-settings__section', {
+            'aria-labelledby': 'caissaReviewAnalysisSettings'
+        });
+        const analysisTitle = element('h3', 'caissa-coach-review-settings__section-title', { id: 'caissaReviewAnalysisSettings' });
+        analysisTitle.textContent = 'Analysis';
+        const effortCopy = element('p', 'caissa-coach-review-settings__copy');
+        effortCopy.textContent = 'Choose how quickly free-position analysis responds.';
+        const effort = element('div', 'caissa-coach-review-settings__effort', {
+            role: 'group', 'aria-label': 'Analysis effort', 'data-coach-review-effort': ''
+        });
+        const descriptions = { quick: 'Faster response', balanced: 'Everyday balance', deep: 'More thorough search' };
+        for (const presetId of ['quick', 'balanced', 'deep']) {
+            const preset = element('button', 'caissa-coach-review-settings__preset', { type: 'button',
+                'data-coach-review-effort-preset': presetId, 'aria-pressed': 'false' });
+            const presetName = element('strong'); presetName.textContent = presetId[0].toUpperCase() + presetId.slice(1);
+            const presetCopy = element('span'); presetCopy.textContent = descriptions[presetId];
+            preset.append(presetName, presetCopy); effort.append(preset);
+        }
+        analysisSection.append(analysisTitle, effortCopy, effort);
+        settingsDialog.append(settingsHeader, gameSection, analysisSection); content.append(settingsDialog);
         return { content, guided, actions, explain, next, detail, notation, exploration, status, evalValue,
-            pvValue, foot, reviewTools, navigation, secondaryActions, analysis, newGame,
-            explorationTools, back, engine };
+            pvValue, foot, reviewTools, navigation, secondaryActions, analysis, settings, newGame,
+            explorationTools, back, engine, settingsDialog, settingsClose, savePgn, saveStatus, effort };
     }
 
     function rememberNode(node) { return node ? { node, parent: node.parentNode, next: node.nextSibling } : null; }
@@ -339,6 +384,27 @@
         mounted.guided.engine.querySelector('[data-coach-exploration-engine-label]').textContent = label;
     }
 
+    function syncEffortControl() {
+        const selected = root.CaissaCoachReviewExploration?.getSnapshot?.().effortPresetId || 'balanced';
+        mounted?.guided?.effort?.querySelectorAll?.('[data-coach-review-effort-preset]')?.forEach(button => {
+            button.setAttribute('aria-pressed', String(button.dataset.coachReviewEffortPreset === selected));
+        });
+    }
+
+    function openSettings() {
+        if (!mounted || mounted.phase !== 'guided-review') return;
+        syncEffortControl(); mounted.guided.saveStatus.textContent = '';
+        if (typeof mounted.guided.settingsDialog.showModal === 'function') mounted.guided.settingsDialog.showModal();
+        else mounted.guided.settingsDialog.setAttribute('open', '');
+        mounted.guided.settingsClose.focus?.();
+    }
+
+    function closeSettings() {
+        const dialog = mounted?.guided?.settingsDialog; if (!dialog?.hasAttribute('open')) return;
+        if (typeof dialog.close === 'function') dialog.close(); else dialog.removeAttribute('open');
+        mounted?.guided?.settings?.focus?.();
+    }
+
     function enterExploration() {
         if (!mounted?.analyze || mounted.phase !== 'guided-review') return;
         const projection = mounted.analyze.getCoachReviewProjection?.(); if (!projection?.fen) return;
@@ -411,6 +477,25 @@
             }).catch(() => { if (mounted) guided.newGame.disabled = false; });
         });
         guided.analysis.addEventListener('click', enterExploration); guided.back.addEventListener('click', leaveExploration);
+        guided.settings.addEventListener('click', openSettings);
+        guided.settingsClose.addEventListener('click', closeSettings);
+        guided.savePgn.addEventListener('click', () => {
+            if (!mounted || guided.savePgn.disabled) return;
+            guided.savePgn.disabled = true; guided.saveStatus.textContent = 'Preparing PGN...';
+            const postGame = root.CaissaPostGameExperienceInstance;
+            const download = postGame?.downloadPgn?.({ preservePresentation: true })
+                || postGame?.execute?.('download-pgn');
+            Promise.resolve(download).then(outcome => {
+                guided.saveStatus.textContent = outcome?.ok ? 'Original game PGN downloaded.' : 'PGN download is unavailable.';
+            }).catch(() => { guided.saveStatus.textContent = 'PGN download is unavailable.'; }).finally(() => {
+                guided.savePgn.disabled = false;
+            });
+        });
+        guided.effort.addEventListener('click', event => {
+            const button = event.target?.closest?.('[data-coach-review-effort-preset]'); if (!button) return;
+            const changed = root.CaissaCoachReviewExploration?.setEffortPreset?.(button.dataset.coachReviewEffortPreset);
+            if (changed?.ok) syncEffortControl();
+        });
         guided.engine.addEventListener('click', () => {
             const enabled = root.CaissaCoachReviewExploration?.getSnapshot?.().engineEnabled === true;
             const changed = root.CaissaCoachReviewExploration?.setEngineEnabled?.(!enabled); if (!changed?.ok) return;

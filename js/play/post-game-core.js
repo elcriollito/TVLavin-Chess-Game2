@@ -132,7 +132,12 @@
             return outcome(false, 'unavailable', 'ACTION_UNAVAILABLE');
         }
         rematch() { return this.execute('rematch'); } analyze() { return this.execute('analyze'); }
-        copyPgn() { return this.execute('copy-pgn'); } downloadPgn() { return this.execute('download-pgn'); }
+        copyPgn() { return this.execute('copy-pgn'); }
+        downloadPgn(options = {}) {
+            if (options.preservePresentation !== true) return this.execute('download-pgn');
+            if (!this.#actions()['download-pgn']?.enabled) return outcome(false, 'unavailable', 'ACTION_UNAVAILABLE');
+            try { return this.#download(); } catch (_) { return outcome(false, 'failed', 'ACTION_FAILED'); }
+        }
         saveGame() { return this.execute('save-game'); } startNewGame() { return this.execute('new-game'); }
         #start(action) {
             const prepared = root.CaissaPlayV2PostGameExitPolicy?.prepare?.(action, this.#record);
