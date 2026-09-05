@@ -1,7 +1,7 @@
 (function installBotsPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '2.4.0';
+    const SCHEMA_VERSION = '2.5.0';
     const STATUSES = Object.freeze(['ready', 'planned', 'busy', 'active', 'error', 'unavailable', 'disposed']);
     const TIME_CONTROLS = Object.freeze([
         Object.freeze({ value: 0, label: 'No Timer' }),
@@ -271,8 +271,7 @@
             const record = this.#selectedRecord();
             const meta = this.#root.querySelector('.caissa-bots-panel__selected-copy span');
             const category = record?.bot ? global.CaissaBotCollections.category(record.bot.categoryId) : null;
-            if (meta && record?.bot && category) meta.textContent = phase !== 'setup'
-                ? `ELO ${record.bot.targetStrength}` : `${category.label} · ${record.bot.targetStrength} Elo target`;
+            if (meta && record?.bot && category) meta.textContent = `ELO ${record.bot.targetStrength}`;
             this.show();
             return result(true, 'accepted', 'PHASE_PRESENTED', this.getSnapshot());
         }
@@ -422,8 +421,7 @@
                 const copy = element('span', 'caissa-bots-panel__selected-copy');
                 const name = element('strong', ''); name.textContent = bot.name;
                 const meta = element('span', '');
-                meta.textContent = this.#phase === 'active-game'
-                    ? `ELO ${bot.targetStrength}` : `${category.label} · ${bot.targetStrength} Elo target`;
+                meta.textContent = `ELO ${bot.targetStrength}`;
                 copy.append(name, meta); selected.replaceChildren(portrait, copy);
             } else selected.textContent = 'Choose a bot';
             selected.classList.toggle('is-planned', bot?.availability !== 'qa-only');

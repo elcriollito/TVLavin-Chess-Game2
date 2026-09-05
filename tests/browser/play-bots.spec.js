@@ -45,6 +45,22 @@ async function activeBotsGeometry(page) {
     });
 }
 
+async function botsHeadGeometry(page) {
+    return page.locator('[data-caissa-bots-shell]').evaluate(shell => {
+        const selected = shell.querySelector('[data-bot-selected]');
+        const head = shell.querySelector('[data-caissa-bots-head]').getBoundingClientRect();
+        const avatar = selected.querySelector('.caissa-bots-panel__selected-piece').getBoundingClientRect();
+        const text = selected.querySelector('.caissa-bots-panel__selected-copy').getBoundingClientRect();
+        const tabs = document.querySelector('.caissa-simplified-shell__modes').getBoundingClientRect();
+        const round = value => Math.round(value * 100) / 100;
+        return {
+            headHeight: round(head.height), headLeftPadding: round(parseFloat(getComputedStyle(selected).paddingLeft)),
+            avatarLeft: round(avatar.left - head.left), avatarTextGap: round(text.left - avatar.right),
+            tabsToHead: round(head.top - tabs.bottom), overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+        };
+    });
+}
+
 test.beforeEach(async ({ page }) => instrumentPlay(page));
 
 test('Bots is canonical and exposes the Classic piece ladder without engine internals', async ({ page }) => {
@@ -69,7 +85,7 @@ test('Bots is canonical and exposes the Classic piece ladder without engine inte
     await expect(page.getByLabel(/Freya, 2800 Elo target, GM, preview ready/)).toBeVisible();
     await page.getByLabel(/Freya, 2800 Elo target/).check();
     await expect(page.locator('[data-bot-selected]')).toContainText('Freya');
-    await expect(page.locator('[data-bot-selected]')).toContainText('GM · 2800 Elo target');
+    await expect(page.locator('[data-bot-selected]')).toContainText('ELO 2800');
     await expect(page.locator('[data-bot-selected] img')).toBeVisible();
     expect(await page.locator('[data-bot-selected] img').getAttribute('src')).not.toBe(pipAvatar);
     await expect(page.locator('[data-bot-primary]')).toBeEnabled();
@@ -146,6 +162,36 @@ test('active Head Body Foot geometry is frozen through moves, Hint, Undo, and re
     }
     await page.setViewportSize({ width: 1600, height: 1000 });
     await expect.poll(async () => (await activeBotsGeometry(page)).fixed).toEqual(baseline.fixed);
+});
+
+test('permanent Bot Head remains left-aligned and phase-invariant at required viewports', async ({ page }) => {
+    const viewports = [{ width: 1600, height: 1000 }, { width: 1366, height: 768 }, { width: 390, height: 844 }];
+    await openBots(page, viewports[0]);
+    await openCategory(page, 'Advanced');
+    await page.getByLabel(/Vera, 1500 Elo target/).check();
+    await expect(page.locator('[data-bot-selected]')).toContainText('Vera');
+    await expect(page.locator('[data-bot-selected]')).toContainText('ELO 1500');
+    const setup = new Map();
+    for (const viewport of viewports) {
+        await page.setViewportSize(viewport);
+        const geometry = await botsHeadGeometry(page);
+        setup.set(viewport.width, geometry);
+        expect(geometry).toMatchObject({ headHeight: viewport.width === 390 ? 112 : 150,
+            tabsToHead: 8, overflow: 0 });
+        expect(geometry.avatarLeft).toBeLessThanOrEqual(12);
+        expect(geometry.avatarTextGap).toBeGreaterThanOrEqual(10);
+    }
+    await page.locator('[data-bot-primary]').click();
+    for (const viewport of viewports) {
+        await page.setViewportSize(viewport);
+        expect(await botsHeadGeometry(page)).toEqual(setup.get(viewport.width));
+    }
+    await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
+    await expect(page.locator('[data-caissa-bots-shell]')).toHaveAttribute('data-bot-shell-phase', 'game-over');
+    for (const viewport of viewports) {
+        await page.setViewportSize(viewport);
+        expect(await botsHeadGeometry(page)).toEqual(setup.get(viewport.width));
+    }
 });
 
 test('active bot is immutable; New Game admits the next profile and Games restores Full Power', async ({ page }) => {
