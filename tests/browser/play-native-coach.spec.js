@@ -191,6 +191,9 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(page.locator('[data-caissa-coach-foot] #analyzeNavNext')).toBeVisible();
     await expect(page.locator('[data-caissa-coach-foot] #analyzeNavLast')).toBeVisible();
     await expect(page.locator('[data-caissa-coach-foot] #analyzeFlipBoard')).toBeVisible();
+    await expect(page.locator('[data-coach-guided-navigation] #analyzeFlipBoard')).toHaveCount(0);
+    await expect(page.locator('[data-coach-guided-flip]')).toHaveAttribute('aria-label', 'Flip board');
+    await expect(page.locator('[data-coach-guided-flip]')).toContainText('Flip board');
     await expect(page.locator('[data-caissa-coach-foot] [data-coach-guided-analysis]')).toBeVisible();
     await expect(page.locator('.caissa-simplified-shell__board-stage .analyze-board-navigation')).toHaveCount(0);
     await page.locator('[data-coach-guided-explain]').click();
@@ -354,11 +357,16 @@ test('Coach Review Summary remains inside Play, is responsive, keyboard ordered,
             const foot = document.querySelector('[data-caissa-coach-foot]').getBoundingClientRect();
             const controls = [...document.querySelectorAll('[data-caissa-coach-guided-review] button, [data-caissa-coach-guided-foot] button')]
                 .filter(node => node.getClientRects().length && !node.disabled);
+            const navigation = [...document.querySelectorAll('[data-coach-guided-navigation] .nav-btn-sm')]
+                .filter(node => node.getClientRects().length);
+            const navHost = document.querySelector('[data-coach-guided-navigation]').getBoundingClientRect();
             return {
                 overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
                 boardBottom: board.bottom, boardRight: board.right, shellTop: shell.top, shellLeft: shell.left,
                 regionOrder: head.top <= body.top && body.top <= foot.top,
                 touchTargets: controls.every(node => node.getBoundingClientRect().height >= 44),
+                navigationCount: navigation.length,
+                navigationFill: navigation.reduce((sum, node) => sum + node.getBoundingClientRect().width, 0) / navHost.width,
                 visibleBoards: [...document.querySelectorAll('.board-b72b1')]
                     .filter(node => node.getClientRects().length && getComputedStyle(node).visibility !== 'hidden').length
             };
@@ -366,6 +374,8 @@ test('Coach Review Summary remains inside Play, is responsive, keyboard ordered,
         expect(guidedGeometry.overflow, JSON.stringify(viewport)).toBeLessThanOrEqual(1);
         expect(guidedGeometry.regionOrder).toBe(true);
         expect(guidedGeometry.touchTargets).toBe(true);
+        expect(guidedGeometry.navigationCount).toBe(4);
+        expect(guidedGeometry.navigationFill).toBeGreaterThan(.82);
         expect(guidedGeometry.visibleBoards).toBe(1);
         if (viewport.width <= 900) expect(guidedGeometry.boardBottom).toBeLessThanOrEqual(guidedGeometry.shellTop + 1);
         else expect(guidedGeometry.boardRight).toBeLessThanOrEqual(guidedGeometry.shellLeft + 1);

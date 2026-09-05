@@ -1,7 +1,7 @@
 (function installCoachReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.5.0';
+    const SCHEMA_VERSION = '1.5.1';
     const QUALITY_ORDER = Object.freeze(['Book', 'Best', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const CLASSIFICATIONS = Object.freeze(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const QUALITY_ICONS = Object.freeze({ Book: 'fa-book-open', Best: 'fa-star', Acceptable: 'fa-check',
@@ -178,9 +178,12 @@
             { 'data-caissa-coach-guided-foot': '' });
         const reviewTools = element('div', 'caissa-coach-guided__review-tools', { 'data-coach-guided-foot-review': '' });
         const navigation = element('div', 'caissa-coach-guided__navigation-host', { 'data-coach-guided-navigation': '' });
+        const secondaryActions = element('div', 'caissa-coach-guided__foot-actions', {
+            role: 'group', 'aria-label': 'Guided review secondary actions'
+        });
         const analysis = element('button', 'caissa-coach-guided__analysis', { type: 'button', 'data-coach-guided-analysis': '' });
         analysis.innerHTML = '<span>Analysis</span><i class="fas fa-search" aria-hidden="true"></i>';
-        reviewTools.append(navigation, analysis);
+        secondaryActions.append(analysis); reviewTools.append(navigation, secondaryActions);
         const explorationTools = element('div', 'caissa-coach-guided__exploration-tools', { 'data-coach-exploration-foot': '' });
         explorationTools.hidden = true;
         const back = element('button', 'caissa-coach-guided__back-review', { type: 'button', 'data-coach-exploration-back': '' });
@@ -190,7 +193,7 @@
         engine.innerHTML = '<i class="fas fa-brain" aria-hidden="true"></i><span>Engine On</span>';
         explorationTools.append(back, engine); foot.append(reviewTools, explorationTools);
         return { content, guided, actions, explain, next, detail, notation, exploration, status, evalValue,
-            pvValue, foot, reviewTools, navigation, analysis, explorationTools, back, engine };
+            pvValue, foot, reviewTools, navigation, secondaryActions, analysis, explorationTools, back, engine };
     }
 
     function rememberNode(node) { return node ? { node, parent: node.parentNode, next: node.nextSibling } : null; }
@@ -259,8 +262,14 @@
         mounted.summary.panel.dataset.coachReviewPhase = 'guided-review';
         mounted.moveList = rememberNode(analyze.elements?.moveList);
         mounted.navigation = rememberNode(analyze.elements?.navFirst?.closest?.('.analyze-board-navigation'));
+        mounted.flipTool = rememberNode(analyze.elements?.flipBoard);
         if (mounted.moveList?.node) mounted.guided.notation.append(mounted.moveList.node);
         if (mounted.navigation?.node) mounted.guided.navigation.append(mounted.navigation.node);
+        if (mounted.flipTool?.node) {
+            mounted.flipTool.node.dataset.coachGuidedFlip = '';
+            mounted.flipTool.node.querySelector('span').textContent = 'Flip board';
+            mounted.guided.secondaryActions.prepend(mounted.flipTool.node);
+        }
         root.document.body?.classList?.add('caissa-coach-guided-review-active');
         root.CaissaNativeCoachPanel?.present?.({ phase: 'guided-review', content: mounted.guided.content,
             foot: mounted.guided.foot, message: 'Reviewing the first move.' });
@@ -335,7 +344,8 @@
         root.document.body?.classList?.add('caissa-coach-review-summary-active');
         mounted = { section: options.section, host: options.host, context: options.context, handoff: options.handoff,
             summary, guided, analyze: null, model: null, phase: 'review-summary', fingerprint: null,
-            analysisStartRequests: 0, timer: null, moveList: null, navigation: null, explanationExpanded: false };
+            analysisStartRequests: 0, timer: null, moveList: null, navigation: null, flipTool: null,
+            explanationExpanded: false };
         summary.action.addEventListener('click', enterGuidedReview);
         guided.explain.addEventListener('click', () => { if (!mounted) return;
             mounted.explanationExpanded = !mounted.explanationExpanded; updateGuided(); });
@@ -366,6 +376,11 @@
         if (!mounted) return result(true, 'unchanged', 'ALREADY_UNMOUNTED');
         if (mounted.timer) root.clearInterval(mounted.timer);
         if (mounted.phase === 'analysis-exploration') root.CaissaCoachReviewExploration?.leave?.();
+        if (mounted.flipTool?.node) {
+            mounted.flipTool.node.querySelector('span').textContent = 'Flip';
+            delete mounted.flipTool.node.dataset.coachGuidedFlip;
+            restoreRemembered(mounted.flipTool);
+        }
         restoreRemembered(mounted.moveList); restoreRemembered(mounted.navigation);
         root.document.querySelector('[data-caissa-coach-shell] [data-coach-narration]')
             ?.classList?.remove('caissa-coach-guided__speech');
