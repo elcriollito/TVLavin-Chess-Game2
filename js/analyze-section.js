@@ -874,22 +874,40 @@ const AnalyzeSection = {
         }
         this.projectCoachReviewBoardAssistance();
 
+        if (document.body?.classList?.contains('caissa-coach-guided-review-active')) {
+            window.dispatchEvent(new CustomEvent('caissa:coach-review-ply-change', {
+                detail: Object.freeze({ currentMoveIndex: this.currentMoveIndex })
+            }));
+        }
+
         console.log('[Analyze] Jumped to move:', safeIndex + 1);
     },
 
     projectCoachReviewBoardAssistance() {
         if (!document.body?.classList?.contains('caissa-coach-review-summary-active')) return false;
+        const projection = this.getCoachReviewProjection();
+        if (!projection) return false;
+        return window.App?.projectCoachReviewBoardAssistance?.({
+            fen: projection.fen,
+            move: projection.move
+        }) === true;
+    },
+
+    getCoachReviewProjection() {
         const game = this.getGame();
-        if (!game) return false;
+        if (!game) return null;
         const selected = this.analysisPhase === 'complete' ? this.analysisResults[this.currentMoveIndex] : null;
         const showsFenBefore = selected && ['Inaccuracy', 'Mistake', 'Blunder'].includes(selected.quality)
             && typeof selected.fenBefore === 'string';
         const displayedMoveIndex = showsFenBefore ? this.currentMoveIndex - 1 : this.currentMoveIndex;
         const move = displayedMoveIndex >= 0 ? this.getLoadedMoves({ verbose: true })[displayedMoveIndex] : null;
-        return window.App?.projectCoachReviewBoardAssistance?.({
+        return Object.freeze({
             fen: showsFenBefore ? selected.fenBefore : game.fen(),
-            move: move?.from && move?.to ? { from: move.from, to: move.to } : null
-        }) === true;
+            move: move?.from && move?.to ? Object.freeze({ from: move.from, to: move.to }) : null,
+            authoritativeIndex: this.currentMoveIndex,
+            displayedMoveIndex,
+            showsFenBefore: !!showsFenBefore
+        });
     },
 
     getMoveAccessibleLabel(index, san) {
@@ -1184,6 +1202,11 @@ const AnalyzeSection = {
     },
 
     flipAnalyzeBoard() {
+        if (document.body?.classList?.contains('caissa-coach-guided-review-active') && window.App?.board) {
+            window.flipBoard?.();
+            this.boardFlipped = window.App.isFlipped === true;
+            return;
+        }
         this.boardFlipped = !this.boardFlipped;
         this.applyAnalyzeOrientation();
     },

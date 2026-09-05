@@ -10,7 +10,7 @@ test('Play board visual assistance uses one adapter-owned presentation pipeline'
     const css = read('css/play-simplified-shell.css');
     const legacyCss = read('styles.css');
 
-    assert.match(app, /const legalMoves = App\.game\.moves\(\{ square, verbose: true \}\)/);
+    assert.match(app, /const legalMoves = isCoachReviewExplorationActive\(\)[\s\S]*CaissaCoachReviewExploration\.movesFrom\(square\)[\s\S]*App\.game\.moves\(\{ square, verbose: true \}\)/);
     assert.match(app, /legalMoves\.filter\(\(move\) => move\.captured\)/);
     assert.match(app, /handlePlayBoardSquareSelection\(event\.square\)/);
     assert.match(app, /setLegalTargets\(shouldShowLegalMoves\(\) \? App\.mobileTapTargets : \[\], \{/);
