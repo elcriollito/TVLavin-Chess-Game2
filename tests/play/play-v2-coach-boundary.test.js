@@ -48,7 +48,7 @@ test('assistance observes only bounded events and cannot commit or retain hidden
 
 test('native resource group is isolated while educational Coach remains standalone', () => {
     const registry = read('js/play/performance/play-load-registry.js');
-    const nativeBlock = registry.match(/'native-coach-stack':[\s\S]*?\n\s*}\),\n/)[0];
+    const nativeBlock = registry.match(/'native-coach-stack':[\s\S]*?\r?\n\s*}\),\r?\n/)[0];
     assert.doesNotMatch(nativeBlock, /js\/play\/coach\/|academy|mentor|guided|knowledge|memory|mastery|recommend|endgame/i);
     assert.match(registry, /'coach-stack'/); assert.match(registry, /endgame-knowledge-map/);
 });
@@ -62,7 +62,9 @@ test('static runtime owns no board, Worker, engine, clock, lifecycle, storage, t
 test('Play Coach presentation uses the original Caissa portrait without a redundant inner title', () => {
     const panel = read('js/play/native-coach/coach-panel.js');
     const asset = fs.readFileSync(new URL('../../assets/play/caissa-coach-goddess.png', import.meta.url));
-    assert.match(panel, /aria-label': 'Play Coach setup'/);
+    assert.match(panel, /aria-label': 'Play Coach'/);
+    assert.match(panel, /data-caissa-coach-persistent/);
+    assert.match(panel, /data-caissa-coach-phase-host/);
     assert.doesNotMatch(panel, /textContent = 'Play Coach'/);
     assert.match(panel, /Caissa, goddess of chess/);
     assert.match(panel, /caissa-coach-goddess\.png/);

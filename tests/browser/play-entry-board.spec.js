@@ -63,14 +63,14 @@ test('tap-to-move marks destinations, clears selection, and accepts a legal move
         target: document.querySelector('#playSection #chessboard .square-e2'),
         preventDefault() {}
     }));
-    await expect(page.locator('#playSection #chessboard .square-e2')).toHaveClass(/mobile-tap-source/);
-    await expect(page.locator('#playSection #chessboard .square-e4')).toHaveClass(/mobile-tap-target/);
+    await expect(page.locator('#playSection #chessboard .square-e2')).toHaveClass(/caissa-board-selected/);
+    await expect(page.locator('#playSection #chessboard .square-e4')).toHaveClass(/caissa-board-legal-target/);
     await page.evaluate(() => window.handleMobileBoardTap({
         target: document.querySelector('#playSection #chessboard .square-e4'),
         preventDefault() {}
     }));
     expect((await snapshot(page)).history).toEqual(['e4']);
-    expect(await page.locator('#playSection #chessboard .mobile-tap-source').count()).toBe(0);
+    expect(await page.locator('#playSection #chessboard .caissa-board-selected').count()).toBe(0);
 });
 
 test('drag callback contract accepts a legal move and snapbacks an illegal move', async ({ page }) => {

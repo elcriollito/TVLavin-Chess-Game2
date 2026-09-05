@@ -29,15 +29,15 @@ test('admitted navigation has exactly Games, Bots and Coach with no Players surf
     await page.evaluate(() => { localStorage.removeItem('caissa.play.mode'); sessionStorage.removeItem('caissa.play.mode'); });
     await page.goto('/play/games?simplified=1'); await page.reload();
     const tabs = page.locator('.caissa-vc-tabs__list > [role="tab"]');
-    await expect(tabs).toHaveText(['Games', 'Bots', 'Coach']);
+    await expect(tabs).toHaveText(['Play Game', 'Play Bots', 'Play Coach']);
     await expect(page.getByRole('tab', { name: /players/i })).toHaveCount(0);
     await expect(page.locator('[aria-controls*="players" i],[data-players-panel],[data-shell-mode="players"]')).toHaveCount(0);
     for (const selector of ['#yahooClassicSection', '#ficsSection', '#spectatorSection']) await expect(page.locator(selector)).toBeHidden();
-    await tabs.nth(0).press('ArrowRight'); await expect(page).toHaveURL(/\/play\/bots\?simplified=1/);
-    await expect(page.getByRole('tab', { name: 'Bots' })).toHaveAttribute('tabindex', '0');
-    await page.getByRole('tab', { name: 'Bots' }).press('ArrowRight'); await expect(page).toHaveURL(/\/play\/coach\?simplified=1/);
-    await expect(page.getByRole('tab', { name: 'Coach' })).toHaveAttribute('tabindex', '0');
-    await page.getByRole('tab', { name: 'Coach' }).press('ArrowRight'); await expect(page).toHaveURL(/\/play\/games\?simplified=1/);
+    await tabs.nth(0).press('ArrowRight'); await expect(page).toHaveURL(/\/play\/bots$/);
+    await expect(page.getByRole('tab', { name: 'Play Bots' })).toHaveAttribute('tabindex', '0');
+    await page.getByRole('tab', { name: 'Play Bots' }).press('ArrowRight'); await expect(page).toHaveURL(/\/play\/coach$/);
+    await expect(page.getByRole('tab', { name: 'Play Coach' })).toHaveAttribute('tabindex', '0');
+    await page.getByRole('tab', { name: 'Play Coach' }).press('ArrowRight'); await expect(page).toHaveURL(/\/play\/games$/);
 });
 
 test('omitted presentation leaves no layout slot across responsive and accessibility states', async ({ page, browserName }) => {

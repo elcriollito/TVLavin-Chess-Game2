@@ -1,10 +1,16 @@
 (function installNativeCoachPanel(root) {
     'use strict';
-    const SCHEMA_VERSION = '2.3.0';
+    const SCHEMA_VERSION = '2.7.0';
+    const PHASES = Object.freeze(['setup', 'active-game', 'game-over', 'review-summary', 'guided-review']);
     const COLORS = Object.freeze([
         Object.freeze({ value: 'white', label: 'White', symbol: '♚' }),
         Object.freeze({ value: 'random', label: 'Random', symbol: '?' }),
         Object.freeze({ value: 'black', label: 'Black', symbol: '♚' })
+    ]);
+    const FEATURED_LEVELS = Object.freeze([
+        Object.freeze({ id: 'casual', label: 'Casual', description: 'A relaxed game with more room to explore.' }),
+        Object.freeze({ id: 'intermediate', label: 'Balanced', description: 'A steady challenge with balanced guidance.' }),
+        Object.freeze({ id: 'advanced', label: 'Challenging', description: 'A stronger test that rewards careful play.' })
     ]);
     let sequence = 0; let activePanel = null;
     const freeze = value => { if (value && typeof value === 'object' && !Object.isFrozen(value)) {
@@ -14,7 +20,10 @@
         Object.entries(attrs).forEach(([key, value]) => item.setAttribute(key, value)); return item; };
 
     class Panel {
-        #id = `native-coach-${++sequence}`; #root = null; #host = null; #disposed = false; #listeners = [];
+        #id = `native-coach-${++sequence}`; #root = null; #host = null; #homeHost = null;
+        #phaseHost = null; #footHost = null; #setupContent = null; #setupFoot = null;
+        #phaseContent = new Map(); #phaseFootContent = new Map(); #phase = 'setup';
+        #presentationStack = []; #disposed = false; #listeners = [];
         #configuration = { ...root.CaissaNativeCoachConfiguration.defaults };
         #assistance = root.CaissaNativeCoachAssistance.create(); #status = 'ready'; #starts = 0; #helpSequence = 0;
         #dialogue = root.CaissaNativeCoachDialogue.create(); #experience = 'casual'; #color = 'white';
@@ -23,28 +32,54 @@
         mount(options = {}) {
             const host = options.host || options;
             if (this.#disposed || !host?.appendChild) return result(false, 'INVALID_HOST');
-            this.#host = host;
+            this.#host = this.#homeHost = host;
             const section = this.#root = node('section', { class: 'caissa-native-coach-panel',
-                'data-caissa-native-coach-panel': '', 'aria-label': 'Play Coach setup' });
+                'data-caissa-native-coach-panel': '', 'data-caissa-coach-shell': '',
+                'data-coach-shell-phase': 'setup', 'aria-label': 'Play Coach' });
 
-            const persona = node('div', { class: 'caissa-native-coach-panel__persona' });
+            const persona = node('div', { class: 'caissa-native-coach-panel__persona caissa-native-coach-panel__head',
+                'data-caissa-coach-persistent': '', 'data-caissa-coach-head': '' });
             const portrait = node('img', { class: 'caissa-native-coach-panel__portrait',
                 src: '/assets/play/caissa-coach-goddess.png', alt: 'Caissa, goddess of chess', width: '512', height: '512' });
             const speech = node('div', { class: 'caissa-native-coach-panel__speech', 'data-coach-narration': '' });
             speech.textContent = root.CaissaNativeCoachDialogue.messages.WELCOME;
             persona.append(portrait, speech);
 
+            const phaseHost = this.#phaseHost = node('div', { class: 'caissa-native-coach-panel__phase caissa-native-coach-panel__body',
+                'data-caissa-coach-phase-host': '', 'data-caissa-coach-body': '' });
+            const footHost = this.#footHost = node('footer', { class: 'caissa-native-coach-panel__foot',
+                'data-caissa-coach-foot': '', 'aria-label': 'Coach phase actions' });
+            const setupContent = this.#setupContent = node('div', { class: 'caissa-native-coach-panel__setup',
+                'data-caissa-coach-phase-content': 'setup' });
             const controls = node('div', { class: 'caissa-native-coach-panel__controls',
                 role: 'group', 'aria-label': 'Coach game choices' });
-            const experience = node('label', { class: 'caissa-native-coach-panel__experience' });
-            const experienceLabel = node('span', { class: 'caissa-native-coach-panel__control-label' });
-            experienceLabel.textContent = 'Level';
-            const experienceSelect = node('select', { 'data-coach-experience': '', 'aria-label': 'Coach level' });
-            root.CaissaNativeCoachLevels.publicOptions.forEach(item => {
-                const option = node('option', { value: item.id }); option.textContent = item.label;
-                experienceSelect.appendChild(option);
+            const experience = node('fieldset', { class: 'caissa-native-coach-panel__level-picker' });
+            const experienceLabel = node('legend', { class: 'caissa-native-coach-panel__control-label' });
+            experienceLabel.textContent = 'Choose your level';
+            const featuredLevels = node('div', { class: 'caissa-native-coach-panel__featured-levels' });
+            FEATURED_LEVELS.forEach(item => {
+                const label = node('label', { class: 'caissa-native-coach-panel__level-card' });
+                const input = node('input', { type: 'radio', name: `${this.#id}-experience`, value: item.id,
+                    'data-coach-experience': item.id, 'aria-label': item.label });
+                const name = node('span', { class: 'caissa-native-coach-panel__level-name' }); name.textContent = item.label;
+                const description = node('span', { class: 'caissa-native-coach-panel__level-description' });
+                description.textContent = item.description;
+                label.append(input, name, description); featuredLevels.appendChild(label);
             });
-            experience.append(experienceLabel, experienceSelect);
+            const showLevels = node('button', { type: 'button', class: 'caissa-native-coach-panel__show-levels',
+                'data-coach-show-levels': '', 'aria-expanded': 'false', 'aria-controls': `${this.#id}-more-levels` });
+            showLevels.textContent = 'Show All Levels ↓';
+            const moreLevels = node('div', { id: `${this.#id}-more-levels`, class: 'caissa-native-coach-panel__more-levels',
+                'data-coach-more-levels': '', hidden: '' });
+            const featuredIds = new Set(FEATURED_LEVELS.map(item => item.id));
+            root.CaissaNativeCoachLevels.publicOptions.filter(item => !featuredIds.has(item.id)).forEach(item => {
+                const label = node('label', { class: 'caissa-native-coach-panel__level-row' });
+                const input = node('input', { type: 'radio', name: `${this.#id}-experience`, value: item.id,
+                    'data-coach-experience': item.id, 'aria-label': item.label });
+                const name = node('span', { class: 'caissa-native-coach-panel__level-name' }); name.textContent = item.label;
+                label.append(input, name); moreLevels.appendChild(label);
+            });
+            experience.append(experienceLabel, featuredLevels, showLevels, moreLevels);
 
             const color = node('fieldset', { class: 'caissa-native-coach-panel__color' });
             const legend = node('legend', { class: 'caissa-native-coach-panel__control-label' }); legend.textContent = 'Play As';
@@ -70,8 +105,15 @@
             const help = node('button', { type: 'button', 'data-coach-help': '', hidden: '', disabled: '' }); help.textContent = 'Help';
             const dismiss = node('button', { type: 'button', 'data-coach-dismiss': '', hidden: '', disabled: '' });
             dismiss.textContent = 'Dismiss assistance';
-            section.append(persona, controls, access, premium, action, help, dismiss); host.appendChild(section);
+            setupContent.append(controls, access, premium, help, dismiss);
+            const setupFoot = this.#setupFoot = node('div', { class: 'caissa-native-coach-panel__foot-content',
+                'data-caissa-coach-foot-content': 'setup' });
+            setupFoot.appendChild(action);
+            this.#phaseFootContent.set('setup', setupFoot);
+            phaseHost.appendChild(setupContent); footHost.appendChild(setupFoot);
+            section.append(persona, phaseHost, footHost); host.appendChild(section);
             this.#listen(section, 'change', event => this.#change(event));
+            this.#listen(showLevels, 'click', () => this.#toggleLevels());
             this.#listen(action, 'click', () => this.submit()); this.#listen(help, 'click', () => this.requestHelp());
             this.#listen(dismiss, 'click', () => { this.#assistance.dismiss(); dismiss.disabled = true;
                 this.#renderDialogue(this.#dialogue.silence()); });
@@ -178,6 +220,15 @@
             if (event.target?.hasAttribute?.('data-coach-color-choice')) this.#color = event.target.value;
             this.#renderSelection();
         }
+        #toggleLevels() {
+            const button = this.#root?.querySelector('[data-coach-show-levels]');
+            const levels = this.#root?.querySelector('[data-coach-more-levels]');
+            if (!button || !levels) return;
+            const expanded = button.getAttribute('aria-expanded') !== 'true';
+            button.setAttribute('aria-expanded', String(expanded));
+            button.textContent = expanded ? 'Show Fewer Levels ↑' : 'Show All Levels ↓';
+            levels.hidden = !expanded;
+        }
         #handleTurn(detail = {}) {
             if (this.#status !== 'active' || this.#disposed || detail.turn !== this.#configuration.color) return;
             const ply = root.App?.game?.history?.().length || 0;
@@ -220,8 +271,7 @@
             premium.hidden = access?.code !== 'COACH_TRIAL_USED';
         }
         #renderSelection() {
-            const experience = this.#root?.querySelector('[data-coach-experience]');
-            if (experience) experience.value = this.#experience;
+            this.#root?.querySelectorAll('[data-coach-experience]').forEach(input => input.checked = input.value === this.#experience);
             this.#root?.querySelectorAll('[data-coach-color-choice]').forEach(input => input.checked = input.value === this.#color);
         }
         #render(message) {
@@ -230,6 +280,62 @@
             root.dispatchEvent?.(new CustomEvent('caissa-coach-narration', { detail: { message } }));
         }
         #renderDialogue(outcome) { if (outcome?.ok && outcome.message) this.#render(outcome.message); return outcome; }
+        present(options = {}) {
+            const phase = PHASES.includes(options.phase) ? options.phase : 'setup';
+            if (!this.#root || this.#disposed) return result(false, 'INVALID_COACH_SHELL');
+            if (options.transient === true) this.#presentationStack.push({
+                host: this.#root.parentNode, phase: this.#phase,
+                content: this.#phaseContent.get(this.#phase) || null,
+                foot: this.#phaseFootContent.get(this.#phase) || null,
+                message: this.#root.querySelector('[data-coach-narration]')?.textContent || ''
+            });
+            if (options.host?.appendChild && this.#root.parentNode !== options.host) options.host.appendChild(this.#root);
+            const content = options.content?.nodeType === 1 ? options.content : null;
+            const foot = options.foot?.nodeType === 1 ? options.foot : null;
+            if (content) {
+                this.#phaseContent.set(phase, content);
+                content.setAttribute('data-caissa-coach-phase-content', phase);
+                if (content.parentNode !== this.#phaseHost) this.#phaseHost.appendChild(content);
+            }
+            if (foot) {
+                this.#phaseFootContent.set(phase, foot);
+                foot.setAttribute('data-caissa-coach-foot-content', phase);
+                if (foot.parentNode !== this.#footHost) this.#footHost.appendChild(foot);
+            }
+            this.#setupContent.hidden = phase !== 'setup';
+            this.#phaseContent.forEach((item, key) => { item.hidden = key !== phase; });
+            this.#phaseFootContent.forEach((item, key) => { item.hidden = key !== phase; });
+            this.#footHost.hidden = !this.#phaseFootContent.has(phase);
+            this.#phase = phase;
+            this.#root.dataset.coachShellPhase = phase;
+            this.#root.setAttribute('aria-label', `Play Coach ${phase.replaceAll('-', ' ')}`);
+            this.#root.hidden = false;
+            if (typeof options.message === 'string' && options.message.trim()) this.#render(options.message.trim());
+            return result(true, 'COACH_SHELL_PRESENTED', this.getSnapshot());
+        }
+        restorePresentation() {
+            const previous = this.#presentationStack.pop();
+            if (!previous) return result(false, 'NO_COACH_PRESENTATION_TO_RESTORE');
+            return this.present({ ...previous, phase: previous.phase, content: previous.content,
+                foot: previous.foot, transient: false });
+        }
+        releasePhaseContent(host = this.#homeHost) {
+            if (!host?.appendChild) return result(false, 'INVALID_PHASE_RELEASE_HOST');
+            this.#phaseContent.forEach(item => { if (item.parentNode === this.#phaseHost) host.appendChild(item); });
+            this.#phaseContent.clear();
+            this.#phaseFootContent.forEach((item, key) => {
+                if (key !== 'setup' && item.parentNode === this.#footHost) host.appendChild(item);
+            });
+            this.#phaseFootContent.clear();
+            this.#phaseFootContent.set('setup', this.#setupFoot);
+            if (this.#setupFoot.parentNode !== this.#footHost) this.#footHost.appendChild(this.#setupFoot);
+            this.#setupFoot.hidden = false;
+            this.#footHost.hidden = false;
+            this.#setupContent.hidden = false;
+            this.#phase = 'setup';
+            this.#root.dataset.coachShellPhase = 'setup';
+            return result(true, 'COACH_PHASE_CONTENT_RELEASED', this.getSnapshot());
+        }
         show() { if (this.#root) this.#root.hidden = false; return result(true, 'SHOWN'); }
         hide() { this.#assistance.teardown(); if (this.#root) this.#root.hidden = true; return result(true, 'HIDDEN'); }
         reset() {
@@ -245,14 +351,23 @@
             experience: this.#experience, selectedColor: this.#color, configuration: { ...this.#configuration },
             level: root.CaissaNativeCoachLevels.get(this.#experience),
             starts: this.#starts, assistance: this.#assistance.inspect(), dialogue: this.#dialogue.inspect(),
-            entitlement: this.#entitlement.inspect(), primaryAction: 'Play', publicReady: false }); }
+            entitlement: this.#entitlement.inspect(), primaryAction: 'Play', publicReady: false,
+            shell: { owner: 'CaissaNativeCoachPanel', phase: this.#phase,
+                persistentAvatarCount: this.#root?.querySelectorAll?.('[data-caissa-coach-persistent] img').length || 0,
+                phaseContentCount: this.#phaseHost?.children?.length || 0,
+                structuralRegionCount: this.#root?.querySelectorAll?.(':scope > [data-caissa-coach-head], :scope > [data-caissa-coach-body], :scope > [data-caissa-coach-foot]').length || 0,
+                footPhase: this.#footHost?.querySelector?.('[data-caissa-coach-foot-content]:not([hidden])')?.getAttribute('data-caissa-coach-foot-content') || null,
+                transientDepth: this.#presentationStack.length } }); }
         dispose() { if (activePanel === this) activePanel = null;
             this.#listeners.splice(0).forEach(item => item.target.removeEventListener(item.type, item.handler));
             this.#assistance.dispose(); this.#dialogue.dispose(); this.#entitlement.dispose();
             this.#root?.remove(); this.#root = null; this.#disposed = true; return true; }
         #listen(target, type, handler) { target.addEventListener(type, handler); this.#listeners.push({ target, type, handler }); }
     }
-    root.CaissaNativeCoachPanel = freeze({ schemaVersion: SCHEMA_VERSION, colors: COLORS,
+    root.CaissaNativeCoachPanel = freeze({ schemaVersion: SCHEMA_VERSION, colors: COLORS, phases: PHASES,
         create: () => { const panel = new Panel(); activePanel = panel; return panel; },
-        getActiveSnapshot: () => activePanel?.getSnapshot?.() || null });
+        getActiveSnapshot: () => activePanel?.getSnapshot?.() || null,
+        present: options => activePanel?.present?.(options) || result(false, 'COACH_SHELL_UNAVAILABLE'),
+        restorePresentation: () => activePanel?.restorePresentation?.() || result(false, 'COACH_SHELL_UNAVAILABLE'),
+        releasePhaseContent: host => activePanel?.releasePhaseContent?.(host) || result(false, 'COACH_SHELL_UNAVAILABLE') });
 })(typeof window !== 'undefined' ? window : globalThis);

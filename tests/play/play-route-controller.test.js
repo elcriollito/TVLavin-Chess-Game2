@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 const source = fs.readFileSync(new URL('../../js/play/play-route-controller.js', import.meta.url), 'utf8');
 
-function load(href = 'https://caissa.test/') {
+function load(href = 'https://caissa.test/', options = {}) {
     let url = new URL(href);
     const listeners = new Map();
     const calls = [];
@@ -20,6 +20,7 @@ function load(href = 'https://caissa.test/') {
     };
     const window = {
         location, history,
+        document: { body: { dataset: options.official ? { caissaPlayV2Entry: 'official' } : {} } },
         addEventListener(type, handler) { listeners.set(type, handler); },
         removeEventListener(type) { listeners.delete(type); }
     };
@@ -77,6 +78,18 @@ test('Bots and Coach resolve with QA while Players remains blocked for every que
     assert.equal(api.isModeAvailable('bots'), false);
     assert.equal(api.isModeAvailable('bots', { qa: true }), true);
     assert.equal(api.isModeAvailable('players', { qa: true }), false);
+});
+
+test('official publication keeps Bots and Coach on their canonical routes without a QA query', () => {
+    const { api } = load('https://caissa.test/play/coach', { official: true });
+    for (const mode of ['bots', 'coach']) {
+        const route = api.parse(`/play/${mode}`);
+        assert.equal(route.mode, mode);
+        assert.equal(route.status, 'resolved');
+        assert.equal(route.canonicalPath, `/play/${mode}`);
+        assert.equal(route.metadata.officialEntry, true);
+    }
+    assert.equal(api.parse('/play/players').mode, 'games');
 });
 
 test('canonical beta routes preserve their namespace and block prohibited modes', () => {

@@ -749,6 +749,7 @@ const AnalyzeSection = {
 
             this.ensureAnalyzeBoard();
             this.updateBoardAndUI();
+            this.projectCoachReviewBoardAssistance();
 
             // Update move list
             this.updateMoveList();
@@ -868,11 +869,44 @@ const AnalyzeSection = {
         this.refreshLiveEvaluation();
 
         const selected = this.analysisPhase === 'complete' ? this.analysisResults[safeIndex] : null;
-        if (selected && ['Inaccuracy', 'Mistake', 'Blunder'].includes(selected.quality)) {
+        const coachReviewActive = document.body?.classList?.contains('caissa-coach-review-summary-active');
+        if (!coachReviewActive && selected && ['Inaccuracy', 'Mistake', 'Blunder'].includes(selected.quality)) {
             this.board?.position?.(selected.fenBefore, false);
+        }
+        this.projectCoachReviewBoardAssistance();
+
+        if (document.body?.classList?.contains('caissa-coach-review-summary-active')) {
+            window.dispatchEvent(new CustomEvent('caissa:coach-review-ply-change', {
+                detail: Object.freeze({ currentMoveIndex: this.currentMoveIndex })
+            }));
         }
 
         console.log('[Analyze] Jumped to move:', safeIndex + 1);
+    },
+
+    projectCoachReviewBoardAssistance() {
+        if (!document.body?.classList?.contains('caissa-coach-review-summary-active')) return false;
+        const projection = this.getCoachReviewProjection();
+        if (!projection) return false;
+        return window.App?.projectCoachReviewBoardAssistance?.({
+            fen: projection.fen,
+            move: projection.move
+        }) === true;
+    },
+
+    getCoachReviewProjection() {
+        const game = this.getGame();
+        if (!game) return null;
+        const selected = this.analysisPhase === 'complete' ? this.analysisResults[this.currentMoveIndex] : null;
+        const displayedMoveIndex = this.currentMoveIndex;
+        const move = displayedMoveIndex >= 0 ? this.getLoadedMoves({ verbose: true })[displayedMoveIndex] : null;
+        return Object.freeze({
+            fen: typeof selected?.fenAfter === 'string' ? selected.fenAfter : game.fen(),
+            move: move?.from && move?.to ? Object.freeze({ from: move.from, to: move.to }) : null,
+            authoritativeIndex: this.currentMoveIndex,
+            displayedMoveIndex,
+            showsFenBefore: false
+        });
     },
 
     getMoveAccessibleLabel(index, san) {
@@ -1167,6 +1201,11 @@ const AnalyzeSection = {
     },
 
     flipAnalyzeBoard() {
+        if (document.body?.classList?.contains('caissa-coach-guided-review-active') && window.App?.board) {
+            window.flipBoard?.();
+            this.boardFlipped = window.App.isFlipped === true;
+            return;
+        }
         this.boardFlipped = !this.boardFlipped;
         this.applyAnalyzeOrientation();
     },
@@ -1928,6 +1967,9 @@ const AnalyzeSection = {
      * Section lifecycle: Exit
      */
     onExit() {
+        if (document.body?.classList?.contains('caissa-coach-review-summary-active')) {
+            window.App?.restorePlayBoardAfterCoachReview?.();
+        }
         if (this.liveEngineEnabled) {
             clearTimeout(this.liveEngineTimer);
             this.liveEngineToken += 1;

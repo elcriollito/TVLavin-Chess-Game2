@@ -101,6 +101,21 @@ test('allowed policy displays centipawns with immutable detached snapshot', () =
     assert.doesNotThrow(() => JSON.stringify(snapshot));
 });
 
+test('post-game mode accepts authoritative review evidence through the same mapping', () => {
+    const { panel, authorize, fill } = load();
+    panel.mount(); panel.applyPolicy(authorize()); panel.setMode('post-game');
+    const geometry = [];
+    for (const cp of [0, 50, 300, -50, -300]) {
+        assert.equal(panel.setEvaluation(cp, { source: 'coach-review-ply' }).ok, true);
+        geometry.push({ cp, height: Number.parseFloat(fill.style.height), snapshot: plain(panel.getSnapshot()) });
+    }
+    assert.equal(geometry[0].height, 50);
+    assert.ok(geometry[2].height > geometry[1].height && geometry[1].height > geometry[0].height);
+    assert.ok(geometry[0].height > geometry[3].height && geometry[3].height > geometry[4].height);
+    assert.equal(geometry.at(-1).snapshot.source, 'coach-review-ply');
+    assert.equal(geometry.at(-1).snapshot.displayMode, 'post-game');
+});
+
 test('mate has priority and represents either winning side truthfully', () => {
     const positive = load();
     positive.panel.mount(); positive.panel.applyPolicy(positive.authorize());

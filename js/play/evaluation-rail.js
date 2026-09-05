@@ -246,7 +246,10 @@
             this.unmount(); this.#disposed = true; this.#status = 'disposed';
             return this.#record(result(true, 'accepted', REASONS.DISPOSED));
         }
-        #canWrite() { return !this.#disposed && this.#policy.allowed && this.#mode === 'live' && !this.#frozen; }
+        #canWrite() {
+            return !this.#disposed && this.#policy.allowed
+                && ['live', 'post-game'].includes(this.#mode) && !this.#frozen;
+        }
         #clear(status, mode) {
             this.#state = presentation(null, null); this.#source = null;
             this.#status = status; this.#mode = mode; this.#visible = mode !== 'hidden';

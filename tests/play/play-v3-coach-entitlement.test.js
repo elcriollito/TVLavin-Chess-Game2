@@ -123,5 +123,5 @@ test('Coach remains visible when locked and only server admission can enable Pla
     assert.match(panel, /setAttribute\('aria-busy', 'true'\)/);
     const shell = read('js/play/simplified-play-shell.js');
     assert.match(shell, /getAttribute\('aria-busy'\) === 'true'/);
-    assert.ok(registry.indexOf('coach-entitlement-client.js?v=1.1.0') < registry.indexOf('coach-panel.js?v=2.5.0'));
+    assert.ok(registry.indexOf('coach-entitlement-client.js?v=1.1.0') < registry.indexOf('coach-panel.js?v=2.7.0'));
 });

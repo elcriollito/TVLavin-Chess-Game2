@@ -108,7 +108,8 @@
         show() { if (!this.#root || !this.#record) return outcome(false, 'rejected', 'INVALID_RECORD');
             if (!this.#visible) this.#diagnostics.displays += 1; this.#visible = true; this.#root.hidden = false;
             this.#onVisibilityChange?.(true); this.#render(); this.#root.querySelector('[data-post-game-result]')?.focus?.(); return outcome(true, 'accepted', 'SHOWN'); }
-        hide() { this.#visible = false; if (this.#root) this.#root.hidden = true; this.#onVisibilityChange?.(false); return outcome(true, 'accepted', 'HIDDEN'); }
+        hide() { this.#visible = false; root.CaissaCoachGameOverPresentation?.unmount?.({ section: this.#root });
+            if (this.#root) this.#root.hidden = true; this.#onVisibilityChange?.(false); return outcome(true, 'accepted', 'HIDDEN'); }
         execute(action) {
             if (this.#busyAction) return outcome(false, 'rejected', 'ACTION_BUSY');
             if (!ACTIONS.includes(action) || !this.#actions()[action]?.enabled) return outcome(false, 'unavailable', 'ACTION_UNAVAILABLE');
@@ -131,7 +132,12 @@
             return outcome(false, 'unavailable', 'ACTION_UNAVAILABLE');
         }
         rematch() { return this.execute('rematch'); } analyze() { return this.execute('analyze'); }
-        copyPgn() { return this.execute('copy-pgn'); } downloadPgn() { return this.execute('download-pgn'); }
+        copyPgn() { return this.execute('copy-pgn'); }
+        downloadPgn(options = {}) {
+            if (options.preservePresentation !== true) return this.execute('download-pgn');
+            if (!this.#actions()['download-pgn']?.enabled) return outcome(false, 'unavailable', 'ACTION_UNAVAILABLE');
+            try { return this.#download(); } catch (_) { return outcome(false, 'failed', 'ACTION_FAILED'); }
+        }
         saveGame() { return this.execute('save-game'); } startNewGame() { return this.execute('new-game'); }
         #start(action) {
             const prepared = root.CaissaPlayV2PostGameExitPolicy?.prepare?.(action, this.#record);
@@ -174,8 +180,15 @@
             root.App?.engine?.terminate?.('post-game-analyze');
             const handoff = this.#handoff.createFromCompletedPlayRecord(this.#record, { identityContext: 'play-v2' });
             if (!handoff?.ok) return outcome(false, 'failed', handoff?.reasonCode || 'ACTION_FAILED');
+            const sourceMode = root.CaissaSimplifiedPlayShellInstance?.getSnapshot?.()?.mode || null;
+            const coachContext = root.CaissaCoachReviewContext?.create?.({
+                owner: 'post-game-core', sourceMode
+            });
             const opened = root.CaissaPlayV2InlineAnalyze?.open
-                ? root.CaissaPlayV2InlineAnalyze.open({ token: handoff.value.token })
+                ? root.CaissaPlayV2InlineAnalyze.open({
+                    token: handoff.value.token,
+                    reviewContext: coachContext?.ok ? coachContext.value : null
+                })
                 : this.#navigation?.navigateToSection?.('analyze', { handoffToken: handoff.value.token });
             if (opened === false || opened?.ok === false) return outcome(false, 'failed', 'ACTION_FAILED');
             this.#diagnostics.handoffs += 1; return outcome(true, 'accepted', 'ANALYZE_OPENED');
@@ -231,6 +244,7 @@
         #render() {
             if (!this.#root) return; const description = root.CaissaPlayV2PostGamePolicy?.describe?.(this.#record)
                 || { title: 'Result Unavailable', reason: 'Reason Unavailable' };
+            const sourceMode = root.CaissaSimplifiedPlayShellInstance?.getSnapshot?.()?.mode || null;
             this.#root.querySelector('[data-post-game-result]').textContent = description.title;
             this.#root.querySelector('[data-post-game-reason]').textContent = description.reason;
             const summary = this.#root.querySelector('[data-post-game-summary]'); summary.textContent = '';
@@ -252,6 +266,12 @@
             this.#root.setAttribute('aria-busy', String(!!this.#busyAction));
             const consent = this.#root.querySelector('[data-post-game-consent]'); consent.checked = this.#consent === 'granted';
             this.#root.querySelector('[data-post-game-feedback]').textContent = this.#feedback;
+            if (this.#visible && this.#record && sourceMode === 'coach') {
+                root.CaissaCoachGameOverPresentation?.mount?.({
+                    section: this.#root, owner: 'post-game-core', sourceMode, record: this.#record,
+                    description, annotations: root.App?.coachMoveAnnotations || []
+                });
+            } else root.CaissaCoachGameOverPresentation?.unmount?.({ section: this.#root });
         }
         getSnapshot() { return freeze({ schemaVersion: VERSION, experienceId: this.#id, mounted: !!this.#root,
             visible: this.#visible, disposed: this.#disposed, gameRecordId: this.#record?.recordId || null,
@@ -260,6 +280,7 @@
                 : { type: 'unknown', value: null, winner: null, termination: null, complete: false },
             actions: this.#actions(), persistence: { consent: this.#consent, saved: this.#saved },
             trainingMemoryWrites: 0, masteryWrites: 0, listenerCount: this.#listeners.length, busyAction: this.#busyAction,
+            coachGameOver: root.CaissaCoachGameOverPresentation?.getSnapshot?.() || null,
             diagnostics: { ...this.#diagnostics } }); }
         inspect() { return this.getSnapshot(); }
         clearForModeTransition() {
