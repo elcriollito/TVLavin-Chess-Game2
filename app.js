@@ -3470,10 +3470,12 @@ function flipBoard() {
     syncEvalOrientation();
     window.CaissaSimplifiedPlayShellInstance?.syncBoardEdges?.();
 
-    if (App.lastEvalMate !== null && App.lastEvalMate !== undefined) {
-        updateEvalBar(App.lastEvalMate > 0 ? 1400 : -1400, App.lastEvalMate);
-    } else if (App.lastEvalCp !== null && App.lastEvalCp !== undefined) {
-        updateEvalBar(App.lastEvalCp, null);
+    if (!document.body?.classList?.contains('caissa-coach-review-summary-active')) {
+        if (App.lastEvalMate !== null && App.lastEvalMate !== undefined) {
+            updateEvalBar(App.lastEvalMate > 0 ? 1400 : -1400, App.lastEvalMate);
+        } else if (App.lastEvalCp !== null && App.lastEvalCp !== undefined) {
+            updateEvalBar(App.lastEvalCp, null);
+        }
     }
 
     setTimeout(() => {

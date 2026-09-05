@@ -201,6 +201,18 @@ test('Review Settings reuses the authoritative PGN export and exposes only human
     assert.doesNotMatch(presentation, />\s*(?:Threads|Hash|Nodes|NPS|UCI|Depth)\s*</i);
 });
 
+test('Coach Review projects existing ply and exploration evaluations into the single visible rail owner', () => {
+    const presentation = read('js/play/native-coach/coach-review-presentation.js');
+    const rail = read('js/play/evaluation-rail.js');
+    const app = read('app.js');
+    assert.match(presentation, /selected\.evalAfter, selected\.mateAfter, 'coach-review-ply'/);
+    assert.match(presentation, /info\.evaluation, info\.mate, 'coach-review-exploration'/);
+    assert.match(presentation, /CaissaEvaluationRailInstance/);
+    assert.match(rail, /\['live', 'post-game'\]\.includes\(this\.#mode\)/);
+    assert.match(app, /!document\.body\?\.classList\?\.contains\('caissa-coach-review-summary-active'\)/);
+    assert.doesNotMatch(presentation, /new\s+Engine|new\s+Worker/);
+});
+
 test('interactive Analysis effort is session-only and leaves Balanced at the existing depth', async () => {
     const depths = [];
     class Chess {

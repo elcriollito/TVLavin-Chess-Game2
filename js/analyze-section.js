@@ -874,7 +874,7 @@ const AnalyzeSection = {
         }
         this.projectCoachReviewBoardAssistance();
 
-        if (document.body?.classList?.contains('caissa-coach-guided-review-active')) {
+        if (document.body?.classList?.contains('caissa-coach-review-summary-active')) {
             window.dispatchEvent(new CustomEvent('caissa:coach-review-ply-change', {
                 detail: Object.freeze({ currentMoveIndex: this.currentMoveIndex })
             }));

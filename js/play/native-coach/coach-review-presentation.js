@@ -289,6 +289,27 @@
         const copy = element('span', 'caissa-coach-guided__message'); copy.textContent = model.message; speech.append(copy);
     }
 
+    function syncVisibleEvaluationRail(evaluation, mate, source) {
+        const rail = root.CaissaEvaluationRailInstance;
+        if (!rail) return false;
+        if (rail.getSnapshot?.().displayMode !== 'post-game') rail.setMode?.('post-game');
+        if (Number.isFinite(mate) && mate !== 0) return rail.setMate?.(mate, { source })?.ok === true;
+        if (Number.isFinite(evaluation)) return rail.setEvaluation?.(evaluation * 100, { source })?.ok === true;
+        return false;
+    }
+
+    function syncReviewEvaluationRail() {
+        if (!mounted?.analyze) return false;
+        const index = Number.isInteger(mounted.analyze.currentMoveIndex) ? mounted.analyze.currentMoveIndex : -1;
+        const selected = index >= 0 && mounted.analyze.analysisPhase === 'complete'
+            ? mounted.analyze.analysisResults?.[index] : null;
+        if (selected && !selected.unavailable) {
+            return syncVisibleEvaluationRail(selected.evalAfter, selected.mateAfter, 'coach-review-ply');
+        }
+        const current = mounted.analyze.getCurrentEvaluation?.() || {};
+        return syncVisibleEvaluationRail(current.evaluation, current.mate, 'coach-review-position');
+    }
+
     function renderModel(model) {
         if (!mounted || !model) return;
         mounted.summary.panel.dataset.coachReviewPhase = model.phase;
@@ -337,7 +358,14 @@
         } else if (mounted.flipTool?.node) mounted.guided.secondaryActions.prepend(mounted.flipTool.node);
         renderCoachHead({ eyebrow: model.quality.toUpperCase(), title: `${model.move}${model.annotation || ''}`,
             evaluation: model.evaluation, message: model.message });
+        syncReviewEvaluationRail();
         mounted.guided.notation.querySelector('.active')?.scrollIntoView?.({ block: 'nearest' });
+    }
+
+    function updateCoachReviewPly() {
+        if (!mounted) return;
+        if (mounted.phase === 'guided-review') updateGuided();
+        else if (mounted.phase === 'review-summary') syncReviewEvaluationRail();
     }
 
     function enterGuidedReview() {
@@ -373,6 +401,7 @@
         mounted.guided.evalValue.textContent = Number.isFinite(info.mate) ? (info.mate > 0 ? `M+${info.mate}` : `M${info.mate}`)
             : Number.isFinite(info.evaluation) ? `${info.evaluation >= 0 ? '+' : ''}${info.evaluation.toFixed(2)}` : '\u2014';
         mounted.guided.pvValue.textContent = info.pv?.length ? info.pv.join(' ') : 'No principal variation available yet.';
+        syncVisibleEvaluationRail(info.evaluation, info.mate, 'coach-review-exploration');
     }
 
     function syncExplorationEngineControl() {
@@ -438,6 +467,7 @@
         const fingerprint = `${model.phase}:${model.progress || 0}:${mounted.analyze.analysisResults?.length || 0}`;
         if (fingerprint === mounted.fingerprint) return;
         mounted.fingerprint = fingerprint; mounted.model = model; renderModel(model);
+        if (model.phase === 'summary') syncReviewEvaluationRail();
         if (model.phase !== 'loading' && mounted.timer) {
             root.clearInterval(mounted.timer); mounted.timer = null;
         }
@@ -501,7 +531,7 @@
             const changed = root.CaissaCoachReviewExploration?.setEngineEnabled?.(!enabled); if (!changed?.ok) return;
             syncExplorationEngineControl();
         });
-        root.addEventListener('caissa:coach-review-ply-change', updateGuided);
+        root.addEventListener('caissa:coach-review-ply-change', updateCoachReviewPly);
         renderModel({ phase: 'loading', progress: 0, progressText: 'Preparing your review' });
         return result(true, 'accepted', 'COACH_REVIEW_SUMMARY_MOUNTED', getSnapshot());
     }
@@ -527,10 +557,19 @@
             restoreRemembered(mounted.flipTool);
         }
         restoreRemembered(mounted.moveList); restoreRemembered(mounted.navigation);
+        const rail = root.CaissaEvaluationRailInstance;
+        rail?.setMode?.('post-game');
+        if (Number.isFinite(root.App?.lastEvalMate) && root.App.lastEvalMate !== 0)
+            rail?.setMate?.(root.App.lastEvalMate, { source: 'post-game-live-final' });
+        else if (Number.isFinite(root.App?.lastEvalCp))
+            rail?.setEvaluation?.(root.App.lastEvalCp, { source: 'post-game-live-final' });
+        else {
+            rail?.reset?.(); rail?.setMode?.('post-game');
+        }
         root.document.querySelector('[data-caissa-coach-shell] [data-coach-narration]')
             ?.classList?.remove('caissa-coach-guided__speech');
         mounted.summary.panel.remove(); mounted.summary.foot.remove(); mounted.guided.content.remove(); mounted.guided.foot.remove();
-        root.removeEventListener('caissa:coach-review-ply-change', updateGuided);
+        root.removeEventListener('caissa:coach-review-ply-change', updateCoachReviewPly);
         root.CaissaNativeCoachPanel?.restorePresentation?.();
         root.document.body?.classList?.remove('caissa-coach-review-summary-active', 'caissa-coach-guided-review-active');
         mounted = null; return result(true, 'accepted', 'COACH_REVIEW_SUMMARY_UNMOUNTED');
