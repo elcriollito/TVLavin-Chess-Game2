@@ -350,7 +350,7 @@ body.caissa-simplified-play-active .caissa-coach-guided__navigation-host .nav-bt
     gap: .55rem;
 }
 .caissa-coach-guided__review-tools[data-review-complete="true"] .caissa-coach-guided__foot-actions {
-    grid-template-columns: minmax(0, .72fr) minmax(0, 1fr) minmax(0, 1.08fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .caissa-coach-guided__foot-actions > button {
     display: inline-flex;
@@ -533,10 +533,11 @@ body[data-caissa-play-v2-entry] [data-caissa-coach-game-over-foot] .caissa-post-
     .caissa-coach-guided__navigation-host .nav-btn-sm { min-height: 52px; padding: .4rem; font-size: 1.16rem; }
     .caissa-coach-guided__foot-actions { gap: .38rem; }
     .caissa-coach-guided__review-tools[data-review-complete="true"] .caissa-coach-guided__foot-actions {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1.18fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
-    .caissa-coach-guided__review-tools[data-review-complete="true"] .caissa-coach-guided__new-game {
-        grid-column: 1 / -1;
+    .caissa-coach-guided__review-tools[data-review-complete="true"] .caissa-coach-guided__foot-actions > button {
+        padding-inline: .25rem !important;
+        font-size: .76rem;
     }
     .caissa-coach-guided__foot-actions > button { min-height: 48px; padding-inline: .45rem; }
     body.caissa-simplified-play-active .caissa-post-game.caissa-coach-game-over-context {

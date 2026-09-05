@@ -121,8 +121,8 @@ test('Guided Review derives concise and expanded copy only from authoritative mo
             recommendationAvailable: true, bestMoveSan: 'Nf6', evalBefore: 0.25, evalAfter: 0.82,
             mateAfter: null, loss: 0.57 }]
     };
-    const concise = window.CaissaCoachReviewPresentation.createGuidedModel(analyze, false);
-    const expanded = window.CaissaCoachReviewPresentation.createGuidedModel(analyze, true);
+    const concise = window.CaissaCoachReviewPresentation.createGuidedModel(analyze, false, handoff('coach', 'black'));
+    const expanded = window.CaissaCoachReviewPresentation.createGuidedModel(analyze, true, handoff('coach', 'black'));
     assert.equal(concise.index, 1);
     assert.equal(concise.message, 'You played d5. Nf6 was the stronger continuation in the analysis.');
     assert.equal(concise.detail, '');
@@ -130,24 +130,27 @@ test('Guided Review derives concise and expanded copy only from authoritative mo
     assert.doesNotMatch(JSON.stringify(expanded), /Brilliant|Great|Miss/);
 });
 
-test('Guided Review Next selects later questionable player moments without wraparound', () => {
+test('Guided Review Next selects interleaved two-sided moments chronologically without wraparound', () => {
     const window = fixture();
-    const qualities = ['Acceptable', 'Acceptable', 'Inaccuracy', 'Acceptable', 'Acceptable', 'Acceptable',
-        'Mistake', 'Acceptable', 'Acceptable', 'Acceptable', 'Blunder', 'Acceptable'];
+    const qualities = ['Acceptable', 'Mistake', 'Inaccuracy', 'Acceptable', 'Acceptable',
+        'Inaccuracy', 'Acceptable', 'Acceptable', 'Blunder', 'Mistake'];
     const analyze = { currentMoveIndex: 0, analysisResults: qualities.map((quality, moveIndex) => ({
-        moveIndex, quality, isBestMove: moveIndex === 0 || moveIndex === 8
+        moveIndex, quality, isBestMove: moveIndex === 0 || moveIndex === 3 || moveIndex === 6
     })) };
     const review = window.CaissaCoachReviewPresentation;
     assert.deepEqual([...review.reviewWorthyClassifications], ['Inaccuracy', 'Mistake', 'Blunder']);
-    assert.deepEqual([...review.findReviewMoments(analyze, handoff())], [2, 6, 10]);
-    assert.equal(review.findNextReviewMoment(analyze, handoff()), 2);
-    analyze.currentMoveIndex = 2;
-    assert.equal(review.findNextReviewMoment(analyze, handoff()), 6);
-    analyze.currentMoveIndex = 6;
-    assert.equal(review.findNextReviewMoment(analyze, handoff()), 10);
-    analyze.currentMoveIndex = 10;
-    assert.equal(review.findNextReviewMoment(analyze, handoff()), null);
-    assert.deepEqual([...review.findReviewMoments(analyze, handoff('coach', 'black'))], []);
+    assert.deepEqual([...review.findReviewMoments(analyze)], [1, 2, 5, 8, 9]);
+    for (const [current, destination] of [[0, 1], [1, 2], [2, 5], [5, 8], [8, 9], [9, null]]) {
+        analyze.currentMoveIndex = current;
+        assert.equal(review.findNextReviewMoment(analyze), destination);
+    }
+    const opponent = { currentMoveIndex: 1, getLoadedMoves: () => ['e4', 'd5'], analysisResults: [null, {
+        moveIndex: 1, quality: 'Mistake', annotation: '?', recommendationAvailable: true,
+        bestMoveSan: 'Nf6', evalBefore: 0.2, evalAfter: 1.4, loss: 1.2
+    }] };
+    const narration = review.createGuidedModel(opponent, false, handoff('coach', 'white'));
+    assert.match(narration.message, /^Your opponent played d5, classified as mistake\./);
+    assert.match(narration.message, /Nf6 was the stronger continuation available to them/);
 });
 
 test('exploration is a separate temporary branch and never declares another review ply owner', () => {

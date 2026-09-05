@@ -174,6 +174,13 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
         plyOwner: 'AnalyzeSection.currentMoveIndex', analysisStartRequests: 1,
         authoritativePly: 0, duplicatePly: false, playInert: false, analyzeTakeover: false,
         visibleBoards: 1, belowBoardChrome: 0 });
+    await page.evaluate(() => {
+        window.AnalyzeSection.analysisResults.forEach(item => {
+            if (!item) return;
+            item.quality = 'Acceptable'; item.isBestMove = false; item.annotation = '';
+        });
+        window.AnalyzeSection.updateMoveList();
+    });
     const original = await page.evaluate(() => ({
         pgn: window.AnalyzeSection.loadedGame.pgn,
         moves: window.App.moveHistory.map(move => ({ ...move })),
@@ -202,6 +209,13 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(0);
     await expect(page.locator('[data-coach-guided-next]')).toContainText('Review Complete');
     await expect(page.locator('[data-coach-guided-new-game]')).toBeVisible();
+    const finalActions = await page.locator('[data-coach-guided-foot-review] [data-coach-guided-flip], '
+        + '[data-coach-guided-foot-review] [data-coach-guided-analysis], '
+        + '[data-coach-guided-foot-review] [data-coach-guided-new-game]').evaluateAll(nodes => nodes
+        .filter(node => node.getClientRects().length)
+        .sort((left, right) => left.getBoundingClientRect().left - right.getBoundingClientRect().left)
+        .map(node => node.textContent.trim()));
+    expect(finalActions).toEqual(['New Game', 'Flip board', 'Analysis']);
     await page.locator('#analyzeNavFirst').click();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(-1);
     await page.locator('#analyzeNavNext').click();

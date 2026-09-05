@@ -1,7 +1,7 @@
 (function installCoachReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.6.0';
+    const SCHEMA_VERSION = '1.6.1';
     const QUALITY_ORDER = Object.freeze(['Book', 'Best', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const CLASSIFICATIONS = Object.freeze(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const REVIEW_WORTHY_CLASSIFICATIONS = Object.freeze(['Inaccuracy', 'Mistake', 'Blunder']);
@@ -69,23 +69,21 @@
         return `${item.evalAfter >= 0 ? '+' : ''}${item.evalAfter.toFixed(2)}`;
     }
 
-    function findReviewMoments(analyze, handoff) {
-        const parity = handoff?.payload?.playerColor === 'black' ? 1 : 0;
+    function findReviewMoments(analyze) {
         const results = Array.isArray(analyze?.analysisResults) ? analyze.analysisResults : [];
         return freeze(results.map((item, position) => ({ item, position }))
             .filter(({ item, position }) => item && item.unavailable !== true
-                && REVIEW_WORTHY_CLASSIFICATIONS.includes(item.quality)
-                && (Number.isInteger(item.moveIndex) ? item.moveIndex : position) % 2 === parity)
+                && REVIEW_WORTHY_CLASSIFICATIONS.includes(item.quality))
             .map(({ item, position }) => Number.isInteger(item.moveIndex) ? item.moveIndex : position)
             .sort((left, right) => left - right));
     }
 
-    function findNextReviewMoment(analyze, handoff) {
+    function findNextReviewMoment(analyze) {
         const current = Number.isInteger(analyze?.currentMoveIndex) ? analyze.currentMoveIndex : -1;
-        return findReviewMoments(analyze, handoff).find(position => position > current) ?? null;
+        return findReviewMoments(analyze).find(position => position > current) ?? null;
     }
 
-    function createGuidedModel(analyze, expanded = false) {
+    function createGuidedModel(analyze, expanded = false, handoff = null) {
         const index = analyze?.currentMoveIndex; const move = analyze?.getLoadedMoves?.()[index] || '';
         const item = analyze?.analysisResults?.[index] || null;
         if (!Number.isInteger(index) || index < 0 || !move || !item) return freeze({ index: -1, quality: 'Review',
@@ -95,14 +93,20 @@
             evaluation: '\u2014', message: 'CAISSA does not have complete analysis evidence for this move.',
             detail: 'Select another move to continue the review.' });
         const quality = item.isBestMove === true ? 'Best' : (item.quality || 'Acceptable');
+        const playerParity = handoff?.payload?.playerColor === 'black' ? 1 : 0;
+        const belongsToPlayer = index % 2 === playerParity;
         let message;
         if (quality === 'Book' && item.bookEvidence?.name) message = `${move} is recognized in ${item.bookEvidence.name}.`;
         else if (quality === 'Book') message = `${move} is backed by CAISSA's opening evidence.`;
         else if (quality === 'Best') message = `${move} matched the engine's leading continuation.`;
-        else if (['Inaccuracy', 'Mistake', 'Blunder'].includes(quality) && item.recommendationAvailable && item.bestMoveSan)
+        else if (!belongsToPlayer && REVIEW_WORTHY_CLASSIFICATIONS.includes(quality) && item.recommendationAvailable && item.bestMoveSan)
+            message = `Your opponent played ${move}, classified as ${quality.toLowerCase()}. ${item.bestMoveSan} was the stronger continuation available to them.`;
+        else if (!belongsToPlayer && REVIEW_WORTHY_CLASSIFICATIONS.includes(quality))
+            message = `Your opponent played ${move} and crossed CAISSA's ${quality.toLowerCase()} threshold. This gave you an opportunity.`;
+        else if (REVIEW_WORTHY_CLASSIFICATIONS.includes(quality) && item.recommendationAvailable && item.bestMoveSan)
             message = `You played ${move}. ${item.bestMoveSan} was the stronger continuation in the analysis.`;
-        else if (['Inaccuracy', 'Mistake', 'Blunder'].includes(quality))
-            message = `${move} crossed CAISSA's ${quality.toLowerCase()} evaluation threshold.`;
+        else if (REVIEW_WORTHY_CLASSIFICATIONS.includes(quality))
+            message = `You played ${move}, which crossed CAISSA's ${quality.toLowerCase()} evaluation threshold.`;
         else message = `${move} stayed within CAISSA's acceptable evaluation range.`;
         let detail = '';
         if (quality === 'Book') detail = item.bookEvidence?.name
@@ -267,18 +271,22 @@
 
     function updateGuided() {
         if (!mounted?.analyze || mounted.phase !== 'guided-review') return;
-        const model = createGuidedModel(mounted.analyze, mounted.explanationExpanded);
+        const model = createGuidedModel(mounted.analyze, mounted.explanationExpanded, mounted.handoff);
         mounted.guided.content.dataset.authoritativePly = String(model.index);
         mounted.guided.detail.textContent = model.detail;
         mounted.guided.detail.hidden = !mounted.explanationExpanded || !model.detail;
         mounted.guided.explain.setAttribute('aria-expanded', String(mounted.explanationExpanded));
-        const moments = findReviewMoments(mounted.analyze, mounted.handoff);
+        const moments = findReviewMoments(mounted.analyze);
         const finalMoment = moments.at(-1) ?? null;
         const complete = mounted.reviewComplete || (finalMoment !== null && model.index === finalMoment);
         mounted.guided.next.disabled = complete;
         mounted.guided.next.querySelector('span').textContent = complete ? 'Review Complete' : 'Next Moment';
         mounted.guided.newGame.hidden = !complete;
         mounted.guided.reviewTools.dataset.reviewComplete = String(complete);
+        if (complete) {
+            mounted.guided.secondaryActions.prepend(mounted.guided.newGame);
+            if (mounted.flipTool?.node) mounted.guided.newGame.after(mounted.flipTool.node);
+        } else if (mounted.flipTool?.node) mounted.guided.secondaryActions.prepend(mounted.flipTool.node);
         renderCoachHead({ eyebrow: model.quality.toUpperCase(), title: `${model.move}${model.annotation || ''}`,
             evaluation: model.evaluation, message: model.message });
         mounted.guided.notation.querySelector('.active')?.scrollIntoView?.({ block: 'nearest' });
@@ -378,7 +386,7 @@
         guided.explain.addEventListener('click', () => { if (!mounted) return;
             mounted.explanationExpanded = !mounted.explanationExpanded; updateGuided(); });
         guided.next.addEventListener('click', () => { if (!mounted?.analyze) return;
-            const destination = findNextReviewMoment(mounted.analyze, mounted.handoff);
+            const destination = findNextReviewMoment(mounted.analyze);
             mounted.explanationExpanded = false;
             if (destination === null) { mounted.reviewComplete = true; updateGuided(); return; }
             mounted.reviewComplete = false; mounted.analyze.jumpToMove(destination); updateGuided(); });
