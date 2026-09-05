@@ -1,7 +1,7 @@
 (function installCoachReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.8.0';
+    const SCHEMA_VERSION = '1.9.0';
     const QUALITY_ORDER = Object.freeze(['Book', 'Best', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const CLASSIFICATIONS = Object.freeze(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const REVIEW_WORTHY_CLASSIFICATIONS = Object.freeze(['Inaccuracy', 'Mistake', 'Blunder']);
@@ -201,7 +201,12 @@
         const pvValue = element('p', 'caissa-coach-exploration__pv', { 'data-coach-exploration-pv': '' });
         pvValue.textContent = 'Waiting for a candidate continuation.'; pv.append(pvLabel, pvValue);
         explorationHeadDetails.append(status, evalRow, pv);
-        const variationTitle = element('h2', 'caissa-coach-exploration__variation-title');
+        const variationWorkspace = element('section', 'caissa-coach-exploration__workspace', {
+            'data-coach-exploration-workspace': '', 'aria-labelledby': 'caissaExplorationVariationTitle'
+        });
+        const variationTitle = element('h2', 'caissa-coach-exploration__variation-title', {
+            id: 'caissaExplorationVariationTitle'
+        });
         variationTitle.textContent = 'Temporary variation';
         const variationEmpty = element('p', 'caissa-coach-exploration__empty', {
             'data-coach-exploration-empty': '', role: 'status'
@@ -212,7 +217,8 @@
         });
         const note = element('p', 'caissa-coach-exploration__note');
         note.textContent = 'Moves here are temporary and do not change your reviewed game.';
-        exploration.append(variationTitle, variationEmpty, variation, note); content.append(guided, exploration);
+        variationWorkspace.append(variationTitle, variationEmpty, variation, note);
+        exploration.append(variationWorkspace); content.append(guided, exploration);
         const foot = element('div', 'caissa-native-coach-panel__foot-content caissa-coach-guided__foot',
             { 'data-caissa-coach-guided-foot': '' });
         const reviewTools = element('div', 'caissa-coach-guided__review-tools', { 'data-coach-guided-foot-review': '' });
@@ -299,7 +305,7 @@
         analysisSection.append(analysisTitle, effortCopy, effort);
         settingsDialog.append(settingsHeader, gameSection, analysisSection); content.append(settingsDialog);
         return { content, guided, actions, explain, next, detail, notation, exploration, explorationHeadDetails,
-            variation, variationEmpty, status, evalValue,
+            variationWorkspace, variation, variationEmpty, status, evalValue,
             pvValue, foot, reviewTools, navigation, secondaryActions, analysis, settings, newGame,
             explorationTools, explorationNavigation, explorationNavButtons, back, engine,
             settingsDialog, settingsClose, savePgn, saveStatus, effort };

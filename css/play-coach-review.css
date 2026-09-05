@@ -455,7 +455,7 @@ body.caissa-simplified-play-active .caissa-coach-guided__navigation-host .nav-bt
     box-shadow: inset 0 0 0 1px var(--coach-gold, #d7b96d);
     background: color-mix(in srgb, var(--coach-gold, #d7b96d) 14%, #202a38);
 }
-.caissa-coach-exploration { gap: .65rem; padding: .15rem; }
+.caissa-coach-exploration { padding: .15rem; }
 .caissa-coach-exploration__head-details {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
@@ -493,14 +493,28 @@ body.caissa-simplified-play-active .caissa-coach-guided__navigation-host .nav-bt
 }
 .caissa-coach-exploration__variation-title {
     margin: 0;
+    padding: .15rem .2rem .6rem;
     color: var(--play-theme-text, #fff);
     font-size: .9rem;
 }
+.caissa-coach-exploration__workspace {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    padding: .55rem;
+    border: 1px solid rgb(255 255 255 / 7%);
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgb(255 255 255 / 2.5%), rgb(255 255 255 / 1%));
+}
 .caissa-coach-exploration__empty {
+    display: grid;
+    flex: 1;
+    place-items: center;
+    min-height: 8rem;
     margin: 0;
-    padding: 1rem;
-    border: 1px dashed var(--panel-border);
-    border-radius: 9px;
+    padding: 1.25rem;
+    border-block: 1px dashed rgb(255 255 255 / 9%);
     color: var(--play-theme-muted, var(--text-secondary));
     font-size: .85rem;
     text-align: center;
@@ -537,8 +551,26 @@ body.caissa-simplified-play-active .caissa-coach-guided__navigation-host .nav-bt
     background: color-mix(in srgb, var(--coach-gold, #d7b96d) 16%, #202a38);
     color: var(--play-theme-text, #fff);
 }
-.caissa-coach-exploration__note { margin-top: auto; color: var(--play-theme-muted, var(--text-secondary)); font-size: .78rem; }
+.caissa-coach-exploration__note {
+    padding: .6rem .2rem .1rem;
+    border-top: 1px solid rgb(255 255 255 / 7%);
+    color: var(--play-theme-muted, var(--text-secondary));
+    font-size: .78rem;
+}
 .caissa-coach-guided__exploration-tools { display: grid; gap: .65rem; }
+.caissa-coach-guided__exploration-tools button {
+    min-height: 46px;
+    border: 1px solid var(--panel-border);
+    border-radius: 9px;
+    background: #202a38;
+    color: var(--play-theme-text, #fff);
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+}
+.caissa-coach-guided__exploration-tools button:hover:not(:disabled) { border-color: var(--coach-gold, #d7b96d); }
+.caissa-coach-guided__exploration-tools button:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.caissa-coach-guided__exploration-tools button:disabled { opacity: .42; cursor: not-allowed; }
 .caissa-coach-exploration__navigation,
 .caissa-coach-exploration__actions { display: grid; gap: .55rem; }
 .caissa-coach-exploration__navigation { grid-template-columns: repeat(4, minmax(0, 1fr)); }
