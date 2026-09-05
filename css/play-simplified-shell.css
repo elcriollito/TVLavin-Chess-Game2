@@ -2242,8 +2242,10 @@ body.caissa-simplified-play-active .caissa-bots-panel__selected {
 
 body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
     .caissa-bots-panel__selected {
+    justify-content: center;
+    gap: 1.15rem;
     min-height: 150px;
-    padding: .75rem 1rem;
+    padding: .75rem 1.35rem;
     border-radius: .85rem;
     background:
         radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--bot-accent) 15%, transparent), transparent 44%),
@@ -2252,34 +2254,40 @@ body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="acti
 
 body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
     .caissa-bots-panel__selected-piece {
-    flex-basis: 118px;
-    inline-size: 118px;
-    block-size: 118px;
+    flex-basis: 112px;
+    inline-size: 112px;
+    block-size: 112px;
 }
 
 body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
     .caissa-bots-panel__selected-piece img {
-    inline-size: 106px;
-    block-size: 106px;
+    inline-size: 100px;
+    block-size: 100px;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
+    .caissa-bots-panel__selected-copy {
+    flex: 0 1 auto;
+    align-content: center;
+    gap: .3rem;
+    max-width: calc(100% - 132px);
 }
 
 body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
     .caissa-bots-panel__selected-copy strong {
-    font-size: clamp(1.7rem, 2.2vw, 2.25rem);
+    font-size: clamp(1.75rem, 2.1vw, 2.15rem);
+    font-weight: 850;
     line-height: 1.05;
+    overflow-wrap: anywhere;
 }
 
 body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
     .caissa-bots-panel__selected-copy span {
-    margin-top: .35rem;
-    color: var(--play-theme-text, #fff);
-    font-size: 1.05rem;
+    color: var(--play-theme-text-muted, var(--text-secondary));
+    font-size: .92rem;
+    font-weight: 700;
+    letter-spacing: .035em;
     text-transform: uppercase;
-}
-
-body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
-    .caissa-bots-panel__selected-copy span::first-line {
-    font-weight: 800;
 }
 
 body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
@@ -2602,7 +2610,7 @@ body.caissa-simplified-play-active .caissa-bots-panel__primary:disabled { opacit
 
 @media (max-width: 420px) {
     body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
-        .caissa-bots-panel__selected { min-height: 112px; padding: .55rem .7rem; }
+        .caissa-bots-panel__selected { gap: 1rem; min-height: 112px; padding: .55rem 1rem; }
     body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
         .caissa-bots-panel__selected-piece { flex-basis: 82px; inline-size: 82px; block-size: 82px; }
     body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
@@ -2610,7 +2618,7 @@ body.caissa-simplified-play-active .caissa-bots-panel__primary:disabled { opacit
     body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
         .caissa-bots-panel__selected-copy strong { font-size: 1.5rem; }
     body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="active-game"]
-        .caissa-bots-panel__selected-copy span { font-size: .9rem; }
+        .caissa-bots-panel__selected-copy span { font-size: .82rem; }
     body.caissa-simplified-play-active .caissa-bots-panel__bot-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     body.caissa-simplified-play-active .caissa-bots-panel__bot:nth-child(3n + 1) .caissa-bots-panel__bot-meta {
         inset-inline-start: 0;

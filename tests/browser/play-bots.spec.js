@@ -26,6 +26,7 @@ test('Bots is canonical and exposes the Classic piece ladder without engine inte
     await expect(page.locator('.caissa-bots-panel__title,.caissa-bots-panel__collection')).toHaveCount(0);
     await expect(page.locator('.caissa-bots-panel')).not.toContainText(/depth|MultiPV|centipawn|Worker URL/i);
     await expect(page.getByLabel(/Pip, 100 Elo target, New to Chess, preview ready/)).toBeVisible();
+    const pipAvatar = await page.locator('[data-bot-selected] img').getAttribute('src');
     await expect(page.locator('[data-bot-category-nav]')).toBeVisible();
     await openCategory(page, 'Intermediate');
     await expect(page.getByLabel(/Nora, 1000 Elo target, Intermediate, preview ready/)).toBeVisible();
@@ -38,6 +39,7 @@ test('Bots is canonical and exposes the Classic piece ladder without engine inte
     await expect(page.locator('[data-bot-selected]')).toContainText('Freya');
     await expect(page.locator('[data-bot-selected]')).toContainText('GM · 2800 Elo target');
     await expect(page.locator('[data-bot-selected] img')).toBeVisible();
+    expect(await page.locator('[data-bot-selected] img').getAttribute('src')).not.toBe(pipAvatar);
     await expect(page.locator('[data-bot-primary]')).toBeEnabled();
     const proof = await page.evaluate(() => ({
         mode: window.CaissaSimplifiedPlayShellInstance.getSnapshot().mode,
@@ -130,6 +132,8 @@ test('active bot is immutable; New Game admits the next profile and Games restor
     expect(await page.evaluate(() => window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(0);
     await page.locator('[data-bot-primary]').click();
     expect(await page.evaluate(() => window.CaissaBotSession.getSnapshot().activeBotId)).toBe('vera');
+    await expect(botsShell.locator(':scope > [data-caissa-bots-head]')).toContainText('Vera');
+    await expect(botsShell.locator(':scope > [data-caissa-bots-head]')).toContainText('ELO 1500');
     expect(await page.evaluate(() => window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(1);
 
     page.once('dialog', dialog => dialog.accept());
