@@ -29,10 +29,13 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         dropOverlay: root.querySelector('[data-pgn-drop-overlay]'),
         openButtons: root.querySelectorAll('[data-pgn-open]'),
         pasteButtons: root.querySelectorAll('[data-pgn-paste]'),
+        openMenu: root.querySelector('[data-pgn-open-menu]'),
         file: root.querySelector('[data-pgn-file]'),
         dialog: root.querySelector('[data-pgn-dialog]'),
         optionsButton: root.querySelector('[data-pgn-options]'),
         optionsDialog: root.querySelector('[data-pgn-options-dialog]'),
+        language: root.querySelector('[data-pgn-language]'),
+        languageLabel: root.querySelector('[data-pgn-language-label]'),
         pasteInput: root.querySelector('[data-pgn-paste-input]'),
         loadPaste: root.querySelector('[data-pgn-load-paste]'),
         tabs: root.querySelectorAll('[data-pgn-tab]'),
@@ -60,6 +63,13 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         flip: root.querySelector('[data-pgn-flip]'),
         focus: root.querySelector('[data-pgn-focus]'),
         speed: root.querySelector('[data-pgn-speed]'),
+        nextGame: root.querySelector('[data-pgn-next-game]'),
+        shareMenu: root.querySelector('[data-pgn-share-menu]'),
+        copyPgn: root.querySelector('[data-pgn-copy-pgn]'),
+        copyFen: root.querySelector('[data-pgn-copy-fen]'),
+        saveSource: root.querySelector('[data-pgn-save-source]'),
+        exportDiagram: root.querySelector('[data-pgn-export-diagram]'),
+        shareDiagram: root.querySelector('[data-pgn-share-diagram]'),
         engine: root.querySelector('[data-pgn-engine]'),
         engineState: root.querySelector('[data-pgn-engine-state]'),
         enginePanels: root.querySelectorAll('[data-pgn-engine-panel]'),
@@ -85,14 +95,49 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
 
     const savedOrientation = readPreference('caissa_pgn_orientation');
     const savedSpeed = readPreference('caissa_pgn_speed');
+    const savedLocale = readPreference('caissa_pgn_locale');
     const hasSeenWelcome = readPreference('caissa_pgn_welcome_seen') === '1';
     const preferences = {
         orientation: savedOrientation === 'black' ? 'black' : 'white',
-        speed: ['1400', '1000', '650', '400'].includes(savedSpeed) ? savedSpeed : '1000'
+        speed: ['1400', '1000', '650', '400'].includes(savedSpeed) ? savedSpeed : '1000',
+        locale: savedLocale === 'es' ? 'es' : 'en'
     };
     elements.speed.value = preferences.speed;
     elements.empty.hidden = hasSeenWelcome;
     if (!hasSeenWelcome) writePreference('caissa_pgn_welcome_seen', '1');
+
+    const interfaceCopy = Object.freeze({
+        en: Object.freeze({
+            openPgn: 'Open PGN', openFile: 'Open file', pastePgn: 'Paste PGN', options: 'Options',
+            albums: 'Albums', games: 'Games', notation: 'Notation', analysis: 'Analysis',
+            nextGame: 'Next game', share: 'Share', engine: 'Engine', on: 'On', off: 'Off', loading: 'Loading',
+            exportDiagram: 'Export Diagram', shareDiagram: 'Share Diagram',
+            languageLabel: 'Español', languageAction: 'Switch interface language to Spanish'
+        }),
+        es: Object.freeze({
+            openPgn: 'Abrir PGN', openFile: 'Abrir archivo', pastePgn: 'Pegar PGN', options: 'Opciones',
+            albums: 'Álbumes', games: 'Partidas', notation: 'Notación', analysis: 'Análisis',
+            nextGame: 'Siguiente partida', share: 'Compartir', engine: 'Motor', on: 'Activo', off: 'Apagado', loading: 'Cargando',
+            exportDiagram: 'Exportar diagrama', shareDiagram: 'Compartir diagrama',
+            languageLabel: 'English', languageAction: 'Cambiar el idioma de la interfaz a inglés'
+        })
+    });
+
+    function copy(key) {
+        return interfaceCopy[preferences.locale]?.[key] || interfaceCopy.en[key] || key;
+    }
+
+    function applyLocale(locale) {
+        preferences.locale = locale === 'es' ? 'es' : 'en';
+        writePreference('caissa_pgn_locale', preferences.locale);
+        document.documentElement.lang = preferences.locale;
+        root.querySelectorAll('[data-pgn-copy]').forEach(element => {
+            element.textContent = copy(element.dataset.pgnCopy);
+        });
+        elements.languageLabel.textContent = copy('languageLabel');
+        elements.language.setAttribute('aria-label', copy('languageAction'));
+        elements.language.title = copy('languageAction');
+    }
 
     const state = {
         collection: null,
@@ -104,6 +149,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         requestId: 0,
         autoplayTimer: null,
         sourceLabel: '',
+        sourceText: '',
         filter: '',
         messageTimer: null,
         focusMode: false,
@@ -135,6 +181,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         elements.openButtons.forEach(button => { button.disabled = busy; });
         elements.pasteButtons.forEach(button => { button.disabled = busy; });
         elements.albums.querySelectorAll('[data-album-id]').forEach(button => { button.disabled = busy; });
+        updateControls();
         if (busy) showMessage(label || 'Reading PGN…', 'info', false);
     }
 
@@ -316,6 +363,194 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         return activeNode()?.fenAfter || state.game?.startFen || null;
     }
 
+    function safeFileStem(value, fallback = 'caissa-game') {
+        const stem = String(value || '').trim().replace(/[<>:"/\\|?*\u0000-\u001f]+/g, '-').replace(/[. ]+$/g, '');
+        return stem.slice(0, 90) || fallback;
+    }
+
+    function gameFileStem() {
+        if (!state.game) return 'caissa-game';
+        const headers = state.game.headers || {};
+        return safeFileStem(`${headers.White || 'White'}-${headers.Black || 'Black'}-${headers.Date || ''}`);
+    }
+
+    function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.hidden = true;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function saveSourcePgn() {
+        if (!state.sourceText) return;
+        const filename = /\.pgn$/i.test(state.sourceLabel || '') ? safeFileStem(state.sourceLabel).replace(/-pgn$/i, '.pgn') : `${safeFileStem(state.sourceLabel, 'caissa-collection')}.pgn`;
+        downloadBlob(new Blob([state.sourceText], { type: 'application/x-chess-pgn;charset=utf-8' }), filename);
+        showMessage('Original PGN saved.');
+    }
+
+    function loadPieceImage(code) {
+        return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = reject;
+            image.src = `/img/chesspieces/wikipedia/${code}.png`;
+        });
+    }
+
+    const diagramCopy = Object.freeze({
+        en: Object.freeze({
+            whiteToMove: 'White to move and win',
+            blackToMove: 'Black to move and win',
+            heading: 'CAISSA CHESS',
+            label: 'PUZZLE DIAGRAM'
+        }),
+        es: Object.freeze({
+            whiteToMove: 'Juegan blancas y ganan',
+            blackToMove: 'Juegan negras y ganan',
+            heading: 'CAISSA CHESS',
+            label: 'DIAGRAMA DE AJEDREZ'
+        })
+    });
+
+    function currentDiagramCopy() {
+        return diagramCopy[preferences.locale] || diagramCopy.en;
+    }
+
+    function diagramInstruction(fen) {
+        const sideToMove = fen.trim().split(/\s+/)[1] === 'b' ? 'black' : 'white';
+        const labels = currentDiagramCopy();
+        return sideToMove === 'black' ? labels.blackToMove : labels.whiteToMove;
+    }
+
+    async function createDiagramImage() {
+        const fen = currentFen();
+        if (!fen) throw new Error('No chess position is available.');
+        const placement = fen.split(/\s+/)[0];
+        const rows = placement.split('/');
+        if (rows.length !== 8) throw new Error('The current position is invalid.');
+        const pieces = [];
+        rows.forEach((row, rank) => {
+            let file = 0;
+            for (const token of row) {
+                if (/\d/.test(token)) { file += Number(token); continue; }
+                const color = token === token.toUpperCase() ? 'w' : 'b';
+                pieces.push({ code: `${color}${token.toUpperCase()}`, file, rank });
+                file += 1;
+            }
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = 1200;
+        canvas.height = 1200;
+        const context = canvas.getContext('2d', { alpha: false });
+        if (!context) throw new Error('The diagram could not be created.');
+        const boardX = 160;
+        const boardY = 130;
+        const square = 110;
+        const boardSize = square * 8;
+        const background = context.createLinearGradient(0, 0, 1200, 1200);
+        background.addColorStop(0, '#18253a');
+        background.addColorStop(0.48, '#0b1523');
+        background.addColorStop(1, '#070d16');
+        context.fillStyle = background;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = '#f3a72d';
+        context.font = '800 27px Arial, sans-serif';
+        context.textAlign = 'left';
+        context.textBaseline = 'alphabetic';
+        context.fillText(`♞  ${currentDiagramCopy().heading}`, boardX, 82);
+        context.fillStyle = '#aebdd0';
+        context.font = '700 18px Arial, sans-serif';
+        context.textAlign = 'right';
+        context.fillText(currentDiagramCopy().label, boardX + boardSize, 80);
+        context.shadowColor = 'rgba(0, 0, 0, .55)';
+        context.shadowBlur = 24;
+        context.shadowOffsetY = 10;
+        context.fillStyle = '#02060b';
+        context.fillRect(boardX - 12, boardY - 12, boardSize + 24, boardSize + 24);
+        context.shadowColor = 'transparent';
+        const files = preferences.orientation === 'black' ? 'hgfedcba' : 'abcdefgh';
+        const ranks = preferences.orientation === 'black' ? '12345678' : '87654321';
+        for (let displayRank = 0; displayRank < 8; displayRank += 1) {
+            for (let displayFile = 0; displayFile < 8; displayFile += 1) {
+                const dark = (displayRank + displayFile) % 2 === 1;
+                const x = boardX + displayFile * square;
+                const y = boardY + displayRank * square;
+                context.fillStyle = dark ? '#b79375' : '#eadbb4';
+                context.fillRect(x, y, square, square);
+                context.fillStyle = dark ? '#eadbb4' : '#9d7659';
+                context.font = '700 16px Arial, sans-serif';
+                if (displayFile === 0) {
+                    context.textAlign = 'left';
+                    context.textBaseline = 'top';
+                    context.fillText(ranks[displayRank], x + 7, y + 6);
+                }
+                if (displayRank === 7) {
+                    context.textAlign = 'right';
+                    context.textBaseline = 'bottom';
+                    context.fillText(files[displayFile], x + square - 7, y + square - 5);
+                }
+            }
+        }
+        const images = new Map();
+        await Promise.all([...new Set(pieces.map(piece => piece.code))].map(async code => images.set(code, await loadPieceImage(code))));
+        for (const piece of pieces) {
+            const displayFile = preferences.orientation === 'black' ? 7 - piece.file : piece.file;
+            const displayRank = preferences.orientation === 'black' ? 7 - piece.rank : piece.rank;
+            context.drawImage(images.get(piece.code), boardX + displayFile * square, boardY + displayRank * square, square, square);
+        }
+        context.fillStyle = '#f7f9fc';
+        context.font = '800 38px Arial, sans-serif';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(diagramInstruction(fen), canvas.width / 2, 1062);
+        context.fillStyle = '#f3a72d';
+        context.fillRect(390, 1104, 420, 3);
+        context.fillStyle = '#aebdd0';
+        context.font = '700 23px Arial, sans-serif';
+        context.fillText('www.caissa-chess.org', canvas.width / 2, 1150);
+        return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('The board image could not be created.')), 'image/png'));
+    }
+
+    async function exportDiagram() {
+        if (!state.game) return;
+        elements.exportDiagram.disabled = true;
+        try {
+            const blob = await createDiagramImage();
+            downloadBlob(blob, `${gameFileStem()}-diagram.png`);
+            showMessage(preferences.locale === 'es' ? 'Diagrama exportado.' : 'Diagram exported.');
+        } catch (error) {
+            showMessage(error?.message || 'The diagram could not be exported.', 'error', false);
+        } finally {
+            updateControls();
+        }
+    }
+
+    async function shareDiagram() {
+        if (!state.game) return;
+        elements.shareDiagram.disabled = true;
+        try {
+            const blob = await createDiagramImage();
+            const filename = `${gameFileStem()}-diagram.png`;
+            const file = new File([blob], filename, { type: 'image/png' });
+            if (typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
+                await navigator.share({ title: diagramInstruction(currentFen()), files: [file] });
+                showMessage(preferences.locale === 'es' ? 'Diagrama compartido.' : 'Diagram shared.');
+            } else {
+                downloadBlob(blob, filename);
+                showMessage(preferences.locale === 'es' ? 'Diagrama descargado.' : 'Diagram downloaded.');
+            }
+        } catch (error) {
+            if (error?.name !== 'AbortError') showMessage(error?.message || 'The diagram could not be shared.', 'error', false);
+        } finally {
+            updateControls();
+        }
+    }
+
     function engineScore(line) {
         const sideToMove = line.fen?.split(/\s+/)[1] === 'b' ? -1 : 1;
         const value = line.score.value * sideToMove;
@@ -354,7 +589,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         elements.engine.setAttribute('aria-pressed', String(on));
         elements.engine.setAttribute('aria-label', on ? 'Turn engine off' : 'Turn engine on');
         elements.engine.title = on ? 'Turn engine off' : 'Turn engine on';
-        elements.engineState.textContent = status === 'loading' ? 'Loading' : on ? 'On' : 'Off';
+        elements.engineState.textContent = status === 'loading' ? copy('loading') : on ? copy('on') : copy('off');
         const summary = ({
             loading: 'Starting locally…',
             ready: 'Ready · 2 lines',
@@ -391,7 +626,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
             return;
         }
         state.engineEnabled = true;
-        selectTab('notation');
+        selectTab('analysis');
         renderEngineLines([]);
         state.engine = new PgnAnalysisEngine({
             moveTimeMs: window.matchMedia('(max-width: 620px)').matches ? 650 : 900,
@@ -450,20 +685,32 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
     function updateControls() {
         const node = activeNode();
         const hasGame = !!state.game;
-        elements.first.disabled = !hasGame || !node;
-        elements.previous.disabled = !hasGame || !node;
-        elements.next.disabled = !hasGame || (node ? !node.nextId : !state.game.mainline.length);
-        elements.last.disabled = !hasGame || !state.game.mainline.length;
+        const busy = root.hasAttribute('aria-busy');
+        elements.first.disabled = busy || !hasGame || !node;
+        elements.previous.disabled = busy || !hasGame || !node;
+        elements.next.disabled = busy || !hasGame || (node ? !node.nextId : !state.game.mainline.length);
+        elements.last.disabled = busy || !hasGame || !state.game.mainline.length;
         elements.play.disabled = elements.next.disabled;
-        elements.flip.disabled = !hasGame;
-        elements.focus.disabled = !hasGame;
-        elements.engine.disabled = !hasGame;
+        elements.flip.disabled = busy || !hasGame;
+        elements.focus.disabled = busy || !hasGame;
+        elements.nextGame.disabled = busy || !hasGame || state.gameIndex >= (state.collection?.games?.length || 0) - 1;
+        elements.engine.disabled = busy || !hasGame;
+        elements.saveSource.disabled = busy || !state.sourceText;
+        elements.exportDiagram.disabled = busy || !hasGame;
+        elements.shareDiagram.disabled = busy || !hasGame;
+        elements.shareMenu.querySelector('summary').setAttribute('aria-disabled', String(busy || !hasGame));
+    }
+
+    function clearGameFilter() {
+        if (!state.filter) return;
+        state.filter = '';
+        elements.filter.value = '';
     }
 
     function selectGame(index, announce = true) {
         stopAutoplay();
         const game = state.collection?.games?.[index];
-        if (!game) return;
+        if (!game) return false;
         state.gameIndex = index;
         state.game = game;
         state.currentNodeId = null;
@@ -481,6 +728,55 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         renderNotation();
         updateBoard(false);
         if (announce) showMessage(`Game ${index + 1} of ${state.collection.games.length}: ${game.label}`);
+        return true;
+    }
+
+    function selectAdjacentGame(offset) {
+        if (!state.game || root.hasAttribute('aria-busy')) return false;
+        const targetIndex = state.gameIndex + offset;
+        if (targetIndex < 0 || targetIndex >= state.collection.games.length) return false;
+        clearGameFilter();
+        return selectGame(targetIndex);
+    }
+
+    function escapePgnHeader(value) {
+        return String(value || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/[\r\n]+/g, ' ');
+    }
+
+    function serializeCurrentGame() {
+        if (!state.game) return '';
+        const headers = Object.entries(state.game.headers)
+            .map(([key, value]) => `[${key} "${escapePgnHeader(value)}"]`)
+            .join('\n');
+        const tokens = [];
+        state.game.mainline.forEach((node, index) => {
+            if (node.turn === 'w') tokens.push(`${node.moveNumber}.`);
+            else if (index === 0) tokens.push(`${node.moveNumber}...`);
+            tokens.push(node.san);
+            tokens.push(...(node.nags || []));
+            (node.comments || []).forEach(comment => tokens.push(`{${String(comment).replace(/[{}]/g, '')}}`));
+        });
+        tokens.push(state.game.result || '*');
+        return `${headers}\n\n${tokens.join(' ')}`.trim();
+    }
+
+    async function copyToClipboard(text, successMessage) {
+        if (!text) return;
+        try {
+            await navigator.clipboard.writeText(text);
+            showMessage(successMessage);
+        } catch (_) {
+            const area = document.createElement('textarea');
+            area.value = text;
+            area.readOnly = true;
+            area.className = 'pgn-visually-hidden';
+            document.body.append(area);
+            area.select();
+            const copied = typeof document.execCommand === 'function' && document.execCommand('copy');
+            area.remove();
+            showMessage(copied ? successMessage : 'Copying is unavailable in this browser.', copied ? 'info' : 'error');
+        }
+        elements.shareMenu.open = false;
     }
 
     function applyCollection(collection, sourceLabel) {
@@ -535,6 +831,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         const worker = ensureWorker();
         state.requestId += 1;
         state.sourceLabel = sourceLabel;
+        state.sourceText = text;
         state.pendingAlbumId = albumId;
         setBusy(true, 'Reading PGN locally…');
         worker.postMessage({ type: 'parse', requestId: state.requestId, text });
@@ -618,7 +915,10 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         window.setTimeout(() => board.resize(), 30);
     }
 
-    elements.openButtons.forEach(button => button.addEventListener('click', () => elements.file.click()));
+    elements.openButtons.forEach(button => button.addEventListener('click', () => {
+        elements.openMenu.open = false;
+        elements.file.click();
+    }));
     elements.file.addEventListener('change', () => loadFile(elements.file.files?.[0]));
     root.addEventListener('caissa:pgn-load-text', event => {
         const detail = event.detail || {};
@@ -630,9 +930,14 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         parseText(detail.text, detail.sourceLabel || 'CAISSA collection', detail.albumId || null);
     });
     elements.pasteButtons.forEach(button => button.addEventListener('click', () => {
+        elements.openMenu.open = false;
         elements.dialog.showModal();
         window.setTimeout(() => elements.pasteInput.focus(), 0);
     }));
+    elements.language.addEventListener('click', () => {
+        applyLocale(preferences.locale === 'en' ? 'es' : 'en');
+        updateEngineUi(state.engineEnabled ? 'ready' : 'off');
+    });
     elements.optionsButton.addEventListener('click', () => elements.optionsDialog.showModal());
     elements.loadPaste.addEventListener('click', () => {
         if (!elements.pasteInput.value.trim()) { showMessage('Paste PGN text before loading.', 'error'); return; }
@@ -666,8 +971,20 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
     elements.next.addEventListener('click', () => goNext());
     elements.last.addEventListener('click', () => goTo(state.game?.mainline?.at(-1)?.id || null));
     elements.play.addEventListener('click', startAutoplay);
+    elements.nextGame.addEventListener('click', () => selectAdjacentGame(1));
+    elements.shareMenu.addEventListener('click', event => {
+        if (event.target.closest('summary') && (!state.game || root.hasAttribute('aria-busy'))) {
+            event.preventDefault();
+        }
+    });
+    elements.copyPgn.addEventListener('click', () => copyToClipboard(serializeCurrentGame(), 'PGN copied.'));
+    elements.copyFen.addEventListener('click', () => copyToClipboard(currentFen(), 'FEN copied.'));
+    elements.saveSource.addEventListener('click', saveSourcePgn);
+    elements.exportDiagram.addEventListener('click', exportDiagram);
+    elements.shareDiagram.addEventListener('click', shareDiagram);
     elements.flip.addEventListener('click', () => {
         const orientation = board.flip();
+        preferences.orientation = orientation;
         writePreference('caissa_pgn_orientation', orientation);
         showMessage(`Board flipped to ${orientation}.`);
     });
@@ -696,7 +1013,9 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
     });
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape' && state.focusMode) { toggleFocus(); elements.focus.focus(); return; }
-        if (!state.game || elements.dialog.open || elements.optionsDialog.open || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)) return;
+        if (!state.game || root.querySelector('dialog[open]') || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName) || event.target.isContentEditable) return;
+        if (event.key === 'PageUp') { event.preventDefault(); selectAdjacentGame(-1); }
+        if (event.key === 'PageDown') { event.preventDefault(); selectAdjacentGame(1); }
         if (event.key === 'ArrowLeft') { event.preventDefault(); goTo(activeNode()?.previousId || null); }
         if (event.key === 'ArrowRight') { event.preventDefault(); goNext(); }
         if (event.key === 'Home') { event.preventDefault(); goTo(null); }
@@ -706,6 +1025,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
     window.addEventListener('beforeunload', () => { stopAutoplay(); state.worker?.terminate(); state.engine?.disable(); board.destroy(); }, { once: true });
 
     renderAlbums();
+    applyLocale(preferences.locale);
     renderEngineLines([]);
     updateEngineUi('off');
     updateControls();

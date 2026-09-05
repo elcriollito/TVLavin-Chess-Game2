@@ -25,9 +25,10 @@ test('owns a distinct canonical route and keeps the classic free replayer intact
   assert.equal((read('public/sitemap.xml').match(/\/pgn-replayer<\/loc>/g) || []).length, 1);
 });
 
-test('uses Games, Notation, Albums order and a board-first accessible shell', () => {
+test('uses Albums, Games, Notation, Analysis order and a board-first accessible shell', () => {
   const page = load(read('pgn-replayer.html'));
-  assert.deepEqual(page('[data-pgn-tab]').map((_, node) => page(node).text().replace(/\s+/g, ' ').trim().replace(/\s*\(\)$/, '')).get(), ['Games', 'Notation', 'Albums']);
+  assert.deepEqual(page('[data-pgn-tab]').map((_, node) => page(node).find('[data-pgn-copy]').text().trim()).get(), ['Albums', 'Games', 'Notation', 'Analysis']);
+  assert.equal(page('[data-pgn-tab="albums"]').attr('aria-selected'), 'true');
   for (const key of ['first', 'previous', 'play', 'next', 'last', 'flip', 'focus', 'engine']) {
     const control = page(`[data-pgn-${key}]`);
     assert.equal(control.length, 1, `${key} control missing`);
@@ -37,7 +38,8 @@ test('uses Games, Notation, Albums order and a board-first accessible shell', ()
   assert.equal(page('[data-pgn-paste]').length, 2);
   assert.equal(page('.pgn-toolbar-imports-mobile [data-pgn-open]').length, 1);
   assert.equal(page('.pgn-toolbar-imports-mobile [data-pgn-paste]').length, 1);
-  assert.equal(page('.pgn-source-actions [data-pgn-open] + [data-pgn-options]').length, 1);
+  assert.equal(page('.pgn-source-actions [data-pgn-open-menu] > summary').length, 1);
+  assert.equal(page('.pgn-source-actions [data-pgn-open-menu] + [data-pgn-language] + [data-pgn-options]').length, 1);
   assert.equal(page('[data-pgn-options]').attr('aria-controls'), 'pgn-options-dialog');
   const pageCsp = page('meta[http-equiv="Content-Security-Policy"]').attr('content');
   assert.match(pageCsp, /worker-src 'self' blob:/);
@@ -56,7 +58,7 @@ test('uses Games, Notation, Albums order and a board-first accessible shell', ()
   assert.match(responseCsp, /frame-ancestors 'self'/);
 });
 
-test('replaces redundant Change PGN with a lazy local engine that defaults off', () => {
+test('keeps one lazy local engine in Analysis and defaults it off', () => {
   const page = load(read('pgn-replayer.html'));
   const runtime = read('js/pgn-replayer/pgn-replayer-page.js');
   const engine = read('js/pgn-replayer/pgn-engine.js');
@@ -65,9 +67,8 @@ test('replaces redundant Change PGN with a lazy local engine that defaults off',
   assert.equal(page('[data-pgn-engine]').attr('aria-pressed'), 'false');
   assert.equal(page('[data-pgn-engine-state]').text(), 'Off');
   assert.equal(page('#pgn-engine-title').text(), 'Stockfish analysis');
-  assert.equal(page('#pgn-engine-mobile-title').text(), 'Stockfish analysis');
-  assert.equal(page('[data-pgn-engine-panel]').length, 2);
-  assert.equal(page('[data-pgn-engine-panel][data-state="off"]').length, 2);
+  assert.equal(page('[data-pgn-engine-panel]').length, 1);
+  assert.equal(page('[data-pgn-engine-panel][data-state="off"]').length, 1);
   assert.equal(page('script[src*="pgn-replayer-page.js"]').attr('type'), 'module');
   assert.match(runtime, /new PgnAnalysisEngine/);
   assert.doesNotMatch(runtime, /caissa_pgn_engine|localStorage.*engine/i);
@@ -81,9 +82,10 @@ test('replaces redundant Change PGN with a lazy local engine that defaults off',
   assert.match(workerCsp, /script-src 'self' 'wasm-unsafe-eval'/);
   assert.doesNotMatch(workerCsp, /script-src[^;]*'unsafe-eval'/);
   assert.equal(page('#pgn-panel-notation > .pgn-notation-scroll').length, 1);
-  assert.equal(page('#pgn-panel-notation > .pgn-engine-panel--desktop').length, 1);
-  assert.equal(page('.pgn-board-column > .pgn-toolbar + .pgn-engine-panel--mobile').length, 1);
-  assert.match(read('css/pgn-replayer.css'), /\.pgn-engine-panel \{[^}]*height: 123px;[^}]*flex: 0 0 123px/);
+  assert.equal(page('#pgn-panel-analysis > [data-pgn-engine-panel]').length, 1);
+  assert.equal(page('.pgn-panel-actions [data-pgn-engine]').length, 1);
+  assert.match(runtime, /selectTab\('analysis'\)/);
+  assert.match(read('css/pgn-replayer.css'), /\.pgn-engine-panel \{[^}]*min-height: 0;[^}]*flex: 1/);
 });
 
 test('pins the local single-threaded Stockfish 18 browser distribution', () => {
@@ -105,6 +107,33 @@ test('keeps game information above notation and publishes the unified free-libra
   assert.match(runtime, /album\.access === 'available'/);
   assert.match(read('js/pgn-replayer/pgn-entitlements.js'), /\/api\/pgn\/player\?album=/);
   assert.doesNotMatch(read('js/pgn-replayer/pgn-entitlements.js'), /\/api\/pgn\/unlock|Idempotency-Key/);
+});
+
+test('keeps only functional V2 menus, save, share, and localized diagram actions', () => {
+  const page = load(read('pgn-replayer.html'));
+  const runtime = read('js/pgn-replayer/pgn-replayer-page.js');
+  assert.equal(page('[data-pgn-open-menu] [data-pgn-open]').length, 1);
+  assert.equal(page('[data-pgn-open-menu] [data-pgn-paste]').length, 1);
+  assert.equal(page('[data-pgn-language]').length, 1);
+  assert.equal(page('[data-pgn-share-menu] [data-pgn-copy-pgn]').length, 1);
+  assert.equal(page('[data-pgn-share-menu] [data-pgn-copy-fen]').length, 1);
+  assert.equal(page('[data-pgn-save-source]').length, 1);
+  assert.equal(page('[data-pgn-export-diagram]').length, 1);
+  assert.equal(page('[data-pgn-share-diagram]').length, 1);
+  assert.doesNotMatch(page.text(), /Export current game|Close game|Change PGN/i);
+  assert.match(runtime, /canvas\.width = 1200;[\s\S]*canvas\.height = 1200/);
+  assert.match(runtime, /Juegan negras y ganan/);
+  assert.match(runtime, /Juegan blancas y ganan/);
+  assert.match(runtime, /Black to move and win/);
+  assert.match(runtime, /White to move and win/);
+  assert.match(runtime, /www\.caissa-chess\.org/);
+  assert.match(runtime, /function createDiagramImage\(\)/);
+  assert.match(runtime, /function diagramInstruction\(fen\)/);
+  assert.match(runtime, /function serializeCurrentGame\(\)/);
+  assert.match(runtime, /navigator\.share/);
+  assert.match(runtime, /elements\.nextGame\.addEventListener/);
+  assert.match(runtime, /event\.key === 'PageUp'/);
+  assert.match(runtime, /event\.key === 'PageDown'/);
 });
 
 test('Options and About explains free access and future provenance replacement', () => {
@@ -175,6 +204,7 @@ test('private PGN content never enters analytics, logs, or browser persistence',
   assert.doesNotMatch(page, /localStorage\.setItem\([^,]+,\s*(?:text|file|collection|game|source)/i);
   assert.match(page, /caissa_pgn_orientation/);
   assert.match(page, /caissa_pgn_speed/);
+  assert.match(page, /caissa_pgn_locale/);
   assert.match(page, /try\s*\{[\s\S]*window\.localStorage\?\.getItem/);
   assert.match(page, /try\s*\{[\s\S]*window\.localStorage\?\.setItem/);
   assert.doesNotMatch(page, /innerHTML|insertAdjacentHTML|document\.write/);
@@ -200,7 +230,7 @@ test('board geometry keeps all eight ranks and files at every responsive size', 
   assert.match(board, /querySelectorAll\('body\.pgn-replayer-page > \.piece-417db'\)/);
 });
 
-test('mobile controls stay in two compact rows without viewport-scrolling notation', () => {
+test('mobile controls stay compact while the panel owns its internal scrolling', () => {
   const page = load(read('pgn-replayer.html'));
   const runtime = read('js/pgn-replayer/pgn-replayer-page.js');
   const styles = read('css/pgn-replayer.css');
@@ -211,15 +241,13 @@ test('mobile controls stay in two compact rows without viewport-scrolling notati
     .get();
 
   assert.deepEqual(firstRow, ['open', 'paste', 'first', 'previous', 'play', 'next', 'last']);
-  assert.equal(page('.pgn-toolbar-source [data-pgn-engine]').length, 1);
+  assert.equal(page('.pgn-panel-actions [data-pgn-engine]').length, 1);
   assert.equal(page('.pgn-toolbar-view [data-pgn-speed]').length, 1);
   assert.equal(page('.pgn-toolbar-view [data-pgn-flip]').length, 1);
   assert.equal(page('.pgn-toolbar-view [data-pgn-focus] .pgn-control-label').text(), 'Zoom');
-  assert.equal(page('.pgn-board-column > .pgn-toolbar + .pgn-engine-panel--mobile').length, 1);
   assert.equal(page('.pgn-board-column + .pgn-panel').length, 1);
   assert.match(styles, /grid-template-columns: repeat\(7, minmax\(0, 1fr\)\)/);
-  assert.match(styles, /\.pgn-engine-panel--desktop \{ display: none; \}/);
-  assert.match(styles, /\.pgn-engine-panel--mobile \{ display: block;[^}]*width: min\(100%, 760px\)/);
+  assert.match(styles, /\.pgn-panel-body \[role="tabpanel"\] \{[^}]*overflow: auto/);
   assert.match(runtime, /enginePanels: root\.querySelectorAll/);
   assert.match(runtime, /engineLineGroups: root\.querySelectorAll/);
   assert.match(runtime, /function keepActiveMoveVisible\(selected\)/);

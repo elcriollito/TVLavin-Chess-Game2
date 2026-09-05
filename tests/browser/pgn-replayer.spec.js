@@ -82,6 +82,42 @@ test('opens an honest Options and About guide from the desktop source bar', asyn
   await expect(page.locator('[data-pgn-options]')).toBeFocused();
 });
 
+test('uses real Open PGN and language controls without empty actions', async ({ page }) => {
+  await page.goto('/pgn-replayer');
+  const openMenu = page.locator('[data-pgn-open-menu]');
+  const openMenuSummary = openMenu.locator('summary');
+  await openMenuSummary.click();
+  await expect(openMenu).toHaveAttribute('open', '');
+  await expect(openMenu.locator('[data-pgn-open]')).toContainText('Open file');
+  await expect(openMenu.locator('[data-pgn-paste]')).toContainText('Paste PGN');
+  await openMenuSummary.click();
+  await expect(openMenu).not.toHaveAttribute('open', '');
+
+  await page.locator('[data-pgn-language]').click();
+  await expect(page.getByRole('tab', { name: 'Álbumes' })).toBeVisible();
+  await expect(page.locator('[data-pgn-options]')).toContainText('Opciones');
+  await page.locator('[data-pgn-language]').click();
+  await expect(page.getByRole('tab', { name: 'Albums' })).toBeVisible();
+});
+
+test('saves PGN and exports a localized 1200 square diagram', async ({ page }) => {
+  await page.goto('/pgn-replayer');
+  await loadPgn(page);
+  await page.locator('[data-pgn-options]').click();
+  const guide = page.locator('[data-pgn-options-dialog]');
+  await expect(guide.locator('[data-pgn-save-source]')).toBeEnabled();
+  await expect(guide.locator('[data-pgn-export-diagram]')).toBeEnabled();
+  await expect(guide.locator('[data-pgn-share-diagram]')).toBeEnabled();
+
+  const pgnDownload = page.waitForEvent('download');
+  await guide.locator('[data-pgn-save-source]').click();
+  await expect((await pgnDownload).suggestedFilename()).toMatch(/\.pgn$/);
+
+  const diagramDownload = page.waitForEvent('download');
+  await guide.locator('[data-pgn-export-diagram]').click();
+  await expect((await diagramDownload).suggestedFilename()).toMatch(/-diagram\.png$/);
+});
+
 test('loads Capablanca as one of the 82 temporary free player collections', async ({ page }) => {
   await page.route('**/api/pgn/player?album=capablanca-games-1901-1941', route => route.fulfill({
     contentType: 'application/x-chess-pgn',
@@ -201,21 +237,19 @@ test('engine defaults off and renders exactly two local analysis lines', async (
   }));
   await page.goto('/pgn-replayer');
   await loadPgn(page);
-  await page.getByRole('tab', { name: 'Notation' }).click();
   const toggle = page.locator('[data-pgn-engine]');
   await expect(toggle).toContainText('Off');
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-  const visiblePanel = page.locator('[data-pgn-engine-panel]:visible');
-  await expect(visiblePanel).toHaveCount(1);
-  const reservedHeight = await visiblePanel.evaluate(node => node.getBoundingClientRect().height);
+  await expect(page.getByRole('tab', { name: 'Albums' })).toHaveAttribute('aria-selected', 'true');
   await toggle.click();
+  await expect(page.getByRole('tab', { name: 'Analysis' })).toHaveAttribute('aria-selected', 'true');
   await expect(toggle).toContainText('On');
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  const visiblePanel = page.locator('[data-pgn-engine-panel]:visible');
   await expect(visiblePanel).toHaveCount(1);
   await expect(visiblePanel.locator('.pgn-engine-line')).toHaveCount(2);
   await expect(visiblePanel.locator('.pgn-engine-line').first()).toContainText('+0.35');
   await expect(visiblePanel.locator('.pgn-engine-line').first()).toContainText('e4 e5 Nf3');
-  await expect(visiblePanel).toHaveCSS('height', `${reservedHeight}px`);
   await toggle.click();
   await expect(toggle).toContainText('Off');
   await expect(visiblePanel).toHaveAttribute('data-state', 'off');
@@ -262,21 +296,19 @@ test('stays board-first without horizontal page overflow on mobile', async ({ pa
   expect(firstRow.map(control => control.name)).toEqual(['open', 'paste', 'first', 'previous', 'play', 'next', 'last']);
   expect(new Set(firstRow.map(control => control.top)).size).toBe(1);
 
-  const secondRow = await page.locator('[data-pgn-engine], [data-pgn-speed], [data-pgn-flip], [data-pgn-focus]').evaluateAll(nodes => nodes.map(node => Math.round(node.getBoundingClientRect().top)));
+  const secondRow = await page.locator('[data-pgn-speed], [data-pgn-flip], [data-pgn-focus]').evaluateAll(nodes => nodes.map(node => Math.round(node.getBoundingClientRect().top)));
   expect(Math.max(...secondRow) - Math.min(...secondRow)).toBeLessThanOrEqual(2);
   expect(secondRow[0]).toBeGreaterThan(firstRow[0].top);
 
-  const mobileStack = await page.locator('.pgn-toolbar, .pgn-engine-panel--mobile, .pgn-panel').evaluateAll(nodes => nodes.map(node => ({
+  const mobileStack = await page.locator('.pgn-toolbar, .pgn-panel').evaluateAll(nodes => nodes.map(node => ({
     className: node.className,
     top: Math.round(node.getBoundingClientRect().top),
     visible: node.getBoundingClientRect().height > 0
   })).filter(item => item.visible));
-  expect(mobileStack).toHaveLength(3);
+  expect(mobileStack).toHaveLength(2);
   expect(mobileStack[0].className).toContain('pgn-toolbar');
-  expect(mobileStack[1].className).toContain('pgn-engine-panel--mobile');
-  expect(mobileStack[2].className).toContain('pgn-panel');
+  expect(mobileStack[1].className).toContain('pgn-panel');
   expect(mobileStack[0].top).toBeLessThan(mobileStack[1].top);
-  expect(mobileStack[1].top).toBeLessThan(mobileStack[2].top);
 
   await page.getByRole('tab', { name: 'Notation' }).click();
   await page.locator('[data-pgn-speed]').selectOption('400');
