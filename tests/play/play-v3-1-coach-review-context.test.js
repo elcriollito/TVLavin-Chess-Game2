@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { Chess } from 'chess.js';
 
 const root = process.cwd();
 const read = file => fs.readFileSync(`${root}/${file}`, 'utf8');
@@ -175,13 +176,60 @@ test('exploration is a separate temporary branch and never declares another revi
     const exploration = read('js/play/native-coach/coach-review-exploration.js');
     const app = read('app.js');
     assert.match(exploration, /const game = new root\.Chess\(\)/);
-    assert.match(exploration, /baseFen: options\.fen, moves: \[\]/);
+    assert.match(exploration, /baseFen: options\.fen, moves: \[\], positions: \[options\.fen\], cursor: 0/);
     assert.match(exploration, /reviewPlyOwner: 'AnalyzeSection\.currentMoveIndex'/);
     assert.match(presentation, /getSnapshot\?\.\(\)\.engineEnabled === true/);
     assert.match(presentation, /data-coach-exploration-engine-label/);
     assert.match(app, /isCoachReviewExplorationActive\(\)[\s\S]*CaissaCoachReviewExploration\.playMove/);
     assert.doesNotMatch(exploration, /App\.(?:game|moveHistory|currentMoveIndex)\s*=/);
     assert.doesNotMatch(presentation + exploration, /guidedMoveIndex|reviewStepIndex|coachReviewMoveIndex/);
+});
+
+test('temporary exploration cursor reproduces positions and truncates a changed continuation', () => {
+    const rendered = [];
+    const authoritative = { moveHistory: Object.freeze(['authoritative']), currentMoveIndex: 7 };
+    const window = {
+        Chess,
+        document: { body: { classList: { add() {}, remove() {} } } },
+        App: {
+            ...authoritative,
+            board: { position(fen) { rendered.push(fen); } },
+            boardAdapter: { setLastMove() {}, setInteractionEnabled() {}, clearSelection() {}, clearLegalTargets() {} }
+        }
+    };
+    const context = vm.createContext({ window, globalThis: window, Object, Promise });
+    vm.runInContext(read('js/play/native-coach/coach-review-exploration.js'), context,
+        { filename: 'coach-review-exploration.js' });
+    const api = window.CaissaCoachReviewExploration;
+    const analyze = { ensureAnalysisEngine: async () => null, teardownAnalysisEngine() {} };
+    const start = new Chess().fen();
+    assert.equal(api.enter({ fen: start, analyze }).ok, true);
+    assert.equal(api.playMove('e2', 'e4'), true); const afterOne = api.getFen();
+    assert.equal(api.playMove('e7', 'e5'), true); const afterTwo = api.getFen();
+    assert.equal(api.playMove('g1', 'f3'), true); const oldAfterThree = api.getFen();
+    assert.deepEqual([...api.getLine()].map(move => move.san), ['e4', 'e5', 'Nf3']);
+    assert.equal(api.previous().ok, true);
+    assert.equal(api.getFen(), afterTwo);
+    assert.equal(api.first().ok, true);
+    assert.equal(api.getFen(), start);
+    assert.equal(api.next().ok, true);
+    assert.equal(api.getFen(), afterOne);
+    assert.equal(api.last().ok, true);
+    assert.equal(api.getFen(), oldAfterThree);
+    assert.equal(api.previous().ok, true);
+    assert.equal(api.playMove('b1', 'c3'), true);
+    assert.deepEqual([...api.getLine()].map(move => move.san), ['e4', 'e5', 'Nc3']);
+    assert.notEqual(api.getFen(), oldAfterThree);
+    assert.deepEqual({ ...api.getSnapshot() }, {
+        schemaVersion: '1.2.0', active: true, baseFen: start, currentFen: api.getFen(), temporaryPlyCount: 3,
+        cursor: 3, atFirst: false, atLast: true, engineEnabled: true, effortPresetId: 'balanced',
+        analysisDepth: 14, reviewPlyOwner: 'AnalyzeSection.currentMoveIndex'
+    });
+    assert.equal(window.App.moveHistory, authoritative.moveHistory);
+    assert.equal(window.App.currentMoveIndex, authoritative.currentMoveIndex);
+    api.leave();
+    assert.equal(api.getSnapshot().temporaryPlyCount, 0);
+    assert.equal(rendered.length > 0, true);
 });
 
 test('Review Settings reuses the authoritative PGN export and exposes only human effort presets', () => {

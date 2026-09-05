@@ -1,7 +1,7 @@
 (function installCoachReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.7.0';
+    const SCHEMA_VERSION = '1.8.0';
     const QUALITY_ORDER = Object.freeze(['Book', 'Best', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const CLASSIFICATIONS = Object.freeze(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const REVIEW_WORTHY_CLASSIFICATIONS = Object.freeze(['Inaccuracy', 'Mistake', 'Blunder']);
@@ -187,6 +187,9 @@
             'aria-label': 'Classified game notation' }); guided.append(actions, detail, notation);
         const exploration = element('div', 'caissa-coach-exploration', { 'data-coach-analysis-exploration': '',
             'aria-label': 'Position analysis exploration' }); exploration.hidden = true;
+        const explorationHeadDetails = element('div', 'caissa-coach-exploration__head-details', {
+            'data-coach-exploration-head-details': ''
+        });
         const status = element('p', 'caissa-coach-exploration__status', { 'data-coach-exploration-status': '', role: 'status' });
         status.textContent = 'Engine is preparing this position.';
         const evalRow = element('div', 'caissa-coach-exploration__evaluation');
@@ -197,9 +200,19 @@
         const pvLabel = element('span', 'caissa-coach-exploration__label'); pvLabel.textContent = 'Principal variation';
         const pvValue = element('p', 'caissa-coach-exploration__pv', { 'data-coach-exploration-pv': '' });
         pvValue.textContent = 'Waiting for a candidate continuation.'; pv.append(pvLabel, pvValue);
+        explorationHeadDetails.append(status, evalRow, pv);
+        const variationTitle = element('h2', 'caissa-coach-exploration__variation-title');
+        variationTitle.textContent = 'Temporary variation';
+        const variationEmpty = element('p', 'caissa-coach-exploration__empty', {
+            'data-coach-exploration-empty': '', role: 'status'
+        });
+        variationEmpty.textContent = 'Make a legal move on the board to begin exploring.';
+        const variation = element('div', 'caissa-coach-exploration__notation', {
+            'data-coach-exploration-notation': '', 'aria-label': 'Temporary exploration notation', 'aria-live': 'polite'
+        });
         const note = element('p', 'caissa-coach-exploration__note');
         note.textContent = 'Moves here are temporary and do not change your reviewed game.';
-        exploration.append(status, evalRow, pv, note); content.append(guided, exploration);
+        exploration.append(variationTitle, variationEmpty, variation, note); content.append(guided, exploration);
         const foot = element('div', 'caissa-native-coach-panel__foot-content caissa-coach-guided__foot',
             { 'data-caissa-coach-guided-foot': '' });
         const reviewTools = element('div', 'caissa-coach-guided__review-tools', { 'data-coach-guided-foot-review': '' });
@@ -218,13 +231,31 @@
         secondaryActions.append(analysis, settings, newGame); reviewTools.append(navigation, secondaryActions);
         const explorationTools = element('div', 'caissa-coach-guided__exploration-tools', { 'data-coach-exploration-foot': '' });
         explorationTools.hidden = true;
+        const explorationNavigation = element('div', 'caissa-coach-exploration__navigation', {
+            role: 'group', 'aria-label': 'Temporary variation navigation'
+        });
+        const explorationNavButtons = {};
+        const navigationActions = [
+            ['first', 'First exploration position', 'fa-step-backward'],
+            ['previous', 'Previous exploration move', 'fa-chevron-left'],
+            ['next', 'Next exploration move', 'fa-chevron-right'],
+            ['last', 'Last exploration position', 'fa-step-forward']
+        ];
+        navigationActions.forEach(([action, label, icon]) => {
+            const button = element('button', 'caissa-coach-exploration__nav-button', { type: 'button',
+                'data-coach-exploration-nav': action, 'aria-label': label, title: label });
+            button.innerHTML = `<i class="fas ${icon}" aria-hidden="true"></i>`;
+            explorationNavButtons[action] = button; explorationNavigation.append(button);
+        });
+        const explorationActions = element('div', 'caissa-coach-exploration__actions');
         const back = element('button', 'caissa-coach-guided__back-review', { type: 'button', 'data-coach-exploration-back': '' });
         back.innerHTML = '<i class="fas fa-arrow-left" aria-hidden="true"></i><span>Back to Review</span>';
         const engine = element('button', 'caissa-coach-guided__engine', { type: 'button',
             'data-coach-exploration-engine': '', 'aria-pressed': 'false', 'aria-label': 'Engine Off' });
         engine.innerHTML = '<span class="caissa-coach-guided__engine-led" aria-hidden="true"></span>'
             + '<span data-coach-exploration-engine-label>Engine Off</span>';
-        explorationTools.append(back, engine); foot.append(reviewTools, explorationTools);
+        explorationActions.append(back, engine); explorationTools.append(explorationNavigation, explorationActions);
+        foot.append(reviewTools, explorationTools);
         const settingsDialog = element('dialog', 'caissa-coach-review-settings', {
             'data-coach-review-settings-dialog': '', 'aria-labelledby': 'caissaCoachReviewSettingsTitle'
         });
@@ -267,9 +298,11 @@
         }
         analysisSection.append(analysisTitle, effortCopy, effort);
         settingsDialog.append(settingsHeader, gameSection, analysisSection); content.append(settingsDialog);
-        return { content, guided, actions, explain, next, detail, notation, exploration, status, evalValue,
+        return { content, guided, actions, explain, next, detail, notation, exploration, explorationHeadDetails,
+            variation, variationEmpty, status, evalValue,
             pvValue, foot, reviewTools, navigation, secondaryActions, analysis, settings, newGame,
-            explorationTools, back, engine, settingsDialog, settingsClose, savePgn, saveStatus, effort };
+            explorationTools, explorationNavigation, explorationNavButtons, back, engine,
+            settingsDialog, settingsClose, savePgn, saveStatus, effort };
     }
 
     function rememberNode(node) { return node ? { node, parent: node.parentNode, next: node.nextSibling } : null; }
@@ -404,6 +437,50 @@
         syncVisibleEvaluationRail(info.evaluation, info.mate, 'coach-review-exploration');
     }
 
+    function attachExplorationHeadDetails() {
+        if (!mounted?.guided?.explorationHeadDetails) return;
+        root.document.querySelector('[data-caissa-coach-shell] [data-coach-narration]')
+            ?.append(mounted.guided.explorationHeadDetails);
+    }
+
+    function renderExplorationPosition() {
+        if (!mounted || mounted.phase !== 'analysis-exploration') return;
+        const exploration = root.CaissaCoachReviewExploration;
+        const state = exploration?.getSnapshot?.();
+        const line = exploration?.getLine?.() || [];
+        mounted.guided.variationEmpty.hidden = line.length > 0;
+        mounted.guided.variation.replaceChildren();
+        const rows = new Map();
+        line.forEach(move => {
+            if (!rows.has(move.moveNumber)) rows.set(move.moveNumber, { white: null, black: null });
+            rows.get(move.moveNumber)[move.color === 'b' ? 'black' : 'white'] = move;
+        });
+        rows.forEach((moves, moveNumber) => {
+            const row = element('div', 'caissa-coach-exploration__notation-row');
+            const number = element('span', 'caissa-coach-exploration__move-number'); number.textContent = `${moveNumber}.`;
+            row.append(number);
+            ['white', 'black'].forEach(color => {
+                const move = moves[color];
+                if (!move) {
+                    const spacer = element('span', 'caissa-coach-exploration__move-spacer', { 'aria-hidden': 'true' });
+                    row.append(spacer); return;
+                }
+                const button = element('button', 'caissa-coach-exploration__move', { type: 'button',
+                    'data-coach-exploration-move': '', 'data-exploration-cursor': String(move.index + 1) });
+                button.textContent = move.san;
+                button.dataset.future = String(move.future);
+                if (move.current) button.setAttribute('aria-current', 'move');
+                row.append(button);
+            });
+            mounted.guided.variation.append(row);
+        });
+        mounted.guided.explorationNavButtons.first.disabled = !state || state.atFirst;
+        mounted.guided.explorationNavButtons.previous.disabled = !state || state.atFirst;
+        mounted.guided.explorationNavButtons.next.disabled = !state || state.atLast;
+        mounted.guided.explorationNavButtons.last.disabled = !state || state.atLast;
+        mounted.guided.variation.querySelector('[aria-current="move"]')?.scrollIntoView?.({ block: 'nearest' });
+    }
+
     function syncExplorationEngineControl() {
         if (!mounted?.guided?.engine) return;
         const enabled = root.CaissaCoachReviewExploration?.getSnapshot?.().engineEnabled === true;
@@ -442,13 +519,15 @@
         mounted.guided.reviewTools.hidden = true; mounted.guided.explorationTools.hidden = false;
         renderCoachHead({ eyebrow: 'ANALYSIS', title: 'Explore this position', evaluation: '',
             message: 'Try legal continuations here. Your reviewed game remains unchanged.' });
+        attachExplorationHeadDetails();
         const entered = root.CaissaCoachReviewExploration?.enter?.({ fen: projection.fen, analyze: mounted.analyze,
-            onPosition: () => {}, onAnalysis: renderExplorationAnalysis,
+            onPosition: renderExplorationPosition, onAnalysis: renderExplorationAnalysis,
             restore: () => mounted?.analyze?.projectCoachReviewBoardAssistance?.() });
         if (!entered?.ok) { mounted.phase = 'guided-review'; mounted.guided.guided.hidden = false;
             mounted.guided.exploration.hidden = true; mounted.guided.reviewTools.hidden = false;
             mounted.guided.explorationTools.hidden = true; updateGuided(); return; }
         syncExplorationEngineControl();
+        renderExplorationPosition();
         mounted.guided.back.focus?.();
     }
 
@@ -507,6 +586,14 @@
             }).catch(() => { if (mounted) guided.newGame.disabled = false; });
         });
         guided.analysis.addEventListener('click', enterExploration); guided.back.addEventListener('click', leaveExploration);
+        guided.explorationNavigation.addEventListener('click', event => {
+            const button = event.target?.closest?.('[data-coach-exploration-nav]'); if (!button || button.disabled) return;
+            root.CaissaCoachReviewExploration?.[button.dataset.coachExplorationNav]?.();
+        });
+        guided.variation.addEventListener('click', event => {
+            const button = event.target?.closest?.('[data-exploration-cursor]'); if (!button) return;
+            root.CaissaCoachReviewExploration?.goTo?.(Number(button.dataset.explorationCursor));
+        });
         guided.settings.addEventListener('click', openSettings);
         guided.settingsClose.addEventListener('click', closeSettings);
         guided.savePgn.addEventListener('click', () => {
