@@ -130,6 +130,26 @@ test('Guided Review derives concise and expanded copy only from authoritative mo
     assert.doesNotMatch(JSON.stringify(expanded), /Brilliant|Great|Miss/);
 });
 
+test('Guided Review Next selects later questionable player moments without wraparound', () => {
+    const window = fixture();
+    const qualities = ['Acceptable', 'Acceptable', 'Inaccuracy', 'Acceptable', 'Acceptable', 'Acceptable',
+        'Mistake', 'Acceptable', 'Acceptable', 'Acceptable', 'Blunder', 'Acceptable'];
+    const analyze = { currentMoveIndex: 0, analysisResults: qualities.map((quality, moveIndex) => ({
+        moveIndex, quality, isBestMove: moveIndex === 0 || moveIndex === 8
+    })) };
+    const review = window.CaissaCoachReviewPresentation;
+    assert.deepEqual([...review.reviewWorthyClassifications], ['Inaccuracy', 'Mistake', 'Blunder']);
+    assert.deepEqual([...review.findReviewMoments(analyze, handoff())], [2, 6, 10]);
+    assert.equal(review.findNextReviewMoment(analyze, handoff()), 2);
+    analyze.currentMoveIndex = 2;
+    assert.equal(review.findNextReviewMoment(analyze, handoff()), 6);
+    analyze.currentMoveIndex = 6;
+    assert.equal(review.findNextReviewMoment(analyze, handoff()), 10);
+    analyze.currentMoveIndex = 10;
+    assert.equal(review.findNextReviewMoment(analyze, handoff()), null);
+    assert.deepEqual([...review.findReviewMoments(analyze, handoff('coach', 'black'))], []);
+});
+
 test('exploration is a separate temporary branch and never declares another review ply owner', () => {
     const presentation = read('js/play/native-coach/coach-review-presentation.js');
     const exploration = read('js/play/native-coach/coach-review-exploration.js');

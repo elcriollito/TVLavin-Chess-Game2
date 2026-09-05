@@ -199,7 +199,9 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await page.locator('[data-coach-guided-explain]').click();
     await expect(page.locator('[data-coach-guided-detail]')).toBeVisible();
     await page.locator('[data-coach-guided-next]').click();
-    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(1);
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(0);
+    await expect(page.locator('[data-coach-guided-next]')).toContainText('Review Complete');
+    await expect(page.locator('[data-coach-guided-new-game]')).toBeVisible();
     await page.locator('#analyzeNavFirst').click();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(-1);
     await page.locator('#analyzeNavNext').click();
@@ -241,8 +243,11 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove)).toEqual({ from: 'e2', to: 'e4' });
     await expect(page.locator('#analyzeStartBtn')).toBeHidden();
     await expect(page.locator('.analyze-evidence-panel')).toBeHidden();
-    await page.keyboard.press('Escape');
-    await expect(page.locator('.caissa-post-game')).toBeVisible();
+    await page.locator('[data-coach-guided-new-game]').click();
+    await expect(page.locator('[data-caissa-coach-guided-review]')).toHaveCount(0);
+    await expect(page.locator('.caissa-post-game')).toBeHidden();
+    await expect(panel).toBeVisible();
+    await verifyPermanentShell('setup');
 });
 
 test('Coach Review Summary remains inside Play, is responsive, keyboard ordered, and accessible', async ({ page }) => {

@@ -1,9 +1,10 @@
 (function installCoachReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.5.1';
+    const SCHEMA_VERSION = '1.6.0';
     const QUALITY_ORDER = Object.freeze(['Book', 'Best', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const CLASSIFICATIONS = Object.freeze(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
+    const REVIEW_WORTHY_CLASSIFICATIONS = Object.freeze(['Inaccuracy', 'Mistake', 'Blunder']);
     const QUALITY_ICONS = Object.freeze({ Book: 'fa-book-open', Best: 'fa-star', Acceptable: 'fa-check',
         Inaccuracy: 'fa-question', Mistake: 'fa-exclamation', Blunder: 'fa-bolt' });
     let mounted = null;
@@ -66,6 +67,22 @@
         if (Number.isFinite(item?.mateAfter)) return item.mateAfter > 0 ? `M+${item.mateAfter}` : `M${item.mateAfter}`;
         if (!Number.isFinite(item?.evalAfter)) return '\u2014';
         return `${item.evalAfter >= 0 ? '+' : ''}${item.evalAfter.toFixed(2)}`;
+    }
+
+    function findReviewMoments(analyze, handoff) {
+        const parity = handoff?.payload?.playerColor === 'black' ? 1 : 0;
+        const results = Array.isArray(analyze?.analysisResults) ? analyze.analysisResults : [];
+        return freeze(results.map((item, position) => ({ item, position }))
+            .filter(({ item, position }) => item && item.unavailable !== true
+                && REVIEW_WORTHY_CLASSIFICATIONS.includes(item.quality)
+                && (Number.isInteger(item.moveIndex) ? item.moveIndex : position) % 2 === parity)
+            .map(({ item, position }) => Number.isInteger(item.moveIndex) ? item.moveIndex : position)
+            .sort((left, right) => left - right));
+    }
+
+    function findNextReviewMoment(analyze, handoff) {
+        const current = Number.isInteger(analyze?.currentMoveIndex) ? analyze.currentMoveIndex : -1;
+        return findReviewMoments(analyze, handoff).find(position => position > current) ?? null;
     }
 
     function createGuidedModel(analyze, expanded = false) {
@@ -153,8 +170,9 @@
         const explain = element('button', 'caissa-coach-guided__secondary', { type: 'button',
             'data-coach-guided-explain': '', 'aria-expanded': 'false' });
         explain.innerHTML = '<i class="fas fa-lightbulb" aria-hidden="true"></i><span>Explain</span>';
-        const next = element('button', 'caissa-coach-guided__next', { type: 'button', 'data-coach-guided-next': '' });
-        next.innerHTML = '<span>Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>'; actions.append(explain, next);
+        const next = element('button', 'caissa-coach-guided__next', { type: 'button', 'data-coach-guided-next': '',
+            'aria-label': 'Next review-worthy moment' });
+        next.innerHTML = '<span>Next Moment</span><i class="fas fa-arrow-right" aria-hidden="true"></i>'; actions.append(explain, next);
         const detail = element('p', 'caissa-coach-guided__detail', { 'data-coach-guided-detail': '', 'aria-live': 'polite' });
         detail.hidden = true;
         const notation = element('div', 'caissa-coach-guided__notation', { 'data-coach-guided-notation': '',
@@ -183,7 +201,10 @@
         });
         const analysis = element('button', 'caissa-coach-guided__analysis', { type: 'button', 'data-coach-guided-analysis': '' });
         analysis.innerHTML = '<span>Analysis</span><i class="fas fa-search" aria-hidden="true"></i>';
-        secondaryActions.append(analysis); reviewTools.append(navigation, secondaryActions);
+        const newGame = element('button', 'caissa-coach-guided__new-game', { type: 'button',
+            'data-coach-guided-new-game': '' });
+        newGame.innerHTML = '<i class="fas fa-plus" aria-hidden="true"></i><span>New Game</span>'; newGame.hidden = true;
+        secondaryActions.append(analysis, newGame); reviewTools.append(navigation, secondaryActions);
         const explorationTools = element('div', 'caissa-coach-guided__exploration-tools', { 'data-coach-exploration-foot': '' });
         explorationTools.hidden = true;
         const back = element('button', 'caissa-coach-guided__back-review', { type: 'button', 'data-coach-exploration-back': '' });
@@ -193,7 +214,8 @@
         engine.innerHTML = '<i class="fas fa-brain" aria-hidden="true"></i><span>Engine On</span>';
         explorationTools.append(back, engine); foot.append(reviewTools, explorationTools);
         return { content, guided, actions, explain, next, detail, notation, exploration, status, evalValue,
-            pvValue, foot, reviewTools, navigation, secondaryActions, analysis, explorationTools, back, engine };
+            pvValue, foot, reviewTools, navigation, secondaryActions, analysis, newGame,
+            explorationTools, back, engine };
     }
 
     function rememberNode(node) { return node ? { node, parent: node.parentNode, next: node.nextSibling } : null; }
@@ -250,7 +272,13 @@
         mounted.guided.detail.textContent = model.detail;
         mounted.guided.detail.hidden = !mounted.explanationExpanded || !model.detail;
         mounted.guided.explain.setAttribute('aria-expanded', String(mounted.explanationExpanded));
-        mounted.guided.next.disabled = model.index >= mounted.analyze.getLoadedMoves().length - 1;
+        const moments = findReviewMoments(mounted.analyze, mounted.handoff);
+        const finalMoment = moments.at(-1) ?? null;
+        const complete = mounted.reviewComplete || (finalMoment !== null && model.index === finalMoment);
+        mounted.guided.next.disabled = complete;
+        mounted.guided.next.querySelector('span').textContent = complete ? 'Review Complete' : 'Next Moment';
+        mounted.guided.newGame.hidden = !complete;
+        mounted.guided.reviewTools.dataset.reviewComplete = String(complete);
         renderCoachHead({ eyebrow: model.quality.toUpperCase(), title: `${model.move}${model.annotation || ''}`,
             evaluation: model.evaluation, message: model.message });
         mounted.guided.notation.querySelector('.active')?.scrollIntoView?.({ block: 'nearest' });
@@ -345,12 +373,23 @@
         mounted = { section: options.section, host: options.host, context: options.context, handoff: options.handoff,
             summary, guided, analyze: null, model: null, phase: 'review-summary', fingerprint: null,
             analysisStartRequests: 0, timer: null, moveList: null, navigation: null, flipTool: null,
-            explanationExpanded: false };
+            explanationExpanded: false, reviewComplete: false };
         summary.action.addEventListener('click', enterGuidedReview);
         guided.explain.addEventListener('click', () => { if (!mounted) return;
             mounted.explanationExpanded = !mounted.explanationExpanded; updateGuided(); });
         guided.next.addEventListener('click', () => { if (!mounted?.analyze) return;
-            mounted.explanationExpanded = false; mounted.analyze.jumpToMove(mounted.analyze.currentMoveIndex + 1); updateGuided(); });
+            const destination = findNextReviewMoment(mounted.analyze, mounted.handoff);
+            mounted.explanationExpanded = false;
+            if (destination === null) { mounted.reviewComplete = true; updateGuided(); return; }
+            mounted.reviewComplete = false; mounted.analyze.jumpToMove(destination); updateGuided(); });
+        guided.newGame.addEventListener('click', () => {
+            if (!mounted || guided.newGame.disabled) return;
+            guided.newGame.disabled = true;
+            root.CaissaPlayV2InlineAnalyze?.close?.();
+            Promise.resolve(root.CaissaPostGameExperienceInstance?.execute?.('new-game')).then(outcome => {
+                if (mounted && !outcome?.ok) guided.newGame.disabled = false;
+            }).catch(() => { if (mounted) guided.newGame.disabled = false; });
+        });
         guided.analysis.addEventListener('click', enterExploration); guided.back.addEventListener('click', leaveExploration);
         guided.engine.addEventListener('click', () => { const enabled = guided.engine.getAttribute('aria-pressed') !== 'true';
             const changed = root.CaissaCoachReviewExploration?.setEngineEnabled?.(enabled); if (!changed?.ok) return;
@@ -400,5 +439,6 @@
         exploration: root.CaissaCoachReviewExploration?.getSnapshot?.() || null }); }
 
     root.CaissaCoachReviewPresentation = freeze({ schemaVersion: SCHEMA_VERSION, classifications: CLASSIFICATIONS,
-        qualityOrder: QUALITY_ORDER, createSummaryModel, createGuidedModel, mount, begin, unmount, getSnapshot });
+        reviewWorthyClassifications: REVIEW_WORTHY_CLASSIFICATIONS, qualityOrder: QUALITY_ORDER,
+        findReviewMoments, findNextReviewMoment, createSummaryModel, createGuidedModel, mount, begin, unmount, getSnapshot });
 })(typeof window !== 'undefined' ? window : globalThis);

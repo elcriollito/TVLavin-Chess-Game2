@@ -349,6 +349,9 @@ body.caissa-simplified-play-active .caissa-coach-guided__navigation-host .nav-bt
     grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr);
     gap: .55rem;
 }
+.caissa-coach-guided__review-tools[data-review-complete="true"] .caissa-coach-guided__foot-actions {
+    grid-template-columns: minmax(0, .72fr) minmax(0, 1fr) minmax(0, 1.08fr);
+}
 .caissa-coach-guided__foot-actions > button {
     display: inline-flex;
     align-items: center;
@@ -363,6 +366,12 @@ body.caissa-simplified-play-active .caissa-coach-guided__navigation-host .nav-bt
     content: "\f2f1";
 }
 .caissa-coach-guided__analysis { width: 100%; }
+.caissa-coach-guided__new-game {
+    border-color: var(--coach-gold, #d7b96d) !important;
+    background: var(--coach-gold, #d7b96d) !important;
+    color: #111827 !important;
+    font-weight: 850;
+}
 .caissa-coach-exploration { gap: .75rem; padding: .15rem; }
 .caissa-coach-exploration__status,
 .caissa-coach-exploration__note,
@@ -523,6 +532,12 @@ body[data-caissa-play-v2-entry] [data-caissa-coach-game-over-foot] .caissa-post-
     .caissa-coach-guided__navigation-host .analyze-board-navigation { gap: .38rem; }
     .caissa-coach-guided__navigation-host .nav-btn-sm { min-height: 52px; padding: .4rem; font-size: 1.16rem; }
     .caissa-coach-guided__foot-actions { gap: .38rem; }
+    .caissa-coach-guided__review-tools[data-review-complete="true"] .caissa-coach-guided__foot-actions {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.18fr);
+    }
+    .caissa-coach-guided__review-tools[data-review-complete="true"] .caissa-coach-guided__new-game {
+        grid-column: 1 / -1;
+    }
     .caissa-coach-guided__foot-actions > button { min-height: 48px; padding-inline: .45rem; }
     body.caissa-simplified-play-active .caissa-post-game.caissa-coach-game-over-context {
         width: 100%;
