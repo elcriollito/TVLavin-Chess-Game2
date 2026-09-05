@@ -869,7 +869,8 @@ const AnalyzeSection = {
         this.refreshLiveEvaluation();
 
         const selected = this.analysisPhase === 'complete' ? this.analysisResults[safeIndex] : null;
-        if (selected && ['Inaccuracy', 'Mistake', 'Blunder'].includes(selected.quality)) {
+        const coachReviewActive = document.body?.classList?.contains('caissa-coach-review-summary-active');
+        if (!coachReviewActive && selected && ['Inaccuracy', 'Mistake', 'Blunder'].includes(selected.quality)) {
             this.board?.position?.(selected.fenBefore, false);
         }
         this.projectCoachReviewBoardAssistance();
@@ -897,16 +898,14 @@ const AnalyzeSection = {
         const game = this.getGame();
         if (!game) return null;
         const selected = this.analysisPhase === 'complete' ? this.analysisResults[this.currentMoveIndex] : null;
-        const showsFenBefore = selected && ['Inaccuracy', 'Mistake', 'Blunder'].includes(selected.quality)
-            && typeof selected.fenBefore === 'string';
-        const displayedMoveIndex = showsFenBefore ? this.currentMoveIndex - 1 : this.currentMoveIndex;
+        const displayedMoveIndex = this.currentMoveIndex;
         const move = displayedMoveIndex >= 0 ? this.getLoadedMoves({ verbose: true })[displayedMoveIndex] : null;
         return Object.freeze({
-            fen: showsFenBefore ? selected.fenBefore : game.fen(),
+            fen: typeof selected?.fenAfter === 'string' ? selected.fenAfter : game.fen(),
             move: move?.from && move?.to ? Object.freeze({ from: move.from, to: move.to }) : null,
             authoritativeIndex: this.currentMoveIndex,
             displayedMoveIndex,
-            showsFenBefore: !!showsFenBefore
+            showsFenBefore: false
         });
     },
 

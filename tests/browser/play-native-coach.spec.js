@@ -329,6 +329,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     });
 
     const entryPly = await page.evaluate(() => window.AnalyzeSection.currentMoveIndex);
+    const entryMove = await page.evaluate(() => window.AnalyzeSection.getCoachReviewProjection().move);
     await page.evaluate(() => {
         window.__coachReviewExplorationDepths = [];
         const originalEnsure = window.AnalyzeSection.ensureAnalysisEngine.bind(window.AnalyzeSection);
@@ -355,9 +356,17 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect.poll(() => page.evaluate(() => window.CaissaEvaluationRailInstance.getSnapshot().source),
         { timeout: 15_000 }).toBe('coach-review-exploration');
     const explorationBeforeMove = await page.evaluate(() => window.CaissaEvaluationRailInstance.getSnapshot());
-    await page.evaluate(() => window.handlePlayBoardSquareSelection('e2'));
+    const explorationMove = await page.evaluate(() => {
+        for (const file of 'abcdefgh') for (const rank of '12345678') {
+            const moves = window.CaissaCoachReviewExploration.movesFrom(`${file}${rank}`);
+            if (moves.length) return { from: moves[0].from, to: moves[0].to, promotion: moves[0].promotion };
+        }
+        return null;
+    });
+    expect(explorationMove).not.toBeNull();
+    await page.evaluate(square => window.handlePlayBoardSquareSelection(square), explorationMove.from);
     await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().legalTargets.length)).toBeGreaterThan(0);
-    expect(await playMove(page, 'e2', 'e4')).toBe(true);
+    expect(await playMove(page, explorationMove.from, explorationMove.to, explorationMove.promotion)).toBe(true);
     await expect.poll(() => page.evaluate(() => window.CaissaCoachReviewExploration.getSnapshot().temporaryPlyCount)).toBe(1);
     await expect.poll(() => page.evaluate(timestamp =>
         window.CaissaEvaluationRailInstance.getSnapshot().updatedAt > timestamp,
@@ -396,7 +405,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     expect(await page.evaluate(() => window.CaissaCoachReviewExploration.isActive())).toBe(false);
     await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-pressed', 'false');
     await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-label', 'Engine Off');
-    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove)).toBeNull();
+    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove)).toEqual(entryMove);
     await page.locator('[data-coach-guided-settings]').click();
     await expect(settingsDialog).toBeVisible();
     await settingsDialog.getByRole('button', { name: 'Save PGN' }).click();

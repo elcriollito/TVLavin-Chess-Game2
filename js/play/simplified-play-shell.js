@@ -500,6 +500,7 @@
                 });
                 this.#listen(global, 'caissa-coach-move-annotation', () => this.#renderActiveNotation());
                 this.#listen(global, 'caissa-turn-change', () => this.#renderActiveNotation());
+                this.#listen(global, 'caissa:coach-review-ply-change', () => this.#renderCoachBoardAnnotation());
                 if (global.visualViewport) this.#listen(global.visualViewport, 'resize', () => this.resize());
                 this.#listen(global.document, 'transitionend', event => {
                     if (!event.target?.classList?.contains('main-navigation')) return;
@@ -886,13 +887,27 @@
             if (!board) return;
             board.querySelectorAll('[data-caissa-coach-move-annotation]').forEach(node => node.remove());
             if (this.#mode !== 'coach') return;
-            const annotations = Array.isArray(global.App?.coachMoveAnnotations)
-                ? global.App.coachMoveAnnotations : [];
-            const historyLength = Array.isArray(global.App?.moveHistory)
-                ? global.App.moveHistory.length : 0;
             let current = null;
-            for (let index = Math.min(historyLength, annotations.length) - 1; index >= 0; index -= 1) {
-                if (annotations[index]?.square) { current = annotations[index]; break; }
+            if (global.document.body?.classList?.contains('caissa-coach-review-summary-active')) {
+                const analyze = global.AnalyzeSection;
+                const index = Number.isInteger(analyze?.currentMoveIndex) ? analyze.currentMoveIndex : -1;
+                const result = index >= 0 && analyze?.analysisPhase === 'complete'
+                    ? analyze.analysisResults?.[index] : null;
+                const move = index >= 0 ? analyze?.getLoadedMoves?.({ verbose: true })?.[index] : null;
+                const key = result?.isBestMove === true ? 'best' : String(result?.quality || '').toLowerCase();
+                if (move?.to && result?.unavailable !== true && result?.annotation
+                    && result.annotation !== '-' && /^(?:book|best|inaccuracy|mistake|blunder)$/.test(key)) {
+                    current = { square: move.to, san: move.san, key, symbol: result.annotation,
+                        label: result.isBestMove === true ? 'Best' : result.quality };
+                }
+            } else {
+                const annotations = Array.isArray(global.App?.coachMoveAnnotations)
+                    ? global.App.coachMoveAnnotations : [];
+                const historyLength = Array.isArray(global.App?.moveHistory)
+                    ? global.App.moveHistory.length : 0;
+                for (let index = Math.min(historyLength, annotations.length) - 1; index >= 0; index -= 1) {
+                    if (annotations[index]?.square) { current = annotations[index]; break; }
+                }
             }
             if (!current || !/^[a-h][1-8]$/.test(current.square)
                 || !/^(?:book|best|precise|good|inaccuracy|mistake|blunder)$/.test(current.key || '')) return;

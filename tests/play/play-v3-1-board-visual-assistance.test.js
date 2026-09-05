@@ -30,8 +30,10 @@ test('last move comes from authoritative history and review keeps AnalyzeSection
     assert.match(app, /for \(let moveIndex = Math\.min\(index, App\.moveHistory\.length - 1\); moveIndex >= 0;/);
     assert.match(app, /syncLastMovePresentation\(\)/);
     assert.match(app, /App\.boardAdapter\?\.setLastMove\(null\)/);
-    assert.match(analyze, /displayedMoveIndex = showsFenBefore \? this\.currentMoveIndex - 1 : this\.currentMoveIndex/);
+    assert.match(analyze, /const displayedMoveIndex = this\.currentMoveIndex/);
     assert.match(analyze, /getLoadedMoves\(\{ verbose: true \}\)\[displayedMoveIndex\]/);
+    assert.match(analyze, /fen: typeof selected\?\.fenAfter === 'string' \? selected\.fenAfter : game\.fen\(\)/);
+    assert.match(analyze, /!coachReviewActive && selected/);
     for (const duplicateOwner of ['reviewLastMoveIndex', 'reviewMoveIndex', 'coachReviewMove']) {
         assert.doesNotMatch(app + analyze, new RegExp(duplicateOwner));
     }

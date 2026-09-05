@@ -244,7 +244,7 @@ for (const mode of MODES.slice(1)) {
     });
 }
 
-test('Coach Review projects currentMoveIndex and preserves fenBefore presentation semantics', async ({ page }) => {
+test('Coach Review projects one authoritative selected-ply board contract', async ({ page }) => {
     await instrumentPlay(page, { autoReply: true, bestMoves: ['e7e5'], delayMs: 10 });
     await startMode(page, MODES[2]);
     expect(await playMove(page, 'e2', 'e4')).toBe(true);
@@ -253,35 +253,106 @@ test('Coach Review projects currentMoveIndex and preserves fenBefore presentatio
     await page.locator('[data-post-game-action="analyze"]').click();
     await expect.poll(() => page.evaluate(() => typeof window.AnalyzeSection)).toBe('object');
     await expect(page.locator('[data-caissa-coach-review-summary]')).toBeVisible();
-    const moves = await page.evaluate(() => window.AnalyzeSection.getLoadedMoves({ verbose: true })
-        .map(move => ({ from: move.from, to: move.to, san: move.san })));
-
-    await page.evaluate(() => window.AnalyzeSection.jumpToMove(-1));
-    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove)).toBeNull();
-    await page.evaluate(() => window.AnalyzeSection.jumpToMove(0));
-    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove))
-        .toEqual({ from: moves[0].from, to: moves[0].to });
-    await page.evaluate(() => window.AnalyzeSection.jumpToMove(1));
-    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove))
-        .toEqual({ from: moves[1].from, to: moves[1].to });
-    await page.evaluate(() => window.AnalyzeSection.jumpToMove(0));
-    await page.evaluate(() => window.AnalyzeSection.jumpToMove(1));
-    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove))
-        .toEqual({ from: moves[1].from, to: moves[1].to });
-
-    await page.evaluate((firstSan) => {
+    const line = await page.evaluate(() => {
         const analysis = window.AnalyzeSection;
+        analysis.loadGameFromPgn('1. e4 d5 2. exd5 Qxd5 3. Nc3 Qd8 4. Nf3 Nf6 5. Bb5+ Bd7 6. O-O', 'Coach sync fixture');
+        const moves = analysis.getLoadedMoves({ verbose: true });
         const replay = new window.Chess();
-        replay.move(firstSan);
+        analysis.analysisResults = moves.map((move, index) => {
+            const fenBefore = replay.fen(); replay.move(move.san); const fenAfter = replay.fen();
+            return { moveIndex: index, quality: index % 3 === 0 ? 'Mistake' : 'Inaccuracy',
+                annotation: index % 3 === 0 ? '?' : '?!', fenBefore, fenAfter, move: move.san,
+                bestMoveSan: 'a3', recommendationAvailable: true, evalBefore: index / 10,
+                evalAfter: (index + 1) / 10, loss: .8, mateBefore: null, mateAfter: null };
+        });
         analysis.analysisPhase = 'complete';
-        analysis.analysisResults[1] = {
-            quality: 'Mistake', fenBefore: replay.fen(), move: analysis.getLoadedMoves()[1],
-            bestMoveSan: '', beforePlayerEval: 0.2, afterPlayerEval: -1, loss: 1.2,
-            mateBefore: null, mateAfter: null
-        };
+        analysis.updateMoveList(); analysis.jumpToMove(0);
+        return moves.map((move, index) => ({ index, from: move.from, to: move.to, san: move.san,
+            fenBefore: analysis.analysisResults[index].fenBefore, fenAfter: analysis.analysisResults[index].fenAfter,
+            annotation: analysis.analysisResults[index].annotation,
+            quality: analysis.analysisResults[index].quality,
+            evalAfter: analysis.analysisResults[index].evalAfter }));
+    });
+
+    const genericNegative = await page.evaluate(() => {
+        const analysis = window.AnalyzeSection;
+        document.body.classList.remove('caissa-coach-review-summary-active');
         analysis.jumpToMove(1);
-    }, moves[0].san);
-    expect(await page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(1);
-    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove))
-        .toEqual({ from: moves[0].from, to: moves[0].to });
+        const boardFen = window.App.boardAdapter.getPosition();
+        document.body.classList.add('caissa-coach-review-summary-active');
+        analysis.jumpToMove(1);
+        return { boardFen, fenBefore: analysis.analysisResults[1].fenBefore };
+    });
+    expect(genericNegative.boardFen).toBe(genericNegative.fenBefore);
+
+    await page.getByRole('button', { name: 'Start Review' }).click();
+    const assertSelectedPly = async index => {
+        await page.evaluate(value => window.AnalyzeSection.jumpToMove(value), index);
+        await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(index);
+        const expected = line[index];
+        const proof = await page.evaluate(() => {
+            const analysis = window.AnalyzeSection;
+            const index = analysis.currentMoveIndex;
+            const result = analysis.analysisResults[index];
+            const move = analysis.getLoadedMoves({ verbose: true })[index];
+            const projection = analysis.getCoachReviewProjection();
+            const badge = document.querySelector('[data-caissa-coach-move-annotation]');
+            const activeNotation = document.querySelector('#analyzeMoveList .active');
+            return { boardFen: window.App.boardAdapter.getPosition(), projection,
+                lastMove: window.App.boardAdapter.getSnapshot().lastMove,
+                destinationHasPiece: !!document.querySelector(`#chessboard .square-${move.to} .piece-417db`),
+                badgeSquare: badge?.parentElement?.className.match(/square-([a-h][1-8])/)?.[1] || null,
+                badgeText: badge?.textContent || '', activeIndex: Number(activeNotation?.dataset.index),
+                head: document.querySelector('[data-coach-narration]')?.textContent || '',
+                railCp: window.CaissaEvaluationRailInstance.getSnapshot().scoreCp,
+                resultQuality: result.quality };
+        });
+        expect(proof.boardFen).toBe(expected.fenAfter);
+        expect(proof.projection).toMatchObject({ fen: expected.fenAfter,
+            move: { from: expected.from, to: expected.to }, authoritativeIndex: index,
+            displayedMoveIndex: index, showsFenBefore: false });
+        expect(proof.lastMove).toEqual({ from: expected.from, to: expected.to });
+        expect(proof.destinationHasPiece).toBe(true);
+        expect(proof.badgeSquare).toBe(expected.to);
+        expect(proof.badgeText).toBe(expected.annotation);
+        expect(proof.activeIndex).toBe(index);
+        expect(proof.head).toContain(expected.san);
+        expect(proof.head.toUpperCase()).toContain(expected.quality.toUpperCase());
+        expect(proof.railCp).toBe(Math.round(expected.evalAfter * 100));
+    };
+
+    await assertSelectedPly(0); // White negative quiet pawn move.
+    await page.locator('[data-coach-guided-next]').click();
+    await assertSelectedPly(1); // Black ...d5 reproduction and two-sided Next Moment.
+    await page.locator('#analyzeNavNext').click();
+    await assertSelectedPly(2); // White capture.
+    await page.locator('#analyzeNavNext').click();
+    await assertSelectedPly(3); // Black capture.
+    await page.locator('#analyzeNavPrev').click();
+    await assertSelectedPly(2); // Literal Previous restores the preceding ply.
+    await assertSelectedPly(10); // White castling.
+
+    await page.locator('[data-coach-guided-analysis]').click();
+    await expect(page.locator('[data-coach-analysis-exploration]')).toBeVisible();
+    await page.locator('[data-coach-exploration-back]').click();
+    await assertSelectedPly(10); // Exploration returns to the exact authoritative ply.
+
+    const promotion = await page.evaluate(() => {
+        const analysis = window.AnalyzeSection;
+        const pgn = '[SetUp "1"]\n[FEN "4k3/P7/8/8/8/8/8/4K3 w - - 0 1"]\n\n1. a8=Q+';
+        analysis.loadGameFromPgn(pgn, 'Coach promotion sync fixture');
+        const move = analysis.getLoadedMoves({ verbose: true })[0];
+        const replay = new window.Chess('4k3/P7/8/8/8/8/8/4K3 w - - 0 1');
+        const fenBefore = replay.fen(); replay.move(move.san); const fenAfter = replay.fen();
+        analysis.analysisResults = [{ moveIndex: 0, quality: 'Mistake', annotation: '?', fenBefore, fenAfter,
+            move: move.san, evalBefore: 0, evalAfter: -1, loss: 1, mateBefore: null, mateAfter: null }];
+        analysis.analysisPhase = 'complete'; analysis.updateMoveList(); analysis.jumpToMove(0);
+        return { move: { from: move.from, to: move.to }, fenAfter,
+            boardFen: window.App.boardAdapter.getPosition(), lastMove: window.App.boardAdapter.getSnapshot().lastMove,
+            promotedPiece: !!document.querySelector('#chessboard .square-a8 .piece-417db'),
+            badgeSquare: document.querySelector('[data-caissa-coach-move-annotation]')?.parentElement
+                ?.className.match(/square-([a-h][1-8])/)?.[1] || null };
+    });
+    expect(promotion).toMatchObject({ boardFen: promotion.fenAfter, lastMove: promotion.move,
+        promotedPiece: true, badgeSquare: 'a8' });
 });
