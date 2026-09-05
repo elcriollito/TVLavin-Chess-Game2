@@ -2278,12 +2278,105 @@ body.caissa-bots-game-over-active [data-caissa-floating-controls] {
 body.caissa-simplified-play-active .caissa-bots-panel__post-game-foot
     .caissa-post-game__actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
     gap: .55rem;
 }
 
 body.caissa-simplified-play-active .caissa-bots-panel__post-game-foot
-    :is([data-post-game-action="mentor-review"], [data-post-game-action="save-game"]) {
+    [data-post-game-action="mentor-review"] {
     grid-column: 1 / -1;
+    border-color: color-mix(in srgb, var(--accent-color, #d3a94d) 72%, var(--panel-border));
+    background: color-mix(in srgb, var(--accent-color, #d3a94d) 8%, var(--play-theme-card, #17202b));
+    color: var(--accent-color, #e2bd58);
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-foot
+    [data-post-game-action="mentor-review"]::before {
+    content: "▤";
+    margin-inline-end: .45rem;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-foot
+    [data-post-game-action="new-game"]::before {
+    content: "+";
+    display: inline-grid;
+    width: 1.1em;
+    height: 1.1em;
+    margin-inline-end: .42rem;
+    place-items: center;
+    border-radius: 50%;
+    background: #f4f7fb;
+    color: #17202b;
+    font-size: .9em;
+    font-weight: 900;
+    line-height: 1;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-menu {
+    min-width: 0;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    min-height: 44px;
+    padding: 8px 10px;
+    border: 1px solid #52647a;
+    border-radius: .55rem;
+    background: #202a38;
+    color: #f4f7fb;
+    font-size: clamp(15px, 14px + .25vw, 17px);
+    font-weight: 700;
+    cursor: pointer;
+    list-style: none;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-menu-toggle::-webkit-details-marker {
+    display: none;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-menu-toggle:focus-visible {
+    outline: 3px solid var(--focus-ring, #8ec5ff);
+    outline-offset: 2px;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-menu-mark {
+    letter-spacing: .08em;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-menu-items {
+    display: grid;
+    gap: .4rem;
+    margin-top: .45rem;
+    padding: .45rem;
+    border: 1px solid var(--panel-border);
+    border-radius: .6rem;
+    background: color-mix(in srgb, var(--play-theme-card, #17202b) 98%, black);
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-menu:not([open])
+    .caissa-bots-panel__post-game-menu-items {
+    display: none;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-menu-items
+    .caissa-post-game__action {
+    width: 100%;
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-menu-items
+    [data-post-game-action="copy-pgn"]::before { content: "⧉"; margin-inline-end: .45rem; }
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-menu-items
+    [data-post-game-action="download-pgn"]::before { content: "↓"; margin-inline-end: .45rem; }
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-menu-items
+    [data-post-game-action="save-game"]::before { content: "▣"; margin-inline-end: .45rem; }
+
+body.caissa-simplified-play-active .caissa-bots-panel__post-game-menu-items
+    .caissa-post-game__feedback:not(:empty) {
+    margin: 0;
+    padding: .2rem;
 }
 
 body.caissa-simplified-play-active .caissa-bots-panel__post-game-foot

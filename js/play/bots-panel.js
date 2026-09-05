@@ -1,7 +1,7 @@
 (function installBotsPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '2.5.0';
+    const SCHEMA_VERSION = '2.6.0';
     const STATUSES = Object.freeze(['ready', 'planned', 'busy', 'active', 'error', 'unavailable', 'disposed']);
     const TIME_CONTROLS = Object.freeze([
         Object.freeze({ value: 0, label: 'No Timer' }),
@@ -304,7 +304,13 @@
         #rememberPostGamePlacement(content, foot) {
             if (this.#postGamePlacement) return this.#postGamePlacement.wrapper;
             if (content?.nodeType !== 1 || foot?.nodeType !== 1) return null;
+            const actionOrder = [...foot.querySelectorAll(':scope > [data-post-game-action]')];
             const primary = foot.querySelector('[data-post-game-action="analyze"]');
+            const rematch = foot.querySelector('[data-post-game-action="rematch"]');
+            const newGame = foot.querySelector('[data-post-game-action="new-game"]');
+            const mentor = foot.querySelector('[data-post-game-action="mentor-review"]');
+            const pgnActions = ['copy-pgn', 'download-pgn', 'save-game']
+                .map(action => foot.querySelector(`[data-post-game-action="${action}"]`)).filter(Boolean);
             const consent = content.querySelector('.caissa-post-game__consent');
             const feedback = content.querySelector('.caissa-post-game__feedback');
             const contentMarker = global.document.createComment('caissa-bots-post-game-content-home');
@@ -320,14 +326,31 @@
             const wrapper = element('div', 'caissa-bots-panel__post-game-foot', {
                 'data-bots-foot-content': 'game-over'
             });
+            const menu = element('details', 'caissa-bots-panel__post-game-menu');
+            const menuToggle = element('summary', 'caissa-bots-panel__post-game-menu-toggle', {
+                'aria-label': 'PGN actions menu'
+            });
+            const menuMark = element('span', 'caissa-bots-panel__post-game-menu-mark', { 'aria-hidden': 'true' });
+            menuMark.textContent = '•••';
+            const menuLabel = element('span', ''); menuLabel.textContent = 'Menu';
+            const menuItems = element('div', 'caissa-bots-panel__post-game-menu-items', {
+                'aria-label': 'PGN actions'
+            });
+            menuToggle.append(menuMark, menuLabel);
+            menuItems.append(...pgnActions);
+            menu.append(menuToggle, menuItems);
             if (primary) {
                 primary.setAttribute('data-bots-primary-post-game-action', '');
                 content.querySelector('.caissa-post-game__reason')?.after(primary);
             }
+            if (rematch) rematch.hidden = true;
+            if (mentor) foot.appendChild(mentor);
+            if (newGame) foot.appendChild(newGame);
+            foot.appendChild(menu);
             wrapper.appendChild(foot);
-            if (consent) wrapper.appendChild(consent);
-            if (feedback) wrapper.appendChild(feedback);
-            this.#postGamePlacement = { content, foot, primary, consent, feedback, wrapper,
+            if (consent) menuItems.appendChild(consent);
+            if (feedback) menuItems.appendChild(feedback);
+            this.#postGamePlacement = { content, foot, actionOrder, primary, rematch, consent, feedback, wrapper, menu,
                 contentMarker, footMarker, primaryMarker, consentMarker, feedbackMarker };
             return wrapper;
         }
@@ -339,6 +362,7 @@
             if (placement.primary) placement.primaryMarker.parentNode?.insertBefore(placement.primary, placement.primaryMarker);
             placement.primaryMarker.remove();
             placement.primary?.removeAttribute('data-bots-primary-post-game-action');
+            if (placement.rematch) placement.rematch.hidden = false;
             placement.footMarker.parentNode?.insertBefore(placement.foot, placement.footMarker);
             placement.footMarker.remove();
             if (placement.consent) placement.consentMarker.parentNode?.insertBefore(placement.consent, placement.consentMarker);
@@ -347,6 +371,8 @@
             placement.feedbackMarker.remove();
             placement.contentMarker.parentNode?.insertBefore(placement.content, placement.contentMarker);
             placement.contentMarker.remove();
+            placement.actionOrder.forEach(action => placement.foot.appendChild(action));
+            placement.menu.remove();
             placement.wrapper.remove();
             placement.content.removeAttribute('data-bots-phase-content');
         }

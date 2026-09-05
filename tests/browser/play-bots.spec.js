@@ -282,7 +282,7 @@ test('an invalid candidate set fails honestly, preserves the profile, and cancel
     expect(proof.history).toEqual(['e4']); expect(proof.selected).toBe('nora'); expect(proof.request).toBeNull();
 });
 
-test('post-game identity and rematch retain the selected bot', async ({ page }) => {
+test('post-game identity and simplified Foot retain the selected bot and owned callbacks', async ({ page }) => {
     await openBots(page);
     await openCategory(page, 'Advanced');
     await page.getByLabel(/Vera, 1500 Elo target/).check();
@@ -298,7 +298,10 @@ test('post-game identity and rematch retain the selected bot', async ({ page }) 
     await expect(shell.locator(':scope > [data-caissa-bots-foot] [data-post-game-action="analyze"]')).toHaveCount(0);
     await expect(shell.locator(':scope > [data-caissa-bots-foot] > .caissa-bots-panel__post-game-foot')).toBeVisible();
     await expect(shell.locator(':scope > [data-caissa-bots-foot] .caissa-post-game__actions')).toBeVisible();
-    await expect(shell.locator(':scope > [data-caissa-bots-foot] .caissa-post-game__consent')).toBeVisible();
+    await expect(shell.locator(':scope > [data-caissa-bots-foot] [data-post-game-action="rematch"]')).toBeHidden();
+    await expect(shell.locator(':scope > [data-caissa-bots-foot] [data-post-game-action]:visible')).toHaveCount(2);
+    await expect(shell.locator(':scope > [data-caissa-bots-foot] .caissa-bots-panel__post-game-menu')).not.toHaveAttribute('open', '');
+    await expect(shell.locator(':scope > [data-caissa-bots-foot] .caissa-post-game__consent')).toBeHidden();
     await expect(shell.locator(':scope > [data-caissa-bots-foot] [data-post-game-action]')).toHaveCount(6);
     await expect(shell.locator(':scope > [data-caissa-bots-foot] [data-active-game-action]')).toHaveCount(0);
     await expect(page.locator('[data-post-game-result]')).toHaveText('You Lost'); await expect(page.locator('[data-post-game-reason]')).toHaveText('By Resignation');
@@ -327,7 +330,7 @@ test('post-game identity and rematch retain the selected bot', async ({ page }) 
         });
         expect(geometry).toMatchObject({ headHeight: expectedHeadHeight, tabToHead: 8, separated: true,
             analyzeInBody: true, bodyOverflow: 'auto', overflow: 0 });
-        for (const action of await shell.locator(':scope > [data-caissa-bots-foot] [data-post-game-action]').all()) {
+        for (const action of await shell.locator(':scope > [data-caissa-bots-foot] [data-post-game-action]:visible').all()) {
             await action.scrollIntoViewIfNeeded();
             expect(await action.evaluate(node => {
                 const box = node.getBoundingClientRect();
@@ -339,8 +342,18 @@ test('post-game identity and rematch retain the selected bot', async ({ page }) 
     expect(await page.evaluate(() => window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(0);
     await expect(page.locator('[data-post-game-action="analyze"]')).toBeEnabled();
     expect(await page.evaluate(() => window.CaissaPostGameExperienceInstance.getSnapshot().actions.analyze.enabled)).toBe(true);
-    await page.locator('[data-post-game-action="rematch"]').click();
-    expect(await page.evaluate(() => window.CaissaBotSession.getSnapshot().activeBotId)).toBe('vera');
+    const menu = shell.locator('.caissa-bots-panel__post-game-menu');
+    await menu.locator('summary').click();
+    await expect(menu).toHaveAttribute('open', '');
+    await expect(menu.locator('[data-post-game-action]')).toHaveText(['Copy PGN', 'Download PGN', 'Save PGN Locally']);
+    await expect(menu.locator('.caissa-post-game__consent')).toBeVisible();
+    await menu.locator('[data-post-game-action="copy-pgn"]').click();
+    await expect(menu.locator('[data-post-game-feedback]')).toContainText('PGN');
+    await menu.locator('[data-post-game-consent]').check();
+    await expect(menu.locator('[data-post-game-action="save-game"]')).toBeEnabled();
+    await shell.locator('[data-post-game-action="new-game"]').click();
+    await expect(shell).toHaveAttribute('data-bot-shell-phase', 'setup');
+    await expect(shell.locator('[data-bot-selected]')).toContainText('Vera');
     await expect(page.locator('body')).not.toHaveClass(/caissa-bots-game-over-active/);
 });
 
