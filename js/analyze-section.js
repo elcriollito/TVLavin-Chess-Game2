@@ -870,7 +870,8 @@ const AnalyzeSection = {
 
         const selected = this.analysisPhase === 'complete' ? this.analysisResults[safeIndex] : null;
         const coachReviewActive = document.body?.classList?.contains('caissa-coach-review-summary-active');
-        if (!coachReviewActive && selected && ['Inaccuracy', 'Mistake', 'Blunder'].includes(selected.quality)) {
+        const botsReviewActive = document.body?.classList?.contains('caissa-bots-guided-review-active');
+        if (!coachReviewActive && !botsReviewActive && selected && ['Inaccuracy', 'Mistake', 'Blunder'].includes(selected.quality)) {
             this.board?.position?.(selected.fenBefore, false);
         }
         this.projectCoachReviewBoardAssistance();
@@ -880,12 +881,18 @@ const AnalyzeSection = {
                 detail: Object.freeze({ currentMoveIndex: this.currentMoveIndex })
             }));
         }
+        if (botsReviewActive) {
+            window.dispatchEvent(new CustomEvent('caissa:bots-review-ply-change', {
+                detail: Object.freeze({ currentMoveIndex: this.currentMoveIndex })
+            }));
+        }
 
         console.log('[Analyze] Jumped to move:', safeIndex + 1);
     },
 
     projectCoachReviewBoardAssistance() {
-        if (!document.body?.classList?.contains('caissa-coach-review-summary-active')) return false;
+        if (!document.body?.classList?.contains('caissa-coach-review-summary-active')
+            && !document.body?.classList?.contains('caissa-bots-guided-review-active')) return false;
         const projection = this.getCoachReviewProjection();
         if (!projection) return false;
         return window.App?.projectCoachReviewBoardAssistance?.({
@@ -1967,7 +1974,8 @@ const AnalyzeSection = {
      * Section lifecycle: Exit
      */
     onExit() {
-        if (document.body?.classList?.contains('caissa-coach-review-summary-active')) {
+        if (document.body?.classList?.contains('caissa-coach-review-summary-active')
+            || document.body?.classList?.contains('caissa-bots-guided-review-active')) {
             window.App?.restorePlayBoardAfterCoachReview?.();
         }
         if (this.liveEngineEnabled) {

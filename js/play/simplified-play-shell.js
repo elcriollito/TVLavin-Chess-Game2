@@ -1,7 +1,7 @@
 (function (global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.15.0';
+    const SCHEMA_VERSION = '1.16.0';
     const SNAPSHOT_SCHEMA_VERSION = '1.14.0';
     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'unavailable', 'error']);
     const REGIONS = Object.freeze([
@@ -503,6 +503,7 @@
                 this.#listen(global, 'caissa-coach-move-annotation', () => this.#renderActiveNotation());
                 this.#listen(global, 'caissa-turn-change', () => this.#renderActiveNotation());
                 this.#listen(global, 'caissa:coach-review-ply-change', () => this.#renderCoachBoardAnnotation());
+                this.#listen(global, 'caissa:bots-review-ply-change', () => this.#renderCoachBoardAnnotation());
                 if (global.visualViewport) this.#listen(global.visualViewport, 'resize', () => this.resize());
                 this.#listen(global.document, 'transitionend', event => {
                     if (!event.target?.classList?.contains('main-navigation')) return;
@@ -904,9 +905,11 @@
             const board = this.#root?.querySelector('#chessboard');
             if (!board) return;
             board.querySelectorAll('[data-caissa-coach-move-annotation]').forEach(node => node.remove());
-            if (this.#mode !== 'coach') return;
+            const guidedBots = this.#mode === 'bots'
+                && global.document.body?.classList?.contains('caissa-bots-guided-review-active');
+            if (this.#mode !== 'coach' && !guidedBots) return;
             let current = null;
-            if (global.document.body?.classList?.contains('caissa-coach-review-summary-active')) {
+            if (global.document.body?.classList?.contains('caissa-coach-review-summary-active') || guidedBots) {
                 const analyze = global.AnalyzeSection;
                 const index = Number.isInteger(analyze?.currentMoveIndex) ? analyze.currentMoveIndex : -1;
                 const result = index >= 0 && analyze?.analysisPhase === 'complete'

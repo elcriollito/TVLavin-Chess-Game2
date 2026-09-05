@@ -3470,7 +3470,8 @@ function flipBoard() {
     syncEvalOrientation();
     window.CaissaSimplifiedPlayShellInstance?.syncBoardEdges?.();
 
-    if (!document.body?.classList?.contains('caissa-coach-review-summary-active')) {
+    if (!document.body?.classList?.contains('caissa-coach-review-summary-active')
+        && !document.body?.classList?.contains('caissa-bots-guided-review-active')) {
         if (App.lastEvalMate !== null && App.lastEvalMate !== undefined) {
             updateEvalBar(App.lastEvalMate > 0 ? 1400 : -1400, App.lastEvalMate);
         } else if (App.lastEvalCp !== null && App.lastEvalCp !== undefined) {
@@ -5880,7 +5881,8 @@ function updateUI() {
 }
 
 function projectCoachReviewBoardAssistance({ fen, move } = {}) {
-    if (!document.body?.classList?.contains('caissa-coach-review-summary-active')) return false;
+    if (!document.body?.classList?.contains('caissa-coach-review-summary-active')
+        && !document.body?.classList?.contains('caissa-bots-guided-review-active')) return false;
     if (fen) App.board?.position?.(fen, false);
     clearMobileTapSource();
     App.boardAdapter?.setLastMove(move?.from && move?.to ? { from: move.from, to: move.to } : null);

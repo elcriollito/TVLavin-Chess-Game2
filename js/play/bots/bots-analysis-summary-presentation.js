@@ -1,7 +1,7 @@
 (function installBotsAnalysisSummaryPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
     const QUALITY_ORDER = Object.freeze(['Book', 'Best', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const CLASSIFICATIONS = Object.freeze(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const QUALITY_ICONS = Object.freeze({ Book: 'fa-book-open', Best: 'fa-star', Acceptable: 'fa-check',
@@ -181,6 +181,8 @@
                 analysisOwner: 'AnalyzeSection'
             }) }));
             ui.live.textContent = 'Guided Review handoff is ready.';
+            root.CaissaBotsGuidedReviewPresentation?.enter?.({ context: mounted.context,
+                handoff: mounted.handoff, analyze: mounted.analyze, identity: mounted.identity });
         });
         render({ phase: 'loading', progress: 0, progressText: 'Preparing your review' });
         return result(true, 'accepted', 'BOTS_ANALYSIS_SUMMARY_MOUNTED', getSnapshot());
@@ -201,6 +203,7 @@
 
     function unmount() {
         if (!mounted) return result(true, 'unchanged', 'ALREADY_UNMOUNTED');
+        root.CaissaBotsGuidedReviewPresentation?.unmount?.();
         if (mounted.timer) root.clearInterval(mounted.timer);
         mounted.ui.head.remove(); mounted.ui.body.remove(); mounted.ui.foot.remove();
         root.document.body.classList.remove('caissa-bots-analysis-summary-active');

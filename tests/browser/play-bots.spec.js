@@ -391,7 +391,7 @@ test('post-game identity and simplified Foot retain the selected bot and owned c
     await expect(page.locator('body')).not.toHaveClass(/caissa-bots-game-over-active/);
 });
 
-test('Analyze This Game enters the in-shell Caissa summary with one authoritative analysis owner', async ({ page }) => {
+test('Bots analysis handoff reaches Guided Review with one authoritative analysis and ply owner', async ({ page }) => {
     const runtime = monitorRuntime(page);
     await openBots(page, { width: 1600, height: 1000 });
     await openCategory(page, 'Advanced');
@@ -463,18 +463,124 @@ test('Analyze This Game enters the in-shell Caissa summary with one authoritativ
     }
     console.log(`BOTS_ANALYSIS_SUMMARY_GEOMETRY ${JSON.stringify(measured)}`);
 
-    let handoff = null;
+    const immutableBefore = await page.evaluate(() => ({
+        pgn: window.AnalyzeSection.loadedGame.pgn,
+        loadedMoves: JSON.stringify(window.AnalyzeSection.getLoadedMoves({ verbose: true })),
+        appHistory: JSON.stringify(window.App.moveHistory),
+        analysis: JSON.stringify(window.AnalyzeSection.analysisResults),
+        analysisStartRequests: window.CaissaBotsAnalysisSummaryPresentation.getSnapshot().analysisStartRequests
+    }));
     await page.evaluate(() => window.addEventListener('caissa:bots-guided-review-request', event => {
         window.__botsReviewHandoff = event.detail;
     }, { once: true }));
     await shell.locator('.caissa-bots-analysis-summary__review').click();
-    handoff = await page.evaluate(() => window.__botsReviewHandoff);
+    const handoff = await page.evaluate(() => window.__botsReviewHandoff);
     expect(handoff).toMatchObject({ contextId: 'bots-review-summary', analysisOwner: 'AnalyzeSection' });
-    await expect(shell).toHaveAttribute('data-bot-shell-phase', 'analysis-summary');
+    await expect(shell).toHaveAttribute('data-bot-shell-phase', 'guided-review');
+    await expect(shell.locator('[data-bots-guided-review]')).toBeVisible();
+    await expect(shell.locator('[data-bots-guided-head] img')).toHaveCount(1);
+    await expect(page.locator('#playSection #chessboard .board-b72b1:visible')).toHaveCount(1);
+    await expect(page.locator('#analyzeSection .analyze-layout:visible')).toHaveCount(0);
+    await expect(page.locator('.caissa-simplified-shell__board-stage > :is(.caissa-simplified-shell__board-actions, .caissa-simplified-shell__utility-bar):visible')).toHaveCount(0);
+    await expect(page.locator('.caissa-simplified-shell__board-stage > .caissa-simplified-shell__player:visible')).toHaveCount(0);
+    await expect(shell.locator('[data-bots-guided-nav]')).toHaveCount(4);
+    await expect(shell.locator('[data-bots-guided-notation] [aria-current="move"]')).toHaveCount(1);
+    await expect(shell).not.toContainText(/centipawn|depth|nodes|hash|threads|MultiPV|Game Info|Critical Moments|Move Evidence/i);
+
+    const assertProjectedPly = async index => {
+        await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(index);
+        if (index < 0) return;
+        const projection = await page.evaluate(() => {
+            const selected = window.AnalyzeSection.analysisResults[window.AnalyzeSection.currentMoveIndex];
+            const move = window.AnalyzeSection.getLoadedMoves({ verbose: true })[window.AnalyzeSection.currentMoveIndex];
+            const rail = window.CaissaEvaluationRailInstance.getSnapshot();
+            return { board: window.App.boardAdapter.getPosition(), expectedFen: selected.fenAfter,
+                lastMove: window.App.boardAdapter.getSnapshot().lastMove, expectedMove: { from: move.from, to: move.to },
+                railCp: rail.scoreCp, expectedCp: Number.isFinite(selected.evalAfter) ? Math.round(selected.evalAfter * 100) : null,
+                railSource: rail.source };
+        });
+        expect(projection.board).toBe(projection.expectedFen);
+        expect(projection.lastMove).toEqual(projection.expectedMove);
+        if (projection.expectedCp !== null) expect(projection.railCp).toBe(projection.expectedCp);
+        expect(projection.railSource).toBe('bots-guided-review-ply');
+    };
+    await assertProjectedPly(0);
+    await shell.getByRole('button', { name: 'Next move' }).click(); await assertProjectedPly(1);
+    await shell.getByRole('button', { name: 'Previous move' }).click(); await assertProjectedPly(0);
+    const literalPly = Math.min(2, await page.evaluate(() => window.AnalyzeSection.getLoadedMoves().length - 1));
+    await shell.locator(`[data-bots-guided-ply="${literalPly}"]`).click(); await assertProjectedPly(literalPly);
+    await shell.getByRole('button', { name: 'Last move' }).click();
+    await assertProjectedPly(await page.evaluate(() => window.AnalyzeSection.getLoadedMoves().length - 1));
+    await shell.getByRole('button', { name: 'First position' }).click();
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(-1);
+    const initialProjection = await page.evaluate(() => ({
+        board: window.App.boardAdapter.getPosition(),
+        expectedFen: window.AnalyzeSection.analysisResults[0].fenBefore,
+        railCp: window.CaissaEvaluationRailInstance.getSnapshot().scoreCp,
+        expectedCp: Math.round(window.AnalyzeSection.analysisResults[0].evalBefore * 100),
+        railSource: window.CaissaEvaluationRailInstance.getSnapshot().source
+    }));
+    expect(initialProjection.board).toBe(initialProjection.expectedFen);
+    expect(initialProjection.railCp).toBe(initialProjection.expectedCp);
+    expect(initialProjection.railSource).toBe('bots-guided-review-ply');
+
+    const moments = await page.evaluate(() => window.CaissaBotsGuidedReviewPresentation.getSnapshot().reviewMoments);
+    expect(moments.some(index => index % 2 === 0)).toBe(true);
+    expect(moments.some(index => index % 2 === 1)).toBe(true);
+    await shell.locator('[data-bots-guided-next-moment]').click(); await assertProjectedPly(moments[0]);
+    if (moments.length > 1) { await shell.locator('[data-bots-guided-next-moment]').click(); await assertProjectedPly(moments[1]); }
+    await shell.locator('[data-bots-guided-explain]').click();
+    await expect(shell.locator('[data-bots-guided-detail]')).toBeVisible();
+
+    const guidedGeometry = [];
+    for (const viewport of [{ width: 1600, height: 1000 }, { width: 1366, height: 768 }, { width: 390, height: 844 }]) {
+        await page.setViewportSize(viewport); await shell.scrollIntoViewIfNeeded();
+        const geometry = await shell.evaluate(node => {
+            const rect = selector => node.querySelector(selector).getBoundingClientRect();
+            const head = rect(':scope > [data-caissa-bots-head]'); const body = rect(':scope > [data-caissa-bots-body]');
+            const foot = rect(':scope > [data-caissa-bots-foot]'); const before = [head.top, foot.top, foot.bottom];
+            node.querySelector(':scope > [data-caissa-bots-body]').scrollTop = 120;
+            const afterHead = rect(':scope > [data-caissa-bots-head]');
+            const afterFoot = rect(':scope > [data-caissa-bots-foot]');
+            const after = [afterHead.top, afterFoot.top, afterFoot.bottom];
+            return { head: Math.round(head.height), body: Math.round(body.height), foot: Math.round(foot.height),
+                fixedDuringBodyScroll: before.every((value, index) => Math.abs(value - after[index]) <= 1),
+                anchored: Math.abs(foot.bottom - node.getBoundingClientRect().bottom) <= 1,
+                overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+                bodyOverflow: getComputedStyle(node.querySelector(':scope > [data-caissa-bots-body]')).overflowY,
+                minTarget: Math.min(...[...node.querySelectorAll(':scope > [data-caissa-bots-foot] [data-bots-foot-content="guided-review"] button')]
+                    .map(button => button.getBoundingClientRect().height)) };
+        });
+        expect(geometry).toMatchObject({ head: viewport.width === 390 ? 112 : 150,
+            fixedDuringBodyScroll: true, anchored: true, overflow: 0, bodyOverflow: 'auto' });
+        expect(geometry.minTarget).toBeGreaterThanOrEqual(44); guidedGeometry.push({ viewport: `${viewport.width}x${viewport.height}`, ...geometry });
+        await shell.locator(':scope > [data-caissa-bots-body]').evaluate(node => { node.scrollTop = 0; });
+        await page.evaluate(() => window.scrollTo(0, 0));
+        if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-guided-review-desktop.png', fullPage: true });
+        if (viewport.width === 390) await page.screenshot({ path: 'test-results/play-bots-guided-review-mobile.png', fullPage: true });
+    }
+    console.log(`BOTS_GUIDED_REVIEW_GEOMETRY ${JSON.stringify(guidedGeometry)}`);
+
+    await page.evaluate(() => window.addEventListener('caissa:bots-analysis-exploration-request', event => {
+        window.__botsAnalysisExplorationHandoff = event.detail;
+    }, { once: true }));
+    await shell.locator('.caissa-bots-guided__analysis').click();
+    expect(await page.evaluate(() => window.__botsAnalysisExplorationHandoff)).toMatchObject({
+        contextId: 'bots-review-summary', analysisOwner: 'AnalyzeSection'
+    });
+    await expect(shell).toHaveAttribute('data-bot-shell-phase', 'guided-review');
+    const immutableAfter = await page.evaluate(() => ({
+        pgn: window.AnalyzeSection.loadedGame.pgn,
+        loadedMoves: JSON.stringify(window.AnalyzeSection.getLoadedMoves({ verbose: true })),
+        appHistory: JSON.stringify(window.App.moveHistory),
+        analysis: JSON.stringify(window.AnalyzeSection.analysisResults),
+        analysisStartRequests: window.CaissaBotsAnalysisSummaryPresentation.getSnapshot().analysisStartRequests
+    }));
+    expect(immutableAfter).toEqual(immutableBefore);
     const accessibility = await new AxeBuilder({ page }).include('[data-caissa-bots-shell]').analyze();
     expect(accessibility.violations.filter(item => ['critical', 'serious'].includes(item.impact))).toEqual([]);
     runtime.assertClean();
-    await shell.locator('.caissa-bots-analysis-summary__new-game').click();
+    await shell.locator('.caissa-bots-guided__new-game').click();
     await expect(shell).toHaveAttribute('data-bot-shell-phase', 'setup');
     await expect(shell.locator('[data-bots-analysis-summary]')).toHaveCount(0);
     await expect(shell.locator('[data-bot-selected]')).toContainText('Vera');

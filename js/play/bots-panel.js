@@ -1,7 +1,7 @@
 (function installBotsPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '2.8.0';
+    const SCHEMA_VERSION = '2.9.0';
     const STATUSES = Object.freeze(['ready', 'planned', 'busy', 'active', 'error', 'unavailable', 'disposed']);
     const TIME_CONTROLS = Object.freeze([
         Object.freeze({ value: 0, label: 'No Timer' }),
@@ -247,15 +247,17 @@
         hide() { if (this.#root) this.#root.hidden = true; return result(true, 'accepted', 'HIDDEN'); }
         present(options = {}) {
             if (!this.#root || this.#disposed) return result(false, 'rejected', 'UNAVAILABLE');
-            const phase = ['active-game', 'game-over', 'analysis-summary'].includes(options.phase) ? options.phase : 'setup';
-            if (!['game-over', 'analysis-summary'].includes(phase)) this.#restorePostGamePlacement();
+            const phase = ['active-game', 'game-over', 'analysis-summary', 'guided-review'].includes(options.phase)
+                ? options.phase : 'setup';
+            if (!['game-over', 'analysis-summary', 'guided-review'].includes(phase)) this.#restorePostGamePlacement();
             this.#phase = phase; this.#root.dataset.botShellPhase = phase;
             const selected = this.#root.querySelector('[data-bot-selected]');
-            selected.hidden = phase === 'analysis-summary';
-            if (phase !== 'analysis-summary') { this.#analysisHead?.remove(); this.#analysisHead = null; }
+            const analystPhase = ['analysis-summary', 'guided-review'].includes(phase);
+            selected.hidden = analystPhase;
+            if (!analystPhase) { this.#analysisHead?.remove(); this.#analysisHead = null; }
             else if (options.head?.nodeType === 1) {
                 this.#analysisHead?.remove(); this.#analysisHead = options.head;
-                options.head.setAttribute('data-bots-head-content', 'analysis-summary');
+                options.head.setAttribute('data-bots-head-content', phase);
                 this.#root.querySelector('[data-caissa-bots-head]')?.appendChild(options.head);
             }
             this.#setupContent.hidden = phase !== 'setup'; this.#setupFoot.hidden = phase !== 'setup';
