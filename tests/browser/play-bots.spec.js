@@ -104,6 +104,16 @@ test('active bot is immutable; New Game admits the next profile and Games restor
             coachShellCount: document.querySelectorAll('[data-caissa-coach-shell]:not([hidden])').length };
     });
     expect(geometry).toEqual({ order: true, footInside: true, boardCount: 1, coachShellCount: 0 });
+    for (const viewport of [{ width: 1600, height: 1000 }, { width: 390, height: 844 }]) {
+        await page.setViewportSize(viewport);
+        const gap = await botsShell.evaluate(shell => {
+            const tabs = document.querySelector('.caissa-simplified-shell__modes').getBoundingClientRect();
+            const head = shell.querySelector(':scope > [data-caissa-bots-head]').getBoundingClientRect();
+            return head.top - tabs.bottom;
+        });
+        expect(gap).toBeGreaterThanOrEqual(0);
+        expect(gap).toBeLessThanOrEqual(8);
+    }
     await expect(page.getByRole('radio', { name: /Vera, 1500 Elo target/ })).toHaveCount(0);
     await expect(page.locator('[data-bot-id="vera"]')).toBeHidden();
     expect(await page.evaluate(() => window.CaissaBotSession.getSnapshot().activeBotId)).toBe('luna');

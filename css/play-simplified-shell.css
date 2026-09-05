@@ -317,6 +317,22 @@ body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experienc
 }
 
 body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-entry-experience="beta"][data-mode="bots"] .caissa-simplified-shell__workspace {
+    row-gap: 7px;
+}
+
+body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-entry-experience="beta"][data-mode="bots"][data-layout="desktop-split"]
+    .caissa-simplified-shell__workspace {
+    grid-template-rows: max-content minmax(0, 1fr) auto auto;
+}
+
+body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-entry-experience="beta"][data-mode="bots"] .caissa-simplified-shell__context-body {
+    padding-top: 0;
+}
+
+body.caissa-simplified-play-active
     .caissa-simplified-shell[data-entry-experience="beta"][data-layout="desktop-split"] .caissa-simplified-shell__context {
     grid-row: 2 / -1;
     align-self: stretch;
