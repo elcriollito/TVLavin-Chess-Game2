@@ -3207,6 +3207,156 @@ body.caissa-simplified-play-active.caissa-bots-guided-review-active
     display: none !important;
 }
 
+body.caissa-simplified-play-active .caissa-bots-exploration__head {
+    display: grid;
+    grid-template-columns: minmax(92px, 28%) minmax(0, 1fr);
+    align-items: center;
+    gap: .75rem;
+    min-height: 150px;
+    height: 150px;
+    padding: .55rem .7rem;
+    border: 1px solid var(--panel-border);
+    border-radius: .85rem;
+    background: radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--bot-accent) 13%, transparent), transparent 42%),
+        color-mix(in srgb, var(--play-theme-card, #17202b) 94%, transparent);
+    overflow: hidden;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__caissa {
+    align-self: end;
+    width: min(100%, 132px);
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 12px 18px rgb(0 0 0 / .32));
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__speech {
+    display: grid;
+    gap: .18rem;
+    min-width: 0;
+    padding: .55rem .7rem;
+    border: 1px solid color-mix(in srgb, var(--bot-accent) 34%, var(--panel-border));
+    border-radius: .9rem .9rem .9rem .25rem;
+    background: color-mix(in srgb, var(--play-theme-card, #17202b) 82%, white 8%);
+    line-height: 1.25;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__eyebrow {
+    color: var(--bot-accent);
+    font-size: .66rem;
+    font-weight: 850;
+    letter-spacing: .1em;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__title { font-size: .95rem; }
+body.caissa-simplified-play-active .caissa-bots-exploration__evaluation {
+    flex: 0 0 auto;
+    padding: .16rem .4rem;
+    border-radius: .35rem;
+    background: color-mix(in srgb, var(--bot-accent) 10%, var(--play-theme-card, #17202b));
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__message,
+body.caissa-simplified-play-active .caissa-bots-exploration__pv {
+    color: var(--play-theme-text-muted, var(--text-secondary));
+    font-size: .75rem;
+    overflow-wrap: anywhere;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__pv { color: var(--play-theme-text, #fff); }
+
+body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="analysis-exploration"]
+    .caissa-bots-panel__body { overflow-y: auto; }
+body.caissa-simplified-play-active .caissa-bots-exploration {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    width: 100%;
+    min-height: 0;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__empty {
+    margin: auto 0;
+    padding: 1rem;
+    color: var(--play-theme-text-muted, var(--text-secondary));
+    text-align: center;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__notation {
+    display: grid;
+    align-content: start;
+    gap: .15rem;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__notation-row {
+    display: grid;
+    grid-template-columns: 2.4rem repeat(2, minmax(0, 1fr));
+    align-items: center;
+    gap: .35rem;
+    min-height: 44px;
+    border-radius: .4rem;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__notation-row:nth-child(odd) {
+    background: color-mix(in srgb, var(--play-theme-card, #17202b) 60%, transparent);
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__move-number {
+    color: var(--play-theme-text-muted, var(--text-secondary));
+    text-align: end;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__move {
+    min-height: 40px;
+    padding: .35rem .55rem;
+    border: 1px solid transparent;
+    border-radius: .4rem;
+    background: transparent;
+    color: var(--play-theme-text, #fff);
+    font-weight: 750;
+    text-align: start;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__move[aria-current="move"] {
+    border-color: color-mix(in srgb, var(--bot-accent) 70%, var(--panel-border));
+    background: color-mix(in srgb, var(--bot-accent) 16%, transparent);
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__move[data-future="true"] { opacity: .62; }
+body.caissa-simplified-play-active .caissa-bots-exploration__foot { display: grid; gap: .55rem; }
+body.caissa-simplified-play-active .caissa-bots-exploration__navigation,
+body.caissa-simplified-play-active .caissa-bots-exploration__actions {
+    display: grid;
+    gap: .55rem;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__navigation {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+body.caissa-simplified-play-active :is(.caissa-bots-exploration__nav-button,
+    .caissa-bots-exploration__back, .caissa-bots-exploration__engine) {
+    min-height: 48px;
+    border: 1px solid var(--panel-border);
+    border-radius: .6rem;
+    background: #202a38;
+    color: #f4f7fb;
+    font-weight: 800;
+}
+body.caissa-simplified-play-active :is(.caissa-bots-exploration__back,
+    .caissa-bots-exploration__engine) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__nav-button { font-size: 1.1rem; }
+body.caissa-simplified-play-active .caissa-bots-exploration__nav-button:disabled { opacity: .4; }
+body.caissa-simplified-play-active .caissa-bots-exploration__led {
+    width: .62rem;
+    height: .62rem;
+    border-radius: 50%;
+    background: #77808e;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__engine[aria-pressed="true"]
+    .caissa-bots-exploration__led {
+    background: #55c878;
+    box-shadow: 0 0 0 2px rgb(85 200 120 / .2);
+}
+
 @media (max-width: 420px) {
     body.caissa-simplified-play-active .caissa-bots-analysis-summary__head {
         grid-template-columns: 82px minmax(0, 1fr);
@@ -3232,6 +3382,19 @@ body.caissa-simplified-play-active.caissa-bots-guided-review-active
     body.caissa-simplified-play-active .caissa-bots-guided__classification { font-size: .6rem; }
     body.caissa-simplified-play-active .caissa-bots-guided__message { font-size: .76rem; line-height: 1.25; }
     body.caissa-simplified-play-active .caissa-bots-guided__notation-row {
+        grid-template-columns: 2rem repeat(2, minmax(0, 1fr));
+    }
+    body.caissa-simplified-play-active .caissa-bots-exploration__head {
+        grid-template-columns: 82px minmax(0, 1fr);
+        min-height: 112px;
+        height: 112px;
+        padding: .45rem .6rem;
+    }
+    body.caissa-simplified-play-active .caissa-bots-exploration__caissa { width: 82px; }
+    body.caissa-simplified-play-active .caissa-bots-exploration__speech { padding: .4rem .5rem; }
+    body.caissa-simplified-play-active .caissa-bots-exploration__message { font-size: .64rem; line-height: 1.15; }
+    body.caissa-simplified-play-active .caissa-bots-exploration__pv { font-size: .68rem; }
+    body.caissa-simplified-play-active .caissa-bots-exploration__notation-row {
         grid-template-columns: 2rem repeat(2, minmax(0, 1fr));
     }
     body.caissa-simplified-play-active .caissa-bots-analysis-summary__accuracy,

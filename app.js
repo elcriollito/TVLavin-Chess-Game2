@@ -813,6 +813,12 @@ function isCoachReviewExplorationActive() {
     return window.CaissaCoachReviewExploration?.isActive?.() === true;
 }
 
+function getActiveReviewExploration() {
+    if (window.CaissaBotsAnalysisExploration?.isActive?.() === true) return window.CaissaBotsAnalysisExploration;
+    if (isCoachReviewExplorationActive()) return window.CaissaCoachReviewExploration;
+    return null;
+}
+
 function getSquareFromEventTarget(target) {
     let current = target;
     const board = document.getElementById('chessboard');
@@ -869,8 +875,9 @@ function clearLegalMovePresentation() {
 function markMobileTapSource(square) {
     clearMobileTapSource();
     App.mobileTapSource = square;
-    const legalMoves = isCoachReviewExplorationActive()
-        ? window.CaissaCoachReviewExploration.movesFrom(square)
+    const exploration = getActiveReviewExploration();
+    const legalMoves = exploration
+        ? exploration.movesFrom(square)
         : App.game.moves({ square, verbose: true });
     App.mobileTapTargets = legalMoves.map((move) => move.to);
     App.boardAdapter?.setSelection(square);
@@ -881,15 +888,17 @@ function markMobileTapSource(square) {
 }
 
 function getPieceCodeAt(square) {
-    const piece = isCoachReviewExplorationActive()
-        ? window.CaissaCoachReviewExploration.pieceAt(square)
+    const exploration = getActiveReviewExploration();
+    const piece = exploration
+        ? exploration.pieceAt(square)
         : App.game.get(square);
     return piece ? `${piece.color}${piece.type.toUpperCase()}` : '';
 }
 
 function canStartMoveFrom(source, piece) {
-    if (isCoachReviewExplorationActive()) {
-        return window.CaissaCoachReviewExploration.canStartMove(source);
+    const exploration = getActiveReviewExploration();
+    if (exploration) {
+        return exploration.canStartMove(source);
     }
     if (isAnalyzeStudyActive()) {
         return window.AnalyzeSection.canStartStudyMove(source);
@@ -918,15 +927,18 @@ function canStartMoveFrom(source, piece) {
 }
 
 function makeMoveFromSquares(source, target) {
-    if (isCoachReviewExplorationActive()) {
-        const move = window.CaissaCoachReviewExploration.movesFrom(source)
+    const exploration = getActiveReviewExploration();
+    if (exploration) {
+        const move = exploration.movesFrom(source)
             .find(candidate => candidate.to === target);
         if (move?.flags?.includes('p')) {
-            App.pendingPromotion = { from: source, to: target, context: 'coach-review-exploration' };
+            App.pendingPromotion = { from: source, to: target,
+                context: exploration === window.CaissaBotsAnalysisExploration
+                    ? 'bots-analysis-exploration' : 'coach-review-exploration' };
             showPromotionDialog();
             return true;
         }
-        return window.CaissaCoachReviewExploration.playMove(source, target);
+        return exploration.playMove(source, target);
     }
     if (isAnalyzeStudyActive()) {
         const move = App.game.moves({ verbose: true }).find((m) => m.from === source && m.to === target);
@@ -1010,16 +1022,19 @@ function onDragStart(source, piece, position, orientation) {
 }
 
 function onDrop(source, target) {
-    if (isCoachReviewExplorationActive()) {
-        const move = window.CaissaCoachReviewExploration.movesFrom(source)
+    const exploration = getActiveReviewExploration();
+    if (exploration) {
+        const move = exploration.movesFrom(source)
             .find(candidate => candidate.to === target);
         if (move?.flags?.includes('p')) {
-            App.pendingPromotion = { from: source, to: target, context: 'coach-review-exploration' };
+            App.pendingPromotion = { from: source, to: target,
+                context: exploration === window.CaissaBotsAnalysisExploration
+                    ? 'bots-analysis-exploration' : 'coach-review-exploration' };
             showPromotionDialog();
             unlockScroll();
             return;
         }
-        const moved = window.CaissaCoachReviewExploration.playMove(source, target);
+        const moved = exploration.playMove(source, target);
         unlockScroll();
         return moved ? undefined : 'snapback';
     }
@@ -4471,6 +4486,14 @@ function handlePromotion(piece) {
     if (context === 'coach-review-exploration' && isCoachReviewExplorationActive()) {
         const moved = window.CaissaCoachReviewExploration.playMove(from, to, piece);
         if (!moved) window.CaissaCoachReviewExploration.restoreBoard();
+        App.pendingPromotion = null;
+        hideModal('promotionModal');
+        return;
+    }
+
+    if (context === 'bots-analysis-exploration' && window.CaissaBotsAnalysisExploration?.isActive?.()) {
+        const moved = window.CaissaBotsAnalysisExploration.playMove(from, to, piece);
+        if (!moved) window.CaissaBotsAnalysisExploration.restoreBoard();
         App.pendingPromotion = null;
         hideModal('promotionModal');
         return;

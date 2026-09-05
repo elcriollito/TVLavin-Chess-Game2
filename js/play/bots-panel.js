@@ -1,7 +1,7 @@
 (function installBotsPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '2.9.0';
+    const SCHEMA_VERSION = '2.10.0';
     const STATUSES = Object.freeze(['ready', 'planned', 'busy', 'active', 'error', 'unavailable', 'disposed']);
     const TIME_CONTROLS = Object.freeze([
         Object.freeze({ value: 0, label: 'No Timer' }),
@@ -247,12 +247,12 @@
         hide() { if (this.#root) this.#root.hidden = true; return result(true, 'accepted', 'HIDDEN'); }
         present(options = {}) {
             if (!this.#root || this.#disposed) return result(false, 'rejected', 'UNAVAILABLE');
-            const phase = ['active-game', 'game-over', 'analysis-summary', 'guided-review'].includes(options.phase)
+            const phase = ['active-game', 'game-over', 'analysis-summary', 'guided-review', 'analysis-exploration'].includes(options.phase)
                 ? options.phase : 'setup';
-            if (!['game-over', 'analysis-summary', 'guided-review'].includes(phase)) this.#restorePostGamePlacement();
+            if (!['game-over', 'analysis-summary', 'guided-review', 'analysis-exploration'].includes(phase)) this.#restorePostGamePlacement();
             this.#phase = phase; this.#root.dataset.botShellPhase = phase;
             const selected = this.#root.querySelector('[data-bot-selected]');
-            const analystPhase = ['analysis-summary', 'guided-review'].includes(phase);
+            const analystPhase = ['analysis-summary', 'guided-review', 'analysis-exploration'].includes(phase);
             selected.hidden = analystPhase;
             if (!analystPhase) { this.#analysisHead?.remove(); this.#analysisHead = null; }
             else if (options.head?.nodeType === 1) {

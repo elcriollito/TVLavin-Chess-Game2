@@ -1,7 +1,7 @@
 (function (global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.16.0';
+    const SCHEMA_VERSION = '1.17.0';
     const SNAPSHOT_SCHEMA_VERSION = '1.14.0';
     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'unavailable', 'error']);
     const REGIONS = Object.freeze([
@@ -905,6 +905,7 @@
             const board = this.#root?.querySelector('#chessboard');
             if (!board) return;
             board.querySelectorAll('[data-caissa-coach-move-annotation]').forEach(node => node.remove());
+            if (global.document.body?.classList?.contains('caissa-bots-analysis-exploration-active')) return;
             const guidedBots = this.#mode === 'bots'
                 && global.document.body?.classList?.contains('caissa-bots-guided-review-active');
             if (this.#mode !== 'coach' && !guidedBots) return;

@@ -1,7 +1,7 @@
 (function installBotsGuidedReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
     const REVIEW_WORTHY = Object.freeze(['Inaccuracy', 'Mistake', 'Blunder']);
     let mounted = null;
     const freeze = value => Object.freeze(value);
@@ -113,6 +113,54 @@
             newGame, analysis, live };
     }
 
+    function createExplorationStructure() {
+        const head = element('div', 'caissa-bots-exploration__head', { 'data-bots-exploration-head': '' });
+        const avatar = element('img', 'caissa-bots-exploration__caissa', {
+            src: '/assets/play/caissa-coach-goddess.png', alt: 'Caissa, goddess of chess', width: '512', height: '512'
+        });
+        const speech = element('div', 'caissa-bots-exploration__speech');
+        const eyebrow = element('span', 'caissa-bots-exploration__eyebrow'); eyebrow.textContent = 'ANALYSIS';
+        const titleRow = element('span', 'caissa-bots-exploration__title-row');
+        const title = element('strong', 'caissa-bots-exploration__title'); title.textContent = 'Explore this position';
+        const evaluation = element('strong', 'caissa-bots-exploration__evaluation', { 'data-bots-exploration-evaluation': '' });
+        evaluation.textContent = '\u2014'; titleRow.append(title, evaluation);
+        const message = element('span', 'caissa-bots-exploration__message');
+        message.textContent = 'Try legal continuations here. Your reviewed game remains unchanged.';
+        const pv = element('span', 'caissa-bots-exploration__pv', { 'data-bots-exploration-pv': '', 'aria-live': 'polite' });
+        pv.textContent = 'Principal variation: preparing\u2026'; speech.append(eyebrow, titleRow, message, pv); head.append(avatar, speech);
+
+        const body = element('section', 'caissa-bots-exploration', { 'data-bots-analysis-exploration': '',
+            'aria-label': 'Temporary position analysis' });
+        const empty = element('p', 'caissa-bots-exploration__empty', { 'data-bots-exploration-empty': '', role: 'status' });
+        empty.textContent = 'Make a legal move on the board to begin exploring.';
+        const notation = element('div', 'caissa-bots-exploration__notation', { 'data-bots-exploration-notation': '',
+            'aria-label': 'Temporary exploration notation', 'aria-live': 'polite' });
+        body.append(empty, notation);
+
+        const foot = element('div', 'caissa-bots-exploration__foot', { 'data-bots-foot-content': 'analysis-exploration' });
+        const navigation = element('div', 'caissa-bots-exploration__navigation', { role: 'group',
+            'aria-label': 'Temporary line navigation' });
+        const navButtons = {};
+        [['first', 'First temporary position', 'fa-step-backward'], ['previous', 'Previous temporary move', 'fa-chevron-left'],
+            ['next', 'Next temporary move', 'fa-chevron-right'], ['last', 'Last temporary position', 'fa-step-forward']]
+            .forEach(([action, label, icon]) => {
+                const button = element('button', 'caissa-bots-exploration__nav-button', { type: 'button',
+                    'data-bots-exploration-nav': action, 'aria-label': label, title: label });
+                button.innerHTML = `<i class="fas ${icon}" aria-hidden="true"></i>`;
+                navButtons[action] = button; navigation.append(button);
+            });
+        const actions = element('div', 'caissa-bots-exploration__actions');
+        const back = element('button', 'caissa-bots-exploration__back', { type: 'button',
+            'data-bots-exploration-back': '' });
+        back.innerHTML = '<i class="fas fa-arrow-left" aria-hidden="true"></i><span>Back to Review</span>';
+        const engine = element('button', 'caissa-bots-exploration__engine', { type: 'button',
+            'data-bots-exploration-engine': '', 'aria-pressed': 'false', 'aria-label': 'Engine Off' });
+        engine.innerHTML = '<span class="caissa-bots-exploration__led" aria-hidden="true"></span>'
+            + '<span data-bots-exploration-engine-label>Engine Off</span>';
+        actions.append(back, engine); foot.append(navigation, actions);
+        return { head, evaluation, pv, body, empty, notation, foot, navigation, navButtons, back, engine };
+    }
+
     function renderHead(model) {
         const speech = mounted.ui.speech; speech.replaceChildren();
         const quality = element('span', 'caissa-bots-guided__classification'); quality.textContent = model.quality.toUpperCase();
@@ -184,18 +232,100 @@
         mounted.explanationExpanded = false; mounted.analyze.jumpToMove(index); update();
     }
 
+    function renderExplorationAnalysis(info = {}) {
+        if (!mounted || mounted.phase !== 'analysis-exploration') return;
+        const ui = mounted.exploration; const hasEvaluation = Number.isFinite(info.mate) || Number.isFinite(info.evaluation);
+        if (Number.isFinite(info.mate)) ui.evaluation.textContent = info.mate > 0 ? `M+${info.mate}` : `M${info.mate}`;
+        else if (Number.isFinite(info.evaluation))
+            ui.evaluation.textContent = `${info.evaluation >= 0 ? '+' : ''}${info.evaluation.toFixed(2)}`;
+        else if (!hasEvaluation && info.status !== 'off') ui.evaluation.textContent = '\u2014';
+        if (info.pv?.length) ui.pv.textContent = `Principal variation: ${info.pv.join(' ')}`;
+        else if (info.status === 'loading') ui.pv.textContent = 'Principal variation: preparing\u2026';
+        else if (info.status !== 'off') ui.pv.textContent = 'Principal variation: unavailable.';
+        const rail = root.CaissaEvaluationRailInstance;
+        if (rail && info.status === 'ready') {
+            if (rail.getSnapshot?.().displayMode !== 'post-game') rail.setMode?.('post-game');
+            if (Number.isFinite(info.mate) && info.mate !== 0) rail.setMate?.(info.mate, { source: 'bots-analysis-exploration' });
+            else if (Number.isFinite(info.evaluation)) rail.setEvaluation?.(info.evaluation * 100,
+                { source: 'bots-analysis-exploration' });
+        }
+    }
+
+    function renderExplorationPosition() {
+        if (!mounted || mounted.phase !== 'analysis-exploration') return;
+        const owner = root.CaissaBotsAnalysisExploration; const state = owner?.getSnapshot?.();
+        const line = owner?.getLine?.() || []; const ui = mounted.exploration;
+        ui.empty.hidden = line.length > 0; ui.notation.replaceChildren(); const rows = new Map();
+        line.forEach(move => {
+            if (!rows.has(move.moveNumber)) rows.set(move.moveNumber, { white: null, black: null });
+            rows.get(move.moveNumber)[move.color === 'b' ? 'black' : 'white'] = move;
+        });
+        rows.forEach((moves, moveNumber) => {
+            const row = element('div', 'caissa-bots-exploration__notation-row');
+            const number = element('span', 'caissa-bots-exploration__move-number'); number.textContent = `${moveNumber}.`; row.append(number);
+            ['white', 'black'].forEach(color => {
+                const move = moves[color];
+                if (!move) { row.append(element('span', 'caissa-bots-exploration__spacer', { 'aria-hidden': 'true' })); return; }
+                const button = element('button', 'caissa-bots-exploration__move', { type: 'button',
+                    'data-bots-exploration-cursor': String(move.index + 1),
+                    'aria-label': `Temporary move ${move.san}` });
+                button.textContent = move.san; button.dataset.future = String(move.future);
+                if (move.current) button.setAttribute('aria-current', 'move'); row.append(button);
+            });
+            ui.notation.append(row);
+        });
+        ui.navButtons.first.disabled = !state || state.atFirst; ui.navButtons.previous.disabled = !state || state.atFirst;
+        ui.navButtons.next.disabled = !state || state.atLast; ui.navButtons.last.disabled = !state || state.atLast;
+        ui.notation.querySelector('[aria-current="move"]')?.scrollIntoView?.({ block: 'nearest' });
+    }
+
+    function syncExplorationEngine() {
+        if (!mounted?.exploration) return;
+        const enabled = root.CaissaBotsAnalysisExploration?.getSnapshot?.().engineEnabled === true;
+        const label = enabled ? 'Engine On' : 'Engine Off'; const button = mounted.exploration.engine;
+        button.setAttribute('aria-pressed', String(enabled)); button.setAttribute('aria-label', label);
+        button.querySelector('[data-bots-exploration-engine-label]').textContent = label;
+    }
+
+    function enterExploration() {
+        if (!mounted || mounted.phase !== 'guided-review') return;
+        const anchor = mounted.analyze.currentMoveIndex; const projection = mounted.analyze.getCoachReviewProjection?.();
+        if (!Number.isInteger(anchor) || !projection?.fen) return;
+        mounted.phase = 'analysis-exploration'; mounted.entryReviewPly = anchor;
+        const shown = root.CaissaBotsPanelInstance.present({ phase: 'analysis-exploration',
+            head: mounted.exploration.head, content: mounted.exploration.body, foot: mounted.exploration.foot });
+        if (!shown?.ok) { mounted.phase = 'guided-review'; return; }
+        root.document.querySelectorAll('#chessboard [data-caissa-coach-move-annotation]').forEach(node => node.remove());
+        const entered = root.CaissaBotsAnalysisExploration?.enter?.({ fen: projection.fen, analyze: mounted.analyze,
+            entryReviewPly: anchor, onPosition: renderExplorationPosition, onAnalysis: renderExplorationAnalysis,
+            restore: () => mounted?.analyze?.jumpToMove?.(anchor) });
+        if (!entered?.ok) { mounted.phase = 'guided-review';
+            root.CaissaBotsPanelInstance.present({ phase: 'guided-review', head: mounted.ui.head,
+                content: mounted.ui.body, foot: mounted.ui.foot }); update(); return; }
+        syncExplorationEngine(); renderExplorationPosition(); mounted.exploration.back.focus?.();
+    }
+
+    function leaveExploration() {
+        if (!mounted || mounted.phase !== 'analysis-exploration') return;
+        const anchor = mounted.entryReviewPly; root.CaissaBotsAnalysisExploration?.leave?.();
+        mounted.phase = 'guided-review'; mounted.entryReviewPly = null;
+        root.CaissaBotsPanelInstance.present({ phase: 'guided-review', head: mounted.ui.head,
+            content: mounted.ui.body, foot: mounted.ui.foot });
+        mounted.analyze.jumpToMove(anchor); update(); mounted.ui.analysis.focus?.();
+    }
+
     function enter(options = {}) {
         if (mounted) return result(true, 'unchanged', 'ALREADY_MOUNTED', getSnapshot());
         if (root.CaissaBotsReviewContext?.isBotsReview?.(options.context) !== true
             || options.analyze?.analysisPhase !== 'complete' || !root.CaissaBotsPanelInstance?.present)
             return result(false, 'rejected', 'INVALID_BOTS_GUIDED_REVIEW_EVIDENCE');
-        const ui = createStructure();
+        const ui = createStructure(); const exploration = createExplorationStructure();
         const shown = root.CaissaBotsPanelInstance.present({ phase: 'guided-review', head: ui.head,
             content: ui.body, foot: ui.foot });
         if (!shown?.ok) return result(false, 'rejected', 'BOTS_SHELL_UNAVAILABLE');
-        mounted = { context: options.context, handoff: options.handoff, analyze: options.analyze, ui,
+        mounted = { context: options.context, handoff: options.handoff, analyze: options.analyze, ui, exploration,
             model: null, explanationExpanded: false, pgn: options.handoff?.payload?.pgn || null,
-            history: freeze([...(options.analyze.getLoadedMoves?.() || [])]) };
+            history: freeze([...(options.analyze.getLoadedMoves?.() || [])]), phase: 'guided-review', entryReviewPly: null };
         root.document.body.classList.add('caissa-bots-guided-review-active');
         ui.explain.addEventListener('click', () => { if (!mounted) return;
             mounted.explanationExpanded = !mounted.explanationExpanded; update(); });
@@ -213,13 +343,19 @@
         ui.newGame.addEventListener('click', () => { if (!mounted || ui.newGame.disabled) return;
             ui.newGame.disabled = true; root.CaissaPlayV2InlineAnalyze?.close?.();
             Promise.resolve(root.CaissaPostGameExperienceInstance?.execute?.('new-game')).catch(() => {}); });
-        ui.analysis.addEventListener('click', () => {
-            if (!mounted) return;
-            root.dispatchEvent(new CustomEvent('caissa:bots-analysis-exploration-request', { detail: freeze({
-                contextId: mounted.context.contextId, currentMoveIndex: mounted.analyze.currentMoveIndex,
-                analysisOwner: 'AnalyzeSection'
-            }) }));
-            ui.live.textContent = 'Analysis exploration handoff is ready.';
+        ui.analysis.addEventListener('click', enterExploration);
+        exploration.navigation.addEventListener('click', event => {
+            const button = event.target?.closest?.('[data-bots-exploration-nav]'); if (!button || button.disabled) return;
+            root.CaissaBotsAnalysisExploration?.[button.dataset.botsExplorationNav]?.();
+        });
+        exploration.notation.addEventListener('click', event => {
+            const button = event.target?.closest?.('[data-bots-exploration-cursor]');
+            if (button) root.CaissaBotsAnalysisExploration?.goTo?.(Number(button.dataset.botsExplorationCursor));
+        });
+        exploration.back.addEventListener('click', leaveExploration);
+        exploration.engine.addEventListener('click', () => {
+            const enabled = root.CaissaBotsAnalysisExploration?.getSnapshot?.().engineEnabled === true;
+            root.CaissaBotsAnalysisExploration?.setEngineEnabled?.(!enabled); syncExplorationEngine();
         });
         root.addEventListener('caissa:bots-review-ply-change', update);
         options.analyze.jumpToMove(0); update(); ui.explain.focus?.();
@@ -228,6 +364,7 @@
 
     function unmount() {
         if (!mounted) return result(true, 'unchanged', 'ALREADY_UNMOUNTED');
+        if (mounted.phase === 'analysis-exploration') root.CaissaBotsAnalysisExploration?.leave?.();
         root.removeEventListener('caissa:bots-review-ply-change', update);
         mounted.ui.head.remove(); mounted.ui.body.remove(); mounted.ui.foot.remove();
         root.document.body.classList.remove('caissa-bots-guided-review-active'); mounted = null;
@@ -235,10 +372,12 @@
     }
 
     function getSnapshot() {
-        return freeze({ schemaVersion: SCHEMA_VERSION, mounted: !!mounted, phase: mounted ? 'guided-review' : null,
+        return freeze({ schemaVersion: SCHEMA_VERSION, mounted: !!mounted, phase: mounted?.phase || null,
             currentMoveIndex: mounted?.analyze?.currentMoveIndex ?? null,
             reviewPlyOwner: 'AnalyzeSection.currentMoveIndex', analysisResultsOwner: 'AnalyzeSection.analysisResults',
-            moveHistoryOwner: 'AnalyzeSection loaded handoff', reviewMoments: mounted ? findReviewMoments(mounted.analyze) : [] });
+            moveHistoryOwner: 'AnalyzeSection loaded handoff', entryReviewPly: mounted?.entryReviewPly ?? null,
+            exploration: root.CaissaBotsAnalysisExploration?.getSnapshot?.() || null,
+            reviewMoments: mounted ? findReviewMoments(mounted.analyze) : [] });
     }
 
     root.CaissaBotsGuidedReviewPresentation = freeze({ schemaVersion: SCHEMA_VERSION,
