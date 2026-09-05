@@ -1,7 +1,7 @@
 (function installPlayV2InlineAnalyze(root) {
     'use strict';
 
-    const VERSION = '1.2.0';
+    const VERSION = '1.3.0';
     let openState = null;
     const freeze = value => Object.freeze(value);
     const result = (ok, status, reasonCode = null) => freeze({ ok, status, reasonCode });
@@ -9,7 +9,7 @@
     function restore() {
         if (!openState) return result(true, 'unchanged', 'ALREADY_CLOSED');
         const { section, playSection, closeButton, previous, copyObserver, reviewPresentation,
-            viewport, scrollPosition, coachReview } = openState;
+            viewport, scrollPosition, embeddedReview } = openState;
         copyObserver.disconnect();
         viewport?.removeEventListener?.('resize', updateViewportGeometry);
         viewport?.removeEventListener?.('scroll', updateViewportGeometry);
@@ -18,7 +18,7 @@
         reviewPresentation?.unmount?.();
         closeButton.remove();
         section.classList.remove('caissa-play-v2-inline-analyze');
-        if (!coachReview) {
+        if (!embeddedReview) {
             section.classList.toggle('active', previous.active);
             for (const [name, value] of Object.entries(previous.attributes)) {
                 if (value === null) section.removeAttribute(name);
@@ -121,19 +121,22 @@
         const viewport = root.visualViewport;
         const scrollPosition = { x: root.scrollX, y: root.scrollY };
         const coachReview = root.CaissaCoachReviewContext?.isCoachReview?.(input.reviewContext) === true;
-        const reviewPresentation = coachReview
-            ? root.CaissaCoachReviewPresentation : null;
-        const phaseHost = coachReview ? playSection?.querySelector?.('[data-caissa-coach-phase-host]') : null;
-        if (coachReview && (!phaseHost || !reviewPresentation?.mount))
-            return result(false, 'unavailable', 'PLAY_COACH_HOST_UNAVAILABLE');
+        const botsReview = root.CaissaBotsReviewContext?.isBotsReview?.(input.reviewContext) === true;
+        const embeddedReview = coachReview || botsReview;
+        const reviewPresentation = coachReview ? root.CaissaCoachReviewPresentation
+            : botsReview ? root.CaissaBotsAnalysisSummaryPresentation : null;
+        const phaseHost = coachReview ? playSection?.querySelector?.('[data-caissa-coach-phase-host]')
+            : botsReview ? playSection?.querySelector?.('[data-caissa-bots-body]') : null;
+        if (embeddedReview && (!phaseHost || !reviewPresentation?.mount))
+            return result(false, 'unavailable', coachReview ? 'PLAY_COACH_HOST_UNAVAILABLE' : 'PLAY_BOTS_HOST_UNAVAILABLE');
         openState = { section, playSection, closeButton, previous, copyObserver,
-            reviewPresentation, viewport, scrollPosition, coachReview,
-            focusRoot: coachReview ? (phaseHost.closest?.('[data-caissa-coach-shell]') || phaseHost) : section };
-        if (!coachReview && playSection) {
+            reviewPresentation, viewport, scrollPosition, coachReview, botsReview, embeddedReview,
+            focusRoot: embeddedReview ? (phaseHost.closest?.('[data-caissa-coach-shell], [data-caissa-bots-shell]') || phaseHost) : section };
+        if (!embeddedReview && playSection) {
             playSection.inert = true;
             playSection.setAttribute('aria-hidden', 'true');
         }
-        if (coachReview) {
+        if (embeddedReview) {
             // AnalyzeSection's token attribution uses this existing marker as its
             // activity contract. The section remains hidden and never becomes the UI host.
             section.classList.add('caissa-play-v2-inline-analyze');
@@ -142,7 +145,8 @@
             if (!mounted?.ok) {
                 section.classList.remove('caissa-play-v2-inline-analyze');
                 openState = null;
-                return result(false, 'unavailable', mounted?.reasonCode || 'COACH_REVIEW_MOUNT_FAILED');
+                return result(false, 'unavailable', mounted?.reasonCode || (coachReview
+                    ? 'COACH_REVIEW_MOUNT_FAILED' : 'BOTS_REVIEW_MOUNT_FAILED'));
             }
         } else {
             section.prepend(closeButton);
@@ -161,9 +165,10 @@
         root.AnalyzeSection.onEnter({ handoff: resolved.value, owner: 'play-v2-postgame' });
         reviewPresentation?.begin?.({ analyze: root.AnalyzeSection });
         normalizeCopy();
-        if (!coachReview) copyObserver.observe(section, { childList: true, subtree: true, characterData: true });
+        if (!embeddedReview) copyObserver.observe(section, { childList: true, subtree: true, characterData: true });
         closeButton.focus();
-        return result(true, 'accepted', coachReview ? 'COACH_REVIEW_OPENED_IN_PLAY' : 'ANALYZE_OPENED_INLINE');
+        return result(true, 'accepted', coachReview ? 'COACH_REVIEW_OPENED_IN_PLAY'
+            : botsReview ? 'BOTS_REVIEW_SUMMARY_OPENED_IN_PLAY' : 'ANALYZE_OPENED_INLINE');
     }
 
     root.CaissaPlayV2InlineAnalyze = freeze({ schemaVersion: VERSION, open, close: restore,

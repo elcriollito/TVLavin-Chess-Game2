@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { instrumentPlay, playMove } from '../play/playwright-helpers.js';
+import { instrumentPlay, monitorRuntime, playMove } from '../play/playwright-helpers.js';
 
 async function openBots(page, viewport = { width: 390, height: 844 }) {
     await page.setViewportSize(viewport);
@@ -389,6 +389,95 @@ test('post-game identity and simplified Foot retain the selected bot and owned c
     await expect(shell).toHaveAttribute('data-bot-shell-phase', 'setup');
     await expect(shell.locator('[data-bot-selected]')).toContainText('Vera');
     await expect(page.locator('body')).not.toHaveClass(/caissa-bots-game-over-active/);
+});
+
+test('Analyze This Game enters the in-shell Caissa summary with one authoritative analysis owner', async ({ page }) => {
+    const runtime = monitorRuntime(page);
+    await openBots(page, { width: 1600, height: 1000 });
+    await openCategory(page, 'Advanced');
+    await page.getByLabel(/Vera, 1500 Elo target/).check();
+    await page.locator('[data-bot-primary]').click();
+    for (let turn = 0; turn < 2; turn += 1) {
+        const count = await page.evaluate(() => window.App.game.history().length);
+        const move = await page.evaluate(() => window.App.game.moves({ verbose: true })[0]);
+        expect(await playMove(page, move.from, move.to)).toBe(true);
+        await expect.poll(() => page.evaluate(() => window.App.game.history().length)).toBe(count + 2);
+    }
+    await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
+    await page.locator('[data-bots-primary-post-game-action]').click();
+    const shell = page.locator('[data-caissa-bots-shell]');
+    await expect(shell).toHaveAttribute('data-bot-shell-phase', 'analysis-summary');
+    await expect(shell.locator('[data-bots-analysis-head]')).toBeVisible();
+    await expect(shell.locator('[data-bots-analysis-head] img')).toHaveAttribute('src', '/assets/play/caissa-coach-goddess.png');
+    await expect(shell.locator('[data-bots-analysis-summary]')).toBeVisible();
+    await expect(shell.locator('.caissa-bots-analysis-summary__review')).toBeEnabled({ timeout: 20_000 });
+    await expect(shell.locator('.caissa-bots-analysis-summary__name')).toHaveText(['You', 'Vera']);
+    await expect(shell.locator('.caissa-bots-analysis-summary__accuracy-value')).toHaveCount(2);
+    await expect(shell.locator('.caissa-bots-analysis-summary__row')).not.toHaveCount(0);
+    await expect(shell.locator(':scope > [data-caissa-bots-foot] button:visible')).toHaveText(['New Game', 'Review Game']);
+    await expect(shell.locator('[data-bot-selected]')).toBeHidden();
+    await expect(shell.locator('[data-post-game-action]:visible, [data-active-game-action]:visible')).toHaveCount(0);
+    const proof = await page.evaluate(() => ({
+        summary: window.CaissaBotsAnalysisSummaryPresentation.getSnapshot(),
+        phase: window.CaissaBotsPanelInstance.getSnapshot().phase,
+        resultCount: window.AnalyzeSection.analysisResults.length,
+        moveCount: window.AnalyzeSection.getLoadedMoves().length,
+        boardCount: document.querySelectorAll('#playSection #chessboard .board-b72b1').length,
+        visibleCaissa: [...document.querySelectorAll('[data-caissa-bots-shell] img')]
+            .filter(node => getComputedStyle(node).display !== 'none' && node.getBoundingClientRect().width > 0)
+            .filter(node => node.getAttribute('src')?.includes('caissa-coach-goddess')).length,
+        visibleBot: [...document.querySelectorAll('.caissa-bots-analysis-summary__bot-avatar img')]
+            .filter(node => node.getBoundingClientRect().width > 0).length
+    }));
+    expect(proof).toMatchObject({ phase: 'analysis-summary', resultCount: proof.moveCount,
+        boardCount: 1, visibleCaissa: 1, visibleBot: 1,
+        summary: { mounted: true, phase: 'summary', analysisStartRequests: 1,
+            analysisOwner: 'AnalyzeSection', analysisResultsOwner: 'AnalyzeSection.analysisResults' } });
+
+    const measured = [];
+    for (const viewport of [{ width: 1600, height: 1000 }, { width: 1366, height: 768 }, { width: 390, height: 844 }]) {
+        await page.setViewportSize(viewport);
+        const geometry = await shell.evaluate(node => {
+            const rect = selector => node.querySelector(selector).getBoundingClientRect();
+            const head = rect(':scope > [data-caissa-bots-head]');
+            const body = rect(':scope > [data-caissa-bots-body]');
+            const foot = rect(':scope > [data-caissa-bots-foot]');
+            return { head: Math.round(head.height), body: Math.round(body.height), foot: Math.round(foot.height),
+                anchored: Math.abs(foot.bottom - node.getBoundingClientRect().bottom) <= 1,
+                overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+                bodyOverflow: getComputedStyle(node.querySelector(':scope > [data-caissa-bots-body]')).overflowY };
+        });
+        expect(geometry).toMatchObject({ head: viewport.width === 390 ? 112 : 150,
+            anchored: true, overflow: 0, bodyOverflow: 'auto' });
+        expect(geometry.body).toBeGreaterThan(0); expect(geometry.foot).toBeGreaterThanOrEqual(52);
+        measured.push({ viewport: `${viewport.width}x${viewport.height}`, ...geometry });
+        if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-analysis-summary-desktop.png', fullPage: true });
+        if (viewport.width === 390) {
+            await shell.scrollIntoViewIfNeeded();
+            for (const action of await shell.locator(':scope > [data-caissa-bots-foot] button:visible').all()) {
+                await action.scrollIntoViewIfNeeded(); await expect(action).toBeVisible();
+            }
+            await shell.scrollIntoViewIfNeeded();
+            await page.screenshot({ path: 'test-results/play-bots-analysis-summary-mobile.png' });
+        }
+    }
+    console.log(`BOTS_ANALYSIS_SUMMARY_GEOMETRY ${JSON.stringify(measured)}`);
+
+    let handoff = null;
+    await page.evaluate(() => window.addEventListener('caissa:bots-guided-review-request', event => {
+        window.__botsReviewHandoff = event.detail;
+    }, { once: true }));
+    await shell.locator('.caissa-bots-analysis-summary__review').click();
+    handoff = await page.evaluate(() => window.__botsReviewHandoff);
+    expect(handoff).toMatchObject({ contextId: 'bots-review-summary', analysisOwner: 'AnalyzeSection' });
+    await expect(shell).toHaveAttribute('data-bot-shell-phase', 'analysis-summary');
+    const accessibility = await new AxeBuilder({ page }).include('[data-caissa-bots-shell]').analyze();
+    expect(accessibility.violations.filter(item => ['critical', 'serious'].includes(item.impact))).toEqual([]);
+    runtime.assertClean();
+    await shell.locator('.caissa-bots-analysis-summary__new-game').click();
+    await expect(shell).toHaveAttribute('data-bot-shell-phase', 'setup');
+    await expect(shell.locator('[data-bots-analysis-summary]')).toHaveCount(0);
+    await expect(shell.locator('[data-bot-selected]')).toContainText('Vera');
 });
 
 test('catalog stays reachable and bounded across required viewports', async ({ page }) => {

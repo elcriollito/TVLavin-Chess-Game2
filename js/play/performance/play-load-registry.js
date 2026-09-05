@@ -18,7 +18,9 @@
                 'js/play/bots/bot-collection-registry.js?v=1.0.0',
                 'js/play/bots/bot-collection-loader.js?v=1.0.0',
                 'js/play/bots/bot-worker-readiness.js?v=1.0.1',
-                'js/play/bots-panel.js?v=2.7.0'
+                'js/play/bots/bots-review-context.js?v=1.0.0',
+                'js/play/bots-panel.js?v=2.8.0',
+                'js/play/bots/bots-analysis-summary-presentation.js?v=1.0.0'
             ])
         }),
         'coach-stack': Object.freeze({
@@ -157,7 +159,7 @@
     ]));
 
     return Object.freeze({
-        VERSION: '1.1.0',
+        VERSION: '1.2.0',
         get: id => records.get(id) || null,
         definitions: () => Object.freeze([...records.values()].map(record => record.definition)),
         inspect: () => Object.freeze([...records.values()].map(record => record.state)),

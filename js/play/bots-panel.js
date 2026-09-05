@@ -1,7 +1,7 @@
 (function installBotsPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '2.7.0';
+    const SCHEMA_VERSION = '2.8.0';
     const STATUSES = Object.freeze(['ready', 'planned', 'busy', 'active', 'error', 'unavailable', 'disposed']);
     const TIME_CONTROLS = Object.freeze([
         Object.freeze({ value: 0, label: 'No Timer' }),
@@ -43,7 +43,7 @@
         #id = `bots-panel-${++sequence}`; #root = null; #host = null; #disposed = false;
         #selectedId = null; #selectedCategoryId = null; #status = 'ready'; #timeControl = 0; #color = 'white'; #listeners = [];
         #bodyHost = null; #footHost = null; #setupContent = null; #setupFoot = null; #phase = 'setup';
-        #postGamePlacement = null;
+        #postGamePlacement = null; #analysisHead = null;
         #compatibility; #resolveRandomColor; #diagnostics = { selections: 0, starts: 0, rejected: 0 };
 
         constructor(options = {}) {
@@ -247,9 +247,17 @@
         hide() { if (this.#root) this.#root.hidden = true; return result(true, 'accepted', 'HIDDEN'); }
         present(options = {}) {
             if (!this.#root || this.#disposed) return result(false, 'rejected', 'UNAVAILABLE');
-            const phase = ['active-game', 'game-over'].includes(options.phase) ? options.phase : 'setup';
-            if (phase !== 'game-over') this.#restorePostGamePlacement();
+            const phase = ['active-game', 'game-over', 'analysis-summary'].includes(options.phase) ? options.phase : 'setup';
+            if (!['game-over', 'analysis-summary'].includes(phase)) this.#restorePostGamePlacement();
             this.#phase = phase; this.#root.dataset.botShellPhase = phase;
+            const selected = this.#root.querySelector('[data-bot-selected]');
+            selected.hidden = phase === 'analysis-summary';
+            if (phase !== 'analysis-summary') { this.#analysisHead?.remove(); this.#analysisHead = null; }
+            else if (options.head?.nodeType === 1) {
+                this.#analysisHead?.remove(); this.#analysisHead = options.head;
+                options.head.setAttribute('data-bots-head-content', 'analysis-summary');
+                this.#root.querySelector('[data-caissa-bots-head]')?.appendChild(options.head);
+            }
             this.#setupContent.hidden = phase !== 'setup'; this.#setupFoot.hidden = phase !== 'setup';
             this.#bodyHost.querySelectorAll('[data-bots-phase-content]:not([data-bots-phase-content="setup"])')
                 .forEach(node => node.hidden = true);
@@ -294,9 +302,21 @@
                 listenerCount: this.#listeners.length, diagnostics: { ...this.#diagnostics } });
         }
         inspect() { return this.getSnapshot(); }
+        getSelectedReviewIdentity() {
+            const record = this.#selectedRecord(); const bot = record?.bot;
+            const category = bot ? global.CaissaBotCollections.category(bot.categoryId) : null;
+            return deepFreeze({ name: bot?.name || 'Bot', elo: bot?.targetStrength || null,
+                avatarSrc: `/img/chesspieces/wikipedia/b${PIECE_FILES[category?.piece] || 'P'}.png` });
+        }
+        restorePostGamePhase() {
+            const placement = this.#postGamePlacement;
+            if (!placement) return result(false, 'unavailable', 'POST_GAME_PRESENTATION_UNAVAILABLE');
+            return this.present({ phase: 'game-over', content: placement.content, foot: placement.wrapper });
+        }
         dispose() {
             this.#restorePostGamePlacement();
             this.#listeners.splice(0).forEach(({ target, type, handler }) => target.removeEventListener(type, handler));
+            this.#analysisHead?.remove(); this.#analysisHead = null;
             this.#root?.remove(); this.#root = null; this.#disposed = true; this.#status = 'disposed';
             return result(true, 'accepted', 'DISPOSED');
         }

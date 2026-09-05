@@ -93,8 +93,8 @@ html = html
   )
   .replace('    <script src="js/play/post-game-experience.js?v=1.8.0"></script>',
     '    <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>\n' +
-    '    <script src="js/play/play-v2-inline-analyze.js?v=1.2.0"></script>\n' +
-    '    <script src="js/play/post-game-core.js?v=1.3.0"></script>')
+    '    <script src="js/play/play-v2-inline-analyze.js?v=1.3.0"></script>\n' +
+    '    <script src="js/play/post-game-core.js?v=1.4.0"></script>')
   .replace('<body data-clarity-mask>', '<body data-caissa-play-v2-entry="qa-only" data-clarity-mask>')
   .replace('</head>', '    <link rel="stylesheet" href="css/play-v2-invite-feedback.css?v=1.0.0">\n</head>')
   .replace('</body>', '    <script src="js/play/play-v2-manual-qa-feedback-policy.js?v=1.0.0"></script>\n' +
@@ -115,7 +115,7 @@ if (!html.includes('js/play/play-v2-invite-policy.js?v=1.0.0')) throw new Error(
 if (!html.includes('js/play/play-v2-post-game-policy.js?v=1.1.0')) throw new Error('PLAY_V2_POST_GAME_POLICY_MISSING');
 if (!html.includes('js/play/play-v2-identity-policy.js?v=1.0.0')) throw new Error('PLAY_V2_IDENTITY_POLICY_MISSING');
 if (!html.includes('js/play/play-v2-mode-transition-policy.js?v=1.0.0')) throw new Error('PLAY_V2_MODE_TRANSITION_POLICY_MISSING');
-if (!html.includes('js/play/play-v2-inline-analyze.js?v=1.2.0')) throw new Error('PLAY_V2_INLINE_ANALYZE_MISSING');
+if (!html.includes('js/play/play-v2-inline-analyze.js?v=1.3.0')) throw new Error('PLAY_V2_INLINE_ANALYZE_MISSING');
 if (!html.includes("worker-src 'self';") || /worker-src[^;]*(?:blob:|https?:)/.test(html))
   throw new Error('PLAY_V2_WORKER_CSP_INVALID');
 if (/script-src[^;]*'unsafe-eval'/.test(html)) throw new Error('PLAY_V2_UNSAFE_EVAL_CSP');

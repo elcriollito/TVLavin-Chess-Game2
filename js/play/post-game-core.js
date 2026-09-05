@@ -1,7 +1,7 @@
 (function installPlayV2PostGameCore(root) {
     'use strict';
 
-    const VERSION = '1.2.0';
+    const VERSION = '1.4.0';
     const ACTIONS = Object.freeze(['rematch', 'analyze', 'mentor-review', 'copy-pgn', 'download-pgn', 'save-game', 'new-game']);
     let sequence = 0; let retainedRecord = null; let retainedKey = null;
     const freeze = value => {
@@ -188,13 +188,14 @@
             const handoff = this.#handoff.createFromCompletedPlayRecord(this.#record, { identityContext: 'play-v2' });
             if (!handoff?.ok) return outcome(false, 'failed', handoff?.reasonCode || 'ACTION_FAILED');
             const sourceMode = root.CaissaSimplifiedPlayShellInstance?.getSnapshot?.()?.mode || null;
-            const coachContext = root.CaissaCoachReviewContext?.create?.({
-                owner: 'post-game-core', sourceMode
-            });
+            const reviewContext = sourceMode === 'coach'
+                ? root.CaissaCoachReviewContext?.create?.({ owner: 'post-game-core', sourceMode })
+                : sourceMode === 'bots'
+                    ? root.CaissaBotsReviewContext?.create?.({ owner: 'post-game-core', sourceMode }) : null;
             const opened = root.CaissaPlayV2InlineAnalyze?.open
                 ? root.CaissaPlayV2InlineAnalyze.open({
                     token: handoff.value.token,
-                    reviewContext: coachContext?.ok ? coachContext.value : null
+                    reviewContext: reviewContext?.ok ? reviewContext.value : null
                 })
                 : this.#navigation?.navigateToSection?.('analyze', { handoffToken: handoff.value.token });
             if (opened === false || opened?.ok === false) return outcome(false, 'failed', 'ACTION_FAILED');

@@ -1,7 +1,7 @@
 (function (global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.14.0';
+    const SCHEMA_VERSION = '1.15.0';
     const SNAPSHOT_SCHEMA_VERSION = '1.14.0';
     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'unavailable', 'error']);
     const REGIONS = Object.freeze([
@@ -418,6 +418,7 @@
                 this.#postGame?.dispose?.(); this.#postGame = null;
                 this.#coachPanel?.dispose?.(); this.#coachPanel = null;
                 this.#botsPanel?.dispose?.(); this.#botsPanel = null;
+                if (global.CaissaBotsPanelInstance) global.CaissaBotsPanelInstance = null;
                 this.#gamesPanel?.dispose?.(); this.#gamesPanel = null;
                 [...this.#placements].reverse().forEach(({ node, marker }) => {
                     marker.parentNode.insertBefore(node, marker); marker.remove();
@@ -525,6 +526,7 @@
             this.#postGame?.dispose?.(); this.#postGame = null;
             if (global.CaissaPostGameExperienceInstance) global.CaissaPostGameExperienceInstance = null;
             this.#botsPanel?.dispose?.(); this.#botsPanel = null;
+            if (global.CaissaBotsPanelInstance) global.CaissaBotsPanelInstance = null;
             this.#coachPanel?.dispose?.(); this.#coachPanel = null;
             if (global.CaissaPlayersPanelInstance) global.CaissaPlayersPanelInstance = null;
             this.#gamesPanel?.dispose?.(); this.#gamesPanel = null;
@@ -770,7 +772,7 @@
                 });
                 const mounted = panel?.mount?.({ host: this.#root.querySelector('.caissa-simplified-shell__context-body') });
                 if (!mounted?.ok) throw new Error('PANEL_MOUNT_FAILED');
-                if (mode === 'bots') this.#botsPanel = panel;
+                if (mode === 'bots') { this.#botsPanel = panel; global.CaissaBotsPanelInstance = panel; }
                 else if (mode === 'coach') this.#coachPanel = panel;
                 this.setStatus('ready');
                 return true;
@@ -862,7 +864,8 @@
                 this.#coachPanel.hide();
             }
             const botsMode = this.#mode === 'bots';
-            if (botsMode && this.#botsPanel) {
+            const botsAnalysisSummary = global.CaissaBotsAnalysisSummaryPresentation?.getSnapshot?.().mounted === true;
+            if (botsMode && this.#botsPanel && !botsAnalysisSummary) {
                 const content = postGame ? this.#root.querySelector('.caissa-post-game')
                     : active ? this.#activeContext : null;
                 const foot = postGame ? this.#root.querySelector('.caissa-post-game__actions')

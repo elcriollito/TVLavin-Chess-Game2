@@ -97,8 +97,8 @@ test('boundary integration starts the existing lifecycle once and keeps review p
     const presentation = read('js/play/native-coach/coach-review-presentation.js');
     assert.match(postGame, /sourceMode[\s\S]*CaissaCoachReviewContext\?\.create/);
     assert.match(inline, /reviewPresentation\.mount\(\{ section, host: phaseHost, close: closeButton,[\s\S]*context: input\.reviewContext, handoff: resolved\.value \}\)/);
-    assert.match(inline, /if \(!coachReview && playSection\)[\s\S]*playSection\.inert = true/);
-    assert.match(inline, /if \(coachReview\)[\s\S]*reviewPresentation\.mount[\s\S]*else \{[\s\S]*section\.classList\.add\('active', 'caissa-play-v2-inline-analyze'\)/);
+    assert.match(inline, /if \(!embeddedReview && playSection\)[\s\S]*playSection\.inert = true/);
+    assert.match(inline, /if \(embeddedReview\)[\s\S]*reviewPresentation\.mount[\s\S]*else \{[\s\S]*section\.classList\.add\('active', 'caissa-play-v2-inline-analyze'\)/);
     assert.match(inline, /AnalyzeSection\.onEnter[\s\S]*reviewPresentation\?\.begin\?\.\(\{ analyze: root\.AnalyzeSection \}\)/);
     assert.match(presentation, /createSummaryStructure\(options\.close\)/);
     assert.match(presentation, /phase: 'review-summary', content: summary\.panel,[\s\S]*foot: summary\.foot/);

@@ -2804,7 +2804,233 @@ body.caissa-simplified-play-active .caissa-bots-panel__retry {
 body.caissa-simplified-play-active .caissa-bots-panel__primary { width: 100%; }
 body.caissa-simplified-play-active .caissa-bots-panel__primary:disabled { opacity: .42; cursor: not-allowed; }
 
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__head {
+    display: grid;
+    grid-template-columns: minmax(92px, 28%) minmax(0, 1fr);
+    align-items: center;
+    gap: .75rem;
+    min-height: 150px;
+    height: 150px;
+    padding: .55rem .7rem;
+    border: 1px solid var(--panel-border);
+    border-radius: .85rem;
+    background:
+        radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--bot-accent) 13%, transparent), transparent 42%),
+        color-mix(in srgb, var(--play-theme-card, #17202b) 94%, transparent);
+    overflow: hidden;
+}
+
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__caissa {
+    align-self: end;
+    width: min(100%, 132px);
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 12px 18px rgb(0 0 0 / .32));
+}
+
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__speech {
+    position: relative;
+    padding: .85rem;
+    border: 1px solid color-mix(in srgb, var(--bot-accent) 34%, var(--panel-border));
+    border-radius: .9rem .9rem .9rem .25rem;
+    background: color-mix(in srgb, var(--play-theme-card, #17202b) 82%, white 8%);
+    font-size: 1rem;
+    line-height: 1.45;
+}
+
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__speech::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: -9px;
+    inset-block-end: 22px;
+    width: 16px;
+    height: 16px;
+    border-inline-start: 1px solid color-mix(in srgb, var(--bot-accent) 34%, var(--panel-border));
+    border-block-end: 1px solid color-mix(in srgb, var(--bot-accent) 34%, var(--panel-border));
+    background: inherit;
+    transform: rotate(45deg);
+}
+
+body.caissa-simplified-play-active .caissa-bots-panel[data-bot-shell-phase="analysis-summary"]
+    .caissa-bots-panel__body { overflow-y: auto; }
+
+body.caissa-simplified-play-active .caissa-bots-analysis-summary {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    width: 100%;
+    min-height: 100%;
+    padding: .35rem .2rem .2rem;
+}
+
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__loading {
+    display: grid;
+    flex: 1 1 auto;
+    place-content: center;
+    gap: .8rem;
+    min-height: 180px;
+    text-align: center;
+}
+
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__progress {
+    width: min(100%, 340px);
+    height: 10px;
+    overflow: hidden;
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--play-theme-card, #17202b) 85%, black);
+}
+
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__progress-fill {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #c99832, #edc45d);
+}
+
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__progress-text {
+    color: var(--play-theme-text-muted, var(--text-secondary));
+    font-weight: 700;
+}
+
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__comparison {
+    display: grid;
+    gap: .8rem;
+}
+
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__profiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__profile {
+    display: grid;
+    justify-items: center;
+    gap: .18rem;
+    min-width: 0;
+    text-align: center;
+}
+
+body.caissa-simplified-play-active :is(.caissa-bots-analysis-summary__player-avatar,
+    .caissa-bots-analysis-summary__bot-avatar) {
+    display: grid;
+    width: 68px;
+    height: 68px;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--bot-accent) 58%, var(--panel-border));
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--bot-accent) 10%, var(--play-theme-card, #17202b));
+    color: var(--play-theme-text, #fff);
+    font-size: 1.45rem;
+    font-weight: 850;
+}
+
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__bot-avatar img {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+}
+
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__role {
+    margin-top: .15rem;
+    font-size: .78rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__name {
+    max-width: 100%;
+    color: var(--play-theme-text-muted, var(--text-secondary));
+    font-size: .82rem;
+    overflow-wrap: anywhere;
+}
+
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__accuracy,
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__row {
+    display: grid;
+    grid-template-columns: minmax(92px, 1.2fr) minmax(44px, .55fr) 44px minmax(44px, .55fr);
+    align-items: center;
+}
+
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__accuracy {
+    padding: .7rem .55rem;
+    border-block: 1px solid var(--panel-border);
+}
+
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__accuracy-label { font-weight: 800; }
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__accuracy-value {
+    color: var(--bot-accent);
+    font-size: clamp(1.35rem, 2vw, 1.8rem);
+    text-align: center;
+}
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__accuracy-value:first-of-type { grid-column: 2; }
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__accuracy-value:last-of-type { grid-column: 4; }
+
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__table { display: grid; gap: .28rem; }
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__row {
+    min-height: 46px;
+    padding: .35rem .55rem;
+    border-radius: .45rem;
+}
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__row:nth-child(odd) {
+    background: color-mix(in srgb, var(--play-theme-card, #17202b) 72%, transparent);
+}
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__quality { font-weight: 750; }
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__count { text-align: center; }
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__quality-icon {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    justify-self: center;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--bot-accent) 18%, var(--play-theme-card, #17202b));
+    color: var(--bot-accent);
+}
+
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__foot {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .55rem;
+}
+body.caissa-simplified-play-active :is(.caissa-bots-analysis-summary__new-game,
+    .caissa-bots-analysis-summary__review) {
+    min-height: 52px;
+    padding: .65rem .8rem;
+    border: 1px solid var(--panel-border);
+    border-radius: .65rem;
+    background: #202a38;
+    color: #f4f7fb;
+    font-size: 1rem;
+    font-weight: 800;
+}
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__review {
+    border-color: #bd9230;
+    background: linear-gradient(180deg, #edc45d, #d9a83c);
+    color: #18130a;
+}
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__review:disabled { opacity: .45; }
+
 @media (max-width: 420px) {
+    body.caissa-simplified-play-active .caissa-bots-analysis-summary__head {
+        grid-template-columns: 82px minmax(0, 1fr);
+        min-height: 112px;
+        height: 112px;
+        padding: .45rem .6rem;
+    }
+    body.caissa-simplified-play-active .caissa-bots-analysis-summary__caissa { width: 82px; }
+    body.caissa-simplified-play-active .caissa-bots-analysis-summary__speech { padding: .65rem; font-size: .88rem; }
+    body.caissa-simplified-play-active .caissa-bots-analysis-summary { padding-inline: 0; }
+    body.caissa-simplified-play-active .caissa-bots-analysis-summary__profiles { gap: .5rem; }
+    body.caissa-simplified-play-active :is(.caissa-bots-analysis-summary__player-avatar,
+        .caissa-bots-analysis-summary__bot-avatar) { width: 58px; height: 58px; }
+    body.caissa-simplified-play-active .caissa-bots-analysis-summary__bot-avatar img { width: 52px; height: 52px; }
+    body.caissa-simplified-play-active .caissa-bots-analysis-summary__accuracy,
+    body.caissa-simplified-play-active .caissa-bots-analysis-summary__row {
+        grid-template-columns: minmax(80px, 1.2fr) minmax(38px, .55fr) 38px minmax(38px, .55fr);
+    }
     body.caissa-simplified-play-active .caissa-bots-panel:is(
         [data-bot-shell-phase="setup"], [data-bot-shell-phase="active-game"], [data-bot-shell-phase="game-over"])
         .caissa-bots-panel__selected { gap: .75rem; min-height: 112px; padding: .55rem .75rem; }
