@@ -810,7 +810,8 @@
             const previousState = this.#root.dataset.uiState;
             this.#root.dataset.uiState = state;
             if (active) {
-                this.#gamesPanel?.hide?.(); this.#botsPanel?.hide?.();
+                this.#gamesPanel?.hide?.();
+                if (this.#mode !== 'bots') this.#botsPanel?.hide?.();
                 if (this.#mode !== 'coach') this.#coachPanel?.hide?.();
             } else if (!postGame) {
                 if (this.#mode === 'games') this.#gamesPanel?.show?.();
@@ -855,18 +856,23 @@
                 this.#coachPanel.releasePhaseContent(contextBody);
                 this.#coachPanel.hide();
             }
-            this.#syncActivePlacement(active, coachMode);
+            const botsMode = this.#mode === 'bots';
+            if (botsMode && this.#botsPanel && !postGame) {
+                this.#botsPanel.present({ phase: active ? 'active-game' : 'setup',
+                    content: active ? this.#activeContext : null, foot: active ? this.#activeFoot : null });
+            }
+            this.#syncActivePlacement(active, coachMode || botsMode);
             this.#renderActiveNotation();
             this.#syncIdentity();
             if (this.#active && previousState !== state) this.resize();
         }
-        #syncActivePlacement(active, coachMode) {
+        #syncActivePlacement(active, assistedShellMode) {
             if (!this.#root || !this.#activeContext || !this.#actionBar) return;
             const boardStage = this.#root.querySelector('.caissa-simplified-shell__board-stage');
             const opponent = this.#root.querySelector('.caissa-simplified-shell__player--opponent');
             const narrator = this.#root.querySelector('[data-active-coach-narrator]');
             const desktopActive = active && this.#root.dataset.layout === 'desktop-split';
-            if (active && coachMode && this.#activeFoot) {
+            if (active && assistedShellMode && this.#activeFoot) {
                 if (this.#actionBar.parentNode !== this.#activeFoot) this.#activeFoot.appendChild(this.#actionBar);
                 if (this.#utilityBar?.parentNode !== this.#activeFoot) this.#activeFoot.appendChild(this.#utilityBar);
                 return;

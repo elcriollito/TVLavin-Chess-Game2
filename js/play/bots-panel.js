@@ -1,7 +1,7 @@
 (function installBotsPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '2.1.0';
+    const SCHEMA_VERSION = '2.2.0';
     const STATUSES = Object.freeze(['ready', 'planned', 'busy', 'active', 'error', 'unavailable', 'disposed']);
     const TIME_CONTROLS = Object.freeze([
         Object.freeze({ value: 0, label: 'No Timer' }),
@@ -42,6 +42,7 @@
     class BotsPanel {
         #id = `bots-panel-${++sequence}`; #root = null; #host = null; #disposed = false;
         #selectedId = null; #selectedCategoryId = null; #status = 'ready'; #timeControl = 0; #color = 'white'; #listeners = [];
+        #bodyHost = null; #footHost = null; #setupContent = null; #setupFoot = null; #phase = 'setup';
         #compatibility; #resolveRandomColor; #diagnostics = { selections: 0, starts: 0, rejected: 0 };
 
         constructor(options = {}) {
@@ -66,10 +67,17 @@
             this.#selectedId = first.collection.id === 'classic' ? first.bot.id : `${first.collection.id}:${first.bot.id}`;
             this.#selectedCategoryId = first.bot.categoryId;
             this.#root = element('section', 'caissa-bots-panel', {
-                'data-caissa-bots-panel': '', 'aria-label': 'Play Bots setup'
+                'data-caissa-bots-panel': '', 'data-caissa-bots-shell': '',
+                'data-bot-shell-phase': 'setup', 'aria-label': 'Play Bots'
             });
 
             const selected = element('div', 'caissa-bots-panel__selected', { 'data-bot-selected': '' });
+            const head = element('header', 'caissa-bots-panel__head', { 'data-caissa-bots-head': '' });
+            head.appendChild(selected);
+            const body = this.#bodyHost = element('div', 'caissa-bots-panel__body', { 'data-caissa-bots-body': '' });
+            const setupContent = this.#setupContent = element('div', 'caissa-bots-panel__setup', {
+                'data-bots-phase-content': 'setup'
+            });
             const categoryNav = element('div', 'caissa-bots-panel__category-nav', {
                 role: 'tablist', 'aria-label': 'Bot strength categories', 'data-bot-category-nav': ''
             });
@@ -162,7 +170,16 @@
                 type: 'button', 'data-bot-retry': '', 'aria-describedby': `${this.#id}-status`
             });
             retry.textContent = 'Retry'; retry.hidden = true;
-            this.#root.append(selected, categoryNav, catalog, controls, status, action, retry); host.appendChild(this.#root);
+            setupContent.append(categoryNav, catalog, controls);
+            body.appendChild(setupContent);
+            const foot = this.#footHost = element('footer', 'caissa-bots-panel__foot', {
+                'data-caissa-bots-foot': '', 'aria-label': 'Bot phase actions'
+            });
+            const setupFoot = this.#setupFoot = element('div', 'caissa-bots-panel__foot-content', {
+                'data-bots-foot-content': 'setup'
+            });
+            setupFoot.append(status, action, retry); foot.appendChild(setupFoot);
+            this.#root.append(head, body, foot); host.appendChild(this.#root);
             this.#listen(this.#root, 'change', event => this.#change(event));
             this.#listen(this.#root, 'click', event => {
                 const tab = event.target?.closest?.('[data-bot-category-tab]');
@@ -221,6 +238,33 @@
 
         show() { if (this.#root) this.#root.hidden = false; return result(true, 'accepted', 'SHOWN'); }
         hide() { if (this.#root) this.#root.hidden = true; return result(true, 'accepted', 'HIDDEN'); }
+        present(options = {}) {
+            if (!this.#root || this.#disposed) return result(false, 'rejected', 'UNAVAILABLE');
+            const phase = options.phase === 'active-game' ? 'active-game' : 'setup';
+            this.#phase = phase; this.#root.dataset.botShellPhase = phase;
+            this.#setupContent.hidden = phase !== 'setup'; this.#setupFoot.hidden = phase !== 'setup';
+            this.#bodyHost.querySelectorAll('[data-bots-phase-content="active-game"]').forEach(node => node.hidden = true);
+            this.#footHost.querySelectorAll('[data-bots-foot-content="active-game"]').forEach(node => node.hidden = true);
+            if (phase === 'active-game') {
+                const content = options.content;
+                const foot = options.foot;
+                if (content?.nodeType === 1) {
+                    content.setAttribute('data-bots-phase-content', 'active-game'); content.hidden = false;
+                    if (content.parentNode !== this.#bodyHost) this.#bodyHost.appendChild(content);
+                }
+                if (foot?.nodeType === 1) {
+                    foot.setAttribute('data-bots-foot-content', 'active-game'); foot.hidden = false;
+                    if (foot.parentNode !== this.#footHost) this.#footHost.appendChild(foot);
+                }
+            }
+            const record = this.#selectedRecord();
+            const meta = this.#root.querySelector('.caissa-bots-panel__selected-copy span');
+            const category = record?.bot ? global.CaissaBotCollections.category(record.bot.categoryId) : null;
+            if (meta && record?.bot && category) meta.textContent = phase === 'active-game'
+                ? `ELO ${record.bot.targetStrength}` : `${category.label} · ${record.bot.targetStrength} Elo target`;
+            this.show();
+            return result(true, 'accepted', 'PHASE_PRESENTED', this.getSnapshot());
+        }
         reset() {
             this.#status = this.#selectedBot()?.availability === 'qa-only' ? 'ready' : 'planned'; this.#render();
             return result(true, 'accepted', 'RESET', this.getSnapshot());
@@ -233,7 +277,9 @@
                 selectedCategoryId: this.#selectedCategoryId,
                 selectedEngineProfileId: bot?.engineProfileId || null, selectedTargetStrength: bot?.targetStrength || null,
                 selectedStrengthProfileId: bot?.strengthProfileId || null,
-                color: this.#color, timeControlSeconds: this.#timeControl,
+                color: this.#color, timeControlSeconds: this.#timeControl, phase: this.#phase,
+                architecture: 'head-body-foot', structuralRegionCount: this.#root?.querySelectorAll?.(
+                    ':scope > [data-caissa-bots-head], :scope > [data-caissa-bots-body], :scope > [data-caissa-bots-foot]').length || 0,
                 primaryAction: { label: 'Play', available: !this.#disposed && bot?.availability === 'qa-only' },
                 listenerCount: this.#listeners.length, diagnostics: { ...this.#diagnostics } });
         }
@@ -313,7 +359,9 @@
                 const portrait = piecePortrait(category, 'caissa-bots-panel__selected-piece');
                 const copy = element('span', 'caissa-bots-panel__selected-copy');
                 const name = element('strong', ''); name.textContent = bot.name;
-                const meta = element('span', ''); meta.textContent = `${category.label} · ${bot.targetStrength} Elo target`;
+                const meta = element('span', '');
+                meta.textContent = this.#phase === 'active-game'
+                    ? `ELO ${bot.targetStrength}` : `${category.label} · ${bot.targetStrength} Elo target`;
                 copy.append(name, meta); selected.replaceChildren(portrait, copy);
             } else selected.textContent = 'Choose a bot';
             selected.classList.toggle('is-planned', bot?.availability !== 'qa-only');

@@ -18,7 +18,7 @@
                 'js/play/bots/bot-collection-registry.js?v=1.0.0',
                 'js/play/bots/bot-collection-loader.js?v=1.0.0',
                 'js/play/bots/bot-worker-readiness.js?v=1.0.1',
-                'js/play/bots-panel.js?v=2.1.0'
+                'js/play/bots-panel.js?v=2.2.0'
             ])
         }),
         'coach-stack': Object.freeze({
