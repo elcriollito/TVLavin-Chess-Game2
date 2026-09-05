@@ -14,7 +14,7 @@ test('QA shell exposes CAISSA identity structure while preserving board and rout
     await expect(page.locator('[data-caissa-expression="inscribed-mode-rail"]')).toBeVisible();
     await expect(page.locator('[data-shell-mode="games"]')).toHaveAttribute('aria-selected', 'true');
     await page.locator('[data-shell-mode="bots"]').click();
-    await expect(page).toHaveURL(/\/play\/bots\?simplified=1/);
+    await expect(page).toHaveURL(/\/play\/bots$/);
     expect(await page.evaluate(() => window.App.board === window.__identityBoard)).toBe(true);
     expect(await page.evaluate(() => window.App.game.fen())).toBe(before.fen);
 });
