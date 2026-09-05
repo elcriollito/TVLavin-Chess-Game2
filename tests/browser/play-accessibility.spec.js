@@ -98,16 +98,17 @@ test('dark, light, system, reduced motion, forced colors, zoom reflow, and Axe s
     }))).toEqual({ forced: true, outline: 'solid' });
 });
 
-test('promotion semantics and Classic, Legacy Play, FICS, and Analyze isolation remain intact', async ({ page }) => {
+test('promotion semantics and canonical Play, FICS, and Analyze isolation remain intact', async ({ page }) => {
     await page.goto('/play/games?simplified=1');
     await expect(page.locator('#promotionModal')).toHaveAttribute('role', 'dialog');
     await expect(page.locator('#promotionModal')).toHaveAttribute('aria-labelledby', 'promotion-title');
     await expect(page.locator('#chessboard')).toHaveAttribute('aria-description', /tap or drag/i);
     await expect(page.locator('#chessboard')).not.toHaveAttribute('aria-description', /arrow|square-by-square/i);
     await page.goto('/');
-    await expect(page.locator('#yahooClassicSection')).toHaveClass(/active/);
+    await expect(page).toHaveURL(/\/play$/);
+    await expect(page.locator('#playSection')).toHaveClass(/active/);
     for (const selector of ['#yahooClassicSection', '#ficsSection', '#analyzeSection'])
         await expect(page.locator(selector)).not.toHaveAttribute('data-caissa-accessibility-owner');
     await page.goto('/play/games');
-    await expect(page.locator('[data-caissa-simplified-shell]')).toBeHidden();
+    await expect(page.locator('[data-caissa-simplified-shell]')).toBeVisible();
 });

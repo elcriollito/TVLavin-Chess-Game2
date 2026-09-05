@@ -52,11 +52,17 @@ test('equal, positive, negative, mate, and orientation preserve White perspectiv
 test('New Game resets score and engine failure exposes a stable accessible error', async ({ page }) => {
     await openPlay(page);
     await page.evaluate(() => window.updateEvalBar(500, null));
-    await page.evaluate(() => window.newGame({ mode: 'engine', color: 'white', timeControl: 0 }));
+    await page.evaluate(() => window.newGame({
+        mode: 'engine', color: 'white', timeControl: 0, targetElo: 1500
+    }));
     let snapshot = await page.evaluate(() => window.CaissaEvaluationRailInstance.getSnapshot());
     expect(snapshot.scoreType).toBe('neutral');
     expect(snapshot.displayMode).toBe('live');
-    await page.evaluate(() => window.__caissaPlayHarness.fail());
+    await page.evaluate(async () => {
+        const harness = window.__caissaPlayHarness;
+        await window.App.engine.start();
+        harness.fail(harness.state.workers.length - 1);
+    });
     snapshot = await page.evaluate(() => window.CaissaEvaluationRailInstance.getSnapshot());
     expect(snapshot.displayMode).toBe('error');
     await expect(page.locator('#evalBar')).toHaveAttribute('aria-label', /engine error/i);
