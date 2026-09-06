@@ -66,6 +66,7 @@ test('Bots presentation excludes technical engine internals and duplicate author
     assert.match(source, /temporaryOwner: 'CaissaBotsAnalysisExploration'/);
     assert.match(presentation, /entryReviewPly: anchor/);
     assert.match(app, /context === 'bots-analysis-exploration'[\s\S]*CaissaBotsAnalysisExploration\.playMove/);
+    assert.match(app, /function onSnapEnd\(\)[\s\S]*getActiveReviewExploration\(\)[\s\S]*exploration\.restoreBoard\(\)/);
 });
 
 test('temporary Chess owner accepts promotion without touching the completed game', () => {
@@ -74,6 +75,18 @@ test('temporary Chess owner accepts promotion without touching the completed gam
     assert.equal(api.enter({ fen: '7k/P7/8/8/8/8/8/7K w - - 0 1', analyze, entryReviewPly: 1 }).ok, true);
     assert.equal(api.playMove('a7', 'a8', 'q'), true);
     assert.equal(api.getLine()[0].promotion, 'q');
+    assert.equal(window.App.moveHistory, authoritative.moveHistory);
+    api.leave();
+});
+
+test('temporary Chess owner accepts a legal capture without touching the completed game', () => {
+    const { window, api, authoritative } = fixture();
+    const analyze = { ensureAnalysisEngine: async () => null, teardownAnalysisEngine() {} };
+    assert.equal(api.enter({ fen: 'r6k/8/8/8/8/8/8/R6K w - - 0 1', analyze, entryReviewPly: 1 }).ok, true);
+    assert.equal(api.movesFrom('a1').some(move => move.to === 'a8' && move.captured === 'r'), true);
+    assert.equal(api.playMove('a1', 'a8'), true);
+    assert.deepEqual({ ...api.pieceAt('a8') }, { type: 'r', color: 'w' });
+    assert.equal(api.pieceAt('a1'), null);
     assert.equal(window.App.moveHistory, authoritative.moveHistory);
     api.leave();
 });

@@ -818,6 +818,26 @@ test('Review with Mentor is an external observer with live Study FEN and zero bo
         analysis: JSON.stringify(window.AnalyzeSection.analysisResults),
         authoritativePly: window.AnalyzeSection.currentMoveIndex
     }));
+    const legalMoves = () => page.evaluate(() => { const owner = window.CaissaBotsAnalysisExploration; const moves = [];
+        for (const file of 'abcdefgh') for (const rank of '12345678')
+            for (const move of owner.movesFrom(`${file}${rank}`)) moves.push(`${move.from}${move.to}${move.promotion || ''}`);
+        return moves.sort(); });
+    const frame = () => page.evaluate(() => {
+        const rect = selector => document.querySelector(selector)?.getBoundingClientRect();
+        const round = value => Math.round((value || 0) * 100) / 100;
+        const navigation = rect('.main-navigation'); const play = rect('.caissa-simplified-shell');
+        const workspace = rect('.caissa-simplified-shell__workspace'); const board = rect('#playSection #chessboard .board-b72b1');
+        const context = rect('.caissa-simplified-shell__context'); const head = rect('[data-caissa-bots-head]');
+        const body = rect('[data-caissa-bots-body]'); const foot = rect('[data-caissa-bots-foot]');
+        const playStyle = getComputedStyle(document.querySelector('.caissa-simplified-shell'));
+        return { navigation: round(navigation?.width), play: round(play?.width), workspace: round(workspace?.width),
+            board: [round(board?.width), round(board?.height)], context: round(context?.width),
+            wraps: [round(head?.height), round(body?.height), round(foot?.height)],
+            scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth,
+            scroll: [round(scrollX), round(scrollY)], scale: window.visualViewport?.scale || 1,
+            transform: playStyle.transform, zoom: playStyle.zoom };
+    });
+    const settleFrame = () => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     const assertMentorContext = async expectedMode => {
         const proof = await page.evaluate(() => {
             const owner = window.CaissaBotsAnalysisExploration.getSnapshot();
@@ -870,10 +890,15 @@ test('Review with Mentor is an external observer with live Study FEN and zero bo
     });
     await page.locator('[data-caissa-mentor-launcher]').click(); await expect(mentor).toBeVisible();
     const from = page.locator(`#chessboard .square-${dragCandidate.from}`); const to = page.locator(`#chessboard .square-${dragCandidate.to}`);
+    const beforeDrag = await page.evaluate(() => ({ fen: window.CaissaBotsAnalysisExploration.getFen(),
+        board: window.App.boardAdapter.getPosition(), cursor: window.CaissaBotsAnalysisExploration.getSnapshot().temporaryCursor }));
     const fromBox = await from.boundingBox(); const toBox = await to.boundingBox();
     await page.mouse.move(fromBox.x + fromBox.width / 2, fromBox.y + fromBox.height / 2);
     await page.mouse.down(); await page.mouse.move(toBox.x + toBox.width / 2, toBox.y + toBox.height / 2, { steps: 8 }); await page.mouse.up();
-    await expect.poll(() => page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot().temporaryPlyCount)).toBeGreaterThan(0);
+    await expect.poll(() => page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot().temporaryCursor)).toBe(beforeDrag.cursor + 1);
+    const afterDrag = await page.evaluate(() => ({ fen: window.CaissaBotsAnalysisExploration.getFen(),
+        board: window.App.boardAdapter.getPosition() }));
+    expect(afterDrag.fen).not.toBe(beforeDrag.fen); expect(afterDrag.board).toBe(afterDrag.fen);
     await assertMentorContext('temporary');
 
     await page.evaluate(() => window.eval(`LLMProvider.chat = async messages => {
@@ -893,7 +918,9 @@ test('Review with Mentor is an external observer with live Study FEN and zero bo
 
     const geometry = [];
     for (const viewport of [{ width: 1600, height: 1000 }, { width: 1366, height: 768 }, { width: 390, height: 844 }]) {
-        await page.setViewportSize(viewport); await shell.scrollIntoViewIfNeeded();
+        await page.setViewportSize(viewport); await shell.scrollIntoViewIfNeeded(); await settleFrame();
+        await page.evaluate(() => window.scrollTo(0, 0));
+        const openFrame = await frame();
         const measured = await shell.evaluate(node => {
             const head = node.querySelector(':scope > [data-caissa-bots-head]').getBoundingClientRect();
             const bodyNode = node.querySelector(':scope > [data-caissa-bots-body]');
@@ -911,22 +938,63 @@ test('Review with Mentor is an external observer with live Study FEN and zero bo
             anchored: true, bodyOverflow: 'auto', overflow: 0 });
         expect(measured.mentorWidth).toBeLessThanOrEqual(viewport.width);
         expect(measured.boardWidth).toBeGreaterThan(viewport.width === 390 ? 300 : 500);
-        geometry.push({ viewport: `${viewport.width}x${viewport.height}`, ...measured });
-        if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-mentor-study-desktop.png', fullPage: true });
-        if (viewport.width === 390) await page.screenshot({ path: 'test-results/play-bots-mentor-study-mobile.png', fullPage: true });
+        if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-mentor-open-desktop.png', fullPage: true });
+        if (viewport.width === 390) await page.screenshot({ path: 'test-results/play-bots-mentor-open-mobile.png', fullPage: true });
+        await mentor.getByRole('button', { name: 'Minimize CAISSA Mentor' }).click(); await expect(mentor).toBeHidden();
+        const minimizedFrame = await frame();
+        if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-mentor-minimized-desktop.png', fullPage: true });
+        if (viewport.width === 390) await page.screenshot({ path: 'test-results/play-bots-mentor-minimized-mobile.png', fullPage: true });
+        expect(minimizedFrame).toEqual(openFrame);
+        await page.locator('[data-caissa-mentor-launcher]').click(); await expect(mentor).toBeVisible();
+        geometry.push({ viewport: `${viewport.width}x${viewport.height}`, frame: openFrame, ...measured });
     }
     console.log(`BOTS_MENTOR_STUDY_GEOMETRY ${JSON.stringify(geometry)}`);
     const accessibility = await new AxeBuilder({ page }).include('[data-caissa-mentor-shell]').analyze();
     expect(accessibility.violations.filter(item => ['critical', 'serious'].includes(item.impact))).toEqual([]);
 
+    await page.setViewportSize({ width: 1600, height: 1000 }); await settleFrame(); await page.evaluate(() => window.scrollTo(0, 0));
+    const legalOpen = await legalMoves(); const frameOpen = await frame();
+    await mentor.getByRole('button', { name: 'Minimize CAISSA Mentor' }).click(); await expect(mentor).toBeHidden();
+    const legalMinimized = await legalMoves(); const frameMinimized = await frame();
+    expect(legalMinimized).toEqual(legalOpen); expect(frameMinimized).toEqual(frameOpen);
+    const minimizedMove = legalMinimized.find(move => move.length === 4); expect(minimizedMove).toBeTruthy();
+    const beforeMinimizedMove = await page.evaluate(() => ({ fen: window.CaissaBotsAnalysisExploration.getFen(),
+        cursor: window.CaissaBotsAnalysisExploration.getSnapshot().temporaryCursor }));
+    await page.locator(`#chessboard .square-${minimizedMove.slice(0, 2)}`).click();
+    await expect(page.locator('#chessboard .caissa-board-legal-target')).not.toHaveCount(0);
+    await page.locator(`#chessboard .square-${minimizedMove.slice(2, 4)}`).click();
+    await expect.poll(() => page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot().temporaryCursor))
+        .toBe(beforeMinimizedMove.cursor + 1);
+    expect(await page.evaluate(() => window.CaissaBotsAnalysisExploration.getFen())).not.toBe(beforeMinimizedMove.fen);
+    await shell.getByRole('button', { name: 'Previous study move' }).click();
+    expect(await page.evaluate(() => window.CaissaBotsAnalysisExploration.getFen())).toBe(beforeMinimizedMove.fen);
+    await page.locator('[data-caissa-mentor-launcher]').click(); await expect(mentor).toBeVisible();
     const draftBeforeLeave = await page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot().temporaryPlyCount);
     const fenBeforeClose = await page.evaluate(() => window.CaissaBotsAnalysisExploration.getFen());
     const legalBeforeClose = await page.evaluate(() => { const owner = window.CaissaBotsAnalysisExploration; const moves = [];
         for (const file of 'abcdefgh') for (const rank of '12345678')
             for (const move of owner.movesFrom(`${file}${rank}`)) moves.push(`${move.from}${move.to}${move.promotion || ''}`);
         return moves.sort(); });
-    await mentor.getByRole('button', { name: 'Close CAISSA Mentor' }).click();
-    await expect(mentor).toBeHidden();
+    const equivalentGeometry = [];
+    for (const viewport of [{ width: 1600, height: 1000 }, { width: 1366, height: 768 }, { width: 390, height: 844 }]) {
+        await page.setViewportSize(viewport); await shell.scrollIntoViewIfNeeded(); await settleFrame(); await page.evaluate(() => window.scrollTo(0, 0));
+        await page.evaluate(() => { const owner = window.CaissaBotsAnalysisExploration.getSnapshot();
+            window.CaissaMentorFloatingShell.setContext({ source: 'bots-analysis-study', fen: owner.currentFen, mode: owner.mode });
+            window.CaissaMentorFloatingShell.open(); });
+        await expect(mentor).toBeVisible(); const open = await frame();
+        if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-mentor-open-desktop.png', fullPage: true });
+        if (viewport.width === 390) await page.screenshot({ path: 'test-results/play-bots-mentor-open-mobile.png', fullPage: true });
+        await page.evaluate(() => window.CaissaMentorFloatingShell.minimize()); await expect(mentor).toBeHidden();
+        const minimized = await frame();
+        if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-mentor-minimized-desktop.png', fullPage: true });
+        if (viewport.width === 390) await page.screenshot({ path: 'test-results/play-bots-mentor-minimized-mobile.png', fullPage: true });
+        await page.evaluate(() => window.CaissaMentorFloatingShell.close()); await expect(mentor).toBeHidden();
+        const closedFrame = await frame(); expect(minimized).toEqual(open); expect(closedFrame).toEqual(open);
+        equivalentGeometry.push({ viewport: `${viewport.width}x${viewport.height}`, open, minimized, closed: closedFrame });
+        if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-mentor-closed-desktop.png', fullPage: true });
+        if (viewport.width === 390) await page.screenshot({ path: 'test-results/play-bots-mentor-closed-mobile.png', fullPage: true });
+    }
+    console.log(`BOTS_MENTOR_FRAME_EQUIVALENCE ${JSON.stringify(equivalentGeometry)}`);
     const closed = await page.evaluate(() => ({ fen: window.CaissaBotsAnalysisExploration.getFen(),
         draft: window.CaissaBotsAnalysisExploration.getSnapshot().temporaryPlyCount,
         context: window.CaissaMentorFloatingShell.inspect().context,
@@ -936,7 +1004,17 @@ test('Review with Mentor is an external observer with live Study FEN and zero bo
             return moves.sort(); })() }));
     expect(closed).toMatchObject({ fen: fenBeforeClose, draft: draftBeforeLeave, context: null });
     expect(closed.legal).toEqual(legalBeforeClose);
+    expect(closed.legal).toEqual(legalOpen);
     expect(boardBeforeInteraction.width).toBeGreaterThan(500);
+    await page.setViewportSize({ width: 1600, height: 1000 }); await shell.scrollIntoViewIfNeeded(); await settleFrame(); await page.evaluate(() => window.scrollTo(0, 0));
+    const closedMove = closed.legal.find(move => move.length === 4); expect(closedMove).toBeTruthy();
+    const beforeClosedMove = await page.evaluate(() => ({ fen: window.CaissaBotsAnalysisExploration.getFen(),
+        cursor: window.CaissaBotsAnalysisExploration.getSnapshot().temporaryCursor }));
+    await page.locator(`#chessboard .square-${closedMove.slice(0, 2)}`).click();
+    await page.locator(`#chessboard .square-${closedMove.slice(2, 4)}`).click();
+    await expect.poll(() => page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot().temporaryCursor))
+        .toBe(beforeClosedMove.cursor + 1);
+    expect(await page.evaluate(() => window.CaissaBotsAnalysisExploration.getFen())).not.toBe(beforeClosedMove.fen);
     await expect(shell).toHaveAttribute('data-bot-shell-phase', 'analysis-exploration');
     await shell.locator('[data-bots-exploration-back]').click();
     await expect(shell).toHaveAttribute('data-bot-shell-phase', 'guided-review');

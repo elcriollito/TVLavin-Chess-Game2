@@ -1085,8 +1085,9 @@ function onDrop(source, target) {
 }
 
 function onSnapEnd() {
-    if (isCoachReviewExplorationActive()) {
-        window.CaissaCoachReviewExploration.restoreBoard();
+    const exploration = getActiveReviewExploration();
+    if (exploration) {
+        exploration.restoreBoard();
         unlockScroll();
         return;
     }

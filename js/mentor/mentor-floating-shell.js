@@ -95,9 +95,13 @@
         }));
         return !!previous;
     };
+    const focusWithoutViewportMutation = node => {
+        try { node?.focus?.({ preventScroll: true }); } catch (_) { node?.focus?.(); }
+    };
     const setOpen = (value, returnFocus = false) => { open = value; panel.hidden = !value; panel.setAttribute('aria-hidden', String(!value));
         launcher.setAttribute('aria-expanded', String(value)); document.body.classList.toggle('caissa-mentor-open', value);
-        if (value) queueMicrotask(() => input.focus()); else if (returnFocus) queueMicrotask(() => launcher.focus()); };
+        if (value) queueMicrotask(() => focusWithoutViewportMutation(input));
+        else if (returnFocus) queueMicrotask(() => focusWithoutViewportMutation(launcher)); };
     launcher.addEventListener('click', () => setOpen(true)); minimize.addEventListener('click', () => setOpen(false, true));
     close.addEventListener('click', () => { input.value = ''; clearContext(true); messages.replaceChildren(welcome); setOpen(false, true); });
     document.addEventListener('keydown', event => { if (event.key === 'Escape' && open) { event.preventDefault(); setOpen(false, true); } });
@@ -112,7 +116,7 @@
             messages.append(answer); input.value = ''; status.textContent = 'Mentor replied.';
             answer.dataset.deliveryAck = await confirmRenderedDelivery(result);
         } catch (error) { status.textContent = /sign in|required|credits|temporarily unavailable/i.test(error?.message || '') ? error.message : 'Mentor is temporarily unavailable. Please try again later.';
-        } finally { submit.disabled = false; input.focus(); } });
+        } finally { submit.disabled = false; focusWithoutViewportMutation(input); } });
     stack.prepend(launcher); document.body.appendChild(panel);
     renderContext();
     root.CaissaMentorFloatingShell = Object.freeze({ open: () => setOpen(true), minimize: () => setOpen(false),

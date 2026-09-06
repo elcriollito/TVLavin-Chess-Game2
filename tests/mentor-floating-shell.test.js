@@ -73,3 +73,9 @@ test('local review remains explicitly local and report launcher joins one floati
     assert.match(report, /data-caissa-floating-controls/);
     assert.doesNotMatch(report, /fetch\s*\(/);
 });
+
+test('opening and restoring Mentor focus cannot scroll or rescale the Play frame', () => {
+    const source = read('js/mentor/mentor-floating-shell.js');
+    assert.match(source, /focus\?\.\(\{ preventScroll: true \}\)/);
+    assert.doesNotMatch(source, /(?:transform|zoom)\s*=/);
+});
