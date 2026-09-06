@@ -1,8 +1,8 @@
 (function installGamesPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.6.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.6.0';
+    const SCHEMA_VERSION = '1.7.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.7.0';
     const STATUSES = Object.freeze(['idle', 'ready', 'invalid', 'busy', 'active', 'error', 'disposed']);
     const EVENTS = Object.freeze(['hydrated', 'selection-changed', 'validated', 'submitted', 'started', 'advanced-changed']);
     const SECTIONS = Object.freeze(['game-type', 'time-control', 'color', 'opponent', 'primary-action', 'advanced-options']);
@@ -60,6 +60,7 @@
     class GamesPanel {
         #id = `games-panel-${++sequence}`;
         #compatibility; #root = null; #host = null; #advanced = null; #disposed = false; #minimalEntry = false;
+        #bodyHost = null; #footHost = null; #setupContent = null; #setupFoot = null; #phase = 'setup';
         #resolveRandomColor; #readiness; #unsubscribeReadiness = null;
         #status = 'idle'; #preset = TIME_CONTROLS[0]; #color = 'white';
         #targetElo = STRENGTH?.readPreference?.() ?? 1500;
@@ -103,11 +104,14 @@
             const welcome = node('div', 'caissa-games-panel__welcome');
             const title = node('h2', 'caissa-games-panel__title', { id: `${this.#id}-title` });
             title.textContent = 'Welcome to Play';
+            const phaseLabel = node('strong', 'caissa-games-panel__phase-label', {
+                'data-games-phase-label': '', hidden: ''
+            });
             const description = node('p', 'caissa-games-panel__description');
             description.textContent = "Choose your game and I'll take care of the rest.";
-            welcome.append(title, description); head.append(portrait, welcome);
+            welcome.append(title, phaseLabel, description); head.append(portrait, welcome);
 
-            const body = node('div', 'caissa-games-panel__body', { 'data-caissa-games-body': '' });
+            const body = this.#bodyHost = node('div', 'caissa-games-panel__body', { 'data-caissa-games-body': '' });
 
             const disclosure = node('details', 'caissa-games-panel__disclosure', { 'data-games-setup-disclosure': '' });
             disclosure.open = true;
@@ -184,10 +188,15 @@
             action.textContent = 'Start Game';
             setup.append(time, color, opponent);
             disclosure.append(disclosureSummary, setup);
-            body.append(disclosure, status);
-            const foot = node('footer', 'caissa-games-panel__foot', {
+            const setupContent = this.#setupContent = node('div', 'caissa-games-panel__setup-content', {
+                'data-games-phase-content': 'setup'
+            });
+            setupContent.append(disclosure, status); body.appendChild(setupContent);
+            const foot = this.#footHost = node('footer', 'caissa-games-panel__foot', {
                 'data-caissa-games-foot': '', 'aria-label': 'Play Game actions'
             });
+            this.#setupFoot = action;
+            action.setAttribute('data-games-foot-content', 'setup');
             foot.appendChild(action);
             this.#root.append(head, body, foot);
             this.#host.appendChild(this.#root);
@@ -337,6 +346,7 @@
             return deepFreeze({
                 schemaVersion: SNAPSHOT_SCHEMA_VERSION, panelId: this.#id,
                 mounted: !!this.#root, disposed: this.#disposed, status: this.#status,
+                phase: this.#phase, architecture: 'head-body-foot',
                 timeControl: { ...this.#preset }, color: this.#color,
                 opponent: { type: 'local-engine', ...STRENGTH.describe(this.#targetElo).value },
                 advancedExpanded: this.#advanced?.open === true,
@@ -370,6 +380,62 @@
             }
             return result(true, 'accepted', 'SHOWN', this.getSnapshot());
         }
+        present(options = {}) {
+            if (!this.#root || this.#disposed) return result(false, 'rejected', 'UNAVAILABLE');
+            const phase = options.phase === 'active-game' ? 'active-game' : 'setup';
+            if (phase === 'setup') this.releasePhaseContent(options.returnHost);
+            this.#phase = phase;
+            this.#root.dataset.gamesPhase = phase;
+            const title = this.#root.querySelector('.caissa-games-panel__title');
+            const phaseLabel = this.#root.querySelector('[data-games-phase-label]');
+            const description = this.#root.querySelector('.caissa-games-panel__description');
+            if (title) title.textContent = phase === 'active-game' ? 'Play Chess' : 'Welcome to Play';
+            if (phaseLabel) {
+                phaseLabel.hidden = phase !== 'active-game';
+                phaseLabel.textContent = phase === 'active-game' ? 'Game in progress' : '';
+            }
+            if (description) description.textContent = phase === 'active-game'
+                ? "Use the board to play your moves. I'm with you."
+                : "Choose your game and I'll take care of the rest.";
+            this.#setupContent.hidden = phase !== 'setup';
+            this.#setupFoot.hidden = phase !== 'setup';
+            this.#bodyHost.querySelectorAll('[data-games-phase-content]:not([data-games-phase-content="setup"])')
+                .forEach(item => item.hidden = true);
+            this.#footHost.querySelectorAll('[data-games-foot-content]:not([data-games-foot-content="setup"])')
+                .forEach(item => item.hidden = true);
+            if (phase === 'active-game') {
+                const content = options.content;
+                const foot = options.foot;
+                if (content?.nodeType === 1) {
+                    content.setAttribute('data-games-phase-content', phase);
+                    content.hidden = false;
+                    if (content.parentNode !== this.#bodyHost) this.#bodyHost.appendChild(content);
+                }
+                if (foot?.nodeType === 1) {
+                    foot.setAttribute('data-games-foot-content', phase);
+                    foot.hidden = false;
+                    if (foot.parentNode !== this.#footHost) this.#footHost.appendChild(foot);
+                }
+            }
+            this.show();
+            return result(true, 'accepted', 'PHASE_PRESENTED', this.getSnapshot());
+        }
+        releasePhaseContent(returnHost) {
+            if (!this.#root) return result(false, 'rejected', 'UNAVAILABLE');
+            this.#bodyHost?.querySelectorAll?.('[data-games-phase-content]:not([data-games-phase-content="setup"])')
+                .forEach(item => {
+                    item.removeAttribute('data-games-phase-content');
+                    item.hidden = true;
+                    if (returnHost?.appendChild) returnHost.appendChild(item);
+                });
+            this.#footHost?.querySelectorAll?.('[data-games-foot-content]:not([data-games-foot-content="setup"])')
+                .forEach(item => {
+                    item.removeAttribute('data-games-foot-content');
+                    item.hidden = true;
+                    item.remove();
+                });
+            return result(true, 'accepted', 'PHASE_CONTENT_RELEASED');
+        }
         hide() {
             if (this.#root) {
                 this.#root.hidden = true;
@@ -382,6 +448,7 @@
             return result(true, 'accepted', 'HIDDEN', this.getSnapshot());
         }
         unmount() {
+            this.releasePhaseContent(this.#host);
             this.#unsubscribeReadiness?.(); this.#unsubscribeReadiness = null; this.#readiness?.dispose?.();
             this.#removeListeners(); this.#root?.remove(); this.#root = null; this.#host = null;
             return result(true, 'accepted', REASONS.UNMOUNTED);

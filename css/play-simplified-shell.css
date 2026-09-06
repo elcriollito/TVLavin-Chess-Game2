@@ -1795,6 +1795,16 @@ body.caissa-simplified-play-active .caissa-games-panel__description {
     line-height: 1.45;
 }
 
+body.caissa-simplified-play-active .caissa-games-panel__phase-label {
+    color: var(--play-theme-text, #fff);
+    font-size: 1rem;
+    line-height: 1.2;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__phase-label[hidden] {
+    display: none;
+}
+
 body.caissa-simplified-play-active .caissa-games-panel__body {
     flex: 1 1 auto;
     min-height: 0;
@@ -1813,6 +1823,45 @@ body.caissa-simplified-play-active .caissa-games-panel__foot {
     margin-top: .65rem;
     padding-top: .65rem;
     border-top: 1px solid color-mix(in srgb, var(--games-gold) 28%, var(--panel-border));
+}
+
+body.caissa-simplified-play-active .caissa-games-panel[data-games-phase="active-game"]
+    .caissa-games-panel__body > .caissa-simplified-shell__active-context {
+    display: block;
+    min-height: 0;
+    padding: 0;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel[data-games-phase="active-game"]
+    .caissa-simplified-shell__active-context > :is(h3, [data-active-game-status]) {
+    display: none;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel[data-games-phase="active-game"]
+    .caissa-simplified-shell__active-notation {
+    min-height: 0;
+    padding-block-start: 0;
+    border-block-start: 0;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel[data-games-phase="active-game"]
+    .caissa-simplified-shell__active-moves {
+    max-height: none;
+    overflow: visible;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel[data-games-phase="active-game"]
+    .caissa-native-coach-panel__foot-content--active {
+    display: grid;
+    gap: .55rem;
+    width: 100%;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel[data-games-phase="active-game"]
+    .caissa-simplified-shell__board-actions,
+body.caissa-simplified-play-active .caissa-games-panel[data-games-phase="active-game"]
+    .caissa-simplified-shell__utility-bar {
+    width: 100%;
 }
 
 body.caissa-simplified-play-active .caissa-games-panel__group {
@@ -2018,6 +2067,10 @@ body.caissa-simplified-play-active .caissa-games-panel__primary::before {
 body.caissa-simplified-play-active .caissa-games-panel__primary:disabled {
     opacity: .55;
     cursor: not-allowed;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__primary[hidden] {
+    display: none;
 }
 
 @media (max-width: 420px) {

@@ -818,7 +818,8 @@
             const previousState = this.#root.dataset.uiState;
             this.#root.dataset.uiState = state;
             if (active) {
-                this.#gamesPanel?.hide?.();
+                if (this.#mode === 'games') this.#gamesPanel?.show?.();
+                else this.#gamesPanel?.hide?.();
                 if (this.#mode !== 'bots') this.#botsPanel?.hide?.();
                 if (this.#mode !== 'coach') this.#coachPanel?.hide?.();
             } else if (!postGame) {
@@ -848,14 +849,25 @@
             const heading = this.#root.querySelector('.caissa-simplified-shell__context-header h2');
             if (heading) {
                 const redundantAssistedHeading = !postGame && !starting && ['bots', 'coach'].includes(this.#mode);
+                const redundantGamesHeading = !postGame && this.#mode === 'games';
                 const redundantBotsResultHeading = postGame && this.#mode === 'bots';
-                heading.hidden = redundantAssistedHeading || redundantBotsResultHeading;
-                heading.parentElement.hidden = redundantAssistedHeading || redundantBotsResultHeading;
+                heading.hidden = redundantAssistedHeading || redundantGamesHeading || redundantBotsResultHeading;
+                heading.parentElement.hidden = redundantAssistedHeading || redundantGamesHeading || redundantBotsResultHeading;
                 heading.textContent = postGame ? 'Game result' : active
                     ? ({ games: 'Play Game', bots: 'Play Bots', coach: 'Play Coach' }[this.#mode] || 'Game status')
                     : starting ? 'Starting game' : 'Game setup';
             }
             const contextBody = this.#root.querySelector('.caissa-simplified-shell__context-body');
+            const gamesMode = this.#mode === 'games';
+            if (gamesMode && this.#gamesPanel && !postGame) {
+                this.#gamesPanel.present({ phase: active ? 'active-game' : 'setup',
+                    content: active ? this.#activeContext : null,
+                    foot: active ? this.#activeFoot : null,
+                    returnHost: contextBody });
+            } else if (this.#gamesPanel && contextBody) {
+                this.#gamesPanel.releasePhaseContent(contextBody);
+                this.#gamesPanel.hide();
+            }
             const coachShellState = this.#coachPanel?.getSnapshot?.().shell;
             const transientReview = (coachShellState?.transientDepth || 0) > 0
                 && ['review-summary', 'guided-review'].includes(coachShellState?.phase);
@@ -877,7 +889,7 @@
                 this.#botsPanel.present({ phase: postGame ? 'game-over' : active ? 'active-game' : 'setup',
                     content, foot });
             }
-            this.#syncActivePlacement(active, coachMode || botsMode);
+            this.#syncActivePlacement(active, gamesMode || coachMode || botsMode);
             this.#renderActiveNotation();
             this.#syncIdentity();
             if (this.#active && previousState !== state) this.resize();

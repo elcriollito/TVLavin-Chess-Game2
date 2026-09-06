@@ -44,9 +44,9 @@ function load(snapshot = {}, commandResult = { ok: true, status: 'accepted' }, o
 }
 
 test('publishes a frozen versioned contract with truthful fixed vocabularies', () => {
-    const { api } = load();
-    assert.equal(api.schemaVersion, '1.6.0');
-    assert.equal(api.snapshotSchemaVersion, '1.6.0');
+    const { api, panel } = load();
+    assert.equal(api.schemaVersion, '1.7.0');
+    assert.equal(api.snapshotSchemaVersion, '1.7.0');
     assert.ok(Object.isFrozen(api));
     assert.ok(Object.isFrozen(api.timeControls));
     assert.ok(Object.isFrozen(api.colors));
@@ -57,6 +57,8 @@ test('publishes a frozen versioned contract with truthful fixed vocabularies', (
         ['1+0', '2+1', '3+0', '3+2', '5+0', '10+0', '15+10']);
     assert.equal(api.timeControls.some(item => item.seconds === 0), false);
     assert.ok(api.timeControls.every(item => !Object.hasOwn(item, 'elo')));
+    assert.equal(panel.getSnapshot().phase, 'setup');
+    assert.equal(panel.getSnapshot().architecture, 'head-body-foot');
 });
 
 test('hydrates current base time, color, active state, and fixed strength', () => {
