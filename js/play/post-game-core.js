@@ -203,6 +203,20 @@
         }
         #mentorReview() {
             if (this.#reviewLaunching) return outcome(false, 'rejected', 'DUPLICATE_ACTIVATION');
+            const sourceMode = root.CaissaSimplifiedPlayShellInstance?.getSnapshot?.()?.mode || null;
+            if (sourceMode === 'bots' && root.CaissaBotsGuidedReviewPresentation?.requestMentorStudy) {
+                const requested = root.CaissaBotsGuidedReviewPresentation.requestMentorStudy();
+                if (!requested?.ok) return outcome(false, 'failed', requested?.reasonCode || 'ACTION_FAILED');
+                const launched = this.#analyze();
+                const complete = value => {
+                    if (!value?.ok) {
+                        root.CaissaBotsGuidedReviewPresentation?.cancelMentorStudyRequest?.();
+                        return value || outcome(false, 'failed', 'ACTION_FAILED');
+                    }
+                    return outcome(true, 'accepted', 'BOTS_MENTOR_STUDY_OPENED');
+                };
+                return launched?.then ? launched.then(complete) : complete(launched);
+            }
             if (!root.CaissaNativeMentorReviewWorkspace?.open && root.CaissaPlayLazyLoader?.load) {
                 this.#reviewLaunching = true; return root.CaissaPlayLazyLoader.load('native-mentor-review', { qa: true, retry: true })
                     .then(() => { this.#reviewLaunching = false; return this.#mentorReview(); })

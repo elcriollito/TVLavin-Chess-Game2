@@ -153,8 +153,13 @@
             context: mounted.context, identity: mounted.identity });
         if (!modeled.ok) return;
         const fingerprint = `${modeled.value.phase}:${modeled.value.progress || 0}:${mounted.analyze.analysisResults?.length || 0}`;
-        if (fingerprint === mounted.fingerprint) return;
-        mounted.fingerprint = fingerprint; render(modeled.value);
+        if (fingerprint !== mounted.fingerprint) { mounted.fingerprint = fingerprint; render(modeled.value); }
+        if (modeled.value.phase === 'summary' && !mounted.mentorStudyLaunching
+            && root.CaissaBotsGuidedReviewPresentation?.hasMentorStudyRequest?.()) {
+            mounted.mentorStudyLaunching = true;
+            root.CaissaBotsGuidedReviewPresentation.enterMentorStudy?.({ context: mounted.context,
+                handoff: mounted.handoff, analyze: mounted.analyze, identity: mounted.identity });
+        }
         if (modeled.value.phase !== 'loading' && mounted.timer) { root.clearInterval(mounted.timer); mounted.timer = null; }
     }
 
@@ -166,7 +171,8 @@
         const shown = root.CaissaBotsPanelInstance.present({ phase: 'analysis-summary', head: ui.head, content: ui.body, foot: ui.foot });
         if (!shown?.ok) return result(false, 'rejected', 'BOTS_SHELL_UNAVAILABLE');
         mounted = { context: options.context, handoff: options.handoff, identity, ui, analyze: null,
-            model: null, timer: null, fingerprint: null, analysisStartRequests: 0, reviewRequests: 0 };
+            model: null, timer: null, fingerprint: null, analysisStartRequests: 0, reviewRequests: 0,
+            mentorStudyLaunching: false };
         root.document.body.classList.add('caissa-bots-analysis-summary-active');
         ui.newGame.addEventListener('click', () => {
             if (!mounted || ui.newGame.disabled) return; ui.newGame.disabled = true;

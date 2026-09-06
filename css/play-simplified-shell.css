@@ -3294,6 +3294,58 @@ body.caissa-simplified-play-active .caissa-bots-exploration {
     width: 100%;
     min-height: 0;
 }
+body.caissa-simplified-play-active .caissa-bots-exploration__mentor {
+    display: grid;
+    gap: .55rem;
+    margin-bottom: .35rem;
+    padding: .7rem;
+    border: 1px solid color-mix(in srgb, var(--bot-accent) 48%, var(--panel-border));
+    border-radius: .7rem;
+    background: color-mix(in srgb, var(--bot-accent) 7%, var(--play-theme-card, #17202b));
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__mentor[hidden] { display: none; }
+body.caissa-simplified-play-active .caissa-bots-exploration__mentor-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .65rem;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__mentor-title {
+    color: var(--bot-accent);
+    font-size: .78rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__mentor-leave {
+    min-height: 36px;
+    padding: .3rem .65rem;
+    border: 1px solid var(--panel-border);
+    border-radius: .45rem;
+    background: transparent;
+    color: var(--play-theme-text-muted, var(--text-secondary));
+    font-weight: 750;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__mentor-message {
+    min-height: 2.5em;
+    margin: 0;
+    color: var(--play-theme-text, #fff);
+    line-height: 1.4;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__mentor-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .4rem;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__mentor-action {
+    min-height: 44px;
+    padding: .4rem .5rem;
+    border: 1px solid var(--panel-border);
+    border-radius: .45rem;
+    background: #202a38;
+    color: var(--play-theme-text, #fff);
+    font-size: .75rem;
+    font-weight: 750;
+}
 body.caissa-simplified-play-active .caissa-bots-exploration__line {
     display: grid;
     gap: .3rem;
@@ -3405,6 +3457,7 @@ body.caissa-simplified-play-active .caissa-bots-exploration__engine[aria-pressed
     body.caissa-simplified-play-active :is(.caissa-bots-analysis-summary__player-avatar,
         .caissa-bots-analysis-summary__bot-avatar) { width: 58px; height: 58px; }
     body.caissa-simplified-play-active .caissa-bots-analysis-summary__bot-avatar img { width: 52px; height: 52px; }
+    body.caissa-simplified-play-active .caissa-bots-exploration__mentor-actions { grid-template-columns: 1fr; }
     body.caissa-simplified-play-active .caissa-bots-guided__head {
         grid-template-columns: 82px minmax(0, 1fr);
         min-height: 112px;

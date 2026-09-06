@@ -53,3 +53,14 @@ test('presentation declares no duplicate chess, PGN, result, classifier, or engi
     assert.match(source, /analysisResultsOwner: 'AnalyzeSection\.analysisResults'/);
     assert.match(source, /mounted\.analyze\.jumpToMove/);
 });
+
+test('contextual Bots Mentor is an Analysis Exploration presentation, not another board or owner', () => {
+    const postGame = fs.readFileSync(new URL('../../js/play/post-game-core.js', import.meta.url), 'utf8');
+    assert.match(postGame, /sourceMode === 'bots'[\s\S]*requestMentorStudy[\s\S]*this\.#analyze\(\)/);
+    assert.match(source, /data-bots-mentor-study/);
+    assert.match(source, /dataset\.mentorFen = state\?\.currentFen/);
+    assert.match(source, /CaissaBotsAnalysisExploration\?\.getSnapshot/);
+    assert.match(source, /mounted\?\.analyze\?\.analysisResults/);
+    assert.doesNotMatch(source, /(?:const|let|var)\s+mentor(?:MoveIndex|Fen|Pgn|Engine|Board)\b/i);
+    assert.doesNotMatch(source, /new\s+Chess|new\s+Worker|createBoard|Chessboard\s*\(/);
+});

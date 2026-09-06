@@ -737,6 +737,128 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
     await expect(shell.locator('[data-bot-selected]')).toContainText('Vera');
 });
 
+test('Review with Mentor stays inside Bots Analysis Exploration and follows its displayed FEN', async ({ page }) => {
+    const runtime = monitorRuntime(page);
+    await openBots(page, { width: 1600, height: 1000 });
+    await openCategory(page, 'Advanced');
+    await page.getByLabel(/Vera, 1500 Elo target/).check();
+    await page.locator('[data-bot-primary]').click();
+    for (let turn = 0; turn < 2; turn += 1) {
+        const count = await page.evaluate(() => window.App.game.history().length);
+        const move = await page.evaluate(() => window.App.game.moves({ verbose: true })[0]);
+        expect(await playMove(page, move.from, move.to)).toBe(true);
+        await expect.poll(() => page.evaluate(() => window.App.game.history().length)).toBe(count + 2);
+    }
+    await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
+    const shell = page.locator('[data-caissa-bots-shell]');
+    await expect(shell).toHaveAttribute('data-bot-shell-phase', 'game-over');
+    await shell.locator('[data-post-game-action="mentor-review"]').click();
+    await expect(shell).toHaveAttribute('data-bot-shell-phase', 'analysis-exploration', { timeout: 25_000 });
+
+    const mentor = shell.locator('[data-bots-mentor-study]');
+    await expect(mentor).toBeVisible();
+    await expect(mentor.getByRole('button')).toHaveText([
+        'Leave Mentor', 'Explain this position', 'What was the mistake?',
+        'What should I play?', 'Show the threat', 'What is the plan?'
+    ]);
+    await expect(page.locator('#playSection #chessboard .board-b72b1:visible')).toHaveCount(1);
+    await expect(page.locator('#analyzeSection .analyze-layout:visible')).toHaveCount(0);
+    await expect(page.locator('.caissa-mentor-review:visible, [data-native-mentor-review]:visible, #mentor-review-board:visible')).toHaveCount(0);
+
+    const immutableBefore = await page.evaluate(() => ({
+        pgn: window.AnalyzeSection.loadedGame.pgn,
+        loadedMoves: JSON.stringify(window.AnalyzeSection.getLoadedMoves({ verbose: true })),
+        appHistory: JSON.stringify(window.App.moveHistory),
+        analysis: JSON.stringify(window.AnalyzeSection.analysisResults),
+        authoritativePly: window.AnalyzeSection.currentMoveIndex
+    }));
+    const assertMentorContext = async expectedMode => {
+        const proof = await page.evaluate(() => {
+            const owner = window.CaissaBotsAnalysisExploration.getSnapshot();
+            const node = document.querySelector('[data-bots-mentor-study]');
+            return { ownerFen: owner.currentFen, mentorFen: node?.dataset.mentorFen,
+                boardFen: window.App.boardAdapter.getPosition(), mode: owner.mode,
+                mentorMode: node?.dataset.mentorContext, authoritativePly: window.AnalyzeSection.currentMoveIndex };
+        });
+        expect(proof).toMatchObject({ ownerFen: proof.boardFen, mentorFen: proof.boardFen,
+            mode: expectedMode, mentorMode: expectedMode, authoritativePly: immutableBefore.authoritativePly });
+    };
+    await assertMentorContext('source');
+    await shell.getByRole('button', { name: 'First study position' }).click();
+    await assertMentorContext('source');
+    await shell.getByRole('button', { name: 'Next study move' }).click();
+    await assertMentorContext('source');
+
+    const candidate = await page.evaluate(() => {
+        const owner = window.CaissaBotsAnalysisExploration;
+        for (const file of 'abcdefgh') for (const rank of '12345678') {
+            const move = owner.movesFrom(`${file}${rank}`)[0];
+            if (move) return { from: move.from, to: move.to };
+        }
+        return null;
+    });
+    expect(candidate).not.toBeNull();
+    await page.locator(`#chessboard .square-${candidate.from}`).click();
+    await page.locator(`#chessboard .square-${candidate.to}`).click();
+    await expect.poll(() => page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot().mode)).toBe('temporary');
+    await assertMentorContext('temporary');
+    await mentor.getByRole('button', { name: 'What should I play?' }).click();
+    await expect(mentor.locator('[data-bots-mentor-message]')).not.toHaveText("I'm looking at this position. What would you like help with?");
+    await assertMentorContext('temporary');
+
+    const geometry = [];
+    for (const viewport of [{ width: 1600, height: 1000 }, { width: 1366, height: 768 }, { width: 390, height: 844 }]) {
+        await page.setViewportSize(viewport); await shell.scrollIntoViewIfNeeded();
+        const measured = await shell.evaluate(node => {
+            const head = node.querySelector(':scope > [data-caissa-bots-head]').getBoundingClientRect();
+            const bodyNode = node.querySelector(':scope > [data-caissa-bots-body]');
+            const body = bodyNode.getBoundingClientRect();
+            const foot = node.querySelector(':scope > [data-caissa-bots-foot]').getBoundingClientRect();
+            const mentorNode = node.querySelector('[data-bots-mentor-study]').getBoundingClientRect();
+            return { head: Math.round(head.height), body: Math.round(body.height), foot: Math.round(foot.height),
+                mentorWidth: Math.round(mentorNode.width), bodyWidth: Math.round(body.width),
+                anchored: Math.abs(foot.bottom - node.getBoundingClientRect().bottom) <= 1,
+                bodyOverflow: getComputedStyle(bodyNode).overflowY,
+                overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+                minTarget: Math.min(...[...node.querySelectorAll('[data-bots-mentor-study] button')]
+                    .map(button => button.getBoundingClientRect().height)) };
+        });
+        expect(measured).toMatchObject({ head: viewport.width === 390 ? 112 : 150,
+            anchored: true, bodyOverflow: 'auto', overflow: 0 });
+        expect(measured.mentorWidth).toBeLessThanOrEqual(measured.bodyWidth);
+        expect(measured.minTarget).toBeGreaterThanOrEqual(viewport.width === 390 ? 44 : 36);
+        geometry.push({ viewport: `${viewport.width}x${viewport.height}`, ...measured });
+        if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-mentor-study-desktop.png', fullPage: true });
+        if (viewport.width === 390) await page.screenshot({ path: 'test-results/play-bots-mentor-study-mobile.png', fullPage: true });
+    }
+    console.log(`BOTS_MENTOR_STUDY_GEOMETRY ${JSON.stringify(geometry)}`);
+    const accessibility = await new AxeBuilder({ page }).include('[data-caissa-bots-shell]').analyze();
+    expect(accessibility.violations.filter(item => ['critical', 'serious'].includes(item.impact))).toEqual([]);
+
+    const draftBeforeLeave = await page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot().temporaryPlyCount);
+    await mentor.getByRole('button', { name: 'Leave Mentor' }).click();
+    await expect(mentor).toBeHidden();
+    expect(await page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot().temporaryPlyCount)).toBe(draftBeforeLeave);
+    await expect(shell).toHaveAttribute('data-bot-shell-phase', 'analysis-exploration');
+    await shell.locator('[data-bots-exploration-back]').click();
+    await expect(shell).toHaveAttribute('data-bot-shell-phase', 'guided-review');
+    const immutableAfter = await page.evaluate(() => ({
+        pgn: window.AnalyzeSection.loadedGame.pgn,
+        loadedMoves: JSON.stringify(window.AnalyzeSection.getLoadedMoves({ verbose: true })),
+        appHistory: JSON.stringify(window.App.moveHistory),
+        analysis: JSON.stringify(window.AnalyzeSection.analysisResults),
+        authoritativePly: window.AnalyzeSection.currentMoveIndex
+    }));
+    expect(immutableAfter).toEqual(immutableBefore);
+    const restored = await page.evaluate(() => ({
+        board: window.App.boardAdapter.getPosition(),
+        projection: window.AnalyzeSection.getCoachReviewProjection().fen,
+        selected: Number(document.querySelector('[data-bots-guided-notation] [aria-current="move"]')?.dataset.botsGuidedPly)
+    }));
+    expect(restored).toMatchObject({ board: restored.projection, selected: immutableBefore.authoritativePly });
+    runtime.assertClean();
+});
+
 test('catalog stays reachable and bounded across required viewports', async ({ page }) => {
     await openBots(page, { width: 320, height: 568 });
     for (const [width, height] of [

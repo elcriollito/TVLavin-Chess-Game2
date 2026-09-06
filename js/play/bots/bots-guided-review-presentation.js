@@ -1,9 +1,10 @@
 (function installBotsGuidedReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.2.0';
+    const SCHEMA_VERSION = '1.3.0';
     const REVIEW_WORTHY = Object.freeze(['Inaccuracy', 'Mistake', 'Blunder']);
     let mounted = null;
+    let mentorStudyRequested = false;
     const freeze = value => Object.freeze(value);
     const result = (ok, status, reasonCode, value = null) => freeze({ ok, status, reasonCode, value });
     const element = (tag, className, attributes = {}) => {
@@ -131,6 +132,27 @@
 
         const body = element('section', 'caissa-bots-exploration', { 'data-bots-analysis-exploration': '',
             'aria-label': 'Game study and temporary position analysis' });
+        const mentor = element('aside', 'caissa-bots-exploration__mentor', {
+            'data-bots-mentor-study': '', 'aria-label': 'Contextual Mentor guidance' });
+        mentor.hidden = true;
+        const mentorHeading = element('div', 'caissa-bots-exploration__mentor-heading');
+        const mentorTitle = element('strong', 'caissa-bots-exploration__mentor-title'); mentorTitle.textContent = 'Mentor';
+        const leaveMentor = element('button', 'caissa-bots-exploration__mentor-leave', {
+            type: 'button', 'data-bots-mentor-leave': '', 'aria-label': 'Leave Mentor' });
+        leaveMentor.textContent = 'Leave Mentor'; mentorHeading.append(mentorTitle, leaveMentor);
+        const mentorMessage = element('p', 'caissa-bots-exploration__mentor-message', {
+            'data-bots-mentor-message': '', 'aria-live': 'polite' });
+        mentorMessage.textContent = "I'm looking at this position. What would you like help with?";
+        const mentorActions = element('div', 'caissa-bots-exploration__mentor-actions', {
+            role: 'group', 'aria-label': 'Mentor questions' });
+        [['explain', 'Explain this position'], ['mistake', 'What was the mistake?'],
+            ['move', 'What should I play?'], ['threat', 'Show the threat'], ['plan', 'What is the plan?']]
+            .forEach(([action, label]) => {
+                const button = element('button', 'caissa-bots-exploration__mentor-action', {
+                    type: 'button', 'data-bots-mentor-action': action });
+                button.textContent = label; mentorActions.append(button);
+            });
+        mentor.append(mentorHeading, mentorMessage, mentorActions);
         const sourceSection = element('section', 'caissa-bots-exploration__line');
         const sourceTitle = element('h3', 'caissa-bots-exploration__line-title'); sourceTitle.textContent = 'Game moves (study)';
         const sourceNotation = element('div', 'caissa-bots-exploration__notation', {
@@ -141,7 +163,7 @@
         const variationTitle = element('h3', 'caissa-bots-exploration__line-title'); variationTitle.textContent = 'Temporary variation';
         const notation = element('div', 'caissa-bots-exploration__notation', { 'data-bots-exploration-notation': '',
             'aria-label': 'Temporary exploration notation', 'aria-live': 'polite' });
-        variationSection.append(variationTitle, notation); body.append(sourceSection, variationSection);
+        variationSection.append(variationTitle, notation); body.append(mentor, sourceSection, variationSection);
 
         const foot = element('div', 'caissa-bots-exploration__foot', { 'data-bots-foot-content': 'analysis-exploration' });
         const navigation = element('div', 'caissa-bots-exploration__navigation', { role: 'group',
@@ -164,8 +186,8 @@
         engine.innerHTML = '<span class="caissa-bots-exploration__led" aria-hidden="true"></span>'
             + '<span data-bots-exploration-engine-label>Engine Off</span>';
         actions.append(back, engine); foot.append(navigation, actions);
-        return { head, evaluation, pv, body, sourceNotation, variationSection, notation,
-            foot, navigation, navButtons, back, engine };
+        return { head, evaluation, pv, body, mentor, mentorMessage, mentorActions, leaveMentor,
+            sourceNotation, variationSection, notation, foot, navigation, navButtons, back, engine };
     }
 
     function renderHead(model) {
@@ -241,6 +263,8 @@
 
     function renderExplorationAnalysis(info = {}) {
         if (!mounted || mounted.phase !== 'analysis-exploration') return;
+        mounted.explorationAnalysis = freeze({ evaluation: info.evaluation, mate: info.mate,
+            pv: freeze([...(info.pv || [])]), status: info.status || 'unknown' });
         const ui = mounted.exploration; const hasEvaluation = Number.isFinite(info.mate) || Number.isFinite(info.evaluation);
         if (Number.isFinite(info.mate)) ui.evaluation.textContent = info.mate > 0 ? `M+${info.mate}` : `M${info.mate}`;
         else if (Number.isFinite(info.evaluation))
@@ -256,6 +280,48 @@
             else if (Number.isFinite(info.evaluation)) rail.setEvaluation?.(info.evaluation * 100,
                 { source: 'bots-analysis-exploration' });
         }
+    }
+
+    function mentorEvidence() {
+        const state = root.CaissaBotsAnalysisExploration?.getSnapshot?.();
+        const sourcePly = state?.mode === 'source' ? state.sourceCursor - 1 : (state?.branchSourceCursor ?? 0) - 1;
+        return { state, result: sourcePly >= 0 ? mounted?.analyze?.analysisResults?.[sourcePly] || null : null,
+            analysis: mounted?.explorationAnalysis || null };
+    }
+
+    function mentorAnswer(action) {
+        const { result: evidence, analysis } = mentorEvidence(); const pv = analysis?.pv || [];
+        const evaluation = Number.isFinite(analysis?.mate) && analysis.mate !== 0
+            ? `mate ${analysis.mate > 0 ? `in ${analysis.mate}` : `against in ${Math.abs(analysis.mate)}`}`
+            : Number.isFinite(analysis?.evaluation) ? `${analysis.evaluation >= 0 ? '+' : ''}${analysis.evaluation.toFixed(2)}` : null;
+        if (action === 'mistake') {
+            if (evidence && REVIEW_WORTHY.includes(evidence.quality)) {
+                const correction = evidence.recommendationAvailable && evidence.bestMoveSan
+                    ? ` The completed review preferred ${evidence.bestMoveSan}.` : '';
+                return `${evidence.move || 'The selected source move'} was classified as ${evidence.quality.toLowerCase()}.${correction}`;
+            }
+            return 'The completed review has no evidence-backed mistake attached to this study position.';
+        }
+        if (action === 'move') return pv.length
+            ? `The current engine line begins ${pv.slice(0, 3).join(' ')}. You can choose whether to try it in the study draft.`
+            : 'A supported move suggestion is not available yet. Keep the engine on and wait for a principal variation.';
+        if (action === 'threat') return pv.length
+            ? `Use the current principal line as the concrete threat check: ${pv.slice(0, 4).join(' ')}.`
+            : 'No evidence-backed threat is available for this position, so I will not invent one.';
+        if (action === 'plan') return pv.length
+            ? `Start by comparing candidate moves with ${pv[0]}; the displayed principal line is the available concrete evidence.`
+            : 'Compare legal candidate moves while the engine prepares evidence; no specific plan is asserted yet.';
+        return evaluation
+            ? `The current position is evaluated at ${evaluation}${pv.length ? `, with a principal line beginning ${pv.slice(0, 3).join(' ')}` : ''}.`
+            : 'I am following this position. Use the legal moves and engine line to compare concrete continuations.';
+    }
+
+    function syncMentorContext({ resetMessage = true } = {}) {
+        if (!mounted?.mentorActive || mounted.phase !== 'analysis-exploration') return;
+        const state = root.CaissaBotsAnalysisExploration?.getSnapshot?.(); const ui = mounted.exploration;
+        ui.mentor.hidden = false; ui.mentor.dataset.mentorFen = state?.currentFen || '';
+        ui.mentor.dataset.mentorContext = state?.mode || 'source';
+        if (resetMessage) ui.mentorMessage.textContent = "I'm looking at this position. What would you like help with?";
     }
 
     function renderExplorationPosition() {
@@ -290,6 +356,7 @@
         ui.navButtons.first.disabled = !state || state.atFirst; ui.navButtons.previous.disabled = !state || state.atFirst;
         ui.navButtons.next.disabled = !state || state.atLast; ui.navButtons.last.disabled = !state || state.atLast;
         ui.body.querySelector('[aria-current="move"]')?.scrollIntoView?.({ block: 'nearest' });
+        syncMentorContext();
     }
 
     function syncExplorationEngine() {
@@ -300,11 +367,12 @@
         button.querySelector('[data-bots-exploration-engine-label]').textContent = label;
     }
 
-    function enterExploration() {
+    function enterExploration(options = {}) {
         if (!mounted || mounted.phase !== 'guided-review') return;
         const anchor = mounted.analyze.currentMoveIndex; const projection = mounted.analyze.getCoachReviewProjection?.();
         if (!Number.isInteger(anchor) || !projection?.fen) return;
         mounted.phase = 'analysis-exploration'; mounted.entryReviewPly = anchor;
+        mounted.mentorActive = options.mentor === true; mounted.exploration.mentor.hidden = !mounted.mentorActive;
         const shown = root.CaissaBotsPanelInstance.present({ phase: 'analysis-exploration',
             head: mounted.exploration.head, content: mounted.exploration.body, foot: mounted.exploration.foot });
         if (!shown?.ok) { mounted.phase = 'guided-review'; return; }
@@ -318,7 +386,8 @@
         if (!entered?.ok) { mounted.phase = 'guided-review';
             root.CaissaBotsPanelInstance.present({ phase: 'guided-review', head: mounted.ui.head,
                 content: mounted.ui.body, foot: mounted.ui.foot }); update(); return; }
-        syncExplorationEngine(); renderExplorationPosition(); mounted.exploration.back.focus?.();
+        syncExplorationEngine(); renderExplorationPosition();
+        (mounted.mentorActive ? mounted.exploration.mentorActions.querySelector('button') : mounted.exploration.back)?.focus?.();
     }
 
     function leaveExploration() {
@@ -341,7 +410,8 @@
         if (!shown?.ok) return result(false, 'rejected', 'BOTS_SHELL_UNAVAILABLE');
         mounted = { context: options.context, handoff: options.handoff, analyze: options.analyze, ui, exploration,
             model: null, explanationExpanded: false, pgn: options.handoff?.payload?.pgn || null,
-            history: freeze([...(options.analyze.getLoadedMoves?.() || [])]), phase: 'guided-review', entryReviewPly: null };
+            history: freeze([...(options.analyze.getLoadedMoves?.() || [])]), phase: 'guided-review', entryReviewPly: null,
+            mentorActive: false, explorationAnalysis: null };
         root.document.body.classList.add('caissa-bots-guided-review-active');
         ui.explain.addEventListener('click', () => { if (!mounted) return;
             mounted.explanationExpanded = !mounted.explanationExpanded; update(); });
@@ -372,14 +442,37 @@
             const button = event.target?.closest?.('[data-bots-exploration-source-cursor]');
             if (button) root.CaissaBotsAnalysisExploration?.goToSource?.(Number(button.dataset.botsExplorationSourceCursor));
         });
+        exploration.mentorActions.addEventListener('click', event => {
+            const button = event.target?.closest?.('[data-bots-mentor-action]');
+            if (!button || !mounted?.mentorActive) return;
+            mounted.exploration.mentorMessage.textContent = mentorAnswer(button.dataset.botsMentorAction);
+        });
+        exploration.leaveMentor.addEventListener('click', () => {
+            if (!mounted?.mentorActive) return; mounted.mentorActive = false;
+            exploration.mentor.hidden = true; exploration.back.focus?.();
+        });
         exploration.back.addEventListener('click', leaveExploration);
         exploration.engine.addEventListener('click', () => {
             const enabled = root.CaissaBotsAnalysisExploration?.getSnapshot?.().engineEnabled === true;
             root.CaissaBotsAnalysisExploration?.setEngineEnabled?.(!enabled); syncExplorationEngine();
         });
         root.addEventListener('caissa:bots-review-ply-change', update);
-        options.analyze.jumpToMove(0); update(); ui.explain.focus?.();
+        options.analyze.jumpToMove(0); update();
+        if (options.mentorStudy === true) enterExploration({ mentor: true }); else ui.explain.focus?.();
         return result(true, 'accepted', 'BOTS_GUIDED_REVIEW_MOUNTED', getSnapshot());
+    }
+
+    function requestMentorStudy() {
+        mentorStudyRequested = true;
+        return result(true, 'accepted', 'BOTS_MENTOR_STUDY_REQUESTED');
+    }
+    function cancelMentorStudyRequest() {
+        mentorStudyRequested = false;
+        return result(true, 'accepted', 'BOTS_MENTOR_STUDY_CANCELLED');
+    }
+    function enterMentorStudy(options = {}) {
+        mentorStudyRequested = false;
+        return enter({ ...options, mentorStudy: true });
     }
 
     function unmount() {
@@ -396,11 +489,13 @@
             currentMoveIndex: mounted?.analyze?.currentMoveIndex ?? null,
             reviewPlyOwner: 'AnalyzeSection.currentMoveIndex', analysisResultsOwner: 'AnalyzeSection.analysisResults',
             moveHistoryOwner: 'AnalyzeSection loaded handoff', entryReviewPly: mounted?.entryReviewPly ?? null,
+            mentorActive: mounted?.mentorActive === true, mentorStudyRequested,
             exploration: root.CaissaBotsAnalysisExploration?.getSnapshot?.() || null,
             reviewMoments: mounted ? findReviewMoments(mounted.analyze) : [] });
     }
 
     root.CaissaBotsGuidedReviewPresentation = freeze({ schemaVersion: SCHEMA_VERSION,
         reviewWorthyClassifications: REVIEW_WORTHY, findReviewMoments, findNextReviewMoment,
-        createGuidedModel, enter, unmount, getSnapshot });
+        createGuidedModel, requestMentorStudy, cancelMentorStudyRequest,
+        hasMentorStudyRequest: () => mentorStudyRequested, enterMentorStudy, enter, unmount, getSnapshot });
 })(typeof window !== 'undefined' ? window : globalThis);

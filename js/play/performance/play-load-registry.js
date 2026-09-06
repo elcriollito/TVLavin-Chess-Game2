@@ -20,9 +20,9 @@
                 'js/play/bots/bot-worker-readiness.js?v=1.0.1',
                 'js/play/bots/bots-review-context.js?v=1.0.0',
                 'js/play/bots-panel.js?v=2.10.0',
-                'js/play/bots/bots-analysis-summary-presentation.js?v=1.1.0',
+                'js/play/bots/bots-analysis-summary-presentation.js?v=1.2.0',
                 'js/play/bots/bots-analysis-exploration.js?v=1.0.0',
-                'js/play/bots/bots-guided-review-presentation.js?v=1.1.0'
+                'js/play/bots/bots-guided-review-presentation.js?v=1.3.0'
             ])
         }),
         'coach-stack': Object.freeze({
