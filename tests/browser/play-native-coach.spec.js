@@ -255,6 +255,9 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await page.locator('[data-coach-guided-explain]').click();
     await expect(page.locator('[data-coach-guided-detail]')).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(0);
+    await expect(page.locator('[data-coach-guided-next]')).toContainText('Next Move');
+    await page.locator('[data-coach-guided-next]').click();
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(1);
     await expect(page.locator('[data-coach-guided-next]')).toContainText('Review Complete');
     await expect(page.locator('[data-coach-guided-new-game]')).toBeVisible();
     const finalActions = await page.locator('[data-coach-guided-foot-review] [data-coach-guided-flip], '
@@ -296,7 +299,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(page.locator('[data-coach-review-settings-dialog] #analyzeFlipBoard')).toHaveCount(1);
     expect(await page.evaluate(() => window.__coachReviewFlipCalls)).toBe(1);
     expect(await page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(settingsPly);
-    await expect(settingsDialog.getByRole('button', { name: 'Balanced' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(settingsDialog.getByRole('button', { name: /Quick|Balanced|Deep/ })).toHaveCount(0);
     const settingsA11y = await new AxeBuilder({ page }).include('[data-coach-review-settings-dialog]').analyze();
     expect(settingsA11y.violations.filter(issue => ['critical', 'serious'].includes(issue.impact))).toEqual([]);
     const desktopViewport = page.viewportSize();
@@ -312,18 +315,14 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     expect(mobileSettings.bottom).toBeLessThanOrEqual(mobileSettings.viewportHeight);
     expect(mobileSettings.scrollWidth).toBeLessThanOrEqual(mobileSettings.clientWidth);
     await page.setViewportSize(desktopViewport);
-    await settingsDialog.getByRole('button', { name: 'Quick' }).click();
-    await expect(settingsDialog.getByRole('button', { name: 'Quick' })).toHaveAttribute('aria-pressed', 'true');
     await settingsDialog.getByRole('button', { name: 'Save PGN' }).click();
     await expect.poll(() => page.evaluate(() => window.__coachReviewDownloads.length)).toBe(1);
     const firstExport = await page.evaluate(async () => ({
         filename: window.__coachReviewDownloads[0].filename,
-        pgn: await window.__coachReviewDownloadBlob.text(),
-        effort: window.CaissaCoachReviewExploration.getSnapshot().effortPresetId
+        pgn: await window.__coachReviewDownloadBlob.text()
     }));
     expect(firstExport.filename).toMatch(/\.pgn$/);
     expect(firstExport.pgn).toBe(original.completedPgn);
-    expect(firstExport.effort).toBe('quick');
     await settingsDialog.getByRole('button', { name: 'Close review settings' }).click();
     expect(await page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(settingsPly);
     await page.evaluate(() => {
@@ -348,13 +347,13 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     });
     await page.locator('#analyzeNavFirst').click();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(-1);
-    await expect(page.locator('[data-coach-guided-next]')).toContainText('Next Moment');
+    await expect(page.locator('[data-coach-guided-next]')).toContainText('Next Move');
     await expect(page.locator('[data-coach-guided-next]')).toBeEnabled();
     await expect(page.locator('[data-coach-guided-new-game]')).toBeHidden();
     await page.locator('#analyzeNavNext').click();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(0);
-    await expect(page.locator('[data-coach-guided-next]')).toContainText('Review Complete');
-    await expect(page.locator('[data-coach-guided-new-game]')).toBeVisible();
+    await expect(page.locator('[data-coach-guided-next]')).toContainText('Next Move');
+    await expect(page.locator('[data-coach-guided-new-game]')).toBeHidden();
     await expect(page.locator('[data-coach-guided-notation] [data-index="0"]')).toHaveClass(/active/);
     await expect(page.locator('[data-caissa-coach-guided-review]')).toHaveAttribute('data-authoritative-ply', '0');
     await page.locator('#analyzeNavLast').click();
@@ -365,38 +364,25 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await page.locator('#analyzeNavPrev').click();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(0);
     await expect.poll(() => page.evaluate(() => window.CaissaEvaluationRailInstance.getSnapshot().scoreCp)).toBe(300);
-    const entryPly = await page.evaluate(() => window.AnalyzeSection.currentMoveIndex);
-    const entryMove = await page.evaluate(() => window.AnalyzeSection.getCoachReviewProjection().move);
-    await page.evaluate(() => {
-        window.__coachReviewExplorationDepths = [];
-        window.__coachReviewExplorationFens = [];
-        const originalEnsure = window.AnalyzeSection.ensureAnalysisEngine.bind(window.AnalyzeSection);
-        window.AnalyzeSection.ensureAnalysisEngine = async function ensureInstrumentedEngine() {
-            const engine = await originalEnsure();
-            if (!engine.__coachReviewEffortInstrumented) {
-                const originalStart = engine.startAnalysis.bind(engine);
-                engine.startAnalysis = function recordExplorationDepth(fen, callback, depth) {
-                    window.__coachReviewExplorationDepths.push(depth);
-                    window.__coachReviewExplorationFens.push(fen);
-                    return originalStart(fen, callback, depth);
-                };
-                engine.__coachReviewEffortInstrumented = true;
-            }
-            return engine;
-        };
-    });
     await page.locator('[data-coach-guided-analysis]').click();
-    await expect(page.locator('[data-coach-analysis-exploration]')).toBeVisible();
-    await expect(page.locator('[data-caissa-coach-head] [data-coach-exploration-head-details]')).toBeVisible();
-    await expect(page.locator('[data-caissa-coach-body] [data-coach-exploration-notation]')).toBeAttached();
-    await expect(page.locator('[data-caissa-coach-body] [data-coach-source-notation] #analyzeMoveList')).toBeVisible();
+    await expect(page.locator('[data-coach-guided-analysis]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('[data-coach-guided-view]')).toBeVisible();
+    await expect(page.locator('[data-caissa-coach-body] [data-coach-guided-notation] #analyzeMoveList')).toBeVisible();
+    await expect(page.locator('[data-coach-guided-explain]')).toBeVisible();
+    await expect(page.locator('[data-coach-guided-next]')).toContainText('Next Move');
+    await expect(page.locator('[data-coach-analysis-exploration], [data-coach-exploration-foot], '
+        + '[data-coach-exploration-engine], [data-coach-exploration-nav]')).toHaveCount(0);
+    await expect(panel).not.toContainText('Temporary variation');
+    const visibleFootActions = (await page.locator('[data-caissa-coach-foot] button:visible').allTextContents()).join(' ');
+    expect(visibleFootActions).not.toMatch(/Undo|Reset|Engine Off/);
     await expect(page.locator('[data-caissa-coach-foot] #analyzeNavFirst')).toBeVisible();
     await expect(page.locator('[data-caissa-coach-foot] #analyzeNavPrev')).toBeVisible();
     await expect(page.locator('[data-caissa-coach-foot] #analyzeNavNext')).toBeVisible();
     await expect(page.locator('[data-caissa-coach-foot] #analyzeNavLast')).toBeVisible();
+    await expect(page.locator('[data-caissa-coach-foot] .analyze-board-navigation')).toHaveCount(1);
     await expect(page.locator('[data-caissa-coach-foot] #analyzeFlipBoard')).toHaveCount(0);
     await expect(page.locator('[data-caissa-coach-foot] [data-coach-guided-settings]')).toBeVisible();
-    await expect(page.locator('[data-coach-exploration-empty]')).toBeVisible();
+    expect(await page.evaluate(() => window.CaissaCoachReviewExploration.isActive())).toBe(false);
     const assertSourceSynchronization = async expectedIndex => {
         await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(expectedIndex);
         const synchronized = await page.evaluate(() => {
@@ -405,16 +391,16 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
             const projection = analyze.getCoachReviewProjection();
             const item = index >= 0 ? analyze.analysisResults[index] : null;
             const model = window.CaissaCoachReviewPresentation.createGuidedModel(analyze, false, null);
-            const active = document.querySelector('[data-coach-source-notation] .active');
+            const active = document.querySelector('[data-coach-guided-notation] .active');
             const rail = window.CaissaEvaluationRailInstance.getSnapshot();
             return {
                 cursor: index,
                 fen: projection.fen,
-                studyFen: window.CaissaCoachReviewExploration.getSnapshot().currentFen,
                 lastMove: window.App.boardAdapter.getSnapshot().lastMove,
                 expectedLastMove: projection.move,
                 selectedIndex: active ? Number(active.dataset.index) : -1,
                 classification: document.querySelector('[data-caissa-coach-head] .caissa-coach-guided__classification')?.textContent,
+                classifiedMove: document.querySelector('[data-caissa-coach-head] .caissa-coach-guided__headline')?.textContent,
                 symbol: index >= 0 ? window.CaissaCoachReviewPresentation.canonicalQualitySymbol(
                     item?.isBestMove ? 'Best' : item?.quality) : '',
                 explanation: document.querySelector('[data-caissa-coach-head] .caissa-coach-guided__message')?.textContent,
@@ -424,13 +410,12 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
                 modelMessage: model.message
             };
         });
-        expect(synchronized.studyFen).toBe(synchronized.fen);
         expect(synchronized.lastMove).toEqual(synchronized.expectedLastMove);
         expect(synchronized.selectedIndex).toBe(expectedIndex);
         expect(synchronized.railCp).toBe(synchronized.expectedCp);
         expect(synchronized.explanation).toBe(synchronized.modelMessage);
         if (expectedIndex >= 0) {
-            expect(synchronized.classification).toContain(synchronized.symbol);
+            expect(synchronized.classifiedMove).toContain(synchronized.symbol);
             expect(synchronized.explanation).toContain(synchronized.move);
         }
     };
@@ -438,12 +423,13 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await page.locator('#analyzeNavNext').click(); await assertSourceSynchronization(0);
     await page.locator('#analyzeNavLast').click(); await assertSourceSynchronization(1);
     await page.locator('#analyzeNavPrev').click(); await assertSourceSynchronization(0);
-    await page.locator('[data-coach-source-notation] [data-index="1"]').click(); await assertSourceSynchronization(1);
-    await page.locator('[data-coach-source-notation] [data-index="0"]').click(); await assertSourceSynchronization(0);
+    await page.locator('[data-coach-guided-notation] [data-index="1"]').click(); await assertSourceSynchronization(1);
+    await page.locator('[data-coach-guided-notation] [data-index="0"]').click(); await assertSourceSynchronization(0);
+    await page.locator('[data-coach-guided-next]').click(); await assertSourceSynchronization(1);
     const longNotationGeometry = await page.evaluate(() => {
         const phase = document.querySelector('[data-caissa-coach-body]');
         const foot = document.querySelector('[data-caissa-coach-foot]');
-        const source = document.querySelector('[data-coach-source-notation]');
+        const source = document.querySelector('[data-coach-guided-notation]');
         const list = source.querySelector('.move-list-grid');
         const template = list.querySelector('.move-row');
         const footTop = foot.getBoundingClientRect().top;
@@ -464,116 +450,25 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     expect(longNotationGeometry).toEqual({
         bodyOverflow: 'auto', notationOverflow: 'visible', bodyScrollable: true, footTopDelta: 0
     });
-    await expect(page.locator('[data-caissa-coach-foot] [data-coach-exploration-nav]')).toHaveCount(4);
-    await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-label', 'Engine On');
-    await expect(page.locator('.caissa-coach-guided__engine-led')).toBeVisible();
-    await expect(page.locator('.caissa-coach-guided__engine-led')).toHaveCSS('background-color', 'rgb(56, 201, 118)');
-    await expect.poll(() => page.evaluate(() => window.__coachReviewExplorationDepths.at(-1))).toBe(10);
-    await expect.poll(() => page.evaluate(() => window.CaissaEvaluationRailInstance.getSnapshot().source),
-        { timeout: 15_000 }).toBe('coach-review-ply');
-    const explorationBeforeMove = await page.evaluate(() => window.CaissaEvaluationRailInstance.getSnapshot());
-    const findExplorationMove = excludedUci => page.evaluate(excluded => {
-        for (const file of 'abcdefgh') for (const rank of '12345678') {
-            const moves = window.CaissaCoachReviewExploration.movesFrom(`${file}${rank}`);
-            const move = moves.find(candidate => `${candidate.from}${candidate.to}${candidate.promotion || ''}` !== excluded);
-            if (move) return { from: move.from, to: move.to, promotion: move.promotion,
-                uci: `${move.from}${move.to}${move.promotion || ''}` };
-        }
-        return null;
-    }, excludedUci || '');
-    const explorationMove = await findExplorationMove();
-    expect(explorationMove).not.toBeNull();
-    await page.evaluate(square => window.handlePlayBoardSquareSelection(square), explorationMove.from);
-    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().legalTargets.length)).toBeGreaterThan(0);
-    expect(await playMove(page, explorationMove.from, explorationMove.to, explorationMove.promotion)).toBe(true);
-    for (let ply = 1; ply < 3; ply += 1) {
-        const move = await findExplorationMove(); expect(move).not.toBeNull();
-        expect(await playMove(page, move.from, move.to, move.promotion)).toBe(true);
-    }
-    await expect.poll(() => page.evaluate(() => window.CaissaCoachReviewExploration.getSnapshot().temporaryPlyCount)).toBe(3);
-    await expect(page.locator('[data-coach-exploration-move]')).toHaveCount(3);
-    await expect(page.locator('[data-coach-exploration-notation]')).toBeVisible();
-    await expect(page.locator('[data-coach-exploration-move][aria-current="move"]')).toHaveCount(1);
-    const originalExplorationLine = await page.evaluate(() => ({
-        line: window.CaissaCoachReviewExploration.getLine().map(move => ({ ...move })),
-        lastFen: window.CaissaCoachReviewExploration.getFen()
-    }));
-    await page.locator('[data-coach-exploration-nav="previous"]').click();
-    await expect.poll(() => page.evaluate(() => window.CaissaCoachReviewExploration.getSnapshot().cursor)).toBe(2);
-    const branchFen = await page.evaluate(() => window.CaissaCoachReviewExploration.getFen());
-    expect(branchFen).not.toBe(originalExplorationLine.lastFen);
-    await expect.poll(() => page.evaluate(() => {
-        const current = window.CaissaCoachReviewExploration.getLine()[1];
-        return { highlighted: window.App.boardAdapter.getSnapshot().lastMove,
-            expected: { from: current.from, to: current.to } };
-    })).toEqual({ highlighted: {
-        from: originalExplorationLine.line[1].from, to: originalExplorationLine.line[1].to
-    }, expected: { from: originalExplorationLine.line[1].from, to: originalExplorationLine.line[1].to } });
-    await expect.poll(() => page.evaluate(() => window.__coachReviewExplorationFens.at(-1))).toBe(branchFen);
-    await page.locator('[data-coach-exploration-nav="first"]').click();
-    await expect(page.locator('[data-coach-exploration-nav="first"]')).toBeDisabled();
-    await expect(page.locator('[data-coach-exploration-nav="previous"]')).toBeDisabled();
-    await page.locator('[data-coach-exploration-nav="next"]').click();
-    await expect.poll(() => page.evaluate(() => window.CaissaCoachReviewExploration.getSnapshot().cursor)).toBe(1);
-    await page.locator('[data-coach-exploration-nav="last"]').click();
-    await expect.poll(() => page.evaluate(() => window.CaissaCoachReviewExploration.getSnapshot().cursor)).toBe(3);
-    await expect(page.locator('[data-coach-exploration-nav="next"]')).toBeDisabled();
-    await expect(page.locator('[data-coach-exploration-nav="last"]')).toBeDisabled();
-    await page.locator('[data-coach-exploration-nav="previous"]').click();
-    const replaced = originalExplorationLine.line[2];
-    const replacementMove = await findExplorationMove(`${replaced.from}${replaced.to}${replaced.promotion || ''}`);
-    expect(replacementMove).not.toBeNull();
-    expect(await playMove(page, replacementMove.from, replacementMove.to, replacementMove.promotion)).toBe(true);
-    const branchedLine = await page.evaluate(() => window.CaissaCoachReviewExploration.getLine().map(move => move.san));
-    expect(branchedLine).toHaveLength(3);
-    expect(branchedLine[2]).not.toBe(originalExplorationLine.line[2].san);
-    await expect.poll(() => page.evaluate(timestamp =>
-        window.CaissaEvaluationRailInstance.getSnapshot().updatedAt > timestamp,
-    explorationBeforeMove.updatedAt), { timeout: 15_000 }).toBe(true);
-    await expect.poll(() => page.evaluate(() => ({
-        authoritative: window.CaissaCoachReviewExploration.getSnapshot().engineEnabled,
-        presented: document.querySelector('[data-coach-exploration-engine]')?.getAttribute('aria-pressed')
-    }))).toEqual({ authoritative: true, presented: 'true' });
-    const railBeforeOff = await page.evaluate(() => window.CaissaEvaluationRailInstance.getSnapshot());
-    await page.locator('[data-coach-exploration-engine]').click();
-    await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-label', 'Engine Off');
-    await expect(page.locator('.caissa-coach-guided__engine-led')).toHaveCSS('background-color', 'rgb(102, 112, 133)');
-    expect(await page.evaluate(() => window.CaissaCoachReviewExploration.getSnapshot().engineEnabled)).toBe(false);
-    const railWhileOff = await page.evaluate(() => window.CaissaEvaluationRailInstance.getSnapshot());
-    expect({ cp: railWhileOff.scoreCp, mate: railWhileOff.mate, label: railWhileOff.label }).toEqual({
-        cp: railBeforeOff.scoreCp, mate: railBeforeOff.mate, label: railBeforeOff.label
-    });
-    await expect(page.locator('[data-coach-exploration-status]')).toContainText('Engine is off');
-    const requestsWhileOff = await page.evaluate(() => window.__coachReviewExplorationFens.length);
-    await page.locator('[data-coach-exploration-nav="first"]').click();
-    await page.waitForTimeout(250);
-    expect(await page.evaluate(() => window.__coachReviewExplorationFens.length)).toBe(requestsWhileOff);
-    await page.locator('[data-coach-exploration-engine]').click();
-    await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-label', 'Engine On');
-    await expect(page.locator('.caissa-coach-guided__engine-led')).toHaveCSS('background-color', 'rgb(56, 201, 118)');
-    expect(await page.evaluate(() => window.CaissaCoachReviewExploration.getSnapshot().engineEnabled)).toBe(true);
-    const explorationDesktopViewport = page.viewportSize();
+    const cleanAnalysisDesktopViewport = page.viewportSize();
     await page.setViewportSize({ width: 390, height: 844 });
-    const explorationMobileGeometry = await page.locator('[data-caissa-coach-shell]').evaluate(shell => {
+    const cleanAnalysisMobileGeometry = await page.locator('[data-caissa-coach-shell]').evaluate(shell => {
         const rect = shell.getBoundingClientRect();
-        const buttons = [...shell.querySelectorAll('[data-coach-exploration-nav]')]
+        const buttons = [...shell.querySelectorAll('.analyze-board-navigation .nav-btn-sm')]
             .filter(node => node.getClientRects().length).map(node => node.getBoundingClientRect());
         return { left: rect.left, right: rect.right, viewportWidth: innerWidth,
             scrollWidth: shell.scrollWidth, clientWidth: shell.clientWidth,
             minButtonWidth: Math.min(...buttons.map(button => button.width)),
             minButtonHeight: Math.min(...buttons.map(button => button.height)) };
     });
-    expect(explorationMobileGeometry.left).toBeGreaterThanOrEqual(0);
-    expect(explorationMobileGeometry.right).toBeLessThanOrEqual(explorationMobileGeometry.viewportWidth);
-    expect(explorationMobileGeometry.scrollWidth).toBeLessThanOrEqual(explorationMobileGeometry.clientWidth);
-    expect(explorationMobileGeometry.minButtonWidth).toBeGreaterThanOrEqual(44);
-    expect(explorationMobileGeometry.minButtonHeight).toBeGreaterThanOrEqual(44);
-    const explorationA11y = await new AxeBuilder({ page }).include('[data-caissa-coach-shell]').analyze();
-    expect(explorationA11y.violations.filter(issue => ['critical', 'serious'].includes(issue.impact))).toEqual([]);
-    await page.setViewportSize(explorationDesktopViewport);
+    expect(cleanAnalysisMobileGeometry.left).toBeGreaterThanOrEqual(0);
+    expect(cleanAnalysisMobileGeometry.right).toBeLessThanOrEqual(cleanAnalysisMobileGeometry.viewportWidth);
+    expect(cleanAnalysisMobileGeometry.scrollWidth).toBeLessThanOrEqual(cleanAnalysisMobileGeometry.clientWidth);
+    expect(cleanAnalysisMobileGeometry.minButtonWidth).toBeGreaterThanOrEqual(44);
+    expect(cleanAnalysisMobileGeometry.minButtonHeight).toBeGreaterThanOrEqual(44);
+    const cleanAnalysisA11y = await new AxeBuilder({ page }).include('[data-caissa-coach-shell]').analyze();
+    expect(cleanAnalysisA11y.violations.filter(issue => ['critical', 'serious'].includes(issue.impact))).toEqual([]);
+    await page.setViewportSize(cleanAnalysisDesktopViewport);
     const during = await page.evaluate(() => ({
         completedPgn: window.AnalyzeSection.loadedGame.pgn,
         loadedMoves: window.AnalyzeSection.getLoadedMoves({ verbose: true }),
@@ -586,15 +481,8 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
         result: window.AnalyzeSection.loadedGame.result,
         reviewPly: window.AnalyzeSection.currentMoveIndex
     }));
-    expect(during).toEqual({ ...original, reviewPly: entryPly });
-    await page.locator('[data-coach-exploration-back]').click();
-    await expect(page.locator('[data-coach-guided-view]')).toBeVisible();
-    expect(await page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(entryPly);
-    await expect.poll(() => page.evaluate(() => window.CaissaEvaluationRailInstance.getSnapshot().scoreCp)).toBe(300);
+    expect(during).toEqual({ ...original, reviewPly: 1 });
     expect(await page.evaluate(() => window.CaissaCoachReviewExploration.isActive())).toBe(false);
-    await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-label', 'Engine Off');
-    await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove)).toEqual(entryMove);
     await page.locator('[data-coach-guided-settings]').click();
     await expect(settingsDialog).toBeVisible();
     await settingsDialog.getByRole('button', { name: 'Save PGN' }).click();
@@ -602,16 +490,10 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     const secondExport = await page.evaluate(async () => ({
         pgn: await window.__coachReviewDownloadBlob.text(),
         reviewPgn: window.AnalyzeSection.loadedGame.pgn,
-        temporaryPlyCount: window.CaissaCoachReviewExploration.getSnapshot().temporaryPlyCount
+        explorationActive: window.CaissaCoachReviewExploration.isActive()
     }));
-    expect(secondExport).toEqual({ pgn: original.completedPgn, reviewPgn: original.completedPgn, temporaryPlyCount: 0 });
-    await settingsDialog.getByRole('button', { name: 'Deep' }).click();
+    expect(secondExport).toEqual({ pgn: original.completedPgn, reviewPgn: original.completedPgn, explorationActive: false });
     await settingsDialog.getByRole('button', { name: 'Close review settings' }).click();
-    await page.locator('[data-coach-guided-analysis]').click();
-    await expect.poll(() => page.evaluate(() => window.__coachReviewExplorationDepths.at(-1))).toBe(18);
-    await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-pressed', 'true');
-    await page.locator('[data-coach-exploration-back]').click();
-    expect(await page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(entryPly);
     await expect(page.locator('#analyzeStartBtn')).toBeHidden();
     await expect(page.locator('.analyze-evidence-panel')).toBeHidden();
     await page.locator('[data-coach-guided-new-game]').click();
