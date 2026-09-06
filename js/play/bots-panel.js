@@ -331,6 +331,7 @@
             const rematch = foot.querySelector('[data-post-game-action="rematch"]');
             const newGame = foot.querySelector('[data-post-game-action="new-game"]');
             const mentor = foot.querySelector('[data-post-game-action="mentor-review"]');
+            const mentorWasHidden = mentor?.hidden === true;
             const pgnActions = ['copy-pgn', 'download-pgn', 'save-game']
                 .map(action => foot.querySelector(`[data-post-game-action="${action}"]`)).filter(Boolean);
             const consent = content.querySelector('.caissa-post-game__consent');
@@ -367,7 +368,7 @@
                 content.querySelector('.caissa-post-game__reason')?.after(primary);
             }
             if (rematch) rematch.hidden = true;
-            if (mentor) foot.appendChild(mentor);
+            if (mentor) mentor.hidden = true;
             if (newGame) foot.appendChild(newGame);
             foot.appendChild(menu);
             wrapper.appendChild(foot);
@@ -384,7 +385,8 @@
             menu.addEventListener('toggle', syncMenuState);
             menu.addEventListener('keydown', closeMenuFromKeyboard);
             global.document.addEventListener('pointerdown', dismissMenu, true);
-            this.#postGamePlacement = { content, foot, actionOrder, primary, rematch, consent, feedback, wrapper, menu,
+            this.#postGamePlacement = { content, foot, actionOrder, primary, rematch, mentor, mentorWasHidden,
+                consent, feedback, wrapper, menu,
                 syncMenuState, dismissMenu, closeMenuFromKeyboard,
                 contentMarker, footMarker, primaryMarker, consentMarker, feedbackMarker };
             return wrapper;
@@ -401,6 +403,7 @@
             placement.primaryMarker.remove();
             placement.primary?.removeAttribute('data-bots-primary-post-game-action');
             if (placement.rematch) placement.rematch.hidden = false;
+            if (placement.mentor) placement.mentor.hidden = placement.mentorWasHidden;
             placement.footMarker.parentNode?.insertBefore(placement.foot, placement.footMarker);
             placement.footMarker.remove();
             if (placement.consent) placement.consentMarker.parentNode?.insertBefore(placement.consent, placement.consentMarker);

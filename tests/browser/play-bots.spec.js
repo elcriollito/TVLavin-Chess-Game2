@@ -359,7 +359,8 @@ test('post-game identity and simplified Foot retain the selected bot and owned c
     await expect(shell.locator(':scope > [data-caissa-bots-foot] > .caissa-bots-panel__post-game-foot')).toBeVisible();
     await expect(shell.locator(':scope > [data-caissa-bots-foot] .caissa-post-game__actions')).toBeVisible();
     await expect(shell.locator(':scope > [data-caissa-bots-foot] [data-post-game-action="rematch"]')).toBeHidden();
-    await expect(shell.locator(':scope > [data-caissa-bots-foot] [data-post-game-action]:visible')).toHaveCount(2);
+    await expect(shell.locator(':scope > [data-caissa-bots-foot] [data-post-game-action="mentor-review"]')).toBeHidden();
+    await expect(shell.locator(':scope > [data-caissa-bots-foot] [data-post-game-action]:visible')).toHaveCount(1);
     await expect(shell.locator(':scope > [data-caissa-bots-foot] .caissa-bots-panel__post-game-menu')).not.toHaveAttribute('open', '');
     await expect(shell.locator(':scope > [data-caissa-bots-foot] .caissa-post-game__consent')).toBeHidden();
     await expect(shell.locator(':scope > [data-caissa-bots-foot] [data-post-game-action]')).toHaveCount(6);
@@ -964,7 +965,7 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
     await expect(shell.locator('[data-bot-selected]')).toContainText('Vera');
 });
 
-test('Review with Mentor is an external observer with live Study FEN and zero board authority', async ({ page }) => {
+test('floating Mentor is an external observer with live Study FEN and zero board authority', async ({ page }) => {
     const runtime = monitorRuntime(page);
     await openBots(page, { width: 1600, height: 1000 });
     await openCategory(page, 'Advanced');
@@ -979,7 +980,9 @@ test('Review with Mentor is an external observer with live Study FEN and zero bo
     await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
     const shell = page.locator('[data-caissa-bots-shell]');
     await expect(shell).toHaveAttribute('data-bot-shell-phase', 'game-over');
-    await shell.locator('[data-post-game-action="mentor-review"]').click();
+    const hiddenMentorAction = shell.locator('[data-post-game-action="mentor-review"]');
+    await expect(hiddenMentorAction).toBeHidden();
+    await hiddenMentorAction.evaluate(node => node.click());
     await expect(shell).toHaveAttribute('data-bot-shell-phase', 'analysis-exploration', { timeout: 25_000 });
 
     const mentor = page.locator('[data-caissa-mentor-shell]');
