@@ -3,8 +3,8 @@
     const entry = document.body?.dataset.caissaPlayV2Entry;
     const contract = root.CaissaMentorContextContract;
     if (!contract || !['invite-only', 'public-beta', 'official'].includes(entry)) return;
-    const context = contract.resolve();
-    if (context.availability === 'NONE' || document.querySelector('[data-caissa-mentor-shell]')) return;
+    const routeContext = contract.resolve();
+    if (routeContext.availability === 'NONE' || document.querySelector('[data-caissa-mentor-shell]')) return;
     const el = (tag, className, attributes = {}) => { const node = document.createElement(tag); if (className) node.className = className;
         for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, value); return node; };
     const text = (tag, className, value, attributes) => { const node = el(tag, className, attributes); node.textContent = value; return node; };
@@ -25,7 +25,7 @@
     const contextLabel = text('p', 'caissa-mentor-shell__context', 'General Mentor · no board position is shared');
     const mode = el('div', 'caissa-mentor-shell__mode', { role: 'note' });
     mode.append(text('strong', '', 'Shared AI'), document.createTextNode(' · A request may use account credits. Nothing is charged until you send.'));
-    const messages = el('div', 'caissa-mentor-shell__messages', { 'aria-live': 'polite', 'aria-label': 'Mentor conversation' });
+    const messages = el('div', 'caissa-mentor-shell__messages', { 'aria-live': 'polite', 'aria-label': 'Mentor conversation', tabindex: '0' });
     const welcome = text('p', 'caissa-mentor-shell__welcome', 'Ask a chess question whenever you are ready. During active Play, Mentor stays general to protect fair play.');
     messages.append(welcome);
     const form = el('form', 'caissa-mentor-shell__form');
@@ -75,24 +75,48 @@
         }
         return 'pending';
     };
-    let open = false;
+    let open = false; let sharedContext = null;
+    const renderContext = () => {
+        const sharing = sharedContext?.capability === contract.CAPABILITIES.POSITION;
+        contextLabel.textContent = sharing ? 'Bots Analysis · current board position shared'
+            : 'General Mentor · no board position is shared';
+        welcome.textContent = sharing ? 'Ask about this position, its threats, candidate moves, mistakes, or plans.'
+            : 'Ask a chess question whenever you are ready. During active Play, Mentor stays general to protect fair play.';
+    };
+    const setContext = value => {
+        const snapshot = contract.createPositionSnapshot?.(value);
+        if (!snapshot) return false;
+        sharedContext = snapshot; renderContext(); return true;
+    };
+    const clearContext = (notify = false) => {
+        const previous = sharedContext; sharedContext = null; renderContext();
+        if (notify && previous) root.dispatchEvent(new CustomEvent('caissa:mentor-context-cleared', {
+            detail: { source: previous.source }
+        }));
+        return !!previous;
+    };
     const setOpen = (value, returnFocus = false) => { open = value; panel.hidden = !value; panel.setAttribute('aria-hidden', String(!value));
         launcher.setAttribute('aria-expanded', String(value)); document.body.classList.toggle('caissa-mentor-open', value);
         if (value) queueMicrotask(() => input.focus()); else if (returnFocus) queueMicrotask(() => launcher.focus()); };
     launcher.addEventListener('click', () => setOpen(true)); minimize.addEventListener('click', () => setOpen(false, true));
-    close.addEventListener('click', () => { input.value = ''; messages.replaceChildren(welcome); setOpen(false, true); });
+    close.addEventListener('click', () => { input.value = ''; clearContext(true); messages.replaceChildren(welcome); setOpen(false, true); });
     document.addEventListener('keydown', event => { if (event.key === 'Escape' && open) { event.preventDefault(); setOpen(false, true); } });
     form.addEventListener('submit', async event => { event.preventDefault(); const prompt = input.value.trim();
         if (!prompt || prompt.length > 12000 || submit.disabled) return; messages.append(text('p', 'caissa-mentor-shell__message caissa-mentor-shell__message--user', prompt));
         submit.disabled = true; status.textContent = 'Mentor is thinking…';
         try { const provider = typeof LLMProvider !== 'undefined' ? LLMProvider : root.LLMProvider;
             if (!provider?.chat) throw new Error('Mentor is temporarily unavailable.');
-            const result = await provider.chat([{ role: 'system', content: 'You are CAISSA Mentor, a concise chess learning assistant.' }, { role: 'user', content: prompt }]);
+            const positionEvidence = sharedContext ? `\nThe Analysis/Study surface owns this read-only context. Never execute or claim to execute a move.\nCurrent FEN: ${sharedContext.fen}\nSide to move: ${sharedContext.sideToMove}\nStudy mode: ${sharedContext.mode}\nCurrent SAN: ${sharedContext.san || 'not available'}\nClassification: ${sharedContext.classification || 'not available'}\nEvaluation: ${Number.isFinite(sharedContext.evaluation) ? sharedContext.evaluation : 'not available'}\nMate: ${Number.isFinite(sharedContext.mate) ? sharedContext.mate : 'not available'}\nPrincipal variation: ${sharedContext.pv.length ? sharedContext.pv.join(' ') : 'not available'}` : '';
+            const result = await provider.chat([{ role: 'system', content: `You are CAISSA Mentor, a concise chess learning assistant.${positionEvidence}` }, { role: 'user', content: prompt }]);
             const answer = text('p', 'caissa-mentor-shell__message caissa-mentor-shell__message--mentor', result.content);
             messages.append(answer); input.value = ''; status.textContent = 'Mentor replied.';
             answer.dataset.deliveryAck = await confirmRenderedDelivery(result);
         } catch (error) { status.textContent = /sign in|required|credits|temporarily unavailable/i.test(error?.message || '') ? error.message : 'Mentor is temporarily unavailable. Please try again later.';
         } finally { submit.disabled = false; input.focus(); } });
     stack.prepend(launcher); document.body.appendChild(panel);
-    root.CaissaMentorFloatingShell = Object.freeze({ inspect: () => Object.freeze({ open, context, networkOnOpen: false }) });
+    renderContext();
+    root.CaissaMentorFloatingShell = Object.freeze({ open: () => setOpen(true), minimize: () => setOpen(false),
+        close: () => { input.value = ''; clearContext(true); messages.replaceChildren(welcome); setOpen(false); },
+        setContext, clearContext: () => clearContext(false),
+        inspect: () => Object.freeze({ open, routeContext, context: sharedContext, networkOnOpen: false }) });
 })(window, document);

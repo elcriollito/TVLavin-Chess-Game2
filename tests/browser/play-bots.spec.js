@@ -779,7 +779,7 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
     await expect(shell.locator('[data-bot-selected]')).toContainText('Vera');
 });
 
-test('Review with Mentor stays inside Bots Analysis Exploration and follows its displayed FEN', async ({ page }) => {
+test('Review with Mentor is an external observer with live Study FEN and zero board authority', async ({ page }) => {
     const runtime = monitorRuntime(page);
     await openBots(page, { width: 1600, height: 1000 });
     await openCategory(page, 'Advanced');
@@ -797,12 +797,10 @@ test('Review with Mentor stays inside Bots Analysis Exploration and follows its 
     await shell.locator('[data-post-game-action="mentor-review"]').click();
     await expect(shell).toHaveAttribute('data-bot-shell-phase', 'analysis-exploration', { timeout: 25_000 });
 
-    const mentor = shell.locator('[data-bots-mentor-study]');
+    const mentor = page.locator('[data-caissa-mentor-shell]');
     await expect(mentor).toBeVisible();
-    await expect(mentor.getByRole('button')).toHaveText([
-        'Leave Mentor', 'Explain this position', 'What was the mistake?',
-        'What should I play?', 'Show the threat', 'What is the plan?'
-    ]);
+    await expect(mentor).toContainText('Bots Analysis · current board position shared');
+    await expect(shell.locator('[data-bots-mentor-study]')).toHaveCount(0);
     await expect(page.locator('#playSection #chessboard .board-b72b1:visible')).toHaveCount(1);
     await expect(page.locator('#analyzeSection .analyze-layout:visible')).toHaveCount(0);
     await expect(page.locator('.caissa-mentor-review:visible, [data-native-mentor-review]:visible, #mentor-review-board:visible')).toHaveCount(0);
@@ -817,19 +815,29 @@ test('Review with Mentor stays inside Bots Analysis Exploration and follows its 
     const assertMentorContext = async expectedMode => {
         const proof = await page.evaluate(() => {
             const owner = window.CaissaBotsAnalysisExploration.getSnapshot();
-            const node = document.querySelector('[data-bots-mentor-study]');
-            return { ownerFen: owner.currentFen, mentorFen: node?.dataset.mentorFen,
+            const shared = window.CaissaMentorFloatingShell.inspect().context;
+            return { ownerFen: owner.currentFen, mentorFen: shared?.fen,
                 boardFen: window.App.boardAdapter.getPosition(), mode: owner.mode,
-                mentorMode: node?.dataset.mentorContext, authoritativePly: window.AnalyzeSection.currentMoveIndex };
+                mentorMode: shared?.mode, authoritativePly: window.AnalyzeSection.currentMoveIndex };
         });
         expect(proof).toMatchObject({ ownerFen: proof.boardFen, mentorFen: proof.boardFen,
             mode: expectedMode, mentorMode: expectedMode, authoritativePly: immutableBefore.authoritativePly });
     };
     await assertMentorContext('source');
+    await mentor.getByRole('button', { name: 'Minimize CAISSA Mentor' }).click();
+    await expect(mentor).toBeHidden();
     await shell.getByRole('button', { name: 'First study position' }).click();
     await assertMentorContext('source');
     await shell.getByRole('button', { name: 'Next study move' }).click();
     await assertMentorContext('source');
+    await shell.getByRole('button', { name: 'Last study position' }).click();
+    await assertMentorContext('source');
+    await shell.getByRole('button', { name: 'Previous study move' }).click();
+    await assertMentorContext('source');
+    await shell.locator('[data-bots-exploration-source-cursor="1"]').click();
+    await assertMentorContext('source');
+    await page.locator('[data-caissa-mentor-launcher]').click(); await expect(mentor).toBeVisible();
+    const boardBeforeInteraction = await page.locator('#playSection #chessboard .board-b72b1').boundingBox();
 
     const candidate = await page.evaluate(() => {
         const owner = window.CaissaBotsAnalysisExploration;
@@ -844,9 +852,38 @@ test('Review with Mentor stays inside Bots Analysis Exploration and follows its 
     await page.locator(`#chessboard .square-${candidate.to}`).click();
     await expect.poll(() => page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot().mode)).toBe('temporary');
     await assertMentorContext('temporary');
-    await mentor.getByRole('button', { name: 'What should I play?' }).click();
-    await expect(mentor.locator('[data-bots-mentor-message]')).not.toHaveText("I'm looking at this position. What would you like help with?");
+
+    await mentor.getByRole('button', { name: 'Minimize CAISSA Mentor' }).click();
+    await shell.getByRole('button', { name: 'Previous study move' }).click();
+    const dragCandidate = await page.evaluate(() => {
+        const owner = window.CaissaBotsAnalysisExploration;
+        for (const file of 'abcdefgh') for (const rank of '12345678') {
+            const move = owner.movesFrom(`${file}${rank}`)[0]; if (move) return { from: move.from, to: move.to };
+        }
+        return null;
+    });
+    await page.locator('[data-caissa-mentor-launcher]').click(); await expect(mentor).toBeVisible();
+    const from = page.locator(`#chessboard .square-${dragCandidate.from}`); const to = page.locator(`#chessboard .square-${dragCandidate.to}`);
+    const fromBox = await from.boundingBox(); const toBox = await to.boundingBox();
+    await page.mouse.move(fromBox.x + fromBox.width / 2, fromBox.y + fromBox.height / 2);
+    await page.mouse.down(); await page.mouse.move(toBox.x + toBox.width / 2, toBox.y + toBox.height / 2, { steps: 8 }); await page.mouse.up();
+    await expect.poll(() => page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot().temporaryPlyCount)).toBeGreaterThan(0);
     await assertMentorContext('temporary');
+
+    await page.evaluate(() => window.eval(`LLMProvider.chat = async messages => {
+        window.__botsMentorMessages = messages; return { content: 'Contextual test answer.', isSharedApi: false };
+    }`));
+    const askedFen = await page.evaluate(() => window.CaissaBotsAnalysisExploration.getFen());
+    await mentor.locator('#caissaMentorInput').fill('What is the threat?');
+    await mentor.getByRole('button', { name: 'Send to Mentor' }).click();
+    await expect(mentor.locator('.caissa-mentor-shell__message--mentor')).toHaveText('Contextual test answer.');
+    expect(await page.evaluate(() => window.__botsMentorMessages[0].content)).toContain(`Current FEN: ${askedFen}`);
+
+    const beforeMinimize = await page.evaluate(() => ({ fen: window.CaissaBotsAnalysisExploration.getFen(),
+        draft: window.CaissaBotsAnalysisExploration.getSnapshot().temporaryPlyCount }));
+    await mentor.getByRole('button', { name: 'Minimize CAISSA Mentor' }).click(); await expect(mentor).toBeHidden();
+    await page.locator('[data-caissa-mentor-launcher]').click(); await expect(mentor).toBeVisible();
+    expect(await page.evaluate(() => window.CaissaMentorFloatingShell.inspect().context.fen)).toBe(beforeMinimize.fen);
 
     const geometry = [];
     for (const viewport of [{ width: 1600, height: 1000 }, { width: 1366, height: 768 }, { width: 390, height: 844 }]) {
@@ -856,34 +893,48 @@ test('Review with Mentor stays inside Bots Analysis Exploration and follows its 
             const bodyNode = node.querySelector(':scope > [data-caissa-bots-body]');
             const body = bodyNode.getBoundingClientRect();
             const foot = node.querySelector(':scope > [data-caissa-bots-foot]').getBoundingClientRect();
-            const mentorNode = node.querySelector('[data-bots-mentor-study]').getBoundingClientRect();
+            const mentorNode = document.querySelector('[data-caissa-mentor-shell]').getBoundingClientRect();
+            const boardNode = document.querySelector('#playSection #chessboard .board-b72b1').getBoundingClientRect();
             return { head: Math.round(head.height), body: Math.round(body.height), foot: Math.round(foot.height),
-                mentorWidth: Math.round(mentorNode.width), bodyWidth: Math.round(body.width),
+                mentorWidth: Math.round(mentorNode.width), boardWidth: Math.round(boardNode.width),
                 anchored: Math.abs(foot.bottom - node.getBoundingClientRect().bottom) <= 1,
                 bodyOverflow: getComputedStyle(bodyNode).overflowY,
-                overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-                minTarget: Math.min(...[...node.querySelectorAll('[data-bots-mentor-study] button')]
-                    .map(button => button.getBoundingClientRect().height)) };
+                overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
         });
         expect(measured).toMatchObject({ head: viewport.width === 390 ? 112 : 150,
             anchored: true, bodyOverflow: 'auto', overflow: 0 });
-        expect(measured.mentorWidth).toBeLessThanOrEqual(measured.bodyWidth);
-        expect(measured.minTarget).toBeGreaterThanOrEqual(viewport.width === 390 ? 44 : 36);
+        expect(measured.mentorWidth).toBeLessThanOrEqual(viewport.width);
+        expect(measured.boardWidth).toBeGreaterThan(viewport.width === 390 ? 300 : 500);
         geometry.push({ viewport: `${viewport.width}x${viewport.height}`, ...measured });
         if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-mentor-study-desktop.png', fullPage: true });
         if (viewport.width === 390) await page.screenshot({ path: 'test-results/play-bots-mentor-study-mobile.png', fullPage: true });
     }
     console.log(`BOTS_MENTOR_STUDY_GEOMETRY ${JSON.stringify(geometry)}`);
-    const accessibility = await new AxeBuilder({ page }).include('[data-caissa-bots-shell]').analyze();
+    const accessibility = await new AxeBuilder({ page }).include('[data-caissa-mentor-shell]').analyze();
     expect(accessibility.violations.filter(item => ['critical', 'serious'].includes(item.impact))).toEqual([]);
 
     const draftBeforeLeave = await page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot().temporaryPlyCount);
-    await mentor.getByRole('button', { name: 'Leave Mentor' }).click();
+    const fenBeforeClose = await page.evaluate(() => window.CaissaBotsAnalysisExploration.getFen());
+    const legalBeforeClose = await page.evaluate(() => { const owner = window.CaissaBotsAnalysisExploration; const moves = [];
+        for (const file of 'abcdefgh') for (const rank of '12345678')
+            for (const move of owner.movesFrom(`${file}${rank}`)) moves.push(`${move.from}${move.to}${move.promotion || ''}`);
+        return moves.sort(); });
+    await mentor.getByRole('button', { name: 'Close CAISSA Mentor' }).click();
     await expect(mentor).toBeHidden();
-    expect(await page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot().temporaryPlyCount)).toBe(draftBeforeLeave);
+    const closed = await page.evaluate(() => ({ fen: window.CaissaBotsAnalysisExploration.getFen(),
+        draft: window.CaissaBotsAnalysisExploration.getSnapshot().temporaryPlyCount,
+        context: window.CaissaMentorFloatingShell.inspect().context,
+        legal: (() => { const owner = window.CaissaBotsAnalysisExploration; const moves = [];
+            for (const file of 'abcdefgh') for (const rank of '12345678')
+                for (const move of owner.movesFrom(`${file}${rank}`)) moves.push(`${move.from}${move.to}${move.promotion || ''}`);
+            return moves.sort(); })() }));
+    expect(closed).toMatchObject({ fen: fenBeforeClose, draft: draftBeforeLeave, context: null });
+    expect(closed.legal).toEqual(legalBeforeClose);
+    expect(boardBeforeInteraction.width).toBeGreaterThan(500);
     await expect(shell).toHaveAttribute('data-bot-shell-phase', 'analysis-exploration');
     await shell.locator('[data-bots-exploration-back]').click();
     await expect(shell).toHaveAttribute('data-bot-shell-phase', 'guided-review');
+    await expect(mentor).toContainText('General Mentor · no board position is shared');
     const immutableAfter = await page.evaluate(() => ({
         pgn: window.AnalyzeSection.loadedGame.pgn,
         loadedMoves: JSON.stringify(window.AnalyzeSection.getLoadedMoves({ verbose: true })),

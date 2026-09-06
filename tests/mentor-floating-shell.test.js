@@ -17,6 +17,14 @@ test('Mentor context route policy is explicit, immutable, and honest', () => {
         assert.equal(contract.resolve(route).availability, 'GENERAL', route);
     for (const route of ['/signin', '/signup', '/auth/complete', '/premium', '/checkout', '/error'])
         assert.equal(contract.resolve(route).availability, 'NONE', route);
+    const position = contract.createPositionSnapshot({ source: 'bots-analysis-study',
+        fen: '8/8/8/8/8/8/8/K6k w - - 0 1', mode: 'temporary', san: 'Ka2', evaluation: .4,
+        classification: 'Mistake', pv: ['Kh2', 'Kg7'] });
+    assert.deepEqual({ ...position, pv: [...position.pv] }, { capability: 'POSITION', source: 'bots-analysis-study',
+        fen: '8/8/8/8/8/8/8/K6k w - - 0 1', mode: 'temporary', san: 'Ka2', evaluation: .4,
+        mate: null, classification: 'Mistake', sideToMove: 'white', pv: ['Kh2', 'Kg7'] });
+    assert.equal(contract.createPositionSnapshot({ source: 'active-play', fen: position.fen }), null);
+    assert.ok(Object.isFrozen(position)); assert.ok(Object.isFrozen(position.pv));
     assert.ok(Object.isFrozen(contract)); assert.ok(Object.isFrozen(contract.resolve('/play')));
 });
 
@@ -31,6 +39,11 @@ test('floating shell reuses LLMProvider only inside explicit submit and owns no 
     assert.match(source, /caissa-auth-change/);
     assert.match(source, /redirect_url=/);
     assert.match(source, /input\.value = ''; status\.textContent = 'Mentor replied\.'/);
+    assert.match(source, /CaissaMentorFloatingShell = Object\.freeze\(\{ open:/);
+    assert.match(source, /setContext, clearContext/);
+    assert.match(source, /Current FEN: \$\{sharedContext\.fen\}/);
+    assert.match(source, /caissa:mentor-context-cleared/);
+    assert.doesNotMatch(source, /App\.(?:game|board|boardAdapter)|Chessboard\s*\(|new\s+Chess/);
 });
 
 test('generated public Play contains one lightweight Mentor shell and excludes legacy Mentor runtime', () => {
