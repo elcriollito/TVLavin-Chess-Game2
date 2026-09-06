@@ -1,7 +1,7 @@
 (function installCoachReviewExploration(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.2.0';
+    const SCHEMA_VERSION = '1.3.0';
     const freeze = value => Object.freeze(value);
     const EFFORT_PRESETS = freeze({
         quick: freeze({ id: 'quick', label: 'Quick', depth: 10 }),
@@ -33,7 +33,7 @@
     }
 
     function currentMove() {
-        return active?.cursor > 0 ? active.moves[active.cursor - 1] : null;
+        return active?.cursor > 0 ? active.moves[active.cursor - 1] : active?.baseMove || null;
     }
 
     function emitPosition() {
@@ -120,7 +120,9 @@
             const game = new root.Chess();
             if (game.load(options.fen) === false) return result(false, 'rejected', 'INVALID_EXPLORATION_FEN');
             active = {
-                game, baseFen: options.fen, moves: [], positions: [options.fen], cursor: 0, engineEnabled: false,
+                game, baseFen: options.fen,
+                baseMove: options.move?.from && options.move?.to ? freeze({ from: options.move.from, to: options.move.to }) : null,
+                moves: [], positions: [options.fen], cursor: 0, engineEnabled: false,
                 analyze: options.analyze, onPosition: options.onPosition, onAnalysis: options.onAnalysis,
                 restore: options.restore
             };
@@ -150,6 +152,23 @@
         root.App?.boardAdapter?.clearLegalTargets?.();
         state.restore?.();
         return result(true, 'accepted', 'EXPLORATION_CLOSED', snapshot());
+    }
+
+    function rebase(options = {}) {
+        if (!active || typeof options.fen !== 'string')
+            return result(false, 'rejected', 'INVALID_EXPLORATION_REBASE', snapshot());
+        if (active.game.load(options.fen) === false)
+            return result(false, 'rejected', 'INVALID_EXPLORATION_FEN', snapshot());
+        active.baseFen = options.fen;
+        active.baseMove = options.move?.from && options.move?.to
+            ? freeze({ from: options.move.from, to: options.move.to }) : null;
+        active.moves = [];
+        active.positions = [options.fen];
+        active.cursor = 0;
+        root.App?.boardAdapter?.clearSelection?.();
+        root.App?.boardAdapter?.clearLegalTargets?.();
+        emitPosition();
+        return result(true, 'accepted', 'EXPLORATION_REBASED', snapshot());
     }
 
     function movesFrom(square) {
@@ -225,7 +244,7 @@
 
     root.CaissaCoachReviewExploration = freeze({
         schemaVersion: SCHEMA_VERSION, effortPresets: EFFORT_PRESETS,
-        enter, leave, setEngineEnabled, setEffortPreset, analyzeCurrentPosition,
+        enter, leave, rebase, setEngineEnabled, setEffortPreset, analyzeCurrentPosition,
         goTo, first: () => goTo(0), previous: () => goTo(Math.max(0, (active?.cursor || 0) - 1)),
         next: () => goTo(Math.min(active?.moves?.length || 0, (active?.cursor || 0) + 1)),
         last: () => goTo(active?.moves?.length || 0), getLine,

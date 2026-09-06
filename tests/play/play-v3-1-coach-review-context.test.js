@@ -69,6 +69,19 @@ test('summary derives Player and Coach accuracy and counts from authoritative An
     assert.doesNotMatch(JSON.stringify(modeled.value), /Brilliant|Great|Miss/);
 });
 
+test('Coach review presentation uses the canonical Play classification symbols', () => {
+    const review = fixture().CaissaCoachReviewPresentation;
+    assert.deepEqual({ ...review.qualitySymbols }, {
+        Book: '📖', Best: '★', Precise: '!', Good: '✓', Acceptable: '✓',
+        Inaccuracy: '?!', Mistake: '?', Blunder: '??'
+    });
+    for (const [quality, symbol] of Object.entries(review.qualitySymbols)) {
+        assert.equal(review.canonicalQualitySymbol(quality), symbol);
+    }
+    const source = read('js/play/native-coach/coach-review-presentation.js');
+    assert.doesNotMatch(source, /fa-exclamation|fa-bolt|QUALITY_ICONS/);
+});
+
 test('loading copy uses only bounded existing Analyze progress', () => {
     const window = fixture();
     const modeled = window.CaissaCoachReviewPresentation.createSummaryModel({
@@ -107,6 +120,9 @@ test('boundary integration starts the existing lifecycle once and keeps review p
     assert.match(presentation, /analysisStartRequests > 0[\s\S]*ANALYSIS_ALREADY_REQUESTED/);
     assert.match(presentation, /options\.analyze\.startAnalysis\(\)/);
     assert.match(presentation, /activePlyOwner: 'AnalyzeSection\.currentMoveIndex'/);
+    assert.match(presentation, /mounted\.analyze\.getLoadedMoves|mounted\.moveList/);
+    assert.match(presentation, /mounted\.analyze\.analysisResults/);
+    assert.match(presentation, /mounted\.analyze\.currentMoveIndex/);
     for (const forbidden of [/reviewMoveIndex/, /summaryMoveIndex/, /coachReviewPly/, /new\s+Chess/, /\.move\s*\(/,
         /EngineRegistry/, /Stockfish/, /location\.(?:href|pathname)/]) {
         assert.doesNotMatch(presentation, forbidden);
@@ -176,13 +192,16 @@ test('exploration is a separate temporary branch and never declares another revi
     const exploration = read('js/play/native-coach/coach-review-exploration.js');
     const app = read('app.js');
     assert.match(exploration, /const game = new root\.Chess\(\)/);
-    assert.match(exploration, /baseFen: options\.fen, moves: \[\], positions: \[options\.fen\], cursor: 0/);
+    assert.match(exploration, /baseFen: options\.fen,[\s\S]*moves: \[\], positions: \[options\.fen\], cursor: 0/);
     assert.match(exploration, /reviewPlyOwner: 'AnalyzeSection\.currentMoveIndex'/);
     assert.match(presentation, /getSnapshot\?\.\(\)\.engineEnabled === true/);
     assert.match(presentation, /data-coach-exploration-engine-label/);
     assert.match(app, /isCoachReviewExplorationActive\(\)[\s\S]*CaissaCoachReviewExploration\.playMove/);
     assert.doesNotMatch(exploration, /App\.(?:game|moveHistory|currentMoveIndex)\s*=/);
     assert.doesNotMatch(presentation + exploration, /guidedMoveIndex|reviewStepIndex|coachReviewMoveIndex/);
+    assert.match(presentation, /sourceNotation\.append\(mounted\.moveList\.node\)/);
+    assert.match(presentation, /explorationTools\.prepend\(mounted\.navigation\.node\)/);
+    assert.match(exploration, /function rebase\(options = \{\}\)/);
 });
 
 test('temporary exploration cursor reproduces positions and truncates a changed continuation', () => {
@@ -221,7 +240,7 @@ test('temporary exploration cursor reproduces positions and truncates a changed 
     assert.deepEqual([...api.getLine()].map(move => move.san), ['e4', 'e5', 'Nc3']);
     assert.notEqual(api.getFen(), oldAfterThree);
     assert.deepEqual({ ...api.getSnapshot() }, {
-        schemaVersion: '1.2.0', active: true, baseFen: start, currentFen: api.getFen(), temporaryPlyCount: 3,
+        schemaVersion: '1.3.0', active: true, baseFen: start, currentFen: api.getFen(), temporaryPlyCount: 3,
         cursor: 3, atFirst: false, atLast: true, engineEnabled: true, effortPresetId: 'balanced',
         analysisDepth: 14, reviewPlyOwner: 'AnalyzeSection.currentMoveIndex'
     });
@@ -241,12 +260,27 @@ test('Review Settings reuses the authoritative PGN export and exposes only human
     assert.match(postGame, /preservePresentation !== true[\s\S]*this\.execute\('download-pgn'\)/);
     assert.match(presentation, /data-coach-guided-settings/);
     assert.match(presentation, /data-coach-review-save-pgn/);
+    assert.match(presentation, /flipHost\.append\(mounted\.flipTool\.node\)/);
+    assert.doesNotMatch(presentation, /secondaryActions\.prepend\(mounted\.flipTool\.node\)/);
     assert.match(presentation, /\['quick', 'balanced', 'deep'\]/);
     assert.match(exploration, /quick:[\s\S]*depth: 10/);
     assert.match(exploration, /balanced:[\s\S]*depth: 14/);
     assert.match(exploration, /deep:[\s\S]*depth: 18/);
     assert.match(exploration, /startAnalysis\(fen,[\s\S]*EFFORT_PRESETS\[effortPresetId\]\.depth/);
     assert.doesNotMatch(presentation, />\s*(?:Threads|Hash|Nodes|NPS|UCI|Depth)\s*</i);
+});
+
+test('Coach Analysis keeps completed notation in Body and Flip out of the primary Foot', () => {
+    const presentation = read('js/play/native-coach/coach-review-presentation.js');
+    const css = read('css/play-coach-review.css');
+    const shellCss = read('css/play-simplified-shell.css');
+    assert.match(presentation, /data-coach-source-notation/);
+    assert.match(presentation, /sourceNotation\.append\(mounted\.moveList\.node\)/);
+    assert.match(presentation, /explorationTools\.prepend\(mounted\.navigation\.node\)/);
+    assert.match(presentation, /flipHost\.append\(mounted\.flipTool\.node\)/);
+    assert.doesNotMatch(presentation, /secondaryActions\.(?:append|prepend)\(mounted\.flipTool\.node\)/);
+    assert.match(css, /\.caissa-coach-exploration__source-notation \{ min-height: 0; overflow: visible; \}/);
+    assert.match(shellCss, /\.caissa-native-coach-panel__phase[\s\S]*overflow-y: auto/);
 });
 
 test('Coach Review projects existing ply and exploration evaluations into the single visible rail owner', () => {
