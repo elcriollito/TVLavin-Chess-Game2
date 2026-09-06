@@ -178,6 +178,11 @@ test('static ownership guard excludes state writers, resources, storage, routing
         /FICS|Arena|Spectator|AnalyzeSection|PostGame/
     ]) assert.doesNotMatch(source, forbidden);
     assert.match(source, /\.execute\('startNewGame'/);
+    assert.match(source, /data-caissa-games-head/);
+    assert.match(source, /data-caissa-games-body/);
+    assert.match(source, /data-caissa-games-foot/);
+    assert.match(source, /caissa-coach-goddess\.png/);
+    assert.equal((source.match(/this\.submit\(\)/g) || []).length, 1);
 });
 
 test('both SPA pages load GamesPanel once before the simplified shell', () => {

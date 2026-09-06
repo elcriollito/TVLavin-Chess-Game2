@@ -95,13 +95,22 @@
             this.#root = node('section', 'caissa-games-panel', {
                 'data-caissa-games-panel': '', 'aria-labelledby': `${this.#id}-title`
             });
+            const head = node('header', 'caissa-games-panel__head', { 'data-caissa-games-head': '' });
+            const portrait = node('img', 'caissa-games-panel__portrait', {
+                src: '/assets/play/caissa-coach-goddess.png', alt: 'Caissa, goddess of chess',
+                width: '512', height: '512'
+            });
+            const welcome = node('div', 'caissa-games-panel__welcome');
             const title = node('h2', 'caissa-games-panel__title', { id: `${this.#id}-title` });
-            title.textContent = this.#minimalEntry ? 'Games' : 'Play Computer';
+            title.textContent = 'Welcome to Play';
             const description = node('p', 'caissa-games-panel__description');
-            description.textContent = 'Start a local game against CAISSA.';
+            description.textContent = "Choose your game and I'll take care of the rest.";
+            welcome.append(title, description); head.append(portrait, welcome);
+
+            const body = node('div', 'caissa-games-panel__body', { 'data-caissa-games-body': '' });
 
             const disclosure = node('details', 'caissa-games-panel__disclosure', { 'data-games-setup-disclosure': '' });
-            disclosure.open = !this.#minimalEntry || global.matchMedia?.('(min-width: 801px)').matches === true;
+            disclosure.open = true;
             const disclosureSummary = node('summary', 'caissa-games-panel__disclosure-summary', {
                 'data-games-setup-summary': '', 'aria-label': 'Game setup selection'
             });
@@ -173,12 +182,14 @@
             });
             status.id = `${this.#id}-status`;
             action.textContent = 'Start Game';
-            if (this.#minimalEntry) this.#root.setAttribute('aria-label', 'Games setup');
-            else this.#root.append(title, description);
             setup.append(time, color, opponent);
             disclosure.append(disclosureSummary, setup);
-            this.#root.append(disclosure);
-            this.#root.append(status, action);
+            body.append(disclosure, status);
+            const foot = node('footer', 'caissa-games-panel__foot', {
+                'data-caissa-games-foot': '', 'aria-label': 'Play Game actions'
+            });
+            foot.appendChild(action);
+            this.#root.append(head, body, foot);
             this.#host.appendChild(this.#root);
             this.#unsubscribeReadiness = this.#readiness?.subscribe?.(() => this.#render()) || null;
             this.#listen(this.#root, 'change', event => this.#handleChange(event));
@@ -349,11 +360,25 @@
         }
         inspect() { return this.getSnapshot(); }
         show() {
-            if (this.#root) this.#root.hidden = false;
+            if (this.#root) {
+                this.#root.hidden = false;
+                const portrait = this.#root.querySelector('.caissa-games-panel__portrait');
+                if (portrait) {
+                    portrait.hidden = false;
+                    portrait.alt = 'Caissa, goddess of chess';
+                }
+            }
             return result(true, 'accepted', 'SHOWN', this.getSnapshot());
         }
         hide() {
-            if (this.#root) this.#root.hidden = true;
+            if (this.#root) {
+                this.#root.hidden = true;
+                const portrait = this.#root.querySelector('.caissa-games-panel__portrait');
+                if (portrait) {
+                    portrait.hidden = true;
+                    portrait.alt = '';
+                }
+            }
             return result(true, 'accepted', 'HIDDEN', this.getSnapshot());
         }
         unmount() {

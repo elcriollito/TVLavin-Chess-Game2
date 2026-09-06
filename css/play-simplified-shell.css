@@ -1656,6 +1656,60 @@ body[data-caissa-section="play"].caissa-simplified-play-active .mobile-quick-act
     display: none !important;
 }
 
+/* Play Game uses the certified Tabs -> Head/Body/Foot geometry. The board
+   frame owns the finite split-layout height and the Body is the only region
+   inside the panel that may scroll. */
+body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-entry-experience="beta"][data-mode="games"][data-scroll-owner="panel"]
+    .caissa-simplified-shell__workspace {
+    grid-template-areas:
+        "board modes"
+        "board context";
+    grid-template-rows: max-content minmax(0, 1fr);
+    /* Board stage = board + two 28px player rows + two 6px gaps + stage
+       padding + borders. Keep the grid finite so Body absorbs compression. */
+    block-size: calc(var(--play-board-size) + var(--shell-stage-pad) + var(--shell-stage-pad) + 70px);
+    min-block-size: 0;
+}
+
+body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-mode="games"]
+    :is(.caissa-simplified-shell__context, .caissa-simplified-shell__context-body) {
+    min-block-size: 0;
+}
+
+body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-mode="games"][data-scroll-owner="panel"]
+    :is(.caissa-simplified-shell__context, .caissa-simplified-shell__context-body) {
+    overflow: hidden;
+}
+
+body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-mode="games"][data-scroll-owner="panel"] .caissa-simplified-shell__context {
+    grid-row: 2;
+    block-size: 100%;
+    max-block-size: 100%;
+}
+
+body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-mode="games"] .caissa-simplified-shell__context-body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+}
+
+body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-mode="games"]:is([data-ui-state="setup"], [data-ui-state="starting"])
+    .caissa-simplified-shell__context-header {
+    display: none;
+}
+
+body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-mode="games"]:is([data-ui-state="setup"], [data-ui-state="starting"])
+    > .caissa-simplified-shell__workspace > .caissa-simplified-shell__context > .caissa-simplified-shell__status {
+    display: none;
+}
+
 body[data-caissa-section="play"].caissa-simplified-play-active .content-area {
     padding-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -1679,9 +1733,15 @@ body[data-caissa-section="play"].caissa-simplified-play-active #playSection .cai
 }
 
 body.caissa-simplified-play-active .caissa-games-panel {
-    display: grid;
-    gap: 14px;
+    --games-gold: #e5b84e;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
     padding: 14px;
+    overflow: hidden;
 }
 
 body.caissa-simplified-play-active .caissa-games-panel[hidden] {
@@ -1690,13 +1750,69 @@ body.caissa-simplified-play-active .caissa-games-panel[hidden] {
 
 body.caissa-simplified-play-active .caissa-games-panel__title {
     margin: 0;
-    font-size: 21px;
+    font-size: clamp(1.25rem, 1rem + .65vw, 1.7rem);
+    line-height: 1.15;
 }
 
 body.caissa-simplified-play-active .caissa-games-panel__description,
 body.caissa-simplified-play-active .caissa-games-panel__note {
     margin: 0;
     color: var(--muted);
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__head {
+    display: grid;
+    grid-template-columns: minmax(92px, 28%) minmax(0, 1fr);
+    align-items: center;
+    gap: .75rem;
+    min-height: 142px;
+    padding: .55rem .7rem;
+    border: 1px solid color-mix(in srgb, var(--games-gold) 65%, var(--panel-border));
+    border-radius: .85rem;
+    background:
+        radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--games-gold) 13%, transparent), transparent 42%),
+        color-mix(in srgb, var(--play-theme-card, #17202b) 94%, transparent);
+    overflow: hidden;
+    flex: 0 0 auto;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__portrait {
+    align-self: end;
+    width: min(100%, 132px);
+    height: auto;
+    object-fit: contain;
+    clip-path: inset(2% 0 0);
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__welcome {
+    display: grid;
+    gap: .55rem;
+    min-width: 0;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__description {
+    font-size: .98rem;
+    line-height: 1.45;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin-top: .65rem;
+    padding-top: .65rem;
+    padding-right: .2rem;
+    border-top: 1px solid color-mix(in srgb, var(--games-gold) 28%, var(--panel-border));
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__foot {
+    flex: 0 0 auto;
+    margin-top: .65rem;
+    padding-top: .65rem;
+    border-top: 1px solid color-mix(in srgb, var(--games-gold) 28%, var(--panel-border));
 }
 
 body.caissa-simplified-play-active .caissa-games-panel__group {
@@ -1764,8 +1880,7 @@ body.caissa-simplified-play-active .caissa-games-panel__options--color {
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experience="beta"] .caissa-games-panel {
-    gap: 9px;
-    padding: 10px;
+    padding: 0;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experience="beta"] .caissa-games-panel__options {
@@ -1877,17 +1992,50 @@ body.caissa-simplified-play-active .caissa-games-panel__primary {
     width: 100%;
     min-height: 48px;
     padding: 10px 16px;
-    border: 1px solid var(--accent-color);
+    gap: .65rem;
+    border: 1px solid color-mix(in srgb, var(--games-gold) 70%, #9a7420);
     border-radius: 10px;
-    background: var(--accent-color);
+    background: linear-gradient(180deg, #edc45d, #d9a83c);
     color: #111;
+    font-size: 1.05rem;
     font-weight: 800;
     cursor: pointer;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel__primary::before {
+    content: "\25B6";
+    display: grid;
+    width: 1.35rem;
+    height: 1.35rem;
+    place-items: center;
+    border-radius: 50%;
+    background: #111;
+    color: var(--games-gold);
+    font-size: .68rem;
+    line-height: 1;
 }
 
 body.caissa-simplified-play-active .caissa-games-panel__primary:disabled {
     opacity: .55;
     cursor: not-allowed;
+}
+
+@media (max-width: 420px) {
+    body.caissa-simplified-play-active .caissa-games-panel {
+        flex: 0 0 auto;
+        height: min(700px, calc(100dvh - 16px));
+        min-height: min(700px, calc(100dvh - 16px));
+    }
+
+    body.caissa-simplified-play-active .caissa-games-panel__head {
+        grid-template-columns: 82px minmax(0, 1fr);
+        min-height: 112px;
+        padding: .45rem .6rem;
+    }
+
+    body.caissa-simplified-play-active .caissa-games-panel__portrait { width: 82px; }
+    body.caissa-simplified-play-active .caissa-games-panel__title { font-size: 1.15rem; }
+    body.caissa-simplified-play-active .caissa-games-panel__description { font-size: .86rem; }
 }
 
 body.caissa-simplified-play-active .caissa-post-game {

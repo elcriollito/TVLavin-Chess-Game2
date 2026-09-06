@@ -12,15 +12,51 @@ async function openPanel(page, viewport = { width: 390, height: 844 }) {
 
 test('GamesPanel replaces the temporary controls host with one truthful primary action', async ({ page }) => {
     await openPanel(page);
-    await expect(page.getByRole('heading', { name: 'Play Computer' })).toBeVisible();
-    await expect(page.getByText('Start a local game against CAISSA.')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Welcome to Play' })).toBeVisible();
+    await expect(page.getByText("Choose your game and I'll take care of the rest.")).toBeVisible();
+    await expect(page.locator('[data-caissa-games-head] img'))
+        .toHaveAttribute('src', '/assets/play/caissa-coach-goddess.png');
     await expect(page.getByRole('slider', { name: 'Opponent strength in Elo' })).toBeVisible();
     await expect(page.getByText('1500 Elo · Advanced', { exact: true })).toBeVisible();
     await expect(page.getByText(/Target strength is approximate/)).toBeVisible();
     await expect(page.locator('.caissa-simplified-shell__context .right-panel')).toHaveCount(0);
     await expect(page.locator('.caissa-simplified-shell__advanced .right-panel')).toHaveCount(1);
     await expect(page.locator('[data-games-primary]:visible')).toHaveCount(1);
+    await expect(page.locator('[data-caissa-games-foot] > [data-games-primary]')).toHaveCount(1);
     await expect(page.locator('#navNewGameBtn:visible')).toHaveCount(0);
+});
+
+test('setup owns permanent Head, scrolling Body, and anchored Foot geometry', async ({ page }) => {
+    await openPanel(page, { width: 1366, height: 768 });
+    const geometry = await page.evaluate(() => {
+        const rect = selector => {
+            const box = document.querySelector(selector).getBoundingClientRect();
+            return { top: box.top, bottom: box.bottom, height: box.height };
+        };
+        const panel = document.querySelector('.caissa-games-panel');
+        const body = panel.querySelector('[data-caissa-games-body]');
+        const headBefore = rect('[data-caissa-games-head]');
+        const footBefore = rect('[data-caissa-games-foot]');
+        body.scrollTop = 120;
+        const headAfter = rect('[data-caissa-games-head]');
+        const footAfter = rect('[data-caissa-games-foot]');
+        return {
+            panel: rect('.caissa-games-panel'), context: rect('.caissa-simplified-shell__context'),
+            board: rect('.caissa-simplified-shell__board-stage'),
+            head: headBefore, body: { ...rect('[data-caissa-games-body]'), clientHeight: body.clientHeight,
+                scrollHeight: body.scrollHeight, overflowY: getComputedStyle(body).overflowY },
+            foot: footBefore,
+            fixed: Math.abs(headBefore.top - headAfter.top) <= 1 && Math.abs(footBefore.top - footAfter.top) <= 1,
+            anchored: Math.abs(footBefore.bottom - panel.getBoundingClientRect().bottom) <= 1,
+            overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+        };
+    });
+    expect(geometry.body.overflowY).toBe('auto');
+    expect(geometry.body.scrollHeight).toBeGreaterThanOrEqual(geometry.body.clientHeight);
+    expect(geometry.fixed).toBe(true);
+    expect(geometry.anchored).toBe(true);
+    expect(Math.abs(geometry.board.bottom - geometry.context.bottom)).toBeLessThanOrEqual(3);
+    expect(geometry.overflow).toBeLessThanOrEqual(1);
 });
 
 test('opponent strength supports keyboard bounds, labels, and persisted preference', async ({ page }) => {
@@ -116,42 +152,28 @@ test('one legal move receives the existing deterministic engine response', async
     expect(resources).toEqual({ boards: 1, workers: 1, clocks: 2, rails: 1, actions: 1 });
 });
 
-test('Advanced Options preserves legacy controls while setup Analyze navigation remains blocked', async ({ page }) => {
+test('public setup keeps legacy controls inert and outside the Game Body', async ({ page }) => {
     await openPanel(page);
     const advanced = page.locator('.caissa-simplified-shell__advanced');
-    await advanced.locator('summary').click();
-    await expect(advanced).toHaveAttribute('open', '');
-    await expect(advanced.locator('#btnSettings')).toBeVisible();
-    await expect(advanced.locator('#flipBoard')).toBeVisible();
-    await expect(advanced.locator('#pasteFEN')).toBeVisible();
-    await expect(advanced.locator('#analyzeGame')).toBeVisible();
-    await expect(advanced.locator('#btnDownload')).toBeVisible();
-    await advanced.locator('#pasteFEN').click();
-    await expect(page.locator('#fenModal')).toHaveClass(/show/);
-    await page.keyboard.press('Escape');
-    await advanced.locator('#btnSettings').click();
-    await expect(page.locator('#menuModal')).toHaveClass(/show/);
-    await page.keyboard.press('Escape');
-    await page.locator('#mobileNavToggle').click();
-    await page.locator('[data-section="analyze"]').first().click();
+    await expect(advanced).toBeHidden();
+    for (const id of ['btnSettings', 'flipBoard', 'pasteFEN', 'analyzeGame', 'btnDownload'])
+        await expect(advanced.locator(`#${id}`)).toHaveCount(1);
+    await expect(page.locator('[data-caissa-games-body] #analyzeGame')).toHaveCount(0);
     await expect(page.locator('#analyzeSection')).not.toHaveClass(/active/);
-    await expect(page.locator('#playSection')).toHaveClass(/active/);
-    await expect(page.locator('.caissa-games-panel')).toBeVisible();
 });
 
-test('legacy Play stays unchanged and shell activation restoration preserves unique controls', async ({ page }) => {
+test('canonical Play preserves unique controls across mode restoration', async ({ page }) => {
     await page.goto('/play');
     const duplicateIdsBefore = await page.evaluate(() => {
         const ids = [...document.querySelectorAll('[id]')].map(node => node.id);
         return ids.length - new Set(ids).size;
     });
-    await expect(page.locator('.caissa-games-panel')).toHaveCount(0);
-    await expect(page.locator('#navNewGameBtn')).toBeVisible();
-    await page.evaluate(() => window.CaissaPlayRouteController.navigate('/play/games?simplified=1'));
     await expect(page.locator('.caissa-games-panel')).toBeVisible();
-    await page.goBack();
-    await expect(page.locator('.caissa-games-panel')).toHaveCount(0);
-    await expect(page.locator('#navNewGameBtn')).toBeVisible();
+    await page.getByRole('tab', { name: 'Play Bots' }).click();
+    await expect(page.locator('.caissa-games-panel')).toBeHidden();
+    await page.getByRole('tab', { name: 'Play Game' }).click();
+    await expect(page.locator('.caissa-games-panel')).toBeVisible();
+    await expect(page.locator('[data-games-primary]')).toHaveCount(1);
     expect(await page.evaluate(() => {
         const ids = [...document.querySelectorAll('[id]')].map(node => node.id);
         return ids.length - new Set(ids).size;
@@ -167,8 +189,10 @@ test('panel controls remain reachable and bounded across required layouts', asyn
     await openPanel(page, { width: 320, height: 568 });
     for (const [width, height] of viewports) {
         await page.setViewportSize({ width, height });
-        await expect.poll(() => page.evaluate(() =>
-            window.CaissaSimplifiedPlayShellInstance.getSnapshot().geometry?.width)).toBe(width);
+        await expect.poll(() => page.evaluate(expectedHeight => {
+            const geometry = window.CaissaSimplifiedPlayShellInstance.getSnapshot().geometry;
+            return !!geometry && geometry.width > 0 && geometry.height === expectedHeight;
+        }, height)).toBe(true);
         const result = await page.evaluate(() => {
             const play = document.querySelector('#playSection');
             const action = document.querySelector('[data-games-primary]');
@@ -178,7 +202,8 @@ test('panel controls remain reachable and bounded across required layouts', asyn
             return {
                 overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
                 actionReachable: actionBox.top >= 0 && actionBox.bottom <= innerHeight,
-                advancedPresent: advanced.getBoundingClientRect().width > 0,
+                advancedPreserved: ['btnSettings', 'flipBoard', 'pasteFEN', 'analyzeGame', 'btnDownload']
+                    .every(id => advanced.querySelector(`#${id}`)),
                 playScrollable: play.scrollHeight >= play.clientHeight,
                 labels: [...document.querySelectorAll('.caissa-games-panel__option span')]
                     .every(label => label.getBoundingClientRect().width >= 44)
@@ -186,6 +211,6 @@ test('panel controls remain reachable and bounded across required layouts', asyn
         });
         expect(result.overflow, `${width}x${height}`).toBeLessThanOrEqual(1);
         expect(result.actionReachable, `${width}x${height}`).toBe(true);
-        expect(result.advancedPresent && result.playScrollable && result.labels, `${width}x${height}`).toBe(true);
+        expect(result.advancedPreserved && result.playScrollable && result.labels, `${width}x${height}`).toBe(true);
     }
 });

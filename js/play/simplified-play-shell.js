@@ -63,6 +63,7 @@
         const mode = LAYOUT_MODES.includes(input.mode) ? input.mode : selectLayoutMode({ width, height });
         const viewportOwnedDesktop = input.viewportOwnedDesktop === true;
         const activeGame = input.activeGame === true;
+        const setupHeightInset = Number.isFinite(input.setupHeightInset) ? Math.max(0, input.setupHeightInset) : 0;
         const phone = mode.startsWith('phone-');
         const tablet = mode.startsWith('tablet-');
         const compact = mode === 'phone-compact';
@@ -84,7 +85,7 @@
             heightLimit = Math.max(0, height - 112);
         } else if (mode === 'tablet-landscape-split') {
             columnWidth = usableWidth * .58;
-            heightLimit = Math.max(0, height - 150);
+            heightLimit = Math.max(0, height - 150 - setupHeightInset);
         } else if (mode === 'desktop-split') {
             columnWidth = usableWidth * .56;
             heightLimit = Math.max(0, height - 190);
@@ -661,8 +662,10 @@
             const layoutHeight = global.innerHeight || global.visualViewport?.height || 0;
             const visualHeight = global.visualViewport?.height || layoutHeight;
             const height = Math.min(layoutHeight, visualHeight);
-            const next = calculateGeometry({ width, height,
+            const selectedMode = selectLayoutMode({ width, height });
+            const next = calculateGeometry({ width, height, mode: selectedMode,
                 viewportOwnedDesktop: this.#root.dataset.entryExperience === 'beta',
+                setupHeightInset: this.#mode === 'games' && selectedMode === 'tablet-landscape-split' ? 46 : 0,
                 activeGame: global.document.body.classList.contains('caissa-play-game-active') });
             if (next.boardSize < 180) {
                 this.#diagnostics.rejectedGeometry += 1;
