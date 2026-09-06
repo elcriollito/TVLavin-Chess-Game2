@@ -1790,6 +1790,10 @@ body.caissa-simplified-play-active .caissa-games-panel__welcome {
     min-width: 0;
 }
 
+body.caissa-simplified-play-active .caissa-games-panel__welcome[hidden] {
+    display: none;
+}
+
 body.caissa-simplified-play-active .caissa-games-panel__description {
     font-size: .98rem;
     line-height: 1.45;

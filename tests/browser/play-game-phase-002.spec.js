@@ -13,7 +13,6 @@ async function openActiveGame(page, viewport) {
     await page.evaluate(() => { window.__phase002Head = document.querySelector('[data-caissa-games-head]'); });
     await page.locator('[data-games-primary]').click();
     await expect(page.locator('.caissa-games-panel[data-games-phase="active-game"]')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Play Chess' })).toBeVisible();
 }
 
 async function setLongNotation(page) {
@@ -61,9 +60,13 @@ async function geometry(page) {
 
 test('setup transitions into one persistent Game HEAD with BODY notation and FOOT actions', async ({ page }) => {
     await openActiveGame(page, { width: 1600, height: 1000 });
-    await expect(page.locator('[data-caissa-games-head] [data-games-phase-label]')).toHaveText('Game in progress');
-    await expect(page.locator('[data-caissa-games-head]')).toContainText("Use the board to play your moves. I'm with you.");
+    await expect(page.locator('[data-caissa-games-head] .caissa-games-panel__welcome')).toBeHidden();
+    const head = page.locator('[data-caissa-games-head]');
+    await expect(head.getByText('Play Chess', { exact: true })).toBeHidden();
+    await expect(head.getByText('Game in progress', { exact: true })).toBeHidden();
+    await expect(head.getByText("Use the board to play your moves. I'm with you.", { exact: true })).toBeHidden();
     await expect(page.locator('[data-caissa-games-head] img')).toHaveAttribute('src', '/assets/play/caissa-coach-goddess.png');
+    await expect(page.locator('[data-caissa-games-head] img:visible')).toHaveCount(1);
     await expect(page.locator('[data-caissa-games-body] > [data-active-game-context]')).toBeVisible();
     await expect(page.locator('[data-caissa-games-body] > [data-active-game-context] > h3')).toBeHidden();
     await expect(page.locator('[data-caissa-games-body] > [data-active-game-context] > [data-active-game-status]')).toBeHidden();

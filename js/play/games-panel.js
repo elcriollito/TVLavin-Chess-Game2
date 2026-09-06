@@ -389,6 +389,8 @@
             const title = this.#root.querySelector('.caissa-games-panel__title');
             const phaseLabel = this.#root.querySelector('[data-games-phase-label]');
             const description = this.#root.querySelector('.caissa-games-panel__description');
+            const welcome = this.#root.querySelector('.caissa-games-panel__welcome');
+            if (welcome) welcome.hidden = phase === 'active-game';
             if (title) title.textContent = phase === 'active-game' ? 'Play Chess' : 'Welcome to Play';
             if (phaseLabel) {
                 phaseLabel.hidden = phase !== 'active-game';
