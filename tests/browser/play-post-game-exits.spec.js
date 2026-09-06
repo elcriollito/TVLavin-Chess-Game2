@@ -12,13 +12,15 @@ async function completed(page) {
     return page.evaluate(() => window.CaissaPostGameExperienceInstance.getSnapshot().gameRecordId);
 }
 
-test('exit inventory and hierarchy are complete, explicit, and recommendation-free', async ({ page }) => {
+test('exit ownership is preserved behind the minimal completed-game presentation', async ({ page }) => {
     const recordId = await completed(page); const panel = page.locator('[data-play-v2-post-game-core]');
-    await expect(panel.locator('[data-post-game-action]')).toHaveText(['Analyze This Game', 'Rematch', 'New Game',
-        'Review with Mentor', 'Copy PGN', 'Download PGN', 'Save PGN Locally']);
+    await expect(page.locator('[data-post-game-action]')).toHaveText(['Analyze This Game', 'Rematch',
+        'Review with Mentor', 'New Game', 'Copy PGN', 'Download PGN', 'Save PGN Locally']);
     await expect(panel.locator('[data-post-game-action="analyze"]')).toHaveClass(/--primary/);
-    await expect(panel.locator('[data-post-game-action="rematch"]')).toHaveClass(/--secondary/);
-    await expect(panel.locator('[data-post-game-action="new-game"]')).toHaveClass(/--secondary/);
+    await expect(page.locator('[data-post-game-action="rematch"]')).toBeHidden();
+    await expect(page.locator('[data-post-game-action="mentor-review"]')).toBeHidden();
+    await expect(page.locator('[data-caissa-games-foot] [data-post-game-action]:visible')).toHaveText(['New Game']);
+    await expect(page.locator('[data-caissa-games-foot] summary:visible')).toHaveText(/Menu/);
     await expect(panel).not.toContainText(/academy|puzzle|endgame|course|upgrade|rating|reward|fics|legacy/i);
     expect(await page.evaluate(() => ({ contract: window.CaissaPlayV2PostGameExitPolicy.contractId,
         automatic: window.CaissaPlayV2PostGameExitPolicy.automaticNavigation,

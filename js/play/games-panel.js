@@ -1,8 +1,8 @@
 (function installGamesPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.7.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.7.0';
+    const SCHEMA_VERSION = '1.8.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.8.0';
     const STATUSES = Object.freeze(['idle', 'ready', 'invalid', 'busy', 'active', 'error', 'disposed']);
     const EVENTS = Object.freeze(['hydrated', 'selection-changed', 'validated', 'submitted', 'started', 'advanced-changed']);
     const SECTIONS = Object.freeze(['game-type', 'time-control', 'color', 'opponent', 'primary-action', 'advanced-options']);
@@ -61,7 +61,8 @@
         #id = `games-panel-${++sequence}`;
         #compatibility; #root = null; #host = null; #advanced = null; #disposed = false; #minimalEntry = false;
         #bodyHost = null; #footHost = null; #setupContent = null; #setupFoot = null; #phase = 'setup';
-        #resolveRandomColor; #readiness; #unsubscribeReadiness = null;
+        #postGamePlacement = null;
+        #resolveRandomColor; #readiness; #unsubscribeReadiness = null; #onPostGameAction = null;
         #status = 'idle'; #preset = TIME_CONTROLS[0]; #color = 'white';
         #targetElo = STRENGTH?.readPreference?.() ?? 1500;
         #hydrated = false; #busy = false; #listeners = []; #validation = { valid: false, errors: [], warnings: [] };
@@ -84,6 +85,8 @@
                 };
             this.#readiness = safeObject(options) && options.readiness
                 ? options.readiness : global.CaissaPlayV2PlayableReadiness?.create?.();
+            this.#onPostGameAction = safeObject(options) && typeof options.onPostGameAction === 'function'
+                ? options.onPostGameAction : null;
         }
 
         mount(options = {}) {
@@ -202,6 +205,13 @@
             this.#host.appendChild(this.#root);
             this.#unsubscribeReadiness = this.#readiness?.subscribe?.(() => this.#render()) || null;
             this.#listen(this.#root, 'change', event => this.#handleChange(event));
+            this.#listen(this.#root, 'click', event => {
+                const postGameAction = event.target?.closest?.('[data-post-game-action]');
+                if (this.#phase === 'game-over' && postGameAction && this.#footHost.contains(postGameAction)) {
+                    event.preventDefault();
+                    this.#onPostGameAction?.(postGameAction.dataset.postGameAction);
+                }
+            });
             this.#listen(disclosure, 'toggle', () => this.#render());
             this.#listen(action, 'click', () => this.submit());
             if (this.#advanced) this.#listen(this.#advanced, 'toggle', () => {
@@ -382,7 +392,8 @@
         }
         present(options = {}) {
             if (!this.#root || this.#disposed) return result(false, 'rejected', 'UNAVAILABLE');
-            const phase = options.phase === 'active-game' ? 'active-game' : 'setup';
+            const phase = ['active-game', 'game-over'].includes(options.phase) ? options.phase : 'setup';
+            if (phase !== 'game-over') this.#restorePostGamePlacement();
             if (phase === 'setup') this.releasePhaseContent(options.returnHost);
             this.#phase = phase;
             this.#root.dataset.gamesPhase = phase;
@@ -391,23 +402,27 @@
             const description = this.#root.querySelector('.caissa-games-panel__description');
             const welcome = this.#root.querySelector('.caissa-games-panel__welcome');
             if (welcome) welcome.hidden = phase === 'active-game';
-            if (title) title.textContent = phase === 'active-game' ? 'Play Chess' : 'Welcome to Play';
+            if (title) title.textContent = phase === 'game-over' ? 'Game Over'
+                : phase === 'active-game' ? 'Play Chess' : 'Welcome to Play';
             if (phaseLabel) {
-                phaseLabel.hidden = phase !== 'active-game';
-                phaseLabel.textContent = phase === 'active-game' ? 'Game in progress' : '';
+                phaseLabel.hidden = phase === 'setup';
+                phaseLabel.textContent = phase === 'game-over' ? options.message?.result || 'Game complete'
+                    : phase === 'active-game' ? 'Game in progress' : '';
             }
-            if (description) description.textContent = phase === 'active-game'
-                ? "Use the board to play your moves. I'm with you."
-                : "Choose your game and I'll take care of the rest.";
+            if (description) description.textContent = phase === 'game-over'
+                ? options.message?.description || "Good game! Let's take a look at what happened."
+                : phase === 'active-game' ? "Use the board to play your moves. I'm with you."
+                    : "Choose your game and I'll take care of the rest.";
             this.#setupContent.hidden = phase !== 'setup';
             this.#setupFoot.hidden = phase !== 'setup';
             this.#bodyHost.querySelectorAll('[data-games-phase-content]:not([data-games-phase-content="setup"])')
                 .forEach(item => item.hidden = true);
             this.#footHost.querySelectorAll('[data-games-foot-content]:not([data-games-foot-content="setup"])')
                 .forEach(item => item.hidden = true);
-            if (phase === 'active-game') {
+            if (phase !== 'setup') {
                 const content = options.content;
-                const foot = options.foot;
+                let foot = options.foot;
+                if (phase === 'game-over') foot = this.#rememberPostGamePlacement(content, foot) || foot;
                 if (content?.nodeType === 1) {
                     content.setAttribute('data-games-phase-content', phase);
                     content.hidden = false;
@@ -424,6 +439,7 @@
         }
         releasePhaseContent(returnHost) {
             if (!this.#root) return result(false, 'rejected', 'UNAVAILABLE');
+            this.#restorePostGamePlacement();
             this.#bodyHost?.querySelectorAll?.('[data-games-phase-content]:not([data-games-phase-content="setup"])')
                 .forEach(item => {
                     item.removeAttribute('data-games-phase-content');
@@ -450,6 +466,7 @@
             return result(true, 'accepted', 'HIDDEN', this.getSnapshot());
         }
         unmount() {
+            this.#restorePostGamePlacement();
             this.releasePhaseContent(this.#host);
             this.#unsubscribeReadiness?.(); this.#unsubscribeReadiness = null; this.#readiness?.dispose?.();
             this.#removeListeners(); this.#root?.remove(); this.#root = null; this.#host = null;
@@ -459,6 +476,92 @@
             if (this.#disposed) return result(true, 'unchanged', REASONS.DISPOSED);
             this.unmount(); this.#disposed = true; this.#status = 'disposed';
             return this.#record(result(true, 'accepted', REASONS.DISPOSED));
+        }
+        #rememberPostGamePlacement(content, foot) {
+            if (this.#postGamePlacement) return this.#postGamePlacement.wrapper;
+            if (content?.nodeType !== 1 || foot?.nodeType !== 1) return null;
+            const actionOrder = [...foot.querySelectorAll(':scope > [data-post-game-action]')];
+            const primary = foot.querySelector('[data-post-game-action="analyze"]');
+            const rematch = foot.querySelector('[data-post-game-action="rematch"]');
+            const newGame = foot.querySelector('[data-post-game-action="new-game"]');
+            const mentor = foot.querySelector('[data-post-game-action="mentor-review"]');
+            const mentorWasHidden = mentor?.hidden === true;
+            const pgnActions = ['copy-pgn', 'download-pgn', 'save-game']
+                .map(action => foot.querySelector(`[data-post-game-action="${action}"]`)).filter(Boolean);
+            const consent = content.querySelector('.caissa-post-game__consent');
+            const feedback = content.querySelector('.caissa-post-game__feedback');
+            const contentMarker = global.document.createComment('caissa-games-post-game-content-home');
+            const footMarker = global.document.createComment('caissa-games-post-game-foot-home');
+            const primaryMarker = global.document.createComment('caissa-games-post-game-primary-home');
+            const consentMarker = global.document.createComment('caissa-games-post-game-consent-home');
+            const feedbackMarker = global.document.createComment('caissa-games-post-game-feedback-home');
+            content.parentNode?.insertBefore(contentMarker, content);
+            foot.parentNode?.insertBefore(footMarker, foot);
+            primary?.parentNode?.insertBefore(primaryMarker, primary);
+            consent?.parentNode?.insertBefore(consentMarker, consent);
+            feedback?.parentNode?.insertBefore(feedbackMarker, feedback);
+            const wrapper = node('div', 'caissa-games-panel__post-game-foot', {
+                'data-games-foot-content': 'game-over'
+            });
+            const menu = node('details', 'caissa-games-panel__post-game-menu');
+            const menuToggle = node('summary', 'caissa-games-panel__post-game-menu-toggle', {
+                'aria-label': 'PGN actions menu', 'aria-haspopup': 'true', 'aria-expanded': 'false',
+                'aria-controls': `${this.#id}-post-game-menu`
+            });
+            const menuMark = node('span', 'caissa-games-panel__post-game-menu-mark', { 'aria-hidden': 'true' });
+            menuMark.textContent = '•••';
+            const menuLabel = node('span', ''); menuLabel.textContent = 'Menu';
+            const menuItems = node('div', 'caissa-games-panel__post-game-menu-items', {
+                id: `${this.#id}-post-game-menu`, 'aria-label': 'PGN actions'
+            });
+            menuToggle.append(menuMark, menuLabel); menuItems.append(...pgnActions); menu.append(menuToggle, menuItems);
+            if (primary) {
+                primary.setAttribute('data-games-primary-post-game-action', '');
+                content.querySelector('.caissa-post-game__reason')?.after(primary);
+            }
+            if (rematch) rematch.hidden = true;
+            if (mentor) mentor.hidden = true;
+            if (newGame) foot.appendChild(newGame);
+            foot.appendChild(menu); wrapper.appendChild(foot);
+            if (consent) menuItems.appendChild(consent);
+            if (feedback) menuItems.appendChild(feedback);
+            const syncMenuState = () => menuToggle.setAttribute('aria-expanded', String(menu.open));
+            const dismissMenu = event => { if (menu.open && !menu.contains(event.target)) menu.open = false; };
+            const closeMenuFromKeyboard = event => {
+                if (event.key !== 'Escape' || !menu.open) return;
+                event.preventDefault(); menu.open = false; menuToggle.focus();
+            };
+            menu.addEventListener('toggle', syncMenuState);
+            menu.addEventListener('keydown', closeMenuFromKeyboard);
+            global.document.addEventListener('pointerdown', dismissMenu, true);
+            this.#postGamePlacement = { content, foot, actionOrder, primary, rematch, mentor, mentorWasHidden,
+                consent, feedback, wrapper, menu, syncMenuState, dismissMenu, closeMenuFromKeyboard,
+                contentMarker, footMarker, primaryMarker, consentMarker, feedbackMarker };
+            return wrapper;
+        }
+        #restorePostGamePlacement() {
+            const placement = this.#postGamePlacement;
+            if (!placement) return;
+            this.#postGamePlacement = null;
+            placement.menu.removeEventListener('toggle', placement.syncMenuState);
+            placement.menu.removeEventListener('keydown', placement.closeMenuFromKeyboard);
+            global.document.removeEventListener('pointerdown', placement.dismissMenu, true);
+            if (placement.primary) placement.primaryMarker.parentNode?.insertBefore(placement.primary, placement.primaryMarker);
+            placement.primaryMarker.remove();
+            placement.primary?.removeAttribute('data-games-primary-post-game-action');
+            if (placement.rematch) placement.rematch.hidden = false;
+            if (placement.mentor) placement.mentor.hidden = placement.mentorWasHidden;
+            placement.footMarker.parentNode?.insertBefore(placement.foot, placement.footMarker);
+            placement.footMarker.remove();
+            if (placement.consent) placement.consentMarker.parentNode?.insertBefore(placement.consent, placement.consentMarker);
+            placement.consentMarker.remove();
+            if (placement.feedback) placement.feedbackMarker.parentNode?.insertBefore(placement.feedback, placement.feedbackMarker);
+            placement.feedbackMarker.remove();
+            placement.contentMarker.parentNode?.insertBefore(placement.content, placement.contentMarker);
+            placement.contentMarker.remove();
+            placement.actionOrder.forEach(action => placement.foot.appendChild(action));
+            placement.menu.remove(); placement.wrapper.remove();
+            placement.content.removeAttribute('data-games-phase-content');
         }
         #selection() {
             this.#diagnostics.selections += 1; this.#status = 'ready';

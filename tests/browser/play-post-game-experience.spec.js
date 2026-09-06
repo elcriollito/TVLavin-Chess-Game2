@@ -11,17 +11,23 @@ async function openQa(page, viewport = { width: 390, height: 844 }) {
 
 test.beforeEach(async ({ page }) => instrumentPlay(page, { autoReply: false }));
 
-test('checkmate shows one truthful summary and suppresses competing GamesPanel action', async ({ page }) => {
+test('checkmate keeps Caissa and presents one truthful Play Game result shell', async ({ page }) => {
     await openQa(page);
     await loadPosition(page, positions.checkmateInOne.fen);
     await playMove(page, positions.checkmateInOne.from, positions.checkmateInOne.to);
     await expect(page.locator('.caissa-post-game')).toBeVisible();
     await expect(page.locator('[data-post-game-result]')).toHaveText('You Won');
     await expect(page.locator('[data-post-game-reason]')).toHaveText('By Checkmate');
-    await expect(page.locator('.caissa-games-panel')).toBeHidden();
+    await expect(page.locator('.caissa-games-panel')).toHaveAttribute('data-games-phase', 'game-over');
+    await expect(page.locator('[data-caissa-games-head] img:visible')).toHaveCount(1);
+    await expect(page.locator('[data-caissa-games-head]')).toContainText('Game Over');
+    await expect(page.locator('[data-caissa-games-head]')).toContainText('You won by checkmate.');
     await expect(page.locator('.caissa-post-game__action--primary:visible')).toHaveCount(1);
-    await expect(page.locator('[data-post-game-action="mentor-review"]')).toBeVisible();
-    await expect(page.locator('[data-post-game-action="mentor-review"]')).toHaveClass(/--mentor/);
+    await expect(page.locator('[data-post-game-action="mentor-review"]')).toBeHidden();
+    await expect(page.locator('[data-post-game-action="rematch"]')).toBeHidden();
+    await expect(page.locator('[data-caissa-games-foot] [data-post-game-action]:visible'))
+        .toHaveText(['New Game']);
+    await expect(page.locator('[data-caissa-games-foot] summary:visible')).toHaveText(/Menu/);
     await expect(page.locator('[data-post-game-concepts],[data-mentor-summary]')).toHaveCount(0);
     expect(await page.evaluate(() => ({
         regions: document.querySelectorAll('.caissa-post-game').length,
@@ -47,20 +53,16 @@ test('resignation and stalemate preserve authoritative result and termination', 
     await expect(page.locator('[data-post-game-reason]')).toHaveText('By Stalemate');
 });
 
-test('Rematch starts once while New Game returns to setup without duplicating runtime resources', async ({ page }) => {
+test('visible New Game returns to setup without duplicating runtime resources', async ({ page }) => {
     await openQa(page);
     await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
     const before = await page.evaluate(() => window.__caissaPlayHarness.snapshot());
-    await page.locator('[data-post-game-action="rematch"]').click();
-    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-    const rematch = await snapshot(page);
-    expect(rematch.gameActive).toBe(true);
-    expect(rematch.harness.workersCreated).toBe(before.workersCreated);
-    expect(rematch.harness.boardConstructions).toBe(before.boardConstructions);
-    expect(rematch.harness.activeRafs).toBeLessThanOrEqual(1);
-    await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
     await page.locator('[data-post-game-action="new-game"]').click();
-    expect((await snapshot(page)).gameActive).toBe(false);
+    const reset = await snapshot(page);
+    expect(reset.gameActive).toBe(false);
+    expect(reset.harness.workersCreated).toBe(before.workersCreated);
+    expect(reset.harness.boardConstructions).toBe(before.boardConstructions);
+    expect(reset.harness.activeRafs).toBeLessThanOrEqual(1);
     await expect(page.locator('.caissa-games-panel')).toBeVisible();
     await expect(page.locator('[data-games-primary]')).toHaveText('Play');
     expect(await page.evaluate(() =>
@@ -104,6 +106,7 @@ test('Copy, Download, and consent-aware Save have bounded side effects', async (
     const beforeKeys = await page.evaluate(() => Object.keys(localStorage));
     await expect(page.locator('[data-post-game-action="save-game"]')).toBeDisabled();
     expect(await page.evaluate(() => Object.keys(localStorage))).toEqual(beforeKeys);
+    await page.locator('.caissa-games-panel__post-game-menu-toggle').click();
     await page.locator('[data-post-game-action="copy-pgn"]').click();
     await expect.poll(() => page.evaluate(() => window.__postGameProof.copied)).toContain('Qg7#');
     await page.locator('[data-post-game-action="download-pgn"]').click();
@@ -135,7 +138,7 @@ test('summary and actions remain reachable across required layouts', async ({ pa
                 overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
                 visible: region.getBoundingClientRect().width > 0,
                 primaryReachable: box.top >= 0 && box.bottom <= innerHeight,
-                actions: [...region.querySelectorAll('button')].every(button =>
+                actions: [...region.querySelectorAll('button')].filter(button => button.offsetParent !== null).every(button =>
                     button.getBoundingClientRect().height >= 44),
                 boardWidth: document.querySelector('#chessboard').getBoundingClientRect().width
             };

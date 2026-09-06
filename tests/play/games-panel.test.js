@@ -45,8 +45,8 @@ function load(snapshot = {}, commandResult = { ok: true, status: 'accepted' }, o
 
 test('publishes a frozen versioned contract with truthful fixed vocabularies', () => {
     const { api, panel } = load();
-    assert.equal(api.schemaVersion, '1.7.0');
-    assert.equal(api.snapshotSchemaVersion, '1.7.0');
+    assert.equal(api.schemaVersion, '1.8.0');
+    assert.equal(api.snapshotSchemaVersion, '1.8.0');
     assert.ok(Object.isFrozen(api));
     assert.ok(Object.isFrozen(api.timeControls));
     assert.ok(Object.isFrozen(api.colors));
@@ -177,8 +177,9 @@ test('static ownership guard excludes state writers, resources, storage, routing
         /\bWorker\b|postMessage\s*\(/, /localStorage|sessionStorage/,
         /pushState|replaceState|CaissaNavigation/, /FairPlayPolicy/,
         /matchmaking|tournament|player pool|rated game/i,
-        /FICS|Arena|Spectator|AnalyzeSection|PostGame/
+        /FICS|Arena|Spectator|AnalyzeSection/
     ]) assert.doesNotMatch(source, forbidden);
+    assert.doesNotMatch(source, /CaissaPostGameExperience/);
     assert.match(source, /\.execute\('startNewGame'/);
     assert.match(source, /data-caissa-games-head/);
     assert.match(source, /data-caissa-games-body/);

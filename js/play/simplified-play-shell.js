@@ -1,7 +1,7 @@
 (function (global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.17.0';
+    const SCHEMA_VERSION = '1.18.0';
     const SNAPSHOT_SCHEMA_VERSION = '1.14.0';
     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'unavailable', 'error']);
     const REGIONS = Object.freeze([
@@ -42,6 +42,14 @@
         node.className = className;
         Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, value));
         return node;
+    }
+    function gameOverSentence(resultText, reasonText) {
+        const result = String(resultText || 'Game complete').trim().replace(/[.!?]+$/, '');
+        const reason = String(reasonText || '').trim().replace(/[.!?]+$/, '').replace(/^By\s+/i, 'by ');
+        const normalizedResult = result.replace(/^(You\s+)(Won|Lost)$/i,
+            (_, subject, outcome) => `${subject}${outcome.toLowerCase()}`);
+        return `${normalizedResult}${reason ? ` ${reason.replace(/^by\s+(.)(.*)$/i,
+            (_, first, rest) => `by ${first.toLowerCase()}${rest}`)}` : ''}.`;
     }
     function selectLayoutMode(input = {}) {
         const width = Number.isFinite(input.width) ? Math.max(0, input.width) : 0;
@@ -389,7 +397,10 @@
             });
             const betaEntry = this.#root.dataset.entryExperience === 'beta';
             global.document.body.classList.toggle('caissa-play-v2-beta-active', betaEntry);
-            this.#gamesPanel = global.CaissaGamesPanel?.create?.({ minimalEntry: betaEntry });
+            this.#gamesPanel = global.CaissaGamesPanel?.create?.({
+                minimalEntry: betaEntry,
+                onPostGameAction: action => this.#postGame?.execute?.(action)
+            });
             const panelMount = this.#gamesPanel?.mount?.({
                 host: contextBody,
                 advancedDisclosure: this.#root.querySelector('.caissa-simplified-shell__advanced')
@@ -849,7 +860,7 @@
             const heading = this.#root.querySelector('.caissa-simplified-shell__context-header h2');
             if (heading) {
                 const redundantAssistedHeading = !postGame && !starting && ['bots', 'coach'].includes(this.#mode);
-                const redundantGamesHeading = !postGame && this.#mode === 'games';
+                const redundantGamesHeading = this.#mode === 'games';
                 const redundantBotsResultHeading = postGame && this.#mode === 'bots';
                 heading.hidden = redundantAssistedHeading || redundantGamesHeading || redundantBotsResultHeading;
                 heading.parentElement.hidden = redundantAssistedHeading || redundantGamesHeading || redundantBotsResultHeading;
@@ -859,10 +870,18 @@
             }
             const contextBody = this.#root.querySelector('.caissa-simplified-shell__context-body');
             const gamesMode = this.#mode === 'games';
-            if (gamesMode && this.#gamesPanel && !postGame) {
-                this.#gamesPanel.present({ phase: active ? 'active-game' : 'setup',
-                    content: active ? this.#activeContext : null,
-                    foot: active ? this.#activeFoot : null,
+            if (gamesMode && this.#gamesPanel) {
+                const postGameContent = postGame ? this.#root.querySelector('.caissa-post-game') : null;
+                const postGameFoot = postGameContent?.querySelector('.caissa-post-game__actions') || null;
+                const postGameResult = postGameContent?.querySelector('[data-post-game-result]')?.textContent;
+                const postGameReason = postGameContent?.querySelector('[data-post-game-reason]')?.textContent;
+                this.#gamesPanel.present({ phase: postGame ? 'game-over' : active ? 'active-game' : 'setup',
+                    content: postGame ? postGameContent : active ? this.#activeContext : null,
+                    foot: postGame ? postGameFoot : active ? this.#activeFoot : null,
+                    message: postGame ? {
+                        result: gameOverSentence(postGameResult, postGameReason),
+                        description: "Good game! Let's take a look at what happened."
+                    } : null,
                     returnHost: contextBody });
             } else if (this.#gamesPanel && contextBody) {
                 this.#gamesPanel.releasePhaseContent(contextBody);
