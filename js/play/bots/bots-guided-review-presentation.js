@@ -144,7 +144,7 @@
         sourceSection.append(sourceTitle, sourceNotation);
         const variationSection = element('section', 'caissa-bots-exploration__line', {
             'data-bots-exploration-variation-section': '' });
-        const variationTitle = element('h3', 'caissa-bots-exploration__line-title'); variationTitle.textContent = 'Temporary variation';
+        const variationTitle = element('h3', 'caissa-bots-exploration__line-title'); variationTitle.textContent = 'Analysis variation';
         const notation = element('div', 'caissa-bots-exploration__notation', { 'data-bots-exploration-notation': '',
             'aria-label': 'Temporary exploration notation', 'aria-live': 'polite' });
         variationSection.append(variationTitle, notation); body.append(sourceSection, variationSection);
