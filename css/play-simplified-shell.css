@@ -2177,6 +2177,53 @@ body.caissa-simplified-play-active .caissa-bots-panel {
     color: var(--play-theme-text, var(--text-primary));
 }
 
+/* Completed Bots review phases share the board owner's finite block size.
+   This gives the permanent Head / Body / Foot flex chain a real shrink
+   boundary, so notation grows the Body scroll area instead of the grid. */
+body.caissa-simplified-play-active:is(.caissa-bots-analysis-summary-active, .caissa-bots-guided-review-active)
+    .caissa-simplified-shell[data-mode="bots"][data-scroll-owner="panel"]
+    .caissa-simplified-shell__workspace {
+    grid-template-rows: max-content minmax(0, 1fr) auto auto;
+    block-size: var(--play-board-owner-size);
+    min-block-size: 0;
+}
+
+body.caissa-simplified-play-active:is(.caissa-bots-analysis-summary-active, .caissa-bots-guided-review-active)
+    .caissa-simplified-shell[data-mode="bots"]
+    :is(.caissa-simplified-shell__context, .caissa-simplified-shell__context-body) {
+    min-block-size: 0;
+    overflow: hidden;
+}
+
+body.caissa-simplified-play-active:is(.caissa-bots-analysis-summary-active, .caissa-bots-guided-review-active)
+    .caissa-simplified-shell[data-mode="bots"][data-scroll-owner="panel"] .caissa-simplified-shell__context {
+    block-size: 100%;
+    max-block-size: 100%;
+}
+
+body.caissa-simplified-play-active:is(.caissa-bots-analysis-summary-active, .caissa-bots-guided-review-active)
+    .caissa-simplified-shell[data-mode="bots"] .caissa-simplified-shell__context-body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+}
+
+body.caissa-simplified-play-active:is(.caissa-bots-analysis-summary-active, .caissa-bots-guided-review-active)
+    .caissa-simplified-shell[data-mode="bots"][data-scroll-owner="document"] .caissa-bots-panel {
+    block-size: min(var(--play-board-owner-size), calc(var(--play-visual-viewport-height) - var(--shell-inline-pad) - var(--shell-inline-pad)));
+    max-block-size: calc(var(--play-visual-viewport-height) - var(--shell-inline-pad) - var(--shell-inline-pad));
+}
+
+body.caissa-simplified-play-active:is(.caissa-bots-analysis-summary-active, .caissa-bots-guided-review-active)
+    .caissa-simplified-shell[data-mode="bots"] .caissa-bots-panel {
+    overflow: hidden;
+}
+
+body.caissa-simplified-play-active:is(.caissa-bots-analysis-summary-active, .caissa-bots-guided-review-active)
+    .caissa-simplified-shell[data-mode="bots"][data-scroll-owner="panel"] .caissa-bots-panel {
+    flex: 1 1 0;
+}
+
 body.caissa-simplified-play-active .caissa-bots-panel [hidden] { display: none !important; }
 
 body.caissa-simplified-play-active .caissa-bots-panel__head {

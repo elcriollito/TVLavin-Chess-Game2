@@ -584,32 +584,72 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
     await shell.locator('[data-bots-guided-explain]').click();
     await expect(shell.locator('[data-bots-guided-detail]')).toBeVisible();
 
+    await shell.locator('[data-bots-guided-notation]').evaluate(notation => {
+        const seed = notation.querySelector('.caissa-bots-guided__notation-row');
+        for (let index = 0; seed && index < 36; index += 1) {
+            const row = seed.cloneNode(true); row.classList.add('caissa-containment-fixture');
+            row.querySelectorAll('button').forEach(button => {
+                button.removeAttribute('data-bots-guided-ply'); button.removeAttribute('aria-current'); button.tabIndex = -1;
+            });
+            notation.append(row);
+        }
+    });
+
     const guidedGeometry = [];
-    for (const viewport of [{ width: 1600, height: 1000 }, { width: 1366, height: 768 }, { width: 390, height: 844 }]) {
+    for (const sample of [
+        { width: 1778, height: 1111, label: '90-percent' },
+        { width: 1600, height: 1000, label: '100-percent' },
+        { width: 1455, height: 909, label: '110-percent' },
+        { width: 1280, height: 800, label: '125-percent' },
+        { width: 1366, height: 768, label: '1366x768' },
+        { width: 390, height: 844, label: 'mobile' }
+    ]) {
+        const viewport = { width: sample.width, height: sample.height };
         await page.setViewportSize(viewport); await shell.scrollIntoViewIfNeeded();
         const geometry = await shell.evaluate(node => {
             const rect = selector => node.querySelector(selector).getBoundingClientRect();
-            const head = rect(':scope > [data-caissa-bots-head]'); const body = rect(':scope > [data-caissa-bots-body]');
-            const foot = rect(':scope > [data-caissa-bots-foot]'); const before = [head.top, foot.top, foot.bottom];
-            node.querySelector(':scope > [data-caissa-bots-body]').scrollTop = 120;
+            const fixture = [...node.querySelectorAll('.caissa-containment-fixture')]; fixture.forEach(row => { row.hidden = true; });
+            const shortShell = node.getBoundingClientRect(); const shortBody = rect(':scope > [data-caissa-bots-body]');
+            const shortHead = rect(':scope > [data-caissa-bots-head]'); const shortFoot = rect(':scope > [data-caissa-bots-foot]');
+            fixture.forEach(row => { row.hidden = false; });
+            const head = rect(':scope > [data-caissa-bots-head]'); const bodyNode = node.querySelector(':scope > [data-caissa-bots-body]');
+            const body = bodyNode.getBoundingClientRect(); const foot = rect(':scope > [data-caissa-bots-foot]');
+            const before = [head.top, foot.top, foot.bottom]; bodyNode.scrollTop = 120;
             const afterHead = rect(':scope > [data-caissa-bots-head]');
             const afterFoot = rect(':scope > [data-caissa-bots-foot]');
             const after = [afterHead.top, afterFoot.top, afterFoot.bottom];
-            return { head: Math.round(head.height), body: Math.round(body.height), foot: Math.round(foot.height),
+            const boardStage = document.querySelector('.caissa-simplified-shell__board-stage').getBoundingClientRect();
+            const context = document.querySelector('.caissa-simplified-shell__context').getBoundingClientRect();
+            const playShell = node.closest('.caissa-simplified-shell');
+            return { layout: playShell.dataset.layout, scrollOwner: playShell.dataset.scrollOwner,
+                head: Math.round(head.height), body: Math.round(body.height), foot: Math.round(foot.height),
                 fixedDuringBodyScroll: before.every((value, index) => Math.abs(value - after[index]) <= 1),
                 anchored: Math.abs(foot.bottom - node.getBoundingClientRect().bottom) <= 1,
                 overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-                bodyOverflow: getComputedStyle(node.querySelector(':scope > [data-caissa-bots-body]')).overflowY,
+                bodyOverflow: getComputedStyle(bodyNode).overflowY, bodyClient: bodyNode.clientHeight,
+                bodyScroll: bodyNode.scrollHeight, scrollTop: bodyNode.scrollTop,
+                shellGrowth: Math.round((node.getBoundingClientRect().height - shortShell.height) * 100) / 100,
+                headGrowth: Math.round((head.height - shortHead.height) * 100) / 100,
+                footGrowth: Math.round((foot.height - shortFoot.height) * 100) / 100,
+                bodyGrowth: Math.round((body.height - shortBody.height) * 100) / 100,
+                bottomDelta: Math.round((context.bottom - boardStage.bottom) * 100) / 100,
+                frameBounds: { boardStage: [Math.round(boardStage.top), Math.round(boardStage.bottom), Math.round(boardStage.height)],
+                    context: [Math.round(context.top), Math.round(context.bottom), Math.round(context.height)] },
                 minTarget: Math.min(...[...node.querySelectorAll(':scope > [data-caissa-bots-foot] [data-bots-foot-content="guided-review"] button')]
                     .map(button => button.getBoundingClientRect().height)) };
         });
+        console.log(`BOTS_GUIDED_CONTAINMENT_SAMPLE ${sample.label} ${JSON.stringify(geometry)}`);
         expect(geometry).toMatchObject({ head: viewport.width === 390 ? 112 : 150,
-            fixedDuringBodyScroll: true, anchored: true, overflow: 0, bodyOverflow: 'auto' });
+            fixedDuringBodyScroll: true, anchored: true, overflow: 0, bodyOverflow: 'auto',
+            shellGrowth: 0, headGrowth: 0, footGrowth: 0, bodyGrowth: 0 });
+        expect(geometry.bodyScroll).toBeGreaterThan(geometry.bodyClient); expect(geometry.scrollTop).toBeGreaterThan(0);
+        if (viewport.width !== 390) expect(Math.abs(geometry.bottomDelta)).toBeLessThanOrEqual(24);
         expect(geometry.minTarget).toBeGreaterThanOrEqual(44); guidedGeometry.push({ viewport: `${viewport.width}x${viewport.height}`, ...geometry });
         await shell.locator(':scope > [data-caissa-bots-body]').evaluate(node => { node.scrollTop = 0; });
         await page.evaluate(() => window.scrollTo(0, 0));
-        if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-guided-review-desktop.png', fullPage: true });
-        if (viewport.width === 390) await page.screenshot({ path: 'test-results/play-bots-guided-review-mobile.png', fullPage: true });
+        if (sample.label === '90-percent') await page.screenshot({ path: 'test-results/play-bots-guided-review-long-zoom-90.png', fullPage: true });
+        if (sample.label === '100-percent') await page.screenshot({ path: 'test-results/play-bots-guided-review-long-zoom-100.png', fullPage: true });
+        if (sample.label === 'mobile') await page.screenshot({ path: 'test-results/play-bots-guided-review-long-mobile.png', fullPage: true });
     }
     console.log(`BOTS_GUIDED_REVIEW_GEOMETRY ${JSON.stringify(guidedGeometry)}`);
 
@@ -641,6 +681,22 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
     expect(await page.evaluate(() => window.App.boardAdapter.getSnapshot().orientation)).toBe(entry.orientation);
     await expect(page.locator('#chessboard [data-caissa-coach-move-annotation]')).toHaveCount(0);
     await page.screenshot({ path: 'test-results/play-bots-analysis-exploration-engine-on.png', fullPage: true });
+    await shell.locator('[data-bots-exploration-source]').evaluate(notation => {
+        const seed = notation.querySelector('.caissa-bots-exploration__notation-row');
+        for (let index = 0; seed && index < 36; index += 1) {
+            const row = seed.cloneNode(true); row.classList.add('caissa-source-only-containment-fixture');
+            row.querySelectorAll('button').forEach(button => {
+                button.removeAttribute('data-bots-exploration-source-cursor'); button.removeAttribute('aria-current'); button.tabIndex = -1;
+            });
+            notation.append(row);
+        }
+    });
+    const sourceOnlyOverflow = await shell.locator(':scope > [data-caissa-bots-body]').evaluate(node => ({
+        client: node.clientHeight, scroll: node.scrollHeight
+    }));
+    expect(sourceOnlyOverflow.scroll).toBeGreaterThan(sourceOnlyOverflow.client);
+    await page.screenshot({ path: 'test-results/play-bots-study-long-source-only.png', fullPage: true });
+    await shell.locator('.caissa-source-only-containment-fixture').evaluateAll(rows => rows.forEach(row => row.remove()));
 
     const assertSourcePosition = async cursor => {
         const proof = await page.evaluate(target => {
@@ -723,35 +779,86 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
     await shell.locator('[data-bots-exploration-engine]').click();
     await expect(shell.locator('[data-bots-exploration-engine]')).toHaveAttribute('aria-pressed', 'true');
 
+    await shell.locator('[data-bots-exploration-source]').evaluate(notation => {
+        const seed = notation.querySelector('.caissa-bots-exploration__notation-row');
+        for (let index = 0; seed && index < 36; index += 1) {
+            const row = seed.cloneNode(true); row.classList.add('caissa-containment-fixture');
+            row.querySelectorAll('button').forEach(button => {
+                button.removeAttribute('data-bots-exploration-source-cursor'); button.removeAttribute('aria-current'); button.tabIndex = -1;
+            });
+            notation.append(row);
+        }
+    });
+
     const explorationGeometry = [];
     for (const viewport of [{ width: 1600, height: 1000 }, { width: 1366, height: 768 }, { width: 390, height: 844 }]) {
         await page.setViewportSize(viewport); await shell.scrollIntoViewIfNeeded();
         const geometry = await shell.evaluate(node => {
             const rect = selector => node.querySelector(selector).getBoundingClientRect();
+            const fixture = [...node.querySelectorAll('.caissa-containment-fixture')]; fixture.forEach(row => { row.hidden = true; });
+            const shortShell = node.getBoundingClientRect(); fixture.forEach(row => { row.hidden = false; });
             const head = rect(':scope > [data-caissa-bots-head]'); const bodyNode = node.querySelector(':scope > [data-caissa-bots-body]');
             const body = bodyNode.getBoundingClientRect(); const foot = rect(':scope > [data-caissa-bots-foot]');
             const before = [head.top, foot.top, foot.bottom]; bodyNode.scrollTop = 120;
             const afterHead = rect(':scope > [data-caissa-bots-head]'); const afterFoot = rect(':scope > [data-caissa-bots-foot]');
+            const boardStage = document.querySelector('.caissa-simplified-shell__board-stage').getBoundingClientRect();
+            const context = document.querySelector('.caissa-simplified-shell__context').getBoundingClientRect();
             return { head: Math.round(head.height), body: Math.round(body.height), foot: Math.round(foot.height),
                 fixed: before.every((value, index) => Math.abs(value - [afterHead.top, afterFoot.top, afterFoot.bottom][index]) <= 1),
                 anchored: Math.abs(foot.bottom - node.getBoundingClientRect().bottom) <= 1,
                 overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-                bodyOverflow: getComputedStyle(bodyNode).overflowY,
+                bodyOverflow: getComputedStyle(bodyNode).overflowY, bodyClient: bodyNode.clientHeight,
+                bodyScroll: bodyNode.scrollHeight, scrollTop: bodyNode.scrollTop,
+                shellGrowth: Math.round((node.getBoundingClientRect().height - shortShell.height) * 100) / 100,
+                bottomDelta: Math.round((context.bottom - boardStage.bottom) * 100) / 100,
+                frameBounds: { boardStage: [Math.round(boardStage.top), Math.round(boardStage.bottom), Math.round(boardStage.height)],
+                    context: [Math.round(context.top), Math.round(context.bottom), Math.round(context.height)] },
                 minTarget: Math.min(...[...node.querySelectorAll('[data-bots-foot-content="analysis-exploration"] button')]
                     .map(button => button.getBoundingClientRect().height)) };
         });
         expect(geometry).toMatchObject({ head: viewport.width === 390 ? 112 : 150, fixed: true,
-            anchored: true, overflow: 0, bodyOverflow: 'auto' });
+            anchored: true, overflow: 0, bodyOverflow: 'auto', shellGrowth: 0 });
+        expect(geometry.bodyScroll).toBeGreaterThan(geometry.bodyClient); expect(geometry.scrollTop).toBeGreaterThan(0);
+        if (viewport.width !== 390) expect(Math.abs(geometry.bottomDelta)).toBeLessThanOrEqual(24);
         expect(geometry.minTarget).toBeGreaterThanOrEqual(44); explorationGeometry.push({ viewport: `${viewport.width}x${viewport.height}`, ...geometry });
         await shell.locator(':scope > [data-caissa-bots-body]').evaluate(node => { node.scrollTop = 0; });
         await page.evaluate(() => window.scrollTo(0, 0));
-        if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-analysis-exploration-desktop.png', fullPage: true });
+        if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-study-long-with-variation.png', fullPage: true });
         if (viewport.width === 390) {
             await page.screenshot({ path: 'test-results/play-bots-analysis-exploration-mobile.png', fullPage: true });
             await page.screenshot({ path: 'test-results/play-bots-study-annotations-mobile.png', fullPage: true });
         }
     }
     console.log(`BOTS_ANALYSIS_EXPLORATION_GEOMETRY ${JSON.stringify(explorationGeometry)}`);
+
+    const mentorGeometry = [];
+    const reviewFrame = () => shell.evaluate(node => {
+        const round = value => Math.round(value * 100) / 100;
+        const box = selector => node.querySelector(selector).getBoundingClientRect();
+        const shellBox = node.getBoundingClientRect(); const head = box(':scope > [data-caissa-bots-head]');
+        const bodyNode = node.querySelector(':scope > [data-caissa-bots-body]'); const body = bodyNode.getBoundingClientRect();
+        const foot = box(':scope > [data-caissa-bots-foot]');
+        return { shell: [round(shellBox.x), round(shellBox.y), round(shellBox.width), round(shellBox.height)],
+            head: [round(head.y), round(head.height)], body: [round(body.y), round(body.height)],
+            foot: [round(foot.y), round(foot.height)], bodyScroll: [bodyNode.clientHeight, bodyNode.scrollHeight],
+            overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+    });
+    const mentor = page.locator('[data-caissa-mentor-shell]');
+    for (const viewport of [{ width: 1600, height: 1000 }, { width: 1366, height: 768 }, { width: 390, height: 844 }]) {
+        await page.setViewportSize(viewport); await shell.scrollIntoViewIfNeeded(); await page.evaluate(() => window.scrollTo(0, 0));
+        const closed = await reviewFrame();
+        expect(closed.bodyScroll[1]).toBeGreaterThan(closed.bodyScroll[0]); expect(closed.overflow).toBe(0);
+        await page.locator('[data-caissa-mentor-launcher]').click(); await expect(mentor).toBeVisible();
+        const open = await reviewFrame(); expect(open).toEqual(closed);
+        if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-study-long-mentor-open.png', fullPage: true });
+        await mentor.getByRole('button', { name: 'Minimize CAISSA Mentor' }).click(); await expect(mentor).toBeHidden();
+        const minimized = await reviewFrame(); expect(minimized).toEqual(closed);
+        if (viewport.width === 390) await page.screenshot({ path: 'test-results/play-bots-study-long-mentor-minimized-mobile.png', fullPage: true });
+        await page.locator('[data-caissa-mentor-launcher]').click(); await expect(mentor).toBeVisible();
+        await mentor.getByRole('button', { name: 'Close CAISSA Mentor' }).click(); await expect(mentor).toBeHidden();
+        mentorGeometry.push({ viewport: `${viewport.width}x${viewport.height}`, closed, open, minimized });
+    }
+    console.log(`BOTS_LONG_REVIEW_MENTOR_EQUIVALENCE ${JSON.stringify(mentorGeometry)}`);
     const accessibility = await new AxeBuilder({ page }).include('[data-caissa-bots-shell]').analyze();
     expect(accessibility.violations.filter(item => ['critical', 'serious'].includes(item.impact))).toEqual([]);
     await shell.locator('[data-bots-exploration-back]').click();
@@ -889,12 +996,11 @@ test('Review with Mentor is an external observer with live Study FEN and zero bo
         return null;
     });
     await page.locator('[data-caissa-mentor-launcher]').click(); await expect(mentor).toBeVisible();
-    const from = page.locator(`#chessboard .square-${dragCandidate.from}`); const to = page.locator(`#chessboard .square-${dragCandidate.to}`);
+    const from = page.locator(`#chessboard .square-${dragCandidate.from} .piece-417db`);
+    const to = page.locator(`#chessboard .square-${dragCandidate.to}`);
     const beforeDrag = await page.evaluate(() => ({ fen: window.CaissaBotsAnalysisExploration.getFen(),
         board: window.App.boardAdapter.getPosition(), cursor: window.CaissaBotsAnalysisExploration.getSnapshot().temporaryCursor }));
-    const fromBox = await from.boundingBox(); const toBox = await to.boundingBox();
-    await page.mouse.move(fromBox.x + fromBox.width / 2, fromBox.y + fromBox.height / 2);
-    await page.mouse.down(); await page.mouse.move(toBox.x + toBox.width / 2, toBox.y + toBox.height / 2, { steps: 8 }); await page.mouse.up();
+    await from.dragTo(to);
     await expect.poll(() => page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot().temporaryCursor)).toBe(beforeDrag.cursor + 1);
     const afterDrag = await page.evaluate(() => ({ fen: window.CaissaBotsAnalysisExploration.getFen(),
         board: window.App.boardAdapter.getPosition() }));

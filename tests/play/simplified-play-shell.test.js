@@ -142,3 +142,10 @@ test('Settings uses internal buttons, closes without navigation, and restores fo
 test('Coach annotation badge is anchored to the destination square top-right corner', () => {
     assert.match(css, /#chessboard \.caissa-coach-move-annotation\s*\{[\s\S]*top:\s*5%;[\s\S]*right:\s*5%;[\s\S]*bottom:\s*auto/);
 });
+
+test('Bots review phases bind the three-wrap shell to a finite board-owned block size', () => {
+    assert.match(css, /caissa-bots-analysis-summary-active[\s\S]*caissa-bots-guided-review-active[\s\S]*data-scroll-owner="panel"[\s\S]*block-size:\s*var\(--play-board-owner-size\)/);
+    assert.match(css, /data-scroll-owner="document"[\s\S]*\.caissa-bots-panel[\s\S]*block-size:\s*min\(var\(--play-board-owner-size\)/);
+    assert.match(css, /caissa-simplified-shell__context[\s\S]*caissa-simplified-shell__context-body[\s\S]*min-block-size:\s*0[\s\S]*overflow:\s*hidden/);
+    assert.match(css, /\.caissa-bots-panel__body[\s\S]*flex:\s*1 1 auto[\s\S]*min-height:\s*0[\s\S]*overflow-y:\s*auto/);
+});
