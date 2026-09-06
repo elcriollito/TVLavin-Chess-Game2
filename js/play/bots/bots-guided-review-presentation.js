@@ -1,7 +1,7 @@
 (function installBotsGuidedReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.5.0';
+    const SCHEMA_VERSION = '1.6.0';
     const REVIEW_WORTHY = Object.freeze(['Inaccuracy', 'Mistake', 'Blunder']);
     let mounted = null;
     let mentorStudyRequested = false;
@@ -17,6 +17,8 @@
         return root.CaissaAnalyzeReviewPolicy?.presentationSymbol?.(item.quality)
             || (typeof item.annotation === 'string' && item.annotation !== '-' ? item.annotation : '');
     };
+    const isGamesProduct = options => options?.product === 'games';
+    const panelFor = product => product === 'games' ? root.CaissaGamesPanelInstance : root.CaissaBotsPanelInstance;
 
     function formatEvaluation(item) {
         if (Number.isFinite(item?.mateAfter)) return item.mateAfter > 0 ? `M+${item.mateAfter}` : `M${item.mateAfter}`;
@@ -216,10 +218,11 @@
         if (rail.getSnapshot?.().displayMode !== 'post-game') rail.setMode?.('post-game');
         const mate = beforeMove ? item?.mateBefore : item?.mateAfter;
         const evaluation = beforeMove ? item?.evalBefore : item?.evalAfter;
+        const source = mounted?.product === 'games' ? 'games-guided-review-ply' : 'bots-guided-review-ply';
         if (Number.isFinite(mate) && mate !== 0)
-            return rail.setMate?.(mate, { source: 'bots-guided-review-ply' })?.ok === true;
+            return rail.setMate?.(mate, { source })?.ok === true;
         if (Number.isFinite(evaluation))
-            return rail.setEvaluation?.(evaluation * 100, { source: 'bots-guided-review-ply' })?.ok === true;
+            return rail.setEvaluation?.(evaluation * 100, { source })?.ok === true;
         return false;
     }
 
@@ -244,6 +247,20 @@
     function navigate(index) {
         if (!mounted || !Number.isInteger(index)) return;
         mounted.explanationExpanded = false; mounted.analyze.jumpToMove(index); update();
+    }
+
+    function captureReviewState() {
+        if (!mounted) return null;
+        const projection = mounted.analyze.getCoachReviewProjection?.();
+        const rail = root.CaissaEvaluationRailInstance?.getSnapshot?.();
+        const board = root.App?.boardAdapter?.getSnapshot?.();
+        const model = createGuidedModel({ analyze: mounted.analyze, handoff: mounted.handoff });
+        return freeze({ currentMoveIndex: mounted.analyze.currentMoveIndex, fen: projection?.fen || null,
+            evaluationRail: freeze({ scoreCp: rail?.scoreCp ?? null, mate: rail?.mate ?? null,
+                whiteShare: rail?.whiteShare ?? null, accessibleLabel: rail?.accessibleLabel ?? null }),
+            lastMove: board?.lastMove ? freeze({ ...board.lastMove }) : null,
+            selectedNotation: model.index, classification: model.quality,
+            caissaExplanation: model.message });
     }
 
     function renderExplorationAnalysis(info = {}) {
@@ -354,9 +371,10 @@
         if (!mounted || mounted.phase !== 'guided-review') return;
         const anchor = mounted.analyze.currentMoveIndex; const projection = mounted.analyze.getCoachReviewProjection?.();
         if (!Number.isInteger(anchor) || !projection?.fen) return;
+        mounted.entryReviewState = captureReviewState();
         mounted.phase = 'analysis-exploration'; mounted.entryReviewPly = anchor;
         mounted.mentorSharing = options.mentor === true;
-        const shown = root.CaissaBotsPanelInstance.present({ phase: 'analysis-exploration',
+        const shown = mounted.panel.present({ phase: 'analysis-exploration',
             head: mounted.exploration.head, content: mounted.exploration.body, foot: mounted.exploration.foot });
         if (!shown?.ok) { mounted.phase = 'guided-review'; return; }
         root.document.querySelectorAll('#chessboard [data-caissa-coach-move-annotation]').forEach(node => node.remove());
@@ -365,9 +383,14 @@
             sourceMoves: mounted.analyze.getLoadedMoves?.({ verbose: true }) || [], sourceCursor: anchor + 1,
             analyze: mounted.analyze,
             entryReviewPly: anchor, onPosition: renderExplorationPosition, onAnalysis: renderExplorationAnalysis,
+            temporaryOwner: mounted.product === 'games'
+                ? 'CaissaGamesAnalysisExploration' : 'CaissaBotsAnalysisExploration',
+            bodyClass: mounted.product === 'games'
+                ? 'caissa-games-analysis-exploration-active' : 'caissa-bots-analysis-exploration-active',
+            teardownReason: `${mounted.product}-analysis-exploration-exit`,
             restore: () => mounted?.analyze?.jumpToMove?.(anchor) });
         if (!entered?.ok) { mounted.phase = 'guided-review';
-            root.CaissaBotsPanelInstance.present({ phase: 'guided-review', head: mounted.ui.head,
+            mounted.panel.present({ phase: 'guided-review', head: mounted.ui.head,
                 content: mounted.ui.body, foot: mounted.ui.foot }); update(); return; }
         syncExplorationEngine(); renderExplorationPosition();
         if (mounted.mentorSharing && syncMentorContext()) root.CaissaMentorFloatingShell?.open?.();
@@ -378,25 +401,34 @@
         if (!mounted || mounted.phase !== 'analysis-exploration') return;
         const anchor = mounted.entryReviewPly; stopMentorSharing(); root.CaissaBotsAnalysisExploration?.leave?.();
         mounted.phase = 'guided-review'; mounted.entryReviewPly = null;
-        root.CaissaBotsPanelInstance.present({ phase: 'guided-review', head: mounted.ui.head,
+        mounted.panel.present({ phase: 'guided-review', head: mounted.ui.head,
             content: mounted.ui.body, foot: mounted.ui.foot });
-        mounted.analyze.jumpToMove(anchor); update(); mounted.ui.analysis.focus?.();
+        mounted.analyze.jumpToMove(anchor); update();
+        const restored = captureReviewState();
+        mounted.lastRestoration = freeze({ before: mounted.entryReviewState, after: restored,
+            exact: JSON.stringify(mounted.entryReviewState) === JSON.stringify(restored) });
+        mounted.entryReviewState = null; mounted.ui.analysis.focus?.();
     }
 
     function enter(options = {}) {
         if (mounted) return result(true, 'unchanged', 'ALREADY_MOUNTED', getSnapshot());
-        if (root.CaissaBotsReviewContext?.isBotsReview?.(options.context) !== true
-            || options.analyze?.analysisPhase !== 'complete' || !root.CaissaBotsPanelInstance?.present)
-            return result(false, 'rejected', 'INVALID_BOTS_GUIDED_REVIEW_EVIDENCE');
+        const product = isGamesProduct(options) ? 'games' : 'bots';
+        const contextValid = product === 'games'
+            ? root.CaissaGamesReviewContext?.isGamesReview?.(options.context) === true
+            : root.CaissaBotsReviewContext?.isBotsReview?.(options.context) === true;
+        const panel = panelFor(product);
+        if (!contextValid || options.analyze?.analysisPhase !== 'complete' || !panel?.present)
+            return result(false, 'rejected', `INVALID_${product.toUpperCase()}_GUIDED_REVIEW_EVIDENCE`);
         const ui = createStructure(); const exploration = createExplorationStructure();
-        const shown = root.CaissaBotsPanelInstance.present({ phase: 'guided-review', head: ui.head,
+        const shown = panel.present({ phase: 'guided-review', head: ui.head,
             content: ui.body, foot: ui.foot });
-        if (!shown?.ok) return result(false, 'rejected', 'BOTS_SHELL_UNAVAILABLE');
+        if (!shown?.ok) return result(false, 'rejected', `${product.toUpperCase()}_SHELL_UNAVAILABLE`);
         mounted = { context: options.context, handoff: options.handoff, analyze: options.analyze, ui, exploration,
             model: null, explanationExpanded: false, pgn: options.handoff?.payload?.pgn || null,
             history: freeze([...(options.analyze.getLoadedMoves?.() || [])]), phase: 'guided-review', entryReviewPly: null,
-            mentorSharing: false, explorationAnalysis: null };
-        root.document.body.classList.add('caissa-bots-guided-review-active');
+            mentorSharing: false, explorationAnalysis: null, product, panel,
+            entryReviewState: null, lastRestoration: null };
+        root.document.body.classList.add(`caissa-${product}-guided-review-active`);
         ui.explain.addEventListener('click', () => { if (!mounted) return;
             mounted.explanationExpanded = !mounted.explanationExpanded; update(); });
         ui.nextMoment.addEventListener('click', () => { const target = findNextReviewMoment(mounted?.analyze);
@@ -431,11 +463,11 @@
             const enabled = root.CaissaBotsAnalysisExploration?.getSnapshot?.().engineEnabled === true;
             root.CaissaBotsAnalysisExploration?.setEngineEnabled?.(!enabled); syncExplorationEngine();
         });
-        root.addEventListener('caissa:bots-review-ply-change', update);
+        root.addEventListener(`caissa:${product}-review-ply-change`, update);
         root.addEventListener('caissa:mentor-context-cleared', handleMentorContextCleared);
         options.analyze.jumpToMove(0); update();
         if (options.mentorStudy === true) enterExploration({ mentor: true }); else ui.explain.focus?.();
-        return result(true, 'accepted', 'BOTS_GUIDED_REVIEW_MOUNTED', getSnapshot());
+        return result(true, 'accepted', `${product.toUpperCase()}_GUIDED_REVIEW_MOUNTED`, getSnapshot());
     }
 
     function requestMentorStudy() {
@@ -453,20 +485,24 @@
 
     function unmount() {
         if (!mounted) return result(true, 'unchanged', 'ALREADY_UNMOUNTED');
+        const product = mounted.product;
         stopMentorSharing();
         if (mounted.phase === 'analysis-exploration') root.CaissaBotsAnalysisExploration?.leave?.();
-        root.removeEventListener('caissa:bots-review-ply-change', update);
+        root.removeEventListener(`caissa:${product}-review-ply-change`, update);
         root.removeEventListener('caissa:mentor-context-cleared', handleMentorContextCleared);
         mounted.ui.head.remove(); mounted.ui.body.remove(); mounted.ui.foot.remove();
-        root.document.body.classList.remove('caissa-bots-guided-review-active'); mounted = null;
-        return result(true, 'accepted', 'BOTS_GUIDED_REVIEW_UNMOUNTED');
+        root.document.body.classList.remove(`caissa-${product}-guided-review-active`); mounted = null;
+        return result(true, 'accepted', `${product.toUpperCase()}_GUIDED_REVIEW_UNMOUNTED`);
     }
 
     function getSnapshot() {
         return freeze({ schemaVersion: SCHEMA_VERSION, mounted: !!mounted, phase: mounted?.phase || null,
+            product: mounted?.product || null,
             currentMoveIndex: mounted?.analyze?.currentMoveIndex ?? null,
             reviewPlyOwner: 'AnalyzeSection.currentMoveIndex', analysisResultsOwner: 'AnalyzeSection.analysisResults',
             moveHistoryOwner: 'AnalyzeSection loaded handoff', entryReviewPly: mounted?.entryReviewPly ?? null,
+            entryReviewState: mounted?.entryReviewState || null,
+            lastRestoration: mounted?.lastRestoration || null,
             mentorActive: mounted?.mentorSharing === true, mentorStudyRequested,
             exploration: root.CaissaBotsAnalysisExploration?.getSnapshot?.() || null,
             reviewMoments: mounted ? findReviewMoments(mounted.analyze) : [] });
@@ -476,4 +512,8 @@
         reviewWorthyClassifications: REVIEW_WORTHY, findReviewMoments, findNextReviewMoment,
         createGuidedModel, presentationAnnotation, requestMentorStudy, cancelMentorStudyRequest,
         hasMentorStudyRequest: () => mentorStudyRequested, enterMentorStudy, enter, unmount, getSnapshot });
+    root.CaissaGamesGuidedReviewPresentation = freeze({ schemaVersion: SCHEMA_VERSION,
+        reviewWorthyClassifications: REVIEW_WORTHY, findReviewMoments, findNextReviewMoment,
+        createGuidedModel, presentationAnnotation,
+        enter: options => enter({ ...options, product: 'games' }), unmount, getSnapshot });
 })(typeof window !== 'undefined' ? window : globalThis);

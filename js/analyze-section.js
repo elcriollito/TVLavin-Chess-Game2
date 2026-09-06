@@ -871,7 +871,9 @@ const AnalyzeSection = {
         const selected = this.analysisPhase === 'complete' ? this.analysisResults[safeIndex] : null;
         const coachReviewActive = document.body?.classList?.contains('caissa-coach-review-summary-active');
         const botsReviewActive = document.body?.classList?.contains('caissa-bots-guided-review-active');
-        if (!coachReviewActive && !botsReviewActive && selected && ['Inaccuracy', 'Mistake', 'Blunder'].includes(selected.quality)) {
+        const gamesReviewActive = document.body?.classList?.contains('caissa-games-guided-review-active');
+        if (!coachReviewActive && !botsReviewActive && !gamesReviewActive
+            && selected && ['Inaccuracy', 'Mistake', 'Blunder'].includes(selected.quality)) {
             this.board?.position?.(selected.fenBefore, false);
         }
         this.projectCoachReviewBoardAssistance();
@@ -886,13 +888,19 @@ const AnalyzeSection = {
                 detail: Object.freeze({ currentMoveIndex: this.currentMoveIndex })
             }));
         }
+        if (gamesReviewActive) {
+            window.dispatchEvent(new CustomEvent('caissa:games-review-ply-change', {
+                detail: Object.freeze({ currentMoveIndex: this.currentMoveIndex })
+            }));
+        }
 
         console.log('[Analyze] Jumped to move:', safeIndex + 1);
     },
 
     projectCoachReviewBoardAssistance() {
         if (!document.body?.classList?.contains('caissa-coach-review-summary-active')
-            && !document.body?.classList?.contains('caissa-bots-guided-review-active')) return false;
+            && !document.body?.classList?.contains('caissa-bots-guided-review-active')
+            && !document.body?.classList?.contains('caissa-games-guided-review-active')) return false;
         const projection = this.getCoachReviewProjection();
         if (!projection) return false;
         return window.App?.projectCoachReviewBoardAssistance?.({

@@ -145,6 +145,8 @@
                 analysisOwner: 'AnalyzeSection'
             }) }));
             ui.live.textContent = 'Guided Review handoff is ready.';
+            root.CaissaGamesGuidedReviewPresentation?.enter?.({ context: mounted.context,
+                handoff: mounted.handoff, analyze: mounted.analyze });
         });
         render({ phase: 'loading', progress: 0, progressText: 'Preparing your review' });
         return result(true, 'accepted', 'GAMES_ANALYSIS_MOUNTED', getSnapshot());
@@ -165,6 +167,7 @@
 
     function unmount() {
         if (!mounted) return result(true, 'unchanged', 'ALREADY_UNMOUNTED');
+        root.CaissaGamesGuidedReviewPresentation?.unmount?.();
         if (mounted.timer) root.clearInterval(mounted.timer);
         mounted.ui.body.remove(); mounted.ui.foot.remove();
         root.document.body.classList.remove('caissa-games-analysis-active'); mounted = null;

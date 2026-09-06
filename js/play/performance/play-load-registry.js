@@ -21,8 +21,8 @@
                 'js/play/bots/bots-review-context.js?v=1.0.0',
                 'js/play/bots-panel.js?v=2.10.0',
                 'js/play/bots/bots-analysis-summary-presentation.js?v=1.4.0',
-                'js/play/bots/bots-analysis-exploration.js?v=1.0.0',
-                'js/play/bots/bots-guided-review-presentation.js?v=1.5.1'
+                'js/play/bots/bots-analysis-exploration.js?v=1.2.0',
+                'js/play/bots/bots-guided-review-presentation.js?v=1.6.0'
             ])
         }),
         'coach-stack': Object.freeze({
@@ -142,10 +142,15 @@
             qaOnly: false, productionEligible: true, dependencies: Object.freeze([]),
             sources: Object.freeze(boundary ? [
                 'js/analyze-session.js?v=1.0.0', 'js/play/analyze-opening-evidence.js?v=1.0.0',
-                'js/play/analyze-review-policy-v1-1.js?v=1.1.1', 'js/analyze-section.js?v=1.4.0'
+                'js/play/analyze-review-policy-v1-1.js?v=1.1.1',
+                'js/play/bots/bots-analysis-exploration.js?v=1.2.0',
+                'js/play/bots/bots-guided-review-presentation.js?v=1.6.0',
+                'js/analyze-section.js?v=1.5.0'
             ] : [
                 'js/analyze-session.js?v=1.0.0', 'js/play/analyze-review-policy.js?v=1.0.1',
-                'js/analyze-section.js?v=1.4.0'
+                'js/play/bots/bots-analysis-exploration.js?v=1.2.0',
+                'js/play/bots/bots-guided-review-presentation.js?v=1.6.0',
+                'js/analyze-section.js?v=1.5.0'
             ])
         })
     });

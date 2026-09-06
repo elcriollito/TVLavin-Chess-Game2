@@ -1,7 +1,7 @@
 (function installBotsAnalysisExploration(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.1.0';
+    const SCHEMA_VERSION = '1.2.0';
     const ANALYSIS_DEPTH = 14;
     const freeze = value => Object.freeze(value);
     const result = (ok, status, reasonCode, value = null) => freeze({ ok, status, reasonCode, value });
@@ -21,7 +21,8 @@
             atLast: browsingTemporary ? temporaryCursor === count : sourceCursor === sourceCount,
             engineEnabled: active?.engineEnabled === true,
             engineRequests: active?.engineRequests || 0, entryReviewPly: active?.entryReviewPly ?? null,
-            reviewPlyOwner: 'AnalyzeSection.currentMoveIndex', temporaryOwner: 'CaissaBotsAnalysisExploration' });
+            reviewPlyOwner: 'AnalyzeSection.currentMoveIndex',
+            temporaryOwner: active?.temporaryOwner || 'CaissaBotsAnalysisExploration' });
     }
 
     function currentMove() {
@@ -105,8 +106,11 @@
                 moves: [], positions: [source.positions[sourceCursor]], temporaryCursor: 0, branchSourceCursor: null,
                 engineEnabled: false, engineRequests: 0, entryReviewPly: options.entryReviewPly,
                 analyze: options.analyze, onPosition: options.onPosition, onAnalysis: options.onAnalysis,
-                restore: options.restore, lastAnalysis: freeze({ evaluation: null, mate: null, pv: freeze([]) }) };
-            root.document.body?.classList?.add('caissa-bots-analysis-exploration-active');
+                restore: options.restore, lastAnalysis: freeze({ evaluation: null, mate: null, pv: freeze([]) }),
+                temporaryOwner: options.temporaryOwner || 'CaissaBotsAnalysisExploration',
+                bodyClass: options.bodyClass || 'caissa-bots-analysis-exploration-active',
+                teardownReason: options.teardownReason || 'bots-analysis-exploration-exit' };
+            root.document.body?.classList?.add(active.bodyClass);
             root.App?.boardAdapter?.setInteractionEnabled?.(true);
             root.App?.boardAdapter?.clearSelection?.(); root.App?.boardAdapter?.clearLegalTargets?.();
             emitPosition(); setEngineEnabled(true);
@@ -117,8 +121,8 @@
     function leave() {
         if (!active) return result(true, 'unchanged', 'EXPLORATION_ALREADY_CLOSED');
         const state = active; engineToken += 1; state.analyze?.analysisEngine?.stopAnalysis?.();
-        state.analyze?.teardownAnalysisEngine?.('bots-analysis-exploration-exit'); active = null;
-        root.document.body?.classList?.remove('caissa-bots-analysis-exploration-active');
+        state.analyze?.teardownAnalysisEngine?.(state.teardownReason);
+        root.document.body?.classList?.remove(state.bodyClass); active = null;
         root.App?.boardAdapter?.setInteractionEnabled?.(false);
         root.App?.boardAdapter?.clearSelection?.(); root.App?.boardAdapter?.clearLegalTargets?.(); state.restore?.();
         return result(true, 'accepted', 'EXPLORATION_CLOSED', snapshot());

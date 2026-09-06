@@ -7,12 +7,29 @@ const source = fs.readFileSync(new URL('../../js/play/bots/bots-guided-review-pr
 const policySource = fs.readFileSync(new URL('../../js/play/analyze-review-policy-v1-1.js', import.meta.url), 'utf8');
 
 function load() {
-    const window = { document: {}, CaissaBotsReviewContext: { isBotsReview: value => value?.sourceMode === 'bots' } };
+    const window = { document: {},
+        CaissaBotsReviewContext: { isBotsReview: value => value?.sourceMode === 'bots' },
+        CaissaGamesReviewContext: { isGamesReview: value => value?.sourceMode === 'games' } };
     window.window = window; window.globalThis = window;
     const context = { window, globalThis: window, Object, Array, Number, String, Math };
     vm.runInNewContext(policySource, context); vm.runInNewContext(source, context);
     return window.CaissaBotsGuidedReviewPresentation;
 }
+
+test('Play Game reuses the certified Guided Review model and presenter contract', () => {
+    const window = { document: {},
+        CaissaBotsReviewContext: { isBotsReview: value => value?.sourceMode === 'bots' },
+        CaissaGamesReviewContext: { isGamesReview: value => value?.sourceMode === 'games' } };
+    window.window = window; window.globalThis = window;
+    const context = { window, globalThis: window, Object, Array, Number, String, Math };
+    vm.runInNewContext(policySource, context); vm.runInNewContext(source, context);
+    assert.equal(window.CaissaGamesGuidedReviewPresentation.createGuidedModel,
+        window.CaissaBotsGuidedReviewPresentation.createGuidedModel);
+    assert.equal(window.CaissaGamesGuidedReviewPresentation.findNextReviewMoment,
+        window.CaissaBotsGuidedReviewPresentation.findNextReviewMoment);
+    assert.equal(window.CaissaGamesGuidedReviewPresentation.presentationAnnotation,
+        window.CaissaBotsGuidedReviewPresentation.presentationAnnotation);
+});
 
 const results = [
     { moveIndex: 0, quality: 'Book', annotation: 'book', evalAfter: .2, bookEvidence: { name: 'English Opening' } },

@@ -5906,7 +5906,8 @@ function updateUI() {
 
 function projectCoachReviewBoardAssistance({ fen, move } = {}) {
     if (!document.body?.classList?.contains('caissa-coach-review-summary-active')
-        && !document.body?.classList?.contains('caissa-bots-guided-review-active')) return false;
+        && !document.body?.classList?.contains('caissa-bots-guided-review-active')
+        && !document.body?.classList?.contains('caissa-games-guided-review-active')) return false;
     if (fen) App.board?.position?.(fen, false);
     clearMobileTapSource();
     App.boardAdapter?.setLastMove(move?.from && move?.to ? { from: move.from, to: move.to } : null);

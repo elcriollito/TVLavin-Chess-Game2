@@ -384,15 +384,18 @@
                 this.#root.hidden = false;
                 const portrait = this.#root.querySelector('.caissa-games-panel__portrait');
                 if (portrait) {
-                    portrait.hidden = false;
-                    portrait.alt = 'Caissa, goddess of chess';
+                    const customHead = ['guided-review', 'analysis-exploration'].includes(this.#phase);
+                    portrait.hidden = customHead;
+                    portrait.alt = customHead ? '' : 'Caissa, goddess of chess';
                 }
             }
             return result(true, 'accepted', 'SHOWN', this.getSnapshot());
         }
         present(options = {}) {
             if (!this.#root || this.#disposed) return result(false, 'rejected', 'UNAVAILABLE');
-            const phase = ['active-game', 'game-over', 'analysis-review'].includes(options.phase) ? options.phase : 'setup';
+            const phase = ['active-game', 'game-over', 'analysis-review', 'guided-review', 'analysis-exploration']
+                .includes(options.phase) ? options.phase : 'setup';
+            const customHead = ['guided-review', 'analysis-exploration'].includes(phase);
             if (phase !== 'game-over') this.#restorePostGamePlacement();
             if (phase === 'setup') this.releasePhaseContent(options.returnHost);
             this.#phase = phase;
@@ -401,7 +404,19 @@
             const phaseLabel = this.#root.querySelector('[data-games-phase-label]');
             const description = this.#root.querySelector('.caissa-games-panel__description');
             const welcome = this.#root.querySelector('.caissa-games-panel__welcome');
-            if (welcome) welcome.hidden = phase === 'active-game';
+            const portrait = this.#root.querySelector('.caissa-games-panel__portrait');
+            if (welcome) welcome.hidden = phase === 'active-game' || customHead;
+            if (portrait) {
+                portrait.hidden = customHead;
+                portrait.alt = customHead ? '' : 'Caissa, goddess of chess';
+            }
+            this.#root.querySelectorAll('[data-games-phase-head]').forEach(item => { item.hidden = true; });
+            if (customHead && options.head?.nodeType === 1) {
+                options.head.setAttribute('data-games-phase-head', phase);
+                options.head.hidden = false;
+                const head = this.#root.querySelector('[data-caissa-games-head]');
+                if (options.head.parentNode !== head) head?.appendChild(options.head);
+            }
             if (title) title.textContent = phase === 'analysis-review' ? options.message?.title || 'Analyzing your game...'
                 : phase === 'game-over' ? 'Game Over'
                 : phase === 'active-game' ? 'Play Chess' : 'Welcome to Play';

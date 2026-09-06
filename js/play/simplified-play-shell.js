@@ -945,12 +945,16 @@
             const board = this.#root?.querySelector('#chessboard');
             if (!board) return;
             board.querySelectorAll('[data-caissa-coach-move-annotation]').forEach(node => node.remove());
-            if (global.document.body?.classList?.contains('caissa-bots-analysis-exploration-active')) return;
+            if (global.document.body?.classList?.contains('caissa-bots-analysis-exploration-active')
+                || global.document.body?.classList?.contains('caissa-games-analysis-exploration-active')) return;
             const guidedBots = this.#mode === 'bots'
                 && global.document.body?.classList?.contains('caissa-bots-guided-review-active');
-            if (this.#mode !== 'coach' && !guidedBots) return;
+            const guidedGames = this.#mode === 'games'
+                && global.document.body?.classList?.contains('caissa-games-guided-review-active');
+            if (this.#mode !== 'coach' && !guidedBots && !guidedGames) return;
             let current = null;
-            if (global.document.body?.classList?.contains('caissa-coach-review-summary-active') || guidedBots) {
+            if (global.document.body?.classList?.contains('caissa-coach-review-summary-active')
+                || guidedBots || guidedGames) {
                 const analyze = global.AnalyzeSection;
                 const index = Number.isInteger(analyze?.currentMoveIndex) ? analyze.currentMoveIndex : -1;
                 const result = index >= 0 && analyze?.analysisPhase === 'complete'

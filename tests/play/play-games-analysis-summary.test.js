@@ -64,10 +64,11 @@ test('progress is derived only from authoritative analyzed and total positions',
     });
 });
 
-test('Games presentation declares one AnalyzeSection owner and a handoff-only Review Game boundary', () => {
+test('Games presentation declares one AnalyzeSection owner and shared Guided Review handoff', () => {
     const source = read('js/play/games-analysis-summary-presentation.js');
     assert.match(source, /analysisOwner: 'AnalyzeSection'/);
     assert.match(source, /analysisResultsOwner: 'AnalyzeSection\.analysisResults'/);
     assert.match(source, /caissa:games-guided-review-request/);
+    assert.match(source, /CaissaGamesGuidedReviewPresentation\?\.enter/);
     assert.doesNotMatch(source, /Stockfish|new Worker|accuracy\s*\(/);
 });

@@ -168,7 +168,9 @@ test('Play Game transitions through authoritative progress and summary in one pe
         requests: window.CaissaGamesAnalysisSummaryPresentation.getSnapshot().reviewRequests,
         inlineOpen: window.CaissaPlayV2InlineAnalyze.isOpen() })))
         .toEqual({ events: 1, requests: 1, inlineOpen: true });
-    await expect(page.locator('[data-bots-guided-review], [data-coach-review-shell], [data-native-mentor-review]')).toHaveCount(0);
+    await expect(page.locator('.caissa-games-panel[data-games-phase="guided-review"] [data-bots-guided-review]')).toBeVisible();
+    await expect(page.locator('[data-coach-review-shell], [data-native-mentor-review]')).toHaveCount(0);
+    expect(await page.evaluate(() => window.CaissaGamesGuidedReviewPresentation.getSnapshot().product)).toBe('games');
     console.log(`PHASE004005_GEOMETRY ${JSON.stringify({ progress, summary })}`);
     runtime.assertClean();
 });

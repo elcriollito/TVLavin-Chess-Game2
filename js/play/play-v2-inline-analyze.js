@@ -135,7 +135,8 @@
                 : botsReview ? 'PLAY_BOTS_HOST_UNAVAILABLE' : 'PLAY_GAMES_HOST_UNAVAILABLE');
         openState = { section, playSection, closeButton, previous, copyObserver,
             reviewPresentation, viewport, scrollPosition, coachReview, botsReview, gamesReview, embeddedReview,
-            focusRoot: embeddedReview ? (phaseHost.closest?.('[data-caissa-coach-shell], [data-caissa-bots-shell]') || phaseHost) : section };
+            focusRoot: embeddedReview ? (phaseHost.closest?.(
+                '[data-caissa-coach-shell], [data-caissa-bots-shell], [data-caissa-games-panel]') || phaseHost) : section };
         if (!embeddedReview && playSection) {
             playSection.inert = true;
             playSection.setAttribute('aria-hidden', 'true');

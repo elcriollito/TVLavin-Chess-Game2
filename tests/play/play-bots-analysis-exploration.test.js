@@ -63,7 +63,8 @@ test('Bots presentation excludes technical engine internals and duplicate author
     const app = fs.readFileSync(new URL('../../app.js', import.meta.url), 'utf8');
     assert.doesNotMatch(presentation, />\s*(?:Depth|Nodes|Hash|Threads|NPS|MultiPV|Centipawn loss)\s*</i);
     assert.doesNotMatch(source + presentation, /botReviewIndex|reviewMoveIndex|App\.(?:moveHistory|game)\s*=/);
-    assert.match(source, /temporaryOwner: 'CaissaBotsAnalysisExploration'/);
+    assert.match(source, /temporaryOwner: active\?\.temporaryOwner \|\| 'CaissaBotsAnalysisExploration'/);
+    assert.match(source, /temporaryOwner: options\.temporaryOwner \|\| 'CaissaBotsAnalysisExploration'/);
     assert.match(presentation, /entryReviewPly: anchor/);
     assert.match(app, /context === 'bots-analysis-exploration'[\s\S]*CaissaBotsAnalysisExploration\.playMove/);
     assert.match(app, /function onSnapEnd\(\)[\s\S]*getActiveReviewExploration\(\)[\s\S]*exploration\.restoreBoard\(\)/);
@@ -113,4 +114,22 @@ test('completed game is a read-only study timeline and a branch keeps separate o
     assert.equal(window.App.moveHistory, authoritative.moveHistory);
     assert.equal(window.App.pgn, originalPgn); assert.equal(window.App.currentMoveIndex, 6);
     api.leave();
+});
+
+test('Play Game Study config reuses the certified temporary owner for capture and promotion', () => {
+    const { api, classes } = fixture();
+    const analyze = { ensureAnalysisEngine: async () => null, teardownAnalysisEngine() {} };
+    assert.equal(api.enter({ fen: 'r6k/8/8/8/8/8/8/R6K w - - 0 1', analyze, entryReviewPly: 4,
+        temporaryOwner: 'CaissaGamesAnalysisExploration', bodyClass: 'caissa-games-analysis-exploration-active',
+        teardownReason: 'games-analysis-exploration-exit' }).ok, true);
+    assert.equal(api.getSnapshot().temporaryOwner, 'CaissaGamesAnalysisExploration');
+    assert.equal(classes.has('caissa-games-analysis-exploration-active'), true);
+    assert.equal(api.playMove('a1', 'a8'), true);
+    api.leave();
+    assert.equal(classes.has('caissa-games-analysis-exploration-active'), false);
+
+    assert.equal(api.enter({ fen: '7k/P7/8/8/8/8/8/7K w - - 0 1', analyze, entryReviewPly: 4,
+        temporaryOwner: 'CaissaGamesAnalysisExploration', bodyClass: 'caissa-games-analysis-exploration-active' }).ok, true);
+    assert.equal(api.playMove('a7', 'a8', 'q'), true);
+    assert.equal(api.getLine()[0].promotion, 'q'); api.leave();
 });

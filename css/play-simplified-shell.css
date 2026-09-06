@@ -1748,6 +1748,10 @@ body.caissa-simplified-play-active .caissa-games-panel[hidden] {
     display: none;
 }
 
+body.caissa-simplified-play-active .caissa-games-panel [hidden] {
+    display: none !important;
+}
+
 body.caissa-simplified-play-active .caissa-games-panel__title {
     margin: 0;
     font-size: clamp(1.25rem, 1rem + .65vw, 1.7rem);
@@ -2639,6 +2643,49 @@ body.caissa-simplified-play-active .caissa-games-analysis__review {
 
 body.caissa-simplified-play-active .caissa-games-analysis__review:disabled { opacity: .42; cursor: not-allowed; }
 
+/* Guided Review and Study reuse the certified Bots presentation components
+   inside the permanent Games shell. The Games BODY remains the sole scroller. */
+body.caissa-simplified-play-active .caissa-games-panel:is(
+    [data-games-phase="guided-review"], [data-games-phase="analysis-exploration"])
+    .caissa-games-panel__head {
+    display: block;
+    min-height: 150px;
+    height: 150px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel:is(
+    [data-games-phase="guided-review"], [data-games-phase="analysis-exploration"]) {
+    --bot-accent: var(--games-gold);
+}
+
+body.caissa-simplified-play-active .caissa-games-panel:is(
+    [data-games-phase="guided-review"], [data-games-phase="analysis-exploration"])
+    .caissa-games-panel__head > [data-games-phase-head] {
+    width: 100%;
+    height: 100%;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel:is(
+    [data-games-phase="guided-review"], [data-games-phase="analysis-exploration"])
+    .caissa-games-panel__body {
+    overflow-y: auto;
+}
+
+body.caissa-simplified-play-active:is(.caissa-games-guided-review-active,
+    .caissa-games-analysis-exploration-active)
+    .caissa-simplified-shell__board-stage
+    > :is(.caissa-simplified-shell__board-actions, .caissa-simplified-shell__utility-bar) {
+    display: none !important;
+}
+
+body.caissa-simplified-play-active:is(.caissa-games-guided-review-active,
+    .caissa-games-analysis-exploration-active) [data-caissa-floating-controls] {
+    display: none !important;
+}
+
 @media (max-width: 420px) {
     body.caissa-simplified-play-active .caissa-games-panel[data-games-phase="analysis-review"]
         .caissa-games-panel__head { height: 112px; }
@@ -2649,6 +2696,12 @@ body.caissa-simplified-play-active .caissa-games-analysis__review:disabled { opa
     body.caissa-simplified-play-active .caissa-games-panel[data-games-phase="analysis-review"]
         .caissa-games-panel__description { font-size: .78rem; line-height: 1.25; }
     body.caissa-simplified-play-active .caissa-games-analysis__avatar { width: 50px; height: 50px; }
+    body.caissa-simplified-play-active .caissa-games-panel:is(
+        [data-games-phase="guided-review"], [data-games-phase="analysis-exploration"])
+        .caissa-games-panel__head {
+        min-height: 112px;
+        height: 112px;
+    }
     body.caissa-simplified-play-active .caissa-games-analysis__accuracy,
     body.caissa-simplified-play-active .caissa-games-analysis__row {
         grid-template-columns: minmax(48px, .75fr) minmax(112px, 1.4fr) minmax(48px, .75fr);
