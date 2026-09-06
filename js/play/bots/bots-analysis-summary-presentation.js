@@ -1,11 +1,9 @@
 (function installBotsAnalysisSummaryPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.1.0';
+    const SCHEMA_VERSION = '1.2.0';
     const QUALITY_ORDER = Object.freeze(['Book', 'Best', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const CLASSIFICATIONS = Object.freeze(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
-    const QUALITY_ICONS = Object.freeze({ Book: 'fa-book-open', Best: 'fa-star', Acceptable: 'fa-check',
-        Inaccuracy: 'fa-question', Mistake: 'fa-exclamation', Blunder: 'fa-bolt' });
     let mounted = null;
     const freeze = value => Object.freeze(value);
     const result = (ok, status, reasonCode, value = null) => freeze({ ok, status, reasonCode, value });
@@ -139,8 +137,10 @@
             const line = element('div', 'caissa-bots-analysis-summary__row', { role: 'row', 'data-quality': row.label });
             const label = element('span', 'caissa-bots-analysis-summary__quality', { role: 'rowheader' }); label.textContent = row.label;
             const player = element('strong', 'caissa-bots-analysis-summary__count', { role: 'cell', 'data-side': 'player' });
-            const icon = element('span', 'caissa-bots-analysis-summary__quality-icon', { 'aria-hidden': 'true' });
-            icon.append(element('i', `fas ${QUALITY_ICONS[row.label] || 'fa-circle'}`));
+            const icon = element('span', 'caissa-bots-analysis-summary__quality-icon', {
+                'aria-hidden': 'true', 'data-classification-symbol': ''
+            });
+            icon.textContent = root.CaissaAnalyzeReviewPolicy?.presentationSymbol?.(row.label) || '';
             const bot = element('strong', 'caissa-bots-analysis-summary__count', { role: 'cell', 'data-side': 'bot' });
             player.textContent = String(row.player); bot.textContent = String(row.bot); line.append(label, player, icon, bot);
             ui.table.append(line);

@@ -3,7 +3,6 @@
 
     const SCHEMA_VERSION = '1.5.0';
     const REVIEW_WORTHY = Object.freeze(['Inaccuracy', 'Mistake', 'Blunder']);
-    const REQUIRED_PRESENTATION_SYMBOLS = Object.freeze({ Mistake: '?', Blunder: '??' });
     let mounted = null;
     let mentorStudyRequested = false;
     const freeze = value => Object.freeze(value);
@@ -15,7 +14,7 @@
     };
     const presentationAnnotation = item => {
         if (!item || item.unavailable === true) return '';
-        return REQUIRED_PRESENTATION_SYMBOLS[item.quality]
+        return root.CaissaAnalyzeReviewPolicy?.presentationSymbol?.(item.quality)
             || (typeof item.annotation === 'string' && item.annotation !== '-' ? item.annotation : '');
     };
 

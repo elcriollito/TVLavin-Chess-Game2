@@ -406,7 +406,7 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
     await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
     await page.evaluate(() => window.__caissaPlayHarness.configure({
         resetSearchSequence: true,
-        scores: [300, 100, 400, 200, 0],
+        scores: [30, 40, 110, 190, -190],
         bestMoves: ['a1a1', 'a1a1', 'a1a1', 'a1a1', 'a1a1']
     }));
     await page.locator('[data-bots-primary-post-game-action]').click();
@@ -453,6 +453,10 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
         boardCount: 1, visibleCaissa: 1, visibleBot: 1,
         summary: { mounted: true, phase: 'summary', analysisStartRequests: 1,
             analysisOwner: 'AnalyzeSection', analysisResultsOwner: 'AnalyzeSection.analysisResults' } });
+    const summarySymbols = await page.evaluate(() => Object.fromEntries(
+        [...document.querySelectorAll('.caissa-bots-analysis-summary__row')].map(row => [row.dataset.quality,
+            row.querySelector('[data-classification-symbol]')?.textContent])));
+    expect(summarySymbols).toMatchObject({ Inaccuracy: '?!', Mistake: '?', Blunder: '??' });
 
     const measured = [];
     for (const viewport of [{ width: 1600, height: 1000 }, { width: 1366, height: 768 }, { width: 390, height: 844 }]) {
@@ -531,13 +535,14 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
         if (projection.expectedCp !== null) expect(projection.railCp).toBe(projection.expectedCp);
         expect(projection.railSource).toBe('bots-guided-review-ply');
     };
-    const symbolCases = await page.evaluate(() => ['Mistake', 'Blunder'].map(quality => {
+    const symbolCases = await page.evaluate(() => ['Inaccuracy', 'Mistake', 'Blunder'].map(quality => {
         const index = window.AnalyzeSection.analysisResults.findIndex(item => item?.quality === quality);
         const item = window.AnalyzeSection.analysisResults[index];
         return { quality, index, symbol: item?.annotation || null,
             move: window.AnalyzeSection.getLoadedMoves()[index] || null, side: index % 2 === 0 ? 'player' : 'bot' };
     }));
     expect(symbolCases).toEqual([
+        expect.objectContaining({ quality: 'Inaccuracy', index: expect.any(Number), symbol: '?!', move: expect.any(String) }),
         expect.objectContaining({ quality: 'Mistake', index: expect.any(Number), symbol: '?', move: expect.any(String) }),
         expect.objectContaining({ quality: 'Blunder', index: expect.any(Number), symbol: '??', move: expect.any(String) })
     ]);
@@ -550,6 +555,7 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
         await expect(shell.locator('.caissa-bots-guided__move')).toHaveText(`${item.move}${item.symbol}`);
         await expect(page.locator('#chessboard [data-caissa-coach-move-annotation]')).toHaveText(item.symbol);
     }
+    await shell.locator('[data-bots-guided-ply="0"]').click();
     await assertProjectedPly(0);
     await shell.getByRole('button', { name: 'Next move' }).click(); await assertProjectedPly(1);
     await shell.getByRole('button', { name: 'Previous move' }).click(); await assertProjectedPly(0);

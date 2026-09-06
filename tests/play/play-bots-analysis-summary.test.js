@@ -8,6 +8,9 @@ const read = path => fs.readFileSync(new URL(`../../${path}`, import.meta.url), 
 function load() {
     const window = {
         CaissaAnalyzeReviewPolicy: {
+            presentationSymbol(quality) {
+                return ({ Book: '📖', Best: '★', Acceptable: '✓', Inaccuracy: '?!', Mistake: '?', Blunder: '??' })[quality] || '';
+            },
             accuracy(results) {
                 if (!results.length) return { ok: false };
                 return { ok: true, value: Math.round(results.reduce((sum, item) => sum + item.score, 0) / results.length) };
@@ -66,4 +69,10 @@ test('summary reports progress from the existing AnalyzeSection owner', () => {
     assert.equal(modeled.value.phase, 'loading');
     assert.equal(modeled.value.progress, 40);
     assert.equal(window.CaissaBotsAnalysisSummaryPresentation.getSnapshot().analysisOwner, 'AnalyzeSection');
+});
+
+test('summary consumes the canonical analysis presentation mapper and owns no icon mapping', () => {
+    const source = read('js/play/bots/bots-analysis-summary-presentation.js');
+    assert.match(source, /CaissaAnalyzeReviewPolicy\?\.presentationSymbol/);
+    assert.doesNotMatch(source, /QUALITY_ICONS|fa-question|fa-exclamation|fa-bolt/);
 });

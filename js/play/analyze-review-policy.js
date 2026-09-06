@@ -3,6 +3,9 @@
     const VERSION = '1.0.0';
     const freeze = value => Object.freeze(value);
     const thresholds = freeze({ inaccuracyMinimum: 0.5, mistakeMinimum: 1, blunderMinimum: 2.5 });
+    const presentationSymbols = freeze({ Book: '📖', Best: '★', Precise: '!', Good: '✓', Acceptable: '✓',
+        Inaccuracy: '?!', Mistake: '?', Blunder: '??' });
+    const presentationSymbol = quality => presentationSymbols[quality] || '';
     function classify(input = {}) {
         const loss = input.loss;
         if (typeof loss !== 'number' || !Number.isFinite(loss) || loss < 0)
@@ -32,5 +35,6 @@
             || input.mateSwing === true || input.beforePlayerEval >= 1.5 && input.afterPlayerEval < 0.5);
     }
     root.CaissaAnalyzeReviewPolicy = freeze({ schemaVersion: VERSION, contractId: `AnalyzeReviewPolicy@${VERSION}`,
-        classifications: freeze(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']), thresholds, classify, accuracy, critical });
+        classifications: freeze(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']), presentationSymbols,
+        presentationSymbol, thresholds, classify, accuracy, critical });
 })(typeof window !== 'undefined' ? window : globalThis);

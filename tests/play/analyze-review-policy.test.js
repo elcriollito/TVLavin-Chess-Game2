@@ -8,6 +8,15 @@ test('policy is versioned and exposes only evidence-backed categories', () => {
     const p=load(); assert.equal(p.contractId,'AnalyzeReviewPolicy@1.1.0');
     assert.deepEqual([...p.classifications],['Book','Acceptable','Inaccuracy','Mistake','Blunder']);
 });
+test('policy owns the canonical classification presentation symbols', () => {
+    const p=load();
+    assert.deepEqual(Object.fromEntries(['Book','Best','Precise','Good','Inaccuracy','Mistake','Blunder']
+        .map(quality => [quality,p.presentationSymbol(quality)])), {
+        Book:'📖',Best:'★',Precise:'!',Good:'✓',Inaccuracy:'?!',Mistake:'?',Blunder:'??'
+    });
+    assert.equal(p.presentationSymbol('Acceptable'),'✓');
+    assert.equal(p.presentationSymbol('Unknown'),'');
+});
 test('loss thresholds and mate swing are deterministic', () => {
     const p=load();
     for(const [loss,quality] of [[0.49,'Acceptable'],[0.5,'Inaccuracy'],[0.99,'Inaccuracy'],[1,'Mistake'],[2.49,'Mistake'],[2.5,'Blunder']])

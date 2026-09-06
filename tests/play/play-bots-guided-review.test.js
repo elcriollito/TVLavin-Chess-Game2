@@ -4,11 +4,13 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const source = fs.readFileSync(new URL('../../js/play/bots/bots-guided-review-presentation.js', import.meta.url), 'utf8');
+const policySource = fs.readFileSync(new URL('../../js/play/analyze-review-policy-v1-1.js', import.meta.url), 'utf8');
 
 function load() {
     const window = { document: {}, CaissaBotsReviewContext: { isBotsReview: value => value?.sourceMode === 'bots' } };
     window.window = window; window.globalThis = window;
-    vm.runInNewContext(source, { window, globalThis: window, Object, Array, Number, String, Math });
+    const context = { window, globalThis: window, Object, Array, Number, String, Math };
+    vm.runInNewContext(policySource, context); vm.runInNewContext(source, context);
     return window.CaissaBotsGuidedReviewPresentation;
 }
 
@@ -52,7 +54,7 @@ test('Bots presentation normalizes Mistake and Blunder symbols without reclassif
     assert.equal(api.presentationAnnotation({ quality: 'Mistake', annotation: '!' }), '?');
     assert.equal(api.presentationAnnotation({ quality: 'Blunder', annotation: '!' }), '??');
     assert.equal(api.presentationAnnotation({ quality: 'Inaccuracy', annotation: '?!' }), '?!');
-    assert.equal(api.presentationAnnotation({ quality: 'Book', annotation: '' }), '');
+    assert.equal(api.presentationAnnotation({ quality: 'Book', annotation: '' }), '📖');
     assert.equal(api.presentationAnnotation({ quality: 'Mistake', annotation: '?', unavailable: true }), '');
 });
 
