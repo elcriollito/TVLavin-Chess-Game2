@@ -24,6 +24,7 @@ body.caissa-simplified-play-active {
     --play-theme-eval-positive: #f1f3f5;
     --play-theme-eval-negative: #17202b;
     --play-theme-board-stage: #111d29;
+    --caissa-board-label-text: light-dark(#211d18, #f4f7fb);
     --play-vc-space-1: .375rem;
     --play-vc-space-2: .625rem;
     --play-vc-space-3: 1rem;
@@ -114,6 +115,10 @@ body.caissa-simplified-play-active #playSection #evalScore {
     border-color: var(--play-theme-border);
     background: var(--play-theme-card);
     color: var(--play-theme-text);
+}
+
+body.caissa-simplified-play-active #playSection :is(#playerWhiteName, #playerBlackName) {
+    color: var(--caissa-board-label-text);
 }
 
 @media (forced-colors: active) {
