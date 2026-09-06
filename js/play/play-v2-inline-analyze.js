@@ -1,7 +1,7 @@
 (function installPlayV2InlineAnalyze(root) {
     'use strict';
 
-    const VERSION = '1.3.0';
+    const VERSION = '1.4.0';
     let openState = null;
     const freeze = value => Object.freeze(value);
     const result = (ok, status, reasonCode = null) => freeze({ ok, status, reasonCode });
@@ -122,15 +122,19 @@
         const scrollPosition = { x: root.scrollX, y: root.scrollY };
         const coachReview = root.CaissaCoachReviewContext?.isCoachReview?.(input.reviewContext) === true;
         const botsReview = root.CaissaBotsReviewContext?.isBotsReview?.(input.reviewContext) === true;
-        const embeddedReview = coachReview || botsReview;
+        const gamesReview = root.CaissaGamesReviewContext?.isGamesReview?.(input.reviewContext) === true;
+        const embeddedReview = gamesReview || coachReview || botsReview;
         const reviewPresentation = coachReview ? root.CaissaCoachReviewPresentation
-            : botsReview ? root.CaissaBotsAnalysisSummaryPresentation : null;
+            : botsReview ? root.CaissaBotsAnalysisSummaryPresentation
+                : gamesReview ? root.CaissaGamesAnalysisSummaryPresentation : null;
         const phaseHost = coachReview ? playSection?.querySelector?.('[data-caissa-coach-phase-host]')
-            : botsReview ? playSection?.querySelector?.('[data-caissa-bots-body]') : null;
+            : botsReview ? playSection?.querySelector?.('[data-caissa-bots-body]')
+                : gamesReview ? playSection?.querySelector?.('[data-caissa-games-body]') : null;
         if (embeddedReview && (!phaseHost || !reviewPresentation?.mount))
-            return result(false, 'unavailable', coachReview ? 'PLAY_COACH_HOST_UNAVAILABLE' : 'PLAY_BOTS_HOST_UNAVAILABLE');
+            return result(false, 'unavailable', coachReview ? 'PLAY_COACH_HOST_UNAVAILABLE'
+                : botsReview ? 'PLAY_BOTS_HOST_UNAVAILABLE' : 'PLAY_GAMES_HOST_UNAVAILABLE');
         openState = { section, playSection, closeButton, previous, copyObserver,
-            reviewPresentation, viewport, scrollPosition, coachReview, botsReview, embeddedReview,
+            reviewPresentation, viewport, scrollPosition, coachReview, botsReview, gamesReview, embeddedReview,
             focusRoot: embeddedReview ? (phaseHost.closest?.('[data-caissa-coach-shell], [data-caissa-bots-shell]') || phaseHost) : section };
         if (!embeddedReview && playSection) {
             playSection.inert = true;
@@ -146,7 +150,7 @@
                 section.classList.remove('caissa-play-v2-inline-analyze');
                 openState = null;
                 return result(false, 'unavailable', mounted?.reasonCode || (coachReview
-                    ? 'COACH_REVIEW_MOUNT_FAILED' : 'BOTS_REVIEW_MOUNT_FAILED'));
+                    ? 'COACH_REVIEW_MOUNT_FAILED' : botsReview ? 'BOTS_REVIEW_MOUNT_FAILED' : 'GAMES_REVIEW_MOUNT_FAILED'));
             }
         } else {
             section.prepend(closeButton);
@@ -168,7 +172,8 @@
         if (!embeddedReview) copyObserver.observe(section, { childList: true, subtree: true, characterData: true });
         closeButton.focus();
         return result(true, 'accepted', coachReview ? 'COACH_REVIEW_OPENED_IN_PLAY'
-            : botsReview ? 'BOTS_REVIEW_SUMMARY_OPENED_IN_PLAY' : 'ANALYZE_OPENED_INLINE');
+            : botsReview ? 'BOTS_REVIEW_SUMMARY_OPENED_IN_PLAY'
+                : gamesReview ? 'GAMES_REVIEW_SUMMARY_OPENED_IN_PLAY' : 'ANALYZE_OPENED_INLINE');
     }
 
     root.CaissaPlayV2InlineAnalyze = freeze({ schemaVersion: VERSION, open, close: restore,

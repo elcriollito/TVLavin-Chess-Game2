@@ -18,7 +18,8 @@ function load() {
         }
     };
     const context = vm.createContext({ window, globalThis: window, Object, Math, Number, String, CustomEvent: class {} });
-    for (const file of ['js/play/bots/bots-review-context.js', 'js/play/bots/bots-analysis-summary-presentation.js']) {
+    for (const file of ['js/play/analysis-summary-projection.js', 'js/play/bots/bots-review-context.js',
+        'js/play/bots/bots-analysis-summary-presentation.js']) {
         vm.runInContext(read(file), context, { filename: file });
     }
     return window;
@@ -71,8 +72,8 @@ test('summary reports progress from the existing AnalyzeSection owner', () => {
     assert.equal(window.CaissaBotsAnalysisSummaryPresentation.getSnapshot().analysisOwner, 'AnalyzeSection');
 });
 
-test('summary consumes the canonical analysis presentation mapper and owns no icon mapping', () => {
+test('summary consumes the shared authoritative projection and owns no icon mapping', () => {
     const source = read('js/play/bots/bots-analysis-summary-presentation.js');
-    assert.match(source, /CaissaAnalyzeReviewPolicy\?\.presentationSymbol/);
+    assert.match(source, /CaissaAnalysisSummaryProjection\?\.create/);
     assert.doesNotMatch(source, /QUALITY_ICONS|fa-question|fa-exclamation|fa-bolt/);
 });

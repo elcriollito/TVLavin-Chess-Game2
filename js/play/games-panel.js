@@ -1,8 +1,8 @@
 (function installGamesPanel(global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.8.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.8.0';
+    const SCHEMA_VERSION = '1.9.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.9.0';
     const STATUSES = Object.freeze(['idle', 'ready', 'invalid', 'busy', 'active', 'error', 'disposed']);
     const EVENTS = Object.freeze(['hydrated', 'selection-changed', 'validated', 'submitted', 'started', 'advanced-changed']);
     const SECTIONS = Object.freeze(['game-type', 'time-control', 'color', 'opponent', 'primary-action', 'advanced-options']);
@@ -392,7 +392,7 @@
         }
         present(options = {}) {
             if (!this.#root || this.#disposed) return result(false, 'rejected', 'UNAVAILABLE');
-            const phase = ['active-game', 'game-over'].includes(options.phase) ? options.phase : 'setup';
+            const phase = ['active-game', 'game-over', 'analysis-review'].includes(options.phase) ? options.phase : 'setup';
             if (phase !== 'game-over') this.#restorePostGamePlacement();
             if (phase === 'setup') this.releasePhaseContent(options.returnHost);
             this.#phase = phase;
@@ -402,14 +402,17 @@
             const description = this.#root.querySelector('.caissa-games-panel__description');
             const welcome = this.#root.querySelector('.caissa-games-panel__welcome');
             if (welcome) welcome.hidden = phase === 'active-game';
-            if (title) title.textContent = phase === 'game-over' ? 'Game Over'
+            if (title) title.textContent = phase === 'analysis-review' ? options.message?.title || 'Analyzing your game...'
+                : phase === 'game-over' ? 'Game Over'
                 : phase === 'active-game' ? 'Play Chess' : 'Welcome to Play';
             if (phaseLabel) {
-                phaseLabel.hidden = phase === 'setup';
+                phaseLabel.hidden = phase === 'setup' || phase === 'analysis-review';
                 phaseLabel.textContent = phase === 'game-over' ? options.message?.result || 'Game complete'
                     : phase === 'active-game' ? 'Game in progress' : '';
             }
-            if (description) description.textContent = phase === 'game-over'
+            if (description) description.textContent = phase === 'analysis-review'
+                ? options.message?.description || 'This will just take a moment.'
+                : phase === 'game-over'
                 ? options.message?.description || "Good game! Let's take a look at what happened."
                 : phase === 'active-game' ? "Use the board to play your moves. I'm with you."
                     : "Choose your game and I'll take care of the rest.";
@@ -423,6 +426,10 @@
                 const content = options.content;
                 let foot = options.foot;
                 if (phase === 'game-over') foot = this.#rememberPostGamePlacement(content, foot) || foot;
+                if (phase === 'analysis-review') {
+                    const postGame = global.document.querySelector('[data-caissa-post-game]');
+                    if (postGame) postGame.hidden = true;
+                }
                 if (content?.nodeType === 1) {
                     content.setAttribute('data-games-phase-content', phase);
                     content.hidden = false;

@@ -2410,6 +2410,251 @@ body.caissa-simplified-play-active .caissa-games-panel__post-game-foot .caissa-p
     display: none;
 }
 
+/* Play Game analysis uses the permanent Games HEAD/BODY/FOOT shell. AnalysisSection
+   remains the sole analysis owner; these nodes only project its lifecycle/results. */
+body.caissa-simplified-play-active .caissa-games-panel[data-games-phase="analysis-review"]
+    .caissa-games-panel__head {
+    height: 142px;
+}
+
+body.caissa-simplified-play-active .caissa-games-panel[data-games-phase="analysis-review"]
+    .caissa-games-panel__welcome {
+    position: relative;
+    padding: .75rem .85rem;
+    border: 1px solid color-mix(in srgb, var(--games-gold) 34%, var(--panel-border));
+    border-radius: .9rem .9rem .9rem .25rem;
+    background: color-mix(in srgb, var(--play-theme-card, #17202b) 82%, white 8%);
+}
+
+body.caissa-simplified-play-active .caissa-games-panel[data-games-phase="analysis-review"]
+    .caissa-games-panel__welcome::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: -9px;
+    inset-block-end: 22px;
+    width: 16px;
+    height: 16px;
+    border-inline-start: 1px solid color-mix(in srgb, var(--games-gold) 34%, var(--panel-border));
+    border-block-end: 1px solid color-mix(in srgb, var(--games-gold) 34%, var(--panel-border));
+    background: inherit;
+    transform: rotate(45deg);
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis {
+    display: flex;
+    min-height: 100%;
+    flex-direction: column;
+    padding: .35rem .2rem .2rem;
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis__loading {
+    display: grid;
+    flex: 1 1 auto;
+    min-height: 220px;
+    place-content: center;
+    justify-items: center;
+    gap: .65rem;
+    text-align: center;
+}
+
+body.caissa-simplified-play-active :is(.caissa-games-analysis__loading,
+    .caissa-games-analysis__comparison)[hidden] {
+    display: none;
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis__spinner {
+    width: 58px;
+    height: 58px;
+    border: 6px solid color-mix(in srgb, var(--games-gold) 24%, var(--panel-border));
+    border-top-color: var(--games-gold);
+    border-radius: 50%;
+    animation: caissa-games-analysis-spin .9s linear infinite;
+}
+
+@keyframes caissa-games-analysis-spin { to { rotate: 1turn; } }
+
+@media (prefers-reduced-motion: reduce) {
+    body.caissa-simplified-play-active .caissa-games-analysis__spinner { animation: none; }
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis__loading-title {
+    margin: .15rem 0 0;
+    font-size: clamp(1.25rem, 2vw, 1.55rem);
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis__loading-description {
+    margin: 0;
+    color: var(--play-theme-text-muted, var(--text-secondary));
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis__progress {
+    width: min(100%, 340px);
+    height: 10px;
+    margin-top: .35rem;
+    overflow: hidden;
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--play-theme-card, #17202b) 85%, black);
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis__progress-fill {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #c99832, #edc45d);
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis__progress-text {
+    color: var(--play-theme-text-muted, var(--text-secondary));
+    font-size: .9rem;
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis__comparison {
+    display: grid;
+    gap: .7rem;
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis__profiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .75rem;
+    padding-inline: .55rem;
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis__profile {
+    display: grid;
+    min-width: 0;
+    justify-items: center;
+    gap: .18rem;
+    text-align: center;
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis__avatar {
+    display: grid;
+    width: 58px;
+    height: 58px;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--games-gold) 58%, var(--panel-border));
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--games-gold) 10%, var(--play-theme-card, #17202b));
+    color: #f4f7fb;
+    font-size: 1.7rem;
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis__avatar--caissa { color: var(--games-gold); }
+body.caissa-simplified-play-active .caissa-games-analysis__role {
+    margin-top: .1rem;
+    font-size: .75rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+body.caissa-simplified-play-active .caissa-games-analysis__name {
+    color: var(--play-theme-text-muted, var(--text-secondary));
+    font-size: .82rem;
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis__accuracy,
+body.caissa-simplified-play-active .caissa-games-analysis__row {
+    display: grid;
+    grid-template-columns: minmax(62px, 1fr) minmax(116px, 1.3fr) minmax(62px, 1fr);
+    align-items: center;
+    column-gap: .45rem;
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis__accuracy {
+    padding: .6rem .55rem;
+    border-block: 1px solid var(--panel-border);
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis__accuracy-label {
+    grid-column: 2;
+    grid-row: 1;
+    font-weight: 800;
+    text-align: center;
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis__accuracy-value {
+    color: var(--games-gold);
+    font-size: clamp(1.25rem, 2vw, 1.7rem);
+    text-align: center;
+}
+body.caissa-simplified-play-active .caissa-games-analysis__accuracy-value:first-of-type { grid-column: 1; grid-row: 1; }
+body.caissa-simplified-play-active .caissa-games-analysis__accuracy-value:last-of-type { grid-column: 3; grid-row: 1; }
+body.caissa-simplified-play-active .caissa-games-analysis__table { display: grid; gap: .25rem; }
+body.caissa-simplified-play-active .caissa-games-analysis__row {
+    min-height: 42px;
+    padding: .3rem .55rem;
+    border-radius: .45rem;
+}
+body.caissa-simplified-play-active .caissa-games-analysis__row:nth-child(odd) {
+    background: color-mix(in srgb, var(--play-theme-card, #17202b) 72%, transparent);
+}
+body.caissa-simplified-play-active .caissa-games-analysis__quality {
+    grid-column: 2;
+    grid-row: 1;
+    padding-inline-end: 2.3rem;
+    font-weight: 750;
+    text-align: center;
+}
+body.caissa-simplified-play-active .caissa-games-analysis__count { grid-row: 1; text-align: center; }
+body.caissa-simplified-play-active .caissa-games-analysis__count[data-side="player"] { grid-column: 1; }
+body.caissa-simplified-play-active .caissa-games-analysis__count[data-side="opponent"] { grid-column: 3; }
+body.caissa-simplified-play-active .caissa-games-analysis__quality-icon {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    grid-column: 2;
+    grid-row: 1;
+    place-items: center;
+    justify-self: center;
+    translate: calc(50% + 2rem) 0;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--games-gold) 18%, var(--play-theme-card, #17202b));
+    color: var(--games-gold);
+    font-weight: 850;
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis__foot {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .55rem;
+}
+
+body.caissa-simplified-play-active :is(.caissa-games-analysis__new-game, .caissa-games-analysis__review) {
+    min-height: 52px;
+    padding: .65rem .8rem;
+    border: 1px solid var(--panel-border);
+    border-radius: .65rem;
+    background: #202a38;
+    color: #f4f7fb;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis__review {
+    border-color: #bd9230;
+    background: linear-gradient(180deg, #edc45d, #d9a83c);
+    color: #18130a;
+}
+
+body.caissa-simplified-play-active .caissa-games-analysis__review:disabled { opacity: .42; cursor: not-allowed; }
+
+@media (max-width: 420px) {
+    body.caissa-simplified-play-active .caissa-games-panel[data-games-phase="analysis-review"]
+        .caissa-games-panel__head { height: 112px; }
+    body.caissa-simplified-play-active .caissa-games-panel[data-games-phase="analysis-review"]
+        .caissa-games-panel__welcome { gap: .3rem; padding: .48rem .58rem; }
+    body.caissa-simplified-play-active .caissa-games-panel[data-games-phase="analysis-review"]
+        .caissa-games-panel__title { font-size: .98rem; }
+    body.caissa-simplified-play-active .caissa-games-panel[data-games-phase="analysis-review"]
+        .caissa-games-panel__description { font-size: .78rem; line-height: 1.25; }
+    body.caissa-simplified-play-active .caissa-games-analysis__avatar { width: 50px; height: 50px; }
+    body.caissa-simplified-play-active .caissa-games-analysis__accuracy,
+    body.caissa-simplified-play-active .caissa-games-analysis__row {
+        grid-template-columns: minmax(48px, .75fr) minmax(112px, 1.4fr) minmax(48px, .75fr);
+    }
+}
+
 body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="phone-compact"] .caissa-simplified-shell__workspace,
 body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="phone-standard"] .caissa-simplified-shell__workspace,
 body.caissa-simplified-play-active .caissa-simplified-shell[data-layout="tablet-portrait-stacked"] .caissa-simplified-shell__workspace {

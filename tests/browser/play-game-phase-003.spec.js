@@ -138,7 +138,8 @@ test('Analyze This Game preserves the existing handoff boundary', async ({ page 
     await playMove(page, positions.checkmateInOne.from, positions.checkmateInOne.to);
     await expect(page.locator('.caissa-games-panel[data-games-phase="game-over"]')).toBeVisible();
     await page.locator('[data-post-game-action="analyze"]').click();
-    await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
+    await expect(page.locator('.caissa-games-panel[data-games-phase="analysis-review"]')).toBeVisible();
+    await expect(page.locator('#analyzeSection .analyze-layout:visible')).toHaveCount(0);
     expect(page.url()).not.toMatch(/(?:pgn|fen|handoff)=/i);
 });
 

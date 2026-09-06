@@ -413,6 +413,7 @@
                 this.#placements = [];
                 return result(false, 'unavailable', 'GAMES_PANEL_UNAVAILABLE');
             }
+            global.CaissaGamesPanelInstance = this.#gamesPanel;
             this.#postGame = global.CaissaPostGameExperience?.create?.({
                 onNewGame: () => this.#gamesPanel?.reset?.(),
                 onVisibilityChange: visible => {
@@ -432,6 +433,7 @@
                 this.#botsPanel?.dispose?.(); this.#botsPanel = null;
                 if (global.CaissaBotsPanelInstance) global.CaissaBotsPanelInstance = null;
                 this.#gamesPanel?.dispose?.(); this.#gamesPanel = null;
+                if (global.CaissaGamesPanelInstance) global.CaissaGamesPanelInstance = null;
                 [...this.#placements].reverse().forEach(({ node, marker }) => {
                     marker.parentNode.insertBefore(node, marker); marker.remove();
                 });
@@ -543,6 +545,7 @@
             this.#coachPanel?.dispose?.(); this.#coachPanel = null;
             if (global.CaissaPlayersPanelInstance) global.CaissaPlayersPanelInstance = null;
             this.#gamesPanel?.dispose?.(); this.#gamesPanel = null;
+            if (global.CaissaGamesPanelInstance) global.CaissaGamesPanelInstance = null;
             [...this.#placements].reverse().forEach(({ node, marker }) => {
                 marker.parentNode.insertBefore(node, marker);
                 marker.remove();
@@ -870,7 +873,10 @@
             }
             const contextBody = this.#root.querySelector('.caissa-simplified-shell__context-body');
             const gamesMode = this.#mode === 'games';
-            if (gamesMode && this.#gamesPanel) {
+            const gamesAnalysisReview = global.CaissaGamesAnalysisSummaryPresentation?.getSnapshot?.().mounted === true;
+            if (gamesMode && this.#gamesPanel && gamesAnalysisReview) {
+                this.#gamesPanel.show();
+            } else if (gamesMode && this.#gamesPanel) {
                 const postGameContent = postGame ? this.#root.querySelector('.caissa-post-game') : null;
                 const postGameFoot = postGameContent?.querySelector('.caissa-post-game__actions') || null;
                 const postGameResult = postGameContent?.querySelector('[data-post-game-result]')?.textContent;

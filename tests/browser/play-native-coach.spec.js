@@ -658,21 +658,21 @@ test('Coach Review Summary remains inside Play, is responsive, keyboard ordered,
     expect(guidedAxe.violations.filter(item => ['critical', 'serious'].includes(item.impact))).toEqual([]);
 });
 
-test('Games-origin Analyze retains the generic technical presentation', async ({ page }) => {
+test('Games-origin Analyze stays in the Play Game shell without affecting Coach presentation', async ({ page }) => {
     await page.goto('/play/games?simplified=1');
     await page.locator('[data-games-primary]').click();
     await loadPosition(page, positions.checkmateInOne.fen);
     await playMove(page, positions.checkmateInOne.from, positions.checkmateInOne.to);
     await page.locator('[data-post-game-action="analyze"]').click();
-    await expect(page.getByRole('dialog', { name: 'Analyze completed game' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Game Info' })).toBeVisible();
-    await expect(page.locator('#analyzeStartBtn')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Critical Moments' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Move evidence' })).toBeVisible();
-    await expect(page.getByRole('dialog', { name: 'Analyze completed game' })
-        .getByText('Stockfish 16', { exact: true })).toBeVisible();
+    await expect(page.locator('.caissa-games-panel[data-games-phase="analysis-review"]')).toBeVisible();
+    await expect(page.locator('[data-games-analysis]')).toBeVisible();
+    await expect(page.locator('#analyzeSection .analyze-layout:visible')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Game Info' })).toBeHidden();
+    await expect(page.locator('#analyzeStartBtn')).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'Critical Moments' })).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'Move evidence' })).toBeHidden();
     await expect(page.locator('[data-caissa-coach-review-summary]')).toHaveCount(0);
-    expect(await page.evaluate(() => window.AnalyzeSection.analysisPhase)).toBe('idle');
+    await expect(page.locator('[data-caissa-native-coach-panel]:visible')).toHaveCount(0);
 });
 
 test('Coach game-over preserves player wins, draws, timeouts, and the existing New Game reset', async ({ page }) => {
