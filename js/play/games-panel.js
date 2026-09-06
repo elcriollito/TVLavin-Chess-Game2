@@ -347,6 +347,7 @@
         }
 
         reset() {
+            if (this.#root) this.present({ phase: 'setup' });
             this.#preset = TIME_CONTROLS[0]; this.#color = 'white';
             this.#targetElo = STRENGTH?.readPreference?.() ?? 1500; this.#status = 'ready';
             this.#readiness?.reset?.(); this.validate(); this.#bootReadiness(); this.#render();
@@ -462,11 +463,13 @@
         releasePhaseContent(returnHost) {
             if (!this.#root) return result(false, 'rejected', 'UNAVAILABLE');
             this.#restorePostGamePlacement();
+            this.#root.querySelectorAll?.('[data-games-phase-head]').forEach(item => item.remove());
             this.#bodyHost?.querySelectorAll?.('[data-games-phase-content]:not([data-games-phase-content="setup"])')
                 .forEach(item => {
                     item.removeAttribute('data-games-phase-content');
                     item.hidden = true;
                     if (returnHost?.appendChild) returnHost.appendChild(item);
+                    else item.remove();
                 });
             this.#footHost?.querySelectorAll?.('[data-games-foot-content]:not([data-games-foot-content="setup"])')
                 .forEach(item => {

@@ -490,6 +490,9 @@
         if (mounted.phase === 'analysis-exploration') root.CaissaBotsAnalysisExploration?.leave?.();
         root.removeEventListener(`caissa:${product}-review-ply-change`, update);
         root.removeEventListener('caissa:mentor-context-cleared', handleMentorContextCleared);
+        if (product === 'games') {
+            mounted.exploration.head.remove(); mounted.exploration.body.remove(); mounted.exploration.foot.remove();
+        }
         mounted.ui.head.remove(); mounted.ui.body.remove(); mounted.ui.foot.remove();
         root.document.body.classList.remove(`caissa-${product}-guided-review-active`); mounted = null;
         return result(true, 'accepted', `${product.toUpperCase()}_GUIDED_REVIEW_UNMOUNTED`);
