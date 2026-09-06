@@ -2900,9 +2900,12 @@ body.caissa-simplified-play-active .caissa-bots-analysis-summary__comparison {
 
 body.caissa-simplified-play-active .caissa-bots-analysis-summary__profiles {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
+    grid-template-columns: minmax(72px, 1fr) minmax(104px, 1.15fr) minmax(72px, 1fr);
+    gap: .5rem;
+    padding-inline: .55rem;
 }
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__profile:first-child { grid-column: 1; }
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__profile:last-child { grid-column: 3; }
 
 body.caissa-simplified-play-active .caissa-bots-analysis-summary__profile {
     display: grid;
@@ -2950,8 +2953,9 @@ body.caissa-simplified-play-active .caissa-bots-analysis-summary__name {
 body.caissa-simplified-play-active .caissa-bots-analysis-summary__accuracy,
 body.caissa-simplified-play-active .caissa-bots-analysis-summary__row {
     display: grid;
-    grid-template-columns: minmax(92px, 1.2fr) minmax(44px, .55fr) 44px minmax(44px, .55fr);
+    grid-template-columns: minmax(72px, 1fr) minmax(104px, 1.15fr) minmax(72px, 1fr);
     align-items: center;
+    column-gap: .5rem;
 }
 
 body.caissa-simplified-play-active .caissa-bots-analysis-summary__accuracy {
@@ -2959,14 +2963,19 @@ body.caissa-simplified-play-active .caissa-bots-analysis-summary__accuracy {
     border-block: 1px solid var(--panel-border);
 }
 
-body.caissa-simplified-play-active .caissa-bots-analysis-summary__accuracy-label { font-weight: 800; }
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__accuracy-label {
+    grid-column: 2;
+    grid-row: 1;
+    font-weight: 800;
+    text-align: center;
+}
 body.caissa-simplified-play-active .caissa-bots-analysis-summary__accuracy-value {
     color: var(--bot-accent);
     font-size: clamp(1.35rem, 2vw, 1.8rem);
     text-align: center;
 }
-body.caissa-simplified-play-active .caissa-bots-analysis-summary__accuracy-value:first-of-type { grid-column: 2; }
-body.caissa-simplified-play-active .caissa-bots-analysis-summary__accuracy-value:last-of-type { grid-column: 4; }
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__accuracy-value:first-of-type { grid-column: 1; grid-row: 1; }
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__accuracy-value:last-of-type { grid-column: 3; grid-row: 1; }
 
 body.caissa-simplified-play-active .caissa-bots-analysis-summary__table { display: grid; gap: .28rem; }
 body.caissa-simplified-play-active .caissa-bots-analysis-summary__row {
@@ -2977,14 +2986,25 @@ body.caissa-simplified-play-active .caissa-bots-analysis-summary__row {
 body.caissa-simplified-play-active .caissa-bots-analysis-summary__row:nth-child(odd) {
     background: color-mix(in srgb, var(--play-theme-card, #17202b) 72%, transparent);
 }
-body.caissa-simplified-play-active .caissa-bots-analysis-summary__quality { font-weight: 750; }
-body.caissa-simplified-play-active .caissa-bots-analysis-summary__count { text-align: center; }
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__quality {
+    grid-column: 2;
+    grid-row: 1;
+    padding-inline-end: 2.4rem;
+    font-weight: 750;
+    text-align: center;
+}
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__count { grid-row: 1; text-align: center; }
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__count[data-side="player"] { grid-column: 1; }
+body.caissa-simplified-play-active .caissa-bots-analysis-summary__count[data-side="bot"] { grid-column: 3; }
 body.caissa-simplified-play-active .caissa-bots-analysis-summary__quality-icon {
     display: grid;
     width: 34px;
     height: 34px;
     place-items: center;
     justify-self: center;
+    grid-column: 2;
+    grid-row: 1;
+    translate: calc(50% + 2.1rem) 0;
     border-radius: 50%;
     background: color-mix(in srgb, var(--bot-accent) 18%, var(--play-theme-card, #17202b));
     color: var(--bot-accent);
@@ -3274,11 +3294,22 @@ body.caissa-simplified-play-active .caissa-bots-exploration {
     width: 100%;
     min-height: 0;
 }
-body.caissa-simplified-play-active .caissa-bots-exploration__empty {
-    margin: auto 0;
-    padding: 1rem;
-    color: var(--play-theme-text-muted, var(--text-secondary));
-    text-align: center;
+body.caissa-simplified-play-active .caissa-bots-exploration__line {
+    display: grid;
+    gap: .3rem;
+    padding-block: .45rem;
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__line + .caissa-bots-exploration__line {
+    margin-top: .45rem;
+    border-top: 1px solid var(--panel-border);
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__line-title {
+    margin: 0;
+    color: var(--bot-accent);
+    font-size: .7rem;
+    font-weight: 850;
+    letter-spacing: .09em;
+    text-transform: uppercase;
 }
 body.caissa-simplified-play-active .caissa-bots-exploration__notation {
     display: grid;
@@ -3313,6 +3344,9 @@ body.caissa-simplified-play-active .caissa-bots-exploration__move {
 body.caissa-simplified-play-active .caissa-bots-exploration__move[aria-current="move"] {
     border-color: color-mix(in srgb, var(--bot-accent) 70%, var(--panel-border));
     background: color-mix(in srgb, var(--bot-accent) 16%, transparent);
+}
+body.caissa-simplified-play-active .caissa-bots-exploration__move.is-branch-anchor:not([aria-current="move"]) {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bot-accent) 58%, transparent);
 }
 body.caissa-simplified-play-active .caissa-bots-exploration__move[data-future="true"] { opacity: .62; }
 body.caissa-simplified-play-active .caissa-bots-exploration__foot { display: grid; gap: .55rem; }

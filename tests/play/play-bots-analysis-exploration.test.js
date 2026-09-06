@@ -77,3 +77,27 @@ test('temporary Chess owner accepts promotion without touching the completed gam
     assert.equal(window.App.moveHistory, authoritative.moveHistory);
     api.leave();
 });
+
+test('completed game is a read-only study timeline and a branch keeps separate ownership', () => {
+    const { window, api, authoritative } = fixture();
+    const sourceGame = new Chess();
+    ['e4', 'c5', 'Nf3', 'd6'].forEach(move => sourceGame.move(move));
+    const sourceMoves = sourceGame.history({ verbose: true }).map(move => ({ ...move }));
+    const originalMoves = JSON.stringify(sourceMoves); const originalPgn = authoritative.pgn;
+    const analyze = { ensureAnalysisEngine: async () => null, teardownAnalysisEngine() {} };
+    assert.equal(api.enter({ fen: sourceGame.fen(), sourceInitialFen: new Chess().fen(), sourceMoves,
+        sourceCursor: 4, analyze, entryReviewPly: 3 }).ok, true);
+    assert.deepEqual([...api.getSourceLine()].map(move => move.san), ['e4', 'c5', 'Nf3', 'd6']);
+    assert.equal(api.getSnapshot().mode, 'source'); assert.equal(api.getSnapshot().sourceCursor, 4);
+    api.first(); assert.equal(api.getSnapshot().sourceCursor, 0);
+    api.next(); api.next(); assert.equal(api.getSnapshot().sourceCursor, 2);
+    assert.equal(api.playMove('g1', 'f3'), true);
+    assert.equal(api.getSnapshot().mode, 'temporary'); assert.equal(api.getSnapshot().branchSourceCursor, 2);
+    assert.deepEqual([...api.getLine()].map(move => move.san), ['Nf3']);
+    api.goToSource(3); assert.equal(api.getSnapshot().mode, 'source');
+    assert.equal(api.getSnapshot().sourceCursor, 3); assert.equal(api.getSnapshot().temporaryPlyCount, 1);
+    assert.equal(JSON.stringify(sourceMoves), originalMoves);
+    assert.equal(window.App.moveHistory, authoritative.moveHistory);
+    assert.equal(window.App.pgn, originalPgn); assert.equal(window.App.currentMoveIndex, 6);
+    api.leave();
+});

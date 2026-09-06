@@ -414,6 +414,21 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
     await expect(shell.locator('.caissa-bots-analysis-summary__name')).toHaveText(['You', 'Vera']);
     await expect(shell.locator('.caissa-bots-analysis-summary__accuracy-value')).toHaveCount(2);
     await expect(shell.locator('.caissa-bots-analysis-summary__row')).not.toHaveCount(0);
+    const summaryAlignment = await shell.evaluate(node => {
+        const center = selector => { const box = node.querySelector(selector).getBoundingClientRect(); return box.left + box.width / 2; };
+        return {
+            playerProfile: center('.caissa-bots-analysis-summary__profile:first-child'),
+            playerAccuracy: center('.caissa-bots-analysis-summary__accuracy-value:first-of-type'),
+            playerCount: center('.caissa-bots-analysis-summary__count[data-side="player"]'),
+            botProfile: center('.caissa-bots-analysis-summary__profile:last-child'),
+            botAccuracy: center('.caissa-bots-analysis-summary__accuracy-value:last-of-type'),
+            botCount: center('.caissa-bots-analysis-summary__count[data-side="bot"]')
+        };
+    });
+    expect(Math.abs(summaryAlignment.playerProfile - summaryAlignment.playerAccuracy)).toBeLessThanOrEqual(1);
+    expect(Math.abs(summaryAlignment.playerProfile - summaryAlignment.playerCount)).toBeLessThanOrEqual(1);
+    expect(Math.abs(summaryAlignment.botProfile - summaryAlignment.botAccuracy)).toBeLessThanOrEqual(1);
+    expect(Math.abs(summaryAlignment.botProfile - summaryAlignment.botCount)).toBeLessThanOrEqual(1);
     await expect(shell.locator(':scope > [data-caissa-bots-foot] button:visible')).toHaveText(['New Game', 'Review Game']);
     await expect(shell.locator('[data-bot-selected]')).toBeHidden();
     await expect(shell.locator('[data-post-game-action]:visible, [data-active-game-action]:visible')).toHaveCount(0);
@@ -570,6 +585,7 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
         lastMove: window.App.boardAdapter.getSnapshot().lastMove,
         orientation: window.App.boardAdapter.getSnapshot().orientation
     }));
+    await page.setViewportSize({ width: 1600, height: 1000 }); await shell.scrollIntoViewIfNeeded();
     await shell.locator('.caissa-bots-guided__analysis').click();
     await expect(shell).toHaveAttribute('data-bot-shell-phase', 'analysis-exploration');
     await expect(shell.locator('[data-bots-analysis-exploration]')).toBeVisible();
@@ -579,10 +595,36 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
     await expect(shell.locator('[data-bots-exploration-nav]')).toHaveCount(4);
     await expect(shell).not.toContainText(/centipawn|depth|nodes|hash|threads|MultiPV|NPS|worker/i);
     expect(await page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(entry.ply);
-    expect(await page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot().entryReviewPly)).toBe(entry.ply);
+    const sourceEntry = await page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot());
+    expect(sourceEntry).toMatchObject({ entryReviewPly: entry.ply, mode: 'source',
+        sourceCursor: entry.ply + 1, sourcePlyCount: immutableBefore ? JSON.parse(immutableBefore.loadedMoves).length : 0,
+        temporaryPlyCount: 0 });
+    await expect(shell.locator('[data-bots-exploration-source] .caissa-bots-exploration__move'))
+        .toHaveCount(sourceEntry.sourcePlyCount);
+    await expect(shell.locator('[data-bots-exploration-source] [aria-current="move"]')).toHaveCount(1);
+    await expect(shell.locator('[data-bots-exploration-variation-section]')).toBeHidden();
     expect(await page.evaluate(() => window.App.boardAdapter.getSnapshot().orientation)).toBe(entry.orientation);
     await expect(page.locator('#chessboard [data-caissa-coach-move-annotation]')).toHaveCount(0);
     await page.screenshot({ path: 'test-results/play-bots-analysis-exploration-engine-on.png', fullPage: true });
+
+    const assertSourcePosition = async cursor => {
+        const proof = await page.evaluate(target => {
+            const game = new Chess(window.AnalyzeSection.loadedGame.initialFen || undefined);
+            const moves = window.AnalyzeSection.getLoadedMoves();
+            for (let index = 0; index < target; index += 1) game.move(moves[index]);
+            const state = window.CaissaBotsAnalysisExploration.getSnapshot();
+            return { board: window.App.boardAdapter.getPosition(), expected: game.fen(), mode: state.mode,
+                cursor: state.sourceCursor, authoritative: window.AnalyzeSection.currentMoveIndex };
+        }, cursor);
+        expect(proof).toMatchObject({ board: proof.expected, mode: 'source', cursor, authoritative: entry.ply });
+    };
+    await shell.getByRole('button', { name: 'First study position' }).click(); await assertSourcePosition(0);
+    await shell.getByRole('button', { name: 'Next study move' }).click(); await assertSourcePosition(1);
+    await shell.getByRole('button', { name: 'Last study position' }).click();
+    await assertSourcePosition(sourceEntry.sourcePlyCount);
+    const branchCursor = Math.min(2, sourceEntry.sourcePlyCount);
+    await shell.locator(`[data-bots-exploration-source-cursor="${branchCursor}"]`).click();
+    await assertSourcePosition(branchCursor);
 
     const playTemporary = async excluded => {
         const move = await page.evaluate(avoid => {
@@ -596,14 +638,18 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
             return null;
         }, excluded || '');
         expect(move).not.toBeNull();
-        const before = await page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot().cursor);
+        const before = await page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot());
         await page.locator(`#chessboard .square-${move.from}`).click();
         await page.locator(`#chessboard .square-${move.to}`).click();
-        await expect.poll(() => page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot().cursor))
-            .toBe(before + 1);
+        await expect.poll(() => page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot().temporaryCursor))
+            .toBe(before.mode === 'temporary' ? before.temporaryCursor + 1 : 1);
         return move.key;
     };
     await playTemporary(); await playTemporary(); const discardedMove = await playTemporary();
+    await expect(shell.locator('[data-bots-exploration-variation-section]')).toBeVisible();
+    await expect(shell.locator('[data-bots-exploration-source] .is-branch-anchor')).toHaveCount(1);
+    await expect(shell.locator('[data-bots-exploration-source] .caissa-bots-exploration__move'))
+        .toHaveCount(sourceEntry.sourcePlyCount);
     await expect(shell.locator('[data-bots-exploration-cursor][aria-current="move"]')).toHaveCount(1);
     const temporaryProjection = await page.evaluate(() => {
         const line = window.CaissaBotsAnalysisExploration.getLine(); const move = line.at(-1);
@@ -614,7 +660,7 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
     expect(temporaryProjection.board).toBe(temporaryProjection.expectedFen);
     expect(temporaryProjection.lastMove).toEqual(temporaryProjection.expectedMove);
     expect(temporaryProjection.badgeCount).toBe(0);
-    await shell.getByRole('button', { name: 'Previous temporary move' }).click();
+    await shell.getByRole('button', { name: 'Previous study move' }).click();
     const beforeBranch = await page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot());
     await playTemporary(discardedMove);
     const afterBranch = await page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot());
@@ -625,8 +671,8 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
     await expect(shell.locator('[data-bots-exploration-engine]')).toHaveAttribute('aria-pressed', 'false');
     await expect(shell.locator('[data-bots-exploration-engine]')).toHaveAttribute('aria-label', 'Engine Off');
     const requestsOff = await page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot().engineRequests);
-    await shell.getByRole('button', { name: 'First temporary position' }).click();
-    await shell.getByRole('button', { name: 'Last temporary position' }).click();
+    await shell.getByRole('button', { name: 'First study position' }).click();
+    await shell.getByRole('button', { name: 'Last study position' }).click();
     expect(await page.evaluate(() => window.CaissaBotsAnalysisExploration.getSnapshot().engineRequests)).toBe(requestsOff);
     await page.screenshot({ path: 'test-results/play-bots-analysis-exploration-engine-off.png', fullPage: true });
     await shell.locator('[data-bots-exploration-engine]').click();

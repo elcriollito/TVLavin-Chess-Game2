@@ -1,7 +1,7 @@
 (function installBotsGuidedReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.1.0';
+    const SCHEMA_VERSION = '1.2.0';
     const REVIEW_WORTHY = Object.freeze(['Inaccuracy', 'Mistake', 'Blunder']);
     let mounted = null;
     const freeze = value => Object.freeze(value);
@@ -130,19 +130,25 @@
         pv.textContent = 'Principal variation: preparing\u2026'; speech.append(eyebrow, titleRow, message, pv); head.append(avatar, speech);
 
         const body = element('section', 'caissa-bots-exploration', { 'data-bots-analysis-exploration': '',
-            'aria-label': 'Temporary position analysis' });
-        const empty = element('p', 'caissa-bots-exploration__empty', { 'data-bots-exploration-empty': '', role: 'status' });
-        empty.textContent = 'Make a legal move on the board to begin exploring.';
+            'aria-label': 'Game study and temporary position analysis' });
+        const sourceSection = element('section', 'caissa-bots-exploration__line');
+        const sourceTitle = element('h3', 'caissa-bots-exploration__line-title'); sourceTitle.textContent = 'Game moves (study)';
+        const sourceNotation = element('div', 'caissa-bots-exploration__notation', {
+            'data-bots-exploration-source': '', 'aria-label': 'Read-only completed game notation' });
+        sourceSection.append(sourceTitle, sourceNotation);
+        const variationSection = element('section', 'caissa-bots-exploration__line', {
+            'data-bots-exploration-variation-section': '' });
+        const variationTitle = element('h3', 'caissa-bots-exploration__line-title'); variationTitle.textContent = 'Temporary variation';
         const notation = element('div', 'caissa-bots-exploration__notation', { 'data-bots-exploration-notation': '',
             'aria-label': 'Temporary exploration notation', 'aria-live': 'polite' });
-        body.append(empty, notation);
+        variationSection.append(variationTitle, notation); body.append(sourceSection, variationSection);
 
         const foot = element('div', 'caissa-bots-exploration__foot', { 'data-bots-foot-content': 'analysis-exploration' });
         const navigation = element('div', 'caissa-bots-exploration__navigation', { role: 'group',
             'aria-label': 'Temporary line navigation' });
         const navButtons = {};
-        [['first', 'First temporary position', 'fa-step-backward'], ['previous', 'Previous temporary move', 'fa-chevron-left'],
-            ['next', 'Next temporary move', 'fa-chevron-right'], ['last', 'Last temporary position', 'fa-step-forward']]
+        [['first', 'First study position', 'fa-step-backward'], ['previous', 'Previous study move', 'fa-chevron-left'],
+            ['next', 'Next study move', 'fa-chevron-right'], ['last', 'Last study position', 'fa-step-forward']]
             .forEach(([action, label, icon]) => {
                 const button = element('button', 'caissa-bots-exploration__nav-button', { type: 'button',
                     'data-bots-exploration-nav': action, 'aria-label': label, title: label });
@@ -158,7 +164,8 @@
         engine.innerHTML = '<span class="caissa-bots-exploration__led" aria-hidden="true"></span>'
             + '<span data-bots-exploration-engine-label>Engine Off</span>';
         actions.append(back, engine); foot.append(navigation, actions);
-        return { head, evaluation, pv, body, empty, notation, foot, navigation, navButtons, back, engine };
+        return { head, evaluation, pv, body, sourceNotation, variationSection, notation,
+            foot, navigation, navButtons, back, engine };
     }
 
     function renderHead(model) {
@@ -253,30 +260,36 @@
 
     function renderExplorationPosition() {
         if (!mounted || mounted.phase !== 'analysis-exploration') return;
-        const owner = root.CaissaBotsAnalysisExploration; const state = owner?.getSnapshot?.();
-        const line = owner?.getLine?.() || []; const ui = mounted.exploration;
-        ui.empty.hidden = line.length > 0; ui.notation.replaceChildren(); const rows = new Map();
-        line.forEach(move => {
+        const owner = root.CaissaBotsAnalysisExploration; const state = owner?.getSnapshot?.(); const ui = mounted.exploration;
+        const renderLine = (container, line, kind) => {
+            container.replaceChildren(); const rows = new Map();
+            line.forEach(move => {
             if (!rows.has(move.moveNumber)) rows.set(move.moveNumber, { white: null, black: null });
             rows.get(move.moveNumber)[move.color === 'b' ? 'black' : 'white'] = move;
-        });
-        rows.forEach((moves, moveNumber) => {
+            });
+            rows.forEach((moves, moveNumber) => {
             const row = element('div', 'caissa-bots-exploration__notation-row');
             const number = element('span', 'caissa-bots-exploration__move-number'); number.textContent = `${moveNumber}.`; row.append(number);
             ['white', 'black'].forEach(color => {
                 const move = moves[color];
                 if (!move) { row.append(element('span', 'caissa-bots-exploration__spacer', { 'aria-hidden': 'true' })); return; }
-                const button = element('button', 'caissa-bots-exploration__move', { type: 'button',
-                    'data-bots-exploration-cursor': String(move.index + 1),
-                    'aria-label': `Temporary move ${move.san}` });
+                const attributes = { type: 'button', 'aria-label': `${kind === 'source' ? 'Study' : 'Temporary'} move ${move.san}` };
+                attributes[kind === 'source' ? 'data-bots-exploration-source-cursor' : 'data-bots-exploration-cursor']
+                    = String(move.index + 1);
+                const button = element('button', 'caissa-bots-exploration__move', attributes);
                 button.textContent = move.san; button.dataset.future = String(move.future);
+                if (move.branchAnchor) button.classList.add('is-branch-anchor');
                 if (move.current) button.setAttribute('aria-current', 'move'); row.append(button);
             });
-            ui.notation.append(row);
-        });
+                container.append(row);
+            });
+        };
+        const sourceLine = owner?.getSourceLine?.() || []; const line = owner?.getLine?.() || [];
+        renderLine(ui.sourceNotation, sourceLine, 'source'); renderLine(ui.notation, line, 'temporary');
+        ui.variationSection.hidden = line.length === 0;
         ui.navButtons.first.disabled = !state || state.atFirst; ui.navButtons.previous.disabled = !state || state.atFirst;
         ui.navButtons.next.disabled = !state || state.atLast; ui.navButtons.last.disabled = !state || state.atLast;
-        ui.notation.querySelector('[aria-current="move"]')?.scrollIntoView?.({ block: 'nearest' });
+        ui.body.querySelector('[aria-current="move"]')?.scrollIntoView?.({ block: 'nearest' });
     }
 
     function syncExplorationEngine() {
@@ -296,7 +309,10 @@
             head: mounted.exploration.head, content: mounted.exploration.body, foot: mounted.exploration.foot });
         if (!shown?.ok) { mounted.phase = 'guided-review'; return; }
         root.document.querySelectorAll('#chessboard [data-caissa-coach-move-annotation]').forEach(node => node.remove());
-        const entered = root.CaissaBotsAnalysisExploration?.enter?.({ fen: projection.fen, analyze: mounted.analyze,
+        const entered = root.CaissaBotsAnalysisExploration?.enter?.({ fen: projection.fen,
+            sourceInitialFen: mounted.analyze.loadedGame?.initialFen || new root.Chess().fen(),
+            sourceMoves: mounted.analyze.getLoadedMoves?.({ verbose: true }) || [], sourceCursor: anchor + 1,
+            analyze: mounted.analyze,
             entryReviewPly: anchor, onPosition: renderExplorationPosition, onAnalysis: renderExplorationAnalysis,
             restore: () => mounted?.analyze?.jumpToMove?.(anchor) });
         if (!entered?.ok) { mounted.phase = 'guided-review';
@@ -351,6 +367,10 @@
         exploration.notation.addEventListener('click', event => {
             const button = event.target?.closest?.('[data-bots-exploration-cursor]');
             if (button) root.CaissaBotsAnalysisExploration?.goTo?.(Number(button.dataset.botsExplorationCursor));
+        });
+        exploration.sourceNotation.addEventListener('click', event => {
+            const button = event.target?.closest?.('[data-bots-exploration-source-cursor]');
+            if (button) root.CaissaBotsAnalysisExploration?.goToSource?.(Number(button.dataset.botsExplorationSourceCursor));
         });
         exploration.back.addEventListener('click', leaveExploration);
         exploration.engine.addEventListener('click', () => {
