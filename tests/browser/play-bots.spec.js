@@ -404,6 +404,11 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
         await expect.poll(() => page.evaluate(() => window.App.game.history().length)).toBe(count + 2);
     }
     await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
+    await page.evaluate(() => window.__caissaPlayHarness.configure({
+        resetSearchSequence: true,
+        scores: [300, 100, 400, 200, 0],
+        bestMoves: ['a1a1', 'a1a1', 'a1a1', 'a1a1', 'a1a1']
+    }));
     await page.locator('[data-bots-primary-post-game-action]').click();
     const shell = page.locator('[data-caissa-bots-shell]');
     await expect(shell).toHaveAttribute('data-bot-shell-phase', 'analysis-summary');
@@ -487,6 +492,11 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
         classifications: [...document.querySelectorAll('.caissa-bots-analysis-summary__row')].map(node => node.textContent),
         analysisStartRequests: window.CaissaBotsAnalysisSummaryPresentation.getSnapshot().analysisStartRequests
     }));
+    const summaryCounts = await page.evaluate(() => Object.fromEntries(
+        [...document.querySelectorAll('.caissa-bots-analysis-summary__row')].map(row => [row.dataset.quality, {
+            player: Number(row.querySelector('[data-side="player"]')?.textContent),
+            bot: Number(row.querySelector('[data-side="bot"]')?.textContent)
+        }])));
     await page.evaluate(() => window.addEventListener('caissa:bots-guided-review-request', event => {
         window.__botsReviewHandoff = event.detail;
     }, { once: true }));
@@ -521,6 +531,25 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
         if (projection.expectedCp !== null) expect(projection.railCp).toBe(projection.expectedCp);
         expect(projection.railSource).toBe('bots-guided-review-ply');
     };
+    const symbolCases = await page.evaluate(() => ['Mistake', 'Blunder'].map(quality => {
+        const index = window.AnalyzeSection.analysisResults.findIndex(item => item?.quality === quality);
+        const item = window.AnalyzeSection.analysisResults[index];
+        return { quality, index, symbol: item?.annotation || null,
+            move: window.AnalyzeSection.getLoadedMoves()[index] || null, side: index % 2 === 0 ? 'player' : 'bot' };
+    }));
+    expect(symbolCases).toEqual([
+        expect.objectContaining({ quality: 'Mistake', index: expect.any(Number), symbol: '?', move: expect.any(String) }),
+        expect.objectContaining({ quality: 'Blunder', index: expect.any(Number), symbol: '??', move: expect.any(String) })
+    ]);
+    for (const item of symbolCases) {
+        expect(item.index).toBeGreaterThanOrEqual(0);
+        expect(summaryCounts[item.quality]?.[item.side]).toBeGreaterThan(0);
+        await shell.locator(`[data-bots-guided-ply="${item.index}"]`).click();
+        await assertProjectedPly(item.index);
+        await expect(shell.locator(`[data-bots-guided-ply="${item.index}"] .caissa-bots-guided__annotation`)).toHaveText(item.symbol);
+        await expect(shell.locator('.caissa-bots-guided__move')).toHaveText(`${item.move}${item.symbol}`);
+        await expect(page.locator('#chessboard [data-caissa-coach-move-annotation]')).toHaveText(item.symbol);
+    }
     await assertProjectedPly(0);
     await shell.getByRole('button', { name: 'Next move' }).click(); await assertProjectedPly(1);
     await shell.getByRole('button', { name: 'Previous move' }).click(); await assertProjectedPly(0);
@@ -618,6 +647,15 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
         }, cursor);
         expect(proof).toMatchObject({ board: proof.expected, mode: 'source', cursor, authoritative: entry.ply });
     };
+    for (const item of symbolCases) {
+        const studyMove = shell.locator(`[data-bots-exploration-source-cursor="${item.index + 1}"]`);
+        await expect(studyMove.locator('[data-bots-exploration-annotation]')).toHaveText(item.symbol);
+        await studyMove.click(); await assertSourcePosition(item.index + 1);
+    }
+    await expect(shell.locator('[data-bots-exploration-annotation][data-quality="Mistake"]')).toHaveText('?');
+    expect(await shell.locator('[data-bots-exploration-annotation][data-quality="Blunder"]').allTextContents())
+        .toEqual(expect.arrayContaining(['??']));
+    await page.screenshot({ path: 'test-results/play-bots-study-annotations-desktop.png', fullPage: true });
     await shell.getByRole('button', { name: 'First study position' }).click(); await assertSourcePosition(0);
     await shell.getByRole('button', { name: 'Next study move' }).click(); await assertSourcePosition(1);
     await shell.getByRole('button', { name: 'Last study position' }).click();
@@ -651,6 +689,7 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
     await expect(shell.locator('[data-bots-exploration-source] .caissa-bots-exploration__move'))
         .toHaveCount(sourceEntry.sourcePlyCount);
     await expect(shell.locator('[data-bots-exploration-cursor][aria-current="move"]')).toHaveCount(1);
+    await expect(shell.locator('[data-bots-exploration-variation-section] [data-bots-exploration-annotation]')).toHaveCount(0);
     const temporaryProjection = await page.evaluate(() => {
         const line = window.CaissaBotsAnalysisExploration.getLine(); const move = line.at(-1);
         return { board: window.App.boardAdapter.getPosition(), expectedFen: window.CaissaBotsAnalysisExploration.getFen(),
@@ -701,7 +740,10 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
         await shell.locator(':scope > [data-caissa-bots-body]').evaluate(node => { node.scrollTop = 0; });
         await page.evaluate(() => window.scrollTo(0, 0));
         if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-analysis-exploration-desktop.png', fullPage: true });
-        if (viewport.width === 390) await page.screenshot({ path: 'test-results/play-bots-analysis-exploration-mobile.png', fullPage: true });
+        if (viewport.width === 390) {
+            await page.screenshot({ path: 'test-results/play-bots-analysis-exploration-mobile.png', fullPage: true });
+            await page.screenshot({ path: 'test-results/play-bots-study-annotations-mobile.png', fullPage: true });
+        }
     }
     console.log(`BOTS_ANALYSIS_EXPLORATION_GEOMETRY ${JSON.stringify(explorationGeometry)}`);
     const accessibility = await new AxeBuilder({ page }).include('[data-caissa-bots-shell]').analyze();

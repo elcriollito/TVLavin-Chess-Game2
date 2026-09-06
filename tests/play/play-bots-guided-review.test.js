@@ -47,6 +47,15 @@ test('guided copy uses completed evidence without technical engine metadata', ()
     assert.doesNotMatch(`${model.message} ${model.detail}`, /centipawn|depth|nodes|hash|threads|multipv/i);
 });
 
+test('Bots presentation normalizes Mistake and Blunder symbols without reclassifying evidence', () => {
+    const api = load();
+    assert.equal(api.presentationAnnotation({ quality: 'Mistake', annotation: '!' }), '?');
+    assert.equal(api.presentationAnnotation({ quality: 'Blunder', annotation: '!' }), '??');
+    assert.equal(api.presentationAnnotation({ quality: 'Inaccuracy', annotation: '?!' }), '?!');
+    assert.equal(api.presentationAnnotation({ quality: 'Book', annotation: '' }), '');
+    assert.equal(api.presentationAnnotation({ quality: 'Mistake', annotation: '?', unavailable: true }), '');
+});
+
 test('presentation declares no duplicate chess, PGN, result, classifier, or engine owner', () => {
     assert.doesNotMatch(source, /new\s+Chess|new\s+Worker|reviewMoveIndex|botReviewIndex|App\.(?:moveHistory|game)\s*=|classifyMove|startAnalysis\(/);
     assert.match(source, /reviewPlyOwner: 'AnalyzeSection\.currentMoveIndex'/);
@@ -63,4 +72,11 @@ test('contextual Bots Mentor is an Analysis Exploration presentation, not anothe
     assert.match(source, /mounted\?\.analyze\?\.analysisResults/);
     assert.doesNotMatch(source, /(?:const|let|var)\s+mentor(?:MoveIndex|Fen|Pgn|Engine|Board)\b/i);
     assert.doesNotMatch(source, /new\s+Chess|new\s+Worker|createBoard|Chessboard\s*\(/);
+});
+
+test('Study source projects authoritative annotations while temporary moves remain unclassified', () => {
+    assert.match(source, /kind === 'source' \? mounted\.analyze\.analysisResults\?\.\[move\.index\]/);
+    assert.match(source, /kind === 'source' && symbol/);
+    assert.match(source, /data-bots-exploration-annotation/);
+    assert.doesNotMatch(source, /kind === 'temporary'[\s\S]{0,120}data-bots-exploration-annotation/);
 });

@@ -3393,6 +3393,12 @@ body.caissa-simplified-play-active .caissa-bots-exploration__move {
     font-weight: 750;
     text-align: start;
 }
+body.caissa-simplified-play-active .caissa-bots-exploration__annotation {
+    margin-inline-start: .25rem;
+    color: var(--bot-accent);
+    font-size: .8rem;
+    font-weight: 900;
+}
 body.caissa-simplified-play-active .caissa-bots-exploration__move[aria-current="move"] {
     border-color: color-mix(in srgb, var(--bot-accent) 70%, var(--panel-border));
     background: color-mix(in srgb, var(--bot-accent) 16%, transparent);

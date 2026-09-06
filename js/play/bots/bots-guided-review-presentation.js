@@ -1,8 +1,9 @@
 (function installBotsGuidedReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.3.0';
+    const SCHEMA_VERSION = '1.4.0';
     const REVIEW_WORTHY = Object.freeze(['Inaccuracy', 'Mistake', 'Blunder']);
+    const REQUIRED_PRESENTATION_SYMBOLS = Object.freeze({ Mistake: '?', Blunder: '??' });
     let mounted = null;
     let mentorStudyRequested = false;
     const freeze = value => Object.freeze(value);
@@ -11,6 +12,11 @@
         const node = root.document.createElement(tag); node.className = className;
         Object.entries(attributes).forEach(([name, value]) => node.setAttribute(name, value));
         return node;
+    };
+    const presentationAnnotation = item => {
+        if (!item || item.unavailable === true) return '';
+        return REQUIRED_PRESENTATION_SYMBOLS[item.quality]
+            || (typeof item.annotation === 'string' && item.annotation !== '-' ? item.annotation : '');
     };
 
     function formatEvaluation(item) {
@@ -65,7 +71,7 @@
             message = `${move} stayed within CAISSA's acceptable range.`;
             detail = 'The completed analysis did not classify this move as a review-worthy error.';
         }
-        return freeze({ index, quality, move, annotation: item.annotation || '', evaluation: formatEvaluation(item),
+        return freeze({ index, quality, move, annotation: presentationAnnotation(item), evaluation: formatEvaluation(item),
             message, detail, nextMoment: findNextReviewMoment(analyze) });
     }
 
@@ -214,9 +220,10 @@
                     'aria-label': `${moves[ply]}, ${item?.isBestMove === true ? 'Best' : item?.quality || 'Not analyzed'}`
                 });
                 button.textContent = moves[ply];
-                if (item?.annotation && item.annotation !== '-') {
+                const symbol = presentationAnnotation(item);
+                if (symbol) {
                     const annotation = element('strong', 'caissa-bots-guided__annotation', { 'aria-hidden': 'true' });
-                    annotation.textContent = item.annotation; button.append(annotation);
+                    annotation.textContent = symbol; button.append(annotation);
                 }
                 if (ply === analyze.currentMoveIndex) { button.classList.add('is-current'); button.setAttribute('aria-current', 'move'); }
                 row.append(button);
@@ -339,11 +346,20 @@
             ['white', 'black'].forEach(color => {
                 const move = moves[color];
                 if (!move) { row.append(element('span', 'caissa-bots-exploration__spacer', { 'aria-hidden': 'true' })); return; }
-                const attributes = { type: 'button', 'aria-label': `${kind === 'source' ? 'Study' : 'Temporary'} move ${move.san}` };
+                const evidence = kind === 'source' ? mounted.analyze.analysisResults?.[move.index] || null : null;
+                const symbol = presentationAnnotation(evidence);
+                const classification = evidence?.isBestMove === true ? 'Best' : evidence?.quality || null;
+                const attributes = { type: 'button', 'aria-label': `${kind === 'source' ? 'Study' : 'Temporary'} move ${move.san}`
+                    + (classification ? `, ${classification}` : '') };
                 attributes[kind === 'source' ? 'data-bots-exploration-source-cursor' : 'data-bots-exploration-cursor']
                     = String(move.index + 1);
                 const button = element('button', 'caissa-bots-exploration__move', attributes);
                 button.textContent = move.san; button.dataset.future = String(move.future);
+                if (kind === 'source' && symbol) {
+                    const annotation = element('strong', 'caissa-bots-exploration__annotation', {
+                        'data-bots-exploration-annotation': '', 'data-quality': evidence.quality, 'aria-hidden': 'true' });
+                    annotation.textContent = symbol; button.append(annotation);
+                }
                 if (move.branchAnchor) button.classList.add('is-branch-anchor');
                 if (move.current) button.setAttribute('aria-current', 'move'); row.append(button);
             });
@@ -496,6 +512,6 @@
 
     root.CaissaBotsGuidedReviewPresentation = freeze({ schemaVersion: SCHEMA_VERSION,
         reviewWorthyClassifications: REVIEW_WORTHY, findReviewMoments, findNextReviewMoment,
-        createGuidedModel, requestMentorStudy, cancelMentorStudyRequest,
+        createGuidedModel, presentationAnnotation, requestMentorStudy, cancelMentorStudyRequest,
         hasMentorStudyRequest: () => mentorStudyRequested, enterMentorStudy, enter, unmount, getSnapshot });
 })(typeof window !== 'undefined' ? window : globalThis);

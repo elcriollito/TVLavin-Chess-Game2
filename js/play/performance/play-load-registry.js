@@ -22,7 +22,7 @@
                 'js/play/bots-panel.js?v=2.10.0',
                 'js/play/bots/bots-analysis-summary-presentation.js?v=1.2.0',
                 'js/play/bots/bots-analysis-exploration.js?v=1.0.0',
-                'js/play/bots/bots-guided-review-presentation.js?v=1.3.0'
+                'js/play/bots/bots-guided-review-presentation.js?v=1.4.0'
             ])
         }),
         'coach-stack': Object.freeze({

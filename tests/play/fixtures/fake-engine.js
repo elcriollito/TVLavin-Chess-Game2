@@ -121,7 +121,9 @@ export function installPlayHarness(scenario) {
     window.__caissaPlayHarness = {
         state,
         configure(next) {
-            Object.assign(config, next);
+            if (next?.resetSearchSequence === true) searchSequence = 0;
+            const { resetSearchSequence: _resetSearchSequence, ...updates } = next || {};
+            Object.assign(config, updates);
         },
         emit(workerIndex, line, delay = 0) {
             emit(state.workers[workerIndex], line, delay);
