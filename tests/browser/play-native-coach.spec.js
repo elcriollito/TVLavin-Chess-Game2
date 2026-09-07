@@ -365,10 +365,18 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     for (const viewport of guidedLongPgnLayouts) {
         await page.setViewportSize(viewport);
         const measurement = await page.evaluate(() => {
+            const selectorFor = node => {
+                if (node.id) return `#${node.id}`;
+                const data = [...node.attributes].find(attribute => attribute.name.startsWith('data-caissa-coach'));
+                if (data) return `[${data.name}]`;
+                return `${node.tagName.toLowerCase()}${[...node.classList].map(name => `.${name}`).join('')}`;
+            };
             const shell = document.querySelector('[data-caissa-coach-shell]');
             const head = document.querySelector('[data-caissa-coach-head]');
             const body = document.querySelector('[data-caissa-coach-body]');
             const foot = document.querySelector('[data-caissa-coach-foot]');
+            const context = shell.closest('.caissa-simplified-shell__context');
+            const inspected = [context, ...context.querySelectorAll('*')];
             const descendants = [...document.querySelectorAll(
                 '[data-coach-guided-notation], [data-coach-guided-notation] .analyze-move-list, '
                 + '[data-coach-guided-notation] .move-list-grid')];
@@ -385,6 +393,15 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
                 bodyScrollable: body.scrollHeight > body.clientHeight,
                 descendantOwnerCount: descendants.filter(node => ['auto', 'scroll'].includes(getComputedStyle(node).overflowY)).length,
                 descendantOverflowY: descendants.map(node => getComputedStyle(node).overflowY),
+                scrollableElements: inspected.filter(node => {
+                    const style = getComputedStyle(node);
+                    return node.scrollHeight > node.clientHeight && ['auto', 'scroll'].includes(style.overflowY);
+                }).map(node => {
+                    const style = getComputedStyle(node);
+                    return { selector: selectorFor(node), clientHeight: node.clientHeight, scrollHeight: node.scrollHeight,
+                        overflowY: style.overflowY, height: style.height, maxHeight: style.maxHeight,
+                        minHeight: style.minHeight, position: style.position, display: style.display };
+                }),
                 shellHeightDelta: Math.abs(after.shellHeight - before.shellHeight),
                 headTopDelta: Math.abs(after.headTop - before.headTop),
                 footTopDelta: Math.abs(after.footTop - before.footTop),
@@ -719,6 +736,137 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expectFreshCoachSetup(page);
     expect((await page.evaluate(() => window.App.game.fen()))).not.toBe(guidedResetBefore.gameFen);
     expect(pageErrors).toEqual([]);
+});
+
+test('Coach real long-game review has BODY as its only live vertical scroll owner', async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    await page.goto('/play/coach');
+    const panel = page.locator('[data-caissa-native-coach-panel]');
+    await panel.getByRole('button', { name: 'Play' }).click();
+    await page.evaluate(() => {
+        const pgn = `[Event "Opera Game"]
+[Site "Paris"]
+[Date "1858.??.??"]
+[Round "?"]
+[White "Paul Morphy"]
+[Black "Duke Karl / Count Isouard"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5
+6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5
+11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6
+15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0`;
+        if (!window.App.game.load_pgn(pgn)) throw new Error('Long PGN failed to load');
+        window.App.moveHistory = window.App.game.history({ verbose: true });
+        window.App.currentMoveIndex = window.App.moveHistory.length - 1;
+        window.App.board.position(window.App.game.fen(), false);
+        window.App.gameActive = true;
+        window.handleGameOver();
+    });
+    await expect(page.locator('.caissa-post-game')).toBeVisible();
+    await page.locator('[data-post-game-action="analyze"]').click();
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection?.analysisPhase || 'loading'),
+        { timeout: 60_000 }).toBe('complete');
+    await page.getByRole('button', { name: 'Review Game', exact: true }).click();
+    await expect(page.locator('[data-coach-guided-notation] .move-row')).toHaveCount(17);
+    const layouts = [
+        { width: 1778, height: 1111, label: '1600x1000@90' },
+        { width: 1600, height: 1000, label: '1600x1000@100' },
+        { width: 1455, height: 909, label: '1600x1000@110' },
+        { width: 1280, height: 800, label: '1600x1000@125' },
+        { width: 1366, height: 768, label: '1366x768' },
+        { width: 390, height: 844, label: '390x844' }
+    ];
+    for (const layout of layouts) {
+        await page.setViewportSize(layout);
+        await page.locator('.caissa-simplified-shell__context').evaluate(node => node.scrollIntoView({ block: 'start' }));
+        const hierarchy = await page.evaluate(() => {
+        const shell = document.querySelector('[data-caissa-coach-shell]');
+        const nodes = new Set([...shell.querySelectorAll('*')]);
+        for (let node = shell; node; node = node.parentElement) nodes.add(node);
+        const selectorFor = node => {
+            if (node === document.documentElement) return 'html';
+            if (node === document.body) return 'body';
+            if (node.id) return `#${node.id}`;
+            for (const name of ['data-caissa-coach-body', 'data-caissa-coach-phase-host', 'data-caissa-coach-shell',
+                'data-caissa-coach-head', 'data-caissa-coach-foot', 'data-coach-guided-notation']) {
+                if (node.hasAttribute(name)) return `[${name}]`;
+            }
+            return `${node.tagName.toLowerCase()}${[...node.classList].map(name => `.${name}`).join('')}`;
+        };
+        const diagnosticSelectors = new Set([
+            'html', 'body', '#mainContent',
+            '.caissa-simplified-shell', '.caissa-simplified-shell__workspace',
+            '.caissa-simplified-shell__context', '.caissa-simplified-shell__context-body',
+            '[data-caissa-coach-shell]', '[data-caissa-coach-head]', '[data-caissa-coach-body]',
+            '[data-caissa-coach-foot]', '[data-coach-guided-notation]',
+            '.analyze-move-list', '.move-list-grid'
+        ]);
+        const metrics = [...nodes].map(node => {
+            const style = getComputedStyle(node);
+            return { selector: selectorFor(node), clientHeight: node.clientHeight, scrollHeight: node.scrollHeight,
+                clientWidth: node.clientWidth, scrollWidth: node.scrollWidth,
+                overflowX: style.overflowX, overflowY: style.overflowY, height: style.height, maxHeight: style.maxHeight,
+                minHeight: style.minHeight, position: style.position, display: style.display,
+                scrollable: node.scrollHeight > node.clientHeight && ['auto', 'scroll'].includes(style.overflowY) };
+        });
+        return {
+            hierarchy: metrics.filter(item => item.scrollable || diagnosticSelectors.has(item.selector)),
+            overflowCandidates: metrics.filter(item => ['auto', 'scroll'].includes(item.overflowY)),
+            horizontalOverflow: metrics.filter(item => item.display !== 'none'
+                && item.scrollWidth > item.clientWidth + 1 && ['auto', 'scroll'].includes(item.overflowX))
+                .map(item => item.selector)
+        };
+        });
+        const geometry = await page.evaluate(async () => {
+            const shell = document.querySelector('[data-caissa-coach-shell]');
+            const head = document.querySelector('[data-caissa-coach-head]');
+            const body = document.querySelector('[data-caissa-coach-body]');
+            const foot = document.querySelector('[data-caissa-coach-foot]');
+            const board = document.querySelector('#chessboard');
+            const snapshot = () => ({
+                shell: shell.getBoundingClientRect(), head: head.getBoundingClientRect(),
+                body: body.getBoundingClientRect(), foot: foot.getBoundingClientRect(),
+                board: board.getBoundingClientRect()
+            });
+            body.scrollTop = 0;
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            const before = snapshot();
+            body.scrollTop = body.scrollHeight;
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            const after = snapshot();
+            const delta = (first, second, key) => Math.abs(first[key] - second[key]);
+            return {
+                bodyClientHeight: body.clientHeight, bodyScrollHeight: body.scrollHeight,
+                bodyScrollTop: body.scrollTop, shellHeightDelta: delta(before.shell, after.shell, 'height'),
+                headTopDelta: delta(before.head, after.head, 'top'), footTopDelta: delta(before.foot, after.foot, 'top'),
+                boardTopDelta: delta(before.board, after.board, 'top'),
+                boardWidthDelta: delta(before.board, after.board, 'width'),
+                shellHorizontalOverflow: Math.max(0, shell.scrollWidth - shell.clientWidth)
+            };
+        });
+        console.log(`COACH_REAL_LONG_SCROLL_HIERARCHY ${layout.label} ${JSON.stringify(hierarchy)}`);
+        console.log(`COACH_REAL_LONG_GEOMETRY ${layout.label} ${JSON.stringify(geometry)}`);
+        expect(hierarchy.hierarchy.filter(item => item.scrollable).map(item => item.selector)).toEqual([
+            '[data-caissa-coach-body]'
+        ]);
+        expect(hierarchy.horizontalOverflow).toEqual([]);
+        expect(geometry.bodyScrollHeight).toBeGreaterThan(geometry.bodyClientHeight);
+        expect(geometry.bodyScrollTop).toBeGreaterThan(0);
+        expect(geometry.shellHeightDelta).toBeLessThanOrEqual(0.5);
+        expect(geometry.headTopDelta).toBeLessThanOrEqual(0.5);
+        expect(geometry.footTopDelta).toBeLessThanOrEqual(0.5);
+        expect(geometry.boardTopDelta).toBeLessThanOrEqual(0.5);
+        expect(geometry.boardWidthDelta).toBeLessThanOrEqual(0.5);
+        expect(geometry.shellHorizontalOverflow).toBe(0);
+        await page.locator('[data-caissa-coach-body]').evaluate(node => { node.scrollTop = 0; });
+        if (layout.label === '1600x1000@100') {
+            await page.screenshot({ path: 'artifacts/play-coach-double-scroll-desktop.png', fullPage: false });
+        }
+        if (layout.label === '390x844') {
+            await page.screenshot({ path: 'artifacts/play-coach-double-scroll-mobile.png', fullPage: false });
+        }
+    }
 });
 
 test('Coach Review Summary remains inside Play, is responsive, keyboard ordered, and accessible', async ({ page }) => {

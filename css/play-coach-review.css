@@ -1,6 +1,10 @@
 /* CAISSA Play v3.1 Coach setup and review presentation. Strictly Coach-context scoped. */
 
 body.caissa-coach-review-summary-active [data-caissa-floating-controls] { display: none !important; }
+body.caissa-simplified-play-active:is(.caissa-coach-review-summary-active, .caissa-coach-guided-review-active) #playSection {
+    overflow-y: hidden;
+    overscroll-behavior-y: none;
+}
 body.caissa-simplified-play-active.caissa-coach-review-summary-active
     .caissa-simplified-shell__board-stage > :not(.caissa-simplified-shell__board-region):not(.caissa-simplified-shell__sr-heading) {
     display: none !important;
