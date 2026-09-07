@@ -62,3 +62,20 @@ test('presentation and integration add no engine, chess, route, or duplicate sta
         assert.doesNotMatch(presentation, forbidden);
     }
 });
+
+test('Coach game-over reuses PostGameCore actions in the Bots-certified Body and Foot hierarchy', () => {
+    const presentation = read('js/play/native-coach/coach-game-over-presentation.js');
+    const core = read('js/play/post-game-core.js');
+    assert.match(presentation, /review\.textContent = 'Review Game'/);
+    assert.match(presentation, /preview\.after\(review\)/);
+    assert.match(presentation, /if \(newGame\) foot\.appendChild\(newGame\)/);
+    assert.match(presentation, /menuItems\.append\(\.\.\.pgnActions\)/);
+    assert.match(presentation, /menuItems\.appendChild\(consent\)/);
+    assert.match(presentation, /CaissaPostGameExperienceInstance\?\.execute\?\.\(action\)/);
+    for (const action of ['copy-pgn', 'download-pgn', 'save-game', 'new-game'])
+        assert.match(core, new RegExp(`action === '${action}'`));
+    assert.match(core, /this\.#clipboard\?\.writeText\?\.\(this\.#record\.notation\.pgn\)/);
+    assert.match(core, /new this\.#Blob\(\[this\.#record\.notation\.pgn\]/);
+    assert.match(core, /this\.#persistence\?\.saveCompleted\?\.\(this\.#record\)/);
+    assert.doesNotMatch(presentation, /clipboard\.writeText|new\s+Blob|saveCompleted|localStorage/);
+});

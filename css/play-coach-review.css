@@ -735,10 +735,20 @@ body.caissa-simplified-play-active .caissa-coach-game-over-context .caissa-post-
 }
 .caissa-coach-game-over__quality-count { margin: 0; color: #fff; font-weight: 800; }
 body.caissa-simplified-play-active [data-caissa-coach-game-over-foot] .caissa-post-game__actions {
-    grid-template-columns: minmax(0, 1fr);
-    margin-top: .15rem;
+    display: none;
 }
-body[data-caissa-play-v2-entry] [data-caissa-coach-game-over-foot] .caissa-post-game__action--secondary {
+body.caissa-simplified-play-active .caissa-coach-game-over-context [data-coach-game-over-review] {
+    width: 100%;
+    min-height: 54px !important;
+    margin-top: auto;
+}
+body.caissa-simplified-play-active [data-caissa-coach-game-over-foot] {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .55rem;
+}
+body[data-caissa-play-v2-entry] [data-caissa-coach-game-over-foot] > .caissa-post-game__action--secondary {
     border-color: var(--panel-border);
     background: #202a38;
     font-size: .95rem;
@@ -746,23 +756,84 @@ body[data-caissa-play-v2-entry] [data-caissa-coach-game-over-foot] .caissa-post-
 body.caissa-simplified-play-active [data-caissa-coach-game-over-foot]
     .caissa-post-game__action--secondary[data-post-game-action="new-game"] {
     width: 100%;
-    min-height: 64px !important;
-    border-color: #50b97b;
-    background: #1f6843;
+    min-height: 48px !important;
+    border-color: #52647a;
+    background: #202a38;
     color: #fff;
-    font-size: 1.16rem;
-    font-weight: 850;
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 14%);
+    font-size: clamp(15px, 14px + .25vw, 17px);
+    font-weight: 750;
 }
 body.caissa-simplified-play-active [data-caissa-coach-game-over-foot]
-    .caissa-post-game__action--secondary[data-post-game-action="new-game"]:hover {
-    border-color: #67cf91;
-    background: #26764c;
+    .caissa-post-game__action--secondary[data-post-game-action="new-game"]::before {
+    content: "+";
+    display: inline-grid;
+    width: 1.1em;
+    height: 1.1em;
+    margin-inline-end: .42rem;
+    place-items: center;
+    border-radius: 50%;
+    background: #f4f7fb;
+    color: #17202b;
+    font-size: .9em;
+    font-weight: 900;
+    line-height: 1;
 }
-body.caissa-simplified-play-active [data-caissa-coach-game-over-foot]
-    .caissa-post-game__action--secondary[data-post-game-action="new-game"]:focus-visible {
-    outline: 3px solid color-mix(in srgb, #67cf91 72%, #fff);
-    outline-offset: 3px;
+.caissa-coach-game-over__menu { position: relative; min-width: 0; }
+.caissa-coach-game-over__menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    min-height: 48px;
+    padding: 8px 10px;
+    border: 1px solid #52647a;
+    border-radius: .55rem;
+    background: #202a38;
+    color: #f4f7fb;
+    font-size: clamp(15px, 14px + .25vw, 17px);
+    font-weight: 750;
+    cursor: pointer;
+    list-style: none;
+}
+.caissa-coach-game-over__menu-toggle::-webkit-details-marker { display: none; }
+.caissa-coach-game-over__menu-toggle:focus-visible {
+    outline: 3px solid var(--focus-ring, #8ec5ff);
+    outline-offset: 2px;
+}
+.caissa-coach-game-over__menu-mark { letter-spacing: .08em; }
+.caissa-coach-game-over__menu-items {
+    position: absolute;
+    z-index: 12;
+    right: 0;
+    bottom: calc(100% + .55rem);
+    display: grid;
+    width: calc(200% + .55rem);
+    max-width: calc(100vw - 2rem);
+    gap: .4rem;
+    padding: .55rem;
+    border: 1px solid var(--panel-border);
+    border-radius: .65rem;
+    background: color-mix(in srgb, var(--play-theme-card, #17202b) 98%, black);
+    box-shadow: 0 16px 34px rgb(0 0 0 / 36%);
+}
+.caissa-coach-game-over__menu:not([open]) .caissa-coach-game-over__menu-items { display: none; }
+.caissa-coach-game-over__menu-items .caissa-post-game__action { width: 100%; }
+.caissa-coach-game-over__menu-items [data-post-game-action="copy-pgn"]::before {
+    content: "⧉"; margin-inline-end: .45rem;
+}
+.caissa-coach-game-over__menu-items [data-post-game-action="download-pgn"]::before {
+    content: "↓"; margin-inline-end: .45rem;
+}
+.caissa-coach-game-over__menu-items [data-post-game-action="save-game"]::before {
+    content: "▣"; margin-inline-end: .45rem;
+}
+.caissa-coach-game-over__menu-items .caissa-post-game__consent {
+    margin: .1rem 0 0;
+    padding: .45rem .25rem .1rem;
+}
+.caissa-coach-game-over__menu-items .caissa-post-game__feedback:not(:empty) {
+    margin: 0;
+    padding: .2rem;
 }
 
 @media (max-width: 900px) {

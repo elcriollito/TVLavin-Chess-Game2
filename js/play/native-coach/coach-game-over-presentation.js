@@ -1,7 +1,7 @@
 (function installCoachGameOverPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.2.0';
+    const SCHEMA_VERSION = '1.3.0';
     const OWNER = 'post-game-core';
     const CATEGORY_ORDER = Object.freeze(['blunder', 'mistake', 'inaccuracy', 'best', 'precise', 'good', 'book']);
     const CATEGORY_LABELS = Object.freeze({
@@ -99,32 +99,64 @@
                 'data-coach-game-over-qualities': '', 'aria-label': 'Move quality preview'
             });
             section.insertBefore(eyebrow, title); section.insertBefore(preview, summary);
-            const actionsState = { parent: actionsContainer.parentNode, next: actionsContainer.nextSibling };
+            const actionsState = { parent: actionsContainer.parentNode, next: actionsContainer.nextSibling,
+                hidden: actionsContainer.hidden };
+            const actionOrder = [...actions];
+            const actionStates = actions.map(node => ({ node, hidden: node.hidden, text: node.textContent }));
+            const review = actions.find(node => node.dataset.postGameAction === 'analyze');
+            const newGame = actions.find(node => node.dataset.postGameAction === 'new-game');
+            const pgnActions = ['copy-pgn', 'download-pgn', 'save-game']
+                .map(action => actions.find(node => node.dataset.postGameAction === action)).filter(Boolean);
+            const consent = section.querySelector('.caissa-post-game__consent');
+            const feedback = section.querySelector('[data-post-game-feedback]');
+            const consentMarker = root.document.createComment('caissa-coach-game-over-consent-home');
+            const feedbackMarker = root.document.createComment('caissa-coach-game-over-feedback-home');
+            consent?.parentNode?.insertBefore(consentMarker, consent);
+            feedback?.parentNode?.insertBefore(feedbackMarker, feedback);
             const foot = element('div',
                 'caissa-native-coach-panel__foot-content caissa-native-coach-panel__foot-content--game-over',
                 { 'data-caissa-coach-game-over-foot': '' });
-            foot.appendChild(actionsContainer);
+            const menu = element('details', 'caissa-coach-game-over__menu', { 'data-coach-game-over-menu': '' });
+            const menuToggle = element('summary', 'caissa-coach-game-over__menu-toggle', {
+                'aria-label': 'Completed game menu'
+            });
+            const menuMark = element('span', 'caissa-coach-game-over__menu-mark', { 'aria-hidden': 'true' });
+            menuMark.textContent = '•••';
+            const menuLabel = element('span', ''); menuLabel.textContent = 'Menu';
+            const menuItems = element('div', 'caissa-coach-game-over__menu-items', {
+                'data-coach-game-over-menu-items': '', 'aria-label': 'Completed game PGN actions'
+            });
+            menuToggle.append(menuMark, menuLabel); menuItems.append(...pgnActions);
+            if (consent) menuItems.appendChild(consent);
+            if (feedback) menuItems.appendChild(feedback);
+            menu.append(menuToggle, menuItems);
+            if (review) {
+                review.textContent = 'Review Game';
+                review.setAttribute('data-coach-game-over-review', '');
+                preview.after(review);
+            }
+            if (newGame) foot.appendChild(newGame);
+            foot.appendChild(menu);
+            actionsContainer.hidden = true;
             const forwardAction = event => {
                 const action = event.target?.closest?.('[data-post-game-action]')?.dataset?.postGameAction;
                 if (!action || !foot.contains(event.target)) return;
                 root.CaissaPostGameExperienceInstance?.execute?.(action);
             };
             foot.addEventListener('click', forwardAction);
-            const actionStates = actions.map(node => ({ node, hidden: node.hidden, text: node.textContent }));
             actions.forEach(node => {
                 const action = node.dataset.postGameAction;
-                node.hidden = !['analyze', 'new-game'].includes(action);
-                if (action === 'analyze') node.textContent = 'Review Game';
+                node.hidden = !['analyze', 'new-game', 'copy-pgn', 'download-pgn', 'save-game'].includes(action);
             });
-            const concealed = [summary, section.querySelector('.caissa-post-game__consent'),
-                section.querySelector('[data-post-game-feedback]')].filter(Boolean)
+            const concealed = [summary].filter(Boolean)
                 .map(node => ({ node, hidden: node.hidden }));
             concealed.forEach(item => { item.node.hidden = true; });
             section.classList.add('caissa-coach-game-over-context');
             section.dataset.caissaGameOverContext = 'coach';
             root.document.body?.classList?.add('caissa-coach-game-over-active');
-            mounted = { section, title, reason, eyebrow, preview, actionsContainer, actionsState,
-                foot, forwardAction, actionStates, concealed, model: null };
+            mounted = { section, title, reason, eyebrow, preview, actionsContainer, actionsState, actionOrder,
+                review, consent, feedback, consentMarker, feedbackMarker, menu, foot, forwardAction,
+                actionStates, concealed, model: null };
         }
         return render(input);
     }
@@ -135,7 +167,14 @@
         mounted.actionStates.forEach(item => { item.node.hidden = item.hidden; item.node.textContent = item.text; });
         mounted.concealed.forEach(item => { item.node.hidden = item.hidden; });
         mounted.foot.removeEventListener('click', mounted.forwardAction);
-        mounted.actionsState.parent?.insertBefore?.(mounted.actionsContainer, mounted.actionsState.next);
+        mounted.review?.removeAttribute('data-coach-game-over-review');
+        mounted.actionOrder.forEach(action => mounted.actionsContainer.appendChild(action));
+        mounted.actionsContainer.hidden = mounted.actionsState.hidden;
+        if (mounted.actionsContainer.parentNode !== mounted.actionsState.parent)
+            mounted.actionsState.parent?.insertBefore?.(mounted.actionsContainer, mounted.actionsState.next);
+        if (mounted.consent) mounted.consentMarker.parentNode?.insertBefore?.(mounted.consent, mounted.consentMarker);
+        if (mounted.feedback) mounted.feedbackMarker.parentNode?.insertBefore?.(mounted.feedback, mounted.feedbackMarker);
+        mounted.consentMarker.remove(); mounted.feedbackMarker.remove();
         mounted.foot.remove();
         mounted.eyebrow.remove(); mounted.preview.remove();
         mounted.section.classList.remove('caissa-coach-game-over-context');
