@@ -34,6 +34,7 @@ const AnalyzeSection = {
     liveEngineEnabled: false,
     liveEngineToken: 0,
     liveEngineTimer: null,
+    liveEngineDebounceMs: 350,
     liveEngineOwner: null,
     livePositionAnalyses: {},
     liveCurrentFen: null,
@@ -1378,7 +1379,7 @@ const AnalyzeSection = {
         clearTimeout(this.liveEngineTimer);
         this.liveEngineTimer = setTimeout(() => {
             this.runLiveEvaluation();
-        }, 0);
+        }, this.liveEngineDebounceMs);
     },
 
     async runLiveEvaluation() {
@@ -1806,9 +1807,9 @@ const AnalyzeSection = {
      */
     async ensureAnalysisEngine() {
         if (this.analysisEngine?.isReady?.()) return this.analysisEngine;
-        if (!this.analysisEngine && window.EngineRegistry?.createEngine) {
-            this.analysisEngine = EngineRegistry.createEngine('stockfish', {
-                autoStart: false, owner: 'play-v2-postgame-analyze', handshakeTimeoutMs: 4000, searchTimeoutMs: 12000
+        if (!this.analysisEngine && window.EngineRegistry?.createAnalyzeEngine) {
+            this.analysisEngine = EngineRegistry.createAnalyzeEngine('stockfish-18-lite', {
+                autoStart: false, owner: 'analyze-v2-stockfish-18', handshakeTimeoutMs: 8000, searchTimeoutMs: 12000
             });
         }
         if (!this.analysisEngine) return null;

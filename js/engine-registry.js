@@ -6,33 +6,33 @@
     const ENGINES = {
         stockfish: {
             id: 'stockfish',
-            name: 'Stockfish 16',
-            version: '16',
-            author: 'Stockfish Team',
+            name: 'Stockfish 2019 MV',
+            version: '2019-08-15-multi-variant',
+            author: 'D. Dugovic, F. Fichter et al.',
             license: 'GPLv3',
-            execution: 'wasm',
+            execution: 'asm-js',
             workerPath: '/engine/stockfish-working.js',
-            wasmPath: 'engine/stockfish-working.wasm',
+            wasmPath: '',
             defaultOptions: { MultiPV: 1 },
             defaultDepth: 20,
             supportsChess960: false,
             enabled: true,
-            notes: 'Bundled WASM build'
+            notes: 'Legacy multi-variant browser build'
         },
         'stockfish-lite': {
             id: 'stockfish-lite',
-            name: 'Stockfish Lite',
-            version: '16',
-            author: 'Stockfish Team',
+            name: 'Stockfish 2019 MV (Lite profile)',
+            version: '2019-08-15-multi-variant',
+            author: 'D. Dugovic, F. Fichter et al.',
             license: 'GPLv3',
-            execution: 'wasm',
+            execution: 'asm-js',
             workerPath: '/engine/stockfish-working.js',
-            wasmPath: 'engine/stockfish-working.wasm',
+            wasmPath: '',
             defaultOptions: { MultiPV: 1 },
             defaultDepth: 12,
             supportsChess960: false,
             enabled: true,
-            notes: 'Lightweight config'
+            notes: 'Legacy multi-variant build with lightweight search profile'
         },
         'fairy-stockfish': {
             id: 'fairy-stockfish',
@@ -96,6 +96,49 @@
         }
     };
 
+    // Analyze-only providers are intentionally excluded from list()/getEnabled().
+    // Arena and legacy consumers therefore retain their existing engine route.
+    const ANALYZE_ENGINES = {
+        'stockfish-18-lite': {
+            id: 'stockfish-18-lite',
+            name: 'Stockfish 18 Lite WASM',
+            version: '18.0.0',
+            author: 'the Stockfish developers (see AUTHORS file)',
+            license: 'GPLv3',
+            execution: 'wasm',
+            workerPath: '/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js',
+            wasmPath: '/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.wasm',
+            expectedUci: {
+                name: 'Stockfish 18 Lite WASM',
+                author: 'the Stockfish developers (see AUTHORS file)'
+            },
+            defaultOptions: { MultiPV: 1, Hash: 16 },
+            defaultDepth: 20,
+            supportsChess960: false,
+            enabled: true,
+            notes: 'Analyze V2 isolated single-threaded WASM/NNUE provider'
+        }
+    };
+
+    function createConfiguredEngine(config, options = {}) {
+        if (!config) return null;
+        if (config.enabled === false) {
+            console.warn('[EngineRegistry] Engine disabled:', config.name);
+            return null;
+        }
+        if (typeof window.EngineAdapter !== 'function') {
+            console.warn('[EngineRegistry] EngineAdapter not loaded');
+            return null;
+        }
+        return new window.EngineAdapter({
+            ...config,
+            ...options,
+            workerPath: config.workerPath,
+            wasmPath: config.wasmPath,
+            expectedUci: config.expectedUci
+        });
+    }
+
     const EngineRegistry = {
         ENGINES,
         list() {
@@ -109,16 +152,13 @@
         },
         createEngine(id, options = {}) {
             const config = this.get(id) || this.get('stockfish');
-            if (!config) return null;
-            if (config.enabled === false) {
-                console.warn('[EngineRegistry] Engine disabled:', config.name);
-                return null;
-            }
-            if (typeof window.EngineAdapter !== 'function') {
-                console.warn('[EngineRegistry] EngineAdapter not loaded');
-                return null;
-            }
-            return new window.EngineAdapter({ ...config, ...options, workerPath: config.workerPath });
+            return createConfiguredEngine(config, options);
+        },
+        getAnalyze(id) {
+            return ANALYZE_ENGINES[id] || null;
+        },
+        createAnalyzeEngine(id, options = {}) {
+            return createConfiguredEngine(this.getAnalyze(id), options);
         }
     };
 

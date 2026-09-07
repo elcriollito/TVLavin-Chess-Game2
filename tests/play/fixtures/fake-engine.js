@@ -50,10 +50,19 @@ export function installPlayHarness(scenario) {
             state.workerMessages.push(command);
             const multiPv = command.match(/^setoption name MultiPV value (\d+)$/);
             if (multiPv) this.multiPv = Number(multiPv[1]);
-            if (command === 'uci') emit(this, 'id name CAISSA deterministic fixture');
-            if (command === 'uci') emit(this, 'uciok');
+            if (command === 'uci') {
+                const sf18 = this.url === '/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js';
+                emit(this, sf18
+                    ? 'id name Stockfish 18 Lite WASM'
+                    : 'id name CAISSA deterministic fixture');
+                if (sf18) emit(this, 'id author the Stockfish developers (see AUTHORS file)');
+                emit(this, 'uciok');
+            }
             if (command === 'isready' && config.autoReady !== false) emit(this, 'readyok');
-            if (command === 'stop') this.continuousSearchId += 1;
+            if (command === 'stop') {
+                this.continuousSearchId += 1;
+                emit(this, `bestmove ${config.bestMove ?? 'e7e5'}`);
+            }
             if (command.startsWith('go') && config.autoReply !== false) {
                 const searchIndex = searchSequence++;
                 const cp = Array.isArray(config.scores) ? config.scores[searchIndex % config.scores.length] : config.cp;

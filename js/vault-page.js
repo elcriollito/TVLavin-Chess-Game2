@@ -49,7 +49,7 @@ const softwareItems = [
         version: 'v2.1.3',
         platform: 'Windows x64',
         icon: 'fas fa-chess-knight',
-        description: 'Full CAISSA chess platform in a portable package. Includes Stockfish 16 and built-in opening book.',
+        description: 'Full CAISSA chess platform in a portable package. Includes Stockfish 2019 MV and built-in opening book.',
         downloadUrl: '#',
         releaseNotesUrl: '#',
         sha256: null  // No SHA256 yet

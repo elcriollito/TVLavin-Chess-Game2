@@ -6,6 +6,17 @@ const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const css = fs.readFileSync(new URL('../css/analyze-v2-shell.css', import.meta.url), 'utf8');
 const shell = fs.readFileSync(new URL('../js/analyze-v2-shell.js', import.meta.url), 'utf8');
 const analyze = fs.readFileSync(new URL('../js/analyze-section.js', import.meta.url), 'utf8');
+const registry = fs.readFileSync(new URL('../js/engine-registry.js', import.meta.url), 'utf8');
+const adapter = fs.readFileSync(new URL('../js/engine-adapter.js', import.meta.url), 'utf8');
+const server = fs.readFileSync(new URL('../server.js', import.meta.url), 'utf8');
+const legacyShells = [
+    'index.html',
+    'play-v2.html',
+    'play-v2-public-beta.html',
+    'play-v2-promotion-qa.html',
+    'play-v2-ipad-analyze-diagnostic.html',
+    'yahoo-classic.html'
+].map(file => ({ file, source: fs.readFileSync(new URL(`../${file}`, import.meta.url), 'utf8') }));
 
 test('A1 exposes one two-region Analyze V2 shell and one authoritative board host', () => {
     assert.equal((html.match(/data-caissa-analyze-v2(?:\s|>)/g) || []).length, 1);
@@ -72,6 +83,8 @@ test('A1.3 streams four attributed lines through the existing Analyze engine own
     assert.match(analyze, /startInfiniteAnalysisAttributed\?\.\(fen,/);
     assert.match(analyze, /multiPv:\s*this\.liveMultiPvCount/);
     assert.match(analyze, /liveUiThrottleMs:\s*140/);
+    assert.match(analyze, /liveEngineDebounceMs:\s*350/);
+    assert.match(analyze, /},\s*this\.liveEngineDebounceMs\);/);
     assert.match(analyze, /generation !== this\.liveEngineGenerationId/);
     assert.match(analyze, /handleWorkspaceViewChange\(view\)/);
     assert.doesNotMatch(analyze, /analyzeLiveMultiPvPosition/);
@@ -84,4 +97,32 @@ test('A1 assets are registered once after the legacy base styles', () => {
     assert.equal((html.match(/analyze-v2-shell\.css/g) || []).length, 1);
     assert.equal((html.match(/analyze-v2-shell\.js/g) || []).length, 1);
     assert.ok(html.indexOf('caissa-mobile-foundation.css') < html.indexOf('analyze-v2-shell.css'));
+});
+
+test('A1.4 isolates Analyze on the versioned Stockfish 18 provider', () => {
+    assert.match(analyze, /createAnalyzeEngine\('stockfish-18-lite'/);
+    assert.doesNotMatch(analyze, /createEngine\('stockfish'/);
+    assert.match(registry, /stockfish-18-lite-single\.js/);
+    assert.match(registry, /stockfish-18-lite-single\.wasm/);
+    assert.match(registry, /name:\s*'Stockfish 18 Lite WASM'/);
+    assert.match(registry, /expectedUci:/);
+    assert.match(adapter, /ENGINE_IDENTITY_MISMATCH/);
+    assert.match(server, /'\.wasm':\s*'application\/wasm'/);
+});
+
+test('A1.4 preserves the legacy worker and exposes only honest legacy labels to Arena', () => {
+    assert.equal((registry.match(/workerPath:\s*'\/engine\/stockfish-working\.js'/g) || []).length, 2);
+    assert.match(registry, /name:\s*'Stockfish 2019 MV'/);
+    assert.doesNotMatch(registry, /name:\s*'Stockfish 16'/);
+    assert.match(registry, /list\(\)\s*\{\s*return Object\.values\(ENGINES\)/);
+    assert.match(registry, /getAnalyze\(id\)/);
+    assert.match(html, /Stockfish 2019 MV \| Depth 0 \| Classical/);
+    assert.doesNotMatch(html, /Stockfish 16 \| Depth 0 \| NNUE/);
+});
+
+test('A1.4 removes false Stockfish 16/17/NNUE labels from every legacy shell', () => {
+    for (const { file, source } of legacyShells) {
+        assert.doesNotMatch(source, /Stockfish (?:16|17)|Stockfish Lite|Depth 0 \| NNUE/, file);
+        assert.match(source, /Stockfish 2019 MV/, file);
+    }
 });

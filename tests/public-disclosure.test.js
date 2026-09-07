@@ -83,7 +83,7 @@ test('public HTML has no local machine path or obvious secret token', () => {
 
 test('required third-party engine attribution remains available', () => {
   const page = read('index.html');
-  for (const required of ['Stockfish 16 - GPLv3', 'Arasan - MIT', 'Fairy-Stockfish - GPLv3']) {
+  for (const required of ['Stockfish 2019 MV - GPLv3', 'Arasan - MIT', 'Fairy-Stockfish - GPLv3']) {
     assert.ok(page.includes(required), `${required} attribution was removed`);
   }
 });

@@ -57,3 +57,40 @@ test('remote, route-relative, and query-controlled Worker URLs fail closed', asy
         assert.equal(f.workers.length, 0);
     }
 });
+
+test('versioned Analyze SF18 route validates the exact UCI identity', async () => {
+    const expectedUci = {
+        name: 'Stockfish 18 Lite WASM',
+        author: 'the Stockfish developers (see AUTHORS file)'
+    };
+    const f = fixture({
+        workerPath: '/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js',
+        expectedUci
+    });
+    const started = f.adapter.start();
+    const worker = f.workers[0];
+    assert.equal(worker.url, '/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js');
+    worker.emit(`id name ${expectedUci.name}`);
+    worker.emit(`id author ${expectedUci.author}`);
+    worker.emit('uciok');
+    worker.emit('readyok');
+    await started;
+    assert.deepEqual({ ...f.adapter.getUciIdentity() }, { ...expectedUci, validated: true });
+});
+
+test('Analyze SF18 route fails closed on a mismatched identity without legacy fallback', async () => {
+    const f = fixture({
+        workerPath: '/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js',
+        expectedUci: {
+            name: 'Stockfish 18 Lite WASM',
+            author: 'the Stockfish developers (see AUTHORS file)'
+        }
+    });
+    const started = f.adapter.start();
+    f.workers[0].emit('id name Stockfish 2019-08-15 Multi-Variant');
+    f.workers[0].emit('id author D. Dugovic, F. Fichter et al.');
+    f.workers[0].emit('uciok');
+    await assert.rejects(started, error => error.code === 'ENGINE_IDENTITY_MISMATCH');
+    assert.equal(f.workers.length, 1);
+    assert.equal(f.workers[0].terminated, true);
+});

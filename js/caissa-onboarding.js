@@ -28,7 +28,7 @@ const CaissaOnboarding = {
             title: 'Powerful Analysis',
             icon: 'microchip',
             content: `
-                <p><strong>Stockfish 17</strong> runs directly in your browser with multi-variant analysis.</p>
+                <p><strong>Stockfish 2019 MV</strong> runs directly in your browser with multi-variant analysis.</p>
                 <p>Load FEN positions or PGN games from the <strong>Game Library</strong> to get instant engine evaluations.</p>
             `,
             buttonText: 'Next'

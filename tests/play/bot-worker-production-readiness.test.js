@@ -15,7 +15,9 @@ test('canonical Worker URL has one immutable registry source and no override cha
     ]);
     assert.equal((registry.match(/workerPath: '\/engine\/stockfish-working\.js'/g) || []).length, 2);
     assert.doesNotMatch(registry + adapter + contract, /searchParams.*worker|localStorage.*worker|sessionStorage.*worker/i);
-    assert.match(adapter, /workerUrl !== '\/engine\/stockfish-working\.js'/);
+    assert.match(adapter, /APPROVED_WORKER_URLS\.has\(workerUrl\)/);
+    assert.match(adapter, /'\/engine\/stockfish-working\.js'/);
+    assert.match(adapter, /'\/assets\/vendor\/stockfish\/18\.0\.0\/stockfish-18-lite-single\.js'/);
     assert.match(contract, /canonicalWorkerUrl: WORKER_URL/);
 });
 

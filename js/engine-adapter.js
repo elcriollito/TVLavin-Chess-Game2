@@ -4,6 +4,11 @@
  */
 
 (function () {
+    const APPROVED_WORKER_URLS = new Set([
+        '/engine/stockfish-working.js',
+        '/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js'
+    ]);
+
     class EngineAdapter {
         constructor(config = {}) {
             this.config = config || {};
@@ -12,6 +17,8 @@
             this.workerPath = this.config.workerPath || 'engine/stockfish-working.js';
             this.wasmPath = this.config.wasmPath || '';
             this.defaultOptions = this.config.defaultOptions || {};
+            this.expectedUci = this.config.expectedUci || null;
+            this.uciIdentity = { name: null, author: null, validated: false };
             this.supportsChess960 = !!this.config.supportsChess960;
             this.notes = this.config.notes || '';
             this.autoStart = this.config.autoStart !== false;
@@ -42,6 +49,8 @@
             this.attributionGeneration = 0;
             this.attributionEnabled = false;
             this.attributionBarrierPending = false;
+            this.attributionAwaitingBestmove = false;
+            this.attributionRestoreMultiPvAfterStop = false;
             this.attributedActive = null;
             this.attributedPending = null;
             this.attributionDiagnostics = {
@@ -140,9 +149,10 @@
                 if (!workerUrl) {
                     throw new Error('Worker path is missing');
                 }
-                if (workerUrl !== '/engine/stockfish-working.js') {
+                if (!APPROVED_WORKER_URLS.has(workerUrl)) {
                     throw new Error('Worker URL is not approved');
                 }
+                this.uciIdentity = { name: null, author: null, validated: false };
                 const generation = ++this.workerGeneration;
                 const worker = new Worker(workerUrl);
                 this.engine = worker;
@@ -180,8 +190,22 @@
                 this.onLine(message);
             }
 
+            if (message.startsWith('id name ')) {
+                this.uciIdentity.name = message.slice('id name '.length).trim();
+            }
+            if (message.startsWith('id author ')) {
+                this.uciIdentity.author = message.slice('id author '.length).trim();
+            }
+
             if (message.includes('uciok')) {
                 if (this.handshakePhase !== 'awaiting-uciok') return;
+                if (this.expectedUci && (this.uciIdentity.name !== this.expectedUci.name
+                    || this.uciIdentity.author !== this.expectedUci.author)) {
+                    this.failGeneration(generation, 'ENGINE_IDENTITY_MISMATCH',
+                        'The chess engine identity did not match the configured provider.');
+                    return;
+                }
+                this.uciIdentity.validated = true;
                 this.clearHandshakeTimer();
                 // `uciok` confirms protocol identity, not search readiness.
                 this.configureEngine();
@@ -209,6 +233,16 @@
                 this.analyzing = false;
                 const match = message.match(/bestmove ([a-h][1-8][a-h][1-8][qrbnQRBN]?)/);
                 if (this.attributionEnabled) {
+                    if (this.attributionBarrierPending && this.attributionAwaitingBestmove) {
+                        this.attributionDiagnostics.rejectedRawMessages += 1;
+                        this.attributionAwaitingBestmove = false;
+                        if (this.attributionRestoreMultiPvAfterStop) {
+                            this.send(`setoption name MultiPV value ${this.multipv}`);
+                            this.attributionRestoreMultiPvAfterStop = false;
+                        }
+                        this.send('isready');
+                        return;
+                    }
                     if (this.attributionBarrierPending || !this.attributedActive
                         || !['bestmove', 'candidates'].includes(this.attributedActive.kind)) {
                         this.attributionDiagnostics.rejectedRawMessages += 1;
@@ -384,6 +418,7 @@
         completeAttributionBarrier() {
             if (!this.attributionBarrierPending) return;
             this.attributionBarrierPending = false;
+            this.attributionAwaitingBestmove = false;
             const pending = this.attributedPending;
             this.attributedPending = null;
             this.activateAttributedOperation(pending);
@@ -413,10 +448,12 @@
 
             this.attributedPending = operation;
             if (!this.attributionBarrierPending) {
-                if (this.analyzing) this.send('stop');
-                this.analyzing = false;
+                const wasAnalyzing = this.analyzing;
                 this.attributionBarrierPending = true;
-                this.send('isready');
+                this.attributionAwaitingBestmove = wasAnalyzing;
+                if (wasAnalyzing) this.send('stop');
+                this.analyzing = false;
+                if (!wasAnalyzing) this.send('isready');
             }
             return operation.generationId;
         }
@@ -433,13 +470,18 @@
             this.invalidateAttributedOperation(this.attributedPending, 'canceled');
             this.attributedActive = null;
             this.attributedPending = null;
-            if (this.analyzing) this.send('stop');
-            if (restoreMultiPv) this.send(`setoption name MultiPV value ${this.multipv}`);
+            const stoppedActiveSearch = this.analyzing;
+            if (stoppedActiveSearch) this.send('stop');
+            if (restoreMultiPv && !stoppedActiveSearch) this.send(`setoption name MultiPV value ${this.multipv}`);
             this.clearSearchTimer();
             this.analyzing = false;
             if (!this.attributionBarrierPending && (hadOperation || wasAnalyzing)) {
                 this.attributionBarrierPending = true;
-                this.send('isready');
+                this.attributionAwaitingBestmove = stoppedActiveSearch;
+                this.attributionRestoreMultiPvAfterStop = restoreMultiPv && stoppedActiveSearch;
+                if (!stoppedActiveSearch) this.send('isready');
+            } else if (this.attributionAwaitingBestmove && restoreMultiPv) {
+                this.attributionRestoreMultiPvAfterStop = true;
             }
             return hadOperation;
         }
@@ -682,6 +724,10 @@
             return this.ready;
         }
 
+        getUciIdentity() {
+            return Object.freeze({ ...this.uciIdentity });
+        }
+
         isAnalyzing() {
             return this.analyzing;
         }
@@ -719,6 +765,8 @@
             this.attributedActive = null;
             this.attributedPending = null;
             this.attributionBarrierPending = false;
+            this.attributionAwaitingBestmove = false;
+            this.attributionRestoreMultiPvAfterStop = false;
             this.ready = false;
             this.configured = false;
             this.analyzing = false;

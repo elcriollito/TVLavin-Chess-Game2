@@ -59,9 +59,10 @@ test('stable dispatcher rejects old bestmove until the readiness barrier activat
     assert.equal(adapter.getBestMoveAttributed('fen-a w', move => delivered.push(['a', move])), 'generation:a:1');
     assert.equal(adapter.getBestMoveAttributed('fen-b w', move => delivered.push(['b', move])), 'generation:b:2');
     assert.equal(worker.onmessage, dispatcher);
-    assert.deepEqual(worker.messages.slice(-2), ['stop', 'isready']);
+    assert.equal(worker.messages.at(-1), 'stop');
 
     worker.emit('bestmove e7e5');
+    assert.equal(worker.messages.at(-1), 'isready');
     assert.deepEqual(delivered, []);
     assert.equal(adapter.inspectAttribution().pendingGenerationId, 'generation:b:2');
 
@@ -171,9 +172,11 @@ test('one attributed infinite MultiPV operation streams info until cancellation 
 
     assert.equal(adapter.startInfiniteAnalysisAttributed('fen-b w', (info, generation) =>
         delivered.push({ depth: info.depth, multipv: info.multipv, generation }), { multiPv: 4 }), 'infinite:b:2');
-    assert.deepEqual(worker.messages.slice(-2), ['stop', 'isready']);
+    assert.equal(worker.messages.at(-1), 'stop');
     worker.emit('info depth 20 multipv 1 score cp 900 pv a2a4');
     assert.equal(delivered.length, 2);
+    worker.emit('bestmove e2e4');
+    assert.equal(worker.messages.at(-1), 'isready');
     worker.emit('readyok');
     assert.deepEqual(worker.messages.slice(-3), [
         'setoption name MultiPV value 4', 'position fen fen-b w', 'go infinite'
@@ -182,9 +185,11 @@ test('one attributed infinite MultiPV operation streams info until cancellation 
     assert.deepEqual(delivered.at(-1), { depth: 5, multipv: 1, generation: 'infinite:b:2' });
 
     assert.equal(adapter.cancelAttributedSearch(), true);
-    assert.deepEqual(worker.messages.slice(-3), ['stop', 'setoption name MultiPV value 1', 'isready']);
+    assert.equal(worker.messages.at(-1), 'stop');
     worker.emit('info depth 30 multipv 1 score cp 999 pv h2h4');
     assert.equal(delivered.length, 3);
+    worker.emit('bestmove c2c4');
+    assert.deepEqual(worker.messages.slice(-2), ['setoption name MultiPV value 1', 'isready']);
     assert.equal(adapter.inspectAttribution().activeOperationCount, 0);
     assert.equal(workers.length, 1);
 });

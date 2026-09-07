@@ -10,8 +10,8 @@ console.log('[Arena] caissa-arena.js parsed OK / loaded OK v=20260203-fix2');
 const ArenaEngineRegistry = (window.EngineRegistry && typeof EngineRegistry.list === 'function')
     ? EngineRegistry.list()
     : [
-        { id: 'stockfish', name: 'Stockfish 16', workerPath: 'engine/stockfish-working.js', enabled: true },
-        { id: 'stockfish-lite', name: 'Stockfish Lite', workerPath: 'engine/stockfish-working.js', enabled: true }
+        { id: 'stockfish', name: 'Stockfish 2019 MV', workerPath: 'engine/stockfish-working.js', enabled: true },
+        { id: 'stockfish-lite', name: 'Stockfish 2019 MV (Lite profile)', workerPath: 'engine/stockfish-working.js', enabled: true }
     ];
 
 const ARENA_ENGINE_MOVETIME_MS = 2000;
@@ -201,8 +201,8 @@ const CaissaArena = {
         if (engines.length === 0) {
             console.warn('[Arena] Engine registry empty. Applying fallback list.');
             engines = [
-                { id: 'stockfish', name: 'Stockfish 16', workerPath: 'engine/stockfish-working.js', enabled: true },
-                { id: 'stockfish-lite', name: 'Stockfish Lite', workerPath: 'engine/stockfish-working.js', enabled: true }
+                { id: 'stockfish', name: 'Stockfish 2019 MV', workerPath: 'engine/stockfish-working.js', enabled: true },
+                { id: 'stockfish-lite', name: 'Stockfish 2019 MV (Lite profile)', workerPath: 'engine/stockfish-working.js', enabled: true }
             ];
             source = 'fallback';
         }
