@@ -288,16 +288,21 @@ body.caissa-simplified-play-active
 }
 .caissa-coach-guided__notation {
     flex: 0 0 auto;
+    height: auto;
+    max-height: none;
     min-height: 0;
     margin-top: .75rem;
     overflow: visible;
     border-top: 1px solid var(--panel-border);
-    scrollbar-gutter: stable;
+}
+.caissa-coach-guided__notation :is(.analyze-move-list, .move-list-grid) {
+    height: auto;
+    max-height: none;
+    overflow-x: visible;
+    overflow-y: visible;
 }
 .caissa-coach-guided__notation .analyze-move-list {
-    max-height: none;
     padding: .4rem .2rem;
-    overflow: visible;
 }
 .caissa-coach-guided__notation .move-list-grid { display: grid; gap: .12rem; }
 .caissa-coach-guided__notation .move-row {

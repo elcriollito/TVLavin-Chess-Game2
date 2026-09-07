@@ -415,7 +415,14 @@
             }
             global.CaissaGamesPanelInstance = this.#gamesPanel;
             this.#postGame = global.CaissaPostGameExperience?.create?.({
-                onNewGame: () => this.#gamesPanel?.reset?.(),
+                onNewGame: () => {
+                    if (this.#mode === 'coach') {
+                        global.CaissaPlayCompatibility?.execute?.('prepareNativeSetup');
+                        this.#coachPanel?.reset?.();
+                        return;
+                    }
+                    this.#gamesPanel?.reset?.();
+                },
                 onVisibilityChange: visible => {
                     if (visible) {
                         this.#gamesPanel?.hide?.();

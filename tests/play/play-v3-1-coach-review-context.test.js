@@ -328,7 +328,16 @@ test('Coach Manual Study presents source notation, deferred variation, and one c
     assert.match(presentation, /flipHost\.append\(mounted\.flipTool\.node\)/);
     assert.doesNotMatch(presentation, /secondaryActions\.(?:append|prepend)\(mounted\.flipTool\.node\)/);
     assert.match(css, /\.caissa-coach-guided__notation[\s\S]*overflow: visible/);
+    assert.match(css, /\.caissa-coach-guided__notation :is\(\.analyze-move-list, \.move-list-grid\)[\s\S]*max-height: none;[\s\S]*overflow-y: visible/);
+    assert.doesNotMatch(css, /\.caissa-coach-guided__notation\s*\{[^}]*scrollbar-gutter/);
     assert.match(shellCss, /\.caissa-native-coach-panel__phase[\s\S]*overflow-y: auto/);
+});
+
+test('every Coach post-game New Game path delegates to the authoritative native setup reset', () => {
+    const shell = read('js/play/simplified-play-shell.js');
+    assert.match(shell, /onNewGame:\s*\(\) => \{[\s\S]*this\.#mode === 'coach'[\s\S]*execute\?\.\('prepareNativeSetup'\)[\s\S]*this\.#coachPanel\?\.reset/);
+    assert.match(shell, /else if \(this\.#mode === 'coach'\) this\.#coachPanel\?\.show/);
+    assert.doesNotMatch(shell, /board\.position\(['"]start['"]\)/);
 });
 
 test('Coach Review projects the existing source ply into the single visible rail owner', () => {

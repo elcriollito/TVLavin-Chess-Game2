@@ -3,7 +3,53 @@ import AxeBuilder from '@axe-core/playwright';
 import { instrumentPlay, loadPosition, playMove } from '../play/playwright-helpers.js';
 import { positions } from '../play/fixtures/positions.js';
 
+const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
 test.beforeEach(async ({ page }) => instrumentPlay(page));
+
+async function expectFreshCoachSetup(page) {
+    await expect.poll(() => page.evaluate(() => {
+        const board = window.App.boardAdapter.getSnapshot();
+        return {
+            phase: document.querySelector('[data-caissa-coach-shell]')?.dataset.coachShellPhase,
+            gameFen: window.App.game.fen(),
+            renderedFen: window.Chessboard.objToFen(window.App.board.position()),
+            adapterPosition: board.positionFen,
+            appMoveIndex: window.App.currentMoveIndex,
+            reviewMoveIndex: window.AnalyzeSection?.currentMoveIndex ?? -1,
+            gameHistory: window.App.game.history(),
+            moveHistory: window.App.moveHistory.length,
+            loadedGameInfo: window.App.loadedGameInfo,
+            annotations: window.App.coachMoveAnnotations.length,
+            selection: board.selectedSquare,
+            legalTargets: board.legalTargets,
+            legalCaptureTargets: board.legalCaptureTargets,
+            lastMove: board.lastMove,
+            checkSquare: board.checkSquare,
+            exploration: window.CaissaCoachReviewExploration?.getSnapshot?.() || null
+        };
+    })).toEqual({
+        phase: 'setup', gameFen: START_FEN, renderedFen: START_FEN.split(' ')[0], adapterPosition: 'start',
+        appMoveIndex: -1, reviewMoveIndex: -1, gameHistory: [], moveHistory: 0, loadedGameInfo: null,
+        annotations: 0, selection: null, legalTargets: [], legalCaptureTargets: [], lastMove: null,
+        checkSquare: null, exploration: expect.objectContaining({ active: false, temporaryPlyCount: 0 })
+    });
+}
+
+async function snapshotCompletedCoachState(page) {
+    const snapshot = await page.evaluate(() => ({
+        gameFen: window.App.game.fen(),
+        renderedPosition: window.App.boardAdapter.getPosition(),
+        gameHistory: window.App.game.history(),
+        appMoveIndex: window.App.currentMoveIndex,
+        reviewMoveIndex: window.AnalyzeSection?.currentMoveIndex ?? -1,
+        annotations: window.App.coachMoveAnnotations.map(annotation => ({ ...annotation })),
+        exploration: window.CaissaCoachReviewExploration?.getSnapshot?.() || null
+    }));
+    expect(snapshot.gameFen).not.toBe(START_FEN);
+    expect(snapshot.gameHistory.length).toBeGreaterThan(0);
+    return snapshot;
+}
 
 test('isolated Coach is internal, compact, playable, and uses clean PostGame', async ({ page }) => {
     const pageErrors = [];
@@ -297,6 +343,71 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(page.locator('[data-coach-guided-settings]')).toHaveCount(0);
     await expect(page.locator('[data-coach-guided-new-game]')).toBeVisible();
     await expect(page.locator('.caissa-simplified-shell__board-stage .analyze-board-navigation')).toHaveCount(0);
+    await page.evaluate(() => {
+        const list = document.querySelector('[data-coach-guided-notation] .move-list-grid');
+        const template = list?.querySelector('.move-row');
+        if (!list || !template) throw new Error('Guided Review notation unavailable');
+        for (let index = 0; index < 64; index += 1) {
+            const clone = template.cloneNode(true);
+            clone.dataset.longPgnQaClone = '';
+            clone.querySelectorAll('[data-index]').forEach(node => node.removeAttribute('data-index'));
+            list.appendChild(clone);
+        }
+    });
+    const guidedLongPgnLayouts = [
+        { width: 1778, height: 1111, scale: '90%' },
+        { width: 1600, height: 1000, scale: '100%' },
+        { width: 1455, height: 909, scale: '110%' },
+        { width: 1366, height: 768, scale: 'constrained' },
+        { width: 1280, height: 800, scale: '125%' },
+        { width: 390, height: 844, scale: 'mobile' }
+    ];
+    for (const viewport of guidedLongPgnLayouts) {
+        await page.setViewportSize(viewport);
+        const measurement = await page.evaluate(() => {
+            const shell = document.querySelector('[data-caissa-coach-shell]');
+            const head = document.querySelector('[data-caissa-coach-head]');
+            const body = document.querySelector('[data-caissa-coach-body]');
+            const foot = document.querySelector('[data-caissa-coach-foot]');
+            const descendants = [...document.querySelectorAll(
+                '[data-coach-guided-notation], [data-coach-guided-notation] .analyze-move-list, '
+                + '[data-coach-guided-notation] .move-list-grid')];
+            body.scrollTop = 0;
+            const before = { shellHeight: shell.getBoundingClientRect().height,
+                headTop: head.getBoundingClientRect().top, footTop: foot.getBoundingClientRect().top };
+            body.scrollTop = Math.max(0, body.scrollHeight - body.clientHeight);
+            const after = { shellHeight: shell.getBoundingClientRect().height,
+                headTop: head.getBoundingClientRect().top, footTop: foot.getBoundingClientRect().top };
+            return {
+                bodyClientHeight: body.clientHeight,
+                bodyScrollHeight: body.scrollHeight,
+                bodyOverflowY: getComputedStyle(body).overflowY,
+                bodyScrollable: body.scrollHeight > body.clientHeight,
+                descendantOwnerCount: descendants.filter(node => ['auto', 'scroll'].includes(getComputedStyle(node).overflowY)).length,
+                descendantOverflowY: descendants.map(node => getComputedStyle(node).overflowY),
+                shellHeightDelta: Math.abs(after.shellHeight - before.shellHeight),
+                headTopDelta: Math.abs(after.headTop - before.headTop),
+                footTopDelta: Math.abs(after.footTop - before.footTop),
+                horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+            };
+        });
+        console.log(`COACH_GUIDED_LONG_PGN ${viewport.width}x${viewport.height} ${viewport.scale} ${JSON.stringify(measurement)}`);
+        expect(measurement.bodyOverflowY, JSON.stringify(viewport)).toBe('auto');
+        expect(measurement.bodyScrollable, JSON.stringify(viewport)).toBe(true);
+        expect(measurement.bodyScrollHeight, JSON.stringify(viewport)).toBeGreaterThan(measurement.bodyClientHeight);
+        expect(measurement.descendantOwnerCount, JSON.stringify(viewport)).toBe(0);
+        expect(measurement.descendantOverflowY, JSON.stringify(viewport)).toEqual(['visible', 'visible', 'visible']);
+        expect(measurement.shellHeightDelta, JSON.stringify(viewport)).toBeLessThanOrEqual(1);
+        expect(measurement.headTopDelta, JSON.stringify(viewport)).toBeLessThanOrEqual(1);
+        expect(measurement.footTopDelta, JSON.stringify(viewport)).toBeLessThanOrEqual(1);
+        expect(measurement.horizontalOverflow, JSON.stringify(viewport)).toBeLessThanOrEqual(1);
+        if (process.env.CAISSA_QA_CAPTURE === '1' && viewport.width === 1600)
+            await page.screenshot({ path: 'artifacts/play-coach-long-pgn-desktop.png', fullPage: true });
+        if (process.env.CAISSA_QA_CAPTURE === '1' && viewport.width === 390)
+            await page.locator('[data-caissa-coach-shell]').screenshot({ path: 'artifacts/play-coach-long-pgn-mobile.png' });
+    }
+    await page.evaluate(() => document.querySelectorAll('[data-long-pgn-qa-clone]').forEach(node => node.remove()));
+    await page.setViewportSize({ width: 1280, height: 720 });
     await page.locator('[data-coach-guided-explain]').click();
     await expect(page.locator('[data-coach-guided-detail]')).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(0);
@@ -599,11 +710,14 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     }))).toEqual({ active: false, temporaryPlyCount: 0 });
     await expect(page.locator('#analyzeStartBtn')).toBeHidden();
     await expect(page.locator('.analyze-evidence-panel')).toBeHidden();
+    const guidedResetBefore = await snapshotCompletedCoachState(page);
     await page.locator('[data-coach-guided-new-game]').click();
     await expect(page.locator('[data-caissa-coach-guided-review]')).toHaveCount(0);
     await expect(page.locator('.caissa-post-game')).toBeHidden();
     await expect(panel).toBeVisible();
     await verifyPermanentShell('setup');
+    await expectFreshCoachSetup(page);
+    expect((await page.evaluate(() => window.App.game.fen()))).not.toBe(guidedResetBefore.gameFen);
     expect(pageErrors).toEqual([]);
 });
 
@@ -779,6 +893,7 @@ test('Coach Review Summary New Game reuses the completed-game reset lifecycle', 
     await expect(page.locator('[data-caissa-coach-review-foot] > button')).toHaveText(['New Game', 'Review Game']);
     await expect.poll(() => page.evaluate(() =>
         window.CaissaCoachReviewPresentation.getSnapshot().analysisStartRequests)).toBe(1);
+    const summaryResetBefore = await snapshotCompletedCoachState(page);
     await page.getByRole('button', { name: 'New Game', exact: true }).click();
     await expect(panel).toBeVisible();
     await expect(page.locator('[data-caissa-coach-review-summary]')).toHaveCount(0);
@@ -789,6 +904,11 @@ test('Coach Review Summary New Game reuses the completed-game reset lifecycle', 
         explorationActive: window.CaissaCoachReviewExploration.isActive(),
         postGameVisible: window.CaissaPostGameExperienceInstance.getSnapshot().visible
     }))).toEqual({ phase: 'setup', reviewPly: -1, explorationActive: false, postGameVisible: false });
+    await expectFreshCoachSetup(page);
+    expect((await page.evaluate(() => window.App.game.fen()))).not.toBe(summaryResetBefore.gameFen);
+    await panel.getByRole('button', { name: 'Play' }).click();
+    expect(await playMove(page, 'e2', 'e4')).toBe(true);
+    await expect.poll(() => page.evaluate(() => window.App.game.history())).toEqual(['e4', 'e5']);
 });
 
 test('Games-origin Analyze stays in the Play Game shell without affecting Coach presentation', async ({ page }) => {
@@ -910,6 +1030,7 @@ test('Coach game-over preserves player wins, draws, timeouts, and the existing N
     await playMove(page, positions.checkmateInOne.from, positions.checkmateInOne.to);
     await expect(page.locator('[data-post-game-result]')).toHaveText('You Won');
     await expect(page.locator('[data-post-game-reason]')).toHaveText('By Checkmate');
+    const gameOverResetBefore = await snapshotCompletedCoachState(page);
     await page.locator('[data-post-game-action="new-game"]').click();
     await expect(panel).toBeVisible();
     await expect(page.locator('.caissa-post-game')).toBeHidden();
@@ -919,6 +1040,8 @@ test('Coach game-over preserves player wins, draws, timeouts, and the existing N
         reviewPly: window.AnalyzeSection?.currentMoveIndex ?? -1,
         temporaryStudy: window.CaissaCoachReviewExploration?.getSnapshot?.().temporaryPlyCount || 0
     }))).toEqual({ annotations: 0, postGameVisible: false, reviewPly: -1, temporaryStudy: 0 });
+    await expectFreshCoachSetup(page);
+    expect((await page.evaluate(() => window.App.game.fen()))).not.toBe(gameOverResetBefore.gameFen);
 
     await panel.getByRole('button', { name: 'Play' }).click();
     await expect.poll(() => page.evaluate(() => ({
