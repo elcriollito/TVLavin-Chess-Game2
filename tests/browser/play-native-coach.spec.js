@@ -210,8 +210,8 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await page.evaluate(() => {
         const first = window.AnalyzeSection.analysisResults[0];
         const second = window.AnalyzeSection.analysisResults[1];
-        first.quality = 'Inaccuracy'; first.annotation = '?!'; first.evalAfter = 3;
-        second.quality = 'Acceptable'; second.annotation = ''; second.evalAfter = -3;
+        first.quality = 'Acceptable'; first.annotation = ''; first.evalAfter = 3;
+        second.quality = 'Mistake'; second.annotation = '?'; second.evalAfter = -3;
         window.AnalyzeSection.updateMoveList(); window.AnalyzeSection.jumpToMove(0);
     });
     const original = await page.evaluate(() => ({
@@ -241,6 +241,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(page.locator('[data-caissa-coach-head]')).toContainText(/BOOK|BEST|ACCEPTABLE|INACCURACY|MISTAKE|BLUNDER/);
     await expect(page.locator('[data-caissa-coach-body] [data-coach-guided-explain]')).toBeVisible();
     await expect(page.locator('[data-caissa-coach-body] [data-coach-guided-next]')).toBeVisible();
+    await expect(page.locator('[data-coach-guided-next]')).toHaveAttribute('aria-label', 'Next review-worthy moment');
     await expect(page.locator('[data-caissa-coach-body] #analyzeMoveList')).toBeVisible();
     await expect(page.locator('[data-caissa-coach-foot] #analyzeNavFirst')).toBeVisible();
     await expect(page.locator('[data-caissa-coach-foot] #analyzeNavPrev')).toBeVisible();
@@ -256,7 +257,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await page.locator('[data-coach-guided-explain]').click();
     await expect(page.locator('[data-coach-guided-detail]')).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(0);
-    await expect(page.locator('[data-coach-guided-next]')).toContainText('Next Move');
+    await expect(page.locator('[data-coach-guided-next]')).toContainText('Next Moment');
     await page.locator('[data-coach-guided-next]').click();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(1);
     await expect(page.locator('[data-coach-guided-next]')).toContainText('Review Complete');
@@ -270,12 +271,6 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     expect(finalActions).toEqual(['New Game', 'Analysis']);
     await expect(page.getByRole('dialog', { name: 'Review Settings' })).not.toBeVisible();
     await expect(page.locator('[data-coach-review-settings-dialog] #analyzeFlipBoard')).toHaveCount(1);
-    await page.evaluate(() => {
-        const second = window.AnalyzeSection.analysisResults[1];
-        second.quality = 'Mistake'; second.annotation = '?';
-        window.AnalyzeSection.updateMoveList(); window.AnalyzeSection.jumpToMove(0);
-    });
-    await page.locator('[data-coach-guided-next]').click();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(1);
     await expect.poll(() => page.evaluate(() => window.CaissaEvaluationRailInstance.getSnapshot().scoreCp)).toBe(-300);
     const semanticHeight = await page.locator('#evalFill').evaluate(node => Number.parseFloat(node.style.height));
@@ -285,19 +280,21 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
         const fill = document.querySelector('#evalFill').getBoundingClientRect();
         return fill.height / rail.height;
     })).toBeLessThan(.25);
-    await page.evaluate(() => {
-        const second = window.AnalyzeSection.analysisResults[1];
-        second.quality = 'Acceptable'; second.annotation = '';
-        window.AnalyzeSection.updateMoveList(); window.AnalyzeSection.jumpToMove(0);
-    });
     await page.locator('#analyzeNavFirst').click();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(-1);
-    await expect(page.locator('[data-coach-guided-next]')).toContainText('Next Move');
+    await expect(page.locator('[data-coach-guided-next]')).toContainText('Next Moment');
     await expect(page.locator('[data-coach-guided-next]')).toBeEnabled();
     await expect(page.locator('[data-coach-guided-new-game]')).toBeVisible();
+    await page.locator('[data-coach-guided-next]').click();
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(1);
+    await expect(page.locator('[data-coach-guided-notation] [data-index="1"]')).toHaveClass(/active/);
+    await expect(page.locator('[data-caissa-coach-guided-review]')).toHaveAttribute('data-authoritative-ply', '1');
+    await expect(page.locator('[data-coach-guided-next]')).toContainText('Review Complete');
+    await page.locator('#analyzeNavFirst').click();
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(-1);
     await page.locator('#analyzeNavNext').click();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(0);
-    await expect(page.locator('[data-coach-guided-next]')).toContainText('Next Move');
+    await expect(page.locator('[data-coach-guided-next]')).toContainText('Next Moment');
     await expect(page.locator('[data-coach-guided-new-game]')).toBeVisible();
     await expect(page.locator('[data-coach-guided-notation] [data-index="0"]')).toHaveClass(/active/);
     await expect(page.locator('[data-caissa-coach-guided-review]')).toHaveAttribute('data-authoritative-ply', '0');
@@ -314,7 +311,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(page.locator('[data-coach-guided-view]')).toBeVisible();
     await expect(page.locator('[data-caissa-coach-body] [data-coach-guided-notation] #analyzeMoveList')).toBeVisible();
     await expect(page.locator('[data-coach-guided-explain]')).toBeVisible();
-    await expect(page.locator('[data-coach-guided-next]')).toContainText('Next Move');
+    await expect(page.locator('[data-coach-guided-next]')).toContainText('Next Moment');
     await expect(page.locator('[data-coach-analysis-exploration], [data-coach-exploration-foot], '
         + '[data-coach-exploration-engine], [data-coach-exploration-nav]')).toHaveCount(0);
     await expect(panel).not.toContainText('Temporary variation');

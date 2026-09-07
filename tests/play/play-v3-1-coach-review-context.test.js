@@ -270,14 +270,16 @@ test('Review Settings reuses the authoritative PGN export and contains the singl
     assert.doesNotMatch(presentation, />\s*(?:Threads|Hash|Nodes|NPS|UCI|Depth)\s*</i);
 });
 
-test('Coach Analysis presents only source notation, one navigation set, Explain and Next Move', () => {
+test('Coach Analysis presents only source notation, one navigation set, Explain and Next Moment', () => {
     const presentation = read('js/play/native-coach/coach-review-presentation.js');
     const css = read('css/play-coach-review.css');
     const shellCss = read('css/play-simplified-shell.css');
     assert.match(presentation, /data-coach-guided-notation/);
     assert.match(presentation, /mounted\.guided\.notation\.append\(mounted\.moveList\.node\)/);
     assert.match(presentation, /mounted\.guided\.navigation\.append\(mounted\.navigation\.node\)/);
-    assert.match(presentation, /<span>Next Move<\/span>/);
+    assert.match(presentation, /<span>Next Moment<\/span>/);
+    assert.match(presentation, /const destination = findNextReviewMoment\(mounted\.analyze\)/);
+    assert.doesNotMatch(presentation, /mounted\.analyze\.currentMoveIndex \+ 1/);
     assert.doesNotMatch(presentation, /Temporary variation|Undo|Reset|Engine Off/);
     assert.match(presentation, /secondaryActions\.append\(newGame, analysis\)/);
     assert.doesNotMatch(presentation, /data-coach-guided-settings/);

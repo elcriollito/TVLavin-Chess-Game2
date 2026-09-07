@@ -1,7 +1,7 @@
 (function installCoachReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.12.0';
+    const SCHEMA_VERSION = '1.12.1';
     const QUALITY_ORDER = Object.freeze(['Book', 'Best', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const CLASSIFICATIONS = Object.freeze(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const REVIEW_WORTHY_CLASSIFICATIONS = Object.freeze(['Inaccuracy', 'Mistake', 'Blunder']);
@@ -184,8 +184,8 @@
             'data-coach-guided-explain': '', 'aria-expanded': 'false' });
         explain.innerHTML = '<i class="fas fa-lightbulb" aria-hidden="true"></i><span>Explain</span>';
         const next = element('button', 'caissa-coach-guided__next', { type: 'button', 'data-coach-guided-next': '',
-            'aria-label': 'Next source-game move' });
-        next.innerHTML = '<span>Next Move</span><i class="fas fa-arrow-right" aria-hidden="true"></i>'; actions.append(explain, next);
+            'aria-label': 'Next review-worthy moment' });
+        next.innerHTML = '<span>Next Moment</span><i class="fas fa-arrow-right" aria-hidden="true"></i>'; actions.append(explain, next);
         const detail = element('p', 'caissa-coach-guided__detail', { 'data-coach-guided-detail': '', 'aria-live': 'polite' });
         detail.hidden = true;
         const notation = element('div', 'caissa-coach-guided__notation', { 'data-coach-guided-notation': '',
@@ -330,10 +330,9 @@
         mounted.guided.detail.textContent = model.detail;
         mounted.guided.detail.hidden = !mounted.explanationExpanded || !model.detail;
         mounted.guided.explain.setAttribute('aria-expanded', String(mounted.explanationExpanded));
-        const moves = mounted.analyze.getLoadedMoves?.() || [];
-        const complete = moves.length === 0 || mounted.analyze.currentMoveIndex >= moves.length - 1;
+        const complete = isReviewComplete(mounted.analyze);
         mounted.guided.next.disabled = complete;
-        mounted.guided.next.querySelector('span').textContent = complete ? 'Review Complete' : 'Next Move';
+        mounted.guided.next.querySelector('span').textContent = complete ? 'Review Complete' : 'Next Moment';
         mounted.guided.newGame.hidden = false;
         mounted.guided.reviewTools.dataset.reviewComplete = String(complete);
         renderCoachHead({ eyebrow: model.quality.toUpperCase(), title: `${model.move}${model.annotation || ''}`,
@@ -425,10 +424,9 @@
         guided.explain.addEventListener('click', () => { if (!mounted) return;
             mounted.explanationExpanded = !mounted.explanationExpanded; updateGuided(); });
         guided.next.addEventListener('click', () => { if (!mounted?.analyze) return;
-            const moves = mounted.analyze.getLoadedMoves?.() || [];
-            const destination = Math.min(moves.length - 1, mounted.analyze.currentMoveIndex + 1);
+            const destination = findNextReviewMoment(mounted.analyze);
             mounted.explanationExpanded = false;
-            if (destination < 0 || destination === mounted.analyze.currentMoveIndex) { updateGuided(); return; }
+            if (destination === null) { updateGuided(); return; }
             mounted.analyze.jumpToMove(destination); updateGuided(); });
         guided.newGame.addEventListener('click', () => {
             if (!mounted || guided.newGame.disabled) return;
