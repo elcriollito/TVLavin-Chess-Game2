@@ -114,12 +114,13 @@ body.caissa-simplified-play-active
 .caissa-coach-review-summary__comparison { display: grid; gap: .75rem; }
 .caissa-coach-review-summary__profiles {
     display: grid;
-    grid-template-columns: minmax(7.25rem, 1.25fr) minmax(4rem, .75fr) 3.75rem minmax(4rem, .75fr);
-    gap: 0;
+    grid-template-columns: minmax(4rem, 1fr) minmax(5.5rem, 1.15fr) minmax(4rem, 1fr);
+    gap: .5rem;
     align-items: end;
+    padding-inline: .4rem;
 }
-.caissa-coach-review-summary__profile:first-child { grid-column: 2; }
-.caissa-coach-review-summary__profile:last-child { grid-column: 4; }
+.caissa-coach-review-summary__profile:first-child { grid-column: 1; }
+.caissa-coach-review-summary__profile:last-child { grid-column: 3; }
 .caissa-coach-review-summary__profile {
     display: grid;
     justify-items: center;
@@ -142,11 +143,11 @@ body.caissa-simplified-play-active
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.caissa-coach-review-summary__accuracy,
-.caissa-coach-review-summary__row {
+.caissa-coach-review-summary__accuracy {
     display: grid;
-    grid-template-columns: minmax(7.25rem, 1.25fr) minmax(4rem, .75fr) 3.75rem minmax(4rem, .75fr);
+    grid-template-columns: minmax(4rem, 1fr) minmax(5.5rem, 1.15fr) minmax(4rem, 1fr);
     align-items: center;
+    gap: .5rem;
     text-align: center;
 }
 .caissa-coach-review-summary__accuracy {
@@ -154,16 +155,25 @@ body.caissa-simplified-play-active
     padding: .65rem .4rem;
     border-block: 1px solid var(--panel-border);
 }
-.caissa-coach-review-summary__accuracy-label { grid-column: 1; text-align: left; font-size: .9rem; font-weight: 800; }
+.caissa-coach-review-summary__accuracy-label { grid-column: 2; grid-row: 1; text-align: center; font-size: .9rem; font-weight: 800; }
 .caissa-coach-review-summary__accuracy-value { color: var(--coach-gold, #d7b96d); font-size: clamp(1.75rem, 2.2vw, 2.15rem); }
-.caissa-coach-review-summary__accuracy-value:nth-child(2) { grid-column: 2; }
-.caissa-coach-review-summary__accuracy-value:nth-child(3) { grid-column: 4; }
+.caissa-coach-review-summary__accuracy-value[data-side="player"] { grid-column: 1; grid-row: 1; }
+.caissa-coach-review-summary__accuracy-value[data-side="coach"] { grid-column: 3; grid-row: 1; }
 .caissa-coach-review-summary__table { display: grid; gap: .3rem; }
-.caissa-coach-review-summary__row { min-height: 3.25rem; padding: .35rem .4rem; border-radius: 9px; }
+.caissa-coach-review-summary__row {
+    display: grid;
+    grid-template-columns: minmax(3rem, .7fr) minmax(6.5rem, 1.4fr) 2.8rem minmax(3rem, .7fr);
+    align-items: center;
+    gap: .3rem;
+    min-height: 3.25rem;
+    padding: .35rem .4rem;
+    border-radius: 9px;
+    text-align: center;
+}
 .caissa-coach-review-summary__row:nth-child(odd) { background: rgb(255 255 255 / 3.5%); }
-.caissa-coach-review-summary__quality { grid-column: 1; color: var(--play-theme-text, #fff); font-size: .9rem; font-weight: 700; text-align: left; }
+.caissa-coach-review-summary__quality { grid-column: 2; color: var(--play-theme-text, #fff); font-size: .9rem; font-weight: 700; text-align: center; }
 .caissa-coach-review-summary__count { font-size: 1.05rem; }
-.caissa-coach-review-summary__count[data-side="player"] { grid-column: 2; }
+.caissa-coach-review-summary__count[data-side="player"] { grid-column: 1; }
 .caissa-coach-review-summary__count[data-side="coach"] { grid-column: 4; }
 .caissa-coach-review-summary__quality-icon {
     display: grid;
@@ -869,9 +879,11 @@ body.caissa-simplified-play-active [data-caissa-coach-game-over-foot]
     }
     .caissa-coach-review-summary { width: 100%; min-height: 0; margin-top: 0; padding: 0; }
     .caissa-coach-review-summary__profiles,
-    .caissa-coach-review-summary__accuracy,
+    .caissa-coach-review-summary__accuracy {
+        grid-template-columns: minmax(3.5rem, 1fr) minmax(5rem, 1.15fr) minmax(3.5rem, 1fr);
+    }
     .caissa-coach-review-summary__row {
-        grid-template-columns: minmax(5.5rem, 1fr) minmax(3rem, .65fr) 2.8rem minmax(3rem, .65fr);
+        grid-template-columns: minmax(2.5rem, .65fr) minmax(5.5rem, 1.35fr) 2.5rem minmax(2.5rem, .65fr);
     }
     .caissa-coach-review-summary__profile-avatar { width: 4.25rem; height: 4.25rem; }
     .caissa-coach-review-summary__player-avatar { width: 4.25rem; height: 4.25rem; }

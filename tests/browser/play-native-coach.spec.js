@@ -130,6 +130,16 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(summary.locator(':scope > :visible').first()).toHaveAttribute('data-coach-review-comparison', '');
     await expect(summary.getByText('Player', { exact: true })).toBeVisible();
     await expect(summary.getByText('Coach', { exact: true })).toBeVisible();
+    const authoritativeSummaryBytes = await page.evaluate(() => JSON.stringify({
+        analysisResults: window.AnalyzeSection.analysisResults,
+        playerAccuracy: document.querySelector('[data-coach-review-player-accuracy]').textContent,
+        coachAccuracy: document.querySelector('[data-coach-review-coach-accuracy]').textContent,
+        classifications: [...document.querySelectorAll('[data-coach-review-classifications] [data-quality]')]
+            .map(row => ({ quality: row.dataset.quality,
+                player: row.querySelector('[data-side="player"]').textContent,
+                symbol: row.querySelector('.caissa-coach-review-summary__quality-icon').textContent,
+                coach: row.querySelector('[data-side="coach"]').textContent }))
+    }));
     const comparison = await page.evaluate(() => {
         const results = window.AnalyzeSection.analysisResults.filter(item => item && !item.unavailable);
         const side = parity => {
@@ -159,6 +169,27 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
             row.querySelector('.caissa-coach-review-summary__quality-icon')?.textContent])));
     const expectedSummarySymbols = { Book: '📖', Best: '★', Acceptable: '✓', Inaccuracy: '?!', Mistake: '?', Blunder: '??' };
     for (const [quality, symbol] of Object.entries(canonicalSummarySymbols)) expect(symbol).toBe(expectedSummarySymbols[quality]);
+    const parity = await page.evaluate(() => {
+        const center = node => { const box = node.getBoundingClientRect(); return box.left + (box.width / 2); };
+        const rows = [...document.querySelectorAll('[data-coach-review-classifications] [data-quality]')];
+        const accuracy = document.querySelector('.caissa-coach-review-summary__accuracy');
+        return {
+            rowOrder: rows.map(row => [...row.children].map(node => node.matches('[data-side="player"]')
+                ? 'player' : node.matches('.caissa-coach-review-summary__quality') ? 'quality'
+                    : node.matches('.caissa-coach-review-summary__quality-icon') ? 'symbol' : 'coach')),
+            rowCentersIncrease: rows.every(row => {
+                const centers = [...row.children].map(center);
+                return centers.every((value, index) => index === 0 || value > centers[index - 1]);
+            }),
+            accuracyOrder: [...accuracy.children].map(node => node.dataset.side || 'label'),
+            accuracyCentersIncrease: [...accuracy.children].map(center)
+                .every((value, index, values) => index === 0 || value > values[index - 1])
+        };
+    });
+    expect(parity.rowOrder.every(order => JSON.stringify(order) === JSON.stringify(['player', 'quality', 'symbol', 'coach']))).toBe(true);
+    expect(parity.rowCentersIncrease).toBe(true);
+    expect(parity.accuracyOrder).toEqual(['player', 'label', 'coach']);
+    expect(parity.accuracyCentersIncrease).toBe(true);
     await expect(page.locator('.analyze-board-navigation .nav-btn-sm:visible')).toHaveCount(0);
     await expect(page.locator('[data-caissa-coach-review-foot] > button')).toHaveText(['New Game', 'Review Game']);
     await expect(page.locator('[data-caissa-coach-review-foot] [data-coach-review-guided-action]')).toHaveText('Review Game');
@@ -186,6 +217,16 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
         plyOwner: 'AnalyzeSection.currentMoveIndex', analysisStartRequests: 1,
         authoritativePly: 0, duplicatePly: false, playInert: false, analyzeTakeover: false,
         visibleBoards: 1, belowBoardChrome: 0 });
+    expect(await page.evaluate(() => JSON.stringify({
+        analysisResults: window.AnalyzeSection.analysisResults,
+        playerAccuracy: document.querySelector('[data-coach-review-player-accuracy]').textContent,
+        coachAccuracy: document.querySelector('[data-coach-review-coach-accuracy]').textContent,
+        classifications: [...document.querySelectorAll('[data-coach-review-classifications] [data-quality]')]
+            .map(row => ({ quality: row.dataset.quality,
+                player: row.querySelector('[data-side="player"]').textContent,
+                symbol: row.querySelector('.caissa-coach-review-summary__quality-icon').textContent,
+                coach: row.querySelector('[data-side="coach"]').textContent }))
+    }))).toBe(authoritativeSummaryBytes);
     await page.evaluate(() => {
         window.AnalyzeSection.analysisResults.forEach((item, index) => {
             if (!item) return;

@@ -156,9 +156,11 @@
         profiles.append(playerProfile, coachProfile);
         const accuracy = element('div', 'caissa-coach-review-summary__accuracy');
         const accuracyLabel = element('span', 'caissa-coach-review-summary__accuracy-label'); accuracyLabel.textContent = 'Accuracy';
-        const playerAccuracy = element('strong', 'caissa-coach-review-summary__accuracy-value', { 'data-coach-review-player-accuracy': '' });
-        const coachAccuracy = element('strong', 'caissa-coach-review-summary__accuracy-value', { 'data-coach-review-coach-accuracy': '' });
-        accuracy.append(accuracyLabel, playerAccuracy, coachAccuracy);
+        const playerAccuracy = element('strong', 'caissa-coach-review-summary__accuracy-value', {
+            'data-coach-review-player-accuracy': '', 'data-side': 'player' });
+        const coachAccuracy = element('strong', 'caissa-coach-review-summary__accuracy-value', {
+            'data-coach-review-coach-accuracy': '', 'data-side': 'coach' });
+        accuracy.append(playerAccuracy, accuracyLabel, coachAccuracy);
         const table = element('div', 'caissa-coach-review-summary__table', { role: 'table',
             'aria-label': 'Player and Coach move classifications', 'data-coach-review-classifications': '' });
         comparison.append(profiles, accuracy, table); panel.append(loading, comparison);
@@ -356,7 +358,7 @@
             icon.textContent = canonicalQualitySymbol(row.label);
             const coach = element('strong', 'caissa-coach-review-summary__count', { role: 'cell', 'data-side': 'coach' });
             player.textContent = displayCount(row.player); coach.textContent = displayCount(row.coach);
-            line.append(label, player, icon, coach); mounted.summary.table.append(line); });
+            line.append(player, label, icon, coach); mounted.summary.table.append(line); });
     }
 
     function synchronizeCoachNotation() {

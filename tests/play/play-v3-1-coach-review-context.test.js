@@ -80,6 +80,9 @@ test('Coach review presentation uses the canonical Play classification symbols',
     }
     const source = read('js/play/native-coach/coach-review-presentation.js');
     assert.doesNotMatch(source, /fa-exclamation|fa-bolt|QUALITY_ICONS/);
+    assert.match(source, /accuracy\.append\(playerAccuracy, accuracyLabel, coachAccuracy\)/);
+    assert.match(source, /line\.append\(player, label, icon, coach\)/);
+    assert.match(source, /icon\.textContent = canonicalQualitySymbol\(row\.label\)/);
 });
 
 test('loading copy uses only bounded existing Analyze progress', () => {
