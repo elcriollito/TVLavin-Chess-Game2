@@ -187,7 +187,7 @@ test('Review Complete persists after the final negative moment and reopens only 
     assert.equal(review.isReviewComplete(analyze), false);
 });
 
-test('temporary exploration stays isolated and is not exposed by the clean Coach review presentation', () => {
+test('Manual Study exposes the certified isolated exploration owner without adding source owners', () => {
     const presentation = read('js/play/native-coach/coach-review-presentation.js');
     const exploration = read('js/play/native-coach/coach-review-exploration.js');
     const app = read('app.js');
@@ -197,10 +197,12 @@ test('temporary exploration stays isolated and is not exposed by the clean Coach
     assert.match(app, /isCoachReviewExplorationActive\(\)[\s\S]*CaissaCoachReviewExploration\.playMove/);
     assert.doesNotMatch(exploration, /App\.(?:game|moveHistory|currentMoveIndex)\s*=/);
     assert.doesNotMatch(presentation + exploration, /guidedMoveIndex|reviewStepIndex|coachReviewMoveIndex/);
-    assert.match(presentation, /mounted\.guided\.notation\.append\(mounted\.moveList\.node\)/);
-    assert.match(presentation, /mounted\.guided\.navigation\.append\(mounted\.navigation\.node\)/);
-    assert.doesNotMatch(presentation, /Temporary variation|data-coach-exploration-engine|data-coach-exploration-nav/);
-    assert.doesNotMatch(presentation, /CaissaCoachReviewExploration\?\.enter/);
+    assert.match(presentation, /mounted\.guided\.sourceNotation\.append\(mounted\.moveList\.node\)/);
+    assert.match(presentation, /CaissaCoachReviewExploration\?\.enter\?\.\(\{ fen: projection\.fen/);
+    assert.match(presentation, /mounted\.analyze\.jumpToMove\(destination\)/);
+    assert.match(presentation, /data-coach-exploration-engine/);
+    assert.match(presentation, /data-coach-exploration-nav/);
+    assert.doesNotMatch(presentation + exploration, /new\s+Engine|new\s+Worker/);
     assert.match(exploration, /function rebase\(options = \{\}\)/);
 });
 
@@ -251,6 +253,32 @@ test('temporary exploration cursor reproduces positions and truncates a changed 
     assert.equal(rendered.length > 0, true);
 });
 
+test('temporary exploration accepts captures and promotion without touching source game state', () => {
+    const authoritative = { moveHistory: Object.freeze(['source']), currentMoveIndex: 4 };
+    const window = {
+        Chess,
+        document: { body: { classList: { add() {}, remove() {} } } },
+        App: { ...authoritative, board: { position() {} }, boardAdapter: {
+            setLastMove() {}, setInteractionEnabled() {}, clearSelection() {}, clearLegalTargets() {}
+        } }
+    };
+    const context = vm.createContext({ window, globalThis: window, Object, Promise });
+    vm.runInContext(read('js/play/native-coach/coach-review-exploration.js'), context,
+        { filename: 'coach-review-exploration.js' });
+    const api = window.CaissaCoachReviewExploration;
+    const analyze = { ensureAnalysisEngine: async () => null, teardownAnalysisEngine() {} };
+    assert.equal(api.enter({ fen: '7k/8/8/3p4/4P3/8/8/K7 w - - 0 1', analyze }).ok, true);
+    assert.equal(api.playMove('e4', 'd5'), true);
+    assert.equal(api.getLine()[0].san, 'exd5');
+    api.leave();
+    assert.equal(api.enter({ fen: '7k/P7/8/8/8/8/8/K7 w - - 0 1', analyze }).ok, true);
+    assert.equal(api.playMove('a7', 'a8', 'q'), true);
+    assert.match(api.getLine()[0].san, /^a8=Q/);
+    assert.equal(window.App.moveHistory, authoritative.moveHistory);
+    assert.equal(window.App.currentMoveIndex, authoritative.currentMoveIndex);
+    api.leave();
+});
+
 test('Review Settings reuses the authoritative PGN export and contains the single Flip owner', () => {
     const presentation = read('js/play/native-coach/coach-review-presentation.js');
     const exploration = read('js/play/native-coach/coach-review-exploration.js');
@@ -270,17 +298,22 @@ test('Review Settings reuses the authoritative PGN export and contains the singl
     assert.doesNotMatch(presentation, />\s*(?:Threads|Hash|Nodes|NPS|UCI|Depth)\s*</i);
 });
 
-test('Coach Analysis presents only source notation, one navigation set, Explain and Next Moment', () => {
+test('Coach Manual Study presents source notation, deferred variation, and one compact tool set', () => {
     const presentation = read('js/play/native-coach/coach-review-presentation.js');
     const css = read('css/play-coach-review.css');
     const shellCss = read('css/play-simplified-shell.css');
-    assert.match(presentation, /data-coach-guided-notation/);
-    assert.match(presentation, /mounted\.guided\.notation\.append\(mounted\.moveList\.node\)/);
-    assert.match(presentation, /mounted\.guided\.navigation\.append\(mounted\.navigation\.node\)/);
+    assert.match(presentation, /GAME MOVES \(STUDY\)/);
+    assert.match(presentation, /ANALYSIS VARIATION/);
+    assert.match(presentation, /variationWorkspace\.hidden = true/);
+    assert.match(presentation, /variationWorkspace\.hidden = line\.length === 0/);
+    assert.match(presentation, /mounted\.guided\.sourceNotation\.append\(mounted\.moveList\.node\)/);
+    assert.match(presentation, /data-coach-exploration-back/);
+    assert.match(presentation, /data-coach-exploration-engine/);
+    assert.match(presentation, /data-coach-exploration-nav/);
     assert.match(presentation, /<span>Next Moment<\/span>/);
     assert.match(presentation, /const destination = findNextReviewMoment\(mounted\.analyze\)/);
     assert.doesNotMatch(presentation, /mounted\.analyze\.currentMoveIndex \+ 1/);
-    assert.doesNotMatch(presentation, /Temporary variation|Undo|Reset|Engine Off/);
+    assert.doesNotMatch(presentation, /Temporary variation|Undo|Reset/);
     assert.match(presentation, /secondaryActions\.append\(newGame, analysis\)/);
     assert.doesNotMatch(presentation, /data-coach-guided-settings/);
     assert.match(presentation, /flipHost\.append\(mounted\.flipTool\.node\)/);
@@ -294,7 +327,7 @@ test('Coach Review projects the existing source ply into the single visible rail
     const rail = read('js/play/evaluation-rail.js');
     const app = read('app.js');
     assert.match(presentation, /selected\.evalAfter, selected\.mateAfter, 'coach-review-ply'/);
-    assert.doesNotMatch(presentation, /'coach-review-exploration'/);
+    assert.match(presentation, /info\.evaluation, info\.mate, 'coach-review-exploration'/);
     assert.match(presentation, /CaissaEvaluationRailInstance/);
     assert.match(rail, /\['live', 'post-game'\]\.includes\(this\.#mode\)/);
     assert.match(app, /!document\.body\?\.classList\?\.contains\('caissa-coach-review-summary-active'\)/);
