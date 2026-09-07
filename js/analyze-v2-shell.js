@@ -30,6 +30,7 @@
             global.addEventListener('resize', () => this.scheduleBoardResize(), { passive: true });
             global.visualViewport?.addEventListener?.('resize', () => this.scheduleBoardResize(), { passive: true });
             this.bindPlayerLabels();
+            this.bindMinimalAnalysisProjection();
             this.selectView('analysis', { focus: false, announce: false });
             return true;
         },
@@ -62,12 +63,7 @@
             });
 
             const title = document.getElementById('analyzeV2WorkspaceTitle');
-            if (title) {
-                const icon = nextView === 'games' ? 'fa-folder-open'
-                    : nextView === 'setup' ? 'fa-chess-board'
-                        : 'fa-magnifying-glass-chart';
-                title.innerHTML = `<i class="fas ${icon}" aria-hidden="true"></i> ${VIEW_LABELS[nextView]}`;
-            }
+            if (title) title.textContent = VIEW_LABELS[nextView];
 
             if (announce) {
                 this.root.dispatchEvent(new CustomEvent('caissa:analyze-v2-view-change', {
@@ -110,6 +106,82 @@
                 };
                 sync();
                 new MutationObserver(sync).observe(source, { childList: true, characterData: true, subtree: true });
+            });
+        },
+
+        bindMinimalAnalysisProjection() {
+            const evidence = document.getElementById('analyzeMoveEvidence');
+            const moveList = document.getElementById('analyzeMoveList');
+            const engineToggle = document.getElementById('analyzeEngineToggle');
+            const render = () => this.renderMinimalAnalysis();
+
+            [evidence, moveList].forEach((source) => {
+                if (source) new MutationObserver(render).observe(source, {
+                    childList: true,
+                    characterData: true,
+                    subtree: true
+                });
+            });
+            if (engineToggle) new MutationObserver(render).observe(engineToggle, {
+                attributes: true,
+                attributeFilter: ['aria-pressed', 'class'],
+                childList: true,
+                characterData: true,
+                subtree: true
+            });
+            render();
+        },
+
+        getEngineCandidates(result) {
+            if (!result) return [];
+            const provided = result.lines || result.multiPv || result.variations;
+            return (Array.isArray(provided) && provided.length ? provided : [result]).slice(0, 3);
+        },
+
+        renderMinimalAnalysis() {
+            const analyze = global.AnalyzeSection;
+            if (!analyze) return;
+
+            const openingLabel = document.getElementById('analyzeV2OpeningLabel');
+            const engineMeta = document.getElementById('analyzeV2EngineMeta');
+            const engineLines = document.getElementById('analyzeV2EngineLines');
+            const opening = analyze.getAnalyzeOpening?.();
+            if (openingLabel) openingLabel.textContent = opening?.name || 'Starting Position';
+
+            const result = analyze.liveCurrentResult;
+            const engineOn = Boolean(analyze.liveEngineEnabled);
+            const depth = Number(result?.depth || 0);
+            if (engineMeta) engineMeta.textContent = engineOn && depth
+                ? `depth=${depth} | Stockfish`
+                : 'Stockfish';
+            if (!engineLines) return;
+
+            engineLines.replaceChildren();
+            if (!engineOn) return;
+            if (!result) {
+                const loading = document.createElement('p');
+                loading.className = 'caissa-analyze-v2__engine-waiting';
+                loading.textContent = 'Analyzing…';
+                engineLines.appendChild(loading);
+                return;
+            }
+
+            const fen = analyze.getGame?.()?.fen?.() || '';
+            this.getEngineCandidates(result).forEach((candidate, index) => {
+                const pv = Array.isArray(candidate.pv) ? candidate.pv : [];
+                const firstMove = candidate.bestMove || pv[0] || '';
+                const bestMove = analyze.uciToSan?.(fen, firstMove) || firstMove || '—';
+                const row = document.createElement('div');
+                row.className = 'caissa-analyze-v2__engine-line';
+
+                const score = document.createElement('strong');
+                score.textContent = analyze.formatEvaluation?.(candidate.eval, candidate.mate) || '—';
+                const variation = document.createElement('span');
+                variation.textContent = index === 0
+                    ? `${bestMove} is best${pv.length > 1 ? `  ${pv.slice(1, 7).join(' ')}` : ''}`
+                    : (pv.slice(0, 7).join(' ') || bestMove);
+                row.append(score, variation);
+                engineLines.appendChild(row);
             });
         }
     };

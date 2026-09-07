@@ -43,11 +43,27 @@ test('A1 preserves every existing AnalyzeSection DOM contract exactly once', () 
 
 test('A1 shell is presentation-only and cannot create competing chess authorities', () => {
     for (const forbidden of [
-        /new\s+Chess\s*\(/, /new\s+Worker\s*\(/, /Stockfish/i, /analysisEngine\s*=/,
+        /new\s+Chess\s*\(/, /new\s+Worker\s*\(/, /analysisEngine\s*=/,
         /loadedGame\s*=/, /currentMoveIndex\s*=/, /moveHistory\s*=/,
         /localStorage|sessionStorage/, /fetch\s*\(/, /history\.(?:pushState|replaceState)/
     ]) assert.doesNotMatch(shell, forbidden);
     assert.doesNotMatch(css, /(^|\n)\s*(?:html|body|\.analyze-layout)\s*\{/);
+});
+
+test('A1.1 exposes only the minimal Analysis presentation while preserving hidden contracts', () => {
+    const analysisPanel = html.slice(
+        html.indexOf('id="analyzeV2PanelAnalysis"'),
+        html.indexOf('id="analyzeV2PanelGames"')
+    );
+    for (const id of ['analyzeEngineToggle', 'analyzeV2EngineLines', 'analyzeV2OpeningLabel', 'analyzeMoveList']) {
+        assert.equal((analysisPanel.match(new RegExp(`id="${id}"`, 'g')) || []).length, 1, id);
+    }
+    assert.match(analysisPanel, /class="caissa-analyze-v2__preserved-controls" hidden/);
+    assert.doesNotMatch(analysisPanel, /caissa-analyze-v2__(?:status-card|moves-card|game-card)/);
+    assert.match(html, /class="caissa-analyze-v2__actions"/);
+    for (const label of ['New', 'Save', 'Review']) assert.match(html, new RegExp(`<span>${label}</span>`));
+    assert.match(shell, /\.slice\(0, 3\)/);
+    assert.doesNotMatch(shell, /setoption\s+name\s+MultiPV/i);
 });
 
 test('A1 assets are registered once after the legacy base styles', () => {

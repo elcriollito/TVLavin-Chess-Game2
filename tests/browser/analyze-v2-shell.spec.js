@@ -1,4 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { instrumentPlay, monitorRuntime } from '../play/playwright-helpers.js';
+
+test.beforeEach(async ({ page }) => {
+    await instrumentPlay(page, { bestMove: 'e2e4', candidateMoves: ['e2e4'], cp: 72, depth: 12, delayMs: 5 });
+});
 
 const desktopProfiles = [
     { name: 'visual-review-1600x1000', width: 1600, height: 1000 },
@@ -112,4 +117,89 @@ test('A1 keeps the existing PGN session and review cursor pipeline authoritative
         analyzeBoards: 1,
         analysisEngine: null
     });
+});
+
+test('A1.1 presents minimal analysis and preserves the single engine owner', async ({ page }) => {
+    const runtime = monitorRuntime(page);
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await page.goto('/analyze');
+
+    const panel = page.locator('#analyzeV2PanelAnalysis');
+    await expect(panel.locator('#analyzeV2OpeningLabel')).toHaveText('Starting Position');
+    await expect(panel.locator('#analyzeEngineToggle')).toHaveText('Engine Off');
+    await expect(panel.locator('#analyzeV2EngineLines')).toBeEmpty();
+    await expect(panel.locator('#analyzeStartBtn')).toBeHidden();
+    await expect(panel.locator('#analyzeMoveEvidence')).toBeHidden();
+    await expect(panel.locator('#analyzeReviewSummary')).toBeHidden();
+    await expect(panel.locator('#analyzeCriticalMoments')).toBeHidden();
+    await expect(page.locator('.caissa-analyze-v2__actions button')).toHaveCount(4);
+    await expect(page.locator('.caissa-analyze-v2__actions')).toContainText('New');
+    await expect(page.locator('.caissa-analyze-v2__actions')).toContainText('Save');
+    await expect(page.locator('.caissa-analyze-v2__actions')).toContainText('Review');
+
+    const beforeEngine = await page.evaluate(() => ({
+        owner: window.AnalyzeSection.analysisEngine,
+        workers: window.__caissaPlayHarness.snapshot().workersCreated
+    }));
+    expect(beforeEngine.owner).toBeNull();
+    await panel.locator('#analyzeEngineToggle').click();
+    await expect(panel.locator('#analyzeEngineToggle')).toHaveText('Engine On');
+    await expect(panel.locator('.caissa-analyze-v2__engine-line')).toHaveCount(1);
+    await expect(panel.locator('.caissa-analyze-v2__engine-line')).toContainText('+0.72');
+    await expect(panel.locator('#analyzeV2EngineMeta')).toContainText('depth=12');
+
+    const firstEngineExists = await page.evaluate(() => {
+        window.__a11EngineOwner = window.AnalyzeSection.analysisEngine;
+        return Boolean(window.__a11EngineOwner);
+    });
+    expect(firstEngineExists).toBe(true);
+    expect(await page.evaluate(() => window.__caissaPlayHarness.snapshot().workersCreated)).toBe(beforeEngine.workers + 1);
+    await panel.locator('#analyzeEngineToggle').click();
+    await expect(panel.locator('#analyzeEngineToggle')).toHaveText('Engine Off');
+    await panel.locator('#analyzeEngineToggle').click();
+    await expect(panel.locator('.caissa-analyze-v2__engine-line')).toHaveCount(1);
+    const engineProof = await page.evaluate(() => ({
+        sameOwner: window.AnalyzeSection.analysisEngine === window.__a11EngineOwner,
+        workers: window.__caissaPlayHarness.snapshot().workersCreated
+    }));
+    expect(engineProof).toEqual({ sameOwner: true, workers: beforeEngine.workers + 1 });
+    await panel.locator('#analyzeEngineToggle').click();
+
+    const positions = await page.evaluate(() => {
+        const start = window.AnalyzeSection.getGame().fen();
+        const moves = [
+            ['e2', 'e4'], ['d7', 'd5'], ['e4', 'd5'],
+            ['c7', 'c6'], ['d5', 'c6'], ['b8', 'c6']
+        ];
+        const outcomes = moves.map(([from, to]) => window.AnalyzeSection.playStudyMove(from, to));
+        return {
+            start,
+            end: window.AnalyzeSection.getGame().fen(),
+            outcomes,
+            history: window.AnalyzeSection.getGame().history(),
+            cursor: window.AnalyzeSection.currentMoveIndex
+        };
+    });
+    expect(positions.outcomes).toEqual([true, true, true, true, true, true]);
+    expect(positions.history).toEqual(['e4', 'd5', 'exd5', 'c6', 'dxc6', 'Nxc6']);
+    expect(positions.cursor).toBe(5);
+    await expect(panel.locator('#analyzeMoveList')).toContainText('Nxc6');
+    await expect(panel.locator('#analyzeV2OpeningLabel')).toHaveText('Scandinavian Defense');
+
+    await page.locator('#analyzeNavFirst').click();
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.getGame().fen())).toBe(positions.start);
+    await page.locator('#analyzeNavNext').click();
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(0);
+    await page.locator('#analyzeNavLast').click();
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.getGame().fen())).toBe(positions.end);
+    await page.locator('#analyzeNavPrev').click();
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(4);
+
+    const authority = await page.evaluate(() => ({
+        sessionOwnsGame: window.AnalyzeSection.session.game === window.AnalyzeSection.loadedGame.game,
+        boardCount: document.querySelectorAll('#analyzeChessboard .board-b72b1').length,
+        workers: window.__caissaPlayHarness.snapshot().workersCreated
+    }));
+    expect(authority).toEqual({ sessionOwnsGame: true, boardCount: 1, workers: beforeEngine.workers + 1 });
+    runtime.assertClean();
 });

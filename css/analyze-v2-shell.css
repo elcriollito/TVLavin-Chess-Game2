@@ -146,8 +146,8 @@
 
 #analyzeSection .caissa-analyze-v2__workspace-header {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
+    align-items: center;
+    justify-content: center;
     gap: 12px;
     min-height: 66px;
     padding: 18px 20px 14px;
@@ -271,6 +271,180 @@
     flex-direction: column;
     gap: 10px;
     overflow: visible;
+}
+
+#analyzeSection .caissa-analyze-v2__minimal-analysis {
+    gap: 0;
+    min-height: 100%;
+    padding: 0;
+    color: #e9edf4;
+}
+
+#analyzeSection .caissa-analyze-v2__engine-strip {
+    display: flex;
+    min-height: 48px;
+    padding: 10px 16px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid var(--analyze-v2-line);
+}
+
+#analyzeSection .caissa-analyze-v2__engine-toggle {
+    display: inline-flex;
+    padding: 5px 7px;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--analyze-v2-muted);
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#analyzeSection .caissa-analyze-v2__engine-toggle::before {
+    width: 10px;
+    height: 10px;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    content: '';
+}
+
+#analyzeSection .caissa-analyze-v2__engine-toggle:hover,
+#analyzeSection .caissa-analyze-v2__engine-toggle:focus-visible,
+#analyzeSection .caissa-analyze-v2__engine-toggle.active {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--analyze-v2-accent);
+}
+
+#analyzeSection .caissa-analyze-v2__engine-toggle.active::before {
+    border-color: #78c66a;
+    background: #78c66a;
+    box-shadow: 0 0 0 3px rgba(120, 198, 106, 0.12);
+}
+
+#analyzeSection .caissa-analyze-v2__engine-meta {
+    overflow: hidden;
+    color: var(--analyze-v2-muted);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#analyzeSection .caissa-analyze-v2__engine-lines {
+    border-bottom: 1px solid var(--analyze-v2-line);
+}
+
+#analyzeSection .caissa-analyze-v2__engine-lines:empty {
+    display: none;
+}
+
+#analyzeSection .caissa-analyze-v2__engine-line {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    min-height: 35px;
+    padding: 6px 16px;
+    align-items: center;
+    gap: 9px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+    font-size: 12px;
+}
+
+#analyzeSection .caissa-analyze-v2__engine-line:last-child {
+    border-bottom: 0;
+}
+
+#analyzeSection .caissa-analyze-v2__engine-line strong {
+    padding: 4px 5px;
+    border-radius: 4px;
+    background: #f3f5f7;
+    color: #171b22;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+#analyzeSection .caissa-analyze-v2__engine-line span {
+    overflow: hidden;
+    color: #d7dce4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#analyzeSection .caissa-analyze-v2__engine-waiting {
+    margin: 0;
+    padding: 9px 16px;
+    color: var(--analyze-v2-muted);
+    font-size: 12px;
+}
+
+#analyzeSection .caissa-analyze-v2__opening {
+    min-height: 45px;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--analyze-v2-line);
+    color: #bac2cd;
+    font-size: 12px;
+}
+
+#analyzeSection .caissa-analyze-v2__game-line {
+    display: flex;
+    min-height: 46px;
+    padding: 11px 16px;
+    align-items: center;
+    gap: 7px;
+    border-bottom: 1px solid var(--analyze-v2-line);
+    color: #f1f3f7;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+#analyzeSection .caissa-analyze-v2__game-line #analyzeGameResult {
+    color: var(--analyze-v2-muted);
+    font-weight: 500;
+}
+
+#analyzeSection .caissa-analyze-v2 .caissa-analyze-v2__notation {
+    max-height: none;
+    margin: 0;
+    padding: 8px 12px 16px;
+    overflow-y: auto;
+}
+
+#analyzeSection .caissa-analyze-v2__notation > .caissa-ui-empty-state {
+    display: none;
+}
+
+#analyzeSection .caissa-analyze-v2__notation .move-row {
+    grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1fr);
+    min-height: 34px;
+    padding: 3px 4px;
+    align-items: center;
+    border-bottom-color: rgba(255, 255, 255, 0.045);
+}
+
+#analyzeSection .caissa-analyze-v2__notation .move-row:hover {
+    background: rgba(255, 255, 255, 0.025);
+}
+
+#analyzeSection .caissa-analyze-v2__notation :is(.move-white, .move-black) {
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: #d7dce4;
+    font: inherit;
+    font-weight: 650;
+    text-align: left;
+}
+
+#analyzeSection .caissa-analyze-v2__notation :is(.move-white, .move-black).active {
+    background: var(--analyze-v2-accent-soft);
+    color: var(--analyze-v2-accent);
+}
+
+#analyzeSection .caissa-analyze-v2__preserved-controls[hidden] {
+    display: none !important;
 }
 
 #analyzeSection .caissa-analyze-v2 .context-panel > .panel,
@@ -505,13 +679,13 @@
     color: #fff;
 }
 
-#analyzeSection .caissa-analyze-v2__tools {
+#analyzeSection .caissa-analyze-v2__actions {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 5px;
 }
 
-#analyzeSection .caissa-analyze-v2__tools .nav-btn-sm {
+#analyzeSection .caissa-analyze-v2__actions button {
     display: inline-flex;
     width: 100%;
     min-width: 0;
@@ -523,14 +697,14 @@
     border: 0;
     background: transparent;
     color: var(--analyze-v2-muted);
+    cursor: default;
+    font: inherit;
     font-size: 10px;
+    opacity: 0.76;
 }
 
-#analyzeSection .caissa-analyze-v2__tools .nav-btn-sm:hover:not(:disabled),
-#analyzeSection .caissa-analyze-v2__tools .nav-btn-sm:focus-visible,
-#analyzeSection .caissa-analyze-v2__tools .nav-btn-sm.active {
-    color: var(--analyze-v2-accent);
-    background: rgba(255, 255, 255, 0.035);
+#analyzeSection .caissa-analyze-v2__actions button i {
+    font-size: 12px;
 }
 
 @media (max-width: 1100px) {
@@ -637,7 +811,7 @@
         grid-row: auto;
     }
 
-    #analyzeSection .caissa-analyze-v2__tools .nav-btn-sm span {
+    #analyzeSection .caissa-analyze-v2__actions button span {
         display: none;
     }
 }
