@@ -113,8 +113,14 @@ test('boundary integration starts the existing lifecycle once and keeps review p
     assert.match(inline, /if \(!embeddedReview && playSection\)[\s\S]*playSection\.inert = true/);
     assert.match(inline, /if \(embeddedReview\)[\s\S]*reviewPresentation\.mount[\s\S]*else \{[\s\S]*section\.classList\.add\('active', 'caissa-play-v2-inline-analyze'\)/);
     assert.match(inline, /AnalyzeSection\.onEnter[\s\S]*reviewPresentation\?\.begin\?\.\(\{ analyze: root\.AnalyzeSection \}\)/);
-    assert.match(presentation, /createSummaryStructure\(options\.close\)/);
+    assert.match(presentation, /createSummaryStructure\(\)/);
     assert.match(presentation, /phase: 'review-summary', content: summary\.panel,[\s\S]*foot: summary\.foot/);
+    assert.match(presentation, /foot\.append\(newGame, action\)/);
+    assert.match(presentation, /action\.textContent = 'Review Game'/);
+    assert.match(presentation, /summary\.newGame\.addEventListener\('click',[\s\S]*startNewGame\(summary\.newGame\)/);
+    assert.match(presentation, /mounted\.analyze\?\.currentMoveIndex !== -1[\s\S]*mounted\.analyze\?\.jumpToMove\?\.\(-1\)/);
+    assert.match(presentation, /CaissaPostGameExperienceInstance\?\.execute\?\.\('new-game'\)/);
+    assert.doesNotMatch(presentation, /caissa-coach-review-summary__header|caissa-coach-review-summary__eyebrow|caissa-coach-review-summary__title|Back to game result/);
     assert.doesNotMatch(presentation, /section\.querySelector\('\.analyze-board-navigation'\)|navigationState/);
     assert.doesNotMatch(presentation, /contextPanel\.append|tabsState|caissa-coach-review-context/);
     assert.match(presentation, /analysisStartRequests > 0[\s\S]*ANALYSIS_ALREADY_REQUESTED/);

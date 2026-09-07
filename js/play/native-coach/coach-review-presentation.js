@@ -1,7 +1,7 @@
 (function installCoachReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.13.0';
+    const SCHEMA_VERSION = '1.14.0';
     const QUALITY_ORDER = Object.freeze(['Book', 'Best', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const CLASSIFICATIONS = Object.freeze(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const REVIEW_WORTHY_CLASSIFICATIONS = Object.freeze(['Inaccuracy', 'Mistake', 'Blunder']);
@@ -131,14 +131,9 @@
             message, detail: expanded ? detail : '' });
     }
 
-    function createSummaryStructure(close) {
+    function createSummaryStructure() {
         const panel = element('section', 'caissa-coach-review-summary', { 'data-caissa-coach-review-shell': '',
-            'data-caissa-coach-review-summary': '', 'aria-labelledby': 'caissa-coach-review-title' });
-        const header = element('header', 'caissa-coach-review-summary__header');
-        const heading = element('div', 'caissa-coach-review-summary__heading');
-        const eyebrow = element('span', 'caissa-coach-review-summary__eyebrow'); eyebrow.textContent = 'CAISSA';
-        const title = element('h1', 'caissa-coach-review-summary__title', { id: 'caissa-coach-review-title' });
-        title.textContent = 'Game Review'; heading.append(eyebrow, title); header.append(heading); if (close) header.append(close);
+            'data-caissa-coach-review-summary': '', 'aria-label': 'Game review statistics' });
         const loading = element('div', 'caissa-coach-review-summary__loading', {
             'data-coach-review-loading': '', role: 'status', 'aria-live': 'polite' });
         const progressTrack = element('div', 'caissa-coach-review-summary__progress', { role: 'progressbar',
@@ -166,13 +161,16 @@
         accuracy.append(accuracyLabel, playerAccuracy, coachAccuracy);
         const table = element('div', 'caissa-coach-review-summary__table', { role: 'table',
             'aria-label': 'Player and Coach move classifications', 'data-coach-review-classifications': '' });
-        comparison.append(profiles, accuracy, table); panel.append(header, loading, comparison);
+        comparison.append(profiles, accuracy, table); panel.append(loading, comparison);
+        const newGame = element('button', 'caissa-coach-review-summary__new-game', { type: 'button',
+            'data-coach-review-new-game': '' });
+        newGame.innerHTML = '<i class="fas fa-plus" aria-hidden="true"></i><span>New Game</span>';
         const action = element('button', 'caissa-coach-review-summary__action', { type: 'button',
-            'data-coach-review-guided-action': '' }); action.textContent = 'Start Review';
+            'data-coach-review-guided-action': '' }); action.textContent = 'Review Game';
         const foot = element('div', 'caissa-native-coach-panel__foot-content caissa-native-coach-panel__foot-content--review',
-            { 'data-caissa-coach-review-foot': '' }); foot.append(action);
-        return { panel, close, loading, progressTrack, progressFill, progressText, comparison, playerAvatar,
-            playerName, coachName, playerAccuracy, coachAccuracy, table, action, foot };
+            { 'data-caissa-coach-review-foot': '' }); foot.append(newGame, action);
+        return { panel, loading, progressTrack, progressFill, progressText, comparison, playerAvatar,
+            playerName, coachName, playerAccuracy, coachAccuracy, table, newGame, action, foot };
     }
 
     function createGuidedStructure() {
@@ -432,6 +430,16 @@
         analyze.jumpToMove(0); updateGuided(); mounted.guided.explain.focus?.();
     }
 
+    function startNewGame(button) {
+        if (!mounted || button?.disabled) return;
+        button.disabled = true;
+        if (mounted.analyze?.currentMoveIndex !== -1) mounted.analyze?.jumpToMove?.(-1);
+        root.CaissaPlayV2InlineAnalyze?.close?.();
+        Promise.resolve(root.CaissaPostGameExperienceInstance?.execute?.('new-game')).then(outcome => {
+            if (mounted && !outcome?.ok) button.disabled = false;
+        }).catch(() => { if (mounted) button.disabled = false; });
+    }
+
     function formatExplorationEvaluation(info) {
         if (Number.isFinite(info?.mate) && info.mate !== 0) return info.mate > 0 ? `M+${info.mate}` : `M${info.mate}`;
         return Number.isFinite(info?.evaluation) ? `${info.evaluation >= 0 ? '+' : ''}${info.evaluation.toFixed(2)}` : '\u2014';
@@ -596,9 +604,7 @@
         if (!options.section?.querySelector || !options.host?.appendChild
             || root.CaissaCoachReviewContext?.isCoachReview?.(options.context) !== true || !options.handoff?.payload)
             return result(false, 'rejected', 'INVALID_COACH_REVIEW_CONTEXT');
-        const summary = createSummaryStructure(options.close); const guided = createGuidedStructure();
-        if (summary.close) { summary.close.textContent = '\u2190 Back'; summary.close.setAttribute('aria-label', 'Back to game result');
-            summary.close.classList.add('caissa-coach-review-summary__back'); }
+        const summary = createSummaryStructure(); const guided = createGuidedStructure();
         const shell = root.CaissaNativeCoachPanel?.present?.({ phase: 'review-summary', content: summary.panel,
             foot: summary.foot, message: 'Reviewing your game...', transient: true });
         if (!shell?.ok) return result(false, 'rejected', 'COACH_SHELL_UNAVAILABLE');
@@ -610,6 +616,7 @@
             explanationExpanded: false, explorationEntryPly: null, explorationLastAnalysis: null,
             restoringExploration: false };
         summary.action.addEventListener('click', enterGuidedReview);
+        summary.newGame.addEventListener('click', () => startNewGame(summary.newGame));
         guided.explain.addEventListener('click', () => { if (!mounted) return;
             mounted.explanationExpanded = !mounted.explanationExpanded; updateGuided(); });
         guided.next.addEventListener('click', () => { if (!mounted?.analyze) return;
@@ -617,14 +624,7 @@
             mounted.explanationExpanded = false;
             if (destination === null) { updateGuided(); return; }
             mounted.analyze.jumpToMove(destination); updateGuided(); });
-        guided.newGame.addEventListener('click', () => {
-            if (!mounted || guided.newGame.disabled) return;
-            guided.newGame.disabled = true;
-            root.CaissaPlayV2InlineAnalyze?.close?.();
-            Promise.resolve(root.CaissaPostGameExperienceInstance?.execute?.('new-game')).then(outcome => {
-                if (mounted && !outcome?.ok) guided.newGame.disabled = false;
-            }).catch(() => { if (mounted) guided.newGame.disabled = false; });
-        });
+        guided.newGame.addEventListener('click', () => startNewGame(guided.newGame));
         guided.analysis.addEventListener('click', enterExploration);
         guided.back.addEventListener('click', leaveExploration);
         guided.explorationNavigation.addEventListener('click', event => {

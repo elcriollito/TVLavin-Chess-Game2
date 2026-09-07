@@ -58,35 +58,6 @@ body.caissa-simplified-play-active
     min-height: 0;
     padding: 0 .15rem .15rem;
 }
-.caissa-coach-review-summary__header {
-    position: relative;
-    display: flex;
-    gap: .75rem;
-    align-items: center;
-    justify-content: center;
-}
-.caissa-coach-review-summary__heading { text-align: center; }
-.caissa-coach-review-summary__eyebrow {
-    display: block;
-    color: var(--coach-gold, #d7b96d);
-    font-size: .68rem;
-    font-weight: 850;
-    letter-spacing: .14em;
-}
-.caissa-coach-review-summary__title { margin: .05rem 0 0; font-size: clamp(1.55rem, 2.5vw, 2rem); }
-body.caissa-simplified-play-active .caissa-play-v2-inline-analyze__close.caissa-coach-review-summary__back {
-    position: absolute;
-    right: 0;
-    z-index: auto;
-    min-height: 44px;
-    margin: 0;
-    padding: .45rem .55rem;
-    border-color: var(--panel-border);
-    background: transparent;
-    color: var(--play-theme-muted, var(--text-secondary));
-    font-size: .82rem;
-    font-weight: 750;
-}
 .caissa-coach-review-summary__profile-avatar,
 .caissa-coach-review-summary__player-avatar {
     width: 4.75rem;
@@ -213,21 +184,36 @@ body.caissa-simplified-play-active .caissa-play-v2-inline-analyze__close.caissa-
 .caissa-coach-review-summary__row[data-quality="Inaccuracy"] .caissa-coach-review-summary__quality-icon { color: #e3b45c; }
 .caissa-coach-review-summary__row[data-quality="Mistake"] .caissa-coach-review-summary__quality-icon { color: #e68751; }
 .caissa-coach-review-summary__row[data-quality="Blunder"] .caissa-coach-review-summary__quality-icon { color: #db5b55; }
-.caissa-coach-review-summary__action {
-    min-height: 58px;
-    margin-top: .35rem;
+.caissa-native-coach-panel__foot-content--review {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.caissa-coach-review-summary__action,
+.caissa-coach-review-summary__new-game {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    min-width: 0;
+    min-height: 48px;
     width: 100%;
-    border: 1px solid var(--coach-gold, #d7b96d);
     border-radius: 10px;
-    background: var(--coach-gold, #d7b96d);
-    color: #111;
-    font-size: 1.08rem;
+    font-size: clamp(15px, 14px + .25vw, 17px);
     font-weight: 850;
     cursor: pointer;
 }
+.caissa-coach-review-summary__action {
+    border: 1px solid var(--coach-gold, #d7b96d);
+    background: var(--coach-gold, #d7b96d);
+    color: #111;
+}
+.caissa-coach-review-summary__new-game {
+    border: 1px solid #52647a;
+    background: #202a38;
+    color: var(--play-theme-text, #fff);
+}
 .caissa-coach-review-summary__action:hover { filter: brightness(1.06); }
 .caissa-coach-review-summary__action:focus-visible,
-.caissa-coach-review-summary__back:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.caissa-coach-review-summary__new-game:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 
 /* P3.1-006: Coach-only Guided Review and isolated position exploration. */
 .caissa-coach-guided [hidden],
@@ -854,6 +840,21 @@ body.caissa-simplified-play-active [data-caissa-coach-game-over-foot]
         max-height: 100dvh;
     }
     body.caissa-simplified-play-active.caissa-coach-guided-review-active .caissa-native-coach-panel__phase {
+        flex: 1 1 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        scrollbar-gutter: stable;
+    }
+    body.caissa-simplified-play-active.caissa-coach-review-summary-active
+        .caissa-simplified-shell[data-mode="coach"] :is(
+            .caissa-simplified-shell__context, .caissa-simplified-shell__context-body) {
+        overflow: hidden;
+    }
+    body.caissa-simplified-play-active.caissa-coach-review-summary-active .caissa-native-coach-panel {
+        height: 100dvh;
+        max-height: 100dvh;
+    }
+    body.caissa-simplified-play-active.caissa-coach-review-summary-active .caissa-native-coach-panel__phase {
         flex: 1 1 0;
         overflow-x: hidden;
         overflow-y: auto;

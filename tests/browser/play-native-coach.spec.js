@@ -117,7 +117,9 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     const summary = page.locator('[data-caissa-coach-review-summary]');
     await expect(summary).toBeVisible();
     await verifyPermanentShell('review-summary');
-    await expect(page.getByRole('heading', { name: 'Game Review' })).toBeVisible();
+    await expect(summary.locator('.caissa-coach-review-summary__header')).toHaveCount(0);
+    await expect(summary).not.toContainText('Game Review');
+    await expect(page.getByRole('button', { name: 'Back to game result' })).toHaveCount(0);
     await expect(page.locator('#analyzeStartBtn')).toBeHidden();
     await expect(page.locator('#analyzeCriticalMoments').locator('..')).toBeHidden();
     await expect(page.locator('.analyze-evidence-panel')).toBeHidden();
@@ -125,6 +127,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(page.locator('#playSection')).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.analysisPhase), { timeout: 30_000 }).toBe('complete');
     await expect(page.locator('[data-coach-review-comparison]')).toBeVisible();
+    await expect(summary.locator(':scope > :visible').first()).toHaveAttribute('data-coach-review-comparison', '');
     await expect(summary.getByText('Player', { exact: true })).toBeVisible();
     await expect(summary.getByText('Coach', { exact: true })).toBeVisible();
     const comparison = await page.evaluate(() => {
@@ -157,7 +160,8 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     const expectedSummarySymbols = { Book: '📖', Best: '★', Acceptable: '✓', Inaccuracy: '?!', Mistake: '?', Blunder: '??' };
     for (const [quality, symbol] of Object.entries(canonicalSummarySymbols)) expect(symbol).toBe(expectedSummarySymbols[quality]);
     await expect(page.locator('.analyze-board-navigation .nav-btn-sm:visible')).toHaveCount(0);
-    await expect(page.locator('[data-caissa-coach-review-foot] [data-coach-review-guided-action]')).toHaveText('Start Review');
+    await expect(page.locator('[data-caissa-coach-review-foot] > button')).toHaveText(['New Game', 'Review Game']);
+    await expect(page.locator('[data-caissa-coach-review-foot] [data-coach-review-guided-action]')).toHaveText('Review Game');
     await expect(summary.locator('[data-coach-review-guided-action]')).toHaveCount(0);
     await page.evaluate(() => window.AnalyzeSection.jumpToMove(0));
     await expect(page.locator('#analyzeEvalBar')).toBeHidden();
@@ -202,7 +206,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
         second.quality = 'Blunder'; second.annotation = '??'; second.isBestMove = false;
         window.AnalyzeSection.updateMoveList(); window.AnalyzeSection.jumpToMove(0);
     });
-    await page.getByRole('button', { name: 'Start Review' }).click();
+    await page.getByRole('button', { name: 'Review Game', exact: true }).click();
     await expect(page.locator('[data-coach-review-symbol="Mistake"]')).toHaveText('?');
     await expect(page.locator('[data-coach-review-symbol="Blunder"]')).toHaveText('??');
     await page.evaluate(() => {
@@ -582,13 +586,17 @@ test('Coach Review Summary remains inside Play, is responsive, keyboard ordered,
         const geometry = await page.evaluate(() => {
             const board = document.querySelector('#playSection #chessboard').getBoundingClientRect();
             const panel = document.querySelector('[data-caissa-coach-shell]').getBoundingClientRect();
+            const head = document.querySelector('[data-caissa-coach-head]').getBoundingClientRect();
+            const body = document.querySelector('[data-caissa-coach-body]').getBoundingClientRect();
+            const foot = document.querySelector('[data-caissa-coach-foot]').getBoundingClientRect();
+            const reviewHeader = document.querySelector('.caissa-coach-review-summary__header')?.getBoundingClientRect();
             const evalRail = document.querySelector('#playSection #evalBar').getBoundingClientRect();
             const persistentNode = document.querySelector('[data-caissa-coach-persistent]');
             const phaseNode = document.querySelector('[data-caissa-coach-phase-host]');
             const contextNode = document.querySelector('.caissa-simplified-shell__context');
             const persistentTop = persistentNode.getBoundingClientRect().top;
             phaseNode.scrollTop = Math.min(32, Math.max(0, phaseNode.scrollHeight - phaseNode.clientHeight));
-            const actions = [...document.querySelectorAll('[data-play-v2-analyze-close], [data-coach-review-guided-action]')]
+            const actions = [...document.querySelectorAll('[data-coach-review-new-game], [data-coach-review-guided-action]')]
                 .filter(node => getComputedStyle(node).display !== 'none');
             const rows = [...document.querySelectorAll('[data-coach-review-classifications] [data-quality]')]
                 .filter(node => getComputedStyle(node).display !== 'none');
@@ -598,11 +606,15 @@ test('Coach Review Summary remains inside Play, is responsive, keyboard ordered,
                 overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
                 board: { left: board.left, right: board.right, top: board.top, bottom: board.bottom, width: board.width },
                 panel: { left: panel.left, top: panel.top, bottom: panel.bottom, width: panel.width, height: panel.height },
+                head: { top: head.top, height: head.height }, body: { top: body.top, height: body.height },
+                foot: { top: foot.top, height: foot.height },
+                reviewHeader: reviewHeader ? { top: reviewHeader.top, height: reviewHeader.height } : null,
                 evalRailWidth: evalRail.width,
                 touchTargets: actions.every(node => node.getBoundingClientRect().height >= 44),
                 persistentStable: Math.abs(persistentNode.getBoundingClientRect().top - persistentTop) <= 1,
                 phaseOverflow: getComputedStyle(phaseNode).overflowY,
                 contextOverflow: getComputedStyle(contextNode).overflowY,
+                summaryOverflow: getComputedStyle(document.querySelector('[data-caissa-coach-review-summary]')).overflowY,
                 actionGap: action && finalRow ? action.top - finalRow.bottom : null,
                 footBottomGap: panel.bottom - document.querySelector('[data-caissa-coach-foot]').getBoundingClientRect().bottom,
                 phaseScrollable: phaseNode.scrollHeight > phaseNode.clientHeight + 1,
@@ -624,11 +636,18 @@ test('Coach Review Summary remains inside Play, is responsive, keyboard ordered,
                     .filter(node => node.getClientRects().length).length
             };
         });
+        if (process.env.CAISSA_QA_CAPTURE === '1')
+            console.log(`COACH_REVIEW_SUMMARY_GEOMETRY ${viewport.width}x${viewport.height} ${JSON.stringify(geometry)}`);
+        if (process.env.CAISSA_QA_CAPTURE === '1' && viewport.width === 1600)
+            await page.screenshot({ path: 'artifacts/play-coach-review-summary-desktop.png', fullPage: true });
         expect(geometry.overflow, JSON.stringify(viewport)).toBeLessThanOrEqual(1);
         expect(geometry.board.width).toBeGreaterThan(180);
         expect(geometry.evalRailWidth).toBeGreaterThan(0);
         expect(geometry.touchTargets).toBe(true);
         expect(geometry.persistentStable).toBe(true);
+        expect(geometry.phaseOverflow).toBe('auto');
+        expect(geometry.contextOverflow).toBe('hidden');
+        expect(geometry.summaryOverflow).toBe('visible');
         expect(geometry.playVisible).toBe(true);
         expect(geometry.playInert).toBe(false);
         expect(geometry.analyzeHidden).toBe(true);
@@ -644,8 +663,6 @@ test('Coach Review Summary remains inside Play, is responsive, keyboard ordered,
             expect(geometry.panel.width).toBeGreaterThanOrEqual(viewport.width - 50);
         } else {
             expect(geometry.sidebarVisible).toBe(true);
-            expect(geometry.phaseOverflow).toBe('auto');
-            expect(geometry.contextOverflow).toBe('hidden');
             expect(geometry.board.right).toBeLessThanOrEqual(geometry.panel.left + 1);
             expect(geometry.panel.width).toBeGreaterThanOrEqual(340);
             expect(geometry.footBottomGap).toBeLessThanOrEqual(2);
@@ -655,13 +672,18 @@ test('Coach Review Summary remains inside Play, is responsive, keyboard ordered,
         }
     }
     await page.setViewportSize({ width: 320, height: 568 });
-    const back = page.getByRole('button', { name: 'Back to game result' });
-    await back.focus();
+    await expect(page.getByRole('button', { name: 'Back to game result' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'New Game', exact: true }).focus();
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('button', { name: 'Start Review' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Review Game', exact: true })).toBeFocused();
     const axe = await new AxeBuilder({ page }).include('#playSection').analyze();
     expect(axe.violations.filter(item => ['critical', 'serious'].includes(item.impact))).toEqual([]);
-    await page.getByRole('button', { name: 'Start Review' }).click();
+    if (process.env.CAISSA_QA_CAPTURE === '1') {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.screenshot({ path: 'artifacts/play-coach-review-summary-mobile.png', fullPage: true });
+        await page.setViewportSize({ width: 320, height: 568 });
+    }
+    await page.getByRole('button', { name: 'Review Game', exact: true }).click();
     for (const viewport of [{ width: 320, height: 568 }, { width: 1440, height: 900 }]) {
         await page.setViewportSize(viewport);
         await expect.poll(() => page.locator('.caissa-simplified-shell').getAttribute('data-layout'))
@@ -700,6 +722,32 @@ test('Coach Review Summary remains inside Play, is responsive, keyboard ordered,
     await page.setViewportSize({ width: 320, height: 568 });
     const guidedAxe = await new AxeBuilder({ page }).include('[data-caissa-coach-shell]').analyze();
     expect(guidedAxe.violations.filter(item => ['critical', 'serious'].includes(item.impact))).toEqual([]);
+});
+
+test('Coach Review Summary New Game reuses the completed-game reset lifecycle', async ({ page }) => {
+    await page.goto('/play/beta/coach');
+    const panel = page.locator('[data-caissa-native-coach-panel]');
+    await panel.getByRole('button', { name: 'Play' }).click();
+    expect(await playMove(page, 'e2', 'e4')).toBe(true);
+    await expect.poll(() => page.evaluate(() => window.App.game.history())).toEqual(['e4', 'e5']);
+    await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
+    await page.locator('[data-post-game-action="analyze"]').click();
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection?.analysisPhase || 'loading'),
+        { timeout: 30_000 }).toBe('complete');
+    await expect(page.locator('[data-caissa-coach-review-summary]')).toBeVisible();
+    await expect(page.locator('[data-caissa-coach-review-foot] > button')).toHaveText(['New Game', 'Review Game']);
+    await expect.poll(() => page.evaluate(() =>
+        window.CaissaCoachReviewPresentation.getSnapshot().analysisStartRequests)).toBe(1);
+    await page.getByRole('button', { name: 'New Game', exact: true }).click();
+    await expect(panel).toBeVisible();
+    await expect(page.locator('[data-caissa-coach-review-summary]')).toHaveCount(0);
+    await expect(page.locator('.caissa-post-game')).toBeHidden();
+    await expect.poll(() => page.evaluate(() => ({
+        phase: document.querySelector('[data-caissa-coach-shell]')?.dataset.coachShellPhase,
+        reviewPly: window.AnalyzeSection?.currentMoveIndex ?? -1,
+        explorationActive: window.CaissaCoachReviewExploration.isActive(),
+        postGameVisible: window.CaissaPostGameExperienceInstance.getSnapshot().visible
+    }))).toEqual({ phase: 'setup', reviewPly: -1, explorationActive: false, postGameVisible: false });
 });
 
 test('Games-origin Analyze stays in the Play Game shell without affecting Coach presentation', async ({ page }) => {
