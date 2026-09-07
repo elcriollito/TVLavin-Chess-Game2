@@ -1,6 +1,21 @@
 /* CAISSA Play v3.1 Coach setup and review presentation. Strictly Coach-context scoped. */
 
 body.caissa-coach-review-summary-active [data-caissa-floating-controls] { display: none !important; }
+body.caissa-simplified-play-active:has(
+    .caissa-simplified-shell[data-mode="coach"] [data-coach-shell-phase="active-game"]) #playSection {
+    overflow-y: hidden;
+    overscroll-behavior-y: none;
+}
+body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-mode="coach"] [data-coach-shell-phase="active-game"] [data-active-game-moves] {
+    max-height: none;
+    overflow-y: visible;
+}
+body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-mode="coach"] [data-coach-shell-phase="active-game"]
+    [data-active-game-context] > :is(h3, [data-active-game-status]) {
+    display: none;
+}
 body.caissa-simplified-play-active:is(.caissa-coach-review-summary-active, .caissa-coach-guided-review-active) #playSection {
     overflow-y: hidden;
     overscroll-behavior-y: none;
@@ -54,6 +69,37 @@ body.caissa-simplified-play-active
     .caissa-simplified-shell[data-entry-experience="beta"][data-mode="coach"]:is(
         [data-layout="desktop-split"], [data-layout="tablet-landscape-split"], [data-layout="constrained-height"])
     .caissa-simplified-shell__context { grid-row: 2; align-self: stretch; max-height: none; }
+body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-entry-experience="beta"][data-mode="coach"][data-layout="phone-landscape"]
+    .caissa-simplified-shell__workspace:has([data-coach-shell-phase="active-game"]) {
+    grid-template-areas:
+        "board modes"
+        "board context";
+    grid-template-rows: auto minmax(0, 1fr);
+}
+body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-entry-experience="beta"][data-mode="coach"][data-layout="phone-landscape"]
+    .caissa-simplified-shell__workspace:has([data-coach-shell-phase="active-game"])
+    > :is(.caissa-simplified-shell__footer, .caissa-simplified-shell__advanced) { display: none; }
+body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-entry-experience="beta"][data-mode="coach"][data-layout="phone-landscape"]
+    .caissa-simplified-shell__context:has([data-coach-shell-phase="active-game"]) {
+    grid-row: 2;
+    align-self: stretch;
+    max-height: none;
+}
+body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-entry-experience="beta"][data-mode="coach"][data-layout="phone-landscape"]:has(
+        [data-coach-shell-phase="active-game"])
+    .caissa-simplified-shell__modes .caissa-vc-tabs__list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-entry-experience="beta"][data-mode="coach"][data-layout="phone-landscape"]:has(
+        [data-coach-shell-phase="active-game"])
+    .caissa-simplified-shell__mode:last-child:nth-child(odd) {
+    grid-column: auto;
+}
 
 .caissa-coach-review-summary {
     display: flex;
@@ -885,6 +931,28 @@ body.caissa-simplified-play-active [data-caissa-coach-game-over-foot]
     }
     body.caissa-simplified-play-active .caissa-simplified-shell[data-mode="coach"] .caissa-simplified-shell__context {
         overflow: visible;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"]:has([data-coach-shell-phase="active-game"])
+        :is(.caissa-simplified-shell__context, .caissa-simplified-shell__context-body) {
+        min-height: 0;
+        overflow: hidden;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"] [data-coach-shell-phase="active-game"] {
+        flex: 1 1 auto;
+        height: 100%;
+        max-height: 100%;
+        min-height: 0;
+        overflow: hidden;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"] [data-coach-shell-phase="active-game"] [data-caissa-coach-body] {
+        flex: 1 1 0;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        scrollbar-gutter: stable;
     }
     .caissa-coach-review-summary { width: 100%; min-height: 0; margin-top: 0; padding: 0; }
     .caissa-coach-review-summary__profiles,
