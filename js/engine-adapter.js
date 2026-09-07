@@ -249,8 +249,14 @@
                     if (this.attributedActive.kind === 'candidates') {
                         const info = this.parseInfo(message, null);
                         if (info?.pv?.[0] && info.depth >= (this.attributedActive.candidates.get(info.multipv)?.depth || 0))
-                            this.attributedActive.candidates.set(info.multipv, Object.freeze({ move: info.pv[0],
-                                multipv: info.multipv, depth: info.depth, score: info.score, mate: info.mate }));
+                            this.attributedActive.candidates.set(info.multipv, Object.freeze({
+                                move: info.pv[0],
+                                multipv: info.multipv,
+                                depth: info.depth,
+                                score: info.score,
+                                mate: info.mate,
+                                pv: Object.freeze([...info.pv])
+                            }));
                     } else this.parseInfo(message, this.attributedActive.callback);
                 }
                 return;

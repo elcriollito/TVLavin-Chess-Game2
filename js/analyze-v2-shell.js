@@ -135,7 +135,7 @@
         getEngineCandidates(result) {
             if (!result) return [];
             const provided = result.lines || result.multiPv || result.variations;
-            return (Array.isArray(provided) && provided.length ? provided : [result]).slice(0, 3);
+            return (Array.isArray(provided) && provided.length ? provided : [result]).slice(0, 4);
         },
 
         renderMinimalAnalysis() {
@@ -170,16 +170,17 @@
             this.getEngineCandidates(result).forEach((candidate, index) => {
                 const pv = Array.isArray(candidate.pv) ? candidate.pv : [];
                 const firstMove = candidate.bestMove || pv[0] || '';
-                const bestMove = analyze.uciToSan?.(fen, firstMove) || firstMove || '—';
+                const sanLine = analyze.uciLineToSan?.(fen, pv, 7) || [];
+                const bestMove = sanLine[0] || analyze.uciToSan?.(fen, firstMove) || firstMove || '—';
                 const row = document.createElement('div');
-                row.className = 'caissa-analyze-v2__engine-line';
+                row.className = `caissa-analyze-v2__engine-line caissa-analyze-v2__engine-line--${index === 0 ? 'primary' : 'secondary'}`;
 
                 const score = document.createElement('strong');
                 score.textContent = analyze.formatEvaluation?.(candidate.eval, candidate.mate) || '—';
                 const variation = document.createElement('span');
                 variation.textContent = index === 0
-                    ? `${bestMove} is best${pv.length > 1 ? `  ${pv.slice(1, 7).join(' ')}` : ''}`
-                    : (pv.slice(0, 7).join(' ') || bestMove);
+                    ? `${bestMove} is best${sanLine.length > 1 ? `  ${sanLine.slice(1).join(' ')}` : ''}`
+                    : (sanLine.join(' ') || pv.slice(0, 7).join(' ') || bestMove);
                 row.append(score, variation);
                 engineLines.appendChild(row);
             });

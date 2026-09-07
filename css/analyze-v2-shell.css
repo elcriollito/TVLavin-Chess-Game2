@@ -357,6 +357,22 @@
     border-bottom: 0;
 }
 
+#analyzeSection .caissa-analyze-v2__engine-line--primary {
+    min-height: 42px;
+    background: linear-gradient(90deg, rgba(240, 165, 72, 0.13), rgba(240, 165, 72, 0.025));
+    box-shadow: inset 3px 0 0 var(--analyze-v2-accent);
+}
+
+#analyzeSection .caissa-analyze-v2__engine-line--primary span {
+    color: #f1f3f7;
+    font-weight: 700;
+}
+
+#analyzeSection .caissa-analyze-v2__engine-line--secondary {
+    min-height: 32px;
+    padding-block: 4px;
+}
+
 #analyzeSection .caissa-analyze-v2__engine-line strong {
     padding: 4px 5px;
     border-radius: 4px;

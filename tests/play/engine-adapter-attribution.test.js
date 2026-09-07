@@ -145,9 +145,9 @@ test('one attributed MultiPV operation returns a bounded scored candidate set an
     worker.emit('info depth 8 multipv 3 score mate 4 pv g1f3');
     worker.emit('bestmove e2e4');
     assert.deepEqual(delivered, [{ generation: 'candidates:1', candidates: [
-        { move: 'e2e4', multipv: 1, depth: 8, score: 0.45, mate: null },
-        { move: 'd2d4', multipv: 2, depth: 8, score: 0.2, mate: null },
-        { move: 'g1f3', multipv: 3, depth: 8, score: null, mate: 4 }
+        { move: 'e2e4', multipv: 1, depth: 8, score: 0.45, mate: null, pv: ['e2e4', 'e7e5'] },
+        { move: 'd2d4', multipv: 2, depth: 8, score: 0.2, mate: null, pv: ['d2d4', 'd7d5'] },
+        { move: 'g1f3', multipv: 3, depth: 8, score: null, mate: 4, pv: ['g1f3'] }
     ] }]);
     assert.equal(worker.messages.at(-1), 'setoption name MultiPV value 1');
     assert.equal(adapter.inspectAttribution().activeOperationCount, 0);

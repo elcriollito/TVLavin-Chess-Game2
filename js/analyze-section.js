@@ -37,6 +37,7 @@ const AnalyzeSection = {
     livePositionAnalyses: {},
     liveCurrentFen: null,
     liveCurrentResult: null,
+    liveMultiPvCount: 4,
 
     // DOM cache
     elements: {},
@@ -1302,6 +1303,7 @@ const AnalyzeSection = {
             this.liveEngineToken += 1;
             this.liveEngineOwner = null;
             this.liveCurrentResult = null;
+            this.analysisEngine?.cancelAttributedSearch?.();
             this.analysisEngine?.stop?.();
             if (this.analysisEngine) {
                 this.analysisEngine.onInfo = null;
@@ -1358,10 +1360,7 @@ const AnalyzeSection = {
         }
 
         try {
-            const result = await this.analyzePosition(fen, token, 10, 10000, {
-                tokenType: 'live',
-                owner: 'analyze-live'
-            });
+            const result = await this.analyzeLiveMultiPvPosition(fen, token, 10, 10000);
             if (token !== this.liveEngineToken || !this.liveEngineEnabled) return;
             this.livePositionAnalyses[positionIndex] = result;
             this.liveCurrentResult = result;
@@ -1709,6 +1708,27 @@ const AnalyzeSection = {
         }
     },
 
+    uciLineToSan(fen, pv, maxMoves = 7) {
+        if (!Array.isArray(pv) || !pv.length) return [];
+        try {
+            const game = new Chess(fen);
+            const san = [];
+            for (const uci of pv.slice(0, maxMoves)) {
+                if (!/^[a-h][1-8][a-h][1-8][qrbn]?$/i.test(uci)) break;
+                const move = game.move({
+                    from: uci.slice(0, 2),
+                    to: uci.slice(2, 4),
+                    promotion: uci.slice(4, 5) || undefined
+                });
+                if (!move) break;
+                san.push(move.san);
+            }
+            return san;
+        } catch (_error) {
+            return [];
+        }
+    },
+
     formatEvaluation(evaluation, mate) {
         if (mate !== null && mate !== undefined) return `Mate ${mate}`;
         if (evaluation === null || evaluation === undefined) return '-';
@@ -1774,6 +1794,63 @@ const AnalyzeSection = {
                 && this.isAnalyzeActive();
         }
         return this.isAnalyzing && token === this.analysisToken && this.isAnalyzeActive();
+    },
+
+    analyzeLiveMultiPvPosition(fen, token, depth = 10, timeoutMs = 10000) {
+        return new Promise((resolve, reject) => {
+            const engine = this.analysisEngine;
+            if (!engine?.isReady?.() || typeof engine.getCandidatesAttributed !== 'function') {
+                reject(new Error('Stockfish MultiPV is not available'));
+                return;
+            }
+
+            let settled = false;
+            let generationId = null;
+            const settle = (callback, value) => {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timeout);
+                if (token === this.liveEngineToken && this.liveEngineOwner === 'analyze-live') {
+                    this.liveEngineOwner = null;
+                }
+                callback(value);
+            };
+            const timeout = setTimeout(() => {
+                const attribution = engine.inspectAttribution?.();
+                const ownsActiveSearch = generationId
+                    && [attribution?.activeGenerationId, attribution?.pendingGenerationId].includes(generationId);
+                if (ownsActiveSearch) engine.cancelAttributedSearch?.();
+                settle(reject, new Error('Stockfish MultiPV analysis timed out'));
+            }, timeoutMs);
+
+            this.liveEngineOwner = 'analyze-live';
+            generationId = engine.getCandidatesAttributed(fen, (candidates) => {
+                if (!this.isAnalyzeTokenActive(token, 'live')) {
+                    settle(reject, new Error('Stale MultiPV result rejected'));
+                    return;
+                }
+                const lines = candidates.slice(0, this.liveMultiPvCount).map((candidate) => ({
+                    eval: Number.isFinite(candidate.score) ? candidate.score : null,
+                    mate: Number.isFinite(candidate.mate) ? candidate.mate : null,
+                    bestMove: candidate.move || candidate.pv?.[0] || null,
+                    depth: candidate.depth ?? 0,
+                    pv: Array.isArray(candidate.pv) ? [...candidate.pv] : [candidate.move].filter(Boolean)
+                }));
+                if (!lines.length) {
+                    settle(reject, new Error('Stockfish returned no MultiPV lines'));
+                    return;
+                }
+                const primary = lines[0];
+                settle(resolve, {
+                    ...primary,
+                    requestedDepth: depth,
+                    completed: primary.depth >= depth,
+                    lines
+                });
+            }, { depth, candidateCount: this.liveMultiPvCount });
+
+            if (!generationId) settle(reject, new Error('Stockfish MultiPV request was not started'));
+        });
     },
 
     analyzePosition(fen, token, depth = 12, timeoutMs = 12000, options = {}) {

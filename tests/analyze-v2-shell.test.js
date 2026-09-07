@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const css = fs.readFileSync(new URL('../css/analyze-v2-shell.css', import.meta.url), 'utf8');
 const shell = fs.readFileSync(new URL('../js/analyze-v2-shell.js', import.meta.url), 'utf8');
+const analyze = fs.readFileSync(new URL('../js/analyze-section.js', import.meta.url), 'utf8');
 
 test('A1 exposes one two-region Analyze V2 shell and one authoritative board host', () => {
     assert.equal((html.match(/data-caissa-analyze-v2(?:\s|>)/g) || []).length, 1);
@@ -62,8 +63,17 @@ test('A1.1 exposes only the minimal Analysis presentation while preserving hidde
     assert.doesNotMatch(analysisPanel, /caissa-analyze-v2__(?:status-card|moves-card|game-card)/);
     assert.match(html, /class="caissa-analyze-v2__actions"/);
     for (const label of ['New', 'Save', 'Review']) assert.match(html, new RegExp(`<span>${label}</span>`));
-    assert.match(shell, /\.slice\(0, 3\)/);
+    assert.match(shell, /\.slice\(0, 4\)/);
     assert.doesNotMatch(shell, /setoption\s+name\s+MultiPV/i);
+});
+
+test('A1.2 requests four attributed lines through the existing Analyze engine owner', () => {
+    assert.match(analyze, /liveMultiPvCount:\s*4/);
+    assert.match(analyze, /getCandidatesAttributed\(fen,/);
+    assert.match(analyze, /candidateCount:\s*this\.liveMultiPvCount/);
+    assert.match(analyze, /lines\s*\n?\s*\}/);
+    assert.doesNotMatch(analyze, /analysisEngine\s*=\s*new\s+/);
+    assert.match(shell, /engine-line--\$\{index === 0 \? 'primary' : 'secondary'\}/);
 });
 
 test('A1 assets are registered once after the legacy base styles', () => {
