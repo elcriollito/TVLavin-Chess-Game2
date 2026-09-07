@@ -33,17 +33,23 @@ body.caissa-simplified-play-active .caissa-simplified-shell[data-mode="coach"] .
         flex: 1 1 0;
     }
 }
-body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experience="beta"][data-layout="desktop-split"][data-mode="coach"]
+body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-entry-experience="beta"][data-mode="coach"]:is(
+        [data-layout="desktop-split"], [data-layout="tablet-landscape-split"], [data-layout="constrained-height"])
     .caissa-simplified-shell__workspace {
     grid-template-areas:
         "board modes"
         "board context";
     grid-template-rows: auto minmax(0, 1fr);
 }
-body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experience="beta"][data-layout="desktop-split"][data-mode="coach"]
+body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-entry-experience="beta"][data-mode="coach"]:is(
+        [data-layout="desktop-split"], [data-layout="tablet-landscape-split"], [data-layout="constrained-height"])
     :is(.caissa-simplified-shell__footer, .caissa-simplified-shell__advanced) { display: none; }
-body.caissa-simplified-play-active .caissa-simplified-shell[data-entry-experience="beta"][data-layout="desktop-split"][data-mode="coach"]
-    .caissa-simplified-shell__context { grid-row: 2; }
+body.caissa-simplified-play-active
+    .caissa-simplified-shell[data-entry-experience="beta"][data-mode="coach"]:is(
+        [data-layout="desktop-split"], [data-layout="tablet-landscape-split"], [data-layout="constrained-height"])
+    .caissa-simplified-shell__context { grid-row: 2; align-self: stretch; max-height: none; }
 
 .caissa-coach-review-summary {
     display: flex;
@@ -292,7 +298,11 @@ body.caissa-simplified-play-active .caissa-play-v2-inline-analyze__close.caissa-
     border-top: 1px solid var(--panel-border);
     scrollbar-gutter: stable;
 }
-.caissa-coach-guided__notation .analyze-move-list { padding: .4rem .2rem; }
+.caissa-coach-guided__notation .analyze-move-list {
+    max-height: none;
+    padding: .4rem .2rem;
+    overflow: visible;
+}
 .caissa-coach-guided__notation .move-list-grid { display: grid; gap: .12rem; }
 .caissa-coach-guided__notation .move-row {
     display: grid;
@@ -360,9 +370,6 @@ body.caissa-simplified-play-active .caissa-coach-guided__navigation-host .nav-bt
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: .55rem;
 }
-.caissa-coach-guided__review-tools[data-review-complete="true"] .caissa-coach-guided__foot-actions {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-}
 .caissa-coach-guided__foot-actions > button {
     display: inline-flex;
     align-items: center;
@@ -378,9 +385,9 @@ body.caissa-simplified-play-active .caissa-coach-guided__navigation-host .nav-bt
 }
 .caissa-coach-guided__analysis { width: 100%; }
 .caissa-coach-guided__new-game {
-    border-color: var(--coach-gold, #d7b96d) !important;
-    background: var(--coach-gold, #d7b96d) !important;
-    color: #111827 !important;
+    border-color: var(--panel-border) !important;
+    background: #202a38 !important;
+    color: var(--play-theme-text, #fff) !important;
     font-weight: 850;
 }
 .caissa-coach-review-settings {
@@ -765,6 +772,22 @@ body.caissa-simplified-play-active [data-caissa-coach-game-over-foot]
         overflow: visible;
         scrollbar-gutter: auto;
     }
+    body.caissa-simplified-play-active.caissa-coach-guided-review-active
+        .caissa-simplified-shell[data-mode="coach"] .caissa-simplified-shell__context,
+    body.caissa-simplified-play-active.caissa-coach-guided-review-active
+        .caissa-simplified-shell[data-mode="coach"] .caissa-simplified-shell__context-body {
+        overflow: hidden;
+    }
+    body.caissa-simplified-play-active.caissa-coach-guided-review-active .caissa-native-coach-panel {
+        height: 100dvh;
+        max-height: 100dvh;
+    }
+    body.caissa-simplified-play-active.caissa-coach-guided-review-active .caissa-native-coach-panel__phase {
+        flex: 1 1 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        scrollbar-gutter: stable;
+    }
     body.caissa-simplified-play-active .caissa-native-coach-panel__phase > [data-caissa-coach-phase-content]:not([hidden]) {
         flex: 0 0 auto;
         min-height: 0;
@@ -787,13 +810,6 @@ body.caissa-simplified-play-active [data-caissa-coach-game-over-foot]
     .caissa-coach-guided__navigation-host .analyze-board-navigation { gap: .38rem; }
     .caissa-coach-guided__navigation-host .nav-btn-sm { min-height: 52px; padding: .4rem; font-size: 1.16rem; }
     .caissa-coach-guided__foot-actions { gap: .38rem; }
-    .caissa-coach-guided__review-tools[data-review-complete="true"] .caissa-coach-guided__foot-actions {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    .caissa-coach-guided__review-tools[data-review-complete="true"] .caissa-coach-guided__foot-actions > button {
-        padding-inline: .25rem !important;
-        font-size: .76rem;
-    }
     .caissa-coach-guided__foot-actions > button { min-height: 48px; padding-inline: .45rem; }
     .caissa-coach-review-settings__effort { grid-template-columns: 1fr; }
     body.caissa-simplified-play-active .caissa-post-game.caissa-coach-game-over-context {

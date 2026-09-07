@@ -250,7 +250,8 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(page.locator('[data-coach-guided-navigation] #analyzeFlipBoard')).toHaveCount(0);
     await expect(page.locator('[data-coach-review-settings-dialog] [data-coach-guided-flip]')).toBeAttached();
     await expect(page.locator('[data-caissa-coach-foot] [data-coach-guided-analysis]')).toBeVisible();
-    await expect(page.locator('[data-caissa-coach-foot] [data-coach-guided-settings]')).toBeVisible();
+    await expect(page.locator('[data-coach-guided-settings]')).toHaveCount(0);
+    await expect(page.locator('[data-coach-guided-new-game]')).toBeVisible();
     await expect(page.locator('.caissa-simplified-shell__board-stage .analyze-board-navigation')).toHaveCount(0);
     await page.locator('[data-coach-guided-explain]').click();
     await expect(page.locator('[data-coach-guided-detail]')).toBeVisible();
@@ -262,69 +263,13 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(page.locator('[data-coach-guided-new-game]')).toBeVisible();
     const finalActions = await page.locator('[data-coach-guided-foot-review] [data-coach-guided-flip], '
         + '[data-coach-guided-foot-review] [data-coach-guided-analysis], '
-        + '[data-coach-guided-foot-review] [data-coach-guided-settings], '
         + '[data-coach-guided-foot-review] [data-coach-guided-new-game]').evaluateAll(nodes => nodes
         .filter(node => node.getClientRects().length)
         .sort((left, right) => left.getBoundingClientRect().left - right.getBoundingClientRect().left)
         .map(node => node.textContent.trim()));
-    expect(finalActions).toEqual(['New Game', 'Analysis', 'Settings']);
-    const settingsPly = await page.evaluate(() => window.AnalyzeSection.currentMoveIndex);
-    await page.evaluate(() => {
-        window.__coachReviewDownloads = [];
-        window.URL.createObjectURL = blob => { window.__coachReviewDownloadBlob = blob; return 'blob:caissa-review-test'; };
-        window.URL.revokeObjectURL = () => {};
-        window.HTMLAnchorElement.prototype.click = function captureReviewDownload() {
-            if (this.download) window.__coachReviewDownloads.push({ filename: this.download, href: this.href });
-        };
-    });
-    await page.locator('[data-coach-guided-settings]').click();
-    const settingsDialog = page.getByRole('dialog', { name: 'Review Settings' });
-    await expect(settingsDialog).toBeVisible();
-    await page.evaluate(() => {
-        window.__coachReviewFlipCalls = 0;
-        const flip = window.AnalyzeSection.flipAnalyzeBoard.bind(window.AnalyzeSection);
-        window.AnalyzeSection.flipAnalyzeBoard = (...args) => {
-            window.__coachReviewFlipCalls += 1;
-            return flip(...args);
-        };
-    });
-    const orientation = await page.locator('#playSection #chessboard').evaluate(node => node.innerHTML);
-    const railBeforeFlip = await page.evaluate(() => window.CaissaEvaluationRailInstance.getSnapshot());
-    await settingsDialog.getByRole('button', { name: 'Flip board' }).click();
-    await expect.poll(() => page.locator('#playSection #chessboard').evaluate(node => node.innerHTML)).not.toBe(orientation);
-    const railAfterFlip = await page.evaluate(() => window.CaissaEvaluationRailInstance.getSnapshot());
-    expect({ cp: railAfterFlip.scoreCp, label: railAfterFlip.label }).toEqual({
-        cp: railBeforeFlip.scoreCp, label: railBeforeFlip.label
-    });
+    expect(finalActions).toEqual(['New Game', 'Analysis']);
+    await expect(page.getByRole('dialog', { name: 'Review Settings' })).not.toBeVisible();
     await expect(page.locator('[data-coach-review-settings-dialog] #analyzeFlipBoard')).toHaveCount(1);
-    expect(await page.evaluate(() => window.__coachReviewFlipCalls)).toBe(1);
-    expect(await page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(settingsPly);
-    await expect(settingsDialog.getByRole('button', { name: /Quick|Balanced|Deep/ })).toHaveCount(0);
-    const settingsA11y = await new AxeBuilder({ page }).include('[data-coach-review-settings-dialog]').analyze();
-    expect(settingsA11y.violations.filter(issue => ['critical', 'serious'].includes(issue.impact))).toEqual([]);
-    const desktopViewport = page.viewportSize();
-    await page.setViewportSize({ width: 390, height: 844 });
-    const mobileSettings = await settingsDialog.evaluate(node => {
-        const rect = node.getBoundingClientRect();
-        return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom,
-            viewportWidth: innerWidth, viewportHeight: innerHeight, scrollWidth: node.scrollWidth, clientWidth: node.clientWidth };
-    });
-    expect(mobileSettings.left).toBeGreaterThanOrEqual(0);
-    expect(mobileSettings.right).toBeLessThanOrEqual(mobileSettings.viewportWidth);
-    expect(mobileSettings.top).toBeGreaterThanOrEqual(0);
-    expect(mobileSettings.bottom).toBeLessThanOrEqual(mobileSettings.viewportHeight);
-    expect(mobileSettings.scrollWidth).toBeLessThanOrEqual(mobileSettings.clientWidth);
-    await page.setViewportSize(desktopViewport);
-    await settingsDialog.getByRole('button', { name: 'Save PGN' }).click();
-    await expect.poll(() => page.evaluate(() => window.__coachReviewDownloads.length)).toBe(1);
-    const firstExport = await page.evaluate(async () => ({
-        filename: window.__coachReviewDownloads[0].filename,
-        pgn: await window.__coachReviewDownloadBlob.text()
-    }));
-    expect(firstExport.filename).toMatch(/\.pgn$/);
-    expect(firstExport.pgn).toBe(original.completedPgn);
-    await settingsDialog.getByRole('button', { name: 'Close review settings' }).click();
-    expect(await page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(settingsPly);
     await page.evaluate(() => {
         const second = window.AnalyzeSection.analysisResults[1];
         second.quality = 'Mistake'; second.annotation = '?';
@@ -349,11 +294,11 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(-1);
     await expect(page.locator('[data-coach-guided-next]')).toContainText('Next Move');
     await expect(page.locator('[data-coach-guided-next]')).toBeEnabled();
-    await expect(page.locator('[data-coach-guided-new-game]')).toBeHidden();
+    await expect(page.locator('[data-coach-guided-new-game]')).toBeVisible();
     await page.locator('#analyzeNavNext').click();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(0);
     await expect(page.locator('[data-coach-guided-next]')).toContainText('Next Move');
-    await expect(page.locator('[data-coach-guided-new-game]')).toBeHidden();
+    await expect(page.locator('[data-coach-guided-new-game]')).toBeVisible();
     await expect(page.locator('[data-coach-guided-notation] [data-index="0"]')).toHaveClass(/active/);
     await expect(page.locator('[data-caissa-coach-guided-review]')).toHaveAttribute('data-authoritative-ply', '0');
     await page.locator('#analyzeNavLast').click();
@@ -381,7 +326,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(page.locator('[data-caissa-coach-foot] #analyzeNavLast')).toBeVisible();
     await expect(page.locator('[data-caissa-coach-foot] .analyze-board-navigation')).toHaveCount(1);
     await expect(page.locator('[data-caissa-coach-foot] #analyzeFlipBoard')).toHaveCount(0);
-    await expect(page.locator('[data-caissa-coach-foot] [data-coach-guided-settings]')).toBeVisible();
+    await expect(page.locator('[data-coach-guided-settings]')).toHaveCount(0);
     expect(await page.evaluate(() => window.CaissaCoachReviewExploration.isActive())).toBe(false);
     const assertSourceSynchronization = async expectedIndex => {
         await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(expectedIndex);
@@ -430,6 +375,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
         const phase = document.querySelector('[data-caissa-coach-body]');
         const foot = document.querySelector('[data-caissa-coach-foot]');
         const source = document.querySelector('[data-coach-guided-notation]');
+        const moveList = source.querySelector('.analyze-move-list');
         const list = source.querySelector('.move-list-grid');
         const template = list.querySelector('.move-row');
         const footTop = foot.getBoundingClientRect().top;
@@ -441,14 +387,18 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
         const result = {
             bodyOverflow: getComputedStyle(phase).overflowY,
             notationOverflow: getComputedStyle(source).overflowY,
+            moveListOverflow: getComputedStyle(moveList).overflowY,
             bodyScrollable: phase.scrollHeight > phase.clientHeight,
+            nestedScrollbars: [source, moveList].filter(node => node.scrollHeight > node.clientHeight
+                && ['auto', 'scroll'].includes(getComputedStyle(node).overflowY)).length,
             footTopDelta: Math.abs(foot.getBoundingClientRect().top - footTop)
         };
         list.querySelectorAll('[data-hotfix-qa-clone]').forEach(node => node.remove());
         return result;
     });
     expect(longNotationGeometry).toEqual({
-        bodyOverflow: 'auto', notationOverflow: 'visible', bodyScrollable: true, footTopDelta: 0
+        bodyOverflow: 'auto', notationOverflow: 'visible', moveListOverflow: 'visible',
+        bodyScrollable: true, nestedScrollbars: 0, footTopDelta: 0
     });
     const cleanAnalysisDesktopViewport = page.viewportSize();
     await page.setViewportSize({ width: 390, height: 844 });
@@ -483,17 +433,6 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     }));
     expect(during).toEqual({ ...original, reviewPly: 1 });
     expect(await page.evaluate(() => window.CaissaCoachReviewExploration.isActive())).toBe(false);
-    await page.locator('[data-coach-guided-settings]').click();
-    await expect(settingsDialog).toBeVisible();
-    await settingsDialog.getByRole('button', { name: 'Save PGN' }).click();
-    await expect.poll(() => page.evaluate(() => window.__coachReviewDownloads.length)).toBe(2);
-    const secondExport = await page.evaluate(async () => ({
-        pgn: await window.__coachReviewDownloadBlob.text(),
-        reviewPgn: window.AnalyzeSection.loadedGame.pgn,
-        explorationActive: window.CaissaCoachReviewExploration.isActive()
-    }));
-    expect(secondExport).toEqual({ pgn: original.completedPgn, reviewPgn: original.completedPgn, explorationActive: false });
-    await settingsDialog.getByRole('button', { name: 'Close review settings' }).click();
     await expect(page.locator('#analyzeStartBtn')).toBeHidden();
     await expect(page.locator('.analyze-evidence-panel')).toBeHidden();
     await page.locator('[data-coach-guided-new-game]').click();

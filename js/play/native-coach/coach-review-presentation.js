@@ -1,7 +1,7 @@
 (function installCoachReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.11.0';
+    const SCHEMA_VERSION = '1.12.0';
     const QUALITY_ORDER = Object.freeze(['Book', 'Best', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const CLASSIFICATIONS = Object.freeze(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const REVIEW_WORTHY_CLASSIFICATIONS = Object.freeze(['Inaccuracy', 'Mistake', 'Blunder']);
@@ -200,13 +200,10 @@
         });
         const analysis = element('button', 'caissa-coach-guided__analysis', { type: 'button', 'data-coach-guided-analysis': '' });
         analysis.innerHTML = '<span>Analysis</span><i class="fas fa-search" aria-hidden="true"></i>';
-        const settings = element('button', 'caissa-coach-guided__settings', { type: 'button',
-            'data-coach-guided-settings': '', 'aria-haspopup': 'dialog' });
-        settings.innerHTML = '<i class="fas fa-cog" aria-hidden="true"></i><span>Settings</span>';
         const newGame = element('button', 'caissa-coach-guided__new-game', { type: 'button',
             'data-coach-guided-new-game': '' });
-        newGame.innerHTML = '<i class="fas fa-plus" aria-hidden="true"></i><span>New Game</span>'; newGame.hidden = true;
-        secondaryActions.append(analysis, settings, newGame); reviewTools.append(navigation, secondaryActions);
+        newGame.innerHTML = '<i class="fas fa-plus" aria-hidden="true"></i><span>New Game</span>';
+        secondaryActions.append(newGame, analysis); reviewTools.append(navigation, secondaryActions);
         foot.append(reviewTools);
         const settingsDialog = element('dialog', 'caissa-coach-review-settings', {
             'data-coach-review-settings-dialog': '', 'aria-labelledby': 'caissaCoachReviewSettingsTitle'
@@ -239,7 +236,7 @@
         boardSection.append(boardTitle, flipHost, flipCopy);
         settingsDialog.append(settingsHeader, gameSection, boardSection); content.append(settingsDialog);
         return { content, guided, actions, explain, next, detail, notation,
-            foot, reviewTools, navigation, secondaryActions, analysis, settings, newGame,
+            foot, reviewTools, navigation, secondaryActions, analysis, newGame,
             settingsDialog, settingsClose, savePgn, saveStatus, flipHost };
     }
 
@@ -337,9 +334,8 @@
         const complete = moves.length === 0 || mounted.analyze.currentMoveIndex >= moves.length - 1;
         mounted.guided.next.disabled = complete;
         mounted.guided.next.querySelector('span').textContent = complete ? 'Review Complete' : 'Next Move';
-        mounted.guided.newGame.hidden = !complete;
+        mounted.guided.newGame.hidden = false;
         mounted.guided.reviewTools.dataset.reviewComplete = String(complete);
-        if (complete) mounted.guided.secondaryActions.prepend(mounted.guided.newGame);
         renderCoachHead({ eyebrow: model.quality.toUpperCase(), title: `${model.move}${model.annotation || ''}`,
             evaluation: model.evaluation, message: model.message });
         syncReviewEvaluationRail();
@@ -384,7 +380,6 @@
     function closeSettings() {
         const dialog = mounted?.guided?.settingsDialog; if (!dialog?.hasAttribute('open')) return;
         if (typeof dialog.close === 'function') dialog.close(); else dialog.removeAttribute('open');
-        mounted?.guided?.settings?.focus?.();
     }
 
     function focusSourceAnalysis() {
@@ -444,7 +439,6 @@
             }).catch(() => { if (mounted) guided.newGame.disabled = false; });
         });
         guided.analysis.addEventListener('click', focusSourceAnalysis);
-        guided.settings.addEventListener('click', openSettings);
         guided.settingsClose.addEventListener('click', closeSettings);
         guided.savePgn.addEventListener('click', () => {
             if (!mounted || guided.savePgn.disabled) return;

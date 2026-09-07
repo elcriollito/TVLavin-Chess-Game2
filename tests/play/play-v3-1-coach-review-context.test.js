@@ -258,7 +258,7 @@ test('Review Settings reuses the authoritative PGN export and contains the singl
     assert.match(presentation, /downloadPgn\?\.\(\{ preservePresentation: true \}\)/);
     assert.match(postGame, /new this\.#Blob\(\[this\.#record\.notation\.pgn\]/);
     assert.match(postGame, /preservePresentation !== true[\s\S]*this\.execute\('download-pgn'\)/);
-    assert.match(presentation, /data-coach-guided-settings/);
+    assert.doesNotMatch(presentation, /data-coach-guided-settings/);
     assert.match(presentation, /data-coach-review-save-pgn/);
     assert.match(presentation, /flipHost\.append\(mounted\.flipTool\.node\)/);
     assert.doesNotMatch(presentation, /secondaryActions\.prepend\(mounted\.flipTool\.node\)/);
@@ -279,6 +279,8 @@ test('Coach Analysis presents only source notation, one navigation set, Explain 
     assert.match(presentation, /mounted\.guided\.navigation\.append\(mounted\.navigation\.node\)/);
     assert.match(presentation, /<span>Next Move<\/span>/);
     assert.doesNotMatch(presentation, /Temporary variation|Undo|Reset|Engine Off/);
+    assert.match(presentation, /secondaryActions\.append\(newGame, analysis\)/);
+    assert.doesNotMatch(presentation, /data-coach-guided-settings/);
     assert.match(presentation, /flipHost\.append\(mounted\.flipTool\.node\)/);
     assert.doesNotMatch(presentation, /secondaryActions\.(?:append|prepend)\(mounted\.flipTool\.node\)/);
     assert.match(css, /\.caissa-coach-guided__notation[\s\S]*overflow: visible/);
