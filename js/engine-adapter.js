@@ -371,10 +371,14 @@
             operation.status = 'active';
             this.attributedActive = operation;
             this.currentFen = operation.fen;
-            if (operation.kind === 'candidates') this.send(`setoption name MultiPV value ${operation.candidateCount}`);
+            const requestedMultiPv = operation.kind === 'candidates'
+                ? operation.candidateCount
+                : operation.options.multiPv;
+            if (requestedMultiPv) this.send(`setoption name MultiPV value ${requestedMultiPv}`);
             this.setPosition(operation.fen);
             this.go(operation.options);
-            this.armSearchDeadline(this.workerGeneration);
+            if (operation.options.infinite) this.clearSearchTimer();
+            else this.armSearchDeadline(this.workerGeneration);
         }
 
         completeAttributionBarrier() {
@@ -421,13 +425,16 @@
             if (!this.attributionEnabled) return false;
             const hadOperation = Boolean(this.attributedActive || this.attributedPending || this.attributionBarrierPending);
             const wasAnalyzing = this.analyzing;
-            const restoreMultiPv = this.attributedActive?.kind === 'candidates';
+            const usesTemporaryMultiPv = (operation) => operation?.kind === 'candidates'
+                || Number(operation?.options?.multiPv) > 0;
+            const restoreMultiPv = usesTemporaryMultiPv(this.attributedActive)
+                || usesTemporaryMultiPv(this.attributedPending);
             this.invalidateAttributedOperation(this.attributedActive, 'canceled');
             this.invalidateAttributedOperation(this.attributedPending, 'canceled');
             this.attributedActive = null;
             this.attributedPending = null;
-            if (restoreMultiPv) this.send(`setoption name MultiPV value ${this.multipv}`);
             if (this.analyzing) this.send('stop');
+            if (restoreMultiPv) this.send(`setoption name MultiPV value ${this.multipv}`);
             this.clearSearchTimer();
             this.analyzing = false;
             if (!this.attributionBarrierPending && (hadOperation || wasAnalyzing)) {
@@ -631,6 +638,14 @@
         startAnalysisAttributed(fen, infoCallback, depth = null) {
             const options = depth ? { depth } : { depth: 20 };
             return this.startAttributedOperation('analysis', fen, infoCallback, options);
+        }
+
+        startInfiniteAnalysisAttributed(fen, infoCallback, options = {}) {
+            const multiPv = Math.max(1, Math.min(5, Number(options.multiPv) || 1));
+            return this.startAttributedOperation('analysis', fen, infoCallback, {
+                infinite: true,
+                multiPv
+            });
         }
 
         stopAnalysis() {

@@ -172,13 +172,14 @@
                 const firstMove = candidate.bestMove || pv[0] || '';
                 const sanLine = analyze.uciLineToSan?.(fen, pv, 7) || [];
                 const bestMove = sanLine[0] || analyze.uciToSan?.(fen, firstMove) || firstMove || '—';
+                const isPrimary = Number(candidate.multipv || index + 1) === 1;
                 const row = document.createElement('div');
-                row.className = `caissa-analyze-v2__engine-line caissa-analyze-v2__engine-line--${index === 0 ? 'primary' : 'secondary'}`;
+                row.className = `caissa-analyze-v2__engine-line caissa-analyze-v2__engine-line--${isPrimary ? 'primary' : 'secondary'}`;
 
                 const score = document.createElement('strong');
                 score.textContent = analyze.formatEvaluation?.(candidate.eval, candidate.mate) || '—';
                 const variation = document.createElement('span');
-                variation.textContent = index === 0
+                variation.textContent = isPrimary
                     ? `${bestMove} is best${sanLine.length > 1 ? `  ${sanLine.slice(1).join(' ')}` : ''}`
                     : (sanLine.join(' ') || pv.slice(0, 7).join(' ') || bestMove);
                 row.append(score, variation);

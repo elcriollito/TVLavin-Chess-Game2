@@ -39,6 +39,7 @@ export function installPlayHarness(scenario) {
             this.onmessageerror = null;
             this.messages = [];
             this.multiPv = 1;
+            this.continuousSearchId = 0;
             state.workersCreated += 1;
             state.workers.push(this);
         }
@@ -52,6 +53,7 @@ export function installPlayHarness(scenario) {
             if (command === 'uci') emit(this, 'id name CAISSA deterministic fixture');
             if (command === 'uci') emit(this, 'uciok');
             if (command === 'isready' && config.autoReady !== false) emit(this, 'readyok');
+            if (command === 'stop') this.continuousSearchId += 1;
             if (command.startsWith('go') && config.autoReply !== false) {
                 const searchIndex = searchSequence++;
                 const cp = Array.isArray(config.scores) ? config.scores[searchIndex % config.scores.length] : config.cp;
@@ -60,11 +62,28 @@ export function installPlayHarness(scenario) {
                     ? config.bestMoves[searchIndex % config.bestMoves.length] : config.bestMove;
                 const score = mateValue == null ? `cp ${cp ?? 34}` : `mate ${mateValue}`;
                 const moves = config.candidateMoves || [bestMove ?? 'e7e5', 'c7c5', 'd7d5', 'g8f6', 'b8c6'];
-                for (let index = 0; config.emitInfo !== false && index < this.multiPv; index += 1) {
-                    const candidateScore = mateValue == null ? `cp ${(cp ?? 34) - index * 10}` : score;
-                    emit(this, `info depth ${config.depth ?? 12} multipv ${index + 1} score ${candidateScore} nodes 128 time 1 pv ${moves[index]}`, config.delayMs ?? 10);
+                const continuousDepths = command === 'go infinite' && Array.isArray(config.continuousDepths)
+                    ? config.continuousDepths : null;
+                if (continuousDepths) {
+                    const continuousSearchId = ++this.continuousSearchId;
+                    continuousDepths.forEach((depth, depthIndex) => {
+                        for (let index = 0; config.emitInfo !== false && index < this.multiPv; index += 1) {
+                            const candidateScore = mateValue == null
+                                ? `cp ${(cp ?? 34) + depthIndex * 2 - index * 10}` : score;
+                            setTimeout(() => {
+                                if (!this.terminated && continuousSearchId === this.continuousSearchId) {
+                                    this.onmessage?.({ data: `info depth ${depth} multipv ${index + 1} score ${candidateScore} nodes 128 time 1 pv ${moves[index]}` });
+                                }
+                            }, (depthIndex + 1) * (config.continuousDepthDelayMs ?? 100));
+                        }
+                    });
+                } else {
+                    for (let index = 0; config.emitInfo !== false && index < this.multiPv; index += 1) {
+                        const candidateScore = mateValue == null ? `cp ${(cp ?? 34) - index * 10}` : score;
+                        emit(this, `info depth ${config.depth ?? 12} multipv ${index + 1} score ${candidateScore} nodes 128 time 1 pv ${moves[index]}`, config.delayMs ?? 10);
+                    }
+                    emit(this, `bestmove ${bestMove ?? 'e7e5'}`, (config.delayMs ?? 10) + 1);
                 }
-                emit(this, `bestmove ${bestMove ?? 'e7e5'}`, (config.delayMs ?? 10) + 1);
             }
             if (command === '__fixture_error__') {
                 setTimeout(() => this.onerror?.(new Error('deterministic worker failure')), config.delayMs ?? 0);

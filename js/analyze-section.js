@@ -26,6 +26,7 @@ const AnalyzeSection = {
     analyzedPositions: 0,
     totalPositions: 0,
     keyboardHandler: null,
+    workspaceViewHandler: null,
     boardFlipped: false,
     studyModeInitialized: false,
     tapSource: null,
@@ -38,6 +39,12 @@ const AnalyzeSection = {
     liveCurrentFen: null,
     liveCurrentResult: null,
     liveMultiPvCount: 4,
+    liveMultiPvLines: {},
+    liveEngineGenerationId: null,
+    liveUiTimer: null,
+    liveUiPendingResult: null,
+    liveUiLastRenderAt: 0,
+    liveUiThrottleMs: 140,
 
     // DOM cache
     elements: {},
@@ -181,7 +188,36 @@ const AnalyzeSection = {
         this.elements.resetBoard?.addEventListener('click', () => this.resetStudyBoard({ explicit: true }));
         this.elements.flipBoard?.addEventListener('click', () => this.flipAnalyzeBoard());
 
+        if (!this.workspaceViewHandler) {
+            this.workspaceViewHandler = (event) => this.handleWorkspaceViewChange(event.detail?.view);
+            document.querySelector('[data-caissa-analyze-v2]')
+                ?.addEventListener('caissa:analyze-v2-view-change', this.workspaceViewHandler);
+        }
+
         this.bindKeyboardNavigation();
+    },
+
+    handleWorkspaceViewChange(view) {
+        if (!this.liveEngineEnabled) return;
+        if (view === 'analysis') {
+            this.refreshLiveEvaluation();
+            return;
+        }
+
+        clearTimeout(this.liveEngineTimer);
+        clearTimeout(this.liveUiTimer);
+        this.liveEngineToken += 1;
+        this.liveEngineOwner = null;
+        this.liveEngineGenerationId = null;
+        this.liveMultiPvLines = {};
+        this.liveUiTimer = null;
+        this.liveUiPendingResult = null;
+        this.liveUiLastRenderAt = 0;
+        this.liveCurrentResult = null;
+        this.analysisEngine?.cancelAttributedSearch?.();
+        this.analysisEngine?.stop?.();
+        this.updateEvaluationBar();
+        this.updateLiveMentorPanel({ off: true });
     },
 
     bindKeyboardNavigation() {
@@ -1300,8 +1336,14 @@ const AnalyzeSection = {
 
         if (!this.liveEngineEnabled) {
             clearTimeout(this.liveEngineTimer);
+            clearTimeout(this.liveUiTimer);
             this.liveEngineToken += 1;
             this.liveEngineOwner = null;
+            this.liveEngineGenerationId = null;
+            this.liveMultiPvLines = {};
+            this.liveUiTimer = null;
+            this.liveUiPendingResult = null;
+            this.liveUiLastRenderAt = 0;
             this.liveCurrentResult = null;
             this.analysisEngine?.cancelAttributedSearch?.();
             this.analysisEngine?.stop?.();
@@ -1316,7 +1358,7 @@ const AnalyzeSection = {
         }
 
         if (!silent) this.setStatus('Engine loading...', 'loading');
-        this.refreshLiveEvaluation({ immediate: true });
+        this.refreshLiveEvaluation();
     },
 
     updateLiveEngineButton() {
@@ -1331,13 +1373,12 @@ const AnalyzeSection = {
         if (label) label.textContent = this.liveEngineEnabled ? 'Engine On' : 'Engine Off';
     },
 
-    refreshLiveEvaluation({ immediate = false } = {}) {
+    refreshLiveEvaluation() {
         if (!this.liveEngineEnabled || !this.getGame() || this.isAnalyzing) return;
         clearTimeout(this.liveEngineTimer);
-        const delay = immediate ? 0 : 180;
         this.liveEngineTimer = setTimeout(() => {
             this.runLiveEvaluation();
-        }, delay);
+        }, 0);
     },
 
     async runLiveEvaluation() {
@@ -1345,6 +1386,12 @@ const AnalyzeSection = {
         const token = ++this.liveEngineToken;
         const fen = this.getGame().fen();
         const positionIndex = Math.max(0, this.currentMoveIndex + 1);
+        clearTimeout(this.liveUiTimer);
+        this.liveUiTimer = null;
+        this.liveUiPendingResult = null;
+        this.liveUiLastRenderAt = 0;
+        this.liveMultiPvLines = {};
+        this.liveEngineGenerationId = null;
         this.liveCurrentFen = fen;
         this.liveCurrentResult = null;
         delete this.livePositionAnalyses[positionIndex];
@@ -1359,19 +1406,17 @@ const AnalyzeSection = {
             return;
         }
 
-        try {
-            const result = await this.analyzeLiveMultiPvPosition(fen, token, 10, 10000);
-            if (token !== this.liveEngineToken || !this.liveEngineEnabled) return;
-            this.livePositionAnalyses[positionIndex] = result;
-            this.liveCurrentResult = result;
-            this.updateEvaluationBar();
-            this.updateLiveMentorPanel({ result, fen });
-            this.setStatus('Evaluation ready', 'success');
-        } catch (_error) {
+        const generationId = engine.startInfiniteAnalysisAttributed?.(fen, (info, generation) => {
+            this.handleLiveEngineInfo({ info, generation, token, fen, positionIndex });
+        }, { multiPv: this.liveMultiPvCount });
+        if (!generationId) {
             if (token !== this.liveEngineToken || !this.liveEngineEnabled) return;
             this.setStatus('Engine evaluation unavailable', 'warning');
             this.updateLiveMentorPanel({ unavailable: true, fen });
+            return;
         }
+        this.liveEngineGenerationId = generationId;
+        this.setStatus('Continuous analysis running', 'success');
     },
 
     updateLiveMentorPanel({ loading = false, result = null, unavailable = false, off = false, fen = null } = {}) {
@@ -1750,6 +1795,7 @@ const AnalyzeSection = {
 
     teardownAnalysisEngine(reason = 'owner-exit') {
         if (!this.analysisEngine) return;
+        this.analysisEngine.cancelAttributedSearch?.();
         this.analysisEngine.onInfo = null; this.analysisEngine.onBestMove = null;
         this.analysisEngine.stop?.(); this.analysisEngine.terminate?.(reason);
         this.analysisEngine = null; this.liveEngineOwner = null;
@@ -1796,61 +1842,63 @@ const AnalyzeSection = {
         return this.isAnalyzing && token === this.analysisToken && this.isAnalyzeActive();
     },
 
-    analyzeLiveMultiPvPosition(fen, token, depth = 10, timeoutMs = 10000) {
-        return new Promise((resolve, reject) => {
-            const engine = this.analysisEngine;
-            if (!engine?.isReady?.() || typeof engine.getCandidatesAttributed !== 'function') {
-                reject(new Error('Stockfish MultiPV is not available'));
-                return;
-            }
+    handleLiveEngineInfo({ info, generation, token, fen, positionIndex }) {
+        if (!info?.pv?.length
+            || generation !== this.liveEngineGenerationId
+            || !this.isAnalyzeTokenActive(token, 'live')
+            || fen !== this.liveCurrentFen
+            || fen !== this.getGame()?.fen?.()) return;
 
-            let settled = false;
-            let generationId = null;
-            const settle = (callback, value) => {
-                if (settled) return;
-                settled = true;
-                clearTimeout(timeout);
-                if (token === this.liveEngineToken && this.liveEngineOwner === 'analyze-live') {
-                    this.liveEngineOwner = null;
-                }
-                callback(value);
-            };
-            const timeout = setTimeout(() => {
-                const attribution = engine.inspectAttribution?.();
-                const ownsActiveSearch = generationId
-                    && [attribution?.activeGenerationId, attribution?.pendingGenerationId].includes(generationId);
-                if (ownsActiveSearch) engine.cancelAttributedSearch?.();
-                settle(reject, new Error('Stockfish MultiPV analysis timed out'));
-            }, timeoutMs);
+        const multipv = Math.max(1, Math.min(this.liveMultiPvCount, Number(info.multipv) || 1));
+        const previous = this.liveMultiPvLines[multipv];
+        if (previous && Number(previous.depth || 0) > Number(info.depth || 0)) return;
+        this.liveMultiPvLines[multipv] = {
+            multipv,
+            eval: Number.isFinite(info.score) ? info.score : null,
+            mate: Number.isFinite(info.mate) ? info.mate : null,
+            bestMove: info.pv[0],
+            depth: info.depth ?? 0,
+            pv: [...info.pv]
+        };
 
-            this.liveEngineOwner = 'analyze-live';
-            generationId = engine.getCandidatesAttributed(fen, (candidates) => {
-                if (!this.isAnalyzeTokenActive(token, 'live')) {
-                    settle(reject, new Error('Stale MultiPV result rejected'));
-                    return;
-                }
-                const lines = candidates.slice(0, this.liveMultiPvCount).map((candidate) => ({
-                    eval: Number.isFinite(candidate.score) ? candidate.score : null,
-                    mate: Number.isFinite(candidate.mate) ? candidate.mate : null,
-                    bestMove: candidate.move || candidate.pv?.[0] || null,
-                    depth: candidate.depth ?? 0,
-                    pv: Array.isArray(candidate.pv) ? [...candidate.pv] : [candidate.move].filter(Boolean)
-                }));
-                if (!lines.length) {
-                    settle(reject, new Error('Stockfish returned no MultiPV lines'));
-                    return;
-                }
-                const primary = lines[0];
-                settle(resolve, {
-                    ...primary,
-                    requestedDepth: depth,
-                    completed: primary.depth >= depth,
-                    lines
-                });
-            }, { depth, candidateCount: this.liveMultiPvCount });
+        const lines = Object.values(this.liveMultiPvLines)
+            .sort((left, right) => left.multipv - right.multipv)
+            .slice(0, this.liveMultiPvCount);
+        const primary = lines.find((line) => line.multipv === 1) || lines[0];
+        this.queueLiveEngineUi({
+            ...primary,
+            fen,
+            lines
+        }, { token, fen, positionIndex });
+    },
 
-            if (!generationId) settle(reject, new Error('Stockfish MultiPV request was not started'));
-        });
+    queueLiveEngineUi(result, context) {
+        this.liveUiPendingResult = { result, context };
+        const elapsed = Date.now() - this.liveUiLastRenderAt;
+        if (!this.liveCurrentResult || elapsed >= this.liveUiThrottleMs) {
+            this.flushLiveEngineUi();
+            return;
+        }
+        if (this.liveUiTimer !== null) return;
+        this.liveUiTimer = setTimeout(() => this.flushLiveEngineUi(), this.liveUiThrottleMs - elapsed);
+    },
+
+    flushLiveEngineUi() {
+        clearTimeout(this.liveUiTimer);
+        this.liveUiTimer = null;
+        const pending = this.liveUiPendingResult;
+        this.liveUiPendingResult = null;
+        if (!pending) return;
+        const { result, context } = pending;
+        if (!this.isAnalyzeTokenActive(context.token, 'live')
+            || context.fen !== this.liveCurrentFen
+            || context.fen !== this.getGame()?.fen?.()) return;
+
+        this.liveCurrentResult = result;
+        this.livePositionAnalyses[context.positionIndex] = result;
+        this.liveUiLastRenderAt = Date.now();
+        this.updateEvaluationBar();
+        this.updateLiveMentorPanel({ result, fen: context.fen });
     },
 
     analyzePosition(fen, token, depth = 12, timeoutMs = 12000, options = {}) {
@@ -2049,8 +2097,8 @@ const AnalyzeSection = {
             this.ensureStudyBoard();
             this.applyAnalyzeOrientation();
             this.board?.resize?.();
-            if (this.liveEngineEnabled) {
-                this.refreshLiveEvaluation({ immediate: true });
+            if (this.liveEngineEnabled && window.CaissaAnalyzeV2Shell?.activeView === 'analysis') {
+                this.refreshLiveEvaluation();
             }
         }, 0);
     },
@@ -2065,13 +2113,19 @@ const AnalyzeSection = {
         }
         if (this.liveEngineEnabled) {
             clearTimeout(this.liveEngineTimer);
+            clearTimeout(this.liveUiTimer);
+            this.liveUiTimer = null;
+            this.liveUiPendingResult = null;
             this.liveEngineToken += 1;
+            this.analysisEngine?.cancelAttributedSearch?.();
             this.analysisEngine?.stop?.();
             if (this.analysisEngine) {
                 this.analysisEngine.onInfo = null;
                 this.analysisEngine.onBestMove = null;
             }
             this.liveEngineOwner = null;
+            this.liveEngineGenerationId = null;
+            this.liveMultiPvLines = {};
         }
         // Stop analysis if running
         if (this.isAnalyzing) {

@@ -67,13 +67,17 @@ test('A1.1 exposes only the minimal Analysis presentation while preserving hidde
     assert.doesNotMatch(shell, /setoption\s+name\s+MultiPV/i);
 });
 
-test('A1.2 requests four attributed lines through the existing Analyze engine owner', () => {
+test('A1.3 streams four attributed lines through the existing Analyze engine owner', () => {
     assert.match(analyze, /liveMultiPvCount:\s*4/);
-    assert.match(analyze, /getCandidatesAttributed\(fen,/);
-    assert.match(analyze, /candidateCount:\s*this\.liveMultiPvCount/);
-    assert.match(analyze, /lines\s*\n?\s*\}/);
+    assert.match(analyze, /startInfiniteAnalysisAttributed\?\.\(fen,/);
+    assert.match(analyze, /multiPv:\s*this\.liveMultiPvCount/);
+    assert.match(analyze, /liveUiThrottleMs:\s*140/);
+    assert.match(analyze, /generation !== this\.liveEngineGenerationId/);
+    assert.match(analyze, /handleWorkspaceViewChange\(view\)/);
+    assert.doesNotMatch(analyze, /analyzeLiveMultiPvPosition/);
     assert.doesNotMatch(analyze, /analysisEngine\s*=\s*new\s+/);
-    assert.match(shell, /engine-line--\$\{index === 0 \? 'primary' : 'secondary'\}/);
+    assert.match(shell, /engine-line--\$\{isPrimary \? 'primary' : 'secondary'\}/);
+    assert.match(css, /engine-line--primary[\s\S]*?margin-bottom:\s*9px/);
 });
 
 test('A1 assets are registered once after the legacy base styles', () => {

@@ -152,3 +152,39 @@ test('one attributed MultiPV operation returns a bounded scored candidate set an
     assert.equal(worker.messages.at(-1), 'setoption name MultiPV value 1');
     assert.equal(adapter.inspectAttribution().activeOperationCount, 0);
 });
+
+test('one attributed infinite MultiPV operation streams info until cancellation without a search deadline', () => {
+    const { adapter, worker, workers } = fixture(['infinite:a', 'infinite:b']);
+    const delivered = [];
+    assert.equal(adapter.startInfiniteAnalysisAttributed('fen-a w', (info, generation) =>
+        delivered.push({ depth: info.depth, multipv: info.multipv, generation }), { multiPv: 4 }), 'infinite:a:1');
+    assert.deepEqual(worker.messages.slice(-3), [
+        'setoption name MultiPV value 4', 'position fen fen-a w', 'go infinite'
+    ]);
+    assert.equal(adapter.searchTimer, null);
+    worker.emit('info depth 4 multipv 1 score cp 20 pv e2e4 e7e5');
+    worker.emit('info depth 7 multipv 2 score cp 10 pv d2d4 d7d5');
+    assert.deepEqual(delivered, [
+        { depth: 4, multipv: 1, generation: 'infinite:a:1' },
+        { depth: 7, multipv: 2, generation: 'infinite:a:1' }
+    ]);
+
+    assert.equal(adapter.startInfiniteAnalysisAttributed('fen-b w', (info, generation) =>
+        delivered.push({ depth: info.depth, multipv: info.multipv, generation }), { multiPv: 4 }), 'infinite:b:2');
+    assert.deepEqual(worker.messages.slice(-2), ['stop', 'isready']);
+    worker.emit('info depth 20 multipv 1 score cp 900 pv a2a4');
+    assert.equal(delivered.length, 2);
+    worker.emit('readyok');
+    assert.deepEqual(worker.messages.slice(-3), [
+        'setoption name MultiPV value 4', 'position fen fen-b w', 'go infinite'
+    ]);
+    worker.emit('info depth 5 multipv 1 score cp 30 pv c2c4 e7e5');
+    assert.deepEqual(delivered.at(-1), { depth: 5, multipv: 1, generation: 'infinite:b:2' });
+
+    assert.equal(adapter.cancelAttributedSearch(), true);
+    assert.deepEqual(worker.messages.slice(-3), ['stop', 'setoption name MultiPV value 1', 'isready']);
+    worker.emit('info depth 30 multipv 1 score cp 999 pv h2h4');
+    assert.equal(delivered.length, 3);
+    assert.equal(adapter.inspectAttribution().activeOperationCount, 0);
+    assert.equal(workers.length, 1);
+});

@@ -359,6 +359,7 @@
 
 #analyzeSection .caissa-analyze-v2__engine-line--primary {
     min-height: 42px;
+    margin-bottom: 9px;
     background: linear-gradient(90deg, rgba(240, 165, 72, 0.13), rgba(240, 165, 72, 0.025));
     box-shadow: inset 3px 0 0 var(--analyze-v2-accent);
 }

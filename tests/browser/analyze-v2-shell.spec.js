@@ -12,7 +12,9 @@ test.beforeEach(async ({ page }) => {
         ],
         cp: 72,
         depth: 12,
-        delayMs: 5
+        delayMs: 5,
+        continuousDepths: [4, 8, 12, 16],
+        continuousDepthDelayMs: 180
     });
 });
 
@@ -130,7 +132,7 @@ test('A1 keeps the existing PGN session and review cursor pipeline authoritative
     });
 });
 
-test('A1.2 presents one primary plus three MultiPV lines through the single engine owner', async ({ page }) => {
+test('A1.3 streams continuous primary plus MultiPV lines through the single engine owner', async ({ page }) => {
     const runtime = monitorRuntime(page);
     await page.setViewportSize({ width: 1366, height: 768 });
     await page.goto('/analyze');
@@ -155,12 +157,25 @@ test('A1.2 presents one primary plus three MultiPV lines through the single engi
     expect(beforeEngine.owner).toBeNull();
     await panel.locator('#analyzeEngineToggle').click();
     await expect(panel.locator('#analyzeEngineToggle')).toHaveText('Engine On');
-    await expect(panel.locator('.caissa-analyze-v2__engine-line')).toHaveCount(4);
     await expect(panel.locator('.caissa-analyze-v2__engine-line--primary')).toHaveCount(1);
+    const firstDepth = await page.evaluate(() => window.AnalyzeSection.liveCurrentResult?.depth || 0);
+    expect(firstDepth).toBeGreaterThan(0);
+    await expect(panel.locator('.caissa-analyze-v2__engine-line')).toHaveCount(4);
     await expect(panel.locator('.caissa-analyze-v2__engine-line--secondary')).toHaveCount(3);
-    await expect(panel.locator('.caissa-analyze-v2__engine-line--primary')).toContainText('+0.72');
+    await expect(panel.locator('.caissa-analyze-v2__engine-line--primary')).toContainText(/\+0\.(72|74|76|78)/);
     await expect(panel.locator('.caissa-analyze-v2__engine-line--primary')).toContainText('e4 is best');
-    await expect(panel.locator('#analyzeV2EngineMeta')).toContainText('depth=12');
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.liveCurrentResult?.depth || 0))
+        .toBeGreaterThan(firstDepth);
+    await expect(panel.locator('#analyzeV2EngineMeta')).toContainText('depth=16');
+    const streamingProof = await page.evaluate(() => ({
+        activeOperations: window.AnalyzeSection.analysisEngine.inspectAttribution().activeOperationCount,
+        analyzing: window.AnalyzeSection.analysisEngine.isAnalyzing(),
+        commands: window.__caissaPlayHarness.snapshot().workerMessages.filter(message => message.startsWith('go'))
+    }));
+    expect(streamingProof.activeOperations).toBe(1);
+    expect(streamingProof.analyzing).toBe(true);
+    expect(streamingProof.commands).toContain('go infinite');
+    expect(streamingProof.commands).not.toContain('go depth 10');
 
     const firstEngineExists = await page.evaluate(() => {
         window.__a11EngineOwner = window.AnalyzeSection.analysisEngine;
@@ -182,7 +197,7 @@ test('A1.2 presents one primary plus three MultiPV lines through the single engi
         window.AnalyzeSection.playStudyMove('e2', 'e4');
         return window.AnalyzeSection.getGame().fen();
     });
-    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.liveCurrentFen)).toBe(positionAfterE4);
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.liveCurrentResult?.fen)).toBe(positionAfterE4);
     await expect(panel.locator('.caissa-analyze-v2__engine-line')).toHaveCount(4);
 
     const positions = await page.evaluate(() => {
@@ -203,24 +218,42 @@ test('A1.2 presents one primary plus three MultiPV lines through the single engi
     expect(positions.outcomes).toEqual([true, true, true, true, true]);
     expect(positions.history).toEqual(['e4', 'd5', 'exd5', 'c6', 'dxc6', 'Nxc6']);
     expect(positions.cursor).toBe(5);
-    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.liveCurrentFen)).toBe(positions.end);
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.liveCurrentResult?.fen)).toBe(positions.end);
     await expect(panel.locator('.caissa-analyze-v2__engine-line')).toHaveCount(4);
     await expect(panel.locator('#analyzeMoveList')).toContainText('Nxc6');
     await expect(panel.locator('#analyzeV2OpeningLabel')).toHaveText('Scandinavian Defense');
 
     await page.locator('#analyzeNavFirst').click();
-    const initialFen = await page.evaluate(() => window.AnalyzeSection.getGame().fen());
-    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.liveCurrentFen)).toBe(initialFen);
     await page.locator('#analyzeNavNext').click();
-    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(0);
-    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.liveCurrentFen))
-        .toBe(await page.evaluate(() => window.AnalyzeSection.getGame().fen()));
-    await page.locator('#analyzeNavLast').click();
-    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.liveCurrentFen)).toBe(positions.end);
+    await page.locator('#analyzeNavNext').click();
     await page.locator('#analyzeNavPrev').click();
-    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(4);
-    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.liveCurrentFen))
-        .toBe(await page.evaluate(() => window.AnalyzeSection.getGame().fen()));
+    await page.locator('#analyzeNavLast').click();
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(5);
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.liveCurrentResult?.fen)).toBe(positions.end);
+    await expect(panel.locator('.caissa-analyze-v2__engine-line')).toHaveCount(4);
+
+    await panel.locator('#analyzeEngineToggle').click();
+    await expect(panel.locator('#analyzeEngineToggle')).toHaveText('Engine Off');
+    await expect(panel.locator('#analyzeV2EngineLines')).toBeEmpty();
+    const stopped = await page.evaluate(() => ({
+        analyzing: window.AnalyzeSection.analysisEngine.isAnalyzing(),
+        activeOperations: window.AnalyzeSection.analysisEngine.inspectAttribution().activeOperationCount,
+        result: window.AnalyzeSection.liveCurrentResult
+    }));
+    expect(stopped).toEqual({ analyzing: false, activeOperations: 0, result: null });
+
+    await panel.locator('#analyzeEngineToggle').click();
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.liveCurrentResult?.fen)).toBe(positions.end);
+    await expect(panel.locator('.caissa-analyze-v2__engine-line')).toHaveCount(4);
+
+    await page.getByRole('tab', { name: 'Games' }).click();
+    await expect.poll(() => page.evaluate(() => ({
+        analyzing: window.AnalyzeSection.analysisEngine.isAnalyzing(),
+        activeOperations: window.AnalyzeSection.analysisEngine.inspectAttribution().activeOperationCount
+    }))).toEqual({ analyzing: false, activeOperations: 0 });
+    await page.getByRole('tab', { name: 'Analysis' }).click();
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.liveCurrentResult?.fen)).toBe(positions.end);
+    await expect(panel.locator('.caissa-analyze-v2__engine-line')).toHaveCount(4);
 
     const authority = await page.evaluate(() => ({
         sessionOwnsGame: window.AnalyzeSection.session.game === window.AnalyzeSection.loadedGame.game,
@@ -229,14 +262,17 @@ test('A1.2 presents one primary plus three MultiPV lines through the single engi
         multiPvFour: window.__caissaPlayHarness.snapshot().workerMessages
             .includes('setoption name MultiPV value 4'),
         restoredToOne: window.__caissaPlayHarness.snapshot().workerMessages
-            .includes('setoption name MultiPV value 1')
+            .includes('setoption name MultiPV value 1'),
+        infiniteSearches: window.__caissaPlayHarness.snapshot().workerMessages
+            .filter(message => message === 'go infinite').length
     }));
-    expect(authority).toEqual({
+    expect(authority).toMatchObject({
         sessionOwnsGame: true,
         boardCount: 1,
         workers: beforeEngine.workers + 1,
         multiPvFour: true,
         restoredToOne: true
     });
+    expect(authority.infiniteSearches).toBeGreaterThanOrEqual(5);
     runtime.assertClean();
 });
