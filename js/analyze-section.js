@@ -51,6 +51,9 @@ const AnalyzeSection = {
     setupSelectedPiece: null,
     setupSourceSquare: null,
     setupBoardClickHandler: null,
+    setupPaletteDrag: null,
+    setupPaletteDragHandlers: null,
+    setupSuppressPaletteClickUntil: 0,
 
     // DOM cache
     elements: {},
@@ -208,8 +211,10 @@ const AnalyzeSection = {
             window.CaissaAnalyzeV2Shell?.selectView?.('analysis', { focus: true });
         });
         this.elements.setupPieces?.forEach(button => button.addEventListener('click', () => {
+            if (performance.now() < this.setupSuppressPaletteClickUntil) return;
             this.selectSetupPiece(button.dataset.setupPiece);
         }));
+        this.bindSetupPaletteDrag();
         this.elements.setupTurn?.addEventListener('change', () => {
             if (!this.setupDraft?.setTurn(this.elements.setupTurn.value)) return;
             this.syncSetupDraftUI({ board: false });
@@ -291,6 +296,7 @@ const AnalyzeSection = {
         this.setupModeActive = true;
         this.setupSelectedPiece = null;
         this.setupSourceSquare = null;
+        this.setupSuppressPaletteClickUntil = 0;
         if (this.elements.setupPgn) this.elements.setupPgn.value = '';
         this.syncSetupDraftUI();
         this.setSetupMessage('Choose a piece, then a square. Drag a board piece outside the board to remove it.');
@@ -299,10 +305,12 @@ const AnalyzeSection = {
 
     cancelSetupPosition() {
         if (!this.setupModeActive) return false;
+        this.cancelSetupPaletteDrag();
         this.setupModeActive = false;
         this.setupDraft = null;
         this.setupSelectedPiece = null;
         this.setupSourceSquare = null;
+        this.setupSuppressPaletteClickUntil = 0;
         this.clearSetupBoardHighlights();
         const game = this.getGame();
         if (game) this.board?.position(game.fen(), false);
@@ -324,6 +332,117 @@ const AnalyzeSection = {
             ? 'Selected piece ready. Choose a board square.'
             : 'Piece selection cleared.');
         return true;
+    },
+
+    bindSetupPaletteDrag() {
+        if (this.setupPaletteDragHandlers || !this.elements.setupPieces?.length) return;
+        const pointerDown = (event) => {
+            if (!this.setupModeActive || !this.setupDraft) return;
+            if (event.pointerType === 'mouse' && event.button !== 0) return;
+            const button = event.currentTarget;
+            const image = button.querySelector('img');
+            const piece = button.dataset.setupPiece;
+            if (!image || !piece) return;
+            event.preventDefault();
+            this.cancelSetupPaletteDrag();
+
+            const ghost = document.createElement('span');
+            ghost.className = 'caissa-analyze-v2__palette-ghost';
+            ghost.setAttribute('aria-hidden', 'true');
+            const ghostImage = image.cloneNode(true);
+            ghostImage.draggable = false;
+            ghost.appendChild(ghostImage);
+            document.body.appendChild(ghost);
+
+            this.setupPaletteDrag = {
+                pointerId: event.pointerId,
+                piece,
+                button,
+                ghost,
+                startX: event.clientX,
+                startY: event.clientY,
+                moved: false,
+                targetSquare: null,
+                targetElement: null
+            };
+            button.classList.add('is-dragging');
+            button.setPointerCapture?.(event.pointerId);
+            this.positionSetupPaletteGhost(event.clientX, event.clientY);
+        };
+        const pointerMove = (event) => {
+            const drag = this.setupPaletteDrag;
+            if (!drag || drag.pointerId !== event.pointerId) return;
+            const distance = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY);
+            if (distance >= 4) drag.moved = true;
+            if (!drag.moved) return;
+            event.preventDefault();
+            drag.ghost.classList.add('is-moving');
+            this.positionSetupPaletteGhost(event.clientX, event.clientY);
+            this.updateSetupPaletteDropTarget(event.clientX, event.clientY);
+        };
+        const pointerEnd = (event) => {
+            const drag = this.setupPaletteDrag;
+            if (!drag || drag.pointerId !== event.pointerId) return;
+            if (drag.moved) {
+                event.preventDefault();
+                this.updateSetupPaletteDropTarget(event.clientX, event.clientY);
+            }
+            const { moved, piece, targetSquare } = drag;
+            this.cancelSetupPaletteDrag();
+            if (!moved) return;
+            this.setupSuppressPaletteClickUntil = performance.now() + 450;
+            if (!targetSquare || !this.setupModeActive || !this.setupDraft) {
+                this.setSetupMessage('Piece not placed. Drop it on a board square.', 'info');
+                return;
+            }
+            this.setupSelectedPiece = null;
+            this.setupSourceSquare = null;
+            this.setupDraft.setPiece(targetSquare, piece);
+            this.syncSetupDraftUI();
+            this.setSetupMessage(`Piece placed on ${targetSquare}.`, 'success');
+        };
+        const pointerCancel = (event) => {
+            if (this.setupPaletteDrag?.pointerId !== event.pointerId) return;
+            this.cancelSetupPaletteDrag();
+        };
+
+        this.elements.setupPieces.forEach(button => {
+            button.querySelector('img')?.setAttribute('draggable', 'false');
+            button.addEventListener('pointerdown', pointerDown);
+        });
+        window.addEventListener('pointermove', pointerMove, { passive: false });
+        window.addEventListener('pointerup', pointerEnd, { passive: false });
+        window.addEventListener('pointercancel', pointerCancel);
+        this.setupPaletteDragHandlers = { pointerDown, pointerMove, pointerEnd, pointerCancel };
+    },
+
+    positionSetupPaletteGhost(clientX, clientY) {
+        const ghost = this.setupPaletteDrag?.ghost;
+        if (!ghost) return;
+        ghost.style.left = `${clientX}px`;
+        ghost.style.top = `${clientY}px`;
+    },
+
+    updateSetupPaletteDropTarget(clientX, clientY) {
+        const drag = this.setupPaletteDrag;
+        if (!drag) return;
+        drag.targetElement?.classList.remove('caissa-analyze-v2__setup-drop-target');
+        const candidate = document.elementFromPoint(clientX, clientY)?.closest?.('#analyzeChessboard [data-square]');
+        drag.targetElement = candidate || null;
+        drag.targetSquare = candidate?.dataset?.square || null;
+        candidate?.classList.add('caissa-analyze-v2__setup-drop-target');
+    },
+
+    cancelSetupPaletteDrag() {
+        const drag = this.setupPaletteDrag;
+        if (!drag) return;
+        drag.targetElement?.classList.remove('caissa-analyze-v2__setup-drop-target');
+        drag.button?.classList.remove('is-dragging');
+        if (drag.button?.hasPointerCapture?.(drag.pointerId)) {
+            drag.button.releasePointerCapture(drag.pointerId);
+        }
+        drag.ghost?.remove();
+        this.setupPaletteDrag = null;
     },
 
     clearSetupBoardHighlights() {
@@ -486,10 +605,12 @@ const AnalyzeSection = {
     },
 
     finishSetupCommit() {
+        this.cancelSetupPaletteDrag();
         this.setupModeActive = false;
         this.setupDraft = null;
         this.setupSelectedPiece = null;
         this.setupSourceSquare = null;
+        this.setupSuppressPaletteClickUntil = 0;
         this.clearSetupBoardHighlights();
         this.board?.position(this.getGame()?.fen?.(), false);
         window.CaissaAnalyzeV2Shell?.selectView?.('analysis', { focus: true });

@@ -51,6 +51,15 @@ test('A2 mounts the dedicated Setup Position controls in the existing workspace'
     assert.doesNotMatch(setupDraft, /new\s+Chess|Chessboard\s*\(|new\s+Worker/);
 });
 
+test('A2.1 palette drag is a pointer input into the existing setup draft only', () => {
+    assert.match(analyze, /addEventListener\('pointerdown', pointerDown\)/);
+    assert.match(analyze, /this\.setupDraft\.setPiece\(targetSquare, piece\)/);
+    assert.match(analyze, /caissa-analyze-v2__palette-ghost/);
+    assert.match(analyze, /caissa-analyze-v2__setup-drop-target/);
+    assert.doesNotMatch(analyze, /setupPaletteDrag[\s\S]{0,180}new\s+(?:Chess|Worker)/);
+    assert.match(css, /data-analyze-v2-view='setup'[\s\S]*?caissa-analyze-v2__footer[\s\S]*?opacity:\s*1/);
+});
+
 test('A1 preserves every existing AnalyzeSection DOM contract exactly once', () => {
     const ids = [
         'analyzeProvider', 'analyzeUsername', 'analyzeGameCount', 'analyzeFetchBtn',

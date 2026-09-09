@@ -708,20 +708,29 @@
     display: grid;
     padding: 9px 10px;
     gap: 7px;
-    border: 1px solid var(--analyze-v2-line);
+    border: 1px solid rgba(167, 180, 198, 0.22);
     border-radius: 10px;
-    background: rgba(0, 0, 0, 0.14);
+    background: linear-gradient(180deg, rgba(42, 51, 65, 0.94), rgba(29, 37, 49, 0.96));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 8px 22px rgba(0, 0, 0, 0.16);
 }
 
 #analyzeSection .caissa-analyze-v2__piece-row {
     display: grid;
     grid-template-columns: 36px minmax(0, 1fr);
+    padding: 4px 5px;
     align-items: center;
     gap: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.045);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.045);
+}
+
+#analyzeSection .caissa-analyze-v2__piece-row + .caissa-analyze-v2__piece-row {
+    background: rgba(10, 15, 23, 0.2);
 }
 
 #analyzeSection .caissa-analyze-v2__piece-row > span {
-    color: var(--analyze-v2-muted);
+    color: #c3ccd9;
     font-size: 9px;
     font-weight: 800;
     letter-spacing: 0.08em;
@@ -740,18 +749,26 @@
     height: 43px;
     padding: 2px;
     place-items: center;
-    border: 1px solid transparent;
+    border: 1px solid rgba(227, 234, 244, 0.08);
     border-radius: 7px;
-    background: rgba(255, 255, 255, 0.025);
-    cursor: pointer;
+    background: rgba(207, 218, 233, 0.17);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
 }
 
 #analyzeSection .caissa-analyze-v2__piece-row button:hover,
 #analyzeSection .caissa-analyze-v2__piece-row button:focus-visible,
 #analyzeSection .caissa-analyze-v2__piece-row button.is-selected {
     border-color: rgba(240, 165, 72, 0.65);
-    background: var(--analyze-v2-accent-soft);
-    box-shadow: inset 0 0 0 1px rgba(240, 165, 72, 0.14);
+    background: rgba(240, 165, 72, 0.2);
+    box-shadow: inset 0 0 0 1px rgba(240, 165, 72, 0.2), 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+
+#analyzeSection .caissa-analyze-v2__piece-row button.is-dragging {
+    border-color: var(--analyze-v2-accent);
+    background: rgba(240, 165, 72, 0.26);
+    cursor: grabbing;
 }
 
 #analyzeSection .caissa-analyze-v2__piece-row img {
@@ -759,6 +776,9 @@
     max-width: 100%;
     height: 38px;
     object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
 }
 
 #analyzeSection .caissa-analyze-v2__position-controls {
@@ -771,7 +791,7 @@
 #analyzeSection .caissa-analyze-v2__position-controls > label,
 #analyzeSection .caissa-analyze-v2__setup-field > span,
 #analyzeSection .caissa-analyze-v2__castling legend {
-    color: #c8cfd9;
+    color: #d7dee8;
     font-size: 11px;
     font-weight: 750;
 }
@@ -780,10 +800,10 @@
 #analyzeSection .caissa-analyze-v2__setup-field :is(input, textarea) {
     width: 100%;
     min-width: 0;
-    border: 1px solid var(--analyze-v2-line);
+    border: 1px solid rgba(151, 166, 187, 0.28);
     border-radius: 7px;
     outline: 0;
-    background: rgba(9, 12, 17, 0.56);
+    background: rgba(13, 19, 28, 0.82);
     color: #eef1f6;
     font: inherit;
     font-size: 12px;
@@ -806,10 +826,10 @@
     height: 36px;
     padding: 0;
     place-items: center;
-    border: 1px solid transparent;
+    border: 1px solid rgba(151, 166, 187, 0.2);
     border-radius: 7px;
-    background: transparent;
-    color: var(--analyze-v2-muted);
+    background: rgba(255, 255, 255, 0.045);
+    color: #b8c3d1;
     cursor: pointer;
 }
 
@@ -826,8 +846,9 @@
     margin: 0;
     padding: 8px 10px 10px;
     gap: 8px 18px;
-    border: 1px solid var(--analyze-v2-line);
+    border: 1px solid rgba(151, 166, 187, 0.24);
     border-radius: 8px;
+    background: rgba(255, 255, 255, 0.025);
 }
 
 #analyzeSection .caissa-analyze-v2__castling legend {
@@ -839,7 +860,7 @@
     grid-template-columns: 1fr auto auto;
     align-items: center;
     gap: 8px;
-    color: #c8cfd9;
+    color: #cbd4df;
     font-size: 11px;
 }
 
@@ -848,10 +869,20 @@
 }
 
 #analyzeSection .caissa-analyze-v2__castling label {
+    display: inline-flex;
+    min-height: 28px;
+    align-items: center;
     white-space: nowrap;
 }
 
 #analyzeSection .caissa-analyze-v2__castling input {
+    width: 16px !important;
+    min-width: 16px !important;
+    height: 16px !important;
+    min-height: 16px !important;
+    margin: 0 3px 0 0;
+    padding: 0 !important;
+    appearance: auto;
     accent-color: var(--analyze-v2-accent);
 }
 
@@ -862,7 +893,7 @@
 
 #analyzeSection .caissa-analyze-v2__setup-field small {
     margin-left: 5px;
-    color: var(--analyze-v2-muted);
+    color: #a9b4c3;
     font-size: 9px;
     font-weight: 500;
 }
@@ -890,7 +921,7 @@
 #analyzeSection .caissa-analyze-v2__setup-message {
     min-height: 17px;
     margin: 0;
-    color: var(--analyze-v2-muted);
+    color: #aeb9c8;
     font-size: 10px;
     line-height: 1.35;
 }
@@ -929,8 +960,29 @@
 }
 
 #analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] .caissa-analyze-v2__footer {
-    opacity: 0.38;
+    gap: 4px;
+    padding: 6px 14px;
+    border-top-color: rgba(151, 166, 187, 0.22);
+    background: linear-gradient(180deg, rgba(25, 33, 45, 0.98), rgba(17, 24, 34, 0.99));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    opacity: 1;
     pointer-events: none;
+}
+
+#analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] .analyze-board-navigation .nav-btn-sm {
+    height: 36px !important;
+    min-height: 36px !important;
+    border-color: rgba(151, 166, 187, 0.2);
+    background: rgba(255, 255, 255, 0.065);
+    color: #aeb9c8;
+    opacity: 0.82;
+}
+
+#analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] .caissa-analyze-v2__actions button {
+    min-height: 20px;
+    padding: 2px 5px;
+    color: #aeb9c8;
+    opacity: 0.82;
 }
 
 #analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] #analyzeChessboard {
@@ -939,6 +991,39 @@
 
 #analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] #analyzeChessboard .caissa-analyze-v2__setup-source {
     box-shadow: inset 0 0 0 5px rgba(240, 165, 72, 0.64);
+}
+
+#analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] #analyzeChessboard .caissa-analyze-v2__setup-drop-target {
+    box-shadow: inset 0 0 0 5px rgba(240, 165, 72, 0.78), inset 0 0 24px rgba(240, 165, 72, 0.2);
+}
+
+.caissa-analyze-v2__palette-ghost {
+    position: fixed;
+    z-index: 2147483000;
+    display: grid;
+    width: 58px;
+    height: 58px;
+    place-items: center;
+    border: 1px solid rgba(240, 165, 72, 0.52);
+    border-radius: 12px;
+    background: rgba(44, 54, 68, 0.93);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    opacity: 0.82;
+    pointer-events: none;
+    transform: translate3d(-50%, -50%, 0) scale(0.92);
+    transition: opacity 80ms ease, transform 80ms ease;
+}
+
+.caissa-analyze-v2__palette-ghost.is-moving {
+    opacity: 1;
+    transform: translate3d(-50%, -50%, 0) scale(1);
+}
+
+.caissa-analyze-v2__palette-ghost img {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.3));
 }
 
 #analyzeSection .caissa-analyze-v2__footer {
@@ -1151,7 +1236,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    #analyzeSection .caissa-analyze-v2__tab {
+    #analyzeSection .caissa-analyze-v2__tab,
+    .caissa-analyze-v2__palette-ghost {
         transition: none;
     }
 }
