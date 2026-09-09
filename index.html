@@ -119,7 +119,7 @@
     <link rel="stylesheet" href="css/academy.css?v=1.0.0">
     <link rel="stylesheet" href="css/opening-book.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-mobile-foundation.css?v=1.0.6">
-    <link rel="stylesheet" href="css/analyze-v2-shell.css?v=1.0.0">
+    <link rel="stylesheet" href="css/analyze-v2-shell.css?v=1.1.0">
     <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
     <link rel="stylesheet" href="css/caissa-primary-navigation-transition.css?v=1.0.0">
     <script src="js/legacy-canonical-section-route-policy.js?v=1.0.0"></script>
@@ -879,37 +879,50 @@
                             </section>
 
                             <section id="analyzeV2PanelGames" class="caissa-analyze-v2__tabpanel" role="tabpanel" aria-labelledby="analyzeV2TabGames" data-analyze-v2-panel="games" hidden>
-                                <div class="analyze-import-sidebar">
-                                    <div class="analyze-header">
-                                        <span class="caissa-analyze-v2__eyebrow">Game sources</span>
-                                        <h3>Load a game</h3>
-                                        <p>Use the existing CAISSA import pipeline.</p>
+                                <div class="caissa-analyze-v2__games">
+                                    <div class="analyze-tabs caissa-analyze-v2__game-tabs" role="tablist" aria-label="Game import source">
+                                        <button id="analyzeGameUrlTab" class="analyze-tab active" type="button" role="tab" aria-selected="true" aria-controls="analyzePanelGameUrl" data-source="game-url"><span>Game URL</span></button>
+                                        <button id="analyzeChessComTab" class="analyze-tab" type="button" role="tab" aria-selected="false" aria-controls="analyzePanelChessCom" tabindex="-1" data-source="chess.com"><span>Chess.com</span></button>
+                                        <button id="analyzeLichessTab" class="analyze-tab" type="button" role="tab" aria-selected="false" aria-controls="analyzePanelLichess" tabindex="-1" data-source="lichess"><span>Lichess</span></button>
                                     </div>
-                                    <div class="analyze-tabs">
-                                        <button class="analyze-tab active" data-source="online"><i class="fas fa-cloud"></i><span>Online</span></button>
-                                        <button class="analyze-tab" data-source="pgn"><i class="fas fa-file-alt"></i><span>PGN</span></button>
-                                        <button class="analyze-tab" data-source="caissa"><i class="fas fa-chess-knight"></i><span>My Games</span></button>
+
+                                    <div class="analyze-panel caissa-analyze-v2__game-panel active" id="analyzePanelGameUrl" role="tabpanel" aria-labelledby="analyzeGameUrlTab">
+                                        <label class="caissa-analyze-v2__game-field" for="analyzeGameUrl">
+                                            <span>Game URL</span>
+                                            <input id="analyzeGameUrl" type="url" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://lichess.org/xxxxxxxx">
+                                            <small>Lichess links load directly. Chess.com links guide you to player search.</small>
+                                        </label>
+                                        <p id="analyzeGameUrlMessage" class="caissa-analyze-v2__game-message" role="status" aria-live="polite" hidden></p>
+                                        <button id="analyzeGameUrlLoad" class="caissa-analyze-v2__game-submit" type="button">Load Game</button>
                                     </div>
-                                    <div class="analyze-panel active" id="analyzePanelOnline">
-                                        <div class="analyze-form-grid">
-                                            <div class="form-group"><label for="analyzeProvider">Platform</label><select id="analyzeProvider" class="form-control"><option value="lichess">Lichess</option><option value="chess.com">Chess.com</option></select></div>
-                                            <div class="form-group"><label for="analyzeUsername">Username</label><input type="text" id="analyzeUsername" class="form-control" placeholder="e.g. Magnus_Carlsen"></div>
-                                            <div class="form-group"><label for="analyzeGameCount">Games</label><select id="analyzeGameCount" class="form-control"><option value="5">Last 5</option><option value="10" selected>Last 10</option><option value="20">Last 20</option></select></div>
+
+                                    <div class="analyze-panel caissa-analyze-v2__game-panel" id="analyzePanelChessCom" role="tabpanel" aria-labelledby="analyzeChessComTab" hidden>
+                                        <p class="caissa-analyze-v2__game-intent">Find recent public games from a Chess.com player.</p>
+                                        <div class="analyze-form-grid caissa-analyze-v2__account-form">
+                                            <label class="caissa-analyze-v2__game-field" for="analyzeUsername"><span>Username</span><input type="text" id="analyzeUsername" autocomplete="off" spellcheck="false" placeholder="e.g. hikaru"></label>
+                                            <label class="caissa-analyze-v2__game-field" for="analyzeGameCount"><span>Games</span><select id="analyzeGameCount"><option value="5">Last 5</option><option value="10" selected>Last 10</option><option value="20">Last 20</option></select></label>
                                         </div>
-                                        <button id="analyzeFetchBtn" class="btn btn-primary btn-block"><i class="fas fa-download"></i> Fetch Games</button>
-                                        <div id="analyzeFetchedGames" class="analyze-fetched-games" hidden></div>
+                                        <button id="analyzeFetchBtn" class="caissa-analyze-v2__game-submit" type="button">Fetch Games</button>
+                                        <div id="analyzeFetchedGames" class="analyze-fetched-games caissa-analyze-v2__game-results" hidden></div>
                                     </div>
-                                    <div class="analyze-panel" id="analyzePanelPgn">
-                                        <div class="caissa-games-info"><i class="fas fa-arrow-right"></i><p>Manual PGN paste is available in Setup Position.</p></div>
-                                        <div hidden aria-hidden="true">
-                                            <input type="file" id="analyzePgnFile" accept=".pgn">
-                                            <span id="analyzePgnFileName" class="file-name"></span>
-                                            <button id="analyzeLoadPgnBtn" type="button">Load PGN</button>
+
+                                    <div class="analyze-panel caissa-analyze-v2__game-panel" id="analyzePanelLichess" role="tabpanel" aria-labelledby="analyzeLichessTab" hidden>
+                                        <p class="caissa-analyze-v2__game-intent">Find recent public games from a Lichess player.</p>
+                                        <div class="analyze-form-grid caissa-analyze-v2__account-form">
+                                            <label class="caissa-analyze-v2__game-field" for="analyzeLichessUsername"><span>Username</span><input type="text" id="analyzeLichessUsername" autocomplete="off" spellcheck="false" placeholder="e.g. DrNykterstein"></label>
+                                            <label class="caissa-analyze-v2__game-field" for="analyzeLichessGameCount"><span>Games</span><select id="analyzeLichessGameCount"><option value="5">Last 5</option><option value="10" selected>Last 10</option><option value="20">Last 20</option></select></label>
                                         </div>
+                                        <button id="analyzeLichessFetchBtn" class="caissa-analyze-v2__game-submit" type="button">Fetch Games</button>
+                                        <div id="analyzeLichessFetchedGames" class="analyze-fetched-games caissa-analyze-v2__game-results" hidden></div>
                                     </div>
-                                    <div class="analyze-panel" id="analyzePanelCaissa">
-                                        <div class="caissa-games-info"><i class="fas fa-info-circle"></i><p>Select a game from your Library to analyze it with Stockfish.</p></div>
-                                        <button id="analyzeOpenLibrary" class="btn btn-primary btn-block"><i class="fas fa-book"></i> Open Library</button>
+
+                                    <!-- Legacy DOM hooks stay mounted for compatibility; PGN entry lives only in Setup Position. -->
+                                    <div class="caissa-analyze-v2__preserved-controls" hidden aria-hidden="true">
+                                        <select id="analyzeProvider"><option value="chess.com">Chess.com</option><option value="lichess">Lichess</option></select>
+                                        <input type="file" id="analyzePgnFile" accept=".pgn">
+                                        <span id="analyzePgnFileName" class="file-name"></span>
+                                        <button id="analyzeLoadPgnBtn" type="button">Load PGN</button>
+                                        <button id="analyzeOpenLibrary" type="button">Open Library</button>
                                     </div>
                                 </div>
                             </section>

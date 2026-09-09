@@ -23,6 +23,7 @@ async function loadContext() {
         if (path.includes('knowledge-mapping-registry')) context.CaissaKnowledgeMappingRegistry = { register() {} };
         if (path.includes('mentor-summary.js')) context.CaissaMentorSummary = { generate() {} };
         if (path.includes('analyze-session')) context.CaissaAnalyzeSession = { createSession() {} };
+        if (path.includes('analyze-game-import')) context.CaissaAnalyzeGameImport = { resolve() {} };
         if (path.includes('analyze-section')) context.AnalyzeSection = { onEnter() {} };
         queueMicrotask(() => node.onload?.());
     } };

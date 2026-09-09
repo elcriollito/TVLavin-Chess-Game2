@@ -8,7 +8,7 @@
 
 const AnalyzeSection = {
     // State
-    currentSource: 'online',
+    currentSource: 'game-url',
     loadedGame: null,
     session: null,
     board: null,
@@ -55,6 +55,9 @@ const AnalyzeSection = {
     setupPaletteDragHandlers: null,
     setupSuppressPaletteClickUntil: 0,
     boardDragCleanupTimer: null,
+    gameUrlRequestToken: 0,
+    accountFetchToken: 0,
+    activeFetchedGamesTarget: null,
 
     // DOM cache
     elements: {},
@@ -90,17 +93,28 @@ const AnalyzeSection = {
             // Tabs
             tabs: document.querySelectorAll('#analyzeSection .analyze-tab'),
             panels: {
-                online: document.getElementById('analyzePanelOnline'),
-                pgn: document.getElementById('analyzePanelPgn'),
-                caissa: document.getElementById('analyzePanelCaissa')
+                'game-url': document.getElementById('analyzePanelGameUrl'),
+                'chess.com': document.getElementById('analyzePanelChessCom'),
+                lichess: document.getElementById('analyzePanelLichess')
             },
 
-            // Online import
+            // Direct public game import
+            gameUrl: document.getElementById('analyzeGameUrl'),
+            gameUrlLoad: document.getElementById('analyzeGameUrlLoad'),
+            gameUrlMessage: document.getElementById('analyzeGameUrlMessage'),
+
+            // Chess.com account history
             provider: document.getElementById('analyzeProvider'),
             username: document.getElementById('analyzeUsername'),
             gameCount: document.getElementById('analyzeGameCount'),
             fetchBtn: document.getElementById('analyzeFetchBtn'),
             fetchedGames: document.getElementById('analyzeFetchedGames'),
+
+            // Lichess account history
+            lichessUsername: document.getElementById('analyzeLichessUsername'),
+            lichessGameCount: document.getElementById('analyzeLichessGameCount'),
+            lichessFetchBtn: document.getElementById('analyzeLichessFetchBtn'),
+            lichessFetchedGames: document.getElementById('analyzeLichessFetchedGames'),
 
             // PGN import
             pgnInput: document.getElementById('analyzePgnInput'),
@@ -168,12 +182,27 @@ const AnalyzeSection = {
                 const source = e.currentTarget.dataset.source;
                 this.switchTab(source);
             });
+            tab.addEventListener('keydown', (event) => this.handleSourceTabKeydown(event));
         });
 
-        // Online fetch
-        this.elements.fetchBtn?.addEventListener('click', () => {
-            this.fetchOnlineGames();
+        this.elements.gameUrlLoad?.addEventListener('click', () => this.importGameUrl());
+        this.elements.gameUrl?.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            this.importGameUrl();
         });
+
+        // Existing account-history fetch paths, now presented per provider.
+        this.elements.fetchBtn?.addEventListener('click', () => this.fetchOnlineGames('chess.com'));
+        this.elements.lichessFetchBtn?.addEventListener('click', () => this.fetchOnlineGames('lichess'));
+        [
+            [this.elements.username, 'chess.com'],
+            [this.elements.lichessUsername, 'lichess']
+        ].forEach(([input, provider]) => input?.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            this.fetchOnlineGames(provider);
+        }));
 
         // PGN load
         this.elements.loadPgnBtn?.addEventListener('click', () => {
@@ -1014,45 +1043,146 @@ const AnalyzeSection = {
      * Switch between tabs
      */
     switchTab(source) {
+        if (!this.elements.panels[source]) return false;
         this.currentSource = source;
 
         // Update tabs
         this.elements.tabs.forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.source === source);
+            const active = tab.dataset.source === source;
+            tab.classList.toggle('active', active);
+            tab.setAttribute('aria-selected', String(active));
+            tab.tabIndex = active ? 0 : -1;
         });
 
         // Update panels
         Object.keys(this.elements.panels).forEach(key => {
             const panel = this.elements.panels[key];
             if (panel) {
-                panel.classList.toggle('active', key === source);
+                const active = key === source;
+                panel.classList.toggle('active', active);
+                panel.hidden = !active;
             }
         });
 
         console.log('[Analyze] Switched to tab:', source);
+        return true;
+    },
+
+    handleSourceTabKeydown(event) {
+        const tabs = Array.from(this.elements.tabs || []);
+        const index = tabs.indexOf(event.currentTarget);
+        if (index < 0) return;
+        let nextIndex = index;
+        if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length;
+        else if (event.key === 'ArrowLeft') nextIndex = (index - 1 + tabs.length) % tabs.length;
+        else if (event.key === 'Home') nextIndex = 0;
+        else if (event.key === 'End') nextIndex = tabs.length - 1;
+        else return;
+        event.preventDefault();
+        this.switchTab(tabs[nextIndex].dataset.source);
+        tabs[nextIndex].focus();
+    },
+
+    setGameUrlMessage(message = '', type = 'error') {
+        const target = this.elements.gameUrlMessage;
+        if (!target) return;
+        target.textContent = message;
+        target.dataset.state = type;
+        target.hidden = !message;
+    },
+
+    async importGameUrl() {
+        const importer = window.CaissaAnalyzeGameImport;
+        const rawUrl = this.elements.gameUrl?.value || '';
+        const requestToken = ++this.gameUrlRequestToken;
+        if (!importer?.resolve) {
+            this.setGameUrlMessage('Game URL import is unavailable right now.');
+            return false;
+        }
+
+        this.setGameUrlMessage('Loading game…', 'loading');
+        window.CaissaUI?.setButtonLoading(this.elements.gameUrlLoad, true, { label: 'Loading game…' });
+        try {
+            const resolved = await importer.resolve(rawUrl);
+            if (requestToken !== this.gameUrlRequestToken) return false;
+            const loaded = this.loadGameFromPgn(resolved.pgn, resolved.source, {
+                normalizedUrl: resolved.normalizedUrl,
+                suppressErrorNotification: true
+            });
+            if (!loaded) {
+                this.setGameUrlMessage(importer.errors?.INVALID_PGN_RESPONSE || 'The game service returned an invalid game record.');
+                return false;
+            }
+
+            if (this.elements.gameUrl) this.elements.gameUrl.value = resolved.normalizedUrl;
+            this.setGameUrlMessage('Game loaded.', 'success');
+            window.CaissaAnalyzeV2Shell?.selectView?.('analysis', { focus: true });
+            return true;
+        } catch (error) {
+            if (requestToken !== this.gameUrlRequestToken) return false;
+            console.warn('[Analyze] Game URL import failed:', error?.code || error);
+            this.setGameUrlMessage(importer.getMessage?.(error) || 'Could not load that game.');
+            return false;
+        } finally {
+            if (requestToken === this.gameUrlRequestToken) {
+                window.CaissaUI?.setButtonLoading(this.elements.gameUrlLoad, false);
+            }
+        }
+    },
+
+    getAccountImportContext(provider) {
+        if (provider === 'chess.com') return {
+            provider,
+            username: this.elements.username,
+            gameCount: this.elements.gameCount,
+            fetchBtn: this.elements.fetchBtn,
+            results: this.elements.fetchedGames
+        };
+        if (provider === 'lichess') return {
+            provider,
+            username: this.elements.lichessUsername,
+            gameCount: this.elements.lichessGameCount,
+            fetchBtn: this.elements.lichessFetchBtn,
+            results: this.elements.lichessFetchedGames
+        };
+        return null;
     },
 
     /**
      * Fetch games from Chess.com or Lichess
      */
-    async fetchOnlineGames() {
-        const provider = this.elements.provider?.value || 'lichess';
-        const username = this.elements.username?.value?.trim();
-        const count = parseInt(this.elements.gameCount?.value || '10');
+    async fetchOnlineGames(requestedProvider = null) {
+        const fallbackProvider = this.elements.provider?.value || 'lichess';
+        const provider = requestedProvider || (this.currentSource === 'chess.com' || this.currentSource === 'lichess'
+            ? this.currentSource
+            : fallbackProvider);
+        const context = this.getAccountImportContext(provider);
+        const username = context?.username?.value?.trim();
+        const count = parseInt(context?.gameCount?.value || '10');
 
-        if (!username) {
+        if (!context || !username) {
             this.showNotification('Please enter a username', 'error');
             return;
         }
 
+        const requestToken = ++this.accountFetchToken;
+        this.activeFetchedGamesTarget = context.results;
+        this.fetchedGames = [];
+        this.selectedFetchedGameIndex = -1;
+        [this.elements.fetchedGames, this.elements.lichessFetchedGames].forEach((target) => {
+            if (!target) return;
+            target.hidden = true;
+            target.replaceChildren();
+        });
         console.log('[Analyze] Fetching games via provider', { provider, username, count });
         this.setStatus('Loading games...', 'loading');
-        window.CaissaUI?.setButtonLoading(this.elements.fetchBtn, true, { label: 'Loading games...' });
+        window.CaissaUI?.setButtonLoading(context.fetchBtn, true, { label: 'Loading games...' });
 
         try {
             const data = provider === 'lichess'
                 ? await this.fetchLichessGames(username, count)
                 : await this.fetchChessComGames(username, count);
+            if (requestToken !== this.accountFetchToken) return;
             if (!data.pgn || !data.count) {
                 throw new Error('No games found');
             }
@@ -1060,7 +1190,7 @@ const AnalyzeSection = {
             this.fetchedGames = this.parsePgnCollection(data.pgn, data.source || provider);
             this.selectedFetchedGameIndex = -1;
             console.log(`[Analyze] Received ${this.fetchedGames.length} games`);
-            this.renderFetchedGames();
+            this.renderFetchedGames(context.results);
 
             if (this.fetchedGames.length === 1) {
                 this.selectFetchedGame(0);
@@ -1068,16 +1198,17 @@ const AnalyzeSection = {
                 this.setStatus('Select a game', 'ready');
             }
         } catch (error) {
+            if (requestToken !== this.accountFetchToken) return;
             console.error('[Analyze] Fetch error:', error);
             const providerName = provider === 'lichess' ? 'Lichess' : 'Chess.com';
             if (String(error?.message || '').toLowerCase().includes('no games')) {
                 this.setStatus('No games found', 'warning');
-                if (this.elements.fetchedGames) {
-                    this.elements.fetchedGames.hidden = false;
-                    this.renderEmptyState(this.elements.fetchedGames, {
+                if (context.results) {
+                    context.results.hidden = false;
+                    this.renderEmptyState(context.results, {
                         icon: 'fa-search',
                         title: 'No games found.',
-                        message: `Try a different ${providerName} username or upload PGN manually.`
+                        message: `Try a different ${providerName} username.`
                     });
                 }
                 this.showNotification(`No games found for this ${providerName} username.`, 'warning');
@@ -1085,11 +1216,11 @@ const AnalyzeSection = {
             }
             this.setStatus('Could not load games', 'error');
             this.showNotification(
-                `Could not fetch games from ${providerName}. Please try again or upload PGN manually.`,
+                `Could not fetch games from ${providerName}. Please try again.`,
                 'error'
             );
         } finally {
-            window.CaissaUI?.setButtonLoading(this.elements.fetchBtn, false);
+            window.CaissaUI?.setButtonLoading(context.fetchBtn, false);
         }
     },
 
@@ -1138,8 +1269,10 @@ const AnalyzeSection = {
         const games = [];
         for (const archiveUrl of archives.slice().reverse()) {
             if (games.length >= count) break;
-            console.log('[Analyze] Request URL:', archiveUrl);
-            const response = await fetch(archiveUrl, {
+            const trustedArchiveUrl = this.getTrustedChessComArchiveUrl(archiveUrl, username);
+            if (!trustedArchiveUrl) continue;
+            console.log('[Analyze] Request URL:', trustedArchiveUrl);
+            const response = await fetch(trustedArchiveUrl, {
                 headers: { Accept: 'application/json' }
             });
             if (!response.ok) continue;
@@ -1155,6 +1288,25 @@ const AnalyzeSection = {
             count: selected.length,
             source: 'Chess.com'
         };
+    },
+
+    getTrustedChessComArchiveUrl(value, username) {
+        try {
+            const url = new URL(String(value || ''));
+            const segments = url.pathname.split('/').filter(Boolean);
+            const expectedUser = String(username || '').toLowerCase();
+            const archiveUser = decodeURIComponent(segments[2] || '').toLowerCase();
+            const month = Number(segments[5]);
+            if (url.protocol !== 'https:' || url.hostname !== 'api.chess.com' || url.port
+                || url.username || url.password || url.search || url.hash
+                || segments.length !== 6 || segments[0] !== 'pub' || segments[1] !== 'player'
+                || archiveUser !== expectedUser || segments[3] !== 'games'
+                || !/^\d{4}$/.test(segments[4] || '') || !/^\d{2}$/.test(segments[5] || '')
+                || month < 1 || month > 12) return null;
+            return `https://api.chess.com${url.pathname}`;
+        } catch (_error) {
+            return null;
+        }
     },
 
     isLoadablePgn(pgn) {
@@ -1191,16 +1343,16 @@ const AnalyzeSection = {
             .filter(Boolean);
     },
 
-    renderFetchedGames() {
-        if (!this.elements.fetchedGames) return;
+    renderFetchedGames(target = this.activeFetchedGamesTarget || this.elements.fetchedGames) {
+        if (!target) return;
         if (this.fetchedGames.length === 0) {
-            this.elements.fetchedGames.hidden = true;
-            this.elements.fetchedGames.innerHTML = '';
+            target.hidden = true;
+            target.innerHTML = '';
             return;
         }
 
-        this.elements.fetchedGames.hidden = false;
-        this.elements.fetchedGames.innerHTML = this.fetchedGames.map((game, index) => `
+        target.hidden = false;
+        target.innerHTML = this.fetchedGames.map((game, index) => `
             <button type="button" class="analyze-fetched-game${index === this.selectedFetchedGameIndex ? ' active' : ''}" data-game-index="${index}" aria-label="Load game ${index + 1}: ${this.escapeHtml(game.white)} versus ${this.escapeHtml(game.black)}, ${this.escapeHtml(game.result)}">
                 <span class="analyze-game-number">${index + 1}</span>
                 <span class="analyze-game-label">${this.escapeHtml(game.white)} vs ${this.escapeHtml(game.black)}</span>
@@ -1208,7 +1360,7 @@ const AnalyzeSection = {
             </button>
         `).join('');
 
-        this.elements.fetchedGames.querySelectorAll('[data-game-index]').forEach((button) => {
+        target.querySelectorAll('[data-game-index]').forEach((button) => {
             button.addEventListener('click', () => this.selectFetchedGame(Number(button.dataset.gameIndex)));
         });
     },
@@ -1218,7 +1370,8 @@ const AnalyzeSection = {
         if (!game) return;
         this.selectedFetchedGameIndex = index;
         this.renderFetchedGames();
-        this.loadGameFromPgn(game.pgn, game.source, game);
+        const loaded = this.loadGameFromPgn(game.pgn, game.source, game);
+        if (loaded) window.CaissaAnalyzeV2Shell?.selectView?.('analysis', { focus: true });
     },
 
     escapeHtml(value) {
@@ -1278,12 +1431,11 @@ const AnalyzeSection = {
             if (!game) {
                 throw new Error('Invalid PGN format');
             }
-            this.session = session;
 
             // Extract headers
             const headers = game.header();
 
-            this.loadedGame = {
+            const loadedGame = {
                 pgn: pgn,
                 game: game,
                 initialFen: headers.SetUp === '1' && headers.FEN ? headers.FEN : null,
@@ -1301,6 +1453,9 @@ const AnalyzeSection = {
                 movesSan: game.history().slice(),
                 movesVerbose: game.history({ verbose: true }).map((move) => ({ ...move }))
             };
+            // Commit both authorities together only after the full candidate is valid.
+            this.session = session;
+            this.loadedGame = loadedGame;
             this.currentMoveIndex = this.getLoadedMoves().length - 1;
             this.analysisResults = [];
             this.positionAnalyses = [];
@@ -1326,7 +1481,9 @@ const AnalyzeSection = {
 
         } catch (error) {
             console.error('[Analyze] PGN load error:', error);
-            this.showNotification('Could not load PGN. Check the format and try again.', 'error');
+            if (!metadata.suppressErrorNotification) {
+                this.showNotification('Could not load PGN. Check the format and try again.', 'error');
+            }
             this.setStatus('Could not load PGN', 'error');
             return false;
         }
