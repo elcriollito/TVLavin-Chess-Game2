@@ -58,6 +58,7 @@ const AnalyzeSection = {
     gameUrlRequestToken: 0,
     accountFetchToken: 0,
     activeFetchedGamesTarget: null,
+    pendingSetupEntryMode: null,
 
     // DOM cache
     elements: {},
@@ -102,6 +103,7 @@ const AnalyzeSection = {
             gameUrl: document.getElementById('analyzeGameUrl'),
             gameUrlLoad: document.getElementById('analyzeGameUrlLoad'),
             gameUrlMessage: document.getElementById('analyzeGameUrlMessage'),
+            gameUrlChessComAction: document.getElementById('analyzeGameUrlChessComAction'),
 
             // Chess.com account history
             provider: document.getElementById('analyzeProvider'),
@@ -186,6 +188,10 @@ const AnalyzeSection = {
         });
 
         this.elements.gameUrlLoad?.addEventListener('click', () => this.importGameUrl());
+        this.elements.gameUrlChessComAction?.addEventListener('click', () => {
+            this.switchTab('chess.com');
+            this.elements.username?.focus();
+        });
         this.elements.gameUrl?.addEventListener('keydown', (event) => {
             if (event.key !== 'Enter') return;
             event.preventDefault();
@@ -293,7 +299,11 @@ const AnalyzeSection = {
     },
 
     handleWorkspaceViewChange(view) {
-        if (view === 'setup') this.enterSetupPosition();
+        if (view === 'setup') {
+            const entryMode = this.pendingSetupEntryMode === 'new' ? 'new' : 'edit';
+            this.pendingSetupEntryMode = null;
+            this.enterSetupPosition({ startClean: entryMode === 'new' });
+        }
         else if (this.setupModeActive) this.cancelSetupPosition();
 
         if (!this.liveEngineEnabled) return;
@@ -318,22 +328,26 @@ const AnalyzeSection = {
         this.updateLiveMentorPanel({ off: true });
     },
 
-    enterSetupPosition() {
-        if (this.setupModeActive) return true;
+    enterSetupPosition({ startClean = false } = {}) {
+        if (this.setupModeActive && !startClean) return true;
         const currentFen = this.getGame()?.fen?.();
         const factory = window.CaissaAnalyzeSetupDraft;
-        if (!currentFen || !factory?.create) {
+        const draftFen = startClean ? factory?.START_FEN : currentFen;
+        if (!draftFen || !factory?.create) {
             this.setSetupMessage('Position setup is unavailable.', 'error');
             return false;
         }
-        this.setupDraft = factory.create({ fen: currentFen });
+        this.cancelSetupPaletteDrag();
+        this.setupDraft = factory.create({ fen: draftFen });
         this.setupModeActive = true;
         this.setupSelectedPiece = null;
         this.setupSourceSquare = null;
         this.setupSuppressPaletteClickUntil = 0;
         if (this.elements.setupPgn) this.elements.setupPgn.value = '';
         this.syncSetupDraftUI();
-        this.setSetupMessage('Choose a piece, then a square. Drag a board piece outside the board to remove it.');
+        this.setSetupMessage(startClean
+            ? 'New analysis ready from the standard starting position. Changes commit only when Load is pressed.'
+            : 'Choose a piece, then a square. Drag a board piece outside the board to remove it.');
         return true;
     },
 
@@ -655,6 +669,7 @@ const AnalyzeSection = {
 
     openNewAnalysis() {
         if (!this.getGame()) return false;
+        this.pendingSetupEntryMode = 'new';
         window.CaissaAnalyzeV2Shell?.selectView?.('setup', { focus: true });
         this.elements.newAnalysis?.blur();
         return this.setupModeActive;
@@ -1083,12 +1098,15 @@ const AnalyzeSection = {
         tabs[nextIndex].focus();
     },
 
-    setGameUrlMessage(message = '', type = 'error') {
+    setGameUrlMessage(message = '', type = 'error', { showChessComAction = false } = {}) {
         const target = this.elements.gameUrlMessage;
         if (!target) return;
         target.textContent = message;
         target.dataset.state = type;
         target.hidden = !message;
+        if (this.elements.gameUrlChessComAction) {
+            this.elements.gameUrlChessComAction.hidden = !showChessComAction;
+        }
     },
 
     async importGameUrl() {
@@ -1121,7 +1139,9 @@ const AnalyzeSection = {
         } catch (error) {
             if (requestToken !== this.gameUrlRequestToken) return false;
             console.warn('[Analyze] Game URL import failed:', error?.code || error);
-            this.setGameUrlMessage(importer.getMessage?.(error) || 'Could not load that game.');
+            this.setGameUrlMessage(importer.getMessage?.(error) || 'Could not load that game.', 'error', {
+                showChessComAction: error?.code === 'CHESSCOM_DIRECT_UNAVAILABLE'
+            });
             return false;
         } finally {
             if (requestToken === this.gameUrlRequestToken) {

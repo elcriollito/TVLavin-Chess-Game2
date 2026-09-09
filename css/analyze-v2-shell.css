@@ -766,6 +766,30 @@
     color: #9edbbd;
 }
 
+#analyzeSection .caissa-analyze-v2__game-provider-action {
+    min-height: 38px;
+    margin-top: -4px;
+    padding: 8px 12px;
+    border: 1px solid rgba(240, 165, 72, 0.48);
+    border-radius: 8px;
+    background: rgba(240, 165, 72, 0.08);
+    color: #f2bb76;
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+#analyzeSection .caissa-analyze-v2__game-provider-action:hover,
+#analyzeSection .caissa-analyze-v2__game-provider-action:focus-visible {
+    background: var(--analyze-v2-accent-soft);
+    color: #fff;
+}
+
+#analyzeSection .caissa-analyze-v2__game-provider-action[hidden] {
+    display: none !important;
+}
+
 #analyzeSection .caissa-analyze-v2__game-submit {
     min-height: 42px;
     padding: 10px 14px;

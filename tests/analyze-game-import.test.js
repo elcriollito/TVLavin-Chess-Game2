@@ -41,6 +41,10 @@ test('A3 recognizes public Chess.com game forms but fails closed without an offi
         await assert.rejects(importer.resolve(input), error => error.code === 'CHESSCOM_DIRECT_UNAVAILABLE');
     }
     assert.equal(requests, 0);
+    assert.equal(
+        importer.errors.CHESSCOM_DIRECT_UNAVAILABLE,
+        "Direct Chess.com game links cannot currently be imported through Chess.com's public API. Search by username instead."
+    );
 });
 
 test('A3 rejects malformed IDs, unsupported domains, credentials, ports, and non-web protocols', () => {
@@ -95,4 +99,3 @@ test('A3 importer has no chess, board, engine, storage, HTML scraping, or arbitr
     assert.match(source, /fetchImpl\(endpoint/);
     assert.match(source, /https:\/\/lichess\.org\/game\/export\/\$\{encodeURIComponent\(parsed\.id\)\}/);
 });
-

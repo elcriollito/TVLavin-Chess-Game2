@@ -38,7 +38,7 @@ test('A3 converges URL and account imports on the existing PGN/session pipeline'
 });
 
 test('A3 lazy-loads the isolated importer before AnalyzeSection', () => {
-    assert.equal((registry.match(/js\/analyze-game-import\.js\?v=1\.0\.0/g) || []).length, 2);
+    assert.equal((registry.match(/js\/analyze-game-import\.js\?v=1\.0\.1/g) || []).length, 2);
     for (const branch of registry.match(/sources:\s*Object\.freeze\([^]*?\]\)/g) || []) {
         if (!branch.includes('analyze-section.js')) continue;
         assert.ok(branch.indexOf('analyze-game-import.js') < branch.indexOf('analyze-section.js'));
@@ -51,3 +51,18 @@ test('A3 validates Chess.com archive URLs before provider-result fetching', () =
     assert.doesNotMatch(analyze, /fetch\(archiveUrl/);
 });
 
+test('A3.1 separates clean New intent from direct current-position Setup entry', () => {
+    assert.match(analyze, /openNewAnalysis\(\)[\s\S]*?pendingSetupEntryMode = 'new'[\s\S]*?selectView\?\.\('setup'/);
+    assert.match(analyze, /handleWorkspaceViewChange\(view\)[\s\S]*?entryMode = this\.pendingSetupEntryMode === 'new' \? 'new' : 'edit'/);
+    assert.match(analyze, /enterSetupPosition\(\{ startClean = false \} = \{\}\)/);
+    assert.match(analyze, /const draftFen = startClean \? factory\?\.START_FEN : currentFen/);
+    assert.match(analyze, /if \(this\.elements\.setupPgn\) this\.elements\.setupPgn\.value = ''/);
+    assert.doesNotMatch(analyze, /openNewAnalysis\(\)[\s\S]{0,500}(?:this\.session\s*=|this\.loadedGame\s*=|new\s+(?:Chess|Worker))/);
+});
+
+test('A3.1 exposes a clear Chess.com supported-path action without changing the safe resolver', () => {
+    assert.equal((gamesPanel.match(/id="analyzeGameUrlChessComAction"/g) || []).length, 1);
+    assert.match(gamesPanel, /id="analyzeGameUrlChessComAction"[^>]*hidden>Open Chess\.com tab<\/button>/);
+    assert.match(analyze, /showChessComAction: error\?\.code === 'CHESSCOM_DIRECT_UNAVAILABLE'/);
+    assert.match(analyze, /switchTab\('chess\.com'\)[\s\S]*?elements\.username\?\.focus/);
+});

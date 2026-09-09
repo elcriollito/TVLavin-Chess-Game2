@@ -28,6 +28,15 @@ const LICHESS_ACCOUNT_PGN = `[Event "A3 Lichess Account"]
 
 1. c4 e5 2. Nc3 Nf6 1/2-1/2`;
 
+const EXISTING_GAME_PGN = `[Event "Previous Analysis"]
+[Site "CAISSA"]
+[Date "2026.09.09"]
+[White "Previous White"]
+[Black "Previous Black"]
+[Result "*"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 *`;
+
 async function openGames(page) {
     await page.goto('/analyze');
     await expect(page.locator('body')).toHaveAttribute('data-caissa-surface', 'analyze');
@@ -99,7 +108,104 @@ test('A3 Game URL imports through the authoritative session and fails atomically
 
     await page.locator('#analyzeGameUrl').fill('https://www.chess.com/game/live/123456789');
     await page.locator('#analyzeGameUrlLoad').click();
-    await expect(page.locator('#analyzeGameUrlMessage')).toContainText('does not provide a public game-ID lookup');
+    await expect(page.locator('#analyzeGameUrlMessage')).toHaveText(
+        "Direct Chess.com game links cannot currently be imported through Chess.com's public API. Search by username instead."
+    );
+    await expect(page.locator('#analyzeGameUrlChessComAction')).toBeVisible();
+    await page.locator('#analyzeGameUrlChessComAction').click();
+    await expect(page.locator('#analyzePanelChessCom')).toBeVisible();
+    await expect(page.locator('#analyzeUsername')).toBeFocused();
+});
+
+test('A3.1 New opens a clean draft, cancel preserves the previous session, and Load commits', async ({ page }) => {
+    await page.goto('/analyze');
+    await expect.poll(() => page.evaluate(() => Boolean(window.AnalyzeSection?.getGame?.()))).toBe(true);
+    await page.evaluate((pgn) => {
+        window.AnalyzeSection.loadGameFromPgn(pgn, 'A3.1 fixture');
+        window.__a31PreviousSession = window.AnalyzeSection.session;
+        window.__a31PreviousGame = window.AnalyzeSection.loadedGame.game;
+        window.__a31PreviousBoard = window.AnalyzeSection.board;
+        window.__a31PreviousEngine = window.AnalyzeSection.analysisEngine;
+        window.__a31PreviousFen = window.AnalyzeSection.getGame().fen();
+    }, EXISTING_GAME_PGN);
+
+    await page.locator('#analyzeNewBtn').click();
+    await expect(page.locator('#analyzeV2PanelSetup')).toBeVisible();
+    const cleanDraft = await page.evaluate(() => ({
+        fen: AnalyzeSection.setupDraft.toFen(),
+        fenInput: document.querySelector('#analyzeSetupFen').value,
+        pgn: document.querySelector('#analyzePgnInput').value,
+        turn: document.querySelector('#analyzeSetupTurn').value,
+        castling: [...document.querySelectorAll('[data-setup-castling]')].map(input => [input.dataset.setupCastling, input.checked]),
+        sessionPreserved: AnalyzeSection.session === window.__a31PreviousSession,
+        gamePreserved: AnalyzeSection.loadedGame.game === window.__a31PreviousGame,
+        boardPreserved: AnalyzeSection.board === window.__a31PreviousBoard,
+        enginePreserved: AnalyzeSection.analysisEngine === window.__a31PreviousEngine
+    }));
+    expect(cleanDraft).toEqual({
+        fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        fenInput: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        pgn: '',
+        turn: 'w',
+        castling: [['K', true], ['Q', true], ['k', true], ['q', true]],
+        sessionPreserved: true,
+        gamePreserved: true,
+        boardPreserved: true,
+        enginePreserved: true
+    });
+
+    await page.locator('#analyzeSetupClear').click();
+    await page.locator('#analyzeSetupBack').click();
+    await expect(page.locator('#analyzeV2PanelAnalysis')).toBeVisible();
+    expect(await page.evaluate(() => ({
+        sameSession: AnalyzeSection.session === window.__a31PreviousSession,
+        sameGame: AnalyzeSection.loadedGame.game === window.__a31PreviousGame,
+        fen: AnalyzeSection.getGame().fen(),
+        white: AnalyzeSection.loadedGame.white,
+        black: AnalyzeSection.loadedGame.black
+    }))).toEqual({
+        sameSession: true,
+        sameGame: true,
+        fen: await page.evaluate(() => window.__a31PreviousFen),
+        white: 'Previous White',
+        black: 'Previous Black'
+    });
+
+    await page.locator('#analyzeV2TabSetup').click();
+    await expect(page.locator('#analyzeV2PanelSetup')).toBeVisible();
+    expect(await page.evaluate(() => AnalyzeSection.setupDraft.toFen())).toBe(
+        await page.evaluate(() => window.__a31PreviousFen)
+    );
+    await page.locator('#analyzeSetupBack').click();
+
+    await page.locator('#analyzeNewBtn').click();
+    await page.locator('#analyzeSetupLoad').click();
+    await expect(page.locator('#analyzeV2PanelAnalysis')).toBeVisible();
+    expect(await page.evaluate(() => ({
+        fen: AnalyzeSection.getGame().fen(),
+        initialFen: AnalyzeSection.loadedGame.initialFen,
+        pgn: AnalyzeSection.loadedGame.pgn,
+        source: AnalyzeSection.loadedGame.source,
+        white: AnalyzeSection.loadedGame.white,
+        black: AnalyzeSection.loadedGame.black,
+        result: AnalyzeSection.loadedGame.result,
+        newSession: AnalyzeSection.session !== window.__a31PreviousSession,
+        newGame: AnalyzeSection.loadedGame.game !== window.__a31PreviousGame,
+        sameBoard: AnalyzeSection.board === window.__a31PreviousBoard,
+        oneChessOwner: AnalyzeSection.loadedGame.game === AnalyzeSection.session.game
+    }))).toEqual({
+        fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        initialFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        pgn: '',
+        source: 'Setup Position',
+        white: 'White',
+        black: 'Black',
+        result: '*',
+        newSession: true,
+        newGame: true,
+        sameBoard: true,
+        oneChessOwner: true
+    });
 });
 
 test('A3 Chess.com and Lichess account tabs retain their supported history paths', async ({ page }) => {

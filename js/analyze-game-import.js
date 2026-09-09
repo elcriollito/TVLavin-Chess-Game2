@@ -9,7 +9,7 @@
 (function installAnalyzeGameImport(global) {
     'use strict';
 
-    const VERSION = '1.0.0';
+    const VERSION = '1.0.1';
     const MAX_URL_LENGTH = 2048;
     const MAX_PGN_BYTES = 1024 * 1024;
     const LICHESS_HOSTS = new Set(['lichess.org', 'www.lichess.org']);
@@ -20,7 +20,7 @@
         INVALID_URL: 'Enter a valid public game URL.',
         UNSUPPORTED_DOMAIN: 'Only public Lichess and Chess.com game links are supported.',
         MALFORMED_GAME_ID: 'That game link does not contain a valid game ID.',
-        CHESSCOM_DIRECT_UNAVAILABLE: 'Chess.com does not provide a public game-ID lookup. Use the Chess.com player tab instead.',
+        CHESSCOM_DIRECT_UNAVAILABLE: "Direct Chess.com game links cannot currently be imported through Chess.com's public API. Search by username instead.",
         GAME_UNAVAILABLE: 'That game is private, deleted, or unavailable.',
         RATE_LIMITED: 'The game service is busy. Please wait one minute and try again.',
         PROVIDER_UNAVAILABLE: 'The game service is temporarily unavailable.',
