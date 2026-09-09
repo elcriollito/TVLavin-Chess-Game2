@@ -19,6 +19,22 @@ test('session owns independent chess state and deterministic move navigation', (
     assert.equal(b.game.fen(), finalFen);
     assert.equal(a.jumpTo(999).selectedPly, 2);
 });
+
+test('PGN headers survive session navigation on the authoritative Chess instance', () => {
+    const sessionApi = api();
+    const session = sessionApi.createSession({
+        ChessFactory: Chess,
+        pgn: '[Event "Header contract"]\n[Site "Local Browser"]\n[Round "7"]\n[White "White"]\n[Black "Black"]\n[Result "*"]\n\n1. e4 e5 2. Nf3 *'
+    });
+
+    const expected = {
+        Event: 'Header contract', Site: 'Local Browser', Round: '7',
+        White: 'White', Black: 'Black', Result: '*'
+    };
+    Object.entries(expected).forEach(([name, value]) => assert.equal(session.game.header()[name], value));
+    assert.equal(session.jumpTo(0).ok, true);
+    Object.entries(expected).forEach(([name, value]) => assert.equal(session.game.header()[name], value));
+});
 test('custom FEN and FEN-only sessions validate without shared references', () => {
     const fen = '8/8/8/8/8/8/4P3/4K2k w - - 0 1';
     const session = api().createSession({ initialFen: fen });

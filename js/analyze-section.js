@@ -54,6 +54,7 @@ const AnalyzeSection = {
     setupPaletteDrag: null,
     setupPaletteDragHandlers: null,
     setupSuppressPaletteClickUntil: 0,
+    boardDragCleanupTimer: null,
 
     // DOM cache
     elements: {},
@@ -137,6 +138,8 @@ const AnalyzeSection = {
             navPrev: document.getElementById('analyzeNavPrev'),
             navNext: document.getElementById('analyzeNavNext'),
             navLast: document.getElementById('analyzeNavLast'),
+            newAnalysis: document.getElementById('analyzeNewBtn'),
+            saveAnalysis: document.getElementById('analyzeSaveBtn'),
             engineToggle: document.getElementById('analyzeEngineToggle'),
             undoMove: document.getElementById('analyzeUndoMove'),
             resetBoard: document.getElementById('analyzeResetBoard'),
@@ -203,6 +206,8 @@ const AnalyzeSection = {
         this.elements.navLast?.addEventListener('click', () => {
             this.jumpToMove(this.getLoadedMoves().length - 1);
         });
+        this.elements.newAnalysis?.addEventListener('click', () => this.openNewAnalysis());
+        this.elements.saveAnalysis?.addEventListener('click', () => this.saveAnalysisPgn());
         this.elements.engineToggle?.addEventListener('click', () => this.toggleLiveEngine());
         this.elements.undoMove?.addEventListener('click', () => this.undoStudyMove());
         this.elements.resetBoard?.addEventListener('click', () => this.resetStudyBoard({ explicit: true }));
@@ -588,7 +593,8 @@ const AnalyzeSection = {
         this.loadedGame = {
             pgn: '', game, initialFen: fen, source: 'Setup Position',
             white: 'White', black: 'Black', result: '*', termination: null,
-            event: 'Position Setup', date: '', eco: '', opening: '', movesSan: [], movesVerbose: []
+            event: 'Position Setup', date: '', eco: '', opening: '', headers: { ...game.header() },
+            movesSan: [], movesVerbose: []
         };
         this.currentMoveIndex = -1;
         this.analysisResults = [];
@@ -614,6 +620,85 @@ const AnalyzeSection = {
         this.clearSetupBoardHighlights();
         this.board?.position(this.getGame()?.fen?.(), false);
         window.CaissaAnalyzeV2Shell?.selectView?.('analysis', { focus: true });
+        if (this.liveEngineEnabled) this.refreshLiveEvaluation();
+        else this.setLiveEngineEnabled(true);
+    },
+
+    openNewAnalysis() {
+        if (!this.getGame()) return false;
+        window.CaissaAnalyzeV2Shell?.selectView?.('setup', { focus: true });
+        this.elements.newAnalysis?.blur();
+        return this.setupModeActive;
+    },
+
+    buildAnalysisPgn() {
+        const game = this.getGame();
+        if (!game?.pgn || !this.loadedGame) return '';
+
+        const headers = { ...(this.loadedGame.headers || {}), ...(game.header?.() || {}) };
+        const moves = this.getLoadedMoves();
+        const restoreIndex = this.currentMoveIndex;
+        const needsFullLineReplay = game.history().length !== moves.length;
+        if (needsFullLineReplay) {
+            if (this.loadedGame.initialFen) game.load(this.loadedGame.initialFen);
+            else game.reset();
+            moves.forEach(move => game.move(move));
+        }
+        const values = {
+            Event: this.loadedGame.event || headers.Event || 'CAISSA Analysis',
+            Site: headers.Site || 'CAISSA',
+            Date: this.loadedGame.date || headers.Date || new Date().toISOString().slice(0, 10).replaceAll('-', '.'),
+            Round: headers.Round || '?',
+            White: this.loadedGame.white || headers.White || 'White',
+            Black: this.loadedGame.black || headers.Black || 'Black',
+            Result: this.loadedGame.result || headers.Result || '*'
+        };
+        if (this.loadedGame.eco || headers.ECO) values.ECO = this.loadedGame.eco || headers.ECO;
+        if (this.loadedGame.opening || headers.Opening) values.Opening = this.loadedGame.opening || headers.Opening;
+        if (this.loadedGame.termination || headers.Termination) {
+            values.Termination = this.loadedGame.termination || headers.Termination;
+        }
+        if (this.loadedGame.initialFen) {
+            values.SetUp = '1';
+            values.FEN = this.loadedGame.initialFen;
+        }
+
+        const exportHeaders = { ...headers, ...values };
+        this.loadedGame.headers = { ...exportHeaders };
+        Object.entries(exportHeaders).forEach(([name, value]) => game.header(name, String(value)));
+        const pgn = game.pgn({ max_width: 80, newline_char: '\n' });
+        if (needsFullLineReplay) {
+            if (this.loadedGame.initialFen) game.load(this.loadedGame.initialFen);
+            else game.reset();
+            moves.slice(0, restoreIndex + 1).forEach(move => game.move(move));
+            Object.entries(exportHeaders).forEach(([name, value]) => game.header(name, String(value)));
+        }
+        return pgn;
+    },
+
+    saveAnalysisPgn() {
+        const pgn = this.buildAnalysisPgn();
+        if (!pgn || !window.Blob || !window.URL?.createObjectURL) {
+            this.showNotification('PGN download is unavailable.', 'error');
+            return false;
+        }
+
+        const blob = new Blob([pgn], { type: 'application/x-chess-pgn;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+        link.href = url;
+        link.download = `caissa-analysis-${stamp}.pgn`;
+        link.hidden = true;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        window.dispatchEvent(new CustomEvent('caissa:analyze-pgn-download', {
+            detail: Object.freeze({ filename: link.download, pgn })
+        }));
+        this.showNotification('Analysis PGN downloaded.', 'success');
+        return true;
     },
 
     setSetupMessage(message, type = 'neutral') {
@@ -669,15 +754,46 @@ const AnalyzeSection = {
             draggable: true,
             dropOffBoard: 'trash',
             position: this.getGame()?.fen?.() || 'start',
-            onDragStart: (source, piece) => this.canStartStudyMove(source, piece),
-            onDrop: (source, target) => this.handleBoardDrop(source, target),
-            onSnapEnd: () => this.board?.position(
-                this.setupModeActive && this.setupDraft ? this.setupDraft.position() : this.getGame()?.fen?.(), false
-            ),
+            dragThrottleRate: 8,
+            snapSpeed: 70,
+            snapbackSpeed: 110,
+            trashSpeed: 100,
+            onDragStart: (source, piece) => this.beginAnalyzeBoardDrag(source, piece),
+            onDrop: (source, target) => {
+                const outcome = this.handleBoardDrop(source, target);
+                this.finishAnalyzeBoardDrag({ delay: outcome === 'snapback' ? 120 : 90 });
+                return outcome;
+            },
+            onSnapEnd: () => {
+                this.board?.position(
+                    this.setupModeActive && this.setupDraft ? this.setupDraft.position() : this.getGame()?.fen?.(), false
+                );
+                this.finishAnalyzeBoardDrag();
+            },
+            onSnapbackEnd: () => this.finishAnalyzeBoardDrag(),
             pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
             showNotation: true
         });
         return true;
+    },
+
+    beginAnalyzeBoardDrag(source, piece) {
+        if (!this.canStartStudyMove(source, piece)) return false;
+        clearTimeout(this.boardDragCleanupTimer);
+        document.body.classList.add('caissa-analyze-board-dragging');
+        document.getElementById('analyzeChessboard')?.classList.add('is-piece-dragging');
+        return true;
+    },
+
+    finishAnalyzeBoardDrag({ delay = 0 } = {}) {
+        clearTimeout(this.boardDragCleanupTimer);
+        const cleanup = () => {
+            document.body.classList.remove('caissa-analyze-board-dragging');
+            document.getElementById('analyzeChessboard')?.classList.remove('is-piece-dragging');
+            this.boardDragCleanupTimer = null;
+        };
+        if (delay > 0) this.boardDragCleanupTimer = setTimeout(cleanup, delay);
+        else cleanup();
     },
 
     handleBoardDrop(source, target) {
@@ -768,6 +884,7 @@ const AnalyzeSection = {
             date: '',
             eco: '',
             opening: '',
+            headers: {},
             movesSan: [],
             movesVerbose: []
         };
@@ -1180,6 +1297,7 @@ const AnalyzeSection = {
                 eco: metadata.eco || headers.ECO || '',
                 opening: metadata.opening || headers.Opening || '',
                 recordId: metadata.recordId || null,
+                headers: { ...headers },
                 movesSan: game.history().slice(),
                 movesVerbose: game.history({ verbose: true }).map((move) => ({ ...move }))
             };
@@ -2485,7 +2603,8 @@ const AnalyzeSection = {
                     this.loadedGame = {
                         pgn: '', game, initialFen: payload.finalFen, source: 'Play position',
                         white: 'White', black: 'Black', result: payload.result || '*',
-                        event: '', date: '', eco: '', opening: '', movesSan: [], movesVerbose: []
+                        event: '', date: '', eco: '', opening: '', headers: { ...game.header() },
+                        movesSan: [], movesVerbose: []
                     };
                     this.currentMoveIndex = -1;
                 }

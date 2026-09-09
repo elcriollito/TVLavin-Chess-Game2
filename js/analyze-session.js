@@ -26,7 +26,9 @@
                 if (loaded === false) return null;
             }
         } catch (_) { return null; }
-        const startFen = game.header?.().SetUp === '1' ? game.header().FEN : initialFen;
+        const headers = Object.fromEntries(Object.entries(game.header?.() || {})
+            .filter(([, value]) => typeof value === 'string'));
+        const startFen = headers.SetUp === '1' ? headers.FEN : initialFen;
         const moves = game.history();
         const target = Number.isSafeInteger(selectedPly) ? Math.max(-1, Math.min(selectedPly - 1, moves.length - 1)) : moves.length - 1;
         function jumpTo(index) {
@@ -37,6 +39,7 @@
             for (let i = 0; i <= safe; i += 1) {
                 if (!game.move(moves[i])) return freeze({ ok: false, status: 'invalid-move' });
             }
+            Object.entries(headers).forEach(([name, value]) => game.header?.(name, value));
             return freeze({ ok: true, status: 'selected', selectedPly: safe, fen: game.fen() });
         }
         jumpTo(target);

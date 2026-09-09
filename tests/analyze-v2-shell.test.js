@@ -60,6 +60,18 @@ test('A2.1 palette drag is a pointer input into the existing setup draft only', 
     assert.match(css, /data-analyze-v2-view='setup'[\s\S]*?caissa-analyze-v2__footer[\s\S]*?opacity:\s*1/);
 });
 
+test('A2.2 wires physical board drag and local New/Save without parallel authorities', () => {
+    for (const id of ['analyzeNewBtn', 'analyzeSaveBtn']) {
+        assert.equal((html.match(new RegExp(`id="${id}"`, 'g')) || []).length, 1, id);
+    }
+    assert.match(analyze, /dragThrottleRate:\s*8/);
+    assert.match(analyze, /onDragStart:\s*\(source, piece\) => this\.beginAnalyzeBoardDrag/);
+    assert.match(analyze, /openNewAnalysis\(\)[\s\S]*?selectView\?\.\('setup'/);
+    assert.match(analyze, /buildAnalysisPgn\(\)[\s\S]*?game\.pgn\(/);
+    assert.match(analyze, /finishSetupCommit\(\)[\s\S]*?setLiveEngineEnabled\(true\)/);
+    assert.doesNotMatch(analyze, /saveAnalysisPgn\(\)[\s\S]{0,1600}(?:fetch\s*\(|localStorage|sessionStorage|new\s+Chess|new\s+Worker)/);
+});
+
 test('A1 preserves every existing AnalyzeSection DOM contract exactly once', () => {
     const ids = [
         'analyzeProvider', 'analyzeUsername', 'analyzeGameCount', 'analyzeFetchBtn',
