@@ -46,6 +46,11 @@ const AnalyzeSection = {
     liveUiPendingResult: null,
     liveUiLastRenderAt: 0,
     liveUiThrottleMs: 140,
+    setupModeActive: false,
+    setupDraft: null,
+    setupSelectedPiece: null,
+    setupSourceSquare: null,
+    setupBoardClickHandler: null,
 
     // DOM cache
     elements: {},
@@ -132,7 +137,18 @@ const AnalyzeSection = {
             engineToggle: document.getElementById('analyzeEngineToggle'),
             undoMove: document.getElementById('analyzeUndoMove'),
             resetBoard: document.getElementById('analyzeResetBoard'),
-            flipBoard: document.getElementById('analyzeFlipBoard')
+            flipBoard: document.getElementById('analyzeFlipBoard'),
+            setupBack: document.getElementById('analyzeSetupBack'),
+            setupTurn: document.getElementById('analyzeSetupTurn'),
+            setupFen: document.getElementById('analyzeSetupFen'),
+            setupPgn: document.getElementById('analyzePgnInput'),
+            setupMessage: document.getElementById('analyzeSetupMessage'),
+            setupLoad: document.getElementById('analyzeSetupLoad'),
+            setupFlip: document.getElementById('analyzeSetupFlip'),
+            setupReset: document.getElementById('analyzeSetupReset'),
+            setupClear: document.getElementById('analyzeSetupClear'),
+            setupPieces: document.querySelectorAll('#analyzeV2PanelSetup [data-setup-piece]'),
+            setupCastling: document.querySelectorAll('#analyzeV2PanelSetup [data-setup-castling]')
         };
     },
 
@@ -188,6 +204,45 @@ const AnalyzeSection = {
         this.elements.undoMove?.addEventListener('click', () => this.undoStudyMove());
         this.elements.resetBoard?.addEventListener('click', () => this.resetStudyBoard({ explicit: true }));
         this.elements.flipBoard?.addEventListener('click', () => this.flipAnalyzeBoard());
+        this.elements.setupBack?.addEventListener('click', () => {
+            window.CaissaAnalyzeV2Shell?.selectView?.('analysis', { focus: true });
+        });
+        this.elements.setupPieces?.forEach(button => button.addEventListener('click', () => {
+            this.selectSetupPiece(button.dataset.setupPiece);
+        }));
+        this.elements.setupTurn?.addEventListener('change', () => {
+            if (!this.setupDraft?.setTurn(this.elements.setupTurn.value)) return;
+            this.syncSetupDraftUI({ board: false });
+        });
+        this.elements.setupCastling?.forEach(input => input.addEventListener('change', () => {
+            if (!this.setupDraft?.setCastling(input.dataset.setupCastling, input.checked)) return;
+            this.syncSetupDraftUI({ board: false, controls: false });
+        }));
+        this.elements.setupFen?.addEventListener('input', () => this.applySetupFenInput());
+        this.elements.setupPgn?.addEventListener('input', () => this.handleSetupPgnInput());
+        this.elements.setupFlip?.addEventListener('click', () => this.flipAnalyzeBoard());
+        this.elements.setupReset?.addEventListener('click', () => this.resetSetupDraft());
+        this.elements.setupClear?.addEventListener('click', () => this.clearSetupDraft());
+        this.elements.setupLoad?.addEventListener('click', () => this.loadSetupDraft());
+        if (!this.setupBoardClickHandler) {
+            this.setupBoardClickHandler = (event) => {
+                if (!this.setupModeActive) return;
+                const square = event.target.closest?.('[data-square]')?.dataset?.square;
+                if (!square) return;
+                event.preventDefault();
+                event.stopPropagation();
+                if (event.detail >= 2 && this.setupDraft?.getPiece(square)) {
+                    this.setupSourceSquare = null;
+                    this.setupDraft.removePiece(square);
+                    this.syncSetupDraftUI();
+                    this.setSetupMessage(`Piece removed from ${square}.`);
+                    return;
+                }
+                this.handleSetupBoardTap(square);
+            };
+            document.getElementById('analyzeChessboard')
+                ?.addEventListener('click', this.setupBoardClickHandler);
+        }
 
         if (!this.workspaceViewHandler) {
             this.workspaceViewHandler = (event) => this.handleWorkspaceViewChange(event.detail?.view);
@@ -199,6 +254,9 @@ const AnalyzeSection = {
     },
 
     handleWorkspaceViewChange(view) {
+        if (view === 'setup') this.enterSetupPosition();
+        else if (this.setupModeActive) this.cancelSetupPosition();
+
         if (!this.liveEngineEnabled) return;
         if (view === 'analysis') {
             this.refreshLiveEvaluation();
@@ -219,6 +277,228 @@ const AnalyzeSection = {
         this.analysisEngine?.stop?.();
         this.updateEvaluationBar();
         this.updateLiveMentorPanel({ off: true });
+    },
+
+    enterSetupPosition() {
+        if (this.setupModeActive) return true;
+        const currentFen = this.getGame()?.fen?.();
+        const factory = window.CaissaAnalyzeSetupDraft;
+        if (!currentFen || !factory?.create) {
+            this.setSetupMessage('Position setup is unavailable.', 'error');
+            return false;
+        }
+        this.setupDraft = factory.create({ fen: currentFen });
+        this.setupModeActive = true;
+        this.setupSelectedPiece = null;
+        this.setupSourceSquare = null;
+        if (this.elements.setupPgn) this.elements.setupPgn.value = '';
+        this.syncSetupDraftUI();
+        this.setSetupMessage('Choose a piece, then a square. Drag a board piece outside the board to remove it.');
+        return true;
+    },
+
+    cancelSetupPosition() {
+        if (!this.setupModeActive) return false;
+        this.setupModeActive = false;
+        this.setupDraft = null;
+        this.setupSelectedPiece = null;
+        this.setupSourceSquare = null;
+        this.clearSetupBoardHighlights();
+        const game = this.getGame();
+        if (game) this.board?.position(game.fen(), false);
+        this.updateEvaluationBar();
+        return true;
+    },
+
+    selectSetupPiece(piece) {
+        if (!this.setupModeActive || !this.setupDraft) return false;
+        this.setupSelectedPiece = this.setupSelectedPiece === piece ? null : piece;
+        this.setupSourceSquare = null;
+        this.elements.setupPieces?.forEach(button => {
+            const selected = button.dataset.setupPiece === this.setupSelectedPiece;
+            button.classList.toggle('is-selected', selected);
+            button.setAttribute('aria-pressed', String(selected));
+        });
+        this.clearSetupBoardHighlights();
+        this.setSetupMessage(this.setupSelectedPiece
+            ? 'Selected piece ready. Choose a board square.'
+            : 'Piece selection cleared.');
+        return true;
+    },
+
+    clearSetupBoardHighlights() {
+        document.querySelectorAll('#analyzeChessboard .caissa-analyze-v2__setup-source')
+            .forEach(square => square.classList.remove('caissa-analyze-v2__setup-source'));
+        this.elements.setupPieces?.forEach(button => {
+            const selected = button.dataset.setupPiece === this.setupSelectedPiece;
+            button.classList.toggle('is-selected', selected);
+            button.setAttribute('aria-pressed', String(selected));
+        });
+    },
+
+    handleSetupBoardTap(square) {
+        if (!this.setupModeActive || !this.setupDraft || !/^[a-h][1-8]$/.test(square)) return false;
+        if (this.setupSelectedPiece) {
+            this.setupDraft.setPiece(square, this.setupSelectedPiece);
+            this.syncSetupDraftUI();
+            this.setSetupMessage(`Piece placed on ${square}.`);
+            return true;
+        }
+
+        if (this.setupSourceSquare) {
+            const source = this.setupSourceSquare;
+            this.setupSourceSquare = null;
+            if (source === square) {
+                this.setupDraft.removePiece(source);
+                this.syncSetupDraftUI();
+                this.setSetupMessage(`Piece removed from ${source}.`);
+                return true;
+            }
+            this.setupDraft.movePiece(source, square);
+            this.syncSetupDraftUI();
+            this.setSetupMessage(`Piece moved from ${source} to ${square}.`);
+            return true;
+        }
+
+        if (!this.setupDraft.getPiece(square)) {
+            this.setSetupMessage('Select a palette piece or an occupied board square first.', 'info');
+            return true;
+        }
+        this.setupSourceSquare = square;
+        this.clearSetupBoardHighlights();
+        document.querySelector(`#analyzeChessboard .square-${square}`)
+            ?.classList.add('caissa-analyze-v2__setup-source');
+        this.setSetupMessage(`Selected ${square}. Choose a destination or click it again to remove.`);
+        return true;
+    },
+
+    handleSetupBoardDrop(source, target) {
+        if (!this.setupModeActive || !this.setupDraft) return 'snapback';
+        if (target === 'offboard') {
+            this.setupDraft.removePiece(source);
+            this.syncSetupDraftUI({ board: false });
+            this.setSetupMessage(`Piece removed from ${source}.`);
+            return undefined;
+        }
+        if (!/^[a-h][1-8]$/.test(target) || !this.setupDraft.movePiece(source, target)) return 'snapback';
+        this.syncSetupDraftUI({ board: false });
+        this.setSetupMessage(`Piece moved from ${source} to ${target}.`);
+        return undefined;
+    },
+
+    syncSetupDraftUI({ board = true, fen = true, controls = true } = {}) {
+        if (!this.setupModeActive || !this.setupDraft) return;
+        if (board) this.board?.position(this.setupDraft.position(), false);
+        if (fen && this.elements.setupFen) this.elements.setupFen.value = this.setupDraft.toFen();
+        if (controls) {
+            if (this.elements.setupTurn) this.elements.setupTurn.value = this.setupDraft.toFen().split(' ')[1];
+            this.elements.setupCastling?.forEach(input => {
+                input.checked = this.setupDraft.hasCastling(input.dataset.setupCastling);
+            });
+        }
+        this.clearSetupBoardHighlights();
+    },
+
+    applySetupFenInput() {
+        if (!this.setupModeActive || !this.setupDraft || !this.elements.setupFen) return false;
+        const result = this.setupDraft.replaceFen(this.elements.setupFen.value, { requireKings: true });
+        if (!result.ok) {
+            this.setSetupMessage(result.error, 'error');
+            return false;
+        }
+        this.setupSelectedPiece = null;
+        this.setupSourceSquare = null;
+        this.syncSetupDraftUI();
+        this.setSetupMessage('FEN applied to the setup board.', 'success');
+        return true;
+    },
+
+    handleSetupPgnInput() {
+        const hasPgn = !!this.elements.setupPgn?.value?.trim();
+        this.setSetupMessage(hasPgn
+            ? 'PGN is present and will take priority when Load is pressed.'
+            : 'PGN is empty. Load will commit the FEN draft.', 'info');
+    },
+
+    resetSetupDraft() {
+        if (!this.setupDraft) return false;
+        this.setupDraft.reset();
+        this.setupSelectedPiece = null;
+        this.setupSourceSquare = null;
+        this.syncSetupDraftUI();
+        this.setSetupMessage('Starting position restored.', 'success');
+        return true;
+    },
+
+    clearSetupDraft() {
+        if (!this.setupDraft) return false;
+        this.setupDraft.clear();
+        this.setupSelectedPiece = null;
+        this.setupSourceSquare = null;
+        this.syncSetupDraftUI();
+        this.setSetupMessage('Board cleared. Add exactly one king for each side before loading.', 'info');
+        return true;
+    },
+
+    loadSetupDraft() {
+        if (!this.setupModeActive || !this.setupDraft) return false;
+        const pgn = this.elements.setupPgn?.value?.trim() || '';
+        if (pgn) {
+            const loaded = this.loadGameFromPgn(pgn, 'Manual PGN');
+            if (!loaded) {
+                this.setSetupMessage('Could not load PGN. Check the notation and try again.', 'error');
+                return false;
+            }
+            this.finishSetupCommit();
+            return true;
+        }
+
+        const validation = this.setupDraft.validate({ requireKings: true });
+        if (!validation.ok) {
+            this.setSetupMessage(validation.error, 'error');
+            return false;
+        }
+        const fen = this.setupDraft.toFen();
+        const session = window.CaissaAnalyzeSession?.createSession?.({ initialFen: fen });
+        const game = session?.game;
+        if (!game) {
+            this.setSetupMessage('Chess could not accept this study position.', 'error');
+            return false;
+        }
+        this.session = session;
+        this.loadedGame = {
+            pgn: '', game, initialFen: fen, source: 'Setup Position',
+            white: 'White', black: 'Black', result: '*', termination: null,
+            event: 'Position Setup', date: '', eco: '', opening: '', movesSan: [], movesVerbose: []
+        };
+        this.currentMoveIndex = -1;
+        this.analysisResults = [];
+        this.positionAnalyses = [];
+        this.updateReviewSummary();
+        this.updateCriticalMoments();
+        this.updateMetadata();
+        this.updateMoveList();
+        this.updateNavigationControls();
+        this.updateMentorPanel();
+        this.setStatus('Setup position loaded', 'ready');
+        this.finishSetupCommit();
+        return true;
+    },
+
+    finishSetupCommit() {
+        this.setupModeActive = false;
+        this.setupDraft = null;
+        this.setupSelectedPiece = null;
+        this.setupSourceSquare = null;
+        this.clearSetupBoardHighlights();
+        this.board?.position(this.getGame()?.fen?.(), false);
+        window.CaissaAnalyzeV2Shell?.selectView?.('analysis', { focus: true });
+    },
+
+    setSetupMessage(message, type = 'neutral') {
+        if (!this.elements.setupMessage) return;
+        this.elements.setupMessage.textContent = message;
+        this.elements.setupMessage.className = `caissa-analyze-v2__setup-message is-${type}`;
     },
 
     bindKeyboardNavigation() {
@@ -266,10 +546,13 @@ const AnalyzeSection = {
         if (this.board || !window.Chessboard || !document.getElementById('analyzeChessboard')) return !!this.board;
         this.board = Chessboard('analyzeChessboard', {
             draggable: true,
+            dropOffBoard: 'trash',
             position: this.getGame()?.fen?.() || 'start',
             onDragStart: (source, piece) => this.canStartStudyMove(source, piece),
             onDrop: (source, target) => this.handleBoardDrop(source, target),
-            onSnapEnd: () => this.board?.position(this.getGame()?.fen?.(), false),
+            onSnapEnd: () => this.board?.position(
+                this.setupModeActive && this.setupDraft ? this.setupDraft.position() : this.getGame()?.fen?.(), false
+            ),
             pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
             showNotation: true
         });
@@ -277,6 +560,7 @@ const AnalyzeSection = {
     },
 
     handleBoardDrop(source, target) {
+        if (this.setupModeActive) return this.handleSetupBoardDrop(source, target);
         const move = this.getGame()?.moves({ verbose: true })
             .find(candidate => candidate.from === source && candidate.to === target);
         if (move?.flags?.includes('p')) {
@@ -391,6 +675,7 @@ const AnalyzeSection = {
     },
 
     canStartStudyMove(square) {
+        if (this.setupModeActive) return !!this.setupDraft?.getPiece(square);
         const game = this.getGame();
         if (!this.isAnalyzeActive() || !game) return false;
         const piece = game.get(square);
@@ -461,6 +746,7 @@ const AnalyzeSection = {
     },
 
     handleBoardTap(square) {
+        if (this.setupModeActive) return this.handleSetupBoardTap(square);
         if (!square || !this.getGame()) return false;
 
         if (!this.tapSource) {
@@ -797,11 +1083,13 @@ const AnalyzeSection = {
 
             this.setStatus('Ready to analyze', 'ready');
             console.log('[Analyze] Game loaded successfully');
+            return true;
 
         } catch (error) {
             console.error('[Analyze] PGN load error:', error);
             this.showNotification('Could not load PGN. Check the format and try again.', 'error');
             this.setStatus('Could not load PGN', 'error');
+            return false;
         }
     },
 
@@ -2108,6 +2396,10 @@ const AnalyzeSection = {
      * Section lifecycle: Exit
      */
     onExit() {
+        if (this.setupModeActive) {
+            this.cancelSetupPosition();
+            window.CaissaAnalyzeV2Shell?.selectView?.('analysis', { focus: false, announce: false });
+        }
         if (document.body?.classList?.contains('caissa-coach-review-summary-active')
             || document.body?.classList?.contains('caissa-bots-guided-review-active')) {
             window.App?.restorePlayBoardAfterCoachReview?.();

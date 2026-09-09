@@ -11,7 +11,7 @@ const readiness=Object.freeze({
 'mentor-guided-replay':()=>!!root.CaissaMentorGuidedReplay?.prepare&&!!root.CaissaGuidedReplayView?.mount,
 'mentor-knowledge':()=>!!root.CaissaEducationalConceptMapper?.map&&!!root.CaissaKnowledgeMappingRegistry?.register,
 'mentor-summary':()=>!!root.CaissaMentorSummary?.generate,
-'analyze-deep':()=>!!root.CaissaAnalyzeSession?.createSession&&!!root.AnalyzeSection?.onEnter
+'analyze-deep':()=>!!root.CaissaAnalyzeSession?.createSession&&!!root.CaissaAnalyzeSetupDraft?.create&&!!root.AnalyzeSection?.onEnter
 });
 const loaderScript=root.document.currentScript;const applicationBase=loaderScript?new URL('../../../',loaderScript.src):new URL('/',root.location.href);
 const resolveSource=source=>new URL(source,applicationBase);const sameOrigin=source=>{const u=resolveSource(source);return u.origin===root.location.origin&&/\/(js|css)\//.test(u.pathname);};

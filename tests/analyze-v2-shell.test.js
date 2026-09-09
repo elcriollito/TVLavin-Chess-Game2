@@ -9,6 +9,8 @@ const analyze = fs.readFileSync(new URL('../js/analyze-section.js', import.meta.
 const registry = fs.readFileSync(new URL('../js/engine-registry.js', import.meta.url), 'utf8');
 const adapter = fs.readFileSync(new URL('../js/engine-adapter.js', import.meta.url), 'utf8');
 const server = fs.readFileSync(new URL('../server.js', import.meta.url), 'utf8');
+const setupDraft = fs.readFileSync(new URL('../js/analyze-setup-draft.js', import.meta.url), 'utf8');
+const loadRegistry = fs.readFileSync(new URL('../js/play/performance/play-load-registry.js', import.meta.url), 'utf8');
 const legacyShells = [
     'index.html',
     'play-v2.html',
@@ -35,6 +37,18 @@ test('A1 workspace has the approved tabs and compact bottom navigation', () => {
     for (const id of ['analyzeNavFirst', 'analyzeNavPrev', 'analyzeNavNext', 'analyzeNavLast']) {
         assert.equal((html.match(new RegExp(`id="${id}"`, 'g')) || []).length, 1, id);
     }
+});
+
+test('A2 mounts the dedicated Setup Position controls in the existing workspace', () => {
+    for (const id of [
+        'analyzeSetupBack', 'analyzeSetupTurn', 'analyzeSetupFlip', 'analyzeSetupReset',
+        'analyzeSetupClear', 'analyzeSetupFen', 'analyzePgnInput', 'analyzeSetupMessage', 'analyzeSetupLoad'
+    ]) assert.equal((html.match(new RegExp(`id="${id}"`, 'g')) || []).length, 1, id);
+    assert.equal((html.match(/data-setup-piece=/g) || []).length, 12);
+    assert.equal((html.match(/data-setup-castling=/g) || []).length, 4);
+    assert.match(html, /PGN takes priority when present/);
+    assert.match(loadRegistry, /js\/analyze-setup-draft\.js\?v=1\.0\.0/);
+    assert.doesNotMatch(setupDraft, /new\s+Chess|Chessboard\s*\(|new\s+Worker/);
 });
 
 test('A1 preserves every existing AnalyzeSection DOM contract exactly once', () => {

@@ -145,6 +145,7 @@
 }
 
 #analyzeSection .caissa-analyze-v2__workspace-header {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -152,6 +153,42 @@
     min-height: 66px;
     padding: 18px 20px 14px;
     border-bottom: 1px solid var(--analyze-v2-line);
+}
+
+#analyzeSection .caissa-analyze-v2__setup-back {
+    position: absolute;
+    left: 14px;
+    display: inline-grid;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    place-items: center;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #d7dce4;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+#analyzeSection .caissa-analyze-v2__setup-back:hover,
+#analyzeSection .caissa-analyze-v2__setup-back:focus-visible {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--analyze-v2-accent);
+}
+
+#analyzeSection .caissa-analyze-v2__setup-back[hidden] {
+    display: none;
+}
+
+#analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] .caissa-analyze-v2__workspace-header h2::before {
+    margin-right: 8px;
+    color: var(--analyze-v2-accent);
+    content: '+';
+}
+
+#analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] .caissa-analyze-v2__tabs {
+    display: none;
 }
 
 #analyzeSection .caissa-analyze-v2__workspace-header h2 {
@@ -658,6 +695,252 @@
     line-height: 1.55;
 }
 
+#analyzeSection .caissa-analyze-v2__setup {
+    display: grid;
+    min-height: 100%;
+    padding: 14px 16px 18px;
+    align-content: start;
+    gap: 12px;
+    color: #e9edf4;
+}
+
+#analyzeSection .caissa-analyze-v2__piece-palette {
+    display: grid;
+    padding: 9px 10px;
+    gap: 7px;
+    border: 1px solid var(--analyze-v2-line);
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.14);
+}
+
+#analyzeSection .caissa-analyze-v2__piece-row {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+}
+
+#analyzeSection .caissa-analyze-v2__piece-row > span {
+    color: var(--analyze-v2-muted);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+#analyzeSection .caissa-analyze-v2__piece-row > div {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(34px, 1fr));
+    gap: 4px;
+}
+
+#analyzeSection .caissa-analyze-v2__piece-row button {
+    display: grid;
+    min-width: 0;
+    height: 43px;
+    padding: 2px;
+    place-items: center;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.025);
+    cursor: pointer;
+}
+
+#analyzeSection .caissa-analyze-v2__piece-row button:hover,
+#analyzeSection .caissa-analyze-v2__piece-row button:focus-visible,
+#analyzeSection .caissa-analyze-v2__piece-row button.is-selected {
+    border-color: rgba(240, 165, 72, 0.65);
+    background: var(--analyze-v2-accent-soft);
+    box-shadow: inset 0 0 0 1px rgba(240, 165, 72, 0.14);
+}
+
+#analyzeSection .caissa-analyze-v2__piece-row img {
+    width: 38px;
+    max-width: 100%;
+    height: 38px;
+    object-fit: contain;
+}
+
+#analyzeSection .caissa-analyze-v2__position-controls {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 9px;
+}
+
+#analyzeSection .caissa-analyze-v2__position-controls > label,
+#analyzeSection .caissa-analyze-v2__setup-field > span,
+#analyzeSection .caissa-analyze-v2__castling legend {
+    color: #c8cfd9;
+    font-size: 11px;
+    font-weight: 750;
+}
+
+#analyzeSection .caissa-analyze-v2__position-controls select,
+#analyzeSection .caissa-analyze-v2__setup-field :is(input, textarea) {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid var(--analyze-v2-line);
+    border-radius: 7px;
+    outline: 0;
+    background: rgba(9, 12, 17, 0.56);
+    color: #eef1f6;
+    font: inherit;
+    font-size: 12px;
+}
+
+#analyzeSection .caissa-analyze-v2__position-controls select {
+    height: 38px;
+    padding: 0 10px;
+    color-scheme: dark;
+}
+
+#analyzeSection .caissa-analyze-v2__setup-tools {
+    display: flex;
+    gap: 4px;
+}
+
+#analyzeSection .caissa-analyze-v2__setup-tools button {
+    display: inline-grid;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    place-items: center;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--analyze-v2-muted);
+    cursor: pointer;
+}
+
+#analyzeSection .caissa-analyze-v2__setup-tools button:hover,
+#analyzeSection .caissa-analyze-v2__setup-tools button:focus-visible {
+    border-color: var(--analyze-v2-line);
+    background: rgba(255, 255, 255, 0.045);
+    color: var(--analyze-v2-accent);
+}
+
+#analyzeSection .caissa-analyze-v2__castling {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+    padding: 8px 10px 10px;
+    gap: 8px 18px;
+    border: 1px solid var(--analyze-v2-line);
+    border-radius: 8px;
+}
+
+#analyzeSection .caissa-analyze-v2__castling legend {
+    padding: 0 5px;
+}
+
+#analyzeSection .caissa-analyze-v2__castling > div {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 8px;
+    color: #c8cfd9;
+    font-size: 11px;
+}
+
+#analyzeSection .caissa-analyze-v2__castling strong {
+    color: #f0f2f6;
+}
+
+#analyzeSection .caissa-analyze-v2__castling label {
+    white-space: nowrap;
+}
+
+#analyzeSection .caissa-analyze-v2__castling input {
+    accent-color: var(--analyze-v2-accent);
+}
+
+#analyzeSection .caissa-analyze-v2__setup-field {
+    display: grid;
+    gap: 5px;
+}
+
+#analyzeSection .caissa-analyze-v2__setup-field small {
+    margin-left: 5px;
+    color: var(--analyze-v2-muted);
+    font-size: 9px;
+    font-weight: 500;
+}
+
+#analyzeSection .caissa-analyze-v2__setup-field input {
+    height: 38px;
+    padding: 0 10px;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 10px;
+}
+
+#analyzeSection .caissa-analyze-v2__setup-field textarea {
+    min-height: 88px;
+    padding: 9px 10px;
+    resize: vertical;
+    line-height: 1.4;
+}
+
+#analyzeSection .caissa-analyze-v2__position-controls select:focus-visible,
+#analyzeSection .caissa-analyze-v2__setup-field :is(input, textarea):focus-visible {
+    border-color: rgba(240, 165, 72, 0.72);
+    box-shadow: 0 0 0 2px rgba(240, 165, 72, 0.12);
+}
+
+#analyzeSection .caissa-analyze-v2__setup-message {
+    min-height: 17px;
+    margin: 0;
+    color: var(--analyze-v2-muted);
+    font-size: 10px;
+    line-height: 1.35;
+}
+
+#analyzeSection .caissa-analyze-v2__setup-message.is-error {
+    color: #ff9b91;
+}
+
+#analyzeSection .caissa-analyze-v2__setup-message.is-success {
+    color: #8bd17c;
+}
+
+#analyzeSection .caissa-analyze-v2__setup-message.is-info {
+    color: #c8cfd9;
+}
+
+#analyzeSection .caissa-analyze-v2__setup-load {
+    width: 100%;
+    min-height: 44px;
+    border: 0;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #f6aa4c, #db8425);
+    box-shadow: 0 8px 22px rgba(219, 132, 37, 0.2);
+    color: #17120c;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 850;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+#analyzeSection .caissa-analyze-v2__setup-load:hover,
+#analyzeSection .caissa-analyze-v2__setup-load:focus-visible {
+    filter: brightness(1.08);
+}
+
+#analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] .caissa-analyze-v2__footer {
+    opacity: 0.38;
+    pointer-events: none;
+}
+
+#analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] #analyzeChessboard {
+    cursor: crosshair;
+}
+
+#analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] #analyzeChessboard .caissa-analyze-v2__setup-source {
+    box-shadow: inset 0 0 0 5px rgba(240, 165, 72, 0.64);
+}
+
 #analyzeSection .caissa-analyze-v2__footer {
     display: grid;
     gap: 9px;
@@ -830,6 +1113,40 @@
 
     #analyzeSection .caissa-analyze-v2__actions button span {
         display: none;
+    }
+
+    #analyzeSection .caissa-analyze-v2__setup {
+        padding: 10px;
+    }
+
+    #analyzeSection .caissa-analyze-v2__piece-palette {
+        padding-inline: 7px;
+    }
+
+    #analyzeSection .caissa-analyze-v2__piece-row {
+        grid-template-columns: 31px minmax(0, 1fr);
+        gap: 4px;
+    }
+
+    #analyzeSection .caissa-analyze-v2__piece-row button {
+        height: 38px;
+    }
+
+    #analyzeSection .caissa-analyze-v2__piece-row img {
+        width: 34px;
+        height: 34px;
+    }
+
+    #analyzeSection .caissa-analyze-v2__position-controls {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    #analyzeSection .caissa-analyze-v2__position-controls > label {
+        grid-column: 1 / -1;
+    }
+
+    #analyzeSection .caissa-analyze-v2__castling {
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 

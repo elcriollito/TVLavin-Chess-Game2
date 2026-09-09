@@ -47,6 +47,7 @@
             const nextView = VIEW_LABELS[view] ? view : 'analysis';
             const { focus = false, announce = true } = options;
             this.activeView = nextView;
+            this.root.dataset.analyzeV2View = nextView;
 
             this.tabs.forEach((tab) => {
                 const active = tab.dataset.analyzeV2Tab === nextView;
@@ -64,6 +65,8 @@
 
             const title = document.getElementById('analyzeV2WorkspaceTitle');
             if (title) title.textContent = VIEW_LABELS[nextView];
+            const setupBack = document.getElementById('analyzeSetupBack');
+            if (setupBack) setupBack.hidden = nextView !== 'setup';
 
             if (announce) {
                 this.root.dispatchEvent(new CustomEvent('caissa:analyze-v2-view-change', {

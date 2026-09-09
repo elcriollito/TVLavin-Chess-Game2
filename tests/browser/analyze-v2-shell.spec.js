@@ -84,9 +84,10 @@ test('A1 tabs switch presentation panels without replacing Analyze owners', asyn
 
     await page.getByRole('tab', { name: 'Setup Position' }).click();
     await expect(page.locator('#analyzeV2PanelSetup')).toBeVisible();
-    await expect(page.locator('#analyzeV2PanelSetup')).toContainText('without introducing a second FEN owner');
+    await expect(page.locator('#analyzeV2PanelSetup')).toContainText('PGN Paste');
+    await expect(page.getByRole('button', { name: 'Select white queen' })).toBeVisible();
 
-    await page.getByRole('tab', { name: 'Analysis' }).click();
+    await page.getByRole('button', { name: 'Cancel setup and return to Analysis' }).click();
     await expect(page.locator('#analyzeV2PanelAnalysis')).toBeVisible();
     const ownersPreserved = await page.evaluate(() => ({
         analyze: window.AnalyzeSection === window.__a1Owners.analyze,
@@ -101,8 +102,7 @@ test('A1 tabs switch presentation panels without replacing Analyze owners', asyn
 test('A1 keeps the existing PGN session and review cursor pipeline authoritative', async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 768 });
     await page.goto('/analyze');
-    await page.getByRole('tab', { name: 'Games' }).click();
-    await page.locator('.analyze-tab[data-source="pgn"]').click();
+    await page.getByRole('tab', { name: 'Setup Position' }).click();
     await page.locator('#analyzePgnInput').fill([
         '[Event "A1 owner check"]',
         '[White "Alexander"]',
@@ -111,8 +111,8 @@ test('A1 keeps the existing PGN session and review cursor pipeline authoritative
         '',
         '1. e4 e5 *'
     ].join('\n'));
-    await page.locator('#analyzeLoadPgnBtn').click();
-    await page.getByRole('tab', { name: 'Analysis' }).click();
+    await page.getByRole('button', { name: 'Load', exact: true }).click();
+    await expect(page.locator('#analyzeV2PanelAnalysis')).toBeVisible();
 
     const authority = await page.evaluate(() => ({
         sessionOwnsLoadedGame: window.AnalyzeSection.session?.game === window.AnalyzeSection.loadedGame?.game,

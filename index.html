@@ -816,6 +816,9 @@
 
                     <aside class="caissa-analyze-v2__workspace" aria-label="Analyze workspace">
                         <header class="caissa-analyze-v2__workspace-header">
+                            <button id="analyzeSetupBack" class="caissa-analyze-v2__setup-back" type="button" aria-label="Cancel setup and return to Analysis" hidden>
+                                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                            </button>
                             <h2 id="analyzeV2WorkspaceTitle">Analysis</h2>
                         </header>
 
@@ -897,9 +900,12 @@
                                         <div id="analyzeFetchedGames" class="analyze-fetched-games" hidden></div>
                                     </div>
                                     <div class="analyze-panel" id="analyzePanelPgn">
-                                        <div class="form-group"><label for="analyzePgnInput">Paste PGN</label><textarea id="analyzePgnInput" class="form-control" rows="8" placeholder="[Event &quot;...&quot;]&#10;[White &quot;...&quot;]&#10;&#10;1. e4 e5..."></textarea></div>
-                                        <div class="analyze-file-row"><label for="analyzePgnFile" class="btn btn-secondary"><i class="fas fa-folder-open"></i> Load .pgn file</label><input type="file" id="analyzePgnFile" accept=".pgn" style="display: none;"><span id="analyzePgnFileName" class="file-name"></span></div>
-                                        <button id="analyzeLoadPgnBtn" class="btn btn-primary btn-block"><i class="fas fa-upload"></i> Load PGN</button>
+                                        <div class="caissa-games-info"><i class="fas fa-arrow-right"></i><p>Manual PGN paste is available in Setup Position.</p></div>
+                                        <div hidden aria-hidden="true">
+                                            <input type="file" id="analyzePgnFile" accept=".pgn">
+                                            <span id="analyzePgnFileName" class="file-name"></span>
+                                            <button id="analyzeLoadPgnBtn" type="button">Load PGN</button>
+                                        </div>
                                     </div>
                                     <div class="analyze-panel" id="analyzePanelCaissa">
                                         <div class="caissa-games-info"><i class="fas fa-info-circle"></i><p>Select a game from your Library to analyze it with Stockfish.</p></div>
@@ -909,11 +915,63 @@
                             </section>
 
                             <section id="analyzeV2PanelSetup" class="caissa-analyze-v2__tabpanel" role="tabpanel" aria-labelledby="analyzeV2TabSetup" data-analyze-v2-panel="setup" hidden>
-                                <div class="caissa-analyze-v2__placeholder">
-                                    <span class="caissa-analyze-v2__placeholder-icon"><i class="fas fa-chess-board" aria-hidden="true"></i></span>
-                                    <span class="caissa-analyze-v2__eyebrow">A future Analyze V2 workspace</span>
-                                    <h3>Setup Position</h3>
-                                    <p>Position setup remains unchanged in A1. This tab establishes the new shell without introducing a second FEN owner.</p>
+                                <div class="caissa-analyze-v2__setup" data-analyze-setup>
+                                    <div class="caissa-analyze-v2__piece-palette" aria-label="Piece palette">
+                                        <div class="caissa-analyze-v2__piece-row" aria-label="Black pieces">
+                                            <span>Black</span>
+                                            <div>
+                                                <button type="button" data-setup-piece="bP" aria-label="Select black pawn"><img src="img/chesspieces/wikipedia/bP.png" alt=""></button>
+                                                <button type="button" data-setup-piece="bB" aria-label="Select black bishop"><img src="img/chesspieces/wikipedia/bB.png" alt=""></button>
+                                                <button type="button" data-setup-piece="bN" aria-label="Select black knight"><img src="img/chesspieces/wikipedia/bN.png" alt=""></button>
+                                                <button type="button" data-setup-piece="bR" aria-label="Select black rook"><img src="img/chesspieces/wikipedia/bR.png" alt=""></button>
+                                                <button type="button" data-setup-piece="bQ" aria-label="Select black queen"><img src="img/chesspieces/wikipedia/bQ.png" alt=""></button>
+                                                <button type="button" data-setup-piece="bK" aria-label="Select black king"><img src="img/chesspieces/wikipedia/bK.png" alt=""></button>
+                                            </div>
+                                        </div>
+                                        <div class="caissa-analyze-v2__piece-row" aria-label="White pieces">
+                                            <span>White</span>
+                                            <div>
+                                                <button type="button" data-setup-piece="wP" aria-label="Select white pawn"><img src="img/chesspieces/wikipedia/wP.png" alt=""></button>
+                                                <button type="button" data-setup-piece="wB" aria-label="Select white bishop"><img src="img/chesspieces/wikipedia/wB.png" alt=""></button>
+                                                <button type="button" data-setup-piece="wN" aria-label="Select white knight"><img src="img/chesspieces/wikipedia/wN.png" alt=""></button>
+                                                <button type="button" data-setup-piece="wR" aria-label="Select white rook"><img src="img/chesspieces/wikipedia/wR.png" alt=""></button>
+                                                <button type="button" data-setup-piece="wQ" aria-label="Select white queen"><img src="img/chesspieces/wikipedia/wQ.png" alt=""></button>
+                                                <button type="button" data-setup-piece="wK" aria-label="Select white king"><img src="img/chesspieces/wikipedia/wK.png" alt=""></button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="caissa-analyze-v2__position-controls">
+                                        <label for="analyzeSetupTurn">Side to move</label>
+                                        <select id="analyzeSetupTurn">
+                                            <option value="w">White to move</option>
+                                            <option value="b">Black to move</option>
+                                        </select>
+                                        <div class="caissa-analyze-v2__setup-tools" aria-label="Position controls">
+                                            <button id="analyzeSetupFlip" type="button" title="Flip board" aria-label="Flip board"><i class="fas fa-arrows-rotate" aria-hidden="true"></i></button>
+                                            <button id="analyzeSetupReset" type="button" title="Reset starting position" aria-label="Reset starting position"><i class="fas fa-rotate-left" aria-hidden="true"></i></button>
+                                            <button id="analyzeSetupClear" type="button" title="Clear board" aria-label="Clear board"><i class="fas fa-trash" aria-hidden="true"></i></button>
+                                        </div>
+                                    </div>
+
+                                    <fieldset class="caissa-analyze-v2__castling">
+                                        <legend>Castling rights</legend>
+                                        <div><strong>White</strong><label><input type="checkbox" data-setup-castling="K"> O-O</label><label><input type="checkbox" data-setup-castling="Q"> O-O-O</label></div>
+                                        <div><strong>Black</strong><label><input type="checkbox" data-setup-castling="k"> O-O</label><label><input type="checkbox" data-setup-castling="q"> O-O-O</label></div>
+                                    </fieldset>
+
+                                    <label class="caissa-analyze-v2__setup-field" for="analyzeSetupFen">
+                                        <span>FEN</span>
+                                        <input id="analyzeSetupFen" type="text" spellcheck="false" autocomplete="off">
+                                    </label>
+
+                                    <label class="caissa-analyze-v2__setup-field" for="analyzePgnInput">
+                                        <span>PGN Paste <small>PGN takes priority when present</small></span>
+                                        <textarea id="analyzePgnInput" rows="5" spellcheck="false" placeholder="[Event &quot;...&quot;]&#10;[White &quot;...&quot;]&#10;&#10;1. e4 e5..."></textarea>
+                                    </label>
+
+                                    <p id="analyzeSetupMessage" class="caissa-analyze-v2__setup-message" role="status" aria-live="polite">Choose a piece, then a square. Drag a board piece outside the board to remove it.</p>
+                                    <button id="analyzeSetupLoad" class="caissa-analyze-v2__setup-load" type="button">Load</button>
                                 </div>
                             </section>
                         </div>
