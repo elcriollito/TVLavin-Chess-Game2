@@ -24,6 +24,7 @@ async function openAnalyze(page) {
 async function startBoardDrag(page, sourceSquare, targetSquare) {
     const source = page.locator(`#analyzeChessboard .square-${sourceSquare} img`);
     const target = page.locator(`#analyzeChessboard .square-${targetSquare}`);
+    await Promise.all([expect(source).toBeVisible(), expect(target).toBeVisible()]);
     const [sourceBox, targetBox] = await Promise.all([source.boundingBox(), target.boundingBox()]);
     if (!sourceBox || !targetBox) throw new Error(`Missing drag geometry for ${sourceSquare}-${targetSquare}`);
     const start = { x: sourceBox.x + sourceBox.width / 2, y: sourceBox.y + sourceBox.height / 2 };
@@ -137,7 +138,7 @@ test('A2.2 Setup reuses the physical board drag but mutates only the temporary d
     });
 });
 
-test('A2.2 New opens Setup from the current position and Cancel preserves the session', async ({ page, browserName }) => {
+test('A2.2/A3.1 New opens a clean Setup draft and Cancel preserves the session', async ({ page, browserName }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openAnalyze(page);
     await page.evaluate(() => AnalyzeSection.playStudyMove('e2', 'e4'));
@@ -153,7 +154,12 @@ test('A2.2 New opens Setup from the current position and Cancel preserves the se
         sameGame: AnalyzeSection.loadedGame.game === window.__a22NewGame,
         sameSession: AnalyzeSection.session === window.__a22NewSession,
         engineOn: AnalyzeSection.liveEngineEnabled
-    }))).toEqual({ draftFen: before, sameGame: true, sameSession: true, engineOn: false });
+    }))).toEqual({
+        draftFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        sameGame: true,
+        sameSession: true,
+        engineOn: false
+    });
     if (browserName === 'chromium') {
         mkdirSync(ARTIFACTS, { recursive: true });
         await page.screenshot({ path: `${ARTIFACTS}/analyze-v2-a22-new-to-setup-390x844.png` });
