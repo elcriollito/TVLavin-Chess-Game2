@@ -13,6 +13,9 @@ test('A3 Games presents Game URL, Chess.com, and Lichess as separate mental mode
     }
     assert.match(gamesPanel, /data-source="game-url"[^>]*class=|class="analyze-tab active"[^>]*data-source="game-url"/);
     assert.match(gamesPanel, /id="analyzeGameUrl" type="url"/);
+    assert.match(gamesPanel, /id="analyzeGameUrlChessComUsernameGroup"[^>]*hidden/);
+    assert.match(gamesPanel, /id="analyzeGameUrlChessComUsername" type="text"/);
+    assert.match(gamesPanel, /Enter either player from this game\./);
     assert.match(gamesPanel, /id="analyzeGameUrlMessage"[^>]*role="status"[^>]*aria-live="polite"/);
     assert.match(gamesPanel, /id="analyzeGameUrlLoad"/);
     assert.doesNotMatch(gamesPanel, /<textarea|PGN Paste|data-source="pgn"|data-source="online"|My Games/);
@@ -38,7 +41,8 @@ test('A3 converges URL and account imports on the existing PGN/session pipeline'
 });
 
 test('A3 lazy-loads the isolated importer before AnalyzeSection', () => {
-    assert.equal((registry.match(/js\/analyze-game-import\.js\?v=1\.0\.1/g) || []).length, 2);
+    assert.equal((registry.match(/js\/analyze-game-import\.js\?v=1\.1\.0/g) || []).length, 2);
+    assert.equal((registry.match(/js\/analyze-section\.js\?v=1\.6\.2/g) || []).length, 2);
     for (const branch of registry.match(/sources:\s*Object\.freeze\([^]*?\]\)/g) || []) {
         if (!branch.includes('analyze-section.js')) continue;
         assert.ok(branch.indexOf('analyze-game-import.js') < branch.indexOf('analyze-section.js'));
@@ -60,9 +64,20 @@ test('A3.1 separates clean New intent from direct current-position Setup entry',
     assert.doesNotMatch(analyze, /openNewAnalysis\(\)[\s\S]{0,500}(?:this\.session\s*=|this\.loadedGame\s*=|new\s+(?:Chess|Worker))/);
 });
 
-test('A3.1 exposes a clear Chess.com supported-path action without changing the safe resolver', () => {
-    assert.equal((gamesPanel.match(/id="analyzeGameUrlChessComAction"/g) || []).length, 1);
-    assert.match(gamesPanel, /id="analyzeGameUrlChessComAction"[^>]*hidden>Open Chess\.com tab<\/button>/);
-    assert.match(analyze, /showChessComAction: error\?\.code === 'CHESSCOM_DIRECT_UNAVAILABLE'/);
-    assert.match(analyze, /switchTab\('chess\.com'\)[\s\S]*?elements\.username\?\.focus/);
+test('V2.0.1 adds contextual Chess.com direct URL resolution without redirecting to account history', () => {
+    assert.equal((gamesPanel.match(/id="analyzeGameUrlChessComUsernameGroup"/g) || []).length, 1);
+    assert.equal((gamesPanel.match(/id="analyzeGameUrlChessComAction"/g) || []).length, 0);
+    assert.match(analyze, /importGameUrl\(\)[\s\S]*?importer\.resolve\(rawUrl, \{[\s\S]*?username,[\s\S]*?signal: controller\.signal/);
+    assert.match(analyze, /white: resolved\.white,[\s\S]*?recordId: resolved\.recordId,[\s\S]*?suppressErrorNotification: true/);
+    assert.match(analyze, /setGameUrlMessage\(`Searching Chess\.com games…/);
+    assert.match(analyze, /selectView\?\.\('analysis',[\s\S]*?if \(!this\.liveEngineEnabled\) this\.setLiveEngineEnabled\(true\)/);
+    assert.doesNotMatch(analyze, /CHESSCOM_DIRECT_UNAVAILABLE|showChessComAction/);
+});
+
+test('V2.0.1 aborts stale URL searches while preserving the single PGN commit path', () => {
+    assert.match(analyze, /gameUrlAbortController: null/);
+    assert.match(analyze, /cancelGameUrlImport\(\)[\s\S]*?gameUrlAbortController\?\.abort/);
+    assert.match(analyze, /handleWorkspaceViewChange\(view\)[\s\S]*?view !== 'games'\) this\.cancelGameUrlImport\(\)/);
+    assert.match(analyze, /elements\.gameUrl\?\.addEventListener\('input',[\s\S]*?cancelGameUrlImport\(\)/);
+    assert.equal((analyze.match(/this\.loadGameFromPgn\(resolved\.pgn, resolved\.source/g) || []).length, 1);
 });

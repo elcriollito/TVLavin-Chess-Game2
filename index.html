@@ -119,7 +119,7 @@
     <link rel="stylesheet" href="css/academy.css?v=1.0.0">
     <link rel="stylesheet" href="css/opening-book.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-mobile-foundation.css?v=1.0.6">
-    <link rel="stylesheet" href="css/analyze-v2-shell.css?v=1.1.1">
+    <link rel="stylesheet" href="css/analyze-v2-shell.css?v=1.1.2">
     <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
     <link rel="stylesheet" href="css/caissa-primary-navigation-transition.css?v=1.0.0">
     <script src="js/legacy-canonical-section-route-policy.js?v=1.0.0"></script>
@@ -890,10 +890,14 @@
                                         <label class="caissa-analyze-v2__game-field" for="analyzeGameUrl">
                                             <span>Game URL</span>
                                             <input id="analyzeGameUrl" type="url" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://lichess.org/xxxxxxxx">
-                                            <small>Lichess links load directly. Chess.com links guide you to player search.</small>
+                                            <small>Public Lichess and Chess.com game links load directly.</small>
+                                        </label>
+                                        <label id="analyzeGameUrlChessComUsernameGroup" class="caissa-analyze-v2__game-field caissa-analyze-v2__game-field--contextual" for="analyzeGameUrlChessComUsername" hidden>
+                                            <span>Chess.com username</span>
+                                            <input id="analyzeGameUrlChessComUsername" type="text" autocomplete="off" spellcheck="false" placeholder="Either player">
+                                            <small>Enter either player from this game.</small>
                                         </label>
                                         <p id="analyzeGameUrlMessage" class="caissa-analyze-v2__game-message" role="status" aria-live="polite" hidden></p>
-                                        <button id="analyzeGameUrlChessComAction" class="caissa-analyze-v2__game-provider-action" type="button" hidden>Open Chess.com tab</button>
                                         <button id="analyzeGameUrlLoad" class="caissa-analyze-v2__game-submit" type="button">Load Game</button>
                                     </div>
 

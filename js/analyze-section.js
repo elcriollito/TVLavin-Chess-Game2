@@ -56,6 +56,7 @@ const AnalyzeSection = {
     setupSuppressPaletteClickUntil: 0,
     boardDragCleanupTimer: null,
     gameUrlRequestToken: 0,
+    gameUrlAbortController: null,
     accountFetchToken: 0,
     activeFetchedGamesTarget: null,
     pendingSetupEntryMode: null,
@@ -103,7 +104,8 @@ const AnalyzeSection = {
             gameUrl: document.getElementById('analyzeGameUrl'),
             gameUrlLoad: document.getElementById('analyzeGameUrlLoad'),
             gameUrlMessage: document.getElementById('analyzeGameUrlMessage'),
-            gameUrlChessComAction: document.getElementById('analyzeGameUrlChessComAction'),
+            gameUrlChessComUsernameGroup: document.getElementById('analyzeGameUrlChessComUsernameGroup'),
+            gameUrlChessComUsername: document.getElementById('analyzeGameUrlChessComUsername'),
 
             // Chess.com account history
             provider: document.getElementById('analyzeProvider'),
@@ -188,11 +190,19 @@ const AnalyzeSection = {
         });
 
         this.elements.gameUrlLoad?.addEventListener('click', () => this.importGameUrl());
-        this.elements.gameUrlChessComAction?.addEventListener('click', () => {
-            this.switchTab('chess.com');
-            this.elements.username?.focus();
+        this.elements.gameUrl?.addEventListener('input', () => {
+            this.cancelGameUrlImport();
+            if (this.elements.gameUrlChessComUsername) this.elements.gameUrlChessComUsername.value = '';
+            this.setGameUrlMessage();
+            this.syncGameUrlContext();
         });
         this.elements.gameUrl?.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            this.importGameUrl();
+        });
+        this.elements.gameUrlChessComUsername?.addEventListener('input', () => this.cancelGameUrlImport());
+        this.elements.gameUrlChessComUsername?.addEventListener('keydown', (event) => {
             if (event.key !== 'Enter') return;
             event.preventDefault();
             this.importGameUrl();
@@ -299,6 +309,7 @@ const AnalyzeSection = {
     },
 
     handleWorkspaceViewChange(view) {
+        if (view !== 'games') this.cancelGameUrlImport();
         if (view === 'setup') {
             const entryMode = this.pendingSetupEntryMode === 'new' ? 'new' : 'edit';
             this.pendingSetupEntryMode = null;
@@ -1059,6 +1070,7 @@ const AnalyzeSection = {
      */
     switchTab(source) {
         if (!this.elements.panels[source]) return false;
+        if (source !== 'game-url') this.cancelGameUrlImport();
         this.currentSource = source;
 
         // Update tabs
@@ -1098,33 +1110,88 @@ const AnalyzeSection = {
         tabs[nextIndex].focus();
     },
 
-    setGameUrlMessage(message = '', type = 'error', { showChessComAction = false } = {}) {
+    setGameUrlMessage(message = '', type = 'error') {
         const target = this.elements.gameUrlMessage;
         if (!target) return;
         target.textContent = message;
         target.dataset.state = type;
         target.hidden = !message;
-        if (this.elements.gameUrlChessComAction) {
-            this.elements.gameUrlChessComAction.hidden = !showChessComAction;
+    },
+
+    setGameUrlUsernameVisible(visible, { focus = false } = {}) {
+        if (this.elements.gameUrlChessComUsernameGroup) {
+            this.elements.gameUrlChessComUsernameGroup.hidden = !visible;
         }
+        if (visible && focus) this.elements.gameUrlChessComUsername?.focus();
+    },
+
+    syncGameUrlContext() {
+        const importer = window.CaissaAnalyzeGameImport;
+        let needsUsername = false;
+        try {
+            const parsed = importer?.parse?.(this.elements.gameUrl?.value || '');
+            needsUsername = parsed?.provider === 'chess.com' && !parsed.username;
+        } catch (_error) {
+            // Invalid and incomplete URLs remain the resolver's inline concern.
+        }
+        this.setGameUrlUsernameVisible(needsUsername);
+        return needsUsername;
+    },
+
+    cancelGameUrlImport() {
+        this.gameUrlRequestToken += 1;
+        this.gameUrlAbortController?.abort?.();
+        this.gameUrlAbortController = null;
+        window.CaissaUI?.setButtonLoading(this.elements.gameUrlLoad, false);
     },
 
     async importGameUrl() {
         const importer = window.CaissaAnalyzeGameImport;
         const rawUrl = this.elements.gameUrl?.value || '';
+        this.cancelGameUrlImport();
         const requestToken = ++this.gameUrlRequestToken;
         if (!importer?.resolve) {
             this.setGameUrlMessage('Game URL import is unavailable right now.');
             return false;
         }
 
-        this.setGameUrlMessage('Loading game…', 'loading');
-        window.CaissaUI?.setButtonLoading(this.elements.gameUrlLoad, true, { label: 'Loading game…' });
+        let parsed;
         try {
-            const resolved = await importer.resolve(rawUrl);
+            parsed = importer.parse(rawUrl);
+        } catch (error) {
+            this.setGameUrlMessage(importer.getMessage?.(error) || 'Could not load that game.');
+            return false;
+        }
+
+        const username = this.elements.gameUrlChessComUsername?.value?.trim() || '';
+        if (parsed.provider === 'chess.com' && !parsed.username && !username) {
+            this.setGameUrlUsernameVisible(true, { focus: true });
+            this.setGameUrlMessage(importer.errors?.MISSING_USERNAME || "Enter either player's Chess.com username.");
+            return false;
+        }
+
+        const controller = new AbortController();
+        this.gameUrlAbortController = controller;
+        const loadingLabel = parsed.provider === 'chess.com' ? 'Searching Chess.com games…' : 'Loading game…';
+        this.setGameUrlMessage(loadingLabel, 'loading');
+        window.CaissaUI?.setButtonLoading(this.elements.gameUrlLoad, true, { label: loadingLabel });
+        try {
+            const resolved = await importer.resolve(rawUrl, {
+                username,
+                signal: controller.signal,
+                onProgress: ({ checked, total }) => {
+                    if (requestToken !== this.gameUrlRequestToken) return;
+                    this.setGameUrlMessage(`Searching Chess.com games… ${Math.min(checked + 1, total)} of ${total}`, 'loading');
+                }
+            });
             if (requestToken !== this.gameUrlRequestToken) return false;
             const loaded = this.loadGameFromPgn(resolved.pgn, resolved.source, {
                 normalizedUrl: resolved.normalizedUrl,
+                white: resolved.white,
+                black: resolved.black,
+                result: resolved.result,
+                termination: resolved.termination,
+                recordId: resolved.recordId,
                 suppressErrorNotification: true
             });
             if (!loaded) {
@@ -1133,18 +1200,23 @@ const AnalyzeSection = {
             }
 
             if (this.elements.gameUrl) this.elements.gameUrl.value = resolved.normalizedUrl;
+            this.setGameUrlUsernameVisible(false);
             this.setGameUrlMessage('Game loaded.', 'success');
+            this.gameUrlAbortController = null;
+            window.CaissaUI?.setButtonLoading(this.elements.gameUrlLoad, false);
             window.CaissaAnalyzeV2Shell?.selectView?.('analysis', { focus: true });
+            if (!this.liveEngineEnabled) this.setLiveEngineEnabled(true);
             return true;
         } catch (error) {
             if (requestToken !== this.gameUrlRequestToken) return false;
+            if (error?.code === 'ABORTED') return false;
             console.warn('[Analyze] Game URL import failed:', error?.code || error);
-            this.setGameUrlMessage(importer.getMessage?.(error) || 'Could not load that game.', 'error', {
-                showChessComAction: error?.code === 'CHESSCOM_DIRECT_UNAVAILABLE'
-            });
+            if (error?.code === 'MISSING_USERNAME') this.setGameUrlUsernameVisible(true, { focus: true });
+            this.setGameUrlMessage(importer.getMessage?.(error) || 'Could not load that game.');
             return false;
         } finally {
             if (requestToken === this.gameUrlRequestToken) {
+                if (this.gameUrlAbortController === controller) this.gameUrlAbortController = null;
                 window.CaissaUI?.setButtonLoading(this.elements.gameUrlLoad, false);
             }
         }
@@ -2813,6 +2885,7 @@ const AnalyzeSection = {
      * Section lifecycle: Exit
      */
     onExit() {
+        this.cancelGameUrlImport();
         if (this.setupModeActive) {
             this.cancelSetupPosition();
             window.CaissaAnalyzeV2Shell?.selectView?.('analysis', { focus: false, announce: false });
