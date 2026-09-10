@@ -4,6 +4,7 @@
     <base href="/">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="caissa-production-release" content="caissa-production-2026-09-05">
     <!-- CSP: FICS WebSocket - local dev and the dedicated production WSS gateway only -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; script-src-elem 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https://img.clerk.com https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://c.bing.com ws://127.0.0.1:8787 wss://fics-gateway.caissa-chess.org https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://api.stripe.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://checkout.stripe.com https://js.stripe.com;">
 
@@ -97,8 +98,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="styles.css?v=2.0.16">
     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
-    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.20.0">
-    <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
+    <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.40.0">
+    <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.1">
     <link rel="stylesheet" href="css/play-visual-components.css?v=1.2.0">
     <link rel="stylesheet" href="css/mentor-floating-shell.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-ui-foundation.css?v=1.0.2">
@@ -114,6 +115,7 @@
     <link rel="stylesheet" href="css/academy.css?v=1.0.0">
     <link rel="stylesheet" href="css/opening-book.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-mobile-foundation.css?v=1.0.6">
+    <link rel="stylesheet" href="css/analyze-v2-shell.css?v=1.1.4">
     <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
     <link rel="stylesheet" href="css/caissa-primary-navigation-transition.css?v=1.0.0">
     <script src="js/legacy-canonical-section-route-policy.js?v=1.0.0"></script>
@@ -207,7 +209,7 @@
 
             <div class="nav-items" data-caissa-primary-groups data-caissa-sidebar-adapter="application" data-navigation-mode="application" data-include-connect><section class="nav-group" aria-labelledby="caissa-nav-group-0">
                 <h2 class="nav-group-heading nav-label" id="caissa-nav-group-0" data-caissa-i18n="nav.group.playAndCompete">Play & Compete</h2>
-                <div class="nav-destination-list" role="list"><div class="nav-list-item" role="listitem"><a href="/play" class="nav-item" data-nav-key="play" aria-label="Play" data-caissa-i18n-aria-label="nav.item.play"><i class="fas fa-play-circle" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.play">Play</span></a></div><div class="nav-list-item" role="listitem"><a href="/yahoo-classic" class="nav-item active" data-nav-key="yahooClassic" aria-label="CAISSA Classic" data-caissa-i18n-aria-label="nav.item.yahooClassic" aria-current="page"><i class="fas fa-window-restore" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.yahooClassic">CAISSA Classic</span></a></div><div class="nav-list-item" role="listitem"><a href="/fics" class="nav-item" data-nav-key="fics" aria-label="FICS" data-caissa-i18n-aria-label="nav.item.fics"><i class="fas fa-globe" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.fics">FICS</span></a></div><div class="nav-list-item" role="listitem"><a href="/play-online/playchess" class="nav-item" data-nav-key="playchess" aria-label="Playchess" data-caissa-i18n-aria-label="nav.item.playchess"><i class="fas fa-chess-board" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.playchess">Playchess</span></a></div><div class="nav-list-item" role="listitem"><a href="/play-online/fritz" class="nav-item" data-nav-key="fritz" aria-label="Fritz" data-caissa-i18n-aria-label="nav.item.fritz"><i class="fas fa-chess-knight" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.fritz">Fritz</span></a></div></div>
+                <div class="nav-destination-list" role="list"><div class="nav-list-item" role="listitem"><a href="/play" class="nav-item" data-nav-key="play" aria-label="Play" data-caissa-i18n-aria-label="nav.item.play"><i class="fas fa-play-circle" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.play">Play</span></a></div><div class="nav-list-item" role="listitem"><a href="/yahoo-classic" class="nav-item" data-nav-key="yahooClassic" aria-label="CAISSA Classic" data-caissa-i18n-aria-label="nav.item.yahooClassic"><i class="fas fa-window-restore" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.yahooClassic">CAISSA Classic</span></a></div><div class="nav-list-item" role="listitem"><a href="/fics" class="nav-item" data-nav-key="fics" aria-label="FICS" data-caissa-i18n-aria-label="nav.item.fics"><i class="fas fa-globe" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.fics">FICS</span></a></div><div class="nav-list-item" role="listitem"><a href="/play-online/playchess" class="nav-item" data-nav-key="playchess" aria-label="Playchess" data-caissa-i18n-aria-label="nav.item.playchess"><i class="fas fa-chess-board" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.playchess">Playchess</span></a></div><div class="nav-list-item" role="listitem"><a href="/play-online/fritz" class="nav-item" data-nav-key="fritz" aria-label="Fritz" data-caissa-i18n-aria-label="nav.item.fritz"><i class="fas fa-chess-knight" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.fritz">Fritz</span></a></div></div>
             </section><div class="nav-divider" aria-hidden="true"></div><section class="nav-group" aria-labelledby="caissa-nav-group-1">
                 <h2 class="nav-group-heading nav-label" id="caissa-nav-group-1" data-caissa-i18n="nav.group.learnAndImprove">Learn & Improve</h2>
                 <div class="nav-destination-list" role="list"><div class="nav-list-item" role="listitem"><a href="/puzzles/chessbase-tactics" class="nav-item" data-nav-key="tactics" aria-label="Tactics" data-caissa-i18n-aria-label="nav.item.tactics"><i class="fas fa-crosshairs" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.tactics">Tactics</span></a></div><div class="nav-list-item" role="listitem"><a href="/learn/interactive-diagrams" class="nav-item" data-nav-key="interactive-diagrams" aria-label="Interactive Diagrams" data-caissa-i18n-aria-label="nav.item.interactive-diagrams"><i class="fas fa-chess-board" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.interactive-diagrams">Interactive Diagrams</span></a></div><div class="nav-list-item" role="listitem"><a href="/academy" class="nav-item" data-nav-key="academy" aria-label="Academy" data-caissa-i18n-aria-label="nav.item.academy"><i class="fas fa-graduation-cap" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.academy">Academy</span></a></div><div class="nav-list-item" role="listitem"><a href="/endgame-trainer" class="nav-item" data-nav-key="endgame-trainer" aria-label="Endgame Trainer" data-caissa-i18n-aria-label="nav.item.endgame-trainer"><i class="fas fa-chess-pawn" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.endgame-trainer">Endgame Trainer</span></a></div><div class="nav-list-item" role="listitem"><a href="/endgame-practice" class="nav-item" data-nav-key="endgame-practice" aria-label="Endgame Practice" data-caissa-i18n-aria-label="nav.item.endgame-practice"><i class="fas fa-chess-board" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.endgame-practice">Endgame Practice</span></a></div><div class="nav-list-item" role="listitem"><a href="/endgame-library" class="nav-item" data-nav-key="endgame-library" aria-label="Endgame Library" data-caissa-i18n-aria-label="nav.item.endgame-library"><i class="fas fa-book-reader" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.endgame-library">Endgame Library</span></a></div></div>
@@ -786,92 +788,13 @@
 
             <!-- SECTION: ANALYZE (Game Analysis) -->
             <section id="analyzeSection" class="content-section">
-                <div class="analyze-layout">
-                    <!-- Left: Import & Source Controls -->
-                    <aside class="analyze-import-sidebar">
-                        <div class="analyze-header">
-                            <h2><i class="fas fa-chart-line"></i> Analyze Games</h2>
-                            <p>Import games and analyze with Stockfish engine</p>
+                <!-- Analyze V2 is a presentation shell over the existing AnalyzeSection owners. -->
+                <div class="caissa-analyze-v2" data-caissa-analyze-v2>
+                    <main class="analyze-main caissa-analyze-v2__stage" aria-label="Analysis board">
+                        <div class="caissa-analyze-v2__player caissa-analyze-v2__player--black" aria-hidden="true">
+                            <span class="caissa-analyze-v2__avatar"><i class="fas fa-user"></i></span>
+                            <span id="analyzeV2BlackLabel">Black</span>
                         </div>
-
-                        <!-- Source Selection Tabs -->
-                        <div class="analyze-tabs">
-                            <button class="analyze-tab active" data-source="online">
-                                <i class="fas fa-cloud"></i>
-                                <span>Chess.com / Lichess</span>
-                            </button>
-                            <button class="analyze-tab" data-source="pgn">
-                                <i class="fas fa-file-alt"></i>
-                                <span>PGN Upload</span>
-                            </button>
-                            <button class="analyze-tab" data-source="caissa">
-                                <i class="fas fa-chess-knight"></i>
-                                <span>My Games</span>
-                            </button>
-                        </div>
-
-                        <!-- Online Import Panel -->
-                        <div class="analyze-panel active" id="analyzePanelOnline">
-                            <div class="analyze-form-grid">
-                                <div class="form-group">
-                                    <label for="analyzeProvider">Platform:</label>
-                                    <select id="analyzeProvider" class="form-control">
-                                        <option value="lichess">Lichess</option>
-                                        <option value="chess.com">Chess.com</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="analyzeUsername">Username:</label>
-                                    <input type="text" id="analyzeUsername" class="form-control" placeholder="e.g. Magnus_Carlsen">
-                                </div>
-                                <div class="form-group">
-                                    <label for="analyzeGameCount">Games:</label>
-                                    <select id="analyzeGameCount" class="form-control">
-                                        <option value="5">Last 5</option>
-                                        <option value="10" selected>Last 10</option>
-                                        <option value="20">Last 20</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <button id="analyzeFetchBtn" class="btn btn-primary btn-block">
-                                <i class="fas fa-download"></i> Fetch Games
-                            </button>
-                            <div id="analyzeFetchedGames" class="analyze-fetched-games" hidden></div>
-                        </div>
-
-                        <!-- PGN Upload Panel -->
-                        <div class="analyze-panel" id="analyzePanelPgn">
-                            <div class="form-group">
-                                <label for="analyzePgnInput">Paste PGN:</label>
-                                <textarea id="analyzePgnInput" class="form-control" rows="6" placeholder="[Event &quot;...&quot;]&#10;[White &quot;...&quot;]&#10;&#10;1. e4 e5..."></textarea>
-                            </div>
-                            <div class="analyze-file-row">
-                                <label for="analyzePgnFile" class="btn btn-secondary">
-                                    <i class="fas fa-folder-open"></i> Load .pgn file
-                                </label>
-                                <input type="file" id="analyzePgnFile" accept=".pgn" style="display: none;">
-                                <span id="analyzePgnFileName" class="file-name"></span>
-                            </div>
-                            <button id="analyzeLoadPgnBtn" class="btn btn-primary btn-block">
-                                <i class="fas fa-upload"></i> Load PGN
-                            </button>
-                        </div>
-
-                        <!-- CAISSA Games Panel -->
-                        <div class="analyze-panel" id="analyzePanelCaissa">
-                            <div class="caissa-games-info">
-                                <i class="fas fa-info-circle"></i>
-                                <p>Select a game from your Library to analyze it with Stockfish.</p>
-                            </div>
-                            <button id="analyzeOpenLibrary" class="btn btn-primary btn-block">
-                                <i class="fas fa-book"></i> Open Library
-                            </button>
-                        </div>
-                    </aside>
-
-                    <!-- Center: Board -->
-                    <main class="analyze-main">
-                        <!-- Board Zone -->
                         <div class="board-zone analyze-board-zone">
                             <div class="analyze-eval-column" title="Current position evaluation">
                                 <span id="analyzeEvalScore" class="analyze-eval-score">+0.00</span>
@@ -881,140 +804,208 @@
                             </div>
                             <div id="analyzeChessboard" class="chessboard" aria-label="Analyze chessboard"></div>
                         </div>
-                        <div class="analyze-board-controls" aria-label="Analyze board controls">
-                            <div class="analyze-board-navigation" aria-label="Analyze board toolbar">
-                                <button id="analyzeNavFirst" class="nav-btn-sm" title="First move" aria-label="Jump to start">
-                                    <i class="fas fa-fast-backward"></i>
-                                </button>
-                                <button id="analyzeNavPrev" class="nav-btn-sm" title="Previous move" aria-label="Previous move">
-                                    <i class="fas fa-step-backward"></i>
-                                </button>
-                                <button id="analyzeNavNext" class="nav-btn-sm" title="Next move" aria-label="Next move">
-                                    <i class="fas fa-step-forward"></i>
-                                </button>
-                                <button id="analyzeNavLast" class="nav-btn-sm" title="Last move" aria-label="Jump to end">
-                                    <i class="fas fa-fast-forward"></i>
-                                </button>
-                                <button id="analyzeUndoMove" class="nav-btn-sm analyze-study-action" title="Undo last move" aria-label="Undo last study move" disabled aria-disabled="true">
-                                    <i class="fas fa-undo"></i>
-                                    <span>Undo</span>
-                                </button>
-                                <button id="analyzeResetBoard" class="nav-btn-sm analyze-study-action analyze-study-reset" title="Reset board to the starting position" aria-label="Reset study board to the starting position">
-                                    <i class="fas fa-sync-alt"></i>
-                                    <span>Reset</span>
-                                </button>
-                                <button id="analyzeEngineToggle" class="nav-btn-sm analyze-engine-toggle" title="Toggle live position evaluation" aria-label="Turn live engine evaluation on" aria-pressed="false">
-                                    <i class="fas fa-brain"></i>
-                                    <span>Engine Off</span>
-                                </button>
-                                <button id="analyzeFlipBoard" class="nav-btn-sm analyze-flip-tool" title="Flip board" aria-label="Flip board">
-                                    <i class="fas fa-exchange-alt"></i>
-                                    <span>Flip</span>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="panel analyze-evidence-panel">
-                            <h3 class="panel-title">Move evidence</h3>
-                            <div id="analyzeMoveEvidence" class="analyze-mentor">
-                                <div class="caissa-ui-empty-state caissa-ui-empty-state--compact" role="status">
-                                    <i class="fas fa-brain caissa-ui-empty-state__icon" aria-hidden="true"></i>
-                                    <p class="caissa-ui-empty-state__title">No analysis available.</p>
-                                    <p class="caissa-ui-empty-state__message">Load a game and start analysis to see move guidance.</p>
-                                </div>
-                            </div>
+                        <div class="caissa-analyze-v2__player caissa-analyze-v2__player--white" aria-hidden="true">
+                            <span class="caissa-analyze-v2__avatar"><i class="fas fa-user"></i></span>
+                            <span id="analyzeV2WhiteLabel">White</span>
                         </div>
                     </main>
 
-                    <!-- Right: Analysis Panel -->
-                    <aside class="context-panel">
-                        <!-- Game Metadata -->
-                        <div class="panel">
-                            <h3 class="panel-title">Game Info</h3>
-                            <div class="analyze-metadata">
-                                <div class="metadata-row">
-                                    <span class="metadata-label">Source:</span>
-                                    <span id="analyzeGameSource" class="metadata-value badge">-</span>
-                                </div>
-                                <div class="metadata-row">
-                                    <span class="metadata-label">White:</span>
-                                    <span id="analyzeWhitePlayer" class="metadata-value">-</span>
-                                </div>
-                                <div class="metadata-row">
-                                    <span class="metadata-label">Black:</span>
-                                    <span id="analyzeBlackPlayer" class="metadata-value">-</span>
-                                </div>
-                                <div class="metadata-row">
-                                    <span class="metadata-label">Result:</span>
-                                    <span id="analyzeGameResult" class="metadata-value">-</span>
-                                </div>
-                                <div class="metadata-row">
-                                    <span class="metadata-label">Termination:</span>
-                                    <span id="analyzeTermination" class="metadata-value">-</span>
-                                </div>
-                                <div class="metadata-row">
-                                    <span class="metadata-label">Engine:</span>
-                                    <span class="metadata-value">Stockfish 2019 MV</span>
-                                </div>
-                                <div class="metadata-row">
-                                    <span class="metadata-label">Status:</span>
-                                    <span id="analyzeStatus" class="metadata-value badge badge-ready">Ready</span>
-                                </div>
-                            </div>
+                    <aside class="caissa-analyze-v2__workspace" aria-label="Analyze workspace">
+                        <header class="caissa-analyze-v2__workspace-header">
+                            <button id="analyzeSetupBack" class="caissa-analyze-v2__setup-back" type="button" aria-label="Cancel setup and return to Analysis" hidden>
+                                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                            </button>
+                            <h2 id="analyzeV2WorkspaceTitle">Analysis</h2>
+                        </header>
+
+                        <div class="caissa-analyze-v2__tabs" role="tablist" aria-label="Analyze workspace views">
+                            <button id="analyzeV2TabAnalysis" class="caissa-analyze-v2__tab is-active" type="button" role="tab" aria-selected="true" aria-controls="analyzeV2PanelAnalysis" data-analyze-v2-tab="analysis">
+                                <i class="fas fa-magnifying-glass-chart" aria-hidden="true"></i>
+                                <span>Analysis</span>
+                            </button>
+                            <button id="analyzeV2TabGames" class="caissa-analyze-v2__tab" type="button" role="tab" aria-selected="false" aria-controls="analyzeV2PanelGames" tabindex="-1" data-analyze-v2-tab="games">
+                                <i class="fas fa-folder-open" aria-hidden="true"></i>
+                                <span>Games</span>
+                            </button>
+                            <button id="analyzeV2TabSetup" class="caissa-analyze-v2__tab" type="button" role="tab" aria-selected="false" aria-controls="analyzeV2PanelSetup" tabindex="-1" data-analyze-v2-tab="setup">
+                                <i class="fas fa-chess-board" aria-hidden="true"></i>
+                                <span>Setup Position</span>
+                            </button>
                         </div>
 
-                        <!-- Analysis Controls -->
-                        <div class="panel">
-                            <h3 class="panel-title">Analysis</h3>
-                            <div class="analyze-controls">
-                                <button id="analyzeStartBtn" class="btn btn-highlight btn-block">
-                                    <i class="fas fa-brain"></i> Analyze Game
-                                </button>
-                                <button id="analyzeStopBtn" class="btn btn-secondary btn-block" style="display: none;">
-                                    <i class="fas fa-stop"></i> Stop Analysis
-                                </button>
-                                <div id="analyzeProgressBar" class="analyze-progress" style="display: none;">
-                                    <div class="progress-bar-container">
-                                        <div id="analyzeProgressFill" class="progress-bar" style="width: 0%;"></div>
+                        <div class="caissa-analyze-v2__viewport">
+                            <section id="analyzeV2PanelAnalysis" class="caissa-analyze-v2__tabpanel is-active" role="tabpanel" aria-labelledby="analyzeV2TabAnalysis" data-analyze-v2-panel="analysis">
+                                <div class="context-panel caissa-analyze-v2__minimal-analysis">
+                                    <div class="caissa-analyze-v2__engine-strip">
+                                        <button id="analyzeEngineToggle" class="analyze-engine-toggle caissa-analyze-v2__engine-toggle" type="button" title="Toggle live position evaluation" aria-label="Turn live engine evaluation on" aria-pressed="false">
+                                            <span>Engine Off</span>
+                                        </button>
+                                        <span id="analyzeV2EngineMeta" class="caissa-analyze-v2__engine-meta">Stockfish</span>
                                     </div>
-                                    <span id="analyzeProgressText">0%</span>
+
+                                    <div id="analyzeV2EngineLines" class="caissa-analyze-v2__engine-lines" aria-live="polite"></div>
+
+                                    <div id="analyzeV2OpeningLabel" class="caissa-analyze-v2__opening">Starting Position</div>
+
+                                    <div class="caissa-analyze-v2__game-line" aria-label="Game metadata">
+                                        <span id="analyzeWhitePlayer">White</span>
+                                        <span aria-hidden="true">-</span>
+                                        <span id="analyzeBlackPlayer">Black</span>
+                                        <span id="analyzeGameResult">*</span>
+                                    </div>
+
+                                    <div id="analyzeMoveList" class="analyze-move-list caissa-analyze-v2__notation"></div>
+
+                                    <!-- Existing AnalyzeSection DOM contracts remain mounted but are not part of A1.1 presentation. -->
+                                    <div class="caissa-analyze-v2__preserved-controls" hidden aria-hidden="true">
+                                        <strong id="analyzeStatus" class="badge badge-ready">Ready</strong>
+                                        <button id="analyzeStartBtn" type="button">Analyze Game</button>
+                                        <button id="analyzeStopBtn" type="button">Stop Analysis</button>
+                                        <div id="analyzeProgressBar"><div id="analyzeProgressFill"></div><span id="analyzeProgressText">0%</span></div>
+                                        <span id="analyzeGameSource">Position</span>
+                                        <span id="analyzeTermination">-</span>
+                                        <div id="analyzeMoveEvidence"></div>
+                                        <div id="analyzeReviewSummary"></div>
+                                        <div id="analyzeCriticalMoments"></div>
+                                        <button id="analyzeUndoMove" type="button" disabled>Undo</button>
+                                        <button id="analyzeResetBoard" type="button">Reset</button>
+                                        <button id="analyzeFlipBoard" type="button">Flip</button>
+                                    </div>
                                 </div>
-                            </div>
+                            </section>
+
+                            <section id="analyzeV2PanelGames" class="caissa-analyze-v2__tabpanel" role="tabpanel" aria-labelledby="analyzeV2TabGames" data-analyze-v2-panel="games" hidden>
+                                <div class="caissa-analyze-v2__games">
+                                    <div class="analyze-tabs caissa-analyze-v2__game-tabs" role="tablist" aria-label="Game import source">
+                                        <button id="analyzeGameUrlTab" class="analyze-tab active" type="button" role="tab" aria-selected="true" aria-controls="analyzePanelGameUrl" data-source="game-url"><span>Game URL</span></button>
+                                        <button id="analyzeChessComTab" class="analyze-tab" type="button" role="tab" aria-selected="false" aria-controls="analyzePanelChessCom" tabindex="-1" data-source="chess.com"><span>Chess.com</span></button>
+                                        <button id="analyzeLichessTab" class="analyze-tab" type="button" role="tab" aria-selected="false" aria-controls="analyzePanelLichess" tabindex="-1" data-source="lichess"><span>Lichess</span></button>
+                                    </div>
+
+                                    <div class="analyze-panel caissa-analyze-v2__game-panel active" id="analyzePanelGameUrl" role="tabpanel" aria-labelledby="analyzeGameUrlTab">
+                                        <label class="caissa-analyze-v2__game-field" for="analyzeGameUrl">
+                                            <span>Game URL</span>
+                                            <input id="analyzeGameUrl" type="url" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://lichess.org/xxxxxxxx">
+                                            <small>Public Lichess and Chess.com game links load directly.</small>
+                                        </label>
+                                        <label id="analyzeGameUrlChessComUsernameGroup" class="caissa-analyze-v2__game-field caissa-analyze-v2__game-field--contextual" for="analyzeGameUrlChessComUsername" hidden>
+                                            <span>Chess.com username</span>
+                                            <input id="analyzeGameUrlChessComUsername" type="text" autocomplete="off" spellcheck="false" placeholder="Either player">
+                                            <small>Enter either player from this game.</small>
+                                        </label>
+                                        <p id="analyzeGameUrlMessage" class="caissa-analyze-v2__game-message" role="status" aria-live="polite" hidden></p>
+                                        <button id="analyzeGameUrlLoad" class="caissa-analyze-v2__game-submit" type="button">Load Game</button>
+                                    </div>
+
+                                    <div class="analyze-panel caissa-analyze-v2__game-panel" id="analyzePanelChessCom" role="tabpanel" aria-labelledby="analyzeChessComTab" hidden>
+                                        <p class="caissa-analyze-v2__game-intent">Find recent public games from a Chess.com player.</p>
+                                        <div class="analyze-form-grid caissa-analyze-v2__account-form">
+                                            <label class="caissa-analyze-v2__game-field" for="analyzeUsername"><span>Username</span><input type="text" id="analyzeUsername" autocomplete="off" spellcheck="false" placeholder="e.g. hikaru"></label>
+                                            <label class="caissa-analyze-v2__game-field" for="analyzeGameCount"><span>Games</span><select id="analyzeGameCount"><option value="5">Last 5</option><option value="10" selected>Last 10</option><option value="20">Last 20</option></select></label>
+                                        </div>
+                                        <button id="analyzeFetchBtn" class="caissa-analyze-v2__game-submit" type="button">Fetch Games</button>
+                                        <div id="analyzeFetchedGames" class="analyze-fetched-games caissa-analyze-v2__game-results" hidden></div>
+                                    </div>
+
+                                    <div class="analyze-panel caissa-analyze-v2__game-panel" id="analyzePanelLichess" role="tabpanel" aria-labelledby="analyzeLichessTab" hidden>
+                                        <p class="caissa-analyze-v2__game-intent">Find recent public games from a Lichess player.</p>
+                                        <div class="analyze-form-grid caissa-analyze-v2__account-form">
+                                            <label class="caissa-analyze-v2__game-field" for="analyzeLichessUsername"><span>Username</span><input type="text" id="analyzeLichessUsername" autocomplete="off" spellcheck="false" placeholder="e.g. DrNykterstein"></label>
+                                            <label class="caissa-analyze-v2__game-field" for="analyzeLichessGameCount"><span>Games</span><select id="analyzeLichessGameCount"><option value="5">Last 5</option><option value="10" selected>Last 10</option><option value="20">Last 20</option></select></label>
+                                        </div>
+                                        <button id="analyzeLichessFetchBtn" class="caissa-analyze-v2__game-submit" type="button">Fetch Games</button>
+                                        <div id="analyzeLichessFetchedGames" class="analyze-fetched-games caissa-analyze-v2__game-results" hidden></div>
+                                    </div>
+
+                                    <!-- Legacy DOM hooks stay mounted for compatibility; PGN entry lives only in Setup Position. -->
+                                    <div class="caissa-analyze-v2__preserved-controls" hidden aria-hidden="true">
+                                        <select id="analyzeProvider"><option value="chess.com">Chess.com</option><option value="lichess">Lichess</option></select>
+                                        <input type="file" id="analyzePgnFile" accept=".pgn">
+                                        <span id="analyzePgnFileName" class="file-name"></span>
+                                        <button id="analyzeLoadPgnBtn" type="button">Load PGN</button>
+                                        <button id="analyzeOpenLibrary" type="button">Open Library</button>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section id="analyzeV2PanelSetup" class="caissa-analyze-v2__tabpanel" role="tabpanel" aria-labelledby="analyzeV2TabSetup" data-analyze-v2-panel="setup" hidden>
+                                <div class="caissa-analyze-v2__setup" data-analyze-setup>
+                                    <div class="caissa-analyze-v2__piece-palette" aria-label="Piece palette">
+                                        <div class="caissa-analyze-v2__piece-row" aria-label="Black pieces">
+                                            <span>Black</span>
+                                            <div>
+                                                <button type="button" data-setup-piece="bP" aria-label="Select black pawn"><img src="img/chesspieces/wikipedia/bP.png" alt=""></button>
+                                                <button type="button" data-setup-piece="bB" aria-label="Select black bishop"><img src="img/chesspieces/wikipedia/bB.png" alt=""></button>
+                                                <button type="button" data-setup-piece="bN" aria-label="Select black knight"><img src="img/chesspieces/wikipedia/bN.png" alt=""></button>
+                                                <button type="button" data-setup-piece="bR" aria-label="Select black rook"><img src="img/chesspieces/wikipedia/bR.png" alt=""></button>
+                                                <button type="button" data-setup-piece="bQ" aria-label="Select black queen"><img src="img/chesspieces/wikipedia/bQ.png" alt=""></button>
+                                                <button type="button" data-setup-piece="bK" aria-label="Select black king"><img src="img/chesspieces/wikipedia/bK.png" alt=""></button>
+                                            </div>
+                                        </div>
+                                        <div class="caissa-analyze-v2__piece-row" aria-label="White pieces">
+                                            <span>White</span>
+                                            <div>
+                                                <button type="button" data-setup-piece="wP" aria-label="Select white pawn"><img src="img/chesspieces/wikipedia/wP.png" alt=""></button>
+                                                <button type="button" data-setup-piece="wB" aria-label="Select white bishop"><img src="img/chesspieces/wikipedia/wB.png" alt=""></button>
+                                                <button type="button" data-setup-piece="wN" aria-label="Select white knight"><img src="img/chesspieces/wikipedia/wN.png" alt=""></button>
+                                                <button type="button" data-setup-piece="wR" aria-label="Select white rook"><img src="img/chesspieces/wikipedia/wR.png" alt=""></button>
+                                                <button type="button" data-setup-piece="wQ" aria-label="Select white queen"><img src="img/chesspieces/wikipedia/wQ.png" alt=""></button>
+                                                <button type="button" data-setup-piece="wK" aria-label="Select white king"><img src="img/chesspieces/wikipedia/wK.png" alt=""></button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="caissa-analyze-v2__position-controls">
+                                        <label for="analyzeSetupTurn">Side to move</label>
+                                        <select id="analyzeSetupTurn">
+                                            <option value="w">White to move</option>
+                                            <option value="b">Black to move</option>
+                                        </select>
+                                        <div class="caissa-analyze-v2__setup-tools" aria-label="Position controls">
+                                            <button id="analyzeSetupFlip" type="button" title="Flip board" aria-label="Flip board"><i class="fas fa-arrows-rotate" aria-hidden="true"></i></button>
+                                            <button id="analyzeSetupReset" type="button" title="Reset starting position" aria-label="Reset starting position"><i class="fas fa-rotate-left" aria-hidden="true"></i></button>
+                                            <button id="analyzeSetupClear" type="button" title="Clear board" aria-label="Clear board"><i class="fas fa-trash" aria-hidden="true"></i></button>
+                                        </div>
+                                    </div>
+
+                                    <fieldset class="caissa-analyze-v2__castling">
+                                        <legend>Castling rights</legend>
+                                        <div><strong>White</strong><label><input type="checkbox" data-setup-castling="K"> O-O</label><label><input type="checkbox" data-setup-castling="Q"> O-O-O</label></div>
+                                        <div><strong>Black</strong><label><input type="checkbox" data-setup-castling="k"> O-O</label><label><input type="checkbox" data-setup-castling="q"> O-O-O</label></div>
+                                    </fieldset>
+
+                                    <label class="caissa-analyze-v2__setup-field" for="analyzeSetupFen">
+                                        <span>FEN</span>
+                                        <input id="analyzeSetupFen" type="text" spellcheck="false" autocomplete="off">
+                                    </label>
+
+                                    <label class="caissa-analyze-v2__setup-field" for="analyzePgnInput">
+                                        <span>PGN Paste <small>PGN takes priority when present</small></span>
+                                        <textarea id="analyzePgnInput" rows="5" spellcheck="false" placeholder="[Event &quot;...&quot;]&#10;[White &quot;...&quot;]&#10;&#10;1. e4 e5..."></textarea>
+                                    </label>
+
+                                    <p id="analyzeSetupMessage" class="caissa-analyze-v2__setup-message" role="status" aria-live="polite">Choose a piece, then a square. Drag a board piece outside the board to remove it.</p>
+                                    <button id="analyzeSetupLoad" class="caissa-analyze-v2__setup-load" type="button">Load</button>
+                                </div>
+                            </section>
                         </div>
 
-                        <!-- Analyze v1.2 Game Review Summary -->
-                        <div class="panel">
-                            <h3 class="panel-title">Game Review Summary</h3>
-                            <div id="analyzeReviewSummary" class="analyze-review-summary">
-                                <div class="caissa-ui-empty-state caissa-ui-empty-state--compact" role="status">
-                                    <i class="fas fa-chart-pie caissa-ui-empty-state__icon" aria-hidden="true"></i>
-                                    <p class="caissa-ui-empty-state__title">No review yet.</p>
-                                    <p class="caissa-ui-empty-state__message">Analyze a loaded game to see accuracy and move quality.</p>
+                        <footer class="caissa-analyze-v2__footer">
+                            <nav class="analyze-board-controls" aria-label="Move navigation">
+                                <div class="analyze-board-navigation">
+                                    <button id="analyzeNavFirst" class="nav-btn-sm" title="First move" aria-label="Jump to start"><i class="fas fa-fast-backward"></i></button>
+                                    <button id="analyzeNavPrev" class="nav-btn-sm" title="Previous move" aria-label="Previous move"><i class="fas fa-step-backward"></i></button>
+                                    <button id="analyzeNavNext" class="nav-btn-sm" title="Next move" aria-label="Next move"><i class="fas fa-step-forward"></i></button>
+                                    <button id="analyzeNavLast" class="nav-btn-sm" title="Last move" aria-label="Jump to end"><i class="fas fa-fast-forward"></i></button>
                                 </div>
+                            </nav>
+                            <div class="caissa-analyze-v2__actions" aria-label="Analysis actions">
+                                <button id="analyzeNewBtn" class="caissa-analyze-v2__action--available" type="button" title="Set up a new analysis position"><i class="fas fa-magnifying-glass" aria-hidden="true"></i><span>New</span></button>
+                                <button id="analyzeSaveBtn" class="caissa-analyze-v2__action--available" type="button" title="Download the current analysis as PGN"><i class="fas fa-floppy-disk" aria-hidden="true"></i><span>Save</span></button>
+                                <button id="analyzeReviewBtn" class="caissa-analyze-v2__action--available" type="button" aria-pressed="false" title="Review the current game"><i class="fas fa-star" aria-hidden="true"></i><span>Review</span></button>
+                                <button type="button" disabled aria-disabled="true" title="More actions are not available yet" aria-label="More actions"><span aria-hidden="true">•••</span></button>
                             </div>
-                        </div>
-
-                        <div class="panel">
-                            <h3 class="panel-title">Critical Moments</h3>
-                            <div id="analyzeCriticalMoments" class="analyze-critical-moments">
-                                <div class="caissa-ui-empty-state caissa-ui-empty-state--compact" role="status">
-                                    <i class="fas fa-exclamation-triangle caissa-ui-empty-state__icon" aria-hidden="true"></i>
-                                    <p class="caissa-ui-empty-state__title">No critical moments yet.</p>
-                                    <p class="caissa-ui-empty-state__message">Run analysis to highlight training moments.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Move List -->
-                        <div class="panel">
-                            <h3 class="panel-title">Moves</h3>
-                            <div id="analyzeMoveList" class="analyze-move-list">
-                                <div class="caissa-ui-empty-state caissa-ui-empty-state--compact" role="status">
-                                    <i class="fas fa-list-ol caissa-ui-empty-state__icon" aria-hidden="true"></i>
-                                    <p class="caissa-ui-empty-state__title">No game loaded.</p>
-                                    <p class="caissa-ui-empty-state__message">Fetch a game or upload PGN to see the move list.</p>
-                                </div>
-                            </div>
-                        </div>
+                        </footer>
                     </aside>
                 </div>
             </section>
@@ -5005,8 +4996,8 @@
     <script src="cheater-analyzer.js?v=2.0.1"></script>
     <script src="mentor-prompts.js?v=1.0.0"></script>
     <script src="llm-provider.js?v=1.0.0"></script>
-    <script src="js/mentor/mentor-context-contract.js?v=1.0.0"></script>
-    <script src="js/mentor/mentor-floating-shell.js?v=1.0.0"></script>
+    <script src="js/mentor/mentor-context-contract.js?v=1.1.0"></script>
+    <script src="js/mentor/mentor-floating-shell.js?v=1.1.1"></script>
     <script src="mentor-ai.js?v=1.0.0"></script>
     <script src="caissa-library-db.js?v=1.0.0"></script>
     <script src="caissa-library.js?v=1.1.0"></script>
@@ -5022,14 +5013,14 @@
     <script src="js/play/analytics/play-analytics-dispatcher.js?v=1.0.0"></script>
     <script src="js/play/analytics/play-analytics-governance.js?v=1.0.0"></script>
     <script src="js/play/play-route-controller.js?v=1.1.0"></script>
-    <script src="js/caissa-i18n.js?v=1.0.0"></script><script src="js/caissa-primary-navigation.js?v=1.0.2"></script>
+    <script src="js/caissa-i18n.js?v=1.1.0"></script><script src="js/caissa-first-party-localization.js?v=1.0.0"></script><script src="js/caissa-primary-navigation.js?v=1.0.2"></script>
     <script src="js/caissa-primary-navigation-transition-policy.js?v=1.0.0"></script>
     <script src="js/caissa-navigation.js?v=1.0.7"></script>
     <script src="js/caissa-game-library-presentation.js?v=1.0.0"></script>
     <script src="js/academy-section.js?v=1.0.0"></script>
     <script src="js/yahoo-classic-section.js?v=1.1.0"></script>
     <script src="js/caissa-ui-refactor.js?v=1.0.0"></script>
-    <script src="js/engine-adapter.js?v=1.0.0"></script>
+    <script src="js/engine-adapter.js?v=1.0.1"></script>
     <script src="js/engine-registry.js?v=1.0.0"></script>
     <script src="js/caissa-arena.js?v=1.3.2"></script>
     <!-- Section Modules (Phase 2) -->
@@ -5041,12 +5032,13 @@
     <script src="js/play/clock-service.js?v=1.0.0"></script>
     <script src="js/play/chessboard-adapter.js?v=1.0.0"></script>
     <script src="js/play/evaluation-rail.js?v=1.0.0"></script>
-    <script src="app.js?v=2.0.25"></script>
+    <script src="app.js?v=2.0.29"></script>
     <script src="js/play/opponent-strength.js?v=1.0.0"></script>
     <script src="js/play/legacy-play-compatibility.js?v=1.4.0"></script>
     <script src="js/play/play-v2-identity-policy.js?v=1.0.0"></script>
     <script src="js/play/play-v2-mode-transition-policy.js?v=1.0.0"></script>
     <script src="js/play/game-record.js?v=1.2.0"></script>
+    <script src="js/analyze-v2-shell.js?v=1.0.0"></script>
     <!-- Lazy Mentor groups are owned by the fixed Play load registry. -->
     <!-- Lazy Analyze route group: analyze-session.js then analyze-section.js. -->
     <script src="js/play/analyze-handoff.js?v=1.1.0"></script>
@@ -5059,7 +5051,10 @@
     <script src="js/play/ui/play-visual-identity.js?v=1.0.0"></script>
     <script src="js/play/ui/play-visual-components.js?v=1.2.0"></script>
     <script src="js/play/play-v2-playable-readiness.js?v=1.0.0"></script>
-    <script src="js/play/games-panel.js?v=1.6.0"></script>
+    <script src="js/play/analysis-summary-projection.js?v=1.0.0"></script>
+    <script src="js/play/games-review-context.js?v=1.0.0"></script>
+    <script src="js/play/games-panel.js?v=1.10.0"></script>
+    <script src="js/play/games-analysis-summary-presentation.js?v=1.1.0"></script>
     <script src="js/play/players/human-fair-play-contracts.js?v=1.0.0"></script>
     <script src="js/play/players/human-runtime-authority.js?v=1.0.0"></script>
     <script src="js/play/players/human-clock-authority.js?v=1.0.0"></script>
@@ -5077,7 +5072,7 @@
     <script src="js/play/performance/play-performance-budget.js?v=1.0.0"></script>
     <script src="js/play/performance/play-performance-probe.js?v=1.0.0"></script>
     <script src="js/play/performance/play-lazy-load-contracts.js?v=1.0.0"></script>
-    <script src="js/play/performance/play-load-registry.js?v=1.1.6"></script>
+    <script src="js/play/performance/play-load-registry.js?v=1.1.26"></script>
     <script src="js/play/performance/play-prefetch-policy.js?v=1.0.0"></script>
     <script src="js/play/performance/play-lazy-loader.js?v=1.0.2"></script>
     <script src="js/play/analytics/play-mode-selection-analytics.js?v=1.0.0"></script>
@@ -5087,7 +5082,7 @@
     <script src="js/play/analytics/play-mentor-engagement-analytics.js?v=1.0.0"></script>
     <script src="js/play/post-game-experience.js?v=1.8.0"></script>
     <script src="js/play/play-share-dialog.js?v=1.0.0"></script>
-    <script src="js/play/simplified-play-shell.js?v=1.24.0"></script>
+    <script src="js/play/simplified-play-shell.js?v=1.34.0"></script>
 
     <!-- Auth Scripts -->
     <script src="js/auth-config.js?v=1.0.3"></script>

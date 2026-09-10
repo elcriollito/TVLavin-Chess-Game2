@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 
 const sourcePath = new URL('../index.html', import.meta.url);
+const inlineAnalyzeSectionPath = new URL('../templates/play-v2-inline-analyze-section.html', import.meta.url);
 const outputPath = new URL('../play-v2.html', import.meta.url);
 const publicBetaOutputPath = new URL('../play-v2-public-beta.html', import.meta.url);
 const publicBetaDocumentModulePath = new URL('../api/_lib/play-v2-public-beta-document.js', import.meta.url);
@@ -8,7 +9,11 @@ const unavailableOutputPath = new URL('../play-v2-unavailable.html', import.meta
 const promotionQaOutputPath = new URL('../play-v2-promotion-qa.html', import.meta.url);
 const ipadAnalyzeDiagnosticOutputPath = new URL('../play-v2-ipad-analyze-diagnostic.html', import.meta.url);
 
-let html = await readFile(sourcePath, 'utf8');
+const [sourceHtml, inlineAnalyzeSection] = await Promise.all([
+  readFile(sourcePath, 'utf8'),
+  readFile(inlineAnalyzeSectionPath, 'utf8')
+]);
+let html = sourceHtml;
 
 const forbiddenElements = [
   /\s*<link[^>]+href="css\/fics-client\.css[^>]*>\r?\n/gi,
@@ -22,9 +27,11 @@ const forbiddenElements = [
   /\s*<script[^>]+src="js\/play\/players\/[^">]+"[^>]*><\/script>\r?\n/gi,
   /\s*<!-- Lazy manifest order \(inert\):[^>]*players-panel\.js -->\r?\n/gi,
   /\s*<link[^>]+href="css\/academy\.css[^>]*>\r?\n/gi,
+  /\s*<link[^>]+href="css\/analyze-v2-shell\.css[^>]*>\r?\n/gi,
   /\s*<script[^>]+src="\/js\/(?:caissa-clarity|caissa-vercel-analytics)\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="(?:mentor-prompts|mentor-ai)\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/academy-section\.js[^>]*><\/script>\r?\n/gi,
+  /\s*<script[^>]+src="js\/analyze-v2-shell\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/play\/analytics\/play-mentor-engagement-analytics\.js[^>]*><\/script>\r?\n/gi,
   /\s*<link[^>]+href="css\/caissa-onboarding\.css[^>]*>\r?\n/gi,
   /\s*<script[^>]+src="js\/caissa-onboarding\.js[^>]*><\/script>\r?\n/gi,
@@ -32,6 +39,11 @@ const forbiddenElements = [
 ];
 
 for (const pattern of forbiddenElements) html = html.replace(pattern, '\n');
+
+html = html.replace(
+  /\s*<!-- SECTION: ANALYZE \(Game Analysis\) -->[\s\S]*?\s*(?=<!-- SECTION: ARENA)/i,
+  `\n\n${inlineAnalyzeSection.trimEnd()}\n\n            `
+);
 
 html = html
   .replace(/\s*<script type="application\/ld\+json">[\s\S]*?<\/script>/gi, '\n')
@@ -116,6 +128,10 @@ if (!html.includes('js/play/play-v2-post-game-policy.js?v=1.1.0')) throw new Err
 if (!html.includes('js/play/play-v2-identity-policy.js?v=1.0.0')) throw new Error('PLAY_V2_IDENTITY_POLICY_MISSING');
 if (!html.includes('js/play/play-v2-mode-transition-policy.js?v=1.0.0')) throw new Error('PLAY_V2_MODE_TRANSITION_POLICY_MISSING');
 if (!html.includes('js/play/play-v2-inline-analyze.js?v=1.4.0')) throw new Error('PLAY_V2_INLINE_ANALYZE_MISSING');
+if (!html.includes('<!-- SECTION: ANALYZE (Game Analysis) -->') || !html.includes('class="analyze-layout"'))
+  throw new Error('PLAY_V2_INLINE_ANALYZE_TEMPLATE_MISSING');
+if (/data-caissa-analyze-v2|analyze-v2-shell\.(?:css|js)/i.test(html))
+  throw new Error('PROHIBITED_STANDALONE_ANALYZE_V2_PRESENTATION');
 if (!html.includes("worker-src 'self';") || /worker-src[^;]*(?:blob:|https?:)/.test(html))
   throw new Error('PLAY_V2_WORKER_CSP_INVALID');
 if (/script-src[^;]*'unsafe-eval'/.test(html)) throw new Error('PLAY_V2_UNSAFE_EVAL_CSP');
