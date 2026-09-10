@@ -89,10 +89,12 @@ test('generator explicitly strips known legacy FICS resources while preserving t
 test('an unclassified FICS script still fails generation', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'caissa-play-v2-boundary-'));
     try {
-        await mkdir(join(directory, 'scripts'), { recursive: true });
+        await mkdir(join(directory, 'scripts', 'lib'), { recursive: true });
         await mkdir(join(directory, 'api', '_lib'), { recursive: true });
         await mkdir(join(directory, 'templates'), { recursive: true });
         await writeFile(join(directory, 'scripts', 'build-play-v2.mjs'), await read('scripts/build-play-v2.mjs'));
+        await writeFile(join(directory, 'scripts', 'lib', 'canonical-text.mjs'),
+            await read('scripts/lib/canonical-text.mjs'));
         await writeFile(join(directory, 'templates', 'play-v2-inline-analyze-section.html'),
             await read('templates/play-v2-inline-analyze-section.html'));
         await writeFile(join(directory, 'play-v2-unavailable.html'), await read('play-v2-unavailable.html'));
