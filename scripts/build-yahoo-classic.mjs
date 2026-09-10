@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { readCanonicalText, writeCanonicalText } from './lib/canonical-text.mjs';
 
 const sourcePath = new URL('../index.html', import.meta.url);
 const outputPath = new URL('../yahoo-classic.html', import.meta.url);
@@ -7,7 +7,7 @@ const title = 'Yahoo Chess Alternative — Classic Online Chess Rooms | CAISSA';
 const description = 'Enter CAISSA Classic, an independent Yahoo Chess-inspired experience with social rooms, visible tables, challenges, spectating and a retro chess atmosphere.';
 const image = 'https://www.caissa-chess.org/assets/blog/classic-online-chess-room-nostalgia.webp';
 
-let html = await readFile(sourcePath, 'utf8');
+let html = await readCanonicalText(sourcePath);
 
 html = html
   .replace('<title>CAISSA Chess – Play Online, Stockfish Analysis & Training</title>', `<title>${title}</title>`)
@@ -111,5 +111,5 @@ html = html.replace(
 );
 
 html = html.replace(/[ \t]+(?=\r?$)/gm, '');
-await writeFile(outputPath, html);
+await writeCanonicalText(outputPath, html);
 console.log('Generated yahoo-classic.html from index.html');
