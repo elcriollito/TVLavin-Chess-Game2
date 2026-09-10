@@ -215,11 +215,103 @@ test('basic pending seek creation and cancellation retain the existing wire gram
     client.renderRoomTables = () => {};
 
     client.seek(5, 0);
-    assert.deepEqual({ ...client.pendingSeek }, { timeControl: '5+0', label: 'Your active seek' });
+    assert.deepEqual({ ...client.pendingSeek }, {
+        minutes: 5, increment: 0, timeControl: '5+0', rated: null, color: 'random',
+        label: 'Your active seek', status: 'pending', operation: 'create', error: null,
+        deliveryCode: 'SENT'
+    });
     assert.deepEqual(socket.sent, ['seek 5 0']);
     client.cancelSeek();
-    assert.equal(client.pendingSeek, null);
+    assert.equal(client.pendingSeek.status, 'cancel_requested');
+    assert.equal(client.pendingSeek.operation, 'cancel');
     assert.deepEqual(socket.sent, ['seek 5 0', 'unseek']);
+});
+
+test('canonical seek API validates and maps time rating and color without shell mutation', () => {
+    const { client, FakeWebSocket } = createHarness();
+    const socket = new FakeWebSocket(client.gatewayUrl);
+    socket.readyState = FakeWebSocket.OPEN;
+    client.ws = socket;
+    client.authenticated = true;
+    client.renderRoomTables = () => {};
+
+    assert.equal(client.requestSeek({ minutes: 0, increment: 2, rated: true, color: 'white' }).code, 'INVALID_TIME');
+    assert.equal(client.requestSeek({ minutes: 5, increment: 61, rated: true, color: 'white' }).code, 'INVALID_INCREMENT');
+    assert.equal(client.requestSeek({ minutes: 5, increment: 2, rated: 'unknown', color: 'white' }).code, 'INVALID_RATING_MODE');
+    assert.equal(client.requestSeek({ minutes: 5, increment: 2, rated: true, color: 'green' }).code, 'INVALID_COLOR');
+    assert.deepEqual(socket.sent, []);
+
+    const result = client.requestSeek({ minutes: 10, increment: 5, rated: 'rated', color: 'black' });
+    assert.equal(result.ok, true);
+    assert.equal(result.state, 'pending');
+    assert.equal(client.pendingSeek.rated, true);
+    assert.equal(client.pendingSeek.color, 'black');
+    assert.deepEqual(socket.sent, ['seek 10 5 rated black']);
+});
+
+test('canonical seek API represents delivery and cancellation failure honestly', () => {
+    const { client, FakeWebSocket } = createHarness();
+    const socket = new FakeWebSocket(client.gatewayUrl);
+    client.ws = socket;
+    client.authenticated = true;
+    client.renderRoomTables = () => {};
+
+    const failedCreate = client.requestSeek({ minutes: 3, increment: 0, rated: false, color: 'random' });
+    assert.equal(failedCreate.code, 'SOCKET_NOT_OPEN');
+    assert.equal(client.pendingSeek.status, 'error');
+    assert.equal(client.pendingSeek.operation, 'create');
+
+    socket.readyState = FakeWebSocket.OPEN;
+    assert.equal(client.requestSeek({ minutes: 3, increment: 0, rated: false, color: 'white' }).ok, true);
+    socket.readyState = FakeWebSocket.CLOSED;
+    const failedCancel = client.cancelSeek();
+    assert.equal(failedCancel.code, 'SOCKET_NOT_OPEN');
+    assert.equal(client.pendingSeek.status, 'error');
+    assert.equal(client.pendingSeek.operation, 'cancel');
+});
+
+test('canonical observation method blocks duplicate delivery and active local-game replacement', () => {
+    const { client, FakeWebSocket } = createHarness();
+    const socket = new FakeWebSocket(client.gatewayUrl);
+    socket.readyState = FakeWebSocket.OPEN;
+    client.ws = socket;
+    client.authenticated = true;
+    client.updateGameStatus = () => {};
+    client.logToConsole = () => {};
+    client.cancelPromotionSelection = () => {};
+
+    assert.equal(client.switchObservedGame(42).ok, true);
+    assert.equal(client.switchObservedGame(42).code, 'OBSERVE_IN_PROGRESS');
+    assert.deepEqual(socket.sent, ['observe 42']);
+
+    client.pendingObservation = null;
+    client.gameActive = true;
+    client.liveGame = { ...client.liveGame, status: 'playing', observedGame: false };
+    assert.equal(client.switchObservedGame(43).code, 'ACTIVE_LOCAL_GAME');
+    assert.deepEqual(socket.sent, ['observe 42']);
+});
+
+test('canonical observation switch preserves the supported unobserve then observe sequence', () => {
+    const { client, FakeWebSocket, timeoutTasks } = createHarness();
+    const socket = new FakeWebSocket(client.gatewayUrl);
+    socket.readyState = FakeWebSocket.OPEN;
+    client.ws = socket;
+    client.authenticated = true;
+    client.sessionGeneration = 3;
+    client.liveGame = { ...client.liveGame, gameNumber: 42, status: 'observing', observedGame: true };
+    client.updateGameStatus = () => {};
+    client.logToConsole = () => {};
+    client.cancelPromotionSelection = () => {};
+
+    const result = client.switchObservedGame(43);
+    assert.equal(result.code, 'SWITCH_REQUESTED');
+    assert.deepEqual(socket.sent, ['unobserve 42']);
+    const delayedObserve = timeoutTasks.find((task) => task.delay === 250);
+    assert.ok(delayedObserve);
+    delayedObserve.callback();
+    assert.deepEqual(socket.sent, ['unobserve 42', 'observe 43']);
+    assert.equal(client.pendingObservation.target, '43');
+    assert.equal(client.pendingObservation.status, 'sent');
 });
 
 test('Style12 remains authoritative for playing, observing, and game-ended transitions', () => {

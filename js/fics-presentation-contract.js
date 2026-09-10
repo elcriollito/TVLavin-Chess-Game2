@@ -1,7 +1,7 @@
 (function installFicsPresentationContract(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.0.0';
+    const SCHEMA_VERSION = '1.1.0';
     const PRODUCT_STATES = Object.freeze({
         DISCONNECTED: 'DISCONNECTED',
         AUTHENTICATING: 'AUTHENTICATING',
@@ -76,11 +76,31 @@
     function copyPendingSeek(pendingSeek) {
         if (!pendingSeek || typeof pendingSeek !== 'object') return null;
         return {
+            minutes: finiteOrNull(pendingSeek.minutes),
+            increment: finiteOrNull(pendingSeek.increment),
             timeControl: textOrNull(pendingSeek.timeControl),
             label: textOrNull(pendingSeek.label),
             rated: typeof pendingSeek.rated === 'boolean' ? pendingSeek.rated : textOrNull(pendingSeek.rated),
-            color: textOrNull(pendingSeek.color)
+            color: textOrNull(pendingSeek.color),
+            status: textOrNull(pendingSeek.status) || 'pending',
+            operation: textOrNull(pendingSeek.operation) || 'create',
+            error: textOrNull(pendingSeek.error),
+            deliveryCode: textOrNull(pendingSeek.deliveryCode)
         };
+    }
+
+    function copyObservationRequest(request) {
+        if (!request || typeof request !== 'object') return null;
+        return {
+            target: textOrNull(request.target),
+            previous: textOrNull(request.previous),
+            status: textOrNull(request.status)
+        };
+    }
+
+    function hasPendingSeek(pendingSeek) {
+        if (!pendingSeek || typeof pendingSeek !== 'object') return false;
+        return pendingSeek.status !== 'error' || pendingSeek.operation === 'cancel';
     }
 
     function copyMove(move = {}) {
@@ -122,7 +142,7 @@
         if (ended) return PRODUCT_STATES.GAME_OVER;
         if (liveGame.observedGame || liveGame.status === 'observing') return PRODUCT_STATES.OBSERVING;
         if (liveGame.gameActive || client.gameActive || liveGame.status === 'playing') return PRODUCT_STATES.PLAYING;
-        if (client.pendingSeek) return PRODUCT_STATES.SEEKING;
+        if (hasPendingSeek(client.pendingSeek)) return PRODUCT_STATES.SEEKING;
         return PRODUCT_STATES.LOBBY;
     }
 
@@ -211,6 +231,9 @@
         const presentation = derivePresentation(productState, options);
         const commandChannelAvailable = authenticated && canonical.connected === true
             && String(canonical.connectionState || '').toLowerCase() === 'connected';
+        const pendingSeek = copyPendingSeek(canonical.pendingSeek);
+        const seekPending = hasPendingSeek(canonical.pendingSeek);
+        const localGameActive = playing;
 
         const snapshot = {
             schemaVersion: SCHEMA_VERSION,
@@ -234,7 +257,11 @@
             lobby: {
                 activeTables,
                 seeks,
-                pendingSeek: copyPendingSeek(canonical.pendingSeek),
+                pendingSeek,
+                observationRequest: copyObservationRequest(canonical.pendingObservation),
+                loading: canonical.lobbyRefreshInFlight === true,
+                refreshedAt: finiteOrNull(canonical.lobbyLastRefreshAt),
+                coverage: 'RECENT_CAPPED_HEURISTIC',
                 playersSupported: false
             },
             game: {
@@ -286,7 +313,10 @@
                 offerDraw: commandChannelAvailable && productState === PRODUCT_STATES.PLAYING,
                 returnFromObservation: commandChannelAvailable && productState === PRODUCT_STATES.OBSERVING,
                 downloadPGN: pgnAvailable,
-                abort: false
+                abort: false,
+                observeTable: commandChannelAvailable && !localGameActive && !seekPending,
+                createSeek: commandChannelAvailable && !presentation.gameModeAvailable && !seekPending,
+                cancelSeek: commandChannelAvailable && seekPending
             },
             presentation
         };

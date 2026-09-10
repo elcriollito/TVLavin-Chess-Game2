@@ -56,6 +56,38 @@ test('Players and primary Game Mode placeholders remain truthful', () => {
     assert.match(shell, /mounted\.returnToGame\.hidden = !view\.returnToGameAvailable/);
 });
 
+test('Tables body renders only the read-only presentation snapshot and uses the canonical observe method', () => {
+    assert.match(shell, /snapshot\.lobby\.activeTables/);
+    assert.match(shell, /Recently reported games from a capped FICS feed; this is not a complete server directory\./);
+    assert.match(shell, /CaissaFICSClient\?\.switchObservedGame\?\.\(number\)/);
+    assert.match(shell, /Observe table/);
+    assert.doesNotMatch(shell, /CaissaFICSClient\?\.(?:activeTables|liveGame|gameActive|pendingObservation)\s*=/);
+    assert.equal((client.match(/this\.send\(`observe \$\{target\}`\)/g) || []).length, 2);
+    assert.doesNotMatch(client, /renderActiveTables[\s\S]*?addEventListener\('click', \(\) => \{[\s\S]*?this\.send\(`observe/);
+});
+
+test('Seek body exposes the approved labeled fields and requests the canonical seek API', () => {
+    for (const label of ['Time (minutes)', 'Increment (seconds)', 'Game', 'Play as', 'Create Table']) {
+        assert.match(shell, new RegExp(label.replace(/[()]/g, '\\$&')));
+    }
+    assert.match(shell, /\['unrated', 'Casual'\], \['rated', 'Rated'\]/);
+    assert.match(shell, /\['white', 'White'\], \['random', 'Random'\], \['black', 'Black'\]/);
+    assert.match(shell, /CaissaFICSClient\?\.requestSeek\?\./);
+    assert.match(shell, /CaissaFICSClient\?\.cancelSeek\?\./);
+    assert.doesNotMatch(shell, /CaissaFICSClient\?\.pendingSeek\s*=/);
+    assert.match(client, /seekBlitz1\?\.addEventListener\('click', \(\) => this\.seek\(1, 0\)\)/);
+    assert.match(client, /createOpenTableSeek\(tableNumber\)[\s\S]*?return this\.requestSeek\(/);
+    assert.match(client, /seek\(time, inc\)[\s\S]*?return this\.requestSeek\(/);
+});
+
+test('dynamic bodies retain truthful pending delivery and unsupported Players language', () => {
+    assert.match(shell, /server acknowledgement is not available/);
+    assert.match(shell, /Cancel requested/);
+    assert.match(shell, /The last seek action was not delivered/);
+    assert.match(shell, /A complete FICS player directory is not available yet\. No player list is shown\./);
+    assert.doesNotMatch(shell, /specific-player|match command|Menu|Settings/);
+});
+
 test('one flag and one immediate API restore the original legacy hierarchy', () => {
     assert.match(shell, /CAISSA_FICS_REDESIGN_ENABLED/);
     assert.match(shell, /root\[FLAG\] !== false/);

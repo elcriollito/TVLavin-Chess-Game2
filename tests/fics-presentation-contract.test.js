@@ -119,6 +119,43 @@ test('snapshots deeply clone and freeze canonical collections', () => {
     assert.equal(client.seekActions.length, 1);
 });
 
+test('lobby projection exposes capped-table provenance and canonical seek delivery state', () => {
+    const client = baseClient({
+        connected: true, authenticated: true, connectionState: 'connected',
+        lobbyRefreshInFlight: true, lobbyLastRefreshAt: 1234,
+        activeTables: [{ number: 8, white: 'Alpha', black: 'Beta', whiteRating: '', timeControl: '' }],
+        pendingSeek: {
+            minutes: 5, increment: 2, timeControl: '5+2', rated: false, color: 'random',
+            status: 'pending', operation: 'create', deliveryCode: 'SENT'
+        },
+        pendingObservation: { target: '9', previous: null, status: 'sending' }
+    });
+    const snapshot = load(client).getSnapshot();
+    assert.equal(snapshot.lobby.coverage, 'RECENT_CAPPED_HEURISTIC');
+    assert.equal(snapshot.lobby.loading, true);
+    assert.equal(snapshot.lobby.refreshedAt, 1234);
+    assert.equal(snapshot.lobby.activeTables[0].whiteRating, null);
+    assert.equal(snapshot.lobby.activeTables[0].timeControl, null);
+    assert.equal(snapshot.lobby.pendingSeek.status, 'pending');
+    assert.equal(snapshot.lobby.pendingSeek.rated, false);
+    assert.equal(snapshot.lobby.observationRequest.target, '9');
+    assert.equal(snapshot.capabilities.createSeek, false);
+    assert.equal(snapshot.capabilities.cancelSeek, true);
+    assert.equal(snapshot.capabilities.observeTable, false);
+});
+
+test('seek delivery error is not falsely projected as an active acknowledged seek', () => {
+    const client = baseClient({
+        connected: true, authenticated: true, connectionState: 'connected',
+        pendingSeek: { timeControl: '3+0', status: 'error', operation: 'create', error: 'Not delivered' }
+    });
+    const snapshot = load(client).getSnapshot();
+    assert.equal(snapshot.productState, 'LOBBY');
+    assert.equal(snapshot.lobby.pendingSeek.status, 'error');
+    assert.equal(snapshot.capabilities.createSeek, true);
+    assert.equal(snapshot.capabilities.cancelSeek, false);
+});
+
 test('player support and unapproved actions fail closed while approved live actions follow relation', () => {
     const client = baseClient({
         connected: true, authenticated: true, connectionState: 'connected', gameActive: true,

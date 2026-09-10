@@ -63,6 +63,7 @@ const CaissaFICSClient = {
     seekActions: [],
     activeTables: [],
     pendingSeek: null,
+    pendingObservation: null,
     lobbyRefreshTimer: null,
     lobbyRefreshInFlight: false,
     lobbyLastRefreshAt: 0,
@@ -567,6 +568,7 @@ const CaissaFICSClient = {
         this.seekActions = [];
         this.activeTables = [];
         this.pendingSeek = null;
+        this.pendingObservation = null;
         this.resetLiveSessionState();
         this.setConnectionState('disconnected');
         this.renderRoomTables();
@@ -1007,6 +1009,9 @@ const CaissaFICSClient = {
         this.gameNumber = state.gameNumber;
         this.myColor = userColor;
         this.pendingSeek = null;
+        if (playing || String(this.pendingObservation?.target) === String(state.gameNumber)) {
+            this.pendingObservation = null;
+        }
         this.cancelPromotionSelection(false);
         if (previousPending) this.clearPendingMove(true);
 
@@ -1187,22 +1192,15 @@ const CaissaFICSClient = {
     },
 
     createOpenTableSeek(tableNumber) {
-        if (!this.authenticated) {
-            this.logToConsole('Connect to FICS before creating a seek.');
-            this.renderRoomTables();
-            return;
-        }
-
         const time = parseInt(this.elements.customTimeInput?.value, 10) || 5;
         const inc = parseInt(this.elements.customIncInput?.value, 10) || 0;
-        const command = `seek ${time} ${inc} unrated`;
-        this.logToConsole(`Open Table ${tableNumber}: > ${command}`);
-        this.pendingSeek = {
-            timeControl: `${time}+${inc}`,
+        return this.requestSeek({
+            minutes: time,
+            increment: inc,
+            rated: false,
+            color: 'random',
             label: `Open Table ${tableNumber}`
-        };
-        this.renderRoomTables();
-        this.send(command);
+        });
     },
 
     updateRoomStatus(message) {
@@ -1261,7 +1259,9 @@ const CaissaFICSClient = {
             };
         });
 
-        if (this.pendingSeek && !waitingRows.some((row) => row.commandType === 'unseek')) {
+        const pendingSeekActive = this.pendingSeek
+            && (this.pendingSeek.status !== 'error' || this.pendingSeek.operation === 'cancel');
+        if (pendingSeekActive && !waitingRows.some((row) => row.commandType === 'unseek')) {
             waitingRows.unshift({
                 kind: 'waiting',
                 status: 'Waiting',
@@ -1380,26 +1380,74 @@ const CaissaFICSClient = {
     },
 
     switchObservedGame(gameNumber) {
+        if (!this.authenticated) {
+            return Object.freeze({ ok: false, code: 'NOT_CONNECTED' });
+        }
+        if (this.gameActive && !this.liveGame?.observedGame) {
+            return Object.freeze({ ok: false, code: 'ACTIVE_LOCAL_GAME' });
+        }
+        if (this.pendingSeek && (this.pendingSeek.status !== 'error' || this.pendingSeek.operation === 'cancel')) {
+            return Object.freeze({ ok: false, code: 'SEEK_PENDING' });
+        }
         this.cancelPromotionSelection(false);
-        const target = String(gameNumber);
+        const target = String(gameNumber ?? '').trim();
+        if (!/^\d+$/.test(target)) return Object.freeze({ ok: false, code: 'INVALID_GAME' });
         const current = this.liveGame?.observedGame && this.liveGame.gameNumber !== null
             ? String(this.liveGame.gameNumber)
             : null;
+        if (current === target) return Object.freeze({ ok: false, code: 'ALREADY_OBSERVING' });
+        if (this.pendingObservation) return Object.freeze({ ok: false, code: 'OBSERVE_IN_PROGRESS' });
+
+        const request = {
+            target,
+            previous: current,
+            generation: this.sessionGeneration,
+            status: current ? 'switching' : 'sending'
+        };
+        this.pendingObservation = request;
+        const release = () => {
+            setTimeout(() => {
+                if (this.pendingObservation === request) {
+                    this.pendingObservation = null;
+                    this.notifySpectator('observation-settled', { gameNumber: target });
+                }
+            }, 1500);
+        };
+        const fail = (delivery) => {
+            if (this.pendingObservation === request) this.pendingObservation = null;
+            this.updateGameStatus(`Could not observe game ${target}.`, 'error');
+            this.notifySpectator('observation-error', { gameNumber: target, code: delivery.code });
+            return Object.freeze({ ...delivery, gameNumber: target });
+        };
 
         if (current && current !== target) {
             this.updateGameStatus(`Switching observation from game ${current} to game ${target}...`, 'active');
             this.logToConsole(`> unobserve ${current}`);
-            this.send(`unobserve ${current}`);
+            const leaveDelivery = this.send(`unobserve ${current}`);
+            if (!leaveDelivery.ok) return fail(leaveDelivery);
             setTimeout(() => {
+                if (this.pendingObservation !== request || request.generation !== this.sessionGeneration) return;
                 this.logToConsole(`> observe ${target}`);
-                this.send(`observe ${target}`);
+                const observeDelivery = this.send(`observe ${target}`);
+                if (!observeDelivery.ok) {
+                    fail(observeDelivery);
+                    return;
+                }
+                request.status = 'sent';
+                this.notifySpectator('observation-requested', { gameNumber: target, previousGameNumber: current });
+                release();
             }, 250);
-            return;
+            return Object.freeze({ ok: true, code: 'SWITCH_REQUESTED', gameNumber: target });
         }
 
         this.updateGameStatus(`Observing game ${target}...`, 'active');
         this.logToConsole(`> observe ${target}`);
-        this.send(`observe ${target}`);
+        const delivery = this.send(`observe ${target}`);
+        if (!delivery.ok) return fail(delivery);
+        request.status = 'sent';
+        this.notifySpectator('observation-requested', { gameNumber: target, previousGameNumber: null });
+        release();
+        return Object.freeze({ ...delivery, gameNumber: target });
     },
 
     leaveObservedGame(gameNumber = null) {
@@ -1428,6 +1476,7 @@ const CaissaFICSClient = {
         this.myColor = null;
         this.gameNumber = null;
         this.pendingMove = null;
+        this.pendingObservation = null;
         this.cancelPromotionSelection(false);
         this.liveGame = this.createEmptyLiveGameState('idle');
         this.resetGameRecord();
@@ -1443,12 +1492,41 @@ const CaissaFICSClient = {
     },
 
     cancelSeek() {
-        this.pendingSeek = null;
+        const current = this.pendingSeek;
+        if (!current || (current.status === 'error' && current.operation !== 'cancel')) {
+            return Object.freeze({ ok: false, code: 'NO_PENDING_SEEK' });
+        }
+        if (current.status === 'cancel_requested') {
+            return Object.freeze({ ok: false, code: 'CANCEL_IN_PROGRESS' });
+        }
+        this.pendingSeek = {
+            ...current,
+            status: 'cancel_requested',
+            operation: 'cancel',
+            error: null,
+            deliveryCode: null
+        };
         this.updateRoomStatus('Canceling seek...');
         this.renderRoomTables();
         this.logToConsole('> unseek');
-        this.send('unseek');
-        setTimeout(() => this.refreshLobby(true), 1200);
+        const delivery = this.send('unseek');
+        if (!delivery.ok) {
+            this.pendingSeek = {
+                ...this.pendingSeek,
+                status: 'error',
+                operation: 'cancel',
+                error: 'The cancellation command was not delivered.',
+                deliveryCode: delivery.code
+            };
+            this.updateRoomStatus('Seek cancellation was not delivered.');
+            this.renderRoomTables();
+            return Object.freeze({ ...delivery, state: 'error' });
+        }
+        setTimeout(() => {
+            if (this.pendingSeek?.operation === 'cancel') this.pendingSeek = null;
+            this.refreshLobby(true);
+        }, 1200);
+        return Object.freeze({ ...delivery, state: 'cancel_requested' });
     },
 
     isCurrentFicsUser(name) {
@@ -1530,12 +1608,12 @@ const CaissaFICSClient = {
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'fics-table-action';
-            button.textContent = 'Watch';
+            const own = this.isCurrentFicsUser(table.white) || this.isCurrentFicsUser(table.black);
+            const current = this.liveGame.observedGame && String(this.liveGame.gameNumber) === String(table.number);
+            button.textContent = own ? 'Playing' : current ? 'Watching' : 'Watch';
+            button.disabled = own || current;
             button.title = table.observers ? `${table.observers} watching` : 'Watch live game';
-            button.addEventListener('click', () => {
-                this.logToConsole(`> observe ${table.number}`);
-                this.send(`observe ${table.number}`);
-            });
+            if (!button.disabled) button.addEventListener('click', () => this.switchObservedGame(table.number));
             card.appendChild(button);
             return card;
         }));
@@ -2154,23 +2232,94 @@ const CaissaFICSClient = {
     },
 
     // ===== GAME COMMANDS =====
-    seek(time, inc) {
-        if (!this.authenticated) {
-            this.logToConsole('❌ Not connected to FICS');
-            return;
+    normalizeSeekRequest(options = {}) {
+        const minutes = Number(options.minutes);
+        const increment = Number(options.increment);
+        if (!Number.isInteger(minutes) || minutes < 1 || minutes > 180) {
+            return Object.freeze({ ok: false, code: 'INVALID_TIME', message: 'Time must be a whole number from 1 to 180 minutes.' });
+        }
+        if (!Number.isInteger(increment) || increment < 0 || increment > 60) {
+            return Object.freeze({ ok: false, code: 'INVALID_INCREMENT', message: 'Increment must be a whole number from 0 to 60 seconds.' });
         }
 
-        const command = `seek ${time} ${inc}`;
-        this.logToConsole(`> ${command}`);
+        let rated = null;
+        if (options.rated === true || options.rated === 'rated') rated = true;
+        else if (options.rated === false || ['unrated', 'casual'].includes(options.rated)) rated = false;
+        else if (options.rated !== undefined && options.rated !== null) {
+            return Object.freeze({ ok: false, code: 'INVALID_RATING_MODE', message: 'Choose Rated or Casual.' });
+        }
+
+        const requestedColor = String(options.color ?? 'random').toLowerCase();
+        const color = ['random', 'either', ''].includes(requestedColor) ? 'random' : requestedColor;
+        if (!['random', 'white', 'black'].includes(color)) {
+            return Object.freeze({ ok: false, code: 'INVALID_COLOR', message: 'Choose White, Random, or Black.' });
+        }
+        return Object.freeze({ ok: true, minutes, increment, rated, color });
+    },
+
+    buildSeekCommand(request, includePreferences = true) {
+        const parts = ['seek', request.minutes, request.increment];
+        if (includePreferences && typeof request.rated === 'boolean') parts.push(request.rated ? 'rated' : 'unrated');
+        if (includePreferences && request.color !== 'random') parts.push(request.color);
+        return parts.join(' ');
+    },
+
+    requestSeek(options = {}) {
+        if (!this.authenticated) {
+            this.logToConsole('❌ Not connected to FICS');
+            return Object.freeze({ ok: false, code: 'NOT_CONNECTED', state: 'error' });
+        }
+        if (this.gameActive || this.liveGame?.status === 'playing' || this.liveGame?.status === 'observing') {
+            return Object.freeze({ ok: false, code: 'ACTIVE_GAME', state: 'error' });
+        }
+        const existingActive = this.pendingSeek
+            && (this.pendingSeek.status !== 'error' || this.pendingSeek.operation === 'cancel');
+        if (existingActive) {
+            return Object.freeze({ ok: false, code: 'SEEK_ALREADY_PENDING', state: this.pendingSeek.status || 'pending' });
+        }
+
+        const normalized = this.normalizeSeekRequest(options);
+        if (!normalized.ok) return Object.freeze({ ...normalized, state: 'error' });
+        const includePreferences = options.includePreferences !== false;
+        const command = this.buildSeekCommand(normalized, includePreferences);
         this.pendingSeek = {
-            timeControl: `${time}+${inc}`,
-            label: 'Your active seek'
+            minutes: normalized.minutes,
+            increment: normalized.increment,
+            timeControl: `${normalized.minutes}+${normalized.increment}`,
+            rated: normalized.rated,
+            color: normalized.color,
+            label: String(options.label || 'Your active seek'),
+            status: 'creating',
+            operation: 'create',
+            error: null,
+            deliveryCode: null
         };
+        this.logToConsole(`> ${command}`);
         this.renderRoomTables();
-        this.send({
-            type: 'command',
-            text: command
-        });
+        const delivery = this.send({ type: 'command', text: command });
+        if (!delivery.ok) {
+            this.pendingSeek = {
+                ...this.pendingSeek,
+                status: 'error',
+                error: 'The seek command was not delivered.',
+                deliveryCode: delivery.code
+            };
+            this.updateRoomStatus('Create Table was not delivered.');
+            this.renderRoomTables();
+            return Object.freeze({ ...delivery, state: 'error' });
+        }
+        this.pendingSeek = {
+            ...this.pendingSeek,
+            status: 'pending',
+            deliveryCode: delivery.code
+        };
+        this.updateRoomStatus('Seek sent. Waiting for a FICS opponent.');
+        this.renderRoomTables();
+        return Object.freeze({ ...delivery, state: 'pending' });
+    },
+
+    seek(time, inc) {
+        return this.requestSeek({ minutes: time, increment: inc, includePreferences: false });
     },
 
     sendMove(move) {
