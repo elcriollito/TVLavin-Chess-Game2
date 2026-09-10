@@ -83,8 +83,7 @@
 }
 
 #ficsSection.fics-rd2-enabled .fics-game-controls {
-    width: min(100%, calc(100dvh - 245px), 780px);
-    margin: 10px auto 0;
+    display: none !important;
 }
 
 #ficsSection.fics-rd2-enabled .fics-rd2-workspace {
@@ -224,6 +223,221 @@
 
 #ficsSection.fics-rd2-enabled .fics-rd3-dynamic-body[hidden] {
     display: none;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd2-workspace-body[data-game-mode] {
+    overflow: hidden;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-game {
+    display: grid;
+    gap: 14px;
+    min-width: 0;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-game-header {
+    display: grid;
+    gap: 4px;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-mode {
+    color: var(--accent-color);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-game-title,
+#ficsSection.fics-rd2-enabled .fics-rd4-game-meta,
+#ficsSection.fics-rd2-enabled .fics-rd4-moves-title,
+#ficsSection.fics-rd2-enabled .fics-rd4-moves-empty,
+#ficsSection.fics-rd2-enabled .fics-rd4-record-note {
+    margin: 0;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-game-title {
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: 18px;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-game-meta,
+#ficsSection.fics-rd2-enabled .fics-rd4-record-note {
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-result {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 5px 9px;
+    margin-top: 7px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-result-title {
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-result-detail {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-moves {
+    display: grid;
+    min-height: 0;
+    border-block: 1px solid var(--border-color);
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-moves-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 4px;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-moves-title {
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-move-count {
+    color: var(--text-tertiary);
+    font-size: 11px;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-move-scroll {
+    max-height: clamp(220px, 43dvh, 480px);
+    min-height: 180px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    background: color-mix(in srgb, var(--bg-primary) 55%, transparent);
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-move-scroll:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--accent-color) 68%, white);
+    outline-offset: -3px;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-move-row {
+    display: grid;
+    grid-template-columns: 3.2em minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    min-height: 34px;
+    align-items: center;
+    padding: 5px 8px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-move-row:nth-child(odd) {
+    background: rgba(148, 163, 184, 0.06);
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-move-row.is-header {
+    position: sticky;
+    z-index: 1;
+    top: 0;
+    min-height: 30px;
+    background: var(--bg-tertiary);
+    color: var(--text-tertiary);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-move-number,
+#ficsSection.fics-rd2-enabled .fics-rd4-san.is-missing {
+    color: var(--text-tertiary);
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-san {
+    overflow: hidden;
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-moves-empty {
+    padding: 24px 12px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    text-align: center;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-record-note {
+    padding: 9px 4px;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-actions,
+#ficsSection.fics-rd2-enabled .fics-rd4-confirm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-action {
+    min-height: 38px;
+    padding: 7px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-action.is-primary {
+    border-color: color-mix(in srgb, var(--accent-color) 82%, white);
+    background: var(--accent-color);
+    color: #111827;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-action.is-danger {
+    border-color: rgba(248, 113, 113, 0.58);
+    color: #fecaca;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-action:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--accent-color) 68%, white);
+    outline-offset: 2px;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-action:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-confirm {
+    flex-basis: 100%;
+    padding: 9px;
+    border: 1px solid rgba(248, 113, 113, 0.38);
+    border-radius: 9px;
+    background: rgba(127, 29, 29, 0.18);
+}
+
+#ficsSection.fics-rd2-enabled .fics-rd4-confirm-copy {
+    margin-right: auto;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 700;
 }
 
 #ficsSection.fics-rd2-enabled .fics-rd3-title,
@@ -491,6 +705,10 @@
     #ficsSection.fics-rd2-enabled .fics-game-controls {
         width: min(100%, 720px);
     }
+
+    #ficsSection.fics-rd2-enabled .fics-rd4-move-scroll {
+        max-height: 420px;
+    }
 }
 
 @media (max-width: 768px) {
@@ -533,6 +751,14 @@
     #ficsSection.fics-rd2-enabled .fics-rd3-time-row {
         gap: 8px;
     }
+
+    #ficsSection.fics-rd2-enabled .fics-rd4-move-scroll {
+        max-height: min(360px, 48dvh);
+    }
+
+    #ficsSection.fics-rd2-enabled .fics-rd4-actions {
+        align-items: stretch;
+    }
 }
 
 @media (max-width: 950px) and (max-height: 480px) and (orientation: landscape) and (min-width: 720px) {
@@ -557,6 +783,20 @@
 
     #ficsSection.fics-rd2-enabled .fics-rd2-workspace-body {
         min-height: 180px;
+    }
+
+    #ficsSection.fics-rd2-enabled .fics-rd4-game {
+        gap: 9px;
+    }
+
+    #ficsSection.fics-rd2-enabled .fics-rd4-move-scroll {
+        min-height: 108px;
+        max-height: 32dvh;
+    }
+
+    #ficsSection.fics-rd2-enabled .fics-rd4-move-row {
+        min-height: 30px;
+        padding-block: 3px;
     }
 }
 

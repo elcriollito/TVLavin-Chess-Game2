@@ -1,7 +1,7 @@
 (function installFicsPresentationContract(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.1.0';
+    const SCHEMA_VERSION = '1.2.0';
     const PRODUCT_STATES = Object.freeze({
         DISCONNECTED: 'DISCONNECTED',
         AUTHENTICATING: 'AUTHENTICATING',
@@ -153,6 +153,15 @@
 
     function derivePresentation(productState, options = {}) {
         const requestedLobbyView = normalizeLobbyView(options);
+        if (productState === PRODUCT_STATES.GAME_OVER && options.dismissEndedGame === true) {
+            return {
+                bodyMode: 'LOBBY',
+                activeTab: requestedLobbyView || 'tables',
+                primaryGameMode: false,
+                gameModeAvailable: false,
+                returnToGameAvailable: false
+            };
+        }
         const gameModeAvailable = ACTIVE_GAME_STATES.has(productState);
         if (gameModeAvailable && requestedLobbyView) {
             return {
@@ -226,7 +235,7 @@
         const playing = !terminal && !observed
             && (liveGame.gameActive === true || canonical.gameActive === true || liveGame.status === 'playing');
         const pgnStartFen = textOrNull(canonical.pgnStartFen);
-        const pgnAvailable = typeof canonical.buildPGN === 'function' && Boolean(hasRetainedGame || moves.length || terminal);
+        const pgnAvailable = typeof canonical.buildPGN === 'function' && Boolean(moves.length || terminal);
         const result = copyResult(liveGame.resultModel, liveGame.result);
         const presentation = derivePresentation(productState, options);
         const commandChannelAvailable = authenticated && canonical.connected === true
@@ -296,6 +305,11 @@
                     mayBePartial: pgnAvailable && (observed || Boolean(pgnStartFen && pgnStartFen !== STANDARD_START_FEN)
                         || retainedWhileConnectionUnavailable)
                 },
+                actions: {
+                    resignInFlight: canonical.pendingGameActions?.resign === true,
+                    drawInFlight: canonical.pendingGameActions?.draw === true,
+                    leaveObservationInFlight: canonical.observationExitInFlight === true
+                },
                 retainedWhileConnectionUnavailable,
                 authoritativeForPresentation: authenticated && ACTIVE_GAME_STATES.has(productState)
             },
@@ -309,9 +323,12 @@
             capabilities: {
                 playersSupported: false,
                 specificPlayerChallengesSupported: false,
-                resign: commandChannelAvailable && productState === PRODUCT_STATES.PLAYING,
-                offerDraw: commandChannelAvailable && productState === PRODUCT_STATES.PLAYING,
-                returnFromObservation: commandChannelAvailable && productState === PRODUCT_STATES.OBSERVING,
+                resign: commandChannelAvailable && productState === PRODUCT_STATES.PLAYING
+                    && canonical.pendingGameActions?.resign !== true,
+                offerDraw: commandChannelAvailable && productState === PRODUCT_STATES.PLAYING
+                    && canonical.pendingGameActions?.draw !== true,
+                returnFromObservation: commandChannelAvailable && productState === PRODUCT_STATES.OBSERVING
+                    && canonical.observationExitInFlight !== true,
                 downloadPGN: pgnAvailable,
                 abort: false,
                 observeTable: commandChannelAvailable && !localGameActive && !seekPending,

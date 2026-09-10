@@ -8,6 +8,7 @@
 console.log('[FICS Client] Module loaded');
 
 const FICS_STANDARD_START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+const FICS_PLAYED_GAME_COMMANDS = Object.freeze({ resign: 'resign', draw: 'draw' });
 
 const CaissaFICSClient = {
     // WebSocket connection
@@ -64,6 +65,8 @@ const CaissaFICSClient = {
     activeTables: [],
     pendingSeek: null,
     pendingObservation: null,
+    pendingGameActions: { resign: false, draw: false },
+    observationExitInFlight: false,
     lobbyRefreshTimer: null,
     lobbyRefreshInFlight: false,
     lobbyLastRefreshAt: 0,
@@ -607,6 +610,8 @@ const CaissaFICSClient = {
         this.opponent = null;
         this.ficsUsername = 'Guest';
         this.pendingMove = null;
+        this.pendingGameActions = { resign: false, draw: false };
+        this.observationExitInFlight = false;
         this.cancelPromotionSelection(false);
         this.liveGame = this.createEmptyLiveGameState('disconnected');
         this.resetGameRecord();
@@ -932,6 +937,7 @@ const CaissaFICSClient = {
         this.liveGame.resultModel = resultModel;
         this.liveGame.status = 'ended';
         this.pendingMove = null;
+        this.pendingGameActions = { resign: false, draw: false };
         this.cancelPromotionSelection(false);
         this.pgnResult = resultModel.result;
         this.updateGameStatus(resultModel.summary, 'ended');
@@ -1456,14 +1462,30 @@ const CaissaFICSClient = {
             : this.liveGame?.gameNumber !== null && this.liveGame?.gameNumber !== undefined
                 ? String(this.liveGame.gameNumber)
                 : '';
-        if (!this.authenticated || !target || !this.liveGame?.observedGame) return false;
+        const commandChannelAvailable = this.authenticated && this.connected
+            && String(this.connectionState || '').toLowerCase() === 'connected';
+        if (!commandChannelAvailable) return Object.freeze({ ok: false, code: 'CONNECTION_UNAVAILABLE' });
+        if (!target || !this.liveGame?.observedGame) {
+            return Object.freeze({ ok: false, code: 'OBSERVATION_UNAVAILABLE' });
+        }
+        if (this.observationExitInFlight) {
+            return Object.freeze({ ok: false, code: 'ACTION_IN_PROGRESS' });
+        }
 
+        this.observationExitInFlight = true;
         this.updateGameStatus(`Leaving observed game ${target}...`, 'active');
         this.logToConsole(`> unobserve ${target}`);
-        this.send(`unobserve ${target}`);
+        const delivery = this.send(`unobserve ${target}`);
+        if (!delivery.ok) {
+            this.observationExitInFlight = false;
+            this.notifySpectator('game-action-delivery', {
+                action: 'leave-observation', ok: false, code: delivery.code, serverAcknowledged: false
+            });
+            return Object.freeze({ ...delivery, action: 'leave-observation', serverAcknowledged: false });
+        }
         this.clearObservedGameState(target);
         setTimeout(() => this.refreshLobby(true), 1200);
-        return true;
+        return Object.freeze({ ...delivery, action: 'leave-observation', serverAcknowledged: false });
     },
 
     clearObservedGameState(gameNumber = null) {
@@ -1477,6 +1499,7 @@ const CaissaFICSClient = {
         this.gameNumber = null;
         this.pendingMove = null;
         this.pendingObservation = null;
+        this.observationExitInFlight = false;
         this.cancelPromotionSelection(false);
         this.liveGame = this.createEmptyLiveGameState('idle');
         this.resetGameRecord();
@@ -1741,6 +1764,7 @@ const CaissaFICSClient = {
         this.lastMoveKey = null;
         this.pgnResult = '*';
         this.pgnStartFen = null;
+        this.pendingGameActions = { resign: false, draw: false };
         this.renderMoveList();
     },
 
@@ -1874,16 +1898,26 @@ const CaissaFICSClient = {
     },
 
     downloadPGN() {
-        const pgn = this.buildPGN();
-        const blob = new Blob([pgn], { type: 'application/x-chess-pgn' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `fics-game-${this.liveGame.gameNumber || 'live'}.pgn`;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
+        const terminal = this.liveGame?.resultModel?.terminal === true || this.liveGame?.status === 'ended'
+            || ['1-0', '0-1', '1/2-1/2'].includes(this.liveGame?.result);
+        if (!this.moveHistory.length && !terminal) {
+            return Object.freeze({ ok: false, code: 'PGN_UNAVAILABLE' });
+        }
+        try {
+            const pgn = this.buildPGN();
+            const blob = new Blob([pgn], { type: 'application/x-chess-pgn' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `fics-game-${this.liveGame.gameNumber || 'live'}.pgn`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+            return Object.freeze({ ok: true, code: 'DOWNLOADED', filename: link.download });
+        } catch {
+            return Object.freeze({ ok: false, code: 'DOWNLOAD_FAILED' });
+        }
     },
 
     extractResult(line) {
@@ -2335,16 +2369,54 @@ const CaissaFICSClient = {
         });
     },
 
+    runPlayedGameAction(action) {
+        const command = FICS_PLAYED_GAME_COMMANDS[action];
+        if (!command) {
+            return Object.freeze({ ok: false, code: 'ACTION_UNAVAILABLE', action, serverAcknowledged: false });
+        }
+        const commandChannelAvailable = this.authenticated && this.connected
+            && String(this.connectionState || '').toLowerCase() === 'connected';
+        if (!commandChannelAvailable) {
+            return Object.freeze({ ok: false, code: 'CONNECTION_UNAVAILABLE', action, serverAcknowledged: false });
+        }
+        const playing = this.gameActive && this.liveGame?.gameActive === true
+            && this.liveGame?.observedGame !== true && this.liveGame?.status !== 'ended';
+        if (!playing) {
+            return Object.freeze({ ok: false, code: 'ACTION_UNAVAILABLE', action, serverAcknowledged: false });
+        }
+        if (this.pendingGameActions?.[action]) {
+            return Object.freeze({ ok: false, code: 'ACTION_IN_PROGRESS', action, serverAcknowledged: false });
+        }
+
+        this.pendingGameActions = { ...this.pendingGameActions, [action]: true };
+        this.notifySpectator('game-action-delivery', { action, ok: null, code: 'SENDING', serverAcknowledged: false });
+        const delivery = this.send({ type: 'command', text: command });
+        if (!delivery.ok) {
+            this.pendingGameActions = { ...this.pendingGameActions, [action]: false };
+            this.notifySpectator('game-action-delivery', {
+                action, ok: false, code: delivery.code, serverAcknowledged: false
+            });
+            return Object.freeze({ ...delivery, action, serverAcknowledged: false });
+        }
+
+        this.logToConsole(`> ${command}`);
+        this.notifySpectator('game-action-delivery', {
+            action, ok: true, code: delivery.code, serverAcknowledged: false
+        });
+        setTimeout(() => {
+            if (!this.pendingGameActions?.[action]) return;
+            this.pendingGameActions = { ...this.pendingGameActions, [action]: false };
+            this.notifySpectator('game-action-ready', { action });
+        }, 1500);
+        return Object.freeze({ ...delivery, action, serverAcknowledged: false });
+    },
+
     resign() {
-        if (!this.gameActive) return;
-        this.send({ type: 'command', text: 'resign' });
-        this.logToConsole('> resign');
+        return this.runPlayedGameAction('resign');
     },
 
     offerDraw() {
-        if (!this.gameActive) return;
-        this.send({ type: 'command', text: 'draw' });
-        this.logToConsole('> draw');
+        return this.runPlayedGameAction('draw');
     },
 
     abort() {

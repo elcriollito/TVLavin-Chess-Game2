@@ -353,6 +353,64 @@ test('PGN is always buildable, while an observed mid-game record uses SetUp and 
     assert.match(partial, /20\. \.\.\. Kh2 \*/);
 });
 
+test('played-game actions report delivery, reject duplicates, and fail closed without a command channel', () => {
+    const { client, FakeWebSocket, timeoutTasks } = createHarness();
+    const socket = new FakeWebSocket(client.gatewayUrl);
+    socket.readyState = FakeWebSocket.OPEN;
+    client.ws = socket;
+    client.connected = true;
+    client.authenticated = true;
+    client.connectionState = 'connected';
+    client.gameActive = true;
+    client.liveGame = { ...client.liveGame, gameActive: true, observedGame: false, status: 'playing' };
+    client.logToConsole = () => {};
+
+    assert.equal(client.runPlayedGameAction('abort').code, 'ACTION_UNAVAILABLE');
+    assert.deepEqual(socket.sent, []);
+    const first = client.resign();
+    const duplicate = client.resign();
+    assert.equal(first.ok, true);
+    assert.equal(first.serverAcknowledged, false);
+    assert.equal(duplicate.code, 'ACTION_IN_PROGRESS');
+    assert.deepEqual(socket.sent, ['resign']);
+
+    timeoutTasks.find((task) => task.delay === 1500).callback();
+    assert.equal(client.offerDraw().ok, true);
+    assert.deepEqual(socket.sent, ['resign', 'draw']);
+
+    client.connectionState = 'reconnecting';
+    client.pendingGameActions = { resign: false, draw: false };
+    assert.equal(client.resign().code, 'CONNECTION_UNAVAILABLE');
+    assert.deepEqual(socket.sent, ['resign', 'draw']);
+});
+
+test('observation exit clears canonical state only after successful unobserve delivery', () => {
+    const { client, FakeWebSocket } = createHarness();
+    const socket = new FakeWebSocket(client.gatewayUrl);
+    client.ws = socket;
+    client.connected = true;
+    client.authenticated = true;
+    client.connectionState = 'connected';
+    client.liveGame = { ...client.liveGame, gameNumber: 91, currentFen: 'observed-fen', observedGame: true, status: 'observing' };
+    prepareLiveRendering(client);
+    client.updateGameStatus = () => {};
+    client.logToConsole = () => {};
+    client.refreshLobby = () => {};
+
+    socket.readyState = FakeWebSocket.CLOSED;
+    const failed = client.leaveObservedGame(91);
+    assert.equal(failed.ok, false);
+    assert.equal(client.liveGame.observedGame, true);
+
+    socket.readyState = FakeWebSocket.OPEN;
+    const delivered = client.leaveObservedGame(91);
+    assert.equal(delivered.ok, true);
+    assert.equal(delivered.serverAcknowledged, false);
+    assert.deepEqual(socket.sent, ['unobserve 91']);
+    assert.equal(client.liveGame.status, 'idle');
+    assert.equal(client.moveHistory.length, 0);
+});
+
 test('console buffering is capped and expansion remains legacy DOM presentation state', () => {
     const { client } = createHarness();
     client.maxBufferSize = 3;

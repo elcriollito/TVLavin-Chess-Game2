@@ -1410,7 +1410,8 @@
                 this.leaveTableInProgress = true;
                 try {
                     if (typeof client.leaveObservedGame === 'function') {
-                        sentUnobserve = client.leaveObservedGame(gameNumber);
+                        const leaveResult = client.leaveObservedGame(gameNumber);
+                        sentUnobserve = leaveResult === true || leaveResult?.ok === true;
                     } else {
                         client.send?.(`unobserve ${gameNumber}`);
                         sentUnobserve = true;

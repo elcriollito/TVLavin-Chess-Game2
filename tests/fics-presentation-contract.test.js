@@ -205,6 +205,53 @@ test('orientation, ratings, clocks, and observed partial-PGN risk are projected 
     assert.equal(snapshot.capabilities.downloadPGN, true);
 });
 
+test('PGN availability requires captured moves or a terminal result and action locks project fail closed', () => {
+    const client = baseClient({
+        connected: true, authenticated: true, connectionState: 'connected', gameActive: true,
+        pendingGameActions: { resign: true, draw: false },
+        liveGame: { ...baseClient().liveGame, gameNumber: 75, currentFen: 'game-fen', gameActive: true,
+            status: 'playing', relation: 1, userColor: 'white' }
+    });
+    let snapshot = load(client).getSnapshot();
+    assert.equal(snapshot.game.pgn.available, false);
+    assert.equal(snapshot.capabilities.downloadPGN, false);
+    assert.equal(snapshot.game.actions.resignInFlight, true);
+    assert.equal(snapshot.capabilities.resign, false);
+    assert.equal(snapshot.capabilities.offerDraw, true);
+
+    client.moveHistory = [{ moveNumber: 1, color: 'white', san: 'e4' }];
+    snapshot = load(client).getSnapshot();
+    assert.equal(snapshot.game.pgn.available, true);
+    assert.equal(snapshot.capabilities.downloadPGN, true);
+});
+
+test('normalized terminal result remains projected without shell protocol evidence', () => {
+    const resultModel = {
+        result: '0-1', winner: 'BlackPlayer', loser: 'WhitePlayer', terminationReason: 'CHECKMATE',
+        terminal: true, summary: 'BlackPlayer won by checkmate.'
+    };
+    const client = baseClient({
+        connected: true, authenticated: true, connectionState: 'connected', pgnResult: '0-1',
+        liveGame: { ...baseClient().liveGame, gameNumber: 76, whiteName: 'WhitePlayer', blackName: 'BlackPlayer',
+            currentFen: 'terminal-fen', status: 'ended', result: '0-1', resultModel }
+    });
+    const snapshot = load(client).getSnapshot();
+    assert.equal(snapshot.productState, 'GAME_OVER');
+    assert.deepEqual({ ...snapshot.game.result }, resultModel);
+    assert.equal(snapshot.presentation.primaryGameMode, true);
+    assert.equal(snapshot.capabilities.resign, false);
+    assert.equal(snapshot.capabilities.offerDraw, false);
+
+    const dismissed = load(client).getSnapshot({ requestedLobbyView: 'seek', dismissEndedGame: true });
+    assert.equal(dismissed.productState, 'GAME_OVER');
+    assert.equal(dismissed.presentation.bodyMode, 'LOBBY');
+    assert.equal(dismissed.presentation.activeTab, 'seek');
+    assert.equal(dismissed.presentation.gameModeAvailable, false);
+    assert.equal(dismissed.presentation.returnToGameAvailable, false);
+    assert.equal(dismissed.capabilities.createSeek, true);
+    assert.equal(dismissed.game.result.result, '0-1');
+});
+
 test('presentation contract owns no transport, board, clock loop, game store, seek store, or DOM rendering', () => {
     assert.doesNotMatch(contractSource, /new\s+WebSocket|WebSocket\s*\(|new\s+Chess|Chessboard\s*\(|setInterval|requestAnimationFrame|createElement|querySelector|classList|\.send\s*\(/);
     assert.doesNotMatch(contractSource, /\b(?:let|var)\s+(?:liveGame|gameActive|activeTables|seekActions|pendingSeek|whiteClock|blackClock)\b/);

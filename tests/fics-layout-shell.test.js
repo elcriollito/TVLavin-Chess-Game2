@@ -50,10 +50,31 @@ test('tab state is presentation-only and derives semantics through CaissaFICSPre
     assert.doesNotMatch(shell, /CaissaFICSClient\.(?:liveGame|gameActive|activeTables|seekActions|pendingSeek|connectionState|authenticated)\s*=/);
 });
 
-test('Players and primary Game Mode placeholders remain truthful', () => {
+test('Players remains truthful and primary Game Mode renders from the projection', () => {
     assert.match(shell, /A complete FICS player directory is not available yet\. No player list is shown\./);
     assert.match(shell, /if \(baseView\.gameModeAvailable && !lastGameModeAvailable\) selectedLobbyView = null/);
     assert.match(shell, /mounted\.returnToGame\.hidden = !view\.returnToGameAvailable/);
+    assert.match(shell, /if \(view\.primaryGameMode\) dynamic\.append\(renderGame\(snapshot\)\)/);
+    assert.match(shell, /snapshot\.game\.moves/);
+    assert.match(shell, /move number|fics-rd4-move-number/i);
+});
+
+test('Game Mode actions use only narrow canonical client methods and omit unapproved controls', () => {
+    for (const method of ['resign', 'offerDraw', 'leaveObservedGame', 'downloadPGN']) {
+        assert.match(shell, new RegExp(`CaissaFICSClient\\?\\.${method}\\?\\.`));
+    }
+    assert.match(shell, /Confirm Resign/);
+    assert.match(shell, /serverAcknowledged: false|FICS confirmation is pending/);
+    assert.doesNotMatch(shell, /\.send\s*\(|new\s+WebSocket|\babort\b|\bMenu\b|\bSettings\b/i);
+});
+
+test('Game Mode has an internal notation scroller and presentation-only ended-game return', () => {
+    assert.match(styles, /\.fics-rd4-move-scroll\s*\{[^}]*overflow-y:\s*auto/s);
+    assert.match(styles, /scrollbar-gutter:\s*stable/);
+    assert.match(shell, /Return to Lobby/);
+    assert.match(shell, /dismissEndedGame\(snapshot\.game\)/);
+    assert.match(shell, /dismissedEndedGameKey = gameKey\(game\)/);
+    assert.match(shell, /signature === lastGameMoveSignature \? gameMoveScrollTop : scroller\.scrollHeight/);
 });
 
 test('Tables body renders only the read-only presentation snapshot and uses the canonical observe method', () => {
@@ -101,6 +122,7 @@ test('responsive CSS is board-first and resize delegates to the existing board i
     assert.match(styles, /@media \(max-width: 1100px\)[\s\S]*grid-template-columns: minmax\(0, 1fr\)/);
     assert.match(styles, /@media \(max-width: 768px\)/);
     assert.match(styles, /orientation: landscape/);
+    assert.match(styles, /\.fics-rd4-move-scroll/);
     assert.doesNotMatch(styles, /\bzoom\s*:/);
     assert.match(shell, /new root\.ResizeObserver\(scheduleBoardResize\)/);
     assert.match(shell, /CaissaFICSClient\?\.board\?\.resize\?\.\(\)/);
