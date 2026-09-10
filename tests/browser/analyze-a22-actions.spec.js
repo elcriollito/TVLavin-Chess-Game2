@@ -328,11 +328,152 @@ test('V2.0.1 Review completes through the existing Stockfish analysis owner', as
     expect(after.results).toBe(2);
     expect(after.moves).toEqual(['e4', 'e5']);
     expect(after.harness.workersCreated - before.workersCreated).toBe(1);
-    expect(after.harness.workersTerminated - before.workersTerminated).toBe(1);
-    expect(after.engine).toBeNull();
+    expect(after.harness.workersTerminated - before.workersTerminated).toBe(0);
+    expect(after.engine).not.toBeNull();
     expect(after.owner).toBeNull();
     await expect(page.locator('#analyzeReviewBtn')).toHaveAttribute('aria-pressed', 'true');
     runtime.assertClean();
+});
+
+test('V2.0.1 live to 33-ply Review to live is sequential on the same SF18 worker', async ({ page }) => {
+    const runtime = monitorRuntime(page);
+    await openAnalyze(page);
+    await page.evaluate(() => {
+        AnalyzeSection.loadGameFromPgn(
+            '[Event "Long review"]\n[White "Alexander"]\n[Black "CAISSA"]\n[Result "*"]\n\n'
+                + '1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 '
+                + '7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7 11. c4 c6 12. cxb5 axb5 '
+                + '13. Nc3 Bb7 14. Bg5 b4 15. Nb1 h6 16. Bh4 Re8 17. Nbd2 *',
+            '33-ply review fixture'
+        );
+        AnalyzeSection.jumpToMove(11);
+        window.__reviewProgress = [];
+        const originalProgress = AnalyzeSection.updateReviewProgress;
+        AnalyzeSection.updateReviewProgress = function (reviewed, total) {
+            window.__reviewProgress.push([reviewed, total]);
+            return originalProgress.call(this, reviewed, total);
+        };
+    });
+    await page.locator('#analyzeEngineToggle').click();
+    await expect(page.locator('.caissa-analyze-v2__engine-line')).toHaveCount(4);
+    const before = await page.evaluate(() => {
+        window.__reviewEngine = AnalyzeSection.analysisEngine;
+        window.__reviewGame = AnalyzeSection.loadedGame.game;
+        window.__reviewBoard = AnalyzeSection.board;
+        return { harness: window.__caissaPlayHarness.snapshot(), cursor: AnalyzeSection.currentMoveIndex };
+    });
+
+    await page.locator('#analyzeReviewBtn').click();
+    await expect.poll(() => page.evaluate(() => AnalyzeSection.analysisPhase), { timeout: 15_000 }).toBe('complete');
+    await expect.poll(() => page.evaluate(() => AnalyzeSection.liveEngineOwner), { timeout: 5_000 }).toBe('analyze-live');
+    await expect(page.locator('.caissa-analyze-v2__engine-line')).toHaveCount(4);
+
+    const after = await page.evaluate(() => ({
+        harness: window.__caissaPlayHarness.snapshot(),
+        sameEngine: AnalyzeSection.analysisEngine === window.__reviewEngine,
+        sameGame: AnalyzeSection.loadedGame.game === window.__reviewGame,
+        sameBoard: AnalyzeSection.board === window.__reviewBoard,
+        cursor: AnalyzeSection.currentMoveIndex,
+        results: AnalyzeSection.analysisResults.length,
+        metrics: AnalyzeSection.lastReviewMetrics,
+        progress: window.__reviewProgress,
+        displayedHistoryLength: AnalyzeSection.loadedGame.game.history().length,
+        sourceHistoryLength: AnalyzeSection.getLoadedMoves().length
+    }));
+    const commands = after.harness.workerMessages.slice(before.harness.workerMessages.length);
+    expect(after.sameEngine && after.sameGame && after.sameBoard).toBe(true);
+    expect(after.cursor).toBe(before.cursor);
+    expect(after.displayedHistoryLength).toBe(12);
+    expect(after.sourceHistoryLength).toBe(33);
+    expect(after.results).toBe(33);
+    expect(after.metrics).toMatchObject({
+        status: 'complete', plies: 33, positions: 34, completedPositions: 34,
+        depth: 12, retryDepth: 8, timeouts: 0, retries: 0
+    });
+    expect(after.progress.some(([reviewed, total]) => reviewed > 0 && reviewed < total)).toBe(true);
+    expect(after.progress.at(-1)).toEqual([33, 33]);
+    expect(after.harness.workersCreated).toBe(before.harness.workersCreated);
+    expect(after.harness.workersTerminated).toBe(before.harness.workersTerminated);
+    expect(commands.filter(command => command === 'go depth 12')).toHaveLength(34);
+    expect(commands).not.toContain('go depth 8');
+    expect(commands.at(-1)).toBe('go infinite');
+    expect(commands.slice(-3)[0]).toBe('setoption name MultiPV value 4');
+    expect(commands.filter(command => command === 'setoption name MultiPV value 1').length).toBeGreaterThanOrEqual(34);
+    await expect(page.locator('.caissa-analyze-v2__notation')).not.toContainText('+0.');
+    await expect(page.locator('#analyzeReviewBtn')).toHaveAttribute('aria-pressed', 'true');
+    runtime.assertClean();
+});
+
+test('V2.0.1 Review timeout fails explicitly, restores live, and can be retried', async ({ page }) => {
+    await openAnalyze(page);
+    await page.evaluate(() => AnalyzeSection.loadGameFromPgn(
+        '[Event "Review recovery"]\n[White "Alexander"]\n[Black "CAISSA"]\n[Result "*"]\n\n1. e4 e5 *',
+        'Review recovery fixture'
+    ));
+    await page.locator('#analyzeEngineToggle').click();
+    await expect(page.locator('.caissa-analyze-v2__engine-line')).toHaveCount(4);
+    const before = await page.evaluate(() => {
+        window.__reviewRecoveryEngine = AnalyzeSection.analysisEngine;
+        AnalyzeSection.reviewPositionTimeoutMs = 60;
+        window.__caissaPlayHarness.configure({ autoReply: false });
+        return window.__caissaPlayHarness.snapshot();
+    });
+
+    await page.locator('#analyzeReviewBtn').click();
+    await expect.poll(() => page.evaluate(() => AnalyzeSection.analysisPhase), { timeout: 5_000 }).toBe('failed');
+    await expect.poll(() => page.evaluate(() => AnalyzeSection.liveEngineOwner), { timeout: 5_000 }).toBe('analyze-live');
+    await expect(page.locator('#analyzeReviewBtn')).toContainText('Retry Review');
+    await expect(page.locator('#analyzeReviewBtn')).not.toHaveClass(/caissa-ui-button-loading/);
+    const failed = await page.evaluate(() => ({
+        harness: window.__caissaPlayHarness.snapshot(),
+        sameEngine: AnalyzeSection.analysisEngine === window.__reviewRecoveryEngine,
+        live: AnalyzeSection.liveEngineEnabled,
+        analyzing: AnalyzeSection.isAnalyzing,
+        metrics: AnalyzeSection.lastReviewMetrics
+    }));
+    expect(failed.sameEngine).toBe(true);
+    expect(failed.live).toBe(true);
+    expect(failed.analyzing).toBe(false);
+    expect(failed.metrics).toMatchObject({ status: 'failed', timeouts: 2, retries: 1 });
+    expect(failed.harness.workersCreated).toBe(before.workersCreated);
+    expect(failed.harness.workersTerminated).toBe(before.workersTerminated);
+    expect(failed.harness.workerMessages.at(-1)).toBe('go infinite');
+
+    await page.evaluate(() => window.__caissaPlayHarness.configure({ autoReply: true }));
+    await page.locator('#analyzeReviewBtn').click();
+    await expect.poll(() => page.evaluate(() => AnalyzeSection.analysisPhase), { timeout: 5_000 }).toBe('complete');
+    await expect(page.locator('#analyzeReviewBtn')).toHaveAttribute('aria-pressed', 'true');
+    expect(await page.evaluate(() => AnalyzeSection.analysisEngine === window.__reviewRecoveryEngine)).toBe(true);
+});
+
+test('V2.0.1 changing workspace cancels Review without stale annotations', async ({ page }) => {
+    await openAnalyze(page);
+    await page.evaluate(() => {
+        AnalyzeSection.loadGameFromPgn(
+            '[Event "Review cancellation"]\n[White "Alexander"]\n[Black "CAISSA"]\n[Result "*"]\n\n'
+                + '1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 *',
+            'Review cancellation fixture'
+        );
+        window.__caissaPlayHarness.configure({ delayMs: 250 });
+    });
+    await page.locator('#analyzeEngineToggle').click();
+    await expect.poll(() => page.evaluate(() => AnalyzeSection.liveEngineOwner)).toBe('analyze-live');
+    const beforeWorkers = await page.evaluate(() => window.__caissaPlayHarness.snapshot().workersCreated);
+    await page.locator('#analyzeReviewBtn').click();
+    await expect.poll(() => page.evaluate(() => AnalyzeSection.analysisPhase)).toBe('analyzing');
+    await page.locator('#analyzeV2TabGames').click();
+    await expect(page.locator('#analyzeV2PanelGames')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => AnalyzeSection.analysisPhase)).toBe('cancelled');
+    await page.waitForTimeout(600);
+    expect(await page.evaluate(() => ({
+        analyzing: AnalyzeSection.isAnalyzing,
+        results: AnalyzeSection.analysisResults.length,
+        live: AnalyzeSection.liveEngineEnabled,
+        workers: window.__caissaPlayHarness.snapshot().workersCreated
+    }))).toEqual({ analyzing: false, results: 0, live: false, workers: beforeWorkers });
+    await page.locator('#analyzeV2TabAnalysis').click();
+    await expect(page.locator('#analyzeReviewBtn')).toContainText('Review');
+    await expect(page.locator('#analyzeReviewBtn')).not.toHaveClass(/caissa-ui-button-loading/);
 });
 
 test('V2.0.1 Review action stays on the existing pipeline and notation shows symbols only', async ({ page, browserName }) => {

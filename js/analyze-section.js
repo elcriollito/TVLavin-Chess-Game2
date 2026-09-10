@@ -25,6 +25,13 @@ const AnalyzeSection = {
     analysisPhase: 'idle',
     analyzedPositions: 0,
     totalPositions: 0,
+    reviewDepth: 12,
+    reviewRetryDepth: 8,
+    reviewPositionTimeoutMs: 10000,
+    reviewContext: null,
+    activeReviewSearchCancel: null,
+    reviewRunMetrics: null,
+    lastReviewMetrics: null,
     keyboardHandler: null,
     workspaceViewHandler: null,
     boardFlipped: false,
@@ -312,6 +319,9 @@ const AnalyzeSection = {
 
     handleWorkspaceViewChange(view) {
         if (view !== 'games') this.cancelGameUrlImport();
+        if (view !== 'analysis' && this.isAnalyzing) {
+            this.stopAnalysis({ restoreLive: false, reason: 'workspace-changed' });
+        }
         if (view === 'setup') {
             const entryMode = this.pendingSetupEntryMode === 'new' ? 'new' : 'edit';
             this.pendingSetupEntryMode = null;
@@ -335,8 +345,8 @@ const AnalyzeSection = {
         this.liveUiPendingResult = null;
         this.liveUiLastRenderAt = 0;
         this.liveCurrentResult = null;
-        this.analysisEngine?.cancelAttributedSearch?.();
-        this.analysisEngine?.stop?.();
+        const canceled = this.analysisEngine?.cancelAttributedSearch?.();
+        if (!canceled) this.analysisEngine?.stop?.();
         this.updateEvaluationBar();
         this.updateLiveMentorPanel({ off: true });
     },
@@ -922,7 +932,7 @@ const AnalyzeSection = {
     resetStudyBoard({ explicit = false, silent = false } = {}) {
         if (!window.Chess) return;
 
-        if (this.isAnalyzing) this.stopAnalysis();
+        if (this.isAnalyzing) this.stopAnalysis({ restoreLive: false, reason: 'study-reset' });
         this.livePositionAnalyses = {};
         this.liveCurrentFen = null;
         this.liveCurrentResult = null;
@@ -981,6 +991,7 @@ const AnalyzeSection = {
     playStudyMove(from, to, promotion) {
         const game = this.getGame();
         if (!this.isAnalyzeActive() || !game) return false;
+        if (this.isAnalyzing) this.stopAnalysis({ restoreLive: false, reason: 'position-changed' });
         const move = game.move({ from, to, promotion });
         if (!move) return false;
 
@@ -988,6 +999,7 @@ const AnalyzeSection = {
         this.currentMoveIndex = game.history().length - 1;
         this.analysisResults = [];
         this.positionAnalyses = [];
+        this.analysisPhase = 'idle';
         this.clearTapSelection();
         this.updateBoardAndUI();
         this.updateMoveList();
@@ -1004,12 +1016,14 @@ const AnalyzeSection = {
     undoStudyMove() {
         const game = this.getGame();
         if (!game) return;
+        if (this.isAnalyzing) this.stopAnalysis({ restoreLive: false, reason: 'position-changed' });
         const move = game.undo();
         if (!move) return;
         this.syncLoadedMoveLine(game);
         this.currentMoveIndex = game.history().length - 1;
         this.analysisResults = [];
         this.positionAnalyses = [];
+        this.analysisPhase = 'idle';
         this.clearTapSelection();
         this.updateBoardAndUI();
         this.updateMoveList();
@@ -1171,6 +1185,8 @@ const AnalyzeSection = {
             this.setGameUrlMessage(importer.errors?.MISSING_USERNAME || "Enter either player's Chess.com username.");
             return false;
         }
+
+        if (this.isAnalyzing) this.stopAnalysis({ restoreLive: false, reason: 'game-import-started' });
 
         const controller = new AbortController();
         this.gameUrlAbortController = controller;
@@ -1548,11 +1564,13 @@ const AnalyzeSection = {
                 movesVerbose: game.history({ verbose: true }).map((move) => ({ ...move }))
             };
             // Commit both authorities together only after the full candidate is valid.
+            if (this.isAnalyzing) this.stopAnalysis({ restoreLive: false, reason: 'game-loaded' });
             this.session = session;
             this.loadedGame = loadedGame;
             this.currentMoveIndex = this.getLoadedMoves().length - 1;
             this.analysisResults = [];
             this.positionAnalyses = [];
+            this.analysisPhase = 'idle';
             this.updateReviewSummary();
             this.updateCriticalMoments();
 
@@ -1765,9 +1783,15 @@ const AnalyzeSection = {
             && moves.length > 0
             && this.analysisResults.length === moves.length
             && this.analysisResults.every(Boolean);
+        const failed = this.analysisPhase === 'failed';
         button.classList.toggle('is-active', complete);
+        button.classList.toggle('is-error', failed);
         button.setAttribute('aria-pressed', complete ? 'true' : 'false');
-        button.title = complete ? 'Review complete' : 'Review the current game';
+        const label = button.querySelector('span');
+        if (label) label.textContent = failed ? 'Retry Review' : 'Review';
+        button.title = complete
+            ? 'Review complete'
+            : failed ? 'Review failed. Try again.' : 'Review the current game';
     },
 
     updateBoardAndUI() {
@@ -2148,8 +2172,8 @@ const AnalyzeSection = {
             this.liveUiPendingResult = null;
             this.liveUiLastRenderAt = 0;
             this.liveCurrentResult = null;
-            this.analysisEngine?.cancelAttributedSearch?.();
-            this.analysisEngine?.stop?.();
+            const canceled = this.analysisEngine?.cancelAttributedSearch?.();
+            if (!canceled) this.analysisEngine?.stop?.();
             if (this.analysisEngine) {
                 this.analysisEngine.onInfo = null;
                 this.analysisEngine.onBestMove = null;
@@ -2283,42 +2307,95 @@ const AnalyzeSection = {
         if (this.isAnalyzing || ['preparing', 'analyzing'].includes(this.analysisPhase)) return false;
         window.CaissaUI?.setButtonLoading(this.elements.reviewAnalysis, true, { label: 'Reviewing…' });
         try {
-            await this.startAnalysis();
-            return this.analysisPhase === 'complete';
+            return await this.startAnalysis();
         } finally {
             window.CaissaUI?.setButtonLoading(this.elements.reviewAnalysis, false);
             this.syncReviewAction();
         }
     },
 
+    updateReviewProgress(reviewedMoves, totalMoves) {
+        const reviewed = Math.max(0, Math.min(totalMoves, Number(reviewedMoves) || 0));
+        const label = `Reviewing ${reviewed} / ${totalMoves}`;
+        this.updateProgress(totalMoves > 0 ? Math.round((reviewed / totalMoves) * 100) : 0, label);
+        this.setStatus(label, 'loading');
+        if (this.elements.reviewAnalysis?.classList.contains('caissa-ui-button-loading')) {
+            window.CaissaUI?.setButtonLoading(this.elements.reviewAnalysis, true, { label });
+        }
+    },
+
+    isReviewContextActive(context) {
+        return !!context
+            && this.reviewContext === context
+            && this.isAnalyzing
+            && this.analysisToken === context.token
+            && this.loadedGame?.game === context.game
+            && this.session === context.session
+            && this.isAnalyzeActive();
+    },
+
+    finishReviewEngineMode(context) {
+        if (this.reviewContext !== context) return;
+        this.reviewContext = null;
+        this.activeReviewSearchCancel = null;
+        const sameSource = this.loadedGame?.game === context.game && this.session === context.session;
+        if (sameSource && context.restoreLive) {
+            if (!this.liveEngineEnabled) this.setLiveEngineEnabled(true, { silent: true });
+            else this.refreshLiveEvaluation();
+        } else if (this.analysisEngine?.isReady?.()) {
+            this.analysisEngine.setMultiPV?.(1);
+        }
+    },
+
+    finalizeReviewMetrics(status) {
+        const metrics = this.reviewRunMetrics;
+        if (!metrics) return;
+        const totalTimeMs = Math.max(0, performance.now() - metrics.startedAt);
+        this.lastReviewMetrics = Object.freeze({
+            ...metrics,
+            status,
+            totalTimeMs,
+            averagePositionTimeMs: metrics.completedPositions > 0
+                ? totalTimeMs / metrics.completedPositions
+                : 0
+        });
+        this.reviewRunMetrics = null;
+    },
+
     async startAnalysis() {
-        if (this.isAnalyzing || ['preparing', 'analyzing'].includes(this.analysisPhase)) return;
+        if (this.isAnalyzing || ['preparing', 'analyzing'].includes(this.analysisPhase)) return false;
         if (!this.loadedGame) {
             this.showNotification('Load a game before starting analysis.', 'error');
-            return;
+            return false;
         }
 
-        if (this.liveEngineEnabled) {
-            this.setLiveEngineEnabled(false, { silent: true });
+        const moves = this.getLoadedMoves({ verbose: true });
+        const totalMoves = moves.length;
+        if (totalMoves === 0) {
+            this.analysisPhase = 'failed';
+            this.setStatus('No moves to review', 'warning');
+            this.updateMoveList(); this.updateReviewSummary(); this.updateCriticalMoments();
+            this.showNotification('Load or play moves before starting Review.', 'error');
+            return false;
         }
 
         console.log('[Analyze] Starting analysis...');
-        this.analysisPhase = 'preparing'; this.analyzedPositions = 0; this.totalPositions = 0;
-        this.updateReviewSummary(); this.updateCriticalMoments();
-        this.setStatus('Preparing local engine', 'loading');
-        window.CaissaUI?.setButtonLoading(this.elements.startBtn, true, { label: 'Loading engine...' });
-        const engine = await this.ensureAnalysisEngine();
-        if (!engine) {
-            this.analysisPhase = 'failed'; this.setStatus('Analysis unavailable', 'error');
-            this.updateReviewSummary(); this.updateCriticalMoments();
-            window.CaissaUI?.setButtonLoading(this.elements.startBtn, false);
-            this.elements.startBtn.lastChild.textContent = ' Retry analysis';
-            this.showNotification('Analysis engine could not start. Try again.', 'error');
-            return;
-        }
-
+        const context = {
+            game: this.loadedGame.game,
+            session: this.session,
+            cursor: this.currentMoveIndex,
+            restoreLive: this.liveEngineEnabled,
+            token: ++this.analysisToken
+        };
+        this.reviewContext = context;
         this.isAnalyzing = true;
-        const token = ++this.analysisToken;
+        this.analysisPhase = 'preparing'; this.analyzedPositions = 0; this.totalPositions = totalMoves + 1;
+        this.reviewRunMetrics = {
+            startedAt: performance.now(), plies: totalMoves, positions: totalMoves + 1,
+            completedPositions: 0, depth: this.reviewDepth, retryDepth: this.reviewRetryDepth,
+            timeouts: 0, retries: 0
+        };
+        if (context.restoreLive) this.setLiveEngineEnabled(false, { silent: true });
         this.analysisResults = [];
         this.positionAnalyses = [];
         this.updateMoveList();
@@ -2326,30 +2403,21 @@ const AnalyzeSection = {
         this.updateEvaluationBar();
         this.updateReviewSummary();
         this.updateCriticalMoments();
-
-        // Update UI
+        this.updateReviewProgress(0, totalMoves);
+        window.CaissaUI?.setButtonLoading(this.elements.startBtn, true, { label: 'Loading engine...' });
         this.elements.startBtn.style.display = 'none';
         this.elements.stopBtn.style.display = 'block';
         this.elements.progressBar.style.display = 'block';
-        this.setStatus('Preparing analysis...', 'loading');
-
-        const moves = this.getLoadedMoves({ verbose: true });
-        const totalMoves = moves.length;
-        this.totalPositions = totalMoves + 1;
-        if (totalMoves === 0) {
-            this.isAnalyzing = false;
-            this.analysisPhase = 'failed';
-            this.setStatus('No moves to analyze', 'warning');
-            this.elements.startBtn.style.display = 'block';
-            this.elements.stopBtn.style.display = 'none';
-            this.elements.progressBar.style.display = 'none';
-            window.CaissaUI?.setButtonLoading(this.elements.startBtn, false);
-            this.updateReviewSummary(); this.updateCriticalMoments();
-            this.teardownAnalysisEngine('empty-game');
-            return;
-        }
 
         try {
+            const engine = await this.ensureAnalysisEngine();
+            if (!engine) {
+                throw Object.assign(new Error('Review engine could not start.'), { code: 'REVIEW_ENGINE_UNAVAILABLE' });
+            }
+            if (!this.isReviewContextActive(context)) {
+                throw Object.assign(new Error('Review canceled.'), { code: 'REVIEW_CANCELLED' });
+            }
+
             const tempGame = this.loadedGame.initialFen
                 ? new Chess(this.loadedGame.initialFen)
                 : new Chess();
@@ -2361,23 +2429,25 @@ const AnalyzeSection = {
 
             const positionAnalyses = [];
             let skippedPositions = 0;
-            for (let i = 0; i < positions.length && this.isAnalyzing && token === this.analysisToken; i++) {
-                const progress = Math.round((i / totalMoves) * 100);
+            for (let i = 0; i < positions.length && this.isReviewContextActive(context); i++) {
                 this.analysisPhase = 'analyzing'; this.analyzedPositions = i;
-                this.updateProgress(progress, `Analyzing position ${i + 1}/${positions.length}`);
-                const analysis = await this.analyzePositionWithRetry(positions[i], token);
+                this.updateReviewProgress(Math.max(0, i - 1), totalMoves);
+                const analysis = await this.analyzePositionWithRetry(positions[i], context.token);
+                if (!this.isReviewContextActive(context)) break;
                 positionAnalyses.push(analysis);
                 this.positionAnalyses[i] = analysis;
                 if (!analysis) skippedPositions += 1;
+                else if (this.reviewRunMetrics) this.reviewRunMetrics.completedPositions += 1;
 
                 if (i > 0) {
                     this.analysisResults[i - 1] = positionAnalyses[i - 1] && positionAnalyses[i]
                         ? this.buildMoveAnalysis(i - 1, moves[i - 1], positions[i - 1], positions[i], positionAnalyses[i - 1], positionAnalyses[i])
                         : this.buildUnavailableMoveAnalysis(i - 1, moves[i - 1]);
+                    this.updateReviewProgress(i, totalMoves);
                 }
             }
 
-            if (this.isAnalyzing && token === this.analysisToken) {
+            if (this.isReviewContextActive(context)) {
                 this.updateProgress(100, `Analyzed ${totalMoves} moves`);
                 const analyzedPositions = positions.length - skippedPositions;
                 this.analyzedPositions = analyzedPositions;
@@ -2390,24 +2460,34 @@ const AnalyzeSection = {
                     this.analysisPhase = 'failed'; this.analysisResults = []; this.positionAnalyses = [];
                     this.updateMoveList(); this.updateReviewSummary(); this.updateCriticalMoments();
                     this.setStatus(`Analysis unavailable Â· ${analyzedPositions}/${positions.length} positions evaluated`, 'error');
-                    this.elements.startBtn.lastChild.textContent = ' Retry analysis';
+                    this.showNotification('Review could not complete. Live analysis has been restored.', 'error');
                 }
             }
+            return this.analysisPhase === 'complete';
 
         } catch (error) {
+            if (error?.code === 'REVIEW_CANCELLED' || this.analysisToken !== context.token) {
+                if (this.analysisPhase !== 'cancelled') this.analysisPhase = 'cancelled';
+                return false;
+            }
             console.error('[Analyze] Analysis error:', error);
             this.analysisPhase = 'failed'; this.analysisResults = []; this.positionAnalyses = [];
             this.updateMoveList(); this.updateReviewSummary(); this.updateCriticalMoments();
-            this.setStatus('Analysis unavailable. Try again.', 'error');
-            this.elements.startBtn.lastChild.textContent = ' Retry analysis';
+            this.setStatus('Review failed. Try again.', 'error');
+            this.showNotification('Review failed. Live analysis has been restored.', 'error');
+            return false;
         } finally {
-            this.isAnalyzing = false;
-            this.elements.startBtn.style.display = 'block';
-            this.elements.stopBtn.style.display = 'none';
-            this.elements.progressBar.style.display = 'none';
-            window.CaissaUI?.setButtonLoading(this.elements.startBtn, false);
-            if (this.analysisPhase === 'failed') this.elements.startBtn.lastChild.textContent = ' Retry analysis';
-            this.teardownAnalysisEngine('analysis-finished');
+            if (this.reviewContext === context) {
+                this.isAnalyzing = false;
+                this.elements.startBtn.style.display = 'block';
+                this.elements.stopBtn.style.display = 'none';
+                this.elements.progressBar.style.display = 'none';
+                window.CaissaUI?.setButtonLoading(this.elements.startBtn, false);
+                const retryLabel = this.elements.startBtn?.lastChild;
+                if (this.analysisPhase === 'failed' && retryLabel) retryLabel.textContent = ' Retry analysis';
+                this.finalizeReviewMetrics(this.analysisPhase);
+                this.finishReviewEngineMode(context);
+            }
         }
     },
 
@@ -2599,12 +2679,15 @@ const AnalyzeSection = {
     /**
      * Stop ongoing analysis
      */
-    stopAnalysis() {
+    stopAnalysis({ restoreLive = true, reason = 'user-cancelled' } = {}) {
         console.log('[Analyze] Stopping analysis...');
+        if (this.reviewContext && !restoreLive) this.reviewContext.restoreLive = false;
         this.isAnalyzing = false;
         this.analysisToken += 1;
         this.analysisPhase = 'cancelled'; this.analysisResults = []; this.positionAnalyses = [];
-        this.teardownAnalysisEngine('analysis-cancelled');
+        const cancelSearch = this.activeReviewSearchCancel;
+        if (cancelSearch) cancelSearch(reason);
+        else this.analysisEngine?.cancelAttributedSearch?.();
         this.updateMoveList(); this.updateReviewSummary(); this.updateCriticalMoments();
         this.setStatus('Analysis cancelled', 'warning');
     },
@@ -2635,15 +2718,28 @@ const AnalyzeSection = {
 
     async analyzePositionWithRetry(fen, token) {
         try {
-            return await this.analyzePosition(fen, token, 12, 12000, { tokenType: 'review', owner: 'analyze-review' });
+            return await this.analyzePosition(fen, token, this.reviewDepth, this.reviewPositionTimeoutMs,
+                { tokenType: 'review', owner: 'analyze-review' });
         } catch (error) {
             if (token !== this.analysisToken || !this.isAnalyzing) return null;
-            console.warn('[Analyze] Position analysis timed out; retrying at lower depth');
+            if (error?.code === 'REVIEW_POSITION_TIMEOUT' && this.reviewRunMetrics) {
+                this.reviewRunMetrics.timeouts += 1;
+            }
+            if (this.reviewRunMetrics) this.reviewRunMetrics.retries += 1;
+            console.warn('[Analyze] Position analysis failed; retrying at lower depth');
             try {
-                return await this.analyzePosition(fen, token, 8, 12000, { tokenType: 'review', owner: 'analyze-review' });
-            } catch (_retryError) {
+                return await this.analyzePosition(fen, token, this.reviewRetryDepth, this.reviewPositionTimeoutMs,
+                    { tokenType: 'review', owner: 'analyze-review' });
+            } catch (retryError) {
+                if (retryError?.code === 'REVIEW_POSITION_TIMEOUT' && this.reviewRunMetrics) {
+                    this.reviewRunMetrics.timeouts += 1;
+                }
+                if (token !== this.analysisToken || !this.isAnalyzing) return null;
                 console.warn('[Analyze] Position analysis unavailable after retry');
-                return null;
+                throw Object.assign(new Error('Stockfish could not evaluate the current review position.'), {
+                    code: 'REVIEW_POSITION_UNAVAILABLE',
+                    cause: retryError
+                });
             }
         }
     },
@@ -2721,75 +2817,76 @@ const AnalyzeSection = {
         return new Promise((resolve, reject) => {
             const engine = this.analysisEngine;
             if (!engine?.isReady?.()) {
-                reject(new Error('Stockfish engine is not ready'));
+                reject(Object.assign(new Error('Stockfish engine is not ready'), { code: 'REVIEW_ENGINE_NOT_READY' }));
                 return;
             }
 
             const tokenType = options.tokenType || 'review';
             const owner = options.owner || (tokenType === 'live' ? 'analyze-live' : 'analyze-review');
             let latestInfo = null;
-            const finish = (result) => {
+            let settled = false;
+            let requestGeneration = null;
+            let cancelSearch = null;
+            const cleanup = () => {
                 clearTimeout(timeout);
-                if (this.liveEngineOwner === owner || tokenType === 'review') {
-                    engine.onInfo = null;
-                    engine.onBestMove = null;
-                    if (this.liveEngineOwner === owner) this.liveEngineOwner = null;
-                }
+                if (this.activeReviewSearchCancel === cancelSearch) this.activeReviewSearchCancel = null;
+                if (this.liveEngineOwner === owner) this.liveEngineOwner = null;
+            };
+            const finish = (result) => {
+                if (settled) return;
+                settled = true;
+                cleanup();
                 resolve(result);
             };
+            const fail = (code, message) => {
+                if (settled) return;
+                settled = true;
+                cleanup();
+                reject(Object.assign(new Error(message), { code }));
+            };
             const timeout = setTimeout(() => {
-                engine.stop();
-                if (this.liveEngineOwner === owner || tokenType === 'review') {
-                    engine.onInfo = null;
-                    engine.onBestMove = null;
-                    if (this.liveEngineOwner === owner) this.liveEngineOwner = null;
-                }
-                reject(new Error('Stockfish analysis timed out'));
+                engine.cancelAttributedSearch?.();
+                fail('REVIEW_POSITION_TIMEOUT', 'Stockfish review position timed out');
             }, timeoutMs);
 
-            engine.stop?.();
-            this.liveEngineOwner = owner;
-            engine.onInfo = (info) => {
-                if (!this.isAnalyzeTokenActive(token, tokenType)) return;
-                latestInfo = info;
-                if (tokenType === 'live') {
-                    const positionIndex = Math.max(0, this.currentMoveIndex + 1);
-                    const interim = {
-                        eval: info.score ?? null,
-                        mate: info.mate ?? null,
-                        bestMove: info.pv?.[0] || null,
-                        depth: info.depth ?? 0,
-                        pv: info.pv ?? []
-                    };
-                    this.livePositionAnalyses[positionIndex] = interim;
-                    this.liveCurrentResult = interim;
-                    this.updateEvaluationBar();
-                    this.updateLiveMentorPanel({ result: interim, fen });
-                }
+            cancelSearch = () => {
+                engine.cancelAttributedSearch?.();
+                fail('REVIEW_CANCELLED', 'Review search canceled');
             };
-            engine.getBestMove(fen, (bestMove) => {
-                if (!this.isAnalyzeTokenActive(token, tokenType)) {
-                    clearTimeout(timeout); engine.onInfo = null; engine.onBestMove = null;
-                    reject(new Error('Stale analysis result rejected'));
+            if (tokenType === 'review') this.activeReviewSearchCancel = cancelSearch;
+            this.liveEngineOwner = owner;
+            requestGeneration = engine.getBestMoveAttributed?.(fen, (bestMove, _ponder, generation) => {
+                if (generation !== requestGeneration || !this.isAnalyzeTokenActive(token, tokenType)) {
+                    fail('REVIEW_STALE_RESULT', 'Stale analysis result rejected');
                     return;
                 }
                 const score = latestInfo?.score;
                 const mate = latestInfo?.mate;
                 if (!Number.isFinite(score) && !Number.isFinite(mate)) {
-                    clearTimeout(timeout); engine.onInfo = null; engine.onBestMove = null;
-                    reject(new Error('Stockfish returned no attributable evaluation'));
+                    fail('REVIEW_MISSING_EVALUATION', 'Stockfish returned no attributable evaluation');
                     return;
                 }
+                const terminal = !bestMove;
                 finish({
                     eval: Number.isFinite(score) ? score : null,
                     mate: Number.isFinite(mate) ? mate : null,
                     bestMove,
-                    depth: latestInfo?.depth ?? 0,
+                    depth: terminal ? depth : latestInfo?.depth ?? 0,
                     requestedDepth: depth,
-                    completed: (latestInfo?.depth ?? 0) >= depth,
+                    completed: terminal || (latestInfo?.depth ?? 0) >= depth,
                     pv: latestInfo?.pv ?? []
                 });
-            }, { depth });
+            }, {
+                depth,
+                multiPv: 1,
+                onInfo: (info, generation) => {
+                    if (generation !== requestGeneration || !this.isAnalyzeTokenActive(token, tokenType)) return;
+                    latestInfo = info;
+                }
+            });
+            if (!requestGeneration) {
+                fail('REVIEW_SEARCH_NOT_STARTED', 'Stockfish review search could not start');
+            }
         });
     },
 
@@ -2939,8 +3036,8 @@ const AnalyzeSection = {
             this.liveUiTimer = null;
             this.liveUiPendingResult = null;
             this.liveEngineToken += 1;
-            this.analysisEngine?.cancelAttributedSearch?.();
-            this.analysisEngine?.stop?.();
+            const canceled = this.analysisEngine?.cancelAttributedSearch?.();
+            if (!canceled) this.analysisEngine?.stop?.();
             if (this.analysisEngine) {
                 this.analysisEngine.onInfo = null;
                 this.analysisEngine.onBestMove = null;

@@ -83,6 +83,18 @@ test('V2.0.1 Review reuses the analysis pipeline and renders symbols without mov
     assert.match(css, /#analyzeSection \.caissa-analyze-v2__notation \.analyze-move-annotation/);
 });
 
+test('V2.0.1 Review exclusively reuses the attributed SF18 owner and restores live analysis', () => {
+    const positionMethod = analyze.slice(analyze.indexOf('analyzePosition(fen,'), analyze.indexOf('showNotification(message,'));
+    assert.match(positionMethod, /getBestMoveAttributed\?\.\(fen,/);
+    assert.match(positionMethod, /depth,\s*multiPv:\s*1/);
+    assert.doesNotMatch(positionMethod, /\.getBestMove\(/);
+    assert.match(analyze, /Reviewing \$\{reviewed\} \/ \$\{totalMoves\}/);
+    assert.match(analyze, /restoreLive:\s*this\.liveEngineEnabled/);
+    assert.match(analyze, /finishReviewEngineMode\(context\)[\s\S]*?setLiveEngineEnabled\(true/);
+    assert.match(analyze, /stopAnalysis\(\{ restoreLive: false, reason: 'game-loaded' \}\)/);
+    assert.doesNotMatch(analyze, /startAnalysis\(\)[\s\S]*?finally\s*\{[\s\S]{0,700}teardownAnalysisEngine/);
+});
+
 test('A1 preserves every existing AnalyzeSection DOM contract exactly once', () => {
     const ids = [
         'analyzeProvider', 'analyzeUsername', 'analyzeGameCount', 'analyzeFetchBtn',

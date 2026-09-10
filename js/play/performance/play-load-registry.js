@@ -147,14 +147,14 @@
                 'js/play/analyze-review-policy-v1-1.js?v=1.1.1',
                 'js/play/bots/bots-analysis-exploration.js?v=1.2.0',
                 'js/play/bots/bots-guided-review-presentation.js?v=1.6.0',
-                'js/analyze-section.js?v=1.6.3'
+                'js/analyze-section.js?v=1.6.4'
             ] : [
                 'js/analyze-session.js?v=1.0.0', 'js/analyze-setup-draft.js?v=1.0.0',
                 'js/analyze-game-import.js?v=1.1.0',
                 'js/play/analyze-review-policy.js?v=1.0.1',
                 'js/play/bots/bots-analysis-exploration.js?v=1.2.0',
                 'js/play/bots/bots-guided-review-presentation.js?v=1.6.0',
-                'js/analyze-section.js?v=1.6.3'
+                'js/analyze-section.js?v=1.6.4'
             ])
         })
     });

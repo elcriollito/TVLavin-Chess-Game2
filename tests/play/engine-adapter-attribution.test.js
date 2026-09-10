@@ -193,3 +193,59 @@ test('one attributed infinite MultiPV operation streams info until cancellation 
     assert.equal(adapter.inspectAttribution().activeOperationCount, 0);
     assert.equal(workers.length, 1);
 });
+
+test('Analyze serializes live MultiPV 4, finite Review MultiPV 1, and restored live on one worker', () => {
+    const { adapter, worker, workers } = fixture(['live-before', 'review', 'live-after']);
+    const reviewInfo = [];
+    const reviewMoves = [];
+
+    adapter.startInfiniteAnalysisAttributed('live-before w', () => {}, { multiPv: 4 });
+    assert.deepEqual(worker.messages.slice(-3), [
+        'setoption name MultiPV value 4', 'position fen live-before w', 'go infinite'
+    ]);
+
+    adapter.cancelAttributedSearch();
+    adapter.getBestMoveAttributed('review-position w', (move, _ponder, generation) => {
+        reviewMoves.push([move, generation]);
+    }, {
+        depth: 12,
+        multiPv: 1,
+        onInfo: (info, generation) => reviewInfo.push([info.depth, info.score, generation])
+    });
+    assert.equal(worker.messages.at(-1), 'stop');
+
+    worker.emit('bestmove e2e4');
+    assert.deepEqual(worker.messages.slice(-2), ['setoption name MultiPV value 1', 'isready']);
+    worker.emit('readyok');
+    assert.deepEqual(worker.messages.slice(-3), [
+        'setoption name MultiPV value 1', 'position fen review-position w', 'go depth 12'
+    ]);
+    worker.emit('info depth 12 score cp 31 pv g1f3 g8f6');
+    worker.emit('bestmove g1f3');
+    assert.deepEqual(reviewInfo, [[12, 0.31, 'review:2']]);
+    assert.deepEqual(reviewMoves, [['g1f3', 'review:2']]);
+
+    adapter.startInfiniteAnalysisAttributed('live-after b', () => {}, { multiPv: 4 });
+    assert.equal(worker.messages.at(-1), 'isready');
+    worker.emit('readyok');
+    assert.deepEqual(worker.messages.slice(-3), [
+        'setoption name MultiPV value 4', 'position fen live-after b', 'go infinite'
+    ]);
+    assert.equal(workers.length, 1);
+    assert.equal(worker.terminateCalls, 0);
+});
+
+test('finite attributed Review resolves a terminal position with score but no PV', () => {
+    const { adapter, worker } = fixture(['terminal']);
+    const info = [];
+    const moves = [];
+    adapter.getBestMoveAttributed('terminal-position b', (move, _ponder, generation) => {
+        moves.push([move, generation]);
+    }, { depth: 12, multiPv: 1, onInfo: value => info.push(value) });
+
+    worker.emit('info depth 0 score mate 0');
+    worker.emit('bestmove (none)');
+    assert.equal(info.length, 1);
+    assert.equal(info[0].mate, -0);
+    assert.deepEqual(moves, [[null, 'terminal:1']]);
+});

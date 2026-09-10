@@ -1390,6 +1390,12 @@ body.caissa-analyze-board-dragging > .piece-417db {
     color: var(--analyze-v2-accent);
 }
 
+#analyzeSection .caissa-analyze-v2__actions #analyzeReviewBtn.is-error {
+    border-color: rgba(248, 113, 113, 0.5);
+    background: rgba(127, 29, 29, 0.22);
+    color: #fecaca;
+}
+
 #analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] .caissa-analyze-v2__actions .caissa-analyze-v2__action--available {
     border-color: transparent;
     background: transparent;

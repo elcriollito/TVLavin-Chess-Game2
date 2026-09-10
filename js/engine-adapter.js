@@ -259,8 +259,9 @@
                         operation.callback(Object.freeze(candidates.map(Object.freeze)), operation.generationId);
                         return;
                     }
-                    if (match) {
-                        const move = match[1];
+                    const move = match ? match[1] : null;
+                    const terminal = /bestmove \((?:none|null)\)/i.test(message);
+                    if (move || terminal) {
                         const ponder = message.match(/ponder ([a-h][1-8][a-h][1-8][qrbnQRBN]?)/);
                         operation.callback(move, ponder ? ponder[1] : null, operation.generationId);
                     }
@@ -275,7 +276,7 @@
 
             if (message.startsWith('info') && this.attributionEnabled) {
                 if (this.attributionBarrierPending || !this.attributedActive
-                    || !['analysis', 'candidates'].includes(this.attributedActive.kind)) {
+                    || !['analysis', 'bestmove', 'candidates'].includes(this.attributedActive.kind)) {
                     this.attributionDiagnostics.rejectedRawMessages += 1;
                     return;
                 }
@@ -291,7 +292,12 @@
                                 mate: info.mate,
                                 pv: Object.freeze([...info.pv])
                             }));
-                    } else this.parseInfo(message, this.attributedActive.callback);
+                    } else {
+                        const callback = this.attributedActive.kind === 'bestmove'
+                            ? this.attributedActive.options.onInfo
+                            : this.attributedActive.callback;
+                        this.parseInfo(message, callback);
+                    }
                 }
                 return;
             }
@@ -368,7 +374,7 @@
                 info.pv = pvMatch[1].trim().split(/\s+/).filter(m => m.length > 0);
             }
 
-            if (callback && info.pv.length > 0) {
+            if (callback && (info.pv.length > 0 || Number.isFinite(info.score) || Number.isFinite(info.mate))) {
                 callback(info, this.attributedActive?.generationId ?? null);
             }
             return info;
