@@ -33,6 +33,8 @@ const CaissaFICSClient = {
     reconnectAttempts: 0,
     reconnectTimer: null,
     ficsUsername: 'Guest',
+    autoGuestAttempted: false,
+    welcomedSessionGeneration: 0,
 
     // Game state
     chess: null, // chess.js instance
@@ -247,7 +249,7 @@ const CaissaFICSClient = {
     bindEvents() {
         // Connection
         this.elements.connectBtn?.addEventListener('click', () => this.connect('guest'));
-        this.elements.accountConnectBtn?.addEventListener('click', () => this.connect('account'));
+        this.elements.accountConnectBtn?.addEventListener('click', () => this.connectAsRegistered());
         this.elements.disconnectBtn?.addEventListener('click', () => this.disconnect());
         this.elements.differentUserBtn?.addEventListener('click', () => this.loginAsDifferentUser());
         this.elements.testGatewayBtn?.addEventListener('click', () => this.testGateway());
@@ -255,7 +257,7 @@ const CaissaFICSClient = {
             input.addEventListener('change', () => this.setLoginMode(input.value));
         });
         this.elements.accountPasswordInput?.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') this.connect('account');
+            if (event.key === 'Enter') this.connectAsRegistered();
         });
 
         // Seek buttons
@@ -369,12 +371,15 @@ const CaissaFICSClient = {
         return true;
     },
 
-    connect(mode = this.loginMode) {
-        if (this.ws && this.connected) {
+    connect(mode = this.loginMode, options = {}) {
+        const requestedMode = mode === 'account' ? 'account' : 'guest';
+        const activeSocket = this.ws && [WebSocket.CONNECTING, WebSocket.OPEN].includes(this.ws.readyState);
+        if (activeSocket || ['connecting', 'connected'].includes(this.connectionState)
+            || (this.connectionState === 'reconnecting' && options.reconnect !== true)) {
             this.logToConsole('Already connected to FICS');
-            return;
+            return Object.freeze({ ok: false, code: 'CONNECTION_ALREADY_ACTIVE' });
         }
-        this.setLoginMode(mode);
+        this.setLoginMode(requestedMode);
 
         if (!this.isGatewayConfigured()) {
             const errorMsg = 'FICS gateway requires a secure WSS endpoint in production.';
@@ -382,15 +387,16 @@ const CaissaFICSClient = {
             this.updateGameStatus(errorMsg, 'error');
             this.updateConnectionStatus(false, 'Gateway not configured');
             this.updateGatewayStatus();
-            return;
+            return Object.freeze({ ok: false, code: 'GATEWAY_NOT_CONFIGURED' });
         }
 
-        if (this.loginMode === 'account' && !this.prepareAccountCredentials()) return;
+        if (this.loginMode === 'account' && !this.prepareAccountCredentials()) {
+            return Object.freeze({ ok: false, code: 'ACCOUNT_CREDENTIALS_REQUIRED' });
+        }
 
-        this.logToConsole('Connecting to FICS gateway...');
         this.manualDisconnect = false;
         clearTimeout(this.reconnectTimer);
-        this.setConnectionState('connecting');
+        this.setConnectionState(options.reconnect === true ? 'reconnecting' : 'connecting');
         this.updateGameStatus('Connecting to FICS...', '');
         this.initBoard(this.liveGame.currentFen || 'start');
         this.rawBuffer = '';
@@ -404,20 +410,20 @@ const CaissaFICSClient = {
         this.connectionStartedAt = performance.now();
 
         try {
-            this.ws = new WebSocket(this.gatewayUrl);
+            const socket = new WebSocket(this.gatewayUrl);
+            this.ws = socket;
 
             // Set timeout for connection attempt
             const connectionTimeout = setTimeout(() => {
-                if (!this.connected) {
+                if (this.ws === socket && !this.connected) {
                     this.logToConsole('❌ Connection timeout');
                     this.handleConnectionFailure('timeout');
-                    if (this.ws) {
-                        this.ws.close();
-                    }
+                    socket.close();
                 }
             }, 5000);
 
-            this.ws.onopen = () => {
+            socket.onopen = () => {
+                if (this.ws !== socket) return;
                 clearTimeout(connectionTimeout);
                 console.log('[FICS Client] WebSocket connected');
                 this.connected = true;
@@ -429,18 +435,21 @@ const CaissaFICSClient = {
 
             };
 
-            this.ws.onmessage = (event) => {
+            socket.onmessage = (event) => {
+                if (this.ws !== socket) return;
                 this.handleRawGatewayData(String(event.data));
             };
 
-            this.ws.onerror = (error) => {
+            socket.onerror = (error) => {
+                if (this.ws !== socket) return;
                 clearTimeout(connectionTimeout);
                 console.error('[FICS Client] WebSocket error:', error);
                 this.logToConsole('❌ Connection error');
                 this.handleConnectionFailure('error');
             };
 
-            this.ws.onclose = (event) => {
+            socket.onclose = (event) => {
+                if (this.ws !== socket) return;
                 clearTimeout(connectionTimeout);
                 console.log('[FICS Client] WebSocket closed', event.code, event.reason);
                 const shouldReconnect = !this.manualDisconnect
@@ -464,7 +473,7 @@ const CaissaFICSClient = {
                     this.reconnectAttempts += 1;
                     this.setConnectionState('reconnecting');
                     this.updateGameStatus('Connection interrupted. Reconnecting...', '');
-                    this.reconnectTimer = setTimeout(() => this.connect(), 1500);
+                    this.reconnectTimer = setTimeout(() => this.connect(this.loginMode, { reconnect: true }), 1500);
                 } else {
                     this.reconnectAttempts = 0;
                     if (!this.authFailed) {
@@ -474,11 +483,44 @@ const CaissaFICSClient = {
                 }
             };
 
+            return Object.freeze({ ok: true, code: 'CONNECTION_STARTED', mode: this.loginMode });
+
         } catch (error) {
             console.error('[FICS Client] Connection failed:', error);
             this.logToConsole(`❌ Failed to connect: ${error.message}`);
             this.handleConnectionFailure('exception');
+            return Object.freeze({ ok: false, code: 'CONNECTION_START_FAILED' });
         }
+    },
+
+    requestAutomaticGuestConnection() {
+        if (this.autoGuestAttempted) return Object.freeze({ ok: false, code: 'AUTO_GUEST_ALREADY_ATTEMPTED' });
+        this.autoGuestAttempted = true;
+        const activeSocket = this.ws && [WebSocket.CONNECTING, WebSocket.OPEN].includes(this.ws.readyState);
+        if (this.authenticated || activeSocket || ['connecting', 'connected', 'reconnecting'].includes(this.connectionState)) {
+            return Object.freeze({ ok: false, code: 'SESSION_RETAINED' });
+        }
+        if (window.CAISSA_FICS_AUTO_GUEST_ENABLED === false || window.CAISSA_FICS_REDESIGN_ENABLED === false) {
+            return Object.freeze({ ok: false, code: 'AUTO_GUEST_DISABLED' });
+        }
+        return this.connect('guest');
+    },
+
+    connectAsRegistered() {
+        const username = (this.elements.accountUsernameInput?.value || '').trim();
+        const password = this.elements.accountPasswordInput?.value || '';
+        if (!username || !password) {
+            this.setLoginMode('account');
+            this.updateGameStatus('Enter your FICS username and password to connect.', 'error');
+            this.logToConsole('Enter your FICS username and password to connect.');
+            return Object.freeze({ ok: false, code: 'ACCOUNT_CREDENTIALS_REQUIRED' });
+        }
+        if (this.ws || this.connected || this.authenticated || ['connecting', 'connected', 'reconnecting'].includes(this.connectionState)) {
+            this.disconnect();
+        }
+        if (this.elements.accountUsernameInput) this.elements.accountUsernameInput.value = username;
+        if (this.elements.accountPasswordInput) this.elements.accountPasswordInput.value = password;
+        return this.connect('account');
     },
 
     handleConnectionFailure(reason) {
@@ -751,9 +793,7 @@ const CaissaFICSClient = {
                 ? `Logged in as ${this.ficsUsername}. Seek or accept a game to begin.`
                 : 'Connected as FICS guest. Seek or accept a game to begin.';
             this.updateGameStatus(identity, 'active');
-            this.logToConsole(this.loginMode === 'account'
-                ? `Registered session authenticated as ${this.ficsUsername}.`
-                : 'Guest session ready.');
+            this.announceAuthenticatedSession();
             this.updateIdentityStatus();
             this.updatePlayerBars();
             this.startLobbyRefresh();
@@ -2497,7 +2537,9 @@ const CaissaFICSClient = {
         this.elements.disconnectBtn?.toggleAttribute('disabled', !active);
         this.updateLoginControls();
         if (state !== previousState) {
-            if (state === 'connecting') this.logToConsole('Connecting to FICS...');
+            if (state === 'connecting') this.logToConsole(this.loginMode === 'account'
+                ? 'Connecting to FICS as registered user...'
+                : 'Connecting to FICS as guest...');
             if (state === 'connected') {
                 const latency = Number.isFinite(this.latencyMs) ? ` \u00b7 Latency: ${this.latencyMs} ms` : '';
                 this.logToConsole(`Connected to FICS${latency}.`);
@@ -2509,7 +2551,7 @@ const CaissaFICSClient = {
             if (state === 'disconnected') this.logToConsole('Disconnected from FICS.');
             if (state === 'error') this.logToConsole(message === 'Login failed'
                 ? 'Authentication failed.'
-                : 'Connection unavailable. Please connect to FICS.', 'ERROR');
+                : 'Unable to connect to FICS.', message === 'Login failed' ? 'ERROR' : 'CAISSA');
         }
         this.notifySpectator('connection-state', {
             state,
@@ -2533,6 +2575,19 @@ const CaissaFICSClient = {
             return Object.freeze({ announced: true, view, reason: 'NOT_AUTHENTICATED' });
         }
         return Object.freeze({ announced: false, view, reason: null });
+    },
+
+    announceAuthenticatedSession() {
+        if (!this.authenticated || this.sessionGeneration <= this.welcomedSessionGeneration) return false;
+        this.welcomedSessionGeneration = this.sessionGeneration;
+        this.logToConsole(this.loginMode === 'account'
+            ? `Registered session authenticated as ${this.ficsUsername}.`
+            : `Connected as ${this.ficsUsername}.`);
+        this.logToConsole('Choose Tables to observe games or Seek to create a game.');
+        if (this.loginMode !== 'account') {
+            this.logToConsole('Open the session menu above to connect with a registered FICS account.');
+        }
+        return true;
     },
 
     updateLatency() {
@@ -2614,6 +2669,7 @@ const CaissaFICSClient = {
     onEnter() {
         console.log('[FICS Client] Section entered');
         this.initBoard(this.liveGame.currentFen || 'start');
+        this.requestAutomaticGuestConnection();
         if (!this.liveGame.currentFen && this.authenticated) {
             this.updateGameStatus(this.loginMode === 'account'
                 ? `Logged in as ${this.ficsUsername}. Seek or accept a game to begin.`

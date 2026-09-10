@@ -39,7 +39,8 @@ test('the existing board and functional nodes are reparented without cloning or 
     assert.match(shell, /document\.getElementById\('ficsBoardContainer'\)/);
     assert.match(shell, /boardRegion\.append\(boardSection\)/);
     assert.doesNotMatch(shell, /body\.append\([^\n]*(?:roomPanel|sidePanel|compatibility)/);
-    assert.match(shell, /foot\.append\(connection, consoleSection\)/);
+    assert.match(shell, /connection\.hidden = true/);
+    assert.match(shell, /foot\.append\(consoleSection\)/);
     assert.doesNotMatch(shell, /cloneNode|innerHTML|new\s+Chess|Chessboard\s*\(/);
 });
 
@@ -65,7 +66,8 @@ test('Game Mode actions use only narrow canonical client methods and omit unappr
     }
     assert.match(shell, /Confirm Resign/);
     assert.match(shell, /serverAcknowledged: false|FICS confirmation is pending/);
-    assert.doesNotMatch(shell, /\.send\s*\(|new\s+WebSocket|\babort\b|\bMenu\b/i);
+    const gameRenderer = shell.slice(shell.indexOf('function renderGame'), shell.indexOf('function renderBody'));
+    assert.doesNotMatch(gameRenderer, /\.send\s*\(|new\s+WebSocket|\babort\b|>Menu</i);
 });
 
 test('Game Mode has an internal notation scroller and presentation-only ended-game return', () => {
@@ -106,7 +108,7 @@ test('dynamic bodies retain truthful pending delivery and unsupported Players la
     assert.match(shell, /Cancel requested/);
     assert.match(shell, /The last seek action was not delivered/);
     assert.match(shell, /Player directory unavailable\./);
-    assert.doesNotMatch(shell, /specific-player|match command|Menu/);
+    assert.doesNotMatch(shell, /specific-player|match command/);
 });
 
 test('one flag and one immediate API restore the original legacy hierarchy', () => {

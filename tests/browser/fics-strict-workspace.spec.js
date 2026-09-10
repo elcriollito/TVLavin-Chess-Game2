@@ -3,7 +3,10 @@ import AxeBuilder from '@axe-core/playwright';
 
 async function openFics(page, viewport = { width: 1600, height: 1000 }) {
     await page.setViewportSize(viewport);
-    await page.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
+    await page.addInitScript(() => {
+        localStorage.setItem('caissa_onboarding_completed', 'true');
+        window.CAISSA_FICS_AUTO_GUEST_ENABLED = false;
+    });
     await page.goto('/fics');
     await page.waitForFunction(() => window.CaissaFICSShell?.getSnapshot().mounted === true);
 }
@@ -131,11 +134,13 @@ test('tablet and mobile preserve strict regions without horizontal overflow', as
         expect(result.bodyMinHeight).toBe('0px');
     }
     const mobileControls = await page.evaluate(() => ({
-        radioSize: Math.round(document.querySelector('.fics-login-mode input').getBoundingClientRect().width),
+        sessionButtonHeight: Math.round(document.querySelector('.fics-rd7-session-button').getBoundingClientRect().height),
+        permanentLoginVisible: document.querySelector('.fics-rd2-workspace-foot .fics-login-panel') !== null,
         consoleVisible: document.getElementById('ficsConsoleToggle').getBoundingClientRect().bottom
             <= document.querySelector('.fics-rd2-workspace').getBoundingClientRect().bottom
     }));
-    expect(mobileControls.radioSize).toBe(16);
+    expect(mobileControls.sessionButtonHeight).toBeGreaterThanOrEqual(34);
+    expect(mobileControls.permanentLoginVisible).toBe(false);
     expect(mobileControls.consoleVisible).toBe(true);
 });
 

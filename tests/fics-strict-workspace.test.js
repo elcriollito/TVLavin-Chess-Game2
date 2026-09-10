@@ -64,11 +64,12 @@ test('workspace availability guidance routes through the one hybrid Console writ
     assert.equal((client.match(/messageBuffer\.push\(/g) || []).length, 1);
 });
 
-test('FOOT is compact primary control ownership without a duplicated Console summary', () => {
-    assert.match(shell, /foot\.append\(connection, consoleSection\)/);
+test('FOOT is compact Console-only ownership with one canonical session summary', () => {
+    assert.match(shell, /foot\.append\(consoleSection\)/);
+    assert.match(shell, /fics-rd7-console-status/);
     assert.match(shell, /compactConnectionLabels/);
     assert.doesNotMatch(shell, /ficsRd5ConsoleSummary|consoleSummaryText/);
-    assert.match(styles, /\.fics-rd2-workspace-foot\s*\{[^}]*padding:\s*8px 10px/s);
+    assert.match(styles, /\.fics-rd2-workspace-foot\s*\{[^}]*padding:\s*6px 10px/s);
 });
 
 test('Settings retains technical diagnostics while Game Mode owns the flexible BODY', () => {

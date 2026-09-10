@@ -425,3 +425,129 @@ test('console buffering is capped and expansion remains legacy DOM presentation 
     client.toggleConsole();
     assert.equal(client.elements.consoleContainer.style.display, 'block');
 });
+
+test('first FICS entry starts exactly one automatic guest connection attempt', () => {
+    const { client, FakeWebSocket } = createHarness();
+    client.initBoard = () => {};
+    client.updatePlayerBars = () => {};
+    client.messageBuffer = [];
+
+    client.onEnter();
+    client.onEnter();
+
+    assert.equal(FakeWebSocket.instances.length, 1);
+    assert.equal(client.autoGuestAttempted, true);
+    assert.equal(client.loginMode, 'guest');
+    assert.equal(client.connectionState, 'connecting');
+    assert.equal(client.messageBuffer.filter(line => line === '[CAISSA] Connecting to FICS as guest...').length, 1);
+});
+
+test('duplicate connect calls cannot construct a second WebSocket', () => {
+    const { client, FakeWebSocket } = createHarness();
+    assert.equal(client.connect('guest').ok, true);
+    assert.equal(client.connect('guest').code, 'CONNECTION_ALREADY_ACTIVE');
+    assert.equal(FakeWebSocket.instances.length, 1);
+});
+
+test('retained registered session is never replaced by automatic guest entry', () => {
+    const { client, FakeWebSocket } = createHarness();
+    const socket = new FakeWebSocket(client.gatewayUrl);
+    socket.readyState = FakeWebSocket.OPEN;
+    Object.assign(client, {
+        ws: socket, connected: true, authenticated: true, connectionState: 'connected',
+        loginMode: 'account', ficsUsername: 'RegisteredUser'
+    });
+
+    assert.equal(client.requestAutomaticGuestConnection().code, 'SESSION_RETAINED');
+    assert.equal(client.loginMode, 'account');
+    assert.equal(client.ficsUsername, 'RegisteredUser');
+    assert.equal(FakeWebSocket.instances.length, 1);
+});
+
+test('route leave and return retain the authenticated socket and do not restart guest login', () => {
+    const { client, FakeWebSocket } = createHarness();
+    client.initBoard = () => {};
+    client.updatePlayerBars = () => {};
+    client.onEnter();
+    const socket = FakeWebSocket.instances[0];
+    socket.open();
+    Object.assign(client, { authenticated: true, connectionState: 'connected', ficsUsername: 'GuestRoute' });
+
+    client.onExit();
+    client.onEnter();
+
+    assert.strictEqual(client.ws, socket);
+    assert.equal(client.authenticated, true);
+    assert.equal(FakeWebSocket.instances.length, 1);
+});
+
+test('canonical bounded guest reconnect can start a replacement socket', () => {
+    const { client, FakeWebSocket, timeoutTasks } = createHarness();
+    client.connect('guest');
+    const first = FakeWebSocket.instances[0];
+    first.open();
+    Object.assign(client, { authenticated: true, connectionState: 'connected' });
+    first.closeFromNetwork(1006, 'network lost');
+
+    const reconnect = timeoutTasks.find(task => task.delay === 1500);
+    assert.ok(reconnect);
+    reconnect.callback();
+
+    assert.equal(FakeWebSocket.instances.length, 2);
+    assert.equal(client.connectionState, 'reconnecting');
+    assert.equal(client.reconnectAttempts, 1);
+});
+
+test('registered switch reuses canonical credential path and stale guest callbacks are isolated', () => {
+    const { client, FakeWebSocket } = createHarness();
+    const guestSocket = new FakeWebSocket(client.gatewayUrl);
+    guestSocket.readyState = FakeWebSocket.OPEN;
+    Object.assign(client, {
+        ws: guestSocket, connected: true, authenticated: true, connectionState: 'connected',
+        loginMode: 'guest', ficsUsername: 'GuestSwitch'
+    });
+    client.elements.accountUsernameInput = { value: 'RegisteredUser', disabled: false };
+    client.elements.accountPasswordInput = { value: 'fixture-secret', disabled: false };
+    client.messageBuffer = [];
+
+    const result = client.connectAsRegistered();
+    const accountSocket = FakeWebSocket.instances[1];
+    assert.equal(result.ok, true);
+    assert.equal(client.loginMode, 'account');
+    assert.equal(client.pendingAccountPassword, 'fixture-secret');
+    assert.equal(client.elements.accountPasswordInput.value, '');
+    assert.strictEqual(client.ws, accountSocket);
+    guestSocket.closeFromNetwork(1006, 'late guest close');
+    assert.strictEqual(client.ws, accountSocket);
+    assert.equal(client.connectionState, 'connecting');
+    assert.equal(client.messageBuffer.some(line => line.includes('fixture-secret')), false);
+});
+
+test('authenticated welcome guidance is generation-bound and deduplicated', () => {
+    const { client } = createHarness();
+    Object.assign(client, {
+        authenticated: true, loginMode: 'guest', ficsUsername: 'GuestWelcome',
+        sessionGeneration: 4, welcomedSessionGeneration: 0, messageBuffer: []
+    });
+
+    assert.equal(client.announceAuthenticatedSession(), true);
+    assert.equal(client.announceAuthenticatedSession(), false);
+    assert.deepEqual(Array.from(client.messageBuffer), [
+        '[CAISSA] Connected as GuestWelcome.',
+        '[CAISSA] Choose Tables to observe games or Seek to create a game.',
+        '[CAISSA] Open the session menu above to connect with a registered FICS account.'
+    ]);
+});
+
+test('manual guest retry remains available after automatic failure', () => {
+    const { client, FakeWebSocket } = createHarness();
+    assert.equal(client.requestAutomaticGuestConnection().ok, true);
+    const failed = FakeWebSocket.instances[0];
+    failed.readyState = FakeWebSocket.CLOSED;
+    client.ws = null;
+    client.connected = false;
+    client.connectionState = 'error';
+
+    assert.equal(client.connect('guest').ok, true);
+    assert.equal(FakeWebSocket.instances.length, 2);
+});

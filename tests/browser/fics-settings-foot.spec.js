@@ -3,7 +3,10 @@ import AxeBuilder from '@axe-core/playwright';
 
 async function openFics(page, viewport = { width: 1600, height: 1000 }) {
     await page.setViewportSize(viewport);
-    await page.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
+    await page.addInitScript(() => {
+        localStorage.setItem('caissa_onboarding_completed', 'true');
+        window.CAISSA_FICS_AUTO_GUEST_ENABLED = false;
+    });
     await page.goto('/fics');
     await page.waitForFunction(() => window.CaissaFICSShell?.getSnapshot().mounted === true);
 }
@@ -77,16 +80,16 @@ test('reparented Test Gateway and Sounds retain their existing handlers', async 
     await expect(sound).toHaveAttribute('aria-pressed', before === 'true' ? 'false' : 'true');
 });
 
-test('login Connect and one compact reconnect/error status remain outside Settings', async ({ page }) => {
+test('session identity and reconnect/error status live in compact page chrome', async ({ page }) => {
     await openFics(page);
-    await expect(page.locator('.fics-rd2-workspace-foot #ficsConnectBtn')).toBeVisible();
-    await expect(page.locator('.fics-rd2-workspace-foot input[value="guest"]')).toBeVisible();
-    await expect(page.locator('.fics-rd2-workspace-foot input[value="account"]')).toBeVisible();
+    await expect(page.locator('.fics-rd2-workspace-foot #ficsConnectBtn')).toHaveCount(0);
+    await expect(page.locator('.fics-rd7-session-button')).toBeVisible();
+    await expect(page.locator('.fics-rd7-session-identity')).toHaveText('Disconnected');
     expect(await page.locator('#ficsRd5SettingsPanel #ficsConnectBtn').count()).toBe(0);
     await page.evaluate(() => window.CaissaFICSClient.setConnectionState('reconnecting', 'Connection lost. Reconnecting…'));
-    await expect(page.locator('.fics-rd2-workspace-foot #ficsConnectionStatus')).toHaveText('Reconnecting');
+    await expect(page.locator('.fics-rd7-session-identity')).toHaveText('Reconnecting…');
     await page.evaluate(() => window.CaissaFICSClient.setConnectionState('error', 'Unable to connect'));
-    await expect(page.locator('.fics-rd2-workspace-foot #ficsConnectionStatus')).toHaveText('Error');
+    await expect(page.locator('.fics-rd7-session-identity')).toHaveText('Connection error');
 });
 
 test('Console collapses and expands without replacing history or command input', async ({ page }) => {
@@ -112,8 +115,8 @@ test('successful authentication returns Console to its compact default', async (
     await expect(page.locator('#ficsConsoleToggle')).toHaveAttribute('aria-expanded', 'true');
     await setLobbyState(page);
     await expect(page.locator('#ficsConsoleToggle')).toHaveAttribute('aria-expanded', 'false');
-    await expect(page.locator('#ficsDisconnectBtn')).toBeVisible();
-    await expect(page.locator('#ficsConnectBtn')).toBeHidden();
+    await expect(page.locator('.fics-rd7-session-identity')).toHaveText('RDFiveGuest');
+    await expect(page.locator('.fics-rd7-console-status')).toHaveText('Connected as RDFiveGuest');
 });
 
 test('Game Mode notation consumes the recovered BODY and Settings overlays without resizing it', async ({ page }) => {
@@ -191,13 +194,13 @@ test('feature-flag rollback restores legacy hierarchy and every canonical node i
             disabled,
             identities: ids.every(id => before[id] === document.getElementById(id)),
             clientPreserved: client === window.CaissaFICSClient,
-            settingsRemoved: section.querySelectorAll('.fics-rd5-settings-button, .fics-rd5-settings-layer').length,
+            chromeRemoved: section.querySelectorAll('.fics-rd7-session-chrome, .fics-rd5-settings-layer').length,
             gatewayRestored: Boolean(section.querySelector('.fics-connection-info > .fics-gateway-details')),
             sessionRestored: Boolean(section.querySelector('.fics-connection-header > .fics-session-column')),
             consoleRestored: Boolean(section.querySelector('.fics-board-section > .fics-console-section'))
         };
     });
-    expect(result).toEqual({ disabled: true, identities: true, clientPreserved: true, settingsRemoved: 0,
+    expect(result).toEqual({ disabled: true, identities: true, clientPreserved: true, chromeRemoved: 0,
         gatewayRestored: true, sessionRestored: true, consoleRestored: true });
 });
 
@@ -231,8 +234,8 @@ test('canonical connection transitions append truthful hybrid Console messages',
         return [...client.messageBuffer];
     });
     expect(messages).toEqual([
-        '[CAISSA] Connecting to FICS...',
-        '[ERROR] Connection unavailable. Please connect to FICS.',
+        '[CAISSA] Connecting to FICS as guest...',
+        '[CAISSA] Unable to connect to FICS.',
         '[ERROR] Connection lost.',
         '[CAISSA] Reconnecting to FICS...',
         '[CAISSA] Disconnected from FICS.'
@@ -260,19 +263,19 @@ test('hybrid Console preserves raw FICS and command lines in one stream', async 
     expect(result.text).toContain('[FICS] fics% help');
 });
 
-test('compact FOOT state omits latency and Console retains the measured connection event', async ({ page }) => {
+test('compact FOOT session summary omits latency and Console retains measured events', async ({ page }) => {
     await openFics(page);
     await page.evaluate(() => {
         const client = window.CaissaFICSClient;
         Object.assign(client, { connected: true, authenticated: true, connectionState: 'connected', latencyMs: null });
         window.CaissaFICSShell.refresh();
     });
-    await expect(page.locator('#ficsConnectionStatus')).toHaveText('Connected');
+    await expect(page.locator('.fics-rd7-console-status')).toHaveText('Connected as Guest');
     await page.evaluate(() => {
         window.CaissaFICSClient.latencyMs = 84;
         window.CaissaFICSShell.refresh();
     });
-    await expect(page.locator('#ficsConnectionStatus')).toHaveText('Connected');
+    await expect(page.locator('.fics-rd7-console-status')).toHaveText('Connected as Guest');
     await expect(page.locator('#ficsRd5ConsoleSummary')).toHaveCount(0);
 });
 

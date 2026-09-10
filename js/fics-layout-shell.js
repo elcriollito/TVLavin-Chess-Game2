@@ -1,7 +1,7 @@
 (function installFicsLayoutShell(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.4.0';
+    const SCHEMA_VERSION = '1.5.0';
     const FLAG = 'CAISSA_FICS_REDESIGN_ENABLED';
     const LOBBY_VIEWS = Object.freeze(['tables', 'players', 'seek']);
     const GAME_STATES = new Set(['PLAYING', 'OBSERVING', 'GAME_OVER']);
@@ -23,6 +23,10 @@
     let lastGameMoveSignature = null;
     let settingsOpen = false;
     let settingsReturnFocus = null;
+    let sessionMenuOpen = false;
+    let sessionReturnFocus = null;
+    let userDialogOpen = false;
+    let userDialogReturnFocus = null;
     let lastAuthenticated = false;
     const seekDraft = { minutes: '5', increment: '0', rated: 'unrated', color: 'random' };
     const eventListeners = [];
@@ -53,6 +57,7 @@
 
     function setSettingsOpen(open, { restoreFocus = true } = {}) {
         if (!mounted) return false;
+        if (open === true) setSessionMenuOpen(false, { restoreFocus: false });
         settingsOpen = open === true;
         mounted.settingsLayer.hidden = !settingsOpen;
         mounted.settingsButton.setAttribute('aria-expanded', String(settingsOpen));
@@ -80,6 +85,114 @@
             settingsReturnFocus = null;
         }
         return settingsOpen;
+    }
+
+    function focusableMenuControls() {
+        if (!mounted?.sessionMenu) return [];
+        return [...mounted.sessionMenu.querySelectorAll('[role="menuitem"]')]
+            .filter((node) => !node.hidden && !node.disabled);
+    }
+
+    function setSessionMenuOpen(open, { restoreFocus = true } = {}) {
+        if (!mounted) return false;
+        sessionMenuOpen = open === true;
+        mounted.sessionMenu.hidden = !sessionMenuOpen;
+        mounted.sessionButton.setAttribute('aria-expanded', String(sessionMenuOpen));
+        mounted.sessionButton.classList.toggle('is-open', sessionMenuOpen);
+        if (sessionMenuOpen) {
+            sessionReturnFocus = document.activeElement;
+            setSettingsOpen(false, { restoreFocus: false });
+            focusableMenuControls()[0]?.focus?.({ preventScroll: true });
+        } else {
+            if (restoreFocus) {
+                const target = sessionReturnFocus?.isConnected ? sessionReturnFocus : mounted.sessionButton;
+                target?.focus?.({ preventScroll: true });
+            }
+            sessionReturnFocus = null;
+        }
+        return sessionMenuOpen;
+    }
+
+    function handleSessionMenuKeydown(event) {
+        if (!sessionMenuOpen) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            setSessionMenuOpen(false);
+            return;
+        }
+        const controls = focusableMenuControls();
+        const current = controls.indexOf(document.activeElement);
+        const target = event.key === 'ArrowDown' ? (current + 1 + controls.length) % controls.length
+            : event.key === 'ArrowUp' ? (current - 1 + controls.length) % controls.length
+                : event.key === 'Home' ? 0 : event.key === 'End' ? controls.length - 1 : -1;
+        if (target < 0 || !controls.length) return;
+        event.preventDefault();
+        controls[target].focus();
+    }
+
+    function focusableUserDialogControls() {
+        if (!mounted?.userDialog) return [];
+        return [...mounted.userDialog.querySelectorAll(
+            'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )].filter((node) => !node.hidden && node.getClientRects().length > 0);
+    }
+
+    function setUserDialogOpen(open, { restoreFocus = true, clearPassword = true } = {}) {
+        if (!mounted) return false;
+        userDialogOpen = open === true;
+        mounted.userDialogLayer.hidden = !userDialogOpen;
+        if (userDialogOpen) {
+            userDialogReturnFocus = mounted.sessionButton;
+            setSessionMenuOpen(false, { restoreFocus: false });
+            setSettingsOpen(false, { restoreFocus: false });
+            mounted.userDialogBackgroundRecords = [...document.body.children]
+                .filter((node) => node !== mounted.userDialogLayer)
+                .map((node) => ({ node, inert: node.inert }));
+            mounted.userDialogBackgroundRecords.forEach(({ node }) => { node.inert = true; });
+            document.body.classList.add('fics-rd7-user-dialog-active');
+            mounted.accountUsernameInput.disabled = false;
+            mounted.accountPasswordInput.disabled = false;
+            mounted.accountUsernameInput.focus({ preventScroll: true });
+        } else {
+            mounted.userDialogBackgroundRecords?.forEach(({ node, inert }) => { node.inert = inert; });
+            mounted.userDialogBackgroundRecords = [];
+            document.body.classList.remove('fics-rd7-user-dialog-active');
+            if (clearPassword) root.CaissaFICSClient?.clearAccountPassword?.();
+            root.CaissaFICSClient?.updateLoginControls?.();
+            if (restoreFocus) {
+                const target = userDialogReturnFocus?.isConnected ? userDialogReturnFocus : mounted.sessionButton;
+                target?.focus?.({ preventScroll: true });
+            }
+            userDialogReturnFocus = null;
+        }
+        return userDialogOpen;
+    }
+
+    function handleUserDialogKeydown(event) {
+        if (!userDialogOpen) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            setUserDialogOpen(false);
+            return;
+        }
+        if (event.key !== 'Tab') return;
+        const controls = focusableUserDialogControls();
+        if (!controls.length) return;
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    }
+
+    function handleDocumentPointerDown(event) {
+        if (sessionMenuOpen && mounted?.sessionControl && !mounted.sessionControl.contains(event.target)) {
+            setSessionMenuOpen(false, { restoreFocus: false });
+        }
     }
 
     function handleSettingsKeydown(event) {
@@ -634,6 +747,44 @@
         });
     }
 
+    function sessionIdentity(snapshot) {
+        const state = snapshot.connection?.state || 'disconnected';
+        if (state === 'connecting') return 'Connecting…';
+        if (state === 'reconnecting') return 'Reconnecting…';
+        if (state === 'error') return 'Connection error';
+        if (snapshot.connection?.authenticated && snapshot.session?.username) return snapshot.session.username;
+        return 'Disconnected';
+    }
+
+    function consoleSessionStatus(snapshot) {
+        const state = snapshot.connection?.state || 'disconnected';
+        if (state === 'connecting') return snapshot.session?.registered
+            ? 'Connecting as registered user…'
+            : 'Connecting as guest…';
+        if (state === 'reconnecting') return 'Reconnecting…';
+        if (state === 'error') return 'Connection error';
+        if (snapshot.connection?.authenticated && snapshot.session?.username) {
+            return `Connected as ${snapshot.session.username}`;
+        }
+        return 'Disconnected';
+    }
+
+    function renderSessionChrome(snapshot) {
+        const identity = sessionIdentity(snapshot);
+        const authenticated = snapshot.connection?.authenticated === true;
+        const registered = authenticated && snapshot.session?.registered === true;
+        const guest = authenticated && !registered;
+        const busy = ['connecting', 'reconnecting'].includes(snapshot.connection?.state);
+        mounted.sessionIdentity.textContent = identity;
+        mounted.sessionButton.setAttribute('aria-label', `FICS session: ${identity}`);
+        mounted.sessionMenuIdentity.textContent = identity;
+        mounted.sessionGuest.hidden = authenticated || busy;
+        mounted.sessionUser.hidden = registered || busy;
+        mounted.sessionDisconnect.hidden = !(guest || registered || busy);
+        mounted.consoleStatus.textContent = consoleSessionStatus(snapshot);
+        mounted.consoleStatus.dataset.state = snapshot.connection?.state || 'disconnected';
+    }
+
     function render() {
         if (!mounted) return null;
         const baseView = getBaseViewState();
@@ -675,6 +826,7 @@
         if (mounted.connectionStatus) {
             mounted.connectionStatus.textContent = compactConnectionLabels[snapshot.connection.state] || 'Disconnected';
         }
+        renderSessionChrome(snapshot);
         renderBody(snapshot, view);
 
         mounted.roomPanel.hidden = true;
@@ -740,11 +892,16 @@
         const consoleHeader = consoleSection?.querySelector('.fics-console-header');
         const consoleToggle = document.getElementById('ficsConsoleToggle');
         const connectionStatus = document.getElementById('ficsConnectionStatus');
+        const accountFields = document.getElementById('ficsAccountFields');
+        const accountUsernameInput = document.getElementById('ficsAccountUsername');
+        const accountPasswordInput = document.getElementById('ficsAccountPassword');
         if (![section, layout, gameArea, connection, pageHeader, connectionHeading, gatewayDetails,
             sessionColumn, boardSection, boardContainer, roomPanel, sidePanel, consoleSection,
-            consoleHeader, consoleToggle, connectionStatus].every(Boolean)) return false;
+            consoleHeader, consoleToggle, connectionStatus, accountFields,
+            accountUsernameInput, accountPasswordInput].every(Boolean)) return false;
 
-        const relocations = [connectionHeading, gatewayDetails, sessionColumn].map(rememberRelocation);
+        const relocations = [connectionHeading, gatewayDetails, sessionColumn, accountFields].map(rememberRelocation);
+        const connectionHidden = connection.hidden;
         const consoleState = {
             display: document.getElementById('ficsConsoleContainer')?.style.display || '',
             expanded: document.getElementById('ficsConsoleToggle')?.getAttribute('aria-expanded') || 'true',
@@ -804,6 +961,33 @@
         const foot = createElement('footer', 'fics-rd2-workspace-foot', {
             'data-fics-workspace-region': 'foot', 'data-fics-region-sizing': 'intrinsic'
         });
+        const sessionChrome = createElement('div', 'fics-rd7-session-chrome', {
+            'aria-label': 'FICS session controls'
+        });
+        const sessionControl = createElement('div', 'fics-rd7-session-control');
+        const sessionButton = createElement('button', 'fics-rd7-session-button', {
+            type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false',
+            'aria-controls': 'ficsRd7SessionMenu'
+        });
+        const sessionDot = createElement('span', 'fics-rd7-session-dot', { 'aria-hidden': 'true' });
+        const sessionIdentityNode = appendText(sessionButton, 'span', 'fics-rd7-session-identity', 'Disconnected');
+        sessionButton.prepend(sessionDot);
+        const sessionMenu = createElement('div', 'fics-rd7-session-menu', {
+            id: 'ficsRd7SessionMenu', role: 'menu', hidden: '', 'aria-label': 'FICS session menu'
+        });
+        const sessionMenuIdentity = appendText(sessionMenu, 'div', 'fics-rd7-session-menu-identity', 'Disconnected', {
+            role: 'presentation'
+        });
+        const sessionGuest = appendText(sessionMenu, 'button', 'fics-rd7-session-action', 'Connect as Guest', {
+            type: 'button', role: 'menuitem'
+        });
+        const sessionUser = appendText(sessionMenu, 'button', 'fics-rd7-session-action', 'Connect as User', {
+            type: 'button', role: 'menuitem'
+        });
+        const sessionDisconnect = appendText(sessionMenu, 'button', 'fics-rd7-session-action is-danger', 'Disconnect', {
+            type: 'button', role: 'menuitem'
+        });
+        sessionControl.append(sessionButton, sessionMenu);
         const settingsButton = createElement('button', 'fics-rd5-settings-button', {
             type: 'button', 'aria-label': 'Open FICS settings', title: 'Settings',
             'aria-controls': 'ficsRd5SettingsPanel', 'aria-expanded': 'false'
@@ -833,13 +1017,49 @@
         settingsContent.append(connectionDiagnostics, sessionColumn);
         settingsPanel.append(settingsHeader, settingsContent);
         settingsLayer.append(settingsPanel);
+
+        const userDialogLayer = createElement('div', 'fics-rd7-user-dialog-layer', { hidden: '' });
+        const userDialog = createElement('section', 'fics-rd7-user-dialog', {
+            id: 'ficsRd7UserDialog', role: 'dialog', 'aria-modal': 'true',
+            'aria-labelledby': 'ficsRd7UserDialogTitle'
+        });
+        const userDialogHeader = createElement('header', 'fics-rd7-user-dialog-header');
+        appendText(userDialogHeader, 'h2', 'fics-rd7-user-dialog-title', 'Connect as User', {
+            id: 'ficsRd7UserDialogTitle'
+        });
+        const userDialogClose = appendText(userDialogHeader, 'button', 'fics-rd7-user-dialog-close', '\u00d7', {
+            type: 'button', 'aria-label': 'Cancel registered FICS login'
+        });
+        accountFields.hidden = false;
+        accountUsernameInput.setAttribute('required', '');
+        accountPasswordInput.setAttribute('required', '');
+        const userDialogNote = appendText(userDialog, 'p', 'fics-rd7-user-dialog-note', 'Registered FICS login remains in beta.');
+        const userDialogStatus = appendText(userDialog, 'p', 'fics-rd7-user-dialog-status', '', {
+            role: 'status', 'aria-live': 'polite'
+        });
+        const userDialogActions = createElement('div', 'fics-rd7-user-dialog-actions');
+        const userDialogCancel = appendText(userDialogActions, 'button', 'fics-btn fics-btn-secondary', 'Cancel', {
+            type: 'button'
+        });
+        const userDialogConnect = appendText(userDialogActions, 'button', 'fics-btn fics-btn-primary', 'Connect', {
+            type: 'button'
+        });
+        userDialogActions.append(userDialogCancel, userDialogConnect);
+        userDialog.append(userDialogHeader, accountFields, userDialogNote, userDialogStatus, userDialogActions);
+        userDialogLayer.append(userDialog);
+
+        const consoleStatus = appendText(consoleHeader, 'span', 'fics-rd7-console-status', 'Disconnected', {
+            'aria-live': 'polite'
+        });
+        sessionChrome.append(sessionControl, settingsButton);
         workspace.append(head, body, foot);
         shell.append(boardRegion, workspace);
         layout.insertBefore(shell, gameArea);
-        layout.append(settingsButton);
-        document.body.append(settingsLayer);
+        layout.append(sessionChrome);
+        document.body.append(settingsLayer, userDialogLayer);
         boardRegion.append(boardSection);
-        foot.append(connection, consoleSection);
+        connection.hidden = true;
+        foot.append(consoleSection);
         gameArea.hidden = true;
         section.classList.add('fics-rd2-enabled');
         section.dataset.ficsRedesign = 'v2';
@@ -849,13 +1069,47 @@
             roomPanel, sidePanel, consoleSection, shell, boardRegion, workspace, head,
             body, foot, tabs, returnToGame: returnToGameButton, dynamic, connectionStatus,
             settingsButton, settingsLayer, settingsPanel, settingsClose, settingsContent,
-            backgroundInertRecords: [] };
+            backgroundInertRecords: [], sessionChrome, sessionControl, sessionButton,
+            sessionIdentity: sessionIdentityNode, sessionMenu, sessionMenuIdentity, sessionGuest,
+            sessionUser, sessionDisconnect, consoleStatus, userDialogLayer, userDialog,
+            userDialogClose, userDialogCancel, userDialogConnect, userDialogStatus,
+            accountFields, accountUsernameInput, accountPasswordInput, connectionHidden,
+            userDialogBackgroundRecords: [] };
+        sessionButton.addEventListener('click', () => setSessionMenuOpen(!sessionMenuOpen));
+        sessionMenu.addEventListener('keydown', handleSessionMenuKeydown);
+        sessionGuest.addEventListener('click', () => {
+            setSessionMenuOpen(false, { restoreFocus: false });
+            root.CaissaFICSClient?.connect?.('guest');
+        });
+        sessionUser.addEventListener('click', () => setUserDialogOpen(true));
+        sessionDisconnect.addEventListener('click', () => {
+            setSessionMenuOpen(false, { restoreFocus: false });
+            root.CaissaFICSClient?.disconnect?.();
+        });
         settingsButton.addEventListener('click', () => setSettingsOpen(!settingsOpen));
         settingsClose.addEventListener('click', () => setSettingsOpen(false));
         settingsLayer.addEventListener('click', (event) => {
             if (event.target === settingsLayer) setSettingsOpen(false);
         });
         settingsLayer.addEventListener('keydown', handleSettingsKeydown);
+        userDialogClose.addEventListener('click', () => setUserDialogOpen(false));
+        userDialogCancel.addEventListener('click', () => setUserDialogOpen(false));
+        userDialogConnect.addEventListener('click', () => {
+            const result = root.CaissaFICSClient?.connectAsRegistered?.();
+            if (result?.ok) {
+                userDialogStatus.textContent = '';
+                setUserDialogOpen(false, { clearPassword: false });
+            } else {
+                userDialogStatus.textContent = result?.code === 'ACCOUNT_CREDENTIALS_REQUIRED'
+                    ? 'Enter both username and password.'
+                    : 'Unable to start registered FICS login.';
+            }
+        });
+        userDialogLayer.addEventListener('click', (event) => {
+            if (event.target === userDialogLayer) setUserDialogOpen(false);
+        });
+        userDialogLayer.addEventListener('keydown', handleUserDialogKeydown);
+        document.addEventListener('pointerdown', handleDocumentPointerDown);
         setConsoleExpanded(false);
         if (typeof root.ResizeObserver === 'function') {
             resizeObserver = new root.ResizeObserver(scheduleBoardResize);
@@ -877,10 +1131,15 @@
         resizeObserver = null;
         root.removeEventListener?.('resize', scheduleBoardResize);
         root.removeEventListener?.('orientationchange', scheduleBoardResize);
+        document.removeEventListener('pointerdown', handleDocumentPointerDown);
+        setSessionMenuOpen(false, { restoreFocus: false });
+        setUserDialogOpen(false, { restoreFocus: false });
         setSettingsOpen(false, { restoreFocus: false });
         restoreRelocations(current.relocations);
         current.sessionColumn.classList.remove('fics-rd5-settings-group');
         current.connectionHeading.removeAttribute('id');
+        current.accountUsernameInput.removeAttribute('required');
+        current.accountPasswordInput.removeAttribute('required');
         const consoleContainer = document.getElementById('ficsConsoleContainer');
         const consoleToggle = document.getElementById('ficsConsoleToggle');
         if (consoleContainer) consoleContainer.style.display = current.consoleState.display;
@@ -891,8 +1150,11 @@
         }
         if (current.consoleState.sectionExpanded === null) current.consoleSection.removeAttribute('data-console-expanded');
         else current.consoleSection.setAttribute('data-console-expanded', current.consoleState.sectionExpanded);
+        current.consoleStatus.remove();
         current.settingsLayer.remove();
-        current.settingsButton.remove();
+        current.userDialogLayer.remove();
+        current.sessionChrome.remove();
+        current.connection.hidden = current.connectionHidden;
         current.boardSection.append(current.consoleSection);
         current.gameArea.append(current.roomPanel, current.boardSection, current.sidePanel);
         current.layout.insertBefore(current.connection, current.gameArea);
@@ -912,6 +1174,10 @@
         lastGameMoveSignature = null;
         settingsOpen = false;
         settingsReturnFocus = null;
+        sessionMenuOpen = false;
+        sessionReturnFocus = null;
+        userDialogOpen = false;
+        userDialogReturnFocus = null;
         lastAuthenticated = false;
         root.CaissaFICSClient?.board?.resize?.();
         return true;
@@ -931,6 +1197,8 @@
             dismissedEndedGameKey,
             productState: mounted?.section.dataset.ficsProductState || null,
             settingsOpen,
+            sessionMenuOpen,
+            userDialogOpen,
             consoleExpanded: mounted?.consoleSection.querySelector('#ficsConsoleToggle')?.getAttribute('aria-expanded') === 'true',
             boardNodePreserved: Boolean(mounted && mounted.boardContainer === document.getElementById('ficsBoardContainer')),
             owner: 'PRESENTATION_ONLY'
@@ -943,6 +1211,8 @@
         refresh: render,
         selectLobbyView,
         returnToGame,
+        setSessionMenuOpen,
+        setUserDialogOpen,
         setSettingsOpen,
         setEnabled
     });

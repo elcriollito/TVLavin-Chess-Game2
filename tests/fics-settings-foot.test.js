@@ -30,8 +30,10 @@ test('existing connection gateway session sound and gateway-test nodes move with
     }
 });
 
-test('primary auth and concise status remain in the permanent FOOT', () => {
-    assert.match(shell, /foot\.append\(connection, consoleSection\)/);
+test('primary auth moves to compact session chrome while FOOT owns only Console', () => {
+    assert.match(shell, /sessionChrome\.append\(sessionControl, settingsButton\)/);
+    assert.match(shell, /connection\.hidden = true/);
+    assert.match(shell, /foot\.append\(consoleSection\)/);
     assert.doesNotMatch(shell, /settingsContent\.append\([^)]*(?:connectBtn|accountConnectBtn|disconnectBtn|connectionStatus|identityStatus)/);
     for (const html of pages) {
         assert.match(html, /id="ficsConnectionStatus"/);
@@ -62,7 +64,7 @@ test('Console has one canonical node and explicit reversible expansion behavior'
 test('FOOT compaction releases fixed workspace height to a flexible BODY track', () => {
     assert.match(styles, /grid-template-rows:\s*auto minmax\(0, 1fr\) auto/);
     assert.match(styles, /\.fics-rd2-workspace\s*\{[^}]*height:\s*min\(calc\(100dvh - 160px\), 860px\)/s);
-    assert.match(styles, /\.fics-rd2-workspace-foot\s*\{[^}]*padding:\s*8px 10px/s);
+    assert.match(styles, /\.fics-rd2-workspace-foot\s*\{[^}]*padding:\s*6px 10px/s);
     assert.match(styles, /\.fics-console-section\s*\{[^}]*padding:\s*0/s);
 });
 
@@ -86,7 +88,8 @@ test('feature-flag rollback restores moved diagnostics and the prior Console pre
     assert.match(shell, /current\.sessionColumn\.classList\.remove\('fics-rd5-settings-group'\)/);
     assert.match(shell, /consoleContainer\.style\.display = current\.consoleState\.display/);
     assert.match(shell, /current\.settingsLayer\.remove\(\)/);
-    assert.match(shell, /current\.settingsButton\.remove\(\)/);
+    assert.match(shell, /current\.sessionChrome\.remove\(\)/);
+    assert.match(shell, /current\.connection\.hidden = current\.connectionHidden/);
 });
 
 test('one client socket board connection sound and console owner remain and Players stays unsupported', () => {
@@ -121,8 +124,8 @@ test('hybrid Console uses one capped chronological buffer with subtle approved o
 test('connection messages are emitted only from canonical connection transitions', () => {
     assert.match(client, /const previousState = this\.connectionState/);
     assert.match(client, /if \(state !== previousState\)/);
-    for (const message of ['Connecting to FICS...', 'Connected to FICS', 'Connection lost.',
-        'Reconnecting to FICS...', 'Disconnected from FICS.', 'Connection unavailable. Please connect to FICS.']) {
+    for (const message of ['Connecting to FICS as guest...', 'Connected to FICS', 'Connection lost.',
+        'Reconnecting to FICS...', 'Disconnected from FICS.', 'Unable to connect to FICS.']) {
         assert.match(client, new RegExp(message.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     }
     assert.doesNotMatch(shell, /connectionEvent(?:s|Store)|messageBuffer\s*=/);
@@ -143,9 +146,10 @@ test('hybrid messages report delivery honestly and retain raw FICS access', () =
     assert.match(client, /sendCommand\(\)[\s\S]*?this\.send\(\{[\s\S]*?type: 'command'/);
 });
 
-test('Settings holds technical diagnostics while Console and Login retain their approved responsibilities', () => {
+test('Settings holds technical diagnostics while Console and session chrome retain their approved responsibilities', () => {
     assert.match(shell, /connectionDiagnostics\.append\(connectionHeading, gatewayDetails\)/);
     assert.match(shell, /settingsContent\.append\(connectionDiagnostics, sessionColumn\)/);
     assert.doesNotMatch(shell, /settingsContent\.append\([^)]*(?:consoleSection|connectionStatus|identityStatus)/);
-    assert.match(shell, /foot\.append\(connection, consoleSection\)/);
+    assert.match(shell, /foot\.append\(consoleSection\)/);
+    assert.match(shell, /sessionChrome\.append\(sessionControl, settingsButton\)/);
 });
