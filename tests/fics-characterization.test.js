@@ -418,8 +418,8 @@ test('console buffering is capped and expansion remains legacy DOM presentation 
     client.elements.consoleContainer = { style: { display: '' } };
     client.elements.consoleToggle = { textContent: '', setAttribute() {} };
     ['one', 'two', 'three', 'four'].forEach((line) => client.logToConsole(line));
-    assert.deepEqual(Array.from(client.messageBuffer), ['two', 'three', 'four']);
-    assert.equal(client.elements.console.textContent, 'two\nthree\nfour');
+    assert.deepEqual(Array.from(client.messageBuffer), ['[CAISSA] two', '[CAISSA] three', '[CAISSA] four']);
+    assert.equal(client.elements.console.textContent, '[CAISSA] two\n[CAISSA] three\n[CAISSA] four');
     client.toggleConsole();
     assert.equal(client.elements.consoleContainer.style.display, 'none');
     client.toggleConsole();

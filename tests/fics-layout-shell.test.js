@@ -65,7 +65,7 @@ test('Game Mode actions use only narrow canonical client methods and omit unappr
     }
     assert.match(shell, /Confirm Resign/);
     assert.match(shell, /serverAcknowledged: false|FICS confirmation is pending/);
-    assert.doesNotMatch(shell, /\.send\s*\(|new\s+WebSocket|\babort\b|\bMenu\b|\bSettings\b/i);
+    assert.doesNotMatch(shell, /\.send\s*\(|new\s+WebSocket|\babort\b|\bMenu\b/i);
 });
 
 test('Game Mode has an internal notation scroller and presentation-only ended-game return', () => {
@@ -106,7 +106,7 @@ test('dynamic bodies retain truthful pending delivery and unsupported Players la
     assert.match(shell, /Cancel requested/);
     assert.match(shell, /The last seek action was not delivered/);
     assert.match(shell, /A complete FICS player directory is not available yet\. No player list is shown\./);
-    assert.doesNotMatch(shell, /specific-player|match command|Menu|Settings/);
+    assert.doesNotMatch(shell, /specific-player|match command|Menu/);
 });
 
 test('one flag and one immediate API restore the original legacy hierarchy', () => {

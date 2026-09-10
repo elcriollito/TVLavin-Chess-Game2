@@ -423,7 +423,8 @@ const CaissaFICSClient = {
                 this.connected = true;
                 this.latencyMs = Math.round(performance.now() - this.connectionStartedAt);
                 this.updateLatency();
-                this.logToConsole('✅ Connected to gateway, authenticating...');
+                this.logToConsole(`Latency: ${this.latencyMs} ms`);
+                this.logToConsole('Connected to gateway; authenticating with FICS.');
                 this.updateGameStatus(this.loginMode === 'account' ? 'Logging in...' : 'Authenticating...', '');
 
             };
@@ -449,7 +450,6 @@ const CaissaFICSClient = {
 
                 if (this.connected && !shouldReconnect) {
                     // Was connected, now disconnected
-                    this.logToConsole('Disconnected from FICS');
                     this.updateGameStatus('Disconnected', '');
                 } else if (!shouldReconnect && !this.manualDisconnect) {
                     // Failed to connect
@@ -576,7 +576,6 @@ const CaissaFICSClient = {
         this.setConnectionState('disconnected');
         this.renderRoomTables();
         this.updateIdentityStatus();
-        this.logToConsole('Disconnected');
         this.notifySpectator('disconnected');
     },
 
@@ -688,7 +687,7 @@ const CaissaFICSClient = {
         try { window.ClassicFicsMatchResearch?.observeRawInbound(String(text)); } catch {}
         try { window.ClassicComputerChallenge?.observeRawInbound(String(text)); } catch {}
         this.rawBuffer = `${this.rawBuffer}${text}`.slice(-16384);
-        this.logToConsole(this.sanitizeFicsConsoleText(text));
+        this.logToConsole(this.sanitizeFicsConsoleText(text), 'FICS');
 
         if (this.loginMode === 'account' && !this.accountLoginSent && /login:/i.test(this.rawBuffer)) {
             this.accountLoginSent = true;
@@ -753,8 +752,8 @@ const CaissaFICSClient = {
                 : 'Connected as FICS guest. Seek or accept a game to begin.';
             this.updateGameStatus(identity, 'active');
             this.logToConsole(this.loginMode === 'account'
-                ? `Logged in as ${this.ficsUsername}. You can now seek games or enter commands.`
-                : 'Connected as guest. You can now seek games or enter commands.');
+                ? `Registered session authenticated as ${this.ficsUsername}.`
+                : 'Guest session ready.');
             this.updateIdentityStatus();
             this.updatePlayerBars();
             this.startLobbyRefresh();
@@ -857,7 +856,7 @@ const CaissaFICSClient = {
 
     handleRawMessage(message) {
         const line = message.text;
-        this.logToConsole(line);
+        this.logToConsole(line, 'FICS');
 
         // Basic parsing for game events
         this.parseGameLine(line);
@@ -925,7 +924,7 @@ const CaissaFICSClient = {
         this.initBoard();
         this.playNotificationSound('seekAccepted');
 
-        this.logToConsole('🎮 Game started!');
+        this.logToConsole('Game started.', 'GAME');
     },
 
     handleGameEnd(line) {
@@ -949,17 +948,19 @@ const CaissaFICSClient = {
             liveGame: { ...this.liveGame },
             moveHistory: this.moveHistory.map((move) => ({ ...move }))
         });
-        this.logToConsole('🏁 ' + line);
+        this.logToConsole(`Game ended: ${line}`, 'GAME');
         return true;
     },
 
     handleMove(line) {
         // This is very basic - in production you'd parse style 12 output
-        this.logToConsole('♟️ ' + line);
+        this.logToConsole(line, 'GAME');
     },
 
     handleStyle12(state) {
         const wasActive = this.liveGame.gameActive;
+        const wasObserved = this.liveGame.observedGame === true;
+        const matchedPendingSeek = Boolean(this.pendingSeek);
         const isNewGame = this.liveGame.gameNumber !== null && this.liveGame.gameNumber !== state.gameNumber;
         const previousFen = this.liveGame.currentFen;
         const previousSideToMove = this.liveGame.sideToMove;
@@ -1042,7 +1043,11 @@ const CaissaFICSClient = {
             playing,
             userColor
         });
-        if (!wasActive && playing) this.logToConsole(`Game ${state.gameNumber} started from Style12.`);
+        if (!wasActive && playing) {
+            if (matchedPendingSeek) this.logToConsole('Opponent found.', 'GAME');
+            this.logToConsole(`Game ${state.gameNumber} started.`, 'GAME');
+        }
+        if (!wasObserved && state.observedGame) this.logToConsole(`Observing game ${state.gameNumber}.`, 'GAME');
     },
 
     parseSeekLine(line) {
@@ -1092,7 +1097,7 @@ const CaissaFICSClient = {
             button.setAttribute('aria-label', `Play seek ${seek.number}: ${detail.player}, ${detail.timeControl}`);
             window.CaissaUI?.applyTooltip(button, seek.label, { title: false });
             button.addEventListener('click', () => {
-                this.logToConsole(`> play ${seek.number}`);
+                this.logToConsole(`> play ${seek.number}`, 'COMMAND');
                 this.send(`play ${seek.number}`);
             });
             this.elements.seekActions.appendChild(button);
@@ -1381,7 +1386,7 @@ const CaissaFICSClient = {
             this.cancelSeek();
             return;
         }
-        this.logToConsole(`> ${row.command}`);
+        this.logToConsole(`> ${row.command}`, 'COMMAND');
         this.send(row.command);
     },
 
@@ -1428,12 +1433,12 @@ const CaissaFICSClient = {
 
         if (current && current !== target) {
             this.updateGameStatus(`Switching observation from game ${current} to game ${target}...`, 'active');
-            this.logToConsole(`> unobserve ${current}`);
+            this.logToConsole(`> unobserve ${current}`, 'COMMAND');
             const leaveDelivery = this.send(`unobserve ${current}`);
             if (!leaveDelivery.ok) return fail(leaveDelivery);
             setTimeout(() => {
                 if (this.pendingObservation !== request || request.generation !== this.sessionGeneration) return;
-                this.logToConsole(`> observe ${target}`);
+                this.logToConsole(`> observe ${target}`, 'COMMAND');
                 const observeDelivery = this.send(`observe ${target}`);
                 if (!observeDelivery.ok) {
                     fail(observeDelivery);
@@ -1447,7 +1452,7 @@ const CaissaFICSClient = {
         }
 
         this.updateGameStatus(`Observing game ${target}...`, 'active');
-        this.logToConsole(`> observe ${target}`);
+        this.logToConsole(`> observe ${target}`, 'COMMAND');
         const delivery = this.send(`observe ${target}`);
         if (!delivery.ok) return fail(delivery);
         request.status = 'sent';
@@ -1474,7 +1479,7 @@ const CaissaFICSClient = {
 
         this.observationExitInFlight = true;
         this.updateGameStatus(`Leaving observed game ${target}...`, 'active');
-        this.logToConsole(`> unobserve ${target}`);
+        this.logToConsole(`> unobserve ${target}`, 'COMMAND');
         const delivery = this.send(`unobserve ${target}`);
         if (!delivery.ok) {
             this.observationExitInFlight = false;
@@ -1531,7 +1536,7 @@ const CaissaFICSClient = {
         };
         this.updateRoomStatus('Canceling seek...');
         this.renderRoomTables();
-        this.logToConsole('> unseek');
+        this.logToConsole('> unseek', 'COMMAND');
         const delivery = this.send('unseek');
         if (!delivery.ok) {
             this.pendingSeek = {
@@ -1545,6 +1550,7 @@ const CaissaFICSClient = {
             this.renderRoomTables();
             return Object.freeze({ ...delivery, state: 'error' });
         }
+        this.logToConsole('Seek cancellation command delivered; FICS confirmation is pending.');
         setTimeout(() => {
             if (this.pendingSeek?.operation === 'cancel') this.pendingSeek = null;
             this.refreshLobby(true);
@@ -1678,7 +1684,7 @@ const CaissaFICSClient = {
             button.textContent = 'Sit';
             button.title = [detail.variant, detail.color].filter(Boolean).join(' - ') || seek.label;
             button.addEventListener('click', () => {
-                this.logToConsole(`> play ${seek.number}`);
+                this.logToConsole(`> play ${seek.number}`, 'COMMAND');
                 this.send(`play ${seek.number}`);
             });
             card.appendChild(button);
@@ -2300,7 +2306,7 @@ const CaissaFICSClient = {
 
     requestSeek(options = {}) {
         if (!this.authenticated) {
-            this.logToConsole('❌ Not connected to FICS');
+            this.logToConsole('Not connected to FICS.', 'ERROR');
             return Object.freeze({ ok: false, code: 'NOT_CONNECTED', state: 'error' });
         }
         if (this.gameActive || this.liveGame?.status === 'playing' || this.liveGame?.status === 'observing') {
@@ -2328,7 +2334,7 @@ const CaissaFICSClient = {
             error: null,
             deliveryCode: null
         };
-        this.logToConsole(`> ${command}`);
+        this.logToConsole(`> ${command}`, 'COMMAND');
         this.renderRoomTables();
         const delivery = this.send({ type: 'command', text: command });
         if (!delivery.ok) {
@@ -2347,6 +2353,7 @@ const CaissaFICSClient = {
             status: 'pending',
             deliveryCode: delivery.code
         };
+        this.logToConsole('Seek posted to FICS; server acknowledgement is not available.');
         this.updateRoomStatus('Seek sent. Waiting for a FICS opponent.');
         this.renderRoomTables();
         return Object.freeze({ ...delivery, state: 'pending' });
@@ -2358,7 +2365,7 @@ const CaissaFICSClient = {
 
     sendMove(move) {
         if (!this.authenticated) {
-            this.logToConsole('❌ Not connected to FICS');
+            this.logToConsole('Not connected to FICS.', 'ERROR');
             return;
         }
 
@@ -2399,7 +2406,10 @@ const CaissaFICSClient = {
             return Object.freeze({ ...delivery, action, serverAcknowledged: false });
         }
 
-        this.logToConsole(`> ${command}`);
+        this.logToConsole(`> ${command}`, 'COMMAND');
+        this.logToConsole(action === 'draw'
+            ? 'Draw offer sent to FICS; server acknowledgement is pending.'
+            : 'Resign command sent to FICS; server acknowledgement is pending.', 'GAME');
         this.notifySpectator('game-action-delivery', {
             action, ok: true, code: delivery.code, serverAcknowledged: false
         });
@@ -2422,14 +2432,14 @@ const CaissaFICSClient = {
     abort() {
         if (!this.gameActive) return;
         this.send({ type: 'command', text: 'abort' });
-        this.logToConsole('> abort');
+        this.logToConsole('> abort', 'COMMAND');
     },
 
     sendCommand() {
         const command = this.elements.commandInput?.value.trim();
         if (!command) return;
 
-        this.logToConsole(`> ${command}`);
+        this.logToConsole(`> ${command}`, 'COMMAND');
         this.send({
             type: 'command',
             text: command
@@ -2466,6 +2476,7 @@ const CaissaFICSClient = {
     },
 
     setConnectionState(state, message = null) {
+        const previousState = this.connectionState;
         this.connectionState = state;
         const labels = {
             disconnected: 'Disconnected',
@@ -2485,6 +2496,21 @@ const CaissaFICSClient = {
         this.elements.accountConnectBtn?.toggleAttribute('disabled', active || !this.isGatewayConfigured());
         this.elements.disconnectBtn?.toggleAttribute('disabled', !active);
         this.updateLoginControls();
+        if (state !== previousState) {
+            if (state === 'connecting') this.logToConsole('Connecting to FICS...');
+            if (state === 'connected') {
+                const latency = Number.isFinite(this.latencyMs) ? ` \u00b7 Latency: ${this.latencyMs} ms` : '';
+                this.logToConsole(`Connected to FICS${latency}.`);
+            }
+            if (state === 'reconnecting') {
+                this.logToConsole('Connection lost.', 'ERROR');
+                this.logToConsole('Reconnecting to FICS...');
+            }
+            if (state === 'disconnected') this.logToConsole('Disconnected from FICS.');
+            if (state === 'error') this.logToConsole(message === 'Login failed'
+                ? 'Authentication failed.'
+                : 'Connection unavailable. Please connect to FICS.', 'ERROR');
+        }
         this.notifySpectator('connection-state', {
             state,
             authenticated: this.authenticated,
@@ -2523,8 +2549,19 @@ const CaissaFICSClient = {
         }
     },
 
-    logToConsole(message) {
-        this.messageBuffer.push(message);
+    logToConsole(message, origin = null) {
+        const rawMessage = String(message ?? '');
+        if (!rawMessage) return;
+        const inferredOrigin = /^>\s/.test(rawMessage)
+            ? 'COMMAND'
+            : /(?:❌|\bfailed\b|\bfailure\b|\berror\b|\btimeout\b)/i.test(rawMessage)
+                ? 'ERROR'
+                : 'CAISSA';
+        const safeOrigin = ['CAISSA', 'FICS', 'COMMAND', 'GAME', 'ERROR'].includes(origin)
+            ? origin
+            : inferredOrigin;
+        const entry = rawMessage.split('\n').map((line) => `[${safeOrigin}] ${line}`).join('\n');
+        this.messageBuffer.push(entry);
 
         // Trim buffer if too large
         if (this.messageBuffer.length > this.maxBufferSize) {
@@ -2538,16 +2575,23 @@ const CaissaFICSClient = {
         }
     },
 
-    toggleConsole() {
-        if (this.elements.consoleContainer) {
-            const isHidden = this.elements.consoleContainer.style.display === 'none';
-            this.elements.consoleContainer.style.display = isHidden ? 'block' : 'none';
-            if (this.elements.consoleToggle) {
-                this.elements.consoleToggle.textContent = isHidden ? '▼ Hide Console' : '▶ Show Console';
-                this.elements.consoleToggle.setAttribute('aria-expanded', String(isHidden));
-                this.elements.consoleToggle.setAttribute('aria-label', isHidden ? 'Hide FICS console' : 'Show FICS console');
-            }
+    setConsoleExpanded(expanded) {
+        if (!this.elements.consoleContainer) return false;
+        const nextExpanded = expanded === true;
+        this.elements.consoleContainer.style.display = nextExpanded ? 'block' : 'none';
+        if (this.elements.consoleToggle) {
+            this.elements.consoleToggle.textContent = nextExpanded ? 'Hide ▲' : 'Show ▼';
+            this.elements.consoleToggle.setAttribute('aria-expanded', String(nextExpanded));
+            this.elements.consoleToggle.setAttribute('aria-label', nextExpanded ? 'Hide FICS console' : 'Show FICS console');
         }
+        this.elements.consoleContainer.closest?.('.fics-console-section')
+            ?.setAttribute('data-console-expanded', String(nextExpanded));
+        return nextExpanded;
+    },
+
+    toggleConsole() {
+        const expanded = this.elements.consoleContainer?.style.display !== 'none';
+        return this.setConsoleExpanded(!expanded);
     },
 
     // ===== LIFECYCLE =====

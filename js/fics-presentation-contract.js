@@ -1,7 +1,7 @@
 (function installFicsPresentationContract(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.2.0';
+    const SCHEMA_VERSION = '1.3.0';
     const PRODUCT_STATES = Object.freeze({
         DISCONNECTED: 'DISCONNECTED',
         AUTHENTICATING: 'AUTHENTICATING',
@@ -253,6 +253,7 @@
                 authenticated,
                 reconnecting: productState === PRODUCT_STATES.RECONNECTING,
                 reconnectAttempts: finiteOrNull(canonical.reconnectAttempts) || 0,
+                latencyMs: finiteOrNull(canonical.latencyMs),
                 manualDisconnect: canonical.manualDisconnect === true,
                 error: productState === PRODUCT_STATES.ERROR ? 'CONNECTION_ERROR' : null
             },

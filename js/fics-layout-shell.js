@@ -1,7 +1,7 @@
 (function installFicsLayoutShell(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.2.0';
+    const SCHEMA_VERSION = '1.3.0';
     const FLAG = 'CAISSA_FICS_REDESIGN_ENABLED';
     const LOBBY_VIEWS = Object.freeze(['tables', 'players', 'seek']);
     const GAME_STATES = new Set(['PLAYING', 'OBSERVING', 'GAME_OVER']);
@@ -21,6 +21,9 @@
     let resignConfirmationKey = null;
     let gameMoveScrollTop = 0;
     let lastGameMoveSignature = null;
+    let settingsOpen = false;
+    let settingsReturnFocus = null;
+    let lastAuthenticated = false;
     const seekDraft = { minutes: '5', increment: '0', rated: 'unrated', color: 'random' };
     const eventListeners = [];
 
@@ -29,6 +32,93 @@
         if (className) element.className = className;
         Object.entries(attributes).forEach(([name, value]) => element.setAttribute(name, value));
         return element;
+    }
+
+    function rememberRelocation(node) {
+        return { node, parent: node.parentNode, nextSibling: node.nextSibling };
+    }
+
+    function restoreRelocations(relocations = []) {
+        relocations.forEach(({ node, parent, nextSibling }) => {
+            parent.insertBefore(node, nextSibling?.parentNode === parent ? nextSibling : null);
+        });
+    }
+
+    function focusableSettingsControls() {
+        if (!mounted?.settingsPanel) return [];
+        return [...mounted.settingsPanel.querySelectorAll(
+            'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )].filter((node) => !node.hidden && node.getClientRects().length > 0);
+    }
+
+    function setSettingsOpen(open, { restoreFocus = true } = {}) {
+        if (!mounted) return false;
+        settingsOpen = open === true;
+        mounted.settingsLayer.hidden = !settingsOpen;
+        mounted.settingsButton.setAttribute('aria-expanded', String(settingsOpen));
+        mounted.settingsButton.classList.toggle('is-open', settingsOpen);
+        if (settingsOpen) {
+            settingsReturnFocus = document.activeElement;
+            mounted.backgroundInertRecords = [...document.body.children]
+                .filter((node) => node !== mounted.settingsLayer)
+                .map((node) => ({ node, inert: node.inert }));
+            mounted.backgroundInertRecords.forEach(({ node }) => { node.inert = true; });
+            mounted.shell.inert = true;
+            if (mounted.pageHeader) mounted.pageHeader.inert = true;
+            document.body.classList.add('fics-rd5-settings-active');
+            mounted.settingsClose.focus({ preventScroll: true });
+        } else {
+            mounted.backgroundInertRecords?.forEach(({ node, inert }) => { node.inert = inert; });
+            mounted.backgroundInertRecords = [];
+            mounted.shell.inert = false;
+            if (mounted.pageHeader) mounted.pageHeader.inert = false;
+            document.body.classList.remove('fics-rd5-settings-active');
+            if (restoreFocus) {
+                const target = settingsReturnFocus?.isConnected ? settingsReturnFocus : mounted.settingsButton;
+                target?.focus?.({ preventScroll: true });
+            }
+            settingsReturnFocus = null;
+        }
+        return settingsOpen;
+    }
+
+    function handleSettingsKeydown(event) {
+        if (!settingsOpen) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            setSettingsOpen(false);
+            return;
+        }
+        if (event.key !== 'Tab') return;
+        const controls = focusableSettingsControls();
+        if (!controls.length) {
+            event.preventDefault();
+            mounted.settingsPanel.focus();
+            return;
+        }
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    }
+
+    function setConsoleExpanded(expanded) {
+        return root.CaissaFICSClient?.setConsoleExpanded?.(expanded);
+    }
+
+    function consoleSummaryText(snapshot) {
+        const connection = snapshot.connection || {};
+        const latency = Number.isFinite(connection.latencyMs) ? ` \u00b7 ${connection.latencyMs} ms` : '';
+        if (connection.authenticated) return `Connected${latency}`;
+        if (connection.state === 'connecting') return 'Connecting...';
+        if (connection.state === 'reconnecting') return 'Reconnecting...';
+        if (connection.state === 'error') return 'Connection unavailable';
+        return 'Disconnected';
     }
 
     function getBaseViewState() {
@@ -68,17 +158,8 @@
             title: 'Players',
             message: 'A complete FICS player directory is not available yet. No player list is shown.'
         };
-        if (view.productState === 'AUTHENTICATING') return {
-            title: 'Connecting', message: 'FICS authentication is in progress. Login and connection status remain available below.'
-        };
-        if (view.productState === 'RECONNECTING') return {
-            title: 'Reconnecting', message: 'The retained game snapshot is not treated as live while the connection is unavailable.'
-        };
-        if (view.productState === 'ERROR') return {
-            title: 'Connection unavailable', message: 'Review the existing FICS connection controls below and try again.'
-        };
         return {
-            title: 'FICS', message: 'Connect below to browse tables, seek a game, or observe play.'
+            title: 'Tables', message: 'Connect to FICS to load tables.'
         };
     }
 
@@ -593,7 +674,11 @@
         lastProductState = baseView.productState;
         const snapshot = getProjection();
         const view = { productState: snapshot.productState, ...snapshot.presentation };
-        const activeTab = view.activeTab;
+        const activeTab = view.primaryGameMode ? null : (view.activeTab || selectedLobbyView || 'tables');
+        view.activeTab = activeTab;
+        if (!view.primaryGameMode) view.bodyMode = 'LOBBY';
+        if (snapshot.connection.authenticated && !lastAuthenticated) setConsoleExpanded(false);
+        lastAuthenticated = snapshot.connection.authenticated;
         if (!view.primaryGameMode) resignConfirmationKey = null;
 
         mounted.section.dataset.ficsProductState = view.productState;
@@ -612,6 +697,7 @@
         const copy = bodyCopy(view);
         mounted.bodyTitle.textContent = copy.title;
         mounted.bodyMessage.textContent = copy.message;
+        mounted.consoleSummary.textContent = consoleSummaryText(snapshot);
         renderBody(snapshot, view);
 
         mounted.roomPanel.hidden = true;
@@ -664,13 +750,29 @@
         const layout = section?.querySelector('.fics-layout');
         const gameArea = section?.querySelector('.fics-game-area');
         const connection = section?.querySelector('.fics-connection');
+        const pageHeader = section?.querySelector('.fics-header');
+        const connectionHeading = section?.querySelector('.fics-connection-info > h3');
+        const gatewayDetails = section?.querySelector('.fics-gateway-details');
+        const sessionColumn = section?.querySelector('.fics-session-column');
         const boardSection = section?.querySelector('.fics-board-section');
         const boardContainer = document.getElementById('ficsBoardContainer');
         const roomPanel = section?.querySelector('.fics-room-panel');
         const sidePanel = section?.querySelector('.fics-side-panel');
         const consoleSection = section?.querySelector('.fics-console-section');
-        if (![section, layout, gameArea, connection, boardSection, boardContainer,
-            roomPanel, sidePanel, consoleSection].every(Boolean)) return false;
+        const consoleHeader = consoleSection?.querySelector('.fics-console-header');
+        const consoleToggle = document.getElementById('ficsConsoleToggle');
+        if (![section, layout, gameArea, connection, pageHeader, connectionHeading, gatewayDetails,
+            sessionColumn, boardSection, boardContainer, roomPanel, sidePanel, consoleSection,
+            consoleHeader, consoleToggle].every(Boolean)) return false;
+
+        const relocations = [connectionHeading, gatewayDetails, sessionColumn].map(rememberRelocation);
+        const consoleState = {
+            display: document.getElementById('ficsConsoleContainer')?.style.display || '',
+            expanded: document.getElementById('ficsConsoleToggle')?.getAttribute('aria-expanded') || 'true',
+            label: document.getElementById('ficsConsoleToggle')?.getAttribute('aria-label') || '',
+            text: document.getElementById('ficsConsoleToggle')?.textContent || '',
+            sectionExpanded: consoleSection.getAttribute('data-console-expanded')
+        };
 
         const shell = createElement('div', 'fics-rd2-shell', { 'data-fics-redesign-shell': 'v2' });
         const boardRegion = createElement('div', 'fics-rd2-board', {
@@ -725,9 +827,44 @@
         body.append(returnToGameButton, placeholder, dynamic, compatibility);
 
         const foot = createElement('footer', 'fics-rd2-workspace-foot', { 'data-fics-workspace-region': 'foot' });
+        const consoleSummary = createElement('span', 'fics-rd5-console-summary', {
+            id: 'ficsRd5ConsoleSummary', role: 'status', 'aria-live': 'polite'
+        });
+        consoleHeader.insertBefore(consoleSummary, consoleToggle);
+        const settingsButton = createElement('button', 'fics-rd5-settings-button', {
+            type: 'button', 'aria-label': 'Open FICS settings', title: 'Settings',
+            'aria-controls': 'ficsRd5SettingsPanel', 'aria-expanded': 'false'
+        });
+        const settingsIcon = createElement('i', 'fas fa-cog', { 'aria-hidden': 'true' });
+        appendText(settingsButton, 'span', '', 'Settings');
+        settingsButton.prepend(settingsIcon);
+        const settingsLayer = createElement('div', 'fics-rd5-settings-layer', { hidden: '' });
+        const settingsPanel = createElement('section', 'fics-rd5-settings-panel', {
+            id: 'ficsRd5SettingsPanel', role: 'dialog', 'aria-modal': 'true',
+            'aria-labelledby': 'ficsRd5SettingsTitle', tabindex: '-1'
+        });
+        const settingsHeader = createElement('header', 'fics-rd5-settings-header');
+        const settingsTitle = appendText(settingsHeader, 'h2', 'fics-rd5-settings-title', 'Settings', {
+            id: 'ficsRd5SettingsTitle'
+        });
+        const settingsClose = appendText(settingsHeader, 'button', 'fics-rd5-settings-close', '\u00d7', {
+            type: 'button', 'aria-label': 'Close FICS settings'
+        });
+        const settingsContent = createElement('div', 'fics-rd5-settings-content');
+        const connectionDiagnostics = createElement('section', 'fics-rd5-settings-group', {
+            'aria-labelledby': 'ficsRd5ConnectionTitle'
+        });
+        connectionHeading.id = 'ficsRd5ConnectionTitle';
+        connectionDiagnostics.append(connectionHeading, gatewayDetails);
+        sessionColumn.classList.add('fics-rd5-settings-group');
+        settingsContent.append(connectionDiagnostics, sessionColumn);
+        settingsPanel.append(settingsHeader, settingsContent);
+        settingsLayer.append(settingsPanel);
         workspace.append(head, body, foot);
         shell.append(boardRegion, workspace);
         layout.insertBefore(shell, gameArea);
+        layout.append(settingsButton);
+        document.body.append(settingsLayer);
         boardRegion.append(boardSection);
         compatibility.append(roomPanel, sidePanel);
         foot.append(connection, consoleSection);
@@ -735,9 +872,19 @@
         section.classList.add('fics-rd2-enabled');
         section.dataset.ficsRedesign = 'v2';
 
-        mounted = { section, layout, gameArea, connection, boardSection, boardContainer,
+        mounted = { section, layout, gameArea, connection, pageHeader, connectionHeading, gatewayDetails,
+            sessionColumn, relocations, consoleState, boardSection, boardContainer,
             roomPanel, sidePanel, consoleSection, shell, boardRegion, workspace, head,
-            body, foot, tabs, returnToGame: returnToGameButton, placeholder, dynamic, bodyTitle, bodyMessage };
+            body, foot, tabs, returnToGame: returnToGameButton, placeholder, dynamic, bodyTitle, bodyMessage,
+            settingsButton, settingsLayer, settingsPanel, settingsClose, settingsContent, consoleSummary,
+            backgroundInertRecords: [] };
+        settingsButton.addEventListener('click', () => setSettingsOpen(!settingsOpen));
+        settingsClose.addEventListener('click', () => setSettingsOpen(false));
+        settingsLayer.addEventListener('click', (event) => {
+            if (event.target === settingsLayer) setSettingsOpen(false);
+        });
+        settingsLayer.addEventListener('keydown', handleSettingsKeydown);
+        setConsoleExpanded(false);
         if (typeof root.ResizeObserver === 'function') {
             resizeObserver = new root.ResizeObserver(scheduleBoardResize);
             resizeObserver.observe(boardRegion);
@@ -757,6 +904,23 @@
         resizeObserver = null;
         root.removeEventListener?.('resize', scheduleBoardResize);
         root.removeEventListener?.('orientationchange', scheduleBoardResize);
+        setSettingsOpen(false, { restoreFocus: false });
+        restoreRelocations(current.relocations);
+        current.sessionColumn.classList.remove('fics-rd5-settings-group');
+        current.connectionHeading.removeAttribute('id');
+        const consoleContainer = document.getElementById('ficsConsoleContainer');
+        const consoleToggle = document.getElementById('ficsConsoleToggle');
+        if (consoleContainer) consoleContainer.style.display = current.consoleState.display;
+        if (consoleToggle) {
+            consoleToggle.setAttribute('aria-expanded', current.consoleState.expanded);
+            consoleToggle.setAttribute('aria-label', current.consoleState.label);
+            consoleToggle.textContent = current.consoleState.text;
+        }
+        if (current.consoleState.sectionExpanded === null) current.consoleSection.removeAttribute('data-console-expanded');
+        else current.consoleSection.setAttribute('data-console-expanded', current.consoleState.sectionExpanded);
+        current.consoleSummary.remove();
+        current.settingsLayer.remove();
+        current.settingsButton.remove();
         current.boardSection.append(current.consoleSection);
         current.gameArea.append(current.roomPanel, current.boardSection, current.sidePanel);
         current.layout.insertBefore(current.connection, current.gameArea);
@@ -774,6 +938,9 @@
         resignConfirmationKey = null;
         gameMoveScrollTop = 0;
         lastGameMoveSignature = null;
+        settingsOpen = false;
+        settingsReturnFocus = null;
+        lastAuthenticated = false;
         root.CaissaFICSClient?.board?.resize?.();
         return true;
     }
@@ -791,6 +958,8 @@
             selectedLobbyView,
             dismissedEndedGameKey,
             productState: mounted?.section.dataset.ficsProductState || null,
+            settingsOpen,
+            consoleExpanded: mounted?.consoleSection.querySelector('#ficsConsoleToggle')?.getAttribute('aria-expanded') === 'true',
             boardNodePreserved: Boolean(mounted && mounted.boardContainer === document.getElementById('ficsBoardContainer')),
             owner: 'PRESENTATION_ONLY'
         });
@@ -802,6 +971,7 @@
         refresh: render,
         selectLobbyView,
         returnToGame,
+        setSettingsOpen,
         setEnabled
     });
     root.CaissaFICSShell = api;
