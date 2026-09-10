@@ -25,6 +25,27 @@ General meaning:
 - Minor: meaningful feature batches or stable subsystem milestones.
 - Patch: focused bug fixes, compatibility fixes, validation updates, or documentation corrections.
 
+## CAISSA Analyze V2.0.1 — 2026-09-09
+
+### Added
+
+- Direct Chess.com game URL import through official public archive data, with
+  bounded username fallback and no page scraping or arbitrary URL fetch.
+
+### Improved
+
+- Review notation now presents only the approved move annotation symbols while
+  retaining the existing move grid, navigation, and board synchronization.
+- Review and continuous analysis now use one serialized Stockfish 18 owner with
+  explicit mode transitions and deterministic Live restoration.
+
+### Preserved
+
+- Lichess URL import, account-history import, FEN/PGN setup, New, Save, Play to
+  Analyze handoff, and every authoritative Analyze owner remain unchanged.
+- Stockfish 18 Lite WASM, its embedded NNUE network, and Live `MultiPV=4` remain
+  the certified engine baseline.
+
 ## CAISSA Chess v1.2 - Foundation Release
 
 CAISSA Chess v1.2 is the first documented stable platform release. It represents the point where CAISSA moved from a collection of strong features into a production-ready chess platform with live online play, game review, engine workflows, opening research, infrastructure, validation, and project documentation.

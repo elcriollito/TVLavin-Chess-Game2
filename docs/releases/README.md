@@ -24,5 +24,17 @@ after publication; this avoids embedding a commit's own changing SHA in its tree
 - Surface tag: `pgn-reader-web-v2-recovered-certified`
 - Vault: `CAISSA-PRODUCTION-2026-09-05/surfaces/pgn-reader-web-v2`
 
+## CAISSA Analyze V2.0.1 — 2026-09-09
+
+- Status: CERTIFIED RELEASE CANDIDATE; production identity is the immutable
+  `analyze-v2.0.1-certified` tag created after deployment verification.
+- Route: `/analyze`
+- Certified V2 base: `ac8ea70b41c704a8ad8307648a1ea699dbacba00`
+- Approved product candidate: `f4f8f20acae4e957399e1c1f4a65736d5f0285c3`
+- Scope: Chess.com direct game URL import, simplified Review annotations, and
+  the single-owner Review engine lifecycle fix.
+- Release record: [`CAISSA_ANALYZE_V2_0_1.md`](./CAISSA_ANALYZE_V2_0_1.md)
+- Recovery identity: `CAISSA-ANALYZE-V2.0.1-2026-09-09-<release-sha>`
+
 Future certified releases append to this index. They do not delete or rewrite
 older release records or Vault snapshots.
