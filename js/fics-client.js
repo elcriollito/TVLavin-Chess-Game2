@@ -8,6 +8,12 @@
 console.log('[FICS Client] Module loaded');
 
 const FICS_STANDARD_START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+const FICS_PLAYED_GAME_COMMANDS = Object.freeze({ resign: 'resign', draw: 'draw' });
+const FICS_CONSOLE_REPEAT_ADVISORIES = Object.freeze([
+    'Connect to FICS to load tables.',
+    'Connect to FICS to load players.',
+    'Connect to FICS before creating a table.'
+]);
 
 const CaissaFICSClient = {
     // WebSocket connection
@@ -32,6 +38,15 @@ const CaissaFICSClient = {
     reconnectAttempts: 0,
     reconnectTimer: null,
     ficsUsername: 'Guest',
+    autoGuestAttempted: false,
+    welcomedSessionGeneration: 0,
+
+    // Canonical Players directory. The shell consumes only its presentation projection.
+    playersDirectory: { entries: [], count: 0, refreshedAt: null, sessionGeneration: 0 },
+    playersRequest: null,
+    playersRequestSequence: 0,
+    playersRequestTimeoutMs: 10000,
+    playersError: null,
 
     // Game state
     chess: null, // chess.js instance
@@ -63,6 +78,9 @@ const CaissaFICSClient = {
     seekActions: [],
     activeTables: [],
     pendingSeek: null,
+    pendingObservation: null,
+    pendingGameActions: { resign: false, draw: false },
+    observationExitInFlight: false,
     lobbyRefreshTimer: null,
     lobbyRefreshInFlight: false,
     lobbyLastRefreshAt: 0,
@@ -243,7 +261,7 @@ const CaissaFICSClient = {
     bindEvents() {
         // Connection
         this.elements.connectBtn?.addEventListener('click', () => this.connect('guest'));
-        this.elements.accountConnectBtn?.addEventListener('click', () => this.connect('account'));
+        this.elements.accountConnectBtn?.addEventListener('click', () => this.connectAsRegistered());
         this.elements.disconnectBtn?.addEventListener('click', () => this.disconnect());
         this.elements.differentUserBtn?.addEventListener('click', () => this.loginAsDifferentUser());
         this.elements.testGatewayBtn?.addEventListener('click', () => this.testGateway());
@@ -251,7 +269,7 @@ const CaissaFICSClient = {
             input.addEventListener('change', () => this.setLoginMode(input.value));
         });
         this.elements.accountPasswordInput?.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') this.connect('account');
+            if (event.key === 'Enter') this.connectAsRegistered();
         });
 
         // Seek buttons
@@ -365,12 +383,15 @@ const CaissaFICSClient = {
         return true;
     },
 
-    connect(mode = this.loginMode) {
-        if (this.ws && this.connected) {
+    connect(mode = this.loginMode, options = {}) {
+        const requestedMode = mode === 'account' ? 'account' : 'guest';
+        const activeSocket = this.ws && [WebSocket.CONNECTING, WebSocket.OPEN].includes(this.ws.readyState);
+        if (activeSocket || ['connecting', 'connected'].includes(this.connectionState)
+            || (this.connectionState === 'reconnecting' && options.reconnect !== true)) {
             this.logToConsole('Already connected to FICS');
-            return;
+            return Object.freeze({ ok: false, code: 'CONNECTION_ALREADY_ACTIVE' });
         }
-        this.setLoginMode(mode);
+        this.setLoginMode(requestedMode);
 
         if (!this.isGatewayConfigured()) {
             const errorMsg = 'FICS gateway requires a secure WSS endpoint in production.';
@@ -378,15 +399,16 @@ const CaissaFICSClient = {
             this.updateGameStatus(errorMsg, 'error');
             this.updateConnectionStatus(false, 'Gateway not configured');
             this.updateGatewayStatus();
-            return;
+            return Object.freeze({ ok: false, code: 'GATEWAY_NOT_CONFIGURED' });
         }
 
-        if (this.loginMode === 'account' && !this.prepareAccountCredentials()) return;
+        if (this.loginMode === 'account' && !this.prepareAccountCredentials()) {
+            return Object.freeze({ ok: false, code: 'ACCOUNT_CREDENTIALS_REQUIRED' });
+        }
 
-        this.logToConsole('Connecting to FICS gateway...');
         this.manualDisconnect = false;
         clearTimeout(this.reconnectTimer);
-        this.setConnectionState('connecting');
+        this.setConnectionState(options.reconnect === true ? 'reconnecting' : 'connecting');
         this.updateGameStatus('Connecting to FICS...', '');
         this.initBoard(this.liveGame.currentFen || 'start');
         this.rawBuffer = '';
@@ -400,42 +422,46 @@ const CaissaFICSClient = {
         this.connectionStartedAt = performance.now();
 
         try {
-            this.ws = new WebSocket(this.gatewayUrl);
+            const socket = new WebSocket(this.gatewayUrl);
+            this.ws = socket;
 
             // Set timeout for connection attempt
             const connectionTimeout = setTimeout(() => {
-                if (!this.connected) {
+                if (this.ws === socket && !this.connected) {
                     this.logToConsole('❌ Connection timeout');
                     this.handleConnectionFailure('timeout');
-                    if (this.ws) {
-                        this.ws.close();
-                    }
+                    socket.close();
                 }
             }, 5000);
 
-            this.ws.onopen = () => {
+            socket.onopen = () => {
+                if (this.ws !== socket) return;
                 clearTimeout(connectionTimeout);
                 console.log('[FICS Client] WebSocket connected');
                 this.connected = true;
                 this.latencyMs = Math.round(performance.now() - this.connectionStartedAt);
                 this.updateLatency();
-                this.logToConsole('✅ Connected to gateway, authenticating...');
+                this.logToConsole(`Latency: ${this.latencyMs} ms`);
+                this.logToConsole('Connected to gateway; authenticating with FICS.');
                 this.updateGameStatus(this.loginMode === 'account' ? 'Logging in...' : 'Authenticating...', '');
 
             };
 
-            this.ws.onmessage = (event) => {
+            socket.onmessage = (event) => {
+                if (this.ws !== socket) return;
                 this.handleRawGatewayData(String(event.data));
             };
 
-            this.ws.onerror = (error) => {
+            socket.onerror = (error) => {
+                if (this.ws !== socket) return;
                 clearTimeout(connectionTimeout);
                 console.error('[FICS Client] WebSocket error:', error);
                 this.logToConsole('❌ Connection error');
                 this.handleConnectionFailure('error');
             };
 
-            this.ws.onclose = (event) => {
+            socket.onclose = (event) => {
+                if (this.ws !== socket) return;
                 clearTimeout(connectionTimeout);
                 console.log('[FICS Client] WebSocket closed', event.code, event.reason);
                 const shouldReconnect = !this.manualDisconnect
@@ -445,7 +471,6 @@ const CaissaFICSClient = {
 
                 if (this.connected && !shouldReconnect) {
                     // Was connected, now disconnected
-                    this.logToConsole('Disconnected from FICS');
                     this.updateGameStatus('Disconnected', '');
                 } else if (!shouldReconnect && !this.manualDisconnect) {
                     // Failed to connect
@@ -455,12 +480,13 @@ const CaissaFICSClient = {
 
                 this.connected = false;
                 this.authenticated = false;
+                this.invalidatePlayersDirectory('DISCONNECTED', { announceFailure: true });
                 if (!shouldReconnect || this.loginMode === 'account') this.clearAccountPassword();
                 if (shouldReconnect) {
                     this.reconnectAttempts += 1;
                     this.setConnectionState('reconnecting');
                     this.updateGameStatus('Connection interrupted. Reconnecting...', '');
-                    this.reconnectTimer = setTimeout(() => this.connect(), 1500);
+                    this.reconnectTimer = setTimeout(() => this.connect(this.loginMode, { reconnect: true }), 1500);
                 } else {
                     this.reconnectAttempts = 0;
                     if (!this.authFailed) {
@@ -470,15 +496,49 @@ const CaissaFICSClient = {
                 }
             };
 
+            return Object.freeze({ ok: true, code: 'CONNECTION_STARTED', mode: this.loginMode });
+
         } catch (error) {
             console.error('[FICS Client] Connection failed:', error);
             this.logToConsole(`❌ Failed to connect: ${error.message}`);
             this.handleConnectionFailure('exception');
+            return Object.freeze({ ok: false, code: 'CONNECTION_START_FAILED' });
         }
+    },
+
+    requestAutomaticGuestConnection() {
+        if (this.autoGuestAttempted) return Object.freeze({ ok: false, code: 'AUTO_GUEST_ALREADY_ATTEMPTED' });
+        this.autoGuestAttempted = true;
+        const activeSocket = this.ws && [WebSocket.CONNECTING, WebSocket.OPEN].includes(this.ws.readyState);
+        if (this.authenticated || activeSocket || ['connecting', 'connected', 'reconnecting'].includes(this.connectionState)) {
+            return Object.freeze({ ok: false, code: 'SESSION_RETAINED' });
+        }
+        if (window.CAISSA_FICS_AUTO_GUEST_ENABLED === false || window.CAISSA_FICS_REDESIGN_ENABLED === false) {
+            return Object.freeze({ ok: false, code: 'AUTO_GUEST_DISABLED' });
+        }
+        return this.connect('guest');
+    },
+
+    connectAsRegistered() {
+        const username = (this.elements.accountUsernameInput?.value || '').trim();
+        const password = this.elements.accountPasswordInput?.value || '';
+        if (!username || !password) {
+            this.setLoginMode('account');
+            this.updateGameStatus('Enter your FICS username and password to connect.', 'error');
+            this.logToConsole('Enter your FICS username and password to connect.');
+            return Object.freeze({ ok: false, code: 'ACCOUNT_CREDENTIALS_REQUIRED' });
+        }
+        if (this.ws || this.connected || this.authenticated || ['connecting', 'connected', 'reconnecting'].includes(this.connectionState)) {
+            this.disconnect();
+        }
+        if (this.elements.accountUsernameInput) this.elements.accountUsernameInput.value = username;
+        if (this.elements.accountPasswordInput) this.elements.accountPasswordInput.value = password;
+        return this.connect('account');
     },
 
     handleConnectionFailure(reason) {
         this.clearAccountPassword();
+        this.invalidatePlayersDirectory('CONNECTION_FAILED', { announceFailure: true });
         this.resetLiveSessionState();
         const fullMsg = reason === 'timeout'
             ? 'FICS connection timed out. Check the gateway and try again.'
@@ -567,11 +627,12 @@ const CaissaFICSClient = {
         this.seekActions = [];
         this.activeTables = [];
         this.pendingSeek = null;
+        this.pendingObservation = null;
+        this.invalidatePlayersDirectory('DISCONNECTED', { announceFailure: true });
         this.resetLiveSessionState();
         this.setConnectionState('disconnected');
         this.renderRoomTables();
         this.updateIdentityStatus();
-        this.logToConsole('Disconnected');
         this.notifySpectator('disconnected');
     },
 
@@ -605,6 +666,8 @@ const CaissaFICSClient = {
         this.opponent = null;
         this.ficsUsername = 'Guest';
         this.pendingMove = null;
+        this.pendingGameActions = { resign: false, draw: false };
+        this.observationExitInFlight = false;
         this.cancelPromotionSelection(false);
         this.liveGame = this.createEmptyLiveGameState('disconnected');
         this.resetGameRecord();
@@ -675,13 +738,140 @@ const CaissaFICSClient = {
         }
     },
 
+    createEmptyPlayersDirectory(generation = this.sessionGeneration) {
+        return { entries: [], count: 0, refreshedAt: null, sessionGeneration: generation };
+    },
+
+    invalidatePlayersDirectory(reason = 'SESSION_CHANGED', { announceFailure = false } = {}) {
+        const pending = this.playersRequest;
+        if (pending?.timeoutId !== null && pending?.timeoutId !== undefined) clearTimeout(pending.timeoutId);
+        this.playersRequest = null;
+        this.playersError = null;
+        this.playersDirectory = this.createEmptyPlayersDirectory(this.sessionGeneration);
+        if (pending && announceFailure) {
+            this.logToConsole('Unable to refresh player directory.');
+            this.notifySpectator('players-error', { code: reason, token: pending.token });
+        }
+        this.notifySpectator('players-invalidated', { reason, sessionGeneration: this.sessionGeneration });
+        return Boolean(pending);
+    },
+
+    failPlayersRequest(code = 'PLAYERS_REQUEST_FAILED') {
+        const pending = this.playersRequest;
+        if (!pending) return Object.freeze({ ok: false, code });
+        if (pending.timeoutId !== null && pending.timeoutId !== undefined) clearTimeout(pending.timeoutId);
+        this.playersRequest = null;
+        this.playersError = code;
+        this.logToConsole('Unable to refresh player directory.');
+        this.notifySpectator('players-error', { code, token: pending.token });
+        return Object.freeze({ ok: false, code, token: pending.token });
+    },
+
+    completePlayersRequest(result) {
+        const pending = this.playersRequest;
+        if (!pending) return Object.freeze({ ok: false, code: 'NO_PLAYERS_REQUEST' });
+        if (pending.generation !== this.sessionGeneration || !this.authenticated) {
+            this.invalidatePlayersDirectory('SESSION_CHANGED', { announceFailure: true });
+            return Object.freeze({ ok: false, code: 'SESSION_CHANGED', token: pending.token });
+        }
+        if (pending.timeoutId !== null && pending.timeoutId !== undefined) clearTimeout(pending.timeoutId);
+        const entries = result.entries.map((entry) => ({
+            ...entry,
+            ratings: {
+                standard: { ...entry.ratings.standard },
+                blitz: { ...entry.ratings.blitz },
+                lightning: { ...entry.ratings.lightning }
+            },
+            codes: [...entry.codes]
+        }));
+        this.playersDirectory = {
+            entries,
+            count: result.count,
+            refreshedAt: Date.now(),
+            sessionGeneration: pending.generation
+        };
+        this.playersRequest = null;
+        this.playersError = null;
+        this.logToConsole(`Player directory updated: ${result.count} players.`);
+        this.notifySpectator('players-updated', {
+            count: result.count,
+            token: pending.token,
+            sessionGeneration: pending.generation
+        });
+        return Object.freeze({ ok: true, code: 'PLAYERS_UPDATED', count: result.count, token: pending.token });
+    },
+
+    consumePlayersData(text, { lineFramed = false } = {}) {
+        const pending = this.playersRequest;
+        if (!pending) return Object.freeze({ status: 'ignored', code: 'NO_PLAYERS_REQUEST' });
+        if (pending.generation !== this.sessionGeneration || !this.authenticated) {
+            this.invalidatePlayersDirectory('SESSION_CHANGED', { announceFailure: true });
+            return Object.freeze({ status: 'error', code: 'SESSION_CHANGED' });
+        }
+        const protocol = window.CaissaFICSPlayersProtocol;
+        if (!protocol?.push) {
+            this.failPlayersRequest('PLAYERS_PROTOCOL_UNAVAILABLE');
+            return Object.freeze({ status: 'error', code: 'PLAYERS_PROTOCOL_UNAVAILABLE' });
+        }
+        const result = protocol.push(pending.parser, String(text ?? ''), { lineFramed });
+        if (result.status === 'error') this.failPlayersRequest(result.code);
+        else if (result.status === 'complete') this.completePlayersRequest(result);
+        return result;
+    },
+
+    requestPlayers() {
+        const channelAvailable = this.authenticated && this.connected
+            && String(this.connectionState || '').toLowerCase() === 'connected'
+            && this.ws?.readyState === WebSocket.OPEN;
+        if (!channelAvailable) {
+            this.logToConsole('Connect to FICS to load players.');
+            return Object.freeze({ ok: false, code: 'NOT_CONNECTED' });
+        }
+        if (this.playersRequest) {
+            return Object.freeze({ ok: false, code: 'PLAYERS_REQUEST_IN_FLIGHT', token: this.playersRequest.token });
+        }
+        const protocol = window.CaissaFICSPlayersProtocol;
+        if (!protocol?.createResponseParser) {
+            this.playersError = 'PLAYERS_PROTOCOL_UNAVAILABLE';
+            this.logToConsole('Unable to refresh player directory.');
+            this.notifySpectator('players-error', { code: this.playersError });
+            return Object.freeze({ ok: false, code: this.playersError });
+        }
+        const generation = this.sessionGeneration;
+        const token = `players:${generation}:${++this.playersRequestSequence}`;
+        const pending = {
+            token,
+            generation,
+            parser: protocol.createResponseParser(),
+            timeoutId: null,
+            startedAt: performance.now()
+        };
+        this.playersRequest = pending;
+        this.playersError = null;
+        this.logToConsole('Loading FICS players...');
+        this.logToConsole('> who v', 'COMMAND');
+        this.notifySpectator('players-loading', { token, sessionGeneration: generation });
+        const delivery = this.send('who v');
+        if (!delivery.ok) return this.failPlayersRequest(delivery.code);
+        pending.timeoutId = setTimeout(() => {
+            if (this.playersRequest?.token !== token) return;
+            if (this.playersRequest.generation !== this.sessionGeneration) {
+                this.invalidatePlayersDirectory('SESSION_CHANGED', { announceFailure: true });
+                return;
+            }
+            this.failPlayersRequest('PLAYERS_TIMEOUT');
+        }, this.playersRequestTimeoutMs);
+        return Object.freeze({ ...delivery, token, sessionGeneration: generation });
+    },
+
     handleRawGatewayData(text) {
         // The observer receives a string copy and cannot transform parser input.
         try { window.ClassicFicsObservability?.observeRawInbound(String(text)); } catch {}
         try { window.ClassicFicsMatchResearch?.observeRawInbound(String(text)); } catch {}
         try { window.ClassicComputerChallenge?.observeRawInbound(String(text)); } catch {}
+        this.consumePlayersData(String(text));
         this.rawBuffer = `${this.rawBuffer}${text}`.slice(-16384);
-        this.logToConsole(this.sanitizeFicsConsoleText(text));
+        this.logToConsole(this.sanitizeFicsConsoleText(text), 'FICS');
 
         if (this.loginMode === 'account' && !this.accountLoginSent && /login:/i.test(this.rawBuffer)) {
             this.accountLoginSent = true;
@@ -736,6 +926,7 @@ const CaissaFICSClient = {
             if (loginMatch) this.ficsUsername = loginMatch[1];
             this.authenticated = true;
             this.sessionGeneration += 1;
+            this.invalidatePlayersDirectory('SESSION_CHANGED', { announceFailure: true });
             // Explicit activation requests become ARMED only after auth confirmation.
             // The auth-success frame was already offered while the observer was OFF.
             try { window.ClassicFicsObservability?.onAuthenticated(); } catch {}
@@ -745,9 +936,7 @@ const CaissaFICSClient = {
                 ? `Logged in as ${this.ficsUsername}. Seek or accept a game to begin.`
                 : 'Connected as FICS guest. Seek or accept a game to begin.';
             this.updateGameStatus(identity, 'active');
-            this.logToConsole(this.loginMode === 'account'
-                ? `Logged in as ${this.ficsUsername}. You can now seek games or enter commands.`
-                : 'Connected as guest. You can now seek games or enter commands.');
+            this.announceAuthenticatedSession();
             this.updateIdentityStatus();
             this.updatePlayerBars();
             this.startLobbyRefresh();
@@ -802,6 +991,7 @@ const CaissaFICSClient = {
         this.connected = false;
         this.authenticated = false;
         this.stopLobbyRefresh();
+        this.invalidatePlayersDirectory('AUTHENTICATION_FAILED', { announceFailure: true });
         this.resetLiveSessionState();
         this.renderRoomTables();
     },
@@ -843,6 +1033,7 @@ const CaissaFICSClient = {
     handleAuthenticated(message) {
         this.authenticated = true;
         this.sessionGeneration += 1;
+        this.invalidatePlayersDirectory('SESSION_CHANGED', { announceFailure: true });
         this.updateConnectionStatus(true, 'Connected as Guest');
         this.logToConsole('✅ ' + message.message);
         this.logToConsole('You can now seek games or type FICS commands');
@@ -850,7 +1041,8 @@ const CaissaFICSClient = {
 
     handleRawMessage(message) {
         const line = message.text;
-        this.logToConsole(line);
+        this.logToConsole(line, 'FICS');
+        this.consumePlayersData(line, { lineFramed: true });
 
         // Basic parsing for game events
         this.parseGameLine(line);
@@ -918,7 +1110,7 @@ const CaissaFICSClient = {
         this.initBoard();
         this.playNotificationSound('seekAccepted');
 
-        this.logToConsole('🎮 Game started!');
+        this.logToConsole('Game started.', 'GAME');
     },
 
     handleGameEnd(line) {
@@ -930,6 +1122,7 @@ const CaissaFICSClient = {
         this.liveGame.resultModel = resultModel;
         this.liveGame.status = 'ended';
         this.pendingMove = null;
+        this.pendingGameActions = { resign: false, draw: false };
         this.cancelPromotionSelection(false);
         this.pgnResult = resultModel.result;
         this.updateGameStatus(resultModel.summary, 'ended');
@@ -941,17 +1134,19 @@ const CaissaFICSClient = {
             liveGame: { ...this.liveGame },
             moveHistory: this.moveHistory.map((move) => ({ ...move }))
         });
-        this.logToConsole('🏁 ' + line);
+        this.logToConsole(`Game ended: ${line}`, 'GAME');
         return true;
     },
 
     handleMove(line) {
         // This is very basic - in production you'd parse style 12 output
-        this.logToConsole('♟️ ' + line);
+        this.logToConsole(line, 'GAME');
     },
 
     handleStyle12(state) {
         const wasActive = this.liveGame.gameActive;
+        const wasObserved = this.liveGame.observedGame === true;
+        const matchedPendingSeek = Boolean(this.pendingSeek);
         const isNewGame = this.liveGame.gameNumber !== null && this.liveGame.gameNumber !== state.gameNumber;
         const previousFen = this.liveGame.currentFen;
         const previousSideToMove = this.liveGame.sideToMove;
@@ -1007,6 +1202,9 @@ const CaissaFICSClient = {
         this.gameNumber = state.gameNumber;
         this.myColor = userColor;
         this.pendingSeek = null;
+        if (playing || String(this.pendingObservation?.target) === String(state.gameNumber)) {
+            this.pendingObservation = null;
+        }
         this.cancelPromotionSelection(false);
         if (previousPending) this.clearPendingMove(true);
 
@@ -1031,7 +1229,11 @@ const CaissaFICSClient = {
             playing,
             userColor
         });
-        if (!wasActive && playing) this.logToConsole(`Game ${state.gameNumber} started from Style12.`);
+        if (!wasActive && playing) {
+            if (matchedPendingSeek) this.logToConsole('Opponent found.', 'GAME');
+            this.logToConsole(`Game ${state.gameNumber} started.`, 'GAME');
+        }
+        if (!wasObserved && state.observedGame) this.logToConsole(`Observing game ${state.gameNumber}.`, 'GAME');
     },
 
     parseSeekLine(line) {
@@ -1081,7 +1283,7 @@ const CaissaFICSClient = {
             button.setAttribute('aria-label', `Play seek ${seek.number}: ${detail.player}, ${detail.timeControl}`);
             window.CaissaUI?.applyTooltip(button, seek.label, { title: false });
             button.addEventListener('click', () => {
-                this.logToConsole(`> play ${seek.number}`);
+                this.logToConsole(`> play ${seek.number}`, 'COMMAND');
                 this.send(`play ${seek.number}`);
             });
             this.elements.seekActions.appendChild(button);
@@ -1187,22 +1389,15 @@ const CaissaFICSClient = {
     },
 
     createOpenTableSeek(tableNumber) {
-        if (!this.authenticated) {
-            this.logToConsole('Connect to FICS before creating a seek.');
-            this.renderRoomTables();
-            return;
-        }
-
         const time = parseInt(this.elements.customTimeInput?.value, 10) || 5;
         const inc = parseInt(this.elements.customIncInput?.value, 10) || 0;
-        const command = `seek ${time} ${inc} unrated`;
-        this.logToConsole(`Open Table ${tableNumber}: > ${command}`);
-        this.pendingSeek = {
-            timeControl: `${time}+${inc}`,
+        return this.requestSeek({
+            minutes: time,
+            increment: inc,
+            rated: false,
+            color: 'random',
             label: `Open Table ${tableNumber}`
-        };
-        this.renderRoomTables();
-        this.send(command);
+        });
     },
 
     updateRoomStatus(message) {
@@ -1261,7 +1456,9 @@ const CaissaFICSClient = {
             };
         });
 
-        if (this.pendingSeek && !waitingRows.some((row) => row.commandType === 'unseek')) {
+        const pendingSeekActive = this.pendingSeek
+            && (this.pendingSeek.status !== 'error' || this.pendingSeek.operation === 'cancel');
+        if (pendingSeekActive && !waitingRows.some((row) => row.commandType === 'unseek')) {
             waitingRows.unshift({
                 kind: 'waiting',
                 status: 'Waiting',
@@ -1375,31 +1572,79 @@ const CaissaFICSClient = {
             this.cancelSeek();
             return;
         }
-        this.logToConsole(`> ${row.command}`);
+        this.logToConsole(`> ${row.command}`, 'COMMAND');
         this.send(row.command);
     },
 
     switchObservedGame(gameNumber) {
+        if (!this.authenticated) {
+            return Object.freeze({ ok: false, code: 'NOT_CONNECTED' });
+        }
+        if (this.gameActive && !this.liveGame?.observedGame) {
+            return Object.freeze({ ok: false, code: 'ACTIVE_LOCAL_GAME' });
+        }
+        if (this.pendingSeek && (this.pendingSeek.status !== 'error' || this.pendingSeek.operation === 'cancel')) {
+            return Object.freeze({ ok: false, code: 'SEEK_PENDING' });
+        }
         this.cancelPromotionSelection(false);
-        const target = String(gameNumber);
+        const target = String(gameNumber ?? '').trim();
+        if (!/^\d+$/.test(target)) return Object.freeze({ ok: false, code: 'INVALID_GAME' });
         const current = this.liveGame?.observedGame && this.liveGame.gameNumber !== null
             ? String(this.liveGame.gameNumber)
             : null;
+        if (current === target) return Object.freeze({ ok: false, code: 'ALREADY_OBSERVING' });
+        if (this.pendingObservation) return Object.freeze({ ok: false, code: 'OBSERVE_IN_PROGRESS' });
+
+        const request = {
+            target,
+            previous: current,
+            generation: this.sessionGeneration,
+            status: current ? 'switching' : 'sending'
+        };
+        this.pendingObservation = request;
+        const release = () => {
+            setTimeout(() => {
+                if (this.pendingObservation === request) {
+                    this.pendingObservation = null;
+                    this.notifySpectator('observation-settled', { gameNumber: target });
+                }
+            }, 1500);
+        };
+        const fail = (delivery) => {
+            if (this.pendingObservation === request) this.pendingObservation = null;
+            this.updateGameStatus(`Could not observe game ${target}.`, 'error');
+            this.notifySpectator('observation-error', { gameNumber: target, code: delivery.code });
+            return Object.freeze({ ...delivery, gameNumber: target });
+        };
 
         if (current && current !== target) {
             this.updateGameStatus(`Switching observation from game ${current} to game ${target}...`, 'active');
-            this.logToConsole(`> unobserve ${current}`);
-            this.send(`unobserve ${current}`);
+            this.logToConsole(`> unobserve ${current}`, 'COMMAND');
+            const leaveDelivery = this.send(`unobserve ${current}`);
+            if (!leaveDelivery.ok) return fail(leaveDelivery);
             setTimeout(() => {
-                this.logToConsole(`> observe ${target}`);
-                this.send(`observe ${target}`);
+                if (this.pendingObservation !== request || request.generation !== this.sessionGeneration) return;
+                this.logToConsole(`> observe ${target}`, 'COMMAND');
+                const observeDelivery = this.send(`observe ${target}`);
+                if (!observeDelivery.ok) {
+                    fail(observeDelivery);
+                    return;
+                }
+                request.status = 'sent';
+                this.notifySpectator('observation-requested', { gameNumber: target, previousGameNumber: current });
+                release();
             }, 250);
-            return;
+            return Object.freeze({ ok: true, code: 'SWITCH_REQUESTED', gameNumber: target });
         }
 
         this.updateGameStatus(`Observing game ${target}...`, 'active');
-        this.logToConsole(`> observe ${target}`);
-        this.send(`observe ${target}`);
+        this.logToConsole(`> observe ${target}`, 'COMMAND');
+        const delivery = this.send(`observe ${target}`);
+        if (!delivery.ok) return fail(delivery);
+        request.status = 'sent';
+        this.notifySpectator('observation-requested', { gameNumber: target, previousGameNumber: null });
+        release();
+        return Object.freeze({ ...delivery, gameNumber: target });
     },
 
     leaveObservedGame(gameNumber = null) {
@@ -1408,14 +1653,30 @@ const CaissaFICSClient = {
             : this.liveGame?.gameNumber !== null && this.liveGame?.gameNumber !== undefined
                 ? String(this.liveGame.gameNumber)
                 : '';
-        if (!this.authenticated || !target || !this.liveGame?.observedGame) return false;
+        const commandChannelAvailable = this.authenticated && this.connected
+            && String(this.connectionState || '').toLowerCase() === 'connected';
+        if (!commandChannelAvailable) return Object.freeze({ ok: false, code: 'CONNECTION_UNAVAILABLE' });
+        if (!target || !this.liveGame?.observedGame) {
+            return Object.freeze({ ok: false, code: 'OBSERVATION_UNAVAILABLE' });
+        }
+        if (this.observationExitInFlight) {
+            return Object.freeze({ ok: false, code: 'ACTION_IN_PROGRESS' });
+        }
 
+        this.observationExitInFlight = true;
         this.updateGameStatus(`Leaving observed game ${target}...`, 'active');
-        this.logToConsole(`> unobserve ${target}`);
-        this.send(`unobserve ${target}`);
+        this.logToConsole(`> unobserve ${target}`, 'COMMAND');
+        const delivery = this.send(`unobserve ${target}`);
+        if (!delivery.ok) {
+            this.observationExitInFlight = false;
+            this.notifySpectator('game-action-delivery', {
+                action: 'leave-observation', ok: false, code: delivery.code, serverAcknowledged: false
+            });
+            return Object.freeze({ ...delivery, action: 'leave-observation', serverAcknowledged: false });
+        }
         this.clearObservedGameState(target);
         setTimeout(() => this.refreshLobby(true), 1200);
-        return true;
+        return Object.freeze({ ...delivery, action: 'leave-observation', serverAcknowledged: false });
     },
 
     clearObservedGameState(gameNumber = null) {
@@ -1428,6 +1689,8 @@ const CaissaFICSClient = {
         this.myColor = null;
         this.gameNumber = null;
         this.pendingMove = null;
+        this.pendingObservation = null;
+        this.observationExitInFlight = false;
         this.cancelPromotionSelection(false);
         this.liveGame = this.createEmptyLiveGameState('idle');
         this.resetGameRecord();
@@ -1443,12 +1706,42 @@ const CaissaFICSClient = {
     },
 
     cancelSeek() {
-        this.pendingSeek = null;
+        const current = this.pendingSeek;
+        if (!current || (current.status === 'error' && current.operation !== 'cancel')) {
+            return Object.freeze({ ok: false, code: 'NO_PENDING_SEEK' });
+        }
+        if (current.status === 'cancel_requested') {
+            return Object.freeze({ ok: false, code: 'CANCEL_IN_PROGRESS' });
+        }
+        this.pendingSeek = {
+            ...current,
+            status: 'cancel_requested',
+            operation: 'cancel',
+            error: null,
+            deliveryCode: null
+        };
         this.updateRoomStatus('Canceling seek...');
         this.renderRoomTables();
-        this.logToConsole('> unseek');
-        this.send('unseek');
-        setTimeout(() => this.refreshLobby(true), 1200);
+        this.logToConsole('> unseek', 'COMMAND');
+        const delivery = this.send('unseek');
+        if (!delivery.ok) {
+            this.pendingSeek = {
+                ...this.pendingSeek,
+                status: 'error',
+                operation: 'cancel',
+                error: 'The cancellation command was not delivered.',
+                deliveryCode: delivery.code
+            };
+            this.updateRoomStatus('Seek cancellation was not delivered.');
+            this.renderRoomTables();
+            return Object.freeze({ ...delivery, state: 'error' });
+        }
+        this.logToConsole('Seek cancellation command delivered; FICS confirmation is pending.');
+        setTimeout(() => {
+            if (this.pendingSeek?.operation === 'cancel') this.pendingSeek = null;
+            this.refreshLobby(true);
+        }, 1200);
+        return Object.freeze({ ...delivery, state: 'cancel_requested' });
     },
 
     isCurrentFicsUser(name) {
@@ -1530,12 +1823,12 @@ const CaissaFICSClient = {
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'fics-table-action';
-            button.textContent = 'Watch';
+            const own = this.isCurrentFicsUser(table.white) || this.isCurrentFicsUser(table.black);
+            const current = this.liveGame.observedGame && String(this.liveGame.gameNumber) === String(table.number);
+            button.textContent = own ? 'Playing' : current ? 'Watching' : 'Watch';
+            button.disabled = own || current;
             button.title = table.observers ? `${table.observers} watching` : 'Watch live game';
-            button.addEventListener('click', () => {
-                this.logToConsole(`> observe ${table.number}`);
-                this.send(`observe ${table.number}`);
-            });
+            if (!button.disabled) button.addEventListener('click', () => this.switchObservedGame(table.number));
             card.appendChild(button);
             return card;
         }));
@@ -1577,7 +1870,7 @@ const CaissaFICSClient = {
             button.textContent = 'Sit';
             button.title = [detail.variant, detail.color].filter(Boolean).join(' - ') || seek.label;
             button.addEventListener('click', () => {
-                this.logToConsole(`> play ${seek.number}`);
+                this.logToConsole(`> play ${seek.number}`, 'COMMAND');
                 this.send(`play ${seek.number}`);
             });
             card.appendChild(button);
@@ -1663,6 +1956,7 @@ const CaissaFICSClient = {
         this.lastMoveKey = null;
         this.pgnResult = '*';
         this.pgnStartFen = null;
+        this.pendingGameActions = { resign: false, draw: false };
         this.renderMoveList();
     },
 
@@ -1796,16 +2090,26 @@ const CaissaFICSClient = {
     },
 
     downloadPGN() {
-        const pgn = this.buildPGN();
-        const blob = new Blob([pgn], { type: 'application/x-chess-pgn' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `fics-game-${this.liveGame.gameNumber || 'live'}.pgn`;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
+        const terminal = this.liveGame?.resultModel?.terminal === true || this.liveGame?.status === 'ended'
+            || ['1-0', '0-1', '1/2-1/2'].includes(this.liveGame?.result);
+        if (!this.moveHistory.length && !terminal) {
+            return Object.freeze({ ok: false, code: 'PGN_UNAVAILABLE' });
+        }
+        try {
+            const pgn = this.buildPGN();
+            const blob = new Blob([pgn], { type: 'application/x-chess-pgn' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `fics-game-${this.liveGame.gameNumber || 'live'}.pgn`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+            return Object.freeze({ ok: true, code: 'DOWNLOADED', filename: link.download });
+        } catch {
+            return Object.freeze({ ok: false, code: 'DOWNLOAD_FAILED' });
+        }
     },
 
     extractResult(line) {
@@ -2039,6 +2343,7 @@ const CaissaFICSClient = {
     },
 
     onDragStart(source, piece) {
+        if (this.isReviewingHistoricalPosition()) return false;
         if (!this.gameActive || this.liveGame.observedGame || this.pendingMove || this.pendingPromotionMove) return false;
         if (this.liveGame.relation !== 1) return false;
 
@@ -2083,10 +2388,15 @@ const CaissaFICSClient = {
     },
 
     canSubmitGraphicalMove() {
+        if (this.isReviewingHistoricalPosition()) return false;
         if (!this.liveGame.currentFen || this.liveGame.relation !== 1) return false;
         if (!this.gameActive || this.liveGame.observedGame || this.pendingMove) return false;
         if (!this.myColor || !this.liveGame.sideToMove) return false;
         return this.liveGame.sideToMove === (this.myColor === 'white' ? 'w' : 'b');
+    },
+
+    isReviewingHistoricalPosition() {
+        return window.CaissaFICSShell?.getReplaySnapshot?.().isReviewingHistory === true;
     },
 
     isPromotionAttempt(validator, source, target) {
@@ -2146,7 +2456,10 @@ const CaissaFICSClient = {
 
     onSnapEnd() {
         if (!this.board) return;
-        if (this.pendingMove?.optimisticFen) {
+        const replay = window.CaissaFICSShell?.getReplaySnapshot?.();
+        if (replay?.isReviewingHistory && replay.fen) {
+            this.board.position(replay.fen, false);
+        } else if (this.pendingMove?.optimisticFen) {
             this.board.position(this.pendingMove.optimisticFen, false);
         } else if (this.liveGame.currentFen) {
             this.board.position(this.liveGame.currentFen, false);
@@ -2154,28 +2467,100 @@ const CaissaFICSClient = {
     },
 
     // ===== GAME COMMANDS =====
-    seek(time, inc) {
-        if (!this.authenticated) {
-            this.logToConsole('❌ Not connected to FICS');
-            return;
+    normalizeSeekRequest(options = {}) {
+        const minutes = Number(options.minutes);
+        const increment = Number(options.increment);
+        if (!Number.isInteger(minutes) || minutes < 1 || minutes > 180) {
+            return Object.freeze({ ok: false, code: 'INVALID_TIME', message: 'Time must be a whole number from 1 to 180 minutes.' });
+        }
+        if (!Number.isInteger(increment) || increment < 0 || increment > 60) {
+            return Object.freeze({ ok: false, code: 'INVALID_INCREMENT', message: 'Increment must be a whole number from 0 to 60 seconds.' });
         }
 
-        const command = `seek ${time} ${inc}`;
-        this.logToConsole(`> ${command}`);
+        let rated = null;
+        if (options.rated === true || options.rated === 'rated') rated = true;
+        else if (options.rated === false || ['unrated', 'casual'].includes(options.rated)) rated = false;
+        else if (options.rated !== undefined && options.rated !== null) {
+            return Object.freeze({ ok: false, code: 'INVALID_RATING_MODE', message: 'Choose Rated or Casual.' });
+        }
+
+        const requestedColor = String(options.color ?? 'random').toLowerCase();
+        const color = ['random', 'either', ''].includes(requestedColor) ? 'random' : requestedColor;
+        if (!['random', 'white', 'black'].includes(color)) {
+            return Object.freeze({ ok: false, code: 'INVALID_COLOR', message: 'Choose White, Random, or Black.' });
+        }
+        return Object.freeze({ ok: true, minutes, increment, rated, color });
+    },
+
+    buildSeekCommand(request, includePreferences = true) {
+        const parts = ['seek', request.minutes, request.increment];
+        if (includePreferences && typeof request.rated === 'boolean') parts.push(request.rated ? 'rated' : 'unrated');
+        if (includePreferences && request.color !== 'random') parts.push(request.color);
+        return parts.join(' ');
+    },
+
+    requestSeek(options = {}) {
+        if (!this.authenticated) {
+            this.logToConsole('Connect to FICS before creating a table.');
+            return Object.freeze({ ok: false, code: 'NOT_CONNECTED', state: 'error' });
+        }
+        if (this.gameActive || this.liveGame?.status === 'playing' || this.liveGame?.status === 'observing') {
+            return Object.freeze({ ok: false, code: 'ACTIVE_GAME', state: 'error' });
+        }
+        const existingActive = this.pendingSeek
+            && (this.pendingSeek.status !== 'error' || this.pendingSeek.operation === 'cancel');
+        if (existingActive) {
+            return Object.freeze({ ok: false, code: 'SEEK_ALREADY_PENDING', state: this.pendingSeek.status || 'pending' });
+        }
+
+        const normalized = this.normalizeSeekRequest(options);
+        if (!normalized.ok) return Object.freeze({ ...normalized, state: 'error' });
+        const includePreferences = options.includePreferences !== false;
+        const command = this.buildSeekCommand(normalized, includePreferences);
         this.pendingSeek = {
-            timeControl: `${time}+${inc}`,
-            label: 'Your active seek'
+            minutes: normalized.minutes,
+            increment: normalized.increment,
+            timeControl: `${normalized.minutes}+${normalized.increment}`,
+            rated: normalized.rated,
+            color: normalized.color,
+            label: String(options.label || 'Your active seek'),
+            status: 'creating',
+            operation: 'create',
+            error: null,
+            deliveryCode: null
         };
+        this.logToConsole(`> ${command}`, 'COMMAND');
         this.renderRoomTables();
-        this.send({
-            type: 'command',
-            text: command
-        });
+        const delivery = this.send({ type: 'command', text: command });
+        if (!delivery.ok) {
+            this.pendingSeek = {
+                ...this.pendingSeek,
+                status: 'error',
+                error: 'The seek command was not delivered.',
+                deliveryCode: delivery.code
+            };
+            this.updateRoomStatus('Create Table was not delivered.');
+            this.renderRoomTables();
+            return Object.freeze({ ...delivery, state: 'error' });
+        }
+        this.pendingSeek = {
+            ...this.pendingSeek,
+            status: 'pending',
+            deliveryCode: delivery.code
+        };
+        this.logToConsole('Seek posted to FICS; server acknowledgement is not available.');
+        this.updateRoomStatus('Seek sent. Waiting for a FICS opponent.');
+        this.renderRoomTables();
+        return Object.freeze({ ...delivery, state: 'pending' });
+    },
+
+    seek(time, inc) {
+        return this.requestSeek({ minutes: time, increment: inc, includePreferences: false });
     },
 
     sendMove(move) {
         if (!this.authenticated) {
-            this.logToConsole('❌ Not connected to FICS');
+            this.logToConsole('Not connected to FICS.', 'ERROR');
             return;
         }
 
@@ -2186,29 +2571,70 @@ const CaissaFICSClient = {
         });
     },
 
+    runPlayedGameAction(action) {
+        const command = FICS_PLAYED_GAME_COMMANDS[action];
+        if (!command) {
+            return Object.freeze({ ok: false, code: 'ACTION_UNAVAILABLE', action, serverAcknowledged: false });
+        }
+        const commandChannelAvailable = this.authenticated && this.connected
+            && String(this.connectionState || '').toLowerCase() === 'connected';
+        if (!commandChannelAvailable) {
+            return Object.freeze({ ok: false, code: 'CONNECTION_UNAVAILABLE', action, serverAcknowledged: false });
+        }
+        const playing = this.gameActive && this.liveGame?.gameActive === true
+            && this.liveGame?.observedGame !== true && this.liveGame?.status !== 'ended';
+        if (!playing) {
+            return Object.freeze({ ok: false, code: 'ACTION_UNAVAILABLE', action, serverAcknowledged: false });
+        }
+        if (this.pendingGameActions?.[action]) {
+            return Object.freeze({ ok: false, code: 'ACTION_IN_PROGRESS', action, serverAcknowledged: false });
+        }
+
+        this.pendingGameActions = { ...this.pendingGameActions, [action]: true };
+        this.notifySpectator('game-action-delivery', { action, ok: null, code: 'SENDING', serverAcknowledged: false });
+        const delivery = this.send({ type: 'command', text: command });
+        if (!delivery.ok) {
+            this.pendingGameActions = { ...this.pendingGameActions, [action]: false };
+            this.notifySpectator('game-action-delivery', {
+                action, ok: false, code: delivery.code, serverAcknowledged: false
+            });
+            return Object.freeze({ ...delivery, action, serverAcknowledged: false });
+        }
+
+        this.logToConsole(`> ${command}`, 'COMMAND');
+        this.logToConsole(action === 'draw'
+            ? 'Draw offer sent to FICS; server acknowledgement is pending.'
+            : 'Resign command sent to FICS; server acknowledgement is pending.', 'GAME');
+        this.notifySpectator('game-action-delivery', {
+            action, ok: true, code: delivery.code, serverAcknowledged: false
+        });
+        setTimeout(() => {
+            if (!this.pendingGameActions?.[action]) return;
+            this.pendingGameActions = { ...this.pendingGameActions, [action]: false };
+            this.notifySpectator('game-action-ready', { action });
+        }, 1500);
+        return Object.freeze({ ...delivery, action, serverAcknowledged: false });
+    },
+
     resign() {
-        if (!this.gameActive) return;
-        this.send({ type: 'command', text: 'resign' });
-        this.logToConsole('> resign');
+        return this.runPlayedGameAction('resign');
     },
 
     offerDraw() {
-        if (!this.gameActive) return;
-        this.send({ type: 'command', text: 'draw' });
-        this.logToConsole('> draw');
+        return this.runPlayedGameAction('draw');
     },
 
     abort() {
         if (!this.gameActive) return;
         this.send({ type: 'command', text: 'abort' });
-        this.logToConsole('> abort');
+        this.logToConsole('> abort', 'COMMAND');
     },
 
     sendCommand() {
         const command = this.elements.commandInput?.value.trim();
         if (!command) return;
 
-        this.logToConsole(`> ${command}`);
+        this.logToConsole(`> ${command}`, 'COMMAND');
         this.send({
             type: 'command',
             text: command
@@ -2245,6 +2671,7 @@ const CaissaFICSClient = {
     },
 
     setConnectionState(state, message = null) {
+        const previousState = this.connectionState;
         this.connectionState = state;
         const labels = {
             disconnected: 'Disconnected',
@@ -2264,12 +2691,66 @@ const CaissaFICSClient = {
         this.elements.accountConnectBtn?.toggleAttribute('disabled', active || !this.isGatewayConfigured());
         this.elements.disconnectBtn?.toggleAttribute('disabled', !active);
         this.updateLoginControls();
+        if (state !== previousState) {
+            if (state === 'connecting') this.logToConsole(this.loginMode === 'account'
+                ? 'Connecting to FICS as registered user...'
+                : 'Connecting to FICS as guest...');
+            if (state === 'connected') {
+                const latency = Number.isFinite(this.latencyMs) ? ` \u00b7 Latency: ${this.latencyMs} ms` : '';
+                this.logToConsole(`Connected to FICS${latency}.`);
+            }
+            if (state === 'reconnecting') {
+                this.logToConsole('Connection lost.', 'ERROR');
+                this.logToConsole('Reconnecting to FICS...');
+            }
+            if (state === 'disconnected') this.logToConsole('Disconnected from FICS.');
+            if (state === 'error') this.logToConsole(message === 'Login failed'
+                ? 'Authentication failed.'
+                : 'Unable to connect to FICS.', message === 'Login failed' ? 'ERROR' : 'CAISSA');
+        }
         this.notifySpectator('connection-state', {
             state,
             authenticated: this.authenticated,
             connected: this.connected,
             message: message || labels[state] || state
         });
+    },
+
+    announceWorkspaceAvailability(view) {
+        if (view === 'players') {
+            if (!this.authenticated) {
+                this.logToConsole('Connect to FICS to load players.');
+                return Object.freeze({ announced: true, view, reason: 'NOT_AUTHENTICATED' });
+            }
+            const current = this.playersDirectory?.sessionGeneration === this.sessionGeneration;
+            if (!current || (!this.playersDirectory.count && !this.playersDirectory.refreshedAt && !this.playersRequest)) {
+                const request = this.requestPlayers();
+                return Object.freeze({ announced: request.ok, view, reason: request.ok ? 'LOADING' : request.code });
+            }
+            return Object.freeze({ announced: false, view, reason: this.playersRequest ? 'LOADING' : null });
+        }
+        if (view === 'tables' && !this.authenticated) {
+            this.logToConsole('Connect to FICS to load tables.');
+            return Object.freeze({ announced: true, view, reason: 'NOT_AUTHENTICATED' });
+        }
+        if (view === 'seek' && !this.authenticated) {
+            this.logToConsole('Connect to FICS before creating a table.');
+            return Object.freeze({ announced: true, view, reason: 'NOT_AUTHENTICATED' });
+        }
+        return Object.freeze({ announced: false, view, reason: null });
+    },
+
+    announceAuthenticatedSession() {
+        if (!this.authenticated || this.sessionGeneration <= this.welcomedSessionGeneration) return false;
+        this.welcomedSessionGeneration = this.sessionGeneration;
+        this.logToConsole(this.loginMode === 'account'
+            ? `Registered session authenticated as ${this.ficsUsername}.`
+            : `Connected as ${this.ficsUsername}.`);
+        this.logToConsole('Choose Tables to observe games or Seek to create a game.');
+        if (this.loginMode !== 'account') {
+            this.logToConsole('Open the session menu above to connect with a registered FICS account.');
+        }
+        return true;
     },
 
     updateLatency() {
@@ -2302,8 +2783,21 @@ const CaissaFICSClient = {
         }
     },
 
-    logToConsole(message) {
-        this.messageBuffer.push(message);
+    logToConsole(message, origin = null) {
+        const rawMessage = String(message ?? '');
+        if (!rawMessage) return;
+        const inferredOrigin = /^>\s/.test(rawMessage)
+            ? 'COMMAND'
+            : /(?:❌|\bfailed\b|\bfailure\b|\berror\b|\btimeout\b)/i.test(rawMessage)
+                ? 'ERROR'
+                : 'CAISSA';
+        const safeOrigin = ['CAISSA', 'FICS', 'COMMAND', 'GAME', 'ERROR'].includes(origin)
+            ? origin
+            : inferredOrigin;
+        const entry = rawMessage.split('\n').map((line) => `[${safeOrigin}] ${line}`).join('\n');
+        if (safeOrigin === 'CAISSA' && FICS_CONSOLE_REPEAT_ADVISORIES.includes(rawMessage)
+            && this.messageBuffer.slice(-6).includes(entry)) return false;
+        this.messageBuffer.push(entry);
 
         // Trim buffer if too large
         if (this.messageBuffer.length > this.maxBufferSize) {
@@ -2315,30 +2809,40 @@ const CaissaFICSClient = {
             this.elements.console.textContent = this.messageBuffer.join('\n');
             this.elements.console.scrollTop = this.elements.console.scrollHeight;
         }
+        return true;
+    },
+
+    setConsoleExpanded(expanded) {
+        if (!this.elements.consoleContainer) return false;
+        const nextExpanded = expanded === true;
+        this.elements.consoleContainer.style.display = nextExpanded ? 'block' : 'none';
+        if (this.elements.consoleToggle) {
+            this.elements.consoleToggle.textContent = nextExpanded ? 'Hide ▲' : 'Show ▼';
+            this.elements.consoleToggle.setAttribute('aria-expanded', String(nextExpanded));
+            this.elements.consoleToggle.setAttribute('aria-label', nextExpanded ? 'Hide FICS console' : 'Show FICS console');
+        }
+        this.elements.consoleContainer.closest?.('.fics-console-section')
+            ?.setAttribute('data-console-expanded', String(nextExpanded));
+        return nextExpanded;
     },
 
     toggleConsole() {
-        if (this.elements.consoleContainer) {
-            const isHidden = this.elements.consoleContainer.style.display === 'none';
-            this.elements.consoleContainer.style.display = isHidden ? 'block' : 'none';
-            if (this.elements.consoleToggle) {
-                this.elements.consoleToggle.textContent = isHidden ? '▼ Hide Console' : '▶ Show Console';
-                this.elements.consoleToggle.setAttribute('aria-expanded', String(isHidden));
-                this.elements.consoleToggle.setAttribute('aria-label', isHidden ? 'Hide FICS console' : 'Show FICS console');
-            }
-        }
+        const expanded = this.elements.consoleContainer?.style.display !== 'none';
+        return this.setConsoleExpanded(!expanded);
     },
 
     // ===== LIFECYCLE =====
     onEnter() {
         console.log('[FICS Client] Section entered');
         this.initBoard(this.liveGame.currentFen || 'start');
+        this.requestAutomaticGuestConnection();
         if (!this.liveGame.currentFen && this.authenticated) {
             this.updateGameStatus(this.loginMode === 'account'
                 ? `Logged in as ${this.ficsUsername}. Seek or accept a game to begin.`
                 : 'Connected as FICS guest. Seek or accept a game to begin.', 'active');
         }
         this.updatePlayerBars();
+        window.CaissaFICSShell?.refresh?.();
     },
 
     onExit() {
