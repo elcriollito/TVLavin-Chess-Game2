@@ -11,10 +11,10 @@ const ipadAnalyzeDiagnosticOutputPath = new URL('../play-v2-ipad-analyze-diagnos
 let html = await readFile(sourcePath, 'utf8');
 
 const forbiddenElements = [
-  /\s*<link[^>]+href="css\/fics-client\.css[^>]*>\r?\n/gi,
+  /\s*<link[^>]+href="css\/fics-(?:client|redesign-shell)\.css[^>]*>\r?\n/gi,
   /\s*<script[^>]+src="js\/fics-style12\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/fics-client\.js[^>]*><\/script>\r?\n/gi,
-  /\s*<script[^>]+src="js\/fics-(?:observability|presentation-contract|match-research|research-actions|computer-challenge)\.js[^>]*><\/script>\r?\n/gi,
+  /\s*<script[^>]+src="js\/fics-(?:observability|presentation-contract|layout-shell|match-research|research-actions|computer-challenge)\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/spectator-tv-state\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/spectator-tv-catalog\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/spectator-tv-section\.js[^>]*><\/script>\r?\n/gi,
