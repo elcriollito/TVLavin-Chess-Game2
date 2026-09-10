@@ -28,7 +28,7 @@ test('exit ownership is preserved behind the minimal completed-game presentation
         .toEqual({ contract: 'PlayV2PostGameExitPolicy@1.0.0', automatic: 'prohibited', recordId });
 });
 
-test('Analyze rejects concurrent activation and inline Back preserves one completed record', async ({ page }) => {
+test('Analyze rejects concurrent activation and embedded review preserves one completed record', async ({ page }) => {
     const recordId = await completed(page);
     const result = await page.evaluate(async () => {
         const first = window.CaissaPostGameExperienceInstance.execute('analyze');
@@ -36,14 +36,11 @@ test('Analyze rejects concurrent activation and inline Back preserves one comple
         return { first: await first, second };
     });
     expect(result.first.ok).toBe(true); expect(result.second.reasonCode).toBe('ACTION_BUSY');
-    await expect(page.locator('#analyzeSection')).toHaveClass(/active/); expect(page.url()).not.toMatch(/(?:pgn|fen)=/i);
-    await page.getByRole('button', { name: 'Back to game result' }).click();
-    await expect(page.locator('[data-post-game-result]')).toBeVisible();
+    await expect(page.locator('.caissa-games-panel[data-games-phase="analysis-review"]')).toBeVisible();
+    await expect(page.locator('#analyzeSection')).not.toHaveClass(/active/);
+    expect(page.url()).not.toMatch(/(?:pgn|fen)=/i);
     expect(await page.evaluate(() => window.CaissaPostGameExperienceInstance.getSnapshot().gameRecordId)).toBe(recordId);
-    await page.locator('[data-post-game-action="analyze"]').click();
-    await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
-    await page.getByRole('button', { name: 'Back to game result' }).click();
-    await expect(page.locator('[data-post-game-result]')).toBeVisible();
+    expect(await page.evaluate(() => window.CaissaPlayV2InlineAnalyze.isOpen())).toBe(true);
 });
 
 test('Mentor rejects concurrent activation, consumes its session, and restores exact PostGame', async ({ page }) => {

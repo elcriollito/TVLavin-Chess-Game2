@@ -25,6 +25,16 @@ const evidenceDirectory = join(tmpdir(), 'caissa-play-v2-11.8.1c-evidence');
 
 test.beforeEach(async ({ page }) => instrumentPlay(page, { autoReply: false }));
 
+async function openGenericAnalyze(page) {
+    const opened = await page.evaluate(async () => {
+        await window.CaissaPlayLazyLoader.load('analyze-deep', { qa: false, retry: true });
+        const record = window.CaissaGameRecord.buildFromPlay();
+        const handoff = window.CaissaAnalyzeHandoff.createFromCompletedPlayRecord(record);
+        return handoff.ok ? window.CaissaPlayV2InlineAnalyze.open({ token: handoff.value.token }) : handoff;
+    });
+    expect(opened).toMatchObject({ ok: true, status: 'accepted' });
+}
+
 for (const profile of profiles) {
     test(`inline Analyze contains one board at ${profile.name}`, async ({ page, browserName }) => {
         await page.setViewportSize({ width: profile.width, height: profile.height });
@@ -44,7 +54,7 @@ for (const profile of profiles) {
             window.CaissaPostGameExperienceInstance?.getSnapshot?.());
         const workersBefore = completed.harness.workersCreated;
         await expect(page.locator('[data-post-game-action="analyze"]')).toBeVisible();
-        await page.locator('[data-post-game-action="analyze"]').click();
+        await openGenericAnalyze(page);
         const dialog = page.getByRole('dialog', { name: 'Analyze completed game' });
         await expect(dialog).toBeVisible();
         await expect(page.locator('#analyzeChessboard .board-b72b1')).toBeVisible();
@@ -125,7 +135,7 @@ test('inline Analyze traps focus, closes with Escape, and restores PostGame', as
     await openPlay(page, '/play');
     await loadPosition(page, positions.checkmateInOne.fen);
     await playMove(page, positions.checkmateInOne.from, positions.checkmateInOne.to);
-    await page.locator('[data-post-game-action="analyze"]').click();
+    await openGenericAnalyze(page);
     await expect(page.getByRole('button', { name: 'Back to game result' })).toBeFocused();
     await page.keyboard.press('Shift+Tab');
     await expect(page.locator('#analyzeSection')).toContainText('Analyze Game');

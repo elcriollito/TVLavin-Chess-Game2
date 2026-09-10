@@ -26,11 +26,14 @@ test('canonical navigation inventory contains no root section-query destinations
   assert.doesNotMatch(source, /route: '\/\?section=(?:insights|analyze|arena|cheater-insight|library|history|dosChess)'/);
 });
 
-test('server and Vercel route every canonical legacy surface to its existing shell', () => {
+test('server and Vercel route every canonical surface to its intended shell', () => {
   const server = read('server.js');
   const config = JSON.parse(read('vercel.json'));
-  for (const route of ['/insights', '/fics', '/analyze', '/spectator-tv', '/arena', '/cheater-insight', '/game-library', '/history', '/dos-chess']) {
+  for (const route of ['/insights', '/fics', '/analyze', '/spectator-tv', '/arena', '/cheater-insight', '/history', '/dos-chess']) {
     assert.match(server, new RegExp(route.replace('/', '\\/')));
     assert.ok(config.rewrites.some(rule => rule.source === route && rule.destination === '/index.html'), route);
   }
+  assert.match(server, /pathname === '\/game-library'.*game-library\.html/s);
+  assert.ok(config.rewrites.some(rule =>
+    rule.source === '/game-library' && rule.destination === '/game-library.html'));
 });

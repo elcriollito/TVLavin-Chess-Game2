@@ -7,7 +7,6 @@ const legacy = [
   ['FICS', '/fics', 'fics', '#ficsSection'],
   ['Spectator TV', '/spectator-tv', 'spectator-tv', '#spectatorSection'],
   ['Cheater Insight', '/cheater-insight', 'cheater-insight', '#cheater-insightSection'],
-  ['Game Library', '/game-library', 'game-library', '#libraryPanel.open'],
   ['History', '/history', 'history', '#historySection'],
   ['DOS Chess', '/dos-chess', 'dos-chess', '#dosChessSection']
 ];
@@ -21,6 +20,7 @@ const standalone = [
   ['Polyglot Tool', '/tools/polyglot', 'h1', /Polyglot/],
   ['Opening Database', '/opening-database', 'h1', /Opening Database/],
   ['ECO Codes', '/eco', 'h1', /ECO Codes/],
+  ['Game Library', '/game-library', '[data-caissa-library-public-presentation]', /Game Library.*Under Construction/],
   ['Vault', '/vault', 'h1', /Vault/],
   ['Blog', '/blog', 'h1', /Blog/],
   ['Lichess TV', '/watch/lichess-tv', 'h1', /Watch Lichess TV Live/]
