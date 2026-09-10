@@ -61,7 +61,7 @@ test('A2.1 palette drag is a pointer input into the existing setup draft only', 
 });
 
 test('A2.2 wires physical board drag and local New/Save without parallel authorities', () => {
-    for (const id of ['analyzeNewBtn', 'analyzeSaveBtn']) {
+    for (const id of ['analyzeNewBtn', 'analyzeSaveBtn', 'analyzeReviewBtn']) {
         assert.equal((html.match(new RegExp(`id="${id}"`, 'g')) || []).length, 1, id);
     }
     assert.match(analyze, /dragThrottleRate:\s*8/);
@@ -70,6 +70,17 @@ test('A2.2 wires physical board drag and local New/Save without parallel authori
     assert.match(analyze, /buildAnalysisPgn\(\)[\s\S]*?game\.pgn\(/);
     assert.match(analyze, /finishSetupCommit\(\)[\s\S]*?setLiveEngineEnabled\(true\)/);
     assert.doesNotMatch(analyze, /saveAnalysisPgn\(\)[\s\S]{0,1600}(?:fetch\s*\(|localStorage|sessionStorage|new\s+Chess|new\s+Worker)/);
+});
+
+test('V2.0.1 Review reuses the analysis pipeline and renders symbols without move evaluations or a legend', () => {
+    assert.match(html, /id="analyzeReviewBtn"[^>]*class="caissa-analyze-v2__action--available"[^>]*aria-pressed="false"/);
+    assert.doesNotMatch(html, /id="analyzeReviewBtn"[^>]*disabled/);
+    assert.match(analyze, /reviewAnalysis.*getElementById\('analyzeReviewBtn'\)/);
+    assert.match(analyze, /reviewAnalysis\?\.addEventListener\('click', \(\) => this\.startReview\(\)\)/);
+    assert.match(analyze, /async startReview\(\)[\s\S]*?await this\.startAnalysis\(\)/);
+    assert.match(analyze, /getReviewMoveSymbol\(result\)[\s\S]*?presentationSymbol\?\.\('Book'\)[\s\S]*?presentationSymbol\?\.\('Precise'\)/);
+    assert.doesNotMatch(analyze, /getReviewMoveSymbol\(result\)[\s\S]{0,900}(?:evalBefore|evalAfter|formatEvaluation)/);
+    assert.match(css, /#analyzeSection \.caissa-analyze-v2__notation \.analyze-move-annotation/);
 });
 
 test('A1 preserves every existing AnalyzeSection DOM contract exactly once', () => {

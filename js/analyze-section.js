@@ -158,6 +158,7 @@ const AnalyzeSection = {
             navLast: document.getElementById('analyzeNavLast'),
             newAnalysis: document.getElementById('analyzeNewBtn'),
             saveAnalysis: document.getElementById('analyzeSaveBtn'),
+            reviewAnalysis: document.getElementById('analyzeReviewBtn'),
             engineToggle: document.getElementById('analyzeEngineToggle'),
             undoMove: document.getElementById('analyzeUndoMove'),
             resetBoard: document.getElementById('analyzeResetBoard'),
@@ -253,6 +254,7 @@ const AnalyzeSection = {
         });
         this.elements.newAnalysis?.addEventListener('click', () => this.openNewAnalysis());
         this.elements.saveAnalysis?.addEventListener('click', () => this.saveAnalysisPgn());
+        this.elements.reviewAnalysis?.addEventListener('click', () => this.startReview());
         this.elements.engineToggle?.addEventListener('click', () => this.toggleLiveEngine());
         this.elements.undoMove?.addEventListener('click', () => this.undoStudyMove());
         this.elements.resetBoard?.addEventListener('click', () => this.resetStudyBoard({ explicit: true }));
@@ -1609,6 +1611,7 @@ const AnalyzeSection = {
      * Update move list display
      */
     updateMoveList() {
+        this.syncReviewAction();
         if (!this.elements.moveList || !this.loadedGame) return;
 
         const moves = this.getLoadedMoves();
@@ -1627,16 +1630,16 @@ const AnalyzeSection = {
             const moveNum = Math.floor(i / 2) + 1;
             const whiteMove = moves[i] || '';
             const blackMove = moves[i + 1] || '';
-            const whiteAnnotation = this.analysisPhase === 'complete' ? this.analysisResults[i]?.annotation || '' : '';
-            const blackAnnotation = this.analysisPhase === 'complete' ? this.analysisResults[i + 1]?.annotation || '' : '';
+            const whiteAnnotation = this.getReviewMoveSymbol(this.analysisResults[i]);
+            const blackAnnotation = this.getReviewMoveSymbol(this.analysisResults[i + 1]);
             const whiteAnnotationClass = this.getAnnotationClass(whiteAnnotation);
             const blackAnnotationClass = this.getAnnotationClass(blackAnnotation);
 
             html += `
                 <div class="move-row">
                     <span class="move-num">${moveNum}.</span>
-                    <button type="button" class="move-white${i === this.currentMoveIndex ? ' active' : ''}" data-index="${i}" aria-label="${this.escapeHtml(this.getMoveAccessibleLabel(i, whiteMove))}">${whiteMove}${whiteAnnotation ? `<strong aria-hidden="true" class="analyze-move-annotation ${whiteAnnotationClass}">${whiteAnnotation}</strong>` : ''}</button>
-                    <button type="button" class="move-black${i + 1 === this.currentMoveIndex ? ' active' : ''}" data-index="${i + 1}" aria-label="${this.escapeHtml(this.getMoveAccessibleLabel(i + 1, blackMove))}">${blackMove}${blackAnnotation ? `<strong aria-hidden="true" class="analyze-move-annotation ${blackAnnotationClass}">${blackAnnotation}</strong>` : ''}</button>
+                    <button type="button" class="move-white${i === this.currentMoveIndex ? ' active' : ''}" data-index="${i}" aria-label="${this.escapeHtml(this.getMoveAccessibleLabel(i, whiteMove))}">${whiteMove}${whiteAnnotation ? `<strong aria-hidden="true" class="analyze-move-annotation ${whiteAnnotationClass}">${this.escapeHtml(whiteAnnotation)}</strong>` : ''}</button>
+                    <button type="button" class="move-black${i + 1 === this.currentMoveIndex ? ' active' : ''}" data-index="${i + 1}" aria-label="${this.escapeHtml(this.getMoveAccessibleLabel(i + 1, blackMove))}">${blackMove}${blackAnnotation ? `<strong aria-hidden="true" class="analyze-move-annotation ${blackAnnotationClass}">${this.escapeHtml(blackAnnotation)}</strong>` : ''}</button>
                 </div>
             `;
         }
@@ -1742,6 +1745,29 @@ const AnalyzeSection = {
         const result = this.analysisPhase === 'complete' ? this.analysisResults[index] : null;
         const quality = result?.quality || (result?.unavailable ? 'Analysis unavailable' : 'Not analyzed');
         return `${san || 'Empty move'}, ${quality}`;
+    },
+
+    getReviewMoveSymbol(result) {
+        if (this.analysisPhase !== 'complete' || !result || result.unavailable) return '';
+        const annotation = String(result.annotation || '');
+        if (['!!', '!', '!?', '?!', '?', '??'].includes(annotation)) return annotation;
+        const presentationSymbol = window.CaissaAnalyzeReviewPolicy?.presentationSymbol;
+        if (result.quality === 'Book') return presentationSymbol?.('Book') || '📖';
+        if (result.isBestMove === true) return presentationSymbol?.('Precise') || '!';
+        return '';
+    },
+
+    syncReviewAction() {
+        const button = this.elements.reviewAnalysis;
+        if (!button) return;
+        const moves = this.getLoadedMoves();
+        const complete = this.analysisPhase === 'complete'
+            && moves.length > 0
+            && this.analysisResults.length === moves.length
+            && this.analysisResults.every(Boolean);
+        button.classList.toggle('is-active', complete);
+        button.setAttribute('aria-pressed', complete ? 'true' : 'false');
+        button.title = complete ? 'Review complete' : 'Review the current game';
     },
 
     updateBoardAndUI() {
@@ -2253,6 +2279,18 @@ const AnalyzeSection = {
     /**
      * Start Stockfish analysis
      */
+    async startReview() {
+        if (this.isAnalyzing || ['preparing', 'analyzing'].includes(this.analysisPhase)) return false;
+        window.CaissaUI?.setButtonLoading(this.elements.reviewAnalysis, true, { label: 'Reviewing…' });
+        try {
+            await this.startAnalysis();
+            return this.analysisPhase === 'complete';
+        } finally {
+            window.CaissaUI?.setButtonLoading(this.elements.reviewAnalysis, false);
+            this.syncReviewAction();
+        }
+    },
+
     async startAnalysis() {
         if (this.isAnalyzing || ['preparing', 'analyzing'].includes(this.analysisPhase)) return;
         if (!this.loadedGame) {
@@ -2510,6 +2548,7 @@ const AnalyzeSection = {
             '?!': 'annotation-dubious',
             '?': 'annotation-mistake',
             '??': 'annotation-blunder',
+            '📖': 'annotation-book',
             '-': 'annotation-unavailable'
         };
         return classes[annotation] || '';

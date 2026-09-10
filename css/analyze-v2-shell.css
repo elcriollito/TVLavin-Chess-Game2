@@ -497,6 +497,17 @@
     color: var(--analyze-v2-accent);
 }
 
+#analyzeSection .caissa-analyze-v2__notation .analyze-move-annotation {
+    margin-left: 6px;
+    font-size: 0.95em;
+    line-height: 1;
+}
+
+#analyzeSection .caissa-analyze-v2__notation .annotation-book {
+    color: #e7bf72;
+    font-size: 0.88em;
+}
+
 #analyzeSection .caissa-analyze-v2__preserved-controls[hidden] {
     display: none !important;
 }
@@ -1371,6 +1382,12 @@ body.caissa-analyze-board-dragging > .piece-417db {
     border-color: rgba(240, 165, 72, 0.42);
     background: var(--analyze-v2-accent-soft);
     color: #fff;
+}
+
+#analyzeSection .caissa-analyze-v2__actions #analyzeReviewBtn.is-active {
+    border-color: rgba(240, 165, 72, 0.48);
+    background: var(--analyze-v2-accent-soft);
+    color: var(--analyze-v2-accent);
 }
 
 #analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] .caissa-analyze-v2__actions .caissa-analyze-v2__action--available {

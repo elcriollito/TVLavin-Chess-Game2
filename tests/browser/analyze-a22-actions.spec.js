@@ -294,7 +294,7 @@ for (const viewport of [
         await openAnalyze(page);
         await expect(page.locator('#analyzeNewBtn')).toBeEnabled();
         await expect(page.locator('#analyzeSaveBtn')).toBeEnabled();
-        await expect(page.getByRole('button', { name: 'Review' })).toBeDisabled();
+        await expect(page.locator('#analyzeReviewBtn')).toBeEnabled();
         const geometry = await page.evaluate(() => ({
             documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
             shellOverflow: document.querySelector('.caissa-analyze-v2').scrollWidth
@@ -304,3 +304,92 @@ for (const viewport of [
         expect(geometry.shellOverflow).toBeLessThanOrEqual(1);
     });
 }
+
+test('V2.0.1 Review completes through the existing Stockfish analysis owner', async ({ page }) => {
+    const runtime = monitorRuntime(page);
+    await openAnalyze(page);
+    const before = await page.evaluate(() => {
+        AnalyzeSection.loadGameFromPgn(
+            '[Event "Review pipeline"]\n[White "Alexander"]\n[Black "CAISSA"]\n[Result "*"]\n\n1. e4 e5 *',
+            'Review pipeline fixture'
+        );
+        return window.__caissaPlayHarness.snapshot();
+    });
+
+    await page.locator('#analyzeReviewBtn').click();
+    await expect.poll(() => page.evaluate(() => AnalyzeSection.analysisPhase), { timeout: 10_000 }).toBe('complete');
+    const after = await page.evaluate(() => ({
+        harness: window.__caissaPlayHarness.snapshot(),
+        results: AnalyzeSection.analysisResults.length,
+        engine: AnalyzeSection.analysisEngine,
+        owner: AnalyzeSection.liveEngineOwner,
+        moves: AnalyzeSection.loadedGame.game.history()
+    }));
+    expect(after.results).toBe(2);
+    expect(after.moves).toEqual(['e4', 'e5']);
+    expect(after.harness.workersCreated - before.workersCreated).toBe(1);
+    expect(after.harness.workersTerminated - before.workersTerminated).toBe(1);
+    expect(after.engine).toBeNull();
+    expect(after.owner).toBeNull();
+    await expect(page.locator('#analyzeReviewBtn')).toHaveAttribute('aria-pressed', 'true');
+    runtime.assertClean();
+});
+
+test('V2.0.1 Review action stays on the existing pipeline and notation shows symbols only', async ({ page, browserName }) => {
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    await openAnalyze(page);
+    await page.evaluate(() => {
+        AnalyzeSection.loadGameFromPgn(
+            '[Event "Review symbols"]\n[White "Alexander"]\n[Black "CAISSA"]\n[Result "*"]\n\n'
+                + '1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 *',
+            'Review symbols fixture'
+        );
+        window.__reviewOwners = {
+            game: AnalyzeSection.loadedGame.game,
+            board: AnalyzeSection.board,
+            engine: AnalyzeSection.analysisEngine
+        };
+        window.__reviewStartCalls = 0;
+        window.__reviewOriginalStart = AnalyzeSection.startAnalysis;
+        AnalyzeSection.startAnalysis = async () => { window.__reviewStartCalls += 1; };
+    });
+
+    await page.locator('#analyzeReviewBtn').click();
+    await expect.poll(() => page.evaluate(() => window.__reviewStartCalls)).toBe(1);
+    await page.evaluate(() => {
+        AnalyzeSection.startAnalysis = window.__reviewOriginalStart;
+        AnalyzeSection.analysisPhase = 'complete';
+        AnalyzeSection.analysisResults = [
+            { quality: 'Book', annotation: '', isBestMove: false, evalAfter: 0.11 },
+            { quality: 'Acceptable', annotation: '', isBestMove: true, evalAfter: 0.22 },
+            { quality: 'Acceptable', annotation: '!!', isBestMove: false, evalAfter: 0.33 },
+            { quality: 'Acceptable', annotation: '!?', isBestMove: false, evalAfter: 0.44 },
+            { quality: 'Inaccuracy', annotation: '?!', isBestMove: false, evalAfter: 0.55 },
+            { quality: 'Mistake', annotation: '?', isBestMove: false, evalAfter: 0.66 },
+            { quality: 'Blunder', annotation: '??', isBestMove: false, evalAfter: 0.77 },
+            { quality: 'Acceptable', annotation: '', isBestMove: false, evalAfter: 0.88 }
+        ];
+        AnalyzeSection.updateMoveList();
+    });
+
+    await expect(page.locator('.caissa-analyze-v2__notation .analyze-move-annotation')).toHaveText([
+        '📖', '!', '!!', '!?', '?!', '?', '??'
+    ]);
+    await expect(page.locator('#analyzeReviewBtn')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#analyzeReviewBtn')).toHaveClass(/is-active/);
+    await expect(page.locator('#analyzeReviewSummary')).toBeHidden();
+    await expect(page.locator('#analyzeCriticalMoments')).toBeHidden();
+    await expect(page.locator('.caissa-analyze-v2__notation')).not.toContainText('+0.');
+    if (browserName === 'chromium') {
+        mkdirSync(ARTIFACTS, { recursive: true });
+        await page.screenshot({ path: `${ARTIFACTS}/analyze-v2-review-symbols-1600x1000.png` });
+    }
+
+    await page.locator('.move-white[data-index="4"]').click();
+    expect(await page.evaluate(() => ({
+        cursor: AnalyzeSection.currentMoveIndex,
+        sameGame: AnalyzeSection.loadedGame.game === window.__reviewOwners.game,
+        sameBoard: AnalyzeSection.board === window.__reviewOwners.board,
+        sameEngine: AnalyzeSection.analysisEngine === window.__reviewOwners.engine
+    }))).toEqual({ cursor: 4, sameGame: true, sameBoard: true, sameEngine: true });
+});
