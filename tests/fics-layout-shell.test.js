@@ -38,7 +38,7 @@ test('HEAD contains exactly the approved Tables Players Seek tab model', () => {
 test('the existing board and functional nodes are reparented without cloning or recreation', () => {
     assert.match(shell, /document\.getElementById\('ficsBoardContainer'\)/);
     assert.match(shell, /boardRegion\.append\(boardSection\)/);
-    assert.match(shell, /compatibility\.append\(roomPanel, sidePanel\)/);
+    assert.doesNotMatch(shell, /body\.append\([^\n]*(?:roomPanel|sidePanel|compatibility)/);
     assert.match(shell, /foot\.append\(connection, consoleSection\)/);
     assert.doesNotMatch(shell, /cloneNode|innerHTML|new\s+Chess|Chessboard\s*\(/);
 });
@@ -51,7 +51,7 @@ test('tab state is presentation-only and derives semantics through CaissaFICSPre
 });
 
 test('Players remains truthful and primary Game Mode renders from the projection', () => {
-    assert.match(shell, /A complete FICS player directory is not available yet\. No player list is shown\./);
+    assert.match(shell, /Player directory unavailable\./);
     assert.match(shell, /if \(baseView\.gameModeAvailable && !lastGameModeAvailable\) selectedLobbyView = null/);
     assert.match(shell, /mounted\.returnToGame\.hidden = !view\.returnToGameAvailable/);
     assert.match(shell, /if \(view\.primaryGameMode\) dynamic\.append\(renderGame\(snapshot\)\)/);
@@ -105,7 +105,7 @@ test('dynamic bodies retain truthful pending delivery and unsupported Players la
     assert.match(shell, /server acknowledgement is not available/);
     assert.match(shell, /Cancel requested/);
     assert.match(shell, /The last seek action was not delivered/);
-    assert.match(shell, /A complete FICS player directory is not available yet\. No player list is shown\./);
+    assert.match(shell, /Player directory unavailable\./);
     assert.doesNotMatch(shell, /specific-player|match command|Menu/);
 });
 

@@ -58,7 +58,7 @@ test('tabs are keyboard operable, mutate no canonical state, and Players is trut
     await page.keyboard.press('ArrowRight');
     await expect(players).toBeFocused();
     await expect(players).toHaveAttribute('aria-selected', 'true');
-    await expect(page.locator('.fics-rd2-placeholder-message')).toContainText('No player list is shown');
+    await expect(page.locator('[data-fics-body-view="players"]')).toHaveText('Player directory unavailable.');
     await page.keyboard.press('End');
     await expect(seek).toBeFocused();
     await expect(seek).toHaveAttribute('aria-selected', 'true');

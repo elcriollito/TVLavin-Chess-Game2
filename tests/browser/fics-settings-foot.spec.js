@@ -77,16 +77,16 @@ test('reparented Test Gateway and Sounds retain their existing handlers', async 
     await expect(sound).toHaveAttribute('aria-pressed', before === 'true' ? 'false' : 'true');
 });
 
-test('login Connect and concise reconnect/error status remain outside Settings', async ({ page }) => {
+test('login Connect and one compact reconnect/error status remain outside Settings', async ({ page }) => {
     await openFics(page);
     await expect(page.locator('.fics-rd2-workspace-foot #ficsConnectBtn')).toBeVisible();
     await expect(page.locator('.fics-rd2-workspace-foot input[value="guest"]')).toBeVisible();
     await expect(page.locator('.fics-rd2-workspace-foot input[value="account"]')).toBeVisible();
     expect(await page.locator('#ficsRd5SettingsPanel #ficsConnectBtn').count()).toBe(0);
     await page.evaluate(() => window.CaissaFICSClient.setConnectionState('reconnecting', 'Connection lost. Reconnecting…'));
-    await expect(page.locator('.fics-rd2-workspace-foot #ficsConnectionStatus')).toContainText('Connection lost');
+    await expect(page.locator('.fics-rd2-workspace-foot #ficsConnectionStatus')).toHaveText('Reconnecting');
     await page.evaluate(() => window.CaissaFICSClient.setConnectionState('error', 'Unable to connect'));
-    await expect(page.locator('.fics-rd2-workspace-foot #ficsConnectionStatus')).toContainText('Unable to connect');
+    await expect(page.locator('.fics-rd2-workspace-foot #ficsConnectionStatus')).toHaveText('Error');
 });
 
 test('Console collapses and expands without replacing history or command input', async ({ page }) => {
@@ -205,7 +205,7 @@ test('disconnected BODY defaults to Tables instead of a connection explanation',
     await openFics(page);
     await expect(page.getByRole('tab', { name: 'Tables' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('[data-fics-body-view="tables"]')).toBeVisible();
-    await expect(page.locator('[data-fics-body-view="tables"]')).toContainText('Connect to FICS to load recently reported games');
+    await expect(page.locator('[data-fics-body-view="tables"]')).toContainText('No tables loaded.');
     await expect(page.locator('#ficsRd2Body')).not.toContainText('Review the existing FICS connection controls');
 });
 
@@ -260,32 +260,29 @@ test('hybrid Console preserves raw FICS and command lines in one stream', async 
     expect(result.text).toContain('[FICS] fics% help');
 });
 
-test('connected summary shows latency only after a real measured value exists', async ({ page }) => {
+test('compact FOOT state omits latency and Console retains the measured connection event', async ({ page }) => {
     await openFics(page);
     await page.evaluate(() => {
         const client = window.CaissaFICSClient;
         Object.assign(client, { connected: true, authenticated: true, connectionState: 'connected', latencyMs: null });
         window.CaissaFICSShell.refresh();
     });
-    await expect(page.locator('#ficsRd5ConsoleSummary')).toHaveText('Connected');
+    await expect(page.locator('#ficsConnectionStatus')).toHaveText('Connected');
     await page.evaluate(() => {
         window.CaissaFICSClient.latencyMs = 84;
         window.CaissaFICSShell.refresh();
     });
-    await expect(page.locator('#ficsRd5ConsoleSummary')).toHaveText('Connected · 84 ms');
+    await expect(page.locator('#ficsConnectionStatus')).toHaveText('Connected');
+    await expect(page.locator('#ficsRd5ConsoleSummary')).toHaveCount(0);
 });
 
-test('collapsed Console summary follows canonical state and is hidden while expanded', async ({ page }) => {
+test('collapsed Console is a launcher and expanded Console exposes connection messages', async ({ page }) => {
     await openFics(page);
-    const summary = page.locator('#ficsRd5ConsoleSummary');
-    await expect(summary).toHaveText('Disconnected');
-    await expect(summary).toBeVisible();
     await page.evaluate(() => window.CaissaFICSClient.setConnectionState('reconnecting'));
-    await expect(summary).toHaveText('Reconnecting...');
     await page.locator('#ficsConsoleToggle').click();
-    await expect(summary).toBeHidden();
+    await expect(page.locator('#ficsConsole')).toContainText('[CAISSA] Reconnecting to FICS...');
     await page.locator('#ficsConsoleToggle').click();
-    await expect(summary).toBeVisible();
+    await expect(page.locator('#ficsConsoleToggle')).toHaveAttribute('aria-expanded', 'false');
 });
 
 test('Settings drawer has no serious or critical automated accessibility violations', async ({ page }) => {

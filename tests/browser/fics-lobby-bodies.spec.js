@@ -55,7 +55,7 @@ test('Tables renders canonical capped data and leaves missing metadata visibly u
 test('Tables empty state does not imply completeness or fabricate games', async ({ page }) => {
     await openFics(page);
     await installConnectedFixture(page, { activeTables: [] });
-    await expect(page.getByText('No recently reported games are available. Refresh to ask FICS again.')).toBeVisible();
+    await expect(page.getByText('No tables loaded.')).toBeVisible();
     await expect(page.locator('.fics-rd3-table-card')).toHaveCount(0);
     await expect(page.getByText('this is not a complete server directory')).toBeVisible();
 });
@@ -146,7 +146,7 @@ test('pending seek cancellation and Players unsupported state retain canonical o
     expect(await page.evaluate(() => window.CaissaFICSClient.pendingSeek.status)).toBe('cancel_requested');
 
     await page.getByRole('tab', { name: 'Players' }).click();
-    await expect(page.locator('.fics-rd2-placeholder-message')).toHaveText('A complete FICS player directory is not available yet. No player list is shown.');
+    await expect(page.locator('[data-fics-body-view="players"]')).toHaveText('Player directory unavailable.');
     expect(await page.evaluate(() => window.__ficsWire)).toEqual(['unseek']);
 });
 

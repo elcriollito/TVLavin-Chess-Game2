@@ -92,7 +92,7 @@ test('feature-flag rollback restores moved diagnostics and the prior Console pre
 test('one client socket board connection sound and console owner remain and Players stays unsupported', () => {
     assert.equal((client.match(/window\.CaissaFICSClient\s*=\s*CaissaFICSClient/g) || []).length, 1);
     assert.doesNotMatch(shell, /new\s+WebSocket|Chessboard\s*\(|new\s+Chess/);
-    assert.match(shell, /A complete FICS player directory is not available yet\. No player list is shown\./);
+    assert.match(shell, /Player directory unavailable\./);
     assert.doesNotMatch(shell, /\bwho\b|challenge player|player profile/i);
     for (const html of pages) {
         for (const id of ['ficsBoardContainer', 'ficsConnectBtn', 'ficsSoundToggle', 'ficsConsole']) {
@@ -105,7 +105,8 @@ test('disconnected and error states keep primary Tables or Seek content in BODY'
     assert.match(shell, /view\.primaryGameMode \? null : \(view\.activeTab \|\| selectedLobbyView \|\| 'tables'\)/);
     assert.match(shell, /if \(!view\.primaryGameMode\) view\.bodyMode = 'LOBBY'/);
     assert.doesNotMatch(shell, /title: 'Connection unavailable'|Review the existing FICS connection controls below/);
-    assert.match(shell, /Connect to FICS to load recently reported games/);
+    assert.match(shell, /No tables loaded\./);
+    assert.doesNotMatch(shell, /Connect to FICS to (?:load recently reported games|create a table)/);
     assert.match(shell, /submit\.disabled = !snapshot\.capabilities\.createSeek/);
 });
 
@@ -127,11 +128,11 @@ test('connection messages are emitted only from canonical connection transitions
     assert.doesNotMatch(shell, /connectionEvent(?:s|Store)|messageBuffer\s*=/);
 });
 
-test('latency messaging and collapsed summary are conditional on a measured canonical value', () => {
+test('latency messaging remains canonical while FOOT renders one compact state label', () => {
     assert.match(client, /Number\.isFinite\(this\.latencyMs\) \? ` .*Latency: \$\{this\.latencyMs\} ms` : ''/);
-    assert.match(shell, /Number\.isFinite\(connection\.latencyMs\) \? ` .*\$\{connection\.latencyMs\} ms` : ''/);
-    assert.match(shell, /mounted\.consoleSummary\.textContent = consoleSummaryText\(snapshot\)/);
-    assert.match(styles, /data-console-expanded="true"[^}]*\.fics-rd5-console-summary\s*\{[^}]*display:\s*none/s);
+    assert.match(shell, /compactConnectionLabels/);
+    assert.match(shell, /mounted\.connectionStatus\.textContent = compactConnectionLabels\[snapshot\.connection\.state\]/);
+    assert.doesNotMatch(shell, /consoleSummaryText|ficsRd5ConsoleSummary/);
 });
 
 test('hybrid messages report delivery honestly and retain raw FICS access', () => {

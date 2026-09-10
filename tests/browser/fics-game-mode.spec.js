@@ -177,7 +177,7 @@ test('temporary Tables and Players browsing preserves canonical game data and Ga
     }));
 
     await page.getByRole('tab', { name: 'Players' }).click();
-    await expect(page.getByText('No player list is shown')).toBeVisible();
+    await expect(page.getByText('Player directory unavailable.')).toBeVisible();
     await page.getByRole('tab', { name: 'Tables' }).click();
     await expect(page.getByRole('button', { name: 'Return to active FICS game' })).toBeVisible();
     await page.getByRole('button', { name: 'Return to active FICS game' }).click();

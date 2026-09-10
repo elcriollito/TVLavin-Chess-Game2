@@ -2306,7 +2306,7 @@ const CaissaFICSClient = {
 
     requestSeek(options = {}) {
         if (!this.authenticated) {
-            this.logToConsole('Not connected to FICS.', 'ERROR');
+            this.logToConsole('Connect to FICS before creating a table.');
             return Object.freeze({ ok: false, code: 'NOT_CONNECTED', state: 'error' });
         }
         if (this.gameActive || this.liveGame?.status === 'playing' || this.liveGame?.status === 'observing') {
@@ -2517,6 +2517,22 @@ const CaissaFICSClient = {
             connected: this.connected,
             message: message || labels[state] || state
         });
+    },
+
+    announceWorkspaceAvailability(view) {
+        if (view === 'players') {
+            this.logToConsole('Player directory is not available yet.');
+            return Object.freeze({ announced: true, view, reason: 'UNSUPPORTED' });
+        }
+        if (view === 'tables' && !this.authenticated) {
+            this.logToConsole('Connect to FICS to load tables.');
+            return Object.freeze({ announced: true, view, reason: 'NOT_AUTHENTICATED' });
+        }
+        if (view === 'seek' && !this.authenticated) {
+            this.logToConsole('Connect to FICS before creating a table.');
+            return Object.freeze({ announced: true, view, reason: 'NOT_AUTHENTICATED' });
+        }
+        return Object.freeze({ announced: false, view, reason: null });
     },
 
     updateLatency() {
