@@ -112,7 +112,7 @@ test('Resign is guarded and played-game delivery suppresses duplicate commands w
 test('OBSERVING discloses partial history, omits player actions, and exits through the canonical boundary', async ({ page }) => {
     await openFics(page);
     await installGame(page, 'observing', { moves: moves(4, 20) });
-    await expect(page.getByText('Observation history is locally captured')).toBeVisible();
+    await expect(page.getByText('History may omit moves played before observation began.')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Download partial PGN' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Resign' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Offer Draw' })).toHaveCount(0);
@@ -138,6 +138,9 @@ test('GAME_OVER uses normalized result, retains final moves, downloads PGN, and 
     await expect(page.getByText('Black wins', { exact: true })).toBeVisible();
     await expect(page.getByText('BlackPlayer won by checkmate.')).toBeVisible();
     await expect(page.locator('.fics-rd4-move-row:not(.is-header)')).toHaveCount(6);
+    const hierarchy = await page.locator('[data-fics-body-view="game"]').evaluate((game) =>
+        [...game.children].map((child) => child.className));
+    expect(hierarchy.slice(0, 3)).toEqual(['fics-rd4-moves', 'fics-rd4-game-header', 'fics-rd4-actions']);
     await expect(page.getByRole('button', { name: 'Resign' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Offer Draw' })).toHaveCount(0);
 

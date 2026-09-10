@@ -78,7 +78,7 @@ test('Game notation stretches into recovered BODY space while Tables and Seek re
 
 test('mobile Settings is a fixed overlay and cannot consume workspace width', () => {
     assert.match(styles, /\.fics-rd5-settings-layer\s*\{[^}]*position:\s*fixed/s);
-    assert.match(styles, /\.fics-rd5-settings-panel\s*\{[^}]*width:\s*min\(420px, 100%\)/s);
+    assert.match(styles, /\.fics-rd5-settings-panel\s*\{[^}]*width:\s*min\(390px, 100%\)/s);
     assert.match(styles, /@media \(max-width: 768px\)[\s\S]*?width:\s*min\(92vw, 390px\)/);
     assert.doesNotMatch(styles, /\.fics-rd2-shell[^}]*padding-right[^}]*settings/s);
 });
@@ -132,11 +132,18 @@ test('connection messages are emitted only from canonical connection transitions
     assert.doesNotMatch(shell, /connectionEvent(?:s|Store)|messageBuffer\s*=/);
 });
 
-test('latency messaging remains canonical while FOOT renders one compact state label', () => {
+test('latency messaging remains canonical while top session chrome solely owns permanent state', () => {
     assert.match(client, /Number\.isFinite\(this\.latencyMs\) \? ` .*Latency: \$\{this\.latencyMs\} ms` : ''/);
     assert.match(shell, /compactConnectionLabels/);
     assert.match(shell, /mounted\.connectionStatus\.textContent = compactConnectionLabels\[snapshot\.connection\.state\]/);
-    assert.doesNotMatch(shell, /consoleSummaryText|ficsRd5ConsoleSummary/);
+    assert.doesNotMatch(shell, /consoleSessionStatus|fics-rd7-console-status|ficsRd5ConsoleSummary/);
+});
+
+test('navigation advisories deduplicate without suppressing raw FICS traffic', () => {
+    assert.match(client, /FICS_CONSOLE_REPEAT_ADVISORIES/);
+    assert.match(client, /this\.messageBuffer\.slice\(-6\)\.includes\(entry\)/);
+    assert.match(client, /safeOrigin === 'CAISSA'/);
+    assert.doesNotMatch(client, /safeOrigin === 'FICS'[^\n]*return false/);
 });
 
 test('hybrid messages report delivery honestly and retain raw FICS access', () => {

@@ -9,6 +9,11 @@ console.log('[FICS Client] Module loaded');
 
 const FICS_STANDARD_START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const FICS_PLAYED_GAME_COMMANDS = Object.freeze({ resign: 'resign', draw: 'draw' });
+const FICS_CONSOLE_REPEAT_ADVISORIES = Object.freeze([
+    'Connect to FICS to load tables.',
+    'Connect to FICS to load players.',
+    'Connect to FICS before creating a table.'
+]);
 
 const CaissaFICSClient = {
     // WebSocket connection
@@ -2790,6 +2795,8 @@ const CaissaFICSClient = {
             ? origin
             : inferredOrigin;
         const entry = rawMessage.split('\n').map((line) => `[${safeOrigin}] ${line}`).join('\n');
+        if (safeOrigin === 'CAISSA' && FICS_CONSOLE_REPEAT_ADVISORIES.includes(rawMessage)
+            && this.messageBuffer.slice(-6).includes(entry)) return false;
         this.messageBuffer.push(entry);
 
         // Trim buffer if too large
@@ -2802,6 +2809,7 @@ const CaissaFICSClient = {
             this.elements.console.textContent = this.messageBuffer.join('\n');
             this.elements.console.scrollTop = this.elements.console.scrollHeight;
         }
+        return true;
     },
 
     setConsoleExpanded(expanded) {

@@ -73,6 +73,8 @@ test('ten-player directory is compact, searchable, sortable, and sends no comman
     });
     await installDirectory(page, entries);
     await expect(page.locator('.fics-rd10-table tbody tr')).toHaveCount(10);
+    const firstRowHeight = await page.locator('.fics-rd10-table tbody tr').first().evaluate(node => node.getBoundingClientRect().height);
+    expect(firstRowHeight).toBeLessThanOrEqual(35);
     await expect(page.getByRole('columnheader', { name: 'Blitz' })).toBeVisible();
     await expect(page.getByText('Playing #44')).toBeVisible();
     await expect(page.getByText('Observing', { exact: true })).toBeVisible();

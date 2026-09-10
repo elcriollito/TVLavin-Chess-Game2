@@ -104,7 +104,8 @@ test('Game Over Analyze uses the approved handoff boundary without embedding an 
 
 test('Tables body renders only the read-only presentation snapshot and uses the canonical observe method', () => {
     assert.match(shell, /snapshot\.lobby\.activeTables/);
-    assert.match(shell, /Recently reported games from a capped FICS feed; this is not a complete server directory\./);
+    assert.match(shell, /Shows recently reported FICS games; some active games may not appear\./);
+    assert.doesNotMatch(shell, /capped FICS feed|complete server directory/);
     assert.match(shell, /CaissaFICSClient\?\.switchObservedGame\?\.\(number\)/);
     assert.match(shell, /Observe table/);
     assert.doesNotMatch(shell, /CaissaFICSClient\?\.(?:activeTables|liveGame|gameActive|pendingObservation)\s*=/);
@@ -124,6 +125,7 @@ test('Seek body exposes the approved labeled fields and requests the canonical s
     assert.match(client, /seekBlitz1\?\.addEventListener\('click', \(\) => this\.seek\(1, 0\)\)/);
     assert.match(client, /createOpenTableSeek\(tableNumber\)[\s\S]*?return this\.requestSeek\(/);
     assert.match(client, /seek\(time, inc\)[\s\S]*?return this\.requestSeek\(/);
+    assert.doesNotMatch(shell, /Choose a time control and how you would like to play\./);
 });
 
 test('dynamic bodies retain truthful pending delivery and directory-only Players language', () => {

@@ -18,7 +18,10 @@ function gameLine(sans, initialFen = START_FEN) {
 
 async function openFics(page, viewport = { width: 1600, height: 1000 }) {
     await page.setViewportSize(viewport);
-    await page.addInitScript(() => { window.CAISSA_FICS_AUTO_GUEST_ENABLED = false; });
+    await page.addInitScript(() => {
+        localStorage.setItem('caissa_onboarding_completed', 'true');
+        window.CAISSA_FICS_AUTO_GUEST_ENABLED = false;
+    });
     await page.goto('/fics');
     await page.waitForFunction(() => window.CaissaFICSShell?.getSnapshot().mounted === true);
 }

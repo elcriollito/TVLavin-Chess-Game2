@@ -310,8 +310,14 @@
         const wrapper = createElement('div', 'fics-rd3-tables', { 'data-fics-body-view': 'tables' });
         const heading = createElement('div', 'fics-rd3-body-heading');
         const headingCopy = createElement('div');
-        appendText(headingCopy, 'h3', 'fics-rd3-title', 'Active Tables');
-        appendText(headingCopy, 'p', 'fics-rd3-subtitle', 'Recently reported games from a capped FICS feed; this is not a complete server directory.');
+        const titleRow = createElement('div', 'fics-rd11-title-row');
+        appendText(titleRow, 'h3', 'fics-rd3-title', 'Active Tables');
+        appendText(titleRow, 'span', 'fics-rd11-info', 'i', {
+            role: 'note', tabindex: '0',
+            title: 'Shows recently reported FICS games; some active games may not appear.',
+            'aria-label': 'Shows recently reported FICS games; some active games may not appear.'
+        });
+        headingCopy.append(titleRow);
         const refresh = appendText(heading, 'button', 'fics-rd3-secondary-action', 'Refresh', {
             type: 'button', 'data-fics-focus-key': 'tables-refresh'
         });
@@ -427,7 +433,6 @@
     function renderSeek(snapshot) {
         const wrapper = createElement('div', 'fics-rd3-seek', { 'data-fics-body-view': 'seek' });
         appendText(wrapper, 'h3', 'fics-rd3-title', 'Create Table');
-        appendText(wrapper, 'p', 'fics-rd3-subtitle', 'Choose a time control and how you would like to play.');
         const notice = noticeNode('seek');
         if (notice) wrapper.append(notice);
         const pending = snapshot.lobby.pendingSeek;
@@ -569,7 +574,7 @@
         appendText(headingCopy, 'h3', 'fics-rd3-title', 'Players');
         appendText(headingCopy, 'p', 'fics-rd3-subtitle', directory.refreshedAt
             ? `${directory.count} connected players · Blitz rating`
-            : 'Connected FICS users from the verified verbose directory.');
+            : 'Connected players appear here.');
         const refresh = appendText(heading, 'button', 'fics-rd3-secondary-action', directory.loading ? 'Loading…' : 'Refresh', {
             type: 'button', 'data-fics-focus-key': 'players-refresh'
         });
@@ -770,7 +775,20 @@
         return { view: 'game', type: 'error', message: `${failureLabel} (${code}).` };
     }
 
-    function renderGameMoves(snapshot) {
+    function renderRecordNote(snapshot) {
+        const note = createElement('p', 'fics-rd4-record-note');
+        if (snapshot.game.observed) {
+            note.textContent = 'History may omit moves played before observation began.';
+            return note;
+        }
+        if (snapshot.game.pgn?.mayBePartial) {
+            note.textContent = 'This record starts from a captured position and may be partial.';
+            return note;
+        }
+        return null;
+    }
+
+    function renderGameMoves(snapshot, { includeRecordNote = true } = {}) {
         const moves = Array.isArray(snapshot.game.moves) ? snapshot.game.moves : [];
         const replay = getReplaySnapshot();
         const region = createElement('section', 'fics-rd4-moves', { 'aria-labelledby': 'ficsRd4MovesTitle' });
@@ -833,13 +851,8 @@
         }
         region.append(scroller);
 
-        if (snapshot.game.observed) {
-            appendText(region, 'p', 'fics-rd4-record-note',
-                'Observation history is locally captured and may omit moves played before observation began.');
-        } else if (snapshot.game.pgn?.mayBePartial) {
-            appendText(region, 'p', 'fics-rd4-record-note',
-                'This record begins from a captured position and may be partial.');
-        }
+        const recordNote = includeRecordNote ? renderRecordNote(snapshot) : null;
+        if (recordNote) region.append(recordNote);
 
         const signature = `${gameKey(snapshot.game)}:${moves.length}:${moves.at(-1)?.moveNumber ?? ''}:${moves.at(-1)?.san ?? ''}`;
         const schedule = root.requestAnimationFrame || ((callback) => root.setTimeout(callback, 0));
@@ -856,7 +869,7 @@
     function renderPgnAction(snapshot, actions) {
         if (!snapshot.capabilities.downloadPGN) return;
         const partial = snapshot.game.pgn?.mayBePartial === true;
-        const button = appendText(actions, 'button', 'fics-rd4-action', partial ? 'Partial PGN' : 'Download PGN', {
+        const button = appendText(actions, 'button', 'fics-rd4-action', 'Download PGN', {
             type: 'button', 'data-fics-game-action': 'pgn', 'data-fics-focus-key': 'game-pgn',
             'aria-label': partial ? 'Download partial PGN' : 'Download PGN'
         });
@@ -994,24 +1007,28 @@
         const wrapper = createElement('div', 'fics-rd4-game', { 'data-fics-body-view': 'game' });
         const header = createElement('header', 'fics-rd4-game-header');
         const status = game.mode === 'playing' ? 'Live game' : game.mode === 'observing' ? 'Observing' : 'Game complete';
-        appendText(header, 'span', 'fics-rd4-mode', status);
         const white = game.identities?.white?.name || 'White';
         const black = game.identities?.black?.name || 'Black';
-        appendText(header, 'h3', 'fics-rd4-game-title', `${white} vs ${black}`);
-        const detail = [game.gameNumber === null ? null : `Game #${game.gameNumber}`,
-            game.sideToMove && game.mode !== 'ended' ? `${game.sideToMove === 'white' ? 'White' : 'Black'} to move` : null]
-            .filter(Boolean).join(' · ');
-        if (detail) appendText(header, 'p', 'fics-rd4-game-meta', detail);
+        appendText(header, 'span', 'fics-rd4-mode', status);
         if (game.mode === 'ended') {
             const result = createElement('div', 'fics-rd4-result', { role: 'status' });
             appendText(result, 'strong', 'fics-rd4-result-title', resultHeadline(game.result));
             if (game.result?.summary) appendText(result, 'span', 'fics-rd4-result-detail', game.result.summary);
             header.append(result);
         }
-        wrapper.append(header);
+        appendText(header, 'h3', 'fics-rd4-game-title', `${white} vs ${black}`);
+        const detail = [game.gameNumber === null ? null : `Game #${game.gameNumber}`,
+            game.sideToMove && game.mode !== 'ended' ? `${game.sideToMove === 'white' ? 'White' : 'Black'} to move` : null]
+            .filter(Boolean).join(' · ');
+        if (detail) appendText(header, 'p', 'fics-rd4-game-meta', detail);
+        if (game.mode === 'ended') wrapper.append(renderGameMoves(snapshot, { includeRecordNote: false }), header);
+        else wrapper.append(header);
         const notice = noticeNode('game');
         if (notice) wrapper.append(notice);
-        wrapper.append(renderGameMoves(snapshot), renderGameActions(snapshot));
+        if (game.mode !== 'ended') wrapper.append(renderGameMoves(snapshot));
+        const recordNote = game.mode === 'ended' ? renderRecordNote(snapshot) : null;
+        if (recordNote) wrapper.append(recordNote);
+        wrapper.append(renderGameActions(snapshot));
         return wrapper;
     }
 
@@ -1048,19 +1065,6 @@
         return 'Disconnected';
     }
 
-    function consoleSessionStatus(snapshot) {
-        const state = snapshot.connection?.state || 'disconnected';
-        if (state === 'connecting') return snapshot.session?.registered
-            ? 'Connecting as registered user…'
-            : 'Connecting as guest…';
-        if (state === 'reconnecting') return 'Reconnecting…';
-        if (state === 'error') return 'Connection error';
-        if (snapshot.connection?.authenticated && snapshot.session?.username) {
-            return `Connected as ${snapshot.session.username}`;
-        }
-        return 'Disconnected';
-    }
-
     function renderSessionChrome(snapshot) {
         const identity = sessionIdentity(snapshot);
         const authenticated = snapshot.connection?.authenticated === true;
@@ -1073,8 +1077,6 @@
         mounted.sessionGuest.hidden = authenticated || busy;
         mounted.sessionUser.hidden = registered || busy;
         mounted.sessionDisconnect.hidden = !(guest || registered || busy);
-        mounted.consoleStatus.textContent = consoleSessionStatus(snapshot);
-        mounted.consoleStatus.dataset.state = snapshot.connection?.state || 'disconnected';
     }
 
     function render() {
@@ -1345,9 +1347,6 @@
         userDialog.append(userDialogHeader, accountFields, userDialogNote, userDialogStatus, userDialogActions);
         userDialogLayer.append(userDialog);
 
-        const consoleStatus = appendText(consoleHeader, 'span', 'fics-rd7-console-status', 'Disconnected', {
-            'aria-live': 'polite'
-        });
         sessionChrome.append(sessionControl, settingsButton);
         workspace.append(head, body, foot);
         shell.append(boardRegion, workspace);
@@ -1368,7 +1367,7 @@
             settingsButton, settingsLayer, settingsPanel, settingsClose, settingsContent,
             backgroundInertRecords: [], sessionChrome, sessionControl, sessionButton,
             sessionIdentity: sessionIdentityNode, sessionMenu, sessionMenuIdentity, sessionGuest,
-            sessionUser, sessionDisconnect, consoleStatus, userDialogLayer, userDialog,
+            sessionUser, sessionDisconnect, userDialogLayer, userDialog,
             userDialogClose, userDialogCancel, userDialogConnect, userDialogStatus,
             accountFields, accountUsernameInput, accountPasswordInput, connectionHidden,
             userDialogBackgroundRecords: [] };
@@ -1449,7 +1448,6 @@
         }
         if (current.consoleState.sectionExpanded === null) current.consoleSection.removeAttribute('data-console-expanded');
         else current.consoleSection.setAttribute('data-console-expanded', current.consoleState.sectionExpanded);
-        current.consoleStatus.remove();
         current.settingsLayer.remove();
         current.userDialogLayer.remove();
         current.sessionChrome.remove();

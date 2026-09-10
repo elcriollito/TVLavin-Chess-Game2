@@ -62,11 +62,11 @@ test('first entry starts one guest attempt and route return preserves the same s
     expect(await page.evaluate(() => window.__SessionSocket.instances.length)).toBe(1);
 });
 
-test('canonical guest authentication drives identity menu FOOT and deduplicated welcome', async ({ page }) => {
+test('canonical guest authentication drives the single top identity and deduplicated welcome', async ({ page }) => {
     await openSession(page);
     await authenticateGuest(page, 'GuestABCD');
     await expect(page.locator('.fics-rd7-session-identity')).toHaveText('GuestABCD');
-    await expect(page.locator('.fics-rd7-console-status')).toHaveText('Connected as GuestABCD');
+    await expect(page.locator('.fics-rd7-console-status')).toHaveCount(0);
     await page.locator('.fics-rd7-session-button').click();
     await expect(page.getByRole('menuitem', { name: 'Connect as User' })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: 'Disconnect' })).toBeVisible();
@@ -104,7 +104,7 @@ test('Connect as User reuses registered login and never retains or logs the pass
     await page.locator('#ficsAccountPassword').fill('fixture-secret');
     await dialog.getByRole('button', { name: 'Connect', exact: true }).click();
     expect(await page.locator('#ficsAccountPassword').inputValue()).toBe('');
-    await expect(page.locator('.fics-rd7-console-status')).toHaveText('Connecting as registered user…');
+    await expect(page.locator('.fics-rd7-session-identity')).toHaveText('Connecting…');
     expect(await page.evaluate(() => ({
         sockets: window.__SessionSocket.instances.length,
         mode: window.CaissaFICSClient.loginMode,

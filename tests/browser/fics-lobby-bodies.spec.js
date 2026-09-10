@@ -45,7 +45,8 @@ test('Tables renders canonical capped data and leaves missing metadata visibly u
     });
 
     await expect(page.getByRole('heading', { name: 'Active Tables' })).toBeVisible();
-    await expect(page.getByText('this is not a complete server directory')).toBeVisible();
+    await expect(page.getByRole('note', { name: 'Shows recently reported FICS games; some active games may not appear.' })).toBeVisible();
+    await expect(page.getByText(/capped FICS feed|complete server directory/)).toHaveCount(0);
     await expect(page.locator('.fics-rd3-table-card')).toHaveCount(2);
     await expect(page.locator('.fics-rd3-table-card').first()).toContainText('Alpha');
     await expect(page.locator('.fics-rd3-table-card').first()).toContainText('rating —');
@@ -58,7 +59,7 @@ test('Tables empty state does not imply completeness or fabricate games', async 
     await installConnectedFixture(page, { activeTables: [] });
     await expect(page.getByText('No tables loaded.')).toBeVisible();
     await expect(page.locator('.fics-rd3-table-card')).toHaveCount(0);
-    await expect(page.getByText('this is not a complete server directory')).toBeVisible();
+    await expect(page.getByRole('note', { name: /some active games may not appear/ })).toBeVisible();
 });
 
 test('Observe button uses the one canonical client path and suppresses duplicate commands', async ({ page }) => {

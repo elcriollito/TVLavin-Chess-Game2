@@ -82,6 +82,8 @@ test('reparented Test Gateway and Sounds retain their existing handlers', async 
 
 test('session identity and reconnect/error status live in compact page chrome', async ({ page }) => {
     await openFics(page);
+    await expect(page.locator('.fics-disclaimer')).toContainText('About FICS:');
+    await expect(page.locator('.fics-disclaimer')).not.toContainText('Connecting to external server');
     await expect(page.locator('.fics-rd2-workspace-foot #ficsConnectBtn')).toHaveCount(0);
     await expect(page.locator('.fics-rd7-session-button')).toBeVisible();
     await expect(page.locator('.fics-rd7-session-identity')).toHaveText('Disconnected');
@@ -116,7 +118,7 @@ test('successful authentication returns Console to its compact default', async (
     await setLobbyState(page);
     await expect(page.locator('#ficsConsoleToggle')).toHaveAttribute('aria-expanded', 'false');
     await expect(page.locator('.fics-rd7-session-identity')).toHaveText('RDFiveGuest');
-    await expect(page.locator('.fics-rd7-console-status')).toHaveText('Connected as RDFiveGuest');
+    await expect(page.locator('.fics-rd7-console-status')).toHaveCount(0);
 });
 
 test('Game Mode notation consumes the recovered BODY and Settings overlays without resizing it', async ({ page }) => {
@@ -263,20 +265,41 @@ test('hybrid Console preserves raw FICS and command lines in one stream', async 
     expect(result.text).toContain('[FICS] fics% help');
 });
 
-test('compact FOOT session summary omits latency and Console retains measured events', async ({ page }) => {
+test('top session control owns permanent state while FOOT remains Console-only', async ({ page }) => {
     await openFics(page);
     await page.evaluate(() => {
         const client = window.CaissaFICSClient;
         Object.assign(client, { connected: true, authenticated: true, connectionState: 'connected', latencyMs: null });
         window.CaissaFICSShell.refresh();
     });
-    await expect(page.locator('.fics-rd7-console-status')).toHaveText('Connected as Guest');
+    await expect(page.locator('.fics-rd7-session-identity')).toHaveText('Guest');
+    await expect(page.locator('.fics-rd2-workspace-foot .fics-rd7-console-status')).toHaveCount(0);
     await page.evaluate(() => {
         window.CaissaFICSClient.latencyMs = 84;
         window.CaissaFICSShell.refresh();
     });
-    await expect(page.locator('.fics-rd7-console-status')).toHaveText('Connected as Guest');
+    await expect(page.locator('.fics-rd7-session-identity')).toHaveText('Guest');
     await expect(page.locator('#ficsRd5ConsoleSummary')).toHaveCount(0);
+});
+
+test('Console suppresses repeated navigation advisories but preserves repeated raw FICS lines', async ({ page }) => {
+    await openFics(page);
+    const messages = await page.evaluate(() => {
+        const client = window.CaissaFICSClient;
+        client.messageBuffer = [];
+        client.logToConsole('Connect to FICS to load tables.');
+        client.logToConsole('Connect to FICS to load players.');
+        client.logToConsole('Connect to FICS to load tables.');
+        client.logToConsole('fics% repeated', 'FICS');
+        client.logToConsole('fics% repeated', 'FICS');
+        return [...client.messageBuffer];
+    });
+    expect(messages).toEqual([
+        '[CAISSA] Connect to FICS to load tables.',
+        '[CAISSA] Connect to FICS to load players.',
+        '[FICS] fics% repeated',
+        '[FICS] fics% repeated'
+    ]);
 });
 
 test('collapsed Console is a launcher and expanded Console exposes connection messages', async ({ page }) => {
