@@ -1,7 +1,7 @@
 (function installFicsPresentationContract(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.3.0';
+    const SCHEMA_VERSION = '1.4.0';
     const PRODUCT_STATES = Object.freeze({
         DISCONNECTED: 'DISCONNECTED',
         AUTHENTICATING: 'AUTHENTICATING',
@@ -169,13 +169,13 @@
                 activeTab: requestedLobbyView,
                 primaryGameMode: false,
                 gameModeAvailable: true,
-                returnToGameAvailable: true
+                returnToGameAvailable: false
             };
         }
         if (gameModeAvailable) {
             return {
                 bodyMode: 'GAME',
-                activeTab: null,
+                activeTab: 'game',
                 primaryGameMode: true,
                 gameModeAvailable: true,
                 returnToGameAvailable: false
@@ -300,6 +300,11 @@
                 },
                 currentFen: textOrNull(liveGame.currentFen),
                 moves,
+                replay: {
+                    initialFen: pgnStartFen,
+                    latestPly: moves.length,
+                    positionsComplete: Boolean(pgnStartFen && moves.every((move) => move.fen))
+                },
                 result,
                 pgn: {
                     available: pgnAvailable,
@@ -331,6 +336,8 @@
                 returnFromObservation: commandChannelAvailable && productState === PRODUCT_STATES.OBSERVING
                     && canonical.observationExitInFlight !== true,
                 downloadPGN: pgnAvailable,
+                analyze: productState === PRODUCT_STATES.GAME_OVER && pgnAvailable
+                    && moves.length > 0 && Boolean(liveGame.currentFen),
                 abort: false,
                 observeTable: commandChannelAvailable && !localGameActive && !seekPending,
                 createSeek: commandChannelAvailable && !presentation.gameModeAvailable && !seekPending,

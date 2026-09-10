@@ -16,7 +16,7 @@ test('workspace declares exact intrinsic HEAD flexible BODY intrinsic FOOT archi
     assert.match(styles, /\.fics-rd2-workspace-body\s*\{[^}]*min-height:\s*0/s);
 });
 
-test('HEAD is constructed from only the approved three-tab list', () => {
+test('HEAD is constructed from three lobby tabs and the contextual Game tab', () => {
     assert.match(shell, /Object\.freeze\(\['tables', 'players', 'seek'\]\)/);
     assert.match(shell, /head\.append\(tabList\)/);
     assert.equal((shell.match(/head\.append\(/g) || []).length, 1);

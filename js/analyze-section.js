@@ -1559,6 +1559,7 @@ const AnalyzeSection = {
                 eco: metadata.eco || headers.ECO || '',
                 opening: metadata.opening || headers.Opening || '',
                 recordId: metadata.recordId || null,
+                recordStatus: metadata.recordStatus || null,
                 headers: { ...headers },
                 movesSan: game.history().slice(),
                 movesVerbose: game.history({ verbose: true }).map((move) => ({ ...move }))
@@ -2974,11 +2975,14 @@ const AnalyzeSection = {
         if (handoff?.ok && handoff.value?.handoffId !== this.activeHandoffId) {
             this.activeHandoffId = handoff.value.handoffId;
             const payload = handoff.value.payload;
+            const sourceLabel = handoff.value.source === 'fics'
+                ? (payload.recordStatus === 'partial' ? 'FICS partial handoff' : 'FICS handoff')
+                : 'Play handoff';
             if (payload.pgn) {
-                this.loadGameFromPgn(payload.pgn, 'Play handoff', {
+                this.loadGameFromPgn(payload.pgn, sourceLabel, {
                     white: payload.whiteLabel || 'White', black: payload.blackLabel || 'Black',
                     result: payload.result || '*', termination: payload.termination || null,
-                    recordId: payload.recordId
+                    recordId: payload.recordId, recordStatus: payload.recordStatus || null
                 });
             } else if (payload.finalFen) {
                 const session = window.CaissaAnalyzeSession?.createSession?.({ initialFen: payload.finalFen });

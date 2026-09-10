@@ -2197,6 +2197,7 @@ const CaissaFICSClient = {
     },
 
     onDragStart(source, piece) {
+        if (this.isReviewingHistoricalPosition()) return false;
         if (!this.gameActive || this.liveGame.observedGame || this.pendingMove || this.pendingPromotionMove) return false;
         if (this.liveGame.relation !== 1) return false;
 
@@ -2241,10 +2242,15 @@ const CaissaFICSClient = {
     },
 
     canSubmitGraphicalMove() {
+        if (this.isReviewingHistoricalPosition()) return false;
         if (!this.liveGame.currentFen || this.liveGame.relation !== 1) return false;
         if (!this.gameActive || this.liveGame.observedGame || this.pendingMove) return false;
         if (!this.myColor || !this.liveGame.sideToMove) return false;
         return this.liveGame.sideToMove === (this.myColor === 'white' ? 'w' : 'b');
+    },
+
+    isReviewingHistoricalPosition() {
+        return window.CaissaFICSShell?.getReplaySnapshot?.().isReviewingHistory === true;
     },
 
     isPromotionAttempt(validator, source, target) {
@@ -2304,7 +2310,10 @@ const CaissaFICSClient = {
 
     onSnapEnd() {
         if (!this.board) return;
-        if (this.pendingMove?.optimisticFen) {
+        const replay = window.CaissaFICSShell?.getReplaySnapshot?.();
+        if (replay?.isReviewingHistory && replay.fen) {
+            this.board.position(replay.fen, false);
+        } else if (this.pendingMove?.optimisticFen) {
             this.board.position(this.pendingMove.optimisticFen, false);
         } else if (this.liveGame.currentFen) {
             this.board.position(this.liveGame.currentFen, false);
@@ -2676,6 +2685,7 @@ const CaissaFICSClient = {
                 : 'Connected as FICS guest. Seek or accept a game to begin.', 'active');
         }
         this.updatePlayerBars();
+        window.CaissaFICSShell?.refresh?.();
     },
 
     onExit() {

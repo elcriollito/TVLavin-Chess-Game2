@@ -21,6 +21,7 @@ test('desktop shell preserves one board inside BOARD plus HEAD BODY FOOT workspa
             boardInRegion: board.closest('[data-fics-shell-region]')?.dataset.ficsShellRegion,
             regions: [...workspace.children].map(node => node.dataset.ficsWorkspaceRegion),
             tabs: [...workspace.querySelectorAll('[role="tab"]')].map(node => node.textContent),
+            visibleTabs: [...workspace.querySelectorAll('[role="tab"]:not([hidden])')].map(node => node.textContent),
             boardRect: rect(section.querySelector('[data-fics-shell-region="board"]')),
             workspaceRect: rect(workspace)
         };
@@ -30,7 +31,8 @@ test('desktop shell preserves one board inside BOARD plus HEAD BODY FOOT workspa
     expect(structure.boardOwned).toBe(true);
     expect(structure.boardInRegion).toBe('board');
     expect(structure.regions).toEqual(['head', 'body', 'foot']);
-    expect(structure.tabs).toEqual(['Tables', 'Players', 'Seek']);
+    expect(structure.tabs).toEqual(['Tables', 'Players', 'Seek', 'Game']);
+    expect(structure.visibleTabs).toEqual(['Tables', 'Players', 'Seek']);
     expect(structure.boardRect.right).toBeLessThan(structure.workspaceRect.left);
 });
 
@@ -71,7 +73,7 @@ test('tabs are keyboard operable, mutate no canonical state, and Players is trut
     }))).toBe(true);
 });
 
-test('active Game Mode clears lobby selection and retains orientation-aware player bars', async ({ page }) => {
+test('active Game tab is contextual and retains orientation-aware player bars', async ({ page }) => {
     await openFics(page);
     await page.evaluate(() => {
         const client = window.CaissaFICSClient;
@@ -91,11 +93,12 @@ test('active Game Mode clears lobby selection and retains orientation-aware play
     await expect(page.getByRole('tab', { name: 'Tables' })).toHaveAttribute('aria-selected', 'false');
     await expect(page.getByRole('tab', { name: 'Players' })).toHaveAttribute('aria-selected', 'false');
     await expect(page.getByRole('tab', { name: 'Seek' })).toHaveAttribute('aria-selected', 'false');
+    await expect(page.getByRole('tab', { name: 'Game' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('#ficsTopPlayerBar .fics-player-name')).toContainText('ObservedWhite');
     await expect(page.locator('#ficsBottomPlayerBar .fics-player-name')).toContainText('LocalBlack');
     await page.getByRole('tab', { name: 'Tables' }).click();
-    await expect(page.getByRole('button', { name: 'Return to active FICS game' })).toBeVisible();
-    await page.getByRole('button', { name: 'Return to active FICS game' }).click();
+    await expect(page.getByRole('tab', { name: 'Game' })).toBeVisible();
+    await page.getByRole('tab', { name: 'Game' }).click();
     await expect(page.getByRole('tab', { name: 'Tables' })).toHaveAttribute('aria-selected', 'false');
 });
 

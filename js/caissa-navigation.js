@@ -164,11 +164,11 @@ const CaissaNavigation = {
 
         console.log('[CAISSA Nav] Navigating from', this.currentSection, 'to', sectionId);
 
-        if (sectionId === 'analyze' && this.currentSection === 'play' && window.CaissaAnalyzeHandoff) {
+        if (sectionId === 'analyze' && window.CaissaAnalyzeHandoff) {
             if (options.handoffToken) {
                 this.lastAnalyzeHandoffToken = options.handoffToken;
                 options.query = Object.assign({}, options.query, { handoff: options.handoffToken });
-            } else {
+            } else if (this.currentSection === 'play') {
                 const handoff = window.CaissaAnalyzeHandoff.createFromLegacyActivePlay?.();
                 if (!handoff?.ok) {
                     console.warn('[CAISSA Nav] Analyze handoff unavailable:', handoff.reasonCode);

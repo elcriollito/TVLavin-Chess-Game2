@@ -105,8 +105,8 @@ test('one client socket board connection sound and console owner remain and Play
 });
 
 test('disconnected and error states keep primary Tables or Seek content in BODY', () => {
-    assert.match(shell, /view\.primaryGameMode \? null : \(view\.activeTab \|\| selectedLobbyView \|\| 'tables'\)/);
-    assert.match(shell, /if \(!view\.primaryGameMode\) view\.bodyMode = 'LOBBY'/);
+    assert.match(shell, /const activeTab = view\.activeTab \|\| selectedLobbyView \|\| 'tables'/);
+    assert.match(shell, /if \(activeTab !== 'game'\) view\.bodyMode = 'LOBBY'/);
     assert.doesNotMatch(shell, /title: 'Connection unavailable'|Review the existing FICS connection controls below/);
     assert.match(shell, /No tables loaded\./);
     assert.doesNotMatch(shell, /Connect to FICS to (?:load recently reported games|create a table)/);

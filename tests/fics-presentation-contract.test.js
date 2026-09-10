@@ -80,7 +80,7 @@ test('reconnecting outranks retained stale game data without deleting or present
     assert.equal(client.liveGame.currentFen, 'retained-fen');
 });
 
-test('game mode deselects lobby tabs and temporary lobby browsing exposes return to game', () => {
+test('contextual Game tab owns game BODY while lobby browsing preserves Game availability', () => {
     const client = baseClient({
         connected: true, authenticated: true, connectionState: 'connected', gameActive: true,
         liveGame: { ...baseClient().liveGame, gameNumber: 72, currentFen: 'game-fen', gameActive: true,
@@ -88,14 +88,35 @@ test('game mode deselects lobby tabs and temporary lobby browsing exposes return
     });
     const contract = load(client);
     assert.deepEqual({ ...contract.getViewState() }, {
-        productState: 'PLAYING', bodyMode: 'GAME', activeTab: null, primaryGameMode: true,
+        productState: 'PLAYING', bodyMode: 'GAME', activeTab: 'game', primaryGameMode: true,
         gameModeAvailable: true, returnToGameAvailable: false
     });
     assert.deepEqual({ ...contract.getViewState({ requestedLobbyView: 'tables' }) }, {
         productState: 'PLAYING', bodyMode: 'LOBBY_BROWSE', activeTab: 'tables', primaryGameMode: false,
-        gameModeAvailable: true, returnToGameAvailable: true
+        gameModeAvailable: true, returnToGameAvailable: false
     });
     assert.equal(client.liveGame.status, 'playing');
+});
+
+test('Game availability is absent in lobby, present for playing observing and ended, then presentation-dismissible', () => {
+    const lobby = load(baseClient({ connected: true, authenticated: true, connectionState: 'connected' })).getViewState();
+    assert.equal(lobby.gameModeAvailable, false);
+    assert.equal(lobby.activeTab, 'tables');
+    for (const [status, flags] of [
+        ['playing', { gameActive: true }],
+        ['observing', { observedGame: true }],
+        ['ended', { result: '1-0' }]
+    ]) {
+        const client = baseClient({ connected: true, authenticated: true, connectionState: 'connected' });
+        client.liveGame = { ...client.liveGame, gameNumber: 90, currentFen: 'fen', status, ...flags };
+        const contract = load(client);
+        assert.equal(contract.getViewState().activeTab, 'game');
+        assert.equal(contract.getViewState().gameModeAvailable, true);
+        if (status === 'ended') {
+            assert.equal(contract.getViewState({ dismissEndedGame: true }).gameModeAvailable, false);
+            assert.equal(client.liveGame.result, '1-0');
+        }
+    }
 });
 
 test('snapshots deeply clone and freeze canonical collections', () => {
@@ -201,6 +222,9 @@ test('orientation, ratings, clocks, and observed partial-PGN risk are projected 
     assert.equal(snapshot.game.clocks.source, 'STYLE12_SNAPSHOT');
     assert.equal(snapshot.game.pgn.available, true);
     assert.equal(snapshot.game.pgn.mayBePartial, true);
+    assert.equal(snapshot.game.replay.initialFen, '8/8/8/8/8/8/8/K6k b - - 0 20');
+    assert.equal(snapshot.game.replay.latestPly, 1);
+    assert.equal(snapshot.game.replay.positionsComplete, true);
     assert.equal(snapshot.capabilities.returnFromObservation, true);
     assert.equal(snapshot.capabilities.downloadPGN, true);
 });
@@ -223,6 +247,7 @@ test('PGN availability requires captured moves or a terminal result and action l
     snapshot = load(client).getSnapshot();
     assert.equal(snapshot.game.pgn.available, true);
     assert.equal(snapshot.capabilities.downloadPGN, true);
+    assert.equal(snapshot.game.replay.positionsComplete, false);
 });
 
 test('normalized terminal result remains projected without shell protocol evidence', () => {
@@ -239,6 +264,7 @@ test('normalized terminal result remains projected without shell protocol eviden
     assert.equal(snapshot.productState, 'GAME_OVER');
     assert.deepEqual({ ...snapshot.game.result }, resultModel);
     assert.equal(snapshot.presentation.primaryGameMode, true);
+    assert.equal(snapshot.presentation.activeTab, 'game');
     assert.equal(snapshot.capabilities.resign, false);
     assert.equal(snapshot.capabilities.offerDraw, false);
 

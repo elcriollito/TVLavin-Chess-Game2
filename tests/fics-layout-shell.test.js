@@ -26,8 +26,8 @@ test('shell declares one board region and one workspace with HEAD BODY FOOT owne
     assert.match(shell, /workspace\.append\(head, body, foot\)/);
 });
 
-test('HEAD contains exactly the approved Tables Players Seek tab model', () => {
-    assert.match(shell, /Object\.freeze\(\['tables', 'players', 'seek'\]\)/);
+test('HEAD contains the approved lobby tabs plus one contextual Game tab', () => {
+    assert.match(shell, /Object\.freeze\(\[\.\.\.LOBBY_VIEWS, 'game'\]\)/);
     assert.match(shell, /role: 'tablist'/);
     assert.match(shell, /role: 'tab'/);
     assert.match(shell, /aria-selected/);
@@ -51,11 +51,12 @@ test('tab state is presentation-only and derives semantics through CaissaFICSPre
     assert.doesNotMatch(shell, /CaissaFICSClient\.(?:liveGame|gameActive|activeTables|seekActions|pendingSeek|connectionState|authenticated)\s*=/);
 });
 
-test('Players remains truthful and primary Game Mode renders from the projection', () => {
+test('Players remains truthful and contextual Game renders from the projection', () => {
     assert.match(shell, /Player directory unavailable\./);
     assert.match(shell, /if \(baseView\.gameModeAvailable && !lastGameModeAvailable\) selectedLobbyView = null/);
-    assert.match(shell, /mounted\.returnToGame\.hidden = !view\.returnToGameAvailable/);
-    assert.match(shell, /if \(view\.primaryGameMode\) dynamic\.append\(renderGame\(snapshot\)\)/);
+    assert.match(shell, /tab\.hidden = tabView === 'game' && !view\.gameModeAvailable/);
+    assert.match(shell, /if \(view\.activeTab === 'game'\) dynamic\.append\(renderGame\(snapshot\)\)/);
+    assert.doesNotMatch(shell, /Return to active FICS game|returnToGameButton|← Game/);
     assert.match(shell, /snapshot\.game\.moves/);
     assert.match(shell, /move number|fics-rd4-move-number/i);
 });
@@ -76,7 +77,27 @@ test('Game Mode has an internal notation scroller and presentation-only ended-ga
     assert.match(shell, /Return to Lobby/);
     assert.match(shell, /dismissEndedGame\(snapshot\.game\)/);
     assert.match(shell, /dismissedEndedGameKey = gameKey\(game\)/);
-    assert.match(shell, /signature === lastGameMoveSignature \? gameMoveScrollTop : scroller\.scrollHeight/);
+    assert.match(shell, /replay\.followingLive && signature !== lastGameMoveSignature/);
+});
+
+test('replay cursor is presentation-only, uses canonical captured FENs, and gates live board input', () => {
+    assert.match(shell, /let replayCursor = null/);
+    assert.match(shell, /snapshot\.game\.moves\?\.\[ply - 1\]\?\.fen/);
+    assert.match(shell, /snapshot\.game\.replay\?\.initialFen/);
+    assert.match(shell, /currentPly/);
+    assert.match(shell, /latestPly/);
+    assert.match(shell, /isReviewingHistory/);
+    assert.match(shell, /board\.position\(replay\.fen, false\)/);
+    assert.match(client, /isReviewingHistoricalPosition\(\)/);
+    assert.match(client, /if \(this\.isReviewingHistoricalPosition\(\)\) return false/);
+    assert.doesNotMatch(shell, /new\s+Chess|Chessboard\s*\(/);
+});
+
+test('Game Over Analyze uses the approved handoff boundary without embedding an engine', () => {
+    assert.match(shell, /CaissaFICSAnalyzeHandoff\?\.prepare/);
+    assert.match(shell, /navigateToSection\?\.\('analyze'/);
+    assert.match(shell, /handoffToken: prepared\.value\.token/);
+    assert.doesNotMatch(shell, /new\s+Worker|Stockfish|sessionStorage|localStorage/);
 });
 
 test('Tables body renders only the read-only presentation snapshot and uses the canonical observe method', () => {
@@ -143,6 +164,6 @@ test('board login console and protocol ownership remain singular', () => {
 
 test('Play v2 strips both RD-002 resources while retaining the unknown-FICS guard', () => {
     assert.match(builder, /fics-\(\?:client\|redesign-shell\)/);
-    assert.match(builder, /presentation-contract\|layout-shell/);
+    assert.match(builder, /presentation-contract\|analyze-handoff\|layout-shell/);
     assert.match(builder, /PROHIBITED_PLAY_V2_RESOURCE/);
 });

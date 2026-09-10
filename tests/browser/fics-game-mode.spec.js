@@ -67,7 +67,7 @@ async function installGame(page, mode, options = {}) {
     }, { requestedMode: mode, fixtureMoves, fixtureOptions: options });
 }
 
-test('PLAYING owns the BODY, deselects lobby tabs, and renders canonical paired notation', async ({ page }) => {
+test('PLAYING selects the contextual Game tab and renders canonical paired notation', async ({ page }) => {
     await openFics(page);
     const fixtureMoves = moves(5);
     fixtureMoves[4].san = null;
@@ -77,6 +77,7 @@ test('PLAYING owns the BODY, deselects lobby tabs, and renders canonical paired 
     for (const name of ['Tables', 'Players', 'Seek']) {
         await expect(page.getByRole('tab', { name })).toHaveAttribute('aria-selected', 'false');
     }
+    await expect(page.getByRole('tab', { name: 'Game' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('heading', { name: 'WhitePlayer vs BlackPlayer' })).toBeVisible();
     const rows = page.locator('.fics-rd4-move-row:not(.is-header)');
     await expect(rows).toHaveCount(3);
@@ -152,6 +153,7 @@ test('GAME_OVER uses normalized result, retains final moves, downloads PGN, and 
     await page.getByRole('button', { name: 'Return to Lobby' }).click();
     await expect(page.getByRole('heading', { name: 'Active Tables' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Return to active FICS game' })).toHaveCount(0);
+    await expect(page.getByRole('tab', { name: 'Game' })).toBeHidden();
     await page.getByRole('tab', { name: 'Seek' }).click();
     await expect(page.getByRole('button', { name: 'Create Table' })).toBeEnabled();
     expect(await page.evaluate(() => window.CaissaFICSClient.liveGame.result)).toBe('0-1');
@@ -180,8 +182,8 @@ test('temporary Tables and Players browsing preserves canonical game data and Ga
     await page.getByRole('tab', { name: 'Players' }).click();
     await expect(page.getByText('Player directory unavailable.')).toBeVisible();
     await page.getByRole('tab', { name: 'Tables' }).click();
-    await expect(page.getByRole('button', { name: 'Return to active FICS game' })).toBeVisible();
-    await page.getByRole('button', { name: 'Return to active FICS game' }).click();
+    await expect(page.getByRole('tab', { name: 'Game' })).toBeVisible();
+    await page.getByRole('tab', { name: 'Game' }).click();
     await expect(page.locator('[data-fics-body-view="game"]')).toBeVisible();
     await expect.poll(() => page.locator('[data-fics-game-moves]').evaluate((node) => node.scrollTop)).toBe(37);
     expect(await page.evaluate(() => JSON.stringify({
