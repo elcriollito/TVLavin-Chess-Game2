@@ -180,7 +180,7 @@ test('temporary Tables and Players browsing preserves canonical game data and Ga
     }));
 
     await page.getByRole('tab', { name: 'Players' }).click();
-    await expect(page.getByText('Player directory unavailable.')).toBeVisible();
+    await expect(page.getByText('Loading FICS players…')).toBeVisible();
     await page.getByRole('tab', { name: 'Tables' }).click();
     await expect(page.getByRole('tab', { name: 'Game' })).toBeVisible();
     await page.getByRole('tab', { name: 'Game' }).click();
@@ -190,7 +190,7 @@ test('temporary Tables and Players browsing preserves canonical game data and Ga
         liveGame: window.CaissaFICSClient.liveGame,
         moves: window.CaissaFICSClient.moveHistory
     }))).toBe(before);
-    expect(await page.evaluate(() => window.__ficsWire)).toEqual([]);
+    expect(await page.evaluate(() => window.__ficsWire)).toEqual(['who v']);
 });
 
 test('game actions fail closed for unavailable, reconnecting, error, and disconnected channels', async ({ page }) => {

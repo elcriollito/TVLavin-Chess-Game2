@@ -9,7 +9,8 @@
     const PRODUCT_EVENTS = Object.freeze([
         'authenticated', 'lobby-updated', 'style12', 'game-ended', 'disconnected', 'observer-left',
         'observation-requested', 'observation-settled', 'observation-error', 'connection-state',
-        'game-action-delivery', 'game-action-ready'
+        'game-action-delivery', 'game-action-ready', 'players-loading', 'players-updated',
+        'players-error', 'players-invalidated'
     ]);
     let mounted = null;
     let selectedLobbyView = null;
@@ -31,6 +32,8 @@
     let userDialogOpen = false;
     let userDialogReturnFocus = null;
     let lastAuthenticated = false;
+    let playersQuery = '';
+    let playersSort = 'rating';
     const seekDraft = { minutes: '5', increment: '0', rated: 'unrated', color: 'random' };
     const eventListeners = [];
 
@@ -250,7 +253,8 @@
         return root.CaissaFICSPresentation?.getSnapshot?.(options) || {
             productState: 'DISCONNECTED', connection: { authenticated: false }, session: {},
             lobby: { activeTables: [], pendingSeek: null, playersSupported: false }, game: {},
-            capabilities: { observeTable: false, createSeek: false, cancelSeek: false },
+            players: { supported: true, loading: false, error: null, entries: [], count: 0, refreshedAt: null },
+            capabilities: { observeTable: false, createSeek: false, cancelSeek: false, refreshPlayers: false },
             presentation: getViewState()
         };
     }
@@ -511,9 +515,142 @@
         return wrapper;
     }
 
-    function renderPlayers() {
-        const wrapper = createElement('div', 'fics-rd6-players', { 'data-fics-body-view': 'players' });
-        appendText(wrapper, 'p', 'fics-rd6-minimal-state', 'Player directory unavailable.', { role: 'status' });
+    function playerStatus(player) {
+        if (player.playing && player.gameNumber !== null) return `Playing #${player.gameNumber}`;
+        if (player.observing) return 'Observing';
+        if (player.available) return player.unratedOnly ? 'Available · Unrated only' : 'Available';
+        if (!player.open) return 'Not open';
+        return 'Online';
+    }
+
+    function displayRating(rating = {}) {
+        if (!Number.isFinite(rating.value)) return '—';
+        return `${rating.value}${rating.marker || ''}`;
+    }
+
+    function ratingDescription(rating = {}) {
+        const labels = {
+            established: 'Established Blitz rating', provisional: 'Provisional Blitz rating',
+            estimated: 'Estimated Blitz rating', 'registered-unrated': 'Registered, unrated in Blitz',
+            unregistered: 'Unregistered FICS user'
+        };
+        return labels[rating.state] || 'Blitz rating unavailable';
+    }
+
+    function playerRows(entries = []) {
+        const query = playersQuery.trim().toLocaleLowerCase();
+        const filtered = query
+            ? entries.filter((player) => player.handle?.toLocaleLowerCase().includes(query))
+            : [...entries];
+        if (playersSort === 'name') {
+            filtered.sort((left, right) => String(left.handle || '').localeCompare(String(right.handle || ''), undefined, { sensitivity: 'base' })
+                || left.serverOrder - right.serverOrder);
+        } else if (playersSort === 'rating') {
+            filtered.sort((left, right) => {
+                const leftRating = left.ratings?.blitz?.value;
+                const rightRating = right.ratings?.blitz?.value;
+                if (Number.isFinite(leftRating) && Number.isFinite(rightRating)) return rightRating - leftRating
+                    || left.serverOrder - right.serverOrder;
+                if (Number.isFinite(leftRating)) return -1;
+                if (Number.isFinite(rightRating)) return 1;
+                return left.serverOrder - right.serverOrder;
+            });
+        }
+        return filtered;
+    }
+
+    function renderPlayers(snapshot) {
+        const directory = snapshot.players || { entries: [], count: 0 };
+        const wrapper = createElement('div', 'fics-rd10-players', {
+            'data-fics-body-view': 'players', 'aria-busy': String(directory.loading === true)
+        });
+        const heading = createElement('div', 'fics-rd3-body-heading fics-rd10-heading');
+        const headingCopy = createElement('div');
+        appendText(headingCopy, 'h3', 'fics-rd3-title', 'Players');
+        appendText(headingCopy, 'p', 'fics-rd3-subtitle', directory.refreshedAt
+            ? `${directory.count} connected players · Blitz rating`
+            : 'Connected FICS users from the verified verbose directory.');
+        const refresh = appendText(heading, 'button', 'fics-rd3-secondary-action', directory.loading ? 'Loading…' : 'Refresh', {
+            type: 'button', 'data-fics-focus-key': 'players-refresh'
+        });
+        refresh.disabled = !snapshot.capabilities.refreshPlayers;
+        refresh.addEventListener('click', () => root.CaissaFICSClient?.requestPlayers?.());
+        heading.append(headingCopy, refresh);
+        wrapper.append(heading);
+
+        const toolbar = createElement('div', 'fics-rd10-toolbar');
+        const searchLabel = appendText(toolbar, 'label', 'fics-rd10-visually-hidden', 'Search players', { for: 'ficsRd10PlayerSearch' });
+        const search = createElement('input', 'fics-rd3-input fics-rd10-search', {
+            id: 'ficsRd10PlayerSearch', type: 'search', placeholder: 'Search players…',
+            autocomplete: 'off', 'data-fics-focus-key': 'players-search'
+        });
+        search.value = playersQuery;
+        search.addEventListener('input', () => {
+            playersQuery = search.value;
+            render();
+        });
+        const sortLabel = appendText(toolbar, 'label', 'fics-rd10-visually-hidden', 'Sort players', { for: 'ficsRd10PlayerSort' });
+        const sort = createElement('select', 'fics-rd3-select fics-rd10-sort', {
+            id: 'ficsRd10PlayerSort', 'data-fics-focus-key': 'players-sort'
+        });
+        [['rating', 'Rating'], ['name', 'Name'], ['server', 'Server order']].forEach(([value, label]) => {
+            const option = createElement('option');
+            option.value = value;
+            option.textContent = label;
+            sort.append(option);
+        });
+        sort.value = playersSort;
+        sort.addEventListener('change', () => {
+            playersSort = sort.value;
+            render();
+        });
+        toolbar.append(searchLabel, search, sortLabel, sort);
+        wrapper.append(toolbar);
+
+        if (directory.loading) {
+            appendText(wrapper, 'p', 'fics-rd10-state', directory.entries.length
+                ? 'Refreshing players…' : 'Loading FICS players…', { role: 'status' });
+        }
+        if (directory.error) {
+            appendText(wrapper, 'p', 'fics-rd10-state is-error', directory.entries.length
+                ? 'Refresh failed. Showing the previous directory.'
+                : 'Unable to refresh player directory.', { role: 'alert' });
+        }
+
+        const rows = playerRows(directory.entries);
+        if (!directory.entries.length && !directory.loading) {
+            appendText(wrapper, 'p', 'fics-rd3-empty fics-rd10-empty', directory.refreshedAt
+                ? 'No connected players.' : 'No players loaded.', { role: 'status' });
+            return wrapper;
+        }
+        if (directory.entries.length && !rows.length) {
+            appendText(wrapper, 'p', 'fics-rd3-empty fics-rd10-empty', 'No players match your search.', { role: 'status' });
+            return wrapper;
+        }
+        if (!rows.length) return wrapper;
+
+        const table = createElement('table', 'fics-rd10-table', { 'aria-label': 'Connected FICS players' });
+        const tableHead = createElement('thead');
+        const headRow = createElement('tr');
+        for (const [label, className] of [['Username', 'is-player'], ['Blitz', 'is-rating'], ['Status', 'is-status']]) {
+            appendText(headRow, 'th', className, label, { scope: 'col' });
+        }
+        tableHead.append(headRow);
+        const body = createElement('tbody');
+        rows.forEach((player) => {
+            const row = createElement('tr');
+            const identity = createElement('td', 'is-player');
+            appendText(identity, 'span', 'fics-rd10-handle', player.handle || '—');
+            if (player.codes?.length) appendText(identity, 'span', 'fics-rd10-codes', ` (${player.codes.join(' · ')})`);
+            const rating = player.ratings?.blitz || {};
+            const ratingCell = appendText(row, 'td', 'is-rating', displayRating(rating));
+            ratingCell.title = ratingDescription(rating);
+            appendText(row, 'td', 'is-status', playerStatus(player));
+            row.prepend(identity);
+            body.append(row);
+        });
+        table.append(tableHead, body);
+        wrapper.append(table);
         return wrapper;
     }
 
@@ -886,7 +1023,7 @@
         dynamic.replaceChildren();
         if (view.activeTab === 'game') dynamic.append(renderGame(snapshot));
         if (view.activeTab === 'tables') dynamic.append(renderTables(snapshot));
-        if (view.activeTab === 'players') dynamic.append(renderPlayers());
+        if (view.activeTab === 'players') dynamic.append(renderPlayers(snapshot));
         if (view.activeTab === 'seek') dynamic.append(renderSeek(snapshot));
         restoreFocus(focus);
     }

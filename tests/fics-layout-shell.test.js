@@ -51,8 +51,10 @@ test('tab state is presentation-only and derives semantics through CaissaFICSPre
     assert.doesNotMatch(shell, /CaissaFICSClient\.(?:liveGame|gameActive|activeTables|seekActions|pendingSeek|connectionState|authenticated)\s*=/);
 });
 
-test('Players remains truthful and contextual Game renders from the projection', () => {
-    assert.match(shell, /Player directory unavailable\./);
+test('Players renders the frozen directory projection and contextual Game renders from the projection', () => {
+    assert.match(shell, /const directory = snapshot\.players/);
+    assert.match(shell, /Search players/);
+    assert.match(shell, /Connected FICS players/);
     assert.match(shell, /if \(baseView\.gameModeAvailable && !lastGameModeAvailable\) selectedLobbyView = null/);
     assert.match(shell, /tab\.hidden = tabView === 'game' && !view\.gameModeAvailable/);
     assert.match(shell, /if \(view\.activeTab === 'game'\) dynamic\.append\(renderGame\(snapshot\)\)/);
@@ -124,11 +126,12 @@ test('Seek body exposes the approved labeled fields and requests the canonical s
     assert.match(client, /seek\(time, inc\)[\s\S]*?return this\.requestSeek\(/);
 });
 
-test('dynamic bodies retain truthful pending delivery and unsupported Players language', () => {
+test('dynamic bodies retain truthful pending delivery and directory-only Players language', () => {
     assert.match(shell, /server acknowledgement is not available/);
     assert.match(shell, /Cancel requested/);
     assert.match(shell, /The last seek action was not delivered/);
-    assert.match(shell, /Player directory unavailable\./);
+    assert.match(shell, /No players loaded\./);
+    assert.match(shell, /Unable to refresh player directory\./);
     assert.doesNotMatch(shell, /specific-player|match command/);
 });
 

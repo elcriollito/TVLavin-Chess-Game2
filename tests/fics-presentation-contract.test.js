@@ -21,6 +21,9 @@ function baseClient(overrides = {}) {
         gameActive: false,
         myColor: null,
         pendingSeek: null,
+        playersDirectory: { entries: [], count: 0, refreshedAt: null, sessionGeneration: 0 },
+        playersRequest: null,
+        playersError: null,
         activeTables: [],
         seekActions: [],
         moveHistory: [],
@@ -125,6 +128,19 @@ test('snapshots deeply clone and freeze canonical collections', () => {
         activeTables: [{ number: 1, white: 'Alpha', black: 'Beta', whiteRating: '1500' }],
         seekActions: [{ number: 2, details: { player: 'Gamma', timeControl: '5+0' } }],
         pendingSeek: { timeControl: '3+2', label: 'Mine' },
+        playersDirectory: {
+            sessionGeneration: 0, count: 1, refreshedAt: 99,
+            entries: [{
+                handle: 'Delta', ratings: {
+                    standard: { value: 1500, state: 'established', marker: null },
+                    blitz: { value: 1600, state: 'provisional', marker: 'P' },
+                    lightning: { value: null, state: 'registered-unrated', marker: null }
+                },
+                onFor: '12', idle: '3', gameNumber: null, playing: false, open: true,
+                available: true, unratedOnly: false, registered: true, observing: false,
+                codes: ['C'], annotationsComplete: true, annotationsUnknown: false, serverOrder: 0
+            }]
+        },
         moveHistory: [{ moveNumber: 1, color: 'white', san: 'e4', fen: 'after-e4' }]
     });
     const snapshot = load(client).getSnapshot();
@@ -132,10 +148,14 @@ test('snapshots deeply clone and freeze canonical collections', () => {
     assert.equal(Object.isFrozen(snapshot.lobby.activeTables), true);
     assert.equal(Object.isFrozen(snapshot.lobby.activeTables[0]), true);
     assert.equal(Object.isFrozen(snapshot.game.moves[0]), true);
+    assert.equal(Object.isFrozen(snapshot.players.entries), true);
+    assert.equal(Object.isFrozen(snapshot.players.entries[0].ratings.blitz), true);
     assert.notEqual(snapshot.lobby.activeTables, client.activeTables);
     assert.notEqual(snapshot.lobby.activeTables[0], client.activeTables[0]);
+    assert.notEqual(snapshot.players.entries, client.playersDirectory.entries);
     assert.throws(() => { snapshot.lobby.activeTables[0].white = 'Mutated'; }, TypeError);
     assert.throws(() => { snapshot.lobby.seeks.push({}); }, TypeError);
+    assert.throws(() => { snapshot.players.entries[0].handle = 'Mutated'; }, TypeError);
     assert.equal(client.activeTables[0].white, 'Alpha');
     assert.equal(client.seekActions.length, 1);
 });
@@ -177,15 +197,17 @@ test('seek delivery error is not falsely projected as an active acknowledged see
     assert.equal(snapshot.capabilities.cancelSeek, false);
 });
 
-test('player support and unapproved actions fail closed while approved live actions follow relation', () => {
+test('player directory support is read-only while unapproved actions fail closed and live actions follow relation', () => {
     const client = baseClient({
         connected: true, authenticated: true, connectionState: 'connected', gameActive: true,
         liveGame: { ...baseClient().liveGame, gameNumber: 73, currentFen: 'game-fen', gameActive: true,
             status: 'playing', relation: 1, userColor: 'white' }
     });
     const snapshot = load(client).getSnapshot();
-    assert.equal(snapshot.lobby.playersSupported, false);
-    assert.equal(snapshot.capabilities.playersSupported, false);
+    assert.equal(snapshot.lobby.playersSupported, true);
+    assert.equal(snapshot.players.supported, true);
+    assert.equal(snapshot.capabilities.playersSupported, true);
+    assert.equal(snapshot.capabilities.refreshPlayers, true);
     assert.equal(snapshot.capabilities.specificPlayerChallengesSupported, false);
     assert.equal(snapshot.capabilities.abort, false);
     assert.equal(snapshot.capabilities.resign, true);
@@ -202,6 +224,7 @@ test('player support and unapproved actions fail closed while approved live acti
     assert.equal(unavailableChannel.console.canSendCommands, false);
     assert.equal(unavailableChannel.capabilities.resign, false);
     assert.equal(unavailableChannel.capabilities.offerDraw, false);
+    assert.equal(unavailableChannel.capabilities.refreshPlayers, false);
 });
 
 test('orientation, ratings, clocks, and observed partial-PGN risk are projected truthfully', () => {
@@ -283,8 +306,10 @@ test('presentation contract owns no transport, board, clock loop, game store, se
     assert.doesNotMatch(contractSource, /\b(?:let|var)\s+(?:liveGame|gameActive|activeTables|seekActions|pendingSeek|whiteClock|blackClock)\b/);
     assert.equal((clientSource.match(/window\.CaissaFICSClient\s*=\s*CaissaFICSClient/g) || []).length, 1);
     for (const html of [indexHtml, classicHtml]) {
+        assert.equal((html.match(/js\/fics-players-protocol\.js/g) || []).length, 1);
         assert.equal((html.match(/js\/fics-client\.js/g) || []).length, 1);
         assert.equal((html.match(/js\/fics-presentation-contract\.js/g) || []).length, 1);
+        assert.ok(html.indexOf('js/fics-players-protocol.js') < html.indexOf('js/fics-client.js'));
         assert.ok(html.indexOf('js/fics-client.js') < html.indexOf('js/fics-presentation-contract.js'));
     }
 });

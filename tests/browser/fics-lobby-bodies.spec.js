@@ -131,7 +131,7 @@ test('Seek validation blocks invalid values and delivery failure stays honest an
     expect(await page.evaluate(() => window.CaissaFICSClient.pendingSeek.status)).toBe('error');
 });
 
-test('pending seek cancellation and Players unsupported state retain canonical ownership', async ({ page }) => {
+test('pending seek cancellation and Players refresh retain canonical ownership', async ({ page }) => {
     await openFics(page, { width: 885, height: 611 });
     await installConnectedFixture(page, {
         pendingSeek: {
@@ -147,8 +147,8 @@ test('pending seek cancellation and Players unsupported state retain canonical o
     expect(await page.evaluate(() => window.CaissaFICSClient.pendingSeek.status)).toBe('cancel_requested');
 
     await page.getByRole('tab', { name: 'Players' }).click();
-    await expect(page.locator('[data-fics-body-view="players"]')).toHaveText('Player directory unavailable.');
-    expect(await page.evaluate(() => window.__ficsWire)).toEqual(['unseek']);
+    await expect(page.locator('[data-fics-body-view="players"]')).toContainText('Loading FICS players…');
+    expect(await page.evaluate(() => window.__ficsWire)).toEqual(['unseek', 'who v']);
 });
 
 test('active local game keeps Tables and Seek actions unavailable without disturbing the board', async ({ page }) => {

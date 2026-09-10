@@ -5,6 +5,7 @@ import test from 'node:test';
 const fixtureUrl = new URL('./fixtures/fics/players/rd009-live-sanitized.json', import.meta.url);
 const evidence = JSON.parse(fs.readFileSync(fixtureUrl, 'utf8'));
 const shell = fs.readFileSync(new URL('../js/fics-layout-shell.js', import.meta.url), 'utf8');
+const parser = fs.readFileSync(new URL('../js/fics-players-protocol.js', import.meta.url), 'utf8');
 
 const terseFooter = /(\d+) players displayed \(of (\d+)\)\. \(\*\) indicates system administrator\./i;
 const verboseFooter = /\|\s+(\d+) Players Displayed\s+\|/;
@@ -89,8 +90,10 @@ test('unsolicited prompt-bearing traffic is recorded structurally and excluded f
     assert.equal(evidence.interleavingObservation.insideCommandResponseObserved, false);
 });
 
-test('RD-009 leaves the production Players body unavailable and introduces no parser', () => {
-    assert.match(shell, /Player directory unavailable\./);
-    assert.doesNotMatch(shell, /rd009-live-sanitized|FICS_PLAYERS_PROTOCOL_EVIDENCE/);
-    assert.doesNotMatch(shell, /function\s+(?:parse|render)Who|who\s+v/);
+test('RD-010 consumes RD-009 grammar through a dedicated parser without shipping evidence fixtures', () => {
+    assert.match(shell, /Connected FICS players/);
+    assert.match(parser, /Players Displayed/);
+    assert.match(parser, /AWAIT_PROMPT/);
+    assert.doesNotMatch(`${shell}\n${parser}`, /rd009-live-sanitized|FICS_PLAYERS_PROTOCOL_EVIDENCE/);
+    assert.doesNotMatch(shell, /who\s+v/);
 });

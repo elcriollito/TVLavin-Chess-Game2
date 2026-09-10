@@ -65,14 +65,14 @@ test('disconnected Tables remains product content and connection guidance is in 
     await expect(page.locator('#ficsConsole')).toContainText('[CAISSA] Connect to FICS to load tables.');
 });
 
-test('Players uses one brief truthful state and routes its explanation to Console', async ({ page }) => {
+test('disconnected Players remains directory territory and routes guidance to Console', async ({ page }) => {
     await openFics(page);
     await page.getByRole('tab', { name: 'Players' }).click();
     const players = page.locator('[data-fics-body-view="players"]');
-    await expect(players).toHaveText('Player directory unavailable.');
-    expect((await players.innerText()).length).toBeLessThan(40);
+    await expect(players).toContainText('No players loaded.');
+    await expect(players).not.toContainText('Connection unavailable');
     await page.locator('#ficsConsoleToggle').click();
-    await expect(page.locator('#ficsConsole')).toContainText('[CAISSA] Player directory is not available yet.');
+    await expect(page.locator('#ficsConsole')).toContainText('[CAISSA] Connect to FICS to load players.');
 });
 
 test('disconnected Seek preserves Create Table and fails closed with guidance in Console', async ({ page }) => {

@@ -47,10 +47,11 @@ test('Seek remains rendered and fails closed without an authenticated capability
     assert.match(client, /requestSeek\(options = \{\}\)[\s\S]*?if \(!this\.authenticated\)[\s\S]*?code: 'NOT_CONNECTED'/);
 });
 
-test('Players is a minimal truthful unsupported product state', () => {
+test('Players is compact directory-only product content', () => {
     assert.match(shell, /data-fics-body-view': 'players'/);
-    assert.match(shell, /Player directory unavailable\./);
-    assert.doesNotMatch(shell, /complete FICS player directory|No player list is shown|\bwho\b|player profile/i);
+    assert.match(shell, /Search players/);
+    assert.match(shell, /No players loaded\./);
+    assert.doesNotMatch(shell, /challenge player|player profile/i);
 });
 
 test('workspace availability guidance routes through the one hybrid Console writer', () => {
@@ -58,7 +59,7 @@ test('workspace availability guidance routes through the one hybrid Console writ
     for (const message of [
         'Connect to FICS to load tables.',
         'Connect to FICS before creating a table.',
-        'Player directory is not available yet.'
+        'Connect to FICS to load players.'
     ]) assert.match(client, new RegExp(message.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     assert.match(shell, /CaissaFICSClient\?\.announceWorkspaceAvailability\?\./);
     assert.equal((client.match(/messageBuffer\.push\(/g) || []).length, 1);

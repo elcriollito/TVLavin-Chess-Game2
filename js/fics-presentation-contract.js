@@ -1,7 +1,7 @@
 (function installFicsPresentationContract(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.4.0';
+    const SCHEMA_VERSION = '1.5.0';
     const PRODUCT_STATES = Object.freeze({
         DISCONNECTED: 'DISCONNECTED',
         AUTHENTICATING: 'AUTHENTICATING',
@@ -70,6 +70,40 @@
             variant: textOrNull(details.variant),
             rated: typeof details.rated === 'boolean' ? details.rated : textOrNull(details.rated),
             color: textOrNull(details.color)
+        };
+    }
+
+    function copyPlayerRating(rating = {}) {
+        const allowedStates = ['established', 'provisional', 'estimated', 'registered-unrated', 'unregistered'];
+        return {
+            value: finiteOrNull(rating.value),
+            state: allowedStates.includes(rating.state) ? rating.state : null,
+            marker: ['P', 'E'].includes(rating.marker) ? rating.marker : null
+        };
+    }
+
+    function copyPlayer(player = {}) {
+        const ratings = player.ratings || {};
+        return {
+            handle: textOrNull(player.handle),
+            ratings: {
+                standard: copyPlayerRating(ratings.standard),
+                blitz: copyPlayerRating(ratings.blitz),
+                lightning: copyPlayerRating(ratings.lightning)
+            },
+            onFor: textOrNull(player.onFor),
+            idle: textOrNull(player.idle),
+            gameNumber: finiteOrNull(player.gameNumber),
+            playing: player.playing === true,
+            open: player.open === true,
+            available: player.available === true,
+            unratedOnly: player.unratedOnly === true,
+            registered: player.registered === true,
+            observing: player.observing === true,
+            codes: Array.isArray(player.codes) ? player.codes.map(textOrNull).filter(Boolean) : [],
+            annotationsComplete: player.annotationsComplete === true,
+            annotationsUnknown: player.annotationsUnknown === true,
+            serverOrder: finiteOrNull(player.serverOrder)
         };
     }
 
@@ -243,6 +277,12 @@
         const pendingSeek = copyPendingSeek(canonical.pendingSeek);
         const seekPending = hasPendingSeek(canonical.pendingSeek);
         const localGameActive = playing;
+        const playersDirectory = canonical.playersDirectory || {};
+        const playersBelongToSession = playersDirectory.sessionGeneration === canonical.sessionGeneration;
+        const players = playersBelongToSession && Array.isArray(playersDirectory.entries)
+            ? playersDirectory.entries.map(copyPlayer) : [];
+        const playersLoading = Boolean(canonical.playersRequest
+            && canonical.playersRequest.generation === canonical.sessionGeneration);
 
         const snapshot = {
             schemaVersion: SCHEMA_VERSION,
@@ -272,7 +312,15 @@
                 loading: canonical.lobbyRefreshInFlight === true,
                 refreshedAt: finiteOrNull(canonical.lobbyLastRefreshAt),
                 coverage: 'RECENT_CAPPED_HEURISTIC',
-                playersSupported: false
+                playersSupported: true
+            },
+            players: {
+                supported: true,
+                loading: playersLoading,
+                error: textOrNull(canonical.playersError),
+                entries: players,
+                count: players.length,
+                refreshedAt: playersBelongToSession ? finiteOrNull(playersDirectory.refreshedAt) : null
             },
             game: {
                 mode: terminal ? 'ended' : observed ? 'observing' : playing ? 'playing' : 'idle',
@@ -327,7 +375,8 @@
                 expansionStateOwner: 'PRESENTATION'
             },
             capabilities: {
-                playersSupported: false,
+                playersSupported: true,
+                refreshPlayers: commandChannelAvailable && !playersLoading,
                 specificPlayerChallengesSupported: false,
                 resign: commandChannelAvailable && productState === PRODUCT_STATES.PLAYING
                     && canonical.pendingGameActions?.resign !== true,

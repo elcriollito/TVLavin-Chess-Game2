@@ -36,6 +36,13 @@ const CaissaFICSClient = {
     autoGuestAttempted: false,
     welcomedSessionGeneration: 0,
 
+    // Canonical Players directory. The shell consumes only its presentation projection.
+    playersDirectory: { entries: [], count: 0, refreshedAt: null, sessionGeneration: 0 },
+    playersRequest: null,
+    playersRequestSequence: 0,
+    playersRequestTimeoutMs: 10000,
+    playersError: null,
+
     // Game state
     chess: null, // chess.js instance
     board: null, // chessboard.js instance
@@ -468,6 +475,7 @@ const CaissaFICSClient = {
 
                 this.connected = false;
                 this.authenticated = false;
+                this.invalidatePlayersDirectory('DISCONNECTED', { announceFailure: true });
                 if (!shouldReconnect || this.loginMode === 'account') this.clearAccountPassword();
                 if (shouldReconnect) {
                     this.reconnectAttempts += 1;
@@ -525,6 +533,7 @@ const CaissaFICSClient = {
 
     handleConnectionFailure(reason) {
         this.clearAccountPassword();
+        this.invalidatePlayersDirectory('CONNECTION_FAILED', { announceFailure: true });
         this.resetLiveSessionState();
         const fullMsg = reason === 'timeout'
             ? 'FICS connection timed out. Check the gateway and try again.'
@@ -614,6 +623,7 @@ const CaissaFICSClient = {
         this.activeTables = [];
         this.pendingSeek = null;
         this.pendingObservation = null;
+        this.invalidatePlayersDirectory('DISCONNECTED', { announceFailure: true });
         this.resetLiveSessionState();
         this.setConnectionState('disconnected');
         this.renderRoomTables();
@@ -723,11 +733,138 @@ const CaissaFICSClient = {
         }
     },
 
+    createEmptyPlayersDirectory(generation = this.sessionGeneration) {
+        return { entries: [], count: 0, refreshedAt: null, sessionGeneration: generation };
+    },
+
+    invalidatePlayersDirectory(reason = 'SESSION_CHANGED', { announceFailure = false } = {}) {
+        const pending = this.playersRequest;
+        if (pending?.timeoutId !== null && pending?.timeoutId !== undefined) clearTimeout(pending.timeoutId);
+        this.playersRequest = null;
+        this.playersError = null;
+        this.playersDirectory = this.createEmptyPlayersDirectory(this.sessionGeneration);
+        if (pending && announceFailure) {
+            this.logToConsole('Unable to refresh player directory.');
+            this.notifySpectator('players-error', { code: reason, token: pending.token });
+        }
+        this.notifySpectator('players-invalidated', { reason, sessionGeneration: this.sessionGeneration });
+        return Boolean(pending);
+    },
+
+    failPlayersRequest(code = 'PLAYERS_REQUEST_FAILED') {
+        const pending = this.playersRequest;
+        if (!pending) return Object.freeze({ ok: false, code });
+        if (pending.timeoutId !== null && pending.timeoutId !== undefined) clearTimeout(pending.timeoutId);
+        this.playersRequest = null;
+        this.playersError = code;
+        this.logToConsole('Unable to refresh player directory.');
+        this.notifySpectator('players-error', { code, token: pending.token });
+        return Object.freeze({ ok: false, code, token: pending.token });
+    },
+
+    completePlayersRequest(result) {
+        const pending = this.playersRequest;
+        if (!pending) return Object.freeze({ ok: false, code: 'NO_PLAYERS_REQUEST' });
+        if (pending.generation !== this.sessionGeneration || !this.authenticated) {
+            this.invalidatePlayersDirectory('SESSION_CHANGED', { announceFailure: true });
+            return Object.freeze({ ok: false, code: 'SESSION_CHANGED', token: pending.token });
+        }
+        if (pending.timeoutId !== null && pending.timeoutId !== undefined) clearTimeout(pending.timeoutId);
+        const entries = result.entries.map((entry) => ({
+            ...entry,
+            ratings: {
+                standard: { ...entry.ratings.standard },
+                blitz: { ...entry.ratings.blitz },
+                lightning: { ...entry.ratings.lightning }
+            },
+            codes: [...entry.codes]
+        }));
+        this.playersDirectory = {
+            entries,
+            count: result.count,
+            refreshedAt: Date.now(),
+            sessionGeneration: pending.generation
+        };
+        this.playersRequest = null;
+        this.playersError = null;
+        this.logToConsole(`Player directory updated: ${result.count} players.`);
+        this.notifySpectator('players-updated', {
+            count: result.count,
+            token: pending.token,
+            sessionGeneration: pending.generation
+        });
+        return Object.freeze({ ok: true, code: 'PLAYERS_UPDATED', count: result.count, token: pending.token });
+    },
+
+    consumePlayersData(text, { lineFramed = false } = {}) {
+        const pending = this.playersRequest;
+        if (!pending) return Object.freeze({ status: 'ignored', code: 'NO_PLAYERS_REQUEST' });
+        if (pending.generation !== this.sessionGeneration || !this.authenticated) {
+            this.invalidatePlayersDirectory('SESSION_CHANGED', { announceFailure: true });
+            return Object.freeze({ status: 'error', code: 'SESSION_CHANGED' });
+        }
+        const protocol = window.CaissaFICSPlayersProtocol;
+        if (!protocol?.push) {
+            this.failPlayersRequest('PLAYERS_PROTOCOL_UNAVAILABLE');
+            return Object.freeze({ status: 'error', code: 'PLAYERS_PROTOCOL_UNAVAILABLE' });
+        }
+        const result = protocol.push(pending.parser, String(text ?? ''), { lineFramed });
+        if (result.status === 'error') this.failPlayersRequest(result.code);
+        else if (result.status === 'complete') this.completePlayersRequest(result);
+        return result;
+    },
+
+    requestPlayers() {
+        const channelAvailable = this.authenticated && this.connected
+            && String(this.connectionState || '').toLowerCase() === 'connected'
+            && this.ws?.readyState === WebSocket.OPEN;
+        if (!channelAvailable) {
+            this.logToConsole('Connect to FICS to load players.');
+            return Object.freeze({ ok: false, code: 'NOT_CONNECTED' });
+        }
+        if (this.playersRequest) {
+            return Object.freeze({ ok: false, code: 'PLAYERS_REQUEST_IN_FLIGHT', token: this.playersRequest.token });
+        }
+        const protocol = window.CaissaFICSPlayersProtocol;
+        if (!protocol?.createResponseParser) {
+            this.playersError = 'PLAYERS_PROTOCOL_UNAVAILABLE';
+            this.logToConsole('Unable to refresh player directory.');
+            this.notifySpectator('players-error', { code: this.playersError });
+            return Object.freeze({ ok: false, code: this.playersError });
+        }
+        const generation = this.sessionGeneration;
+        const token = `players:${generation}:${++this.playersRequestSequence}`;
+        const pending = {
+            token,
+            generation,
+            parser: protocol.createResponseParser(),
+            timeoutId: null,
+            startedAt: performance.now()
+        };
+        this.playersRequest = pending;
+        this.playersError = null;
+        this.logToConsole('Loading FICS players...');
+        this.logToConsole('> who v', 'COMMAND');
+        this.notifySpectator('players-loading', { token, sessionGeneration: generation });
+        const delivery = this.send('who v');
+        if (!delivery.ok) return this.failPlayersRequest(delivery.code);
+        pending.timeoutId = setTimeout(() => {
+            if (this.playersRequest?.token !== token) return;
+            if (this.playersRequest.generation !== this.sessionGeneration) {
+                this.invalidatePlayersDirectory('SESSION_CHANGED', { announceFailure: true });
+                return;
+            }
+            this.failPlayersRequest('PLAYERS_TIMEOUT');
+        }, this.playersRequestTimeoutMs);
+        return Object.freeze({ ...delivery, token, sessionGeneration: generation });
+    },
+
     handleRawGatewayData(text) {
         // The observer receives a string copy and cannot transform parser input.
         try { window.ClassicFicsObservability?.observeRawInbound(String(text)); } catch {}
         try { window.ClassicFicsMatchResearch?.observeRawInbound(String(text)); } catch {}
         try { window.ClassicComputerChallenge?.observeRawInbound(String(text)); } catch {}
+        this.consumePlayersData(String(text));
         this.rawBuffer = `${this.rawBuffer}${text}`.slice(-16384);
         this.logToConsole(this.sanitizeFicsConsoleText(text), 'FICS');
 
@@ -784,6 +921,7 @@ const CaissaFICSClient = {
             if (loginMatch) this.ficsUsername = loginMatch[1];
             this.authenticated = true;
             this.sessionGeneration += 1;
+            this.invalidatePlayersDirectory('SESSION_CHANGED', { announceFailure: true });
             // Explicit activation requests become ARMED only after auth confirmation.
             // The auth-success frame was already offered while the observer was OFF.
             try { window.ClassicFicsObservability?.onAuthenticated(); } catch {}
@@ -848,6 +986,7 @@ const CaissaFICSClient = {
         this.connected = false;
         this.authenticated = false;
         this.stopLobbyRefresh();
+        this.invalidatePlayersDirectory('AUTHENTICATION_FAILED', { announceFailure: true });
         this.resetLiveSessionState();
         this.renderRoomTables();
     },
@@ -889,6 +1028,7 @@ const CaissaFICSClient = {
     handleAuthenticated(message) {
         this.authenticated = true;
         this.sessionGeneration += 1;
+        this.invalidatePlayersDirectory('SESSION_CHANGED', { announceFailure: true });
         this.updateConnectionStatus(true, 'Connected as Guest');
         this.logToConsole('✅ ' + message.message);
         this.logToConsole('You can now seek games or type FICS commands');
@@ -897,6 +1037,7 @@ const CaissaFICSClient = {
     handleRawMessage(message) {
         const line = message.text;
         this.logToConsole(line, 'FICS');
+        this.consumePlayersData(line, { lineFramed: true });
 
         // Basic parsing for game events
         this.parseGameLine(line);
@@ -2572,8 +2713,16 @@ const CaissaFICSClient = {
 
     announceWorkspaceAvailability(view) {
         if (view === 'players') {
-            this.logToConsole('Player directory is not available yet.');
-            return Object.freeze({ announced: true, view, reason: 'UNSUPPORTED' });
+            if (!this.authenticated) {
+                this.logToConsole('Connect to FICS to load players.');
+                return Object.freeze({ announced: true, view, reason: 'NOT_AUTHENTICATED' });
+            }
+            const current = this.playersDirectory?.sessionGeneration === this.sessionGeneration;
+            if (!current || (!this.playersDirectory.count && !this.playersDirectory.refreshedAt && !this.playersRequest)) {
+                const request = this.requestPlayers();
+                return Object.freeze({ announced: request.ok, view, reason: request.ok ? 'LOADING' : request.code });
+            }
+            return Object.freeze({ announced: false, view, reason: this.playersRequest ? 'LOADING' : null });
         }
         if (view === 'tables' && !this.authenticated) {
             this.logToConsole('Connect to FICS to load tables.');

@@ -92,10 +92,11 @@ test('feature-flag rollback restores moved diagnostics and the prior Console pre
     assert.match(shell, /current\.connection\.hidden = current\.connectionHidden/);
 });
 
-test('one client socket board connection sound and console owner remain and Players stays unsupported', () => {
+test('one client socket board connection sound console and canonical Players owner remain', () => {
     assert.equal((client.match(/window\.CaissaFICSClient\s*=\s*CaissaFICSClient/g) || []).length, 1);
     assert.doesNotMatch(shell, /new\s+WebSocket|Chessboard\s*\(|new\s+Chess/);
-    assert.match(shell, /Player directory unavailable\./);
+    assert.match(shell, /snapshot\.players/);
+    assert.match(client, /playersDirectory:/);
     assert.doesNotMatch(shell, /\bwho\b|challenge player|player profile/i);
     for (const html of pages) {
         for (const id of ['ficsBoardContainer', 'ficsConnectBtn', 'ficsSoundToggle', 'ficsConsole']) {
