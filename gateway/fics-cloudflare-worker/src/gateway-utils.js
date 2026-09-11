@@ -2,12 +2,28 @@ export function parseAllowedOrigins(value = '') {
   return String(value)
     .split(',')
     .map((origin) => origin.trim())
-    .filter(Boolean);
+    .map(exactWebOrigin)
+    .filter(Boolean)
+    .filter((origin, index, origins) => origins.indexOf(origin) === index);
+}
+
+export function exactWebOrigin(value = '') {
+  const candidate = String(value).trim();
+  if (!candidate || candidate === '*' || candidate === 'null') return null;
+
+  try {
+    const url = new URL(candidate);
+    if (!['http:', 'https:'].includes(url.protocol)) return null;
+    if (url.hostname.includes('*') || url.username || url.password || url.pathname !== '/' || url.search || url.hash) return null;
+    return url.origin === candidate ? candidate : null;
+  } catch {
+    return null;
+  }
 }
 
 export function isAllowedOrigin(origin, allowedOrigins) {
-  if (!origin) return false;
-  return allowedOrigins.includes(origin);
+  const candidate = exactWebOrigin(origin);
+  return candidate !== null && allowedOrigins.includes(candidate);
 }
 
 export function createRateLimiter(limit, windowMs = 1000) {

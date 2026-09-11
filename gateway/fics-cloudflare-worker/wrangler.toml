@@ -1,16 +1,36 @@
 name = "caissa-fics-gateway-poc"
 main = "src/worker.js"
 compatibility_date = "2026-06-15"
-workers_dev = true
+workers_dev = false
+preview_urls = false
 
 [[routes]]
 pattern = "fics-gateway.caissa-chess.org"
 custom_domain = true
 
 [vars]
+ENVIRONMENT = "production"
 FICS_HOST = "freechess.org"
 FICS_PORT = "5000"
-ALLOWED_ORIGINS = "https://www.caissa-chess.org,http://localhost:8000,http://localhost:3000,http://127.0.0.1:8000,http://127.0.0.1:3000"
+ALLOWED_ORIGINS = "https://www.caissa-chess.org"
+MAX_MESSAGES_PER_SECOND = "10"
+MAX_MESSAGE_LENGTH = "4096"
+MAX_SESSION_SECONDS = "7200"
+IDLE_TIMEOUT_SECONDS = "600"
+
+# A named environment creates caissa-fics-gateway-poc-staging. It has no
+# production route and denies every Origin until the guarded staging deploy
+# command supplies one exact HTTPS preview origin.
+[env.staging]
+workers_dev = true
+preview_urls = false
+routes = []
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+FICS_HOST = "freechess.org"
+FICS_PORT = "5000"
+ALLOWED_ORIGINS = ""
 MAX_MESSAGES_PER_SECOND = "10"
 MAX_MESSAGE_LENGTH = "4096"
 MAX_SESSION_SECONDS = "7200"
