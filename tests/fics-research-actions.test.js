@@ -27,7 +27,7 @@ const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const classicSectionSource = fs.readFileSync(new URL('../js/yahoo-classic-section.js', import.meta.url), 'utf8');
 
 function loadClientSend() {
-    const match = clientSource.match(/\n    (send\(message\) \{[\s\S]*?\n    \}),\n\n    handleRawGatewayData/);
+    const match = clientSource.match(/\r?\n    (send\(message\) \{[\s\S]*?\r?\n    \}),\r?\n\r?\n    handleRawGatewayData/);
     assert.ok(match, 'CaissaFICSClient.send method found');
     const context = { result: null, WebSocket: { OPEN: 1 }, performance: { now: () => 4242 },
         console: { warn() {} }, Object };
