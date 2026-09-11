@@ -9,6 +9,13 @@ const CaissaOnboarding = {
     currentStep: 0,
     isActive: false,
     totalSteps: 5,
+    previouslyFocusedElement: null,
+    backgroundState: new Map(),
+    backgroundObserver: null,
+    openTimer: null,
+    entranceTimer: null,
+    removeTimer: null,
+    keydownHandler: null,
 
     // Storage key
     STORAGE_KEY: 'caissa_onboarding_completed',
@@ -79,7 +86,10 @@ const CaissaOnboarding = {
 
         if (!completed) {
             // Show onboarding after a short delay
-            setTimeout(() => this.show(), 1500);
+            this.openTimer = setTimeout(() => {
+                this.openTimer = null;
+                if (!localStorage.getItem(this.STORAGE_KEY)) this.show();
+            }, 1500);
         }
 
         // Listen for manual trigger
@@ -98,6 +108,7 @@ const CaissaOnboarding = {
 
         this.isActive = true;
         this.currentStep = 0;
+        this.previouslyFocusedElement = document.activeElement;
 
         // Create modal
         this.createModal();
@@ -120,13 +131,13 @@ const CaissaOnboarding = {
         modal.id = 'caissaOnboardingModal';
         modal.className = 'onboarding-modal';
         modal.innerHTML = `
-            <div class="onboarding-backdrop"></div>
-            <div class="onboarding-content">
+            <div class="onboarding-backdrop" aria-hidden="true"></div>
+            <div class="onboarding-content" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
                 <button id="onboardingSkip" class="onboarding-skip" aria-label="Skip tour">
                     <i class="fas fa-times"></i> Skip
                 </button>
                 <div class="onboarding-step-indicator">
-                    <span id="onboardingStepText">1 of ${this.totalSteps}</span>
+                    <span id="onboardingStepText" aria-live="polite">1 of ${this.totalSteps}</span>
                 </div>
                 <div id="onboardingStepContent" class="onboarding-step-content"></div>
                 <div class="onboarding-footer">
@@ -141,14 +152,116 @@ const CaissaOnboarding = {
         `;
 
         document.body.appendChild(modal);
+        this.disableBackground(modal);
 
         // Bind events
         document.getElementById('onboardingSkip').addEventListener('click', () => this.skip());
         document.getElementById('onboardingNext').addEventListener('click', () => this.next());
         document.getElementById('onboardingPrev').addEventListener('click', () => this.prev());
+        this.keydownHandler = event => this.handleKeydown(event);
+        document.addEventListener('keydown', this.keydownHandler);
 
         // Add entrance animation
-        setTimeout(() => modal.classList.add('onboarding-modal--visible'), 10);
+        this.entranceTimer = setTimeout(() => {
+            this.entranceTimer = null;
+            modal.classList.add('onboarding-modal--visible');
+            document.getElementById('onboardingNext')?.focus();
+        }, 10);
+    },
+
+    /**
+     * Make every page-level sibling non-interactive while the modal is open.
+     */
+    disableBackground(modal) {
+        this.backgroundState.clear();
+
+        const disable = element => {
+            if (!(element instanceof HTMLElement) || element === modal || this.backgroundState.has(element)) return;
+            this.backgroundState.set(element, element.inert);
+            element.inert = true;
+        };
+
+        Array.from(document.body.children).forEach(disable);
+        this.backgroundObserver = new MutationObserver(records => {
+            records.forEach(record => Array.from(record.addedNodes).forEach(disable));
+        });
+        this.backgroundObserver.observe(document.body, { childList: true });
+    },
+
+    /**
+     * Restore each page-level sibling to the inert state it had before opening.
+     */
+    restoreBackground() {
+        this.backgroundObserver?.disconnect();
+        this.backgroundObserver = null;
+
+        this.backgroundState.forEach((wasInert, element) => {
+            if (element.isConnected) element.inert = wasInert;
+        });
+        this.backgroundState.clear();
+    },
+
+    /**
+     * Return the currently operable controls in DOM tab order.
+     */
+    getFocusableElements() {
+        const dialog = document.querySelector('#caissaOnboardingModal [role="dialog"]');
+        if (!dialog) return [];
+
+        const selector = [
+            'a[href]',
+            'button:not([disabled])',
+            'input:not([disabled])',
+            'select:not([disabled])',
+            'textarea:not([disabled])',
+            '[contenteditable="true"]',
+            '[tabindex]:not([tabindex="-1"])'
+        ].join(',');
+
+        return Array.from(dialog.querySelectorAll(selector)).filter(element => {
+            const style = window.getComputedStyle(element);
+            return !element.closest('[hidden], [inert]')
+                && style.display !== 'none'
+                && style.visibility !== 'hidden'
+                && element.getClientRects().length > 0;
+        });
+    },
+
+    /**
+     * Keep keyboard focus in the modal and share Escape with Skip Tour.
+     */
+    handleKeydown(event) {
+        if (!this.isActive) return;
+
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            this.skip();
+            return;
+        }
+
+        if (event.key !== 'Tab') return;
+
+        const focusable = this.getFocusableElements();
+        if (!focusable.length) {
+            event.preventDefault();
+            return;
+        }
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const activeElement = document.activeElement;
+
+        if (!focusable.includes(activeElement)) {
+            event.preventDefault();
+            (event.shiftKey ? last : first).focus();
+        } else if (event.shiftKey && activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
     },
 
     /**
@@ -169,7 +282,7 @@ const CaissaOnboarding = {
             <div class="onboarding-icon">
                 <i class="fas fa-${step.icon}"></i>
             </div>
-            <h2 class="onboarding-title">${step.title}</h2>
+            <h2 id="onboardingTitle" class="onboarding-title">${step.title}</h2>
             <div class="onboarding-body">${step.content}</div>
         `;
 
@@ -221,6 +334,10 @@ const CaissaOnboarding = {
     complete() {
         // Mark as completed
         localStorage.setItem(this.STORAGE_KEY, 'true');
+        if (this.openTimer) {
+            clearTimeout(this.openTimer);
+            this.openTimer = null;
+        }
 
         if (window.CaissaLog) {
             CaissaLog.info('Onboarding', 'Completed');
@@ -236,10 +353,75 @@ const CaissaOnboarding = {
         const modal = document.getElementById('caissaOnboardingModal');
         if (modal) {
             modal.classList.remove('onboarding-modal--visible');
-            setTimeout(() => modal.remove(), 300);
+            modal.setAttribute('aria-hidden', 'true');
+            modal.inert = true;
+            this.removeTimer = setTimeout(() => {
+                modal.remove();
+                this.removeTimer = null;
+            }, 300);
         }
 
+        if (this.entranceTimer) {
+            clearTimeout(this.entranceTimer);
+            this.entranceTimer = null;
+        }
+        if (this.keydownHandler) {
+            document.removeEventListener('keydown', this.keydownHandler);
+            this.keydownHandler = null;
+        }
+
+        this.restoreBackground();
         this.isActive = false;
+        this.restoreFocus();
+    },
+
+    /**
+     * Restore the user's pre-modal focus, or use the visible page heading/main.
+     */
+    restoreFocus() {
+        const previous = this.previouslyFocusedElement;
+        this.previouslyFocusedElement = null;
+
+        if (this.canReceiveFocus(previous)) {
+            previous.focus();
+            return;
+        }
+
+        const fallbackSelectors = [
+            'main h1', '[role="main"] h1', 'h1', 'main', '[role="main"]',
+            'a[href]', 'button:not([disabled])'
+        ];
+        let fallback = null;
+        for (const selector of fallbackSelectors) {
+            fallback = Array.from(document.querySelectorAll(selector))
+                .find(element => this.isVisible(element) && !element.closest('[inert]'));
+            if (fallback) break;
+        }
+
+        if (!fallback) return;
+
+        const hadTabindex = fallback.hasAttribute('tabindex');
+        if (!this.canReceiveFocus(fallback)) fallback.setAttribute('tabindex', '-1');
+        fallback.focus();
+
+        if (!hadTabindex) {
+            fallback.addEventListener('blur', () => fallback.removeAttribute('tabindex'), { once: true });
+        }
+    },
+
+    isVisible(element) {
+        if (!(element instanceof HTMLElement) || !element.isConnected) return false;
+        const style = window.getComputedStyle(element);
+        return !element.closest('[hidden]')
+            && style.display !== 'none'
+            && style.visibility !== 'hidden'
+            && element.getClientRects().length > 0;
+    },
+
+    canReceiveFocus(element) {
+        if (!this.isVisible(element) || element.closest('[inert]')) return false;
+        if (element.matches('button, input, select, textarea') && element.disabled) return false;
+        return element.tabIndex >= 0;
     },
 
     /**
