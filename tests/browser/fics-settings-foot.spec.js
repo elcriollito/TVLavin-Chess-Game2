@@ -265,6 +265,37 @@ test('hybrid Console preserves raw FICS and command lines in one stream', async 
     expect(result.text).toContain('[FICS] fics% help');
 });
 
+test('overflowing hybrid Console remains keyboard-scrollable after a Players-sized response', async ({ page }) => {
+    await openFics(page, { width: 1440, height: 1000 });
+    const consoleState = await page.evaluate(() => {
+        const client = window.CaissaFICSClient;
+        client.messageBuffer = [];
+        for (let index = 0; index < 12; index += 1) {
+            client.logToConsole(`[REDACTED] ${index}`, 'FICS');
+        }
+        client.setConsoleExpanded(true);
+        const consoleNode = document.getElementById('ficsConsole');
+        return {
+            scrollable: consoleNode.scrollHeight > consoleNode.clientHeight,
+            tabIndex: consoleNode.tabIndex
+        };
+    });
+    expect(consoleState.scrollable).toBe(true);
+
+    const consoleNode = page.locator('#ficsConsole');
+    await consoleNode.evaluate((node) => { node.scrollTop = 0; });
+    await consoleNode.focus();
+    await expect(consoleNode).toBeFocused();
+    await page.keyboard.press('PageDown');
+    await expect.poll(() => consoleNode.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
+
+    const results = await new AxeBuilder({ page }).include('.fics-console-section').analyze();
+    const seriousCritical = results.violations
+        .filter((violation) => ['serious', 'critical'].includes(violation.impact));
+    expect(seriousCritical).toEqual([]);
+    expect(consoleState.tabIndex).toBe(0);
+});
+
 test('top session control owns permanent state while FOOT remains Console-only', async ({ page }) => {
     await openFics(page);
     await page.evaluate(() => {
