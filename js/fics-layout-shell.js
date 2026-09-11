@@ -1,0 +1,1528 @@
+(function installFicsLayoutShell(root) {
+    'use strict';
+
+    const SCHEMA_VERSION = '1.6.0';
+    const FLAG = 'CAISSA_FICS_REDESIGN_ENABLED';
+    const LOBBY_VIEWS = Object.freeze(['tables', 'players', 'seek']);
+    const TAB_VIEWS = Object.freeze([...LOBBY_VIEWS, 'game']);
+    const GAME_STATES = new Set(['PLAYING', 'OBSERVING', 'GAME_OVER']);
+    const PRODUCT_EVENTS = Object.freeze([
+        'authenticated', 'lobby-updated', 'style12', 'game-ended', 'disconnected', 'observer-left',
+        'observation-requested', 'observation-settled', 'observation-error', 'connection-state',
+        'game-action-delivery', 'game-action-ready', 'players-loading', 'players-updated',
+        'players-error', 'players-invalidated'
+    ]);
+    let mounted = null;
+    let selectedLobbyView = null;
+    let dismissedEndedGameKey = null;
+    let lastGameModeAvailable = false;
+    let lastProductState = null;
+    let resizeObserver = null;
+    let resizeFrame = 0;
+    let actionNotice = null;
+    let resignConfirmationKey = null;
+    let gameMoveScrollTop = 0;
+    let lastGameMoveSignature = null;
+    let replayCursor = null;
+    let analyzeInFlightKey = null;
+    let settingsOpen = false;
+    let settingsReturnFocus = null;
+    let sessionMenuOpen = false;
+    let sessionReturnFocus = null;
+    let userDialogOpen = false;
+    let userDialogReturnFocus = null;
+    let lastAuthenticated = false;
+    let playersQuery = '';
+    let playersSort = 'rating';
+    const seekDraft = { minutes: '5', increment: '0', rated: 'unrated', color: 'random' };
+    const eventListeners = [];
+
+    function createElement(tag, className, attributes = {}) {
+        const element = document.createElement(tag);
+        if (className) element.className = className;
+        Object.entries(attributes).forEach(([name, value]) => element.setAttribute(name, value));
+        return element;
+    }
+
+    function rememberRelocation(node) {
+        return { node, parent: node.parentNode, nextSibling: node.nextSibling };
+    }
+
+    function restoreRelocations(relocations = []) {
+        relocations.forEach(({ node, parent, nextSibling }) => {
+            parent.insertBefore(node, nextSibling?.parentNode === parent ? nextSibling : null);
+        });
+    }
+
+    function focusableSettingsControls() {
+        if (!mounted?.settingsPanel) return [];
+        return [...mounted.settingsPanel.querySelectorAll(
+            'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )].filter((node) => !node.hidden && node.getClientRects().length > 0);
+    }
+
+    function setSettingsOpen(open, { restoreFocus = true } = {}) {
+        if (!mounted) return false;
+        if (open === true) setSessionMenuOpen(false, { restoreFocus: false });
+        settingsOpen = open === true;
+        mounted.settingsLayer.hidden = !settingsOpen;
+        mounted.settingsButton.setAttribute('aria-expanded', String(settingsOpen));
+        mounted.settingsButton.classList.toggle('is-open', settingsOpen);
+        if (settingsOpen) {
+            settingsReturnFocus = document.activeElement;
+            mounted.backgroundInertRecords = [...document.body.children]
+                .filter((node) => node !== mounted.settingsLayer)
+                .map((node) => ({ node, inert: node.inert }));
+            mounted.backgroundInertRecords.forEach(({ node }) => { node.inert = true; });
+            mounted.shell.inert = true;
+            if (mounted.pageHeader) mounted.pageHeader.inert = true;
+            document.body.classList.add('fics-rd5-settings-active');
+            mounted.settingsClose.focus({ preventScroll: true });
+        } else {
+            mounted.backgroundInertRecords?.forEach(({ node, inert }) => { node.inert = inert; });
+            mounted.backgroundInertRecords = [];
+            mounted.shell.inert = false;
+            if (mounted.pageHeader) mounted.pageHeader.inert = false;
+            document.body.classList.remove('fics-rd5-settings-active');
+            if (restoreFocus) {
+                const target = settingsReturnFocus?.isConnected ? settingsReturnFocus : mounted.settingsButton;
+                target?.focus?.({ preventScroll: true });
+            }
+            settingsReturnFocus = null;
+        }
+        return settingsOpen;
+    }
+
+    function focusableMenuControls() {
+        if (!mounted?.sessionMenu) return [];
+        return [...mounted.sessionMenu.querySelectorAll('[role="menuitem"]')]
+            .filter((node) => !node.hidden && !node.disabled);
+    }
+
+    function setSessionMenuOpen(open, { restoreFocus = true } = {}) {
+        if (!mounted) return false;
+        sessionMenuOpen = open === true;
+        mounted.sessionMenu.hidden = !sessionMenuOpen;
+        mounted.sessionButton.setAttribute('aria-expanded', String(sessionMenuOpen));
+        mounted.sessionButton.classList.toggle('is-open', sessionMenuOpen);
+        if (sessionMenuOpen) {
+            sessionReturnFocus = document.activeElement;
+            setSettingsOpen(false, { restoreFocus: false });
+            focusableMenuControls()[0]?.focus?.({ preventScroll: true });
+        } else {
+            if (restoreFocus) {
+                const target = sessionReturnFocus?.isConnected ? sessionReturnFocus : mounted.sessionButton;
+                target?.focus?.({ preventScroll: true });
+            }
+            sessionReturnFocus = null;
+        }
+        return sessionMenuOpen;
+    }
+
+    function handleSessionMenuKeydown(event) {
+        if (!sessionMenuOpen) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            setSessionMenuOpen(false);
+            return;
+        }
+        const controls = focusableMenuControls();
+        const current = controls.indexOf(document.activeElement);
+        const target = event.key === 'ArrowDown' ? (current + 1 + controls.length) % controls.length
+            : event.key === 'ArrowUp' ? (current - 1 + controls.length) % controls.length
+                : event.key === 'Home' ? 0 : event.key === 'End' ? controls.length - 1 : -1;
+        if (target < 0 || !controls.length) return;
+        event.preventDefault();
+        controls[target].focus();
+    }
+
+    function focusableUserDialogControls() {
+        if (!mounted?.userDialog) return [];
+        return [...mounted.userDialog.querySelectorAll(
+            'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )].filter((node) => !node.hidden && node.getClientRects().length > 0);
+    }
+
+    function setUserDialogOpen(open, { restoreFocus = true, clearPassword = true } = {}) {
+        if (!mounted) return false;
+        userDialogOpen = open === true;
+        mounted.userDialogLayer.hidden = !userDialogOpen;
+        if (userDialogOpen) {
+            userDialogReturnFocus = mounted.sessionButton;
+            setSessionMenuOpen(false, { restoreFocus: false });
+            setSettingsOpen(false, { restoreFocus: false });
+            mounted.userDialogBackgroundRecords = [...document.body.children]
+                .filter((node) => node !== mounted.userDialogLayer)
+                .map((node) => ({ node, inert: node.inert }));
+            mounted.userDialogBackgroundRecords.forEach(({ node }) => { node.inert = true; });
+            document.body.classList.add('fics-rd7-user-dialog-active');
+            mounted.accountUsernameInput.disabled = false;
+            mounted.accountPasswordInput.disabled = false;
+            mounted.accountUsernameInput.focus({ preventScroll: true });
+        } else {
+            mounted.userDialogBackgroundRecords?.forEach(({ node, inert }) => { node.inert = inert; });
+            mounted.userDialogBackgroundRecords = [];
+            document.body.classList.remove('fics-rd7-user-dialog-active');
+            if (clearPassword) root.CaissaFICSClient?.clearAccountPassword?.();
+            root.CaissaFICSClient?.updateLoginControls?.();
+            if (restoreFocus) {
+                const target = userDialogReturnFocus?.isConnected ? userDialogReturnFocus : mounted.sessionButton;
+                target?.focus?.({ preventScroll: true });
+            }
+            userDialogReturnFocus = null;
+        }
+        return userDialogOpen;
+    }
+
+    function handleUserDialogKeydown(event) {
+        if (!userDialogOpen) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            setUserDialogOpen(false);
+            return;
+        }
+        if (event.key !== 'Tab') return;
+        const controls = focusableUserDialogControls();
+        if (!controls.length) return;
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    }
+
+    function handleDocumentPointerDown(event) {
+        if (sessionMenuOpen && mounted?.sessionControl && !mounted.sessionControl.contains(event.target)) {
+            setSessionMenuOpen(false, { restoreFocus: false });
+        }
+    }
+
+    function handleSettingsKeydown(event) {
+        if (!settingsOpen) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            setSettingsOpen(false);
+            return;
+        }
+        if (event.key !== 'Tab') return;
+        const controls = focusableSettingsControls();
+        if (!controls.length) {
+            event.preventDefault();
+            mounted.settingsPanel.focus();
+            return;
+        }
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    }
+
+    function setConsoleExpanded(expanded) {
+        return root.CaissaFICSClient?.setConsoleExpanded?.(expanded);
+    }
+
+    function getBaseViewState() {
+        return root.CaissaFICSPresentation?.getViewState?.() || Object.freeze({
+            productState: 'DISCONNECTED', bodyMode: 'CONNECTION', activeTab: null,
+            primaryGameMode: false, gameModeAvailable: false, returnToGameAvailable: false
+        });
+    }
+
+    function getViewState() {
+        const options = {
+            ...(selectedLobbyView ? { requestedLobbyView: selectedLobbyView } : {}),
+            ...(dismissedEndedGameKey ? { dismissEndedGame: true } : {})
+        };
+        return root.CaissaFICSPresentation?.getViewState?.(options) || getBaseViewState();
+    }
+
+    function getProjection() {
+        const options = {
+            ...(selectedLobbyView ? { requestedLobbyView: selectedLobbyView } : {}),
+            ...(dismissedEndedGameKey ? { dismissEndedGame: true } : {})
+        };
+        return root.CaissaFICSPresentation?.getSnapshot?.(options) || {
+            productState: 'DISCONNECTED', connection: { authenticated: false }, session: {},
+            lobby: { activeTables: [], pendingSeek: null, playersSupported: false }, game: {},
+            players: { supported: true, loading: false, error: null, entries: [], count: 0, refreshedAt: null },
+            capabilities: { observeTable: false, createSeek: false, cancelSeek: false, refreshPlayers: false },
+            presentation: getViewState()
+        };
+    }
+
+    function appendText(parent, tag, className, text, attributes = {}) {
+        const element = createElement(tag, className, attributes);
+        element.textContent = text;
+        parent.append(element);
+        return element;
+    }
+
+    function rememberFocus() {
+        const active = document.activeElement;
+        if (!mounted?.body.contains(active)) return null;
+        return {
+            key: active.dataset.ficsFocusKey || null,
+            start: typeof active.selectionStart === 'number' ? active.selectionStart : null,
+            end: typeof active.selectionEnd === 'number' ? active.selectionEnd : null
+        };
+    }
+
+    function restoreFocus(focus) {
+        if (!focus?.key || !mounted) return;
+        const schedule = root.requestAnimationFrame || ((callback) => root.setTimeout(callback, 0));
+        schedule(() => {
+            const target = [...mounted.body.querySelectorAll('[data-fics-focus-key]')]
+                .find((node) => node.dataset.ficsFocusKey === focus.key);
+            if (!target) return;
+            target.focus({ preventScroll: true });
+            if (focus.start !== null && typeof target.setSelectionRange === 'function') {
+                target.setSelectionRange(focus.start, focus.end);
+            }
+        });
+    }
+
+    function noticeNode(view) {
+        if (!actionNotice || actionNotice.view !== view) return null;
+        const notice = createElement('p', `fics-rd3-notice is-${actionNotice.type}`, {
+            role: actionNotice.type === 'error' ? 'alert' : 'status'
+        });
+        notice.textContent = actionNotice.message;
+        return notice;
+    }
+
+    function tablePlayer(name, rating) {
+        const row = createElement('span', 'fics-rd3-table-player');
+        appendText(row, 'strong', 'fics-rd3-table-player-name', name || '—');
+        appendText(row, 'span', 'fics-rd3-table-rating', rating || 'rating —');
+        return row;
+    }
+
+    function renderTables(snapshot) {
+        const wrapper = createElement('div', 'fics-rd3-tables', { 'data-fics-body-view': 'tables' });
+        const heading = createElement('div', 'fics-rd3-body-heading');
+        const headingCopy = createElement('div');
+        const titleRow = createElement('div', 'fics-rd11-title-row');
+        appendText(titleRow, 'h3', 'fics-rd3-title', 'Active Tables');
+        appendText(titleRow, 'span', 'fics-rd11-info', 'i', {
+            role: 'note', tabindex: '0',
+            title: 'Shows recently reported FICS games; some active games may not appear.',
+            'aria-label': 'Shows recently reported FICS games; some active games may not appear.'
+        });
+        headingCopy.append(titleRow);
+        const refresh = appendText(heading, 'button', 'fics-rd3-secondary-action', 'Refresh', {
+            type: 'button', 'data-fics-focus-key': 'tables-refresh'
+        });
+        refresh.disabled = !snapshot.connection.authenticated || snapshot.lobby.loading;
+        refresh.addEventListener('click', () => {
+            actionNotice = { view: 'tables', type: 'status', message: 'Requesting recent FICS games…' };
+            root.CaissaFICSClient?.refreshLobby?.(true);
+            render();
+        });
+        heading.prepend(headingCopy);
+        wrapper.append(heading);
+        const notice = noticeNode('tables');
+        if (notice) wrapper.append(notice);
+
+        const tables = Array.isArray(snapshot.lobby.activeTables) ? snapshot.lobby.activeTables : [];
+        if (snapshot.lobby.loading && !tables.length) {
+            appendText(wrapper, 'p', 'fics-rd3-empty', 'Loading recently reported games…', { role: 'status' });
+            return wrapper;
+        }
+        if (!tables.length) {
+            appendText(wrapper, 'p', 'fics-rd3-empty', 'No tables loaded.', { role: 'status' });
+            return wrapper;
+        }
+
+        const list = createElement('div', 'fics-rd3-table-list', { role: 'list', 'aria-label': 'Recently reported FICS games' });
+        tables.forEach((table) => {
+            const number = table.number === null || table.number === undefined ? null : String(table.number);
+            const card = createElement('article', 'fics-rd3-table-card', { role: 'listitem' });
+            const identity = createElement('div', 'fics-rd3-table-identity');
+            appendText(identity, 'span', 'fics-rd3-table-number', number ? `#${number}` : '#—');
+            const players = createElement('div', 'fics-rd3-table-players');
+            players.append(tablePlayer(table.white, table.whiteRating));
+            appendText(players, 'span', 'fics-rd3-versus', 'vs');
+            players.append(tablePlayer(table.black, table.blackRating));
+            identity.append(players);
+
+            const details = [
+                table.timeControl || 'time —',
+                typeof table.rated === 'boolean' ? (table.rated ? 'Rated' : 'Casual') : table.rated,
+                table.variant,
+                table.observers ? `${table.observers} watching` : null
+            ].filter(Boolean);
+            appendText(identity, 'p', 'fics-rd3-table-meta', details.join(' · '));
+
+            const current = snapshot.game.observed && String(snapshot.game.gameNumber) === number;
+            const own = [table.white, table.black].some((name) => name
+                && snapshot.session.username && String(name).toLowerCase() === String(snapshot.session.username).toLowerCase());
+            const inFlight = snapshot.lobby.observationRequest?.target === number;
+            const button = appendText(card, 'button', 'fics-rd3-primary-action', current ? 'Watching' : inFlight ? 'Opening…' : 'Observe', {
+                type: 'button', 'data-fics-focus-key': `observe-${number || 'unknown'}`,
+                'aria-label': `Observe table ${number || 'unknown'}: ${table.white || 'unknown'} versus ${table.black || 'unknown'}`
+            });
+            button.disabled = !number || own || current || inFlight || !snapshot.capabilities.observeTable;
+            button.addEventListener('click', () => {
+                const result = root.CaissaFICSClient?.switchObservedGame?.(number)
+                    || { ok: false, code: 'OBSERVE_UNAVAILABLE' };
+                actionNotice = result.ok
+                    ? { view: 'tables', type: 'status', message: `Opening table #${number}…` }
+                    : { view: 'tables', type: 'error', message: `Table #${number} could not be opened (${result.code}).` };
+                render();
+            });
+            card.prepend(identity);
+            list.append(card);
+        });
+        wrapper.append(list);
+        return wrapper;
+    }
+
+    function seekStatusCopy(pending) {
+        if (pending.status === 'cancel_requested') return 'Cancel requested. Waiting for the local FICS refresh.';
+        if (pending.status === 'error') return pending.error || 'The last seek action was not delivered.';
+        if (pending.status === 'creating') return 'Sending your table request…';
+        return 'Command sent. Waiting for a FICS opponent; server acknowledgement is not available.';
+    }
+
+    function renderPendingSeek(snapshot, pending) {
+        const card = createElement('div', 'fics-rd3-pending-seek', {
+            role: pending.status === 'error' ? 'alert' : 'status', 'aria-live': 'polite'
+        });
+        appendText(card, 'span', 'fics-rd3-waiting-label', pending.status === 'error' ? 'Action needs attention' : 'Waiting for opponent');
+        appendText(card, 'strong', 'fics-rd3-pending-time', pending.timeControl || 'Time —');
+        const preferences = [
+            typeof pending.rated === 'boolean' ? (pending.rated ? 'Rated' : 'Casual') : null,
+            pending.color === 'white' ? 'Play as White' : pending.color === 'black' ? 'Play as Black' : 'Random color'
+        ].filter(Boolean);
+        appendText(card, 'span', 'fics-rd3-pending-meta', preferences.join(' · '));
+        appendText(card, 'p', 'fics-rd3-pending-message', seekStatusCopy(pending));
+        const cancel = appendText(card, 'button', 'fics-rd3-cancel-action', pending.status === 'error' ? 'Try Cancel Again' : pending.status === 'cancel_requested' ? 'Canceling…' : 'Cancel', {
+            type: 'button', 'data-fics-focus-key': 'seek-cancel'
+        });
+        cancel.disabled = pending.status === 'cancel_requested' || !snapshot.capabilities.cancelSeek;
+        cancel.addEventListener('click', () => {
+            const result = root.CaissaFICSClient?.cancelSeek?.() || { ok: false, code: 'CANCEL_UNAVAILABLE' };
+            actionNotice = result.ok
+                ? { view: 'seek', type: 'status', message: 'Cancellation requested.' }
+                : { view: 'seek', type: 'error', message: `The seek could not be canceled (${result.code}).` };
+            render();
+        });
+        return card;
+    }
+
+    function labeledControl(form, labelText, control) {
+        const group = createElement('div', 'fics-rd3-field');
+        const key = control.dataset.ficsFocusKey || labelText.toLowerCase().replace(/[^a-z]+/g, '-');
+        control.id = `ficsRd3-${key}`;
+        const label = appendText(group, 'label', 'fics-rd3-label', labelText, { for: control.id });
+        label.htmlFor = control.id;
+        group.append(control);
+        form.append(group);
+        return control;
+    }
+
+    function renderSeek(snapshot) {
+        const wrapper = createElement('div', 'fics-rd3-seek', { 'data-fics-body-view': 'seek' });
+        appendText(wrapper, 'h3', 'fics-rd3-title', 'Create Table');
+        const notice = noticeNode('seek');
+        if (notice) wrapper.append(notice);
+        const pending = snapshot.lobby.pendingSeek;
+        const pendingActive = pending && (pending.status !== 'error' || pending.operation === 'cancel');
+        if (pendingActive) {
+            wrapper.append(renderPendingSeek(snapshot, pending));
+            return wrapper;
+        }
+        if (pending?.status === 'error') {
+            appendText(wrapper, 'p', 'fics-rd3-notice is-error', pending.error || 'The table request was not delivered.', { role: 'alert' });
+        }
+
+        const form = createElement('form', 'fics-rd3-seek-form', { 'aria-label': 'Create FICS table' });
+        const timeRow = createElement('div', 'fics-rd3-time-row');
+        const minutes = createElement('input', 'fics-rd3-input', {
+            type: 'number', min: '1', max: '180', step: '1', required: '', inputmode: 'numeric',
+            value: seekDraft.minutes, 'data-fics-focus-key': 'seek-minutes'
+        });
+        minutes.value = seekDraft.minutes;
+        const increment = createElement('input', 'fics-rd3-input', {
+            type: 'number', min: '0', max: '60', step: '1', required: '', inputmode: 'numeric',
+            value: seekDraft.increment, 'data-fics-focus-key': 'seek-increment'
+        });
+        increment.value = seekDraft.increment;
+        labeledControl(timeRow, 'Time (minutes)', minutes);
+        labeledControl(timeRow, 'Increment (seconds)', increment);
+        form.append(timeRow);
+
+        const game = createElement('select', 'fics-rd3-select', { 'data-fics-focus-key': 'seek-rated' });
+        [['unrated', 'Casual'], ['rated', 'Rated']].forEach(([value, label]) => {
+            const option = createElement('option');
+            option.value = value;
+            option.textContent = label;
+            game.append(option);
+        });
+        game.value = seekDraft.rated;
+        labeledControl(form, 'Game', game);
+
+        const color = createElement('select', 'fics-rd3-select', { 'data-fics-focus-key': 'seek-color' });
+        [['white', 'White'], ['random', 'Random'], ['black', 'Black']].forEach(([value, label]) => {
+            const option = createElement('option');
+            option.value = value;
+            option.textContent = label;
+            color.append(option);
+        });
+        color.value = seekDraft.color;
+        labeledControl(form, 'Play as', color);
+
+        [minutes, increment, game, color].forEach((control) => {
+            control.addEventListener('input', () => {
+                seekDraft.minutes = minutes.value;
+                seekDraft.increment = increment.value;
+                seekDraft.rated = game.value;
+                seekDraft.color = color.value;
+            });
+        });
+        const submit = appendText(form, 'button', 'fics-rd3-create-action', 'Create Table', {
+            type: 'submit', 'data-fics-focus-key': 'seek-submit'
+        });
+        submit.disabled = !snapshot.capabilities.createSeek;
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            if (!form.reportValidity()) return;
+            seekDraft.minutes = minutes.value;
+            seekDraft.increment = increment.value;
+            seekDraft.rated = game.value;
+            seekDraft.color = color.value;
+            const result = root.CaissaFICSClient?.requestSeek?.({
+                minutes: minutes.value,
+                increment: increment.value,
+                rated: game.value,
+                color: color.value
+            }) || { ok: false, code: 'SEEK_UNAVAILABLE' };
+            actionNotice = result.ok
+                ? { view: 'seek', type: 'status', message: 'Table request sent.' }
+                : root.CaissaFICSClient?.pendingSeek?.status === 'error'
+                    ? null
+                    : { view: 'seek', type: 'error', message: result.message || `The table request failed (${result.code}).` };
+            render();
+        });
+        wrapper.append(form);
+        if (!snapshot.capabilities.createSeek && snapshot.presentation.gameModeAvailable) {
+            appendText(wrapper, 'p', 'fics-rd3-form-note', 'Return from the active game before creating a new table.');
+        }
+        return wrapper;
+    }
+
+    function playerStatus(player) {
+        if (player.playing && player.gameNumber !== null) return `Playing #${player.gameNumber}`;
+        if (player.observing) return 'Observing';
+        if (player.available) return player.unratedOnly ? 'Available · Unrated only' : 'Available';
+        if (!player.open) return 'Not open';
+        return 'Online';
+    }
+
+    function displayRating(rating = {}) {
+        if (!Number.isFinite(rating.value)) return '—';
+        return `${rating.value}${rating.marker || ''}`;
+    }
+
+    function ratingDescription(rating = {}) {
+        const labels = {
+            established: 'Established Blitz rating', provisional: 'Provisional Blitz rating',
+            estimated: 'Estimated Blitz rating', 'registered-unrated': 'Registered, unrated in Blitz',
+            unregistered: 'Unregistered FICS user'
+        };
+        return labels[rating.state] || 'Blitz rating unavailable';
+    }
+
+    function playerRows(entries = []) {
+        const query = playersQuery.trim().toLocaleLowerCase();
+        const filtered = query
+            ? entries.filter((player) => player.handle?.toLocaleLowerCase().includes(query))
+            : [...entries];
+        if (playersSort === 'name') {
+            filtered.sort((left, right) => String(left.handle || '').localeCompare(String(right.handle || ''), undefined, { sensitivity: 'base' })
+                || left.serverOrder - right.serverOrder);
+        } else if (playersSort === 'rating') {
+            filtered.sort((left, right) => {
+                const leftRating = left.ratings?.blitz?.value;
+                const rightRating = right.ratings?.blitz?.value;
+                if (Number.isFinite(leftRating) && Number.isFinite(rightRating)) return rightRating - leftRating
+                    || left.serverOrder - right.serverOrder;
+                if (Number.isFinite(leftRating)) return -1;
+                if (Number.isFinite(rightRating)) return 1;
+                return left.serverOrder - right.serverOrder;
+            });
+        }
+        return filtered;
+    }
+
+    function renderPlayers(snapshot) {
+        const directory = snapshot.players || { entries: [], count: 0 };
+        const wrapper = createElement('div', 'fics-rd10-players', {
+            'data-fics-body-view': 'players', 'aria-busy': String(directory.loading === true)
+        });
+        const heading = createElement('div', 'fics-rd3-body-heading fics-rd10-heading');
+        const headingCopy = createElement('div');
+        appendText(headingCopy, 'h3', 'fics-rd3-title', 'Players');
+        appendText(headingCopy, 'p', 'fics-rd3-subtitle', directory.refreshedAt
+            ? `${directory.count} connected players · Blitz rating`
+            : 'Connected players appear here.');
+        const refresh = appendText(heading, 'button', 'fics-rd3-secondary-action', directory.loading ? 'Loading…' : 'Refresh', {
+            type: 'button', 'data-fics-focus-key': 'players-refresh'
+        });
+        refresh.disabled = !snapshot.capabilities.refreshPlayers;
+        refresh.addEventListener('click', () => root.CaissaFICSClient?.requestPlayers?.());
+        heading.append(headingCopy, refresh);
+        wrapper.append(heading);
+
+        const toolbar = createElement('div', 'fics-rd10-toolbar');
+        const searchLabel = appendText(toolbar, 'label', 'fics-rd10-visually-hidden', 'Search players', { for: 'ficsRd10PlayerSearch' });
+        const search = createElement('input', 'fics-rd3-input fics-rd10-search', {
+            id: 'ficsRd10PlayerSearch', type: 'search', placeholder: 'Search players…',
+            autocomplete: 'off', 'data-fics-focus-key': 'players-search'
+        });
+        search.value = playersQuery;
+        search.addEventListener('input', () => {
+            playersQuery = search.value;
+            render();
+        });
+        const sortLabel = appendText(toolbar, 'label', 'fics-rd10-visually-hidden', 'Sort players', { for: 'ficsRd10PlayerSort' });
+        const sort = createElement('select', 'fics-rd3-select fics-rd10-sort', {
+            id: 'ficsRd10PlayerSort', 'data-fics-focus-key': 'players-sort'
+        });
+        [['rating', 'Rating'], ['name', 'Name'], ['server', 'Server order']].forEach(([value, label]) => {
+            const option = createElement('option');
+            option.value = value;
+            option.textContent = label;
+            sort.append(option);
+        });
+        sort.value = playersSort;
+        sort.addEventListener('change', () => {
+            playersSort = sort.value;
+            render();
+        });
+        toolbar.append(searchLabel, search, sortLabel, sort);
+        wrapper.append(toolbar);
+
+        if (directory.loading) {
+            appendText(wrapper, 'p', 'fics-rd10-state', directory.entries.length
+                ? 'Refreshing players…' : 'Loading FICS players…', { role: 'status' });
+        }
+        if (directory.error) {
+            appendText(wrapper, 'p', 'fics-rd10-state is-error', directory.entries.length
+                ? 'Refresh failed. Showing the previous directory.'
+                : 'Unable to refresh player directory.', { role: 'alert' });
+        }
+
+        const rows = playerRows(directory.entries);
+        if (!directory.entries.length && !directory.loading) {
+            appendText(wrapper, 'p', 'fics-rd3-empty fics-rd10-empty', directory.refreshedAt
+                ? 'No connected players.' : 'No players loaded.', { role: 'status' });
+            return wrapper;
+        }
+        if (directory.entries.length && !rows.length) {
+            appendText(wrapper, 'p', 'fics-rd3-empty fics-rd10-empty', 'No players match your search.', { role: 'status' });
+            return wrapper;
+        }
+        if (!rows.length) return wrapper;
+
+        const table = createElement('table', 'fics-rd10-table', { 'aria-label': 'Connected FICS players' });
+        const tableHead = createElement('thead');
+        const headRow = createElement('tr');
+        for (const [label, className] of [['Username', 'is-player'], ['Blitz', 'is-rating'], ['Status', 'is-status']]) {
+            appendText(headRow, 'th', className, label, { scope: 'col' });
+        }
+        tableHead.append(headRow);
+        const body = createElement('tbody');
+        rows.forEach((player) => {
+            const row = createElement('tr');
+            const identity = createElement('td', 'is-player');
+            appendText(identity, 'span', 'fics-rd10-handle', player.handle || '—');
+            if (player.codes?.length) appendText(identity, 'span', 'fics-rd10-codes', ` (${player.codes.join(' · ')})`);
+            const rating = player.ratings?.blitz || {};
+            const ratingCell = appendText(row, 'td', 'is-rating', displayRating(rating));
+            ratingCell.title = ratingDescription(rating);
+            appendText(row, 'td', 'is-status', playerStatus(player));
+            row.prepend(identity);
+            body.append(row);
+        });
+        table.append(tableHead, body);
+        wrapper.append(table);
+        return wrapper;
+    }
+
+    function gameKey(game = {}) {
+        return `${game.gameNumber ?? 'unknown'}:${game.identities?.white?.name || 'white'}:${game.identities?.black?.name || 'black'}`;
+    }
+
+    function replayPositionFor(snapshot, ply) {
+        if (ply === 0) return snapshot.game.replay?.initialFen || null;
+        return snapshot.game.moves?.[ply - 1]?.fen || null;
+    }
+
+    function syncReplayCursor(snapshot) {
+        if (!snapshot.presentation?.gameModeAvailable) {
+            replayCursor = null;
+            return null;
+        }
+        const key = gameKey(snapshot.game);
+        const latestPly = Number.isSafeInteger(snapshot.game.replay?.latestPly)
+            ? snapshot.game.replay.latestPly : snapshot.game.moves?.length || 0;
+        if (!replayCursor || replayCursor.gameKey !== key) {
+            replayCursor = { gameKey: key, currentPly: latestPly, latestPly, followingLive: true };
+        } else {
+            replayCursor.latestPly = latestPly;
+            replayCursor.currentPly = replayCursor.followingLive
+                ? latestPly : Math.min(replayCursor.currentPly, latestPly);
+        }
+        replayCursor.fen = replayCursor.followingLive
+            ? snapshot.game.currentFen : replayPositionFor(snapshot, replayCursor.currentPly);
+        replayCursor.positionsComplete = snapshot.game.replay?.positionsComplete === true;
+        return replayCursor;
+    }
+
+    function getReplaySnapshot() {
+        if (!replayCursor) return Object.freeze({
+            available: false, currentPly: 0, latestPly: 0, isReviewingHistory: false,
+            newerMoves: 0, followingLive: true, fen: null
+        });
+        return Object.freeze({
+            available: replayCursor.positionsComplete,
+            currentPly: replayCursor.currentPly,
+            latestPly: replayCursor.latestPly,
+            isReviewingHistory: replayCursor.currentPly < replayCursor.latestPly,
+            newerMoves: Math.max(0, replayCursor.latestPly - replayCursor.currentPly),
+            followingLive: replayCursor.followingLive,
+            fen: replayCursor.fen
+        });
+    }
+
+    function applyReplayBoardPosition(snapshot) {
+        const replay = getReplaySnapshot();
+        if (!snapshot.presentation?.gameModeAvailable || !replay.fen) return false;
+        const board = root.CaissaFICSClient?.board;
+        if (!board?.position) return false;
+        board.position(replay.fen, false);
+        return true;
+    }
+
+    function selectReplayPly(requestedPly) {
+        const snapshot = getProjection();
+        const cursor = syncReplayCursor(snapshot);
+        if (!cursor?.positionsComplete) return false;
+        const ply = Math.max(0, Math.min(Number(requestedPly), cursor.latestPly));
+        if (!Number.isSafeInteger(ply) || !replayPositionFor(snapshot, ply)) return false;
+        cursor.currentPly = ply;
+        cursor.followingLive = ply === cursor.latestPly;
+        cursor.fen = cursor.followingLive ? snapshot.game.currentFen : replayPositionFor(snapshot, ply);
+        render();
+        return true;
+    }
+
+    function shouldIgnoreReplayShortcut(event) {
+        if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return true;
+        const target = event.target;
+        if (!(target instanceof Element)) return true;
+        return Boolean(target.closest('input, textarea, select, [contenteditable="true"], [role="dialog"], [role="tablist"], .fics-rd5-settings-layer'));
+    }
+
+    function handleReplayKeydown(event) {
+        const changes = { ArrowLeft: -1, ArrowRight: 1, Home: 'first', End: 'last' };
+        if (!(event.key in changes) || shouldIgnoreReplayShortcut(event)) return;
+        if (!mounted || mounted.body.dataset.ficsSelectedView !== 'game') return;
+        const replay = getReplaySnapshot();
+        if (!replay.available) return;
+        const requested = changes[event.key] === 'first' ? 0
+            : changes[event.key] === 'last' ? replay.latestPly
+                : replay.currentPly + changes[event.key];
+        event.preventDefault();
+        selectReplayPly(requested);
+    }
+
+    function resultHeadline(result = {}) {
+        if (result.result === '1-0') return 'White wins';
+        if (result.result === '0-1') return 'Black wins';
+        if (result.result === '1/2-1/2') return 'Draw';
+        return 'Game complete';
+    }
+
+    function pairMoves(moves = []) {
+        const rows = [];
+        moves.forEach((move, index) => {
+            const number = Number.isFinite(move.moveNumber) ? move.moveNumber : null;
+            const color = move.color === 'white' || move.color === 'black' ? move.color : null;
+            let row = rows[rows.length - 1];
+            if (!row || row.moveNumber !== number || (color && row[color] !== null)) {
+                row = { moveNumber: number, white: null, black: null };
+                rows.push(row);
+            }
+            if (color) row[color] = { san: move.san || '', ply: index + 1, fen: move.fen || null };
+        });
+        return rows;
+    }
+
+    function actionResultNotice(result, successMessage, failureLabel) {
+        if (result?.ok) return { view: 'game', type: 'status', message: successMessage };
+        const code = result?.code || 'ACTION_UNAVAILABLE';
+        return { view: 'game', type: 'error', message: `${failureLabel} (${code}).` };
+    }
+
+    function renderRecordNote(snapshot) {
+        const note = createElement('p', 'fics-rd4-record-note');
+        if (snapshot.game.observed) {
+            note.textContent = 'History may omit moves played before observation began.';
+            return note;
+        }
+        if (snapshot.game.pgn?.mayBePartial) {
+            note.textContent = 'This record starts from a captured position and may be partial.';
+            return note;
+        }
+        return null;
+    }
+
+    function renderGameMoves(snapshot, { includeRecordNote = true } = {}) {
+        const moves = Array.isArray(snapshot.game.moves) ? snapshot.game.moves : [];
+        const replay = getReplaySnapshot();
+        const region = createElement('section', 'fics-rd4-moves', { 'aria-labelledby': 'ficsRd4MovesTitle' });
+        const heading = createElement('div', 'fics-rd4-moves-heading');
+        appendText(heading, 'h4', 'fics-rd4-moves-title', 'Moves', { id: 'ficsRd4MovesTitle' });
+        appendText(heading, 'span', 'fics-rd4-move-count', `${moves.length} captured`);
+        region.append(heading);
+
+        if (replay.isReviewingHistory) {
+            const review = createElement('div', 'fics-rd8-review-status', { role: 'status' });
+            const label = replay.currentPly === 0 ? 'Reviewing initial position'
+                : `Reviewing move ${replay.currentPly} of ${replay.latestPly}`;
+            appendText(review, 'span', 'fics-rd8-review-label', replay.newerMoves
+                ? `${label} · ${replay.newerMoves} newer ${replay.newerMoves === 1 ? 'move' : 'moves'}` : label);
+            const live = appendText(review, 'button', 'fics-rd8-live-action',
+                snapshot.game.ended ? 'Final' : 'Live', {
+                    type: 'button', 'data-fics-focus-key': 'game-live',
+                    'aria-label': snapshot.game.ended ? 'Return to final position' : 'Return to live position'
+                });
+            live.addEventListener('click', () => selectReplayPly(replay.latestPly));
+            region.append(review);
+        } else if (moves.length && !replay.available) {
+            appendText(region, 'p', 'fics-rd4-record-note',
+                'Move navigation is unavailable because the complete captured position sequence is not available.');
+        }
+
+        const scroller = createElement('div', 'fics-rd4-move-scroll', {
+            tabindex: '0', 'data-fics-game-moves': '', 'aria-label': 'Game move notation'
+        });
+        if (!moves.length) {
+            appendText(scroller, 'p', 'fics-rd4-moves-empty', snapshot.game.observed
+                ? 'No moves have been captured since observation began.'
+                : 'No moves have been captured yet.');
+        } else {
+            const header = createElement('div', 'fics-rd4-move-row is-header', { 'aria-hidden': 'true' });
+            appendText(header, 'span', '', '#');
+            appendText(header, 'span', '', 'White');
+            appendText(header, 'span', '', 'Black');
+            scroller.append(header);
+            pairMoves(moves).forEach((row) => {
+                const item = createElement('div', 'fics-rd4-move-row', { role: 'group' });
+                appendText(item, 'span', 'fics-rd4-move-number', row.moveNumber === null ? '—' : `${row.moveNumber}.`);
+                for (const color of ['white', 'black']) {
+                    const move = row[color];
+                    if (move?.san && replay.available) {
+                        const button = appendText(item, 'button', 'fics-rd4-san fics-rd8-move', move.san, {
+                            type: 'button', 'data-fics-game-ply': String(move.ply),
+                            'data-fics-focus-key': `game-ply-${move.ply}`,
+                            'aria-label': `Move ${row.moveNumber || move.ply} ${color}: ${move.san}`
+                        });
+                        if (move.ply === replay.currentPly) button.setAttribute('aria-current', 'step');
+                        button.addEventListener('click', () => selectReplayPly(move.ply));
+                    } else {
+                        appendText(item, 'span', move?.san ? 'fics-rd4-san' : 'fics-rd4-san is-missing', move?.san || '—',
+                            move?.san ? {} : { title: 'Canonical notation was not captured' });
+                    }
+                }
+                scroller.append(item);
+            });
+        }
+        region.append(scroller);
+
+        const recordNote = includeRecordNote ? renderRecordNote(snapshot) : null;
+        if (recordNote) region.append(recordNote);
+
+        const signature = `${gameKey(snapshot.game)}:${moves.length}:${moves.at(-1)?.moveNumber ?? ''}:${moves.at(-1)?.san ?? ''}`;
+        const schedule = root.requestAnimationFrame || ((callback) => root.setTimeout(callback, 0));
+        schedule(() => {
+            if (!scroller.isConnected) return;
+            scroller.scrollTop = replay.followingLive && signature !== lastGameMoveSignature
+                ? scroller.scrollHeight : gameMoveScrollTop;
+            lastGameMoveSignature = signature;
+            gameMoveScrollTop = scroller.scrollTop;
+        });
+        return region;
+    }
+
+    function renderPgnAction(snapshot, actions) {
+        if (!snapshot.capabilities.downloadPGN) return;
+        const partial = snapshot.game.pgn?.mayBePartial === true;
+        const button = appendText(actions, 'button', 'fics-rd4-action', 'Download PGN', {
+            type: 'button', 'data-fics-game-action': 'pgn', 'data-fics-focus-key': 'game-pgn',
+            'aria-label': partial ? 'Download partial PGN' : 'Download PGN'
+        });
+        button.addEventListener('click', () => {
+            const result = root.CaissaFICSClient?.downloadPGN?.() || { ok: false, code: 'PGN_UNAVAILABLE' };
+            actionNotice = actionResultNotice(result,
+                partial ? 'Partial PGN downloaded.' : 'PGN downloaded.', 'The PGN could not be downloaded');
+            render();
+        });
+    }
+
+    function renderPlayingActions(snapshot, actions) {
+        const currentKey = gameKey(snapshot.game);
+        if (resignConfirmationKey === currentKey) {
+            const confirmation = createElement('div', 'fics-rd4-confirm', {
+                role: 'group', 'aria-label': 'Confirm resignation'
+            });
+            appendText(confirmation, 'span', 'fics-rd4-confirm-copy', 'Resign this game?');
+            const confirm = appendText(confirmation, 'button', 'fics-rd4-action is-danger', 'Confirm Resign', {
+                type: 'button', 'data-fics-game-action': 'confirm-resign', 'data-fics-focus-key': 'game-confirm-resign'
+            });
+            confirm.disabled = !snapshot.capabilities.resign;
+            confirm.addEventListener('click', () => {
+                const result = root.CaissaFICSClient?.resign?.() || { ok: false, code: 'ACTION_UNAVAILABLE' };
+                resignConfirmationKey = null;
+                actionNotice = actionResultNotice(result,
+                    'Resign command delivered to the connection; FICS confirmation is pending.',
+                    'The resign command was not delivered');
+                render();
+            });
+            const cancel = appendText(confirmation, 'button', 'fics-rd4-action', 'Cancel', {
+                type: 'button', 'data-fics-game-action': 'cancel-resign', 'data-fics-focus-key': 'game-cancel-resign'
+            });
+            cancel.addEventListener('click', () => {
+                resignConfirmationKey = null;
+                render();
+            });
+            actions.append(confirmation);
+        } else {
+            const resign = appendText(actions, 'button', 'fics-rd4-action is-danger',
+                snapshot.game.actions?.resignInFlight ? 'Sending Resign…' : 'Resign', {
+                    type: 'button', 'data-fics-game-action': 'resign', 'data-fics-focus-key': 'game-resign'
+                });
+            resign.disabled = !snapshot.capabilities.resign;
+            resign.addEventListener('click', () => {
+                resignConfirmationKey = currentKey;
+                actionNotice = null;
+                render();
+            });
+        }
+
+        const draw = appendText(actions, 'button', 'fics-rd4-action',
+            snapshot.game.actions?.drawInFlight ? 'Sending Draw…' : 'Offer Draw', {
+                type: 'button', 'data-fics-game-action': 'draw', 'data-fics-focus-key': 'game-draw'
+            });
+        draw.disabled = !snapshot.capabilities.offerDraw;
+        draw.addEventListener('click', () => {
+            const result = root.CaissaFICSClient?.offerDraw?.() || { ok: false, code: 'ACTION_UNAVAILABLE' };
+            actionNotice = actionResultNotice(result,
+                'Draw offer delivered to the connection; FICS confirmation is pending.',
+                'The draw offer was not delivered');
+            render();
+        });
+    }
+
+    function renderAnalyzeAction(snapshot, actions) {
+        if (snapshot.game.mode !== 'ended') return;
+        const currentKey = gameKey(snapshot.game);
+        const opening = analyzeInFlightKey === currentKey;
+        const analyze = appendText(actions, 'button', 'fics-rd4-action is-primary',
+            opening ? 'Opening Analyze…' : 'Analyze', {
+                type: 'button', 'data-fics-game-action': 'analyze',
+                'data-fics-focus-key': 'game-analyze'
+            });
+        analyze.disabled = !snapshot.capabilities.analyze || opening;
+        analyze.addEventListener('click', async () => {
+            if (analyzeInFlightKey || !snapshot.capabilities.analyze) return;
+            analyzeInFlightKey = currentKey;
+            actionNotice = { view: 'game', type: 'status', message: 'Preparing CAISSA Analyze…' };
+            render();
+            const prepared = root.CaissaFICSAnalyzeHandoff?.prepare?.(snapshot, root.CaissaFICSClient)
+                || { ok: false, reasonCode: 'ANALYZE_HANDOFF_UNAVAILABLE' };
+            if (!prepared.ok) {
+                analyzeInFlightKey = null;
+                actionNotice = { view: 'game', type: 'error',
+                    message: `Analyze could not be opened (${prepared.reasonCode || 'ANALYZE_UNAVAILABLE'}).` };
+                render();
+                return;
+            }
+            const navigated = await Promise.resolve(root.CaissaNavigation?.navigateToSection?.('analyze', {
+                handoffToken: prepared.value.token, source: 'fics-game-over'
+            }));
+            analyzeInFlightKey = null;
+            if (navigated === false) {
+                actionNotice = { view: 'game', type: 'error', message: 'Analyze could not be opened (NAVIGATION_FAILED).' };
+                render();
+                return;
+            }
+            root.CaissaFICSClient?.logToConsole?.('Opened CAISSA Analyze with the completed FICS game.');
+        });
+    }
+
+    function renderGameActions(snapshot) {
+        const actions = createElement('div', 'fics-rd4-actions', { 'aria-label': 'Game actions' });
+        if (snapshot.game.mode === 'playing') renderPlayingActions(snapshot, actions);
+        if (snapshot.game.mode === 'observing') {
+            const leave = appendText(actions, 'button', 'fics-rd4-action',
+                snapshot.game.actions?.leaveObservationInFlight ? 'Leaving…' : 'Leave Observation', {
+                    type: 'button', 'data-fics-game-action': 'leave-observation',
+                    'data-fics-focus-key': 'game-leave-observation'
+                });
+            leave.disabled = !snapshot.capabilities.returnFromObservation;
+            leave.addEventListener('click', () => {
+                const result = root.CaissaFICSClient?.leaveObservedGame?.(snapshot.game.gameNumber)
+                    || { ok: false, code: 'ACTION_UNAVAILABLE' };
+                actionNotice = actionResultNotice(result,
+                    'Leave Observation was delivered. Returning to the lobby.',
+                    'Observation could not be closed');
+                render();
+            });
+        }
+        renderPgnAction(snapshot, actions);
+        renderAnalyzeAction(snapshot, actions);
+        if (snapshot.game.mode === 'ended') {
+            const lobby = appendText(actions, 'button', 'fics-rd4-action', 'Return to Lobby', {
+                type: 'button', 'data-fics-game-action': 'return-lobby', 'data-fics-focus-key': 'game-return-lobby'
+            });
+            lobby.addEventListener('click', () => dismissEndedGame(snapshot.game));
+        }
+        return actions;
+    }
+
+    function renderGame(snapshot) {
+        const game = snapshot.game;
+        const wrapper = createElement('div', 'fics-rd4-game', { 'data-fics-body-view': 'game' });
+        const header = createElement('header', 'fics-rd4-game-header');
+        const status = game.mode === 'playing' ? 'Live game' : game.mode === 'observing' ? 'Observing' : 'Game complete';
+        const white = game.identities?.white?.name || 'White';
+        const black = game.identities?.black?.name || 'Black';
+        appendText(header, 'span', 'fics-rd4-mode', status);
+        if (game.mode === 'ended') {
+            const result = createElement('div', 'fics-rd4-result', { role: 'status' });
+            appendText(result, 'strong', 'fics-rd4-result-title', resultHeadline(game.result));
+            if (game.result?.summary) appendText(result, 'span', 'fics-rd4-result-detail', game.result.summary);
+            header.append(result);
+        }
+        appendText(header, 'h3', 'fics-rd4-game-title', `${white} vs ${black}`);
+        const detail = [game.gameNumber === null ? null : `Game #${game.gameNumber}`,
+            game.sideToMove && game.mode !== 'ended' ? `${game.sideToMove === 'white' ? 'White' : 'Black'} to move` : null]
+            .filter(Boolean).join(' · ');
+        if (detail) appendText(header, 'p', 'fics-rd4-game-meta', detail);
+        if (game.mode === 'ended') wrapper.append(renderGameMoves(snapshot, { includeRecordNote: false }), header);
+        else wrapper.append(header);
+        const notice = noticeNode('game');
+        if (notice) wrapper.append(notice);
+        if (game.mode !== 'ended') wrapper.append(renderGameMoves(snapshot));
+        const recordNote = game.mode === 'ended' ? renderRecordNote(snapshot) : null;
+        if (recordNote) wrapper.append(recordNote);
+        wrapper.append(renderGameActions(snapshot));
+        return wrapper;
+    }
+
+    function renderBody(snapshot, view) {
+        const focus = rememberFocus();
+        const currentScroller = mounted.dynamic.querySelector('[data-fics-game-moves]');
+        if (currentScroller) gameMoveScrollTop = currentScroller.scrollTop;
+        const dynamic = mounted.dynamic;
+        dynamic.replaceChildren();
+        if (view.activeTab === 'game') dynamic.append(renderGame(snapshot));
+        if (view.activeTab === 'tables') dynamic.append(renderTables(snapshot));
+        if (view.activeTab === 'players') dynamic.append(renderPlayers(snapshot));
+        if (view.activeTab === 'seek') dynamic.append(renderSeek(snapshot));
+        restoreFocus(focus);
+    }
+
+    function scheduleBoardResize() {
+        if (resizeFrame) root.cancelAnimationFrame?.(resizeFrame);
+        const schedule = root.requestAnimationFrame || ((callback) => root.setTimeout(callback, 0));
+        resizeFrame = schedule(() => {
+            resizeFrame = 0;
+            if (!mounted?.section?.classList.contains('fics-rd2-enabled')) return;
+            if (!mounted.boardContainer.offsetParent) return;
+            root.CaissaFICSClient?.board?.resize?.();
+        });
+    }
+
+    function sessionIdentity(snapshot) {
+        const state = snapshot.connection?.state || 'disconnected';
+        if (state === 'connecting') return 'Connecting…';
+        if (state === 'reconnecting') return 'Reconnecting…';
+        if (state === 'error') return 'Connection error';
+        if (snapshot.connection?.authenticated && snapshot.session?.username) return snapshot.session.username;
+        return 'Disconnected';
+    }
+
+    function renderSessionChrome(snapshot) {
+        const identity = sessionIdentity(snapshot);
+        const authenticated = snapshot.connection?.authenticated === true;
+        const registered = authenticated && snapshot.session?.registered === true;
+        const guest = authenticated && !registered;
+        const busy = ['connecting', 'reconnecting'].includes(snapshot.connection?.state);
+        mounted.sessionIdentity.textContent = identity;
+        mounted.sessionButton.setAttribute('aria-label', `FICS session: ${identity}`);
+        mounted.sessionMenuIdentity.textContent = identity;
+        mounted.sessionGuest.hidden = authenticated || busy;
+        mounted.sessionUser.hidden = registered || busy;
+        mounted.sessionDisconnect.hidden = !(guest || registered || busy);
+    }
+
+    function render() {
+        if (!mounted) return null;
+        const baseView = getBaseViewState();
+        const baseSnapshot = root.CaissaFICSPresentation?.getSnapshot?.() || null;
+        if (baseView.productState !== 'GAME_OVER') dismissedEndedGameKey = null;
+        if (baseView.productState === 'GAME_OVER' && dismissedEndedGameKey
+            && gameKey(baseSnapshot?.game) !== dismissedEndedGameKey) dismissedEndedGameKey = null;
+        if (GAME_STATES.has(baseView.productState) && lastProductState
+            && baseView.productState !== lastProductState) selectedLobbyView = null;
+        if (baseView.gameModeAvailable && !lastGameModeAvailable) selectedLobbyView = null;
+        lastGameModeAvailable = baseView.gameModeAvailable;
+        lastProductState = baseView.productState;
+        const snapshot = getProjection();
+        const view = { productState: snapshot.productState, ...snapshot.presentation };
+        syncReplayCursor(snapshot);
+        const activeTab = view.activeTab || selectedLobbyView || 'tables';
+        view.activeTab = activeTab;
+        if (activeTab !== 'game') view.bodyMode = 'LOBBY';
+        if (snapshot.connection.authenticated && !lastAuthenticated) setConsoleExpanded(false);
+        lastAuthenticated = snapshot.connection.authenticated;
+        if (activeTab !== 'game') resignConfirmationKey = null;
+
+        mounted.section.dataset.ficsProductState = view.productState;
+        mounted.body.dataset.ficsBodyMode = view.bodyMode;
+        mounted.body.dataset.ficsSelectedView = activeTab;
+        mounted.body.toggleAttribute('data-game-mode', view.primaryGameMode);
+        mounted.tabList.dataset.ficsGameTabAvailable = String(view.gameModeAvailable);
+        mounted.tabs.forEach((tab) => {
+            const tabView = tab.dataset.ficsWorkspaceView;
+            tab.hidden = tabView === 'game' && !view.gameModeAvailable;
+            const selected = tabView === activeTab;
+            tab.setAttribute('aria-selected', String(selected));
+            tab.tabIndex = selected ? 0 : -1;
+        });
+
+        mounted.body.setAttribute('aria-labelledby', `ficsRd2Tab${activeTab[0].toUpperCase()}${activeTab.slice(1)}`);
+
+        const compactConnectionLabels = {
+            disconnected: 'Disconnected', connecting: 'Connecting', connected: 'Connected',
+            reconnecting: 'Reconnecting', error: 'Error'
+        };
+        if (mounted.connectionStatus) {
+            mounted.connectionStatus.textContent = compactConnectionLabels[snapshot.connection.state] || 'Disconnected';
+        }
+        renderSessionChrome(snapshot);
+        renderBody(snapshot, view);
+        applyReplayBoardPosition(snapshot);
+
+        mounted.roomPanel.hidden = true;
+        mounted.sidePanel.hidden = true;
+        scheduleBoardResize();
+        return view;
+    }
+
+    function selectLobbyView(view) {
+        if (!LOBBY_VIEWS.includes(view)) return false;
+        if (selectedLobbyView !== view) actionNotice = null;
+        selectedLobbyView = view;
+        render();
+        root.CaissaFICSClient?.announceWorkspaceAvailability?.(view);
+        return true;
+    }
+
+    function selectWorkspaceView(view) {
+        if (view === 'game') {
+            if (!getBaseViewState().gameModeAvailable) return false;
+            selectedLobbyView = null;
+            actionNotice = null;
+            render();
+            return true;
+        }
+        return selectLobbyView(view);
+    }
+
+    function dismissEndedGame(game) {
+        if (getBaseViewState().productState !== 'GAME_OVER') return false;
+        dismissedEndedGameKey = gameKey(game);
+        selectedLobbyView = 'tables';
+        actionNotice = null;
+        render();
+        return true;
+    }
+
+    function bindProductUpdates() {
+        if (!root.addEventListener) return;
+        PRODUCT_EVENTS.forEach((event) => {
+            const type = `caissa:fics:${event}`;
+            const listener = () => render();
+            root.addEventListener(type, listener);
+            eventListeners.push({ type, listener });
+        });
+    }
+
+    function unbindProductUpdates() {
+        eventListeners.splice(0).forEach(({ type, listener }) => root.removeEventListener?.(type, listener));
+    }
+
+    function mount() {
+        if (mounted) return true;
+        const section = document.getElementById('ficsSection');
+        const layout = section?.querySelector('.fics-layout');
+        const gameArea = section?.querySelector('.fics-game-area');
+        const connection = section?.querySelector('.fics-connection');
+        const pageHeader = section?.querySelector('.fics-header');
+        const connectionHeading = section?.querySelector('.fics-connection-info > h3');
+        const gatewayDetails = section?.querySelector('.fics-gateway-details');
+        const sessionColumn = section?.querySelector('.fics-session-column');
+        const boardSection = section?.querySelector('.fics-board-section');
+        const boardContainer = document.getElementById('ficsBoardContainer');
+        const roomPanel = section?.querySelector('.fics-room-panel');
+        const sidePanel = section?.querySelector('.fics-side-panel');
+        const consoleSection = section?.querySelector('.fics-console-section');
+        const consoleHeader = consoleSection?.querySelector('.fics-console-header');
+        const consoleToggle = document.getElementById('ficsConsoleToggle');
+        const connectionStatus = document.getElementById('ficsConnectionStatus');
+        const accountFields = document.getElementById('ficsAccountFields');
+        const accountUsernameInput = document.getElementById('ficsAccountUsername');
+        const accountPasswordInput = document.getElementById('ficsAccountPassword');
+        if (![section, layout, gameArea, connection, pageHeader, connectionHeading, gatewayDetails,
+            sessionColumn, boardSection, boardContainer, roomPanel, sidePanel, consoleSection,
+            consoleHeader, consoleToggle, connectionStatus, accountFields,
+            accountUsernameInput, accountPasswordInput].every(Boolean)) return false;
+
+        const relocations = [connectionHeading, gatewayDetails, sessionColumn, accountFields].map(rememberRelocation);
+        const connectionHidden = connection.hidden;
+        const consoleState = {
+            display: document.getElementById('ficsConsoleContainer')?.style.display || '',
+            expanded: document.getElementById('ficsConsoleToggle')?.getAttribute('aria-expanded') || 'true',
+            label: document.getElementById('ficsConsoleToggle')?.getAttribute('aria-label') || '',
+            text: document.getElementById('ficsConsoleToggle')?.textContent || '',
+            sectionExpanded: consoleSection.getAttribute('data-console-expanded')
+        };
+
+        const shell = createElement('div', 'fics-rd2-shell', { 'data-fics-redesign-shell': 'v2' });
+        const boardRegion = createElement('div', 'fics-rd2-board', {
+            'data-fics-shell-region': 'board', role: 'group', 'aria-label': 'FICS chessboard'
+        });
+        const workspace = createElement('aside', 'fics-rd2-workspace', {
+            'data-fics-shell-region': 'workspace', 'aria-label': 'FICS workspace'
+        });
+        const head = createElement('header', 'fics-rd2-workspace-head', {
+            'data-fics-workspace-region': 'head', 'data-fics-region-sizing': 'intrinsic'
+        });
+        const tabList = createElement('div', 'fics-rd2-tabs', { role: 'tablist', 'aria-label': 'FICS workspace views' });
+        const tabs = TAB_VIEWS.map((view) => {
+            const label = `${view[0].toUpperCase()}${view.slice(1)}`;
+            const tab = createElement('button', 'fics-rd2-tab', {
+                id: `ficsRd2Tab${label}`, type: 'button', role: 'tab',
+                'aria-controls': 'ficsRd2Body', 'aria-selected': 'false', 'data-fics-workspace-view': view
+            });
+            if (LOBBY_VIEWS.includes(view)) tab.dataset.ficsLobbyView = view;
+            if (view === 'game') tab.hidden = true;
+            tab.textContent = label;
+            tab.addEventListener('click', () => selectWorkspaceView(view));
+            return tab;
+        });
+        tabs.forEach((tab) => tabList.append(tab));
+        tabList.addEventListener('keydown', (event) => {
+            const visibleTabs = tabs.filter((tab) => !tab.hidden);
+            const current = visibleTabs.indexOf(document.activeElement);
+            if (current < 0) return;
+            const target = event.key === 'ArrowRight' ? (current + 1) % visibleTabs.length
+                : event.key === 'ArrowLeft' ? (current - 1 + visibleTabs.length) % visibleTabs.length
+                    : event.key === 'Home' ? 0 : event.key === 'End' ? visibleTabs.length - 1 : -1;
+            if (target < 0) return;
+            event.preventDefault();
+            visibleTabs[target].focus();
+            selectWorkspaceView(visibleTabs[target].dataset.ficsWorkspaceView);
+        });
+        head.append(tabList);
+
+        const body = createElement('section', 'fics-rd2-workspace-body', {
+            id: 'ficsRd2Body', role: 'tabpanel', tabindex: '0',
+            'data-fics-workspace-region': 'body', 'data-fics-region-sizing': 'flexible'
+        });
+        const dynamic = createElement('div', 'fics-rd3-dynamic-body', { 'aria-live': 'off' });
+        body.append(dynamic);
+
+        const foot = createElement('footer', 'fics-rd2-workspace-foot', {
+            'data-fics-workspace-region': 'foot', 'data-fics-region-sizing': 'intrinsic'
+        });
+        const sessionChrome = createElement('div', 'fics-rd7-session-chrome', {
+            'aria-label': 'FICS session controls'
+        });
+        const sessionControl = createElement('div', 'fics-rd7-session-control');
+        const sessionButton = createElement('button', 'fics-rd7-session-button', {
+            type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false',
+            'aria-controls': 'ficsRd7SessionMenu'
+        });
+        const sessionDot = createElement('span', 'fics-rd7-session-dot', { 'aria-hidden': 'true' });
+        const sessionIdentityNode = appendText(sessionButton, 'span', 'fics-rd7-session-identity', 'Disconnected');
+        sessionButton.prepend(sessionDot);
+        const sessionMenu = createElement('div', 'fics-rd7-session-menu', {
+            id: 'ficsRd7SessionMenu', role: 'menu', hidden: '', 'aria-label': 'FICS session menu'
+        });
+        const sessionMenuIdentity = appendText(sessionMenu, 'div', 'fics-rd7-session-menu-identity', 'Disconnected', {
+            role: 'presentation'
+        });
+        const sessionGuest = appendText(sessionMenu, 'button', 'fics-rd7-session-action', 'Connect as Guest', {
+            type: 'button', role: 'menuitem'
+        });
+        const sessionUser = appendText(sessionMenu, 'button', 'fics-rd7-session-action', 'Connect as User', {
+            type: 'button', role: 'menuitem'
+        });
+        const sessionDisconnect = appendText(sessionMenu, 'button', 'fics-rd7-session-action is-danger', 'Disconnect', {
+            type: 'button', role: 'menuitem'
+        });
+        sessionControl.append(sessionButton, sessionMenu);
+        const settingsButton = createElement('button', 'fics-rd5-settings-button', {
+            type: 'button', 'aria-label': 'Open FICS settings', title: 'Settings',
+            'aria-controls': 'ficsRd5SettingsPanel', 'aria-expanded': 'false'
+        });
+        const settingsIcon = createElement('i', 'fas fa-cog', { 'aria-hidden': 'true' });
+        appendText(settingsButton, 'span', '', 'Settings');
+        settingsButton.prepend(settingsIcon);
+        const settingsLayer = createElement('div', 'fics-rd5-settings-layer', { hidden: '' });
+        const settingsPanel = createElement('section', 'fics-rd5-settings-panel', {
+            id: 'ficsRd5SettingsPanel', role: 'dialog', 'aria-modal': 'true',
+            'aria-labelledby': 'ficsRd5SettingsTitle', tabindex: '-1'
+        });
+        const settingsHeader = createElement('header', 'fics-rd5-settings-header');
+        const settingsTitle = appendText(settingsHeader, 'h2', 'fics-rd5-settings-title', 'Settings', {
+            id: 'ficsRd5SettingsTitle'
+        });
+        const settingsClose = appendText(settingsHeader, 'button', 'fics-rd5-settings-close', '\u00d7', {
+            type: 'button', 'aria-label': 'Close FICS settings'
+        });
+        const settingsContent = createElement('div', 'fics-rd5-settings-content');
+        const connectionDiagnostics = createElement('section', 'fics-rd5-settings-group', {
+            'aria-labelledby': 'ficsRd5ConnectionTitle'
+        });
+        connectionHeading.id = 'ficsRd5ConnectionTitle';
+        connectionDiagnostics.append(connectionHeading, gatewayDetails);
+        sessionColumn.classList.add('fics-rd5-settings-group');
+        settingsContent.append(connectionDiagnostics, sessionColumn);
+        settingsPanel.append(settingsHeader, settingsContent);
+        settingsLayer.append(settingsPanel);
+
+        const userDialogLayer = createElement('div', 'fics-rd7-user-dialog-layer', { hidden: '' });
+        const userDialog = createElement('section', 'fics-rd7-user-dialog', {
+            id: 'ficsRd7UserDialog', role: 'dialog', 'aria-modal': 'true',
+            'aria-labelledby': 'ficsRd7UserDialogTitle'
+        });
+        const userDialogHeader = createElement('header', 'fics-rd7-user-dialog-header');
+        appendText(userDialogHeader, 'h2', 'fics-rd7-user-dialog-title', 'Connect as User', {
+            id: 'ficsRd7UserDialogTitle'
+        });
+        const userDialogClose = appendText(userDialogHeader, 'button', 'fics-rd7-user-dialog-close', '\u00d7', {
+            type: 'button', 'aria-label': 'Cancel registered FICS login'
+        });
+        accountFields.hidden = false;
+        accountUsernameInput.setAttribute('required', '');
+        accountPasswordInput.setAttribute('required', '');
+        const userDialogNote = appendText(userDialog, 'p', 'fics-rd7-user-dialog-note', 'Registered FICS login remains in beta.');
+        const userDialogStatus = appendText(userDialog, 'p', 'fics-rd7-user-dialog-status', '', {
+            role: 'status', 'aria-live': 'polite'
+        });
+        const userDialogActions = createElement('div', 'fics-rd7-user-dialog-actions');
+        const userDialogCancel = appendText(userDialogActions, 'button', 'fics-btn fics-btn-secondary', 'Cancel', {
+            type: 'button'
+        });
+        const userDialogConnect = appendText(userDialogActions, 'button', 'fics-btn fics-btn-primary', 'Connect', {
+            type: 'button'
+        });
+        userDialogActions.append(userDialogCancel, userDialogConnect);
+        userDialog.append(userDialogHeader, accountFields, userDialogNote, userDialogStatus, userDialogActions);
+        userDialogLayer.append(userDialog);
+
+        sessionChrome.append(sessionControl, settingsButton);
+        workspace.append(head, body, foot);
+        shell.append(boardRegion, workspace);
+        layout.insertBefore(shell, gameArea);
+        layout.append(sessionChrome);
+        document.body.append(settingsLayer, userDialogLayer);
+        boardRegion.append(boardSection);
+        connection.hidden = true;
+        foot.append(consoleSection);
+        gameArea.hidden = true;
+        section.classList.add('fics-rd2-enabled');
+        section.dataset.ficsRedesign = 'v2';
+
+        mounted = { section, layout, gameArea, connection, pageHeader, connectionHeading, gatewayDetails,
+            sessionColumn, relocations, consoleState, boardSection, boardContainer,
+            roomPanel, sidePanel, consoleSection, shell, boardRegion, workspace, head,
+            body, foot, tabList, tabs, dynamic, connectionStatus,
+            settingsButton, settingsLayer, settingsPanel, settingsClose, settingsContent,
+            backgroundInertRecords: [], sessionChrome, sessionControl, sessionButton,
+            sessionIdentity: sessionIdentityNode, sessionMenu, sessionMenuIdentity, sessionGuest,
+            sessionUser, sessionDisconnect, userDialogLayer, userDialog,
+            userDialogClose, userDialogCancel, userDialogConnect, userDialogStatus,
+            accountFields, accountUsernameInput, accountPasswordInput, connectionHidden,
+            userDialogBackgroundRecords: [] };
+        sessionButton.addEventListener('click', () => setSessionMenuOpen(!sessionMenuOpen));
+        sessionMenu.addEventListener('keydown', handleSessionMenuKeydown);
+        sessionGuest.addEventListener('click', () => {
+            setSessionMenuOpen(false, { restoreFocus: false });
+            root.CaissaFICSClient?.connect?.('guest');
+        });
+        sessionUser.addEventListener('click', () => setUserDialogOpen(true));
+        sessionDisconnect.addEventListener('click', () => {
+            setSessionMenuOpen(false, { restoreFocus: false });
+            root.CaissaFICSClient?.disconnect?.();
+        });
+        settingsButton.addEventListener('click', () => setSettingsOpen(!settingsOpen));
+        settingsClose.addEventListener('click', () => setSettingsOpen(false));
+        settingsLayer.addEventListener('click', (event) => {
+            if (event.target === settingsLayer) setSettingsOpen(false);
+        });
+        settingsLayer.addEventListener('keydown', handleSettingsKeydown);
+        userDialogClose.addEventListener('click', () => setUserDialogOpen(false));
+        userDialogCancel.addEventListener('click', () => setUserDialogOpen(false));
+        userDialogConnect.addEventListener('click', () => {
+            const result = root.CaissaFICSClient?.connectAsRegistered?.();
+            if (result?.ok) {
+                userDialogStatus.textContent = '';
+                setUserDialogOpen(false, { clearPassword: false });
+            } else {
+                userDialogStatus.textContent = result?.code === 'ACCOUNT_CREDENTIALS_REQUIRED'
+                    ? 'Enter both username and password.'
+                    : 'Unable to start registered FICS login.';
+            }
+        });
+        userDialogLayer.addEventListener('click', (event) => {
+            if (event.target === userDialogLayer) setUserDialogOpen(false);
+        });
+        userDialogLayer.addEventListener('keydown', handleUserDialogKeydown);
+        document.addEventListener('pointerdown', handleDocumentPointerDown);
+        document.addEventListener('keydown', handleReplayKeydown);
+        setConsoleExpanded(false);
+        if (typeof root.ResizeObserver === 'function') {
+            resizeObserver = new root.ResizeObserver(scheduleBoardResize);
+            resizeObserver.observe(boardRegion);
+        }
+        root.addEventListener?.('resize', scheduleBoardResize, { passive: true });
+        root.addEventListener?.('orientationchange', scheduleBoardResize, { passive: true });
+        bindProductUpdates();
+        render();
+        root.CaissaFICSClient?.announceWorkspaceAvailability?.('tables');
+        return true;
+    }
+
+    function unmount() {
+        if (!mounted) return true;
+        const current = mounted;
+        unbindProductUpdates();
+        resizeObserver?.disconnect();
+        resizeObserver = null;
+        root.removeEventListener?.('resize', scheduleBoardResize);
+        root.removeEventListener?.('orientationchange', scheduleBoardResize);
+        document.removeEventListener('pointerdown', handleDocumentPointerDown);
+        document.removeEventListener('keydown', handleReplayKeydown);
+        setSessionMenuOpen(false, { restoreFocus: false });
+        setUserDialogOpen(false, { restoreFocus: false });
+        setSettingsOpen(false, { restoreFocus: false });
+        restoreRelocations(current.relocations);
+        current.sessionColumn.classList.remove('fics-rd5-settings-group');
+        current.connectionHeading.removeAttribute('id');
+        current.accountUsernameInput.removeAttribute('required');
+        current.accountPasswordInput.removeAttribute('required');
+        const consoleContainer = document.getElementById('ficsConsoleContainer');
+        const consoleToggle = document.getElementById('ficsConsoleToggle');
+        if (consoleContainer) consoleContainer.style.display = current.consoleState.display;
+        if (consoleToggle) {
+            consoleToggle.setAttribute('aria-expanded', current.consoleState.expanded);
+            consoleToggle.setAttribute('aria-label', current.consoleState.label);
+            consoleToggle.textContent = current.consoleState.text;
+        }
+        if (current.consoleState.sectionExpanded === null) current.consoleSection.removeAttribute('data-console-expanded');
+        else current.consoleSection.setAttribute('data-console-expanded', current.consoleState.sectionExpanded);
+        current.settingsLayer.remove();
+        current.userDialogLayer.remove();
+        current.sessionChrome.remove();
+        current.connection.hidden = current.connectionHidden;
+        current.boardSection.append(current.consoleSection);
+        current.gameArea.append(current.roomPanel, current.boardSection, current.sidePanel);
+        current.layout.insertBefore(current.connection, current.gameArea);
+        current.gameArea.hidden = false;
+        current.shell.remove();
+        current.section.classList.remove('fics-rd2-enabled');
+        delete current.section.dataset.ficsRedesign;
+        delete current.section.dataset.ficsProductState;
+        mounted = null;
+        selectedLobbyView = null;
+        dismissedEndedGameKey = null;
+        lastGameModeAvailable = false;
+        lastProductState = null;
+        actionNotice = null;
+        resignConfirmationKey = null;
+        gameMoveScrollTop = 0;
+        lastGameMoveSignature = null;
+        replayCursor = null;
+        analyzeInFlightKey = null;
+        settingsOpen = false;
+        settingsReturnFocus = null;
+        sessionMenuOpen = false;
+        sessionReturnFocus = null;
+        userDialogOpen = false;
+        userDialogReturnFocus = null;
+        lastAuthenticated = false;
+        root.CaissaFICSClient?.board?.resize?.();
+        return true;
+    }
+
+    function setEnabled(enabled) {
+        root[FLAG] = enabled === true;
+        return enabled === true ? mount() : unmount();
+    }
+
+    function getSnapshot() {
+        return Object.freeze({
+            schemaVersion: SCHEMA_VERSION,
+            enabled: root[FLAG] !== false,
+            mounted: Boolean(mounted),
+            selectedLobbyView,
+            dismissedEndedGameKey,
+            productState: mounted?.section.dataset.ficsProductState || null,
+            settingsOpen,
+            sessionMenuOpen,
+            userDialogOpen,
+            replay: getReplaySnapshot(),
+            consoleExpanded: mounted?.consoleSection.querySelector('#ficsConsoleToggle')?.getAttribute('aria-expanded') === 'true',
+            boardNodePreserved: Boolean(mounted && mounted.boardContainer === document.getElementById('ficsBoardContainer')),
+            owner: 'PRESENTATION_ONLY'
+        });
+    }
+
+    const api = Object.freeze({
+        schemaVersion: SCHEMA_VERSION,
+        getSnapshot,
+        refresh: render,
+        selectLobbyView,
+        selectWorkspaceView,
+        selectReplayPly,
+        getReplaySnapshot,
+        setSessionMenuOpen,
+        setUserDialogOpen,
+        setSettingsOpen,
+        setEnabled
+    });
+    root.CaissaFICSShell = api;
+
+    function boot() {
+        if (root[FLAG] !== false) mount();
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+    else boot();
+})(typeof window !== 'undefined' ? window : globalThis);

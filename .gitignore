@@ -27,6 +27,7 @@ dist/
 build/
 .cache/
 .public-release/
+.caissa-fics-preview/
 test-results/
 playwright-report/
 coverage/

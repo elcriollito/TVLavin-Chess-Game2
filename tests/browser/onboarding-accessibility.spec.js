@@ -155,7 +155,7 @@ test('completed onboarding is harmlessly absent and shared routes retain their o
     await playContext.close();
 });
 
-test('/fics becomes keyboard-interactive after legitimate first-run dismissal without a live connection', async ({ page }) => {
+test('/fics becomes keyboard-interactive after legitimate first-run dismissal with networking intercepted', async ({ page }) => {
     await preventLiveWebSockets(page);
     const sockets = [];
     page.on('websocket', socket => sockets.push(socket.url()));
@@ -168,9 +168,97 @@ test('/fics becomes keyboard-interactive after legitimate first-run dismissal wi
     await page.getByRole('button', { name: 'Skip tour' }).focus();
     await page.keyboard.press('Enter');
     await expectOnboardingClosed(page);
-    await expect(connect).toBeFocused();
-    await expect(connect).toBeEnabled();
+    expect(await page.evaluate(() => ({
+        isBody: document.activeElement === document.body,
+        isInert: Boolean(document.activeElement?.closest('[inert]')),
+        isOnboarding: Boolean(document.activeElement?.closest('#caissaOnboardingModal'))
+    }))).toEqual({ isBody: false, isInert: false, isOnboarding: false });
+    const playersTab = page.getByRole('tab', { name: 'Players' });
+    await playersTab.focus();
+    await expect(playersTab).toBeFocused();
+    await playersTab.click();
+    await expect(playersTab).toHaveAttribute('aria-selected', 'true');
+    expect(await page.evaluate(() => window.CaissaFICSClient.autoGuestAttempted)).toBe(true);
     expect(sockets).toEqual([]);
+});
+
+test('/fics auto Guest remains singular and truthful while delayed onboarding owns focus', async ({ page }) => {
+    await page.addInitScript(() => {
+        class OnboardingSessionSocket {
+            static CONNECTING = 0;
+            static OPEN = 1;
+            static CLOSING = 2;
+            static CLOSED = 3;
+            static instances = [];
+
+            constructor(url) {
+                this.url = url;
+                this.readyState = OnboardingSessionSocket.CONNECTING;
+                this.sent = [];
+                OnboardingSessionSocket.instances.push(this);
+            }
+
+            send(value) { this.sent.push(value); }
+            open() {
+                this.readyState = OnboardingSessionSocket.OPEN;
+                this.onopen?.();
+            }
+            message(value) { this.onmessage?.({ data: value }); }
+            close(code = 1000, reason = '') {
+                this.readyState = OnboardingSessionSocket.CLOSED;
+                this.onclose?.({ code, reason });
+            }
+        }
+
+        window.WebSocket = OnboardingSessionSocket;
+        window.__OnboardingSessionSocket = OnboardingSessionSocket;
+    });
+
+    await page.goto('/fics', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => window.CaissaFICSShell?.getSnapshot().mounted === true);
+    await expect.poll(() => page.evaluate(() => window.__OnboardingSessionSocket.instances.length)).toBe(1);
+
+    await page.evaluate(() => {
+        const socket = window.__OnboardingSessionSocket.instances[0];
+        socket.open();
+        socket.message('login:');
+        socket.message('Press return to enter the server');
+        socket.message('Starting FICS session as GuestONBOARD\nfics%');
+    });
+    await expect.poll(() => page.evaluate(() => window.CaissaFICSClient.authenticated)).toBe(true);
+
+    const dialog = await waitForOnboarding(page);
+    await expect(page.getByRole('button', { name: 'Start Tour' })).toBeFocused();
+    await expect(page.locator('#app')).toHaveAttribute('inert', '');
+    await page.getByRole('tab', { name: 'Players' }).evaluate(element => element.focus());
+    await expect(page.getByRole('button', { name: 'Start Tour' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Skip tour' })).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(page.getByRole('button', { name: 'Start Tour' })).toBeFocused();
+    await expect(dialog).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expectOnboardingClosed(page);
+    await expect(page.locator('.fics-rd7-session-identity')).toHaveText('GuestONBOARD');
+    await page.getByRole('tab', { name: 'Players' }).click();
+    await expect(page.getByRole('tab', { name: 'Players' })).toHaveAttribute('aria-selected', 'true');
+
+    expect(await page.evaluate(() => ({
+        sockets: window.__OnboardingSessionSocket.instances.length,
+        mode: window.CaissaFICSClient.loginMode,
+        attempted: window.CaissaFICSClient.autoGuestAttempted,
+        authenticated: window.CaissaFICSClient.authenticated,
+        connectedMessages: window.CaissaFICSClient.messageBuffer.filter(
+            line => line === '[CAISSA] Connected as GuestONBOARD.'
+        ).length
+    }))).toEqual({
+        sockets: 1,
+        mode: 'guest',
+        attempted: true,
+        authenticated: true,
+        connectedMessages: 1
+    });
 });
 
 test('mobile touch presentation keeps the blocking backdrop and supported controls usable', async ({ browser }) => {
