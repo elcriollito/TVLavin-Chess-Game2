@@ -1936,6 +1936,7 @@ const CaissaFICSClient = {
             this.latencyMs = roundTrip;
             this.updateLatency();
             this.setPendingState('confirmed', `Confirmed in ${roundTrip} ms`);
+            this.logToConsole(`Move confirmed by FICS in ${roundTrip} ms.`, 'GAME');
             setTimeout(() => {
                 if (!this.pendingMove) this.setPendingState('', '');
             }, 1200);
@@ -1949,6 +1950,15 @@ const CaissaFICSClient = {
         if (!this.elements.pendingState) return;
         this.elements.pendingState.textContent = text || '';
         this.elements.pendingState.className = `fics-pending-state ${kind || ''}`.trim();
+    },
+
+    announceGameEvent(message) {
+        const region = this.elements.pendingState;
+        const redesignedSection = region?.closest?.('#ficsSection');
+        if (!redesignedSection?.classList.contains('fics-rd2-enabled')) return false;
+        region.textContent = String(message || '');
+        region.className = 'fics-pending-state announcement';
+        return true;
     },
 
     resetGameRecord() {
@@ -2565,10 +2575,13 @@ const CaissaFICSClient = {
         }
 
         console.log('[FICS Client] Sending move:', move);
-        this.send({
+        const delivery = this.send({
             type: 'move',
             text: move
         });
+        if (delivery.ok) {
+            this.logToConsole('Move sent to FICS; server confirmation is pending.', 'GAME');
+        }
     },
 
     runPlayedGameAction(action) {
@@ -2809,6 +2822,7 @@ const CaissaFICSClient = {
             this.elements.console.textContent = this.messageBuffer.join('\n');
             this.elements.console.scrollTop = this.elements.console.scrollHeight;
         }
+        if (safeOrigin === 'GAME') this.announceGameEvent(rawMessage);
         return true;
     },
 

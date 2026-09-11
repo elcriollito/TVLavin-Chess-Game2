@@ -82,7 +82,9 @@ test('Observe button uses the one canonical client path and suppresses duplicate
     expect(duplicate.code).toBe('OBSERVE_IN_PROGRESS');
     expect(await page.evaluate(() => window.__observeBoundaryCalls)).toBe(2);
     expect(await page.evaluate(() => window.__ficsWire)).toEqual(['observe 72']);
-    await expect(page.getByText('Opening table #72')).toBeVisible();
+    await expect(page.locator('[data-fics-body-view="tables"]')).not.toContainText('Opening table #72');
+    expect(await page.evaluate(() => window.CaissaFICSClient.messageBuffer
+        .filter(message => message === '[COMMAND] > observe 72'))).toHaveLength(1);
 });
 
 test('Seek defaults and supported choices map to one canonical seek command', async ({ page }) => {

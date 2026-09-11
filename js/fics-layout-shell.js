@@ -323,7 +323,7 @@
         });
         refresh.disabled = !snapshot.connection.authenticated || snapshot.lobby.loading;
         refresh.addEventListener('click', () => {
-            actionNotice = { view: 'tables', type: 'status', message: 'Requesting recent FICS games…' };
+            actionNotice = null;
             root.CaissaFICSClient?.refreshLobby?.(true);
             render();
         });
@@ -375,7 +375,7 @@
                 const result = root.CaissaFICSClient?.switchObservedGame?.(number)
                     || { ok: false, code: 'OBSERVE_UNAVAILABLE' };
                 actionNotice = result.ok
-                    ? { view: 'tables', type: 'status', message: `Opening table #${number}…` }
+                    ? null
                     : { view: 'tables', type: 'error', message: `Table #${number} could not be opened (${result.code}).` };
                 render();
             });
@@ -412,7 +412,7 @@
         cancel.addEventListener('click', () => {
             const result = root.CaissaFICSClient?.cancelSeek?.() || { ok: false, code: 'CANCEL_UNAVAILABLE' };
             actionNotice = result.ok
-                ? { view: 'seek', type: 'status', message: 'Cancellation requested.' }
+                ? null
                 : { view: 'seek', type: 'error', message: `The seek could not be canceled (${result.code}).` };
             render();
         });
@@ -507,7 +507,7 @@
                 color: color.value
             }) || { ok: false, code: 'SEEK_UNAVAILABLE' };
             actionNotice = result.ok
-                ? { view: 'seek', type: 'status', message: 'Table request sent.' }
+                ? null
                 : root.CaissaFICSClient?.pendingSeek?.status === 'error'
                     ? null
                     : { view: 'seek', type: 'error', message: result.message || `The table request failed (${result.code}).` };
@@ -769,8 +769,13 @@
         return rows;
     }
 
-    function actionResultNotice(result, successMessage, failureLabel) {
-        if (result?.ok) return { view: 'game', type: 'status', message: successMessage };
+    function actionResultNotice(result, successMessage, failureLabel, options = {}) {
+        if (result?.ok) {
+            if (options.consoleAlreadyOwnsEvent !== true) {
+                root.CaissaFICSClient?.logToConsole?.(successMessage, options.origin || 'GAME');
+            }
+            return null;
+        }
         const code = result?.code || 'ACTION_UNAVAILABLE';
         return { view: 'game', type: 'error', message: `${failureLabel} (${code}).` };
     }
@@ -897,7 +902,7 @@
                 resignConfirmationKey = null;
                 actionNotice = actionResultNotice(result,
                     'Resign command delivered to the connection; FICS confirmation is pending.',
-                    'The resign command was not delivered');
+                    'The resign command was not delivered', { consoleAlreadyOwnsEvent: true });
                 render();
             });
             const cancel = appendText(confirmation, 'button', 'fics-rd4-action', 'Cancel', {
@@ -930,7 +935,7 @@
             const result = root.CaissaFICSClient?.offerDraw?.() || { ok: false, code: 'ACTION_UNAVAILABLE' };
             actionNotice = actionResultNotice(result,
                 'Draw offer delivered to the connection; FICS confirmation is pending.',
-                'The draw offer was not delivered');
+                'The draw offer was not delivered', { consoleAlreadyOwnsEvent: true });
             render();
         });
     }
@@ -948,7 +953,7 @@
         analyze.addEventListener('click', async () => {
             if (analyzeInFlightKey || !snapshot.capabilities.analyze) return;
             analyzeInFlightKey = currentKey;
-            actionNotice = { view: 'game', type: 'status', message: 'Preparing CAISSA Analyze…' };
+            actionNotice = null;
             render();
             const prepared = root.CaissaFICSAnalyzeHandoff?.prepare?.(snapshot, root.CaissaFICSClient)
                 || { ok: false, reasonCode: 'ANALYZE_HANDOFF_UNAVAILABLE' };

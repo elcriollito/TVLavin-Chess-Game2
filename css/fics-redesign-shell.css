@@ -78,15 +78,16 @@
 
 #ficsSection.fics-rd2-enabled .fics-pending-state {
     position: absolute;
-    z-index: 8;
-    top: 46px;
-    left: 8px;
-    right: 8px;
-    min-height: 0;
-    padding: 5px 8px;
-    border-radius: 6px;
-    background: rgba(11, 15, 26, 0.86);
-    pointer-events: none;
+    width: 1px;
+    height: 1px;
+    min-height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
 }
 
 #ficsSection.fics-rd2-enabled .fics-pending-state:empty {
