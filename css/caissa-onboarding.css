@@ -70,7 +70,7 @@
     cursor: pointer;
     padding: 0.5rem 1rem;
     border-radius: 4px;
-    transition: all 0.2s ease;
+    transition: color 0.2s ease, background-color 0.2s ease;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -200,7 +200,8 @@
     font-size: 1rem;
     font-weight: 600;
     border-radius: 8px;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease,
+        color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -277,9 +278,18 @@
 }
 
 /* Accessibility */
-.onboarding-modal:focus-within .onboarding-skip {
+.onboarding-content :is(button, a):focus-visible {
     outline: 2px solid var(--primary-color, #4a9eff);
     outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .onboarding-modal,
+    .onboarding-content,
+    .onboarding-icon {
+        animation: none;
+        transition: none;
+    }
 }
 
 /* Smooth Scrolling for Step Content */
