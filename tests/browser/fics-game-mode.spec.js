@@ -99,13 +99,17 @@ test('Resign is guarded and played-game delivery suppresses duplicate commands w
     await expect(page.getByRole('button', { name: 'Confirm Resign' })).toBeVisible();
     expect(await page.evaluate(() => window.__ficsWire)).toEqual([]);
     await page.getByRole('button', { name: 'Confirm Resign' }).click();
-    await expect(page.getByText('FICS confirmation is pending')).toBeVisible();
+    await expect(page.locator('[data-fics-body-view="game"]')).not.toContainText('FICS confirmation is pending');
+    expect(await page.evaluate(() => window.CaissaFICSClient.messageBuffer
+        .filter(message => message.includes('Resign command sent to FICS')))).toHaveLength(1);
     const duplicate = await page.evaluate(() => window.CaissaFICSClient.resign());
     expect(duplicate.code).toBe('ACTION_IN_PROGRESS');
     expect(await page.evaluate(() => window.__ficsWire)).toEqual(['resign']);
 
     await page.getByRole('button', { name: 'Offer Draw' }).click();
-    await expect(page.getByText('Draw offer delivered to the connection')).toBeVisible();
+    await expect(page.locator('[data-fics-body-view="game"]')).not.toContainText('Draw offer delivered to the connection');
+    expect(await page.evaluate(() => window.CaissaFICSClient.messageBuffer
+        .filter(message => message.includes('Draw offer sent to FICS')))).toHaveLength(1);
     expect(await page.evaluate(() => window.__ficsWire)).toEqual(['resign', 'draw']);
 });
 
